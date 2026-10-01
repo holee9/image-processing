@@ -1,0 +1,57 @@
+BUILD_EXIT=0
+arm no_duplicate_check dll exit=1
+arm no_duplicate_check oom exit=0
+[  FAILED  ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead
+[  FAILED  ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys
+[  FAILED  ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.TheInitConfigFollowsTheSameRule
+[  FAILED  ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage
+[  FAILED  ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused
+BUILD_EXIT=0
+arm blank_is_empty dll exit=1
+arm blank_is_empty oom exit=0
+[  FAILED  ] ConfigStrictParse.ABlankConfigBlockOfAFileIsRefusedButAnAbsentOneLoads
+[  FAILED  ] ConfigStrictParse.ABlankConfigTextSuppliedByTheCallerIsRefusedAndNullStillMeansTheDefaults
+[  FAILED  ] ConfigStrictParse.TheInitConfigFollowsTheSameRule
+BUILD_EXIT=0
+arm nested_keys_count dll exit=1
+arm nested_keys_count oom exit=0
+[  FAILED  ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead
+[  FAILED  ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys
+[  FAILED  ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.TheInitConfigFollowsTheSameRule
+[  FAILED  ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem
+[  FAILED  ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed
+[  FAILED  ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither
+BUILD_EXIT=0
+arm half_pair_ok dll exit=0
+arm half_pair_ok oom exit=0
+BUILD_EXIT=1
+D:\workspace-github\xpe-pre\modules\preprocess\src\xcal_writer.cpp(92): error C2220: 다음 경고는 오류로 처리됩니다.
+arm writer_always_comma: BUILD FAILED - arm invalid
+BUILD_EXIT=1
+D:\workspace-github\xpe-pre\modules\preprocess\src\nonlinearity_correct.cpp(387): error C2220: 다음 경고는 오류로 처리됩니다.
+arm nonlin_no_guard: BUILD FAILED - arm invalid
+BUILD_EXIT=0
+arm init_unchecked dll exit=1
+arm init_unchecked oom exit=0
+[  FAILED  ] ConfigStrictParse.TheInitConfigFollowsTheSameRule
+BUILD_EXIT=0
+arm block_length_zero_loose dll exit=1
+arm block_length_zero_loose oom exit=0
+[  FAILED  ] ConfigStrictParse.ABlankConfigBlockOfAFileIsRefusedButAnAbsentOneLoads
+RESTORED helpers.cpp
+RESTORED xcal_reader.cpp
+RESTORED xcal_writer.cpp
+RESTORED nonlinearity_correct.cpp
+RESTORED preprocess.cpp

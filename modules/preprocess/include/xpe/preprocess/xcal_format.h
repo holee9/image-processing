@@ -98,6 +98,12 @@ typedef enum XCalPixelFormat {
  *
  * This approach preserves the 152-byte header layout for backward compatibility.
  * Uncompressed files have no compression metadata in config_json.
+ *
+ * Reading rule (QA-A-209b): the config block is ONE valid JSON object, read to its stored length; the two keys are
+ * TOP-LEVEL members and each is a bare non-negative integer. A key of that name inside a nested object is not
+ * metadata. A member name given twice at the top level -- any name -- refuses the block. The pair is all or nothing:
+ * neither key means "uncompressed"; ONE key alone, a value that is not a bare unsigned integer, or a block that is not
+ * a JSON object (white space only included) is XPE_ERR_CONFIG_INVALID. A block of length 0 is a file without a config.
  */
 
 /* @MX:ANCHOR: [AUTO] XCalFileHeader -- canonical file format contract

@@ -1,0 +1,5 @@
+src/helpers.cpp:166:    const bool ok = nlohmann::json::sax_parse(json, end, &probe,
+src/helpers.cpp:229:            const double d = std::strtod(v.c_str(), &end);
+src/preprocess.cpp:57:            auto parsed = nlohmann::json::parse(configJsonOrNull,
+src/xcal_reader.cpp:66:    unsigned long method_val = std::strtoul(cfg.c_str() + pos, &endp, 10);
+src/xcal_reader.cpp:86:    unsigned long long raw_len_val = std::strtoull(cfg.c_str() + pos, &endp2, 10);

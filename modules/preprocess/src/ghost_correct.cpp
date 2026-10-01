@@ -46,21 +46,16 @@ XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
     const size_t pixelCount = static_cast<size_t>(width) * height;
 
     try {
-        // Parse config JSON for tier and IRF coefficients. An absent or empty value keeps the default. Every key is a
-        // TOP-LEVEL key of one valid JSON object; a key given twice, or a text that is not one, is a refusal
-        // (QA-A-209, xpe_config_get_string).
-        if (configJsonOrNull) {
-            std::string v;
-            const auto real = [&](const char* key, double* dst) -> XpeErrorCode {
-                const XpeErrorCode rc = xpe_config_get_string(configJsonOrNull, key, &v);
-                if (rc != XPE_OK) return rc;
-                if (!v.empty() && !xpe_strict::parse_double(v, dst)) return XPE_ERR_CONFIG_INVALID;
-                return XPE_OK;
-            };
-
-            XpeErrorCode rc = xpe_config_get_string(configJsonOrNull, "tier", &v);
+        // Parse config JSON for tier and IRF coefficients. An absent or empty value keeps the default. The text is
+        // parsed once into its top-level members; one that is not one valid JSON object, is empty, or gives a member
+        // name twice is a refusal (QA-A-209, QA-A-209b). NULL is every default.
+        {
+            XpeConfigDoc doc;
+            XpeErrorCode rc = xpe_config_parse(configJsonOrNull, &doc);
             if (rc != XPE_OK) return rc;
-            if (!v.empty()) {
+
+            std::string v;
+            if (doc.getString("tier", &v) && !v.empty()) {
                 int32_t tier = 1;
                 if (!xpe_strict::parse_int(v, &tier)) return XPE_ERR_CONFIG_INVALID;
                 handle->tier = (tier < 1 || tier > 3) ? 1 : tier;
@@ -70,8 +65,8 @@ XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
                 {"tau2", &handle->tau2}, {"tier2Threshold", &handle->tier2Threshold}, {"nlcscBeta", &handle->nlcscBeta},
             };
             for (const auto& r : reals) {
-                rc = real(r.key, r.dst);
-                if (rc != XPE_OK) return rc;
+                if (doc.getString(r.key, &v) && !v.empty() && !xpe_strict::parse_double(v, r.dst))
+                    return XPE_ERR_CONFIG_INVALID;
             }
         }
 

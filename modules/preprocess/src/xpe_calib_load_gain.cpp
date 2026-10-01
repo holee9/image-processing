@@ -98,28 +98,30 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
         // commit only moves pointers and copies plain values, and nothing after it may throw: a
         // throw once the first field was written reported OUT_OF_MEMORY for a store that had already
         // changed (QA-A-200, found by the allocation-failure sweep in test_oom_injection.cpp).
-        const std::string config_copy(config_json.begin(), config_json.end());
+        // The config block is parsed ONCE (QA-A-209b): one valid JSON object, top-level keys, no member name given twice;
+        // a block of length 0 is a file without one. Both the quality fields and the dose range are read from it.
+        XpeConfigDoc config;
+        {
+            const XpeErrorCode crc = xpe_config_parse_block(reinterpret_cast<const char*>(config_json.data()),
+                                                            config_json.size(), &config);
+            if (crc != XPE_OK) return crc;   // nothing has been committed
+        }
 
         // FUNC-033 (5): the quality metadata the file carries, so xpe_calib_get_quality_meta()
         // describes the calibration now in use. A file written before QA-A-35 has no such fields
         // and is loaded unchanged -- the call simply reports that it found none.
         XpeCalibQualityMeta quality{};
         bool quality_found = false;
-        const XpeErrorCode quality_rc = xpe_calib_parse_quality_meta_json(config_copy.data(), config_copy.size(), &quality, &quality_found);
+        const XpeErrorCode quality_rc = xpe_calib_parse_quality_meta(config, &quality, &quality_found);
         if (quality_rc != XPE_OK) return quality_rc;   // a malformed field: nothing has been committed
 
-        // QA-A-123 (#194): the fitted dose range, which bounds where the polynomial means anything.
-        // Absence is detected by asking twice with different defaults rather than by matching text --
-        // a key that is genuinely present answers the same both times.
+        // QA-A-123 (#194): the fitted dose range, which bounds where the polynomial means anything. Present only when
+        // both are top-level bare JSON numbers.
         double lo_a = -1.0, hi_a = -1.0;
         bool present = false, usable = false;
         if (is_poly) {
-            // Top-level keys of the config block (QA-A-209); a bare JSON number is "given", anything else is not.
-            bool has_lo = false, has_hi = false;
-            XpeErrorCode drc = xpe_config_get_double(config_copy.data(), config_copy.size(), "dose_min", &has_lo, &lo_a);
-            if (drc != XPE_OK) return drc;
-            drc = xpe_config_get_double(config_copy.data(), config_copy.size(), "dose_max", &has_hi, &hi_a);
-            if (drc != XPE_OK) return drc;
+            const bool has_lo = config.getNumber("dose_min", &lo_a);
+            const bool has_hi = config.getNumber("dose_max", &hi_a);
             present = has_lo && has_hi;
             usable  = present && (hi_a > lo_a);
         }

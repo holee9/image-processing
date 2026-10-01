@@ -2060,3 +2060,75 @@ TEST_F(OomPipeline, WithNoEarlierR2TheHistoryIsFlaggedAsNoneEvenWhenTheFirstReco
     EXPECT_EQ(1u, q.has_previous_r_squared);
     qcur::removeAll();
 }
+
+/* =========================================================================
+ * xpe_nonlinearity_correct, the stand-alone entry point (QA-A-209b, Codex #49 item 4; QA-A-201 survey)
+ * ========================================================================= */
+//
+// It had no guard, and the parsing of its configuration allocates (QA-A-209): a failed allocation was an exception
+// out of a C ABI function. It now returns XPE_ERR_OUT_OF_MEMORY and leaves the frame as it found it.
+
+namespace q209b {
+
+XpeImageBuffer buf(void* d, XpePixelFormat f, uint32_t bits) {
+    XpeImageBuffer b{};
+    b.data = d; b.width = W; b.height = H; b.bitsAllocated = bits; b.bitsStored = bits; b.format = f;
+    b.dataSize = static_cast<uint32_t>(N * (bits / 8));
+    return b;
+}
+
+}  // namespace q209b
+
+TEST_F(OomInjection, ANonlinearityCorrectionThatFailsLeavesTheFrameUntouchedAndNoExceptionEscapes) {
+    static const std::string cfg = "{\"panel.nonlinearity_mode\":\"POLY\",\"panel.nonlin_poly_c1\":2.0,\"panel.adc_max\":65535}";
+    static std::vector<uint16_t> px(N);
+    sweep("xpe_nonlinearity_correct", [] { xpe_preprocess_init(nullptr); },
+          [&] {
+              std::fill(px.begin(), px.end(), static_cast<uint16_t>(1000));
+              XpeImageBuffer img = q209b::buf(px.data(), XPE_PIXEL_UINT16, 16);
+              return xpe_nonlinearity_correct(&img, cfg.c_str());
+          },
+          /*unchangedOnError=*/false,
+          [&](XpeErrorCode rc) -> std::string {
+              bool same = true, doubled = true;
+              for (const uint16_t v : px) { same = same && v == 1000; doubled = doubled && v == 2000; }
+              if (rc == XPE_OK) return doubled ? std::string() : "the polynomial was not applied";
+              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure was reported as another error";
+              return same ? std::string() : "the frame was changed although the call failed";
+          });
+}
+
+TEST_F(OomInjection, ANonlinearityCorrectionWithTheLutPathThatFailsLeavesTheFrameUntouched) {
+    // the configuration names no polynomial, a table is loaded: the LUT path (a clamp-free identity-halving table)
+    {
+        std::vector<uint16_t> lut(4096u);
+        for (uint32_t i = 0; i < 4096u; ++i) lut[i] = static_cast<uint16_t>(i / 2u);
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version = XCAL_VERSION; hdr.type = static_cast<uint32_t>(XCAL_TYPE_NONLIN_LUT);
+        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_UINT16);
+        hdr.width = 4096; hdr.height = 1; hdr.payload_len = lut.size() * sizeof(uint16_t);
+        hdr.created_epoch_ms = 1700000000000ll;
+        std::remove("oom_nlut_halving.xcal");
+        ASSERT_EQ(XPE_OK, write_xcal_file("oom_nlut_halving.xcal", hdr, reinterpret_cast<const uint8_t*>("{}"), 2,
+                                          reinterpret_cast<const uint8_t*>(lut.data()), lut.size() * sizeof(uint16_t)));
+    }
+    static const std::string cfg = "{\"panel.linear\":\"false\",\"panel.target_platform\":\"CPU\"}";
+    static std::vector<uint16_t> px(N);
+    sweep("xpe_nonlinearity_correct (table)",
+          [] { xpe_preprocess_init(nullptr); EXPECT_EQ(XPE_OK, xpe_calib_load_nonlin_lut("oom_nlut_halving.xcal")); },
+          [&] {
+              std::fill(px.begin(), px.end(), static_cast<uint16_t>(1000));
+              XpeImageBuffer img = q209b::buf(px.data(), XPE_PIXEL_UINT16, 16);
+              return xpe_nonlinearity_correct(&img, cfg.c_str());
+          },
+          /*unchangedOnError=*/false,
+          [&](XpeErrorCode rc) -> std::string {
+              bool same = true, halved = true;
+              for (const uint16_t v : px) { same = same && v == 1000; halved = halved && v == 500; }
+              if (rc == XPE_OK) return halved ? std::string() : "the table was not applied";
+              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure was reported as another error";
+              return same ? std::string() : "the frame was changed although the call failed";
+          });
+    std::remove("oom_nlut_halving.xcal");
+}

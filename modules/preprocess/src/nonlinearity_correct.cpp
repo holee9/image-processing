@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstring>
 #include <mutex>
+#include <new>
 #include <string>
 #include <vector>
 
@@ -24,14 +25,6 @@
 //           when none is loaded (QA-A-127, #196)
 // @MX:SPEC: SRS-CALIB-FUNC-006-EXT 6a
 
-
-// Every top-level key this stage reads from the configuration; the pipeline checks them all before its first stage
-// (pipeline.cpp). The order is the order the code below indexes: 0..2 strings, 3..7 the polynomial, 8 adc_max.
-const char* const XPE_NONLINEARITY_CONFIG_KEYS[XPE_NONLINEARITY_CONFIG_KEY_COUNT] = {
-    "panel.linear", "panel.nonlinearity_mode", "panel.target_platform",
-    "panel.nonlin_poly_c0", "panel.nonlin_poly_c1", "panel.nonlin_poly_c2", "panel.nonlin_poly_c3", "panel.nonlin_poly_c4",
-    "panel.adc_max",
-};
 
 namespace {
 
@@ -49,31 +42,23 @@ namespace {
  *
  * @return XPE_OK                     applied (or nothing to do)
  *         XPE_ERR_INVALID_CALIB_DATA rejected -- caller falls back to 6a
- *         XPE_ERR_CONFIG_INVALID     a key given twice, or a config that is not one JSON object (QA-A-209)
  */
 XpeErrorCode xpe_nonlinearity_apply_polynomial(XpeImageBuffer* img,
-                                               const char* configJsonOrNull,
+                                               const XpeConfigDoc& doc,
                                                bool* changed)
 {
-    if (!configJsonOrNull) return XPE_ERR_INVALID_CALIB_DATA;
-
     // Degree 4 per 6b; FUNC-006 caps degree at 5. Every key defaults to 0, so
     // "all five absent" is indistinguishable from "all five zero" -- and both
     // are treated as NO COEFFICIENTS below rather than as the zero polynomial.
     // A profile naming POLY with no coefficients is a configuration error; the
     // zero polynomial would silently flatten every frame to 0.
     //
-    // QA-A-209: the keys are TOP-LEVEL keys of one valid JSON object (xpe_config_get_double); a key given twice, or
-    // a text that is not one, is XPE_ERR_CONFIG_INVALID -- which is not the "reject and fall back" code below, so it
-    // reaches the caller.
-    const size_t jsonLen = std::strlen(configJsonOrNull);
+    // QA-A-209: the keys are TOP-LEVEL numbers of the configuration, parsed once (xpe_config_parse): a bare JSON
+    // number is "given", anything else is not.
+    static const char* const kCoeffKeys[5] = {"panel.nonlin_poly_c0", "panel.nonlin_poly_c1", "panel.nonlin_poly_c2",
+                                              "panel.nonlin_poly_c3", "panel.nonlin_poly_c4"};
     double c[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
-    for (int i = 0; i < 5; ++i) {
-        bool present = false;
-        const XpeErrorCode rc =
-            xpe_config_get_double(configJsonOrNull, jsonLen, XPE_NONLINEARITY_CONFIG_KEYS[3 + i], &present, &c[i]);
-        if (rc != XPE_OK) return rc;
-    }
+    for (int i = 0; i < 5; ++i) (void)doc.getNumber(kCoeffKeys[i], &c[i]);
 
     const bool have_coeffs =
         (c[0] != 0.0 || c[1] != 0.0 || c[2] != 0.0 || c[3] != 0.0 || c[4] != 0.0);
@@ -98,12 +83,7 @@ XpeErrorCode xpe_nonlinearity_apply_polynomial(XpeImageBuffer* img,
     // buffer is uint16 and a 16-bit panel addresses the whole range, so the
     // default is the widest the pixel type can carry and the profile narrows it.
     double adc_max_cfg = 65535.0;
-    {
-        bool present = false;
-        const XpeErrorCode rc =
-            xpe_config_get_double(configJsonOrNull, jsonLen, XPE_NONLINEARITY_CONFIG_KEYS[8], &present, &adc_max_cfg);
-        if (rc != XPE_OK) return rc;
-    }
+    (void)doc.getNumber("panel.adc_max", &adc_max_cfg);
     const uint32_t adc_max =
         (adc_max_cfg >= 1.0 && adc_max_cfg <= 65535.0) ? static_cast<uint32_t>(adc_max_cfg) : 65535u;
 
@@ -160,6 +140,22 @@ XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img,
                                      const char* configJsonOrNull,
                                      bool* applied)
 {
+    if (applied) *applied = false;
+    if (!img) return XPE_ERR_INVALID_INPUT;
+    if (!xpe_buffer_has_format(img, XPE_PIXEL_UINT16)) return XPE_ERR_INVALID_INPUT;
+
+    // The configuration is parsed once, before anything is decided (QA-A-209, QA-A-209b): one that is not one valid
+    // JSON object, is empty, or gives a member name twice is XPE_ERR_CONFIG_INVALID and the frame is untouched.
+    XpeConfigDoc doc;
+    const XpeErrorCode rc = xpe_config_parse(configJsonOrNull, &doc);
+    if (rc != XPE_OK) return rc;
+    return xpe_nonlinearity_apply_doc(img, doc, applied);
+}
+
+XpeErrorCode xpe_nonlinearity_apply_doc(XpeImageBuffer* img,
+                                        const XpeConfigDoc& config,
+                                        bool* applied)
+{
     bool ignored = false;
     bool& changed = applied ? *applied : ignored;
     changed = false;
@@ -175,19 +171,10 @@ XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img,
     // profile governs enable/disable via field panel.linear = true/false". A
     // linear panel needs no correction, so the stage is skipped AND the frame
     // is not marked corrected -- the flag has to mean pixels changed (#184).
-    //
-    // QA-A-209: the three string keys are read together, before anything is decided, as TOP-LEVEL keys of one valid
-    // JSON object (xpe_config_get_string): a key given twice, or a text that is not one, is XPE_ERR_CONFIG_INVALID
-    // and the frame is untouched.
     std::string panel_linear, nonlin_mode, target_platform;
-    {
-        const XpeErrorCode rc0 = xpe_config_get_string(configJsonOrNull, XPE_NONLINEARITY_CONFIG_KEYS[0], &panel_linear);
-        if (rc0 != XPE_OK) return rc0;
-        const XpeErrorCode rc1 = xpe_config_get_string(configJsonOrNull, XPE_NONLINEARITY_CONFIG_KEYS[1], &nonlin_mode);
-        if (rc1 != XPE_OK) return rc1;
-        const XpeErrorCode rc2 = xpe_config_get_string(configJsonOrNull, XPE_NONLINEARITY_CONFIG_KEYS[2], &target_platform);
-        if (rc2 != XPE_OK) return rc2;
-    }
+    (void)config.getString("panel.linear", &panel_linear);
+    (void)config.getString("panel.nonlinearity_mode", &nonlin_mode);
+    (void)config.getString("panel.target_platform", &target_platform);
     if (panel_linear == "true") return XPE_OK;
 
     // -----------------------------------------------------------------------
@@ -213,7 +200,7 @@ XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img,
         (nonlin_mode == "POLY") || (nonlin_mode == "AUTO" && embedded_target);
 
     if (want_polynomial) {
-        const XpeErrorCode poly_rc = xpe_nonlinearity_apply_polynomial(img, configJsonOrNull, &changed);
+        const XpeErrorCode poly_rc = xpe_nonlinearity_apply_polynomial(img, config, &changed);
         // 6b step 5: "If polynomial is non-monotone in operational range,
         // reject and fallback to LUT method." XPE_ERR_INVALID_CALIB_DATA is
         // that rejection; anything else (applied, or no coefficients present)
@@ -391,5 +378,14 @@ XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img,
 XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
                                        const char* configJsonOrNull)
 {
-    return xpe_nonlinearity_apply(img, configJsonOrNull, nullptr);
+    // No exception leaves a C ABI function (QA-A-209b, QA-A-201 survey): parsing the configuration allocates, and a
+    // failed allocation is XPE_ERR_OUT_OF_MEMORY with the frame as the caller gave it (everything that can fail runs
+    // before the first pixel is written).
+    try {
+        return xpe_nonlinearity_apply(img, configJsonOrNull, nullptr);
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
 }

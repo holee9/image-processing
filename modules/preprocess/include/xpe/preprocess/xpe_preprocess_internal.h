@@ -109,51 +109,44 @@ float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
                              uint32_t x, uint32_t y,
                              uint32_t width, uint32_t height) noexcept;
 
-/** What xpe_json_top_level_scalar found for a key (QA-A-208). */
-enum class XpeJsonTop {
-    Absent,      ///< the text is empty, or its top-level object has no such key
-    Scalar,      ///< exactly one top-level key of that name, with a string or bare-token value (possibly empty)
-    NotScalar,   ///< exactly one, and its value is an object or an array
-    Duplicate,   ///< the top-level object has the key more than once
-    Malformed,   ///< not a JSON object, or it ends or breaks before the object closes
+/** One top-level member of a configuration object (QA-A-209b). */
+struct XpeConfigEntry {
+    std::string key;     ///< the member name, escapes interpreted
+    std::string text;    ///< a scalar's text: the string with its escapes interpreted, or the number/true/false/null token
+    bool scalar{false};  ///< the value is a string, a number, true, false or null (not an object or an array)
+    bool quoted{false};  ///< ... and it was a JSON string
 };
 
 /**
- * The top-level key `key` of the JSON OBJECT `json`, read from a PARSED text: nlohmann-json (the parser the
- * repository already carries, third_party/common/vcpkg.json) in its SAX mode, strict -- the whole text must be one
- * valid JSON object, with nothing after it, and the text is the `len` bytes given -- a NUL byte is not its end,
- * it is Malformed (QA-A-208c: nlohmann-json lexes a NUL outside a string as the end of the input, even in strict
- * mode, so it is refused before parsing). A NUL-terminated text is passed with its strlen. Keys are compared after their escapes are interpreted ("fit\u005fr_squared"
- * is fit_r_squared); the members of nested objects and arrays are not top-level keys; a key given twice at the top level
- * is Duplicate. An empty or all-white-space text is Absent; anything that is not valid JSON, or whose top level
- * is not an object, is Malformed. No exception for a malformed text; std::bad_alloc can still escape (the callers'
- * guards turn it into XPE_ERR_OUT_OF_MEMORY). The first occurrence of a quoted name anywhere in the text used to
- * be read, nested objects included (QA-A-208, Codex #34 B2; QA-A-209 for the configuration readers below).
- * `*value` is set for Scalar only: the string's text with its escapes interpreted, or the number/true/false/null
- * token (a float as written, an integer in decimal); `*quoted` (when given) then says whether it was a string.
- */
-XpeJsonTop xpe_json_top_level_scalar(const char* json, size_t len, const char* key, std::string* value,
-                                     bool* quoted = nullptr);
-
-/**
- * The readers of configuration JSON (QA-A-209): xpe_json_top_level_scalar with the error mapping every
- * configuration entry point shares. Rules (helpers.cpp, "Configuration JSON readers"): top-level keys only; a key
- * given twice, or a text that is not one valid JSON object, is XPE_ERR_CONFIG_INVALID; an absent key, a key only
- * inside a nested object, a value that is an object or array, and a null text are "not given" (XPE_OK, empty
- * value / *present false).
+ * A configuration text parsed ONCE into its top-level members (helpers.cpp, "Configuration JSON"). The rules, for
+ * every configuration this module reads -- the pipeline's, the ghost corrector's, the nonlinearity stage's, the offset
+ * generation's, and the config block of a calibration file:
+ *   - the text is ONE valid JSON object (nlohmann-json, strict, no comments, no NUL byte); a key is a TOP-LEVEL member,
+ *     and a name that appears only inside a nested object or array is not given
+ *   - a member name given twice at the top level -- ANY name, whatever the values -- is XPE_ERR_CONFIG_INVALID
+ *   - xpe_config_parse: a text the caller supplies. NULL is "no configuration" (an empty document); a text that is
+ *     empty or only white space is XPE_ERR_CONFIG_INVALID
+ *   - xpe_config_parse_block: a block stored with its length (an XCal file's config). Length 0 is "no block" (an empty
+ *     document); a block that is there is parsed like a text, so white space only is XPE_ERR_CONFIG_INVALID
+ * Parsing allocates and may throw std::bad_alloc (the callers' guards map it to XPE_ERR_OUT_OF_MEMORY); no exception for
+ * a malformed text.
  *
- * xpe_config_get_string: `*value` is the scalar's text ("" when not given; a string value may itself be empty -- the
- * callers read an empty value as not given). `*quoted`, when given, tells a JSON string from a bare token.
- * xpe_config_get_double: the text is `len` bytes (a calibration file's config block is stored with its length);
- * `*present` is true only for a bare JSON number, which is converted into `*value`.
- * Both take a NUL-terminated text or a length; both may throw std::bad_alloc (the callers' guards map it).
+ * Reading: getString gives the text of a scalar member (`*quoted` tells a JSON string from a bare token; an empty
+ * string is a value -- the callers that follow the pipeline's rule read it as "not given"); it is false for an absent
+ * member and for one whose value is an object or an array. getNumber is true only for a BARE JSON number, which is
+ * converted into `*value`; a string (however numeric), true, false, null, an object, an array or an absent member is
+ * not given.
  */
-XpeErrorCode xpe_config_get_string(const char* configJson, const char* key, std::string* value, bool* quoted = nullptr);
-XpeErrorCode xpe_config_get_double(const char* json, size_t len, const char* key, bool* present, double* value);
+struct XpeConfigDoc {
+    std::vector<XpeConfigEntry> entries;
 
-/** Every top-level key the nonlinearity stage reads from the configuration (nonlinearity_correct.cpp). */
-constexpr size_t XPE_NONLINEARITY_CONFIG_KEY_COUNT = 9;
-extern const char* const XPE_NONLINEARITY_CONFIG_KEYS[XPE_NONLINEARITY_CONFIG_KEY_COUNT];
+    const XpeConfigEntry* find(const std::string& key) const;
+    bool getString(const char* key, std::string* value, bool* quoted = nullptr) const;
+    bool getNumber(const char* key, double* value) const;
+};
+
+XpeErrorCode xpe_config_parse(const char* text, XpeConfigDoc* doc);
+XpeErrorCode xpe_config_parse_block(const char* text, size_t len, XpeConfigDoc* doc);
 
 /**
  * @brief xpe_nonlinearity_correct with a report of whether pixels were corrected.
@@ -179,6 +172,9 @@ extern const char* const XPE_NONLINEARITY_CONFIG_KEYS[XPE_NONLINEARITY_CONFIG_KE
  */
 XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img, const char* configJsonOrNull,
                                     bool* applied);
+
+/** xpe_nonlinearity_apply for a configuration that is already parsed (the pipeline parses its configuration once). */
+XpeErrorCode xpe_nonlinearity_apply_doc(XpeImageBuffer* img, const XpeConfigDoc& config, bool* applied);
 
 
 /* =========================================================================
@@ -620,22 +616,18 @@ constexpr double XPE_R_SQUARED_NOT_GIVEN = -1.0;
  * (r_squared / previous_r_squared -1.0, the rest 0) rather than failing the
  * load.
  *
- * Parsing allocates and may throw std::bad_alloc; nothing is changed until
- * xpe_calib_commit_quality_meta_locked().
+ * Nothing is changed until xpe_calib_commit_quality_meta_locked().
  *
- * A field that is present and is not a number in range (an integer in [0, 255] for the three uint8
- * fields, a finite number for fit_r_squared; notation as for the pipeline configuration) is
- * XPE_ERR_CONFIG_INVALID (QA-A-204, #233) -- it used to be read as 0 or truncated, silently.
+ * A field that is present and is not a number in the range it has by definition (fit_r_squared at most 1.0;
+ * polynomial_degree 0..4; actual_dose_levels 1..10; calibration_mode 0..4) is XPE_ERR_CONFIG_INVALID (QA-A-204,
+ * QA-A-208c) -- it used to be read as 0 or truncated, silently.
  *
- * @param configJson The config JSON, or nullptr for none: `len` bytes, NOT NUL-terminated text -- the config block
- *                   of an XCal file is stored with its length, may hold any byte, and is parsed to its end
- *                   (QA-A-208c, Codex #43: a NUL in the block used to end the text and hide what followed).
- * @param len        Length of configJson in bytes.
- * @param out        Receives the parsed metadata when *found is true.
- * @param found      Set to true when at least one FUNC-033 field was present (and all were valid).
+ * @param config The file's config block, parsed once (xpe_config_parse_block): one valid JSON object, top-level keys.
+ * @param out    Receives the parsed metadata when *found is true.
+ * @param found  Set to true when at least one FUNC-033 field was present (and all were valid).
  * @return XPE_OK, XPE_ERR_CONFIG_INVALID for a malformed field, XPE_ERR_INVALID_INPUT for a null argument.
  */
-XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, size_t len, XpeCalibQualityMeta* out, bool* found);
+XpeErrorCode xpe_calib_parse_quality_meta(const XpeConfigDoc& config, XpeCalibQualityMeta* out, bool* found);
 
 /**
  * @brief Make parsed FUNC-033 metadata the one xpe_calib_get_quality_meta() serves; the caller holds g_calib_mutex.

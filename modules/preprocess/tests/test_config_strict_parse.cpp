@@ -890,6 +890,8 @@ const CfgRow kCfgRows[] = {
     {"given twice at the top level (two neutral values)", "{~,\"@\":%,\"@\":%}", Kind::Refused},
     {"given twice at the top level (effect, then neutral)", "{~,\"@\":$,\"@\":%}", Kind::Refused},
     {"given twice at the top level, a nested one between", "{~,\"@\":%,\"nested\":{\"@\":$},\"@\":%}", Kind::Refused},
+    {"an unknown key given twice at the top level (QA-A-209b)", "{~,\"future\":1,\"future\":2}", Kind::Refused},
+    {"an unknown key given twice, object values", "{~,\"future\":{},\"future\":[]}", Kind::Refused},
     {"the object is not closed", "{~,\"@\":%", Kind::Refused},
     {"the top level is an array", "[{~,\"@\":%}]", Kind::Refused},
     {"text after the object", "{~,\"@\":%} x", Kind::Refused},
@@ -1182,6 +1184,100 @@ TEST_F(ConfigStrictParse, TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLe
         return Observation{rc, false, px[0] == 500u};                      // a failed load left the halving table in place
     };
     runTopRows(p);
+}
+
+// QA-A-209b (Codex #49): a configuration the caller supplies is ONE valid JSON object, so a text that is empty or
+// only white space is not a configuration -- NULL is the way to say "no configuration". It used to be read as "no
+// keys" and every default applied. The config block stored in an XCal file is another thing: a block of length 0 is
+// a file without one (every file from before the quality fields), and loads; a block that is there but only white
+// space is not an object.
+TEST_F(ConfigStrictParse, ABlankConfigTextSuppliedByTheCallerIsRefusedAndNullStillMeansTheDefaults) {
+    const std::vector<Probe> probes = [] {
+        std::vector<Probe> v;
+        for (const char* entry : {"pipeline", "pipeline_ex", "pipeline_batch"}) {
+            v.push_back(pipelineProbe(entry, "bypassOffset", "true", "false", XPE_OK, XPE_ERR_CALIB_NOT_LOADED));
+        }
+        v.push_back(ghostProbe("alpha1", "\"abc\"", "0.5"));
+        v.push_back(nonlinProbe("panel.linear", "\"true\"", "\"false\"", "", false));
+        Probe gen;
+        gen.name = "xpe_calib_generate_offset"; gen.key = "sigma"; gen.on = "-1"; gen.off = "3.0";
+        gen.run = [](const std::string& json) {
+            const std::string out = "csp_offset_blank.xcal";
+            std::remove(out.c_str());
+            std::vector<std::vector<uint16_t>> frames{std::vector<uint16_t>(N, 100), std::vector<uint16_t>(N, 110),
+                                                     std::vector<uint16_t>(N, 105)};
+            std::vector<XpeImageBuffer> bufs;
+            for (auto& f : frames) bufs.push_back(buf(f.data(), XPE_PIXEL_UINT16, 16));
+            const XpeErrorCode rc = xpe_calib_generate_offset(bufs.data(), 3, 100.0f, 25.0f, out.c_str(), json.c_str());
+            const bool wrote = fs::exists(out);
+            std::remove(out.c_str());
+            return Observation{rc, false, !wrote};
+        };
+        v.push_back(gen);
+        return v;
+    }();
+    for (const Probe& p : probes) {
+        for (const char* blank : {"", " ", "   ", "\n", "\t \r\n "}) {
+            SCOPED_TRACE(p.name + ": blank text of " + std::to_string(std::strlen(blank)) + " byte(s)");
+            bool threw = false;
+            Observation o{};
+            callSafely([&] { o = p.run(blank); return o.rc; }, &threw);
+            EXPECT_FALSE(threw);
+            EXPECT_EQ(XPE_ERR_CONFIG_INVALID, o.rc) << "a blank text is not a configuration";
+            EXPECT_TRUE(o.unchanged) << "a refused configuration changed something";
+        }
+    }
+}
+
+TEST_F(ConfigStrictParse, ABlankConfigBlockOfAFileIsRefusedButAnAbsentOneLoads) {
+    // length 0: no block at all -- the file loads and the quality record is "none"
+    writeGainWithConfig("csp_gx.xcal", 2.0f, "");
+    EXPECT_EQ(XPE_OK, xpe_calib_load_gain("csp_gx.xcal"));
+    XpeCalibQualityMeta q{};
+    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&q));
+    EXPECT_EQ(0u, q.valid);
+    // a block that is there and holds only white space is not one valid JSON object
+    writeGainWithConfig("csp_gq.xcal", 4.0f, "{}");
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csp_gq.xcal"));
+    for (const char* blank : {" ", "   ", "\n", "\t \r\n "}) {
+        SCOPED_TRACE(std::string("a block of ") + std::to_string(std::strlen(blank)) + " white-space byte(s)");
+        writeGainWithConfig("csp_gx.xcal", 2.0f, blank);
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_calib_load_gain("csp_gx.xcal"));
+        EXPECT_NEAR(250.0f, gainResult(), 0.01f) << "a refused file must not have replaced the gain map";
+    }
+    // the same for a nonlinearity table
+    writeLut("csp_gq.xcal", true, "");
+    EXPECT_EQ(XPE_OK, xpe_calib_load_nonlin_lut("csp_gq.xcal"));
+    writeLut("csp_gx.xcal", false, "   ");
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_calib_load_nonlin_lut("csp_gx.xcal"));
+}
+
+TEST_F(ConfigStrictParse, TheInitConfigFollowsTheSameRule) {
+    xpe_preprocess_shutdown();
+    // each of these is refused, and a refused init leaves the module down
+    for (const char* bad : {"", " ", "\n\t", "[]", "{\"mode\":\"a\"} x", "{\"future\":1,\"future\":2}", "{\"a\":1,}"}) {
+        SCOPED_TRACE(std::string("init text: [") + bad + "]");
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_preprocess_init(bad));
+        EXPECT_FALSE(xpe_preprocess_is_initialized());
+    }
+    EXPECT_EQ(XPE_OK, xpe_preprocess_init("{\"mode\":\"clinical\",\"nested\":{\"a\":1},\"other\":{\"a\":2}}"));
+    xpe_preprocess_shutdown();
+    EXPECT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+}
+
+// A bare token that is not a JSON number is not JSON: it used to be read by strtod (or ignored), it is now refused.
+TEST_F(ConfigStrictParse, ANumberKeyThatIsNotAJsonNumberIsRefusedNotReadByStrtod) {
+    std::vector<std::vector<uint16_t>> frames{std::vector<uint16_t>(N, 100), std::vector<uint16_t>(N, 110),
+                                             std::vector<uint16_t>(N, 105)};
+    std::vector<XpeImageBuffer> bufs;
+    for (auto& f : frames) bufs.push_back(buf(f.data(), XPE_PIXEL_UINT16, 16));
+    for (const char* json : {"{\"method\":\"sigma_clip\",\"sigma\":+2}", "{\"sigma\":.5}", "{\"sigma\":NaN}", "{\"sigma\":0x10}"}) {
+        SCOPED_TRACE(json);
+        const std::string out = "csp_offset_tok.xcal";
+        std::remove(out.c_str());
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_calib_generate_offset(bufs.data(), 3, 100.0f, 25.0f, out.c_str(), json));
+        EXPECT_FALSE(fs::exists(out));
+    }
 }
 
 TEST_F(ConfigStrictParse, ANullConfigPointerStillMeansTheDefaults) {

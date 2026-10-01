@@ -58,14 +58,15 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_nonlin_lut(const char* filepath) 
         // Absent (an older file, or one from another tool) reads as 0 from the
         // helper's default; treat that as "the whole table is measured" rather
         // than rejecting, but a value past the end is a corrupt record.
-        const std::string json(config_json.begin(), config_json.end());
-        double ext = 0.0;
+        XpeConfigDoc config;
         {
-            bool ext_present = false;
-            const XpeErrorCode erc = xpe_config_get_double(json.data(), json.size(), "xcal_nonlin_extension_start",
-                                                           &ext_present, &ext);
-            if (erc != XPE_OK) return erc;   // a top-level key given twice, or a config that is not a JSON object (QA-A-209)
+            // one valid JSON object, top-level keys, no member name given twice (QA-A-209, QA-A-209b); length 0 is no block
+            const XpeErrorCode crc = xpe_config_parse_block(reinterpret_cast<const char*>(config_json.data()),
+                                                            config_json.size(), &config);
+            if (crc != XPE_OK) return crc;
         }
+        double ext = 0.0;
+        (void)config.getNumber("xcal_nonlin_extension_start", &ext);
         if (ext < 0.0 || ext > static_cast<double>(entries)) {
             return XPE_ERR_INVALID_CALIB_DATA;
         }

@@ -1,0 +1,6 @@
+'vswhere.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+배치 파일이 아닙니다.
+build=0
+rc=0  1.99 us per pipeline call (8 bypass flags, 8x8 frame, nothing else runs)
+rc=0  1.93 us per pipeline call (8 bypass flags, 8x8 frame, nothing else runs)
+rc=0  1.87 us per pipeline call (8 bypass flags, 8x8 frame, nothing else runs)

@@ -17,6 +17,7 @@
 #include "xcal_validator.hpp"
 #include "xpe_sha256.hpp"
 #include "rle_codec.hpp"
+#include "xpe/preprocess/xpe_preprocess_internal.h"
 
 #include <algorithm>
 #include <fstream>
@@ -29,67 +30,50 @@
 // Resolution is milliseconds (epoch_ms). Non-monotonic but
 // consistent with XCal v1 created_epoch_ms semantics.
 
-// Internal helper: parse compression metadata from config_json.
-// Returns true if compression metadata found and valid.
-// Sets out_method and out_raw_payload_len.
-static bool parse_compression_meta(
+// Internal helper: read the compression metadata of an XCal config block (QA-A-209b, Codex #49).
+//
+// The block is ONE valid JSON object (xpe_config_parse_block); the metadata is the pair of TOP-LEVEL keys
+// "xcal_compression" and "xcal_raw_payload_len", each a bare non-negative integer. A key inside a nested object is
+// not metadata, a key given twice (any key) refuses the block, and half a pair is a refusal: the writer always makes
+// both, so one alone is a damaged or hand-made block, not "uncompressed". A block of length 0 is a file without
+// metadata. `*is_compressed` is false when neither key is there.
+static XpeErrorCode parse_compression_meta(
     const uint8_t* config_json,
     size_t config_len,
+    bool& is_compressed,
     uint32_t& out_method,
     uint64_t& out_raw_payload_len)
 {
-    if (config_json == nullptr || config_len == 0) {
-        return false;
-    }
+    is_compressed = false;
+    XpeConfigDoc doc;
+    const XpeErrorCode rc = xpe_config_parse_block(reinterpret_cast<const char*>(config_json), config_len, &doc);
+    if (rc != XPE_OK) return rc;
 
-    // Simple substring search for "xcal_compression" field
-    // We avoid full JSON parsing to minimize dependencies.
-    std::string cfg(reinterpret_cast<const char*>(config_json), config_len);
+    const XpeConfigEntry* method = doc.find("xcal_compression");
+    const XpeConfigEntry* raw = doc.find("xcal_raw_payload_len");
+    if (method == nullptr && raw == nullptr) return XPE_OK;
+    if (method == nullptr || raw == nullptr) return XPE_ERR_CONFIG_INVALID;
 
-    // Find "xcal_compression":
-    const char key_compression[] = "\"xcal_compression\":";
-    size_t pos = cfg.find(key_compression);
-    if (pos == std::string::npos) {
-        return false;
-    }
-
-    // Parse the integer value after the key
-    pos += sizeof(key_compression) - 1;
-    // Skip whitespace
-    while (pos < cfg.size() && (cfg[pos] == ' ' || cfg[pos] == '\t')) {
-        ++pos;
-    }
-    if (pos >= cfg.size() || cfg[pos] < '0' || cfg[pos] > '9') {
-        return false;
-    }
-    char* endp = nullptr;
-    unsigned long method_val = std::strtoul(cfg.c_str() + pos, &endp, 10);
-    if (endp == cfg.c_str() + pos) {
-        return false;
-    }
-    out_method = static_cast<uint32_t>(method_val);
-
-    // Find "xcal_raw_payload_len":
-    const char key_raw_len[] = "\"xcal_raw_payload_len\":";
-    pos = cfg.find(key_raw_len);
-    if (pos == std::string::npos) {
-        return false;
-    }
-    pos += sizeof(key_raw_len) - 1;
-    while (pos < cfg.size() && (cfg[pos] == ' ' || cfg[pos] == '\t')) {
-        ++pos;
-    }
-    if (pos >= cfg.size() || cfg[pos] < '0' || cfg[pos] > '9') {
-        return false;
-    }
-    char* endp2 = nullptr;
-    unsigned long long raw_len_val = std::strtoull(cfg.c_str() + pos, &endp2, 10);
-    if (endp2 == cfg.c_str() + pos) {
-        return false;
-    }
-    out_raw_payload_len = static_cast<uint64_t>(raw_len_val);
-
-    return true;
+    // a bare run of decimal digits that fits: not a string, not a sign, not a fraction or exponent
+    auto unsignedInteger = [](const XpeConfigEntry* e, unsigned long long limit, unsigned long long* v) {
+        if (!e->scalar || e->quoted || e->text.empty() || e->text.size() > 20) return false;
+        unsigned long long n = 0;
+        for (const char ch : e->text) {
+            if (ch < '0' || ch > '9') return false;
+            const unsigned d = static_cast<unsigned>(ch - '0');
+            if (n > (limit - d) / 10) return false;
+            n = n * 10 + d;
+        }
+        *v = n;
+        return true;
+    };
+    unsigned long long m = 0, r = 0;
+    if (!unsignedInteger(method, 0xFFFFFFFFull, &m)) return XPE_ERR_CONFIG_INVALID;
+    if (!unsignedInteger(raw, 0xFFFFFFFFFFFFFFFFull, &r)) return XPE_ERR_CONFIG_INVALID;
+    out_method = static_cast<uint32_t>(m);
+    out_raw_payload_len = static_cast<uint64_t>(r);
+    is_compressed = true;
+    return XPE_OK;
 }
 
 // Payload read granularity. 1 MiB keeps the file buffer and the hash input in
@@ -141,11 +125,15 @@ XpeErrorCode read_xcal_file(
         }
 
         // Check compression metadata
-        is_compressed = parse_compression_meta(
-            config.empty() ? nullptr : config.data(),
-            config.size(),
-            compression_method,
-            raw_payload_len);
+        {
+            const XpeErrorCode mrc = parse_compression_meta(
+                config.empty() ? nullptr : config.data(),
+                config.size(),
+                is_compressed,
+                compression_method,
+                raw_payload_len);
+            if (mrc != XPE_OK) return mrc;
+        }
 
         // Validate header (skip payload_len check for compressed data)
         // For compressed files, we need relaxed validation

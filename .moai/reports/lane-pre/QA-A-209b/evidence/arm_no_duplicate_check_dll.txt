@@ -1,0 +1,2283 @@
+Note: Google Test filter = ConfigStrictParse.*:XCalCompression*:*XpePreprocessInit*:PreprocessInit*
+[==========] Running 41 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 7 tests from XCalCompressionTest
+[ RUN      ] XCalCompressionTest.WriteCompressed_ReadBack_BitIdentical
+[       OK ] XCalCompressionTest.WriteCompressed_ReadBack_BitIdentical (6 ms)
+[ RUN      ] XCalCompressionTest.CompressedFile_SmallerThanUncompressed
+[       OK ] XCalCompressionTest.CompressedFile_SmallerThanUncompressed (6 ms)
+[ RUN      ] XCalCompressionTest.CompressedWithCallerConfig_MetadataMerged
+[       OK ] XCalCompressionTest.CompressedWithCallerConfig_MetadataMerged (6 ms)
+[ RUN      ] XCalCompressionTest.Compressed_TypeMismatch_ConfigInvalid
+[       OK ] XCalCompressionTest.Compressed_TypeMismatch_ConfigInvalid (1 ms)
+[ RUN      ] XCalCompressionTest.UncompressedDefect_StillReadsCorrectly
+[       OK ] XCalCompressionTest.UncompressedDefect_StillReadsCorrectly (12 ms)
+[ RUN      ] XCalCompressionTest.CompressOffsetType_PayloadNotCompressed
+[       OK ] XCalCompressionTest.CompressOffsetType_PayloadNotCompressed (7 ms)
+[ RUN      ] XCalCompressionTest.WorstCaseInput_FallbackToUncompressed
+[       OK ] XCalCompressionTest.WorstCaseInput_FallbackToUncompressed (7 ms)
+[----------] 7 tests from XCalCompressionTest (48 ms total)
+
+[----------] 6 tests from XCalCompressionMetaTest
+[ RUN      ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed
+[       OK ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed (7 ms)
+[ RUN      ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither
+[       OK ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither (11 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem
+[       OK ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem (6 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(549): error: Expected equality of these values:
+  -4
+  readDefect()
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(547): {"xcal_compression":1,"xcal_compression":1,"xcal_raw_payload_len":4096}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(549): error: Expected equality of these values:
+  -4
+  readDefect()
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(547): {"xcal_compression":1,"xcal_raw_payload_len":4096,"xcal_raw_payload_len":4096}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(549): error: Expected equality of these values:
+  -4
+  readDefect()
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(547): {"xcal_compression":1,"xcal_raw_payload_len":4096,"future":1,"future":2}
+
+[  FAILED  ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused (4 ms)
+[ RUN      ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused
+[       OK ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused (8 ms)
+[ RUN      ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo
+[       OK ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo (20 ms)
+[----------] 6 tests from XCalCompressionMetaTest (60 ms total)
+
+[----------] 28 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+[       OK ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[       OK ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (2 ms)
+[ RUN      ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+[       OK ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+[       OK ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore (31 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore (20 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule
+[       OK ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule (7 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(560): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): fit_r_squared: the top-level key given twice, both valid: refused  {"fit_r_squared":0.75,"fit_r_squared":0.75}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(561): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: 0.75
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): fit_r_squared: the top-level key given twice, both valid: refused  {"fit_r_squared":0.75,"fit_r_squared":0.75}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(562): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): fit_r_squared: the top-level key given twice, both valid: refused  {"fit_r_squared":0.75,"fit_r_squared":0.75}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(563): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): fit_r_squared: the top-level key given twice, both valid: refused  {"fit_r_squared":0.75,"fit_r_squared":0.75}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(564): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): fit_r_squared: the top-level key given twice, both valid: refused  {"fit_r_squared":0.75,"fit_r_squared":0.75}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(565): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): fit_r_squared: the top-level key given twice, both valid: refused  {"fit_r_squared":0.75,"fit_r_squared":0.75}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(560): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): fit_r_squared: the top-level key given twice, the first valid: refused  {"fit_r_squared":0.75,"x":0,"fit_r_squared":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(561): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: 0.75
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): fit_r_squared: the top-level key given twice, the first valid: refused  {"fit_r_squared":0.75,"x":0,"fit_r_squared":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(562): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): fit_r_squared: the top-level key given twice, the first valid: refused  {"fit_r_squared":0.75,"x":0,"fit_r_squared":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(563): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): fit_r_squared: the top-level key given twice, the first valid: refused  {"fit_r_squared":0.75,"x":0,"fit_r_squared":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(564): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): fit_r_squared: the top-level key given twice, the first valid: refused  {"fit_r_squared":0.75,"x":0,"fit_r_squared":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(565): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): fit_r_squared: the top-level key given twice, the first valid: refused  {"fit_r_squared":0.75,"x":0,"fit_r_squared":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(560): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): polynomial_degree: the top-level key given twice, both valid: refused  {"polynomial_degree":3,"polynomial_degree":3}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(561): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: -1
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): polynomial_degree: the top-level key given twice, both valid: refused  {"polynomial_degree":3,"polynomial_degree":3}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(562): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): polynomial_degree: the top-level key given twice, both valid: refused  {"polynomial_degree":3,"polynomial_degree":3}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(563): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): polynomial_degree: the top-level key given twice, both valid: refused  {"polynomial_degree":3,"polynomial_degree":3}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(564): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): polynomial_degree: the top-level key given twice, both valid: refused  {"polynomial_degree":3,"polynomial_degree":3}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(565): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): polynomial_degree: the top-level key given twice, both valid: refused  {"polynomial_degree":3,"polynomial_degree":3}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(560): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): polynomial_degree: the top-level key given twice, the first valid: refused  {"polynomial_degree":3,"x":0,"polynomial_degree":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(561): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: -1
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): polynomial_degree: the top-level key given twice, the first valid: refused  {"polynomial_degree":3,"x":0,"polynomial_degree":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(562): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): polynomial_degree: the top-level key given twice, the first valid: refused  {"polynomial_degree":3,"x":0,"polynomial_degree":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(563): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): polynomial_degree: the top-level key given twice, the first valid: refused  {"polynomial_degree":3,"x":0,"polynomial_degree":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(564): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): polynomial_degree: the top-level key given twice, the first valid: refused  {"polynomial_degree":3,"x":0,"polynomial_degree":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(565): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): polynomial_degree: the top-level key given twice, the first valid: refused  {"polynomial_degree":3,"x":0,"polynomial_degree":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(560): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): actual_dose_levels: the top-level key given twice, both valid: refused  {"actual_dose_levels":7,"actual_dose_levels":7}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(561): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: -1
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): actual_dose_levels: the top-level key given twice, both valid: refused  {"actual_dose_levels":7,"actual_dose_levels":7}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(562): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): actual_dose_levels: the top-level key given twice, both valid: refused  {"actual_dose_levels":7,"actual_dose_levels":7}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(563): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\a' (7)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): actual_dose_levels: the top-level key given twice, both valid: refused  {"actual_dose_levels":7,"actual_dose_levels":7}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(564): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): actual_dose_levels: the top-level key given twice, both valid: refused  {"actual_dose_levels":7,"actual_dose_levels":7}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(565): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): actual_dose_levels: the top-level key given twice, both valid: refused  {"actual_dose_levels":7,"actual_dose_levels":7}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(560): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): actual_dose_levels: the top-level key given twice, the first valid: refused  {"actual_dose_levels":7,"x":0,"actual_dose_levels":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(561): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: -1
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): actual_dose_levels: the top-level key given twice, the first valid: refused  {"actual_dose_levels":7,"x":0,"actual_dose_levels":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(562): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): actual_dose_levels: the top-level key given twice, the first valid: refused  {"actual_dose_levels":7,"x":0,"actual_dose_levels":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(563): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\a' (7)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): actual_dose_levels: the top-level key given twice, the first valid: refused  {"actual_dose_levels":7,"x":0,"actual_dose_levels":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(564): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): actual_dose_levels: the top-level key given twice, the first valid: refused  {"actual_dose_levels":7,"x":0,"actual_dose_levels":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(565): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): actual_dose_levels: the top-level key given twice, the first valid: refused  {"actual_dose_levels":7,"x":0,"actual_dose_levels":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(560): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): calibration_mode: the top-level key given twice, both valid: refused  {"calibration_mode":4,"calibration_mode":4}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(561): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: -1
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): calibration_mode: the top-level key given twice, both valid: refused  {"calibration_mode":4,"calibration_mode":4}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(562): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): calibration_mode: the top-level key given twice, both valid: refused  {"calibration_mode":4,"calibration_mode":4}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(563): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): calibration_mode: the top-level key given twice, both valid: refused  {"calibration_mode":4,"calibration_mode":4}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(564): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\x4' (4)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): calibration_mode: the top-level key given twice, both valid: refused  {"calibration_mode":4,"calibration_mode":4}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(565): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): calibration_mode: the top-level key given twice, both valid: refused  {"calibration_mode":4,"calibration_mode":4}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(560): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): calibration_mode: the top-level key given twice, the first valid: refused  {"calibration_mode":4,"x":0,"calibration_mode":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(561): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: -1
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): calibration_mode: the top-level key given twice, the first valid: refused  {"calibration_mode":4,"x":0,"calibration_mode":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(562): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): calibration_mode: the top-level key given twice, the first valid: refused  {"calibration_mode":4,"x":0,"calibration_mode":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(563): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): calibration_mode: the top-level key given twice, the first valid: refused  {"calibration_mode":4,"x":0,"calibration_mode":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(564): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\x4' (4)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): calibration_mode: the top-level key given twice, the first valid: refused  {"calibration_mode":4,"x":0,"calibration_mode":"bad"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(565): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): calibration_mode: the top-level key given twice, the first valid: refused  {"calibration_mode":4,"x":0,"calibration_mode":"bad"}
+
+[  FAILED  ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly (141 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(676): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, once escaped: a duplicate  {"fit_r_squared":0.75,"fit\u005fr_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(677): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: 0.75
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, once escaped: a duplicate  {"fit_r_squared":0.75,"fit\u005fr_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(678): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, once escaped: a duplicate  {"fit_r_squared":0.75,"fit\u005fr_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(679): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, once escaped: a duplicate  {"fit_r_squared":0.75,"fit\u005fr_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(680): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, once escaped: a duplicate  {"fit_r_squared":0.75,"fit\u005fr_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(681): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, once escaped: a duplicate  {"fit_r_squared":0.75,"fit\u005fr_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(676): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, escaped first: a duplicate  {"fit\u005fr_squared":0.75,"fit_r_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(677): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: 0.75
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, escaped first: a duplicate  {"fit\u005fr_squared":0.75,"fit_r_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(678): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, escaped first: a duplicate  {"fit\u005fr_squared":0.75,"fit_r_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(679): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, escaped first: a duplicate  {"fit\u005fr_squared":0.75,"fit_r_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(680): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, escaped first: a duplicate  {"fit\u005fr_squared":0.75,"fit_r_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(681): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, escaped first: a duplicate  {"fit\u005fr_squared":0.75,"fit_r_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(676): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, both escaped: a duplicate  {"fit\u005fr_squared":0.75,"fit\u005fr_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(677): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: 0.75
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, both escaped: a duplicate  {"fit\u005fr_squared":0.75,"fit\u005fr_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(678): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, both escaped: a duplicate  {"fit\u005fr_squared":0.75,"fit\u005fr_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(679): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, both escaped: a duplicate  {"fit\u005fr_squared":0.75,"fit\u005fr_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(680): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, both escaped: a duplicate  {"fit\u005fr_squared":0.75,"fit\u005fr_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(681): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: the key twice, both escaped: a duplicate  {"fit\u005fr_squared":0.75,"fit\u005fr_squared":0.25}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(676): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, once escaped: a duplicate  {"polynomial_degree":3,"polynomial\u005fdegree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(677): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: -1
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, once escaped: a duplicate  {"polynomial_degree":3,"polynomial\u005fdegree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(678): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, once escaped: a duplicate  {"polynomial_degree":3,"polynomial\u005fdegree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(679): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, once escaped: a duplicate  {"polynomial_degree":3,"polynomial\u005fdegree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(680): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, once escaped: a duplicate  {"polynomial_degree":3,"polynomial\u005fdegree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(681): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, once escaped: a duplicate  {"polynomial_degree":3,"polynomial\u005fdegree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(676): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, escaped first: a duplicate  {"polynomial\u005fdegree":3,"polynomial_degree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(677): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: -1
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, escaped first: a duplicate  {"polynomial\u005fdegree":3,"polynomial_degree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(678): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, escaped first: a duplicate  {"polynomial\u005fdegree":3,"polynomial_degree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(679): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, escaped first: a duplicate  {"polynomial\u005fdegree":3,"polynomial_degree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(680): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, escaped first: a duplicate  {"polynomial\u005fdegree":3,"polynomial_degree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(681): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, escaped first: a duplicate  {"polynomial\u005fdegree":3,"polynomial_degree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(676): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, both escaped: a duplicate  {"polynomial\u005fdegree":3,"polynomial\u005fdegree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(677): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: -1
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, both escaped: a duplicate  {"polynomial\u005fdegree":3,"polynomial\u005fdegree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(678): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, both escaped: a duplicate  {"polynomial\u005fdegree":3,"polynomial\u005fdegree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(679): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, both escaped: a duplicate  {"polynomial\u005fdegree":3,"polynomial\u005fdegree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(680): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, both escaped: a duplicate  {"polynomial\u005fdegree":3,"polynomial\u005fdegree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(681): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): polynomial_degree: the key twice, both escaped: a duplicate  {"polynomial\u005fdegree":3,"polynomial\u005fdegree":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(676): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, once escaped: a duplicate  {"actual_dose_levels":7,"actual\u005fdose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(677): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: -1
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, once escaped: a duplicate  {"actual_dose_levels":7,"actual\u005fdose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(678): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, once escaped: a duplicate  {"actual_dose_levels":7,"actual\u005fdose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(679): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\a' (7)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, once escaped: a duplicate  {"actual_dose_levels":7,"actual\u005fdose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(680): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, once escaped: a duplicate  {"actual_dose_levels":7,"actual\u005fdose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(681): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, once escaped: a duplicate  {"actual_dose_levels":7,"actual\u005fdose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(676): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, escaped first: a duplicate  {"actual\u005fdose_levels":7,"actual_dose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(677): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: -1
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, escaped first: a duplicate  {"actual\u005fdose_levels":7,"actual_dose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(678): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, escaped first: a duplicate  {"actual\u005fdose_levels":7,"actual_dose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(679): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\a' (7)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, escaped first: a duplicate  {"actual\u005fdose_levels":7,"actual_dose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(680): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, escaped first: a duplicate  {"actual\u005fdose_levels":7,"actual_dose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(681): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, escaped first: a duplicate  {"actual\u005fdose_levels":7,"actual_dose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(676): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, both escaped: a duplicate  {"actual\u005fdose_levels":7,"actual\u005fdose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(677): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: -1
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, both escaped: a duplicate  {"actual\u005fdose_levels":7,"actual\u005fdose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(678): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, both escaped: a duplicate  {"actual\u005fdose_levels":7,"actual\u005fdose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(679): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\a' (7)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, both escaped: a duplicate  {"actual\u005fdose_levels":7,"actual\u005fdose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(680): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, both escaped: a duplicate  {"actual\u005fdose_levels":7,"actual\u005fdose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(681): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): actual_dose_levels: the key twice, both escaped: a duplicate  {"actual\u005fdose_levels":7,"actual\u005fdose_levels":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(676): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, once escaped: a duplicate  {"calibration_mode":4,"calibration\u005fmode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(677): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: -1
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, once escaped: a duplicate  {"calibration_mode":4,"calibration\u005fmode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(678): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, once escaped: a duplicate  {"calibration_mode":4,"calibration\u005fmode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(679): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, once escaped: a duplicate  {"calibration_mode":4,"calibration\u005fmode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(680): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\x4' (4)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, once escaped: a duplicate  {"calibration_mode":4,"calibration\u005fmode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(681): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, once escaped: a duplicate  {"calibration_mode":4,"calibration\u005fmode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(676): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, escaped first: a duplicate  {"calibration\u005fmode":4,"calibration_mode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(677): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: -1
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, escaped first: a duplicate  {"calibration\u005fmode":4,"calibration_mode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(678): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, escaped first: a duplicate  {"calibration\u005fmode":4,"calibration_mode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(679): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, escaped first: a duplicate  {"calibration\u005fmode":4,"calibration_mode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(680): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\x4' (4)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, escaped first: a duplicate  {"calibration\u005fmode":4,"calibration_mode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(681): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, escaped first: a duplicate  {"calibration\u005fmode":4,"calibration_mode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(676): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, both escaped: a duplicate  {"calibration\u005fmode":4,"calibration\u005fmode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(677): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: -1
+a refused file must leave the metadata as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, both escaped: a duplicate  {"calibration\u005fmode":4,"calibration\u005fmode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(678): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, both escaped: a duplicate  {"calibration\u005fmode":4,"calibration\u005fmode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(679): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, both escaped: a duplicate  {"calibration\u005fmode":4,"calibration\u005fmode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(680): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\x4' (4)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, both escaped: a duplicate  {"calibration\u005fmode":4,"calibration\u005fmode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(681): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): calibration_mode: the key twice, both escaped: a duplicate  {"calibration\u005fmode":4,"calibration\u005fmode":1}
+
+[  FAILED  ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead (153 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte
+[       OK ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte (126 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted
+[       OK ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted (92 ms)
+[ RUN      ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead
+[       OK ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead (1 ms)
+[ RUN      ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline bypassOffset: given twice at the top level (two neutral values)  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"bypassOffset":false,"bypassOffset":false}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline bypassOffset: given twice at the top level (effect, then neutral)  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"bypassOffset":true,"bypassOffset":false}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline bypassOffset: given twice at the top level, a nested one between  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"bypassOffset":false,"nested":{"bypassOffset":true},"bypassOffset":false}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline bypassOffset: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline bypassOffset: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline_ex bypassOffset: given twice at the top level (two neutral values)  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"bypassOffset":false,"bypassOffset":false}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline_ex bypassOffset: given twice at the top level (effect, then neutral)  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"bypassOffset":true,"bypassOffset":false}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline_ex bypassOffset: given twice at the top level, a nested one between  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"bypassOffset":false,"nested":{"bypassOffset":true},"bypassOffset":false}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline_ex bypassOffset: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline_ex bypassOffset: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline_batch bypassOffset: given twice at the top level (two neutral values)  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"bypassOffset":false,"bypassOffset":false}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline_batch bypassOffset: given twice at the top level (effect, then neutral)  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"bypassOffset":true,"bypassOffset":false}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline_batch bypassOffset: given twice at the top level, a nested one between  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"bypassOffset":false,"nested":{"bypassOffset":true},"bypassOffset":false}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline_batch bypassOffset: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline_batch bypassOffset: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline detectorTempC: given twice at the top level (two neutral values)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"detectorTempC":25.5,"detectorTempC":25.5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline detectorTempC: given twice at the top level, a nested one between  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"detectorTempC":25.5,"nested":{"detectorTempC":"abc"},"detectorTempC":25.5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline detectorTempC: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline detectorTempC: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline binningMode: given twice at the top level (two neutral values)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"binningMode":1,"binningMode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline binningMode: given twice at the top level, a nested one between  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"binningMode":1,"nested":{"binningMode":"x"},"binningMode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline binningMode: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline binningMode: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.linear: given twice at the top level (two neutral values)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.linear":"false","panel.linear":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.linear: given twice at the top level (effect, then neutral)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.linear":"true","panel.linear":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.linear: given twice at the top level, a nested one between  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.linear":"false","nested":{"panel.linear":"true"},"panel.linear":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.linear: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.linear: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlinearity_mode: given twice at the top level (two neutral values)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlinearity_mode":"false","panel.nonlinearity_mode":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlinearity_mode: given twice at the top level (effect, then neutral)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlinearity_mode":"true","panel.nonlinearity_mode":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlinearity_mode: given twice at the top level, a nested one between  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlinearity_mode":"false","nested":{"panel.nonlinearity_mode":"true"},"panel.nonlinearity_mode":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlinearity_mode: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlinearity_mode: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.target_platform: given twice at the top level (two neutral values)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.target_platform":"false","panel.target_platform":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.target_platform: given twice at the top level (effect, then neutral)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.target_platform":"true","panel.target_platform":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.target_platform: given twice at the top level, a nested one between  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.target_platform":"false","nested":{"panel.target_platform":"true"},"panel.target_platform":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.target_platform: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.target_platform: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlin_poly_c0: given twice at the top level (two neutral values)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlin_poly_c0":"false","panel.nonlin_poly_c0":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlin_poly_c0: given twice at the top level (effect, then neutral)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlin_poly_c0":"true","panel.nonlin_poly_c0":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlin_poly_c0: given twice at the top level, a nested one between  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlin_poly_c0":"false","nested":{"panel.nonlin_poly_c0":"true"},"panel.nonlin_poly_c0":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlin_poly_c0: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlin_poly_c0: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlin_poly_c4: given twice at the top level (two neutral values)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlin_poly_c4":"false","panel.nonlin_poly_c4":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlin_poly_c4: given twice at the top level (effect, then neutral)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlin_poly_c4":"true","panel.nonlin_poly_c4":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlin_poly_c4: given twice at the top level, a nested one between  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlin_poly_c4":"false","nested":{"panel.nonlin_poly_c4":"true"},"panel.nonlin_poly_c4":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlin_poly_c4: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlin_poly_c4: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.adc_max: given twice at the top level (two neutral values)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.adc_max":"false","panel.adc_max":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.adc_max: given twice at the top level (effect, then neutral)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.adc_max":"true","panel.adc_max":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.adc_max: given twice at the top level, a nested one between  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.adc_max":"false","nested":{"panel.adc_max":"true"},"panel.adc_max":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.adc_max: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.adc_max: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+[  FAILED  ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject (1 ms)
+[ RUN      ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1058): error: Expected equality of these values:
+  -4
+  rc
+    Which is: -8
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1059): error: Value of: offsetLoaded()
+  Actual: true
+Expected: false
+a refused configuration must not have loaded the calibration files
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1064): error: Expected equality of these values:
+  -4
+  rc
+    Which is: -8
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1065): error: Value of: offsetLoaded()
+  Actual: true
+Expected: false
+
+[  FAILED  ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage (7 ms)
+[ RUN      ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create alpha1: given twice at the top level (two neutral values)  {"alpha1":0.5,"alpha1":0.5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create alpha1: given twice at the top level (two neutral values)  {"alpha1":0.5,"alpha1":0.5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create alpha1: given twice at the top level, a nested one between  {"alpha1":0.5,"nested":{"alpha1":"abc"},"alpha1":0.5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create alpha1: given twice at the top level, a nested one between  {"alpha1":0.5,"nested":{"alpha1":"abc"},"alpha1":0.5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create alpha1: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create alpha1: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create alpha1: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create alpha1: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tau2: given twice at the top level (two neutral values)  {"tau2":10,"tau2":10}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tau2: given twice at the top level (two neutral values)  {"tau2":10,"tau2":10}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tau2: given twice at the top level, a nested one between  {"tau2":10,"nested":{"tau2":"1e999"},"tau2":10}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tau2: given twice at the top level, a nested one between  {"tau2":10,"nested":{"tau2":"1e999"},"tau2":10}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tau2: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tau2: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tau2: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tau2: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tier: given twice at the top level (two neutral values)  {"tier":2,"tier":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tier: given twice at the top level (two neutral values)  {"tier":2,"tier":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tier: given twice at the top level, a nested one between  {"tier":2,"nested":{"tier":"x"},"tier":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tier: given twice at the top level, a nested one between  {"tier":2,"nested":{"tier":"x"},"tier":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tier: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tier: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tier: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tier: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create nlcscBeta: given twice at the top level (two neutral values)  {"nlcscBeta":0.1,"nlcscBeta":0.1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create nlcscBeta: given twice at the top level (two neutral values)  {"nlcscBeta":0.1,"nlcscBeta":0.1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create nlcscBeta: given twice at the top level, a nested one between  {"nlcscBeta":0.1,"nested":{"nlcscBeta":"1.5.2"},"nlcscBeta":0.1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create nlcscBeta: given twice at the top level, a nested one between  {"nlcscBeta":0.1,"nested":{"nlcscBeta":"1.5.2"},"nlcscBeta":0.1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create nlcscBeta: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create nlcscBeta: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create nlcscBeta: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create nlcscBeta: an unknown key given twice, object values  {"future":{},"future":[]}
+
+[  FAILED  ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject (0 ms)
+[ RUN      ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.nonlinearity_mode: given twice at the top level (two neutral values)  {"panel.nonlin_poly_c1":2.0,"panel.nonlinearity_mode":"LUT","panel.nonlinearity_mode":"LUT"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.nonlinearity_mode: given twice at the top level (effect, then neutral)  {"panel.nonlin_poly_c1":2.0,"panel.nonlinearity_mode":"POLY","panel.nonlinearity_mode":"LUT"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.nonlinearity_mode: given twice at the top level (effect, then neutral)  {"panel.nonlin_poly_c1":2.0,"panel.nonlinearity_mode":"POLY","panel.nonlinearity_mode":"LUT"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.nonlinearity_mode: given twice at the top level, a nested one between  {"panel.nonlin_poly_c1":2.0,"panel.nonlinearity_mode":"LUT","nested":{"panel.nonlinearity_mode":"POLY"},"panel.nonlinearity_mode":"LUT"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.nonlinearity_mode: an unknown key given twice at the top level (QA-A-209b)  {"panel.nonlin_poly_c1":2.0,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.nonlinearity_mode: an unknown key given twice, object values  {"panel.nonlin_poly_c1":2.0,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.nonlin_poly_c1: given twice at the top level (two neutral values)  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":0.0,"panel.nonlin_poly_c1":0.0}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.nonlin_poly_c1: given twice at the top level (effect, then neutral)  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"panel.nonlin_poly_c1":0.0}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.nonlin_poly_c1: given twice at the top level (effect, then neutral)  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"panel.nonlin_poly_c1":0.0}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.nonlin_poly_c1: given twice at the top level, a nested one between  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":0.0,"nested":{"panel.nonlin_poly_c1":2.0},"panel.nonlin_poly_c1":0.0}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.nonlin_poly_c1: an unknown key given twice at the top level (QA-A-209b)  {"panel.nonlinearity_mode":"POLY","future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.nonlin_poly_c1: an unknown key given twice, object values  {"panel.nonlinearity_mode":"POLY","future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.target_platform: given twice at the top level (two neutral values)  {"panel.nonlinearity_mode":"AUTO","panel.nonlin_poly_c1":2.0,"panel.target_platform":"CPU","panel.target_platform":"CPU"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.target_platform: given twice at the top level (effect, then neutral)  {"panel.nonlinearity_mode":"AUTO","panel.nonlin_poly_c1":2.0,"panel.target_platform":"MCU","panel.target_platform":"CPU"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.target_platform: given twice at the top level (effect, then neutral)  {"panel.nonlinearity_mode":"AUTO","panel.nonlin_poly_c1":2.0,"panel.target_platform":"MCU","panel.target_platform":"CPU"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.target_platform: given twice at the top level, a nested one between  {"panel.nonlinearity_mode":"AUTO","panel.nonlin_poly_c1":2.0,"panel.target_platform":"CPU","nested":{"panel.target_platform":"MCU"},"panel.target_platform":"CPU"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.target_platform: an unknown key given twice at the top level (QA-A-209b)  {"panel.nonlinearity_mode":"AUTO","panel.nonlin_poly_c1":2.0,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.target_platform: an unknown key given twice, object values  {"panel.nonlinearity_mode":"AUTO","panel.nonlin_poly_c1":2.0,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.linear: given twice at the top level (two neutral values)  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"panel.linear":"false","panel.linear":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.linear: given twice at the top level (two neutral values)  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"panel.linear":"false","panel.linear":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.linear: given twice at the top level (effect, then neutral)  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"panel.linear":"true","panel.linear":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.linear: given twice at the top level, a nested one between  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"panel.linear":"false","nested":{"panel.linear":"true"},"panel.linear":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.linear: given twice at the top level, a nested one between  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"panel.linear":"false","nested":{"panel.linear":"true"},"panel.linear":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.linear: an unknown key given twice at the top level (QA-A-209b)  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.linear: an unknown key given twice at the top level (QA-A-209b)  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.linear: an unknown key given twice, object values  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.linear: an unknown key given twice, object values  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"future":{},"future":[]}
+
+[  FAILED  ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject (1 ms)
+[ RUN      ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset sigma: given twice at the top level (two neutral values)  {"sigma":3.0,"sigma":3.0}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset sigma: given twice at the top level (two neutral values)  {"sigma":3.0,"sigma":3.0}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset sigma: given twice at the top level, a nested one between  {"sigma":3.0,"nested":{"sigma":-1},"sigma":3.0}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset sigma: given twice at the top level, a nested one between  {"sigma":3.0,"nested":{"sigma":-1},"sigma":3.0}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset sigma: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset sigma: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset sigma: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset sigma: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset method: given twice at the top level (two neutral values)  {"method":"mean","method":"mean"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset method: given twice at the top level (two neutral values)  {"method":"mean","method":"mean"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset method: given twice at the top level, a nested one between  {"method":"mean","nested":{"method":"bogus"},"method":"mean"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset method: given twice at the top level, a nested one between  {"method":"mean","nested":{"method":"bogus"},"method":"mean"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset method: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset method: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset method: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset method: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset max_iter: given twice at the top level (two neutral values)  {"max_iter":5,"max_iter":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset max_iter: given twice at the top level (two neutral values)  {"max_iter":5,"max_iter":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset max_iter: given twice at the top level, a nested one between  {"max_iter":5,"nested":{"max_iter":0},"max_iter":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset max_iter: given twice at the top level, a nested one between  {"max_iter":5,"nested":{"max_iter":0},"max_iter":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset max_iter: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset max_iter: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset max_iter: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset max_iter: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset lower_percentile: given twice at the top level (two neutral values)  {"lower_percentile":10.0,"lower_percentile":10.0}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset lower_percentile: given twice at the top level (two neutral values)  {"lower_percentile":10.0,"lower_percentile":10.0}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset lower_percentile: given twice at the top level, a nested one between  {"lower_percentile":10.0,"nested":{"lower_percentile":-5},"lower_percentile":10.0}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset lower_percentile: given twice at the top level, a nested one between  {"lower_percentile":10.0,"nested":{"lower_percentile":-5},"lower_percentile":10.0}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset lower_percentile: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset lower_percentile: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset lower_percentile: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset lower_percentile: an unknown key given twice, object values  {"future":{},"future":[]}
+
+[  FAILED  ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject (25 ms)
+[ RUN      ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_gain (polynomial) dose_min: given twice at the top level (two neutral values)  {"dose_max":100.0,"dose_min":"none","dose_min":"none"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_gain (polynomial) dose_min: given twice at the top level (two neutral values)  {"dose_max":100.0,"dose_min":"none","dose_min":"none"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_gain (polynomial) dose_min: given twice at the top level (effect, then neutral)  {"dose_max":100.0,"dose_min":10.0,"dose_min":"none"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_gain (polynomial) dose_min: given twice at the top level (effect, then neutral)  {"dose_max":100.0,"dose_min":10.0,"dose_min":"none"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_gain (polynomial) dose_min: given twice at the top level, a nested one between  {"dose_max":100.0,"dose_min":"none","nested":{"dose_min":10.0},"dose_min":"none"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_gain (polynomial) dose_min: given twice at the top level, a nested one between  {"dose_max":100.0,"dose_min":"none","nested":{"dose_min":10.0},"dose_min":"none"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_gain (polynomial) dose_min: an unknown key given twice at the top level (QA-A-209b)  {"dose_max":100.0,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_gain (polynomial) dose_min: an unknown key given twice at the top level (QA-A-209b)  {"dose_max":100.0,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_gain (polynomial) dose_min: an unknown key given twice, object values  {"dose_max":100.0,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_gain (polynomial) dose_min: an unknown key given twice, object values  {"dose_max":100.0,"future":{},"future":[]}
+
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys (42 ms)
+[ RUN      ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_nonlin_lut xcal_nonlin_extension_start: given twice at the top level (two neutral values)  {"xcal_nonlin_extension_start":100,"xcal_nonlin_extension_start":100}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_nonlin_lut xcal_nonlin_extension_start: given twice at the top level (two neutral values)  {"xcal_nonlin_extension_start":100,"xcal_nonlin_extension_start":100}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -17
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_nonlin_lut xcal_nonlin_extension_start: given twice at the top level (effect, then neutral)  {"xcal_nonlin_extension_start":99999,"xcal_nonlin_extension_start":100}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_nonlin_lut xcal_nonlin_extension_start: given twice at the top level, a nested one between  {"xcal_nonlin_extension_start":100,"nested":{"xcal_nonlin_extension_start":99999},"xcal_nonlin_extension_start":100}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_nonlin_lut xcal_nonlin_extension_start: given twice at the top level, a nested one between  {"xcal_nonlin_extension_start":100,"nested":{"xcal_nonlin_extension_start":99999},"xcal_nonlin_extension_start":100}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_nonlin_lut xcal_nonlin_extension_start: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_nonlin_lut xcal_nonlin_extension_start: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_nonlin_lut xcal_nonlin_extension_start: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_nonlin_lut xcal_nonlin_extension_start: an unknown key given twice, object values  {"future":{},"future":[]}
+
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys (160 ms)
+[ RUN      ] ConfigStrictParse.ABlankConfigTextSuppliedByTheCallerIsRefusedAndNullStillMeansTheDefaults
+[       OK ] ConfigStrictParse.ABlankConfigTextSuppliedByTheCallerIsRefusedAndNullStillMeansTheDefaults (0 ms)
+[ RUN      ] ConfigStrictParse.ABlankConfigBlockOfAFileIsRefusedButAnAbsentOneLoads
+[       OK ] ConfigStrictParse.ABlankConfigBlockOfAFileIsRefusedButAnAbsentOneLoads (26 ms)
+[ RUN      ] ConfigStrictParse.TheInitConfigFollowsTheSameRule
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1260): error: Expected equality of these values:
+  -4
+  xpe_preprocess_init(bad)
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: [{"future":1,"future":2}]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1261): error: Value of: xpe_preprocess_is_initialized()
+  Actual: true
+Expected: false
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: [{"future":1,"future":2}]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1260): error: Expected equality of these values:
+  -4
+  xpe_preprocess_init(bad)
+    Which is: -1
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: [{"a":1,}]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1261): error: Value of: xpe_preprocess_is_initialized()
+  Actual: true
+Expected: false
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: [{"a":1,}]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1263): error: Expected equality of these values:
+  0
+  xpe_preprocess_init("{\"mode\":\"clinical\",\"nested\":{\"a\":1},\"other\":{\"a\":2}}")
+    Which is: -1
+
+[  FAILED  ] ConfigStrictParse.TheInitConfigFollowsTheSameRule (0 ms)
+[ RUN      ] ConfigStrictParse.ANumberKeyThatIsNotAJsonNumberIsRefusedNotReadByStrtod
+[       OK ] ConfigStrictParse.ANumberKeyThatIsNotAJsonNumberIsRefusedNotReadByStrtod (0 ms)
+[ RUN      ] ConfigStrictParse.ANullConfigPointerStillMeansTheDefaults
+[       OK ] ConfigStrictParse.ANullConfigPointerStillMeansTheDefaults (0 ms)
+[----------] 28 tests from ConfigStrictParse (847 ms total)
+
+[----------] Global test environment tear-down
+[==========] 41 tests from 3 test suites ran. (956 ms total)
+[  PASSED  ] 30 tests.
+[  FAILED  ] 11 tests, listed below:
+[  FAILED  ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused
+[  FAILED  ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+[  FAILED  ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead
+[  FAILED  ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage
+[  FAILED  ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys
+[  FAILED  ] ConfigStrictParse.TheInitConfigFollowsTheSameRule
+
+11 FAILED TESTS

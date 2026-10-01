@@ -178,13 +178,17 @@ XpeErrorCode parse_offset_generation_config(const char* config_json,
 
     if (!config_json) return XPE_OK;
 
-    // QA-A-209: every key is a TOP-LEVEL key of one valid JSON object (xpe_config_get_*); a key given twice, or a
-    // text that is not one, is XPE_ERR_CONFIG_INVALID. "method" counts only as a JSON string, as before.
+    // QA-A-209 / QA-A-209b: the text is parsed once into its top-level members (xpe_config_parse): one that is not one
+    // valid JSON object, is empty, or gives a member name twice is XPE_ERR_CONFIG_INVALID. "method" counts only as a
+    // JSON string, as before; the numbers only as bare JSON numbers.
     try {
+        XpeConfigDoc doc;
+        const XpeErrorCode rc = ::xpe_config_parse(config_json, &doc);
+        if (rc != XPE_OK) return rc;
+
         std::string method;
         bool method_is_string = false;
-        XpeErrorCode rc = ::xpe_config_get_string(config_json, "method", &method, &method_is_string);
-        if (rc != XPE_OK) return rc;
+        (void)doc.getString("method", &method, &method_is_string);
         if (!method_is_string) method.clear();
         if (method.empty() || method == "mean") {
             config->method = OffsetGenerationMethod::Mean;
@@ -198,18 +202,12 @@ XpeErrorCode parse_offset_generation_config(const char* config_json,
             return XPE_ERR_CONFIG_INVALID;
         }
 
-        const size_t len = std::strlen(config_json);
-        bool present = false;
-        rc = ::xpe_config_get_double(config_json, len, "sigma", &present, &config->sigma);
-        if (rc != XPE_OK) return rc;
+        (void)doc.getNumber("sigma", &config->sigma);
         double max_iter = static_cast<double>(config->max_iter);
-        rc = ::xpe_config_get_double(config_json, len, "max_iter", &present, &max_iter);
-        if (rc != XPE_OK) return rc;
+        (void)doc.getNumber("max_iter", &max_iter);
         config->max_iter = static_cast<int32_t>(max_iter);
-        rc = ::xpe_config_get_double(config_json, len, "lower_percentile", &present, &config->lower_percentile);
-        if (rc != XPE_OK) return rc;
-        rc = ::xpe_config_get_double(config_json, len, "upper_percentile", &present, &config->upper_percentile);
-        if (rc != XPE_OK) return rc;
+        (void)doc.getNumber("lower_percentile", &config->lower_percentile);
+        (void)doc.getNumber("upper_percentile", &config->upper_percentile);
     } catch (const std::bad_alloc&) {
         return XPE_ERR_OUT_OF_MEMORY;
     }

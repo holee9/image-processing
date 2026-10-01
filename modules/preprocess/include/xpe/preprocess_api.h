@@ -71,7 +71,9 @@ XPE_API const char* xpe_preprocess_version(void);
  *               Example: "{\"mode\":\"clinical\",\"log_level\":1}"
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT on double-init
- *         XPE_ERR_CONFIG_INVALID on invalid JSON
+ *         XPE_ERR_CONFIG_INVALID if the text is not one valid JSON object (empty or white space only, an array,
+ *                                text after the object, a top-level key given twice -- the reading rule of
+ *                                xpe_preprocess_pipeline; NULL is the way to say "no configuration")
  *         XPE_ERR_OUT_OF_MEMORY on allocation failure
  */
 XPE_API XpeErrorCode xpe_preprocess_init(const char* config);
@@ -863,10 +865,26 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  *        top-level key beside a nested one of the same name is the top-level one; a top-level key given twice, or
  *        a text that is not one JSON object (not closed, an array, text after the object, a raw
  *        control character in a string, single quotes, a trailing comma), is XPE_ERR_CONFIG_INVALID and nothing
- *        is changed; an empty string value ("") and a value that is an object or an array are "not given" (a
- *        GUI sends an unset option as ""); a NULL text means every default. The keys the nonlinearity stage
- *        reads (panel.linear, panel.nonlinearity_mode, panel.target_platform, panel.nonlin_poly_c0..c4,
- *        panel.adc_max) are checked by the same rule before the first stage runs.
+ *        is changed. A top-level key given twice is refused WHATEVER its name -- an unknown key included
+ *        ({"future":1,"future":2}): the object is ambiguous, and which keys this module reads must not decide
+ *        whether it is noticed (QA-A-209b). A text that is empty or only white space is not a configuration and is
+ *        XPE_ERR_CONFIG_INVALID; a NULL text means every default. (The config block STORED in an XCal file is the
+ *        one exception: a block of length 0 is a file without one and loads; a block that is there is read by this
+ *        rule, so white space only is refused.) An empty string value ("") and a value that is an object or an
+ *        array are "not given" (a GUI sends an unset option as ""). The text is parsed ONCE per call and every key
+ *        is read from that parse, the nonlinearity stage's included (panel.linear, panel.nonlinearity_mode,
+ *        panel.target_platform, panel.nonlin_poly_c0..c4, panel.adc_max), so a refusal happens before the first
+ *        stage runs.
+ *
+ *        Two ways a key's value is read, and they differ on purpose. (1) A STRING-OR-TOKEN key -- the bypass flags,
+ *        detectorTempC, binningMode, the ghost keys (tier, alpha1, ...), panel.linear, panel.nonlinearity_mode,
+ *        panel.target_platform, method -- accepts a JSON string or a bare token, and its text is then converted
+ *        strictly (notation as below: "25.5" and 25.5 are both 25.5). (2) A NUMBER key -- the polynomial
+ *        coefficients and panel.adc_max, the offset generation's sigma / max_iter / lower_percentile /
+ *        upper_percentile, an XCal config block's dose_min, dose_max, xcal_nonlin_extension_start -- is given only as
+ *        a BARE JSON number; a string ("2.0") is "not given", and a bare token that is not a JSON number (+2, .5, NaN)
+ *        is not JSON at all and is XPE_ERR_CONFIG_INVALID. Compatibility: a text such as {"sigma":+2} used to be
+ *        read as a number by strtod or silently ignored; it is now refused (QA-A-209b).
  * @return XPE_OK on success
  *         XPE_ERR_CONFIG_INVALID if the configuration is not one valid JSON object, a top-level key is given
  *                  twice, or a numeric value in the configuration (detectorTempC,

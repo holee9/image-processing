@@ -31,6 +31,7 @@
 
 #include "xpe/preprocess/xcal_format.h"
 #include "xpe/common/xpe_error.h"
+#include "xpe/preprocess_api.h"
 #include "rle_codec.hpp"
 #include "xcal_writer.hpp"
 #include "xcal_reader.hpp"
@@ -433,4 +434,165 @@ TEST_F(XCalCompressionTest, WorstCaseInput_FallbackToUncompressed) {
     ASSERT_EQ(rc, XPE_OK);
     ASSERT_EQ(payload.size(), alternating.size());
     EXPECT_EQ(std::memcmp(payload.data(), alternating.data(), alternating.size()), 0);
+}
+
+/* =============================================================================
+ * QA-A-209b (Codex #49): the compression metadata is read from the TOP LEVEL of one valid JSON object.
+ *
+ * read_xcal_file found "xcal_compression": and "xcal_raw_payload_len": as the first occurrence of those strings
+ * anywhere in the config block, before the hash was checked and before anything was decompressed -- in a block that
+ * every loader (offset, gain, defect, nonlinearity table) reads. A key inside a nested object decided whether the
+ * payload was decompressed; a key given twice was whichever came first.
+ * ============================================================================= */
+
+class XCalCompressionMetaTest : public ::testing::Test {
+protected:
+    const char* path = "xcal_comp_meta_test.xcal";
+    void TearDown() override {
+        std::remove(path);
+        std::remove((std::string(path) + ".tmp").c_str());
+    }
+
+    /** The RLE payload the writer makes for an all-zero map of the given size. */
+    std::vector<uint8_t> rlePayloadOfZeros(uint32_t w, uint32_t h) {
+        auto defect = MakeDefectMap(w, h, 0.0f);
+        XCalFileHeader hdr = MakeDefectHeader(w, h);
+        EXPECT_EQ(XPE_OK, write_xcal_file_ex(path, hdr, nullptr, 0, defect.data(), defect.size(), true));
+        XCalFileHeader rh{};
+        std::vector<uint8_t> cfg, payload;
+        EXPECT_EQ(XPE_OK, read_xcal_file(path, rh, cfg, payload, false, XCAL_TYPE_DEFECT));
+        std::ifstream f(path, std::ios::binary);
+        f.seekg(static_cast<std::streamoff>(sizeof(XCalFileHeader)) + static_cast<std::streamoff>(cfg.size()));
+        std::vector<uint8_t> rle(static_cast<size_t>(FileSize(path)) - sizeof(XCalFileHeader) - cfg.size());
+        f.read(reinterpret_cast<char*>(rle.data()), static_cast<std::streamsize>(rle.size()));
+        return rle;
+    }
+
+    /** A DEFECT file of w x h whose config block is exactly `config` and whose payload is `rle` (the writer hashes both). */
+    XpeErrorCode writeCompressedWith(const std::string& config, const std::vector<uint8_t>& rle, uint32_t w, uint32_t h) {
+        XCalFileHeader hdr = MakeDefectHeader(w, h);
+        return write_xcal_file_ex(path, hdr, reinterpret_cast<const uint8_t*>(config.data()), config.size(),
+                                  rle.data(), rle.size(), /*compress_defect=*/false);
+    }
+
+    XpeErrorCode readDefect(std::vector<uint8_t>* payload = nullptr) {
+        XCalFileHeader rh{};
+        std::vector<uint8_t> cfg, pl;
+        const XpeErrorCode rc = read_xcal_file(path, rh, cfg, pl, false, XCAL_TYPE_DEFECT);
+        if (payload) *payload = pl;
+        return rc;
+    }
+};
+
+TEST_F(XCalCompressionMetaTest, AnUncompressedFileWithNestedCompressionKeysIsNotCompressed) {
+    const std::string decoy = "{\"nested\":{\"xcal_compression\":1,\"xcal_raw_payload_len\":999}}";
+    {   // DEFECT
+        auto defect = MakeDefectMap(64, 64, 0.01f);
+        XCalFileHeader hdr = MakeDefectHeader(64, 64);
+        ASSERT_EQ(XPE_OK, write_xcal_file(path, hdr, reinterpret_cast<const uint8_t*>(decoy.data()), decoy.size(),
+                                          defect.data(), defect.size()));
+        std::vector<uint8_t> payload;
+        ASSERT_EQ(XPE_OK, readDefect(&payload)) << "a key inside a nested object is not compression metadata";
+        EXPECT_EQ(payload, defect);
+    }
+    {   // OFFSET (float32)
+        std::vector<float> off(64 * 64, 12.5f);
+        XCalFileHeader hdr = MakeOffsetHeader(64, 64);
+        ASSERT_EQ(XPE_OK, write_xcal_file(path, hdr, reinterpret_cast<const uint8_t*>(decoy.data()), decoy.size(),
+                                          reinterpret_cast<const uint8_t*>(off.data()), off.size() * sizeof(float)));
+        XCalFileHeader rh{};
+        std::vector<uint8_t> cfg, pl;
+        ASSERT_EQ(XPE_OK, read_xcal_file(path, rh, cfg, pl, false, XCAL_TYPE_OFFSET));
+        EXPECT_EQ(off.size() * sizeof(float), pl.size());
+    }
+}
+
+TEST_F(XCalCompressionMetaTest, TheLoadersAreNotFooledEither) {
+    // the public loaders of an offset map and a defect map go through the same reader
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    const std::string decoy = "{\"nested\":{\"xcal_compression\":1,\"xcal_raw_payload_len\":999}}";
+    {
+        std::vector<float> off(64 * 64, 12.5f);
+        XCalFileHeader hdr = MakeOffsetHeader(64, 64);
+        ASSERT_EQ(XPE_OK, write_xcal_file(path, hdr, reinterpret_cast<const uint8_t*>(decoy.data()), decoy.size(),
+                                          reinterpret_cast<const uint8_t*>(off.data()), off.size() * sizeof(float)));
+        EXPECT_EQ(XPE_OK, xpe_calib_load_offset(path));
+    }
+    {
+        auto defect = MakeDefectMap(64, 64, 0.01f);
+        XCalFileHeader hdr = MakeDefectHeader(64, 64);
+        ASSERT_EQ(XPE_OK, write_xcal_file(path, hdr, reinterpret_cast<const uint8_t*>(decoy.data()), decoy.size(),
+                                          defect.data(), defect.size()));
+        EXPECT_EQ(XPE_OK, xpe_calib_load_defect_map(path));
+    }
+    xpe_preprocess_shutdown();
+}
+
+TEST_F(XCalCompressionMetaTest, ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem) {
+    const auto rle = rlePayloadOfZeros(64, 64);
+    const std::string cfg =
+        "{\"nested\":{\"xcal_compression\":1,\"xcal_raw_payload_len\":999},\"xcal_compression\":1,\"xcal_raw_payload_len\":4096}";
+    ASSERT_EQ(XPE_OK, writeCompressedWith(cfg, rle, 64, 64));
+    std::vector<uint8_t> payload;
+    ASSERT_EQ(XPE_OK, readDefect(&payload)) << "the decoy's 999 was read instead of the top-level 4096";
+    EXPECT_EQ(std::vector<uint8_t>(64 * 64, 0), payload);
+}
+
+TEST_F(XCalCompressionMetaTest, ACompressionKeyGivenTwiceAtTheTopLevelIsRefused) {
+    const auto rle = rlePayloadOfZeros(64, 64);
+    for (const char* cfg : {
+             "{\"xcal_compression\":1,\"xcal_compression\":1,\"xcal_raw_payload_len\":4096}",
+             "{\"xcal_compression\":1,\"xcal_raw_payload_len\":4096,\"xcal_raw_payload_len\":4096}",
+             "{\"xcal_compression\":1,\"xcal_raw_payload_len\":4096,\"future\":1,\"future\":2}"}) {
+        SCOPED_TRACE(cfg);
+        ASSERT_EQ(XPE_OK, writeCompressedWith(cfg, rle, 64, 64));
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, readDefect());
+    }
+}
+
+TEST_F(XCalCompressionMetaTest, BrokenOrIncompleteCompressionMetadataIsRefused) {
+    const auto rle = rlePayloadOfZeros(64, 64);
+    for (const char* cfg : {
+             "{\"xcal_compression\":1,\"xcal_raw_payload_len\":4096",         // not closed
+             "[{\"xcal_compression\":1,\"xcal_raw_payload_len\":4096}]",      // not an object
+             "{\"xcal_compression\":1,\"xcal_raw_payload_len\":4096} x",      // text after the object
+             "{\"xcal_compression\":1}",                                      // one key of the pair
+             "{\"xcal_raw_payload_len\":4096}",                               // the other one
+             "{\"xcal_compression\":\"rle\",\"xcal_raw_payload_len\":4096}",  // not an integer
+             "{\"xcal_compression\":1,\"xcal_raw_payload_len\":-4096}",       // not unsigned
+             "{\"xcal_compression\":1.5,\"xcal_raw_payload_len\":4096}",      // not an integer
+             "   "}) {                                                         // a block that is only white space
+        SCOPED_TRACE(cfg);
+        ASSERT_EQ(XPE_OK, writeCompressedWith(cfg, rle, 64, 64));
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, readDefect());
+    }
+}
+
+// Half of the pair beside a payload of the RAW size: if the lone key were read as "uncompressed" the file would load
+// (the sizes agree), so only the pair rule refuses it -- the RLE-payload case above is also caught by the size check.
+TEST_F(XCalCompressionMetaTest, HalfAPairIsRefusedEvenWhenTheRestOfTheFileIsValid) {
+    auto defect = MakeDefectMap(64, 64, 0.01f);
+    XCalFileHeader hdr = MakeDefectHeader(64, 64);
+    for (const char* cfg : {"{\"xcal_compression\":1}", "{\"xcal_raw_payload_len\":4096}", "{\"xcal_compression\":1,\"a\":{\"xcal_raw_payload_len\":4096}}"}) {
+        SCOPED_TRACE(cfg);
+        ASSERT_EQ(XPE_OK, write_xcal_file(path, hdr, reinterpret_cast<const uint8_t*>(cfg), std::strlen(cfg),
+                                          defect.data(), defect.size()));
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, readDefect());
+    }
+}
+
+// The writer joined the caller's object and its own two keys by cutting the caller's last '}' and appending ",<keys>}":
+// for a caller object with no members that is "{,...}", which is not JSON. The reader that checks the block as JSON would
+// refuse a file the writer just made.
+TEST_F(XCalCompressionMetaTest, TheWriterMakesValidJsonForAnEmptyCallerObjectToo) {
+    auto defect = MakeDefectMap(64, 64, 0.01f);
+    XCalFileHeader hdr = MakeDefectHeader(64, 64);
+    for (const char* caller : {"{}", "{ }", "{\n}", "{\"mode\":\"production\"}", "{\"a\":{\"b\":1}}\n"}) {
+        SCOPED_TRACE(caller);
+        ASSERT_EQ(XPE_OK, write_xcal_file_ex(path, hdr, reinterpret_cast<const uint8_t*>(caller), std::strlen(caller),
+                                             defect.data(), defect.size(), /*compress_defect=*/true));
+        std::vector<uint8_t> payload;
+        ASSERT_EQ(XPE_OK, readDefect(&payload));
+        EXPECT_EQ(defect, payload);
+    }
 }
