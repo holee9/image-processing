@@ -1,0 +1,182 @@
+Note: Google Test filter = *Binning*:BinningCorrect*:PreprocessDegraded.*:*Pipeline*
+[==========] Running 63 tests from 14 test suites.
+[----------] Global test environment set-up.
+[----------] 4 tests from BinningCorrect
+[ RUN      ] BinningCorrect.NullImgReturnsError
+[       OK ] BinningCorrect.NullImgReturnsError (0 ms)
+[ RUN      ] BinningCorrect.Binning1x1IsNoOp
+[       OK ] BinningCorrect.Binning1x1IsNoOp (0 ms)
+[ RUN      ] BinningCorrect.UnknownBinningModeReturnsError
+[       OK ] BinningCorrect.UnknownBinningModeReturnsError (0 ms)
+[ RUN      ] BinningCorrect.Binning2x2ReturnsOk
+[       OK ] BinningCorrect.Binning2x2ReturnsOk (0 ms)
+[----------] 4 tests from BinningCorrect (0 ms total)
+
+[----------] 1 test from Integration
+[ RUN      ] Integration.UncalibratedPipelineComposes
+[       OK ] Integration.UncalibratedPipelineComposes (0 ms)
+[ DISABLED ] Integration.DISABLED_PipelinePerformance3072x3072
+[----------] 1 test from Integration (0 ms total)
+
+[----------] 4 tests from PipelineBypassTest
+[ RUN      ] PipelineBypassTest.JsonBooleanBypassFlagsAreHonoured
+[       OK ] PipelineBypassTest.JsonBooleanBypassFlagsAreHonoured (0 ms)
+[ RUN      ] PipelineBypassTest.QuotedBypassFlagsStillHonoured
+[       OK ] PipelineBypassTest.QuotedBypassFlagsStillHonoured (0 ms)
+[ RUN      ] PipelineBypassTest.WhitespaceAroundBooleanIsTolerated
+[       OK ] PipelineBypassTest.WhitespaceAroundBooleanIsTolerated (0 ms)
+[ RUN      ] PipelineBypassTest.JsonBooleanFalseDoesNotBypass
+[       OK ] PipelineBypassTest.JsonBooleanFalseDoesNotBypass (0 ms)
+[----------] 4 tests from PipelineBypassTest (0 ms total)
+
+[----------] 4 tests from GoldenBinningTest
+[ RUN      ] GoldenBinningTest.Mode1IsIdentity
+[       OK ] GoldenBinningTest.Mode1IsIdentity (0 ms)
+[ RUN      ] GoldenBinningTest.Mode2DividesByFour
+[       OK ] GoldenBinningTest.Mode2DividesByFour (0 ms)
+[ RUN      ] GoldenBinningTest.Mode4DividesBySixteen
+[       OK ] GoldenBinningTest.Mode4DividesBySixteen (0 ms)
+[ RUN      ] GoldenBinningTest.UnknownModeReturnsError
+[       OK ] GoldenBinningTest.UnknownModeReturnsError (0 ms)
+[----------] 4 tests from GoldenBinningTest (0 ms total)
+
+[----------] 2 tests from FullPipelineTest
+[ RUN      ] FullPipelineTest.DarkSubtractionEndToEnd
+[       OK ] FullPipelineTest.DarkSubtractionEndToEnd (6 ms)
+[ RUN      ] FullPipelineTest.OffsetExceedsRawClampsToZero
+[       OK ] FullPipelineTest.OffsetExceedsRawClampsToZero (5 ms)
+[----------] 2 tests from FullPipelineTest (12 ms total)
+
+[----------] 14 tests from PipelineExTest
+[ RUN      ] PipelineExTest.StateLoadPopulatesAllMaps
+[       OK ] PipelineExTest.StateLoadPopulatesAllMaps (7 ms)
+[ RUN      ] PipelineExTest.StateReleaseFreesMemory
+[       OK ] PipelineExTest.StateReleaseFreesMemory (7 ms)
+[ RUN      ] PipelineExTest.StateReleaseOnZeroInitIsSafe
+[       OK ] PipelineExTest.StateReleaseOnZeroInitIsSafe (3 ms)
+[ RUN      ] PipelineExTest.StateLoadNullReturnsError
+[       OK ] PipelineExTest.StateLoadNullReturnsError (3 ms)
+[ RUN      ] PipelineExTest.StateLoadNonexistentDirSkipsMaps
+[       OK ] PipelineExTest.StateLoadNonexistentDirSkipsMaps (3 ms)
+[ RUN      ] PipelineExTest.PipelineExWithState
+[       OK ] PipelineExTest.PipelineExWithState (6 ms)
+[ RUN      ] PipelineExTest.PipelineExNullImgReturnsError
+[       OK ] PipelineExTest.PipelineExNullImgReturnsError (2 ms)
+[ RUN      ] PipelineExTest.PipelineExNullStateSkipsCalibration
+[       OK ] PipelineExTest.PipelineExNullStateSkipsCalibration (3 ms)
+[ RUN      ] PipelineExTest.BatchProcessesMultipleFrames
+[       OK ] PipelineExTest.BatchProcessesMultipleFrames (9 ms)
+[ RUN      ] PipelineExTest.BatchNullImagesReturnsError
+[       OK ] PipelineExTest.BatchNullImagesReturnsError (3 ms)
+[ RUN      ] PipelineExTest.BatchZeroCountReturnsError
+[       OK ] PipelineExTest.BatchZeroCountReturnsError (2 ms)
+[ RUN      ] PipelineExTest.BatchNullMetasReturnsError
+[       OK ] PipelineExTest.BatchNullMetasReturnsError (3 ms)
+[ RUN      ] PipelineExTest.BatchSingleFrameWorks
+[       OK ] PipelineExTest.BatchSingleFrameWorks (7 ms)
+[ RUN      ] PipelineExTest.BatchContinuesOnError
+[       OK ] PipelineExTest.BatchContinuesOnError (9 ms)
+[----------] 14 tests from PipelineExTest (72 ms total)
+
+[----------] 8 tests from PipelineStageTest
+[ RUN      ] PipelineStageTest.ReadoutAndTempStagesRunAndSetFlags
+[       OK ] PipelineStageTest.ReadoutAndTempStagesRunAndSetFlags (0 ms)
+[ RUN      ] PipelineStageTest.NonlinearityAndBinningStagesRun
+[       OK ] PipelineStageTest.NonlinearityAndBinningStagesRun (0 ms)
+[ RUN      ] PipelineStageTest.OffsetStageFailurePropagates
+[       OK ] PipelineStageTest.OffsetStageFailurePropagates (0 ms)
+[ RUN      ] PipelineStageTest.GainStageFailurePropagates
+[       OK ] PipelineStageTest.GainStageFailurePropagates (0 ms)
+[ RUN      ] PipelineStageTest.OffsetAndGainStagesRunWithCalibrationLoaded
+[       OK ] PipelineStageTest.OffsetAndGainStagesRunWithCalibrationLoaded (7 ms)
+[ RUN      ] PipelineStageTest.AllStagesEnabledRunInSequence
+[       OK ] PipelineStageTest.AllStagesEnabledRunInSequence (9 ms)
+[ RUN      ] PipelineStageTest.DefectStageFailsWhenItsMapIsNotLoaded
+[       OK ] PipelineStageTest.DefectStageFailsWhenItsMapIsNotLoaded (0 ms)
+[ RUN      ] PipelineStageTest.BypassDefectStillSkipsTheStageCleanly
+[       OK ] PipelineStageTest.BypassDefectStillSkipsTheStageCleanly (0 ms)
+[----------] 8 tests from PipelineStageTest (19 ms total)
+
+[----------] 6 tests from PreprocessDegraded
+[ RUN      ] PreprocessDegraded.BP01_OffsetNullCalibrationReturnsNotInitialized
+[       OK ] PreprocessDegraded.BP01_OffsetNullCalibrationReturnsNotInitialized (0 ms)
+[ RUN      ] PreprocessDegraded.BP02_GainIdentityPreservesInputStatistics
+[       OK ] PreprocessDegraded.BP02_GainIdentityPreservesInputStatistics (0 ms)
+[ RUN      ] PreprocessDegraded.BP03_DefectEmptyListIsNoOp
+[       OK ] PreprocessDegraded.BP03_DefectEmptyListIsNoOp (0 ms)
+[ RUN      ] PreprocessDegraded.BP04_GhostZeroLagCoefficientIsIdentity
+[       OK ] PreprocessDegraded.BP04_GhostZeroLagCoefficientIsIdentity (0 ms)
+[ RUN      ] PreprocessDegraded.BP05_TempCompensateReferenceIsIdentity
+[       OK ] PreprocessDegraded.BP05_TempCompensateReferenceIsIdentity (0 ms)
+[ RUN      ] PreprocessDegraded.BP05_NonlinearityNullConfigIsIdentity
+[       OK ] PreprocessDegraded.BP05_NonlinearityNullConfigIsIdentity (0 ms)
+[----------] 6 tests from PreprocessDegraded (0 ms total)
+
+[----------] 1 test from VerifyMetricsTest
+[ RUN      ] VerifyMetricsTest.VerifyPipeline_SNRImprovement
+[       OK ] VerifyMetricsTest.VerifyPipeline_SNRImprovement (0 ms)
+[----------] 1 test from VerifyMetricsTest (0 ms total)
+
+[----------] 2 tests from VerifyMetricsEdgeTest
+[ RUN      ] VerifyMetricsEdgeTest.VerifyPipelineRejectsFloatInput
+[       OK ] VerifyMetricsEdgeTest.VerifyPipelineRejectsFloatInput (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyPipelineHandlesFlatFinalImage
+[       OK ] VerifyMetricsEdgeTest.VerifyPipelineHandlesFlatFinalImage (0 ms)
+[----------] 2 tests from VerifyMetricsEdgeTest (0 ms total)
+
+[----------] 6 tests from PipelineStageValueTest
+[ RUN      ] PipelineStageValueTest.NonlinearityWithoutCorrectionLeavesTheFlagClear
+[       OK ] PipelineStageValueTest.NonlinearityWithoutCorrectionLeavesTheFlagClear (3 ms)
+[ RUN      ] PipelineStageValueTest.OffsetThenNonlinearityThenGainReturnsTheCorrectedFrame
+[       OK ] PipelineStageValueTest.OffsetThenNonlinearityThenGainReturnsTheCorrectedFrame (7 ms)
+[ RUN      ] PipelineStageValueTest.BypassingNonlinearityGivesTheSameFrame
+[       OK ] PipelineStageValueTest.BypassingNonlinearityGivesTheSameFrame (3 ms)
+[ RUN      ] PipelineStageValueTest.GhostStageReturnsTheFrameItCorrected
+[       OK ] PipelineStageValueTest.GhostStageReturnsTheFrameItCorrected (2 ms)
+[ RUN      ] PipelineStageValueTest.BinningStageReturnsTheBinnedFrame
+[       OK ] PipelineStageValueTest.BinningStageReturnsTheBinnedFrame (2 ms)
+[ RUN      ] PipelineStageValueTest.GhostCorrectionOfTheSecondFrameReachesTheOutput
+[       OK ] PipelineStageValueTest.GhostCorrectionOfTheSecondFrameReachesTheOutput (3 ms)
+[----------] 6 tests from PipelineStageValueTest (23 ms total)
+
+[----------] 2 tests from NonlinModeTest
+[ RUN      ] NonlinModeTest.ControlAPipelineWithNoModeKeySucceeds
+[       OK ] NonlinModeTest.ControlAPipelineWithNoModeKeySucceeds (0 ms)
+[ RUN      ] NonlinModeTest.AnOperatingModeNoLongerFailsThePipeline
+[       OK ] NonlinModeTest.AnOperatingModeNoLongerFailsThePipeline (0 ms)
+[----------] 2 tests from NonlinModeTest (0 ms total)
+
+[----------] 1 test from CalibFixtureGenTest
+[ RUN      ] CalibFixtureGenTest.GeneratedSetDrivesThePipeline
+offset.xcal  e068c85a76f1838e473f76ca606c3e0fde65771200388313c935332ef8159c7d
+gain.xcal    c6330b7a0442eacead97712e59b2936415943bb9491e8e5151b874699e725d95
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790847344838_GeneratedSetDrivesThePipeline\pipe\manifest.json
+[       OK ] CalibFixtureGenTest.GeneratedSetDrivesThePipeline (2771 ms)
+[----------] 1 test from CalibFixtureGenTest (2771 ms total)
+
+[----------] 8 tests from AllCombinations/PipelineComboTest
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_NoDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_OneDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_NoDefect (2 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_OneDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_NoDefect (7 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_OneDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_NoDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_OneDefect (3 ms)
+[----------] 8 tests from AllCombinations/PipelineComboTest (33 ms total)
+
+[----------] Global test environment tear-down
+[==========] 63 tests from 14 test suites ran. (2942 ms total)
+[  PASSED  ] 63 tests.
+
+  YOU HAVE 1 DISABLED TEST
+

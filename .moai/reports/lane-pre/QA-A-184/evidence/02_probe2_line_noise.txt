@@ -1,0 +1,32 @@
+Note: Google Test filter = A184Probes.DISABLED_LineNoiseVersusTheReadoutCheck
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A184Probes
+[ RUN      ] A184Probes.DISABLED_LineNoiseVersusTheReadoutCheck
+
+[a184] (2) xpe_validate_readout_artifact vs frames with and without line noise (1024x1024 UINT16)
+[a184] LNI1/LNI2 = spread of the first/second difference of the line means / expected from pixel noise alone (~1 = no line-correlated noise); LNI2 cancels a smooth gradient such as anatomy
+[a184] synthetic clean (base 20000, px 20)          rc=0 dropped=0 nonuniform_gain=0 | rowsOver0.9FS=0 maxRowMean=20002 | LNI1 rows=1.04 cols=1.01 | LNI2 rows=1.06 cols=1.00
+[a184] synthetic ROW line noise (sigma 300)         rc=0 dropped=0 nonuniform_gain=0 | rowsOver0.9FS=0 maxRowMean=21256 | LNI1 rows=521.39 cols=0.06 | LNI2 rows=521.24 cols=0.06
+[a184] synthetic COLUMN line noise (sigma 300)      rc=0 dropped=0 nonuniform_gain=0 | rowsOver0.9FS=0 maxRowMean=20006 | LNI1 rows=0.07 cols=485.49 | LNI2 rows=0.07 cols=514.79
+[a184] synthetic ROW line noise (sigma 1500)        rc=0 dropped=0 nonuniform_gain=0 | rowsOver0.9FS=0 maxRowMean=24668 | LNI1 rows=2302.49 cols=0.01 | LNI2 rows=2220.04 cols=0.01
+[a184] synthetic ROW noise 3000 near full scale     rc=0 dropped=0 nonuniform_gain=1 | rowsOver0.9FS=397 maxRowMean=65535 | LNI1 rows=4591.39 cols=0.01 | LNI2 rows=4732.28 cols=0.01
+[a184] control: CLEAN but bright (base 62000)       rc=0 dropped=0 nonuniform_gain=1 | rowsOver0.9FS=1024 maxRowMean=62002 | LNI1 rows=1.02 cols=1.04 | LNI2 rows=1.03 cols=1.05
+[a184] control: one all-zero column                 rc=0 dropped=1 nonuniform_gain=0 | rowsOver0.9FS=0 maxRowMean=19982 | LNI1 rows=1.03 cols=0.99 | LNI2 rows=1.01 cols=1.06
+[a184] control: one saturated row                   rc=0 dropped=0 nonuniform_gain=1 | rowsOver0.9FS=1 maxRowMean=65535 | LNI1 rows=0.99 cols=0.99 | LNI2 rows=1.02 cols=1.00
+[a184] repository frames (root=D:/workspace-github/xpe-pre)
+[a184] gui/ImageProcTest/fixtures/gui-s0/raw/wrist_lat_3072x3072.raw rc=0 dropped=0 nonuniform_gain=0 | rowsOver0.9FS=0 maxRowMean=5077 | LNI1 rows=33.74 cols=11.96 | LNI2 rows=39.56 cols=7.91
+[a184] gui/ImageProcTest/fixtures/gui-s0/raw/synthetic_1024x1024.raw rc=0 dropped=0 nonuniform_gain=0 | rowsOver0.9FS=0 maxRowMean=47570 | LNI1 rows=0.00 cols=0.00 | LNI2 rows=0.00 cols=0.00
+[a184] test_data/synthetic_512x512.raw              rc=0 dropped=0 nonuniform_gain=0 | rowsOver0.9FS=0 maxRowMean=42598 | LNI1 rows=0.00 cols=0.00 | LNI2 rows=0.00 cols=0.00
+[a184] .moai/reports/lane-pre/QA-A-51/frames/uniform.raw rc=0 dropped=0 nonuniform_gain=0 | rowsOver0.9FS=0 maxRowMean=3001 | LNI1 rows=0.97 cols=0.94 | LNI2 rows=0.93 cols=0.97
+[a184] .moai/reports/lane-pre/QA-A-51/frames/lines.raw rc=0 dropped=0 nonuniform_gain=0 | rowsOver0.9FS=0 maxRowMean=2541 | LNI1 rows=1.45 cols=0.77 | LNI2 rows=2.01 cols=0.75
+[a184] .moai/reports/lane-pre/QA-A-51/frames/scatter.raw rc=0 dropped=0 nonuniform_gain=0 | rowsOver0.9FS=0 maxRowMean=3201 | LNI1 rows=0.94 cols=1.06 | LNI2 rows=0.91 cols=1.05
+[a184] .moai/reports/lane-pre/QA-A-51/frames/edge.raw rc=0 dropped=0 nonuniform_gain=0 | rowsOver0.9FS=0 maxRowMean=2252 | LNI1 rows=1.14 cols=1.09 | LNI2 rows=1.11 cols=1.07
+[a184] .moai/reports/lane-pre/QA-A-51/frames/checker8.raw rc=0 dropped=0 nonuniform_gain=0 | rowsOver0.9FS=0 maxRowMean=2521 | LNI1 rows=0.82 cols=0.95 | LNI2 rows=0.81 cols=0.92
+[a184] .moai/reports/lane-pre/QA-A-51/frames/diag.raw rc=0 dropped=0 nonuniform_gain=0 | rowsOver0.9FS=0 maxRowMean=2514 | LNI1 rows=0.36 cols=0.41 | LNI2 rows=0.35 cols=0.39
+[       OK ] A184Probes.DISABLED_LineNoiseVersusTheReadoutCheck (2030 ms)
+[----------] 1 test from A184Probes (2030 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2030 ms total)
+[  PASSED  ] 1 test.

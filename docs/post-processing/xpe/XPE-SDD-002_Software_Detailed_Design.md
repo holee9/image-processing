@@ -871,7 +871,7 @@ IF NOT enabled: output = input; RETURN
 7. Tag output as AI-processed (SRS-SAFE-008, SRS-ALERT-004)
 
 Fallback:
-  AI worker failure → return input unchanged + SRS-SAFE-008
+  AI worker failure → return input unchanged + Warning alert (REQ-AI-002, REQ-AI-092)
 ```
 
 #### Edge Case
@@ -879,7 +879,7 @@ Fallback:
 | Case | Input | Action | Rationale |
 |------|-------|--------|-----------|
 | enabled=0 | disabled | Pass-through | Toggle control |
-| Worker crash | AI failure | Return input + alert | SRS-SAFE-008 / HAZ-008 |
+| Worker crash | AI failure | Return input + alert | REQ-AI-002 / REQ-AI-092 |
 | Non-chest image | wrong body part | Skip + return input | Only applicable to PA/AP chest |
 | Low confidence | uncertain result | Return input + WARNING | Safety |
 
@@ -903,6 +903,20 @@ Fallback:
 > 바꿨습니다. **양쪽 모두 오늘 코드에 구현이 없습니다** —
 > `xpe_alert_push` 제품 20건에 `ALERT-004` 는 0건이고(대조군: 다른
 > `SRS-ALERT-*` 는 5~14건씩 존재), 그것이 `#130` 의 남은 범위입니다.
+>
+> **재정정 2026-10-01 (`#130` / `QA-B-171C`, Codex 감사 #12)** — 위 정정이 Fallback 을
+> `SRS-SAFE-008` 로 옮긴 것도 틀렸습니다. `XPE-SRS-001:118` 의 `SRS-SAFE-008` 은
+> *"DL 처리 결과에 "AI-processed" label 을 표시"* — `ALERT-004` 와 같은 **성공 쪽** 요구입니다.
+> 근거 1 의 "같은 문서가 이미 그렇게 쓰고 있다" 는 오류 하나를 다른 오류로 정당화한 것이었습니다.
+> 실패 알림을 정하는 규범 요구는 `docs/project/srs_ai.md` 의 `REQ-AI-002`(결정론적 fallback)와
+> `REQ-AI-092`(예산 초과 시 fallback + 알림)이므로 Fallback 줄과 아래 `Worker crash` 행을
+> 그 둘로 바꿨습니다. 알림 정책(실패마다 Warning, 연속 3회에 세션 동안 워커 중단)은
+> `docs/project/REQ-CHANGE-LOG-P3-AI.md` 1~4행.
+>
+> **열린 항목**: `XPE-SRS-001` 의 시스템 알림 표(`SRS-ALERT-001~007`)에는 AI 처리 실패 행이
+> 없습니다. 새 행을 넣는 것은 요구 신설이라 사용자 승인 대상이며 아직 하지 않았습니다.
+> 같은 문서 §3.x 체형 분류기 Edge Case 표의 `Worker crash | … | SRS-SAFE-008` 행도 같은
+> 오추적이지만 그 모듈의 동작(재시작)이 이 정책과 별개라 이번에 고치지 않았습니다.
 
 ---
 

@@ -671,14 +671,22 @@ XPE_API XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
 /**
  * @brief Apply per-mode binning correction for gain/uniformity differences
  *
- * REQ-P1A-020: No-op for binningMode == 1
- * REQ-P1A-021: XPE_ERR_CONFIG_INVALID for unknown binning mode
- * REQ-P1A-022: Float32 format (post-gain-correct stage)
- * REQ-P1A-090: Per-mode correction profile
+ * REQ-P1A-090: binningMode 2 or 4 -> normalise each pixel by 1/binningMode^2,
+ *               in place, FLOAT32 buffers only (a non-FLOAT32 buffer returns
+ *               XPE_ERR_INVALID_INPUT -- implementation behaviour; the SPEC
+ *               text says only "FLOAT32")
+ * REQ-P1A-091: binningMode == 1 -> XPE_OK, image untouched; a mode other than
+ *               1, 2 or 4 -> XPE_ERR_CONFIG_INVALID; a non-finite pixel ->
+ *               XPE_ERR_PROCESSING_FAILED
+ * REQ-P1A-095: this stage runs after gain correction in the pipeline
+ * The numbers REQ-P1A-020/021/022 this block used to cite are the
+ * pre-bc22093 ones. They now name the not-initialized, dimension-mismatch
+ * and format-mismatch guards, which this function does not implement (it
+ * has no initialisation check and takes no map buffer).
  *
  * @param img [in/out] Image to correct (float32 format)
  * @param binningMode Binning factor (1 = no-op, 2 = 2x2, 4 = 4x4)
- * @param configJsonOrNull Optional correction profile JSON
+ * @param configJsonOrNull Unused: no correction profile is read from it
  * @return XPE_OK on success
  *         XPE_ERR_CONFIG_INVALID if unknown binning mode
  *         XPE_ERR_INVALID_INPUT if NULL img
@@ -1056,7 +1064,9 @@ XPE_API XpeErrorCode xpe_verify_defect(
  * Computes overall SNR improvement between raw and final processed images.
  * Provides end-to-end quality assessment for the entire preprocessing pipeline.
  *
- * SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021 / REQ-P1A-041..047: Pipeline verification
+ * SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021: Pipeline verification. No REQ-P1A- requirement
+ * covers xpe_verify_* (spec.md does not mention them); the REQ-P1A-041..047 this line
+ * used to cite were the pre-bc22093 pipeline-stage requirements, now REQ-P1A-095..101.
  *
  * @param raw_image Original raw image (UINT16)
  * @param final_image Final processed image (FLOAT32)

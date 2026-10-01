@@ -8,8 +8,10 @@
  * that functions return non-null or non-error.
  *
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
- * REQ coverage: REQ-P1A-010, REQ-P1A-021, REQ-P1A-016..019, REQ-P1A-085..087,
- *               REQ-P1A-005..008, REQ-P1A-020..023, REQ-P1A-001..004
+ * REQ coverage: REQ-P1A-010 (offset), REQ-P1A-011 (gain; the zero-gain case is a
+ *               loader refusal, SRS-CALIB-FUNC-002), REQ-P1A-080/081 (temperature),
+ *               REQ-P1A-087/088 (ghost), REQ-P1A-090/091 (binning),
+ *               REQ-P1A-041 (readout; only partly implemented, see #232)
  */
 
 #include <gtest/gtest.h>
@@ -114,7 +116,7 @@ static XpeImageBuffer makeF32Buf(std::vector<float>& v,
 // ==========================================================================
 // SWU-1.1: Offset Correction
 // Formula: corrected[i] = max((int)raw[i] - (int)offset[i], 0)
-// REQ-P1A-010, REQ-P1A-021
+// REQ-P1A-010
 // ==========================================================================
 class GoldenOffsetTest : public ::testing::Test {
 protected:
@@ -212,7 +214,7 @@ TEST_F(GoldenOffsetTest, FormulaAppliedElementWise) {
 // ==========================================================================
 // SWU-1.2: Gain Correction
 // Formula: output[i] = (float)uint16[i] * gain[i]  (domain transition)
-// REQ-P1A-016 to REQ-P1A-019
+// REQ-P1A-011
 // ==========================================================================
 class GoldenGainTest : public ::testing::Test {
 protected:
@@ -311,7 +313,7 @@ TEST_F(GoldenGainTest, ZeroGainIsRefusedAtLoad) {
 // hist1[i]        = decay1*hist1[i] + raw[n,i]   decay1 = exp(-1/tau1)
 // hist2[i]        = decay2*hist2[i] + raw[n,i]   decay2 = exp(-1/tau2)
 //
-// REQ-P1A-085 to REQ-P1A-087
+// REQ-P1A-087, REQ-P1A-088
 // ==========================================================================
 class GoldenGhostTest : public ::testing::Test {
 protected:
@@ -345,7 +347,7 @@ protected:
     }
 };
 
-// REQ-P1A-032: Frame 0 (zero history) must pass through unchanged
+// REQ-P1A-087: Frame 0 (zero history) must pass through unchanged
 TEST_F(GoldenGhostTest, Frame0PassesThroughExactly) {
     const float V = 1024.0f;
     std::fill(pixels.begin(), pixels.end(), V);
@@ -360,7 +362,7 @@ TEST_F(GoldenGhostTest, Frame0PassesThroughExactly) {
         EXPECT_FLOAT_EQ(V, out[i]) << "pixel[" << i << "] frame0 must be unchanged";
 }
 
-// REQ-P1A-033: Frame 1 with constant input matches dual-exponential formula
+// REQ-P1A-087: Frame 1 with constant input matches dual-exponential formula
 TEST_F(GoldenGhostTest, Frame1MatchesDualExponentialFormula) {
     const float V = 2000.0f;
     ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
@@ -435,7 +437,7 @@ TEST_F(GoldenGhostTest, GhostSubtractedAfterFirstFrame) {
 // scale    = exp(constant/T_abs) / exp(constant/T_ref)
 //            where constant = -Eg/(2*kB) ≈ -6498 K
 // corrected[i] ≈ raw[i] / scale
-// REQ-P1A-080 to REQ-P1A-082
+// REQ-P1A-080, REQ-P1A-081
 // ==========================================================================
 class GoldenTempTest : public ::testing::Test {
 protected:
@@ -459,7 +461,7 @@ protected:
     }
 };
 
-// REQ-P1A-005: At T_ref=25°C, scale=1.0 → pixels unchanged
+// REQ-P1A-080: At T_ref=25°C, scale=1.0 → pixels unchanged
 TEST_F(GoldenTempTest, RefTempProducesNoChange) {
     std::fill(pixels.begin(), pixels.end(), 5000u);
     ASSERT_EQ(XPE_OK, xpe_temp_compensate(&img, 25.0f, nullptr));
@@ -517,7 +519,7 @@ protected:
     }
 };
 
-// REQ-P1A-020: mode=1 is identity (no-op)
+// REQ-P1A-091: mode=1 is identity (no-op)
 TEST_F(GoldenBinningTest, Mode1IsIdentity) {
     std::fill(pixels.begin(), pixels.end(), 12345.6f);
     ASSERT_EQ(XPE_OK, xpe_binning_correct(&img, 1, nullptr));
@@ -527,7 +529,7 @@ TEST_F(GoldenBinningTest, Mode1IsIdentity) {
         EXPECT_FLOAT_EQ(12345.6f, out[i]) << "pixel[" << i << "] mode=1 must be unchanged";
 }
 
-// REQ-P1A-021: mode=2 → output = raw / 4
+// REQ-P1A-090: mode=2 → output = raw / 4
 TEST_F(GoldenBinningTest, Mode2DividesByFour) {
     std::fill(pixels.begin(), pixels.end(), 4000.0f);
     ASSERT_EQ(XPE_OK, xpe_binning_correct(&img, 2, nullptr));
@@ -537,7 +539,7 @@ TEST_F(GoldenBinningTest, Mode2DividesByFour) {
         EXPECT_FLOAT_EQ(1000.0f, out[i]) << "pixel[" << i << "] mode=2";
 }
 
-// REQ-P1A-022: mode=4 → output = raw / 16
+// REQ-P1A-090: mode=4 → output = raw / 16
 TEST_F(GoldenBinningTest, Mode4DividesBySixteen) {
     std::fill(pixels.begin(), pixels.end(), 16000.0f);
     ASSERT_EQ(XPE_OK, xpe_binning_correct(&img, 4, nullptr));
@@ -559,7 +561,7 @@ TEST_F(GoldenBinningTest, UnknownModeReturnsError) {
 // Formula: score = clamp((sat_frac + noise_frac) * 50, 0, 100)
 //   sat_frac   = count(pixels == 65535) / total_pixels
 //   noise_frac = count(rows where row_mean > 0.9 * 65535) / total_rows
-// REQ-P1A-001 to REQ-P1A-004
+// REQ-P1A-041
 // ==========================================================================
 class GoldenReadoutTest : public ::testing::Test {
 protected:

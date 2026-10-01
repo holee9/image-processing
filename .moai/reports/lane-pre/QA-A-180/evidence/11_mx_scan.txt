@@ -1,0 +1,7 @@
+OK: wrote 29 tags to D:\workspace-github\xpe-pre\.moai\state\mx-index.json
+by kind:
+  NOTE: 13
+  ANCHOR: 14
+  WARN: 2
+scanner warnings: 1
+  - MissingReasonForWarn: D:\workspace-github\xpe-pre\modules\preprocess\src\pipeline.cpp:450 - WARN tag without REASON within 3 lines

@@ -1,0 +1,19 @@
+Note: Google Test filter = A184Probes.DISABLED_DimensionMismatchReturnCodes
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A184Probes
+[ RUN      ] A184Probes.DISABLED_DimensionMismatchReturnCodes
+
+[a184] (1) return code per kind of size disagreement (BUFFER_TOO_SMALL=-8 INVALID_INPUT=-1)
+[a184]   offset  map 4x4  vs input 5x4 (output 5x4)           -> -1 (INVALID_INPUT)
+[a184]   offset  map 4x4 = input 4x4, output 5x4              -> -1 (INVALID_INPUT)
+[a184]   gain    map 4x4  vs input 5x4 (output 5x4)           -> -1 (INVALID_INPUT)
+[a184]   gain    map 4x4 = input 4x4, output 5x4              -> -1 (INVALID_INPUT)
+[a184]   defect  map 4x4  vs input 5x4 (output 5x4)           -> -1 (INVALID_INPUT)
+[a184]   defect  map 4x4 = input 4x4, output 5x4              -> -1 (INVALID_INPUT)
+[       OK ] A184Probes.DISABLED_DimensionMismatchReturnCodes (8 ms)
+[----------] 1 test from A184Probes (8 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.

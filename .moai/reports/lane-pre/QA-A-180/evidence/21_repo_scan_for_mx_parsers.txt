@@ -1,0 +1,18 @@
+files mentioning @MX / MX:SPEC, by extension (repo, excluding build/_deps/.git/node_modules):
+     84 md
+     56 cpp
+     15 cs
+     11 h
+      9 txt
+      5 xml
+      5 html
+      4 yaml
+      1 py
+      1 hpp
+      1 ./docs/help/doxygen/Doxyfile
+
+script/code files (py ps1 sh go js ts cs bat cmake) that mention it:
+./.moai/reports/lane-pre/QA-A-105/a105_docs.py
+(end)
+control: same file-type scan finds a script that mentions another known token:
+./tools/ci/check_cache_matches_preset.py

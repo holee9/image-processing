@@ -1,0 +1,51 @@
+## callers of xpe_offset_correct / xpe_gain_correct / xpe_defect_correct outside tests
+./clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:19:            "xpe_offset_correct",
+./clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:20:            "xpe_gain_correct",
+./clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:21:            "xpe_defect_correct",
+./clients/ImageProcTest/Diagnostics/XpePreprocessSyntheticOracle.cs:52:                    !TryGetDelegate(handle, "xpe_offset_correct", out OffsetCorrectionDelegate? offsetCorrect) ||
+./clients/ImageProcTest/Diagnostics/XpePreprocessSyntheticOracle.cs:53:                    !TryGetDelegate(handle, "xpe_gain_correct", out GainCorrectionDelegate? gainCorrect) ||
+./clients/ImageProcTest/Diagnostics/XpePreprocessSyntheticOracle.cs:54:                    !TryGetDelegate(handle, "xpe_defect_correct", out DefectCorrectionDelegate? defectCorrect))
+./clients/ImageProcTest/Diagnostics/XpePreprocessSyntheticOracle.cs:61:                var offsetFn = offsetCorrect ?? throw new InvalidOperationException("xpe_offset_correct delegate is null.");
+./clients/ImageProcTest/Diagnostics/XpePreprocessSyntheticOracle.cs:62:                var gainFn = gainCorrect ?? throw new InvalidOperationException("xpe_gain_correct delegate is null.");
+./clients/ImageProcTest/Diagnostics/XpePreprocessSyntheticOracle.cs:63:                var defectFn = defectCorrect ?? throw new InvalidOperationException("xpe_defect_correct delegate is null.");
+./clients/ImageProcTest/Services/NativePreprocessPreviewService.cs:165:                var offsetCorrect = GetRequiredDelegate<OffsetCorrectionDelegate>(handle, "xpe_offset_correct");
+./clients/ImageProcTest/Services/NativePreprocessPreviewService.cs:166:                var gainCorrect = GetRequiredDelegate<GainCorrectionDelegate>(handle, "xpe_gain_correct");
+./clients/ImageProcTest/Services/NativePreprocessPreviewService.cs:167:                var defectCorrect = GetRequiredDelegate<DefectCorrectionDelegate>(handle, "xpe_defect_correct");
+./gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:125:            var offsetCode = XpePreprocessNative.xpe_offset_correct(ref input, ref offsetOut, ref metadata);
+./gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:128:                return new PreprocessRunResult(false, $"xpe_offset_correct failed ({offsetCode}).", null);
+./gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:149:            var gainCode = XpePreprocessNative.xpe_gain_correct(ref offsetOut, ref gainOut, ref metadata);
+./gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:152:                return new PreprocessRunResult(false, $"xpe_gain_correct failed ({gainCode}).", null);
+./gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:155:            var defectCode = XpePreprocessNative.xpe_defect_correct(ref gainOut, ref defectOut, ref metadata);
+./gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:158:                return new PreprocessRunResult(false, $"xpe_defect_correct failed ({defectCode}).", null);
+./gui/ImageProcTest/Services/Native/XpePreprocessInterop.cs:75:    internal static extern int xpe_offset_correct(
+./gui/ImageProcTest/Services/Native/XpePreprocessInterop.cs:92:    internal static extern int xpe_gain_correct(
+./gui/ImageProcTest/Services/Native/XpePreprocessInterop.cs:98:    internal static extern int xpe_defect_correct(
+./gui/ImageProcTest/Services/PipelineOrchestrator.cs:28:        new DllExportInfo { DllName = "xpe_preprocess.dll", RequiredExports = new[] { "xpe_offset_correct", "xpe_gain_correct" } },
+./modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h:296:    // one gain model and xpe_gain_correct() cannot silently apply a stale map.
+./modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h:302:    // guarantees nothing outside it, so xpe_gain_correct() clamps the pixel
+./modules/preprocess/include/xpe/preprocess_api.h:16: * - xpe_offset_correct()
+./modules/preprocess/include/xpe/preprocess_api.h:17: * - xpe_gain_correct()
+./modules/preprocess/include/xpe/preprocess_api.h:18: * - xpe_defect_correct()
+./modules/preprocess/include/xpe/preprocess_api.h:186:XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
+./modules/preprocess/include/xpe/preprocess_api.h:210:XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
+./modules/preprocess/include/xpe/preprocess_api.h:277:XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
+./modules/preprocess/src/defect_correct.cpp:114:// @MX:ANCHOR: [AUTO] xpe_defect_correct — public API entry point (new g_calib-based)
+./modules/preprocess/src/defect_correct.cpp:117:extern "C" XPE_API XpeErrorCode xpe_defect_correct(
+./modules/preprocess/src/defect_correct.cpp:232:    // and :131 call xpe_defect_correct(&buf.gainBuf, &buf.gainBuf, &buf.meta).
+./modules/preprocess/src/gain_correct.cpp:239:// @MX:ANCHOR: [AUTO] xpe_gain_correct — public API entry point (new g_calib-based)
+./modules/preprocess/src/gain_correct.cpp:242:extern "C" XPE_API XpeErrorCode xpe_gain_correct(
+./modules/preprocess/src/offset_correct.cpp:142:// @MX:ANCHOR: [AUTO] xpe_offset_correct — public API entry point (new g_calib-based)
+./modules/preprocess/src/offset_correct.cpp:145:extern "C" XPE_API XpeErrorCode xpe_offset_correct(
+./modules/preprocess/src/pipeline.cpp:151:            // Use new 3-arg API: xpe_offset_correct(input, output, metadata)
+./modules/preprocess/src/pipeline.cpp:152:            result = xpe_offset_correct(&stage1, &stage2, meta);
+./modules/preprocess/src/pipeline.cpp:198:            // Use new 3-arg API: xpe_gain_correct(input, output, metadata)
+./modules/preprocess/src/pipeline.cpp:200:            result = xpe_gain_correct(&stage3, &stage4, meta);
+./modules/preprocess/src/pipeline.cpp:240:        // ran from either entry point. xpe_defect_correct() itself reads g_calib.
+./modules/preprocess/src/pipeline.cpp:267:            // meta, not nullptr: xpe_defect_correct rejects a null metadata
+./modules/preprocess/src/pipeline.cpp:270:            result = xpe_defect_correct(&stage5, &stage6, meta);
+./modules/preprocess/src/xpe_calib_load_defect_map.cpp:10: * @MX:REASON: Called by xpe_defect_correct (fan_in >= 3); g_calib write path
+./modules/preprocess/src/xpe_calib_load_gain.cpp:11: * @MX:REASON: Called by xpe_gain_correct (fan_in >= 3); g_calib write path
+./modules/preprocess/src/xpe_calib_load_gain.cpp:245:        // loaded but nothing applied them. QA-A-121 made xpe_gain_correct()
+./modules/preprocess/src/xpe_calib_load_offset.cpp:10: * @MX:REASON: Called by xpe_offset_correct (fan_in >= 3); g_calib write path
+## control: same grep including tests, file count
+46

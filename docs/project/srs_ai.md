@@ -447,6 +447,12 @@ AI input validation **shall** include: image dimension bounds, pixel value bound
 
 AI inference **shall** enforce a configurable time budget (default 5 s). Exceeding the budget **shall** trigger fallback and alert.
 
+> **Interpretation (2026-10-01, user-approved, `#130`)** — the requirement text above is unchanged.
+> Fallback returns the input unchanged with a non-OK code; every worker failure (budget exceeded,
+> worker death, or a model error frame) raises one Warning; three consecutive failures disable the
+> worker for the session (the third Warning says so), so at most three worker Warnings per session.
+> `shutdown` then `init` starts a new session. Decision record: `docs/project/REQ-CHANGE-LOG-P3-AI.md`.
+
 | Attribute | Value |
 |-----------|-------|
 | SRS ID | SRS-AI-SEC-002 |
