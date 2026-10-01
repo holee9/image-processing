@@ -136,7 +136,10 @@ TEST(IntegrationTest, T602_DiagnosticLogging) {
     XpeErrorCode result = xpe_multiscale_process(&img, &meta, nullptr);
     auto end = high_resolution_clock::now();
 
-    auto duration = duration_cast<milliseconds>(end - start).count();
+    // Microseconds, not whole milliseconds (QA-B-176): "some time elapsed" read in milliseconds is 0 on a
+    // machine where the call takes under 1 ms, so the assertion failed on a FASTER machine -- the opposite
+    // of the stall failure the budget tests had. A real call cannot take 0 microseconds.
+    auto duration = duration_cast<microseconds>(end - start).count();
 
     // Verify function executed (logging is internal)
     EXPECT_EQ(result, XPE_OK);

@@ -1,0 +1,19 @@
+xpe_ai.dll: D:\workspace-github\xpe-post\build\ci-post\bin\xpe_ai.dll  (ci-post STUB build);  worker exe beside it: True
+[2026-10-01 23:19:44.637] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 23:19:44.709] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 23:19:44.711] [info] xpe_ai shutdown: worker_pid=%u
+use_worker=true , model dir MISSING   (the GUI CI case)        init= 0  bone_suppress rc= -9     45 ms  output==input: True
+[2026-10-01 23:19:44.714] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 23:19:44.755] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 23:19:44.755] [info] xpe_ai shutdown: worker_pid=%u
+use_worker=true , model file PRESENT  (empty file)             init= 0  bone_suppress rc= -3     40 ms  output==input: True
+[2026-10-01 23:19:44.757] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 23:19:44.757] [error] Model file not found: C:\Users\drake\AppData\Local\Temp\xpe_ai_repro_44140\models_missing/bone_suppress.onnx
+[2026-10-01 23:19:44.757] [error] bone_suppress: no model at %s
+[2026-10-01 23:19:44.757] [info] xpe_ai shutdown: worker_pid=%u
+use_worker=false, model dir MISSING   (in-process)             init= 0  bone_suppress rc= -9      0 ms  output==input: False
+[2026-10-01 23:19:44.758] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 23:19:44.758] [info] Creating ONNX session in STUB mode
+[2026-10-01 23:19:44.758] [error] bone_suppress: run failed: %s
+[2026-10-01 23:19:44.758] [info] xpe_ai shutdown: worker_pid=%u
+use_worker=false, model file PRESENT  (in-process)             init= 0  bone_suppress rc= -3      0 ms  output==input: False

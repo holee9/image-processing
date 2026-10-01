@@ -1,0 +1,80 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = BenchmarkFreeze.BP06_GsvgVersionProbeBaseline
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from BenchmarkFreeze
+[ RUN      ] BenchmarkFreeze.BP06_GsvgVersionProbeBaseline
+PERFBUDGET BP06_gsvg_version_probe_1024 median=710320 min=702307 max=714997 us (runs=5)
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_gsvg_benchmark.cpp(32): error: Expected: (m.medianUs) < (kMaxTotalUs), actual: 710320 vs 5000
+BP-06 gsvg version-probe baseline exceeded: median 710.32 ms of [715.00 710.32 702.31 708.39 714.28] ms
+
+[  FAILED  ] BenchmarkFreeze.BP06_GsvgVersionProbeBaseline (3552 ms)
+[----------] 1 test from BenchmarkFreeze (3552 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3552 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] BenchmarkFreeze.BP06_GsvgVersionProbeBaseline
+
+ 1 FAILED TEST
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline:ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from ExposureIndex
+[ RUN      ] ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline
+PERFBUDGET BP08_ei_calc_512 median=711119 min=704713 max=713523 us (runs=5)
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index.cpp(293): error: Expected: (m.medianUs) < (kMaxMs * 1000), actual: 711119 vs 25000
+BP-08 EI calculation baseline exceeded: median 711.12 ms of [704.71 712.60 713.52 711.12 710.99] ms
+
+[  FAILED  ] ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline (3553 ms)
+[ RUN      ] ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline
+PERFBUDGET BP09_di_calc_512 median=713605 min=701549 max=715334 us (runs=5)
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index.cpp(327): error: Expected: (m.medianUs) < (kMaxMs * 1000), actual: 713605 vs 25000
+BP-09 DI calculation baseline exceeded: median 713.61 ms of [701.55 701.62 713.83 713.61 715.33] ms
+
+[  FAILED  ] ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline (3546 ms)
+[----------] 2 tests from ExposureIndex (7100 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (7100 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline
+[  FAILED  ] ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline
+
+ 2 FAILED TESTS
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = CollimationDetectTest.BenchmarkFreeze_BP07_CollimationDetectionBaseline:IntegrationTest.T602_DiagnosticLogging
+[==========] Running 2 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from CollimationDetectTest
+[ RUN      ] CollimationDetectTest.BenchmarkFreeze_BP07_CollimationDetectionBaseline
+[XPE][INFO ] xpe_init: library initialised
+[2026-10-01 23:29:55.681] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":2,"hough_time_ms":1,"total_time_ms":7,"confidence":1.00,"roi":[64,72,448,440]}
+[2026-10-01 23:29:56.391] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":3,"hough_time_ms":1,"total_time_ms":7,"confidence":1.00,"roi":[64,72,448,440]}
+[2026-10-01 23:29:57.102] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":3,"hough_time_ms":1,"total_time_ms":7,"confidence":1.00,"roi":[64,72,448,440]}
+[2026-10-01 23:29:57.816] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":3,"hough_time_ms":1,"total_time_ms":7,"confidence":1.00,"roi":[64,72,448,440]}
+[2026-10-01 23:29:58.532] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":4,"hough_time_ms":1,"total_time_ms":8,"confidence":1.00,"roi":[64,72,448,440]}
+[2026-10-01 23:29:59.246] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":3,"hough_time_ms":1,"total_time_ms":7,"confidence":1.00,"roi":[64,72,448,440]}
+PERFBUDGET BP07_collimation_512 median=713980 min=709886 max=716443 us (runs=5)
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_collimation_detect.cpp(410): error: Expected: (m.medianUs) < (kMaxMs * 1000), actual: 713980 vs 500000
+BP-07 collimation detection baseline exceeded: median 713.98 ms of [709.89 710.49 714.25 716.44 713.98] ms
+
+[  FAILED  ] CollimationDetectTest.BenchmarkFreeze_BP07_CollimationDetectionBaseline (3573 ms)
+[----------] 1 test from CollimationDetectTest (3573 ms total)
+
+[----------] 1 test from IntegrationTest
+[ RUN      ] IntegrationTest.T602_DiagnosticLogging
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] IntegrationTest.T602_DiagnosticLogging (7 ms)
+[----------] 1 test from IntegrationTest (7 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 2 test suites ran. (3580 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] CollimationDetectTest.BenchmarkFreeze_BP07_CollimationDetectionBaseline
+
+ 1 FAILED TEST

@@ -16,6 +16,8 @@
 #include <algorithm>
 #include <chrono>
 
+#include "perf_budget.h"
+
 namespace {
 
 // Must match the EIT table in exposure_index.cpp
@@ -276,15 +278,20 @@ TEST(ExposureIndex, BenchmarkFreeze_BP08_EICalcTimeBaseline) {
     float outEI = 0.0f;
     float outDI = 0.0f;
 
-    auto start = std::chrono::steady_clock::now();
-    ASSERT_EQ(XPE_OK, xpe_calc_exposure_index(&img, &meta, &outEI, &outDI));
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now() - start);
+    // Judged by the MEDIAN of several timed calls after one untimed warm-up (perf_budget.h, QA-B-176,
+    // #179), not one wall-clock reading. The EI calculation only reads the image.
+    //
+    // WHERE 25 ms COMES FROM: SPEC-BENCH-POST REQ-BPOST-003 ("512x512 EI calc < 25 ms"), frozen on
+    // 2026-04-22 (measured 0 ms then); not derived from a product performance requirement.
+    // REQ-BPOST-006 makes this test a CI gate. QA-B-176 changed HOW the time is judged, not the value.
+    const auto m = perf_budget::Measure("BP08_ei_calc_512", [] {}, [&] {
+        return xpe_calc_exposure_index(&img, &meta, &outEI, &outDI);
+    });
 
     EXPECT_NEAR(ExpectedEI(kFill), outEI, ExpectedEI(kFill) * 0.001f);
     EXPECT_NEAR(0.0f, outDI, 0.001f);
-    EXPECT_LT(elapsed.count(), kMaxMs)
-        << "BP-08 EI calculation baseline exceeded.";
+    EXPECT_LT(m.medianUs, kMaxMs * 1000)
+        << "BP-08 EI calculation baseline exceeded: " << perf_budget::Describe(m);
     RecordProperty("BP", "BP-08");
     RecordProperty("baseline_ms_max", kMaxMs);
     RecordProperty("pixels", kWidth * kHeight);
@@ -302,19 +309,23 @@ TEST(ExposureIndex, BenchmarkFreeze_BP09_DICalcTimeBaseline) {
     float outEI = 0.0f;
     float outDI = 0.0f;
 
-    xpe_clear_alerts();
-    auto start = std::chrono::steady_clock::now();
-    ASSERT_EQ(XPE_OK, xpe_calc_exposure_index(&img, &meta, &outEI, &outDI));
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now() - start);
+    // Judged by the MEDIAN of several timed calls after one untimed warm-up (perf_budget.h, QA-B-176,
+    // #179). The alert queue is cleared before every call, as it was before the single call.
+    //
+    // WHERE 25 ms COMES FROM: SPEC-BENCH-POST REQ-BPOST-004 ("512x512 DI calc < 25 ms"), frozen on
+    // 2026-04-22 (measured 0 ms then); not derived from a product performance requirement.
+    // REQ-BPOST-006 makes this test a CI gate. QA-B-176 changed HOW the time is judged, not the value.
+    const auto m = perf_budget::Measure("BP09_di_calc_512", [] { xpe_clear_alerts(); }, [&] {
+        return xpe_calc_exposure_index(&img, &meta, &outEI, &outDI);
+    });
 
     const float expectedEI = ExpectedEI(kMean);
     const float expectedDI = ExpectedDI(kMean, EIT_CHEST);
     EXPECT_NEAR(expectedEI, outEI, expectedEI * 0.001f);
     EXPECT_NEAR(expectedDI, outDI, 0.001f);
     EXPECT_GT(std::fabs(outDI), 3.0f);
-    EXPECT_LT(elapsed.count(), kMaxMs)
-        << "BP-09 DI calculation baseline exceeded.";
+    EXPECT_LT(m.medianUs, kMaxMs * 1000)
+        << "BP-09 DI calculation baseline exceeded: " << perf_budget::Describe(m);
     RecordProperty("BP", "BP-09");
     RecordProperty("baseline_ms_max", kMaxMs);
     RecordProperty("pixels", kWidth * kHeight);
