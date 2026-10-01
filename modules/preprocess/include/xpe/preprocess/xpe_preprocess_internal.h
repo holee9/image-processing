@@ -347,6 +347,13 @@ struct CalibrationData {
 extern CalibrationData g_calib;
 extern std::mutex      g_calib_mutex;
 
+/**
+ * Whether the calibration cache's list and index describe the same entries (every list node has its
+ * index slot and the counts agree). Not exported: a seam for the allocation-failure sweep, which
+ * compiles the product sources into its own executable (QA-A-203, Codex #21).
+ */
+bool xpe_calib_cache_is_consistent();
+
 /* =========================================================================
  * FUNC-033 quality metadata (QA-A-35, #140)
  *

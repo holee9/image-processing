@@ -562,3 +562,46 @@ TEST_F(CacheSameVerdict, AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefuse
         EXPECT_EQ(first.data, again.data) << "the entry must survive the refused call";
     }
 }
+
+// (10) expired AND unreadable: the open comes first ---------------------------------------------
+// The plain reader opens the file and only then looks at the expiry, so a file that is both expired and
+// cannot be opened is IO_FAILED. A hit judged the expiry first, answered CALIBRATION_EXPIRED, and dropped
+// the entry without ever trying the open (Codex #21). The refusal must also leave the entry alone, so once
+// the file can be read again the expired verdict arrives as it would from the miss path.
+TEST_F(CacheSameVerdict, AnExpiredFileThatCannotBeOpenedIsIoFailedNotExpired) {
+    for (Kind k : {OFFSET, GAIN, DEFECT}) {
+        SCOPED_TRACE(kindName[k]);
+        xpe_calib_cache_clear();
+        const int64_t expiry = nowMs() + 800;
+        if (k == OFFSET) writeOffset("csv_x.xcal", 100.0f, expiry);
+        else if (k == GAIN) writeGain("csv_x.xcal", 2.0f, expiry);
+        else writeDefect("csv_x.xcal", true, expiry);
+
+        XpeImageBuffer first{};
+        ASSERT_EQ(XPE_OK, kCached[k]("csv_x.xcal", &first));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1100));
+
+        // Control: with the file readable, the plain loader (the miss path) says expired.
+        ASSERT_EQ(XPE_ERR_CALIBRATION_EXPIRED, kPlain[k]("csv_x.xcal")) << "control: the file is expired";
+
+        ReadDenied denied("csv_x.xcal");
+        if (!denied.ok()) GTEST_SKIP() << "cannot deny read access on this platform / account";
+        std::error_code ec1, ec2;
+        (void)fs::file_size("csv_x.xcal", ec1);
+        (void)fs::last_write_time("csv_x.xcal", ec2);
+        ASSERT_FALSE(ec1) << "control: the size must stay readable: " << ec1.message();
+        ASSERT_FALSE(ec2) << "control: the write time must stay readable: " << ec2.message();
+
+        // Control: expired and unreadable, the plain loader opens first and says IO_FAILED.
+        const XpeErrorCode miss = kPlain[k]("csv_x.xcal");
+        ASSERT_EQ(XPE_ERR_IO_FAILED, miss) << "control: the plain loader cannot open the file";
+
+        XpeImageBuffer refused{};
+        EXPECT_EQ(miss, kCached[k]("csv_x.xcal", &refused)) << "a hit must judge the file in the reader's order";
+
+        // The refusal did not drop the entry; the next judgement is the expiry, as for the plain loader.
+        denied.release();
+        XpeImageBuffer later{};
+        EXPECT_EQ(XPE_ERR_CALIBRATION_EXPIRED, kCached[k]("csv_x.xcal", &later));
+    }
+}

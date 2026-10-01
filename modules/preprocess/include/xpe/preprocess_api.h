@@ -837,15 +837,18 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_batch(
  * - Hit: no file read. The module-global calibration store is set to this map, as after a miss, so a
  *   correction called right after a successful load works, and the call reaches the verdict a miss
  *   would reach:
- *     expiry     - re-checked on every hit from the file's expiry kept in the entry; an expired map is
- *                  refused with XPE_ERR_CALIBRATION_EXPIRED and the store is left as it was;
  *     file change - the file's size and last-write time are compared with the ones recorded when it
  *                  was read; if either differs, or the file cannot be examined, the hit is cancelled
  *                  and the call loads the file like a miss (so its SHA-256 is checked again and a
  *                  tampered file is refused with the loader's code);
  *     readable   - the file is opened for reading once (opening only, nothing is read): a file whose
  *                  attributes are visible but whose content cannot be opened is refused with
- *                  XPE_ERR_IO_FAILED, as a miss would, and the store is left as it was.
+ *                  XPE_ERR_IO_FAILED, as a miss would, and the store and the entry are left as they
+ *                  were. This comes BEFORE the expiry, in the order the file reader judges a file: a
+ *                  file that is both expired and unreadable is XPE_ERR_IO_FAILED;
+ *     expiry     - then re-checked from the file's expiry kept in the entry; an expired map is
+ *                  refused with XPE_ERR_CALIBRATION_EXPIRED, the entry is dropped, and the store is
+ *                  left as it was.
  *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
  *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
  *   file. The session check is not repeated on a hit.
@@ -888,15 +891,18 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
  * - Hit: no file read. The module-global calibration store is set to this map, as after a miss, so a
  *   correction called right after a successful load works, and the call reaches the verdict a miss
  *   would reach:
- *     expiry     - re-checked on every hit from the file's expiry kept in the entry; an expired map is
- *                  refused with XPE_ERR_CALIBRATION_EXPIRED and the store is left as it was;
  *     file change - the file's size and last-write time are compared with the ones recorded when it
  *                  was read; if either differs, or the file cannot be examined, the hit is cancelled
  *                  and the call loads the file like a miss (so its SHA-256 is checked again and a
  *                  tampered file is refused with the loader's code);
  *     readable   - the file is opened for reading once (opening only, nothing is read): a file whose
  *                  attributes are visible but whose content cannot be opened is refused with
- *                  XPE_ERR_IO_FAILED, as a miss would, and the store is left as it was.
+ *                  XPE_ERR_IO_FAILED, as a miss would, and the store and the entry are left as they
+ *                  were. This comes BEFORE the expiry, in the order the file reader judges a file: a
+ *                  file that is both expired and unreadable is XPE_ERR_IO_FAILED;
+ *     expiry     - then re-checked from the file's expiry kept in the entry; an expired map is
+ *                  refused with XPE_ERR_CALIBRATION_EXPIRED, the entry is dropped, and the store is
+ *                  left as it was.
  *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
  *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
  *   file. The session check is not repeated on a hit.
@@ -944,15 +950,18 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
  * - Hit: no file read. The module-global calibration store is set to this map, as after a miss, so a
  *   correction called right after a successful load works, and the call reaches the verdict a miss
  *   would reach:
- *     expiry     - re-checked on every hit from the file's expiry kept in the entry; an expired map is
- *                  refused with XPE_ERR_CALIBRATION_EXPIRED and the store is left as it was;
  *     file change - the file's size and last-write time are compared with the ones recorded when it
  *                  was read; if either differs, or the file cannot be examined, the hit is cancelled
  *                  and the call loads the file like a miss (so its SHA-256 is checked again and a
  *                  tampered file is refused with the loader's code);
  *     readable   - the file is opened for reading once (opening only, nothing is read): a file whose
  *                  attributes are visible but whose content cannot be opened is refused with
- *                  XPE_ERR_IO_FAILED, as a miss would, and the store is left as it was.
+ *                  XPE_ERR_IO_FAILED, as a miss would, and the store and the entry are left as they
+ *                  were. This comes BEFORE the expiry, in the order the file reader judges a file: a
+ *                  file that is both expired and unreadable is XPE_ERR_IO_FAILED;
+ *     expiry     - then re-checked from the file's expiry kept in the entry; an expired map is
+ *                  refused with XPE_ERR_CALIBRATION_EXPIRED, the entry is dropped, and the store is
+ *                  left as it was.
  *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
  *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
  *   file. The session check is not repeated on a hit.

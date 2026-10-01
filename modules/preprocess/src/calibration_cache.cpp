@@ -51,7 +51,7 @@ namespace {
 /**
  * @brief Cached calibration map entry.
  *
- * Owns the pixel data buffer (allocated via malloc, freed on eviction).
+ * Owns the pixel data buffer (allocated with operator new, freed on eviction).
  */
 /** Size and last-write time of a file, as the cache compares them on a hit. */
 struct FileStamp {
@@ -81,6 +81,20 @@ FileStamp stamp_of(const char* path) noexcept
     }
     return st;
 }
+
+/**
+ * The cache's pixel buffers come from operator new, not malloc: an allocation failure is then one
+ * exception like every other in this file (the loaders' try blocks turn it into OUT_OF_MEMORY), and the
+ * allocation-failure sweep can both fail it and count it (QA-A-203, Codex #21).
+ */
+void* cache_buffer_alloc(size_t bytes) { return ::operator new(bytes); }
+void  cache_buffer_free(void* p) noexcept { ::operator delete(p); }
+
+struct CacheBufferFree {
+    void operator()(void* p) const noexcept { cache_buffer_free(p); }
+};
+/** Owns a cache pixel buffer until the cache has taken it. */
+using CacheBufferPtr = std::unique_ptr<void, CacheBufferFree>;
 
 /**
  * Whether the file can be opened for reading, the way the XCal reader opens it. Reading the size and
@@ -122,7 +136,8 @@ struct EntryMeta {
     bool        hasQuality{false};
 };
 
-enum class HitState { Miss, Hit, Expired };
+/// NeedOpenCheck / Unreadable are the two steps of the open check (QA-A-203): see get_copy().
+enum class HitState { Miss, Hit, Expired, NeedOpenCheck, Unreadable };
 
 struct CachedMap {
     XpeImageBuffer buffer;  ///< Image buffer (owns data pointer)
@@ -185,11 +200,19 @@ public:
      * is dropped and the result is Miss, so the caller reloads the file. When the entry's expiry has
      * passed, the entry is dropped and the result is Expired. When the entry holds a map of another
      * kind than `kind` (QA-A-197), the result is Miss and the entry stays.
+     *
+     * QA-A-203 (Codex #21): the plain reader opens the file BEFORE it looks at the expiry, so a file that
+     * is expired and cannot be opened is IO_FAILED, and a hit must say the same. The open is file I/O and
+     * is not done under the cache lock, so the lookup is two calls: with `openable == nullptr` an entry
+     * that survives the stamp and kind checks answers NeedOpenCheck (nothing erased, nothing copied);
+     * the caller opens the file and calls again with the answer. An unopenable file is Unreadable, and the
+     * entry is left alone. Only then is the expiry judged, and an expired entry dropped. Every check is
+     * made again on the second call, so an entry replaced in between is judged as it now stands.
      */
     template <typename T>
     XpeErrorCode get_copy(const std::string& path, MapKind kind, const FileStamp& now, int64_t nowMs,
-                          XpeImageBuffer* view, std::unique_ptr<T[]>* pixels, EntryMeta* meta,
-                          HitState* state) {
+                          const bool* openable, XpeImageBuffer* view, std::unique_ptr<T[]>* pixels,
+                          EntryMeta* meta, HitState* state) {
         std::lock_guard<std::mutex> lock(mutex_);
         *state = HitState::Miss;
         auto it = index_.find(path);
@@ -203,6 +226,8 @@ public:
         // loader of the asking kind would refuse that file (wrong XCal type), so this is a miss for it.
         // The entry is left alone -- its own loader still hits it.
         if (it->second->meta.kind != kind) return XPE_OK;
+        if (!openable) { *state = HitState::NeedOpenCheck; return XPE_OK; }
+        if (!*openable) { *state = HitState::Unreadable; return XPE_OK; }
         if (it->second->meta.expiryMs != 0 && nowMs > it->second->meta.expiryMs) {
             erase_locked(it);
             *state = HitState::Expired;
@@ -276,42 +301,52 @@ public:
 private:
     /** Frees and unlinks one entry; the caller holds mutex_. */
     void erase_locked(std::unordered_map<std::string, ListIter>::iterator it) {
-        std::free(it->second->buffer.data);
+        cache_buffer_free(it->second->buffer.data);
         lru_.erase(it->second);
         index_.erase(it);
     }
 
-    /** put(), with the caller already holding mutex_. */
+    /**
+     * put(), with the caller already holding mutex_.
+     *
+     * QA-A-203 (Codex #21): everything that can throw -- the list node, its path string, the index slot --
+     * is done FIRST, while nothing has been changed and the caller still owns the buffer. What follows
+     * (dropping the replaced entry, evicting, taking the buffer, linking the node) cannot throw, so an
+     * allocation failure leaves the cache exactly as it was: no entry without its index slot, no index
+     * slot without its entry, and the caller's buffer still the caller's to free.
+     */
     void put_locked(const std::string& path, XpeImageBuffer* buffer, const EntryMeta& meta) {
-        // Check if already cached — replace
-        auto it = index_.find(path);
-        if (it != index_.end()) {
-            // Free old data
-            std::free(it->second->buffer.data);
-            lru_.erase(it->second);
-            index_.erase(it);
+        std::list<CachedMap> staged;
+        staged.emplace_back();
+        staged.front().path = path;
+        staged.front().meta = meta;
+
+        auto slot = index_.find(path);
+        const bool replacing = (slot != index_.end());
+        if (!replacing) {
+            // May throw; the slot points nowhere until the node is linked below.
+            slot = index_.emplace(path, lru_.end()).first;
         }
 
-        // Evict LRU if at capacity
+        // From here nothing throws.
+        if (replacing) {
+            cache_buffer_free(slot->second->buffer.data);
+            lru_.erase(slot->second);
+        }
         while (lru_.size() >= maxSize_ && !lru_.empty()) {
             CachedMap& oldest = lru_.back();
-            std::free(oldest.buffer.data);
+            cache_buffer_free(oldest.buffer.data);
             index_.erase(oldest.path);
             lru_.pop_back();
         }
 
-        // Insert new entry at front
-        CachedMap entry;
-        entry.path = path;
-        entry.meta = meta;
-        // Transfer ownership of buffer data to cache
-        std::memcpy(&entry.buffer, buffer, sizeof(XpeImageBuffer));
-        // Clear the caller's pointer to prevent double-free
+        std::memcpy(&staged.front().buffer, buffer, sizeof(XpeImageBuffer));
+        // The cache owns the pixels now; clear the caller's pointer to prevent a double free.
         buffer->data = nullptr;
         buffer->dataSize = 0;
 
-        lru_.push_front(std::move(entry));
-        index_[path] = lru_.begin();
+        lru_.splice(lru_.begin(), staged, staged.begin());
+        slot->second = lru_.begin();
     }
 
 public:
@@ -321,7 +356,7 @@ public:
     void clear() {
         std::lock_guard<std::mutex> lock(mutex_);
         for (auto& entry : lru_) {
-            std::free(entry.buffer.data);
+            cache_buffer_free(entry.buffer.data);
         }
         lru_.clear();
         index_.clear();
@@ -338,7 +373,7 @@ public:
         maxSize_ = (maxSize > 0) ? maxSize : 1;
         while (lru_.size() > maxSize_ && !lru_.empty()) {
             CachedMap& oldest = lru_.back();
-            std::free(oldest.buffer.data);
+            cache_buffer_free(oldest.buffer.data);
             index_.erase(oldest.path);
             lru_.pop_back();
         }
@@ -354,6 +389,17 @@ public:
         return lru_.size();
     }
 
+    /** Every list node has its index slot, pointing back at it, and the counts agree. */
+    bool consistent() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (lru_.size() != index_.size()) return false;
+        for (auto n = lru_.begin(); n != lru_.end(); ++n) {
+            const auto slot = index_.find(n->path);
+            if (slot == index_.end() || slot->second != n) return false;
+        }
+        return true;
+    }
+
 private:
     mutable std::mutex                                  mutex_;
     std::list<CachedMap>                                lru_;
@@ -363,6 +409,22 @@ private:
 
 // @MX:NOTE: [AUTO] Singleton cache instance — module-scoped, not thread-safe
 CalibrationLRUCache g_calibCache;
+
+/**
+ * The cached loaders' hit lookup, in the order the plain reader judges a file: the stamp and kind, then
+ * whether the file can be opened, then the expiry (QA-A-203, Codex #21). See get_copy().
+ */
+template <typename T>
+XpeErrorCode lookup_hit(const char* filePath, MapKind kind, const FileStamp& stamp, XpeImageBuffer* view,
+                        std::unique_ptr<T[]>* pixels, EntryMeta* meta, HitState* state)
+{
+    const std::string key(filePath);
+    const int64_t nowMs = now_epoch_ms();
+    XpeErrorCode rc = g_calibCache.get_copy<T>(key, kind, stamp, nowMs, nullptr, view, pixels, meta, state);
+    if (rc != XPE_OK || *state != HitState::NeedOpenCheck) return rc;
+    const bool openable = can_open_for_read(filePath);   // file I/O, outside the cache lock
+    return g_calibCache.get_copy<T>(key, kind, stamp, nowMs, &openable, view, pixels, meta, state);
+}
 
 /**
  * @brief Completes a cache miss under the cache-owned-view contract (#127).
@@ -387,8 +449,12 @@ XpeErrorCode publish_and_view(const std::string& path,
                               const EntryMeta& meta)
 {
     XpeImageBuffer entry = desc;
-    entry.data = std::malloc(static_cast<size_t>(entry.dataSize));
-    if (!entry.data) return XPE_ERR_OUT_OF_MEMORY;
+    // QA-A-203 (Codex #21): the buffer has an owner from the moment it exists. Whatever throws between
+    // here and the cache taking it (a string, the list node, the index slot) frees it; it used to leak
+    // 37.7 MB at 3072x3072 per failed insert. An allocation failure here throws bad_alloc like every other
+    // in the calling loader's try block.
+    CacheBufferPtr owner(cache_buffer_alloc(static_cast<size_t>(entry.dataSize)));
+    entry.data = owner.get();
     std::memcpy(entry.data, src, static_cast<size_t>(entry.dataSize));
 
     // Insert and read back under ONE lock (QA-A-31, #127). Splitting these into
@@ -396,9 +462,9 @@ XpeErrorCode publish_and_view(const std::string& path,
     // eviction could remove the entry between the two calls, turning a
     // successful load into XPE_ERR_PROCESSING_FAILED. put_and_get takes
     // ownership of entry.data and nulls it, exactly as put() did.
-    if (!g_calibCache.put_and_get(path, &entry, out, meta)) {
-        return XPE_ERR_PROCESSING_FAILED;
-    }
+    const bool ok = g_calibCache.put_and_get(path, &entry, out, meta);
+    if (entry.data == nullptr) owner.release();   // the cache took the buffer
+    if (!ok) return XPE_ERR_PROCESSING_FAILED;
     return XPE_OK;
 }
 
@@ -454,6 +520,8 @@ void install_defect(std::unique_ptr<uint8_t[]> map, const XpeImageBuffer& d)
 
 } // anonymous namespace
 
+bool xpe_calib_cache_is_consistent() { return g_calibCache.consistent(); }
+
 /* =========================================================================
  * Public cached load API
  * ========================================================================= */
@@ -478,12 +546,11 @@ try
         std::unique_ptr<float[]> pixels;
         EntryMeta meta;
         HitState state = HitState::Miss;
-        const XpeErrorCode crc = g_calibCache.get_copy<float>(std::string(filePath), MapKind::Offset, stamp, now_epoch_ms(),
-                                                           &view, &pixels, &meta, &state);
+        const XpeErrorCode crc = lookup_hit<float>(filePath, MapKind::Offset, stamp, &view, &pixels, &meta, &state);
         if (crc != XPE_OK) return crc;
+        if (state == HitState::Unreadable) return XPE_ERR_IO_FAILED;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
         if (state == HitState::Hit) {
-            if (!can_open_for_read(filePath)) return XPE_ERR_IO_FAILED;
             install_offset(std::move(pixels), view, meta.timestamp, meta.sessionId);
             std::memcpy(offsetMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;
@@ -549,12 +616,11 @@ try
         std::unique_ptr<float[]> pixels;
         EntryMeta meta;
         HitState state = HitState::Miss;
-        const XpeErrorCode crc = g_calibCache.get_copy<float>(std::string(filePath), MapKind::Gain, stamp, now_epoch_ms(),
-                                                           &view, &pixels, &meta, &state);
+        const XpeErrorCode crc = lookup_hit<float>(filePath, MapKind::Gain, stamp, &view, &pixels, &meta, &state);
         if (crc != XPE_OK) return crc;
+        if (state == HitState::Unreadable) return XPE_ERR_IO_FAILED;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
         if (state == HitState::Hit) {
-            if (!can_open_for_read(filePath)) return XPE_ERR_IO_FAILED;
             install_gain(std::move(pixels), view, meta.timestamp, meta.sessionId);
             // The quality metadata a load makes current: made current again, the same way (nothrow).
             if (meta.hasQuality) xpe_calib_commit_quality_meta(meta.quality);
@@ -638,12 +704,11 @@ try
         std::unique_ptr<uint8_t[]> pixels;
         EntryMeta meta;
         HitState state = HitState::Miss;
-        const XpeErrorCode crc = g_calibCache.get_copy<uint8_t>(std::string(filePath), MapKind::Defect, stamp, now_epoch_ms(),
-                                                           &view, &pixels, &meta, &state);
+        const XpeErrorCode crc = lookup_hit<uint8_t>(filePath, MapKind::Defect, stamp, &view, &pixels, &meta, &state);
         if (crc != XPE_OK) return crc;
+        if (state == HitState::Unreadable) return XPE_ERR_IO_FAILED;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
         if (state == HitState::Hit) {
-            if (!can_open_for_read(filePath)) return XPE_ERR_IO_FAILED;
             install_defect(std::move(pixels), view);
             std::memcpy(defectMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;

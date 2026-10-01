@@ -1,0 +1,66 @@
+Note: Google Test filter = CacheSameVerdict.*
+[==========] Running 13 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 13 tests from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (1128 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss (122 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+[       OK ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded (10 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+[       OK ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime (9 ms)
+[ RUN      ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear
+[       OK ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear (8 ms)
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[       OK ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (6 ms)
+[ RUN      ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess
+[       OK ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess (5 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss (48 ms)
+[ RUN      ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss (6 ms)
+[ RUN      ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss (105 ms)
+[ RUN      ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore
+[       OK ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore (7 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss (23 ms)
+[ RUN      ] CacheSameVerdict.AnExpiredFileThatCannotBeOpenedIsIoFailedNotExpired
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(600): error: Expected equality of these values:
+  miss
+    Which is: -9
+  kCached[k]("csv_x.xcal", &refused)
+    Which is: -5
+a hit must judge the file in the reader's order
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(573): offset
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(600): error: Expected equality of these values:
+  miss
+    Which is: -9
+  kCached[k]("csv_x.xcal", &refused)
+    Which is: -5
+a hit must judge the file in the reader's order
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(573): gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(600): error: Expected equality of these values:
+  miss
+    Which is: -9
+  kCached[k]("csv_x.xcal", &refused)
+    Which is: -5
+a hit must judge the file in the reader's order
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_same_verdict.cpp(573): defect
+
+[  FAILED  ] CacheSameVerdict.AnExpiredFileThatCannotBeOpenedIsIoFailedNotExpired (3353 ms)
+[----------] 13 tests from CacheSameVerdict (4835 ms total)
+
+[----------] Global test environment tear-down
+[==========] 13 tests from 1 test suite ran. (4835 ms total)
+[  PASSED  ] 12 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] CacheSameVerdict.AnExpiredFileThatCannotBeOpenedIsIoFailedNotExpired
+
+ 1 FAILED TEST

@@ -44,6 +44,7 @@ namespace {
 std::atomic<long> g_failAt{0};      // 0 = disarmed; otherwise the 1-based index of the allocation to fail
 std::atomic<long> g_count{0};
 std::atomic<bool> g_injected{false};
+std::atomic<long> g_live{0};        // operator-new blocks currently alive (leak accounting, QA-A-203)
 
 void arm(long k) {
     g_count.store(0);
@@ -63,14 +64,14 @@ void* operator new(std::size_t n) {
         g_injected.store(true);
         throw std::bad_alloc();
     }
-    if (void* p = std::malloc(n ? n : 1)) return p;
+    if (void* p = std::malloc(n ? n : 1)) { g_live.fetch_add(1); return p; }
     throw std::bad_alloc();
 }
 void* operator new[](std::size_t n) { return operator new(n); }
-void operator delete(void* p) noexcept { std::free(p); }
-void operator delete[](void* p) noexcept { std::free(p); }
-void operator delete(void* p, std::size_t) noexcept { std::free(p); }
-void operator delete[](void* p, std::size_t) noexcept { std::free(p); }
+void operator delete(void* p) noexcept { if (p) { g_live.fetch_sub(1); std::free(p); } }
+void operator delete[](void* p) noexcept { operator delete(p); }
+void operator delete(void* p, std::size_t) noexcept { operator delete(p); }
+void operator delete[](void* p, std::size_t) noexcept { operator delete(p); }
 
 /* =========================================================================
  * Fixtures
@@ -168,11 +169,19 @@ using Call = std::function<XpeErrorCode()>;
 /**
  * Fails the K-th allocation of `call` for K = 1.. until a call finishes with fewer allocations.
  * `unchangedOnError`: a call that returns an error must leave the store as the setup left it.
+ *
+ * Every call, failed or not, is also held to two invariants (QA-A-203, Codex #21): the calibration
+ * cache's list and index still describe the same entries, and no block is left behind -- the live
+ * operator-new blocks, counted after the store and the cache are emptied, equal what they were after the
+ * same emptying before the call. The cache's pixel buffers come from operator new for this reason.
  */
 void sweep(const char* label, const Setup& setup, const Call& call, bool unchangedOnError) {
     constexpr long kMax = 3000;
     long injections = 0;
     for (long k = 1; k <= kMax; ++k) {
+        setup();
+        resetStore(); xpe_calib_cache_clear(); xpe_clear_alerts();
+        const long liveBase = g_live.load();
         setup();
         const Snap before = snap();
         bool escaped = false;
@@ -197,10 +206,17 @@ void sweep(const char* label, const Setup& setup, const Call& call, bool unchang
             g_calib_mutex.unlock();
         }
         const Snap after = snap();
+        const bool cacheConsistent = xpe_calib_cache_is_consistent();
+        resetStore(); xpe_calib_cache_clear(); xpe_clear_alerts();
+        const long liveAfter = g_live.load();
 
         ASSERT_FALSE(escaped) << label << ": an exception left the C ABI function when allocation #" << k
                               << " failed" << (lockLeaked ? " (and the calibration store lock stayed held)" : "");
         ASSERT_FALSE(lockLeaked) << label << ": the calibration store lock stayed held after allocation #" << k << " failed";
+        ASSERT_TRUE(cacheConsistent) << label << ": allocation #" << k << " failed (rc " << rc
+                                     << ") and the cache's list and index no longer agree";
+        ASSERT_EQ(liveBase, liveAfter) << label << ": allocation #" << k << " failed (rc " << rc
+                                       << ") and " << (liveAfter - liveBase) << " block(s) were left behind";
         if (!injected) {
             EXPECT_EQ(XPE_OK, rc) << label << ": the call finished without reaching allocation #" << k;
             ASSERT_GT(injections, 0) << label << ": the sweep never reached a product allocation";
