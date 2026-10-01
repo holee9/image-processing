@@ -160,13 +160,13 @@ namespace ImageProcTest
             return
             [
                 hasPredicted
-                    ? Row("DefectRecall", recall, "%", ">= 95%", recall >= 95.0)
+                    ? Row("DefectRecall", recall, "%", DefectMetricGates.RecallGate, DefectMetricGates.RecallPasses(recall))
                     : Unavailable("DefectRecall", "predicted BPM not selected"),
                 hasPredicted
-                    ? Row("DefectFPR", falsePositiveRate, "%", "<= 0.001%", falsePositiveRate <= 0.001)
+                    ? Row("DefectFPR", falsePositiveRate, "%", DefectMetricGates.FprGate, DefectMetricGates.FprPasses(falsePositiveRate))
                     : Unavailable("DefectFPR", "predicted BPM not selected"),
-                Row("DefectResidualADU", residual, "ADU", "<= 2 ADU", residual <= 2.0),
-                Row("GoodPixelDeltaP99", p99, "ADU", "<= 0 ADU", p99 <= 0.0)
+                Row("DefectResidualADU", residual, "ADU", DefectMetricGates.ResidualGate, DefectMetricGates.ResidualPasses(residual)),
+                Row("GoodPixelDeltaP99", p99, "ADU", DefectMetricGates.GoodPixelDeltaP99Gate, DefectMetricGates.GoodPixelDeltaP99Passes(p99))
             ];
         }
 

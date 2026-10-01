@@ -1,0 +1,3 @@
+# GUI-C-182 - tools/ci/Test-TrackedTextFiles.ps1, whole tree incl. this card's staged files, no pipe
+output: Tracked text file validation passed.
+exit code: 0

@@ -85,6 +85,8 @@
     <!-- #225 row 20 (GUI-C-169): dependency-free by design, so it links without dragging services along. -->
     <Compile Include="..\..\gui\ImageProcTest\Services\ApiReferenceService.cs" Link="ApiReference\Linked\ApiReferenceService.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\TroubleshootingPageService.cs" Link="TroubleshootingPage\Linked\TroubleshootingPageService.cs" />
+    <!-- #218 side finding (GUI-C-182): the defect metric pass lines, dependency-free, checked against the canonical protocol's text. -->
+    <Compile Include="..\ImageProcTest\Services\DefectMetricGates.cs" Link="DefectMetricGates\Linked\DefectMetricGates.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\BenchmarkRunnerService.cs" Link="BenchmarkRunner\Linked\BenchmarkRunnerService.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\RunnerProcess.cs" Link="BenchmarkRunner\Linked\RunnerProcess.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Models\ProcessingChain.cs" Link="Chain\Linked\ProcessingChain.cs" />
