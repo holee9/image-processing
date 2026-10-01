@@ -1,0 +1,78 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 8 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 8 tests from CommonOom
+[ RUN      ] CommonOom.TheInjectionReachesAnAllocationMadeInsideTheLibrary
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] CommonOom.TheInjectionReachesAnAllocationMadeInsideTheLibrary (0 ms)
+[ RUN      ] CommonOom.APushIntoAFullQueueAccountsForEveryAlert
+[XPE][INFO ] xpe_init: library initialised
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_oom_injection.cpp(95): error: Value of: escaped
+  Actual: true
+Expected: false
+xpe_alert_push (full queue): an exception left the C ABI function when allocation #1 failed
+
+[  FAILED  ] CommonOom.APushIntoAFullQueueAccountsForEveryAlert (0 ms)
+[ RUN      ] CommonOom.APushIntoAQueueWithRoomAccountsForEveryAlert
+[XPE][INFO ] xpe_init: library initialised
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_oom_injection.cpp(95): error: Value of: escaped
+  Actual: true
+Expected: false
+xpe_alert_push (room in the queue): an exception left the C ABI function when allocation #1 failed
+
+[  FAILED  ] CommonOom.APushIntoAQueueWithRoomAccountsForEveryAlert (0 ms)
+[ RUN      ] CommonOom.APushIntoAQueueThatAlreadyHoldsALossAlertAccountsForEveryAlert
+[XPE][INFO ] xpe_init: library initialised
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_oom_injection.cpp(95): error: Value of: escaped
+  Actual: true
+Expected: false
+xpe_alert_push (loss alert present): an exception left the C ABI function when allocation #1 failed
+
+[  FAILED  ] CommonOom.APushIntoAQueueThatAlreadyHoldsALossAlertAccountsForEveryAlert (0 ms)
+[ RUN      ] CommonOom.AnInitThatFailsLeavesTheLibraryUninitialized
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_oom_injection.cpp(97): error: Value of: why.empty()
+  Actual: false
+Expected: true
+xpe_init (first init): allocation #1 failed, rc -2: returned an error but the library is initialized (partial commit)
+
+[  FAILED  ] CommonOom.AnInitThatFailsLeavesTheLibraryUninitialized (0 ms)
+[ RUN      ] CommonOom.ARe_initThatFailsLeavesTheQueuedAlertsAndTheInitializedStateAlone
+[XPE][INFO ] xpe_init: library initialised
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_oom_injection.cpp(97): error: Value of: why.empty()
+  Actual: false
+Expected: true
+xpe_init (re-init): allocation #1 failed, rc -2: returned an error but the queued alerts were cleared (partial commit)
+
+[  FAILED  ] CommonOom.ARe_initThatFailsLeavesTheQueuedAlertsAndTheInitializedStateAlone (0 ms)
+[ RUN      ] CommonOom.AConfigureThatRunsOutOfMemoryIsNotReportedAsAnInvalidConfiguration
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_oom_injection.cpp(97): error: Value of: why.empty()
+  Actual: false
+Expected: true
+xpe_configure: allocation #1 failed, rc -4: an allocation failure must be XPE_ERR_OUT_OF_MEMORY
+
+[  FAILED  ] CommonOom.AConfigureThatRunsOutOfMemoryIsNotReportedAsAnInvalidConfiguration (0 ms)
+[ RUN      ] CommonOom.ALogFileThatRunsOutOfMemoryIsNotReportedAsAnIoFailure
+[XPE][INFO ] xpe_init: library initialised
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_oom_injection.cpp(97): error: Value of: why.empty()
+  Actual: false
+Expected: true
+xpe_log_set_file: allocation #1 failed, rc -9: an allocation failure must be XPE_ERR_OUT_OF_MEMORY
+
+[  FAILED  ] CommonOom.ALogFileThatRunsOutOfMemoryIsNotReportedAsAnIoFailure (0 ms)
+[----------] 8 tests from CommonOom (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 1 test suite ran. (1 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 7 tests, listed below:
+[  FAILED  ] CommonOom.APushIntoAFullQueueAccountsForEveryAlert
+[  FAILED  ] CommonOom.APushIntoAQueueWithRoomAccountsForEveryAlert
+[  FAILED  ] CommonOom.APushIntoAQueueThatAlreadyHoldsALossAlertAccountsForEveryAlert
+[  FAILED  ] CommonOom.AnInitThatFailsLeavesTheLibraryUninitialized
+[  FAILED  ] CommonOom.ARe_initThatFailsLeavesTheQueuedAlertsAndTheInitializedStateAlone
+[  FAILED  ] CommonOom.AConfigureThatRunsOutOfMemoryIsNotReportedAsAnInvalidConfiguration
+[  FAILED  ] CommonOom.ALogFileThatRunsOutOfMemoryIsNotReportedAsAnIoFailure
+
+ 7 FAILED TESTS

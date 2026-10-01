@@ -12,6 +12,7 @@
 #include <spdlog/sinks/null_sink.h>
 #include <filesystem>
 #include <memory>
+#include <new>
 #include <mutex>
 
 // @MX:NOTE: [AUTO] g_logMutex guards all logger state mutations — safe for concurrent callers (REQ-P0-022)
@@ -104,6 +105,9 @@ XPE_API XpeErrorCode xpe_log_set_file(const char* filePath) {
         g_logger->flush_on(to_spdlog_level(g_currentLevel));
         spdlog::set_default_logger(g_logger);
         return XPE_OK;
+    } catch (const std::bad_alloc&) {
+        // Running out of memory is not an I/O fault (QA-A-204, #233).
+        return XPE_ERR_OUT_OF_MEMORY;
     } catch (...) {
         // spdlog exceptions (file permissions, disk full, etc.)
         return XPE_ERR_IO_FAILED;
