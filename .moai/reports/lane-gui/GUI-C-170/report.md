@@ -89,6 +89,75 @@
 
 **기존 경고(이 카드·BOM 과 무관)**: 전체 재빌드에서 `MainWindowViewModel.cs` 의 XML 문서 경고 CS1573 ×4 · CS1574 ×2 가 보인다. `f7ca055` 를 같은 방식(`gui`+`clients`)으로 빌드해도 같은 6건이 한 줄씩 밀린 위치에 있다. 증분 빌드는 이 경고를 보여 주지 않아 앞 실행에서는 0 으로 보였다.
 
+## 8. GUI-C-170b — 옛 `showDisplayPanel=true` 가 새 패널을 열지 않게
+
+### 정정 (리더·Codex 지적)
+
+§1-3 의 "반증 다섯 팔이 모두 예상한 시험에서 빨강" 은 맞지만, 6ee39ec 커밋 메시지와 리더 회신에 쓴 "팔마다 다른 시험이 잡는다" 는 취지는 **틀렸다.** **P1 과 R1 은 둘 다 `A13` 을 실패시킨다.** 첫 실행에서는 메시지도 같아서 구별되지 않았고, `A13` 이 설정 파일을 직접 읽도록 고친 뒤에야 메시지(`STORED` / `REPORTED`)로 갈린다. 시험 이름으로는 갈리지 않는다: P1 은 통합 `PanelFlagPersistence` 가 독립적으로 더 잡고, R1 은 `A13` 하나뿐이다. 이미 낸 커밋 메시지는 고치지 않았다.
+
+### 구별 장치와 이유
+
+**`ShowDisplayPanel` 의 JSON 키를 `showDisplayPanel` → `showDisplaySettingsPanel` 로 바꿨다**(속성 이름·판독처는 그대로). 옛 파일의 옛 키는 로더가 알 수 없는 키로 무시하므로(`AppSettingsService` 에 `Unmapped` 설정 없음) 패널이 닫힌 채 시작하고, 이 코드가 켜서 저장한 값은 새 키로 가서 유지된다. **가장 단순한 이유**: 속성 특성 한 줄이다. 설정 버전 필드는 읽고 쓰고 비교하는 코드와 그 시험이 필요하고, 일회성 마이그레이션은 "이미 옮겼는가" 라는 상태가 필요하다.
+
+옛 `true` 가 사용자 선택이 아니라는 근거는 리더가 `f7ca055` 에서 확인한 것을 그대로 따랐다(기본값 true · 옛 메뉴 `IsEnabled="False"` · Reset Layout 이 true 로 되돌림). 나는 그 사실을 다시 확인하지 않았다.
+
+- **출하 `appsettings.json`**: 새 키 + `false`.
+- **`fixtures/gui-s0/appsettings.template.json`**: 같은 기준으로 새 키 + `false`. 이 템플릿의 `true` 도 옛 기본값을 복사한 것이지 선택이 아니고, 옛 키를 남기면 읽히지도 않는 줄이 "패널을 연다"고 읽힌다. 런타임은 이 파일을 설정으로 읽지 않고(`fixtures/gui-s0` 폴더 존재만 확인), S0 러너도 이 값을 단언하지 않는다 — **둘 다 코드를 읽어서 확인한 것이고, 템플릿을 실제로 쓰는 실행은 돌려 보지 않았다.**
+
+### 시험 (통합, `PanelFlagPersistenceTests`)
+
+| 시험 | 내용 |
+|---|---|
+| `AFileWithoutTheCalibrationKey_LoadsWithThePanelOff_AndKeepsTheRest` | **단언을 `True` → `False` 로 바꿨고 그 자리 주석에 이유를 적었다.** |
+| `TheSettingsFileThatShippedBeforeThePanels_LoadsWithTheDisplayPanelClosed_AndKeepsTheRest` (신규) | `f7ca055` 의 출하 파일을 **원문 그대로**(892 바이트) 로드 → 두 플래그 꺼짐, 그리고 다른 값(`rawWidth`·`voiWindowCenter`·보정 경로·`comparisonMode`)은 그대로 도착(통째로 버리는 로더와 구별하는 대조) |
+| `ADisplayPanelTurnedOnWithThisCode_StaysOnAfterASaveAndALoad` (신규) | 옛 파일이 아니라 빈 상태에서 켜서 저장 → 다시 로드 → 켜짐 유지 |
+| `BothPanelFlags_SurviveASaveAndALoad_AndAreIndependent` | 파일에 새 키 이름이 있는지 확인(키 이름을 못 박음) |
+
+E2E `A13` 의 저장 확인도 새 키 이름으로 바꿨다.
+
+### 반증 (D1: 구별 장치 제거 = 키 이름을 옛 이름으로 되돌림, 복사본에서만)
+
+| 시험 | D1 | 대조군 |
+|---|---|---|
+| 옛 형식 파일(`AFileWithout…`) | **빨강** | 초록 |
+| 출하 원문 파일(신규) | **빨강** | 초록 |
+| 새로 켜서 저장 → 유지(신규) | **초록** | 초록 |
+| `AreOffByDefault` | 초록 | 초록 |
+| `BothPanelFlags_…`(키 이름을 못 박음) | 빨강 | 초록 |
+
+카드가 요구한 "1번 빨강, 2번 초록" 은 그대로다. **`BothPanelFlags_…` 도 빨강인 것은 그 시험이 키 이름을 못 박기 때문이며 의도한 것**이고, 되돌린 코드가 새 키 이름 단언을 깨는 것이지 구별 능력을 따로 증명하는 것은 아니다. 대조군의 통합 5/5 초록.
+
+### 재실행
+
+- 빌드 오류 0. **통합 스위트 전체**(`--logger trx`): **실행 277 · 총계 277(기존 275 + 신규 2) · 통과 276 · 건너뜀 1 · 실패 0.**
+- E2E `A12`·`A13` 은 통과한다. **E2E `S07`(Calibration 케이스)은 간헐적으로 실패한다 — 아래.**
+
+### S07 미해결 (이 카드의 결론을 막는 항목)
+
+지정 범위(`A12`·`A13`·`S07` + `PanelFlagPersistence`)를 실제 트리에서 돌리면 **2/2 실패**, 실패는 항상 `S07` 의 **첫 케이스**(`ShowCalibrationPanelMenuItem`)이고 메시지는 "gone from the View menu"(1초). 원인은 **밝히지 못했다.** 확인한 것만 적는다:
+
+| 관찰 | 결과 |
+|---|---|
+| 현재 트리, S07 단독 | 3/3 통과 |
+| 현재 트리, 앞선 시험 1개와 짝(A02/A13/A11) | 각각 통과 |
+| 현재 트리, 4개(A11·A13·A02·S07) 함께 | 실제 트리 3회 + 복사본 2회 = **5/5 실패** |
+| 170b 이전 `1400af4`, 같은 4개 | 1/1 통과 |
+| **`1400af4`, 리더 지정 범위** | **2회 중 1회 같은 S07 실패** |
+| 키만 옛 이름으로 되돌림(D1d, A13 도 되돌려 시간표 유지) | 5/5 통과 |
+| 같은 되돌림 + 팝업 대기를 폴링으로 바꾼 진단(T1d) | **첫 팝업이 4초간 안 떠서 같은 케이스 실패** |
+| 현재 코드 + 같은 폴링 진단(T1) | 팝업이 87~214 ms 에 떠서 5/5 통과 |
+
+**읽는 법.** `1400af4` 도 같은 범위에서 실패하고, 키를 되돌린 코드(T1d)도 첫 팝업이 안 뜬다. **키 이름 변경이 원인이라고 말할 근거는 없고, 170b 의 회귀로 입증된 것도 없다.** 반대로 같은 키 이름 변경 코드(T1)가 통과하기도 해서, 키 이름이 영향이 없다는 것도 입증하지 못했다 — 진단용 폴링이 시간표를 바꾸므로 T1/T1d 는 서로만 비교할 수 있고 평범한 실행과는 비교할 수 없다. 평범한 실행(진단 없음)에서는 현재 트리가 0/5 통과이고, 170b 이전·키를 되돌린 트리(대조군 2회, `1400af4` 차분, D1c, D1d)는 5/5 통과라는 **차이가 남아 있고 설명하지 못했다.** 다만 `1400af4` 가 지정 범위에서는 2회 중 1회 실패했으므로, 이 차이가 코드 때문인지 그 시점 기계 상태 때문인지도 가리지 못했다.
+확실한 것은 하나: S07 은 "메뉴가 안 열렸다"와 "항목이 사라졌다"를 구별하지 못한다. `S06` 은 같은 함정을 앵커(`ShowLogsPanelMenuItem`)로 막아 두었다. 이 카드가 `S07` 을 다시 쓰면서 그 앵커를 가져오지 않았다.
+
+**하지 않은 것**: `S07` 을 고치지 않았다(리더 판단 대기). 후보는 `OpenViewMenu` 후 앵커가 보일 때까지 기다리고, 안 열렸으면 "열리지 않았다"로 실패하게 하는 것이다 — 이것은 메뉴가 첫 클릭에 안 열리는 현상을 **가리지** 않고 이름을 바로잡는 쪽으로 쓴다.
+
+### 미검증 · 범위 밖
+
+- **옛 파일을 앱이 실제로 열어 보는 실행은 하지 않았다.** 검증은 로더 수준(통합)이고, 실제 앱이 옛 `showDisplayPanel: true` 파일로 시작해 패널이 닫혀 있는지는 E2E 로 보지 않았다.
+- **`docs/design/reference/gui-README.md:182`** 가 옛 키 `showDisplayPanel` 을 적고 있다. `docs/` 는 리더 소유라 손대지 않았다.
+- **E2E 전체는 돌리지 않았다**(카드가 생략 허용).
+
 ## 파일
 
 `gui/ImageProcTest/Views/{CalibrationPathsPanel,DisplaySettingsPanel}.xaml(.cs)` (신규) · `MainWindow.xaml(.cs)` · `Models/{AppSettings,GuiAutomationReport}.cs` · `ViewModels/MainWindowViewModel.cs` · `appsettings.json` · `gui/ImageProcTest.E2E/Program.cs` · `clients/…/PanelFlagPersistenceTests.cs`(신규) · `AutomationReportBackendTests.cs` · `PanelToggleScenarios.cs` · `SettingsProcessingConnectionTests.cs`

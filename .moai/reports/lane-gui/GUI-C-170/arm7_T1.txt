@@ -1,0 +1,8 @@
+[T1] free memory before: 9.1 GB (floor 4.0)
+[T1] mutation applied to the scratch copy only
+[T1] build gui/ImageProcTest.slnx: exit=0
+[T1] build clients/ImageProcTest.slnx: exit=0
+[T1] free memory before tests: 8.8 GB
+[T1] 통과!  - 실패:     0, 통과:     5, 건너뜀:     0, 전체:     5, 기간: 1 m 7 s - ImageProcTest.E2ETests.dll (net8.0)
+[T1] test exit=0
+[T1] real tree untouched: True

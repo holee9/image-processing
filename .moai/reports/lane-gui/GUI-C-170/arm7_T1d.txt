@@ -1,0 +1,9 @@
+[T1d] free memory before: 10.5 GB (floor 4.0)
+[T1d] mutation applied to the scratch copy only
+[T1d] build gui/ImageProcTest.slnx: exit=0
+[T1d] build clients/ImageProcTest.slnx: exit=0
+[T1d] free memory before tests: 11.2 GB
+[T1d] 실패 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S07_PanelToggle_ShowsAndHidesItsPanel(toggleId: "ShowCalibrationPanelMenuItem", panelId: "CalibrationPathsPanel") [5 s]
+[T1d] 실패!  - 실패:     1, 통과:     4, 건너뜀:     0, 전체:     5, 기간: 1 m 9 s - ImageProcTest.E2ETests.dll (net8.0)
+[T1d] test exit=1
+[T1d] real tree untouched: True

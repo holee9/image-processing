@@ -475,8 +475,8 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
         var stored = JsonDocument.Parse(File.ReadAllText(settingsPath)).RootElement;
         Assert.True(stored.TryGetProperty("showCalibrationPanel", out var storedCalibration) && storedCalibration.GetBoolean(),
             "The settings file does not hold showCalibrationPanel=true after the run saved it: the flag is not STORED.");
-        Assert.True(stored.TryGetProperty("showDisplayPanel", out var storedDisplay) && storedDisplay.GetBoolean(),
-            "The settings file does not hold showDisplayPanel=true after the run saved it: the flag is not STORED.");
+        Assert.True(stored.TryGetProperty("showDisplaySettingsPanel", out var storedDisplay) && storedDisplay.GetBoolean(),
+            "The settings file does not hold showDisplaySettingsPanel=true after the run saved it: the flag is not STORED.");
 
         var (second, _) = Run("A13b", "Mock", nativeDirectory: null, extraArgs: ["--automation-settings", settingsPath]);
         Assert.True(second.GetProperty("CalibrationPanelVisible").GetBoolean(),

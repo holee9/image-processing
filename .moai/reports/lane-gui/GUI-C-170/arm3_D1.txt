@@ -1,0 +1,12 @@
+[D1] free memory before: 9.1 GB (floor 4.0)
+[D1] mutation applied to the scratch copy only
+[D1] build gui/ImageProcTest.slnx: exit=0
+[D1] build clients/ImageProcTest.slnx: exit=0
+[D1] free memory before tests: 9.2 GB
+[D1] 실패 ImageProcTest.IntegrationTests.Functional.PanelFlagPersistenceTests.BothPanelFlags_SurviveASaveAndALoad_AndAreIndependent [127 ms]
+[D1] 실패 ImageProcTest.IntegrationTests.Functional.PanelFlagPersistenceTests.AFileWithoutTheCalibrationKey_LoadsWithThePanelOff_AndKeepsTheRest [3 ms]
+[D1] 실패 ImageProcTest.IntegrationTests.Functional.PanelFlagPersistenceTests.TheSettingsFileThatShippedBeforeThePanels_LoadsWithTheDisplayPanelClosed_AndKeepsTheRest [1 ms]
+[D1] 실패!  - 실패:     3, 통과:     2, 건너뜀:     0, 전체:     5, 기간: 158 ms - ImageProcTest.IntegrationTests.dll (net8.0)
+[D1] test exit=1
+[D1] real tree untouched: True
+script exit=0

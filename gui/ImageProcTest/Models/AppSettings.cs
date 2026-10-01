@@ -316,8 +316,16 @@ public sealed class AppSettings : ObservableObject
     /// <para>#225 row 8 (GUI-C-170). Persisted, reported in the automation report, and — new — READ by
     /// <c>Views/DisplaySettingsPanel</c>. It was persisted and reported for months with no panel behind it;
     /// a persisted value is not a reader.</para>
+    ///
+    /// <para><b>The stored key is <c>showDisplaySettingsPanel</c>, not the old <c>showDisplayPanel</c>
+    /// (GUI-C-170b).</b> Before the panel existed this flag defaulted to true, the only menu item for it was
+    /// disabled, and Reset Layout set it back to true — so a <c>true</c> in an existing file was never a
+    /// choice a person made. Reading it with the same key would open the new panel on the first launch after
+    /// an upgrade. A new key does the whole job: an old file's old key is not read (the loader ignores
+    /// unknown keys), so the panel starts closed; a value saved by this code lands under the new key and
+    /// is kept. No version field and no migration step.</para>
     /// </summary>
-    [JsonPropertyName("showDisplayPanel")]
+    [JsonPropertyName("showDisplaySettingsPanel")]
     public bool ShowDisplayPanel
     {
         get => _showDisplayPanel;
