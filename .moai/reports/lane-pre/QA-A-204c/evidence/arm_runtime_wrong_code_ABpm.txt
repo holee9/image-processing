@@ -1,0 +1,13 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomInjection.ABpm*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from OomInjection
+[ RUN      ] OomInjection.ABpmGenerationThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes
+[sweep] xpe_bpm_generate                              24 allocation points covered
+[       OK ] OomInjection.ABpmGenerationThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes (6 ms)
+[----------] 1 test from OomInjection (6 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (14 ms total)
+[  PASSED  ] 1 test.

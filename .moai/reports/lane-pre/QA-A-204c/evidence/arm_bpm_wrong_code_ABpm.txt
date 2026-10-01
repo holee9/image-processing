@@ -1,0 +1,21 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomInjection.ABpm*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from OomInjection
+[ RUN      ] OomInjection.ABpmGenerationThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(355): error: Value of: extraWhy.empty()
+  Actual: false
+Expected: true
+xpe_bpm_generate: allocation #1 failed (rc -3): an allocation failure was reported as another error
+
+[  FAILED  ] OomInjection.ABpmGenerationThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes (1 ms)
+[----------] 1 test from OomInjection (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OomInjection.ABpmGenerationThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes
+
+ 1 FAILED TEST

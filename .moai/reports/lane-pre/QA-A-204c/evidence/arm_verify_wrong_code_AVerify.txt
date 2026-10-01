@@ -1,0 +1,39 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomInjection.AVerify*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from OomInjection
+[ RUN      ] OomInjection.AVerifyOffsetThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(355): error: Value of: extraWhy.empty()
+  Actual: false
+Expected: true
+xpe_verify_offset: allocation #1 failed (rc -3): an allocation failure was reported as another error
+
+[  FAILED  ] OomInjection.AVerifyOffsetThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.AVerifyGainThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(355): error: Value of: extraWhy.empty()
+  Actual: false
+Expected: true
+xpe_verify_gain: allocation #1 failed (rc -3): an allocation failure was reported as another error
+
+[  FAILED  ] OomInjection.AVerifyGainThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.AVerifyPipelineThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(355): error: Value of: extraWhy.empty()
+  Actual: false
+Expected: true
+xpe_verify_pipeline: allocation #1 failed (rc -3): an allocation failure was reported as another error
+
+[  FAILED  ] OomInjection.AVerifyPipelineThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.AVerifyDefectAllocatesNothingSoThereIsNothingToGuard
+[       OK ] OomInjection.AVerifyDefectAllocatesNothingSoThereIsNothingToGuard (0 ms)
+[----------] 4 tests from OomInjection (9 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] OomInjection.AVerifyOffsetThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+[  FAILED  ] OomInjection.AVerifyGainThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+[  FAILED  ] OomInjection.AVerifyPipelineThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+
+ 3 FAILED TESTS

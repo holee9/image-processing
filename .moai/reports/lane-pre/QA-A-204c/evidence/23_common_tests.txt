@@ -13,7 +13,7 @@
 [       OK ] XpeCommonTest.ShutdownWithoutInitIsNoOp (0 ms)
 [ RUN      ] XpeCommonTest.VersionReturnsValidString
 [XPE][INFO ] xpe_init: library initialised
-[       OK ] XpeCommonTest.VersionReturnsValidString (0 ms)
+[       OK ] XpeCommonTest.VersionReturnsValidString (5 ms)
 [ RUN      ] XpeCommonTest.ConfigureWithNullReturnsInvalid
 [XPE][INFO ] xpe_init: library initialised
 [       OK ] XpeCommonTest.ConfigureWithNullReturnsInvalid (0 ms)
@@ -200,13 +200,13 @@
 [XPE][INFO ] xpe_init: library initialised
 [XPE][INFO ] xpe_init: library initialised
 [XPE][INFO ] xpe_init: library initialised
-[       OK ] XpeCommonTest.ConcurrentInitShutdownDoesNotCrash (143 ms)
+[       OK ] XpeCommonTest.ConcurrentInitShutdownDoesNotCrash (148 ms)
 [ RUN      ] XpeCommonTest.ConcurrentAlertQueueAccess
 [XPE][INFO ] xpe_init: library initialised
 [       OK ] XpeCommonTest.ConcurrentAlertQueueAccess (0 ms)
 [ RUN      ] XpeCommonTest.MemoryLeakTestThousandCycles
 [XPE][INFO ] xpe_init: library initialised
-[       OK ] XpeCommonTest.MemoryLeakTestThousandCycles (0 ms)
+[       OK ] XpeCommonTest.MemoryLeakTestThousandCycles (7 ms)
 [ RUN      ] XpeCommonTest.HeaderDeclaresSixteenExportedFunctions
 [XPE][INFO ] xpe_init: library initialised
 [       OK ] XpeCommonTest.HeaderDeclaresSixteenExportedFunctions (0 ms)
@@ -216,7 +216,7 @@
 [ RUN      ] XpeCommonTest.CopyImageReproducesEveryByte
 [XPE][INFO ] xpe_init: library initialised
 [       OK ] XpeCommonTest.CopyImageReproducesEveryByte (0 ms)
-[----------] 60 tests from XpeCommonTest (146 ms total)
+[----------] 60 tests from XpeCommonTest (164 ms total)
 
 [----------] 6 tests from AlertQueueOverflowTest
 [ RUN      ] AlertQueueOverflowTest.WarningEvictsOldestInfoNotItself
@@ -270,5 +270,5 @@ xpe_copy_image           target         -1             -1
 [----------] 1 test from CommonErrorPrecedenceTest (0 ms total)
 
 [----------] Global test environment tear-down
-[==========] 69 tests from 4 test suites ran. (147 ms total)
+[==========] 69 tests from 4 test suites ran. (164 ms total)
 [  PASSED  ] 69 tests.

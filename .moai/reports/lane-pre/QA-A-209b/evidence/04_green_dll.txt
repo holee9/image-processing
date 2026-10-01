@@ -787,35 +787,35 @@
 [----------] 1 test from PreprocessErrorPrecedenceTest
 [ RUN      ] PreprocessErrorPrecedenceTest.NullRequiredPointerWinsOverInitializationState
 
-entry point                      NULL argument          uninitialized  initialized   
-xpe_calib_load_offset            filepath               -1             -1            
-xpe_calib_load_gain              filepath               -1             -1            
-xpe_calib_load_defect_map        filepath               -1             -1            
-xpe_offset_correct               input                  -1             -1            
-xpe_offset_correct               output                 -1             -1            
-xpe_gain_correct                 input                  -1             -1            
-xpe_gain_correct                 output                 -1             -1            
-xpe_defect_correct               input                  -1             -1            
-xpe_defect_correct               output                 -1             -1            
-xpe_calib_generate_offset        dark_frames            -1             -1            
-xpe_calib_generate_offset        output_path            -1             -1            
-xpe_calib_check_expiry           filepath               -1             -1            
-xpe_calib_check_expiry           is_expired             -1             -1            
-xpe_calib_check_expiry           remaining_days         -1             -1            
-xpe_calib_save                   filepath               -1             -1            
-xpe_calib_save                   calib_type             -1             -1            
-xpe_validate_readout_artifact    image                  -1             -1            
-xpe_validate_readout_artifact    has_dropped_columns    -1             -1            
-xpe_preprocess_pipeline          img                    -1             -1            
-xpe_preprocess_pipeline          meta                   -1             -1            
-xpe_calib_load_offset_cached     filePath               -1             -1            
-xpe_calib_load_offset_cached     offsetMapOut           -1             -1            
-xpe_calib_load_gain_cached       gainMapOut             -1             -1            
-xpe_calib_load_defect_cached     defectMapOut           -1             -1            
-xpe_preprocess_get_param_range   param_name             -1             -1            
-xpe_preprocess_get_param_range   min_value              -1             -1            
-xpe_ghost_correct                handle                 -1             -1            
-xpe_ghost_reset                  handle                 -1             -1            
+entry point                      NULL argument          uninitialized  initialized
+xpe_calib_load_offset            filepath               -1             -1
+xpe_calib_load_gain              filepath               -1             -1
+xpe_calib_load_defect_map        filepath               -1             -1
+xpe_offset_correct               input                  -1             -1
+xpe_offset_correct               output                 -1             -1
+xpe_gain_correct                 input                  -1             -1
+xpe_gain_correct                 output                 -1             -1
+xpe_defect_correct               input                  -1             -1
+xpe_defect_correct               output                 -1             -1
+xpe_calib_generate_offset        dark_frames            -1             -1
+xpe_calib_generate_offset        output_path            -1             -1
+xpe_calib_check_expiry           filepath               -1             -1
+xpe_calib_check_expiry           is_expired             -1             -1
+xpe_calib_check_expiry           remaining_days         -1             -1
+xpe_calib_save                   filepath               -1             -1
+xpe_calib_save                   calib_type             -1             -1
+xpe_validate_readout_artifact    image                  -1             -1
+xpe_validate_readout_artifact    has_dropped_columns    -1             -1
+xpe_preprocess_pipeline          img                    -1             -1
+xpe_preprocess_pipeline          meta                   -1             -1
+xpe_calib_load_offset_cached     filePath               -1             -1
+xpe_calib_load_offset_cached     offsetMapOut           -1             -1
+xpe_calib_load_gain_cached       gainMapOut             -1             -1
+xpe_calib_load_defect_cached     defectMapOut           -1             -1
+xpe_preprocess_get_param_range   param_name             -1             -1
+xpe_preprocess_get_param_range   min_value              -1             -1
+xpe_ghost_correct                handle                 -1             -1
+xpe_ghost_reset                  handle                 -1             -1
 (XPE_ERR_INVALID_INPUT = -1, XPE_ERR_NOT_INITIALIZED = -6)
 
 [       OK ] PreprocessErrorPrecedenceTest.NullRequiredPointerWinsOverInitializationState (0 ms)
@@ -1966,7 +1966,7 @@ manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790884094
 [----------] 2 tests from RuntimeDetectionPerformanceGateTest
 [ RUN      ] RuntimeDetectionPerformanceGateTest.Frame3072SquaredWithinMachineRatio
 [perf-gate-machine] cpu="12th Gen Intel(R) Core(TM) i7-12700" logical=20 avx2=1 bandwidth=30.1 GB/s
-[perf-gate-machine] cache L1=48KB L2=1280KB L3=25600KB 
+[perf-gate-machine] cache L1=48KB L2=1280KB L3=25600KB
 [perf-gate-machine] numerator=xpe_preprocess(/arch:AVX2) denominator=in-test kernel(default arch)
 [perf-gate] round 1/3 3072x3072 single thread, warm, min of 5: 87.0 ms  (samples 87.0 / 88.5 / 88.3 / 87.6 / 90.5)
 [perf-gate] round 1/3 reference kernel: 51.1 ms (5.5 GB/s effective)
