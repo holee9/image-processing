@@ -1,4 +1,4 @@
-// #165 (GUI-C-65): the View menu's panel toggles, after they were matched to the current layout.
+﻿// #165 (GUI-C-65): the View menu's panel toggles, after they were matched to the current layout.
 using System.Diagnostics;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Input;
@@ -45,11 +45,14 @@ public sealed class PanelToggleScenarios(ApplicationFixture app, ITestOutputHelp
         ["ShowMetadataPanelMenuItem"],
     ];
 
-    /// <summary>Toggles MENU-001 §9.2 schedules for a later phase.</summary>
-    public static IEnumerable<object[]> ScheduledItems() =>
+    /// <summary>
+    /// The two toggles MENU-001 §9.2 scheduled for phases 1a and 1b, with the panel each one is named for.
+    /// #225 rows 7 and 8 (GUI-C-170) built both panels, so they are wired now and no longer "scheduled".
+    /// </summary>
+    public static IEnumerable<object[]> PanelToggles() =>
     [
-        ["ShowCalibrationPanelMenuItem"],
-        ["ShowDisplaySettingsPanelMenuItem"],
+        ["ShowCalibrationPanelMenuItem", "CalibrationPathsPanel"],
+        ["ShowDisplaySettingsPanelMenuItem", "DisplaySettingsPanel"],
     ];
 
     /// <summary>
@@ -87,28 +90,68 @@ public sealed class PanelToggleScenarios(ApplicationFixture app, ITestOutputHelp
     }
 
     /// <summary>
-    /// S07: a scheduled toggle is present and disabled.
+    /// S07: a panel toggle shows and hides the panel it is named for, in both directions.
     ///
-    /// Both halves matter. Present, because removing it would lose the record that it is coming;
-    /// disabled, because an enabled control that does nothing is the defect this card closed.
+    /// <para>#225 rows 7 and 8 (GUI-C-170). This scenario used to assert the opposite — "present but
+    /// disabled" — because no panel existed and an enabled toggle for one is a lie in the present tense.
+    /// Both halves of that judgement are kept: the toggle is enabled now BECAUSE the panel exists, and the
+    /// panel's presence is read from the UI Automation tree (a collapsed panel is not exposed there), never
+    /// from the setting behind it — that setting was persisted and reported for months with nothing showing.</para>
+    ///
+    /// <para>Both directions, from a known state: the case first switches the panel off if it is on, because
+    /// asserting "it appeared" against a panel that was already up measures nothing (the S08 lesson).</para>
     /// </summary>
     [SkippableTheory]
-    [MemberData(nameof(ScheduledItems))]
-    public void S07_ScheduledPanelToggle_IsPresentButDisabled(string automationId)
+    [MemberData(nameof(PanelToggles))]
+    public void S07_PanelToggle_ShowsAndHidesItsPanel(string toggleId, string panelId)
     {
-        Measure($"S07 {automationId}", window =>
+        Measure($"S07 {toggleId}", window =>
         {
-            OpenViewMenu(window);
-            var item = window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
-            var enabled = item?.IsEnabled;
-            CloseMenu();
+            try
+            {
+                EnsurePanelOff(window, toggleId, panelId);
+                Assert.False(PanelPresent(window, panelId), $"{panelId} is up although its toggle was just switched off.");
 
-            Assert.True(item is not null, $"'{automationId}' is gone; MENU-001 §9.2 still schedules it.");
-            Assert.False(
-                enabled,
-                $"'{automationId}' is enabled again. Its phase has not arrived, so it has nothing to " +
-                "show — and GUI-C-63 measured that pressing it changes nothing on screen (#165).");
+                OpenViewMenu(window);
+                var item = window.FindFirstDescendant(cf => cf.ByAutomationId(toggleId));
+                var enabled = item?.IsEnabled;
+                CloseMenu();
+                Assert.True(item is not null, $"'{toggleId}' is gone from the View menu.");
+                Assert.True(enabled, $"'{toggleId}' is disabled again, but its panel exists (#225 rows 7/8).");
+
+                InvokeToggle(window, toggleId);
+                var shown = PanelPresent(window, panelId);
+                InvokeToggle(window, toggleId);
+                var hiddenAgain = PanelPresent(window, panelId);
+
+                output.WriteLine($"S07 {panelId} off=False on={shown} offAgain={hiddenAgain}");
+                Assert.True(shown, $"Switching '{toggleId}' on did not put {panelId} on screen — the toggle is not wired to its panel.");
+                Assert.False(hiddenAgain, $"Switching '{toggleId}' off again left {panelId} up, so the toggle only works once.");
+            }
+            finally
+            {
+                EnsurePanelOff(window, toggleId, panelId);
+            }
         });
+    }
+
+    private static bool PanelPresent(Window window, string panelId) =>
+        window.FindFirstDescendant(cf => cf.ByAutomationId(panelId)) is not null;
+
+    private static void InvokeToggle(Window window, string toggleId)
+    {
+        OpenViewMenu(window);
+        window.FindFirstDescendant(cf => cf.ByAutomationId(toggleId))!.AsMenuItem().Invoke();
+        Thread.Sleep(450);
+    }
+
+    /// <summary>Leaves a panel off, whatever another case left behind; the shared app makes order matter.</summary>
+    private static void EnsurePanelOff(Window window, string toggleId, string panelId)
+    {
+        if (PanelPresent(window, panelId))
+        {
+            InvokeToggle(window, toggleId);
+        }
     }
 
     /// <summary>
@@ -162,49 +205,54 @@ public sealed class PanelToggleScenarios(ApplicationFixture app, ITestOutputHelp
     }
 
     /// <summary>
-    /// S09: Tools → Calibration Settings does not claim a panel appeared.
+    /// S09: Tools → Calibration Settings opens the panel that exists, and says only that.
     ///
-    /// <para>It used to log <c>"Menu command: calibration settings panel shown."</c> and set the
-    /// status line to <c>"Calibration settings panel visible."</c> while no such panel exists
-    /// (measured in GUI-C-65). A log that reports something which did not happen is worse than a
-    /// silent one: the next reader believes it.</para>
-    ///
-    /// <para>Asserted from the log the user can actually read, not from the source — the point is
-    /// what the app tells someone, and GUI-C-62 measured that this list is reachable.</para>
+    /// <para>History: it used to log <c>"calibration settings panel shown."</c> while no such panel existed
+    /// (GUI-C-65), then was made to say "not implemented" (#165). #225 row 7 (GUI-C-170) built the panel, so
+    /// the truthful message changed again — and the way to keep this honest is to assert the SCREEN, not the
+    /// wording: the panel must be in the UI Automation tree after the command, and absent before it. A log
+    /// that says "opened" while nothing appeared is the same defect this scenario has always guarded.</para>
     /// </summary>
     [SkippableFact]
-    public void S09_CalibrationSettings_DoesNotClaimAPanelAppeared()
+    public void S09_CalibrationSettings_OpensThePanelItAnnounces()
     {
         Measure("S09 calibration settings", window =>
         {
-            ShowTheLog(window);
-
-            window.FindFirstDescendant(cf => cf.ByAutomationId("ToolsMenu"))!.AsMenuItem().Click();
-            Thread.Sleep(300);
-            window.FindFirstDescendant(cf => cf.ByAutomationId("CalibrationSettingsMenuItem"))!
-                .AsMenuItem().Invoke();
-            Thread.Sleep(500);
-
-            var lines = LogLines(window);
-            output.WriteLine($"S09 log lines={lines.Length}");
-            foreach (var line in lines.Where(l => l.Contains("calibration", StringComparison.OrdinalIgnoreCase)))
+            try
             {
-                output.WriteLine($"S09 >> {line}");
+                EnsurePanelOff(window, "ShowCalibrationPanelMenuItem", "CalibrationPathsPanel");
+                ShowTheLog(window);
+                var before = PanelPresent(window, "CalibrationPathsPanel");
+
+                window.FindFirstDescendant(cf => cf.ByAutomationId("ToolsMenu"))!.AsMenuItem().Click();
+                Thread.Sleep(300);
+                window.FindFirstDescendant(cf => cf.ByAutomationId("CalibrationSettingsMenuItem"))!
+                    .AsMenuItem().Invoke();
+                Thread.Sleep(500);
+
+                var after = PanelPresent(window, "CalibrationPathsPanel");
+                var lines = LogLines(window);
+                output.WriteLine($"S09 panel before={before} after={after}; log lines={lines.Length}");
+                foreach (var line in lines.Where(l => l.Contains("calibration", StringComparison.OrdinalIgnoreCase)))
+                {
+                    output.WriteLine($"S09 >> {line}");
+                }
+
+                Assert.False(before, "The panel was already up before the command, so this measured nothing.");
+                Assert.True(after, "Tools > Calibration Settings did not put the calibration paths panel on screen.");
+                Assert.Contains(
+                    lines,
+                    l => l.Contains("calibration settings", StringComparison.OrdinalIgnoreCase)
+                         && l.Contains("panel opened", StringComparison.OrdinalIgnoreCase));
+                Assert.DoesNotContain(
+                    lines,
+                    l => l.Contains("not implemented", StringComparison.OrdinalIgnoreCase)
+                         && l.Contains("calibration settings", StringComparison.OrdinalIgnoreCase));
             }
-
-            var claims = lines.Where(l =>
-                l.Contains("panel shown", StringComparison.OrdinalIgnoreCase) ||
-                l.Contains("panel visible", StringComparison.OrdinalIgnoreCase)).ToArray();
-
-            Assert.True(
-                claims.Length == 0,
-                $"The log says a panel appeared: '{string.Join(" | ", claims)}'. No calibration panel " +
-                "exists (#165) — do not restore the old wording; build the panel or keep the notice.");
-
-            Assert.Contains(
-                lines,
-                l => l.Contains("calibration settings", StringComparison.OrdinalIgnoreCase)
-                     && l.Contains("not implemented", StringComparison.OrdinalIgnoreCase));
+            finally
+            {
+                EnsurePanelOff(window, "ShowCalibrationPanelMenuItem", "CalibrationPathsPanel");
+            }
         });
     }
 

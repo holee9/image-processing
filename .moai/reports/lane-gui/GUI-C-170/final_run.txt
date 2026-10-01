@@ -1,0 +1,87 @@
+10.2 GB free
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\ImageProcTest.IntegrationTests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:02.11]     ImageProcTest.IntegrationTests.Functional.ErrorCodeMappingTests.ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback(code: NOT_IMPLEMENTED) [SKIP]
+  건너뜀 ImageProcTest.IntegrationTests.Functional.ErrorCodeMappingTests.ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback(code: NOT_IMPLEMENTED) [< 1 ms]
+결과 파일: D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-C-170\trx\c170_final.trx
+
+통과!  - 실패:     0, 통과:   274, 건너뜀:     1, 전체:   275, 기간: 2 s - ImageProcTest.IntegrationTests.dll (net8.0)
+[xUnit.net 00:03:20.27]     ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A03_TheWiredCommands_ReportWhatTheyDid [SKIP]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A03_TheWiredCommands_ReportWhatTheyDid [< 1 ms]
+[xUnit.net 00:05:47.88]     ImageProcTest.E2ETests.Scenarios.Workflows.NativeAlertScenarios.AReInitialise_WritesASeparatorAndKeepsWhatWasThere [SKIP]
+[xUnit.net 00:05:47.88]     ImageProcTest.E2ETests.Scenarios.Workflows.NativeAlertScenarios.AnAlertPushedByANativeModule_IsOnScreen [SKIP]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.NativeAlertScenarios.AReInitialise_WritesASeparatorAndKeepsWhatWasThere [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.NativeAlertScenarios.AnAlertPushedByANativeModule_IsOnScreen [< 1 ms]
+[xUnit.net 00:06:02.80]     ImageProcTest.E2ETests.Scenarios.Workflows.MenuCommandScenarios.R06_PInvokeSmoke_AnswersFromTheNativeLibraries [SKIP]
+[xUnit.net 00:06:02.80]     ImageProcTest.E2ETests.Scenarios.Workflows.LaneDenoiseScenarios.L05_ACandidateDenoiseK_MovesOnlyTheCandidate [SKIP]
+[xUnit.net 00:06:02.80]     ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P06_WhatTheModuleDid_PerMode(radioId: "GsvgModeGridSuppression") [SKIP]
+[xUnit.net 00:06:02.80]     ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P06_WhatTheModuleDid_PerMode(radioId: "GsvgModeVirtualGrid") [SKIP]
+[xUnit.net 00:06:02.80]     ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P02_RepeatedRender_RunsTheStageAgain [SKIP]
+[xUnit.net 00:06:02.80]     ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeNone") [SKIP]
+[xUnit.net 00:06:02.80]     ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeGridSuppression") [SKIP]
+[xUnit.net 00:06:02.80]     ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeVirtualGrid") [SKIP]
+[xUnit.net 00:06:02.80]     ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P11_ThePreviewRender_StillCarriesTheRecordedTileSignature [SKIP]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.MenuCommandScenarios.R06_PInvokeSmoke_AnswersFromTheNativeLibraries [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.LaneDenoiseScenarios.L05_ACandidateDenoiseK_MovesOnlyTheCandidate [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P06_WhatTheModuleDid_PerMode(radioId: "GsvgModeGridSuppression") [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P06_WhatTheModuleDid_PerMode(radioId: "GsvgModeVirtualGrid") [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P02_RepeatedRender_RunsTheStageAgain [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeNone") [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeGridSuppression") [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeVirtualGrid") [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P11_ThePreviewRender_StillCarriesTheRecordedTileSignature [< 1 ms]
+[xUnit.net 00:06:02.80]     ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P09_PyramidGain_ChangesTheDrawnPixels_LevelsAloneDoNot [SKIP]
+[xUnit.net 00:06:02.80]     ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P03_AssumedDefaults_ReachTheDrawnPixels [SKIP]
+[xUnit.net 00:06:02.80]     ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P08_TheAppsOwnStageTime_StaysWithinItsMeasuredSpread [SKIP]
+[xUnit.net 00:06:02.80]     ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P10_ThePreviewChange_KeptTheDrawnPixels [SKIP]
+[xUnit.net 00:06:02.80]     ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P05_TheExportedReport_CarriesTheChainAndTheVignetteFlag [SKIP]
+[xUnit.net 00:06:02.80]     ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P07_TheTimeToADrawnFrame_SplitsIntoPhases [SKIP]
+[xUnit.net 00:06:02.80]     ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P04_TheDrawnHud_NamesTheChain [SKIP]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P09_PyramidGain_ChangesTheDrawnPixels_LevelsAloneDoNot [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P03_AssumedDefaults_ReachTheDrawnPixels [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P08_TheAppsOwnStageTime_StaysWithinItsMeasuredSpread [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P10_ThePreviewChange_KeptTheDrawnPixels [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P05_TheExportedReport_CarriesTheChainAndTheVignetteFlag [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P07_TheTimeToADrawnFrame_SplitsIntoPhases [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P04_TheDrawnHud_NamesTheChain [< 1 ms]
+[xUnit.net 00:06:42.41]     ImageProcTest.E2ETests.Scenarios.Workflows.ClampAlertOnScreenScenarios.TheClampAlert_ReachesTheLog [SKIP]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ClampAlertOnScreenScenarios.TheClampAlert_ReachesTheLog [39 s]
+[xUnit.net 00:06:43.47]     ImageProcTest.E2ETests.Scenarios.Workflows.SelectionVisibilityObservation.A3_WhenTheFilteredListIsLongerThanTheScreen_TheMovedRowIsAboveIt [SKIP]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.SelectionVisibilityObservation.A3_WhenTheFilteredListIsLongerThanTheScreen_TheMovedRowIsAboveIt [783 ms]
+[xUnit.net 00:07:39.42]     ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W03b_SwitchingBackToNative_RestoresTheNativeBackend [SKIP]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W03b_SwitchingBackToNative_RestoresTheNativeBackend [< 1 ms]
+[xUnit.net 00:08:52.11]     ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L06_AReferenceAlgorithm_MovesOnlyTheReference [SKIP]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L06_AReferenceAlgorithm_MovesOnlyTheReference [< 1 ms]
+[xUnit.net 00:08:55.75]     ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L04_ACandidateAlgorithm_MovesOnlyTheCandidate [SKIP]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L04_ACandidateAlgorithm_MovesOnlyTheCandidate [< 1 ms]
+[xUnit.net 00:09:10.81]     ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C07_AGridRatioOutsideTheTable_IsRefused [SKIP]
+[xUnit.net 00:09:10.81]     ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C04_MissingVirtualGridTable_IsRefusedAndTheImageIsUnchanged [SKIP]
+[xUnit.net 00:09:10.81]     ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C02_ChangingTheExposureKvp_DoesNotChangeTheDrawnPixelsToday [SKIP]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C07_AGridRatioOutsideTheTable_IsRefused [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C04_MissingVirtualGridTable_IsRefusedAndTheImageIsUnchanged [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C02_ChangingTheExposureKvp_DoesNotChangeTheDrawnPixelsToday [< 1 ms]
+[xUnit.net 00:09:39.98]     ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C06_ChangingTheGridRatio_ChangesTheDrawnPixels [SKIP]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C06_ChangingTheGridRatio_ChangesTheDrawnPixels [3 ms]
+[xUnit.net 00:10:24.01]     ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.IB02_InitializeAfterTheDllsAppear_RecordsMockThenNative [SKIP]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.IB02_InitializeAfterTheDllsAppear_RecordsMockThenNative [< 1 ms]
+[xUnit.net 00:11:04.31]     ImageProcTest.E2ETests.Scenarios.Smoke.WindowReacquireTests.ReadableWindow_IsKept_AndLeavesNoNote [SKIP]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Smoke.WindowReacquireTests.ReadableWindow_IsKept_AndLeavesNoNote [659 ms]
+[xUnit.net 00:12:02.84]     ImageProcTest.E2ETests.Scenarios.Workflows.NonlinearityNoopAlertScenarios.TheNoopAlert_ReachesTheLogEveryFrame_WhileOtherAlertsKeepArriving [SKIP]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.NonlinearityNoopAlertScenarios.TheNoopAlert_ReachesTheLogEveryFrame_WhileOtherAlertsKeepArriving [39 s]
+[xUnit.net 00:12:08.98]     ImageProcTest.E2ETests.Scenarios.Smoke.NativeProvenanceTests.NativeRun_NamesTheBinariesItExercises [SKIP]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Smoke.NativeProvenanceTests.NativeRun_NamesTheBinariesItExercises [< 1 ms]
+경고: 결과 파일을 덮어쓰는 중: D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-C-170\trx\c170_final.trx
+결과 파일: D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-C-170\trx\c170_final.trx
+
+통과!  - 실패:     0, 통과:   145, 건너뜀:    32, 전체:   177, 기간: 12 m 8 s - ImageProcTest.E2ETests.dll (net8.0)
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.
+dotnet exit=0

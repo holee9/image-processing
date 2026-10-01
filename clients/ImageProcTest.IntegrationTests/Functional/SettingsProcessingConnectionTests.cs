@@ -1,4 +1,4 @@
-// #182 / GUI-C-95: every setting a panel lets the user change either reaches processing, or says it does not.
+﻿// #182 / GUI-C-95: every setting a panel lets the user change either reaches processing, or says it does not.
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -109,6 +109,8 @@ public sealed class SettingsProcessingConnectionTests
         nameof(AppSettings.ComparisonSwipePosition),
         nameof(AppSettings.ComparisonZoomScale),
         nameof(AppSettings.ShowDisplayPanel),
+        // #225 rows 7/8 (GUI-C-170): moved from the view model, beside its sibling.
+        nameof(AppSettings.ShowCalibrationPanel),
         nameof(AppSettings.AnalysisTab),
     ];
 
@@ -196,8 +198,10 @@ public sealed class SettingsProcessingConnectionTests
         [nameof(AppSettings.ComparisonPanX)] = "V03_PanX_ResetRecentres",
         [nameof(AppSettings.ComparisonPanY)] = "V04_PanY_ResetRecentres",
         [nameof(AppSettings.ComparisonSwipePosition)] = "V05_SwipePosition_ResetRedrawsTheDividerAtTheMiddle",
-        [nameof(AppSettings.ShowDisplayPanel)] =
-            "NONE: no screen — the View menu toggle is disabled (PanelToggleScenarios S07) and MENU-001 §9.2 lists no display panel",
+        // #225 rows 7/8 (GUI-C-170): both flags now have a screen, and the reading is the E2E case that
+        // asserts the panel appears and disappears from the UI Automation tree — not the setting.
+        [nameof(AppSettings.ShowDisplayPanel)] = "S07_PanelToggle_ShowsAndHidesItsPanel",
+        [nameof(AppSettings.ShowCalibrationPanel)] = "S07_PanelToggle_ShowsAndHidesItsPanel",
         [nameof(AppSettings.AnalysisTab)] =
             "NONE: indirect only — scenarios find Parameters-tab controls after OpenParameters; no case asserts the tab switch itself",
     };
@@ -280,7 +284,19 @@ public sealed class SettingsProcessingConnectionTests
         // GUI-C-101 added the six GSVG settings; GUI-C-104 added the pyramid levels, gain and de-noise k;
         // GUI-C-113 added the Candidate lane's VOI width; GUI-C-117 removed LaneBSharpeningSigma, whose
         // chain stage does not exist (#193), and renamed the other override to what it overrides.
-        Assert.Equal(36, survey.Bindings.Select(b => b.Property).Distinct().Count());
+        // GUI-C-170 added four: ShowCalibrationPanel (menu toggle + panel), and the three calibration
+        // directories, which the Calibration Paths panel now binds one-way. They are named below so the count
+        // cannot drift to 40 by some other four.
+        Assert.Equal(40, survey.Bindings.Select(b => b.Property).Distinct().Count());
+        foreach (var added in new[]
+                 {
+                     nameof(AppSettings.ShowCalibrationPanel), nameof(AppSettings.OffsetCalibrationDirectory),
+                     nameof(AppSettings.GainCalibrationDirectory), nameof(AppSettings.DefectCalibrationDirectory),
+                 })
+        {
+            Assert.Contains(survey.Bindings, b => b.Property == added);
+        }
+
         Assert.Equal(21, survey.Bindings.Count(b => Unconnected.Take(7).Contains(b.Property)));
         Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneBGsvgDenoiseK) && b.Via == "LaneBGsvgDenoiseK" && b.Writable);
         Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneAAlgorithm) && b.Writable);

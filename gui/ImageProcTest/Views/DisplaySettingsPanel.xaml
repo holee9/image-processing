@@ -1,0 +1,123 @@
+<UserControl x:Class="ImageProcTest.Views.DisplaySettingsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             AutomationProperties.AutomationId="DisplaySettingsPanel"
+             Width="360"
+             Background="#14171e">
+    <!--
+        #225 row 8 (GUI-C-170). Read-only: it shows what the VOI display is ASKED to use next to what the
+        LAST render actually used. The editors stay where they are (Analysis > Parameters); a second set
+        of writers here would make two controls own Settings.VoiLutMode / VoiWindow*, the situation
+        GUI-C-47 removed from Settings.ComparisonMode.
+
+        Requested and rendered are shown as two columns because they legitimately differ: after an edit the
+        image was rendered with the previous window until the pipeline is applied again. "Rendered" comes
+        from RenderedVoi* (what produced the processed image), and null prints "not applied" — the same
+        wording the viewport HUD uses — instead of a zero window. IsPreviewStale/PreviewStaleReason say
+        whether the difference is expected, using the app's own reason text.
+
+        No new state: every value below is an existing view-model or settings member. The preset line is
+        derived (LastAppliedVoiPresetSummary).
+    -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        <Style x:Key="Cell" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#c8f7c5" />
+            <Setter Property="Margin" Value="0,2,8,2" />
+        </Style>
+        <Style x:Key="Head" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#8b93a7" />
+            <Setter Property="Margin" Value="0,0,8,4" />
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel Margin="10">
+        <TextBlock Text="Display settings"
+                   Foreground="#e6e9ef"
+                   FontWeight="Bold"
+                   FontSize="14" />
+        <TextBlock AutomationProperties.AutomationId="DisplaySettingsProvenance"
+                   Text="Requested is the current setting; rendered is what the last render used. Edit in Analysis &gt; Parameters."
+                   Foreground="#8b93a7"
+                   TextWrapping="Wrap"
+                   Margin="0,4,0,8" />
+
+        <Border AutomationProperties.AutomationId="DisplaySettingsStaleBanner"
+                Background="#3a2a12"
+                Padding="8,6"
+                Margin="0,0,0,8"
+                Visibility="{Binding IsPreviewStale, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock AutomationProperties.AutomationId="DisplaySettingsStaleReason"
+                       Text="{Binding PreviewStaleReason}"
+                       Foreground="#ffd479"
+                       TextWrapping="Wrap" />
+        </Border>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="70" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Column="1" Text="Requested" Style="{StaticResource Head}" />
+            <TextBlock Grid.Column="2" Text="Rendered" Style="{StaticResource Head}" />
+
+            <TextBlock Grid.Row="1" Text="Mode" Foreground="#e6e9ef" Margin="0,2" />
+            <TextBlock Grid.Row="1" Grid.Column="1"
+                       AutomationProperties.AutomationId="DisplayRequestedMode"
+                       Style="{StaticResource Cell}"
+                       Text="{Binding Settings.VoiLutMode, Mode=OneWay}" />
+            <TextBlock Grid.Row="1" Grid.Column="2"
+                       AutomationProperties.AutomationId="DisplayRenderedMode"
+                       Style="{StaticResource Cell}"
+                       Text="{Binding RenderedVoiMode, Mode=OneWay, TargetNullValue=not applied}" />
+
+            <TextBlock Grid.Row="2" Text="Center" Foreground="#e6e9ef" Margin="0,2" />
+            <TextBlock Grid.Row="2" Grid.Column="1"
+                       AutomationProperties.AutomationId="DisplayRequestedCenter"
+                       Style="{StaticResource Cell}"
+                       Text="{Binding Settings.VoiWindowCenter, Mode=OneWay, StringFormat={}{0:0.###}}" />
+            <TextBlock Grid.Row="2" Grid.Column="2"
+                       AutomationProperties.AutomationId="DisplayRenderedCenter"
+                       Style="{StaticResource Cell}"
+                       Text="{Binding RenderedVoiCenter, Mode=OneWay, StringFormat={}{0:0.###}, TargetNullValue=not applied}" />
+
+            <TextBlock Grid.Row="3" Text="Width" Foreground="#e6e9ef" Margin="0,2" />
+            <TextBlock Grid.Row="3" Grid.Column="1"
+                       AutomationProperties.AutomationId="DisplayRequestedWidth"
+                       Style="{StaticResource Cell}"
+                       Text="{Binding Settings.VoiWindowWidth, Mode=OneWay, StringFormat={}{0:0.###}}" />
+            <TextBlock Grid.Row="3" Grid.Column="2"
+                       AutomationProperties.AutomationId="DisplayRenderedWidth"
+                       Style="{StaticResource Cell}"
+                       Text="{Binding RenderedVoiWidth, Mode=OneWay, StringFormat={}{0:0.###}, TargetNullValue=not applied}" />
+        </Grid>
+
+        <TextBlock Text="Body-part preset" Foreground="#8b93a7" Margin="0,10,0,2" />
+        <TextBlock AutomationProperties.AutomationId="DisplayLastPreset"
+                   Text="{Binding LastAppliedVoiPresetSummary, Mode=OneWay}"
+                   Foreground="#9fd0ff" />
+
+        <TextBlock Text="Available modes" Foreground="#8b93a7" Margin="0,10,0,2" />
+        <ItemsControl AutomationProperties.AutomationId="DisplayModeOptions"
+                      ItemsSource="{Binding VoiLutModeOptions}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}" Foreground="#e6e9ef" Margin="0,0,10,0" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>

@@ -269,7 +269,16 @@ public partial class MainWindow : System.Windows.Window
             report.CalibrationEvaluationSummary = viewModel.CalibrationEvaluationSummary;
             report.OffsetCorrectionMode = viewModel.Settings.OffsetCorrectionMode;
             report.DefectCorrectionMode = viewModel.Settings.DefectCorrectionMode;
+            // #225 rows 7 and 8 (GUI-C-170): the persisted flags, as they stood when the run started.
+            // Reported, never part of the verdict below.
             report.DisplayPanelVisible = viewModel.Settings.ShowDisplayPanel;
+            report.CalibrationPanelVisible = viewModel.Settings.ShowCalibrationPanel;
+            // ...and whether the panels were actually ON SCREEN at that moment. A persisted flag that is true
+            // while nothing shows is exactly the state these flags were in before GUI-C-170.
+            report.CalibrationPanelRenderedAtStart =
+                FindDescendant<Views.CalibrationPathsPanel>(this) is { IsVisible: true, ActualWidth: > 0 };
+            report.DisplayPanelRenderedAtStart =
+                FindDescendant<Views.DisplaySettingsPanel>(this) is { IsVisible: true, ActualWidth: > 0 };
             report.DisplayVersion = viewModel.RuntimeInfo.DisplayVersion;
             // #172 (GUI-C-79): measured. This was the constant true, and it said "detected" for the
             // whole time the main viewport received no images at all (GUI-C-78). It now requires the
@@ -366,13 +375,9 @@ public partial class MainWindow : System.Windows.Window
                     BenchmarkRunnerMenuItem,
                     QaConstancyMenuItem,
                     GsdfCalibrateMenuItem,
-                    OpenTroubleshootingMenuItem,
-                    // #165 (GUI-C-65): the two panel toggles MENU-001 §9.2 schedules for 1a and 1b.
-                    // They were enabled and did nothing; now they are disabled and counted here with
-                    // the rest of the not-yet commands, so the report says so rather than the reader
-                    // having to try them.
-                    ShowCalibrationPanelMenuItem,
-                    ShowDisplaySettingsPanelMenuItem
+                    // #225 rows 7 and 8 (GUI-C-170): the two panel toggles that were counted here
+                    // (#165, GUI-C-65) are real now and enabled, so they left the list.
+                    OpenTroubleshootingMenuItem
                 }
                 .Count(item => !item.IsEnabled);
 
@@ -477,6 +482,32 @@ public partial class MainWindow : System.Windows.Window
             report.ApiReferencePath = viewModel.LastApiReferencePath;
             report.ApiReferenceLaunchSuppressed = viewModel.ApiReferenceLaunchSuppressed;
 
+            // #225 rows 7 and 8 (GUI-C-170). Both panels are switched ON through their View toggles, then
+            // read from what is RENDERED (the panel's own visibility and its text blocks), not from the
+            // settings: the settings flag was already reported for months with no panel behind it, and
+            // reading it again would assert nothing new. The Browse buttons are NOT pressed — they open a
+            // modal folder dialog, which would hang an unattended run (same reason row 14 suppresses its
+            // launch); their command binding is asserted by the runner instead.
+            ToggleOn(ShowCalibrationPanelMenuItem);
+            ToggleOn(ShowDisplaySettingsPanelMenuItem);
+            await Task.Delay(250);
+            var calibrationPanel = FindDescendant<Views.CalibrationPathsPanel>(this);
+            var displayPanel = FindDescendant<Views.DisplaySettingsPanel>(this);
+            report.CalibrationPanelRendered = calibrationPanel is { IsVisible: true, ActualWidth: > 0 };
+            report.DisplayPanelRendered = displayPanel is { IsVisible: true, ActualWidth: > 0 };
+            report.CalibrationPanelTexts = ReadPanelTexts(calibrationPanel);
+            report.DisplayPanelTexts = ReadPanelTexts(displayPanel);
+
+            // Persist WHILE they are on, so a following launch on the same settings file starts with them
+            // on (A-13), then switch them off again before the verdict is computed. The second half is the
+            // point of GUI-C-170's third falsification: the run must reach Passed=True with both panels
+            // closed, which shows the verdict does not depend on the panels' state.
+            ClickButton(SaveSettingsButton);
+            await Task.Delay(200);
+            ShowCalibrationPanelMenuItem.IsChecked = false;
+            ShowDisplaySettingsPanelMenuItem.IsChecked = false;
+            await Task.Delay(100);
+
             // #225 (GUI-C-168) row 13. The stage lines are read from the PANEL, through the same
             // converter the operator sees — not rebuilt from LastChain here. Reading the model would
             // assert that the data is right while leaving the one thing this row can get wrong (a
@@ -565,7 +596,12 @@ public partial class MainWindow : System.Windows.Window
                 report.CalibrationEvaluationSummary.Contains("Offset=Off", StringComparison.Ordinal) &&
                 report.CalibrationEvaluationSummary.Contains("Defect=On", StringComparison.Ordinal) &&
                 report.CalibrationEvaluationEvidenceExported &&
-                report.DisplayPanelVisible &&
+                // GUI-C-170: "report.DisplayPanelVisible &&" stood here (since the panel flag was constantly
+                // true). It is not a verdict term. Whether a panel is showing is the operator's layout
+                // choice, and with a panel behind the flag it now varies run to run: keeping it would make
+                // the app fail itself whenever the panel is closed — the same trap as the ">= 10" floor
+                // GUI-C-169 replaced. The value is still reported (DisplayPanelVisible,
+                // CalibrationPanelVisible, *PanelRendered), so the evidence is not lost, only the coupling.
                 !string.IsNullOrWhiteSpace(report.DisplayVersion) &&
                 report.ComparisonViewportDetected &&
                 report.ComparisonSourcePreserved &&
@@ -624,6 +660,37 @@ public partial class MainWindow : System.Windows.Window
         }
 
         button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, button));
+    }
+
+    /// <summary>
+    /// A checkable toggle has no command, and a raised Click does not flip IsChecked (only the menu's
+    /// own input path does), so this sets the state a click would and lets the two-way binding write it
+    /// through to Settings.
+    /// </summary>
+    private static void ToggleOn(System.Windows.Controls.MenuItem menuItem)
+    {
+        menuItem.IsChecked = true;
+    }
+
+    /// <summary>The text a panel actually renders, as the operator would read it.</summary>
+    private static string[]? ReadPanelTexts(DependencyObject? panel)
+    {
+        if (panel is null) return null;
+        var texts = new List<string>();
+        CollectVisibleText(panel, texts);
+        return texts.ToArray();
+    }
+
+    /// <summary>Only what is on screen: a collapsed stand-in ("(not set)" while a path is set) is not read.</summary>
+    private static void CollectVisibleText(DependencyObject root, List<string> into)
+    {
+        if (root is UIElement { IsVisible: false }) return;
+        if (root is TextBlock text && !string.IsNullOrWhiteSpace(text.Text)) into.Add(text.Text.Trim());
+
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            CollectVisibleText(System.Windows.Media.VisualTreeHelper.GetChild(root, i), into);
+        }
     }
 
     private static void ClickMenuItem(System.Windows.Controls.MenuItem menuItem)

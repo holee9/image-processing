@@ -47,7 +47,6 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _showAlertsOnly;
     private bool _showRuntimePanel = true;
     private bool _showRawSettingsPanel = true;
-    private bool _showCalibrationPanel = true;
     private bool _showImageSummaryPanel = true;
     private bool _showMetadataPanel = true;
     // OFF at start, per MENU-001 §9.2 (#165). The other panel flags keep their old value because
@@ -463,10 +462,14 @@ public sealed class MainWindowViewModel : ObservableObject
     /// a persisted value let whatever a PREVIOUS run left behind decide what a check sees. (2) The
     /// automation report already emits the chain itself (<c>stages</c>, <c>displayInput</c>), so a
     /// scenario checks the DATA without needing this panel open; a report field for its visibility would
-    /// buy nothing. (3) The flag needs a READER, and here the panel is it — which is exactly what
-    /// <see cref="ShowCalibrationPanel"/> lacks and what <c>Settings.ShowDisplayPanel</c> also lacks
-    /// despite being persisted and reported. Following either of those conventions would have reproduced
-    /// the defect rather than the pattern.</para>
+    /// buy nothing. (3) The flag needs a READER, and here the panel is it — which is exactly what the two
+    /// panel flags lacked at the time (persisted, reported, no panel behind them).</para>
+    ///
+    /// <para><b>Why rows 7 and 8 went the other way (GUI-C-170).</b> This is a command
+    /// (<c>Open Pipeline Diagnostics</c>, no <c>IsCheckable</c>), so there is no toggle state for a menu
+    /// checkmark to follow; rows 7 and 8 ARE checkable toggles whose state belongs on the menu across runs,
+    /// and their flag already had the stronger readers (report, integration tests). Same criterion — "does
+    /// the flag have a reader" — applied to a different shape.</para>
     /// </summary>
     public bool ShowPipelineDiagnostics
     {
@@ -904,16 +907,18 @@ public sealed class MainWindowViewModel : ObservableObject
     // ShowMetadataPanel and ShowAlertsPanel name panels that do not exist — their menu items were
     // removed (C-65) and the automation report stopped emitting them (C-68). Removal is a separate card.
     //
-    // #225 (GUI-C-168) CORRECTION to the line that used to end this comment. It said "ShowCalibrationPanel
-    // and ShowLogsPanel below are still read and stay", and only HALF of that is true. Measured:
-    //   ShowLogsPanel      — read by the log region. True as written.
-    //   ShowCalibrationPanel — the ONLY reader is its own menu item's IsChecked binding
-    //                          (MainWindow.xaml:211). No panel reads it, so it is in the same state as
-    //                          the five above, not with ShowLogsPanel. Kept, not deleted: #225 row 7
-    //                          is the card that will either give it a reader or retire it, and the
-    //                          measurement belongs here where the next reader looks.
-    // The same check on the neighbouring flag: Settings.ShowDisplayPanel is persisted and reported
-    // (automation DisplayPanelVisible) and ALSO has no panel — persistence is not a reader.
+    // #225 (GUI-C-168) CORRECTION to the line that used to end this comment, updated by GUI-C-170. It said
+    // "ShowCalibrationPanel and ShowLogsPanel below are still read and stay". GUI-C-168 measured that only
+    // half was true: ShowLogsPanel is read by the log region, while ShowCalibrationPanel's ONLY reader was its
+    // own menu item's IsChecked binding — and the neighbouring persisted Settings.ShowDisplayPanel also had
+    // no panel (persistence is not a reader).
+    //
+    // GUI-C-170 (rows 7 and 8) gave both a reader and settled where they live: BOTH are persisted
+    // Settings.ShowCalibrationPanel / Settings.ShowDisplayPanel, read by Views/CalibrationPathsPanel and
+    // Views/DisplaySettingsPanel, and both reach the automation report (never the Passed verdict — see the
+    // comment at the verdict). ShowCalibrationPanel MOVED here-to-Settings; it was not deleted, and its old
+    // readers (menu IsChecked, the diagnostic dump, Reset Layout, Tools > Calibration Settings) were
+    // re-pointed rather than dropped.
     public bool ShowRuntimePanel
     {
         get => _showRuntimePanel;
@@ -924,12 +929,6 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         get => _showRawSettingsPanel;
         set => SetProperty(ref _showRawSettingsPanel, value);
-    }
-
-    public bool ShowCalibrationPanel
-    {
-        get => _showCalibrationPanel;
-        set => SetProperty(ref _showCalibrationPanel, value);
     }
 
     public bool ShowImageSummaryPanel
@@ -1645,15 +1644,19 @@ public sealed class MainWindowViewModel : ObservableObject
     /// message "Layout reset." half false.</para>
     ///
     /// <para>What remains all does something: the Logs toggle drives the log region (GUI-C-65), the
-    /// two scheduled flags drive the checkmark on their (disabled) menu items, and the comparison
+    /// two panel flags drive the panels they are named for (GUI-C-170), and the comparison
     /// view really is restored. <b>If one of the removed panels is ever built, its flag belongs back
     /// in this list</b> — the reason it left was the missing panel, not the flag.</para>
+    ///
+    /// <para>GUI-C-170: the two panel flags are set to their DEFAULT (off), not to true. While no panel
+    /// existed, true was harmless and "Layout reset." was half false; with a panel behind each flag, true
+    /// would open two regions the shipped layout does not show.</para>
     /// </summary>
     private void ResetLayout()
     {
-        ShowCalibrationPanel = true;
+        Settings.ShowCalibrationPanel = false;
         ShowLogsPanel = true;
-        Settings.ShowDisplayPanel = true;
+        Settings.ShowDisplayPanel = false;
         ResetComparisonView();
         StatusText = "Layout reset.";
         Log("Menu command: layout reset.");
@@ -1672,7 +1675,7 @@ public sealed class MainWindowViewModel : ObservableObject
     /// Tools → Calibration Settings.
     ///
     /// <para><b>The panel this used to announce does not exist</b> (#165, measured in GUI-C-65: no
-    /// visibility binding reads <see cref="ShowCalibrationPanel"/>, and the calibration directory
+    /// visibility binding reads <see cref="AppSettings.ShowCalibrationPanel"/>, and the calibration directory
     /// settings have no markup at all). The command said "panel visible" anyway, so a reader of the
     /// log was told something that had not happened — worse than silence, because it is believed.</para>
     ///
@@ -1681,12 +1684,15 @@ public sealed class MainWindowViewModel : ObservableObject
     /// command whose implementation has not arrived — <c>"RunOnAllQueuedCommand: not implemented
     /// (Slice 7)."</c> — rather than inventing a screen, which GUI-C-64 stopped for the reason that
     /// a layout invented to satisfy a message would then be the design.</para>
+    ///
+    /// <para><b>#225 row 7 (GUI-C-170): the panel exists now</b>, so the command opens it — it sets the same
+    /// persisted flag the View-menu toggle drives, and the message says only what happened.</para>
     /// </summary>
     private void ShowCalibrationSettings()
     {
-        ShowCalibrationPanel = true;
-        StatusText = "Calibration settings: no panel implemented (#165).";
-        Log("Menu command: calibration settings — not implemented; no panel is shown (#165).");
+        Settings.ShowCalibrationPanel = true;
+        StatusText = "Calibration paths panel opened.";
+        Log("Menu command: calibration settings — calibration paths panel opened.");
     }
 
     private void ShowFixtureManager()
@@ -1778,12 +1784,13 @@ public sealed class MainWindowViewModel : ObservableObject
             // alerts. Their panels were replaced by the Evaluation Workbench and their menu items are
             // gone, so each was permanently true: the report said five panels were visible that do
             // not exist. The three that remain describe real state — logs drives the log region, and
-            // the other two drive the checkmark on their (disabled) menu items. Removing was cheap
+            // the other two drive the panels they are named for (GUI-C-170; before that, the checkmark on
+            // their disabled menu items). Removing was cheap
             // precisely because nothing consumes these fields yet; it gets expensive once something
             // does.
             visiblePanels = new
             {
-                calibration = ShowCalibrationPanel,
+                calibration = Settings.ShowCalibrationPanel,
                 display = Settings.ShowDisplayPanel,
                 logs = ShowLogsPanel
             },
@@ -2048,7 +2055,29 @@ public sealed class MainWindowViewModel : ObservableObject
     /// settings against MockXpeBackend's literal values, which made the check fail under the real
     /// DLL — whose abdomen window (C=40/W=400, HU) is the clinically validated one.
     /// </summary>
-    public VoiPreset? LastAppliedVoiPreset { get; private set; }
+    public VoiPreset? LastAppliedVoiPreset
+    {
+        get => _lastAppliedVoiPreset;
+        private set
+        {
+            if (SetProperty(ref _lastAppliedVoiPreset, value))
+            {
+                OnPropertyChanged(nameof(LastAppliedVoiPresetSummary));
+            }
+        }
+    }
+
+    private VoiPreset? _lastAppliedVoiPreset;
+
+    /// <summary>
+    /// #225 row 8 (GUI-C-170): the preset line of the Display Settings panel. Derived from
+    /// <see cref="LastAppliedVoiPreset"/> — nothing stored — and it says "none" rather than printing a zero
+    /// window for a preset that was never applied. The property gained change notification for this: it was
+    /// an auto-property, so a panel bound to it would have shown whatever it held when the panel was built.
+    /// </summary>
+    public string LastAppliedVoiPresetSummary => LastAppliedVoiPreset is { } p
+        ? $"{p.Mode} · C={p.Center:0.###} · W={p.Width:0.###}"
+        : "none applied yet";
 
     /// <summary>
     /// #141 / #180 (GUI-C-99): Phase-1a preprocessing is a stage of the pixel chain. The menu entry switches

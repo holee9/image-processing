@@ -212,6 +212,8 @@ static void RunWpfE2E()
         var runFullPipelineMenuItem = GetControl<MenuItem>(window, "RunFullPipelineMenuItem");
         var openPipelineDiagnosticsMenuItem = GetControl<MenuItem>(window, "OpenPipelineDiagnosticsMenuItem");
         var openApiReferenceMenuItem = GetControl<MenuItem>(window, "OpenApiReferenceMenuItem");
+        var showCalibrationPanelMenuItem = GetControl<MenuItem>(window, "ShowCalibrationPanelMenuItem");
+        var showDisplaySettingsPanelMenuItem = GetControl<MenuItem>(window, "ShowDisplaySettingsPanelMenuItem");
 
         Assert(applyDisplayPipelineMenuItem.Command is not null, "Apply Display Pipeline menu command missing.");
         Assert(!runPreprocessingMenuItem.IsEnabled, "Preprocessing menu must be disabled until Phase 1a.");
@@ -231,6 +233,26 @@ static void RunWpfE2E()
         Assert(openApiReferenceMenuItem.IsEnabled, "API Reference menu is disabled; #225 row 20 wired it.");
         Assert(openApiReferenceMenuItem.Command is not null, "API Reference menu item has no command bound.");
 
+        // #225 rows 7 and 8 landed (GUI-C-170). Before this card the runner had no line for either toggle
+        // (added, not migrated). Each is enabled and checkable, and switching it on makes the panel it is
+        // named for VISIBLE — asserted from the rendered panel, since the flag alone was reported for
+        // months with no panel behind it.
+        Assert(showCalibrationPanelMenuItem.IsEnabled, "Calibration Paths Panel toggle is disabled; #225 row 7 wired it.");
+        Assert(showDisplaySettingsPanelMenuItem.IsEnabled, "Display Settings Panel toggle is disabled; #225 row 8 wired it.");
+        Assert(showCalibrationPanelMenuItem.IsCheckable && showDisplaySettingsPanelMenuItem.IsCheckable, "A panel toggle is not checkable.");
+        showCalibrationPanelMenuItem.IsChecked = true;
+        showDisplaySettingsPanelMenuItem.IsChecked = true;
+        window.UpdateLayout();
+        Assert(FindVisualChild<CalibrationPathsPanel>(window) is { IsVisible: true },
+            "Switching the Calibration Paths toggle on did not make its panel visible.");
+        Assert(FindVisualChild<DisplaySettingsPanel>(window) is { IsVisible: true },
+            "Switching the Display Settings toggle on did not make its panel visible.");
+        showCalibrationPanelMenuItem.IsChecked = false;
+        showDisplaySettingsPanelMenuItem.IsChecked = false;
+        window.UpdateLayout();
+        Assert(FindVisualChild<CalibrationPathsPanel>(window) is not { IsVisible: true },
+            "Switching the Calibration Paths toggle off left its panel visible.");
+
         // --- View menu items ---
         // #228 (GUI-C-158): ShowRuntimePanelMenuItem is GONE, and that is the current design, not a
         // defect — #165 (GUI-C-64/65) measured that the Workbench redesign had replaced the panels
@@ -243,7 +265,6 @@ static void RunWpfE2E()
             FindControl<MenuItem>(window, "ShowRuntimePanelMenuItem") is null,
             "ShowRuntimePanelMenuItem is back in the View menu; #165 removed it with the panel it named.");
 
-        var showDisplaySettingsPanelMenuItem = GetControl<MenuItem>(window, "ShowDisplaySettingsPanelMenuItem");
         var showLogsPanelMenuItem = GetControl<MenuItem>(window, "ShowLogsPanelMenuItem");
         var clearLogsMenuItem = GetControl<MenuItem>(window, "ClearLogsMenuItem");
         var clearAlertsMenuItem = GetControl<MenuItem>(window, "ClearAlertsMenuItem");

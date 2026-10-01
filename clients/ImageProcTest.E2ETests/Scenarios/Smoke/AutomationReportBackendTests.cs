@@ -367,6 +367,131 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
             "is uncounted, or something counted is not one.");
     }
 
+    /// <summary>
+    /// A-12 (#225, GUI-C-170): rows 7 and 8 — what the two panels RENDER, read from the panels.
+    ///
+    /// <para>Two runs, because the calibration panel has two states that must not look alike: with a
+    /// directory it prints the path, without one it prints "(not set)". The path is compared against the one
+    /// this test PASSED IN, so it is independent of anything the app computes. The display panel's preset
+    /// line is compared against the report's separately derived preset numbers, and neither of its "rendered"
+    /// cells may still say "not applied" after a render ran.</para>
+    ///
+    /// <para>The Browse buttons are not pressed: they open a modal folder dialog, which an unattended run
+    /// cannot answer. That gap is stated here rather than hidden; the runner asserts the buttons' commands
+    /// are bound.</para>
+    /// </summary>
+    [SkippableFact]
+    public void A12_Panels_RenderWhatTheSettingsHold()
+    {
+        var calibDir = Path.Combine(Path.GetTempPath(), $"xpe-a12-calib-{Environment.ProcessId}");
+        Directory.CreateDirectory(calibDir);
+        try
+        {
+            var (withDir, _) = Run("A12a", "Mock", nativeDirectory: null, extraArgs: ["--automation-calib", calibDir]);
+            Assert.True(withDir.GetProperty("CalibrationPanelRendered").GetBoolean(), "The calibration panel was not on screen after its toggle was switched on.");
+            var withTexts = Texts(withDir, "CalibrationPanelTexts");
+            Assert.Equal(3, withTexts.Count(t => string.Equals(t, calibDir, StringComparison.OrdinalIgnoreCase)));
+            Assert.DoesNotContain("(not set)", withTexts);
+
+            // The default run: an automation run starts from the code defaults (MainWindow.CreateSettings),
+            // which are three RELATIVE directories — measured in GUI-C-170; a first version of this case
+            // expected "(not set)" here and was wrong. The expected values are literals on purpose. A first
+            // fix read them from bin/appsettings.json, which failed in the full suite: a launch without
+            // --automation-report loads and re-saves that file, so another case had already replaced its
+            // directories with a temp path. A file the suite itself mutates is not an independent reference.
+            var (defaults, _) = Run("A12b", "Mock", nativeDirectory: null);
+            var defaultTexts = Texts(defaults, "CalibrationPanelTexts");
+            foreach (var expected in new[] { "data/calibration/offset", "data/calibration/gain", "data/calibration/defect" })
+            {
+                Assert.Contains(expected, defaultTexts);
+            }
+
+            Assert.DoesNotContain("(not set)", defaultTexts);
+
+            // The genuinely empty state: a settings file that clears the three directories.
+            var emptyPath = Path.Combine(Path.GetTempPath(), $"xpe-a12-empty-{Environment.ProcessId}.json");
+            File.WriteAllText(emptyPath, "{ \"calibOffsetDir\": \"\", \"calibGainDir\": \"\", \"calibDefectDir\": \"\" }");
+            try
+            {
+                var (empty, _) = Run("A12c", "Mock", nativeDirectory: null, extraArgs: ["--automation-settings", emptyPath]);
+                var emptyTexts = Texts(empty, "CalibrationPanelTexts");
+                Assert.Equal(3, emptyTexts.Count(t => t == "(not set)"));
+                Assert.DoesNotContain(emptyTexts, t => t.Contains(calibDir, StringComparison.OrdinalIgnoreCase));
+            }
+            finally
+            {
+                File.Delete(emptyPath);
+            }
+
+            Assert.True(withDir.GetProperty("DisplayPanelRendered").GetBoolean(), "The display settings panel was not on screen after its toggle was switched on.");
+            var display = Texts(withDir, "DisplayPanelTexts");
+            Assert.Contains("Requested", display);
+            Assert.Contains("Rendered", display);
+            Assert.DoesNotContain("not applied", display);
+
+            // The preset line, against the report's own separately derived numbers.
+            var applied = withDir.GetProperty("VoiPresetApplied").GetBoolean();
+            var expectedCenter = $"C={withDir.GetProperty("VoiPresetCenter").GetDouble():0.###}";
+            if (applied)
+            {
+                Assert.Contains(display, t => t.Contains(expectedCenter, StringComparison.Ordinal));
+            }
+            else
+            {
+                Assert.Contains("none applied yet", display);
+            }
+        }
+        finally
+        {
+            Directory.Delete(calibDir, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// A-13 (#225, GUI-C-170): "on, close the app, open it again" — both panels, through two real launches.
+    ///
+    /// <para>Three claims, and the first is the control for the other two: the FIRST launch starts with both
+    /// panels off and not on screen (the default), so a second launch that starts with them on cannot be
+    /// reading a default. The run switches them on, saves, then switches them off again BEFORE its verdict,
+    /// and must still pass: the verdict does not depend on the panels' state.</para>
+    /// </summary>
+    [SkippableFact]
+    public void A13_PanelFlags_SurviveTheProcess_AndTheVerdictDoesNotDependOnThem()
+    {
+        var settingsPath = Path.Combine(Path.GetTempPath(), $"xpe-panels-a13-{Environment.ProcessId}.json");
+        File.Delete(settingsPath);
+
+        var (first, _) = Run("A13a", "Mock", nativeDirectory: null, extraArgs: ["--automation-settings", settingsPath]);
+        Assert.False(first.GetProperty("CalibrationPanelVisible").GetBoolean());
+        Assert.False(first.GetProperty("DisplayPanelVisible").GetBoolean());
+        Assert.False(first.GetProperty("CalibrationPanelRenderedAtStart").GetBoolean());
+        Assert.False(first.GetProperty("DisplayPanelRenderedAtStart").GetBoolean());
+        Assert.True(first.GetProperty("Passed").GetBoolean(),
+            "The run switches both panels off before its verdict; a panel's state must not be part of that verdict.");
+
+        // Read the stored file itself, so that STORAGE and REPORTING are told apart. Without this, a report
+        // that never fills the field fails below with the same message as a flag that was never stored
+        // (measured in GUI-C-170: arms P1 and R1 both printed "The calibration flag was not persisted.").
+        var stored = JsonDocument.Parse(File.ReadAllText(settingsPath)).RootElement;
+        Assert.True(stored.TryGetProperty("showCalibrationPanel", out var storedCalibration) && storedCalibration.GetBoolean(),
+            "The settings file does not hold showCalibrationPanel=true after the run saved it: the flag is not STORED.");
+        Assert.True(stored.TryGetProperty("showDisplayPanel", out var storedDisplay) && storedDisplay.GetBoolean(),
+            "The settings file does not hold showDisplayPanel=true after the run saved it: the flag is not STORED.");
+
+        var (second, _) = Run("A13b", "Mock", nativeDirectory: null, extraArgs: ["--automation-settings", settingsPath]);
+        Assert.True(second.GetProperty("CalibrationPanelVisible").GetBoolean(),
+            "The flag is stored, but the second launch's report does not carry it: it is not REPORTED (or not loaded).");
+        Assert.True(second.GetProperty("DisplayPanelVisible").GetBoolean(),
+            "The flag is stored, but the second launch's report does not carry it: it is not REPORTED (or not loaded).");
+        Assert.True(second.GetProperty("CalibrationPanelRenderedAtStart").GetBoolean(),
+            "The flag came back true but the calibration panel was not on screen at start.");
+        Assert.True(second.GetProperty("DisplayPanelRenderedAtStart").GetBoolean(),
+            "The flag came back true but the display panel was not on screen at start.");
+    }
+
+    private static List<string> Texts(JsonElement report, string property) =>
+        report.GetProperty(property).EnumerateArray().Select(e => e.GetString() ?? string.Empty).ToList();
+
     private static string RepositoryRootOrSkip()
     {
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)

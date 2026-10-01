@@ -1,0 +1,9 @@
+[control] free memory before: 10.4 GB (floor 4.0)
+[control] build gui/ImageProcTest.slnx: exit=0
+[control] build clients/ImageProcTest.slnx: exit=0
+[control] free memory before tests: 10.2 GB
+[control] 통과!  - 실패:     0, 통과:     3, 건너뜀:     0, 전체:     3, 기간: 130 ms - ImageProcTest.IntegrationTests.dll (net8.0)
+[control] 통과!  - 실패:     0, 통과:     5, 건너뜀:     0, 전체:     5, 기간: 1 m 7 s - ImageProcTest.E2ETests.dll (net8.0)
+[control] test exit=0
+[control] real tree untouched: True
+script exit=0
