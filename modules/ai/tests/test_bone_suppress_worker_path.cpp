@@ -754,6 +754,13 @@ TEST_F(WorkerPathFixture, ShutdownThenInitGivesAFreshWorkerState) {
 // The property the GUI depends on: a status query returns promptly even while a call is stuck on a
 // silent worker (a call can hold the module for its whole time budget). A query that waited for the
 // call would freeze the UI thread for that long.
+//
+// WHY 250 ms (measured on the development machine, QA-B-173): the query took 0 ms in three runs (the
+// tick counter's resolution is about 16 ms, so "under 16 ms"), while the stuck call it did not wait for
+// lasted about 3 s (timeout_ms 3000). With the query taking the module mutex instead (arm B1) it
+// waited 2922 ms. The bound sits between the two, 15 times above the measured value and 12 times below
+// the failure mode. It is a machine-measured number, not a requirement: if a slow CI runner makes this
+// test flaky, widen it (anything well under timeout_ms still separates "did not wait" from "waited").
 TEST_F(WorkerPathFixture, WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker) {
     if (IsStub()) GTEST_SKIP() << "needs a worker that can succeed before it is frozen: full build only";
     ASSERT_EQ(XPE_OK, xpe_ai_init(kDirX2.c_str(), "{\"use_worker\": true, \"timeout_ms\": 3000}"));
@@ -769,6 +776,7 @@ TEST_F(WorkerPathFixture, WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWo
     const ULONGLONG t0 = GetTickCount64();
     const WState w = QueryState();
     const auto took = static_cast<unsigned long long>(GetTickCount64() - t0);
+    std::printf("[measure] xpe_ai_worker_state while a call waits on a frozen worker: %llu ms\n", took);
     EXPECT_EQ(XPE_OK, w.rc);
     EXPECT_EQ(XPE_AI_WORKER_ACTIVE, w.state);
     EXPECT_LT(took, 250ull) << "the status query waited " << took << " ms for the stuck call";

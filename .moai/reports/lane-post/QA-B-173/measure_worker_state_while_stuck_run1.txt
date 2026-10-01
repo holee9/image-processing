@@ -1,0 +1,15 @@
+Note: Google Test filter = WorkerPathFixture.WorkerStateAnswersPromptly*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from WorkerPathFixture
+[ RUN      ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker
+[2026-10-01 21:51:50.712] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:51:54.041] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:51:54.041] [info] xpe_ai shutdown: worker_pid=%u
+[measure] xpe_ai_worker_state while a call waits on a frozen worker: 0 ms
+[       OK ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker (3335 ms)
+[----------] 1 test from WorkerPathFixture (3335 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3335 ms total)
+[  PASSED  ] 1 test.
