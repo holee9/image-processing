@@ -1,0 +1,130 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 18 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 18 tests from OomInjection
+[ RUN      ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader
+[       OK ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader (1 ms)
+[ RUN      ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain                            7 allocation points covered
+[       OK ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_offset                          6 allocation points covered
+[       OK ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_defect_map                      6 allocation points covered
+[       OK ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, range)        7 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, no range)     7 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(226): error: Value of: cacheConsistent
+  Actual: false
+Expected: true
+xpe_calib_load_gain_cached (miss): allocation #1 failed (rc -3) and the cache's list and index no longer agree
+
+[  FAILED  ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping (1 ms)
+[ RUN      ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_gain_cached (polynomial)        9 allocation points covered
+[       OK ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping (2 ms)
+[ RUN      ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(226): error: Value of: cacheConsistent
+  Actual: false
+Expected: true
+xpe_calib_load_offset_cached (miss): allocation #1 failed (rc -3) and the cache's list and index no longer agree
+
+[  FAILED  ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping (1 ms)
+[ RUN      ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(226): error: Value of: cacheConsistent
+  Actual: false
+Expected: true
+xpe_calib_load_defect_cached (miss): allocation #1 failed (rc -3) and the cache's list and index no longer agree
+
+[  FAILED  ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping (1 ms)
+[ RUN      ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(355): error: Expected equality of these values:
+  0
+  xpe_calib_load_gain_cached("oom_long_entry_file_name.xcal", &v)
+    Which is: -3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(355): error: Expected equality of these values:
+  0
+  xpe_calib_load_gain_cached("oom_long_entry_file_name.xcal", &v)
+    Which is: -3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(226): error: Value of: cacheConsistent
+  Actual: false
+Expected: true
+xpe_calib_load_gain_cached (hit): allocation #1 failed (rc -3) and the cache's list and index no longer agree
+
+[  FAILED  ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched (1 ms)
+[ RUN      ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(368): error: Expected equality of these values:
+  0
+  xpe_calib_load_offset_cached("oom_long_entry_file_name.xcal", &v)
+    Which is: -3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(368): error: Expected equality of these values:
+  0
+  xpe_calib_load_offset_cached("oom_long_entry_file_name.xcal", &v)
+    Which is: -3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(226): error: Value of: cacheConsistent
+  Actual: false
+Expected: true
+xpe_calib_load_offset_cached (hit): allocation #1 failed (rc -3) and the cache's list and index no longer agree
+
+[  FAILED  ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched (1 ms)
+[ RUN      ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(381): error: Expected equality of these values:
+  0
+  xpe_calib_load_defect_cached("oom_long_entry_file_name.xcal", &v)
+    Which is: -3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(381): error: Expected equality of these values:
+  0
+  xpe_calib_load_defect_cached("oom_long_entry_file_name.xcal", &v)
+    Which is: -3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(226): error: Value of: cacheConsistent
+  Actual: false
+Expected: true
+xpe_calib_load_defect_cached (hit): allocation #1 failed (rc -3) and the cache's list and index no longer agree
+
+[  FAILED  ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched (1 ms)
+[ RUN      ] OomInjection.AnOffsetCorrectionAllocatesNothing
+[       OK ] OomInjection.AnOffsetCorrectionAllocatesNothing (0 ms)
+[ RUN      ] OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree
+[sweep] xpe_defect_correct                             6 allocation points covered
+[       OK ] OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree (1 ms)
+[ RUN      ] OomInjection.AGhostCreationThatIsRefusedLeavesNoBlocksBehind
+[       OK ] OomInjection.AGhostCreationThatIsRefusedLeavesNoBlocksBehind (0 ms)
+[ RUN      ] OomInjection.ADefectCorrectionDoesNotCopyTheMap
+[       OK ] OomInjection.ADefectCorrectionDoesNotCopyTheMap (0 ms)
+[ RUN      ] OomInjection.AHitJudgesTheExpiryAfterTheOpenCheckNotBefore
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(514): error: Expected equality of these values:
+  0
+  k.cached()
+    Which is: -3
+the first call loads and caches the file
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(507): offset
+
+[  FAILED  ] OomInjection.AHitJudgesTheExpiryAfterTheOpenCheckNotBefore (4 ms)
+[----------] 18 tests from OomInjection (34 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 1 test suite ran. (34 ms total)
+[  PASSED  ] 11 tests.
+[  FAILED  ] 7 tests, listed below:
+[  FAILED  ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping
+[  FAILED  ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping
+[  FAILED  ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping
+[  FAILED  ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched
+[  FAILED  ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched
+[  FAILED  ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched
+[  FAILED  ] OomInjection.AHitJudgesTheExpiryAfterTheOpenCheckNotBefore
+
+ 7 FAILED TESTS

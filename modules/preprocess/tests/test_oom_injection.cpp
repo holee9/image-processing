@@ -26,6 +26,8 @@
 #include "xcal_writer.hpp"
 
 #include <atomic>
+#include <chrono>
+#include <thread>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -95,22 +97,23 @@ const std::string kGainJson =
     "0123456789012345678901234567890123456789012345678901234567890123456789\"}";
 
 void writeFile(const char* path, uint32_t type, uint32_t fmt, const void* data, size_t bytes,
-               const std::string& json) {
+               const std::string& json, int64_t expiryMs = 0) {
     std::remove(path);
     XCalFileHeader hdr{};
+    hdr.expiry_epoch_ms = expiryMs;
     std::memcpy(hdr.magic, XCAL_MAGIC, 4);
     hdr.version = XCAL_VERSION; hdr.type = type; hdr.pixel_format = fmt;
     hdr.width = W; hdr.height = H; hdr.payload_len = bytes;
     ASSERT_EQ(XPE_OK, write_xcal_file(path, hdr, reinterpret_cast<const uint8_t*>(json.data()), json.size(),
                                       static_cast<const uint8_t*>(data), bytes));
 }
-void writeOffset(const char* path, float v) {
+void writeOffset(const char* path, float v, int64_t expiryMs = 0) {
     std::vector<float> m(N, v);
-    writeFile(path, XCAL_TYPE_OFFSET, XCAL_FMT_FLOAT32, m.data(), m.size() * sizeof(float), "{}");
+    writeFile(path, XCAL_TYPE_OFFSET, XCAL_FMT_FLOAT32, m.data(), m.size() * sizeof(float), "{}", expiryMs);
 }
-void writeGain(const char* path, float v, const std::string& json) {
+void writeGain(const char* path, float v, const std::string& json, int64_t expiryMs = 0) {
     std::vector<float> m(N, v);
-    writeFile(path, XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, m.data(), m.size() * sizeof(float), json);
+    writeFile(path, XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, m.data(), m.size() * sizeof(float), json, expiryMs);
 }
 // Polynomial gain file (degree 1: two coefficient planes, pixel-major). The config block carries a dose
 // range so the loader reads it, and is long enough that copying it allocates.
@@ -479,4 +482,43 @@ TEST_F(OomInjection, ADefectCorrectionDoesNotCopyTheMap) {
     EXPECT_NEAR(1000.0f, out[5 * w + 5], 1.0f) << "control: the flagged pixel was repaired";
     EXPECT_GT(largest, 0u) << "control: the frame made allocations the counter could see";
     EXPECT_LT(largest, n) << "a request as large as the map means the map was copied";
+}
+
+/* =========================================================================
+ * Hit timing (QA-A-203b, Codex #22): the expiry is judged AFTER the file was opened
+ * ========================================================================= */
+
+// The plain reader opens and reads the file and only then looks at the clock. A hit that took the time
+// before it opened the file would let an entry that expired while the open was slow (a network path)
+// through and install it. The test makes the open check take longer than the entry has left.
+TEST_F(OomInjection, AHitJudgesTheExpiryAfterTheOpenCheckNotBefore) {
+    struct Case { const char* name; std::function<void(int64_t)> write; std::function<XpeErrorCode()> cached; };
+    const Case cases[] = {
+        {"offset", [](int64_t e) { writeOffset("oom_q.xcal", 100.0f, e); },
+         [] { XpeImageBuffer v{}; return xpe_calib_load_offset_cached("oom_q.xcal", &v); }},
+        {"gain",   [](int64_t e) { writeGain("oom_q.xcal", 2.0f, "{}", e); },
+         [] { XpeImageBuffer v{}; return xpe_calib_load_gain_cached("oom_q.xcal", &v); }},
+        {"defect", [](int64_t e) {
+             std::vector<uint8_t> m(N, 0);
+             writeFile("oom_q.xcal", XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, m.data(), m.size(), "{}", e); },
+         [] { XpeImageBuffer v{}; return xpe_calib_load_defect_cached("oom_q.xcal", &v); }},
+    };
+    for (const Case& k : cases) {
+        SCOPED_TRACE(k.name);
+        xpe_calib_cache_clear();
+        resetStore();
+        xpe_cache_after_open_check_hook = nullptr;
+        const int64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+        k.write(nowMs + 600);
+        ASSERT_EQ(XPE_OK, k.cached()) << "the first call loads and caches the file";
+        // Control: with a fast open check, an immediate second call is a hit and the entry is still valid.
+        ASSERT_EQ(XPE_OK, k.cached()) << "control: the entry is still valid right after the load";
+
+        // The open check now takes longer than the entry has left (600 ms of expiry, 900 ms of delay).
+        xpe_cache_after_open_check_hook = [] { std::this_thread::sleep_for(std::chrono::milliseconds(900)); };
+        const XpeErrorCode rc = k.cached();
+        xpe_cache_after_open_check_hook = nullptr;
+        EXPECT_EQ(XPE_ERR_CALIBRATION_EXPIRED, rc) << "the clock must be read after the open check, not before it";
+    }
 }

@@ -210,7 +210,7 @@ public:
      * made again on the second call, so an entry replaced in between is judged as it now stands.
      */
     template <typename T>
-    XpeErrorCode get_copy(const std::string& path, MapKind kind, const FileStamp& now, int64_t nowMs,
+    XpeErrorCode get_copy(const std::string& path, MapKind kind, const FileStamp& now,
                           const bool* openable, XpeImageBuffer* view, std::unique_ptr<T[]>* pixels,
                           EntryMeta* meta, HitState* state) {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -228,7 +228,10 @@ public:
         if (it->second->meta.kind != kind) return XPE_OK;
         if (!openable) { *state = HitState::NeedOpenCheck; return XPE_OK; }
         if (!*openable) { *state = HitState::Unreadable; return XPE_OK; }
-        if (it->second->meta.expiryMs != 0 && nowMs > it->second->meta.expiryMs) {
+        // The clock is read HERE -- after the open check, at the moment of judging -- as the plain reader reads
+        // it after it has opened and read the file (QA-A-203b, Codex #22). A time taken before the open would
+        // let an entry that expired while a slow open was in progress through.
+        if (it->second->meta.expiryMs != 0 && now_epoch_ms() > it->second->meta.expiryMs) {
             erase_locked(it);
             *state = HitState::Expired;
             return XPE_OK;
@@ -419,11 +422,13 @@ XpeErrorCode lookup_hit(const char* filePath, MapKind kind, const FileStamp& sta
                         std::unique_ptr<T[]>* pixels, EntryMeta* meta, HitState* state)
 {
     const std::string key(filePath);
-    const int64_t nowMs = now_epoch_ms();
-    XpeErrorCode rc = g_calibCache.get_copy<T>(key, kind, stamp, nowMs, nullptr, view, pixels, meta, state);
+    XpeErrorCode rc = g_calibCache.get_copy<T>(key, kind, stamp, nullptr, view, pixels, meta, state);
     if (rc != XPE_OK || *state != HitState::NeedOpenCheck) return rc;
     const bool openable = can_open_for_read(filePath);   // file I/O, outside the cache lock
-    return g_calibCache.get_copy<T>(key, kind, stamp, nowMs, &openable, view, pixels, meta, state);
+#ifdef XPE_CACHE_TEST_HOOKS
+    if (xpe_cache_after_open_check_hook) xpe_cache_after_open_check_hook();
+#endif
+    return g_calibCache.get_copy<T>(key, kind, stamp, &openable, view, pixels, meta, state);
 }
 
 /**
@@ -521,6 +526,10 @@ void install_defect(std::unique_ptr<uint8_t[]> map, const XpeImageBuffer& d)
 } // anonymous namespace
 
 bool xpe_calib_cache_is_consistent() { return g_calibCache.consistent(); }
+
+#ifdef XPE_CACHE_TEST_HOOKS
+void (*xpe_cache_after_open_check_hook)() = nullptr;
+#endif
 
 /* =========================================================================
  * Public cached load API

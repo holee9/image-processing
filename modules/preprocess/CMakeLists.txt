@@ -538,7 +538,8 @@ if(_XPE_BUILD_TESTS)
                 ${CMAKE_CURRENT_SOURCE_DIR}/src
                 ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
     )
-    target_compile_definitions(xpe_preprocess_oom_tests PRIVATE XPE_DLL_EXPORT)
+    # XPE_CACHE_TEST_HOOKS: the cache's test-only delay point (xpe_preprocess_internal.h); never defined for the library.
+    target_compile_definitions(xpe_preprocess_oom_tests PRIVATE XPE_DLL_EXPORT XPE_CACHE_TEST_HOOKS)
     target_link_libraries(xpe_preprocess_oom_tests
         PRIVATE xpe_common
                 GTest::gtest_main

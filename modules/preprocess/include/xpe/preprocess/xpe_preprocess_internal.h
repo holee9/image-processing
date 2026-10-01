@@ -358,6 +358,16 @@ extern std::mutex      g_calib_mutex;
  */
 bool xpe_calib_cache_is_consistent();
 
+#ifdef XPE_CACHE_TEST_HOOKS
+/**
+ * Test-only: called by a cached loader's hit lookup right after it has opened the file and before the
+ * expiry is judged, so a test can make that step take as long as a slow (network) path would. Only the
+ * allocation-failure executable defines XPE_CACHE_TEST_HOOKS; the shipped library has neither the
+ * declaration nor the call (QA-A-203b, Codex #22).
+ */
+extern void (*xpe_cache_after_open_check_hook)();
+#endif
+
 /* =========================================================================
  * FUNC-033 quality metadata (QA-A-35, #140)
  *
