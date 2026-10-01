@@ -1,0 +1,20 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomPipeline.*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from OomPipeline
+[ RUN      ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(227): error: Value of: escaped
+  Actual: true
+Expected: false
+xpe_preprocess_pipeline_ex: an exception left the C ABI function when allocation #1 failed
+
+[  FAILED  ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas (15 ms)
+[ RUN      ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(227): error: Value of: escaped
+  Actual: true
+Expected: false
+xpe_preprocess_pipeline: an exception left the C ABI function when allocation #18 failed
+
+[  FAILED  ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas (8 ms)
+[ RUN      ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched

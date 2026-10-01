@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <new>
 
 /* =========================================================================
  * Full Pre-Processing Pipeline (stages 0.5-4)
@@ -330,7 +331,7 @@ namespace {
 // @MX:ANCHOR: [AUTO] xpe_preprocess_pipeline — full pipeline integration
 // @MX:REASON: Main pipeline entry point; all correction stages fan in here
 // @MX:SPEC: REQ-P1A-095 to REQ-P1A-101
-XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
+static XpeErrorCode pipeline_impl(XpeImageBuffer* img,
                                   XpeImageMetadata* meta,
                                   const char* calibPath,
                                   void* ghostHandle,
@@ -433,7 +434,7 @@ void xpe_calib_state_release(void* state)
 
 // @MX:ANCHOR: [AUTO] xpe_preprocess_pipeline_ex — optimized pipeline with pre-loaded state
 // @MX:REASON: Eliminates per-frame file I/O; used in batch and streaming scenarios
-XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
+static XpeErrorCode pipeline_ex_impl(XpeImageBuffer* img,
                                           XpeImageMetadata* meta,
                                           const void* calibState,
                                           void* ghostHandle,
@@ -461,7 +462,7 @@ XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
 // @MX:ANCHOR: [AUTO] xpe_preprocess_pipeline_batch — multi-frame batch processing
 // @MX:REASON: Batch API for multi-frame acquisition; SIMD parallelism for offset
 // @MX:WARN: Ghost correction is stateful per-handle; batch must use sequential ghost
-XpeErrorCode xpe_preprocess_pipeline_batch(
+static XpeErrorCode pipeline_batch_impl(
     XpeImageBuffer* images,
     uint32_t imageCount,
     XpeImageMetadata* metas,
@@ -500,7 +501,18 @@ XpeErrorCode xpe_preprocess_pipeline_batch(
     XpeErrorCode firstError = XPE_OK;
 
     for (uint32_t i = 0; i < imageCount; ++i) {
-        XpeErrorCode result = pipeline_core(&images[i], &metas[i], ghostHandle, cfg);
+        // QA-A-202b: a frame that runs out of memory is that frame's failure, like any other error --
+        // the batch carries on and reports the first one -- and it leaves the frame's metadata as found.
+        const XpeImageMetadata saved = metas[i];
+        XpeErrorCode result = XPE_OK;
+        try {
+            result = pipeline_core(&images[i], &metas[i], ghostHandle, cfg);
+        } catch (const std::bad_alloc&) {
+            result = XPE_ERR_OUT_OF_MEMORY;
+        } catch (...) {
+            result = XPE_ERR_PROCESSING_FAILED;
+        }
+        if (result == XPE_ERR_OUT_OF_MEMORY) metas[i] = saved;
         if (result != XPE_OK) {
             if (firstError == XPE_OK) {
                 firstError = result;
@@ -511,3 +523,68 @@ XpeErrorCode xpe_preprocess_pipeline_batch(
 
     return firstError;
 }
+
+/* =========================================================================
+ * Exported entry points (QA-A-202b, Codex #23)
+ *
+ * The bodies above read the configuration (strings), stage the frame in up to seven buffers and call
+ * stages that allocate; any of those can throw std::bad_alloc, and an exception must not leave a C ABI
+ * function. Each entry point runs its body inside one try block: bad_alloc -> OUT_OF_MEMORY, anything else ->
+ * PROCESSING_FAILED. A call that fails for lack of memory leaves the metadata as it found it (the stages
+ * set their flags as they go, and the frame itself is written only at the very end, so on failure the
+ * image is untouched and a flag would claim work that never reached it). The other error codes keep
+ * their long-standing behaviour: the flags of the stages that completed stay set.
+ * ========================================================================= */
+
+#define XPE_PIPELINE_GUARD(metaPtr, call)                                                 \
+    XpeImageMetadata saved{};                                                              \
+    if (metaPtr) saved = *(metaPtr);                                                       \
+    try {                                                                                  \
+        const XpeErrorCode rc = (call);                                                    \
+        if (rc == XPE_ERR_OUT_OF_MEMORY && (metaPtr)) *(metaPtr) = saved;                  \
+        return rc;                                                                         \
+    } catch (const std::bad_alloc&) {                                                      \
+        if (metaPtr) *(metaPtr) = saved;                                                   \
+        return XPE_ERR_OUT_OF_MEMORY;                                                      \
+    } catch (...) {                                                                        \
+        if (metaPtr) *(metaPtr) = saved;                                                   \
+        return XPE_ERR_PROCESSING_FAILED;                                                  \
+    }
+
+XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
+                                     XpeImageMetadata* meta,
+                                     const char* calibPath,
+                                     void* ghostHandle,
+                                     const char* configJsonOrNull)
+{
+    XPE_PIPELINE_GUARD(meta, pipeline_impl(img, meta, calibPath, ghostHandle, configJsonOrNull))
+}
+
+XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
+                                        XpeImageMetadata* meta,
+                                        const void* calibState,
+                                        void* ghostHandle,
+                                        const char* configJsonOrNull)
+{
+    XPE_PIPELINE_GUARD(meta, pipeline_ex_impl(img, meta, calibState, ghostHandle, configJsonOrNull))
+}
+
+XpeErrorCode xpe_preprocess_pipeline_batch(XpeImageBuffer* images,
+                                           uint32_t imageCount,
+                                           XpeImageMetadata* metas,
+                                           const char* calibPath,
+                                           void* ghostHandle,
+                                           const char* configJsonOrNull)
+{
+    // The metadata of each frame is restored by the frame's own guard inside the loop; what can still
+    // throw out here is reading the configuration and loading the calibration files, before any frame.
+    try {
+        return pipeline_batch_impl(images, imageCount, metas, calibPath, ghostHandle, configJsonOrNull);
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+}
+
+#undef XPE_PIPELINE_GUARD

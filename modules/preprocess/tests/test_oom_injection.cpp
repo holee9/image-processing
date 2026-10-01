@@ -30,6 +30,7 @@
 #include <thread>
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
 #include <cstdlib>
 #include <cstring>
 #include <functional>
@@ -185,7 +186,8 @@ using Call = std::function<XpeErrorCode()>;
  * operator-new blocks, counted after the store and the cache are emptied, equal what they were after the
  * same emptying before the call. The cache's pixel buffers come from operator new for this reason.
  */
-void sweep(const char* label, const Setup& setup, const Call& call, bool unchangedOnError) {
+void sweep(const char* label, const Setup& setup, const Call& call, bool unchangedOnError,
+           const std::function<std::string(XpeErrorCode rc)>& extra = nullptr) {
     constexpr long kMax = 3000;
     long injections = 0;
     for (long k = 1; k <= kMax; ++k) {
@@ -216,6 +218,8 @@ void sweep(const char* label, const Setup& setup, const Call& call, bool unchang
             g_calib_mutex.unlock();
         }
         const Snap after = snap();
+        // An extra, call-specific check, made while the store still holds what the call left in it.
+        const std::string extraWhy = extra ? extra(rc) : std::string();
         const bool cacheConsistent = xpe_calib_cache_is_consistent();
         resetStore(); xpe_calib_cache_clear(); xpe_clear_alerts();
         const long liveAfter = g_live.load();
@@ -223,6 +227,7 @@ void sweep(const char* label, const Setup& setup, const Call& call, bool unchang
         ASSERT_FALSE(escaped) << label << ": an exception left the C ABI function when allocation #" << k
                               << " failed" << (lockLeaked ? " (and the calibration store lock stayed held)" : "");
         ASSERT_FALSE(lockLeaked) << label << ": the calibration store lock stayed held after allocation #" << k << " failed";
+        ASSERT_TRUE(extraWhy.empty()) << label << ": allocation #" << k << " failed (rc " << rc << "): " << extraWhy;
         ASSERT_TRUE(cacheConsistent) << label << ": allocation #" << k << " failed (rc " << rc
                                      << ") and the cache's list and index no longer agree";
         ASSERT_EQ(liveBase, liveAfter) << label << ": allocation #" << k << " failed (rc " << rc
@@ -521,4 +526,183 @@ TEST_F(OomInjection, AHitJudgesTheExpiryAfterTheOpenCheckNotBefore) {
         xpe_cache_after_open_check_hook = nullptr;
         EXPECT_EQ(XPE_ERR_CALIBRATION_EXPIRED, rc) << "the clock must be read after the open check, not before it";
     }
+}
+
+/* =========================================================================
+ * The three pipeline entry points (QA-A-202b, Codex #23)
+ * ========================================================================= */
+
+namespace pipe {
+
+using Call_t = std::function<XpeErrorCode()>;
+constexpr int kFrames = 2;
+
+std::vector<uint8_t> g_bytes[kFrames];           // each frame's buffer: N uint16 pixels in room for N floats
+XpeImageBuffer g_img[kFrames];
+XpeImageMetadata g_meta[kFrames];
+std::vector<uint8_t> g_bytes0[kFrames];          // as the setup left them
+XpeImageMetadata g_meta0[kFrames];
+uint64_t g_digest0 = 0;
+void* g_ghost = nullptr;
+std::vector<float> g_hist1_0, g_hist2_0;
+
+// Long enough that reading it allocates (std::string keeps up to 15 characters inline), and every stage on.
+const char* const kConfig =
+    "{\"detectorTempC\":\"25.5\",\"binningMode\":\"2\",\"note\":\"padding so that this configuration does "
+    "not fit in a small string: 0123456789012345678901234567890123456789012345678901234567890123456789\"}";
+
+uint64_t storeDigest() {
+    std::lock_guard<std::mutex> lk(g_calib_mutex);
+    uint64_t h = 1469598103934665603ull;
+    auto mix = [&h](const void* p, size_t n) {
+        const auto* b = static_cast<const unsigned char*>(p);
+        for (size_t i = 0; i < n; ++i) { h ^= b[i]; h *= 1099511628211ull; }
+    };
+    mix(&g_calib.offset_width, sizeof g_calib.offset_width);
+    mix(&g_calib.gain_width, sizeof g_calib.gain_width);
+    mix(&g_calib.defect_width, sizeof g_calib.defect_width);
+    if (g_calib.offset_map) mix(g_calib.offset_map.get(), N * sizeof(float));
+    if (g_calib.gain_map) mix(g_calib.gain_map.get(), N * sizeof(float));
+    if (g_calib.defect_map) mix(g_calib.defect_map.get(), N);
+    return h;
+}
+
+bool sameMeta(const XpeImageMetadata& a, const XpeImageMetadata& b) { return std::memcmp(&a, &b, sizeof a) == 0; }
+
+void writeCalibDir() {
+    std::filesystem::create_directories("oom_pipe_calib");
+    writeOffset("oom_pipe_calib/offset.xcal", 100.0f);
+    writeGain("oom_pipe_calib/gain.xcal", 2.0f, "{}");
+    writeDefect("oom_pipe_calib/defect.xcal", true);
+}
+
+/** The module initialized, the three maps in the store, a fresh ghost handle, and the frames to process. */
+void setup() {
+    resetStore();
+    xpe_calib_cache_clear();
+    xpe_clear_alerts();
+    xpe_preprocess_init(nullptr);
+    xpe_calib_load_offset("oom_pipe_calib/offset.xcal");
+    xpe_calib_load_gain("oom_pipe_calib/gain.xcal");
+    xpe_calib_load_defect_map("oom_pipe_calib/defect.xcal");
+    if (g_ghost) xpe_ghost_destroy(g_ghost);
+    g_ghost = nullptr;
+    xpe_ghost_create(W, H, nullptr, &g_ghost);
+    for (int f = 0; f < kFrames; ++f) {
+        g_bytes[f].assign(N * sizeof(float), 0);
+        auto* px = reinterpret_cast<uint16_t*>(g_bytes[f].data());
+        for (size_t i = 0; i < N; ++i) px[i] = static_cast<uint16_t>(1000 + f * 50 + (i * 37) % 300);
+        g_img[f] = XpeImageBuffer{};
+        g_img[f].data = g_bytes[f].data();
+        g_img[f].width = W; g_img[f].height = H;
+        g_img[f].bitsAllocated = 16; g_img[f].bitsStored = 16;
+        g_img[f].format = XPE_PIXEL_UINT16;
+        // dataSize is the INPUT size, as in every other pipeline test: the temperature stage copies dataSize bytes
+        // into a buffer of width*height uint16, so a larger value would overrun it (QA-A-202b: seen as heap
+        // corruption when this was N floats). The buffer itself has room for N floats.
+        g_img[f].dataSize = N * sizeof(uint16_t);
+        g_meta[f] = XpeImageMetadata{};
+        g_bytes0[f] = g_bytes[f];
+        g_meta0[f] = g_meta[f];
+    }
+    g_digest0 = storeDigest();
+    auto* gh = static_cast<GhostCorrectorHandle*>(g_ghost);
+    g_hist1_0 = gh->hist1;
+    g_hist2_0 = gh->hist2;
+}
+
+/** The reference: what each frame looks like after a clean run. */
+struct Reference { std::vector<uint8_t> bytes[kFrames]; XpeImageMetadata meta[kFrames]; };
+Reference g_ref;
+
+void captureReference(const Call_t& run, int frames, bool withGhost = true) {
+    setup();
+    ASSERT_EQ(XPE_OK, run()) << "control: a clean run of the entry point succeeds";
+    for (int f = 0; f < frames; ++f) {
+        g_ref.bytes[f] = g_bytes[f];
+        g_ref.meta[f] = g_meta[f];
+        EXPECT_NE(g_bytes0[f], g_bytes[f]) << "control: the clean run changed frame " << f;
+        EXPECT_NE(0u, g_meta[f].flags & XPE_FLAG_OFFSET_CORRECTED) << "control: the offset stage ran";
+        EXPECT_NE(0u, g_meta[f].flags & XPE_FLAG_GAIN_CORRECTED) << "control: the gain stage ran";
+        EXPECT_NE(0u, g_meta[f].flags & XPE_FLAG_DEFECT_CORRECTED) << "control: the defect stage ran";
+        if (withGhost) EXPECT_NE(0u, g_meta[f].flags & XPE_FLAG_GHOST_CORRECTED) << "control: the ghost stage ran";
+    }
+}
+
+/**
+ * After a call that returned an error: it is OUT_OF_MEMORY, and what the call was given is as the setup left
+ * it. A frame may instead be wholly processed (a batch carries on past a failed frame), never half.
+ */
+std::string afterError(XpeErrorCode rc, int frames) {
+    if (rc == XPE_OK) return {};
+    if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure must be XPE_ERR_OUT_OF_MEMORY";
+    bool anyProcessed = false;
+    for (int f = 0; f < frames; ++f) {
+        const bool untouched = g_bytes[f] == g_bytes0[f] && sameMeta(g_meta[f], g_meta0[f]);
+        const bool processed = g_bytes[f] == g_ref.bytes[f] && sameMeta(g_meta[f], g_ref.meta[f]);
+        anyProcessed = anyProcessed || processed;
+        if (!untouched && !processed) {
+            char msg[96];
+            std::snprintf(msg, sizeof msg, "frame %d is neither as it was nor fully processed (meta flags %08x, was %08x)",
+                          f, g_meta[f].flags, g_meta0[f].flags);
+            return msg;
+        }
+    }
+    if (storeDigest() != g_digest0) return "the calibration store changed";
+    auto* gh = static_cast<GhostCorrectorHandle*>(g_ghost);
+    if (!anyProcessed && (gh->hist1 != g_hist1_0 || gh->hist2 != g_hist2_0)) return "the ghost history changed";
+    return {};
+}
+
+}  // namespace pipe
+
+class OomPipeline : public ::testing::Test {
+protected:
+    void SetUp() override { resetStore(); xpe_calib_cache_clear(); pipe::writeCalibDir(); }
+    void TearDown() override {
+        if (pipe::g_ghost) xpe_ghost_destroy(pipe::g_ghost);
+        pipe::g_ghost = nullptr;
+        xpe_calib_cache_clear();
+        resetStore();
+        xpe_clear_alerts();
+        xpe_preprocess_shutdown();
+        std::error_code ec;
+        std::filesystem::remove_all("oom_pipe_calib", ec);
+    }
+};
+
+TEST_F(OomPipeline, PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas) {
+    const pipe::Call_t run = [] {
+        return xpe_preprocess_pipeline_ex(&pipe::g_img[0], &pipe::g_meta[0], nullptr, pipe::g_ghost, pipe::kConfig);
+    };
+    pipe::captureReference(run, 1);
+    sweep("xpe_preprocess_pipeline_ex", pipe::setup, run, false,
+          [](XpeErrorCode rc) { return pipe::afterError(rc, 1); });
+}
+
+TEST_F(OomPipeline, PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas) {
+    const pipe::Call_t run = [] {
+        return xpe_preprocess_pipeline(&pipe::g_img[0], &pipe::g_meta[0], "oom_pipe_calib", pipe::g_ghost, pipe::kConfig);
+    };
+    pipe::captureReference(run, 1);
+    sweep("xpe_preprocess_pipeline", pipe::setup, run, false,
+          [](XpeErrorCode rc) { return pipe::afterError(rc, 1); });
+}
+
+TEST_F(OomPipeline, PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched) {
+    const pipe::Call_t run = [] {
+        XpeImageBuffer imgs[pipe::kFrames] = {pipe::g_img[0], pipe::g_img[1]};
+        XpeImageMetadata metas[pipe::kFrames] = {pipe::g_meta[0], pipe::g_meta[1]};
+        // The batch API takes arrays: hand it copies of the descriptors (their data pointers are the
+        // frames' own buffers) and copy the metadata back. No ghost handle: its history makes a frame's
+        // result depend on the frames before it, and a batch carries on past a failed frame.
+        const XpeErrorCode rc = xpe_preprocess_pipeline_batch(imgs, pipe::kFrames, metas, "oom_pipe_calib",
+                                                              nullptr, pipe::kConfig);
+        pipe::g_meta[0] = metas[0];
+        pipe::g_meta[1] = metas[1];
+        return rc;
+    };
+    pipe::captureReference(run, pipe::kFrames, /*withGhost=*/false);
+    sweep("xpe_preprocess_pipeline_batch", pipe::setup, run, false,
+          [](XpeErrorCode rc) { return pipe::afterError(rc, pipe::kFrames); });
 }

@@ -229,3 +229,88 @@ TEST_F(ConfigStrictParse, GhostCreateAcceptsOrdinaryNumbers) {
     ASSERT_NE(nullptr, handle);
     xpe_ghost_destroy(handle);
 }
+
+// ---- the accepted notation: a boundary table (QA-A-202b, Codex #23) -----------------------------------
+//
+// Leading white space and a single leading '+' were accepted by the std::stof / stoi / stod these
+// conversions replaced, so they stay accepted. What does not stay is anything after the number: the whole
+// value must be consumed. The rule, one paragraph: a configuration number is optional leading white space
+// (space, tab, newline, vertical tab, form feed, carriage return), then an optional single '+' that is not
+// followed by another sign, then a decimal number that fills the rest of the value -- an integer for an
+// integer field, a finite number (decimal point and exponent allowed) for a real field; "nan", "inf",
+// hexadecimal, a trailing character (including a trailing space) and an out-of-range value are refused.
+// An empty value is an absent one and keeps the default.
+
+namespace {
+
+struct NumberRow { const char* value; bool accepted; };
+
+const NumberRow kRealRows[] = {
+    {" +25", true},  {"+2", true},   {" 0.5", true}, {"1e2", true},  {"-5.5", true}, {"	3", true},
+    {"25 ", false},  {"+-1", false}, {"++1", false}, {"+ 1", false}, {"nan", false}, {"inf", false},
+    {"-inf", false}, {"1e999", false}, {"0x10", false}, {"1,5", false}, {"1.5.2", false},
+};
+const NumberRow kIntRows[] = {
+    {" +2", true},   {"+2", true},   {" 4", true},   {"-1", true},   {"	2", true},
+    {"1e2", false},  {"2 ", false},  {"+-1", false}, {"++1", false}, {"+ 1", false}, {"2.0", false},
+    {"nan", false},  {"inf", false}, {"99999999999999999999", false}, {"0x4", false}, {"1e", false},
+};
+
+using EntryCall = std::function<XpeErrorCode(const std::string& field, const std::string& value)>;
+
+void runTable(const char* entry, const char* realField, const char* intField, const EntryCall& call) {
+    for (const NumberRow& r : kRealRows) {
+        SCOPED_TRACE(std::string(entry) + " " + realField + " = \"" + r.value + "\"");
+        bool threw = false;
+        const XpeErrorCode rc = callSafely([&] { return call(realField, r.value); }, &threw);
+        EXPECT_FALSE(threw);
+        EXPECT_EQ(r.accepted ? XPE_OK : XPE_ERR_CONFIG_INVALID, rc);
+    }
+    for (const NumberRow& r : kIntRows) {
+        SCOPED_TRACE(std::string(entry) + " " + intField + " = \"" + r.value + "\"");
+        bool threw = false;
+        const XpeErrorCode rc = callSafely([&] { return call(intField, r.value); }, &threw);
+        EXPECT_FALSE(threw);
+        EXPECT_EQ(r.accepted ? XPE_OK : XPE_ERR_CONFIG_INVALID, rc);
+    }
+}
+
+std::string pipelineConfig(const std::string& field, const std::string& value) {
+    return cfg("\"" + field + "\":\"" + value + "\"");
+}
+
+}  // namespace
+
+TEST_F(ConfigStrictParse, TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable) {
+    runTable("pipeline_ex", "detectorTempC", "binningMode", [](const std::string& f, const std::string& v) {
+        std::vector<uint16_t> pixels(N, 1000);
+        XpeImageBuffer img = buf(pixels.data(), XPE_PIXEL_UINT16, 16);
+        XpeImageMetadata meta{};
+        const std::string c = pipelineConfig(f, v);
+        return xpe_preprocess_pipeline_ex(&img, &meta, nullptr, nullptr, c.c_str());
+    });
+    runTable("pipeline", "detectorTempC", "binningMode", [](const std::string& f, const std::string& v) {
+        std::vector<uint16_t> pixels(N, 1000);
+        XpeImageBuffer img = buf(pixels.data(), XPE_PIXEL_UINT16, 16);
+        XpeImageMetadata meta{};
+        const std::string c = pipelineConfig(f, v);
+        return xpe_preprocess_pipeline(&img, &meta, nullptr, nullptr, c.c_str());
+    });
+    runTable("pipeline_batch", "detectorTempC", "binningMode", [](const std::string& f, const std::string& v) {
+        std::vector<uint16_t> pixels(N, 1000);
+        XpeImageBuffer img = buf(pixels.data(), XPE_PIXEL_UINT16, 16);
+        XpeImageMetadata meta{};
+        const std::string c = pipelineConfig(f, v);
+        return xpe_preprocess_pipeline_batch(&img, 1, &meta, nullptr, nullptr, c.c_str());
+    });
+}
+
+TEST_F(ConfigStrictParse, TheAcceptedNotationOfGhostCreateIsFixedByATable) {
+    runTable("xpe_ghost_create", "alpha1", "tier", [](const std::string& f, const std::string& v) {
+        void* handle = nullptr;
+        const std::string c = "{\"" + f + "\":\"" + v + "\"}";
+        const XpeErrorCode rc = xpe_ghost_create(W, H, c.c_str(), &handle);
+        if (rc == XPE_OK) xpe_ghost_destroy(handle);
+        return rc;
+    });
+}

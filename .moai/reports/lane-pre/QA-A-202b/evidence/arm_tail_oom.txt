@@ -1,0 +1,19 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomPipeline.*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from OomPipeline
+[ RUN      ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas
+[sweep] xpe_preprocess_pipeline_ex                    15 allocation points covered
+[       OK ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas (10 ms)
+[ RUN      ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas
+[sweep] xpe_preprocess_pipeline                       32 allocation points covered
+[       OK ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas (15 ms)
+[ RUN      ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched
+[sweep] xpe_preprocess_pipeline_batch                 45 allocation points covered
+[       OK ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched (23 ms)
+[----------] 3 tests from OomPipeline (49 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (49 ms total)
+[  PASSED  ] 3 tests.

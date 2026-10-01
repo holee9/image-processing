@@ -577,8 +577,8 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
  *         XPE_ERR_OUT_OF_MEMORY on allocation failure
  *         XPE_ERR_INVALID_INPUT on NULL handleOut or zero dimensions
  *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration (tier, alpha1, tau1,
- *                  alpha2, tau2, tier2Threshold, nlcscBeta) is not one finite number in range;
- *                  no handle is handed back and nothing is left allocated
+ *                  alpha2, tau2, tier2Threshold, nlcscBeta) is not one finite number in range (notation:
+ *                  see xpe_preprocess_pipeline); no handle is handed back and nothing is left allocated
  *
  * @note SRS-CALIB-NFR-003: one handle may be shared by several threads. Calls to
  *       xpe_ghost_correct() and xpe_ghost_reset() on the same handle are serialised
@@ -767,7 +767,14 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  * @return XPE_OK on success
  *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration (detectorTempC,
  *                  binningMode) is not one finite number in range -- "abc", "1e999", "2x" -- nothing
- *                  is loaded and no image or metadata is touched (the configuration is read first)
+ *                  is loaded and no image or metadata is touched (the configuration is read first).
+ *                  Notation of a configuration number: optional leading white space, an optional single
+ *                  '+' (not followed by another sign), then a decimal number that fills the rest of the
+ *                  value -- an integer for an integer field, a finite number (decimal point and exponent
+ *                  allowed) for a real field. "25 ", "2x", "+-1", "nan", "inf", hexadecimal and
+ *                  out-of-range values are refused; an empty value is an absent one (the default).
+ *         XPE_ERR_OUT_OF_MEMORY if an allocation fails; no exception leaves the function, the image
+ *                  is untouched and the metadata is as it was
  *         XPE_ERR_* on failure
  */
 XPE_API XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
@@ -795,6 +802,7 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
  * @return XPE_OK on success
  *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration (detectorTempC,
  *                  binningMode) is not one finite number in range -- "abc", "1e999", "2x" -- no image or metadata is touched (the configuration is read first)
+ *         XPE_ERR_OUT_OF_MEMORY if an allocation fails (image untouched, metadata as it was)
  *         XPE_ERR_* on failure
  */
 XPE_API XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
@@ -819,7 +827,9 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
  *         XPE_ERR_INVALID_INPUT on null/invalid parameters
  *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration is not one finite
  *                  number in range (see xpe_preprocess_pipeline); no frame is touched
- *         first error code if any individual frame fails
+ *         first error code if any individual frame fails; a frame that runs out of memory is
+ *         XPE_ERR_OUT_OF_MEMORY, is left untouched with its metadata as it was, and the batch
+ *         carries on with the next frame
  */
 XPE_API XpeErrorCode xpe_preprocess_pipeline_batch(
     XpeImageBuffer* images,
