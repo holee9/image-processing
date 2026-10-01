@@ -682,7 +682,9 @@ XPE_API XpeErrorCode xpe_verify_defect(
  *
  * Computes overall SNR improvement between raw and final processed images.
  *
- * SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021 / REQ-P1A-041..047: Pipeline verification
+ * SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021: Pipeline verification. No REQ-P1A- requirement
+ * covers xpe_verify_* (spec.md does not mention them); the REQ-P1A-041..047 this line
+ * used to cite were the pre-bc22093 pipeline-stage requirements, now REQ-P1A-095..101.
  *
  * @param raw_image Original raw image
  * @param final_image Final processed image
