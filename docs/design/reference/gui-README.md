@@ -179,7 +179,8 @@ Unsupported native, DICOM, premium, and AI commands are disabled until their own
 - `gsdfEnabled`
 - `modalityRescaleSlope`
 - `modalityRescaleIntercept`
-- `showDisplayPanel`
+- `showDisplaySettingsPanel` (2026-10-01 이전 키 `showDisplayPanel` 은 무시됩니다)
+- `showCalibrationPanel`
 - `comparisonMode`
 - `comparisonZoomScale`
 - `comparisonPanX`
