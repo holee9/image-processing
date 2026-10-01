@@ -1,0 +1,6 @@
+schema_version: 2 | tags: 29
+record keys: ['body', 'createdBy', 'file', 'kind', 'lastSeenAt', 'line', 'reason']
+BINNING RECORD: {"kind": "NOTE", "file": "D:\\workspace-github\\xpe-pre\\modules\\preprocess\\src\\binning_correct.cpp", "line": 14, "body": "[AUTO] No-op for 1x1 binning mode; valid modes: 1, 2, 4. Scales float32 pixels by 1/mode^2", "createdBy": "scanner", "lastSeenAt": "2026-10-01T18:41:05.3564689+09:00"}
+@MX:SPEC lines in modules/preprocess/src (grep) and whether the value starts with SPEC-:
+starts with SPEC-: 2  | other (REQ-/SRS-/file names): 17
+total @MX:SPEC lines: 19

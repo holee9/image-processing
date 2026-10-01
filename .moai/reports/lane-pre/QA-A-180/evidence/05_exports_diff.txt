@@ -1,0 +1,4 @@
+ordinal + name, before vs after:
+DIFF_EXIT=0 (0 = identical)
+exports before: 48  after: 48
+full lines (incl. RVA/ILT) identical: yes

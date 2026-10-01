@@ -1,0 +1,11 @@
+| source @MX:SPEC value | specRef captured by moai mx scan |
+|---|---|
+| `SPEC-AUTH-001` | `SPEC-AUTH-001` |
+| `SPEC-AUTH-001, SPEC-AUTH-002` | `SPEC-AUTH-001` |
+| `SPEC-XPE-P1A` | `SPEC-XPE-P1A` |
+| `SPEC-XPE-P1A-REQ-P1A-013` | `SPEC-XPE-P1A-REQ-P1A-013` |
+| `SRS-CALIB-FUNC-006-EXT 6a` | `None` |
+| `REQ-P1A-091` | `None` |
+| `REQ-P1A-090, REQ-P1A-091` | `None` |
+| `SPEC-SIMD-001 REQ-SIMD-004` | `SPEC-SIMD-001` |
+| `api-spec.md 6 "Cached loaders"` | `None` |

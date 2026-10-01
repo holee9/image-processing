@@ -1,0 +1,2 @@
+IDENTICAL after comment strip: modules/preprocess/CMakeLists.txt
+control (one injected code-token change) is detected: True
