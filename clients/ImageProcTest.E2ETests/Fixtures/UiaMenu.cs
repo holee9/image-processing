@@ -60,6 +60,39 @@ internal static class UiaMenu
         }
     }
 
+    /// <summary>
+    /// Collapses every menu item AND every combo box that is currently expanded, and returns what it found open
+    /// (control type and automation id). Menus alone are not enough: a drop-down left open by an earlier
+    /// scenario takes the next click outside it as "close me" and the click never reaches what it was aimed at
+    /// (GUI-C-173). The list is the evidence — an empty list says nothing was open.
+    /// </summary>
+    public static IReadOnlyList<string> CollapseEverythingOpen(Window window)
+    {
+        s_open = null;
+        var found = new List<string>();
+        foreach (var type in new[] { FlaUI.Core.Definitions.ControlType.MenuItem, FlaUI.Core.Definitions.ControlType.ComboBox })
+        {
+            foreach (var element in window.FindAllDescendants(cf => cf.ByControlType(type)))
+            {
+                try
+                {
+                    var pattern = element.Patterns.ExpandCollapse.PatternOrDefault;
+                    if (pattern is not null && pattern.ExpandCollapseState.ValueOrDefault == FlaUI.Core.Definitions.ExpandCollapseState.Expanded)
+                    {
+                        found.Add($"{type}:{element.AutomationId}");
+                        pattern.Collapse();
+                    }
+                }
+                catch (Exception)
+                {
+                    // An element that cannot say, or has gone away, is not an open drop-down.
+                }
+            }
+        }
+
+        return found;
+    }
+
     /// <summary>Collapses the menu this helper opened last. Safe to call when nothing is open.</summary>
     public static void Close()
     {
