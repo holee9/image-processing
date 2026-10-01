@@ -24,7 +24,8 @@
             "displayName": "Release",
             "inherits": "default",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
+                "CMAKE_BUILD_TYPE": "Release",
+                "XPE_AI_TEST_HOOKS": "OFF"
             }
         },
         {
