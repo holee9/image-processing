@@ -1,0 +1,94 @@
+Note: Google Test filter = WorkerPathFixture.*:AiConfigWarning.*
+[==========] Running 15 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 10 tests from AiConfigWarning
+[ RUN      ] AiConfigWarning.NullConfigIsSilent
+[2026-10-01 17:10:53.858] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:10:53.859] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiConfigWarning.NullConfigIsSilent (0 ms)
+[ RUN      ] AiConfigWarning.EmptyObjectIsSilent
+[2026-10-01 17:10:53.859] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:10:53.859] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiConfigWarning.EmptyObjectIsSilent (0 ms)
+[ RUN      ] AiConfigWarning.FullyValidConfigIsSilent
+[2026-10-01 17:10:53.859] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:10:53.859] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiConfigWarning.FullyValidConfigIsSilent (0 ms)
+[ RUN      ] AiConfigWarning.UnknownKeyIsReportedByName
+[2026-10-01 17:10:53.859] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:10:53.859] [info] xpe_ai shutdown: worker_pid=%u
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(85):: alert: ai config key 'gpu_memory_limit_mb' is not read by this module and has no effect
+[       OK ] AiConfigWarning.UnknownKeyIsReportedByName (0 ms)
+[ RUN      ] AiConfigWarning.TypoOfAKnownKeyIsReportedByName
+[2026-10-01 17:10:53.859] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:10:53.859] [info] xpe_ai shutdown: worker_pid=%u
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(93):: alert: ai config key 'timout_ms' is not read by this module and has no effect
+[       OK ] AiConfigWarning.TypoOfAKnownKeyIsReportedByName (0 ms)
+[ RUN      ] AiConfigWarning.KnownKeyWithWrongTypeIsReported
+[2026-10-01 17:10:53.859] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:10:53.859] [info] xpe_ai shutdown: worker_pid=%u
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(102):: alert: ai config key 'timeout_ms' has an unexpected type and was ignored
+[       OK ] AiConfigWarning.KnownKeyWithWrongTypeIsReported (0 ms)
+[ RUN      ] AiConfigWarning.MixedConfigNamesOnlyTheUnconsumed
+[2026-10-01 17:10:53.859] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:10:53.859] [info] xpe_ai shutdown: worker_pid=%u
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(113):: alert: ai config key 'nonsense' is not read by this module and has no effect
+[       OK ] AiConfigWarning.MixedConfigNamesOnlyTheUnconsumed (0 ms)
+[ RUN      ] AiConfigWarning.ReturnCodeIsUnchangedForUnknownKeys
+[2026-10-01 17:10:53.859] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:10:53.859] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiConfigWarning.ReturnCodeIsUnchangedForUnknownKeys (0 ms)
+[ RUN      ] AiConfigWarning.UseWorkerWithAWrongTypeIsReported
+[2026-10-01 17:10:53.859] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:10:53.859] [info] xpe_ai shutdown: worker_pid=%u
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(133):: alert: ai config key 'use_worker' has an unexpected type and was ignored
+[       OK ] AiConfigWarning.UseWorkerWithAWrongTypeIsReported (0 ms)
+[ RUN      ] AiConfigWarning.ATypoOfUseWorkerIsReportedByName
+[2026-10-01 17:10:53.859] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:10:53.859] [info] xpe_ai shutdown: worker_pid=%u
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(140):: alert: ai config key 'use_workers' is not read by this module and has no effect
+[       OK ] AiConfigWarning.ATypoOfUseWorkerIsReportedByName (0 ms)
+[----------] 10 tests from AiConfigWarning (0 ms total)
+
+[----------] 5 tests from WorkerPathFixture
+[ RUN      ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert
+[       OK ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert (29 ms)
+[ RUN      ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore
+[2026-10-01 17:10:53.889] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:10:53.925] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 17:10:53.931] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 17:10:53.931] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:10:53.932] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 17:10:53.937] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore (53 ms)
+[ RUN      ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll
+[2026-10-01 17:10:53.942] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:10:53.943] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 17:10:53.943] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 17:10:53.943] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:10:54.025] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll (100 ms)
+[ RUN      ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInProcessResultStands
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(263): Skipped
+full build: the stall test below covers failure on a real worker
+
+[  SKIPPED ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInProcessResultStands (4 ms)
+[ RUN      ] WorkerPathFixture.ASilentWorkerIsReportedReplacedByTheInProcessResultAndTheNextCallRecovers
+[2026-10-01 17:10:54.047] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:10:56.965] [warning] bone_suppress: worker path failed (%d), falling back to in-process
+[2026-10-01 17:10:56.966] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 17:10:57.044] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.ASilentWorkerIsReportedReplacedByTheInProcessResultAndTheNextCallRecovers (3009 ms)
+[----------] 5 tests from WorkerPathFixture (3197 ms total)
+
+[----------] Global test environment tear-down
+[==========] 15 tests from 2 test suites ran. (3198 ms total)
+[  PASSED  ] 14 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInProcessResultStands

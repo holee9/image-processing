@@ -1,0 +1,120 @@
+Note: Google Test filter = WorkerPathFixture.*:AiConfigWarning.*
+[==========] Running 15 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 10 tests from AiConfigWarning
+[ RUN      ] AiConfigWarning.NullConfigIsSilent
+[2026-10-01 17:09:29.295] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:09:29.295] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiConfigWarning.NullConfigIsSilent (0 ms)
+[ RUN      ] AiConfigWarning.EmptyObjectIsSilent
+[2026-10-01 17:09:29.295] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:09:29.295] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiConfigWarning.EmptyObjectIsSilent (0 ms)
+[ RUN      ] AiConfigWarning.FullyValidConfigIsSilent
+[2026-10-01 17:09:29.295] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:09:29.295] [info] xpe_ai shutdown: worker_pid=%u
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(77):: unexpected alert: ai config key 'use_worker' is not read by this module and has no effect
+D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(78): error: Value of: alerts.empty()
+  Actual: false
+Expected: true
+every key here is consumed; a warning would be the first step toward warning fatigue
+
+[  FAILED  ] AiConfigWarning.FullyValidConfigIsSilent (0 ms)
+[ RUN      ] AiConfigWarning.UnknownKeyIsReportedByName
+[2026-10-01 17:09:29.296] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:09:29.296] [info] xpe_ai shutdown: worker_pid=%u
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(85):: alert: ai config key 'gpu_memory_limit_mb' is not read by this module and has no effect
+[       OK ] AiConfigWarning.UnknownKeyIsReportedByName (0 ms)
+[ RUN      ] AiConfigWarning.TypoOfAKnownKeyIsReportedByName
+[2026-10-01 17:09:29.296] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:09:29.296] [info] xpe_ai shutdown: worker_pid=%u
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(93):: alert: ai config key 'timout_ms' is not read by this module and has no effect
+[       OK ] AiConfigWarning.TypoOfAKnownKeyIsReportedByName (0 ms)
+[ RUN      ] AiConfigWarning.KnownKeyWithWrongTypeIsReported
+[2026-10-01 17:09:29.296] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:09:29.296] [info] xpe_ai shutdown: worker_pid=%u
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(102):: alert: ai config key 'timeout_ms' has an unexpected type and was ignored
+[       OK ] AiConfigWarning.KnownKeyWithWrongTypeIsReported (0 ms)
+[ RUN      ] AiConfigWarning.MixedConfigNamesOnlyTheUnconsumed
+[2026-10-01 17:09:29.296] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:09:29.296] [info] xpe_ai shutdown: worker_pid=%u
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(113):: alert: ai config key 'nonsense' is not read by this module and has no effect
+[       OK ] AiConfigWarning.MixedConfigNamesOnlyTheUnconsumed (0 ms)
+[ RUN      ] AiConfigWarning.ReturnCodeIsUnchangedForUnknownKeys
+[2026-10-01 17:09:29.296] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:09:29.296] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] AiConfigWarning.ReturnCodeIsUnchangedForUnknownKeys (0 ms)
+[ RUN      ] AiConfigWarning.UseWorkerWithAWrongTypeIsReported
+[2026-10-01 17:09:29.296] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:09:29.296] [info] xpe_ai shutdown: worker_pid=%u
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(133):: alert: ai config key 'use_worker' is not read by this module and has no effect
+[       OK ] AiConfigWarning.UseWorkerWithAWrongTypeIsReported (0 ms)
+[ RUN      ] AiConfigWarning.ATypoOfUseWorkerIsReportedByName
+[2026-10-01 17:09:29.296] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:09:29.296] [info] xpe_ai shutdown: worker_pid=%u
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(140):: alert: ai config key 'use_workers' is not read by this module and has no effect
+[       OK ] AiConfigWarning.ATypoOfUseWorkerIsReportedByName (0 ms)
+[----------] 10 tests from AiConfigWarning (0 ms total)
+
+[----------] 5 tests from WorkerPathFixture
+[ RUN      ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert
+[       OK ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert (29 ms)
+[ RUN      ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore
+[2026-10-01 17:09:29.325] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:09:29.360] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 17:09:29.366] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 17:09:29.366] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:09:29.366] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 17:09:29.371] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore (50 ms)
+[ RUN      ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll
+[2026-10-01 17:09:29.376] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:09:29.377] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 17:09:29.377] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 17:09:29.377] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:09:29.377] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(249): error: Expected equality of these values:
+  1u
+    Which is: 1
+  workers.size()
+    Which is: 0
+the answer did not come from a worker process
+
+[2026-10-01 17:09:29.382] [info] xpe_ai shutdown: worker_pid=%u
+[  FAILED  ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll (10 ms)
+[ RUN      ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInProcessResultStands
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(263): Skipped
+full build: the stall test below covers failure on a real worker
+
+[  SKIPPED ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInProcessResultStands (4 ms)
+[ RUN      ] WorkerPathFixture.ASilentWorkerIsReportedReplacedByTheInProcessResultAndTheNextCallRecovers
+[2026-10-01 17:09:29.391] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:09:29.391] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(285): error: Expected equality of these values:
+  1u
+    Which is: 1
+  first.size()
+    Which is: 0
+
+[2026-10-01 17:09:29.396] [info] xpe_ai shutdown: worker_pid=%u
+[  FAILED  ] WorkerPathFixture.ASilentWorkerIsReportedReplacedByTheInProcessResultAndTheNextCallRecovers (9 ms)
+[----------] 5 tests from WorkerPathFixture (104 ms total)
+
+[----------] Global test environment tear-down
+[==========] 15 tests from 2 test suites ran. (106 ms total)
+[  PASSED  ] 11 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInProcessResultStands
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] AiConfigWarning.FullyValidConfigIsSilent
+[  FAILED  ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll
+[  FAILED  ] WorkerPathFixture.ASilentWorkerIsReportedReplacedByTheInProcessResultAndTheNextCallRecovers
+
+ 3 FAILED TESTS

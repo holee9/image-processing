@@ -80,6 +80,39 @@ XPE_API const char* xpe_ai_version(void);
  * batch settings, and confidence thresholds. Pass NULL for defaults (CPU EP,
  * 5 s timeout, 0.6 confidence threshold).
  *
+ * The boolean key "use_worker" (default false) routes xpe_bone_suppress through
+ * the worker process (xpe_ai_worker.exe, found in the directory of xpe_ai.dll
+ * and nowhere else). When that path fails -- the time budget ("timeout_ms") is
+ * exceeded, the worker dies or goes silent, or it answers wrongly -- the call
+ * copies the INPUT image to the output unchanged, raises one Warning alert and
+ * returns a non-OK code; it does not re-run the inference in this process
+ * (REQ-AI-003 keeps the model out of the host).
+ *
+ * After 3 CONSECUTIVE failures the worker is switched off for the rest of the
+ * session (until xpe_ai_shutdown): the alert of the 3rd failure says so, its
+ * process is ended, and later calls return the input at once with
+ * XPE_ERR_PROCESSING_FAILED, start no worker and raise no further alert.
+ * A success resets the count, so the limit of 3 alerts applies only to failures
+ * that follow one another: a worker that fails intermittently (fail, fail,
+ * succeed, repeat) is never switched off and raises one alert for EVERY failure.
+ * A full alert queue is SRS-ALERT-007's concern, not this policy's. The
+ * ceiling of 3 and the alert rule are values the user approved on 2026-10-01
+ * (docs/project/REQ-CHANGE-LOG-P3-AI.md rows 2 and 3), not ones the requirements
+ * state. The alert cites REQ-AI-002 and REQ-AI-092; the SRS table has no row for
+ * the failure itself.
+ *
+ * EVERY non-OK result of the worker path counts toward the 3, including an error
+ * reply that a healthy worker sends on purpose because the model refused the
+ * request (a missing or unloadable model, an input length it rejects). A model
+ * that refuses three times in a row means AI is unusable for the session, so a
+ * healthy worker is switched off too; xpe_ai_shutdown() followed by
+ * xpe_ai_init() recovers it.
+ *
+ * Every image the module accepts, up to 4096 x 4096 float32 (64 MiB), travels in one
+ * worker message; the worker path has no size limit of its own, and the contract
+ * above (output = input on failure, also once the worker is switched off) holds for
+ * the largest image exactly as for a small one.
+ *
  * REQ-AI-001: Only xpe_common dependency.
  * REQ-AI-003: Worker process isolation.
  * REQ-AI-006: ONNX Runtime 1.20+ integration.
@@ -268,6 +301,13 @@ XPE_API XpeErrorCode xpe_stitch_estimate_size(const XpeImageBuffer* parts,
  * @return XPE_ERR_PROCESSING_FAILED if inference itself fails, or the model
  *         returns a different number of values than the image has pixels. In a
  *         stub build this is the unconditional outcome once validation passes.
+ *
+ * With "use_worker" set at xpe_ai_init, a failure of the worker path returns
+ * the worker's or the transport's error code (never XPE_OK), raises one Warning
+ * alert and leaves @p softTissueOut equal to @p img byte for byte. Once the
+ * worker has been switched off (3 consecutive failures, see xpe_ai_init) every
+ * call returns XPE_ERR_PROCESSING_FAILED with the same output, without trying
+ * the worker and without an alert.
  *
  * Thread safety: Reentrant. Calls are serialised on the module mutex, so
  * concurrent callers do not race the lazy session load.

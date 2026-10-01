@@ -1,0 +1,4 @@
+# cmake --install build/ci-ai AFTER the install rule; xpe_ai / onnxruntime files under the prefix:
+bin/onnxruntime.dll
+bin/xpe_ai.dll
+bin/xpe_ai_worker.exe

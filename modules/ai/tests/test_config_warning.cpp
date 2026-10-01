@@ -73,7 +73,7 @@ TEST(AiConfigWarning, EmptyObjectIsSilent) {
 TEST(AiConfigWarning, FullyValidConfigIsSilent) {
     const auto alerts = InitAndCollect(
         "{\"execution_provider\": \"cpu\", \"timeout_ms\": 500, "
-        "\"confidence_threshold\": 0.8, \"fallback_mode\": true}");
+        "\"confidence_threshold\": 0.8, \"fallback_mode\": true, \"use_worker\": true}");
     for (const auto& a : alerts) GTEST_LOG_(INFO) << "unexpected alert: " << a;
     EXPECT_TRUE(alerts.empty())
         << "every key here is consumed; a warning would be the first step toward "
@@ -124,4 +124,19 @@ TEST(AiConfigWarning, ReturnCodeIsUnchangedForUnknownKeys) {
         << "the unknown key must warn, not reject";
     xpe_ai_shutdown();
     xpe_clear_alerts();
+}
+
+// QA-B-171C: `use_worker` is a new key. A correct value stays silent (FullyValidConfigIsSilent above
+// now carries it), and a wrong type is reported like every other known key.
+TEST(AiConfigWarning, UseWorkerWithAWrongTypeIsReported) {
+    const auto alerts = InitAndCollect("{\"use_worker\": \"yes\"}");
+    for (const auto& a : alerts) GTEST_LOG_(INFO) << "alert: " << a;
+    EXPECT_TRUE(AnyMentions(alerts, "use_worker"))
+        << "a string where a boolean belongs would silently leave the worker path off";
+}
+
+TEST(AiConfigWarning, ATypoOfUseWorkerIsReportedByName) {
+    const auto alerts = InitAndCollect("{\"use_workers\": true}");
+    for (const auto& a : alerts) GTEST_LOG_(INFO) << "alert: " << a;
+    EXPECT_TRUE(AnyMentions(alerts, "use_workers"));
 }
