@@ -1,0 +1,62 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *Flush*:*CannotBeOpened*:*SameLogFile*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from CommonOom
+[ RUN      ] CommonOom.AFlushThatFailsRefusesTheSwitchAndLeavesThePreviousLogger
+[XPE][INFO ] xpe_init: library initialised
+[*** LOG ERROR #0001 ***] [2026-10-02 01:38:06] [xpe_file] injected flush failure
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_oom_injection.cpp(417): error: Expected equality of these values:
+  -9
+  xpe_log_set_file(kLogB)
+    Which is: 0
+a failed flush is an error of the call
+
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_oom_injection.cpp(418): error: Expected equality of these values:
+  previous.get()
+    Which is: 00000197F87C5F70
+  spdlog::default_logger().get()
+    Which is: 00000197F87C7970
+the default logger is still the previous one
+
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_oom_injection.cpp(419): error: Value of: fileExists(kLogB)
+  Actual: true
+Expected: false
+the replacement was not even built: nothing was created
+
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_oom_injection.cpp(421): error: Expected equality of these values:
+  2u
+    Which is: 2
+  sink->lines.size()
+    Which is: 1
+later lines still go to the previous logger
+
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_oom_injection.cpp(428): error: Expected equality of these values:
+  2u
+    Which is: 2
+  sink->lines.size()
+    Which is: 1
+the previous logger no longer receives lines
+
+[  FAILED  ] CommonOom.AFlushThatFailsRefusesTheSwitchAndLeavesThePreviousLogger (6 ms)
+[ RUN      ] CommonOom.ALogFileThatCannotBeOpenedLeavesThePreviousLogger
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] CommonOom.ALogFileThatCannotBeOpenedLeavesThePreviousLogger (6 ms)
+[ RUN      ] CommonOom.NamingTheSameLogFileAgainKeepsTheLinesAlreadyThere
+[XPE][INFO ] xpe_init: library initialised
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_oom_injection.cpp(106): error: Value of: why.empty()
+  Actual: false
+Expected: true
+xpe_log_set_file (same path again): allocation #4 failed, rc -2: the line written before the call is gone from the file
+
+[  FAILED  ] CommonOom.NamingTheSameLogFileAgainKeepsTheLinesAlreadyThere (19 ms)
+[----------] 3 tests from CommonOom (31 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (32 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] CommonOom.AFlushThatFailsRefusesTheSwitchAndLeavesThePreviousLogger
+[  FAILED  ] CommonOom.NamingTheSameLogFileAgainKeepsTheLinesAlreadyThere
+
+ 2 FAILED TESTS

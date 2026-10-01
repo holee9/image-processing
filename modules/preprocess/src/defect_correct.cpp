@@ -116,7 +116,8 @@ float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
 // @MX:ANCHOR: [AUTO] xpe_defect_correct — public API entry point (new g_calib-based)
 // @MX:REASON: Called after gain correction; reads g_calib.defect_map; fan_in >= 3
 // @MX:SPEC: REQ-P1A-012, REQ-P1A-020
-extern "C" XPE_API XpeErrorCode xpe_defect_correct(
+XpeErrorCode xpe_defect_correct_in(
+    const CalibSnapshot&    calib,
     const XpeImageBuffer*  input,
     XpeImageBuffer*         output,
     const XpeImageMetadata* metadata) try
@@ -165,26 +166,24 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
         if (!identical && !disjoint) return XPE_ERR_INVALID_INPUT;
     }
 
-    std::unique_lock<std::mutex> lock(g_calib_mutex);
     // SPEC-XPE-P1A REQ-P1A-020: while the module is not initialized, every
     // processing function returns XPE_ERR_NOT_INITIALIZED. Checked explicitly --
     // before #117 decision B the missing calibration map stood in for this, which
     // is why the two states could not be told apart.
-    if (!xpe_preprocess_is_initialized()) return XPE_ERR_NOT_INITIALIZED;
+    if (!calib.initialized) return XPE_ERR_NOT_INITIALIZED;
 
     // #117 decision B: the module is initialized -- what is missing is the
     // calibration map. XPE_ERR_NOT_INITIALIZED is reserved for
     // xpe_preprocess_init() not called / after shutdown (SPEC-XPE-P1A
     // REQ-P1A-020), so the caller can tell the two apart.
-    if (!g_calib.defect_map) return XPE_ERR_CALIB_NOT_LOADED;
-    if (g_calib.defect_width  != input->width ||
-        g_calib.defect_height != input->height) return XPE_ERR_INVALID_INPUT;
+    if (!calib.defect_map) return XPE_ERR_CALIB_NOT_LOADED;
+    if (calib.defect_width  != input->width ||
+        calib.defect_height != input->height) return XPE_ERR_INVALID_INPUT;
 
-    // QA-A-202 (#233): take shared ownership of the map and release the mutex before the heavy work. The
-    // old code copied the whole map (9.4 MB at 3072x3072) while holding the lock; a reload during the
-    // frame now replaces the pointer in the store and leaves this frame the map it started with.
-    const std::shared_ptr<uint8_t[]> dm_local = g_calib.defect_map;
-    lock.unlock();
+    // QA-A-202 (#233): shared ownership of the map, no copy of it (9.4 MB at 3072x3072). QA-A-202d (Codex #32):
+    // it comes from `calib`, the snapshot the caller took, so a reload during the frame -- or between two
+    // stages of it -- leaves this call the map the frame started with.
+    const std::shared_ptr<uint8_t[]>& dm_local = calib.defect_map;
 
     const uint32_t W  = input->width;
     const uint32_t H  = input->height;
@@ -285,3 +284,23 @@ catch (const std::bad_alloc&) {
 
 // Runtime detection implementation moved to runtime_detection.cpp (REQ-P1A-013)
 // Uses Hampel 5-sigma outlier detection instead of mean+3sigma
+
+extern "C" XPE_API XpeErrorCode xpe_defect_correct(
+    const XpeImageBuffer*  input,
+    XpeImageBuffer*         output,
+    const XpeImageMetadata* metadata)
+{
+    // A single-stage call uses the maps current when it is called: a snapshot of its own, taken here
+    // (QA-A-202d). The set consistency across the stages of a frame is the pipeline's.
+    //
+    // The try region is not decoration: under /EHsc a C-linkage function with no try region has no unwind
+    // information, so if xpe_defect_correct_in threw, the snapshot temporary (shared_ptr members) would not be
+    // destroyed and the maps it holds would leak. xpe_defect_correct_in has C++ linkage, so this handler is kept.
+    try {
+        return xpe_defect_correct_in(xpe_calib_snapshot(), input, output, metadata);
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+}

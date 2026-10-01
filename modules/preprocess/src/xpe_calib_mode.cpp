@@ -21,6 +21,7 @@
 #include <cstring>
 #include <string>
 #include <chrono>
+#include <mutex>
 
 /* =============================================================================
  * Internal State
@@ -32,12 +33,7 @@ namespace {
 // Per Schmidgunst 2007 industry standard
 XpeCalibrationMode g_calib_mode = XPE_CALIB_MULTI_POINT_8;
 
-// Quality metadata from last calibration
-XpeCalibQualityMeta g_quality_meta = []{
-    XpeCalibQualityMeta m{};
-    m.previous_r_squared = -1.0;
-    return m;
-}();
+// (The quality metadata of the last calibration is g_calib.quality_meta -- in the store, under g_calib_mutex.)
 
 // R² quality gate threshold (0.999 = 99.9% fit quality required)
 
@@ -46,18 +42,17 @@ XpeCalibQualityMeta g_quality_meta = []{
 }  // namespace
 
 /**
- * Restores the two module globals this file owns to their start-up values.
+ * Restores the module global this file owns to its start-up value.
  *
  * QA-A-120 (#176), lead decision: xpe_preprocess_shutdown() clears ALL module
- * globals. It used to clear g_calib only and leave these two, which made the
- * name a lie -- a caller reads "shutdown" and gets two thirds of one. They live
- * in an anonymous namespace here, so the lifecycle code cannot reach them
- * directly and calls this instead.
+ * globals. It used to clear g_calib only and leave the calibration mode and the
+ * quality metadata, which made the name a lie. The mode lives in an anonymous
+ * namespace here, so the lifecycle code cannot reach it directly and calls this
+ * instead. The quality metadata is part of g_calib now (QA-A-202d) and is cleared
+ * with it; this runs while shutdown holds g_calib_mutex, so it must not take it.
  */
 void xpe_calib_mode_reset_globals() noexcept {
     g_calib_mode = XPE_CALIB_MULTI_POINT_8;   // the FUNC-031 (7) default
-    g_quality_meta = XpeCalibQualityMeta{};
-    g_quality_meta.previous_r_squared = -1.0; // "no previous fit", as at start-up
 }
 
 namespace {
@@ -209,8 +204,10 @@ XpeErrorCode xpe_calib_get_quality_meta(XpeCalibQualityMeta* meta) {
         return XPE_ERR_INVALID_INPUT;
     }
 
-    // Copy current metadata to output
-    std::memcpy(meta, &g_quality_meta, sizeof(XpeCalibQualityMeta));
+    // Copy current metadata to output, under the lock the maps are moved under (QA-A-202d): the record is
+    // never read half-way through a replacement, and never beside maps it does not belong to.
+    std::lock_guard<std::mutex> lock(g_calib_mutex);
+    std::memcpy(meta, &g_calib.quality_meta, sizeof(XpeCalibQualityMeta));
     return XPE_OK;
 }
 
@@ -252,21 +249,23 @@ uint32_t xpe_calib_get_poly_degree(void) {
 
 bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept
 {
-    const double previous = g_quality_meta.r_squared;
+    std::lock_guard<std::mutex> lock(g_calib_mutex);
+    XpeCalibQualityMeta& qm = g_calib.quality_meta;
+    const double previous = qm.r_squared;
 
-    g_quality_meta = meta;
+    qm = meta;
     // calibration_mode is the mode the generator resolved (never AUTO); the
     // caller sets it from xpe_calib_resolve_mode (#169).
-    g_quality_meta.previous_r_squared =
-        (g_quality_meta.calibration_timestamp == 0 && previous == 0.0) ? -1.0 : previous;
+    qm.previous_r_squared =
+        (qm.calibration_timestamp == 0 && previous == 0.0) ? -1.0 : previous;
 
     using namespace std::chrono;
-    g_quality_meta.calibration_timestamp = static_cast<uint64_t>(
+    qm.calibration_timestamp = static_cast<uint64_t>(
         duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
 
     // FUNC-033 (2): the gate is R2 >= 0.999 (SRS-CALIB-001 SRS-CALIB-FUNC-033).
-    const bool passed = (g_quality_meta.r_squared >= XPE_CALIB_R_SQUARED_GATE);
-    g_quality_meta.calibration_pass = passed ? 1u : 0u;
+    const bool passed = (qm.r_squared >= XPE_CALIB_R_SQUARED_GATE);
+    qm.calibration_pass = passed ? 1u : 0u;
     return passed;
 }
 
@@ -327,11 +326,18 @@ XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, XpeCalibQ
     return XPE_OK;
 }
 
+void xpe_calib_commit_quality_meta_locked(const XpeCalibQualityMeta& parsed) noexcept
+{
+    XpeCalibQualityMeta& qm = g_calib.quality_meta;
+    const double previous = qm.r_squared;
+    qm = parsed;
+    qm.previous_r_squared = previous;
+}
+
 void xpe_calib_commit_quality_meta(const XpeCalibQualityMeta& parsed) noexcept
 {
-    const double previous = g_quality_meta.r_squared;
-    g_quality_meta = parsed;
-    g_quality_meta.previous_r_squared = previous;
+    std::lock_guard<std::mutex> lock(g_calib_mutex);
+    xpe_calib_commit_quality_meta_locked(parsed);
 }
 
 /* =============================================================================

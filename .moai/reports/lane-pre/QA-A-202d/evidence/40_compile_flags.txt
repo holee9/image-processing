@@ -1,0 +1,16 @@
+modules/common/CMakeFiles/xpe_common.dir/src/xpe_common.cpp.obj
+    /EHsc /Zi /O2 /Ob1 /arch:AVX2 /W4 /WX
+modules/common/CMakeFiles/xpe_common.dir/src/xpe_logging.cpp.obj
+    /EHsc /Zi /O2 /Ob1 /arch:AVX2 /W4 /WX
+ules/common/CMakeFiles/xpe_common_oom_tests.dir/src/xpe_common.cpp.obj
+    /EHsc /Zi /O2 /Ob1 /arch:AVX2 /W4 /WX
+les/common/CMakeFiles/xpe_common_oom_tests.dir/src/xpe_logging.cpp.obj
+    /EHsc /Zi /O2 /Ob1 /arch:AVX2 /W4 /WX
+modules/preprocess/CMakeFiles/xpe_preprocess.dir/src/pipeline.cpp.obj
+    /EHsc /Zi /O2 /Ob1 /arch:AVX2 /W4 /WX
+es/preprocess/CMakeFiles/xpe_preprocess.dir/src/xpe_calib_mode.cpp.obj
+    /EHsc /Zi /O2 /Ob1 /arch:AVX2 /W4 /WX
+reprocess/CMakeFiles/xpe_preprocess_oom_tests.dir/src/pipeline.cpp.obj
+    /EHsc /Zi /O2 /Ob1 /arch:AVX2 /W4 /WX
+ess/CMakeFiles/xpe_preprocess_oom_tests.dir/src/xpe_calib_mode.cpp.obj
+    /EHsc /Zi /O2 /Ob1 /arch:AVX2 /W4 /WX

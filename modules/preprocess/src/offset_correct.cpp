@@ -144,7 +144,8 @@ void offset_correct_float_avx2(const uint16_t* src, const float* off, uint16_t* 
 // @MX:ANCHOR: [AUTO] xpe_offset_correct — public API entry point (new g_calib-based)
 // @MX:REASON: Called by pipeline; reads g_calib.offset_map (float32); fan_in >= 3
 // @MX:SPEC: REQ-P1A-010, REQ-P1A-020
-extern "C" XPE_API XpeErrorCode xpe_offset_correct(
+XpeErrorCode xpe_offset_correct_in(
+    const CalibSnapshot&    calib,
     const XpeImageBuffer*  input,
     XpeImageBuffer*         output,
     const XpeImageMetadata* metadata) try
@@ -169,29 +170,20 @@ extern "C" XPE_API XpeErrorCode xpe_offset_correct(
 
     const uint16_t* src = static_cast<const uint16_t*>(input->data);
     uint16_t* dst = static_cast<uint16_t*>(output->data);
-    // QA-A-202 (#233): shared ownership of the map, taken under the lock; the lock is held for a pointer
-    // copy, not for a copy of the map (37.7 MB at 3072x3072, once per frame, with every other calibration
-    // call waiting behind it). The kernel below reads the map in place.
-    std::shared_ptr<float[]> offmap;
-
-    {
-        std::lock_guard<std::mutex> lock(g_calib_mutex);
-        // SPEC-XPE-P1A REQ-P1A-020: while the module is not initialized, every
-        // processing function returns XPE_ERR_NOT_INITIALIZED. Checked explicitly --
-        // before #117 decision B the missing calibration map stood in for this, which
-        // is why the two states could not be told apart.
-        if (!xpe_preprocess_is_initialized()) return XPE_ERR_NOT_INITIALIZED;
-
-        // #117 decision B: the module is initialized -- what is missing is the
-        // calibration map. XPE_ERR_NOT_INITIALIZED is reserved for
-        // xpe_preprocess_init() not called / after shutdown (SPEC-XPE-P1A
-        // REQ-P1A-020), so the caller can tell the two apart.
-        if (!g_calib.offset_map) return XPE_ERR_CALIB_NOT_LOADED;
-        if (g_calib.offset_width  != input->width ||
-            g_calib.offset_height != input->height) return XPE_ERR_INVALID_INPUT;
-
-        offmap = g_calib.offset_map;
-    }
+    // QA-A-202 (#233): the kernel reads the map in place, through shared ownership -- no copy of the map
+    // (37.7 MB at 3072x3072) per frame. QA-A-202d (Codex #32): the map, its dimensions and the module's
+    // initialized state come from `calib`, the snapshot the caller took -- for the pipeline one snapshot
+    // serves every stage of the frame -- so a load that lands meanwhile cannot change what this call reads.
+    //
+    // SPEC-XPE-P1A REQ-P1A-020: while the module is not initialized, every processing function returns
+    // XPE_ERR_NOT_INITIALIZED. Checked explicitly -- before #117 decision B the missing calibration map stood
+    // in for this, which is why the two states could not be told apart. #117 decision B: the module is
+    // initialized -- what is missing is the calibration map (XPE_ERR_CALIB_NOT_LOADED).
+    if (!calib.initialized) return XPE_ERR_NOT_INITIALIZED;
+    if (!calib.offset_map) return XPE_ERR_CALIB_NOT_LOADED;
+    if (calib.offset_width  != input->width ||
+        calib.offset_height != input->height) return XPE_ERR_INVALID_INPUT;
+    const std::shared_ptr<float[]>& offmap = calib.offset_map;
 
     // One path per platform, chosen at compile time. The two arms of the old
     // #if defined(__aarch64__) split called the same function, so the split said
@@ -214,4 +206,24 @@ catch (const std::bad_alloc&) {
     return XPE_ERR_OUT_OF_MEMORY;
 } catch (...) {
     return XPE_ERR_PROCESSING_FAILED;
+}
+
+extern "C" XPE_API XpeErrorCode xpe_offset_correct(
+    const XpeImageBuffer*  input,
+    XpeImageBuffer*         output,
+    const XpeImageMetadata* metadata)
+{
+    // A single-stage call uses the maps current when it is called: a snapshot of its own, taken here
+    // (QA-A-202d). The set consistency across the stages of a frame is the pipeline's.
+    //
+    // The try region is not decoration: under /EHsc a C-linkage function with no try region has no unwind
+    // information, so if xpe_offset_correct_in threw, the snapshot temporary (shared_ptr members) would not be
+    // destroyed and the maps it holds would leak. xpe_offset_correct_in has C++ linkage, so this handler is kept.
+    try {
+        return xpe_offset_correct_in(xpe_calib_snapshot(), input, output, metadata);
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
 }

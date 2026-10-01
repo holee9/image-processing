@@ -500,10 +500,13 @@ void install_offset(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
 }
 
 void install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
-                  int64_t timestamp, const char* sessionId64)
+                  int64_t timestamp, const char* sessionId64, const XpeCalibQualityMeta* quality)
 {
+    // The store holds the map as a shared_ptr; the control block is allocated here, before the lock, so a
+    // failure to allocate it leaves the store untouched.
+    std::shared_ptr<float[]> shared(std::move(map));
     std::lock_guard<std::mutex> lock(g_calib_mutex);
-    g_calib.gain_map = std::move(map);
+    g_calib.gain_map = std::move(shared);
     g_calib.gain_poly_coeffs.reset();
     g_calib.gain_poly_num_coeffs = 0;
     g_calib.gain_poly_has_range  = false;
@@ -513,6 +516,9 @@ void install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
     g_calib.gain_height    = d.height;
     g_calib.gain_timestamp = timestamp;
     copy_session(g_calib.gain_session_id, sessionId64);
+    // The quality metadata a load makes current: made current again with the map, in the same critical
+    // section (nothrow). A hit with no metadata leaves the record as it was.
+    if (quality) xpe_calib_commit_quality_meta_locked(*quality);
 }
 
 void install_defect(std::unique_ptr<uint8_t[]> map, const XpeImageBuffer& d)
@@ -630,9 +636,8 @@ try
         if (state == HitState::Unreadable) return XPE_ERR_IO_FAILED;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
         if (state == HitState::Hit) {
-            install_gain(std::move(pixels), view, meta.timestamp, meta.sessionId);
-            // The quality metadata a load makes current: made current again, the same way (nothrow).
-            if (meta.hasQuality) xpe_calib_commit_quality_meta(meta.quality);
+            install_gain(std::move(pixels), view, meta.timestamp, meta.sessionId,
+                         meta.hasQuality ? &meta.quality : nullptr);
             std::memcpy(gainMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;
         }

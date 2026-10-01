@@ -1238,3 +1238,208 @@ TEST_F(OomPipeline, AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibration
         EXPECT_TRUE(*seenB) << entry.first << ": control: some failing allocation lands after the set was committed";
     }
 }
+
+/* =========================================================================
+ * Quality metadata and the calibration set a frame is processed with (QA-A-202d, Codex #32 A1 / A2)
+ * ========================================================================= */
+
+// The three maps and the gain quality metadata move to the store together, so a reader that looks at the
+// quality the moment the maps are in sees the new set's. The quality used to be updated AFTER g_calib_mutex was
+// released, in its own global that no lock guarded: between the two, the new maps and the old quality coexisted,
+// and a concurrent reader raced the writer. A frame likewise read the three maps one stage at a time, each stage
+// taking the lock afresh, so a set loaded between two stages gave one frame an offset from A and a gain from B.
+
+namespace qmeta {
+
+struct Seen { bool fired{false}; XpeCalibQualityMeta q{}; XpeErrorCode rc{XPE_OK}; };
+Seen g_seen;
+
+void observe() {
+    g_seen.fired = true;
+    g_seen.rc = xpe_calib_get_quality_meta(&g_seen.q);
+}
+
+struct HookGuard {
+    explicit HookGuard(void (*h)()) { xpe_calib_after_set_commit_hook = h; }
+    ~HookGuard() { xpe_calib_after_set_commit_hook = nullptr; }
+};
+
+}  // namespace qmeta
+
+TEST_F(OomPipeline, TheQualityMetadataIsCurrentTheMomentTheMapsAre) {
+    calibset::writeSetB();
+    for (const auto& e : calibset::byDirectory()) {
+        SCOPED_TRACE(e.first);
+        pipe::setup();
+        {
+            XpeCalibQualityMeta before{};
+            ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&before));
+            ASSERT_NE(0.97, before.r_squared) << "control: set A's store does not already hold set B's quality";
+        }
+        qmeta::g_seen = qmeta::Seen{};
+        {
+            qmeta::HookGuard guard(&qmeta::observe);
+            ASSERT_EQ(XPE_OK, e.second());
+        }
+        ASSERT_TRUE(qmeta::g_seen.fired) << "control: the observation point was reached";
+        ASSERT_EQ(XPE_OK, qmeta::g_seen.rc);
+        // What the hook saw is what the gain file of set B says: written the moment the maps were.
+        EXPECT_DOUBLE_EQ(0.97, qmeta::g_seen.q.r_squared) << "the maps are set B's; the quality read beside them must be too";
+        EXPECT_EQ(2u, qmeta::g_seen.q.polynomial_degree);
+        EXPECT_EQ(4u, qmeta::g_seen.q.num_points);
+        EXPECT_EQ(3u, qmeta::g_seen.q.calibration_mode);
+    }
+}
+
+// Help, not proof: the deterministic test above is the evidence. A reader that runs while the store is replaced
+// over and over must see one gain file's quality or the other's -- never fields of both.
+TEST_F(OomPipeline, AQualityReadWhileTheStoreIsBeingReplacedSeesOneFilesFields) {
+    std::filesystem::create_directories("oom_pipe_calibB");
+    writeGain("oom_pipe_calibB/q1.xcal", 2.0f,
+              "{\"fit_r_squared\":\"0.91\",\"polynomial_degree\":\"1\",\"actual_dose_levels\":\"3\",\"calibration_mode\":\"2\"}");
+    writeGain("oom_pipe_calibB/q2.xcal", 4.0f,
+              "{\"fit_r_squared\":\"0.97\",\"polynomial_degree\":\"2\",\"actual_dose_levels\":\"4\",\"calibration_mode\":\"3\"}");
+    pipe::setup();
+    std::atomic<bool> stop{false};
+    std::atomic<long> torn{0}, reads{0};
+    std::thread reader([&] {
+        while (!stop.load()) {
+            XpeCalibQualityMeta q{};
+            xpe_calib_get_quality_meta(&q);
+            const bool one = (q.r_squared == 0.91 && q.polynomial_degree == 1 && q.num_points == 3 && q.calibration_mode == 2);
+            const bool two = (q.r_squared == 0.97 && q.polynomial_degree == 2 && q.num_points == 4 && q.calibration_mode == 3);
+            const bool none = (q.r_squared == 0.0 && q.polynomial_degree == 0 && q.num_points == 0 && q.calibration_mode == 0);
+            if (!one && !two && !none) torn.fetch_add(1);
+            reads.fetch_add(1);
+        }
+    });
+    for (int i = 0; i < 300; ++i) {
+        xpe_calib_load_gain((i % 2 == 0) ? "oom_pipe_calibB/q1.xcal" : "oom_pipe_calibB/q2.xcal");
+    }
+    stop.store(true);
+    reader.join();
+    EXPECT_GT(reads.load(), 0L) << "control: the reader read";
+    EXPECT_EQ(0L, torn.load()) << "a read returned fields that belong to no single gain file";
+}
+
+namespace snapshot {
+
+int g_fired = 0;   // times the hook was called (a batch of two frames calls it twice)
+int g_loads = 0;   // times set B was loaded by the hook: once, after the first frame's offset stage
+bool g_armed = false;
+
+void loadSetB() {
+    ++g_loads;
+    xpe_calib_load_offset("oom_pipe_calibB/offset.xcal");
+    xpe_calib_load_gain("oom_pipe_calibB/gain.xcal");
+    xpe_calib_load_defect_map("oom_pipe_calibB/defect.xcal");
+}
+
+void hook(int stage) {
+    if (stage == 2 && g_armed && g_fired++ == 0) loadSetB();
+}
+
+struct HookGuard {
+    HookGuard() { g_fired = 0; g_loads = 0; g_armed = true; xpe_pipeline_after_stage_hook = &hook; }
+    ~HookGuard() { xpe_pipeline_after_stage_hook = nullptr; g_armed = false; }
+};
+
+using Entry = std::pair<const char*, std::function<XpeErrorCode(int frames)>>;
+
+/** The entry points, each handed `frames` frames of the fixture and no ghost handle (a ghost's history would
+ *  make a second frame depend on the first). Set A is in the store (or on disk, for the directory forms). */
+std::vector<Entry> entries() {
+    return {
+        {"xpe_preprocess_pipeline_ex",
+         [](int) { return xpe_preprocess_pipeline_ex(&pipe::g_img[0], &pipe::g_meta[0], nullptr, nullptr, pipe::kConfig); }},
+        {"xpe_preprocess_pipeline",
+         [](int) { return xpe_preprocess_pipeline(&pipe::g_img[0], &pipe::g_meta[0], "oom_pipe_calib", nullptr, pipe::kConfig); }},
+        {"xpe_preprocess_pipeline_batch",
+         [](int frames) {
+             return xpe_preprocess_pipeline_batch(pipe::g_img, static_cast<uint32_t>(frames), pipe::g_meta,
+                                                  "oom_pipe_calib", nullptr, pipe::kConfig);
+         }},
+    };
+}
+
+}  // namespace snapshot
+
+TEST_F(OomPipeline, AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedMidFrame) {
+    calibset::writeSetB();
+    for (const auto& e : snapshot::entries()) {
+        SCOPED_TRACE(e.first);
+        const int frames = (std::string(e.first) == "xpe_preprocess_pipeline_batch") ? pipe::kFrames : 1;
+
+        // Reference 1: set A alone.
+        pipe::setup();
+        ASSERT_EQ(XPE_OK, e.second(frames));
+        std::vector<uint8_t> onlyA[pipe::kFrames];
+        for (int f = 0; f < frames; ++f) onlyA[f] = pipe::g_bytes[f];
+
+        // Reference 2 (control): set B alone must give a different frame, or "the same as set A" says nothing.
+        pipe::setup();
+        snapshot::loadSetB();
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_ex(&pipe::g_img[0], &pipe::g_meta[0], nullptr, nullptr, pipe::kConfig));
+        ASSERT_NE(onlyA[0], pipe::g_bytes[0]) << "control: the two sets give different frames";
+
+        // The run under test: set A is current when the frame starts; set B is loaded right after its offset stage.
+        pipe::setup();
+        {
+            snapshot::HookGuard guard;
+            ASSERT_EQ(XPE_OK, e.second(frames));
+            ASSERT_GE(snapshot::g_fired, 1) << "control: the observation point was reached";
+            ASSERT_EQ(1, snapshot::g_loads) << "control: set B was loaded in the middle of the frame";
+        }
+        for (int f = 0; f < frames; ++f) {
+            EXPECT_EQ(onlyA[f], pipe::g_bytes[f])
+                << "frame " << f << " is not what set A alone gives: it read the set that was loaded mid-frame";
+        }
+    }
+}
+
+// The reader's side of the lock. The commit holds g_calib_mutex while it moves the maps and the quality; a quality
+// read that does not take the mutex could return in the middle of that. A reader is started from inside the
+// critical section: it must still be waiting after a generous pause (it cannot have finished, the mutex is held),
+// and once the section ends it must read the new set's quality. A reader that skips the lock finishes at once.
+namespace readerlock {
+
+std::atomic<bool> g_started{false};
+std::atomic<bool> g_done{false};
+XpeCalibQualityMeta g_q{};
+std::thread g_reader;
+bool g_stillWaiting = false;
+
+void hook() {
+    g_started.store(false);
+    g_done.store(false);
+    g_reader = std::thread([] {
+        g_started.store(true);
+        xpe_calib_get_quality_meta(&g_q);
+        g_done.store(true);
+    });
+    while (!g_started.load()) std::this_thread::yield();
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    g_stillWaiting = !g_done.load();
+}
+
+struct HookGuard {
+    HookGuard() { xpe_calib_in_set_commit_hook = &hook; }
+    ~HookGuard() { xpe_calib_in_set_commit_hook = nullptr; }
+};
+
+}  // namespace readerlock
+
+TEST_F(OomPipeline, AQualityReadStartedInsideTheCommitWaitsForItAndSeesTheNewSet) {
+    calibset::writeSetB();
+    pipe::setup();
+    readerlock::g_stillWaiting = false;
+    {
+        readerlock::HookGuard guard;
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_batch(pipe::g_img, 1, pipe::g_meta, calibset::kDirB, nullptr, pipe::kConfig));
+    }
+    ASSERT_TRUE(readerlock::g_reader.joinable()) << "control: the observation point was reached";
+    readerlock::g_reader.join();
+    EXPECT_TRUE(readerlock::g_stillWaiting) << "the reader finished while the commit still held the lock";
+    EXPECT_DOUBLE_EQ(0.97, readerlock::g_q.r_squared) << "after the section ended the reader saw set B's quality";
+    EXPECT_EQ(2u, readerlock::g_q.polynomial_degree);
+}

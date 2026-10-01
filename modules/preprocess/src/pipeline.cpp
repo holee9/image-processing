@@ -26,6 +26,12 @@
  * REQ-P1A-095 to REQ-P1A-101
  * ========================================================================= */
 
+#ifdef XPE_CACHE_TEST_HOOKS
+void (*xpe_calib_after_set_commit_hook)() = nullptr;
+void (*xpe_calib_in_set_commit_hook)() = nullptr;
+void (*xpe_pipeline_after_stage_hook)(int) = nullptr;
+#endif
+
 namespace {
     // Pipeline configuration from JSON
     struct PipelineConfig {
@@ -131,13 +137,17 @@ namespace {
      * @param meta        [in/out] Metadata
      * @param ghostHandle [in]     Ghost corrector handle
      * @param cfg         [in]     Pipeline configuration
+     * @param calib       [in]     The calibration set this frame is processed with: every stage that reads a
+     *                             map reads it from here, never from g_calib, so a set loaded while the frame
+     *                             runs does not reach it (QA-A-202d, Codex #32 A2)
      * @return XPE_OK or error code
      */
     XpeErrorCode pipeline_core(
         const XpeImageBuffer* img,
         XpeImageMetadata* meta,
         void* ghostHandle,
-        const PipelineConfig& cfg)
+        const PipelineConfig& cfg,
+        const CalibSnapshot& calib)
     {
         if (!img || !img->data) return XPE_ERR_INVALID_INPUT;
 
@@ -205,11 +215,14 @@ namespace {
             stage2.dataSize = stage2Data.size() * sizeof(uint16_t);
 
             // Use new 3-arg API: xpe_offset_correct(input, output, metadata)
-            result = xpe_offset_correct(&stage1, &stage2, meta);
+            result = xpe_offset_correct_in(calib, &stage1, &stage2, meta);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_OFFSET_CORRECTED;
         }
+#ifdef XPE_CACHE_TEST_HOOKS
+        if (xpe_pipeline_after_stage_hook) xpe_pipeline_after_stage_hook(2);
+#endif
 
         // Stage 3: Nonlinearity Correction (PRE-08) - uint16 in/out
         XpeImageBuffer stage3 = stage2;
@@ -253,7 +266,7 @@ namespace {
 
             // Use new 3-arg API: xpe_gain_correct(input, output, metadata)
             // This performs UINT16 → FLOAT32 domain transition
-            result = xpe_gain_correct(&stage3, &stage4, meta);
+            result = xpe_gain_correct_in(calib, &stage3, &stage4, meta);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_GAIN_CORRECTED;
@@ -301,12 +314,7 @@ namespace {
         // that was never defect-corrected (SRS-ALERT-001). Skipping is only ever
         // the result of the explicit bypass flag.
         if (!cfg.bypassDefect) {
-            bool defectAvailable = false;
-            {
-                std::lock_guard<std::mutex> calibLock(g_calib_mutex);
-                defectAvailable = (g_calib.defect_map != nullptr);
-            }
-            if (!defectAvailable) return XPE_ERR_CALIB_NOT_LOADED;
+            if (!calib.defect_map) return XPE_ERR_CALIB_NOT_LOADED;
         }
 
         if (!cfg.bypassDefect) {
@@ -323,7 +331,7 @@ namespace {
             // meta, not nullptr: xpe_defect_correct rejects a null metadata
             // pointer. This stage never ran before the gate was fixed above, so
             // the malformed call had never been reached.
-            result = xpe_defect_correct(&stage5, &stage6, meta);
+            result = xpe_defect_correct_in(calib, &stage5, &stage6, meta);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_DEFECT_CORRECTED;
@@ -381,8 +389,12 @@ namespace {
  * an expired one, a wrong type, a malformed quality field, an allocation failure -- leaves the calibration
  * store, the quality metadata and the alerts exactly as the call found them. The three individual loaders
  * (xpe_calib_load_offset / _gain / _defect_map) are unchanged: each is its own stage + commit.
+ *
+ * On success `*snapshot` is the snapshot of the set just committed, taken in the same critical section
+ * (QA-A-202d, Codex #32 A2): the frame, or the batch, is processed with exactly the set this call loaded, even
+ * if another thread loads a different one a moment later.
  */
-static XpeErrorCode load_calibration_set(const char* calibPath)
+static XpeErrorCode load_calibration_set(const char* calibPath, CalibSnapshot* snapshot)
 {
     char offsetPath[512] = {0};
     char gainPath[512] = {0};
@@ -406,7 +418,14 @@ static XpeErrorCode load_calibration_set(const char* calibPath)
         xpe_calib_commit_offset_locked(offset);
         xpe_calib_commit_gain_locked(gain);
         xpe_calib_commit_defect_locked(defect);
+        *snapshot = xpe_calib_snapshot_locked();
+#ifdef XPE_CACHE_TEST_HOOKS
+        if (xpe_calib_in_set_commit_hook) xpe_calib_in_set_commit_hook();
+#endif
     }
+#ifdef XPE_CACHE_TEST_HOOKS
+    if (xpe_calib_after_set_commit_hook) xpe_calib_after_set_commit_hook();
+#endif
     xpe_calib_after_gain_commit(gain);
     return XPE_OK;
 }
@@ -433,14 +452,17 @@ static XpeErrorCode pipeline_impl(XpeImageBuffer* img,
     const XpeErrorCode cfgRc = PipelineConfig::fromJson(configJsonOrNull, &cfg);
     if (cfgRc != XPE_OK) return cfgRc;
 
-    // Load the calibration set (all three files, or none -- see load_calibration_set)
+    // Load the calibration set (all three files, or none -- see load_calibration_set); the frame is processed
+    // with the set just loaded. With no path, with the set that is current as the frame starts.
+    CalibSnapshot calib;
     if (calibPath) {
-        const XpeErrorCode loadRc = load_calibration_set(calibPath);
+        const XpeErrorCode loadRc = load_calibration_set(calibPath, &calib);
         if (loadRc != XPE_OK) return loadRc;
+    } else {
+        calib = xpe_calib_snapshot();
     }
 
-    // Execute pipeline core (g_calib is now populated)
-    return pipeline_core(img, meta, ghostHandle, cfg);
+    return pipeline_core(img, meta, ghostHandle, cfg, calib);
 }
 
 /* =========================================================================
@@ -526,7 +548,8 @@ static XpeErrorCode pipeline_ex_impl(XpeImageBuffer* img,
     // contract (#117 decision B). Every stage reads g_calib.
     (void)calibState;
 
-    return pipeline_core(img, meta, ghostHandle, cfg);
+    // The frame is processed with the set that is current as it starts (one snapshot, every stage).
+    return pipeline_core(img, meta, ghostHandle, cfg, xpe_calib_snapshot());
 }
 
 /* =========================================================================
@@ -551,10 +574,15 @@ static XpeErrorCode pipeline_batch_impl(
     const XpeErrorCode cfgRc = PipelineConfig::fromJson(configJsonOrNull, &cfg);
     if (cfgRc != XPE_OK) return cfgRc;
 
-    // Load the calibration set once (all three files, or none -- see load_calibration_set)
+    // Load the calibration set once (all three files, or none -- see load_calibration_set). Every frame of the
+    // batch is processed with that one set ("all frames share the same calibration maps"), even if another
+    // load lands while the batch runs. With no path, the set current as the batch starts.
+    CalibSnapshot calib;
     if (calibPath) {
-        const XpeErrorCode loadRc = load_calibration_set(calibPath);
+        const XpeErrorCode loadRc = load_calibration_set(calibPath, &calib);
         if (loadRc != XPE_OK) return loadRc;
+    } else {
+        calib = xpe_calib_snapshot();
     }
 
     // Process each image with graceful degradation:
@@ -568,7 +596,7 @@ static XpeErrorCode pipeline_batch_impl(
         const XpeImageMetadata saved = metas[i];
         XpeErrorCode result = XPE_OK;
         try {
-            result = pipeline_core(&images[i], &metas[i], ghostHandle, cfg);
+            result = pipeline_core(&images[i], &metas[i], ghostHandle, cfg, calib);
         } catch (const std::bad_alloc&) {
             result = XPE_ERR_OUT_OF_MEMORY;
         } catch (...) {

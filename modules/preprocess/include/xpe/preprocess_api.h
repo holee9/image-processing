@@ -197,6 +197,12 @@ XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath);
  *         XPE_ERR_INVALID_INPUT if NULL pointers, or if the loaded calibration
  *                               map's dimensions differ from the input's (REQ-P1A-021)
  *         XPE_ERR_BUFFER_TOO_SMALL if the output's dimensions differ from the input's
+ *
+ * @note The map this function reads is the one in the calibration store when it is CALLED (it takes its own
+ *       snapshot under the store's lock, then reads it in place; a load that lands during the call does not
+ *       reach it). A caller that runs several stages by hand and loads calibration in between gets whatever
+ *       was loaded at each call; the guarantee that one frame is processed with ONE calibration set belongs to
+ *       the pipeline entry points (see xpe_preprocess_pipeline).
  */
 XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
                                         XpeImageBuffer* output,
@@ -222,6 +228,12 @@ XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
  *         XPE_ERR_BUFFER_TOO_SMALL if the output's dimensions differ from the input's
  *         XPE_ERR_UNSUPPORTED_FORMAT if format mismatch
  *         XPE_ERR_CONFIG_INVALID if gain map contains invalid values
+ *
+ * @note The map this function reads is the one in the calibration store when it is CALLED (it takes its own
+ *       snapshot under the store's lock, then reads it in place; a load that lands during the call does not
+ *       reach it). A caller that runs several stages by hand and loads calibration in between gets whatever
+ *       was loaded at each call; the guarantee that one frame is processed with ONE calibration set belongs to
+ *       the pipeline entry points (see xpe_preprocess_pipeline).
  */
 XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
                                       XpeImageBuffer* output,
@@ -291,6 +303,12 @@ XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
  *                               loaded defect map's dimensions differ from the
  *                               input's (REQ-P1A-021)
  *         XPE_ERR_BUFFER_TOO_SMALL if the output's dimensions differ from the input's
+ *
+ * @note The map this function reads is the one in the calibration store when it is CALLED (it takes its own
+ *       snapshot under the store's lock, then reads it in place; a load that lands during the call does not
+ *       reach it). A caller that runs several stages by hand and loads calibration in between gets whatever
+ *       was loaded at each call; the guarantee that one frame is processed with ONE calibration set belongs to
+ *       the pipeline entry points (see xpe_preprocess_pipeline).
  */
 XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
                                         XpeImageBuffer* output,
@@ -770,6 +788,14 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  * @brief Execute full pre-processing pipeline with bypass logic
  *
  * REQ-P1A-095 to REQ-P1A-099: Full pipeline integration
+ *
+ * One frame, one calibration set (QA-A-202d). The three maps (offset, gain, defect) with their dimensions are
+ * captured together, under one lock, when the frame starts -- for this function and the batch, the set they have
+ * just loaded from @p calibPath, captured in the same critical section that stored it -- and every stage runs
+ * on that capture. Another thread loading a different set while the frame runs cannot give the frame an offset
+ * from one set and a gain from another. Calibration loaded by other calls (xpe_calib_load_*, the cached loaders)
+ * during the call takes effect from the next frame. The nonlinearity table is not part of the set: it is read
+ * from the store when its stage runs.
  * Pipeline: Readout -> Temp -> Offset -> Nonlinearity -> Gain -> Binning -> Defect -> Ghost
  *
  * @warning This function RE-READS offset.xcal, gain.xcal and defect.xcal from
@@ -814,7 +840,8 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  *         Any error while the three calibration files are read (a missing, corrupt or expired file, a
  *                  wrong type, a malformed quality field, an allocation failure) leaves the calibration
  *                  store and the quality metadata exactly as the call found them: offset.xcal, gain.xcal
- *                  and defect.xcal are read as a SET and replace the stored maps together, or not at all.
+ *                  and defect.xcal are read as a SET and replace the stored maps -- and the quality
+ *                  metadata xpe_calib_get_quality_meta() serves -- together, or not at all.
  *                  Once the set has loaded it stays loaded even if processing the frame then fails.
  *         XPE_ERR_BUFFER_TOO_SMALL if img->dataSize is smaller than the frame the pipeline writes back (see @p img)
  *         XPE_ERR_INVALID_INPUT on a NULL img / meta / img->data, an empty or overflowing frame, or a dataSize
@@ -1563,7 +1590,12 @@ XPE_API XpeCalibrationMode xpe_calib_get_mode(void);
  * FUNC-033: Quality Metadata API
  *
  * Returns the quality metadata structure populated during the last
- * calibration generation operation.
+ * calibration generation operation, or made current by the last gain load that carried it.
+ *
+ * Thread-safe, and consistent with the calibration store (QA-A-202d): the record lives in the store and is read
+ * under the lock the maps are replaced under, so a gain load makes the maps and this record current in one step --
+ * a reader sees the previous file's quality or the new one's, never the new maps beside the old quality, and
+ * never a record half-way through being replaced.
  *
  * @param meta Output: Quality metadata (caller-owned)
  * @return XPE_OK on success

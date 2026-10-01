@@ -86,7 +86,7 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
 
         // Allocate and copy pixel data
         // Overwritten by the memcpy below; no value-initialisation (QA-A-105).
-        std::unique_ptr<float[]> map(new float[n_floats]);
+        std::shared_ptr<float[]> map(new float[n_floats]);
         std::memcpy(map.get(), payload.data(), payload.size());
 
         // Commit under mutex. The two gain models are alternatives: whichever
@@ -176,12 +176,14 @@ void xpe_calib_commit_gain_locked(StagedGain& staged) noexcept {
     g_calib.gain_quality     = staged.quality;
     g_calib.gain_has_quality = staged.qualityFound;
     std::memcpy(g_calib.gain_session_id, staged.sessionId, sizeof(g_calib.gain_session_id));
+    // The quality record the module serves becomes current in the same critical section as the maps
+    // (QA-A-202d, Codex #32 A1): no reader sees the new gain beside the previous file's quality.
+    if (staged.qualityFound) xpe_calib_commit_quality_meta_locked(staged.quality);
 }
 
 void xpe_calib_after_gain_commit(const StagedGain& staged) noexcept {
-    // Committed from here on; nothing below may fail the load. The metadata copy cannot throw.
-    if (staged.qualityFound) xpe_calib_commit_quality_meta(staged.quality);
-
+    // Committed from here on; nothing below may fail the load. (The quality metadata was committed with the
+    // maps, under the lock -- see xpe_calib_commit_gain_locked.)
     const bool poly_loaded = staged.isPoly;
     const bool usable      = staged.rangeUsable;
     const bool present     = staged.rangePresent;

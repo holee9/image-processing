@@ -21,6 +21,7 @@
 #include "xpe/common/xpe_common_api.h"
 #include "xpe/common/xpe_error.h"
 
+#include <spdlog/sinks/base_sink.h>
 #include <spdlog/spdlog.h>
 
 #include <atomic>
@@ -28,6 +29,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iterator>
@@ -38,6 +40,9 @@
 /* The accessor xpe_common.cpp compiles in under XPE_COMMON_TEST_HOOKS: the exact number of alerts the
  * queue has counted as lost (the loss alert's text is only a report of it). */
 uint64_t xpe_common_alerts_dropped_for_test();
+
+/* The seam xpe_logging.cpp compiles in under XPE_COMMON_TEST_HOOKS (QA-A-202d). */
+void xpe_log_adopt_logger_for_test(std::shared_ptr<spdlog::logger> logger);
 
 /* =========================================================================
  * The injecting allocator
@@ -159,6 +164,8 @@ protected:
         std::remove("oom_common_log_file_name_long.txt");
         std::remove("oom_common_log_A_long_file_name.txt");
         std::remove("oom_common_log_B_long_file_name.txt");
+        std::error_code ec;
+        std::filesystem::remove_all("oom_common_log_dir_not_a_file", ec);
     }
 };
 
@@ -363,4 +370,110 @@ TEST_F(CommonOom, ALogFileSwitchThatRunsOutOfMemoryKeepsWritingToThePreviousFile
           });
     std::remove(kLogA);
     std::remove(kLogB);
+}
+
+/* =========================================================================
+ * The log file switch, step by step (QA-A-202d, Codex #32 B1)
+ * ========================================================================= */
+
+namespace {
+
+/** A sink that keeps what it is given and whose flush can be made to fail, like a file on a full disk. */
+class FlakySink : public spdlog::sinks::base_sink<std::mutex> {
+public:
+    std::atomic<bool> failFlush{false};
+    std::vector<std::string> lines;
+protected:
+    void sink_it_(const spdlog::details::log_msg& msg) override {
+        spdlog::memory_buf_t buf;
+        formatter_->format(msg, buf);
+        lines.emplace_back(buf.data(), buf.size());
+    }
+    void flush_() override {
+        if (failFlush.load()) throw spdlog::spdlog_ex("injected flush failure");
+    }
+};
+
+bool fileExists(const char* path) { return std::ifstream(path).good(); }
+
+}  // namespace
+
+// The previous logger's flush happens BEFORE anything is replaced: a flush that fails is this call's error,
+// and the logger the caller has -- and the spdlog default pointing at it -- stays. (It used to flush after
+// the new logger was installed, so the call reported an error and the output had already moved.)
+TEST_F(CommonOom, AFlushThatFailsRefusesTheSwitchAndLeavesThePreviousLogger) {
+    ASSERT_EQ(XPE_OK, xpe_init(nullptr));
+    auto sink = std::make_shared<FlakySink>();
+    auto previous = std::make_shared<spdlog::logger>("xpe_file", sink);
+    previous->set_level(spdlog::level::trace);
+    std::remove(kLogB);
+    xpe_log_adopt_logger_for_test(previous);
+
+    // Control: the seam works -- a line written through the default logger reaches the sink.
+    spdlog::default_logger()->info("control-line");
+    ASSERT_EQ(1u, sink->lines.size()) << "control: the adopted logger is the default";
+
+    sink->failFlush.store(true);
+    EXPECT_EQ(XPE_ERR_IO_FAILED, xpe_log_set_file(kLogB)) << "a failed flush is an error of the call";
+    EXPECT_EQ(previous.get(), spdlog::default_logger().get()) << "the default logger is still the previous one";
+    EXPECT_FALSE(fileExists(kLogB)) << "the replacement was not even built: nothing was created";
+    spdlog::default_logger()->info("after-failed-switch");
+    EXPECT_EQ(2u, sink->lines.size()) << "later lines still go to the previous logger";
+
+    // And once the flush works again the same call succeeds and the output moves.
+    sink->failFlush.store(false);
+    ASSERT_EQ(XPE_OK, xpe_log_set_file(kLogB));
+    spdlog::default_logger()->info("in-b");
+    spdlog::default_logger()->flush();
+    EXPECT_EQ(2u, sink->lines.size()) << "the previous logger no longer receives lines";
+    EXPECT_NE(std::string::npos, readAll(kLogB).find("in-b"));
+}
+
+// Every other step that can fail before the install -- the directory check, opening the file, building the
+// sink, the logger -- leaves the previous logger in place. Opening the file is made to fail by naming a
+// directory; the allocation sweeps cover the allocations of the rest.
+TEST_F(CommonOom, ALogFileThatCannotBeOpenedLeavesThePreviousLogger) {
+    ASSERT_EQ(XPE_OK, xpe_init(nullptr));
+    std::remove(kLogA);
+    ASSERT_EQ(XPE_OK, xpe_log_set_file(kLogA));
+    spdlog::default_logger()->info("seed");
+    spdlog::default_logger()->flush();
+
+    std::filesystem::create_directories("oom_common_log_dir_not_a_file");
+    EXPECT_EQ(XPE_ERR_IO_FAILED, xpe_log_set_file("oom_common_log_dir_not_a_file"))
+        << "control: a directory cannot be opened as a log file";
+    EXPECT_EQ(XPE_ERR_IO_FAILED, xpe_log_set_file("no_such_directory_for_xpe_log/x.txt"));
+    spdlog::default_logger()->info("after-refusals");
+    spdlog::default_logger()->flush();
+    const std::string a = readAll(kLogA);
+    EXPECT_NE(std::string::npos, a.find("seed"));
+    EXPECT_NE(std::string::npos, a.find("after-refusals")) << "later lines still reach the previous file";
+}
+
+// The header says the file is opened in append mode. It was opened truncating, so naming the SAME path again
+// emptied the file; and a switch that failed after the sink was created left the previous logger alive over a
+// file whose earlier lines were gone.
+TEST_F(CommonOom, NamingTheSameLogFileAgainKeepsTheLinesAlreadyThere) {
+    ASSERT_EQ(XPE_OK, xpe_init(nullptr));
+    sweep("xpe_log_set_file (same path again)",
+          [] {
+              xpe_log_set_file(nullptr);
+              std::remove(kLogA);
+              ASSERT_EQ(XPE_OK, xpe_log_set_file(kLogA));
+              spdlog::default_logger()->info("seed-row");
+              spdlog::default_logger()->flush();
+          },
+          [] { return xpe_log_set_file(kLogA); },
+          [](XpeErrorCode rc, bool) -> std::string {
+              if (rc != XPE_OK && rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure must be XPE_ERR_OUT_OF_MEMORY";
+              auto lg = spdlog::default_logger();
+              if (!lg) return "there is no default logger after the call";
+              lg->info("probe-row");
+              lg->flush();
+              const std::string a = readAll(kLogA);
+              if (a.find("seed-row") == std::string::npos) return "the line written before the call is gone from the file";
+              if (a.find("probe-row") == std::string::npos) return "a line written after the call did not reach the file";
+              return {};
+          });
+    std::remove(kLogA);
 }

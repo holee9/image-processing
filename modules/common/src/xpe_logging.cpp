@@ -64,14 +64,40 @@ XPE_API XpeErrorCode xpe_log_set_file(const char* filePath) {
     std::lock_guard<std::mutex> lock(g_logMutex);
 
     try {
-        // QA-A-202c (#233, Codex #27 B1): the new logger is built COMPLETELY -- sink, logger, level -- before
-        // anything that belongs to the previous one is let go, and the previous logger is released only after
-        // the new one is installed as the default. A failure at any step (an unusable directory, a file that
-        // cannot be opened, an allocation failure) therefore leaves the caller writing to the file they had.
-        // It used to drop the previous logger first (REQ-GUI-IT-030: repeat calls must not collide), so a
-        // failure after that left no logger and a default that pointed at nothing useful.
-        std::shared_ptr<spdlog::logger> fresh;
+        // QA-A-202d (#233, Codex #32 B1): the switch has two halves, and the line between them is the
+        // install of the new default logger.
+        //
+        //   BEFORE it -- everything that can fail: the directory check, flushing the logger the caller has,
+        //   opening the file, building the sink and the logger. A failure at any of these returns an error and
+        //   leaves the caller's logger, and the spdlog default pointing at it, exactly as they were.
+        //   AT it -- spdlog::set_default_logger, the one step that may still throw (it allocates a registry
+        //   node); if it does, the previous logger is still the default.
+        //   AFTER it -- only operations that cannot fail: moving shared_ptrs, releasing the previous logger.
+        //   (The previous logger used to be flushed here, after the output had already moved: a flush that
+        //   failed reported an error for a switch that had happened.)
+        //
+        // REQ-GUI-IT-030 ("repeat calls must not collide") is kept by flushing the previous logger first and
+        // opening the new file in APPEND mode, as the header says: naming the same path again neither
+        // truncates it nor loses the lines written so far, and two handles on one file is allowed here.
+        std::filesystem::path p;
+        if (filePath != nullptr) {
+            // Validate parent directory existence BEFORE touching spdlog
+            // (basic_file_sink does not auto-create directories reliably on Windows
+            //  and may swallow failures depending on OS/spdlog build).
+            p = filePath;
+            auto parent = p.parent_path();
+            if (!parent.empty() && !std::filesystem::exists(parent)) {
+                return XPE_ERR_IO_FAILED;
+            }
+        }
 
+        // The previous logger's sinks are flushed directly: spdlog::logger::flush() hands a failure to the
+        // logger's error handler (which prints to stderr) and returns, so it could not tell us.
+        if (g_logger) {
+            for (const auto& sink : g_logger->sinks()) sink->flush();
+        }
+
+        std::shared_ptr<spdlog::logger> fresh;
         if (filePath == nullptr) {
             // A dedicated null-sink so the spdlog default is always valid. spdlog::set_default_logger(
             // spdlog::default_logger()) would be a no-op when g_logger was already null, leaving the old
@@ -82,36 +108,28 @@ XPE_API XpeErrorCode xpe_log_set_file(const char* filePath) {
                 std::make_shared<spdlog::sinks::null_sink_mt>());
             fresh->set_level(to_spdlog_level(g_currentLevel));
         } else {
-            // Validate parent directory existence BEFORE touching spdlog
-            // (basic_file_sink does not auto-create directories reliably on Windows
-            //  and may swallow failures depending on OS/spdlog build).
-            std::filesystem::path p(filePath);
-            auto parent = p.parent_path();
-            if (!parent.empty() && !std::filesystem::exists(parent)) {
-                return XPE_ERR_IO_FAILED;
-            }
-
-            // The same path may be opened again while the previous logger still holds it: flush first so
-            // nothing buffered is written after the file is truncated by the new sink. (A failure after
-            // that point for the SAME path leaves the file truncated; the logger is still the previous one.)
-            if (g_logger) g_logger->flush();
-
-            auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(filePath, true);
+            auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(filePath, /*truncate=*/false);
             fresh = std::make_shared<spdlog::logger>("xpe_file", file_sink);
             fresh->set_level(to_spdlog_level(g_currentLevel));
             fresh->flush_on(to_spdlog_level(g_currentLevel));
         }
 
-        // The step that installs the new logger. If it throws, the previous logger is still the default.
+        // The install. If it throws, nothing has changed.
         spdlog::set_default_logger(fresh);
 
-        // Installed: now the previous file logger can go. Its registry name is dropped only when the new
-        // logger has a different one -- a file-to-file switch re-registered "xpe_file" for the new logger.
+        // Installed. From here nothing may fail (and nothing allocates: names are compared by reference).
         std::shared_ptr<spdlog::logger> previous = std::move(g_logger);
+        const bool sameName = previous && previous->name() == fresh->name();
         g_logger = (filePath != nullptr) ? fresh : nullptr;
-        if (previous) {
-            previous->flush();
-            if (previous->name() != fresh->name()) spdlog::drop(previous->name());
+        if (previous && !sameName) {
+            // spdlog (1.14, registry-inl.h) registers the new default under its name and leaves the previous
+            // default's entry in the registry, so a previous logger with another name is dropped here. A
+            // file-to-file switch re-registered "xpe_file" for the new logger (the insert replaced the entry),
+            // so that name must NOT be dropped: drop() would erase the new logger's entry.
+            try {
+                spdlog::drop(previous->name());
+            } catch (...) {
+            }
         }
         return XPE_OK;
     } catch (const std::bad_alloc&) {
@@ -169,3 +187,16 @@ XPE_API void xpe_log_flush(void) {
 }
 
 } // extern "C"
+
+#ifdef XPE_COMMON_TEST_HOOKS
+/* Test-only (QA-A-202d, Codex #32 B1): make `logger` both the module's file logger and the spdlog default, as
+ * a successful xpe_log_set_file would, so a test can stand a sink whose flush fails behind it. Compiled only
+ * into the allocation-failure executable, which defines XPE_COMMON_TEST_HOOKS; the shipped library does not
+ * have it. */
+void xpe_log_adopt_logger_for_test(std::shared_ptr<spdlog::logger> logger)
+{
+    std::lock_guard<std::mutex> lock(g_logMutex);
+    spdlog::set_default_logger(logger);
+    g_logger = std::move(logger);
+}
+#endif
