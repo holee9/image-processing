@@ -258,7 +258,7 @@ XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img,
     //    "WHERE the detector panel profile indicates linear response ... the
     //    system SHALL bypass the correction and return XPE_OK without
     //    modifying the image". The bc22093 renumbering reassigned that number:
-    //    REQ-P1A-013 in the CURRENT set is defect correction (the Hampel
+    //    REQ-P1A-013 in the CURRENT set is runtime defect detection (the Hampel
     //    recipe, acceptance.md:273, BP-04 TPR/FPR). Same shape as 014 and 015
     //    above -- one renumbering, several orphaned citations.
     //  - even as written it never mandated SILENCE. It mandated bypass without
