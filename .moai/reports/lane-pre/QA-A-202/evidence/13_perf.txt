@@ -1,0 +1,8 @@
+round 1 before: [a202t] offset_correct median 9.40 ms  defect_correct median 8.76 ms
+round 1 after: [a202t] offset_correct median 2.93 ms  defect_correct median 7.34 ms
+round 2 before: [a202t] offset_correct median 9.67 ms  defect_correct median 9.08 ms
+round 2 after: [a202t] offset_correct median 2.90 ms  defect_correct median 7.29 ms
+round 3 before: [a202t] offset_correct median 9.64 ms  defect_correct median 8.91 ms
+round 3 after: [a202t] offset_correct median 2.76 ms  defect_correct median 7.19 ms
+round 4 before: [a202t] offset_correct median 9.23 ms  defect_correct median 8.72 ms
+round 4 after: [a202t] offset_correct median 2.92 ms  defect_correct median 7.23 ms

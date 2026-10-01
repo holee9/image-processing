@@ -9,6 +9,7 @@
  * Calibration maps loaded via g_calib (xpe_calib_load_offset/gain/defect_map)
  */
 
+#include "xpe_strict_parse.hpp"
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
@@ -45,11 +46,14 @@ namespace {
         float detectorTempC{25.0f};
         int32_t binningMode{1};
 
-        static PipelineConfig fromJson(const char* configJson) {
+        // QA-A-202 (#233): a number that is not a number is a refusal, not an exception. Every conversion
+        // below is strict (the whole value, finite, in range -- xpe_strict_parse.hpp); a failure is
+        // XPE_ERR_CONFIG_INVALID and `*out` is left as it was.
+        static XpeErrorCode fromJson(const char* configJson, PipelineConfig* out) {
             // set first so an early return still carries it
             PipelineConfig cfg;
             cfg.rawJson = configJson;
-            if (!configJson) return cfg;
+            if (!configJson) { *out = cfg; return XPE_OK; }
 
             // Parse bypass flags
             std::string bypassStr = xpe_json_get_string(configJson, "bypassReadout");
@@ -78,13 +82,16 @@ namespace {
 
             // Parse temperature
             std::string tempStr = xpe_json_get_string(configJson, "detectorTempC");
-            if (!tempStr.empty()) cfg.detectorTempC = std::stof(tempStr);
+            if (!tempStr.empty() && !xpe_strict::parse_float(tempStr, &cfg.detectorTempC))
+                return XPE_ERR_CONFIG_INVALID;
 
             // Parse binning mode
             std::string binningStr = xpe_json_get_string(configJson, "binningMode");
-            if (!binningStr.empty()) cfg.binningMode = std::stoi(binningStr);
+            if (!binningStr.empty() && !xpe_strict::parse_int(binningStr, &cfg.binningMode))
+                return XPE_ERR_CONFIG_INVALID;
 
-            return cfg;
+            *out = cfg;
+            return XPE_OK;
         }
     };
 
@@ -331,6 +338,11 @@ XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
 {
     if (!img || !meta) return XPE_ERR_INVALID_INPUT;
 
+    // The configuration is read first: a refused configuration must not have loaded anything.
+    PipelineConfig cfg;
+    const XpeErrorCode cfgRc = PipelineConfig::fromJson(configJsonOrNull, &cfg);
+    if (cfgRc != XPE_OK) return cfgRc;
+
     // Load calibration maps to g_calib (global calibration state)
     if (calibPath) {
         // Load offset calibration (1-arg: populates g_calib internally)
@@ -353,7 +365,6 @@ XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
     }
 
     // Execute pipeline core (g_calib is now populated)
-    const PipelineConfig cfg = PipelineConfig::fromJson(configJsonOrNull);
     return pipeline_core(img, meta, ghostHandle, cfg);
 }
 
@@ -431,7 +442,9 @@ XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
     if (!img || !meta) return XPE_ERR_INVALID_INPUT;
 
     // Calibration should already be loaded in g_calib via xpe_calib_state_load
-    const PipelineConfig cfg = PipelineConfig::fromJson(configJsonOrNull);
+    PipelineConfig cfg;
+    const XpeErrorCode cfgRc = PipelineConfig::fromJson(configJsonOrNull, &cfg);
+    if (cfgRc != XPE_OK) return cfgRc;
 
     // calibState is accepted for source compatibility but carries no maps:
     // xpe_calib_state_load() loads into g_calib and leaves the struct empty by
@@ -458,6 +471,11 @@ XpeErrorCode xpe_preprocess_pipeline_batch(
 {
     if (!images || !metas || imageCount == 0) return XPE_ERR_INVALID_INPUT;
 
+    // The configuration is read first: a refused configuration must not have loaded anything.
+    PipelineConfig cfg;
+    const XpeErrorCode cfgRc = PipelineConfig::fromJson(configJsonOrNull, &cfg);
+    if (cfgRc != XPE_OK) return cfgRc;
+
     // Load calibration once (to g_calib, 1-arg: populates g_calib internally)
     if (calibPath) {
         char offsetPath[512] = {0};
@@ -475,8 +493,6 @@ XpeErrorCode xpe_preprocess_pipeline_batch(
         rc = xpe_calib_load_defect_map(defectPath);
         if (rc != XPE_OK) return rc;
     }
-
-    const PipelineConfig cfg = PipelineConfig::fromJson(configJsonOrNull);
 
     // Process each image with graceful degradation:
     // Continue processing remaining frames even if one frame fails.

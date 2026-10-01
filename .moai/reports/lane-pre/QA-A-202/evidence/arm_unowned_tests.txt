@@ -1,0 +1,41 @@
+Note: Google Test filter = ConfigStrictParse.*:CorrectMapSharing.*
+[==========] Running 8 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 6 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+[       OK ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[       OK ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (3 ms)
+[ RUN      ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+[       OK ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+[       OK ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[----------] 6 tests from ConfigStrictParse (4 ms total)
+
+[----------] 2 tests from CorrectMapSharing
+[ RUN      ] CorrectMapSharing.OffsetCorrectionDuringAReloadIsWhollyOneMapOrTheOther
+unknown file: error: SEH exception with code 0xc0000005 thrown in the test body.
+Stack trace:
+
+
+[  FAILED  ] CorrectMapSharing.OffsetCorrectionDuringAReloadIsWhollyOneMapOrTheOther (23 ms)
+[ RUN      ] CorrectMapSharing.DefectCorrectionDuringAReloadIsWhollyOneMapOrTheOther
+unknown file: error: SEH exception with code 0xc0000005 thrown in the test body.
+Stack trace:
+
+
+[  FAILED  ] CorrectMapSharing.DefectCorrectionDuringAReloadIsWhollyOneMapOrTheOther (11 ms)
+[----------] 2 tests from CorrectMapSharing (35 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 2 test suites ran. (40 ms total)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] CorrectMapSharing.OffsetCorrectionDuringAReloadIsWhollyOneMapOrTheOther
+[  FAILED  ] CorrectMapSharing.DefectCorrectionDuringAReloadIsWhollyOneMapOrTheOther
+
+ 2 FAILED TESTS

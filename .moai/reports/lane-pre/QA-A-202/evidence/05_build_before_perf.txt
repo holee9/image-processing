@@ -1,0 +1,17 @@
+'vswhere.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+배치 파일이 아닙니다.
+[0/1] Re-running CMake...
+-- Platform: x86-64, AVX2 enabled
+-- Build spdlog: 1.14.1
+-- Build type: RelWithDebInfo
+-- Using the multi-header code from D:/workspace-github/xpe-pre/build/ci-preprocess/_deps/nlohmann_json-src/include/
+-- {fmt} version: 11.0.2
+-- Build type: RelWithDebInfo
+-- Could NOT find GTest (missing: GTest_DIR)
+-- Orphan-source check: 0 unlisted sources under modules/*/src/
+-- Configuring done (6.7s)
+-- Generating done (0.1s)
+-- Build files have been written to: D:/workspace-github/xpe-pre/build/ci-preprocess
+[1/3] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_zz_a202_timing.cpp.obj
+[2/3] Linking CXX executable bin\xpe_preprocess_tests.exe
+BUILD_EXIT=0

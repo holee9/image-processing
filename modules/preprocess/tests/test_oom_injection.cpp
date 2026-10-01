@@ -44,10 +44,12 @@ namespace {
 std::atomic<long> g_failAt{0};      // 0 = disarmed; otherwise the 1-based index of the allocation to fail
 std::atomic<long> g_count{0};
 std::atomic<bool> g_injected{false};
+std::atomic<size_t> g_maxAlloc{0};  // largest single request made while armed (QA-A-202)
 std::atomic<long> g_live{0};        // operator-new blocks currently alive (leak accounting, QA-A-203)
 
 void arm(long k) {
     g_count.store(0);
+    g_maxAlloc.store(0);
     g_injected.store(false);
     g_failAt.store(k);
 }
@@ -60,6 +62,10 @@ bool disarm() {
 
 void* operator new(std::size_t n) {
     const long limit = g_failAt.load(std::memory_order_relaxed);
+    if (limit > 0) {
+        size_t cur = g_maxAlloc.load();
+        while (n > cur && !g_maxAlloc.compare_exchange_weak(cur, n)) {}
+    }
     if (limit > 0 && g_count.fetch_add(1) + 1 == limit) {
         g_injected.store(true);
         throw std::bad_alloc();
@@ -159,6 +165,7 @@ protected:
         xpe_calib_cache_clear();
         resetStore();
         xpe_clear_alerts();
+        xpe_preprocess_shutdown();
         for (const char* p : {"oom_long_entry_file_name.xcal", "oom_q.xcal"}) std::remove(p);
     }
 };
@@ -372,4 +379,104 @@ TEST_F(OomInjection, ACachedDefectHitThatFailsLeavesTheStoreUntouched) {
               ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map("oom_q.xcal"));
           },
           [] { XpeImageBuffer v{}; return xpe_calib_load_defect_cached("oom_long_entry_file_name.xcal", &v); }, true);
+}
+
+/* =========================================================================
+ * QA-A-202 (#233): the two corrections that held the calibration lock while copying a whole map
+ * ========================================================================= */
+
+// The offset correction takes shared ownership of the map and reads it in place: a frame allocates nothing,
+// so there is nothing left in it to fail (it used to copy the whole map on every frame, under the lock).
+TEST_F(OomInjection, AnOffsetCorrectionAllocatesNothing) {
+    writeOffset("oom_q.xcal", 300.0f);
+    xpe_preprocess_init(nullptr);
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset("oom_q.xcal"));
+    std::vector<uint16_t> in(N, 1000), out(N, 0);
+    XpeImageBuffer i{}, o{};
+    i.data = in.data(); i.width = W; i.height = H; i.bitsAllocated = 16; i.bitsStored = 16; i.format = XPE_PIXEL_UINT16;
+    i.dataSize = static_cast<uint32_t>(N * 2);
+    o = i;
+    o.data = out.data();
+    XpeImageMetadata meta{};
+
+    arm(1000000000L);                       // counts allocations, never fails one
+    XpeErrorCode rc = XPE_OK;
+    try { rc = std::function<XpeErrorCode()>([&] { return xpe_offset_correct(&i, &o, &meta); })(); } catch (...) { rc = XPE_ERR_INTERNAL; }
+    const long allocations = g_count.load();
+    disarm();
+    ASSERT_EQ(XPE_OK, rc);
+    EXPECT_EQ(700u, out[0]) << "control: the correction ran (1000 - 300)";
+    EXPECT_EQ(0, allocations) << "a frame must not allocate (a map copy per frame is the defect this pins)";
+}
+
+TEST_F(OomInjection, ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree) {
+    writeDefect("oom_q.xcal", true);        // flags pixel 5, so the clustering buffers are needed
+    static std::vector<float> in(N, 1000.0f), out(N, 0.0f);
+    in[5] = 5000.0f;
+    sweep("xpe_defect_correct",
+          [] {
+              resetStore(); xpe_clear_alerts();
+              xpe_preprocess_init(nullptr);
+              ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map("oom_q.xcal"));
+          },
+          [] {
+              XpeImageBuffer i{}, o{};
+              i.data = in.data(); i.width = W; i.height = H; i.bitsAllocated = 32; i.bitsStored = 32; i.format = XPE_PIXEL_FLOAT32;
+              i.dataSize = static_cast<uint32_t>(N * 4);
+              o = i;
+              o.data = out.data();
+              XpeImageMetadata meta{};
+              return xpe_defect_correct(&i, &o, &meta);
+          }, /*unchangedOnError=*/true);
+}
+
+// A malformed number in a ghost configuration used to throw after the handle and its two history buffers had
+// been allocated, and nothing freed them.
+TEST_F(OomInjection, AGhostCreationThatIsRefusedLeavesNoBlocksBehind) {
+    for (const char* cfg : {"{\"alpha1\":\"abc\"}", "{\"tier\":\"x\"}", "{\"tau2\":\"1e999\"}"}) {
+        void* handle = nullptr;
+        const long before = g_live.load();
+        XpeErrorCode rc = XPE_OK;
+        bool threw = false;
+        try { rc = std::function<XpeErrorCode()>([&] { return xpe_ghost_create(W, H, cfg, &handle); })(); } catch (...) { threw = true; }
+        const long after = g_live.load();
+        EXPECT_FALSE(threw) << cfg;
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, rc) << cfg;
+        EXPECT_EQ(nullptr, handle) << cfg;
+        EXPECT_EQ(before, after) << cfg << ": blocks left behind by a refused creation";
+    }
+}
+
+// The defect correction takes shared ownership of the map and reads it in place: no request in a frame is as
+// large as the map (it used to copy the whole map, under the lock). The frame is 256x256, so a copy of the
+// map is a 65536-byte request, while the clustering bit-sets are 8 KiB.
+TEST_F(OomInjection, ADefectCorrectionDoesNotCopyTheMap) {
+    constexpr uint32_t w = 256, h = 256;
+    constexpr size_t n = static_cast<size_t>(w) * h;
+    xpe_preprocess_init(nullptr);
+    {
+        std::lock_guard<std::mutex> lk(g_calib_mutex);
+        g_calib.defect_map.reset(new uint8_t[n]());
+        g_calib.defect_map.get()[5 * w + 5] = 1;
+        g_calib.defect_width = w;
+        g_calib.defect_height = h;
+    }
+    std::vector<float> in(n, 1000.0f), out(n, 0.0f);
+    in[5 * w + 5] = 5000.0f;
+    XpeImageBuffer i{}, o{};
+    i.data = in.data(); i.width = w; i.height = h; i.bitsAllocated = 32; i.bitsStored = 32; i.format = XPE_PIXEL_FLOAT32;
+    i.dataSize = static_cast<uint32_t>(n * 4);
+    o = i;
+    o.data = out.data();
+    XpeImageMetadata meta{};
+
+    arm(1000000000L);
+    XpeErrorCode rc = XPE_OK;
+    try { rc = std::function<XpeErrorCode()>([&] { return xpe_defect_correct(&i, &o, &meta); })(); } catch (...) { rc = XPE_ERR_INTERNAL; }
+    const size_t largest = g_maxAlloc.load();
+    disarm();
+    ASSERT_EQ(XPE_OK, rc);
+    EXPECT_NEAR(1000.0f, out[5 * w + 5], 1.0f) << "control: the flagged pixel was repaired";
+    EXPECT_GT(largest, 0u) << "control: the frame made allocations the counter could see";
+    EXPECT_LT(largest, n) << "a request as large as the map means the map was copied";
 }

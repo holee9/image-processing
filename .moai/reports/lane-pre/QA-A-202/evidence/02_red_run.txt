@@ -1,0 +1,231 @@
+Note: Google Test filter = ConfigStrictParse.*:CorrectMapSharing.*
+[==========] Running 8 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 6 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(107): error: Value of: threw
+  Actual: true
+Expected: false
+an exception left xpe_preprocess_pipeline_ex
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(98): "detectorTempC":"abc"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(108): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(98): "detectorTempC":"abc"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(107): error: Value of: threw
+  Actual: true
+Expected: false
+an exception left xpe_preprocess_pipeline_ex
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(98): "binningMode":"x"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(108): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(98): "binningMode":"x"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(107): error: Value of: threw
+  Actual: true
+Expected: false
+an exception left xpe_preprocess_pipeline_ex
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(98): "detectorTempC":"1e999"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(108): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(98): "detectorTempC":"1e999"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(107): error: Value of: threw
+  Actual: true
+Expected: false
+an exception left xpe_preprocess_pipeline_ex
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(98): "binningMode":"99999999999999999999"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(108): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(98): "binningMode":"99999999999999999999"
+
+[  FAILED  ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing (8 ms)
+[ RUN      ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(163): error: Value of: threw
+  Actual: true
+Expected: false
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(164): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(165): error: Value of: offsetLoaded()
+  Actual: true
+Expected: false
+a refused configuration must not have loaded the calibration files
+
+[  FAILED  ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (7 ms)
+[ RUN      ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(186): error: Value of: threw
+  Actual: true
+Expected: false
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(177): "detectorTempC":"abc"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(187): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(177): "detectorTempC":"abc"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(186): error: Value of: threw
+  Actual: true
+Expected: false
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(177): "binningMode":"x"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(187): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(177): "binningMode":"x"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(186): error: Value of: threw
+  Actual: true
+Expected: false
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(177): "detectorTempC":"1e999"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(187): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(177): "detectorTempC":"1e999"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(186): error: Value of: threw
+  Actual: true
+Expected: false
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(177): "binningMode":"99999999999999999999"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(187): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(177): "binningMode":"99999999999999999999"
+
+[  FAILED  ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(209): error: Value of: threw
+  Actual: true
+Expected: false
+an exception left xpe_ghost_create
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(205): {"alpha1":"abc"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(210): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(205): {"alpha1":"abc"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(209): error: Value of: threw
+  Actual: true
+Expected: false
+an exception left xpe_ghost_create
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(205): {"tier":"x"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(210): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(205): {"tier":"x"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(209): error: Value of: threw
+  Actual: true
+Expected: false
+an exception left xpe_ghost_create
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(205): {"tau2":"1e999"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(210): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(205): {"tau2":"1e999"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(210): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(205): {"tier2Threshold":"99999999999999999999"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(211): error: Expected equality of these values:
+  nullptr
+    Which is: NULL
+  handle
+    Which is: 000002BC88523C20
+no handle may be handed back on a refusal
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(205): {"tier2Threshold":"99999999999999999999"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(210): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(205): {"nlcscBeta":"1.5.2"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(211): error: Expected equality of these values:
+  nullptr
+    Which is: NULL
+  handle
+    Which is: 000002BC88524080
+no handle may be handed back on a refusal
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(205): {"nlcscBeta":"1.5.2"}
+
+[  FAILED  ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[----------] 6 tests from ConfigStrictParse (17 ms total)
+
+[----------] 2 tests from CorrectMapSharing
+[ RUN      ] CorrectMapSharing.OffsetCorrectionDuringAReloadIsWhollyOneMapOrTheOther
+[       OK ] CorrectMapSharing.OffsetCorrectionDuringAReloadIsWhollyOneMapOrTheOther (1521 ms)
+[ RUN      ] CorrectMapSharing.DefectCorrectionDuringAReloadIsWhollyOneMapOrTheOther
+[       OK ] CorrectMapSharing.DefectCorrectionDuringAReloadIsWhollyOneMapOrTheOther (1518 ms)
+[----------] 2 tests from CorrectMapSharing (3040 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 2 test suites ran. (3058 ms total)
+[  PASSED  ] 4 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+[  FAILED  ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[  FAILED  ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+[  FAILED  ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+
+ 4 FAILED TESTS

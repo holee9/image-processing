@@ -1,0 +1,110 @@
+Note: Google Test filter = ConfigStrictParse.*:CorrectMapSharing.*
+[==========] Running 8 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 6 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(110): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(100): "detectorTempC":"25.5x"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(110): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(100): "binningMode":"2x"
+
+[  FAILED  ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[       OK ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (4 ms)
+[ RUN      ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(189): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(179): "detectorTempC":"25.5x"
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(189): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(179): "binningMode":"2x"
+
+[  FAILED  ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(215): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(210): {"nlcscBeta":"1.5.2"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(216): error: Expected equality of these values:
+  nullptr
+    Which is: NULL
+  handle
+    Which is: 00000296130F2910
+no handle may be handed back on a refusal
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(210): {"nlcscBeta":"1.5.2"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(215): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(210): {"alpha1":"0.5x"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(216): error: Expected equality of these values:
+  nullptr
+    Which is: NULL
+  handle
+    Which is: 00000296130F2E50
+no handle may be handed back on a refusal
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(210): {"alpha1":"0.5x"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(215): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(210): {"tier":"2x"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(216): error: Expected equality of these values:
+  nullptr
+    Which is: NULL
+  handle
+    Which is: 00000296130F2830
+no handle may be handed back on a refusal
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(210): {"tier":"2x"}
+
+[  FAILED  ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[----------] 6 tests from ConfigStrictParse (5 ms total)
+
+[----------] 2 tests from CorrectMapSharing
+[ RUN      ] CorrectMapSharing.OffsetCorrectionDuringAReloadIsWhollyOneMapOrTheOther
+[       OK ] CorrectMapSharing.OffsetCorrectionDuringAReloadIsWhollyOneMapOrTheOther (1528 ms)
+[ RUN      ] CorrectMapSharing.DefectCorrectionDuringAReloadIsWhollyOneMapOrTheOther
+[       OK ] CorrectMapSharing.DefectCorrectionDuringAReloadIsWhollyOneMapOrTheOther (1522 ms)
+[----------] 2 tests from CorrectMapSharing (3050 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 2 test suites ran. (3055 ms total)
+[  PASSED  ] 5 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+[  FAILED  ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+[  FAILED  ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+
+ 3 FAILED TESTS

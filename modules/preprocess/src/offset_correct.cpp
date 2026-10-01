@@ -12,7 +12,9 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <memory>
 #include <mutex>
+#include <new>
 
 // @MX:NOTE: [AUTO] AVX2 intrinsics header — conditional include based on _MSC_VER
 #if defined(_MSC_VER)
@@ -145,7 +147,7 @@ void offset_correct_float_avx2(const uint16_t* src, const float* off, uint16_t* 
 extern "C" XPE_API XpeErrorCode xpe_offset_correct(
     const XpeImageBuffer*  input,
     XpeImageBuffer*         output,
-    const XpeImageMetadata* metadata)
+    const XpeImageMetadata* metadata) try
 {
     if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;
     if (!input->data || !output->data) return XPE_ERR_INVALID_INPUT;
@@ -167,7 +169,10 @@ extern "C" XPE_API XpeErrorCode xpe_offset_correct(
 
     const uint16_t* src = static_cast<const uint16_t*>(input->data);
     uint16_t* dst = static_cast<uint16_t*>(output->data);
-    std::vector<float> offmap;
+    // QA-A-202 (#233): shared ownership of the map, taken under the lock; the lock is held for a pointer
+    // copy, not for a copy of the map (37.7 MB at 3072x3072, once per frame, with every other calibration
+    // call waiting behind it). The kernel below reads the map in place.
+    std::shared_ptr<float[]> offmap;
 
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
@@ -185,16 +190,16 @@ extern "C" XPE_API XpeErrorCode xpe_offset_correct(
         if (g_calib.offset_width  != input->width ||
             g_calib.offset_height != input->height) return XPE_ERR_INVALID_INPUT;
 
-        offmap.assign(g_calib.offset_map.get(), g_calib.offset_map.get() + n);
+        offmap = g_calib.offset_map;
     }
 
     // One path per platform, chosen at compile time. The two arms of the old
     // #if defined(__aarch64__) split called the same function, so the split said
     // nothing and is gone with the probe.
 #if defined(__AVX2__) || defined(_MSC_VER)
-    offset_correct_float_avx2(src, offmap.data(), dst, n);
+    offset_correct_float_avx2(src, offmap.get(), dst, n);
 #else
-    xpe_offset_apply_scalar_reference(src, offmap.data(), dst, n);
+    xpe_offset_apply_scalar_reference(src, offmap.get(), dst, n);
 #endif
 
     output->format        = XPE_PIXEL_UINT16;
@@ -202,4 +207,11 @@ extern "C" XPE_API XpeErrorCode xpe_offset_correct(
     output->bitsStored    = 16u;
     output->dataSize      = n * sizeof(uint16_t);
     return XPE_OK;
+}
+catch (const std::bad_alloc&) {
+    // QA-A-202 (#233): an exception must not leave a C ABI function. The lock guard is a local of the
+    // try block, so it is released before this handler runs.
+    return XPE_ERR_OUT_OF_MEMORY;
+} catch (...) {
+    return XPE_ERR_PROCESSING_FAILED;
 }

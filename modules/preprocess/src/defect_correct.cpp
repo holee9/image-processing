@@ -7,7 +7,9 @@
 
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
+#include <memory>
 #include <mutex>
+#include <new>
 
 #include <cmath>
 #include <cstring>
@@ -117,7 +119,7 @@ float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
 extern "C" XPE_API XpeErrorCode xpe_defect_correct(
     const XpeImageBuffer*  input,
     XpeImageBuffer*         output,
-    const XpeImageMetadata* metadata)
+    const XpeImageMetadata* metadata) try
 {
     if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;
     if (!input->data || !output->data) return XPE_ERR_INVALID_INPUT;
@@ -178,16 +180,17 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
     if (g_calib.defect_width  != input->width ||
         g_calib.defect_height != input->height) return XPE_ERR_INVALID_INPUT;
 
-    // Copy defect map locally so we can release the mutex before heavy processing
-    std::vector<uint8_t> dm_local(g_calib.defect_map.get(),
-                                   g_calib.defect_map.get() + n);
+    // QA-A-202 (#233): take shared ownership of the map and release the mutex before the heavy work. The
+    // old code copied the whole map (9.4 MB at 3072x3072) while holding the lock; a reload during the
+    // frame now replaces the pointer in the store and leaves this frame the map it started with.
+    const std::shared_ptr<uint8_t[]> dm_local = g_calib.defect_map;
     lock.unlock();
 
     const uint32_t W  = input->width;
     const uint32_t H  = input->height;
     const float*   src = static_cast<const float*>(input->data);
     float*         dst = static_cast<float*>(output->data);
-    const uint8_t* dm  = dm_local.data();
+    const uint8_t* dm  = dm_local.get();
 
     // Copy input -> output first. SKIPPED WHEN THE CALLER PASSED ONE BUFFER:
     // std::memcpy requires non-overlapping regions, so dst == src is undefined
@@ -271,6 +274,13 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
     output->bitsStored    = 32u;
     output->dataSize      = n * sizeof(float);
     return XPE_OK;
+}
+catch (const std::bad_alloc&) {
+    // QA-A-202 (#233): an exception must not leave a C ABI function. The lock guard is a local of the
+    // try block, so it is released before this handler runs.
+    return XPE_ERR_OUT_OF_MEMORY;
+} catch (...) {
+    return XPE_ERR_PROCESSING_FAILED;
 }
 
 // Runtime detection implementation moved to runtime_detection.cpp (REQ-P1A-013)

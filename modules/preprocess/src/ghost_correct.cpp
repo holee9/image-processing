@@ -12,7 +12,12 @@
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
+#include "xpe_strict_parse.hpp"
+
 #include <cstdlib>
+#include <memory>
+#include <new>
+#include <string>
 #include <cstring>
 #include <cmath>
 #include <algorithm>
@@ -29,52 +34,48 @@ XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
     // REQ-P1A-085: allocate handle with frame history buffer
     // REQ-P1A-030: configJsonOrNull for IRF coefficient override
     // REQ-P1A-031: XPE_ERR_OUT_OF_MEMORY on allocation failure
-    auto* handle = new (std::nothrow) GhostCorrectorHandle();
-    if (!handle) return XPE_ERR_OUT_OF_MEMORY;
+    // QA-A-202 (#233): the handle is owned by `owner` until every step has succeeded, so a refusal or an
+    // exception at any step frees it (it used to leak the handle and its history buffers when a number in
+    // the configuration was malformed). A malformed number is XPE_ERR_CONFIG_INVALID; nothing is handed back.
+    std::unique_ptr<GhostCorrectorHandle> owner(new (std::nothrow) GhostCorrectorHandle());
+    if (!owner) return XPE_ERR_OUT_OF_MEMORY;
+    GhostCorrectorHandle* const handle = owner.get();
 
     handle->width  = width;
     handle->height = height;
     const size_t pixelCount = static_cast<size_t>(width) * height;
 
     try {
-        handle->hist1.assign(pixelCount, 0.0f);
-        handle->hist2.assign(pixelCount, 0.0f);
-    } catch (...) {
-        delete handle;
-        return XPE_ERR_OUT_OF_MEMORY;
-    }
+        // Parse config JSON for tier and IRF coefficients. An absent or empty value keeps the default.
+        if (configJsonOrNull) {
+            const auto real = [&](const char* key, double* dst) {
+                const std::string v = xpe_json_get_string(configJsonOrNull, key);
+                return v.empty() || xpe_strict::parse_double(v, dst);
+            };
 
-    // Parse config JSON for tier and IRF coefficients
-    if (configJsonOrNull) {
-        // Parse tier (default: 1)
-        std::string tierStr = xpe_json_get_string(configJsonOrNull, "tier");
-        if (!tierStr.empty()) {
-            handle->tier = std::stoi(tierStr);
-            if (handle->tier < 1 || handle->tier > 3) handle->tier = 1;
+            const std::string tierStr = xpe_json_get_string(configJsonOrNull, "tier");
+            if (!tierStr.empty()) {
+                int32_t tier = 1;
+                if (!xpe_strict::parse_int(tierStr, &tier)) return XPE_ERR_CONFIG_INVALID;
+                handle->tier = (tier < 1 || tier > 3) ? 1 : tier;
+            }
+            if (!real("alpha1", &handle->alpha1) || !real("tau1", &handle->tau1) ||
+                !real("alpha2", &handle->alpha2) || !real("tau2", &handle->tau2) ||
+                !real("tier2Threshold", &handle->tier2Threshold) ||
+                !real("nlcscBeta", &handle->nlcscBeta)) {
+                return XPE_ERR_CONFIG_INVALID;
+            }
         }
 
-        // Parse alpha1, tau1, alpha2, tau2 overrides
-        std::string alpha1Str = xpe_json_get_string(configJsonOrNull, "alpha1");
-        if (!alpha1Str.empty()) handle->alpha1 = std::stod(alpha1Str);
-
-        std::string tau1Str = xpe_json_get_string(configJsonOrNull, "tau1");
-        if (!tau1Str.empty()) handle->tau1 = std::stod(tau1Str);
-
-        std::string alpha2Str = xpe_json_get_string(configJsonOrNull, "alpha2");
-        if (!alpha2Str.empty()) handle->alpha2 = std::stod(alpha2Str);
-
-        std::string tau2Str = xpe_json_get_string(configJsonOrNull, "tau2");
-        if (!tau2Str.empty()) handle->tau2 = std::stod(tau2Str);
-
-        // Parse Tier 2/3 specific parameters
-        std::string thresholdStr = xpe_json_get_string(configJsonOrNull, "tier2Threshold");
-        if (!thresholdStr.empty()) handle->tier2Threshold = std::stod(thresholdStr);
-
-        std::string betaStr = xpe_json_get_string(configJsonOrNull, "nlcscBeta");
-        if (!betaStr.empty()) handle->nlcscBeta = std::stod(betaStr);
+        handle->hist1.assign(pixelCount, 0.0f);
+        handle->hist2.assign(pixelCount, 0.0f);
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
     }
 
-    *handleOut = handle;
+    *handleOut = owner.release();
     return XPE_OK;
 }
 

@@ -454,6 +454,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_cache_global_store.cpp # QA-A-193 (#216) cached loaders: global store on a hit, shutdown empties the cache
         tests/test_calib_cache_same_verdict.cpp # QA-A-196 a cache hit reaches the same verdict as a miss
         tests/test_preprocess_version.cpp # QA-A-199 xpe_preprocess_version contract (REQ-P1A-106 draft)
+        tests/test_config_strict_parse.cpp # QA-A-202 (#233) a malformed config number is CONFIG_INVALID, not an exception
+        tests/test_correct_map_sharing.cpp # QA-A-202 (#233) offset/defect correction read a shared map outside the lock
         tests/test_zz_a186_probe.cpp         # QA-A-186 (#220) probe: FlatResidualPct mean vs median (DISABLED_)
         tests/test_zz_a187_probe.cpp         # QA-A-187 (#218) probe: xpe_verify_pipeline SNR median vs mean (DISABLED_)
         tests/test_runtime_detection_rates.cpp

@@ -283,7 +283,11 @@ struct XpeCalibrationState {
  * ========================================================================= */
 
 struct CalibrationData {
-    std::unique_ptr<float[]>   offset_map;
+    // offset_map and defect_map are SHARED so that xpe_offset_correct / xpe_defect_correct can take a
+    // reference under the lock and read the map outside it (QA-A-202, #233): a reload in the middle of
+    // a frame replaces the pointer in this store and leaves the frame the map it started with. A map is
+    // therefore never modified in place once it is installed -- an update builds a new array and swaps.
+    std::shared_ptr<float[]>   offset_map;
     uint32_t offset_width{0};
     uint32_t offset_height{0};
     int64_t  offset_timestamp{0};
@@ -327,7 +331,7 @@ struct CalibrationData {
     double gain_poly_dose_min{0.0};
     double gain_poly_dose_max{0.0};
 
-    std::unique_ptr<uint8_t[]> defect_map;
+    std::shared_ptr<uint8_t[]> defect_map;   // shared for the same reason as offset_map
     uint32_t defect_width{0};
     uint32_t defect_height{0};
     int64_t  defect_expiry_ms{0};

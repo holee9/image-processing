@@ -576,6 +576,9 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
  * @return XPE_OK on success
  *         XPE_ERR_OUT_OF_MEMORY on allocation failure
  *         XPE_ERR_INVALID_INPUT on NULL handleOut or zero dimensions
+ *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration (tier, alpha1, tau1,
+ *                  alpha2, tau2, tier2Threshold, nlcscBeta) is not one finite number in range;
+ *                  no handle is handed back and nothing is left allocated
  *
  * @note SRS-CALIB-NFR-003: one handle may be shared by several threads. Calls to
  *       xpe_ghost_correct() and xpe_ghost_reset() on the same handle are serialised
@@ -762,6 +765,9 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  * @param ghostHandle Ghost corrector handle (NULL = skip ghost correction)
  * @param configJsonOrNull Pipeline configuration JSON (bypass flags, temperature, etc.)
  * @return XPE_OK on success
+ *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration (detectorTempC,
+ *                  binningMode) is not one finite number in range -- "abc", "1e999", "2x" -- nothing
+ *                  is loaded and no image or metadata is touched (the configuration is read first)
  *         XPE_ERR_* on failure
  */
 XPE_API XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
@@ -787,6 +793,8 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
  * @param ghostHandle Ghost corrector handle (NULL = skip ghost)
  * @param configJsonOrNull Pipeline configuration JSON
  * @return XPE_OK on success
+ *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration (detectorTempC,
+ *                  binningMode) is not one finite number in range -- "abc", "1e999", "2x" -- no image or metadata is touched (the configuration is read first)
  *         XPE_ERR_* on failure
  */
 XPE_API XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
@@ -809,6 +817,8 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
  * @param configJsonOrNull Pipeline configuration JSON
  * @return XPE_OK if all images processed successfully
  *         XPE_ERR_INVALID_INPUT on null/invalid parameters
+ *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration is not one finite
+ *                  number in range (see xpe_preprocess_pipeline); no frame is touched
  *         first error code if any individual frame fails
  */
 XPE_API XpeErrorCode xpe_preprocess_pipeline_batch(
