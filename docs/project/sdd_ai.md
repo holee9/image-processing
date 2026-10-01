@@ -173,7 +173,7 @@ The module follows a four-layer architecture:
 
 | Constant | Value | Purpose |
 |----------|-------|---------|
-| XPE_AI_MAX_PAYLOAD_SIZE | 64 MB | Maximum payload per message |
+| XPE_AI_MAX_PAYLOAD_SIZE | 64 MiB + 4096 bytes | Maximum payload per message — one 4096×4096 FLOAT32 image (the module maximum) plus header room; tied to the validator by `static_assert` (2026-10-01, #130 `QA-B-171C`, was 64 MB) |
 | XPE_AI_DEFAULT_TIMEOUT_MS | 5000 | Default IPC timeout |
 | XPE_AI_DEFAULT_CONFIDENCE_THRESHOLD | 0.6 | Fallback confidence threshold |
 | XPE_AI_PIPE_BUFFER_SIZE | 65536 | Named pipe buffer size |
