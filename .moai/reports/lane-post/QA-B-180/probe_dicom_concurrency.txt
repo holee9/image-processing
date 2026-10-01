@@ -1,0 +1,16 @@
+# QA-B-180 probe output: concurrent reads. 8 threads; "separate handles" = each read opens its own handle (60 reads per thread),
+# "same handle" = one handle shared, read_image called concurrently (80 per thread). Several processes per mode.
+run1 exit=0 CASE conc_separate_handles mismatching reads: 0 of 480
+run2 exit=0 CASE conc_separate_handles mismatching reads: 0 of 480
+run3 exit=0 CASE conc_separate_handles mismatching reads: 0 of 480
+run1 exit=0 CASE conc_same_handle mismatching reads: 0 of 640
+run2 exit=0 CASE conc_same_handle mismatching reads: 0 of 640
+run3 exit=0 CASE conc_same_handle mismatching reads: 1 of 640
+CASE conc_same_handle mismatching reads: 0 of 640 [exit 0]
+CASE conc_same_handle mismatching reads: 0 of 640 [exit 0]
+CASE conc_same_handle mismatching reads: 0 of 640 [exit 0]
+CASE conc_same_handle mismatching reads: 0 of 640 [exit 0]
+CASE conc_same_handle mismatching reads: 0 of 640 [exit 0]
+CASE conc_same_handle mismatching reads: 0 of 640 [exit 0]
+CASE conc_same_handle mismatching reads: 1 of 640    kinds: ['-13'] [exit 0]
+CASE conc_same_handle mismatching reads: 0 of 640 [exit 0]

@@ -1,0 +1,89 @@
+# QA-B-180 probe output: one DICOM Part 10 file (Explicit VR Little Endian, built byte by byte by the probe) per case, read through
+# xpe_dicom_open / read_image / get_metadata / close of build/ci-dicom/bin/xpe_dicom.dll. 4x4 image, VALS = the 16 words printed under case a.
+# "expected" is what a correct reader would hand to a viewer for that case. The probe source is NOT in the repository.
+CASE a_unsigned_mono2
+   open = 0
+   read_image = 0
+   get_metadata = 0
+   meta_flags = 0
+   image = {'w': 4, 'h': 4, 'bitsAllocated': 16, 'bitsStored': 16, 'format': 0, 'dataSize': 32}
+   pixels[:16] = [0, 1, 100, 1000, 4095, 4096, 20000, 32767, 32768, 40000, 50000, 60000, 65000, 65534, 65535, 12345]
+   expected    = [0, 1, 100, 1000, 4095, 4096, 20000, 32767, 32768, 40000, 50000, 60000, 65000, 65534, 65535, 12345]
+   raw-identical-to-expected-words: True
+  (exit=0)
+write rc 0
+CASE a2_module_write_roundtrip
+   open = 0
+   read_image = 0
+   get_metadata = 0
+   meta_flags = 0
+   image = {'w': 4, 'h': 4, 'bitsAllocated': 16, 'bitsStored': 16, 'format': 0, 'dataSize': 32}
+   pixels[:16] = [0, 1, 100, 1000, 4095, 4096, 20000, 32767, 32768, 40000, 50000, 60000, 65000, 65534, 65535, 12345]
+   expected    = [0, 1, 100, 1000, 4095, 4096, 20000, 32767, 32768, 40000, 50000, 60000, 65000, 65534, 65535, 12345]
+   raw-identical-to-expected-words: True
+  (exit=0)
+CASE b_signed
+   open = 0
+   read_image = 0
+   get_metadata = 0
+   meta_flags = 0
+   image = {'w': 4, 'h': 4, 'bitsAllocated': 16, 'bitsStored': 16, 'format': 0, 'dataSize': 32}
+   pixels[:16] = [32768, 64536, 65535, 0, 1, 1000, 32767, 65534, 5, 65531, 100, 65436, 2, 65533, 3, 65532]
+   expected    = [32768, 64536, 65535, 0, 1, 1000, 32767, 65534, 5, 65531, 100, 65436, 2, 65533, 3, 65532]
+   raw-identical-to-expected-words: True
+  (exit=0)
+CASE c_monochrome1
+   open = 0
+   read_image = 0
+   get_metadata = 0
+   meta_flags = 0
+   image = {'w': 4, 'h': 4, 'bitsAllocated': 16, 'bitsStored': 16, 'format': 0, 'dataSize': 32}
+   pixels[:16] = [0, 1, 100, 1000, 4095, 4096, 20000, 32767, 32768, 40000, 50000, 60000, 65000, 65534, 65535, 12345]
+   expected    = [65535, 65534, 65435, 64535, 61440, 61439, 45535, 32768, 32767, 25535, 15535, 5535, 535, 1, 0, 53190]
+   raw-identical-to-expected-words: False
+  (exit=0)
+CASE d_rescale
+   open = 0
+   read_image = 0
+   get_metadata = 0
+   meta_flags = 0
+   image = {'w': 4, 'h': 4, 'bitsAllocated': 16, 'bitsStored': 16, 'format': 0, 'dataSize': 32}
+   pixels[:16] = [0, 1, 100, 1000, 4095, 4096, 20000, 32767, 32768, 40000, 50000, 60000, 65000, 65534, 65535, 12345]
+   expected    = [64512, 64514, 64712, 976, 7166, 7168, 38976, 64510, 64512, 13440, 33440, 53440, 63440, 64508, 64510, 23666]
+   raw-identical-to-expected-words: False
+  (exit=0)
+CASE e_multiframe
+   open = 0
+   read_image = 0
+   get_metadata = 0
+   meta_flags = 0
+   image = {'w': 4, 'h': 4, 'bitsAllocated': 16, 'bitsStored': 16, 'format': 0, 'dataSize': 32}
+   pixels[:16] = [0, 1, 100, 1000, 4095, 4096, 20000, 32767, 32768, 40000, 50000, 60000, 65000, 65534, 65535, 12345]
+   expected    = [0, 1, 100, 1000, 4095, 4096, 20000, 32767, 32768, 40000, 50000, 60000, 65000, 65534, 65535, 12345]
+   raw-identical-to-expected-words: True
+  (exit=0)
+CASE f_rgb8
+   open = 0
+   read_image = 0
+   get_metadata = 0
+   meta_flags = 0
+   image = {'w': 4, 'h': 4, 'bitsAllocated': 8, 'bitsStored': 8, 'format': 0, 'dataSize': 32}
+   pixels[:16] = [256, 770, 1284, 1798, 2312, 2826, 3340, 3854, 4368, 4882, 5396, 5910, 6424, 6938, 7452, 7966]
+  (exit=0)
+[2026-10-02 01:32:35.711] [error] [DicomReader] PixelData is short: 4x4 declares 32 bytes, file carries 16 bytes
+CASE g_gray8
+   open = 0
+   read_image = -13
+   get_metadata = 0
+   meta_flags = 0
+  (exit=0)
+CASE h_12bit_high_garbage
+   open = 0
+   read_image = 0
+   get_metadata = 0
+   meta_flags = 0
+   image = {'w': 4, 'h': 4, 'bitsAllocated': 16, 'bitsStored': 12, 'format': 0, 'dataSize': 32}
+   pixels[:16] = [61440, 61441, 61540, 62440, 65535, 61440, 65056, 65535, 0, 3136, 848, 2656, 3560, 4094, 4095, 57]
+   expected    = [0, 1, 100, 1000, 4095, 0, 3616, 4095, 0, 3136, 848, 2656, 3560, 4094, 4095, 57]
+   raw-identical-to-expected-words: False
+  (exit=0)
