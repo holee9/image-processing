@@ -234,6 +234,22 @@ jobs:
             $ranCounts += $ran
             if ($code -ne 0) {
               ($out -split "`n" | Where-Object { $_ -match '^\[\s*FAILED\s*\]' }) | ForEach-Object { Write-Host "  $_" }
+              # The names alone did not say WHY (QA-B-183: the first sighting printed only the summary and the
+              # cause had to be reproduced locally). Print each failed test's own output, [ RUN ] .. [ FAILED ],
+              # capped so one runaway test cannot flood the log.
+              $lines = $out -split "`n"
+              $block = $null
+              foreach ($l in $lines) {
+                if ($l -match '^\[\s*RUN\s*\]') { $block = New-Object System.Collections.Generic.List[string] }
+                if ($null -ne $block) { $block.Add($l) }
+                if ($null -ne $block -and $l -match '^\[\s*FAILED\s*\]\s+\S+\s+\(') {
+                  Write-Host "  ---- failed test output ----"
+                  $block | Select-Object -First 60 | ForEach-Object { Write-Host "  | $_" }
+                  if ($block.Count -gt 60) { Write-Host ("  | ... {0} more line(s) cut" -f ($block.Count - 60)) }
+                  $block = $null
+                }
+                if ($null -ne $block -and $l -match '^\[\s*OK\s*\]') { $block = $null }
+              }
               $bad++
             }
           }
@@ -374,6 +390,22 @@ jobs:
             if ($ran -le 0) { Write-Error ("{0}: ran {1} tests - a run that executes nothing is not a pass" -f $exe.Name, $ran); $bad++; continue }
             if ($code -ne 0) {
               ($out -split "`n" | Where-Object { $_ -match '^\[\s*FAILED\s*\]' }) | ForEach-Object { Write-Host "  $_" }
+              # The names alone did not say WHY (QA-B-183: the first sighting printed only the summary and the
+              # cause had to be reproduced locally). Print each failed test's own output, [ RUN ] .. [ FAILED ],
+              # capped so one runaway test cannot flood the log.
+              $lines = $out -split "`n"
+              $block = $null
+              foreach ($l in $lines) {
+                if ($l -match '^\[\s*RUN\s*\]') { $block = New-Object System.Collections.Generic.List[string] }
+                if ($null -ne $block) { $block.Add($l) }
+                if ($null -ne $block -and $l -match '^\[\s*FAILED\s*\]\s+\S+\s+\(') {
+                  Write-Host "  ---- failed test output ----"
+                  $block | Select-Object -First 60 | ForEach-Object { Write-Host "  | $_" }
+                  if ($block.Count -gt 60) { Write-Host ("  | ... {0} more line(s) cut" -f ($block.Count - 60)) }
+                  $block = $null
+                }
+                if ($null -ne $block -and $l -match '^\[\s*OK\s*\]') { $block = $null }
+              }
               $bad++
             }
           }
