@@ -254,7 +254,7 @@ TEST_F(VerifyMetricsTest, VerifyGain_PerfectFlatField) {
     XpeCalibrationMetrics metrics{};
     std::memset(&metrics, 0, sizeof(metrics));
 
-    XpeErrorCode rc = xpe_verify_gain(&before_gain.buf, &after_gain.buf, &gain_map.buf, &metrics);
+    XpeErrorCode rc = xpe_verify_gain(&before_gain.buf, &after_gain.buf, &gain_map.buf, XPE_GAIN_SEMANTICS_UNKNOWN, &metrics);
 
     ASSERT_EQ(rc, XPE_OK) << "Verify gain should succeed";
 
@@ -301,7 +301,7 @@ TEST_F(VerifyMetricsTest, VerifyGain_DetectsBadGain) {
     XpeCalibrationMetrics metrics{};
     std::memset(&metrics, 0, sizeof(metrics));
 
-    XpeErrorCode rc = xpe_verify_gain(&before_gain.buf, &after_gain.buf, &gain_map.buf, &metrics);
+    XpeErrorCode rc = xpe_verify_gain(&before_gain.buf, &after_gain.buf, &gain_map.buf, XPE_GAIN_SEMANTICS_UNKNOWN, &metrics);
 
     ASSERT_EQ(rc, XPE_OK) << "Verify gain should succeed even with bad gain map";
 
@@ -593,7 +593,7 @@ TEST_F(VerifyMetricsTest, VerifyGain_FlatResidualUsesTheArithmeticMean) {
 
     XpeCalibrationMetrics m{};
     std::memset(&m, 0, sizeof(m));
-    ASSERT_EQ(XPE_OK, xpe_verify_gain(&before.buf, &after.buf, &gain.buf, &m));
+    ASSERT_EQ(XPE_OK, xpe_verify_gain(&before.buf, &after.buf, &gain.buf, XPE_GAIN_SEMANTICS_UNKNOWN, &m));
 
     EXPECT_NEAR(0.9569, m.prnu_after, 0.0050)
         << "FlatResidualPct must be std/mean*100 about the arithmetic mean; "
@@ -670,7 +670,7 @@ TEST_F(VerifyMetricsTest, VerifyGain_ImprovedButStillAboveOnePercentFails) {
 
     XpeCalibrationMetrics m{};
     std::memset(&m, 0, sizeof(m));
-    ASSERT_EQ(XPE_OK, xpe_verify_gain(&raw.buf, &corrected.buf, &gain.buf, &m));
+    ASSERT_EQ(XPE_OK, xpe_verify_gain(&raw.buf, &corrected.buf, &gain.buf, XPE_GAIN_SEMANTICS_UNKNOWN, &m));
 
     // The relative axes are satisfied -- this is what used to carry the pass.
     EXPECT_LT(m.prnu_after, m.prnu_before) << "PRNU must actually improve";
@@ -796,13 +796,13 @@ TEST_F(VerifyMetricsTest, VerifyMetrics_NullInput) {
               XPE_ERR_INVALID_INPUT) << "Null metrics should return INVALID_INPUT";
 
     // Test xpe_verify_gain with null
-    EXPECT_EQ(xpe_verify_gain(nullptr, &final.buf, &gain_map.buf, &metrics),
+    EXPECT_EQ(xpe_verify_gain(nullptr, &final.buf, &gain_map.buf, XPE_GAIN_SEMANTICS_UNKNOWN, &metrics),
               XPE_ERR_INVALID_INPUT) << "Null before_gain should return INVALID_INPUT";
 
-    EXPECT_EQ(xpe_verify_gain(&raw.buf, nullptr, &gain_map.buf, &metrics),
+    EXPECT_EQ(xpe_verify_gain(&raw.buf, nullptr, &gain_map.buf, XPE_GAIN_SEMANTICS_UNKNOWN, &metrics),
               XPE_ERR_INVALID_INPUT) << "Null after_gain should return INVALID_INPUT";
 
-    EXPECT_EQ(xpe_verify_gain(&raw.buf, &final.buf, &gain_map.buf, nullptr),
+    EXPECT_EQ(xpe_verify_gain(&raw.buf, &final.buf, &gain_map.buf, XPE_GAIN_SEMANTICS_UNKNOWN, nullptr),
               XPE_ERR_INVALID_INPUT) << "Null metrics should return INVALID_INPUT";
 
     // Test xpe_verify_defect with null

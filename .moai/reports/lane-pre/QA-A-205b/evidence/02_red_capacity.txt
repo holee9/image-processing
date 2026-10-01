@@ -1,0 +1,607 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomPipeline.TheOutputCap*:OomPipeline.ABatchChecks*:OomPipeline.AFrameWhose*:OomPipeline.TheFrameCopied*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from OomPipeline
+[ RUN      ] OomPipeline.TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims
+[       OK ] OomPipeline.TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims (8 ms)
+[ RUN      ] OomPipeline.TheOutputCapacityMustHoldTheWholeFinalFrame
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(953): error: Expected equality of these values:
+  -8
+  rc
+    Which is: 0
+the result does not fit in the claimed size
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_ex / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(955): error: Expected equality of these values:
+  0u
+    Which is: 0
+  f.meta.flags
+    Which is: 8364
+a refused call must not claim a stage ran
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_ex / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(956): error: Expected equality of these values:
+  XPE_PIXEL_UINT16
+    Which is: 0
+  f.img.format
+    Which is: 1
+a refused call must not change the format
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_ex / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(957): error: Expected equality of these values:
+  16u
+    Which is: 16
+  f.img.bitsAllocated
+    Which is: 32
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_ex / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(953): error: Expected equality of these values:
+  -8
+  rc
+    Which is: 0
+the result does not fit in the claimed size
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 32
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_ex / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(954): error: Expected equality of these values:
+  f.before
+    Which is: { '\xE8' (232), '\x3' (3), '\r' (13, 0xD), '\x4' (4), '2' (50, 0x32), '\x4' (4), 'W' (87, 0x57), '\x4' (4), '|' (124, 0x7C), '\x4' (4), '\xA1' (161), '\x4' (4), '\xC6' (198), '\x4' (4), '\xEB' (235), '\x4' (4), '\x10' (16), '\x5' (5), '\t' (9), '\x4' (4), '.' (46, 0x2E), '\x4' (4), 'S' (83, 0x53), '\x4' (4), 'x' (120, 0x78), '\x4' (4), '\x9D' (157), '\x4' (4), '\xC2' (194), '\x4' (4), '\xE7' (231), '\x4' (4), ... }
+  f.bytes
+    Which is: { '\0', '\0', '\xD8' (216), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE0' (224), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE9' (233), 'B' (66, 0x42), '\0', '\xC0' (192), '\xF2' (242), 'B' (66, 0x42), '\0', '\x80' (128), '\xFB' (251), 'B' (66, 0x42), '\0', '`' (96, 0x60), '\xF2' (242), 'B' (66, 0x42), '\0', '\xC0' (192), '\x6' (6), 'C' (67, 0x43), '\0', ' ' (32, 0x20), '\v' (11, 0xB), 'C' (67, 0x43), ... }
+a refused call must not write a partial frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 32
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_ex / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(955): error: Expected equality of these values:
+  0u
+    Which is: 0
+  f.meta.flags
+    Which is: 8364
+a refused call must not claim a stage ran
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 32
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_ex / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(956): error: Expected equality of these values:
+  XPE_PIXEL_UINT16
+    Which is: 0
+  f.img.format
+    Which is: 1
+a refused call must not change the format
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 32
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_ex / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(957): error: Expected equality of these values:
+  16u
+    Which is: 16
+  f.img.bitsAllocated
+    Which is: 32
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 32
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_ex / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(953): error: Expected equality of these values:
+  -8
+  rc
+    Which is: 0
+the result does not fit in the claimed size
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 63
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_ex / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(954): error: Expected equality of these values:
+  f.before
+    Which is: { '\xE8' (232), '\x3' (3), '\r' (13, 0xD), '\x4' (4), '2' (50, 0x32), '\x4' (4), 'W' (87, 0x57), '\x4' (4), '|' (124, 0x7C), '\x4' (4), '\xA1' (161), '\x4' (4), '\xC6' (198), '\x4' (4), '\xEB' (235), '\x4' (4), '\x10' (16), '\x5' (5), '\t' (9), '\x4' (4), '.' (46, 0x2E), '\x4' (4), 'S' (83, 0x53), '\x4' (4), 'x' (120, 0x78), '\x4' (4), '\x9D' (157), '\x4' (4), '\xC2' (194), '\x4' (4), '\xE7' (231), '\x4' (4), ... }
+  f.bytes
+    Which is: { '\0', '\0', '\xD8' (216), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE0' (224), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE9' (233), 'B' (66, 0x42), '\0', '\xC0' (192), '\xF2' (242), 'B' (66, 0x42), '\0', '\x80' (128), '\xFB' (251), 'B' (66, 0x42), '\0', '`' (96, 0x60), '\xF2' (242), 'B' (66, 0x42), '\0', '\xC0' (192), '\x6' (6), 'C' (67, 0x43), '\0', ' ' (32, 0x20), '\v' (11, 0xB), 'C' (67, 0x43), ... }
+a refused call must not write a partial frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 63
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_ex / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(955): error: Expected equality of these values:
+  0u
+    Which is: 0
+  f.meta.flags
+    Which is: 8364
+a refused call must not claim a stage ran
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 63
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_ex / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(956): error: Expected equality of these values:
+  XPE_PIXEL_UINT16
+    Which is: 0
+  f.img.format
+    Which is: 1
+a refused call must not change the format
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 63
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_ex / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(957): error: Expected equality of these values:
+  16u
+    Which is: 16
+  f.img.bitsAllocated
+    Which is: 32
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 63
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_ex / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(953): error: Expected equality of these values:
+  -8
+  rc
+    Which is: 0
+the result does not fit in the claimed size
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_ex / uint16 result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(955): error: Expected equality of these values:
+  0u
+    Which is: 0
+  f.meta.flags
+    Which is: 8224
+a refused call must not claim a stage ran
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_ex / uint16 result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(953): error: Expected equality of these values:
+  -8
+  rc
+    Which is: 0
+the result does not fit in the claimed size
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(955): error: Expected equality of these values:
+  0u
+    Which is: 0
+  f.meta.flags
+    Which is: 8364
+a refused call must not claim a stage ran
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(956): error: Expected equality of these values:
+  XPE_PIXEL_UINT16
+    Which is: 0
+  f.img.format
+    Which is: 1
+a refused call must not change the format
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(957): error: Expected equality of these values:
+  16u
+    Which is: 16
+  f.img.bitsAllocated
+    Which is: 32
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(953): error: Expected equality of these values:
+  -8
+  rc
+    Which is: 0
+the result does not fit in the claimed size
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 32
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(954): error: Expected equality of these values:
+  f.before
+    Which is: { '\xE8' (232), '\x3' (3), '\r' (13, 0xD), '\x4' (4), '2' (50, 0x32), '\x4' (4), 'W' (87, 0x57), '\x4' (4), '|' (124, 0x7C), '\x4' (4), '\xA1' (161), '\x4' (4), '\xC6' (198), '\x4' (4), '\xEB' (235), '\x4' (4), '\x10' (16), '\x5' (5), '\t' (9), '\x4' (4), '.' (46, 0x2E), '\x4' (4), 'S' (83, 0x53), '\x4' (4), 'x' (120, 0x78), '\x4' (4), '\x9D' (157), '\x4' (4), '\xC2' (194), '\x4' (4), '\xE7' (231), '\x4' (4), ... }
+  f.bytes
+    Which is: { '\0', '\0', '\xD8' (216), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE0' (224), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE9' (233), 'B' (66, 0x42), '\0', '\xC0' (192), '\xF2' (242), 'B' (66, 0x42), '\0', '\x80' (128), '\xFB' (251), 'B' (66, 0x42), '\0', '`' (96, 0x60), '\xF2' (242), 'B' (66, 0x42), '\0', '\xC0' (192), '\x6' (6), 'C' (67, 0x43), '\0', ' ' (32, 0x20), '\v' (11, 0xB), 'C' (67, 0x43), ... }
+a refused call must not write a partial frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 32
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(955): error: Expected equality of these values:
+  0u
+    Which is: 0
+  f.meta.flags
+    Which is: 8364
+a refused call must not claim a stage ran
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 32
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(956): error: Expected equality of these values:
+  XPE_PIXEL_UINT16
+    Which is: 0
+  f.img.format
+    Which is: 1
+a refused call must not change the format
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 32
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(957): error: Expected equality of these values:
+  16u
+    Which is: 16
+  f.img.bitsAllocated
+    Which is: 32
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 32
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(953): error: Expected equality of these values:
+  -8
+  rc
+    Which is: 0
+the result does not fit in the claimed size
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 63
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(954): error: Expected equality of these values:
+  f.before
+    Which is: { '\xE8' (232), '\x3' (3), '\r' (13, 0xD), '\x4' (4), '2' (50, 0x32), '\x4' (4), 'W' (87, 0x57), '\x4' (4), '|' (124, 0x7C), '\x4' (4), '\xA1' (161), '\x4' (4), '\xC6' (198), '\x4' (4), '\xEB' (235), '\x4' (4), '\x10' (16), '\x5' (5), '\t' (9), '\x4' (4), '.' (46, 0x2E), '\x4' (4), 'S' (83, 0x53), '\x4' (4), 'x' (120, 0x78), '\x4' (4), '\x9D' (157), '\x4' (4), '\xC2' (194), '\x4' (4), '\xE7' (231), '\x4' (4), ... }
+  f.bytes
+    Which is: { '\0', '\0', '\xD8' (216), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE0' (224), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE9' (233), 'B' (66, 0x42), '\0', '\xC0' (192), '\xF2' (242), 'B' (66, 0x42), '\0', '\x80' (128), '\xFB' (251), 'B' (66, 0x42), '\0', '`' (96, 0x60), '\xF2' (242), 'B' (66, 0x42), '\0', '\xC0' (192), '\x6' (6), 'C' (67, 0x43), '\0', ' ' (32, 0x20), '\v' (11, 0xB), 'C' (67, 0x43), ... }
+a refused call must not write a partial frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 63
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(955): error: Expected equality of these values:
+  0u
+    Which is: 0
+  f.meta.flags
+    Which is: 8364
+a refused call must not claim a stage ran
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 63
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(956): error: Expected equality of these values:
+  XPE_PIXEL_UINT16
+    Which is: 0
+  f.img.format
+    Which is: 1
+a refused call must not change the format
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 63
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(957): error: Expected equality of these values:
+  16u
+    Which is: 16
+  f.img.bitsAllocated
+    Which is: 32
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 63
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(953): error: Expected equality of these values:
+  -8
+  rc
+    Which is: 0
+the result does not fit in the claimed size
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline / uint16 result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(955): error: Expected equality of these values:
+  0u
+    Which is: 0
+  f.meta.flags
+    Which is: 8224
+a refused call must not claim a stage ran
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline / uint16 result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(953): error: Expected equality of these values:
+  -8
+  rc
+    Which is: 0
+the result does not fit in the claimed size
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_batch / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(955): error: Expected equality of these values:
+  0u
+    Which is: 0
+  f.meta.flags
+    Which is: 8364
+a refused call must not claim a stage ran
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_batch / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(956): error: Expected equality of these values:
+  XPE_PIXEL_UINT16
+    Which is: 0
+  f.img.format
+    Which is: 1
+a refused call must not change the format
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_batch / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(957): error: Expected equality of these values:
+  16u
+    Which is: 16
+  f.img.bitsAllocated
+    Which is: 32
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_batch / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(953): error: Expected equality of these values:
+  -8
+  rc
+    Which is: 0
+the result does not fit in the claimed size
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 32
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_batch / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(954): error: Expected equality of these values:
+  f.before
+    Which is: { '\xE8' (232), '\x3' (3), '\r' (13, 0xD), '\x4' (4), '2' (50, 0x32), '\x4' (4), 'W' (87, 0x57), '\x4' (4), '|' (124, 0x7C), '\x4' (4), '\xA1' (161), '\x4' (4), '\xC6' (198), '\x4' (4), '\xEB' (235), '\x4' (4), '\x10' (16), '\x5' (5), '\t' (9), '\x4' (4), '.' (46, 0x2E), '\x4' (4), 'S' (83, 0x53), '\x4' (4), 'x' (120, 0x78), '\x4' (4), '\x9D' (157), '\x4' (4), '\xC2' (194), '\x4' (4), '\xE7' (231), '\x4' (4), ... }
+  f.bytes
+    Which is: { '\0', '\0', '\xD8' (216), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE0' (224), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE9' (233), 'B' (66, 0x42), '\0', '\xC0' (192), '\xF2' (242), 'B' (66, 0x42), '\0', '\x80' (128), '\xFB' (251), 'B' (66, 0x42), '\0', '`' (96, 0x60), '\xF2' (242), 'B' (66, 0x42), '\0', '\xC0' (192), '\x6' (6), 'C' (67, 0x43), '\0', ' ' (32, 0x20), '\v' (11, 0xB), 'C' (67, 0x43), ... }
+a refused call must not write a partial frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 32
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_batch / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(955): error: Expected equality of these values:
+  0u
+    Which is: 0
+  f.meta.flags
+    Which is: 8364
+a refused call must not claim a stage ran
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 32
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_batch / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(956): error: Expected equality of these values:
+  XPE_PIXEL_UINT16
+    Which is: 0
+  f.img.format
+    Which is: 1
+a refused call must not change the format
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 32
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_batch / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(957): error: Expected equality of these values:
+  16u
+    Which is: 16
+  f.img.bitsAllocated
+    Which is: 32
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 32
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_batch / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(953): error: Expected equality of these values:
+  -8
+  rc
+    Which is: 0
+the result does not fit in the claimed size
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 63
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_batch / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(954): error: Expected equality of these values:
+  f.before
+    Which is: { '\xE8' (232), '\x3' (3), '\r' (13, 0xD), '\x4' (4), '2' (50, 0x32), '\x4' (4), 'W' (87, 0x57), '\x4' (4), '|' (124, 0x7C), '\x4' (4), '\xA1' (161), '\x4' (4), '\xC6' (198), '\x4' (4), '\xEB' (235), '\x4' (4), '\x10' (16), '\x5' (5), '\t' (9), '\x4' (4), '.' (46, 0x2E), '\x4' (4), 'S' (83, 0x53), '\x4' (4), 'x' (120, 0x78), '\x4' (4), '\x9D' (157), '\x4' (4), '\xC2' (194), '\x4' (4), '\xE7' (231), '\x4' (4), ... }
+  f.bytes
+    Which is: { '\0', '\0', '\xD8' (216), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE0' (224), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE9' (233), 'B' (66, 0x42), '\0', '\xC0' (192), '\xF2' (242), 'B' (66, 0x42), '\0', '\x80' (128), '\xFB' (251), 'B' (66, 0x42), '\0', '`' (96, 0x60), '\xF2' (242), 'B' (66, 0x42), '\0', '\xC0' (192), '\x6' (6), 'C' (67, 0x43), '\0', ' ' (32, 0x20), '\v' (11, 0xB), 'C' (67, 0x43), ... }
+a refused call must not write a partial frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 63
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_batch / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(955): error: Expected equality of these values:
+  0u
+    Which is: 0
+  f.meta.flags
+    Which is: 8364
+a refused call must not claim a stage ran
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 63
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_batch / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(956): error: Expected equality of these values:
+  XPE_PIXEL_UINT16
+    Which is: 0
+  f.img.format
+    Which is: 1
+a refused call must not change the format
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 63
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_batch / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(957): error: Expected equality of these values:
+  16u
+    Which is: 16
+  f.img.bitsAllocated
+    Which is: 32
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 63
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_batch / float result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(953): error: Expected equality of these values:
+  -8
+  rc
+    Which is: 0
+the result does not fit in the claimed size
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_batch / uint16 result
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(955): error: Expected equality of these values:
+  0u
+    Which is: 0
+  f.meta.flags
+    Which is: 8224
+a refused call must not claim a stage ran
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(947): 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(936): xpe_preprocess_pipeline_batch / uint16 result
+
+[  FAILED  ] OomPipeline.TheOutputCapacityMustHoldTheWholeFinalFrame (13 ms)
+[ RUN      ] OomPipeline.ABatchChecksTheRoomOfEachFrameAndCarriesOnPastARefusal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(995): error: Expected equality of these values:
+  -8
+  rc
+    Which is: 0
+the first error is reported
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(996): error: Expected equality of these values:
+  tight.before
+    Which is: { '\xE8' (232), '\x3' (3), '\r' (13, 0xD), '\x4' (4), '2' (50, 0x32), '\x4' (4), 'W' (87, 0x57), '\x4' (4), '|' (124, 0x7C), '\x4' (4), '\xA1' (161), '\x4' (4), '\xC6' (198), '\x4' (4), '\xEB' (235), '\x4' (4), '\x10' (16), '\x5' (5), '\t' (9), '\x4' (4), '.' (46, 0x2E), '\x4' (4), 'S' (83, 0x53), '\x4' (4), 'x' (120, 0x78), '\x4' (4), '\x9D' (157), '\x4' (4), '\xC2' (194), '\x4' (4), '\xE7' (231), '\x4' (4), ... }
+  tight.bytes
+    Which is: { '\0', '\0', '\xD8' (216), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE0' (224), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE9' (233), 'B' (66, 0x42), '\0', '\xC0' (192), '\xF2' (242), 'B' (66, 0x42), '\0', '\x80' (128), '\xFB' (251), 'B' (66, 0x42), '\0', '`' (96, 0x60), '\xF2' (242), 'B' (66, 0x42), '\0', '\xC0' (192), '\x6' (6), 'C' (67, 0x43), '\0', ' ' (32, 0x20), '\v' (11, 0xB), 'C' (67, 0x43), ... }
+the refused frame is untouched
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(997): error: Expected equality of these values:
+  0u
+    Which is: 0
+  metas[0].flags
+    Which is: 8364
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(998): error: Expected equality of these values:
+  XPE_PIXEL_UINT16
+    Which is: 0
+  imgs[0].format
+    Which is: 1
+
+[  FAILED  ] OomPipeline.ABatchChecksTheRoomOfEachFrameAndCarriesOnPastARefusal (2 ms)
+[ RUN      ] OomPipeline.AFrameWhoseByteCountDoesNotFitInSizeTIsRefusedBeforeItIsRead
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1046): error: Expected equality of these values:
+  -1
+  rc
+    Which is: -3
+a count that does not fit, or an empty frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1027): xpe_preprocess_pipeline_ex / w*h*2 wraps (the shape Codex #29 names) / claim 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1046): error: Expected equality of these values:
+  -1
+  rc
+    Which is: -2
+a count that does not fit, or an empty frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1027): xpe_preprocess_pipeline_ex / w*h*2 fits, w*h*4 wraps / claim 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1046): error: Expected equality of these values:
+  -1
+  rc
+    Which is: -3
+a count that does not fit, or an empty frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1027): xpe_preprocess_pipeline_ex / w*h itself is 2^64-2^33+1 / claim 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1043): error: Expected equality of these values:
+  claim == 0 ? -8 : -1
+    Which is: -8
+  rc
+    Which is: -2
+control: a count that fits is judged by the size the caller gave
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1027): xpe_preprocess_pipeline_ex / largest-ish shape that fits / claim 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1046): error: Expected equality of these values:
+  -1
+  rc
+    Which is: -3
+a count that does not fit, or an empty frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1027): xpe_preprocess_pipeline / w*h*2 wraps (the shape Codex #29 names) / claim 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1046): error: Expected equality of these values:
+  -1
+  rc
+    Which is: -2
+a count that does not fit, or an empty frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1027): xpe_preprocess_pipeline / w*h*2 fits, w*h*4 wraps / claim 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1046): error: Expected equality of these values:
+  -1
+  rc
+    Which is: -3
+a count that does not fit, or an empty frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1027): xpe_preprocess_pipeline / w*h itself is 2^64-2^33+1 / claim 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1043): error: Expected equality of these values:
+  claim == 0 ? -8 : -1
+    Which is: -8
+  rc
+    Which is: -2
+control: a count that fits is judged by the size the caller gave
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1027): xpe_preprocess_pipeline / largest-ish shape that fits / claim 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1046): error: Expected equality of these values:
+  -1
+  rc
+    Which is: -3
+a count that does not fit, or an empty frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1027): xpe_preprocess_pipeline_batch / w*h*2 wraps (the shape Codex #29 names) / claim 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1046): error: Expected equality of these values:
+  -1
+  rc
+    Which is: -2
+a count that does not fit, or an empty frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1027): xpe_preprocess_pipeline_batch / w*h*2 fits, w*h*4 wraps / claim 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1046): error: Expected equality of these values:
+  -1
+  rc
+    Which is: -3
+a count that does not fit, or an empty frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1027): xpe_preprocess_pipeline_batch / w*h itself is 2^64-2^33+1 / claim 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1043): error: Expected equality of these values:
+  claim == 0 ? -8 : -1
+    Which is: -8
+  rc
+    Which is: -2
+control: a count that fits is judged by the size the caller gave
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1027): xpe_preprocess_pipeline_batch / largest-ish shape that fits / claim 0
+
+[  FAILED  ] OomPipeline.AFrameWhoseByteCountDoesNotFitInSizeTIsRefusedBeforeItIsRead (10 ms)
+[----------] 4 tests from OomPipeline (35 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (35 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] OomPipeline.TheOutputCapacityMustHoldTheWholeFinalFrame
+[  FAILED  ] OomPipeline.ABatchChecksTheRoomOfEachFrameAndCarriesOnPastARefusal
+[  FAILED  ] OomPipeline.AFrameWhoseByteCountDoesNotFitInSizeTIsRefusedBeforeItIsRead
+
+ 3 FAILED TESTS

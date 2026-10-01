@@ -1,0 +1,10 @@
+probe: does the PIPELINE CONFIGURATION read the first occurrence of a key, nested objects included?
+(unchanged by QA-A-208 -- xpe_json_get_string; the XCal quality fields use xpe_json_top_level_scalar)
+
+init rc = 0
+control 1: everything bypassed, bypassGain true at the top level                                -> rc 0, format 0
+control 2: bypassGain false at the top level (the gain stage runs; no calibration is loaded)    -> rc -16, format 0
+probe: a nested object with bypassGain true comes first, top level says false                   -> rc 0, format 0
+
+controls hold: bypassGain true -> OK; bypassGain false -> the gain stage ran and failed (rc -16)
+RESULT: the nested "bypassGain":true was read and the top-level false was ignored -- first occurrence wins.

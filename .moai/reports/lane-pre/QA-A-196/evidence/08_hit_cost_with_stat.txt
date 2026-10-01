@@ -1,0 +1,6 @@
+[a193t] miss: 70.1 ms
+[a193t] hit (30 calls): median 6.84 ms, min 6.50 ms, max 7.66 ms
+[a193t] miss: 69.3 ms
+[a193t] hit (30 calls): median 6.79 ms, min 6.46 ms, max 7.88 ms
+[a193t] miss: 74.0 ms
+[a193t] hit (30 calls): median 6.77 ms, min 6.52 ms, max 7.09 ms

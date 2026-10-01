@@ -1,0 +1,65 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 13 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 13 tests from OomInjection
+[ RUN      ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader
+[       OK ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader (10 ms)
+[ RUN      ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain                            7 allocation points covered
+[       OK ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched (3 ms)
+[ RUN      ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_offset                          5 allocation points covered
+[       OK ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_defect_map                      5 allocation points covered
+[       OK ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, range)        7 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, no range)     7 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(201): error: Value of: escaped
+  Actual: true
+Expected: false
+xpe_calib_load_gain_cached (miss): an exception left the C ABI function when allocation #9 failed
+
+[  FAILED  ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping (2 ms)
+[ RUN      ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_gain_cached (polynomial)        8 allocation points covered
+[       OK ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping (3 ms)
+[ RUN      ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(201): error: Value of: escaped
+  Actual: true
+Expected: false
+xpe_calib_load_offset_cached (miss): an exception left the C ABI function when allocation #7 failed
+
+[  FAILED  ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping (2 ms)
+[ RUN      ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(201): error: Value of: escaped
+  Actual: true
+Expected: false
+xpe_calib_load_defect_cached (miss): an exception left the C ABI function when allocation #7 failed
+
+[  FAILED  ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping (2 ms)
+[ RUN      ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain_cached (hit)               2 allocation points covered
+[       OK ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_offset_cached (hit)             2 allocation points covered
+[       OK ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_defect_cached (hit)             2 allocation points covered
+[       OK ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched (1 ms)
+[----------] 13 tests from OomInjection (40 ms total)
+
+[----------] Global test environment tear-down
+[==========] 13 tests from 1 test suite ran. (40 ms total)
+[  PASSED  ] 10 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping
+[  FAILED  ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping
+[  FAILED  ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping
+
+ 3 FAILED TESTS

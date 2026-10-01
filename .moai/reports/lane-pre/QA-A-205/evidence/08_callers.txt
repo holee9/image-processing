@@ -1,0 +1,55 @@
+# callers of xpe_preprocess_pipeline* outside build output and reports (grep -rlE over .cs .cpp .h .c .py .ps1 .md .json)
+./.moai/project/api-spec.md
+./.moai/project/codemaps/entry-points.md
+./.moai/project/codemaps/modules.md
+./.moai/project/next-session-prep-calibration.md
+./.moai/specs/SPEC-XPE-MASTER/score-improvement-plan-85.md
+./.moai/specs/SPEC-XPE-P1A/spec.md
+./docs/calibration/KNOWLEDGE-BASE.md
+./docs/calibration/SRS-CALIB-001_Software_Requirements_Specification.md
+./docs/project/api-spec.md
+./docs/project/sprint-plan.md
+./modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h
+./modules/preprocess/include/xpe/preprocess_api.h
+./modules/preprocess/src/pipeline.cpp
+./modules/preprocess/tests/test_calib_fixture_gen.cpp
+./modules/preprocess/tests/test_config_strict_parse.cpp
+./modules/preprocess/tests/test_error_precedence.cpp
+./modules/preprocess/tests/test_json_helpers.cpp
+./modules/preprocess/tests/test_nonlin_lut_apply.cpp
+./modules/preprocess/tests/test_nonlin_no_mode_rejection.cpp
+./modules/preprocess/tests/test_oom_injection.cpp
+./modules/preprocess/tests/test_pipeline_ex.cpp
+./modules/preprocess/tests/test_pipeline_stages.cpp
+./modules/preprocess/tests/test_pipeline_stage_values.cpp
+
+# clients/ and gui/ .cs: pipeline P/Invoke or dataSize passed to native
+(no output above this line = no .cs caller of the pipeline entry points)
+
+# how the client builds the buffers it does pass (stage functions only)
+        private static XpeCommonApi.XpeImageBuffer CreateBuffer(
+            int width,
+            int height,
+            XpeCommonApi.XpePixelFormat format,
+            int dataSize)
+        {
+            return new XpeCommonApi.XpeImageBuffer
+            {
+                Width = checked((uint)width),
+                Height = checked((uint)height),
+                BitsAllocated = format switch
+                {
+                    XpeCommonApi.XpePixelFormat.UInt8 => 8u,
+                    XpeCommonApi.XpePixelFormat.UInt16 => 16u,
+                    _ => 32u,
+                },
+                BitsStored = format switch
+                {
+                    XpeCommonApi.XpePixelFormat.UInt8 => 8u,
+                    XpeCommonApi.XpePixelFormat.UInt16 => 16u,
+                    _ => 32u,
+                },
+                Format = format,
+                DataSize = (nuint)dataSize
+            };
+        }

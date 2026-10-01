@@ -1,0 +1,86 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 18 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 18 tests from OomInjection
+[ RUN      ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader
+[       OK ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader (9 ms)
+[ RUN      ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain                            7 allocation points covered
+[       OK ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched (7 ms)
+[ RUN      ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_offset                          6 allocation points covered
+[       OK ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_defect_map                      6 allocation points covered
+[       OK ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, range)        7 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, no range)     7 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_gain_cached (miss)             17 allocation points covered
+[       OK ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping (3 ms)
+[ RUN      ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_gain_cached (polynomial)        9 allocation points covered
+[       OK ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping (2 ms)
+[ RUN      ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_offset_cached (miss)           16 allocation points covered
+[       OK ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping (3 ms)
+[ RUN      ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_defect_cached (miss)           16 allocation points covered
+[       OK ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping (3 ms)
+[ RUN      ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain_cached (hit)               3 allocation points covered
+[       OK ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_offset_cached (hit)             4 allocation points covered
+[       OK ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_defect_cached (hit)             4 allocation points covered
+[       OK ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.AnOffsetCorrectionAllocatesNothing
+[       OK ] OomInjection.AnOffsetCorrectionAllocatesNothing (0 ms)
+[ RUN      ] OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree
+[sweep] xpe_defect_correct                             6 allocation points covered
+[       OK ] OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree (1 ms)
+[ RUN      ] OomInjection.AGhostCreationThatIsRefusedLeavesNoBlocksBehind
+[       OK ] OomInjection.AGhostCreationThatIsRefusedLeavesNoBlocksBehind (0 ms)
+[ RUN      ] OomInjection.ADefectCorrectionDoesNotCopyTheMap
+[       OK ] OomInjection.ADefectCorrectionDoesNotCopyTheMap (0 ms)
+[ RUN      ] OomInjection.AHitJudgesTheExpiryAfterTheOpenCheckNotBefore
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(522): error: Expected equality of these values:
+  -5
+  rc
+    Which is: 0
+the clock must be read after the open check, not before it
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(507): offset
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(522): error: Expected equality of these values:
+  -5
+  rc
+    Which is: 0
+the clock must be read after the open check, not before it
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(507): gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(522): error: Expected equality of these values:
+  -5
+  rc
+    Which is: 0
+the clock must be read after the open check, not before it
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(507): defect
+
+[  FAILED  ] OomInjection.AHitJudgesTheExpiryAfterTheOpenCheckNotBefore (2748 ms)
+[----------] 18 tests from OomInjection (2798 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 1 test suite ran. (2798 ms total)
+[  PASSED  ] 17 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OomInjection.AHitJudgesTheExpiryAfterTheOpenCheckNotBefore
+
+ 1 FAILED TEST

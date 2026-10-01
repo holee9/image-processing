@@ -1,0 +1,5 @@
+ARM B1_no_kind_check (BUILD_EXIT=0, exit=1): AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+ARM B2_kind_mismatch_evicts_owner (BUILD_EXIT=0, exit=1): AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+ARM B3_no_stamp_compare (BUILD_EXIT=0, exit=1): AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss AFileWhoseWriteTimeChangedIsReloaded AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime AHeaderCorruptedAfterCachingIsRefusedLikeAMiss
+ARM B4_hit_keeps_polynomial (BUILD_EXIT=0, exit=0):
+ARM B4/B4b (polynomial fields not cleared by a scalar hit): BUILD_EXIT=0, all tests green in both variants (08_arm_run_B4*.txt) — NOT discriminating; stale polynomial is unobservable through xpe_gain_correct

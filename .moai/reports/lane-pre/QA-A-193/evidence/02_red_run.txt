@@ -1,0 +1,73 @@
+Note: Google Test filter = CacheGlobalStore.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from CacheGlobalStore
+[ RUN      ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_global_store.cpp(134): error: Expected equality of these values:
+  900u
+    Which is: 900
+  px
+    Which is: 700
+after the hit the store must hold A (1000 - 100), not B
+
+[  FAILED  ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore (7 ms)
+[ RUN      ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_global_store.cpp(152): error: The difference between 500.0f and px is 250, which exceeds 0.01f, where
+500.0f evaluates to 500,
+px evaluates to 250, and
+0.01f evaluates to 0.0099999997764825821.
+after the hit the store must hold A (1000 / 2), not B
+
+[  FAILED  ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore (7 ms)
+[ RUN      ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_global_store.cpp(170): error: The difference between 1000.0f and px is 4000, which exceeds 0.01f, where
+1000.0f evaluates to 1000,
+px evaluates to 5000, and
+0.01f evaluates to 0.0099999997764825821.
+after the hit the store must hold A, which repairs the spike at (1,1)
+
+[  FAILED  ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore (7 ms)
+[ RUN      ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_global_store.cpp(190): error: Expected equality of these values:
+  0
+  offsetCorrect(&o)
+    Which is: -16
+offset: a successful cached load after init must not leave CALIB_NOT_LOADED
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_global_store.cpp(191): error: Expected equality of these values:
+  0
+  gainCorrect(&g)
+    Which is: -16
+gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_global_store.cpp(192): error: Expected equality of these values:
+  0
+  defectCorrect(&d)
+    Which is: -16
+defect
+
+[  FAILED  ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse (6 ms)
+[ RUN      ] CacheGlobalStore.ShutdownEmptiesTheCache
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_global_store.cpp(208): error: Expected equality of these values:
+  300.0f
+    Which is: 300
+  static_cast<const float*>(after.data)[0]
+    Which is: 100
+api-spec.md section 6: a cache-owned view is valid until module shutdown, so a load after shutdown must read the file again (100 here means the old entry survived)
+
+[  FAILED  ] CacheGlobalStore.ShutdownEmptiesTheCache (5 ms)
+[ RUN      ] CacheGlobalStore.ACacheKeyIsThePathStringSoAChangedFileNeedsCacheClear
+[       OK ] CacheGlobalStore.ACacheKeyIsThePathStringSoAChangedFileNeedsCacheClear (3 ms)
+[----------] 6 tests from CacheGlobalStore (37 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (37 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 5 tests, listed below:
+[  FAILED  ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore
+[  FAILED  ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore
+[  FAILED  ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+[  FAILED  ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse
+[  FAILED  ] CacheGlobalStore.ShutdownEmptiesTheCache
+
+ 5 FAILED TESTS

@@ -98,10 +98,16 @@ namespace {
                                                     // snr_improvement_db (:348), not PRNU.
     constexpr double GAIN_COVERAGE_MIN   = 0.99;    // -- NO REQUIREMENT FOUND (scope above)
     constexpr double FLAT_RESIDUAL_MAX_PCT = 1.0;   // %. SRS-CALIB-FUNC-017: "Phase 1 acceptance
-                                                    // shall require FlatResidualPct <= 1.0%"
-                                                    // (target <= 0.5% for release hardening).
+                                                    // shall require FlatResidualPct <= 1.0%".
+                                                    // Applied when the gain semantics are unknown.
                                                     // The quantity is already computed as
                                                     // metrics->prnu_after -- see QA-A-154 note below.
+    constexpr double FLAT_RESIDUAL_KNOWN_MAX_PCT = 0.5;
+                                                    // %. SRS-CALIB-FUNC-017: "... and target <= 0.5%
+                                                    // for release-hardening fixtures where gain
+                                                    // semantics are known." Applied when the caller
+                                                    // passes normalized or reciprocal semantics
+                                                    // (SRS-CALIB-FUNC-018; decided 2026-10-01, #220).
 
     // Defect correction thresholds
     constexpr double DEFECT_DENSITY_MAX  = 5.0;     // %. SRS-CALIB-FUNC-003: "Maximum 5% defect
@@ -466,15 +472,26 @@ XPE_API XpeErrorCode xpe_verify_offset(
  * @param gain_map Gain map used (FLOAT32)
  * @param metrics Output metrics
  * @return XPE_OK on success
- *         XPE_ERR_INVALID_INPUT on NULL pointers or dimension mismatch
+ *         XPE_ERR_INVALID_INPUT on NULL pointers, an out-of-range gain_semantics, or a zero
+ *                               width or height
+ *         XPE_ERR_BUFFER_TOO_SMALL on dimension mismatch
+ *         XPE_ERR_UNSUPPORTED_FORMAT on format mismatch
  */
 XPE_API XpeErrorCode xpe_verify_gain(
     const XpeImageBuffer* before_gain,
     const XpeImageBuffer* after_gain,
     const XpeImageBuffer* gain_map,
+    XpeGainSemantics gain_semantics,
     XpeCalibrationMetrics* metrics)
 {
     if (!before_gain || !after_gain || !gain_map || !metrics) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+    // Any value outside XpeGainSemantics is a caller error, rejected before `metrics` is touched
+    // (REQ-P1A-005).
+    if (gain_semantics != XPE_GAIN_SEMANTICS_UNKNOWN &&
+        gain_semantics != XPE_GAIN_SEMANTICS_NORMALIZED &&
+        gain_semantics != XPE_GAIN_SEMANTICS_RECIPROCAL) {
         return XPE_ERR_INVALID_INPUT;
     }
 
@@ -487,16 +504,18 @@ XPE_API XpeErrorCode xpe_verify_gain(
         return XPE_ERR_BUFFER_TOO_SMALL;
     }
 
+    // A zero dimension is a caller error, not a format problem. xpe_buffer_has_format() rejects
+    // width or height 0, so this has to come first or the call reports UNSUPPORTED_FORMAT.
+    if (before_gain->width == 0 || before_gain->height == 0) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+
     // Validate formats
     size_t pixel_count = 0;
     if (!xpe_buffer_has_format(before_gain, XPE_PIXEL_UINT16, &pixel_count) ||
         !xpe_buffer_has_format(after_gain, XPE_PIXEL_FLOAT32) ||
         !xpe_buffer_has_format(gain_map, XPE_PIXEL_FLOAT32)) {
         return XPE_ERR_UNSUPPORTED_FORMAT;
-    }
-
-    if (pixel_count == 0) {
-        return XPE_ERR_INVALID_INPUT;
     }
 
     const uint16_t* before = static_cast<const uint16_t*>(before_gain->data);
@@ -584,7 +603,12 @@ XPE_API XpeErrorCode xpe_verify_gain(
      * would let a panel that is already flat-but-uncorrected pass, and
      * dropping this one lets a badly-corrected panel pass. They fail different
      * things. */
-    bool flat_residual_ok = (metrics->prnu_after <= FLAT_RESIDUAL_MAX_PCT);
+    // QA-A-192 (#220 section 3): the line the residual is held to depends on whether the caller knows
+    // what the gain map means. Known semantics -> 0.5%, unknown -> 1.0% (see the constants above).
+    const double flat_residual_limit = (gain_semantics == XPE_GAIN_SEMANTICS_UNKNOWN)
+        ? FLAT_RESIDUAL_MAX_PCT
+        : FLAT_RESIDUAL_KNOWN_MAX_PCT;
+    bool flat_residual_ok = (metrics->prnu_after <= flat_residual_limit);
 
     metrics->overall_pass = prnu_improved && coverage_ok && snr_improved && flat_residual_ok;
 

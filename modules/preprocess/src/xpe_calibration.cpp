@@ -26,5 +26,32 @@
 CalibrationData g_calib;
 std::mutex g_calib_mutex;
 
+CalibSnapshot xpe_calib_snapshot_locked() noexcept
+{
+    CalibSnapshot s;
+    s.initialized          = xpe_preprocess_is_initialized();
+    s.offset_map           = g_calib.offset_map;
+    s.offset_width         = g_calib.offset_width;
+    s.offset_height        = g_calib.offset_height;
+    s.gain_map             = g_calib.gain_map;
+    s.gain_poly_coeffs     = g_calib.gain_poly_coeffs;
+    s.gain_poly_num_coeffs = g_calib.gain_poly_num_coeffs;
+    s.gain_poly_has_range  = g_calib.gain_poly_has_range;
+    s.gain_poly_dose_min   = g_calib.gain_poly_dose_min;
+    s.gain_poly_dose_max   = g_calib.gain_poly_dose_max;
+    s.gain_width           = g_calib.gain_width;
+    s.gain_height          = g_calib.gain_height;
+    s.defect_map           = g_calib.defect_map;
+    s.defect_width         = g_calib.defect_width;
+    s.defect_height        = g_calib.defect_height;
+    return s;
+}
+
+CalibSnapshot xpe_calib_snapshot() noexcept
+{
+    std::lock_guard<std::mutex> lock(g_calib_mutex);
+    return xpe_calib_snapshot_locked();
+}
+
 // @MX:ANCHOR: [AUTO] Global calibration data shared across preprocessing algorithms
 // xpe_validate_readout_artifact is defined in readout_validate.cpp (legacy 4-arg API)

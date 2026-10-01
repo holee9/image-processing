@@ -1,0 +1,49 @@
+'vswhere.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+배치 파일이 아닙니다.
+Microsoft (R) COFF/PE Dumper Version 14.44.35228.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file build\ci-preprocess\bin\xpe_common.dll
+
+File Type: DLL
+
+  Section contains the following exports for xpe_common.dll
+
+    00000000 characteristics
+    FFFFFFFF time date stamp
+        0.00 version
+           1 ordinal base
+          16 number of functions
+          16 number of names
+
+    ordinal hint RVA      name
+
+          1    0 00001019 xpe_alert_push = @ILT+20(xpe_alert_push)
+          2    1 00001DA7 xpe_alloc_image = @ILT+3490(xpe_alloc_image)
+          3    2 00001DCF xpe_clear_alerts = @ILT+3530(xpe_clear_alerts)
+          4    3 000020F9 xpe_configure = @ILT+4340(xpe_configure)
+          5    4 00001E83 xpe_copy_image = @ILT+3710(xpe_copy_image)
+          6    5 000011E0 xpe_error_string = @ILT+475(xpe_error_string)
+          7    6 00001B59 xpe_free_image = @ILT+2900(xpe_free_image)
+          8    7 00002360 xpe_get_param_range = @ILT+4955(xpe_get_param_range)
+          9    8 000015BE xpe_get_pending_alert = @ILT+1465(xpe_get_pending_alert)
+         10    9 000011AE xpe_get_pending_alert_count = @ILT+425(xpe_get_pending_alert_count)
+         11    A 00001361 xpe_init = @ILT+860(xpe_init)
+         12    B 00001EF1 xpe_log_flush = @ILT+3820(xpe_log_flush)
+         13    C 00001235 xpe_log_set_file = @ILT+560(xpe_log_set_file)
+         14    D 00001A5A xpe_log_set_level = @ILT+2645(xpe_log_set_level)
+         15    E 00002220 xpe_shutdown = @ILT+4635(xpe_shutdown)
+         16    F 000023D3 xpe_version = @ILT+5070(xpe_version)
+
+  Summary
+
+        1000 .00cfg
+        2000 .data
+        4000 .idata
+        3000 .pdata
+        9000 .rdata
+        1000 .reloc
+        1000 .rsrc
+       29000 .text
+DUMPBIN_EXIT=0

@@ -1,0 +1,20 @@
+[audit] xpe_alert_push (empty queue)                   points=3 failed=3 escaped=3 lockleak=0 partial=0 growth=1 growthAfterReset=3
+[audit] xpe_alert_push (full queue, evicts)            points=4 failed=4 escaped=4 lockleak=0 partial=4 growth=2 growthAfterReset=4
+[audit] xpe_init (with config)                         points=1 failed=1 escaped=0 lockleak=0 partial=1 growth=0 growthAfterReset=1
+[audit] xpe_configure                                  points=19 failed=19 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=19
+[audit] xpe_shutdown                                   points=4 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0
+[audit] xpe_log_set_file (valid path)                  points=3 failed=3 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=3
+[audit] xpe_log_set_level                              points=0 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0
+[audit] xpe_log_flush                                  points=0 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0
+[audit] xpe_get_pending_alert_count                    points=0 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0
+[audit] xpe_get_pending_alert                          points=0 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0
+[audit] xpe_clear_alerts                               points=0 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0
+[audit] xpe_offset_correct                             points=1 failed=1 escaped=1 lockleak=1 partial=0 growth=0 growthAfterReset=1
+[audit] xpe_gain_correct                               points=2 failed=2 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=2
+[audit] xpe_defect_correct                             points=7 failed=7 escaped=7 lockleak=1 partial=0 growth=6 growthAfterReset=7
+[audit] xpe_ghost_create (with config)                 points=3 failed=3 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0
+[audit] xpe_ghost_create (config with long values)     points=5 failed=5 escaped=2 lockleak=0 partial=0 growth=2 growthAfterReset=2
+[audit] xpe_ghost_correct                              points=0 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0
+[audit] xpe_preprocess_pipeline_ex (all stages, valid) points=14 failed=14 escaped=12 lockleak=2 partial=0 growth=6 growthAfterReset=14
+[audit] xpe_verify_offset                              points=0 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0
+[audit] xpe_verify_gain                                points=2 failed=2 escaped=2 lockleak=0 partial=0 growth=1 growthAfterReset=1

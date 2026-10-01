@@ -239,7 +239,8 @@ static void apply_gain_avx2(
 // @MX:ANCHOR: [AUTO] xpe_gain_correct — public API entry point (new g_calib-based)
 // @MX:REASON: UINT16→FLOAT32 domain transition; reads g_calib.gain_map; fan_in >= 3
 // @MX:SPEC: REQ-P1A-011, REQ-P1A-020
-extern "C" XPE_API XpeErrorCode xpe_gain_correct(
+XpeErrorCode xpe_gain_correct_in(
+    const CalibSnapshot&    calib,
     const XpeImageBuffer*  input,
     XpeImageBuffer*         output,
     const XpeImageMetadata* metadata)
@@ -267,19 +268,23 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
     float*          dst = static_cast<float*>(output->data);
 
     try {
-        std::vector<float> gainmap;
-        std::vector<float> poly;          // QA-A-121: per-pixel coefficients
+        std::vector<float> evaluated;     // the polynomial path builds the per-pixel gain here
+        const float* gainmap = nullptr;   // the gain per pixel: the snapshot's scalar plane, or `evaluated`
+        const float* poly = nullptr;      // QA-A-121: per-pixel coefficients (the snapshot's, not a copy)
         uint32_t poly_coeffs = 0;
         bool   poly_has_range = false;    // QA-A-123 (#194): fitted dose range
         double poly_dose_min  = 0.0;
         double poly_dose_max  = 0.0;
         {
-            std::lock_guard<std::mutex> lock(g_calib_mutex);
+            // QA-A-202d (Codex #32): the maps, their dimensions and the polynomial's range come from `calib`,
+            // the snapshot the caller took, and are read in place through shared ownership -- no copy of a map
+            // or of the coefficients (37.7 MB and more at 3072x3072), and a load that lands during the frame
+            // cannot change them under it.
             // SPEC-XPE-P1A REQ-P1A-020: while the module is not initialized, every
             // processing function returns XPE_ERR_NOT_INITIALIZED. Checked explicitly --
             // before #117 decision B the missing calibration map stood in for this, which
             // is why the two states could not be told apart.
-            if (!xpe_preprocess_is_initialized()) return XPE_ERR_NOT_INITIALIZED;
+            if (!calib.initialized) return XPE_ERR_NOT_INITIALIZED;
 
             // #117 decision B: the module is initialized -- what is missing is the
             // calibration map. XPE_ERR_NOT_INITIALIZED is reserved for
@@ -303,30 +308,28 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
             // own value is consistent when those levels were expressed in
             // pixel-value units, which is what the reference dataset does
             // (tests/test_data/cyan_test: CalSet levels named by ADU).
-            if (!g_calib.gain_map && g_calib.gain_poly_coeffs) {
-                if (g_calib.gain_width  != input->width ||
-                    g_calib.gain_height != input->height) {
+            if (!calib.gain_map && calib.gain_poly_coeffs) {
+                if (calib.gain_width  != input->width ||
+                    calib.gain_height != input->height) {
                     return XPE_ERR_INVALID_INPUT;
                 }
-                poly_coeffs = g_calib.gain_poly_num_coeffs;
+                poly_coeffs = calib.gain_poly_num_coeffs;
                 if (poly_coeffs == 0) return XPE_ERR_INVALID_CALIB_DATA;
-                poly.assign(g_calib.gain_poly_coeffs.get(),
-                            g_calib.gain_poly_coeffs.get() + n * poly_coeffs);
-                poly_has_range = g_calib.gain_poly_has_range;
-                poly_dose_min  = g_calib.gain_poly_dose_min;
-                poly_dose_max  = g_calib.gain_poly_dose_max;
-            } else if (!g_calib.gain_map) {
+                poly = calib.gain_poly_coeffs.get();
+                poly_has_range = calib.gain_poly_has_range;
+                poly_dose_min  = calib.gain_poly_dose_min;
+                poly_dose_max  = calib.gain_poly_dose_max;
+            } else if (!calib.gain_map) {
                 return XPE_ERR_CALIB_NOT_LOADED;
             }
-            // The polynomial path copied its coefficients above and builds the
-            // map below, outside the lock, because it reads the input frame.
-            // The scalar path copies its map here.
-            if (poly.empty()) {
-                if (g_calib.gain_width  != input->width ||
-                    g_calib.gain_height != input->height) {
+            // The polynomial path builds the per-pixel map below, because it reads the input frame.
+            // The scalar path reads its map where it is.
+            if (poly == nullptr) {
+                if (calib.gain_width  != input->width ||
+                    calib.gain_height != input->height) {
                     return XPE_ERR_INVALID_INPUT;
                 }
-                gainmap.assign(g_calib.gain_map.get(), g_calib.gain_map.get() + n);
+                gainmap = calib.gain_map.get();
             }
         }
 
@@ -347,8 +350,9 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
         // heavier failure. Clamp + one alert keeps the frame and still says
         // what happened.
         size_t clamped_count = 0;
-        if (!poly.empty()) {
-            gainmap.resize(n);
+        if (poly != nullptr) {
+            evaluated.resize(n);
+            gainmap = evaluated.data();
             for (size_t i = 0; i < n; ++i) {
                 float x = static_cast<float>(src[i]);
                 if (poly_has_range) {
@@ -360,12 +364,12 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
                         ++clamped_count;
                     }
                 }
-                const float* c = poly.data() + i * poly_coeffs;
+                const float* c = poly + i * poly_coeffs;
                 float acc = c[poly_coeffs - 1];
                 for (uint32_t j = poly_coeffs - 1; j > 0; --j) {
                     acc = acc * x + c[j - 1];
                 }
-                gainmap[i] = acc;
+                evaluated[i] = acc;
             }
 
             // One alert for the frame, carrying the count. Pushing per pixel
@@ -430,5 +434,25 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
         return XPE_OK;
     } catch (const std::bad_alloc&) {
         return XPE_ERR_OUT_OF_MEMORY;
+    }
+}
+
+extern "C" XPE_API XpeErrorCode xpe_gain_correct(
+    const XpeImageBuffer*  input,
+    XpeImageBuffer*         output,
+    const XpeImageMetadata* metadata)
+{
+    // A single-stage call uses the maps current when it is called: a snapshot of its own, taken here
+    // (QA-A-202d). The set consistency across the stages of a frame is the pipeline's.
+    //
+    // The try region is not decoration: under /EHsc a C-linkage function with no try region has no unwind
+    // information, so if xpe_gain_correct_in threw, the snapshot temporary (shared_ptr members) would not be
+    // destroyed and the maps it holds would leak. xpe_gain_correct_in has C++ linkage, so this handler is kept.
+    try {
+        return xpe_gain_correct_in(xpe_calib_snapshot(), input, output, metadata);
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
     }
 }

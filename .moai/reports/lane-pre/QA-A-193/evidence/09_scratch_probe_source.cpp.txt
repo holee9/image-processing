@@ -1,0 +1,40 @@
+// QA-A-193 TEMPORARY scratch probe (not committed): gain_cached on a GAIN_POLY file.
+#include <gtest/gtest.h>
+#include "xpe/preprocess_api.h"
+#include "xpe/common/xpe_types.h"
+#include "xpe/common/xpe_error.h"
+#include "xpe/preprocess/xcal_format.h"
+#include "xcal_writer.hpp"
+#include <cstdio>
+#include <cstring>
+#include <vector>
+TEST(A193Scratch, DISABLED_GainCachedOnPolynomialFile) {
+    constexpr uint32_t W = 4, H = 4; constexpr size_t N = W * H, K = 2;
+    std::vector<float> payload(N * K);
+    for (size_t p = 0; p < N; ++p) { payload[p * K] = 0.0f; payload[p * K + 1] = 0.001f; }   // g(x) = 0.001 * x
+    XCalFileHeader hdr{};
+    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    hdr.version = XCAL_VERSION; hdr.type = XCAL_TYPE_GAIN_POLY; hdr.pixel_format = XCAL_FMT_FLOAT32;
+    hdr.width = W; hdr.height = H; hdr.payload_len = payload.size() * sizeof(float);
+    const char* path = "a193_poly.xcal";
+    std::remove(path);
+    ASSERT_EQ(XPE_OK, write_xcal_file(path, hdr, nullptr, 0, reinterpret_cast<const uint8_t*>(payload.data()), hdr.payload_len));
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    xpe_calib_cache_clear();
+    XpeImageBuffer v{};
+    const XpeErrorCode r1 = xpe_calib_load_gain_cached(path, &v);
+    std::printf("[a193] gain_cached on a GAIN_POLY file, 1st call (miss) -> %d (NOT_INITIALIZED=%d)\n", (int)r1, (int)XPE_ERR_NOT_INITIALIZED);
+    const XpeErrorCode r2 = xpe_calib_load_gain_cached(path, &v);
+    std::printf("[a193] 2nd call                                       -> %d\n", (int)r2);
+    std::vector<uint16_t> in(N, 1000); std::vector<float> out(N, -1.0f);
+    XpeImageBuffer i{}, o{};
+    i.data = in.data(); i.width = W; i.height = H; i.bitsAllocated = 16; i.bitsStored = 16; i.format = XPE_PIXEL_UINT16; i.dataSize = in.size() * 2;
+    o.data = out.data(); o.width = W; o.height = H; o.bitsAllocated = 32; o.bitsStored = 32; o.format = XPE_PIXEL_FLOAT32; o.dataSize = out.size() * 4;
+    XpeImageMetadata m{};
+    const XpeErrorCode rc = xpe_gain_correct(&i, &o, &m);
+    std::printf("[a193] xpe_gain_correct afterwards                     -> %d, first pixel %.3f (poly is in the global store if != CALIB_NOT_LOADED)\n", (int)rc, out[0]);
+    xpe_clear_alerts();
+    xpe_calib_cache_clear();
+    xpe_preprocess_shutdown();
+    std::remove(path);
+}

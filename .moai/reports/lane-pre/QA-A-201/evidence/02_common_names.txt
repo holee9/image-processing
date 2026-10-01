@@ -1,0 +1,16 @@
+xpe_alert_push
+xpe_alloc_image
+xpe_clear_alerts
+xpe_configure
+xpe_copy_image
+xpe_error_string
+xpe_free_image
+xpe_get_param_range
+xpe_get_pending_alert
+xpe_get_pending_alert_count
+xpe_init
+xpe_log_flush
+xpe_log_set_file
+xpe_log_set_level
+xpe_shutdown
+xpe_version

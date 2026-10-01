@@ -1,0 +1,113 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomPipeline.TheQualityMetadataIsCurrent*:OomPipeline.AQualityReadWhile*:OomPipeline.AFrameIsProcessedWithOne*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from OomPipeline
+[ RUN      ] OomPipeline.TheQualityMetadataIsCurrentTheMomentTheMapsAre
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1287): error: Expected equality of these values:
+  0.97
+    Which is: 0.96999999999999997
+  qmeta::g_seen.q.r_squared
+    Which is: 0
+the maps are set B's; the quality read beside them must be too
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1272): xpe_preprocess_pipeline
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1288): error: Expected equality of these values:
+  2u
+    Which is: 2
+  qmeta::g_seen.q.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1272): xpe_preprocess_pipeline
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1289): error: Expected equality of these values:
+  4u
+    Which is: 4
+  qmeta::g_seen.q.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1272): xpe_preprocess_pipeline
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1290): error: Expected equality of these values:
+  3u
+    Which is: 3
+  qmeta::g_seen.q.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1272): xpe_preprocess_pipeline
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1287): error: Expected equality of these values:
+  0.97
+    Which is: 0.96999999999999997
+  qmeta::g_seen.q.r_squared
+    Which is: 0
+the maps are set B's; the quality read beside them must be too
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1272): xpe_preprocess_pipeline_batch
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1288): error: Expected equality of these values:
+  2u
+    Which is: 2
+  qmeta::g_seen.q.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1272): xpe_preprocess_pipeline_batch
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1289): error: Expected equality of these values:
+  4u
+    Which is: 4
+  qmeta::g_seen.q.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1272): xpe_preprocess_pipeline_batch
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1290): error: Expected equality of these values:
+  3u
+    Which is: 3
+  qmeta::g_seen.q.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1272): xpe_preprocess_pipeline_batch
+
+[  FAILED  ] OomPipeline.TheQualityMetadataIsCurrentTheMomentTheMapsAre (16 ms)
+[ RUN      ] OomPipeline.AQualityReadWhileTheStoreIsBeingReplacedSeesOneFilesFields
+[       OK ] OomPipeline.AQualityReadWhileTheStoreIsBeingReplacedSeesOneFilesFields (27 ms)
+[ RUN      ] OomPipeline.AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedMidFrame
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1391): error: Expected equality of these values:
+  onlyA[f]
+    Which is: { '\0', '\0', '\xD8' (216), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE0' (224), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE9' (233), 'B' (66, 0x42), '\0', '\xC0' (192), '\xF2' (242), 'B' (66, 0x42), '\0', '\x80' (128), '\xFB' (251), 'B' (66, 0x42), '\0', '`' (96, 0x60), '\xF2' (242), 'B' (66, 0x42), '\0', '\xC0' (192), '\x6' (6), 'C' (67, 0x43), '\0', ' ' (32, 0x20), '\v' (11, 0xB), 'C' (67, 0x43), ... }
+  pipe::g_bytes[f]
+    Which is: { '\0', '\0', 'X' (88, 0x58), 'B' (66, 0x42), '\0', '\xC0' (192), '`' (96, 0x60), 'B' (66, 0x42), '\0', '\xC0' (192), 'i' (105, 0x69), 'B' (66, 0x42), '\0', '\xC0' (192), 'r' (114, 0x72), 'B' (66, 0x42), '\0', '\x80' (128), '{' (123, 0x7B), 'B' (66, 0x42), '\0', '@' (64, 0x40), '\x82' (130), 'B' (66, 0x42), '\0', '\xC0' (192), '\x86' (134), 'B' (66, 0x42), '\0', ' ' (32, 0x20), '\x8B' (139), 'B' (66, 0x42), ... }
+frame 0 is not what set A alone gives: it read the set that was loaded mid-frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1368): xpe_preprocess_pipeline_ex
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1391): error: Expected equality of these values:
+  onlyA[f]
+    Which is: { '\0', '\0', '\xD8' (216), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE0' (224), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE9' (233), 'B' (66, 0x42), '\0', '\xC0' (192), '\xF2' (242), 'B' (66, 0x42), '\0', '\x80' (128), '\xFB' (251), 'B' (66, 0x42), '\0', '`' (96, 0x60), '\xF2' (242), 'B' (66, 0x42), '\0', '\xC0' (192), '\x6' (6), 'C' (67, 0x43), '\0', ' ' (32, 0x20), '\v' (11, 0xB), 'C' (67, 0x43), ... }
+  pipe::g_bytes[f]
+    Which is: { '\0', '\0', 'X' (88, 0x58), 'B' (66, 0x42), '\0', '\xC0' (192), '`' (96, 0x60), 'B' (66, 0x42), '\0', '\xC0' (192), 'i' (105, 0x69), 'B' (66, 0x42), '\0', '\xC0' (192), 'r' (114, 0x72), 'B' (66, 0x42), '\0', '\x80' (128), '{' (123, 0x7B), 'B' (66, 0x42), '\0', '@' (64, 0x40), '\x82' (130), 'B' (66, 0x42), '\0', '\xC0' (192), '\x86' (134), 'B' (66, 0x42), '\0', ' ' (32, 0x20), '\x8B' (139), 'B' (66, 0x42), ... }
+frame 0 is not what set A alone gives: it read the set that was loaded mid-frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1368): xpe_preprocess_pipeline
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1388): error: Expected equality of these values:
+  1
+  snapshot::g_fired
+    Which is: 2
+control: set B was loaded in the middle of the frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1368): xpe_preprocess_pipeline_batch
+
+[  FAILED  ] OomPipeline.AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedMidFrame (6 ms)
+[----------] 3 tests from OomPipeline (51 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (51 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] OomPipeline.TheQualityMetadataIsCurrentTheMomentTheMapsAre
+[  FAILED  ] OomPipeline.AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedMidFrame
+
+ 2 FAILED TESTS

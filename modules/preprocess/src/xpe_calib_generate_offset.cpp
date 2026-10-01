@@ -64,14 +64,15 @@ XpeErrorCode merge_static_defect_mask(const std::vector<uint8_t>& mask,
             return XPE_ERR_CONFIG_INVALID;
         }
 
-        if (!g_calib.defect_map) {
-            g_calib.defect_map = std::make_unique<uint8_t[]>(n_pixels);
-            std::memset(g_calib.defect_map.get(), 0, n_pixels);
-            g_calib.defect_width  = width;
-            g_calib.defect_height = height;
-        }
-
-        newly_set = or_merge_defect_bits(g_calib.defect_map.get(), mask, n_pixels);
+        // A map in the store is shared with any correction in flight (QA-A-202), so it is never modified
+        // in place: build the merged map aside, then swap it in. A failure part-way leaves the store as it was.
+        std::shared_ptr<uint8_t[]> merged(new uint8_t[n_pixels]);
+        if (g_calib.defect_map) std::memcpy(merged.get(), g_calib.defect_map.get(), n_pixels);
+        else                    std::memset(merged.get(), 0, n_pixels);
+        newly_set = or_merge_defect_bits(merged.get(), mask, n_pixels);
+        g_calib.defect_map    = std::move(merged);
+        g_calib.defect_width  = width;
+        g_calib.defect_height = height;
     } catch (const std::bad_alloc&) {
         return XPE_ERR_OUT_OF_MEMORY;
     } catch (...) {

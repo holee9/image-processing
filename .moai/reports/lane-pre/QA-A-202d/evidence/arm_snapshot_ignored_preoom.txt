@@ -1,0 +1,134 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 32 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 18 tests from OomInjection
+[ RUN      ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader
+[       OK ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader (1 ms)
+[ RUN      ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain                            8 allocation points covered
+[       OK ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched (7 ms)
+[ RUN      ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_offset                          6 allocation points covered
+[       OK ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_defect_map                      6 allocation points covered
+[       OK ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, range)        8 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, no range)     8 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_gain_cached (miss)             18 allocation points covered
+[       OK ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping (4 ms)
+[ RUN      ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_gain_cached (polynomial)       10 allocation points covered
+[       OK ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping (3 ms)
+[ RUN      ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_offset_cached (miss)           16 allocation points covered
+[       OK ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping (3 ms)
+[ RUN      ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_defect_cached (miss)           16 allocation points covered
+[       OK ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping (3 ms)
+[ RUN      ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain_cached (hit)               4 allocation points covered
+[       OK ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched (3 ms)
+[ RUN      ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_offset_cached (hit)             4 allocation points covered
+[       OK ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched (3 ms)
+[ RUN      ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_defect_cached (hit)             4 allocation points covered
+[       OK ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched (3 ms)
+[ RUN      ] OomInjection.AnOffsetCorrectionAllocatesNothing
+[       OK ] OomInjection.AnOffsetCorrectionAllocatesNothing (1 ms)
+[ RUN      ] OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree
+[sweep] xpe_defect_correct                             6 allocation points covered
+[       OK ] OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree (1 ms)
+[ RUN      ] OomInjection.AGhostCreationThatIsRefusedLeavesNoBlocksBehind
+[       OK ] OomInjection.AGhostCreationThatIsRefusedLeavesNoBlocksBehind (0 ms)
+[ RUN      ] OomInjection.ADefectCorrectionDoesNotCopyTheMap
+[       OK ] OomInjection.ADefectCorrectionDoesNotCopyTheMap (0 ms)
+[ RUN      ] OomInjection.AHitJudgesTheExpiryAfterTheOpenCheckNotBefore
+[       OK ] OomInjection.AHitJudgesTheExpiryAfterTheOpenCheckNotBefore (2754 ms)
+[----------] 18 tests from OomInjection (2803 ms total)
+
+[----------] 14 tests from OomPipeline
+[ RUN      ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas
+[sweep] xpe_preprocess_pipeline_ex                    14 allocation points covered
+[       OK ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas (16 ms)
+[ RUN      ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas
+[sweep] xpe_preprocess_pipeline                       32 allocation points covered
+[       OK ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas (15 ms)
+[ RUN      ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched
+[sweep] xpe_preprocess_pipeline_batch                 44 allocation points covered
+[       OK ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched (26 ms)
+[ RUN      ] OomPipeline.TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims
+[       OK ] OomPipeline.TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims (4 ms)
+[ RUN      ] OomPipeline.AClaimSmallerThanTheFrameIsRefusedBeforeAnythingIsDone
+[       OK ] OomPipeline.AClaimSmallerThanTheFrameIsRefusedBeforeAnythingIsDone (9 ms)
+[ RUN      ] OomPipeline.TheOutputCapacityMustHoldTheWholeFinalFrame
+[       OK ] OomPipeline.TheOutputCapacityMustHoldTheWholeFinalFrame (18 ms)
+[ RUN      ] OomPipeline.ABatchChecksTheRoomOfEachFrameAndCarriesOnPastARefusal
+[       OK ] OomPipeline.ABatchChecksTheRoomOfEachFrameAndCarriesOnPastARefusal (3 ms)
+[ RUN      ] OomPipeline.AFrameWhoseByteCountDoesNotFitInSizeTIsRefusedBeforeItIsRead
+[       OK ] OomPipeline.AFrameWhoseByteCountDoesNotFitInSizeTIsRefusedBeforeItIsRead (19 ms)
+[ RUN      ] OomPipeline.SetsAAndBDifferInEverythingTheDigestLooksAt
+[       OK ] OomPipeline.SetsAAndBDifferInEverythingTheDigestLooksAt (4 ms)
+[ RUN      ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+[       OK ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas (36 ms)
+[ RUN      ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+[sweep] xpe_preprocess_pipeline                       27 allocation points covered
+[sweep] xpe_preprocess_pipeline_batch                 27 allocation points covered
+[       OK ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas (26 ms)
+[ RUN      ] OomPipeline.TheQualityMetadataIsCurrentTheMomentTheMapsAre
+[       OK ] OomPipeline.TheQualityMetadataIsCurrentTheMomentTheMapsAre (4 ms)
+[ RUN      ] OomPipeline.AQualityReadWhileTheStoreIsBeingReplacedSeesOneFilesFields
+[       OK ] OomPipeline.AQualityReadWhileTheStoreIsBeingReplacedSeesOneFilesFields (22 ms)
+[ RUN      ] OomPipeline.AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedMidFrame
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1394): error: Expected equality of these values:
+  onlyA[f]
+    Which is: { '\0', '\0', '\xD8' (216), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE0' (224), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE9' (233), 'B' (66, 0x42), '\0', '\xC0' (192), '\xF2' (242), 'B' (66, 0x42), '\0', '\x80' (128), '\xFB' (251), 'B' (66, 0x42), '\0', '`' (96, 0x60), '\xF2' (242), 'B' (66, 0x42), '\0', '\xC0' (192), '\x6' (6), 'C' (67, 0x43), '\0', ' ' (32, 0x20), '\v' (11, 0xB), 'C' (67, 0x43), ... }
+  pipe::g_bytes[f]
+    Which is: { '\0', '\0', 'X' (88, 0x58), 'B' (66, 0x42), '\0', '\xC0' (192), '`' (96, 0x60), 'B' (66, 0x42), '\0', '\xC0' (192), 'i' (105, 0x69), 'B' (66, 0x42), '\0', '\xC0' (192), 'r' (114, 0x72), 'B' (66, 0x42), '\0', '\x80' (128), '{' (123, 0x7B), 'B' (66, 0x42), '\0', '@' (64, 0x40), '\x82' (130), 'B' (66, 0x42), '\0', '\xC0' (192), '\x86' (134), 'B' (66, 0x42), '\0', ' ' (32, 0x20), '\x8B' (139), 'B' (66, 0x42), ... }
+frame 0 is not what set A alone gives: it read the set that was loaded mid-frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1370): xpe_preprocess_pipeline_ex
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1394): error: Expected equality of these values:
+  onlyA[f]
+    Which is: { '\0', '\0', '\xD8' (216), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE0' (224), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE9' (233), 'B' (66, 0x42), '\0', '\xC0' (192), '\xF2' (242), 'B' (66, 0x42), '\0', '\x80' (128), '\xFB' (251), 'B' (66, 0x42), '\0', '`' (96, 0x60), '\xF2' (242), 'B' (66, 0x42), '\0', '\xC0' (192), '\x6' (6), 'C' (67, 0x43), '\0', ' ' (32, 0x20), '\v' (11, 0xB), 'C' (67, 0x43), ... }
+  pipe::g_bytes[f]
+    Which is: { '\0', '\0', 'X' (88, 0x58), 'B' (66, 0x42), '\0', '\xC0' (192), '`' (96, 0x60), 'B' (66, 0x42), '\0', '\xC0' (192), 'i' (105, 0x69), 'B' (66, 0x42), '\0', '\xC0' (192), 'r' (114, 0x72), 'B' (66, 0x42), '\0', '\x80' (128), '{' (123, 0x7B), 'B' (66, 0x42), '\0', '@' (64, 0x40), '\x82' (130), 'B' (66, 0x42), '\0', '\xC0' (192), '\x86' (134), 'B' (66, 0x42), '\0', ' ' (32, 0x20), '\x8B' (139), 'B' (66, 0x42), ... }
+frame 0 is not what set A alone gives: it read the set that was loaded mid-frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1370): xpe_preprocess_pipeline
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1394): error: Expected equality of these values:
+  onlyA[f]
+    Which is: { '\0', '\0', '\xD8' (216), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE0' (224), 'B' (66, 0x42), '\0', '\xC0' (192), '\xE9' (233), 'B' (66, 0x42), '\0', '\xC0' (192), '\xF2' (242), 'B' (66, 0x42), '\0', '\x80' (128), '\xFB' (251), 'B' (66, 0x42), '\0', '`' (96, 0x60), '\xF2' (242), 'B' (66, 0x42), '\0', '\xC0' (192), '\x6' (6), 'C' (67, 0x43), '\0', ' ' (32, 0x20), '\v' (11, 0xB), 'C' (67, 0x43), ... }
+  pipe::g_bytes[f]
+    Which is: { '\0', '\0', 'X' (88, 0x58), 'B' (66, 0x42), '\0', '\xC0' (192), '`' (96, 0x60), 'B' (66, 0x42), '\0', '\xC0' (192), 'i' (105, 0x69), 'B' (66, 0x42), '\0', '\xC0' (192), 'r' (114, 0x72), 'B' (66, 0x42), '\0', '\x80' (128), '{' (123, 0x7B), 'B' (66, 0x42), '\0', '@' (64, 0x40), '\x82' (130), 'B' (66, 0x42), '\0', '\xC0' (192), '\x86' (134), 'B' (66, 0x42), '\0', ' ' (32, 0x20), '\x8B' (139), 'B' (66, 0x42), ... }
+frame 0 is not what set A alone gives: it read the set that was loaded mid-frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1370): xpe_preprocess_pipeline_batch
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1394): error: Expected equality of these values:
+  onlyA[f]
+    Which is: { '\0', '\0', '\xE4' (228), 'B' (66, 0x42), '\0', '\0', '\xED' (237), 'B' (66, 0x42), '\0', '\xC0' (192), '\xF5' (245), 'B' (66, 0x42), '\0', '\xC0' (192), '\xFE' (254), 'B' (66, 0x42), '\0', '\xE0' (224), '\x3' (3), 'C' (67, 0x43), '\0', '\x90' (144), '\xFE' (254), 'B' (66, 0x42), '\0', '\xC0' (192), '\f' (12, 0xC), 'C' (67, 0x43), '\0', '@' (64, 0x40), '\x11' (17), 'C' (67, 0x43), ... }
+  pipe::g_bytes[f]
+    Which is: { '\0', '\0', 'd' (100, 0x64), 'B' (66, 0x42), '\0', '\0', 'm' (109, 0x6D), 'B' (66, 0x42), '\0', '\xC0' (192), 'u' (117, 0x75), 'B' (66, 0x42), '\0', '\xC0' (192), '~' (126, 0x7E), 'B' (66, 0x42), '\0', '\xE0' (224), '\x83' (131), 'B' (66, 0x42), '\0', '@' (64, 0x40), '\x88' (136), 'B' (66, 0x42), '\0', '\xC0' (192), '\x8C' (140), 'B' (66, 0x42), '\0', '@' (64, 0x40), '\x91' (145), 'B' (66, 0x42), ... }
+frame 1 is not what set A alone gives: it read the set that was loaded mid-frame
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1370): xpe_preprocess_pipeline_batch
+
+[  FAILED  ] OomPipeline.AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedMidFrame (6 ms)
+[----------] 14 tests from OomPipeline (215 ms total)
+
+[----------] Global test environment tear-down
+[==========] 32 tests from 2 test suites ran. (3019 ms total)
+[  PASSED  ] 31 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OomPipeline.AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedMidFrame
+
+ 1 FAILED TEST

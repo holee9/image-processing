@@ -140,11 +140,32 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
  * REQ-P1A-015: Load XCal format gain maps with multi-SID interpolation
  * AC-CAL-002: Load with interpolation table for kVp-specific gain
  *
+ * Quality metadata (FUNC-033). The file's config block is read as ONE valid JSON object, to its stored length
+ * (a NUL byte, a byte-order mark that is not complete, malformed UTF-8, text after the object, a key given twice at
+ * the top level: all XPE_ERR_CONFIG_INVALID), and its fit_r_squared, polynomial_degree, actual_dose_levels and
+ * calibration_mode are TOP-LEVEL keys (a key inside a nested object is not one). A key that is ABSENT means "not
+ * given" (a file from before QA-A-35 has none of them; for fit_r_squared the record then has has_r_squared = 0).
+ * A key that is PRESENT must hold a number in the range the field has -- fit_r_squared a finite real of at most 1.0
+ * (negative values are real: a fit worse than the mean; exactly -1.0 included), polynomial_degree an integer in
+ * 0..4, actual_dose_levels 1..10, calibration_mode 0..4 (notation: optional leading white space, an optional
+ * single '+', then a decimal number that fills the value) -- and an empty value ("fit_r_squared":""), a value that
+ * is not a scalar (an object, an array), an unterminated string, a malformed number and a number outside its range
+ * are all refused with XPE_ERR_CONFIG_INVALID, leaving the gain map and the quality metadata as they were. A file
+ * that carries no quality field at all loads, and makes the quality record "none" (valid = 0; see
+ * xpe_calib_get_quality_meta) instead of leaving the previous file's values in place. (The pipeline
+ * CONFIGURATION is the other rule: there an empty value is an absent one, because a GUI sends an unset option
+ * as "" -- an XCal file is signed data a generator produced, where an empty field is a defect, not an unset
+ * option.) Compatibility: the values "2x", "3 " and "1e2" (for an integer field) were once read as 2, 3 and 1
+ * by atoi/atof and now refuse the file -- an intended policy (QA-A-204, QA-A-205b): a quality field that is not
+ * a number is not data. The generator (xpe_calib_generate_gain) writes plain numbers.
+ *
  * @param filepath Path to XCal format gain file
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
  *         XPE_ERR_IO_FAILED on file read error
  *         XPE_ERR_CALIBRATION_EXPIRED if calibration expired
+ *         XPE_ERR_CONFIG_INVALID if the config block is not one valid JSON object, or a present quality field is
+ *                                not a number in its range
  */
 XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath);
 
@@ -183,6 +204,12 @@ XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath);
  *         XPE_ERR_INVALID_INPUT if NULL pointers, or if the loaded calibration
  *                               map's dimensions differ from the input's (REQ-P1A-021)
  *         XPE_ERR_BUFFER_TOO_SMALL if the output's dimensions differ from the input's
+ *
+ * @note The map this function reads is the one in the calibration store when it is CALLED (it takes its own
+ *       snapshot under the store's lock, then reads it in place; a load that lands during the call does not
+ *       reach it). A caller that runs several stages by hand and loads calibration in between gets whatever
+ *       was loaded at each call; the guarantee that one frame is processed with ONE calibration set belongs to
+ *       the pipeline entry points (see xpe_preprocess_pipeline).
  */
 XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
                                         XpeImageBuffer* output,
@@ -208,6 +235,12 @@ XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
  *         XPE_ERR_BUFFER_TOO_SMALL if the output's dimensions differ from the input's
  *         XPE_ERR_UNSUPPORTED_FORMAT if format mismatch
  *         XPE_ERR_CONFIG_INVALID if gain map contains invalid values
+ *
+ * @note The map this function reads is the one in the calibration store when it is CALLED (it takes its own
+ *       snapshot under the store's lock, then reads it in place; a load that lands during the call does not
+ *       reach it). A caller that runs several stages by hand and loads calibration in between gets whatever
+ *       was loaded at each call; the guarantee that one frame is processed with ONE calibration set belongs to
+ *       the pipeline entry points (see xpe_preprocess_pipeline).
  */
 XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
                                       XpeImageBuffer* output,
@@ -277,6 +310,12 @@ XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
  *                               loaded defect map's dimensions differ from the
  *                               input's (REQ-P1A-021)
  *         XPE_ERR_BUFFER_TOO_SMALL if the output's dimensions differ from the input's
+ *
+ * @note The map this function reads is the one in the calibration store when it is CALLED (it takes its own
+ *       snapshot under the store's lock, then reads it in place; a load that lands during the call does not
+ *       reach it). A caller that runs several stages by hand and loads calibration in between gets whatever
+ *       was loaded at each call; the guarantee that one frame is processed with ONE calibration set belongs to
+ *       the pipeline entry points (see xpe_preprocess_pipeline).
  */
 XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
                                         XpeImageBuffer* output,
@@ -576,6 +615,13 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
  * @return XPE_OK on success
  *         XPE_ERR_OUT_OF_MEMORY on allocation failure
  *         XPE_ERR_INVALID_INPUT on NULL handleOut or zero dimensions
+ *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration (tier, alpha1, tau1,
+ *                  alpha2, tau2, tier2Threshold, nlcscBeta) is not one finite number in range (notation:
+ *                  see xpe_preprocess_pipeline); no handle is handed back and nothing is left allocated
+ *
+ * @note The handle holds the frame history twice (width*height floats, four planes in all): a frame writes
+ *       its new history into the second pair and the pairs are swapped only when the frame succeeded (see
+ *       xpe_ghost_correct). At 3072x3072 that is about 151 MB per handle.
  *
  * @note SRS-CALIB-NFR-003: one handle may be shared by several threads. Calls to
  *       xpe_ghost_correct() and xpe_ghost_reset() on the same handle are serialised
@@ -603,7 +649,14 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
  * @param meta Image metadata (acquisitionTime used for IRF timing)
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT on NULL/invalid handle or dimension mismatch
- *         XPE_ERR_PROCESSING_FAILED on numerical errors
+ *         XPE_ERR_PROCESSING_FAILED on numerical errors (a non-finite pixel, a non-finite corrected value)
+ *
+ * @note A frame that fails leaves the handle exactly as it found it: the frame history, the time of the last
+ *       frame (so the next frame's time step is measured from the last frame that SUCCEEDED) and the
+ *       exposure estimate. Only a successful frame changes them. The pixels of `img` that were corrected
+ *       before the failure are not restored; a caller that needs the original keeps its own copy.
+ *       Before QA-A-202c a failure part-way through left the history of the pixels already processed
+ *       updated, and the next frame -- in a batch, one that carried on past the failure -- used it.
  */
 XPE_API XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
                                         const XpeImageMetadata* meta);
@@ -742,6 +795,25 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  * @brief Execute full pre-processing pipeline with bypass logic
  *
  * REQ-P1A-095 to REQ-P1A-099: Full pipeline integration
+ *
+ * One frame, one calibration set (QA-A-202d). The three maps (offset, gain, defect) with their dimensions are
+ * captured together, under one lock, when the frame starts -- for this function and the batch, the set they have
+ * just loaded from @p calibPath, captured in the same critical section that stored it -- and every stage runs
+ * on that capture. Another thread loading a different set while the frame runs cannot give the frame an offset
+ * from one set and a gain from another. Calibration loaded by other calls (xpe_calib_load_*, the cached loaders)
+ * during the call takes effect from the next frame. The nonlinearity table is not part of the set: it is read
+ * from the store when its stage runs.
+ *
+ * A bypassed stage is skipped, with one exception that is not a skip: the gain stage is the uint16 -> float32
+ * boundary, so a bypassed gain stage means "gain = 1" -- when a float stage follows (binning with binningMode > 1,
+ * defect, or ghost with a handle) the frame is converted to float32 explicitly and the result is the one a gain
+ * map of ones gives (QA-A-208). With no float stage the frame stays uint16.
+ *
+ * A call that fails AFTER some stages have run -- a stage's own error, or one of the internal consistency checks
+ * that return XPE_ERR_PROCESSING_FAILED -- leaves the frame in img as the caller gave it (the result is written
+ * back only after the last stage). It does not undo the stage-completion flags in the metadata: the flags of the
+ * stages that finished stay set, as for every error other than XPE_ERR_OUT_OF_MEMORY. (A refusal before any stage
+ * runs -- the capacity and dimension checks -- sets none.)
  * Pipeline: Readout -> Temp -> Offset -> Nonlinearity -> Gain -> Binning -> Defect -> Ghost
  *
  * @warning This function RE-READS offset.xcal, gain.xcal and defect.xcal from
@@ -756,12 +828,45 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  *              xpe_calib_state_release(&st);
  *          Use this function for a one-off frame or a smoke test.
  *
- * @param img [in/out] Image to process (uint16 in, float32 out after Gain)
+ * @param img [in/out] Image to process (uint16 in, float32 out after Gain). The result is written back into
+ *        img->data, so img->dataSize is both the room for the input and the room for the result:
+ *          - the frame the pipeline hands back is float32 (width*height*4 bytes) when any stage from the gain stage
+ *            on runs (gain, binning with binningMode > 1, defect, or ghost with a handle), and the uint16 frame
+ *            (width*height*2 bytes) otherwise;
+ *          - dataSize 0 is NOT "size not given" here (the rule for input-only buffers): there is no room for a
+ *            result, and the call returns XPE_ERR_BUFFER_TOO_SMALL; a dataSize smaller than that result,
+ *            with at least width*height*2, is XPE_ERR_BUFFER_TOO_SMALL too; 0 < dataSize < width*height*2
+ *            (the buffer does not even hold the input) is XPE_ERR_INVALID_INPUT;
+ *          - a refused call reads nothing, writes nothing and sets no flag; a larger dataSize is accepted and the
+ *            bytes beyond the result are not written.
+ *        A width or height of 0, or dimensions whose byte count does not fit in a size_t, is
+ *        XPE_ERR_INVALID_INPUT. This used to be accepted for a short buffer: the result was copied truncated and
+ *        the call returned XPE_OK with a float32 format on a half-written frame (QA-A-205b, Codex #29).
  * @param meta [in/out] Image metadata (updated with processing flags)
  * @param calibPath Calibration data directory path
  * @param ghostHandle Ghost corrector handle (NULL = skip ghost correction)
  * @param configJsonOrNull Pipeline configuration JSON (bypass flags, temperature, etc.)
  * @return XPE_OK on success
+ *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration (detectorTempC,
+ *                  binningMode) is not one finite number in range -- "abc", "1e999", "2x" -- nothing
+ *                  is loaded and no image or metadata is touched (the configuration is read first).
+ *                  Notation of a configuration number: optional leading white space, an optional single
+ *                  '+' (not followed by another sign), then a decimal number that fills the rest of the
+ *                  value -- an integer for an integer field, a finite number (decimal point and exponent
+ *                  allowed) for a real field. "25 ", "2x", "+-1", "nan", "inf", hexadecimal and
+ *                  out-of-range values are refused; an empty value is an absent one (the default).
+ *         Any error while the three calibration files are read (a missing, corrupt or expired file, a
+ *                  wrong type, a malformed quality field, an allocation failure) leaves the calibration
+ *                  store and the quality metadata exactly as the call found them: offset.xcal, gain.xcal
+ *                  and defect.xcal are read as a SET and replace the stored maps -- and the quality
+ *                  record xpe_calib_get_quality_meta() serves (the gain file's quality, or "none" when it
+ *                  carries none) -- together, or not at all.
+ *                  Once the set has loaded it stays loaded even if processing the frame then fails.
+ *         XPE_ERR_BUFFER_TOO_SMALL if img->dataSize is smaller than the frame the pipeline writes back (see @p img)
+ *         XPE_ERR_INVALID_INPUT on a NULL img / meta / img->data, an empty or overflowing frame, or a dataSize
+ *                  that does not hold the input (see @p img)
+ *         XPE_ERR_OUT_OF_MEMORY if an allocation fails; no exception leaves the function, the image
+ *                  is untouched and the metadata is as it was
  *         XPE_ERR_* on failure
  */
 XPE_API XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
@@ -781,12 +886,18 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
  * load calibration once at startup, not per-frame"), so a frame costs about
  * 124 ms instead of about 590 ms at 3072x3072 (measured, QA-A-105).
  *
- * @param img [in/out] Image to process
+ * @param img [in/out] Image to process; img->dataSize is the room for the result as well as the input,
+ *        exactly as for xpe_preprocess_pipeline()
  * @param meta [in/out] Image metadata
  * @param calibState Pre-loaded calibration state (from xpe_calib_state_load)
  * @param ghostHandle Ghost corrector handle (NULL = skip ghost)
  * @param configJsonOrNull Pipeline configuration JSON
  * @return XPE_OK on success
+ *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration (detectorTempC,
+ *                  binningMode) is not one finite number in range -- "abc", "1e999", "2x" -- no image or metadata is touched (the configuration is read first)
+ *         XPE_ERR_BUFFER_TOO_SMALL, XPE_ERR_INVALID_INPUT for the size and dimension rules of
+ *                  xpe_preprocess_pipeline() (see its @p img)
+ *         XPE_ERR_OUT_OF_MEMORY if an allocation fails (image untouched, metadata as it was)
  *         XPE_ERR_* on failure
  */
 XPE_API XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
@@ -809,7 +920,14 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
  * @param configJsonOrNull Pipeline configuration JSON
  * @return XPE_OK if all images processed successfully
  *         XPE_ERR_INVALID_INPUT on null/invalid parameters
- *         first error code if any individual frame fails
+ *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration is not one finite
+ *                  number in range (see xpe_preprocess_pipeline); no frame is touched
+ *         first error code if any individual frame fails -- including a frame whose dataSize is too small for
+ *                  its result (XPE_ERR_BUFFER_TOO_SMALL, rules of xpe_preprocess_pipeline()): each frame is
+ *                  checked as its turn comes, not all before the first, so a refused frame is left untouched
+ *                  and the batch carries on with the next one; a frame that runs out of memory is
+ *         XPE_ERR_OUT_OF_MEMORY, is left untouched with its metadata as it was, and the batch
+ *         carries on with the next frame
  */
 XPE_API XpeErrorCode xpe_preprocess_pipeline_batch(
     XpeImageBuffer* images,
@@ -828,15 +946,52 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_batch(
 /**
  * @brief Load offset calibration map with LRU caching
  *
- * On cache hit, returns cached data without file I/O.
- * On miss, loads from file and inserts into cache.
+ * Returns a cache-owned view of the map: XPE_PIXEL_FLOAT32, 32 bits, dataSize = width * height * 4.
+ *
+ * - Cache key: @p filePath compared as a string, exactly. An entry also records which of the three
+ *   cached loaders made it (a file holds one kind of map): asking for the same path through a loader
+ *   of another kind is refused with the code the plain loader of that kind returns for the file
+ *   (wrong XCal type), leaves the module-global store alone, and leaves the entry for its own loader.
+ * - Hit: no file read. The module-global calibration store is set to this map, as after a miss, so a
+ *   correction called right after a successful load works, and the call reaches the verdict a miss
+ *   would reach:
+ *     file change - the file's size and last-write time are compared with the ones recorded when it
+ *                  was read; if either differs, or the file cannot be examined, the hit is cancelled
+ *                  and the call loads the file like a miss (so its SHA-256 is checked again and a
+ *                  tampered file is refused with the loader's code);
+ *     readable   - the file is opened for reading once (opening only, nothing is read): a file whose
+ *                  attributes are visible but whose content cannot be opened is refused with
+ *                  XPE_ERR_IO_FAILED, as a miss would, and the store and the entry are left as they
+ *                  were. This comes BEFORE the expiry, in the order the file reader judges a file: a
+ *                  file that is both expired and unreadable is XPE_ERR_IO_FAILED;
+ *     expiry     - then re-checked from the file's expiry kept in the entry; an expired map is
+ *                  refused with XPE_ERR_CALIBRATION_EXPIRED, the entry is dropped, and the store is
+ *                  left as it was.
+ *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
+ *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
+ *   file. The session check is not repeated on a hit.
+ * - Concurrent writers are not supported: do not write or replace the calibration file while a load
+ *   of it is in progress. The attributes are looked at once, before the lookup; a second look just
+ *   before the install would not close every such race, so none is made.
+ * - Miss: loads through xpe_calib_load_offset(), copies the map into the cache.
+ * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
+ *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()),
+ *   xpe_preprocess_shutdown(), or the entry being dropped because its file changed or expired (see
+ *   Hit). Take a copy with xpe_copy_image() to keep it longer.
  *
  * @param filePath Path to calibration file
- * @param offsetMapOut Output: Populated by this function; caller owns the buffer.
- *                     Data pointer is shared with cache — do NOT free.
+ * @param offsetMapOut Output: the cache-owned view (see Ownership)
  * @return XPE_OK on success
- *         XPE_ERR_IO_FAILED on file read error
- *         XPE_ERR_CALIBRATION_EXPIRED if calibration expired
+ *         XPE_ERR_INVALID_INPUT if @p filePath or the output pointer is NULL
+ *         on a miss or a cancelled hit, the code of the plain loader (XPE_ERR_IO_FAILED,
+ *                               XPE_ERR_CALIBRATION_EXPIRED, a SHA-256 failure, ...)
+ *         XPE_ERR_CALIBRATION_EXPIRED on a hit whose entry has expired
+ *         XPE_ERR_NOT_INITIALIZED if the load left no offset map in the store
+ *         XPE_ERR_IO_FAILED on a hit whose file cannot be opened for reading
+ *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached or an
+ *                               allocation failed (no exception leaves this function). On a miss the
+ *                               module-global store may already hold the file's map when the entry
+ *                               could not be cached; on a hit that fails, the store is unchanged.
  */
 XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
                                                     XpeImageBuffer* offsetMapOut);
@@ -844,11 +999,59 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
 /**
  * @brief Load gain calibration map with LRU caching
  *
+ * Returns a cache-owned view of the scalar gain map: XPE_PIXEL_FLOAT32, 32 bits,
+ * dataSize = width * height * 4.
+ *
+ * - Cache key: @p filePath compared as a string, exactly. An entry also records which of the three
+ *   cached loaders made it (a file holds one kind of map): asking for the same path through a loader
+ *   of another kind is refused with the code the plain loader of that kind returns for the file
+ *   (wrong XCal type), leaves the module-global store alone, and leaves the entry for its own loader.
+ * - Hit: no file read. The module-global calibration store is set to this map, as after a miss, so a
+ *   correction called right after a successful load works, and the call reaches the verdict a miss
+ *   would reach:
+ *     file change - the file's size and last-write time are compared with the ones recorded when it
+ *                  was read; if either differs, or the file cannot be examined, the hit is cancelled
+ *                  and the call loads the file like a miss (so its SHA-256 is checked again and a
+ *                  tampered file is refused with the loader's code);
+ *     readable   - the file is opened for reading once (opening only, nothing is read): a file whose
+ *                  attributes are visible but whose content cannot be opened is refused with
+ *                  XPE_ERR_IO_FAILED, as a miss would, and the store and the entry are left as they
+ *                  were. This comes BEFORE the expiry, in the order the file reader judges a file: a
+ *                  file that is both expired and unreadable is XPE_ERR_IO_FAILED;
+ *     expiry     - then re-checked from the file's expiry kept in the entry; an expired map is
+ *                  refused with XPE_ERR_CALIBRATION_EXPIRED, the entry is dropped, and the store is
+ *                  left as it was.
+ *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
+ *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
+ *   file. The session check is not repeated on a hit.
+ * - Concurrent writers are not supported: do not write or replace the calibration file while a load
+ *   of it is in progress. The attributes are looked at once, before the lookup; a second look just
+ *   before the install would not close every such race, so none is made.
+ * - Miss: loads through xpe_calib_load_gain(), copies the map into the cache.
+ * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
+ *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()),
+ *   xpe_preprocess_shutdown(), or the entry being dropped because its file changed or expired (see
+ *   Hit). Take a copy with xpe_copy_image() to keep it longer.
+ * - Quality metadata: a hit applies the entry's stored config JSON again, so
+ *   xpe_calib_get_quality_meta() reports what a miss would report.
+ * - A gain POLYNOMIAL file (XCAL_TYPE_GAIN_POLY) loads into the store, where xpe_gain_correct() uses it.
+ *   There is no scalar map to hand back, so this function returns XPE_OK with @p gainMapOut zeroed
+ *   (data NULL, dataSize 0) and caches nothing: every call reads the file again. Use xpe_gain_correct()
+ *   rather than the returned buffer for such a file.
+ *
  * @param filePath Path to calibration file
- * @param gainMapOut Output: Populated on hit or miss; data shared with cache.
+ * @param gainMapOut Output: the cache-owned view (see Ownership)
  * @return XPE_OK on success
- *         XPE_ERR_IO_FAILED on file read error
- *         XPE_ERR_CALIBRATION_EXPIRED if calibration expired
+ *         XPE_ERR_INVALID_INPUT if @p filePath or the output pointer is NULL
+ *         on a miss or a cancelled hit, the code of the plain loader (XPE_ERR_IO_FAILED,
+ *                               XPE_ERR_CALIBRATION_EXPIRED, a SHA-256 failure, ...)
+ *         XPE_ERR_CALIBRATION_EXPIRED on a hit whose entry has expired
+ *         XPE_ERR_NOT_INITIALIZED if the load left neither a scalar gain map nor a polynomial in the store
+ *         XPE_ERR_IO_FAILED on a hit whose file cannot be opened for reading
+ *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached or an
+ *                               allocation failed (no exception leaves this function). On a miss the
+ *                               module-global store may already hold the file's map when the entry
+ *                               could not be cached; on a hit that fails, the store is unchanged.
  */
 XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
                                                   XpeImageBuffer* gainMapOut);
@@ -856,24 +1059,70 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
 /**
  * @brief Load defect map with LRU caching
  *
+ * Returns a cache-owned view of the map: XPE_PIXEL_UINT8, 8 bits, dataSize = width * height.
+ *
+ * - Cache key: @p filePath compared as a string, exactly. An entry also records which of the three
+ *   cached loaders made it (a file holds one kind of map): asking for the same path through a loader
+ *   of another kind is refused with the code the plain loader of that kind returns for the file
+ *   (wrong XCal type), leaves the module-global store alone, and leaves the entry for its own loader.
+ * - Hit: no file read. The module-global calibration store is set to this map, as after a miss, so a
+ *   correction called right after a successful load works, and the call reaches the verdict a miss
+ *   would reach:
+ *     file change - the file's size and last-write time are compared with the ones recorded when it
+ *                  was read; if either differs, or the file cannot be examined, the hit is cancelled
+ *                  and the call loads the file like a miss (so its SHA-256 is checked again and a
+ *                  tampered file is refused with the loader's code);
+ *     readable   - the file is opened for reading once (opening only, nothing is read): a file whose
+ *                  attributes are visible but whose content cannot be opened is refused with
+ *                  XPE_ERR_IO_FAILED, as a miss would, and the store and the entry are left as they
+ *                  were. This comes BEFORE the expiry, in the order the file reader judges a file: a
+ *                  file that is both expired and unreadable is XPE_ERR_IO_FAILED;
+ *     expiry     - then re-checked from the file's expiry kept in the entry; an expired map is
+ *                  refused with XPE_ERR_CALIBRATION_EXPIRED, the entry is dropped, and the store is
+ *                  left as it was.
+ *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
+ *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
+ *   file. The session check is not repeated on a hit.
+ * - Concurrent writers are not supported: do not write or replace the calibration file while a load
+ *   of it is in progress. The attributes are looked at once, before the lookup; a second look just
+ *   before the install would not close every such race, so none is made.
+ * - Miss: loads through xpe_calib_load_defect_map(), copies the map into the cache.
+ * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
+ *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()),
+ *   xpe_preprocess_shutdown(), or the entry being dropped because its file changed or expired (see
+ *   Hit). Take a copy with xpe_copy_image() to keep it longer.
+
+ *
  * @param filePath Path to defect map file
- * @param defectMapOut Output: Populated on hit or miss; data shared with cache.
+ * @param defectMapOut Output: the cache-owned view (see Ownership)
  * @return XPE_OK on success
- *         XPE_ERR_IO_FAILED on file read error
- *         XPE_ERR_CALIBRATION_EXPIRED if calibration expired
+ *         XPE_ERR_INVALID_INPUT if @p filePath or the output pointer is NULL
+ *         on a miss or a cancelled hit, the code of the plain loader (XPE_ERR_IO_FAILED,
+ *                               XPE_ERR_CALIBRATION_EXPIRED, a SHA-256 failure, ...)
+ *         XPE_ERR_CALIBRATION_EXPIRED on a hit whose entry has expired
+ *         XPE_ERR_NOT_INITIALIZED if the load left no defect map in the store
+ *         XPE_ERR_IO_FAILED on a hit whose file cannot be opened for reading
+ *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached or an
+ *                               allocation failed (no exception leaves this function). On a miss the
+ *                               module-global store may already hold the file's map when the entry
+ *                               could not be cached; on a hit that fails, the store is unchanged.
  */
 XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
                                                     XpeImageBuffer* defectMapOut);
 
 /**
  * @brief Clear all entries from the calibration cache, freeing memory
+ *
+ * Also done by xpe_preprocess_shutdown(). Does not touch the module-global calibration store.
+ * Views returned by the *_cached loaders become invalid.
  */
 XPE_API void xpe_calib_cache_clear(void);
 
 /**
  * @brief Set the maximum number of calibration maps retained in cache
  *
- * Default is 4. Excess entries are evicted (LRU first).
+ * Default is 4. Excess entries are evicted (LRU first). The setting is not reset by
+ * xpe_preprocess_shutdown().
  *
  * @param maxMaps Maximum cache entries (minimum 1)
  */
@@ -997,6 +1246,22 @@ typedef struct {
 } XpeCalibrationMetrics;
 
 /**
+ * @brief What a gain map means, as SRS-CALIB-FUNC-018 records it.
+ *
+ * "System shall record calibration gain semantics as `normalized_gain`,
+ * `reciprocal_gain`, or `unknown`. Unknown semantics may run exploratory
+ * validation but shall not pass release gates."
+ *
+ * Values are the int32 the C ABI carries for a C enum; any other value is
+ * rejected by xpe_verify_gain with XPE_ERR_INVALID_INPUT.
+ */
+typedef enum {
+    XPE_GAIN_SEMANTICS_UNKNOWN    = 0,  ///< `unknown`
+    XPE_GAIN_SEMANTICS_NORMALIZED = 1,  ///< `normalized_gain`
+    XPE_GAIN_SEMANTICS_RECIPROCAL = 2   ///< `reciprocal_gain`
+} XpeGainSemantics;
+
+/**
  * @brief Per-metric "was this actually measured" flags for `measured_mask`
  *
  * SRS-CALIB-FUNC-036. A set bit means the field was computed from data; a clear
@@ -1056,15 +1321,37 @@ XPE_API XpeErrorCode xpe_verify_offset(
  * @param before_gain Offset-corrected image (UINT16)
  * @param after_gain Gain-corrected image (FLOAT32)
  * @param gain_map Gain map used (FLOAT32)
+ * @param gain_semantics What the gain map means (SRS-CALIB-FUNC-018). It selects the
+ *        FlatResidualPct line that `overall_pass` is held to, and changes no measured value:
+ *        `XPE_GAIN_SEMANTICS_NORMALIZED` or `XPE_GAIN_SEMANTICS_RECIPROCAL` (known) -> 0.5%;
+ *        `XPE_GAIN_SEMANTICS_UNKNOWN` -> 1.0%. SRS-CALIB-FUNC-017: "Phase 1 acceptance shall
+ *        require `FlatResidualPct <= 1.0%` and target `<= 0.5%` for release-hardening fixtures
+ *        where gain semantics are known."
  * @param metrics Output metrics
  * @return XPE_OK on success
- *         XPE_ERR_INVALID_INPUT on NULL pointers or dimension mismatch
- *         XPE_ERR_UNSUPPORTED_FORMAT on format mismatch
+ *         XPE_ERR_INVALID_INPUT on NULL pointers, a `gain_semantics` value outside the
+ *                               enumeration, or a width or height of zero (checked before
+ *                               the format, after the dimension match)
+ *         XPE_ERR_BUFFER_TOO_SMALL on dimension mismatch
+ *         XPE_ERR_UNSUPPORTED_FORMAT on format mismatch of a non-empty frame
+ *
+ * @note `overall_pass` is the Phase 1 verdict. It does not on its own mean a release is
+ *       approved: the release gate separately requires `gain_semantics != UNKNOWN`
+ *       (SRS-CALIB-FUNC-018: unknown semantics "shall not pass release gates").
+ *
+ * @warning ABI break (QA-A-192, #220): the 5-argument form replaced the 4-argument form under
+ *       the SAME exported name, so a binary built against the old header still links and
+ *       loads, and then calls with four arguments: `metrics` is read from the wrong register
+ *       or stack slot and the call misbehaves, with no error at link or load time. Rebuild
+ *       every caller and deploy them together with this library. No caller outside the tests
+ *       was found in the repository search range (QA-A-189); callers elsewhere were not
+ *       searched. `gain_semantics` sits before `metrics`.
  */
 XPE_API XpeErrorCode xpe_verify_gain(
     const XpeImageBuffer* before_gain,
     const XpeImageBuffer* after_gain,
     const XpeImageBuffer* gain_map,
+    XpeGainSemantics gain_semantics,
     XpeCalibrationMetrics* metrics);
 
 /**
@@ -1273,25 +1560,53 @@ typedef enum XpeCalibrationMode {
  *
  * Fields:
  * - calibration_mode: Active calibration mode (XpeCalibrationMode)
- * - polynomial_degree: Fitted polynomial degree (0-3)
+ * - polynomial_degree: Fitted polynomial degree (0-4; 4 is MULTI_POINT_10)
  * - num_points: Number of dose points used (1-10)
- * - r_squared: Coefficient of determination (0.0 to 1.0)
+ * - r_squared: Coefficient of determination: at most 1.0, and NEGATIVE for a fit worse than the mean (the
+ *   generator reports such values). Any finite value up to 1.0 is a real one, -1.0 included; whether there
+ *   is one is has_r_squared, not the value. When has_r_squared is 0, r_squared holds the fill value -1.0.
+ * - has_r_squared: 1 when r_squared is a value (the file gave fit_r_squared, or a generation produced one);
+ *   0 when it was not given (a file with other quality fields but no fit_r_squared)
  * - calibration_timestamp: Unix epoch milliseconds
  * - detector_serial: Detector identifier (null-terminated)
  * - firmware_version: Firmware version string (null-terminated)
  * - calibration_pass: Quality gate result (0=fail, 1=pass)
- * - previous_r_squared: R² from previous calibration (-1.0 if none)
+ * - previous_r_squared: R² of the last earlier record that had one; records without an R² (valid = 0, or
+ *   has_r_squared = 0) are skipped. Whether there is one is has_previous_r_squared; with none it holds -1.0
+ * - has_previous_r_squared: 1 when previous_r_squared is a value, 0 when no earlier record had an R²
+ * - valid: 1 when the record describes a calibration; 0 when there is no quality metadata for the
+ *   current one (every field describing the current record -- has_r_squared included -- is then zero; only the
+ *   history, previous_r_squared and has_previous_r_squared, is kept from the record it replaced)
+ *
+ * has_r_squared and has_previous_r_squared are the presence of an R2, whatever its value; r_squared and
+ * previous_r_squared hold the fill value -1.0 when there is none, which a real R2 can also equal.
+ *
+ * BUILD-MATCHED USE (QA-A-208e). valid, has_r_squared and has_previous_r_squared sit in what used to be padding
+ * (offsets 3, 4 and 73); sizeof and every other offset are unchanged. A caller built against a header that has a
+ * flag must be run against a module build that writes it: a module built BEFORE the flag existed leaves that byte
+ * as padding, whose value is not defined, so the flag reads as noise. The other direction is safe -- a caller built
+ * against an older header never looks at the byte. The module has no way to tell the generations apart at run time:
+ * xpe_preprocess_version() returns a source constant ("0.1.0") that the changes which added these bytes did not
+ * bump, so it cannot serve as the check. Ship the header and the module as one build; do not read a flag out of a
+ * module of unknown build.
  */
 typedef struct XpeCalibQualityMeta {
     uint8_t  calibration_mode;      ///< XpeCalibrationMode used by the generation (never AUTO)
-    uint8_t  polynomial_degree;     ///< 0=constant, 1=linear, 2=quadratic, 3=cubic
+    uint8_t  polynomial_degree;     ///< 0=constant, 1=linear, 2=quadratic, 3=cubic, 4=quartic (MULTI_POINT_10)
     uint8_t  num_points;            ///< Number of dose levels (1-10)
-    double   r_squared;             ///< Coefficient of determination (0.0 to 1.0)
+    uint8_t  valid;                 ///< 1 = describes a calibration; 0 = no quality metadata for the current one.
+                                    ///< Sits in what was padding: sizeof and every other offset are unchanged.
+    uint8_t  has_r_squared;         ///< 1 = r_squared is a value (any finite value <= 1.0, -1.0 included); 0 = not given.
+                                    ///< Offset 4, in what was padding: sizeof and every other offset are unchanged.
+    double   r_squared;             ///< Coefficient of determination: at most 1.0, negative for a fit worse than the mean;
+                                    ///< meaningful when has_r_squared is 1 (the fill value is -1.0)
     uint64_t calibration_timestamp; ///< Unix epoch milliseconds
     char     detector_serial[32];   ///< Detector serial number (null-terminated)
     char     firmware_version[16];  ///< Firmware version (null-terminated)
     uint8_t  calibration_pass;      ///< 0=failed R² gate, 1=passed
-    double   previous_r_squared;    ///< Previous calibration R² (-1.0 if none)
+    uint8_t  has_previous_r_squared;///< 1 = previous_r_squared is a value; 0 = no earlier record had an R².
+                                    ///< Offset 73, in what was padding: sizeof and every other offset are unchanged.
+    double   previous_r_squared;    ///< R² of the last earlier record that had one (-1.0 fill when none)
 } XpeCalibQualityMeta;
 
 /**
@@ -1317,12 +1632,33 @@ XPE_API XpeErrorCode xpe_calib_set_mode(XpeCalibrationMode mode);
 XPE_API XpeCalibrationMode xpe_calib_get_mode(void);
 
 /**
- * @brief Get quality metadata from last calibration
+ * @brief Get quality metadata of the current gain calibration
  *
  * FUNC-033: Quality Metadata API
  *
- * Returns the quality metadata structure populated during the last
- * calibration generation operation.
+ * Returns the record of the most recent gain calibration the module GENERATED (xpe_calib_generate_gain...) or
+ * LOADED (xpe_calib_load_gain, the cached loader, the pipeline's calibration set). Every gain load replaces it
+ * (QA-A-202e): with the file's quality metadata when the file carries it, and when the file carries NONE with the
+ * "no quality" record -- `valid` is 0 and every field describing the current record, has_r_squared included, is
+ * zero; the history (previous_r_squared and has_previous_r_squared) is kept from the record it replaced. A record
+ * is never left from an earlier file as if it described the gain that is current. Check `valid` before using the
+ * other fields, and has_r_squared before using r_squared: a file with quality fields but no fit_r_squared has
+ * valid = 1 and has_r_squared = 0, and r_squared then holds the fill value -1.0 -- which is also a possible real
+ * value, so it is the flag, never the value, that says whether there is an R2.
+ * previous_r_squared is the history: the R2 of the last record that HAD one -- a valid record with
+ * has_r_squared = 1 -- kept apart from the current record; has_previous_r_squared says whether there is one
+ * (with none, previous_r_squared holds -1.0). A record that has no R2 -- no quality at all, or other quality
+ * fields but no fit_r_squared -- does not interrupt it: the history passes through such records, with its flag.
+ * After a generation the record describes the generated calibration (FUNC-033), which is not necessarily the map
+ * in the store; the next gain load replaces it.
+ *
+ * The two has_* flags are valid only against a module build that writes them (see XpeCalibQualityMeta,
+ * "BUILD-MATCHED USE"): a header that has them with an older module leaves them undefined.
+ *
+ * Thread-safe, and consistent with the calibration store (QA-A-202d): the record lives in the store and is read
+ * under the lock the maps are replaced under, so a gain load makes the maps and this record current in one step --
+ * a reader sees the previous file's record or the new one's, never the new maps beside the old quality, and
+ * never a record half-way through being replaced.
  *
  * @param meta Output: Quality metadata (caller-owned)
  * @return XPE_OK on success

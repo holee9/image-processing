@@ -59,6 +59,13 @@ struct GhostCorrectorHandle {
     std::vector<float> hist1; // fast IRF accumulator
     std::vector<float> hist2; // slow IRF accumulator
 
+    // QA-A-202c (#233): where a frame's NEW history is written. A frame reads hist1/hist2 and writes next1/next2;
+    // only when the whole frame succeeded are the two pairs swapped, so a frame that fails half way leaves the
+    // history the next frame sees exactly as it was. Allocated once with the handle (not per frame); it
+    // doubles the handle's memory (4 float planes instead of 2).
+    std::vector<float> next1;
+    std::vector<float> next2;
+
     double lastAcqTimeSec{0.0};
     double lastFrameMean{0.0}; // mean signal level for exposure weighting
 
@@ -108,6 +115,47 @@ float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
  * ========================================================================= */
 
 std::string xpe_json_get_string(const char* configJson, const char* key);
+
+/** What xpe_json_find_scalar found for a key (QA-A-205b). */
+enum class XpeJsonKey {
+    Absent,      ///< the key is not in the text (or the text is null)
+    Scalar,      ///< the key has a value that is a string or a bare token; the value may be EMPTY ("" or nothing)
+    NotScalar,   ///< the key has a value that is not a scalar: an object, an array, an unterminated string, or nothing at all
+};
+
+/**
+ * xpe_json_get_string with the one fact it throws away: whether the key was there. It returns an empty string
+ * both for {"k":""} and for a text without "k", so a caller that must refuse a PRESENT-but-empty field
+ * (a calibration file's quality metadata) cannot use it. `*value` is set for Scalar only.
+ */
+XpeJsonKey xpe_json_find_scalar(const char* configJson, const char* key, std::string* value);
+
+/** What xpe_json_top_level_scalar found for a key (QA-A-208). */
+enum class XpeJsonTop {
+    Absent,      ///< the text is empty, or its top-level object has no such key
+    Scalar,      ///< exactly one top-level key of that name, with a string or bare-token value (possibly empty)
+    NotScalar,   ///< exactly one, and its value is an object or an array
+    Duplicate,   ///< the top-level object has the key more than once
+    Malformed,   ///< not a JSON object, or it ends or breaks before the object closes
+};
+
+/**
+ * The top-level key `key` of the JSON OBJECT `json`, read from a PARSED text: nlohmann-json (the parser the
+ * repository already carries, third_party/common/vcpkg.json) in its SAX mode, strict -- the whole text must be one
+ * valid JSON object, with nothing after it, and the text is the `len` bytes given -- a NUL byte is not its end,
+ * it is Malformed (QA-A-208c: nlohmann-json lexes a NUL outside a string as the end of the input, even in strict
+ * mode, so it is refused before parsing). A NUL-terminated text is passed with its strlen. Keys are compared after their escapes are interpreted ("fit\u005fr_squared"
+ * is fit_r_squared); the members of nested objects and arrays are not top-level keys; a key given twice at the top level
+ * is Duplicate. An empty or all-white-space text is Absent; anything that is not valid JSON, or whose top level
+ * is not an object, is Malformed. No exception for a malformed text; std::bad_alloc can still escape (the callers'
+ * guards turn it into XPE_ERR_OUT_OF_MEMORY). xpe_json_find_scalar looks for the first occurrence of the quoted
+ * name anywhere in the text and reads a nested object's key (QA-A-208, Codex #34 B2); this is the lookup for signed
+ * data -- the quality fields of a calibration file. The pipeline CONFIGURATION is still read by xpe_json_get_string,
+ * with that first-occurrence rule, unchanged (QA-A-209 is to change it).
+ * `*value` is set for Scalar only: the string's text with its escapes interpreted, or the number/true/false/null
+ * token (a float as written, an integer in decimal).
+ */
+XpeJsonTop xpe_json_top_level_scalar(const char* json, size_t len, const char* key, std::string* value);
 
 /**
  * @brief xpe_nonlinearity_correct with a report of whether pixels were corrected.
@@ -283,17 +331,33 @@ struct XpeCalibrationState {
  * ========================================================================= */
 
 struct CalibrationData {
-    std::unique_ptr<float[]>   offset_map;
+    // offset_map and defect_map are SHARED so that xpe_offset_correct / xpe_defect_correct can take a
+    // reference under the lock and read the map outside it (QA-A-202, #233): a reload in the middle of
+    // a frame replaces the pointer in this store and leaves the frame the map it started with. A map is
+    // therefore never modified in place once it is installed -- an update builds a new array and swaps.
+    std::shared_ptr<float[]>   offset_map;
     uint32_t offset_width{0};
     uint32_t offset_height{0};
     int64_t  offset_timestamp{0};
     char     offset_session_id[64]{};
+    // What the cached loaders need from the file the plain loader just read (QA-A-196, #216): the
+    // file's expiry (0 = never) and, for gain, its config JSON. The plain loaders write them so the
+    // cache can keep them in its entry and judge a later hit as the file read would have.
+    int64_t  offset_expiry_ms{0};
 
-    std::unique_ptr<float[]>   gain_map;
+    // gain_map and gain_poly_coeffs are SHARED for the same reason as offset_map (QA-A-202d, Codex #32): a
+    // frame takes a CalibSnapshot of the three maps when it starts, and a load that replaces the store while
+    // the frame runs must leave the frame the maps it began with. A map is never modified in place.
+    std::shared_ptr<float[]>   gain_map;
     uint32_t gain_width{0};
     uint32_t gain_height{0};
     int64_t  gain_timestamp{0};
     char     gain_session_id[64]{};
+    int64_t  gain_expiry_ms{0};
+    // The gain file's FUNC-033 quality metadata, parsed before the commit and kept so that a cache
+    // hit applies the very same values as the load did (QA-A-200).
+    XpeCalibQualityMeta gain_quality{};
+    bool     gain_has_quality{false};
 
     // QA-A-37 (#140): XCAL_TYPE_GAIN_POLY coefficients, pixel-major --
     // coefficient j of pixel p lives at [p * gain_poly_num_coeffs + j], which
@@ -302,7 +366,7 @@ struct CalibrationData {
     // A polynomial calibration and a scalar map are alternatives, never both:
     // loading either clears the other, so the store always describes exactly
     // one gain model and xpe_gain_correct() cannot silently apply a stale map.
-    std::unique_ptr<float[]>   gain_poly_coeffs;
+    std::shared_ptr<float[]>   gain_poly_coeffs;
     uint32_t gain_poly_num_coeffs{0};
 
     // QA-A-123 (#194): the dose range the polynomial was fitted and
@@ -318,9 +382,10 @@ struct CalibrationData {
     double gain_poly_dose_min{0.0};
     double gain_poly_dose_max{0.0};
 
-    std::unique_ptr<uint8_t[]> defect_map;
+    std::shared_ptr<uint8_t[]> defect_map;   // shared for the same reason as offset_map
     uint32_t defect_width{0};
     uint32_t defect_height{0};
+    int64_t  defect_expiry_ms{0};
 
     // QA-A-111 (#186): SRS-CALIB-FUNC-006-EXT 6a nonlinearity LUT, a flat table
     // indexed by raw ADU. `nonlin_extension_start` is the first index the
@@ -332,10 +397,168 @@ struct CalibrationData {
     uint32_t nonlin_extension_start{0};
     int64_t  nonlin_timestamp{0};
 
+    // The module's FUNC-033 quality record: what xpe_calib_get_quality_meta() serves (QA-A-202d, Codex #32 A1).
+    // It lives in the store, under g_calib_mutex, so that a gain load moves the maps and the quality in one
+    // critical section and a reader never sees the new maps beside the old quality (it used to be a separate
+    // global, updated after the lock was released and read without one). It stays a second field next to
+    // `gain_quality` -- the file's own parsed values, which the calibration cache keeps -- because the record is
+    // more than the loaded file's: a generator also writes it (xpe_calib_record_quality_meta), a cached load
+    // makes it current without replacing any map, and it carries previous_r_squared, the history of the
+    // record it replaced.
+    XpeCalibQualityMeta quality_meta = [] {
+        XpeCalibQualityMeta m{};
+        m.previous_r_squared = -1.0;   // "no previous fit", as at start-up
+        return m;
+    }();
 };
 
 extern CalibrationData g_calib;
 extern std::mutex      g_calib_mutex;
+
+/* =========================================================================
+ * The calibration set a frame is processed with (QA-A-202d, Codex #32 A2)
+ *
+ * The pipeline calls the offset, gain and defect corrections one after the other, and each used to take
+ * g_calib_mutex afresh to fetch its map -- so a load that landed between two stages gave one frame an offset
+ * from set A and a gain from set B. A CalibSnapshot is the three maps (shared ownership), their dimensions, the
+ * gain polynomial's range and the module's initialized state, copied under ONE lock; the pipeline takes one
+ * when a frame (or, for the path-taking entry points, the set it has just loaded) starts and runs every stage
+ * on it. The exported single-stage functions (xpe_offset_correct and the others) take a snapshot of their
+ * own per call: they use the maps current when they are called -- the set consistency is the pipeline's.
+ * ========================================================================= */
+struct CalibSnapshot {
+    bool initialized{false};
+
+    std::shared_ptr<float[]>   offset_map;
+    uint32_t offset_width{0};
+    uint32_t offset_height{0};
+
+    std::shared_ptr<float[]>   gain_map;           ///< the scalar plane; null while a polynomial is loaded
+    std::shared_ptr<float[]>   gain_poly_coeffs;   ///< pixel-major coefficient planes; null for a scalar map
+    uint32_t gain_poly_num_coeffs{0};
+    bool     gain_poly_has_range{false};
+    double   gain_poly_dose_min{0.0};
+    double   gain_poly_dose_max{0.0};
+    uint32_t gain_width{0};
+    uint32_t gain_height{0};
+
+    std::shared_ptr<uint8_t[]> defect_map;
+    uint32_t defect_width{0};
+    uint32_t defect_height{0};
+};
+
+/** The snapshot of the store as it is now; the caller holds g_calib_mutex. Copies pointers and numbers only. */
+CalibSnapshot xpe_calib_snapshot_locked() noexcept;
+/** The same, taking g_calib_mutex itself. */
+CalibSnapshot xpe_calib_snapshot() noexcept;
+
+/**
+ * The three corrections on a given snapshot. xpe_offset_correct / xpe_gain_correct / xpe_defect_correct are
+ * these with a snapshot taken at the call; the pipeline passes the frame's own.
+ */
+XpeErrorCode xpe_offset_correct_in(const CalibSnapshot& calib, const XpeImageBuffer* input,
+                                   XpeImageBuffer* output, const XpeImageMetadata* metadata);
+XpeErrorCode xpe_gain_correct_in(const CalibSnapshot& calib, const XpeImageBuffer* input,
+                                 XpeImageBuffer* output, const XpeImageMetadata* metadata);
+XpeErrorCode xpe_defect_correct_in(const CalibSnapshot& calib, const XpeImageBuffer* input,
+                                   XpeImageBuffer* output, const XpeImageMetadata* metadata);
+
+/* =========================================================================
+ * Staged calibration loads (QA-A-202c, #233 / Codex #27 A1)
+ *
+ * A plain loader reads and validates a file and then commits it to g_calib. The pipeline loads three files and
+ * must replace the calibration set as a whole or not at all, so each loader is split in two: a STAGE
+ * function that does everything that can fail (read, checksum, validate, allocate, parse) into a staged
+ * object and touches no global, and a COMMIT function that only moves the staged object into g_calib and
+ * cannot fail. xpe_calib_load_offset/gain/defect_map are stage + commit, unchanged for their callers; the
+ * pipeline stages all three first and commits them together under one lock.
+ * ========================================================================= */
+// The offset and defect maps are shared_ptr in the store, so they are shared_ptr here: converting a unique_ptr
+// to a shared_ptr allocates the control block, and a commit must not allocate.
+struct StagedOffset {
+    std::shared_ptr<float[]> map;
+    uint32_t width{0};
+    uint32_t height{0};
+    int64_t  timestamp{0};
+    int64_t  expiryMs{0};
+    char     sessionId[64]{};
+};
+
+struct StagedGain {
+    std::shared_ptr<float[]> map;      ///< the scalar plane, or the coefficient planes of a polynomial
+                                       ///< (shared: the store holds it so, and converting at commit would allocate)
+    bool     isPoly{false};
+    uint32_t numCoeffs{0};
+    uint32_t width{0};
+    uint32_t height{0};
+    int64_t  timestamp{0};
+    int64_t  expiryMs{0};
+    char     sessionId[64]{};
+    XpeCalibQualityMeta quality{};
+    bool     qualityFound{false};
+    // The polynomial's fitted dose range, as read from the file's config block (QA-A-123).
+    double   doseLo{-1.0};
+    double   doseHi{-1.0};
+    bool     rangePresent{false};
+    bool     rangeUsable{false};
+};
+
+struct StagedDefect {
+    std::shared_ptr<uint8_t[]> map;
+    uint32_t width{0};
+    uint32_t height{0};
+    int64_t  expiryMs{0};
+};
+
+/** Read, validate and allocate; changes no global. Never throws. */
+XpeErrorCode xpe_calib_stage_offset(const char* filepath, StagedOffset* out) noexcept;
+XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcept;
+XpeErrorCode xpe_calib_stage_defect(const char* filepath, StagedDefect* out) noexcept;
+
+/** Move a staged object into g_calib. The caller holds g_calib_mutex. Cannot fail. */
+void xpe_calib_commit_offset_locked(StagedOffset& staged) noexcept;
+void xpe_calib_commit_gain_locked(StagedGain& staged) noexcept;
+void xpe_calib_commit_defect_locked(StagedDefect& staged) noexcept;
+
+/**
+ * What follows a committed gain load, after g_calib_mutex was released: the advisory alerts about a polynomial's
+ * dose range are raised. It cannot fail the load. (The FUNC-033 quality metadata is NOT here any more: it is
+ * committed with the maps, in xpe_calib_commit_gain_locked -- QA-A-202d.)
+ */
+void xpe_calib_after_gain_commit(const StagedGain& staged) noexcept;
+
+/**
+ * Whether the calibration cache's list and index describe the same entries (every list node has its
+ * index slot and the counts agree). Not exported: a seam for the allocation-failure sweep, which
+ * compiles the product sources into its own executable (QA-A-203, Codex #21).
+ */
+bool xpe_calib_cache_is_consistent();
+
+#ifdef XPE_CACHE_TEST_HOOKS
+/**
+ * Test-only: called by a cached loader's hit lookup right after it has opened the file and before the
+ * expiry is judged, so a test can make that step take as long as a slow (network) path would. Only the
+ * allocation-failure executable defines XPE_CACHE_TEST_HOOKS; the shipped library has neither the
+ * declaration nor the call (QA-A-203b, Codex #22).
+ */
+extern void (*xpe_cache_after_open_check_hook)();
+
+/**
+ * Test-only (QA-A-202d, Codex #32): the pipeline's observation points. `xpe_calib_after_set_commit_hook` runs
+ * after load_calibration_set committed the three maps and released g_calib_mutex; `xpe_pipeline_after_stage_hook`
+ * runs inside pipeline_core after a stage (2 = the offset stage), so a test can load another calibration set
+ * at exactly the point where a concurrent load would hurt. Same rule as the hook above: only the
+ * allocation-failure executable defines XPE_CACHE_TEST_HOOKS.
+ */
+extern void (*xpe_calib_after_set_commit_hook)();
+extern void (*xpe_pipeline_after_stage_hook)(int stage);
+/** Runs INSIDE the critical section that commits the set, with g_calib_mutex held: a test starts a reader here
+ *  and checks that it cannot finish until the section ends. */
+extern void (*xpe_calib_in_set_commit_hook)();
+/** Runs at the top of xpe_calib_get_quality_meta, just before it takes g_calib_mutex (QA-A-202e): a test uses it to
+ *  know that a reader thread has reached the getter's lock attempt, instead of guessing from a thread start. */
+extern void (*xpe_calib_quality_before_lock_hook)();
+#endif
 
 /* =========================================================================
  * FUNC-033 quality metadata (QA-A-35, #140)
@@ -385,6 +608,9 @@ constexpr float XPE_CALIB_GAIN_MAX = 10.0f;
 /** @brief The FUNC-033 (2) R-squared gate threshold, quoted from the SRS. */
 constexpr double XPE_CALIB_R_SQUARED_GATE = 0.999;
 
+/** The fill value of r_squared / previous_r_squared when there is none -- NOT the indicator: that is has_r_squared (QA-A-208d). */
+constexpr double XPE_R_SQUARED_NOT_GIVEN = -1.0;
+
 /**
  * @brief Restore FUNC-033 metadata from an XCal file's config JSON.
  *
@@ -397,10 +623,39 @@ constexpr double XPE_CALIB_R_SQUARED_GATE = 0.999;
  * (r_squared / previous_r_squared -1.0, the rest 0) rather than failing the
  * load.
  *
- * @param configJson NUL-terminated config JSON, or nullptr for none.
- * @return true when at least one FUNC-033 field was present.
+ * Parsing allocates and may throw std::bad_alloc; nothing is changed until
+ * xpe_calib_commit_quality_meta_locked().
+ *
+ * A field that is present and is not a number in range (an integer in [0, 255] for the three uint8
+ * fields, a finite number for fit_r_squared; notation as for the pipeline configuration) is
+ * XPE_ERR_CONFIG_INVALID (QA-A-204, #233) -- it used to be read as 0 or truncated, silently.
+ *
+ * @param configJson The config JSON, or nullptr for none: `len` bytes, NOT NUL-terminated text -- the config block
+ *                   of an XCal file is stored with its length, may hold any byte, and is parsed to its end
+ *                   (QA-A-208c, Codex #43: a NUL in the block used to end the text and hide what followed).
+ * @param len        Length of configJson in bytes.
+ * @param out        Receives the parsed metadata when *found is true.
+ * @param found      Set to true when at least one FUNC-033 field was present (and all were valid).
+ * @return XPE_OK, XPE_ERR_CONFIG_INVALID for a malformed field, XPE_ERR_INVALID_INPUT for a null argument.
  */
-bool xpe_calib_apply_quality_meta_json(const char* configJson) noexcept;
+XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, size_t len, XpeCalibQualityMeta* out, bool* found);
+
+/**
+ * @brief Make parsed FUNC-033 metadata the one xpe_calib_get_quality_meta() serves; the caller holds g_calib_mutex.
+ *
+ * Never throws: it copies a plain struct. Split from the parse so a loader can do everything that
+ * allocates before it commits anything (QA-A-200); previous_r_squared is chained from the metadata
+ * being replaced, as a load always did. The gain loaders call this inside the critical section that moves the
+ * maps, so the maps and the quality become current together (QA-A-202d).
+ */
+void xpe_calib_commit_quality_meta_locked(const XpeCalibQualityMeta& parsed) noexcept;
+
+/**
+ * A gain whose file carries NO quality metadata becomes current: the record becomes "none" (valid = 0, every field
+ * zero) instead of keeping the previous file's values (QA-A-202e). previous_r_squared keeps the history -- the R2 of
+ * the last record that had one -- apart from the current record. The caller holds g_calib_mutex; never throws.
+ */
+void xpe_calib_commit_no_quality_locked() noexcept;
 
 /**
  * @brief Scalar reference implementation of the gain-correction inner loop.

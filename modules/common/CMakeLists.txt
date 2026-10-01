@@ -143,6 +143,39 @@ if(_XPE_BUILD_TESTS)
     gtest_discover_tests(test_xpe_common
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
+
+    # --- xpe_common_oom_tests (QA-A-204, #233): allocation-failure sweeps -----------------------------
+    # A replaced operator new in an executable does not reach code in another module, and xpe_common is a
+    # shared library -- so this target compiles the library sources into itself instead of linking it.
+    # XPE_COMMON_TEST_HOOKS adds the accessor the sweeps read the exact loss count through; it is
+    # defined here and nowhere else, so the shipped library does not carry it.
+    add_executable(xpe_common_oom_tests
+        tests/test_common_oom_injection.cpp
+        src/xpe_common.cpp
+        src/xpe_memory.cpp
+        src/xpe_logging.cpp
+    )
+    target_compile_definitions(xpe_common_oom_tests PRIVATE XPE_DLL_EXPORT XPE_COMMON_TEST_HOOKS)
+    target_include_directories(xpe_common_oom_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(xpe_common_oom_tests PRIVATE
+        spdlog::spdlog
+        nlohmann_json::nlohmann_json
+        fmt::fmt
+        GTest::gtest_main
+    )
+    target_compile_features(xpe_common_oom_tests PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(xpe_common_oom_tests PRIVATE /W4)
+    else()
+        target_compile_options(xpe_common_oom_tests PRIVATE -Wall -Wextra)
+    endif()
+    xpe_target_warnings_as_errors(xpe_common_oom_tests)
+
+    gtest_discover_tests(xpe_common_oom_tests
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
 endif()
 
 # Installation

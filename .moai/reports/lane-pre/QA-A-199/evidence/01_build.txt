@@ -1,0 +1,132 @@
+'vswhere.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+배치 파일이 아닙니다.
+[0/1] Re-running CMake...
+-- Platform: x86-64, AVX2 enabled
+-- Build spdlog: 1.14.1
+-- Build type: RelWithDebInfo
+-- Using the multi-header code from D:/workspace-github/xpe-pre/build/ci-preprocess/_deps/nlohmann_json-src/include/
+-- {fmt} version: 11.0.2
+-- Build type: RelWithDebInfo
+-- Could NOT find GTest (missing: GTest_DIR)
+-- Orphan-source check: 0 unlisted sources under modules/*/src/
+-- Configuring done (8.1s)
+-- Generating done (0.2s)
+-- Build files have been written to: D:/workspace-github/xpe-pre/build/ci-preprocess
+[1/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\calibration_manager.cpp.obj
+[2/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\binning_correct.cpp.obj
+[3/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_load_defect_map.cpp.obj
+[4/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\temp_compensate.cpp.obj
+[5/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\offset_correct.cpp.obj
+[6/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_save.cpp.obj
+[7/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\readout_validate.cpp.obj
+[8/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\nonlinearity_correct.cpp.obj
+[9/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_load_offset.cpp.obj
+[10/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_mode.cpp.obj
+[11/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\gain_correct.cpp.obj
+[12/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calibration.cpp.obj
+[13/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\pipeline.cpp.obj
+[14/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_load_gain.cpp.obj
+[15/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\helpers.cpp.obj
+[16/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_defect_gen.cpp.obj
+[17/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_check_expiry.cpp.obj
+[18/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\ghost_correct.cpp.obj
+[19/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\defect_correct.cpp.obj
+[20/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\runtime_detection.cpp.obj
+[21/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_generate_offset.cpp.obj
+[22/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_load_nonlin_lut.cpp.obj
+[23/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_generate_offset_methods.cpp.obj
+[24/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_generate_nonlin_lut.cpp.obj
+[25/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_verify_metrics.cpp.obj
+[26/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\calibration_cache.cpp.obj
+[27/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_generate_gain.cpp.obj
+[28/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\preprocess.cpp.obj
+[29/118] Building CXX object modules\preprocess\CMakeFiles\xpe_calib_fixture_gen.dir\tools\xpe_calib_fixture_gen.cpp.obj
+[30/118] Linking CXX shared library bin\xpe_preprocess.dll
+[31/118] Linking CXX executable bin\xpe_calib_fixture_gen.exe
+[32/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_readout_validate.cpp.obj
+[33/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_boundary.cpp.obj
+[34/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_global_state_hygiene.cpp.obj
+[35/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_ghost_correct.cpp.obj
+[36/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_xpe_calib_check_expiry.cpp.obj
+[37/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_defect_correct.cpp.obj
+[38/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_json_helpers.cpp.obj
+[39/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_gain_correct.cpp.obj
+[40/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calibration_manager.cpp.obj
+[41/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_integration.cpp.obj
+[42/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_ghost_tiers.cpp.obj
+[43/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_offset_correct.cpp.obj
+[44/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_nonlin_poly_apply.cpp.obj
+[45/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_xpe_preprocess_memleak.cpp.obj
+[46/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_temp_nonlinearity_binning.cpp.obj
+[47/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_sha256_backend_parity.cpp.obj
+[48/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_xpe_calib_endurance.cpp.obj
+[49/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_gain_correct_reciprocal_fma.cpp.obj
+[50/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_golden_reference.cpp.obj
+[51/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calibration_roundtrip.cpp.obj
+[52/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_nonlin_lut_generate.cpp.obj
+[53/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_nonlin_lut_apply.cpp.obj
+[54/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_pipeline_stages.cpp.obj
+[55/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_param_range_names.cpp.obj
+[56/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_error_precedence.cpp.obj
+[57/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_xpe_calib_generate_offset.cpp.obj
+[58/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_runtime_detection_determinism.cpp.obj
+[59/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_xpe_calib_load.cpp.obj
+[60/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calibration_cache.cpp.obj
+[61/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calib_save_expiry.cpp.obj
+[62/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_xpe_preprocess_calibration.cpp.obj
+[63/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_defect_correct_determinism.cpp.obj
+[64/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_offset_correct_avx2_parity.cpp.obj
+[65/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_sigma_clip_conformance.cpp.obj
+[66/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_xpe_preprocess_correction.cpp.obj
+[67/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calib_cache_ownership.cpp.obj
+[68/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_preprocess_degraded.cpp.obj
+[69/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_xpe_preprocess_init.cpp.obj
+[70/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_gain_correct_avx2_parity.cpp.obj
+[71/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_xpe_calib_save.cpp.obj
+[72/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calib_cache_concurrency.cpp.obj
+[73/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calib_generate_offset_multi.cpp.obj
+[74/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_runtime_detection_avx2_parity.cpp.obj
+[75/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_pipeline_ex.cpp.obj
+[76/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_runtime_detection_errors.cpp.obj
+[77/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_runtime_detection_functional.cpp.obj
+[78/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_defect_gen.cpp.obj
+[79/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calib_generate_gain.cpp.obj
+[80/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_verify_metrics.cpp.obj
+[81/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calib_mode.cpp.obj
+[82/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_verify_metrics_edges.cpp.obj
+[83/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_nonlin_noop_report.cpp.obj
+[84/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_nonlin_no_mode_rejection.cpp.obj
+[85/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_gain_poly_not_applied.cpp.obj
+[86/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calib_overwrite.cpp.obj
+[87/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_pipeline_stage_values.cpp.obj
+[88/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_fixture_gen_gain_poly.cpp.obj
+[89/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calib_fixture_gen.cpp.obj
+[90/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_req_p1a_066.cpp.obj
+[91/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_sigma_clip_nmin.cpp.obj
+[92/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_gain_poly_dose_range.cpp.obj
+[93/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_ghost_thread_safety.cpp.obj
+[94/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_zz_a166_bounds.cpp.obj
+[95/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_verify_gain_semantics.cpp.obj
+[96/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calib_dim_mismatch.cpp.obj
+[97/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calib_generate_offset_config.cpp.obj
+[98/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_defect_oracle.cpp.obj
+[99/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_preprocess_version.cpp.obj
+[100/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_zz_a172_path.cpp.obj
+[101/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calib_cache_global_store.cpp.obj
+[102/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calib_mode_enforcement.cpp.obj
+[103/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calib_gain_poly_load.cpp.obj
+[104/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_zz_a184_probes.cpp.obj
+[105/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\src\helpers.cpp.obj
+[106/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_zz_a161_probe.cpp.obj
+[107/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\src\xpe_calib_generate_offset_methods.cpp.obj
+[108/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calib_quality_meta.cpp.obj
+[109/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_zz_a187_probe.cpp.obj
+[110/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_zz_a186_probe.cpp.obj
+[111/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_runtime_detection_rates.cpp.obj
+[112/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_zz_a174_floor.cpp.obj
+[113/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_runtime_detection_performance_gate.cpp.obj
+[114/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_calib_cache_same_verdict.cpp.obj
+[115/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_zz_a173_gate.cpp.obj
+[116/118] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_runtime_detection_buffer_reuse.cpp.obj
+[117/118] Linking CXX executable bin\xpe_preprocess_tests.exe
+BUILD_EXIT=0

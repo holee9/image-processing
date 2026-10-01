@@ -1,0 +1,48 @@
+Note: Google Test filter = ConfigStrictParse.*:CorrectMapSharing.*
+[==========] Running 8 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 6 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+[       OK ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing (8 ms)
+[ RUN      ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[       OK ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (2 ms)
+[ RUN      ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+[       OK ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(210): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(205): {"tier2Threshold":"99999999999999999999"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(211): error: Expected equality of these values:
+  nullptr
+    Which is: NULL
+  handle
+    Which is: 0000026AD0B8C0D0
+no handle may be handed back on a refusal
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(205): {"tier2Threshold":"99999999999999999999"}
+
+[  FAILED  ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[----------] 6 tests from ConfigStrictParse (11 ms total)
+
+[----------] 2 tests from CorrectMapSharing
+[ RUN      ] CorrectMapSharing.OffsetCorrectionDuringAReloadIsWhollyOneMapOrTheOther
+[       OK ] CorrectMapSharing.OffsetCorrectionDuringAReloadIsWhollyOneMapOrTheOther (1524 ms)
+[ RUN      ] CorrectMapSharing.DefectCorrectionDuringAReloadIsWhollyOneMapOrTheOther
+[       OK ] CorrectMapSharing.DefectCorrectionDuringAReloadIsWhollyOneMapOrTheOther (1511 ms)
+[----------] 2 tests from CorrectMapSharing (3036 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 2 test suites ran. (3048 ms total)
+[  PASSED  ] 7 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+
+ 1 FAILED TEST

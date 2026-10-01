@@ -1,0 +1,158 @@
+Note: Google Test filter = ConfigStrictParse.*:FixtureGenGainPoly*:*Quality*:*CalibMode*
+[==========] Running 53 tests from 6 test suites.
+[----------] Global test environment set-up.
+[----------] 8 tests from CalibModeTest
+[ RUN      ] CalibModeTest.DefaultModeIsMultiPoint8
+[       OK ] CalibModeTest.DefaultModeIsMultiPoint8 (0 ms)
+[ RUN      ] CalibModeTest.SetGetRoundtrip_AllModes
+[       OK ] CalibModeTest.SetGetRoundtrip_AllModes (0 ms)
+[ RUN      ] CalibModeTest.SetMode_InvalidValue_Rejected
+[       OK ] CalibModeTest.SetMode_InvalidValue_Rejected (0 ms)
+[ RUN      ] CalibModeTest.GetMaxPoints_PerMode
+[       OK ] CalibModeTest.GetMaxPoints_PerMode (0 ms)
+[ RUN      ] CalibModeTest.GetPolyDegree_PerMode
+[       OK ] CalibModeTest.GetPolyDegree_PerMode (0 ms)
+[ RUN      ] CalibModeTest.QualityMeta_InitialState
+[       OK ] CalibModeTest.QualityMeta_InitialState (25 ms)
+[ RUN      ] CalibModeTest.QualityMeta_NullPointer_Rejected
+[       OK ] CalibModeTest.QualityMeta_NullPointer_Rejected (0 ms)
+[ RUN      ] CalibModeTest.MaxPoints_HardCap_10
+[       OK ] CalibModeTest.MaxPoints_HardCap_10 (0 ms)
+[----------] 8 tests from CalibModeTest (26 ms total)
+
+[----------] 7 tests from CalibModeEnforcementTest
+[ RUN      ] CalibModeEnforcementTest.AutoResolvesToTheSmallestFittingMode
+[       OK ] CalibModeEnforcementTest.AutoResolvesToTheSmallestFittingMode (99 ms)
+[ RUN      ] CalibModeEnforcementTest.PolynomialGeneratorRefusesLevelsAboveTheExplicitCap
+[       OK ] CalibModeEnforcementTest.PolynomialGeneratorRefusesLevelsAboveTheExplicitCap (54 ms)
+[ RUN      ] CalibModeEnforcementTest.AutoMatchesTheExplicitModeAtEveryBoundary
+[       OK ] CalibModeEnforcementTest.AutoMatchesTheExplicitModeAtEveryBoundary (146 ms)
+[ RUN      ] CalibModeEnforcementTest.AutoAboveTheHardCapFailsLikeMultiPoint10
+[       OK ] CalibModeEnforcementTest.AutoAboveTheHardCapFailsLikeMultiPoint10 (13 ms)
+[ RUN      ] CalibModeEnforcementTest.SingleDoseGeneratorUnderAutoRecordsSinglePoint
+[       OK ] CalibModeEnforcementTest.SingleDoseGeneratorUnderAutoRecordsSinglePoint (10 ms)
+[ RUN      ] CalibModeEnforcementTest.SingleDoseGeneratorIsAcceptedByEveryMode
+[       OK ] CalibModeEnforcementTest.SingleDoseGeneratorIsAcceptedByEveryMode (22 ms)
+[ RUN      ] CalibModeEnforcementTest.AutoResolutionIsReportedOnTheAlertQueue
+[       OK ] CalibModeEnforcementTest.AutoResolutionIsReportedOnTheAlertQueue (8 ms)
+[----------] 7 tests from CalibModeEnforcementTest (355 ms total)
+
+[----------] 6 tests from FixtureGenGainPolyTest
+[ RUN      ] FixtureGenGainPolyTest.TypeByteIsGainPoly
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+gain_poly.xcal d4fcf25b6aca927692a276c8706ddd4fb0976455441c6539b63b898b9b661330  (degree<=2, 4 dose levels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790879134439_TypeByteIsGainPoly\manifest.json
+[       OK ] FixtureGenGainPolyTest.TypeByteIsGainPoly (1681 ms)
+[ RUN      ] FixtureGenGainPolyTest.DefaultRunStaysScalarAndWritesNoPolyFile
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790879136121_DefaultRunStaysScalarAndWritesNoPolyFile\manifest.json
+[       OK ] FixtureGenGainPolyTest.DefaultRunStaysScalarAndWritesNoPolyFile (1280 ms)
+[ RUN      ] FixtureGenGainPolyTest.GeneratedPolyFileLoads
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+gain_poly.xcal 0fdcb6b771a951ef09b6ff53e81ea2d0676cab330ce4be716d82d52180374ab5  (degree<=2, 4 dose levels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790879137401_GeneratedPolyFileLoads\manifest.json
+[       OK ] FixtureGenGainPolyTest.GeneratedPolyFileLoads (151 ms)
+[ RUN      ] FixtureGenGainPolyTest.LoadAloneIsSilent
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+gain_poly.xcal 52780b369710c9024703c5fe3dc4199af8018609877b5498c37e386a083aa8bc  (degree<=2, 4 dose levels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790879137553_LoadAloneIsSilent\manifest.json
+[       OK ] FixtureGenGainPolyTest.LoadAloneIsSilent (146 ms)
+[ RUN      ] FixtureGenGainPolyTest.PolyAlertIsPushed
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+gain_poly.xcal 4e3273af34434777c42b8e94cc493db3c075ff07484e4240f09efdd0513af458  (degree<=2, 4 dose levels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790879137699_PolyAlertIsPushed\manifest.json
+[       OK ] FixtureGenGainPolyTest.PolyAlertIsPushed (148 ms)
+[ RUN      ] FixtureGenGainPolyTest.ScalarGainRaisesNoPolyAlert
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790879137848_ScalarGainRaisesNoPolyAlert\manifest.json
+[       OK ] FixtureGenGainPolyTest.ScalarGainRaisesNoPolyAlert (107 ms)
+[----------] 6 tests from FixtureGenGainPolyTest (3516 ms total)
+
+[----------] 15 tests from CalibQualityMetaTest
+[ RUN      ] CalibQualityMetaTest.R2QualityGate_Pass_WhenAboveThreshold
+[       OK ] CalibQualityMetaTest.R2QualityGate_Pass_WhenAboveThreshold (4 ms)
+[ RUN      ] CalibQualityMetaTest.R2FallsAsTheSeriesDepartsFromTheFit
+[       OK ] CalibQualityMetaTest.R2FallsAsTheSeriesDepartsFromTheFit (21 ms)
+[ RUN      ] CalibQualityMetaTest.R2QualityGate_Fail_WhenBelowThreshold
+[       OK ] CalibQualityMetaTest.R2QualityGate_Fail_WhenBelowThreshold (4 ms)
+[ RUN      ] CalibQualityMetaTest.GoodFitRaisesNoWarning
+[       OK ] CalibQualityMetaTest.GoodFitRaisesNoWarning (7 ms)
+[ RUN      ] CalibQualityMetaTest.PreviousRSquared_Regression
+[       OK ] CalibQualityMetaTest.PreviousRSquared_Regression (9 ms)
+[ RUN      ] CalibQualityMetaTest.PreviousRSquared_Stable
+[       OK ] CalibQualityMetaTest.PreviousRSquared_Stable (8 ms)
+[ RUN      ] CalibQualityMetaTest.GeneratedFileCarriesTheMetadataFields
+[       OK ] CalibQualityMetaTest.GeneratedFileCarriesTheMetadataFields (7 ms)
+[ RUN      ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenTheFitDropsADegree
+[       OK ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenTheFitDropsADegree (12 ms)
+[ RUN      ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenNoDegreeIsDropped
+[       OK ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenNoDegreeIsDropped (10 ms)
+[ RUN      ] CalibQualityMetaTest.ResidualFieldsCarryTheHandComputedValues
+[       OK ] CalibQualityMetaTest.ResidualFieldsCarryTheHandComputedValues (8 ms)
+[ RUN      ] CalibQualityMetaTest.ResidualFieldsAreZeroForAnExactFit
+[       OK ] CalibQualityMetaTest.ResidualFieldsAreZeroForAnExactFit (11 ms)
+[ RUN      ] CalibQualityMetaTest.MetadataSurvivesSaveAndLoad
+[       OK ] CalibQualityMetaTest.MetadataSurvivesSaveAndLoad (1 ms)
+[ RUN      ] CalibQualityMetaTest.LoadedGateVerdictIsRecomputedNotTrusted
+[       OK ] CalibQualityMetaTest.LoadedGateVerdictIsRecomputedNotTrusted (2 ms)
+[ RUN      ] CalibQualityMetaTest.LegacyFileWithoutMetadataStillLoads
+[       OK ] CalibQualityMetaTest.LegacyFileWithoutMetadataStillLoads (1 ms)
+[ RUN      ] CalibQualityMetaTest.UnrelatedConfigJsonIsIgnored
+[       OK ] CalibQualityMetaTest.UnrelatedConfigJsonIsIgnored (1 ms)
+[----------] 15 tests from CalibQualityMetaTest (114 ms total)
+
+[----------] 1 test from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[       OK ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (23 ms)
+[----------] 1 test from CacheSameVerdict (23 ms total)
+
+[----------] 16 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+[       OK ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[       OK ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (3 ms)
+[ RUN      ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+[       OK ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+[       OK ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore (14 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore (14 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule
+[       OK ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule (2 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+[       OK ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly (79 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead
+[       OK ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead (134 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte
+[       OK ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte (93 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted
+[       OK ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted (76 ms)
+[ RUN      ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead
+[       OK ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead (1 ms)
+[----------] 16 tests from ConfigStrictParse (421 ms total)
+
+[----------] Global test environment tear-down
+[==========] 53 tests from 6 test suites ran. (4456 ms total)
+[  PASSED  ] 53 tests.

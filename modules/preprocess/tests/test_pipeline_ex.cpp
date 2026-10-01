@@ -121,6 +121,23 @@ protected:
         out.dataSize      = data.size() * sizeof(uint16_t);
         return data;
     }
+
+    /**
+     * @brief Like makeTestImage, for a frame the PIPELINE processes: the pipeline writes its float32 result into the buffer it read from, so the buffer has room for
+     * width*height floats and says so (QA-A-205b: this claimed width*height uint16 -- half of what the
+     * result needs -- and the pipeline accepted it and wrote a truncated frame)
+     */
+    std::vector<uint16_t> makePipelineFrame(uint16_t value, XpeImageBuffer& out) {
+        std::vector<uint16_t> data(2 * W * H, value);
+        out.data          = data.data();
+        out.width         = W;
+        out.height        = H;
+        out.bitsAllocated = 16;
+        out.bitsStored    = 16;
+        out.format        = XPE_PIXEL_UINT16;
+        out.dataSize      = W * H * sizeof(float);
+        return data;
+    }
 };
 
 // --- Calibration State Load/Release ---
@@ -200,7 +217,7 @@ TEST_F(PipelineExTest, PipelineExWithState) {
 
     // Create test image (uint16, value = 200)
     XpeImageBuffer img{};
-    auto imgData = makeTestImage(200, img);
+    auto imgData = makePipelineFrame(200, img);
 
     XpeImageMetadata meta = {};
     meta.flags = 0;
@@ -262,7 +279,7 @@ TEST_F(PipelineExTest, BatchProcessesMultipleFrames) {
     std::vector<XpeImageMetadata> metas(kBatchSize);
 
     for (uint32_t i = 0; i < kBatchSize; ++i) {
-        imgDataVec.push_back(std::vector<uint16_t>(W * H, 200));
+        imgDataVec.push_back(std::vector<uint16_t>(2 * W * H, 200));   // room for the float result
         auto& img = images[i];
         img.data          = imgDataVec.back().data();
         img.width         = W;
@@ -270,7 +287,7 @@ TEST_F(PipelineExTest, BatchProcessesMultipleFrames) {
         img.bitsAllocated = 16;
         img.bitsStored    = 16;
         img.format        = XPE_PIXEL_UINT16;
-        img.dataSize      = W * H * sizeof(uint16_t);
+        img.dataSize      = W * H * sizeof(float);
 
         metas[i].flags = 0;
     }
@@ -329,7 +346,7 @@ TEST_F(PipelineExTest, BatchNullMetasReturnsError) {
 
 TEST_F(PipelineExTest, BatchSingleFrameWorks) {
     XpeImageBuffer img{};
-    auto imgData = makeTestImage(200, img);
+    auto imgData = makePipelineFrame(200, img);
     XpeImageMetadata meta = {};
     meta.flags = 0;
 
@@ -358,7 +375,7 @@ TEST_F(PipelineExTest, BatchContinuesOnError) {
     std::vector<XpeImageMetadata> metas(kBatchSize);
 
     for (uint32_t i = 0; i < kBatchSize; ++i) {
-        imgDataVec.push_back(std::vector<uint16_t>(W * H, 200));
+        imgDataVec.push_back(std::vector<uint16_t>(2 * W * H, 200));   // room for the float result
         auto& img = images[i];
         img.data          = imgDataVec.back().data();
         img.width         = W;
@@ -366,7 +383,7 @@ TEST_F(PipelineExTest, BatchContinuesOnError) {
         img.bitsAllocated = 16;
         img.bitsStored    = 16;
         img.format        = XPE_PIXEL_UINT16;
-        img.dataSize      = W * H * sizeof(uint16_t);
+        img.dataSize      = W * H * sizeof(float);
         metas[i].flags = 0;
     }
 

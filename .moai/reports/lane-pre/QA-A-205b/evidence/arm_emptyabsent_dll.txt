@@ -1,0 +1,541 @@
+Note: Google Test filter = ConfigStrictParse.*:PipelineStageTest.*:PipelineExTest.*:CalibFixtureGenTest.*
+[==========] Running 39 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 14 tests from PipelineExTest
+[ RUN      ] PipelineExTest.StateLoadPopulatesAllMaps
+[       OK ] PipelineExTest.StateLoadPopulatesAllMaps (7 ms)
+[ RUN      ] PipelineExTest.StateReleaseFreesMemory
+[       OK ] PipelineExTest.StateReleaseFreesMemory (6 ms)
+[ RUN      ] PipelineExTest.StateReleaseOnZeroInitIsSafe
+[       OK ] PipelineExTest.StateReleaseOnZeroInitIsSafe (3 ms)
+[ RUN      ] PipelineExTest.StateLoadNullReturnsError
+[       OK ] PipelineExTest.StateLoadNullReturnsError (2 ms)
+[ RUN      ] PipelineExTest.StateLoadNonexistentDirSkipsMaps
+[       OK ] PipelineExTest.StateLoadNonexistentDirSkipsMaps (2 ms)
+[ RUN      ] PipelineExTest.PipelineExWithState
+[       OK ] PipelineExTest.PipelineExWithState (7 ms)
+[ RUN      ] PipelineExTest.PipelineExNullImgReturnsError
+[       OK ] PipelineExTest.PipelineExNullImgReturnsError (2 ms)
+[ RUN      ] PipelineExTest.PipelineExNullStateSkipsCalibration
+[       OK ] PipelineExTest.PipelineExNullStateSkipsCalibration (2 ms)
+[ RUN      ] PipelineExTest.BatchProcessesMultipleFrames
+[       OK ] PipelineExTest.BatchProcessesMultipleFrames (6 ms)
+[ RUN      ] PipelineExTest.BatchNullImagesReturnsError
+[       OK ] PipelineExTest.BatchNullImagesReturnsError (2 ms)
+[ RUN      ] PipelineExTest.BatchZeroCountReturnsError
+[       OK ] PipelineExTest.BatchZeroCountReturnsError (2 ms)
+[ RUN      ] PipelineExTest.BatchNullMetasReturnsError
+[       OK ] PipelineExTest.BatchNullMetasReturnsError (3 ms)
+[ RUN      ] PipelineExTest.BatchSingleFrameWorks
+[       OK ] PipelineExTest.BatchSingleFrameWorks (12 ms)
+[ RUN      ] PipelineExTest.BatchContinuesOnError
+[       OK ] PipelineExTest.BatchContinuesOnError (10 ms)
+[----------] 14 tests from PipelineExTest (74 ms total)
+
+[----------] 8 tests from PipelineStageTest
+[ RUN      ] PipelineStageTest.ReadoutAndTempStagesRunAndSetFlags
+[       OK ] PipelineStageTest.ReadoutAndTempStagesRunAndSetFlags (0 ms)
+[ RUN      ] PipelineStageTest.NonlinearityAndBinningStagesRun
+[       OK ] PipelineStageTest.NonlinearityAndBinningStagesRun (0 ms)
+[ RUN      ] PipelineStageTest.OffsetStageFailurePropagates
+[       OK ] PipelineStageTest.OffsetStageFailurePropagates (0 ms)
+[ RUN      ] PipelineStageTest.GainStageFailurePropagates
+[       OK ] PipelineStageTest.GainStageFailurePropagates (0 ms)
+[ RUN      ] PipelineStageTest.OffsetAndGainStagesRunWithCalibrationLoaded
+[       OK ] PipelineStageTest.OffsetAndGainStagesRunWithCalibrationLoaded (8 ms)
+[ RUN      ] PipelineStageTest.AllStagesEnabledRunInSequence
+[       OK ] PipelineStageTest.AllStagesEnabledRunInSequence (9 ms)
+[ RUN      ] PipelineStageTest.DefectStageFailsWhenItsMapIsNotLoaded
+[       OK ] PipelineStageTest.DefectStageFailsWhenItsMapIsNotLoaded (0 ms)
+[ RUN      ] PipelineStageTest.BypassDefectStillSkipsTheStageCleanly
+[       OK ] PipelineStageTest.BypassDefectStillSkipsTheStageCleanly (0 ms)
+[----------] 8 tests from PipelineStageTest (20 ms total)
+
+[----------] 5 tests from CalibFixtureGenTest
+[ RUN      ] CalibFixtureGenTest.EmitsThreeXCalFilesAndManifest
+offset.xcal  e068c85a76f1838e473f76ca606c3e0fde65771200388313c935332ef8159c7d
+gain.xcal    c6330b7a0442eacead97712e59b2936415943bb9491e8e5151b874699e725d95
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790871465935_EmitsThreeXCalFilesAndManifest\set\manifest.json
+[       OK ] CalibFixtureGenTest.EmitsThreeXCalFilesAndManifest (2668 ms)
+[ RUN      ] CalibFixtureGenTest.SameSeedProducesIdenticalBytes
+offset.xcal  0581ce02cfb58b70cff2fe09ddba468c22f7ea42c2d8ffd742a833ed414d24b4
+gain.xcal    4b6e178c920ca8b2e24e5a2493fbe29b29c025e1008bc82dc48e1b78d1829ccd
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790871468603_SameSeedProducesIdenticalBytes\a\manifest.json
+offset.xcal  0581ce02cfb58b70cff2fe09ddba468c22f7ea42c2d8ffd742a833ed414d24b4
+gain.xcal    4b6e178c920ca8b2e24e5a2493fbe29b29c025e1008bc82dc48e1b78d1829ccd
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790871468603_SameSeedProducesIdenticalBytes\b\manifest.json
+[       OK ] CalibFixtureGenTest.SameSeedProducesIdenticalBytes (6062 ms)
+[ RUN      ] CalibFixtureGenTest.DifferentSeedChangesOffsetAndGain
+offset.xcal  19971d0a2c8d8b2a5e33fa13e5a14d167532c0dd439dbcb30cb6ee0901116f5e
+gain.xcal    d93bc7ec0012af549f6e8afef30c9507ffc4a28b8c778116f84d11cc4b5367a0
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790871474666_DifferentSeedChangesOffsetAndGain\s1\manifest.json
+offset.xcal  f364e326d00ad47314133523f7a5a942bceccda7a651dd6e0e90d96c4657d68a
+gain.xcal    d17a3ea2429996ba53e3c600fbe41f7fc4383e69cda22e74388d6d73132540d2
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790871474666_DifferentSeedChangesOffsetAndGain\s2\manifest.json
+[       OK ] CalibFixtureGenTest.DifferentSeedChangesOffsetAndGain (5387 ms)
+[ RUN      ] CalibFixtureGenTest.GeneratedSetDrivesThePipeline
+offset.xcal  e068c85a76f1838e473f76ca606c3e0fde65771200388313c935332ef8159c7d
+gain.xcal    c6330b7a0442eacead97712e59b2936415943bb9491e8e5151b874699e725d95
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790871480053_GeneratedSetDrivesThePipeline\pipe\manifest.json
+[       OK ] CalibFixtureGenTest.GeneratedSetDrivesThePipeline (2619 ms)
+[ RUN      ] CalibFixtureGenTest.ExpiryTimestampRoundTrips
+offset.xcal  31d1120e140d3e9c8a6aa5cd76e99a1101003830ea925350490c319a418c70b8
+gain.xcal    29bac24a9ec03dc8c738bf1549cdba5124a942adc10b67f29c936702e76ee866
+defect.xcal  9cab564f7d44dc544e28c7f5202850f701e20bfaed97005a5390fd56e7e1ec52  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790871482673_ExpiryTimestampRoundTrips\expired\manifest.json
+offset.xcal  ce19c4724c9cfb00afaa6b1dc0518624e5be2ed12f12a0504a2531354f28a106
+gain.xcal    5fe352b68c5d6857f9ac88f96b262dfd9c0781a53e7d5073e06f7c010e3695ae
+defect.xcal  c0ecb20ac14c720400e4c3b9cff143038e99806cfcbdefa7576f1246d4f42920  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790871482673_ExpiryTimestampRoundTrips\valid\manifest.json
+[       OK ] CalibFixtureGenTest.ExpiryTimestampRoundTrips (5199 ms)
+[----------] 5 tests from CalibFixtureGenTest (21937 ms total)
+
+[----------] 12 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+[       OK ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[       OK ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (11 ms)
+[ RUN      ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+[       OK ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+[       OK ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore (15 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(423): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":""}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(431): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+the refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":""}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(423): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"polynomial_degree":""}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(431): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+the refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"polynomial_degree":""}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(423): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"actual_dose_levels":""}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(431): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+the refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"actual_dose_levels":""}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(423): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"calibration_mode":""}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(431): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+the refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"calibration_mode":""}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(423): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":"0.9","polynomial_degree":""}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(427): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: 0.9
+the metadata must be as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":"0.9","polynomial_degree":""}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(428): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":"0.9","polynomial_degree":""}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(429): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":"0.9","polynomial_degree":""}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(430): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":"0.9","polynomial_degree":""}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(431): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+the refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":"0.9","polynomial_degree":""}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(423): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"polynomial_degree":,"fit_r_squared":"0.9"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(427): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: 0.9
+the metadata must be as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"polynomial_degree":,"fit_r_squared":"0.9"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(428): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"polynomial_degree":,"fit_r_squared":"0.9"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(429): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"polynomial_degree":,"fit_r_squared":"0.9"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(430): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"polynomial_degree":,"fit_r_squared":"0.9"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(431): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+the refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"polynomial_degree":,"fit_r_squared":"0.9"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(423): error: Expected equality of these values:
+  -4
+  rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(427): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: 0.9
+the metadata must be as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(428): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(429): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(430): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(431): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+the refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(427): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: 0.9
+the metadata must be as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":{}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(428): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":{}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(429): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":{}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(430): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":{}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(431): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+the refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":{}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(427): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: 0.9
+the metadata must be as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"polynomial_degree":[1]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(428): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"polynomial_degree":[1]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(429): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"polynomial_degree":[1]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(430): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"polynomial_degree":[1]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(431): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+the refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"polynomial_degree":[1]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(427): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: 0.9
+the metadata must be as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"calibration_mode":{"a":1}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(428): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"calibration_mode":{"a":1}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(429): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"calibration_mode":{"a":1}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(430): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"calibration_mode":{"a":1}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(431): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+the refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"calibration_mode":{"a":1}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(427): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: 0.9
+the metadata must be as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"actual_dose_levels":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(428): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"actual_dose_levels":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(429): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"actual_dose_levels":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(430): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"actual_dose_levels":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(431): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+the refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"actual_dose_levels":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(427): error: Expected equality of these values:
+  base.r_squared
+    Which is: 0.5
+  after.r_squared
+    Which is: 0.9
+the metadata must be as it was
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":"0.9
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(428): error: Expected equality of these values:
+  base.polynomial_degree
+    Which is: '\x1' (1)
+  after.polynomial_degree
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":"0.9
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(429): error: Expected equality of these values:
+  base.num_points
+    Which is: '\x3' (3)
+  after.num_points
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":"0.9
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(430): error: Expected equality of these values:
+  base.calibration_mode
+    Which is: '\x2' (2)
+  after.calibration_mode
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":"0.9
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(431): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+the refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(418): {"fit_r_squared":"0.9
+
+[  FAILED  ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore (19 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule
+[       OK ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule (1 ms)
+[ RUN      ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead
+[       OK ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead (0 ms)
+[----------] 12 tests from ConfigStrictParse (50 ms total)
+
+[----------] Global test environment tear-down
+[==========] 39 tests from 4 test suites ran. (22083 ms total)
+[  PASSED  ] 38 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore
+
+ 1 FAILED TEST

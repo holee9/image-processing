@@ -1,0 +1,32 @@
+round 1 before:
+[a202c] tier 1 ghost_correct median 19.22 ms
+[a202c] tier 2 ghost_correct median 28.43 ms
+[a202c] tier 3 ghost_correct median 93.04 ms
+round 1 after:
+[a202c] tier 1 ghost_correct median 18.45 ms
+[a202c] tier 2 ghost_correct median 26.08 ms
+[a202c] tier 3 ghost_correct median 95.85 ms
+round 2 before:
+[a202c] tier 1 ghost_correct median 19.66 ms
+[a202c] tier 2 ghost_correct median 27.09 ms
+[a202c] tier 3 ghost_correct median 94.39 ms
+round 2 after:
+[a202c] tier 1 ghost_correct median 18.32 ms
+[a202c] tier 2 ghost_correct median 26.03 ms
+[a202c] tier 3 ghost_correct median 95.21 ms
+round 3 before:
+[a202c] tier 1 ghost_correct median 18.91 ms
+[a202c] tier 2 ghost_correct median 26.75 ms
+[a202c] tier 3 ghost_correct median 95.47 ms
+round 3 after:
+[a202c] tier 1 ghost_correct median 18.40 ms
+[a202c] tier 2 ghost_correct median 26.03 ms
+[a202c] tier 3 ghost_correct median 93.62 ms
+round 4 before:
+[a202c] tier 1 ghost_correct median 19.03 ms
+[a202c] tier 2 ghost_correct median 27.64 ms
+[a202c] tier 3 ghost_correct median 95.43 ms
+round 4 after:
+[a202c] tier 1 ghost_correct median 18.71 ms
+[a202c] tier 2 ghost_correct median 25.37 ms
+[a202c] tier 3 ghost_correct median 97.19 ms

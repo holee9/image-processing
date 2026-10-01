@@ -22,6 +22,7 @@
 #include <deque>
 #include <fstream>
 #include <mutex>
+#include <new>
 #include <string>
 
 /* Defined in xpe_logging.cpp -- releases the custom spdlog file sink and
@@ -130,43 +131,92 @@ static void sync_loss_alert_locked()
 
     if (loss == nullptr) {
         // The loss alert occupies one of the 64 slots, so making room for it is
-        // itself an eviction and is counted as one.
+        // itself an eviction and is counted as one. This comes first: the text below states the count, and
+        // these evictions are part of it.
         while (g_alertQueue.size() >= kAlertQueueMax) {
             if (!evict_one_locked()) return;  // nothing but the loss alert left
         }
-        g_alertQueue.push_back(AlertEntry{});
-        loss = &g_alertQueue.back();
-        loss->severity    = XPE_ALERT_ERROR;
-        loss->isLossAlert = true;
     }
 
     char buf[64];
     std::snprintf(buf, sizeof(buf), "alert queue overflow: %llu alert(s) dropped",
                   static_cast<unsigned long long>(g_alertsDropped));
-    loss->message = buf;
+
+    if (loss == nullptr) {
+        // QA-A-204: the entry is built before it is linked in, with room for the longest text it will ever
+        // carry (so a later update is an assignment that allocates nothing). A throw while building it
+        // leaves the queue as it is, with every eviction already counted: g_alertsDropped stays exact and
+        // the loss alert appears on the next alert.
+        AlertEntry entry;
+        entry.severity    = XPE_ALERT_ERROR;
+        entry.isLossAlert = true;
+        entry.message.reserve(sizeof(buf));
+        entry.message = buf;
+        g_alertQueue.push_back(std::move(entry));
+        return;
+    }
+
+    loss->message = buf;   // within the capacity reserved when the entry was made: no allocation
 }
 
-/** Enqueue an alert under the 5.17 overflow policy. */
-static void enqueue_alert(const char* msg, int32_t severity)
+/** sync_loss_alert_locked() for callers that must not throw: a loss alert that could not be made or updated
+ *  catches up on the next alert; g_alertsDropped itself is exact either way. */
+static void sync_loss_alert_best_effort_locked() noexcept
 {
-    std::lock_guard<std::mutex> lk(g_mutex);
+    try {
+        sync_loss_alert_locked();
+    } catch (...) {
+    }
+}
 
+/** The queue half of an enqueue, g_mutex held. Every alert that does not end up in the queue is counted in
+ *  g_alertsDropped exactly once -- including one that could not be stored because an allocation failed. */
+static void enqueue_locked(AlertEntry&& e) noexcept
+{
     while (g_alertQueue.size() >= kAlertQueueMax) {
         if (!evict_one_locked()) {
             // Only the loss alert is left and the incoming alert cannot fit;
             // record it as dropped rather than displacing the loss report.
             ++g_alertsDropped;
-            sync_loss_alert_locked();
+            sync_loss_alert_best_effort_locked();
             return;
         }
     }
 
-    AlertEntry e;
-    e.message  = msg ? msg : "";
-    e.severity = severity;
-    g_alertQueue.push_back(std::move(e));
+    try {
+        g_alertQueue.push_back(std::move(e));
+    } catch (...) {
+        // QA-A-204: an eviction may already have been counted above; the alert that could not be stored
+        // is lost too, and says so.
+        ++g_alertsDropped;
+    }
+    sync_loss_alert_best_effort_locked();
+}
 
-    sync_loss_alert_locked();
+/** Enqueue an alert under the 5.17 overflow policy. Never throws: an alert that cannot be built or stored is
+ *  counted as dropped (QA-A-204, #233). */
+static void enqueue_alert(const char* msg, int32_t severity) noexcept
+{
+    AlertEntry e;
+    bool built = false;
+    try {
+        e.message  = msg ? msg : "";   // the one allocation made before the queue is touched
+        e.severity = severity;
+        built = true;
+    } catch (...) {
+    }
+
+    try {
+        std::lock_guard<std::mutex> lk(g_mutex);
+        if (!built) {
+            ++g_alertsDropped;
+            sync_loss_alert_best_effort_locked();
+            return;
+        }
+        enqueue_locked(std::move(e));
+    } catch (...) {
+        // The lock itself could not be taken: nothing was changed, nothing to account for.
+    }
 }
 
 /* ============================================================================
@@ -183,24 +233,37 @@ XPE_API XpeErrorCode xpe_init(const char* configJsonOrNull)
     }
 
     try {
+        // QA-A-204 (#233): everything that can throw is done BEFORE the first field is written. The copy of
+        // the configuration used to be made after g_initialized had been set and the queue cleared, so an
+        // allocation failure returned an error for a library that was already initialized.
+        std::string staged;
+        if (configJsonOrNull) staged = configJsonOrNull;
+
         {
             std::lock_guard<std::mutex> lk(g_mutex);
 
+            // From here nothing throws: flags, clear() and swap() only.
             g_initialized   = true;
             g_logLevel      = 2;  // INFO
             g_alertQueue.clear();
             g_alertsDropped = 0;
 
             if (configJsonOrNull) {
-                g_configJson = configJsonOrNull;
+                g_configJson.swap(staged);
             }
         }
 
-        // internal_log acquires g_mutex; must be called after releasing it
-        internal_log(2, "xpe_init: library initialised");
+        // internal_log acquires g_mutex; must be called after releasing it. The library IS initialized by
+        // now, so a failure to write this line must not turn into an error return.
+        try {
+            internal_log(2, "xpe_init: library initialised");
+        } catch (...) {
+        }
         return XPE_OK;
-    } catch (...) {
+    } catch (const std::bad_alloc&) {
         return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
     }
 }
 
@@ -258,9 +321,15 @@ XPE_API XpeErrorCode xpe_configure(const char* jsonConfig)
         while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') ++p;
         if (*p != '{') return XPE_ERR_CONFIG_INVALID;
 
+        // The copy is made before the lock and the swap cannot throw, so a failure leaves the stored
+        // configuration as it was (QA-A-204).
+        std::string staged(jsonConfig);
         std::lock_guard<std::mutex> lk(g_mutex);
-        g_configJson = jsonConfig;
+        g_configJson.swap(staged);
         return XPE_OK;
+    } catch (const std::bad_alloc&) {
+        // An allocation failure is not a statement about the document (QA-A-204, #233).
+        return XPE_ERR_OUT_OF_MEMORY;
     } catch (...) {
         return XPE_ERR_CONFIG_INVALID;
     }
@@ -410,3 +479,13 @@ XPE_API void xpe_alert_push(const char* msg, int32_t severity)
 }
 
 } // extern "C"
+
+#ifdef XPE_COMMON_TEST_HOOKS
+/* Test-only (QA-A-204): the exact number of alerts the queue has counted as lost. Compiled only into the
+ * allocation-failure executable, which defines XPE_COMMON_TEST_HOOKS; the shipped library does not have it. */
+uint64_t xpe_common_alerts_dropped_for_test()
+{
+    std::lock_guard<std::mutex> lk(g_mutex);
+    return g_alertsDropped;
+}
+#endif

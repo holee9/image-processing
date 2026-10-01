@@ -1,0 +1,12 @@
+== arm noconvert  (conversion removed, checks kept)
+  failing configurations:                     40
+  read/wrote past a buffer (access violation): 0
+  rc -3 PROCESSING_FAILED (the defense):        40
+  rc -7 UNSUPPORTED_FORMAT:                    0
+  different from a gain map of ones:           0
+== arm noconvert_nodefense  (conversion removed AND the three stage_input_is checks removed)
+  failing configurations:                     40
+  read/wrote past a buffer (access violation): 18
+  rc -3 PROCESSING_FAILED (the defense):        0
+  rc -7 UNSUPPORTED_FORMAT:                    16
+  different from a gain map of ones:           6

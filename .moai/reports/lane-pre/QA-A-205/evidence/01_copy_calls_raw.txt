@@ -1,0 +1,63 @@
+preprocess/src/calibration_cache.cpp:185:            std::memcpy(out, &entry.buffer, sizeof(XpeImageBuffer));
+preprocess/src/calibration_cache.cpp:250:        std::memcpy(copy.get(), entry.buffer.data, bytes);
+preprocess/src/calibration_cache.cpp:252:        std::memcpy(view, &entry.buffer, sizeof(XpeImageBuffer));
+preprocess/src/calibration_cache.cpp:299:            std::memcpy(out, &it->second->buffer, sizeof(XpeImageBuffer));
+preprocess/src/calibration_cache.cpp:346:        std::memcpy(&staged.front().buffer, buffer, sizeof(XpeImageBuffer));
+preprocess/src/calibration_cache.cpp:463:    std::memcpy(entry.data, src, static_cast<size_t>(entry.dataSize));
+preprocess/src/calibration_cache.cpp:488:    std::memcpy(dst64, src64, 63);
+preprocess/src/calibration_cache.cpp:564:            std::memcpy(offsetMapOut, &view, sizeof(XpeImageBuffer));
+preprocess/src/calibration_cache.cpp:593:        std::memcpy(staging.data(), g_calib.offset_map.get(), staging.size());
+preprocess/src/calibration_cache.cpp:596:        std::memcpy(meta.sessionId, g_calib.offset_session_id, sizeof(meta.sessionId));
+preprocess/src/calibration_cache.cpp:636:            std::memcpy(gainMapOut, &view, sizeof(XpeImageBuffer));
+preprocess/src/calibration_cache.cpp:672:        std::memcpy(staging.data(), g_calib.gain_map.get(), staging.size());
+preprocess/src/calibration_cache.cpp:677:        std::memcpy(meta.sessionId, g_calib.gain_session_id, sizeof(meta.sessionId));
+preprocess/src/calibration_cache.cpp:722:            std::memcpy(defectMapOut, &view, sizeof(XpeImageBuffer));
+preprocess/src/calibration_cache.cpp:751:        std::memcpy(staging.data(), g_calib.defect_map.get(), staging.size());
+preprocess/src/defect_correct.cpp:196:    // std::memcpy requires non-overlapping regions, so dst == src is undefined
+preprocess/src/defect_correct.cpp:201:        std::memcpy(dst, src, n * sizeof(float));
+preprocess/src/gain_correct.cpp:62:    std::memcpy(&ia, &a, sizeof(float));
+preprocess/src/gain_correct.cpp:63:    std::memcpy(&ib, &b, sizeof(float));
+preprocess/src/gain_correct.cpp:313:                poly.assign(g_calib.gain_poly_coeffs.get(),
+preprocess/src/gain_correct.cpp:329:                gainmap.assign(g_calib.gain_map.get(), g_calib.gain_map.get() + n);
+preprocess/src/ghost_correct.cpp:70:        handle->hist1.assign(pixelCount, 0.0f);
+preprocess/src/ghost_correct.cpp:71:        handle->hist2.assign(pixelCount, 0.0f);
+preprocess/src/ghost_correct.cpp:257:    std::fill(gh->hist1.begin(), gh->hist1.end(), 0.0f);
+preprocess/src/ghost_correct.cpp:258:    std::fill(gh->hist2.begin(), gh->hist2.end(), 0.0f);
+preprocess/src/pipeline.cpp:139:            std::memcpy(stage1Data.data(), img->data, img->dataSize);
+preprocess/src/pipeline.cpp:179:            std::memcpy(stage3Data.data(), stage2.data, pixelCount * sizeof(uint16_t));
+preprocess/src/pipeline.cpp:234:            std::memcpy(stage5Data.data(), stage4.data, pixelCount * sizeof(float));
+preprocess/src/pipeline.cpp:301:            std::memcpy(stage7Data.data(), stage6.data, pixelCount * sizeof(float));
+preprocess/src/pipeline.cpp:313:        std::memcpy(const_cast<void*>(img->data), finalStage->data, copySize);
+preprocess/src/xcal_writer.cpp:94:            result.assign(reinterpret_cast<const char*>(caller_config),
+preprocess/src/xcal_writer.cpp:185:        std::memcpy(hdr_template.sha256, sha.data(), 32);
+preprocess/src/xpe_calib_generate_gain.cpp:347:        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+preprocess/src/xpe_calib_generate_gain.cpp:358:        std::memcpy(hdr.session_id, "generated\0", 10);
+preprocess/src/xpe_calib_generate_gain.cpp:477:            gain_maps[i].assign(data, data + n_pixels_frame);
+preprocess/src/xpe_calib_generate_gain.cpp:536:                    std::memcpy(coeffs.data(), temp_coeffs.data(),
+preprocess/src/xpe_calib_generate_gain.cpp:641:        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+preprocess/src/xpe_calib_generate_gain.cpp:652:        std::memcpy(hdr.session_id, "generated\0", 10);
+preprocess/src/xpe_calib_generate_nonlin_lut.cpp:317:    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+preprocess/src/xpe_calib_generate_offset.cpp:70:        if (g_calib.defect_map) std::memcpy(merged.get(), g_calib.defect_map.get(), n_pixels);
+preprocess/src/xpe_calib_generate_offset.cpp:137:        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+preprocess/src/xpe_calib_generate_offset.cpp:148:        std::memcpy(hdr.session_id, "generated\0", 10);
+preprocess/src/xpe_calib_load_defect_map.cpp:49:        // Overwritten by the memcpy below; no value-initialisation (QA-A-105).
+preprocess/src/xpe_calib_load_defect_map.cpp:51:        std::memcpy(map.get(), payload.data(), payload.size());
+preprocess/src/xpe_calib_load_gain.cpp:88:        // Overwritten by the memcpy below; no value-initialisation (QA-A-105).
+preprocess/src/xpe_calib_load_gain.cpp:90:        std::memcpy(map.get(), payload.data(), payload.size());
+preprocess/src/xpe_calib_load_gain.cpp:154:            std::memcpy(g_calib.gain_session_id, hdr.session_id,
+preprocess/src/xpe_calib_load_nonlin_lut.cpp:51:        std::memcpy(lut.get(), payload.data(), payload.size());
+preprocess/src/xpe_calib_load_offset.cpp:49:        // memcpy below, so value-initialising it first is wasted work (QA-A-105).
+preprocess/src/xpe_calib_load_offset.cpp:51:        std::memcpy(map.get(), payload.data(), payload.size());
+preprocess/src/xpe_calib_load_offset.cpp:64:            std::memcpy(g_calib.offset_session_id, hdr.session_id,
+preprocess/src/xpe_calib_mode.cpp:213:    std::memcpy(meta, &g_quality_meta, sizeof(XpeCalibQualityMeta));
+preprocess/src/xpe_calib_save.cpp:49:                std::memcpy(payload_copy.get(), g_calib.offset_map.get(), payload_bytes);
+preprocess/src/xpe_calib_save.cpp:51:                std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+preprocess/src/xpe_calib_save.cpp:59:                std::memcpy(hdr.session_id, g_calib.offset_session_id,
+preprocess/src/xpe_calib_save.cpp:69:                std::memcpy(payload_copy.get(), g_calib.gain_map.get(), payload_bytes);
+preprocess/src/xpe_calib_save.cpp:71:                std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+preprocess/src/xpe_calib_save.cpp:79:                std::memcpy(hdr.session_id, g_calib.gain_session_id,
+preprocess/src/xpe_calib_save.cpp:89:                std::memcpy(payload_copy.get(), g_calib.defect_map.get(), payload_bytes);
+preprocess/src/xpe_calib_save.cpp:91:                std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+preprocess/src/xpe_calib_save.cpp:99:                std::memcpy(hdr.session_id, "defect_map\0", 11);
+preprocess/src/xpe_defect_gen.cpp:500:    std::memcpy(bpm_out->data, merged_bpm.data(), num_pixels);
+common/src/xpe_memory.cpp:81:    std::memcpy(dst->data, src->data, src->dataSize);

@@ -1,0 +1,33 @@
+Note: Google Test filter = CacheSameVerdict.*
+[==========] Running 12 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 12 tests from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (1128 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss (113 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+[       OK ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded (9 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+[       OK ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime (9 ms)
+[ RUN      ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear
+[       OK ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear (10 ms)
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[       OK ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (5 ms)
+[ RUN      ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess
+[       OK ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess (4 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss (65 ms)
+[ RUN      ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss (7 ms)
+[ RUN      ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss (103 ms)
+[ RUN      ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore
+[       OK ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore (10 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss (32 ms)
+[----------] 12 tests from CacheSameVerdict (1500 ms total)
+
+[----------] Global test environment tear-down
+[==========] 12 tests from 1 test suite ran. (1500 ms total)
+[  PASSED  ] 12 tests.

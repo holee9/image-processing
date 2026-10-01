@@ -1,0 +1,71 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 13 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 13 tests from OomInjection
+[ RUN      ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader
+[       OK ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader (10 ms)
+[ RUN      ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain                            7 allocation points covered
+[       OK ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched (4 ms)
+[ RUN      ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_offset                          5 allocation points covered
+[       OK ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched (3 ms)
+[ RUN      ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_defect_map                      5 allocation points covered
+[       OK ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched (3 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, range)        7 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched (3 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, no range)     7 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched (3 ms)
+[ RUN      ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(218): error: Expected equality of these values:
+  liveBase
+    Which is: 33
+  liveAfter
+    Which is: 34
+xpe_calib_load_gain_cached (miss): allocation #13 failed (rc -2) and 1 block(s) were left behind
+
+[  FAILED  ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping (4 ms)
+[ RUN      ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_gain_cached (polynomial)        9 allocation points covered
+[       OK ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping (4 ms)
+[ RUN      ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(218): error: Expected equality of these values:
+  liveBase
+    Which is: 32
+  liveAfter
+    Which is: 33
+xpe_calib_load_offset_cached (miss): allocation #11 failed (rc -2) and 1 block(s) were left behind
+
+[  FAILED  ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping (4 ms)
+[ RUN      ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(218): error: Expected equality of these values:
+  liveBase
+    Which is: 31
+  liveAfter
+    Which is: 32
+xpe_calib_load_defect_cached (miss): allocation #11 failed (rc -2) and 1 block(s) were left behind
+
+[  FAILED  ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping (4 ms)
+[ RUN      ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain_cached (hit)               3 allocation points covered
+[       OK ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched (3 ms)
+[ RUN      ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_offset_cached (hit)             3 allocation points covered
+[       OK ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched (3 ms)
+[ RUN      ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_defect_cached (hit)             3 allocation points covered
+[       OK ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched (3 ms)
+[----------] 13 tests from OomInjection (56 ms total)
+
+[----------] Global test environment tear-down
+[==========] 13 tests from 1 test suite ran. (56 ms total)
+[  PASSED  ] 10 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping
+[  FAILED  ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping
+[  FAILED  ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping
+
+ 3 FAILED TESTS

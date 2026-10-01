@@ -1,0 +1,237 @@
+
+Repeating all tests (iteration 1) . . .
+
+Note: Google Test filter = CacheSameVerdict.*:CacheGlobalStore.*
+[==========] Running 17 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 5 tests from CacheGlobalStore
+[ RUN      ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore (3 ms)
+[ RUN      ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore (3 ms)
+[ RUN      ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore (3 ms)
+[ RUN      ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse
+[       OK ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse (4 ms)
+[ RUN      ] CacheGlobalStore.ShutdownEmptiesTheCache
+[       OK ] CacheGlobalStore.ShutdownEmptiesTheCache (3 ms)
+[----------] 5 tests from CacheGlobalStore (19 ms total)
+
+[----------] 12 tests from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (1124 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss (115 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+[       OK ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded (9 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+[       OK ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime (9 ms)
+[ RUN      ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear
+[       OK ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear (9 ms)
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[       OK ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (16 ms)
+[ RUN      ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess
+[       OK ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess (4 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss (47 ms)
+[ RUN      ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss (6 ms)
+[ RUN      ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss (105 ms)
+[ RUN      ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore
+[       OK ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore (6 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss (25 ms)
+[----------] 12 tests from CacheSameVerdict (1480 ms total)
+
+[==========] 17 tests from 2 test suites ran. (1499 ms total)
+[  PASSED  ] 17 tests.
+
+Repeating all tests (iteration 2) . . .
+
+Note: Google Test filter = CacheSameVerdict.*:CacheGlobalStore.*
+[==========] Running 17 tests from 2 test suites.
+[----------] 5 tests from CacheGlobalStore
+[ RUN      ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore (3 ms)
+[ RUN      ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore (4 ms)
+[ RUN      ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore (2 ms)
+[ RUN      ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse
+[       OK ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse (5 ms)
+[ RUN      ] CacheGlobalStore.ShutdownEmptiesTheCache
+[       OK ] CacheGlobalStore.ShutdownEmptiesTheCache (2 ms)
+[----------] 5 tests from CacheGlobalStore (19 ms total)
+
+[----------] 12 tests from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (1124 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss (113 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+[       OK ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded (10 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+[       OK ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime (9 ms)
+[ RUN      ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear
+[       OK ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear (9 ms)
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[       OK ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (11 ms)
+[ RUN      ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess
+[       OK ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess (4 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss (50 ms)
+[ RUN      ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss (6 ms)
+[ RUN      ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss (106 ms)
+[ RUN      ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore
+[       OK ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore (8 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss (24 ms)
+[----------] 12 tests from CacheSameVerdict (1481 ms total)
+
+[==========] 17 tests from 2 test suites ran. (1501 ms total)
+[  PASSED  ] 17 tests.
+
+Repeating all tests (iteration 3) . . .
+
+Note: Google Test filter = CacheSameVerdict.*:CacheGlobalStore.*
+[==========] Running 17 tests from 2 test suites.
+[----------] 5 tests from CacheGlobalStore
+[ RUN      ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore (3 ms)
+[ RUN      ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore (3 ms)
+[ RUN      ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore (3 ms)
+[ RUN      ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse
+[       OK ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse (5 ms)
+[ RUN      ] CacheGlobalStore.ShutdownEmptiesTheCache
+[       OK ] CacheGlobalStore.ShutdownEmptiesTheCache (3 ms)
+[----------] 5 tests from CacheGlobalStore (18 ms total)
+
+[----------] 12 tests from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (1126 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss (125 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+[       OK ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded (8 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+[       OK ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime (8 ms)
+[ RUN      ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear
+[       OK ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear (9 ms)
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[       OK ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (7 ms)
+[ RUN      ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess
+[       OK ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess (4 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss (56 ms)
+[ RUN      ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss (7 ms)
+[ RUN      ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss (97 ms)
+[ RUN      ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore
+[       OK ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore (8 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss (26 ms)
+[----------] 12 tests from CacheSameVerdict (1487 ms total)
+
+[==========] 17 tests from 2 test suites ran. (1505 ms total)
+[  PASSED  ] 17 tests.
+
+Repeating all tests (iteration 4) . . .
+
+Note: Google Test filter = CacheSameVerdict.*:CacheGlobalStore.*
+[==========] Running 17 tests from 2 test suites.
+[----------] 5 tests from CacheGlobalStore
+[ RUN      ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore (3 ms)
+[ RUN      ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore (3 ms)
+[ RUN      ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore (5 ms)
+[ RUN      ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse
+[       OK ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse (5 ms)
+[ RUN      ] CacheGlobalStore.ShutdownEmptiesTheCache
+[       OK ] CacheGlobalStore.ShutdownEmptiesTheCache (3 ms)
+[----------] 5 tests from CacheGlobalStore (22 ms total)
+
+[----------] 12 tests from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (1129 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss (112 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+[       OK ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded (9 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+[       OK ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime (8 ms)
+[ RUN      ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear
+[       OK ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear (9 ms)
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[       OK ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (6 ms)
+[ RUN      ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess
+[       OK ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess (4 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss (51 ms)
+[ RUN      ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss (6 ms)
+[ RUN      ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss (101 ms)
+[ RUN      ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore
+[       OK ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore (8 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss (28 ms)
+[----------] 12 tests from CacheSameVerdict (1477 ms total)
+
+[==========] 17 tests from 2 test suites ran. (1500 ms total)
+[  PASSED  ] 17 tests.
+
+Repeating all tests (iteration 5) . . .
+
+Note: Google Test filter = CacheSameVerdict.*:CacheGlobalStore.*
+[==========] Running 17 tests from 2 test suites.
+[----------] 5 tests from CacheGlobalStore
+[ RUN      ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore (5 ms)
+[ RUN      ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore (3 ms)
+[ RUN      ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore (2 ms)
+[ RUN      ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse
+[       OK ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse (5 ms)
+[ RUN      ] CacheGlobalStore.ShutdownEmptiesTheCache
+[       OK ] CacheGlobalStore.ShutdownEmptiesTheCache (3 ms)
+[----------] 5 tests from CacheGlobalStore (19 ms total)
+
+[----------] 12 tests from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (1133 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss (108 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+[       OK ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded (9 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+[       OK ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime (9 ms)
+[ RUN      ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear
+[       OK ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear (9 ms)
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[       OK ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (6 ms)
+[ RUN      ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess
+[       OK ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess (5 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss (51 ms)
+[ RUN      ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss (6 ms)
+[ RUN      ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss (100 ms)
+[ RUN      ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore
+[       OK ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore (8 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss (25 ms)
+[----------] 12 tests from CacheSameVerdict (1476 ms total)
+
+[----------] Global test environment tear-down
+[==========] 17 tests from 2 test suites ran. (1495 ms total)
+[  PASSED  ] 17 tests.

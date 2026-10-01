@@ -1,0 +1,31 @@
+Note: Google Test filter = CacheGlobalStore.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from CacheGlobalStore
+[ RUN      ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore (6 ms)
+[ RUN      ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore (4 ms)
+[ RUN      ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_global_store.cpp(170): error: The difference between 1000.0f and px is 4000, which exceeds 0.01f, where
+1000.0f evaluates to 1000,
+px evaluates to 5000, and
+0.01f evaluates to 0.0099999997764825821.
+after the hit the store must hold A, which repairs the spike at (1,1)
+
+[  FAILED  ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore (5 ms)
+[ RUN      ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse
+[       OK ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse (6 ms)
+[ RUN      ] CacheGlobalStore.ShutdownEmptiesTheCache
+[       OK ] CacheGlobalStore.ShutdownEmptiesTheCache (3 ms)
+[ RUN      ] CacheGlobalStore.ACacheKeyIsThePathStringSoAChangedFileNeedsCacheClear
+[       OK ] CacheGlobalStore.ACacheKeyIsThePathStringSoAChangedFileNeedsCacheClear (4 ms)
+[----------] 6 tests from CacheGlobalStore (31 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (31 ms total)
+[  PASSED  ] 5 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+
+ 1 FAILED TEST
