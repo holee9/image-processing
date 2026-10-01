@@ -55,7 +55,13 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
         GlobalInput.Require("R01 (a real mouse click on the View menu)");
         Measure("R01", window =>
         {
-            UiaMenu.CollapseAll(window);     // set-up through UI Automation: not what is under test
+            // The state a person starts from: nothing is dropped open. What an earlier scenario left open is READ
+            // first and reported, then closed through UI Automation (set-up, not what is under test). A drop-down
+            // left open takes the next click outside it as "close me" — the first CI run of this scenario failed
+            // that way with the keyboard focus still on the body-part combo box (GUI-C-173).
+            var leftOpen = UiaMenu.CollapseEverythingOpen(window);
+            var leftOpenText = leftOpen.Count == 0 ? "(nothing)" : string.Join(", ", leftOpen);
+            output.WriteLine($"R01 expanded before the click, closed through UI Automation: {leftOpenText}");
             Thread.Sleep(300);
             Assert.True(
                 ViewMenuItem(window) is null,
@@ -85,6 +91,7 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
                     // explains why, and nothing in it can make this scenario pass.
                     Assert.Fail(
                         $"A real mouse click on the View menu did not open it: '{AlwaysInTheViewMenu}' was not visible within 2 s. " +
+                        $"Expanded before the click and closed through UI Automation: {leftOpenText}. " +
                         ExplainAMenuThatDidNotOpen(window, viewMenu!, activation!));
                 }
             }
