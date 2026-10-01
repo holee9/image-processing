@@ -1,0 +1,26 @@
+# GUI-C-185b - local runs
+
+## gui.slnx and clients.slnx Debug builds: 0 errors
+
+## IntegrationTests Category=Functional (whole suite)
+  건너뜀 ImageProcTest.IntegrationTests.Functional.ErrorCodeMappingTests.ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback(code: NOT_IMPLEMENTED) [< 1 ms]
+  통과!  - 실패:     0, 통과:   300, 건너뜀:     1, 전체:   301, 기간: 2 s - ImageProcTest.IntegrationTests.dll (net8.0)
+
+## E2E (Mock backend, bundled synthetic image): ProcessingChainScenarios + UnappliedSettingsScenarios + A06 + A11 (C-09 is Native-only: skipped here)
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U03_AlgorithmPickers_AreUsableAndUnmarked [428 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U01_CalibrationStages_AreDisabledAndMarked [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U05_PendingConnectionMark_IsShown [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U02_LaneBDenoiseK_IsUsableExactlyWhenItReachesPixels [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U04_FocusToggle_IsDisabledAndMarked [126 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C01_PreprocessStage_ReachesTheDrawnPixelsOrSaysWhyNot [8 s]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C07_AGridRatioOutsideTheTable_IsRefused [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C04_MissingVirtualGridTable_IsRefusedAndTheImageIsUnchanged [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C02_ChangingTheExposureKvp_DoesNotChangeTheDrawnPixelsToday [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C09_AWorkerSwitchedOffByRepeatedFailures_ShowsAMark_ThatRestartRemoves [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C05_GridCorrectionChoices_AreExclusive [10 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeGridSuppression", mode: "GridSuppression") [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeVirtualGrid", mode: "VirtualGrid") [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C08_AiBoneSuppression_WhereTheModuleCannotSucceed_IsRefusedAndTheImageIsTheOriginal [9 s]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C06_ChangingTheGridRatio_ChangesTheDrawnPixels [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A11_ApiReference_ClaimMatchesTheDisk_AndTheCountsAgree [15 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported [25 s]

@@ -235,10 +235,18 @@
 
                     <!-- #225 row 10 (GUI-C-184): the AI stage's switch. The Run AI menu entry turns it on; this is where it is seen and turned off. -->
                     <CheckBox AutomationProperties.AutomationId="AiBoneSuppressionInChainCheckBox"
+                              AutomationProperties.HelpText="{Binding AiWorkerStatusSummary}"
                               Content="AI bone suppression"
                               IsChecked="{Binding Settings.AiBoneSuppressionInChain, Mode=TwoWay}"
                               Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,8"
                               ToolTip="Runs xpe_bone_suppress (xpe_ai.dll, worker process) after the other stages. Needs the native backend and a model in the AI model directory. On failure the original image is shown." />
+
+                    <TextBlock Text="AI model directory (holds bone_suppress.onnx)" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
+                    <TextBox AutomationProperties.AutomationId="AiModelDirectoryInput"
+                             Text="{Binding Settings.AiModelDirectory, UpdateSourceTrigger=PropertyChanged}"
+                             Background="#0DFFFFFF" Foreground="#f0f2f5"
+                             BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" Margin="0,0,0,8"
+                             ToolTip="Where AI bone suppression looks for bone_suppress.onnx. If the file is not there the image is left as it is and the status line gives the path it looked at." />
 
                     <TextBlock Text="Exposure kVp" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
                     <TextBox AutomationProperties.AutomationId="ExposureKvpInput"

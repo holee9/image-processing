@@ -1,0 +1,18 @@
+# GUI-C-185 - what the REAL gui app's XAML rendered when the worker status was set by reflection (harness output; the status is injected, not reported by a module)
+== A: startup, nothing reported (Mock backend)
+  panel visible=False (Visibility=Collapsed); banner visible=False text=''
+  restart button visible=False enabled=True content='Restart AI'
+== B: module reports Disabled 3 of 3
+  panel visible=True (Visibility=Visible); banner visible=True text='AI worker switched off for this session after 3 of 3 failures in a row: images are returned unchanged until it is restarted.'
+  restart button visible=True enabled=True content='Restart AI'
+== C: module reports Disabled 7 of 7 (the ceiling is the module's)
+  panel visible=True (Visibility=Visible); banner visible=True text='AI worker switched off for this session after 7 of 7 failures in a row: images are returned unchanged until it is restarted.'
+  restart button visible=True enabled=True content='Restart AI'
+== D: module reports Active 2 of 3
+  panel visible=False (Visibility=Collapsed); banner visible=False text=''
+  restart button visible=False enabled=True content='Restart AI'
+== E: Restart AI pressed on the Mock backend (no AI session)
+  status bar text: AI session restart needs the native backend.
+==    after the press (the mock has no session to restart, so the reported state is read again: Unknown)
+  panel visible=False (Visibility=Collapsed); banner visible=False text=''
+  restart button visible=False enabled=True content='Restart AI'

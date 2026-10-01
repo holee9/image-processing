@@ -1,0 +1,29 @@
+# GUI-C-187 - harness output, unedited (the first line of each round is the process current directory before; the AFTER line is after the dialog closed)
+[00:28:30.013] process id 37592; launched with current directory = C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\c187\bin\Debug\net8.0-windows
+[00:28:30.013] dialog is Microsoft.Win32.OpenFileDialog; RestoreDirectory is not set by the app (MainWindowViewModel.LoadImage)
+[00:28:30.026] test folders: D:\xpe-c187-e00c7337\{A,B,C} each holding image.raw (a copy of the bundled 1024x1024 synthetic fixture)
+[00:28:30.026] round 1: BEFORE            Environment.CurrentDirectory = C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\c187\bin\Debug\net8.0-windows
+[00:28:30.370] round 1: dialog found: name='Load Raw Image' class='#32770'
+[00:28:32.877] round 1: selected the tree item 'A' (SelectionItemPattern)
+[00:28:33.479] round 1: after navigating the dialog to D:\xpe-c187-e00c7337\A (nothing confirmed yet): Environment.CurrentDirectory = C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\c187\bin\Debug\net8.0-windows
+[00:28:33.544] round 1: invoking the list item 'image' (InvokePattern: what a double-click does)
+[00:28:36.327] round 1: dialog closed=True; AFTER             Environment.CurrentDirectory = C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\c187\bin\Debug\net8.0-windows
+[00:28:36.327] round 1: changed = False; equals the opened folder = False
+[00:28:36.327] round 1: status bar: Load failed: Raw file is too small. Expected at least 18874368 bytes, got 2097152.
+[00:28:36.327] round 2: BEFORE            Environment.CurrentDirectory = C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\c187\bin\Debug\net8.0-windows
+[00:28:36.487] round 2: dialog found: name='Load Raw Image' class='#32770'
+[00:28:38.955] round 2: selected the tree item 'B' (SelectionItemPattern)
+[00:28:39.555] round 2: after navigating the dialog to D:\xpe-c187-e00c7337\B (nothing confirmed yet): Environment.CurrentDirectory = C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\c187\bin\Debug\net8.0-windows
+[00:28:39.626] round 2: invoking the list item 'image' (InvokePattern: what a double-click does)
+[00:28:42.375] round 2: dialog closed=True; AFTER             Environment.CurrentDirectory = C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\c187\bin\Debug\net8.0-windows
+[00:28:42.375] round 2: changed = False; equals the opened folder = False
+[00:28:42.375] round 2: status bar: Load failed: Raw file is too small. Expected at least 18874368 bytes, got 2097152.
+[00:28:42.375] round 3: BEFORE            Environment.CurrentDirectory = C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\c187\bin\Debug\net8.0-windows
+[00:28:42.552] round 3: dialog found: name='Load Raw Image' class='#32770'
+[00:28:45.012] round 3: selected the tree item 'C' (SelectionItemPattern)
+[00:28:45.620] round 3: after navigating the dialog to D:\xpe-c187-e00c7337\C (nothing confirmed yet): Environment.CurrentDirectory = C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\c187\bin\Debug\net8.0-windows
+[00:28:45.683] round 3: invoking the list item 'image' (InvokePattern: what a double-click does)
+[00:28:48.413] round 3: dialog closed=True; AFTER             Environment.CurrentDirectory = C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\c187\bin\Debug\net8.0-windows
+[00:28:48.413] round 3: changed = False; equals the opened folder = False
+[00:28:48.413] round 3: status bar: Load failed: Raw file is too small. Expected at least 18874368 bytes, got 2097152.
+[00:28:48.415] test folders deleted

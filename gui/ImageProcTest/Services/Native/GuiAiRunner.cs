@@ -1,4 +1,5 @@
 ﻿// #225 row 10 (GUI-C-184): AI bone suppression, the native side. Declared where the shared resolver sees it.
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -17,6 +18,10 @@ internal static class XpeAiNative
 
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
     internal static extern void xpe_ai_shutdown();
+
+    /// <summary>Read-only status of the worker path (ai_api.h). MUST NOT run with init or shutdown: see <see cref="GuiAiSession"/>.</summary>
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int xpe_ai_worker_state(out int state, out uint consecutiveFailures, out uint ceiling);
 
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     internal static extern int xpe_bone_suppress(
@@ -53,42 +58,136 @@ internal sealed record AiConfig
 /// </summary>
 internal static class GuiAiSession
 {
-    private static readonly object Gate = new();
-    private static bool _started;
+    /// <summary>The one gate: a whole AI frame, a restart, the status read and every init and shutdown go through it.</summary>
+    internal static readonly AiSessionGate Gate = new();
 
-    /// <summary>Runs <paramref name="action"/> while no other init, shutdown or state call can run.</summary>
-    public static T WithLock<T>(Func<T> action)
-    {
-        ArgumentNullException.ThrowIfNull(action);
-        lock (Gate)
-        {
-            return action();
-        }
-    }
+    private static readonly AiSessionTracker Tracker = new();
 
-    /// <summary>Starts the AI module with the worker path on. Already started is not an error (the module ignores it).</summary>
-    public static int Init(string modelDirectory) =>
+    /// <summary>Runs <paramref name="action"/> while no other frame, init, shutdown or state call can run.</summary>
+    public static T WithLock<T>(Func<T> action) => Gate.WithLock(action);
+
+    /// <summary>
+    /// Starts the AI module with the worker path on. Already started with the SAME directory is not an error (the module ignores
+    /// it). Already started with ANOTHER directory is a new session: the module ignores a second init whatever it is given
+    /// (ai.cpp:501-504), so the old session is shut down first, under this same lock. The directory handed to the module is the
+    /// absolute form (<see cref="AiBoneSuppressionStage.NormalizeDirectory"/>).
+    /// </summary>
+    public static int Init(string modelDirectory) => InitCore(AiBoneSuppressionStage.NormalizeDirectory(modelDirectory));
+
+    /// <summary>
+    /// The init for a directory that is already absolute and normalised: what a frame calls with the string it checked the model file
+    /// at, and what <see cref="Init"/> reaches after resolving its argument ONCE.
+    /// </summary>
+    public static int InitCore(string directory) =>
         WithLock(() =>
         {
-            var code = XpeAiNative.xpe_ai_init(modelDirectory, new AiConfig { UseWorker = true }.ToJson());
+            if (Tracker.NeedsNewSession(directory))
+            {
+                Shutdown();
+            }
+
+            // A start that does not work is recorded where it happens, whoever called (the render, or Restart): a restart that
+            // fails must leave an error state with its reason, not "unknown" (Codex #24 B1). The exception still goes up.
+            int code;
+            try
+            {
+                code = XpeAiNative.xpe_ai_init(directory, new AiConfig { UseWorker = true }.ToJson());
+            }
+            catch (DllNotFoundException)
+            {
+                Tracker.InitFailed("xpe_ai.dll was not found beside the other native modules.");
+                throw;
+            }
+            catch (EntryPointNotFoundException ex)
+            {
+                Tracker.InitFailed($"xpe_ai.dll does not export a function this build needs ({ex.Message}).");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // ONE reason string: the tracker records it and the exception that goes up (the chain path's stage reason, the
+                // Restart message) carries the same one (GUI-C-186c).
+                var reason = AiBoneSuppressionStage.InitFailureReason(ex);
+                Tracker.InitFailed(reason);
+                throw new AiInitException(reason, ex);
+            }
+
             if (code == 0)
             {
-                _started = true;
+                Tracker.InitSucceeded(directory);
+            }
+            else
+            {
+                Tracker.InitFailed($"xpe_ai_init refused the configuration (code {code}).");
             }
 
             return code;
+        });
+
+    /// <summary>
+    /// The worker's status, read under the same lock as init and shutdown: the module documents that the state call must
+    /// not run with either (they free or create what it reads). Not started here, or an older DLL without the export,
+    /// is <see cref="AiWorkerStatus.Unknown"/>, and asking then does not load the DLL. It waits for the gate with no time
+    /// limit — a frame waiting on a silent worker holds it for up to the module's time budget — so it is called OFF the UI
+    /// thread (<see cref="AiStatusRefresher"/>, GUI-C-186d).
+    /// </summary>
+    public static AiWorkerStatus QueryWorkerState() =>
+        WithLock(() =>
+        {
+            var own = Tracker.OwnStatus();
+            if (own is not null)
+            {
+                return own;
+            }
+
+            try
+            {
+                var code = XpeAiNative.xpe_ai_worker_state(out var state, out var failures, out var ceiling);
+                return AiBoneSuppressionStage.ReadWorkerState(code, state, failures, ceiling);
+            }
+            catch (DllNotFoundException)
+            {
+                return AiWorkerStatus.Unknown;
+            }
+            catch (EntryPointNotFoundException)
+            {
+                return AiWorkerStatus.Unknown;
+            }
+        });
+
+    /// <summary>
+    /// Shutdown then init as ONE step under the lock, so the status call cannot run between them. This is the recovery the
+    /// header names for a worker switched off for the session.
+    /// </summary>
+    public static AiRestartResult Restart(string modelDirectory) =>
+        WithLock(() =>
+        {
+            Shutdown();
+            try
+            {
+                return AiBoneSuppressionStage.InterpretRestart(Init(modelDirectory)); // Init resolves the directory once
+            }
+            catch (DllNotFoundException)
+            {
+                return new AiRestartResult(false, "AI session could not be restarted: xpe_ai.dll was not found beside the other native modules.");
+            }
+            catch (EntryPointNotFoundException ex)
+            {
+                return new AiRestartResult(false, $"AI session could not be restarted: xpe_ai.dll does not export a function this build needs ({ex.Message}).");
+            }
         });
 
     /// <summary>Stops the module when this process started it; otherwise does nothing, and never loads the DLL to do so.</summary>
     public static void Shutdown() =>
         WithLock(() =>
         {
-            if (!_started)
+            var wasStarted = Tracker.Started;
+            Tracker.Stopped(); // a deliberate stop also clears a recorded start failure: nothing is running and nothing is wrong
+            if (!wasStarted)
             {
                 return 0;
             }
 
-            _started = false;
             try
             {
                 XpeAiNative.xpe_ai_shutdown();
@@ -104,7 +203,10 @@ internal static class GuiAiSession
         });
 }
 
-/// <summary>One AI bone suppression run over a frame: init → convert → <c>xpe_bone_suppress</c> → convert back.</summary>
+/// <summary>
+/// One AI bone suppression run over a frame. The order and the locking are <see cref="AiFrame"/>'s (tested with fakes); this class
+/// supplies the real operations and the buffers around them.
+/// </summary>
 internal static class GuiAiRunner
 {
     public static StageExecution Run(ushort[] input, int width, int height, string modelDirectory)
@@ -115,15 +217,14 @@ internal static class GuiAiRunner
             return new StageExecution(false, null, $"AI bone suppression not started: {input.Length} pixels do not fit {width}x{height}.");
         }
 
+        // The directory is resolved ONCE per frame, here, and this one string goes to the file check and to the init
+        // (GUI-C-186b): a working directory that moves between the two cannot make them look at different places.
+        var directory = AiBoneSuppressionStage.NormalizeDirectory(modelDirectory);
+
+        // Outside the gate: the two image buffers (xpe_common, not the AI module; buffers this frame owns). See AiFrame.
         var allocated = new List<Action>();
         try
         {
-            var initCode = GuiAiSession.Init(modelDirectory);
-            if (initCode != 0)
-            {
-                return AiBoneSuppressionStage.InterpretInit(initCode);
-            }
-
             if (!TryAlloc(width, height, out var source, allocated, out var reason) ||
                 !TryAlloc(width, height, out var target, allocated, out reason))
             {
@@ -131,19 +232,8 @@ internal static class GuiAiRunner
             }
 
             Marshal.Copy(AiBoneSuppressionStage.ToFloat(input), 0, source.Data, count);
-
-            var code = XpeAiNative.xpe_bone_suppress(ref source, ref target, null);
-
-            // The output buffer is read ONLY for code 0. After a refusal it was not written, and after a failed worker
-            // call it equals the input; neither is a result (AiBoneSuppressionStage).
-            float[]? output = null;
-            if (code == AiBoneSuppressionStage.Ok)
-            {
-                output = new float[count];
-                Marshal.Copy(target.Data, output, 0, count);
-            }
-
-            return AiBoneSuppressionStage.Interpret(code, output);
+            var ops = new RealAiFrameOps(source, target, count);
+            return AiFrame.Run(GuiAiSession.Gate, ops, directory);
         }
         catch (DllNotFoundException)
         {
@@ -160,6 +250,33 @@ internal static class GuiAiRunner
             {
                 free();
             }
+        }
+    }
+
+    /// <summary>The real operations of a frame. The only caller of <c>xpe_bone_suppress</c>; it is invoked by <see cref="AiFrame.Run"/> under the gate.</summary>
+    private sealed class RealAiFrameOps(XpeImageBufferNative source, XpeImageBufferNative target, int count) : IAiFrameOps
+    {
+        private XpeImageBufferNative _source = source;
+        private XpeImageBufferNative _target = target;
+
+        public bool ModelFileExists(string path) => File.Exists(path);
+
+        public int InitSession(string absoluteDirectory) => GuiAiSession.InitCore(absoluteDirectory);
+
+        public AiSuppressResult Suppress()
+        {
+            var code = XpeAiNative.xpe_bone_suppress(ref _source, ref _target, null);
+
+            // The output buffer is read ONLY for code 0. After a refusal it was not written, and after a failed worker
+            // call it equals the input; neither is a result (AiBoneSuppressionStage).
+            float[]? output = null;
+            if (code == AiBoneSuppressionStage.Ok)
+            {
+                output = new float[count];
+                Marshal.Copy(_target.Data, output, 0, count);
+            }
+
+            return new AiSuppressResult(code, output);
         }
     }
 

@@ -1,0 +1,4 @@
+# GUI-C-188 - tools/ci/Test-TrackedTextFiles.ps1, whole tree incl. this card's staged files, no pipe
+output: Tracked text file validation passed.
+exit code: 0
+note: the first commit of this card (0ad58912) carried a lint record of exit 1 (trailing whitespace in GUI-C-186c/text_lint.txt line 2, written after that card's lint ran); both records were corrected in the next commit and this run is the one after the correction.

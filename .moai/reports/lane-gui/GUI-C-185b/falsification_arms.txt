@@ -1,0 +1,29 @@
+# GUI-C-185b - real sources broken on purpose; named tests must go red with a successful build; restored byte-identical
+
+ARM a-failed-restart-falls-back-to-unknown: exit=1 built_ok=True
+   ['실패!  - 실패:     2, 통과:    51, 건너뜀:     0, 전체:    53, 기간: 192 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.AFailedRestart_LeavesAnErrorState_NotUnknown_AndTheNextSuccessClearsIt [1 ms]
+   red: AiBoneSuppressionStageTests.ADirectoryChange_WhoseInitFails_LeavesTheSameErrorState [< 1 ms]
+   restored byte-identical: True
+ARM a-successful-start-keeps-the-old-failure: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    52, 건너뜀:     0, 전체:    53, 기간: 184 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.AFailedRestart_LeavesAnErrorState_NotUnknown_AndTheNextSuccessClearsIt [1 ms]
+   restored byte-identical: True
+ARM a-deliberate-stop-keeps-the-failure: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    52, 건너뜀:     0, 전체:    53, 기간: 211 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.ADeliberateStop_ClearsARecordedFailure_NothingIsRunningAndNothingIsWrong [2 ms]
+   restored byte-identical: True
+ARM the-mark-shows-only-for-a-disabled-worker: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    52, 건너뜀:     0, 전체:    53, 기간: 195 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.AFailedRestart_LeavesAnErrorState_NotUnknown_AndTheNextSuccessClearsIt [< 1 ms]
+   restored byte-identical: True
+ARM init-no-longer-records-a-refused-code: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    52, 건너뜀:     0, 전체:    53, 기간: 203 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.TheInit_RecordsEveryWayAStartCanFail [2 ms]
+   restored byte-identical: True
+ARM toolbar-mark-bound-to-the-worker-off-flag-again: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    52, 건너뜀:     0, 전체:    53, 기간: 185 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.TheToolbarMark_FollowsTheMarkVisibleRule [10 ms]
+   restored byte-identical: True
+AFTER RESTORE: 0 True ['통과!  - 실패:     0, 통과:    53, 건너뜀:     0, 전체:    53, 기간: 174 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+sources: b29a7951f614 6bce2099afef a62b10e07ac0

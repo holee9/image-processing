@@ -1,0 +1,35 @@
+# GUI-C-185 - real sources broken on purpose; named tests must go red with a successful build; restored byte-identical
+
+ARM banner-also-shown-for-an-active-worker: exit=1 built_ok=True
+   ['실패!  - 실패:     2, 통과:    48, 건너뜀:     0, 전체:    50, 기간: 530 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.TheBanner_IsShownOnlyForADisabledWorker_AndCarriesTheModulesNumbers [1 ms]
+   red: AiBoneSuppressionStageTests.TheMark_GoesWhenTheModuleReportsANewSession [< 1 ms]
+   restored byte-identical: True
+ARM banner-hardcodes-the-ceiling-3: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    49, 건너뜀:     0, 전체:    50, 기간: 551 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.TheBanner_IsShownOnlyForADisabledWorker_AndCarriesTheModulesNumbers [1 ms]
+   restored byte-identical: True
+ARM model-file-never-checked: exit=1 built_ok=True
+   ['실패!  - 실패:     2, 통과:    48, 건너뜀:     0, 전체:    50, 기간: 534 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.ThePresentModelFile_LetsTheCallThrough [3 ms]
+   red: AiBoneSuppressionStageTests.AMissingModelFile_IsNotAttempted_WithThePathItLookedAt [< 1 ms]
+   restored byte-identical: True
+ARM worker-state-read-even-when-the-call-failed: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    49, 건너뜀:     0, 전체:    50, 기간: 552 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.TheWorkerStateAnswer_IsRead(code: -6, state: 2, failures: 3, ceiling: 3, expected: "Unknown") [1
+   restored byte-identical: True
+ARM failure-message-claims-a-cause-again: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    49, 건너뜀:     0, 전체:    50, 기간: 547 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.TheFailureMessage_ReportsTheCode_WithoutClaimingACause [1 ms]
+   restored byte-identical: True
+ARM state-call-outside-the-lock: exit=1 built_ok=True
+   ['실패!  - 실패:     2, 통과:    48, 건너뜀:     0, 전체:    50, 기간: 561 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.InitShutdownAndTheStateCall_AreCalledInOnePlace_UnderTheLock(call: "XpeAiNative.xpe_ai_worker_sta
+   red: AiBoneSuppressionStageTests.TheRestart_IsOneStepUnderTheLock [1 ms]
+   restored byte-identical: True
+ARM model-directory-input-loses-its-binding: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    49, 건너뜀:     0, 전체:    50, 기간: 596 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: SettingsProcessingConnectionTests.Collection_FindsTheKnownBindings [27 ms]
+   restored byte-identical: True
+AFTER RESTORE: 0 True ['통과!  - 실패:     0, 통과:    50, 건너뜀:     0, 전체:    50, 기간: 584 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+sources: d5215b68d237 8484dd205e89 f85a69e0916d

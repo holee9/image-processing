@@ -152,6 +152,7 @@ public partial class MainWindow : System.Windows.Window
     {
         if (DataContext is MainWindowViewModel viewModel)
         {
+            viewModel.StopAiStatusUpdates(); // a status read started or running now must not touch the closed screen (GUI-C-186d)
             viewModel.ShutdownBackend();
         }
 
