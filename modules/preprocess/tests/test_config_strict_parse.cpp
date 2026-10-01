@@ -454,6 +454,99 @@ TEST_F(ConfigStrictParse, AQualityFieldThatIsAbsentIsStillNotGivenAndThePipeline
         << "an empty configuration value is an absent one (QA-A-202b), unchanged by QA-A-205b";
 }
 
+// QA-A-208 (Codex #34 B2): a gain file's quality fields are the TOP-LEVEL keys of its config object. They were
+// found with strstr, which reads the first occurrence of the key anywhere in the text -- inside a nested object,
+// inside a string value -- and so could read a nested 0.9 and pass over a malformed top-level value. The config is
+// now walked structurally (strings, nested objects and arrays are skipped), and a top-level key given twice is
+// refused. The pipeline CONFIGURATION is read by a different function (xpe_json_get_string) and is NOT changed
+// here: it has the same first-occurrence limit.
+namespace {
+
+struct TopRow { const char* what; const char* json; bool refused; bool read; };
+
+/** The four fields, each substituted for FIELD in a row's template. */
+std::string withField(const char* tmpl, const char* field) {
+    std::string out;
+    for (const char* p = tmpl; *p; ++p) {
+        if (*p == '@') out += field; else out += *p;
+    }
+    return out;
+}
+
+}  // namespace
+
+TEST_F(ConfigStrictParse, AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly) {
+    // The store holds a gain file with known quality; each row loads another file over it.
+    writeGainWithConfig("csp_gq.xcal", 4.0f,
+        "{\"fit_r_squared\":\"0.5\",\"polynomial_degree\":\"1\",\"actual_dose_levels\":\"3\",\"calibration_mode\":\"2\"}");
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csp_gq.xcal"));
+    XpeCalibQualityMeta base{};
+    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&base));
+
+    // '@' stands for the field's name. A good value is 7 (valid for all four fields, and different from the
+    // store's 0.5 / 1 / 3 / 2, so a read value shows as a change); a bad one is "bad".
+    const TopRow rows[] = {
+        {"only inside a nested object: not given (the nested value is not read)",
+         "{\"nested\":{\"@\":7},\"other\":2}", false, false},
+        {"only inside a nested object, malformed: not given (the nested value does not poison the load)",
+         "{\"nested\":{\"@\":\"bad\"}}", false, false},
+        {"valid in a nested object, malformed at the top level: refused",
+         "{\"nested\":{\"@\":7},\"@\":\"bad\"}", true, false},
+        {"malformed at the top level, valid nested after: refused",
+         "{\"@\":\"bad\",\"nested\":{\"@\":7}}", true, false},
+        {"in a nested array of objects only: not given",
+         "{\"list\":[{\"@\":7},{\"@\":8}]}", false, false},
+        {"the top-level key given twice, both valid: refused",
+         "{\"@\":7,\"@\":7}", true, false},
+        {"the top-level key given twice, the first valid: refused",
+         "{\"@\":7,\"x\":0,\"@\":\"bad\"}", true, false},
+        {"the top-level key given twice, the second valid: refused",
+         "{\"@\":\"bad\",\"@\":7}", true, false},
+        // In "see \"@" the string's own closing quote follows the key name, so the raw text contains "@" with a
+        // quote on each side -- which is all a first-occurrence search looks for.
+        {"the key's name at the end of a string value: not a key",
+         "{\"note\":\"see \\\"@\"}", false, false},
+        {"the key's name at the end of a string value, then the real key: the real key is read",
+         "{\"note\":\"see \\\"@\",\"@\":7}", false, true},
+        {"braces and quotes inside a string value are skipped, not counted",
+         "{\"note\":\"} { [ \\\" ]\",\"@\":7}", false, true},
+        {"the real key after a nested object with the same key: the top-level value is the one read",
+         "{\"nested\":{\"@\":\"bad\"},\"@\":7}", false, true},
+    };
+    const char* fields[] = {"fit_r_squared", "polynomial_degree", "actual_dose_levels", "calibration_mode"};
+
+    for (const char* field : fields) {
+        for (const auto& row : rows) {
+            const std::string json = withField(row.json, field);
+            SCOPED_TRACE(std::string(field) + ": " + row.what + "  " + json);
+            writeGainWithConfig("csp_gx.xcal", 2.0f, json);
+            bool threw = false;
+            const XpeErrorCode rc = callSafely([] { return xpe_calib_load_gain("csp_gx.xcal"); }, &threw);
+            EXPECT_FALSE(threw);
+            XpeCalibQualityMeta after{};
+            ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&after));
+            if (row.refused) {
+                EXPECT_EQ(XPE_ERR_CONFIG_INVALID, rc);
+                EXPECT_EQ(base.r_squared, after.r_squared) << "a refused file must leave the metadata as it was";
+                EXPECT_EQ(base.polynomial_degree, after.polynomial_degree);
+                EXPECT_EQ(base.num_points, after.num_points);
+                EXPECT_EQ(base.calibration_mode, after.calibration_mode);
+                EXPECT_NEAR(250.0f, gainResult(), 0.01f) << "a refused file must not have replaced the gain map";
+            } else {
+                ASSERT_EQ(XPE_OK, rc);
+                EXPECT_NEAR(500.0f, gainResult(), 0.01f) << "the file loaded: its gain map (2) is in the store";
+                const bool changed = (after.r_squared != base.r_squared) || (after.polynomial_degree != base.polynomial_degree) ||
+                                     (after.num_points != base.num_points) || (after.calibration_mode != base.calibration_mode);
+                EXPECT_EQ(row.read, changed) << (row.read ? "the top-level value was not read"
+                                                          : "a value that is not a top-level key was read");
+            }
+            // Put set "base" back for the next row.
+            ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csp_gq.xcal"));
+            ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&base));
+        }
+    }
+}
+
 TEST_F(ConfigStrictParse, WellFormedQualityFieldsInAGainFileAreStillRead) {
     // Control: the same call shape with good values loads and the metadata is what the file says.
     writeGainWithConfig("csp_gx.xcal", 2.0f,

@@ -102,6 +102,113 @@ std::string xpe_json_get_string(const char* configJson, const char* key) {
     return xpe_json_find_scalar(configJson, key, &value) == XpeJsonKey::Scalar ? value : std::string();
 }
 
+namespace {
+
+void json_skip_ws(const char*& p) {
+    while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') ++p;
+}
+
+/** `p` is at an opening quote. Returns the position after the closing quote, or nullptr if there is none. */
+const char* json_skip_string(const char* p) {
+    ++p;
+    while (*p) {
+        if (*p == '\\') {
+            if (!p[1]) return nullptr;
+            p += 2;
+            continue;
+        }
+        if (*p == '"') return p + 1;
+        ++p;
+    }
+    return nullptr;
+}
+
+/** `p` is at '{' or '['. Returns the position after the matching closer, or nullptr if it never closes. */
+const char* json_skip_nested(const char* p) {
+    int depth = 0;
+    while (*p) {
+        if (*p == '"') {
+            p = json_skip_string(p);
+            if (!p) return nullptr;
+            continue;
+        }
+        if (*p == '{' || *p == '[') {
+            ++depth;
+        } else if (*p == '}' || *p == ']') {
+            if (--depth == 0) return p + 1;
+        }
+        ++p;
+    }
+    return nullptr;
+}
+
+}  // namespace
+
+XpeJsonTop xpe_json_top_level_scalar(const char* json, const char* key, std::string* value) {
+    if (!json || !key) return XpeJsonTop::Absent;
+    const char* p = json;
+    json_skip_ws(p);
+    if (!*p) return XpeJsonTop::Absent;            // an empty config has no keys
+    if (*p != '{') return XpeJsonTop::Malformed;
+    ++p;
+    json_skip_ws(p);
+    if (*p == '}') return XpeJsonTop::Absent;      // {}
+
+    const size_t keyLen = std::strlen(key);
+    int found = 0;
+    XpeJsonTop firstKind = XpeJsonTop::Absent;
+    std::string firstValue;
+    for (;;) {
+        json_skip_ws(p);
+        if (*p != '"') return XpeJsonTop::Malformed;
+        const char* nameBegin = p + 1;
+        const char* afterName = json_skip_string(p);
+        if (!afterName) return XpeJsonTop::Malformed;
+        const bool match = static_cast<size_t>(afterName - 1 - nameBegin) == keyLen &&
+                           std::strncmp(nameBegin, key, keyLen) == 0;
+        p = afterName;
+        json_skip_ws(p);
+        if (*p != ':') return XpeJsonTop::Malformed;
+        ++p;
+        json_skip_ws(p);
+
+        XpeJsonTop kind = XpeJsonTop::Scalar;
+        std::string text;
+        if (*p == '"') {
+            const char* end = json_skip_string(p);
+            if (!end) return XpeJsonTop::Malformed;
+            text.assign(p + 1, end - 1);
+            p = end;
+        } else if (*p == '{' || *p == '[') {
+            const char* end = json_skip_nested(p);
+            if (!end) return XpeJsonTop::Malformed;
+            kind = XpeJsonTop::NotScalar;
+            p = end;
+        } else {
+            // A bare token (number, true, false, null) -- or nothing at all, which is an empty scalar.
+            const char* end = p;
+            while (*end && *end != ',' && *end != '}' && *end != ' ' && *end != '\t' && *end != '\n' && *end != '\r') ++end;
+            if (!*end) return XpeJsonTop::Malformed;
+            text.assign(p, end);
+            p = end;
+        }
+        if (match) {
+            if (++found == 1) {
+                firstKind = kind;
+                firstValue = std::move(text);
+            }
+        }
+        json_skip_ws(p);
+        if (*p == ',') { ++p; continue; }
+        if (*p == '}') break;
+        return XpeJsonTop::Malformed;
+    }
+    if (found == 0) return XpeJsonTop::Absent;
+    if (found > 1) return XpeJsonTop::Duplicate;
+    if (firstKind == XpeJsonTop::Scalar && value) *value = std::move(firstValue);
+    return firstKind;
+}
+
 /**
  * Minimal JSON numeric field extractor — parses "key": number (int or float).
  * Returns defaultVal when key is absent or configJson is null.

@@ -17,6 +17,12 @@
  * operator new.
  */
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#endif
+
 #include <gtest/gtest.h>
 
 #include "xpe/preprocess_api.h"
@@ -85,6 +91,58 @@ void reset() { g_overruns.store(0); }
 long overruns() { return g_overruns.load(); }
 }  // namespace guard
 
+#ifdef _WIN32
+namespace pageguard {
+// QA-A-208 (Codex #34): a block placed so that its END is the end of committed pages, followed by a PAGE_NOACCESS
+// page. A read or a write past the end of the block -- even by one 16-byte step -- is an access violation, so an
+// over-read, which the canary scheme above cannot see (it only notices bytes that were WRITTEN), is observable.
+// Blocks of at least kMinBytes bytes made while the mode is on are page blocks; they are found again by address
+// in a small table. Nothing here allocates through operator new.
+constexpr size_t kPage = 4096;
+constexpr size_t kMinBytes = 16;
+constexpr size_t kSlots = 2048;
+struct Slot { void* user; void* base; };
+Slot g_slots[kSlots];
+std::atomic<bool> g_on{false};
+std::atomic<long> g_live{0};
+void on(bool v) { g_on.store(v); }
+void* allocate(size_t n) noexcept {
+    const size_t body = (n + kPage - 1) / kPage * kPage;
+    auto* base = static_cast<unsigned char*>(VirtualAlloc(nullptr, body + kPage, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE));
+    if (!base) return nullptr;
+    DWORD old = 0;
+    if (!VirtualProtect(base + body, kPage, PAGE_NOACCESS, &old)) { VirtualFree(base, 0, MEM_RELEASE); return nullptr; }
+    void* user = base + body - (n + 15) / 16 * 16;
+    for (size_t i = 0; i < kSlots; ++i) {
+        if (!g_slots[i].user) { g_slots[i] = Slot{user, base}; g_live.fetch_add(1); return user; }
+    }
+    VirtualFree(base, 0, MEM_RELEASE);
+    return nullptr;
+}
+bool release(void* p) noexcept {
+    for (size_t i = 0; i < kSlots; ++i) {
+        if (g_slots[i].user == p) {
+            void* base = g_slots[i].base;
+            g_slots[i] = Slot{};
+            g_live.fetch_sub(1);
+            VirtualFree(base, 0, MEM_RELEASE);
+            return true;
+        }
+    }
+    return false;
+}
+/** Frees what a call that faulted never released; returns how many blocks that was. */
+long reset() noexcept {
+    long n = 0;
+    for (size_t i = 0; i < kSlots; ++i) {
+        if (g_slots[i].user) { VirtualFree(g_slots[i].base, 0, MEM_RELEASE); g_slots[i] = Slot{}; ++n; }
+    }
+    g_live.store(0);
+    return n;
+}
+}  // namespace pageguard
+#endif
+
 namespace {
 std::atomic<long> g_failAt{0};      // 0 = disarmed; otherwise the 1-based index of the allocation to fail
 std::atomic<long> g_count{0};
@@ -117,6 +175,11 @@ void* operator new(std::size_t n) {
     }
     const bool guarded = guard::g_on.load(std::memory_order_relaxed);
     const size_t want = n ? n : 1;
+#ifdef _WIN32
+    if (pageguard::g_on.load(std::memory_order_relaxed) && want >= pageguard::kMinBytes) {
+        if (void* pg = pageguard::allocate(want)) { g_live.fetch_add(1); return pg; }
+    }
+#endif
     if (void* p = std::malloc(want + (guarded ? guard::kCanary : 0))) {
         g_live.fetch_add(1);
         if (guarded) guard::record(p, want);
@@ -127,6 +190,12 @@ void* operator new(std::size_t n) {
 void* operator new[](std::size_t n) { return operator new(n); }
 void operator delete(void* p) noexcept {
     if (p) {
+#ifdef _WIN32
+        if (pageguard::g_live.load(std::memory_order_relaxed) > 0 && pageguard::release(p)) {
+            g_live.fetch_sub(1);
+            return;
+        }
+#endif
         if (guard::g_recorded.load(std::memory_order_relaxed) > 0) guard::check(p);
         g_live.fetch_sub(1);
         std::free(p);
@@ -1442,4 +1511,159 @@ TEST_F(OomPipeline, AQualityReadStartedInsideTheCommitWaitsForItAndSeesTheNewSet
     EXPECT_TRUE(readerlock::g_stillWaiting) << "the reader finished while the commit still held the lock";
     EXPECT_DOUBLE_EQ(0.97, readerlock::g_q.r_squared) << "after the section ended the reader saw set B's quality";
     EXPECT_EQ(2u, readerlock::g_q.polynomial_degree);
+}
+
+/* =========================================================================
+ * Every configuration reads only what it owns and ends in the format it was predicted to (QA-A-208, Codex #34 A1)
+ * ========================================================================= */
+
+// With the gain stage bypassed, stage 4 was the stage-3 buffer -- N uint16 values -- yet binning, the defect stage
+// and the ghost stage all treat their input as N float32 values. Binning and ghost copied N*4 bytes out of it (a
+// read past the end of the stage buffer, or, when no earlier stage made a buffer, the upper half of the caller's
+// buffer read as floats), and the defect stage refused a uint16 frame outright. A gain bypass now means "gain = 1":
+// the frame is converted to float32 explicitly before the first stage that needs floats.
+//
+// Reads past the end of a block are made visible by the page-guard allocator (a NOACCESS page right after every
+// block made during the call); the access violation is caught and reported as a failure of that combination.
+
+namespace combo {
+
+struct Config { bool temp, offset, gain; int binning; bool defect, ghost; };   // binning: 0 bypassed, 1, 2
+
+std::string json(const Config& c) {
+    std::string j = "{\"bypassReadout\":true,\"bypassNonlinearity\":true,\"detectorTempC\":\"25.5\"";
+    j += c.temp ? ",\"bypassTemp\":false" : ",\"bypassTemp\":true";
+    j += c.offset ? ",\"bypassOffset\":false" : ",\"bypassOffset\":true";
+    j += c.gain ? ",\"bypassGain\":false" : ",\"bypassGain\":true";
+    j += (c.binning == 0) ? ",\"bypassBinning\":true" : ",\"bypassBinning\":false";
+    j += ",\"binningMode\":\"" + std::to_string(c.binning == 0 ? 1 : c.binning) + "\"";
+    j += c.defect ? ",\"bypassDefect\":false" : ",\"bypassDefect\":true";
+    j += c.ghost ? ",\"bypassGhost\":false}" : ",\"bypassGhost\":true}";
+    return j;
+}
+
+/** What the final frame must be, stated here independently of the product: float32 when a float stage runs. */
+bool predictFloat(const Config& c) { return c.gain || c.binning == 2 || c.defect || c.ghost; }
+
+std::string describe(const Config& c) {
+    char buf[96];
+    std::snprintf(buf, sizeof buf, "temp=%d offset=%d gain=%d binning=%d defect=%d ghost=%d",
+                  c.temp, c.offset, c.gain, c.binning, c.defect, c.ghost);
+    return buf;
+}
+
+#ifdef _WIN32
+struct Ctx { XpeImageBuffer* img; XpeImageMetadata* meta; const char* cfg; void* ghost; XpeErrorCode rc; };
+void runOne(void* p) {
+    auto* c = static_cast<Ctx*>(p);
+    c->rc = xpe_preprocess_pipeline_ex(c->img, c->meta, nullptr, c->ghost, c->cfg);
+}
+// No C++ object with a destructor may live in a function with __try (C2712), so the call goes through a pointer.
+int callCatching(void (*fn)(void*), void* ctx) {
+    __try {
+        fn(ctx);
+        return 0;
+    } __except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
+        return 1;
+    }
+}
+
+/** Runs the pipeline on `f` with the page-guard allocator on. Returns true if the call faulted (a read or write
+ *  past the end of a block); `*rc` is the call's result otherwise. */
+bool runGuarded(dsz::Frame& f, const Config& c, XpeErrorCode* rc) {
+    const std::string cfg = json(c);
+    Ctx ctx{&f.img, &f.meta, cfg.c_str(), c.ghost ? pipe::g_ghost : nullptr, XPE_OK};
+    pageguard::on(true);
+    const int faulted = callCatching(&runOne, &ctx);
+    pageguard::on(false);
+    if (faulted) g_live.fetch_sub(pageguard::reset());
+    *rc = ctx.rc;
+    return faulted != 0;
+}
+#endif
+
+}  // namespace combo
+
+TEST_F(OomPipeline, AGainBypassFollowedByBinningDoesNotReadPastTheStageBuffer) {
+#ifndef _WIN32
+    GTEST_SKIP() << "the page-guard allocator is Windows-only";
+#else
+    // The case Codex #34 names: N uint16 pixels with room for N floats, gain bypassed, binning 2, temperature on.
+    const combo::Config c{true, true, false, 2, false, false};
+    pipe::setup();
+    dsz::Frame f(N * sizeof(float));
+    XpeErrorCode rc = XPE_OK;
+    const bool faulted = combo::runGuarded(f, c, &rc);
+    EXPECT_FALSE(faulted) << "the binning stage read past the end of the gain-bypassed stage buffer";
+    EXPECT_EQ(XPE_OK, rc);
+    EXPECT_EQ(XPE_PIXEL_FLOAT32, f.img.format);
+#endif
+}
+
+TEST_F(OomPipeline, EveryConfigurationReadsOnlyWhatItOwnsAndEndsInTheFormatItIsPredictedToEndIn) {
+#ifndef _WIN32
+    GTEST_SKIP() << "the page-guard allocator is Windows-only";
+#else
+    std::filesystem::create_directories("oom_pipe_calibOnes");
+    writeGain("oom_pipe_calibOnes/gain.xcal", 1.0f, "{}");
+
+    int combos = 0, comparedToUnitGain = 0, floatEnds = 0, uint16Ends = 0;
+    std::vector<std::string> failures;
+    for (int temp = 0; temp < 2; ++temp)
+    for (int offset = 0; offset < 2; ++offset)
+    for (int gain = 0; gain < 2; ++gain)
+    for (int binning = 0; binning < 3; ++binning)
+    for (int defect = 0; defect < 2; ++defect)
+    for (int ghost = 0; ghost < 2; ++ghost) {
+        const combo::Config c{temp != 0, offset != 0, gain != 0, binning, defect != 0, ghost != 0};
+        SCOPED_TRACE(combo::describe(c));
+        ++combos;
+
+        pipe::setup();
+        dsz::Frame f(N * sizeof(float));
+        XpeErrorCode rc = XPE_OK;
+        const bool faulted = combo::runGuarded(f, c, &rc);
+        if (faulted) { failures.push_back(combo::describe(c) + ": a stage read or wrote past the end of a buffer it owns"); continue; }
+        if (rc != XPE_OK) { failures.push_back(combo::describe(c) + ": rc " + std::to_string(rc)); continue; }
+
+        const bool isFloat = combo::predictFloat(c);
+        EXPECT_EQ(isFloat ? XPE_PIXEL_FLOAT32 : XPE_PIXEL_UINT16, f.img.format) << "the format is not the predicted one";
+        EXPECT_EQ(isFloat ? 32u : 16u, f.img.bitsAllocated);
+        (isFloat ? floatEnds : uint16Ends)++;
+        const size_t outBytes = isFloat ? N * sizeof(float) : N * sizeof(uint16_t);
+        EXPECT_TRUE(std::equal(f.bytes.begin() + static_cast<long>(outBytes), f.bytes.end(),
+                               f.before.begin() + static_cast<long>(outBytes)))
+            << "bytes beyond the final frame were written";
+
+        // A gain bypass means "gain = 1": the same frame as a run with the gain stage on and a gain map of ones.
+        if (!c.gain && isFloat) {
+            combo::Config on = c;
+            on.gain = true;
+            pipe::setup();
+            ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_pipe_calibOnes/gain.xcal"));
+            dsz::Frame g(N * sizeof(float));
+            XpeErrorCode rc2 = XPE_OK;
+            if (combo::runGuarded(g, on, &rc2) || rc2 != XPE_OK) {
+                failures.push_back(combo::describe(on) + ": the reference run with a gain map of ones failed");
+                continue;
+            }
+            if (!std::equal(f.bytes.begin(), f.bytes.begin() + static_cast<long>(outBytes), g.bytes.begin()))
+                failures.push_back(combo::describe(c) + ": a gain bypass does not give the frame a gain map of ones gives");
+            ++comparedToUnitGain;
+        }
+    }
+    {
+        std::string all;
+        for (const auto& f : failures) all += std::string(1, '\n') + "  " + f;
+        EXPECT_TRUE(failures.empty()) << failures.size() << " configuration(s) failed:" << all;
+    }
+    EXPECT_EQ(96, combos) << "control: every combination was run";
+    EXPECT_GT(floatEnds, 0);
+    EXPECT_GT(uint16Ends, 0);
+    EXPECT_GT(comparedToUnitGain, 0) << "control: some combinations were compared with a unit gain map";
+    std::printf("[combo] %d configurations; %d end in float32, %d in uint16; %d compared with a gain map of ones\n",
+                combos, floatEnds, uint16Ends, comparedToUnitGain);
+    std::error_code ec;
+    std::filesystem::remove_all("oom_pipe_calibOnes", ec);
+#endif
 }

@@ -1,0 +1,6 @@
+# red state, before the fix: failing configurations by reason (from 02_red_combos.txt)
+total failing lines: 40
+read/write past a buffer (access violation): 18
+rc -7 (XPE_ERR_UNSUPPORTED_FORMAT):        16
+not equal to a gain map of ones:           6
+other:                                     0

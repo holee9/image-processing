@@ -130,6 +130,27 @@ enum class XpeJsonKey {
  */
 XpeJsonKey xpe_json_find_scalar(const char* configJson, const char* key, std::string* value);
 
+/** What xpe_json_top_level_scalar found for a key (QA-A-208). */
+enum class XpeJsonTop {
+    Absent,      ///< the text is empty, or its top-level object has no such key
+    Scalar,      ///< exactly one top-level key of that name, with a string or bare-token value (possibly empty)
+    NotScalar,   ///< exactly one, and its value is an object or an array
+    Duplicate,   ///< the top-level object has the key more than once
+    Malformed,   ///< not a JSON object, or it ends or breaks before the object closes
+};
+
+/**
+ * The top-level key `key` of the JSON OBJECT `json`, found by walking the object: member by member, skipping
+ * strings (escapes included), nested objects and nested arrays. xpe_json_find_scalar looks for the first
+ * occurrence of the quoted name anywhere in the text, so it reads a nested object's key (or the tail of a string
+ * value that happens to end in the name) in place of the real one, and can pass over a malformed top-level value
+ * (QA-A-208, Codex #34 B2). This is the lookup for signed data -- the quality fields of a calibration file. The
+ * pipeline CONFIGURATION is still read by xpe_json_get_string, with that first-occurrence rule, unchanged.
+ * `*value` is set for Scalar only: the text of the string between its quotes (escapes left as written), or the
+ * bare token.
+ */
+XpeJsonTop xpe_json_top_level_scalar(const char* json, const char* key, std::string* value);
+
 /**
  * @brief xpe_nonlinearity_correct with a report of whether pixels were corrected.
  *

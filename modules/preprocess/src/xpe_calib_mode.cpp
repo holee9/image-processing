@@ -273,14 +273,15 @@ bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept
  * Reads one FUNC-033 field into a uint8: an ABSENT key keeps the default; a key that is present must hold an
  * integer in [0, 255], so an empty value, a value that is not a scalar and a malformed number are all refusals
  * (QA-A-204, #233: atoi turned a malformed value into 0, or truncated it, without a word; QA-A-205b, Codex #29
- * B1: an empty value was read as "not given").
+ * B1: an empty value was read as "not given"). The key is a TOP-LEVEL key of the config object, found by walking
+ * it; a nested object's key of the same name is not it, and a key given twice is a refusal (QA-A-208, Codex #34 B2).
  */
 static bool read_u8_field(const char* json, const char* key, uint8_t* dst, bool* present)
 {
     std::string v;
-    const XpeJsonKey state = xpe_json_find_scalar(json, key, &v);
-    if (state == XpeJsonKey::Absent) return true;
-    if (state != XpeJsonKey::Scalar) return false;
+    const XpeJsonTop state = xpe_json_top_level_scalar(json, key, &v);
+    if (state == XpeJsonTop::Absent) return true;
+    if (state != XpeJsonTop::Scalar) return false;   // not a scalar, given twice, or the config is not an object
     int32_t n = 0;
     if (!xpe_strict::parse_int(v, &n) || n < 0 || n > 255) return false;
     *dst = static_cast<uint8_t>(n);
@@ -302,9 +303,9 @@ XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, XpeCalibQ
     bool anyPresent = false;
 
     std::string r2;
-    const XpeJsonKey r2State = xpe_json_find_scalar(configJson, "fit_r_squared", &r2);
-    if (r2State == XpeJsonKey::NotScalar) return XPE_ERR_CONFIG_INVALID;
-    if (r2State == XpeJsonKey::Scalar) {
+    const XpeJsonTop r2State = xpe_json_top_level_scalar(configJson, "fit_r_squared", &r2);
+    if (r2State != XpeJsonTop::Absent && r2State != XpeJsonTop::Scalar) return XPE_ERR_CONFIG_INVALID;
+    if (r2State == XpeJsonTop::Scalar) {
         if (!xpe_strict::parse_double(r2, &meta.r_squared)) return XPE_ERR_CONFIG_INVALID;
         anyPresent = true;
     }

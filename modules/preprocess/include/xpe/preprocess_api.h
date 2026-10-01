@@ -796,6 +796,11 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  * from one set and a gain from another. Calibration loaded by other calls (xpe_calib_load_*, the cached loaders)
  * during the call takes effect from the next frame. The nonlinearity table is not part of the set: it is read
  * from the store when its stage runs.
+ *
+ * A bypassed stage is skipped, with one exception that is not a skip: the gain stage is the uint16 -> float32
+ * boundary, so a bypassed gain stage means "gain = 1" -- when a float stage follows (binning with binningMode > 1,
+ * defect, or ghost with a handle) the frame is converted to float32 explicitly and the result is the one a gain
+ * map of ones gives (QA-A-208). With no float stage the frame stays uint16.
  * Pipeline: Readout -> Temp -> Offset -> Nonlinearity -> Gain -> Binning -> Defect -> Ghost
  *
  * @warning This function RE-READS offset.xcal, gain.xcal and defect.xcal from

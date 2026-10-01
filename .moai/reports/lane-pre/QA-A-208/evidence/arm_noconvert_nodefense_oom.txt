@@ -1,0 +1,76 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomPipeline.AGainBypass*:OomPipeline.EveryConfiguration*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from OomPipeline
+[ RUN      ] OomPipeline.AGainBypassFollowedByBinningDoesNotReadPastTheStageBuffer
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1597): error: Value of: faulted
+  Actual: true
+Expected: false
+the binning stage read past the end of the gain-bypassed stage buffer
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1599): error: Expected equality of these values:
+  XPE_PIXEL_FLOAT32
+    Which is: 1
+  f.img.format
+    Which is: 0
+
+[  FAILED  ] OomPipeline.AGainBypassFollowedByBinningDoesNotReadPastTheStageBuffer (13 ms)
+[ RUN      ] OomPipeline.EveryConfigurationReadsOnlyWhatItOwnsAndEndsInTheFormatItIsPredictedToEndIn
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1658): error: Value of: failures.empty()
+  Actual: false
+Expected: true
+40 configuration(s) failed:
+  temp=0 offset=0 gain=0 binning=0 defect=0 ghost=1: a gain bypass does not give the frame a gain map of ones gives
+  temp=0 offset=0 gain=0 binning=0 defect=1 ghost=0: rc -7
+  temp=0 offset=0 gain=0 binning=0 defect=1 ghost=1: rc -7
+  temp=0 offset=0 gain=0 binning=1 defect=0 ghost=1: a gain bypass does not give the frame a gain map of ones gives
+  temp=0 offset=0 gain=0 binning=1 defect=1 ghost=0: rc -7
+  temp=0 offset=0 gain=0 binning=1 defect=1 ghost=1: rc -7
+  temp=0 offset=0 gain=0 binning=2 defect=0 ghost=0: a gain bypass does not give the frame a gain map of ones gives
+  temp=0 offset=0 gain=0 binning=2 defect=0 ghost=1: a gain bypass does not give the frame a gain map of ones gives
+  temp=0 offset=0 gain=0 binning=2 defect=1 ghost=0: a gain bypass does not give the frame a gain map of ones gives
+  temp=0 offset=0 gain=0 binning=2 defect=1 ghost=1: a gain bypass does not give the frame a gain map of ones gives
+  temp=0 offset=1 gain=0 binning=0 defect=0 ghost=1: a stage read or wrote past the end of a buffer it owns
+  temp=0 offset=1 gain=0 binning=0 defect=1 ghost=0: rc -7
+  temp=0 offset=1 gain=0 binning=0 defect=1 ghost=1: rc -7
+  temp=0 offset=1 gain=0 binning=1 defect=0 ghost=1: a stage read or wrote past the end of a buffer it owns
+  temp=0 offset=1 gain=0 binning=1 defect=1 ghost=0: rc -7
+  temp=0 offset=1 gain=0 binning=1 defect=1 ghost=1: rc -7
+  temp=0 offset=1 gain=0 binning=2 defect=0 ghost=0: a stage read or wrote past the end of a buffer it owns
+  temp=0 offset=1 gain=0 binning=2 defect=0 ghost=1: a stage read or wrote past the end of a buffer it owns
+  temp=0 offset=1 gain=0 binning=2 defect=1 ghost=0: a stage read or wrote past the end of a buffer it owns
+  temp=0 offset=1 gain=0 binning=2 defect=1 ghost=1: a stage read or wrote past the end of a buffer it owns
+  temp=1 offset=0 gain=0 binning=0 defect=0 ghost=1: a stage read or wrote past the end of a buffer it owns
+  temp=1 offset=0 gain=0 binning=0 defect=1 ghost=0: rc -7
+  temp=1 offset=0 gain=0 binning=0 defect=1 ghost=1: rc -7
+  temp=1 offset=0 gain=0 binning=1 defect=0 ghost=1: a stage read or wrote past the end of a buffer it owns
+  temp=1 offset=0 gain=0 binning=1 defect=1 ghost=0: rc -7
+  temp=1 offset=0 gain=0 binning=1 defect=1 ghost=1: rc -7
+  temp=1 offset=0 gain=0 binning=2 defect=0 ghost=0: a stage read or wrote past the end of a buffer it owns
+  temp=1 offset=0 gain=0 binning=2 defect=0 ghost=1: a stage read or wrote past the end of a buffer it owns
+  temp=1 offset=0 gain=0 binning=2 defect=1 ghost=0: a stage read or wrote past the end of a buffer it owns
+  temp=1 offset=0 gain=0 binning=2 defect=1 ghost=1: a stage read or wrote past the end of a buffer it owns
+  temp=1 offset=1 gain=0 binning=0 defect=0 ghost=1: a stage read or wrote past the end of a buffer it owns
+  temp=1 offset=1 gain=0 binning=0 defect=1 ghost=0: rc -7
+  temp=1 offset=1 gain=0 binning=0 defect=1 ghost=1: rc -7
+  temp=1 offset=1 gain=0 binning=1 defect=0 ghost=1: a stage read or wrote past the end of a buffer it owns
+  temp=1 offset=1 gain=0 binning=1 defect=1 ghost=0: rc -7
+  temp=1 offset=1 gain=0 binning=1 defect=1 ghost=1: rc -7
+  temp=1 offset=1 gain=0 binning=2 defect=0 ghost=0: a stage read or wrote past the end of a buffer it owns
+  temp=1 offset=1 gain=0 binning=2 defect=0 ghost=1: a stage read or wrote past the end of a buffer it owns
+  temp=1 offset=1 gain=0 binning=2 defect=1 ghost=0: a stage read or wrote past the end of a buffer it owns
+  temp=1 offset=1 gain=0 binning=2 defect=1 ghost=1: a stage read or wrote past the end of a buffer it owns
+
+[combo] 96 configurations; 54 end in float32, 8 in uint16; 6 compared with a gain map of ones
+[  FAILED  ] OomPipeline.EveryConfigurationReadsOnlyWhatItOwnsAndEndsInTheFormatItIsPredictedToEndIn (20 ms)
+[----------] 2 tests from OomPipeline (33 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (33 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] OomPipeline.AGainBypassFollowedByBinningDoesNotReadPastTheStageBuffer
+[  FAILED  ] OomPipeline.EveryConfigurationReadsOnlyWhatItOwnsAndEndsInTheFormatItIsPredictedToEndIn
+
+ 2 FAILED TESTS

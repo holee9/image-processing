@@ -128,6 +128,17 @@ namespace {
     }
 
     /**
+     * Whether the buffer a stage is about to read is what that stage takes: this format, at least this many bytes.
+     * The stages after the gain stage take float32; a buffer that is not one -- the uint16 frame of a bypassed
+     * gain stage, before QA-A-208 -- was read as floats anyway. On the normal path this never fails; it is the
+     * check that turns a future slip in the stage chain into an error instead of a read past a buffer
+     * (QA-A-208, Codex #34).
+     */
+    bool stage_input_is(const XpeImageBuffer& b, decltype(XpeImageBuffer::format) format, size_t bytes) {
+        return b.data != nullptr && b.format == format && b.dataSize >= bytes;
+    }
+
+    /**
      * @brief Internal pipeline core using new 3-arg API.
      *
      * Uses g_calib for calibration maps (loaded via xpe_calib_load_* functions).
@@ -270,8 +281,25 @@ namespace {
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_GAIN_CORRECTED;
+        } else if (final_result_is_float(cfg, ghostHandle) && stage3.format == XPE_PIXEL_UINT16) {
+            // QA-A-208 (Codex #34 A1): a bypassed gain stage means "gain = 1", and a float stage follows
+            // (binning, defect or ghost), so the frame is converted to float32 here, explicitly -- every float
+            // stage then reads a float32 buffer of its own size. It used to pass the uint16 buffer on (N*2 bytes)
+            // and binning and ghost copied N*4 bytes out of it. A gain map of ones gives this frame bit for bit:
+            // x * (1/1) is exact, as is the conversion of a uint16.
+            stage4Data.resize(pixelCount);
+            stage4.width = img->width;
+            stage4.height = img->height;
+            stage4.bitsAllocated = 32u;
+            stage4.bitsStored = 32u;
+            stage4.format = XPE_PIXEL_FLOAT32;
+            stage4.data = stage4Data.data();
+            stage4.dataSize = stage4Data.size() * sizeof(float);
+
+            const uint16_t* in16 = static_cast<const uint16_t*>(stage3.data);
+            for (size_t i = 0; i < pixelCount; ++i) stage4Data[i] = static_cast<float>(in16[i]);
         } else {
-            // No gain correction: stage4 = stage3 (uint16)
+            // No gain correction and no float stage after it: stage4 = stage3 (uint16)
             stage4 = stage3;
         }
 
@@ -292,6 +320,7 @@ namespace {
             // In place on its own copy of the stage-4 frame. QA-A-104: it used
             // to bin stage4 while the (empty) stage5 buffer went on to the
             // defect stage, so a binned frame came out as zeros.
+            if (!stage_input_is(stage4, XPE_PIXEL_FLOAT32, floatBytes)) return XPE_ERR_PROCESSING_FAILED;
             std::memcpy(stage5Data.data(), stage4.data, pixelCount * sizeof(float));
             result = xpe_binning_correct(&stage5, cfg.binningMode, nullptr);
             if (result != XPE_OK) return result;
@@ -331,6 +360,7 @@ namespace {
             // meta, not nullptr: xpe_defect_correct rejects a null metadata
             // pointer. This stage never ran before the gate was fixed above, so
             // the malformed call had never been reached.
+            if (!stage_input_is(stage5, XPE_PIXEL_FLOAT32, floatBytes)) return XPE_ERR_PROCESSING_FAILED;
             result = xpe_defect_correct_in(calib, &stage5, &stage6, meta);
             if (result != XPE_OK) return result;
 
@@ -354,6 +384,7 @@ namespace {
             // Ghost correction works in place; give it its own copy of the
             // stage-6 frame. QA-A-104: it used to correct stage6 while the
             // (empty) stage7 buffer was copied back, so the output was zeros.
+            if (!stage_input_is(stage6, XPE_PIXEL_FLOAT32, floatBytes)) return XPE_ERR_PROCESSING_FAILED;
             std::memcpy(stage7Data.data(), stage6.data, pixelCount * sizeof(float));
             result = xpe_ghost_correct(ghostHandle, &stage7, meta);
             if (result != XPE_OK) return result;
@@ -368,7 +399,9 @@ namespace {
         // range onto itself is undefined). A stage buffer is never smaller than the frame it holds; if one were,
         // the call refuses here, before it writes, rather than reading past the end of the stage buffer.
         const XpeImageBuffer* finalStage = &stage7;
-        if (finalStage->dataSize < outputBytes) return XPE_ERR_PROCESSING_FAILED;
+        if (finalStage->dataSize < outputBytes ||
+            finalStage->format != (final_result_is_float(cfg, ghostHandle) ? XPE_PIXEL_FLOAT32 : XPE_PIXEL_UINT16))
+            return XPE_ERR_PROCESSING_FAILED;
         if (finalStage->data != img->data)
             std::memcpy(const_cast<void*>(img->data), finalStage->data, outputBytes);
 
