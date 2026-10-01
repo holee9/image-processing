@@ -1,7 +1,23 @@
 # QA-B-171C gate — product path: xpe_bone_suppress through the worker (#130, REQ-AI-092)
 
 `use_worker` in the `xpe_ai_init` config routes `xpe_bone_suppress` through the 171-B supervisor. Off by default.
-A worker-path failure is REPORTED (alert) and replaced by the in-process result. Refs #130.
+A worker-path failure is REPORTED (alert) and the INPUT is returned unchanged with a non-OK code. Refs #130.
+
+## CORRECTION (leader review of c0b983f) — the fallback is the input, not an in-process re-run
+
+The first version of this commit (c0b983f) answered a worker failure by re-running the same inference in-process.
+That was wrong, and the leader's source reading shows why: REQ-AI-002 asks for a deterministic fallback that keeps clinical
+usability when AI fails; REQ-AI-003 puts inference in a separate process so the main process is crash-immune; REQ-AI-092
+says "fallback and alert"; SDD-002:874 says "AI worker failure -> return input unchanged + SRS-SAFE-008". A worker that
+failed BECAUSE OF THE MODEL would, re-run in-process, bring that same risk into the process the isolation protects.
+Sections below describe the corrected behaviour; the evidence files `arm_armC.txt` / `arm_armD.txt` and
+`after_product_path_ci_ai.txt` belong to the superseded design and are kept only as history.
+
+What changed: on any worker failure `xpe_bone_suppress` copies the input into the output buffer, pushes ONE Warning alert
+citing REQ-AI-002, REQ-AI-092 and SRS-SAFE-008, and returns the worker's or transport's error code. **Return-code choice
+(flagged for the leader):** never XPE_OK. `ai_api.h` documents XPE_OK as "the AI succeeded", and the public contract for
+REQ-AI-002 is "on failure the caller uses the original image"; returning OK with an unprocessed image would present it as
+AI output. A caller that ignores the code and uses the buffer still gets the input, not stale pixels.
 
 ## 1. Measurement first: does a cold worker fit the 5 s budget? (the card's order)
 
@@ -29,9 +45,10 @@ scale with the graph, not the file; no such model exists in the repository and i
 - `use_worker` (bool) is read in both config parsers, is in the known-keys list, and a wrong type or a typo is reported
   by the existing unknown-key warning (`AiConfigWarning.*`, two new tests; the "fully valid config" test now carries it).
 - On: `xpe_bone_suppress` -> supervisor -> worker. Worker success pushes the same `AI-processed` Info alert as the
-  in-process path (one function, so both say the same). Worker failure of any kind pushes a **Warning** alert
-  `AI worker failed (code N): the in-process result is used instead (REQ-AI-092)` and falls through to the in-process
-  path, so the caller still gets the in-process result. The failure is never swallowed.
+  in-process path (one function, so both say the same). Worker failure of any kind pushes ONE **Warning** alert
+  `AI worker failed (code N): the input image is returned unchanged (REQ-AI-002, REQ-AI-092, SRS-SAFE-008)`, copies the
+  input into the output, and returns the error code (never XPE_OK). No `AI-processed` label is raised for it. The failure
+  is never swallowed, and the inference is never re-run in this process.
 - The supervisor is created lazily on the first call that needs it and destroyed in `xpe_ai_shutdown`, which ends the
   worker. A `timeout_ms` of 0 (it would fail every call before the worker could answer) falls back to the 5000 ms default.
 - The worker executable is looked up in the **directory of xpe_ai.dll only** (`GetModuleHandleEx` + the module file name),
@@ -49,18 +66,24 @@ because the existing unknown-key warning covers them (guards, not reproductions)
   worker process that is a child of the test process (found by parentage, not by name), whose executable sits in the
   same directory as the loaded `xpe_ai.dll`; one `AI-processed` alert, zero failure alerts; after `xpe_ai_shutdown`
   zero child workers.
-- **A silent worker** (every thread suspended from outside): the call still returns the in-process answer, in about the
-  2 s budget; exactly one Warning alert; the frozen worker is gone; the NEXT call runs on a NEW worker with no new failure
-  alert.
-- **Stub build** (`ci-post`): the worker answers with an error frame, the failure is reported, and the result equals the
-  in-process result (both are the documented stub failure).
+- **A silent worker** (every thread suspended from outside): in about the 2 s budget the call returns a non-OK code with
+  the output equal to the input byte for byte (not the model's answer, not the sentinel the buffer started with); exactly
+  one Warning alert, citing SRS-SAFE-008; no AI-processed label; the frozen worker is gone; the NEXT call runs on a NEW
+  worker with no new failure alert.
+- **Stub build** (`ci-post`): the worker answers with an error frame; non-OK code equal to the in-process stub code, output
+  equal to the input, one alert citing SRS-SAFE-008, no AI-processed label.
 - Probe controls: a worker the probe can see and an alert it can read are both shown to exist, so the "none" assertions
   cannot pass on a blind probe.
 
-Falsification (build 0 each; `ai.cpp` restored and byte-compared after each, no INJECTED text left):
-- **Fallback removed** (`arm_armC.txt`): the silent-worker test RED on the result (the call returns the failure instead of
-  the in-process answer).
-- **Alert removed** (`arm_armD.txt`): the silent-worker test RED on the alert count and severity.
+The corrected tests were run RED before the fix on both presets (`before_input_fallback_ci_ai.txt`,
+`before_input_fallback_ci_post.txt`, build 0): the silent-worker test failed on the return code (it returned OK with the
+model's answer) and on the output bytes, the stub test on the output and on the missing SAFE-008 citation. After:
+`after_input_fallback_ci_ai.txt` (4 pass, 2 skipped) and `after_input_fallback_ci_post.txt` (4 pass, 2 skipped).
+
+Falsification of the corrected design (build 0 each; `ai.cpp` restored and byte-compared after each, no INJECTED text left):
+- **Copy of the input removed** (`arm_c2NoCopy.txt`): the silent-worker test RED on the output bytes (line 311).
+- **Failure reported as XPE_OK** (`arm_c2ReturnsOk.txt`): RED on the return code (line 309).
+- **Alert removed** (`arm_c2NoAlert.txt`): RED on the alert count, severity and the SAFE-008 citation (lines 316-318).
 
 ## 4. Deployment: the worker beside the DLL
 
@@ -98,20 +121,22 @@ closes it at line 237. No change made. (If the audit read the e21479d version, `
 
 ## 7. Two things the card did not ask for but the work surfaced
 
-- **Spec conflict.** `XPE-SDD-002` line 874 reads "AI worker failure -> return input unchanged + SRS-ALERT-004", while this
-  card (and REQ-AI-092's "fallback") says in-process fallback. This commit follows the card. The SRS alert table
-  (`XPE-SRS-001` line 102) has no row for a worker failure, so the **Warning** severity and the message text are my choice;
-  the SRS defines only ALERT-004 (Info, "AI-processed") — a row for the failure belongs in the SRS.
+- **Spec conflict, resolved by the leader.** `XPE-SDD-002` line 874 says "AI worker failure -> return input unchanged"
+  and the card said in-process fallback; the SDD was right (see the correction above). The SRS alert table
+  (`XPE-SRS-001` line 102) still has no row for a worker failure, so the **Warning** severity and the message text are my
+  choice and the citation is SRS-SAFE-008 as the SDD gives it: **the SRS needs a row** (the leader handles it). Note the
+  repository's own copy of the class-B package defines SRS-SAFE-008 as the "AI-processed" label requirement, so what that
+  identifier means should be settled in the same edit.
 - **Inference runs under the module mutex.** `xpe_bone_suppress` holds `state->mtx` for the whole call, as the in-process
   path always did, so a silent worker blocks other AI calls for up to the budget (and `xpe_ai_shutdown` for up to that
   plus the stop grace). Unchanged behaviour class; now with a worker it can be seconds instead of milliseconds.
 
-## 8. Full suites (presets, /WX, exit codes without a pipe)
+## 8. Full suites (presets, /WX, exit codes without a pipe) — final source, after the correction
 
-- ci-post: cfg 0, build 0, ctest 0. Header 953 of 953 (21 skipped in a stub build), DISABLED 1. `g171c-f-post-ctest.txt`
-- ci-ai: cfg 0, build 0, ctest 0. Header 317 of 317 (6 skipped), DISABLED 0. `g171c-f-ai-ctest.txt`
+- ci-post: cfg 0, build 0, ctest 0. Header 953 of 953 (21 skipped in a stub build), DISABLED 1. `g171c-h-post-ctest.txt`
+- ci-ai: cfg 0, build 0, ctest 0. Header 317 of 317 (6 skipped), DISABLED 0. `g171c-h-ai-ctest.txt`
 - Previous commit d6c890a: 943 / 307; +10 = 6 product-path, 2 config, 2 measurement tests. Cache vs preset:
-  `g171c-f-cache.txt`. Stray xpe_ai_worker.exe after the runs: 0.
+  `g171c-h-cache.txt`. Stray xpe_ai_worker.exe after the runs: 0.
 
 ## Gaps / residual
 

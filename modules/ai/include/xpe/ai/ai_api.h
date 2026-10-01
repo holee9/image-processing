@@ -80,6 +80,15 @@ XPE_API const char* xpe_ai_version(void);
  * batch settings, and confidence thresholds. Pass NULL for defaults (CPU EP,
  * 5 s timeout, 0.6 confidence threshold).
  *
+ * The boolean key "use_worker" (default false) routes xpe_bone_suppress through
+ * the worker process (xpe_ai_worker.exe, found in the directory of xpe_ai.dll
+ * and nowhere else). When that path fails -- the time budget ("timeout_ms") is
+ * exceeded, the worker dies or goes silent, or it answers wrongly -- the call
+ * raises a Warning alert, copies the INPUT image to the output unchanged and
+ * returns a non-OK code; it does not re-run the inference in this process
+ * (REQ-AI-003 keeps the model out of the host). SDD-002 names the alert's SRS
+ * item as SRS-SAFE-008; the SRS table has no row for the failure itself.
+ *
  * REQ-AI-001: Only xpe_common dependency.
  * REQ-AI-003: Worker process isolation.
  * REQ-AI-006: ONNX Runtime 1.20+ integration.
@@ -268,6 +277,10 @@ XPE_API XpeErrorCode xpe_stitch_estimate_size(const XpeImageBuffer* parts,
  * @return XPE_ERR_PROCESSING_FAILED if inference itself fails, or the model
  *         returns a different number of values than the image has pixels. In a
  *         stub build this is the unconditional outcome once validation passes.
+ *
+ * With "use_worker" set at xpe_ai_init, a failure of the worker path returns
+ * the worker's or the transport's error code (never XPE_OK), raises one
+ * Warning alert, and leaves @p softTissueOut equal to @p img byte for byte.
  *
  * Thread safety: Reentrant. Calls are serialised on the module mutex, so
  * concurrent callers do not race the lazy session load.

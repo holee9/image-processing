@@ -1,0 +1,66 @@
+Note: Google Test filter = WorkerPathFixture.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from WorkerPathFixture
+[ RUN      ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert
+[       OK ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert (25 ms)
+[ RUN      ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore
+[2026-10-01 17:28:48.661] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:28:48.697] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 17:28:48.704] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 17:28:48.704] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:28:48.705] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 17:28:48.711] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore (55 ms)
+[ RUN      ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll
+[2026-10-01 17:28:48.716] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:28:48.717] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 17:28:48.717] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 17:28:48.717] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:28:48.792] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll (93 ms)
+[ RUN      ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(270): Skipped
+full build: the stall test below covers failure on a real worker
+
+[  SKIPPED ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged (4 ms)
+[ RUN      ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers
+[2026-10-01 17:28:48.814] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:28:51.155] [warning] bone_suppress: worker path failed (%d), input returned unchanged
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(316): error: Expected equality of these values:
+  1
+  CountAlerts(kFailureNeedle, &sev)
+    Which is: 0
+the silent worker was not reported (once)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(317): error: Expected equality of these values:
+  XPE_ALERT_WARNING
+    Which is: 1
+  sev
+    Which is: -1
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(318): error: Expected equality of these values:
+  1
+  CountAlerts("SRS-SAFE-008")
+    Which is: 0
+the alert cites the SRS item the SDD names
+
+[2026-10-01 17:28:51.244] [info] xpe_ai shutdown: worker_pid=%u
+[  FAILED  ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers (2442 ms)
+[ RUN      ] WorkerPathFixture.MeasureAlertVolumeWhenTheWorkerFailsOnEveryCall
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(343): Skipped
+stub build only: there the worker fails every call, deterministically
+
+[  SKIPPED ] WorkerPathFixture.MeasureAlertVolumeWhenTheWorkerFailsOnEveryCall (4 ms)
+[----------] 6 tests from WorkerPathFixture (2626 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (2626 ms total)
+[  PASSED  ] 3 tests.
+[  SKIPPED ] 2 tests, listed below:
+[  SKIPPED ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged
+[  SKIPPED ] WorkerPathFixture.MeasureAlertVolumeWhenTheWorkerFailsOnEveryCall
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers
+
+ 1 FAILED TEST

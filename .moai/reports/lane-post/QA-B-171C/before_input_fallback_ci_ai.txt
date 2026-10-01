@@ -1,0 +1,127 @@
+Note: Google Test filter = WorkerPathFixture.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from WorkerPathFixture
+[ RUN      ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert
+[       OK ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert (28 ms)
+[ RUN      ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore
+[2026-10-01 17:26:14.970] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:26:15.005] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 17:26:15.010] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 17:26:15.011] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:26:15.011] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 17:26:15.016] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore (50 ms)
+[ RUN      ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll
+[2026-10-01 17:26:15.021] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:26:15.022] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 17:26:15.022] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 17:26:15.022] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:26:15.091] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll (87 ms)
+[ RUN      ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(270): Skipped
+full build: the stall test below covers failure on a real worker
+
+[  SKIPPED ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged (4 ms)
+[ RUN      ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers
+[2026-10-01 17:26:15.113] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:26:17.469] [warning] bone_suppress: worker path failed (%d), falling back to in-process
+[2026-10-01 17:26:17.470] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(309): error: Expected: (0) != (rc2), actual: 0 vs 0
+a failed worker call must not look like AI success
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(311): error: Expected equality of these values:
+  1.0f + static_cast<float>(i)
+    Which is: 1
+  out2.px[i]
+    Which is: 2
+the output must be the INPUT, unchanged, at 0 (not the model's answer, not the sentinel the buffer started with)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(311): error: Expected equality of these values:
+  1.0f + static_cast<float>(i)
+    Which is: 2
+  out2.px[i]
+    Which is: 4
+the output must be the INPUT, unchanged, at 1 (not the model's answer, not the sentinel the buffer started with)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(311): error: Expected equality of these values:
+  1.0f + static_cast<float>(i)
+    Which is: 3
+  out2.px[i]
+    Which is: 6
+the output must be the INPUT, unchanged, at 2 (not the model's answer, not the sentinel the buffer started with)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(311): error: Expected equality of these values:
+  1.0f + static_cast<float>(i)
+    Which is: 4
+  out2.px[i]
+    Which is: 8
+the output must be the INPUT, unchanged, at 3 (not the model's answer, not the sentinel the buffer started with)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(311): error: Expected equality of these values:
+  1.0f + static_cast<float>(i)
+    Which is: 5
+  out2.px[i]
+    Which is: 10
+the output must be the INPUT, unchanged, at 4 (not the model's answer, not the sentinel the buffer started with)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(311): error: Expected equality of these values:
+  1.0f + static_cast<float>(i)
+    Which is: 6
+  out2.px[i]
+    Which is: 12
+the output must be the INPUT, unchanged, at 5 (not the model's answer, not the sentinel the buffer started with)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(311): error: Expected equality of these values:
+  1.0f + static_cast<float>(i)
+    Which is: 7
+  out2.px[i]
+    Which is: 14
+the output must be the INPUT, unchanged, at 6 (not the model's answer, not the sentinel the buffer started with)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(311): error: Expected equality of these values:
+  1.0f + static_cast<float>(i)
+    Which is: 8
+  out2.px[i]
+    Which is: 16
+the output must be the INPUT, unchanged, at 7 (not the model's answer, not the sentinel the buffer started with)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(311): error: Expected equality of these values:
+  1.0f + static_cast<float>(i)
+    Which is: 9
+  out2.px[i]
+    Which is: 18
+the output must be the INPUT, unchanged, at 8 (not the model's answer, not the sentinel the buffer started with)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(318): error: Expected equality of these values:
+  1
+  CountAlerts("SRS-SAFE-008")
+    Which is: 0
+the alert cites the SRS item the SDD names
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(319): error: Expected equality of these values:
+  0
+  CountAlerts(kProcessedNeedle)
+    Which is: 1
+no AI result was produced: no AI-processed label
+
+[2026-10-01 17:26:17.546] [info] xpe_ai shutdown: worker_pid=%u
+[  FAILED  ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers (2445 ms)
+[ RUN      ] WorkerPathFixture.MeasureAlertVolumeWhenTheWorkerFailsOnEveryCall
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(343): Skipped
+stub build only: there the worker fails every call, deterministically
+
+[  SKIPPED ] WorkerPathFixture.MeasureAlertVolumeWhenTheWorkerFailsOnEveryCall (4 ms)
+[----------] 6 tests from WorkerPathFixture (2622 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (2622 ms total)
+[  PASSED  ] 3 tests.
+[  SKIPPED ] 2 tests, listed below:
+[  SKIPPED ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged
+[  SKIPPED ] WorkerPathFixture.MeasureAlertVolumeWhenTheWorkerFailsOnEveryCall
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers
+
+ 1 FAILED TEST

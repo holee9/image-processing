@@ -376,7 +376,8 @@ static std::string workerExePath() {
  * @brief xpe_bone_suppress through the worker process (opt-in). Caller holds state->mtx.
  *
  * The result is written into @p out ONLY on success (the bridge copies pixels after it has checked
- * the reply), so a failed call leaves @p out for the in-process fallback to fill.
+ * the reply), so a failed call leaves @p out untouched; the caller then fills it with the input
+ * (the deterministic fallback), never with a half-written reply.
  */
 static XpeErrorCode boneSuppressViaWorker(AiModuleState* state, const XpeImageBuffer* in,
                                           XpeImageBuffer* out) {
@@ -704,23 +705,35 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
 
     std::lock_guard<std::mutex> lock(state->mtx);
 
-    // QA-B-171C (REQ-AI-092): opt-in worker path. A failure of any kind -- budget exceeded, a worker
-    // that died or went silent, an answer that was not one -- is REPORTED and the call then takes the
-    // in-process path below, so the caller still gets the in-process result. It is never swallowed:
-    // "exceeding the budget shall trigger fallback and alert".
+    // QA-B-171C (REQ-AI-092, REQ-AI-002, SDD-002 "AI worker failure -> return input unchanged +
+    // SRS-SAFE-008"): opt-in worker path. A failure of any kind -- budget exceeded, a worker that died
+    // or went silent, an answer that was not one -- is REPORTED, and the output is the INPUT, unchanged.
+    //
+    // WHY THE INPUT AND NOT THE IN-PROCESS RESULT. REQ-AI-003 runs inference in a separate process so
+    // the main process is crash-immune. A worker that failed because of the MODEL would, re-run
+    // in-process, bring that same risk into the process the isolation exists to protect. The
+    // fallback is deterministic and cannot crash: copy the input. (The first draft of this card re-ran
+    // the inference in-process; that was corrected.)
+    //
+    // THE RETURN CODE. XPE_OK is documented as "the AI succeeded" (ONNX build only), so a failed call
+    // never returns it: the worker's own error code (or the transport's) is returned, which is the
+    // documented signal to use the original image (REQ-AI-002). The copy is for a caller that uses
+    // the output buffer anyway: it holds the input, never stale or half-written pixels.
     if (state->useWorker) {
         const XpeErrorCode wrc = boneSuppressViaWorker(state, img, softTissueOut);
         if (wrc == XPE_OK) {
             pushAiProcessedAlert();
             return XPE_OK;
         }
+        std::memmove(softTissueOut->data, img->data, count * sizeof(float));
         char msg[192];
         std::snprintf(msg, sizeof(msg),
-                      "AI worker failed (code %d): the in-process result is used instead "
-                      "(REQ-AI-092)", static_cast<int>(wrc));
+                      "AI worker failed (code %d): the input image is returned unchanged "
+                      "(REQ-AI-002, REQ-AI-092, SRS-SAFE-008)", static_cast<int>(wrc));
         xpe_alert_push(msg, XPE_ALERT_WARNING);
-        AI_LOG_WARN("bone_suppress: worker path failed (%d), falling back to in-process",
+        AI_LOG_WARN("bone_suppress: worker path failed (%d), input returned unchanged",
                     static_cast<int>(wrc));
+        return wrc;
     }
 
     const std::string modelPath = state->modelDirPath.empty()

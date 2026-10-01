@@ -4,16 +4,23 @@
  *
  * `use_worker` in the xpe_ai_init config routes xpe_bone_suppress through the worker supervisor
  * (QA-B-171B). Off by default. When the worker path fails -- budget exceeded, a worker that died or
- * went silent, a wrong answer -- the failure is REPORTED (an alert) and the call falls back to the
- * in-process result: REQ-AI-092, "exceeding the budget shall trigger fallback and alert".
+ * went silent, a wrong answer -- the failure is REPORTED (an alert) and the OUTPUT IS THE INPUT,
+ * unchanged, with a non-OK code: REQ-AI-092 "exceeding the budget shall trigger fallback and alert",
+ * REQ-AI-002 "deterministic fallback path that maintains clinical usability when AI fails", and
+ * SDD-002 "AI worker failure -> return input unchanged + SRS-SAFE-008".
+ *
+ * WHY NOT RE-RUN THE SAME INFERENCE IN-PROCESS. (QA-B-171C first draft did, and was corrected.) REQ-AI-003
+ * puts inference in a separate process so that the main process is crash-immune. A worker that failed
+ * because of the MODEL would, re-run in-process, bring that same risk into the process the isolation
+ * exists to protect. The fallback is deterministic and cannot crash: copy the input.
  *
  * WHAT THE TESTS HOLD FIXED
  *   - Off: bit-identical to the old behaviour, and no worker process exists.
  *   - On: the SAME answer as in-process, from a worker process that is a child of this one, found
  *     beside xpe_ai.dll, and gone after xpe_ai_shutdown().
- *   - A silent worker (frozen from outside, so it answers nothing): the call still returns the
- *     in-process answer, an alert names the failure, the frozen worker is ended, and the NEXT call
- *     succeeds on a new worker WITHOUT a new failure alert.
+ *   - A silent worker (frozen from outside, so it answers nothing): the output is the input byte for
+ *     byte with a non-OK code, one alert names the failure, the frozen worker is ended, and the NEXT
+ *     call succeeds on a new worker WITHOUT a new failure alert.
  *
  * WORKER PROCESSES ARE FOUND BY PARENTAGE, not by image name: another test's worker, or a second
  * test binary on the machine, must not be counted. A child of THIS process with the worker's name
@@ -259,20 +266,28 @@ TEST_F(WorkerPathFixture, OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll
 
 // --- a worker that fails: reported and replaced -----------------------------------------------------
 
-TEST_F(WorkerPathFixture, InAStubBuildTheWorkersErrorIsReportedAndTheInProcessResultStands) {
+TEST_F(WorkerPathFixture, InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged) {
     if (!IsStub()) GTEST_SKIP() << "full build: the stall test below covers failure on a real worker";
     const Result reference = Call("{\"use_worker\": false}");
     xpe_ai_shutdown();
     xpe_clear_alerts();
 
     const Result r = Call("{\"use_worker\": true}");
-    EXPECT_EQ(reference.rc, r.rc) << "the fallback result must be the in-process result";
+    EXPECT_NE(XPE_OK, r.rc) << "a failed worker call must not look like AI success";
+    EXPECT_EQ(reference.rc, r.rc) << "a stub worker and the stub in-process path fail the same way";
+    ASSERT_EQ(kN, r.out.size());
+    for (size_t i = 0; i < kN; ++i) {
+        EXPECT_FLOAT_EQ(1.0f + static_cast<float>(i), r.out[i])
+            << "the output must be the input, unchanged, at " << i;
+    }
     int32_t sev = -1;
-    EXPECT_GE(CountAlerts(kFailureNeedle, &sev), 1) << "a failed worker call raised no alert";
+    EXPECT_EQ(1, CountAlerts(kFailureNeedle, &sev)) << "a failed worker call must raise exactly one alert";
     EXPECT_EQ(XPE_ALERT_WARNING, sev);
+    EXPECT_EQ(1, CountAlerts("SRS-SAFE-008")) << "the alert cites the SRS item the SDD names";
+    EXPECT_EQ(0, CountAlerts(kProcessedNeedle)) << "no AI result was produced: no AI-processed label";
 }
 
-TEST_F(WorkerPathFixture, ASilentWorkerIsReportedReplacedByTheInProcessResultAndTheNextCallRecovers) {
+TEST_F(WorkerPathFixture, ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers) {
     if (IsStub()) GTEST_SKIP() << "needs a worker that can serve a model: full build only";
     // 2 s budget: long enough for a cold start of the toy-model worker (measured well under 1 s),
     // short enough that the silent call does not stretch the suite.
@@ -291,14 +306,17 @@ TEST_F(WorkerPathFixture, ASilentWorkerIsReportedReplacedByTheInProcessResultAnd
     const XpeErrorCode rc2 = xpe_bone_suppress(&in.buf, &out2.buf, nullptr);
     const DWORD took = GetTickCount() - t0;
 
-    EXPECT_EQ(XPE_OK, rc2) << "the in-process fallback must still deliver a result";
+    EXPECT_NE(XPE_OK, rc2) << "a failed worker call must not look like AI success";
     for (size_t i = 0; i < kN; ++i) {
-        EXPECT_FLOAT_EQ((1.0f + static_cast<float>(i)) * 2.0f, out2.px[i])
-            << "fallback result differs from the in-process answer at " << i;
+        EXPECT_FLOAT_EQ(1.0f + static_cast<float>(i), out2.px[i])
+            << "the output must be the INPUT, unchanged, at " << i << " (not the model's answer, "
+               "not the sentinel the buffer started with)";
     }
     int32_t sev = -1;
     EXPECT_EQ(1, CountAlerts(kFailureNeedle, &sev)) << "the silent worker was not reported (once)";
     EXPECT_EQ(XPE_ALERT_WARNING, sev);
+    EXPECT_EQ(1, CountAlerts("SRS-SAFE-008")) << "the alert cites the SRS item the SDD names";
+    EXPECT_EQ(0, CountAlerts(kProcessedNeedle)) << "no AI result was produced: no AI-processed label";
     EXPECT_GE(took, 1800u) << "returned before the budget: it did not wait for the worker";
     EXPECT_LE(took, 2000u + 3000u) << "took " << took << " ms";
 
