@@ -1,0 +1,4 @@
+fa3da63 ancestor of HEAD: yes
+fa3da63b feat(preprocess): FUNC-017 의 FlatResidualPct 게이트를 단다 (QA-A-154)
+edc53cbc ancestor: yes
+fe2fc71a feat(preprocess): XpeCalibrationMetrics 를 한 번 넓힌다 — FUNC-037 (QA-A-159)

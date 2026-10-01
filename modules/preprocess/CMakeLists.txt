@@ -450,6 +450,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_ghost_thread_safety.cpp   # QA-A-185 (#232) SRS-CALIB-NFR-003: one ghost handle, several threads
         tests/test_calib_dim_mismatch.cpp    # QA-A-185 (#232) REQ-P1A-021: calibration map vs input dimensions
         tests/test_zz_a186_probe.cpp         # QA-A-186 (#220) probe: FlatResidualPct mean vs median (DISABLED_)
+        tests/test_zz_a187_probe.cpp         # QA-A-187 (#218) probe: xpe_verify_pipeline SNR median vs mean (DISABLED_)
         tests/test_runtime_detection_rates.cpp
         # QA-A-42 (#144): buffer-reuse parity for the detection loop
         tests/test_runtime_detection_buffer_reuse.cpp
