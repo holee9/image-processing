@@ -1,0 +1,15 @@
+== C run 1
+        Start 257: IntegrationTest.T608_PerformanceBudgetVerification
+257/978 Test #257: IntegrationTest.T608_PerformanceBudgetVerification .............................................................   Passed
+100% tests passed, 0 tests failed out of 977
+Total Test time (real) = 170.28 sec
+== C run 2
+        Start 257: IntegrationTest.T608_PerformanceBudgetVerification
+257/978 Test #257: IntegrationTest.T608_PerformanceBudgetVerification .............................................................   Passed
+100% tests passed, 0 tests failed out of 977
+Total Test time (real) = 159.32 sec
+== C run 3
+        Start 257: IntegrationTest.T608_PerformanceBudgetVerification
+257/978 Test #257: IntegrationTest.T608_PerformanceBudgetVerification .............................................................   Passed
+100% tests passed, 0 tests failed out of 977
+Total Test time (real) = 183.70 sec

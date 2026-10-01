@@ -1,0 +1,8 @@
+T608 per-call wall clock (ms; EI in microseconds), instrumented copy of the test (temp_probe_T608.patch)
+A alone, 30 cold processes: n=30  mfp min 7 med 7.0 max 9  frac min 6 med 7.0 max 10  coll min 3 med 3.0 max 4  ei_us min 244 med 249.0 max 345
+B IntegrationTest group x3: n=3  mfp min 7 med 7 max 7  frac min 6 med 7 max 7  coll min 3 med 3 max 4  ei_us min 246 med 250 max 268
+C full suite x3: n=3  mfp min 7 med 7 max 7  frac min 6 med 6 max 7  coll min 3 med 3 max 4  ei_us min 245 med 246 max 284
+ALL: n=36 fractional min 6 median 7.0 p90 8 max 10
+failing observation: 121 ms = 12.1x the max of 36 samples, 17.3x their median, 2.42x the 50 ms budget; budget / median = 7.1x
+gtest-reported test time alone: 20-21 ms (5 runs); failing full run: 143 ms of which fractional 121 ms -> remainder 22 ms
+collimation module log total_time_ms alone: 3,5,3,3,4,3 ; failing run: 7

@@ -1,0 +1,24 @@
+diff --git a/modules/enhance_advanced/tests/test_integration.cpp b/modules/enhance_advanced/tests/test_integration.cpp
+index ea8d270c..689bb5c4 100644
+--- a/modules/enhance_advanced/tests/test_integration.cpp
++++ b/modules/enhance_advanced/tests/test_integration.cpp
+@@ -16,6 +16,7 @@
+  */
+
+ #include <gtest/gtest.h>
++#include <cstdio>
+ #include "xpe/enhance_advanced/xpe_enhance_advanced_api.h"
+ #include "xpe/common/xpe_common_api.h"
+ #include <thread>
+@@ -667,6 +668,11 @@ TEST(IntegrationTest, T608_PerformanceBudgetVerification) {
+     EXPECT_EQ(r4, XPE_OK);
+     EXPECT_LT(eiTime, 10000) << "EI exceeded budget: " << eiTime << "us";
+
++    FILE* probe = nullptr;   // TEMP PROBE (QA-B-174)
++    if (fopen_s(&probe, "D:/workspace-github/xpe-post/build/t608_times.csv", "a") == 0 && probe) {   // TEMP PROBE (QA-B-174)
++        std::fprintf(probe, "%lld,%lld,%lld,%lld\n", static_cast<long long>(mfpTime), static_cast<long long>(fracTime), static_cast<long long>(collTime), static_cast<long long>(eiTime));
++        std::fclose(probe);
++    }
+     delete[] data;
+     xpe_enhance_advanced_shutdown();
+ }
