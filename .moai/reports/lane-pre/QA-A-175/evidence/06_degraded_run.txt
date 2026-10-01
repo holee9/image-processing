@@ -1,0 +1,21 @@
+Note: Google Test filter = PreprocessDegraded.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from PreprocessDegraded
+[ RUN      ] PreprocessDegraded.BP01_OffsetNullCalibrationReturnsNotInitialized
+[       OK ] PreprocessDegraded.BP01_OffsetNullCalibrationReturnsNotInitialized (0 ms)
+[ RUN      ] PreprocessDegraded.BP02_GainIdentityPreservesInputStatistics
+[       OK ] PreprocessDegraded.BP02_GainIdentityPreservesInputStatistics (0 ms)
+[ RUN      ] PreprocessDegraded.BP03_DefectEmptyListIsNoOp
+[       OK ] PreprocessDegraded.BP03_DefectEmptyListIsNoOp (0 ms)
+[ RUN      ] PreprocessDegraded.BP04_GhostZeroLagCoefficientIsIdentity
+[       OK ] PreprocessDegraded.BP04_GhostZeroLagCoefficientIsIdentity (0 ms)
+[ RUN      ] PreprocessDegraded.BP05_TempCompensateReferenceIsIdentity
+[       OK ] PreprocessDegraded.BP05_TempCompensateReferenceIsIdentity (0 ms)
+[ RUN      ] PreprocessDegraded.BP05_NonlinearityNullConfigIsIdentity
+[       OK ] PreprocessDegraded.BP05_NonlinearityNullConfigIsIdentity (0 ms)
+[----------] 6 tests from PreprocessDegraded (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (1 ms total)
+[  PASSED  ] 6 tests.

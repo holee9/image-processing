@@ -1,0 +1,35 @@
+Note: Google Test filter = Avx2ParityTest.*:DetectBuildParityTest.*
+[==========] Running 11 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 10 tests from Avx2ParityTest
+[ RUN      ] Avx2ParityTest.NamedSelectionsMatchTheirScalarTernaries
+[       OK ] Avx2ParityTest.NamedSelectionsMatchTheirScalarTernaries (0 ms)
+[ RUN      ] Avx2ParityTest.SignedZeroOrderingMatchesTheScalarNetwork
+[       OK ] Avx2ParityTest.SignedZeroOrderingMatchesTheScalarNetwork (0 ms)
+[ RUN      ] Avx2ParityTest.PerLaneInputsAgreeBitForBit
+[       OK ] Avx2ParityTest.PerLaneInputsAgreeBitForBit (0 ms)
+[ RUN      ] Avx2ParityTest.FrameMapsAreIdenticalPixelForPixel
+[       OK ] Avx2ParityTest.FrameMapsAreIdenticalPixelForPixel (30 ms)
+[ RUN      ] Avx2ParityTest.LastRunStartLandsExactlyOnTheFinalInteriorColumn
+[       OK ] Avx2ParityTest.LastRunStartLandsExactlyOnTheFinalInteriorColumn (0 ms)
+[ RUN      ] Avx2ParityTest.JudgingAColumnTwiceStoresTheSameByte
+[       OK ] Avx2ParityTest.JudgingAColumnTwiceStoresTheSameByte (0 ms)
+[ RUN      ] Avx2ParityTest.OverlapBoundaryWidthsStillMatchTheScalarRule
+[       OK ] Avx2ParityTest.OverlapBoundaryWidthsStillMatchTheScalarRule (1 ms)
+[ RUN      ] Avx2ParityTest.VectorRunsNeverReadPastTheFrame
+[       OK ] Avx2ParityTest.VectorRunsNeverReadPastTheFrame (0 ms)
+[ RUN      ] Avx2ParityTest.TheComparedMapsAreNotTriviallyEmpty
+[       OK ] Avx2ParityTest.TheComparedMapsAreNotTriviallyEmpty (27 ms)
+[ RUN      ] Avx2ParityTest.ShippedEntryPointAgreesWithTheScalarRule
+[       OK ] Avx2ParityTest.ShippedEntryPointAgreesWithTheScalarRule (5 ms)
+[----------] 10 tests from Avx2ParityTest (66 ms total)
+
+[----------] 1 test from DetectBuildParityTest
+[ RUN      ] DetectBuildParityTest.RowRangeMatchesTheScalarRuleAtRealFrameSize
+[build-parity] XPE_DETECT_HAS_AVX2=1  3072x3072  flagged=18085  digest=383c0efe8d90160e
+[       OK ] DetectBuildParityTest.RowRangeMatchesTheScalarRuleAtRealFrameSize (787 ms)
+[----------] 1 test from DetectBuildParityTest (787 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 2 test suites ran. (854 ms total)
+[  PASSED  ] 11 tests.
