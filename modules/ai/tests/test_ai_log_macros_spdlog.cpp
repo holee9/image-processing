@@ -14,9 +14,36 @@
 
 #include <spdlog/sinks/ostream_sink.h>
 
+#include <atomic>
+#include <cstdlib>
 #include <memory>
+#include <new>
 #include <sstream>
 #include <string>
+
+namespace {
+
+// Allocation-failure injection (QA-B-177 follow-up). Replacing the global operator new affects every test in
+// this executable, but the replacement is a plain malloc unless a test ARMS it, and a test arms it only
+// around the one call under test -- gtest's own allocations are never failed.
+std::atomic<long> g_allocsLeftBeforeFailure{-1};   // -1: disarmed; n >= 0: allocation number n+1 throws
+
+}  // namespace
+
+void* operator new(std::size_t n) {
+    long left = g_allocsLeftBeforeFailure.load(std::memory_order_relaxed);
+    while (left >= 0) {
+        if (left == 0) {
+            g_allocsLeftBeforeFailure.store(-1, std::memory_order_relaxed);   // one failure per arming
+            throw std::bad_alloc();
+        }
+        if (g_allocsLeftBeforeFailure.compare_exchange_weak(left, left - 1, std::memory_order_relaxed)) break;
+    }
+    if (void* p = std::malloc(n ? n : 1)) return p;
+    throw std::bad_alloc();
+}
+void operator delete(void* p) noexcept { std::free(p); }
+void operator delete(void* p, std::size_t) noexcept { std::free(p); }
 
 namespace {
 
@@ -103,4 +130,40 @@ TEST(AiLogMacrosSpdlog, ACallIsOneStatementAfterAnUnbracedIf) {
     else
         AI_LOG_WARN("else %d", 1);
     EXPECT_EQ("warning|else 1\n", cap.Text());
+}
+
+// The log call is inside extern "C" exports of the DLL and must never throw (QA-B-177 follow-up, #233's
+// hazard: bad_alloc leaving the C ABI skips the unwinding of the exporting function's locals under /EHsc).
+// Fail the 1st, 2nd, ... allocation made INSIDE the call, one at a time, until a call allocates fewer times
+// than that: every allocation point in formatting and in spdlog is covered, whatever their number.
+TEST(AiLogMacrosSpdlog, NoAllocationFailureEscapesALogCall) {
+    SpdlogCapture cap;
+    const std::string longArg(2000, 'y');   // longer than any small-string buffer: formatting must allocate
+    bool callReachedTheEnd = false;
+    int failuresInjected = 0;
+    for (long failAt = 0; failAt < 64; ++failAt) {
+        bool threw = false;
+        g_allocsLeftBeforeFailure.store(failAt);
+        try {
+            AI_LOG_ERROR("model unreadable: %s", longArg.c_str());
+        } catch (...) {
+            threw = true;
+        }
+        const bool fired = g_allocsLeftBeforeFailure.load() == -1;   // the failure was actually injected
+        g_allocsLeftBeforeFailure.store(-1);
+        EXPECT_FALSE(threw) << "an allocation failure at allocation #" << failAt + 1 << " escaped the log call";
+        if (!fired) {
+            callReachedTheEnd = true;   // the call made fewer than failAt+1 allocations: all points swept
+            break;
+        }
+        ++failuresInjected;
+    }
+    // Controls: the sweep injected real failures (not vacuous) and ended by running out of allocations.
+    EXPECT_GE(failuresInjected, 1) << "control: the log call made no allocation, so nothing was injected";
+    EXPECT_TRUE(callReachedTheEnd) << "control: the sweep never reached a call that allocated less";
+    // And a failure-free call after the sweep still logs normally (the swallow did not break the logger).
+    // A fresh capture: an injected failure inside THIS capture's ostream sink may have left the stream failed.
+    SpdlogCapture fresh;
+    AI_LOG_INFO("after %d", 7);
+    EXPECT_EQ("info|after 7\n", fresh.Text());
 }

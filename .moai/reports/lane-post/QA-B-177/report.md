@@ -35,8 +35,8 @@ lines: { "bone_suppress: worker path failed (%d), input returned unchanged (%u o
 |------|------|------|
 | ci-post | `xpe_ai_tests --gtest_filter=AiLogFixture.*:AiLogMacros*.*` | 16 passed (`after_fix_ci_post_run.txt`) |
 | ci-ai | 같은 필터 | 16 passed (`after_fix_ci_ai_run.txt`) |
-| ci-post 전체 ctest | | 100% passed, 0 failed / 1003 (skipped 25, disabled 1) (`after_full_ci_post_ctest.txt`) |
-| ci-ai 전체 ctest | | 100% passed, 0 failed / 357 (skipped 5) (`after_full_ci_ai_ctest.txt`) |
+| ci-post 전체 ctest | | 100% passed, 0 failed / 1004 (최초 커밋 시점 1003 + 아래 7절의 시험 1개) (`after_full_ci_post_ctest.txt`) |
+| ci-ai 전체 ctest | | 100% passed, 0 failed / 358 (`after_full_ci_ai_ctest.txt`) |
 | 경고 | 두 구성의 빌드 로그 `warning C` | 0건 |
 
 모든 실행에서 `BUILD=0` 을 확인했다 (낡은 바이너리 아님).
@@ -75,3 +75,14 @@ lines: { "bone_suppress: worker path failed (%d), input returned unchanged (%u o
 
 - 새 호출부가 서식 지정자와 인자 개수를 틀리게 쓰면 컴파일러는 못 잡는다. `NoPrintfPlaceholderSurvivesAnyLoggedPath` 가 그 경로를 지나갈 때만 잡는다.
 - 로그 캡처 훅은 `XPE_AI_TEST_HOOKS` ON 일 때만 내보내진다. 납품 구성(OFF)에는 없음을 이번 카드에서 `dumpbin` 으로 다시 확인하지는 않았다 (QA-B-173 에서 확인한 메커니즘과 같은 옵션을 재사용).
+
+## 7. 추가 (리더 요청): 로그는 절대 던지지 않는다
+
+`AI_LOG_*` 는 DLL 의 `extern "C"` 수출 함수 안에서 불린다. 서식 문자열과 spdlog 는 할당하므로 메모리 부족 시 `std::bad_alloc` 이 C ABI 밖으로 나가고, `/EHsc` 에서는 수출 함수 지역(lock_guard 등)이 풀리지 않는다(#233, pre 레인 실측).
+
+- `LogPrintf` 를 `noexcept` 로 하고 본문 전체를 `try { … } catch (...) {}` 로 감쌌다. noexcept 는 catch 가 있어야만 안전하다(던지면 terminate). 핸들러는 비어 있어 스스로 할당하지 않는다. 이유는 `ai_log.h` 주석에 있다.
+- 시험 `NoAllocationFailureEscapesALogCall`: 전역 `operator new` 를 시험 exe 안에서 교체해(평소엔 malloc 그대로, 시험이 호출 하나를 감쌀 때만 무장) **로그 호출 안의 1, 2, 3… 번째 할당을 하나씩 실패**시키며, 호출이 할당을 덜 할 때까지 훑는다. 모든 할당 지점이 대상이다. 대조: 실제로 주입이 일어났는지, 훑기가 끝까지 도달했는지, 실패 없는 호출이 뒤에 정상 기록되는지.
+- 반증(`arm_log_without_swallow_run.txt`, BUILD=0): noexcept 와 catch 를 제거하면 `an allocation failure at allocation #1 escaped the log call` 로 빨강.
+- 시험 설계 중 틀린 것: 같은 캡처로 "실패 후 정상 기록"을 확인하려다 실패했다. 주입한 실패가 시험용 ostream 싱크를 망가뜨린 것이었고(제품이 아님), 새 캡처로 확인하도록 고쳤다.
+
+Gaps: 할당 실패만 주입했다(다른 예외 원천은 vsnprintf 가 던지지 않으므로 해당 없음으로 판단하나 측정은 안 함). 전역 operator new 교체가 같은 exe 의 다른 시험에 영향을 줄 수 있어 무장 시에만 실패하도록 했고, 두 구성 전체 통과로 확인.

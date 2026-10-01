@@ -60,16 +60,33 @@ inline std::string VFormat(const char* fmt, std::va_list ap) {
  * printf-style front end to spdlog: the formatted text goes in as an ARGUMENT of "{}", never as a format.
  * (With the spdlog in use, a lone std::string argument is logged as-is anyway; "{}" states the intent without
  * relying on overload resolution.)
+ *
+ * NEVER THROWS. The call sites are inside extern "C" exported functions of the DLL; formatting allocates a
+ * std::string and spdlog allocates too, so out of memory would let std::bad_alloc leave the C ABI, and under
+ * MSVC /EHsc the locals of the exporting function (a lock_guard, say) are not unwound (measured by the pre
+ * lane, #233). A failed log line must never fail the processing it describes, so everything is swallowed
+ * HERE. noexcept makes the compiler hold that line, and it is only safe BECAUSE of the catch (a throw out of
+ * a noexcept function is std::terminate); the handler stays empty so it cannot allocate.
  */
-inline void LogPrintf(spdlog::level::level_enum level, XPE_AI_PRINTF_FORMAT const char* fmt, ...) {
-    if (!spdlog::default_logger_raw()->should_log(level)) {
-        return;   // a disabled level costs no formatting
+inline void LogPrintf(spdlog::level::level_enum level, XPE_AI_PRINTF_FORMAT const char* fmt, ...) noexcept {
+    try {
+        if (!spdlog::default_logger_raw()->should_log(level)) {
+            return;   // a disabled level costs no formatting
+        }
+        std::va_list ap;
+        va_start(ap, fmt);
+        std::string text;
+        try {
+            text = VFormat(fmt, ap);
+        } catch (...) {
+            va_end(ap);
+            throw;
+        }
+        va_end(ap);
+        spdlog::log(level, "{}", text);
+    } catch (...) {
+        // A log line is lost; the caller's work is not.
     }
-    std::va_list ap;
-    va_start(ap, fmt);
-    const std::string text = VFormat(fmt, ap);
-    va_end(ap);
-    spdlog::log(level, "{}", text);
 }
 
 }  // namespace xpe::ai::detail
