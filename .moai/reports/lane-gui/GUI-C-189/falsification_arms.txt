@@ -1,0 +1,22 @@
+ARM the-probe-runs-after-the-init-instead-of-before: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    59, 건너뜀:     0, 전체:    60, 기간: 206 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiDiagnosticsTests.TheNativeSession_AsksTheModuleItsStateBeforeItsOwnInit_AndRecordsTheInitCall [< 1 ms]
+   restored byte-identical: True
+ARM the-status-read-drops-the-raw-module-answers: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    59, 건너뜀:     0, 전체:    60, 기간: 197 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiDiagnosticsTests.TheStatusRead_CarriesTheRawAnswersOfTheModule_NotOnlyTheGuisReadingOfThem [1 ms]
+   restored byte-identical: True
+ARM the-diagnostics-are-not-published-to-the-automation-tree: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    59, 건너뜀:     0, 전체:    60, 기간: 198 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiDiagnosticsTests.TheDiagnostics_ReachTheAutomationTreeAsTheCheckboxItemStatus_AndAreNotShownToTheOperator [7 ms]
+   restored byte-identical: True
+ARM c09-no-longer-asserts-the-mark: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    59, 건너뜀:     0, 전체:    60, 기간: 197 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiDiagnosticsTests.C09_StillAssertsTheMarkTheCountsAndTheRestart_AndNoAssertionReadsTheDiagnostics [14 ms]
+   restored byte-identical: True
+ARM an-assertion-starts-reading-the-diagnostics: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    59, 건너뜀:     0, 전체:    60, 기간: 195 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiDiagnosticsTests.C09_StillAssertsTheMarkTheCountsAndTheRestart_AndNoAssertionReadsTheDiagnostics [12 ms]
+   restored byte-identical: True
+AFTER RESTORE: 0 True ['통과!  - 실패:     0, 통과:    60, 건너뜀:     0, 전체:    60, 기간: 180 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+sources: 4356771fe7a0 3658a97b3102 184767ac2903

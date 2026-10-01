@@ -1,5 +1,4 @@
 // #225 row 10 (GUI-C-186b, Codex #25): one AI frame is one hold of the session gate; the directory is resolved once.
-#pragma warning disable xUnit1031 // These tests wait on REAL threads on purpose: a caller blocked behind the AI session gate (or a drain racing a writer) is what is measured.
 using ImageProcTest.Services;
 
 namespace ImageProcTest.IntegrationTests.Functional;
@@ -138,8 +137,10 @@ public sealed class AiFrameTests
         Assert.False(restartDone.Wait(Short), "the restart got in while frame A was inside its call");
 
         releaseCall.Set();
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.True(frame.Wait(Long));
         Assert.True(restart.Wait(Long));
+        #pragma warning restore xUnit1031
 
         Assert.Equal(["A: in the call", "A: call returned", "B: shutdown + init"], log);
     }
@@ -165,9 +166,13 @@ public sealed class AiFrameTests
         Assert.True(inCall.Wait(Long));
         var b = Task.Run(() => AiFrame.Run(gate, second, Path.Combine(Path.GetTempPath(), "xpe-frame-tests", "other")));
 
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.False(b.Wait(Short), "the second frame got through while the first was inside its call");
+        #pragma warning restore xUnit1031
         releaseCall.Set();
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.True(a.Wait(Long) && b.Wait(Long));
+        #pragma warning restore xUnit1031
         Assert.Equal(["first: call returned", "second: init"], log.Take(2));
     }
 
@@ -204,12 +209,16 @@ public sealed class AiFrameTests
         Assert.True(inCall.Wait(Long));
 
         var read = Task.Run(() => gate.WithLock(() => 7));
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.False(read.Wait(Short), "the read got through while the frame held the gate");
+        #pragma warning restore xUnit1031
 
         releaseCall.Set();
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.True(frame.Wait(Long));
         Assert.True(read.Wait(Long));
         Assert.Equal(7, read.Result);
+        #pragma warning restore xUnit1031
     }
 
     [Fact]

@@ -1,5 +1,4 @@
 // #225 row 10 (GUI-C-186e, Codex #33): ending a backend waits for the AI session gate, so it is done off the UI thread.
-#pragma warning disable xUnit1031 // These tests wait on REAL threads on purpose: a caller blocked behind the AI session gate (or a drain racing a writer) is what is measured.
 using System.Collections.Concurrent;
 using ImageProcTest.Services;
 
@@ -94,7 +93,9 @@ public sealed class BackendLifecycleTests
         Assert.Empty(rig.Completed);                       // not done: the frame still has the gate
 
         mayEnd.Set();
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.True(frame.Wait(Long));
+        #pragma warning restore xUnit1031
         rig.PumpUntil(() => rig.Completed.Count == 1, "The shutdown never completed after the frame ended.");
 
         Assert.Null(rig.Completed[0]);
@@ -117,7 +118,9 @@ public sealed class BackendLifecycleTests
         Assert.Contains("shutting down", during, StringComparison.Ordinal);
 
         mayEnd.Set();
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.True(frame.Wait(Long));
+        #pragma warning restore xUnit1031
         rig.PumpUntil(() => rig.Completed.Count == 1, "The shutdown never completed.");
 
         Assert.True(rig.Lifecycle.TryAdmit(out var after));   // the new backend is attached next, and requests go to it
@@ -135,7 +138,9 @@ public sealed class BackendLifecycleTests
         Assert.False(rig.Lifecycle.Begin(() => Interlocked.Increment(ref runs), rig.Completed.Add));
 
         mayEnd.Set();
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.True(frame.Wait(Long));
+        #pragma warning restore xUnit1031
         rig.PumpUntil(() => rig.Completed.Count == 1, "The shutdown never completed.");
 
         Assert.Equal(1, runs);
@@ -155,7 +160,9 @@ public sealed class BackendLifecycleTests
         Assert.Equal(0, closed);                              // the shutdown is still waiting: the window stays open
 
         mayEnd.Set();
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.True(frame.Wait(Long));
+        #pragma warning restore xUnit1031
         rig.PumpUntil(() => closed == 1, "What follows the shutdown never ran.");
         Assert.Single(rig.Completed);                         // and it ran after the completion handler, not instead of it
 
@@ -322,7 +329,9 @@ public sealed class BackendLifecycleTests
         Assert.False(rig.Lifecycle.IsCurrent(during, backend));
 
         mayEnd.Set();
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.True(frame.Wait(Long));
+        #pragma warning restore xUnit1031
         rig.PumpUntil(() => rig.Completed.Count == 1, "The shutdown never completed.");
         Assert.True(rig.Lifecycle.IsCurrent(rig.Lifecycle.Take(backend), backend));
     }
@@ -349,6 +358,7 @@ public sealed class BackendLifecycleTests
         ["MainWindowViewModel"] = ("construction", null),
         ["AiStatus"] = ("status read through AiStatusRefresher (its own generation and identity check)", null),
         ["TakeTicket"] = ("lifetime helper", null),
+        ["TakeRequestTicket"] = ("lifetime helper (an Apply's ticket also carries a request number)", null),
         ["IsCurrent"] = ("lifetime helper", null),
         ["CanRunPreprocessing"] = ("read-only property (changes nothing, starts nothing)", null),
         ["BeginShutdown"] = ("lifecycle (starts the transition)", null),
@@ -381,8 +391,8 @@ public sealed class BackendLifecycleTests
 
             var code = line.TrimStart();
             if (member is not null && !code.StartsWith("//", StringComparison.Ordinal)
-                // A member uses the backend either by name or through a ticket (which carries it): `_backend` or `TakeTicket(`.
-                && System.Text.RegularExpressions.Regex.IsMatch(line, "\\b_backend\\b|\\bTakeTicket\\(") && !users.Contains(member))
+                // A member uses the backend either by name or through a ticket (which carries it): `_backend`, `TakeTicket(` or `TakeRequestTicket(`.
+                && System.Text.RegularExpressions.Regex.IsMatch(line, "\\b_backend\\b|\\bTakeTicket\\(|\\bTakeRequestTicket\\(") && !users.Contains(member))
             {
                 users.Add(member);
             }
@@ -438,6 +448,53 @@ public sealed class BackendLifecycleTests
         var match = System.Text.RegularExpressions.Regex.Match(source, "(?:void|Task) " + name + "\\(");
         Assert.True(match.Success, $"The declaration of {name} was not found.");
         return match.Index;
+    }
+
+    // ---- The Apply request number (GUI-C-190, Codex #42) -------------------------------------------------------------------------------
+
+    [Fact]
+    public void AnApplyThatStartedEarlier_IsStaleOnceANewerApplyStarted_OnTheSameBackendAndGeneration()
+    {
+        var rig = new Rig();
+        var backend = new object();
+        var a = rig.Lifecycle.TakeRequest(backend);
+        Assert.True(rig.Lifecycle.IsCurrent(a, backend));
+
+        var b = rig.Lifecycle.TakeRequest(backend);
+
+        Assert.Equal(a.Generation, b.Generation);                       // the lifetime cannot tell them apart ...
+        Assert.False(rig.Lifecycle.IsCurrent(a, backend));              // ... the request number does
+        Assert.True(rig.Lifecycle.IsSuperseded(a));
+        Assert.True(rig.Lifecycle.IsCurrent(b, backend));
+        Assert.False(rig.Lifecycle.IsSuperseded(b));
+    }
+
+    [Fact]
+    public void ATicketThatIsNotAnApply_IsNotMadeStaleByAnApply()
+    {
+        var rig = new Rig();
+        var backend = new object();
+        var restart = rig.Lifecycle.Take(backend);                      // e.g. the AI restart: no request number
+
+        rig.Lifecycle.TakeRequest(backend);
+        rig.Lifecycle.TakeRequest(backend);
+
+        Assert.Equal(0, restart.Request);
+        Assert.True(rig.Lifecycle.IsCurrent(restart, backend));
+        Assert.False(rig.Lifecycle.IsSuperseded(restart));
+    }
+
+    [Fact]
+    public void TheNewestApply_StillGoesStale_WhenTheBackendIsReplacedOrShutDown()
+    {
+        var rig = new Rig(background: false);
+        var backend = new object();
+        var newest = rig.Lifecycle.TakeRequest(backend);
+
+        rig.Lifecycle.Bump();                                           // a replacement
+
+        Assert.False(rig.Lifecycle.IsCurrent(newest, backend));
+        Assert.False(rig.Lifecycle.IsSuperseded(newest));               // stale for the lifetime, not for a newer request
     }
 
     private static int CountOf(string text, string needle)

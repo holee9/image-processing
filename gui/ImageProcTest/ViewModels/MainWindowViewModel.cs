@@ -552,6 +552,13 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>The state as one line for automation (read from the AI checkbox's help text), e.g. <c>worker=Active; failures=0; ceiling=3</c>.</summary>
     public string AiWorkerStatusSummary => AiBoneSuppressionStage.DescribeStatus(_aiWorkerStatus);
 
+    /// <summary>
+    /// What the native AI session saw (the module's own answers: its state before this process's init, the init call, the raw state
+    /// of each read), for the automation tree's item status on the AI checkbox. Empty without a native session. It is not shown to the
+    /// operator (GUI-C-189).
+    /// </summary>
+    public string AiWorkerDiagnostics => _aiWorkerStatus.Diagnostics ?? string.Empty;
+
     /// <summary>GUI-C-185: shutdown then init under the one lock; the mark goes when the module reports a new session.</summary>
     public RelayCommand RestartAiSessionCommand { get; }
 
@@ -599,6 +606,7 @@ public sealed class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(AiWorkerMarkVisible));
         OnPropertyChanged(nameof(AiWorkerBannerText));
         OnPropertyChanged(nameof(AiWorkerStatusSummary));
+        OnPropertyChanged(nameof(AiWorkerDiagnostics));
     }
 
     private async void RestartAiSession()
@@ -1302,6 +1310,14 @@ public sealed class MainWindowViewModel : ObservableObject
     // ticket (the backend and the generation) when it starts, asks IsCurrent after every await and before it schedules anything
     // further, and changes neither the screen nor the lanes when the answer is no.
     private BackendTicket TakeTicket() => Lifecycle.Take(_backend);
+
+    private BackendTicket TakeRequestTicket() => Lifecycle.TakeRequest(_backend);
+
+    /// <summary>The reason a ticket is no longer current, for the log: a newer Apply started, or the backend was shut down or replaced.</summary>
+    private string WhyStale(BackendTicket ticket) =>
+        Lifecycle.IsSuperseded(ticket)
+            ? $"a newer Apply started meanwhile (this one was request {ticket.Request}, the newest is {Lifecycle.Request})."
+            : $"the backend was shut down or replaced meanwhile (request {ticket.Request}, newest {Lifecycle.Request}, generation {ticket.Generation} of {Lifecycle.Generation}).";
 
     private bool IsCurrent(BackendTicket ticket) => Lifecycle.IsCurrent(ticket, _backend);
 
@@ -2272,7 +2288,8 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
-        var ticket = TakeTicket();
+        // GUI-C-190: an Apply takes a new request number too, so a result that arrives after a NEWER Apply started is dropped.
+        var ticket = TakeRequestTicket();
         var backend = (IXpeBackend)ticket.Backend!;
 
         if (ActiveImageFrame is null)
@@ -2326,7 +2343,7 @@ public sealed class MainWindowViewModel : ObservableObject
             // result belongs to a backend that is going away: nothing on screen changes, and no Lane B work is scheduled.
             if (!IsCurrent(ticket))
             {
-                Log($"Display pipeline result dropped after {workMs:0} ms: the backend was shut down or replaced meanwhile.");
+                Log($"Display pipeline result dropped after {workMs:0} ms: {WhyStale(ticket)}");
                 return;
             }
 
@@ -3342,7 +3359,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 var candidateImage = await Task.Run(() => RenderLane(backend, sourceFrame, candidate));
                 if (!IsCurrent(ticket))
                 {
-                    Log("Lane B result dropped: the backend was replaced or is shutting down.");
+                    Log($"Lane B result dropped: {WhyStale(ticket)}");
                     return;
                 }
 

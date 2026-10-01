@@ -120,7 +120,7 @@ Assert(displayFrame.DisplayPipelineSummary.Contains("VOI", StringComparison.Ordi
 Assert(displayFrame.DisplayPipelineSummary.Contains("CalibrationEval", StringComparison.Ordinal), "Display summary should include calibration evaluation settings.");
 
 // GUI-C-186f: the real view model through a shutdown / a replacement (work that outlives a backend; every entry point refuses meanwhile).
-ImageProcTest.SelfCheck.LifetimeScenarios.Run(rawPath, manifest.RawSample.Width, manifest.RawSample.Height);
+ImageProcTest.SelfCheck.LifetimeScenarios.Run();
 
 Console.WriteLine("GUI-S0 self-check passed.");
 Console.WriteLine($"Fixture manifest: {manifestPath}");

@@ -100,8 +100,37 @@ internal static class LifetimeScenarios
     private static readonly List<string> Failures = [];
     private static string _scenario = string.Empty;
 
-    public static void Run(string rawPath, int width, int height)
+    /// <summary>
+    /// The scenarios are about ORDER (what a late result may change), not about pixels, so they run on a small generated image: the
+    /// 3072x3072 fixture cost about a second per scenario in load and render alone, and the whole runner has to finish inside the
+    /// 15 s the app waits for it (MainWindow, row 15). A04 skipped when it did not (GUI-C-190b).
+    /// </summary>
+    private const int SmallSide = 256;
+
+    private static string WriteSmallRaw(string directory)
     {
+        var path = Path.Combine(directory, "lifetime-256.raw");
+        var bytes = new byte[SmallSide * SmallSide * 2];
+        for (var i = 0; i < SmallSide * SmallSide; i++)
+        {
+            var value = (ushort)(((i % SmallSide) * 211 + (i / SmallSide) * 97) & 0xFFFF);   // a ramp with structure, not a constant
+            bytes[2 * i] = (byte)(value & 0xFF);
+            bytes[2 * i + 1] = (byte)(value >> 8);
+        }
+
+        File.WriteAllBytes(path, bytes);
+        return path;
+    }
+
+    /// <summary>Lets everything already queued on the UI thread run (a continuation posted by a finished await included), then returns.</summary>
+    private static async Task FlushUi() => await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+
+    public static void Run()
+    {
+        var scratch = TempDirectory();
+        var rawPath = WriteSmallRaw(scratch);
+        var width = SmallSide;
+        var height = SmallSide;
         Exception? error = null;
         var thread = new Thread(() =>
         {
@@ -112,11 +141,15 @@ internal static class LifetimeScenarios
                 {
                     try
                     {
-                        await StartedApplyIsDroppedByAShutdown(rawPath, width, height);
-                        await StartedApplyThatFailsAfterAShutdownRaisesNothing(rawPath, width, height);
-                        await EveryEntryPointRefusesDuringTheTransition(rawPath, width, height);
-                        await AnOldLaneThatFailsAfterAReplacementKeepsTheNewLanes(rawPath, width, height);
-                        await AnOldLaneThatSucceedsAfterAShutdownChangesNothing(rawPath, width, height);
+                        await Timed(() => StartedApplyIsDroppedByAShutdown(rawPath, width, height));
+                        await Timed(() => StartedApplyThatFailsAfterAShutdownRaisesNothing(rawPath, width, height));
+                        await Timed(() => EveryEntryPointRefusesDuringTheTransition(rawPath, width, height));
+                        await Timed(() => AnOldLaneThatFailsAfterAReplacementKeepsTheNewLanes(rawPath, width, height));
+                        await Timed(() => AnOldLaneThatSucceedsAfterAShutdownChangesNothing(rawPath, width, height));
+                        await Timed(() => AnOlderApplyFinishingLateChangesNothing(rawPath, width, height, holdLane: false, fail: false));
+                        await Timed(() => AnOlderApplyFinishingLateChangesNothing(rawPath, width, height, holdLane: false, fail: true));
+                        await Timed(() => AnOlderApplyFinishingLateChangesNothing(rawPath, width, height, holdLane: true, fail: false));
+                        await Timed(() => AnOlderApplyFinishingLateChangesNothing(rawPath, width, height, holdLane: true, fail: true));
                     }
                     catch (Exception ex)
                     {
@@ -148,8 +181,23 @@ internal static class LifetimeScenarios
             throw new InvalidOperationException("Lifetime scenarios failed:" + Environment.NewLine + string.Join(Environment.NewLine, Failures));
         }
 
-        Console.WriteLine("Lifetime scenarios passed (5 scenarios).");
+        Directory.Delete(scratch, recursive: true);
+        Console.WriteLine("Lifetime scenarios passed (9 scenarios).");
     }
+
+    /// <summary>Runs one scenario and prints how long it took: the whole runner has to finish inside the app's wait for it (15 s, MainWindow), and this says where the time goes.</summary>
+    private static async Task Timed(Func<Task> scenario)
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        await scenario();
+        Console.WriteLine($"  scenario '{_scenario}': {watch.ElapsedMilliseconds} ms");
+    }
+
+    private static string Id(object? image) => image is null ? "null" : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(image).ToString("x", System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>What a red run needs to be read without a rerun: which image objects are on screen, and the last log lines (they carry the request numbers of a dropped result).</summary>
+    private static string State(MainWindowViewModel vm) =>
+        $"[screen: processed={Id(vm.ProcessedImage)} laneA={Id(vm.LaneAImage)} laneB={Id(vm.LaneBImage)} laneBStale={vm.LaneBIsStale}; last logs: {string.Join(" | ", vm.Logs.TakeLast(6))}]";
 
     private static void Fail(string message) => Failures.Add($"[{_scenario}] {message}");
 
@@ -192,7 +240,7 @@ internal static class LifetimeScenarios
         {
             vm.LoadImageCommand.Execute(null);
             await Until(() => vm.LaneBImage is not null, "the first render's Lane B");
-            await Task.Delay(100);
+            await FlushUi();                                    // the rest of the first render's continuation (timing line, flags)
         }
         finally
         {
@@ -232,7 +280,8 @@ internal static class LifetimeScenarios
             await Until(() => !vm.IsBackendTransitioning, "the shutdown to finish");
             backend.ChainRelease.Set();                       // ... and the held chain is released only afterwards
             await Until(() => backend.ApplyCalls > appliesBefore, "the held Apply's display call");
-            await Task.Delay(400);                            // the UI-side continuation
+            await Until(() => vm.Logs.Any(line => line.Contains("result dropped", StringComparison.Ordinal)), "the held Apply's result to be dropped");
+            await FlushUi();                                  // anything its continuation would still do after the log line
 
             Check(ReferenceEquals(vm.ProcessedImage, drawn), "the held Apply's result was applied after the shutdown began");
             Check(backend.ChainCalls == chainsBefore + 1, $"a Lane B chain was started after the shutdown began (chain calls {backend.ChainCalls}, expected {chainsBefore + 1})");
@@ -268,7 +317,7 @@ internal static class LifetimeScenarios
             var statusAfterShutdown = vm.StatusText;
             backend.ChainRelease.Set();                       // the held chain now FAILS, for a backend that has been shut down
             await Until(() => vm.Logs.Any(line => line.Contains("no longer current failed", StringComparison.Ordinal)), "the stale failure to be recognised");
-            await Task.Delay(300);
+            await FlushUi();
 
             Check(vm.Alerts.Count == alertsBefore, "a stale Apply failure raised an alert");
             Check(vm.PreviewStaleReason == staleBefore, "a stale Apply failure marked the preview stale");
@@ -320,7 +369,9 @@ internal static class LifetimeScenarios
             vm.RestartAiSessionCommand.Execute(null);              // Restart AI
             vm.InitializeBackendCommand.Execute(null);             // Initialize backend
             vm.SetBackendModeCommand.Execute("Mock");              // (goes through Initialize backend)
-            await Task.Delay(500);
+            await Until(() => new[] { "Load image", "VOI preset", "Display pipeline", "Restart AI", "Initialize backend" }.All(entry =>
+                vm.Logs.Any(line => line.Contains(entry + ": The backend is shutting down", StringComparison.Ordinal))), "every entry point to be refused");
+            await FlushUi();                                       // a refusal that was NOT one would have started work by now
 
             foreach (var entry in new[] { "Load image", "VOI preset", "Display pipeline", "Restart AI", "Initialize backend" })
             {
@@ -383,6 +434,7 @@ internal static class LifetimeScenarios
             var vm = NewViewModel(width, height, n => n <= 2 ? old : fresh, directory, out _);
             await LoadAndDrawLanes(vm, rawPath);
 
+            var laneBOfTheFirstRender = vm.LaneBImage;
             old.BlockChainCall = old.ChainCalls + 2;          // the next Apply's Lane B call (main is +1) waits, then fails
             vm.ApplyDisplayPipelineCommand.Execute(null);
             await Until(() => old.ChainBlocked.IsSet, "the old Lane B call to be held");
@@ -390,16 +442,20 @@ internal static class LifetimeScenarios
             vm.InitializeBackendCommand.Execute(null);        // the backend is replaced while that lane task waits
             vm.ApplyDisplayPipelineCommand.Execute(null);     // and the new backend draws new lanes
             await Until(() => fresh.ChainCalls >= 2 && fresh.ApplyCalls >= 2, "the new backend's lanes");
-            await Task.Delay(300);
+            // The new backend's own end, awaited as an event (this used to be a 300 ms sleep that a slow runner outran: GUI-C-190b): its
+            // Lane B is drawn, which is an image object other than the one the first render left on screen.
+            await Until(() => !ReferenceEquals(vm.LaneBImage, laneBOfTheFirstRender), "the new backend's Lane B to be drawn");
+            await FlushUi();
             var laneA = vm.LaneAImage;
             var laneB = vm.LaneBImage;
-            Check(laneA is not null && laneB is not null, "the new backend did not draw both lanes");
+            Check(laneA is not null && laneB is not null, $"the new backend did not draw both lanes {State(vm)}");
 
             old.ChainRelease.Set();                           // the OLD task now fails
-            await Until(() => vm.Logs.Any(line => line.Contains("Lane rendering", StringComparison.Ordinal)), "the old lane task's outcome to be logged");
-            await Task.Delay(300);
+            await Until(() => vm.Logs.Any(line => line.Contains("Lane rendering of a backend that is no longer current failed", StringComparison.Ordinal)), "the old lane task's outcome to be logged");
+            await FlushUi();
 
-            Check(ReferenceEquals(vm.LaneAImage, laneA) && ReferenceEquals(vm.LaneBImage, laneB), "a stale lane failure erased or replaced the new lanes");
+            Check(ReferenceEquals(vm.LaneAImage, laneA) && ReferenceEquals(vm.LaneBImage, laneB),
+                $"a stale lane failure erased or replaced the new lanes (before: laneA={Id(laneA)} laneB={Id(laneB)}) {State(vm)}");
             Check(vm.Logs.Any(line => line.Contains("no longer current failed", StringComparison.Ordinal)), "the stale failure was not recognised as stale");
         }
         finally
@@ -431,11 +487,77 @@ internal static class LifetimeScenarios
 
             backend.ChainRelease.Set();                       // the old task now succeeds
             await Until(() => vm.Logs.Any(line => line.Contains("Lane B result dropped", StringComparison.Ordinal)), "the stale success to be dropped");
-            await Task.Delay(200);
+            await FlushUi();
 
-            Check(ReferenceEquals(vm.LaneBImage, laneB), "a stale lane success replaced Lane B after the shutdown");
+            Check(ReferenceEquals(vm.LaneBImage, laneB), $"a stale lane success replaced Lane B after the shutdown {State(vm)}");
             // The Apply's own tail (the timing line) belongs to the render that was dropped: it must not run after the lanes' wait.
             Check(vm.PipelineTimings == timingsBefore, "the dropped render's timing line was written after the lanes' wait");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- 4: two Applies on the SAME backend; the older one finishes last (Codex #42, GUI-C-190) ----------------------------------------
+    //
+    // The lifetime generation only tells "this backend" from "a shutdown or a replacement": both Applies hold the same one, so each
+    // looks current. The request number is what makes the older one stale. A native call cannot be cut short, so it is not stopped:
+    // it runs to its end and its result is dropped. Four variants: the held call is the main chain or Lane B's chain, and it
+    // succeeds or fails once released.
+
+    private static async Task AnOlderApplyFinishingLateChangesNothing(string rawPath, int width, int height, bool holdLane, bool fail)
+    {
+        _scenario = $"4 older Apply finishes last ({(holdLane ? "Lane B" : "main chain")}, {(fail ? "fails" : "succeeds")})";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new ScenarioBackend { ThrowAfterRelease = fail };
+            var vm = NewViewModel(width, height, _ => backend, directory, out _);
+            await LoadAndDrawLanes(vm, rawPath);                 // chain calls 1 (main) and 2 (Lane B)
+
+            // Apply A: its main chain is call 3, its Lane B chain is call 4. One of them is held.
+            backend.BlockChainCall = holdLane ? 4 : 3;
+            var settingsOfA = vm.Settings.LaneBVoiWindowWidth;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => backend.ChainBlocked.IsSet, "Apply A's held chain call");
+
+            // Apply B: different settings, on the same backend, started and finished while A still waits (its main and its Lane B chain).
+            var laneBBeforeB = vm.LaneBImage;
+            vm.Settings.LaneBVoiWindowWidth = settingsOfA + 300f;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            // A's Lane B chain is call 4 only when A got that far (the held lane variants); B then makes the next two calls.
+            var chainCallsAfterB = holdLane ? 6 : 5;
+            await Until(() => backend.ChainCalls >= chainCallsAfterB, "Apply B's two chain calls");
+            // B's own end, awaited as an event: its Lane B drawn with the new settings. Its tail (the timing line) runs in the same
+            // continuation chain, which the flush lets finish.
+            await Until(() => !ReferenceEquals(vm.LaneBImage, laneBBeforeB) && !vm.LaneBIsStale, "Apply B's Lane B");
+            await FlushUi();
+
+            var processed = vm.ProcessedImage;
+            var laneA = vm.LaneAImage;
+            var laneB = vm.LaneBImage;
+            var status = vm.StatusText;
+            var timings = vm.PipelineTimings;
+            var alerts = vm.Alerts.Count;
+            var stale = vm.PreviewStaleReason;
+            var chainCalls = backend.ChainCalls;
+            Check(laneB is not null && !vm.LaneBIsStale, "Apply B did not draw its Lane B with its own settings");
+
+            backend.ChainRelease.Set();                          // A's held call ends, long after B finished
+            await Until(() => vm.Logs.Any(line => line.Contains("a newer Apply", StringComparison.Ordinal)
+                || line.Contains("no longer current failed", StringComparison.Ordinal)), "A's late outcome to be recognised as stale");
+            await FlushUi();                                     // whatever A's continuation would still do after the log line
+            await FlushUi();
+
+            Check(ReferenceEquals(vm.ProcessedImage, processed), $"the older Apply replaced the main image {State(vm)}");
+            Check(ReferenceEquals(vm.LaneAImage, laneA) && ReferenceEquals(vm.LaneBImage, laneB), $"the older Apply replaced or erased the lanes {State(vm)}");
+            Check(!vm.LaneBIsStale, $"the older Apply put its own Lane B settings back (the lanes no longer match the settings on screen) {State(vm)}");
+            Check(vm.StatusText == status, $"the status line changed ('{status}' -> '{vm.StatusText}')");
+            Check(vm.PipelineTimings == timings, "the older Apply wrote its timing line");
+            Check(vm.Alerts.Count == alerts, "the older Apply's failure raised an alert");
+            Check(vm.PreviewStaleReason == stale, "the older Apply's failure marked the preview stale");
+            Check(backend.ChainCalls == chainCalls, $"the older Apply started more work after B (chain calls {chainCalls} -> {backend.ChainCalls})");
         }
         finally
         {

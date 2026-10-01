@@ -1,0 +1,31 @@
+harness: 8 copies of the runner, each in its own output directory inside the checkout (the runner writes appsettings.selfcheck.json beside itself; one shared directory made the processes collide)
+== OLD (f1028a83), 8 parallel x 4
+round 1: 8 parallel, failures=0, seconds=20.3
+round 2: 8 parallel, failures=0, seconds=19.7
+round 3: 8 parallel, failures=0, seconds=20.1
+round 4: 8 parallel, failures=0, seconds=19.7
+RESULT total_runs=32 failures=0
+== NEW (working tree), 8 parallel x 4
+round 1: 8 parallel, failures=0, seconds=2.4
+round 2: 8 parallel, failures=0, seconds=2.1
+round 3: 8 parallel, failures=0, seconds=2.1
+round 4: 8 parallel, failures=0, seconds=2.1
+RESULT total_runs=32 failures=0
+== OLD (f1028a83), 24 parallel x 3 (heavier)
+   sample failure (exit 3762504530): Unhandled exception. System.InvalidOperationException: Lifetime scenarios failed: / [3 stale failing Lane B] a stale lane failure erased or replaced the new lanes /    at ImageProcTest.SelfCheck.LifetimeScenarios.Run(String rawPath, Int32 width, Int32 height) in C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\old190\gui\ImageProcTest.SelfCheck\Lifet
+round 1: 24 parallel, failures=22, seconds=34.5
+   sample failure (exit 3762504530): Unhandled exception. System.InvalidOperationException: Lifetime scenarios failed: / [1 started Apply vs shutdown] the drop was not logged / [3 stale failing Lane B] a stale lane failure erased or replaced the new lanes /    at ImageProcTest.SelfCheck.LifetimeScenarios.Run(String rawPath, Int32 width, Int32 height) in C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee58
+round 2: 24 parallel, failures=23, seconds=30.8
+   sample failure (exit 3762504530): Unhandled exception. System.InvalidOperationException: Lifetime scenarios failed: / [1 started Apply vs shutdown] the drop was not logged /    at ImageProcTest.SelfCheck.LifetimeScenarios.Run(String rawPath, Int32 width, Int32 height) in C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\old190\gui\ImageProcTest.SelfCheck\LifetimeScenarios.cs:line 152
+round 3: 24 parallel, failures=23, seconds=30.1
+RESULT total_runs=72 failures=68
+   failing scenario [3 stale failing Lane B]: 59
+   failing scenario [1 started Apply vs shutdown]: 36
+   failing scenario [4 older Apply finishes last (main chain, succeeds)]: 4
+   failing scenario [4 older Apply finishes last (main chain, fails)]: 3
+   failing scenario [4 older Apply finishes last (Lane B, succeeds)]: 3
+== NEW (working tree), 24 parallel x 3
+round 1: 24 parallel, failures=0, seconds=4.9
+round 2: 24 parallel, failures=0, seconds=3.2
+round 3: 24 parallel, failures=0, seconds=3.3
+RESULT total_runs=72 failures=0

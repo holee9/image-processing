@@ -1,0 +1,14 @@
+gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs: trailing_ws=0 control_bytes=0 crlf=0
+gui/ImageProcTest.SelfCheck/Program.cs: trailing_ws=0 control_bytes=0 crlf=0
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs: trailing_ws=0 control_bytes=0 crlf=0
+clients/ImageProcTest.E2ETests/Scenarios/Smoke/AutomationReportBackendTests.cs: trailing_ws=0 control_bytes=0 crlf=0
+clients/ImageProcTest.E2ETests/Scenarios/Smoke/RunnerVerdictWording.cs: trailing_ws=0 control_bytes=0 crlf=0
+clients/ImageProcTest.E2ETests/Scenarios/Smoke/RunnerVerdictWordingTests.cs: trailing_ws=0 control_bytes=0 crlf=0
+.moai/reports/lane-gui/GUI-C-190/report.md: trailing_ws=0 control_bytes=0 crlf=0
+.moai/reports/lane-gui/GUI-C-190b/report.md: trailing_ws=0 control_bytes=0 crlf=0
+.moai/reports/lane-gui/GUI-C-190b/selfcheck_runs.txt: trailing_ws=0 control_bytes=0 crlf=0
+.moai/reports/lane-gui/GUI-C-190b/stress_runs.txt: trailing_ws=0 control_bytes=0 crlf=0
+.moai/reports/lane-gui/GUI-C-190b/falsification_arms_scenarios.txt: trailing_ws=0 control_bytes=0 crlf=0
+.moai/reports/lane-gui/GUI-C-190b/falsification_arms_wording.txt: trailing_ws=0 control_bytes=0 crlf=0
+.moai/reports/lane-gui/GUI-C-190b/local_runs.txt: trailing_ws=0 control_bytes=0 crlf=0
+TOTAL=0

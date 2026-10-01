@@ -382,6 +382,9 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
                 Assert.Contains("ai_bone_suppress: AI bone suppression requires the native backend", after, StringComparison.Ordinal);
                 // The state line the app publishes for automation (C-09 reads it too): a backend with no AI session says Unknown.
                 Assert.Equal("worker=Unknown", AiStatusSummary(window));
+                // The diagnostics channel C-09 reads on Native (GUI-C-189) is empty without a native session, and reading it works
+                // on the real app: this is where the helper itself is exercised on every Mock run.
+                Assert.Equal(string.Empty, AiDiagnostics(window));
             }
         }
         finally
@@ -419,6 +422,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             Assert.Null(AiBanner(window));
 
             var shown = false;
+            var seen = new List<string>();   // what the app said after each attempt (GUI-C-189): the failure message carries it
             for (var attempt = 1; attempt <= 6 && !shown; attempt++)
             {
                 InvokeAiMenuItem(window);
@@ -429,10 +433,31 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
                 Assert.DoesNotContain("no model at", status, StringComparison.Ordinal);
                 Thread.Sleep(2500); // the render that follows the click, and the state read after it
                 shown = AiBanner(window) is not null;
+
+                // Diagnostics only: nothing here is asserted. The summary is the GUI's reading of the module's state; the diagnostics
+                // are the module's own raw answers (its state before this process's init, the init call, each read), so a red run says
+                // whether the module was ever on the worker path and what it reported, not only that no mark appeared.
+                var summary = AiStatusSummary(window);
+                string diagnostics;
+                try
+                {
+                    diagnostics = AiDiagnostics(window);
+                }
+                catch (Exception ex)
+                {
+                    // Reading the diagnostics must never be what turns this run red for another reason: say it could not be read.
+                    diagnostics = $"(unreadable: {ex.GetType().Name}: {ex.Message})";
+                }
+
+                var line = $"attempt {attempt}: banner={(shown ? "shown" : "absent")}; summary='{summary}'; diagnostics='{diagnostics}'";
+                seen.Add(line);
+                output.WriteLine($"C09 {line}");
             }
 
             var banner = AiBanner(window);
-            Assert.True(banner is not null, "Six failed calls in a row, and the module never reported the worker switched off.");
+            Assert.True(banner is not null,
+                "Six failed calls in a row, and the module never reported the worker switched off. What the app said after each attempt: "
+                + string.Join(" | ", seen));
             var text = banner!.Name;
             output.WriteLine($"C09 mark: '{text}'");
             var numbers = Regex.Match(text, @"after (\d+) of (\d+) failures");
@@ -486,6 +511,16 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
     {
         OpenParameters(window);
         return window.FindFirstDescendant(cf => cf.ByAutomationId("AiBoneSuppressionInChainCheckBox"))?.HelpText ?? string.Empty;
+    }
+
+    /// <summary>
+    /// What the native AI session saw, as the app publishes it for automation (the item status of the AI checkbox, GUI-C-189): the
+    /// module's own raw answers. Empty without a native session. For failure messages; never asserted.
+    /// </summary>
+    private static string AiDiagnostics(Window window)
+    {
+        OpenParameters(window);
+        return window.FindFirstDescendant(cf => cf.ByAutomationId("AiBoneSuppressionInChainCheckBox"))?.Properties.ItemStatus.ValueOrDefault ?? string.Empty;
     }
 
     private static string StatusText(Window window) =>

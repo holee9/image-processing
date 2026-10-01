@@ -1,6 +1,5 @@
 // #225 row 10 (GUI-C-186c A1 + A3, GUI-C-186d): the status is read in the background with no limit and applied only while current;
 // an init that threw has ONE reason string; no control byte stands in for a regex backreference.
-#pragma warning disable xUnit1031 // These tests wait on REAL threads on purpose: a caller blocked behind the AI session gate (or a drain racing a writer) is what is measured.
 using System.Collections.Concurrent;
 using ImageProcTest.Models;
 using ImageProcTest.Services;
@@ -101,7 +100,9 @@ public sealed class AiStatusRefresherTests
 
         Assert.Empty(rig.Applied);                 // the frame still has the gate: nothing to show yet
         frameMayEnd.Set();                         // the frame ends; nobody asks again
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.True(frame.Wait(Long));
+        #pragma warning restore xUnit1031
         rig.PumpUntil(() => rig.Applied.Count == 1, "The read that was waiting for the gate never reached the screen.");
 
         Assert.Equal(Disabled, rig.Applied[0]);
@@ -134,7 +135,9 @@ public sealed class AiStatusRefresherTests
         rig.Pump();
 
         frameMayEnd.Set();
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.True(frame.Wait(Long));
+        #pragma warning restore xUnit1031
         rig.PumpUntil(() => rig.Applied.Count == 1, "The read never completed after the frame ended.");
 
         Assert.True(requested < TimeSpan.FromSeconds(1), $"Request waited {requested.TotalMilliseconds:0} ms for a gate that was held: the UI thread would have waited the same.");
@@ -334,12 +337,16 @@ public sealed class AiStatusRefresherTests
         Assert.True(frameIn.Wait(Long));
 
         var read = Task.Run(() => gate.WithLock(() => 7));
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.False(read.Wait(TimeSpan.FromMilliseconds(400)), "The read got through a gate that a frame was holding.");
+        #pragma warning restore xUnit1031
 
         frameMayEnd.Set();
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
         Assert.True(frame.Wait(Long));
         Assert.True(read.Wait(Long));
         Assert.Equal(7, read.Result);
+        #pragma warning restore xUnit1031
     }
 
     [Fact]

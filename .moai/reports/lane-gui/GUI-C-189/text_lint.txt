@@ -1,0 +1,10 @@
+gui/ImageProcTest/Services/AiBoneSuppressionStage.cs: trailing_ws=0 control_bytes=0
+gui/ImageProcTest/Services/Native/GuiAiRunner.cs: trailing_ws=0 control_bytes=0
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs: trailing_ws=0 control_bytes=0
+gui/ImageProcTest/Views/AnalysisPanel.xaml: trailing_ws=0 control_bytes=0
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ProcessingChainScenarios.cs: trailing_ws=0 control_bytes=0
+clients/ImageProcTest.IntegrationTests/Functional/AiDiagnosticsTests.cs: trailing_ws=0 control_bytes=0
+clients/ImageProcTest.IntegrationTests/Functional/AiBoneSuppressionStageTests.cs: trailing_ws=0 control_bytes=0
+.moai/reports/lane-gui/GUI-C-189/report.md: trailing_ws=0 control_bytes=0
+.moai/reports/lane-gui/GUI-C-189/falsification_arms.txt: trailing_ws=0 control_bytes=0
+TOTAL=0
