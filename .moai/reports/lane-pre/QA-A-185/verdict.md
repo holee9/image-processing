@@ -61,3 +61,16 @@
 - 미검증: CI 구성(Mock/Native 백엔드 축)에서의 실행. 신규 시험은 백엔드와 무관한 순수 모듈 시험이라 구성 축 의존은 없다고 보지만 CI 로그로는 아직 관측 안 함.
 - 잔여 위험: 경합 시험의 빨강 재현률은 이 머신 기준이다(1 코어 고정에서도 100% 였음). 반대로 초록 쪽은 "경합이 안 일어나서" 통과할 수 있으나, 대조군과 반증 팔이 같은 방법으로 빨강을 낸다는 점이 그 해석을 막는다.
 - 성능: 잠금 비용은 측정 해상도 아래. 많은 스레드가 한 핸들을 두고 경쟁하는 경우의 대기 시간은 측정 안 함(제품 호출자는 아직 없음).
+
+---
+
+## 후속 (Codex #14 보류 사유 반영, 같은 카드)
+
+**① 공개 헤더 계약 (주석만).** `preprocess_api.h` 의 `xpe_ghost_create` 가 "Handle is NOT thread-safe; do not share across threads" 라고 적고 있어 새 계약과 충돌했다. 고친 곳 4곳: create 의 `@note`(핸들 하나를 여러 스레드가 공유 가능, correct/reset 은 핸들 안에서 직렬화, 다른 핸들끼리는 막지 않음, 호출자가 같은 이미지 버퍼를 동기화 없이 동시에 만지는 것은 보장 밖), correct·reset 설명(서로 직렬화), destroy 설명(그 핸들의 진행 중·새로 시작하는 호출과 동시 실행 금지, 뮤텍스가 핸들과 함께 해제됨). 같은 낡은 문장이 `test_req_p1a_066.cpp` T4 주석에도 있어 함께 고침. 두 파일 모두 주석을 지운 뒤 HEAD 와 동일, 대조군 감지됨 (`38_comment_only_check.txt`). `modules/preprocess/src` diff 0줄.
+
+**② reset/correct 교차 시험.** `GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState`: 한 스레드는 correct 400 회(프레임 값 1, τ=1e12 라 매 호출 모든 원소에 정확히 +1), 다른 스레드는 그동안 reset 을 계속 호출. 가능한 모든 직렬 순서의 끝 상태는 "hist1·hist2 의 모든 원소가 같은 정수 k (0~400)" 이다. 균일하지 않거나 hist1≠hist2 이거나 정수가 아니면 직렬 순서로는 만들 수 없는 상태다. 64×64, 60 런.
+
+- 초록(잠금 2곳 있음): 60 호출 중 0 빨강 (`37_reset_green_60runs.txt`), 시험 시간 약 0.26 초.
+- 반증 팔(reset 의 잠금만 제거): 20 런 판은 39/40 호출 빨강(`33_reset_arm.txt`, 첫 실패 "hist1 is not uniform at element 4092"), 런을 60 으로 늘린 판은 60/60 빨강 (`35_reset_arm_60runs.txt`). 복원 후 잠금 2곳 확인.
+
+전체 시험 1회: 729 실행, 721 통과, 8 건너뜀, 0 실패(종료 0), 셔플(시드 99) 종료 0. `ctest -N` 총계 836, DISABLED 38. 프리셋 점검 OK. 미검증: reset 팔은 correct 쪽 잠금이 있는 상태에서의 reset 잠금만 본다(둘 다 없는 경우는 앞의 `SharedHandleLosesNoUpdates` 가 본다).

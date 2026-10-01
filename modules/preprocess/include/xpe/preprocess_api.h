@@ -577,7 +577,12 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
  *         XPE_ERR_OUT_OF_MEMORY on allocation failure
  *         XPE_ERR_INVALID_INPUT on NULL handleOut or zero dimensions
  *
- * @note Handle is NOT thread-safe; do not share across threads
+ * @note SRS-CALIB-NFR-003: one handle may be shared by several threads. Calls to
+ *       xpe_ghost_correct() and xpe_ghost_reset() on the same handle are serialised
+ *       inside the handle (one mutex per handle), so no history update is lost.
+ *       Calls on different handles do not block each other. Not guaranteed: the
+ *       caller reading or writing the same image buffer from several threads
+ *       without its own synchronisation, and xpe_ghost_destroy() (see there).
  */
 XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
                                        const char* configJsonOrNull,
@@ -588,6 +593,10 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
  *
  * REQ-P1A-032: Apply LTI deconvolution (Tier 1/2/3)
  * REQ-P1A-033: Compute time delta in units of frames
+ *
+ * Serialised per handle with xpe_ghost_reset() and other xpe_ghost_correct() calls
+ * on the same handle (see xpe_ghost_create). The image buffer is not protected: the
+ * caller must not access the same buffer concurrently without its own synchronisation.
  *
  * @param handle Ghost corrector handle (from xpe_ghost_create)
  * @param img [in/out] Image to correct (float32 format)
@@ -604,6 +613,8 @@ XPE_API XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
  *
  * REQ-P1A-088: Clear accumulated frame history
  * Call between patient acquisitions or after detector power cycle.
+ * Serialised per handle with xpe_ghost_correct(): a concurrent correct sees the history
+ * either entirely before or entirely after the reset (see xpe_ghost_create).
  *
  * @param handle Ghost corrector handle
  * @return XPE_OK on success
@@ -615,6 +626,9 @@ XPE_API XpeErrorCode xpe_ghost_reset(void* handle);
  * @brief Free all resources associated with a ghost corrector handle
  *
  * After this call the handle is invalid (do not pass to any other function).
+ * Must not run concurrently with any call on the same handle, whether that call is
+ * already in progress or starts meanwhile: the handle's mutex is freed with it, so
+ * the caller must stop all other threads using the handle first.
  *
  * @param handle Ghost corrector handle to destroy (may be NULL, no-op)
  */

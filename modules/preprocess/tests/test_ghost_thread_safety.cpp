@@ -27,6 +27,7 @@
 #include <cstdint>
 #include <cstring>
 #include <mutex>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -150,4 +151,75 @@ TEST_F(GhostThreadSafety, ControlOneHandlePerThreadMatchesSerialReplay) {
     const State ref2K = serialReplay(2 * kCallsPerThread);
     const State refK = serialReplay(kCallsPerThread);
     EXPECT_EQ(0, runsThatDiverge(false, false, ref2K, refK));
+}
+
+// ---------------------------------------------------------------------------
+// reset() against correct() on one handle
+//
+// One thread runs kResetFrames correct() calls (frame value 1, history never forgets, so every
+// call adds exactly 1 to every element). The other thread calls reset() as often as it can until
+// the first one is done. Every serialisation of whole calls ends with ALL elements of hist1 and
+// hist2 equal to one integer k in [0, kResetFrames]: k = the correct() calls after the last reset.
+// A reset that runs inside a correct() leaves some elements zeroed and others not, or loses an
+// update, and the final history is not uniform (or hist1 != hist2).
+// ---------------------------------------------------------------------------
+namespace {
+
+constexpr uint32_t kResetSide = 64;
+constexpr int kResetFrames = 400;
+constexpr int kResetRuns = 60;
+
+/** Empty string when the history is a valid serialised outcome, else a description of what is wrong. */
+std::string whyNotSerialised(void* h) {
+    const State s = stateOf(h);
+    const float v = s.h1.empty() ? 0.0f : s.h1[0];
+    for (size_t i = 0; i < s.h1.size(); ++i)
+        if (s.h1[i] != v) return "hist1 is not uniform at element " + std::to_string(i);
+    for (size_t i = 0; i < s.h2.size(); ++i)
+        if (s.h2[i] != v) return "hist2 differs from hist1 at element " + std::to_string(i);
+    if (v < 0.0f || v > static_cast<float>(kResetFrames) || v != static_cast<float>(static_cast<int>(v)))
+        return "history value " + std::to_string(v) + " is not an integer in [0, " + std::to_string(kResetFrames) + "]";
+    return std::string();
+}
+
+} // namespace
+
+TEST_F(GhostThreadSafety, ResetAndCorrectOnOneHandleEndInASerialisedState) {
+    int bad = 0;
+    std::string firstWhy;
+    for (int run = 0; run < kResetRuns; ++run) {
+        void* h = nullptr;
+        ASSERT_EQ(XPE_OK, xpe_ghost_create(kResetSide, kResetSide, kNoForgetting, &h));
+        std::atomic<bool> go{false}, done{false};
+        std::atomic<int> failures{0};
+
+        std::thread corrector([&] {
+            std::vector<float> px(static_cast<size_t>(kResetSide) * kResetSide);
+            XpeImageMetadata meta{};
+            meta.acquisitionTime = kAcqTime;
+            while (!go.load(std::memory_order_acquire)) {}
+            for (int i = 0; i < kResetFrames; ++i) {
+                std::fill(px.begin(), px.end(), 1.0f);
+                XpeImageBuffer img{};
+                img.data = px.data(); img.width = kResetSide; img.height = kResetSide;
+                img.bitsAllocated = 32; img.bitsStored = 32; img.format = XPE_PIXEL_FLOAT32;
+                img.dataSize = static_cast<uint32_t>(px.size() * sizeof(float));
+                if (xpe_ghost_correct(h, &img, &meta) != XPE_OK) ++failures;
+            }
+            done.store(true, std::memory_order_release);
+        });
+        std::thread resetter([&] {
+            while (!go.load(std::memory_order_acquire)) {}
+            while (!done.load(std::memory_order_acquire))
+                if (xpe_ghost_reset(h) != XPE_OK) ++failures;
+        });
+        go.store(true, std::memory_order_release);
+        corrector.join(); resetter.join();
+
+        EXPECT_EQ(0, failures.load());
+        const std::string why = whyNotSerialised(h);
+        if (!why.empty()) { if (bad == 0) firstWhy = why; ++bad; }
+        xpe_ghost_destroy(h);
+    }
+    EXPECT_EQ(0, bad) << "runs (of " << kResetRuns << ") that ended in a state no serial order produces; first: " << firstWhy;
 }
