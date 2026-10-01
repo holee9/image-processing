@@ -1,0 +1,456 @@
+Note: Google Test filter = *Quality*:*Calib*
+[==========] Running 151 tests from 27 test suites.
+[----------] Global test environment set-up.
+[----------] 2 tests from OffsetCorrectTest
+[ RUN      ] OffsetCorrectTest.CalibNotLoadedIsDistinctFromNotInitialized
+[       OK ] OffsetCorrectTest.CalibNotLoadedIsDistinctFromNotInitialized (1 ms)
+[ RUN      ] OffsetCorrectTest.InitializedWithoutCalibrationReturnsCalibNotLoaded
+[       OK ] OffsetCorrectTest.InitializedWithoutCalibrationReturnsCalibNotLoaded (1 ms)
+[----------] 2 tests from OffsetCorrectTest (3 ms total)
+
+[----------] 1 test from NonlinLutGenerateTest
+[ RUN      ] NonlinLutGenerateTest.TheFileIsNotReadableAsAnotherCalibrationType
+[       OK ] NonlinLutGenerateTest.TheFileIsNotReadableAsAnotherCalibrationType (4 ms)
+[----------] 1 test from NonlinLutGenerateTest (5 ms total)
+
+[----------] 1 test from GlobalStateHygieneTest
+[ RUN      ] GlobalStateHygieneTest.TheProbeDetectsAChangedCalibrationMode
+[       OK ] GlobalStateHygieneTest.TheProbeDetectsAChangedCalibrationMode (0 ms)
+[----------] 1 test from GlobalStateHygieneTest (0 ms total)
+
+[----------] 1 test from GainCorrectTest
+[ RUN      ] GainCorrectTest.GainMapNotLoadedReturnsCalibNotLoaded
+[       OK ] GainCorrectTest.GainMapNotLoadedReturnsCalibNotLoaded (1 ms)
+[----------] 1 test from GainCorrectTest (1 ms total)
+
+[----------] 1 test from DefectCorrectTest
+[ RUN      ] DefectCorrectTest.DefectMapNotLoadedReturnsCalibNotLoaded
+[       OK ] DefectCorrectTest.DefectMapNotLoadedReturnsCalibNotLoaded (0 ms)
+[----------] 1 test from DefectCorrectTest (0 ms total)
+
+[----------] 15 tests from CalibManagerTest
+[ RUN      ] CalibManagerTest.LoadOffsetNullPathReturnsError
+[       OK ] CalibManagerTest.LoadOffsetNullPathReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.LoadOffsetNonExistentFileReturnsIoError
+[       OK ] CalibManagerTest.LoadOffsetNonExistentFileReturnsIoError (0 ms)
+[ RUN      ] CalibManagerTest.LoadGainNullPathReturnsError
+[       OK ] CalibManagerTest.LoadGainNullPathReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.LoadGainNonExistentFileReturnsIoError
+[       OK ] CalibManagerTest.LoadGainNonExistentFileReturnsIoError (0 ms)
+[ RUN      ] CalibManagerTest.LoadDefectMapNullPathReturnsError
+[       OK ] CalibManagerTest.LoadDefectMapNullPathReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.LoadDefectMapNonExistentFileReturnsIoError
+[       OK ] CalibManagerTest.LoadDefectMapNonExistentFileReturnsIoError (0 ms)
+[ RUN      ] CalibManagerTest.CheckExpiryNullPathReturnsError
+[       OK ] CalibManagerTest.CheckExpiryNullPathReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.CheckExpiryNonExistentFileReturnsError
+[       OK ] CalibManagerTest.CheckExpiryNonExistentFileReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.GenerateOffsetNullFramesReturnsError
+[       OK ] CalibManagerTest.GenerateOffsetNullFramesReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.GenerateOffsetZeroFramesReturnsError
+[       OK ] CalibManagerTest.GenerateOffsetZeroFramesReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.GenerateOffsetNullOutputPathReturnsError
+[       OK ] CalibManagerTest.GenerateOffsetNullOutputPathReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.CalibSaveNullPathReturnsError
+[       OK ] CalibManagerTest.CalibSaveNullPathReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.CalibSaveNullTypeReturnsError
+[       OK ] CalibManagerTest.CalibSaveNullTypeReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.CalibSaveInvalidTypeReturnsError
+[       OK ] CalibManagerTest.CalibSaveInvalidTypeReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.CalibSaveUnloadedOffsetReturnsError
+[       OK ] CalibManagerTest.CalibSaveUnloadedOffsetReturnsError (0 ms)
+[----------] 15 tests from CalibManagerTest (1 ms total)
+
+[----------] 2 tests from Boundary
+[ RUN      ] Boundary.CalibSaveNullPathReturnsError
+[       OK ] Boundary.CalibSaveNullPathReturnsError (0 ms)
+[ RUN      ] Boundary.CalibSaveNullTypeReturnsError
+[       OK ] Boundary.CalibSaveNullTypeReturnsError (0 ms)
+[----------] 2 tests from Boundary (0 ms total)
+
+[----------] 1 test from XCalReaderTest
+[ RUN      ] XCalReaderTest.ExpiredFile_ReturnsCalibrationExpired
+[       OK ] XCalReaderTest.ExpiredFile_ReturnsCalibrationExpired (7 ms)
+[----------] 1 test from XCalReaderTest (7 ms total)
+
+[----------] 1 test from SaveLoadRoundtripTest
+[ RUN      ] SaveLoadRoundtripTest.ExpiredCalibrationReturnsExpiryError
+[       OK ] SaveLoadRoundtripTest.ExpiredCalibrationReturnsExpiryError (4 ms)
+[----------] 1 test from SaveLoadRoundtripTest (4 ms total)
+
+[----------] 1 test from PipelineExTest
+[ RUN      ] PipelineExTest.PipelineExNullStateSkipsCalibration
+[       OK ] PipelineExTest.PipelineExNullStateSkipsCalibration (2 ms)
+[----------] 1 test from PipelineExTest (2 ms total)
+
+[----------] 1 test from PipelineStageTest
+[ RUN      ] PipelineStageTest.OffsetAndGainStagesRunWithCalibrationLoaded
+[       OK ] PipelineStageTest.OffsetAndGainStagesRunWithCalibrationLoaded (5 ms)
+[----------] 1 test from PipelineStageTest (6 ms total)
+
+[----------] 9 tests from CalibrationCacheTest
+[ RUN      ] CalibrationCacheTest.CacheMissLoadsFromFile
+[       OK ] CalibrationCacheTest.CacheMissLoadsFromFile (5 ms)
+[ RUN      ] CalibrationCacheTest.CacheHitReturnsSameData
+[       OK ] CalibrationCacheTest.CacheHitReturnsSameData (5 ms)
+[ RUN      ] CalibrationCacheTest.GainCacheMissAndHit
+[       OK ] CalibrationCacheTest.GainCacheMissAndHit (7 ms)
+[ RUN      ] CalibrationCacheTest.DefectCacheMissAndHit
+[       OK ] CalibrationCacheTest.DefectCacheMissAndHit (7 ms)
+[ RUN      ] CalibrationCacheTest.NullPathReturnsError
+[       OK ] CalibrationCacheTest.NullPathReturnsError (2 ms)
+[ RUN      ] CalibrationCacheTest.NullOutReturnsError
+[       OK ] CalibrationCacheTest.NullOutReturnsError (2 ms)
+[ RUN      ] CalibrationCacheTest.ClearEvictsAllEntries
+[       OK ] CalibrationCacheTest.ClearEvictsAllEntries (4 ms)
+[ RUN      ] CalibrationCacheTest.SetMaxSizeEvictsExcess
+[       OK ] CalibrationCacheTest.SetMaxSizeEvictsExcess (5 ms)
+[ RUN      ] CalibrationCacheTest.SetMaxSizeZeroClampsToOne
+[       OK ] CalibrationCacheTest.SetMaxSizeZeroClampsToOne (5 ms)
+[----------] 9 tests from CalibrationCacheTest (47 ms total)
+
+[----------] 6 tests from CalibCacheOwnershipTest
+[ RUN      ] CalibCacheOwnershipTest.MissAndHitReturnTheSamePointer
+[       OK ] CalibCacheOwnershipTest.MissAndHitReturnTheSamePointer (2 ms)
+[ RUN      ] CalibCacheOwnershipTest.OutParameterIsOverwrittenNotReallocated
+[       OK ] CalibCacheOwnershipTest.OutParameterIsOverwrittenNotReallocated (2 ms)
+[ RUN      ] CalibCacheOwnershipTest.RepeatedLoadsDoNotAccumulateBuffers
+[       OK ] CalibCacheOwnershipTest.RepeatedLoadsDoNotAccumulateBuffers (14 ms)
+[ RUN      ] CalibCacheOwnershipTest.EvictionDropsTheLeastRecentlyUsedEntry
+[       OK ] CalibCacheOwnershipTest.EvictionDropsTheLeastRecentlyUsedEntry (2 ms)
+[ RUN      ] CalibCacheOwnershipTest.SetMaxSizeEvictsDownToTheNewCapacity
+[       OK ] CalibCacheOwnershipTest.SetMaxSizeEvictsDownToTheNewCapacity (2 ms)
+[ RUN      ] CalibCacheOwnershipTest.GainLoaderFollowsTheSameContract
+[       OK ] CalibCacheOwnershipTest.GainLoaderFollowsTheSameContract (7 ms)
+[----------] 6 tests from CalibCacheOwnershipTest (33 ms total)
+
+[----------] 2 tests from CalibCacheConcurrencyTest
+[ RUN      ] CalibCacheConcurrencyTest.LoadUnderConcurrentClearNeverReportsSpuriousFailure
+[QA-A-31] iterations=50000 ok=50000 spurious_PROCESSING_FAILED=0 other_failures=0
+[       OK ] CalibCacheConcurrencyTest.LoadUnderConcurrentClearNeverReportsSpuriousFailure (2571 ms)
+[ RUN      ] CalibCacheConcurrencyTest.LoadUnderConcurrentEvictionNeverReportsSpuriousFailure
+[QA-A-31] eviction race: iterations=25000 spurious_PROCESSING_FAILED=0
+[       OK ] CalibCacheConcurrencyTest.LoadUnderConcurrentEvictionNeverReportsSpuriousFailure (1570 ms)
+[----------] 2 tests from CalibCacheConcurrencyTest (4141 ms total)
+
+[----------] 19 tests from CalibLoadTest
+[ RUN      ] CalibLoadTest.LoadOffset_HappyPath_ReturnsOk
+[       OK ] CalibLoadTest.LoadOffset_HappyPath_ReturnsOk (13 ms)
+[ RUN      ] CalibLoadTest.LoadOffset_NullPath_ReturnsInvalidInput
+[       OK ] CalibLoadTest.LoadOffset_NullPath_ReturnsInvalidInput (0 ms)
+[ RUN      ] CalibLoadTest.LoadOffset_NonExistentFile_ReturnsIoFailed
+[       OK ] CalibLoadTest.LoadOffset_NonExistentFile_ReturnsIoFailed (0 ms)
+[ RUN      ] CalibLoadTest.LoadOffset_BadMagic_ReturnsError
+[       OK ] CalibLoadTest.LoadOffset_BadMagic_ReturnsError (1 ms)
+[ RUN      ] CalibLoadTest.LoadOffset_WrongType_ReturnsConfigInvalid
+[       OK ] CalibLoadTest.LoadOffset_WrongType_ReturnsConfigInvalid (5 ms)
+[ RUN      ] CalibLoadTest.LoadOffset_TamperedPayload_ReturnsConfigInvalid
+[       OK ] CalibLoadTest.LoadOffset_TamperedPayload_ReturnsConfigInvalid (8 ms)
+[ RUN      ] CalibLoadTest.LoadOffset_ExpiredFile_ReturnsCalibrationExpired
+[       OK ] CalibLoadTest.LoadOffset_ExpiredFile_ReturnsCalibrationExpired (5 ms)
+[ RUN      ] CalibLoadTest.LoadGain_HappyPath_ReturnsOk
+[       OK ] CalibLoadTest.LoadGain_HappyPath_ReturnsOk (5 ms)
+[ RUN      ] CalibLoadTest.LoadGain_NullPath_ReturnsInvalidInput
+[       OK ] CalibLoadTest.LoadGain_NullPath_ReturnsInvalidInput (0 ms)
+[ RUN      ] CalibLoadTest.LoadGain_NonExistentFile_ReturnsIoFailed
+[       OK ] CalibLoadTest.LoadGain_NonExistentFile_ReturnsIoFailed (0 ms)
+[ RUN      ] CalibLoadTest.LoadGain_WrongType_ReturnsConfigInvalid
+[       OK ] CalibLoadTest.LoadGain_WrongType_ReturnsConfigInvalid (5 ms)
+[ RUN      ] CalibLoadTest.LoadGain_TamperedPayload_ReturnsConfigInvalid
+[       OK ] CalibLoadTest.LoadGain_TamperedPayload_ReturnsConfigInvalid (10 ms)
+[ RUN      ] CalibLoadTest.LoadGain_ExpiredFile_ReturnsCalibrationExpired
+[       OK ] CalibLoadTest.LoadGain_ExpiredFile_ReturnsCalibrationExpired (5 ms)
+[ RUN      ] CalibLoadTest.LoadDefect_HappyPath_ReturnsOk
+[       OK ] CalibLoadTest.LoadDefect_HappyPath_ReturnsOk (5 ms)
+[ RUN      ] CalibLoadTest.LoadDefect_NullPath_ReturnsInvalidInput
+[       OK ] CalibLoadTest.LoadDefect_NullPath_ReturnsInvalidInput (0 ms)
+[ RUN      ] CalibLoadTest.LoadDefect_NonExistentFile_ReturnsIoFailed
+[       OK ] CalibLoadTest.LoadDefect_NonExistentFile_ReturnsIoFailed (0 ms)
+[ RUN      ] CalibLoadTest.LoadDefect_WrongType_ReturnsConfigInvalid
+[       OK ] CalibLoadTest.LoadDefect_WrongType_ReturnsConfigInvalid (5 ms)
+[ RUN      ] CalibLoadTest.LoadDefect_TamperedPayload_ReturnsConfigInvalid
+[       OK ] CalibLoadTest.LoadDefect_TamperedPayload_ReturnsConfigInvalid (9 ms)
+[ RUN      ] CalibLoadTest.LoadDefect_ExpiredTimestamp_ReturnsCalibrationExpired
+[       OK ] CalibLoadTest.LoadDefect_ExpiredTimestamp_ReturnsCalibrationExpired (10 ms)
+[----------] 19 tests from CalibLoadTest (93 ms total)
+
+[----------] 9 tests from CalibSaveTest
+[ RUN      ] CalibSaveTest.RoundTrip_Offset_BitIdentical
+[       OK ] CalibSaveTest.RoundTrip_Offset_BitIdentical (7 ms)
+[ RUN      ] CalibSaveTest.RoundTrip_Gain_BitIdentical
+[       OK ] CalibSaveTest.RoundTrip_Gain_BitIdentical (7 ms)
+[ RUN      ] CalibSaveTest.RoundTrip_Defect_BitIdentical
+[       OK ] CalibSaveTest.RoundTrip_Defect_BitIdentical (6 ms)
+[ RUN      ] CalibSaveTest.NullFilepath_ReturnsInvalidInput
+[       OK ] CalibSaveTest.NullFilepath_ReturnsInvalidInput (0 ms)
+[ RUN      ] CalibSaveTest.NullCalibType_ReturnsInvalidInput
+[       OK ] CalibSaveTest.NullCalibType_ReturnsInvalidInput (0 ms)
+[ RUN      ] CalibSaveTest.InvalidCalibType_ReturnsInvalidInput
+[       OK ] CalibSaveTest.InvalidCalibType_ReturnsInvalidInput (0 ms)
+[ RUN      ] CalibSaveTest.SaveOffset_WhenNotLoaded_ReturnsInvalidInput
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_calib_save.cpp(167): Skipped
+Global g_calib state is shared; skipped to avoid ordering dependency
+
+[  SKIPPED ] CalibSaveTest.SaveOffset_WhenNotLoaded_ReturnsInvalidInput (0 ms)
+[ RUN      ] CalibSaveTest.SaveOffset_HeaderFieldsAreCorrect
+[       OK ] CalibSaveTest.SaveOffset_HeaderFieldsAreCorrect (21 ms)
+[ RUN      ] CalibSaveTest.SaveOffset_SHA256Verifies
+[       OK ] CalibSaveTest.SaveOffset_SHA256Verifies (6 ms)
+[----------] 9 tests from CalibSaveTest (51 ms total)
+
+[----------] 5 tests from CalibSaveExpiryTest
+[ RUN      ] CalibSaveExpiryTest.FutureExpiryIsRecordedAndReadsAsNotExpired
+[       OK ] CalibSaveExpiryTest.FutureExpiryIsRecordedAndReadsAsNotExpired (10 ms)
+[ RUN      ] CalibSaveExpiryTest.PastExpiryReadsAsExpired
+[       OK ] CalibSaveExpiryTest.PastExpiryReadsAsExpired (9 ms)
+[ RUN      ] CalibSaveExpiryTest.ExpiredFileIsRefusedByLoader
+[       OK ] CalibSaveExpiryTest.ExpiredFileIsRefusedByLoader (10 ms)
+[ RUN      ] CalibSaveExpiryTest.ZeroMeansNeverExpires
+[       OK ] CalibSaveExpiryTest.ZeroMeansNeverExpires (7 ms)
+[ RUN      ] CalibSaveExpiryTest.InvalidTypeStillRejectedWithExpiryArgument
+[       OK ] CalibSaveExpiryTest.InvalidTypeStillRejectedWithExpiryArgument (4 ms)
+[----------] 5 tests from CalibSaveExpiryTest (42 ms total)
+
+[----------] 22 tests from PreprocessCalibrationTest
+[ RUN      ] PreprocessCalibrationTest.LoadOffset_ValidXCalFile
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_calibration.cpp(134): Skipped
+XCal fixture not yet implemented (T-005)
+
+[  SKIPPED ] PreprocessCalibrationTest.LoadOffset_ValidXCalFile (0 ms)
+[ RUN      ] PreprocessCalibrationTest.LoadOffset_InvalidFilePath
+[       OK ] PreprocessCalibrationTest.LoadOffset_InvalidFilePath (0 ms)
+[ RUN      ] PreprocessCalibrationTest.LoadOffset_NullFilePath
+[       OK ] PreprocessCalibrationTest.LoadOffset_NullFilePath (0 ms)
+[ RUN      ] PreprocessCalibrationTest.LoadOffset_CorruptedFile
+[       OK ] PreprocessCalibrationTest.LoadOffset_CorruptedFile (1 ms)
+[ RUN      ] PreprocessCalibrationTest.LoadGain_ValidXCalFile
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_calibration.cpp(191): Skipped
+XCal fixture not yet implemented (T-005)
+
+[  SKIPPED ] PreprocessCalibrationTest.LoadGain_ValidXCalFile (0 ms)
+[ RUN      ] PreprocessCalibrationTest.LoadGain_InvalidFilePath
+[       OK ] PreprocessCalibrationTest.LoadGain_InvalidFilePath (0 ms)
+[ RUN      ] PreprocessCalibrationTest.LoadDefectMap_ValidXCalFile
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_calibration.cpp(219): Skipped
+XCal fixture not yet implemented (T-005)
+
+[  SKIPPED ] PreprocessCalibrationTest.LoadDefectMap_ValidXCalFile (0 ms)
+[ RUN      ] PreprocessCalibrationTest.LoadDefectMap_InvalidFilePath
+[       OK ] PreprocessCalibrationTest.LoadDefectMap_InvalidFilePath (0 ms)
+[ RUN      ] PreprocessCalibrationTest.GenerateOffset_DarkFrameAveraging
+[       OK ] PreprocessCalibrationTest.GenerateOffset_DarkFrameAveraging (6 ms)
+[ RUN      ] PreprocessCalibrationTest.GenerateOffset_SingleFrame
+[       OK ] PreprocessCalibrationTest.GenerateOffset_SingleFrame (3 ms)
+[ RUN      ] PreprocessCalibrationTest.GenerateOffset_NullFrames
+[       OK ] PreprocessCalibrationTest.GenerateOffset_NullFrames (0 ms)
+[ RUN      ] PreprocessCalibrationTest.GenerateOffset_InvalidFrameCount
+[       OK ] PreprocessCalibrationTest.GenerateOffset_InvalidFrameCount (0 ms)
+[ RUN      ] PreprocessCalibrationTest.GenerateOffset_DimensionMismatch
+[       OK ] PreprocessCalibrationTest.GenerateOffset_DimensionMismatch (1 ms)
+[ RUN      ] PreprocessCalibrationTest.CheckExpiry_ValidCalibration
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_calibration.cpp(391): Skipped
+XCal fixture not yet implemented (T-005)
+
+[  SKIPPED ] PreprocessCalibrationTest.CheckExpiry_ValidCalibration (0 ms)
+[ RUN      ] PreprocessCalibrationTest.CheckExpiry_ExpiredCalibration
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_calibration.cpp(418): Skipped
+Requires XCal v1 writer fixture from T-005
+
+[  SKIPPED ] PreprocessCalibrationTest.CheckExpiry_ExpiredCalibration (0 ms)
+[ RUN      ] PreprocessCalibrationTest.CheckExpiry_NullFilePath
+[       OK ] PreprocessCalibrationTest.CheckExpiry_NullFilePath (0 ms)
+[ RUN      ] PreprocessCalibrationTest.CheckExpiry_NullOutputPointers
+[       OK ] PreprocessCalibrationTest.CheckExpiry_NullOutputPointers (0 ms)
+[ RUN      ] PreprocessCalibrationTest.Save_OffsetCalibration
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_calibration.cpp(471): Skipped
+XCal fixture not yet implemented (T-005)
+
+[  SKIPPED ] PreprocessCalibrationTest.Save_OffsetCalibration (0 ms)
+[ RUN      ] PreprocessCalibrationTest.Save_GainCalibration
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_calibration.cpp(491): Skipped
+XCal fixture not yet implemented (T-005)
+
+[  SKIPPED ] PreprocessCalibrationTest.Save_GainCalibration (0 ms)
+[ RUN      ] PreprocessCalibrationTest.Save_NullFilePath
+[       OK ] PreprocessCalibrationTest.Save_NullFilePath (0 ms)
+[ RUN      ] PreprocessCalibrationTest.Save_NullCalibType
+[       OK ] PreprocessCalibrationTest.Save_NullCalibType (0 ms)
+[ RUN      ] PreprocessCalibrationTest.Save_InvalidCalibType
+[       OK ] PreprocessCalibrationTest.Save_InvalidCalibType (0 ms)
+[----------] 22 tests from PreprocessCalibrationTest (18 ms total)
+
+[----------] 1 test from PreprocessDegraded
+[ RUN      ] PreprocessDegraded.BP01_OffsetNullCalibrationReturnsNotInitialized
+[       OK ] PreprocessDegraded.BP01_OffsetNullCalibrationReturnsNotInitialized (0 ms)
+[----------] 1 test from PreprocessDegraded (0 ms total)
+
+[----------] 8 tests from CalibModeTest
+[ RUN      ] CalibModeTest.DefaultModeIsMultiPoint8
+[       OK ] CalibModeTest.DefaultModeIsMultiPoint8 (0 ms)
+[ RUN      ] CalibModeTest.SetGetRoundtrip_AllModes
+[       OK ] CalibModeTest.SetGetRoundtrip_AllModes (0 ms)
+[ RUN      ] CalibModeTest.SetMode_InvalidValue_Rejected
+[       OK ] CalibModeTest.SetMode_InvalidValue_Rejected (0 ms)
+[ RUN      ] CalibModeTest.GetMaxPoints_PerMode
+[       OK ] CalibModeTest.GetMaxPoints_PerMode (0 ms)
+[ RUN      ] CalibModeTest.GetPolyDegree_PerMode
+[       OK ] CalibModeTest.GetPolyDegree_PerMode (0 ms)
+[ RUN      ] CalibModeTest.QualityMeta_InitialState
+[       OK ] CalibModeTest.QualityMeta_InitialState (18 ms)
+[ RUN      ] CalibModeTest.QualityMeta_NullPointer_Rejected
+[       OK ] CalibModeTest.QualityMeta_NullPointer_Rejected (0 ms)
+[ RUN      ] CalibModeTest.MaxPoints_HardCap_10
+[       OK ] CalibModeTest.MaxPoints_HardCap_10 (0 ms)
+[----------] 8 tests from CalibModeTest (18 ms total)
+
+[----------] 7 tests from CalibModeEnforcementTest
+[ RUN      ] CalibModeEnforcementTest.AutoResolvesToTheSmallestFittingMode
+[       OK ] CalibModeEnforcementTest.AutoResolvesToTheSmallestFittingMode (111 ms)
+[ RUN      ] CalibModeEnforcementTest.PolynomialGeneratorRefusesLevelsAboveTheExplicitCap
+[       OK ] CalibModeEnforcementTest.PolynomialGeneratorRefusesLevelsAboveTheExplicitCap (52 ms)
+[ RUN      ] CalibModeEnforcementTest.AutoMatchesTheExplicitModeAtEveryBoundary
+[       OK ] CalibModeEnforcementTest.AutoMatchesTheExplicitModeAtEveryBoundary (149 ms)
+[ RUN      ] CalibModeEnforcementTest.AutoAboveTheHardCapFailsLikeMultiPoint10
+[       OK ] CalibModeEnforcementTest.AutoAboveTheHardCapFailsLikeMultiPoint10 (12 ms)
+[ RUN      ] CalibModeEnforcementTest.SingleDoseGeneratorUnderAutoRecordsSinglePoint
+[       OK ] CalibModeEnforcementTest.SingleDoseGeneratorUnderAutoRecordsSinglePoint (9 ms)
+[ RUN      ] CalibModeEnforcementTest.SingleDoseGeneratorIsAcceptedByEveryMode
+[       OK ] CalibModeEnforcementTest.SingleDoseGeneratorIsAcceptedByEveryMode (25 ms)
+[ RUN      ] CalibModeEnforcementTest.AutoResolutionIsReportedOnTheAlertQueue
+[       OK ] CalibModeEnforcementTest.AutoResolutionIsReportedOnTheAlertQueue (10 ms)
+[----------] 7 tests from CalibModeEnforcementTest (371 ms total)
+
+[----------] 4 tests from CalibOverwriteTest
+[ RUN      ] CalibOverwriteTest.GenerateOffsetReplacesAnExistingFile
+[       OK ] CalibOverwriteTest.GenerateOffsetReplacesAnExistingFile (10 ms)
+[ RUN      ] CalibOverwriteTest.GenerateGainReplacesAnExistingFile
+[       OK ] CalibOverwriteTest.GenerateGainReplacesAnExistingFile (9 ms)
+[ RUN      ] CalibOverwriteTest.GenerateGainPolynomialReplacesAnExistingFile
+[       OK ] CalibOverwriteTest.GenerateGainPolynomialReplacesAnExistingFile (15 ms)
+[ RUN      ] CalibOverwriteTest.CalibSaveReplacesAnExistingFile
+[       OK ] CalibOverwriteTest.CalibSaveReplacesAnExistingFile (10 ms)
+[----------] 4 tests from CalibOverwriteTest (46 ms total)
+
+[----------] 15 tests from CalibQualityMetaTest
+[ RUN      ] CalibQualityMetaTest.R2QualityGate_Pass_WhenAboveThreshold
+[       OK ] CalibQualityMetaTest.R2QualityGate_Pass_WhenAboveThreshold (4 ms)
+[ RUN      ] CalibQualityMetaTest.R2FallsAsTheSeriesDepartsFromTheFit
+[       OK ] CalibQualityMetaTest.R2FallsAsTheSeriesDepartsFromTheFit (18 ms)
+[ RUN      ] CalibQualityMetaTest.R2QualityGate_Fail_WhenBelowThreshold
+[       OK ] CalibQualityMetaTest.R2QualityGate_Fail_WhenBelowThreshold (7 ms)
+[ RUN      ] CalibQualityMetaTest.GoodFitRaisesNoWarning
+[       OK ] CalibQualityMetaTest.GoodFitRaisesNoWarning (4 ms)
+[ RUN      ] CalibQualityMetaTest.PreviousRSquared_Regression
+[       OK ] CalibQualityMetaTest.PreviousRSquared_Regression (8 ms)
+[ RUN      ] CalibQualityMetaTest.PreviousRSquared_Stable
+[       OK ] CalibQualityMetaTest.PreviousRSquared_Stable (7 ms)
+[ RUN      ] CalibQualityMetaTest.GeneratedFileCarriesTheMetadataFields
+[       OK ] CalibQualityMetaTest.GeneratedFileCarriesTheMetadataFields (9 ms)
+[ RUN      ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenTheFitDropsADegree
+[       OK ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenTheFitDropsADegree (8 ms)
+[ RUN      ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenNoDegreeIsDropped
+[       OK ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenNoDegreeIsDropped (8 ms)
+[ RUN      ] CalibQualityMetaTest.ResidualFieldsCarryTheHandComputedValues
+[       OK ] CalibQualityMetaTest.ResidualFieldsCarryTheHandComputedValues (7 ms)
+[ RUN      ] CalibQualityMetaTest.ResidualFieldsAreZeroForAnExactFit
+[       OK ] CalibQualityMetaTest.ResidualFieldsAreZeroForAnExactFit (8 ms)
+[ RUN      ] CalibQualityMetaTest.MetadataSurvivesSaveAndLoad
+[       OK ] CalibQualityMetaTest.MetadataSurvivesSaveAndLoad (1 ms)
+[ RUN      ] CalibQualityMetaTest.LoadedGateVerdictIsRecomputedNotTrusted
+[       OK ] CalibQualityMetaTest.LoadedGateVerdictIsRecomputedNotTrusted (1 ms)
+[ RUN      ] CalibQualityMetaTest.LegacyFileWithoutMetadataStillLoads
+[       OK ] CalibQualityMetaTest.LegacyFileWithoutMetadataStillLoads (1 ms)
+[ RUN      ] CalibQualityMetaTest.UnrelatedConfigJsonIsIgnored
+[       OK ] CalibQualityMetaTest.UnrelatedConfigJsonIsIgnored (1 ms)
+[----------] 15 tests from CalibQualityMetaTest (100 ms total)
+
+[----------] 5 tests from CalibFixtureGenTest
+[ RUN      ] CalibFixtureGenTest.EmitsThreeXCalFilesAndManifest
+offset.xcal  e068c85a76f1838e473f76ca606c3e0fde65771200388313c935332ef8159c7d
+gain.xcal    c6330b7a0442eacead97712e59b2936415943bb9491e8e5151b874699e725d95
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790876775139_EmitsThreeXCalFilesAndManifest\set\manifest.json
+[       OK ] CalibFixtureGenTest.EmitsThreeXCalFilesAndManifest (2685 ms)
+[ RUN      ] CalibFixtureGenTest.SameSeedProducesIdenticalBytes
+offset.xcal  0581ce02cfb58b70cff2fe09ddba468c22f7ea42c2d8ffd742a833ed414d24b4
+gain.xcal    4b6e178c920ca8b2e24e5a2493fbe29b29c025e1008bc82dc48e1b78d1829ccd
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790876777825_SameSeedProducesIdenticalBytes\a\manifest.json
+offset.xcal  0581ce02cfb58b70cff2fe09ddba468c22f7ea42c2d8ffd742a833ed414d24b4
+gain.xcal    4b6e178c920ca8b2e24e5a2493fbe29b29c025e1008bc82dc48e1b78d1829ccd
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790876777825_SameSeedProducesIdenticalBytes\b\manifest.json
+[       OK ] CalibFixtureGenTest.SameSeedProducesIdenticalBytes (5312 ms)
+[ RUN      ] CalibFixtureGenTest.DifferentSeedChangesOffsetAndGain
+offset.xcal  19971d0a2c8d8b2a5e33fa13e5a14d167532c0dd439dbcb30cb6ee0901116f5e
+gain.xcal    d93bc7ec0012af549f6e8afef30c9507ffc4a28b8c778116f84d11cc4b5367a0
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790876783138_DifferentSeedChangesOffsetAndGain\s1\manifest.json
+offset.xcal  f364e326d00ad47314133523f7a5a942bceccda7a651dd6e0e90d96c4657d68a
+gain.xcal    d17a3ea2429996ba53e3c600fbe41f7fc4383e69cda22e74388d6d73132540d2
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790876783138_DifferentSeedChangesOffsetAndGain\s2\manifest.json
+[       OK ] CalibFixtureGenTest.DifferentSeedChangesOffsetAndGain (5211 ms)
+[ RUN      ] CalibFixtureGenTest.GeneratedSetDrivesThePipeline
+offset.xcal  e068c85a76f1838e473f76ca606c3e0fde65771200388313c935332ef8159c7d
+gain.xcal    c6330b7a0442eacead97712e59b2936415943bb9491e8e5151b874699e725d95
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790876788349_GeneratedSetDrivesThePipeline\pipe\manifest.json
+[       OK ] CalibFixtureGenTest.GeneratedSetDrivesThePipeline (2590 ms)
+[ RUN      ] CalibFixtureGenTest.ExpiryTimestampRoundTrips
+offset.xcal  26ef67242919d54fb533e8a882a910616e97678392701cdcdeb4f04f9e72142d
+gain.xcal    3801f7e958793a892d938031c897d4daf07c686e7f6f06515c0b069e670412d6
+defect.xcal  047131ae1377d58edc9c6abb318aa03dfd83bcf94e8a7a7843226687c3ef29b5  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790876790940_ExpiryTimestampRoundTrips\expired\manifest.json
+offset.xcal  64887c421542f994bb2881862e1c71a8a2938e298aef43b34d82196260b34d8d
+gain.xcal    e2faa1431bdce05bde698a5eaf487e83861500d7714c6232f951523b88b2020f
+defect.xcal  4f2ab859ecbfe4783d4f34b8b0d8fdde36c0384196ec2e98da0a8cfd63bb845c  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790876790940_ExpiryTimestampRoundTrips\valid\manifest.json
+[       OK ] CalibFixtureGenTest.ExpiryTimestampRoundTrips (5893 ms)
+[----------] 5 tests from CalibFixtureGenTest (21694 ms total)
+
+[----------] 4 tests from CalibDimMismatch
+[ RUN      ] CalibDimMismatch.OffsetMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.OffsetMapDifferentFromInputReturnsInvalidInput (10 ms)
+[ RUN      ] CalibDimMismatch.GainMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.GainMapDifferentFromInputReturnsInvalidInput (1 ms)
+[ RUN      ] CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput (2 ms)
+[ RUN      ] CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput (2 ms)
+[----------] 4 tests from CalibDimMismatch (16 ms total)
+
+[----------] 1 test from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[       OK ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (7 ms)
+[----------] 1 test from CacheSameVerdict (7 ms total)
+
+[----------] 7 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[       OK ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (3 ms)
+[ RUN      ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore (17 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore (22 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule
+[       OK ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule (6 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+[       OK ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly (89 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead
+[       OK ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead (213 ms)
+[ RUN      ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead
+[       OK ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead (2 ms)
+[----------] 7 tests from ConfigStrictParse (356 ms total)
+
+[----------] Global test environment tear-down
+[==========] 151 tests from 27 test suites ran. (27072 ms total)
+[  PASSED  ] 143 tests.
+[  SKIPPED ] 8 tests, listed below:
+[  SKIPPED ] CalibSaveTest.SaveOffset_WhenNotLoaded_ReturnsInvalidInput
+[  SKIPPED ] PreprocessCalibrationTest.LoadOffset_ValidXCalFile
+[  SKIPPED ] PreprocessCalibrationTest.LoadGain_ValidXCalFile
+[  SKIPPED ] PreprocessCalibrationTest.LoadDefectMap_ValidXCalFile
+[  SKIPPED ] PreprocessCalibrationTest.CheckExpiry_ValidCalibration
+[  SKIPPED ] PreprocessCalibrationTest.CheckExpiry_ExpiredCalibration
+[  SKIPPED ] PreprocessCalibrationTest.Save_OffsetCalibration
+[  SKIPPED ] PreprocessCalibrationTest.Save_GainCalibration

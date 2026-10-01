@@ -1562,7 +1562,8 @@ typedef enum XpeCalibrationMode {
  * - detector_serial: Detector identifier (null-terminated)
  * - firmware_version: Firmware version string (null-terminated)
  * - calibration_pass: Quality gate result (0=fail, 1=pass)
- * - previous_r_squared: R² from previous calibration (-1.0 if none)
+ * - previous_r_squared: R² of the last earlier record that had one (-1.0 if none); records without an R²
+ *   (valid = 0, or r_squared = -1.0 because the file did not give fit_r_squared) are skipped
  * - valid: 1 when the record describes a calibration; 0 when there is no quality metadata for the
  *   current one (every field but previous_r_squared then holds its no-data value, zero)
  */
@@ -1572,7 +1573,7 @@ typedef struct XpeCalibQualityMeta {
     uint8_t  num_points;            ///< Number of dose levels (1-10)
     uint8_t  valid;                 ///< 1 = describes a calibration; 0 = no quality metadata for the current one.
                                     ///< Sits in what was padding: sizeof and every other offset are unchanged.
-    double   r_squared;             ///< Coefficient of determination (0.0 to 1.0)
+    double   r_squared;             ///< Coefficient of determination (0.0 to 1.0; -1.0 = not given)
     uint64_t calibration_timestamp; ///< Unix epoch milliseconds
     char     detector_serial[32];   ///< Detector serial number (null-terminated)
     char     firmware_version[16];  ///< Firmware version (null-terminated)
@@ -1612,8 +1613,10 @@ XPE_API XpeCalibrationMode xpe_calib_get_mode(void);
  * (QA-A-202e): with the file's quality metadata when the file carries it, and when the file carries NONE with the
  * "no quality" record -- `valid` is 0, every field but previous_r_squared is zero. A record is never left from an
  * earlier file as if it described the gain that is current. Check `valid` before using the other fields.
- * previous_r_squared is the history: the R2 of the last record that had one (-1.0 if none), kept apart from the
- * current record, and it survives a record with no quality in between. After a generation the record describes
+ * previous_r_squared is the history: the R2 of the last record that HAD an R2 -- a valid record whose
+ * r_squared is inside 0..1 (-1.0 if none) -- kept apart from the current record. A record that has no R2 --
+ * one with no quality at all, or one whose file carries other quality fields but no fit_r_squared (its
+ * r_squared is -1.0, "not given") -- does not interrupt it: the history passes through such records. After a generation the record describes
  * the generated calibration (FUNC-033), which is not necessarily the map in the store; the next gain load
  * replaces it.
  *

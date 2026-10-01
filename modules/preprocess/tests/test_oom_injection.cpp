@@ -43,6 +43,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <functional>
+#include <initializer_list>
 #include <mutex>
 #include <new>
 #include <string>
@@ -1717,6 +1718,8 @@ const char* const kJsonC =
 const char* const kDirA = "oom_pipe_calibQA";      // gain 2.0, quality A
 const char* const kDirNone = "oom_pipe_calibQN";   // gain 4.0, no quality metadata
 const char* const kDirC = "oom_pipe_calibQC";      // gain 3.0, quality C
+const char* const kDirP = "oom_pipe_calibQP";      // gain 5.0, a PARTIAL quality: polynomial_degree only, no R2
+const char* const kDirN2 = "oom_pipe_calibQM";     // gain 6.0, no quality metadata (a second one)
 
 void writeSetDir(const char* dir, float gain, const std::string& gainJson) {
     std::filesystem::create_directories(dir);
@@ -1728,10 +1731,12 @@ void writeAll() {
     writeSetDir(kDirA, 2.0f, kJsonA);
     writeSetDir(kDirNone, 4.0f, "{}");
     writeSetDir(kDirC, 3.0f, kJsonC);
+    writeSetDir(kDirP, 5.0f, "{\"polynomial_degree\":\"2\"}");
+    writeSetDir(kDirN2, 6.0f, "{}");
 }
 void removeAll() {
     std::error_code ec;
-    for (const char* d : {kDirA, kDirNone, kDirC}) std::filesystem::remove_all(d, ec);
+    for (const char* d : {kDirA, kDirNone, kDirC, kDirP, kDirN2}) std::filesystem::remove_all(d, ec);
 }
 
 XpeCalibQualityMeta current() {
@@ -1752,6 +1757,20 @@ struct Way {
 
 std::string gainPath(const std::string& dir) { return dir + "/gain.xcal"; }
 
+/** The frames as pipe::setup left them: a pipeline call processes its frame in place, and a second call on the
+ *  processed (float32) frame would fail on its format, which is not what the sequence tests are about. */
+void freshFrames() {
+    for (int f = 0; f < pipe::kFrames; ++f) {
+        pipe::g_bytes[f] = pipe::g_bytes0[f];
+        pipe::g_img[f].data = pipe::g_bytes[f].data();
+        pipe::g_img[f].format = XPE_PIXEL_UINT16;
+        pipe::g_img[f].bitsAllocated = 16;
+        pipe::g_img[f].bitsStored = 16;
+        pipe::g_img[f].dataSize = N * sizeof(float);
+        pipe::g_meta[f] = pipe::g_meta0[f];
+    }
+}
+
 std::vector<Way> ways() {
     const auto none = [](const std::string&) {};
     const auto cachedLoad = [](const std::string& d) {
@@ -1765,10 +1784,12 @@ std::vector<Way> ways() {
         {"xpe_calib_load_gain_cached (hit)", true, [cachedLoad](const std::string& d) { cachedLoad(d); }, cachedLoad},
         {"xpe_preprocess_pipeline", false, none,
          [](const std::string& d) {
+             freshFrames();
              return xpe_preprocess_pipeline(&pipe::g_img[0], &pipe::g_meta[0], d.c_str(), nullptr, pipe::kConfig);
          }},
         {"xpe_preprocess_pipeline_batch", false, none,
          [](const std::string& d) {
+             freshFrames();
              return xpe_preprocess_pipeline_batch(pipe::g_img, 1, pipe::g_meta, d.c_str(), nullptr, pipe::kConfig);
          }},
     };
@@ -1855,5 +1876,91 @@ TEST_F(OomPipeline, ACacheHitInstallsTheFilesQualityCopyBesideTheMap) {
         EXPECT_EQ(row.hasQuality, g_calib.gain_has_quality) << "the quality copy says whether THIS file carries one";
         EXPECT_DOUBLE_EQ(row.r2, g_calib.gain_quality.r_squared) << "and holds this file's values, not the previous file's";
     }
+    qcur::removeAll();
+}
+
+/* =========================================================================
+ * The R2 history survives records that have no R2 (QA-A-202f, Codex #41)
+ * ========================================================================= */
+
+// previous_r_squared is "the R2 of the last record that HAD one". A gain file may carry quality fields without
+// fit_r_squared: its record is valid (the other fields are real) but its R2 is the no-data value -1.0. The history
+// used to be taken from any VALID record, so such a record, or a "no quality" one after it, replaced the last
+// known R2 by -1.0. The history now moves on only from a record whose R2 is known (valid, and inside the documented
+// range 0..1); the three places that chain it -- a generated record, a gain load with quality, a gain load
+// without -- follow the same rule.
+
+namespace qhist {
+
+/** A record is made current by `way`, with set A (R2 0.91) current before it. */
+void startFromA(const qcur::Way& way, std::initializer_list<const char*> warm) {
+    pipe::setup();
+    for (const char* d : warm) way.prepare(d);                // the hit way warms the cache for every set it will load
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset("oom_pipe_calibQA/offset.xcal"));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_pipe_calibQA/gain.xcal"));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map("oom_pipe_calibQA/defect.xcal"));
+    const XpeCalibQualityMeta a = qcur::current();
+    EXPECT_EQ(1u, a.valid);
+    EXPECT_DOUBLE_EQ(0.91, a.r_squared);
+}
+
+}  // namespace qhist
+
+TEST_F(OomPipeline, APartialQualityRecordDoesNotInterruptTheR2History_AThenPartialThenC) {
+    qcur::writeAll();
+    for (const auto& way : qcur::ways()) {
+        SCOPED_TRACE(way.name);
+        qhist::startFromA(way, {qcur::kDirP, qcur::kDirC});
+        ASSERT_EQ(XPE_OK, way.load(qcur::kDirP));
+        const XpeCalibQualityMeta b = qcur::current();
+        EXPECT_EQ(1u, b.valid) << "the partial file's other quality fields are real";
+        EXPECT_EQ(2u, b.polynomial_degree);
+        EXPECT_DOUBLE_EQ(-1.0, b.r_squared) << "there is no R2 in that file";
+        EXPECT_DOUBLE_EQ(0.91, b.previous_r_squared) << "the history is A's R2";
+        ASSERT_EQ(XPE_OK, way.load(qcur::kDirC));
+        const XpeCalibQualityMeta c = qcur::current();
+        EXPECT_DOUBLE_EQ(0.97, c.r_squared);
+        EXPECT_DOUBLE_EQ(0.91, c.previous_r_squared) << "the partial record in between must not turn the history into -1.0";
+    }
+    qcur::removeAll();
+}
+
+TEST_F(OomPipeline, ARecordWithNoQualityAfterAPartialOneKeepsTheR2History_AThenPartialThenNoneThenC) {
+    qcur::writeAll();
+    for (const auto& way : qcur::ways()) {
+        SCOPED_TRACE(way.name);
+        qhist::startFromA(way, {qcur::kDirP, qcur::kDirNone, qcur::kDirN2, qcur::kDirC});
+        ASSERT_EQ(XPE_OK, way.load(qcur::kDirP));
+        ASSERT_EQ(XPE_OK, way.load(qcur::kDirNone));
+        XpeCalibQualityMeta d = qcur::current();
+        EXPECT_EQ(0u, d.valid);
+        EXPECT_DOUBLE_EQ(0.91, d.previous_r_squared) << "A -> partial -> none: the last known R2 is still A's";
+        ASSERT_EQ(XPE_OK, way.load(qcur::kDirN2));
+        d = qcur::current();
+        EXPECT_EQ(0u, d.valid);
+        EXPECT_DOUBLE_EQ(0.91, d.previous_r_squared) << "two records without quality in a row";
+        ASSERT_EQ(XPE_OK, way.load(qcur::kDirC));
+        EXPECT_DOUBLE_EQ(0.91, qcur::current().previous_r_squared);
+    }
+    qcur::removeAll();
+}
+
+TEST_F(OomPipeline, AGeneratedRecordFollowsTheSameRule_AThenPartialThenGeneratedThenPartialThenC) {
+    qcur::writeAll();
+    pipe::setup();
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_pipe_calibQA/gain.xcal"));            // A: R2 0.91
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_pipe_calibQP/gain.xcal"));            // partial: no R2
+    XpeCalibQualityMeta g{};
+    g.calibration_mode = 3; g.polynomial_degree = 2; g.num_points = 4; g.r_squared = 0.99;
+    xpe_calib_record_quality_meta(g);                                                // a generation: R2 0.99
+    XpeCalibQualityMeta q = qcur::current();
+    EXPECT_EQ(1u, q.valid);
+    EXPECT_DOUBLE_EQ(0.99, q.r_squared);
+    EXPECT_DOUBLE_EQ(0.91, q.previous_r_squared) << "the generation's history skips the partial record: A's R2";
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_pipe_calibQP/gain.xcal"));            // partial again
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_pipe_calibQC/gain.xcal"));            // C: R2 0.97
+    q = qcur::current();
+    EXPECT_DOUBLE_EQ(0.97, q.r_squared);
+    EXPECT_DOUBLE_EQ(0.99, q.previous_r_squared) << "the last known R2 is the generation's";
     qcur::removeAll();
 }

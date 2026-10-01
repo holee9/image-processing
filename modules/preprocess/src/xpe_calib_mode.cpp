@@ -254,13 +254,23 @@ uint32_t xpe_calib_get_poly_degree(void) {
  * that is actually reachable.
  * ============================================================================ */
 
+/**
+ * The R2 history after the record `replaced` is replaced: its own R2 when that is KNOWN -- the record is valid and
+ * the R2 is inside the documented range 0..1 (the no-data value is -1.0) -- otherwise the history it carried.
+ * A record with other quality fields but no fit_r_squared, and the "no quality" record, therefore pass the last
+ * known R2 on instead of turning it into -1.0 (QA-A-202f, Codex #41). At start-up it is -1.0 ("none").
+ */
+static double r2_history_after(const XpeCalibQualityMeta& replaced) noexcept
+{
+    return (replaced.valid != 0 && replaced.r_squared >= 0.0) ? replaced.r_squared : replaced.previous_r_squared;
+}
+
 bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept
 {
     std::lock_guard<std::mutex> lock(g_calib_mutex);
     XpeCalibQualityMeta& qm = g_calib.quality_meta;
-    // The history: the R2 of the record being replaced -- or, when that record is "none" (a gain file without
-    // quality), the history it carried, so a gap does not erase it (QA-A-202e). At start-up it is -1.0.
-    const double previous = qm.valid ? qm.r_squared : qm.previous_r_squared;
+    // The history: the R2 of the record being replaced when it has one, otherwise the history it carried.
+    const double previous = r2_history_after(qm);
 
     qm = meta;
     qm.valid = 1;
@@ -340,7 +350,7 @@ XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, XpeCalibQ
 void xpe_calib_commit_quality_meta_locked(const XpeCalibQualityMeta& parsed) noexcept
 {
     XpeCalibQualityMeta& qm = g_calib.quality_meta;
-    const double previous = qm.valid ? qm.r_squared : qm.previous_r_squared;
+    const double previous = r2_history_after(qm);
     qm = parsed;
     qm.valid = 1;
     qm.previous_r_squared = previous;
@@ -349,7 +359,7 @@ void xpe_calib_commit_quality_meta_locked(const XpeCalibQualityMeta& parsed) noe
 void xpe_calib_commit_no_quality_locked() noexcept
 {
     XpeCalibQualityMeta& qm = g_calib.quality_meta;
-    const double previous = qm.valid ? qm.r_squared : qm.previous_r_squared;
+    const double previous = r2_history_after(qm);
     qm = XpeCalibQualityMeta{};          // valid = 0 and every field zero: nothing is known about the current gain
     qm.previous_r_squared = previous;    // ...except the history, which stays apart from the current record
 }
