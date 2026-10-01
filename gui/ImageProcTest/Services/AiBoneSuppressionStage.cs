@@ -183,11 +183,17 @@ internal sealed class AiStatusRefresher(
     Action<Action> postToUi)
 {
     private int _generation;
+    private int _requests;
     private bool _inFlight;
-    private bool _another;
     private bool _stopped;
 
-    /// <summary>Asks for a fresh read. Returns at once; the status reaches <c>apply</c> later, on the UI thread.</summary>
+    /// <summary>
+    /// Asks for a fresh read. Returns at once; the status reaches <c>apply</c> later, on the UI thread.
+    /// GUI-C-192: every request takes a number. A read remembers the number it started under, and its answer is shown only while no newer
+    /// request exists: an answer older than a request that has already been made is dropped and the newest read is the one shown. (Same
+    /// rule as the Apply request number of <see cref="BackendLifecycle"/> — a later start makes an earlier result stale — kept here
+    /// because reads are asked for from more than Apply too: a restart, a reset. A number that only Apply issues would not order those.)
+    /// </summary>
     public void Request()
     {
         if (_stopped)
@@ -195,10 +201,10 @@ internal sealed class AiStatusRefresher(
             return;
         }
 
+        _requests++;
         if (_inFlight)
         {
-            _another = true; // not a second parallel read: one more after the running one
-            return;
+            return; // not a second parallel read: one more after the running one, which Complete starts
         }
 
         Start();
@@ -221,13 +227,13 @@ internal sealed class AiStatusRefresher(
     {
         _stopped = true;
         _generation++;
-        _another = false;
     }
 
     private void Start()
     {
         _inFlight = true;
         var generation = _generation;
+        var requestNumber = _requests;
         var backend = currentBackend();
         runInBackground(() =>
         {
@@ -241,11 +247,11 @@ internal sealed class AiStatusRefresher(
                 status = null; // nothing was read: what is shown stays
             }
 
-            postToUi(() => Complete(generation, backend, status));
+            postToUi(() => Complete(generation, requestNumber, backend, status));
         });
     }
 
-    private void Complete(int generation, object? backend, AiWorkerStatus? status)
+    private void Complete(int generation, int requestNumber, object? backend, AiWorkerStatus? status)
     {
         _inFlight = false;
         if (_stopped)
@@ -255,17 +261,17 @@ internal sealed class AiStatusRefresher(
 
         if (generation != _generation || !ReferenceEquals(backend, currentBackend()))
         {
-            _another = true; // the answer is for something that no longer exists: drop it and read what exists now
+            Start(); // the answer is for something that no longer exists: drop it and read what exists now
+        }
+        else if (requestNumber != _requests)
+        {
+            // GUI-C-192: a newer request was made while this read ran, so this answer is older than what the screen is about to show. It used
+            // to be applied first and replaced a moment later; that moment is a stale "Active" (or a late "off") on a clinical screen.
+            Start();
         }
         else if (status is not null)
         {
             apply(status);
-        }
-
-        if (_another)
-        {
-            _another = false;
-            Start();
         }
     }
 }

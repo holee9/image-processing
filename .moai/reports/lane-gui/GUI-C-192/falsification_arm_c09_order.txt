@@ -1,0 +1,5 @@
+ARM c09-restores-the-width-last-again: built = True
+   functional: ['실패!  - 실패:     1, 통과:     5, 건너뜀:     0, 전체:     6, 기간: 41 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: AiWorkerPanelLayoutTests.C09_RunsAtTheMinimumWidth_WaitsForTheBannerAsAnEvent_AndItsFailureSaysWhatWasRead [9 ms]
+   restored byte-identical: True
+AFTER RESTORE: ['통과!  - 실패:     0, 통과:     6, 건너뜀:     0, 전체:     6, 기간: 25 ms - ImageProcTest.IntegrationTests.dll (net8.0)'] source: 95aec300171b

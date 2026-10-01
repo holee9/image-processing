@@ -296,11 +296,64 @@ public sealed class AiStatusRefresherTests
         }
 
         release.Set();
-        rig.PumpUntil(() => rig.Applied.Count == 2, "The one extra read never completed.");
+        rig.PumpUntil(() => rig.Applied.Count == 1, "The one extra read never completed.");
         Thread.Sleep(100);
         rig.Pump();
 
         Assert.Equal(2, rig.Reads);                 // the running one, and ONE more for all six requests
+        Assert.Single(rig.Applied);                 // GUI-C-192: only the newest answer is shown; the running one was older than the requests
+    }
+
+    // ---- GUI-C-192: an answer older than a newer request is never shown ---------------------------------------------------------------
+
+    /// <summary>
+    /// The reproduction from GUI-C-191b as a test: the first read is held inside the module and answers from what it saw when it STARTED;
+    /// a newer request is made while it is held; when it is released its answer must not reach the screen. Recorded at <c>apply</c> (where
+    /// the screen's property changes), not sampled: a stale value shown for a millisecond is exactly what a poll misses.
+    /// </summary>
+    [Fact]
+    public void AnAnswerOlderThanANewerRequest_IsNeverApplied_OnlyTheNewestIs()
+    {
+        var release = new ManualResetEventSlim();
+        var reading = new ManualResetEventSlim();
+        var rig = new Rig();
+        var stale = new AiWorkerStatus(AiWorkerState.Active, 0, 3);
+        var fresh = new AiWorkerStatus(AiWorkerState.Active, 2, 3);
+        var call = 0;
+        rig.Read = _ =>
+        {
+            if (Interlocked.Increment(ref call) == 1)
+            {
+                reading.Set();
+                Assert.True(release.Wait(Long));
+                return stale;                        // what the module said when this read began
+            }
+
+            return fresh;
+        };
+
+        rig.Refresher.Request();                     // Apply A's read, held inside the module
+        Assert.True(reading.Wait(Long));
+        rig.Refresher.Request();                     // Apply B asks again while it is held
+        release.Set();
+        rig.PumpUntil(() => rig.Applied.Count >= 1, "The newest read was never shown.");
+        Thread.Sleep(150);
+        rig.Pump();
+
+        Assert.Equal([fresh], rig.Applied);          // exactly one change on the screen, and it is the newest
+        Assert.DoesNotContain(stale, rig.Applied);
+    }
+
+    [Fact]
+    public void AnAnswerWithNoNewerRequest_IsStillApplied()
+    {
+        var rig = new Rig();
+        rig.Read = _ => Active;
+
+        rig.Refresher.Request();
+        rig.PumpUntil(() => rig.Applied.Count == 1, "A read nobody superseded was not shown.");
+
+        Assert.Equal([Active], rig.Applied);
     }
 
     [Fact]

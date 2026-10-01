@@ -891,7 +891,12 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>Called once at start-up when a fault was armed — the log says so first.</summary>
     public void AnnounceFaultInjection()
     {
-        Log($"FAULT INJECTION ARMED: {FaultInjectionStatus}. Display pipeline calls past the limit throw on purpose.");
+        // GUI-C-192: says what is armed. The text used to describe the display fault only, which is wrong for an app armed with
+        // ai-worker-disabled alone (GUI-C-191b added it): no display call throws there.
+        var armed = FaultInjectionStatus;
+        Log($"FAULT INJECTION ARMED: {armed}."
+            + (armed.Contains(AutomationArgs.DisplayPipelineFaultPrefix, StringComparison.Ordinal) ? " Display pipeline calls past the limit throw on purpose." : string.Empty)
+            + (armed.Contains(AutomationArgs.AiWorkerDisabledFault, StringComparison.Ordinal) ? " The AI worker status read answers 'switched off, 3 of 3' whatever the module says." : string.Empty));
         _faultInjectionAnnounced = true;
         OnPropertyChanged(nameof(FaultInjectionStatus));
         OnPropertyChanged(nameof(WindowTitle));
