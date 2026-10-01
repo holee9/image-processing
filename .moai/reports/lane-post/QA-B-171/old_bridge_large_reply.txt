@@ -1,0 +1,27 @@
+Note: Google Test filter = IpcDeadline.ALargeReply*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from IpcDeadline
+[ RUN      ] IpcDeadline.ALargeReplyThatArrivesInPiecesIsReadWhole
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(565): error: Expected equality of these values:
+  0
+  o.rc
+    Which is: -9
+a healthy 4 MiB reply was refused, rc=-9
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(566): error: Expected equality of these values:
+  0
+  std::memcmp(in.data(), out.data(), kBytes)
+    Which is: -1
+pixels did not arrive intact
+
+[  FAILED  ] IpcDeadline.ALargeReplyThatArrivesInPiecesIsReadWhole (32 ms)
+[----------] 1 test from IpcDeadline (41 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (41 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] IpcDeadline.ALargeReplyThatArrivesInPiecesIsReadWhole
+
+ 1 FAILED TEST

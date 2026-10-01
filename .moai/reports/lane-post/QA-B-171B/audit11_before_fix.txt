@@ -1,0 +1,186 @@
+Note: Google Test filter = WorkerSupervisor.*:IpcDeadline.*
+[==========] Running 34 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 20 tests from IpcDeadline
+[ RUN      ] IpcDeadline.ControlAWorkerThatAnswersIsAnsweredWithinTheBudget
+[       OK ] IpcDeadline.ControlAWorkerThatAnswersIsAnsweredWithinTheBudget (13 ms)
+[ RUN      ] IpcDeadline.AWorkerThatNeverAnswersReturnsControlAfterTheBudget
+[       OK ] IpcDeadline.AWorkerThatNeverAnswersReturnsControlAfterTheBudget (418 ms)
+[ RUN      ] IpcDeadline.TheBudgetIsTheConfiguredValueNotAConstant
+[       OK ] IpcDeadline.TheBudgetIsTheConfiguredValueNotAConstant (1539 ms)
+[ RUN      ] IpcDeadline.BoneSuppressWithAStalledWorkerFailsAfterTheBudgetAndLeavesTheOutputAlone
+[       OK ] IpcDeadline.BoneSuppressWithAStalledWorkerFailsAfterTheBudgetAndLeavesTheOutputAlone (426 ms)
+[ RUN      ] IpcDeadline.AReplyThatStopsHalfWayAndStallsIsNotCountedAsSuccess
+[       OK ] IpcDeadline.AReplyThatStopsHalfWayAndStallsIsNotCountedAsSuccess (402 ms)
+[ RUN      ] IpcDeadline.AReplyThatStopsHalfWayAndClosesIsNotCountedAsSuccess
+[       OK ] IpcDeadline.AReplyThatStopsHalfWayAndClosesIsNotCountedAsSuccess (14 ms)
+[ RUN      ] IpcDeadline.ControlTheRealWorkerAnswersAHeartbeatBeforeAnyKill
+[       OK ] IpcDeadline.ControlTheRealWorkerAnswersAHeartbeatBeforeAnyKill (64 ms)
+[ RUN      ] IpcDeadline.ADeadWorkerIsReportedPromptlyNotAwaitedForever
+[       OK ] IpcDeadline.ADeadWorkerIsReportedPromptlyNotAwaitedForever (74 ms)
+[ RUN      ] IpcDeadline.PipeClosureAloneDoesNotSeparateAnExitOnRequestFromADeath
+[measure] exit-on-request: bridge rc=-3 hung=0 process exit code=0
+[measure] death:           bridge rc=-3 hung=0 process exit code=99
+[       OK ] IpcDeadline.PipeClosureAloneDoesNotSeparateAnExitOnRequestFromADeath (745 ms)
+[ RUN      ] IpcDeadline.ALargeReplyThatArrivesInPiecesIsReadWhole
+[       OK ] IpcDeadline.ALargeReplyThatArrivesInPiecesIsReadWhole (872 ms)
+[ RUN      ] IpcDeadline.ABodyLongerThanTheBufferDropsTheConnection
+[       OK ] IpcDeadline.ABodyLongerThanTheBufferDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.ABodyWithNoBufferAtAllDropsTheConnection
+[       OK ] IpcDeadline.ABodyWithNoBufferAtAllDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AWrongMagicDropsTheConnection
+[       OK ] IpcDeadline.AWrongMagicDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AReplyToSomeoneElsesRequestDropsTheConnection
+[       OK ] IpcDeadline.AReplyToSomeoneElsesRequestDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AReplyOfTheWrongTypeDropsTheConnection
+[       OK ] IpcDeadline.AReplyOfTheWrongTypeDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AReplyWithTheWrongPixelLengthDropsTheConnection
+[       OK ] IpcDeadline.AReplyWithTheWrongPixelLengthDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.ControlAWorkersOwnErrorFrameKeepsTheConnection
+[       OK ] IpcDeadline.ControlAWorkersOwnErrorFrameKeepsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AnErrorFrameWithNoCodeDropsTheConnection
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(746): error: Expected equality of these values:
+  -6
+  SecondSend(c.b)
+    Which is: 0
+empty object: the connection was kept
+
+[  FAILED  ] IpcDeadline.AnErrorFrameWithNoCodeDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AnErrorFrameWithANonNumericCodeDropsTheConnection
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(746): error: Expected equality of these values:
+  -6
+  SecondSend(c.b)
+    Which is: 0
+string code: the connection was kept
+
+[  FAILED  ] IpcDeadline.AnErrorFrameWithANonNumericCodeDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AnErrorFrameWithACodeOutsideTheErrorRangeDropsTheConnection
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(746): error: Expected equality of these values:
+  -6
+  SecondSend(c.b)
+    Which is: 0
+zero is success, not an error: the connection was kept
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(744): error: Expected equality of these values:
+  -3
+  xpe_ai_ipc_bridge_bone_suppress(c.b, 3, 3, kIn3x3, out)
+    Which is: 5
+positive
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(746): error: Expected equality of these values:
+  -6
+  SecondSend(c.b)
+    Which is: 0
+positive: the connection was kept
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(744): error: Expected equality of these values:
+  -3
+  xpe_ai_ipc_bridge_bone_suppress(c.b, 3, 3, kIn3x3, out)
+    Which is: -100000
+far outside the XPE_ERR_* range
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(746): error: Expected equality of these values:
+  -6
+  SecondSend(c.b)
+    Which is: 0
+far outside the XPE_ERR_* range: the connection was kept
+
+[  FAILED  ] IpcDeadline.AnErrorFrameWithACodeOutsideTheErrorRangeDropsTheConnection (0 ms)
+[----------] 20 tests from IpcDeadline (4583 ms total)
+
+[----------] 14 tests from WorkerSupervisor
+[ RUN      ] WorkerSupervisor.FirstCallStartsAWorkerAndTheSecondReusesIt
+[       OK ] WorkerSupervisor.FirstCallStartsAWorkerAndTheSecondReusesIt (45 ms)
+[ RUN      ] WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid
+[       OK ] WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid (108 ms)
+[ RUN      ] WorkerSupervisor.TheSupervisorReadsTheExitCodeOfTheHandleItHolds
+[       OK ] WorkerSupervisor.TheSupervisorReadsTheExitCodeOfTheHandleItHolds (76 ms)
+[ RUN      ] WorkerSupervisor.AnUnrequestedExitIsADeathEvenWithExitCodeZero
+[       OK ] WorkerSupervisor.AnUnrequestedExitIsADeathEvenWithExitCodeZero (62 ms)
+[ RUN      ] WorkerSupervisor.ARequestedExitIsCleanAndReadAsExitCodeZero
+[       OK ] WorkerSupervisor.ARequestedExitIsCleanAndReadAsExitCodeZero (63 ms)
+[ RUN      ] WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne
+[       OK ] WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne (1099 ms)
+[ RUN      ] WorkerSupervisor.AWorkerThatAnswersWithAnErrorIsKeptNotRestarted
+[       OK ] WorkerSupervisor.AWorkerThatAnswersWithAnErrorIsKeptNotRestarted (51 ms)
+[ RUN      ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(283): Skipped
+a stub worker has no model to run; restart is covered by Ping above
+
+[  SKIPPED ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress (0 ms)
+[ RUN      ] WorkerSupervisor.NoWorkerOutlivesTheSupervisor
+[       OK ] WorkerSupervisor.NoWorkerOutlivesTheSupervisor (72 ms)
+[ RUN      ] WorkerSupervisor.BaselineWithoutASupervisorAStalledWorkerStaysAliveAndTheBridgeStaysDown
+[baseline] after a stall: first receive rc=-3, next send rc=-6, worker alive=1
+[       OK ] WorkerSupervisor.BaselineWithoutASupervisorAStalledWorkerStaysAliveAndTheBridgeStaysDown (695 ms)
+[ RUN      ] WorkerSupervisor.ControlTheFakeWorkerInOkModeBehavesLikeTheRealOne
+[       OK ] WorkerSupervisor.ControlTheFakeWorkerInOkModeBehavesLikeTheRealOne (61 ms)
+[ RUN      ] WorkerSupervisor.AHeartbeatAnswerOfTheWrongTypeDiscardsTheWorker
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(428): error: Expected equality of these values:
+  0u
+    Which is: 0
+  sup.WorkerPid()
+    Which is: 39896
+a worker that gave a wrong answer was kept
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(429): error: Expected equality of these values:
+  WorkerExit::kKilled
+    Which is: 4-byte object <03-00 00-00>
+  sup.LastExit().kind
+    Which is: 4-byte object <00-00 00-00>
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(431): error: Expected equality of these values:
+  2u
+    Which is: 2
+  sup.StartCount()
+    Which is: 1
+...but on a fresh worker, not the one that answered wrongly
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(432): error: Expected: (first) != (sup.LastExit().pid), actual: 0 vs 0
+
+[  FAILED  ] WorkerSupervisor.AHeartbeatAnswerOfTheWrongTypeDiscardsTheWorker (31 ms)
+[ RUN      ] WorkerSupervisor.AHeartbeatAnswerToSomeoneElsesRequestDiscardsTheWorker
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(439): error: Expected equality of these values:
+  0u
+    Which is: 0
+  sup.WorkerPid()
+    Which is: 35184
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(440): error: Expected equality of these values:
+  WorkerExit::kKilled
+    Which is: 4-byte object <03-00 00-00>
+  sup.LastExit().kind
+    Which is: 4-byte object <00-00 00-00>
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(442): error: Expected equality of these values:
+  2u
+    Which is: 2
+  sup.StartCount()
+    Which is: 1
+
+[  FAILED  ] WorkerSupervisor.AHeartbeatAnswerToSomeoneElsesRequestDiscardsTheWorker (30 ms)
+[ RUN      ] WorkerSupervisor.StopAfterAnUnnoticedExitRecordsADeathNotAKill
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(459): error: Expected equality of these values:
+  WorkerExit::kDied
+    Which is: 4-byte object <02-00 00-00>
+  last.kind
+    Which is: 4-byte object <03-00 00-00>
+an exit nobody asked for was recorded as a kill
+
+[  FAILED  ] WorkerSupervisor.StopAfterAnUnnoticedExitRecordsADeathNotAKill (31 ms)
+[----------] 14 tests from WorkerSupervisor (2431 ms total)
+
+[----------] Global test environment tear-down
+[==========] 34 tests from 2 test suites ran. (7015 ms total)
+[  PASSED  ] 27 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress
+[  FAILED  ] 6 tests, listed below:
+[  FAILED  ] IpcDeadline.AnErrorFrameWithNoCodeDropsTheConnection
+[  FAILED  ] IpcDeadline.AnErrorFrameWithANonNumericCodeDropsTheConnection
+[  FAILED  ] IpcDeadline.AnErrorFrameWithACodeOutsideTheErrorRangeDropsTheConnection
+[  FAILED  ] WorkerSupervisor.AHeartbeatAnswerOfTheWrongTypeDiscardsTheWorker
+[  FAILED  ] WorkerSupervisor.AHeartbeatAnswerToSomeoneElsesRequestDiscardsTheWorker
+[  FAILED  ] WorkerSupervisor.StopAfterAnUnnoticedExitRecordsADeathNotAKill
+
+ 6 FAILED TESTS

@@ -1,0 +1,111 @@
+Note: Google Test filter = WorkerSupervisor.*
+[==========] Running 14 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 14 tests from WorkerSupervisor
+[ RUN      ] WorkerSupervisor.FirstCallStartsAWorkerAndTheSecondReusesIt
+[       OK ] WorkerSupervisor.FirstCallStartsAWorkerAndTheSecondReusesIt (37 ms)
+[ RUN      ] WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid
+[       OK ] WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid (62 ms)
+[ RUN      ] WorkerSupervisor.TheSupervisorReadsTheExitCodeOfTheHandleItHolds
+[       OK ] WorkerSupervisor.TheSupervisorReadsTheExitCodeOfTheHandleItHolds (78 ms)
+[ RUN      ] WorkerSupervisor.AnUnrequestedExitIsADeathEvenWithExitCodeZero
+[       OK ] WorkerSupervisor.AnUnrequestedExitIsADeathEvenWithExitCodeZero (61 ms)
+[ RUN      ] WorkerSupervisor.ARequestedExitIsCleanAndReadAsExitCodeZero
+[       OK ] WorkerSupervisor.ARequestedExitIsCleanAndReadAsExitCodeZero (62 ms)
+[ RUN      ] WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(243): error: Expected: (took) <= (kStallBudgetMs + kSlackMs), actual: 4016 vs 3300
+took 4016 ms
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(246): error: Value of: p.GoneWithin(3000)
+  Actual: false
+Expected: true
+the stalled worker is still running (a leaked process)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(247): error: Expected equality of these values:
+  0u
+    Which is: 0
+  sup.WorkerPid()
+    Which is: 35904
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(249): error: Expected equality of these values:
+  WorkerExit::kKilled
+    Which is: 4-byte object <03-00 00-00>
+  last.kind
+    Which is: 4-byte object <00-00 00-00>
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(250): error: Expected equality of these values:
+  stalled
+    Which is: 35904
+  last.pid
+    Which is: 0
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(251): error: Expected equality of these values:
+  xpe::ai::kSupervisorKillExitCode
+    Which is: 1263094860
+  last.exit_code
+    Which is: 0
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(254): error: Expected equality of these values:
+  0
+  sup.Ping()
+    Which is: -3
+
+[  FAILED  ] WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne (13534 ms)
+[ RUN      ] WorkerSupervisor.AWorkerThatAnswersWithAnErrorIsKeptNotRestarted
+[       OK ] WorkerSupervisor.AWorkerThatAnswersWithAnErrorIsKeptNotRestarted (46 ms)
+[ RUN      ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(283): Skipped
+a stub worker has no model to run; restart is covered by Ping above
+
+[  SKIPPED ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress (0 ms)
+[ RUN      ] WorkerSupervisor.NoWorkerOutlivesTheSupervisor
+[       OK ] WorkerSupervisor.NoWorkerOutlivesTheSupervisor (63 ms)
+[ RUN      ] WorkerSupervisor.BaselineWithoutASupervisorAStalledWorkerStaysAliveAndTheBridgeStaysDown
+[baseline] after a stall: first receive rc=-3, next send rc=-6, worker alive=1
+[       OK ] WorkerSupervisor.BaselineWithoutASupervisorAStalledWorkerStaysAliveAndTheBridgeStaysDown (709 ms)
+[ RUN      ] WorkerSupervisor.ControlTheFakeWorkerInOkModeBehavesLikeTheRealOne
+[       OK ] WorkerSupervisor.ControlTheFakeWorkerInOkModeBehavesLikeTheRealOne (619 ms)
+[ RUN      ] WorkerSupervisor.AHeartbeatAnswerOfTheWrongTypeDiscardsTheWorker
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(428): error: Expected equality of these values:
+  0u
+    Which is: 0
+  sup.WorkerPid()
+    Which is: 30744
+a worker that gave a wrong answer was kept
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(429): error: Expected equality of these values:
+  WorkerExit::kKilled
+    Which is: 4-byte object <03-00 00-00>
+  sup.LastExit().kind
+    Which is: 4-byte object <00-00 00-00>
+
+[  FAILED  ] WorkerSupervisor.AHeartbeatAnswerOfTheWrongTypeDiscardsTheWorker (6507 ms)
+[ RUN      ] WorkerSupervisor.AHeartbeatAnswerToSomeoneElsesRequestDiscardsTheWorker
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(439): error: Expected equality of these values:
+  0u
+    Which is: 0
+  sup.WorkerPid()
+    Which is: 33488
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(440): error: Expected equality of these values:
+  WorkerExit::kKilled
+    Which is: 4-byte object <03-00 00-00>
+  sup.LastExit().kind
+    Which is: 4-byte object <00-00 00-00>
+
+[  FAILED  ] WorkerSupervisor.AHeartbeatAnswerToSomeoneElsesRequestDiscardsTheWorker (6518 ms)
+[ RUN      ] WorkerSupervisor.StopAfterAnUnnoticedExitRecordsADeathNotAKill
+[       OK ] WorkerSupervisor.StopAfterAnUnnoticedExitRecordsADeathNotAKill (46 ms)
+[----------] 14 tests from WorkerSupervisor (28348 ms total)
+
+[----------] Global test environment tear-down
+[==========] 14 tests from 1 test suite ran. (28348 ms total)
+[  PASSED  ] 10 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne
+[  FAILED  ] WorkerSupervisor.AHeartbeatAnswerOfTheWrongTypeDiscardsTheWorker
+[  FAILED  ] WorkerSupervisor.AHeartbeatAnswerToSomeoneElsesRequestDiscardsTheWorker
+
+ 3 FAILED TESTS
