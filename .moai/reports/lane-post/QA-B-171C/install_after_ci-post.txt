@@ -1,0 +1,3 @@
+# cmake --install build/ci-post (stub) AFTER the install rule; xpe_ai / onnxruntime files under the prefix:
+bin/xpe_ai.dll
+bin/xpe_ai_worker.exe

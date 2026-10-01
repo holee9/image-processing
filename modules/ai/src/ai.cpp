@@ -26,6 +26,15 @@
 #include "xpe/ai/ai_api.h"
 #include "xpe/ai/ai_worker_protocol.h"
 #include "xpe/ai/ai_onnx_session.h"
+#include "ai_worker_supervisor.h"
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
 
 #include <cstdint>
 #include <cstring>
@@ -112,6 +121,19 @@ struct AiModuleState {
     /** Model directory the cached session was built from, so a re-init with a
      *  different directory does not silently keep serving the old model. */
     std::string boneSuppressSessionDir;
+
+    /**
+     * Opt-in (QA-B-171C): route xpe_bone_suppress through the worker process. Default OFF -- the
+     * in-process path is the behaviour every caller had before and stays the default.
+     */
+    bool useWorker{false};
+
+    /**
+     * Owns the worker process when useWorker is set (QA-B-171B). Created lazily on the first call that
+     * needs it, so init stays cheap and a caller that never infers never starts a process. Destroyed
+     * in xpe_ai_shutdown, which ends the worker: no process outlives the module.
+     */
+    std::unique_ptr<xpe::ai::WorkerSupervisor> workerSupervisor;
 
     // --- Worker process state ---
     /** PID of the worker process (0 if not running). */
@@ -234,6 +256,11 @@ static void parseConfig(AiModuleState* state, const char* configJsonOrNull) {
                                    std::memory_order_release);
     }
 
+    // QA-B-171C: opt-in worker path for xpe_bone_suppress. Absent or false leaves the in-process path.
+    if (cfg.contains("use_worker") && cfg["use_worker"].is_boolean()) {
+        state->useWorker = cfg["use_worker"].get<bool>();
+    }
+
     // #145 (QA-B-60): name the top-level keys this parser did not consume.
     //
     // Every key above is read conditionally, so a caller's typo -- or a key
@@ -249,7 +276,8 @@ static void parseConfig(AiModuleState* state, const char* configJsonOrNull) {
     // this is for.
     if (cfg.is_object()) {
         static const char* const kKnownKeys[] = {
-            "execution_provider", "timeout_ms", "confidence_threshold", "fallback_mode"
+            "execution_provider", "timeout_ms", "confidence_threshold", "fallback_mode",
+            "use_worker"
         };
         for (auto it = cfg.begin(); it != cfg.end(); ++it) {
             bool known = false;
@@ -261,7 +289,8 @@ static void parseConfig(AiModuleState* state, const char* configJsonOrNull) {
                 ((it.key() == "execution_provider"   && it.value().is_string()) ||
                  (it.key() == "timeout_ms"           && it.value().is_number_integer()) ||
                  (it.key() == "confidence_threshold" && it.value().is_number()) ||
-                 (it.key() == "fallback_mode"        && it.value().is_boolean()));
+                 (it.key() == "fallback_mode"        && it.value().is_boolean()) ||
+                 (it.key() == "use_worker"           && it.value().is_boolean()));
             if (!consumed) {
                 char msg[192];
                 std::snprintf(msg, sizeof(msg),
@@ -282,6 +311,15 @@ static void parseConfig(AiModuleState* state, const char* configJsonOrNull) {
         if (colon) {
             int val = std::atoi(colon + 1);
             if (val > 0) state->timeoutMs = static_cast<uint32_t>(val);
+        }
+    }
+    const char* workerKey = std::strstr(configJsonOrNull, "\"use_worker\"");
+    if (workerKey) {
+        const char* colon = std::strchr(workerKey, ':');
+        if (colon) {
+            ++colon;
+            while (*colon == ' ') ++colon;
+            state->useWorker = std::strncmp(colon, "true", 4) == 0;
         }
     }
     AI_LOG_INFO("Config parsed (minimal parser, nlohmann/json not linked)");
@@ -308,6 +346,62 @@ static std::string buildStubModelCard(const std::string& modelId) {
         "\"training_data_hash\":\"N/A\","
         "\"validation_metrics\":{\"psnr\":0.0,\"ssim\":0.0}"
     "}";
+}
+
+/**
+ * @brief Path of xpe_ai_worker.exe: the directory of THIS module, never PATH or the working directory.
+ *
+ * Deployment contract (QA-B-171C): the worker ships beside xpe_ai.dll. Looking anywhere else would
+ * let a different executable answer to the worker's name in a process that handles patient images, so
+ * if this module's own path cannot be read the answer is "none" and the worker path fails (reported,
+ * and replaced by the in-process result) instead of searching.
+ */
+static std::string workerExePath() {
+    HMODULE self = nullptr;
+    if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                                GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                            reinterpret_cast<LPCSTR>(&workerExePath), &self)) {
+        return std::string();
+    }
+    char buf[MAX_PATH * 2] = {0};
+    const DWORD n = GetModuleFileNameA(self, buf, static_cast<DWORD>(sizeof(buf)));
+    if (n == 0 || n >= sizeof(buf)) return std::string();
+    const std::string path(buf, n);
+    const size_t cut = path.find_last_of("\\/");
+    if (cut == std::string::npos) return std::string();
+    return path.substr(0, cut + 1) + "xpe_ai_worker.exe";
+}
+
+/**
+ * @brief xpe_bone_suppress through the worker process (opt-in). Caller holds state->mtx.
+ *
+ * The result is written into @p out ONLY on success (the bridge copies pixels after it has checked
+ * the reply), so a failed call leaves @p out for the in-process fallback to fill.
+ */
+static XpeErrorCode boneSuppressViaWorker(AiModuleState* state, const XpeImageBuffer* in,
+                                          XpeImageBuffer* out) {
+    try {
+        if (!state->workerSupervisor) {
+            xpe::ai::WorkerSupervisorConfig cfg;
+            cfg.worker_exe = workerExePath();
+            if (cfg.worker_exe.empty()) return XPE_ERR_IO_FAILED;
+            cfg.model_dir = state->modelDirPath;
+            // A budget of 0 would fail every call before the worker could answer; the requirement's
+            // default applies instead.
+            cfg.timeout_ms = state->timeoutMs != 0 ? state->timeoutMs : XPE_AI_DEFAULT_TIMEOUT_MS;
+            state->workerSupervisor = std::make_unique<xpe::ai::WorkerSupervisor>(std::move(cfg));
+        }
+        return state->workerSupervisor->BoneSuppress(in->width, in->height,
+                                                     static_cast<const float*>(in->data),
+                                                     static_cast<float*>(out->data));
+    } catch (...) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    }
+}
+
+/** SRS-ALERT-004: DL processing was applied (Info). One place, so both paths say the same thing. */
+static void pushAiProcessedAlert() {
+    xpe_alert_push("AI-processed: bone suppression applied (SRS-ALERT-004)", XPE_ALERT_INFO);
 }
 
 /* ==========================================================================
@@ -397,6 +491,9 @@ XPE_API void xpe_ai_shutdown(void)
     // still runs while the object it belongs to is intact.
     state->boneSuppressSession.reset();
     state->boneSuppressSessionDir.clear();
+
+    // QA-B-171C: ends the worker (graceful, then terminate): nothing outlives the module.
+    state->workerSupervisor.reset();
 
     state->loadedModels.clear();
     state->modelDirPath.clear();
@@ -607,6 +704,25 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
 
     std::lock_guard<std::mutex> lock(state->mtx);
 
+    // QA-B-171C (REQ-AI-092): opt-in worker path. A failure of any kind -- budget exceeded, a worker
+    // that died or went silent, an answer that was not one -- is REPORTED and the call then takes the
+    // in-process path below, so the caller still gets the in-process result. It is never swallowed:
+    // "exceeding the budget shall trigger fallback and alert".
+    if (state->useWorker) {
+        const XpeErrorCode wrc = boneSuppressViaWorker(state, img, softTissueOut);
+        if (wrc == XPE_OK) {
+            pushAiProcessedAlert();
+            return XPE_OK;
+        }
+        char msg[192];
+        std::snprintf(msg, sizeof(msg),
+                      "AI worker failed (code %d): the in-process result is used instead "
+                      "(REQ-AI-092)", static_cast<int>(wrc));
+        xpe_alert_push(msg, XPE_ALERT_WARNING);
+        AI_LOG_WARN("bone_suppress: worker path failed (%d), falling back to in-process",
+                    static_cast<int>(wrc));
+    }
+
     const std::string modelPath = state->modelDirPath.empty()
         ? std::string("bone_suppress.onnx")
         : state->modelDirPath + "/bone_suppress.onnx";
@@ -679,8 +795,7 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
     //
     // The module raises it, not the GUI: all 20 product xpe_alert_push call
     // sites live under modules/ (QA-B-167), and clients/ only reads the queue.
-    xpe_alert_push("AI-processed: bone suppression applied (SRS-ALERT-004)",
-                   XPE_ALERT_INFO);
+    pushAiProcessedAlert();
     return XPE_OK;
 }
 

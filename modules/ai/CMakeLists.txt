@@ -331,6 +331,26 @@ endif()  # if(TRUE) above. This said "End of temporarily disabled worker
          # single-process step tripping over it). QA-B-155.
 
 # ---------------------------------------------------------------------------
+# Installation (QA-B-171C)
+# ---------------------------------------------------------------------------
+# The worker ships BESIDE xpe_ai.dll: the DLL looks for xpe_ai_worker.exe in its own directory and
+# nowhere else (ai.cpp workerExePath -- never PATH or the working directory, because a different
+# executable answering to the worker's name would sit inside a process that handles patient images).
+# Both targets therefore go to the same destination. Until this rule existed `cmake --install`
+# put NEITHER on the prefix (measured: 0 xpe_ai or onnxruntime files); the build tree only
+# happened to place them together because every module shares one runtime output directory.
+# A full build also needs onnxruntime.dll next to the worker, for the reason given where it is
+# staged above.
+include(GNUInstallDirs)
+install(TARGETS ${MODULE_NAME} xpe_ai_worker
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+if(WIN32 AND DEFINED ONNXRUNTIME_ROOT AND NOT (XPE_AI_STUB_BUILD OR NOT XPE_AI_USE_ONNXRUNTIME))
+    install(FILES "${ONNXRUNTIME_ROOT}/lib/onnxruntime.dll" DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
+
+# ---------------------------------------------------------------------------
 # Unit Tests (Google Test)
 # ---------------------------------------------------------------------------
 set(_XPE_AI_BUILD_TESTS OFF)
@@ -376,6 +396,9 @@ if(_XPE_AI_BUILD_TESTS)
         # #130 (QA-B-171B): the supervisor against the real worker -- restart on
         # death, kill on stall, exit kind read from the held process handle
         test_worker_supervisor.cpp
+        # #130 (QA-B-171C): xpe_bone_suppress through the worker, opt-in; failures
+        # reported and replaced by the in-process result
+        test_bone_suppress_worker_path.cpp
     )
 
     # Check if test files exist in this module's tests/ directory

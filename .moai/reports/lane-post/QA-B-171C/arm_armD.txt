@@ -1,0 +1,55 @@
+Note: Google Test filter = WorkerPathFixture.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from WorkerPathFixture
+[ RUN      ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert
+[       OK ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert (32 ms)
+[ RUN      ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore
+[2026-10-01 17:11:44.165] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:11:44.202] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 17:11:44.208] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 17:11:44.208] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:11:44.209] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 17:11:44.214] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore (54 ms)
+[ RUN      ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll
+[2026-10-01 17:11:44.220] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:11:44.221] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 17:11:44.221] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 17:11:44.221] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:11:44.305] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll (103 ms)
+[ RUN      ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInProcessResultStands
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(263): Skipped
+full build: the stall test below covers failure on a real worker
+
+[  SKIPPED ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInProcessResultStands (5 ms)
+[ RUN      ] WorkerPathFixture.ASilentWorkerIsReportedReplacedByTheInProcessResultAndTheNextCallRecovers
+[2026-10-01 17:11:44.329] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 17:11:46.650] [warning] bone_suppress: worker path failed (%d), falling back to in-process
+[2026-10-01 17:11:46.650] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(300): error: Expected equality of these values:
+  1
+  CountAlerts(kFailureNeedle, &sev)
+    Which is: 0
+the silent worker was not reported (once)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(301): error: Expected equality of these values:
+  XPE_ALERT_WARNING
+    Which is: 1
+  sev
+    Which is: -1
+
+[2026-10-01 17:11:47.400] [info] xpe_ai shutdown: worker_pid=%u
+[  FAILED  ] WorkerPathFixture.ASilentWorkerIsReportedReplacedByTheInProcessResultAndTheNextCallRecovers (3084 ms)
+[----------] 5 tests from WorkerPathFixture (3280 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (3281 ms total)
+[  PASSED  ] 3 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInProcessResultStands
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] WorkerPathFixture.ASilentWorkerIsReportedReplacedByTheInProcessResultAndTheNextCallRecovers
+
+ 1 FAILED TEST

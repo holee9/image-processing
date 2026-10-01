@@ -40,6 +40,7 @@
 #include <windows.h>
 #include <tlhelp32.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -441,6 +442,40 @@ TEST(WorkerSupervisor, AHeartbeatAnswerToSomeoneElsesRequestDiscardsTheWorker) {
     EXPECT_NE(XPE_OK, sup.Ping());
     EXPECT_EQ(2u, sup.StartCount());
 }
+
+// QA-B-171C, restart policy: what does a worker that keeps failing cost? The supervisor restarts on
+// every call after a fault and has NO limit. This does not decide whether it should have one (the
+// requirements give no number, and none is invented here); it measures what "no limit" costs so the
+// decision can be made on that.
+TEST(WorkerSupervisor, MeasureTheCostOfRepeatedFailuresWhenAWorkerHangsOrDiesOnStart) {
+    auto cost_of = [](const char* mode, std::vector<DWORD>* per_call, uint32_t* starts) {
+        FakeMode m(mode);
+        WorkerSupervisorConfig c = FakeCfg();
+        c.timeout_ms = kStallBudgetMs;
+        WorkerSupervisor sup(c);
+        for (int i = 0; i < 3; ++i) {
+            const DWORD t0 = GetTickCount();
+            EXPECT_NE(XPE_OK, sup.Ping()) << mode;
+            per_call->push_back(GetTickCount() - t0);
+        }
+        *starts = sup.StartCount();
+    };
+    std::vector<DWORD> hang, die;
+    uint32_t hang_starts = 0, die_starts = 0;
+    cost_of("no_pipe", &hang, &hang_starts);
+    cost_of("exit_on_start", &die, &die_starts);
+    std::printf("[restart-cost] budget %u ms. hangs on start: calls took %lu / %lu / %lu ms, %u starts for 3 calls\n",
+                kStallBudgetMs, static_cast<unsigned long>(hang[0]), static_cast<unsigned long>(hang[1]),
+                static_cast<unsigned long>(hang[2]), hang_starts);
+    std::printf("[restart-cost] budget %u ms. dies on start: calls took %lu / %lu / %lu ms, %u starts for 3 calls\n",
+                kStallBudgetMs, static_cast<unsigned long>(die[0]), static_cast<unsigned long>(die[1]),
+                static_cast<unsigned long>(die[2]), die_starts);
+    // What is pinned: every failed call starts another worker (no limit today), and a hanging one
+    // costs the whole budget each time.
+    EXPECT_EQ(3u, hang_starts);
+    EXPECT_EQ(3u, die_starts);
+    for (DWORD ms : hang) EXPECT_GE(ms, kStallBudgetMs - 100u);
+}
 #endif  // XPE_AI_FAKE_WORKER_EXE
 
 TEST(WorkerSupervisor, StopAfterAnUnnoticedExitRecordsADeathNotAKill) {
@@ -459,4 +494,70 @@ TEST(WorkerSupervisor, StopAfterAnUnnoticedExitRecordsADeathNotAKill) {
     EXPECT_EQ(WorkerExit::kDied, last.kind) << "an exit nobody asked for was recorded as a kill";
     EXPECT_EQ(pid, last.pid);
     EXPECT_EQ(0u, last.exit_code);
+}
+
+// --- QA-B-171C measurement: does a cold worker fit the default time budget? --------------------
+//
+// REQ-AI-092's default is 5 s (XPE_AI_DEFAULT_TIMEOUT_MS). That budget bounds worker start-up AND the
+// first request, and the first request is where the model is loaded (the worker loads lazily). So
+// "start-up fits the budget" has two parts, timed separately and together, ten cold starts each:
+//   start  = CreateProcess + pipe connect + session-start message (Ping)
+//   first  = the first BoneSuppress, i.e. the model load plus one run
+// THE MODEL IS A TOY (3x3 scale, a few hundred bytes). A clinical U-Net is orders of magnitude
+// larger; this measures the fixed costs (process, ONNX Runtime DLL load, session creation), not
+// the cost of loading that model, which is unmeasured and which these numbers cannot bound.
+
+namespace {
+std::vector<DWORD> Sorted(std::vector<DWORD> v) {
+    std::sort(v.begin(), v.end());
+    return v;
+}
+}  // namespace
+
+TEST(WorkerSupervisor, MeasureColdStartAgainstTheDefaultBudget) {
+    constexpr int kRuns = 10;
+    std::string dir = std::string(XPE_AI_TEST_DATA_DIR) + "/models_x2";
+    {
+        // A scratch model directory can be named here to see how load time scales with model size.
+        // Measurement only: unset, the test uses the checked-in toy model.
+        char buf[512] = {0};
+        size_t len = 0;
+        if (getenv_s(&len, buf, sizeof(buf), "XPE_AI_COLD_MODEL_DIR") == 0 && len > 1) dir = buf;
+    }
+    std::vector<DWORD> start_ms, first_ms, total_ms;
+    for (int i = 0; i < kRuns; ++i) {
+        WorkerSupervisor sup(Cfg(XPE_AI_DEFAULT_TIMEOUT_MS, dir));
+        const DWORD t0 = GetTickCount();
+        ASSERT_EQ(XPE_OK, sup.Ping());
+        const DWORD t1 = GetTickCount();
+        start_ms.push_back(t1 - t0);
+        if (!IsStub()) {
+            const float in[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+            float out[9] = {0};
+            ASSERT_EQ(XPE_OK, sup.BoneSuppress(3, 3, in, out));
+            first_ms.push_back(GetTickCount() - t1);
+            total_ms.push_back(GetTickCount() - t0);
+        }
+    }
+    auto line = [](const char* name, const std::vector<DWORD>& v, int runs) {
+        if (v.empty()) { std::printf("[cold-start] %-6s n/a (stub build: no model to load)\n", name); return; }
+        const auto s = Sorted(v);
+        std::printf("[cold-start] %-6s min=%lu median=%lu max=%lu ms over %d cold starts\n", name,
+                    static_cast<unsigned long>(s.front()), static_cast<unsigned long>(s[s.size() / 2]),
+                    static_cast<unsigned long>(s.back()), runs);
+    };
+    WIN32_FILE_ATTRIBUTE_DATA fa{};
+    unsigned long long model_bytes = 0;
+    if (GetFileAttributesExA((dir + "/bone_suppress.onnx").c_str(), GetFileExInfoStandard, &fa)) {
+        model_bytes = (static_cast<unsigned long long>(fa.nFileSizeHigh) << 32) | fa.nFileSizeLow;
+    }
+    std::printf("[cold-start] budget %u ms, build=%s, model_dir=%s, model_file=%llu bytes\n",
+                XPE_AI_DEFAULT_TIMEOUT_MS, IsStub() ? "stub" : "full", dir.c_str(), model_bytes);
+    line("start", start_ms, kRuns);
+    line("first", first_ms, kRuns);
+    line("total", total_ms, kRuns);
+    // What is asserted: the toy-model fixed costs fit with room to spare. It is NOT a claim about a
+    // clinical model, and says so in its name and its output.
+    EXPECT_LT(Sorted(start_ms).back(), XPE_AI_DEFAULT_TIMEOUT_MS);
+    if (!total_ms.empty()) EXPECT_LT(Sorted(total_ms).back(), XPE_AI_DEFAULT_TIMEOUT_MS);
 }
