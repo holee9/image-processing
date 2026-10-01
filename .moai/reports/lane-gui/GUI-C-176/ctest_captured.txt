@@ -1,0 +1,53 @@
+# GUI-C-176 — ctest 3.31.6 (Visual Studio 2022 bundled), throwaway CMake project, tests named like the benchmark ones
+# arguments exactly as BenchmarkRunnerService.Resolve builds them; trailing whitespace removed; build directory shortened nowhere here (raw)
+
+## mixed: one failing test (exit 8)
+--- stdout
+Internal ctest changing into directory: C:/Users/drake/AppData/Local/Temp/c176_ctest/build
+Test project C:/Users/drake/AppData/Local/Temp/c176_ctest/build
+    Start 1: BenchmarkFreeze.PassA
+1/3 Test #1: BenchmarkFreeze.PassA ................................   Passed    0.03 sec
+    Start 2: BenchmarkFreeze.PassB
+2/3 Test #2: BenchmarkFreeze.PassB ................................   Passed    0.03 sec
+    Start 3: FullPipelineE2E.PostProcess_3072x3072_Within3000ms
+3/3 Test #3: FullPipelineE2E.PostProcess_3072x3072_Within3000ms ...***Failed    0.03 sec
+
+
+67% tests passed, 1 tests failed out of 3
+
+Total Test time (real) =   0.10 sec
+
+The following tests FAILED:
+	  3 - FullPipelineE2E.PostProcess_3072x3072_Within3000ms (Failed)
+--- stderr
+Errors while running CTest
+
+## passing only (exit 0)
+--- stdout
+Internal ctest changing into directory: C:/Users/drake/AppData/Local/Temp/c176_ctest/build
+Test project C:/Users/drake/AppData/Local/Temp/c176_ctest/build
+    Start 1: BenchmarkFreeze.PassA
+1/2 Test #1: BenchmarkFreeze.PassA ............   Passed    0.03 sec
+    Start 2: BenchmarkFreeze.PassB
+2/2 Test #2: BenchmarkFreeze.PassB ............   Passed    0.03 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.07 sec
+--- stderr
+(empty)
+
+## pattern selects nothing, WITH --no-tests=error (exit 8)
+--- stdout
+Internal ctest changing into directory: C:/Users/drake/AppData/Local/Temp/c176_ctest/build
+Test project C:/Users/drake/AppData/Local/Temp/c176_ctest/build
+--- stderr
+No tests were found!!!
+Errors while running CTest
+
+## pattern selects nothing, WITHOUT --no-tests=error (exit 0)
+--- stdout
+Internal ctest changing into directory: C:/Users/drake/AppData/Local/Temp/c176_ctest/build
+Test project C:/Users/drake/AppData/Local/Temp/c176_ctest/build
+--- stderr
+No tests were found!!!

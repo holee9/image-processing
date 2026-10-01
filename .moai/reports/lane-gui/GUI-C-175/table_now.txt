@@ -1,0 +1,31 @@
+# GUI-C-175 — 21 rows of GUI-C-152, state today (main a90e9a51 merged), read from MainWindow.xaml as XML
+
+row  x:Name                             C-152  IsEnabled  bound to
+  1  OpenRecentMenuItem                 가능     {Binding HasRecentRawFiles} - nothing -
+  2  OpenDicomMenuItem                  선행     False      - nothing -
+  3  ExportEvidenceBundleMenuItem       가능     (true)     {Binding ExportEvidenceBundleCommand}
+  4  NativeBackendModeMenuItem          가능     (true)     {Binding SetBackendModeCommand}
+  5  OpenRuntimeLogsMenuItem            가능     (true)     {Binding ExportRuntimeLogsCommand}
+  6  PInvokeSmokeTestMenuItem           가능     (true)     {Binding RunPInvokeSmokeTestCommand}
+  7  ShowCalibrationPanelMenuItem       가능     (true)     (checkable)
+  8  ShowDisplaySettingsPanelMenuItem   가능     (true)     (checkable)
+  9  RunDeterministicBaselineMenuItem   선행     False      - nothing -
+ 10  RunFullPipelineMenuItem            선행     False      - nothing -
+ 11  StopProcessingMenuItem             가능     (true)     {Binding StopProcessingCommand}
+ 12  StageTimingMenuItem                가능     (true)     {Binding ShowStageTimingCommand}
+ 13  OpenPipelineDiagnosticsMenuItem    가능     (true)     {Binding OpenPipelineDiagnosticsCommand}
+ 14  OpenEvidenceFolderMenuItem         가능     (true)     {Binding OpenEvidenceFolderCommand}
+ 15  RunSelfCheckMenuItem               가능     (true)     {Binding RunSelfCheckCommand}
+ 16  RunGuiE2EMenuItem                  가능     (true)     {Binding RunGuiE2ECommand}
+ 17  BenchmarkRunnerMenuItem            가능     False      - nothing -
+ 18  QaConstancyMenuItem                사람     False      - nothing -
+ 19  GsdfCalibrateMenuItem              사람     False      - nothing -
+ 20  OpenApiReferenceMenuItem           가능     (true)     {Binding OpenApiReferenceCommand}
+ 21  OpenTroubleshootingMenuItem        선행     False      - nothing -
+
+## Counts (asserted by this script, not added by hand)
+rows classified: 21 (must be 21)
+disabled in markup now: 7 -> rows [2, 9, 10, 17, 18, 19, 21]
+enabled rows with NO command or click bound (the #165 trap): 1 -> rows [1]
+remaining by C-152 class: 가능 [17], 사람 [18, 19], 선행 [2, 9, 10, 21]
+C-152 '가능' rows now enabled: 14 of 15 -> [1, 3, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15, 16, 20]

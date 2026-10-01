@@ -372,7 +372,7 @@ public partial class MainWindow : System.Windows.Window
                     StageTimingMenuItem,
                     RunSelfCheckMenuItem,
                     RunGuiE2EMenuItem,
-                    BenchmarkRunnerMenuItem,
+                    // #225 row 17 (GUI-C-176): the Benchmark Runner is real now and enabled, so it left the list.
                     QaConstancyMenuItem,
                     GsdfCalibrateMenuItem,
                     // #225 rows 7 and 8 (GUI-C-170): the two panel toggles that were counted here
@@ -441,6 +441,15 @@ public partial class MainWindow : System.Windows.Window
 
             report.GuiE2EPassed = viewModel.GuiE2EPassed;
             report.GuiE2EStatus = viewModel.StatusText;
+
+            // #225 (GUI-C-176) row 17. Clicked through the menu like rows 15 and 16, but the launch itself is
+            // suppressed under automation (see RunBenchmarkAsync), so this returns at once: with no build tree
+            // it records the "not built" answer, with one it records that the launch was suppressed.
+            ClickMenuItem(BenchmarkRunnerMenuItem);
+            await Task.Delay(200);
+            report.BenchmarkPassed = viewModel.BenchmarkPassed;
+            report.BenchmarkStatus = viewModel.StatusText;
+            report.BenchmarkLaunchSuppressed = viewModel.BenchmarkLaunchSuppressed;
 
             // #225 (GUI-C-160) row 5. The path and the line count are read back FROM DISK rather than
             // from what the command said it did: "wrote 42 lines" and "a file with 42 lines exists" are

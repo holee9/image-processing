@@ -1,0 +1,23 @@
+# GUI-C-176 — local runs (no global input is sent by any of these tests)
+
+## IntegrationTests, filter BenchmarkRunnerServiceTests|ApiReferenceServiceTests|AutomationRunSelectionConsumptionTests
+  통과!  - 실패:     0, 통과:    19, 건너뜀:     0, 전체:    19, 기간: 77 ms - ImageProcTest.IntegrationTests.dll (net8.0)
+
+## IntegrationTests, Category=Functional (all)
+  건너뜀 ImageProcTest.IntegrationTests.Functional.ErrorCodeMappingTests.ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback(code: NOT_IMPLEMENTED) [< 1 ms]
+  통과!  - 실패:     0, 통과:   195, 건너뜀:     1, 전체:   196, 기간: 718 ms - ImageProcTest.IntegrationTests.dll (net8.0)
+
+## E2ETests, A04|A05|A11|A14
+  통과!  - 실패:     0, 통과:     4, 건너뜀:     0, 전체:     4, 기간: 58 s - ImageProcTest.E2ETests.dll (net8.0)
+
+## E2ETests, A14 with a temporary build/ci-post/CTestTestfile.cmake marker (removed afterwards)
+  통과!  - 실패:     0, 통과:     1, 건너뜀:     0, 전체:     1, 기간: 14 s - ImageProcTest.E2ETests.dll (net8.0)
+
+## E2ETests, the whole AutomationReportBackendTests class
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A03_TheWiredCommands_ReportWhatTheyDid [< 1 ms]
+  통과!  - 실패:     0, 통과:    13, 건너뜀:     1, 전체:    14, 기간: 4 m 20 s - ImageProcTest.E2ETests.dll (net8.0)
+
+## A14 report fields, no build tree (the branch a CI job takes)
+  BenchmarkStatus = Benchmark runner is not built: build/ci-post has no CTestTestfile.cmake. Build it first: 'cmake --preset ci-post' and then 'cmake --build --preset ci-post --parallel' (see .github/workflows/benchmark-regression.yml).
+  BenchmarkPassed = null ; BenchmarkLaunchSuppressed = false
+  DisabledFutureCommandCount = 6 ; UnimplementedMenuLeafCount = 6 ; SelfCheckPassed = true ; GuiE2EPassed = true

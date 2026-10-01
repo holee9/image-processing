@@ -430,8 +430,8 @@
                 <MenuItem x:Name="BenchmarkRunnerMenuItem"
                           AutomationProperties.AutomationId="BenchmarkRunnerMenuItem"
                           Header="_Benchmark Runner (Phase 1a+)"
-                          IsEnabled="False"
-                          ToolTip="Requires benchmark manifests and native module execution." />
+                          Command="{Binding RunBenchmarkCommand}"
+                          ToolTip="Run CI's benchmark freeze tests with ctest and show its exit code and summary. Needs the repository and a build of the ci-post preset; says how to build it when there is none." />
                 <MenuItem x:Name="QaConstancyMenuItem"
                           AutomationProperties.AutomationId="QaConstancyMenuItem"
                           Header="_QA Constancy (Phase 1b+)"

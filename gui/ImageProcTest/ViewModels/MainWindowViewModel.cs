@@ -79,6 +79,9 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _showPipelineDiagnostics;
     private string? _lastApiReferencePath;
     private bool _apiReferenceLaunchSuppressed;
+    private bool _benchmarkRunning;
+    private bool? _benchmarkPassed;
+    private bool _benchmarkLaunchSuppressed;
     private readonly object _telemetryLock = new();
 
     /// <summary>
@@ -135,6 +138,7 @@ public sealed class MainWindowViewModel : ObservableObject
         ShowStageTimingCommand = new RelayCommand(ShowStageTiming);
         RunSelfCheckCommand = new RelayCommand(() => _ = RunSelfCheckAsync());
         RunGuiE2ECommand = new RelayCommand(() => _ = RunGuiE2EAsync());
+        RunBenchmarkCommand = new RelayCommand(() => _ = RunBenchmarkAsync());
         LoadRecentRawFileCommand = new RelayCommand<string>(path => _ = LoadRecentRawFileAsync(path));
         // Seeded from the persisted settings: the history exists before this process does (#225 row 1).
         RefreshRecentRawFiles();
@@ -441,6 +445,9 @@ public sealed class MainWindowViewModel : ObservableObject
 
     /// <summary>#225 row 16: runs the GUI E2E runner and reports its verdict.</summary>
     public RelayCommand RunGuiE2ECommand { get; }
+
+    /// <summary>#225 row 17: runs CI's benchmark freeze tests through ctest and shows ctest's own verdict.</summary>
+    public RelayCommand RunBenchmarkCommand { get; }
 
     /// <summary>#225 row 5: writes the in-memory runtime log to a file under this run set's evidence.</summary>
     public RelayCommand ExportRuntimeLogsCommand { get; }
@@ -1377,6 +1384,77 @@ public sealed class MainWindowViewModel : ObservableObject
     }
 
     /// <summary>
+    /// #225 row 17 (GUI-C-176): runs the benchmark freeze tests the way CI does, or says why it cannot.
+    ///
+    /// <para><b>Same executor as rows 15 and 16.</b> The process is started by ExecuteRunnerAsync, the method
+    /// <c>RunConsoleRunnerAsync</c> hands over to, so the status line, the log, the exit-code rule and the
+    /// failure shape are theirs and not a copy (<c>BenchmarkRunnerServiceTests</c> asserts the coupling). That
+    /// executor has no cancellation, so neither does this command; Stop Processing stops a render, not this run.</para>
+    ///
+    /// <para><b>What the verdict is.</b> ctest's exit code and its summary, as printed. The 3000 ms budget and
+    /// every other number are asserted by the tests themselves; a second copy of them here would give the GUI
+    /// a pass criterion that can disagree with CI's. The tests and the pattern are CI's
+    /// (<see cref="BenchmarkRunnerService.TestPattern"/>).</para>
+    ///
+    /// <para><b>No build tree is a state, not a failure.</b> It answers "not built" with how to build, starts
+    /// nothing, and leaves <see cref="BenchmarkPassed"/> null, which is "did not run" (as for the runners).
+    /// Under automation everything except the launch runs: a CI machine must not start a multi-minute native
+    /// benchmark because a check clicked a menu, and the suppression is recorded (as for rows 14 and 20).</para>
+    /// </summary>
+    private async Task RunBenchmarkAsync()
+    {
+        if (BenchmarkRunning)
+        {
+            StatusText = "Benchmark runner is already running.";
+            return;
+        }
+
+        BenchmarkRunning = true;
+        BenchmarkPassed = null;
+        try
+        {
+            string repositoryRoot;
+            try
+            {
+                repositoryRoot = GuiFixtureManifestService.FindRepositoryRoot(AppContext.BaseDirectory);
+            }
+            catch (InvalidOperationException ex)
+            {
+                StatusText = "Benchmark runner needs the repository; this build is not running from a checkout.";
+                Log($"Benchmark runner not run: {ex.Message}");
+                return;
+            }
+
+            var plan = BenchmarkRunnerService.Resolve(repositoryRoot);
+            if (!plan.IsReady)
+            {
+                StatusText = plan.Message;
+                Log(plan.Message);
+                return;
+            }
+
+            if (App.IsAutomationMode)
+            {
+                BenchmarkLaunchSuppressed = true;
+                StatusText = $"{plan.Message} (launch suppressed under automation)";
+                Log(StatusText);
+                return;
+            }
+
+            var verdict = await ExecuteRunnerAsync("Benchmark runner", "ctest", plan.Arguments,
+                repositoryRoot, BenchmarkRunnerService.Summarize);
+            if (verdict.HasValue)
+            {
+                BenchmarkPassed = verdict;
+            }
+        }
+        finally
+        {
+            BenchmarkRunning = false;
+        }
+    }
+
+    /// <summary>
     /// Resolves a console runner, runs it off the UI thread, and writes the verdict to the status bar.
     /// Returns the verdict, or null when the runner could not be reached at all (no checkout, not built)
     /// — that is "did not run", which is not the same as a failure and must not be recorded as one.
@@ -1417,16 +1495,31 @@ public sealed class MainWindowViewModel : ObservableObject
             return null;
         }
 
+        return await ExecuteRunnerAsync(label, exePath, arguments: null, workingDirectory: null, summarize: null);
+    }
+
+    /// <summary>
+    /// The one place a runner process is started and its verdict written (#225 rows 15, 16 and 17). Rows 15 and
+    /// 16 reach it through <c>RunConsoleRunnerAsync</c>, which finds their executable; row 17 reaches it directly
+    /// because its executable is ctest, found on PATH, and what must exist is a build tree.
+    /// <paramref name="summarize"/> picks the line the verdict quotes from stdout; null keeps the choice the
+    /// self-check and E2E runners were measured with (GUI-C-158).
+    /// </summary>
+    private async Task<bool?> ExecuteRunnerAsync(
+        string label, string exePath, IReadOnlyList<string>? arguments, string? workingDirectory,
+        Func<string, string?>? summarize)
+    {
         StatusText = $"Running {label}…";
         Log($"{label} started: '{exePath}'.");
 
         try
         {
-            var (exitCode, lastLine, elapsedMs) = await Task.Run(() => RunProcess(exePath));
+            var (exitCode, lastLine, elapsedMs) =
+                await Task.Run(() => RunProcess(exePath, arguments, workingDirectory, summarize));
 
             // == 0 and nothing else. See the command's remarks: failure is an exception code.
             StatusText = exitCode == 0
-                ? $"{label} passed in {elapsedMs:0} ms."
+                ? $"{label} passed in {elapsedMs:0} ms." + (summarize is null ? string.Empty : $" Exit 0. {lastLine}")
                 : $"{label} FAILED (exit {exitCode}): {lastLine}";
             Log($"{label} finished: exit={exitCode}, {elapsedMs:0} ms, reported line: {lastLine}");
             return exitCode == 0;
@@ -1439,16 +1532,24 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
-    private static (int ExitCode, string LastLine, double ElapsedMs) RunProcess(string exePath)
+    private static (int ExitCode, string LastLine, double ElapsedMs) RunProcess(
+        string exePath, IReadOnlyList<string>? arguments = null, string? workingDirectory = null,
+        Func<string, string?>? summarize = null)
     {
         var start = new System.Diagnostics.ProcessStartInfo(exePath)
         {
-            WorkingDirectory = Path.GetDirectoryName(exePath)!,
+            WorkingDirectory = workingDirectory ?? Path.GetDirectoryName(exePath)!,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
         };
+
+        // An argument list, never a command line: nothing is parsed by a shell, so a pattern with '|' stays one argument.
+        foreach (var argument in arguments ?? Array.Empty<string>())
+        {
+            start.ArgumentList.Add(argument);
+        }
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         using var process = System.Diagnostics.Process.Start(start)
@@ -1464,11 +1565,13 @@ public sealed class MainWindowViewModel : ObservableObject
         // first attempt reported the LAST line and produced "at Program...line 62" — true, and useless.
         // The reason is the FIRST stderr line; on success there is no stderr and the runner's verdict
         // is the last stdout line.
-        var reported = string.IsNullOrWhiteSpace(stderr)
+        var fallback = string.IsNullOrWhiteSpace(stderr)
             ? stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries)
                 .Select(line => line.Trim()).LastOrDefault(line => line.Length > 0)
             : stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries)
                 .Select(line => line.Trim()).FirstOrDefault(line => line.Length > 0);
+
+        var reported = summarize?.Invoke(stdout) ?? fallback;
 
         return (process.ExitCode, reported ?? "(no output)", stopwatch.Elapsed.TotalMilliseconds);
     }
@@ -1485,6 +1588,27 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         get => _selfCheckPassed;
         private set => SetProperty(ref _selfCheckPassed, value);
+    }
+
+    /// <summary>True while the benchmark ctest process is running (#225 row 17).</summary>
+    public bool BenchmarkRunning
+    {
+        get => _benchmarkRunning;
+        private set => SetProperty(ref _benchmarkRunning, value);
+    }
+
+    /// <summary>ctest's verdict of the last benchmark run; null before one has finished, and when nothing ran (#225 row 17).</summary>
+    public bool? BenchmarkPassed
+    {
+        get => _benchmarkPassed;
+        private set => SetProperty(ref _benchmarkPassed, value);
+    }
+
+    /// <summary>True when a run skipped the ctest launch because it is an automation run (#225 row 17).</summary>
+    public bool BenchmarkLaunchSuppressed
+    {
+        get => _benchmarkLaunchSuppressed;
+        private set => SetProperty(ref _benchmarkLaunchSuppressed, value);
     }
 
     /// <summary>True while the GUI E2E child process is running (#225 row 16).</summary>

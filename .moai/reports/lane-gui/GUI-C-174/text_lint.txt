@@ -1,0 +1,3 @@
+# GUI-C-174 — tools/ci/Test-TrackedTextFiles.ps1 on this card's files (report.md, ci_evidence.txt), throwaway repo, no pipe
+output: see exit code below
+exit code: 0 (Tracked text file validation passed.)

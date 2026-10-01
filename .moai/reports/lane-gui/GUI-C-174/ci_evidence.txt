@@ -1,0 +1,28 @@
+# GUI-C-174 — CI evidence, run 36838242699 (dev/gui 2a485aaf), excerpts from the TRX artifacts
+
+artifacts: xpe-gui-e2e-smoke-results (11150730667), xpe-gui-e2e-native-results (11151299841)
+
+jobs: gui-automation success 08:45:03->08:55:00 ; gui-e2e-native success 08:55:50->09:19:48 ; run conclusion success
+
+## mock: outcomes {'NotExecuted': 34, 'Passed': 145}  total=179
+  R01_TheViewMenu_OpensWithARealMouseClick  outcome=Passed
+      R01 expanded before the click, closed through UI Automation: (nothing)
+      R01 before the click: the app was already the foreground window
+      R01 item after the click: present
+      R01: 1485 ms
+  R02_RealKeystrokes_EditTheVoiBox_AndARealTabMovesOn  outcome=Passed
+      R02 after typing: box='4321' indicator='STALE — display parameters changed since this image was rendered. Apply the display pipeline to update it.'
+      R02: 5104 ms
+
+## native: outcomes {'Passed': 179}  total=179
+  R01_TheViewMenu_OpensWithARealMouseClick  outcome=Passed
+      R01 expanded before the click, closed through UI Automation: (nothing)
+      R01 before the click: the app was already the foreground window
+      R01 item after the click: present
+      R01: 2095 ms
+  R02_RealKeystrokes_EditTheVoiBox_AndARealTabMovesOn  outcome=Passed
+      R02 after typing: box='4321' indicator='STALE — display parameters changed since this image was rendered. Apply the display pipeline to update it.'
+      R02: 5867 ms
+
+previous run 36834211832 (17fd7f01), Mock TRX, same line:
+      R01 expanded before the click, closed through UI Automation: ComboBox:BodyPartSelector
