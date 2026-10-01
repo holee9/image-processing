@@ -1,0 +1,145 @@
+# QA-B-181e item 4: do the 181d finiteness checks survive in the shipped /fp:fast code?
+Method: the same compile command ninja uses for xpe_enhance_basic (cl /O2 /Ob1 /arch:AVX2 /fp:fast ...), plus /FAs, for noise_reduce.cpp, edge_enhance.cpp, contrast_enhance.cpp; and the same with /fp:precise.
+ninja command line: C:\PROGRA~1\MICROS~1\2022\PROFES~1\VC\Tools\MSVC\1444~1.352\bin\Hostx64\x64\cl.exe  /nologo /TP -DFMT_SHARED -DSPDLOG_COMPILED_LIB -DSPDLOG_SHARED_LIB -DXPE_DLL_EXPORT -Dxpe_enhance_basic_EXPORTS -ID:\workspace-github\xpe-post\modules\enhance_basic\include -ID:\workspace-github\xpe-post\modules\comm...
+
+## calls to the CRT classifier (std::isfinite / std::isnan compile to call _fdclass) per translation unit
+  /fp:fast noise_reduce: call _fdclass = 3
+  /fp:fast edge_enhance: call _fdclass = 4
+  /fp:fast contrast_enhance: call _fdclass = 2
+  /fp:precise noise_reduce: call _fdclass = 3
+  /fp:precise edge_enhance: call _fdclass = 4
+  /fp:precise contrast_enhance: call _fdclass = 2
+
+## /fp:fast noise_reduce.cpp, the bilateral parameter check (source lines 328): each float goes through _fdclass; class > 0 (NaN=2, infinity=1) is refused, then the range test
+	jne	SHORT $LN4@xpe_noise_
+
+; 328  :             params->sigma_space <= 0.0f || params->sigma_range <= 0.0f) {
+
+	vmovss	xmm6, DWORD PTR [rdi+4]
+; File C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_math.h
+
+; 317  :         return _fdtest(&_X);
+
+	vmovaps	xmm0, xmm6
+	call	_fdclass
+; File D:\workspace-github\xpe-post\modules\enhance_basic\src\noise_reduce.cpp
+
+; 328  :             params->sigma_space <= 0.0f || params->sigma_range <= 0.0f) {
+
+	test	ax, ax
+	jg	SHORT $LN8@xpe_noise_
+	vmovss	xmm7, DWORD PTR [rdi+8]
+; File C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_math.h
+
+; 317  :         return _fdtest(&_X);
+
+	vmovaps	xmm0, xmm7
+	call	_fdclass
+; File D:\workspace-github\xpe-post\modules\enhance_basic\src\noise_reduce.cpp
+
+; 328  :             params->sigma_space <= 0.0f || params->sigma_range <= 0.0f) {
+
+	test	ax, ax
+	jg	SHORT $LN8@xpe_noise_
+	vxorps	xmm0, xmm0, xmm0
+	vcomiss	xmm6, xmm0
+	jbe	SHORT $LN8@xpe_noise_
+	vcomiss	xmm7, xmm0
+	jbe	SHORT $LN8@xpe_noise_
+
+; 329  :             return XPE_ERR_INVALID_INPUT;
+
+## /fp:fast edge_enhance.cpp, source lines 82-83 (amount, radius)
+	mov	QWORD PTR tv6351[rbp], r12
+
+; 82   :     if (!std::isfinite(p->amount) || p->amount < 0.0f || p->amount > 5.0f) return XPE_ERR_INVALID_INPUT;
+
+	vmovss	xmm6, DWORD PTR [r12]
+; File C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_math.h
+
+; 317  :         return _fdtest(&_X);
+
+	vmovaps	xmm0, xmm6
+	call	_fdclass
+; File D:\workspace-github\xpe-post\modules\enhance_basic\src\edge_enhance.cpp
+
+; 82   :     if (!std::isfinite(p->amount) || p->amount < 0.0f || p->amount > 5.0f) return XPE_ERR_INVALID_INPUT;
+
+	test	ax, ax
+	jg	$LN27@xpe_edge_e
+	vxorps	xmm7, xmm7, xmm7
+	vcomiss	xmm6, xmm7
+	jb	$LN27@xpe_edge_e
+	vcomiss	xmm6, DWORD PTR __real@40a00000
+	ja	$LN27@xpe_edge_e
+
+; 83   :     if (!std::isfinite(p->radius) || p->radius < 0.5f || p->radius > 10.0f) return XPE_ERR_INVALID_INPUT;
+
+	vmovss	xmm6, DWORD PTR [r12+4]
+; File C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_math.h
+
+; 317  :         return _fdtest(&_X);
+
+## /fp:fast contrast_enhance.cpp, the clip_limit check
+	mov	QWORD PTR p$1$[rsp], rax
+
+; 150  :     if (!std::isfinite(p->clip_limit) || p->clip_limit < 1.0f) return XPE_ERR_INVALID_INPUT;
+
+	vmovss	xmm6, DWORD PTR [rax]
+; File C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_math.h
+
+; 317  :         return _fdtest(&_X);
+
+	vmovaps	xmm0, xmm6
+	call	_fdclass
+; File D:\workspace-github\xpe-post\modules\enhance_basic\src\contrast_enhance.cpp
+
+; 150  :     if (!std::isfinite(p->clip_limit) || p->clip_limit < 1.0f) return XPE_ERR_INVALID_INPUT;
+
+	test	ax, ax
+	jg	$LN18@xpe_contra
+	vcomiss	xmm6, DWORD PTR __real@3f800000
+	jb	$LN18@xpe_contra
+
+## why /fp:fast refuses NaN by accident: how the ordinary comparison is compiled
+/fp:fast    s <= 0  ->  vcomiss s,0 ; jbe reject   (an unordered compare sets CF=ZF=PF=1, so jbe, which jumps on CF or ZF, rejects NaN)
+/fp:precise s <= 0  ->  vcomiss 0,s ; jae reject   (operands swapped; jae needs CF=0 and NaN sets CF=1, so NaN is NOT rejected -- the _fdclass test above it is the only thing that stops it)
+
+### /fp:precise noise_reduce.cpp, same source line
+; File D:\workspace-github\xpe-post\modules\enhance_basic\src\noise_reduce.cpp
+
+; 328  :             params->sigma_space <= 0.0f || params->sigma_range <= 0.0f) {
+
+	test	ax, ax
+	jg	SHORT $LN8@xpe_noise_
+; File C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_math.h
+
+; 317  :         return _fdtest(&_X);
+
+	vmovss	xmm0, DWORD PTR [rdi+8]
+	call	_fdclass
+; File D:\workspace-github\xpe-post\modules\enhance_basic\src\noise_reduce.cpp
+
+; 328  :             params->sigma_space <= 0.0f || params->sigma_range <= 0.0f) {
+
+	test	ax, ax
+	jg	SHORT $LN8@xpe_noise_
+	vxorps	xmm0, xmm0, xmm0
+	vcomiss	xmm0, DWORD PTR [rdi+4]
+	jae	SHORT $LN8@xpe_noise_
+	vcomiss	xmm0, DWORD PTR [rdi+8]
+	jae	SHORT $LN8@xpe_noise_
+
+; 329  :             return XPE_ERR_INVALID_INPUT;
+; 330  :         }
+; 331  :         return apply_bilateral(img, params->sigma_space, params->sigma_range);
+
+	vmovss	xmm2, DWORD PTR [rdi+8]
+	vmovss	xmm1, DWORD PTR [rdi+4]
+	mov	rcx, rbx
+
+; 348  : }
+
+	mov	rbx, QWORD PTR [rsp+48]
+	add	rsp, 32					; 00000020H
+	pop	rdi

@@ -552,6 +552,10 @@ TEST(ExceptionGuard, BilateralRefusesANonFiniteSpatialSigmaBeforeConvertingIt) {
 
 TEST(ExceptionGuard, BilateralRefusesANaNRangeSigma) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunBilateral(3.0f, kNaN).rc);
+    // +infinity is the input that tells the finiteness test apart from the range test in the SHIPPED /fp:fast build:
+    // `sigma_range <= 0` is false for +inf in either floating-point mode, while /fp:fast happens to refuse NaN
+    // through that same comparison (QA-B-181e: the compiled compare is `jbe`, and NaN sets CF).
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunBilateral(3.0f, kInf).rc) << "sigma_range=+inf";
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunBilateral(3.0f, -kInf).rc);
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunBilateral(3.0f, 0.0f).rc);
 }

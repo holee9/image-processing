@@ -1,0 +1,3 @@
+baseline (finiteness check present), /fp:fast: build_ok=True red_tests=0
+sigma_range finiteness check removed, /fp:fast: build_ok=True red_tests=1
+    ExceptionGuard.BilateralRefusesANaNRangeSigma

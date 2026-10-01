@@ -1,0 +1,6 @@
+sigma_range=+inf
+[  FAILED  ] ExceptionGuard.BilateralRefusesANaNRangeSigma (0 ms)
+[  PASSED  ] 23 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ExceptionGuard.BilateralRefusesANaNRangeSigma
+ 1 FAILED TEST
