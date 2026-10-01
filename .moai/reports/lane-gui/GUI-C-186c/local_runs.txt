@@ -1,7 +1,7 @@
 GUI-C-186c local runs (this tree: dev/gui on f6c32817 plus the working-tree changes of this card)
 
-[gui/ImageProcTest.slnx] dotnet build -c Debug: exit=0, error CS=0,  경고 12개  오류 0개 
-[clients/ImageProcTest.slnx] dotnet build -c Debug: exit=0, error CS=0,  경고 1개  오류 0개 
+[gui/ImageProcTest.slnx] dotnet build -c Debug: exit=0, error CS=0,  경고 12개  오류 0개
+[clients/ImageProcTest.slnx] dotnet build -c Debug: exit=0, error CS=0,  경고 1개  오류 0개
 
 [new tests only] AiStatusRefresherTests:
 통과!  - 실패:     0, 통과:    11, 건너뜀:     0, 전체:    11, 기간: 104 ms - ImageProcTest.IntegrationTests.dll (net8.0)

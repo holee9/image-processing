@@ -50,7 +50,10 @@ foreach ($relativePath in $trackedFiles) {
     $checkTrailingWhitespace = $extensionsWithWhitespaceCheck -contains $extension -or $fileName -eq 'CMakeLists.txt'
     $checkControlChars = $extensionsWithControlCharCheck -contains $extension -or $fileName -eq 'CMakeLists.txt'
 
-    $lines = @(Get-Content -LiteralPath $fullPath)
+    # Read as UTF-8 explicitly. Windows PowerShell 5.1 otherwise decodes a BOM-less file with the ANSI code page
+    # (cp949 here), where the bytes of a Korean character can swallow a following space, so a trailing space after
+    # Korean text passed locally and failed in CI under PowerShell 7 (UTF-8 by default).
+    $lines = @(Get-Content -LiteralPath $fullPath -Encoding UTF8)
     for ($index = 0; $index -lt $lines.Count; $index++) {
         $lineNumber = $index + 1
         $line = $lines[$index]
