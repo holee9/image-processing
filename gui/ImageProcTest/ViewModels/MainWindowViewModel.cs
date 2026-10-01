@@ -2379,6 +2379,12 @@ public sealed class MainWindowViewModel : ObservableObject
                 return; // the lanes' wait outlived the backend: the timing line below would describe a render that was dropped
             }
 
+            // GUI-C-191: the Candidate lane's chain runs the AI stage too (it is the same chain with the lane's overrides), so it is a
+            // SECOND call into the AI session for one Apply, and it ends after the status read ReportChain asked for. A worker switched
+            // off by that call showed nothing until the next Apply. Asked again here, after the lanes: the read is coalesced, so an
+            // Apply whose lanes made no AI call costs one more read of a state that did not change.
+            RefreshAiWorkerStatus();
+
             PipelineTimings = string.Join("; ", new[]
             {
                 $"work={workMs:0} ms",
