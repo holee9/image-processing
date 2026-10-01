@@ -102,7 +102,12 @@ private:
     XpeErrorCode StartLocked();
     /** True when the worker process has ended; records how, and releases it. */
     bool ReapIfExitedLocked();
-    void KillLocked();
+    /**
+     * Terminate the worker and CONFIRM it ended (wait succeeded, exit code read). Returns false when
+     * it could not be confirmed: the handle is then kept, `pending_kill_` is set, and no new worker
+     * may be started beside one that might still be running.
+     */
+    bool KillLocked();
     void ReleaseLocked();
     void DropIfBridgeDownLocked();
 
@@ -115,6 +120,8 @@ private:
     uint32_t pid_ = 0;
     uint32_t start_count_ = 0;
     bool shutdown_requested_ = false;
+    /** A kill was attempted but the worker's end was not confirmed: do not start another. */
+    bool pending_kill_ = false;
     WorkerExitInfo last_exit_;
     std::vector<uint32_t> started_pids_;
 };

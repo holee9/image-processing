@@ -724,3 +724,38 @@ TEST(IpcDeadline, ControlAWorkersOwnErrorFrameKeepsTheConnection) {
     EXPECT_EQ(XPE_ERR_IO_FAILED, xpe_ai_ipc_bridge_bone_suppress(c.b, 3, 3, kIn3x3, out));
     EXPECT_EQ(XPE_OK, SecondSend(c.b)) << "an error FRAME is a healthy answer; the connection stays";
 }
+
+// --- Codex audit #11 (med): an ERROR frame the bridge cannot read is not a healthy answer ------------
+//
+// A worker's ERROR frame keeps the connection only when it carries a usable error code. A frame with
+// no code, a code that is not a number, or one outside the range the XPE_ERR_* codes occupy is a
+// worker speaking garbage; the stream may be fine, but nothing else it says can be trusted.
+
+namespace {
+void ExpectErrorFrameDrops(const char* body_text, const char* what) {
+    FakeWorker fw(ServeOnce([body_text](FakeWorker& w, uint32_t id) {
+        const std::string body = body_text;
+        ReplyFrame(w, XPE_AI_MSG_ERROR, id, 0, std::vector<char>(body.begin(), body.end()));
+    }));
+    ASSERT_TRUE(fw.ok());
+    Client c(fw, 2000);
+    ASSERT_NE(nullptr, c.b);
+    float out[9];
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, xpe_ai_ipc_bridge_bone_suppress(c.b, 3, 3, kIn3x3, out))
+        << what;
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, SecondSend(c.b)) << what << ": the connection was kept";
+}
+}  // namespace
+
+TEST(IpcDeadline, AnErrorFrameWithNoCodeDropsTheConnection) {
+    ExpectErrorFrameDrops("{}", "empty object");
+}
+TEST(IpcDeadline, AnErrorFrameWithANonNumericCodeDropsTheConnection) {
+    ExpectErrorFrameDrops("{\"error_code\":\"bad\"}", "string code");
+}
+TEST(IpcDeadline, AnErrorFrameWithACodeOutsideTheErrorRangeDropsTheConnection) {
+    ExpectErrorFrameDrops("{\"error_code\":0}", "zero is success, not an error");
+    ExpectErrorFrameDrops("{\"error_code\":5}", "positive");
+    ExpectErrorFrameDrops("{\"error_code\":-100000}", "far outside the XPE_ERR_* range");
+    ExpectErrorFrameDrops("{\"error_code\":-9.5}", "not an integer");
+}

@@ -384,3 +384,79 @@ TEST(WorkerSupervisor, BaselineWithoutASupervisorAStalledWorkerStaysAliveAndTheB
     CloseHandle(pi.hThread);
     CloseHandle(pi.hProcess);
 }
+
+// --- Codex audit #11 --------------------------------------------------------------------------
+
+#ifdef XPE_AI_FAKE_WORKER_EXE
+namespace {
+
+/** Sets XPE_FAKE_WORKER_MODE for the workers a supervisor starts, and clears it afterwards. */
+class FakeMode {
+public:
+    explicit FakeMode(const char* mode) { _putenv_s("XPE_FAKE_WORKER_MODE", mode); }
+    ~FakeMode() { _putenv_s("XPE_FAKE_WORKER_MODE", ""); }
+};
+
+WorkerSupervisorConfig FakeCfg() {
+    WorkerSupervisorConfig c;
+    c.worker_exe = XPE_AI_FAKE_WORKER_EXE;
+    c.timeout_ms = kBudgetMs;
+    return c;
+}
+
+}  // namespace
+
+TEST(WorkerSupervisor, ControlTheFakeWorkerInOkModeBehavesLikeTheRealOne) {
+    // Without this, the two tests below could be red for a reason that has nothing to do with
+    // the supervisor: a fake worker that cannot even start or be pinged.
+    FakeMode m("ok");
+    WorkerSupervisor sup(FakeCfg());
+    ASSERT_EQ(XPE_OK, sup.Ping());
+    const uint32_t pid = sup.WorkerPid();
+    ASSERT_EQ(XPE_OK, sup.Ping());
+    EXPECT_EQ(pid, sup.WorkerPid());
+    EXPECT_EQ(1u, sup.StartCount());
+}
+
+TEST(WorkerSupervisor, AHeartbeatAnswerOfTheWrongTypeDiscardsTheWorker) {
+    // The answer is a complete frame, so the bridge keeps its connection; only the supervisor can
+    // see that it is not an answer to a heartbeat. A worker that answers nonsense is not healthy.
+    FakeMode m("wrong_type");
+    WorkerSupervisor sup(FakeCfg());
+    EXPECT_NE(XPE_OK, sup.Ping());
+    const uint32_t first = sup.LastExit().pid;   // the worker that was discarded, if any
+    EXPECT_EQ(0u, sup.WorkerPid()) << "a worker that gave a wrong answer was kept";
+    EXPECT_EQ(WorkerExit::kKilled, sup.LastExit().kind);
+    EXPECT_NE(XPE_OK, sup.Ping());               // same mode, so it fails again...
+    EXPECT_EQ(2u, sup.StartCount()) << "...but on a fresh worker, not the one that answered wrongly";
+    EXPECT_NE(first, sup.LastExit().pid);
+}
+
+TEST(WorkerSupervisor, AHeartbeatAnswerToSomeoneElsesRequestDiscardsTheWorker) {
+    FakeMode m("wrong_id");
+    WorkerSupervisor sup(FakeCfg());
+    EXPECT_NE(XPE_OK, sup.Ping());
+    EXPECT_EQ(0u, sup.WorkerPid());
+    EXPECT_EQ(WorkerExit::kKilled, sup.LastExit().kind);
+    EXPECT_NE(XPE_OK, sup.Ping());
+    EXPECT_EQ(2u, sup.StartCount());
+}
+#endif  // XPE_AI_FAKE_WORKER_EXE
+
+TEST(WorkerSupervisor, StopAfterAnUnnoticedExitRecordsADeathNotAKill) {
+    // The worker ended on its own with code 0 and nothing has called the supervisor since. Stop()
+    // must look at the handle first: it did not terminate this worker, so it must not say it did.
+    WorkerSupervisor sup(Cfg(kBudgetMs));
+    ASSERT_EQ(XPE_OK, sup.Ping());
+    const uint32_t pid = sup.WorkerPid();
+    Proc p(pid);
+    ASSERT_TRUE(p.opened());
+    p.Kill(0);
+
+    sup.Stop();
+
+    const auto last = sup.LastExit();
+    EXPECT_EQ(WorkerExit::kDied, last.kind) << "an exit nobody asked for was recorded as a kill";
+    EXPECT_EQ(pid, last.pid);
+    EXPECT_EQ(0u, last.exit_code);
+}

@@ -154,6 +154,33 @@ void DropConnection(XpeAiIpcBridge* bridge) {
     bridge->connected = false;
 }
 
+/**
+ * Read `"error_code":<integer>` from a worker's ERROR frame. Accepts only a plain integer in
+ * [-99, -1]: the XPE_ERR_* codes are -1 .. -17 today, and the margin keeps a future code from being
+ * mistaken for garbage. Anything else (missing key, a string, 0, a positive, trailing junk in the
+ * number, out of range) is rejected.
+ */
+bool ParseErrorCode(const std::string& body, int* out) {
+    static const char kKey[] = "\"error_code\":";
+    const size_t at = body.find(kKey);
+    if (at == std::string::npos) return false;
+    const char* p = body.c_str() + at + sizeof(kKey) - 1;
+    while (*p == ' ') ++p;
+    if (*p != '-') return false;   // every error code is negative
+    ++p;
+    if (*p < '0' || *p > '9') return false;
+    long value = 0;
+    for (; *p >= '0' && *p <= '9'; ++p) {
+        value = value * 10 + (*p - '0');
+        if (value > 99) return false;
+    }
+    if (value < 1) return false;
+    while (*p == ' ') ++p;
+    if (*p != ',' && *p != '}' && *p != '\0') return false;   // "-9.5", "-9abc": not an integer
+    *out = static_cast<int>(-value);
+    return true;
+}
+
 ULONGLONG DeadlineFor(const XpeAiIpcBridge* bridge) {
     return GetTickCount64() + bridge->timeout_ms;
 }
@@ -474,15 +501,18 @@ XpeErrorCode xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge,
     }
 
     if (rh.messageType == XPE_AI_MSG_ERROR) {
-        // The worker's own code, verbatim. A frame without a usable code is a
-        // failure of unknown kind, never a success.
+        // The worker's own code, verbatim -- but only a code that parses as a number in the range
+        // the XPE_ERR_* codes occupy. An ERROR frame with no code, a code that is not a number,
+        // zero (success) or a value outside that range is a worker speaking garbage: the answer is
+        // a failure of unknown kind (never a success) and the connection is dropped, because
+        // nothing else this worker says can be trusted either (Codex audit #11).
         const std::string body(reinterpret_cast<const char*>(reply.data()), rh.payloadSize);
-        const size_t at = body.find("\"error_code\":");
-        if (at == std::string::npos) {
+        int code = 0;
+        if (!ParseErrorCode(body, &code)) {
+            DropConnection(bridge);
             return XPE_ERR_PROCESSING_FAILED;
         }
-        const int code = std::atoi(body.c_str() + at + std::strlen("\"error_code\":"));
-        return code == XPE_OK ? XPE_ERR_PROCESSING_FAILED : static_cast<XpeErrorCode>(code);
+        return static_cast<XpeErrorCode>(code);
     }
 
     if (rh.messageType != XPE_AI_MSG_BONE_SUPPRESS_RESP ||

@@ -2,6 +2,16 @@
  * @file ai_worker_supervisor.cpp
  * @brief Worker process supervision (QA-B-171B, #130). See ai_worker_supervisor.h for the policy.
  *
+ * Codex audit #11 shaped three rules that run through this file:
+ *   - a worker is not "gone" until its end is CONFIRMED (the wait succeeded and the exit code was
+ *     read); until then its handle is kept and no second worker is started beside it;
+ *   - a worker is not started "protected" unless every step that protects it succeeded: it is created
+ *     suspended and only resumed once it is inside a kill-on-close job;
+ *   - a worker that answers a request with something that is not the answer is not healthy, even if
+ *     the bytes were a well-formed frame.
+ * Win32 failures here cannot be injected from a test without a seam in product code, and none was
+ * added: those paths are justified by reading, and the report says so.
+ *
  * @ingroup xpe_ai
  */
 
@@ -34,7 +44,7 @@ namespace {
 
 /** How long a worker that was asked to exit gets before it is terminated. */
 constexpr uint32_t kShutdownGraceMs = 3000;
-/** How long to wait for a terminated process to be gone. */
+/** How long to wait for a terminated process to be confirmed gone. */
 constexpr DWORD kKillWaitMs = 3000;
 /** How long a broken pipe is given to be followed by its process exiting. */
 constexpr DWORD kDeathSettleMs = 200;
@@ -67,6 +77,19 @@ std::string JsonEscape(const std::string& text) {
 
 std::atomic<uint32_t> g_request_id{1};
 std::atomic<uint32_t> g_pipe_serial{0};
+
+/**
+ * End a child that was created suspended and never got to run: terminate it and CONFIRM it ended
+ * before its handles are released. Returns false when that could not be confirmed (the caller
+ * then keeps the handle rather than leaking a process it cannot see).
+ */
+bool EndSuspendedChild(PROCESS_INFORMATION& pi) {
+    TerminateProcess(pi.hProcess, kSupervisorKillExitCode);
+    const bool confirmed = WaitForSingleObject(pi.hProcess, kKillWaitMs) == WAIT_OBJECT_0;
+    CloseHandle(pi.hThread);
+    if (confirmed) CloseHandle(pi.hProcess);
+    return confirmed;
+}
 
 }  // namespace
 
@@ -113,15 +136,18 @@ void WorkerSupervisor::ReleaseLocked() {
     }
     pid_ = 0;
     shutdown_requested_ = false;
+    pending_kill_ = false;
 }
 
 bool WorkerSupervisor::ReapIfExitedLocked() {
     if (!process_) return false;
     if (WaitForSingleObject(H(process_), 0) != WAIT_OBJECT_0) return false;
     DWORD code = 0;
-    GetExitCodeProcess(H(process_), &code);
-    // A worker exits by itself only after being told to. An exit nobody asked
-    // for is a death whatever its code; an asked-for exit is clean only at 0.
+    if (!GetExitCodeProcess(H(process_), &code)) {
+        code = 0xFFFFFFFFu;   // it ended, but its code could not be read: record that, not a guess
+    }
+    // A worker exits by itself only after being told to. An exit nobody asked for is a death
+    // whatever its code; an asked-for exit is clean only at 0.
     last_exit_.kind = (shutdown_requested_ && code == 0) ? WorkerExit::kClean : WorkerExit::kDied;
     last_exit_.pid = pid_;
     last_exit_.exit_code = code;
@@ -129,41 +155,58 @@ bool WorkerSupervisor::ReapIfExitedLocked() {
     return true;
 }
 
-void WorkerSupervisor::KillLocked() {
-    if (!process_) return;
-    TerminateProcess(H(process_), kSupervisorKillExitCode);
-    WaitForSingleObject(H(process_), kKillWaitMs);
+bool WorkerSupervisor::KillLocked() {
+    if (!process_) return true;
+
+    // A worker that is dying closes its pipe a moment BEFORE its process handle signals. Give it
+    // that moment, so a death is recorded as a death with its own exit code rather than as a kill
+    // this class made.
+    if (WaitForSingleObject(H(process_), kDeathSettleMs) == WAIT_OBJECT_0 && ReapIfExitedLocked()) {
+        return true;
+    }
+
+    const BOOL terminated = TerminateProcess(H(process_), kSupervisorKillExitCode);
+    const DWORD waited = WaitForSingleObject(H(process_), kKillWaitMs);
     DWORD code = 0;
-    GetExitCodeProcess(H(process_), &code);
-    last_exit_.kind = WorkerExit::kKilled;
+    if (waited != WAIT_OBJECT_0 || !GetExitCodeProcess(H(process_), &code)) {
+        // Not confirmed gone. Keep the handle, say so, and let nothing start a second worker
+        // beside one that may still be running. The bridge is no use either way.
+        pending_kill_ = true;
+        if (bridge_) {
+            xpe_ai_ipc_bridge_destroy(bridge_);
+            bridge_ = nullptr;
+        }
+        return false;
+    }
+    // If TerminateProcess itself failed but the process is gone anyway, it ended on its own.
+    last_exit_.kind = terminated ? WorkerExit::kKilled : WorkerExit::kDied;
     last_exit_.pid = pid_;
     last_exit_.exit_code = code;
     ReleaseLocked();
+    return true;
 }
 
 void WorkerSupervisor::DropIfBridgeDownLocked() {
-    // The bridge drops its connection after a timeout, a half transfer or a
-    // broken pipe (ai_ipc_bridge.cpp). A worker whose pipe is down cannot be
-    // trusted with the next request, and a stalled one is still running: kill it.
+    // The bridge drops its connection after a timeout, a half transfer or a broken pipe
+    // (ai_ipc_bridge.cpp). A worker whose pipe is down cannot be trusted with the next request,
+    // and a stalled one is still running: end it. If that cannot be confirmed, KillLocked leaves
+    // the pending state that EnsureRunningLocked refuses to start past.
     if (process_ && (!bridge_ || !bridge_->connected)) {
-        // A worker that is dying closes its pipe a moment BEFORE its process
-        // handle signals. Give it that moment, so a death is recorded as a
-        // death with its own exit code rather than as a kill this class made.
-        if (WaitForSingleObject(H(process_), kDeathSettleMs) == WAIT_OBJECT_0) {
-            ReapIfExitedLocked();
-        } else {
-            KillLocked();
-        }
+        KillLocked();
     }
 }
 
 XpeErrorCode WorkerSupervisor::StartLocked() {
     if (!job_) {
         job_ = CreateJobObjectA(nullptr, nullptr);
-        if (job_) {
-            JOBOBJECT_EXTENDED_LIMIT_INFORMATION info{};
-            info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-            SetInformationJobObject(H(job_), JobObjectExtendedLimitInformation, &info, sizeof(info));
+        if (!job_) return XPE_ERR_PROCESSING_FAILED;
+        JOBOBJECT_EXTENDED_LIMIT_INFORMATION info{};
+        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        if (!SetInformationJobObject(H(job_), JobObjectExtendedLimitInformation, &info,
+                                     sizeof(info))) {
+            CloseHandle(H(job_));
+            job_ = nullptr;
+            return XPE_ERR_PROCESSING_FAILED;
         }
     }
 
@@ -180,8 +223,17 @@ XpeErrorCode WorkerSupervisor::StartLocked() {
                         CREATE_NO_WINDOW | CREATE_SUSPENDED, nullptr, nullptr, &si, &pi)) {
         return XPE_ERR_IO_FAILED;
     }
-    if (job_) AssignProcessToJobObject(H(job_), pi.hProcess);   // best effort; Stop() still kills
-    ResumeThread(pi.hThread);
+    // Resume only when the process is inside the kill-on-close job. A worker that could outlive the
+    // host is not started: end the suspended child, confirm it, and report an explicit error.
+    if (!AssignProcessToJobObject(H(job_), pi.hProcess) || ResumeThread(pi.hThread) == 0xFFFFFFFFu) {
+        if (!EndSuspendedChild(pi)) {
+            // Could not confirm it ended: keep its handle and refuse to start anything else.
+            process_ = pi.hProcess;
+            pid_ = pi.dwProcessId;
+            pending_kill_ = true;
+        }
+        return XPE_ERR_PROCESSING_FAILED;
+    }
     CloseHandle(pi.hThread);
 
     process_ = pi.hProcess;
@@ -233,11 +285,15 @@ XpeErrorCode WorkerSupervisor::StartLocked() {
 }
 
 XpeErrorCode WorkerSupervisor::EnsureRunningLocked() {
-    if (process_) {
-        // Noticed BEFORE anything is sent: a worker that died between calls
-        // costs a fresh start, not a failed request.
-        if (!ReapIfExitedLocked()) {
-            DropIfBridgeDownLocked();
+    if (process_ && !ReapIfExitedLocked()) {
+        // Noticed BEFORE anything is sent: a worker that died between calls costs a fresh
+        // start, not a failed request. A worker still running whose pipe is down, or one whose
+        // earlier kill was never confirmed, has to be ended first.
+        if (pending_kill_ || !bridge_ || !bridge_->connected) {
+            if (!KillLocked()) {
+                // Do not start a second worker beside one that may still be running.
+                return XPE_ERR_PROCESSING_FAILED;
+            }
         }
     }
     if (process_) return XPE_OK;
@@ -259,7 +315,11 @@ XpeErrorCode WorkerSupervisor::Ping() {
         rc = xpe_ai_ipc_bridge_receive(bridge_, &rep, buf, sizeof(buf), &got);
     }
     if (rc == XPE_OK && (rep.messageType != XPE_AI_MSG_HEARTBEAT_ACK || rep.requestId != id)) {
-        rc = XPE_ERR_IO_FAILED;
+        // A complete, well-formed frame that is not the answer to a heartbeat: the bridge sees
+        // nothing wrong with the stream, but a worker that answers nonsense is not healthy.
+        // Discard it; the next call starts a fresh one.
+        KillLocked();
+        return XPE_ERR_IO_FAILED;
     }
     DropIfBridgeDownLocked();
     return rc;
@@ -271,8 +331,8 @@ XpeErrorCode WorkerSupervisor::BoneSuppress(uint32_t width, uint32_t height,
     XpeErrorCode rc = EnsureRunningLocked();
     if (rc != XPE_OK) return rc;
     rc = xpe_ai_ipc_bridge_bone_suppress(bridge_, width, height, pixels_in, pixels_out);
-    // An error frame from the worker leaves the bridge connected and the worker
-    // in place; a transport fault takes the bridge down and the worker with it.
+    // A worker's error frame leaves the bridge connected and the worker in place; a transport
+    // fault or a frame the bridge could not trust takes the bridge down and the worker with it.
     DropIfBridgeDownLocked();
     return rc;
 }
@@ -280,7 +340,10 @@ XpeErrorCode WorkerSupervisor::BoneSuppress(uint32_t width, uint32_t height,
 void WorkerSupervisor::Stop() {
     std::lock_guard<std::mutex> lock(mtx_);
     if (!process_) return;
-    if (bridge_ && bridge_->connected) {
+    // Look at the handle first: a worker that already ended on its own must be recorded as what it
+    // was, not as something this call did to it.
+    if (ReapIfExitedLocked()) return;
+    if (bridge_ && bridge_->connected && !pending_kill_) {
         XpeAiMessageHeader req = MakeHeader(XPE_AI_MSG_SHUTDOWN, g_request_id.fetch_add(1), 0);
         if (xpe_ai_ipc_bridge_send(bridge_, &req, nullptr, 0) == XPE_OK) {
             shutdown_requested_ = true;

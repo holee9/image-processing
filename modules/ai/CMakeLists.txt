@@ -456,6 +456,18 @@ if(_XPE_AI_BUILD_TESTS)
             XPE_AI_WORKER_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}/src/ai_worker_main.cpp")
         add_dependencies(xpe_ai_tests xpe_ai_worker)
 
+        # QA-B-171B (Codex audit #11): a pipe server that answers a heartbeat WRONG on
+        # request. The real worker never does, so a supervisor test that needs a wrong
+        # answer cannot get one from it. Test-only: nothing ships it.
+        add_executable(xpe_ai_fake_worker ${CMAKE_CURRENT_SOURCE_DIR}/tests/fake_worker_main.cpp)
+        target_include_directories(xpe_ai_fake_worker
+            PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+                    $<TARGET_PROPERTY:xpe_common,INTERFACE_INCLUDE_DIRECTORIES>)
+        target_compile_features(xpe_ai_fake_worker PRIVATE cxx_std_17)
+        target_compile_definitions(xpe_ai_tests PRIVATE
+            XPE_AI_FAKE_WORKER_EXE="$<TARGET_FILE:xpe_ai_fake_worker>")
+        add_dependencies(xpe_ai_tests xpe_ai_fake_worker)
+
         # The tests compile that file themselves, so they need the SAME build
         # mode the product got -- otherwise the stub/full arms diverge between
         # xpe_ai.dll and xpe_ai_tests and each would be testing the other's
