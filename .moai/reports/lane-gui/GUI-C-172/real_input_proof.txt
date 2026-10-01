@@ -1,0 +1,29 @@
+# GUI-C-172 — code collation: do R01/R02 use the REAL input path?  (generated from clients/.../RealInputScenarios.cs)
+
+## R01_TheViewMenu_OpensWithARealMouseClick  (lines 45-76)
+first statement (the gate):  L47: GlobalInput.Require("R01 (a real mouse click on the View menu)");
+REAL-INPUT actions:
+   L62: GlobalInput.Click(viewMenu!);
+UIA calls that could ACT on the app (must be none in the action path):
+   (none)
+UIA set-up / control reads (not the thing under test):
+   L50: UiaMenu.CollapseAll(window);     // set-up through UI Automation: not what is under test
+   L56: window.SetForeground();
+   L73: UiaMenu.CollapseAll(window);
+
+## R02_RealKeystrokes_EditTheVoiBox_AndARealTabMovesOn  (lines 93-144)
+first statement (the gate):  L95: GlobalInput.Require("R02 (real key presses into a text box, then a real Tab)");
+REAL-INPUT actions:
+   L119: GlobalInput.SelectAll();
+   L120: GlobalInput.Type(typed);
+   L131: GlobalInput.Press(VirtualKeyShort.TAB);
+UIA calls that could ACT on the app (must be none in the action path):
+   (none)
+UIA set-up / control reads (not the thing under test):
+   L98: OpenParameters(window);          // set-up through UI Automation
+   L103: SelectBodyPart(window, original == "Bone" ? "Lung" : "Bone");
+   L109: window.SetForeground();
+   L110: input.Focus();               // puts the caret in the box; the KEYS below are real
+   L140: SelectBodyPart(window, original == "Bone" ? "Lung" : "Bone");
+   L141: SelectBodyPart(window, original);
+

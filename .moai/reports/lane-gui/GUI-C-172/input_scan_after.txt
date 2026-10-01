@@ -1,0 +1,22 @@
+# direct desktop-input API calls in the E2E project, EXCLUDING the one gate file and comment lines
+# command: grep -rnE '<input-API pattern>' clients/ImageProcTest.E2ETests --include=*.cs | grep -vE '/(bin|obj)/|Fixtures/GlobalInput.cs|GlobalInput\.|^\S+:[0-9]+:\s*//'
+(count: 0)
+
+# calls through the gate in the NEW file (RealInputScenarios.cs):
+47:        GlobalInput.Require("R01 (a real mouse click on the View menu)");
+62:                GlobalInput.Click(viewMenu!);
+95:        GlobalInput.Require("R02 (real key presses into a text box, then a real Tab)");
+119:                GlobalInput.SelectAll();
+120:                GlobalInput.Type(typed);
+131:                GlobalInput.Press(VirtualKeyShort.TAB);
+
+# the gate file now also holds (the only file with these calls):
+46:        Keyboard.Press(key);
+53:        Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_A);
+60:        Keyboard.Type(text);
+66:        Mouse.MovePixelsPerMillisecond = pixelsPerMillisecond;
+67:        Mouse.Position = point;
+73:        Mouse.Scroll(notches);
+79:        Mouse.Down(button);
+85:        Mouse.Up(button);
+91:        element.Click();

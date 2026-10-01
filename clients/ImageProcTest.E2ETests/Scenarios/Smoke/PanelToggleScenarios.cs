@@ -172,7 +172,7 @@ public sealed class PanelToggleScenarios(ApplicationFixture app, ITestOutputHelp
     /// what state the app's main window is in, and which window is over the View menu. Read only on the
     /// failure path; it never changes what a passing run does, and it only READS (no input is sent).
     /// </summary>
-    private static string DescribeWhatIsInFront(Window window)
+    internal static string DescribeWhatIsInFront(Window window)
     {
         try
         {
