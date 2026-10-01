@@ -1,4 +1,5 @@
 // #225 row 10 (GUI-C-186b, Codex #25): one AI frame is one hold of the session gate; the directory is resolved once.
+#pragma warning disable xUnit1031 // These tests wait on REAL threads on purpose: a caller blocked behind the AI session gate (or a drain racing a writer) is what is measured.
 using ImageProcTest.Services;
 
 namespace ImageProcTest.IntegrationTests.Functional;

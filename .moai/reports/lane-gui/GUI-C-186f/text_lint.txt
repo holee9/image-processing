@@ -1,0 +1,4 @@
+# GUI-C-186f - tools/ci/Test-TrackedTextFiles.ps1 (main 53ec370a version, -Encoding UTF8), whole tree incl. this card's staged files, no pipe
+output: Tracked text file validation passed.
+exit code: 0
+independent check: own UTF-8 scan of the 17 staged files found no trailing whitespace and no control byte.

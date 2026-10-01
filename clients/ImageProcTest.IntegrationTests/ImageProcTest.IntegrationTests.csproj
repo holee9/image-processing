@@ -87,6 +87,8 @@
     <Compile Include="..\..\gui\ImageProcTest\Services\TroubleshootingPageService.cs" Link="TroubleshootingPage\Linked\TroubleshootingPageService.cs" />
     <!-- #225 row 10 (GUI-C-184): the AI stage's reading of the module's answer, native-call-free so the tests run it. -->
     <Compile Include="..\..\gui\ImageProcTest\Services\AiBoneSuppressionStage.cs" Link="AiBoneSuppression\Linked\AiBoneSuppressionStage.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BackendLifecycle.cs" Link="AiBoneSuppression\Linked\BackendLifecycle.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BackendTelemetry.cs" Link="AiBoneSuppression\Linked\BackendTelemetry.cs" />
     <!-- #218 side finding (GUI-C-182): the defect metric pass lines, dependency-free, checked against the canonical protocol's text. -->
     <Compile Include="..\ImageProcTest\Services\DefectMetricGates.cs" Link="DefectMetricGates\Linked\DefectMetricGates.cs" />
     <Compile Include="..\ImageProcTest\Services\DefectMetricRows.cs" Link="DefectMetricGates\Linked\DefectMetricRows.cs" />

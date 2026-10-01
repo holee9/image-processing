@@ -11,8 +11,7 @@ public sealed class MockXpeBackend : IXpeBackend
     private readonly bool _commonDllDetected;
     private readonly string _displayDllPath;
     private readonly bool _displayDllDetected;
-    private readonly List<AlertEntry> _alerts = new();
-    private readonly List<string> _logs = new();
+    private readonly BackendTelemetry _telemetry = new();
     private BackendRuntimeInfo _runtimeInfo = new();
 
     public MockXpeBackend(
@@ -31,8 +30,7 @@ public sealed class MockXpeBackend : IXpeBackend
 
     public BackendRuntimeInfo Initialize(AppSettings settings)
     {
-        _alerts.Clear();
-        _logs.Clear();
+        _telemetry.Clear();
 
         _runtimeInfo = new BackendRuntimeInfo
         {
@@ -53,7 +51,7 @@ public sealed class MockXpeBackend : IXpeBackend
         AddLog($"Gain calib dir = {settings.GainCalibrationDirectory}");
         AddLog($"Defect calib dir = {settings.DefectCalibrationDirectory}");
 
-        _alerts.Add(new AlertEntry
+        _telemetry.AddAlert(new AlertEntry
         {
             Severity = "INFO",
             Code = "MOCK_BACKEND_ACTIVE",
@@ -61,7 +59,7 @@ public sealed class MockXpeBackend : IXpeBackend
             Timestamp = DateTimeOffset.Now
         });
 
-        _alerts.Add(new AlertEntry
+        _telemetry.AddAlert(new AlertEntry
         {
             Severity = "WARN",
             Code = _displayDllDetected ? "DISPLAY_DLL_DETECTED_BUT_UNUSED" : "DISPLAY_DLL_NOT_FOUND",
@@ -71,7 +69,7 @@ public sealed class MockXpeBackend : IXpeBackend
             Timestamp = DateTimeOffset.Now
         });
 
-        _alerts.Add(new AlertEntry
+        _telemetry.AddAlert(new AlertEntry
         {
             Severity = "ERROR",
             Code = "NO_REAL_DICOM_IN_GUI_S0",
@@ -338,13 +336,7 @@ public sealed class MockXpeBackend : IXpeBackend
         return result;
     }
 
-    public int GetAlertCount() => _alerts.Count;
-
-    public AlertEntry? GetAlert(int index) => index >= 0 && index < _alerts.Count ? _alerts[index] : null;
-
-    public int GetLogCount() => _logs.Count;
-
-    public string? GetLog(int index) => index >= 0 && index < _logs.Count ? _logs[index] : null;
+    public TelemetrySnapshot GetTelemetrySince(int logsSeen, int alertsSeen) => _telemetry.Since(logsSeen, alertsSeen);
 
     public BackendRuntimeInfo GetRuntimeInfo() => _runtimeInfo;
 
@@ -367,6 +359,6 @@ public sealed class MockXpeBackend : IXpeBackend
 
     private void AddLog(string message)
     {
-        _logs.Add($"[{DateTimeOffset.Now:HH:mm:ss.fff}] {message}");
+        _telemetry.AddLog($"[{DateTimeOffset.Now:HH:mm:ss.fff}] {message}");
     }
 }
