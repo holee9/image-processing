@@ -421,7 +421,11 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             // about 1400 px the ToolBar sent it to its overflow popup, which is neither on screen nor in the automation tree; this run's
             // window width is whatever the runner gives it, so the width is set here instead of left to the machine.
             originalWidth = (int)window.BoundingRectangle.Width;
-            output.WriteLine($"C09 window width before: {originalWidth}; resized to the minimum: {ResizeTo(window, MinimumWindowWidth)}");
+            var minimum = WindowMinimumWidth.ResizeToMinimum(window);
+            output.WriteLine($"C09 window width before: {originalWidth}; at the minimum: {minimum.Describe()}");
+            // GUI-C-191b: "resized" is not "at the minimum". A window with no Transform pattern, or one that stopped somewhere else, would
+            // run the rest of this scenario at whatever width it had and say nothing about the narrow case, so it FAILS here.
+            Assert.True(minimum.Problem is null, "C-09 is not running at the window's minimum width: " + minimum.Describe());
 
             SetText(window, "AiModelDirectoryInput", directory);
             SetAiStage(window, false);
@@ -440,7 +444,11 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
                 Assert.DoesNotContain("no model at", status, StringComparison.Ordinal);
                 // The render that follows the click, and the state read after it. Waited for as an event (the banner appearing) inside the same
                 // 2.5 s bound it always had: a banner that is there ends the wait at once, one that is not costs the full bound as before.
+                // GUI-C-191b: how long after the chain text the banner takes, logged every attempt: the 2.5 s bound has to come from what the
+                // native runs measure, and it is not raised here.
+                var sinceChain = System.Diagnostics.Stopwatch.StartNew();
                 shown = PollFor(() => AiBanner(window) is not null, TimeSpan.FromMilliseconds(2500));
+                var bannerAfterChain = shown ? $"{sinceChain.ElapsedMilliseconds} ms" : $"not within {sinceChain.ElapsedMilliseconds} ms";
 
                 // Diagnostics only: nothing here is asserted. The summary is the GUI's reading of the module's state; the diagnostics
                 // are the module's own raw answers (its state before this process's init, the init call, each read), so a red run says
@@ -457,7 +465,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
                     diagnostics = $"(unreadable: {ex.GetType().Name}: {ex.Message})";
                 }
 
-                var line = $"attempt {attempt}: banner={(shown ? "shown" : "absent")}; summary='{summary}'; diagnostics='{diagnostics}'";
+                var line = $"attempt {attempt}: banner={(shown ? "shown" : "absent")} (after the chain text: {bannerAfterChain}); summary='{summary}'; diagnostics='{diagnostics}'";
                 seen.Add(line);
                 output.WriteLine($"C09 {line}");
             }
@@ -521,9 +529,6 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             Directory.Delete(directory, recursive: true);
         }
     }
-
-    /// <summary>The app's own MinWidth (MainWindow.xaml): the narrowest window it lets a user have.</summary>
-    private const int MinimumWindowWidth = 1280;
 
     /// <summary>Polls for <paramref name="condition"/> and returns at once when it holds; false when it did not within <paramref name="limit"/>.</summary>
     private static bool PollFor(Func<bool> condition, TimeSpan limit)

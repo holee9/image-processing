@@ -61,12 +61,14 @@ public sealed class AiWorkerPanelLayoutTests
     {
         var source = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("clients/ImageProcTest.E2ETests/Scenarios/Workflows/ProcessingChainScenarios.cs"));
         var start = source.IndexOf("public void C09_AWorkerSwitchedOffByRepeatedFailures_ShowsAMark_ThatRestartRemoves()", StringComparison.Ordinal);
-        var end = source.IndexOf("private const int MinimumWindowWidth", start, StringComparison.Ordinal);
+        var end = source.IndexOf("private static bool PollFor(", start, StringComparison.Ordinal);
         Assert.True(start >= 0 && end > start, "C-09 was not found.");
         var c09 = source[start..end];
 
-        Assert.Contains("ResizeTo(window, MinimumWindowWidth)", c09, StringComparison.Ordinal);
+        Assert.Contains("var minimum = WindowMinimumWidth.ResizeToMinimum(window);", c09, StringComparison.Ordinal);
+        Assert.Contains("Assert.True(minimum.Problem is null,", c09, StringComparison.Ordinal);       // a window that is not at its minimum fails the run
         Assert.Contains("ResizeTo(window, originalWidth)", c09, StringComparison.Ordinal);            // and puts the shared window back
+        Assert.Contains("(after the chain text: {bannerAfterChain})", c09, StringComparison.Ordinal);  // the time to the banner, every attempt
         Assert.Contains("shown = PollFor(() => AiBanner(window) is not null, TimeSpan.FromMilliseconds(2500));", c09, StringComparison.Ordinal);
         Assert.DoesNotContain("Thread.Sleep(2500)", c09, StringComparison.Ordinal);
         Assert.DoesNotContain("the module never reported the worker switched off", c09, StringComparison.Ordinal);

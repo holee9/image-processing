@@ -39,6 +39,10 @@ public sealed class AutomationRunSelectionConsumptionTests
         ["Error"] = "the rejection reason; a run carrying one never starts",
         ["DisplayPipelineFailAfter"] = "#171 fault seam; wraps the backend in the MainWindow constructor, not settings — " +
                                        "its effect is observed end to end by E2E W-23 (armed) and W-24 (off)",
+        ["AiWorkerDisabled"] = "GUI-C-191b fault seam, the second accepted --automation-fault: wraps the backend in the MainWindow " +
+                               "constructor (FaultInjectingBackend.Wrap), not settings, exactly as DisplayPipelineFailAfter. Its " +
+                               "effect is observed end to end by E2E M01 (the mark is in the automation tree at the minimum width " +
+                               "of an app launched with it) and in the real view model by SelfCheck scenario 6 (inert without it)",
         ["SettingsPath"] = "#173 (GUI-C-119) names WHERE settings live, which CreateSettings decides — not WHAT the run " +
                            "selects, so ApplyRunSelection is the wrong place for it. Its effect is observed end to end by " +
                            "E2E UnreadableSettingsScenarios, both directions (corrupt file reported / good file silent)",

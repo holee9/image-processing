@@ -183,6 +183,7 @@ internal static class LifetimeScenarios
                         await Timed(() => AnOlderApplyFinishingLateChangesNothing(rawPath, width, height, holdLane: true, fail: true));
                         await Timed(() => TheCandidateLaneIsASecondAiCall_AndTheStatusIsReadAfterIt(rawPath, width, height));
                         await Timed(() => EqualLanesMakeOneAiCallPerApply(rawPath, width, height));
+                        await Timed(() => TheAiWorkerDisabledFault_IsInertWithoutTheArgument_AndAnswersOffWithIt(rawPath, width, height));
                     }
                     catch (Exception ex)
                     {
@@ -215,7 +216,7 @@ internal static class LifetimeScenarios
         }
 
         Directory.Delete(scratch, recursive: true);
-        Console.WriteLine("Lifetime scenarios passed (11 scenarios).");
+        Console.WriteLine("Lifetime scenarios passed (12 scenarios).");
     }
 
     /// <summary>Runs one scenario and prints how long it took: the whole runner has to finish inside the app's wait for it (15 s, MainWindow), and this says where the time goes.</summary>
@@ -648,5 +649,40 @@ internal static class LifetimeScenarios
         {
             Directory.Delete(directory, recursive: true);
         }
+    }
+
+    // ---- 6: the ai-worker-disabled automation fault (GUI-C-191b) -------------------------------------------------------------------------
+    //
+    // The seam that lets a UI test put the "switched off" mark on screen without a native module. It has to be inert unless asked for
+    // and, when asked, answer exactly "switched off, 3 of 3" while everything else passes through to the real backend.
+
+    private static Task TheAiWorkerDisabledFault_IsInertWithoutTheArgument_AndAnswersOffWithIt(string rawPath, int width, int height)
+    {
+        _scenario = "6 ai-worker-disabled fault";
+        _ = rawPath;
+        _ = width;
+        _ = height;
+        IXpeBackend Mock() => new MockXpeBackend(new RawImageLoader(), "xpe_common.dll", false, "xpe_display.dll", false);
+
+        // Off: the backend itself comes back, and it is not an AI session (the Mock has none).
+        var plain = Mock();
+        var unwrapped = FaultInjectingBackend.Wrap(plain, failAfter: null, aiWorkerDisabled: false);
+        Check(ReferenceEquals(unwrapped, plain), "Wrap changed the backend although no fault was requested");
+        Check(unwrapped is not IAiSessionBackend, "the plain Mock backend became an AI session backend");
+
+        // On: the wrapper answers the injected status and nothing else about the AI session.
+        var armed = FaultInjectingBackend.Wrap(Mock(), failAfter: null, aiWorkerDisabled: true);
+        Check(armed is FaultInjectingBackend, "the fault did not wrap the backend");
+        var status = (armed as IAiSessionBackend)?.GetAiWorkerStatus();
+        Check(status == new AiWorkerStatus(AiWorkerState.Disabled, 3, 3), $"the injected status was {status}");
+        Check(AiBoneSuppressionStage.DescribeStatus(status!) == "worker=Disabled; failures=3; ceiling=3", $"the summary of the injected status was '{AiBoneSuppressionStage.DescribeStatus(status!)}'");
+        Check(AiBoneSuppressionStage.ShowsMark(status!), "the injected status does not show the mark");
+        Check(FaultInjectingBackend.Describe() == "faultInjection=ai-worker-disabled calls=0", $"the fault status line was '{FaultInjectingBackend.Describe()}'");
+
+        // The display fault, when also given, keeps its own wording and behaviour.
+        var both = FaultInjectingBackend.Wrap(Mock(), failAfter: 2, aiWorkerDisabled: true);
+        Check(FaultInjectingBackend.Describe() == "faultInjection=display-pipeline-after:2 calls=0 ai-worker-disabled", $"the combined fault status line was '{FaultInjectingBackend.Describe()}'");
+        _ = both;
+        return Task.CompletedTask;
     }
 }
