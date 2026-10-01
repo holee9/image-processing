@@ -1,0 +1,67 @@
+clients/ImageProcTest/MainWindow.xaml.cs:79:            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+clients/ImageProcTest.E2ETests/Rendering/LogSelectionHighlightRenderTests.cs:23:/// <item>the same after <c>SetForeground()</c> — identical at 180.30;</item>
+clients/ImageProcTest.E2ETests/Scenarios/Smoke/DetachViewerScenarios.cs:103:        window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Smoke/DetachViewerScenarios.cs:104:        Keyboard.Press(VirtualKeyShort.ESCAPE);
+clients/ImageProcTest.E2ETests/Scenarios/Smoke/DetachViewerScenarios.cs:118:        menu.AsMenuItem().Click();
+clients/ImageProcTest.E2ETests/Scenarios/Smoke/PanelToggleScenarios.cs:330:                window.FindFirstDescendant(cf => cf.ByAutomationId("ToolsMenu"))!.AsMenuItem().Click();
+clients/ImageProcTest.E2ETests/Scenarios/Smoke/PanelToggleScenarios.cs:419:        window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Smoke/PanelToggleScenarios.cs:451:        window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Smoke/PanelToggleScenarios.cs:452:        Keyboard.Press(VirtualKeyShort.ESCAPE);
+clients/ImageProcTest.E2ETests/Scenarios/Smoke/PanelToggleScenarios.cs:454:        window.FindFirstDescendant(cf => cf.ByAutomationId("ViewMenu"))!.AsMenuItem().Click();
+clients/ImageProcTest.E2ETests/Scenarios/Smoke/PanelToggleScenarios.cs:460:        Keyboard.Press(VirtualKeyShort.ESCAPE);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ClampAlertOnScreenScenarios.cs:82:        window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ClearAlertsObservationScenarios.cs:139:        window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ComparisonEntryPointScenarios.cs:111:            window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ComparisonEntryPointScenarios.cs:112:            window.Focus();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ComparisonEntryPointScenarios.cs:114:            Keyboard.Press(KeyFor(gesture));
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ComparisonEntryPointScenarios.cs:141:            window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ComparisonEntryPointScenarios.cs:142:            window.Focus();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ComparisonEntryPointScenarios.cs:144:            Keyboard.Press(KeyFor(primeKey));
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ComparisonEntryPointScenarios.cs:149:            window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ComparisonEntryPointScenarios.cs:212:        window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ComparisonEntryPointScenarios.cs:213:        Keyboard.Press(VirtualKeyShort.ESCAPE);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ComparisonEntryPointScenarios.cs:216:        window.FindFirstDescendant(cf => cf.ByAutomationId("ViewMenu"))!.AsMenuItem().Click();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/DetachedViewerSyncScenarios.cs:93:            detached.AsWindow().SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/DetachedViewerSyncScenarios.cs:219:        Mouse.MovePixelsPerMillisecond = 100;
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/DetachedViewerSyncScenarios.cs:220:        Mouse.Position = point;
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/DetachedViewerSyncScenarios.cs:222:        Mouse.Scroll(3);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/DetachedViewerSyncScenarios.cs:228:        window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/DetachedViewerSyncScenarios.cs:230:        Keyboard.Press(key);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/DetachedViewerSyncScenarios.cs:244:        window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/DetachedViewerSyncScenarios.cs:245:        Keyboard.Press(VirtualKeyShort.ESCAPE);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/DetachedViewerSyncScenarios.cs:247:        window.FindFirstDescendant(cf => cf.ByAutomationId("ViewMenu"))!.AsMenuItem().Click();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/GsvgWristSliceScenarios.cs:256:            window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/GsvgWristSliceScenarios.cs:257:            FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.ESCAPE);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/GsvgWristSliceScenarios.cs:260:            if (attempt == 0) menu.Click(); else menu.Expand();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/GsvgWristSliceScenarios.cs:1031:        input.Focus();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/GsvgWristSliceScenarios.cs:1033:        FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.TAB);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/NativeAlertScenarios.cs:134:            window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/NativeAlertScenarios.cs:135:            FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.ESCAPE);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/NonlinearityNoopAlertScenarios.cs:135:        window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ProcessingChainScenarios.cs:353:        input.Focus();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ProcessingChainScenarios.cs:355:        FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.TAB);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ProcessingChainScenarios.cs:380:        input.Focus();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ProcessingChainScenarios.cs:382:        FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.TAB);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/SettingsWarningRecoveryScenarios.cs:226:            copy.Click();            // a user can still aim at it; a disabled button must absorb this
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ViewStateRenderScenarios.cs:314:        window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ViewStateRenderScenarios.cs:316:        Mouse.Position = new System.Drawing.Point(r.Left + (r.Width / 2), r.Top + (r.Height / 2));
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ViewStateRenderScenarios.cs:320:            Mouse.Scroll(1);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ViewStateRenderScenarios.cs:327:        Mouse.Position = from;
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ViewStateRenderScenarios.cs:329:        Mouse.Down(button);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ViewStateRenderScenarios.cs:333:            Mouse.Position = new System.Drawing.Point(from.X + ((to.X - from.X) * i / 8), from.Y + ((to.Y - from.Y) * i / 8));
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ViewStateRenderScenarios.cs:337:        Mouse.Up(button);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ViewStateRenderScenarios.cs:347:            window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ViewStateRenderScenarios.cs:348:            Keyboard.Press(VirtualKeyShort.ESCAPE);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ViewStateRenderScenarios.cs:351:            if (attempt == 0) menu.Click(); else menu.Expand();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/WorkbenchObservation.cs:77:        window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/WorkbenchObservation.cs:103:        input.Focus();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/WorkbenchObservation.cs:105:        Keyboard.Press(VirtualKeyShort.TAB);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/WorkbenchObservation.cs:112:        input.Focus();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/WorkbenchObservation.cs:114:        Keyboard.Press(VirtualKeyShort.TAB);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/WorkbenchObservation.cs:121:        // so it stays above the main window even after SetForeground. Where it covers the Pipeline menu,
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/WorkbenchObservation.cs:128:            window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/WorkbenchObservation.cs:129:            Keyboard.Press(VirtualKeyShort.ESCAPE);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/WorkbenchObservation.cs:132:            if (attempt == 0) menu.Click(); else menu.Expand();   // Expand needs no pointer, so an overlapping window cannot take it
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/WorkbenchObservation.cs:213:            window.SetForeground();
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/WorkbenchObservation.cs:214:            Keyboard.Press(VirtualKeyShort.ESCAPE);
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/WorkbenchObservation.cs:217:            if (attempt == 0) menu.Click(); else menu.Expand();

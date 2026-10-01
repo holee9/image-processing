@@ -1,0 +1,44 @@
+C:\Users\drake\AppData\Local\Temp\c171_old\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+C:\Users\drake\AppData\Local\Temp\c171_old\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\ImageProcTest.IntegrationTests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+C:\Users\drake\AppData\Local\Temp\c171_old\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\ImageProcTest.IntegrationTests.dll에 지정된 테스트 사례 필터 `FullyQualifiedName~A11_|FullyQualifiedName~A13_|FullyQualifiedName~A02_|FullyQualifiedName~S07_`과(와) 일치하는 테스트가 없습니다.
+
+  실패 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S07_ScheduledPanelToggle_IsPresentButDisabled(automationId: "ShowDisplaySettingsPanelMenuItem") [1 s]
+  오류 메시지:
+   'ShowDisplaySettingsPanelMenuItem' is gone; MENU-001 §9.2 still schedules it.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.<>c__DisplayClass6_0.<S07_ScheduledPanelToggle_IsPresentButDisabled>b__0(Window window) in C:\Users\drake\AppData\Local\Temp\c171_old\clients\ImageProcTest.E2ETests\Scenarios\Smoke\PanelToggleScenarios.cs:line 106
+   at ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.Measure(String scenario, Action`1 body) in C:\Users\drake\AppData\Local\Temp\c171_old\clients\ImageProcTest.E2ETests\Scenarios\Smoke\PanelToggleScenarios.cs:line 325
+   at ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S07_ScheduledPanelToggle_IsPresentButDisabled(String automationId) in C:\Users\drake\AppData\Local\Temp\c171_old\clients\ImageProcTest.E2ETests\Scenarios\Smoke\PanelToggleScenarios.cs:line 99
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ S07 ShowDisplaySettingsPanelMenuItem: 1042 ms
+
+
+  실패 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S07_ScheduledPanelToggle_IsPresentButDisabled(automationId: "ShowCalibrationPanelMenuItem") [1 s]
+  오류 메시지:
+   'ShowCalibrationPanelMenuItem' is enabled again. Its phase has not arrived, so it has nothing to show — and GUI-C-63 measured that pressing it changes nothing on screen (#165).
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.<>c__DisplayClass6_0.<S07_ScheduledPanelToggle_IsPresentButDisabled>b__0(Window window) in C:\Users\drake\AppData\Local\Temp\c171_old\clients\ImageProcTest.E2ETests\Scenarios\Smoke\PanelToggleScenarios.cs:line 107
+   at ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.Measure(String scenario, Action`1 body) in C:\Users\drake\AppData\Local\Temp\c171_old\clients\ImageProcTest.E2ETests\Scenarios\Smoke\PanelToggleScenarios.cs:line 325
+   at ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S07_ScheduledPanelToggle_IsPresentButDisabled(String automationId) in C:\Users\drake\AppData\Local\Temp\c171_old\clients\ImageProcTest.E2ETests\Scenarios\Smoke\PanelToggleScenarios.cs:line 99
+   at InvokeStub_PanelToggleScenarios.S07_ScheduledPanelToggle_IsPresentButDisabled(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  표준 출력 메시지:
+ S07 ShowCalibrationPanelMenuItem: 1091 ms
+
+
+
+실패!  - 실패:     2, 통과:     3, 건너뜀:     0, 전체:     5, 기간: 1 m - ImageProcTest.E2ETests.dll (net8.0)
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.
+[xUnit.net 00:00:01.82]     ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S07_ScheduledPanelToggle_IsPresentButDisabled(automationId: "ShowDisplaySettingsPanelMenuItem") [FAIL]
+[xUnit.net 00:00:02.91]     ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S07_ScheduledPanelToggle_IsPresentButDisabled(automationId: "ShowCalibrationPanelMenuItem") [FAIL]
