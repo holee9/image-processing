@@ -63,6 +63,13 @@ internal static class GuiAiSession
 
     private static readonly AiSessionTracker Tracker = new();
 
+    // GUI-C-189: what this process's native session has seen, for the automation tree (AiWorkerStatus.Diagnostics). Written only
+    // under the gate. The first native C-09 run (main CI, 53ec370a) saw six failed calls and no "switched off" state, and could not
+    // say whether the module was ever on the worker path: this records the module's own answers instead of the GUI's reading of them.
+    private static string _initDiagnostics = "init: none yet";
+    private static int _initCount;
+    private static int _readCount;
+
     /// <summary>Runs <paramref name="action"/> while no other frame, init, shutdown or state call can run.</summary>
     public static T WithLock<T>(Func<T> action) => Gate.WithLock(action);
 
@@ -91,7 +98,24 @@ internal static class GuiAiSession
             int code;
             try
             {
-                code = XpeAiNative.xpe_ai_init(directory, new AiConfig { UseWorker = true }.ToJson());
+                var config = new AiConfig { UseWorker = true }.ToJson();
+
+                // Asks the module its worker state BEFORE this init, to learn whether something else had initialised it already
+                // (xpe_ai_init ignores a second call's arguments, so an earlier init would leave the worker path off). Read-only, and
+                // inside this lock, where no init or shutdown can run, as the header requires.
+                string probe;
+                try
+                {
+                    var probeCode = XpeAiNative.xpe_ai_worker_state(out var probeState, out var probeFailures, out var probeCeiling);
+                    probe = $"before-init worker_state code={probeCode} state={probeState} failures={probeFailures} ceiling={probeCeiling}";
+                }
+                catch (Exception probeError)
+                {
+                    probe = $"before-init worker_state probe threw {probeError.GetType().Name}";
+                }
+
+                code = XpeAiNative.xpe_ai_init(directory, config);
+                _initDiagnostics = $"init#{++_initCount} dir='{directory}' config={config} {probe} -> code={code}";
             }
             catch (DllNotFoundException)
             {
@@ -137,13 +161,16 @@ internal static class GuiAiSession
             var own = Tracker.OwnStatus();
             if (own is not null)
             {
-                return own;
+                return own with { Diagnostics = $"{_initDiagnostics}; the GUI answered this itself (the module was not asked)" };
             }
 
             try
             {
                 var code = XpeAiNative.xpe_ai_worker_state(out var state, out var failures, out var ceiling);
-                return AiBoneSuppressionStage.ReadWorkerState(code, state, failures, ceiling);
+                return AiBoneSuppressionStage.ReadWorkerState(code, state, failures, ceiling) with
+                {
+                    Diagnostics = $"{_initDiagnostics}; read#{++_readCount} worker_state code={code} state={state} failures={failures} ceiling={ceiling}",
+                };
             }
             catch (DllNotFoundException)
             {

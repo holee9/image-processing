@@ -21,8 +21,11 @@ internal enum AiWorkerState
     InitFailed = 3,
 }
 
-/// <summary>The worker's state with the module's own counts. The ceiling is the module's, never a constant here.</summary>
-internal sealed record AiWorkerStatus(AiWorkerState State, uint ConsecutiveFailures, uint Ceiling, string? Detail = null)
+/// <summary>
+/// The worker's state with the module's own counts. The ceiling is the module's, never a constant here. <see cref="Diagnostics"/> is
+/// for the automation tree only (GUI-C-189): what the native session saw, in one line, so a failed native E2E says WHY.
+/// </summary>
+internal sealed record AiWorkerStatus(AiWorkerState State, uint ConsecutiveFailures, uint Ceiling, string? Detail = null, string? Diagnostics = null)
 {
     public static readonly AiWorkerStatus Unknown = new(AiWorkerState.Unknown, 0, 0);
 }

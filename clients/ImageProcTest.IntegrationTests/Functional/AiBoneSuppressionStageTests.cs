@@ -501,11 +501,13 @@ public sealed class AiBoneSuppressionStageTests
     /// GuiAiRunner.cs, inside a <c>WithLock(</c> lambda of its own method. It cannot see a call made by reflection or from
     /// another assembly; the scope is the GUI's own source tree.
     /// </summary>
+    // The state call has TWO sites since GUI-C-189: the status read, and a read-only probe of the module's state just before this
+    // process's init (to learn whether something else had initialised it). Both are inside a WithLock lambda; no third may appear.
     [Theory]
-    [InlineData("XpeAiNative.xpe_ai_init(")]
-    [InlineData("XpeAiNative.xpe_ai_shutdown(")]
-    [InlineData("XpeAiNative.xpe_ai_worker_state(")]
-    public void InitShutdownAndTheStateCall_AreCalledInOnePlace_UnderTheLock(string call)
+    [InlineData("XpeAiNative.xpe_ai_init(", 1)]
+    [InlineData("XpeAiNative.xpe_ai_shutdown(", 1)]
+    [InlineData("XpeAiNative.xpe_ai_worker_state(", 2)]
+    public void InitShutdownAndTheStateCall_AreCalledInOnePlace_UnderTheLock(string call, int sites)
     {
         // ResolveRepositoryFile finds FILES; the project file names the directory.
         var root = Path.GetDirectoryName(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/ImageProcTest.csproj"))!;
@@ -515,13 +517,16 @@ public sealed class AiBoneSuppressionStageTests
             .SelectMany(path => FindAll(File.ReadAllText(path), call).Select(index => (path, text: File.ReadAllText(path), index)))
             .ToList();
 
-        var hit = Assert.Single(hits);
-        Assert.EndsWith("GuiAiRunner.cs", hit.path, StringComparison.Ordinal);
-        // Inside the lock: the nearest "WithLock(" before the call is nearer than the start of the method it is in. (A fixed window
-        // of characters stopped being enough once the init recorded its failures between the lock and the call.)
-        var before = hit.text[..hit.index];
-        Assert.True(before.LastIndexOf("WithLock(", StringComparison.Ordinal) > before.LastIndexOf("public static", StringComparison.Ordinal),
-            $"{call} is not inside a WithLock( lambda of its own method.");
+        Assert.Equal(sites, hits.Count);
+        foreach (var hit in hits)
+        {
+            Assert.EndsWith("GuiAiRunner.cs", hit.path, StringComparison.Ordinal);
+            // Inside the lock: the nearest "WithLock(" before the call is nearer than the start of the method it is in. (A fixed window
+            // of characters stopped being enough once the init recorded its failures between the lock and the call.)
+            var before = hit.text[..hit.index];
+            Assert.True(before.LastIndexOf("WithLock(", StringComparison.Ordinal) > before.LastIndexOf("public static", StringComparison.Ordinal),
+                $"{call} is not inside a WithLock( lambda of its own method.");
+        }
     }
 
     private static IEnumerable<int> FindAll(string text, string needle)

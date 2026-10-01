@@ -1,0 +1,5 @@
+gui build: exit 0, 0 errors; clients build: exit 0, 0 errors, 1 warning
+Functional (Category=Functional): 351 passed, 1 skipped, 0 failed
+AiDiagnosticsTests + AiBoneSuppressionStageTests: 60 passed
+E2E (Mock) ProcessingChainScenarios+AutomationReportBackendTests+MenuCommandScenarios: exit 0, 23 passed, 7 skipped, 0 failed
+Native E2E: NOT run locally (#98)

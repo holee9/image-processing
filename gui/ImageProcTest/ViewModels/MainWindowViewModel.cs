@@ -552,6 +552,13 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>The state as one line for automation (read from the AI checkbox's help text), e.g. <c>worker=Active; failures=0; ceiling=3</c>.</summary>
     public string AiWorkerStatusSummary => AiBoneSuppressionStage.DescribeStatus(_aiWorkerStatus);
 
+    /// <summary>
+    /// What the native AI session saw (the module's own answers: its state before this process's init, the init call, the raw state
+    /// of each read), for the automation tree's item status on the AI checkbox. Empty without a native session. It is not shown to the
+    /// operator (GUI-C-189).
+    /// </summary>
+    public string AiWorkerDiagnostics => _aiWorkerStatus.Diagnostics ?? string.Empty;
+
     /// <summary>GUI-C-185: shutdown then init under the one lock; the mark goes when the module reports a new session.</summary>
     public RelayCommand RestartAiSessionCommand { get; }
 
@@ -599,6 +606,7 @@ public sealed class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(AiWorkerMarkVisible));
         OnPropertyChanged(nameof(AiWorkerBannerText));
         OnPropertyChanged(nameof(AiWorkerStatusSummary));
+        OnPropertyChanged(nameof(AiWorkerDiagnostics));
     }
 
     private async void RestartAiSession()
