@@ -271,6 +271,11 @@ TEST_F(A174Floor, DISABLED_SameSessionFloor) {
     }
 
     // ---- derived, all from this session -------------------------------------
+    // NOTE (QA-A-174 correction): floorOld = dn + df + (ts - df) = dn + ts, so the
+    // differences term cancels and ~90% of the denominator is the shipped tile
+    // stage itself. R1 is a PROXY ratio, not a verdict against an independent bound.
+    // The detection-network term 2 x N is an APPROXIMATION (+0.065%): the scalar
+    // edge path (2 px per row) is not counted. Synthetic noise frame, one frame (seed 20260911).
     const auto& W  = terms[0].ms; const auto& TS = terms[1].ms; const auto& MS = terms[2].ms;
     const auto& RW = terms[3].ms; const auto& DN = terms[4].ms; const auto& DF = terms[5].ms;
     const auto& CP = terms[6].ms; const auto& S0 = terms[7].ms; const auto& S1 = terms[8].ms;
@@ -294,14 +299,14 @@ TEST_F(A174Floor, DISABLED_SameSessionFloor) {
     const double floorOld = dn + df + selInSitu;
     const double floorIso = dn + df + selShipped;
     const double floorBest = dn + df + std::min({selShipped, selReuse, selNth});
-    std::printf("[a174] FLOOR (old definition, in-situ selection)     = %.2f + %.2f + %.2f = %.2f ms\n",
+    std::printf("[a174] PROXY floor (old def) = DN + shipped tile stage: %.2f + %.2f + %.2f = %.2f ms\n",
                 dn, df, selInSitu, floorOld);
-    std::printf("[a174] FLOOR (isolated-loop shipped selection)       = %.2f + %.2f + %.2f = %.2f ms\n",
+    std::printf("[a174] PROXY floor (isolated loop, SHIPPED selection algorithm) = %.2f + %.2f + %.2f = %.2f ms\n",
                 dn, df, selShipped, floorIso);
-    std::printf("[a174] FLOOR (fastest measured selector)             = %.2f ms\n", floorBest);
-    std::printf("[a174] R1  shipped / floor(old def)      = %.3f\n", w / floorOld);
-    std::printf("[a174] R2  shipped / floor(isolated sel) = %.3f\n", w / floorIso);
-    std::printf("[a174] R3  shipped / floor(fastest sel)  = %.3f\n", w / floorBest);
+    std::printf("[a174] PROXY floor (fastest measured selector, equals shipped) = %.2f ms\n", floorBest);
+    std::printf("[a174] R1 proxy, floor = DN + shipped tile stage (NOT an independent bound; the differences term cancels) = %.3f\n", w / floorOld);
+    std::printf("[a174] R2 proxy, selection = shipped algorithm in an isolated loop = %.3f\n", w / floorIso);
+    std::printf("[a174] R3 proxy, selection = fastest measured selector (= shipped) = %.3f\n", w / floorBest);
     std::printf("[a174] R'  selection removed from BOTH   = (%.2f - %.2f) / (%.2f + %.2f) = %.3f\n",
                 w, selInSitu, dn, df, (w - selInSitu) / (dn + df));
 
