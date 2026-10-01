@@ -105,7 +105,7 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
         // and is loaded unchanged -- the call simply reports that it found none.
         XpeCalibQualityMeta quality{};
         bool quality_found = false;
-        const XpeErrorCode quality_rc = xpe_calib_parse_quality_meta_json(config_copy.c_str(), &quality, &quality_found);
+        const XpeErrorCode quality_rc = xpe_calib_parse_quality_meta_json(config_copy.data(), config_copy.size(), &quality, &quality_found);
         if (quality_rc != XPE_OK) return quality_rc;   // a malformed field: nothing has been committed
 
         // QA-A-123 (#194): the fitted dose range, which bounds where the polynomial means anything.

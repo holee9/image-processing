@@ -1569,11 +1569,11 @@ typedef enum XpeCalibrationMode {
  */
 typedef struct XpeCalibQualityMeta {
     uint8_t  calibration_mode;      ///< XpeCalibrationMode used by the generation (never AUTO)
-    uint8_t  polynomial_degree;     ///< 0=constant, 1=linear, 2=quadratic, 3=cubic
+    uint8_t  polynomial_degree;     ///< 0=constant, 1=linear, 2=quadratic, 3=cubic, 4=quartic (MULTI_POINT_10)
     uint8_t  num_points;            ///< Number of dose levels (1-10)
     uint8_t  valid;                 ///< 1 = describes a calibration; 0 = no quality metadata for the current one.
                                     ///< Sits in what was padding: sizeof and every other offset are unchanged.
-    double   r_squared;             ///< Coefficient of determination (0.0 to 1.0; -1.0 = not given)
+    double   r_squared;             ///< Coefficient of determination: at most 1.0, negative for a fit worse than the mean; -1.0 = not given
     uint64_t calibration_timestamp; ///< Unix epoch milliseconds
     char     detector_serial[32];   ///< Detector serial number (null-terminated)
     char     firmware_version[16];  ///< Firmware version (null-terminated)
@@ -1614,7 +1614,7 @@ XPE_API XpeCalibrationMode xpe_calib_get_mode(void);
  * "no quality" record -- `valid` is 0, every field but previous_r_squared is zero. A record is never left from an
  * earlier file as if it described the gain that is current. Check `valid` before using the other fields.
  * previous_r_squared is the history: the R2 of the last record that HAD an R2 -- a valid record whose
- * r_squared is inside 0..1 (-1.0 if none) -- kept apart from the current record. A record that has no R2 --
+ * r_squared is not the -1.0 "not given" value (-1.0 if none) -- kept apart from the current record. A record that has no R2 --
  * one with no quality at all, or one whose file carries other quality fields but no fit_r_squared (its
  * r_squared is -1.0, "not given") -- does not interrupt it: the history passes through such records. After a generation the record describes
  * the generated calibration (FUNC-033), which is not necessarily the map in the store; the next gain load

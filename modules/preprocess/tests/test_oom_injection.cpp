@@ -1964,3 +1964,24 @@ TEST_F(OomPipeline, AGeneratedRecordFollowsTheSameRule_AThenPartialThenGenerated
     EXPECT_DOUBLE_EQ(0.99, q.previous_r_squared) << "the last known R2 is the generation's";
     qcur::removeAll();
 }
+
+// A real R2 can be negative (a fit worse than the mean: the generator reports -0.0766 for the poly-fixture ladder).
+// Only the -1.0 "not given" value means "no R2", so a negative generated R2 is the history of the record after it
+// (QA-A-208c; the first form of the rule, "R2 >= 0", threw such a value away).
+TEST_F(OomPipeline, ANegativeGeneratedR2IsKnownAndBecomesTheHistory) {
+    qcur::writeAll();
+    pipe::setup();
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_pipe_calibQA/gain.xcal"));            // A: R2 0.91
+    XpeCalibQualityMeta g{};
+    g.calibration_mode = 3; g.polynomial_degree = 2; g.num_points = 4; g.r_squared = -0.25;
+    xpe_calib_record_quality_meta(g);                                                // a generation: R2 -0.25
+    XpeCalibQualityMeta q = qcur::current();
+    EXPECT_EQ(1u, q.valid);
+    EXPECT_DOUBLE_EQ(-0.25, q.r_squared);
+    EXPECT_DOUBLE_EQ(0.91, q.previous_r_squared);
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_pipe_calibQC/gain.xcal"));            // C: R2 0.97
+    q = qcur::current();
+    EXPECT_DOUBLE_EQ(0.97, q.r_squared);
+    EXPECT_DOUBLE_EQ(-0.25, q.previous_r_squared) << "-0.25 is a real R2, not the no-data value";
+    qcur::removeAll();
+}

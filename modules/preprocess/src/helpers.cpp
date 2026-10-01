@@ -188,20 +188,28 @@ private:
 
 }  // namespace
 
-XpeJsonTop xpe_json_top_level_scalar(const char* json, const char* key, std::string* value) {
+XpeJsonTop xpe_json_top_level_scalar(const char* json, size_t len, const char* key, std::string* value) {
     if (!json || !key) return XpeJsonTop::Absent;
 
     // An empty (or all-white-space) config has no keys; it is not malformed. Everything else must parse.
+    const char* const end = json + len;
     const char* first = json;
-    while (*first == ' ' || *first == '\t' || *first == '\n' || *first == '\r') ++first;
-    if (!*first) return XpeJsonTop::Absent;
+    while (first != end && (*first == ' ' || *first == '\t' || *first == '\n' || *first == '\r')) ++first;
+    if (first == end) return XpeJsonTop::Absent;
+
+    // A NUL byte is refused here, not left to the parser: nlohmann-json 3.11.3 lexes a NUL outside a string as
+    // the END of the input (token end_of_input), so even `strict` accepts "{}<NUL>{bad}" and never reads past the
+    // NUL (QA-A-208c: observed by the NUL rows of test_config_strict_parse.cpp; inside a string it is already a
+    // control-character error). No JSON text holds one, so this refuses nothing valid.
+    if (std::memchr(json, 0, len) != nullptr) return XpeJsonTop::Malformed;
 
     // QA-A-208b (Codex #40): the text is parsed by nlohmann-json -- the parser the repository already carries
     // (third_party/common/vcpkg.json) -- through its SAX interface, with `strict` (nothing may follow the value)
-    // and no comments. The parse reports errors by returning false: no exception for a malformed text. (An
+    // and no comments, over the `len` bytes given (QA-A-208c, Codex #43; a NUL is refused above). The parse reports
+    // errors by returning false: no exception for a malformed text. (An
     // allocation failure is a std::bad_alloc, which the callers' guards turn into XPE_ERR_OUT_OF_MEMORY.)
     TopLevelProbe probe(key);
-    const bool ok = nlohmann::json::sax_parse(json, json + std::strlen(json), &probe,
+    const bool ok = nlohmann::json::sax_parse(json, end, &probe,
                                               nlohmann::json::input_format_t::json,
                                               /*strict=*/true, /*ignore_comments=*/false);
     if (!ok || !probe.topIsObject()) return XpeJsonTop::Malformed;

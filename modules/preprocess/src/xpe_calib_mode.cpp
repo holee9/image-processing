@@ -256,13 +256,15 @@ uint32_t xpe_calib_get_poly_degree(void) {
 
 /**
  * The R2 history after the record `replaced` is replaced: its own R2 when that is KNOWN -- the record is valid and
- * the R2 is inside the documented range 0..1 (the no-data value is -1.0) -- otherwise the history it carried.
+ * its R2 is not the no-data value -1.0 (a real R2 may be negative: a fit worse than the mean) -- otherwise the
+ * history it carried.
  * A record with other quality fields but no fit_r_squared, and the "no quality" record, therefore pass the last
  * known R2 on instead of turning it into -1.0 (QA-A-202f, Codex #41). At start-up it is -1.0 ("none").
  */
 static double r2_history_after(const XpeCalibQualityMeta& replaced) noexcept
 {
-    return (replaced.valid != 0 && replaced.r_squared >= 0.0) ? replaced.r_squared : replaced.previous_r_squared;
+    return (replaced.valid != 0 && replaced.r_squared != XPE_R_SQUARED_NOT_GIVEN) ? replaced.r_squared
+                                                                                      : replaced.previous_r_squared;
 }
 
 bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept
@@ -290,25 +292,28 @@ bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept
 
 /**
  * Reads one FUNC-033 field into a uint8: an ABSENT key keeps the default; a key that is present must hold an
- * integer in [0, 255], so an empty value, a value that is not a scalar and a malformed number are all refusals
- * (QA-A-204, #233: atoi turned a malformed value into 0, or truncated it, without a word; QA-A-205b, Codex #29
- * B1: an empty value was read as "not given"). The key is a TOP-LEVEL key of the config object, found by walking
- * it; a nested object's key of the same name is not it, and a key given twice is a refusal (QA-A-208, Codex #34 B2).
+ * integer in [lo, hi] -- the range the field has by definition -- so an empty value, a value that is not a scalar,
+ * a malformed number and a number outside the range are all refusals (QA-A-204, #233: atoi turned a malformed
+ * value into 0, or truncated it, without a word; QA-A-205b, Codex #29 B1: an empty value was read as "not given";
+ * QA-A-208c: a value no generation can write is a defect of the signed data, not a quality). The key is a TOP-LEVEL
+ * key of the config object, found by parsing it; a nested object's key of the same name is not it, and a key given
+ * twice is a refusal (QA-A-208, Codex #34 B2).
  */
-static bool read_u8_field(const char* json, const char* key, uint8_t* dst, bool* present)
+static bool read_u8_field(const char* json, size_t len, const char* key, int32_t lo, int32_t hi, uint8_t* dst,
+                          bool* present)
 {
     std::string v;
-    const XpeJsonTop state = xpe_json_top_level_scalar(json, key, &v);
+    const XpeJsonTop state = xpe_json_top_level_scalar(json, len, key, &v);
     if (state == XpeJsonTop::Absent) return true;
     if (state != XpeJsonTop::Scalar) return false;   // not a scalar, given twice, or the config is not an object
     int32_t n = 0;
-    if (!xpe_strict::parse_int(v, &n) || n < 0 || n > 255) return false;
+    if (!xpe_strict::parse_int(v, &n) || n < lo || n > hi) return false;
     *dst = static_cast<uint8_t>(n);
     *present = true;
     return true;
 }
 
-XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, XpeCalibQualityMeta* out, bool* found)
+XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, size_t len, XpeCalibQualityMeta* out, bool* found)
 {
     if (found != nullptr) *found = false;
     if (configJson == nullptr || out == nullptr || found == nullptr) return XPE_ERR_INVALID_INPUT;
@@ -321,16 +326,25 @@ XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, XpeCalibQ
 
     bool anyPresent = false;
 
+    // The range of each field is what no generation can step outside of (xpe_calib_generate_gain.cpp):
+    //   fit_r_squared      <= 1  (1 - SS_res / SS_tot, so never above 1. NOT bounded below: the generator reports a
+    //                             negative value when the fit is worse than the mean -- -0.0766 for the poly-fixture
+    //                             ladder -- and a file it wrote must load. The record's own no-data value, -1.0,
+    //                             is the one value a file may not carry, so "not given" and a real R2 never mix)
+    //   polynomial_degree  0..4  (the fitted degree: constant .. the quartic MULTI_POINT_10 allows)
+    //   actual_dose_levels 1..10 (the points of the mode used: SINGLE_POINT 1 .. MULTI_POINT_10 10)
+    //   calibration_mode   0..4  (SINGLE_POINT .. MULTI_POINT_10: the mode that ran, never AUTO)
     std::string r2;
-    const XpeJsonTop r2State = xpe_json_top_level_scalar(configJson, "fit_r_squared", &r2);
+    const XpeJsonTop r2State = xpe_json_top_level_scalar(configJson, len, "fit_r_squared", &r2);
     if (r2State != XpeJsonTop::Absent && r2State != XpeJsonTop::Scalar) return XPE_ERR_CONFIG_INVALID;
     if (r2State == XpeJsonTop::Scalar) {
         if (!xpe_strict::parse_double(r2, &meta.r_squared)) return XPE_ERR_CONFIG_INVALID;
+        if (!(meta.r_squared <= 1.0) || meta.r_squared == XPE_R_SQUARED_NOT_GIVEN) return XPE_ERR_CONFIG_INVALID;
         anyPresent = true;
     }
-    if (!read_u8_field(configJson, "polynomial_degree", &meta.polynomial_degree, &anyPresent) ||
-        !read_u8_field(configJson, "actual_dose_levels", &meta.num_points, &anyPresent) ||
-        !read_u8_field(configJson, "calibration_mode", &meta.calibration_mode, &anyPresent)) {
+    if (!read_u8_field(configJson, len, "polynomial_degree", 0, 4, &meta.polynomial_degree, &anyPresent) ||
+        !read_u8_field(configJson, len, "actual_dose_levels", 1, 10, &meta.num_points, &anyPresent) ||
+        !read_u8_field(configJson, len, "calibration_mode", 0, 4, &meta.calibration_mode, &anyPresent)) {
         return XPE_ERR_CONFIG_INVALID;
     }
 

@@ -465,10 +465,22 @@ namespace {
 struct TopRow { const char* what; const char* json; bool refused; bool read; };
 
 /** The four fields, each substituted for FIELD in a row's template. */
+/** The numbers the rows stand in with, per field, each inside the range that field has (QA-A-208c) and different from
+ *  the store's 0.5 / 1 / 3 / 2 so that a value read shows as a change: `$` is the good value, `%` another good one. */
+std::string goodValue(const std::string& field) {
+    return field == "fit_r_squared" ? "0.75" : field == "polynomial_degree" ? "3" : field == "actual_dose_levels" ? "7" : "4";
+}
+std::string otherValue(const std::string& field) {
+    return field == "fit_r_squared" ? "0.25" : field == "polynomial_degree" ? "2" : field == "actual_dose_levels" ? "5" : "1";
+}
+
 std::string withField(const char* tmpl, const char* field) {
     std::string out;
     for (const char* p = tmpl; *p; ++p) {
-        if (*p == '@') out += field; else out += *p;
+        if (*p == '@') out += field;
+        else if (*p == '$') out += goodValue(field);
+        else if (*p == '%') out += otherValue(field);
+        else out += *p;
     }
     return out;
 }
@@ -483,35 +495,35 @@ TEST_F(ConfigStrictParse, AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly) {
     XpeCalibQualityMeta base{};
     ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&base));
 
-    // '@' stands for the field's name. A good value is 7 (valid for all four fields, and different from the
+    // '@' stands for the field's name, '$' for a good value of that field (see goodValue: inside the field's range, and different from the
     // store's 0.5 / 1 / 3 / 2, so a read value shows as a change); a bad one is "bad".
     const TopRow rows[] = {
         {"only inside a nested object: not given (the nested value is not read)",
-         "{\"nested\":{\"@\":7},\"other\":2}", false, false},
+         "{\"nested\":{\"@\":$},\"other\":2}", false, false},
         {"only inside a nested object, malformed: not given (the nested value does not poison the load)",
          "{\"nested\":{\"@\":\"bad\"}}", false, false},
         {"valid in a nested object, malformed at the top level: refused",
-         "{\"nested\":{\"@\":7},\"@\":\"bad\"}", true, false},
+         "{\"nested\":{\"@\":$},\"@\":\"bad\"}", true, false},
         {"malformed at the top level, valid nested after: refused",
-         "{\"@\":\"bad\",\"nested\":{\"@\":7}}", true, false},
+         "{\"@\":\"bad\",\"nested\":{\"@\":$}}", true, false},
         {"in a nested array of objects only: not given",
-         "{\"list\":[{\"@\":7},{\"@\":8}]}", false, false},
+         "{\"list\":[{\"@\":$},{\"@\":%}]}", false, false},
         {"the top-level key given twice, both valid: refused",
-         "{\"@\":7,\"@\":7}", true, false},
+         "{\"@\":$,\"@\":$}", true, false},
         {"the top-level key given twice, the first valid: refused",
-         "{\"@\":7,\"x\":0,\"@\":\"bad\"}", true, false},
+         "{\"@\":$,\"x\":0,\"@\":\"bad\"}", true, false},
         {"the top-level key given twice, the second valid: refused",
-         "{\"@\":\"bad\",\"@\":7}", true, false},
+         "{\"@\":\"bad\",\"@\":$}", true, false},
         // In "see \"@" the string's own closing quote follows the key name, so the raw text contains "@" with a
         // quote on each side -- which is all a first-occurrence search looks for.
         {"the key's name at the end of a string value: not a key",
          "{\"note\":\"see \\\"@\"}", false, false},
         {"the key's name at the end of a string value, then the real key: the real key is read",
-         "{\"note\":\"see \\\"@\",\"@\":7}", false, true},
+         "{\"note\":\"see \\\"@\",\"@\":$}", false, true},
         {"braces and quotes inside a string value are skipped, not counted",
-         "{\"note\":\"} { [ \\\" ]\",\"@\":7}", false, true},
+         "{\"note\":\"} { [ \\\" ]\",\"@\":$}", false, true},
         {"the real key after a nested object with the same key: the top-level value is the one read",
-         "{\"nested\":{\"@\":\"bad\"},\"@\":7}", false, true},
+         "{\"nested\":{\"@\":\"bad\"},\"@\":$}", false, true},
     };
     const char* fields[] = {"fit_r_squared", "polynomial_degree", "actual_dose_levels", "calibration_mode"};
 
@@ -543,7 +555,7 @@ TEST_F(ConfigStrictParse, AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly) {
                                      : (std::string(field) == "polynomial_degree")  ? after.polynomial_degree
                                      : (std::string(field) == "actual_dose_levels") ? after.num_points
                                                                                     : after.calibration_mode;
-                    EXPECT_DOUBLE_EQ(7.0, got) << "the value read is the top-level one";
+                    EXPECT_DOUBLE_EQ(std::stod(goodValue(field)), got) << "the value read is the top-level one";
                 } else {
                     EXPECT_EQ(0u, after.valid) << "a value that is not a top-level key was read";
                     EXPECT_DOUBLE_EQ(0.0, after.r_squared);
@@ -578,6 +590,8 @@ std::string withKeys(const char* tmpl, const std::string& field) {
     for (const char* p = tmpl; *p; ++p) {
         if (*p == '@') out += field;
         else if (*p == '#') out += escapedKey(field);
+        else if (*p == '$') out += goodValue(field);
+        else if (*p == '%') out += otherValue(field);
         else out += *p;
     }
     return out;
@@ -595,37 +609,37 @@ TEST_F(ConfigStrictParse, AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreCom
     ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&base));
 
     // '@' is the field's name, '#' the same name with its first underscore spelled as the escape \u005f.
-    // A good value is 7: valid for all four fields and different from the store's 0.5 / 1 / 3 / 2.
+    // '$' and '%' are good values of the field (goodValue / otherValue), different from the store's 0.5 / 1 / 3 / 2.
     // (\\ in the C++ below is one backslash in the JSON text.)
     const JsonRow rows[] = {
         // the escaped spelling is the same key (Codex #40 finding 1)
         {"escaped key, malformed value: the key is found and refused", "{\"#\":\"bad\"}", true, false},
-        {"escaped key, valid value: read", "{\"#\":7}", false, true},
-        {"the key twice, once escaped: a duplicate", "{\"@\":7,\"#\":8}", true, false},
-        {"the key twice, escaped first: a duplicate", "{\"#\":7,\"@\":8}", true, false},
-        {"the key twice, both escaped: a duplicate", "{\"#\":7,\"#\":8}", true, false},
+        {"escaped key, valid value: read", "{\"#\":$}", false, true},
+        {"the key twice, once escaped: a duplicate", "{\"@\":$,\"#\":%}", true, false},
+        {"the key twice, escaped first: a duplicate", "{\"#\":$,\"@\":%}", true, false},
+        {"the key twice, both escaped: a duplicate", "{\"#\":$,\"#\":%}", true, false},
         // broken JSON is not an object with keys (Codex #40 finding 2)
-        {"a broken nested object before a valid key", "{\"nested\":{bad},\"@\":7}", true, false},
+        {"a broken nested object before a valid key", "{\"nested\":{bad},\"@\":$}", true, false},
         {"a bracket of the wrong kind inside a nested value", "{\"nested\":{]}", true, false},
-        {"text after the closing brace", "{\"@\":7} garbage", true, false},
+        {"text after the closing brace", "{\"@\":$} garbage", true, false},
         {"text after an empty object", "{} garbage", true, false},
-        {"a forbidden escape in a string", "{\"note\":\"a\\qb\",\"@\":7}", true, false},
-        {"a raw control character (a newline) inside a string", "{\"note\":\"a\nb\",\"@\":7}", true, false},
-        {"a trailing comma", "{\"@\":7,}", true, false},
-        {"single quotes", "{'@':7}", true, false},
-        {"a bare plus sign is not a JSON number", "{\"@\":+7}", true, false},
-        {"a missing colon", "{\"@\" 7}", true, false},
-        {"the object is not closed", "{\"@\":7", true, false},
-        {"the top level is an array", "[{\"@\":7}]", true, false},
+        {"a forbidden escape in a string", "{\"note\":\"a\\qb\",\"@\":$}", true, false},
+        {"a raw control character (a newline) inside a string", "{\"note\":\"a\nb\",\"@\":$}", true, false},
+        {"a trailing comma", "{\"@\":$,}", true, false},
+        {"single quotes", "{'@':$}", true, false},
+        {"a bare plus sign is not a JSON number", "{\"@\":+$}", true, false},
+        {"a missing colon", "{\"@\" $}", true, false},
+        {"the object is not closed", "{\"@\":$", true, false},
+        {"the top level is an array", "[{\"@\":$}]", true, false},
         {"the top level is a string", "\"@\"", true, false},
         // well-formed text of every shape that has to keep working
         {"an empty object: no quality given", "{}", false, false},
         {"ordinary spacing and a surrogate pair, escapes and a solidus in another string",
-         "\n {\n  \"note\" : \"\\ud83d\\ude00 \\\" \\\\ \\/ \\b\\f\\n\\r\\t\" ,\n  \"@\" : 7\n }\n", false, true},
+         "\n {\n  \"note\" : \"\\ud83d\\ude00 \\\" \\\\ \\/ \\b\\f\\n\\r\\t\" ,\n  \"@\" : $\n }\n", false, true},
         {"the key's name at the end of a string value is not a key",
-         "{\"note\":\"see \\\"@\",\"@\":7}", false, true},
+         "{\"note\":\"see \\\"@\",\"@\":$}", false, true},
         {"a nested object with the same key is not it",
-         "{\"nested\":{\"@\":\"bad\"},\"@\":7}", false, true},
+         "{\"nested\":{\"@\":\"bad\"},\"@\":$}", false, true},
     };
     const char* fields[] = {"fit_r_squared", "polynomial_degree", "actual_dose_levels", "calibration_mode"};
 
@@ -655,10 +669,143 @@ TEST_F(ConfigStrictParse, AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreCom
                                      : (std::string(field) == "polynomial_degree")  ? after.polynomial_degree
                                      : (std::string(field) == "actual_dose_levels") ? after.num_points
                                                                                     : after.calibration_mode;
-                    EXPECT_DOUBLE_EQ(7.0, got) << "the value read is the top-level one";
+                    EXPECT_DOUBLE_EQ(std::stod(goodValue(field)), got) << "the value read is the top-level one";
                 } else {
                     EXPECT_EQ(0u, after.valid) << "no quality was given";
                 }
+            }
+            ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csp_gq.xcal"));      // set "base" back for the next row
+            ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&base));
+        }
+    }
+}
+
+// QA-A-208c (Codex #43): the config block of an XCal file is read to its stored LENGTH, and the quality parser must
+// read all of it. It used to be handed over as a C string, so the first NUL byte ended the text: everything behind
+// it went unchecked and "{}<NUL>{\"fit_r_squared\":\"bad\"}" hid a bad quality key (the file's SHA-256 covers the
+// whole block, so the hash does not catch it). nlohmann's strict mode refuses a NUL outside a string (a token error)
+// and inside one (a control character), so no NUL check of our own is added -- these rows are what shows it.
+// The same rows cover what was never run before: a byte-order mark and malformed UTF-8.
+TEST_F(ConfigStrictParse, AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte) {
+    writeGainWithConfig("csp_gq.xcal", 4.0f,
+        "{\"fit_r_squared\":\"0.5\",\"polynomial_degree\":\"1\",\"actual_dose_levels\":\"3\",\"calibration_mode\":\"2\"}");
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csp_gq.xcal"));
+    XpeCalibQualityMeta base{};
+    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&base));
+
+    const std::string nul(1, '\0');
+    struct LenRow { const char* what; std::string json; bool refused; bool read; };
+    // '@' is the field's name, '$' a good value of it (goodValue).
+    const LenRow rows[] = {
+        // a NUL ends nothing: what is behind it is checked (Codex #43)
+        {"a bad quality key hidden behind a NUL", std::string("{}") + nul + "{\"@\":\"bad\"}", true, false},
+        {"garbage behind a NUL", std::string("{\"@\":$}") + nul + "garbage", true, false},
+        {"one NUL after a valid object", std::string("{\"@\":$}") + nul, true, false},
+        {"several NULs after a valid object", std::string("{\"@\":$}") + nul + nul + nul, true, false},
+        {"a NUL before the object", nul + "{\"@\":$}", true, false},
+        {"a NUL inside a string", std::string("{\"note\":\"a") + nul + "b\",\"@\":$}", true, false},
+        {"a NUL between a key and its colon", std::string("{\"@\"") + nul + ":$}", true, false},
+        {"a NUL as the whole config", nul, true, false},
+        // a byte-order mark (never run before)
+        {"a complete UTF-8 byte-order mark before a valid object is skipped",
+         "\xEF\xBB\xBF{\"@\":$}", false, true},
+        {"an incomplete byte-order mark (two bytes)", "\xEF\xBB{\"@\":$}", true, false},
+        {"a lone first byte of a byte-order mark", "\xEF{\"@\":$}", true, false},
+        // malformed UTF-8 (never run before)
+        {"an invalid continuation byte inside a string", "{\"note\":\"\xC3\x28\",\"@\":$}", true, false},
+        {"a byte that is never valid UTF-8 inside a string", "{\"note\":\"\xFF\",\"@\":$}", true, false},
+        {"a lone surrogate escape", "{\"note\":\"\\ud800\",\"@\":$}", true, false},
+        {"valid multi-byte UTF-8 in another string is fine",
+         "{\"note\":\"\xC3\xA9 \xE2\x82\xAC\",\"@\":$}", false, true},
+    };
+    const char* fields[] = {"fit_r_squared", "polynomial_degree", "actual_dose_levels", "calibration_mode"};
+
+    for (const char* field : fields) {
+        for (const auto& row : rows) {
+            std::string json;
+            for (char ch : row.json)
+                json += (ch == '@') ? std::string(field) : (ch == '$') ? goodValue(field)
+                      : (ch == '%') ? otherValue(field) : std::string(1, ch);
+            SCOPED_TRACE(std::string(field) + ": " + row.what);
+            writeGainWithConfig("csp_gx.xcal", 2.0f, json);
+            bool threw = false;
+            const XpeErrorCode rc = callSafely([] { return xpe_calib_load_gain("csp_gx.xcal"); }, &threw);
+            EXPECT_FALSE(threw);
+            XpeCalibQualityMeta after{};
+            ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&after));
+            if (row.refused) {
+                EXPECT_EQ(XPE_ERR_CONFIG_INVALID, rc);
+                EXPECT_EQ(base.r_squared, after.r_squared) << "a refused file must leave the metadata as it was";
+                EXPECT_EQ(base.polynomial_degree, after.polynomial_degree);
+                EXPECT_EQ(base.num_points, after.num_points);
+                EXPECT_EQ(base.calibration_mode, after.calibration_mode);
+                EXPECT_NEAR(250.0f, gainResult(), 0.01f) << "a refused file must not have replaced the gain map";
+            } else {
+                ASSERT_EQ(XPE_OK, rc);
+                EXPECT_NEAR(500.0f, gainResult(), 0.01f) << "the file loaded: its gain map (2) is in the store";
+                EXPECT_EQ(1u, after.valid);
+                const double got = (std::string(field) == "fit_r_squared")      ? after.r_squared
+                                 : (std::string(field) == "polynomial_degree")  ? after.polynomial_degree
+                                 : (std::string(field) == "actual_dose_levels") ? after.num_points
+                                                                                : after.calibration_mode;
+                EXPECT_DOUBLE_EQ(std::stod(goodValue(field)), got) << "the value read is the top-level one";
+            }
+            ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csp_gq.xcal"));      // set "base" back for the next row
+            ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&base));
+        }
+    }
+}
+
+// QA-A-208c: a quality field outside the range it has by definition is refused, and the ends of the range are
+// accepted. The ranges are what no generation can step outside of (xpe_calib_mode.cpp): fit_r_squared at most 1 and
+// never the record's own no-data value -1.0; polynomial_degree 0..4; actual_dose_levels 1..10; calibration_mode 0..4.
+// fit_r_squared has no lower bound of its own: the generator reports a NEGATIVE one when the fit is worse than the
+// mean (-0.0766 for the ladder of the poly-fixture tests), and a file it wrote must load.
+TEST_F(ConfigStrictParse, AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted) {
+    writeGainWithConfig("csp_gq.xcal", 4.0f,
+        "{\"fit_r_squared\":\"0.5\",\"polynomial_degree\":\"1\",\"actual_dose_levels\":\"3\",\"calibration_mode\":\"2\"}");
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csp_gq.xcal"));
+    XpeCalibQualityMeta base{};
+    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&base));
+
+    struct Case { const char* field; const char* value; bool accepted; };
+    const Case cases[] = {
+        {"fit_r_squared", "1.0001", false}, {"fit_r_squared", "2", false}, {"fit_r_squared", "-1.0", false},
+        {"fit_r_squared", "-1", false}, {"fit_r_squared", "1", true}, {"fit_r_squared", "1.0", true},
+        {"fit_r_squared", "0", true}, {"fit_r_squared", "0.0", true}, {"fit_r_squared", "-0.01", true},
+        {"fit_r_squared", "-0.076637433", true}, {"fit_r_squared", "-1.0001", true},
+        {"polynomial_degree", "-1", false}, {"polynomial_degree", "5", false}, {"polynomial_degree", "0", true},
+        {"polynomial_degree", "4", true},
+        {"actual_dose_levels", "0", false}, {"actual_dose_levels", "11", false}, {"actual_dose_levels", "1", true},
+        {"actual_dose_levels", "10", true},
+        {"calibration_mode", "-1", false}, {"calibration_mode", "5", false}, {"calibration_mode", "0", true},
+        {"calibration_mode", "4", true},
+    };
+    for (const auto& cs : cases) {
+        for (const bool quoted : {false, true}) {
+            const std::string v = quoted ? std::string("\"") + cs.value + "\"" : std::string(cs.value);
+            const std::string json = std::string("{\"") + cs.field + "\":" + v + "}";
+            SCOPED_TRACE(json);
+            writeGainWithConfig("csp_gx.xcal", 2.0f, json);
+            bool threw = false;
+            const XpeErrorCode rc = callSafely([] { return xpe_calib_load_gain("csp_gx.xcal"); }, &threw);
+            EXPECT_FALSE(threw);
+            XpeCalibQualityMeta after{};
+            ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&after));
+            if (!cs.accepted) {
+                EXPECT_EQ(XPE_ERR_CONFIG_INVALID, rc);
+                EXPECT_EQ(base.r_squared, after.r_squared) << "a refused file must leave the metadata as it was";
+                EXPECT_EQ(base.polynomial_degree, after.polynomial_degree);
+                EXPECT_EQ(base.num_points, after.num_points);
+                EXPECT_EQ(base.calibration_mode, after.calibration_mode);
+                EXPECT_NEAR(250.0f, gainResult(), 0.01f) << "a refused file must not have replaced the gain map";
+            } else {
+                ASSERT_EQ(XPE_OK, rc);
+                EXPECT_EQ(1u, after.valid);
+                const std::string f = cs.field;
+                const double got = f == "fit_r_squared" ? after.r_squared : f == "polynomial_degree" ? after.polynomial_degree
+                                 : f == "actual_dose_levels" ? after.num_points : after.calibration_mode;
+                EXPECT_DOUBLE_EQ(std::stod(cs.value), got);
             }
             ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csp_gq.xcal"));      // set "base" back for the next row
             ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&base));

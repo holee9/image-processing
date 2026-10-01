@@ -142,7 +142,9 @@ enum class XpeJsonTop {
 /**
  * The top-level key `key` of the JSON OBJECT `json`, read from a PARSED text: nlohmann-json (the parser the
  * repository already carries, third_party/common/vcpkg.json) in its SAX mode, strict -- the whole text must be one
- * valid JSON object, with nothing after it. Keys are compared after their escapes are interpreted ("fit\u005fr_squared"
+ * valid JSON object, with nothing after it, and the text is the `len` bytes given -- a NUL byte is not its end,
+ * it is Malformed (QA-A-208c: nlohmann-json lexes a NUL outside a string as the end of the input, even in strict
+ * mode, so it is refused before parsing). A NUL-terminated text is passed with its strlen. Keys are compared after their escapes are interpreted ("fit\u005fr_squared"
  * is fit_r_squared); the members of nested objects and arrays are not top-level keys; a key given twice at the top level
  * is Duplicate. An empty or all-white-space text is Absent; anything that is not valid JSON, or whose top level
  * is not an object, is Malformed. No exception for a malformed text; std::bad_alloc can still escape (the callers'
@@ -153,7 +155,7 @@ enum class XpeJsonTop {
  * `*value` is set for Scalar only: the string's text with its escapes interpreted, or the number/true/false/null
  * token (a float as written, an integer in decimal).
  */
-XpeJsonTop xpe_json_top_level_scalar(const char* json, const char* key, std::string* value);
+XpeJsonTop xpe_json_top_level_scalar(const char* json, size_t len, const char* key, std::string* value);
 
 /**
  * @brief xpe_nonlinearity_correct with a report of whether pixels were corrected.
@@ -606,6 +608,9 @@ constexpr float XPE_CALIB_GAIN_MAX = 10.0f;
 /** @brief The FUNC-033 (2) R-squared gate threshold, quoted from the SRS. */
 constexpr double XPE_CALIB_R_SQUARED_GATE = 0.999;
 
+/** The r_squared of a quality record whose file gave none (QA-A-208c): the no-data value. A file may not carry it. */
+constexpr double XPE_R_SQUARED_NOT_GIVEN = -1.0;
+
 /**
  * @brief Restore FUNC-033 metadata from an XCal file's config JSON.
  *
@@ -625,12 +630,15 @@ constexpr double XPE_CALIB_R_SQUARED_GATE = 0.999;
  * fields, a finite number for fit_r_squared; notation as for the pipeline configuration) is
  * XPE_ERR_CONFIG_INVALID (QA-A-204, #233) -- it used to be read as 0 or truncated, silently.
  *
- * @param configJson NUL-terminated config JSON, or nullptr for none.
+ * @param configJson The config JSON, or nullptr for none: `len` bytes, NOT NUL-terminated text -- the config block
+ *                   of an XCal file is stored with its length, may hold any byte, and is parsed to its end
+ *                   (QA-A-208c, Codex #43: a NUL in the block used to end the text and hide what followed).
+ * @param len        Length of configJson in bytes.
  * @param out        Receives the parsed metadata when *found is true.
  * @param found      Set to true when at least one FUNC-033 field was present (and all were valid).
  * @return XPE_OK, XPE_ERR_CONFIG_INVALID for a malformed field, XPE_ERR_INVALID_INPUT for a null argument.
  */
-XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, XpeCalibQualityMeta* out, bool* found);
+XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, size_t len, XpeCalibQualityMeta* out, bool* found);
 
 /**
  * @brief Make parsed FUNC-033 metadata the one xpe_calib_get_quality_meta() serves; the caller holds g_calib_mutex.
