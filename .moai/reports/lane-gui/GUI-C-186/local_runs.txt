@@ -1,0 +1,7 @@
+# GUI-C-186 - local runs
+
+## gui.slnx and clients.slnx Debug builds: 0 errors
+
+## IntegrationTests Category=Functional (whole suite, incl. 47 AiBoneSuppressionStageTests after the fix)
+  건너뜀 ImageProcTest.IntegrationTests.Functional.ErrorCodeMappingTests.ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback(code: NOT_IMPLEMENTED) [< 1 ms]
+  통과!  - 실패:     0, 통과:   294, 건너뜀:     1, 전체:   295, 기간: 2 s - ImageProcTest.IntegrationTests.dll (net8.0)

@@ -1,0 +1,43 @@
+GUI-C-186d local runs (this tree: dev/gui on fca4f78c plus the working-tree changes of this card)
+
+[gui/ImageProcTest.slnx] dotnet build -c Debug: exit=0, error CS=0,  경고 12개  오류 0개 
+[clients/ImageProcTest.slnx] dotnet build -c Debug: exit=0, error CS=0,  경고 1개  오류 0개 
+
+[AiStatusRefresherTests, six consecutive runs (timing-using tests)]:
+run 1: 통과!  - 실패:     0, 통과:    16, 건너뜀:     0, 전체:    16, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)
+run 2: 통과!  - 실패:     0, 통과:    16, 건너뜀:     0, 전체:    16, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)
+run 3: 통과!  - 실패:     0, 통과:    16, 건너뜀:     0, 전체:    16, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)
+run 4: 통과!  - 실패:     0, 통과:    16, 건너뜀:     0, 전체:    16, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)
+run 5: 통과!  - 실패:     0, 통과:    16, 건너뜀:     0, 전체:    16, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)
+run 6: 통과!  - 실패:     0, 통과:    16, 건너뜀:     0, 전체:    16, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)
+
+[Category=Functional, all]: 통과!  - 실패:     0, 통과:   329, 건너뜀:     1, 전체:   330
+
+[E2E, Mock backend: ProcessingChainScenarios + AutomationReportBackendTests] (UI Automation patterns only)
+  통과 Smoke.AutomationReportBackendTests.A12_Panels_RenderWhatTheSettingsHold [44 s]
+  통과 Smoke.AutomationReportBackendTests.A15_ASelfCheckThatCannotBeStarted_IsDidNotRun_NotAFailure [13 s]
+  통과 Smoke.AutomationReportBackendTests.A16_TroubleshootingPage_NotGenerated_SaysSoAndHow_AndOpensNothing [14 s]
+  통과 Smoke.AutomationReportBackendTests.A11_ApiReference_ClaimMatchesTheDisk_AndTheCountsAgree [14 s]
+  통과 Smoke.AutomationReportBackendTests.A07_RuntimeLogs_AreWrittenToAFile [16 s]
+  통과 Smoke.AutomationReportBackendTests.A17_TroubleshootingPage_Generated_IsResolved_AndTheLaunchIsSuppressedUnderAutomation [18 s]
+  통과 Smoke.AutomationReportBackendTests.A05_AFailingSelfCheck_IsReportedAsAFailure_WithTheReason [16 s]
+  통과 Smoke.AutomationReportBackendTests.A10_PipelineDiagnostics_KeepsNoMeasurementApartFromZero [14 s]
+  통과 Smoke.AutomationReportBackendTests.A13_PanelFlags_SurviveTheProcess_AndTheVerdictDoesNotDependOnThem [29 s]
+  통과 Smoke.AutomationReportBackendTests.A04_SelfCheck_ActuallyRuns_AndThePassIsReported [14 s]
+  통과 Smoke.AutomationReportBackendTests.A02_MockRequested_IsStillAPass [14 s]
+  건너뜀 Smoke.AutomationReportBackendTests.A03_TheWiredCommands_ReportWhatTheyDid [< 1 ms]
+  통과 Smoke.AutomationReportBackendTests.A09_EvidenceBundleAndFolder_Answer [14 s]
+  통과 Smoke.AutomationReportBackendTests.A08_RecentFileHistory_SurvivesTheProcess [29 s]
+  통과 Smoke.AutomationReportBackendTests.A01_NativeRequested_FallsBackToMock_IsNotAPass [14 s]
+  통과 Smoke.AutomationReportBackendTests.A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported [14 s]
+  통과 Smoke.AutomationReportBackendTests.A14_BenchmarkRunner_DescribesTheBuildTree_AndReportsNoVerdictItDidNotGet [14 s]
+  통과 Workflows.ProcessingChainScenarios.C01_PreprocessStage_ReachesTheDrawnPixelsOrSaysWhyNot [8 s]
+  건너뜀 Workflows.ProcessingChainScenarios.C07_AGridRatioOutsideTheTable_IsRefused [< 1 ms]
+  건너뜀 Workflows.ProcessingChainScenarios.C04_MissingVirtualGridTable_IsRefusedAndTheImageIsUnchanged [< 1 ms]
+  건너뜀 Workflows.ProcessingChainScenarios.C02_ChangingTheExposureKvp_DoesNotChangeTheDrawnPixelsToday [< 1 ms]
+  건너뜀 Workflows.ProcessingChainScenarios.C09_AWorkerSwitchedOffByRepeatedFailures_ShowsAMark_ThatRestartRemoves [< 1 ms]
+  통과 Workflows.ProcessingChainScenarios.C05_GridCorrectionChoices_AreExclusive [10 s]
+  통과 Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeGridSuppression", mode: "GridSuppression
+  통과 Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeVirtualGrid", mode: "VirtualGrid") [8 s]
+  통과 Workflows.ProcessingChainScenarios.C08_AiBoneSuppression_WhereTheModuleCannotSucceed_IsRefusedAndTheImageIsTheOriginal [9 s]
+  건너뜀 Workflows.ProcessingChainScenarios.C06_ChangingTheGridRatio_ChangesTheDrawnPixels [1 ms]

@@ -1,0 +1,50 @@
+ARM the-generation-check-is-removed: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    81, 건너뜀:     0, 전체:    82, 기간: 2 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.ARead_StartedBeforeAReset_OfTheSameBackend_IsDropped_AndTheOneAfterItIsShown [2 ms]
+   restored byte-identical: True
+ARM the-backend-identity-check-is-removed: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    81, 건너뜀:     0, 전체:    82, 기간: 2 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.ARead_ForABackendThatIsNoLongerTheCurrentOne_IsDropped_EvenWithTheSameGeneration [1 ms]
+   restored byte-identical: True
+ARM reset-no-longer-shows-unknown: exit=1 built_ok=True
+   ['실패!  - 실패:     2, 통과:    80, 건너뜀:     0, 전체:    82, 기간: 13 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.AfterTheBackendIsReplaced_AStaleReadIsDropped_AndTheScreenShowsTheNewBackend [8 ms]
+   red: AiStatusRefresherTests.ARead_StartedBeforeAReset_OfTheSameBackend_IsDropped_AndTheOneAfterItIsShown [10 s]
+   restored byte-identical: True
+ARM stop-does-not-stop: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    81, 건너뜀:     0, 전체:    82, 기간: 2 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.AfterStop_ARunningReadIsNotApplied_AndANewRequestStartsNothing [326 ms]
+   restored byte-identical: True
+ARM requests-start-parallel-reads-instead-of-collapsing: exit=1 built_ok=True
+   ['실패!  - 실패:     2, 통과:    80, 건너뜀:     0, 전체:    82, 기간: 22 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.RequestsThatPileUpWhileAReadRuns_BecomeExactlyOneMoreRead [10 s]
+   red: AiStatusRefresherTests.WhileTheGateIsHeld_RequestReturnsAtOnce_AndTheUiThreadKeepsWorking [10 s]
+   restored byte-identical: True
+ARM the-read-runs-on-the-calling-thread: exit=1 built_ok=True
+   ['실패!  - 실패:     3, 통과:    79, 건너뜀:     0, 전체:    82, 기간: 1 m 22 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.AFrameThatHoldsTheGateForAsLongAsItLikes_ThenEnds_LeavesTheScreenCurrent_WithNoFurtherEvent [10 s]
+   red: AiStatusRefresherTests.RequestsThatPileUpWhileAReadRuns_BecomeExactlyOneMoreRead [20 s]
+   red: AiStatusRefresherTests.WhileTheGateIsHeld_RequestReturnsAtOnce_AndTheUiThreadKeepsWorking [10 s]
+   restored byte-identical: True
+ARM a-throwing-read-is-not-contained: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    81, 건너뜀:     0, 전체:    82, 기간: 12 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.AReadThatThrows_ShowsNothing_AndTheNextRequestStillWorks [10 s]
+   restored byte-identical: True
+ARM the-viewmodel-reads-on-the-ui-thread: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    81, 건너뜀:     0, 전체:    82, 기간: 2 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.TheViewModel_RefreshesInTheBackground_ResetsAtEverySwap_AndStopsAtClose [1 ms]
+   restored byte-identical: True
+ARM a-backend-swap-does-not-reset-the-status: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    81, 건너뜀:     0, 전체:    82, 기간: 2 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.TheViewModel_RefreshesInTheBackground_ResetsAtEverySwap_AndStopsAtClose [19 ms]
+   restored byte-identical: True
+ARM a-failed-initialisation-does-not-read-again: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    81, 건너뜀:     0, 전체:    82, 기간: 2 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.TheViewModel_RefreshesInTheBackground_ResetsAtEverySwap_AndStopsAtClose [23 ms]
+   restored byte-identical: True
+ARM the-close-does-not-stop-the-updates: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    81, 건너뜀:     0, 전체:    82, 기간: 2 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.TheViewModel_RefreshesInTheBackground_ResetsAtEverySwap_AndStopsAtClose [1 ms]
+   restored byte-identical: True
+AFTER RESTORE: 0 True ['통과!  - 실패:     0, 통과:    82, 건너뜀:     0, 전체:    82, 기간: 2 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+sources: dffd5531fbe2 cdbb97c59d47 5307e1815f20 dc04c0133b25

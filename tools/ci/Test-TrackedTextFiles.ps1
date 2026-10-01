@@ -16,6 +16,19 @@ $extensionsWithWhitespaceCheck = @(
     '.txt'
 )
 
+# Source and config files must not carry C0 control characters other than tab/LF/CR, nor DEL. A raw U+0001
+# once replaced the regex back-reference `\1` in a C# test (GUI-C-186c) and nothing caught it. Plain-text
+# artifacts (.txt) are left out on purpose: text extracted from PDFs legitimately keeps form feeds.
+$extensionsWithControlCharCheck = @(
+    '.c', '.cc', '.cpp', '.cxx',
+    '.h', '.hh', '.hpp', '.hxx',
+    '.cs', '.xaml', '.csproj', '.props', '.targets',
+    '.ps1', '.psm1',
+    '.yml', '.yaml',
+    '.json',
+    '.cmake'
+)
+
 function Add-TextError {
     param([string]$Message)
     $script:errors.Add($Message)
@@ -35,6 +48,7 @@ foreach ($relativePath in $trackedFiles) {
     $extension = [System.IO.Path]::GetExtension($fullPath).ToLowerInvariant()
     $fileName = [System.IO.Path]::GetFileName($fullPath)
     $checkTrailingWhitespace = $extensionsWithWhitespaceCheck -contains $extension -or $fileName -eq 'CMakeLists.txt'
+    $checkControlChars = $extensionsWithControlCharCheck -contains $extension -or $fileName -eq 'CMakeLists.txt'
 
     $lines = @(Get-Content -LiteralPath $fullPath)
     for ($index = 0; $index -lt $lines.Count; $index++) {
@@ -47,6 +61,11 @@ foreach ($relativePath in $trackedFiles) {
 
         if ($checkTrailingWhitespace -and $line -match '[ \t]+$') {
             Add-TextError "${relativePath}:$lineNumber contains trailing whitespace."
+        }
+
+        if ($checkControlChars -and $line -match '[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]') {
+            $code = [int][char]$Matches[0]
+            Add-TextError ("${relativePath}:$lineNumber contains control character U+{0:X4}." -f $code)
         }
     }
 }

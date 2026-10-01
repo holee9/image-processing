@@ -1,0 +1,37 @@
+ARM no-retry-is-booked-when-the-read-gives-up: exit=1 built_ok=True
+   ['실패!  - 실패:     3, 통과:     8, 건너뜀:     0, 전체:    11, 기간: 112 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.AReadThatNeverWorks_IsAskedAFixedNumberOfTimes_ThenLeftAlone [3 ms]
+   red: AiStatusRefresherTests.AReadThatGivesUp_IsAskedAgainLater_AndTheLaterStatusReachesTheScreen [1 ms]
+   red: AiStatusRefresherTests.ANewerRefresh_CancelsTheRetriesOfAnOlderOne_SoTheLastEventWins [< 1 ms]
+   restored byte-identical: True
+ARM an-older-refresh-is-not-superseded: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    10, 건너뜀:     0, 전체:    11, 기간: 120 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.ANewerRefresh_CancelsTheRetriesOfAnOlderOne_SoTheLastEventWins [2 ms]
+   restored byte-identical: True
+ARM the-retries-are-not-capped: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    10, 건너뜀:     0, 전체:    11, 기간: 107 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.AReadThatNeverWorks_IsAskedAFixedNumberOfTimes_ThenLeftAlone [4 ms]
+   restored byte-identical: True
+ARM the-reason-drops-the-message: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    10, 건너뜀:     0, 전체:    11, 기간: 108 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.TheInitFailureReason_NamesTheExceptionTypeAndItsMessage_EndingWithAFullStop [< 1 ms]
+   restored byte-identical: True
+ARM the-init-throws-the-original-not-the-shared-reason: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    10, 건너뜀:     0, 전체:    11, 기간: 121 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.TheNativeInit_RecordsTheReasonItThrows_FromOneVariable [15 ms]
+   restored byte-identical: True
+ARM the-tracker-records-its-own-spelling: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    10, 건너뜀:     0, 전체:    11, 기간: 111 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.TheNativeInit_RecordsTheReasonItThrows_FromOneVariable [9 ms]
+   restored byte-identical: True
+ARM the-viewmodel-never-books-a-retry: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    10, 건너뜀:     0, 전체:    11, 기간: 138 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.TheViewModel_RefreshesThroughTheRefresher_AndSchedulesWithoutBlockingTheUiThread [1 ms]
+   restored byte-identical: True
+ARM the-e2e-regex-has-a-control-byte-for-its-backreference: exit=1 built_ok=True
+   ['실패!  - 실패:     2, 통과:     9, 건너뜀:     0, 전체:    11, 기간: 121 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiStatusRefresherTests.TheE2EAssertion_CarriesThatPattern_AsTheTwoCharactersBackslashOne [14 ms]
+   red: AiStatusRefresherTests.NoSourceFileOfTheTwoClients_CarriesAControlByte [48 ms]
+   restored byte-identical: True
+AFTER RESTORE: 0 True ['통과!  - 실패:     0, 통과:    11, 건너뜀:     0, 전체:    11, 기간: 97 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+sources: c9d872aad0c9 f51c49c4c36e 3b83a6639bb7 ad99704fba28

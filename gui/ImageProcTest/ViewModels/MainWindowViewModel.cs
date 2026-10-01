@@ -156,6 +156,7 @@ public sealed class MainWindowViewModel : ObservableObject
         ApplyBodyPartPresetCommand = new RelayCommand(ApplyBodyPartPreset);
         RunPreprocessingCommand = new RelayCommand(RunPreprocessing);
         RunAiBoneSuppressionCommand = new RelayCommand(RunAiBoneSuppression);
+        RestartAiSessionCommand = new RelayCommand(RestartAiSession);
         ZoomFitCommand = new RelayCommand(ZoomFit);
         ZoomActualCommand = new RelayCommand(ZoomActual);
         ZoomInCommand = new RelayCommand(ZoomIn);
@@ -529,6 +530,103 @@ public sealed class MainWindowViewModel : ObservableObject
     /// with an unchanged image.
     /// </summary>
     public string AiProcessedLabel { get; private set; } = string.Empty;
+
+    private AiWorkerStatus _aiWorkerStatus = AiWorkerStatus.Unknown;
+
+    /// <summary>
+    /// GUI-C-185: true while the module reports the AI worker switched off for this session. The source is
+    /// <c>xpe_ai_worker_state</c>, not an alert: alerts are drained by their reader and can overflow, the state stays.
+    /// </summary>
+    public bool AiWorkerDisabled => _aiWorkerStatus.State == AiWorkerState.Disabled;
+
+    /// <summary>
+    /// True when the persistent mark and the Restart AI button show: the worker is switched off, OR the AI session could not be
+    /// started (a restart that failed, or a start that failed after the directory changed). The retry button must not vanish
+    /// when recovery has just failed (Codex #24 B1).
+    /// </summary>
+    public bool AiWorkerMarkVisible => AiBoneSuppressionStage.ShowsMark(_aiWorkerStatus);
+
+    /// <summary>The persistent text: the module's failure count and ceiling for a switched-off worker, the reason for a failed start; empty otherwise.</summary>
+    public string AiWorkerBannerText => AiBoneSuppressionStage.BannerFor(_aiWorkerStatus);
+
+    /// <summary>The state as one line for automation (read from the AI checkbox's help text), e.g. <c>worker=Active; failures=0; ceiling=3</c>.</summary>
+    public string AiWorkerStatusSummary => AiBoneSuppressionStage.DescribeStatus(_aiWorkerStatus);
+
+    /// <summary>GUI-C-185: shutdown then init under the one lock; the mark goes when the module reports a new session.</summary>
+    public RelayCommand RestartAiSessionCommand { get; }
+
+    /// <summary>
+    /// Asks for the worker state to be read again and shown when it changed. Returns at once: the read waits for the session gate
+    /// in the background (a frame waiting on a silent worker holds it) and the result is applied on the UI thread when it is
+    /// still current (GUI-C-186d). A backend without an AI session answers Unknown, which shows nothing.
+    /// </summary>
+    private void RefreshAiWorkerStatus() => AiStatus.Request();
+
+    private AiStatusRefresher? _aiStatusRefresher;
+
+    private readonly System.Windows.Threading.Dispatcher _uiDispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+
+    private AiStatusRefresher AiStatus => _aiStatusRefresher ??=
+        new AiStatusRefresher(() => _backend, ReadAiWorkerStatus, ApplyAiWorkerStatus, work => Task.Run(work), PostToUi);
+
+    /// <summary>Runs on a background thread, for the backend that was current when the read was requested.</summary>
+    private static AiWorkerStatus? ReadAiWorkerStatus(object? backend) =>
+        backend is IAiSessionBackend session ? session.GetAiWorkerStatus() : AiWorkerStatus.Unknown;
+
+    /// <summary>Hands <paramref name="action"/> to the UI thread; dropped when the dispatcher is already shutting down (a closed screen is not updated).</summary>
+    private void PostToUi(Action action)
+    {
+        if (_uiDispatcher.HasShutdownStarted)
+        {
+            return;
+        }
+
+        _uiDispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, action);
+    }
+
+    /// <summary>The application is closing: no status read, started or running, may update the screen after this.</summary>
+    public void StopAiStatusUpdates() => AiStatus.Stop();
+
+    private void ApplyAiWorkerStatus(AiWorkerStatus status)
+    {
+        if (status == _aiWorkerStatus)
+        {
+            return;
+        }
+
+        _aiWorkerStatus = status;
+        OnPropertyChanged(nameof(AiWorkerDisabled));
+        OnPropertyChanged(nameof(AiWorkerMarkVisible));
+        OnPropertyChanged(nameof(AiWorkerBannerText));
+        OnPropertyChanged(nameof(AiWorkerStatusSummary));
+    }
+
+    private async void RestartAiSession()
+    {
+        if (_backend is not IAiSessionBackend session)
+        {
+            StatusText = "AI session restart needs the native backend.";
+            Log(StatusText);
+            RefreshAiWorkerStatus(); // a backend with no AI session reports Unknown, which shows nothing
+            return;
+        }
+
+        try
+        {
+            var directory = Settings.AiModelDirectory;
+            var result = await Task.Run(() => session.RestartAiSession(directory));
+            DrainBackendTelemetry();
+            StatusText = result.Message;
+            Log(result.Message);
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"AI session could not be restarted: {ex.Message}";
+            Log(StatusText);
+        }
+
+        RefreshAiWorkerStatus();
+    }
 
     private ChainResult? _lastChain;
     private float _renderedLaneBWidth;
@@ -1119,9 +1217,11 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public void ShutdownBackend()
     {
+        AiStatus.Reset(); // the status shown belongs to a session that is ending; the read after the shutdown (below) says what is left
         _backend.Shutdown();
         RuntimeInfo = _backend.GetRuntimeInfo();
         DrainBackendTelemetry();
+        RefreshAiWorkerStatus();
         StatusText = "Backend shutdown.";
         Log("Backend shutdown requested.");
     }
@@ -1610,6 +1710,10 @@ public sealed class MainWindowViewModel : ObservableObject
     // @MX:NOTE: [AUTO] Replaces current backend via factory; disposes old backend if IDisposable; called from constructor and InitializeBackendCommand
     private void InitializeBackend()
     {
+        // GUI-C-186d: the status on screen belongs to the backend being replaced. Raise the generation and show Unknown NOW, so a
+        // read still running for the old backend cannot be applied; the read for the new one is requested after the
+        // initialisation has finished, whether it worked or not (below).
+        AiStatus.Reset();
         try
         {
             // #198 (GUI-C-126, lead decision): the record the user has seen is kept and a boundary is
@@ -1653,6 +1757,8 @@ public sealed class MainWindowViewModel : ObservableObject
             StatusText = $"Backend initialization failed: {ex.Message}";
             Log(StatusText);
         }
+
+        RefreshAiWorkerStatus();
     }
 
     /// <summary>
@@ -2251,6 +2357,7 @@ public sealed class MainWindowViewModel : ObservableObject
         // unchanged AI stage never gets it.
         AiProcessedLabel = AiBoneSuppressionStage.LabelFor(chain);
         OnPropertyChanged(nameof(AiProcessedLabel));
+        RefreshAiWorkerStatus();
         ChainStatus = $"{chain.Summary}; {chain.Timings}; display input={(chain.DisplaysRaw ? "raw" : "chain")}"
             + (AiProcessedLabel.Length == 0 ? string.Empty : $" — {AiProcessedLabel}")
             + (refused.Length == 0 ? string.Empty : " — " + string.Join(" | ", refused));

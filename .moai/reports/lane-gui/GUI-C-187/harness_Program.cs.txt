@@ -1,0 +1,224 @@
+// GUI-C-187 observation harness (scratch, NOT in the repository).
+// Starts the REAL gui app in this process, then three times: reads the process current directory, runs the app's own Load Raw Image
+// command (its Microsoft.Win32.OpenFileDialog, RestoreDirectory unset), drives the dialog ONLY through UI Automation patterns, and
+// reads the process current directory again. The dialog's Open button exposes no UIA pattern (observed: a Pane of class "Button",
+// no Invoke, no LegacyIAccessible), so the file is chosen the way the same dialog allows through patterns: the navigation tree is
+// walked with ExpandCollapse and SelectionItem, then the file's list item is invoked (InvokePattern = open). No keyboard or mouse
+// input is simulated.
+using System.IO;
+using System.Text;
+using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Threading;
+
+namespace Harness;
+
+internal static class Program
+{
+    private static readonly StringBuilder Log = new();
+    private static void Say(string s) { lock (Log) Log.AppendLine($"[{DateTime.Now:HH:mm:ss.fff}] {s}"); }
+
+    [STAThread]
+    private static int Main()
+    {
+        var outPath = Path.Combine(AppContext.BaseDirectory, "observation.txt");
+        var app = new ImageProcTest.App();
+        app.InitializeComponent();
+        app.StartupUri = new Uri("pack://application:,,,/ImageProcTest;component/MainWindow.xaml");
+        var started = false;
+        DateTime loadedAt = default;
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+        timer.Tick += (_, _) =>
+        {
+            if (started) return;
+            var window = app.MainWindow as ImageProcTest.MainWindow;
+            if (window is null || !window.IsLoaded) return;
+            if (loadedAt == default) { loadedAt = DateTime.UtcNow; return; }
+            if (DateTime.UtcNow - loadedAt < TimeSpan.FromSeconds(3)) return;
+            started = true;
+            timer.Stop();
+            var dispatcher = app.Dispatcher;
+            Task.Run(() =>
+            {
+                try { Scenario(window, dispatcher); }
+                catch (Exception ex) { Say("EXCEPTION: " + ex); }
+                finally
+                {
+                    File.WriteAllText(outPath, Log.ToString(), new UTF8Encoding(false));
+                    dispatcher.BeginInvoke(() => app.Shutdown());
+                }
+            });
+        };
+        timer.Start();
+        app.Run();
+        return 0;
+    }
+
+    private static void Scenario(ImageProcTest.MainWindow window, Dispatcher dispatcher)
+    {
+        var vm = (ImageProcTest.ViewModels.MainWindowViewModel)dispatcher.Invoke(() => window.DataContext);
+        var source = @"D:\workspace-github\xpe-gui\gui\ImageProcTest\fixtures\gui-s0\raw\synthetic_1024x1024.raw";
+        Say($"process id {Environment.ProcessId}; launched with current directory = {Environment.CurrentDirectory}");
+        Say("dialog is Microsoft.Win32.OpenFileDialog; RestoreDirectory is not set by the app (MainWindowViewModel.LoadImage)");
+
+        var root = @"D:\xpe-c187-" + Guid.NewGuid().ToString("N").Substring(0, 8);
+        var names = new[] { "A", "B", "C" };
+        try
+        {
+            foreach (var n in names)
+            {
+                Directory.CreateDirectory(Path.Combine(root, n));
+                File.Copy(source, Path.Combine(root, n, "image.raw"), true);
+            }
+
+            Say($"test folders: {root}\\{{A,B,C}} each holding image.raw (a copy of the bundled 1024x1024 synthetic fixture)");
+
+            for (var round = 0; round < names.Length; round++)
+            {
+                var folder = Path.Combine(root, names[round]);
+                var before = Environment.CurrentDirectory;
+                Say($"round {round + 1}: BEFORE            Environment.CurrentDirectory = {before}");
+                dispatcher.BeginInvoke(() => vm.LoadImageCommand.Execute(null));
+
+                var dialog = WaitFor(() => FindDialog(), 30);
+                if (dialog is null) { Say($"round {round + 1}: the dialog never appeared"); return; }
+                Say($"round {round + 1}: dialog found: name='{dialog.Current.Name}' class='{dialog.Current.ClassName}'");
+                Thread.Sleep(800);
+
+                if (!Navigate(dialog, root, names[round], round + 1)) { CancelDialog(dialog); return; }
+                Thread.Sleep(600);
+                Say($"round {round + 1}: after navigating the dialog to {folder} (nothing confirmed yet): Environment.CurrentDirectory = {Environment.CurrentDirectory}");
+
+                var item = WaitFor(() => FindFileItem(dialog), 15);
+                if (item is null) { Say($"round {round + 1}: no list item named image* in the dialog"); DumpList(dialog); CancelDialog(dialog); return; }
+                Say($"round {round + 1}: invoking the list item '{item.Current.Name}' (InvokePattern: what a double-click does)");
+                ((InvokePattern)item.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
+
+                var closed = WaitFor(() => FindDialog() is null ? new object() : null, 20);
+                Thread.Sleep(2500); // the app loads the chosen image after the dialog closes
+                var after = Environment.CurrentDirectory;
+                var changed = !string.Equals(before.TrimEnd('\\'), after.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase);
+                var equalsFolder = string.Equals(folder.TrimEnd('\\'), after.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase);
+                Say($"round {round + 1}: dialog closed={closed is not null}; AFTER             Environment.CurrentDirectory = {after}");
+                Say($"round {round + 1}: changed = {changed}; equals the opened folder = {equalsFolder}");
+                Say($"round {round + 1}: status bar: {dispatcher.Invoke(() => vm.StatusText)}");
+            }
+        }
+        finally
+        {
+            try { Directory.Delete(root, true); Say("test folders deleted"); } catch (Exception ex) { Say("could not delete " + root + ": " + ex.Message); }
+        }
+    }
+
+    private static bool Navigate(AutomationElement dialog, string root, string leaf, int round)
+    {
+        var tree = dialog.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Tree));
+        if (tree is null) { Say("no navigation tree"); return false; }
+
+        // This PC -> the D: drive -> the test root -> the leaf. Names are localized, so the drive is found by its "(D:)" label.
+        var thisPc = FindTreeItem(tree, n => n == "내 PC" || n == "This PC" || n == "PC");
+        if (thisPc is null) { Say("no 'This PC' item; tree:"); DumpTree(tree, 0); return false; }
+        Expand(thisPc);
+        var drive = WaitFor(() => FindTreeItem(thisPc, n => n.Contains("(D:)")), 10);
+        if (drive is null) { Say("no D: drive item under This PC"); DumpTree(thisPc, 0); return false; }
+        Expand(drive);
+        var rootItem = WaitFor(() => FindTreeItem(drive, n => n == Path.GetFileName(root)), 10);
+        if (rootItem is null) { Say($"no tree item for {root}"); DumpTree(drive, 0); return false; }
+        Expand(rootItem);
+        var leafItem = WaitFor(() => FindTreeItem(rootItem, n => n == leaf), 10);
+        if (leafItem is null) { Say($"no tree item for {leaf}"); DumpTree(rootItem, 0); return false; }
+        ((SelectionItemPattern)leafItem.GetCurrentPattern(SelectionItemPattern.Pattern)).Select();
+        Say($"round {round}: selected the tree item '{leaf}' (SelectionItemPattern)");
+        return true;
+    }
+
+    private static void Expand(AutomationElement item)
+    {
+        if (item.TryGetCurrentPattern(ExpandCollapsePattern.Pattern, out var p))
+        {
+            var ec = (ExpandCollapsePattern)p;
+            if (ec.Current.ExpandCollapseState == ExpandCollapseState.Collapsed) ec.Expand();
+            Thread.Sleep(500);
+        }
+    }
+
+    private static AutomationElement FindTreeItem(AutomationElement scope, Func<string, bool> match)
+    {
+        foreach (AutomationElement e in scope.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TreeItem)))
+        {
+            try { if (match(e.Current.Name)) return e; } catch { }
+        }
+
+        return null;
+    }
+
+    private static AutomationElement FindFileItem(AutomationElement dialog)
+    {
+        foreach (AutomationElement e in dialog.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ListItem)))
+        {
+            try { if (e.Current.Name.StartsWith("image", StringComparison.OrdinalIgnoreCase)) return e; } catch { }
+        }
+
+        return null;
+    }
+
+    private static void CancelDialog(AutomationElement dialog)
+    {
+        // The Cancel button does expose Invoke.
+        foreach (AutomationElement b in dialog.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, "2")))
+        {
+            try
+            {
+                if (b.GetSupportedPatterns().Contains(InvokePattern.Pattern))
+                {
+                    ((InvokePattern)b.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
+                    Say("dialog cancelled (Cancel, InvokePattern)");
+                    return;
+                }
+            }
+            catch { }
+        }
+    }
+
+    private static T WaitFor<T>(Func<T> f, int seconds) where T : class
+    {
+        var end = DateTime.UtcNow.AddSeconds(seconds);
+        while (DateTime.UtcNow < end)
+        {
+            var r = f();
+            if (r is not null) return r;
+            Thread.Sleep(150);
+        }
+
+        return null;
+    }
+
+    private static AutomationElement FindDialog()
+    {
+        var c = new AndCondition(
+            new PropertyCondition(AutomationElement.NameProperty, "Load Raw Image"),
+            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Window));
+        // A modal dialog is OWNED by the main window, so UI Automation lists it under that window, not beside it.
+        var mainWindow = AutomationElement.RootElement.FindFirst(TreeScope.Children,
+            new PropertyCondition(AutomationElement.ProcessIdProperty, Environment.ProcessId));
+        return mainWindow?.FindFirst(TreeScope.Descendants, c) ?? AutomationElement.RootElement.FindFirst(TreeScope.Children, c);
+    }
+
+    private static void DumpList(AutomationElement dialog)
+    {
+        foreach (AutomationElement e in dialog.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ListItem)))
+        {
+            try { Say($"    list item: '{e.Current.Name}'"); } catch { }
+        }
+    }
+
+    private static void DumpTree(AutomationElement e, int depth)
+    {
+        if (depth > 3) return;
+        foreach (AutomationElement c in e.FindAll(TreeScope.Children, System.Windows.Automation.Condition.TrueCondition))
+        {
+            try { Say($"{new string(' ', depth * 2)}- {c.Current.ControlType.ProgrammaticName} '{c.Current.Name}'"); } catch { }
+            DumpTree(c, depth + 1);
+        }
+    }
+}

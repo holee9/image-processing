@@ -1,0 +1,34 @@
+# GUI-C-186 - real sources broken on purpose; the named tests must go red with a successful build; restored byte-identical
+
+ARM a-changed-directory-is-never-a-new-session: exit=1 built_ok=True
+   ['실패!  - 실패:     3, 통과:    44, 건너뜀:     0, 전체:    47, 기간: 173 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.ANewDirectory_NeedsANewSession_TheSameOneDoesNot(started: "D:\\models\\a", requested: "D:\\models\\b",
+   red: AiBoneSuppressionStageTests.ANewDirectory_NeedsANewSession_TheSameOneDoesNot(started: "D:\\models\\a", requested: "D:\\models\\a\\
+   red: AiBoneSuppressionStageTests.ARelativeDirectory_IsComparedByWhereItResolves [< 1 ms]
+   restored byte-identical: True
+ARM every-init-is-a-new-session: exit=1 built_ok=True
+   ['실패!  - 실패:     4, 통과:    43, 건너뜀:     0, 전체:    47, 기간: 178 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.ANewDirectory_NeedsANewSession_TheSameOneDoesNot(started: "D:\\models\\a", requested: "d:\\MODELS\\A",
+   red: AiBoneSuppressionStageTests.ANewDirectory_NeedsANewSession_TheSameOneDoesNot(started: "D:\\models\\a", requested: "D:\\models\\a\\
+   red: AiBoneSuppressionStageTests.ANewDirectory_NeedsANewSession_TheSameOneDoesNot(started: "D:\\models\\a", requested: "D:\\models\\a",
+   red: AiBoneSuppressionStageTests.ARelativeDirectory_IsComparedByWhereItResolves [< 1 ms]
+   restored byte-identical: True
+ARM directories-compared-as-typed-not-as-resolved: exit=1 built_ok=True
+   ['실패!  - 실패:     2, 통과:    45, 건너뜀:     0, 전체:    47, 기간: 183 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.ANewDirectory_NeedsANewSession_TheSameOneDoesNot(started: "D:\\models\\a", requested: "D:\\models\\a\\
+   red: AiBoneSuppressionStageTests.ARelativeDirectory_IsComparedByWhereItResolves [< 1 ms]
+   restored byte-identical: True
+ARM message-prints-the-relative-text-again: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    46, 건너뜀:     0, 전체:    47, 기간: 192 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.TheMessage_PrintsTheAbsolutePath_AARelativeDirectoryResolvesTo [1 ms]
+   restored byte-identical: True
+ARM init-ignores-the-rule-and-gives-the-module-the-typed-text: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    46, 건너뜀:     0, 전체:    47, 기간: 180 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.TheInit_StartsANewSession_WhenTheDirectoryChanged [13 ms]
+   restored byte-identical: True
+ARM init-no-longer-shuts-the-old-session-down: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    46, 건너뜀:     0, 전체:    47, 기간: 171 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.TheInit_StartsANewSession_WhenTheDirectoryChanged [13 ms]
+   restored byte-identical: True
+AFTER RESTORE: 0 True ['통과!  - 실패:     0, 통과:    47, 건너뜀:     0, 전체:    47, 기간: 160 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+sources: aa136cc2c3d8 c23f887b641b
