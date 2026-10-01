@@ -172,10 +172,12 @@ All metrics computed in C# after native stage execution. No new P/Invoke require
 
 | Metric | Formula | Unit | Gate |
 |--------|---------|------|------|
-| `DefectRecall` | `TP / (TP + FN) × 100` where oracle = ground truth | % | ≥ 95% |
-| `DefectFPR` | `FP / (FP + TN) × 100` | % | ≤ 0.001% |
-| `DefectResidualADU` | `mean(|I_corrected[bad_pixels]| )` | ADU | ≤ 2 ADU |
-| `GoodPixelDeltaP99` | `percentile99(|I_corrected - I_input|[good_pixels])` | ADU | ≤ 0 (no change) |
+| `DefectRecall` | `TP / (TP + FN) × 100` where oracle = ground truth | % | = 100% (synthetic BPM oracle) |
+| `DefectFPR` | `FP / (FP + TN) × 100` | % | < 0.001% |
+| `DefectResidualADU` | `mean(|Y(defect_pixels) − neighbor_model(defect_pixels)|)` | ADU | reported, not gated |
+| `GoodPixelDeltaP99` | `percentile99(|Y(good_pixels) − Y_no_defect_stage(good_pixels)|)` — the defect stage's own input and output, not the whole pipeline | ADU | ≤ 1 ADU |
+
+> **2026-10-01 (#218, `GUI-C-182`) — aligned to the canonical protocol.** `docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md` §5.5 is the source of these formulas and gates. This table previously said recall ≥ 95%, FPR ≤ 0.001%, P99 ≤ 0 ADU, and defined the residual as `mean(|I_corrected[bad_pixels]|)` — the absolute value of a corrected pixel, which is the image level, not an error, so a ≤ 2 ADU gate on it could not be met by real data. The protocol defines the residual against a neighbour model and sets no threshold for it, so it is reported without a gate until one is justified.
 
 #### 5.1.2 LineArtifactScore Calculation
 
@@ -688,10 +690,10 @@ New adapter type `"bpm-generator"` treated as `canRun = true` when `xpe_bpm_gene
 |------|--------|----------------|
 | 1 | Load fixture with defect.raw/bpm.raw | Defect file listed |
 | 2 | Offset **On**, Gain **On**, Defect **On** | Full pipeline |
-| 3 | Apply Calibration | DefectResidualADU ≤ 2 ADU |
+| 3 | Apply Calibration | DefectResidualADU reported (§5.1.1 formula) |
 | 4 | Set Defect to **Off**, rerun | DefectResidualADU increases; changed pixels = 0 |
-| 5 | Toggle Defect **On** again | DefectResidualADU returns to ≤ 2 ADU |
-| **Gate** | DefectResidualADU ≤ 2 ADU when Defect On | **PASS** |
+| 5 | Toggle Defect **On** again | DefectResidualADU returns to the step-3 value |
+| **Gate** | DefectResidualADU with Defect On < DefectResidualADU with Defect Off (protocol §5.5 sets no absolute threshold) | **PASS** |
 
 ---
 
