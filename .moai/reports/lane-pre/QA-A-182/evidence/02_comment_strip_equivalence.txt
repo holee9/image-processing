@@ -1,0 +1,9 @@
+IDENTICAL after comment strip: modules/preprocess/src/readout_validate.cpp
+IDENTICAL after comment strip: modules/preprocess/src/temp_compensate.cpp
+IDENTICAL after comment strip: modules/preprocess/src/pipeline.cpp
+control token occurs in code (not only comments): True
+control (one injected code-token change) is detected: True
+ALL_COMMENT_ONLY = True
+control (one injected code-token change) is detected: True
+control (one injected code-token change) is detected: True
+control (one injected code-token change) is detected: True

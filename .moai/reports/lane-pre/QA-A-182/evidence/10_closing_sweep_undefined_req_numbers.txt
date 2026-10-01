@@ -1,0 +1,33 @@
+defined in spec.md: 43 headings; sample: ['REQ-P1A-001', 'REQ-P1A-002', 'REQ-P1A-003', 'REQ-P1A-004', 'REQ-P1A-005', 'REQ-P1A-010'] ...
+cited tokens: 53 | not defined as a heading in spec.md: 10
+
+REQ-P1A-006 : 1 citations (0 look like history narration, 1 plain)
+    modules/preprocess/tests/test_golden_reference.cpp:12  *               REQ-P1A-005..008, REQ-P1A-020..023, REQ-P1A-001..004
+REQ-P1A-007 : 1 citations (0 look like history narration, 1 plain)
+    modules/preprocess/tests/test_golden_reference.cpp:12  *               REQ-P1A-005..008, REQ-P1A-020..023, REQ-P1A-001..004
+REQ-P1A-008 : 1 citations (0 look like history narration, 1 plain)
+    modules/preprocess/tests/test_golden_reference.cpp:12  *               REQ-P1A-005..008, REQ-P1A-020..023, REQ-P1A-001..004
+REQ-P1A-023 : 1 citations (0 look like history narration, 1 plain)
+    modules/preprocess/tests/test_golden_reference.cpp:12  *               REQ-P1A-005..008, REQ-P1A-020..023, REQ-P1A-001..004
+REQ-P1A-043 : 2 citations (0 look like history narration, 2 plain)
+    modules/preprocess/include/xpe/preprocess_api.h:1067  * SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021 / REQ-P1A-041..047: Pipeline verification
+    modules/preprocess/src/xpe_verify_metrics.cpp:685  * SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021 / REQ-P1A-041..047: Pipeline verification
+REQ-P1A-044 : 2 citations (0 look like history narration, 2 plain)
+    modules/preprocess/include/xpe/preprocess_api.h:1067  * SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021 / REQ-P1A-041..047: Pipeline verification
+    modules/preprocess/src/xpe_verify_metrics.cpp:685  * SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021 / REQ-P1A-041..047: Pipeline verification
+REQ-P1A-045 : 2 citations (0 look like history narration, 2 plain)
+    modules/preprocess/include/xpe/preprocess_api.h:1067  * SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021 / REQ-P1A-041..047: Pipeline verification
+    modules/preprocess/src/xpe_verify_metrics.cpp:685  * SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021 / REQ-P1A-041..047: Pipeline verification
+REQ-P1A-046 : 2 citations (0 look like history narration, 2 plain)
+    modules/preprocess/include/xpe/preprocess_api.h:1067  * SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021 / REQ-P1A-041..047: Pipeline verification
+    modules/preprocess/src/xpe_verify_metrics.cpp:685  * SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021 / REQ-P1A-041..047: Pipeline verification
+REQ-P1A-047 : 2 citations (0 look like history narration, 2 plain)
+    modules/preprocess/include/xpe/preprocess_api.h:1067  * SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021 / REQ-P1A-041..047: Pipeline verification
+    modules/preprocess/src/xpe_verify_metrics.cpp:685  * SRS-CALIB-FUNC-015 / SRS-CALIB-FUNC-021 / REQ-P1A-041..047: Pipeline verification
+REQ-P1A-066 : 6 citations (0 look like history narration, 6 plain)
+    modules/preprocess/CMakeLists.txt:433  # REQ-P1A-066: OOM guard / IO failure / SHA-256 mismatch / Ghost multi-handle race
+    modules/preprocess/tests/test_req_p1a_066.cpp:3  * @brief REQ-P1A-066: 4 error path unit tests (IEC 62304 Class B)
+    modules/preprocess/tests/test_req_p1a_066.cpp:35  * REQ-P1A-066 D1
+    modules/preprocess/tests/test_req_p1a_066.cpp:68  * REQ-P1A-066 D2
+    modules/preprocess/tests/test_req_p1a_066.cpp:95  * REQ-P1A-066 D3
+    modules/preprocess/tests/test_req_p1a_066.cpp:137  * REQ-P1A-066 D4
