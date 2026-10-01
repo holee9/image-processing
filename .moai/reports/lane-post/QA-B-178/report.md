@@ -62,7 +62,7 @@ init/shutdown 의 "Not thread-safe" 는 **그것들 자신의 동시 호출을 �
 
 ### 3.3 변경
 
-`xpe_ai_shutdown` 문서에 `LIFECYCLE CONTRACT` 문단 추가, `xpe_ai_init` 문서에서 그것을 가리킴: init 과 shutdown 은 **서로, 자기 자신과, 그리고 "Reentrant"/"Thread-safe" 로 표시된 것을 포함한 모든 다른 `xpe_ai_*` 호출과** 동시에 실행될 수 없다. 그 단어들은 그 함수들끼리의 동시성을 말할 뿐 init/shutdown 에 대한 것이 아니다. 어기면 stale 한 답이 아니라 use-after-free 이다. 호출자가 직렬화한다(예: 모든 호출은 공유, init/shutdown 은 독점으로 잡는 읽기/쓰기 잠금).
+`xpe_ai_shutdown` 문서에 `LIFECYCLE CONTRACT` 문단 추가, `xpe_ai_init` 문서에서 그것을 가리킴: init 과 shutdown 은 **서로, 자기 자신과, 그리고 "Reentrant"/"Thread-safe" 로 표시된 것을 포함한 모든 다른 `xpe_ai_*` 호출과** 동시에 실행될 수 없다. **[정정, QA-B-178b / Codex #28 B: 이 문구는 틀렸다. 대상을 접두사 `xpe_ai_*` 로 정해서 `xpe_bone_suppress`, `xpe_dl_denoise`, `xpe_bodypart_recognize`, `xpe_stitch_*` 가 빠졌다. 바로 아래 3.5 표에 이 함수들을 이미 적어 놓고도 계약 문구에는 반영하지 않은 것이다. 대상은 "이 헤더가 선언하는 모든 함수" 로 고쳤다. 상세와 갱신된 전수표는 QA-B-178b/report.md.]** 그 단어들은 그 함수들끼리의 동시성을 말할 뿐 init/shutdown 에 대한 것이 아니다. 어기면 stale 한 답이 아니라 use-after-free 이다. 호출자가 직렬화한다(예: 모든 호출은 공유, init/shutdown 은 독점으로 잡는 읽기/쓰기 잠금).
 
 ### 3.4 모듈이 직접 막지 않은 이유
 
@@ -75,6 +75,8 @@ init/shutdown 의 "Not thread-safe" 는 **그것들 자신의 동시 호출을 �
 호출당 비용은 측정하지 않았다(수정하지 않았으므로).
 
 ### 3.5 수출 함수 전수 (같은 형태의 위험)
+
+> **갱신됨 (QA-B-178b)**: 아래 표는 이 카드 시점의 것이고, 모듈 상태 접근 여부 열을 더하고 DLL 수출 목록과 대조한 최신 표는 `QA-B-178b/report.md` 3절에 있다.
 
 `ai.cpp` 에서 `g_aiState` 를 읽은 뒤 `state->` 를 사용하는 수출 함수. 이름 축(`g_aiState` 줄 grep) 으로 센 것이고 이 계약이 모두 덮는다:
 

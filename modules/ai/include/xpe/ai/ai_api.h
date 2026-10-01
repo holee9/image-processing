@@ -65,7 +65,8 @@ extern "C" {
  *
  * Format: "X.Y.Z". DLL-owned static storage; do NOT free.
  *
- * @return Non-NULL version string. Thread-safe.
+ * @return Non-NULL version string. Thread-safe (reads no module state, but see the LIFECYCLE CONTRACT at
+ *         xpe_ai_shutdown(): it is covered too).
  */
 XPE_API const char* xpe_ai_version(void);
 
@@ -158,10 +159,14 @@ XPE_API XpeErrorCode xpe_ai_init(const char* modelDirPath,
  * Thread safety: Not thread-safe; call from single thread at shutdown.
  *
  * LIFECYCLE CONTRACT (applies to xpe_ai_init() and xpe_ai_shutdown()): each of them frees or creates the
- * module state that EVERY other xpe_ai_* function reads. Neither may therefore run concurrently with the
- * other, with itself, or with ANY other xpe_ai_* call. This includes the functions documented as
- * "Reentrant" or "Thread-safe": those words describe concurrency among those functions, not against
- * init/shutdown. The caller serialises the lifecycle (for example a reader/writer lock held shared around
+ * module state that the other functions of this header read. Neither may therefore run concurrently with the
+ * other, with itself, or with ANY other function declared in THIS header -- the boundary is the header, not
+ * the name prefix. That is: xpe_ai_version, xpe_bodypart_recognize, xpe_stitch_images,
+ * xpe_stitch_estimate_size, xpe_bone_suppress, xpe_dl_denoise, xpe_ai_get_model_card,
+ * xpe_ai_set_fallback_mode and xpe_ai_worker_state (some of them do not read the state today; they are
+ * covered anyway, so the contract does not depend on an implementation detail). This includes the functions
+ * documented as "Reentrant" or "Thread-safe": those words describe concurrency among those functions, not
+ * against init/shutdown. The caller serialises the lifecycle (for example a reader/writer lock held shared around
  * every call and exclusive around init/shutdown). A call that races them is a use-after-free, not a stale
  * answer. The module deliberately does not guard against it: a guard would make shutdown wait behind the
  * longest in-flight call (a worker call can run to its deadline) and would put a lock on
@@ -201,6 +206,8 @@ XPE_API void xpe_ai_shutdown(void);
  *         stub build this is the unconditional outcome, with "UNKNOWN" written
  *         to @p bodyPartOut.
  *
+ * Lifecycle: the label below does NOT cover concurrency with xpe_ai_init / xpe_ai_shutdown -- see the
+ * LIFECYCLE CONTRACT at xpe_ai_shutdown().
  * Thread safety: Reentrant.
  * SRS: SRS-AI-010
  */
@@ -234,6 +241,8 @@ XPE_API XpeErrorCode xpe_bodypart_recognize(const XpeImageBuffer* img,
  * @return XPE_ERR_PROCESSING_FAILED if stitching fails. In a stub build this is
  *         the unconditional outcome once validation passes.
  *
+ * Lifecycle: the label below does NOT cover concurrency with xpe_ai_init / xpe_ai_shutdown -- see the
+ * LIFECYCLE CONTRACT at xpe_ai_shutdown().
  * Thread safety: Reentrant.
  * SRS: SRS-AI-020, SRS-AI-021
  */
@@ -264,6 +273,8 @@ XPE_API XpeErrorCode xpe_stitch_images(const XpeImageBuffer* parts,
  * @return XPE_ERR_PROCESSING_FAILED -- documented for the ONNX build. NOT
  *         returned by the current implementation for any input.
  *
+ * Lifecycle: the label below does NOT cover concurrency with xpe_ai_init / xpe_ai_shutdown -- see the
+ * LIFECYCLE CONTRACT at xpe_ai_shutdown().
  * Thread safety: Reentrant.
  * SRS: SRS-AI-020
  */
@@ -334,6 +345,8 @@ XPE_API XpeErrorCode xpe_stitch_estimate_size(const XpeImageBuffer* parts,
  * call returns XPE_ERR_PROCESSING_FAILED with the same output, without trying
  * the worker and without an alert.
  *
+ * Lifecycle: the label below does NOT cover concurrency with xpe_ai_init / xpe_ai_shutdown -- see the
+ * LIFECYCLE CONTRACT at xpe_ai_shutdown().
  * Thread safety: Reentrant. Calls are serialised on the module mutex, so
  * concurrent callers do not race the lazy session load.
  * SRS: SRS-AI-030
@@ -364,6 +377,8 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
  *         the unconditional outcome once validation passes; the image is left
  *         unmodified.
  *
+ * Lifecycle: the label below does NOT cover concurrency with xpe_ai_init / xpe_ai_shutdown -- see the
+ * LIFECYCLE CONTRACT at xpe_ai_shutdown().
  * Thread safety: Reentrant.
  * SRS: SRS-AI-040
  */
@@ -404,6 +419,8 @@ XPE_API XpeErrorCode xpe_dl_denoise(XpeImageBuffer* img,
  * @return XPE_ERR_NOT_INITIALIZED if xpe_ai_init not called.
  * @return XPE_ERR_IO_FAILED if model is not found or not loaded.
  *
+ * Lifecycle: the label below does NOT cover concurrency with xpe_ai_init / xpe_ai_shutdown -- see the
+ * LIFECYCLE CONTRACT at xpe_ai_shutdown().
  * Thread safety: Thread-safe (read-only model metadata).
  */
 XPE_API XpeErrorCode xpe_ai_get_model_card(const char* modelId,
@@ -429,6 +446,8 @@ XPE_API XpeErrorCode xpe_ai_get_model_card(const char* modelId,
  * @return XPE_OK on success.
  * @return XPE_ERR_NOT_INITIALIZED if xpe_ai_init not called.
  *
+ * Lifecycle: the label below does NOT cover concurrency with xpe_ai_init / xpe_ai_shutdown -- see the
+ * LIFECYCLE CONTRACT at xpe_ai_shutdown().
  * Thread safety: Thread-safe (atomic flag).
  */
 XPE_API XpeErrorCode xpe_ai_set_fallback_mode(int32_t enable);
