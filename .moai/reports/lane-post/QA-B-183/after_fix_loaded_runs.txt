@@ -1,0 +1,4 @@
+AFTER FIX, 4 parallel: failing runs 2 of 96
+[  FAILED  ] WorkerSupervisor.FirstCallStartsAWorkerAndTheSecondReusesIt (6256 ms)
+[  FAILED  ] WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid (7142 ms)
+AFTER FIX, 2 parallel: failing runs 0 of 24

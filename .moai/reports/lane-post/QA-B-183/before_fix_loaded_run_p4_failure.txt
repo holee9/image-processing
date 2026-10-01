@@ -1,0 +1,936 @@
+Note: Google Test filter = -*Performance*:*Within*ms*
+[==========] Running 305 tests from 31 test suites.
+[----------] Global test environment set-up.
+[----------] 25 tests from AiAbi
+[ RUN      ] AiAbi.VersionReturnsNonNull
+[       OK ] AiAbi.VersionReturnsNonNull (0 ms)
+[ RUN      ] AiAbi.VersionReturnsNonEmptyString
+[       OK ] AiAbi.VersionReturnsNonEmptyString (0 ms)
+[ RUN      ] AiAbi.VersionFormatIsSemanticVersioning
+[       OK ] AiAbi.VersionFormatIsSemanticVersioning (0 ms)
+[ RUN      ] AiAbi.VersionIsDeterministicAcrossCalls
+[       OK ] AiAbi.VersionIsDeterministicAcrossCalls (0 ms)
+[ RUN      ] AiAbi.InitWithNullModelDirReturnsInvalidInput
+[       OK ] AiAbi.InitWithNullModelDirReturnsInvalidInput (0 ms)
+[ RUN      ] AiAbi.InitWithValidPathSucceeds
+[2026-10-02 02:01:44.910] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.910] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiAbi.InitWithValidPathSucceeds (0 ms)
+[ RUN      ] AiAbi.InitWithNullConfigUsesDefaults
+[2026-10-02 02:01:44.910] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.910] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiAbi.InitWithNullConfigUsesDefaults (0 ms)
+[ RUN      ] AiAbi.InitWithConfigJsonSucceeds
+[2026-10-02 02:01:44.910] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=3000 ms
+[2026-10-02 02:01:44.910] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiAbi.InitWithConfigJsonSucceeds (0 ms)
+[ RUN      ] AiAbi.InitIsIdempotent
+[2026-10-02 02:01:44.910] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.910] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-02 02:01:44.910] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiAbi.InitIsIdempotent (0 ms)
+[ RUN      ] AiAbi.InitShutdownCycleRepeated
+[2026-10-02 02:01:44.910] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.910] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 02:01:44.910] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.910] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 02:01:44.910] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.910] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 02:01:44.910] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.910] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 02:01:44.910] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.910] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 02:01:44.910] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.910] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 02:01:44.910] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.910] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 02:01:44.910] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.910] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 02:01:44.910] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.910] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 02:01:44.910] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.910] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiAbi.InitShutdownCycleRepeated (0 ms)
+[ RUN      ] AiAbi.ShutdownWithoutInitIsNoOp
+[       OK ] AiAbi.ShutdownWithoutInitIsNoOp (0 ms)
+[ RUN      ] AiAbi.ShutdownIsIdempotent
+[2026-10-02 02:01:44.910] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.910] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiAbi.ShutdownIsIdempotent (0 ms)
+[ RUN      ] AiAbi.StitchEstimateSizeDeterministic
+[       OK ] AiAbi.StitchEstimateSizeDeterministic (0 ms)
+[ RUN      ] AiAbi.StitchEstimateSizeReturnsValidDimensions
+[       OK ] AiAbi.StitchEstimateSizeReturnsValidDimensions (0 ms)
+[ RUN      ] AiAbi.StitchEstimateSizeNullPartsReturnsInvalid
+[       OK ] AiAbi.StitchEstimateSizeNullPartsReturnsInvalid (0 ms)
+[ RUN      ] AiAbi.StitchEstimateSizeNullOutputsReturnInvalid
+[       OK ] AiAbi.StitchEstimateSizeNullOutputsReturnInvalid (0 ms)
+[ RUN      ] AiAbi.StitchEstimateSizeSinglePartReturnsInvalid
+[       OK ] AiAbi.StitchEstimateSizeSinglePartReturnsInvalid (0 ms)
+[ RUN      ] AiAbi.StitchEstimateSizeInvalidBufferReturnsInvalid
+[       OK ] AiAbi.StitchEstimateSizeInvalidBufferReturnsInvalid (0 ms)
+[ RUN      ] AiAbi.StitchEstimateSizeClampsToMax4096
+[       OK ] AiAbi.StitchEstimateSizeClampsToMax4096 (8 ms)
+[ RUN      ] AiAbi.BodypartRecognizeWithoutInitReturnsNotInitialized
+[       OK ] AiAbi.BodypartRecognizeWithoutInitReturnsNotInitialized (0 ms)
+[ RUN      ] AiAbi.StitchImagesWithoutInitReturnsNotInitialized
+[       OK ] AiAbi.StitchImagesWithoutInitReturnsNotInitialized (0 ms)
+[ RUN      ] AiAbi.BoneSuppressWithoutInitReturnsNotInitialized
+[       OK ] AiAbi.BoneSuppressWithoutInitReturnsNotInitialized (0 ms)
+[ RUN      ] AiAbi.DlDenoiseWithoutInitReturnsNotInitialized
+[       OK ] AiAbi.DlDenoiseWithoutInitReturnsNotInitialized (0 ms)
+[ RUN      ] AiAbi.GetModelCardWithoutInitReturnsNotInitialized
+[       OK ] AiAbi.GetModelCardWithoutInitReturnsNotInitialized (0 ms)
+[ RUN      ] AiAbi.SetFallbackModeWithoutInitReturnsNotInitialized
+[       OK ] AiAbi.SetFallbackModeWithoutInitReturnsNotInitialized (0 ms)
+[----------] 25 tests from AiAbi (9 ms total)
+
+[----------] 6 tests from AiLogFixture
+[ RUN      ] AiLogFixture.InitLogsTheRealModelDirectoryAndSettingsNotPlaceholders
+[2026-10-02 02:01:44.919] [info] xpe_ai initialized: model_dir=C:/xpe_log_probe/models_abc, ep=0, timeout=1234 ms
+[2026-10-02 02:01:44.919] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiLogFixture.InitLogsTheRealModelDirectoryAndSettingsNotPlaceholders (0 ms)
+[ RUN      ] AiLogFixture.ShutdownLogsTheRealWorkerPid
+[2026-10-02 02:01:44.919] [info] xpe_ai initialized: model_dir=C:/xpe_log_probe/models_abc, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.919] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiLogFixture.ShutdownLogsTheRealWorkerPid (0 ms)
+[ RUN      ] AiLogFixture.FallbackModeMessageNamesTheState
+[2026-10-02 02:01:44.919] [info] xpe_ai initialized: model_dir=C:/xpe_log_probe/models_abc, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.919] [info] Fallback mode enabled
+[2026-10-02 02:01:44.919] [info] Fallback mode disabled
+[2026-10-02 02:01:44.919] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiLogFixture.FallbackModeMessageNamesTheState (0 ms)
+[ RUN      ] AiLogFixture.WorkerPathFailureLogCarriesTheCodeAndTheCount
+[2026-10-02 02:01:44.919] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.973] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 02:01:44.974] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-02 02:01:44.974] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiLogFixture.WorkerPathFailureLogCarriesTheCodeAndTheCount (56 ms)
+[ RUN      ] AiLogFixture.InProcessErrorLogNamesThePath
+[2026-10-02 02:01:44.976] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-02 02:01:44.976] [error] Model file not found: D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing/bone_suppress.onnx
+[2026-10-02 02:01:44.976] [error] bone_suppress: no model at D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing/bone_suppress.onnx
+[2026-10-02 02:01:44.976] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiLogFixture.InProcessErrorLogNamesThePath (0 ms)
+[ RUN      ] AiLogFixture.NoPrintfPlaceholderSurvivesAnyLoggedPath
+[2026-10-02 02:01:44.976] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=2000 ms
+[2026-10-02 02:01:44.976] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-02 02:01:44.976] [info] Fallback mode enabled
+[2026-10-02 02:01:44.976] [info] Fallback mode disabled
+[2026-10-02 02:01:45.019] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 02:01:45.019] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-02 02:01:45.019] [warning] bone_suppress: worker path failed (-9), input returned unchanged (3 of 3 consecutive failures)
+[2026-10-02 02:01:45.021] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 02:01:45.021] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-02 02:01:45.021] [error] Model file not found: D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing/bone_suppress.onnx
+[2026-10-02 02:01:45.021] [error] bone_suppress: no model at D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing/bone_suppress.onnx
+[2026-10-02 02:01:45.021] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiLogFixture.NoPrintfPlaceholderSurvivesAnyLoggedPath (44 ms)
+[----------] 6 tests from AiLogFixture (101 ms total)
+
+[----------] 5 tests from AiLogMacrosPrintf
+[ RUN      ] AiLogMacrosPrintf.FormatsItsArgumentsAndPrefixesTheLevel
+[       OK ] AiLogMacrosPrintf.FormatsItsArgumentsAndPrefixesTheLevel (1 ms)
+[ RUN      ] AiLogMacrosPrintf.TraceAndDebugEmitNothing
+[       OK ] AiLogMacrosPrintf.TraceAndDebugEmitNothing (0 ms)
+[ RUN      ] AiLogMacrosPrintf.ACallIsOneStatementAfterAnUnbracedIf
+[       OK ] AiLogMacrosPrintf.ACallIsOneStatementAfterAnUnbracedIf (1 ms)
+[ RUN      ] AiLogMacrosPrintf.LogTextCompilesWithoutSpdlogAndEvaluatesNothing
+[       OK ] AiLogMacrosPrintf.LogTextCompilesWithoutSpdlogAndEvaluatesNothing (0 ms)
+[ RUN      ] AiLogMacrosPrintf.LogTextIsOneStatementAfterAnUnbracedIf
+[       OK ] AiLogMacrosPrintf.LogTextIsOneStatementAfterAnUnbracedIf (0 ms)
+[----------] 5 tests from AiLogMacrosPrintf (2 ms total)
+
+[----------] 13 tests from AiLogMacrosSpdlog
+[ RUN      ] AiLogMacrosSpdlog.FormatsPrintfArgumentsInsteadOfPrintingPlaceholders
+[       OK ] AiLogMacrosSpdlog.FormatsPrintfArgumentsInsteadOfPrintingPlaceholders (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.EachLevelKeepsItsSpdlogLevel
+[       OK ] AiLogMacrosSpdlog.EachLevelKeepsItsSpdlogLevel (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.BracesInTheDataAreNotAFormat
+[       OK ] AiLogMacrosSpdlog.BracesInTheDataAreNotAFormat (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.ALiteralWithBracesAndNoArgumentsIsLoggedAsWritten
+[       OK ] AiLogMacrosSpdlog.ALiteralWithBracesAndNoArgumentsIsLoggedAsWritten (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.APercentSignIsWrittenWithPercentPercent
+[       OK ] AiLogMacrosSpdlog.APercentSignIsWrittenWithPercentPercent (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.ALongMessageIsNotTruncated
+[       OK ] AiLogMacrosSpdlog.ALongMessageIsNotTruncated (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.ACallIsOneStatementAfterAnUnbracedIf
+[       OK ] AiLogMacrosSpdlog.ACallIsOneStatementAfterAnUnbracedIf (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.NoAllocationFailureEscapesALogCall
+[*** LOG ERROR #0001 ***] [2026-10-02 02:01:45] [ai_log_test] bad allocation
+[       OK ] AiLogMacrosSpdlog.NoAllocationFailureEscapesALogCall (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.AllEntryPointsTolerateANullDefaultLogger
+[       OK ] AiLogMacrosSpdlog.AllEntryPointsTolerateANullDefaultLogger (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.LogTextKeepsPercentAndBracesAsData
+[       OK ] AiLogMacrosSpdlog.LogTextKeepsPercentAndBracesAsData (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.NoAllocationFailureEscapesALogTextCall
+[       OK ] AiLogMacrosSpdlog.NoAllocationFailureEscapesALogTextCall (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.ModelNotFoundReportSurvivesAnyAllocationFailureInItsLogCall
+[       OK ] AiLogMacrosSpdlog.ModelNotFoundReportSurvivesAnyAllocationFailureInItsLogCall (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.ModelNotFoundWithNoDefaultLoggerStillReturnsTheOriginalError
+[       OK ] AiLogMacrosSpdlog.ModelNotFoundWithNoDefaultLoggerStillReturnsTheOriginalError (0 ms)
+[----------] 13 tests from AiLogMacrosSpdlog (0 ms total)
+
+[----------] 3 tests from ShutdownLifetimeFixture
+[ RUN      ] ShutdownLifetimeFixture.TheStateMutexIsNotHeldWhenTheStateIsDeleted
+[       OK ] ShutdownLifetimeFixture.TheStateMutexIsNotHeldWhenTheStateIsDeleted (0 ms)
+[ RUN      ] ShutdownLifetimeFixture.ShuttingDownAnUninitialisedModuleIsANoOp
+[       OK ] ShutdownLifetimeFixture.ShuttingDownAnUninitialisedModuleIsANoOp (0 ms)
+[ RUN      ] ShutdownLifetimeFixture.ARepeatedInitUseShutdownCycleStaysCorrect
+[       OK ] ShutdownLifetimeFixture.ARepeatedInitUseShutdownCycleStaysCorrect (6 ms)
+[----------] 3 tests from ShutdownLifetimeFixture (6 ms total)
+
+[----------] 4 tests from GuardFixture
+[ RUN      ] GuardFixture.BoneSuppressMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock
+[       OK ] GuardFixture.BoneSuppressMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock (0 ms)
+[ RUN      ] GuardFixture.BoneSuppressMapsAnyOtherExceptionToProcessingFailedAndReleasesTheLock
+[       OK ] GuardFixture.BoneSuppressMapsAnyOtherExceptionToProcessingFailedAndReleasesTheLock (0 ms)
+[ RUN      ] GuardFixture.GetModelCardMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock
+[       OK ] GuardFixture.GetModelCardMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock (0 ms)
+[ RUN      ] GuardFixture.TheModuleStaysUsableAfterAFailedCall
+[       OK ] GuardFixture.TheModuleStaysUsableAfterAFailedCall (0 ms)
+[----------] 4 tests from GuardFixture (0 ms total)
+
+[----------] 2 tests from AiExceptionGuard
+[ RUN      ] AiExceptionGuard.AnUndecodableModelPathIsAnErrorCodeNotAnException
+[       OK ] AiExceptionGuard.AnUndecodableModelPathIsAnErrorCodeNotAnException (0 ms)
+[ RUN      ] AiExceptionGuard.OnnxSessionCreateReportsAnUndecodablePathAsInvalidModelPath
+[       OK ] AiExceptionGuard.OnnxSessionCreateReportsAnUndecodablePathAsInvalidModelPath (0 ms)
+[----------] 2 tests from AiExceptionGuard (0 ms total)
+
+[----------] 49 tests from AiFallbackTest
+[ RUN      ] AiFallbackTest.SetFallbackModeEnableReturnsOk
+[       OK ] AiFallbackTest.SetFallbackModeEnableReturnsOk (0 ms)
+[ RUN      ] AiFallbackTest.SetFallbackModeDisableReturnsOk
+[       OK ] AiFallbackTest.SetFallbackModeDisableReturnsOk (0 ms)
+[ RUN      ] AiFallbackTest.SetFallbackModeToggleRepeated
+[       OK ] AiFallbackTest.SetFallbackModeToggleRepeated (0 ms)
+[ RUN      ] AiFallbackTest.SetFallbackModeNonZeroEnables
+[       OK ] AiFallbackTest.SetFallbackModeNonZeroEnables (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeStubReturnsProcessingFailed
+[       OK ] AiFallbackTest.BodypartRecognizeStubReturnsProcessingFailed (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeSetsConfidenceToZero
+[       OK ] AiFallbackTest.BodypartRecognizeSetsConfidenceToZero (0 ms)
+[ RUN      ] AiFallbackTest.KnownDivergence_BodypartRecognizeStubSetsUnknownLabel
+[       OK ] AiFallbackTest.KnownDivergence_BodypartRecognizeStubSetsUnknownLabel (0 ms)
+[ RUN      ] AiFallbackTest.StitchImagesStubReturnsProcessingFailed
+[       OK ] AiFallbackTest.StitchImagesStubReturnsProcessingFailed (0 ms)
+[ RUN      ] AiFallbackTest.BoneSuppressStubReturnsProcessingFailed
+[       OK ] AiFallbackTest.BoneSuppressStubReturnsProcessingFailed (0 ms)
+[ RUN      ] AiFallbackTest.DlDenoiseStubReturnsProcessingFailed
+[       OK ] AiFallbackTest.DlDenoiseStubReturnsProcessingFailed (0 ms)
+[ RUN      ] AiFallbackTest.ConfidenceThresholdDefaultIs06
+[       OK ] AiFallbackTest.ConfidenceThresholdDefaultIs06 (0 ms)
+[ RUN      ] AiFallbackTest.ConfidenceThresholdInRange
+[       OK ] AiFallbackTest.ConfidenceThresholdInRange (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeNullImgReturnsInvalid
+[       OK ] AiFallbackTest.BodypartRecognizeNullImgReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeNullLabelReturnsInvalid
+[       OK ] AiFallbackTest.BodypartRecognizeNullLabelReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeZeroBufLenReturnsInvalidInput
+[       OK ] AiFallbackTest.BodypartRecognizeZeroBufLenReturnsInvalidInput (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeNullConfOutIsAcceptable
+[       OK ] AiFallbackTest.BodypartRecognizeNullConfOutIsAcceptable (0 ms)
+[ RUN      ] AiFallbackTest.StitchImagesNullPartsReturnsInvalid
+[       OK ] AiFallbackTest.StitchImagesNullPartsReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.StitchImagesPartCountOneReturnsInvalid
+[       OK ] AiFallbackTest.StitchImagesPartCountOneReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.StitchImagesNullOutputReturnsInvalid
+[       OK ] AiFallbackTest.StitchImagesNullOutputReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.StitchImagesNullOutputDataReturnsInvalidInput
+[       OK ] AiFallbackTest.StitchImagesNullOutputDataReturnsInvalidInput (0 ms)
+[ RUN      ] AiFallbackTest.BoneSuppressNullImgReturnsInvalid
+[       OK ] AiFallbackTest.BoneSuppressNullImgReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.BoneSuppressNullOutputReturnsInvalid
+[       OK ] AiFallbackTest.BoneSuppressNullOutputReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.BoneSuppressDimensionMismatchReturnsInvalid
+[       OK ] AiFallbackTest.BoneSuppressDimensionMismatchReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DlDenoiseNullImgReturnsInvalid
+[       OK ] AiFallbackTest.DlDenoiseNullImgReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DlDenoiseNullMetaReturnsInvalid
+[       OK ] AiFallbackTest.DlDenoiseNullMetaReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeInvalidBufferReturnsInvalid
+[       OK ] AiFallbackTest.BodypartRecognizeInvalidBufferReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_BodypartRecognize_ShortReturnsInvalid
+[       OK ] AiFallbackTest.DataSizeGuard_BodypartRecognize_ShortReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_StitchImages_ShortReturnsInvalid
+[       OK ] AiFallbackTest.DataSizeGuard_StitchImages_ShortReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_StitchEstimateSize_ShortReturnsInvalid
+[       OK ] AiFallbackTest.DataSizeGuard_StitchEstimateSize_ShortReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_BoneSuppress_ShortReturnsInvalid
+[       OK ] AiFallbackTest.DataSizeGuard_BoneSuppress_ShortReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_DlDenoise_ShortReturnsInvalid
+[       OK ] AiFallbackTest.DataSizeGuard_DlDenoise_ShortReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_BodypartRecognize_ZeroAccepted
+[       OK ] AiFallbackTest.DataSizeGuard_BodypartRecognize_ZeroAccepted (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_StitchImages_ZeroAccepted
+[       OK ] AiFallbackTest.DataSizeGuard_StitchImages_ZeroAccepted (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_StitchEstimateSize_ZeroAccepted
+[       OK ] AiFallbackTest.DataSizeGuard_StitchEstimateSize_ZeroAccepted (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_BoneSuppress_ZeroAccepted
+[       OK ] AiFallbackTest.DataSizeGuard_BoneSuppress_ZeroAccepted (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_DlDenoise_ZeroAccepted
+[       OK ] AiFallbackTest.DataSizeGuard_DlDenoise_ZeroAccepted (0 ms)
+[ RUN      ] AiFallbackTest.EmptyImageContract_ZeroWidthIsInvalidInput
+[       OK ] AiFallbackTest.EmptyImageContract_ZeroWidthIsInvalidInput (0 ms)
+[ RUN      ] AiFallbackTest.EmptyImageContract_ZeroHeightIsInvalidInput
+[       OK ] AiFallbackTest.EmptyImageContract_ZeroHeightIsInvalidInput (0 ms)
+[ RUN      ] AiFallbackTest.EmptyImageContract_NullDataIsInvalidInput
+[       OK ] AiFallbackTest.EmptyImageContract_NullDataIsInvalidInput (0 ms)
+[ RUN      ] AiFallbackTest.EmptyImageContract_StitchRejectsEmptyElement
+[       OK ] AiFallbackTest.EmptyImageContract_StitchRejectsEmptyElement (0 ms)
+[ RUN      ] AiFallbackTest.EmptyImageContract_ValidImageStillAccepted
+[       OK ] AiFallbackTest.EmptyImageContract_ValidImageStillAccepted (0 ms)
+[ RUN      ] AiFallbackTest.OutputBufferContract_ZeroLengthLabelBufferIsInvalidInput
+[       OK ] AiFallbackTest.OutputBufferContract_ZeroLengthLabelBufferIsInvalidInput (0 ms)
+[ RUN      ] AiFallbackTest.OutputBufferContract_ShortLabelBufferIsBufferTooSmall
+[       OK ] AiFallbackTest.OutputBufferContract_ShortLabelBufferIsBufferTooSmall (0 ms)
+[ RUN      ] AiFallbackTest.OutputBufferContract_EmptyStitchOutputIsInvalidInput
+[       OK ] AiFallbackTest.OutputBufferContract_EmptyStitchOutputIsInvalidInput (0 ms)
+[ RUN      ] AiFallbackTest.OutputBufferContract_ZeroLengthModelCardBufferIsInvalidInput
+[       OK ] AiFallbackTest.OutputBufferContract_ZeroLengthModelCardBufferIsInvalidInput (0 ms)
+[ RUN      ] AiFallbackTest.OutputBufferContract_AdequateBuffersStillAccepted
+[       OK ] AiFallbackTest.OutputBufferContract_AdequateBuffersStillAccepted (0 ms)
+[ RUN      ] AiFallbackTest.KnownDivergence_LabelBufferThresholdFollowsStubLabelLength
+[       OK ] AiFallbackTest.KnownDivergence_LabelBufferThresholdFollowsStubLabelLength (0 ms)
+[ RUN      ] AiFallbackTest.KnownDivergence_FallbackModeCanBeSetButNeverReadBack
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_ai_fallback.cpp(928):: xpe_ai.dll exports 14 names; fallback read-backs: 0
+[       OK ] AiFallbackTest.KnownDivergence_FallbackModeCanBeSetButNeverReadBack (0 ms)
+[ RUN      ] AiFallbackTest.KnownDivergence_FallbackModeChangesNoObservableOutput
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_ai_fallback.cpp(956):: both settings returned -3 (XPE_ERR_PROCESSING_FAILED is the stub's early return) -- this case cannot separate unwired from unreached
+[       OK ] AiFallbackTest.KnownDivergence_FallbackModeChangesNoObservableOutput (0 ms)
+[----------] 49 tests from AiFallbackTest (1 ms total)
+
+[----------] 10 tests from AiErrorPrecedenceTest
+[ RUN      ] AiErrorPrecedenceTest.NullArgumentOutranksNotInitialized
+[       OK ] AiErrorPrecedenceTest.NullArgumentOutranksNotInitialized (0 ms)
+[ RUN      ] AiErrorPrecedenceTest.ValidArgumentsReachNotInitialized
+[       OK ] AiErrorPrecedenceTest.ValidArgumentsReachNotInitialized (0 ms)
+[ RUN      ] AiErrorPrecedenceTest.BodypartRecognize_NullArgumentOutranksNotInitialized
+[       OK ] AiErrorPrecedenceTest.BodypartRecognize_NullArgumentOutranksNotInitialized (0 ms)
+[ RUN      ] AiErrorPrecedenceTest.BodypartRecognize_ValidArgumentsReachNotInitialized
+[       OK ] AiErrorPrecedenceTest.BodypartRecognize_ValidArgumentsReachNotInitialized (0 ms)
+[ RUN      ] AiErrorPrecedenceTest.StitchImages_NullArgumentOutranksNotInitialized
+[       OK ] AiErrorPrecedenceTest.StitchImages_NullArgumentOutranksNotInitialized (0 ms)
+[ RUN      ] AiErrorPrecedenceTest.StitchImages_ValidArgumentsReachNotInitialized
+[       OK ] AiErrorPrecedenceTest.StitchImages_ValidArgumentsReachNotInitialized (0 ms)
+[ RUN      ] AiErrorPrecedenceTest.BoneSuppress_NullArgumentOutranksNotInitialized
+[       OK ] AiErrorPrecedenceTest.BoneSuppress_NullArgumentOutranksNotInitialized (0 ms)
+[ RUN      ] AiErrorPrecedenceTest.BoneSuppress_ValidArgumentsReachNotInitialized
+[       OK ] AiErrorPrecedenceTest.BoneSuppress_ValidArgumentsReachNotInitialized (0 ms)
+[ RUN      ] AiErrorPrecedenceTest.GetModelCard_NullArgumentOutranksNotInitialized
+[       OK ] AiErrorPrecedenceTest.GetModelCard_NullArgumentOutranksNotInitialized (0 ms)
+[ RUN      ] AiErrorPrecedenceTest.GetModelCard_ValidArgumentsReachNotInitialized
+[       OK ] AiErrorPrecedenceTest.GetModelCard_ValidArgumentsReachNotInitialized (0 ms)
+[----------] 10 tests from AiErrorPrecedenceTest (0 ms total)
+
+[----------] 2 tests from AiEndurance
+[ RUN      ] AiEndurance.ThousandCycles_CrtHeapDoesNotGrow
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_ai_fallback.cpp(592):: heap growth 0 bytes / 0 blocks over 1000 cycles, working set 0 bytes (not asserted)
+[       OK ] AiEndurance.ThousandCycles_CrtHeapDoesNotGrow (2 ms)
+[ RUN      ] AiEndurance.ThousandCycles_ControlLeakIsCaught
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_ai_fallback.cpp(608):: control 64 B/cycle: heap growth 64000 bytes / 1000 blocks over 1000 cycles, working set 61440 bytes (not asserted)
+[       OK ] AiEndurance.ThousandCycles_ControlLeakIsCaught (2 ms)
+[----------] 2 tests from AiEndurance (4 ms total)
+
+[----------] 20 tests from AiModelCardTest
+[ RUN      ] AiModelCardTest.GetModelCardForKnownModelReturnsOk
+[       OK ] AiModelCardTest.GetModelCardForKnownModelReturnsOk (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardContainsModelId
+[       OK ] AiModelCardTest.GetModelCardContainsModelId (0 ms)
+[ RUN      ] AiModelCardTest.KnownDivergence_GetModelCardStubVersionSaysStub
+[       OK ] AiModelCardTest.KnownDivergence_GetModelCardStubVersionSaysStub (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardContainsIntendedUse
+[       OK ] AiModelCardTest.GetModelCardContainsIntendedUse (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardContainsLimitations
+[       OK ] AiModelCardTest.GetModelCardContainsLimitations (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardContainsPccpStatus
+[       OK ] AiModelCardTest.GetModelCardContainsPccpStatus (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardContainsPublishedDate
+[       OK ] AiModelCardTest.GetModelCardContainsPublishedDate (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardContainsTrainingDataSummary
+[       OK ] AiModelCardTest.GetModelCardContainsTrainingDataSummary (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardOutputIsValidJson
+[       OK ] AiModelCardTest.GetModelCardOutputIsValidJson (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardForStitchModel
+[       OK ] AiModelCardTest.GetModelCardForStitchModel (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardForBoneSuppressModel
+[       OK ] AiModelCardTest.GetModelCardForBoneSuppressModel (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardForDenoiseModel
+[       OK ] AiModelCardTest.GetModelCardForDenoiseModel (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardForUnknownModelReturnsIoFailed
+[       OK ] AiModelCardTest.GetModelCardForUnknownModelReturnsIoFailed (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardForUnknownModelStillWritesJson
+[       OK ] AiModelCardTest.GetModelCardForUnknownModelStillWritesJson (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardForUnknownModelContainsError
+[       OK ] AiModelCardTest.GetModelCardForUnknownModelContainsError (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardNullModelIdReturnsInvalid
+[       OK ] AiModelCardTest.GetModelCardNullModelIdReturnsInvalid (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardNullBufReturnsInvalid
+[       OK ] AiModelCardTest.GetModelCardNullBufReturnsInvalid (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardZeroBufSizeReturnsInvalidInput
+[       OK ] AiModelCardTest.GetModelCardZeroBufSizeReturnsInvalidInput (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardSmallBufferReturnsTooSmall
+[       OK ] AiModelCardTest.GetModelCardSmallBufferReturnsTooSmall (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardExactSizeBufferSucceeds
+[       OK ] AiModelCardTest.GetModelCardExactSizeBufferSucceeds (0 ms)
+[----------] 20 tests from AiModelCardTest (0 ms total)
+
+[----------] 16 tests from AiWorkerIsolationTest
+[ RUN      ] AiWorkerIsolationTest.StubModeBodypartRecognizeFallsBackGracefully
+[       OK ] AiWorkerIsolationTest.StubModeBodypartRecognizeFallsBackGracefully (0 ms)
+[ RUN      ] AiWorkerIsolationTest.StubModeStitchImagesFallsBackGracefully
+[       OK ] AiWorkerIsolationTest.StubModeStitchImagesFallsBackGracefully (0 ms)
+[ RUN      ] AiWorkerIsolationTest.StubModeBoneSuppressFallsBackGracefully
+[       OK ] AiWorkerIsolationTest.StubModeBoneSuppressFallsBackGracefully (0 ms)
+[ RUN      ] AiWorkerIsolationTest.StubModeDlDenoiseFallsBackGracefully
+[       OK ] AiWorkerIsolationTest.StubModeDlDenoiseFallsBackGracefully (0 ms)
+[ RUN      ] AiWorkerIsolationTest.KnownDivergence_RepeatedStubFallbackIsConsistent
+[       OK ] AiWorkerIsolationTest.KnownDivergence_RepeatedStubFallbackIsConsistent (0 ms)
+[ RUN      ] AiWorkerIsolationTest.ConcurrentBodypartRecognizeIsThreadSafe
+[       OK ] AiWorkerIsolationTest.ConcurrentBodypartRecognizeIsThreadSafe (0 ms)
+[ RUN      ] AiWorkerIsolationTest.ConcurrentSetFallbackModeIsThreadSafe
+[       OK ] AiWorkerIsolationTest.ConcurrentSetFallbackModeIsThreadSafe (0 ms)
+[ RUN      ] AiWorkerIsolationTest.ProtocolVersionIsDefined
+[       OK ] AiWorkerIsolationTest.ProtocolVersionIsDefined (0 ms)
+[ RUN      ] AiWorkerIsolationTest.MessageMagicIsValid
+[       OK ] AiWorkerIsolationTest.MessageMagicIsValid (0 ms)
+[ RUN      ] AiWorkerIsolationTest.TimeoutDefaultIsPositive
+[       OK ] AiWorkerIsolationTest.TimeoutDefaultIsPositive (0 ms)
+[ RUN      ] AiWorkerIsolationTest.MaxPayloadSizeIsReasonable
+[       OK ] AiWorkerIsolationTest.MaxPayloadSizeIsReasonable (0 ms)
+[ RUN      ] AiWorkerIsolationTest.PipeBufferSizeIsPositive
+[       OK ] AiWorkerIsolationTest.PipeBufferSizeIsPositive (0 ms)
+[ RUN      ] AiWorkerIsolationTest.MaxModelIdLengthIsPositive
+[       OK ] AiWorkerIsolationTest.MaxModelIdLengthIsPositive (0 ms)
+[ RUN      ] AiWorkerIsolationTest.MaxBodypartLengthIsPositive
+[       OK ] AiWorkerIsolationTest.MaxBodypartLengthIsPositive (0 ms)
+[ RUN      ] AiWorkerIsolationTest.RapidInitShutdownCycleDoesNotCrash
+[       OK ] AiWorkerIsolationTest.RapidInitShutdownCycleDoesNotCrash (0 ms)
+[ RUN      ] AiWorkerIsolationTest.InitShutdownWithInferenceInBetween
+[       OK ] AiWorkerIsolationTest.InitShutdownWithInferenceInBetween (0 ms)
+[----------] 16 tests from AiWorkerIsolationTest (1 ms total)
+
+[----------] 10 tests from AiIpcBridgeTest
+[ RUN      ] AiIpcBridgeTest.CreateBridge_ValidParameters_Succeeds
+[       OK ] AiIpcBridgeTest.CreateBridge_ValidParameters_Succeeds (0 ms)
+[ RUN      ] AiIpcBridgeTest.CreateBridge_NullPipeName_ReturnsNull
+[       OK ] AiIpcBridgeTest.CreateBridge_NullPipeName_ReturnsNull (0 ms)
+[ RUN      ] AiIpcBridgeTest.Connect_NoWorkerAvailable_ReturnsTimeoutError
+[       OK ] AiIpcBridgeTest.Connect_NoWorkerAvailable_ReturnsTimeoutError (0 ms)
+[ RUN      ] AiIpcBridgeTest.Send_NotConnected_ReturnsError
+[       OK ] AiIpcBridgeTest.Send_NotConnected_ReturnsError (0 ms)
+[ RUN      ] AiIpcBridgeTest.Receive_NotConnected_ReturnsError
+[       OK ] AiIpcBridgeTest.Receive_NotConnected_ReturnsError (0 ms)
+[ RUN      ] AiIpcBridgeTest.Send_InvalidMagicNumber_ReturnsInvalidInput
+[       OK ] AiIpcBridgeTest.Send_InvalidMagicNumber_ReturnsInvalidInput (0 ms)
+[ RUN      ] AiIpcBridgeTest.Send_PayloadSizeExceedsMaximum_ReturnsInvalidInput
+[       OK ] AiIpcBridgeTest.Send_PayloadSizeExceedsMaximum_ReturnsInvalidInput (0 ms)
+[ RUN      ] AiIpcBridgeTest.Receive_NoResponseWithinTimeout_ReturnsTimeoutError
+[       OK ] AiIpcBridgeTest.Receive_NoResponseWithinTimeout_ReturnsTimeoutError (0 ms)
+[ RUN      ] AiIpcBridgeTest.Destroy_NullBridge_DoesNotCrash
+[       OK ] AiIpcBridgeTest.Destroy_NullBridge_DoesNotCrash (0 ms)
+[ RUN      ] AiIpcBridgeTest.Destroy_MultipleCalls_Safe
+[       OK ] AiIpcBridgeTest.Destroy_MultipleCalls_Safe (0 ms)
+[----------] 10 tests from AiIpcBridgeTest (0 ms total)
+
+[----------] 11 tests from AiModelVersioningTest
+[ RUN      ] AiModelVersioningTest.ModelCardContainsSemverVersion
+[       OK ] AiModelVersioningTest.ModelCardContainsSemverVersion (0 ms)
+[ RUN      ] AiModelVersioningTest.ModelCardContainsModelId
+[       OK ] AiModelVersioningTest.ModelCardContainsModelId (0 ms)
+[ RUN      ] AiModelVersioningTest.ModelCardContainsPccpScope
+[       OK ] AiModelVersioningTest.ModelCardContainsPccpScope (0 ms)
+[ RUN      ] AiModelVersioningTest.ModelCardContainsTrainingDataHash
+[       OK ] AiModelVersioningTest.ModelCardContainsTrainingDataHash (0 ms)
+[ RUN      ] AiModelVersioningTest.ModelCardContainsValidationMetrics
+[       OK ] AiModelVersioningTest.ModelCardContainsValidationMetrics (0 ms)
+[ RUN      ] AiModelVersioningTest.ModelCardContainsAllRequiredMetadataFields
+[       OK ] AiModelVersioningTest.ModelCardContainsAllRequiredMetadataFields (0 ms)
+[ RUN      ] AiModelVersioningTest.ModelVersionsCanBeCompared
+[       OK ] AiModelVersioningTest.ModelVersionsCanBeCompared (0 ms)
+[ RUN      ] AiModelVersioningTest.ModelCardForUnknownModelReturnsError
+[       OK ] AiModelVersioningTest.ModelCardForUnknownModelReturnsError (0 ms)
+[ RUN      ] AiModelVersioningTest.ModelCardWithTinyBufferReturnsBufferTooSmall
+[       OK ] AiModelVersioningTest.ModelCardWithTinyBufferReturnsBufferTooSmall (0 ms)
+[ RUN      ] AiModelVersioningTest.ModelCardWithNullModelIdReturnsInvalidInput
+[       OK ] AiModelVersioningTest.ModelCardWithNullModelIdReturnsInvalidInput (0 ms)
+[ RUN      ] AiModelVersioningTest.ModelCardWithNullBufferReturnsInvalidInput
+[       OK ] AiModelVersioningTest.ModelCardWithNullBufferReturnsInvalidInput (0 ms)
+[----------] 11 tests from AiModelVersioningTest (0 ms total)
+
+[----------] 2 tests from AiDataSizeProbe
+[ RUN      ] AiDataSizeProbe.ShortDataSizeIsRejectedWithoutOverreading
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_datasize_overread.cpp(150):: xpe_bodypart_recognize CONTROL dataSize=16384B rc=-3 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_datasize_overread.cpp(161):: xpe_bodypart_recognize declared=16384B dataSize=8192B rc=-1 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_datasize_overread.cpp(150):: xpe_dl_denoise CONTROL dataSize=16384B rc=-3 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_datasize_overread.cpp(161):: xpe_dl_denoise declared=16384B dataSize=8192B rc=-1 overread=no
+[       OK ] AiDataSizeProbe.ShortDataSizeIsRejectedWithoutOverreading (0 ms)
+[ RUN      ] AiDataSizeProbe.ShortInputRejectedWhenOutputIsWellFormed
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_datasize_overread.cpp(191):: xpe_bone_suppress declared=16384B dataSize=8192B rc=-1 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_datasize_overread.cpp(209):: xpe_stitch_estimate_size CONTROL rc=0
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_datasize_overread.cpp(218):: xpe_stitch_estimate_size declared=16384B dataSize=8192B rc=-1 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_datasize_overread.cpp(227):: xpe_stitch_images declared=16384B dataSize=8192B rc=-1 overread=no
+[       OK ] AiDataSizeProbe.ShortInputRejectedWhenOutputIsWellFormed (0 ms)
+[----------] 2 tests from AiDataSizeProbe (0 ms total)
+
+[----------] 3 tests from AiParamDependency
+[ RUN      ] AiParamDependency.StitchEstimateSize_PartDimensionsReachTheOutput
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_parameter_dependency.cpp(79):: estimate base=435x128 wider=870x128 taller=435x256 3 parts=614x128
+[       OK ] AiParamDependency.StitchEstimateSize_PartDimensionsReachTheOutput (0 ms)
+[ RUN      ] AiParamDependency.FallbackMode_IsAcceptedAndObservableEffectIsRecorded
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_parameter_dependency.cpp(110):: fallback ON  rc=-3 label='UNKNOWN' conf=0
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_parameter_dependency.cpp(112):: fallback OFF rc=-3 label='UNKNOWN' conf=0
+[       OK ] AiParamDependency.FallbackMode_IsAcceptedAndObservableEffectIsRecorded (0 ms)
+[ RUN      ] AiParamDependency.InferenceEntryPointsStopBeforeTheModel
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_parameter_dependency.cpp(144):: stub returns: bodypart=-3 bone_suppress=-9 dl_denoise=-3 (XPE_ERR_PROCESSING_FAILED is -3)
+[       OK ] AiParamDependency.InferenceEntryPointsStopBeforeTheModel (0 ms)
+[----------] 3 tests from AiParamDependency (0 ms total)
+
+[----------] 10 tests from AiConfigWarning
+[ RUN      ] AiConfigWarning.NullConfigIsSilent
+[       OK ] AiConfigWarning.NullConfigIsSilent (0 ms)
+[ RUN      ] AiConfigWarning.EmptyObjectIsSilent
+[       OK ] AiConfigWarning.EmptyObjectIsSilent (0 ms)
+[ RUN      ] AiConfigWarning.FullyValidConfigIsSilent
+[       OK ] AiConfigWarning.FullyValidConfigIsSilent (0 ms)
+[ RUN      ] AiConfigWarning.UnknownKeyIsReportedByName
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(85):: alert: ai config key 'gpu_memory_limit_mb' is not read by this module and has no effect
+[       OK ] AiConfigWarning.UnknownKeyIsReportedByName (0 ms)
+[ RUN      ] AiConfigWarning.TypoOfAKnownKeyIsReportedByName
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(93):: alert: ai config key 'timout_ms' is not read by this module and has no effect
+[       OK ] AiConfigWarning.TypoOfAKnownKeyIsReportedByName (0 ms)
+[ RUN      ] AiConfigWarning.KnownKeyWithWrongTypeIsReported
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(102):: alert: ai config key 'timeout_ms' has an unexpected type and was ignored
+[       OK ] AiConfigWarning.KnownKeyWithWrongTypeIsReported (0 ms)
+[ RUN      ] AiConfigWarning.MixedConfigNamesOnlyTheUnconsumed
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(113):: alert: ai config key 'nonsense' is not read by this module and has no effect
+[       OK ] AiConfigWarning.MixedConfigNamesOnlyTheUnconsumed (0 ms)
+[ RUN      ] AiConfigWarning.ReturnCodeIsUnchangedForUnknownKeys
+[       OK ] AiConfigWarning.ReturnCodeIsUnchangedForUnknownKeys (0 ms)
+[ RUN      ] AiConfigWarning.UseWorkerWithAWrongTypeIsReported
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(133):: alert: ai config key 'use_worker' has an unexpected type and was ignored
+[       OK ] AiConfigWarning.UseWorkerWithAWrongTypeIsReported (0 ms)
+[ RUN      ] AiConfigWarning.ATypoOfUseWorkerIsReportedByName
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_config_warning.cpp(140):: alert: ai config key 'use_workers' is not read by this module and has no effect
+[       OK ] AiConfigWarning.ATypoOfUseWorkerIsReportedByName (0 ms)
+[----------] 10 tests from AiConfigWarning (0 ms total)
+
+[----------] 1 test from OnnxSessionFixtures
+[ RUN      ] OnnxSessionFixtures.ModelFilesArePresent
+[       OK ] OnnxSessionFixtures.ModelFilesArePresent (0 ms)
+[----------] 1 test from OnnxSessionFixtures (0 ms total)
+
+[----------] 5 tests from OnnxSessionRun
+[ RUN      ] OnnxSessionRun.StubBuildRefusesToRunAndDoesNotEcho
+[       OK ] OnnxSessionRun.StubBuildRefusesToRunAndDoesNotEcho (0 ms)
+[ RUN      ] OnnxSessionRun.RunningADifferentModelChangesTheOutput
+D:\workspace-github\xpe-post\modules\ai\tests\test_onnx_session.cpp(111): Skipped
+stub build: no ONNX Runtime linked, so there is no model to swap. Build with -DXPE_AI_USE_ONNXRUNTIME=ON -DXPE_AI_STUB_BUILD=OFF -DONNXRUNTIME_ROOT=<dir>. This skip is the #205 hazard in miniature: if no CI job ever takes the full branch, this assertion never runs.
+
+[  SKIPPED ] OnnxSessionRun.RunningADifferentModelChangesTheOutput (0 ms)
+[ RUN      ] OnnxSessionRun.OutputIsNotAConstantIndependentOfInput
+D:\workspace-github\xpe-post\modules\ai\tests\test_onnx_session.cpp(151): Skipped
+stub build
+
+[  SKIPPED ] OnnxSessionRun.OutputIsNotAConstantIndependentOfInput (0 ms)
+[ RUN      ] OnnxSessionRun.WrongInputLengthIsInvalidInput
+D:\workspace-github\xpe-post\modules\ai\tests\test_onnx_session.cpp(186): Skipped
+stub build
+
+[  SKIPPED ] OnnxSessionRun.WrongInputLengthIsInvalidInput (0 ms)
+[ RUN      ] OnnxSessionRun.EmptyInputIsInvalidInput
+[       OK ] OnnxSessionRun.EmptyInputIsInvalidInput (0 ms)
+[----------] 5 tests from OnnxSessionRun (0 ms total)
+
+[----------] 2 tests from OnnxSessionCreate
+[ RUN      ] OnnxSessionCreate.MissingModelIsInvalidModelPath
+[       OK ] OnnxSessionCreate.MissingModelIsInvalidModelPath (0 ms)
+[ RUN      ] OnnxSessionCreate.GarbageFileIsModelLoadFailed
+D:\workspace-github\xpe-post\modules\ai\tests\test_onnx_session.cpp(174): Skipped
+stub build: nothing parses the file, so a stub accepts garbage. That is itself why the stub must not be read as verifying model loading.
+
+[  SKIPPED ] OnnxSessionCreate.GarbageFileIsModelLoadFailed (0 ms)
+[----------] 2 tests from OnnxSessionCreate (0 ms total)
+
+[----------] 1 test from OnnxSessionMetadata
+[ RUN      ] OnnxSessionMetadata.InputAndOutputAreReadFromTheModel
+D:\workspace-github\xpe-post\modules\ai\tests\test_onnx_session.cpp(206): Skipped
+stub build: metadata lists are empty by contract
+
+[  SKIPPED ] OnnxSessionMetadata.InputAndOutputAreReadFromTheModel (0 ms)
+[----------] 1 test from OnnxSessionMetadata (0 ms total)
+
+[----------] 1 test from OnnxSessionBuildMode
+[ RUN      ] OnnxSessionBuildMode.AFullBuildIsProvableWhenTheCallerSaysItExpectedOne
+D:\workspace-github\xpe-post\modules\ai\tests\test_onnx_session.cpp(243): Skipped
+XPE_AI_EXPECT_ONNX is not set, so no claim is being made about which build this is. A CI job that links ONNX should set it to 1 -- otherwise its skips are indistinguishable from a stub build that silently lost the runtime.
+
+[  SKIPPED ] OnnxSessionBuildMode.AFullBuildIsProvableWhenTheCallerSaysItExpectedOne (0 ms)
+[----------] 1 test from OnnxSessionBuildMode (0 ms total)
+
+[----------] 1 test from OnnxSessionProviders
+[ RUN      ] OnnxSessionProviders.CpuIsReportedAndTheListComesFromTheRuntime
+[       OK ] OnnxSessionProviders.CpuIsReportedAndTheListComesFromTheRuntime (0 ms)
+[----------] 1 test from OnnxSessionProviders (0 ms total)
+
+[----------] 12 tests from BoneSuppressAbi
+[ RUN      ] BoneSuppressAbi.ModelDirectoriesArePresent
+[       OK ] BoneSuppressAbi.ModelDirectoriesArePresent (0 ms)
+[ RUN      ] BoneSuppressAbi.ADifferentModelDirectoryChangesTheOutput
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_abi.cpp(105): Skipped
+stub build: no model is loaded, so there is nothing to swap. Build the ci-ai preset (ONNX linked) to run this. A job that expects the full build should set XPE_AI_EXPECT_ONNX=1 so this skip cannot pass silently.
+
+[  SKIPPED ] BoneSuppressAbi.ADifferentModelDirectoryChangesTheOutput (0 ms)
+[ RUN      ] BoneSuppressAbi.TheInputImageIsNotModified
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_abi.cpp(131): Skipped
+stub build
+
+[  SKIPPED ] BoneSuppressAbi.TheInputImageIsNotModified (0 ms)
+[ RUN      ] BoneSuppressAbi.DifferentPixelsGiveDifferentOutput
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_abi.cpp(142): Skipped
+stub build
+
+[  SKIPPED ] BoneSuppressAbi.DifferentPixelsGiveDifferentOutput (0 ms)
+[ RUN      ] BoneSuppressAbi.StubBuildFailsAndLeavesTheOutputAlone
+[       OK ] BoneSuppressAbi.StubBuildFailsAndLeavesTheOutputAlone (0 ms)
+[ RUN      ] BoneSuppressAbi.MissingModelAndBrokenModelGiveDifferentCodes
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_abi.cpp(176): Skipped
+stub build: no file is ever opened, so both directories return the same code. That is itself why a stub cannot verify model loading.
+
+[  SKIPPED ] BoneSuppressAbi.MissingModelAndBrokenModelGiveDifferentCodes (0 ms)
+[ RUN      ] BoneSuppressAbi.NonFloatPixelsAreRejectedRatherThanReinterpreted
+[       OK ] BoneSuppressAbi.NonFloatPixelsAreRejectedRatherThanReinterpreted (0 ms)
+[ RUN      ] BoneSuppressAbi.WithoutInitItIsNotInitialized
+[       OK ] BoneSuppressAbi.WithoutInitItIsNotInitialized (0 ms)
+[ RUN      ] BoneSuppressAbi.NullArgumentsOutrankEverythingElse
+[       OK ] BoneSuppressAbi.NullArgumentsOutrankEverythingElse (0 ms)
+[ RUN      ] BoneSuppressAbi.MismatchedDimensionsAreInvalidInput
+[       OK ] BoneSuppressAbi.MismatchedDimensionsAreInvalidInput (0 ms)
+[ RUN      ] BoneSuppressAbi.ReInitWithADifferentDirectorySwitchesTheModel
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_abi.cpp(241): Skipped
+stub build
+
+[  SKIPPED ] BoneSuppressAbi.ReInitWithADifferentDirectorySwitchesTheModel (0 ms)
+[ RUN      ] BoneSuppressAbi.ShutdownThenUseIsRejectedNotCrashed
+[       OK ] BoneSuppressAbi.ShutdownThenUseIsRejectedNotCrashed (0 ms)
+[----------] 12 tests from BoneSuppressAbi (0 ms total)
+
+[----------] 11 tests from AiProcessedAlert
+[ RUN      ] AiProcessedAlert.TheProbeItselfCanSeeAQueuedInfoAlert
+[       OK ] AiProcessedAlert.TheProbeItselfCanSeeAQueuedInfoAlert (0 ms)
+[ RUN      ] AiProcessedAlert.DlAppliedRaisesTheInfoAlert
+D:\workspace-github\xpe-post\modules\ai\tests\test_alert_ai_processed.cpp(148): Skipped
+stub build: inference never succeeds, so the applied path is unreachable. DlAppliedRaisesTheAlert_ProvableWhenTheCallerSaysSo turns this skip red under XPE_AI_EXPECT_ONNX=1 so it cannot pass silently.
+
+[  SKIPPED ] AiProcessedAlert.DlAppliedRaisesTheInfoAlert (0 ms)
+[ RUN      ] AiProcessedAlert.OneCallRaisesExactlyOneAlert
+D:\workspace-github\xpe-post\modules\ai\tests\test_alert_ai_processed.cpp(166): Skipped
+stub build
+
+[  SKIPPED ] AiProcessedAlert.OneCallRaisesExactlyOneAlert (0 ms)
+[ RUN      ] AiProcessedAlert.TwoCallsRaiseTwoAlerts
+D:\workspace-github\xpe-post\modules\ai\tests\test_alert_ai_processed.cpp(176): Skipped
+stub build
+
+[  SKIPPED ] AiProcessedAlert.TwoCallsRaiseTwoAlerts (0 ms)
+[ RUN      ] AiProcessedAlert.UnsupportedFormatRaisesNothing
+[       OK ] AiProcessedAlert.UnsupportedFormatRaisesNothing (0 ms)
+[ RUN      ] AiProcessedAlert.MissingModelRaisesNothing
+[       OK ] AiProcessedAlert.MissingModelRaisesNothing (0 ms)
+[ RUN      ] AiProcessedAlert.BrokenModelRaisesNothing
+[       OK ] AiProcessedAlert.BrokenModelRaisesNothing (0 ms)
+[ RUN      ] AiProcessedAlert.MismatchedDimensionsRaiseNothing
+[       OK ] AiProcessedAlert.MismatchedDimensionsRaiseNothing (0 ms)
+[ RUN      ] AiProcessedAlert.WithoutInitRaisesNothing
+[       OK ] AiProcessedAlert.WithoutInitRaisesNothing (0 ms)
+[ RUN      ] AiProcessedAlert.DlNotAppliedInAStubBuildRaisesNothing
+[       OK ] AiProcessedAlert.DlNotAppliedInAStubBuildRaisesNothing (0 ms)
+[ RUN      ] AiProcessedAlert.DlAppliedRaisesTheAlert_ProvableWhenTheCallerSaysSo
+D:\workspace-github\xpe-post\modules\ai\tests\test_alert_ai_processed.cpp(254): Skipped
+XPE_AI_EXPECT_ONNX is not 1: the caller has not declared which build this is, so a skip above is not evidence either way.
+
+[  SKIPPED ] AiProcessedAlert.DlAppliedRaisesTheAlert_ProvableWhenTheCallerSaysSo (0 ms)
+[----------] 11 tests from AiProcessedAlert (0 ms total)
+
+[----------] 7 tests from WorkerProtocolConformance
+[ RUN      ] WorkerProtocolConformance.TheWorkerLaunchesAndTheBridgeConnects
+[       OK ] WorkerProtocolConformance.TheWorkerLaunchesAndTheBridgeConnects (284 ms)
+[ RUN      ] WorkerProtocolConformance.ShutdownPerTheHeaderActuallyShutsTheWorkerDown
+[       OK ] WorkerProtocolConformance.ShutdownPerTheHeaderActuallyShutsTheWorkerDown (608 ms)
+[ RUN      ] WorkerProtocolConformance.InitPerTheHeaderGetsAnInitResponse
+[       OK ] WorkerProtocolConformance.InitPerTheHeaderGetsAnInitResponse (77 ms)
+[ RUN      ] WorkerProtocolConformance.TheInitResponseNamesTheBuildTheWorkerReallyIs
+[       OK ] WorkerProtocolConformance.TheInitResponseNamesTheBuildTheWorkerReallyIs (62 ms)
+[ RUN      ] WorkerProtocolConformance.HeartbeatPerTheHeaderIsAnsweredAsAHeartbeat
+[       OK ] WorkerProtocolConformance.HeartbeatPerTheHeaderIsAnsweredAsAHeartbeat (61 ms)
+[ RUN      ] WorkerProtocolConformance.AMessageTheWorkerDoesNotHandleGetsAnErrorThatSaysSo
+[       OK ] WorkerProtocolConformance.AMessageTheWorkerDoesNotHandleGetsAnErrorThatSaysSo (680 ms)
+[ RUN      ] WorkerProtocolConformance.TheWorkerSourceDeclaresNoPrivateMessageEnum
+[       OK ] WorkerProtocolConformance.TheWorkerSourceDeclaresNoPrivateMessageEnum (0 ms)
+[----------] 7 tests from WorkerProtocolConformance (1775 ms total)
+
+[----------] 7 tests from WorkerBoneSuppress
+[ RUN      ] WorkerBoneSuppress.IpcGivesTheSameAnswerAsInProcessForTheSameModelAndInput
+[       OK ] WorkerBoneSuppress.IpcGivesTheSameAnswerAsInProcessForTheSameModelAndInput (76 ms)
+[ RUN      ] WorkerBoneSuppress.ChangingTheModelChangesTheIpcOutput
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_protocol_conformance.cpp(526): Skipped
+stub build: no model is ever run, so there is nothing for a different model to change. TheFullBuildIsProvableWhenTheCallerSaysSo turns this skip red under XPE_AI_EXPECT_ONNX=1.
+
+[  SKIPPED ] WorkerBoneSuppress.ChangingTheModelChangesTheIpcOutput (0 ms)
+[ RUN      ] WorkerBoneSuppress.DifferentPixelsGiveDifferentIpcOutput
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_protocol_conformance.cpp(560): Skipped
+stub build
+
+[  SKIPPED ] WorkerBoneSuppress.DifferentPixelsGiveDifferentIpcOutput (0 ms)
+[ RUN      ] WorkerBoneSuppress.ANonInferringBuildAnswersWithAnErrorAndLeavesTheOutputAlone
+[       OK ] WorkerBoneSuppress.ANonInferringBuildAnswersWithAnErrorAndLeavesTheOutputAlone (60 ms)
+[ RUN      ] WorkerBoneSuppress.TheFullBuildIsProvableWhenTheCallerSaysSo
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_protocol_conformance.cpp(601): Skipped
+XPE_AI_EXPECT_ONNX is not 1: the caller has not declared which build this is, so a skip above is not evidence.
+
+[  SKIPPED ] WorkerBoneSuppress.TheFullBuildIsProvableWhenTheCallerSaysSo (0 ms)
+[ RUN      ] WorkerBoneSuppress.FailuresCarryTheSameCodeAsInProcess
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_protocol_conformance.cpp(621): error: Expected equality of these values:
+  0
+  InitWorker(w, dir)
+    Which is: -3
+D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing
+
+[  FAILED  ] WorkerBoneSuppress.FailuresCarryTheSameCodeAsInProcess (700 ms)
+[ RUN      ] WorkerBoneSuppress.AWrongPixelCountIsRefusedAndTheWorkerStaysInSync
+[       OK ] WorkerBoneSuppress.AWrongPixelCountIsRefusedAndTheWorkerStaysInSync (75 ms)
+[----------] 7 tests from WorkerBoneSuppress (913 ms total)
+
+[----------] 24 tests from IpcDeadline
+[ RUN      ] IpcDeadline.ControlAWorkerThatAnswersIsAnsweredWithinTheBudget
+[       OK ] IpcDeadline.ControlAWorkerThatAnswersIsAnsweredWithinTheBudget (14 ms)
+[ RUN      ] IpcDeadline.AWorkerThatNeverAnswersReturnsControlAfterTheBudget
+[       OK ] IpcDeadline.AWorkerThatNeverAnswersReturnsControlAfterTheBudget (417 ms)
+[ RUN      ] IpcDeadline.TheBudgetIsTheConfiguredValueNotAConstant
+[       OK ] IpcDeadline.TheBudgetIsTheConfiguredValueNotAConstant (1526 ms)
+[ RUN      ] IpcDeadline.BoneSuppressWithAStalledWorkerFailsAfterTheBudgetAndLeavesTheOutputAlone
+[       OK ] IpcDeadline.BoneSuppressWithAStalledWorkerFailsAfterTheBudgetAndLeavesTheOutputAlone (417 ms)
+[ RUN      ] IpcDeadline.AReplyThatStopsHalfWayAndStallsIsNotCountedAsSuccess
+[       OK ] IpcDeadline.AReplyThatStopsHalfWayAndStallsIsNotCountedAsSuccess (430 ms)
+[ RUN      ] IpcDeadline.AReplyThatStopsHalfWayAndClosesIsNotCountedAsSuccess
+[       OK ] IpcDeadline.AReplyThatStopsHalfWayAndClosesIsNotCountedAsSuccess (14 ms)
+[ RUN      ] IpcDeadline.ControlTheRealWorkerAnswersAHeartbeatBeforeAnyKill
+[       OK ] IpcDeadline.ControlTheRealWorkerAnswersAHeartbeatBeforeAnyKill (714 ms)
+[ RUN      ] IpcDeadline.ADeadWorkerIsReportedPromptlyNotAwaitedForever
+[       OK ] IpcDeadline.ADeadWorkerIsReportedPromptlyNotAwaitedForever (729 ms)
+[ RUN      ] IpcDeadline.PipeClosureAloneDoesNotSeparateAnExitOnRequestFromADeath
+[measure] exit-on-request: bridge rc=-3 hung=0 process exit code=0
+[measure] death:           bridge rc=-3 hung=0 process exit code=99
+[       OK ] IpcDeadline.PipeClosureAloneDoesNotSeparateAnExitOnRequestFromADeath (810 ms)
+[ RUN      ] IpcDeadline.ALargeReplyThatArrivesInPiecesIsReadWhole
+[       OK ] IpcDeadline.ALargeReplyThatArrivesInPiecesIsReadWhole (992 ms)
+[ RUN      ] IpcDeadline.ABodyLongerThanTheBufferDropsTheConnection
+[       OK ] IpcDeadline.ABodyLongerThanTheBufferDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.ABodyWithNoBufferAtAllDropsTheConnection
+[       OK ] IpcDeadline.ABodyWithNoBufferAtAllDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AWrongMagicDropsTheConnection
+[       OK ] IpcDeadline.AWrongMagicDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AReplyToSomeoneElsesRequestDropsTheConnection
+[       OK ] IpcDeadline.AReplyToSomeoneElsesRequestDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AReplyOfTheWrongTypeDropsTheConnection
+[       OK ] IpcDeadline.AReplyOfTheWrongTypeDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AReplyWithTheWrongPixelLengthDropsTheConnection
+[       OK ] IpcDeadline.AReplyWithTheWrongPixelLengthDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.ControlAWorkersOwnErrorFrameKeepsTheConnection
+[       OK ] IpcDeadline.ControlAWorkersOwnErrorFrameKeepsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AnErrorFrameWithNoCodeDropsTheConnection
+[       OK ] IpcDeadline.AnErrorFrameWithNoCodeDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AnErrorFrameWithANonNumericCodeDropsTheConnection
+[       OK ] IpcDeadline.AnErrorFrameWithANonNumericCodeDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AnErrorFrameWithACodeOutsideTheErrorRangeDropsTheConnection
+[       OK ] IpcDeadline.AnErrorFrameWithACodeOutsideTheErrorRangeDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.ControlAGoodReplyIsWrittenIntoAnInPlaceBuffer
+[       OK ] IpcDeadline.ControlAGoodReplyIsWrittenIntoAnInPlaceBuffer (0 ms)
+[ RUN      ] IpcDeadline.AReplyWithTheWrongPixelLengthLeavesAnInPlaceBufferByteForByteIntact
+[       OK ] IpcDeadline.AReplyWithTheWrongPixelLengthLeavesAnInPlaceBufferByteForByteIntact (0 ms)
+[ RUN      ] IpcDeadline.AReplyCutOffHalfWayLeavesAnInPlaceBufferByteForByteIntact
+[       OK ] IpcDeadline.AReplyCutOffHalfWayLeavesAnInPlaceBufferByteForByteIntact (0 ms)
+[ RUN      ] IpcDeadline.AStalledWorkerLeavesAnInPlaceBufferByteForByteIntact
+[       OK ] IpcDeadline.AStalledWorkerLeavesAnInPlaceBufferByteForByteIntact (416 ms)
+[----------] 24 tests from IpcDeadline (6487 ms total)
+
+[----------] 16 tests from WorkerSupervisor
+[ RUN      ] WorkerSupervisor.FirstCallStartsAWorkerAndTheSecondReusesIt
+[       OK ] WorkerSupervisor.FirstCallStartsAWorkerAndTheSecondReusesIt (77 ms)
+[ RUN      ] WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid
+[       OK ] WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid (100 ms)
+[ RUN      ] WorkerSupervisor.TheSupervisorReadsTheExitCodeOfTheHandleItHolds
+[       OK ] WorkerSupervisor.TheSupervisorReadsTheExitCodeOfTheHandleItHolds (714 ms)
+[ RUN      ] WorkerSupervisor.AnUnrequestedExitIsADeathEvenWithExitCodeZero
+[       OK ] WorkerSupervisor.AnUnrequestedExitIsADeathEvenWithExitCodeZero (758 ms)
+[ RUN      ] WorkerSupervisor.ARequestedExitIsCleanAndReadAsExitCodeZero
+[       OK ] WorkerSupervisor.ARequestedExitIsCleanAndReadAsExitCodeZero (77 ms)
+[ RUN      ] WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne
+[       OK ] WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne (2965 ms)
+[ RUN      ] WorkerSupervisor.AWorkerThatAnswersWithAnErrorIsKeptNotRestarted
+[       OK ] WorkerSupervisor.AWorkerThatAnswersWithAnErrorIsKeptNotRestarted (661 ms)
+[ RUN      ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(291): Skipped
+a stub worker has no model to run; restart is covered by Ping above
+
+[  SKIPPED ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress (0 ms)
+[ RUN      ] WorkerSupervisor.NoWorkerOutlivesTheSupervisor
+[       OK ] WorkerSupervisor.NoWorkerOutlivesTheSupervisor (96 ms)
+[ RUN      ] WorkerSupervisor.BaselineWithoutASupervisorAStalledWorkerStaysAliveAndTheBridgeStaysDown
+[baseline] after a stall: first receive rc=-3, next send rc=-6, worker alive=1
+[       OK ] WorkerSupervisor.BaselineWithoutASupervisorAStalledWorkerStaysAliveAndTheBridgeStaysDown (731 ms)
+[ RUN      ] WorkerSupervisor.ControlTheFakeWorkerInOkModeBehavesLikeTheRealOne
+[       OK ] WorkerSupervisor.ControlTheFakeWorkerInOkModeBehavesLikeTheRealOne (94 ms)
+[ RUN      ] WorkerSupervisor.AHeartbeatAnswerOfTheWrongTypeDiscardsTheWorker
+[       OK ] WorkerSupervisor.AHeartbeatAnswerOfTheWrongTypeDiscardsTheWorker (1041 ms)
+[ RUN      ] WorkerSupervisor.AHeartbeatAnswerToSomeoneElsesRequestDiscardsTheWorker
+[       OK ] WorkerSupervisor.AHeartbeatAnswerToSomeoneElsesRequestDiscardsTheWorker (1097 ms)
+[ RUN      ] WorkerSupervisor.MeasureTheCostOfRepeatedFailuresWhenAWorkerHangsOrDiesOnStart
+[restart-cost] budget 800 ms. hangs on start: calls took 1047 / 1469 / 1047 ms, 3 starts for 3 calls
+[restart-cost] budget 800 ms. dies on start: calls took 47 / 31 / 78 ms, 3 starts for 3 calls
+[       OK ] WorkerSupervisor.MeasureTheCostOfRepeatedFailuresWhenAWorkerHangsOrDiesOnStart (3709 ms)
+[ RUN      ] WorkerSupervisor.StopAfterAnUnnoticedExitRecordsADeathNotAKill
+[       OK ] WorkerSupervisor.StopAfterAnUnnoticedExitRecordsADeathNotAKill (652 ms)
+[ RUN      ] WorkerSupervisor.MeasureColdStartAgainstTheDefaultBudget
+[cold-start] budget 5000 ms, build=stub, model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, model_file=122 bytes
+[cold-start] start  min=31 median=47 max=704 ms over 10 cold starts
+[cold-start] first  n/a (stub build: no model to load)
+[cold-start] total  n/a (stub build: no model to load)
+[       OK ] WorkerSupervisor.MeasureColdStartAgainstTheDefaultBudget (1781 ms)
+[----------] 16 tests from WorkerSupervisor (14561 ms total)
+
+[----------] 23 tests from WorkerPathFixture
+[ RUN      ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert
+[       OK ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert (788 ms)
+[ RUN      ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore
+[       OK ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore (26 ms)
+[ RUN      ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(291): Skipped
+a stub worker has no model to run; see the stub-build test below
+
+[  SKIPPED ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll (9 ms)
+[ RUN      ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged
+[       OK ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged (57 ms)
+[ RUN      ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(346): Skipped
+needs a worker that can serve a model: full build only
+
+[  SKIPPED ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers (9 ms)
+[ RUN      ] WorkerPathFixture.EveryFailureAlertsAndAHealthyWorkerThatRefusesTheModelThreeTimesIsSwitchedOffForTheSession
+[       OK ] WorkerPathFixture.EveryFailureAlertsAndAHealthyWorkerThatRefusesTheModelThreeTimesIsSwitchedOffForTheSession (897 ms)
+[ RUN      ] WorkerPathFixture.ShutdownThenInitRecoversAWorkerSwitchedOffByModelErrors
+[       OK ] WorkerPathFixture.ShutdownThenInitRecoversAWorkerSwitchedOffByModelErrors (1631 ms)
+[ RUN      ] WorkerPathFixture.ASuccessResetsTheConsecutiveFailureCount
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(463): Skipped
+needs a worker that can succeed: full build only
+
+[  SKIPPED ] WorkerPathFixture.ASuccessResetsTheConsecutiveFailureCount (7 ms)
+[ RUN      ] WorkerPathFixture.IntermittentFailuresAlertOnEveryFailureAndAreNeverBlocked
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(504): Skipped
+needs a worker that can succeed: full build only
+
+[  SKIPPED ] WorkerPathFixture.IntermittentFailuresAlertOnEveryFailureAndAreNeverBlocked (7 ms)
+[ RUN      ] WorkerPathFixture.AWorkerThatFailsOnEveryCallRaisesThreeAlertsThenIsSwitchedOffAndKeepsOtherWarnings
+[alert-volume] 80 failing calls: queue holds 4 alerts, 3 of them worker alerts, unrelated earlier warning still queued: yes
+[       OK ] WorkerPathFixture.AWorkerThatFailsOnEveryCallRaisesThreeAlertsThenIsSwitchedOffAndKeepsOtherWarnings (87 ms)
+[ RUN      ] WorkerPathFixture.AnOverflowingDeclaredSizeIsRefusedBeforeTheWorkerIsEverTried
+[       OK ] WorkerPathFixture.AnOverflowingDeclaredSizeIsRefusedBeforeTheWorkerIsEverTried (13 ms)
+[ RUN      ] WorkerPathFixture.TheModuleMaximumImageTravelsTheWorkerPathLikeAnyOtherImage
+[measure] 4096x4096 float32 through the worker: rc -3, 735 ms, worker peak working set 132 MiB
+[       OK ] WorkerPathFixture.TheModuleMaximumImageTravelsTheWorkerPathLikeAnyOtherImage (834 ms)
+[ RUN      ] WorkerPathFixture.TheModuleMaximumImageIsReturnedUnchangedOnceTheWorkerIsSwitchedOff
+[       OK ] WorkerPathFixture.TheModuleMaximumImageIsReturnedUnchangedOnceTheWorkerIsSwitchedOff (804 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateBeforeInitIsNotInitializedAndLeavesTheOutputsAlone
+[       OK ] WorkerPathFixture.WorkerStateBeforeInitIsNotInitializedAndLeavesTheOutputsAlone (7 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateRefusesANullStateAndAcceptsNullOptionalOutputs
+[       OK ] WorkerPathFixture.WorkerStateRefusesANullStateAndAcceptsNullOptionalOutputs (9 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateIsNotUsedWhenTheWorkerPathIsOff
+[       OK ] WorkerPathFixture.WorkerStateIsNotUsedWhenTheWorkerPathIsOff (9 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateFollowsTheConsecutiveFailuresAndStaysDisabledAtTheCeiling
+[       OK ] WorkerPathFixture.WorkerStateFollowsTheConsecutiveFailuresAndStaysDisabledAtTheCeiling (738 ms)
+[ RUN      ] WorkerPathFixture.AskingForTheWorkerStateRaisesNoAlertAndChangesNothing
+[       OK ] WorkerPathFixture.AskingForTheWorkerStateRaisesNoAlertAndChangesNothing (47 ms)
+[ RUN      ] WorkerPathFixture.ShutdownThenInitGivesAFreshWorkerState
+[       OK ] WorkerPathFixture.ShutdownThenInitGivesAFreshWorkerState (43 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(834): Skipped
+needs a worker that can succeed before it is frozen: full build only
+
+[  SKIPPED ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker (7 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateKeepsTheLastCompletedStateUntilTheCallThatChangesItHasFinished
+[measure] state queries while the third failure was in progress: 13532070 showing ACTIVE, wrong: 0
+[       OK ] WorkerPathFixture.WorkerStateKeepsTheLastCompletedStateUntilTheCallThatChangesItHasFinished (1334 ms)
+[ RUN      ] WorkerPathFixture.NoScalingIsAppliedToTheInputOrTheOutputOnEitherPath
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(936): Skipped
+a stub build runs no model; the scale contract needs a real run
+
+[  SKIPPED ] WorkerPathFixture.NoScalingIsAppliedToTheInputOrTheOutputOnEitherPath (7 ms)
+[ RUN      ] WorkerPathFixture.InPlaceFailureOfTheWorkerLeavesEveryInputByte
+[       OK ] WorkerPathFixture.InPlaceFailureOfTheWorkerLeavesEveryInputByte (697 ms)
+[----------] 23 tests from WorkerPathFixture (8079 ms total)
+
+[----------] 3 tests from HugeDimensions
+[ RUN      ] HugeDimensions.TheSharedValidatorRefusesAnOverflowingDeclaredSizeInAnotherFunction
+[       OK ] HugeDimensions.TheSharedValidatorRefusesAnOverflowingDeclaredSizeInAnotherFunction (0 ms)
+[ RUN      ] HugeDimensions.ADeclaredImageAboveTheModuleMaximumIsRefusedEvenWhenDataSizeIsUnspecified
+[       OK ] HugeDimensions.ADeclaredImageAboveTheModuleMaximumIsRefusedEvenWhenDataSizeIsUnspecified (0 ms)
+[ RUN      ] HugeDimensions.AnOverflowingDeclaredSizeIsRefusedOnTheInProcessPathToo
+[       OK ] HugeDimensions.AnOverflowingDeclaredSizeIsRefusedOnTheInProcessPathToo (0 ms)
+[----------] 3 tests from HugeDimensions (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 305 tests from 31 test suites ran. (31949 ms total)
+[  PASSED  ] 279 tests.
+[  SKIPPED ] 25 tests, listed below:
+[  SKIPPED ] OnnxSessionRun.RunningADifferentModelChangesTheOutput
+[  SKIPPED ] OnnxSessionRun.OutputIsNotAConstantIndependentOfInput
+[  SKIPPED ] OnnxSessionRun.WrongInputLengthIsInvalidInput
+[  SKIPPED ] OnnxSessionCreate.GarbageFileIsModelLoadFailed
+[  SKIPPED ] OnnxSessionMetadata.InputAndOutputAreReadFromTheModel
+[  SKIPPED ] OnnxSessionBuildMode.AFullBuildIsProvableWhenTheCallerSaysItExpectedOne
+[  SKIPPED ] BoneSuppressAbi.ADifferentModelDirectoryChangesTheOutput
+[  SKIPPED ] BoneSuppressAbi.TheInputImageIsNotModified
+[  SKIPPED ] BoneSuppressAbi.DifferentPixelsGiveDifferentOutput
+[  SKIPPED ] BoneSuppressAbi.MissingModelAndBrokenModelGiveDifferentCodes
+[  SKIPPED ] BoneSuppressAbi.ReInitWithADifferentDirectorySwitchesTheModel
+[  SKIPPED ] AiProcessedAlert.DlAppliedRaisesTheInfoAlert
+[  SKIPPED ] AiProcessedAlert.OneCallRaisesExactlyOneAlert
+[  SKIPPED ] AiProcessedAlert.TwoCallsRaiseTwoAlerts
+[  SKIPPED ] AiProcessedAlert.DlAppliedRaisesTheAlert_ProvableWhenTheCallerSaysSo
+[  SKIPPED ] WorkerBoneSuppress.ChangingTheModelChangesTheIpcOutput
+[  SKIPPED ] WorkerBoneSuppress.DifferentPixelsGiveDifferentIpcOutput
+[  SKIPPED ] WorkerBoneSuppress.TheFullBuildIsProvableWhenTheCallerSaysSo
+[  SKIPPED ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress
+[  SKIPPED ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll
+[  SKIPPED ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers
+[  SKIPPED ] WorkerPathFixture.ASuccessResetsTheConsecutiveFailureCount
+[  SKIPPED ] WorkerPathFixture.IntermittentFailuresAlertOnEveryFailureAndAreNeverBlocked
+[  SKIPPED ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker
+[  SKIPPED ] WorkerPathFixture.NoScalingIsAppliedToTheInputOrTheOutputOnEitherPath
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] WorkerBoneSuppress.FailuresCarryTheSameCodeAsInProcess
+
+ 1 FAILED TEST

@@ -13,8 +13,11 @@
 #include <gtest/gtest.h>
 
 #include <spdlog/sinks/ostream_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 #include "xpe/ai/ai_onnx_session.h"
+
+#include <windows.h>
 
 #include <atomic>
 #include <cstdlib>
@@ -22,6 +25,7 @@
 #include <new>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -287,6 +291,61 @@ TEST(AiLogMacrosSpdlog, ModelNotFoundReportSurvivesAnyAllocationFailureInItsLogC
     auto again = xpe::ai::OnnxSession::Create(cfg);
     EXPECT_EQ(xpe::ai::OnnxErrorCode::kInvalidModelPath, again.code);
     EXPECT_EQ("error|" + expectedMessage + "\n", fresh.Text());
+}
+
+// QA-B-183. The printf-branch tests redirect the C stdout to a file and put it back (_dup2 twice). _dup2 closes
+// the OS handle that fd 1 held, and spdlog's default console sink had cached exactly that handle value when it
+// was created. Afterwards the sink wrote to a closed handle value, and the next CreateFile -- in the worker
+// tests, the client end of a named pipe -- was handed the same value, so product log lines arrived in the pipe
+// where the worker expected a message header (worker log: ReadFile ERROR_MORE_DATA, next bytes "[2026-..").
+// Single-process runs hit it intermittently, depending on which handle value was free next. The test repeats
+// the cycle, opens handles until one has the value the sink captured, logs, and requires that nothing arrived.
+/** Gives the default logger a console sink that holds the CURRENT stdout handle. */
+void XpeTestRebindDefaultLoggerStdout() {
+    spdlog::set_default_logger(std::make_shared<spdlog::logger>(
+        "", std::make_shared<spdlog::sinks::stdout_color_sink_mt>()));
+}
+
+void XpeTestStdoutRedirectCycle();   // test_ai_log_macros.cpp
+
+TEST(AiLogStdoutRedirect, ARedirectCycleDoesNotLeaveTheDefaultLoggerWritingIntoAnUnrelatedHandle) {
+    // A console sink created now caches the current stdout handle; any default logger created in an
+    // earlier test did the same with whatever the handle was then. Start from a known sink.
+    spdlog::set_default_logger(std::make_shared<spdlog::logger>(
+        "xpe_stale_probe", std::make_shared<spdlog::sinks::stdout_color_sink_mt>()));
+    const HANDLE sinkHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+    XpeTestStdoutRedirectCycle();
+
+    char tmp[MAX_PATH] = {0};
+    GetTempPathA(sizeof(tmp), tmp);
+    const std::string path =
+        std::string(tmp) + "xpe_ai_stale_handle_probe_" + std::to_string(GetCurrentProcessId()) + ".txt";
+
+    std::vector<HANDLE> held;
+    HANDLE match = nullptr;
+    for (int i = 0; i < 20000 && !match; ++i) {
+        HANDLE h = CreateFileA(path.c_str(), GENERIC_READ | GENERIC_WRITE,
+                               FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
+                               i == 0 ? CREATE_ALWAYS : OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (h == INVALID_HANDLE_VALUE) break;
+        held.push_back(h);
+        if (h == sinkHandle) match = h;
+    }
+
+    if (match) {
+        // The value the sink captured now belongs to this file. Any log line the sink writes lands in it.
+        spdlog::default_logger()->info("stale-handle-probe");
+        spdlog::default_logger()->flush();
+        EXPECT_EQ(0u, GetFileSize(match, nullptr))
+            << "the default logger wrote into a handle it does not own";
+    } else {
+        DWORD flags = 0;
+        EXPECT_TRUE(GetHandleInformation(sinkHandle, &flags) != 0)
+            << "the captured stdout handle is neither reused nor still valid; nothing was proven";
+    }
+
+    for (HANDLE h : held) CloseHandle(h);
+    DeleteFileA(path.c_str());
 }
 
 // A1 + A2 together, through the real code path: with no default logger (after spdlog::shutdown/drop_all)

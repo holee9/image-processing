@@ -25,6 +25,8 @@
 
 #include <windows.h>
 
+void XpeTestRebindDefaultLoggerStdout();   // test_ai_log_macros_spdlog.cpp
+
 namespace {
 
 /** Redirects the C stdout (file descriptor 1) to a temporary file for its lifetime. */
@@ -48,6 +50,8 @@ public:
             _dup2(saved_, 1);
             _close(saved_);
             saved_ = -1;
+            // _dup2 closed the OS handle the console sink of the default logger had cached (QA-B-183).
+            XpeTestRebindDefaultLoggerStdout();
         }
         std::ifstream in(path_, std::ios::binary);
         std::stringstream ss;
@@ -65,6 +69,13 @@ private:
 };
 
 }  // namespace
+
+/** One capture cycle, for the test in test_ai_log_macros_spdlog.cpp that checks what it leaves behind. */
+void XpeTestStdoutRedirectCycle() {
+    StdoutCapture cap;
+    std::printf("cycle");
+    cap.Finish();
+}
 
 TEST(AiLogMacrosPrintf, FormatsItsArgumentsAndPrefixesTheLevel) {
     StdoutCapture cap;
