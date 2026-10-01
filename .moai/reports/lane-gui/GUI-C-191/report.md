@@ -57,7 +57,7 @@ CI 로그(run 36903101428, 리더가 카드에 인용): 시도 1 뒤 읽기 `fai
 
 ### 2-6. 스크린샷 — 새 행의 가독성 (리더 요청, 커밋 후 추가)
 
-`screens/`: **실제 `MainWindow`** 를 같은 프로세스에서 그린 이미지(`RenderTargetBitmap`), 상태는 `Disabled(3,3)` 로 고정(임시 패치와 임시 코드, 둘 다 되돌리고 삭제). FlaUI 의 화면 복사와 `PrintWindow` 는 이 환경에서 창 안쪽이 하얗게만 나와 쓰지 못했다(그 시도의 이미지는 버렸다).
+`screens/` (이 워크트리 `D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-C-191\screens\` 에만 있다 — `*.png` 가 .gitignore 대상이라 커밋하지 않았다): **실제 `MainWindow`** 를 같은 프로세스에서 그린 이미지(`RenderTargetBitmap`), 상태는 `Disabled(3,3)` 로 고정(임시 패치와 임시 코드, 둘 다 되돌리고 삭제). FlaUI 의 화면 복사와 `PrintWindow` 는 이 환경에서 창 안쪽이 하얗게만 나와 쓰지 못했다(그 시도의 이미지는 버렸다).
 
 | 파일 | 레이아웃 | 너비 | 창 안에서 읽은 값 |
 |---|---|---|---|
