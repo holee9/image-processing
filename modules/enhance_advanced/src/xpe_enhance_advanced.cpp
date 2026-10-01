@@ -44,7 +44,17 @@ int XpeAdvThreadRequest() { return g_maxThreads.load(std::memory_order_relaxed);
 
 extern "C" {
 
+// QA-B-181 (QA-B-179, #233): the body is an `extern "C++"` function (see XpeAdvGuardedCall in internal.h for why it
+// must not be a plain function declared in this extern "C" block) and the exported function only guards the call.
+// The init's own try covers only nlohmann::json::exception, so a std::bad_alloc escaped it; the lock was released
+// then (the function has a try region of its own), but the exception still crossed the C ABI.
+extern "C++" static XpeErrorCode xpe_enhance_advanced_init_impl(const char* configJsonOrNull);
+
 XPE_API XpeErrorCode xpe_enhance_advanced_init(const char* configJsonOrNull) {
+    return XpeAdvGuardedCall([&] { return xpe_enhance_advanced_init_impl(configJsonOrNull); });
+}
+
+extern "C++" static XpeErrorCode xpe_enhance_advanced_init_impl(const char* configJsonOrNull) {
     std::lock_guard<std::mutex> lock(g_initMutex);
 
     // Validate config parameter (empty string is invalid)

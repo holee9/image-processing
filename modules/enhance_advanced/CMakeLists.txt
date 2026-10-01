@@ -144,6 +144,8 @@ if(BUILD_TESTS)
         tests/test_config_warning_once.cpp
         tests/test_overshoot_safety.cpp
         tests/test_config_value_dependency.cpp
+        # QA-B-181: xpe_enhance_advanced_init cannot throw out of the C ABI
+        tests/test_exception_guard.cpp
     )
 
     # Link against Google Test and the module

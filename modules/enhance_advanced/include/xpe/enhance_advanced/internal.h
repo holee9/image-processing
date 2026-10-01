@@ -23,8 +23,33 @@
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
+#include <new>
 #include <string>
 #include <vector>
+
+/* ============================================================================
+ * Exception guard (QA-B-181, QA-B-179, #233)
+ * ============================================================================ */
+
+/**
+ * @brief The outermost guard of an exported function that has no guard of its own.
+ *
+ * No exception may leave an `extern "C"` function. std::bad_alloc becomes XPE_ERR_OUT_OF_MEMORY, anything else
+ * XPE_ERR_PROCESSING_FAILED; the handlers allocate nothing. The body must be an `extern "C++"` function: one
+ * declared inside an extern "C" block gets C linkage and the "never throws" treatment, the compiler may drop the
+ * catch, and a lock_guard in the body stays locked (measured, modules/ai/src/ai.cpp). Header-inline so the test
+ * executable can run it directly.
+ */
+template <class F>
+inline XpeErrorCode XpeAdvGuardedCall(F&& body) noexcept {
+    try {
+        return body();
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+}
 
 /* ============================================================================
  * Module Version
