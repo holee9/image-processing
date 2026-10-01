@@ -109,27 +109,6 @@ float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
                              uint32_t x, uint32_t y,
                              uint32_t width, uint32_t height) noexcept;
 
-/* =========================================================================
- * Lightweight JSON field extractor (no external dependency)
- * Returns empty string when key is absent or configJson is null.
- * ========================================================================= */
-
-std::string xpe_json_get_string(const char* configJson, const char* key);
-
-/** What xpe_json_find_scalar found for a key (QA-A-205b). */
-enum class XpeJsonKey {
-    Absent,      ///< the key is not in the text (or the text is null)
-    Scalar,      ///< the key has a value that is a string or a bare token; the value may be EMPTY ("" or nothing)
-    NotScalar,   ///< the key has a value that is not a scalar: an object, an array, an unterminated string, or nothing at all
-};
-
-/**
- * xpe_json_get_string with the one fact it throws away: whether the key was there. It returns an empty string
- * both for {"k":""} and for a text without "k", so a caller that must refuse a PRESENT-but-empty field
- * (a calibration file's quality metadata) cannot use it. `*value` is set for Scalar only.
- */
-XpeJsonKey xpe_json_find_scalar(const char* configJson, const char* key, std::string* value);
-
 /** What xpe_json_top_level_scalar found for a key (QA-A-208). */
 enum class XpeJsonTop {
     Absent,      ///< the text is empty, or its top-level object has no such key
@@ -148,14 +127,33 @@ enum class XpeJsonTop {
  * is fit_r_squared); the members of nested objects and arrays are not top-level keys; a key given twice at the top level
  * is Duplicate. An empty or all-white-space text is Absent; anything that is not valid JSON, or whose top level
  * is not an object, is Malformed. No exception for a malformed text; std::bad_alloc can still escape (the callers'
- * guards turn it into XPE_ERR_OUT_OF_MEMORY). xpe_json_find_scalar looks for the first occurrence of the quoted
- * name anywhere in the text and reads a nested object's key (QA-A-208, Codex #34 B2); this is the lookup for signed
- * data -- the quality fields of a calibration file. The pipeline CONFIGURATION is still read by xpe_json_get_string,
- * with that first-occurrence rule, unchanged (QA-A-209 is to change it).
+ * guards turn it into XPE_ERR_OUT_OF_MEMORY). The first occurrence of a quoted name anywhere in the text used to
+ * be read, nested objects included (QA-A-208, Codex #34 B2; QA-A-209 for the configuration readers below).
  * `*value` is set for Scalar only: the string's text with its escapes interpreted, or the number/true/false/null
- * token (a float as written, an integer in decimal).
+ * token (a float as written, an integer in decimal); `*quoted` (when given) then says whether it was a string.
  */
-XpeJsonTop xpe_json_top_level_scalar(const char* json, size_t len, const char* key, std::string* value);
+XpeJsonTop xpe_json_top_level_scalar(const char* json, size_t len, const char* key, std::string* value,
+                                     bool* quoted = nullptr);
+
+/**
+ * The readers of configuration JSON (QA-A-209): xpe_json_top_level_scalar with the error mapping every
+ * configuration entry point shares. Rules (helpers.cpp, "Configuration JSON readers"): top-level keys only; a key
+ * given twice, or a text that is not one valid JSON object, is XPE_ERR_CONFIG_INVALID; an absent key, a key only
+ * inside a nested object, a value that is an object or array, and a null text are "not given" (XPE_OK, empty
+ * value / *present false).
+ *
+ * xpe_config_get_string: `*value` is the scalar's text ("" when not given; a string value may itself be empty -- the
+ * callers read an empty value as not given). `*quoted`, when given, tells a JSON string from a bare token.
+ * xpe_config_get_double: the text is `len` bytes (a calibration file's config block is stored with its length);
+ * `*present` is true only for a bare JSON number, which is converted into `*value`.
+ * Both take a NUL-terminated text or a length; both may throw std::bad_alloc (the callers' guards map it).
+ */
+XpeErrorCode xpe_config_get_string(const char* configJson, const char* key, std::string* value, bool* quoted = nullptr);
+XpeErrorCode xpe_config_get_double(const char* json, size_t len, const char* key, bool* present, double* value);
+
+/** Every top-level key the nonlinearity stage reads from the configuration (nonlinearity_correct.cpp). */
+constexpr size_t XPE_NONLINEARITY_CONFIG_KEY_COUNT = 9;
+extern const char* const XPE_NONLINEARITY_CONFIG_KEYS[XPE_NONLINEARITY_CONFIG_KEY_COUNT];
 
 /**
  * @brief xpe_nonlinearity_correct with a report of whether pixels were corrected.
@@ -182,7 +180,6 @@ XpeJsonTop xpe_json_top_level_scalar(const char* json, size_t len, const char* k
 XpeErrorCode xpe_nonlinearity_apply(XpeImageBuffer* img, const char* configJsonOrNull,
                                     bool* applied);
 
-double xpe_json_get_double(const char* configJson, const char* key, double defaultVal);
 
 /* =========================================================================
  * Module lifecycle predicate (defined in xpe_preprocess.cpp)

@@ -20,6 +20,7 @@
 #include "xpe/preprocess/xcal_format.h"
 #include "xcal_writer.hpp"
 
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -259,6 +260,24 @@ const NumberRow kIntRows[] = {
     {"nan", false},  {"inf", false}, {"99999999999999999999", false}, {"0x4", false}, {"1e", false},
 };
 
+/** `v` as the body of a JSON string literal: the quote, the backslash and every control character escaped. A raw
+ *  tab inside a string is not JSON (QA-A-209: the configuration is parsed now); the value the number conversion
+ *  sees is the same -- the parser undoes the escapes. */
+std::string jsonStringBody(const std::string& v) {
+    std::string out;
+    for (const char ch : v) {
+        const unsigned char u = static_cast<unsigned char>(ch);
+        if (ch == '"') out += std::string(1, static_cast<char>(92)) + '"';
+        else if (ch == static_cast<char>(92)) out += std::string(2, static_cast<char>(92));
+        else if (u < 0x20) {
+            char buf6[8];
+            std::snprintf(buf6, sizeof(buf6), "\\u%04x", u);
+            out += buf6;
+        } else out += ch;
+    }
+    return out;
+}
+
 using EntryCall = std::function<XpeErrorCode(const std::string& field, const std::string& value)>;
 
 void runTable(const char* entry, const char* realField, const char* intField, const EntryCall& call) {
@@ -279,7 +298,7 @@ void runTable(const char* entry, const char* realField, const char* intField, co
 }
 
 std::string pipelineConfig(const std::string& field, const std::string& value) {
-    return cfg("\"" + field + "\":\"" + value + "\"");
+    return cfg("\"" + field + "\":\"" + jsonStringBody(value) + "\"");
 }
 
 }  // namespace
@@ -311,7 +330,7 @@ TEST_F(ConfigStrictParse, TheAcceptedNotationOfThePipelineEntryPointsIsFixedByAT
 TEST_F(ConfigStrictParse, TheAcceptedNotationOfGhostCreateIsFixedByATable) {
     runTable("xpe_ghost_create", "alpha1", "tier", [](const std::string& f, const std::string& v) {
         void* handle = nullptr;
-        const std::string c = "{\"" + f + "\":\"" + v + "\"}";
+        const std::string c = "{\"" + f + "\":\"" + jsonStringBody(v) + "\"}";
         const XpeErrorCode rc = xpe_ghost_create(W, H, c.c_str(), &handle);
         if (rc == XPE_OK) xpe_ghost_destroy(handle);
         return rc;
@@ -835,4 +854,345 @@ TEST_F(ConfigStrictParse, WellFormedQualityFieldsInAGainFileAreStillRead) {
     EXPECT_EQ(4u, m.num_points);
     EXPECT_EQ(3u, m.calibration_mode);
     EXPECT_NEAR(500.0f, gainResult(), 0.01f) << "the good file's map (gain 2) is now in the store";
+}
+
+// =====================================================================================================
+// QA-A-209: every configuration text is read through its TOP-LEVEL keys
+// =====================================================================================================
+//
+// The configuration readers -- the pipeline, the ghost corrector, the nonlinearity stage, the offset generation,
+// and the config block of a polynomial-gain or nonlinearity-LUT file -- looked for the first occurrence of the
+// quoted key anywhere in the text. {"nested":{"bypassGain":true}} switched the gain stage off, a key given twice
+// was whichever came first, and a text that was not JSON was read for whatever it happened to contain. They now
+// read one valid JSON object and its top-level keys (xpe_config_get_string / xpe_config_get_double), and the same
+// rows run through every entry point:
+//   a key only inside a nested object                 -> not given (the default)
+//   a top-level key beside a nested one               -> the top-level one
+//   a top-level key given twice, or a text that is not one valid JSON object
+//                                                     -> XPE_ERR_CONFIG_INVALID, and nothing has changed
+//   an empty value ("")                               -> not given (the configuration's rule: a GUI sends an unset
+//                                                        option as "")
+// "Nothing has changed" is checked per entry point: the image and its metadata, the handle that was not handed
+// back, the file that was not written, the table or gain map that is still the one loaded before.
+
+namespace {
+
+enum class Kind { Effect, NoEffect, Refused };
+struct CfgRow { const char* what; const char* tmpl; Kind kind; };
+
+// `@` is the key under test, `$` a literal that has an effect, `%` a literal that has none (both valid values), `~` the
+// other members the entry point needs (the comma next to it goes with it when there are none).
+const CfgRow kCfgRows[] = {
+    {"only inside a nested object: not given", "{~,\"nested\":{\"@\":$}}", Kind::NoEffect},
+    {"nested one with an effect, top-level one without: the top-level one", "{~,\"nested\":{\"@\":$},\"@\":%}", Kind::NoEffect},
+    {"nested one without, top-level one with an effect: the top-level one", "{~,\"nested\":{\"@\":%},\"@\":$}", Kind::Effect},
+    {"nested one in an array of objects only: not given", "{~,\"list\":[{\"@\":$}]}", Kind::NoEffect},
+    {"given twice at the top level (two neutral values)", "{~,\"@\":%,\"@\":%}", Kind::Refused},
+    {"given twice at the top level (effect, then neutral)", "{~,\"@\":$,\"@\":%}", Kind::Refused},
+    {"given twice at the top level, a nested one between", "{~,\"@\":%,\"nested\":{\"@\":$},\"@\":%}", Kind::Refused},
+    {"the object is not closed", "{~,\"@\":%", Kind::Refused},
+    {"the top level is an array", "[{~,\"@\":%}]", Kind::Refused},
+    {"text after the object", "{~,\"@\":%} x", Kind::Refused},
+    {"not JSON at all", "not json", Kind::Refused},
+    {"a broken nested object before the key", "{~,\"nested\":{bad},\"@\":%}", Kind::Refused},
+    {"an empty value: not given", "{~,\"@\":\"\"}", Kind::NoEffect},
+    {"an ordinary top-level key", "{~,\"@\":$}", Kind::Effect},
+};
+
+struct Observation { XpeErrorCode rc; bool effect; bool unchanged; };
+
+struct Probe {
+    std::string name, key, on, off, extra;
+    XpeErrorCode rcEffect = XPE_OK, rcNoEffect = XPE_OK;
+    bool checkEffect = false;      // the effect shows in something other than the return code
+    std::function<Observation(const std::string& json)> run;
+};
+
+std::string expand(const char* tmpl, const Probe& p) {
+    std::string out;
+    for (const char* c = tmpl; *c; ++c) {
+        if (*c == '@') out += p.key;
+        else if (*c == '$') out += p.on;
+        else if (*c == '%') out += p.off;
+        else if (*c == '~') {
+            if (!p.extra.empty()) out += p.extra;
+            else if (c[1] == ',') ++c;                                   // "{~,x" without members: "{x"
+            else if (!out.empty() && out.back() == ',') out.pop_back();
+        } else out += *c;
+    }
+    return out;
+}
+
+void runTopRows(const Probe& p) {
+    for (const CfgRow& row : kCfgRows) {
+        const std::string json = expand(row.tmpl, p);
+        SCOPED_TRACE(p.name + ": " + row.what + "  " + json);
+        bool threw = false;
+        Observation o{};
+        callSafely([&] { o = p.run(json); return o.rc; }, &threw);
+        EXPECT_FALSE(threw) << "an exception left the entry point";
+        switch (row.kind) {
+            case Kind::Effect:
+                EXPECT_EQ(p.rcEffect, o.rc);
+                if (p.checkEffect) EXPECT_TRUE(o.effect) << "the top-level value was not applied";
+                break;
+            case Kind::NoEffect:
+                EXPECT_EQ(p.rcNoEffect, o.rc);
+                if (p.checkEffect) EXPECT_FALSE(o.effect) << "a value that is not a top-level key was applied";
+                break;
+            case Kind::Refused:
+                EXPECT_EQ(XPE_ERR_CONFIG_INVALID, o.rc);
+                EXPECT_TRUE(o.unchanged) << "a refused configuration changed something";
+                break;
+        }
+    }
+}
+
+std::string allBypassExcept(const std::string& key) {
+    std::string out;
+    for (const char* k : {"bypassReadout", "bypassTemp", "bypassOffset", "bypassNonlinearity", "bypassGain",
+                          "bypassBinning", "bypassDefect", "bypassGhost"}) {
+        if (key == k) continue;
+        if (!out.empty()) out += ",";
+        out += std::string("\"") + k + "\":true";
+    }
+    return out;
+}
+
+Probe pipelineProbe(const std::string& entry, const std::string& key, const std::string& on, const std::string& off,
+                    XpeErrorCode rcEffect, XpeErrorCode rcNoEffect) {
+    Probe p;
+    p.name = entry + " " + key; p.key = key; p.on = on; p.off = off; p.extra = allBypassExcept(key);
+    p.rcEffect = rcEffect; p.rcNoEffect = rcNoEffect;
+    p.run = [entry](const std::string& json) {
+        std::vector<uint16_t> pixels(N, 1000);
+        XpeImageBuffer img = buf(pixels.data(), XPE_PIXEL_UINT16, 16);
+        XpeImageMetadata meta{};
+        XpeErrorCode rc;
+        if (entry == "pipeline") rc = xpe_preprocess_pipeline(&img, &meta, nullptr, nullptr, json.c_str());
+        else if (entry == "pipeline_ex") rc = xpe_preprocess_pipeline_ex(&img, &meta, nullptr, nullptr, json.c_str());
+        else rc = xpe_preprocess_pipeline_batch(&img, 1, &meta, nullptr, nullptr, json.c_str());
+        XpeImageMetadata zero{};
+        bool same = std::memcmp(&meta, &zero, sizeof(meta)) == 0;
+        for (const uint16_t v : pixels) same = same && v == 1000;
+        return Observation{rc, false, same};
+    };
+    return p;
+}
+
+Probe ghostProbe(const std::string& key, const std::string& on, const std::string& off) {
+    Probe p;
+    p.name = "xpe_ghost_create " + key; p.key = key; p.on = on; p.off = off;
+    p.rcEffect = XPE_ERR_CONFIG_INVALID; p.rcNoEffect = XPE_OK;          // `on` is a malformed number: read => refused
+    p.run = [](const std::string& json) {
+        void* handle = nullptr;
+        const XpeErrorCode rc = xpe_ghost_create(W, H, json.c_str(), &handle);
+        const bool made = handle != nullptr;
+        if (handle) xpe_ghost_destroy(handle);
+        return Observation{rc, false, !made};
+    };
+    return p;
+}
+
+/** The nonlinearity stage on a frame of 1000: the polynomial 2*x doubles it; no LUT is loaded, so the other path leaves it. */
+Probe nonlinProbe(const std::string& key, const std::string& on, const std::string& off, const std::string& extra,
+                  bool effectIsDoubling) {
+    Probe p;
+    p.name = "xpe_nonlinearity_correct " + key; p.key = key; p.on = on; p.off = off; p.extra = extra;
+    p.checkEffect = true;
+    p.run = [effectIsDoubling](const std::string& json) {
+        std::vector<uint16_t> px(N, 1000);
+        XpeImageBuffer img = buf(px.data(), XPE_PIXEL_UINT16, 16);
+        const XpeErrorCode rc = xpe_nonlinearity_correct(&img, json.c_str());
+        bool same = true, doubled = true;
+        for (const uint16_t v : px) { same = same && v == 1000; doubled = doubled && v == 2000; }
+        return Observation{rc, effectIsDoubling ? doubled : same, same};
+    };
+    return p;
+}
+
+}  // namespace
+
+TEST_F(ConfigStrictParse, ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject) {
+    for (const char* entry : {"pipeline", "pipeline_ex", "pipeline_batch"}) {
+        // The offset stage runs unless bypassed, and with no calibration loaded it says so: the code shows whether the flag counted.
+        runTopRows(pipelineProbe(entry, "bypassOffset", "true", "false", XPE_OK, XPE_ERR_CALIB_NOT_LOADED));
+    }
+    // The numbers: `on` is a malformed number, so reading it is a refusal.
+    runTopRows(pipelineProbe("pipeline", "detectorTempC", "\"abc\"", "25.5", XPE_ERR_CONFIG_INVALID, XPE_OK));
+    runTopRows(pipelineProbe("pipeline", "binningMode", "\"x\"", "1", XPE_ERR_CONFIG_INVALID, XPE_OK));
+    // Keys only a LATER stage reads (the nonlinearity stage): a duplicate among them fails the call before any stage runs.
+    for (const char* key : {"panel.linear", "panel.nonlinearity_mode", "panel.target_platform", "panel.nonlin_poly_c0",
+                            "panel.nonlin_poly_c4", "panel.adc_max"}) {
+        runTopRows(pipelineProbe("pipeline", key, "\"true\"", "\"false\"", XPE_OK, XPE_OK));
+    }
+}
+
+TEST_F(ConfigStrictParse, ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage) {
+    std::vector<float> off(N, 100.0f), gain(N, 2.0f);
+    std::vector<uint8_t> def(N, 0);
+    fs::create_directories("csp_calib");
+    writeFile("csp_calib/offset.xcal", XCAL_TYPE_OFFSET, XCAL_FMT_FLOAT32, off.data(), off.size() * 4);
+    writeFile("csp_calib/gain.xcal", XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, gain.data(), gain.size() * 4);
+    writeFile("csp_calib/defect.xcal", XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, def.data(), def.size());
+    auto offsetLoaded = [] {
+        std::vector<uint16_t> in(N, 1000), out(N, 0);
+        XpeImageBuffer i = buf(in.data(), XPE_PIXEL_UINT16, 16), o = buf(out.data(), XPE_PIXEL_UINT16, 16);
+        XpeImageMetadata m{};
+        return xpe_offset_correct(&i, &o, &m) == XPE_OK;
+    };
+    ASSERT_FALSE(offsetLoaded()) << "precondition: no calibration is loaded";
+
+    // The duplicate is in a key only the nonlinearity stage reads: the refusal must come before the calibration is loaded.
+    const std::string dup = "{\"bypassNonlinearity\":true,\"panel.linear\":\"true\",\"panel.linear\":\"false\"}";
+    std::vector<uint16_t> p0(N, 1000), p1(N, 1000);
+    XpeImageBuffer imgs[2] = {buf(p0.data(), XPE_PIXEL_UINT16, 16), buf(p1.data(), XPE_PIXEL_UINT16, 16)};
+    XpeImageMetadata metas[2] = {};
+    bool threw = false;
+    XpeErrorCode rc = callSafely([&] {
+        return xpe_preprocess_pipeline(&imgs[0], &metas[0], "csp_calib", nullptr, dup.c_str());
+    }, &threw);
+    EXPECT_FALSE(threw);
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, rc);
+    EXPECT_FALSE(offsetLoaded()) << "a refused configuration must not have loaded the calibration files";
+    rc = callSafely([&] {
+        return xpe_preprocess_pipeline_batch(imgs, 2, metas, "csp_calib", nullptr, dup.c_str());
+    }, &threw);
+    EXPECT_FALSE(threw);
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, rc);
+    EXPECT_FALSE(offsetLoaded());
+    EXPECT_EQ(0u, metas[0].flags);
+    EXPECT_EQ(0u, metas[1].flags);
+    for (size_t i = 0; i < N; ++i) { ASSERT_EQ(1000u, p0[i]); ASSERT_EQ(1000u, p1[i]); }
+}
+
+TEST_F(ConfigStrictParse, TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject) {
+    runTopRows(ghostProbe("alpha1", "\"abc\"", "0.5"));
+    runTopRows(ghostProbe("tau2", "\"1e999\"", "10"));
+    runTopRows(ghostProbe("tier", "\"x\"", "2"));
+    runTopRows(ghostProbe("nlcscBeta", "\"1.5.2\"", "0.1"));
+}
+
+TEST_F(ConfigStrictParse, TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject) {
+    // The polynomial 2*x runs when the profile names POLY (or AUTO on an embedded target) and has coefficients.
+    runTopRows(nonlinProbe("panel.nonlinearity_mode", "\"POLY\"", "\"LUT\"", "\"panel.nonlin_poly_c1\":2.0", true));
+    runTopRows(nonlinProbe("panel.nonlin_poly_c1", "2.0", "0.0", "\"panel.nonlinearity_mode\":\"POLY\"", true));
+    runTopRows(nonlinProbe("panel.target_platform", "\"MCU\"", "\"CPU\"",
+                           "\"panel.nonlinearity_mode\":\"AUTO\",\"panel.nonlin_poly_c1\":2.0", true));
+    // panel.linear = true skips the stage: the frame stays as it was.
+    runTopRows(nonlinProbe("panel.linear", "\"true\"", "\"false\"",
+                           "\"panel.nonlinearity_mode\":\"POLY\",\"panel.nonlin_poly_c1\":2.0", false));
+}
+
+TEST_F(ConfigStrictParse, TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject) {
+    const std::string out = "csp_offset_out.xcal";
+    for (const auto& kv : std::vector<std::vector<std::string>>{
+             {"sigma", "-1", "3.0"}, {"method", "\"bogus\"", "\"mean\""}, {"max_iter", "0", "5"},
+             {"lower_percentile", "-5", "10.0"}}) {
+        Probe p;
+        p.name = "xpe_calib_generate_offset " + kv[0]; p.key = kv[0]; p.on = kv[1]; p.off = kv[2];
+        p.rcEffect = XPE_ERR_CONFIG_INVALID; p.rcNoEffect = XPE_OK;       // `on` is out of range: read => refused
+        p.run = [out](const std::string& json) {
+            std::remove(out.c_str());
+            std::vector<std::vector<uint16_t>> frames{std::vector<uint16_t>(N, 100), std::vector<uint16_t>(N, 110),
+                                                     std::vector<uint16_t>(N, 105)};
+            std::vector<XpeImageBuffer> bufs;
+            for (auto& f : frames) bufs.push_back(buf(f.data(), XPE_PIXEL_UINT16, 16));
+            const XpeErrorCode rc = xpe_calib_generate_offset(bufs.data(), 3, 100.0f, 25.0f, out.c_str(), json.c_str());
+            const bool wrote = fs::exists(out);
+            std::remove(out.c_str());
+            return Observation{rc, false, !wrote};
+        };
+        runTopRows(p);
+    }
+}
+
+namespace {
+
+/** A polynomial gain file (degree 1, gain 1 in every pixel) with `json` as its config block. */
+void writePolyGain(const char* path, const std::string& json) {
+    std::vector<float> coeffs(N * 2);
+    for (size_t i = 0; i < N; ++i) { coeffs[i * 2] = 1.0f; coeffs[i * 2 + 1] = 0.0f; }
+    XCalFileHeader hdr{};
+    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    hdr.version = XCAL_VERSION; hdr.type = XCAL_TYPE_GAIN_POLY; hdr.pixel_format = XCAL_FMT_FLOAT32;
+    hdr.width = W; hdr.height = H; hdr.payload_len = coeffs.size() * sizeof(float);
+    ASSERT_EQ(XPE_OK, write_xcal_file(path, hdr, reinterpret_cast<const uint8_t*>(json.data()), json.size(),
+                                      reinterpret_cast<const uint8_t*>(coeffs.data()), coeffs.size() * sizeof(float)));
+}
+
+/** A 4096-entry nonlinearity table (`entry(i)` for index i) with `json` as its config block. */
+void writeLut(const char* path, bool halving, const std::string& json) {
+    std::vector<uint16_t> lut(4096u);
+    for (uint32_t i = 0; i < 4096u; ++i) lut[i] = static_cast<uint16_t>(halving ? i / 2u : i);
+    XCalFileHeader hdr{};
+    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    hdr.version = XCAL_VERSION; hdr.type = static_cast<uint32_t>(XCAL_TYPE_NONLIN_LUT);
+    hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_UINT16);
+    hdr.width = 4096; hdr.height = 1; hdr.payload_len = lut.size() * sizeof(uint16_t);
+    hdr.created_epoch_ms = 1700000000000ll;
+    ASSERT_EQ(XPE_OK, write_xcal_file(path, hdr, reinterpret_cast<const uint8_t*>(json.data()), json.size(),
+                                      reinterpret_cast<const uint8_t*>(lut.data()), lut.size() * sizeof(uint16_t)));
+}
+
+bool pendingAlertContains(const char* needle) {
+    char msg[512];
+    int32_t sev = -1;
+    const int32_t count = xpe_get_pending_alert_count();
+    for (int32_t i = 0; i < count; ++i) {
+        if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) != XPE_OK) continue;
+        if (std::string(msg).find(needle) != std::string::npos) return true;
+    }
+    return false;
+}
+
+}  // namespace
+
+TEST_F(ConfigStrictParse, TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys) {
+    Probe p;
+    p.name = "xpe_calib_load_gain (polynomial) dose_min"; p.key = "dose_min"; p.on = "10.0";
+    p.off = "\"none\"";             // a string is not a number: the range is then not given
+    p.extra = "\"dose_max\":100.0";
+    p.checkEffect = true;                 // a polynomial file with no dose range loads, and says so in an alert
+    p.run = [](const std::string& json) {
+        writeGainWithConfig("csp_gq.xcal", 4.0f, "{}");
+        EXPECT_EQ(XPE_OK, xpe_calib_load_gain("csp_gq.xcal"));
+        writePolyGain("csp_gx.xcal", json);
+        xpe_clear_alerts();
+        const XpeErrorCode rc = xpe_calib_load_gain("csp_gx.xcal");
+        const bool rangeRead = !pendingAlertContains("without a dose range");
+        return Observation{rc, rangeRead, std::fabs(gainResult() - 250.0f) < 0.01f};   // still the plain gain 4 map
+    };
+    runTopRows(p);
+}
+
+TEST_F(ConfigStrictParse, TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys) {
+    Probe p;
+    p.name = "xpe_calib_load_nonlin_lut xcal_nonlin_extension_start"; p.key = "xcal_nonlin_extension_start";
+    p.on = "99999"; p.off = "100";        // a start past the end of the table is a corrupt record
+    p.rcEffect = XPE_ERR_INVALID_CALIB_DATA; p.rcNoEffect = XPE_OK;
+    p.run = [](const std::string& json) {
+        writeLut("csp_gq.xcal", true, "{}");
+        EXPECT_EQ(XPE_OK, xpe_calib_load_nonlin_lut("csp_gq.xcal"));       // the table in the store: halves a frame
+        writeLut("csp_gx.xcal", false, json);
+        const XpeErrorCode rc = xpe_calib_load_nonlin_lut("csp_gx.xcal");
+        std::vector<uint16_t> px(N, 1000);
+        XpeImageBuffer img = buf(px.data(), XPE_PIXEL_UINT16, 16);
+        EXPECT_EQ(XPE_OK, xpe_nonlinearity_correct(&img, nullptr));
+        return Observation{rc, false, px[0] == 500u};                      // a failed load left the halving table in place
+    };
+    runTopRows(p);
+}
+
+TEST_F(ConfigStrictParse, ANullConfigPointerStillMeansTheDefaults) {
+    void* handle = nullptr;
+    EXPECT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
+    ASSERT_NE(nullptr, handle);
+    xpe_ghost_destroy(handle);
+    std::vector<uint16_t> pixels(N, 1000);
+    XpeImageBuffer img = buf(pixels.data(), XPE_PIXEL_UINT16, 16);
+    XpeImageMetadata meta{};
+    // No configuration: nothing is bypassed, so every stage runs and the result is float32 -- which does not fit the
+    // uint16 buffer, a refusal the call makes before any stage (not CONFIG_INVALID: a null text is not a malformed one).
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, xpe_preprocess_pipeline(&img, &meta, nullptr, nullptr, nullptr));
 }

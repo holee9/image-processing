@@ -1,6 +1,7 @@
 #include "xpe_calib_generate_offset_methods.hpp"
 
 #include "xpe/preprocess/xcal_format.h"
+#include "xpe/preprocess/xpe_preprocess_internal.h"
 
 #include <algorithm>
 #include <cmath>
@@ -9,51 +10,13 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <new>
 #include <limits>
 #include <string>
 #include <vector>
 
 namespace xpe::preprocess {
 namespace {
-
-// Minimal JSON field extractor. Does NOT handle escaped quotes (\") inside values.
-// Safe for the current use case: method names are simple ASCII identifiers.
-std::string json_get_string(const char* config_json, const char* key)
-{
-    if (!config_json || !key) return {};
-
-    char needle[128];
-    std::snprintf(needle, sizeof(needle), "\"%s\"", key);
-    const char* pos = std::strstr(config_json, needle);
-    if (!pos) return {};
-
-    pos += std::strlen(needle);
-    while (*pos && (*pos == ' ' || *pos == '\t' || *pos == ':')) ++pos;
-    if (*pos != '"') return {};
-
-    ++pos;
-    const char* end = std::strchr(pos, '"');
-    if (!end) return {};
-
-    return std::string(pos, end);
-}
-
-double json_get_double(const char* config_json, const char* key, double default_value)
-{
-    if (!config_json || !key) return default_value;
-
-    char needle[128];
-    std::snprintf(needle, sizeof(needle), "\"%s\"", key);
-    const char* pos = std::strstr(config_json, needle);
-    if (!pos) return default_value;
-
-    pos += std::strlen(needle);
-    while (*pos && (*pos == ' ' || *pos == '\t' || *pos == ':')) ++pos;
-
-    char* end = nullptr;
-    const double val = std::strtod(pos, &end);
-    return (end == pos) ? default_value : val;
-}
 
 XpeErrorCode validate_dark_frames(const XpeImageBuffer* dark_frames,
                                   int32_t num_frames,
@@ -215,27 +178,41 @@ XpeErrorCode parse_offset_generation_config(const char* config_json,
 
     if (!config_json) return XPE_OK;
 
-    const std::string method = json_get_string(config_json, "method");
-    if (method.empty() || method == "mean") {
-        config->method = OffsetGenerationMethod::Mean;
-    } else if (method == "median") {
-        config->method = OffsetGenerationMethod::Median;
-    } else if (method == "sigma_clip") {
-        config->method = OffsetGenerationMethod::SigmaClip;
-    } else if (method == "winsor") {
-        config->method = OffsetGenerationMethod::Winsor;
-    } else {
-        return XPE_ERR_CONFIG_INVALID;
-    }
+    // QA-A-209: every key is a TOP-LEVEL key of one valid JSON object (xpe_config_get_*); a key given twice, or a
+    // text that is not one, is XPE_ERR_CONFIG_INVALID. "method" counts only as a JSON string, as before.
+    try {
+        std::string method;
+        bool method_is_string = false;
+        XpeErrorCode rc = ::xpe_config_get_string(config_json, "method", &method, &method_is_string);
+        if (rc != XPE_OK) return rc;
+        if (!method_is_string) method.clear();
+        if (method.empty() || method == "mean") {
+            config->method = OffsetGenerationMethod::Mean;
+        } else if (method == "median") {
+            config->method = OffsetGenerationMethod::Median;
+        } else if (method == "sigma_clip") {
+            config->method = OffsetGenerationMethod::SigmaClip;
+        } else if (method == "winsor") {
+            config->method = OffsetGenerationMethod::Winsor;
+        } else {
+            return XPE_ERR_CONFIG_INVALID;
+        }
 
-    config->sigma = json_get_double(config_json, "sigma", config->sigma);
-    const double max_iter = json_get_double(config_json, "max_iter",
-                                           static_cast<double>(config->max_iter));
-    config->max_iter = static_cast<int32_t>(max_iter);
-    config->lower_percentile = json_get_double(
-        config_json, "lower_percentile", config->lower_percentile);
-    config->upper_percentile = json_get_double(
-        config_json, "upper_percentile", config->upper_percentile);
+        const size_t len = std::strlen(config_json);
+        bool present = false;
+        rc = ::xpe_config_get_double(config_json, len, "sigma", &present, &config->sigma);
+        if (rc != XPE_OK) return rc;
+        double max_iter = static_cast<double>(config->max_iter);
+        rc = ::xpe_config_get_double(config_json, len, "max_iter", &present, &max_iter);
+        if (rc != XPE_OK) return rc;
+        config->max_iter = static_cast<int32_t>(max_iter);
+        rc = ::xpe_config_get_double(config_json, len, "lower_percentile", &present, &config->lower_percentile);
+        if (rc != XPE_OK) return rc;
+        rc = ::xpe_config_get_double(config_json, len, "upper_percentile", &present, &config->upper_percentile);
+        if (rc != XPE_OK) return rc;
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    }
 
     if (!std::isfinite(config->sigma) || config->sigma <= 0.0) {
         return XPE_ERR_CONFIG_INVALID;

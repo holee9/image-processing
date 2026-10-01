@@ -143,7 +143,8 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
  * Quality metadata (FUNC-033). The file's config block is read as ONE valid JSON object, to its stored length
  * (a NUL byte, a byte-order mark that is not complete, malformed UTF-8, text after the object, a key given twice at
  * the top level: all XPE_ERR_CONFIG_INVALID), and its fit_r_squared, polynomial_degree, actual_dose_levels and
- * calibration_mode are TOP-LEVEL keys (a key inside a nested object is not one). A key that is ABSENT means "not
+ * calibration_mode are TOP-LEVEL keys (a key inside a nested object is not one; a polynomial file's dose_min and dose_max are read the same way, and
+ * given twice they are refused). A key that is ABSENT means "not
  * given" (a file from before QA-A-35 has none of them; for fit_r_squared the record then has has_r_squared = 0).
  * A key that is PRESENT must hold a number in the range the field has -- fit_r_squared a finite real of at most 1.0
  * (negative values are real: a fit worse than the mean; exactly -1.0 included), polynomial_degree an integer in
@@ -357,7 +358,9 @@ XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
  *         XPE_ERR_INVALID_INPUT if NULL pointers or invalid parameters
- *         XPE_ERR_CONFIG_INVALID if config_json_or_null is malformed, or if a
+ *         XPE_ERR_CONFIG_INVALID if config_json_or_null is not one valid JSON object, gives a key twice at
+ *         the top level (keys are read from the top level -- see xpe_preprocess_pipeline), or holds a
+ *         malformed or out-of-range value, or if a
  *         "sigma_clip" run marks at least one pixel while a defect map of a
  *         different width or height is already loaded (the marks are not
  *         merged; the map is left unchanged and output_path is not written)
@@ -448,7 +451,9 @@ XPE_API XpeErrorCode xpe_calib_generate_nonlin_lut(const XpeImageBuffer* flat_fr
  * @param filepath Path to the .xcal file written by xpe_calib_generate_nonlin_lut().
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT if filepath is NULL
- *         XPE_ERR_IO_FAILED / XPE_ERR_CONFIG_INVALID from the file reader
+ *         XPE_ERR_IO_FAILED / XPE_ERR_CONFIG_INVALID from the file reader; XPE_ERR_CONFIG_INVALID also when the
+ *                       table's config block is not one valid JSON object or gives xcal_nonlin_extension_start
+ *                       twice at the top level (a key inside a nested object is not it)
  *         XPE_ERR_INVALID_CALIB_DATA if the entry count is not 4096 or 65536,
  *                       the table is not non-decreasing, or the recorded
  *                       extension boundary lies outside the table
@@ -610,7 +615,9 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
  *
  * @param width Image width in pixels
  * @param height Image height in pixels
- * @param configJsonOrNull Optional JSON configuration for tier/IRF coefficients
+ * @param configJsonOrNull Optional JSON configuration for tier/IRF coefficients (reading rule: see
+ *        xpe_preprocess_pipeline -- one valid JSON object, top-level keys, a key given twice or a malformed text
+ *        is XPE_ERR_CONFIG_INVALID and no handle is handed back)
  * @param handleOut Output: Opaque handle pointer (caller must call xpe_ghost_destroy)
  * @return XPE_OK on success
  *         XPE_ERR_OUT_OF_MEMORY on allocation failure
@@ -730,8 +737,12 @@ XPE_API XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img,
  * baseline" line has no counterpart in SRS 6b or in the implementation.
  *
  * @param img [in/out] Image to correct (uint16 format)
- * @param configJsonOrNull Optional detector mode/coefficient override JSON
+ * @param configJsonOrNull Optional detector mode/coefficient override JSON (reading rule: see
+ *        xpe_preprocess_pipeline -- one valid JSON object, top-level keys; panel.linear, panel.nonlinearity_mode,
+ *        panel.target_platform, panel.nonlin_poly_c0..c4 and panel.adc_max are the keys read)
  * @return XPE_OK on success
+ *         XPE_ERR_CONFIG_INVALID if a key is given twice at the top level or the text is not one valid JSON
+ *         object (the frame is untouched)
  *         XPE_ERR_CALIB_NOT_LOADED if the panel is declared non-linear and no
  *         LUT is loaded
  *         XPE_ERR_INVALID_INPUT if NULL img
@@ -845,9 +856,20 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  * @param meta [in/out] Image metadata (updated with processing flags)
  * @param calibPath Calibration data directory path
  * @param ghostHandle Ghost corrector handle (NULL = skip ghost correction)
- * @param configJsonOrNull Pipeline configuration JSON (bypass flags, temperature, etc.)
+ * @param configJsonOrNull Pipeline configuration JSON (bypass flags, temperature, etc.), NUL-terminated.
+ *        Reading rule (every configuration text of this module -- this one, xpe_ghost_create's, the nonlinearity
+ *        stage's, the offset generation's): the text is ONE valid JSON object and its keys are read from the TOP
+ *        LEVEL. A key that appears only inside a nested object or array is not given (the default applies); a
+ *        top-level key beside a nested one of the same name is the top-level one; a top-level key given twice, or
+ *        a text that is not one JSON object (not closed, an array, text after the object, a raw
+ *        control character in a string, single quotes, a trailing comma), is XPE_ERR_CONFIG_INVALID and nothing
+ *        is changed; an empty string value ("") and a value that is an object or an array are "not given" (a
+ *        GUI sends an unset option as ""); a NULL text means every default. The keys the nonlinearity stage
+ *        reads (panel.linear, panel.nonlinearity_mode, panel.target_platform, panel.nonlin_poly_c0..c4,
+ *        panel.adc_max) are checked by the same rule before the first stage runs.
  * @return XPE_OK on success
- *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration (detectorTempC,
+ *         XPE_ERR_CONFIG_INVALID if the configuration is not one valid JSON object, a top-level key is given
+ *                  twice, or a numeric value in the configuration (detectorTempC,
  *                  binningMode) is not one finite number in range -- "abc", "1e999", "2x" -- nothing
  *                  is loaded and no image or metadata is touched (the configuration is read first).
  *                  Notation of a configuration number: optional leading white space, an optional single
@@ -891,7 +913,8 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
  * @param meta [in/out] Image metadata
  * @param calibState Pre-loaded calibration state (from xpe_calib_state_load)
  * @param ghostHandle Ghost corrector handle (NULL = skip ghost)
- * @param configJsonOrNull Pipeline configuration JSON
+ * @param configJsonOrNull Pipeline configuration JSON (reading rule: see xpe_preprocess_pipeline -- one valid JSON
+ *        object, top-level keys, a key given twice or a malformed text is XPE_ERR_CONFIG_INVALID)
  * @return XPE_OK on success
  *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration (detectorTempC,
  *                  binningMode) is not one finite number in range -- "abc", "1e999", "2x" -- no image or metadata is touched (the configuration is read first)
@@ -917,7 +940,8 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
  * @param metas [in/out] Array of imageCount XpeImageMetadata
  * @param calibPath Calibration data directory path
  * @param ghostHandle Ghost corrector handle (NULL = skip ghost)
- * @param configJsonOrNull Pipeline configuration JSON
+ * @param configJsonOrNull Pipeline configuration JSON (reading rule: see xpe_preprocess_pipeline -- one valid JSON
+ *        object, top-level keys, a key given twice or a malformed text is XPE_ERR_CONFIG_INVALID)
  * @return XPE_OK if all images processed successfully
  *         XPE_ERR_INVALID_INPUT on null/invalid parameters
  *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration is not one finite

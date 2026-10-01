@@ -46,24 +46,32 @@ XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
     const size_t pixelCount = static_cast<size_t>(width) * height;
 
     try {
-        // Parse config JSON for tier and IRF coefficients. An absent or empty value keeps the default.
+        // Parse config JSON for tier and IRF coefficients. An absent or empty value keeps the default. Every key is a
+        // TOP-LEVEL key of one valid JSON object; a key given twice, or a text that is not one, is a refusal
+        // (QA-A-209, xpe_config_get_string).
         if (configJsonOrNull) {
-            const auto real = [&](const char* key, double* dst) {
-                const std::string v = xpe_json_get_string(configJsonOrNull, key);
-                return v.empty() || xpe_strict::parse_double(v, dst);
+            std::string v;
+            const auto real = [&](const char* key, double* dst) -> XpeErrorCode {
+                const XpeErrorCode rc = xpe_config_get_string(configJsonOrNull, key, &v);
+                if (rc != XPE_OK) return rc;
+                if (!v.empty() && !xpe_strict::parse_double(v, dst)) return XPE_ERR_CONFIG_INVALID;
+                return XPE_OK;
             };
 
-            const std::string tierStr = xpe_json_get_string(configJsonOrNull, "tier");
-            if (!tierStr.empty()) {
+            XpeErrorCode rc = xpe_config_get_string(configJsonOrNull, "tier", &v);
+            if (rc != XPE_OK) return rc;
+            if (!v.empty()) {
                 int32_t tier = 1;
-                if (!xpe_strict::parse_int(tierStr, &tier)) return XPE_ERR_CONFIG_INVALID;
+                if (!xpe_strict::parse_int(v, &tier)) return XPE_ERR_CONFIG_INVALID;
                 handle->tier = (tier < 1 || tier > 3) ? 1 : tier;
             }
-            if (!real("alpha1", &handle->alpha1) || !real("tau1", &handle->tau1) ||
-                !real("alpha2", &handle->alpha2) || !real("tau2", &handle->tau2) ||
-                !real("tier2Threshold", &handle->tier2Threshold) ||
-                !real("nlcscBeta", &handle->nlcscBeta)) {
-                return XPE_ERR_CONFIG_INVALID;
+            const struct { const char* key; double* dst; } reals[] = {
+                {"alpha1", &handle->alpha1}, {"tau1", &handle->tau1}, {"alpha2", &handle->alpha2},
+                {"tau2", &handle->tau2}, {"tier2Threshold", &handle->tier2Threshold}, {"nlcscBeta", &handle->nlcscBeta},
+            };
+            for (const auto& r : reals) {
+                rc = real(r.key, r.dst);
+                if (rc != XPE_OK) return rc;
             }
         }
 

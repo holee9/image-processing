@@ -114,11 +114,13 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
         double lo_a = -1.0, hi_a = -1.0;
         bool present = false, usable = false;
         if (is_poly) {
-            lo_a = xpe_json_get_double(config_copy.c_str(), "dose_min", -1.0);
-            const double lo_b = xpe_json_get_double(config_copy.c_str(), "dose_min", -2.0);
-            hi_a = xpe_json_get_double(config_copy.c_str(), "dose_max", -1.0);
-            const double hi_b = xpe_json_get_double(config_copy.c_str(), "dose_max", -2.0);
-            present = (lo_a == lo_b) && (hi_a == hi_b);
+            // Top-level keys of the config block (QA-A-209); a bare JSON number is "given", anything else is not.
+            bool has_lo = false, has_hi = false;
+            XpeErrorCode drc = xpe_config_get_double(config_copy.data(), config_copy.size(), "dose_min", &has_lo, &lo_a);
+            if (drc != XPE_OK) return drc;
+            drc = xpe_config_get_double(config_copy.data(), config_copy.size(), "dose_max", &has_hi, &hi_a);
+            if (drc != XPE_OK) return drc;
+            present = has_lo && has_hi;
             usable  = present && (hi_a > lo_a);
         }
 

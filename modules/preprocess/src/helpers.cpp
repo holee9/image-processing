@@ -56,55 +56,6 @@ float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
         : pixels[static_cast<size_t>(y) * width + x];
 }
 
-/* =========================================================================
- * Minimal JSON string field extractor — no external dependency
- * Finds: "key": "value" pattern, returns value string.
- * ========================================================================= */
-XpeJsonKey xpe_json_find_scalar(const char* configJson, const char* key, std::string* value) {
-    if (!configJson || !key) return XpeJsonKey::Absent;
-
-    // Search for: "key"
-    char needle[128];
-    std::snprintf(needle, sizeof(needle), "\"%s\"", key);
-    const char* pos = std::strstr(configJson, needle);
-    if (!pos) return XpeJsonKey::Absent;
-
-    // Skip past "key":
-    pos += std::strlen(needle);
-    while (*pos && (*pos == ' ' || *pos == '\t' || *pos == '\n' ||
-                    *pos == '\r' || *pos == ':')) ++pos;
-
-    if (*pos == '"') {
-        ++pos; // skip opening quote
-        const char* end = std::strchr(pos, '"');
-        if (!end) return XpeJsonKey::NotScalar;
-        *value = std::string(pos, end);
-        return XpeJsonKey::Scalar;
-    }
-
-    // #126: unquoted scalar (true / false / number). The pipeline writes its
-    // bypass flags as JSON booleans, and requiring quotes made those configs
-    // silently do nothing -- the stage ran and failed later on missing
-    // calibration instead. A nested object or array is not a scalar; this
-    // extractor does not descend into one.
-    if (*pos == '{' || *pos == '[' || *pos == '\0') return XpeJsonKey::NotScalar;
-
-    const char* end = pos;
-    while (*end && *end != ',' && *end != '}' && *end != ']' &&
-           *end != ' ' && *end != '\t' && *end != '\n' && *end != '\r') ++end;
-
-    *value = std::string(pos, end);
-    return XpeJsonKey::Scalar;
-}
-
-std::string xpe_json_get_string(const char* configJson, const char* key) {
-    std::string value;
-    // An absent key, and a value that is not a scalar, are both "nothing" to this reader (the pipeline
-    // configuration's rule: an empty value is an absent one). A caller that must tell them apart uses
-    // xpe_json_find_scalar.
-    return xpe_json_find_scalar(configJson, key, &value) == XpeJsonKey::Scalar ? value : std::string();
-}
-
 namespace {
 
 /**
@@ -124,13 +75,14 @@ public:
     int found() const { return found_; }
     XpeJsonTop firstKind() const { return firstKind_; }
     std::string takeFirstValue() { return std::move(firstValue_); }
+    bool firstWasString() const { return firstQuoted_; }
 
-    bool null() override { return scalar("null"); }
-    bool boolean(bool v) override { return scalar(v ? "true" : "false"); }
-    bool number_integer(Json::number_integer_t v) override { return scalar(std::to_string(v)); }
-    bool number_unsigned(Json::number_unsigned_t v) override { return scalar(std::to_string(v)); }
-    bool number_float(Json::number_float_t, const Json::string_t& text) override { return scalar(text); }
-    bool string(Json::string_t& v) override { return scalar(v); }
+    bool null() override { return scalar("null", false); }
+    bool boolean(bool v) override { return scalar(v ? "true" : "false", false); }
+    bool number_integer(Json::number_integer_t v) override { return scalar(std::to_string(v), false); }
+    bool number_unsigned(Json::number_unsigned_t v) override { return scalar(std::to_string(v), false); }
+    bool number_float(Json::number_float_t, const Json::string_t& text) override { return scalar(text, false); }
+    bool string(Json::string_t& v) override { return scalar(v, true); }
     bool binary(Json::binary_t&) override { return false; }   // binary is not JSON text
 
     bool start_object(std::size_t) override {
@@ -158,13 +110,14 @@ public:
 
 private:
     /** A scalar event: at the top level that is not an object; at depth 1 it is the value of a top-level member. */
-    bool scalar(std::string text) {
+    bool scalar(std::string text, bool isString) {
         if (depth_ == 0) return false;
         if (depth_ == 1 && pending_) {
             pending_ = false;
             if (found_ == 1) {
                 firstKind_ = XpeJsonTop::Scalar;
                 firstValue_ = std::move(text);
+                firstQuoted_ = isString;
             }
         }
         return true;
@@ -184,11 +137,12 @@ private:
     int found_ = 0;
     XpeJsonTop firstKind_ = XpeJsonTop::Absent;
     std::string firstValue_;
+    bool firstQuoted_ = false;
 };
 
 }  // namespace
 
-XpeJsonTop xpe_json_top_level_scalar(const char* json, size_t len, const char* key, std::string* value) {
+XpeJsonTop xpe_json_top_level_scalar(const char* json, size_t len, const char* key, std::string* value, bool* quoted) {
     if (!json || !key) return XpeJsonTop::Absent;
 
     // An empty (or all-white-space) config has no keys; it is not malformed. Everything else must parse.
@@ -216,31 +170,69 @@ XpeJsonTop xpe_json_top_level_scalar(const char* json, size_t len, const char* k
 
     if (probe.found() == 0) return XpeJsonTop::Absent;
     if (probe.found() > 1) return XpeJsonTop::Duplicate;
-    if (probe.firstKind() == XpeJsonTop::Scalar && value) *value = probe.takeFirstValue();
+    if (probe.firstKind() == XpeJsonTop::Scalar) {
+        if (quoted) *quoted = probe.firstWasString();
+        if (value) *value = probe.takeFirstValue();
+    }
     return probe.firstKind();
 }
 
-/**
- * Minimal JSON numeric field extractor — parses "key": number (int or float).
- * Returns defaultVal when key is absent or configJson is null.
- */
-double xpe_json_get_double(const char* configJson, const char* key, double defaultVal) {
-    if (!configJson || !key) return defaultVal;
+/* =========================================================================
+ * Configuration JSON readers (QA-A-209)
+ *
+ * One rule for every configuration text -- the pipeline's, the ghost corrector's, the nonlinearity stage's, the
+ * offset generation's, and the config block of a calibration file: a key is a TOP-LEVEL key of one valid JSON
+ * object (xpe_json_top_level_scalar, nlohmann-json). The first occurrence of a quoted name anywhere in the text
+ * used to win, so {"nested":{"bypassGain":true}} switched the gain stage off.
+ *   - a key absent from the top level (also: present only inside a nested object or array)   -> not given
+ *   - a top-level value that is a string, empty or not                                       -> the caller decides;
+ *     the readers' callers treat an EMPTY string as not given (the pipeline configuration's rule, QA-A-202b)
+ *   - a value that is an object or an array (not a scalar)                                   -> not given (as before)
+ *   - the key given twice at the top level, or a text that is not one valid JSON object      -> XPE_ERR_CONFIG_INVALID
+ *   - a null text pointer                                                                    -> not given
+ * ========================================================================= */
+XpeErrorCode xpe_config_get_string(const char* configJson, const char* key, std::string* value, bool* quoted) {
+    value->clear();
+    if (quoted) *quoted = false;
+    if (!configJson || !key) return XPE_OK;
 
-    // Search for: "key"
-    char needle[128];
-    std::snprintf(needle, sizeof(needle), "\"%s\"", key);
-    const char* pos = std::strstr(configJson, needle);
-    if (!pos) return defaultVal;
+    std::string v;
+    bool q = false;
+    switch (xpe_json_top_level_scalar(configJson, std::strlen(configJson), key, &v, &q)) {
+        case XpeJsonTop::Absent:
+        case XpeJsonTop::NotScalar:
+            return XPE_OK;
+        case XpeJsonTop::Scalar:
+            *value = std::move(v);
+            if (quoted) *quoted = q;
+            return XPE_OK;
+        default:   // Duplicate, Malformed
+            return XPE_ERR_CONFIG_INVALID;
+    }
+}
 
-    // Skip past "key":
-    pos += std::strlen(needle);
-    while (*pos && (*pos == ' ' || *pos == '\t' || *pos == ':')) ++pos;
+XpeErrorCode xpe_config_get_double(const char* json, size_t len, const char* key, bool* present, double* value) {
+    *present = false;
+    if (!json || !key) return XPE_OK;
 
-    // Parse numeric value (int or float, possibly negative)
-    char* end = nullptr;
-    double val = std::strtod(pos, &end);
-    if (end == pos) return defaultVal; // no conversion performed
-
-    return val;
+    std::string v;
+    bool q = false;
+    switch (xpe_json_top_level_scalar(json, len, key, &v, &q)) {
+        case XpeJsonTop::Absent:
+        case XpeJsonTop::NotScalar:
+            return XPE_OK;
+        case XpeJsonTop::Scalar: {
+            // A number is a bare JSON number; a string, true, false and null are not one (the reader has always
+            // taken the first for "not given": the number is read where the value starts, not out of a string).
+            if (q) return XPE_OK;
+            char* end = nullptr;
+            const double d = std::strtod(v.c_str(), &end);
+            if (end == v.c_str()) return XPE_OK;
+            *value = d;
+            *present = true;
+            return XPE_OK;
+        }
+        default:   // Duplicate, Malformed
+            return XPE_ERR_CONFIG_INVALID;
+    }
 }

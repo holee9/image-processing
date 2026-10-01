@@ -59,8 +59,13 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_nonlin_lut(const char* filepath) 
         // helper's default; treat that as "the whole table is measured" rather
         // than rejecting, but a value past the end is a corrupt record.
         const std::string json(config_json.begin(), config_json.end());
-        const double ext = xpe_json_get_double(json.c_str(),
-                                               "xcal_nonlin_extension_start", 0.0);
+        double ext = 0.0;
+        {
+            bool ext_present = false;
+            const XpeErrorCode erc = xpe_config_get_double(json.data(), json.size(), "xcal_nonlin_extension_start",
+                                                           &ext_present, &ext);
+            if (erc != XPE_OK) return erc;   // a top-level key given twice, or a config that is not a JSON object (QA-A-209)
+        }
         if (ext < 0.0 || ext > static_cast<double>(entries)) {
             return XPE_ERR_INVALID_CALIB_DATA;
         }

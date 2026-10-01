@@ -62,40 +62,39 @@ namespace {
             cfg.rawJson = configJson;
             if (!configJson) { *out = cfg; return XPE_OK; }
 
-            // Parse bypass flags
-            std::string bypassStr = xpe_json_get_string(configJson, "bypassReadout");
-            if (!bypassStr.empty() && bypassStr == "true") cfg.bypassReadout = true;
-
-            bypassStr = xpe_json_get_string(configJson, "bypassTemp");
-            if (!bypassStr.empty() && bypassStr == "true") cfg.bypassTemp = true;
-
-            bypassStr = xpe_json_get_string(configJson, "bypassOffset");
-            if (!bypassStr.empty() && bypassStr == "true") cfg.bypassOffset = true;
-
-            bypassStr = xpe_json_get_string(configJson, "bypassNonlinearity");
-            if (!bypassStr.empty() && bypassStr == "true") cfg.bypassNonlinearity = true;
-
-            bypassStr = xpe_json_get_string(configJson, "bypassGain");
-            if (!bypassStr.empty() && bypassStr == "true") cfg.bypassGain = true;
-
-            bypassStr = xpe_json_get_string(configJson, "bypassBinning");
-            if (!bypassStr.empty() && bypassStr == "true") cfg.bypassBinning = true;
-
-            bypassStr = xpe_json_get_string(configJson, "bypassDefect");
-            if (!bypassStr.empty() && bypassStr == "true") cfg.bypassDefect = true;
-
-            bypassStr = xpe_json_get_string(configJson, "bypassGhost");
-            if (!bypassStr.empty() && bypassStr == "true") cfg.bypassGhost = true;
+            // QA-A-209: every key is a TOP-LEVEL key of one valid JSON object (xpe_config_get_string). A key given
+            // twice, or a text that is not a JSON object, is a refusal; a key only inside a nested object is not
+            // given. The refusal is made here, before any stage: the keys the nonlinearity stage will read later are
+            // checked now too, so a duplicate among them cannot fail the run half way.
+            std::string v;
+            const struct { const char* key; bool* flag; } flags[] = {
+                {"bypassReadout", &cfg.bypassReadout},         {"bypassTemp", &cfg.bypassTemp},
+                {"bypassOffset", &cfg.bypassOffset},           {"bypassNonlinearity", &cfg.bypassNonlinearity},
+                {"bypassGain", &cfg.bypassGain},               {"bypassBinning", &cfg.bypassBinning},
+                {"bypassDefect", &cfg.bypassDefect},           {"bypassGhost", &cfg.bypassGhost},
+            };
+            for (const auto& f : flags) {
+                const XpeErrorCode rc = xpe_config_get_string(configJson, f.key, &v);
+                if (rc != XPE_OK) return rc;
+                if (v == "true") *f.flag = true;
+            }
 
             // Parse temperature
-            std::string tempStr = xpe_json_get_string(configJson, "detectorTempC");
-            if (!tempStr.empty() && !xpe_strict::parse_float(tempStr, &cfg.detectorTempC))
+            XpeErrorCode rc = xpe_config_get_string(configJson, "detectorTempC", &v);
+            if (rc != XPE_OK) return rc;
+            if (!v.empty() && !xpe_strict::parse_float(v, &cfg.detectorTempC))
                 return XPE_ERR_CONFIG_INVALID;
 
             // Parse binning mode
-            std::string binningStr = xpe_json_get_string(configJson, "binningMode");
-            if (!binningStr.empty() && !xpe_strict::parse_int(binningStr, &cfg.binningMode))
+            rc = xpe_config_get_string(configJson, "binningMode", &v);
+            if (rc != XPE_OK) return rc;
+            if (!v.empty() && !xpe_strict::parse_int(v, &cfg.binningMode))
                 return XPE_ERR_CONFIG_INVALID;
+
+            for (const char* key : XPE_NONLINEARITY_CONFIG_KEYS) {
+                rc = xpe_config_get_string(configJson, key, &v);
+                if (rc != XPE_OK) return rc;
+            }
 
             *out = cfg;
             return XPE_OK;
