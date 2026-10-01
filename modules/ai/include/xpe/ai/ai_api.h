@@ -137,6 +137,7 @@ XPE_API const char* xpe_ai_version(void);
  *         warning, not an error.
  *
  * Thread safety: Not thread-safe; call from single thread at startup.
+ * LIFECYCLE CONTRACT: see xpe_ai_shutdown(). It applies to this call too.
  * SRS: SRS-AI-001, SRS-AI-002
  */
 XPE_API XpeErrorCode xpe_ai_init(const char* modelDirPath,
@@ -155,6 +156,17 @@ XPE_API XpeErrorCode xpe_ai_init(const char* modelDirPath,
  * REQ-AI-003: IPC cleanup.
  *
  * Thread safety: Not thread-safe; call from single thread at shutdown.
+ *
+ * LIFECYCLE CONTRACT (applies to xpe_ai_init() and xpe_ai_shutdown()): each of them frees or creates the
+ * module state that EVERY other xpe_ai_* function reads. Neither may therefore run concurrently with the
+ * other, with itself, or with ANY other xpe_ai_* call. This includes the functions documented as
+ * "Reentrant" or "Thread-safe": those words describe concurrency among those functions, not against
+ * init/shutdown. The caller serialises the lifecycle (for example a reader/writer lock held shared around
+ * every call and exclusive around init/shutdown). A call that races them is a use-after-free, not a stale
+ * answer. The module deliberately does not guard against it: a guard would make shutdown wait behind the
+ * longest in-flight call (a worker call can run to its deadline) and would put a lock on
+ * xpe_ai_worker_state(), which is documented lock-free so that a UI thread never waits.
+ *
  * SRS: SRS-AI-003
  */
 XPE_API void xpe_ai_shutdown(void);
