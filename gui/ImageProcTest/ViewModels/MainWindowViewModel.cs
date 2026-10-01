@@ -539,8 +539,18 @@ public sealed class MainWindowViewModel : ObservableObject
     /// </summary>
     public bool AiWorkerDisabled => _aiWorkerStatus.State == AiWorkerState.Disabled;
 
-    /// <summary>The persistent text for <see cref="AiWorkerDisabled"/>, with the module's own failure count and ceiling; empty otherwise.</summary>
+    /// <summary>
+    /// True when the persistent mark and the Restart AI button show: the worker is switched off, OR the AI session could not be
+    /// started (a restart that failed, or a start that failed after the directory changed). The retry button must not vanish
+    /// when recovery has just failed (Codex #24 B1).
+    /// </summary>
+    public bool AiWorkerMarkVisible => AiBoneSuppressionStage.ShowsMark(_aiWorkerStatus);
+
+    /// <summary>The persistent text: the module's failure count and ceiling for a switched-off worker, the reason for a failed start; empty otherwise.</summary>
     public string AiWorkerBannerText => AiBoneSuppressionStage.BannerFor(_aiWorkerStatus);
+
+    /// <summary>The state as one line for automation (read from the AI checkbox's help text), e.g. <c>worker=Active; failures=0; ceiling=3</c>.</summary>
+    public string AiWorkerStatusSummary => AiBoneSuppressionStage.DescribeStatus(_aiWorkerStatus);
 
     /// <summary>GUI-C-185: shutdown then init under the one lock; the mark goes when the module reports a new session.</summary>
     public RelayCommand RestartAiSessionCommand { get; }
@@ -559,7 +569,9 @@ public sealed class MainWindowViewModel : ObservableObject
 
         _aiWorkerStatus = status;
         OnPropertyChanged(nameof(AiWorkerDisabled));
+        OnPropertyChanged(nameof(AiWorkerMarkVisible));
         OnPropertyChanged(nameof(AiWorkerBannerText));
+        OnPropertyChanged(nameof(AiWorkerStatusSummary));
     }
 
     private async void RestartAiSession()

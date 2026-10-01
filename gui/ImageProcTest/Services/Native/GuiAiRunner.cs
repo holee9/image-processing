@@ -58,8 +58,7 @@ internal sealed record AiConfig
 internal static class GuiAiSession
 {
     private static readonly object Gate = new();
-    private static bool _started;
-    private static string? _startedDirectory;
+    private static readonly AiSessionTracker Tracker = new();
 
     /// <summary>Runs <paramref name="action"/> while no other init, shutdown or state call can run.</summary>
     public static T WithLock<T>(Func<T> action)
@@ -81,16 +80,41 @@ internal static class GuiAiSession
         WithLock(() =>
         {
             var directory = AiBoneSuppressionStage.NormalizeDirectory(modelDirectory);
-            if (_started && AiBoneSuppressionStage.NeedsNewSession(_startedDirectory, directory))
+            if (Tracker.NeedsNewSession(directory))
             {
                 Shutdown();
             }
 
-            var code = XpeAiNative.xpe_ai_init(directory, new AiConfig { UseWorker = true }.ToJson());
+            // A start that does not work is recorded where it happens, whoever called (the render, or Restart): a restart that
+            // fails must leave an error state with its reason, not "unknown" (Codex #24 B1). The exception still goes up.
+            int code;
+            try
+            {
+                code = XpeAiNative.xpe_ai_init(directory, new AiConfig { UseWorker = true }.ToJson());
+            }
+            catch (DllNotFoundException)
+            {
+                Tracker.InitFailed("xpe_ai.dll was not found beside the other native modules.");
+                throw;
+            }
+            catch (EntryPointNotFoundException ex)
+            {
+                Tracker.InitFailed($"xpe_ai.dll does not export a function this build needs ({ex.Message}).");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Tracker.InitFailed($"xpe_ai_init threw {ex.GetType().Name}.");
+                throw;
+            }
+
             if (code == 0)
             {
-                _started = true;
-                _startedDirectory = directory;
+                Tracker.InitSucceeded(directory);
+            }
+            else
+            {
+                Tracker.InitFailed($"xpe_ai_init refused the configuration (code {code}).");
             }
 
             return code;
@@ -104,9 +128,10 @@ internal static class GuiAiSession
     public static AiWorkerStatus QueryWorkerState() =>
         WithLock(() =>
         {
-            if (!_started)
+            var own = Tracker.OwnStatus();
+            if (own is not null)
             {
-                return AiWorkerStatus.Unknown;
+                return own;
             }
 
             try
@@ -150,13 +175,13 @@ internal static class GuiAiSession
     public static void Shutdown() =>
         WithLock(() =>
         {
-            if (!_started)
+            var wasStarted = Tracker.Started;
+            Tracker.Stopped(); // a deliberate stop also clears a recorded start failure: nothing is running and nothing is wrong
+            if (!wasStarted)
             {
                 return 0;
             }
 
-            _started = false;
-            _startedDirectory = null;
             try
             {
                 XpeAiNative.xpe_ai_shutdown();

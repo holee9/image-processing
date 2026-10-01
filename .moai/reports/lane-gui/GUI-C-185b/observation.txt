@@ -1,0 +1,25 @@
+# GUI-C-185b - what the REAL gui app's XAML rendered when the session status was set by reflection (harness output; the status is injected, not reported by a module)
+== A: startup, nothing reported (Mock backend)
+  panel visible=False (Visibility=Collapsed); banner visible=False text=''
+  restart button visible=False enabled=True content='Restart AI'
+  VM AiWorkerStatusSummary = worker=Unknown
+== B: module reports Disabled 3 of 3
+  panel visible=True (Visibility=Visible); banner visible=True text='AI worker switched off for this session after 3 of 3 failures in a row: images are returned unchanged until it is restarted.'
+  restart button visible=True enabled=True content='Restart AI'
+  VM AiWorkerStatusSummary = worker=Disabled; failures=3; ceiling=3
+== C: a restart failed: InitFailed, the mark and the Restart AI button must STAY
+  panel visible=True (Visibility=Visible); banner visible=True text='AI session is not running: xpe_ai_init refused the configuration (code -9). Images are returned unchanged. Use Restart AI to try again.'
+  restart button visible=True enabled=True content='Restart AI'
+  VM AiWorkerStatusSummary = worker=InitFailed; detail=xpe_ai_init refused the configuration (code -9).
+== D: a second failed start replaces the reason
+  panel visible=True (Visibility=Visible); banner visible=True text='AI session is not running: xpe_ai.dll was not found beside the other native modules. Images are returned unchanged. Use Restart AI to try again.'
+  restart button visible=True enabled=True content='Restart AI'
+  VM AiWorkerStatusSummary = worker=InitFailed; detail=xpe_ai.dll was not found beside the other native modules.
+== E: a restart worked: module reports Active, 0 failures
+  panel visible=False (Visibility=Collapsed); banner visible=False text=''
+  restart button visible=False enabled=True content='Restart AI'
+  VM AiWorkerStatusSummary = worker=Active; failures=0; ceiling=3
+== F: Unknown (no session)
+  panel visible=False (Visibility=Collapsed); banner visible=False text=''
+  restart button visible=False enabled=True content='Restart AI'
+  VM AiWorkerStatusSummary = worker=Unknown

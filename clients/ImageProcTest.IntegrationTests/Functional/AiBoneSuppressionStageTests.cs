@@ -193,7 +193,7 @@ public sealed class AiBoneSuppressionStageTests
     public void TheInit_StartsANewSession_WhenTheDirectoryChanged()
     {
         var runner = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/Services/Native/GuiAiRunner.cs"));
-        Assert.Matches(@"_started && AiBoneSuppressionStage\.NeedsNewSession\(_startedDirectory, directory\)\)\s*\{\s*Shutdown\(\);", runner);
+        Assert.Matches(@"Tracker\.NeedsNewSession\(directory\)\)\s*\{\s*Shutdown\(\);", runner);
         Assert.Contains("XpeAiNative.xpe_ai_init(directory,", runner, StringComparison.Ordinal); // the module gets the absolute form
     }
 
@@ -253,6 +253,96 @@ public sealed class AiBoneSuppressionStageTests
     [InlineData(0, 9, 0u, 0u, "Unknown")]    // a state this build does not know shows nothing
     public void TheWorkerStateAnswer_IsRead(int code, int state, uint failures, uint ceiling, string expected) =>
         Assert.Equal(expected, AiBoneSuppressionStage.ReadWorkerState(code, state, failures, ceiling).State.ToString());
+
+    // ---- A failed (re)start is an error state with the retry button kept (Codex #24 B1, GUI-C-185b) ------------------------------
+
+    /// <summary>
+    /// The sequence the audit named: the worker is switched off, Restart shuts the session down and init fails. The status must
+    /// not become Unknown (which shows nothing): it is InitFailed with the reason, the mark and the button stay, and the next
+    /// restart that works clears it.
+    /// </summary>
+    [Fact]
+    public void AFailedRestart_LeavesAnErrorState_NotUnknown_AndTheNextSuccessClearsIt()
+    {
+        var session = new AiSessionTracker();
+        session.InitSucceeded(@"D:\models\a");
+        Assert.Null(session.OwnStatus()); // started: the module is asked
+
+        session.Stopped();                                      // Restart: the shutdown half
+        Assert.Equal(AiWorkerState.Unknown, session.OwnStatus()!.State); // between the halves
+        session.InitFailed("xpe_ai_init refused the configuration (code -9).");   // ...and init fails
+
+        var failed = session.OwnStatus()!;
+        Assert.Equal(AiWorkerState.InitFailed, failed.State);
+        Assert.True(AiBoneSuppressionStage.ShowsMark(failed));
+        Assert.Contains("code -9", AiBoneSuppressionStage.BannerFor(failed), StringComparison.Ordinal);
+        Assert.Contains("Restart AI", AiBoneSuppressionStage.BannerFor(failed), StringComparison.Ordinal);
+
+        // A second failure replaces the reason, and the state stays.
+        session.InitFailed("xpe_ai.dll was not found beside the other native modules.");
+        Assert.Contains("was not found", AiBoneSuppressionStage.BannerFor(session.OwnStatus()!), StringComparison.Ordinal);
+
+        session.InitSucceeded(@"D:\models\a");                 // the retry works
+        Assert.Null(session.OwnStatus());                       // back to asking the module
+        Assert.False(AiBoneSuppressionStage.ShowsMark(new AiWorkerStatus(AiWorkerState.Active, 0, 3)));
+    }
+
+    [Fact]
+    public void ADeliberateStop_ClearsARecordedFailure_NothingIsRunningAndNothingIsWrong()
+    {
+        var session = new AiSessionTracker();
+        session.InitFailed("xpe_ai_init refused the configuration (code -9).");
+        session.Stopped();
+        Assert.Equal(AiWorkerState.Unknown, session.OwnStatus()!.State);
+        Assert.False(AiBoneSuppressionStage.ShowsMark(session.OwnStatus()!));
+    }
+
+    /// <summary>The directory-change path of GUI-C-186 (shutdown, then init) leaves the same state when its init fails.</summary>
+    [Fact]
+    public void ADirectoryChange_WhoseInitFails_LeavesTheSameErrorState()
+    {
+        var session = new AiSessionTracker();
+        session.InitSucceeded(@"D:\models\a");
+        Assert.True(session.NeedsNewSession(@"D:\models\b"));
+        session.Stopped();                                     // what Init does first when the directory changed
+        session.InitFailed("xpe_ai_init refused the configuration (code -9).");
+        Assert.Equal(AiWorkerState.InitFailed, session.OwnStatus()!.State);
+        Assert.False(session.NeedsNewSession(@"D:\models\b")); // nothing started, so a plain init is next
+    }
+
+    [Fact]
+    public void TheStatusLine_CarriesTheModulesNumbers_AndTheReasonForAFailedStart()
+    {
+        Assert.Equal("worker=Active; failures=0; ceiling=3", AiBoneSuppressionStage.DescribeStatus(new AiWorkerStatus(AiWorkerState.Active, 0, 3)));
+        Assert.Equal("worker=Disabled; failures=7; ceiling=7", AiBoneSuppressionStage.DescribeStatus(new AiWorkerStatus(AiWorkerState.Disabled, 7, 7)));
+        Assert.Equal("worker=Unknown", AiBoneSuppressionStage.DescribeStatus(AiWorkerStatus.Unknown));
+        Assert.Contains("detail=xpe_ai_init refused", AiBoneSuppressionStage.DescribeStatus(
+            new AiWorkerStatus(AiWorkerState.InitFailed, 0, 0, "xpe_ai_init refused the configuration (code -9).")), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Every way a start can fail is recorded where init is called: the refused code, a missing DLL, a missing export and anything
+    /// else it throws. Source reading of this tree, as the call-site test; without these the tracker never hears of the failure and
+    /// the status falls back to "unknown".
+    /// </summary>
+    [Fact]
+    public void TheInit_RecordsEveryWayAStartCanFail()
+    {
+        var runner = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/Services/Native/GuiAiRunner.cs"));
+        var init = runner[runner.IndexOf("public static int Init(", StringComparison.Ordinal)..runner.IndexOf("public static AiWorkerStatus QueryWorkerState()", StringComparison.Ordinal)];
+        Assert.Equal(4, System.Text.RegularExpressions.Regex.Matches(init, @"Tracker\.InitFailed\(").Count);
+        Assert.Contains("Tracker.InitSucceeded(directory)", init, StringComparison.Ordinal);
+        Assert.Contains("Tracker.OwnStatus()", runner, StringComparison.Ordinal);
+    }
+
+    /// <summary>The toolbar mark is shown by the "mark visible" rule (worker off OR start failed), not by the worker-off flag alone.</summary>
+    [Fact]
+    public void TheToolbarMark_FollowsTheMarkVisibleRule()
+    {
+        var xaml = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/MainWindow.xaml"));
+        Assert.Contains("<DataTrigger Binding=\"{Binding AiWorkerMarkVisible}\" Value=\"True\">", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("<DataTrigger Binding=\"{Binding AiWorkerDisabled}\"", xaml, StringComparison.Ordinal);
+    }
 
     [Fact]
     public void TheRestartAnswer_SaysWhichWay()
@@ -362,7 +452,7 @@ public sealed class AiBoneSuppressionStageTests
     /// <summary>
     /// xpe_ai_worker_state (next card) must not run together with init or shutdown, so the GUI calls them from one place
     /// under one lock. This reads the sources: each call must appear exactly once outside the DllImport declaration, in
-    /// GuiAiRunner.cs, within reach of a <c>WithLock(</c> before it. It cannot see a call made by reflection or from
+    /// GuiAiRunner.cs, inside a <c>WithLock(</c> lambda of its own method. It cannot see a call made by reflection or from
     /// another assembly; the scope is the GUI's own source tree.
     /// </summary>
     [Theory]
@@ -381,8 +471,11 @@ public sealed class AiBoneSuppressionStageTests
 
         var hit = Assert.Single(hits);
         Assert.EndsWith("GuiAiRunner.cs", hit.path, StringComparison.Ordinal);
-        var before = hit.text[Math.Max(0, hit.index - 300)..hit.index];
-        Assert.Contains("WithLock(", before, StringComparison.Ordinal);
+        // Inside the lock: the nearest "WithLock(" before the call is nearer than the start of the method it is in. (A fixed window
+        // of characters stopped being enough once the init recorded its failures between the lock and the call.)
+        var before = hit.text[..hit.index];
+        Assert.True(before.LastIndexOf("WithLock(", StringComparison.Ordinal) > before.LastIndexOf("public static", StringComparison.Ordinal),
+            $"{call} is not inside a WithLock( lambda of its own method.");
     }
 
     private static IEnumerable<int> FindAll(string text, string needle)

@@ -380,6 +380,8 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             else
             {
                 Assert.Contains("ai_bone_suppress: AI bone suppression requires the native backend", after, StringComparison.Ordinal);
+                // The state line the app publishes for automation (C-09 reads it too): a backend with no AI session says Unknown.
+                Assert.Equal("worker=Unknown", AiStatusSummary(window));
             }
         }
         finally
@@ -437,6 +439,12 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             Assert.True(numbers.Success, $"The mark does not carry the module's counts: '{text}'.");
             Assert.Equal(numbers.Groups[2].Value, numbers.Groups[1].Value);
 
+            // The state is also readable as one line from the AI checkbox's help text (automation property; the same channel the
+            // viewport's drawn-pixel hash uses): the same numbers the mark carries, from the module.
+            var before = AiStatusSummary(window);
+            output.WriteLine($"C09 state before restart: '{before}'");
+            Assert.Matches(@"worker=Disabled; failures=(\d+); ceiling=$", before);
+
             var restart = window.FindFirstDescendant(cf => cf.ByAutomationId("AiRestartButton"));
             Assert.True(restart is not null, "The mark is shown but the Restart AI button is not.");
             restart!.AsButton().Invoke();
@@ -445,6 +453,15 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             while (DateTime.UtcNow < deadline && AiBanner(window) is not null) Thread.Sleep(200);
             Assert.True(AiBanner(window) is null,
                 $"The mark is still shown after Restart AI: '{AiBanner(window)?.Name}' (status bar: '{StatusText(window)}').");
+
+            // "The mark is gone" is also what a FAILED restart looked like before Codex #24 B1 (the state fell to Unknown, which
+            // shows nothing). So the answer and the state are read as well: the success line, then the module's own report of an
+            // active worker with no failures in a row.
+            var answer = StatusText(window);
+            var after = AiStatusSummary(window);
+            output.WriteLine($"C09 after restart: status bar='{answer}'; state='{after}'");
+            Assert.Contains("AI session restarted", answer, StringComparison.Ordinal);
+            Assert.Matches(@"^worker=Active; failures=0; ceiling=\d+$", after);
         }
         finally
         {
@@ -463,6 +480,13 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
 
     private static FlaUI.Core.AutomationElements.AutomationElement? AiBanner(Window window) =>
         window.FindFirstDescendant(cf => cf.ByAutomationId("AiWorkerBanner"));
+
+    /// <summary>The worker state as the app publishes it for automation: the help text of the AI checkbox (Parameters tab).</summary>
+    private static string AiStatusSummary(Window window)
+    {
+        OpenParameters(window);
+        return window.FindFirstDescendant(cf => cf.ByAutomationId("AiBoneSuppressionInChainCheckBox"))?.HelpText ?? string.Empty;
+    }
 
     private static string StatusText(Window window) =>
         window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"))?.Name ?? string.Empty;

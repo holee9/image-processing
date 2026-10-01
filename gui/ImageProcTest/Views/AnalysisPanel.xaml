@@ -235,6 +235,7 @@
 
                     <!-- #225 row 10 (GUI-C-184): the AI stage's switch. The Run AI menu entry turns it on; this is where it is seen and turned off. -->
                     <CheckBox AutomationProperties.AutomationId="AiBoneSuppressionInChainCheckBox"
+                              AutomationProperties.HelpText="{Binding AiWorkerStatusSummary}"
                               Content="AI bone suppression"
                               IsChecked="{Binding Settings.AiBoneSuppressionInChain, Mode=TwoWay}"
                               Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,8"

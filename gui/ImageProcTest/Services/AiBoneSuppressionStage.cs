@@ -12,12 +12,61 @@ internal enum AiWorkerState
     NotUsed = 0,
     Active = 1,
     Disabled = 2,
+
+    /// <summary>
+    /// This GUI's, not the module's: the session could not be (re)started, so there is nothing to ask. Without it a failed
+    /// restart reads as <see cref="Unknown"/>, which shows nothing, and the mark and the retry button vanish exactly when
+    /// recovery has just failed (Codex #24 B1).
+    /// </summary>
+    InitFailed = 3,
 }
 
 /// <summary>The worker's state with the module's own counts. The ceiling is the module's, never a constant here.</summary>
-internal sealed record AiWorkerStatus(AiWorkerState State, uint ConsecutiveFailures, uint Ceiling)
+internal sealed record AiWorkerStatus(AiWorkerState State, uint ConsecutiveFailures, uint Ceiling, string? Detail = null)
 {
     public static readonly AiWorkerStatus Unknown = new(AiWorkerState.Unknown, 0, 0);
+}
+
+/// <summary>
+/// What the GUI knows about its own AI session, apart from the module: whether it started one, with which directory, and why the
+/// last start failed. Pure, so the sequences (fail, retry, succeed, shut down) are tested. The native session wraps one of these.
+/// </summary>
+internal sealed class AiSessionTracker
+{
+    private bool _started;
+    private string? _startedDirectory;
+    private string? _initFailure;
+
+    public bool Started => _started;
+
+    public bool NeedsNewSession(string directory) => _started && AiBoneSuppressionStage.NeedsNewSession(_startedDirectory, directory);
+
+    public void InitSucceeded(string directory)
+    {
+        _started = true;
+        _startedDirectory = directory;
+        _initFailure = null;
+    }
+
+    /// <summary>The last start did not work. Stays until a start works or the session is deliberately stopped.</summary>
+    public void InitFailed(string detail) => _initFailure = detail;
+
+    /// <summary>A deliberate stop: nothing is running, and nothing is wrong.</summary>
+    public void Stopped()
+    {
+        _started = false;
+        _startedDirectory = null;
+        _initFailure = null;
+    }
+
+    /// <summary>
+    /// The status the GUI answers itself, or null when the module should be asked. A failed start wins over "not started":
+    /// that is the persistent error state, with its detail.
+    /// </summary>
+    public AiWorkerStatus? OwnStatus() =>
+        _initFailure is not null ? new AiWorkerStatus(AiWorkerState.InitFailed, 0, 0, _initFailure)
+        : !_started ? AiWorkerStatus.Unknown
+        : null;
 }
 
 /// <summary>Whether a restart worked, and the line to show.</summary>
@@ -208,10 +257,29 @@ internal static class AiBoneSuppressionStage
     /// the module's (<c>consecutiveFailures</c>, <c>ceiling</c>): the ceiling is not written here, so a module that
     /// changes it changes the text with it.
     /// </summary>
-    public static string BannerFor(AiWorkerStatus status) =>
-        status.State == AiWorkerState.Disabled
-            ? $"AI worker switched off for this session after {status.ConsecutiveFailures} of {status.Ceiling} failures in a row: images are returned unchanged until it is restarted."
-            : string.Empty;
+    public static string BannerFor(AiWorkerStatus status) => status.State switch
+    {
+        AiWorkerState.Disabled =>
+            $"AI worker switched off for this session after {status.ConsecutiveFailures} of {status.Ceiling} failures in a row: images are returned unchanged until it is restarted.",
+        AiWorkerState.InitFailed =>
+            $"AI session is not running: {status.Detail} Images are returned unchanged. Use Restart AI to try again.",
+        _ => string.Empty,
+    };
+
+    /// <summary>True when the persistent mark and the Restart AI button show: the worker is off, or the session could not be started.</summary>
+    public static bool ShowsMark(AiWorkerStatus status) => status.State is AiWorkerState.Disabled or AiWorkerState.InitFailed;
+
+    /// <summary>
+    /// One line a program can read from the screen (an automation property): the state with the module's own numbers.
+    /// The E2E reads it to tell "restarted, active, no failures" from "the mark is merely gone".
+    /// </summary>
+    public static string DescribeStatus(AiWorkerStatus status) => status.State switch
+    {
+        AiWorkerState.Active or AiWorkerState.Disabled =>
+            $"worker={status.State}; failures={status.ConsecutiveFailures}; ceiling={status.Ceiling}",
+        AiWorkerState.InitFailed => $"worker=InitFailed; detail={status.Detail}",
+        _ => $"worker={status.State}",
+    };
 
     /// <summary>The answer to a restart, from the return code of the <c>xpe_ai_init</c> that follows the shutdown.</summary>
     public static AiRestartResult InterpretRestart(int initCode) =>

@@ -545,15 +545,16 @@
                         AutomationProperties.AutomationId="ClearAlertsButton"
                         Command="{Binding ClearAlertsCommand}"
                         Content="Clear Alerts" />
-                <!-- #225 row 10 (GUI-C-185): the AI worker switched off for the session. Shown ONLY while the module reports it
-                     (xpe_ai_worker_state), so it stays when the alert has scrolled out of the queue; collapsed otherwise, which
-                     also takes it out of the automation tree. The restart button sits with it. -->
+                <!-- #225 row 10 (GUI-C-185, 185b): the AI worker switched off for the session, or the AI session that could not be
+                     started. Shown ONLY while the module reports the first (xpe_ai_worker_state) or the last start failed, so it stays when
+                     the alert has scrolled out of the queue; collapsed otherwise, which also takes it out of the automation tree. The
+                     restart button sits with it and stays after a failed restart. -->
                 <StackPanel Orientation="Horizontal" AutomationProperties.AutomationId="AiWorkerPanel">
                     <StackPanel.Style>
                         <Style TargetType="StackPanel">
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding AiWorkerDisabled}" Value="True">
+                                <DataTrigger Binding="{Binding AiWorkerMarkVisible}" Value="True">
                                     <Setter Property="Visibility" Value="Visible" />
                                 </DataTrigger>
                             </Style.Triggers>
