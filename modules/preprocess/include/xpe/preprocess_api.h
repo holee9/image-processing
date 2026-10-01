@@ -146,7 +146,9 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
  * real, the other three an integer in [0, 255] (notation: optional leading white space, an optional single
  * '+', then a decimal number that fills the value) -- and an empty value ("fit_r_squared":""), a value that
  * is not a scalar (an object, an array), an unterminated string and a malformed number are all refused with
- * XPE_ERR_CONFIG_INVALID, leaving the gain map and the quality metadata as they were. (The pipeline
+ * XPE_ERR_CONFIG_INVALID, leaving the gain map and the quality metadata as they were. A file that
+ * carries no quality field at all loads, and makes the quality record "none" (valid = 0; see
+ * xpe_calib_get_quality_meta) instead of leaving the previous file's values in place. (The pipeline
  * CONFIGURATION is the other rule: there an empty value is an absent one, because a GUI sends an unset option
  * as "" -- an XCal file is signed data a generator produced, where an empty field is a defect, not an unset
  * option.) Compatibility: the values "2x", "3 " and "1e2" (for an integer field) were once read as 2, 3 and 1
@@ -846,7 +848,8 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  *                  wrong type, a malformed quality field, an allocation failure) leaves the calibration
  *                  store and the quality metadata exactly as the call found them: offset.xcal, gain.xcal
  *                  and defect.xcal are read as a SET and replace the stored maps -- and the quality
- *                  metadata xpe_calib_get_quality_meta() serves -- together, or not at all.
+ *                  record xpe_calib_get_quality_meta() serves (the gain file's quality, or "none" when it
+ *                  carries none) -- together, or not at all.
  *                  Once the set has loaded it stays loaded even if processing the frame then fails.
  *         XPE_ERR_BUFFER_TOO_SMALL if img->dataSize is smaller than the frame the pipeline writes back (see @p img)
  *         XPE_ERR_INVALID_INPUT on a NULL img / meta / img->data, an empty or overflowing frame, or a dataSize
@@ -1554,11 +1557,15 @@ typedef enum XpeCalibrationMode {
  * - firmware_version: Firmware version string (null-terminated)
  * - calibration_pass: Quality gate result (0=fail, 1=pass)
  * - previous_r_squared: R² from previous calibration (-1.0 if none)
+ * - valid: 1 when the record describes a calibration; 0 when there is no quality metadata for the
+ *   current one (every field but previous_r_squared then holds its no-data value, zero)
  */
 typedef struct XpeCalibQualityMeta {
     uint8_t  calibration_mode;      ///< XpeCalibrationMode used by the generation (never AUTO)
     uint8_t  polynomial_degree;     ///< 0=constant, 1=linear, 2=quadratic, 3=cubic
     uint8_t  num_points;            ///< Number of dose levels (1-10)
+    uint8_t  valid;                 ///< 1 = describes a calibration; 0 = no quality metadata for the current one.
+                                    ///< Sits in what was padding: sizeof and every other offset are unchanged.
     double   r_squared;             ///< Coefficient of determination (0.0 to 1.0)
     uint64_t calibration_timestamp; ///< Unix epoch milliseconds
     char     detector_serial[32];   ///< Detector serial number (null-terminated)
@@ -1590,16 +1597,23 @@ XPE_API XpeErrorCode xpe_calib_set_mode(XpeCalibrationMode mode);
 XPE_API XpeCalibrationMode xpe_calib_get_mode(void);
 
 /**
- * @brief Get quality metadata from last calibration
+ * @brief Get quality metadata of the current gain calibration
  *
  * FUNC-033: Quality Metadata API
  *
- * Returns the quality metadata structure populated during the last
- * calibration generation operation, or made current by the last gain load that carried it.
+ * Returns the record of the most recent gain calibration the module GENERATED (xpe_calib_generate_gain...) or
+ * LOADED (xpe_calib_load_gain, the cached loader, the pipeline's calibration set). Every gain load replaces it
+ * (QA-A-202e): with the file's quality metadata when the file carries it, and when the file carries NONE with the
+ * "no quality" record -- `valid` is 0, every field but previous_r_squared is zero. A record is never left from an
+ * earlier file as if it described the gain that is current. Check `valid` before using the other fields.
+ * previous_r_squared is the history: the R2 of the last record that had one (-1.0 if none), kept apart from the
+ * current record, and it survives a record with no quality in between. After a generation the record describes
+ * the generated calibration (FUNC-033), which is not necessarily the map in the store; the next gain load
+ * replaces it.
  *
  * Thread-safe, and consistent with the calibration store (QA-A-202d): the record lives in the store and is read
  * under the lock the maps are replaced under, so a gain load makes the maps and this record current in one step --
- * a reader sees the previous file's quality or the new one's, never the new maps beside the old quality, and
+ * a reader sees the previous file's record or the new one's, never the new maps beside the old quality, and
  * never a record half-way through being replaced.
  *
  * @param meta Output: Quality metadata (caller-owned)

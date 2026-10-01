@@ -176,9 +176,14 @@ void xpe_calib_commit_gain_locked(StagedGain& staged) noexcept {
     g_calib.gain_quality     = staged.quality;
     g_calib.gain_has_quality = staged.qualityFound;
     std::memcpy(g_calib.gain_session_id, staged.sessionId, sizeof(g_calib.gain_session_id));
-    // The quality record the module serves becomes current in the same critical section as the maps
-    // (QA-A-202d, Codex #32 A1): no reader sees the new gain beside the previous file's quality.
-    if (staged.qualityFound) xpe_calib_commit_quality_meta_locked(staged.quality);
+    // The quality record the module serves is replaced in the same critical section as the maps (QA-A-202d, Codex
+    // #32 A1) -- ALWAYS: a file with no quality metadata makes the record "none" instead of leaving the previous
+    // file's values in place as if they were this gain's (QA-A-202e, Codex #38 A1).
+    if (staged.qualityFound) {
+        xpe_calib_commit_quality_meta_locked(staged.quality);
+    } else {
+        xpe_calib_commit_no_quality_locked();
+    }
 }
 
 void xpe_calib_after_gain_commit(const StagedGain& staged) noexcept {

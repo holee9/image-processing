@@ -549,6 +549,9 @@ extern void (*xpe_pipeline_after_stage_hook)(int stage);
 /** Runs INSIDE the critical section that commits the set, with g_calib_mutex held: a test starts a reader here
  *  and checks that it cannot finish until the section ends. */
 extern void (*xpe_calib_in_set_commit_hook)();
+/** Runs at the top of xpe_calib_get_quality_meta, just before it takes g_calib_mutex (QA-A-202e): a test uses it to
+ *  know that a reader thread has reached the getter's lock attempt, instead of guessing from a thread start. */
+extern void (*xpe_calib_quality_before_lock_hook)();
 #endif
 
 /* =========================================================================
@@ -612,7 +615,7 @@ constexpr double XPE_CALIB_R_SQUARED_GATE = 0.999;
  * load.
  *
  * Parsing allocates and may throw std::bad_alloc; nothing is changed until
- * xpe_calib_commit_quality_meta().
+ * xpe_calib_commit_quality_meta_locked().
  *
  * A field that is present and is not a number in range (an integer in [0, 255] for the three uint8
  * fields, a finite number for fit_r_squared; notation as for the pipeline configuration) is
@@ -635,8 +638,12 @@ XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, XpeCalibQ
  */
 void xpe_calib_commit_quality_meta_locked(const XpeCalibQualityMeta& parsed) noexcept;
 
-/** The same, taking g_calib_mutex itself -- for a path that replaces no map (a cached load's hit). */
-void xpe_calib_commit_quality_meta(const XpeCalibQualityMeta& parsed) noexcept;
+/**
+ * A gain whose file carries NO quality metadata becomes current: the record becomes "none" (valid = 0, every field
+ * zero) instead of keeping the previous file's values (QA-A-202e). previous_r_squared keeps the history -- the R2 of
+ * the last record that had one -- apart from the current record. The caller holds g_calib_mutex; never throws.
+ */
+void xpe_calib_commit_no_quality_locked() noexcept;
 
 /**
  * @brief Scalar reference implementation of the gain-correction inner loop.

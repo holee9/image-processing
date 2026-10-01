@@ -1,0 +1,418 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomPipeline.ALoadOfAGain*:OomPipeline.AFileWithoutQuality*:OomPipeline.ACacheHit*:OomPipeline.AQualityReadStarted*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from OomPipeline
+[ RUN      ] OomPipeline.AQualityReadStartedInsideTheCommitWaitsForItAndSeesTheNewSet
+[       OK ] OomPipeline.AQualityReadStartedInsideTheCommitWaitsForItAndSeesTheNewSet (1023 ms)
+[ RUN      ] OomPipeline.ALoadOfAGainWithoutQualityLeavesNoPreviousFilesQualityBehind
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1785): error: Expected equality of these values:
+  1u
+    Which is: 1
+  a.valid
+    Which is: '\0'
+control: set A's quality is the record
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1804): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  q.r_squared
+    Which is: 0.91000000000000003
+the previous file's R2 is still reported as the current one
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1805): error: Expected equality of these values:
+  0u
+    Which is: 0
+  q.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1806): error: Expected equality of these values:
+  0u
+    Which is: 0
+  q.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1807): error: Expected equality of these values:
+  0u
+    Which is: 0
+  q.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1808): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  q.previous_r_squared
+    Which is: 0
+the history keeps set A's R2, apart from the current record
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1785): error: Expected equality of these values:
+  1u
+    Which is: 1
+  a.valid
+    Which is: '\0'
+control: set A's quality is the record
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain_cached (miss)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1804): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  q.r_squared
+    Which is: 0.91000000000000003
+the previous file's R2 is still reported as the current one
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain_cached (miss)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1805): error: Expected equality of these values:
+  0u
+    Which is: 0
+  q.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain_cached (miss)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1806): error: Expected equality of these values:
+  0u
+    Which is: 0
+  q.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain_cached (miss)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1807): error: Expected equality of these values:
+  0u
+    Which is: 0
+  q.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain_cached (miss)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1808): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  q.previous_r_squared
+    Which is: 0
+the history keeps set A's R2, apart from the current record
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain_cached (miss)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1785): error: Expected equality of these values:
+  1u
+    Which is: 1
+  a.valid
+    Which is: '\0'
+control: set A's quality is the record
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain_cached (hit)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1804): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  q.r_squared
+    Which is: 0.91000000000000003
+the previous file's R2 is still reported as the current one
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain_cached (hit)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1805): error: Expected equality of these values:
+  0u
+    Which is: 0
+  q.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain_cached (hit)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1806): error: Expected equality of these values:
+  0u
+    Which is: 0
+  q.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain_cached (hit)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1807): error: Expected equality of these values:
+  0u
+    Which is: 0
+  q.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain_cached (hit)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1808): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  q.previous_r_squared
+    Which is: 0
+the history keeps set A's R2, apart from the current record
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_calib_load_gain_cached (hit)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1785): error: Expected equality of these values:
+  1u
+    Which is: 1
+  a.valid
+    Which is: '\0'
+control: set A's quality is the record
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_preprocess_pipeline
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1804): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  q.r_squared
+    Which is: 0.91000000000000003
+the previous file's R2 is still reported as the current one
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_preprocess_pipeline
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1805): error: Expected equality of these values:
+  0u
+    Which is: 0
+  q.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_preprocess_pipeline
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1806): error: Expected equality of these values:
+  0u
+    Which is: 0
+  q.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_preprocess_pipeline
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1807): error: Expected equality of these values:
+  0u
+    Which is: 0
+  q.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_preprocess_pipeline
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1808): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  q.previous_r_squared
+    Which is: 0
+the history keeps set A's R2, apart from the current record
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_preprocess_pipeline
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1785): error: Expected equality of these values:
+  1u
+    Which is: 1
+  a.valid
+    Which is: '\0'
+control: set A's quality is the record
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_preprocess_pipeline_batch
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1804): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  q.r_squared
+    Which is: 0.91000000000000003
+the previous file's R2 is still reported as the current one
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_preprocess_pipeline_batch
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1805): error: Expected equality of these values:
+  0u
+    Which is: 0
+  q.polynomial_degree
+    Which is: '\x1' (1)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_preprocess_pipeline_batch
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1806): error: Expected equality of these values:
+  0u
+    Which is: 0
+  q.num_points
+    Which is: '\x3' (3)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_preprocess_pipeline_batch
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1807): error: Expected equality of these values:
+  0u
+    Which is: 0
+  q.calibration_mode
+    Which is: '\x2' (2)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_preprocess_pipeline_batch
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1808): error: Expected equality of these values:
+  0.91
+    Which is: 0.91000000000000003
+  q.previous_r_squared
+    Which is: 0
+the history keeps set A's R2, apart from the current record
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1800): xpe_preprocess_pipeline_batch
+
+[  FAILED  ] OomPipeline.ALoadOfAGainWithoutQualityLeavesNoPreviousFilesQualityBehind (12 ms)
+[ RUN      ] OomPipeline.ALoadOfAGainWithDifferentQualityReplacesTheRecordOnEveryPath
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1785): error: Expected equality of these values:
+  1u
+    Which is: 1
+  a.valid
+    Which is: '\0'
+control: set A's quality is the record
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1816): xpe_calib_load_gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1819): error: Expected equality of these values:
+  1u
+    Which is: 1
+  q.valid
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1816): xpe_calib_load_gain
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1785): error: Expected equality of these values:
+  1u
+    Which is: 1
+  a.valid
+    Which is: '\0'
+control: set A's quality is the record
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1816): xpe_calib_load_gain_cached (miss)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1819): error: Expected equality of these values:
+  1u
+    Which is: 1
+  q.valid
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1816): xpe_calib_load_gain_cached (miss)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1785): error: Expected equality of these values:
+  1u
+    Which is: 1
+  a.valid
+    Which is: '\0'
+control: set A's quality is the record
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1816): xpe_calib_load_gain_cached (hit)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1819): error: Expected equality of these values:
+  1u
+    Which is: 1
+  q.valid
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1816): xpe_calib_load_gain_cached (hit)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1785): error: Expected equality of these values:
+  1u
+    Which is: 1
+  a.valid
+    Which is: '\0'
+control: set A's quality is the record
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1816): xpe_preprocess_pipeline
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1819): error: Expected equality of these values:
+  1u
+    Which is: 1
+  q.valid
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1816): xpe_preprocess_pipeline
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1785): error: Expected equality of these values:
+  1u
+    Which is: 1
+  a.valid
+    Which is: '\0'
+control: set A's quality is the record
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1816): xpe_preprocess_pipeline_batch
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1819): error: Expected equality of these values:
+  1u
+    Which is: 1
+  q.valid
+    Which is: '\0'
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1816): xpe_preprocess_pipeline_batch
+
+[  FAILED  ] OomPipeline.ALoadOfAGainWithDifferentQualityReplacesTheRecordOnEveryPath (11 ms)
+[ RUN      ] OomPipeline.AFileWithoutQualityThenOneWithQualityKeepsTheHistoryAcrossTheGap
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1836): error: Expected equality of these values:
+  1u
+    Which is: 1
+  q.valid
+    Which is: '\0'
+
+[  FAILED  ] OomPipeline.AFileWithoutQualityThenOneWithQualityKeepsTheHistoryAcrossTheGap (9 ms)
+[ RUN      ] OomPipeline.ACacheHitInstallsTheFilesQualityCopyBesideTheMap
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1785): error: Expected equality of these values:
+  1u
+    Which is: 1
+  a.valid
+    Which is: '\0'
+control: set A's quality is the record
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1848): oom_pipe_calibQC
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1856): error: Expected equality of these values:
+  row.r2
+    Which is: 0.96999999999999997
+  g_calib.gain_quality.r_squared
+    Which is: 0.91000000000000003
+and holds this file's values, not the previous file's
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1848): oom_pipe_calibQC
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1785): error: Expected equality of these values:
+  1u
+    Which is: 1
+  a.valid
+    Which is: '\0'
+control: set A's quality is the record
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1848): oom_pipe_calibQN
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1855): error: Expected equality of these values:
+  row.hasQuality
+    Which is: false
+  g_calib.gain_has_quality
+    Which is: true
+the quality copy says whether THIS file carries one
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1848): oom_pipe_calibQN
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1856): error: Expected equality of these values:
+  row.r2
+    Which is: 0
+  g_calib.gain_quality.r_squared
+    Which is: 0.91000000000000003
+and holds this file's values, not the previous file's
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1848): oom_pipe_calibQN
+
+[  FAILED  ] OomPipeline.ACacheHitInstallsTheFilesQualityCopyBesideTheMap (9 ms)
+[----------] 5 tests from OomPipeline (1065 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (1065 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] OomPipeline.ALoadOfAGainWithoutQualityLeavesNoPreviousFilesQualityBehind
+[  FAILED  ] OomPipeline.ALoadOfAGainWithDifferentQualityReplacesTheRecordOnEveryPath
+[  FAILED  ] OomPipeline.AFileWithoutQualityThenOneWithQualityKeepsTheHistoryAcrossTheGap
+[  FAILED  ] OomPipeline.ACacheHitInstallsTheFilesQualityCopyBesideTheMap
+
+ 4 FAILED TESTS

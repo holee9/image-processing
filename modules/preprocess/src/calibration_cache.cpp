@@ -516,9 +516,16 @@ void install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
     g_calib.gain_height    = d.height;
     g_calib.gain_timestamp = timestamp;
     copy_session(g_calib.gain_session_id, sessionId64);
-    // The quality metadata a load makes current: made current again with the map, in the same critical
-    // section (nothrow). A hit with no metadata leaves the record as it was.
-    if (quality) xpe_calib_commit_quality_meta_locked(*quality);
+    // The quality of THIS file, beside its map, in the same critical section (nothrow): the file-quality copy the
+    // cache publishes with the map, and the record the module serves. A hit on a file with no quality metadata
+    // overwrites both with "none" -- it must not leave the previous file's values behind (QA-A-202e, Codex #38 A1/A2).
+    g_calib.gain_quality     = quality ? *quality : XpeCalibQualityMeta{};
+    g_calib.gain_has_quality = (quality != nullptr);
+    if (quality) {
+        xpe_calib_commit_quality_meta_locked(*quality);
+    } else {
+        xpe_calib_commit_no_quality_locked();
+    }
 }
 
 void install_defect(std::unique_ptr<uint8_t[]> map, const XpeImageBuffer& d)

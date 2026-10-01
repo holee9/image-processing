@@ -535,10 +535,22 @@ TEST_F(ConfigStrictParse, AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly) {
             } else {
                 ASSERT_EQ(XPE_OK, rc);
                 EXPECT_NEAR(500.0f, gainResult(), 0.01f) << "the file loaded: its gain map (2) is in the store";
-                const bool changed = (after.r_squared != base.r_squared) || (after.polynomial_degree != base.polynomial_degree) ||
-                                     (after.num_points != base.num_points) || (after.calibration_mode != base.calibration_mode);
-                EXPECT_EQ(row.read, changed) << (row.read ? "the top-level value was not read"
-                                                          : "a value that is not a top-level key was read");
+                // A file with no top-level quality key carries no quality: the record becomes "none" (valid = 0,
+                // every field zero -- QA-A-202e), which is also what shows that a nested value was NOT read.
+                if (row.read) {
+                    EXPECT_EQ(1u, after.valid) << "the top-level value was not read";
+                    const double got = (std::string(field) == "fit_r_squared")      ? after.r_squared
+                                     : (std::string(field) == "polynomial_degree")  ? after.polynomial_degree
+                                     : (std::string(field) == "actual_dose_levels") ? after.num_points
+                                                                                    : after.calibration_mode;
+                    EXPECT_DOUBLE_EQ(7.0, got) << "the value read is the top-level one";
+                } else {
+                    EXPECT_EQ(0u, after.valid) << "a value that is not a top-level key was read";
+                    EXPECT_DOUBLE_EQ(0.0, after.r_squared);
+                    EXPECT_EQ(0u, after.polynomial_degree);
+                    EXPECT_EQ(0u, after.num_points);
+                    EXPECT_EQ(0u, after.calibration_mode);
+                }
             }
             // Put set "base" back for the next row.
             ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csp_gq.xcal"));

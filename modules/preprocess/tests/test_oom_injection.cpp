@@ -35,6 +35,7 @@
 #include <atomic>
 #include <chrono>
 #include <thread>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <filesystem>
@@ -1466,34 +1467,52 @@ TEST_F(OomPipeline, AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedM
     }
 }
 
-// The reader's side of the lock. The commit holds g_calib_mutex while it moves the maps and the quality; a quality
-// read that does not take the mutex could return in the middle of that. A reader is started from inside the
-// critical section: it must still be waiting after a generous pause (it cannot have finished, the mutex is held),
-// and once the section ends it must read the new set's quality. A reader that skips the lock finishes at once.
+// The reader's side of the lock (QA-A-202e: synchronised on the reader's ARRIVAL at the lock attempt).
+//
+// The commit holds g_calib_mutex while it moves the maps and the quality. A reader is started from inside that
+// critical section. xpe_calib_quality_before_lock_hook marks the moment it is about to take the lock, so "the reader
+// has got as far as the getter" is OBSERVED, not assumed from the thread having been created. From there the test
+// gives a reader that does not wait for the lock a full second to finish: a getter without the lock finishes at
+// once (or, if it is delayed, after the delay -- any delay under a second is still caught). A getter that takes the
+// lock cannot finish before the section ends. After the section ends, the reader must see the new set's quality.
 namespace readerlock {
 
-std::atomic<bool> g_started{false};
+std::atomic<bool> g_arrived{false};
 std::atomic<bool> g_done{false};
 XpeCalibQualityMeta g_q{};
 std::thread g_reader;
-bool g_stillWaiting = false;
+bool g_arrivedInTime = false;
+bool g_finishedInsideTheSection = false;
+
+void beforeLock() { g_arrived.store(true); }
 
 void hook() {
-    g_started.store(false);
+    g_arrived.store(false);
     g_done.store(false);
     g_reader = std::thread([] {
-        g_started.store(true);
         xpe_calib_get_quality_meta(&g_q);
         g_done.store(true);
     });
-    while (!g_started.load()) std::this_thread::yield();
-    std::this_thread::sleep_for(std::chrono::milliseconds(150));
-    g_stillWaiting = !g_done.load();
+    using Clock = std::chrono::steady_clock;
+    const auto start = Clock::now();
+    while (!g_arrived.load() && Clock::now() - start < std::chrono::seconds(10)) std::this_thread::yield();
+    g_arrivedInTime = g_arrived.load();
+    const auto window = Clock::now();
+    while (!g_done.load() && Clock::now() - window < std::chrono::milliseconds(1000)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    g_finishedInsideTheSection = g_done.load();
 }
 
 struct HookGuard {
-    HookGuard() { xpe_calib_in_set_commit_hook = &hook; }
-    ~HookGuard() { xpe_calib_in_set_commit_hook = nullptr; }
+    HookGuard() {
+        xpe_calib_quality_before_lock_hook = &beforeLock;
+        xpe_calib_in_set_commit_hook = &hook;
+    }
+    ~HookGuard() {
+        xpe_calib_in_set_commit_hook = nullptr;
+        xpe_calib_quality_before_lock_hook = nullptr;
+    }
 };
 
 }  // namespace readerlock
@@ -1501,14 +1520,16 @@ struct HookGuard {
 TEST_F(OomPipeline, AQualityReadStartedInsideTheCommitWaitsForItAndSeesTheNewSet) {
     calibset::writeSetB();
     pipe::setup();
-    readerlock::g_stillWaiting = false;
+    readerlock::g_arrivedInTime = false;
+    readerlock::g_finishedInsideTheSection = false;
     {
         readerlock::HookGuard guard;
         ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_batch(pipe::g_img, 1, pipe::g_meta, calibset::kDirB, nullptr, pipe::kConfig));
     }
-    ASSERT_TRUE(readerlock::g_reader.joinable()) << "control: the observation point was reached";
+    ASSERT_TRUE(readerlock::g_reader.joinable()) << "control: the observation point inside the commit was reached";
     readerlock::g_reader.join();
-    EXPECT_TRUE(readerlock::g_stillWaiting) << "the reader finished while the commit still held the lock";
+    ASSERT_TRUE(readerlock::g_arrivedInTime) << "control: the reader reached the getter's lock attempt";
+    EXPECT_FALSE(readerlock::g_finishedInsideTheSection) << "the reader finished while the commit still held the lock";
     EXPECT_DOUBLE_EQ(0.97, readerlock::g_q.r_squared) << "after the section ended the reader saw set B's quality";
     EXPECT_EQ(2u, readerlock::g_q.polynomial_degree);
 }
@@ -1666,4 +1687,173 @@ TEST_F(OomPipeline, EveryConfigurationReadsOnlyWhatItOwnsAndEndsInTheFormatItIsP
     std::error_code ec;
     std::filesystem::remove_all("oom_pipe_calibOnes", ec);
 #endif
+}
+
+/* =========================================================================
+ * The quality record describes the gain calibration that is current (QA-A-202e, Codex #38 A1 / A2)
+ * ========================================================================= */
+
+// A gain file without quality metadata is a legitimate file. Loading one used to leave the PREVIOUS file's record
+// in place -- the maps and a quality that belonged to another file were then committed together under one lock,
+// no race needed. A load now always replaces the record: with the file's quality, or, when the file carries none,
+// with the "no quality" record (valid = 0, every field zero, previous_r_squared still the history). The same for
+// a cache hit, which also keeps the file-quality copy beside the map (gain_quality / gain_has_quality) in step.
+
+static_assert(sizeof(XpeCalibQualityMeta) == 88, "the validity byte must fit in the old padding");
+static_assert(offsetof(XpeCalibQualityMeta, valid) == 3, "valid sits right after num_points");
+static_assert(offsetof(XpeCalibQualityMeta, r_squared) == 8, "r_squared did not move");
+static_assert(offsetof(XpeCalibQualityMeta, calibration_timestamp) == 16, "calibration_timestamp did not move");
+static_assert(offsetof(XpeCalibQualityMeta, detector_serial) == 24, "detector_serial did not move");
+static_assert(offsetof(XpeCalibQualityMeta, firmware_version) == 56, "firmware_version did not move");
+static_assert(offsetof(XpeCalibQualityMeta, calibration_pass) == 72, "calibration_pass did not move");
+static_assert(offsetof(XpeCalibQualityMeta, previous_r_squared) == 80, "previous_r_squared did not move");
+
+namespace qcur {
+
+const char* const kJsonA =
+    "{\"fit_r_squared\":\"0.91\",\"polynomial_degree\":\"1\",\"actual_dose_levels\":\"3\",\"calibration_mode\":\"2\"}";
+const char* const kJsonC =
+    "{\"fit_r_squared\":\"0.97\",\"polynomial_degree\":\"2\",\"actual_dose_levels\":\"4\",\"calibration_mode\":\"3\"}";
+const char* const kDirA = "oom_pipe_calibQA";      // gain 2.0, quality A
+const char* const kDirNone = "oom_pipe_calibQN";   // gain 4.0, no quality metadata
+const char* const kDirC = "oom_pipe_calibQC";      // gain 3.0, quality C
+
+void writeSetDir(const char* dir, float gain, const std::string& gainJson) {
+    std::filesystem::create_directories(dir);
+    writeOffset((std::string(dir) + "/offset.xcal").c_str(), 100.0f);
+    writeGain((std::string(dir) + "/gain.xcal").c_str(), gain, gainJson);
+    writeDefect((std::string(dir) + "/defect.xcal").c_str(), true);
+}
+void writeAll() {
+    writeSetDir(kDirA, 2.0f, kJsonA);
+    writeSetDir(kDirNone, 4.0f, "{}");
+    writeSetDir(kDirC, 3.0f, kJsonC);
+}
+void removeAll() {
+    std::error_code ec;
+    for (const char* d : {kDirA, kDirNone, kDirC}) std::filesystem::remove_all(d, ec);
+}
+
+XpeCalibQualityMeta current() {
+    XpeCalibQualityMeta q{};
+    EXPECT_EQ(XPE_OK, xpe_calib_get_quality_meta(&q));
+    return q;
+}
+
+std::atomic<long> g_hitChecks{0};
+void countHit() { g_hitChecks.fetch_add(1); }
+
+struct Way {
+    const char* name;
+    bool isHit;
+    std::function<void(const std::string&)> prepare;       // before set A is made current
+    std::function<XpeErrorCode(const std::string&)> load;   // the call that makes `dir`'s gain current
+};
+
+std::string gainPath(const std::string& dir) { return dir + "/gain.xcal"; }
+
+std::vector<Way> ways() {
+    const auto none = [](const std::string&) {};
+    const auto cachedLoad = [](const std::string& d) {
+        XpeImageBuffer v{};
+        return xpe_calib_load_gain_cached(gainPath(d).c_str(), &v);
+    };
+    return {
+        {"xpe_calib_load_gain", false, none,
+         [](const std::string& d) { return xpe_calib_load_gain(gainPath(d).c_str()); }},
+        {"xpe_calib_load_gain_cached (miss)", false, none, cachedLoad},
+        {"xpe_calib_load_gain_cached (hit)", true, [cachedLoad](const std::string& d) { cachedLoad(d); }, cachedLoad},
+        {"xpe_preprocess_pipeline", false, none,
+         [](const std::string& d) {
+             return xpe_preprocess_pipeline(&pipe::g_img[0], &pipe::g_meta[0], d.c_str(), nullptr, pipe::kConfig);
+         }},
+        {"xpe_preprocess_pipeline_batch", false, none,
+         [](const std::string& d) {
+             return xpe_preprocess_pipeline_batch(pipe::g_img, 1, pipe::g_meta, d.c_str(), nullptr, pipe::kConfig);
+         }},
+    };
+}
+
+/** Set A (with quality) is current; then `dir` is made current by `way`. Returns after the load. */
+void aThenOther(const Way& way, const char* dir) {
+    pipe::setup();
+    way.prepare(dir);                              // the hit way warms the cache for `dir` first
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset("oom_pipe_calibQA/offset.xcal"));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_pipe_calibQA/gain.xcal"));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map("oom_pipe_calibQA/defect.xcal"));
+    const XpeCalibQualityMeta a = current();
+    EXPECT_EQ(1u, a.valid) << "control: set A's quality is the record";
+    EXPECT_DOUBLE_EQ(0.91, a.r_squared);
+    g_hitChecks.store(0);
+    xpe_cache_after_open_check_hook = &countHit;
+    const XpeErrorCode rc = way.load(dir);
+    xpe_cache_after_open_check_hook = nullptr;
+    ASSERT_EQ(XPE_OK, rc);
+    if (way.isHit) ASSERT_GT(g_hitChecks.load(), 0L) << "control: the load was a cache hit";
+}
+
+}  // namespace qcur
+
+TEST_F(OomPipeline, ALoadOfAGainWithoutQualityLeavesNoPreviousFilesQualityBehind) {
+    qcur::writeAll();
+    for (const auto& way : qcur::ways()) {
+        SCOPED_TRACE(way.name);
+        qcur::aThenOther(way, qcur::kDirNone);
+        const XpeCalibQualityMeta q = qcur::current();
+        EXPECT_EQ(0u, q.valid) << "the current gain has no quality metadata, and the record must say so";
+        EXPECT_DOUBLE_EQ(0.0, q.r_squared) << "the previous file's R2 is still reported as the current one";
+        EXPECT_EQ(0u, q.polynomial_degree);
+        EXPECT_EQ(0u, q.num_points);
+        EXPECT_EQ(0u, q.calibration_mode);
+        EXPECT_DOUBLE_EQ(0.91, q.previous_r_squared) << "the history keeps set A's R2, apart from the current record";
+    }
+    qcur::removeAll();
+}
+
+TEST_F(OomPipeline, ALoadOfAGainWithDifferentQualityReplacesTheRecordOnEveryPath) {
+    qcur::writeAll();
+    for (const auto& way : qcur::ways()) {
+        SCOPED_TRACE(way.name);
+        qcur::aThenOther(way, qcur::kDirC);
+        const XpeCalibQualityMeta q = qcur::current();
+        EXPECT_EQ(1u, q.valid);
+        EXPECT_DOUBLE_EQ(0.97, q.r_squared);
+        EXPECT_EQ(2u, q.polynomial_degree);
+        EXPECT_EQ(4u, q.num_points);
+        EXPECT_EQ(3u, q.calibration_mode);
+        EXPECT_DOUBLE_EQ(0.91, q.previous_r_squared);
+    }
+    qcur::removeAll();
+}
+
+TEST_F(OomPipeline, AFileWithoutQualityThenOneWithQualityKeepsTheHistoryAcrossTheGap) {
+    qcur::writeAll();
+    pipe::setup();
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_pipe_calibQA/gain.xcal"));      // record: A
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_pipe_calibQN/gain.xcal"));      // record: none, history 0.91
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_pipe_calibQC/gain.xcal"));      // record: C, previous is still A's
+    const XpeCalibQualityMeta q = qcur::current();
+    EXPECT_EQ(1u, q.valid);
+    EXPECT_DOUBLE_EQ(0.97, q.r_squared);
+    EXPECT_DOUBLE_EQ(0.91, q.previous_r_squared) << "a file with no quality in between does not erase the history";
+    qcur::removeAll();
+}
+
+// The file-quality copy (gain_quality) is what the cache publishes with the map. A hit used to install the map and
+// the shared record but leave gain_quality as the previously current file's.
+TEST_F(OomPipeline, ACacheHitInstallsTheFilesQualityCopyBesideTheMap) {
+    qcur::writeAll();
+    struct Row { const char* dir; float gain; bool hasQuality; double r2; };
+    for (const Row& row : {Row{qcur::kDirC, 3.0f, true, 0.97}, Row{qcur::kDirNone, 4.0f, false, 0.0}}) {
+        SCOPED_TRACE(row.dir);
+        const qcur::Way hit = qcur::ways()[2];             // "xpe_calib_load_gain_cached (hit)"; a COPY: ways() is a temporary
+        ASSERT_TRUE(hit.isHit);
+        qcur::aThenOther(hit, row.dir);
+        std::lock_guard<std::mutex> lk(g_calib_mutex);
+        ASSERT_TRUE(g_calib.gain_map != nullptr);
+        EXPECT_FLOAT_EQ(row.gain, g_calib.gain_map.get()[0]) << "the hit installed this file's map";
+        EXPECT_EQ(row.hasQuality, g_calib.gain_has_quality) << "the quality copy says whether THIS file carries one";
+        EXPECT_DOUBLE_EQ(row.r2, g_calib.gain_quality.r_squared) << "and holds this file's values, not the previous file's";
+    }
+    qcur::removeAll();
 }
