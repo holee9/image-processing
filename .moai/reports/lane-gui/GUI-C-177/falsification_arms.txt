@@ -1,0 +1,29 @@
+# GUI-C-177 — the could-not-start / ran-and-failed distinction erased in the REAL sources; the named test must go red with a successful build; sources restored byte-identical
+
+ARM same-wording: exit=1 built_ok=True
+   ['실패!  - 실패:     5, 통과:     6, 건너뜀:     0, 전체:    11, 기간: 222 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   failed: ['실패 ImageProcTest.IntegrationTests.Functional.RunnerProcessTests.ForEachCommand_ACouldNotStartIsWordedDifferentlyFromARunThatFailed(label: "B', '실패 ImageProcTest.IntegrationTests.Functional.RunnerProcessTests.ForEachCommand_ACouldNotStartIsWordedDifferentlyFromARunThatFailed(label: "G', '실패 ImageProcTest.IntegrationTests.Functional.RunnerProcessTests.ForEachCommand_ACouldNotStartIsWordedDifferentlyFromARunThatFailed(label: "S', '실패 ImageProcTest.IntegrationTests.Functional.RunnerProcessTests.TheViewModel_WordsARunnerOutcomeInOnePlaceOnly [3 ms]']
+   restored byte-identical: True
+ARM start-failure-becomes-a-run: exit=1 built_ok=True
+   ['실패!  - 실패:     2, 통과:     9, 건너뜀:     0, 전체:    11, 기간: 169 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   failed: ['실패 ImageProcTest.IntegrationTests.Functional.RunnerProcessTests.AMissingExecutable_DidNotStart_AndHasNoVerdict [2 ms]', '실패 ImageProcTest.IntegrationTests.Functional.RunnerProcessTests.AFileThatIsNotAnExecutable_DidNotStart_AndHasNoVerdict [12 ms]']
+   restored byte-identical: True
+ARM executor-collapses-null-to-false: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 15 s - ImageProcTest.E2ETests.dll (net8.0)']
+   failed: ['실패 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A15_ASelfCheckThatCannotBeStarted_IsDidNotRun_NotAFailure [15 s]']
+   restored byte-identical: True
+ARM second-wording-in-view-model: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 48 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   failed: ['실패 ImageProcTest.IntegrationTests.Functional.RunnerProcessTests.TheViewModel_WordsARunnerOutcomeInOnePlaceOnly [29 ms]']
+   restored byte-identical: True
+sources after all arms: dd8a6e3aaa5c d1f2cede040d
+
+# arm same-wording, rerun with the FULL failure list (RunnerProcessTests, 12 tests)
+built ok: True
+['실패!  - 실패:     5, 통과:     7, 건너뜀:     0, 전체:    12, 기간: 275 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+  실패 RunnerProcessTests.ForEachCommand_ACouldNotStartIsWordedDifferentlyFromARunThatFailed(label: "Benchmark runner", quotesSummary: True) [16 ms]
+  실패 RunnerProcessTests.ForEachCommand_ACouldNotStartIsWordedDifferentlyFromARunThatFailed(label: "GUI E2E", quotesSummary: False) [1 ms]
+  실패 RunnerProcessTests.ForEachCommand_ACouldNotStartIsWordedDifferentlyFromARunThatFailed(label: "Self-check", quotesSummary: False) [1 ms]
+  실패 RunnerProcessTests.TheViewModel_WordsARunnerOutcomeInOnePlaceOnly [4 ms]
+  실패 RunnerProcessTests.TheDescriberSurvey_SeesASecondWording_AndAnExecutorThatStopsUsingTheDescriber [6 ms]
+restored byte-identical: True

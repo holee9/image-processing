@@ -1,0 +1,20 @@
+# GUI-C-180 — TroubleshootingDocQuoteTests against three states of docs/help/content/troubleshooting.md (the page is the lead's; it is put back byte-identical after each run)
+
+## 1. the placeholder page as committed (expected: the page test FAILS, the five matcher controls pass)
+built ok: True; exit 1
+실패!  - 실패:     1, 통과:     6, 건너뜀:     0, 전체:     7, 기간: 38 ms - ImageProcTest.IntegrationTests.dll (net8.0)
+  FAILED 실패 TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource [4 ms]
+    msg: docs/help/content/troubleshooting.md quotes no message, so nothing on it is verified — it is still the placeholder. Quote each message in backticks (a <placeholder> is a wildcard); this test fails, rather than skips, until it does
+
+## 2. the final page copied in temporarily (expected: all six pass)
+built ok: True; exit 0
+통과!  - 실패:     0, 통과:     7, 건너뜀:     0, 전체:     7, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)
+
+## 3. the final page with ONE phrase changed ('discarded' -> 'thrown away') (expected: the page test FAILS naming that quote)
+built ok: True; exit 1
+실패!  - 실패:     1, 통과:     6, 건너뜀:     0, 전체:     7, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)
+  FAILED 실패 TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource [1 s]
+    msg: 1 quoted message(s) on docs/help/content/troubleshooting.md are in no source file under gui/, clients/ImageProcTest/ or modules/ (the text changed, or the page was edited):
+    msg: `Render stopped; the result was thrown away after <ms> ms of work.`
+
+docs/help/content/troubleshooting.md restored byte-identical to HEAD: True

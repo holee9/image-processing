@@ -1,0 +1,52 @@
+# GUI-C-178 — gui/clients search on this tree (dev/gui after merging origin/main), several patterns, with a control
+
+CONTROL: xpe_gsdf_calibrate in gui/**/*.cs -> 4 (>=1 expected)
+
+[DllImport/entry names  xpe_ai_ | xpe_bone_ | xpe_dl_ | xpe_stitch | xpe_bodypart] 12 hits
+    ('clients/ImageProcTest/MainWindow.xaml.cs', 1466, ': "AI C5/C6 execution is disabled until xpe_ai_worker heartbeat, IPC smoke, and GUI adapter checks pass.";')
+    ('clients/ImageProcTest/Services/AlgorithmChainCatalogService.cs', 52, 'new("ai-bodypart", "(5a)", "Body-part recognition advisory", "xpe_ai", "xpe_ai.dll/xpe_ai_worker.exe", "3", "preview-cop')
+    ('clients/ImageProcTest/Services/AlgorithmChainCatalogService.cs', 53, 'new("ai-collimation", "(5c)", "AI collimation refinement advisory", "xpe_ai", "xpe_ai.dll/xpe_ai_worker.exe", "3", "prev')
+    ('clients/ImageProcTest/Services/AlgorithmChainCatalogService.cs', 54, 'new("stitching", "(12)", "Image stitching", "xpe_ai", "xpe_ai.dll/xpe_ai_worker.exe", "3", "multi-frame-set", "panorama"')
+    ('clients/ImageProcTest/Services/AlgorithmChainCatalogService.cs', 55, 'new("bone-suppression", "(13)", "Bone suppression", "xpe_ai", "xpe_ai.dll/xpe_ai_worker.exe", "3", "enhancement", "assis')
+    ('clients/ImageProcTest/Services/AlgorithmChainCatalogService.cs', 56, 'new("dl-denoise", "(13b)", "DL denoising", "xpe_ai", "xpe_ai.dll/xpe_ai_worker.exe", "3", "enhancement", "assistive-enha')
+    ('clients/ImageProcTest/Services/AlgorithmChainCatalogService.cs', 350, '$"{step.Node.Label} {step.Node.AlgorithmName} is selected, but AI C5/C6 execution is waiting on xpe_ai_worker heartbeat/')
+
+[library name xpe_ai.dll / xpe_ai_worker] 44 hits
+    ('clients/ImageProcTest/MainWindow.xaml.cs', 1464, 'var aiReason = IsModuleReadinessAtLeast("xpe_ai", 3)')
+    ('clients/ImageProcTest/MainWindow.xaml.cs', 1466, ': "AI C5/C6 execution is disabled until xpe_ai_worker heartbeat, IPC smoke, and GUI adapter checks pass.";')
+    ('clients/ImageProcTest/MainWindow.xaml.cs', 1985, 'string.Equals(module.ModuleName, "xpe_ai", StringComparison.OrdinalIgnoreCase));')
+    ('clients/ImageProcTest/MainWindow.xaml.cs', 1990, 'return string.Equals(item.ModuleName, "xpe_ai", StringComparison.OrdinalIgnoreCase);')
+    ('clients/ImageProcTest/MainWindow.xaml.cs', 2014, '// @MX:REASON: xpe_ai.dll is a Phase 3 dependency that may be absent in current builds; the UI')
+    ('clients/ImageProcTest/MainWindow.xaml.cs', 2043, '// @MX:WARN: xpe_ai.dll is a Phase 3 (Should priority) dependency and is not yet built.')
+    ('clients/ImageProcTest/MainWindow.xaml.cs', 2048, 'if (!IsModuleReadinessAtLeast("xpe_ai", 1))')
+
+[use_worker / fallback_mode keys] 0 hits
+
+[AI-processed / 'disabled for this session' text] 0 hits
+
+== AI bridge UI logic that exists (linked into IntegrationTests):
+   AiBridgeStatusComputer -> []
+   AiBridgePanelSnapshot -> []
+   AiBridgeConnectionStatus -> []
+   ModuleReadinessSnapshot -> []
+   ModuleReadinessGrading -> []
+
+== who USES those in the live app:
+
+== control: files naming a LIVE export (xpe_gsdf_calibrate):
+./build/c94-real.cs
+./build/c96-base/clients/ImageProcTest/Diagnostics/XpeDisplayVersionProbe.cs
+./build/c96-base/gui/ImageProcTest/Services/Native/XpeDisplayInterop.cs
+./build/c96-base/gui/ImageProcTest/Services/RealXpeBackend.cs
+./clients/ImageProcTest/Diagnostics/XpeDisplayVersionProbe.cs
+./clients/ImageProcTest.IntegrationTests/Functional/GsdfCalibrationInputTests.cs
+./gui/ImageProcTest/Services/Native/XpeDisplayInterop.cs
+./gui/ImageProcTest/Services/RealXpeBackend.cs
+== ProcessingChainRunner.cs:80-81 (how a stage is classified):
+
+            // A stage may hand back the very copy it was given; keep a buffer nobody else holds.
+            var output = ReferenceEquals(execution.Pixels, input) ? input : (ushort[])execution.Pixels.Clone();
+            var status = output.AsSpan().SequenceEqual(current) ? StageStatus.AppliedNoChange : StageStatus.Applied;
+            outcomes.Add(new StageOutcome(request.StageId, status, output, execution.Message, elapsedMs));
+== ci.yml:788 (what the native E2E job stages):
+          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_display.dll', 'gsvg.dll')) {

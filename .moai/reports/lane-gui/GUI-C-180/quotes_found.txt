@@ -1,0 +1,106 @@
+# GUI-C-180 — each backtick span of troubleshooting.md and the first source file it was found in (python mirror of the C# test's rules)
+
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	<command> needs the repository; this build is not running from a checkout.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	<command> runner is not built.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Build gui/<project> first.
+gui/ImageProcTest/Services/BenchmarkRunnerService.cs	Benchmark runner is not built: <directory> has no <file>.
+gui/ImageProcTest/Services/BenchmarkRunnerService.cs	cmake --preset ci-post
+gui/ImageProcTest/Services/BenchmarkRunnerService.cs	cmake --build --preset ci-post --parallel
+gui/ImageProcTest/Services/RunnerProcess.cs	<command> did not run: '<executable>' could not be started (<reason>). Nothing was executed.
+gui/ImageProcTest/Services/RunnerProcess.cs	the file was not found; a bare name such as 'ctest' has to be on PATH: <OS message>
+gui/ImageProcTest/Services/RunnerProcess.cs	<command> FAILED (exit <code>): <line>
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	<command> ended abnormally: <message>
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Self-check is already running.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	GUI E2E is already running.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Benchmark runner is already running.
+gui/ImageProcTest/Services/BuildFreshnessGuard.cs	is older than its sources, so this run would test the PREVIOUS build.
+gui/ImageProcTest/Services/RunnerBuildFreshness.cs	Build the RUNNER, not the app: dotnet build gui/<runner>/<runner>.csproj -c Debug.
+gui/ImageProcTest/Services/RunnerBuildFreshness.cs	Building gui/ImageProcTest alone does not refresh this copy.
+gui/ImageProcTest/Services/ApiReferenceService.cs	API reference has not been generated.
+gui/ImageProcTest/Services/ApiReferenceService.cs	Generate it: in docs/help/doxygen run 'git clone https://github.com/jothepro/doxygen-awesome-css doxygen-awesome' and then 'doxygen Doxyfile' (Doxygen 1.12+; see docs/help/doxygen/README.md).
+gui/ImageProcTest/Services/ApiReferenceService.cs	API reference is incomplete: <directory> exists but has no html/index.html.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	API reference could not be opened: <message>
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Evidence folder could not be opened: <message>
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Runtime logs could not be exported: <message>
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Export failed: <message>
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Runtime logs not exported: no run set has started.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	No evidence folder to open: no run set has started.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Export failed: no run set has started.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Runtime logs not exported: the log is empty.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	No evidence folder yet for this run set: <path>
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	No evidence directory found for current run-set.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Load failed: <message>
+gui/ImageProcTest/Services/RawImageLoader.cs	Raw width and height must be positive.
+gui/ImageProcTest/Services/RawImageLoader.cs	Raw file is too small. Expected at least <bytes> bytes, got <bytes>.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Display pipeline requires a loaded raw image.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Load a raw image before running preprocessing.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Display pipeline failed: <message>
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	STALE — the display pipeline failed; the image shown is from before the failed attempt.
+gui/ImageProcTest/Services/RealXpeBackend.cs	<function> failed with XPE error code <code>.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	STALE — display parameters changed since this image was rendered. Apply the display pipeline to update it.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Stop requested; the render in flight will be discarded.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Render stopped; the result was discarded after <ms> ms of work.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Stop: no render is in flight.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Preprocessing failed: <message>
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	VOI preset failed: <message>
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Backend initialization failed: <message>
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	<stage> was requested and not applied; the display used its input. <reason>
+gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs	Preprocessing skipped: calibration file(s) not found — <paths>. Generate a set with xpe_calib_fixture_gen --out <dir> and point the calibration directories at it.
+gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs	xpe_preprocess_init failed (<code>).
+gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs	Loading <name> calibration failed (<code>).
+gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs	xpe_offset_correct failed (<code>).
+gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs	xpe_nonlinearity_correct failed (<code>).
+gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs	xpe_gain_correct failed (<code>).
+gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs	xpe_defect_correct failed (<code>).
+gui/ImageProcTest/Services/MockXpeBackend.cs	Preprocessing requires the native backend (xpe_preprocess.dll).
+gui/ImageProcTest/Services/MockXpeBackend.cs	Grid correction requires the native backend (gsvg.dll).
+gui/ImageProcTest/Services/MockXpeBackend.cs	Stage '<id>' is not available in the mock backend.
+gui/ImageProcTest/Services/RealXpeBackend.cs	Stage '<id>' is not available in the native backend.
+gui/ImageProcTest/Services/ProcessingChainRunner.cs	<stage> threw: <message>
+gui/ImageProcTest/Services/ProcessingChainRunner.cs	<stage> returned <n> pixels for an input of <m>.
+gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs	The virtual grid needs a parameter table; none was configured and none was found beside gsvg.dll.
+gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs	The virtual-grid table was not found: <path>
+gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs	xpe_gsvg_init refused the configuration (<code>). See the alerts for the reason.
+gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs	GSVG refused this image: <detail>
+gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs	GSVG was requested but no correction was enabled in its config — check the key names.
+gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs	The image is too small for GSVG: <detail>
+gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs	GSVG saw a grid peak but no sub-band confirmed it; nothing was filtered and a grid may remain.
+gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs	The virtual grid refused this exposure or these settings; the module restored the original.
+gui/ImageProcTest/Services/Native/GuiGsvgRunner.cs	GSVG returned a reason this build does not know: <detail>
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Your saved settings could not be read, so this session started from defaults.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	The original file was kept at '<path>'.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	An earlier failure already rescued your original settings, kept at '<path>'.
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Recent file is not available: <path>
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Failed to write verdict file: <message>
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Could not copy the log line: <message>
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs	Detached comparison viewer failed to open: <exception name>.
+clients/ImageProcTest/Services/AlertDisplayFormatter.cs	1 alert was dropped because the alert queue overflowed.
+clients/ImageProcTest/Services/AlertDisplayFormatter.cs	<N> alerts were dropped because the alert queue overflowed.
+gui/ImageProcTest/Services/NativeAlertDrain.cs	[unreadable alert]
+modules/preprocess/src/gain_correct.cpp	ALL <N> pixel(s) fell outside the gain polynomial's fitted dose range [<a>, <b>] -- the whole frame was evaluated at one range edge, so the gain applied is effectively constant. Check that the calibration's dose levels are in pixel values (ADU): a file fitted in other units loads without error and produces this (issue #194)
+modules/preprocess/src/gain_correct.cpp	<N> pixel(s) fell outside the gain polynomial's fitted dose range [<a>, <b>] and were evaluated at the range edge; values beyond the calibrated levels are not extrapolated (issue #194)
+modules/preprocess/src/xpe_calib_load_gain.cpp	gain polynomial dose levels span [<a>, <b>], far below the pixel-value range they index (0..65535). CHECK THE UNIT OF THIS CALIBRATION'S dose_levels: they must be pixel values (ADU), and a ladder fitted in mGy loads without error while producing a wrong image. If the unit is right and the calibration is simply very dark, this warning can be ignored. This is a magnitude check, not a unit check -- the file carries no unit field (issue #194)
+modules/preprocess/src/xpe_calib_load_gain.cpp	gain polynomial loaded without a dose range: this file was generated before the range field existed, so the out-of-range clamp does not apply to it and pixel values beyond the fitted levels are extrapolated; regenerate the calibration to enable the clamp (issue #194)
+modules/preprocess/src/xpe_calib_load_gain.cpp	gain polynomial carries an inverted dose range [<a>, <b>]: the clamp is not applied and pixel values are extrapolated. The file's dose levels were not ascending when it was generated, so its coefficients may be fitted against mispaired gain maps -- regenerate it (issue #194)
+modules/preprocess/src/nonlinearity_correct.cpp	panel.nonlinearity_mode selects the polynomial method but no panel.nonlin_poly_c0..c4 coefficients are present; falling back to the LUT method (SRS-CALIB-FUNC-006-EXT 6b, issue #186)
+modules/preprocess/src/nonlinearity_correct.cpp	nonlinearity polynomial has a non-finite coefficient; falling back to the LUT method (FUNC-006-EXT 6b, #186)
+modules/preprocess/src/nonlinearity_correct.cpp	nonlinearity polynomial is non-monotone in [0, ADC_max]; rejected and falling back to the LUT method (SRS-CALIB-FUNC-006-EXT 6b step 5, issue #186)
+modules/preprocess/src/nonlinearity_correct.cpp	panel.linear is false but no nonlinearity LUT is loaded; call xpe_calib_load_nonlin_lut() before processing (SRS-CALIB-FUNC-006, issue #186)
+modules/preprocess/src/nonlinearity_correct.cpp	nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs correcting (issue #196)
+modules/gsvg/src/gsvg.cpp	gsvg config key '<key>' is not read by this module and has no effect
+modules/gsvg/src/gsvg.cpp	gsvg virtual grid: <reason>
+modules/gsvg/src/gsvg.cpp	gsvg virtual grid: no collimation field mask; scatter outside the field is treated as object
+modules/gsvg/src/gsvg.cpp	gsvg virtual grid: thickness above the table in <x>% of the pixels (limited to the table maximum in <y>% of the reduced grid)
+gui/ImageProcTest/Models/PreprocessRunResult.cs	XPE_OK
+modules/ai/src/ai.cpp	XPE_ERR_INVALID_INPUT
+modules/ai/src/ai.cpp	XPE_ERR_OUT_OF_MEMORY
+modules/ai/src/ai.cpp	XPE_ERR_PROCESSING_FAILED
+modules/ai/src/ai.cpp	XPE_ERR_CONFIG_INVALID
+modules/common/src/xpe_common.cpp	XPE_ERR_CALIBRATION_EXPIRED
+modules/ai/src/ai.cpp	XPE_ERR_NOT_INITIALIZED
+modules/ai/src/ai.cpp	XPE_ERR_UNSUPPORTED_FORMAT
+modules/ai/src/ai.cpp	XPE_ERR_BUFFER_TOO_SMALL
+modules/ai/src/ai.cpp	XPE_ERR_IO_FAILED
+modules/common/src/xpe_common.cpp	XPE_ERR_NETWORK_FAILED
+
+spans checked: 102 ; files searched: 233 (gui/**/*.cs, clients/ImageProcTest/**/*.cs, modules/**/*.cpp|c|h, excluding tests, build, obj, bin, third_party)

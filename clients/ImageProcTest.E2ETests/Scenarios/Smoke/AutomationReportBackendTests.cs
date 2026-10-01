@@ -129,6 +129,43 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
         // The reason, not just the verdict: GUI-C-158 first reported the LAST stderr line ("at
         // Program...line 62"), which is true and tells the operator nothing.
         Assert.Contains("Repository root", status, StringComparison.OrdinalIgnoreCase);
+
+        // It RAN and failed, so it says FAILED — not "did not run", which A-15 reserves for a start that failed.
+        Assert.Contains("FAILED", status, StringComparison.Ordinal);
+        Assert.DoesNotContain("did not run", status, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A-15 (#225, GUI-C-177): row 15 — a self-check that cannot be STARTED is reported as "did not run", with no
+    /// verdict, and never as a failure.
+    ///
+    /// <para>The counterpart of A-05, which stages a runner that starts and dies. Here the app is pointed (through
+    /// <c>--automation-selfcheck-exe</c>) at a file that exists but is text, not a program, so the start itself fails.
+    /// The two situations were worded alike ("could not be started" with a false verdict) before GUI-C-177; the
+    /// wording lives in the one runner executor that rows 16 and 17 share, so this one end-to-end case stands for
+    /// the three commands, and <c>RunnerProcessTests</c> asserts the wording for each of their labels.</para>
+    /// </summary>
+    [SkippableFact]
+    public void A15_ASelfCheckThatCannotBeStarted_IsDidNotRun_NotAFailure()
+    {
+        var notAProgram = Path.Combine(Path.GetTempPath(), $"xpe-notarunner-A15-{Environment.ProcessId}.exe");
+        File.WriteAllText(notAProgram, "this is text, not an executable");
+        try
+        {
+            var (report, _) = Run("A15", "Mock", nativeDirectory: null,
+                extraArgs: ["--automation-selfcheck-exe", notAProgram]);
+
+            var status = report.GetProperty("SelfCheckStatus").GetString() ?? string.Empty;
+            var verdictKind = report.TryGetProperty("SelfCheckPassed", out var verdict) ? verdict.ValueKind : JsonValueKind.Null;
+            Assert.True(verdictKind == JsonValueKind.Null,
+                $"A self-check that never started reported a verdict ({verdictKind}): '{status}'.");
+            Assert.Contains("did not run", status, StringComparison.Ordinal);
+            Assert.DoesNotContain("FAILED", status, StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(notAProgram);
+        }
     }
 
     /// <summary>

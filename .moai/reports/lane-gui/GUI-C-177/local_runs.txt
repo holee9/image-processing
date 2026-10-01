@@ -1,0 +1,18 @@
+# GUI-C-177 — local runs (no global input is sent by any of these tests)
+
+## IntegrationTests, Category=Functional (all)
+  건너뜀 ImageProcTest.IntegrationTests.Functional.ErrorCodeMappingTests.ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback(code: NOT_IMPLEMENTED) [< 1 ms]
+  통과!  - 실패:     0, 통과:   206, 건너뜀:     1, 전체:   207, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)
+
+## E2ETests, the whole AutomationReportBackendTests class (A15 and the A05 additions included), after rebuilding the GUI
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A03_TheWiredCommands_ReportWhatTheyDid [1 ms]
+  통과!  - 실패:     0, 통과:    14, 건너뜀:     1, 전체:    15, 기간: 4 m 39 s - ImageProcTest.E2ETests.dll (net8.0)
+
+## IntegrationTests, RunnerProcessTests after adding the PATH-hint case
+  통과!  - 실패: 0, 통과: 12, 건너뜀: 0, 전체: 12 (RunnerProcessTests only)
+
+## Incident, not a product failure: E2E A04 and A06 failed right after the falsification arms
+  Self-check FAILED (exit -532462766): Unhandled exception. System.InvalidOperationException: The copy of the gui app that
+  ImageProcTest.SelfCheck runs against is older than its sources, so this run would test the PREVIOUS build.
+  Cause: the arms restored the sources byte-identical, which gave them a newer modification time than the built app.
+  Fix: dotnet build gui/ImageProcTest.slnx, then the whole class passed (14 passed, 1 skipped, 0 failed; see above).

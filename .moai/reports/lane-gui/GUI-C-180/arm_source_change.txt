@@ -1,0 +1,6 @@
+# GUI-C-180 — the other direction: a SOURCE message is changed ('Stop: no render is in flight.' -> 'Stop: nothing is rendering.') while the final page still quotes it
+
+built ok: True
+['실패!  - 실패:     1, 통과:     6, 건너뜀:     0, 전체:     7, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+  names the quote: `Stop: no render is in flight.`
+view model restored byte-identical: True | docs page restored: True

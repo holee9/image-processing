@@ -18,6 +18,7 @@ namespace ImageProcTest.IntegrationTests.Functional;
 public sealed class BenchmarkRunnerServiceTests : IDisposable
 {
     private const string ViewModelPath = "gui/ImageProcTest/ViewModels/MainWindowViewModel.cs";
+    private const string RunnerProcessPath = "gui/ImageProcTest/Services/RunnerProcess.cs";
     private const string WorkflowPath = ".github/workflows/benchmark-regression.yml";
 
     private readonly string _root = Path.Combine(Path.GetTempPath(), $"xpe-bench-{Guid.NewGuid():N}");
@@ -175,7 +176,9 @@ public sealed class BenchmarkRunnerServiceTests : IDisposable
     [Fact]
     public void AllThreeRunnerCommands_ReachTheSameProcessExecutor()
     {
-        var problems = CouplingProblems(File.ReadAllText(ResolveRepositoryFile(ViewModelPath)));
+        var problems = CouplingProblems(
+            File.ReadAllText(ResolveRepositoryFile(ViewModelPath)),
+            File.ReadAllText(ResolveRepositoryFile(RunnerProcessPath)));
 
         Assert.True(problems.Count == 0, "Runner coupling is broken: " + string.Join("; ", problems));
     }
@@ -185,48 +188,49 @@ public sealed class BenchmarkRunnerServiceTests : IDisposable
     {
         // The check has to be able to fail. Two ways to reimplement, each applied to a copy of the real source.
         var source = File.ReadAllText(ResolveRepositoryFile(ViewModelPath));
+        var runner = File.ReadAllText(ResolveRepositoryFile(RunnerProcessPath));
 
         var ownProcess = source.Replace(
             "ExecuteRunnerAsync(\"Benchmark runner\"",
             "System.Diagnostics.Process.Start(\"Benchmark runner\"", StringComparison.Ordinal);
         Assert.NotEqual(source, ownProcess);
-        Assert.NotEmpty(CouplingProblems(ownProcess));
+        Assert.NotEmpty(CouplingProblems(ownProcess, runner));
 
         var secondExecutor = source + "\n    private static void Other() { var s = new System.Diagnostics.ProcessStartInfo(\"x\") { RedirectStandardOutput = true }; }\n";
-        Assert.NotEmpty(CouplingProblems(secondExecutor));
+        Assert.NotEmpty(CouplingProblems(secondExecutor, runner));
     }
 
-    private static List<string> CouplingProblems(string source)
+    private static List<string> CouplingProblems(string viewModel, string runnerProcess)
     {
         var problems = new List<string>();
 
-        // The three commands, and the method each must go through.
+        // The three commands, and the method each must go through; the executor goes through RunnerProcess.
         foreach (var (command, callee) in new[]
                  {
                      ("RunSelfCheckAsync", "RunConsoleRunnerAsync("),
                      ("RunGuiE2EAsync", "RunConsoleRunnerAsync("),
                      ("RunBenchmarkAsync", "ExecuteRunnerAsync("),
                      ("RunConsoleRunnerAsync", "ExecuteRunnerAsync("),
+                     ("ExecuteRunnerAsync", "RunnerProcess.Run("),
                  })
         {
-            var body = MethodBody(source, command);
+            var body = MethodBody(viewModel, command);
             if (body is null) problems.Add($"{command} was not found");
             else if (!body.Contains(callee, StringComparison.Ordinal)) problems.Add($"{command} does not call {callee}");
         }
 
-        // And nothing else in the file starts a redirected child process: exactly one place does.
-        var starts = Regex.Matches(source, @"RedirectStandardOutput\s*=\s*true").Count;
-        if (starts != 1) problems.Add($"{starts} places start a redirected process (expected exactly 1: RunProcess)");
+        // And nothing else starts a redirected child process: the view model none, RunnerProcess exactly one.
+        var inViewModel = Regex.Matches(viewModel, @"RedirectStandardOutput\s*=\s*true").Count;
+        if (inViewModel != 0) problems.Add($"{inViewModel} place(s) in the view model start a redirected process (expected 0: RunnerProcess does)");
 
-        var runProcess = MethodBody(source, "RunProcess");
-        if (runProcess is null || !runProcess.Contains("RedirectStandardOutput", StringComparison.Ordinal))
-            problems.Add("RunProcess is not the one that starts the process");
+        var inRunner = Regex.Matches(runnerProcess, @"RedirectStandardOutput\s*=\s*true").Count;
+        if (inRunner != 1) problems.Add($"{inRunner} places in RunnerProcess start a redirected process (expected exactly 1)");
 
         return problems;
     }
 
     /// <summary>The text between the braces of the first method with this name, or null. Counts braces; the bodies it is used on contain no braces in strings.</summary>
-    private static string? MethodBody(string source, string name)
+    internal static string? MethodBody(string source, string name)
     {
         var declaration = Regex.Match(source, $@"\b{name}\s*\([^)]*\)\s*(\r?\n\s*)?\{{");
         if (!declaration.Success) return null;
@@ -242,7 +246,7 @@ public sealed class BenchmarkRunnerServiceTests : IDisposable
         return null;
     }
 
-    private static string ResolveRepositoryFile(string relativePath)
+    internal static string ResolveRepositoryFile(string relativePath)
     {
         var native = relativePath.Replace('/', Path.DirectorySeparatorChar);
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

@@ -1,0 +1,3 @@
+# GUI-C-180 — python mirror: quotes that exist only inside source comments (whole-line // and /* */ stripped), measured before the same stripping was added to the C# test
+
+spans: 102 | found only inside comments (not in code): 0
