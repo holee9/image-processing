@@ -1315,7 +1315,9 @@ public sealed class MainWindowViewModel : ObservableObject
 
     /// <summary>The reason a ticket is no longer current, for the log: a newer Apply started, or the backend was shut down or replaced.</summary>
     private string WhyStale(BackendTicket ticket) =>
-        Lifecycle.IsSuperseded(ticket) ? "a newer Apply started meanwhile." : "the backend was shut down or replaced meanwhile.";
+        Lifecycle.IsSuperseded(ticket)
+            ? $"a newer Apply started meanwhile (this one was request {ticket.Request}, the newest is {Lifecycle.Request})."
+            : $"the backend was shut down or replaced meanwhile (request {ticket.Request}, newest {Lifecycle.Request}, generation {ticket.Generation} of {Lifecycle.Generation}).";
 
     private bool IsCurrent(BackendTicket ticket) => Lifecycle.IsCurrent(ticket, _backend);
 

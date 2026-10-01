@@ -55,7 +55,8 @@
 ## 4. 미검증
 
 1. **E2E 로 두 Apply 가 겹치는 경우는 관측하지 않았다.** 겹침은 SelfCheck 의 실제 뷰모델 + 스크립트 백엔드에서만 만들었다. UI 자동화로 연속 Apply 를 눌러 같은 결과가 나오는지는 보지 않았다.
-2. **Mock E2E 건너뜀이 7 → 8 로 늘었다.** 새로 건너뛴 것은 `A04_SelfCheck_ActuallyRuns…` 이고 사유는 "앱 옆에 `ImageProcTest.SelfCheck.exe` 가 없다"(그 테스트가 정한 정상 건너뜀; 같은 출력에 `Passed=True`). 직전 GUI-C-189 실행에서는 통과였다. 왜 이번엔 옆에 없었는지 **원인은 확인하지 않았다**(내 반증 팔이 빌드 산출물을 다시 만든 것이 후보이나 입증하지 않았다). 이 카드의 코드와 직접 이어진다는 근거는 없다. CI 의 `gui-shell-runners` 가 SelfCheck 를 직접 돌린다.
+2. **[정정됨 — GUI-C-190b, 아래 "원인 미확인" 은 틀렸다.]** 원인은 이 카드의 SelfCheck 시나리오 4개가 러너를 9.3–10.7 초 → 17.5–17.7 초로 늘려 앱의 15 초 대기(`MainWindow.xaml.cs`, 250 ms × 60)를 넘긴 것이다. "앱 옆에 SelfCheck.exe 없음"은 `VerdictOrSkip` 의 일반 문구였고 실제 상태줄은 `Running Self-check…` 였다. 근거와 수정: `.moai/reports/lane-gui/GUI-C-190b/report.md`. 아래는 당시 기록 그대로다.
+   **Mock E2E 건너뜀이 7 → 8 로 늘었다.** 새로 건너뛴 것은 `A04_SelfCheck_ActuallyRuns…` 이고 사유는 "앱 옆에 `ImageProcTest.SelfCheck.exe` 가 없다"(그 테스트가 정한 정상 건너뜀; 같은 출력에 `Passed=True`). 직전 GUI-C-189 실행에서는 통과였다. 왜 이번엔 옆에 없었는지 **원인은 확인하지 않았다**(내 반증 팔이 빌드 산출물을 다시 만든 것이 후보이나 입증하지 않았다). 이 카드의 코드와 직접 이어진다는 근거는 없다. CI 의 `gui-shell-runners` 가 SelfCheck 를 직접 돌린다.
 3. 같은 백엔드에서 *세 개 이상*의 Apply 가 겹치는 경우나, Apply 가 `ApplyBodyPartPreset`·로드 경로에서 연쇄로 시작되는 경우는 시나리오로 만들지 않았다(구조상 같은 `ApplyDisplayPipelineAsync` 를 지나므로 같은 번호 규칙이 적용된다는 읽기일 뿐).
 4. 옛 Apply 의 *시작 효과*(상태 줄 "Applying display pipeline…" 같은 시작 문구)는 B 가 시작되면서 덮어쓰므로 이 카드의 대상이 아니다. 옛 요청이 끝난 뒤 B 가 아직 진행 중이면 화면은 B 의 시작 문구를 보인다는 것도 시험으로 단언하지 않았다.
 

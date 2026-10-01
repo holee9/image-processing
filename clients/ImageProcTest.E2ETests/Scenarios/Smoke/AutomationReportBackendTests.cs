@@ -100,8 +100,7 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
 
         var status = report.GetProperty("SelfCheckStatus").GetString() ?? string.Empty;
         var verdict = VerdictOrSkip(report, "SelfCheckPassed", "self-check", "ImageProcTest.SelfCheck", status);
-        Assert.True(verdict,
-            $"The self-check did not pass: '{status}'.");
+        Assert.True(verdict, RunnerVerdictWording.Failed("self-check", status));
         Assert.Contains("passed", status, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -184,8 +183,7 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
 
         var status = report.GetProperty("GuiE2EStatus").GetString() ?? string.Empty;
         var verdict = VerdictOrSkip(report, "GuiE2EPassed", "GUI E2E", "ImageProcTest.E2E", status);
-        Assert.True(verdict,
-            $"The GUI E2E runner did not pass when launched from the app: '{status}'.");
+        Assert.True(verdict, RunnerVerdictWording.Failed("GUI E2E", status));
         Assert.Contains("passed", status, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -709,11 +707,9 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
         var present = report.TryGetProperty(property, out var value) &&
                       value.ValueKind is JsonValueKind.True or JsonValueKind.False;
 
-        Skip.IfNot(present,
-            $"The app reported no {label} verdict ({property} is null), which means the command did not " +
-            $"run: this configuration has no {runnerProject} executable beside the app — the " +
-            "gui-automation CI job builds gui/ImageProcTest only, which is normal. The app's status " +
-            $"line said: '{status}'.");
+        // GUI-C-190b: ONE sentence used to cover every missing verdict ("no executable beside the app"), and a runner that had grown
+        // past the app's wait for it was read as that. The text now follows the status line (RunnerVerdictWording).
+        Skip.IfNot(present, RunnerVerdictWording.NoVerdict(label, runnerProject, status));
 
         return value.GetBoolean();
     }

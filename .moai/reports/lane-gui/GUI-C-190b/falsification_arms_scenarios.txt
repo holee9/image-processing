@@ -1,0 +1,63 @@
+ARM the-lifetime-ignores-the-request-number: build_ok=True selfcheck_exit=3762504530
+    [4 older Apply finishes last (main chain, succeeds)] timed out waiting for: A's late outcome to be recognised as stale
+    [4 older Apply finishes last (main chain, succeeds)] the older Apply replaced the main image [screen: processed=21aefdb laneA=21aefdb laneB=a16c73 laneBStale=True; last l
+    [4 older Apply finishes last (main chain, succeeds)] the older Apply replaced or erased the lanes [screen: processed=21aefdb laneA=21aefdb laneB=a16c73 laneBStale=True; l
+    [4 older Apply finishes last (main chain, succeeds)] the older Apply put its own Lane B settings back (the lanes no longer match the settings on screen) [screen: processe
+    [4 older Apply finishes last (main chain, succeeds)] the older Apply wrote its timing line
+    [4 older Apply finishes last (main chain, succeeds)] the older Apply started more work after B (chain calls 5 -> 6)
+    [4 older Apply finishes last (main chain, fails)] timed out waiting for: A's late outcome to be recognised as stale
+    [4 older Apply finishes last (main chain, fails)] the status line changed ('chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested | MOCK Calibr
+    [4 older Apply finishes last (main chain, fails)] the older Apply's failure raised an alert
+    [4 older Apply finishes last (main chain, fails)] the older Apply's failure marked the preview stale
+    [4 older Apply finishes last (Lane B, succeeds)] timed out waiting for: A's late outcome to be recognised as stale
+    [4 older Apply finishes last (Lane B, succeeds)] the older Apply replaced or erased the lanes [screen: processed=2429c9b laneA=2429c9b laneB=814b2d laneBStale=True; last
+    [4 older Apply finishes last (Lane B, succeeds)] the older Apply put its own Lane B settings back (the lanes no longer match the settings on screen) [screen: processed=24
+    [4 older Apply finishes last (Lane B, succeeds)] the older Apply wrote its timing line
+    [4 older Apply finishes last (Lane B, fails)] timed out waiting for: A's late outcome to be recognised as stale
+    [4 older Apply finishes last (Lane B, fails)] the older Apply replaced or erased the lanes [screen: processed=2797ed9 laneA=null laneB=null laneBStale=False; last logs: [
+    [4 older Apply finishes last (Lane B, fails)] the older Apply wrote its timing line
+    unit exit: 1 ['실패!  - 실패:     1, 통과:    15, 건너뜀:     0, 전체:    16, 기간: 306 ms - ImageProcTest.IntegrationTests.dll (net8.0)'] BackendLifecycleTests.AnApplyThatStartedEarlier_IsStaleOnceANewerApplyStarted_OnTheSameBackendAndGeneration [< 1 ms]
+    restored byte-identical: True
+ARM an-apply-takes-no-request-number: build_ok=True selfcheck_exit=3762504530
+    [4 older Apply finishes last (main chain, succeeds)] timed out waiting for: A's late outcome to be recognised as stale
+    [4 older Apply finishes last (main chain, succeeds)] the older Apply replaced the main image [screen: processed=21aefdb laneA=21aefdb laneB=a16c73 laneBStale=True; last l
+    [4 older Apply finishes last (main chain, succeeds)] the older Apply replaced or erased the lanes [screen: processed=21aefdb laneA=21aefdb laneB=a16c73 laneBStale=True; l
+    [4 older Apply finishes last (main chain, succeeds)] the older Apply put its own Lane B settings back (the lanes no longer match the settings on screen) [screen: processe
+    [4 older Apply finishes last (main chain, succeeds)] the older Apply wrote its timing line
+    [4 older Apply finishes last (main chain, succeeds)] the older Apply started more work after B (chain calls 5 -> 6)
+    [4 older Apply finishes last (main chain, fails)] timed out waiting for: A's late outcome to be recognised as stale
+    [4 older Apply finishes last (main chain, fails)] the status line changed ('chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested | MOCK Calibr
+    [4 older Apply finishes last (main chain, fails)] the older Apply's failure raised an alert
+    [4 older Apply finishes last (main chain, fails)] the older Apply's failure marked the preview stale
+    [4 older Apply finishes last (Lane B, succeeds)] timed out waiting for: A's late outcome to be recognised as stale
+    [4 older Apply finishes last (Lane B, succeeds)] the older Apply replaced or erased the lanes [screen: processed=2429c9b laneA=2429c9b laneB=814b2d laneBStale=True; last
+    [4 older Apply finishes last (Lane B, succeeds)] the older Apply put its own Lane B settings back (the lanes no longer match the settings on screen) [screen: processed=24
+    [4 older Apply finishes last (Lane B, succeeds)] the older Apply wrote its timing line
+    [4 older Apply finishes last (Lane B, fails)] timed out waiting for: A's late outcome to be recognised as stale
+    [4 older Apply finishes last (Lane B, fails)] the older Apply replaced or erased the lanes [screen: processed=2797ed9 laneA=null laneB=null laneBStale=False; last logs: [
+    [4 older Apply finishes last (Lane B, fails)] the older Apply wrote its timing line
+    restored byte-identical: True
+ARM the-lane-b-result-is-not-checked-before-it-is-applied: build_ok=True selfcheck_exit=3762504530
+    [3b stale succeeding Lane B] timed out waiting for: the stale success to be dropped
+    [3b stale succeeding Lane B] a stale lane success replaced Lane B after the shutdown [screen: processed=ece4d8 laneA=ece4d8 laneB=322591f laneBStale=False; last logs: [03
+    [4 older Apply finishes last (Lane B, succeeds)] timed out waiting for: A's late outcome to be recognised as stale
+    [4 older Apply finishes last (Lane B, succeeds)] the older Apply replaced or erased the lanes [screen: processed=2429c9b laneA=2429c9b laneB=814b2d laneBStale=True; last
+    [4 older Apply finishes last (Lane B, succeeds)] the older Apply put its own Lane B settings back (the lanes no longer match the settings on screen) [screen: processed=24
+    restored byte-identical: True
+ARM the-main-result-is-not-checked-before-it-is-applied: build_ok=True selfcheck_exit=3762504530
+    [1 started Apply vs shutdown] timed out waiting for: the held Apply's result to be dropped
+    [1 started Apply vs shutdown] the held Apply's result was applied after the shutdown began
+    [1 started Apply vs shutdown] the drop was not logged
+    [4 older Apply finishes last (main chain, succeeds)] timed out waiting for: A's late outcome to be recognised as stale
+    [4 older Apply finishes last (main chain, succeeds)] the older Apply replaced the main image [screen: processed=21aefdb laneA=a16c73 laneB=3c3973b laneBStale=False; last
+    restored byte-identical: True
+ARM a-stale-lane-failure-erases-the-lanes: build_ok=True selfcheck_exit=3762504530
+    [3 stale failing Lane B] timed out waiting for: the old lane task's outcome to be logged
+    [3 stale failing Lane B] a stale lane failure erased or replaced the new lanes (before: laneA=5621b9 laneB=694b1a) [screen: processed=5621b9 laneA=null laneB=null laneBSt
+    [3 stale failing Lane B] the stale failure was not recognised as stale
+    [4 older Apply finishes last (Lane B, fails)] timed out waiting for: A's late outcome to be recognised as stale
+    [4 older Apply finishes last (Lane B, fails)] the older Apply replaced or erased the lanes [screen: processed=2797ed9 laneA=null laneB=null laneBStale=False; last logs: [
+    restored byte-identical: True
+AFTER RESTORE: build_ok True selfcheck_exit 0 ['Lifetime scenarios passed (9 scenarios).', 'GUI-S0 self-check passed.']
+unit: 0 ['통과!  - 실패:     0, 통과:    16, 건너뜀:     0, 전체:    16, 기간: 170 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+sources: 613afadb2f94 4fe7b89e2e33

@@ -1,0 +1,22 @@
+ARM a-running-runner-is-classified-as-no-executable: exit=1 built_ok=True
+   ['실패!  - 실패:     2, 통과:     6, 건너뜀:     0, 전체:     8, 기간: 30 ms - ImageProcTest.E2ETests.dll (net8.0)']
+   red: RunnerVerdictWordingTests.ARunnerStillRunning_IsSaidAsNotAMissingExecutable_WhichIsTheCaseThatWasMisread [4 ms]
+   red: RunnerVerdictWordingTests.TheFourCauses_AreFourDifferentTexts [1 ms]
+   restored byte-identical: True
+ARM the-old-single-sentence-for-every-gap: exit=1 built_ok=True
+   ['실패!  - 실패:     4, 통과:     4, 건너뜀:     0, 전체:     8, 기간: 24 ms - ImageProcTest.E2ETests.dll (net8.0)']
+   red: RunnerVerdictWordingTests.ARunnerStillRunning_IsSaidAsNotAMissingExecutable_WhichIsTheCaseThatWasMisread [4 ms]
+   red: RunnerVerdictWordingTests.AnExecutableThatCouldNotBeStarted_IsSaidAsSuch [< 1 ms]
+   red: RunnerVerdictWordingTests.TheFourCauses_AreFourDifferentTexts [2 ms]
+   red: RunnerVerdictWordingTests.AStatusNoOneRecognises_IsSaidAsUnknown_NotAsAnyOfTheOthers [< 1 ms]
+   restored byte-identical: True
+ARM the-failed-text-loses-the-status: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:     7, 건너뜀:     0, 전체:     8, 기간: 18 ms - ImageProcTest.E2ETests.dll (net8.0)']
+   red: RunnerVerdictWordingTests.ARunnerThatRanAndFailed_IsSaidAsFailed_AndCarriesTheStatus [1 ms]
+   restored byte-identical: True
+ARM the-app-renames-its-running-status-line: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:     7, 건너뜀:     0, 전체:     8, 기간: 35 ms - ImageProcTest.E2ETests.dll (net8.0)']
+   red: RunnerVerdictWordingTests.TheSamplesAreTheAppsOwnStatusLines [17 ms]
+   restored byte-identical: True
+AFTER RESTORE: 0 True ['통과!  - 실패:     0, 통과:     8, 건너뜀:     0, 전체:     8, 기간: 15 ms - ImageProcTest.E2ETests.dll (net8.0)']
+sources: e5a9febc36b8 613afadb2f94
