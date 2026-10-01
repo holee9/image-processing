@@ -1,0 +1,12 @@
+[cold-start] budget 5000 ms, build=full, model_dir=<scratch>/ballast_1mb, model_file=1048718 bytes
+[cold-start] start  min=31 median=31 max=47 ms over 10 cold starts
+[cold-start] first  min=31 median=32 max=47 ms over 10 cold starts
+[cold-start] total  min=62 median=63 max=79 ms over 10 cold starts
+[cold-start] budget 5000 ms, build=full, model_dir=<scratch>/ballast_25mb, model_file=26214546 bytes
+[cold-start] start  min=16 median=32 max=687 ms over 10 cold starts
+[cold-start] first  min=46 median=47 max=62 ms over 10 cold starts
+[cold-start] total  min=78 median=93 max=734 ms over 10 cold starts
+[cold-start] budget 5000 ms, build=full, model_dir=<scratch>/ballast_100mb, model_file=104857746 bytes
+[cold-start] start  min=31 median=31 max=47 ms over 10 cold starts
+[cold-start] first  min=78 median=93 max=94 ms over 10 cold starts
+[cold-start] total  min=109 median=125 max=141 ms over 10 cold starts

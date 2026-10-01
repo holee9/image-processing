@@ -26,6 +26,15 @@
 #include "xpe/ai/ai_api.h"
 #include "xpe/ai/ai_worker_protocol.h"
 #include "xpe/ai/ai_onnx_session.h"
+#include "ai_worker_supervisor.h"
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
 
 #include <cstdint>
 #include <cstring>
@@ -113,6 +122,28 @@ struct AiModuleState {
      *  different directory does not silently keep serving the old model. */
     std::string boneSuppressSessionDir;
 
+    /**
+     * Opt-in (QA-B-171C): route xpe_bone_suppress through the worker process. Default OFF -- the
+     * in-process path is the behaviour every caller had before and stays the default.
+     */
+    bool useWorker{false};
+
+    /**
+     * Owns the worker process when useWorker is set (QA-B-171B). Created lazily on the first call that
+     * needs it, so init stays cheap and a caller that never infers never starts a process. Destroyed
+     * in xpe_ai_shutdown, which ends the worker: no process outlives the module.
+     */
+    std::unique_ptr<xpe::ai::WorkerSupervisor> workerSupervisor;
+
+    /**
+     * Consecutive failures of the worker path (QA-B-171C policy, user-approved 2026-10-01,
+     * docs/project/REQ-CHANGE-LOG-P3-AI.md rows 2 and 3). A success resets it to 0.
+     */
+    uint32_t workerConsecutiveFailures{0};
+
+    /** Set at kWorkerFailureCeiling consecutive failures: the worker is off for the rest of the session. */
+    bool workerDisabled{false};
+
     // --- Worker process state ---
     /** PID of the worker process (0 if not running). */
     uint32_t workerPid{0};
@@ -184,11 +215,18 @@ static XpeErrorCode validateImageBuffer(const XpeImageBuffer* img) {
         uint32_t bpp = 0u;
         if (img->format == XPE_PIXEL_UINT16)       bpp = 2u;
         else if (img->format == XPE_PIXEL_FLOAT32) bpp = 4u;
-        if (bpp != 0u && img->dataSize != 0u) {
-            const uint64_t required = static_cast<uint64_t>(img->width) *
-                                      static_cast<uint64_t>(img->height) *
-                                      static_cast<uint64_t>(bpp);
-            if (static_cast<uint64_t>(img->dataSize) < required) {
+        if (bpp != 0u) {
+            // width * height cannot overflow 64 bits (each is below 2^32); width * height * bpp CAN:
+            // 2^31 x 2^31 x 4 is 2^64, which is 0, and a required size of 0 is satisfied by any dataSize
+            // (Codex audit #12). So the product is bounded by DIVISION first. The bound is the module
+            // maximum applied to the DECLARED image, whatever dataSize says: dimensions that imply more
+            // than 4096 x 4096 x 4 bytes cannot describe a valid buffer, and "unspecified" (dataSize 0)
+            // is not a licence to trust them.
+            const uint64_t pixels = static_cast<uint64_t>(img->width) *
+                                    static_cast<uint64_t>(img->height);
+            if (pixels > static_cast<uint64_t>(maxBytes) / bpp) return XPE_ERR_INVALID_INPUT;
+            const uint64_t required = pixels * bpp;
+            if (img->dataSize != 0u && static_cast<uint64_t>(img->dataSize) < required) {
                 return XPE_ERR_INVALID_INPUT;
             }
         }
@@ -234,6 +272,11 @@ static void parseConfig(AiModuleState* state, const char* configJsonOrNull) {
                                    std::memory_order_release);
     }
 
+    // QA-B-171C: opt-in worker path for xpe_bone_suppress. Absent or false leaves the in-process path.
+    if (cfg.contains("use_worker") && cfg["use_worker"].is_boolean()) {
+        state->useWorker = cfg["use_worker"].get<bool>();
+    }
+
     // #145 (QA-B-60): name the top-level keys this parser did not consume.
     //
     // Every key above is read conditionally, so a caller's typo -- or a key
@@ -249,7 +292,8 @@ static void parseConfig(AiModuleState* state, const char* configJsonOrNull) {
     // this is for.
     if (cfg.is_object()) {
         static const char* const kKnownKeys[] = {
-            "execution_provider", "timeout_ms", "confidence_threshold", "fallback_mode"
+            "execution_provider", "timeout_ms", "confidence_threshold", "fallback_mode",
+            "use_worker"
         };
         for (auto it = cfg.begin(); it != cfg.end(); ++it) {
             bool known = false;
@@ -261,7 +305,8 @@ static void parseConfig(AiModuleState* state, const char* configJsonOrNull) {
                 ((it.key() == "execution_provider"   && it.value().is_string()) ||
                  (it.key() == "timeout_ms"           && it.value().is_number_integer()) ||
                  (it.key() == "confidence_threshold" && it.value().is_number()) ||
-                 (it.key() == "fallback_mode"        && it.value().is_boolean()));
+                 (it.key() == "fallback_mode"        && it.value().is_boolean()) ||
+                 (it.key() == "use_worker"           && it.value().is_boolean()));
             if (!consumed) {
                 char msg[192];
                 std::snprintf(msg, sizeof(msg),
@@ -282,6 +327,15 @@ static void parseConfig(AiModuleState* state, const char* configJsonOrNull) {
         if (colon) {
             int val = std::atoi(colon + 1);
             if (val > 0) state->timeoutMs = static_cast<uint32_t>(val);
+        }
+    }
+    const char* workerKey = std::strstr(configJsonOrNull, "\"use_worker\"");
+    if (workerKey) {
+        const char* colon = std::strchr(workerKey, ':');
+        if (colon) {
+            ++colon;
+            while (*colon == ' ') ++colon;
+            state->useWorker = std::strncmp(colon, "true", 4) == 0;
         }
     }
     AI_LOG_INFO("Config parsed (minimal parser, nlohmann/json not linked)");
@@ -308,6 +362,81 @@ static std::string buildStubModelCard(const std::string& modelId) {
         "\"training_data_hash\":\"N/A\","
         "\"validation_metrics\":{\"psnr\":0.0,\"ssim\":0.0}"
     "}";
+}
+
+/**
+ * @brief Path of xpe_ai_worker.exe: the directory of THIS module, never PATH or the working directory.
+ *
+ * Deployment contract (QA-B-171C): the worker ships beside xpe_ai.dll. Looking anywhere else would
+ * let a different executable answer to the worker's name in a process that handles patient images, so
+ * if this module's own path cannot be read the answer is "none" and the worker path fails (reported,
+ * and replaced by the in-process result) instead of searching.
+ */
+static std::string workerExePath() {
+    HMODULE self = nullptr;
+    if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                                GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                            reinterpret_cast<LPCSTR>(&workerExePath), &self)) {
+        return std::string();
+    }
+    char buf[MAX_PATH * 2] = {0};
+    const DWORD n = GetModuleFileNameA(self, buf, static_cast<DWORD>(sizeof(buf)));
+    if (n == 0 || n >= sizeof(buf)) return std::string();
+    const std::string path(buf, n);
+    const size_t cut = path.find_last_of("\\/");
+    if (cut == std::string::npos) return std::string();
+    return path.substr(0, cut + 1) + "xpe_ai_worker.exe";
+}
+
+// Every image validateImageBuffer accepts (at most 4096 x 4096 x 4 bytes) must fit ONE worker request
+// together with its length prefix and metadata (ai_ipc_bridge.cpp reserves 512 bytes for those). With
+// that true the worker path needs no size exception of its own: the validator is the only gate, and
+// there is no accepted image the worker path cannot carry (Codex audit #13).
+static_assert(static_cast<size_t>(4096) * 4096 * 4 + 512u <= static_cast<size_t>(XPE_AI_MAX_PAYLOAD_SIZE),
+              "the module maximum image must fit one worker message");
+
+/**
+ * @brief xpe_bone_suppress through the worker process (opt-in). Caller holds state->mtx.
+ *
+ * The result is written into @p out ONLY on success (the bridge copies pixels after it has checked
+ * the reply), so a failed call leaves @p out untouched; the caller then fills it with the input
+ * (the deterministic fallback), never with a half-written reply.
+ */
+static XpeErrorCode boneSuppressViaWorker(AiModuleState* state, const XpeImageBuffer* in,
+                                          XpeImageBuffer* out) {
+    try {
+        if (!state->workerSupervisor) {
+            xpe::ai::WorkerSupervisorConfig cfg;
+            cfg.worker_exe = workerExePath();
+            if (cfg.worker_exe.empty()) return XPE_ERR_IO_FAILED;
+            cfg.model_dir = state->modelDirPath;
+            // A budget of 0 would fail every call before the worker could answer; the requirement's
+            // default applies instead.
+            cfg.timeout_ms = state->timeoutMs != 0 ? state->timeoutMs : XPE_AI_DEFAULT_TIMEOUT_MS;
+            state->workerSupervisor = std::make_unique<xpe::ai::WorkerSupervisor>(std::move(cfg));
+        }
+        return state->workerSupervisor->BoneSuppress(in->width, in->height,
+                                                     static_cast<const float*>(in->data),
+                                                     static_cast<float*>(out->data));
+    } catch (...) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    }
+}
+
+/**
+ * Consecutive worker-path failures after which the worker is switched off for the session.
+ *
+ * NOT derived from the requirements, which give no number (REQ-AI-092 says "fallback and alert"; the
+ * SDD says "restart worker"). It is the value the user approved on 2026-10-01 after the measurement that
+ * motivated it: a worker that hangs on start costs the whole time budget plus about 250 ms on EVERY call,
+ * and a fault that repeats every call fills the 64-entry alert queue and evicts unrelated warnings.
+ * Recorded in docs/project/REQ-CHANGE-LOG-P3-AI.md, rows 2 and 3 (row 3 replaced row 2's alert rule).
+ */
+static constexpr uint32_t kWorkerFailureCeiling = 3;
+
+/** SRS-ALERT-004: DL processing was applied (Info). One place, so both paths say the same thing. */
+static void pushAiProcessedAlert() {
+    xpe_alert_push("AI-processed: bone suppression applied (SRS-ALERT-004)", XPE_ALERT_INFO);
 }
 
 /* ==========================================================================
@@ -397,6 +526,9 @@ XPE_API void xpe_ai_shutdown(void)
     // still runs while the object it belongs to is intact.
     state->boneSuppressSession.reset();
     state->boneSuppressSessionDir.clear();
+
+    // QA-B-171C: ends the worker (graceful, then terminate): nothing outlives the module.
+    state->workerSupervisor.reset();
 
     state->loadedModels.clear();
     state->modelDirPath.clear();
@@ -598,14 +730,88 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
     auto* state = g_aiState;
     if (!state) return XPE_ERR_NOT_INITIALIZED;
 
-    const size_t count = static_cast<size_t>(img->width) * img->height;
-    if (count == 0) return XPE_ERR_INVALID_INPUT;
-    if (img->dataSize < count * sizeof(float) ||
-        softTissueOut->dataSize < count * sizeof(float)) {
+    // The declared size, computed ONCE and overflow-checked; the buffer checks below and every copy use
+    // this same number (Codex audit #12). width and height are each below 2^32, so their product fits
+    // 64 bits; it is the BYTE count that can wrap, so the pixel count is bounded by division first.
+    // (xpe_ai validateImageBuffer already refuses an image above the module maximum; this is the
+    // function's own guarantee, and it holds without it.)
+    const uint64_t pixels = static_cast<uint64_t>(img->width) * img->height;
+    if (pixels == 0 || pixels > SIZE_MAX / sizeof(float)) return XPE_ERR_INVALID_INPUT;
+    const size_t count = static_cast<size_t>(pixels);
+    const size_t bytes = count * sizeof(float);
+    if (img->dataSize < bytes || softTissueOut->dataSize < bytes) {
         return XPE_ERR_INVALID_INPUT;
     }
 
     std::lock_guard<std::mutex> lock(state->mtx);
+
+    // QA-B-171C (REQ-AI-092, REQ-AI-002, SDD-002 "AI worker failure -> return input unchanged"):
+    // opt-in worker path. A failure of any kind -- budget exceeded, a worker that died or went silent,
+    // an answer that was not one -- returns the INPUT, unchanged, with a non-OK code.
+    //
+    // WHY THE INPUT AND NOT THE IN-PROCESS RESULT. REQ-AI-003 runs inference in a separate process so
+    // the main process is crash-immune. A worker that failed because of the MODEL would, re-run
+    // in-process, bring that same risk into the process the isolation exists to protect. The
+    // fallback is deterministic and cannot crash: copy the input. (The first draft of this card re-ran
+    // the inference in-process; that was corrected.)
+    //
+    // THE RETURN CODE. XPE_OK is documented as "the AI succeeded" (ONNX build only), so a failed call
+    // never returns it: the worker's own error code (or the transport's) is returned, which is the
+    // documented signal to use the original image (REQ-AI-002). The copy is for a caller that uses
+    // the output buffer anyway: it holds the input, never stale or half-written pixels.
+    //
+    // WHAT COUNTS (leader decision, Codex audit #12): EVERY non-OK result of the worker path counts toward
+    // the ceiling, including an ERROR frame that a perfectly HEALTHY worker sent on purpose because the
+    // model refused the request. A model that refuses three times in a row means AI is unusable for this
+    // session, and counting such refusals separately would bring back an unbounded alert stream. A healthy
+    // worker whose model keeps failing is therefore switched off after 3; xpe_ai_shutdown() followed by
+    // xpe_ai_init() recovers it.
+    //
+    // THE POLICY AROUND IT (user-approved 2026-10-01, REQ-CHANGE-LOG-P3-AI.md row 3, which replaced
+    // row 2): EVERY failure raises one Warning alert -- a budget overrun must alert, REQ-AI-092 -- and
+    // after kWorkerFailureCeiling CONSECUTIVE failures the worker is switched off for the rest of the
+    // session: its process is ended, the alert of that last failure says so, and later calls return the
+    // input at once, without starting a worker and WITHOUT further alerts, with
+    // XPE_ERR_PROCESSING_FAILED (the documented fallback signal). So a run of CONSECUTIVE failures raises
+    // kWorkerFailureCeiling alerts and then stops; there is no per-session cap: a success resets the count,
+    // so intermittent failures (fail, fail, succeed, ...) are never blocked and alert on EVERY failure.
+    // xpe_ai_shutdown/xpe_ai_init begin a new session with a clean count.
+    if (state->useWorker) {
+        if (state->workerDisabled) {
+            std::memmove(softTissueOut->data, img->data, bytes);
+            return XPE_ERR_PROCESSING_FAILED;
+        }
+        const XpeErrorCode wrc = boneSuppressViaWorker(state, img, softTissueOut);
+        if (wrc == XPE_OK) {
+            state->workerConsecutiveFailures = 0;
+            pushAiProcessedAlert();
+            return XPE_OK;
+        }
+        std::memmove(softTissueOut->data, img->data, bytes);
+        ++state->workerConsecutiveFailures;
+        AI_LOG_WARN("bone_suppress: worker path failed (%d), input returned unchanged "
+                    "(%u of %u consecutive failures)",
+                    static_cast<int>(wrc), static_cast<unsigned>(state->workerConsecutiveFailures),
+                    static_cast<unsigned>(kWorkerFailureCeiling));
+        char msg[256];
+        if (state->workerConsecutiveFailures >= kWorkerFailureCeiling) {
+            state->workerDisabled = true;
+            state->workerSupervisor.reset();   // ends the worker process
+            std::snprintf(msg, sizeof(msg),
+                          "AI worker failed (code %d, failure %u of %u) and is disabled for this "
+                          "session: input images are returned unchanged (REQ-AI-002, REQ-AI-092)",
+                          static_cast<int>(wrc), static_cast<unsigned>(state->workerConsecutiveFailures),
+                          static_cast<unsigned>(kWorkerFailureCeiling));
+        } else {
+            std::snprintf(msg, sizeof(msg),
+                          "AI worker failed (code %d, failure %u of %u): the input image is returned "
+                          "unchanged (REQ-AI-002, REQ-AI-092)",
+                          static_cast<int>(wrc), static_cast<unsigned>(state->workerConsecutiveFailures),
+                          static_cast<unsigned>(kWorkerFailureCeiling));
+        }
+        xpe_alert_push(msg, XPE_ALERT_WARNING);
+        return wrc;
+    }
 
     const std::string modelPath = state->modelDirPath.empty()
         ? std::string("bone_suppress.onnx")
@@ -657,7 +863,7 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
         return XPE_ERR_PROCESSING_FAILED;
     }
 
-    std::memcpy(softTissueOut->data, out.value.data(), count * sizeof(float));
+    std::memcpy(softTissueOut->data, out.value.data(), bytes);
 
     // SRS-ALERT-004 (QA-B-168, #130): DL processing was applied -- Info,
     // "AI-processed".
@@ -672,15 +878,15 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
     // pin this position.
     //
     // WHY Info AND WHY HERE. SRS-ALERT-004 reads "DL processing 적용됨 / Info /
-    // AI-processed label" (XPE-SRS-001:102). SDD:874 used to attribute it to
-    // worker failure; that line was corrected to SRS-SAFE-008 in a3330d9 --
-    // failure is SAFE-008, success is ALERT-004. Severity settles it on its
-    // own: every failure row in the SRS alert table is Warning or Error.
+    // AI-processed label" (XPE-SRS-001:102). It is the DL-applied, i.e. SUCCESS,
+    // alert; a worker failure is not ALERT-004 (the failure alert cites
+    // REQ-AI-002 and REQ-AI-092, see the use_worker path above). Severity
+    // settles it on its own: every failure row in the SRS alert table is
+    // Warning or Error.
     //
     // The module raises it, not the GUI: all 20 product xpe_alert_push call
     // sites live under modules/ (QA-B-167), and clients/ only reads the queue.
-    xpe_alert_push("AI-processed: bone suppression applied (SRS-ALERT-004)",
-                   XPE_ALERT_INFO);
+    pushAiProcessedAlert();
     return XPE_OK;
 }
 

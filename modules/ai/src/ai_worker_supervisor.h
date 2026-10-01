@@ -8,8 +8,10 @@
  * so nothing could own its lifetime. The bridge (ai_ipc_bridge.cpp) now gives a
  * call a time budget (REQ-AI-092) and drops its connection after a fault -- but a
  * worker that stalled is still running, and the bridge stays down for ever.
- * SDD (XPE-SDD-002) ties "Worker crash -> process died -> Restart worker" to
- * SRS-SAFE-008 / HAZ-008; this class is that mitigation.
+ * SDD (XPE-SDD-002) lists "Worker crash -> process died -> Restart worker" as
+ * the mitigation for HAZ-008, with a requirement trace still to be settled;
+ * this class is that mitigation. The requirements it implements are REQ-AI-002
+ * and REQ-AI-092.
  *
  * POLICY (a supervisor policy, not a retry):
  *   - A fault during a call (budget exceeded, pipe broken, half transfer) fails

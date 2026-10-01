@@ -10,6 +10,8 @@
  *   (unset / "ok")  answers correctly
  *   "wrong_type"    answers a heartbeat with a frame of the wrong type (right request id)
  *   "wrong_id"      answers a heartbeat with the right type but someone else's request id
+ *   "no_pipe"       never creates its pipe: alive, and nobody can ever connect (a worker that hangs on start)
+ *   "exit_on_start" exits at once with code 7 (a worker that dies on start)
  *
  * It answers the session-start message correctly in every mode, so the supervisor reaches the heartbeat.
  * It exits 0 on a shutdown request, like the real worker.
@@ -58,6 +60,8 @@ std::string Mode() {
 int main(int argc, char** argv) {
     if (argc < 2) return 2;
     const std::string mode = Mode();
+    if (mode == "exit_on_start") return 7;
+    if (mode == "no_pipe") Sleep(INFINITE);
     g_pipe = CreateNamedPipeA(argv[1], PIPE_ACCESS_DUPLEX,
                               PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1,
                               XPE_AI_PIPE_BUFFER_SIZE, XPE_AI_PIPE_BUFFER_SIZE, 0, nullptr);

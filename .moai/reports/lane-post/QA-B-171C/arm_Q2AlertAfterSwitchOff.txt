@@ -1,0 +1,121 @@
+Note: Google Test filter = WorkerPathFixture.*
+[==========] Running 9 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 9 tests from WorkerPathFixture
+[ RUN      ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert
+[       OK ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert (28 ms)
+[ RUN      ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore
+[2026-10-01 18:31:04.290] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 18:31:04.290] [info] Creating ONNX session in STUB mode
+[2026-10-01 18:31:04.290] [error] bone_suppress: run failed: %s
+[2026-10-01 18:31:04.295] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 18:31:04.295] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 18:31:04.295] [info] Creating ONNX session in STUB mode
+[2026-10-01 18:31:04.295] [error] bone_suppress: run failed: %s
+[2026-10-01 18:31:04.300] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore (14 ms)
+[ RUN      ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(272): Skipped
+a stub worker has no model to run; see the stub-build test below
+
+[  SKIPPED ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll (4 ms)
+[ RUN      ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged
+[2026-10-01 18:31:04.309] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 18:31:04.309] [info] Creating ONNX session in STUB mode
+[2026-10-01 18:31:04.309] [error] bone_suppress: run failed: %s
+[2026-10-01 18:31:04.309] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 18:31:04.309] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 18:31:04.342] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 18:31:04.342] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged (40 ms)
+[ RUN      ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(324): Skipped
+needs a worker that can serve a model: full build only
+
+[  SKIPPED ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers (5 ms)
+[ RUN      ] WorkerPathFixture.EveryFailureAlertsAndTheThirdSwitchesTheWorkerOffForTheSession
+[2026-10-01 18:31:04.354] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 18:31:04.388] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 18:31:04.388] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 18:31:04.388] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(404): error: Expected equality of these values:
+  3
+  CountAlerts(kFailureNeedle)
+    Which is: 4
+call 4: no alert after the switch-off
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(404): error: Expected equality of these values:
+  3
+  CountAlerts(kFailureNeedle)
+    Which is: 5
+call 5: no alert after the switch-off
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(404): error: Expected equality of these values:
+  3
+  CountAlerts(kFailureNeedle)
+    Which is: 6
+call 6: no alert after the switch-off
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(404): error: Expected equality of these values:
+  3
+  CountAlerts(kFailureNeedle)
+    Which is: 7
+call 7: no alert after the switch-off
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(404): error: Expected equality of these values:
+  3
+  CountAlerts(kFailureNeedle)
+    Which is: 8
+call 8: no alert after the switch-off
+
+[2026-10-01 18:31:04.419] [info] xpe_ai shutdown: worker_pid=%u
+[  FAILED  ] WorkerPathFixture.EveryFailureAlertsAndTheThirdSwitchesTheWorkerOffForTheSession (69 ms)
+[ RUN      ] WorkerPathFixture.AFreshInitReEnablesTheWorker
+[2026-10-01 18:31:04.423] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 18:31:04.465] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 18:31:04.465] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 18:31:04.465] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 18:31:04.466] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 18:31:04.466] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 18:31:04.496] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 18:31:04.502] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.AFreshInitReEnablesTheWorker (85 ms)
+[ RUN      ] WorkerPathFixture.ASuccessResetsTheConsecutiveFailureCount
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(425): Skipped
+needs a worker that can succeed: full build only
+
+[  SKIPPED ] WorkerPathFixture.ASuccessResetsTheConsecutiveFailureCount (4 ms)
+[ RUN      ] WorkerPathFixture.AWorkerThatFailsOnEveryCallRaisesAtMostThreeAlertsAndKeepsOtherWarnings
+[2026-10-01 18:31:04.514] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 18:31:04.544] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 18:31:04.544] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 18:31:04.544] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[alert-volume] 80 failing calls: queue holds 64 alerts, 63 of them worker alerts, unrelated earlier warning still queued: NO (evicted)
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(476): error: Expected equality of these values:
+  3
+  worker_alerts
+    Which is: 63
+a session raises at most three worker alerts
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(477): error: Expected equality of these values:
+  1
+  unrelated
+    Which is: 0
+the failure flood evicted an unrelated warning
+
+[2026-10-01 18:31:04.545] [info] xpe_ai shutdown: worker_pid=%u
+[  FAILED  ] WorkerPathFixture.AWorkerThatFailsOnEveryCallRaisesAtMostThreeAlertsAndKeepsOtherWarnings (37 ms)
+[----------] 9 tests from WorkerPathFixture (289 ms total)
+
+[----------] Global test environment tear-down
+[==========] 9 tests from 1 test suite ran. (289 ms total)
+[  PASSED  ] 4 tests.
+[  SKIPPED ] 3 tests, listed below:
+[  SKIPPED ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll
+[  SKIPPED ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers
+[  SKIPPED ] WorkerPathFixture.ASuccessResetsTheConsecutiveFailureCount
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] WorkerPathFixture.EveryFailureAlertsAndTheThirdSwitchesTheWorkerOffForTheSession
+[  FAILED  ] WorkerPathFixture.AWorkerThatFailsOnEveryCallRaisesAtMostThreeAlertsAndKeepsOtherWarnings
+
+ 2 FAILED TESTS

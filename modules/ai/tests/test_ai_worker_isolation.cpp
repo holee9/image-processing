@@ -249,8 +249,11 @@ TEST_F(AiWorkerIsolationTest, TimeoutDefaultIsPositive) {
 }
 
 TEST_F(AiWorkerIsolationTest, MaxPayloadSizeIsReasonable) {
-    // Maximum payload should be 64 MB
-    EXPECT_EQ(XPE_AI_MAX_PAYLOAD_SIZE, 64u * 1024 * 1024);
+    // The purpose of the limit: the largest image the module accepts (4096 x 4096 float32 = 64 MiB)
+    // plus its length prefix and metadata must fit one message. A bare 64 MiB did not (Codex audit #13).
+    EXPECT_GE(static_cast<size_t>(XPE_AI_MAX_PAYLOAD_SIZE), static_cast<size_t>(4096) * 4096 * 4 + 512u);
+    EXPECT_LT(static_cast<size_t>(XPE_AI_MAX_PAYLOAD_SIZE), static_cast<size_t>(65) * 1024 * 1024)
+        << "the limit also bounds what a worker allocates on a header's say-so; keep it tight";
 }
 
 TEST_F(AiWorkerIsolationTest, PipeBufferSizeIsPositive) {

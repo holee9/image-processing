@@ -759,3 +759,74 @@ TEST(IpcDeadline, AnErrorFrameWithACodeOutsideTheErrorRangeDropsTheConnection) {
     ExpectErrorFrameDrops("{\"error_code\":-100000}", "far outside the XPE_ERR_* range");
     ExpectErrorFrameDrops("{\"error_code\":-9.5}", "not an integer");
 }
+
+// --- Codex audit #12 (low): an in-place call whose reply fails must leave the buffer intact ----------------
+//
+// pixels_in and pixels_out may be the same buffer. The request is copied into the payload before anything
+// is sent, so the input survives the exchange; but a reply that is malformed, short or cut off must never
+// be copied over the buffer, because then the CALLER'S INPUT is gone and there is nothing left to fall
+// back to. The control first shows that a good reply DOES land in place, so the failure tests can fail.
+
+namespace {
+std::vector<char> BoneBodyWithPixels(float value) {
+    std::vector<char> b = GoodBoneBody(36);
+    float px[9];
+    for (float& v : px) v = value;
+    std::memcpy(b.data() + b.size() - 36, px, 36);
+    return b;
+}
+}  // namespace
+
+TEST(IpcDeadline, ControlAGoodReplyIsWrittenIntoAnInPlaceBuffer) {
+    FakeWorker fw(ServeOnce([](FakeWorker& w, uint32_t id) {
+        ReplyFrame(w, XPE_AI_MSG_BONE_SUPPRESS_RESP, id, XPE_AI_FLAG_HAS_BINARY_PAYLOAD,
+                   BoneBodyWithPixels(5.0f));
+    }));
+    ASSERT_TRUE(fw.ok());
+    Client c(fw, 2000);
+    ASSERT_NE(nullptr, c.b);
+    float buf[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    EXPECT_EQ(XPE_OK, xpe_ai_ipc_bridge_bone_suppress(c.b, 3, 3, buf, buf));
+    for (float v : buf) EXPECT_EQ(5.0f, v) << "a good reply must land in the in-place buffer";
+}
+
+TEST(IpcDeadline, AReplyWithTheWrongPixelLengthLeavesAnInPlaceBufferByteForByteIntact) {
+    FakeWorker fw(ServeOnce([](FakeWorker& w, uint32_t id) {
+        ReplyFrame(w, XPE_AI_MSG_BONE_SUPPRESS_RESP, id, XPE_AI_FLAG_HAS_BINARY_PAYLOAD,
+                   GoodBoneBody(20));
+    }));
+    ASSERT_TRUE(fw.ok());
+    Client c(fw, 2000);
+    ASSERT_NE(nullptr, c.b);
+    float buf[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    const float original[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    EXPECT_NE(XPE_OK, xpe_ai_ipc_bridge_bone_suppress(c.b, 3, 3, buf, buf));
+    EXPECT_EQ(0, std::memcmp(original, buf, sizeof(original))) << "the caller's input was overwritten";
+}
+
+TEST(IpcDeadline, AReplyCutOffHalfWayLeavesAnInPlaceBufferByteForByteIntact) {
+    FakeWorker fw([](FakeWorker& w) {
+        HalfReply(w, 4 + 40 + 36, 20, false);
+        w.CutPipe();
+    });
+    ASSERT_TRUE(fw.ok());
+    Client c(fw, 2000);
+    ASSERT_NE(nullptr, c.b);
+    float buf[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    const float original[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    EXPECT_NE(XPE_OK, xpe_ai_ipc_bridge_bone_suppress(c.b, 3, 3, buf, buf));
+    EXPECT_EQ(0, std::memcmp(original, buf, sizeof(original))) << "the caller's input was overwritten";
+}
+
+TEST(IpcDeadline, AStalledWorkerLeavesAnInPlaceBufferByteForByteIntact) {
+    FakeWorker fw(Stall);
+    ASSERT_TRUE(fw.ok());
+    Client c(fw, kBudgetMs);
+    ASSERT_NE(nullptr, c.b);
+    float buf[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    const float original[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    const Outcome o = RunBounded(fw, [&] { return xpe_ai_ipc_bridge_bone_suppress(c.b, 3, 3, buf, buf); });
+    EXPECT_FALSE(o.hung);
+    EXPECT_NE(XPE_OK, o.rc);
+    EXPECT_EQ(0, std::memcmp(original, buf, sizeof(original))) << "the caller's input was overwritten";
+}

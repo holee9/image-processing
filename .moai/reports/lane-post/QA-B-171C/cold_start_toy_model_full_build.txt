@@ -1,0 +1,4 @@
+[cold-start] budget 5000 ms, build=full, model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, model_file=122 bytes
+[cold-start] start  min=31 median=31 max=609 ms over 10 cold starts
+[cold-start] first  min=31 median=32 max=47 ms over 10 cold starts
+[cold-start] total  min=62 median=78 max=656 ms over 10 cold starts

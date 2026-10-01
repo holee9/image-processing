@@ -1,0 +1,3 @@
+[restart-cost] budget 800 ms. hangs on start: calls took 1062 / 1047 / 1031 ms, 3 starts for 3 calls
+[restart-cost] budget 800 ms. dies on start: calls took 32 / 31 / 47 ms, 3 starts for 3 calls
+[alert-volume] 80 failing calls: queue holds 64 alerts, 63 of them worker failures, unrelated earlier warning still queued: NO (evicted)
