@@ -398,6 +398,8 @@ namespace ImageProcTest
             var metadata = CreateMetadata();
             var currentUInt16 = preview.SampledPixels.ToArray();
             float[]? currentFloat = null;
+            float[]? defectBefore = null;
+            float[]? defectAfter = null;
 
             foreach (var stageKey in NormalizeStageOrder(stageOrder))
             {
@@ -444,12 +446,16 @@ namespace ImageProcTest
                         if (selection.Defect != PreprocessStageMode.Off && IsLoaded(calibrationLoads, "defect"))
                         {
                             currentFloat ??= currentUInt16.Select(value => (float)value).ToArray();
+                            // GUI-C-182: the defect stage corrects in place, so the image it was GIVEN has to be copied
+                            // before the call. The protocol's GoodPixelDeltaP99 is measured against it (Y_no_defect_stage).
+                            defectBefore = (float[])currentFloat.Clone();
                             var defectMap = GetRequiredCalibration(calibrationRequests, "defect").DefectMap ??
                                 throw new InvalidOperationException("Defect calibration map was not prepared.");
                             stages.Add(CallStage(
                                 "defect",
                                 () => CallDefect(defectCorrect, currentFloat, defectMap, preview.PreviewWidth, preview.PreviewHeight),
                                 GetLoadDetails(calibrationLoads, "defect")));
+                            defectAfter = (float[])currentFloat.Clone();
                         }
                         else
                         {
@@ -471,7 +477,12 @@ namespace ImageProcTest
 
             var finalValues = currentFloat ?? currentUInt16.Select(value => (float)value).ToArray();
             var metrics = ComputeMetrics(preview.SampledPixels, finalValues);
-            var detectorMetrics = MetricsComputationService.Compute(preview, finalValues, fixtureCase, stages);
+            var detectorMetrics = MetricsComputationService.Compute(
+                preview,
+                finalValues,
+                fixtureCase,
+                stages,
+                defectBefore is null || defectAfter is null ? null : new DefectStageImages(defectBefore, defectAfter));
             var (outputMin, outputMax) = ComputeMinMax(finalValues);
             var bitmap = RawPreviewService.CreateGray8Bitmap(
                 finalValues,
