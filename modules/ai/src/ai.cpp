@@ -449,8 +449,10 @@ static constexpr uint32_t kWorkerFailureCeiling = 3;
 
 #ifdef XPE_AI_TEST_HOOKS
 // TEST-ONLY (QA-B-173, Codex audit #19). Compiled only when modules/ai/CMakeLists.txt defines
-// XPE_AI_TEST_HOOKS, which it does only for a build that builds this module's tests; a shipped build
-// (BUILD_TESTS off) has neither this variable, nor the call in xpe_bone_suppress, nor the exported setter.
+// XPE_AI_TEST_HOOKS, i.e. when the XPE_AI_TEST_HOOKS option is ON. Its default is ON whenever the module's
+// tests are built, and every preset builds them, so a build whose DLL is DELIVERED must turn it OFF
+// (-DXPE_AI_TEST_HOOKS=OFF, e.g. set in the release preset). With the option OFF the DLL has neither this
+// variable, nor the call in xpe_bone_suppress, nor the exported setter.
 // A test registers a callback that xpe_bone_suppress calls on the calling thread immediately after it has
 // locked the module mutex, so the test KNOWS a call is inside its critical section (and, with a frozen
 // worker, stuck there) rather than inferring it from timing.
