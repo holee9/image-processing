@@ -785,7 +785,11 @@ jobs:
           # missing gsvg.dll passed this step, and a gsvg.dll sitting in the app
           # folder would load through the OS loader while this job claimed the
           # locator path was proven. Both checks now name it explicitly.
-          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_display.dll', 'gsvg.dll')) {
+          # xpe_ai.dll and its worker joined with GUI-C-184 (#225 row 10): the AI
+          # stage's E2E must reach the module and observe its failure path, not
+          # pass on "DLL not found". Both ship in xpe-ci-post-binaries already;
+          # listing them makes a missing one fail here instead of in silence.
+          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_display.dll', 'gsvg.dll', 'xpe_ai.dll', 'xpe_ai_worker.exe')) {
             if (-not (Test-Path "$dir/$n")) { Write-Error "missing $n in $dir"; exit 1 }
           }
           $appDir = 'gui/ImageProcTest/bin/Debug/net8.0-windows'
