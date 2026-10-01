@@ -1,0 +1,6 @@
+--- newest mtime among product inputs of xpe_preprocess.dll vs the DLL
+2026-09-29 14:24:18 modules/preprocess/src/xpe_verify_metrics.cpp
+2026-09-29 18:03:08 modules/preprocess/src/nonlinearity_correct.cpp
+2026-09-29 19:29:49 modules/preprocess/src/runtime_detection.cpp
+2026-09-30 15:42:15 modules/preprocess/include/runtime_detection.h
+2026-09-30 15:42:19 build/ci-preprocess/bin/xpe_preprocess.dll*
