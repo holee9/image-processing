@@ -16,6 +16,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "perf_budget.h"
 #include "xpe/enhance_advanced/xpe_enhance_advanced_api.h"
 #include "xpe/common/xpe_common_api.h"
 #include <thread>
@@ -263,14 +264,17 @@ TEST(IntegrationTest, T603b_FullPipeline_PerformanceBudget) {
     img.dataSize = static_cast<size_t>(512) * (512) * 4;
 
     float* data = static_cast<float*>(img.data);
-    for (int y = 0; y < 512; ++y) {
-        for (int x = 0; x < 512; ++x) {
-            float cx = x - 256.0f;
-            float cy = y - 256.0f;
-            float r = std::sqrt(cx*cx + cy*cy);
-            data[y * 512 + x] = 0.3f + 0.1f * std::exp(-r * r / 10000.0f);
+    const auto fillPattern = [&] {
+        for (int y = 0; y < 512; ++y) {
+            for (int x = 0; x < 512; ++x) {
+                float cx = x - 256.0f;
+                float cy = y - 256.0f;
+                float r = std::sqrt(cx*cx + cy*cy);
+                data[y * 512 + x] = 0.3f + 0.1f * std::exp(-r * r / 10000.0f);
+            }
         }
-    }
+    };
+    fillPattern();
 
     XpeImageMetadata meta;
     std::memset(&meta, 0, sizeof(meta));
@@ -278,19 +282,27 @@ TEST(IntegrationTest, T603b_FullPipeline_PerformanceBudget) {
     meta.kVp = 120.0f;
     meta.mAs = 100.0f;
 
-    auto pipelineStart = high_resolution_clock::now();
-
-    ASSERT_EQ(xpe_multiscale_process(&img, &meta, nullptr), XPE_OK);
-    ASSERT_EQ(xpe_fractional_process(&img, 1.2f, nullptr), XPE_OK);
+    // The whole pipeline is the unit being timed: the MEDIAN of several runs after one untimed warm-up
+    // (perf_budget.h, QA-B-175, #179), not one wall-clock reading. The stages work in place, so the
+    // input is rebuilt before every run. A stage that fails ends that run with its error code.
     int x0, y0, x1, y1;
-    ASSERT_EQ(xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr), XPE_OK);
     float ei, di;
-    ASSERT_EQ(xpe_adv_calc_exposure_index(&img, &meta, &ei, &di), XPE_OK);
+    const auto m = perf_budget::Measure("T603b_full_pipeline_512", fillPattern, [&]() -> XpeErrorCode {
+        XpeErrorCode r = xpe_multiscale_process(&img, &meta, nullptr);
+        if (r != XPE_OK) return r;
+        r = xpe_fractional_process(&img, 1.2f, nullptr);
+        if (r != XPE_OK) return r;
+        r = xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr);
+        if (r != XPE_OK) return r;
+        return xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
+    });
 
-    auto pipelineEnd = high_resolution_clock::now();
-    auto totalDuration = duration_cast<milliseconds>(pipelineEnd - pipelineStart).count();
-
-    EXPECT_LT(totalDuration, 500) << "Pipeline exceeded time budget: " << totalDuration << "ms";
+    // WHERE 500 ms COMES FROM -- it is NOT a scaled requirement. The requirement (PERF-ADV-005,
+    // AC-PIPE-001) is 2500 ms for the full pipeline on 3072x3072 FLOAT32 (< 600 ms AVX2) on the
+    // reference hardware. Linear scaling to 512x512 gives about 70 ms; the test author chose 500 ms
+    // (about 7 times that) as headroom. QA-B-175 changed HOW the time is judged, not the value.
+    EXPECT_LT(m.medianUs, 500 * 1000)
+        << "Pipeline exceeded time budget: " << perf_budget::Describe(m);
 
     delete[] data;
     xpe_enhance_advanced_shutdown();
@@ -618,54 +630,55 @@ TEST(IntegrationTest, T608_PerformanceBudgetVerification) {
 
     // Initialize with realistic pattern
     float* data = static_cast<float*>(img.data);
-    for (int i = 0; i < IMG_SIZE * IMG_SIZE; ++i) {
-        data[i] = 0.5f + 0.01f * std::sin(i * 0.1f);
-    }
+    const auto fillPattern = [&] {
+        for (int i = 0; i < IMG_SIZE * IMG_SIZE; ++i) {
+            data[i] = 0.5f + 0.01f * std::sin(i * 0.1f);
+        }
+    };
+    fillPattern();
 
     XpeImageMetadata meta;
     std::memset(&meta, 0, sizeof(meta));
     strncpy_s(meta.bodyPart, sizeof(meta.bodyPart), "CHEST", _TRUNCATE);
 
-    // Measure MFP performance
-    // Budget: < 800ms for 3072x3072 -> ~22ms for 512x512
-    auto start = high_resolution_clock::now();
-    XpeErrorCode r1 = xpe_multiscale_process(&img, &meta, nullptr);
-    auto end = high_resolution_clock::now();
-    auto mfpTime = duration_cast<milliseconds>(end - start).count();
-    EXPECT_EQ(r1, XPE_OK);
-    EXPECT_LT(mfpTime, 100) << "MFP exceeded budget: " << mfpTime << "ms";
+    // Each function: the MEDIAN of several timed calls after one untimed warm-up (perf_budget.h,
+    // QA-B-175, #179). This test used to time ONE call per function and assert on it, so one scheduling
+    // stall failed it: Fractional read 121 ms once against 6-10 ms (median 7) in 36 other runs
+    // (QA-B-174). The budgets below are the values the test always had.
+    //
+    // WHERE THE BUDGETS COME FROM -- none is derived from the requirement, which is stated for 3072x3072
+    // FLOAT32 on the reference hardware (acceptance.md PERF-ADV-001..004, scalar / AVX2):
+    //   MFP        800 / 250 ms -> 512x512 about 22 ms scalar; this test asserts 100 ms
+    //   Fractional 400 / 120 ms -> 512x512 about 11 ms scalar; this test asserts  50 ms
+    //   Collimation 500 / 200 ms -> 512x512 about 14 ms scalar; this test asserts  50 ms
+    //   EI          50 /  20 ms -> 512x512 about 1.4 ms scalar; this test asserts  10 ms
+    // (the "about" figures are the earlier comments' linear scaling by area, 1/36). The asserted values
+    // are the test author's choice, several times the scaled figures, as headroom.
 
-    // Reset image
-    std::memset(data, 0, IMG_SIZE * IMG_SIZE * sizeof(float));
+    // MFP works in place: restore the pattern before every call.
+    const auto mfp = perf_budget::Measure("T608_mfp_512", fillPattern, [&] {
+        return xpe_multiscale_process(&img, &meta, nullptr);
+    });
+    EXPECT_LT(mfp.medianUs, 100 * 1000) << "MFP exceeded budget: " << perf_budget::Describe(mfp);
 
-    // Measure Fractional performance
-    // Budget: < 400ms for 3072x3072 -> ~11ms for 512x512
-    start = high_resolution_clock::now();
-    XpeErrorCode r2 = xpe_fractional_process(&img, 1.0f, nullptr);
-    end = high_resolution_clock::now();
-    auto fracTime = duration_cast<milliseconds>(end - start).count();
-    EXPECT_EQ(r2, XPE_OK);
-    EXPECT_LT(fracTime, 50) << "Fractional exceeded budget: " << fracTime << "ms";
+    // Fractional works in place, and is measured on the zeroed image, as before.
+    const auto frac = perf_budget::Measure(
+        "T608_fractional_512", [&] { std::memset(data, 0, IMG_SIZE * IMG_SIZE * sizeof(float)); },
+        [&] { return xpe_fractional_process(&img, 1.0f, nullptr); });
+    EXPECT_LT(frac.medianUs, 50 * 1000) << "Fractional exceeded budget: " << perf_budget::Describe(frac);
 
-    // Measure Collimation performance
-    // Budget: < 500ms for 3072x3072 -> ~14ms for 512x512
-    start = high_resolution_clock::now();
+    // Collimation and EI only read the image (what the zeroed-image Fractional step left, as before).
     int x0, y0, x1, y1;
-    XpeErrorCode r3 = xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr);
-    end = high_resolution_clock::now();
-    auto collTime = duration_cast<milliseconds>(end - start).count();
-    EXPECT_EQ(r3, XPE_OK);
-    EXPECT_LT(collTime, 50) << "Collimation exceeded budget: " << collTime << "ms";
+    const auto col = perf_budget::Measure("T608_collimation_512", [] {}, [&] {
+        return xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr);
+    });
+    EXPECT_LT(col.medianUs, 50 * 1000) << "Collimation exceeded budget: " << perf_budget::Describe(col);
 
-    // Measure EI performance
-    // Budget: < 50ms for 3072x3072 -> ~1.4ms for 512x512
-    start = high_resolution_clock::now();
     float ei, di;
-    XpeErrorCode r4 = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
-    end = high_resolution_clock::now();
-    auto eiTime = duration_cast<microseconds>(end - start).count();
-    EXPECT_EQ(r4, XPE_OK);
-    EXPECT_LT(eiTime, 10000) << "EI exceeded budget: " << eiTime << "us";
+    const auto eiRes = perf_budget::Measure("T608_exposure_index_512", [] {}, [&] {
+        return xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
+    });
+    EXPECT_LT(eiRes.medianUs, 10000) << "EI exceeded budget: " << perf_budget::Describe(eiRes);
 
     delete[] data;
     xpe_enhance_advanced_shutdown();

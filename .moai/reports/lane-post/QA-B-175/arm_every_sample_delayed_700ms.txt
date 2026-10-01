@@ -1,0 +1,82 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = EdgeEnhancementTest.T308_PerformanceBudget:ExposureIndexTest.T508_PerformanceBudget:CollimationDetectTest.LargeImagePerformance:IntegrationTest.T603b_FullPipeline_PerformanceBudget:IntegrationTest.T608_PerformanceBudgetVerification
+[==========] Running 5 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from CollimationDetectTest
+[ RUN      ] CollimationDetectTest.LargeImagePerformance
+[XPE][INFO ] xpe_init: library initialised
+[2026-10-01 22:52:48.620] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":140,"hough_time_ms":24,"total_time_ms":180,"confidence":1.00,"roi":[100,100,1900,1900]}
+[2026-10-01 22:52:49.527] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":155,"hough_time_ms":18,"total_time_ms":189,"confidence":1.00,"roi":[100,100,1900,1900]}
+[2026-10-01 22:52:50.409] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":136,"hough_time_ms":19,"total_time_ms":170,"confidence":1.00,"roi":[100,100,1900,1900]}
+[2026-10-01 22:52:51.292] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":145,"hough_time_ms":19,"total_time_ms":180,"confidence":1.00,"roi":[100,100,1900,1900]}
+[2026-10-01 22:52:52.189] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":146,"hough_time_ms":17,"total_time_ms":180,"confidence":1.00,"roi":[100,100,1900,1900]}
+[2026-10-01 22:52:53.076] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":146,"hough_time_ms":17,"total_time_ms":179,"confidence":1.00,"roi":[100,100,1900,1900]}
+PERFBUDGET LargeImagePerformance_collimation_2048 median=886422 min=881446 max=898687 us (runs=5)
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_collimation_detect.cpp(372): error: Expected: (m.medianUs) < (500 * 1000), actual: 886422 vs 500000
+Collimation detection exceeds 500ms for 2048x2048 image: median 886.42 ms of [898.69 881.45 883.69 896.86 886.42] ms
+
+[  FAILED  ] CollimationDetectTest.LargeImagePerformance (4642 ms)
+[----------] 1 test from CollimationDetectTest (4642 ms total)
+
+[----------] 1 test from EdgeEnhancementTest
+[ RUN      ] EdgeEnhancementTest.T308_PerformanceBudget
+[XPE][INFO ] xpe_init: library initialised
+PERFBUDGET T308_fractional_1024 median=734693 min=730115 max=747116 us (runs=5)
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_edge_enhancement.cpp(643): error: Expected: (m.medianUs) < (100 * 1000), actual: 734693 vs 100000
+Performance test exceeded budget: median 734.69 ms of [738.79 747.12 734.69 730.12 731.22] ms
+
+Performance: median 734ms for 1024x1024 image
+[  FAILED  ] EdgeEnhancementTest.T308_PerformanceBudget (3712 ms)
+[----------] 1 test from EdgeEnhancementTest (3712 ms total)
+
+[----------] 1 test from ExposureIndexTest
+[ RUN      ] ExposureIndexTest.T508_PerformanceBudget
+[XPE][INFO ] xpe_init: library initialised
+PERFBUDGET T508_exposure_index_2048 median=719211 min=713615 max=723735 us (runs=5)
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_exposure_index.cpp(557): error: Expected: (m.medianUs) < (100 * 1000), actual: 719211 vs 100000
+Performance test exceeded budget: median 719.21 ms of [723.74 719.88 719.21 713.62 713.80] ms
+
+EI Calculation Performance: median 719ms for 2048x2048 image
+[  FAILED  ] ExposureIndexTest.T508_PerformanceBudget (3597 ms)
+[----------] 1 test from ExposureIndexTest (3597 ms total)
+
+[----------] 2 tests from IntegrationTest
+[ RUN      ] IntegrationTest.T603b_FullPipeline_PerformanceBudget
+[XPE][INFO ] xpe_init: library initialised
+PERFBUDGET T603b_full_pipeline_512 median=730341 min=719637 max=738317 us (runs=5)
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_integration.cpp(304): error: Expected: (m.medianUs) < (500 * 1000), actual: 730341 vs 500000
+Pipeline exceeded time budget: median 730.34 ms of [731.68 738.32 730.34 724.25 719.64] ms
+
+[  FAILED  ] IntegrationTest.T603b_FullPipeline_PerformanceBudget (3671 ms)
+[ RUN      ] IntegrationTest.T608_PerformanceBudgetVerification
+[XPE][INFO ] xpe_init: library initialised
+PERFBUDGET T608_mfp_512 median=714176 min=711327 max=717417 us (runs=5)
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_integration.cpp(662): error: Expected: (mfp.medianUs) < (100 * 1000), actual: 714176 vs 100000
+MFP exceeded budget: median 714.18 ms of [713.31 711.33 714.75 717.42 714.18] ms
+
+PERFBUDGET T608_fractional_512 median=712234 min=711205 max=719188 us (runs=5)
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_integration.cpp(668): error: Expected: (frac.medianUs) < (50 * 1000), actual: 712234 vs 50000
+Fractional exceeded budget: median 712.23 ms of [711.66 719.19 711.21 712.23 712.39] ms
+
+PERFBUDGET T608_collimation_512 median=712602 min=706443 max=716985 us (runs=5)
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_integration.cpp(675): error: Expected: (col.medianUs) < (50 * 1000), actual: 712602 vs 50000
+Collimation exceeded budget: median 712.60 ms of [711.31 716.99 712.60 713.92 706.44] ms
+
+PERFBUDGET T608_exposure_index_512 median=707787 min=701453 max=713346 us (runs=5)
+D:\workspace-github\xpe-post\modules\enhance_advanced\tests\test_integration.cpp(681): error: Expected: (eiRes.medianUs) < (10000), actual: 707787 vs 10000
+EI exceeded budget: median 707.79 ms of [707.79 711.45 703.67 701.45 713.35] ms
+
+[  FAILED  ] IntegrationTest.T608_PerformanceBudgetVerification (14265 ms)
+[----------] 2 tests from IntegrationTest (17936 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 4 test suites ran. (29888 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 5 tests, listed below:
+[  FAILED  ] CollimationDetectTest.LargeImagePerformance
+[  FAILED  ] EdgeEnhancementTest.T308_PerformanceBudget
+[  FAILED  ] ExposureIndexTest.T508_PerformanceBudget
+[  FAILED  ] IntegrationTest.T603b_FullPipeline_PerformanceBudget
+[  FAILED  ] IntegrationTest.T608_PerformanceBudgetVerification
+
+ 5 FAILED TESTS

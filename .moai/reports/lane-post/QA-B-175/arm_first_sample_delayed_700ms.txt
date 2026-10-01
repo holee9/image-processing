@@ -1,0 +1,50 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = EdgeEnhancementTest.T308_PerformanceBudget:ExposureIndexTest.T508_PerformanceBudget:CollimationDetectTest.LargeImagePerformance:IntegrationTest.T603b_FullPipeline_PerformanceBudget:IntegrationTest.T608_PerformanceBudgetVerification
+[==========] Running 5 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from CollimationDetectTest
+[ RUN      ] CollimationDetectTest.LargeImagePerformance
+[XPE][INFO ] xpe_init: library initialised
+[2026-10-01 22:52:40.317] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":134,"hough_time_ms":19,"total_time_ms":169,"confidence":1.00,"roi":[100,100,1900,1900]}
+[2026-10-01 22:52:41.221] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":142,"hough_time_ms":20,"total_time_ms":178,"confidence":1.00,"roi":[100,100,1900,1900]}
+[2026-10-01 22:52:41.394] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":133,"hough_time_ms":22,"total_time_ms":172,"confidence":1.00,"roi":[100,100,1900,1900]}
+[2026-10-01 22:52:41.555] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":126,"hough_time_ms":17,"total_time_ms":160,"confidence":1.00,"roi":[100,100,1900,1900]}
+[2026-10-01 22:52:41.719] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":122,"hough_time_ms":24,"total_time_ms":162,"confidence":1.00,"roi":[100,100,1900,1900]}
+[2026-10-01 22:52:41.893] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":133,"hough_time_ms":21,"total_time_ms":172,"confidence":1.00,"roi":[100,100,1900,1900]}
+PERFBUDGET LargeImagePerformance_collimation_2048 median=173237 min=161451 max=895194 us (runs=5)
+[       OK ] CollimationDetectTest.LargeImagePerformance (1751 ms)
+[----------] 1 test from CollimationDetectTest (1751 ms total)
+
+[----------] 1 test from EdgeEnhancementTest
+[ RUN      ] EdgeEnhancementTest.T308_PerformanceBudget
+[XPE][INFO ] xpe_init: library initialised
+PERFBUDGET T308_fractional_1024 median=23058 min=22945 max=737702 us (runs=5)
+Performance: median 23ms for 1024x1024 image
+[       OK ] EdgeEnhancementTest.T308_PerformanceBudget (860 ms)
+[----------] 1 test from EdgeEnhancementTest (860 ms total)
+
+[----------] 1 test from ExposureIndexTest
+[ RUN      ] ExposureIndexTest.T508_PerformanceBudget
+[XPE][INFO ] xpe_init: library initialised
+PERFBUDGET T508_exposure_index_2048 median=3658 min=3223 max=714711 us (runs=5)
+EI Calculation Performance: median 3ms for 2048x2048 image
+[       OK ] ExposureIndexTest.T508_PerformanceBudget (735 ms)
+[----------] 1 test from ExposureIndexTest (735 ms total)
+
+[----------] 2 tests from IntegrationTest
+[ RUN      ] IntegrationTest.T603b_FullPipeline_PerformanceBudget
+[XPE][INFO ] xpe_init: library initialised
+PERFBUDGET T603b_full_pipeline_512 median=16479 min=16288 max=731455 us (runs=5)
+[       OK ] IntegrationTest.T603b_FullPipeline_PerformanceBudget (824 ms)
+[ RUN      ] IntegrationTest.T608_PerformanceBudgetVerification
+[XPE][INFO ] xpe_init: library initialised
+PERFBUDGET T608_mfp_512 median=6790 min=6673 max=723641 us (runs=5)
+PERFBUDGET T608_fractional_512 median=7708 min=7407 max=708118 us (runs=5)
+PERFBUDGET T608_collimation_512 median=3738 min=3513 max=710192 us (runs=5)
+PERFBUDGET T608_exposure_index_512 median=233 min=233 max=710438 us (runs=5)
+[       OK ] IntegrationTest.T608_PerformanceBudgetVerification (2954 ms)
+[----------] 2 tests from IntegrationTest (3778 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 4 test suites ran. (7125 ms total)
+[  PASSED  ] 5 tests.
