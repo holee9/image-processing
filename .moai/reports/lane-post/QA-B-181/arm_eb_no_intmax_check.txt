@@ -1,0 +1,58 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = ExceptionGuard*
+[==========] Running 11 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 11 tests from ExceptionGuard
+[ RUN      ] ExceptionGuard.BadAllocBecomesOutOfMemory
+[       OK ] ExceptionGuard.BadAllocBecomesOutOfMemory (0 ms)
+[ RUN      ] ExceptionGuard.LengthErrorAndAnyStdExceptionBecomeProcessingFailed
+[       OK ] ExceptionGuard.LengthErrorAndAnyStdExceptionBecomeProcessingFailed (0 ms)
+[ RUN      ] ExceptionGuard.ANonStdExceptionBecomesProcessingFailed
+[       OK ] ExceptionGuard.ANonStdExceptionBecomesProcessingFailed (0 ms)
+[ RUN      ] ExceptionGuard.ANormalReturnPassesThroughUnchanged
+[       OK ] ExceptionGuard.ANormalReturnPassesThroughUnchanged (0 ms)
+[ RUN      ] ExceptionGuard.NoiseReduceNlmWithAnImpossibleDeclaredSizeIsOutOfMemoryNotAnException
+[       OK ] ExceptionGuard.NoiseReduceNlmWithAnImpossibleDeclaredSizeIsOutOfMemoryNotAnException (4 ms)
+[ RUN      ] ExceptionGuard.NoiseReduceBilateralWithAWidthAboveIntMaxIsInvalidInput
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(117): error: Expected equality of these values:
+  -1
+  rc
+    Which is: -3
+
+[  FAILED  ] ExceptionGuard.NoiseReduceBilateralWithAWidthAboveIntMaxIsInvalidInput (0 ms)
+[ RUN      ] ExceptionGuard.EdgeEnhanceWithAWidthAboveIntMaxIsInvalidInput
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(127): error: Expected equality of these values:
+  -1
+  rc
+    Which is: -3
+
+[  FAILED  ] ExceptionGuard.EdgeEnhanceWithAWidthAboveIntMaxIsInvalidInput (0 ms)
+[ RUN      ] ExceptionGuard.EdgeEnhanceWithAnImpossibleRowBufferIsOutOfMemoryNotAnException
+[       OK ] ExceptionGuard.EdgeEnhanceWithAnImpossibleRowBufferIsOutOfMemoryNotAnException (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceWithATileCountThatOverflowsIntIsInvalidInput
+[       OK ] ExceptionGuard.ContrastEnhanceWithATileCountThatOverflowsIntIsInvalidInput (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceKeepsItsWindowBoundary
+[       OK ] ExceptionGuard.ContrastEnhanceKeepsItsWindowBoundary (0 ms)
+[ RUN      ] ExceptionGuard.EveryEntryPointRejectsADimensionAboveIntMax
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(175): error: Expected equality of these values:
+  -1
+  validate_float32_image(&wide)
+    Which is: 0
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exception_guard.cpp(176): error: Expected equality of these values:
+  -1
+  validate_float32_image(&tall)
+    Which is: 0
+
+[  FAILED  ] ExceptionGuard.EveryEntryPointRejectsADimensionAboveIntMax (0 ms)
+[----------] 11 tests from ExceptionGuard (5 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 1 test suite ran. (5 ms total)
+[  PASSED  ] 8 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] ExceptionGuard.NoiseReduceBilateralWithAWidthAboveIntMaxIsInvalidInput
+[  FAILED  ] ExceptionGuard.EdgeEnhanceWithAWidthAboveIntMaxIsInvalidInput
+[  FAILED  ] ExceptionGuard.EveryEntryPointRejectsADimensionAboveIntMax
+
+ 3 FAILED TESTS

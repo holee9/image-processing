@@ -1,0 +1,18 @@
+# QA-B-181: does a lock_guard in an extern "C" function get released when a CALLEE throws? (scratch experiment, not in the repository)
+# A = no try in the function, B = try/catch for an unrelated type in the function, C = ordinary C++ helper holds the lock + catch(...) wrapper.
+# Called through volatile function pointers. Compiled with cl /O2 and each of /EHsc /EHs /EHa.
+--- /EHsc /O2
+A  no try in the extern C function            : mutex STILL LOCKED
+B  try/catch(runtime_error) in the function    : mutex released
+C  C++ helper holds the lock + catch(...) wrap : mutex released (returned -1)
+exit=0
+--- /EHs /O2
+A  no try in the extern C function            : mutex released
+B  try/catch(runtime_error) in the function    : mutex released
+C  C++ helper holds the lock + catch(...) wrap : mutex released (returned -1)
+exit=0
+--- /EHa /O2
+A  no try in the extern C function            : mutex released
+B  try/catch(runtime_error) in the function    : mutex released
+C  C++ helper holds the lock + catch(...) wrap : mutex released (returned -1)
+exit=0

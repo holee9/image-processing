@@ -1,0 +1,8 @@
+# QA-B-181 probe results AFTER the fix: allocation exhaustion (job-object commit limit, stack pre-committed), 10 runs each.
+# Before the fix (QA-B-179/probe_results_alloc_exhaustion.txt): get_model_card ESCAPED + LOCK_STUCK, ea_init ESCAPED, clahe ESCAPED.
+=== alloc_ai_get_model_card
+  10x  exit=0x0 | returned -2 ## post-call shutdown LOCK_RELEASED(returned)
+=== alloc_ea_init
+  10x  exit=0x0 | returned -2 ## post-call init LOCK_RELEASED(returned)
+=== alloc_enh_clahe
+  10x  exit=0x0 | returned -2

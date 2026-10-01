@@ -1,0 +1,48 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = GsvgExceptionGuard*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from GsvgExceptionGuard
+[ RUN      ] GsvgExceptionGuard.AnUnrepresentableSizeIsInvalidInputForEveryEntryPoint
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(86): error: Expected equality of these values:
+  -1
+  rc
+    Which is: -3
+process
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(86): error: Expected equality of these values:
+  -1
+  rc
+    Which is: -3
+process_masked
+
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(86): error: Expected equality of these values:
+  -1
+  rc
+    Which is: -3
+process_ex
+
+[  FAILED  ] GsvgExceptionGuard.AnUnrepresentableSizeIsInvalidInputForEveryEntryPoint (0 ms)
+[ RUN      ] GsvgExceptionGuard.AnUnallocatableGridSuppressionSizeIsOutOfMemoryForEveryEntryPoint
+[       OK ] GsvgExceptionGuard.AnUnallocatableGridSuppressionSizeIsOutOfMemoryForEveryEntryPoint (0 ms)
+[ RUN      ] GsvgExceptionGuard.AnUnallocatableVirtualGridSizeIsOutOfMemoryForEveryEntryPoint
+[       OK ] GsvgExceptionGuard.AnUnallocatableVirtualGridSizeIsOutOfMemoryForEveryEntryPoint (0 ms)
+[ RUN      ] GsvgExceptionGuard.TheHandleStaysUsableAfterAFailedCall
+D:\workspace-github\xpe-post\modules\gsvg\tests\test_exception_guard.cpp(129): error: Expected equality of these values:
+  -1
+  rc
+    Which is: -3
+
+[  FAILED  ] GsvgExceptionGuard.TheHandleStaysUsableAfterAFailedCall (0 ms)
+[ RUN      ] GsvgExceptionGuard.AnOrdinaryLargeFrameIsNotRejectedBySizeBound
+[       OK ] GsvgExceptionGuard.AnOrdinaryLargeFrameIsNotRejectedBySizeBound (0 ms)
+[----------] 5 tests from GsvgExceptionGuard (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (2 ms total)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] GsvgExceptionGuard.AnUnrepresentableSizeIsInvalidInputForEveryEntryPoint
+[  FAILED  ] GsvgExceptionGuard.TheHandleStaysUsableAfterAFailedCall
+
+ 2 FAILED TESTS
