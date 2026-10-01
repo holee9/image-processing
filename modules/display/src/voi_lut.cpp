@@ -23,6 +23,14 @@ extern "C" XpeErrorCode xpe_apply_voi_lut(XpeImageBuffer*        img,
     if (fmt_rc != XPE_OK) return fmt_rc;
 
     // REQ-DISP-015: width must be > 0
+    // QA-B-181f (#233): and every parameter finite, by a bit test. `width <= 0` is false for +inf in every mode and
+    // for NaN under /fp:precise, and center / minOut / maxOut had no test at all, so a NaN anywhere in the window
+    // made the whole output NaN with rc=0. The output range must not overflow either (-3e38 .. 3e38).
+    if (!xpe_float_is_finite(params->center) || !xpe_float_is_finite(params->width) ||
+        !xpe_float_is_finite(params->minOut) || !xpe_float_is_finite(params->maxOut) ||
+        !xpe_float_is_finite(params->maxOut - params->minOut)) {
+        return XPE_ERR_INVALID_INPUT;
+    }
     if (params->width <= 0.0f) return XPE_ERR_INVALID_INPUT;
 
     const size_t count  = xpe_pixel_count(img);
@@ -32,6 +40,19 @@ extern "C" XpeErrorCode xpe_apply_voi_lut(XpeImageBuffer*        img,
     const float minOut  = params->minOut;
     const float maxOut  = params->maxOut;
     const float range   = maxOut - minOut;
+
+    // QA-B-181f (#233): a non-finite pixel is refused, as in the other two LUT functions; nothing is written.
+    if (!xpe_all_finite(px, count)) return XPE_ERR_INVALID_INPUT;
+
+    // QA-B-181f (#233): with minOut == maxOut every result is clamp(x, minOut, minOut) = minOut, but the arithmetic
+    // before the clamp is `(x - center) / width * range`, and a tiny width makes the quotient +-inf; inf * 0 is NaN
+    // and clamp() passes NaN through (measured: LINEAR_EXACT, width 1e-30, pixel 1e10 -> NaN with rc=0). The defined
+    // result is written directly. The mode is still judged first, so an invalid mode is still refused.
+    if (range == 0.0f && (params->mode == XPE_VOI_LINEAR || params->mode == XPE_VOI_LINEAR_EXACT ||
+                          params->mode == XPE_VOI_SIGMOID)) {
+        std::fill(px, px + count, minOut);
+        return XPE_OK;
+    }
 
     switch (params->mode) {
         case XPE_VOI_LINEAR: {

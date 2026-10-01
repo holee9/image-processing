@@ -146,6 +146,8 @@ if(BUILD_TESTS)
         tests/test_config_value_dependency.cpp
         # QA-B-181: xpe_enhance_advanced_init cannot throw out of the C ABI
         tests/test_exception_guard.cpp
+        # QA-B-181f: a non-finite pixel is refused by xpe_detect_collimation, not accepted as success
+        tests/test_nonfinite_pixels.cpp
     )
 
     # Link against Google Test and the module

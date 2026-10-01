@@ -27,6 +27,10 @@ extern "C" XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*              
 
     const size_t count = xpe_pixel_count(img);
 
+    // QA-B-181f (#233): a non-finite pixel is refused, before the allocation, so the image is left exactly as it
+    // was. It used to be clamped to the nearest LUT end (NaN to 0, +inf to the top) and reported as success.
+    if (!xpe_all_finite(static_cast<const float*>(img->data), count)) return XPE_ERR_INVALID_INPUT;
+
     // REQ-DISP-024: allocate new uint16 buffer
     size_t new_size = count * sizeof(uint16_t);
     uint16_t* out_buf = static_cast<uint16_t*>(std::malloc(new_size));
