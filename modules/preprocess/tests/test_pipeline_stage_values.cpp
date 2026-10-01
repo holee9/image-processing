@@ -100,8 +100,10 @@ protected:
     std::string calib() const { return dir.string(); }
 };
 
-// Readout and temperature are bypassed: the temperature stage copies
-// img->dataSize bytes into a W*H uint16 buffer, and this img is float-sized.
+// Readout and temperature are bypassed so that these cases are about the stages their names give.
+// (This was once also forced: until QA-A-205 the temperature stage copied img->dataSize bytes into a W*H
+// uint16 buffer, and this img is float-sized, so the stage could not be run on it -- see
+// test_oom_injection.cpp, TheFrameCopiedIsTheOneTheDimensionsDescribe...)
 constexpr const char* kBase =
     "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassBinning\":true,"
     "\"bypassDefect\":true,\"bypassGhost\":true";

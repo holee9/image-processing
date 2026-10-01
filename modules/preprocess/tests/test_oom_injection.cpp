@@ -25,6 +25,7 @@
 #include "xpe/preprocess/xcal_format.h"
 #include "xcal_writer.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <thread>
@@ -42,6 +43,46 @@
 /* =========================================================================
  * The injecting allocator
  * ========================================================================= */
+
+namespace guard {
+// QA-A-205: while the guard is on, every block gets 256 canary bytes behind it, recorded in a small table
+// keyed by the block's address (no header, so blocks allocated by another module and freed here are
+// unaffected). operator delete looks the block up and reports a canary that changed. Nothing here
+// allocates.
+constexpr size_t kCanary = 256;
+constexpr unsigned char kFill = 0xA5;
+constexpr size_t kSlots = 4096;
+struct Slot { void* p; size_t n; };
+Slot g_slots[kSlots];
+std::atomic<bool> g_on{false};
+std::atomic<long> g_recorded{0};     // blocks currently in the table
+std::atomic<long> g_overruns{0};
+void* const kTomb = reinterpret_cast<void*>(1);
+size_t slotOf(const void* p) { return (reinterpret_cast<uintptr_t>(p) >> 4) % kSlots; }
+void record(void* p, size_t n) {
+    size_t i = slotOf(p);
+    while (g_slots[i].p && g_slots[i].p != kTomb) i = (i + 1) % kSlots;
+    g_slots[i] = Slot{p, n};
+    g_recorded.fetch_add(1);
+    std::memset(static_cast<unsigned char*>(p) + n, kFill, kCanary);
+}
+void check(void* p) {
+    size_t i = slotOf(p);
+    for (size_t probes = 0; probes < kSlots && g_slots[i].p; ++probes, i = (i + 1) % kSlots) {
+        if (g_slots[i].p != p) continue;
+        const auto* tail = static_cast<const unsigned char*>(p) + g_slots[i].n;
+        for (size_t k = 0; k < kCanary; ++k) {
+            if (tail[k] != kFill) { g_overruns.fetch_add(1); break; }
+        }
+        g_slots[i].p = kTomb;
+        g_recorded.fetch_sub(1);
+        return;
+    }
+}
+void on(bool v) { g_on.store(v); }
+void reset() { g_overruns.store(0); }
+long overruns() { return g_overruns.load(); }
+}  // namespace guard
 
 namespace {
 std::atomic<long> g_failAt{0};      // 0 = disarmed; otherwise the 1-based index of the allocation to fail
@@ -73,11 +114,23 @@ void* operator new(std::size_t n) {
         g_injected.store(true);
         throw std::bad_alloc();
     }
-    if (void* p = std::malloc(n ? n : 1)) { g_live.fetch_add(1); return p; }
+    const bool guarded = guard::g_on.load(std::memory_order_relaxed);
+    const size_t want = n ? n : 1;
+    if (void* p = std::malloc(want + (guarded ? guard::kCanary : 0))) {
+        g_live.fetch_add(1);
+        if (guarded) guard::record(p, want);
+        return p;
+    }
     throw std::bad_alloc();
 }
 void* operator new[](std::size_t n) { return operator new(n); }
-void operator delete(void* p) noexcept { if (p) { g_live.fetch_sub(1); std::free(p); } }
+void operator delete(void* p) noexcept {
+    if (p) {
+        if (guard::g_recorded.load(std::memory_order_relaxed) > 0) guard::check(p);
+        g_live.fetch_sub(1);
+        std::free(p);
+    }
+}
 void operator delete[](void* p) noexcept { operator delete(p); }
 void operator delete(void* p, std::size_t) noexcept { operator delete(p); }
 void operator delete[](void* p, std::size_t) noexcept { operator delete(p); }
@@ -705,4 +758,137 @@ TEST_F(OomPipeline, PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntou
     pipe::captureReference(run, pipe::kFrames, /*withGhost=*/false);
     sweep("xpe_preprocess_pipeline_batch", pipe::setup, run, false,
           [](XpeErrorCode rc) { return pipe::afterError(rc, pipe::kFrames); });
+}
+
+/* =========================================================================
+ * The size the caller claims for the frame (QA-A-205, #234)
+ * ========================================================================= */
+
+// The temperature stage copied img->dataSize bytes into a buffer of width*height uint16, so a dataSize larger
+// than the frame the dimensions describe -- which is what a caller must pass to have the float result of the
+// gain stage written back -- overran it. The allocator in this executable puts a canary behind every block
+// allocated while the guard is on and checks it when the block is freed, so an overrun is reported here
+// instead of corrupting the heap.
+
+namespace dsz {
+
+constexpr size_t kCapacity = N * sizeof(float) + 64;   // room for every claim below
+constexpr unsigned char kSentinel = 0xAB;
+
+struct Frame {
+    std::vector<uint8_t> bytes;
+    XpeImageBuffer img{};
+    XpeImageMetadata meta{};
+    std::vector<uint8_t> before;
+    explicit Frame(size_t claim) : bytes(kCapacity, 0) {
+        auto* px = reinterpret_cast<uint16_t*>(bytes.data());
+        for (size_t i = 0; i < N; ++i) px[i] = static_cast<uint16_t>(1000 + (i * 37) % 300);
+        std::fill(bytes.begin() + static_cast<long>(N * sizeof(float)), bytes.end(), kSentinel);
+        img.data = bytes.data();
+        img.width = W; img.height = H;
+        img.bitsAllocated = 16; img.bitsStored = 16;
+        img.format = XPE_PIXEL_UINT16;
+        img.dataSize = claim;
+        before = bytes;
+    }
+};
+
+using Entry = std::function<XpeErrorCode(Frame&, const char* config)>;
+
+// Readout validation (stage 0.5) looks at dataSize itself, so a refusal there is not the pipeline's own; this
+// configuration leaves it out.
+const char* const kNoReadout = "{\"bypassReadout\":true,\"detectorTempC\":\"25.5\",\"binningMode\":\"2\"}";
+
+struct Entries { const char* name; Entry call; };
+
+std::vector<Entries> entries() {
+    return {
+        {"xpe_preprocess_pipeline_ex",
+         [](Frame& f, const char* cfg) { return xpe_preprocess_pipeline_ex(&f.img, &f.meta, nullptr, nullptr, cfg); }},
+        {"xpe_preprocess_pipeline",
+         [](Frame& f, const char* cfg) { return xpe_preprocess_pipeline(&f.img, &f.meta, "oom_pipe_calib", nullptr, cfg); }},
+        {"xpe_preprocess_pipeline_batch",
+         [](Frame& f, const char* cfg) {
+             return xpe_preprocess_pipeline_batch(&f.img, 1, &f.meta, "oom_pipe_calib", nullptr, cfg);
+         }},
+    };
+}
+
+/** Runs the entry point on a frame claiming `claim` bytes; reports whether the allocator saw an overrun. */
+XpeErrorCode run(const Entry& call, Frame& f, long* overruns, const char* config = pipe::kConfig) {
+    guard::reset();
+    guard::on(true);
+    XpeErrorCode rc = XPE_OK;
+    try { rc = call(f, config); } catch (...) { rc = XPE_ERR_PROCESSING_FAILED; }
+    guard::on(false);
+    *overruns = guard::overruns();
+    return rc;
+}
+
+}  // namespace dsz
+
+TEST_F(OomPipeline, TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims) {
+    for (const auto& e : dsz::entries()) {
+        SCOPED_TRACE(e.name);
+        // Controls first: the guard is able to see an overrun at all (a block that is written past its
+        // end is reported), and a clean run reports none.
+        {
+            guard::reset();
+            guard::on(true);
+            // Through function pointers, so that the compiler cannot elide the allocation.
+            void* (*const allocate)(std::size_t) = static_cast<void* (*)(std::size_t)>(&::operator new);
+            void (*const release)(void*) noexcept = static_cast<void (*)(void*) noexcept>(&::operator delete);
+            auto* block = static_cast<volatile unsigned char*>(allocate(16));
+            block[16] = 0x00;                          // one byte past the block, into its canary
+            release(const_cast<unsigned char*>(block));
+            guard::on(false);
+            ASSERT_EQ(1, guard::overruns()) << "control: the guard reports a write past the end of a block";
+        }
+        pipe::setup();
+
+        dsz::Frame full(N * sizeof(float));
+        long overruns = -1;
+        ASSERT_EQ(XPE_OK, dsz::run(e.call, full, &overruns)) << "control: the frame-sized claim succeeds";
+        EXPECT_EQ(0, overruns) << "a claim of one float frame must not overrun any buffer";
+        EXPECT_NE(full.before, full.bytes) << "control: the frame was processed";
+
+        const size_t claims[] = {N * sizeof(float) + 13, N * sizeof(uint16_t)};
+        for (size_t claim : claims) {
+            SCOPED_TRACE(claim);
+            pipe::setup();
+            dsz::Frame f(claim);
+            ASSERT_EQ(XPE_OK, dsz::run(e.call, f, &overruns));
+            EXPECT_EQ(0, overruns) << "a claim of " << claim << " bytes overran a buffer";
+            // Nothing at or beyond the claimed size was written.
+            EXPECT_TRUE(std::equal(f.bytes.begin() + static_cast<long>(claim), f.bytes.end(),
+                                   f.before.begin() + static_cast<long>(claim)))
+                << "bytes beyond the claimed size were written";
+            // What was written is the same result, truncated to the claim: the output is the float frame
+            // of the clean run, and a claim larger than a frame does not change it.
+            const size_t comparable = std::min(claim, N * sizeof(float));
+            EXPECT_TRUE(std::equal(f.bytes.begin(), f.bytes.begin() + static_cast<long>(comparable),
+                                   full.bytes.begin()))
+                << "the result for a claim of " << claim << " bytes differs from the frame-sized claim";
+        }
+    }
+}
+
+TEST_F(OomPipeline, AClaimSmallerThanTheFrameIsRefusedBeforeAnythingIsDone) {
+    for (const auto& e : dsz::entries()) {
+        SCOPED_TRACE(e.name);
+        for (const char* config : {pipe::kConfig, dsz::kNoReadout}) {
+            SCOPED_TRACE(config);
+            for (size_t claim : {N * sizeof(uint16_t) - 1, N * sizeof(uint16_t) - 2, static_cast<size_t>(1)}) {
+                SCOPED_TRACE(claim);
+                pipe::setup();
+                dsz::Frame f(claim);
+                long overruns = -1;
+                const XpeErrorCode rc = dsz::run(e.call, f, &overruns, config);
+                EXPECT_EQ(XPE_ERR_INVALID_INPUT, rc) << "the buffer is smaller than the dimensions need";
+                EXPECT_EQ(0, overruns);
+                EXPECT_EQ(f.before, f.bytes) << "a refused call must not touch the frame";
+                EXPECT_EQ(0u, f.meta.flags) << "a refused call must not touch the metadata";
+            }
+        }
+    }
 }

@@ -119,6 +119,13 @@ namespace {
         XpeErrorCode result = XPE_OK;
         const size_t pixelCount = static_cast<size_t>(img->width) * img->height;
 
+        // QA-A-205 (#234): the frame the pipeline reads is the one the dimensions describe. The #123 contract of
+        // the stage functions applies here too: dataSize 0 means unspecified (trust the dimensions), a
+        // non-zero value smaller than the dimensions need is refused -- before any stage runs, so that
+        // nothing reads past the end of the caller's buffer and no flag is set for a frame never read.
+        const size_t inputBytes = pixelCount * sizeof(uint16_t);
+        if (img->dataSize != 0 && img->dataSize < inputBytes) return XPE_ERR_INVALID_INPUT;
+
         // Stage 0.5: Readout Artifact Validation (PRE-01)
         if (!cfg.bypassReadout) {
             bool hasDropped = false, hasNonuniform = false;
@@ -136,7 +143,10 @@ namespace {
 
         if (!cfg.bypassTemp) {
             stage1Data.resize(pixelCount);
-            std::memcpy(stage1Data.data(), img->data, img->dataSize);
+            // The work buffer holds exactly inputBytes. This copied img->dataSize bytes, and a dataSize larger
+            // than the frame -- the size a caller must give for the float result of the gain stage to be
+            // written back -- overran it (#234).
+            std::memcpy(stage1Data.data(), img->data, inputBytes);
 
             stage1.data = stage1Data.data();
             stage1.dataSize = stage1Data.size() * sizeof(uint16_t);
