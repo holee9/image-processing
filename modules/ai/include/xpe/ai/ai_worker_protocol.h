@@ -15,7 +15,7 @@
  *   src/ai_ipc_bridge.cpp's header comment.
  *
  * Pipe naming convention:
- *   Windows: \\.\pipe\xpe_ai_worker_{PID}
+ *   Windows: `\\.\pipe\xpe_ai_worker_{PID}`
  *   The PID suffix ensures uniqueness when multiple XPE host processes run.
  *
  * Wire format:
@@ -38,8 +38,9 @@ extern "C" {
  * Protocol Version
  * -------------------------------------------------------------------------- */
 
-/** Major.minor protocol version for DLL-worker compatibility check. */
+/** Major protocol version; the worker rejects a header whose major differs. */
 #define XPE_AI_PROTOCOL_VERSION_MAJOR  1
+/** Minor protocol version; carried in the header, not compared by the worker. */
 #define XPE_AI_PROTOCOL_VERSION_MINOR  0
 
 /* ==========================================================================
