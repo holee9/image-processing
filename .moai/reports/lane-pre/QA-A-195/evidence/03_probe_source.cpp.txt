@@ -1,0 +1,109 @@
+// QA-A-195 TEMPORARY observation probe (DISABLED, report only, not committed):
+// does a cache HIT differ from a MISS in anything a verdict depends on?
+//   1. expiry   : file expires after being cached
+//   2. SHA-256  : file corrupted after being cached
+//   3. quality metadata (gain): get_quality_meta after hit vs miss
+#include <gtest/gtest.h>
+#include "xpe/preprocess_api.h"
+#include "xpe/common/xpe_types.h"
+#include "xpe/common/xpe_error.h"
+#include "xpe/preprocess/xcal_format.h"
+#include "xcal_writer.hpp"
+#include <chrono>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <fstream>
+#include <string>
+#include <thread>
+#include <vector>
+
+namespace {
+constexpr uint32_t W = 4, H = 4;
+constexpr size_t N = size_t(W) * H;
+
+int64_t nowMs() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
+void writeMap(const char* path, uint32_t type, const void* data, size_t bytes, int64_t expiry, const std::string& json) {
+    std::remove(path);
+    XCalFileHeader hdr{};
+    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    hdr.version = XCAL_VERSION; hdr.type = type; hdr.pixel_format = XCAL_FMT_FLOAT32;
+    hdr.width = W; hdr.height = H; hdr.payload_len = bytes;
+    hdr.created_epoch_ms = nowMs(); hdr.expiry_epoch_ms = expiry;
+    ASSERT_EQ(XPE_OK, write_xcal_file(path, hdr, reinterpret_cast<const uint8_t*>(json.data()), json.size(),
+                                      static_cast<const uint8_t*>(data), bytes));
+}
+const char* kJson09 = "{\"fit_r_squared\":\"0.900000\",\"polynomial_degree\":\"2\"}";
+const char* kJson05 = "{\"fit_r_squared\":\"0.500000\",\"polynomial_degree\":\"1\"}";
+
+void flipLastByte(const char* path) {
+    std::fstream f(path, std::ios::in | std::ios::out | std::ios::binary);
+    f.seekg(-1, std::ios::end);
+    char c; f.read(&c, 1);
+    c = static_cast<char>(c ^ 0x5A);
+    f.seekp(-1, std::ios::end);
+    f.write(&c, 1);
+}
+}  // namespace
+
+TEST(A195HitLimits, DISABLED_Observe) {
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    xpe_calib_cache_clear();
+    std::vector<float> m(N, 2.0f);
+    const size_t bytes = N * sizeof(float);
+    XpeImageBuffer v{};
+
+    // ---------- 1. expiry (gain, with quality meta) ----------
+    writeMap("a195_e.xcal", XCAL_TYPE_GAIN, m.data(), bytes, nowMs() + 1500, kJson09);
+    writeMap("a195_q.xcal", XCAL_TYPE_GAIN, m.data(), bytes, 0, kJson05);
+    XpeErrorCode rc = xpe_calib_load_gain_cached("a195_e.xcal", &v);
+    XpeCalibQualityMeta qm{};
+    xpe_calib_get_quality_meta(&qm);
+    std::printf("[a195] expiry/miss#1  rc=%d r2=%.3f degree=%u\n", rc, qm.r_squared, qm.polynomial_degree);
+    std::this_thread::sleep_for(std::chrono::milliseconds(2200));
+    bool expired = false; int32_t days = 0;
+    rc = xpe_calib_check_expiry("a195_e.xcal", &expired, &days);
+    std::printf("[a195] check_expiry(file, now) rc=%d is_expired=%d days=%d\n", rc, expired, days);
+    std::printf("[a195] plain load of the expired file rc=%d (miss path would be this)\n", xpe_calib_load_gain("a195_e.xcal"));
+    // put a different calibration (r2 0.5) in the store, then HIT the expired one
+    std::printf("[a195] plain load of Q rc=%d\n", xpe_calib_load_gain("a195_q.xcal"));
+    xpe_calib_get_quality_meta(&qm);
+    std::printf("[a195] after Q: r2=%.3f degree=%u\n", qm.r_squared, qm.polynomial_degree);
+    XpeImageBuffer hit{};
+    rc = xpe_calib_load_gain_cached("a195_e.xcal", &hit);
+    std::printf("[a195] HIT on expired file: rc=%d same_ptr=%d\n", rc, int(v.data == hit.data));
+    xpe_calib_get_quality_meta(&qm);
+    std::printf("[a195] quality meta after HIT: r2=%.3f degree=%u  (0.900/2 = restored, 0.500/1 = not restored)\n", qm.r_squared, qm.polynomial_degree);
+
+    // ---------- 2. SHA-256 (offset, no expiry) ----------
+    xpe_calib_cache_clear();
+    writeMap("a195_o.xcal", XCAL_TYPE_OFFSET, m.data(), bytes, 0, "{}");
+    rc = xpe_calib_load_offset_cached("a195_o.xcal", &v);
+    std::printf("[a195] sha/miss#1 rc=%d\n", rc);
+    flipLastByte("a195_o.xcal");
+    std::printf("[a195] plain load of the corrupted file rc=%d\n", xpe_calib_load_offset("a195_o.xcal"));
+    rc = xpe_calib_load_offset_cached("a195_o.xcal", &hit);
+    std::printf("[a195] HIT on corrupted file: rc=%d same_ptr=%d\n", rc, int(v.data == hit.data));
+    xpe_calib_cache_clear();
+    rc = xpe_calib_load_offset_cached("a195_o.xcal", &hit);
+    std::printf("[a195] after cache_clear, cached load of corrupted file: rc=%d\n", rc);
+
+    // ---------- 3. offset expiry ----------
+    xpe_calib_cache_clear();
+    writeMap("a195_oe.xcal", XCAL_TYPE_OFFSET, m.data(), bytes, nowMs() + 1500, "{}");
+    rc = xpe_calib_load_offset_cached("a195_oe.xcal", &v);
+    std::this_thread::sleep_for(std::chrono::milliseconds(2200));
+    std::printf("[a195] offset expiry: miss#1 rc=%d\n", rc);
+    std::printf("[a195] offset expiry: plain load rc=%d\n", xpe_calib_load_offset("a195_oe.xcal"));
+    rc = xpe_calib_load_offset_cached("a195_oe.xcal", &hit);
+    std::printf("[a195] offset expiry: HIT rc=%d\n", rc);
+
+    xpe_calib_cache_clear();
+    xpe_clear_alerts();
+    xpe_preprocess_shutdown();
+    for (const char* p : {"a195_e.xcal", "a195_q.xcal", "a195_o.xcal", "a195_oe.xcal"}) std::remove(p);
+}

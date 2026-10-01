@@ -1,0 +1,25 @@
+Note: Google Test filter = A195HitLimits.*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A195HitLimits
+[ RUN      ] A195HitLimits.DISABLED_Observe
+[a195] expiry/miss#1  rc=0 r2=0.900 degree=2
+[a195] check_expiry(file, now) rc=0 is_expired=1 days=0
+[a195] plain load of the expired file rc=-5 (miss path would be this)
+[a195] plain load of Q rc=0
+[a195] after Q: r2=0.500 degree=1
+[a195] HIT on expired file: rc=0 same_ptr=1
+[a195] quality meta after HIT: r2=0.500 degree=1  (0.900/2 = restored, 0.500/1 = not restored)
+[a195] sha/miss#1 rc=0
+[a195] plain load of the corrupted file rc=-4
+[a195] HIT on corrupted file: rc=0 same_ptr=1
+[a195] after cache_clear, cached load of corrupted file: rc=-4
+[a195] offset expiry: miss#1 rc=0
+[a195] offset expiry: plain load rc=-5
+[a195] offset expiry: HIT rc=0
+[       OK ] A195HitLimits.DISABLED_Observe (4453 ms)
+[----------] 1 test from A195HitLimits (4462 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4462 ms total)
+[  PASSED  ] 1 test.
