@@ -58,6 +58,8 @@ public sealed class DetachedViewerSyncScenarios(WorkflowApplicationFixture app, 
     [SkippableFact]
     public void W15_ScrollingTheDetachedViewer_MovesTheMainWindowsZoom()
     {
+        // GUI-C-171: the mouse wheel is the subject, and a real wheel event goes to the window under the pointer.
+        GlobalInput.Require("W15 (the mouse wheel over the detached viewer)");
         Measure("W15", window =>
         {
             ResetTheView(window);
@@ -118,6 +120,8 @@ public sealed class DetachedViewerSyncScenarios(WorkflowApplicationFixture app, 
     [SkippableFact]
     public void W16_ChangingTheModeInTheMainWindow_ReachesTheDetachedWindow()
     {
+        // GUI-C-171: the key presses are the subject, and a real key press goes to whichever window is in front.
+        GlobalInput.Require("W16 (F5/F8 pressed in the main window)");
         Measure("W16", window =>
         {
             CloseDetached(window);
@@ -216,10 +220,9 @@ public sealed class DetachedViewerSyncScenarios(WorkflowApplicationFixture app, 
 
     private static void Scroll(System.Drawing.Point point)
     {
-        Mouse.MovePixelsPerMillisecond = 100;
-        Mouse.Position = point;
+        GlobalInput.MoveTo(point);
         Thread.Sleep(250);
-        Mouse.Scroll(3);
+        GlobalInput.Scroll(3);
         Thread.Sleep(700);
     }
 
@@ -227,7 +230,7 @@ public sealed class DetachedViewerSyncScenarios(WorkflowApplicationFixture app, 
     {
         window.SetForeground();
         Thread.Sleep(200);
-        Keyboard.Press(key);
+        GlobalInput.Press(key);
         Thread.Sleep(700);
     }
 
@@ -241,10 +244,8 @@ public sealed class DetachedViewerSyncScenarios(WorkflowApplicationFixture app, 
 
     private static void OpenViewMenu(Window window)
     {
-        window.SetForeground();
-        Keyboard.Press(VirtualKeyShort.ESCAPE);
-        Thread.Sleep(120);
-        window.FindFirstDescendant(cf => cf.ByAutomationId("ViewMenu"))!.AsMenuItem().Click();
+        // GUI-C-171: through UI Automation — see UiaMenu for why a click and an ESC key are not safe here.
+        UiaMenu.Open(window, "ViewMenu");
         Thread.Sleep(300);
     }
 

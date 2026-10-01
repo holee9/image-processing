@@ -311,49 +311,47 @@ public sealed class ViewStateRenderScenarios(WorkflowApplicationFixture app, ITe
 
     private static void ScrollViewport(Window window, int notches)
     {
+        // GUI-C-171: the wheel is the subject; a real wheel event goes to the window under the pointer.
+        GlobalInput.Require("Scrolling the viewport with the mouse wheel");
         window.SetForeground();
         var r = ViewportElement(window).BoundingRectangle;
-        Mouse.Position = new System.Drawing.Point(r.Left + (r.Width / 2), r.Top + (r.Height / 2));
+        GlobalInput.MoveTo(new System.Drawing.Point(r.Left + (r.Width / 2), r.Top + (r.Height / 2)));
         Thread.Sleep(150);
         for (var i = 0; i < notches; i++)
         {
-            Mouse.Scroll(1);
+            GlobalInput.Scroll(1);
             Thread.Sleep(120);
         }
     }
 
     private static void Drag(System.Drawing.Point from, System.Drawing.Point to, MouseButton button)
     {
-        Mouse.Position = from;
+        // GUI-C-171: dragging is the subject; real mouse events go to the window under the pointer.
+        GlobalInput.MoveTo(from);
         Thread.Sleep(150);
-        Mouse.Down(button);
+        GlobalInput.Down(button);
         Thread.Sleep(100);
         for (var i = 1; i <= 8; i++)
         {
-            Mouse.Position = new System.Drawing.Point(from.X + ((to.X - from.X) * i / 8), from.Y + ((to.Y - from.Y) * i / 8));
+            GlobalInput.MoveTo(new System.Drawing.Point(from.X + ((to.X - from.X) * i / 8), from.Y + ((to.Y - from.Y) * i / 8)));
             Thread.Sleep(30);
         }
 
-        Mouse.Up(button);
+        GlobalInput.Up(button);
         Thread.Sleep(200);
     }
 
-    /// <summary>View → Reset Comparison View, opened with the same retry as the Pipeline menu (GUI-C-80/81).</summary>
+    /// <summary>
+    /// View → Reset Comparison View, opened through UI Automation (GUI-C-171) — no click, no retry. The retry that
+    /// stood here (GUI-C-80/81) existed because a click can land on a window covering the menu.
+    /// </summary>
     private static void ResetView(Window window)
     {
-        AutomationElement? item = null;
-        for (var attempt = 0; attempt < 3 && item is null; attempt++)
-        {
-            window.SetForeground();
-            Keyboard.Press(VirtualKeyShort.ESCAPE);
-            Thread.Sleep(120);
-            var menu = window.FindFirstDescendant(cf => cf.ByAutomationId("ViewMenu"))!.AsMenuItem();
-            if (attempt == 0) menu.Click(); else menu.Expand();
-            Thread.Sleep(350);
-            item = window.FindFirstDescendant(cf => cf.ByAutomationId("ResetComparisonViewMenuItem"));
-        }
+        UiaMenu.Open(window, "ViewMenu");
+        Thread.Sleep(350);
+        var item = window.FindFirstDescendant(cf => cf.ByAutomationId("ResetComparisonViewMenuItem"));
 
-        Assert.True(item is not null, "View → Reset Comparison View did not appear after three attempts.");
+        Assert.True(item is not null, "View → Reset Comparison View did not appear after the View menu was expanded.");
         item!.AsMenuItem().Invoke();
         Thread.Sleep(400);
     }

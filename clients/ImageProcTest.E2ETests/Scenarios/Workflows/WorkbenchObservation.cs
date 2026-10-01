@@ -2,9 +2,8 @@
 // scenarios that read what it received.
 using System.Text.RegularExpressions;
 using FlaUI.Core.AutomationElements;
-using FlaUI.Core.Input;
-using FlaUI.Core.WindowsAPI;
 using Xunit;
+using ImageProcTest.E2ETests.Fixtures;
 
 namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 
@@ -102,7 +101,7 @@ internal static class WorkbenchObservation
         var input = window.FindFirstDescendant(cf => cf.ByAutomationId("VoiWindowCenterInput"))!.AsTextBox();
         input.Focus();
         input.Text = value;
-        Keyboard.Press(VirtualKeyShort.TAB);
+        UiaInput.CommitByMovingFocus(window, input);
         Thread.Sleep(1200);
     }
 
@@ -111,30 +110,22 @@ internal static class WorkbenchObservation
         var input = window.FindFirstDescendant(cf => cf.ByAutomationId("VoiWindowWidthInput"))!.AsTextBox();
         input.Focus();
         input.Text = value;
-        Keyboard.Press(VirtualKeyShort.TAB);
+        UiaInput.CommitByMovingFocus(window, input);
         Thread.Sleep(1200);
     }
 
     internal static void ApplyDisplayPipeline(Window window)
     {
-        // Symptom workaround (GUI-C-80, cause measured in GUI-C-81): the detached viewer is an owned window,
-        // so it stays above the main window even after SetForeground. Where it covers the Pipeline menu,
-        // FromPoint at the menu centre returns the viewer and the click never reaches the menu (2 runs:
-        // covered → not found, moved away → found, moved back → not found). Later attempts therefore open
-        // the menu through the expand pattern, which needs no pointer.
-        AutomationElement? item = null;
-        for (var attempt = 0; attempt < 3 && item is null; attempt++)
-        {
-            window.SetForeground();
-            Keyboard.Press(VirtualKeyShort.ESCAPE);
-            Thread.Sleep(120);
-            var menu = window.FindFirstDescendant(cf => cf.ByAutomationId("PipelineMenu"))!.AsMenuItem();
-            if (attempt == 0) menu.Click(); else menu.Expand();   // Expand needs no pointer, so an overlapping window cannot take it
-            Thread.Sleep(350);
-            item = window.FindFirstDescendant(cf => cf.ByAutomationId("ApplyDisplayPipelineMenuItem"));
-        }
+        // GUI-C-80/81 measured that a window covering the Pipeline menu (the detached viewer, an owned window)
+        // took the click meant for it, and kept a retry that fell back to Expand. GUI-C-171 found the same
+        // cause for the View menu with a different covering window (a terminal) and removed the click for good:
+        // the menu is opened through the expand pattern, which is addressed to the menu and needs no pointer,
+        // so nothing that covers it can take the input — and there is no retry left to hide a failure.
+        UiaMenu.Open(window, "PipelineMenu");
+        Thread.Sleep(350);
+        var item = window.FindFirstDescendant(cf => cf.ByAutomationId("ApplyDisplayPipelineMenuItem"));
 
-        Assert.True(item is not null, "The Apply Display Pipeline menu item did not appear after three attempts.");
+        Assert.True(item is not null, "The Apply Display Pipeline menu item did not appear after the Pipeline menu was expanded.");
         item!.AsMenuItem().Invoke();
         Thread.Sleep(1200);
     }
@@ -205,21 +196,14 @@ internal static class WorkbenchObservation
 
     internal static AutomationElement OpenDetached(Window window)
     {
-        // GUI-C-82: the first click on the View menu of a freshly launched app did not always open it
-        // (measured once in E-01c), so the menu is re-opened, as in ApplyDisplayPipeline.
-        AutomationElement? item = null;
-        for (var attempt = 0; attempt < 3 && item is null; attempt++)
-        {
-            window.SetForeground();
-            Keyboard.Press(VirtualKeyShort.ESCAPE);
-            Thread.Sleep(120);
-            var menu = window.FindFirstDescendant(cf => cf.ByAutomationId("ViewMenu"))!.AsMenuItem();
-            if (attempt == 0) menu.Click(); else menu.Expand();
-            Thread.Sleep(300);
-            item = window.FindFirstDescendant(cf => cf.ByAutomationId("DetachComparisonViewerMenuItem"));
-        }
+        // GUI-C-82 saw the first click on the View menu of a freshly launched app not open it (once, in E-01c)
+        // and answered with a retry. GUI-C-171 found why a click can miss — it goes to whatever window is in
+        // front — and opens the menu through UI Automation instead, with no retry (see ApplyDisplayPipeline).
+        UiaMenu.Open(window, "ViewMenu");
+        Thread.Sleep(300);
+        var item = window.FindFirstDescendant(cf => cf.ByAutomationId("DetachComparisonViewerMenuItem"));
 
-        Assert.True(item is not null, "The Detach Comparison Viewer menu item did not appear after three attempts.");
+        Assert.True(item is not null, "The Detach Comparison Viewer menu item did not appear after the View menu was expanded.");
         item!.AsMenuItem().Invoke();
 
         for (var i = 0; i < 20; i++)

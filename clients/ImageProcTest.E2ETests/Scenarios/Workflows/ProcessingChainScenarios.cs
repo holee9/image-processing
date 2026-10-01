@@ -352,7 +352,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
         var input = box!.AsTextBox();
         input.Focus();
         input.Text = value;
-        FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.TAB);
+        UiaInput.CommitByMovingFocus(window, input);
         Thread.Sleep(400);
     }
 
@@ -379,7 +379,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
         var input = box!.AsTextBox();
         input.Focus();
         input.Text = value;
-        FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.TAB);
+        UiaInput.CommitByMovingFocus(window, input);
         Thread.Sleep(400);
     }
 
