@@ -136,8 +136,8 @@ TEST(P1A066, T3_LoadOffset_WrongSha256_ReturnsConfigInvalid) {
  * T4: Ghost multi-handle race — 4 independent handles on 4 threads
  * REQ-P1A-066 D4
  *
- * The ghost handle is NOT thread-safe for sharing (no internal mutex).
- * This test verifies that multiple handles owned by different threads can
+ * Several threads sharing ONE handle is covered by GhostThreadSafety.* (the handle has an
+ * internal mutex since QA-A-185). This test verifies that multiple handles owned by different threads can
  * operate concurrently without corrupting shared global state or crashing.
  * ============================================================================ */
 

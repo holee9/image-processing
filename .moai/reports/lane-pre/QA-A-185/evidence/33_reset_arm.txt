@@ -1,0 +1,3 @@
+ARM (reset lock removed): red invocations 39/40
+    Which is: 3
+runs (of 20) that ended in a state no serial order produces; first: hist1 is not uniform at element 4092

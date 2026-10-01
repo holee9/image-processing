@@ -19,6 +19,7 @@
 #include <cstring>
 #include <cmath>
 #include <limits>
+#include <mutex>
 #include <vector>
 #include <string>
 #include <memory>
@@ -60,6 +61,13 @@ struct GhostCorrectorHandle {
 
     double lastAcqTimeSec{0.0};
     double lastFrameMean{0.0}; // mean signal level for exposure weighting
+
+    // SRS-CALIB-NFR-003: guards hist1/hist2 and the three fields above. Held for the whole of
+    // xpe_ghost_correct() and xpe_ghost_reset(), so threads sharing one handle are serialised
+    // call by call and no history update is lost. width/height/tier/IRF are set once in
+    // xpe_ghost_create() and never change, so they need no lock. xpe_ghost_destroy() must
+    // still not run concurrently with a call on the same handle.
+    std::mutex mtx;
 
     // Validate that a void* is a live handle
     static bool isValid(const void* h) noexcept {

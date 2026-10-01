@@ -306,7 +306,7 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
             if (!g_calib.gain_map && g_calib.gain_poly_coeffs) {
                 if (g_calib.gain_width  != input->width ||
                     g_calib.gain_height != input->height) {
-                    return XPE_ERR_BUFFER_TOO_SMALL;
+                    return XPE_ERR_INVALID_INPUT;
                 }
                 poly_coeffs = g_calib.gain_poly_num_coeffs;
                 if (poly_coeffs == 0) return XPE_ERR_INVALID_CALIB_DATA;
@@ -324,7 +324,7 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
             if (poly.empty()) {
                 if (g_calib.gain_width  != input->width ||
                     g_calib.gain_height != input->height) {
-                    return XPE_ERR_BUFFER_TOO_SMALL;
+                    return XPE_ERR_INVALID_INPUT;
                 }
                 gainmap.assign(g_calib.gain_map.get(), g_calib.gain_map.get() + n);
             }

@@ -1,0 +1,34 @@
+Note: Google Test filter = CalibDimMismatch.*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from CalibDimMismatch
+[ RUN      ] CalibDimMismatch.OffsetMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.OffsetMapDifferentFromInputReturnsInvalidInput (2 ms)
+[ RUN      ] CalibDimMismatch.GainMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.GainMapDifferentFromInputReturnsInvalidInput (2 ms)
+[ RUN      ] CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput (3 ms)
+[ RUN      ] CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_dim_mismatch.cpp(120): error: Expected equality of these values:
+  -1
+  xpe_defect_correct(&i, &o, &meta)
+    Which is: -8
+
+[  FAILED  ] CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput (2 ms)
+[----------] 4 tests from CalibDimMismatch (11 ms total)
+
+[----------] Global test environment tear-down
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_global_state_hygiene.cpp(227): error: Failed
+Tests left global module state changed. Each of these has to undo
+what it did -- restore only what the fixture itself raised, in
+TearDown. Leaving state behind passes under ctest (one process per
+test) and fails whenever the binary is run directly or shuffled.
+  CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput -- pending alerts 0 -> 1 (drain with xpe_clear_alerts());
+
+
+[==========] 4 tests from 1 test suite ran. (11 ms total)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput
+
+ 1 FAILED TEST

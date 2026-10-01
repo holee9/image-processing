@@ -40,9 +40,12 @@ extern "C" XPE_API XpeErrorCode xpe_validate_readout_artifact(
     }
 
     // REQ-P1A-041 names line noise, dropped columns and ADC saturation patterns.
-    // This check flags rows whose mean exceeds 0.9 * UINT16_MAX and reports it as
-    // has_nonuniform_gain. It is not a line-noise check (kLineNoiseFrac is a
-    // misnomer), and no line-noise check exists in this function (#232).
+    // has_nonuniform_gain is a BRIGHT-ROW check: it is set when any row's mean exceeds
+    // 0.9 * UINT16_MAX, whatever the cause. It does not look at line noise -- QA-A-184
+    // measured it unset on frames with row/column line noise (sigma 300..1500 on a
+    // 20000 base) and set on a clean frame of base 62000. Line-noise detection is not
+    // implemented (#232, decided 2026-10-01: stated as unimplemented in the SPEC). The
+    // output name is kept as the public parameter name (decided with #232); kLineNoiseFrac is a misnomer too.
     static constexpr double kLineNoiseFrac = 0.9;
     bool nonuniform = false;
     for (uint32_t y = 0; y < H && !nonuniform; ++y) {

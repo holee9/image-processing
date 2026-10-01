@@ -180,8 +180,9 @@ XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath);
  * @param metadata Image metadata including temperature and acquisition time
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
- *         XPE_ERR_INVALID_INPUT if NULL pointers
- *         XPE_ERR_BUFFER_TOO_SMALL if dimension mismatch
+ *         XPE_ERR_INVALID_INPUT if NULL pointers, or if the loaded calibration
+ *                               map's dimensions differ from the input's (REQ-P1A-021)
+ *         XPE_ERR_BUFFER_TOO_SMALL if the output's dimensions differ from the input's
  */
 XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
                                         XpeImageBuffer* output,
@@ -202,8 +203,9 @@ XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
  * @param metadata Image metadata including kVp and SID
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
- *         XPE_ERR_INVALID_INPUT if NULL pointers
- *         XPE_ERR_BUFFER_TOO_SMALL if dimension mismatch
+ *         XPE_ERR_INVALID_INPUT if NULL pointers, or if the loaded calibration
+ *                               map's dimensions differ from the input's (REQ-P1A-021)
+ *         XPE_ERR_BUFFER_TOO_SMALL if the output's dimensions differ from the input's
  *         XPE_ERR_UNSUPPORTED_FORMAT if format mismatch
  *         XPE_ERR_CONFIG_INVALID if gain map contains invalid values
  */
@@ -270,9 +272,11 @@ XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if xpe_preprocess_init() has not been called
  *         XPE_ERR_CALIB_NOT_LOADED if initialized but no defect map is loaded
- *         XPE_ERR_INVALID_INPUT if NULL pointers, or if the input and output
- *                               buffers overlap partially (see above)
- *         XPE_ERR_BUFFER_TOO_SMALL if dimension mismatch
+ *         XPE_ERR_INVALID_INPUT if NULL pointers, if the input and output
+ *                               buffers overlap partially (see above), or if the
+ *                               loaded defect map's dimensions differ from the
+ *                               input's (REQ-P1A-021)
+ *         XPE_ERR_BUFFER_TOO_SMALL if the output's dimensions differ from the input's
  */
 XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
                                         XpeImageBuffer* output,
@@ -573,7 +577,12 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
  *         XPE_ERR_OUT_OF_MEMORY on allocation failure
  *         XPE_ERR_INVALID_INPUT on NULL handleOut or zero dimensions
  *
- * @note Handle is NOT thread-safe; do not share across threads
+ * @note SRS-CALIB-NFR-003: one handle may be shared by several threads. Calls to
+ *       xpe_ghost_correct() and xpe_ghost_reset() on the same handle are serialised
+ *       inside the handle (one mutex per handle), so no history update is lost.
+ *       Calls on different handles do not block each other. Not guaranteed: the
+ *       caller reading or writing the same image buffer from several threads
+ *       without its own synchronisation, and xpe_ghost_destroy() (see there).
  */
 XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
                                        const char* configJsonOrNull,
@@ -584,6 +593,10 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
  *
  * REQ-P1A-032: Apply LTI deconvolution (Tier 1/2/3)
  * REQ-P1A-033: Compute time delta in units of frames
+ *
+ * Serialised per handle with xpe_ghost_reset() and other xpe_ghost_correct() calls
+ * on the same handle (see xpe_ghost_create). The image buffer is not protected: the
+ * caller must not access the same buffer concurrently without its own synchronisation.
  *
  * @param handle Ghost corrector handle (from xpe_ghost_create)
  * @param img [in/out] Image to correct (float32 format)
@@ -600,6 +613,8 @@ XPE_API XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
  *
  * REQ-P1A-088: Clear accumulated frame history
  * Call between patient acquisitions or after detector power cycle.
+ * Serialised per handle with xpe_ghost_correct(): a concurrent correct sees the history
+ * either entirely before or entirely after the reset (see xpe_ghost_create).
  *
  * @param handle Ghost corrector handle
  * @return XPE_OK on success
@@ -611,6 +626,9 @@ XPE_API XpeErrorCode xpe_ghost_reset(void* handle);
  * @brief Free all resources associated with a ghost corrector handle
  *
  * After this call the handle is invalid (do not pass to any other function).
+ * Must not run concurrently with any call on the same handle, whether that call is
+ * already in progress or starts meanwhile: the handle's mutex is freed with it, so
+ * the caller must stop all other threads using the handle first.
  *
  * @param handle Ghost corrector handle to destroy (may be NULL, no-op)
  */
@@ -710,7 +728,8 @@ XPE_API XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
  * @param image Raw uint16 image to validate
  * @param metadata Image metadata (acquisition context)
  * @param has_dropped_columns Output: true if any all-zero column detected
- * @param has_nonuniform_gain Output: true if any row mean > 0.9 * UINT16_MAX
+ * @param has_nonuniform_gain Output: true if any row mean > 0.9 * UINT16_MAX (a bright-row
+ *        check; the name is historical -- it does not detect line noise, see #232)
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT on NULL pointers
  */

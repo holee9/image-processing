@@ -1,0 +1,26 @@
+Note: Google Test filter = CalibDimMismatch.*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from CalibDimMismatch
+[ RUN      ] CalibDimMismatch.OffsetMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.OffsetMapDifferentFromInputReturnsInvalidInput (2 ms)
+[ RUN      ] CalibDimMismatch.GainMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.GainMapDifferentFromInputReturnsInvalidInput (2 ms)
+[ RUN      ] CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_dim_mismatch.cpp(108): error: Expected equality of these values:
+  -1
+  xpe_gain_correct(&i, &o, &meta)
+    Which is: -8
+
+[  FAILED  ] CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput (3 ms)
+[ RUN      ] CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput (1 ms)
+[----------] 4 tests from CalibDimMismatch (10 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (10 ms total)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput
+
+ 1 FAILED TEST

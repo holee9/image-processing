@@ -1,0 +1,29 @@
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_thread_safety.cpp(137): error: Expected equality of these values:
+  0
+  runsThatDiverge(true, false, ref2K, refK)
+    Which is: 20
+runs (of 20) whose final history differs from the serial replay
+
+[  FAILED  ] GhostThreadSafety.SharedHandleLosesNoUpdates (104 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (57 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (33 ms)
+[----------] 3 tests from GhostThreadSafety (195 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (195 ms total)
+[  PASSED  ] 2 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] GhostThreadSafety.SharedHandleLosesNoUpdates
+
+ 1 FAILED TEST
+
+real	0m0.241s
+user	0m0.015s
+sys	0m0.000s

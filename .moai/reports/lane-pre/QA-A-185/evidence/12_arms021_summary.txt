@@ -1,0 +1,4 @@
+ARM offset_correct.cpp:186 (BUILD_EXIT=0): CalibDimMismatch.OffsetMapDifferentFromInputReturnsInvalidInput
+ARM gain_correct.cpp:309 (BUILD_EXIT=0): CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput
+ARM gain_correct.cpp:327 (BUILD_EXIT=0): CalibDimMismatch.GainMapDifferentFromInputReturnsInvalidInput
+ARM defect_correct.cpp:179 (BUILD_EXIT=0): CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput
