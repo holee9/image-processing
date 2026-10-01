@@ -35,6 +35,17 @@
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
 
+/**
+ * @defgroup xpe_ai XPE AI
+ * @brief Deep-learning inference proxy -- C API (ai_api.h), worker IPC protocol
+ *        (ai_worker_protocol.h) and ONNX session (ai_onnx_session.h).
+ *
+ * Defined here, as xpe_dicom is in dicom_api.h and xpe_common in xpe_types.h,
+ * so the group references from this module's headers resolve to a real group
+ * instead of being ignored (Doxygen reports a reference to an undefined group
+ * as an error under FAIL_ON_WARNINGS).
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif

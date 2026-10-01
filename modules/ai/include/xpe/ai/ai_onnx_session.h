@@ -23,8 +23,10 @@
 #include <unordered_map>
 
 #ifdef XPE_AI_STUB_BUILD
+    /** 1 when this build has no ONNX Runtime (stub), 0 when it links the real one. */
     #define ONNX_RUNTIME_STUB_BUILD 1
 #else
+    /** 0 when this build links the real ONNX Runtime, 1 when it is the stub. */
     #define ONNX_RUNTIME_STUB_BUILD 0
 #endif
 
@@ -81,20 +83,20 @@ struct ModelMetadata {
  * @brief Tensor metadata for inputs/outputs
  */
 struct TensorMetadata {
-    std::string name;
-    std::vector<int64_t> shape;
-    std::string type;
+    std::string name;               ///< Tensor name as declared in the model graph
+    std::vector<int64_t> shape;     ///< Declared dimensions (-1 = the model does not constrain that axis)
+    std::string type;               ///< Element type name; the session reports "float32" for every tensor
 };
 
 /**
  * @brief ONNX session configuration
  */
 struct OnnxSessionConfig {
-    ExecutionProvider execution_provider = ExecutionProvider::kCpu;
-    std::string model_path;
-    int num_threads = 1;
-    LogLevel log_level = LogLevel::kWarning;
-    bool enable_profiling = false;
+    ExecutionProvider execution_provider = ExecutionProvider::kCpu; ///< Requested EP; the one actually used may differ after fallback
+    std::string model_path;                                        ///< Path of the .onnx model file
+    int num_threads = 1;                                           ///< Intra-op thread count; a value below 1 is treated as 1
+    LogLevel log_level = LogLevel::kWarning;                       ///< Session logging verbosity
+    bool enable_profiling = false;                                 ///< Accepted and ignored: no profile is written (logs a warning)
 };
 
 /**
@@ -102,16 +104,22 @@ struct OnnxSessionConfig {
  */
 template<typename T>
 struct OnnxResult {
-    T value;
-    OnnxErrorCode code = OnnxErrorCode::kOk;
-    std::string message;
+    T value;                                    ///< Payload; meaningful only when has_value() is true
+    OnnxErrorCode code = OnnxErrorCode::kOk;    ///< kOk on success, otherwise the failure reason
+    std::string message;                        ///< Human-readable detail for a failure; empty on success
 
+    /** @return true when code is kOk, i.e. value holds a usable payload. */
     bool has_value() const { return code == OnnxErrorCode::kOk; }
+    /** @return Pointer to value (member access); not checked against has_value(). */
     T* operator->() { return &value; }
+    /** @return Const pointer to value (member access); not checked against has_value(). */
     const T* operator->() const { return &value; }
+    /** @return Reference to value; not checked against has_value(). */
     T& operator*() { return value; }
+    /** @return Const reference to value; not checked against has_value(). */
     const T& operator*() const { return value; }
 
+    /** @return Same as has_value(); explicit so a result is not silently usable as an integer. */
     explicit operator bool() const { return has_value(); }
 };
 
@@ -136,8 +144,20 @@ public:
     // Disable copy, enable move
     OnnxSession(const OnnxSession&) = delete;
     OnnxSession& operator=(const OnnxSession&) = delete;
-    OnnxSession(OnnxSession&&) noexcept;
-    OnnxSession& operator=(OnnxSession&&) noexcept;
+
+    /**
+     * @brief Move constructor - takes over the session of @p other
+     * @param other Source session; left empty (IsValid() is false) afterwards
+     */
+    OnnxSession(OnnxSession&& other) noexcept;
+
+    /**
+     * @brief Move assignment - releases this session, then takes over @p other
+     * @param other Source session; left empty (IsValid() is false) afterwards
+     * @return *this
+     * @note Defined in the .cpp below struct Impl; see "THE RULE" at the end of this header.
+     */
+    OnnxSession& operator=(OnnxSession&& other) noexcept;
 
     /**
      * @brief Create a new ONNX session
@@ -149,6 +169,7 @@ public:
 
     /**
      * @brief Check if session is valid
+     * @return true when the session holds a loaded model (false after being moved from)
      */
     bool IsValid() const;
 
@@ -156,21 +177,26 @@ public:
      * @brief Get actual execution provider used
      *
      * May differ from requested if fallback occurred.
+     *
+     * @return The EP the session is really running on
      */
     ExecutionProvider GetActualExecutionProvider() const;
 
     /**
      * @brief Get model metadata (REQ-AI-008)
+     * @return Metadata of the loaded model; valid for the lifetime of the session
      */
     const ModelMetadata& GetModelMetadata() const;
 
     /**
      * @brief Get input tensor metadata
+     * @return One entry per model input, in graph order
      */
     std::vector<TensorMetadata> GetInputMetadata() const;
 
     /**
      * @brief Get output tensor metadata
+     * @return One entry per model output, in graph order
      */
     std::vector<TensorMetadata> GetOutputMetadata() const;
 
@@ -202,6 +228,7 @@ public:
 
     /**
      * @brief Check if running in stub mode
+     * @return true when this build has no ONNX Runtime (same as ONNX_RUNTIME_STUB_BUILD)
      */
     static bool IsStubBuild();
 
