@@ -1,0 +1,31 @@
+D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-C-171\c171_run.py:62: DeprecationWarning: Python 3.14 will, by default, filter extracted tar archives and reject files or modify their metadata. Use the filter argument to control this behavior.
+  tf.extractall(dest)
+CUR S07 sha 1cfcb37af783   OLD S07 sha 1fccdb353e71
+#1 NEW-S07: (0, '-')
+#2 OLD-S07: (2, '열리지 않음 (옛 S07: 항목 null)')
+#3 NEW-S07: (1, '열리지 않음')
+    [GUI-C-171] foreground: hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'; app main window: hwnd=0xE71362 pid=58292 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0' iconic=False keyboardFocus=True offscreen=False rect={X=234,Y=234,Width=1560,Height=920}; under the View menu's click point: (354,414) -> hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'
+#4 OLD-S07: (2, '열리지 않음 (옛 S07: 항목 null)')
+#5 NEW-S07: (1, '열리지 않음')
+    [GUI-C-171] foreground: hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'; app main window: hwnd=0x6690802 pid=28224 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0' iconic=False keyboardFocus=True offscreen=False rect={X=286,Y=286,Width=1560,Height=920}; under the View menu's click point: (406,466) -> hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'
+#6 OLD-S07: (2, '열리지 않음 (옛 S07: 항목 null)')
+#7 NEW-S07: (1, '열리지 않음')
+    [GUI-C-171] foreground: hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'; app main window: hwnd=0x7BA05F0 pid=21952 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0' iconic=False keyboardFocus=True offscreen=False rect={X=234,Y=234,Width=1560,Height=920}; under the View menu's click point: (354,414) -> hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'
+#8 OLD-S07: (2, '열리지 않음 (옛 S07: 항목 null)')
+#9 NEW-S07: (1, '열리지 않음')
+    [GUI-C-171] foreground: hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'; app main window: hwnd=0x7D170E pid=55496 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0' iconic=False keyboardFocus=True offscreen=False rect={X=156,Y=156,Width=1560,Height=920}; under the View menu's click point: (276,336) -> hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'
+#10 OLD-S07: (2, '열리지 않음 (옛 S07: 항목 null)')
+| # | 팔 | 가용 GB | 결과 | 실패 종류 | 실패 시점의 창 |
+|---|---|---|---|---|---|
+| 1 | NEW-S07 | 7.5 | 통과 | - |  |
+| 2 | OLD-S07 | 10.3 | 실패 (3/5) | 열리지 않음 (옛 S07: 항목 null) |  |
+| 3 | NEW-S07 | 10.3 | 실패 (4/5) | 열리지 않음 | 전경=WindowsTerminal '✳ xpe-leader'; 클릭 아래=WindowsTerminal '✳ xpe-leader' @(354,414) |
+| 4 | OLD-S07 | 8.8 | 실패 (3/5) | 열리지 않음 (옛 S07: 항목 null) |  |
+| 5 | NEW-S07 | 10.4 | 실패 (4/5) | 열리지 않음 | 전경=WindowsTerminal '✳ xpe-leader'; 클릭 아래=WindowsTerminal '✳ xpe-leader' @(406,466) |
+| 6 | OLD-S07 | 10.4 | 실패 (3/5) | 열리지 않음 (옛 S07: 항목 null) |  |
+| 7 | NEW-S07 | 10.5 | 실패 (4/5) | 열리지 않음 | 전경=WindowsTerminal '✳ xpe-leader'; 클릭 아래=WindowsTerminal '✳ xpe-leader' @(354,414) |
+| 8 | OLD-S07 | 10.4 | 실패 (3/5) | 열리지 않음 (옛 S07: 항목 null) |  |
+| 9 | NEW-S07 | 7.9 | 실패 (4/5) | 열리지 않음 | 전경=WindowsTerminal '✳ xpe-leader'; 클릭 아래=WindowsTerminal '✳ xpe-leader' @(276,336) |
+| 10 | OLD-S07 | 9.5 | 실패 (3/5) | 열리지 않음 (옛 S07: 항목 null) |  |
+real tree unchanged: True
+script exit=0

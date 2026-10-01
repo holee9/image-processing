@@ -104,6 +104,9 @@ public sealed class ComparisonEntryPointScenarios(WorkflowApplicationFixture app
     [MemberData(nameof(Gestures))]
     public void W14_BoundKeyGesture_SelectsThatMode(string gesture, string mode)
     {
+        // GUI-C-171: the key press is the subject here, so it cannot become a UI Automation call — and a real key
+        // press goes to whichever window is in front. Skipped unless real desktop input was allowed.
+        GlobalInput.Require("W-14 (a bound key gesture)");
         Measure($"W-14 {gesture}", window =>
         {
             PrimeADifferentMode(window, mode);
@@ -111,7 +114,7 @@ public sealed class ComparisonEntryPointScenarios(WorkflowApplicationFixture app
             window.SetForeground();
             window.Focus();
             Thread.Sleep(200);
-            Keyboard.Press(KeyFor(gesture));
+            GlobalInput.Press(KeyFor(gesture));
 
             var reported = WaitFor(() => ReportedMode(window) == mode ? mode : null);
             Assert.True(
@@ -137,16 +140,18 @@ public sealed class ComparisonEntryPointScenarios(WorkflowApplicationFixture app
     {
         Measure($"W-27 {automationId}", window =>
         {
-            var (primeKey, primeMode) = mode == "SwipeVertical" ? ("F8", "DifferenceHeatmap") : ("F5", "SwipeVertical");
-            window.SetForeground();
-            window.Focus();
-            Thread.Sleep(200);
-            Keyboard.Press(KeyFor(primeKey));
+            // GUI-C-171: primed through View → Compare Mode, not through a key press. The key press was chosen
+            // because priming through the menu failed after the W-14 key presses (GUI-C-96) — the same cause
+            // as the S07 failure: input addressed to whichever window is in front. The menu is opened through
+            // UI Automation now, and it is still a route different from the button under test.
+            var (primeItem, primeMode) = mode == "SwipeVertical"
+                ? ("CompareDifferenceMenuItem", "DifferenceHeatmap")
+                : ("CompareSwipeMenuItem", "SwipeVertical");
+            InvokeCompareMenuItem(window, primeItem);
             Assert.True(
                 WaitFor(() => ReportedMode(window) == primeMode ? "ok" : null) is not null,
-                $"Priming with {primeKey} did not take effect (viewport drew '{ReportedMode(window)}').");
+                $"Priming through View → Compare Mode ({primeItem}) did not take effect (viewport drew '{ReportedMode(window)}').");
 
-            window.SetForeground();
             var button = window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
             Assert.True(button is not null, $"'{automationId}' is not in the automation tree.");
             button!.AsButton().Invoke();
@@ -198,22 +203,12 @@ public sealed class ComparisonEntryPointScenarios(WorkflowApplicationFixture app
     /// </summary>
     private static void InvokeCompareMenuItem(Window window, string automationId)
     {
-        // Escape first, and take the foreground. Measured (GUI-C-58): run in isolation all six menu
-        // cases passed, and in the full suite the LAST of them failed after the keyboard scenarios
-        // had run — those bring the window to the foreground and press keys, and a menu left open or
-        // a focus that moved makes the next click land somewhere else. Closing any open menu and
-        // re-taking the foreground removes the dependency on what the previous scenario left behind.
-        // GUI-C-109 measured this without the Escape and the re-focus: 13 runs, 78 menu invocations,
-        // zero failures. So it is no longer load-bearing on the evidence available — but that was
-        // measured with the Expand change already in place, so it does not show the mitigation was
-        // never needed, only that it is not needed now. Kept: removing a guard buys nothing here, and
-        // the failure it was written for (keyboard scenarios moving the focus) is a different one from
-        // the failure Expand fixed.
-        window.SetForeground();
-        Keyboard.Press(VirtualKeyShort.ESCAPE);
-        Thread.Sleep(100);
-
-        window.FindFirstDescendant(cf => cf.ByAutomationId("ViewMenu"))!.AsMenuItem().Click();
+        // GUI-C-58 measured the last of six menu cases failing in the full suite after the keyboard scenarios had
+        // run, and answered with "Escape first, and take the foreground". GUI-C-171 found the cause: the ESC
+        // and the click are input addressed to whichever window is in front, and on a shared desktop that is not
+        // the app. The View menu is therefore opened through UI Automation (UiaMenu), which is addressed to the
+        // menu itself — no Escape, no foreground grab, no click.
+        UiaMenu.Open(window, "ViewMenu");
         Thread.Sleep(200);
 
         var compare = WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("CompareModeMenuItem")));

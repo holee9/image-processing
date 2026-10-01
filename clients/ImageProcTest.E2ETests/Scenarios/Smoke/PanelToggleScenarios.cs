@@ -1,8 +1,6 @@
 // #165 (GUI-C-65): the View menu's panel toggles, after they were matched to the current layout.
 using System.Diagnostics;
 using FlaUI.Core.AutomationElements;
-using FlaUI.Core.Input;
-using FlaUI.Core.WindowsAPI;
 using ImageProcTest.E2ETests.Fixtures;
 using Xunit;
 using Xunit.Abstractions;
@@ -114,6 +112,10 @@ public sealed class PanelToggleScenarios(ApplicationFixture app, ITestOutputHelp
 
                 OpenViewMenu(window);
                 var anchor = WaitForTheViewMenu(window);
+
+                // GUI-C-171: only when the menu did NOT open, and only AFTER the wait — so a passing run is
+                // timed exactly as before. What was in front of the app?
+                var whereItWent = anchor is null ? DescribeWhatIsInFront(window) : string.Empty;
                 var item = window.FindFirstDescendant(cf => cf.ByAutomationId(toggleId));
                 var enabled = item?.IsEnabled;
                 CloseMenu();
@@ -121,12 +123,12 @@ public sealed class PanelToggleScenarios(ApplicationFixture app, ITestOutputHelp
                 // GUI-C-170b: an absence proves nothing until something that MUST be there is found beside
                 // it — the S06 rule, which this scenario did not carry over when it was rewritten. Without
                 // it, "the menu did not open" and "the item is gone" were the same message, and a lost first
-                // click read as a missing item. There is deliberately NO retry: a click that is lost must
+                // click read as a missing item. There is deliberately NO retry: a menu that does not open must
                 // show up as a failure of its own name, not be retried until it passes.
                 Assert.True(
                     anchor is not null,
-                    $"The View menu did not open: ShowLogsPanelMenuItem, which is always in it, was not visible within {ViewMenuWaitMilliseconds} ms of the click, " +
-                    $"so this run cannot say whether '{toggleId}' is present.");
+                    $"The View menu did not open: ShowLogsPanelMenuItem, which is always in it, was not visible within {ViewMenuWaitMilliseconds} ms of expanding it, " +
+                    $"so this run cannot say whether '{toggleId}' is present. {whereItWent}");
                 Assert.True(item is not null, $"'{toggleId}' is gone from the View menu.");
                 Assert.True(enabled, $"'{toggleId}' is disabled again, but its panel exists (#225 rows 7/8).");
 
@@ -149,8 +151,8 @@ public sealed class PanelToggleScenarios(ApplicationFixture app, ITestOutputHelp
     private const int ViewMenuWaitMilliseconds = 2000;
 
     /// <summary>
-    /// The View menu's always-present item, waited for after the click. Returns null when the menu never
-    /// showed it. This waits; it does not click again.
+    /// The View menu's always-present item, waited for after the menu was expanded. Returns null when the
+    /// menu never showed it. This waits; it does not expand again.
     /// </summary>
     private static AutomationElement? WaitForTheViewMenu(Window window)
     {
@@ -164,6 +166,75 @@ public sealed class PanelToggleScenarios(ApplicationFixture app, ITestOutputHelp
 
         return anchor;
     }
+
+    /// <summary>
+    /// GUI-C-171: what the desktop looked like when the View menu failed to open — which window is in front,
+    /// what state the app's main window is in, and which window is over the View menu. Read only on the
+    /// failure path; it never changes what a passing run does, and it only READS (no input is sent).
+    /// </summary>
+    private static string DescribeWhatIsInFront(Window window)
+    {
+        try
+        {
+            string Describe(IntPtr handle)
+            {
+                if (handle == IntPtr.Zero) return "none";
+                GetWindowThreadProcessId(handle, out var pid);
+                var title = new System.Text.StringBuilder(160);
+                GetWindowText(handle, title, title.Capacity);
+                string process;
+                try { process = Process.GetProcessById((int)pid).ProcessName; } catch { process = "?"; }
+                return $"hwnd=0x{handle.ToInt64():X} pid={pid} proc={process} title='{title}'";
+            }
+
+            var main = window.Properties.NativeWindowHandle.ValueOrDefault;
+            var viewMenu = window.FindFirstDescendant(cf => cf.ByAutomationId("ViewMenu"));
+            var clickPoint = "View menu element not found";
+            if (viewMenu is not null)
+            {
+                clickPoint = viewMenu.TryGetClickablePoint(out var point)
+                    ? $"({point.X},{point.Y}) -> {Describe(GetAncestor(WindowFromPoint(new NativePoint { X = point.X, Y = point.Y }), 2))}"
+                    : "View menu has no clickable point";
+            }
+
+            var rectangle = window.Properties.BoundingRectangle.ValueOrDefault;
+            return "[GUI-C-171] " +
+                   $"foreground: {Describe(GetForegroundWindow())}; " +
+                   $"app main window: {Describe(main)} iconic={IsIconic(main)} " +
+                   $"keyboardFocus={window.Properties.HasKeyboardFocus.ValueOrDefault} " +
+                   $"offscreen={window.Properties.IsOffscreen.ValueOrDefault} rect={rectangle}; " +
+                   $"under the View menu's centre: {clickPoint}";
+        }
+        catch (Exception ex)
+        {
+            return $"[GUI-C-171] the diagnostic itself failed: {ex.GetType().Name}: {ex.Message}";
+        }
+    }
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        public int X;
+        public int Y;
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr handle, out uint processId);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern int GetWindowText(IntPtr handle, System.Text.StringBuilder text, int maxCount);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr WindowFromPoint(NativePoint point);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr GetAncestor(IntPtr handle, uint flags);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool IsIconic(IntPtr handle);
 
     private static bool PanelPresent(Window window, string panelId) =>
         window.FindFirstDescendant(cf => cf.ByAutomationId(panelId)) is not null;
@@ -254,7 +325,7 @@ public sealed class PanelToggleScenarios(ApplicationFixture app, ITestOutputHelp
                 ShowTheLog(window);
                 var before = PanelPresent(window, "CalibrationPathsPanel");
 
-                window.FindFirstDescendant(cf => cf.ByAutomationId("ToolsMenu"))!.AsMenuItem().Click();
+                UiaMenu.Open(window, "ToolsMenu");
                 Thread.Sleep(300);
                 window.FindFirstDescendant(cf => cf.ByAutomationId("CalibrationSettingsMenuItem"))!
                     .AsMenuItem().Invoke();
@@ -343,7 +414,6 @@ public sealed class PanelToggleScenarios(ApplicationFixture app, ITestOutputHelp
     /// <summary>Selects the log tab and makes sure the region is on.</summary>
     private static void ShowTheLog(Window window)
     {
-        window.SetForeground();
         window.FindFirstDescendant(cf => cf.ByName("Log"))!.AsButton().Invoke();
         Thread.Sleep(350);
 
@@ -368,23 +438,24 @@ public sealed class PanelToggleScenarios(ApplicationFixture app, ITestOutputHelp
     }
 
     /// <summary>
-    /// Opens View, having first closed whatever was open.
+    /// Opens View, having first closed whatever this helper had open.
     ///
-    /// GUI-C-58 measured a menu case failing when it ran after other scenarios, and GUI-C-61 could
-    /// not find the cause; closing first and taking the foreground is the workaround that lane kept.
+    /// GUI-C-58 measured a menu case failing when it ran after other scenarios, and GUI-C-61 could not find
+    /// the cause; closing first and taking the foreground was the workaround that lane kept. GUI-C-171 found
+    /// the cause: the click and the ESC key went to whichever window was in front, and on a shared desktop that
+    /// was another application. The menu is now driven through UI Automation (<see cref="UiaMenu"/>), which is
+    /// addressed to the element and sends no input to the desktop, so neither the workaround's foreground grab
+    /// nor its ESC is needed.
     /// </summary>
     private static void OpenViewMenu(Window window)
     {
-        window.SetForeground();
-        Keyboard.Press(VirtualKeyShort.ESCAPE);
-        Thread.Sleep(120);
-        window.FindFirstDescendant(cf => cf.ByAutomationId("ViewMenu"))!.AsMenuItem().Click();
+        UiaMenu.Open(window, "ViewMenu");
         Thread.Sleep(300);
     }
 
     private static void CloseMenu()
     {
-        Keyboard.Press(VirtualKeyShort.ESCAPE);
+        UiaMenu.Close();
         Thread.Sleep(200);
     }
 

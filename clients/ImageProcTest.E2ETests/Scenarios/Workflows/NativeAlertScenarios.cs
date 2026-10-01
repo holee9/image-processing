@@ -129,15 +129,14 @@ public sealed class NativeAlertScenarios(Wrist1024SliceApplicationFixture app, I
     /// </summary>
     private static void SettleMenuBar(Window window)
     {
-        for (var attempt = 0; attempt < 10; attempt++)
-        {
-            window.SetForeground();
-            FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.ESCAPE);
-            Thread.Sleep(250);
-            if (window.FindFirstDescendant(cf => cf.ByAutomationId("PipelineMenu")) is not null) return;
-        }
-
-        Skip.If(true, "The Pipeline menu never became reachable; another window is covering it.");
+        // GUI-C-171: whatever the previous case left open is collapsed through UI Automation (it used to be an
+        // ESC key press, which goes to the foreground window, not to the app). Whether the Pipeline menu is in
+        // the tree does not depend on what covers the window, so one look is enough.
+        UiaMenu.CollapseAll(window);
+        Thread.Sleep(250);
+        Skip.If(
+            window.FindFirstDescendant(cf => cf.ByAutomationId("PipelineMenu")) is null,
+            "The Pipeline menu is not in the automation tree.");
     }
 
     private static void SelectAlgorithm(Window window, string lane, string option)

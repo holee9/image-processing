@@ -201,6 +201,9 @@ public sealed class SettingsWarningRecoveryScenarios(ITestOutputHelper output)
     [SkippableFact]
     public void CopyWithNothingSelected_CannotLookLikeItWorked()
     {
+        // GUI-C-171: the mouse press on a DISABLED button is the subject ("a disabled button must absorb it"); a
+        // UI Automation Invoke would throw on a disabled button instead of being absorbed, so it cannot stand in.
+        GlobalInput.Require("CopyWithNothingSelected (a mouse press on a disabled button)");
         var directory = NewDirectory();
         var path = Path.Combine(directory, "appsettings.json");
         File.WriteAllText(path, Corrupt);
@@ -223,7 +226,7 @@ public sealed class SettingsWarningRecoveryScenarios(ITestOutputHelper output)
             // assertion, so the run records what a user actually experiences — including on a build
             // where the button is pressable, where the record shows the press changing nothing at all.
             output.WriteLine($"with no selection, enabled={copy!.IsEnabled}");
-            copy.Click();            // a user can still aim at it; a disabled button must absorb this
+            GlobalInput.Click(copy!);   // a user can still aim at it; a disabled button must absorb this
             Thread.Sleep(300);
             var afterPress = ReadClipboard();
             output.WriteLine($"clipboard after the press: '{afterPress}'");

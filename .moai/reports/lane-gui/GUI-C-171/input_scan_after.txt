@@ -1,0 +1,38 @@
+# after — direct desktop-input API calls, whole of clients/ and gui/, EXCLUDING the one gate file and comment lines
+# command: grep -rnE 'Keyboard\.|Mouse\.|\.Click\(|DoubleClick\(|RightClick\(|SendKeys|keybd_event|mouse_event|SendInput|SetCursorPos|Wait\.UntilInputIsProcessed' clients gui --include=*.cs | grep -vE '/(bin|obj)/|Fixtures/GlobalInput.cs|GlobalInput\.|^\S+:[0-9]+:\s*//'
+clients/ImageProcTest/MainWindow.xaml.cs:79:            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+(count: 1)
+
+# the product-side hit that is a READ of modifier state, not input: 
+79:            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+
+# the ONLY file that calls the input APIs:
+46:        Keyboard.Press(key);
+52:        Mouse.MovePixelsPerMillisecond = pixelsPerMillisecond;
+53:        Mouse.Position = point;
+59:        Mouse.Scroll(notches);
+65:        Mouse.Down(button);
+71:        Mouse.Up(button);
+77:        element.Click();
+
+# every call that goes THROUGH the gate (each one is skipped unless XPE_E2E_ALLOW_GLOBAL_INPUT=1):
+Workflows/ComparisonEntryPointScenarios.cs:109:        GlobalInput.Require("W-14 (a bound key gesture)");
+Workflows/ComparisonEntryPointScenarios.cs:117:            GlobalInput.Press(KeyFor(gesture));
+Workflows/DetachedViewerSyncScenarios.cs:62:        GlobalInput.Require("W15 (the mouse wheel over the detached viewer)");
+Workflows/DetachedViewerSyncScenarios.cs:124:        GlobalInput.Require("W16 (F5/F8 pressed in the main window)");
+Workflows/DetachedViewerSyncScenarios.cs:223:        GlobalInput.MoveTo(point);
+Workflows/DetachedViewerSyncScenarios.cs:225:        GlobalInput.Scroll(3);
+Workflows/DetachedViewerSyncScenarios.cs:233:        GlobalInput.Press(key);
+Workflows/SettingsWarningRecoveryScenarios.cs:206:        GlobalInput.Require("CopyWithNothingSelected (a mouse press on a disabled button)");
+Workflows/SettingsWarningRecoveryScenarios.cs:229:            GlobalInput.Click(copy!);   // a user can still aim at it; a disabled button must absorb
+Workflows/ViewStateRenderScenarios.cs:315:        GlobalInput.Require("Scrolling the viewport with the mouse wheel");
+Workflows/ViewStateRenderScenarios.cs:318:        GlobalInput.MoveTo(new System.Drawing.Point(r.Left + (r.Width / 2), r.Top + (r.Height / 2)));
+Workflows/ViewStateRenderScenarios.cs:322:            GlobalInput.Scroll(1);
+Workflows/ViewStateRenderScenarios.cs:330:        GlobalInput.MoveTo(from);
+Workflows/ViewStateRenderScenarios.cs:332:        GlobalInput.Down(button);
+Workflows/ViewStateRenderScenarios.cs:336:            GlobalInput.MoveTo(new System.Drawing.Point(from.X + ((to.X - from.X) * i / 8), from.Y + ((to.Y 
+Workflows/ViewStateRenderScenarios.cs:340:        GlobalInput.Up(button);
+
+# focus APIs that remain (NOT input; they bring a window forward or move focus inside the app, and send nothing):
+SetForeground: 8 lines in 8 files
+.Focus(): 7 lines

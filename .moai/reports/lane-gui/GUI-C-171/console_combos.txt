@@ -1,0 +1,42 @@
+D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-C-171\c171_run.py:62: DeprecationWarning: Python 3.14 will, by default, filter extracted tar archives and reject files or modify their metadata. Use the filter argument to control this behavior.
+  tf.extractall(dest)
+#1 full4: (1, '열리지 않음')
+    [GUI-C-171] foreground: hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'; app main window: hwnd=0x7E005F0 pid=37068 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0' iconic=False keyboardFocus=True offscreen=False rect={X=52,Y=52,Width=1560,Height=920}; under the View menu's click point: (172,232) -> hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'
+#2 no-A11: (1, '열리지 않음')
+    [GUI-C-171] foreground: hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'; app main window: hwnd=0x2F6D0646 pid=12972 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0' iconic=False keyboardFocus=True offscreen=False rect={X=104,Y=104,Width=1560,Height=920}; under the View menu's click point: (224,284) -> hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'
+#3 no-A13: (1, '열리지 않음')
+    [GUI-C-171] foreground: hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'; app main window: hwnd=0x5C60564 pid=6516 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0' iconic=False keyboardFocus=True offscreen=False rect={X=234,Y=234,Width=1560,Height=920}; under the View menu's click point: (354,414) -> hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'
+#4 no-A02: (1, '열리지 않음')
+    [GUI-C-171] foreground: hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'; app main window: hwnd=0x2F770646 pid=10016 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0' iconic=False keyboardFocus=True offscreen=False rect={X=260,Y=260,Width=1560,Height=920}; under the View menu's click point: (380,440) -> hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'
+#5 full4: (1, '열리지 않음')
+    [GUI-C-171] foreground: hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'; app main window: hwnd=0x83109C4 pid=40060 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0' iconic=False keyboardFocus=True offscreen=False rect={X=130,Y=130,Width=1560,Height=920}; under the View menu's click point: (250,310) -> hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'
+#6 no-A11: (1, '열리지 않음')
+    [GUI-C-171] foreground: hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'; app main window: hwnd=0x95A08C8 pid=48132 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0' iconic=False keyboardFocus=True offscreen=False rect={X=286,Y=286,Width=1560,Height=920}; under the View menu's click point: (406,466) -> hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'
+#7 no-A13: (1, '열리지 않음')
+    [GUI-C-171] foreground: hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'; app main window: hwnd=0x7F805F0 pid=64012 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0' iconic=False keyboardFocus=True offscreen=False rect={X=312,Y=312,Width=1560,Height=920}; under the View menu's click point: (432,492) -> hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'
+#8 no-A02: (1, '열리지 않음')
+    [GUI-C-171] foreground: hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'; app main window: hwnd=0xA005BA pid=40896 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0' iconic=False keyboardFocus=True offscreen=False rect={X=104,Y=104,Width=1560,Height=920}; under the View menu's click point: (224,284) -> hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'
+#9 full4: (1, '열리지 않음')
+    [GUI-C-171] foreground: hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'; app main window: hwnd=0x6FE085A pid=49324 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0' iconic=False keyboardFocus=True offscreen=False rect={X=78,Y=78,Width=1560,Height=920}; under the View menu's click point: (198,258) -> hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'
+#10 no-A11: (1, '열리지 않음')
+    [GUI-C-171] foreground: hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'; app main window: hwnd=0x365C06EE pid=64044 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0' iconic=False keyboardFocus=True offscreen=False rect={X=234,Y=234,Width=1560,Height=920}; under the View menu's click point: (354,414) -> hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'
+#11 no-A13: (1, '열리지 않음')
+    [GUI-C-171] foreground: hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'; app main window: hwnd=0x80F05F0 pid=54376 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0' iconic=False keyboardFocus=True offscreen=False rect={X=260,Y=260,Width=1560,Height=920}; under the View menu's click point: (380,440) -> hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'
+#12 no-A02: (1, '열리지 않음')
+    [GUI-C-171] foreground: hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'; app main window: hwnd=0x6860A08 pid=56044 proc=ImageProcTest title='[MOCK] ImageProcTest GUI-S0' iconic=False keyboardFocus=True offscreen=False rect={X=260,Y=260,Width=1560,Height=920}; under the View menu's click point: (380,440) -> hwnd=0x903D4 pid=18560 proc=WindowsTerminal title='✳ xpe-leader'
+| # | 팔 | 가용 GB | 결과 | 실패 종류 | 실패 시점의 창 |
+|---|---|---|---|---|---|
+| 1 | full4 | 7.9 | 실패 (4/5) | 열리지 않음 | 전경=WindowsTerminal '✳ xpe-leader'; 클릭 아래=WindowsTerminal '✳ xpe-leader' @(172,232) |
+| 2 | no-A11 | 9.3 | 실패 (3/4) | 열리지 않음 | 전경=WindowsTerminal '✳ xpe-leader'; 클릭 아래=WindowsTerminal '✳ xpe-leader' @(224,284) |
+| 3 | no-A13 | 10.5 | 실패 (3/4) | 열리지 않음 | 전경=WindowsTerminal '✳ xpe-leader'; 클릭 아래=WindowsTerminal '✳ xpe-leader' @(354,414) |
+| 4 | no-A02 | 10.6 | 실패 (3/4) | 열리지 않음 | 전경=WindowsTerminal '✳ xpe-leader'; 클릭 아래=WindowsTerminal '✳ xpe-leader' @(380,440) |
+| 5 | full4 | 9.5 | 실패 (4/5) | 열리지 않음 | 전경=WindowsTerminal '✳ xpe-leader'; 클릭 아래=WindowsTerminal '✳ xpe-leader' @(250,310) |
+| 6 | no-A11 | 10.7 | 실패 (3/4) | 열리지 않음 | 전경=WindowsTerminal '✳ xpe-leader'; 클릭 아래=WindowsTerminal '✳ xpe-leader' @(406,466) |
+| 7 | no-A13 | 10.8 | 실패 (3/4) | 열리지 않음 | 전경=WindowsTerminal '✳ xpe-leader'; 클릭 아래=WindowsTerminal '✳ xpe-leader' @(432,492) |
+| 8 | no-A02 | 10.8 | 실패 (3/4) | 열리지 않음 | 전경=WindowsTerminal '✳ xpe-leader'; 클릭 아래=WindowsTerminal '✳ xpe-leader' @(224,284) |
+| 9 | full4 | 10.8 | 실패 (4/5) | 열리지 않음 | 전경=WindowsTerminal '✳ xpe-leader'; 클릭 아래=WindowsTerminal '✳ xpe-leader' @(198,258) |
+| 10 | no-A11 | 10.8 | 실패 (3/4) | 열리지 않음 | 전경=WindowsTerminal '✳ xpe-leader'; 클릭 아래=WindowsTerminal '✳ xpe-leader' @(354,414) |
+| 11 | no-A13 | 10.8 | 실패 (3/4) | 열리지 않음 | 전경=WindowsTerminal '✳ xpe-leader'; 클릭 아래=WindowsTerminal '✳ xpe-leader' @(380,440) |
+| 12 | no-A02 | 10.8 | 실패 (3/4) | 열리지 않음 | 전경=WindowsTerminal '✳ xpe-leader'; 클릭 아래=WindowsTerminal '✳ xpe-leader' @(380,440) |
+real tree unchanged: True
+script exit=0

@@ -1,8 +1,6 @@
 // #166 (GUI-C-71): the detached comparison viewer, after the binding modes were corrected.
 using System.Diagnostics;
 using FlaUI.Core.AutomationElements;
-using FlaUI.Core.Input;
-using FlaUI.Core.WindowsAPI;
 using ImageProcTest.E2ETests.Fixtures;
 using Xunit;
 using Xunit.Abstractions;
@@ -97,12 +95,13 @@ public sealed class DetachViewerScenarios(ApplicationFixture app, ITestOutputHel
         Thread.Sleep(400);
     }
 
-    /// <summary>Opens the View menu and returns the title of the window that was under it at click time.</summary>
+    /// <summary>
+    /// Opens the View menu and returns the title of the window that was over it when it was opened. The menu
+    /// is opened through UI Automation (GUI-C-171) — no click, no key press — so what is over it can no longer
+    /// take the input; it is still read, because it explains a menu that does not show.
+    /// </summary>
     private static string OpenViewMenu(Window window)
     {
-        window.SetForeground();
-        Keyboard.Press(VirtualKeyShort.ESCAPE);
-        Thread.Sleep(120);
         var menu = window.FindFirstDescendant(cf => cf.ByAutomationId("ViewMenu"))!;
         var r = menu.BoundingRectangle;
         var hit = "(unknown)";
@@ -115,7 +114,7 @@ public sealed class DetachViewerScenarios(ApplicationFixture app, ITestOutputHel
         }
         catch (Exception ex) { hit = $"(FromPoint failed: {ex.GetType().Name})"; }
 
-        menu.AsMenuItem().Click();
+        UiaMenu.Open(window, "ViewMenu");
         Thread.Sleep(300);
         return $"{hit}; main pid={window.Properties.ProcessId.ValueOrDefault}";
     }

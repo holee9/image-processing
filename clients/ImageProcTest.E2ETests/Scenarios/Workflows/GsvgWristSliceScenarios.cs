@@ -250,19 +250,12 @@ public sealed class GsvgWristSliceScenarios(Wrist1024SliceApplicationFixture app
 
     private static void InvokeFileMenuItem(Window window, string automationId)
     {
-        AutomationElement? item = null;
-        for (var attempt = 0; attempt < 3 && item is null; attempt++)
-        {
-            window.SetForeground();
-            FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.ESCAPE);
-            Thread.Sleep(120);
-            var menu = window.FindFirstDescendant(cf => cf.ByAutomationId("FileMenu"))!.AsMenuItem();
-            if (attempt == 0) menu.Click(); else menu.Expand();
-            Thread.Sleep(350);
-            item = window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
-        }
+        // GUI-C-171: opened through UI Automation, not a click — a click goes to whatever window is in front.
+        UiaMenu.Open(window, "FileMenu");
+        Thread.Sleep(350);
+        var item = window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
 
-        Assert.True(item is not null, $"{automationId} did not appear after three attempts.");
+        Assert.True(item is not null, $"{automationId} did not appear after the File menu was expanded.");
         item!.AsMenuItem().Invoke();
         Thread.Sleep(600);
     }
@@ -1030,7 +1023,7 @@ public sealed class GsvgWristSliceScenarios(Wrist1024SliceApplicationFixture app
         var input = box!.AsTextBox();
         input.Focus();
         input.Text = value;
-        FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.TAB);
+        UiaInput.CommitByMovingFocus(window, input);
         Thread.Sleep(300);
     }
 
