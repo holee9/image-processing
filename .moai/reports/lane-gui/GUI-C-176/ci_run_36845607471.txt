@@ -1,0 +1,16 @@
+# GUI-C-176 push (dev/gui ad4881de) — CI run 36845607471, read after it finished; run conclusion: success
+
+jobs: gui-automation success 09:53:44->10:05:41 ; gui-e2e-native success 10:04:11->10:26:55 ; text-lint success ; dotnet-tests success
+
+## Mock (artifact xpe-gui-e2e-smoke-results)
+  outcomes: NotExecuted 34, Passed 146, total 180   (the 34 are the by-design Mock skips; the previous run was 179 = this minus the new A14)
+  the job's own step line: results=180 skipped=34 input-gated-skips=0
+  A14 Passed 10.3 s ; R01 Passed 2.2 s ; R02 Passed 5.9 s
+  artifact xpe-gui-automation-report, automation-report.json:
+    BenchmarkStatus = Benchmark runner is not built: build/ci-post has no CTestTestfile.cmake. Build it first: 'cmake --preset ci-post' and then 'cmake --build --preset ci-post --parallel' (see .github/workflows/benchmark-regression.yml).
+    BenchmarkPassed = null ; BenchmarkLaunchSuppressed = false ; DisabledFutureCommandCount = 6 ; UnimplementedMenuLeafCount = 6
+
+## Native (artifact xpe-gui-e2e-native-results)
+  outcomes: Passed 180, total 180
+  A14 Passed 15.1 s ; R01 Passed 2.0 s ; R02 Passed 5.9 s
+  which A14 branch the Native job took was not read (the test passes in either branch)
