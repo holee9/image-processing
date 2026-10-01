@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultPageItems>false</EnableDefaultPageItems>
+  </PropertyGroup>
+  <ItemGroup>
+
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="ImageProcTest">
+      <HintPath>D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\ImageProcTest.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

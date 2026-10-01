@@ -1,0 +1,93 @@
+// GUI-C-186e harness, scenario 2: BeginShutdown on the REAL view model while a frame holds the gate.
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
+using System.Text;
+using System.Windows.Threading;
+using ImageProcTest.Models;
+using ImageProcTest.Services;
+using ImageProcTest.ViewModels;
+
+namespace Harness;
+
+internal static partial class Program
+{
+    private static async Task ShutdownScenario(Dispatcher dispatcher, StringBuilder log, int holdMs)
+    {
+        var raw = @"D:\workspace-github\xpe-gui\gui\ImageProcTest\fixtures\gui-s0\raw\synthetic_1024x1024.raw";
+        var tmp = Path.Combine(Path.GetTempPath(), "xpe-c186e-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+        Directory.CreateDirectory(tmp);
+        try
+        {
+            var settings = new AppSettings { RawWidth = 1024, RawHeight = 1024 };
+            var gate = new object();
+            var backends = new List<GateWaitingBackend>();
+            IXpeBackend Make(AppSettings s)
+            {
+                var b = new GateWaitingBackend(new MockXpeBackend(new RawImageLoader(), "xpe_common.dll", false, "xpe_display.dll", false), gate, holdMs) { GateOnShutdown = true };
+                backends.Add(b);
+                return b;
+            }
+
+            var vm = new MainWindowViewModel(settings, new AppSettingsService(Path.Combine(tmp, "appsettings.json")), Make);
+            var load = typeof(MainWindowViewModel).GetMethod("LoadImageFromPathAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+            await (Task)load.Invoke(vm, new object[] { raw, "harness" });
+            var active = backends[^1]; log.AppendLine($"loaded; backends built so far = {backends.Count}; the ACTIVE one is the last built (the constructor builds one and InitializeBackend replaces it); its display calls = {active.ApplyCalls}");
+
+            long maxLate = 0;
+            var stop = false;
+            var probe = Task.Run(() =>
+            {
+                while (!Volatile.Read(ref stop))
+                {
+                    var posted = Stopwatch.GetTimestamp();
+                    dispatcher.BeginInvoke(() =>
+                    {
+                        var late = Stopwatch.GetTimestamp() - posted;
+                        lock (log) { if (late > maxLate) maxLate = late; }
+                    }, DispatcherPriority.Normal);
+                    Thread.Sleep(50);
+                }
+            });
+
+            // A frame holds the gate for holdMs (a stand-in for an AI frame waiting on a silent worker).
+            var held = new ManualResetEventSlim();
+            Task.Run(() => { lock (gate) { held.Set(); Thread.Sleep(holdMs); } });
+            held.Wait();
+
+            var watch = Stopwatch.StartNew();
+            var closed = false;
+            long closedAt = 0;
+            vm.BeginShutdown(() => { closed = true; closedAt = watch.ElapsedMilliseconds; });
+            log.AppendLine($"BeginShutdown returned after {watch.ElapsedMilliseconds} ms; IsBackendTransitioning={vm.IsBackendTransitioning}; status='{vm.StatusText}'");
+
+            // While it waits: a processing request and a backend replacement are refused.
+            var callsBefore = active.ApplyCalls;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Task.Delay(100);
+            log.AppendLine($"Apply during the shutdown: display calls on the active backend {callsBefore} -> {active.ApplyCalls}; status='{vm.StatusText}'");
+            var buildsBefore = backends.Count;
+            vm.InitializeBackendCommand.Execute(null);
+            log.AppendLine($"Initialize backend during the shutdown: backends built {buildsBefore} -> {backends.Count}");
+
+            while (!closed && watch.ElapsedMilliseconds < holdMs + 10000) await Task.Delay(20);
+            log.AppendLine($"whenDone ran = {closed} after {closedAt} ms; IsBackendTransitioning={vm.IsBackendTransitioning}; runtime state='{vm.RuntimeInfo.State}'; status='{vm.StatusText}'");
+
+            // After it: a new backend is attached and processing goes to IT.
+            vm.InitializeBackendCommand.Execute(null);
+            log.AppendLine($"Initialize backend after the shutdown: backends built = {backends.Count}");
+            var newBackend = backends[^1];
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            for (var i = 0; i < 100 && newBackend.ApplyCalls == 0; i++) await Task.Delay(50);
+            log.AppendLine($"Apply after the new backend: new backend display calls = {newBackend.ApplyCalls}; old (shut down) backend calls = {active.ApplyCalls}");
+
+            Volatile.Write(ref stop, true);
+            await probe;
+            lock (log) log.AppendLine($"WORST UI-dispatcher probe latency over the whole run = {maxLate * 1000.0 / Stopwatch.Frequency:0} ms");
+        }
+        finally
+        {
+            try { Directory.Delete(tmp, true); } catch { }
+        }
+    }
+}
