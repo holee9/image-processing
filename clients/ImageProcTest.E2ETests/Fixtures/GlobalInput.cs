@@ -46,6 +46,20 @@ internal static class GlobalInput
         Keyboard.Press(key);
     }
 
+    /// <summary>Ctrl+A — selects everything in the control that holds the keyboard focus.</summary>
+    public static void SelectAll()
+    {
+        Require("Pressing Ctrl+A");
+        Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_A);
+    }
+
+    /// <summary>Types the text as real key presses into whatever holds the keyboard focus.</summary>
+    public static void Type(string text)
+    {
+        Require("Typing");
+        Keyboard.Type(text);
+    }
+
     public static void MoveTo(System.Drawing.Point point, double pixelsPerMillisecond = 100)
     {
         Require("Moving the mouse");
