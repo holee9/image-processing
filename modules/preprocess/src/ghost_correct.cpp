@@ -208,6 +208,9 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
     size_t n = 0;
     if (!xpe_buffer_has_format(img, XPE_PIXEL_FLOAT32, &n)) return XPE_ERR_INVALID_INPUT;
 
+    // SRS-CALIB-NFR-003: one call at a time per handle (history and lastAcqTimeSec are updated in place)
+    std::lock_guard<std::mutex> lock(gh->mtx);
+
     auto* px = static_cast<float*>(img->data);
 
     // REQ-P1A-033: compute time delta in units of frames (1.0 for first frame)
@@ -248,6 +251,7 @@ XpeErrorCode xpe_ghost_reset(void* handle)
 {
     if (!GhostCorrectorHandle::isValid(handle)) return XPE_ERR_INVALID_INPUT;
     auto* gh = static_cast<GhostCorrectorHandle*>(handle);
+    std::lock_guard<std::mutex> lock(gh->mtx);   // SRS-CALIB-NFR-003
     // REQ-P1A-088: clear accumulated frame history
     std::fill(gh->hist1.begin(), gh->hist1.end(), 0.0f);
     std::fill(gh->hist2.begin(), gh->hist2.end(), 0.0f);

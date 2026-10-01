@@ -446,7 +446,9 @@ if(_XPE_BUILD_TESTS)
         tests/test_zz_a172_path.cpp          # QA-A-172 (#230) stage sum vs whole
         tests/test_zz_a173_gate.cpp          # QA-A-173 (#230) before/after map gate harness
         tests/test_zz_a174_floor.cpp         # QA-A-174 (#230) shipped path vs bound terms, same session
-        tests/test_zz_a184_probes.cpp        # QA-A-184 (#232) probes: line-noise readout check, shared ghost handle
+        tests/test_zz_a184_probes.cpp        # QA-A-184 (#232) probe: REQ-P1A-041 line noise vs the readout check (DISABLED_)
+        tests/test_ghost_thread_safety.cpp   # QA-A-185 (#232) SRS-CALIB-NFR-003: one ghost handle, several threads
+        tests/test_calib_dim_mismatch.cpp    # QA-A-185 (#232) REQ-P1A-021: calibration map vs input dimensions
         tests/test_runtime_detection_rates.cpp
         # QA-A-42 (#144): buffer-reuse parity for the detection loop
         tests/test_runtime_detection_buffer_reuse.cpp

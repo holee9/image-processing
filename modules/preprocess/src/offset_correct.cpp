@@ -183,7 +183,7 @@ extern "C" XPE_API XpeErrorCode xpe_offset_correct(
         // REQ-P1A-020), so the caller can tell the two apart.
         if (!g_calib.offset_map) return XPE_ERR_CALIB_NOT_LOADED;
         if (g_calib.offset_width  != input->width ||
-            g_calib.offset_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
+            g_calib.offset_height != input->height) return XPE_ERR_INVALID_INPUT;
 
         offmap.assign(g_calib.offset_map.get(), g_calib.offset_map.get() + n);
     }

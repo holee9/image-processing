@@ -1,0 +1,8 @@
+IDENTICAL after comment strip: modules/preprocess/src/readout_validate.cpp
+control token occurs in code (not only comments): True
+control (one injected code-token change) is detected: True
+ALL_COMMENT_ONLY = True
+IDENTICAL after comment strip: modules/preprocess/include/xpe/preprocess_api.h
+control token occurs in code (not only comments): True
+control (one injected code-token change) is detected: True
+ALL_COMMENT_ONLY = True

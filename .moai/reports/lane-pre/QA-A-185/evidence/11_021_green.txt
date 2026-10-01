@@ -1,0 +1,79 @@
+Note: Google Test filter = CalibDimMismatch.*:*DimensionMismatch*
+[==========] Running 15 tests from 10 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from OffsetCorrectTest
+[ RUN      ] OffsetCorrectTest.DimensionMismatchReturnsError
+[       OK ] OffsetCorrectTest.DimensionMismatchReturnsError (13 ms)
+[----------] 1 test from OffsetCorrectTest (13 ms total)
+
+[----------] 1 test from GainCorrectTest
+[ RUN      ] GainCorrectTest.DimensionMismatchReturnsError
+[       OK ] GainCorrectTest.DimensionMismatchReturnsError (2 ms)
+[----------] 1 test from GainCorrectTest (2 ms total)
+
+[----------] 1 test from DefectCorrectTest
+[ RUN      ] DefectCorrectTest.DimensionMismatchReturnsError
+[       OK ] DefectCorrectTest.DimensionMismatchReturnsError (0 ms)
+[----------] 1 test from DefectCorrectTest (0 ms total)
+
+[----------] 1 test from GhostCorrectTest
+[ RUN      ] GhostCorrectTest.CorrectDimensionMismatchReturnsError
+[       OK ] GhostCorrectTest.CorrectDimensionMismatchReturnsError (0 ms)
+[----------] 1 test from GhostCorrectTest (0 ms total)
+
+[----------] 1 test from GainCorrectReciprocalFMATest
+[ RUN      ] GainCorrectReciprocalFMATest.DimensionMismatchReturnsInvalidInput
+[       OK ] GainCorrectReciprocalFMATest.DimensionMismatchReturnsInvalidInput (5 ms)
+[----------] 1 test from GainCorrectReciprocalFMATest (5 ms total)
+
+[----------] 1 test from GenerateOffsetTest
+[ RUN      ] GenerateOffsetTest.DimensionMismatch_ReturnsInvalidInput
+[       OK ] GenerateOffsetTest.DimensionMismatch_ReturnsInvalidInput (0 ms)
+[----------] 1 test from GenerateOffsetTest (0 ms total)
+
+[----------] 1 test from PreprocessCalibrationTest
+[ RUN      ] PreprocessCalibrationTest.GenerateOffset_DimensionMismatch
+[       OK ] PreprocessCalibrationTest.GenerateOffset_DimensionMismatch (2 ms)
+[----------] 1 test from PreprocessCalibrationTest (2 ms total)
+
+[----------] 3 tests from PreprocessCorrectionTest
+[ RUN      ] PreprocessCorrectionTest.OffsetCorrect_DimensionMismatch
+[       OK ] PreprocessCorrectionTest.OffsetCorrect_DimensionMismatch (1 ms)
+[ RUN      ] PreprocessCorrectionTest.GainCorrect_DimensionMismatch
+[       OK ] PreprocessCorrectionTest.GainCorrect_DimensionMismatch (1 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_DimensionMismatch
+[       OK ] PreprocessCorrectionTest.DefectCorrect_DimensionMismatch (2 ms)
+[----------] 3 tests from PreprocessCorrectionTest (5 ms total)
+
+[----------] 1 test from VerifyMetricsTest
+[ RUN      ] VerifyMetricsTest.VerifyMetrics_DimensionMismatch
+[       OK ] VerifyMetricsTest.VerifyMetrics_DimensionMismatch (0 ms)
+[----------] 1 test from VerifyMetricsTest (0 ms total)
+
+[----------] 4 tests from CalibDimMismatch
+[ RUN      ] CalibDimMismatch.OffsetMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.OffsetMapDifferentFromInputReturnsInvalidInput (1 ms)
+[ RUN      ] CalibDimMismatch.GainMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.GainMapDifferentFromInputReturnsInvalidInput (2 ms)
+[ RUN      ] CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput (6 ms)
+[ RUN      ] CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput (1 ms)
+[----------] 4 tests from CalibDimMismatch (12 ms total)
+
+[----------] Global test environment tear-down
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_global_state_hygiene.cpp(227): error: Failed
+Tests left global module state changed. Each of these has to undo
+what it did -- restore only what the fixture itself raised, in
+TearDown. Leaving state behind passes under ctest (one process per
+test) and fails whenever the binary is run directly or shuffled.
+  CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput -- pending alerts 0 -> 1 (drain with xpe_clear_alerts());
+
+
+[==========] 15 tests from 10 test suites ran. (42 ms total)
+[  PASSED  ] 15 tests.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS
+  YOU HAVE 1 DISABLED TEST
+

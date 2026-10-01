@@ -176,7 +176,7 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
     // REQ-P1A-020), so the caller can tell the two apart.
     if (!g_calib.defect_map) return XPE_ERR_CALIB_NOT_LOADED;
     if (g_calib.defect_width  != input->width ||
-        g_calib.defect_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
+        g_calib.defect_height != input->height) return XPE_ERR_INVALID_INPUT;
 
     // Copy defect map locally so we can release the mutex before heavy processing
     std::vector<uint8_t> dm_local(g_calib.defect_map.get(),

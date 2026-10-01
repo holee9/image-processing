@@ -1,0 +1,44 @@
+Note: Google Test filter = CalibDimMismatch.*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from CalibDimMismatch
+[ RUN      ] CalibDimMismatch.OffsetMapDifferentFromInputReturnsInvalidInput
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_dim_mismatch.cpp(80): error: Expected equality of these values:
+  -1
+  xpe_offset_correct(&i, &o, &meta)
+    Which is: -8
+
+[  FAILED  ] CalibDimMismatch.OffsetMapDifferentFromInputReturnsInvalidInput (7 ms)
+[ RUN      ] CalibDimMismatch.GainMapDifferentFromInputReturnsInvalidInput
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_dim_mismatch.cpp(93): error: Expected equality of these values:
+  -1
+  xpe_gain_correct(&i, &o, &meta)
+    Which is: -8
+
+[  FAILED  ] CalibDimMismatch.GainMapDifferentFromInputReturnsInvalidInput (7 ms)
+[ RUN      ] CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_dim_mismatch.cpp(108): error: Expected equality of these values:
+  -1
+  xpe_gain_correct(&i, &o, &meta)
+    Which is: -8
+
+[  FAILED  ] CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput (5 ms)
+[ RUN      ] CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_dim_mismatch.cpp(120): error: Expected equality of these values:
+  -1
+  xpe_defect_correct(&i, &o, &meta)
+    Which is: -8
+
+[  FAILED  ] CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput (5 ms)
+[----------] 4 tests from CalibDimMismatch (33 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (33 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] CalibDimMismatch.OffsetMapDifferentFromInputReturnsInvalidInput
+[  FAILED  ] CalibDimMismatch.GainMapDifferentFromInputReturnsInvalidInput
+[  FAILED  ] CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput
+[  FAILED  ] CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput
+
+ 4 FAILED TESTS

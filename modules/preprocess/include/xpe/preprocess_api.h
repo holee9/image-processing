@@ -180,8 +180,9 @@ XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath);
  * @param metadata Image metadata including temperature and acquisition time
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
- *         XPE_ERR_INVALID_INPUT if NULL pointers
- *         XPE_ERR_BUFFER_TOO_SMALL if dimension mismatch
+ *         XPE_ERR_INVALID_INPUT if NULL pointers, or if the loaded calibration
+ *                               map's dimensions differ from the input's (REQ-P1A-021)
+ *         XPE_ERR_BUFFER_TOO_SMALL if the output's dimensions differ from the input's
  */
 XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
                                         XpeImageBuffer* output,
@@ -202,8 +203,9 @@ XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
  * @param metadata Image metadata including kVp and SID
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
- *         XPE_ERR_INVALID_INPUT if NULL pointers
- *         XPE_ERR_BUFFER_TOO_SMALL if dimension mismatch
+ *         XPE_ERR_INVALID_INPUT if NULL pointers, or if the loaded calibration
+ *                               map's dimensions differ from the input's (REQ-P1A-021)
+ *         XPE_ERR_BUFFER_TOO_SMALL if the output's dimensions differ from the input's
  *         XPE_ERR_UNSUPPORTED_FORMAT if format mismatch
  *         XPE_ERR_CONFIG_INVALID if gain map contains invalid values
  */
@@ -270,9 +272,11 @@ XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if xpe_preprocess_init() has not been called
  *         XPE_ERR_CALIB_NOT_LOADED if initialized but no defect map is loaded
- *         XPE_ERR_INVALID_INPUT if NULL pointers, or if the input and output
- *                               buffers overlap partially (see above)
- *         XPE_ERR_BUFFER_TOO_SMALL if dimension mismatch
+ *         XPE_ERR_INVALID_INPUT if NULL pointers, if the input and output
+ *                               buffers overlap partially (see above), or if the
+ *                               loaded defect map's dimensions differ from the
+ *                               input's (REQ-P1A-021)
+ *         XPE_ERR_BUFFER_TOO_SMALL if the output's dimensions differ from the input's
  */
 XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
                                         XpeImageBuffer* output,
@@ -710,7 +714,8 @@ XPE_API XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
  * @param image Raw uint16 image to validate
  * @param metadata Image metadata (acquisition context)
  * @param has_dropped_columns Output: true if any all-zero column detected
- * @param has_nonuniform_gain Output: true if any row mean > 0.9 * UINT16_MAX
+ * @param has_nonuniform_gain Output: true if any row mean > 0.9 * UINT16_MAX (a bright-row
+ *        check; the name is historical -- it does not detect line noise, see #232)
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT on NULL pointers
  */
