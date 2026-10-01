@@ -1,0 +1,222 @@
+Note: Google Test filter = AiLogFixture.*:AiLogMacros*.*
+[==========] Running 14 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 6 tests from AiLogFixture
+[ RUN      ] AiLogFixture.InitLogsTheRealModelDirectoryAndSettingsNotPlaceholders
+[2026-10-01 23:36:26.488] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_format.cpp(100): error: Value of: std::regex_search( line, std::regex(R"(xpe_ai initialized: model_dir=C:/xpe_log_probe/models_abc, ep=\d+, timeout=1234 ms)"))
+  Actual: false
+Expected: true
+got: xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+
+[2026-10-01 23:36:26.489] [info] xpe_ai shutdown: worker_pid=%u
+[  FAILED  ] AiLogFixture.InitLogsTheRealModelDirectoryAndSettingsNotPlaceholders (0 ms)
+[ RUN      ] AiLogFixture.ShutdownLogsTheRealWorkerPid
+[2026-10-01 23:36:26.489] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 23:36:26.489] [info] xpe_ai shutdown: worker_pid=%u
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_format.cpp(111): error: Value of: std::regex_search(line, std::regex(R"(xpe_ai shutdown: worker_pid=\d+$)"))
+  Actual: false
+Expected: true
+got: xpe_ai shutdown: worker_pid=%u
+
+[  FAILED  ] AiLogFixture.ShutdownLogsTheRealWorkerPid (0 ms)
+[ RUN      ] AiLogFixture.FallbackModeMessageNamesTheState
+[2026-10-01 23:36:26.489] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 23:36:26.489] [info] Fallback mode %s
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_format.cpp(119): error: Value of: cap.Find("Fallback mode enabled").empty()
+  Actual: true
+Expected: false
+no 'Fallback mode enabled' line
+
+[2026-10-01 23:36:26.489] [info] Fallback mode %s
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_format.cpp(121): error: Value of: cap.Find("Fallback mode disabled").empty()
+  Actual: true
+Expected: false
+no 'Fallback mode disabled' line
+
+[2026-10-01 23:36:26.489] [info] xpe_ai shutdown: worker_pid=%u
+[  FAILED  ] AiLogFixture.FallbackModeMessageNamesTheState (0 ms)
+[ RUN      ] AiLogFixture.WorkerPathFailureLogCarriesTheCodeAndTheCount
+[2026-10-01 23:36:26.489] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 23:36:26.527] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_format.cpp(132): error: Value of: cap.Find("bone_suppress: worker path failed (-9), input returned unchanged " "(1 of 3 consecutive failures)").empty()
+  Actual: true
+Expected: false
+lines: { "bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)" }
+
+[2026-10-01 23:36:26.528] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_format.cpp(135): error: Value of: cap.Find("(2 of 3 consecutive failures)").empty()
+  Actual: true
+Expected: false
+
+[2026-10-01 23:36:26.528] [info] xpe_ai shutdown: worker_pid=%u
+[  FAILED  ] AiLogFixture.WorkerPathFailureLogCarriesTheCodeAndTheCount (40 ms)
+[ RUN      ] AiLogFixture.InProcessErrorLogNamesThePath
+[2026-10-01 23:36:26.530] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 23:36:26.530] [error] Model file not found: D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing/bone_suppress.onnx
+[2026-10-01 23:36:26.530] [error] bone_suppress: no model at %s
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_format.cpp(144): error: Value of: cap.Find("bone_suppress: no model at " + kDirMissing + "/bone_suppress.onnx").empty()
+  Actual: true
+Expected: false
+lines: { "Model file not found: D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing/bone_suppress.onnx", "bone_suppress: no model at %s" }
+
+[2026-10-01 23:36:26.530] [info] xpe_ai shutdown: worker_pid=%u
+[  FAILED  ] AiLogFixture.InProcessErrorLogNamesThePath (0 ms)
+[ RUN      ] AiLogFixture.NoPrintfPlaceholderSurvivesAnyLoggedPath
+[2026-10-01 23:36:26.530] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 23:36:26.530] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-01 23:36:26.530] [info] Fallback mode %s
+[2026-10-01 23:36:26.530] [info] Fallback mode %s
+[2026-10-01 23:36:26.573] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 23:36:26.573] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 23:36:26.573] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 23:36:26.575] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 23:36:26.575] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 23:36:26.575] [error] Model file not found: D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing/bone_suppress.onnx
+[2026-10-01 23:36:26.575] [error] bone_suppress: no model at %s
+[2026-10-01 23:36:26.575] [info] xpe_ai shutdown: worker_pid=%u
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_format.cpp(168): error: Value of: HasPlaceholder(l, &which)
+  Actual: true
+Expected: false
+unformatted '%s' in: xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_format.cpp(168): error: Value of: HasPlaceholder(l, &which)
+  Actual: true
+Expected: false
+unformatted '%s' in: Fallback mode %s
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_format.cpp(168): error: Value of: HasPlaceholder(l, &which)
+  Actual: true
+Expected: false
+unformatted '%s' in: Fallback mode %s
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_format.cpp(168): error: Value of: HasPlaceholder(l, &which)
+  Actual: true
+Expected: false
+unformatted '%d' in: bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_format.cpp(168): error: Value of: HasPlaceholder(l, &which)
+  Actual: true
+Expected: false
+unformatted '%d' in: bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_format.cpp(168): error: Value of: HasPlaceholder(l, &which)
+  Actual: true
+Expected: false
+unformatted '%d' in: bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_format.cpp(168): error: Value of: HasPlaceholder(l, &which)
+  Actual: true
+Expected: false
+unformatted '%u' in: xpe_ai shutdown: worker_pid=%u
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_format.cpp(168): error: Value of: HasPlaceholder(l, &which)
+  Actual: true
+Expected: false
+unformatted '%s' in: xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_format.cpp(168): error: Value of: HasPlaceholder(l, &which)
+  Actual: true
+Expected: false
+unformatted '%s' in: bone_suppress: no model at %s
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_format.cpp(168): error: Value of: HasPlaceholder(l, &which)
+  Actual: true
+Expected: false
+unformatted '%u' in: xpe_ai shutdown: worker_pid=%u
+
+[  FAILED  ] AiLogFixture.NoPrintfPlaceholderSurvivesAnyLoggedPath (44 ms)
+[----------] 6 tests from AiLogFixture (86 ms total)
+
+[----------] 2 tests from AiLogMacrosPrintf
+[ RUN      ] AiLogMacrosPrintf.FormatsItsArgumentsAndPrefixesTheLevel
+[       OK ] AiLogMacrosPrintf.FormatsItsArgumentsAndPrefixesTheLevel (4 ms)
+[ RUN      ] AiLogMacrosPrintf.TraceAndDebugEmitNothing
+[       OK ] AiLogMacrosPrintf.TraceAndDebugEmitNothing (0 ms)
+[----------] 2 tests from AiLogMacrosPrintf (4 ms total)
+
+[----------] 6 tests from AiLogMacrosSpdlog
+[ RUN      ] AiLogMacrosSpdlog.FormatsPrintfArgumentsInsteadOfPrintingPlaceholders
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_macros_spdlog.cpp(50): error: Expected equality of these values:
+  "info|a=5 s=xyz z=7 u=3\n"
+  cap.Text()
+    Which is: "info|a=%d s=%s z=%zu u=%u\r\n"
+
+[  FAILED  ] AiLogMacrosSpdlog.FormatsPrintfArgumentsInsteadOfPrintingPlaceholders (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.EachLevelKeepsItsSpdlogLevel
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_macros_spdlog.cpp(60): error: Expected equality of these values:
+  "trace|t=1\ndebug|d=2\ninfo|i=3\nwarning|w=4\nerror|e=5\n"
+  cap.Text()
+    Which is: "trace|t=%d\r\ndebug|d=%d\r\ninfo|i=%d\r\nwarning|w=%d\r\nerror|e=%d\r\n"
+With diff:
+@@ -1,5 +1,5 @@
+-trace|t=1
+-debug|d=2
+-info|i=3
+-warning|w=4
+-error|e=5\n
++trace|t=%d\r
++debug|d=%d\r
++info|i=%d\r
++warning|w=%d\r
++error|e=%d\r\n
+
+
+[  FAILED  ] AiLogMacrosSpdlog.EachLevelKeepsItsSpdlogLevel (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.BracesInTheDataAreNotAFormat
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_macros_spdlog.cpp(69): error: Expected equality of these values:
+  "info|no model at C:/models/{id}/bone_suppress.onnx\n" "error|session failed: bad {0} and {} here\n"
+    Which is: "info|no model at C:/models/{id}/bone_suppress.onnx\nerror|session failed: bad {0} and {} here\n"
+  cap.Text()
+    Which is: "info|no model at %s\r\nerror|session failed: %s\r\n"
+With diff:
+@@ -1,2 +1,2 @@
+-info|no model at C:/models/{id}/bone_suppress.onnx
+-error|session failed: bad {0} and {} here\n
++info|no model at %s\r
++error|session failed: %s\r\n
+
+
+[  FAILED  ] AiLogMacrosSpdlog.BracesInTheDataAreNotAFormat (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.ALiteralWithBracesAndNoArgumentsIsLoggedAsWritten
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_macros_spdlog.cpp(77): error: Expected equality of these values:
+  "warning|config looks like {json} but is not\n"
+  cap.Text()
+    Which is: "warning|config looks like {json} but is not\r\n"
+
+[  FAILED  ] AiLogMacrosSpdlog.ALiteralWithBracesAndNoArgumentsIsLoggedAsWritten (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.APercentSignIsWrittenWithPercentPercent
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_macros_spdlog.cpp(83): error: Expected equality of these values:
+  "info|100% sure, 3 done\n"
+  cap.Text()
+    Which is: "info|100%% sure, %d done\r\n"
+
+[  FAILED  ] AiLogMacrosSpdlog.APercentSignIsWrittenWithPercentPercent (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.ALongMessageIsNotTruncated
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_macros_spdlog.cpp(91): error: Expected equality of these values:
+  "error|model unreadable: " + longArg + "\n"
+    Which is: "error|model unreadable: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"
+  cap.Text()
+    Which is: "error|model unreadable: %s\r\n"
+
+[  FAILED  ] AiLogMacrosSpdlog.ALongMessageIsNotTruncated (0 ms)
+[----------] 6 tests from AiLogMacrosSpdlog (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 14 tests from 3 test suites ran. (92 ms total)
+[  PASSED  ] 2 tests.
+[  FAILED  ] 12 tests, listed below:
+[  FAILED  ] AiLogFixture.InitLogsTheRealModelDirectoryAndSettingsNotPlaceholders
+[  FAILED  ] AiLogFixture.ShutdownLogsTheRealWorkerPid
+[  FAILED  ] AiLogFixture.FallbackModeMessageNamesTheState
+[  FAILED  ] AiLogFixture.WorkerPathFailureLogCarriesTheCodeAndTheCount
+[  FAILED  ] AiLogFixture.InProcessErrorLogNamesThePath
+[  FAILED  ] AiLogFixture.NoPrintfPlaceholderSurvivesAnyLoggedPath
+[  FAILED  ] AiLogMacrosSpdlog.FormatsPrintfArgumentsInsteadOfPrintingPlaceholders
+[  FAILED  ] AiLogMacrosSpdlog.EachLevelKeepsItsSpdlogLevel
+[  FAILED  ] AiLogMacrosSpdlog.BracesInTheDataAreNotAFormat
+[  FAILED  ] AiLogMacrosSpdlog.ALiteralWithBracesAndNoArgumentsIsLoggedAsWritten
+[  FAILED  ] AiLogMacrosSpdlog.APercentSignIsWrittenWithPercentPercent
+[  FAILED  ] AiLogMacrosSpdlog.ALongMessageIsNotTruncated
+
+12 FAILED TESTS
