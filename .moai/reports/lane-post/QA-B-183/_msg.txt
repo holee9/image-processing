@@ -1,0 +1,17 @@
+test(ai): stdout 캡처가 남긴 낡은 핸들이 워커 파이프로 로그를 흘리던 것을 고침 (QA-B-183)
+
+CI 의 "시험 exe 한 프로세스" 단계에서만 나던 간헐 실패
+(WorkerBoneSuppress.FailuresCarryTheSameCodeAsInProcess)의 원인은 제품이 아니라
+QA-B-177b 가 넣은 StdoutCapture 였다. _dup2 가 fd 1 의 원래 OS 핸들을 닫는데
+spdlog 기본 로거의 콘솔 싱크가 그 값을 저장해 둬서, 이후 같은 값을 받은
+파이프 핸들로 제품 로그 줄이 들어갔다. 워커 쪽 파이프에서 "[202..." 로 시작하는
+로그 문장이 직접 관측됐다.
+
+- StdoutCapture::Finish() 가 stdout 을 되돌린 뒤 기본 로거 콘솔 싱크를 다시 만든다
+- 겨눈 시험: 수정 전 6/6 빨강, 수정 후 6/6 초록
+- ci-post 1044/1044, ci-ai 375/375, 경고 0
+
+Card: QA-B-183
+Refs #162 #130
+
+🗿 MoAI

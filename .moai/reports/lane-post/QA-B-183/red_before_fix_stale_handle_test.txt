@@ -1,0 +1,36 @@
+=== run 1 (before the fix)
+Note: Google Test filter = AiLogMacrosPrintf.*:AiLogStdoutRedirect.*
+[----------] 1 test from AiLogStdoutRedirect
+[ RUN      ] AiLogStdoutRedirect.ARedirectCycleDoesNotLeaveTheDefaultLoggerWritingIntoAnUnrelatedHandle
+PROBE sinkHandle=00000000000000D0 afterCycleStd=00000000000000BC match=00000000000000D0 valid=1 held=5
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_macros_spdlog.cpp(334): error: Expected equality of these values:
+    Which is: 0
+    Which is: 71
+the default logger wrote into a handle it does not own
+[  FAILED  ] AiLogStdoutRedirect.ARedirectCycleDoesNotLeaveTheDefaultLoggerWritingIntoAnUnrelatedHandle (2 ms)
+[----------] 1 test from AiLogStdoutRedirect (2 ms total)
+[  FAILED  ] AiLogStdoutRedirect.ARedirectCycleDoesNotLeaveTheDefaultLoggerWritingIntoAnUnrelatedHandle
+=== run 2 (before the fix)
+Note: Google Test filter = AiLogMacrosPrintf.*:AiLogStdoutRedirect.*
+[----------] 1 test from AiLogStdoutRedirect
+[ RUN      ] AiLogStdoutRedirect.ARedirectCycleDoesNotLeaveTheDefaultLoggerWritingIntoAnUnrelatedHandle
+PROBE sinkHandle=00000000000000D8 afterCycleStd=00000000000000DC match=00000000000000D8 valid=1 held=3
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_macros_spdlog.cpp(334): error: Expected equality of these values:
+    Which is: 0
+    Which is: 71
+the default logger wrote into a handle it does not own
+[  FAILED  ] AiLogStdoutRedirect.ARedirectCycleDoesNotLeaveTheDefaultLoggerWritingIntoAnUnrelatedHandle (1 ms)
+[----------] 1 test from AiLogStdoutRedirect (1 ms total)
+[  FAILED  ] AiLogStdoutRedirect.ARedirectCycleDoesNotLeaveTheDefaultLoggerWritingIntoAnUnrelatedHandle
+=== run 3 (before the fix)
+Note: Google Test filter = AiLogMacrosPrintf.*:AiLogStdoutRedirect.*
+[----------] 1 test from AiLogStdoutRedirect
+[ RUN      ] AiLogStdoutRedirect.ARedirectCycleDoesNotLeaveTheDefaultLoggerWritingIntoAnUnrelatedHandle
+PROBE sinkHandle=00000000000000D0 afterCycleStd=00000000000000A8 match=00000000000000D0 valid=1 held=708
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_log_macros_spdlog.cpp(334): error: Expected equality of these values:
+    Which is: 0
+    Which is: 71
+the default logger wrote into a handle it does not own
+[  FAILED  ] AiLogStdoutRedirect.ARedirectCycleDoesNotLeaveTheDefaultLoggerWritingIntoAnUnrelatedHandle (13 ms)
+[----------] 1 test from AiLogStdoutRedirect (13 ms total)
+[  FAILED  ] AiLogStdoutRedirect.ARedirectCycleDoesNotLeaveTheDefaultLoggerWritingIntoAnUnrelatedHandle
