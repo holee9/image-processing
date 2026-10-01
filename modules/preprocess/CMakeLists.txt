@@ -21,7 +21,7 @@ set(XPE_PREPROCESS_SOURCES
     src/readout_validate.cpp     # SWU-1.9 REQ-P1A-001..004
     src/temp_compensate.cpp      # SWU-1.6 REQ-P1A-005..008
     src/nonlinearity_correct.cpp # SWU-1.7 REQ-P1A-012..015
-    src/binning_correct.cpp      # SWU-1.8 REQ-P1A-020..023
+    src/binning_correct.cpp      # SWU-1.8 REQ-P1A-090, REQ-P1A-091
     src/defect_correct.cpp       # SWU-1.3 REQ-P1A-012 (new 3-arg g_calib API); runtime detection REQ-P1A-013 is in runtime_detection.cpp
     src/ghost_correct.cpp        # SWU-1.4 REQ-P1A-085..087
     src/calibration_manager.cpp  # SWU-1.5 CRC-32 only (legacy helpers removed)

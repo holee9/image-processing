@@ -1,0 +1,5 @@
+DRY RUN: 29 tags would be written (index not saved)
+by kind:
+  NOTE: 13
+  ANCHOR: 14
+  WARN: 2

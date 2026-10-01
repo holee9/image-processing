@@ -1,0 +1,3 @@
+OK: wrote 3 tags to D:\workspace-github\xpe-pre\.moai\state\mx-index.json
+by kind:
+  NOTE: 3

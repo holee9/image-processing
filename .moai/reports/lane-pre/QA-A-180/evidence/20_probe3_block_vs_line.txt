@@ -1,0 +1,6 @@
+| comment shape | line | specRef |
+|---|---|---|
+| line comment (// @MX lines) | 9 | 'SPEC-XPE-P1A' |
+records: 1
+records for rle_codec.*: 1
+  rle_codec.cpp line 31 WARN has specRef: False
