@@ -1,0 +1,2 @@
+check removed: build_ok=True passed=['82'] red=['DicomReaderTest.J2kScope_HighBitMustBeBitsStoredMinusOne']
+check restored (full reader suite): build_ok=True passed=['83'] red=[]

@@ -346,6 +346,13 @@ static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, bool isJ2K) {
         if (bitsAlloc != 8 && bitsAlloc != 16) {
             return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "BitsAllocated %u for JPEG 2000 (8 or 16 are supported)", static_cast<unsigned>(bitsAlloc));
         }
+        // QA-B-182d (Codex #51): the codestream carries no HighBit, so this is the only place it can be judged. The
+        // significant bits must be the low ones, as on the other paths; a mismatch is an inconsistent dataset
+        // (the same code the codestream comparison uses), not an unsupported feature.
+        if (bitsStored < 1 || bitsStored > bitsAlloc || highBit != bitsStored - 1) {
+            return refuse(XPE_ERR_DICOM_INVALID, "BitsStored %u with HighBit %u for JPEG 2000 (HighBit must be BitsStored - 1, BitsStored 1..BitsAllocated %u)",
+                          static_cast<unsigned>(bitsStored), static_cast<unsigned>(highBit), static_cast<unsigned>(bitsAlloc));
+        }
         return XPE_OK;
     }
     if (bitsAlloc != 16) {

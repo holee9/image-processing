@@ -3311,6 +3311,47 @@ TEST_F(DicomReaderTest, J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix) {
     EXPECT_EQ(XPE_ERR_DICOM_INVALID, read("tags_stored_above_alloc", 1, 0, 8, 16, 15));
 }
 
+// QA-B-182d (Codex #51): the HighBit of a JPEG 2000 file is judged like the other paths' -- it must be BitsStored - 1.
+// The codestream carries no HighBit, so nothing downstream could catch 16/12/15 (data in the high 12 bits of a
+// word) on this path; the same description is refused for uncompressed and JPEG Lossless data.
+TEST_F(DicomReaderTest, J2kScope_HighBitMustBeBitsStoredMinusOne) {
+    struct Case { const char* name; int precision; int alloc, stored, high; XpeErrorCode want; };
+    const Case cases[] = {
+        {"hb_ok_8_8_7", 8, 8, 8, 7, XPE_OK},
+        {"hb_ok_16_12_11", 12, 16, 12, 11, XPE_OK},
+        {"hb_ok_16_16_15", 16, 16, 16, 15, XPE_OK},
+        {"hb_16_12_15", 12, 16, 12, 15, XPE_ERR_DICOM_INVALID},    // the Codex #51 case
+        {"hb_16_12_12", 12, 16, 12, 12, XPE_ERR_DICOM_INVALID},
+        {"hb_16_16_14", 16, 16, 16, 14, XPE_ERR_DICOM_INVALID},
+        {"hb_8_8_6", 8, 8, 8, 6, XPE_ERR_DICOM_INVALID},
+        {"hb_8_8_15", 8, 8, 8, 15, XPE_ERR_DICOM_INVALID},
+        {"hb_16_12_0xFFFF", 12, 16, 12, 0xFFFF, XPE_ERR_DICOM_INVALID},
+    };
+    for (const Case& c : cases) {
+        J2kSpec spec;
+        spec.precision = c.precision;
+        const auto cs = EncodeJ2k(spec, Ramp(256u * 256u, 1 << c.precision));
+        ASSERT_FALSE(cs.empty()) << c.name;
+        const fs::path p = MakeJ2kVariant(s_j2kDcm, c.name, cs, [&](DcmDataset* ds) {
+            SetPixelAttrs(ds, 1, 0, c.alloc, c.stored, c.high);
+        });
+        xpe_clear_alerts();
+        const ScopeRead r = ReadScope(p);
+        EXPECT_EQ(c.want, r.read) << c.name;
+        if (c.want != XPE_OK) {
+            EXPECT_TRUE(r.outUntouchedOnFailure) << c.name;
+            EXPECT_EQ(XPE_OK, r.metaAfter) << c.name << ": the handle still serves its metadata";
+            bool named = false;
+            for (int32_t i = 0; i < xpe_get_pending_alert_count(); ++i) {
+                char buf[512] = {0};
+                int32_t sev = -1;
+                if (xpe_get_pending_alert(i, buf, sizeof(buf), &sev) == XPE_OK && std::string(buf).find("HighBit") != std::string::npos) named = true;
+            }
+            EXPECT_TRUE(named) << c.name << ": the refusal names HighBit";
+        }
+    }
+}
+
 // The module's own writer must produce files its reader accepts: a 12-bit image written as J2K has a codestream of
 // 12-bit precision, the same as the Bits Stored it declares (it used to encode 16-bit precision under a 12 bit tag).
 TEST_F(DicomReaderTest, J2kScope_AnImageWrittenWithTwelveBitsStoredIsReadBack) {
