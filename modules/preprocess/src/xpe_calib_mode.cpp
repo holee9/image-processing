@@ -11,6 +11,7 @@
  * - FUNC-033: Quality metadata (8 mandatory fields)
  */
 
+#include "xpe_strict_parse.hpp"
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
@@ -269,9 +270,25 @@ bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept
     return passed;
 }
 
-bool xpe_calib_parse_quality_meta_json(const char* configJson, XpeCalibQualityMeta* out)
+/**
+ * Reads one FUNC-033 field into a uint8: absent keeps the default, a value that is not an integer in
+ * [0, 255] is a refusal (QA-A-204, #233: atoi turned it into 0, or truncated it, without a word).
+ */
+static bool read_u8_field(const char* json, const char* key, uint8_t* dst, bool* present)
 {
-    if (configJson == nullptr || out == nullptr) return false;
+    const std::string v = xpe_json_get_string(json, key);
+    if (v.empty()) return true;
+    int32_t n = 0;
+    if (!xpe_strict::parse_int(v, &n) || n < 0 || n > 255) return false;
+    *dst = static_cast<uint8_t>(n);
+    *present = true;
+    return true;
+}
+
+XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, XpeCalibQualityMeta* out, bool* found)
+{
+    if (found != nullptr) *found = false;
+    if (configJson == nullptr || out == nullptr || found == nullptr) return XPE_ERR_INVALID_INPUT;
 
     // A file from before QA-A-35 has none of these keys. Each absent field
     // keeps its no-data value instead of failing the load.
@@ -283,26 +300,16 @@ bool xpe_calib_parse_quality_meta_json(const char* configJson, XpeCalibQualityMe
 
     const std::string r2 = xpe_json_get_string(configJson, "fit_r_squared");
     if (!r2.empty()) {
-        meta.r_squared = std::atof(r2.c_str());
+        if (!xpe_strict::parse_double(r2, &meta.r_squared)) return XPE_ERR_CONFIG_INVALID;
         anyPresent = true;
     }
-    const std::string degree = xpe_json_get_string(configJson, "polynomial_degree");
-    if (!degree.empty()) {
-        meta.polynomial_degree = static_cast<uint8_t>(std::atoi(degree.c_str()));
-        anyPresent = true;
-    }
-    const std::string levels = xpe_json_get_string(configJson, "actual_dose_levels");
-    if (!levels.empty()) {
-        meta.num_points = static_cast<uint8_t>(std::atoi(levels.c_str()));
-        anyPresent = true;
-    }
-    const std::string mode = xpe_json_get_string(configJson, "calibration_mode");
-    if (!mode.empty()) {
-        meta.calibration_mode = static_cast<uint8_t>(std::atoi(mode.c_str()));
-        anyPresent = true;
+    if (!read_u8_field(configJson, "polynomial_degree", &meta.polynomial_degree, &anyPresent) ||
+        !read_u8_field(configJson, "actual_dose_levels", &meta.num_points, &anyPresent) ||
+        !read_u8_field(configJson, "calibration_mode", &meta.calibration_mode, &anyPresent)) {
+        return XPE_ERR_CONFIG_INVALID;
     }
 
-    if (!anyPresent) return false;
+    if (!anyPresent) return XPE_OK;   // none of the fields: *found stays false
 
     // The gate verdict is derived, never read from the file: a file claiming it
     // passed does not make it so.
@@ -310,7 +317,8 @@ bool xpe_calib_parse_quality_meta_json(const char* configJson, XpeCalibQualityMe
         (meta.r_squared >= XPE_CALIB_R_SQUARED_GATE) ? 1u : 0u;
 
     *out = meta;
-    return true;
+    *found = true;
+    return XPE_OK;
 }
 
 void xpe_calib_commit_quality_meta(const XpeCalibQualityMeta& parsed) noexcept

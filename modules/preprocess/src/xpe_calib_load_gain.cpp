@@ -105,7 +105,9 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
         // describes the calibration now in use. A file written before QA-A-35 has no such fields
         // and is loaded unchanged -- the call simply reports that it found none.
         XpeCalibQualityMeta quality{};
-        const bool quality_found = xpe_calib_parse_quality_meta_json(config_copy.c_str(), &quality);
+        bool quality_found = false;
+        const XpeErrorCode quality_rc = xpe_calib_parse_quality_meta_json(config_copy.c_str(), &quality, &quality_found);
+        if (quality_rc != XPE_OK) return quality_rc;   // a malformed field: nothing has been committed
 
         // QA-A-123 (#194): the fitted dose range, which bounds where the polynomial means anything.
         // Absence is detected by asking twice with different defaults rather than by matching text --

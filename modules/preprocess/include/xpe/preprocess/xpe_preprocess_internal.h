@@ -431,11 +431,16 @@ constexpr double XPE_CALIB_R_SQUARED_GATE = 0.999;
  * Parsing allocates and may throw std::bad_alloc; nothing is changed until
  * xpe_calib_commit_quality_meta().
  *
+ * A field that is present and is not a number in range (an integer in [0, 255] for the three uint8
+ * fields, a finite number for fit_r_squared; notation as for the pipeline configuration) is
+ * XPE_ERR_CONFIG_INVALID (QA-A-204, #233) -- it used to be read as 0 or truncated, silently.
+ *
  * @param configJson NUL-terminated config JSON, or nullptr for none.
- * @param out        Receives the parsed metadata when the result is true.
- * @return true when at least one FUNC-033 field was present.
+ * @param out        Receives the parsed metadata when *found is true.
+ * @param found      Set to true when at least one FUNC-033 field was present (and all were valid).
+ * @return XPE_OK, XPE_ERR_CONFIG_INVALID for a malformed field, XPE_ERR_INVALID_INPUT for a null argument.
  */
-bool xpe_calib_parse_quality_meta_json(const char* configJson, XpeCalibQualityMeta* out);
+XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, XpeCalibQualityMeta* out, bool* found);
 
 /**
  * @brief Make parsed FUNC-033 metadata the one xpe_calib_get_quality_meta() serves.

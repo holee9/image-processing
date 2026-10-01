@@ -26,6 +26,7 @@
 #include <filesystem>
 #include <functional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -86,6 +87,8 @@ protected:
     void TearDown() override {
         std::error_code ec;
         fs::remove_all("csp_calib", ec);
+        std::remove("csp_gq.xcal");
+        std::remove("csp_gx.xcal");
         xpe_clear_alerts();
         xpe_preprocess_shutdown();
     }
@@ -313,4 +316,89 @@ TEST_F(ConfigStrictParse, TheAcceptedNotationOfGhostCreateIsFixedByATable) {
         if (rc == XPE_OK) xpe_ghost_destroy(handle);
         return rc;
     });
+}
+
+// ---- the quality metadata a gain file carries (QA-A-204, #233 item 5) ----------------------------------
+//
+// A gain file's config block may carry fit_r_squared, polynomial_degree, actual_dose_levels and
+// calibration_mode (FUNC-033). They were read with atof / atoi, which turn a malformed value into 0 without
+// a word -- a file claiming "abc" for its degree loaded as a degree-0 calibration. The same strict
+// conversion as the pipeline configuration now reads them: a field that is present and is not a number in
+// range is XPE_ERR_CONFIG_INVALID, and the load changes nothing (the parse happens before the commit).
+
+namespace {
+
+void writeGainWithConfig(const char* path, float v, const std::string& json) {
+    std::vector<float> m(N, v);
+    XCalFileHeader hdr{};
+    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    hdr.version = XCAL_VERSION; hdr.type = XCAL_TYPE_GAIN; hdr.pixel_format = XCAL_FMT_FLOAT32;
+    hdr.width = W; hdr.height = H; hdr.payload_len = m.size() * sizeof(float);
+    ASSERT_EQ(XPE_OK, write_xcal_file(path, hdr, reinterpret_cast<const uint8_t*>(json.data()), json.size(),
+                                      reinterpret_cast<const uint8_t*>(m.data()), m.size() * sizeof(float)));
+}
+
+/** The first pixel of a gain correction of a frame of 1000 -- 1000 / gain. */
+float gainResult() {
+    std::vector<uint16_t> in(N, 1000);
+    std::vector<float> out(N, -1.0f);
+    XpeImageBuffer i = buf(in.data(), XPE_PIXEL_UINT16, 16), o = buf(out.data(), XPE_PIXEL_FLOAT32, 32);
+    XpeImageMetadata meta{};
+    return xpe_gain_correct(&i, &o, &meta) == XPE_OK ? out[0] : -1.0f;
+}
+
+std::string qualityJson(const std::string& field, const std::string& value) {
+    return "{\"" + field + "\":\"" + value + "\"}";
+}
+
+}  // namespace
+
+TEST_F(ConfigStrictParse, AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore) {
+    // The store holds a good gain map (gain 4) with its metadata.
+    writeGainWithConfig("csp_gq.xcal", 4.0f,
+        "{\"fit_r_squared\":\"0.5\",\"polynomial_degree\":\"1\",\"actual_dose_levels\":\"3\",\"calibration_mode\":\"2\"}");
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csp_gq.xcal"));
+    XpeCalibQualityMeta base{};
+    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&base));
+    ASSERT_NEAR(250.0f, gainResult(), 0.01f) << "control: the good map is in the store";
+
+    const std::pair<const char*, const char*> bad[] = {
+        {"fit_r_squared", "abc"},       {"fit_r_squared", "1e999"},  {"fit_r_squared", "0.9x"},
+        {"fit_r_squared", "nan"},       {"polynomial_degree", "x"},  {"polynomial_degree", "2x"},
+        {"polynomial_degree", "256"},   {"polynomial_degree", "-1"}, {"actual_dose_levels", "abc"},
+        {"actual_dose_levels", "1e2"},  {"calibration_mode", "abc"}, {"calibration_mode", "3 "},
+    };
+    for (const auto& b : bad) {
+        SCOPED_TRACE(std::string(b.first) + " = \"" + b.second + "\"");
+        writeGainWithConfig("csp_gx.xcal", 2.0f, qualityJson(b.first, b.second));
+        bool threw = false;
+        const XpeErrorCode rc = callSafely([] { return xpe_calib_load_gain("csp_gx.xcal"); }, &threw);
+        EXPECT_FALSE(threw);
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, rc);
+
+        XpeCalibQualityMeta after{};
+        ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&after));
+        EXPECT_EQ(base.r_squared, after.r_squared) << "the metadata must be as it was";
+        EXPECT_EQ(base.polynomial_degree, after.polynomial_degree);
+        EXPECT_EQ(base.num_points, after.num_points);
+        EXPECT_EQ(base.calibration_mode, after.calibration_mode);
+        EXPECT_NEAR(250.0f, gainResult(), 0.01f) << "the refused file must not have replaced the gain map";
+    }
+}
+
+TEST_F(ConfigStrictParse, WellFormedQualityFieldsInAGainFileAreStillRead) {
+    // Control: the same call shape with good values loads and the metadata is what the file says.
+    writeGainWithConfig("csp_gx.xcal", 2.0f,
+        "{\"fit_r_squared\":\" +0.95\",\"polynomial_degree\":\"+2\",\"actual_dose_levels\":\"4\",\"calibration_mode\":\" 3\"}");
+    bool threw = false;
+    const XpeErrorCode rc = callSafely([] { return xpe_calib_load_gain("csp_gx.xcal"); }, &threw);
+    EXPECT_FALSE(threw);
+    ASSERT_EQ(XPE_OK, rc);
+    XpeCalibQualityMeta m{};
+    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&m));
+    EXPECT_NEAR(0.95, m.r_squared, 1e-9);
+    EXPECT_EQ(2u, m.polynomial_degree);
+    EXPECT_EQ(4u, m.num_points);
+    EXPECT_EQ(3u, m.calibration_mode);
+    EXPECT_NEAR(500.0f, gainResult(), 0.01f) << "the good file's map (gain 2) is now in the store";
 }
