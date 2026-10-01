@@ -152,6 +152,51 @@ public sealed class AiBoneSuppressionStageTests
         Assert.DoesNotContain("(code", answer.Message, StringComparison.Ordinal); // no module was asked, so no code exists
     }
 
+    /// <summary>GUI-C-186: the message names the directory the check really looked at, not the relative text that was typed.</summary>
+    [Fact]
+    public void TheMessage_PrintsTheAbsolutePath_AARelativeDirectoryResolvesTo()
+    {
+        var answer = AiBoneSuppressionStage.CheckModelFile(Path.Combine("no-such-models-dir-" + Guid.NewGuid().ToString("N")));
+
+        Assert.NotNull(answer);
+        Assert.Contains(Path.GetFullPath("."), answer!.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.True(Path.IsPathRooted(answer.Message.Split("no model at ")[1].Split(". ")[0]), answer.Message);
+    }
+
+    // ---- A changed model directory is a new session (GUI-C-186) ----------------------------------------------------------
+
+    /// <summary>
+    /// xpe_ai_init while initialised returns OK and ignores what it was given (ai.cpp:501-504), so a directory changed in the
+    /// settings is seen by the file check and NOT by the module until the session is restarted. The same directory written
+    /// another way is not a change.
+    /// </summary>
+    [Theory]
+    [InlineData(null, @"D:\models\a", false)]                    // no session yet: a plain init
+    [InlineData(@"D:\models\a", @"D:\models\a", false)]
+    [InlineData(@"D:\models\a", @"D:\models\a\", false)]       // a trailing separator is the same place
+    [InlineData(@"D:\models\a", @"d:\MODELS\A", false)]        // Windows paths ignore case
+    [InlineData(@"D:\models\a", @"D:\models\b", true)]
+    [InlineData(@"D:\models\a", @"D:\models\a\..\b", true)]   // resolved before comparing
+    public void ANewDirectory_NeedsANewSession_TheSameOneDoesNot(string? started, string requested, bool expected) =>
+        Assert.Equal(expected, AiBoneSuppressionStage.NeedsNewSession(started, requested));
+
+    [Fact]
+    public void ARelativeDirectory_IsComparedByWhereItResolves()
+    {
+        Assert.False(AiBoneSuppressionStage.NeedsNewSession("data/models", Path.GetFullPath("data/models")));
+        Assert.True(AiBoneSuppressionStage.NeedsNewSession("data/models", "data/other"));
+        Assert.Equal(Path.GetFullPath(AiBoneSuppressionStage.DefaultModelDirectory), AiBoneSuppressionStage.NormalizeDirectory("  "));
+    }
+
+    /// <summary>The init the GUI calls consults that rule and shuts the old session down under the same lock. Source reading, as the call-site test.</summary>
+    [Fact]
+    public void TheInit_StartsANewSession_WhenTheDirectoryChanged()
+    {
+        var runner = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/Services/Native/GuiAiRunner.cs"));
+        Assert.Matches(@"_started && AiBoneSuppressionStage\.NeedsNewSession\(_startedDirectory, directory\)\)\s*\{\s*Shutdown\(\);", runner);
+        Assert.Contains("XpeAiNative.xpe_ai_init(directory,", runner, StringComparison.Ordinal); // the module gets the absolute form
+    }
+
     [Fact]
     public void ThePresentModelFile_LetsTheCallThrough()
     {

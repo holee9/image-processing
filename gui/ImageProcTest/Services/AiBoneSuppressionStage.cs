@@ -73,6 +73,31 @@ internal static class AiBoneSuppressionStage
     /// <summary>The label for a frame the module really processed. Shown only for a stage whose status is Applied.</summary>
     public const string ProcessedLabel = "AI-processed: bone suppression";
 
+    /// <summary>The model directory when the setting is blank (AppSettings falls back to the same value).</summary>
+    public const string DefaultModelDirectory = "data/models";
+
+    /// <summary>
+    /// The model directory as an absolute path with no trailing separator (GUI-C-186). The module resolves a relative one against
+    /// the process's working directory at each use, and its worker against the working directory it was started in, so a relative
+    /// directory can mean two places once the working directory has moved; the GUI therefore decides once and gives the module the
+    /// absolute form, which is also what a restart compares against.
+    /// </summary>
+    public static string NormalizeDirectory(string? directory)
+    {
+        var full = System.IO.Path.GetFullPath(string.IsNullOrWhiteSpace(directory) ? DefaultModelDirectory : directory.Trim());
+        var root = System.IO.Path.GetPathRoot(full);
+        return full.Length > (root?.Length ?? 0) ? full.TrimEnd('\\', '/') : full;
+    }
+
+    /// <summary>
+    /// True when a session already started with <paramref name="startedDirectory"/> must be ended and started again to use
+    /// <paramref name="requestedDirectory"/>. <c>xpe_ai_init</c> while initialised returns OK and IGNORES its arguments
+    /// (ai.cpp:501-504), so without this a changed directory would look accepted and change nothing. Null means no session.
+    /// </summary>
+    public static bool NeedsNewSession(string? startedDirectory, string? requestedDirectory) =>
+        startedDirectory is not null &&
+        !string.Equals(NormalizeDirectory(startedDirectory), NormalizeDirectory(requestedDirectory), StringComparison.OrdinalIgnoreCase);
+
     /// <summary>The file xpe_bone_suppress reads inside the model directory (ai_api.h: <c>&lt;modelDir&gt;/bone_suppress.onnx</c>).</summary>
     public const string ModelFileName = "bone_suppress.onnx";
 
@@ -85,7 +110,9 @@ internal static class AiBoneSuppressionStage
     /// </summary>
     public static StageExecution? CheckModelFile(string modelDirectory, Func<string, bool>? exists = null)
     {
-        var path = System.IO.Path.Combine(modelDirectory, ModelFileName);
+        // The path as the module will use it, and as the message prints it: absolute, so "no model at data\models\..." can no
+        // longer leave the reader guessing which directory a relative path was taken from (GUI-C-186).
+        var path = System.IO.Path.Combine(NormalizeDirectory(modelDirectory), ModelFileName);
         if ((exists ?? System.IO.File.Exists)(path))
         {
             return null;

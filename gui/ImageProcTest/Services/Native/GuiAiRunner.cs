@@ -59,6 +59,7 @@ internal static class GuiAiSession
 {
     private static readonly object Gate = new();
     private static bool _started;
+    private static string? _startedDirectory;
 
     /// <summary>Runs <paramref name="action"/> while no other init, shutdown or state call can run.</summary>
     public static T WithLock<T>(Func<T> action)
@@ -70,14 +71,26 @@ internal static class GuiAiSession
         }
     }
 
-    /// <summary>Starts the AI module with the worker path on. Already started is not an error (the module ignores it).</summary>
+    /// <summary>
+    /// Starts the AI module with the worker path on. Already started with the SAME directory is not an error (the module ignores
+    /// it). Already started with ANOTHER directory is a new session: the module ignores a second init whatever it is given
+    /// (ai.cpp:501-504), so the old session is shut down first, under this same lock. The directory handed to the module is the
+    /// absolute form (<see cref="AiBoneSuppressionStage.NormalizeDirectory"/>).
+    /// </summary>
     public static int Init(string modelDirectory) =>
         WithLock(() =>
         {
-            var code = XpeAiNative.xpe_ai_init(modelDirectory, new AiConfig { UseWorker = true }.ToJson());
+            var directory = AiBoneSuppressionStage.NormalizeDirectory(modelDirectory);
+            if (_started && AiBoneSuppressionStage.NeedsNewSession(_startedDirectory, directory))
+            {
+                Shutdown();
+            }
+
+            var code = XpeAiNative.xpe_ai_init(directory, new AiConfig { UseWorker = true }.ToJson());
             if (code == 0)
             {
                 _started = true;
+                _startedDirectory = directory;
             }
 
             return code;
@@ -143,6 +156,7 @@ internal static class GuiAiSession
             }
 
             _started = false;
+            _startedDirectory = null;
             try
             {
                 XpeAiNative.xpe_ai_shutdown();
