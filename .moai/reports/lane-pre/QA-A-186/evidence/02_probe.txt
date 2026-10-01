@@ -1,0 +1,44 @@
+Note: Google Test filter = A186Probe.*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A186Probe
+[ RUN      ] A186Probe.DISABLED_MeanVersusMedianFlatResidual
+
+[a186] FlatResidualPct, percent, gate <= 1.0. today = xpe_verify_gain
+[a186] flat, noise 0.3%                               today=   0.2980 PASS | arith=   0.2980 (= today) | median=   0.2980 PASS | denom=   0.2980 PASS
+[a186] flat, noise 0.8%                               today=   0.7974 PASS | arith=   0.7974 (= today) | median=   0.7974 PASS | denom=   0.7974 PASS
+[a186] flat, noise 1.2%                               today=   1.2008 FAIL | arith=   1.2008 (= today) | median=   1.2007 FAIL | denom=   1.2007 FAIL
+[a186] vignetting corner drop 1% + noise 0.3%         today=   0.3698 PASS | arith=   0.3698 (= today) | median=   0.3699 PASS | denom=   0.3698 PASS
+[a186] vignetting corner drop 2% + noise 0.3%         today=   0.5207 PASS | arith=   0.5207 (= today) | median=   0.5213 PASS | denom=   0.5206 PASS
+[a186] vignetting corner drop 3% + noise 0.3%         today=   0.7073 PASS | arith=   0.7073 (= today) | median=   0.7081 PASS | denom=   0.7070 PASS
+[a186] vignetting corner drop 4% + noise 0.3%         today=   0.9075 PASS | arith=   0.9075 (= today) | median=   0.9091 PASS | denom=   0.9069 PASS
+[a186] flat + 2 dead pixels (of 16384)                today=   1.1443 FAIL | arith=   1.1443 (= today) | median=   1.1442 FAIL | denom=   1.1442 FAIL
+[a186] flat + 8 dead pixels (of 16384)                today=   2.2303 FAIL | arith=   2.2303 (= today) | median=   2.2298 FAIL | denom=   2.2293 FAIL
+[a186] flat + 16 dead pixels (of 16384)               today=   3.1410 FAIL | arith=   3.1410 (= today) | median=   3.1395 FAIL | denom=   3.1380 FAIL
+[a186] flat + 24 dead pixels (of 16384)               today=   3.8421 FAIL | arith=   3.8421 (= today) | median=   3.8392 FAIL | denom=   3.8365 FAIL
+[a186] flat + 28 dead pixels (of 16384)               today=   4.1488 FAIL | arith=   4.1488 (= today) | median=   4.1452 FAIL | denom=   4.1418 FAIL
+[a186] flat + 40 dead pixels (of 16384)               today=   4.9562 FAIL | arith=   4.9562 (= today) | median=   4.9501 FAIL | denom=   4.9442 FAIL
+[a186] flat + 1 hot pixels (3x)                       today=   1.5909 FAIL | arith=   1.5909 (= today) | median=   1.5911 FAIL | denom=   1.5910 FAIL
+[a186] flat + 4 hot pixels (3x)                       today=   3.1373 FAIL | arith=   3.1373 (= today) | median=   3.1393 FAIL | denom=   3.1389 FAIL
+[a186] flat + 16 hot pixels (3x)                      today=   6.2423 FAIL | arith=   6.2423 (= today) | median=   6.2576 FAIL | denom=   6.2545 FAIL
+[a186] skewed: 10% of pixels +2.8%                    today=   0.8378 PASS | arith=   0.8378 (= today) | median=   0.8856 PASS | denom=   0.8402 PASS
+[a186] skewed: 10% of pixels +3.0%                    today=   0.8975 PASS | arith=   0.8975 (= today) | median=   0.9489 PASS | denom=   0.9002 PASS
+[a186] skewed: 10% of pixels +3.1%                    today=   0.9273 PASS | arith=   0.9273 (= today) | median=   0.9805 PASS | denom=   0.9302 PASS
+[a186] skewed: 10% of pixels +3.2%                    today=   0.9571 PASS | arith=   0.9571 (= today) | median=   1.0121 FAIL SPLIT | denom=   0.9602 PASS
+[a186] skewed: 10% of pixels +3.3%                    today=   0.9869 PASS | arith=   0.9869 (= today) | median=   1.0438 FAIL SPLIT | denom=   0.9902 PASS
+[a186] skewed: 10% of pixels +3.4%                    today=   1.0167 FAIL | arith=   1.0167 (= today) | median=   1.0754 FAIL | denom=   1.0202 FAIL
+[a186] skewed: 10% of pixels +3.6%                    today=   1.0763 FAIL | arith=   1.0763 (= today) | median=   1.1387 FAIL | denom=   1.0802 FAIL
+[a186] real fixture CalData_6 (3072x3072 uint16, read-only):
+[a186] bright01 raw frame                             today=  11.5004 FAIL | arith=  11.5004 (= today) | median=  11.4812 FAIL | denom=  11.2208 FAIL
+[a186] bright02 raw frame                             today=  11.1196 FAIL | arith=  11.1196 (= today) | median=  11.0981 FAIL | denom=  10.8715 FAIL
+[a186] bright03 raw frame                             today=  16.7215 FAIL | arith=  16.7215 (= today) | median=  16.5186 FAIL | denom=  16.4198 FAIL
+[a186] bright04 raw frame                             today=  11.1281 FAIL | arith=  11.1281 (= today) | median=  11.0868 FAIL | denom=  10.9065 FAIL
+[a186] bright05 raw frame                             today=  10.8802 FAIL | arith=  10.8802 (= today) | median=  10.8473 FAIL | denom=  10.6643 FAIL
+[a186] bright06 raw frame                             today=  10.7310 FAIL | arith=  10.7310 (= today) | median=  10.7047 FAIL | denom=  10.5166 FAIL
+[a186] bright05 flat-fielded with gain from bright06  today=   9.0330 FAIL | arith=   9.0330 (= today) | median=   9.0330 FAIL | denom=   9.0330 FAIL
+[       OK ] A186Probe.DISABLED_MeanVersusMedianFlatResidual (2998 ms)
+[----------] 1 test from A186Probe (2998 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2999 ms total)
+[  PASSED  ] 1 test.
