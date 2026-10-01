@@ -80,7 +80,7 @@ registered in `XPE_TEST_SOURCES` (`modules/preprocess/CMakeLists.txt`) and there
 | REQ-P1A-010 | `test_offset_correct.cpp` | 10 | Yes |
 | REQ-P1A-011 | `test_gain_correct.cpp` | 10 | **No — pending QA-A-20** |
 | REQ-P1A-012 | `test_defect_correct.cpp` | 11 | **No — pending QA-A-20** |
-| REQ-P1A-013 | runtime-detection cases (`test_runtime_detection_avx2_parity.cpp`) | 4 | Yes |
+| REQ-P1A-013 | runtime-detection cases (`test_runtime_detection_avx2_parity.cpp`) | 11 registered, 11/11 PASS (re-counted 2026-10-01, `QA-A-175`; this row read 4) | Yes |
 | REQ-P1A-014~019 | `test_xpe_calib_check_expiry.cpp` (8), `test_xpe_calib_endurance.cpp` (5), `test_xpe_calib_generate_offset.cpp` (12), `test_xpe_calib_load.cpp` (19), `test_xpe_calib_save.cpp` (9), `test_calib_generate_offset_multi.cpp` (20) | 73 | Yes (6 files) |
 | REQ-P1A-020~022 | `test_boundary.cpp` (8), `test_xpe_preprocess_init.cpp` (18) | 26 | Yes |
 | REQ-P1A-030~033 | `test_integration.cpp` (2) | 2 | Yes |
@@ -88,7 +88,7 @@ registered in `XPE_TEST_SOURCES` (`modules/preprocess/CMakeLists.txt`) and there
 | REQ-P1A-040 / REQ-SIMD-001 | `test_offset_correct_avx2_parity.cpp` | 2 (3-arg API) — **VERIFIED 2026-05-09** | Yes |
 | REQ-SIMD-002 | `test_gain_correct_avx2_parity.cpp` | 2 (1 ULP FLOAT32) — **VERIFIED 2026-05-09** | Yes |
 | REQ-SIMD-003 | `test_defect_correct_avx2_parity.cpp` | 2 (bit-identical) — **VERIFIED 2026-05-09** | Yes |
-| REQ-SIMD-004 | `test_runtime_detection_avx2_parity.cpp` | 4 (bit-identical) — **VERIFIED 2026-05-09** | Yes |
+| REQ-SIMD-004 | `test_runtime_detection_avx2_parity.cpp` | 11 registered, 11/11 PASS (re-counted 2026-10-01, `QA-A-175`; this row read 4 — VERIFIED 2026-05-09) | Yes |
 | BP-01~05 DegradedMode | `test_preprocess_degraded.cpp` | 6 — 6/6 PASS (Frozen 2026-04-22) | Yes |
 | REQ-P1A-041~042 | `test_readout_validate.cpp` | 9 | Yes |
 | REQ-P1A-066 | `test_req_p1a_066.cpp` | 4 | Yes |
@@ -146,8 +146,8 @@ they are triaged, 54 cases sit on disk with no recorded reason for their exclusi
 | REQ-P1A-010 floor-at-zero | No negative / no wraparound | Edge-case test with offset > image |
 | REQ-P1A-011 no NaN/Inf | Zero violations | FLOAT32 isfinite() check on output |
 | REQ-P1A-012 no artificial edges | Gradient delta < 10% local contrast | Gradient analysis at defect boundaries |
-| REQ-P1A-013 TPR / FPR | TPR ≥ 99.9% on **10-sigma** injected transients (amended 2026-09-29 from 5-sigma, `#143`), FPR < 0.001% | 1000-frame synthetic injection test. Status 2026-10-01: FPR met (7.82e-06); TPR **not met** on striped frames (0.9865, disposition `QA-A-163`) |
-| REQ-P1A-013 performance | ≤ 1.3x the measured lower bound, same machine and timing mode (amended 2026-09-29, `#143`) | **Cannot be judged** (2026-10-01, `QA-A-174` / `#230`): the lower bound's selection term is an in-situ measurement of the shipped code, so no independent bound exists. History: `docs/project/REQ-CHANGE-LOG-P1A.md` |
+| REQ-P1A-013 TPR / FPR | TPR ≥ 99.9% on **10-sigma** injected transients (amended 2026-09-29 from 5-sigma, `#143`), FPR < 0.001% | `test_runtime_detection_rates.cpp` — **one** synthetic Gaussian frame (1024², σ = 10, seed 20260911, not clinical), 961 transients injected on a 31×31 grid at +10σ. Measured 2026-10-01 (`QA-A-175`, run output): TPR **1.000000** (961/961) on the uniform frame; **0.986472** on the striped frame — **not met** there, disposition `QA-A-163`; FPR **4.768e-06** (5 / 1,048,576) — met. *Correction: this row named a "1000-frame synthetic injection test", which does not exist and never did (no such test when the row was written, `9835c9e9`; the rates test arrived 2026-09-11, `5e9fe848`). The FPR figure 7.82e-06 written here earlier the same day was a 5-seed probe value, not this test's result.* |
+| REQ-P1A-013 performance | ≤ 1.3x the measured lower bound, same machine and timing mode (amended 2026-09-29, `#143`) | **Cannot be judged** (2026-10-01, `QA-A-174` / `#230`): the lower bound's selection term is an in-situ measurement of the shipped code, so no independent bound exists. **No test asserts the 1.3x target**; the only live performance gate is the absolute `≤ 400 ms` (`QA-A-175`). History: `docs/project/REQ-CHANGE-LOG-P1A.md` |
 | REQ-SIMD-001~004 AVX2 parity | 4 files, 10 total cases (2+2+2+4) | offset/gain/defect/runtime_detect parity tests — **10/10 VERIFIED 2026-05-09** |
 | BP-01~05 DegradedMode | 6/6 PASS (Frozen) | `test_preprocess_degraded.cpp` |
 
@@ -232,8 +232,8 @@ Per `XPE-SVVP-001` Section 5.1 and this module's `benchmark/BP-01-05-preprocess-
 | BP-02 (Multi-gain linearity) | REQ-P1A-011 | See manifest Section 3.4 |
 | BP-03 (Heel-effect SID) | REQ-P1A-011 | See manifest Section 4.4 |
 | BP-04 (Defect density) | REQ-P1A-012, 013 | See manifest Section 5.4 |
-| BP-05 (DegradedMode stress) | REQ-P1A-013 | DegradedMode 6/6 PASS (Frozen 2026-04-22) |
-| SIMD Parity (SPEC-SIMD-001) | REQ-SIMD-001~004 | 10 parity test cases across 4 files (ctest -R AVX2Parity) — **10/10 VERIFIED 2026-05-09** |
+| BP-05 (DegradedMode stress) | REQ-P1A-013 | DegradedMode 6/6 PASS (Frozen 2026-04-22). *2026-10-01 (`QA-A-175`): these 6 tests never call the runtime detector, so they are **not evidence for REQ-P1A-013** (runtime detection); the test comments label temperature/non-linear handling as REQ-P1A-013, which the SPEC does not.* |
+| SIMD Parity (SPEC-SIMD-001) | REQ-SIMD-001~004 | 10 parity test cases across 4 files (ctest -R AVX2Parity) — **10/10 VERIFIED 2026-05-09**. *2026-10-01 (`QA-A-175`): `ctest -R AVX2Parity` now matches only 6 (offset 3 + gain 3); the runtime-detection parity tests are spelled `Avx2Parity` and are missed by that filter.* |
 
 Pass criteria:
 - All Pre Lane benchmark packs frozen (SHA-256 hashes locked)
