@@ -288,8 +288,10 @@ public sealed class SettingsProcessingConnectionTests
         // directories, which the Calibration Paths panel now binds one-way. They are named below so the count
         // cannot drift to 40 by some other four.
         // GUI-C-184 added one: AiBoneSuppressionInChain (the AI stage's checkbox in the Parameters tab), named below.
-        Assert.Equal(41, survey.Bindings.Select(b => b.Property).Distinct().Count());
+        // GUI-C-185 added one: AiModelDirectory (the directory input beside it), named below.
+        Assert.Equal(42, survey.Bindings.Select(b => b.Property).Distinct().Count());
         Assert.Contains(nameof(AppSettings.AiBoneSuppressionInChain), survey.Bindings.Select(b => b.Property));
+        Assert.Contains(nameof(AppSettings.AiModelDirectory), survey.Bindings.Select(b => b.Property));
         foreach (var added in new[]
                  {
                      nameof(AppSettings.ShowCalibrationPanel), nameof(AppSettings.OffsetCalibrationDirectory),

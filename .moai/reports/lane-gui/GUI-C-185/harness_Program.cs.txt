@@ -1,0 +1,107 @@
+// GUI-C-185 observation harness (scratch, NOT in the repository). Starts the REAL gui app (Mock backend), then sets the view
+// model's private worker status by reflection, as if the module had reported it, and reads what the real XAML shows:
+// the AiWorkerPanel visibility, the banner text, the Restart AI button, and what pressing it does on a backend without an AI session.
+using System.IO;
+using System.Reflection;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Threading;
+
+namespace Harness;
+
+internal static class Program
+{
+    private static readonly StringBuilder Log = new();
+
+    [STAThread]
+    private static int Main()
+    {
+        var outPath = Path.Combine(AppContext.BaseDirectory, "observation.txt");
+        var app = new ImageProcTest.App();
+        app.InitializeComponent();
+        app.StartupUri = new Uri("pack://application:,,,/ImageProcTest;component/MainWindow.xaml"); // the relative 'MainWindow.xaml' would resolve against THIS assembly
+        var stage = 0;
+        DateTime loadedAt = default;
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+        timer.Tick += (_, _) =>
+        {
+            try
+            {
+                var window = app.MainWindow as ImageProcTest.MainWindow;
+                if (window is null || !window.IsLoaded) return;
+                if (loadedAt == default) { loadedAt = DateTime.UtcNow; return; }
+                if (DateTime.UtcNow - loadedAt < TimeSpan.FromSeconds(3)) return;
+
+                var vm = window.DataContext;
+                var asm = typeof(ImageProcTest.App).Assembly;
+                var statusType = asm.GetType("ImageProcTest.Services.AiWorkerStatus", true);
+                var stateType = asm.GetType("ImageProcTest.Services.AiWorkerState", true);
+                var field = vm.GetType().GetField("_aiWorkerStatus", BindingFlags.Instance | BindingFlags.NonPublic);
+                var raise = vm.GetType().GetMethod("OnPropertyChanged", BindingFlags.Instance | BindingFlags.NonPublic);
+
+                void Set(string stateName, uint failures, uint ceiling)
+                {
+                    var st = Activator.CreateInstance(statusType, Enum.Parse(stateType, stateName), failures, ceiling);
+                    field.SetValue(vm, st);
+                    raise.Invoke(vm, new object[] { "AiWorkerDisabled" });
+                    raise.Invoke(vm, new object[] { "AiWorkerBannerText" });
+                    window.UpdateLayout();
+                }
+
+                void Dump(string title)
+                {
+                    var panel = (FrameworkElement)window.FindName("AiWorkerPanel") ?? FindByAutomationId(window, "AiWorkerPanel");
+                    var banner = (TextBlock)window.FindName("AiWorkerBanner");
+                    var button = (Button)window.FindName("AiRestartButton");
+                    Log.AppendLine($"== {title}");
+                    Log.AppendLine($"  panel visible={panel?.IsVisible} (Visibility={panel?.Visibility}); banner visible={banner?.IsVisible} text='{banner?.Text}'");
+                    Log.AppendLine($"  restart button visible={button?.IsVisible} enabled={button?.IsEnabled} content='{button?.Content}'");
+                }
+
+                Dump("A: startup, nothing reported (Mock backend)");
+                Set("Disabled", 3, 3);
+                Dump("B: module reports Disabled 3 of 3");
+                Set("Disabled", 7, 7);
+                Dump("C: module reports Disabled 7 of 7 (the ceiling is the module's)");
+                Set("Active", 2, 3);
+                Dump("D: module reports Active 2 of 3");
+
+                Set("Disabled", 3, 3);
+                var button2 = (Button)window.FindName("AiRestartButton");
+                button2.Command.Execute(null);
+                Thread.Sleep(600);
+                Log.AppendLine("== E: Restart AI pressed on the Mock backend (no AI session)");
+                Log.AppendLine("  status bar text: " + vm.GetType().GetProperty("StatusText").GetValue(vm));
+                Dump("   after the press (the mock has no session to restart, so the reported state is read again: Unknown)");
+
+                timer.Stop();
+                File.WriteAllText(outPath, Log.ToString(), new UTF8Encoding(false));
+                app.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                timer.Stop();
+                File.WriteAllText(outPath, Log + "\nEXCEPTION: " + ex, new UTF8Encoding(false));
+                app.Shutdown();
+            }
+        };
+        timer.Start();
+        app.Run();
+        return 0;
+    }
+
+    private static FrameworkElement FindByAutomationId(DependencyObject root, string id)
+    {
+        var count = System.Windows.Media.VisualTreeHelper.GetChildrenCount(root);
+        for (var i = 0; i < count; i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is FrameworkElement fe && System.Windows.Automation.AutomationProperties.GetAutomationId(fe) == id) return fe;
+            var found = FindByAutomationId(child, id);
+            if (found is not null) return found;
+        }
+
+        return null;
+    }
+}

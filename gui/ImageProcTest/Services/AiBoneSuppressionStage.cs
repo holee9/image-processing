@@ -5,6 +5,24 @@ using ImageProcTest.Models;
 
 namespace ImageProcTest.Services;
 
+/// <summary>What <c>xpe_ai_worker_state</c> reports (ai_api.h). <see cref="Unknown"/> is this GUI's: not started, or no answer.</summary>
+internal enum AiWorkerState
+{
+    Unknown = -1,
+    NotUsed = 0,
+    Active = 1,
+    Disabled = 2,
+}
+
+/// <summary>The worker's state with the module's own counts. The ceiling is the module's, never a constant here.</summary>
+internal sealed record AiWorkerStatus(AiWorkerState State, uint ConsecutiveFailures, uint Ceiling)
+{
+    public static readonly AiWorkerStatus Unknown = new(AiWorkerState.Unknown, 0, 0);
+}
+
+/// <summary>Whether a restart worked, and the line to show.</summary>
+internal sealed record AiRestartResult(bool Ok, string Message);
+
 /// <summary>How the module's answer to one <c>xpe_bone_suppress</c> call is read.</summary>
 internal enum AiCallClass
 {
@@ -54,6 +72,28 @@ internal static class AiBoneSuppressionStage
 
     /// <summary>The label for a frame the module really processed. Shown only for a stage whose status is Applied.</summary>
     public const string ProcessedLabel = "AI-processed: bone suppression";
+
+    /// <summary>The file xpe_bone_suppress reads inside the model directory (ai_api.h: <c>&lt;modelDir&gt;/bone_suppress.onnx</c>).</summary>
+    public const string ModelFileName = "bone_suppress.onnx";
+
+    /// <summary>
+    /// Looks for the model file BEFORE the module is asked, and answers "not attempted" when it is not there (GUI-C-185).
+    /// The module cannot say this itself: with the worker path on, a missing model comes back as the same code (-9) as a
+    /// worker executable that was not found or could not be started, so the code alone does not tell them apart. Not asking
+    /// also means no worker is started and no failure is counted toward the 3 that switch the worker off.
+    /// Returns null when the file is there and the call should be made. <paramref name="exists"/> is for the tests.
+    /// </summary>
+    public static StageExecution? CheckModelFile(string modelDirectory, Func<string, bool>? exists = null)
+    {
+        var path = System.IO.Path.Combine(modelDirectory, ModelFileName);
+        if ((exists ?? System.IO.File.Exists)(path))
+        {
+            return null;
+        }
+
+        return new StageExecution(false, null,
+            $"AI bone suppression not attempted: no model at {path}. The AI worker was not started and no failure was counted; the original image is shown.");
+    }
 
     /// <summary>
     /// The label for a chain: <see cref="ProcessedLabel"/> when the AI stage's status is Applied, otherwise empty.
@@ -121,14 +161,36 @@ internal static class AiBoneSuppressionStage
             default:
                 return new StageExecution(false, null,
                     $"AI bone suppression NOT applied (code {code}): the original image is shown. A failed call returns the input unchanged; " +
-                    "3 failures in a row switch the AI worker off for this session (see the alerts). " +
-                    "A build without an inference runtime always ends here.");
+                    "consecutive failures switch the AI worker off for this session (the AI worker mark shows when that has happened). " +
+                    "The code is the module's and is not read further here: the same code can have more than one cause.");
         }
     }
 
     /// <summary>The stage's answer when <c>xpe_ai_init</c> did not return 0.</summary>
     public static StageExecution InterpretInit(int code) =>
         new(false, null, $"AI bone suppression not started: xpe_ai_init refused the configuration (code {code}); the original image is shown.");
+
+    /// <summary>The reading of an <c>xpe_ai_worker_state</c> answer. Anything unexpected is <see cref="AiWorkerState.Unknown"/>, which shows nothing.</summary>
+    public static AiWorkerStatus ReadWorkerState(int code, int state, uint consecutiveFailures, uint ceiling) =>
+        code == Ok && state is >= 0 and <= 2
+            ? new AiWorkerStatus((AiWorkerState)state, consecutiveFailures, ceiling)
+            : AiWorkerStatus.Unknown;
+
+    /// <summary>
+    /// The persistent text for a status: non-empty ONLY when the module reports the worker switched off. The numbers are
+    /// the module's (<c>consecutiveFailures</c>, <c>ceiling</c>): the ceiling is not written here, so a module that
+    /// changes it changes the text with it.
+    /// </summary>
+    public static string BannerFor(AiWorkerStatus status) =>
+        status.State == AiWorkerState.Disabled
+            ? $"AI worker switched off for this session after {status.ConsecutiveFailures} of {status.Ceiling} failures in a row: images are returned unchanged until it is restarted."
+            : string.Empty;
+
+    /// <summary>The answer to a restart, from the return code of the <c>xpe_ai_init</c> that follows the shutdown.</summary>
+    public static AiRestartResult InterpretRestart(int initCode) =>
+        initCode == Ok
+            ? new AiRestartResult(true, "AI session restarted: a new session with a clean failure count.")
+            : new AiRestartResult(false, $"AI session could not be restarted: xpe_ai_init refused the configuration (code {initCode}).");
 
     private static string RefusalMeaning(int code) => code switch
     {

@@ -545,6 +545,33 @@
                         AutomationProperties.AutomationId="ClearAlertsButton"
                         Command="{Binding ClearAlertsCommand}"
                         Content="Clear Alerts" />
+                <!-- #225 row 10 (GUI-C-185): the AI worker switched off for the session. Shown ONLY while the module reports it
+                     (xpe_ai_worker_state), so it stays when the alert has scrolled out of the queue; collapsed otherwise, which
+                     also takes it out of the automation tree. The restart button sits with it. -->
+                <StackPanel Orientation="Horizontal" AutomationProperties.AutomationId="AiWorkerPanel">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding AiWorkerDisabled}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <Separator />
+                    <TextBlock x:Name="AiWorkerBanner"
+                               AutomationProperties.AutomationId="AiWorkerBanner"
+                               Text="{Binding AiWorkerBannerText}"
+                               Foreground="#b45309" FontWeight="SemiBold" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" MaxWidth="560"
+                               ToolTip="{Binding AiWorkerBannerText}" Margin="4,0" />
+                    <Button x:Name="AiRestartButton"
+                            AutomationProperties.AutomationId="AiRestartButton"
+                            Command="{Binding RestartAiSessionCommand}"
+                            Content="Restart AI"
+                            ToolTip="Shuts the AI module down and starts it again: a new session with a clean failure count." />
+                </StackPanel>
             </ToolBar>
         </ToolBarTray>
 

@@ -18,6 +18,10 @@ internal static class XpeAiNative
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
     internal static extern void xpe_ai_shutdown();
 
+    /// <summary>Read-only status of the worker path (ai_api.h). MUST NOT run with init or shutdown: see <see cref="GuiAiSession"/>.</summary>
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int xpe_ai_worker_state(out int state, out uint consecutiveFailures, out uint ceiling);
+
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     internal static extern int xpe_bone_suppress(
         ref XpeImageBufferNative img,
@@ -79,6 +83,56 @@ internal static class GuiAiSession
             return code;
         });
 
+    /// <summary>
+    /// The worker's status, read under the same lock as init and shutdown: the module documents that the state call must
+    /// not run with either (they free or create what it reads). Not started here, or an older DLL without the export,
+    /// is <see cref="AiWorkerStatus.Unknown"/>, and asking then does not load the DLL.
+    /// </summary>
+    public static AiWorkerStatus QueryWorkerState() =>
+        WithLock(() =>
+        {
+            if (!_started)
+            {
+                return AiWorkerStatus.Unknown;
+            }
+
+            try
+            {
+                var code = XpeAiNative.xpe_ai_worker_state(out var state, out var failures, out var ceiling);
+                return AiBoneSuppressionStage.ReadWorkerState(code, state, failures, ceiling);
+            }
+            catch (DllNotFoundException)
+            {
+                return AiWorkerStatus.Unknown;
+            }
+            catch (EntryPointNotFoundException)
+            {
+                return AiWorkerStatus.Unknown;
+            }
+        });
+
+    /// <summary>
+    /// Shutdown then init as ONE step under the lock, so the status call cannot run between them. This is the recovery the
+    /// header names for a worker switched off for the session.
+    /// </summary>
+    public static AiRestartResult Restart(string modelDirectory) =>
+        WithLock(() =>
+        {
+            Shutdown();
+            try
+            {
+                return AiBoneSuppressionStage.InterpretRestart(Init(modelDirectory));
+            }
+            catch (DllNotFoundException)
+            {
+                return new AiRestartResult(false, "AI session could not be restarted: xpe_ai.dll was not found beside the other native modules.");
+            }
+            catch (EntryPointNotFoundException ex)
+            {
+                return new AiRestartResult(false, $"AI session could not be restarted: xpe_ai.dll does not export a function this build needs ({ex.Message}).");
+            }
+        });
+
     /// <summary>Stops the module when this process started it; otherwise does nothing, and never loads the DLL to do so.</summary>
     public static void Shutdown() =>
         WithLock(() =>
@@ -113,6 +167,14 @@ internal static class GuiAiRunner
         if (width <= 0 || height <= 0 || input.Length != count)
         {
             return new StageExecution(false, null, $"AI bone suppression not started: {input.Length} pixels do not fit {width}x{height}.");
+        }
+
+        // The model file is looked for before the module is asked (GUI-C-185): a missing model and a worker that could not be
+        // started come back as the same code, and asking would start a worker and count a failure.
+        var missingModel = AiBoneSuppressionStage.CheckModelFile(modelDirectory);
+        if (missingModel is not null)
+        {
+            return missingModel;
         }
 
         var allocated = new List<Action>();

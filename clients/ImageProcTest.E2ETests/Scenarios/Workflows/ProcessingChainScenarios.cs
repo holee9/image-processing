@@ -331,12 +331,13 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
     }
 
     /// <summary>
-    /// C-08 (#225 row 10, GUI-C-184): the AI menu entry on a build where the module cannot succeed. Mock has no AI
-    /// module and says so. The Native job stages xpe_ai.dll and its worker (the post-binaries artifact, ci.yml) and builds
-    /// the module as a stub (no inference runtime), so there the stage must have REACHED the module: the reason carries a
-    /// return code that came from it. "xpe_ai.dll was not found" is NOT accepted on Native: it would let a job that
-    /// forgot to stage the DLL pass as the failure path it is meant to pin. In both cases the stage must be
-    /// RequestedNotApplied, the drawn pixels must be the ones from before, and nothing may say "AI-processed". A failed call returns the input unchanged, so "the pixels did not change" alone cannot
+    /// C-08 (#225 row 10, GUI-C-184, GUI-C-185): the AI menu entry with NO model file. The model directory is pointed at a
+    /// path that does not exist, so the answer does not depend on the working directory. Mock has no AI module and says so.
+    /// Native looks for the file before it asks the module (the same -9 comes back for a missing model and for a worker
+    /// that could not be started, so the code could not tell them apart): the reason is "not attempted: no model at
+    /// &lt;the path&gt;", no worker is started, no failure is counted. C-09 is the case where the module IS asked. In both
+    /// the stage must be RequestedNotApplied, the drawn pixels must be the ones from before, and nothing may say
+    /// "AI-processed". A failed call returns the input unchanged, so "the pixels did not change" alone cannot
     /// tell a failure from a success on a flat image; the STATUS is what is asserted, and the hash is asserted too
     /// (the image on screen is the original).
     ///
@@ -350,8 +351,10 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
         var window = app.MainWindow!;
         CloseDetached(window);
 
+        var missingDirectory = Path.Combine(Path.GetTempPath(), $"xpe-ai-nomodel-{Environment.ProcessId}-{Guid.NewGuid():N}");
         try
         {
+            SetText(window, "AiModelDirectoryInput", missingDirectory);
             SetAiStage(window, false);
             ApplyDisplayPipeline(window);
             var before = WaitForChain(window, "ai_bone_suppress=NotRequested");
@@ -370,10 +373,9 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
 
             if (app.BackendMode == "Native")
             {
-                // The module answered: the DLL loaded and xpe_bone_suppress returned a code (a stub build: -3). The message
-                // text is pinned by AiBoneSuppressionStageTests.TheMessagesOfAModuleAnswer_MatchTheNativeCasePattern.
-                Assert.DoesNotContain("was not found", after, StringComparison.Ordinal);
-                Assert.Matches(@"ai_bone_suppress: AI bone suppression (NOT applied|not attempted) \(code -?\d+", after);
+                // The file check ran before the module was asked: no code, because no module call was made.
+                Assert.Contains("ai_bone_suppress: AI bone suppression not attempted: no model at", after, StringComparison.Ordinal);
+                Assert.Contains(Path.Combine(missingDirectory, "bone_suppress.onnx"), after, StringComparison.Ordinal);
             }
             else
             {
@@ -383,9 +385,87 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
         finally
         {
             SetAiStage(window, false);
+            SetText(window, "AiModelDirectoryInput", string.Empty);
             ApplyDisplayPipeline(window);
         }
     }
+
+    /// <summary>
+    /// C-09 (#225 row 10, GUI-C-185): the module IS asked (a file named bone_suppress.onnx exists, though it is not a model),
+    /// the worker keeps failing, and the persistent mark appears when the module reports the worker switched off
+    /// (<c>xpe_ai_worker_state</c>, not an alert); the Restart AI button then starts a new session and the mark goes.
+    /// Each failed call must carry a return code that came from the module, so a job that did not stage xpe_ai.dll cannot
+    /// pass. The numbers in the mark are the module's: the test requires them equal (the ceiling was reached) and does
+    /// not write a 3. Native only: the Mock has no AI session. Not run on a developer machine (the native E2E job's).
+    /// </summary>
+    [SkippableFact]
+    public void C09_AWorkerSwitchedOffByRepeatedFailures_ShowsAMark_ThatRestartRemoves()
+    {
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+        Skip.If(app.BackendMode != "Native", "The AI session exists only on the native backend.");
+        var window = app.MainWindow!;
+        CloseDetached(window);
+
+        var directory = Path.Combine(Path.GetTempPath(), $"xpe-ai-e2e-{Environment.ProcessId}-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "bone_suppress.onnx"), "not a model");
+        try
+        {
+            SetText(window, "AiModelDirectoryInput", directory);
+            SetAiStage(window, false);
+            ApplyDisplayPipeline(window);
+            Assert.Null(AiBanner(window));
+
+            var shown = false;
+            for (var attempt = 1; attempt <= 6 && !shown; attempt++)
+            {
+                InvokeAiMenuItem(window);
+                var status = WaitForChain(window, "ai_bone_suppress=RequestedNotApplied");
+                output.WriteLine($"C09 attempt {attempt}: chain='{status}'");
+                Assert.Matches(@"ai_bone_suppress: AI bone suppression (NOT applied|not attempted) \(code -?\d+", status);
+                Assert.DoesNotContain("was not found", status, StringComparison.Ordinal);
+                Assert.DoesNotContain("no model at", status, StringComparison.Ordinal);
+                Thread.Sleep(2500); // the render that follows the click, and the state read after it
+                shown = AiBanner(window) is not null;
+            }
+
+            var banner = AiBanner(window);
+            Assert.True(banner is not null, "Six failed calls in a row, and the module never reported the worker switched off.");
+            var text = banner!.Name;
+            output.WriteLine($"C09 mark: '{text}'");
+            var numbers = Regex.Match(text, @"after (\d+) of (\d+) failures");
+            Assert.True(numbers.Success, $"The mark does not carry the module's counts: '{text}'.");
+            Assert.Equal(numbers.Groups[2].Value, numbers.Groups[1].Value);
+
+            var restart = window.FindFirstDescendant(cf => cf.ByAutomationId("AiRestartButton"));
+            Assert.True(restart is not null, "The mark is shown but the Restart AI button is not.");
+            restart!.AsButton().Invoke();
+
+            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(15);
+            while (DateTime.UtcNow < deadline && AiBanner(window) is not null) Thread.Sleep(200);
+            Assert.True(AiBanner(window) is null,
+                $"The mark is still shown after Restart AI: '{AiBanner(window)?.Name}' (status bar: '{StatusText(window)}').");
+        }
+        finally
+        {
+            if (window.FindFirstDescendant(cf => cf.ByAutomationId("AiRestartButton")) is { } leftover)
+            {
+                leftover.AsButton().Invoke();
+                Thread.Sleep(600);
+            }
+
+            SetAiStage(window, false);
+            SetText(window, "AiModelDirectoryInput", string.Empty);
+            ApplyDisplayPipeline(window);
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    private static FlaUI.Core.AutomationElements.AutomationElement? AiBanner(Window window) =>
+        window.FindFirstDescendant(cf => cf.ByAutomationId("AiWorkerBanner"));
+
+    private static string StatusText(Window window) =>
+        window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"))?.Name ?? string.Empty;
 
     private static void InvokeAiMenuItem(Window window)
     {

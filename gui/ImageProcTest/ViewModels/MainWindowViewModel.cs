@@ -156,6 +156,7 @@ public sealed class MainWindowViewModel : ObservableObject
         ApplyBodyPartPresetCommand = new RelayCommand(ApplyBodyPartPreset);
         RunPreprocessingCommand = new RelayCommand(RunPreprocessing);
         RunAiBoneSuppressionCommand = new RelayCommand(RunAiBoneSuppression);
+        RestartAiSessionCommand = new RelayCommand(RestartAiSession);
         ZoomFitCommand = new RelayCommand(ZoomFit);
         ZoomActualCommand = new RelayCommand(ZoomActual);
         ZoomInCommand = new RelayCommand(ZoomIn);
@@ -529,6 +530,64 @@ public sealed class MainWindowViewModel : ObservableObject
     /// with an unchanged image.
     /// </summary>
     public string AiProcessedLabel { get; private set; } = string.Empty;
+
+    private AiWorkerStatus _aiWorkerStatus = AiWorkerStatus.Unknown;
+
+    /// <summary>
+    /// GUI-C-185: true while the module reports the AI worker switched off for this session. The source is
+    /// <c>xpe_ai_worker_state</c>, not an alert: alerts are drained by their reader and can overflow, the state stays.
+    /// </summary>
+    public bool AiWorkerDisabled => _aiWorkerStatus.State == AiWorkerState.Disabled;
+
+    /// <summary>The persistent text for <see cref="AiWorkerDisabled"/>, with the module's own failure count and ceiling; empty otherwise.</summary>
+    public string AiWorkerBannerText => AiBoneSuppressionStage.BannerFor(_aiWorkerStatus);
+
+    /// <summary>GUI-C-185: shutdown then init under the one lock; the mark goes when the module reports a new session.</summary>
+    public RelayCommand RestartAiSessionCommand { get; }
+
+    /// <summary>
+    /// Reads the worker state again and tells the screen when it changed. Cheap and never blocks on a running call (the
+    /// module answers from the last completed one); a backend without an AI session answers Unknown, which shows nothing.
+    /// </summary>
+    private void RefreshAiWorkerStatus()
+    {
+        var status = (_backend as IAiSessionBackend)?.GetAiWorkerStatus() ?? AiWorkerStatus.Unknown;
+        if (status == _aiWorkerStatus)
+        {
+            return;
+        }
+
+        _aiWorkerStatus = status;
+        OnPropertyChanged(nameof(AiWorkerDisabled));
+        OnPropertyChanged(nameof(AiWorkerBannerText));
+    }
+
+    private async void RestartAiSession()
+    {
+        if (_backend is not IAiSessionBackend session)
+        {
+            StatusText = "AI session restart needs the native backend.";
+            Log(StatusText);
+            RefreshAiWorkerStatus(); // a backend with no AI session reports Unknown, which shows nothing
+            return;
+        }
+
+        try
+        {
+            var directory = Settings.AiModelDirectory;
+            var result = await Task.Run(() => session.RestartAiSession(directory));
+            DrainBackendTelemetry();
+            StatusText = result.Message;
+            Log(result.Message);
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"AI session could not be restarted: {ex.Message}";
+            Log(StatusText);
+        }
+
+        RefreshAiWorkerStatus();
+    }
 
     private ChainResult? _lastChain;
     private float _renderedLaneBWidth;
@@ -1122,6 +1181,7 @@ public sealed class MainWindowViewModel : ObservableObject
         _backend.Shutdown();
         RuntimeInfo = _backend.GetRuntimeInfo();
         DrainBackendTelemetry();
+        RefreshAiWorkerStatus();
         StatusText = "Backend shutdown.";
         Log("Backend shutdown requested.");
     }
@@ -2251,6 +2311,7 @@ public sealed class MainWindowViewModel : ObservableObject
         // unchanged AI stage never gets it.
         AiProcessedLabel = AiBoneSuppressionStage.LabelFor(chain);
         OnPropertyChanged(nameof(AiProcessedLabel));
+        RefreshAiWorkerStatus();
         ChainStatus = $"{chain.Summary}; {chain.Timings}; display input={(chain.DisplaysRaw ? "raw" : "chain")}"
             + (AiProcessedLabel.Length == 0 ? string.Empty : $" — {AiProcessedLabel}")
             + (refused.Length == 0 ? string.Empty : " — " + string.Join(" | ", refused));

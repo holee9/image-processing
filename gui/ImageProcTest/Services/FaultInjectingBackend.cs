@@ -16,7 +16,7 @@ namespace ImageProcTest.Services;
 /// the automation tree reports in both cases, and the E2E suite checks it on an unarmed app as well as
 /// on an armed one.</para>
 /// </summary>
-public sealed class FaultInjectingBackend : IXpeBackend
+public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
 {
     private readonly IXpeBackend _inner;
     private readonly int _failAfter;
@@ -72,6 +72,14 @@ public sealed class FaultInjectingBackend : IXpeBackend
         _inner.RunChain(rawFrame, stages, settings);
 
     public bool SupportsPreprocessing => _inner.SupportsPreprocessing;
+
+    // GUI-C-185: the wrapper adds no fault of its own to the AI session; it passes the question to the backend it wraps.
+    AiWorkerStatus IAiSessionBackend.GetAiWorkerStatus() =>
+        (_inner as IAiSessionBackend)?.GetAiWorkerStatus() ?? AiWorkerStatus.Unknown;
+
+    AiRestartResult IAiSessionBackend.RestartAiSession(string modelDirectory) =>
+        (_inner as IAiSessionBackend)?.RestartAiSession(modelDirectory)
+        ?? new AiRestartResult(false, "AI session restart needs the native backend.");
 
     public string GetDisplayVersion() => _inner.GetDisplayVersion();
 
