@@ -105,15 +105,19 @@ typedef enum XCalPixelFormat {
  * neither key means "uncompressed"; ONE key alone, a value that is not a bare unsigned integer, or a block that is not
  * a JSON object (white space only included) is XPE_ERR_CONFIG_INVALID. A block of length 0 is a file without a config.
  *
- * Files of the older writer (QA-A-209c). The writer of 90c1b6b1 and earlier, for a compressed DEFECT file (the only
- * case that carries the pair) with a non-empty caller config, cut the caller's last '}' and appended the pair with its
- * own closing brace plus another one, so the stored block ENDS "}}": {"mode":"x","xcal_compression":1,
- * "xcal_raw_payload_len":N}} ; for a caller object with no members it made {,"xcal_compression":1,
- * "xcal_raw_payload_len":N}} (a white-space-only caller object "{ }" kept its white space: "{ ,..."). A compressed
- * file with NO caller config was always valid. Those two shapes -- and only those -- are repaired in memory when the
- * strict parse fails (drop the extra '}', and for the second shape the comma), then parsed strictly again, so the
- * duplicate / nested / pair rules apply to the repaired text. The file is accepted with an XPE_ALERT_WARNING whose text
- * begins "XPE_WARN_XCAL_LEGACY_CONFIG:" and says to regenerate the file. The stored bytes are not changed, and the
+ * Files of the older writer (QA-A-209c, narrowed by QA-A-209d). The writer of 90c1b6b1 and earlier compressed DEFECT
+ * maps and nothing else (method 1, RLE), and carried the pair only for those. With a non-empty caller config it cut the
+ * caller's last '}' and appended the pair with its own closing brace plus another one, so the stored block ENDS "}}":
+ * {"mode":"x","xcal_compression":1,"xcal_raw_payload_len":N}} (shape A: at least one caller member, then the comma, then
+ * the pair); for a caller object with no members it made {,"xcal_compression":1,"xcal_raw_payload_len":N}} (shape B; a
+ * white-space-only caller object "{ }" kept its white space: "{ ,..."). With NO caller config the block was always a
+ * valid single-brace object. Those two shapes -- and only those, and only in a DEFECT file whose method is 1 -- are
+ * repaired in memory when the strict parse fails (drop the extra '}', and for shape B the comma), then parsed strictly
+ * again, so the duplicate / nested / pair rules apply to the repaired text. The pair alone with a second brace
+ * ({"xcal_compression":1,"xcal_raw_payload_len":N}}), the same tails in a file of another type, and a method other than 1
+ * are not the old writer's work and stay refused. The file is accepted with an XPE_ALERT_WARNING whose text begins
+ * "XPE_WARN_XCAL_LEGACY_CONFIG:" and says to regenerate the file; the text is built before any output argument of the
+ * reader is touched, so an allocation failure leaves them all as they were. The stored bytes are not changed, and the
  * SHA-256 covers them (config || payload), so the repair does not weaken tamper detection: a file whose config bytes
  * were altered fails the hash and is refused without the alert. Any other malformed block stays refused.
  */

@@ -450,6 +450,7 @@ class XCalCompressionMetaTest : public ::testing::Test {
 protected:
     const char* path = "xcal_comp_meta_test.xcal";
     void TearDown() override {
+        xpe_clear_alerts();   // a read of an old-writer file raises a warning; drain what the test raised (QA-A-113 hygiene)
         std::remove(path);
         std::remove((std::string(path) + ".tmp").c_str());
     }
@@ -732,4 +733,51 @@ TEST_F(XCalCompressionMetaTest, TheRepairLoosensNoIntegrityCheck) {
     }
     EXPECT_EQ(XPE_ERR_CONFIG_INVALID, readDefect());
     xpe_preprocess_shutdown();
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// QA-A-209d (Codex #56 item 2): the repair is for what the old writer could make, and no wider. It made the doubled
+// brace only for a compressed (RLE, method 1) DEFECT file with a caller config that had members (shape A: members,
+// then the pair) or was an empty object (shape B). A block that is only the pair plus a second brace, the same tail on
+// a file of another type, or a method the old writer never wrote is none of those.
+// ---------------------------------------------------------------------------------------------------------------
+
+TEST_F(XCalCompressionMetaTest, ThePairAloneWithADoubledBraceIsNotWhatTheOldWriterMade) {
+    // the old writer, given NO caller config, wrote the pair as a normal single-brace object; it never wrote this
+    const auto rle = rlePayloadOfZeros(64, 64);
+    for (const char* cfg : {"{\"xcal_compression\":1,\"xcal_raw_payload_len\":4096}}",
+                            "{ \"xcal_compression\":1,\"xcal_raw_payload_len\":4096}}",
+                            "{\n\"xcal_compression\":1,\"xcal_raw_payload_len\":4096}}"}) {
+        SCOPED_TRACE(cfg);
+        ASSERT_EQ(XPE_OK, writeCompressedWith(cfg, rle, 64, 64));
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, readDefect());
+    }
+}
+
+TEST_F(XCalCompressionMetaTest, TheOldWritersShapesAreOnlyRepairedForAnRleCompressedDefectFile) {
+    const auto rle = rlePayloadOfZeros(64, 64);            // 4096 raw bytes, RLE
+    // a file of ANOTHER type with the old shapes and a payload that WOULD decode if it were repaired and read as compressed:
+    // a 32x32 float32 OFFSET map is 4096 raw bytes
+    XCalFileHeader off = MakeOffsetHeader(32, 32);
+    for (const char* caller : {"{\"mode\":\"production\"}", "{}"}) {
+        SCOPED_TRACE(caller);
+        const std::string legacy = legacy209c::oldWriterConfig(caller, 1, 4096);
+        ASSERT_EQ(XPE_OK, write_xcal_file_ex(path, off, reinterpret_cast<const uint8_t*>(legacy.data()), legacy.size(),
+                                             rle.data(), rle.size(), /*compress_defect=*/false));
+        XCalFileHeader rh{};
+        std::vector<uint8_t> cfg, pl;
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, read_xcal_file(path, rh, cfg, pl, false, XCAL_TYPE_OFFSET))
+            << "the old writer compressed only DEFECT maps; the same tail on an OFFSET file is not its work";
+    }
+    // a method the old writer never wrote (it wrote 1, RLE)
+    for (const char* caller : {"{\"mode\":\"production\"}", "{}"}) {
+        SCOPED_TRACE(caller);
+        const std::string legacy = legacy209c::oldWriterConfig(caller, 2, 4096);
+        ASSERT_EQ(XPE_OK, writeCompressedWith(legacy, rle, 64, 64));
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, readDefect());
+    }
+    // control: method 1 on the DEFECT file is the accepted case
+    const std::string good = legacy209c::oldWriterConfig("{\"mode\":\"production\"}", 1, 4096);
+    ASSERT_EQ(XPE_OK, writeCompressedWith(good, rle, 64, 64));
+    EXPECT_EQ(XPE_OK, readDefect());
 }

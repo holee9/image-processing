@@ -1,0 +1,92 @@
+Note: Google Test filter = XCalCompressionMetaTest.*
+[==========] Running 13 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 13 tests from XCalCompressionMetaTest
+[ RUN      ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed
+[       OK ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed (6 ms)
+[ RUN      ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither
+[       OK ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither (6 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem
+[       OK ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem (8 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused
+[       OK ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused (11 ms)
+[ RUN      ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused
+[       OK ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused (15 ms)
+[ RUN      ] XCalCompressionMetaTest.HalfAPairIsRefusedEvenWhenTheRestOfTheFileIsValid
+[       OK ] XCalCompressionMetaTest.HalfAPairIsRefusedEvenWhenTheRestOfTheFileIsValid (3 ms)
+[ RUN      ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo
+[       OK ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo (19 ms)
+[ RUN      ] XCalCompressionMetaTest.TheOldWritersTwoShapesAreReproducedExactlyByTheTestHelper
+[       OK ] XCalCompressionMetaTest.TheOldWritersTwoShapesAreReproducedExactlyByTheTestHelper (0 ms)
+[ RUN      ] XCalCompressionMetaTest.AFileInTheOldWritersShapeLoadsWithTheSameMapAndAWarning
+[       OK ] XCalCompressionMetaTest.AFileInTheOldWritersShapeLoadsWithTheSameMapAndAWarning (13 ms)
+[ RUN      ] XCalCompressionMetaTest.ABlockThatOnlyLooksLikeTheOldWritersShapeIsStillRefused
+[       OK ] XCalCompressionMetaTest.ABlockThatOnlyLooksLikeTheOldWritersShapeIsStillRefused (26 ms)
+[ RUN      ] XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck
+[       OK ] XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck (3 ms)
+[ RUN      ] XCalCompressionMetaTest.ThePairAloneWithADoubledBraceIsNotWhatTheOldWriterMade
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(752): error: Expected equality of these values:
+  -4
+  readDefect()
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(750): {"xcal_compression":1,"xcal_raw_payload_len":4096}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(752): error: Expected equality of these values:
+  -4
+  readDefect()
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(750): { "xcal_compression":1,"xcal_raw_payload_len":4096}}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(752): error: Expected equality of these values:
+  -4
+  readDefect()
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(750): {
+"xcal_compression":1,"xcal_raw_payload_len":4096}}
+
+[  FAILED  ] XCalCompressionMetaTest.ThePairAloneWithADoubledBraceIsNotWhatTheOldWriterMade (16 ms)
+[ RUN      ] XCalCompressionMetaTest.TheOldWritersShapesAreOnlyRepairedForAnRleCompressedDefectFile
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(768): error: Expected equality of these values:
+  -4
+  read_xcal_file(path, rh, cfg, pl, false, XCAL_TYPE_OFFSET)
+    Which is: 0
+the old writer compressed only DEFECT maps; the same tail on an OFFSET file is not its work
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(762): {"mode":"production"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(768): error: Expected equality of these values:
+  -4
+  read_xcal_file(path, rh, cfg, pl, false, XCAL_TYPE_OFFSET)
+    Which is: 0
+the old writer compressed only DEFECT maps; the same tail on an OFFSET file is not its work
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(762): {}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(776): error: Expected equality of these values:
+  -4
+  readDefect()
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(773): {"mode":"production"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(776): error: Expected equality of these values:
+  -4
+  readDefect()
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(773): {}
+
+[  FAILED  ] XCalCompressionMetaTest.TheOldWritersShapesAreOnlyRepairedForAnRleCompressedDefectFile (17 ms)
+[----------] 13 tests from XCalCompressionMetaTest (150 ms total)
+
+[----------] Global test environment tear-down
+[==========] 13 tests from 1 test suite ran. (150 ms total)
+[  PASSED  ] 11 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] XCalCompressionMetaTest.ThePairAloneWithADoubledBraceIsNotWhatTheOldWriterMade
+[  FAILED  ] XCalCompressionMetaTest.TheOldWritersShapesAreOnlyRepairedForAnRleCompressedDefectFile
+
+ 2 FAILED TESTS

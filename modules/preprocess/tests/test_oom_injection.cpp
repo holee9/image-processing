@@ -30,6 +30,8 @@
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 #include "xpe/preprocess/xcal_format.h"
 #include "xcal_writer.hpp"
+#include "xcal_reader.hpp"
+#include "rle_codec.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -2390,4 +2392,81 @@ TEST_F(OomInjection, EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce) {
 
     std::remove("oom_q209c_gain.xcal");
     std::remove("oom_q209c_lut.xcal");
+}
+
+/* =========================================================================
+ * The legacy-repair alert is built BEFORE any output is touched (QA-A-209d, Codex #56 item 1)
+ * ========================================================================= */
+//
+// read_xcal_file raises a warning when it accepted a file of the older writer's shape. The text is a std::string built
+// from the file's path, so it can fail to allocate. It used to be built AFTER the outputs (header, config, payload,
+// document) were set to the success values: a failed allocation reported OUT_OF_MEMORY with the caller's variables
+// already overwritten. It is now built first, and the alert is pushed -- a call that cannot throw -- after the outputs
+// are committed.
+
+TEST_F(OomInjection, ALegacyFileThatFailsToBuildItsWarningLeavesEveryOutputArgumentUntouched) {
+    // an old-writer file: a DEFECT map, RLE-compressed, with a caller config -> the block ends "}}"
+    const std::string longDir(80, 'd');   // a long path, so the alert text is a real allocation
+    const std::string path = "oom_legacy_" + longDir + ".xcal";
+    {
+        const std::vector<uint8_t> raw(4096u, 0u);
+        std::vector<uint8_t> rle;
+        ASSERT_EQ(XPE_OK, rle_encode(raw.data(), raw.size(), rle));
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version = XCAL_VERSION; hdr.type = static_cast<uint32_t>(XCAL_TYPE_DEFECT);
+        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_UINT8_MASK); hdr.width = 64; hdr.height = 64;
+        hdr.created_epoch_ms = 1700000000000ll;
+        const std::string legacy = "{\"mode\":\"production\",\"xcal_compression\":1,\"xcal_raw_payload_len\":4096}}";
+        std::remove(path.c_str());
+        ASSERT_EQ(XPE_OK, write_xcal_file_ex(path.c_str(), hdr, reinterpret_cast<const uint8_t*>(legacy.data()), legacy.size(),
+                                             rle.data(), rle.size(), /*compress_defect=*/false));
+    }
+
+    static XCalFileHeader outHdr;
+    static std::vector<uint8_t> outCfg, outPay;
+    static XpeConfigDoc outDoc;
+    static XCalFileHeader sentinelHdr;
+    std::memset(&sentinelHdr, 0x5A, sizeof(sentinelHdr));
+    const std::vector<uint8_t> sentinelCfg{1, 2, 3}, sentinelPay{9, 9};
+    auto reset = [&] {
+        outHdr = sentinelHdr;
+        outCfg = sentinelCfg;
+        outPay = sentinelPay;
+        outDoc.entries.clear();
+        outDoc.entries.push_back(XpeConfigEntry{"sentinel", "kept", true, true});
+    };
+
+    // The real sweep: the reset happens before arming, so the armed region is read_xcal_file alone.
+    constexpr long kMax = 400;
+    long failures = 0;
+    for (long k = 1; k <= kMax; ++k) {
+        reset();
+        xpe_clear_alerts();
+        bool escaped = false;
+        XpeErrorCode rc = XPE_OK;
+        arm(k);
+        try {
+            rc = read_xcal_file(path.c_str(), outHdr, outCfg, outPay, /*check_expiry=*/false, XCAL_TYPE_DEFECT, &outDoc);
+        } catch (...) {
+            escaped = true;
+        }
+        const bool injected = disarm();
+        ASSERT_FALSE(escaped) << "allocation #" << k;
+        if (rc == XPE_OK) {
+            EXPECT_EQ(4096u, outPay.size()) << "a successful read returns the decompressed map (allocation #" << k << ")";
+            EXPECT_NE(nullptr, outDoc.find("xcal_compression"));
+        } else {
+            ++failures;
+            EXPECT_EQ(XPE_ERR_OUT_OF_MEMORY, rc) << "allocation #" << k;
+            EXPECT_EQ(0, std::memcmp(&outHdr, &sentinelHdr, sizeof(outHdr))) << "the header output was changed by a failed read (allocation #" << k << ")";
+            EXPECT_EQ(sentinelCfg, outCfg) << "the config output was changed by a failed read (allocation #" << k << ")";
+            EXPECT_EQ(sentinelPay, outPay) << "the payload output was changed by a failed read (allocation #" << k << ")";
+            EXPECT_EQ(1u, outDoc.entries.size()) << "the document output was changed by a failed read (allocation #" << k << ")";
+            EXPECT_EQ(0, xpe_get_pending_alert_count()) << "a failed read raised its warning (allocation #" << k << ")";
+        }
+        if (!injected) break;                              // this run made fewer allocations than k: the sweep is complete
+    }
+    EXPECT_GT(failures, 10) << "control: the sweep reached many failure points";
+    std::remove(path.c_str());
 }

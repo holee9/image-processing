@@ -1,0 +1,26 @@
+BUILD_EXIT=0
+arm alert_built_after_commit dll exit=0
+arm alert_built_after_commit oom exit=1
+
+[  FAILED  ] OomInjection.ALegacyFileThatFailsToBuildItsWarningLeavesEveryOutputArgumentUntouched
+BUILD_EXIT=0
+arm shape_a_without_member dll exit=1
+arm shape_a_without_member oom exit=0
+
+[  FAILED  ] XCalCompressionMetaTest.ThePairAloneWithADoubledBraceIsNotWhatTheOldWriterMade
+BUILD_EXIT=0
+arm type_unchecked dll exit=1
+arm type_unchecked oom exit=0
+
+[  FAILED  ] XCalCompressionMetaTest.TheOldWritersShapesAreOnlyRepairedForAnRleCompressedDefectFile
+BUILD_EXIT=0
+arm method_unchecked dll exit=1
+arm method_unchecked oom exit=0
+
+[  FAILED  ] XCalCompressionMetaTest.TheOldWritersShapesAreOnlyRepairedForAnRleCompressedDefectFile
+BUILD_EXIT=0
+arm rle_oom_as_invalid dll exit=0
+arm rle_oom_as_invalid oom exit=1
+
+[  FAILED  ] OomInjection.ALegacyFileThatFailsToBuildItsWarningLeavesEveryOutputArgumentUntouched
+RESTORED xcal_reader.cpp
