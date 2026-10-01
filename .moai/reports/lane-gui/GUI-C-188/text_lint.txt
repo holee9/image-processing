@@ -1,0 +1,3 @@
+# GUI-C-188 - tools/ci/Test-TrackedTextFiles.ps1, whole tree incl. this card's staged files, no pipe
+output: ERROR: .moai/reports/lane-gui/GUI-C-186c/text_lint.txt:2 contains trailing whitespace.  Tracked text file validation failed with 1 error(s). 
+exit code: 1
