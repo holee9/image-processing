@@ -1,0 +1,12 @@
+144: * actual_dose_levels and calibration_mode. A key that is ABSENT means "not given" (a file from before
+146: * real, the other three an integer in [0, 255] (notation: optional leading white space, an optional single
+831: *          - dataSize 0 is NOT "size not given" here (the rule for input-only buffers): there is no room for a
+1561: *   generator reports such values). Any finite value up to 1.0 is a real one, -1.0 included; whether there
+1562: *   is one is has_r_squared, not the value. When has_r_squared is 0, r_squared holds the fill value -1.0.
+1564: *   0 when it was not given (a file with other quality fields but no fit_r_squared)
+1570: *   has_r_squared = 0) are skipped. Whether there is one is has_previous_r_squared; with none it holds -1.0
+1581:    uint8_t  has_r_squared;         ///< 1 = r_squared is a value (any finite value <= 1.0, -1.0 included); 0 = not given.
+1584:                                    ///< meaningful when has_r_squared is 1 (the fill value is -1.0)
+1591:    double   previous_r_squared;    ///< R² of the last earlier record that had one (-1.0 fill when none)
+1627: * r_squared is not the -1.0 "not given" value (-1.0 if none) -- kept apart from the current record. A record that has no R2 --
+1629: * r_squared is -1.0, "not given") -- does not interrupt it: the history passes through such records. After a generation the record describes

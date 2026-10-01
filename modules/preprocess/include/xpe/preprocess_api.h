@@ -140,14 +140,18 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
  * REQ-P1A-015: Load XCal format gain maps with multi-SID interpolation
  * AC-CAL-002: Load with interpolation table for kVp-specific gain
  *
- * Quality metadata (FUNC-033). The file's config block may carry fit_r_squared, polynomial_degree,
- * actual_dose_levels and calibration_mode. A key that is ABSENT means "not given" (a file from before
- * QA-A-35 has none of them). A key that is PRESENT must hold a number in range -- fit_r_squared a finite
- * real, the other three an integer in [0, 255] (notation: optional leading white space, an optional single
- * '+', then a decimal number that fills the value) -- and an empty value ("fit_r_squared":""), a value that
- * is not a scalar (an object, an array), an unterminated string and a malformed number are all refused with
- * XPE_ERR_CONFIG_INVALID, leaving the gain map and the quality metadata as they were. A file that
- * carries no quality field at all loads, and makes the quality record "none" (valid = 0; see
+ * Quality metadata (FUNC-033). The file's config block is read as ONE valid JSON object, to its stored length
+ * (a NUL byte, a byte-order mark that is not complete, malformed UTF-8, text after the object, a key given twice at
+ * the top level: all XPE_ERR_CONFIG_INVALID), and its fit_r_squared, polynomial_degree, actual_dose_levels and
+ * calibration_mode are TOP-LEVEL keys (a key inside a nested object is not one). A key that is ABSENT means "not
+ * given" (a file from before QA-A-35 has none of them; for fit_r_squared the record then has has_r_squared = 0).
+ * A key that is PRESENT must hold a number in the range the field has -- fit_r_squared a finite real of at most 1.0
+ * (negative values are real: a fit worse than the mean; exactly -1.0 included), polynomial_degree an integer in
+ * 0..4, actual_dose_levels 1..10, calibration_mode 0..4 (notation: optional leading white space, an optional
+ * single '+', then a decimal number that fills the value) -- and an empty value ("fit_r_squared":""), a value that
+ * is not a scalar (an object, an array), an unterminated string, a malformed number and a number outside its range
+ * are all refused with XPE_ERR_CONFIG_INVALID, leaving the gain map and the quality metadata as they were. A file
+ * that carries no quality field at all loads, and makes the quality record "none" (valid = 0; see
  * xpe_calib_get_quality_meta) instead of leaving the previous file's values in place. (The pipeline
  * CONFIGURATION is the other rule: there an empty value is an absent one, because a GUI sends an unset option
  * as "" -- an XCal file is signed data a generator produced, where an empty field is a defect, not an unset
@@ -160,7 +164,8 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
  *         XPE_ERR_IO_FAILED on file read error
  *         XPE_ERR_CALIBRATION_EXPIRED if calibration expired
- *         XPE_ERR_CONFIG_INVALID if a present quality field is not a number in range
+ *         XPE_ERR_CONFIG_INVALID if the config block is not one valid JSON object, or a present quality field is
+ *                                not a number in its range
  */
 XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath);
 
@@ -1570,7 +1575,20 @@ typedef enum XpeCalibrationMode {
  *   has_r_squared = 0) are skipped. Whether there is one is has_previous_r_squared; with none it holds -1.0
  * - has_previous_r_squared: 1 when previous_r_squared is a value, 0 when no earlier record had an R²
  * - valid: 1 when the record describes a calibration; 0 when there is no quality metadata for the
- *   current one (every field but previous_r_squared then holds its no-data value, zero)
+ *   current one (every field describing the current record -- has_r_squared included -- is then zero; only the
+ *   history, previous_r_squared and has_previous_r_squared, is kept from the record it replaced)
+ *
+ * has_r_squared and has_previous_r_squared are the presence of an R2, whatever its value; r_squared and
+ * previous_r_squared hold the fill value -1.0 when there is none, which a real R2 can also equal.
+ *
+ * BUILD-MATCHED USE (QA-A-208e). valid, has_r_squared and has_previous_r_squared sit in what used to be padding
+ * (offsets 3, 4 and 73); sizeof and every other offset are unchanged. A caller built against a header that has a
+ * flag must be run against a module build that writes it: a module built BEFORE the flag existed leaves that byte
+ * as padding, whose value is not defined, so the flag reads as noise. The other direction is safe -- a caller built
+ * against an older header never looks at the byte. The module has no way to tell the generations apart at run time:
+ * xpe_preprocess_version() returns a source constant ("0.1.0") that the changes which added these bytes did not
+ * bump, so it cannot serve as the check. Ship the header and the module as one build; do not read a flag out of a
+ * module of unknown build.
  */
 typedef struct XpeCalibQualityMeta {
     uint8_t  calibration_mode;      ///< XpeCalibrationMode used by the generation (never AUTO)
@@ -1621,14 +1639,21 @@ XPE_API XpeCalibrationMode xpe_calib_get_mode(void);
  * Returns the record of the most recent gain calibration the module GENERATED (xpe_calib_generate_gain...) or
  * LOADED (xpe_calib_load_gain, the cached loader, the pipeline's calibration set). Every gain load replaces it
  * (QA-A-202e): with the file's quality metadata when the file carries it, and when the file carries NONE with the
- * "no quality" record -- `valid` is 0, every field but previous_r_squared is zero. A record is never left from an
- * earlier file as if it described the gain that is current. Check `valid` before using the other fields.
- * previous_r_squared is the history: the R2 of the last record that HAD an R2 -- a valid record whose
- * r_squared is not the -1.0 "not given" value (-1.0 if none) -- kept apart from the current record. A record that has no R2 --
- * one with no quality at all, or one whose file carries other quality fields but no fit_r_squared (its
- * r_squared is -1.0, "not given") -- does not interrupt it: the history passes through such records. After a generation the record describes
- * the generated calibration (FUNC-033), which is not necessarily the map in the store; the next gain load
- * replaces it.
+ * "no quality" record -- `valid` is 0 and every field describing the current record, has_r_squared included, is
+ * zero; the history (previous_r_squared and has_previous_r_squared) is kept from the record it replaced. A record
+ * is never left from an earlier file as if it described the gain that is current. Check `valid` before using the
+ * other fields, and has_r_squared before using r_squared: a file with quality fields but no fit_r_squared has
+ * valid = 1 and has_r_squared = 0, and r_squared then holds the fill value -1.0 -- which is also a possible real
+ * value, so it is the flag, never the value, that says whether there is an R2.
+ * previous_r_squared is the history: the R2 of the last record that HAD one -- a valid record with
+ * has_r_squared = 1 -- kept apart from the current record; has_previous_r_squared says whether there is one
+ * (with none, previous_r_squared holds -1.0). A record that has no R2 -- no quality at all, or other quality
+ * fields but no fit_r_squared -- does not interrupt it: the history passes through such records, with its flag.
+ * After a generation the record describes the generated calibration (FUNC-033), which is not necessarily the map
+ * in the store; the next gain load replaces it.
+ *
+ * The two has_* flags are valid only against a module build that writes them (see XpeCalibQualityMeta,
+ * "BUILD-MATCHED USE"): a header that has them with an older module leaves them undefined.
  *
  * Thread-safe, and consistent with the calibration store (QA-A-202d): the record lives in the store and is read
  * under the lock the maps are replaced under, so a gain load makes the maps and this record current in one step --
