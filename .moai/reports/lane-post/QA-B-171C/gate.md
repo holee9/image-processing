@@ -97,6 +97,9 @@ workflows package documents, not binaries, so there is no consumer of this rule 
 
 ## 5. Restart-count limit: measured, with a proposal; NO number invented
 
+> **Superseded by section 9**: the proposal below was approved (N = 3, alert on a state change) and is implemented in the
+> commit that adds section 9. The measurements here are what the decision rested on.
+
 The requirements give none (REQ-AI-092 says "fallback and alert"; the SDD says "Restart worker"). The supervisor restarts on
 every call after a fault, with no limit. What "no limit" costs (`restart_cost_and_alert_volume.txt`, budget 800 ms):
 
@@ -145,3 +148,61 @@ closes it at line 237. No change made. (If the audit read the e21479d version, `
   supervisor, whose own tests cover them; they are not re-injected at the `xpe_bone_suppress` level.
 - No consumer of the install rule exists in CI (section 4).
 - CI not run on this commit; not pushed.
+
+## 9. Restart ceiling and state-change alert — implemented (separate commit, user-approved 2026-10-01)
+
+**Source of the numbers.** The requirements give none, so none was invented here. The leader recorded the user's approval in
+`docs/project/REQ-CHANGE-LOG-P3-AI.md` (row 2, read in the leader's tree before implementing): consecutive-failure ceiling
+**N = 3**, alert **only on a state change** (once, when the worker is switched off). N = 3 is the example value of the
+option the user chose. The constant in `ai.cpp` (`kWorkerFailureCeiling`) cites that row.
+
+**Behaviour.**
+- Any worker-path failure increments a consecutive-failure count; the input comes back, with the worker's or transport's
+  error code (the correction commit's rule is unchanged). A success resets the count to 0.
+- On the 3rd consecutive failure the worker is switched off for the session: the supervisor is destroyed (its process is
+  ended) and **one** Warning alert is raised, `AI worker disabled for this session after 3 consecutive failures (last code
+  N): input images are returned unchanged (REQ-AI-002, REQ-AI-092, SRS-SAFE-008)`. **The alert is raised at the 3rd
+  failure, the moment of the switch-off** (the leader's card left "3rd failure or the switch-off" open: they are the same
+  call).
+- Afterwards every call copies the input and returns XPE_ERR_PROCESSING_FAILED at once, with no worker started and no
+  further alert. `xpe_ai_shutdown` / `xpe_ai_init` begin a new session with a clean count and the worker enabled again.
+
+**A consequence the leader should look at.** Failures 1 and 2 of a run raise **no alert**: the caller sees the return code
+and the log has a line, nothing is queued. That is what "alert only on a state change" means, but REQ-AI-092 reads "exceeding
+the budget shall trigger fallback and alert", and a single budget overrun now alerts nobody. The approval was given for the
+state-change reading; if the requirement's "alert" is meant per overrun, that is a conflict to settle with the user.
+
+**What counts as a failure.** Any non-OK result of the worker path, including an error FRAME the worker sent on purpose (a
+missing model, a model that rejects the input length). A caller whose images the model keeps rejecting therefore reaches the
+ceiling the same way a dead worker does. `xpe_bone_suppress` validates format, size and buffers before the worker is tried,
+so most bad input never gets there; what remains is the model's own refusal.
+
+**Evidence.**
+- Red first (`before_policy_ci_post.txt`, stub build, build exit 0): 4 red — the ceiling test, the fresh-init test, the
+  alert-volume pin, and the single-failure test (it now expects NO alert; the old per-call behaviour raised one).
+- After: `after_policy_ci_post.txt` and `after_policy_ci_ai.txt`, both pass (run exit 0).
+- Deterministic failure in BOTH builds: a model directory with no model makes the worker answer every request with an error
+  frame, so the ceiling tests run in `ci-post` and `ci-ai` alike, without a frozen process.
+
+| test | what it pins |
+|---|---|
+| ThreeConsecutiveFailuresSwitchTheWorkerOffForTheSessionWithOneAlert | failures 1-2: input back, no alert; failure 3: exactly one alert (Warning, cites SRS-SAFE-008, says "disabled"), the worker process ended; calls 4-8: input back, non-OK, **no worker started** (the observable form of "StartCount unchanged": the supervisor is gone, so the check is on child processes), still exactly one alert |
+| AFreshInitReEnablesTheWorker | after shutdown + init a worker is tried again and one failure raises no alert |
+| ASuccessResetsTheConsecutiveFailureCount | full build: fail, fail, success (the model file appears in a temp directory), then a frozen worker = the first failure of a NEW run: no alert, and the next call succeeds on a worker. Without the reset it would be the third in a row |
+| AWorkerThatFailsOnEveryCallRaisesOneAlertAndKeepsOtherWarnings | 80 failing calls: 1 worker alert and the unrelated earlier Warning still queued (`alert_volume_after_policy.txt`; before: 63 alerts, the unrelated one evicted) |
+
+**Falsification** (build exit 0 each; `ai.cpp` restored and byte-compared after each, no INJECTED text left):
+- **Ceiling removed** (`arm_P1NoCeiling.txt`, `ci-post`): the ceiling test RED on the alert count, the severity/citation checks,
+  and on "a worker was started after the switch-off" — workers keep being started.
+- **State-change alert removed** (`arm_P2NoAlert.txt`, `ci-post`): RED on the alert count, the citation and the "disabled"
+  text, the fresh-init test (its precondition: the first session's single alert) and the volume pin.
+- **Count not reset on success** (`arm_P3NoReset.txt`, `ci-ai`): the reset test RED (the non-consecutive failure switched the
+  worker off).
+Not run: an arm that restores the old per-call alert; the red-first run above is that arm (the old code was the per-call alert).
+
+## 10. Full suites after the policy (presets, /WX, exit codes without a pipe)
+
+- ci-post: cfg 0, build 0, ctest 0. Header 956 of 956 (22 skipped in a stub build), DISABLED 1. `g171c-i-post-ctest.txt`
+- ci-ai: cfg 0, build 0, ctest 0. Header 320 of 320 (5 skipped), DISABLED 0. `g171c-i-ai-ctest.txt`
+- Previous commit 84b7001: 953 / 317; +3 = the ceiling, fresh-init and reset tests (the volume test replaced the old
+  measurement test one for one). Cache vs preset: `g171c-i-cache.txt`. Stray xpe_ai_worker.exe after the runs: 0.

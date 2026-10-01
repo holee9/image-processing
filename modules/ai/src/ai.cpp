@@ -135,6 +135,15 @@ struct AiModuleState {
      */
     std::unique_ptr<xpe::ai::WorkerSupervisor> workerSupervisor;
 
+    /**
+     * Consecutive failures of the worker path (QA-B-171C policy, user-approved 2026-10-01,
+     * docs/project/REQ-CHANGE-LOG-P3-AI.md row 2). A success resets it to 0.
+     */
+    uint32_t workerConsecutiveFailures{0};
+
+    /** Set at kWorkerFailureCeiling consecutive failures: the worker is off for the rest of the session. */
+    bool workerDisabled{false};
+
     // --- Worker process state ---
     /** PID of the worker process (0 if not running). */
     uint32_t workerPid{0};
@@ -399,6 +408,17 @@ static XpeErrorCode boneSuppressViaWorker(AiModuleState* state, const XpeImageBu
         return XPE_ERR_OUT_OF_MEMORY;
     }
 }
+
+/**
+ * Consecutive worker-path failures after which the worker is switched off for the session.
+ *
+ * NOT derived from the requirements, which give no number (REQ-AI-092 says "fallback and alert"; the
+ * SDD says "restart worker"). It is the value the user approved on 2026-10-01 after the measurement that
+ * motivated it: a worker that hangs on start costs the whole time budget plus about 250 ms on EVERY call,
+ * and a fault that repeats every call fills the 64-entry alert queue and evicts unrelated warnings.
+ * Recorded in docs/project/REQ-CHANGE-LOG-P3-AI.md, row 2.
+ */
+static constexpr uint32_t kWorkerFailureCeiling = 3;
 
 /** SRS-ALERT-004: DL processing was applied (Info). One place, so both paths say the same thing. */
 static void pushAiProcessedAlert() {
@@ -707,7 +727,7 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
 
     // QA-B-171C (REQ-AI-092, REQ-AI-002, SDD-002 "AI worker failure -> return input unchanged +
     // SRS-SAFE-008"): opt-in worker path. A failure of any kind -- budget exceeded, a worker that died
-    // or went silent, an answer that was not one -- is REPORTED, and the output is the INPUT, unchanged.
+    // or went silent, an answer that was not one -- returns the INPUT, unchanged, with a non-OK code.
     //
     // WHY THE INPUT AND NOT THE IN-PROCESS RESULT. REQ-AI-003 runs inference in a separate process so
     // the main process is crash-immune. A worker that failed because of the MODEL would, re-run
@@ -719,20 +739,41 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
     // never returns it: the worker's own error code (or the transport's) is returned, which is the
     // documented signal to use the original image (REQ-AI-002). The copy is for a caller that uses
     // the output buffer anyway: it holds the input, never stale or half-written pixels.
+    //
+    // THE POLICY AROUND IT (user-approved 2026-10-01): the alert is raised on a STATE CHANGE, not per
+    // call. After kWorkerFailureCeiling CONSECUTIVE failures the worker is switched off for the rest of
+    // the session -- its process is ended -- and later calls return the input at once, without starting a
+    // worker, with XPE_ERR_PROCESSING_FAILED (the documented fallback signal). The switch-off raises ONE
+    // alert. The failures before it raise none: they are visible in the return code and the log. A
+    // success resets the count. xpe_ai_shutdown/xpe_ai_init begin a new session with a clean count.
     if (state->useWorker) {
+        if (state->workerDisabled) {
+            std::memmove(softTissueOut->data, img->data, count * sizeof(float));
+            return XPE_ERR_PROCESSING_FAILED;
+        }
         const XpeErrorCode wrc = boneSuppressViaWorker(state, img, softTissueOut);
         if (wrc == XPE_OK) {
+            state->workerConsecutiveFailures = 0;
             pushAiProcessedAlert();
             return XPE_OK;
         }
         std::memmove(softTissueOut->data, img->data, count * sizeof(float));
-        char msg[192];
-        std::snprintf(msg, sizeof(msg),
-                      "AI worker failed (code %d): the input image is returned unchanged "
-                      "(REQ-AI-002, REQ-AI-092, SRS-SAFE-008)", static_cast<int>(wrc));
-        xpe_alert_push(msg, XPE_ALERT_WARNING);
-        AI_LOG_WARN("bone_suppress: worker path failed (%d), input returned unchanged",
-                    static_cast<int>(wrc));
+        ++state->workerConsecutiveFailures;
+        AI_LOG_WARN("bone_suppress: worker path failed (%d), input returned unchanged "
+                    "(%u of %u consecutive failures)",
+                    static_cast<int>(wrc), static_cast<unsigned>(state->workerConsecutiveFailures),
+                    static_cast<unsigned>(kWorkerFailureCeiling));
+        if (state->workerConsecutiveFailures >= kWorkerFailureCeiling) {
+            state->workerDisabled = true;
+            state->workerSupervisor.reset();   // ends the worker process
+            char msg[256];
+            std::snprintf(msg, sizeof(msg),
+                          "AI worker disabled for this session after %u consecutive failures (last code "
+                          "%d): input images are returned unchanged (REQ-AI-002, REQ-AI-092, "
+                          "SRS-SAFE-008)",
+                          static_cast<unsigned>(kWorkerFailureCeiling), static_cast<int>(wrc));
+            xpe_alert_push(msg, XPE_ALERT_WARNING);
+        }
         return wrc;
     }
 
