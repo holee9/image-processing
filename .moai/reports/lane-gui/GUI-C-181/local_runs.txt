@@ -1,0 +1,28 @@
+# GUI-C-181 — automation report fields read back from the A16 and A17 runs (Mock backend)
+
+## A16
+  TroubleshootingStatus = "Troubleshooting page has not been generated. Generate it: install DocFX with 'dotnet tool install -g docfx' and then run 'docfx docs/help/docfx/docfx.json' (see .github/workflows/docs-generate.yml)."
+  TroubleshootingPagePath = None
+  TroubleshootingLaunchSuppressed = False
+  DisabledFutureCommandCount = 5
+  UnimplementedMenuLeafCount = 5
+
+## A17
+  TroubleshootingStatus = 'Troubleshooting page opened — generated 2026-10-01 20:40: D:\\workspace-github\\xpe-gui\\docs\\help\\generated\\docfx\\content\\troubleshooting.html (launch suppressed under automation)'
+  TroubleshootingPagePath = 'D:\\workspace-github\\xpe-gui\\docs\\help\\generated\\docfx\\content\\troubleshooting.html'
+  TroubleshootingLaunchSuppressed = True
+  DisabledFutureCommandCount = 5
+  UnimplementedMenuLeafCount = 5
+
+## IntegrationTests Category=Functional (all)
+  건너뜀 ImageProcTest.IntegrationTests.Functional.ErrorCodeMappingTests.ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback(code: NOT_IMPLEMENTED) [< 1 ms]
+  통과!  - 실패:     0, 통과:   219, 건너뜀:     1, 전체:   220, 기간: 2 s - ImageProcTest.IntegrationTests.dll (net8.0)
+
+## E2ETests, the whole AutomationReportBackendTests class (A16 and A17 included, neither skipped)
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A03_TheWiredCommands_ReportWhatTheyDid [< 1 ms]
+  통과!  - 실패:     0, 통과:    16, 건너뜀:     1, 전체:    17, 기간: 4 m 51 s - ImageProcTest.E2ETests.dll (net8.0)
+
+## The generated page really exists in DocFX's output (docs-generate run 36855777520 on main ef98cd67, artifact api-reference-managed)
+  content/troubleshooting.html, 26196 bytes; <h1> Troubleshooting Guide; has the 'Message' column header; contains 'Stop: no render is in flight.';
+  no longer contains the placeholder text; 56 table rows. Path relative to the artifact root = docs/help/generated/docfx/content/troubleshooting.html
+
