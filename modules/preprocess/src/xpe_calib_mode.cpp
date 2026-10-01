@@ -271,13 +271,17 @@ bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept
 }
 
 /**
- * Reads one FUNC-033 field into a uint8: absent keeps the default, a value that is not an integer in
- * [0, 255] is a refusal (QA-A-204, #233: atoi turned it into 0, or truncated it, without a word).
+ * Reads one FUNC-033 field into a uint8: an ABSENT key keeps the default; a key that is present must hold an
+ * integer in [0, 255], so an empty value, a value that is not a scalar and a malformed number are all refusals
+ * (QA-A-204, #233: atoi turned a malformed value into 0, or truncated it, without a word; QA-A-205b, Codex #29
+ * B1: an empty value was read as "not given").
  */
 static bool read_u8_field(const char* json, const char* key, uint8_t* dst, bool* present)
 {
-    const std::string v = xpe_json_get_string(json, key);
-    if (v.empty()) return true;
+    std::string v;
+    const XpeJsonKey state = xpe_json_find_scalar(json, key, &v);
+    if (state == XpeJsonKey::Absent) return true;
+    if (state != XpeJsonKey::Scalar) return false;
     int32_t n = 0;
     if (!xpe_strict::parse_int(v, &n) || n < 0 || n > 255) return false;
     *dst = static_cast<uint8_t>(n);
@@ -298,8 +302,10 @@ XpeErrorCode xpe_calib_parse_quality_meta_json(const char* configJson, XpeCalibQ
 
     bool anyPresent = false;
 
-    const std::string r2 = xpe_json_get_string(configJson, "fit_r_squared");
-    if (!r2.empty()) {
+    std::string r2;
+    const XpeJsonKey r2State = xpe_json_find_scalar(configJson, "fit_r_squared", &r2);
+    if (r2State == XpeJsonKey::NotScalar) return XPE_ERR_CONFIG_INVALID;
+    if (r2State == XpeJsonKey::Scalar) {
         if (!xpe_strict::parse_double(r2, &meta.r_squared)) return XPE_ERR_CONFIG_INVALID;
         anyPresent = true;
     }

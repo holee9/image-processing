@@ -57,14 +57,14 @@ float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
  * Minimal JSON string field extractor — no external dependency
  * Finds: "key": "value" pattern, returns value string.
  * ========================================================================= */
-std::string xpe_json_get_string(const char* configJson, const char* key) {
-    if (!configJson || !key) return {};
+XpeJsonKey xpe_json_find_scalar(const char* configJson, const char* key, std::string* value) {
+    if (!configJson || !key) return XpeJsonKey::Absent;
 
     // Search for: "key"
     char needle[128];
     std::snprintf(needle, sizeof(needle), "\"%s\"", key);
     const char* pos = std::strstr(configJson, needle);
-    if (!pos) return {};
+    if (!pos) return XpeJsonKey::Absent;
 
     // Skip past "key":
     pos += std::strlen(needle);
@@ -74,8 +74,9 @@ std::string xpe_json_get_string(const char* configJson, const char* key) {
     if (*pos == '"') {
         ++pos; // skip opening quote
         const char* end = std::strchr(pos, '"');
-        if (!end) return {};
-        return std::string(pos, end);
+        if (!end) return XpeJsonKey::NotScalar;
+        *value = std::string(pos, end);
+        return XpeJsonKey::Scalar;
     }
 
     // #126: unquoted scalar (true / false / number). The pipeline writes its
@@ -83,13 +84,22 @@ std::string xpe_json_get_string(const char* configJson, const char* key) {
     // silently do nothing -- the stage ran and failed later on missing
     // calibration instead. A nested object or array is not a scalar; this
     // extractor does not descend into one.
-    if (*pos == '{' || *pos == '[' || *pos == '\0') return {};
+    if (*pos == '{' || *pos == '[' || *pos == '\0') return XpeJsonKey::NotScalar;
 
     const char* end = pos;
     while (*end && *end != ',' && *end != '}' && *end != ']' &&
            *end != ' ' && *end != '\t' && *end != '\n' && *end != '\r') ++end;
 
-    return std::string(pos, end);
+    *value = std::string(pos, end);
+    return XpeJsonKey::Scalar;
+}
+
+std::string xpe_json_get_string(const char* configJson, const char* key) {
+    std::string value;
+    // An absent key, and a value that is not a scalar, are both "nothing" to this reader (the pipeline
+    // configuration's rule: an empty value is an absent one). A caller that must tell them apart uses
+    // xpe_json_find_scalar.
+    return xpe_json_find_scalar(configJson, key, &value) == XpeJsonKey::Scalar ? value : std::string();
 }
 
 /**

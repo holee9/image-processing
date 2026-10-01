@@ -62,12 +62,15 @@ protected:
         fs::remove_all(tmpDir);
         fs::create_directories(tmpDir);
 
-        pixels.assign(N, 1000u);
+        // N uint16 pixels in a buffer with room for N floats: the pipeline writes its float32 result into the buffer it read from, so the buffer has room for
+        // width*height floats and says so (QA-A-205b: this claimed width*height uint16 -- half of what the
+        // result needs -- and the pipeline accepted it and wrote a truncated frame)
+        pixels.assign(2 * N, 1000u);
         img.data = pixels.data();
         img.width = W; img.height = H;
         img.bitsAllocated = 16; img.bitsStored = 16;
         img.format = XPE_PIXEL_UINT16;
-        img.dataSize = pixels.size() * sizeof(uint16_t);
+        img.dataSize = N * sizeof(float);
 
         // The pipeline reads the detector temperature from its config JSON
         // (`detectorTempC`), not from metadata, so a zeroed metadata is enough.

@@ -97,6 +97,31 @@ namespace {
     };
 
     /**
+     * width * height * elemSize as a size_t. False when a side is 0 or the product does not fit: two uint32
+     * sides need 64 bits, and the byte count needs one or two more, so the unchecked product wrapped to a
+     * small number that then passed the size checks and sized the copies (QA-A-205b, Codex #29 A3).
+     */
+    bool frame_bytes(uint32_t width, uint32_t height, size_t elemSize, size_t* bytes) {
+        if (width == 0 || height == 0) return false;
+        if (width > SIZE_MAX / height) return false;
+        const size_t pixels = static_cast<size_t>(width) * height;
+        if (pixels > SIZE_MAX / elemSize) return false;
+        *bytes = pixels * elemSize;
+        return true;
+    }
+
+    /**
+     * Whether the frame the pipeline hands back is float32 -- some stage from the gain stage on runs -- or still
+     * the uint16 frame it was given. Mirrors the stage conditions in pipeline_core.
+     */
+    bool final_result_is_float(const PipelineConfig& cfg, const void* ghostHandle) {
+        return !cfg.bypassGain
+            || (!cfg.bypassBinning && cfg.binningMode > 1)
+            || !cfg.bypassDefect
+            || (!cfg.bypassGhost && ghostHandle != nullptr);
+    }
+
+    /**
      * @brief Internal pipeline core using new 3-arg API.
      *
      * Uses g_calib for calibration maps (loaded via xpe_calib_load_* functions).
@@ -116,15 +141,28 @@ namespace {
     {
         if (!img || !img->data) return XPE_ERR_INVALID_INPUT;
 
+        // QA-A-205b (#234, Codex #29 A1-A3): before any stage runs, the frame the caller describes is checked
+        // against the room the caller gives -- for the frame that is read AND for the frame that will be written
+        // back, which is float32 (4 bytes a pixel) when any stage from the gain stage on runs.
+        //  * A side that is 0, or a byte count that does not fit in a size_t: XPE_ERR_INVALID_INPUT.
+        //  * 0 < dataSize < the uint16 frame the dimensions describe: XPE_ERR_INVALID_INPUT -- the buffer does
+        //    not hold the input (QA-A-205, the #123 input rule: a non-zero size that is too small).
+        //  * dataSize smaller than the final frame (0 included): XPE_ERR_BUFFER_TOO_SMALL -- the pipeline writes
+        //    its result into the buffer it read from, so this is an output buffer, and an output dataSize of
+        //    0 is not "unspecified" (api-spec.md, output buffers; a float result written into a buffer of 0 or
+        //    width*height*2 bytes used to come back as OK and a truncated frame).
+        // Nothing is read, written or flagged before these refusals.
+        size_t inputBytes = 0;
+        size_t floatBytes = 0;
+        if (!frame_bytes(img->width, img->height, sizeof(uint16_t), &inputBytes) ||
+            !frame_bytes(img->width, img->height, sizeof(float), &floatBytes))
+            return XPE_ERR_INVALID_INPUT;
+        const size_t outputBytes = final_result_is_float(cfg, ghostHandle) ? floatBytes : inputBytes;
+        if (img->dataSize != 0 && img->dataSize < inputBytes) return XPE_ERR_INVALID_INPUT;
+        if (img->dataSize < outputBytes) return XPE_ERR_BUFFER_TOO_SMALL;
+
         XpeErrorCode result = XPE_OK;
         const size_t pixelCount = static_cast<size_t>(img->width) * img->height;
-
-        // QA-A-205 (#234): the frame the pipeline reads is the one the dimensions describe. The #123 contract of
-        // the stage functions applies here too: dataSize 0 means unspecified (trust the dimensions), a
-        // non-zero value smaller than the dimensions need is refused -- before any stage runs, so that
-        // nothing reads past the end of the caller's buffer and no flag is set for a frame never read.
-        const size_t inputBytes = pixelCount * sizeof(uint16_t);
-        if (img->dataSize != 0 && img->dataSize < inputBytes) return XPE_ERR_INVALID_INPUT;
 
         // Stage 0.5: Readout Artifact Validation (PRE-01)
         if (!cfg.bypassReadout) {
@@ -315,12 +353,16 @@ namespace {
             if (meta) meta->flags |= XPE_FLAG_GHOST_CORRECTED;
         }
 
-        // Copy final result back to original img buffer.
-        // Preserves the output format (float32 after gain correction, uint16 otherwise).
-        // Caller must ensure img->data is large enough for the final stage data.
+        // Copy the final frame back to the original img buffer: all of it -- outputBytes, which the room check
+        // above guaranteed fits (this was min(dataSize, final size), a truncated frame reported as OK, #234).
+        // Preserves the output format (float32 after gain correction, uint16 otherwise). When no stage made a
+        // buffer of its own the final stage IS the caller's buffer and there is nothing to copy (a memcpy of a
+        // range onto itself is undefined). A stage buffer is never smaller than the frame it holds; if one were,
+        // the call refuses here, before it writes, rather than reading past the end of the stage buffer.
         const XpeImageBuffer* finalStage = &stage7;
-        const size_t copySize = std::min(img->dataSize, finalStage->dataSize);
-        std::memcpy(const_cast<void*>(img->data), finalStage->data, copySize);
+        if (finalStage->dataSize < outputBytes) return XPE_ERR_PROCESSING_FAILED;
+        if (finalStage->data != img->data)
+            std::memcpy(const_cast<void*>(img->data), finalStage->data, outputBytes);
 
         // Update img metadata to reflect actual output format
         const_cast<XpeImageBuffer*>(img)->format = finalStage->format;

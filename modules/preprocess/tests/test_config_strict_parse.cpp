@@ -386,6 +386,74 @@ TEST_F(ConfigStrictParse, AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeav
     }
 }
 
+// QA-A-205b (Codex #29 B1): "the key is there" and "the key has a value" are different facts. The extractor
+// returned the same empty string for both, so {"fit_r_squared":""} -- a field that is present and says nothing --
+// read as "not given" and the load went through. In a calibration file a present quality field must be a number
+// (the generator writes all four or none); only a missing key means "not given". The pipeline CONFIGURATION keeps
+// its own rule, "an empty value is an absent one" (202b): the GUI sends an unset option as an empty string, while
+// an XCal file is signed data a generator produced, where an empty field is a defect, not an unset option.
+TEST_F(ConfigStrictParse, AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore) {
+    writeGainWithConfig("csp_gq.xcal", 4.0f,
+        "{\"fit_r_squared\":\"0.5\",\"polynomial_degree\":\"1\",\"actual_dose_levels\":\"3\",\"calibration_mode\":\"2\"}");
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csp_gq.xcal"));
+    XpeCalibQualityMeta base{};
+    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&base));
+    ASSERT_NEAR(250.0f, gainResult(), 0.01f) << "control: the good map is in the store";
+
+    const char* const bad[] = {
+        // quoted but empty, for each of the four fields
+        "{\"fit_r_squared\":\"\"}",         "{\"polynomial_degree\":\"\"}",
+        "{\"actual_dose_levels\":\"\"}",    "{\"calibration_mode\":\"\"}",
+        // present beside valid ones: one bad field refuses the file
+        "{\"fit_r_squared\":\"0.9\",\"polynomial_degree\":\"\"}",
+        // key with no value at all
+        "{\"polynomial_degree\":,\"fit_r_squared\":\"0.9\"}", "{\"fit_r_squared\":}",
+        // a value that is not a scalar
+        "{\"fit_r_squared\":{}}",           "{\"polynomial_degree\":[1]}",
+        "{\"calibration_mode\":{\"a\":1}}", "{\"actual_dose_levels\":[]}",
+        // an unterminated string
+        "{\"fit_r_squared\":\"0.9",
+    };
+    for (const char* json : bad) {
+        SCOPED_TRACE(json);
+        writeGainWithConfig("csp_gx.xcal", 2.0f, json);
+        bool threw = false;
+        const XpeErrorCode rc = callSafely([] { return xpe_calib_load_gain("csp_gx.xcal"); }, &threw);
+        EXPECT_FALSE(threw);
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, rc);
+
+        XpeCalibQualityMeta after{};
+        ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&after));
+        EXPECT_EQ(base.r_squared, after.r_squared) << "the metadata must be as it was";
+        EXPECT_EQ(base.polynomial_degree, after.polynomial_degree);
+        EXPECT_EQ(base.num_points, after.num_points);
+        EXPECT_EQ(base.calibration_mode, after.calibration_mode);
+        EXPECT_NEAR(250.0f, gainResult(), 0.01f) << "the refused file must not have replaced the gain map";
+    }
+}
+
+TEST_F(ConfigStrictParse, AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule) {
+    // Control 1: no quality keys at all (a file from before QA-A-35) loads, and the metadata is "none".
+    writeGainWithConfig("csp_gx.xcal", 2.0f, "{}");
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csp_gx.xcal"));
+    EXPECT_NEAR(500.0f, gainResult(), 0.01f);
+    // Control 2: a file with only some of the keys, each a number, loads.
+    writeGainWithConfig("csp_gx.xcal", 4.0f, "{\"polynomial_degree\":\"2\"}");
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csp_gx.xcal"));
+    XpeCalibQualityMeta m{};
+    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&m));
+    EXPECT_EQ(2u, m.polynomial_degree);
+    // The pipeline configuration is the other rule: an empty value is the default, through the same entry points.
+    std::vector<uint16_t> data(N, 1000);
+    XpeImageBuffer img = buf(data.data(), XPE_PIXEL_UINT16, 16);
+    XpeImageMetadata meta{};
+    const char* cfg = "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,"
+                      "\"bypassGain\":true,\"bypassBinning\":true,\"bypassDefect\":true,\"bypassGhost\":true,"
+                      "\"detectorTempC\":\"\",\"binningMode\":\"\"}";
+    EXPECT_EQ(XPE_OK, xpe_preprocess_pipeline_ex(&img, &meta, nullptr, nullptr, cfg))
+        << "an empty configuration value is an absent one (QA-A-202b), unchanged by QA-A-205b";
+}
+
 TEST_F(ConfigStrictParse, WellFormedQualityFieldsInAGainFileAreStillRead) {
     // Control: the same call shape with good values loads and the metadata is what the file says.
     writeGainWithConfig("csp_gx.xcal", 2.0f,

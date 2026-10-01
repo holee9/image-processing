@@ -654,10 +654,10 @@ void setup() {
         g_img[f].width = W; g_img[f].height = H;
         g_img[f].bitsAllocated = 16; g_img[f].bitsStored = 16;
         g_img[f].format = XPE_PIXEL_UINT16;
-        // dataSize is the INPUT size, as in every other pipeline test: the temperature stage copies dataSize bytes
-        // into a buffer of width*height uint16, so a larger value would overrun it (QA-A-202b: seen as heap
-        // corruption when this was N floats). The buffer itself has room for N floats.
-        g_img[f].dataSize = N * sizeof(uint16_t);
+        // dataSize is the room the buffer has, which the pipeline writes its float32 result into: N floats.
+        // (This was N uint16 -- a claim smaller than the result that the pipeline wrongly accepted and
+        // truncated to; QA-A-205b, Codex #29 A1. The claim is the buffer's real size, so the buffer is not lied about.)
+        g_img[f].dataSize = N * sizeof(float);
         g_meta[f] = XpeImageMetadata{};
         g_bytes0[f] = g_bytes[f];
         g_meta0[f] = g_meta[f];
@@ -857,7 +857,9 @@ TEST_F(OomPipeline, TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCa
         EXPECT_EQ(0, overruns) << "a claim of one float frame must not overrun any buffer";
         EXPECT_NE(full.before, full.bytes) << "control: the frame was processed";
 
-        const size_t claims[] = {N * sizeof(float) + 13, N * sizeof(uint16_t)};
+        // (A claim of N * sizeof(uint16_t) used to be listed here as a success for a float result. It is
+        // not: the float frame needs N * sizeof(float) bytes -- see TheOutputCapacityMustHold...)
+        const size_t claims[] = {N * sizeof(float) + 13};
         for (size_t claim : claims) {
             SCOPED_TRACE(claim);
             pipe::setup();
@@ -893,6 +895,167 @@ TEST_F(OomPipeline, AClaimSmallerThanTheFrameIsRefusedBeforeAnythingIsDone) {
                 EXPECT_EQ(0, overruns);
                 EXPECT_EQ(f.before, f.bytes) << "a refused call must not touch the frame";
                 EXPECT_EQ(0u, f.meta.flags) << "a refused call must not touch the metadata";
+            }
+        }
+    }
+}
+
+/* =========================================================================
+ * The room the caller gives for the result, and the byte count it implies (QA-A-205b, Codex #29 A1-A3)
+ * ========================================================================= */
+
+// The pipeline writes its result into the buffer it read from. A float result needs width*height*4 bytes; the
+// copy used to be min(dataSize, that) and returned OK, so a buffer of width*height*2 -- or one of 0, "size not
+// given" -- came back as a half-written float frame with the format of a whole one.
+
+namespace dcap {
+
+// Every stage that makes float is bypassed: what the pipeline hands back is the uint16 frame.
+const char* const kUint16Out =
+    "{\"bypassReadout\":true,\"bypassGain\":true,\"bypassBinning\":true,\"bypassDefect\":true,"
+    "\"bypassGhost\":true,\"detectorTempC\":\"25.5\"}";
+
+// No stage runs: the final stage is the caller's own buffer, so the frame comes back as it went in and there is
+// nothing to copy (a copy of a range onto itself is undefined, which is why the product skips it).
+const char* const kNoStage =
+    "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,"
+    "\"bypassGain\":true,\"bypassBinning\":true,\"bypassDefect\":true,\"bypassGhost\":true}";
+
+struct Shape {
+    const char* name;
+    const char* config;
+    size_t outputBytes;
+    decltype(XpeImageBuffer::format) format;
+    bool changesTheFrame;
+};
+
+}  // namespace dcap
+
+TEST_F(OomPipeline, TheOutputCapacityMustHoldTheWholeFinalFrame) {
+    const dcap::Shape shapes[] = {
+        {"float result", dsz::kNoReadout, N * sizeof(float), XPE_PIXEL_FLOAT32, true},
+        {"uint16 result", dcap::kUint16Out, N * sizeof(uint16_t), XPE_PIXEL_UINT16, true},
+        {"no stage runs", dcap::kNoStage, N * sizeof(uint16_t), XPE_PIXEL_UINT16, false},
+    };
+    const size_t claims[] = {0, N * sizeof(uint16_t), N * sizeof(float) - 1, N * sizeof(float), N * sizeof(float) + 13};
+
+    for (const auto& e : dsz::entries()) {
+        for (const auto& shape : shapes) {
+            SCOPED_TRACE(std::string(e.name) + " / " + shape.name);
+
+            // Control: with room to spare the configuration yields the format and the frame this row expects.
+            long overruns = -1;
+            pipe::setup();
+            dsz::Frame ref(N * sizeof(float) + 13);
+            ASSERT_EQ(XPE_OK, dsz::run(e.call, ref, &overruns, shape.config)) << "control: a roomy claim succeeds";
+            ASSERT_EQ(shape.format, ref.img.format) << "control: this configuration gives that format";
+            if (shape.changesTheFrame) ASSERT_NE(ref.before, ref.bytes) << "control: the frame was processed";
+            else ASSERT_EQ(ref.before, ref.bytes) << "control: with no stage the frame comes back as it went in";
+
+            for (size_t claim : claims) {
+                SCOPED_TRACE(claim);
+                pipe::setup();
+                dsz::Frame f(claim);
+                const XpeErrorCode rc = dsz::run(e.call, f, &overruns, shape.config);
+                EXPECT_EQ(0, overruns);
+                if (claim < shape.outputBytes) {
+                    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, rc) << "the result does not fit in the claimed size";
+                    EXPECT_EQ(f.before, f.bytes) << "a refused call must not write a partial frame";
+                    EXPECT_EQ(0u, f.meta.flags) << "a refused call must not claim a stage ran";
+                    EXPECT_EQ(XPE_PIXEL_UINT16, f.img.format) << "a refused call must not change the format";
+                    EXPECT_EQ(16u, f.img.bitsAllocated);
+                } else {
+                    EXPECT_EQ(XPE_OK, rc);
+                    EXPECT_EQ(shape.format, f.img.format);
+                    EXPECT_TRUE(std::equal(f.bytes.begin(), f.bytes.begin() + static_cast<long>(shape.outputBytes),
+                                           ref.bytes.begin()))
+                        << "the whole final frame is written, the same one whatever the spare room";
+                    EXPECT_TRUE(std::equal(f.bytes.begin() + static_cast<long>(shape.outputBytes), f.bytes.end(),
+                                           f.before.begin() + static_cast<long>(shape.outputBytes)))
+                        << "nothing is written beyond the final frame";
+                }
+            }
+        }
+    }
+}
+
+// A batch checks each frame as it comes. The batch contract is "carry on past a failed frame and report the first
+// error", and frames of a batch are not required to share dimensions, so one frame's room says nothing about
+// another's: checking all frames before the first would make frame 3's buffer decide whether frame 1 is processed.
+TEST_F(OomPipeline, ABatchChecksTheRoomOfEachFrameAndCarriesOnPastARefusal) {
+    pipe::setup();
+    dsz::Frame ref(N * sizeof(float));
+    long overruns = -1;
+    const auto batchOne = [](dsz::Frame& f, const char* cfg) {
+        return xpe_preprocess_pipeline_batch(&f.img, 1, &f.meta, "oom_pipe_calib", nullptr, cfg);
+    };
+    ASSERT_EQ(XPE_OK, dsz::run(batchOne, ref, &overruns, dsz::kNoReadout));
+
+    pipe::setup();
+    dsz::Frame tight(N * sizeof(float) - 1), roomy(N * sizeof(float));
+    XpeImageBuffer imgs[2] = {tight.img, roomy.img};
+    XpeImageMetadata metas[2] = {tight.meta, roomy.meta};
+    guard::reset();
+    guard::on(true);
+    const XpeErrorCode rc = xpe_preprocess_pipeline_batch(imgs, 2, metas, "oom_pipe_calib", nullptr, dsz::kNoReadout);
+    guard::on(false);
+    EXPECT_EQ(0, guard::overruns());
+
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, rc) << "the first error is reported";
+    EXPECT_EQ(tight.before, tight.bytes) << "the refused frame is untouched";
+    EXPECT_EQ(0u, metas[0].flags);
+    EXPECT_EQ(XPE_PIXEL_UINT16, imgs[0].format);
+    EXPECT_EQ(XPE_PIXEL_FLOAT32, imgs[1].format) << "the next frame was processed";
+    EXPECT_TRUE(std::equal(roomy.bytes.begin(), roomy.bytes.begin() + static_cast<long>(N * sizeof(float)),
+                           ref.bytes.begin()))
+        << "and its result is the one a single-frame batch gives";
+}
+
+// width*height*2 (and *4) were unchecked multiplications. Two uint32 sides need 64 bits for their product and
+// the byte count needs one or two more, so the count wrapped to a small number that then passed the size checks
+// and sized the copies. The refused shapes need no allocation to test: the claim is 0 or a few bytes, and the
+// frame is never read.
+TEST_F(OomPipeline, AFrameWhoseByteCountDoesNotFitInSizeTIsRefusedBeforeItIsRead) {
+    if constexpr (sizeof(size_t) < 8) { GTEST_SKIP() << "the shapes below overflow a 64-bit size_t"; }
+
+    struct Dims { const char* what; uint32_t w, h; bool fits; };
+    const Dims dims[] = {
+        {"w*h*2 wraps (the shape Codex #29 names)", 0xFFFFFFFFu, 0x80000001u, false},
+        {"w*h*2 fits, w*h*4 wraps", 0x80000000u, 0x80000001u, false},
+        {"w*h itself is 2^64-2^33+1", 0xFFFFFFFFu, 0xFFFFFFFFu, false},
+        {"a side is 0 (w)", 0u, 16u, false},
+        {"a side is 0 (h)", 16u, 0u, false},
+        // Control: 2^61 pixels, 2^63 float bytes -- everything fits in a size_t, so this is a size question
+        // (claim 0 = size not given = no room), not an overflow.
+        {"largest-ish shape that fits", 0x80000000u, 0x40000000u, true},
+    };
+
+    for (const auto& e : dsz::entries()) {
+        for (const auto& d : dims) {
+            for (size_t claim : {static_cast<size_t>(0), static_cast<size_t>(64)}) {
+                SCOPED_TRACE(std::string(e.name) + " / " + d.what + " / claim " + std::to_string(claim));
+                pipe::setup();
+                dsz::Frame f(claim);
+                f.img.width = d.w;
+                f.img.height = d.h;
+                long overruns = -1;
+                bool threw = false;
+                XpeErrorCode rc = XPE_OK;
+                guard::reset();
+                guard::on(true);
+                try { rc = e.call(f, dsz::kNoReadout); } catch (...) { threw = true; }
+                guard::on(false);
+                overruns = guard::overruns();
+                EXPECT_FALSE(threw);
+                EXPECT_EQ(0, overruns);
+                if (d.fits) {
+                    EXPECT_EQ(claim == 0 ? XPE_ERR_BUFFER_TOO_SMALL : XPE_ERR_INVALID_INPUT, rc)
+                        << "control: a count that fits is judged by the size the caller gave";
+                } else {
+                    EXPECT_EQ(XPE_ERR_INVALID_INPUT, rc) << "a count that does not fit, or an empty frame";
+                }
+                EXPECT_EQ(f.before, f.bytes);
+                EXPECT_EQ(0u, f.meta.flags);
             }
         }
     }

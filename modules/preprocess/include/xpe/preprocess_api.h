@@ -140,11 +140,25 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
  * REQ-P1A-015: Load XCal format gain maps with multi-SID interpolation
  * AC-CAL-002: Load with interpolation table for kVp-specific gain
  *
+ * Quality metadata (FUNC-033). The file's config block may carry fit_r_squared, polynomial_degree,
+ * actual_dose_levels and calibration_mode. A key that is ABSENT means "not given" (a file from before
+ * QA-A-35 has none of them). A key that is PRESENT must hold a number in range -- fit_r_squared a finite
+ * real, the other three an integer in [0, 255] (notation: optional leading white space, an optional single
+ * '+', then a decimal number that fills the value) -- and an empty value ("fit_r_squared":""), a value that
+ * is not a scalar (an object, an array), an unterminated string and a malformed number are all refused with
+ * XPE_ERR_CONFIG_INVALID, leaving the gain map and the quality metadata as they were. (The pipeline
+ * CONFIGURATION is the other rule: there an empty value is an absent one, because a GUI sends an unset option
+ * as "" -- an XCal file is signed data a generator produced, where an empty field is a defect, not an unset
+ * option.) Compatibility: the values "2x", "3 " and "1e2" (for an integer field) were once read as 2, 3 and 1
+ * by atoi/atof and now refuse the file -- an intended policy (QA-A-204, QA-A-205b): a quality field that is not
+ * a number is not data. The generator (xpe_calib_generate_gain) writes plain numbers.
+ *
  * @param filepath Path to XCal format gain file
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
  *         XPE_ERR_IO_FAILED on file read error
  *         XPE_ERR_CALIBRATION_EXPIRED if calibration expired
+ *         XPE_ERR_CONFIG_INVALID if a present quality field is not a number in range
  */
 XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath);
 
@@ -770,7 +784,20 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  *              xpe_calib_state_release(&st);
  *          Use this function for a one-off frame or a smoke test.
  *
- * @param img [in/out] Image to process (uint16 in, float32 out after Gain)
+ * @param img [in/out] Image to process (uint16 in, float32 out after Gain). The result is written back into
+ *        img->data, so img->dataSize is both the room for the input and the room for the result:
+ *          - the frame the pipeline hands back is float32 (width*height*4 bytes) when any stage from the gain stage
+ *            on runs (gain, binning with binningMode > 1, defect, or ghost with a handle), and the uint16 frame
+ *            (width*height*2 bytes) otherwise;
+ *          - dataSize 0 is NOT "size not given" here (the rule for input-only buffers): there is no room for a
+ *            result, and the call returns XPE_ERR_BUFFER_TOO_SMALL; a dataSize smaller than that result,
+ *            with at least width*height*2, is XPE_ERR_BUFFER_TOO_SMALL too; 0 < dataSize < width*height*2
+ *            (the buffer does not even hold the input) is XPE_ERR_INVALID_INPUT;
+ *          - a refused call reads nothing, writes nothing and sets no flag; a larger dataSize is accepted and the
+ *            bytes beyond the result are not written.
+ *        A width or height of 0, or dimensions whose byte count does not fit in a size_t, is
+ *        XPE_ERR_INVALID_INPUT. This used to be accepted for a short buffer: the result was copied truncated and
+ *        the call returned XPE_OK with a float32 format on a half-written frame (QA-A-205b, Codex #29).
  * @param meta [in/out] Image metadata (updated with processing flags)
  * @param calibPath Calibration data directory path
  * @param ghostHandle Ghost corrector handle (NULL = skip ghost correction)
@@ -789,6 +816,9 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  *                  store and the quality metadata exactly as the call found them: offset.xcal, gain.xcal
  *                  and defect.xcal are read as a SET and replace the stored maps together, or not at all.
  *                  Once the set has loaded it stays loaded even if processing the frame then fails.
+ *         XPE_ERR_BUFFER_TOO_SMALL if img->dataSize is smaller than the frame the pipeline writes back (see @p img)
+ *         XPE_ERR_INVALID_INPUT on a NULL img / meta / img->data, an empty or overflowing frame, or a dataSize
+ *                  that does not hold the input (see @p img)
  *         XPE_ERR_OUT_OF_MEMORY if an allocation fails; no exception leaves the function, the image
  *                  is untouched and the metadata is as it was
  *         XPE_ERR_* on failure
@@ -810,7 +840,8 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
  * load calibration once at startup, not per-frame"), so a frame costs about
  * 124 ms instead of about 590 ms at 3072x3072 (measured, QA-A-105).
  *
- * @param img [in/out] Image to process
+ * @param img [in/out] Image to process; img->dataSize is the room for the result as well as the input,
+ *        exactly as for xpe_preprocess_pipeline()
  * @param meta [in/out] Image metadata
  * @param calibState Pre-loaded calibration state (from xpe_calib_state_load)
  * @param ghostHandle Ghost corrector handle (NULL = skip ghost)
@@ -818,6 +849,8 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
  * @return XPE_OK on success
  *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration (detectorTempC,
  *                  binningMode) is not one finite number in range -- "abc", "1e999", "2x" -- no image or metadata is touched (the configuration is read first)
+ *         XPE_ERR_BUFFER_TOO_SMALL, XPE_ERR_INVALID_INPUT for the size and dimension rules of
+ *                  xpe_preprocess_pipeline() (see its @p img)
  *         XPE_ERR_OUT_OF_MEMORY if an allocation fails (image untouched, metadata as it was)
  *         XPE_ERR_* on failure
  */
@@ -843,7 +876,10 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
  *         XPE_ERR_INVALID_INPUT on null/invalid parameters
  *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration is not one finite
  *                  number in range (see xpe_preprocess_pipeline); no frame is touched
- *         first error code if any individual frame fails; a frame that runs out of memory is
+ *         first error code if any individual frame fails -- including a frame whose dataSize is too small for
+ *                  its result (XPE_ERR_BUFFER_TOO_SMALL, rules of xpe_preprocess_pipeline()): each frame is
+ *                  checked as its turn comes, not all before the first, so a refused frame is left untouched
+ *                  and the batch carries on with the next one; a frame that runs out of memory is
  *         XPE_ERR_OUT_OF_MEMORY, is left untouched with its metadata as it was, and the batch
  *         carries on with the next frame
  */

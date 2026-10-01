@@ -116,6 +116,20 @@ float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
 
 std::string xpe_json_get_string(const char* configJson, const char* key);
 
+/** What xpe_json_find_scalar found for a key (QA-A-205b). */
+enum class XpeJsonKey {
+    Absent,      ///< the key is not in the text (or the text is null)
+    Scalar,      ///< the key has a value that is a string or a bare token; the value may be EMPTY ("" or nothing)
+    NotScalar,   ///< the key has a value that is not a scalar: an object, an array, an unterminated string, or nothing at all
+};
+
+/**
+ * xpe_json_get_string with the one fact it throws away: whether the key was there. It returns an empty string
+ * both for {"k":""} and for a text without "k", so a caller that must refuse a PRESENT-but-empty field
+ * (a calibration file's quality metadata) cannot use it. `*value` is set for Scalar only.
+ */
+XpeJsonKey xpe_json_find_scalar(const char* configJson, const char* key, std::string* value);
+
 /**
  * @brief xpe_nonlinearity_correct with a report of whether pixels were corrected.
  *
