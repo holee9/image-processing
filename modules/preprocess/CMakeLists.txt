@@ -446,6 +446,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_zz_a172_path.cpp          # QA-A-172 (#230) stage sum vs whole
         tests/test_zz_a173_gate.cpp          # QA-A-173 (#230) before/after map gate harness
         tests/test_zz_a174_floor.cpp         # QA-A-174 (#230) shipped path vs bound terms, same session
+        tests/test_zz_a184_probes.cpp        # QA-A-184 (#232) probes: line-noise readout check, shared ghost handle
         tests/test_runtime_detection_rates.cpp
         # QA-A-42 (#144): buffer-reuse parity for the detection loop
         tests/test_runtime_detection_buffer_reuse.cpp

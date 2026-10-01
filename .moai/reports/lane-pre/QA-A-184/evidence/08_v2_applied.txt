@@ -1,0 +1,8 @@
+modules/preprocess/src/offset_correct.cpp 186 g_calib.offset_height != input->height) return XPE_ERR_INVALID_INPUT;
+modules/preprocess/src/offset_correct.cpp 156 output->height != input->height) return XPE_ERR_INVALID_INPUT;
+modules/preprocess/src/gain_correct.cpp 309 return XPE_ERR_INVALID_INPUT;
+modules/preprocess/src/gain_correct.cpp 327 return XPE_ERR_INVALID_INPUT;
+modules/preprocess/src/gain_correct.cpp 253 output->height != input->height) return XPE_ERR_INVALID_INPUT;
+modules/preprocess/src/defect_correct.cpp 179 g_calib.defect_height != input->height) return XPE_ERR_INVALID_INPUT;
+modules/preprocess/src/defect_correct.cpp 128 output->height != input->height) return XPE_ERR_INVALID_INPUT;
+applied V2

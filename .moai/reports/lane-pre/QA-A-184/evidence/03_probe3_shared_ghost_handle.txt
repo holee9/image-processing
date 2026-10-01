@@ -1,0 +1,27 @@
+Note: Google Test filter = A184Probes.DISABLED_SharedGhostHandleTwoThreads
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A184Probes
+[ RUN      ] A184Probes.DISABLED_SharedGhostHandleTwoThreads
+
+[a184] (3) two threads, ONE ghost handle; identical frames, constant acquisition time
+[a184] method: tau1=tau2=1e12 so the history never forgets; hist1[i] must equal the number of updates; final hist compared bit-for-bit with a serial replay
+[a184] side=16   calls/thread=20000  SHARED, no synchronisation         runs=50  runs-with-lost-updates=50  (100%) error-returns(runs)=0 non-finite(runs)=0 | lost updates: total=6255646, worst run=232538 (of 40000 updates x 256 elements per run), differing elements in a mismatched run ~100.0%
+[a184] side=16   calls/thread=20000  control: shared + external mutex   runs=50  runs-with-lost-updates=0   (0%) error-returns(runs)=0 non-finite(runs)=0 | lost updates: total=0, worst run=0 (of 40000 updates x 256 elements per run), differing elements in a mismatched run ~0.0%
+[a184] side=16   calls/thread=20000  control: one handle per thread     runs=50  runs-with-lost-updates=0   (0%) error-returns(runs)=0 non-finite(runs)=0 | lost updates: total=0, worst run=0 (of 40000 updates x 256 elements per run), differing elements in a mismatched run ~0.0%
+[a184] side=64   calls/thread=2000   SHARED, no synchronisation         runs=50  runs-with-lost-updates=50  (100%) error-returns(runs)=0 non-finite(runs)=0 | lost updates: total=485892, worst run=22031 (of 4000 updates x 4096 elements per run), differing elements in a mismatched run ~82.4%
+[a184] side=64   calls/thread=2000   control: shared + external mutex   runs=50  runs-with-lost-updates=0   (0%) error-returns(runs)=0 non-finite(runs)=0 | lost updates: total=0, worst run=0 (of 4000 updates x 4096 elements per run), differing elements in a mismatched run ~0.0%
+[a184] side=64   calls/thread=2000   control: one handle per thread     runs=50  runs-with-lost-updates=0   (0%) error-returns(runs)=0 non-finite(runs)=0 | lost updates: total=0, worst run=0 (of 4000 updates x 4096 elements per run), differing elements in a mismatched run ~0.0%
+[a184] side=512  calls/thread=200    SHARED, no synchronisation         runs=30  runs-with-lost-updates=30  (100%) error-returns(runs)=0 non-finite(runs)=0 | lost updates: total=41903, worst run=3665 (of 400 updates x 262144 elements per run), differing elements in a mismatched run ~0.5%
+[a184] side=512  calls/thread=200    control: shared + external mutex   runs=30  runs-with-lost-updates=0   (0%) error-returns(runs)=0 non-finite(runs)=0 | lost updates: total=0, worst run=0 (of 400 updates x 262144 elements per run), differing elements in a mismatched run ~0.0%
+[a184] side=512  calls/thread=200    control: one handle per thread     runs=30  runs-with-lost-updates=0   (0%) error-returns(runs)=0 non-finite(runs)=0 | lost updates: total=0, worst run=0 (of 400 updates x 262144 elements per run), differing elements in a mismatched run ~0.0%
+[       OK ] A184Probes.DISABLED_SharedGhostHandleTwoThreads (33431 ms)
+[----------] 1 test from A184Probes (33432 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (33441 ms total)
+[  PASSED  ] 1 test.
+
+real	0m33.498s
+user	0m0.000s
+sys	0m0.031s
