@@ -630,6 +630,8 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 **While** input and map buffer dimensions differ, all correction functions **shall** return `XPE_ERR_INVALID_INPUT` without modifying the output buffer.
 
+> **2026-10-01 (#232, 사용자 승인)** — 이 요구는 *입력과 맵(교정 데이터)* 의 치수 불일치를 말한다. *출력 버퍼* 가 입력보다 작거나 치수가 다른 경우는 `docs/project/api-spec.md:103·108` 대로 `XPE_ERR_BUFFER_TOO_SMALL` 을 유지한다. 승인 시점 구현은 두 경우 모두 `BUFFER_TOO_SMALL` 이었고 맵 쪽 4곳(offset·gain 2·defect)을 이 요구에 맞춘다(`QA-A-184` 실측: 시험 변경 0).
+
 - **SRS**: SRS-SAFE-003
 - **Traceability**: SWU-1.1, SWU-1.2, SWU-1.3
 
@@ -858,6 +860,8 @@ The module **shall** use AVX2 intrinsics for performance-critical operations (of
 #### REQ-P1A-041: Readout Artifact Validation
 
 **Where** the caller provides a raw frame, the module **shall** validate it for line noise, dropped columns, and ADC saturation patterns via `xpe_validate_readout_artifact()`.
+
+> **2026-10-01 (#232, 사용자 승인) — 선 잡음 검출은 미구현.** 구현은 빈 열과 행 평균 > 0.9 × 65535 만 검사하며, `has_nonuniform_gain` 플래그는 이름과 달리 **밝은 행** 검사 결과다(`QA-A-184` 실측: 선 잡음 σ300~1500 합성 프레임에서 0, 선 잡음 없는 밝은 프레임(62000)에서 1). 공개 필드 이름은 호환성을 위해 유지한다. 선 잡음 검출은 실검출기 데이터로 기준을 정할 수 있을 때 별도 카드로 구현한다.
 
 - **SRS**: SRS-PERF-001
 - **Traceability**: PRE-01
