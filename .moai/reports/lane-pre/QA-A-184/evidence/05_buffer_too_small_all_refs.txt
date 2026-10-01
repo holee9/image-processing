@@ -1,0 +1,110 @@
+./clients/ImageProcTest/PInvokeWrapper.cs:43:            BUFFER_TOO_SMALL = -8,
+./clients/ImageProcTest.IntegrationTests/ErrorMapping/NativeErrorTranslationTests.cs:101:    /// <summary>xpe_get_pending_alert with tiny buffer must return BUFFER_TOO_SMALL or INVALID_INPUT — not crash.</summary>
+./clients/ImageProcTest.IntegrationTests/ErrorMapping/NativeErrorTranslationTests.cs:113:                result == XpeCommonNative.XpeErrorCode.BUFFER_TOO_SMALL ||
+./clients/ImageProcTest.IntegrationTests/ErrorMapping/NativeErrorTranslationTests.cs:115:                $"Expected BUFFER_TOO_SMALL or INVALID_INPUT, got {result}");
+./clients/ImageProcTest.IntegrationTests/Functional/AlertQueueJunctionTests.cs:118:    /// Contract observation 3: a buffer shorter than the message returns BUFFER_TOO_SMALL rather
+./clients/ImageProcTest.IntegrationTests/Functional/AlertQueueJunctionTests.cs:137:            XpeCommonNative.XpeErrorCode.BUFFER_TOO_SMALL,
+./clients/ImageProcTest.IntegrationTests/Functional/DataSizeContractTests.cs:123:    /// declares its exact size — a short output is BUFFER_TOO_SMALL, a different clause.
+./clients/ImageProcTest.IntegrationTests/Functional/ImageBufferLifecycleTests.cs:113:    /// REQ-GUI-IT-025: xpe_copy_image with dst smaller than src returns BUFFER_TOO_SMALL
+./clients/ImageProcTest.IntegrationTests/Functional/ImageBufferLifecycleTests.cs:132:                copyResult == XpeCommonNative.XpeErrorCode.BUFFER_TOO_SMALL ||
+./clients/ImageProcTest.IntegrationTests/Functional/ImageBufferLifecycleTests.cs:134:                $"Expected BUFFER_TOO_SMALL or INVALID_INPUT for mismatched dims, got {copyResult}");
+./clients/ImageProcTest.IntegrationTests/Functional/NativeAlertDrainTests.cs:65:    /// BUFFER_TOO_SMALL grows the buffer and retries once; the retry's text is what gets displayed.
+./clients/ImageProcTest.IntegrationTests/PInvoke/XpeCommonNative.cs:35:        BUFFER_TOO_SMALL = -8,
+./gui/ImageProcTest/Services/NativeAlertDrain.cs:31:    /// <summary>Single retry buffer size after BUFFER_TOO_SMALL. One retry, not a loop.</summary>
+./gui/ImageProcTest/Services/NativeAlertDrain.cs:34:    /// <summary>Native BUFFER_TOO_SMALL (xpe_error_code.h). Spelled out: gui has no shared enum.</summary>
+./modules/ai/include/xpe/ai/ai_api.h:153: * @return XPE_ERR_BUFFER_TOO_SMALL if the buffer is real but cannot hold the
+./modules/ai/include/xpe/ai/ai_api.h:187: * @return XPE_ERR_BUFFER_TOO_SMALL if the output buffer is real but cannot hold
+./modules/ai/include/xpe/ai/ai_api.h:337: * @return XPE_ERR_BUFFER_TOO_SMALL if the card does not fit; @p buf still holds
+./modules/ai/src/ai.cpp:431:    // exist -- INVALID_INPUT. BUFFER_TOO_SMALL is for a buffer that is real but
+./modules/ai/src/ai.cpp:454:        return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/ai/src/ai.cpp:488:    // BUFFER_TOO_SMALL stays reserved for a real buffer that cannot hold the
+./modules/ai/src/ai.cpp:767:        return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/ai/src/ai_ipc_bridge.cpp:400:            return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/ai/src/ai_ipc_bridge.cpp:488:    // BUFFER_TOO_SMALL if the worker sends more -- after the header is already
+./modules/ai/tests/test_ai_fallback.cpp:215:// Renamed and re-asserted by QA-B-42. It expected XPE_ERR_BUFFER_TOO_SMALL,
+./modules/ai/tests/test_ai_fallback.cpp:266:// Renamed and re-asserted by QA-B-42. It expected XPE_ERR_BUFFER_TOO_SMALL,
+./modules/ai/tests/test_ai_fallback.cpp:722: * XPE_ERR_INVALID_INPUT -- the argument does not exist. XPE_ERR_BUFFER_TOO_SMALL
+./modules/ai/tests/test_ai_fallback.cpp:727: * xpe_stitch_images answered BUFFER_TOO_SMALL for the same shape of fault. A
+./modules/ai/tests/test_ai_fallback.cpp:750:    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL,
+./modules/ai/tests/test_ai_fallback.cpp:786:    EXPECT_NE(XPE_ERR_BUFFER_TOO_SMALL, labelRc);
+./modules/ai/tests/test_ai_fallback.cpp:798:    EXPECT_NE(XPE_ERR_BUFFER_TOO_SMALL, stitchRc);
+./modules/ai/tests/test_ai_fallback.cpp:802: * #142 (QA-B-43): the BUFFER_TOO_SMALL threshold is bound to a stub constant.
+./modules/ai/tests/test_ai_fallback.cpp:804: * QA-B-42 made xpe_bodypart_recognize report BUFFER_TOO_SMALL rather than
+./modules/ai/tests/test_ai_fallback.cpp:823:    // One byte short of the label: the buffer is real, so BUFFER_TOO_SMALL.
+./modules/ai/tests/test_ai_fallback.cpp:826:    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL,
+./modules/ai/tests/test_ai_fallback.cpp:832:    EXPECT_NE(XPE_ERR_BUFFER_TOO_SMALL,
+./modules/ai/tests/test_ai_model_card.cpp:239:// Renamed and re-asserted by QA-B-42. It expected XPE_ERR_BUFFER_TOO_SMALL,
+./modules/ai/tests/test_ai_model_card.cpp:253:    EXPECT_EQ(ec, XPE_ERR_BUFFER_TOO_SMALL);
+./modules/ai/tests/test_ai_model_versioning.cpp:249:    EXPECT_EQ(ec, XPE_ERR_BUFFER_TOO_SMALL);
+./modules/ai/tests/test_ipc_deadline.cpp:633:    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL,
+./modules/ai/tests/test_ipc_deadline.cpp:652:    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, xpe_ai_ipc_bridge_receive(c.b, &rep, nullptr, 0, &got));
+./modules/common/include/xpe/common/xpe_error.h:55:#define XPE_ERR_BUFFER_TOO_SMALL    -8   /**< Caller-supplied output buffer is smaller than required */
+./modules/common/include/xpe/common/xpe_error.h:119: *                 XPE_ERR_BUFFER_TOO_SMALL and nothing is written.
+./modules/common/include/xpe/common/xpe_error.h:129: * @return XPE_ERR_BUFFER_TOO_SMALL if @p msgLen cannot hold the message and its
+./modules/common/src/xpe_common.cpp:336:        case XPE_ERR_BUFFER_TOO_SMALL:     return "Buffer too small";
+./modules/common/src/xpe_common.cpp:374:        return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/common/src/xpe_memory.cpp:79:        return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/common/tests/test_xpe_common.cpp:194:              XPE_ERR_BUFFER_TOO_SMALL);
+./modules/common/tests/test_xpe_common.cpp:379:    EXPECT_EQ(xpe_copy_image(&src, &dst), XPE_ERR_BUFFER_TOO_SMALL);
+./modules/dicom/include/xpe/dicom/dicom_api.h:223: * @return XPE_ERR_BUFFER_TOO_SMALL if buffer is too small; required size written
+./modules/dicom/include/xpe/dicom/dicom_api.h:297: * @return XPE_ERR_BUFFER_TOO_SMALL if outBufLen is insufficient. Nothing is
+./modules/dicom/src/DicomNetworkSCU.cpp:285:        return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/dicom/src/DicomValidator.cpp:42:// still returns BUFFER_TOO_SMALL; the caller simply learns no size from it.
+./modules/dicom/src/DicomValidator.cpp:55:    // exist. That is INVALID_INPUT, not BUFFER_TOO_SMALL -- "too small" is for a
+./modules/dicom/src/DicomValidator.cpp:84:            return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/dicom/src/DicomValidator.cpp:105:            return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/dicom/src/DicomValidator.cpp:125:            return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/dicom/src/DicomValidator.cpp:240:        return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/dicom/tests/test_dicom_network_scu.cpp:326:    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, xpe_dicom_cfind_mwl(
+./modules/dicom/tests/test_dicom_network_scu.cpp:335:// not BUFFER_TOO_SMALL. Checked before the association is attempted, so a
+./modules/dicom/tests/test_dicom_validator.cpp:132:// AC-11: Buffer too small returns BUFFER_TOO_SMALL
+./modules/dicom/tests/test_dicom_validator.cpp:136:    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, xpe_dicom_validate(
+./modules/dicom/tests/test_dicom_validator.cpp:180:    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, xpe_dicom_validate(
+./modules/dicom/tests/test_dicom_validator.cpp:186:    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, xpe_dicom_validate(
+./modules/dicom/tests/test_dicom_validator.cpp:458:// fault from "it exists but is too small" (XPE_ERR_BUFFER_TOO_SMALL). NULL/0 is
+./modules/dicom/tests/test_dicom_validator.cpp:462:// BUFFER_TOO_SMALL the validator writes the required size as a uint32_t into
+./modules/dicom/tests/test_dicom_validator.cpp:488:    // 2 bytes is a real buffer, so this is BUFFER_TOO_SMALL -- but it cannot
+./modules/dicom/tests/test_dicom_validator.cpp:492:    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, rc);
+./modules/dicom/tests/test_dicom_validator.cpp:505:    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL,
+./modules/preprocess/include/xpe/preprocess_api.h:184: *         XPE_ERR_BUFFER_TOO_SMALL if dimension mismatch
+./modules/preprocess/include/xpe/preprocess_api.h:206: *         XPE_ERR_BUFFER_TOO_SMALL if dimension mismatch
+./modules/preprocess/include/xpe/preprocess_api.h:275: *         XPE_ERR_BUFFER_TOO_SMALL if dimension mismatch
+./modules/preprocess/include/xpe/preprocess_api.h:1179: *         XPE_ERR_BUFFER_TOO_SMALL if output buffer too small
+./modules/preprocess/src/defect_correct.cpp:128:        output->height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/defect_correct.cpp:138:    if (output->dataSize < n * sizeof(float)) return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/defect_correct.cpp:179:        g_calib.defect_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/gain_correct.cpp:253:        output->height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/gain_correct.cpp:264:    if (output->dataSize < n * sizeof(float)) return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/gain_correct.cpp:309:                    return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/gain_correct.cpp:327:                    return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/offset_correct.cpp:156:        output->height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/offset_correct.cpp:166:    if (output->dataSize < n * sizeof(uint16_t)) return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/offset_correct.cpp:186:            g_calib.offset_height != input->height) return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/runtime_detection.cpp:100:    if (defectMapOut->dataSize < outputBytes) return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/xpe_calib_generate_offset_methods.cpp:95:            return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/xpe_calib_generate_offset_methods.cpp:412:            return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/xpe_calib_generate_offset_methods.cpp:415:            return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/xpe_defect_gen.cpp:401: *         XPE_ERR_BUFFER_TOO_SMALL if output buffer too small
+./modules/preprocess/src/xpe_defect_gen.cpp:460:        return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/xpe_defect_gen.cpp:465:        return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/xpe_verify_metrics.cpp:273:        return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/xpe_verify_metrics.cpp:487:        return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/xpe_verify_metrics.cpp:621:        return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/src/xpe_verify_metrics.cpp:712:        return XPE_ERR_BUFFER_TOO_SMALL;
+./modules/preprocess/tests/test_defect_correct.cpp:248:    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, xpe_defect_correct(&img, &output, &metadata));
+./modules/preprocess/tests/test_gain_correct.cpp:119:    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, xpe_gain_correct(&input, &output, &metadata));
+./modules/preprocess/tests/test_gain_correct_reciprocal_fma.cpp:348:    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL,
+./modules/preprocess/tests/test_offset_correct.cpp:129:    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, xpe_offset_correct(&input, &badOutput, &metadata));
+./modules/preprocess/tests/test_runtime_detection_errors.cpp:126:// the read/write-overflow guard, and it reports BUFFER_TOO_SMALL rather than
+./modules/preprocess/tests/test_runtime_detection_errors.cpp:133:    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL,
+./modules/preprocess/tests/test_temp_nonlinearity_binning.cpp:225:    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL,
+./modules/preprocess/tests/test_verify_metrics.cpp:841:              XPE_ERR_BUFFER_TOO_SMALL) << "Dimension mismatch should return BUFFER_TOO_SMALL";
+./modules/preprocess/tests/test_xpe_preprocess.cpp:816: * Then returns XPE_ERR_BUFFER_TOO_SMALL
+./modules/preprocess/tests/test_xpe_preprocess.cpp:828:    EXPECT_TRUE(result == XPE_ERR_BUFFER_TOO_SMALL ||
+./modules/preprocess/tests/test_xpe_preprocess_correction.cpp:171: * Then returns XPE_ERR_BUFFER_TOO_SMALL
+./modules/preprocess/tests/test_xpe_preprocess_correction.cpp:180:    EXPECT_TRUE(result == XPE_ERR_BUFFER_TOO_SMALL ||
+./modules/preprocess/tests/test_xpe_preprocess_correction.cpp:286: * Then returns XPE_ERR_BUFFER_TOO_SMALL
+./modules/preprocess/tests/test_xpe_preprocess_correction.cpp:295:    EXPECT_TRUE(result == XPE_ERR_BUFFER_TOO_SMALL ||
+./modules/preprocess/tests/test_xpe_preprocess_correction.cpp:403: * Then returns XPE_ERR_BUFFER_TOO_SMALL
+./modules/preprocess/tests/test_xpe_preprocess_correction.cpp:412:    EXPECT_TRUE(result == XPE_ERR_BUFFER_TOO_SMALL ||
+./modules/preprocess/tests/test_xpe_preprocess_memleak.cpp:128: * return -8 (XPE_ERR_BUFFER_TOO_SMALL) under --gtest_random_seed=9. The

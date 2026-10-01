@@ -1,0 +1,19 @@
+Note: Google Test filter = A184Probes.DISABLED_SharedGhostHandleDefaultTaus
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A184Probes
+[ RUN      ] A184Probes.DISABLED_SharedGhostHandleDefaultTaus
+
+[a184] (3b) same race, DEFAULT taus (tau1=1, tau2=20); short runs; lost = hist1 deficit in frame units
+[a184] side=16   calls/thread=8      SHARED, no synchronisation         runs=3000 runs-with-a-different-final-state=19   (1%) error-returns(runs)=0 non-finite(runs)=0 | hist1: lost-update total=0, worst run=0, max|dh1|=1.073e-06, differing elements ~11.2% | hist2: max|dh2|=0.969, differing elements ~11.8% (run = 16 updates x 256 elements)
+[a184] side=16   calls/thread=8      control: shared + external mutex   runs=3000 runs-with-a-different-final-state=0    (0%) error-returns(runs)=0 non-finite(runs)=0 | hist1: lost-update total=0, worst run=0, max|dh1|=0, differing elements ~0.0% | hist2: max|dh2|=0, differing elements ~0.0% (run = 16 updates x 256 elements)
+[a184] side=16   calls/thread=8      control: one handle per thread     runs=3000 runs-with-a-different-final-state=0    (0%) error-returns(runs)=0 non-finite(runs)=0 | hist1: lost-update total=0, worst run=0, max|dh1|=0, differing elements ~0.0% | hist2: max|dh2|=0, differing elements ~0.0% (run = 16 updates x 256 elements)
+[a184] side=64   calls/thread=20     SHARED, no synchronisation         runs=1000 runs-with-a-different-final-state=756  (76%) error-returns(runs)=0 non-finite(runs)=0 | hist1: lost-update total=0, worst run=0, max|dh1|=0, differing elements ~0.0% | hist2: max|dh2|=0.6144, differing elements ~2.5% (run = 40 updates x 4096 elements)
+[a184] side=64   calls/thread=20     control: shared + external mutex   runs=1000 runs-with-a-different-final-state=0    (0%) error-returns(runs)=0 non-finite(runs)=0 | hist1: lost-update total=0, worst run=0, max|dh1|=0, differing elements ~0.0% | hist2: max|dh2|=0, differing elements ~0.0% (run = 40 updates x 4096 elements)
+[a184] side=64   calls/thread=20     control: one handle per thread     runs=1000 runs-with-a-different-final-state=0    (0%) error-returns(runs)=0 non-finite(runs)=0 | hist1: lost-update total=0, worst run=0, max|dh1|=0, differing elements ~0.0% | hist2: max|dh2|=0, differing elements ~0.0% (run = 40 updates x 4096 elements)
+[       OK ] A184Probes.DISABLED_SharedGhostHandleDefaultTaus (3494 ms)
+[----------] 1 test from A184Probes (3494 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3494 ms total)
+[  PASSED  ] 1 test.
