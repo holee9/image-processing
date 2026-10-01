@@ -686,8 +686,7 @@ XPE_API XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
  *
  * @param img [in/out] Image to correct (float32 format)
  * @param binningMode Binning factor (1 = no-op, 2 = 2x2, 4 = 4x4)
- * @param configJsonOrNull Unused: accepted for ABI compatibility, no correction
- *        profile is read from it
+ * @param configJsonOrNull Unused: no correction profile is read from it
  * @return XPE_OK on success
  *         XPE_ERR_CONFIG_INVALID if unknown binning mode
  *         XPE_ERR_INVALID_INPUT if NULL img
