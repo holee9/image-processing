@@ -4,8 +4,11 @@ namespace ImageProcTest.Services;
 
 internal interface IAiSessionBackend
 {
-    /// <summary>The worker's state as the module reports it; <see cref="AiWorkerStatus.Unknown"/> when there is no session.</summary>
-    AiWorkerStatus GetAiWorkerStatus();
+    /// <summary>
+    /// The worker's state as the module reports it; <see cref="AiWorkerStatus.Unknown"/> when there is no session; null when a frame
+    /// is running and the read gave up waiting (the caller keeps what it shows).
+    /// </summary>
+    AiWorkerStatus? GetAiWorkerStatus();
 
     /// <summary>Shutdown then init under the one lock. Starts a new session with a clean failure count.</summary>
     AiRestartResult RestartAiSession(string modelDirectory);

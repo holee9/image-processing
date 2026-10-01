@@ -28,6 +28,115 @@ internal sealed record AiWorkerStatus(AiWorkerState State, uint ConsecutiveFailu
 }
 
 /// <summary>
+/// The one lock around the AI session (GUI-C-186b). A re-entrant monitor: a frame that holds it can call the session's own init
+/// from inside, and a restart can call shutdown then init under the one acquisition. <see cref="TryWithLock{T}"/> is for the
+/// status read, which must not freeze the UI thread behind a frame that is waiting on a silent worker.
+/// </summary>
+internal sealed class AiSessionGate
+{
+    private readonly object _gate = new();
+
+    public T WithLock<T>(Func<T> action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        lock (_gate)
+        {
+            return action();
+        }
+    }
+
+    /// <summary>Runs <paramref name="action"/> under the lock if it can be had within <paramref name="wait"/>; false (and default) when a frame holds it.</summary>
+    public bool TryWithLock<T>(TimeSpan wait, Func<T> action, out T? result)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        var taken = false;
+        try
+        {
+            System.Threading.Monitor.TryEnter(_gate, wait, ref taken);
+            if (!taken)
+            {
+                result = default;
+                return false;
+            }
+
+            result = action();
+            return true;
+        }
+        finally
+        {
+            if (taken)
+            {
+                System.Threading.Monitor.Exit(_gate);
+            }
+        }
+    }
+}
+
+/// <summary>The answer of one <c>xpe_bone_suppress</c> call: the return code, and the output ONLY for code 0.</summary>
+internal sealed record AiSuppressResult(int Code, float[]? Output);
+
+/// <summary>
+/// What one AI frame needs from the outside world, so the frame's order and locking can be tested with fakes (no DLL).
+/// The real implementation prepares its buffers BEFORE the frame starts and frees them after, which are the parts that do not
+/// touch the AI module's state.
+/// </summary>
+internal interface IAiFrameOps
+{
+    bool ModelFileExists(string path);
+
+    /// <summary>Makes the session ready for <paramref name="absoluteDirectory"/>, starting a new one when it was started for another. Returns the init code.</summary>
+    int InitSession(string absoluteDirectory);
+
+    /// <summary>Calls <c>xpe_bone_suppress</c> on the prepared buffers.</summary>
+    AiSuppressResult Suppress();
+}
+
+/// <summary>
+/// One AI frame, in order, under ONE hold of the session gate: the model file check, the init, the call. (Codex #25 finding 1:
+/// the lock used to end with the init, so another frame's directory change or a Restart could replace the session between the
+/// init and the call, and shutdown could free the state a call was about to use.) The status read takes the same gate.
+///
+/// <para><b>Inside the gate:</b> the file check, <c>InitSession</c>, <c>Suppress</c> — everything that uses or decides the
+/// session. <b>Outside it</b> (the caller does these, and why that is safe): allocating and filling the two image buffers and
+/// freeing them. They go through <c>xpe_common</c>, not through the AI module, and touch only buffers this frame owns, so no
+/// session replacement can change what they do; keeping them out keeps the time the gate is held to the part that needs it.</para>
+///
+/// <para>The directory arrives already absolute and is used as that one string by the check and by the init.</para>
+/// </summary>
+internal static class AiFrame
+{
+    public static StageExecution Run(AiSessionGate gate, IAiFrameOps ops, string absoluteDirectory)
+    {
+        ArgumentNullException.ThrowIfNull(gate);
+        ArgumentNullException.ThrowIfNull(ops);
+        if (!System.IO.Path.IsPathRooted(absoluteDirectory))
+        {
+            // The caller resolves the directory once per render. A relative one here would be resolved again, by the check and by the
+            // module, possibly against a different working directory.
+            throw new ArgumentException("The frame takes a directory that is already absolute.", nameof(absoluteDirectory));
+        }
+
+        return gate.WithLock(() =>
+        {
+            var missing = AiBoneSuppressionStage.CheckModelFileAt(absoluteDirectory, ops.ModelFileExists);
+            if (missing is not null)
+            {
+                return missing;
+            }
+
+            var initCode = ops.InitSession(absoluteDirectory);
+            if (initCode != AiBoneSuppressionStage.Ok)
+            {
+                return AiBoneSuppressionStage.InterpretInit(initCode);
+            }
+
+            var suppressed = ops.Suppress();
+            return AiBoneSuppressionStage.Interpret(suppressed.Code, suppressed.Output);
+        });
+    }
+}
+
+/// <summary>
 /// What the GUI knows about its own AI session, apart from the module: whether it started one, with which directory, and why the
 /// last start failed. Pure, so the sequences (fail, retry, succeed, shut down) are tested. The native session wraps one of these.
 /// </summary>
@@ -125,15 +234,37 @@ internal static class AiBoneSuppressionStage
     /// <summary>The model directory when the setting is blank (AppSettings falls back to the same value).</summary>
     public const string DefaultModelDirectory = "data/models";
 
+    private static string? _baseDirectory;
+
+    /// <summary>
+    /// Fixes the directory relative model directories are resolved against, once, at application start (<c>App.OnStartup</c>).
+    /// The first call wins; later calls do nothing. The convention is unchanged (the process's working directory at start);
+    /// what changed is that it no longer follows the working directory afterwards. Installing from the application's own
+    /// location instead is a deployment decision and not made here.
+    /// </summary>
+    public static void CaptureBaseDirectory(string? directory = null) =>
+        _baseDirectory ??= System.IO.Path.GetFullPath(directory ?? Environment.CurrentDirectory);
+
+    /// <summary>The captured base; when nothing captured it yet (a test, a harness) the working directory at this first use.</summary>
+    public static string BaseDirectory => _baseDirectory ??= System.IO.Path.GetFullPath(Environment.CurrentDirectory);
+
+    /// <summary>For the tests only: forget the captured base.</summary>
+    internal static void ResetBaseDirectoryForTests() => _baseDirectory = null;
+
     /// <summary>
     /// The model directory as an absolute path with no trailing separator (GUI-C-186). The module resolves a relative one against
     /// the process's working directory at each use, and its worker against the working directory it was started in, so a relative
     /// directory can mean two places once the working directory has moved; the GUI therefore decides once and gives the module the
     /// absolute form, which is also what a restart compares against.
     /// </summary>
-    public static string NormalizeDirectory(string? directory)
+    public static string NormalizeDirectory(string? directory, string? baseDirectory = null)
     {
-        var full = System.IO.Path.GetFullPath(string.IsNullOrWhiteSpace(directory) ? DefaultModelDirectory : directory.Trim());
+        // A relative directory is resolved against the base fixed at startup (GUI-C-186b, leader's decision), NOT against whatever
+        // the working directory is at this moment: a file dialog can move the working directory, and the same setting must keep
+        // meaning the same place. An absolute directory is not touched by the base.
+        var full = System.IO.Path.GetFullPath(
+            string.IsNullOrWhiteSpace(directory) ? DefaultModelDirectory : directory.Trim(),
+            baseDirectory ?? BaseDirectory);
         var root = System.IO.Path.GetPathRoot(full);
         return full.Length > (root?.Length ?? 0) ? full.TrimEnd('\\', '/') : full;
     }
@@ -143,6 +274,13 @@ internal static class AiBoneSuppressionStage
     /// <paramref name="requestedDirectory"/>. <c>xpe_ai_init</c> while initialised returns OK and IGNORES its arguments
     /// (ai.cpp:501-504), so without this a changed directory would look accepted and change nothing. Null means no session.
     /// </summary>
+    /// <remarks>
+    /// Compared as resolved strings, ignoring case; NOT as the same directory on disk. Switching between a path and an alias of
+    /// it (an 8.3 short name, a junction or symbolic link, a UNC form) is therefore a new session with the failure count back
+    /// at 0: expected, and cheaper than the file-identity comparison it would take to avoid. A case-sensitive directory
+    /// (Windows' per-folder setting) is outside what this supports: two names that differ only in case are treated as one place.
+    /// (Codex #25 finding 3, decided by the lead.)
+    /// </remarks>
     public static bool NeedsNewSession(string? startedDirectory, string? requestedDirectory) =>
         startedDirectory is not null &&
         !string.Equals(NormalizeDirectory(startedDirectory), NormalizeDirectory(requestedDirectory), StringComparison.OrdinalIgnoreCase);
@@ -157,11 +295,19 @@ internal static class AiBoneSuppressionStage
     /// also means no worker is started and no failure is counted toward the 3 that switch the worker off.
     /// Returns null when the file is there and the call should be made. <paramref name="exists"/> is for the tests.
     /// </summary>
-    public static StageExecution? CheckModelFile(string modelDirectory, Func<string, bool>? exists = null)
+    public static StageExecution? CheckModelFile(string modelDirectory, Func<string, bool>? exists = null) =>
+        CheckModelFileAt(NormalizeDirectory(modelDirectory), exists);
+
+    /// <summary>
+    /// The same check for a directory that is ALREADY absolute and normalised: it does not normalise again. The frame resolves a
+    /// render's directory once and gives that one string to this check and to the init (GUI-C-186b), so a working directory that
+    /// moves between the two cannot make them look at different places.
+    /// </summary>
+    public static StageExecution? CheckModelFileAt(string absoluteDirectory, Func<string, bool>? exists = null)
     {
         // The path as the module will use it, and as the message prints it: absolute, so "no model at data\models\..." can no
         // longer leave the reader guessing which directory a relative path was taken from (GUI-C-186).
-        var path = System.IO.Path.Combine(NormalizeDirectory(modelDirectory), ModelFileName);
+        var path = System.IO.Path.Combine(absoluteDirectory, ModelFileName);
         if ((exists ?? System.IO.File.Exists)(path))
         {
             return null;

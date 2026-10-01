@@ -561,8 +561,9 @@ public sealed class MainWindowViewModel : ObservableObject
     /// </summary>
     private void RefreshAiWorkerStatus()
     {
-        var status = (_backend as IAiSessionBackend)?.GetAiWorkerStatus() ?? AiWorkerStatus.Unknown;
-        if (status == _aiWorkerStatus)
+        // No AI session in this backend: Unknown. A frame is running and the read gave up (null): keep what is shown.
+        var status = _backend is IAiSessionBackend session ? session.GetAiWorkerStatus() : AiWorkerStatus.Unknown;
+        if (status is null || status == _aiWorkerStatus)
         {
             return;
         }

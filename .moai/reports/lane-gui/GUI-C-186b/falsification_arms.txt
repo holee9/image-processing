@@ -1,0 +1,36 @@
+# GUI-C-186b - real sources broken on purpose; named tests must go red with a successful build; restored byte-identical
+
+ARM the-gate-ends-with-the-init-the-call-is-outside-it: exit=1 built_ok=True
+   ['실패!  - 실패:     3, 통과:    63, 건너뜀:     0, 전체:    66, 기간: 192 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiFrameTests.ARestart_AttemptedWhileAFrameIsInTheCall_WaitsForTheFrame [1 ms]
+   red: AiFrameTests.TheStatusRead_GivesUpWhileAFrameIsRunning_AndWorksAfterwards [< 1 ms]
+   red: AiFrameTests.ASecondFrameWithAnotherDirectory_InitsOnlyAfterTheFirstFrameIsDone [1 ms]
+   restored byte-identical: True
+ARM the-gate-does-not-lock: exit=1 built_ok=True
+   ['실패!  - 실패:     3, 통과:    63, 건너뜀:     0, 전체:    66, 기간: 196 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiFrameTests.ARestart_AttemptedWhileAFrameIsInTheCall_WaitsForTheFrame [1 ms]
+   red: AiFrameTests.TheStatusRead_GivesUpWhileAFrameIsRunning_AndWorksAfterwards [< 1 ms]
+   red: AiFrameTests.ASecondFrameWithAnotherDirectory_InitsOnlyAfterTheFirstFrameIsDone [1 ms]
+   restored byte-identical: True
+ARM the-frame-accepts-a-relative-directory: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    65, 건너뜀:     0, 전체:    66, 기간: 955 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiFrameTests.TheFrame_RefusesARelativeDirectory_ItIsResolvedOncePerFrameByTheCaller [4 ms]
+   restored byte-identical: True
+ARM relative-directories-follow-the-working-directory-again: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    65, 건너뜀:     0, 전체:    66, 기간: 930 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.ARelativeDirectory_IsResolvedAgainstTheBaseFixedAtStartup_NotTheWorkingDirectory [1 ms]
+   restored byte-identical: True
+ARM the-base-is-never-captured-at-startup: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    65, 건너뜀:     0, 전체:    66, 기간: 938 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiFrameTests.TheApplication_FixesTheBaseDirectoryAtStartup [1 ms]
+   restored byte-identical: True
+ARM the-runner-resolves-the-directory-a-second-time: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    65, 건너뜀:     0, 전체:    66, 기간: 943 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiFrameTests.TheRealRunner_GivesTheFrameTheOneGate_AndResolvesTheDirectoryOnce [9 ms]
+   restored byte-identical: True
+ARM the-status-read-is-no-longer-bounded: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    65, 건너뜀:     0, 전체:    66, 기간: 946 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiBoneSuppressionStageTests.TheRestart_IsOneStepUnderTheLock [1 ms]
+   restored byte-identical: True
+AFTER RESTORE: 0 True ['통과!  - 실패:     0, 통과:    66, 건너뜀:     0, 전체:    66, 기간: 912 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+sources: a22333d6cec4 e57d834cf3b1 838f53f56b10

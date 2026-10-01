@@ -56,6 +56,10 @@ public partial class App : System.Windows.Application
         // place before the first DllImport, and only one may ever be registered per assembly.
         Services.Native.GuiNativeLibraryResolver.Install();
 
+        // GUI-C-186b: relative model directories are resolved against the working directory AS IT IS NOW, once. A file dialog can
+        // move the working directory later; the AI model directory must not follow it.
+        Services.AiBoneSuppressionStage.CaptureBaseDirectory();
+
         // #136: parsing lives in AutomationArgs so it can be tested; this class only applies it.
         var parsed = AutomationArgs.Parse(e.Args);
 

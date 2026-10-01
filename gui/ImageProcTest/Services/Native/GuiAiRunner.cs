@@ -1,4 +1,5 @@
 ﻿// #225 row 10 (GUI-C-184): AI bone suppression, the native side. Declared where the shared resolver sees it.
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -57,18 +58,16 @@ internal sealed record AiConfig
 /// </summary>
 internal static class GuiAiSession
 {
-    private static readonly object Gate = new();
+    /// <summary>The one gate: a whole AI frame, a restart, the status read and every init and shutdown go through it.</summary>
+    internal static readonly AiSessionGate Gate = new();
+
     private static readonly AiSessionTracker Tracker = new();
 
-    /// <summary>Runs <paramref name="action"/> while no other init, shutdown or state call can run.</summary>
-    public static T WithLock<T>(Func<T> action)
-    {
-        ArgumentNullException.ThrowIfNull(action);
-        lock (Gate)
-        {
-            return action();
-        }
-    }
+    /// <summary>How long a status read waits for a frame that is running before it gives up and leaves what is shown as it is.</summary>
+    private static readonly TimeSpan StateReadWait = TimeSpan.FromMilliseconds(250);
+
+    /// <summary>Runs <paramref name="action"/> while no other frame, init, shutdown or state call can run.</summary>
+    public static T WithLock<T>(Func<T> action) => Gate.WithLock(action);
 
     /// <summary>
     /// Starts the AI module with the worker path on. Already started with the SAME directory is not an error (the module ignores
@@ -76,10 +75,15 @@ internal static class GuiAiSession
     /// (ai.cpp:501-504), so the old session is shut down first, under this same lock. The directory handed to the module is the
     /// absolute form (<see cref="AiBoneSuppressionStage.NormalizeDirectory"/>).
     /// </summary>
-    public static int Init(string modelDirectory) =>
+    public static int Init(string modelDirectory) => InitCore(AiBoneSuppressionStage.NormalizeDirectory(modelDirectory));
+
+    /// <summary>
+    /// The init for a directory that is already absolute and normalised: what a frame calls with the string it checked the model file
+    /// at, and what <see cref="Init"/> reaches after resolving its argument ONCE.
+    /// </summary>
+    public static int InitCore(string directory) =>
         WithLock(() =>
         {
-            var directory = AiBoneSuppressionStage.NormalizeDirectory(modelDirectory);
             if (Tracker.NeedsNewSession(directory))
             {
                 Shutdown();
@@ -123,9 +127,13 @@ internal static class GuiAiSession
     /// <summary>
     /// The worker's status, read under the same lock as init and shutdown: the module documents that the state call must
     /// not run with either (they free or create what it reads). Not started here, or an older DLL without the export,
-    /// is <see cref="AiWorkerStatus.Unknown"/>, and asking then does not load the DLL.
+    /// is <see cref="AiWorkerStatus.Unknown"/>, and asking then does not load the DLL. Null when a frame holds the gate longer
+    /// than <see cref="StateReadWait"/>: the caller keeps what it shows rather than freezing behind a call that is waiting on a worker.
     /// </summary>
-    public static AiWorkerStatus QueryWorkerState() =>
+    public static AiWorkerStatus? QueryWorkerState() =>
+        Gate.TryWithLock(StateReadWait, ReadWorkerStateLocked, out var status) ? status : null;
+
+    private static AiWorkerStatus ReadWorkerStateLocked() =>
         WithLock(() =>
         {
             var own = Tracker.OwnStatus();
@@ -159,7 +167,7 @@ internal static class GuiAiSession
             Shutdown();
             try
             {
-                return AiBoneSuppressionStage.InterpretRestart(Init(modelDirectory));
+                return AiBoneSuppressionStage.InterpretRestart(Init(modelDirectory)); // Init resolves the directory once
             }
             catch (DllNotFoundException)
             {
@@ -197,7 +205,10 @@ internal static class GuiAiSession
         });
 }
 
-/// <summary>One AI bone suppression run over a frame: init → convert → <c>xpe_bone_suppress</c> → convert back.</summary>
+/// <summary>
+/// One AI bone suppression run over a frame. The order and the locking are <see cref="AiFrame"/>'s (tested with fakes); this class
+/// supplies the real operations and the buffers around them.
+/// </summary>
 internal static class GuiAiRunner
 {
     public static StageExecution Run(ushort[] input, int width, int height, string modelDirectory)
@@ -208,23 +219,14 @@ internal static class GuiAiRunner
             return new StageExecution(false, null, $"AI bone suppression not started: {input.Length} pixels do not fit {width}x{height}.");
         }
 
-        // The model file is looked for before the module is asked (GUI-C-185): a missing model and a worker that could not be
-        // started come back as the same code, and asking would start a worker and count a failure.
-        var missingModel = AiBoneSuppressionStage.CheckModelFile(modelDirectory);
-        if (missingModel is not null)
-        {
-            return missingModel;
-        }
+        // The directory is resolved ONCE per frame, here, and this one string goes to the file check and to the init
+        // (GUI-C-186b): a working directory that moves between the two cannot make them look at different places.
+        var directory = AiBoneSuppressionStage.NormalizeDirectory(modelDirectory);
 
+        // Outside the gate: the two image buffers (xpe_common, not the AI module; buffers this frame owns). See AiFrame.
         var allocated = new List<Action>();
         try
         {
-            var initCode = GuiAiSession.Init(modelDirectory);
-            if (initCode != 0)
-            {
-                return AiBoneSuppressionStage.InterpretInit(initCode);
-            }
-
             if (!TryAlloc(width, height, out var source, allocated, out var reason) ||
                 !TryAlloc(width, height, out var target, allocated, out reason))
             {
@@ -232,19 +234,8 @@ internal static class GuiAiRunner
             }
 
             Marshal.Copy(AiBoneSuppressionStage.ToFloat(input), 0, source.Data, count);
-
-            var code = XpeAiNative.xpe_bone_suppress(ref source, ref target, null);
-
-            // The output buffer is read ONLY for code 0. After a refusal it was not written, and after a failed worker
-            // call it equals the input; neither is a result (AiBoneSuppressionStage).
-            float[]? output = null;
-            if (code == AiBoneSuppressionStage.Ok)
-            {
-                output = new float[count];
-                Marshal.Copy(target.Data, output, 0, count);
-            }
-
-            return AiBoneSuppressionStage.Interpret(code, output);
+            var ops = new RealAiFrameOps(source, target, count);
+            return AiFrame.Run(GuiAiSession.Gate, ops, directory);
         }
         catch (DllNotFoundException)
         {
@@ -261,6 +252,33 @@ internal static class GuiAiRunner
             {
                 free();
             }
+        }
+    }
+
+    /// <summary>The real operations of a frame. The only caller of <c>xpe_bone_suppress</c>; it is invoked by <see cref="AiFrame.Run"/> under the gate.</summary>
+    private sealed class RealAiFrameOps(XpeImageBufferNative source, XpeImageBufferNative target, int count) : IAiFrameOps
+    {
+        private XpeImageBufferNative _source = source;
+        private XpeImageBufferNative _target = target;
+
+        public bool ModelFileExists(string path) => File.Exists(path);
+
+        public int InitSession(string absoluteDirectory) => GuiAiSession.InitCore(absoluteDirectory);
+
+        public AiSuppressResult Suppress()
+        {
+            var code = XpeAiNative.xpe_bone_suppress(ref _source, ref _target, null);
+
+            // The output buffer is read ONLY for code 0. After a refusal it was not written, and after a failed worker
+            // call it equals the input; neither is a result (AiBoneSuppressionStage).
+            float[]? output = null;
+            if (code == AiBoneSuppressionStage.Ok)
+            {
+                output = new float[count];
+                Marshal.Copy(_target.Data, output, 0, count);
+            }
+
+            return new AiSuppressResult(code, output);
         }
     }
 

@@ -197,6 +197,50 @@ public sealed class AiBoneSuppressionStageTests
         Assert.Contains("XpeAiNative.xpe_ai_init(directory,", runner, StringComparison.Ordinal); // the module gets the absolute form
     }
 
+    // ---- Relative directories resolve against a base fixed at startup (GUI-C-186b, decision 2) ------------------------------------
+
+    /// <summary>
+    /// The same relative setting means the same absolute path whatever the working directory is, because it is resolved against the
+    /// captured base. The first capture wins; a later one changes nothing. (Touches the static base, so it is in this class, whose
+    /// tests run one after another, and puts the base back.)
+    /// </summary>
+    [Fact]
+    public void ARelativeDirectory_IsResolvedAgainstTheBaseFixedAtStartup_NotTheWorkingDirectory()
+    {
+        var baseA = Path.Combine(Path.GetTempPath(), "xpe-base-a");
+        var baseB = Path.Combine(Path.GetTempPath(), "xpe-base-b");
+        AiBoneSuppressionStage.ResetBaseDirectoryForTests();
+        try
+        {
+            AiBoneSuppressionStage.CaptureBaseDirectory(baseA);
+            AiBoneSuppressionStage.CaptureBaseDirectory(baseB); // ignored: the first capture wins
+            Assert.False(string.Equals(Path.GetFullPath(Environment.CurrentDirectory), Path.GetFullPath(baseA), StringComparison.OrdinalIgnoreCase),
+                "the test needs a base that is not the working directory");
+
+            var first = AiBoneSuppressionStage.NormalizeDirectory("data/models");
+            Assert.Equal(Path.Combine(Path.GetFullPath(baseA), "data", "models"), first);
+            Assert.Equal(first, AiBoneSuppressionStage.NormalizeDirectory("data/models")); // same setting, same path, every time
+
+            // Same setting after the base: no new session; another directory: a new one.
+            Assert.False(AiBoneSuppressionStage.NeedsNewSession(first, "data/models"));
+            Assert.True(AiBoneSuppressionStage.NeedsNewSession(first, "data/other"));
+
+            // An absolute directory ignores the base.
+            Assert.Equal(Path.GetFullPath(baseB), AiBoneSuppressionStage.NormalizeDirectory(baseB));
+        }
+        finally
+        {
+            AiBoneSuppressionStage.ResetBaseDirectoryForTests();
+        }
+    }
+
+    [Fact]
+    public void ExplicitBase_ResolvesWithoutTouchingTheCapturedOne()
+    {
+        var other = Path.Combine(Path.GetTempPath(), "xpe-explicit-base");
+        Assert.Equal(Path.Combine(Path.GetFullPath(other), "data", "models"), AiBoneSuppressionStage.NormalizeDirectory("data/models", other));
+    }
+
     [Fact]
     public void ThePresentModelFile_LetsTheCallThrough()
     {
@@ -329,7 +373,7 @@ public sealed class AiBoneSuppressionStageTests
     public void TheInit_RecordsEveryWayAStartCanFail()
     {
         var runner = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/Services/Native/GuiAiRunner.cs"));
-        var init = runner[runner.IndexOf("public static int Init(", StringComparison.Ordinal)..runner.IndexOf("public static AiWorkerStatus QueryWorkerState()", StringComparison.Ordinal)];
+        var init = runner[runner.IndexOf("public static int Init(", StringComparison.Ordinal)..runner.IndexOf("QueryWorkerState()", StringComparison.Ordinal)];
         Assert.Equal(4, System.Text.RegularExpressions.Regex.Matches(init, @"Tracker\.InitFailed\(").Count);
         Assert.Contains("Tracker.InitSucceeded(directory)", init, StringComparison.Ordinal);
         Assert.Contains("Tracker.OwnStatus()", runner, StringComparison.Ordinal);
@@ -362,7 +406,10 @@ public sealed class AiBoneSuppressionStageTests
     {
         var runner = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/Services/Native/GuiAiRunner.cs"));
         Assert.Matches(@"public static AiRestartResult Restart\(string modelDirectory\) =>\s*WithLock\(", runner);
-        Assert.Matches(@"public static AiWorkerStatus QueryWorkerState\(\) =>\s*WithLock\(", runner);
+        // The status read takes the same gate, bounded (a frame that waits on a worker must not freeze the UI thread behind it),
+        // and does its work under the lock once it has it.
+        Assert.Contains("Gate.TryWithLock(StateReadWait, ReadWorkerStateLocked", runner, StringComparison.Ordinal);
+        Assert.Matches(@"ReadWorkerStateLocked\(\) =>\s*WithLock\(", runner);
     }
 
     [Fact]
