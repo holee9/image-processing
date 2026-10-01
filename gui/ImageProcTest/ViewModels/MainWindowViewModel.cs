@@ -559,11 +559,28 @@ public sealed class MainWindowViewModel : ObservableObject
     /// Reads the worker state again and tells the screen when it changed. Cheap and never blocks on a running call (the
     /// module answers from the last completed one); a backend without an AI session answers Unknown, which shows nothing.
     /// </summary>
-    private void RefreshAiWorkerStatus()
+    private void RefreshAiWorkerStatus() => (_aiStatusRefresher ??= new AiStatusRefresher(ReadAiWorkerStatus, ApplyAiWorkerStatus, ScheduleOnUiThread)).Refresh();
+
+    private AiStatusRefresher? _aiStatusRefresher;
+
+    /// <summary>No AI session in this backend: Unknown. A frame is running and the read gave up: null, and the refresher asks again later (GUI-C-186c).</summary>
+    private AiWorkerStatus? ReadAiWorkerStatus() => _backend is IAiSessionBackend session ? session.GetAiWorkerStatus() : AiWorkerStatus.Unknown;
+
+    /// <summary>Runs <paramref name="action"/> on this (the UI) thread after <paramref name="delay"/>, without blocking it.</summary>
+    private static void ScheduleOnUiThread(TimeSpan delay, Action action)
     {
-        // No AI session in this backend: Unknown. A frame is running and the read gave up (null): keep what is shown.
-        var status = _backend is IAiSessionBackend session ? session.GetAiWorkerStatus() : AiWorkerStatus.Unknown;
-        if (status is null || status == _aiWorkerStatus)
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = delay };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            action();
+        };
+        timer.Start();
+    }
+
+    private void ApplyAiWorkerStatus(AiWorkerStatus status)
+    {
+        if (status == _aiWorkerStatus)
         {
             return;
         }

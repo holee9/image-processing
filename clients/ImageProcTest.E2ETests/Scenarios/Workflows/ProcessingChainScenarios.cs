@@ -443,7 +443,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             // viewport's drawn-pixel hash uses): the same numbers the mark carries, from the module.
             var before = AiStatusSummary(window);
             output.WriteLine($"C09 state before restart: '{before}'");
-            Assert.Matches(@"worker=Disabled; failures=(\d+); ceiling=$", before);
+            Assert.Matches(@"worker=Disabled; failures=(\d+); ceiling=\1$", before);
 
             var restart = window.FindFirstDescendant(cf => cf.ByAutomationId("AiRestartButton"));
             Assert.True(restart is not null, "The mark is shown but the Restart AI button is not.");

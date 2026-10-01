@@ -181,6 +181,58 @@ internal sealed class AiSessionTracker
 /// <summary>Whether a restart worked, and the line to show.</summary>
 internal sealed record AiRestartResult(bool Ok, string Message);
 
+/// <summary>
+/// An AI session start threw something other than a missing DLL or export. Its message IS the reason the tracker recorded
+/// (<see cref="AiBoneSuppressionStage.InitFailureReason"/>), so the exception that goes up the chain path and the status the screen shows
+/// are one string, not two spellings of the same failure (GUI-C-186c, Codex #28 A3).
+/// </summary>
+internal sealed class AiInitException(string reason, Exception inner) : Exception(reason, inner);
+
+/// <summary>
+/// Reads the worker status and, when the read gave up (null: a frame was holding the session gate longer than the bounded wait),
+/// asks again after a short delay, up to <see cref="MaxRetries"/> times. A newer <see cref="Refresh"/> cancels the retries of an older
+/// one, so the state after the LAST event is the one that eventually reaches the screen (GUI-C-186c, Codex #28 A2).
+/// Everything runs on one thread (the UI's): the caller supplies a <c>schedule</c> that runs its action there after the delay.
+/// The numbers are not measured: <see cref="MaxRetries"/> and <see cref="RetryDelay"/> are chosen, not derived from any timing.
+/// </summary>
+internal sealed class AiStatusRefresher(Func<AiWorkerStatus?> read, Action<AiWorkerStatus> apply, Action<TimeSpan, Action> schedule)
+{
+    public const int MaxRetries = 6;
+
+    public static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(500);
+
+    private int _generation;
+
+    /// <summary>Reads now; if the read gave up, retries later. A status that was read is handed to <c>apply</c> once, then no more retries.</summary>
+    public void Refresh()
+    {
+        _generation++;
+        Attempt(_generation, 0);
+    }
+
+    private void Attempt(int generation, int retriesDone)
+    {
+        if (generation != _generation)
+        {
+            return; // a newer refresh took over
+        }
+
+        var status = read();
+        if (status is not null)
+        {
+            apply(status);
+            return;
+        }
+
+        if (retriesDone >= MaxRetries)
+        {
+            return; // gave up: what is shown stays, and the next refresh (the end of the next render) tries again
+        }
+
+        schedule(RetryDelay, () => Attempt(generation, retriesDone + 1));
+    }
+}
+
 /// <summary>How the module's answer to one <c>xpe_bone_suppress</c> call is read.</summary>
 internal enum AiCallClass
 {
@@ -391,6 +443,17 @@ internal static class AiBoneSuppressionStage
     /// <summary>The stage's answer when <c>xpe_ai_init</c> did not return 0.</summary>
     public static StageExecution InterpretInit(int code) =>
         new(false, null, $"AI bone suppression not started: xpe_ai_init refused the configuration (code {code}); the original image is shown.");
+
+    /// <summary>
+    /// The one reason string for an <c>xpe_ai_init</c> that threw something other than a missing DLL or export. The tracker records it
+    /// and <see cref="AiInitException"/> carries it, so the status line, the Restart message and the chain's stage reason say the same
+    /// thing (GUI-C-186c, Codex #28 A3). It ends with a full stop so the sentence the banner appends after it reads on.
+    /// </summary>
+    public static string InitFailureReason(Exception ex)
+    {
+        var message = ex.Message.TrimEnd();
+        return $"xpe_ai_init threw {ex.GetType().Name}: {message}{(message.EndsWith('.') ? string.Empty : ".")}";
+    }
 
     /// <summary>The reading of an <c>xpe_ai_worker_state</c> answer. Anything unexpected is <see cref="AiWorkerState.Unknown"/>, which shows nothing.</summary>
     public static AiWorkerStatus ReadWorkerState(int code, int state, uint consecutiveFailures, uint ceiling) =>

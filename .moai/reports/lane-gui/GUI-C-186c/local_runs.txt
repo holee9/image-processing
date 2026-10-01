@@ -1,0 +1,41 @@
+GUI-C-186c local runs (this tree: dev/gui on f6c32817 plus the working-tree changes of this card)
+
+[gui/ImageProcTest.slnx] dotnet build -c Debug: exit=0, error CS=0,  경고 12개  오류 0개 
+[clients/ImageProcTest.slnx] dotnet build -c Debug: exit=0, error CS=0,  경고 1개  오류 0개 
+
+[new tests only] AiStatusRefresherTests:
+통과!  - 실패:     0, 통과:    11, 건너뜀:     0, 전체:    11, 기간: 104 ms - ImageProcTest.IntegrationTests.dll (net8.0)
+
+[Category=Functional, all]:
+통과!  - 실패:     0, 통과:   324, 건너뜀:     1, 전체:   325, 기간: 4 s - ImageProcTest.IntegrationTests.dll (net8.0)
+
+[E2E, Mock backend: ProcessingChainScenarios + AutomationReportBackendTests] (UI Automation patterns only)
+  통과 Workflows.ProcessingChainScenarios.C01_PreprocessStage_ReachesTheDrawnPixelsOrSaysWhyNot [9 s]
+  건너뜀 Workflows.ProcessingChainScenarios.C07_AGridRatioOutsideTheTable_IsRefused [< 1 ms]
+  건너뜀 Workflows.ProcessingChainScenarios.C04_MissingVirtualGridTable_IsRefusedAndTheImageIsUnchanged [< 1 ms]
+  건너뜀 Workflows.ProcessingChainScenarios.C02_ChangingTheExposureKvp_DoesNotChangeTheDrawnPixelsToday [< 1 ms]
+  건너뜀 Workflows.ProcessingChainScenarios.C09_AWorkerSwitchedOffByRepeatedFailures_ShowsAMark_ThatRestartRemoves [< 1 ms]
+  통과 Workflows.ProcessingChainScenarios.C05_GridCorrectionChoices_AreExclusive [10 s]
+  통과 Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeGridSuppression", mode: "GridSuppression") [8 s]
+  통과 Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeVirtualGrid", mode: "VirtualGrid") [8 s]
+  통과 Workflows.ProcessingChainScenarios.C08_AiBoneSuppression_WhereTheModuleCannotSucceed_IsRefusedAndTheImageIsTheOriginal [9 s]
+  건너뜀 Workflows.ProcessingChainScenarios.C06_ChangingTheGridRatio_ChangesTheDrawnPixels [< 1 ms]
+  통과 Smoke.AutomationReportBackendTests.A12_Panels_RenderWhatTheSettingsHold [45 s]
+  통과 Smoke.AutomationReportBackendTests.A15_ASelfCheckThatCannotBeStarted_IsDidNotRun_NotAFailure [14 s]
+  통과 Smoke.AutomationReportBackendTests.A16_TroubleshootingPage_NotGenerated_SaysSoAndHow_AndOpensNothing [14 s]
+  통과 Smoke.AutomationReportBackendTests.A11_ApiReference_ClaimMatchesTheDisk_AndTheCountsAgree [15 s]
+  통과 Smoke.AutomationReportBackendTests.A07_RuntimeLogs_AreWrittenToAFile [14 s]
+  통과 Smoke.AutomationReportBackendTests.A17_TroubleshootingPage_Generated_IsResolved_AndTheLaunchIsSuppressedUnderAutomation [17 s]
+  통과 Smoke.AutomationReportBackendTests.A05_AFailingSelfCheck_IsReportedAsAFailure_WithTheReason [15 s]
+  통과 Smoke.AutomationReportBackendTests.A10_PipelineDiagnostics_KeepsNoMeasurementApartFromZero [14 s]
+  통과 Smoke.AutomationReportBackendTests.A13_PanelFlags_SurviveTheProcess_AndTheVerdictDoesNotDependOnThem [30 s]
+  통과 Smoke.AutomationReportBackendTests.A04_SelfCheck_ActuallyRuns_AndThePassIsReported [15 s]
+  통과 Smoke.AutomationReportBackendTests.A02_MockRequested_IsStillAPass [16 s]
+  건너뜀 Smoke.AutomationReportBackendTests.A03_TheWiredCommands_ReportWhatTheyDid [< 1 ms]
+  통과 Smoke.AutomationReportBackendTests.A09_EvidenceBundleAndFolder_Answer [15 s]
+  통과 Smoke.AutomationReportBackendTests.A08_RecentFileHistory_SurvivesTheProcess [31 s]
+  통과 Smoke.AutomationReportBackendTests.A01_NativeRequested_FallsBackToMock_IsNotAPass [15 s]
+  통과 Smoke.AutomationReportBackendTests.A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported [14 s]
+  통과 Smoke.AutomationReportBackendTests.A14_BenchmarkRunner_DescribesTheBuildTree_AndReportsNoVerdictItDidNotGet [14 s]
+[xUnit.net 00:00:10.07]     ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C09_AWorkerSwitchedOffByRepeatedFailures_ShowsAMark_ThatRestartRemoves [SKIP]
+[xUnit.net 00:00:10.07]       The AI session exists only on the native backend.

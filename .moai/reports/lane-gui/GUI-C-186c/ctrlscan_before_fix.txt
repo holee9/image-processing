@@ -1,0 +1,3 @@
+scanned 3480 text files, skipped 38 binary; files with a control byte (other than TAB/LF/CR): 2
+  .moai/reports/lane-pre/QA-A-95/runs/iaea_table6_1.txt [(3, '0xc')]
+  clients/ImageProcTest.E2ETests/Scenarios/Workflows/ProcessingChainScenarios.cs [(446, '0x1')]

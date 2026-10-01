@@ -108,8 +108,11 @@ internal static class GuiAiSession
             }
             catch (Exception ex)
             {
-                Tracker.InitFailed($"xpe_ai_init threw {ex.GetType().Name}.");
-                throw;
+                // ONE reason string: the tracker records it and the exception that goes up (the chain path's stage reason, the
+                // Restart message) carries the same one (GUI-C-186c).
+                var reason = AiBoneSuppressionStage.InitFailureReason(ex);
+                Tracker.InitFailed(reason);
+                throw new AiInitException(reason, ex);
             }
 
             if (code == 0)
