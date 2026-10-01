@@ -1,0 +1,36 @@
+BUILD_EXIT=0
+arm no_legacy_path dll exit=1
+arm no_legacy_path oom exit=0
+
+[  FAILED  ] XCalCompressionMetaTest.AFileInTheOldWritersShapeLoadsWithTheSameMapAndAWarning
+[  FAILED  ] XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck
+BUILD_EXIT=1
+D:\workspace-github\xpe-pre\modules\preprocess\src\xcal_reader.cpp(49): error C2220: 다음 경고는 오류로 처리됩니다.
+arm any_trailing_brace: BUILD FAILED - arm invalid
+BUILD_EXIT=0
+arm prefix_unchecked dll exit=1
+arm prefix_unchecked oom exit=0
+
+[  FAILED  ] XCalCompressionMetaTest.AFileInTheOldWritersShapeLoadsWithTheSameMapAndAWarning
+[  FAILED  ] XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck
+BUILD_EXIT=1
+D:\workspace-github\xpe-pre\modules\preprocess\src\xcal_reader.cpp(49): error C2220: 다음 경고는 오류로 처리됩니다.
+arm nested_pair_ok: BUILD FAILED - arm invalid
+BUILD_EXIT=0
+arm alert_before_hash dll exit=1
+arm alert_before_hash oom exit=0
+
+[  FAILED  ] XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck
+BUILD_EXIT=0
+arm loader_reparses_gain dll exit=0
+arm loader_reparses_gain oom exit=1
+
+[  FAILED  ] OomInjection.EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce
+BUILD_EXIT=0
+arm loader_reparses_lut dll exit=0
+arm loader_reparses_lut oom exit=1
+
+[  FAILED  ] OomInjection.EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce
+RESTORED xcal_reader.cpp
+RESTORED xpe_calib_load_gain.cpp
+RESTORED xpe_calib_load_nonlin_lut.cpp

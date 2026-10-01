@@ -56,6 +56,10 @@ float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
         : pixels[static_cast<size_t>(y) * width + x];
 }
 
+#ifdef XPE_CACHE_TEST_HOOKS
+unsigned long xpe_config_parse_calls = 0;   // test-only counter (QA-A-209c); not compiled into the library
+#endif
+
 namespace {
 
 /**
@@ -135,6 +139,9 @@ private:
 /** Parses `len` bytes at `text` into `doc`. Blank, a NUL byte, anything but one valid JSON object, and a member name
  *  given twice at the top level are XPE_ERR_CONFIG_INVALID (and leave `doc` empty). */
 XpeErrorCode parse_text(const char* text, size_t len, XpeConfigDoc* doc) {
+#ifdef XPE_CACHE_TEST_HOOKS
+    ++xpe_config_parse_calls;
+#endif
     const char* const end = text + len;
     const char* first = text;
     while (first != end && (*first == ' ' || *first == '\t' || *first == '\n' || *first == '\r')) ++first;

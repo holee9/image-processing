@@ -874,7 +874,9 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  *        array are "not given" (a GUI sends an unset option as ""). The text is parsed ONCE per call and every key
  *        is read from that parse, the nonlinearity stage's included (panel.linear, panel.nonlinearity_mode,
  *        panel.target_platform, panel.nonlin_poly_c0..c4, panel.adc_max), so a refusal happens before the first
- *        stage runs.
+ *        stage runs. An XCal file's config block is parsed ONCE per load, by the file reader, and the loader reads its
+ *        keys from that parse (QA-A-209c); the block of a compressed DEFECT file written by an older writer, whose
+ *        closing braces were doubled, is accepted after a repair with a warning alert (xcal_format.h).
  *
  *        Two ways a key's value is read, and they differ on purpose. (1) A STRING-OR-TOKEN key -- the bypass flags,
  *        detectorTempC, binningMode, the ghost keys (tier, alpha1, ...), panel.linear, panel.nonlinearity_mode,

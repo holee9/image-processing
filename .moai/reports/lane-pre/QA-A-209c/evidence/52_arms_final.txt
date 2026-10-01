@@ -1,0 +1,38 @@
+BUILD_EXIT=0
+arm no_legacy_path dll exit=1
+arm no_legacy_path oom exit=0
+
+[  FAILED  ] XCalCompressionMetaTest.AFileInTheOldWritersShapeLoadsWithTheSameMapAndAWarning
+[  FAILED  ] XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck
+BUILD_EXIT=0
+arm alert_before_hash dll exit=1
+arm alert_before_hash oom exit=0
+
+[  FAILED  ] XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck
+BUILD_EXIT=0
+arm loader_reparses_gain dll exit=0
+arm loader_reparses_gain oom exit=1
+
+[  FAILED  ] OomInjection.EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce
+BUILD_EXIT=0
+arm loader_reparses_lut dll exit=0
+arm loader_reparses_lut oom exit=1
+
+[  FAILED  ] OomInjection.EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce
+RESTORED xcal_reader.cpp
+RESTORED xpe_calib_load_gain.cpp
+RESTORED xpe_calib_load_nonlin_lut.cpp
+BUILD_EXIT=0
+arm tail_unchecked dll exit=1
+arm tail_unchecked oom exit=0
+
+[  FAILED  ] XCalCompressionMetaTest.ABlockThatOnlyLooksLikeTheOldWritersShapeIsStillRefused
+BUILD_EXIT=0
+arm shape_b_loose dll exit=1
+arm shape_b_loose oom exit=0
+
+[  FAILED  ] XCalCompressionMetaTest.AFileInTheOldWritersShapeLoadsWithTheSameMapAndAWarning
+[  FAILED  ] XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck
+RESTORED xcal_reader.cpp
+RESTORED xpe_calib_load_gain.cpp
+RESTORED xpe_calib_load_nonlin_lut.cpp

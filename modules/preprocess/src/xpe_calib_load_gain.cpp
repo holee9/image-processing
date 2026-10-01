@@ -39,10 +39,12 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
         // expected type, so the type check is done here instead; the code for
         // a mismatch is the one the reader would have returned,
         // XPE_ERR_CONFIG_INVALID, so the existing contract is unchanged.
+        XpeConfigDoc config;   // the reader parses the config block once and hands the document over (QA-A-209c)
         XpeErrorCode rc = read_xcal_file(
             filepath, hdr, config_json, payload,
             /*check_expiry=*/true,
-            /*expected_type=*/-1);
+            /*expected_type=*/-1,
+            &config);
         if (rc != XPE_OK) {
             return rc;
         }
@@ -98,15 +100,6 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
         // commit only moves pointers and copies plain values, and nothing after it may throw: a
         // throw once the first field was written reported OUT_OF_MEMORY for a store that had already
         // changed (QA-A-200, found by the allocation-failure sweep in test_oom_injection.cpp).
-        // The config block is parsed ONCE (QA-A-209b): one valid JSON object, top-level keys, no member name given twice;
-        // a block of length 0 is a file without one. Both the quality fields and the dose range are read from it.
-        XpeConfigDoc config;
-        {
-            const XpeErrorCode crc = xpe_config_parse_block(reinterpret_cast<const char*>(config_json.data()),
-                                                            config_json.size(), &config);
-            if (crc != XPE_OK) return crc;   // nothing has been committed
-        }
-
         // FUNC-033 (5): the quality metadata the file carries, so xpe_calib_get_quality_meta()
         // describes the calibration now in use. A file written before QA-A-35 has no such fields
         // and is loaded unchanged -- the call simply reports that it found none.

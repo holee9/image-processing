@@ -1,0 +1,49 @@
+Note: Google Test filter = XCalCompressionMetaTest.*
+[==========] Running 11 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 11 tests from XCalCompressionMetaTest
+[ RUN      ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed
+[       OK ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed (9 ms)
+[ RUN      ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither
+[       OK ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither (6 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem
+[       OK ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem (9 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused
+[       OK ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused (8 ms)
+[ RUN      ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused
+[       OK ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused (31 ms)
+[ RUN      ] XCalCompressionMetaTest.HalfAPairIsRefusedEvenWhenTheRestOfTheFileIsValid
+[       OK ] XCalCompressionMetaTest.HalfAPairIsRefusedEvenWhenTheRestOfTheFileIsValid (10 ms)
+[ RUN      ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo
+[       OK ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo (23 ms)
+[ RUN      ] XCalCompressionMetaTest.TheOldWritersTwoShapesAreReproducedExactlyByTheTestHelper
+[       OK ] XCalCompressionMetaTest.TheOldWritersTwoShapesAreReproducedExactlyByTheTestHelper (0 ms)
+[ RUN      ] XCalCompressionMetaTest.AFileInTheOldWritersShapeLoadsWithTheSameMapAndAWarning
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(657): error: Expected equality of these values:
+  0
+  readDefect(&payload)
+    Which is: -4
+a file the old writer made must still load
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(652): {"mode":"production"}
+
+[  FAILED  ] XCalCompressionMetaTest.AFileInTheOldWritersShapeLoadsWithTheSameMapAndAWarning (6 ms)
+[ RUN      ] XCalCompressionMetaTest.ABlockThatOnlyLooksLikeTheOldWritersShapeIsStillRefused
+[       OK ] XCalCompressionMetaTest.ABlockThatOnlyLooksLikeTheOldWritersShapeIsStillRefused (81 ms)
+[ RUN      ] XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(706): error: Expected equality of these values:
+  0
+  xpe_preprocess_init(nullptr)
+    Which is: -1
+
+[  FAILED  ] XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck (0 ms)
+[----------] 11 tests from XCalCompressionMetaTest (188 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 1 test suite ran. (188 ms total)
+[  PASSED  ] 9 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] XCalCompressionMetaTest.AFileInTheOldWritersShapeLoadsWithTheSameMapAndAWarning
+[  FAILED  ] XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck
+
+ 2 FAILED TESTS

@@ -148,6 +148,11 @@ struct XpeConfigDoc {
 XpeErrorCode xpe_config_parse(const char* text, XpeConfigDoc* doc);
 XpeErrorCode xpe_config_parse_block(const char* text, size_t len, XpeConfigDoc* doc);
 
+#ifdef XPE_CACHE_TEST_HOOKS
+/** Test-only (QA-A-209c): how many configuration texts have been parsed. Compiled into the allocation-failure executable only. */
+extern unsigned long xpe_config_parse_calls;
+#endif
+
 /**
  * @brief xpe_nonlinearity_correct with a report of whether pixels were corrected.
  *

@@ -2331,3 +2331,63 @@ TEST_F(OomInjection, ANonlinearityLutGenerationThatFailsWritesNoFileAndNoExcepti
               return (file || tmp) ? "a failed call left a file behind" : std::string();
           });
 }
+
+/* =========================================================================
+ * An XCal config block is parsed ONCE per load (QA-A-209c, Codex #53 item 2)
+ * ========================================================================= */
+//
+// read_xcal_file parsed the block to read the compression metadata and threw the document away; the gain and
+// nonlinearity-table loaders then parsed the same text again for the quality fields, the dose range and the
+// extension start. The reader now hands its document to the loader. xpe_config_parse_calls counts every parse
+// (compiled into this executable only, with XPE_CACHE_TEST_HOOKS).
+
+namespace q209c {
+
+unsigned long parsesDuring(const std::function<XpeErrorCode()>& call, XpeErrorCode* rc) {
+    const unsigned long before = xpe_config_parse_calls;
+    *rc = call();
+    return xpe_config_parse_calls - before;
+}
+
+}  // namespace q209c
+
+TEST_F(OomInjection, EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce) {
+    xpe_preprocess_init(nullptr);
+    XpeErrorCode rc = XPE_OK;
+
+    // a gain file whose block carries quality fields, so the loader has something to read from the document
+    {
+        std::vector<float> g(N, 1.0f);
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version = XCAL_VERSION; hdr.type = static_cast<uint32_t>(XCAL_TYPE_GAIN);
+        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_FLOAT32); hdr.width = W; hdr.height = H;
+        hdr.created_epoch_ms = 1700000000000ll;
+        const std::string cfg = "{\"fit_r_squared\":0.9995,\"polynomial_degree\":1,\"actual_dose_levels\":4,\"calibration_mode\":1}";
+        std::remove("oom_q209c_gain.xcal");
+        ASSERT_EQ(XPE_OK, write_xcal_file("oom_q209c_gain.xcal", hdr, reinterpret_cast<const uint8_t*>(cfg.data()), cfg.size(),
+                                          reinterpret_cast<const uint8_t*>(g.data()), g.size() * sizeof(float)));
+    }
+    EXPECT_EQ(1ul, q209c::parsesDuring([&] { return xpe_calib_load_gain("oom_q209c_gain.xcal"); }, &rc));
+    EXPECT_EQ(XPE_OK, rc);
+
+    // a nonlinearity table with the extension-start key
+    {
+        std::vector<uint16_t> lut(4096u);
+        for (uint32_t i = 0; i < 4096u; ++i) lut[i] = static_cast<uint16_t>(i);
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version = XCAL_VERSION; hdr.type = static_cast<uint32_t>(XCAL_TYPE_NONLIN_LUT);
+        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_UINT16); hdr.width = 4096; hdr.height = 1;
+        hdr.created_epoch_ms = 1700000000000ll;
+        const std::string cfg = "{\"xcal_nonlin_extension_start\":4000}";
+        std::remove("oom_q209c_lut.xcal");
+        ASSERT_EQ(XPE_OK, write_xcal_file("oom_q209c_lut.xcal", hdr, reinterpret_cast<const uint8_t*>(cfg.data()), cfg.size(),
+                                          reinterpret_cast<const uint8_t*>(lut.data()), lut.size() * sizeof(uint16_t)));
+    }
+    EXPECT_EQ(1ul, q209c::parsesDuring([&] { return xpe_calib_load_nonlin_lut("oom_q209c_lut.xcal"); }, &rc));
+    EXPECT_EQ(XPE_OK, rc);
+
+    std::remove("oom_q209c_gain.xcal");
+    std::remove("oom_q209c_lut.xcal");
+}

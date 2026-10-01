@@ -25,30 +25,99 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
+#include <string>
 
 // @MX:NOTE: [AUTO] Clock source for expiry: std::chrono::system_clock.
 // Resolution is milliseconds (epoch_ms). Non-monotonic but
 // consistent with XCal v1 created_epoch_ms semantics.
 
-// Internal helper: read the compression metadata of an XCal config block (QA-A-209b, Codex #49).
+// Files the writer of 90c1b6b1 and before made (QA-A-209c, Codex #53). For a compressed DEFECT file with a caller
+// config it merged the compression metadata by cutting the caller's last '}' and appending ",<meta>}" where <meta>
+// still carried its own '}' -- so the stored block ends "}}" -- and for a caller object with no members that gave
+// "{,<meta>}}" ("{ ,<meta>}}" for "{ }"). The string-searching reader of the time accepted both; the strict parse
+// refuses them, which locked a site out of a calibration it had stored. This repairs EXACTLY those two shapes:
+//   A: <valid object text minus its last '}'> "," <pair> "}"  +  "}"     -> drop the final '}'
+//   B: "{" white-space* "," <pair> "}"  +  "}"                           -> drop the comma and the final '}'
+// where <pair> is `"xcal_compression":<digits>,"xcal_raw_payload_len":<digits>` and is the END of the block. Anything
+// else -- a third brace, text after, a member between "{," and the pair, the pair not last, a nested pair -- is not
+// something the old writer could make and is not repaired. The caller still parses the repaired text strictly, so the
+// duplicate / nested / pair rules apply to it unchanged. Only a parse that FAILED is repaired, and the stored bytes
+// (which the SHA-256 covers) are never altered: the repair exists in memory, for parsing, only.
+static bool is_json_ws(char ch) { return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n'; }
+
+// True when `text` from `pos` is `"xcal_compression":<digits>,"xcal_raw_payload_len":<digits>}` and nothing more.
+static bool is_legacy_pair_tail(const std::string& text, size_t pos)
+{
+    static const char kMethod[] = "\"xcal_compression\":";
+    static const char kRaw[] = ",\"xcal_raw_payload_len\":";
+    size_t i = pos;
+    if (text.compare(i, sizeof(kMethod) - 1, kMethod) != 0) return false;
+    i += sizeof(kMethod) - 1;
+    size_t digits = 0;
+    while (i < text.size() && text[i] >= '0' && text[i] <= '9') { ++i; ++digits; }
+    if (digits == 0) return false;
+    if (text.compare(i, sizeof(kRaw) - 1, kRaw) != 0) return false;
+    i += sizeof(kRaw) - 1;
+    digits = 0;
+    while (i < text.size() && text[i] >= '0' && text[i] <= '9') { ++i; ++digits; }
+    if (digits == 0) return false;
+    return i + 1 == text.size() && text[i] == '}';
+}
+
+static bool repair_legacy_writer_config(const std::vector<uint8_t>& config, std::string* repaired)
+{
+    const std::string s(config.begin(), config.end());
+    if (s.size() < 2 || s[s.size() - 1] != '}' || s[s.size() - 2] != '}') return false;
+    const std::string cand = s.substr(0, s.size() - 1);                   // the one extra '}' dropped
+    const size_t p = cand.rfind("\"xcal_compression\":");
+    if (p == std::string::npos || !is_legacy_pair_tail(cand, p)) return false;
+    const std::string prefix = cand.substr(0, p);
+    // shape B: the prefix is "{" white-space* "," exactly -- the comma is dropped
+    if (prefix.size() >= 2 && prefix[0] == '{' && prefix.back() == ',') {
+        size_t i = 1;
+        while (i < prefix.size() && is_json_ws(prefix[i])) ++i;
+        if (i + 1 == prefix.size()) {
+            *repaired = prefix.substr(0, prefix.size() - 1) + cand.substr(p);
+            return true;
+        }
+    }
+    // shape A: members, then the comma before the pair. Whether `cand` really is one valid object -- and so whether
+    // the pair is a TOP-LEVEL pair at its end rather than a nested one, or the comma is missing -- is the strict
+    // parse's verdict, which the caller takes.
+    *repaired = cand;
+    return true;
+}
+
+// Parses an XCal config block into `doc` by the strict rule, with the one narrow exception above. `*repaired` tells
+// the caller that the exception was taken (the alert is raised only once the whole file has been accepted).
+static XpeErrorCode parse_config_block_with_legacy(const std::vector<uint8_t>& config, XpeConfigDoc* doc, bool* repaired)
+{
+    *repaired = false;
+    const char* text = config.empty() ? nullptr : reinterpret_cast<const char*>(config.data());
+    XpeErrorCode rc = xpe_config_parse_block(text, config.size(), doc);
+    if (rc != XPE_ERR_CONFIG_INVALID) return rc;
+    std::string fixed;
+    if (!repair_legacy_writer_config(config, &fixed)) return rc;
+    XpeConfigDoc fixedDoc;
+    if (xpe_config_parse_block(fixed.data(), fixed.size(), &fixedDoc) != XPE_OK) return rc;
+    *doc = std::move(fixedDoc);
+    *repaired = true;
+    return XPE_OK;
+}
+
+// Reads the compression metadata of an XCal config block from its parsed document (QA-A-209b, Codex #49).
 //
-// The block is ONE valid JSON object (xpe_config_parse_block); the metadata is the pair of TOP-LEVEL keys
-// "xcal_compression" and "xcal_raw_payload_len", each a bare non-negative integer. A key inside a nested object is
-// not metadata, a key given twice (any key) refuses the block, and half a pair is a refusal: the writer always makes
-// both, so one alone is a damaged or hand-made block, not "uncompressed". A block of length 0 is a file without
-// metadata. `*is_compressed` is false when neither key is there.
-static XpeErrorCode parse_compression_meta(
-    const uint8_t* config_json,
-    size_t config_len,
+// The metadata is the pair of TOP-LEVEL keys "xcal_compression" and "xcal_raw_payload_len", each a bare non-negative
+// integer. A key inside a nested object is not metadata, a key given twice refuses the block (xpe_config_parse_block),
+// and half a pair is a refusal: the writer always makes both, so one alone is a damaged or hand-made block, not
+// "uncompressed". `is_compressed` is false when neither key is there.
+static XpeErrorCode read_compression_meta(
+    const XpeConfigDoc& doc,
     bool& is_compressed,
     uint32_t& out_method,
     uint64_t& out_raw_payload_len)
 {
     is_compressed = false;
-    XpeConfigDoc doc;
-    const XpeErrorCode rc = xpe_config_parse_block(reinterpret_cast<const char*>(config_json), config_len, &doc);
-    if (rc != XPE_OK) return rc;
-
     const XpeConfigEntry* method = doc.find("xcal_compression");
     const XpeConfigEntry* raw = doc.find("xcal_raw_payload_len");
     if (method == nullptr && raw == nullptr) return XPE_OK;
@@ -86,7 +155,8 @@ XpeErrorCode read_xcal_file(
     std::vector<uint8_t>&  out_config,
     std::vector<uint8_t>&  out_payload,
     bool                   check_expiry,
-    int                    expected_type)
+    int                    expected_type,
+    XpeConfigDoc*          out_config_doc)
 {
     try {
         if (path == nullptr) {
@@ -125,10 +195,14 @@ XpeErrorCode read_xcal_file(
         }
 
         // Check compression metadata
+        // The block is parsed ONCE here (QA-A-209c); the document goes to the caller when it asked for it.
+        XpeConfigDoc config_doc;
+        bool legacy_repaired = false;
         {
-            const XpeErrorCode mrc = parse_compression_meta(
-                config.empty() ? nullptr : config.data(),
-                config.size(),
+            const XpeErrorCode prc = parse_config_block_with_legacy(config, &config_doc, &legacy_repaired);
+            if (prc != XPE_OK) return prc;
+            const XpeErrorCode mrc = read_compression_meta(
+                config_doc,
                 is_compressed,
                 compression_method,
                 raw_payload_len);
@@ -237,6 +311,16 @@ XpeErrorCode read_xcal_file(
         out_header.payload_len = payload.size();
         out_config  = std::move(config);
         out_payload = std::move(payload);
+        if (out_config_doc != nullptr) *out_config_doc = std::move(config_doc);
+
+        // Raised only now that the whole file -- hash included -- has been accepted: a refused file is not reported
+        // as repaired. The text is a cross-lane contract (QA-A-209c): the GUI and tools may match on the prefix.
+        if (legacy_repaired) {
+            xpe_alert_push((std::string("XPE_WARN_XCAL_LEGACY_CONFIG: the config block of ") + path +
+                            " has the doubled closing brace of an older XCal writer and was read after a "
+                            "deterministic repair; regenerate the file with the current writer").c_str(),
+                           XPE_ALERT_WARNING);
+        }
         return XPE_OK;
 
     } catch (const std::bad_alloc&) {

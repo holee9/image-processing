@@ -104,6 +104,18 @@ typedef enum XCalPixelFormat {
  * metadata. A member name given twice at the top level -- any name -- refuses the block. The pair is all or nothing:
  * neither key means "uncompressed"; ONE key alone, a value that is not a bare unsigned integer, or a block that is not
  * a JSON object (white space only included) is XPE_ERR_CONFIG_INVALID. A block of length 0 is a file without a config.
+ *
+ * Files of the older writer (QA-A-209c). The writer of 90c1b6b1 and earlier, for a compressed DEFECT file (the only
+ * case that carries the pair) with a non-empty caller config, cut the caller's last '}' and appended the pair with its
+ * own closing brace plus another one, so the stored block ENDS "}}": {"mode":"x","xcal_compression":1,
+ * "xcal_raw_payload_len":N}} ; for a caller object with no members it made {,"xcal_compression":1,
+ * "xcal_raw_payload_len":N}} (a white-space-only caller object "{ }" kept its white space: "{ ,..."). A compressed
+ * file with NO caller config was always valid. Those two shapes -- and only those -- are repaired in memory when the
+ * strict parse fails (drop the extra '}', and for the second shape the comma), then parsed strictly again, so the
+ * duplicate / nested / pair rules apply to the repaired text. The file is accepted with an XPE_ALERT_WARNING whose text
+ * begins "XPE_WARN_XCAL_LEGACY_CONFIG:" and says to regenerate the file. The stored bytes are not changed, and the
+ * SHA-256 covers them (config || payload), so the repair does not weaken tamper detection: a file whose config bytes
+ * were altered fails the hash and is refused without the alert. Any other malformed block stays refused.
  */
 
 /* @MX:ANCHOR: [AUTO] XCalFileHeader -- canonical file format contract
