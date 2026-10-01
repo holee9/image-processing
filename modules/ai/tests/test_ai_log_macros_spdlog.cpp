@@ -14,6 +14,8 @@
 
 #include <spdlog/sinks/ostream_sink.h>
 
+#include "xpe/ai/ai_onnx_session.h"
+
 #include <atomic>
 #include <cstdlib>
 #include <memory>
@@ -27,12 +29,21 @@ namespace {
 // this executable, but the replacement is a plain malloc unless a test ARMS it, and a test arms it only
 // around the one call under test -- gtest's own allocations are never failed.
 std::atomic<long> g_allocsLeftBeforeFailure{-1};   // -1: disarmed; n >= 0: allocation number n+1 throws
+// When true only allocations made while a log call is in progress (ai_log.h's test seam) are counted and
+// failed; when false every allocation is (the first sweep test below).
+std::atomic<bool> g_failOnlyInsideLogCalls{false};
+thread_local int g_logCallDepth = 0;
 
 }  // namespace
 
+namespace xpe::ai::detail {
+void LogTestScope(int delta) noexcept { g_logCallDepth += delta; }
+}  // namespace xpe::ai::detail
+
 void* operator new(std::size_t n) {
+    const bool counted = !g_failOnlyInsideLogCalls.load(std::memory_order_relaxed) || g_logCallDepth > 0;
     long left = g_allocsLeftBeforeFailure.load(std::memory_order_relaxed);
-    while (left >= 0) {
+    while (counted && left >= 0) {
         if (left == 0) {
             g_allocsLeftBeforeFailure.store(-1, std::memory_order_relaxed);   // one failure per arming
             throw std::bad_alloc();
@@ -135,7 +146,8 @@ TEST(AiLogMacrosSpdlog, ACallIsOneStatementAfterAnUnbracedIf) {
 // The log call is inside extern "C" exports of the DLL and must never throw (QA-B-177 follow-up, #233's
 // hazard: bad_alloc leaving the C ABI skips the unwinding of the exporting function's locals under /EHsc).
 // Fail the 1st, 2nd, ... allocation made INSIDE the call, one at a time, until a call allocates fewer times
-// than that: every allocation point in formatting and in spdlog is covered, whatever their number.
+// than that. Scope: the allocation points observed through THIS executable's operator new in the synchronous
+// call with its in-process sink -- not every allocation of every sink (a file sink, the DLL's own allocator).
 TEST(AiLogMacrosSpdlog, NoAllocationFailureEscapesALogCall) {
     SpdlogCapture cap;
     const std::string longArg(2000, 'y');   // longer than any small-string buffer: formatting must allocate
@@ -166,4 +178,131 @@ TEST(AiLogMacrosSpdlog, NoAllocationFailureEscapesALogCall) {
     SpdlogCapture fresh;
     AI_LOG_INFO("after %d", 7);
     EXPECT_EQ("info|after 7\n", fresh.Text());
+}
+
+// ===== QA-B-177b (Codex #24 A1 + A2) =====================================================================
+
+// A2: the default logger is null after spdlog::shutdown() / drop_all() or set_default_logger(nullptr). A null
+// dereference is not an exception, so the catch in the log functions cannot stop it: the pointer must be
+// checked. Every entry point is called with no default logger, then the logger is restored and must work.
+TEST(AiLogMacrosSpdlog, AllEntryPointsTolerateANullDefaultLogger) {
+    SpdlogCapture cap;
+    auto restore = spdlog::default_logger();   // the capture's logger
+    spdlog::set_default_logger(nullptr);
+    ASSERT_EQ(nullptr, spdlog::default_logger_raw()) << "control: the default logger really is null now";
+    AI_LOG_TRACE("t %d", 1);
+    AI_LOG_DEBUG("d %d", 2);
+    AI_LOG_INFO("i %s", "x");
+    AI_LOG_WARN("w");
+    AI_LOG_ERROR("x");
+    AI_LOG_TEXT(spdlog::level::err, std::string("text ") + "100%s");
+    ::xpe::ai::detail::LogText(spdlog::level::info, "direct");
+    spdlog::set_default_logger(restore);   // the SpdlogCapture destructor restores the original afterwards
+    ASSERT_EQ(restore.get(), spdlog::default_logger_raw());
+    EXPECT_EQ("", cap.Text()) << "nothing may have been written while there was no logger";
+    AI_LOG_INFO("back %d", 1);
+    AI_LOG_TEXT(spdlog::level::warn, std::string("back ") + "again");
+    EXPECT_EQ("info|back 1\nwarning|back again\n", cap.Text());
+}
+
+// A1: a finished-string message is never reinterpreted as a printf format.
+TEST(AiLogMacrosSpdlog, LogTextKeepsPercentAndBracesAsData) {
+    SpdlogCapture cap;
+    AI_LOG_TEXT(spdlog::level::err, std::string("Model file not found: ") + "C:/m%s/%d/{x}/{}.onnx");
+    EXPECT_EQ("error|Model file not found: C:/m%s/%d/{x}/{}.onnx\n", cap.Text());
+}
+
+// A1: the same one-at-a-time allocation-failure sweep, for the finished-string entry point, including the
+// construction of its argument (the macro opens its guarded scope before the argument is evaluated).
+TEST(AiLogMacrosSpdlog, NoAllocationFailureEscapesALogTextCall) {
+    SpdlogCapture cap;
+    const std::string longPart(2000, 'z');
+    int injected = 0;
+    bool swept = false;
+    g_failOnlyInsideLogCalls.store(true);
+    for (long failAt = 0; failAt < 64; ++failAt) {
+        bool threw = false;
+        g_allocsLeftBeforeFailure.store(failAt);
+        try {
+            AI_LOG_TEXT(spdlog::level::err, std::string("session failed: ") + longPart);
+        } catch (...) {
+            threw = true;
+        }
+        const bool fired = g_allocsLeftBeforeFailure.load() == -1;
+        g_allocsLeftBeforeFailure.store(-1);
+        EXPECT_FALSE(threw) << "an allocation failure at in-log allocation #" << failAt + 1 << " escaped";
+        if (!fired) {
+            swept = true;
+            break;
+        }
+        ++injected;
+    }
+    g_failOnlyInsideLogCalls.store(false);
+    EXPECT_GE(injected, 1) << "control: nothing was injected";
+    EXPECT_TRUE(swept) << "control: the sweep never reached a call that allocated less";
+}
+
+// A1, end to end through the real code path: OnnxSession::Create with a model path that does not exist logs
+// its report (LOG_ERROR, ai_onnx_session.cpp) -- the path xpe_bone_suppress takes in-process. Fail the
+// allocations made INSIDE that log call, one at a time. Asserted per injection: no exception escapes, the
+// result is the ORIGINAL error (model not found) with its original message, and the next call still works.
+// Scope: allocations observed through this executable's operator new, in the synchronous log call, with this
+// executable's compilation of ai_onnx_session.cpp -- the DLL has its own allocator and is not injectable.
+TEST(AiLogMacrosSpdlog, ModelNotFoundReportSurvivesAnyAllocationFailureInItsLogCall) {
+    SpdlogCapture cap;
+    xpe::ai::OnnxSessionConfig cfg;
+    cfg.model_path = "C:/xpe_log_probe/does_not_exist/" + std::string(1500, 'p') + ".onnx";
+    const std::string expectedMessage = "Model file not found: " + cfg.model_path;
+    int injected = 0;
+    bool swept = false;
+    g_failOnlyInsideLogCalls.store(true);
+    for (long failAt = 0; failAt < 64; ++failAt) {
+        bool threw = false;
+        xpe::ai::OnnxErrorCode code = xpe::ai::OnnxErrorCode::kOk;
+        std::string message;
+        g_allocsLeftBeforeFailure.store(failAt);
+        try {
+            auto r = xpe::ai::OnnxSession::Create(cfg);
+            code = r.code;
+            message = r.message;
+        } catch (...) {
+            threw = true;
+        }
+        const bool fired = g_allocsLeftBeforeFailure.load() == -1;
+        g_allocsLeftBeforeFailure.store(-1);
+        EXPECT_FALSE(threw) << "in-log allocation #" << failAt + 1 << " failure escaped OnnxSession::Create";
+        EXPECT_EQ(xpe::ai::OnnxErrorCode::kInvalidModelPath, code) << "failAt=" << failAt;
+        EXPECT_EQ(expectedMessage, message) << "failAt=" << failAt;
+        if (!fired) {
+            swept = true;
+            break;
+        }
+        ++injected;
+    }
+    g_failOnlyInsideLogCalls.store(false);
+    EXPECT_GE(injected, 1) << "control: the log call made no allocation, nothing was injected";
+    EXPECT_TRUE(swept) << "control: the sweep never reached a call that allocated less";
+    // The next call still works and still logs (nothing was left locked or half-written).
+    SpdlogCapture fresh;
+    auto again = xpe::ai::OnnxSession::Create(cfg);
+    EXPECT_EQ(xpe::ai::OnnxErrorCode::kInvalidModelPath, again.code);
+    EXPECT_EQ("error|" + expectedMessage + "\n", fresh.Text());
+}
+
+// A1 + A2 together, through the real code path: with no default logger (after spdlog::shutdown/drop_all)
+// OnnxSession::Create still reports the original error. Calling spdlog directly from LOG_ERROR dereferences
+// the null logger here, which is how the pre-QA-B-177b code behaved.
+TEST(AiLogMacrosSpdlog, ModelNotFoundWithNoDefaultLoggerStillReturnsTheOriginalError) {
+    SpdlogCapture cap;
+    auto restore = spdlog::default_logger();
+    spdlog::set_default_logger(nullptr);
+    ASSERT_EQ(nullptr, spdlog::default_logger_raw()) << "control: the default logger really is null now";
+    xpe::ai::OnnxSessionConfig cfg;
+    cfg.model_path = "C:/xpe_log_probe/does_not_exist/m.onnx";
+    auto r = xpe::ai::OnnxSession::Create(cfg);
+    spdlog::set_default_logger(restore);
+    EXPECT_EQ(xpe::ai::OnnxErrorCode::kInvalidModelPath, r.code);
+    EXPECT_EQ("Model file not found: " + cfg.model_path, r.message);
+    EXPECT_EQ(nullptr, r.value.get());
+    EXPECT_EQ("", cap.Text()) << "nothing may have been written while there was no logger";
 }

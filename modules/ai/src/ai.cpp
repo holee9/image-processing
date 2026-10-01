@@ -445,6 +445,7 @@ static std::shared_ptr<spdlog::sinks::sink> g_testLogSink;
 
 extern "C" XPE_API void xpe_ai_test_set_log_capture(void (*cb)(int level, const char* message)) {
     auto logger = spdlog::default_logger();
+    if (!logger) return;   // no default logger (after shutdown/drop_all): nothing to attach to
     auto& sinks = logger->sinks();
     if (g_testLogSink) {
         sinks.erase(std::remove(sinks.begin(), sinks.end(), g_testLogSink), sinks.end());

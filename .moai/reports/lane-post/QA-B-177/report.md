@@ -81,7 +81,7 @@ lines: { "bone_suppress: worker path failed (%d), input returned unchanged (%u o
 `AI_LOG_*` 는 DLL 의 `extern "C"` 수출 함수 안에서 불린다. 서식 문자열과 spdlog 는 할당하므로 메모리 부족 시 `std::bad_alloc` 이 C ABI 밖으로 나가고, `/EHsc` 에서는 수출 함수 지역(lock_guard 등)이 풀리지 않는다(#233, pre 레인 실측).
 
 - `LogPrintf` 를 `noexcept` 로 하고 본문 전체를 `try { … } catch (...) {}` 로 감쌌다. noexcept 는 catch 가 있어야만 안전하다(던지면 terminate). 핸들러는 비어 있어 스스로 할당하지 않는다. 이유는 `ai_log.h` 주석에 있다.
-- 시험 `NoAllocationFailureEscapesALogCall`: 전역 `operator new` 를 시험 exe 안에서 교체해(평소엔 malloc 그대로, 시험이 호출 하나를 감쌀 때만 무장) **로그 호출 안의 1, 2, 3… 번째 할당을 하나씩 실패**시키며, 호출이 할당을 덜 할 때까지 훑는다. 모든 할당 지점이 대상이다. 대조: 실제로 주입이 일어났는지, 훑기가 끝까지 도달했는지, 실패 없는 호출이 뒤에 정상 기록되는지.
+- 시험 `NoAllocationFailureEscapesALogCall`: 전역 `operator new` 를 시험 exe 안에서 교체해(평소엔 malloc 그대로, 시험이 호출 하나를 감쌀 때만 무장) **로그 호출 안의 1, 2, 3… 번째 할당을 하나씩 실패**시키며, 호출이 할당을 덜 할 때까지 훑는다. 이 시험 exe 의 `operator new` 를 거쳐 동기 싱크에서 관측된 할당 지점이 대상이다(정정, QA-B-177b: 이전에는 "모든 할당 지점"이라 썼으나 파일 싱크나 DLL 자체 할당기는 범위 밖이다). 대조: 실제로 주입이 일어났는지, 훑기가 끝까지 도달했는지, 실패 없는 호출이 뒤에 정상 기록되는지.
 - 반증(`arm_log_without_swallow_run.txt`, BUILD=0): noexcept 와 catch 를 제거하면 `an allocation failure at allocation #1 escaped the log call` 로 빨강.
 - 시험 설계 중 틀린 것: 같은 캡처로 "실패 후 정상 기록"을 확인하려다 실패했다. 주입한 실패가 시험용 ostream 싱크를 망가뜨린 것이었고(제품이 아님), 새 캡처로 확인하도록 고쳤다.
 

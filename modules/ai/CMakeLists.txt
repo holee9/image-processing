@@ -531,6 +531,13 @@ if(_XPE_AI_BUILD_TESTS)
                 target_compile_definitions(xpe_ai_tests PRIVATE XPE_AI_TEST_LOG_CAPTURE=1)
             endif()
         endif()
+        # QA-B-177b: test seam in ai_log.h (exe only, never the DLL) so allocation failures can be injected
+        # strictly inside log calls.
+        target_compile_definitions(xpe_ai_tests PRIVATE XPE_AI_LOG_TEST_SCOPE=1)
+        if(TARGET spdlog::spdlog)
+            # the exe compiles ai_onnx_session.cpp itself; give it the DLL's logging configuration so its LOG_* are live
+            target_compile_definitions(xpe_ai_tests PRIVATE XPE_AI_USE_SPDLOG=1)
+        endif()
         # QA-B-177: the macro-level log tests compile ai_log.h's spdlog branch themselves and need spdlog.
         if(TARGET spdlog::spdlog)
             target_link_libraries(xpe_ai_tests PRIVATE spdlog::spdlog)

@@ -39,6 +39,24 @@
 #define XPE_AI_PRINTF_FORMAT
 #endif
 
+#ifdef XPE_AI_LOG_TEST_SCOPE
+// TEST SEAM (defined only for the xpe_ai_tests executable, never for the DLL): lets a test fail memory
+// allocations ONLY while a log call is in progress, so a sweep targets the logging code and not the
+// surrounding work. LogTestScope is defined by the test.
+namespace xpe::ai::detail {
+void LogTestScope(int delta) noexcept;
+struct LogScope {
+    LogScope() noexcept { LogTestScope(+1); }
+    ~LogScope() { LogTestScope(-1); }
+    LogScope(const LogScope&) = delete;
+    LogScope& operator=(const LogScope&) = delete;
+};
+}  // namespace xpe::ai::detail
+#define XPE_AI_LOG_SCOPE ::xpe::ai::detail::LogScope xpeAiLogScope_;
+#else
+#define XPE_AI_LOG_SCOPE
+#endif
+
 namespace xpe::ai::detail {
 
 /** vsnprintf into a std::string of exactly the needed size (no fixed buffer). */
@@ -69,9 +87,13 @@ inline std::string VFormat(const char* fmt, std::va_list ap) {
  * a noexcept function is std::terminate); the handler stays empty so it cannot allocate.
  */
 inline void LogPrintf(spdlog::level::level_enum level, XPE_AI_PRINTF_FORMAT const char* fmt, ...) noexcept {
+    XPE_AI_LOG_SCOPE
     try {
-        if (!spdlog::default_logger_raw()->should_log(level)) {
-            return;   // a disabled level costs no formatting
+        // The logger pointer is read ONCE and checked: it is null after spdlog::shutdown() / drop_all() or
+        // set_default_logger(nullptr), and a null dereference is not an exception the catch below can stop.
+        spdlog::logger* logger = spdlog::default_logger_raw();
+        if (logger == nullptr || !logger->should_log(level)) {
+            return;   // no logger, or a disabled level: no formatting cost
         }
         std::va_list ap;
         va_start(ap, fmt);
@@ -83,7 +105,29 @@ inline void LogPrintf(spdlog::level::level_enum level, XPE_AI_PRINTF_FORMAT cons
             throw;
         }
         va_end(ap);
-        spdlog::log(level, "{}", text);
+        logger->log(level, "{}", text);
+    } catch (...) {
+        // A log line is lost; the caller's work is not.
+    }
+}
+
+/**
+ * The entry point for a message that is ALREADY a finished string (ai_onnx_session.cpp builds its messages
+ * with std::string concatenation). It is never reinterpreted as a printf format, so a '%' in a path or an
+ * error text is data. Same guarantees as LogPrintf: null logger tolerated, never throws.
+ *
+ * CALL CONTRACT (spdlog's, not enforced here): replacing or dropping the default logger while another thread
+ * is logging is forbidden by spdlog itself. This header neither adds a lock nor fixes that; callers that
+ * swap the default logger (tests, an embedding host) must do it while no xpe_ai call is in flight.
+ */
+inline void LogText(spdlog::level::level_enum level, const std::string& text) noexcept {
+    XPE_AI_LOG_SCOPE
+    try {
+        spdlog::logger* logger = spdlog::default_logger_raw();
+        if (logger == nullptr || !logger->should_log(level)) {
+            return;
+        }
+        logger->log(level, "{}", text);
     } catch (...) {
         // A log line is lost; the caller's work is not.
     }
@@ -96,6 +140,10 @@ inline void LogPrintf(spdlog::level::level_enum level, XPE_AI_PRINTF_FORMAT cons
 #define AI_LOG_INFO(...)  ::xpe::ai::detail::LogPrintf(spdlog::level::info, __VA_ARGS__)
 #define AI_LOG_WARN(...)  ::xpe::ai::detail::LogPrintf(spdlog::level::warn, __VA_ARGS__)
 #define AI_LOG_ERROR(...) ::xpe::ai::detail::LogPrintf(spdlog::level::err, __VA_ARGS__)
+
+// A finished-string message (the argument is an expression that may itself allocate, e.g. a concatenation).
+// The whole statement is guarded, so building the argument cannot throw out either. One statement.
+#define AI_LOG_TEXT(level, msg) do { XPE_AI_LOG_SCOPE try { ::xpe::ai::detail::LogText((level), (msg)); } catch (...) {} } while (0)
 #else
 #include <cstdio>
 // One statement each (do/while), so a call is safe after an unbraced if.

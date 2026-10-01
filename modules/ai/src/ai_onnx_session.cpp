@@ -49,11 +49,13 @@
 #include <algorithm>
 
 // Optional dependencies
+#include "ai_log.h"
 #ifdef XPE_AI_USE_SPDLOG
-    #include <spdlog/spdlog.h>
-    #define LOG_INFO(msg) spdlog::info(msg)
-    #define LOG_WARN(msg) spdlog::warn(msg)
-    #define LOG_ERROR(msg) spdlog::error(msg)
+    // QA-B-177b: these run on the xpe_bone_suppress path (some inside catch bodies), so they go through the
+    // never-throwing, null-tolerant LogText instead of calling spdlog directly (Codex #24 A1).
+    #define LOG_INFO(msg) AI_LOG_TEXT(spdlog::level::info, msg)
+    #define LOG_WARN(msg) AI_LOG_TEXT(spdlog::level::warn, msg)
+    #define LOG_ERROR(msg) AI_LOG_TEXT(spdlog::level::err, msg)
 #else
     #define LOG_INFO(msg) ((void)0)
     #define LOG_WARN(msg) ((void)0)
