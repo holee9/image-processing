@@ -135,10 +135,13 @@ XPE_API XpeErrorCode xpe_log_set_level(int32_t level);
  * @brief Redirects log output to the specified file path.
  *
  * The file is opened in append mode. Pass NULL to revert to stderr.
- * If the file cannot be opened, the previous output destination is retained.
+ * If the file cannot be opened, the previous output destination is retained -- and so it is when the call
+ * fails for any other reason, including XPE_ERR_OUT_OF_MEMORY: the new logger is built completely before
+ * the previous one is released, so a failed call leaves later log lines going where they went before.
  *
  * @param filePath  UTF-8 file path, or NULL to use stderr.
- * @return XPE_OK, XPE_ERR_IO_FAILED (cannot open), XPE_ERR_INVALID_INPUT.
+ * @return XPE_OK, XPE_ERR_IO_FAILED (cannot open), XPE_ERR_INVALID_INPUT,
+ *         XPE_ERR_OUT_OF_MEMORY (an allocation failed; an allocation failure is never reported as an I/O failure).
  *
  * SRS: SRS-LOG-002
  */

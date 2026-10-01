@@ -1,0 +1,121 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomPipeline.*Calibration*:OomPipeline.SetsAAnd*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from OomPipeline
+[ RUN      ] OomPipeline.SetsAAndBDifferInEverythingTheDigestLooksAt
+[       OK ] OomPipeline.SetsAAndBDifferInEverythingTheDigestLooksAt (7 ms)
+[ RUN      ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 2096796940731821871
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline / gain.xcal missing
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 2096796940731821871
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline / gain.xcal corrupted (checksum)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 2096796940731821871
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline / gain.xcal with a malformed quality field
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 10727769294929646872
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline / defect.xcal missing
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 10727769294929646872
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline / defect.xcal expired
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 2096796940731821871
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline_batch / gain.xcal missing
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 2096796940731821871
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline_batch / gain.xcal corrupted (checksum)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 2096796940731821871
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline_batch / gain.xcal with a malformed quality field
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 10727769294929646872
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline_batch / defect.xcal missing
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1049): error: Expected equality of these values:
+  a
+    Which is: 542179726418600911
+  calibset::fullDigest()
+    Which is: 10727769294929646872
+a refused call must leave all three maps, their dimensions and the quality metadata as they were
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(1032): xpe_preprocess_pipeline_batch / defect.xcal expired
+
+[  FAILED  ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas (47 ms)
+[ RUN      ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(284): error: Value of: extraWhy.empty()
+  Actual: false
+Expected: true
+xpe_preprocess_pipeline: allocation #7 failed (rc -2): the store is not wholly set A: a failed call replaced part of it (set B beside set A)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(284): error: Value of: extraWhy.empty()
+  Actual: false
+Expected: true
+xpe_preprocess_pipeline_batch: allocation #7 failed (rc -2): the store is not wholly set A: a failed call replaced part of it (set B beside set A)
+
+[  FAILED  ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas (10 ms)
+[----------] 3 tests from OomPipeline (65 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (65 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+[  FAILED  ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+
+ 2 FAILED TESTS

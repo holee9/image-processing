@@ -580,6 +580,10 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
  *                  alpha2, tau2, tier2Threshold, nlcscBeta) is not one finite number in range (notation:
  *                  see xpe_preprocess_pipeline); no handle is handed back and nothing is left allocated
  *
+ * @note The handle holds the frame history twice (width*height floats, four planes in all): a frame writes
+ *       its new history into the second pair and the pairs are swapped only when the frame succeeded (see
+ *       xpe_ghost_correct). At 3072x3072 that is about 151 MB per handle.
+ *
  * @note SRS-CALIB-NFR-003: one handle may be shared by several threads. Calls to
  *       xpe_ghost_correct() and xpe_ghost_reset() on the same handle are serialised
  *       inside the handle (one mutex per handle), so no history update is lost.
@@ -606,7 +610,14 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
  * @param meta Image metadata (acquisitionTime used for IRF timing)
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT on NULL/invalid handle or dimension mismatch
- *         XPE_ERR_PROCESSING_FAILED on numerical errors
+ *         XPE_ERR_PROCESSING_FAILED on numerical errors (a non-finite pixel, a non-finite corrected value)
+ *
+ * @note A frame that fails leaves the handle exactly as it found it: the frame history, the time of the last
+ *       frame (so the next frame's time step is measured from the last frame that SUCCEEDED) and the
+ *       exposure estimate. Only a successful frame changes them. The pixels of `img` that were corrected
+ *       before the failure are not restored; a caller that needs the original keeps its own copy.
+ *       Before QA-A-202c a failure part-way through left the history of the pixels already processed
+ *       updated, and the next frame -- in a batch, one that carried on past the failure -- used it.
  */
 XPE_API XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
                                         const XpeImageMetadata* meta);
@@ -773,6 +784,11 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  *                  value -- an integer for an integer field, a finite number (decimal point and exponent
  *                  allowed) for a real field. "25 ", "2x", "+-1", "nan", "inf", hexadecimal and
  *                  out-of-range values are refused; an empty value is an absent one (the default).
+ *         Any error while the three calibration files are read (a missing, corrupt or expired file, a
+ *                  wrong type, a malformed quality field, an allocation failure) leaves the calibration
+ *                  store and the quality metadata exactly as the call found them: offset.xcal, gain.xcal
+ *                  and defect.xcal are read as a SET and replace the stored maps together, or not at all.
+ *                  Once the set has loaded it stays loaded even if processing the frame then fails.
  *         XPE_ERR_OUT_OF_MEMORY if an allocation fails; no exception leaves the function, the image
  *                  is untouched and the metadata is as it was
  *         XPE_ERR_* on failure

@@ -19,9 +19,9 @@
 #include <vector>
 #include <chrono>
 
-extern "C" XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath) {
+XpeErrorCode xpe_calib_stage_offset(const char* filepath, StagedOffset* out) noexcept {
     try {
-        if (filepath == nullptr) {
+        if (filepath == nullptr || out == nullptr) {
             return XPE_ERR_INVALID_INPUT;
         }
 
@@ -47,26 +47,50 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath) {
         // Allocate and copy pixel data
         // new[] rather than make_unique: the buffer is overwritten by the
         // memcpy below, so value-initialising it first is wasted work (QA-A-105).
-        std::unique_ptr<float[]> map(new float[static_cast<size_t>(hdr.width) * hdr.height]);
-        std::memcpy(map.get(), payload.data(), payload.size());
+        StagedOffset staged;
+        staged.map.reset(new float[static_cast<size_t>(hdr.width) * hdr.height]);
+        std::memcpy(staged.map.get(), payload.data(), payload.size());
+        staged.width     = hdr.width;
+        staged.height    = hdr.height;
+        staged.timestamp = hdr.created_epoch_ms;
+        staged.expiryMs  = hdr.expiry_epoch_ms;
 
-        // Commit under mutex (read-then-commit; no TOCTOU exposure)
-        {
-            std::lock_guard<std::mutex> lock(g_calib_mutex);
-            g_calib.offset_map    = std::move(map);
-            g_calib.offset_width  = hdr.width;
-            g_calib.offset_height = hdr.height;
-            g_calib.offset_timestamp = hdr.created_epoch_ms;
-            g_calib.offset_expiry_ms = hdr.expiry_epoch_ms;
+        // Session id (null-terminated, up to 63 chars)
+        std::memcpy(staged.sessionId, hdr.session_id,
+                    sizeof(hdr.session_id) < sizeof(staged.sessionId)
+                        ? sizeof(hdr.session_id)
+                        : sizeof(staged.sessionId) - 1);
 
-            // Copy session_id (null-terminated, up to 63 chars)
-            std::memset(g_calib.offset_session_id, 0, sizeof(g_calib.offset_session_id));
-            std::memcpy(g_calib.offset_session_id, hdr.session_id,
-                        sizeof(hdr.session_id) < sizeof(g_calib.offset_session_id)
-                            ? sizeof(hdr.session_id)
-                            : sizeof(g_calib.offset_session_id) - 1);
+        *out = std::move(staged);
+        return XPE_OK;
+
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+}
+
+void xpe_calib_commit_offset_locked(StagedOffset& staged) noexcept {
+    g_calib.offset_map       = std::move(staged.map);
+    g_calib.offset_width     = staged.width;
+    g_calib.offset_height    = staged.height;
+    g_calib.offset_timestamp = staged.timestamp;
+    g_calib.offset_expiry_ms = staged.expiryMs;
+    std::memcpy(g_calib.offset_session_id, staged.sessionId, sizeof(g_calib.offset_session_id));
+}
+
+extern "C" XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath) {
+    try {
+        StagedOffset staged;
+        const XpeErrorCode rc = xpe_calib_stage_offset(filepath, &staged);
+        if (rc != XPE_OK) {
+            return rc;
         }
 
+        // Commit under mutex (read-then-commit; no TOCTOU exposure)
+        std::lock_guard<std::mutex> lock(g_calib_mutex);
+        xpe_calib_commit_offset_locked(staged);
         return XPE_OK;
 
     } catch (const std::bad_alloc&) {

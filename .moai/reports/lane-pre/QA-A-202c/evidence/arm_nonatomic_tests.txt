@@ -1,0 +1,13 @@
+Note: Google Test filter = GhostFailedFrame.*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from GhostFailedFrame
+[ RUN      ] GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas
+[       OK ] GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas (0 ms)
+[ RUN      ] GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory
+[       OK ] GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory (1 ms)
+[----------] 2 tests from GhostFailedFrame (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (2 ms total)
+[  PASSED  ] 2 tests.

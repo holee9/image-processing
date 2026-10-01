@@ -21,12 +21,16 @@
 #include "xpe/common/xpe_common_api.h"
 #include "xpe/common/xpe_error.h"
 
+#include <spdlog/spdlog.h>
+
 #include <atomic>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <functional>
+#include <iterator>
 #include <new>
 #include <string>
 #include <vector>
@@ -153,6 +157,8 @@ protected:
         xpe_clear_alerts();
         xpe_shutdown();
         std::remove("oom_common_log_file_name_long.txt");
+        std::remove("oom_common_log_A_long_file_name.txt");
+        std::remove("oom_common_log_B_long_file_name.txt");
     }
 };
 
@@ -308,4 +314,53 @@ TEST_F(CommonOom, ALogFileThatRunsOutOfMemoryIsNotReportedAsAnIoFailure) {
               if (rc == XPE_OK) return {};
               return rc == XPE_ERR_OUT_OF_MEMORY ? std::string() : "an allocation failure must be XPE_ERR_OUT_OF_MEMORY";
           });
+}
+
+/* =========================================================================
+ * xpe_log_set_file: a switch that fails leaves the logger the caller had (QA-A-202c, Codex #27 B1)
+ * ========================================================================= */
+
+namespace {
+
+constexpr const char* kLogA = "oom_common_log_A_long_file_name.txt";
+constexpr const char* kLogB = "oom_common_log_B_long_file_name.txt";
+
+std::string readAll(const char* path) {
+    std::ifstream f(path, std::ios::binary);
+    return std::string((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+}
+
+}  // namespace
+
+TEST_F(CommonOom, ALogFileSwitchThatRunsOutOfMemoryKeepsWritingToThePreviousFile) {
+    ASSERT_EQ(XPE_OK, xpe_init(nullptr));
+    int probes = 0;
+    sweep("xpe_log_set_file (A to B)",
+          [] {
+              xpe_log_set_file(nullptr);
+              std::remove(kLogA);
+              std::remove(kLogB);
+              ASSERT_EQ(XPE_OK, xpe_log_set_file(kLogA));
+              auto lg = spdlog::default_logger();
+              ASSERT_TRUE(lg != nullptr);
+              lg->info("seed line");
+              lg->flush();
+          },
+          [] { return xpe_log_set_file(kLogB); },
+          [&probes](XpeErrorCode rc, bool) -> std::string {
+              const std::string marker = "probe-" + std::to_string(++probes);
+              auto lg = spdlog::default_logger();
+              if (!lg) return "there is no default logger after the call";
+              lg->info(marker);
+              lg->flush();
+              const bool inA = readAll(kLogA).find(marker) != std::string::npos;
+              const bool inB = readAll(kLogB).find(marker) != std::string::npos;
+              if (rc == XPE_OK) return (inB && !inA) ? std::string() : "the switch succeeded but the line did not land in B";
+              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure must be XPE_ERR_OUT_OF_MEMORY";
+              if (!inA) return "a failed switch lost the previous logger: a line written afterwards did not reach A";
+              if (inB) return "a failed switch half-installed B";
+              return {};
+          });
+    std::remove(kLogA);
+    std::remove(kLogB);
 }

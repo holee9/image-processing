@@ -59,6 +59,13 @@ struct GhostCorrectorHandle {
     std::vector<float> hist1; // fast IRF accumulator
     std::vector<float> hist2; // slow IRF accumulator
 
+    // QA-A-202c (#233): where a frame's NEW history is written. A frame reads hist1/hist2 and writes next1/next2;
+    // only when the whole frame succeeded are the two pairs swapped, so a frame that fails half way leaves the
+    // history the next frame sees exactly as it was. Allocated once with the handle (not per frame); it
+    // doubles the handle's memory (4 float planes instead of 2).
+    std::vector<float> next1;
+    std::vector<float> next2;
+
     double lastAcqTimeSec{0.0};
     double lastFrameMean{0.0}; // mean signal level for exposure weighting
 
@@ -350,6 +357,68 @@ struct CalibrationData {
 
 extern CalibrationData g_calib;
 extern std::mutex      g_calib_mutex;
+
+/* =========================================================================
+ * Staged calibration loads (QA-A-202c, #233 / Codex #27 A1)
+ *
+ * A plain loader reads and validates a file and then commits it to g_calib. The pipeline loads three files and
+ * must replace the calibration set as a whole or not at all, so each loader is split in two: a STAGE
+ * function that does everything that can fail (read, checksum, validate, allocate, parse) into a staged
+ * object and touches no global, and a COMMIT function that only moves the staged object into g_calib and
+ * cannot fail. xpe_calib_load_offset/gain/defect_map are stage + commit, unchanged for their callers; the
+ * pipeline stages all three first and commits them together under one lock.
+ * ========================================================================= */
+// The offset and defect maps are shared_ptr in the store, so they are shared_ptr here: converting a unique_ptr
+// to a shared_ptr allocates the control block, and a commit must not allocate.
+struct StagedOffset {
+    std::shared_ptr<float[]> map;
+    uint32_t width{0};
+    uint32_t height{0};
+    int64_t  timestamp{0};
+    int64_t  expiryMs{0};
+    char     sessionId[64]{};
+};
+
+struct StagedGain {
+    std::unique_ptr<float[]> map;      ///< the scalar plane, or the coefficient planes of a polynomial
+    bool     isPoly{false};
+    uint32_t numCoeffs{0};
+    uint32_t width{0};
+    uint32_t height{0};
+    int64_t  timestamp{0};
+    int64_t  expiryMs{0};
+    char     sessionId[64]{};
+    XpeCalibQualityMeta quality{};
+    bool     qualityFound{false};
+    // The polynomial's fitted dose range, as read from the file's config block (QA-A-123).
+    double   doseLo{-1.0};
+    double   doseHi{-1.0};
+    bool     rangePresent{false};
+    bool     rangeUsable{false};
+};
+
+struct StagedDefect {
+    std::shared_ptr<uint8_t[]> map;
+    uint32_t width{0};
+    uint32_t height{0};
+    int64_t  expiryMs{0};
+};
+
+/** Read, validate and allocate; changes no global. Never throws. */
+XpeErrorCode xpe_calib_stage_offset(const char* filepath, StagedOffset* out) noexcept;
+XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcept;
+XpeErrorCode xpe_calib_stage_defect(const char* filepath, StagedDefect* out) noexcept;
+
+/** Move a staged object into g_calib. The caller holds g_calib_mutex. Cannot fail. */
+void xpe_calib_commit_offset_locked(StagedOffset& staged) noexcept;
+void xpe_calib_commit_gain_locked(StagedGain& staged) noexcept;
+void xpe_calib_commit_defect_locked(StagedDefect& staged) noexcept;
+
+/**
+ * What follows a committed gain load, after g_calib_mutex was released: the FUNC-033 quality metadata becomes
+ * current, and the advisory alerts about a polynomial's dose range are raised. Neither can fail the load.
+ */
+void xpe_calib_after_gain_commit(const StagedGain& staged) noexcept;
 
 /**
  * Whether the calibration cache's list and index describe the same entries (every list node has its

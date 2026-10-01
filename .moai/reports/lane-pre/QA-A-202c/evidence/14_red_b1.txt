@@ -1,0 +1,22 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *SwitchThat*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from CommonOom
+[ RUN      ] CommonOom.ALogFileSwitchThatRunsOutOfMemoryKeepsWritingToThePreviousFile
+[XPE][INFO ] xpe_init: library initialised
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_oom_injection.cpp(101): error: Value of: why.empty()
+  Actual: false
+Expected: true
+xpe_log_set_file (A to B): allocation #1 failed, rc -2: there is no default logger after the call
+
+[  FAILED  ] CommonOom.ALogFileSwitchThatRunsOutOfMemoryKeepsWritingToThePreviousFile (1 ms)
+[----------] 1 test from CommonOom (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] CommonOom.ALogFileSwitchThatRunsOutOfMemoryKeepsWritingToThePreviousFile
+
+ 1 FAILED TEST

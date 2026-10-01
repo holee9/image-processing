@@ -32,6 +32,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <filesystem>
+#include <fstream>
 #include <cstdlib>
 #include <cstring>
 #include <functional>
@@ -634,6 +635,9 @@ void setup() {
     resetStore();
     xpe_calib_cache_clear();
     xpe_clear_alerts();
+    // Shutdown first: it clears every module global, including the quality metadata a gain load leaves in
+    // the module (resetStore() only empties the store), so each scenario starts from the same state.
+    xpe_preprocess_shutdown();
     xpe_preprocess_init(nullptr);
     xpe_calib_load_offset("oom_pipe_calib/offset.xcal");
     xpe_calib_load_gain("oom_pipe_calib/gain.xcal");
@@ -721,6 +725,7 @@ protected:
         xpe_preprocess_shutdown();
         std::error_code ec;
         std::filesystem::remove_all("oom_pipe_calib", ec);
+        std::filesystem::remove_all("oom_pipe_calibB", ec);
     }
 };
 
@@ -890,5 +895,183 @@ TEST_F(OomPipeline, AClaimSmallerThanTheFrameIsRefusedBeforeAnythingIsDone) {
                 EXPECT_EQ(0u, f.meta.flags) << "a refused call must not touch the metadata";
             }
         }
+    }
+}
+
+/* =========================================================================
+ * The calibration set is replaced as a whole or not at all (QA-A-202c, Codex #27 A1)
+ * ========================================================================= */
+
+// The pipeline read offset.xcal, gain.xcal and defect.xcal into the global store one after the other, so a
+// failure in the second or third left the new first map beside the old others. The earlier OomPipeline tests
+// reloaded the SAME files that were already in the store, so a half-replaced store looked like the original
+// -- they could not see this. Here the store holds set A and the pipeline is pointed at set B, whose maps,
+// gain quality metadata and file contents differ from A's in everything the digest looks at.
+
+namespace calibset {
+
+constexpr const char* kDirB = "oom_pipe_calibB";
+
+/** Everything the three loads put into the store, plus the module's quality metadata. */
+uint64_t fullDigest() {
+    uint64_t h;
+    {
+        std::lock_guard<std::mutex> lk(g_calib_mutex);
+        h = 1469598103934665603ull;
+        auto mix = [&h](const void* p, size_t n) {
+            const auto* b = static_cast<const unsigned char*>(p);
+            for (size_t i = 0; i < n; ++i) { h ^= b[i]; h *= 1099511628211ull; }
+        };
+        mix(&g_calib.offset_width, sizeof g_calib.offset_width);
+        mix(&g_calib.offset_height, sizeof g_calib.offset_height);
+        mix(&g_calib.offset_timestamp, sizeof g_calib.offset_timestamp);
+        mix(&g_calib.offset_expiry_ms, sizeof g_calib.offset_expiry_ms);
+        mix(g_calib.offset_session_id, sizeof g_calib.offset_session_id);
+        mix(&g_calib.gain_width, sizeof g_calib.gain_width);
+        mix(&g_calib.gain_height, sizeof g_calib.gain_height);
+        mix(&g_calib.gain_timestamp, sizeof g_calib.gain_timestamp);
+        mix(&g_calib.gain_expiry_ms, sizeof g_calib.gain_expiry_ms);
+        mix(g_calib.gain_session_id, sizeof g_calib.gain_session_id);
+        mix(&g_calib.gain_has_quality, sizeof g_calib.gain_has_quality);
+        mix(&g_calib.gain_quality.r_squared, sizeof g_calib.gain_quality.r_squared);
+        mix(&g_calib.gain_poly_num_coeffs, sizeof g_calib.gain_poly_num_coeffs);
+        mix(&g_calib.defect_width, sizeof g_calib.defect_width);
+        mix(&g_calib.defect_height, sizeof g_calib.defect_height);
+        mix(&g_calib.defect_expiry_ms, sizeof g_calib.defect_expiry_ms);
+        if (g_calib.offset_map) mix(g_calib.offset_map.get(), N * sizeof(float));
+        if (g_calib.gain_map) mix(g_calib.gain_map.get(), N * sizeof(float));
+        if (g_calib.defect_map) mix(g_calib.defect_map.get(), N);
+    }
+    XpeCalibQualityMeta q{};
+    xpe_calib_get_quality_meta(&q);
+    auto mixq = [&h](const void* p, size_t n) {
+        const auto* b = static_cast<const unsigned char*>(p);
+        for (size_t i = 0; i < n; ++i) { h ^= b[i]; h *= 1099511628211ull; }
+    };
+    mixq(&q.r_squared, sizeof q.r_squared);
+    mixq(&q.previous_r_squared, sizeof q.previous_r_squared);
+    mixq(&q.polynomial_degree, 1);
+    mixq(&q.num_points, 1);
+    mixq(&q.calibration_mode, 1);
+    mixq(&q.calibration_pass, 1);
+    return h;
+}
+
+const char* const kBGainJson =
+    "{\"fit_r_squared\":\"0.97\",\"polynomial_degree\":\"2\",\"actual_dose_levels\":\"4\",\"calibration_mode\":\"3\"}";
+
+void writeDefectFile(const char* path, bool flagged, int64_t expiryMs) {
+    std::vector<uint8_t> m(N, 0);
+    if (flagged) m[5] = 1;
+    writeFile(path, XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, m.data(), m.size(), "{}", expiryMs);
+}
+
+/** Set B: different maps and different gain metadata from set A (offset 100 / gain 2 / defect flagged). */
+void writeSetB(const std::string& gainJson = kBGainJson) {
+    std::filesystem::create_directories(kDirB);
+    writeOffset("oom_pipe_calibB/offset.xcal", 300.0f);
+    writeGain("oom_pipe_calibB/gain.xcal", 4.0f, gainJson);
+    writeDefectFile("oom_pipe_calibB/defect.xcal", false, 0);
+}
+
+/** The digest the store has after set B has been loaded on its own -- what a successful call must leave. */
+uint64_t digestOfB() {
+    pipe::setup();
+    EXPECT_EQ(XPE_OK, xpe_calib_load_offset("oom_pipe_calibB/offset.xcal"));
+    EXPECT_EQ(XPE_OK, xpe_calib_load_gain("oom_pipe_calibB/gain.xcal"));
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_map("oom_pipe_calibB/defect.xcal"));
+    return fullDigest();
+}
+
+/** The store as set A left it. */
+uint64_t digestOfA() {
+    pipe::setup();
+    return fullDigest();
+}
+
+using Run = std::function<XpeErrorCode()>;
+
+/** Entry points that read the three files from a directory: the single frame call and the batch. */
+std::vector<std::pair<const char*, Run>> byDirectory() {
+    return {
+        {"xpe_preprocess_pipeline",
+         [] { return xpe_preprocess_pipeline(&pipe::g_img[0], &pipe::g_meta[0], calibset::kDirB, nullptr, pipe::kConfig); }},
+        {"xpe_preprocess_pipeline_batch",
+         [] {
+             XpeImageBuffer img = pipe::g_img[0];
+             XpeImageMetadata meta = pipe::g_meta[0];
+             return xpe_preprocess_pipeline_batch(&img, 1, &meta, calibset::kDirB, nullptr, pipe::kConfig);
+         }},
+    };
+}
+
+}  // namespace calibset
+
+TEST_F(OomPipeline, SetsAAndBDifferInEverythingTheDigestLooksAt) {
+    calibset::writeSetB();
+    const uint64_t a = calibset::digestOfA();
+    const uint64_t b = calibset::digestOfB();
+    EXPECT_NE(a, b) << "control: the two sets are distinguishable, so a half-replaced store is too";
+    EXPECT_EQ(a, calibset::digestOfA()) << "control: the digest of an untouched store is stable";
+}
+
+TEST_F(OomPipeline, AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas) {
+    struct Case { const char* name; std::function<void()> damage; };
+    const Case cases[] = {
+        {"gain.xcal missing", [] { std::remove("oom_pipe_calibB/gain.xcal"); }},
+        {"gain.xcal corrupted (checksum)", [] {
+             std::fstream f("oom_pipe_calibB/gain.xcal", std::ios::in | std::ios::out | std::ios::binary);
+             f.seekg(-1, std::ios::end); char c = 0; f.read(&c, 1); c = static_cast<char>(c ^ 0x5A);
+             f.seekp(-1, std::ios::end); f.write(&c, 1); }},
+        {"gain.xcal with a malformed quality field", [] { calibset::writeSetB("{\"fit_r_squared\":\"abc\"}"); }},
+        {"defect.xcal missing", [] { std::remove("oom_pipe_calibB/defect.xcal"); }},
+        {"defect.xcal expired", [] { calibset::writeDefectFile("oom_pipe_calibB/defect.xcal", false, 1); }},
+    };
+    for (const auto& entry : calibset::byDirectory()) {
+        for (const Case& c : cases) {
+            SCOPED_TRACE(std::string(entry.first) + " / " + c.name);
+            calibset::writeSetB();
+            const uint64_t a = calibset::digestOfA();
+            const uint64_t b = calibset::digestOfB();
+            ASSERT_NE(a, b);
+
+            // Control: with set B intact the call succeeds and the store becomes B, all of it.
+            pipe::setup();
+            ASSERT_EQ(XPE_OK, entry.second()) << "control: set B loads through the pipeline";
+            ASSERT_EQ(b, calibset::fullDigest()) << "control: a successful call leaves exactly set B";
+
+            // The damage, then the same call on a store holding set A.
+            c.damage();
+            pipe::setup();
+            ASSERT_EQ(a, calibset::fullDigest());
+            const XpeErrorCode rc = entry.second();
+            EXPECT_NE(XPE_OK, rc) << "the damaged set must be refused";
+            EXPECT_EQ(a, calibset::fullDigest())
+                << "a refused call must leave all three maps, their dimensions and the quality metadata as they were";
+        }
+    }
+}
+
+TEST_F(OomPipeline, AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas) {
+    calibset::writeSetB();
+    const uint64_t a = calibset::digestOfA();
+    const uint64_t b = calibset::digestOfB();
+    ASSERT_NE(a, b);
+    for (const auto& entry : calibset::byDirectory()) {
+        // The store is wholly set A or wholly set B after every call -- never a mixture. It is A while the
+        // set is still being read (nothing is committed before all three files were staged) and B once the
+        // set has loaded, even if a later stage then runs out of memory (the loads succeeded; that is not
+        // undone, exactly as for xpe_calib_load_* followed by a correction call). The allocation order is
+        // fixed, so as the failing allocation moves later the store goes from A to B once and stays there.
+        auto seenB = std::make_shared<bool>(false);
+        sweep(entry.first, pipe::setup, entry.second, false, [a, b, seenB](XpeErrorCode rc) -> std::string {
+            const uint64_t now = calibset::fullDigest();
+            if (rc == XPE_OK) return now == b ? std::string() : "the call succeeded but the store is not set B";
+            if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure must be XPE_ERR_OUT_OF_MEMORY";
+            if (now == b) { *seenB = true; return {}; }
+            if (now != a) return "the store is neither set A nor set B: a failed load replaced part of it";
+            return *seenB ? "the store went back to set A after it had already become set B" : std::string();
+        });
+        EXPECT_TRUE(*seenB) << entry.first << ": control: some failing allocation lands after the set was committed";
     }
 }

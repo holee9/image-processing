@@ -21,9 +21,9 @@
 #include <string>
 #include <vector>
 
-extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
+XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcept {
     try {
-        if (filepath == nullptr) {
+        if (filepath == nullptr || out == nullptr) {
             return XPE_ERR_INVALID_INPUT;
         }
 
@@ -93,7 +93,6 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
         // is loaded clears the other, so a scalar map left over from an earlier
         // file is never applied to frames the operator calibrated with a
         // polynomial (SRS-CALIB-SAFE-003: no partial / mixed calibration).
-        const bool poly_loaded = is_poly;
 
         // Everything that allocates, and so can throw, is done HERE, before the commit below. The
         // commit only moves pointers and copies plain values, and nothing after it may throw: a
@@ -123,42 +122,71 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
             usable  = present && (hi_a > lo_a);
         }
 
-        // Commit under mutex. The two gain models are alternatives: whichever
-        // is loaded clears the other, so a scalar map left over from an earlier
-        // file is never applied to frames the operator calibrated with a
-        // polynomial (SRS-CALIB-SAFE-003: no partial / mixed calibration).
-        {
-            std::lock_guard<std::mutex> lock(g_calib_mutex);
-            if (is_poly) {
-                g_calib.gain_poly_coeffs     = std::move(map);
-                g_calib.gain_poly_num_coeffs = static_cast<uint32_t>(num_coeffs);
-                g_calib.gain_map.reset();
-            } else {
-                g_calib.gain_map = std::move(map);
-                g_calib.gain_poly_coeffs.reset();
-                g_calib.gain_poly_num_coeffs = 0;
-            }
-            // The range belongs to whichever polynomial is current; setting it on every load keeps
-            // a previous file's bounds from surviving into the next one (QA-A-123, #194).
-            g_calib.gain_poly_has_range = (is_poly && usable);
-            g_calib.gain_poly_dose_min  = (is_poly && usable) ? lo_a : 0.0;
-            g_calib.gain_poly_dose_max  = (is_poly && usable) ? hi_a : 0.0;
-            g_calib.gain_width  = hdr.width;
-            g_calib.gain_height = hdr.height;
-            g_calib.gain_timestamp = hdr.created_epoch_ms;
-            g_calib.gain_expiry_ms = hdr.expiry_epoch_ms;
-            g_calib.gain_quality     = quality;
-            g_calib.gain_has_quality = quality_found;
+        StagedGain staged;
+        staged.map          = std::move(map);
+        staged.isPoly       = is_poly;
+        staged.numCoeffs    = static_cast<uint32_t>(num_coeffs);
+        staged.width        = hdr.width;
+        staged.height       = hdr.height;
+        staged.timestamp    = hdr.created_epoch_ms;
+        staged.expiryMs     = hdr.expiry_epoch_ms;
+        staged.quality      = quality;
+        staged.qualityFound = quality_found;
+        staged.doseLo       = lo_a;
+        staged.doseHi       = hi_a;
+        staged.rangePresent = present;
+        staged.rangeUsable  = usable;
+        std::memcpy(staged.sessionId, hdr.session_id,
+                    sizeof(hdr.session_id) < sizeof(staged.sessionId)
+                        ? sizeof(hdr.session_id)
+                        : sizeof(staged.sessionId) - 1);
 
-            std::memset(g_calib.gain_session_id, 0, sizeof(g_calib.gain_session_id));
-            std::memcpy(g_calib.gain_session_id, hdr.session_id,
-                        sizeof(hdr.session_id) < sizeof(g_calib.gain_session_id)
-                            ? sizeof(hdr.session_id)
-                            : sizeof(g_calib.gain_session_id) - 1);
-        }
+        *out = std::move(staged);
+        return XPE_OK;
 
-        // Committed from here on; nothing below may fail the load. The metadata copy cannot throw.
-        if (quality_found) xpe_calib_commit_quality_meta(quality);
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+}
+
+// The two gain models are alternatives: whichever is loaded clears the other, so a scalar map left over from
+// an earlier file is never applied to frames the operator calibrated with a polynomial (SRS-CALIB-SAFE-003:
+// no partial / mixed calibration).
+void xpe_calib_commit_gain_locked(StagedGain& staged) noexcept {
+    if (staged.isPoly) {
+        g_calib.gain_poly_coeffs     = std::move(staged.map);
+        g_calib.gain_poly_num_coeffs = staged.numCoeffs;
+        g_calib.gain_map.reset();
+    } else {
+        g_calib.gain_map = std::move(staged.map);
+        g_calib.gain_poly_coeffs.reset();
+        g_calib.gain_poly_num_coeffs = 0;
+    }
+    // The range belongs to whichever polynomial is current; setting it on every load keeps
+    // a previous file's bounds from surviving into the next one (QA-A-123, #194).
+    g_calib.gain_poly_has_range = (staged.isPoly && staged.rangeUsable);
+    g_calib.gain_poly_dose_min  = (staged.isPoly && staged.rangeUsable) ? staged.doseLo : 0.0;
+    g_calib.gain_poly_dose_max  = (staged.isPoly && staged.rangeUsable) ? staged.doseHi : 0.0;
+    g_calib.gain_width       = staged.width;
+    g_calib.gain_height      = staged.height;
+    g_calib.gain_timestamp   = staged.timestamp;
+    g_calib.gain_expiry_ms   = staged.expiryMs;
+    g_calib.gain_quality     = staged.quality;
+    g_calib.gain_has_quality = staged.qualityFound;
+    std::memcpy(g_calib.gain_session_id, staged.sessionId, sizeof(g_calib.gain_session_id));
+}
+
+void xpe_calib_after_gain_commit(const StagedGain& staged) noexcept {
+    // Committed from here on; nothing below may fail the load. The metadata copy cannot throw.
+    if (staged.qualityFound) xpe_calib_commit_quality_meta(staged.quality);
+
+    const bool poly_loaded = staged.isPoly;
+    const bool usable      = staged.rangeUsable;
+    const bool present     = staged.rangePresent;
+    const double lo_a      = staged.doseLo;
+    const double hi_a      = staged.doseHi;
 
         // The alerts are advisory: raising one allocates, and an allocation failure there must not
         // turn a load that has succeeded and been committed into an error.
@@ -257,13 +285,21 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
             // The warning is lost under memory pressure; the calibration itself is loaded.
         }
 
-        // QA-A-107 (#187) raised a warning here saying the coefficients were
-        // loaded but nothing applied them. QA-A-121 made xpe_gain_correct()
-        // apply them, so that sentence became false and the warning is gone --
-        // a standing alert that no longer describes the system trains operators
-        // to ignore the queue.
-        (void)poly_loaded;
+}
 
+extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
+    try {
+        StagedGain staged;
+        const XpeErrorCode rc = xpe_calib_stage_gain(filepath, &staged);
+        if (rc != XPE_OK) {
+            return rc;
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(g_calib_mutex);
+            xpe_calib_commit_gain_locked(staged);
+        }
+        xpe_calib_after_gain_commit(staged);
         return XPE_OK;
 
     } catch (const std::bad_alloc&) {

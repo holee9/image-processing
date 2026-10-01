@@ -332,6 +332,43 @@ namespace {
 
 } // anonymous namespace
 
+/**
+ * Loads offset.xcal, gain.xcal and defect.xcal from `calibPath` as a SET: all three are read, validated and
+ * allocated first (nothing global is touched), and only when every one succeeded are they committed to the
+ * store, together, under one lock (QA-A-202c, #233 / Codex #27 A1). Any failure -- a missing or corrupt file,
+ * an expired one, a wrong type, a malformed quality field, an allocation failure -- leaves the calibration
+ * store, the quality metadata and the alerts exactly as the call found them. The three individual loaders
+ * (xpe_calib_load_offset / _gain / _defect_map) are unchanged: each is its own stage + commit.
+ */
+static XpeErrorCode load_calibration_set(const char* calibPath)
+{
+    char offsetPath[512] = {0};
+    char gainPath[512] = {0};
+    char defectPath[512] = {0};
+    std::snprintf(offsetPath, sizeof(offsetPath), "%s/offset.xcal", calibPath);
+    std::snprintf(gainPath, sizeof(gainPath), "%s/gain.xcal", calibPath);
+    std::snprintf(defectPath, sizeof(defectPath), "%s/defect.xcal", calibPath);
+
+    StagedOffset offset;
+    StagedGain gain;
+    StagedDefect defect;
+    XpeErrorCode rc = xpe_calib_stage_offset(offsetPath, &offset);
+    if (rc != XPE_OK) return rc;
+    rc = xpe_calib_stage_gain(gainPath, &gain);
+    if (rc != XPE_OK) return rc;
+    rc = xpe_calib_stage_defect(defectPath, &defect);
+    if (rc != XPE_OK) return rc;
+
+    {
+        std::lock_guard<std::mutex> lock(g_calib_mutex);
+        xpe_calib_commit_offset_locked(offset);
+        xpe_calib_commit_gain_locked(gain);
+        xpe_calib_commit_defect_locked(defect);
+    }
+    xpe_calib_after_gain_commit(gain);
+    return XPE_OK;
+}
+
 // @MX:WARN: [AUTO] Re-reads the three calibration files on every call (about
 // 475 ms at 3072x3072). The per-frame path is xpe_calib_state_load() once plus
 // xpe_preprocess_pipeline_ex() per frame -- see the header (QA-A-105, #179).
@@ -354,25 +391,10 @@ static XpeErrorCode pipeline_impl(XpeImageBuffer* img,
     const XpeErrorCode cfgRc = PipelineConfig::fromJson(configJsonOrNull, &cfg);
     if (cfgRc != XPE_OK) return cfgRc;
 
-    // Load calibration maps to g_calib (global calibration state)
+    // Load the calibration set (all three files, or none -- see load_calibration_set)
     if (calibPath) {
-        // Load offset calibration (1-arg: populates g_calib internally)
-        char offsetPath[512] = {0};
-        std::snprintf(offsetPath, sizeof(offsetPath), "%s/offset.xcal", calibPath);
-        XpeErrorCode rc = xpe_calib_load_offset(offsetPath);
-        if (rc != XPE_OK) return rc;
-
-        // Load gain calibration (1-arg: populates g_calib internally)
-        char gainPath[512] = {0};
-        std::snprintf(gainPath, sizeof(gainPath), "%s/gain.xcal", calibPath);
-        rc = xpe_calib_load_gain(gainPath);
-        if (rc != XPE_OK) return rc;
-
-        // Load defect calibration (1-arg: populates g_calib internally)
-        char defectPath[512] = {0};
-        std::snprintf(defectPath, sizeof(defectPath), "%s/defect.xcal", calibPath);
-        rc = xpe_calib_load_defect_map(defectPath);
-        if (rc != XPE_OK) return rc;
+        const XpeErrorCode loadRc = load_calibration_set(calibPath);
+        if (loadRc != XPE_OK) return loadRc;
     }
 
     // Execute pipeline core (g_calib is now populated)
@@ -487,22 +509,10 @@ static XpeErrorCode pipeline_batch_impl(
     const XpeErrorCode cfgRc = PipelineConfig::fromJson(configJsonOrNull, &cfg);
     if (cfgRc != XPE_OK) return cfgRc;
 
-    // Load calibration once (to g_calib, 1-arg: populates g_calib internally)
+    // Load the calibration set once (all three files, or none -- see load_calibration_set)
     if (calibPath) {
-        char offsetPath[512] = {0};
-        std::snprintf(offsetPath, sizeof(offsetPath), "%s/offset.xcal", calibPath);
-        XpeErrorCode rc = xpe_calib_load_offset(offsetPath);
-        if (rc != XPE_OK) return rc;
-
-        char gainPath[512] = {0};
-        std::snprintf(gainPath, sizeof(gainPath), "%s/gain.xcal", calibPath);
-        rc = xpe_calib_load_gain(gainPath);
-        if (rc != XPE_OK) return rc;
-
-        char defectPath[512] = {0};
-        std::snprintf(defectPath, sizeof(defectPath), "%s/defect.xcal", calibPath);
-        rc = xpe_calib_load_defect_map(defectPath);
-        if (rc != XPE_OK) return rc;
+        const XpeErrorCode loadRc = load_calibration_set(calibPath);
+        if (loadRc != XPE_OK) return loadRc;
     }
 
     // Process each image with graceful degradation:
