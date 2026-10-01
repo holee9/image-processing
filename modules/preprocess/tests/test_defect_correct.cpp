@@ -1,7 +1,15 @@
 /**
  * @file test_defect_correct.cpp
  * @brief TDD RED tests for SWU-1.3:
- *        xpe_defect_correct, xpe_defect_detect_runtime (REQ-P1A-024 to REQ-P1A-028)
+ *        xpe_defect_correct, xpe_defect_detect_runtime (REQ-P1A-012, REQ-P1A-013)
+ *
+ * QA-A-149 (#211): the per-case REQ labels below were relabelled from what each
+ * case actually asserts, NOT by renumbering. They did not match the old text
+ * either -- old 024 was "replace bad pixels by interpolation" yet labelled the
+ * no-defect case, old 025 was interpolation-mode selection yet labelled the
+ * single-defect case, and old 027 was runtime detection yet labelled a NULL
+ * argument case. Old 028 (set XPE_FLAG_DEFECT_CORRECTED) has no current
+ * requirement and is reported, not silently remapped.
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  *
  * #117 decision B (QA-A-20): the defect map is not a parameter. It is loaded
@@ -89,7 +97,121 @@ protected:
     }
 };
 
-// REQ-P1A-024: no defects -> pixels unchanged
+/* ---------------------------------------------------------------------------
+ * QA-A-146 (#209): in-place is a supported call shape, and it must give the
+ * SAME answer as the out-of-place one.
+ *
+ * WHY THIS PAIR AND NOT A SINGLE TEST. The function keeps an uncorrected
+ * snapshot so a neighbour read never sees an already-corrected pixel. Reading
+ * the input directly is enough for that -- the input is never written --
+ * UNLESS the caller passed one buffer for both, which two call sites do
+ * (test_integration.cpp:100, :131). The snapshot is therefore taken only when
+ * the buffers overlap, and these two tests are what makes that branch
+ * checkable: same input, two call shapes, identical output.
+ *
+ * A test that only ran the in-place case and asserted "rc == XPE_OK" would
+ * pass against a version that skipped the snapshot and produced order-
+ * dependent values, because nothing would compare them to anything. The
+ * out-of-place run is the independently derived answer.
+ *
+ * The defects are adjacent so both the 4-neighbour mean and the 3x3 median
+ * path run; a single isolated defect would leave the cluster path untested.
+ * ------------------------------------------------------------------------- */
+TEST_F(DefectCorrectTest, InPlaceMatchesOutOfPlace) {
+    // A cluster (two adjacent) plus an isolated defect, all interior.
+    defectPixels[5 * W + 5] = 1;
+    defectPixels[5 * W + 6] = 1;
+    defectPixels[9 * W + 9] = 1;
+    // A solid 3x3 block: its centre has no valid 4-neighbour, so the r=1..3
+    // ring fallback in xpe_interpolate_pixel runs -- the widest read radius
+    // this function has, and the one most likely to reach a written pixel.
+    for (uint32_t dy = 0; dy < 3; ++dy)
+        for (uint32_t dx = 0; dx < 3; ++dx)
+            defectPixels[(20 + dy) * W + (20 + dx)] = 1;
+    for (uint32_t i = 0; i < W * H; ++i) {
+        imgPixels[i] = 1000.0f + static_cast<float>(i % 37);
+    }
+    loadDefectMap();
+
+    // Out-of-place: distinct buffers.
+    ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &output, &metadata));
+    const std::vector<float> expected = outPixels;
+
+    // In-place: one buffer for both, the shape test_integration.cpp uses.
+    std::vector<float> both = imgPixels;
+    XpeImageBuffer buf = img;
+    buf.data     = both.data();
+    buf.dataSize = both.size() * sizeof(float);
+    ASSERT_EQ(XPE_OK, xpe_defect_correct(&buf, &buf, &metadata));
+
+    for (size_t i = 0; i < both.size(); ++i) {
+        ASSERT_EQ(expected[i], both[i])
+            << "in-place and out-of-place diverged at index " << i
+            << " (" << expected[i] << " vs " << both[i] << ")";
+    }
+}
+
+/** CONTROL for the branch: the out-of-place path, which now SKIPS the
+ *  snapshot, still corrects. Without this, deleting the correction entirely
+ *  would leave the pair above passing -- both shapes would be equally wrong. */
+TEST_F(DefectCorrectTest, OutOfPlaceStillCorrectsWithoutTheSnapshot) {
+    defectPixels[7 * W + 7] = 1;
+    for (uint32_t i = 0; i < W * H; ++i) {
+        imgPixels[i] = 1000.0f + static_cast<float>(i % 37);
+    }
+    // The defect reads as a STUCK pixel, not as another ramp sample. With the
+    // ramp value in place the 4-neighbour mean happens to equal the centre
+    // (1009 either way), so "the value changed" could not distinguish a
+    // correction from a plain copy -- the first version of this test asserted
+    // exactly that and failed for that reason.
+    imgPixels[7 * W + 7] = 5.0f;
+    loadDefectMap();
+
+    ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &output, &metadata));
+    const auto* out = static_cast<const float*>(output.data);
+
+    // The defect's own value must have been replaced by its neighbours' mean,
+    // computed here from the INPUT rather than by re-running the kernel.
+    const float mean = (imgPixels[7 * W + 6] + imgPixels[7 * W + 8] +
+                        imgPixels[6 * W + 7] + imgPixels[8 * W + 7]) / 4.0f;
+    EXPECT_FLOAT_EQ(mean, out[7 * W + 7]);
+    EXPECT_NE(imgPixels[7 * W + 7], out[7 * W + 7]) << "the defect was not corrected";
+}
+
+/** QA-A-146c (#209): the aliasing contract admits exactly two shapes --
+ *  identical buffers, or fully disjoint ones. A PARTIAL overlap is refused
+ *  before anything is written.
+ *
+ *  Not because it is known to produce a wrong answer, but because no caller
+ *  does it and nothing measures whether it would be right; an error code
+ *  makes the violation observable instead of letting it run into UB in
+ *  silence. This test is what keeps the refusal from being dead code. */
+TEST_F(DefectCorrectTest, PartiallyOverlappingBuffersAreRefused) {
+    defectPixels[7 * W + 7] = 1;
+    loadDefectMap();
+
+    // One allocation, two windows into it offset by a single pixel.
+    std::vector<float> shared(W * H + 1, 1000.0f);
+    XpeImageBuffer in = img;
+    in.data     = shared.data();
+    in.dataSize = W * H * sizeof(float);
+    XpeImageBuffer out = output;
+    out.data     = shared.data() + 1;   // overlaps `in` everywhere but one end
+    out.dataSize = W * H * sizeof(float);
+
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_defect_correct(&in, &out, &metadata));
+
+    // The two admitted shapes still pass, so the check is not simply refusing
+    // everything -- the control for the refusal above.
+    EXPECT_EQ(XPE_OK, xpe_defect_correct(&img, &output, &metadata));
+    std::vector<float> same = imgPixels;
+    XpeImageBuffer buf = img;
+    buf.data     = same.data();
+    buf.dataSize = same.size() * sizeof(float);
+    EXPECT_EQ(XPE_OK, xpe_defect_correct(&buf, &buf, &metadata));
+}
+
+// REQ-P1A-012: no defects -> pixels unchanged
 TEST_F(DefectCorrectTest, NoDefectsLeavesImageUnchanged) {
     loadDefectMap();
     ASSERT_EQ(XPE_OK, xpe_defect_correct(&img, &output, &metadata));
@@ -97,7 +219,7 @@ TEST_F(DefectCorrectTest, NoDefectsLeavesImageUnchanged) {
     EXPECT_NEAR(1000.0f, out[W + 1], 1e-3f); // interior pixel
 }
 
-// REQ-P1A-025: single defect pixel replaced by interpolated value
+// REQ-P1A-012: single defect pixel replaced by interpolated value
 TEST_F(DefectCorrectTest, SingleDefectPixelIsReplaced) {
     // Set center pixel as defect with a very different value
     const uint32_t cx = 4, cy = 4;
@@ -111,7 +233,7 @@ TEST_F(DefectCorrectTest, SingleDefectPixelIsReplaced) {
     EXPECT_NEAR(1000.0f, out[cy * W + cx], 100.0f);
 }
 
-// REQ-P1A-027: float32 format required
+// REQ-P1A-005: NULL argument is refused (the case asserts NULL, not format)
 TEST_F(DefectCorrectTest, NullInputReturnsError) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_defect_correct(nullptr, &output, &metadata));
 }

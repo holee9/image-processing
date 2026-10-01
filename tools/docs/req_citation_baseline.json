@@ -1,31 +1,8 @@
 {
   "_comment": "Orphan requirement citations that existed when this check was introduced (#197). Entries may shrink, never grow. See the module docstring in check_req_citations.py.",
   "orphans": {
-    "AI": [
-      "009"
-    ],
-    "GUI-IT": [
-      "032",
-      "033",
-      "034"
-    ],
     "P1A": [
-      "006",
-      "007",
-      "008",
-      "009",
-      "023",
-      "024",
-      "025",
-      "026",
-      "027",
-      "028",
-      "029",
-      "034",
-      "035",
-      "038",
-      "039",
-      "047"
+      "066"
     ]
   }
 }

@@ -6,7 +6,10 @@
  * SPEC-XPE-P1A REQ-P1A-013, "Pixel Accuracy (research.md v2.0.0 Section 8.3)",
  * verbatim:
  *
- *   - True-positive rate (TPR) on injected 5-sigma transients: >= 99.9%
+ *   - True-positive rate (TPR) on injected 10-sigma transients: >= 99.9%
+ *     (amended 2026-09-29 by #143; it read 5-sigma, which is the detector's own
+ *     threshold -- QA-A-161 measured an ORACLE detector at 0.5088 there, so the
+ *     old line asked for something no sigma estimate could reach)
  *   - False-positive rate (FPR) on clean clinical frames: < 0.001%
  *     (< 9 false pixels per 3072x3072)
  *   - Edge-of-image pixels (where 3x3 neighborhood is incomplete): processed
@@ -31,8 +34,11 @@
  *     to show where the detector actually saturates.
  *
  * Detector under test: xpe_defect_detect_runtime, which runs
- * RuntimeDetection_DefaultConfig() -- a 5x5 window at 5.0 sigma, with
- * sigma estimated as MAD * 1.4826 (runtime_detection.h:44-59).
+ * RuntimeDetection_DefaultConfig() -- a 3x3 window at 5.0 sigma. The sigma rule
+ * is `sqrt(0.10*mad^2 + 0.90*tile^2)` since QA-A-164 (#143), where `tile` is the
+ * difference-MAD sigma of the pixel's 128x128 tile; it was `max(mad, 0.8*frame)`
+ * before. See RUNTIME_DETECTION_TILE_SIZE / _BLEND_WEIGHT for the measurements
+ * behind both numbers.
  */
 
 #include <gtest/gtest.h>
@@ -200,8 +206,22 @@ TEST_F(RuntimeDetectionRatesTest, KnownDivergence_TprAtFiveSigmaIsBelowTheRequir
     report("low noise, 5 sigma", low);
     report("high noise, 5 sigma", high);
 
+    // QA-A-164 (#143): THIS IS NO LONGER A DIVERGENCE FROM THE REQUIREMENT --
+    // it is a measurement of the boundary, and the requirement moved off it.
+    //
+    // REQ-P1A-013 was amended (2026-09-29) to name 10 sigma, because 5 sigma IS
+    // the threshold: `QA-A-161` measured an ORACLE detector -- given each
+    // pixel's TRUE local sigma, estimation error exactly zero -- at TPR@5-sigma
+    // 0.5088. Half by construction. The name keeps the KnownDivergence_ prefix
+    // because the number still sits below 0.999 and someone reading the suite
+    // should see why that is expected rather than wonder.
+    //
+    // 0.553590 (QA-A-43) -> 0.507804 (QA-A-164). The blend moved it toward the
+    // oracle's 0.5088 from above, which is the direction a better sigma estimate
+    // should move a measurement that is pinned to the threshold.
     EXPECT_LT(low.tpr(), kTprFloor)
-        << "REQ-P1A-013 asks for >= 0.999 at 5 sigma; this records that it is not met";
+        << "5 sigma equals the threshold, so ~half is the ceiling here -- "
+           "the requirement names 10 sigma for this reason";
     EXPECT_LT(high.tpr(), kTprFloor);
 
     // Brackets, not equalities: the measurement is deterministic for a fixed
@@ -229,26 +249,40 @@ TEST_F(RuntimeDetectionRatesTest, KnownDivergence_TprAtFiveSigmaIsBelowTheRequir
 // data"; that holds for a KNOWN sigma, but the detector estimates sigma from
 // 24 neighbours per pixel, and the estimate's own spread is what produces
 // these flags. The assertion is not relaxed to fit; the number is pinned.
-TEST_F(RuntimeDetectionRatesTest, KnownDivergence_FprOnCleanFramesExceedsTheRequirement) {
+TEST_F(RuntimeDetectionRatesTest, FprOnCleanFramesMeetsTheRequirement) {
     const Rates low  = measure(10.0f, 5.0f, 20260911u);
     const Rates high = measure(50.0f, 5.0f, 20260911u);
     report("low noise, clean FPR", low);
     report("high noise, clean FPR", high);
 
-    EXPECT_GT(low.fpr(), kFprCap)
-        << "REQ-P1A-013 asks for < 1e-5; this records that it is not met";
-    EXPECT_GT(high.fpr(), kFprCap);
+    // QA-A-164 (#143): THIS WAS `KnownDivergence_FprOnCleanFramesExceedsThe-
+    // Requirement` AND IT IS NOT A DIVERGENCE ANY MORE.
+    //
+    //   4.730e-4  (pre-QA-A-42)
+    //   1.718e-2  (QA-A-42, SPEC neighbourhood rule)
+    //   1.020e-4  (QA-A-43, global sigma floor)
+    //   4.768e-6  (QA-A-164, per-tile sigma + blend)   <- meets 1e-5
+    //
+    // What changed: the sigma estimate is now `sqrt(0.10*mad^2 + 0.90*tile^2)`
+    // instead of `max(mad, 0.8*frameSigma)`. The blend shrinks the spread of the
+    // eight-sample MAD -- which is what produced these flags -- and the tile
+    // makes the reference local, so a frame whose noise varies across it is not
+    // judged by one number. Both were needed: QA-A-163 measured the blend alone
+    // at 7.54e-4 on a two-noise-level frame, and the tile alone at 1.2e-4
+    // everywhere.
+    //
+    // The assertion is INVERTED rather than deleted. A test that pinned a
+    // failure is the thing that notices when the failure stops, and the same
+    // test now pins the pass so a regression is visible in one place.
+    EXPECT_LT(low.fpr(), kFprCap)
+        << "REQ-P1A-013 asks for < 1e-5 on clean frames";
+    EXPECT_LT(high.fpr(), kFprCap);
 
-    // Three measurements: 4.730e-4 (pre-QA-A-42) -> 1.718e-2 (QA-A-42, SPEC
-    // neighbourhood rule) -> 1.020e-4 (QA-A-43, global sigma floor). The floor
-    // put the 1% ceiling back within reach -- see
-    // CleanFrameStaysUnderTheOnePercentCeiling -- but the REQUIREMENT here is
-    // 1e-5, and 1.02e-4 is still an order of magnitude above it. Still a
-    // divergence, with a much smaller gap.
-    EXPECT_GT(low.fpr(), kFprCap) << "1.02e-4 is still above the 1e-5 requirement";
-    EXPECT_LT(low.fpr(), 0.001)   << "bracket: an order below the old 1.7e-2";
-    EXPECT_GT(high.fpr(), kFprCap);
-    EXPECT_LT(high.fpr(), 0.001);
+    // Bracket, not an equality: the count is single digits on a million pixels,
+    // so it is Poisson-dominated and an exact value would break on any
+    // floating-point difference. QA-A-162 measured 41 false pixels across five
+    // seeds (7.82e-06 pooled); one seed landing at 5 is well inside that.
+    EXPECT_LT(low.fpr(), 5e-5) << "and it is not merely at the boundary";
 
     RecordProperty("spec_clause", "REQ-P1A-013 FPR < 0.001% on clean frames");
     RecordProperty("measured_fpr_low_noise", std::to_string(low.fpr()));
@@ -264,27 +298,36 @@ TEST_F(RuntimeDetectionRatesTest, KnownDivergence_FprOnCleanFramesExceedsTheRequ
 // floor: one site short. So no amplitude in this sweep satisfies
 // "TPR >= 99.9%", and the requirement as written is not met at any tested
 // amplitude, not merely at 5 sigma.
-TEST_F(RuntimeDetectionRatesTest, KnownDivergence_TprStaysBelowTheFloorThroughTenSigma) {
-    double best = 0.0;
+TEST_F(RuntimeDetectionRatesTest, TprReachesTheFloorAtTenSigma) {
+    double tprAtTen = 0.0;
     for (float amp : {6.0f, 8.0f, 10.0f}) {
         const Rates r = measure(10.0f, amp, 20260911u, /*alsoMeasureFpr=*/false);
         report(("low noise, " + std::to_string(static_cast<int>(amp)) +
                 " sigma").c_str(), r);
         RecordProperty("tpr_at_" + std::to_string(static_cast<int>(amp)) + "_sigma",
                        std::to_string(r.tpr()));
-        if (r.tpr() > best) best = r.tpr();
+        if (amp == 10.0f) tprAtTen = r.tpr();
     }
 
-    // QA-A-42 (#143) then QA-A-43: 6 sigma 0.711759 -> 0.761707 -> 0.753382,
-    // 8 sigma 0.955255 -> 0.927159 -> 0.927159, 10 sigma 0.998959 -> 0.986472
-    // -> 0.986472. The floor costs a little at 6 sigma and nothing above it:
-    // a transient that clears 8 sigma clears the floored threshold too.
-    // The low end improves and the high end gets WORSE: eight samples make the
-    // sigma estimate noisier, which helps a marginal transient clear the
-    // threshold and hurts one that should clear it comfortably.
-    EXPECT_LT(best, kTprFloor)
-        << "no amplitude up to 10 sigma reaches 99.9%";
-    EXPECT_GT(best, 0.95) << "but 10 sigma is close";
+    // QA-A-164 (#143): THIS WAS `KnownDivergence_TprStaysBelowTheFloorThrough-
+    // TenSigma` AND THE NAME IS NOW WRONG TWICE OVER -- the amplitude the
+    // requirement names is 10 sigma (amended 2026-09-29), and the detector
+    // reaches 1.000000 there.
+    //
+    //   10 sigma: 0.998959 (pre-QA-A-42) -> 0.986472 (QA-A-43 floor)
+    //                                    -> 1.000000 (QA-A-164, 961 of 961)
+    //    8 sigma: 0.955255 -> 0.927159   -> 0.997919
+    //    6 sigma: 0.711759 -> 0.753382   -> 0.810614
+    //
+    // The floor had cost 9% of the detection rate to buy a 168x false-positive
+    // reduction (see :211). The blend buys the false positives a different way
+    // -- by shrinking the estimate's spread rather than raising its minimum --
+    // so the detection it was paying with comes back.
+    //
+    // 6 and 8 sigma are reported, not gated: the requirement names 10 sigma
+    // deliberately and says not to re-align the two numbers.
+    EXPECT_GE(tprAtTen, kTprFloor)
+        << "REQ-P1A-013: TPR on injected 10-sigma transients >= 99.9%";
 }
 
 // The two noise levels are NOT independent evidence, and saying so is part of
@@ -329,3 +372,61 @@ TEST_F(RuntimeDetectionRatesTest, CleanFrameStaysUnderTheOnePercentCeiling) {
 }
 
 } // namespace
+
+// ---------------------------------------------------------------------------
+// QA-A-164 (#143): the one structure class that still misses, pinned.
+//
+// The detector meets REQ-P1A-013 on a uniform frame, on a brightness ramp and
+// across an intensity step (TPR@10-sigma 1.0000, FPR under 1e-5 on all three).
+// On a STRIPED frame it reaches 0.9865 -- below the 0.999 floor. This case
+// records that rather than leaving it in a report, so an improvement turns it
+// red and is noticed.
+//
+// WHY IT IS NOT A SIGMA PROBLEM. QA-A-163 measured an ORACLE detector -- each
+// pixel handed its TRUE local sigma -- on the same frame and its FPR was
+// 2.92e-05, also over the requirement, while the same oracle met it on every
+// other family. So no sigma estimate reaches the requirement here.
+//
+// HYPOTHESIS, UNVERIFIED: the LOCAL MEDIAN is what breaks. A 3x3 window on an
+// 8-or-13-pixel stripe pattern straddles a boundary about a quarter of the
+// time, and the median then sits between two brightness levels rather than on
+// either, which inflates |value - median| for every pixel in that window.
+// That would make the fix a wider window, and QA-A-162 measured window 5 at
+// roughly ten times the run time -- so this is recorded, not chased.
+//
+// The stripe period is 13, not 8, and that matters: the defect lattice has a
+// 32-pixel stride, so a period of 8 puts every injected site at the same phase
+// (a stripe boundary) and measures the fixture instead of the detector --
+// 0.2549 against 0.8887 for the same code (QA-A-161).
+TEST_F(RuntimeDetectionRatesTest, KnownDivergence_StripedFrameMissesTheTprFloor) {
+    constexpr uint32_t kPeriod = 13u;
+    constexpr float kNoise = 12.0f;
+    constexpr float kStripe = 400.0f;
+
+    std::mt19937 rng(20260911u);
+    std::normal_distribution<float> g(0.0f, 1.0f);
+    std::vector<float> frame(kN);
+    for (uint32_t y = 0; y < kH; ++y) {
+        for (uint32_t x = 0; x < kW; ++x) {
+            const float level = 3000.0f + (((x / kPeriod) % 2u) ? kStripe : -kStripe);
+            frame[static_cast<size_t>(y) * kW + x] = level + kNoise * g(rng);
+        }
+    }
+
+    const std::vector<size_t> sites = defectSites();
+    for (size_t s : sites) frame[s] += 10.0f * kNoise;   // 10 sigma, the spec amplitude
+
+    double ms = 0.0;
+    const std::vector<uint8_t> flagged = detect(frame, &ms);
+    size_t tp = 0;
+    for (size_t s : sites) if (flagged[s]) ++tp;
+    const double tpr = static_cast<double>(tp) / static_cast<double>(sites.size());
+
+    std::printf("[rates] striped(p%u), 10 sigma      injected=%zu TP=%zu  TPR=%.6f | %.1f ms\n",
+                kPeriod, sites.size(), tp, tpr, ms);
+    RecordProperty("striped_tpr_at_10_sigma", std::to_string(tpr));
+
+    EXPECT_LT(tpr, kTprFloor)
+        << "recorded as unmet: a striped frame does not reach 0.999 at 10 sigma";
+    EXPECT_GT(tpr, 0.95) << "bracket -- and it is not far off";
+}

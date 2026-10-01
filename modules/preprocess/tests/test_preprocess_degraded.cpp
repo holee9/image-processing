@@ -121,11 +121,14 @@ TEST(PreprocessDegraded, BP01_OffsetNullCalibrationReturnsNotInitialized) {
         rc = xpe_offset_correct(&input, &output, &meta);
     });
 
-    // Must return a defined error code, not crash.
-    // Accept NOT_INITIALIZED (no calibration loaded) or OK (if a prior test
-    // populated g_calib). Both paths are graceful degradation.
-    EXPECT_TRUE(rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED || rc == XPE_OK)
-        << "Unexpected error code: " << rc;
+    // Must return a defined error code, not crash. QA-A-148 (#212): MEASURED
+    // -- rc is XPE_ERR_NOT_INITIALIZED in the default order and under shuffle
+    // seeds 1/2/9, never anything else. The set used to also admit XPE_OK
+    // "if a prior test populated g_calib"; that sentence recorded an
+    // observation, not a decision, and it made this test green THROUGH a
+    // global-state leak -- the exact defect the single-process shuffle
+    // harness (#162, #176) exists to catch.
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, rc);
 
     // Timing budget for 64x64 image.
     EXPECT_LT(ms, kDegradedBudgetMs);
@@ -173,8 +176,7 @@ TEST(PreprocessDegraded, BP02_GainIdentityPreservesInputStatistics) {
         rc = xpe_gain_correct(&input, &output, &meta);
     });
 
-    EXPECT_TRUE(rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED || rc == XPE_OK)
-        << "Unexpected error code: " << rc;
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, rc);  // QA-A-148 (#212): measured, see BP-01
 
     EXPECT_LT(ms, kDegradedBudgetMs);
 
@@ -220,8 +222,7 @@ TEST(PreprocessDegraded, BP03_DefectEmptyListIsNoOp) {
         rc = xpe_defect_correct(&input, &output, &meta);
     });
 
-    EXPECT_TRUE(rc == XPE_OK || rc == XPE_ERR_NOT_INITIALIZED || rc == XPE_ERR_CALIB_NOT_LOADED)
-        << "Unexpected error code: " << rc;
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, rc);  // QA-A-148 (#212): measured, see BP-01
 
     EXPECT_LT(ms, kDegradedBudgetMs);
 
@@ -282,10 +283,13 @@ TEST(PreprocessDegraded, BP04_GhostZeroLagCoefficientIsIdentity) {
  * BP-05-DEG: Temperature/Nonlinearity, flat curve (identity correction)
  *
  * Expectation:
- *   - Temperature compensation at T=25C (reference) applies scale = 1.0,
+ *   - Temperature compensation at T=25C (reference, REQ-P1A-080) applies scale = 1.0,
  *     so pixel values are preserved.
- *   - Nonlinearity correction with null config is a documented no-op
- *     (REQ-P1A-013) and must return XPE_OK with unchanged pixels.
+ *   - Nonlinearity correction with null config is a documented no-op and
+ *     must return XPE_OK with unchanged pixels. Requirement: SRS-CALIB-FUNC-006
+ *     (f_nonlin is supplied by the calibration profile; the null-config
+ *     sentence itself is not in the SRS). NOT REQ-P1A-013: in the current
+ *     SPEC that number is runtime defect detection (QA-A-176).
  * ========================================================================== */
 
 TEST(PreprocessDegraded, BP05_TempCompensateReferenceIsIdentity) {
@@ -327,7 +331,8 @@ TEST(PreprocessDegraded, BP05_NonlinearityNullConfigIsIdentity) {
     EXPECT_EQ(XPE_OK, rc);
     EXPECT_LT(ms, kDegradedBudgetMs);
 
-    // REQ-P1A-013: null-config nonlinearity correction is a no-op.
+    // SRS-CALIB-FUNC-006 (not REQ-P1A-013; see the BP-05-DEG header):
+    // null-config nonlinearity correction is a no-op.
     for (size_t i = 0; i < data.size(); ++i) {
         EXPECT_EQ(kPixelValue, data[i])
             << "Null-config nonlinearity correction must be identity at pixel " << i;

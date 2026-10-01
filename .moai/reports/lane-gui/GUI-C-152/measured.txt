@@ -29,7 +29,7 @@ worktree D:/workspace-github/xpe-gui, branch dev/gui
     °¡´É         15  rows: 1 3 4 5 6 7 8 11 12 13 14 15 16 17 20
     ¼±Çà ÇÊ¿ä       4  rows: 2 9 10 21
     »ç¶÷ ÇÊ¿ä       2  rows: 18 19
-    
+
     unclassified: 0
     sum = 21  (must equal 21): OK
 
@@ -39,7 +39,7 @@ worktree D:/workspace-github/xpe-gui, branch dev/gui
 [4] live vs dead-file native symbols in gui
     gui total (as counted in C-151): 31
     gui LIVE (excluding the unreferenced PipelineOrchestrator.cs): 24
-    
+
     declared ONLY inside the dead file (7):
        xpe_calc_exposure_index
        xpe_contrast_enhance
@@ -48,7 +48,7 @@ worktree D:/workspace-github/xpe-gui, branch dev/gui
        xpe_edge_enhance
        xpe_log_transform
        xpe_noise_reduce
-    
+
     live symbols (24):
        xpe_alloc_image                RealXpeBackend.cs, XpeDisplayInterop.cs
        xpe_apply_modality_lut         RealXpeBackend.cs, XpeDisplayInterop.cs
@@ -82,7 +82,7 @@ worktree D:/workspace-github/xpe-gui, branch dev/gui
       gui/ImageProcTest/fixtures/gui-s0/raw/synthetic_1024x1024.raw
       gui/ImageProcTest/fixtures/gui-s0/raw/wrist_lat_3072x3072.raw
     numeric SNR/uniformity criteria in docs+specs:
-      docs/ai-module/README.md:154:**ì„±ëŠ¥**: â‰¤ 2000ms, PSNR â‰¥ 33dB, SSIM â‰¥ 0.97  
+      docs/ai-module/README.md:154:**ì„±ëŠ¥**: â‰¤ 2000ms, PSNR â‰¥ 33dB, SSIM â‰¥ 0.97
       docs/ai-module/SRS-AI-001_Software_Requirements_Specification.md:199:- í’ˆì§ˆ: PSNR â‰¥ 33dB, SSIM â‰¥ 0.97
       docs/ai-module/xpe-ai-prd.md:165:- PSNR â‰¥ 33dB (vs ground truth)
       docs/archive/superseded/XPE-Implementation-Analysis-Report.md:151:| **Bone Suppression** | Virtual dual-energy subtraction for lung nodule detection | PSNR >= 33dB, SSIM >= 0.97 |
@@ -99,7 +99,7 @@ worktree D:/workspace-github/xpe-gui, branch dev/gui
     SelfCheck project          gui/ImageProcTest.SelfCheck/
     E2E project                gui/ImageProcTest.E2E/
     benchmark manifest         benchmark/BP-01-05-preprocess-manifest.md
-    docfx/doxygen config       ./docs/help/docfx/docfx.json ./docs/help/doxygen/Doxyfile 
+    docfx/doxygen config       ./docs/help/docfx/docfx.json ./docs/help/doxygen/Doxyfile
     gsdf live call             25:        "xpe_gsdf_calibrate"
 
 [7] no file in either app was modified

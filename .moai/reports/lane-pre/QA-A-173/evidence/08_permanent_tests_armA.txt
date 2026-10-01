@@ -1,0 +1,72 @@
+Note: Google Test filter = TileLanesTest.*
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from TileLanesTest
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile128
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_runtime_detection_tile_lanes.cpp(170): error: Expected equality of these values:
+  0u
+    Which is: 0
+  d
+    Which is: 2678
+1024x1024 tile 128: 2678 pixels differ from the scalar rule; first at row 1 col 765
+
+[  FAILED  ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile128 (105 ms)
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile100
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_runtime_detection_tile_lanes.cpp(170): error: Expected equality of these values:
+  0u
+    Which is: 0
+  d
+    Which is: 1147
+1000x400 tile 100: 1147 pixels differ from the scalar rule; first at row 1 col 698
+
+[  FAILED  ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile100 (34 ms)
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile64OddSize
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_runtime_detection_tile_lanes.cpp(170): error: Expected equality of these values:
+  0u
+    Which is: 0
+  d
+    Which is: 594
+517x203 tile 64: 594 pixels differ from the scalar rule; first at row 1 col 445
+
+[  FAILED  ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile64OddSize (9 ms)
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile16
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_runtime_detection_tile_lanes.cpp(170): error: Expected equality of these values:
+  0u
+    Which is: 0
+  d
+    Which is: 3044
+640x240 tile 16: 3044 pixels differ from the scalar rule; first at row 1 col 221
+
+[  FAILED  ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile16 (18 ms)
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile8
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_runtime_detection_tile_lanes.cpp(170): error: Expected equality of these values:
+  0u
+    Which is: 0
+  d
+    Which is: 3371
+400x200 tile 8: 3371 pixels differ from the scalar rule; first at row 1 col 146
+
+[  FAILED  ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile8 (12 ms)
+[ RUN      ] TileLanesTest.TilesNarrowerThanEightStayScalarAndAgree_Tile7
+[       OK ] TileLanesTest.TilesNarrowerThanEightStayScalarAndAgree_Tile7 (15 ms)
+[ RUN      ] TileLanesTest.TilesNarrowerThanEightStayScalarAndAgree_Tile4
+[       OK ] TileLanesTest.TilesNarrowerThanEightStayScalarAndAgree_Tile4 (17 ms)
+[ RUN      ] TileLanesTest.NoTileTableUsesTheFrameReferenceAndAgrees
+[       OK ] TileLanesTest.NoTileTableUsesTheFrameReferenceAndAgrees (3 ms)
+[ RUN      ] TileLanesTest.HistoricalRuleIsUnchanged
+[       OK ] TileLanesTest.HistoricalRuleIsUnchanged (3 ms)
+[ RUN      ] TileLanesTest.ThreadedRunsMatchOneThread
+[       OK ] TileLanesTest.ThreadedRunsMatchOneThread (83 ms)
+[----------] 10 tests from TileLanesTest (305 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (305 ms total)
+[  PASSED  ] 5 tests.
+[  FAILED  ] 5 tests, listed below:
+[  FAILED  ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile128
+[  FAILED  ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile100
+[  FAILED  ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile64OddSize
+[  FAILED  ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile16
+[  FAILED  ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile8
+
+ 5 FAILED TESTS

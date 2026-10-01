@@ -184,7 +184,18 @@ The following SPEC requirements have no test coverage in the current skeleton:
 |----------|-------------|-------------|--------|
 | REQ-AI-006 | SRS-AI-ARCH-006 | ONNX Runtime multi-EP | Stub mode: no ONNX Runtime |
 | REQ-AI-007 | SRS-AI-ARCH-007 | Model signing | Not implemented |
-| REQ-AI-009 | -- | Time budget enforcement | Not implemented |
+| REQ-AI-092 | -- | Time budget enforcement | Not implemented |
+
+> **정정 2026-09-30 (`#210`)** — 이 문서가 시간 예산 요구를 `REQ-AI-009` 로 인용하고
+> 있었습니다. **그 번호는 정의된 적이 없습니다** — 정의는 `REQ-AI-092`(`srs_ai.md:446`,
+> `SPEC-XPE-P3-AI/spec.md:272`)이고, 대조군으로 같은 정의 패턴이 `092` 를 두 곳에서
+> 찾는 반면 `009` 는 0건입니다.
+>
+> `modules/ai` 쪽 인용은 `QA-B-157` 이 이미 고쳤고(`REQ-AI-009` 리터럴 0건), 이 문서들이
+> 남아 있었습니다. **개명이 코드에서만 반영되고 문서에서 끊긴 형태**이고, 이 저장소가
+> *"인용한 이름은 grep 으로 대조한다"* 로 적어 둔 것입니다.
+>
+> 요구의 내용은 바뀌지 않았습니다 — 번호만 정정했습니다.
 | REQ-AI-020~024 | SRS-AI-SSL-001~002 | Self-Supervised Denoising | Not implemented |
 | REQ-AI-030~033 | SRS-AI-DIFF-001 | Diffusion Priors | Not implemented |
 | REQ-AI-040~042 | -- | ML Defect Correction | Not implemented |
@@ -224,7 +235,7 @@ Counts below are the actual `TEST` / `TEST_F` macro counts in `modules/ai/tests/
 | **Total** | **129** | — |
 
 Requirement coverage is unchanged from v0.1.0: **22 of 26** SPEC requirements have at least one
-test; 4 are deferred (REQ-AI-004, REQ-AI-006, REQ-AI-007, REQ-AI-009 — see §12). Requirement counts
+test; 4 are deferred (REQ-AI-004, REQ-AI-006, REQ-AI-007, REQ-AI-092 — see §12). Requirement counts
 were not re-derived in this revision; only the test-case counts were re-measured.
 
 ### Test File Summary

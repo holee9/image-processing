@@ -1,10 +1,39 @@
 /**
- * @file test_defect_correct_avx2_parity.cpp
- * @brief AVX2 parity: defect correction must be bit-identical across calls
- * SPEC: SPEC-SIMD-001 REQ-SIMD-003  IEC 62304 Class B
+ * @file test_defect_correct_determinism.cpp
+ * @brief Defect correction is DETERMINISTIC: the same input gives the same
+ *        output, bit for bit, on every call.
  *
- * Tests the 3-arg API: xpe_defect_correct(img, defectMap, configJsonOrNull)
- * The defect map is passed as a parameter (current API signature).
+ * RENAMED FROM test_defect_correct_avx2_parity.cpp -- QA-A-145 (#207).
+ *
+ * THE OLD NAME DESCRIBED SOMETHING THAT DOES NOT EXIST. There is no AVX2
+ * defect-correction path to be at parity with: `_mm256` appears 0 times in
+ * defect_correct.cpp and helpers.cpp. The control for that count is the
+ * sibling paths, which do have one -- gain_correct.cpp 13, offset_correct.cpp
+ * 12, runtime_detection.h 32 -- so the zero is an absence, not a search that
+ * looked in the wrong place.
+ *
+ * What the file always did was call xpe_defect_correct TWICE and compare the
+ * two outputs. That is a determinism check, and the old @brief said so in its
+ * own words ("bit-identical across calls") while the file name and the SPEC
+ * reference said parity. The name is now the one that matches the code.
+ *
+ * WHAT THIS DOES AND DOES NOT CATCH. It catches output that varies between
+ * runs of identical input: uninitialised reads, iteration order that depends
+ * on allocation addresses, a stale buffer surviving into the next call. It
+ * does NOT catch correction that is consistently wrong -- both calls agree on
+ * the same wrong answer. Correctness lives in test_defect_correct.cpp; this
+ * file is the narrower property, and naming it accurately is what keeps the
+ * two from being confused again.
+ *
+ * The three sibling *_avx2_parity.cpp files are NOT of this shape, checked
+ * rather than assumed: gain and offset compare the shipped path against
+ * xpe_gain_apply_scalar_reference / xpe_offset_apply_scalar_reference, and
+ * runtime detection compares against a scalar loop built in the test
+ * (ScalarMap). All three have an independently derived reference. This one
+ * did not, and now does not claim to.
+ *
+ * SPEC: AC-SIMD-003 cited SPEC-SIMD-001 REQ-SIMD-003 for an AVX2 comparison
+ * this file never made; the correction is #207.  IEC 62304 Class B
  */
 
 #include <gtest/gtest.h>
@@ -22,7 +51,7 @@
 
 namespace {
 
-class DefectCorrectAVX2ParityTest : public ::testing::Test {
+class DefectCorrectDeterminismTest : public ::testing::Test {
 protected:
     std::vector<float> imgPixels1;
     std::vector<float> imgPixels2;
@@ -34,7 +63,7 @@ protected:
     XpeImageBuffer output1{};
     XpeImageBuffer output2{};
     XpeImageMetadata metadata{};
-    const char* defectPath = "test_defect_avx2_parity_defect.xcal";
+    const char* defectPath = "test_defect_determinism_defect.xcal";
 
     static constexpr uint32_t W = 512;
     static constexpr uint32_t H = 512;
@@ -80,13 +109,13 @@ protected:
 
     void TearDown() override {
         std::remove(defectPath);
-        std::remove("test_defect_avx2_parity_defect.xcal.tmp");
+        std::remove("test_defect_determinism_defect.xcal.tmp");
         xpe_preprocess_shutdown();
     }
 
     void loadDefectMap(const std::vector<uint8_t>& values, uint32_t width, uint32_t height) {
         std::remove(defectPath);
-        std::remove("test_defect_avx2_parity_defect.xcal.tmp");
+        std::remove("test_defect_determinism_defect.xcal.tmp");
 
         XCalFileHeader hdr{};
         std::memcpy(hdr.magic, XCAL_MAGIC, 4);
@@ -104,7 +133,7 @@ protected:
     }
 };
 
-TEST_F(DefectCorrectAVX2ParityTest, MultipleCallsAreBitIdentical) {
+TEST_F(DefectCorrectDeterminismTest, MultipleCallsAreBitIdentical) {
     ASSERT_EQ(XPE_OK, xpe_defect_correct(&img1, &output1, &metadata));
     ASSERT_EQ(XPE_OK, xpe_defect_correct(&img2, &output2, &metadata));
 
@@ -114,7 +143,7 @@ TEST_F(DefectCorrectAVX2ParityTest, MultipleCallsAreBitIdentical) {
     }
 }
 
-TEST_F(DefectCorrectAVX2ParityTest, ParityWithNonMultipleStride) {
+TEST_F(DefectCorrectDeterminismTest, DeterministicOnANonMultipleStride) {
     const size_t oddSize = 1000;
     std::vector<float> smallImg1(oddSize);
     std::vector<float> smallImg2(oddSize);

@@ -1,0 +1,35 @@
+MCGPU/MC-GPU_v1.3.cu                                         grid-matches=1
+MCGPU/MC-GPU_v1.3.h                                          grid-matches=0
+MCGPU/MC-GPU_kernel_v1.3.cu                                  grid-matches=0
+MCGPUv1.3_PCD_scatterMode/MC-GPU_v1.3_PCD.cu                 grid-matches=1
+MCGPUv1.3_PCD_scatterMode/MC-GPU_v1.3_PCD.h                  grid-matches=0
+MCGPUv1.3_PCD_scatterMode/MC-GPU_kernel_v1.3_PCD.cu          grid-matches=0
+VICTRE_MCGPU/MC-GPU_v1.5b.cu                                 grid-matches=20
+VICTRE_MCGPU/MC-GPU_kernel_v1.5b.cu                          grid-matches=7
+== v1.3 README / PCD README grid sentence
+44:MC-GPU can simulate a single projection image or a full CT scan. The CT is simulated generating many projection images around the static voxelized geometry. Currently, the code is limited to perform a simple CT trajectory rotating around the Z axis. The use
+53:MC-GPU can simulate a single projection image or a full CT scan. The CT is simulated generating many projection images around the static voxelized geometry. Currently, the code is limited to perform a simple CT trajectory rotating around the Z axis. The use
+== v1.3 source mentions
+183: *   anti-scatter grid, a bow-tie filter or a curved detector (flat-panel detector only).
+852:    // -- Setup the execution parameters (Max number threads per block: 512, Max sizes each dimension of grid: 65535x65535x1)
+== VICTRE grid implementation
+366:  // -- Store the final random seed used by the last thread in the grid to global memory in order to continue the random secuence in successive projections in same GPU without overlapping.
+368:  if ( (blockIdx.x == (gridDim.x-1)) && (threadIdx.x == (blockDim.x-1)))
+1020:/*  ****  Energy grid and interpolation constants for the current energy. */
+1463:  // Sample the distance to the next interaction in the material of the detector or antiscatter grid protective covers, to determine if the particle will be absorbed in the covers:    !!DBTv1.5!!
+1493:      // --Sample if the particle is absorbed in the antiscatter grid (scatter or fluorescence in the grid not simulated):
+1494:      if (detector_data_SHARED->grid_freq>0.0f)
+1496:        if (ranecu(seed) > antiscatter_grid_transmission_prob(position, direction, detector_data_SHARED))         //!!DBTv1.5!!
+1735://!  Analytical model of a 1D focused antiscatter grid based on the work of Day and Dance [Phys Med Biol 28, p. 1429-1433 (1983)].
+1736://!  The model returns the probability of transmission through the grid for the current x-ray direction.
+1737://!  The position of the particle in the default reference frame with the detector centered at the origin and laying on the XZ plane is used to compute the focused grid angle.
+1741://!     - Assuming that the focal length of the grid is always identical to the input source-to-detector distance (sdd).     !!DeBuG!!
+1742://!     - The Day and Dance equations are for an uniform oblique grid and the change in angle for consecutive strips is not modeled. As they explain, this is unlikely to be relevant because
+1747:__device__ inline float antiscatter_grid_transmission_prob(float3* position, float3* direction, struct detector_struct* detector_data_SHARED)                   //!!DBTv1.5!!
+1749:  // -- Compute grid angle at the current location on the detector:
+1752:  // The position is already shifted to have the origin at the center of the detector: I can use the position as is to compute the incidence angle -> grid angle for focused grid.
+1753:  double grid_angle, u, w;
+1754:  if (detector_data_SHARED->grid_ratio<0.0f)
+1756:    // <0 --> input orientation == 0 ==> 1D collimated grid with strips perpendicular to lateral direction X (mammo style), as in Day&Dance1983.
+1757:    grid_angle = (0.5*PI) - atan2(position->x, detector_data_SHARED->sdd);   // A 0 deg angle between the incident beam and the strips corresponds to a grid angle (sigma) of 90 deg = PI/2
+1763:    // >0 --> input orientation == 1 ==> 1D collimated grid with strips parallel to lateral direction X and perpendicular to Z direction (DBT style): switch Z and X axis

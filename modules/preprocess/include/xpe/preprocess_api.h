@@ -230,13 +230,48 @@ XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
  * The defect map is not a parameter: it is loaded into the global calibration
  * by xpe_calib_load_defect_map() (#117 decision B).
  *
+ * BUFFER ALIASING CONTRACT (SPEC-XPE-P1A REQ-P1A-012, #209 / QA-A-146):
+ * input->data and output->data must be either EXACTLY THE SAME or FULLY
+ * DISJOINT.
+ *  - input->data == output->data (in-place): ALLOWED. The result is
+ *    BIT-IDENTICAL to the same call with separate buffers.
+ *  - Ranges that do not overlap: allowed (the ordinary path).
+ *  - PARTIAL OVERLAP: XPE_ERR_INVALID_INPUT, returned before anything is
+ *    written.
+ * The comparison is over the n * sizeof(float) byte range this function
+ * actually touches; dataSize is not the basis, because per the #123 contract
+ * 0 means *unspecified* and is not a reliable length.
+ *
+ * In-place is safe because WRITES AND READS NEVER TOUCH THE SAME PIXEL: this
+ * function writes only pixels the defect map marks (dm[idx] != 0), and both
+ * kernels read only unmarked ones (defect_correct.cpp:96, helpers.cpp:30 on
+ * the 4-neighbour path and the r=1..3 ring fallback alike). The two sets are
+ * disjoint, so a read can never see an already-corrected value.
+ * That invariant is a property of the CURRENT kernels, not a structural
+ * guarantee -- a kernel that read a defective neighbour would break in-place
+ * silently, so what holds it is a test, not this comment:
+ * DefectCorrectTest.InPlaceMatchesOutOfPlace.
+ *
+ * Partial overlap is refused not because it is known to be wrong, but because
+ * no caller does it, so nothing measures whether the result would be right;
+ * widening the contract would guarantee behaviour no test observes (the shape
+ * of #207). An error code makes the violation observable instead of letting
+ * it run into UB in silence.
+ *
+ * ARGUMENT-CHECK ORDER: this check precedes REQ-P1A-020 (uninitialized ->
+ * XPE_ERR_NOT_INITIALIZED). It sits with the other argument checks (NULL,
+ * dimensions, buffer size), following the existing rule that a bad argument
+ * is answered before module state -- so a partially overlapping call made
+ * while uninitialized returns XPE_ERR_INVALID_INPUT.
+ *
  * @param input Input image buffer (gain-corrected, FLOAT32)
  * @param output Output image buffer (defect-corrected, FLOAT32)
  * @param metadata Image metadata for dose-dependent threshold
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if xpe_preprocess_init() has not been called
  *         XPE_ERR_CALIB_NOT_LOADED if initialized but no defect map is loaded
- *         XPE_ERR_INVALID_INPUT if NULL pointers
+ *         XPE_ERR_INVALID_INPUT if NULL pointers, or if the input and output
+ *                               buffers overlap partially (see above)
  *         XPE_ERR_BUFFER_TOO_SMALL if dimension mismatch
  */
 XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
@@ -519,14 +554,14 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
                                                     float* max_value);
 
 /* =============================================================================
- * Phase 6: Ghost/Lag Correction (REQ-P1A-029 to REQ-P1A-034)
+ * Phase 6: Ghost/Lag Correction (REQ-P1A-085 to REQ-P1A-087)
  * SWU-1.4: Ghost/Lag Correction Tier 1/2/3 — LTI/NLCSC deconvolution (PRE-04)
  * ============================================================================ */
 
 /**
  * @brief Allocate an opaque ghost corrector handle with frame history buffer
  *
- * REQ-P1A-029: Allocate handle with frame history buffer
+ * REQ-P1A-085: Allocate handle with frame history buffer
  * REQ-P1A-030: Config JSON for IRF coefficient override
  * REQ-P1A-031: Return XPE_ERR_OUT_OF_MEMORY on allocation failure
  *
@@ -563,7 +598,7 @@ XPE_API XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
 /**
  * @brief Clear accumulated frame history without destroying the handle
  *
- * REQ-P1A-034: Clear accumulated frame history
+ * REQ-P1A-088: Clear accumulated frame history
  * Call between patient acquisitions or after detector power cycle.
  *
  * @param handle Ghost corrector handle
@@ -592,8 +627,8 @@ XPE_API void xpe_ghost_destroy(void* handle);
  * @brief Adjust pixel values for dark current temperature dependence
  *
  * REQ-P1A-005: Apply temperature-dependent dark current scaling
- * REQ-P1A-007: NaN -> use 25.0C fallback
- * REQ-P1A-008: Temp out of [-20, +60] range -> XPE_ERR_INVALID_INPUT
+ * REQ-P1A-081: NaN -> use 25.0C fallback
+ * REQ-P1A-081: Temp out of [-20, +60] range -> XPE_ERR_INVALID_INPUT
  * Model: I_dark(T) = I_0 * exp(-E_g / (2 * k_B * T))
  *
  * @param img [in/out] Image to correct (uint16 format)
@@ -629,7 +664,7 @@ XPE_API XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
  * REQ-P1A-020: No-op for binningMode == 1
  * REQ-P1A-021: XPE_ERR_CONFIG_INVALID for unknown binning mode
  * REQ-P1A-022: Float32 format (post-gain-correct stage)
- * REQ-P1A-023: Per-mode correction profile
+ * REQ-P1A-090: Per-mode correction profile
  *
  * @param img [in/out] Image to correct (float32 format)
  * @param binningMode Binning factor (1 = no-op, 2 = 2x2, 4 = 4x4)
@@ -643,7 +678,7 @@ XPE_API XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
                                           const char* configJsonOrNull);
 
 /* =============================================================================
- * Phase 8: Full Pre-Processing Pipeline (REQ-P1A-041 to REQ-P1A-047)
+ * Phase 8: Full Pre-Processing Pipeline (REQ-P1A-095 to REQ-P1A-099)
  * SWU-1.9: Readout Artifact Validation (PRE-01)
  * Pipeline stages: Readout -> Temp -> Offset -> Nonlinearity -> Gain -> Binning -> Defect -> Ghost
  * ============================================================================ */
@@ -669,7 +704,7 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
 /**
  * @brief Execute full pre-processing pipeline with bypass logic
  *
- * REQ-P1A-041 to REQ-P1A-047: Full pipeline integration
+ * REQ-P1A-095 to REQ-P1A-099: Full pipeline integration
  * Pipeline: Readout -> Temp -> Offset -> Nonlinearity -> Gain -> Binning -> Defect -> Ghost
  *
  * @warning This function RE-READS offset.xcal, gain.xcal and defect.xcal from
@@ -852,7 +887,15 @@ typedef struct {
 
     // Gain metrics
     double prnu_before;         ///< Photo Response Non-Uniformity before gain [%]
-    double prnu_after;          ///< PRNU after gain correction [%]
+    double prnu_after;          ///< PRNU after gain correction [%].
+                                ///< THIS IS `FlatResidualPct` -- QA-A-154 (#218).
+                                ///< Preprocessing-E2E-Automated-Evaluation-Protocol.md:218-219
+                                ///< defines `PRNU_CV = std/mean` (a FRACTION) and
+                                ///< `FlatResidualPct = 100 * PRNU_CV` (a PERCENT). This field is
+                                ///< computed as std/mean*100, so it is the percent one, and it is
+                                ///< what SRS-CALIB-FUNC-017 gates at <= 1.0%. The field keeps its
+                                ///< name because renaming a public struct member is an ABI change;
+                                ///< what was missing was the gate, not the number.
     double flatness_pct;        ///< Histogram flatness percentage (higher = more uniform)
     double gain_coverage;       ///< % of valid gain values (1.0 = all valid)
     uint32_t invalid_gain_count;///< Number of invalid gain pixels
@@ -865,7 +908,71 @@ typedef struct {
     // Overall
     double snr_improvement_db;  ///< SNR improvement in dB (before vs after)
     bool   overall_pass;        ///< Overall pass/fail based on thresholds
+
+    /* ---------------------------------------------------------------------
+     * APPENDED BY QA-A-159 (#223) -- SRS-CALIB-FUNC-037.
+     *
+     * Everything above keeps its name, type, and OFFSET. Three holes were
+     * closed in ONE widening rather than three, because they are one ABI
+     * decision about one struct:
+     *   (i)   dark_reduction_db -- the gate computed it and threw it away
+     *   (ii)  dsnu_adu          -- the canonical name resolved to the wrong value
+     *   (iii) measured_mask     -- "could not be measured" had no field
+     * ------------------------------------------------------------------- */
+
+    /// `DarkReduction_dB` -- Preprocessing-E2E-Automated-Evaluation-Protocol.md:205
+    /// `20*log10(std(R_dark_roi) / max(std(Y_dark_roi), epsilon))`, over the SAME
+    /// dark ROI as dark_bias. SRS-CALIB-FUNC-016 gates on this as the `or`
+    /// alternative to `abs(DarkBias) <= 5 ADU`; until #223 the value existed only
+    /// inside the gate, so a caller could not see WHICH clause passed it.
+    double dark_reduction_db;
+
+    /// `DSNU_ADU` -- Protocol.md:204 `DSNU_ADU = std(Y_dark_roi)`, in ADU.
+    ///
+    /// THIS DUPLICATES `residual_noise` ON PURPOSE, and the duplication is the
+    /// point. The canonical quantity was already computed and stored, but under
+    /// a name nobody searching for DSNU would find -- while the field actually
+    /// NAMED `dsnu` holds a coefficient of variation in percent, a different
+    /// quantity. QA-A-158 (#222) measured what that costs: on a real dark frame
+    /// a 0.51 ADU residual (a GOOD correction, 10x inside the 5 ADU budget)
+    /// produced dsnu = 129%, because a CV diverges as its mean approaches zero.
+    /// Reading the name instead of the formula produced a gate that rejected
+    /// good corrections. FUNC-037 (c): add the canonical name, change no
+    /// existing meaning. Both fields are written from the same variable at the
+    /// same place so they cannot drift.
+    double dsnu_adu;
+
+    /// Which metrics in this struct were actually MEASURED -- SRS-CALIB-FUNC-036.
+    /// A bitwise OR of XpeMetricMeasured flags; a clear bit means the verification
+    /// could not measure that metric and the corresponding field holds a
+    /// placeholder, NOT a measurement.
+    ///
+    /// Per-metric rather than one struct-wide flag, because the requirement asks
+    /// which VALUE is trustworthy, and one call can measure some and not others.
+    /// A bitmask over per-field booleans: it reserves 32 slots inside one field,
+    /// so the next metric needs no further ABI change.
+    ///
+    /// `overall_pass = false` on an unmeasurable input REMAINS -- see FUNC-036.
+    /// The two live together deliberately: this mask serves the caller who asks
+    /// what happened, and the false serves the caller who never reads the mask.
+    /// Removing the false would silently re-open #219 for every such caller.
+    uint32_t measured_mask;
 } XpeCalibrationMetrics;
+
+/**
+ * @brief Per-metric "was this actually measured" flags for `measured_mask`
+ *
+ * SRS-CALIB-FUNC-036. A set bit means the field was computed from data; a clear
+ * bit means it holds a placeholder.
+ */
+typedef enum {
+    XPE_METRIC_DARK_BIAS       = 1u << 0,  ///< dark_bias, dsnu, dsnu_adu, residual_noise
+    XPE_METRIC_DARK_REDUCTION  = 1u << 1,  ///< dark_reduction_db
+    XPE_METRIC_PRNU            = 1u << 2,  ///< prnu_before, prnu_after, flatness_pct
+    XPE_METRIC_GAIN_COVERAGE   = 1u << 3,  ///< gain_coverage, invalid_gain_count
+    XPE_METRIC_DEFECT          = 1u << 4,  ///< defect_count, defect_density, correction_error
+    XPE_METRIC_SNR             = 1u << 5   ///< snr_improvement_db
+} XpeMetricMeasured;
 
 /**
  * @brief Verify offset correction quality
@@ -960,15 +1067,17 @@ XPE_API XpeErrorCode xpe_verify_pipeline(
  * ============================================================================ */
 
 /**
- * @brief Compute CRC-32 checksum using ISO-HDLC polynomial (0xEDB88320)
+ * @brief (withdrawn) xpe_crc32 -- QA-A-152 (#216)
  *
- * Used internally by calibration manager for file integrity verification.
+ * This export is gone. It had no caller in clients/, gui/, modules/, tools/
+ * or tests/ (build outputs excluded), and the integrity mechanism it served
+ * was replaced by SHA-256 (SRS-CALIB-001:43-44). The doc comment said "used
+ * internally by calibration manager", which had stopped being true.
  *
- * @param data Data buffer to checksum
- * @param len Length of data in bytes
- * @return CRC-32 checksum value
+ * ABI NOTE: removing an export changes the DLL surface. No caller existed, so
+ * nothing in this repository breaks; a binary built against an older header
+ * that resolved this symbol would not.
  */
-XPE_API uint32_t xpe_crc32(const uint8_t* data, size_t len) noexcept;
 
 #ifdef __cplusplus
 }

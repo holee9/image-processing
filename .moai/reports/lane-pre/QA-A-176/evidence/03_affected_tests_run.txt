@@ -1,0 +1,160 @@
+Note: Google Test filter = PreprocessDegraded.*:*Nonlin*
+[==========] Running 62 tests from 10 test suites.
+[----------] Global test environment set-up.
+[----------] 12 tests from NonlinLutGenerateTest
+[ RUN      ] NonlinLutGenerateTest.LutMatchesTheIndependentlyComputedIdealAtEveryKnot
+[       OK ] NonlinLutGenerateTest.LutMatchesTheIndependentlyComputedIdealAtEveryKnot (14 ms)
+[ RUN      ] NonlinLutGenerateTest.InterpolationAcrossTheMeasuredRangeStaysWithinThreeTenthsOfAPercent
+[       OK ] NonlinLutGenerateTest.InterpolationAcrossTheMeasuredRangeStaysWithinThreeTenthsOfAPercent (4 ms)
+[ RUN      ] NonlinLutGenerateTest.AboveTheMeasuredRangeTheTableIsExtendedAndSaysSo
+[       OK ] NonlinLutGenerateTest.AboveTheMeasuredRangeTheTableIsExtendedAndSaysSo (6 ms)
+[ RUN      ] NonlinLutGenerateTest.TheDarkEndIsPinnedToZero
+[       OK ] NonlinLutGenerateTest.TheDarkEndIsPinnedToZero (5 ms)
+[ RUN      ] NonlinLutGenerateTest.EveryEntryIsNonDecreasing
+[       OK ] NonlinLutGenerateTest.EveryEntryIsNonDecreasing (4 ms)
+[ RUN      ] NonlinLutGenerateTest.NonMonotoneMeasuredResponseIsRejected
+[       OK ] NonlinLutGenerateTest.NonMonotoneMeasuredResponseIsRejected (0 ms)
+[ RUN      ] NonlinLutGenerateTest.FewerThanTenDoseLevelsIsRejected
+[       OK ] NonlinLutGenerateTest.FewerThanTenDoseLevelsIsRejected (0 ms)
+[ RUN      ] NonlinLutGenerateTest.OnlyTheTwoSpecifiedEntryCountsAreAccepted
+[       OK ] NonlinLutGenerateTest.OnlyTheTwoSpecifiedEntryCountsAreAccepted (1 ms)
+[ RUN      ] NonlinLutGenerateTest.SixtyFiveThousandEntriesUseA4096By16Geometry
+[       OK ] NonlinLutGenerateTest.SixtyFiveThousandEntriesUseA4096By16Geometry (5 ms)
+[ RUN      ] NonlinLutGenerateTest.FileRoundTripPreservesEntriesAndRecordsTheConditions
+[       OK ] NonlinLutGenerateTest.FileRoundTripPreservesEntriesAndRecordsTheConditions (4 ms)
+[ RUN      ] NonlinLutGenerateTest.TheFileIsNotReadableAsAnotherCalibrationType
+[       OK ] NonlinLutGenerateTest.TheFileIsNotReadableAsAnotherCalibrationType (4 ms)
+[ RUN      ] NonlinLutGenerateTest.NullArgumentsAndNonIncreasingDoseAreRejected
+[       OK ] NonlinLutGenerateTest.NullArgumentsAndNonIncreasingDoseAreRejected (0 ms)
+[----------] 12 tests from NonlinLutGenerateTest (50 ms total)
+
+[----------] 12 tests from NonlinApplyTest
+[ RUN      ] NonlinApplyTest.CorrectedPixelsFollowTheIdealLinearResponse
+[       OK ] NonlinApplyTest.CorrectedPixelsFollowTheIdealLinearResponse (5 ms)
+[ RUN      ] NonlinApplyTest.TheUncorrectedFrameIsNowhereNearTheIdealLine
+[       OK ] NonlinApplyTest.TheUncorrectedFrameIsNowhereNearTheIdealLine (1 ms)
+[ RUN      ] NonlinApplyTest.TheFlagFollowsWhetherPixelsActuallyChanged
+[       OK ] NonlinApplyTest.TheFlagFollowsWhetherPixelsActuallyChanged (3 ms)
+[ RUN      ] NonlinApplyTest.ALinearPanelSkipsTheStageAndLeavesThePixelsAlone
+[       OK ] NonlinApplyTest.ALinearPanelSkipsTheStageAndLeavesThePixelsAlone (4 ms)
+[ RUN      ] NonlinApplyTest.ANonLinearPanelWithoutALutIsAnError
+[       OK ] NonlinApplyTest.ANonLinearPanelWithoutALutIsAnError (1 ms)
+[ RUN      ] NonlinApplyTest.ANonMonotoneOrWrongSizedTableIsRefusedAtLoad
+[       OK ] NonlinApplyTest.ANonMonotoneOrWrongSizedTableIsRefusedAtLoad (12 ms)
+[ RUN      ] NonlinApplyTest.NullPathIsRejected
+[       OK ] NonlinApplyTest.NullPathIsRejected (1 ms)
+[ RUN      ] NonlinApplyTest.TheCorrectionRunsAfterOffsetAndBeforeGain
+[       OK ] NonlinApplyTest.TheCorrectionRunsAfterOffsetAndBeforeGain (11 ms)
+[ RUN      ] NonlinApplyTest.TheSixtyFiveThousandEntryTableIsAppliedWithCorrectIndexing
+[       OK ] NonlinApplyTest.TheSixtyFiveThousandEntryTableIsAppliedWithCorrectIndexing (6 ms)
+[ RUN      ] NonlinApplyTest.A4096TableClampsRawValuesAboveItsLastIndex
+[       OK ] NonlinApplyTest.A4096TableClampsRawValuesAboveItsLastIndex (6 ms)
+[ RUN      ] NonlinApplyTest.TheDarkReferenceIsSubtractedBeforeTheMeansAreTaken
+[       OK ] NonlinApplyTest.TheDarkReferenceIsSubtractedBeforeTheMeansAreTaken (12 ms)
+[ RUN      ] NonlinApplyTest.AnIdentityTableChangesTheOutputComparedToTheRealOne
+[       OK ] NonlinApplyTest.AnIdentityTableChangesTheOutputComparedToTheRealOne (8 ms)
+[----------] 12 tests from NonlinApplyTest (74 ms total)
+
+[----------] 5 tests from NonlinPolyTest
+[ RUN      ] NonlinPolyTest.PolynomialCorrectionMeetsTheZeroPointThreePercentResidual
+[       OK ] NonlinPolyTest.PolynomialCorrectionMeetsTheZeroPointThreePercentResidual (0 ms)
+[ RUN      ] NonlinPolyTest.NonMonotonePolynomialIsRejectedAndFallsBackToLut
+[       OK ] NonlinPolyTest.NonMonotonePolynomialIsRejectedAndFallsBackToLut (0 ms)
+[ RUN      ] NonlinPolyTest.AutoSelectsPolynomialOnlyForEmbeddedTargets
+[       OK ] NonlinPolyTest.AutoSelectsPolynomialOnlyForEmbeddedTargets (0 ms)
+[ RUN      ] NonlinPolyTest.PanelLinearGovernsEnableAndDisable
+[       OK ] NonlinPolyTest.PanelLinearGovernsEnableAndDisable (0 ms)
+[ RUN      ] NonlinPolyTest.PolyModeWithoutCoefficientsDoesNotZeroTheFrame
+[       OK ] NonlinPolyTest.PolyModeWithoutCoefficientsDoesNotZeroTheFrame (0 ms)
+[----------] 5 tests from NonlinPolyTest (0 ms total)
+
+[----------] 3 tests from NonlinearityCorrect
+[ RUN      ] NonlinearityCorrect.NullImgReturnsError
+[       OK ] NonlinearityCorrect.NullImgReturnsError (0 ms)
+[ RUN      ] NonlinearityCorrect.NullConfigIsNoOp
+[       OK ] NonlinearityCorrect.NullConfigIsNoOp (0 ms)
+[ RUN      ] NonlinearityCorrect.UnknownModeIsNoLongerAnError
+[       OK ] NonlinearityCorrect.UnknownModeIsNoLongerAnError (0 ms)
+[----------] 3 tests from NonlinearityCorrect (0 ms total)
+
+[----------] 1 test from PipelineStageTest
+[ RUN      ] PipelineStageTest.NonlinearityAndBinningStagesRun
+[       OK ] PipelineStageTest.NonlinearityAndBinningStagesRun (0 ms)
+[----------] 1 test from PipelineStageTest (0 ms total)
+
+[----------] 6 tests from PreprocessDegraded
+[ RUN      ] PreprocessDegraded.BP01_OffsetNullCalibrationReturnsNotInitialized
+[       OK ] PreprocessDegraded.BP01_OffsetNullCalibrationReturnsNotInitialized (0 ms)
+[ RUN      ] PreprocessDegraded.BP02_GainIdentityPreservesInputStatistics
+[       OK ] PreprocessDegraded.BP02_GainIdentityPreservesInputStatistics (0 ms)
+[ RUN      ] PreprocessDegraded.BP03_DefectEmptyListIsNoOp
+[       OK ] PreprocessDegraded.BP03_DefectEmptyListIsNoOp (0 ms)
+[ RUN      ] PreprocessDegraded.BP04_GhostZeroLagCoefficientIsIdentity
+[       OK ] PreprocessDegraded.BP04_GhostZeroLagCoefficientIsIdentity (0 ms)
+[ RUN      ] PreprocessDegraded.BP05_TempCompensateReferenceIsIdentity
+[       OK ] PreprocessDegraded.BP05_TempCompensateReferenceIsIdentity (0 ms)
+[ RUN      ] PreprocessDegraded.BP05_NonlinearityNullConfigIsIdentity
+[       OK ] PreprocessDegraded.BP05_NonlinearityNullConfigIsIdentity (0 ms)
+[----------] 6 tests from PreprocessDegraded (0 ms total)
+
+[----------] 3 tests from PipelineStageValueTest
+[ RUN      ] PipelineStageValueTest.NonlinearityWithoutCorrectionLeavesTheFlagClear
+[       OK ] PipelineStageValueTest.NonlinearityWithoutCorrectionLeavesTheFlagClear (2 ms)
+[ RUN      ] PipelineStageValueTest.OffsetThenNonlinearityThenGainReturnsTheCorrectedFrame
+[       OK ] PipelineStageValueTest.OffsetThenNonlinearityThenGainReturnsTheCorrectedFrame (6 ms)
+[ RUN      ] PipelineStageValueTest.BypassingNonlinearityGivesTheSameFrame
+[       OK ] PipelineStageValueTest.BypassingNonlinearityGivesTheSameFrame (2 ms)
+[----------] 3 tests from PipelineStageValueTest (11 ms total)
+
+[----------] 5 tests from NonlinModeTest
+[ RUN      ] NonlinModeTest.ControlAPipelineWithNoModeKeySucceeds
+[       OK ] NonlinModeTest.ControlAPipelineWithNoModeKeySucceeds (0 ms)
+[ RUN      ] NonlinModeTest.AnOperatingModeNoLongerFailsThePipeline
+[       OK ] NonlinModeTest.AnOperatingModeNoLongerFailsThePipeline (0 ms)
+[ RUN      ] NonlinModeTest.AnArbitraryModeNameIsAlsoAccepted
+[       OK ] NonlinModeTest.AnArbitraryModeNameIsAlsoAccepted (0 ms)
+[ RUN      ] NonlinModeTest.DoingNothingIsReported
+[       OK ] NonlinModeTest.DoingNothingIsReported (0 ms)
+[ RUN      ] NonlinModeTest.DoingNothingIsReportedWithNoModeKeyEither
+[       OK ] NonlinModeTest.DoingNothingIsReportedWithNoModeKeyEither (0 ms)
+[----------] 5 tests from NonlinModeTest (0 ms total)
+
+[----------] 7 tests from NonlinNoopReportTest
+[ RUN      ] NonlinNoopReportTest.NullConfigStillReports
+[       OK ] NonlinNoopReportTest.NullConfigStillReports (0 ms)
+[ RUN      ] NonlinNoopReportTest.ConfigPresentStillReports
+[       OK ] NonlinNoopReportTest.ConfigPresentStillReports (0 ms)
+[ RUN      ] NonlinNoopReportTest.LutLoadedIsSilentAndActuallyChangesTheFrame
+[       OK ] NonlinNoopReportTest.LutLoadedIsSilentAndActuallyChangesTheFrame (4 ms)
+[ RUN      ] NonlinNoopReportTest.NonLinearPanelWithoutLutIsStillAnError
+[       OK ] NonlinNoopReportTest.NonLinearPanelWithoutLutIsStillAnError (0 ms)
+[ RUN      ] NonlinNoopReportTest.EveryNoopFrameReportsOnce
+[       OK ] NonlinNoopReportTest.EveryNoopFrameReportsOnce (0 ms)
+[ RUN      ] NonlinNoopReportTest.WithAHostThatDrainsEachCallTheQueueNeverGrows
+[       OK ] NonlinNoopReportTest.WithAHostThatDrainsEachCallTheQueueNeverGrows (0 ms)
+[ RUN      ] NonlinNoopReportTest.RemovingSuppressionDidNotSilenceTheOtherPaths
+[       OK ] NonlinNoopReportTest.RemovingSuppressionDidNotSilenceTheOtherPaths (4 ms)
+[----------] 7 tests from NonlinNoopReportTest (8 ms total)
+
+[----------] 8 tests from AllCombinations/PipelineComboTest
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_NoDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_OneDefect (6 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_NoDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_OneDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_NoDefect (2 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_OneDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_NoDefect (2 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_OneDefect (3 ms)
+[----------] 8 tests from AllCombinations/PipelineComboTest (28 ms total)
+
+[----------] Global test environment tear-down
+[==========] 62 tests from 10 test suites ran. (175 ms total)
+[  PASSED  ] 62 tests.

@@ -1,0 +1,35 @@
+Note: Google Test filter = WorkerSupervisor.*
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from WorkerSupervisor
+[ RUN      ] WorkerSupervisor.FirstCallStartsAWorkerAndTheSecondReusesIt
+[       OK ] WorkerSupervisor.FirstCallStartsAWorkerAndTheSecondReusesIt (33 ms)
+[ RUN      ] WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid
+[       OK ] WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid (61 ms)
+[ RUN      ] WorkerSupervisor.TheSupervisorReadsTheExitCodeOfTheHandleItHolds
+[       OK ] WorkerSupervisor.TheSupervisorReadsTheExitCodeOfTheHandleItHolds (63 ms)
+[ RUN      ] WorkerSupervisor.AnUnrequestedExitIsADeathEvenWithExitCodeZero
+[       OK ] WorkerSupervisor.AnUnrequestedExitIsADeathEvenWithExitCodeZero (69 ms)
+[ RUN      ] WorkerSupervisor.ARequestedExitIsCleanAndReadAsExitCodeZero
+[       OK ] WorkerSupervisor.ARequestedExitIsCleanAndReadAsExitCodeZero (62 ms)
+[ RUN      ] WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne
+[       OK ] WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne (1104 ms)
+[ RUN      ] WorkerSupervisor.AWorkerThatAnswersWithAnErrorIsKeptNotRestarted
+[       OK ] WorkerSupervisor.AWorkerThatAnswersWithAnErrorIsKeptNotRestarted (61 ms)
+[ RUN      ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(283): Skipped
+a stub worker has no model to run; restart is covered by Ping above
+
+[  SKIPPED ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress (0 ms)
+[ RUN      ] WorkerSupervisor.NoWorkerOutlivesTheSupervisor
+[       OK ] WorkerSupervisor.NoWorkerOutlivesTheSupervisor (92 ms)
+[ RUN      ] WorkerSupervisor.BaselineWithoutASupervisorAStalledWorkerStaysAliveAndTheBridgeStaysDown
+[baseline] after a stall: first receive rc=-3, next send rc=-6, worker alive=1
+[       OK ] WorkerSupervisor.BaselineWithoutASupervisorAStalledWorkerStaysAliveAndTheBridgeStaysDown (697 ms)
+[----------] 10 tests from WorkerSupervisor (2256 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (2256 ms total)
+[  PASSED  ] 9 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress

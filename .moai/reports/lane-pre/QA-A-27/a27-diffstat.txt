@@ -1,0 +1,9 @@
+ modules/preprocess/src/xpe_preprocess.cpp        | 287 --------------
+ tests/preprocess/CMakeLists.txt                  |  87 -----
+ tests/preprocess/test_gain_correction.cpp        | 407 --------------------
+ tests/preprocess/test_runtime_detection.cpp      | 468 -----------------------
+ tests/preprocess_smoke/CMakeLists.txt            |  10 -
+ tests/preprocess_smoke/test_preprocess_smoke.cpp | 165 --------
+ 6 files changed, 1424 deletions(-)
+ modules/preprocess/CMakeLists.txt | 2 ++
+ 1 file changed, 2 insertions(+)

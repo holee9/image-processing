@@ -188,6 +188,16 @@
             "command": "bash",
             "timeout": 5,
             "type": "command"
+          },
+          {
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/codex-reviewer-bridge.py",
+              "hook"
+            ],
+            "async": true,
+            "command": "python",
+            "timeout": 20,
+            "type": "command"
           }
         ],
         "matcher": "Write|Edit|MultiEdit"

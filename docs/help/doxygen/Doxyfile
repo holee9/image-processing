@@ -30,7 +30,8 @@ INPUT                  = ../../../modules/common/include \
                          ../../../modules/display/include \
                          ../../../modules/dicom/include \
                          ../../../modules/enhance_advanced/include \
-                         ../../../modules/gsvg/include
+                         ../../../modules/gsvg/include \
+                         ../../../modules/ai/include
 
 FILE_PATTERNS          = *.h
 RECURSIVE              = YES

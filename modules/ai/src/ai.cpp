@@ -25,10 +25,12 @@
 
 #include "xpe/ai/ai_api.h"
 #include "xpe/ai/ai_worker_protocol.h"
+#include "xpe/ai/ai_onnx_session.h"
 
 #include <cstdint>
 #include <cstring>
 #include <atomic>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -90,6 +92,26 @@ struct AiModuleState {
 
     /** Monotonically increasing request ID for IPC. */
     std::atomic<uint32_t> nextRequestId{1};
+
+    /**
+     * Inference session for xpe_bone_suppress, owned by this module
+     * (QA-B-161, #130, FUNC-038).
+     *
+     * Loaded lazily on the first call rather than in xpe_ai_init, because
+     * init must stay cheap for callers that never run inference, and because
+     * a missing model is then reported by the function that needed it rather
+     * than by init. Released in xpe_ai_shutdown -- the CALLER NEVER SEES OR
+     * FREES IT; nothing about it crosses the C ABI.
+     *
+     * Guarded by `mtx` like the rest of this struct. ONNX Runtime sessions are
+     * documented as safe for concurrent Run(), but creation is not, and the
+     * lazy load is a write.
+     */
+    std::unique_ptr<xpe::ai::OnnxSession> boneSuppressSession;
+
+    /** Model directory the cached session was built from, so a re-init with a
+     *  different directory does not silently keep serving the old model. */
+    std::string boneSuppressSessionDir;
 
     // --- Worker process state ---
     /** PID of the worker process (0 if not running). */
@@ -370,6 +392,12 @@ XPE_API void xpe_ai_shutdown(void)
 
     AI_LOG_INFO("xpe_ai shutdown: worker_pid=%u", state->workerPid);
 
+    // QA-B-161: the session is this module's to free. Released before the
+    // state is deleted, and before modelDirPath is cleared, so the destructor
+    // still runs while the object it belongs to is intact.
+    state->boneSuppressSession.reset();
+    state->boneSuppressSessionDir.clear();
+
     state->loadedModels.clear();
     state->modelDirPath.clear();
     state->pipeHandle = nullptr;
@@ -544,14 +572,116 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
         return XPE_ERR_INVALID_INPUT;
     }
 
-    // --- Stub implementation ---
-    // Full implementation: send BONE_SUPPRESS over IPC, await soft-tissue image.
+    // QA-B-161 (#130): the first C ABI function wired to a real session.
+    //
+    // WHY THIS ONE. It is float image in, float image out, which is what the
+    // model already is -- so the "a different model gives different numbers"
+    // assertion carries up from OnnxSession to the C ABI unchanged. It also
+    // writes to a SEPARATE output buffer, which leaves the input intact as a
+    // control: an echo is detectable. xpe_dl_denoise works in place and would
+    // destroy that control; xpe_bodypart_recognize would need a float->label
+    // rule the model does not supply, i.e. a second untested thing.
+    //
     // REQ-AI-050: U-Net architecture trained on DES paired data.
     // REQ-AI-051: Quality target: pulmonary nodule sensitivity +16.8%.
-
+    // NEITHER IS MET. The model here is whatever sits at
+    // <modelDir>/bone_suppress.onnx; this wires the path, not the clinical
+    // claim, and the tests use a toy scale model.
     (void)configJsonOrNull;
 
-    return XPE_ERR_PROCESSING_FAILED;
+    // Float pixels only. The session speaks float32 and silently reinterpreting
+    // 16-bit pixels as floats would produce numbers rather than an error.
+    if (img->format != XPE_PIXEL_FLOAT32 || softTissueOut->format != XPE_PIXEL_FLOAT32) {
+        return XPE_ERR_UNSUPPORTED_FORMAT;
+    }
+
+    auto* state = g_aiState;
+    if (!state) return XPE_ERR_NOT_INITIALIZED;
+
+    const size_t count = static_cast<size_t>(img->width) * img->height;
+    if (count == 0) return XPE_ERR_INVALID_INPUT;
+    if (img->dataSize < count * sizeof(float) ||
+        softTissueOut->dataSize < count * sizeof(float)) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+
+    std::lock_guard<std::mutex> lock(state->mtx);
+
+    const std::string modelPath = state->modelDirPath.empty()
+        ? std::string("bone_suppress.onnx")
+        : state->modelDirPath + "/bone_suppress.onnx";
+
+    // Lazy load, and reload when init pointed somewhere else.
+    if (!state->boneSuppressSession || state->boneSuppressSessionDir != state->modelDirPath) {
+        xpe::ai::OnnxSessionConfig cfg;
+        cfg.model_path = modelPath;
+        cfg.execution_provider = xpe::ai::ExecutionProvider::kCpu;
+        cfg.num_threads = 1;
+
+        auto created = xpe::ai::OnnxSession::Create(cfg);
+        if (!created.has_value()) {
+            // Three causes, three codes -- a caller that gets one code for all
+            // of them cannot tell "install the model" from "the model is
+            // broken" from "inference failed".
+            switch (created.code) {
+                case xpe::ai::OnnxErrorCode::kInvalidModelPath:
+                    AI_LOG_ERROR("bone_suppress: no model at %s", modelPath.c_str());
+                    return XPE_ERR_IO_FAILED;
+                case xpe::ai::OnnxErrorCode::kModelLoadFailed:
+                    AI_LOG_ERROR("bone_suppress: model unreadable: %s", created.message.c_str());
+                    return XPE_ERR_CONFIG_INVALID;
+                default:
+                    AI_LOG_ERROR("bone_suppress: session failed: %s", created.message.c_str());
+                    return XPE_ERR_PROCESSING_FAILED;
+            }
+        }
+        state->boneSuppressSession = std::move(created.value);
+        state->boneSuppressSessionDir = state->modelDirPath;
+    }
+
+    const float* in = static_cast<const float*>(img->data);
+    const std::vector<float> input(in, in + count);
+
+    auto out = state->boneSuppressSession->Run(input);
+    if (out.code != xpe::ai::OnnxErrorCode::kOk) {
+        // A stub build lands here every time (Run returns kModelLoadFailed
+        // there), which keeps the documented stub outcome unchanged.
+        AI_LOG_ERROR("bone_suppress: run failed: %s", out.message.c_str());
+        return (out.code == xpe::ai::OnnxErrorCode::kInvalidInput)
+             ? XPE_ERR_INVALID_INPUT
+             : XPE_ERR_PROCESSING_FAILED;
+    }
+    if (out.value.size() != count) {
+        AI_LOG_ERROR("bone_suppress: model returned %zu values, expected %zu",
+                     out.value.size(), count);
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+
+    std::memcpy(softTissueOut->data, out.value.data(), count * sizeof(float));
+
+    // SRS-ALERT-004 (QA-B-168, #130): DL processing was applied -- Info,
+    // "AI-processed".
+    //
+    // PLACEMENT IS THE CONTRACT. This sits after the memcpy, on the single
+    // success exit, so it cannot fire on a path that returned an image the
+    // model never touched. Every early return above -- unsupported format, no
+    // model, unloadable model, a failed Run (which is EVERY call in a stub
+    // build) -- leaves the queue untouched. Hoisting it earlier would make an
+    // "always fires" alert that still passes a test asserting only that it
+    // fires; the negative assertions in test_alert_ai_processed.cpp are what
+    // pin this position.
+    //
+    // WHY Info AND WHY HERE. SRS-ALERT-004 reads "DL processing 적용됨 / Info /
+    // AI-processed label" (XPE-SRS-001:102). SDD:874 used to attribute it to
+    // worker failure; that line was corrected to SRS-SAFE-008 in a3330d9 --
+    // failure is SAFE-008, success is ALERT-004. Severity settles it on its
+    // own: every failure row in the SRS alert table is Warning or Error.
+    //
+    // The module raises it, not the GUI: all 20 product xpe_alert_push call
+    // sites live under modules/ (QA-B-167), and clients/ only reads the queue.
+    xpe_alert_push("AI-processed: bone suppression applied (SRS-ALERT-004)",
+                   XPE_ALERT_INFO);
+    return XPE_OK;
 }
 
 XPE_API XpeErrorCode xpe_dl_denoise(XpeImageBuffer* img,

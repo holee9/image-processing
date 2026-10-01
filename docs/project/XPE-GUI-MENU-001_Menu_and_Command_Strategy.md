@@ -272,8 +272,8 @@ Rules:
 | Toggle | Default | Phase | 상태 |
 |--------|:-------:|:-----:|---|
 | `Show Logs` | **OFF** | 0 | **배선됨** — `AnalysisPanel` 의 log 영역. 탭이 `log` 이고 **동시에** 이 토글이 켜져 있을 때 보입니다. 토글은 탭을 바꾸지 않습니다 |
-| `Show Calibration Evaluation` | OFF | 1a | **비활성** — 대응 화면 없음. 코드의 `Calibration Paths Panel` 은 **같은 것이 아닙니다**("경로"와 "평가"), 그리고 그것도 아무것도 표시하지 않습니다 |
-| `Show Display Settings` | OFF | 1b | **비활성** — 대응 화면 없음 |
+| `Calibration Paths Panel` | OFF | 1a | **배선됨 (2026-10-01, GUI-C-170)** — 교정 디렉터리 셋(offset·gain·defect)과 Browse 버튼을 보입니다. 가시성은 영속 설정 `showCalibrationPanel` 이고 자동화 보고서에 실리지만 판정(`Passed`)에는 들어가지 않습니다. **교정 "평가" 화면과는 다른 것입니다** — 평가 화면은 아직 없고 그 메뉴도 없습니다 |
+| `Display Settings Panel` | OFF | 1b | **배선됨 (2026-10-01, GUI-C-170)** — 요청한 VOI 설정과 마지막 렌더가 쓴 값을 나란히 보입니다. 가시성은 영속 설정 `showDisplaySettingsPanel` 입니다. 옛 키 `showDisplayPanel` 은 **읽지 않습니다**: 옛 메뉴가 비활성이고 기본값이 `true` 였으므로 저장된 `true` 는 사용자 선택이 아니었고, 업그레이드 첫 실행에 패널이 열리지 않게 키를 바꿨습니다 |
 
 **제거된 다섯**: `Show Runtime Panel` · `Show Raw Settings` · `Show Alerts` · `Image Summary` · `Metadata/Notes`. 다섯 다 **켜고 끌 대상이 레이아웃에 없었고**, 체크 표시만 바뀌었습니다. 아무 일도 하지 않는 컨트롤을 지우는 것은 기능 손실이 아니며, 남겨 두면 `Reset Layout` 이 체크를 되살려 **"초기화가 패널을 되살렸다"로 읽히게** 만듭니다.
 

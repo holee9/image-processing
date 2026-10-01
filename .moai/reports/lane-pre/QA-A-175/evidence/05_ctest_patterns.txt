@@ -1,0 +1,128 @@
+##### ctest -N -R AVX2Parity   (the pattern VVP line 236 names)
+Internal ctest changing into directory: D:/workspace-github/xpe-pre/build/ci-preprocess
+Test project D:/workspace-github/xpe-pre/build/ci-preprocess
+  Test #520: OffsetCorrectAVX2ParityTest.ShippedPathMatchesTheScalarReference
+  Test #521: OffsetCorrectAVX2ParityTest.MultipleCallsAreBitIdentical
+  Test #522: OffsetCorrectAVX2ParityTest.ParityWithNonMultipleStride
+  Test #523: GainCorrectAVX2ParityTest.ShippedPathMatchesTheScalarReference
+  Test #524: GainCorrectAVX2ParityTest.MultipleCallsAreBitIdentical
+  Test #525: GainCorrectAVX2ParityTest.ParityWithNonMultipleStride
+
+Total Tests: 6
+##### ctest -N -R Avx2Parity   (control: the actual suite spelling)
+Internal ctest changing into directory: D:/workspace-github/xpe-pre/build/ci-preprocess
+Test project D:/workspace-github/xpe-pre/build/ci-preprocess
+  Test #532: Avx2ParityTest.NamedSelectionsMatchTheirScalarTernaries
+  Test #533: Avx2ParityTest.SignedZeroOrderingMatchesTheScalarNetwork
+  Test #534: Avx2ParityTest.PerLaneInputsAgreeBitForBit
+  Test #535: Avx2ParityTest.FrameMapsAreIdenticalPixelForPixel
+  Test #536: Avx2ParityTest.LastRunStartLandsExactlyOnTheFinalInteriorColumn
+  Test #537: Avx2ParityTest.JudgingAColumnTwiceStoresTheSameByte
+  Test #538: Avx2ParityTest.OverlapBoundaryWidthsStillMatchTheScalarRule
+  Test #539: Avx2ParityTest.VectorRunsNeverReadPastTheFrame
+  Test #540: Avx2ParityTest.TheComparedMapsAreNotTriviallyEmpty
+  Test #541: Avx2ParityTest.ShippedEntryPointAgreesWithTheScalarRule
+
+Total Tests: 10
+##### ctest -N -R "Parity"   (all parity)
+Internal ctest changing into directory: D:/workspace-github/xpe-pre/build/ci-preprocess
+Test project D:/workspace-github/xpe-pre/build/ci-preprocess
+  Test #520: OffsetCorrectAVX2ParityTest.ShippedPathMatchesTheScalarReference
+  Test #521: OffsetCorrectAVX2ParityTest.MultipleCallsAreBitIdentical
+  Test #522: OffsetCorrectAVX2ParityTest.ParityWithNonMultipleStride
+  Test #523: GainCorrectAVX2ParityTest.ShippedPathMatchesTheScalarReference
+  Test #524: GainCorrectAVX2ParityTest.MultipleCallsAreBitIdentical
+  Test #525: GainCorrectAVX2ParityTest.ParityWithNonMultipleStride
+  Test #530: RuntimeDetectDeterminismTest.RepeatedCallParity_5x
+  Test #532: Avx2ParityTest.NamedSelectionsMatchTheirScalarTernaries
+  Test #533: Avx2ParityTest.SignedZeroOrderingMatchesTheScalarNetwork
+  Test #534: Avx2ParityTest.PerLaneInputsAgreeBitForBit
+  Test #535: Avx2ParityTest.FrameMapsAreIdenticalPixelForPixel
+  Test #536: Avx2ParityTest.LastRunStartLandsExactlyOnTheFinalInteriorColumn
+  Test #537: Avx2ParityTest.JudgingAColumnTwiceStoresTheSameByte
+  Test #538: Avx2ParityTest.OverlapBoundaryWidthsStillMatchTheScalarRule
+  Test #539: Avx2ParityTest.VectorRunsNeverReadPastTheFrame
+  Test #540: Avx2ParityTest.TheComparedMapsAreNotTriviallyEmpty
+  Test #541: Avx2ParityTest.ShippedEntryPointAgreesWithTheScalarRule
+  Test #542: DetectBuildParityTest.RowRangeMatchesTheScalarRuleAtRealFrameSize
+  Test #776: BufferReuseParityTest.IdenticalOnAGaussianFrame
+  Test #777: BufferReuseParityTest.IdenticalWithInjectedTransients
+  Test #778: BufferReuseParityTest.IdenticalOnAFlatFieldWithBorders
+  Test #779: BufferReuseParityTest.IdenticalOnANarrowFrame
+  Test #780: Median8ParityTest.FastPathMatchesGenericBitForBit
+  Test #781: Median8ParityTest.ZeroSignDifferenceCannotChangeADecision
+  Test #782: Median8ParityTest.MadMatchesGenericBitForBit
+  Test #783: Median8ParityTest.DetectionMapIsIdenticalPixelForPixel
+  Test #784: RadixSelectParityTest.BranchlessSortKeyEqualsTheTernaryItReplaced
+  Test #785: RadixSelectParityTest.SortKeyIsOrderPreservingAndInvertible
+  Test #786: RadixSelectParityTest.MatchesNthElementBitForBit
+  Test #787: RadixSelectParityTest.ZeroSignChoiceCannotChangeTheSigma
+  Test #788: RadixSelectParityTest.GlobalSigmaMatchesThePreviousImplementation
+  Test #791: SigmaBufferParityTest.NonSquareFramesMatchThePushBackImplementation
+  Test #792: SigmaBufferParityTest.DegenerateDimensionsMatchThePushBackImplementation
+  Test #793: SigmaBufferParityTest.BufferReuseDoesNotLeakBetweenDirections
+  Test #794: ThreadParityTest.RealFrameSizeIsIdenticalAtEveryThreadCount
+  Test #795: ThreadParityTest.DetectFrameClearsTheMapItself
+  Test #796: ThreadParityTest.GlobalSigmaIsIdenticalAtEveryThreadCount
+  Test #797: ThreadParityTest.DefectMapIsIdenticalPixelForPixelAtEveryThreadCount
+  Test #798: ThreadParityTest.ConcurrentCallsWithDifferentThreadCountsAreIndependent
+  Test #799: ThreadParityTest.RepeatedThreadedRunsAreDeterministic
+
+Total Tests: 40
+##### ctest -N -R "RuntimeDetection|Avx2ParityTest|DetectBuildParity|A1[0-9][0-9]"  (runtime-detection suites)
+Internal ctest changing into directory: D:/workspace-github/xpe-pre/build/ci-preprocess
+Test project D:/workspace-github/xpe-pre/build/ci-preprocess
+  Test #146: RuntimeDetection.HotPixelOnFlatFieldIsDetected
+  Test #147: RuntimeDetection.CleanImageClearsOnlyMaskPixelBytes
+  Test #148: RuntimeDetection.OutputDataSizeTooSmallReturnsBufferTooSmall
+  Test #149: RuntimeDetection.InputDataSizeTooSmallReturnsInvalidInput
+  Test #150: RuntimeDetection.ZeroDimensionsReturnInvalidInput
+  Test #532: Avx2ParityTest.NamedSelectionsMatchTheirScalarTernaries
+  Test #533: Avx2ParityTest.SignedZeroOrderingMatchesTheScalarNetwork
+  Test #534: Avx2ParityTest.PerLaneInputsAgreeBitForBit
+  Test #535: Avx2ParityTest.FrameMapsAreIdenticalPixelForPixel
+  Test #536: Avx2ParityTest.LastRunStartLandsExactlyOnTheFinalInteriorColumn
+  Test #537: Avx2ParityTest.JudgingAColumnTwiceStoresTheSameByte
+  Test #538: Avx2ParityTest.OverlapBoundaryWidthsStillMatchTheScalarRule
+  Test #539: Avx2ParityTest.VectorRunsNeverReadPastTheFrame
+  Test #540: Avx2ParityTest.TheComparedMapsAreNotTriviallyEmpty
+  Test #541: Avx2ParityTest.ShippedEntryPointAgreesWithTheScalarRule
+  Test #542: DetectBuildParityTest.RowRangeMatchesTheScalarRuleAtRealFrameSize
+  Test #543: RuntimeDetectionFunctionalTest.UniformImageFlagsNothing
+  Test #544: RuntimeDetectionFunctionalTest.GaussianNoiseKeepsFalsePositivesLow
+  Test #545: RuntimeDetectionFunctionalTest.BrightOutlierIsFlaggedAtItsOwnCoordinate
+  Test #546: RuntimeDetectionFunctionalTest.DarkOutlierIsFlagged
+  Test #547: RuntimeDetectionFunctionalTest.MultipleSeparatedOutliersAreAllFlagged
+  Test #548: RuntimeDetectionFunctionalTest.CornersAreSkippedAndEdgesAreJudged
+  Test #549: RuntimeDetectionFunctionalTest.SparseDefectsInLowNoiseField
+  Test #550: RuntimeDetectionFunctionalTest.DefectSurvivesHighNoise
+  Test #551: RuntimeDetectionFunctionalTest.SmallestImageIsHandled
+  Test #552: RuntimeDetectionFunctionalTest.ImageSmallerThanTheWindowIsHandled
+  Test #553: RuntimeDetectionFunctionalTest.LargeImageDetectsItsInjectedDefect
+  Test #554: RuntimeDetectionFunctionalTest.MedianMatchesHandComputedValues
+  Test #555: RuntimeDetectionFunctionalTest.MadIsTheScaledSigmaEstimate
+  Test #556: RuntimeDetectionFunctionalTest.OneOutlierMovesNeitherMedianNorMad
+  Test #557: RuntimeDetectionFunctionalTest.EveryWindowSizeDetectsALoneOutlier
+  Test #558: RuntimeDetectionFunctionalTest.WindowSizeControlsHowManySamplesAreCollected
+  Test #559: RuntimeDetectionFunctionalTest.WindowIsClippedAtTheBorder
+  Test #560: RuntimeDetectionFunctionalTest.SigmaThresholdControlsSensitivity
+  Test #561: RuntimeDetectionErrorTest.NullImageDataIsRejected
+  Test #562: RuntimeDetectionErrorTest.NullOutputDataIsRejected
+  Test #563: RuntimeDetectionErrorTest.NonFloatImageIsRejected
+  Test #564: RuntimeDetectionErrorTest.NonUint8DefectMapIsRejected
+  Test #565: RuntimeDetectionErrorTest.WidthMismatchIsRejected
+  Test #566: RuntimeDetectionErrorTest.HeightMismatchIsRejected
+  Test #567: RuntimeDetectionErrorTest.UndersizedDefectMapReportsBufferTooSmall
+  Test #568: RuntimeDetectionErrorTest.UndersizedImageIsRejected
+  Test #569: RuntimeDetectionErrorTest.NullMetadataIsAccepted
+  Test #570: RuntimeDetectionErrorTest.ZeroDimensionImageIsRejected
+  Test #770: RuntimeDetectionRatesTest.KnownDivergence_TprAtFiveSigmaIsBelowTheRequirement
+  Test #771: RuntimeDetectionRatesTest.FprOnCleanFramesMeetsTheRequirement
+  Test #772: RuntimeDetectionRatesTest.TprReachesTheFloorAtTenSigma
+  Test #773: RuntimeDetectionRatesTest.RatesAreInvariantUnderNoiseScaling
+  Test #774: RuntimeDetectionRatesTest.CleanFrameStaysUnderTheOnePercentCeiling
+  Test #775: RuntimeDetectionRatesTest.KnownDivergence_StripedFrameMissesTheTprFloor
+  Test #789: RuntimeDetectionPerformanceGateTest.Frame3072SquaredWithinMachineRatio
+  Test #790: RuntimeDetectionPerformanceGateTest.Frame1024SquaredMachineRatioDiagnostic
+
+Total Tests: 52

@@ -35,6 +35,17 @@
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
 
+/**
+ * @defgroup xpe_ai XPE AI
+ * @brief Deep-learning inference proxy -- C API (ai_api.h), worker IPC protocol
+ *        (ai_worker_protocol.h) and ONNX session (ai_onnx_session.h).
+ *
+ * Defined here, as xpe_dicom is in dicom_api.h and xpe_common in xpe_types.h,
+ * so the group references from this module's headers resolve to a real group
+ * instead of being ignored (Doxygen reports a reference to an undefined group
+ * as an error under FAIL_ON_WARNINGS).
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -232,14 +243,34 @@ XPE_API XpeErrorCode xpe_stitch_estimate_size(const XpeImageBuffer* parts,
  *                          are rejected here too.
  * @param configJsonOrNull Optional configuration (model variant, strength).
  *                         Currently ignored.
+ * MODEL AND SESSION OWNERSHIP (QA-B-161, #130, FUNC-038).
+ * The model is read from `<modelDir>/bone_suppress.onnx`, where `<modelDir>`
+ * is the path given to xpe_ai_init. The session built from it is owned by this
+ * module: it is created on the FIRST call that needs it (not by xpe_ai_init),
+ * reused by later calls, rebuilt if xpe_ai_init is called again with a
+ * different directory, and released by xpe_ai_shutdown.
+ * THE CALLER NEVER RECEIVES, STORES, OR FREES IT. No session handle crosses
+ * this ABI, and nothing here returns a pointer the caller must manage --
+ * @p softTissueOut is the caller's own buffer and stays the caller's.
+ *
  * @return XPE_OK on success -- ONNX build only; not reachable in a stub build.
  * @return XPE_ERR_NOT_INITIALIZED if xpe_ai_init not called.
  * @return XPE_ERR_INVALID_INPUT if img or softTissueOut is NULL, either buffer
- *         is invalid, or the two differ in width or height.
- * @return XPE_ERR_PROCESSING_FAILED if inference fails. In a stub build this is
- *         the unconditional outcome once validation passes.
+ *         is invalid, the two differ in width or height, a buffer is too small
+ *         for width*height floats, or the model rejected the input length.
+ * @return XPE_ERR_UNSUPPORTED_FORMAT if either image is not XPE_PIXEL_FLOAT32.
+ *         The session speaks float32; reinterpreting 16-bit pixels as floats
+ *         would return numbers instead of an error.
+ * @return XPE_ERR_IO_FAILED if `<modelDir>/bone_suppress.onnx` is not there.
+ * @return XPE_ERR_CONFIG_INVALID if that file exists but is not a loadable
+ *         model. Distinct from IO_FAILED on purpose: "install the model" and
+ *         "the model you installed is broken" need different actions.
+ * @return XPE_ERR_PROCESSING_FAILED if inference itself fails, or the model
+ *         returns a different number of values than the image has pixels. In a
+ *         stub build this is the unconditional outcome once validation passes.
  *
- * Thread safety: Reentrant.
+ * Thread safety: Reentrant. Calls are serialised on the module mutex, so
+ * concurrent callers do not race the lazy session load.
  * SRS: SRS-AI-030
  */
 XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,

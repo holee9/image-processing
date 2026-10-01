@@ -2,7 +2,19 @@
  * @file test_temp_nonlinearity_binning.cpp
  * @brief TDD RED tests for SWU-1.6/1.7/1.8:
  *        xpe_temp_compensate, xpe_nonlinearity_correct, xpe_binning_correct
- *        REQ-P1A-005 to REQ-P1A-008, REQ-P1A-012 to REQ-P1A-023
+ *        REQ-P1A-080 to REQ-P1A-082 (temp), REQ-P1A-090/091 (binning)
+ *
+ * Nonlinearity correction is exercised here too. Its requirement is
+ * SRS-CALIB-FUNC-006 / -006-EXT (SRS-CALIB-001), cited by the implementation
+ * at nonlinearity_correct.cpp:4 and :37 -- NOT a REQ-P1A- number. Old
+ * REQ-P1A-012~015 covered it before bc22093 and were dropped with no REQ-P1A
+ * replacement, which is correct: the requirement lives in the other series.
+ *
+ * QA-A-150 (#211) CORRECTION: this comment first read "has NO current
+ * requirement". That was an absence claim made from one table -- the REQ-P1A
+ * definitions -- and stated as if it covered every series. tools/docs/
+ * check_req_citations.py has the same scope, so its orphan list means "no
+ * REQ-P1A requirement", never "no requirement".
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  */
 
@@ -59,7 +71,7 @@ TEST(TempCompensate, NullImgReturnsError) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_temp_compensate(nullptr, 25.0f, nullptr));
 }
 
-// REQ-P1A-007: NaN temperature uses 25.0C fallback — must not return error
+// REQ-P1A-081: NaN temperature uses 25.0C fallback — must not return error
 TEST(TempCompensate, NanTemperatureUsesFallback) {
     std::vector<uint16_t> data(16, 1000);
     XpeImageBuffer buf = make_uint16_buf(data, 4, 4);
@@ -67,7 +79,7 @@ TEST(TempCompensate, NanTemperatureUsesFallback) {
     EXPECT_EQ(XPE_OK, xpe_temp_compensate(&buf, nan_temp, nullptr));
 }
 
-// REQ-P1A-008: temperature out of [-20, +60] returns XPE_ERR_INVALID_INPUT
+// REQ-P1A-081: temperature out of [-20, +60] returns XPE_ERR_INVALID_INPUT
 TEST(TempCompensate, TempBelowRangeReturnsError) {
     std::vector<uint16_t> data(16, 1000);
     XpeImageBuffer buf = make_uint16_buf(data, 4, 4);
@@ -93,7 +105,8 @@ TEST(NonlinearityCorrect, NullImgReturnsError) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_nonlinearity_correct(nullptr, nullptr));
 }
 
-// REQ-P1A-013: no-op if no coefficients provided (null config -> success, unchanged)
+// SRS-CALIB-FUNC-006 (not REQ-P1A-013; see the file header): no-op if no
+// coefficients provided (null config -> success, unchanged)
 TEST(NonlinearityCorrect, NullConfigIsNoOp) {
     std::vector<uint16_t> data(16, 5000);
     XpeImageBuffer buf = make_uint16_buf(data, 4, 4);

@@ -1,0 +1,12 @@
+ modules/preprocess/CMakeLists.txt                  |   2 +
+ modules/preprocess/include/xpe/preprocess_api.h    |   9 +-
+ modules/preprocess/src/xpe_calib_save.cpp          |   9 +-
+ modules/preprocess/tests/fixtures/make_xcal.hpp    |   1 +
+ modules/preprocess/tests/test_boundary.cpp         |   4 +-
+ .../preprocess/tests/test_calib_save_expiry.cpp    | 139 +++++++++++++++++++++
+ .../preprocess/tests/test_calibration_manager.cpp  |   8 +-
+ .../tests/test_calibration_roundtrip.cpp           |  15 ++-
+ modules/preprocess/tests/test_xpe_calib_save.cpp   |  16 +--
+ modules/preprocess/tests/test_xpe_preprocess.cpp   |   4 +-
+ .../tests/test_xpe_preprocess_calibration.cpp      |  10 +-
+ 11 files changed, 185 insertions(+), 32 deletions(-)

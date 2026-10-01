@@ -4,7 +4,7 @@
       "src": [
         {
           "files": ["**/*.csproj"],
-          "src": "../../gui"
+          "src": "../../../gui"
         }
       ],
       "dest": "api",

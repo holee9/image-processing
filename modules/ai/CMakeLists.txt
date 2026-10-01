@@ -6,10 +6,23 @@
 # REQ-AI-001: Layer 1 dependency (xpe_common only, no lateral DLL deps)
 # REQ-AI-003: Worker isolation (xpe_ai_worker.exe over named pipe IPC)
 # REQ-AI-006: ONNX Runtime 1.20+ integration with multi-EP support
+#   -- PARTLY MET as of QA-B-160 (#130). A full build now links ONNX Runtime
+#      and runs a model (verified against 1.30.0, so the "1.20+" half holds);
+#      src/ai_onnx_session.cpp's "full" arm no longer falls through to the stub
+#      and EP availability is a runtime query, not a hardcoded list.
+#      The multi-EP half is NOT met: only the CPU provider is registered.
+#      Until QA-B-160 neither half was -- no build linked ONNX at all.
+#      (Cited by function name, not by line: QA-B-156's own header edit moved
+#      that file by +25/-2 lines and the ":198" written here in QA-B-155 went
+#      stale the same day.)
 #
-# Build modes:
-#   XPE_AI_USE_ONNXRUNTIME=ON  -- Full ONNX Runtime integration (default OFF)
-#   XPE_AI_STUB_BUILD=ON       -- Stub build without ONNX (default ON)
+# Build modes (the two are NOT independent -- see the contradiction guard
+# below, the `if(XPE_AI_USE_ONNXRUNTIME AND XPE_AI_STUB_BUILD)` FATAL_ERROR):
+#   XPE_AI_USE_ONNXRUNTIME=ON  -- Ask for ONNX Runtime        (default OFF)
+#   XPE_AI_STUB_BUILD=ON       -- Build stubs without ONNX    (default ON)
+#   Turning only the first one ON is a FATAL_ERROR, because the documented
+#   defaults contradict each other. An ONNX build needs BOTH:
+#   -DXPE_AI_USE_ONNXRUNTIME=ON -DXPE_AI_STUB_BUILD=OFF
 # ============================================================================
 
 cmake_minimum_required(VERSION 3.20)
@@ -27,20 +40,75 @@ option(XPE_AI_USE_ONNXRUNTIME "Link ONNX Runtime for inference" OFF)
 option(XPE_AI_STUB_BUILD      "Build stubs without ONNX Runtime" ON)
 
 # ---------------------------------------------------------------------------
-# ONNX Runtime via FetchContent (optional)
-# ---------------------------------------------------------------------------
-if(XPE_AI_USE_ONNXRUNTIME AND NOT XPE_AI_STUB_BUILD)
-    include(FetchContent)
+# #130 (QA-B-153): AN EXPLICITLY REQUESTED `ON` IS NEVER SILENTLY DOWNGRADED.
+#
+# Two silent paths were measured (QA-B-152/153). Both ended with a successful
+# configure, a successful build, and no onnxruntime in the DLL's PE import
+# table -- so "I turned the option on and it built" read as "ONNX is linked":
+#
+#   (1) USE_ONNXRUNTIME=ON with STUB_BUILD=OFF: the acquisition block below
+#       could not find a runtime and reset BOTH cache entries with
+#       set(... FORCE), leaving only a message(WARNING).
+#   (2) USE_ONNXRUNTIME=ON with STUB_BUILD left at its default ON: the
+#       acquisition block is not even entered (its condition is
+#       `USE AND NOT STUB`), so there was NOT EVEN A WARNING -- and the cache
+#       still reported USE_ONNXRUNTIME=ON. That one is worse: the variable a
+#       reader would inspect said the opposite of what was built.
+#
+# `ON` can only come from the caller: option(XPE_AI_USE_ONNXRUNTIME) above
+# defaults it to OFF, and nothing else in the tree sets it (grepped across
+# CMakeLists/*.cmake/presets).
+# So no default-vs-user-supplied detection is needed here -- the value itself
+# is the request. The `if(DEFINED VAR)`-before-option() trick was considered
+# and rejected: it reports TRUE on every RE-configure once the cache holds the
+# entry, so it cannot tell a default apart from a caller's value on the second
+# run. (That limitation is reasoned from CMake's cache semantics, not measured.)
+#
+# Auto-clearing STUB_BUILD when USE_ONNXRUNTIME is ON was also rejected: it is
+# the same "quietly change what the caller asked for" move being removed here,
+# only in the friendlier direction. An error that names the fix costs one line
+# of friction and cannot be misread.
+if(XPE_AI_USE_ONNXRUNTIME AND XPE_AI_STUB_BUILD)
+    message(FATAL_ERROR
+        "xpe_ai: XPE_AI_USE_ONNXRUNTIME=ON and XPE_AI_STUB_BUILD=ON contradict "
+        "each other, and the stub wins -- the build would produce a stub while "
+        "the cache reported ONNX as enabled (#130).\n"
+        "  For an ONNX build:  -DXPE_AI_USE_ONNXRUNTIME=ON -DXPE_AI_STUB_BUILD=OFF\n"
+        "  For a stub build:   -DXPE_AI_USE_ONNXRUNTIME=OFF  (the default)")
+endif()
 
-    # ONNX Runtime 1.20+ -- FetchContent downloads pre-built NuGet package
-    # on Windows or builds from source on Linux.
-    #
-    # NOTE: ONNX Runtime does not provide a standard CMake config package.
-    # The recommended approach is to use pre-built binaries from:
-    #   https://github.com/microsoft/onnxruntime/releases
-    #
-    # Set ONNXRUNTIME_ROOT to the extracted directory before building,
-    # or let this script attempt FetchContent.
+# ---------------------------------------------------------------------------
+# ONNX Runtime acquisition -- CALLER-SUPPLIED ONLY. Nothing is downloaded.
+# ---------------------------------------------------------------------------
+# #130 (QA-B-155). WHAT THIS COMMENT USED TO SAY:
+#
+#   "ONNX Runtime via FetchContent (optional)"
+#   "FetchContent downloads pre-built NuGet package on Windows or builds
+#    from source on Linux."
+#   "Set ONNXRUNTIME_ROOT ..., or let this script attempt FetchContent."
+#
+# There was no FetchContent here: `FetchContent_Declare` count in this block
+# was 0. Control, so the count is not a blind search: the googletest declare in
+# this same file's test block is real, and modules/common/CMakeLists.txt has
+# four. The lead read those lines while deciding #130's procurement path and
+# concluded acquisition was automated; counting the declares showed it was not.
+# Measured: with ONNXRUNTIME_ROOT unset and -DXPE_AI_USE_ONNXRUNTIME=ON
+# -DXPE_AI_STUB_BUILD=OFF, configure exits 1 with the FATAL_ERROR below --
+# nothing is fetched.
+#
+# THE ACTUAL PATH, and the #130 decision it implements:
+#   procurement    pre-built binaries, downloaded and placed by the caller
+#                  https://github.com/microsoft/onnxruntime/releases
+#   vcpkg          NOT used (no onnxruntime in vcpkg.json)
+#   auto-download  NOT performed (no FetchContent, no ExternalProject)
+#
+#   1. ONNXRUNTIME_ROOT defined  -> IMPORTED target from <root>/include + /lib
+#   2. otherwise                 -> find_package(onnxruntime QUIET CONFIG), once
+#   3. neither resolves          -> FATAL_ERROR (QA-B-153; never a silent stub)
+#
+# ONNX Runtime ships no standard CMake config package, so path 2 succeeds only
+# where something else installed one.
+if(XPE_AI_USE_ONNXRUNTIME AND NOT XPE_AI_STUB_BUILD)
 
     if(DEFINED ONNXRUNTIME_ROOT)
         # User-provided ONNX Runtime installation
@@ -62,16 +130,33 @@ if(XPE_AI_USE_ONNXRUNTIME AND NOT XPE_AI_STUB_BUILD)
 
         message(STATUS "ONNX Runtime: using pre-built from ${ONNXRUNTIME_ROOT}")
     else()
-        # Attempt to find onnxruntime via find_package or pkg-config
+        # find_package only. (This said "find_package or pkg-config"; there is
+        # no pkg-config call here -- pkg_check_modules count in this file: 0.)
         find_package(onnxruntime QUIET CONFIG)
 
         if(NOT onnxruntime_FOUND)
-            message(WARNING
-                "ONNX Runtime not found. Set ONNXRUNTIME_ROOT or install onnxruntime. "
-                "Falling back to stub build."
-            )
-            set(XPE_AI_STUB_BUILD ON CACHE BOOL "Fallback to stub" FORCE)
-            set(XPE_AI_USE_ONNXRUNTIME OFF CACHE BOOL "ONNX unavailable" FORCE)
+            # #130 (QA-B-153). WHAT WAS HERE BEFORE:
+            #
+            #   message(WARNING "ONNX Runtime not found. ... Falling back to stub build.")
+            #   set(XPE_AI_STUB_BUILD      ON  CACHE BOOL "Fallback to stub" FORCE)
+            #   set(XPE_AI_USE_ONNXRUNTIME OFF CACHE BOOL "ONNX unavailable"  FORCE)
+            #
+            # Configure and build both returned 0 and the produced xpe_ai.dll
+            # imported no onnxruntime (PE import table: xpe_common, spdlog, CRT
+            # only). A caller who asked for ONNX got a stub and a green build.
+            #
+            # The runtime is not optional once it has been asked for: the whole
+            # inference path, REQ-AI-002's deterministic fallback contract and
+            # SOUP-003's Class B record all describe a build that HAS it.
+            # Choosing the stub on the caller's behalf decides that for them.
+            message(FATAL_ERROR
+                "xpe_ai: XPE_AI_USE_ONNXRUNTIME=ON was requested but no ONNX "
+                "Runtime was found, so the build cannot honour it (#130). It is "
+                "NOT downgraded to a stub -- that used to happen silently and a "
+                "green build then meant nothing.\n"
+                "  Point at a pre-built runtime:  -DONNXRUNTIME_ROOT=<dir containing include/ and lib/>\n"
+                "  or install one find_package(onnxruntime CONFIG) can see\n"
+                "  or build the stub on purpose:  -DXPE_AI_USE_ONNXRUNTIME=OFF")
         endif()
     endif()
 endif()
@@ -84,6 +169,7 @@ set(MODULE_NAME xpe_ai)
 set(XPE_AI_SOURCES
     src/ai.cpp
     src/ai_ipc_bridge.cpp  # T-001: Named pipe IPC bridge
+    src/ai_worker_supervisor.cpp  # QA-B-171B: owns the worker process (launch, kill on fault, restart)
     src/ai_onnx_session.cpp  # T-003: ONNX Runtime session manager
 )
 
@@ -132,7 +218,22 @@ target_link_libraries(${MODULE_NAME}
 target_compile_features(${MODULE_NAME} PUBLIC cxx_std_17)
 
 if(MSVC)
-    target_compile_options(${MODULE_NAME} PRIVATE /W4 /wd4996 /wd4150)  # Disable unsafe function and incomplete type warnings
+    # #226 (QA-B-164): /wd4150 REMOVED -- it is not needed and it was hiding a
+    # real defect. C4150 is "deletion of pointer to incomplete type; no
+    # destructor called", i.e. a leak of everything the hidden type owns.
+    # QA-B-161 found one behind this flag (OnnxSession's destructor sat ABOVE
+    # struct Impl, so the ONNX session and env were never released in a full
+    # build) and it only surfaced because the TEST target has no suppression.
+    #
+    # Measured before removing it: with /wd4150 gone, C4150 count is 0 in all
+    # four combinations (xpe_ai and xpe_ai_worker, stub and full). A positive
+    # control -- a deliberate `delete` of an incomplete type -- did produce
+    # exactly one C4150 in both configs, so the 0 is a measurement and not a
+    # build that quietly did nothing.
+    #
+    # /wd4996 stays: that is the deprecated-function warning, a different
+    # question, and not this card's.
+    target_compile_options(${MODULE_NAME} PRIVATE /W4 /wd4996)
 else()
     target_compile_options(${MODULE_NAME} PRIVATE
         -Wall -Wextra -Wpedantic
@@ -165,11 +266,19 @@ set(WORKER_NAME xpe_ai_worker)
 
 add_executable(${WORKER_NAME}
     src/ai_worker_main.cpp
+    # QA-B-170: the worker runs the model now. It compiles the session layer
+    # itself for the same reason xpe_ai_tests does -- OnnxSession is a C++ class
+    # and xpe_ai.dll exports a C ABI only.
+    src/ai_onnx_session.cpp
 )
 
 target_include_directories(${WORKER_NAME}
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
             ${CMAKE_CURRENT_SOURCE_DIR}/src
+            # Headers only (xpe_error.h for the XPE_ERR_* codes the worker
+            # returns). The worker does not link xpe_common: that would drag a
+            # DLL into a process that needs none of its functions.
+            $<TARGET_PROPERTY:xpe_common,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 target_compile_features(${WORKER_NAME} PRIVATE cxx_std_17)
@@ -185,6 +294,19 @@ else()
     target_compile_definitions(${WORKER_NAME} PRIVATE XPE_AI_USE_ONNXRUNTIME=1)
     target_link_libraries(${WORKER_NAME} PRIVATE onnxruntime)
     message(STATUS "xpe_ai_worker: FULL build with ONNX Runtime")
+
+    # QA-B-170: until now this link was decorative -- nothing in the worker
+    # referenced ONNX Runtime, so the linker dropped the import and the exe
+    # started without the DLL. It calls Ort:: now, so the loader needs
+    # onnxruntime.dll beside it, and a worker that cannot start looks like a
+    # protocol failure rather than a missing file.
+    if(WIN32 AND DEFINED ONNXRUNTIME_ROOT)
+        add_custom_command(TARGET ${WORKER_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${ONNXRUNTIME_ROOT}/lib/onnxruntime.dll"
+                    "$<TARGET_FILE_DIR:${WORKER_NAME}>"
+            COMMENT "xpe_ai_worker: staging onnxruntime.dll next to the worker exe")
+    endif()
 endif()
 
 # Optional spdlog for worker logging
@@ -193,14 +315,20 @@ if(TARGET spdlog::spdlog)
 endif()
 
 if(MSVC)
-    target_compile_options(${WORKER_NAME} PRIVATE /W4 /wd4996 /wd4150)
+    # #226 (QA-B-164): /wd4150 removed here too -- 0 occurrences, measured.
+    # This target compiles one file (src/ai_worker_main.cpp) and has no PIMPL,
+    # which the issue flagged as unverified; checked, and it has none.
+    target_compile_options(${WORKER_NAME} PRIVATE /W4 /wd4996)
 else()
     target_compile_options(${WORKER_NAME} PRIVATE
         -Wall -Wextra -Wpedantic
     )
 endif()
 
-endif()  # End of temporarily disabled worker build
+endif()  # if(TRUE) above. This said "End of temporarily disabled worker
+         # build" while the guard it closes is `if(TRUE)` -- the worker HAS
+         # been built all along (xpe_ai_worker.exe is produced; #205 found the
+         # single-process step tripping over it). QA-B-155.
 
 # ---------------------------------------------------------------------------
 # Unit Tests (Google Test)
@@ -230,6 +358,24 @@ if(_XPE_AI_BUILD_TESTS)
         test_parameter_dependency.cpp
         # #145 (QA-B-60): unread config keys are named, valid configs stay quiet
         test_config_warning.cpp
+        # #130 (QA-B-160): the ONNX Runtime inference path, end to end
+        test_onnx_session.cpp
+        # #130 (QA-B-161): the first C ABI function wired to that path
+        test_bone_suppress_abi.cpp
+        # #130 (QA-B-168): SRS-ALERT-004 fires when DL was applied -- and, the
+        # half that constrains the code, stays quiet on every path that
+        # returned an image the model never touched
+        test_alert_ai_processed.cpp
+        # #130 (QA-B-169): the bridge against the REAL worker process -- the
+        # first test that connects the two halves QA-B-167 found speaking
+        # different message enums
+        test_worker_protocol_conformance.cpp
+        # #130 (QA-B-171): the bridge's time budget against a worker that stops
+        # answering -- the conditions QA-B-170's five arms never injected
+        test_ipc_deadline.cpp
+        # #130 (QA-B-171B): the supervisor against the real worker -- restart on
+        # death, kill on stall, exit kind read from the held process handle
+        test_worker_supervisor.cpp
     )
 
     # Check if test files exist in this module's tests/ directory
@@ -272,7 +418,66 @@ if(_XPE_AI_BUILD_TESTS)
         add_executable(xpe_ai_tests
             ${_XPE_AI_TEST_SOURCE_PATHS}
             ${CMAKE_CURRENT_SOURCE_DIR}/src/ai_ipc_bridge.cpp
+            # QA-B-171B: internal like the bridge, so compiled in rather than exported
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/ai_worker_supervisor.cpp
+            # #130 (QA-B-160): OnnxSession is a C++ class and xpe_ai.dll exports
+            # a C ABI only, so it is compiled in here for the same reason the IPC
+            # bridge is. Exporting a C++ class across the DLL boundary instead
+            # would put std::vector and std::string in the module's public
+            # contract, which the C ABI exists to keep out.
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/ai_onnx_session.cpp
         )
+
+        # #130 (QA-B-162): the test data directory is baked in at COMPILE time.
+        #
+        # It used to be the relative "tests/data/...", which resolves only when
+        # the cwd is modules/ai -- i.e. only under ctest, which sets
+        # WORKING_DIRECTORY. main went red because the #162 single-process step
+        # runs every binary with `working-directory: modules/gsvg` (gsvg's own
+        # tests carry the same relative-path habit, which is why that cwd is
+        # what it is). Running xpe_ai_tests.exe from the repository ROOT failed
+        # too, so this was never about gsvg: a cwd-dependent test breaks under
+        # any harness that does not happen to pick the one directory it wants.
+        #
+        # Baked in rather than passed as an argument: nothing in the harness has
+        # to know, and there is no cwd left to get wrong.
+        target_compile_definitions(xpe_ai_tests PRIVATE
+            XPE_AI_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
+
+        # QA-B-169: test_worker_protocol_conformance.cpp launches the real
+        # worker. The path is the TARGET's output, resolved at generate time,
+        # so it cannot drift from what the build actually produced; the source
+        # path is for the one assertion that reads the worker's text. The
+        # dependency is what guarantees the exe exists before any test runs --
+        # without it the worker is only built when someone asks for it, and a
+        # test that cannot launch it would fail for the wrong reason.
+        target_compile_definitions(xpe_ai_tests PRIVATE
+            XPE_AI_WORKER_EXE="$<TARGET_FILE:xpe_ai_worker>"
+            XPE_AI_WORKER_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}/src/ai_worker_main.cpp")
+        add_dependencies(xpe_ai_tests xpe_ai_worker)
+
+        # QA-B-171B (Codex audit #11): a pipe server that answers a heartbeat WRONG on
+        # request. The real worker never does, so a supervisor test that needs a wrong
+        # answer cannot get one from it. Test-only: nothing ships it.
+        add_executable(xpe_ai_fake_worker ${CMAKE_CURRENT_SOURCE_DIR}/tests/fake_worker_main.cpp)
+        target_include_directories(xpe_ai_fake_worker
+            PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+                    $<TARGET_PROPERTY:xpe_common,INTERFACE_INCLUDE_DIRECTORIES>)
+        target_compile_features(xpe_ai_fake_worker PRIVATE cxx_std_17)
+        target_compile_definitions(xpe_ai_tests PRIVATE
+            XPE_AI_FAKE_WORKER_EXE="$<TARGET_FILE:xpe_ai_fake_worker>")
+        add_dependencies(xpe_ai_tests xpe_ai_fake_worker)
+
+        # The tests compile that file themselves, so they need the SAME build
+        # mode the product got -- otherwise the stub/full arms diverge between
+        # xpe_ai.dll and xpe_ai_tests and each would be testing the other's
+        # contract.
+        if(XPE_AI_STUB_BUILD OR NOT XPE_AI_USE_ONNXRUNTIME)
+            target_compile_definitions(xpe_ai_tests PRIVATE XPE_AI_STUB_BUILD=1)
+        else()
+            target_compile_definitions(xpe_ai_tests PRIVATE XPE_AI_USE_ONNXRUNTIME=1)
+            target_link_libraries(xpe_ai_tests PRIVATE onnxruntime)
+        endif()
 
         target_include_directories(xpe_ai_tests
             PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -288,6 +493,18 @@ if(_XPE_AI_BUILD_TESTS)
         # (heap-growth endurance measurement, #105 G3)
         if(WIN32)
             target_link_libraries(xpe_ai_tests PRIVATE psapi)
+        endif()
+
+        # #130 (QA-B-160). In a FULL build the loader needs onnxruntime.dll
+        # beside the test executable. Without this the tests do not fail an
+        # assertion -- they fail to start, which reads as an infrastructure
+        # problem rather than a test result.
+        if(WIN32 AND XPE_AI_USE_ONNXRUNTIME AND NOT XPE_AI_STUB_BUILD AND DEFINED ONNXRUNTIME_ROOT)
+            add_custom_command(TARGET xpe_ai_tests POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${ONNXRUNTIME_ROOT}/lib/onnxruntime.dll"
+                        "$<TARGET_FILE_DIR:xpe_ai_tests>"
+                COMMENT "xpe_ai_tests: staging onnxruntime.dll next to the test exe")
         endif()
 
         target_compile_features(xpe_ai_tests PRIVATE cxx_std_17)

@@ -20,12 +20,17 @@
 #include <string>
 #include <vector>
 
+#include "test_data_paths.h"
+
 namespace vg = xpe_gsvg_detail;
 
 namespace {
 
-constexpr const char* kProduct = "data/vg_table_water_csi600_victre.csv";
-constexpr const char* kSynthetic = "tests/data/virtual_grid_synthetic_table.csv";
+// #229 (QA-B-163): absolute -- the SHIPPED table, reached through
+// ProductData so no cwd decides whether it resolves.
+const std::string kProduct = xpe_gsvg_test::ProductData("vg_table_water_csi600_victre.csv");
+// #229 (QA-B-163): absolute, so the cwd cannot decide whether this resolves.
+const std::string kSynthetic = xpe_gsvg_test::Data("virtual_grid_synthetic_table.csv");
 
 const vg::ParamTable& Product() {
     static vg::ParamTable t;

@@ -1,0 +1,50 @@
+Note: Google Test filter = WorkerSupervisor.*
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from WorkerSupervisor
+[ RUN      ] WorkerSupervisor.FirstCallStartsAWorkerAndTheSecondReusesIt
+[       OK ] WorkerSupervisor.FirstCallStartsAWorkerAndTheSecondReusesIt (44 ms)
+[ RUN      ] WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid
+[       OK ] WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid (62 ms)
+[ RUN      ] WorkerSupervisor.TheSupervisorReadsTheExitCodeOfTheHandleItHolds
+[       OK ] WorkerSupervisor.TheSupervisorReadsTheExitCodeOfTheHandleItHolds (61 ms)
+[ RUN      ] WorkerSupervisor.AnUnrequestedExitIsADeathEvenWithExitCodeZero
+[       OK ] WorkerSupervisor.AnUnrequestedExitIsADeathEvenWithExitCodeZero (672 ms)
+[ RUN      ] WorkerSupervisor.ARequestedExitIsCleanAndReadAsExitCodeZero
+[       OK ] WorkerSupervisor.ARequestedExitIsCleanAndReadAsExitCodeZero (61 ms)
+[ RUN      ] WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(246): error: Value of: p.GoneWithin(3000)
+  Actual: false
+Expected: true
+the stalled worker is still running (a leaked process)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(251): error: Expected equality of these values:
+  xpe::ai::kSupervisorKillExitCode
+    Which is: 1263094860
+  last.exit_code
+    Which is: 259
+
+[  FAILED  ] WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne (4209 ms)
+[ RUN      ] WorkerSupervisor.AWorkerThatAnswersWithAnErrorIsKeptNotRestarted
+[       OK ] WorkerSupervisor.AWorkerThatAnswersWithAnErrorIsKeptNotRestarted (31 ms)
+[ RUN      ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress
+D:\workspace-github\xpe-post\modules\ai\tests\test_worker_supervisor.cpp(283): Skipped
+a stub worker has no model to run; restart is covered by Ping above
+
+[  SKIPPED ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress (0 ms)
+[ RUN      ] WorkerSupervisor.NoWorkerOutlivesTheSupervisor
+[       OK ] WorkerSupervisor.NoWorkerOutlivesTheSupervisor (61 ms)
+[ RUN      ] WorkerSupervisor.BaselineWithoutASupervisorAStalledWorkerStaysAliveAndTheBridgeStaysDown
+[baseline] after a stall: first receive rc=-3, next send rc=-6, worker alive=1
+[       OK ] WorkerSupervisor.BaselineWithoutASupervisorAStalledWorkerStaysAliveAndTheBridgeStaysDown (695 ms)
+[----------] 10 tests from WorkerSupervisor (5909 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (5909 ms total)
+[  PASSED  ] 8 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne
+
+ 1 FAILED TEST

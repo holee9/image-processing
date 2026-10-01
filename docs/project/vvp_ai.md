@@ -531,7 +531,18 @@ This subsection is normative. Nothing below may be represented as verified.
 | **ONNX Runtime integration (REQ-AI-006)** | `XPE_AI_USE_ONNXRUNTIME` is `OFF` in every preset; `modules/ai/src/ai_onnx_session.cpp` is compiled but its runtime path is unreachable in stub mode. No execution provider (CPU/CUDA/TensorRT/DirectML) has been exercised. |
 | **Worker round trip (REQ-AI-003)** | No test launches `xpe_ai_worker.exe`; only negative transport paths are covered (§4.7). |
 | **Model signing (REQ-AI-007)** | Not implemented. |
-| **Time-budget enforcement (REQ-AI-009)** | Not implemented; no latency measurement exists. |
+| **Time-budget enforcement (REQ-AI-092)** | Not implemented; no latency measurement exists. |
+
+> **정정 2026-09-30 (`#210`)** — 이 문서가 시간 예산 요구를 `REQ-AI-009` 로 인용하고
+> 있었습니다. **그 번호는 정의된 적이 없습니다** — 정의는 `REQ-AI-092`(`srs_ai.md:446`,
+> `SPEC-XPE-P3-AI/spec.md:272`)이고, 대조군으로 같은 정의 패턴이 `092` 를 두 곳에서
+> 찾는 반면 `009` 는 0건입니다.
+>
+> `modules/ai` 쪽 인용은 `QA-B-157` 이 이미 고쳤고(`REQ-AI-009` 리터럴 0건), 이 문서들이
+> 남아 있었습니다. **개명이 코드에서만 반영되고 문서에서 끊긴 형태**이고, 이 저장소가
+> *"인용한 이름은 grep 으로 대조한다"* 로 적어 둔 것입니다.
+>
+> 요구의 내용은 바뀌지 않았습니다 — 번호만 정정했습니다.
 | **Coverage** | `xpe_ai` is in no coverage preset (§3.3.2, issue #124). |
 | **CI execution** | No CI preset builds or runs `xpe_ai_tests`; the `ci-ai` preset is worktree-local (§3.3.3). |
 | **AddressSanitizer** | Not run against this module (§3.3.5). |
@@ -592,7 +603,7 @@ RTM-AI-001 §12 Deferred Requirements.
 
 ## 7. Performance Validation
 
-**No performance budget is verified for this module.** REQ-AI-009 (time-budget enforcement) is not
+**No performance budget is verified for this module.** REQ-AI-092 (time-budget enforcement) is not
 implemented (`docs/project/rtm_ai.md` §12), and a stub that returns before inference cannot produce a
 meaningful latency figure. Any budget in SPEC-XPE-P3-AI applies to the Phase 3 implementation and
 must be verified by an amended version of this plan at that time.
@@ -678,7 +689,7 @@ Recorded so that no reader mistakes silence for satisfaction.
 | G-AI-4 | No worker round-trip (positive-path) test for REQ-AI-003 | Phase 3 |
 | G-AI-5 | AddressSanitizer never run against `xpe_ai` | QA-B-21 verdict, 2026-09-10 |
 | G-AI-6 | No case exercises the 64 MB `dataSize` ceiling (`ai.cpp:156`) | §8.1 |
-| G-AI-7 | Model signing (REQ-AI-007) and time budget (REQ-AI-009) not implemented, not tested | RTM-AI-001 §12 |
+| G-AI-7 | Model signing (REQ-AI-007) and time budget (REQ-AI-092) not implemented, not tested | RTM-AI-001 §12 |
 | G-AI-8 | Confidence-threshold arm of the fallback router unreachable, therefore untested | §4.8 |
 
 ---
@@ -694,7 +705,7 @@ items 3–8 holds today.
 4. ☐ `xpe_ai_tests` executed by CI on every change
 5. ☐ Inference path implemented and algorithm validation (L4) evidence collected
 6. ☐ Worker round-trip integration test (L2 positive path) passing
-7. ☐ Performance budget defined and measured (REQ-AI-009)
+7. ☐ Performance budget defined and measured (REQ-AI-092)
 8. ☐ Clinical validation evidence per XPE-AI-REG-001
 
 Until items 3–8 are closed, `xpe_ai.dll` is a development artefact and **must not be represented as

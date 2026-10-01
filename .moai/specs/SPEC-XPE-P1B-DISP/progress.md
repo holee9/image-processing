@@ -26,7 +26,8 @@
 - divergence_notes:
   - filename: display_api.h (not xpe_display_api.h) — kept existing stub filename
   - test_display_boundary.cpp: merged into test_display_integration.cpp (48 tests, exceeds plan minimum 32)
-  - SWU-3.4: not in scope for this SPEC (deferred to future SPEC)
+  - SWU-3.4: not in scope for this SPEC (deferred to future SPEC -- **tracked by `#215`**;
+    that SPEC was never created, which is what the issue records)
   - GUI integration completed for display pipeline orchestration
 
 ### Implementation Results (2026-04-16)

@@ -1,0 +1,3 @@
+ modules/preprocess/CMakeLists.txt                 |   2 +
+ modules/preprocess/tests/test_sigma_clip_nmin.cpp | 285 ++++++++++++++++++++++
+ 2 files changed, 287 insertions(+)

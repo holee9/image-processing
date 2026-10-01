@@ -1,0 +1,19 @@
+Note: Google Test filter = A172Path.DISABLED_WholePathWithPerLane
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A172Path
+[ RUN      ] A172Path.DISABLED_WholePathWithPerLane
+
+[a172] WHOLE path, 3072x3072 FLOAT32, AVX2, single thread, i7-12700,
+[a172]   12 interleaved rounds, minimum reported, maps identical (0 mismatches)
+[a172]   shipped xpe_defect_detect_runtime         117.4 ms
+[a172]   BuildFrameConfig + memset + per-lane rows   86.1 ms
+[a172]   observations shipped  : 124.5 127.3 139.9 117.4 124.6 120.7 122.5 127.0 125.5 121.6 126.4 120.6
+[a172]   observations per-lane : 94.8 95.8 87.9 88.0 90.8 86.9 95.5 89.7 89.6 86.1 90.5 90.8
+
+[       OK ] A172Path.DISABLED_WholePathWithPerLane (2906 ms)
+[----------] 1 test from A172Path (2907 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2907 ms total)
+[  PASSED  ] 1 test.

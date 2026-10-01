@@ -1,0 +1,3 @@
+BUILD_EXIT=0
+100% tests passed, 0 tests failed out of 790
+CTEST_EXIT=0

@@ -1,0 +1,43 @@
+Note: Google Test filter = TileLanesTest.ThreadedRunsMatchOneThread
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TileLanesTest
+[ RUN      ] TileLanesTest.ThreadedRunsMatchOneThread
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_runtime_detection_tile_lanes.cpp(331): error: Expected equality of these values:
+  0u
+    Which is: 0
+  Differing(many, one, &first)
+    Which is: 123277
+threads 2, first at row 512 col 1
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_runtime_detection_tile_lanes.cpp(331): error: Expected equality of these values:
+  0u
+    Which is: 0
+  Differing(many, one, &first)
+    Which is: 164723
+threads 3, first at row 341 col 2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_runtime_detection_tile_lanes.cpp(331): error: Expected equality of these values:
+  0u
+    Which is: 0
+  Differing(many, one, &first)
+    Which is: 197587
+threads 5, first at row 204 col 3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_runtime_detection_tile_lanes.cpp(331): error: Expected equality of these values:
+  0u
+    Which is: 0
+  Differing(many, one, &first)
+    Which is: 234495
+threads 20, first at row 51 col 1
+
+[  FAILED  ] TileLanesTest.ThreadedRunsMatchOneThread (83 ms)
+[----------] 1 test from TileLanesTest (92 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (92 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] TileLanesTest.ThreadedRunsMatchOneThread
+
+ 1 FAILED TEST

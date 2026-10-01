@@ -177,7 +177,7 @@ Phase 1b may implement this with WPF `BitmapSource` / `WriteableBitmap` plus cli
 |------|----------------------|-------------------|
 | OpenCV 4.9 | bilateralFilter, CLAHE, pyrDown/Up | x86-64(AVX2), ARM(NEON) |
 | dcmtk 3.6.8 | DX IOD read/write, C-STORE, J2K | OpenSSL |
-| ONNX Runtime 1.17 | Model load + inference | CUDA 12 (optional) |
+| ONNX Runtime **1.30.0** (`#130`, 2026-09-29 실측 — QA-B-160 이 이 버전으로 빌드·실행) | Model load + inference | CUDA 12 (optional) |
 | Eigen 3.4 | Matrix ops, FFT | Cross-platform |
 
 ## 6. Segregation for Risk Control (5.3.5)

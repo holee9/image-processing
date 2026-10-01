@@ -1,0 +1,10 @@
+control: ls benchmark ->
+BP-01-05-preprocess-manifest.md
+BP-06-09-post-benchmark-baseline.md
+control: ls tools/benchmark ->
+ls: cannot access 'tools/benchmark': No such file or directory
+target: run_bp04.py:
+0
+target: dirs named BP-04*:
+control for the find above: find . -name 'BP-01-05*' ->
+./benchmark/BP-01-05-preprocess-manifest.md

@@ -35,6 +35,8 @@
 #include <string>
 #include <vector>
 
+#include "test_data_paths.h"
+
 namespace vg = xpe_gsvg_detail;
 
 namespace {
@@ -42,8 +44,12 @@ namespace {
 // The tables live with the 80 x 80 copies; the 512 images are read from the
 // producing directory rather than copied, because four 1 MB images per phantom
 // would put 8 MB of duplicated binaries into the repository.
-constexpr const char* kDir = "tests/data/mc/";
-constexpr const char* kPhantomDir = "../../tools/mcsim/phantoms/";
+// #229 (QA-B-163): absolute, so the cwd cannot decide whether this resolves.
+const std::string kDir = xpe_gsvg_test::Data("mc") + "/";
+// #229 (QA-B-163): this one was relative with "../.." in it, so it needed
+// the cwd to be modules/gsvg exactly -- one level off and it read a
+// different tree. Absolute now, resolved by CMake.
+const std::string kPhantomDir = xpe_gsvg_test::McsimPhantomDir() + "/";
 constexpr int    kN = 512;
 constexpr double kPitchMm = 0.14;                 // json pixel_pitch_mm
 constexpr double kKvp = 80.0;
@@ -565,7 +571,26 @@ TEST(GsvgVirtualGridMc512, StepErrorAgainstDistanceToTheBoundary)
                 jumps, median(wref));
 
     // (1) Error against distance to the nearest jump.
-    std::printf("VGMC125 profile: distance_px, distance_mm, n, median|r-1|\n");
+    //
+    // QA-B-166 (#191 blind spot 1) added the SPREAD columns. The median alone
+    // cannot say whether a difference between two bins is real: the far bins
+    // hold far fewer pixels, and a trend read across bins whose spread
+    // overlaps is a trend read out of noise. p05/p95 and n are printed so the
+    // reader can see how much each bin is supported by -- the same reason the
+    // wedge reference is printed next to it rather than remembered.
+    //
+    // This bin set stops at 4.5 mm because the 0.5 cm staircase puts no pixel
+    // further from a boundary than half a step. run_512_wide_steps.sh exists
+    // to lift that to ~25 mm; until that phantom is produced, the last bin
+    // here is the edge of what this data can answer, not a converged value.
+    auto quantile = [](std::vector<double> a, double q) {
+        if (a.empty()) return 0.0;
+        std::sort(a.begin(), a.end());
+        size_t k = static_cast<size_t>(q * static_cast<double>(a.size()));
+        if (k >= a.size()) k = a.size() - 1;
+        return a[k];
+    };
+    std::printf("VGMC125 profile: distance_px, distance_mm, n, median|r-1|, p05, p95\n");
     const int edges[] = {0, 1, 2, 4, 8, 16, 32, 64, 128};
     for (size_t b = 0; b + 1 < sizeof(edges) / sizeof(edges[0]); ++b) {
         std::vector<double> a;
@@ -575,9 +600,9 @@ TEST(GsvgVirtualGridMc512, StepErrorAgainstDistanceToTheBoundary)
             if (dist[c] < edges[b] || dist[c] >= edges[b + 1]) continue;
             a.push_back(std::fabs(imgStep[i] / s.primary[i] - 1.0));
         }
-        std::printf("VGMC125 profile d=[%3d,%3d) = [%.2f,%.2f) mm n=%6zu median=%.4f\n",
+        std::printf("VGMC125 profile d=[%3d,%3d) = [%.2f,%.2f) mm n=%6zu median=%.4f p05=%.4f p95=%.4f\n",
                     edges[b], edges[b + 1], edges[b] * kPitchMm, edges[b + 1] * kPitchMm,
-                    a.size(), median(a));
+                    a.size(), median(a), quantile(a, 0.05), quantile(a, 0.95));
     }
 
     // (2) The median with a +-N ring around every jump removed.
@@ -738,6 +763,257 @@ TEST(GsvgVirtualGridMc512, NarrowestTermWidthVsErrorPeakLocation_191)
                     k, s1mm, rep.factor, bestMm, best, bestMm / s1mm);
     }
     SUCCEED();
+}
+
+// ===========================================================================
+// #191 item 2 (QA-B-165): TURN a kernel term OFF and see where the peak goes.
+//
+// WHAT WAS ALREADY KNOWN, so this is not repeated work. QA-B-125 read the
+// table sigma as millimetres and reported sigma_1 = 0.92..1.21 mm, "the same
+// order as the 0.28..1.12 mm error peak". The table stores CENTIMETRES (the
+// CSV header says "r in cm at the detector plane", and virtual_grid.cpp
+// divides by the pitch in cm), so the real widths at 5 cm / 60 kVp gauss4 are
+//   sigma_1 10.2 mm   sigma_2 29.4 mm   sigma_3 58.6 mm   sigma_4 112 mm
+// and the peak sits at about 0.04 of sigma_1 -- two orders away, not the same
+// order. QA-B-134 then SCALED the narrowest width by k and the peak did not
+// follow (10.17 -> 30.50 mm moved it between adjacent bins with no trend).
+//
+// WHAT THIS ADDS. Scaling a width is not the same experiment as removing a
+// term, and one term alone attributes nothing. Here each term is switched OFF
+// (amplitude set to zero) in turn, and sigma_2 is measured as well as sigma_1
+// -- without the second measurement, "it moved when I turned something off"
+// does not say WHICH term set the peak.
+//
+// TWO VARIANTS, because turning a term off changes two things at once:
+//   raw   -- a_i = 0, the others untouched. Total scatter DROPS, so a change
+//            could be the missing amplitude rather than the missing shape.
+//   norm  -- a_i = 0, the others scaled so sum(a) is what it was. Total
+//            scatter is preserved and only the SHAPE changed. That is the
+//            variant the hypothesis is actually about.
+// Reporting one without the other is how an amplitude effect gets read as a
+// shape effect. QA-B-134 rejected whole-kernel scaling for the same reason.
+//
+// PREDICTIONS the card states, and what each falsifies:
+//   sigma_1 off -> peak vanishes or moves out toward sigma_2. If it stays
+//                  put, the sigma_1 story is wrong.
+//   sigma_2 off -> peak barely moves. If it moves a lot, attributing the peak
+//                  to sigma_1 fails.
+// The widest term is a third row and acts as the control: the narrow-term
+// story predicts it does nothing to the peak location either.
+// ===========================================================================
+TEST(GsvgVirtualGridMc512, TurningKernelTermsOffVsErrorPeakLocation_191)
+{
+    const Phantom p = Load("step");
+
+    std::vector<double> colT(kN, 0.0);
+    for (int c = 0; c < kN; ++c) {
+        double sum = 0;
+        int n = 0;
+        for (int r = kLo; r < kHi; ++r) {
+            const size_t i = static_cast<size_t>(r) * kN + c;
+            if (!p.mask[i]) continue;
+            sum += p.thickness[i];
+            ++n;
+        }
+        colT[c] = n ? sum / n : 0.0;
+    }
+    std::vector<int> dist(kN, kN);
+    for (int c = kLo; c < kHi; ++c)
+        for (int j = kLo; j + 1 < kHi; ++j)
+            if (std::fabs(colT[j + 1] - colT[j]) > 0.2) dist[c] = std::min(dist[c], std::abs(c - j));
+
+    // Peak of the median |img/primary - 1| over distance-to-boundary bins.
+    // The bin midpoints are the only values peak_at can take:
+    //   0.07 0.21 0.42 0.84 1.68 3.36 6.72 13.44 mm
+    // so a shift of roughly 2x or more is distinguishable and anything
+    // smaller is not. Stated here because a null result is only worth
+    // something if the instrument could have seen the alternative.
+    auto peak = [&](const vg::ParamTable& t, double* medianOut, int* factorOut) {
+        vg::VgSettings st = BaseSettings();
+        std::vector<double> img = p.total;
+        const vg::VgReport rep = vg::RunVirtualGrid(img, kN, kN, t, st, vg::VgSwitches{}, p.mask.data());
+        EXPECT_EQ(rep.error, "");
+        if (factorOut) *factorOut = rep.factor;
+        const int edges[] = {0, 1, 2, 4, 8, 16, 32, 64, 128};
+        double best = -1, bestMm = -1;
+        for (size_t b = 0; b + 1 < sizeof(edges) / sizeof(edges[0]); ++b) {
+            std::vector<double> a;
+            for (size_t i = 0; i < img.size(); ++i) {
+                if (!InRegion(i) || !p.mask[i] || p.primary[i] <= 0) continue;
+                const int c = static_cast<int>(i) % kN;
+                if (dist[c] < edges[b] || dist[c] >= edges[b + 1]) continue;
+                a.push_back(std::fabs(img[i] / p.primary[i] - 1.0));
+            }
+            if (a.empty()) continue;
+            std::sort(a.begin(), a.end());
+            const double m = a[a.size() / 2];
+            if (m > best) { best = m; bestMm = 0.5 * (edges[b] + edges[b + 1]) * kPitchMm; }
+        }
+        if (medianOut) *medianOut = best;
+        return bestMm;
+    };
+
+    const vg::ParamTable base = McTable();
+    ASSERT_FALSE(base.kernels.empty());
+    {
+        const auto& n0 = base.kernels.front();
+        std::printf("VGMC165 kernel terms=%d sigma_mm:", n0.terms);
+        for (int i = 0; i < n0.terms; ++i) std::printf(" %.2f", n0.s[i] * 10.0);
+        std::printf("   (the table stores cm; x10 is mm)\n");
+    }
+
+    double baseMedian = 0;
+    int baseFactor = 0;
+    const double basePeak = peak(base, &baseMedian, &baseFactor);
+    std::printf("VGMC165 baseline peak_at=%.2f mm median=%.4f factor=%d\n",
+                basePeak, baseMedian, baseFactor);
+
+    std::printf("VGMC165 off: rank, variant, sigma_off_mm, peak_at_mm, median, factor\n");
+    for (const int rank : {0, 1, 3}) {              // narrowest, second, widest
+        for (const bool renorm : {false, true}) {
+            vg::ParamTable t = McTable();
+            double offSigmaMm = 0;
+            for (auto& node : t.kernels) {
+                // Rank by width per node; the table order is not assumed sorted.
+                int idx[4] = {0, 1, 2, 3};
+                for (int i = 0; i < node.terms; ++i)
+                    for (int j = i + 1; j < node.terms; ++j)
+                        if (node.s[idx[j]] < node.s[idx[i]]) std::swap(idx[i], idx[j]);
+                if (rank >= node.terms) continue;
+                const int k = idx[rank];
+                if (offSigmaMm == 0) offSigmaMm = node.s[k] * 10.0;
+
+                double before = 0;
+                for (int i = 0; i < node.terms; ++i) before += node.a[i];
+                node.a[k] = 0.0;
+                if (renorm) {
+                    double after = 0;
+                    for (int i = 0; i < node.terms; ++i) after += node.a[i];
+                    if (after > 0) {
+                        const double g = before / after;
+                        for (int i = 0; i < node.terms; ++i) node.a[i] *= g;
+                    }
+                }
+            }
+            double med = 0;
+            int fac = 0;
+            const double at = peak(t, &med, &fac);
+            std::printf("VGMC165 off rank=%d %-4s sigma_off=%6.2f mm peak_at=%.2f mm median=%.4f factor=%d\n",
+                        rank, renorm ? "norm" : "raw", offSigmaMm, at, med, fac);
+        }
+    }
+    SUCCEED() << "observation; the reading is in the QA-B-165 report";
+}
+
+// ===========================================================================
+// #191 item 4 (QA-B-165): can a LEGITIMATE configuration produce the negative
+// primary the cap exists to stop?
+//
+// The distinction this test carries, and why it is not a repeat of the one
+// below: OverEstimatedKernelsMakeTheCapProtect_191 multiplies the kernel
+// amplitudes by 2..10 and then shows the cap holding the floor. That answers
+// "does the cap work when handed a broken table", which it does. It does NOT
+// answer "can this phantom get there without the table being corrupted" --
+// and #191 item 4 is the second question. QA-B-125 measured negativePrimary
+// as 0 in all three cap modes with the table as shipped.
+//
+// So the knobs turned here are the ones a CALLER can turn -- iterations, the
+// kVp the settings claim, the air signal -- and not the kernel table, which
+// this card is forbidden from refitting and which would beg the question.
+// Every row runs with CapMode::None, because a capped run cannot show the
+// thing the cap prevents.
+//
+// EITHER OUTCOME IS A RESULT. If some setting reaches a negative primary, the
+// cap can be shown protecting against a scene nobody had to corrupt. If none
+// does, that is the answer to item 4: on this phantom family the situation
+// does not arise, the safety function stays the synthetic tests' job
+// (QA-B-112/113), and the SPEC should say so rather than leave the gap open.
+// ===========================================================================
+TEST(GsvgVirtualGridMc512, CanAnyLegitimateSettingReachANegativePrimary_191)
+{
+    const Phantom p = Load("step");
+    const vg::ParamTable tbl = McTable();      // as shipped; NOT modified
+
+    struct Row { const char* what; vg::VgSettings st; };
+    std::vector<Row> rows;
+
+    auto base = [&]() {
+        vg::VgSettings s = BaseSettings();
+        s.pyramidLevels = 0;                   // isolate the subtraction
+        s.pyramidGain = 1.0;
+        s.denoiseK = 0.0;
+        return s;
+    };
+
+    for (const int it : {1, 5, 20, 100}) {
+        vg::VgSettings s = base();
+        s.iterations = it;
+        rows.push_back({"iterations", s});
+    }
+    // A kVp the operator got wrong selects a kernel row for a different beam.
+    // Not a corrupted table -- a misconfigured run, which is what a safety
+    // guard is for.
+    for (const double kv : {60.0, 70.0, 100.0, 120.0}) {
+        vg::VgSettings s = base();
+        s.kvp = kv;
+        rows.push_back({"kvp", s});
+    }
+    // An air signal below the truth makes every pixel read as more attenuated
+    // than it is, which pushes the estimated scatter up.
+    for (const double air : {kAirDn * 0.5, kAirDn * 0.8, kAirDn * 1.5}) {
+        vg::VgSettings s = base();
+        s.airSignal = air;
+        rows.push_back({"airSignal", s});
+    }
+
+    std::printf("VGMC165 cap: what, kvp, iters, air, negativePrimary, capped, median r\n");
+    int reached = 0;
+    for (const Row& r : rows) {
+        vg::VgSwitches sw;
+        sw.cap = vg::CapMode::None;
+        std::vector<double> img = p.total;
+        const vg::VgReport rep = vg::RunVirtualGrid(img, kN, kN, tbl, r.st, sw, p.mask.data());
+        if (!rep.error.empty()) {
+            std::printf("VGMC165 cap %-9s kvp=%5.1f iters=%3d air=%8.0f REFUSED: %s\n",
+                        r.what, r.st.kvp, r.st.iterations, r.st.airSignal, rep.error.c_str());
+            continue;
+        }
+        std::vector<double> ratio;
+        for (size_t i = 0; i < img.size(); ++i) {
+            if (!InRegion(i) || !p.mask[i] || p.primary[i] <= 0) continue;
+            ratio.push_back(img[i] / p.primary[i]);
+        }
+        std::sort(ratio.begin(), ratio.end());
+        const double med = ratio.empty() ? 0.0 : ratio[ratio.size() / 2];
+        if (rep.negativePrimary > 0) ++reached;
+        std::printf("VGMC165 cap %-9s kvp=%5.1f iters=%3d air=%8.0f negPrimary=%6u capped=%.4f median=%.4f\n",
+                    r.what, r.st.kvp, r.st.iterations, r.st.airSignal,
+                    static_cast<unsigned>(rep.negativePrimary), rep.cappedFraction, med);
+    }
+
+    std::printf("VGMC165 cap: %d of %zu settings reached a negative primary\n",
+                reached, rows.size());
+
+    // The control that makes a zero mean something: the SAME measurement, on
+    // the same phantom, with the kernel amplitudes deliberately inflated --
+    // if that does not produce a negative primary either, the probe is blind
+    // and the zeros above say nothing about the phantom.
+    {
+        vg::ParamTable bad = McTable();
+        for (auto& node : bad.kernels)
+            for (int i = 0; i < node.terms; ++i) node.a[i] *= 3.0;
+        vg::VgSwitches sw;
+        sw.cap = vg::CapMode::None;
+        std::vector<double> img = p.total;
+        const vg::VgReport rep = vg::RunVirtualGrid(img, kN, kN, bad, base(), sw, p.mask.data());
+        ASSERT_EQ(rep.error, "");
+        std::printf("VGMC165 cap CONTROL x3 kernels: negPrimary=%u (a zero here would mean the probe is blind)\n",
+                    static_cast<unsigned>(rep.negativePrimary));
+        EXPECT_GT(rep.negativePrimary, 0u)
+            << "the probe cannot see a negative primary even when one is forced; "
+               "the zeros above are then about the probe, not the phantom";
+    }
+    SUCCEED() << "observation; the reading is in the QA-B-165 report";
 }
 
 // ===========================================================================

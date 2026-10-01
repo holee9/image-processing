@@ -257,3 +257,37 @@ TEST(GridVisibility192, TheVerdictTurnsOnTheApertureFillFactor_192) {
     }
     SUCCEED();
 }
+
+// ---------------------------------------------------------------------------
+// The table written into grid_test_tools.h, measured rather than quoted.
+//
+// The lead's verdict on the scene generator (QA-B-151) was: leave it as it is,
+// but write the limit down where someone reading a suppression ratio will see
+// it. A number in a comment is not evidence, so this case prints the same
+// figures the comment carries -- if the scene generator or the pitch changes,
+// the comment can be checked against a run instead of being believed.
+// ---------------------------------------------------------------------------
+TEST(GridVisibility192, HowMuchThePointSampledSceneOverstatesTheGrid_192) {
+    std::printf("GV192 overstate: lpi f*pitch point_%% aperture_%% ratio  (pitch 0.140)\n");
+    for (const double lpi : {60.0, 103.0, 170.0, 180.0, 186.0, 200.0}) {
+        // fillFactor 0 makes pi*f*a zero, so sinc is 1: that IS the point sample.
+        const double pointPct = ModulationPercent(
+            Profile(FlatWithGridFill(lpi, 0.140, kDepth, 0.0), GridAxis::Rows));
+        const double apPct = ModulationPercent(
+            Profile(FlatWithGridFill(lpi, 0.140, kDepth, 1.0), GridAxis::Rows));
+        std::printf("GV192 overstate %3.0f  %.4f  %7.4f  %8.5f  %6.1f\n",
+                    lpi, (lpi / 25.4) * 0.140, pointPct, apPct, pointPct / apPct);
+    }
+
+    // The two lpi the suppression suite actually uses at the low end are barely
+    // affected; the 170..186 band the product grid specification covers is
+    // where the two models part company. That contrast is the reason the
+    // comment exists, so it is asserted rather than only printed.
+    const double r103 = ModulationPercent(Profile(FlatWithGridFill(103.0, 0.140, kDepth, 0.0), GridAxis::Rows))
+                      / ModulationPercent(Profile(FlatWithGridFill(103.0, 0.140, kDepth, 1.0), GridAxis::Rows));
+    const double r180 = ModulationPercent(Profile(FlatWithGridFill(180.0, 0.140, kDepth, 0.0), GridAxis::Rows))
+                      / ModulationPercent(Profile(FlatWithGridFill(180.0, 0.140, kDepth, 1.0), GridAxis::Rows));
+    std::printf("GV192 overstate ratio103=%.2f ratio180=%.1f\n", r103, r180);
+    EXPECT_LT(r103, 3.0)   << "low-frequency overstatement grew; the comment's table is stale";
+    EXPECT_GT(r180, 50.0)  << "near-Nyquist overstatement shrank; the comment's table is stale";
+}

@@ -444,18 +444,22 @@ And neither path produces NaN or Inf when the other does not
 **Test Type**: Parity (harness Section 3, Rule: OneULP)
 **Test Count**: 300 (100 per 3 shapes)
 
-#### AC-SIMD-003: Defect Correction Parity (UINT16 Bit-Identical)
+#### AC-DETERM-001: Defect Correction Determinism (FLOAT32 Bit-Identical Across Calls)
+
+> **`AC-SIMD-003` 에서 개명·이전했습니다 (`#207`, 2026-09-27).** (`AC-DET-001` 은 §Transient Defect Detection 이 이미 쓰고 있어 `AC-DETERM-` 접두를 새로 뒀습니다.) SIMD 군에 있었지만 SIMD 를 재지 않습니다 — 보정 경로에 AVX2 가 없습니다(`_mm256` 0건, 대조군 `gain_correct` 13건). 옛 문구는 UINT16·scalar 대 AVX2·`bilinear`·Test Count 600 을 주장했고 **다섯 항목 전부 실재와 달랐습니다**(pre 레인 `QA-A-145` 측정). 아래는 시험이 실제로 하는 것입니다.
+>
+> **이 AC 는 정확성을 보증하지 않습니다** — 보정이 일관되게 틀려도 통과합니다. 정확성 쪽은 `AC-DEF-*` 가 맡습니다.
 
 ```gherkin
-Given 100 pseudo-random UINT16 frames + random defect maps (Bernoulli p=0.001)
-When scalar bilinear defect correction and AVX2 defect correction are both applied
-Then scalar_output == avx2_output (byte-level)
-And the same parity holds for median mode (cluster defects)
+Given pseudo-random FLOAT32 frames + random defect maps (deterministic seed 0x5EED)
+When the same defect correction is invoked twice on identical input
+Then the two outputs are byte-identical
+And the same holds for cluster (3x3 median) correction
 ```
 
-**REQ Mapping**: REQ-P1A-040
-**Test Type**: Parity (harness, Rule: Bit-identical)
-**Test Count**: 600 (100 per 3 shapes x 2 modes: bilinear + median)
+**REQ Mapping**: REQ-P1A-012
+**Test Type**: Determinism (harness, Rule: Bit-identical across calls)
+**Test Count**: 2 (`modules/preprocess/tests/test_defect_correct_determinism.cpp`)
 
 #### AC-SIMD-004: Runtime Detection Parity (UINT16 Bit-Identical)
 
@@ -585,13 +589,26 @@ And the processed image is displayed in the GUI
 |--------------|----------------------------------|---------------|-----------------|---------------|
 | PERF-001     | Offset correction                | 3072x3072 U16 | < 55ms          | < 15ms        |
 | PERF-002     | Gain correction                  | 3072x3072 U16 | < 55ms          | < 15ms        |
-| PERF-003     | Defect correction (bilinear)     | 3072x3072 U16 | < 95ms          | < 30ms        |
+| PERF-003     | Defect correction                | 3072x3072 **FLOAT32** | **< 21ms** (주 참조) | **N/A** (경로 없음) |
 | PERF-004     | Full pipeline (offset+gain+defect)| 3072x3072 U16 | < 500ms         | < 100ms       |
 | PERF-005     | XCal file load (offset)          | 3072x3072     | < 50ms          | N/A           |
 | PERF-006     | Calibration generate (10 frames) | 3072x3072     | < 200ms         | < 80ms        |
 | PERF-007     | Runtime detection (Hampel)       | 3072x3072 **FLOAT32** | ~~< 35ms~~ **<= 60 ms (dev machine)** | ~~< 12ms~~ see spec.md |
 
 > **PERF-007 정정 2026-09-17 (QA-A-85).** 이 행은 `spec.md` 가 2026-09-12 에 **폐기한 수치**(`< 35ms` / `< 12ms`)를 그대로 들고 있었습니다 — 두 값 모두 측정된 하한보다 낮아 어떤 구현도 도달할 수 없었습니다(QA-A-56). 형식도 `U16` 이었으나 검출 경로의 입력은 **FLOAT32** 입니다(`spec.md:220`). 현행 목표와 그 기계 정의는 `spec.md` 의 Performance 절이 원본입니다.
+
+> **PERF-003 정정 2026-09-27 (`#204` / QA-A-144).** 이 행은 **세 가지가 동시에 틀렸습니다.**
+>
+> - `bilinear` — **구현된 적 없는 알고리즘**입니다(`#125` 정정: 유효 4근방 **비가중** 평균, 군집은 3×3 median). 이름에서 뺐습니다
+> - `U16` — **측정 불가능한 조건**이었습니다. `defect_correct.cpp:124` 가 FLOAT32 가 아니면 거부합니다
+> - `< 30ms (AVX2)` — **없는 코드의 목표**입니다. 보정 경로에 AVX2 가 없습니다(`_mm256` 0건, 대조군 `gain_correct` 13건). 스칼라가 이미 그보다 빠릅니다
+>
+> `< 21ms` 는 측정 하한에서 유도했습니다(i7-12700 실측 최악 **11.16** ms × CI 계수 1.43 × 편차 1.3 = 20.75 → 올림).
+> **재유도 2026-09-30 (`#204` / `QA-A-169`)** — 유도식은 그대로이고 입력이 바뀌었습니다. 옛 값 `< 45ms` 는 최악 측정이 `19.21` 이던 때의 것이고, `QA-A-146`(`#209`)의 전체 프레임 복사 제거 뒤 `11.16` 으로 내려갔습니다(0.58배). **목표가 움직인 것이 아니라 바닥이 내려갔습니다** — 그대로 두면 하한의 4.63배가 되고, 설정 당시에는 2.76배였습니다. **유도 근거와 측정표는 `spec.md` 의 REQ-P1A-012 Performance 절이 원본입니다** — 여기서 인용하지 마십시오.
+>
+> **미검증**: `PERF-001`·`002`·`004`·`005`·`006` 은 **다시 보지 않았습니다.** 같은 표에 있고 같은 출처 문제를 공유하지만(위 `spec.md:569` 출처 정정 참조), 이 카드의 범위는 `PERF-003` 뿐이었습니다. 그 행들을 판정 근거로 인용하기 전에 같은 확인이 필요합니다.
+>
+> **`AC-SIMD-003`(§ Defect Correction Parity)은 이 정정과 별개로 더 큰 문제가 있었습니다** — `#207` 로 다뤘고, `AC-DETERM-001` 로 개명·재작성됐습니다.
 
 ---
 
@@ -658,7 +675,7 @@ Research basis for targets: `.moai/specs/SPEC-XPE-P1A/research.md` v2.0.0 Sectio
 | REQ-P1A-005   | AC-OFF-005, all NULL input tests                | High     |
 | REQ-P1A-010   | AC-OFF-001, AC-OFF-002                          | High     |
 | REQ-P1A-011   | AC-GAIN-001, AC-GAIN-002, AC-GAIN-003          | High     |
-| REQ-P1A-012   | AC-DEF-001~AC-DEF-004                           | High     |
+| REQ-P1A-012   | AC-DEF-001~AC-DEF-004, AC-DETERM-001            | High     |
 | REQ-P1A-013   | AC-DET-001                                      | Medium   |
 | REQ-P1A-014   | AC-CAL-001                                      | High     |
 | REQ-P1A-015   | AC-CAL-001 (gain variant)                       | High     |
@@ -673,7 +690,7 @@ Research basis for targets: `.moai/specs/SPEC-XPE-P1A/research.md` v2.0.0 Sectio
 | REQ-P1A-031   | AC-IEC-002                                      | High     |
 | REQ-P1A-032   | All error path tests                            | High     |
 | REQ-P1A-033   | AC-GAIN-002                                     | High     |
-| REQ-P1A-040   | AC-SIMD-001, AC-SIMD-002, AC-SIMD-003          | Medium   |
+| REQ-P1A-040   | AC-SIMD-001, AC-SIMD-002                        | Medium   |
 | REQ-P1A-041   | AC-PIPE-001                                     | Low      |
 | REQ-P1A-042   | Parameter range test                            | Medium   |
 

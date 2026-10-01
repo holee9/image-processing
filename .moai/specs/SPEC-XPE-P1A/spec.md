@@ -174,7 +174,87 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
   - Isolated single-pixel defect: unweighted mean of the valid 4-neighborhood (N/S/E/W); if all four are defective, nearest valid pixels in Chebyshev rings r=1..3 (`helpers.cpp:18-53`). Corrected 2026-09-10 (#125): the earlier "weighted by inverse gradient magnitude" clause described no implemented weighting
   - 2+ adjacent defects (cluster, 4-connectivity): median of valid pixels in the 3×3 neighborhood, centre and other defects excluded (`defect_correct.cpp:72-103`)
   - Edge/corner defects: use only in-bounds neighbors (no out-of-bounds memory access, REQ-P1A-005)
-- **Performance**: < 95ms for 3072x3072 UINT16 frame (scalar); < 30ms (AVX2)
+- **Buffer aliasing contract** (신설 2026-09-27, `#209` / QA-A-146): `input->data` 와 `output->data` 는 **완전히 같거나 완전히 분리**돼야 합니다.
+  - `input->data == output->data` (in-place) — **허용**. 결과는 분리 버퍼 호출과 **비트 단위로 동일**합니다
+  - 두 범위가 겹치지 않음 — 허용 (통상 경로)
+  - **부분 겹침** — `XPE_ERR_INVALID_INPUT`, 아무것도 쓰기 전에 반환
+  - 비교 기준은 이 함수가 실제로 건드리는 `n * sizeof(float)` 바이트 범위입니다. `dataSize` 는 `#123` 계약상 `0` 이 미지정을 뜻해 길이로 신뢰할 수 없습니다
+
+> **[in-place 가 안전한 이유 — 그리고 부분 겹침을 허용하지 않는 이유]**
+>
+> **쓰기와 읽기가 같은 화소를 건드리지 않습니다.** 이 함수는 결함 지도가 표시한 화소(`dm[idx] != 0`)에만 쓰고, 두 커널은 표시되지 **않은** 화소에서만 읽습니다 — `median_filter_cluster` 가 `defectMask[idx] == 0` 일 때만 이웃을 취하고(`defect_correct.cpp:96`), `xpe_interpolate_pixel` 의 `try_add` 가 4근방과 r=1..3 링 대체 경로 양쪽에서 같은 조건을 겁니다(`helpers.cpp:30`). 군집 좌표를 모으는 `analyzeCluster` 도 `defectMask[nidx] != 0` 인 것만 큐에 넣습니다. **두 집합이 서로소이므로 읽기가 이미 정정된 값을 볼 수 없습니다** — 별칭 여부와 무관하게.
+>
+> 이 불변식은 **현재 커널의 성질**이지 구조적 보장이 아닙니다. 결함 이웃을 읽는 커널이 들어오면 in-place 가 조용히 깨집니다. 그래서 지키는 것은 주석이 아니라 시험입니다 — `DefectCorrectTest.InPlaceMatchesOutOfPlace` 가 같은 입력을 두 방식으로 돌려 원소 단위로 비교하고, 링 대체 경로를 강제하는 꽉 찬 3×3 블록까지 태웁니다.
+>
+> **부분 겹침은 틀렸다고 알려져서가 아니라, 아무도 그렇게 부른 적이 없어 결과가 옳은지 아무것도 재지 않기 때문에** 거부합니다. 계약을 그쪽으로 넓히면 **어떤 시험도 관측하지 않는 동작을 보증**하게 되고, 그것이 `#207` 의 형태입니다(없는 AVX2 경로를 AC 가 보증하던 것). 문서화하지 않고 두면 신호 없는 UB 로 갑니다 — 오류 코드가 계약 위반을 호출자에게 **관측 가능하게** 만듭니다.
+>
+> **인자 검증 순서**: 이 검사는 `REQ-P1A-020`(미초기화 → `XPE_ERR_NOT_INITIALIZED`)보다 **앞섭니다**. 기존 인자 검증(NULL·치수·버퍼 크기)과 같은 자리이며, 잘못된 인자는 모듈 상태보다 먼저 답한다는 기존 규칙을 따릅니다.
+>
+> **측정**: 스냅숏 제거로 `18.72 → 10.82 ms` (절감 `7.90 ms`, 42%). 예산 `45 ms` 대비 여유 **4.16배**. 제거 전 값은 `#204` 의 `18.45 ms` 가 아니라 **같은 세션에서 다시 잰 값**입니다 — 다른 세션 수치를 baseline 으로 쓰지 않았습니다.
+>
+> **미검증**: 부분 겹침이 실제로 틀린 값을 내는지는 재지 않았습니다(이제 거부하므로 잴 수 없고, 그것이 결정의 취지입니다). 겹침 판정의 포인터 비교는 서로 다른 할당 사이에서 표준상 미명세이며 평탄한 주소 공간을 전제합니다 — 그 대가로 조용한 UB 를 막습니다.
+
+- **Performance** (재정의 2026-09-27, `#204` — 아래 주를 함께 읽을 것): **`< 21 ms`** (scalar, 3072x3072 **FLOAT32**, 결함 밀도 0.1% 군집 포함). AVX2 목표 없음. ~~`< 45 ms`~~ — **재유도 2026-09-30 `#204`**: 같은 유도식에 새 측정을 넣은 결과입니다(아래 주). 이전 줄은 `< 95ms ... UINT16 frame (scalar); < 30ms (AVX2)` 였다.
+
+> **[재정의 근거 2026-09-27, `#204` / QA-A-144]**
+>
+> 옛 줄은 **세 가지가 동시에 틀렸습니다.**
+>
+> | 무엇 | 문제 |
+> |---|---|
+> | `UINT16` | **측정 불가능한 조건**이었습니다 — `defect_correct.cpp:124` 가 FLOAT32 가 아니면 거부합니다 |
+> | `< 30ms (AVX2)` | **없는 코드의 목표**입니다 — 보정 경로에 AVX2 가 없습니다(`_mm256` 0건, 대조군 `gain_correct` 13건). 스칼라가 이미 그보다 빠릅니다 |
+> | `< 95ms` | 유도 근거 없음(위 출처 정정 참조). 그리고 측정 하한의 **위**라 느슨했습니다 |
+>
+> **측정** (i7-12700, RelWithDebInfo, 단일 스레드, FLOAT32, 워밍업 폐기 + 7회 최솟값):
+>
+> ```
+> 결함 0      6.23 ms   <- 하한 아님. :173 에서 조기 반환해 보정 루프를 건너뜀
+> 결함 1     16.29 ms   <- 진짜 하한
+> 결함 9437  18.45 ms (0.1% 고립) / 19.21 ms (군집)
+> 결함 94371 33.64 ms (1%)
+> 실행 편차 2.9~30.3%
+> ```
+>
+> **밀도 0 을 하한으로 삼을 뻔한 것을 레인이 잡았습니다.** 조기 반환이라 루프를 안 돌고, 결함 1개만 있어도 16.29 ms 입니다. SPEC 조건에서 보정 연산 자체는 전체의 **9%** 뿐입니다.
+>
+> 커널만은 직접 재지 못했습니다 — `xpe_interpolate_pixel` 이 DLL 에서 안 내보내져 `LNK2019`. *"제외했다고 적고 포함해 재는"* 것을 피하려 **밀도 기울기**로 유도했습니다(184 ns/결함, 교차확인 179).
+>
+> **`45 ms` 의 유도**: 최악 측정 `19.21` × CI 계수 `1.43`(이 저장소 실측: 검출이 로컬 65.6 → CI 93.8) × 편차 `1.3` → 올림.
+>
+> ---
+>
+> **[재유도 2026-09-30, `#204` / `QA-A-169`] — `45 ms` → `21 ms`. 목표는 그대로인데 바닥이 내려갔습니다.**
+>
+> `QA-A-169` 가 같은 조건으로 다시 쟀고(3072² FLOAT32, scalar, 단일 스레드, i7-12700, 워밍업 폐기 + **7회 최솟값**, 결함 배치 규칙 격자) 값이 전부 내려갔습니다:
+>
+> | 조건 | `QA-A-144` | **`QA-A-169`** | 배 |
+> |---|---|---|---|
+> | 결함 0 (조기 반환) | 6.23 | 6.16 | 0.99 |
+> | **결함 1 (하한)** | **16.29** | **9.73** | **0.60** |
+> | 0.1% 고립 | 18.45 | 9.91 | 0.54 |
+> | **0.1% 군집 2×2 (최악)** | **19.21** | **11.16** | **0.58** |
+> | 1% 고립 | 33.64 | 21.68 | 0.64 |
+>
+> 내려간 이유는 **`QA-A-146`(`#209`)의 전체 프레임 복사 제거**로 보입니다. 다만 그 주석은 `12.45 ms` 라 적는데 **실측 감소는 `8.54 ms`** 로 더 작아, `QA-A-169` 가 *가려내지 못했다*고 적었습니다 — 원인 후보이지 확정이 아닙니다.
+>
+> **위 유도식을 그대로 다시 적용합니다** — 판단을 바꾸는 것이 아니라 입력이 바뀐 것입니다:
+>
+> ```
+> 11.16 (최악 측정) × 1.43 (CI 계수) × 1.3 (편차) = 20.75 → 올림 = 21 ms
+> ```
+>
+> **`45 ms` 를 그대로 두면 하한의 4.63배가 됩니다.** 설정 당시에는 2.76배였고(45 / 16.29), 그 사이 아무도 느슨하게 하기로 정하지 않았습니다 — **목표가 움직인 것이 아니라 바닥이 내려갔습니다.** `#143` 이 겪은 것의 반대 방향입니다(거기서는 목표가 바닥 **아래**로 내려갔습니다).
+>
+> **세 옛 목표는 전부 하한 위입니다** — `60` → 6.17배, `95` → 9.76배, `30` → 3.08배. `#143` 과 달리 **도달 불가능한 것은 없었습니다.** 문제는 도달 가능성이 아니라 **느슨함**이었습니다.
+>
+> **AVX2 부재 재확인**: `defect_correct.cpp` 277줄에 `_mm256`·`__m256`·`immintrin` **0건**(대조군 `runtime_detection.h` 35건). `QA-A-144` 의 같은 검색과 일치합니다.
+>
+> **미검증** (`QA-A-169` 보고, 그대로): 단계 분해 합 `6.21` 대 전체 `11.14` — 차 `4.93 ms` 를 설명하지 못했고 분해가 더운 캐시를 재 과소평가한 것으로 의심됩니다. 커널 격리 측정은 DLL 미노출로 여전히 불가(`QA-A-144` 와 같은 이유). 결함 배치가 규칙 격자라 실제보다 빠를 수 있습니다. 1% 조건의 산포 27%. `QA-A-144` 수치는 인용이고 재현하지 않았습니다.
+>
+> **회귀 게이트는 여전히 없습니다** — 위 문단의 이유가 그대로입니다. CI 실측 없이 로컬에서 유도하면 `#144` 의 실수를 반복합니다.
+>
+> **회귀 게이트는 아직 없습니다.** 필요하지만 **로컬에서 유도하면 `#144` 의 실수를 반복**합니다 — CI 실측 뒤 절대 예산 형태로 4배를 잡습니다. 이 경로가 CI 에서 실제로 도는 것은 확인됐습니다(`ci.yml:185`·`:206` 이 필터 없이 전체를 두 번 돌리고, run 36233914831 로그의 `[perf-gate-machine]` 줄이 그 스텝 출력).
 - **Pixel Accuracy** (research.md v2.0.0 Section 8.3):
   - Correction recall on BPM-marked defects: >= 99% (no defect left uncorrected)
   - Artifact suppression: zero new edges introduced at defect sites — verified by gradient-magnitude delta at defect boundary (|grad_after - grad_before| < 10% of local contrast)
@@ -195,11 +275,67 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
   5. `lambda` is configurable via `configJsonOrNull` key `"hampel_threshold"` (range 3.0 to 10.0, default 5.0)
 - **Rationale**: Median + MAD is robust to clustered outliers (unlike mean + stddev which gets corrupted when defects cluster). 0.6745 scale factor makes z comparable to standard Gaussian z-score.
 - **Pixel Accuracy** (research.md v2.0.0 Section 8.3):
-  - True-positive rate (TPR) on injected 5-sigma transients: >= 99.9%
+  - True-positive rate (TPR) on injected **10-sigma** transients: >= 99.9%
+    - **Amended 2026-09-29 (`#143`).** This line used to say *5-sigma*, which is the same
+      number as the detector threshold `lambda = 5.0` in Algorithm step 4. A transient whose
+      amplitude equals the threshold sits exactly on the decision boundary, so the neighbour
+      median's own noise splits it roughly in half -- **0.5 by construction, not by
+      implementation quality.** `QA-A-161` proved this mechanically: an ORACLE detector given
+      each pixel's TRUE local sigma (estimation error exactly zero) still measured
+      **TPR@5-sigma = 0.5088**. No sigma-estimation improvement can reach 0.999 there.
+    - Informative, same measurement, shipping algorithm: TPR **0.5536** @5-sigma,
+      **0.71** @6-sigma, **0.96** @8-sigma, **0.9865** @10-sigma.
+    - **The shipping algorithm does NOT meet the amended requirement either** (0.9865 < 0.999).
+      Corrected 2026-09-29 by `QA-A-162`. The 0.9990 quoted when this amendment was first
+      written came from `#143`'s issue body, which predates `QA-A-43`'s global sigma floor.
+      `test_runtime_detection_rates.cpp:279` records the transition in place --
+      `10 sigma 0.998959 -> 0.986472` -- and two independent harnesses now measure 0.9865.
+      The same file (:211) states the trade: the floor costs 9% of the detection rate and
+      buys a 168x reduction in false positives. That trade was taken at 5-sigma; it costs here too.
+    - Candidates measured by `QA-A-162` reach TPR 1.0000 @10-sigma on every structure class
+      while meeting FPR, so the amended pair is reachable -- by a change, not by the code as
+      it ships today.
+    - The threshold and the amplitude at which TPR is specified are now different numbers
+      on purpose. Do not re-align them.
   - False-positive rate (FPR) on clean clinical frames: < 0.001% (< 9 false pixels per 3072x3072)
   - Edge-of-image pixels (where 3x3 neighborhood is incomplete): processed with available subset; at least 5 neighbors required or pixel is skipped (defectMapOut = 0)
   - Output is boolean-like UINT8 (0 or 1); guaranteed `sum(defectMapOut)` does not exceed `width*height * 0.01` for clean input
-- **Performance** (redefined 2026-09-12, #144 — see the note below): improvement target **<= 60 ms (AVX2, single thread) on the development machine** for a 3072x3072 FLOAT32 frame. The regression gate is a **machine-relative ratio**, not an absolute time — see the 2026-09-16 note below; the absolute `<= 810 ms` that stood here was retired on that date. The previous line read "< 35ms ... (scalar); < 12ms (AVX2, sorting network for median-of-9)".
+- **Performance** (redefined **2026-09-29, `#143`** — supersedes the 2026-09-12 `#144` definition;
+  see the notes below): improvement target **<= 1.3x the measured lower bound of this algorithm,
+  same machine, both terms taken as the minimum of repeated runs** (AVX2, single thread)
+  - **"Minimum of repeated runs", not "same mode" (corrected by `QA-A-168`).** The selection
+    term is bimodal -- two values, 0.2% reproducible within each. The **full path is not**:
+    12 runs give 121.2 121.2 122.1 123.5 123.9 124.1 126.5 127.5 129.9 133.7 143.2 155.9, a
+    continuous spread with max/min 1.29x and six of twelve clustered in 121-124. So there is no
+    mode to select on that side; the rule is the **minimum**, which is also what makes the two
+    terms comparable -- the denominator is a floor, so the numerator must be one too. Using the
+    tail (155.9) would report 2.05x and demand 29% more improvement than exists.
+  - **Why a ratio and not milliseconds.** Two measurements made the absolute number unusable.
+    (a) The 60 ms figure was derived from a lower bound that **did not contain the tile-sigma
+    stage** (`QA-A-56`: 15.97 network + 11.1 global sigma = 27.1), and `QA-A-166` measured this
+    algorithm's bound at **~76 ms** -- so 60 ms sat *below* its own floor, exactly the condition
+    that retired 35 ms and 12 ms. (b) `QA-A-167` found this lane's timings are **bimodal**: the
+    same binary, same arguments, same test alternates 65.50 / 96.19 / 65.35 / 96.17 ms --
+    **1.47x**, reproducible to 0.2% *within* each mode. An absolute millisecond target cannot be
+    stated against a machine that answers two numbers. **A ratio measured in one mode cancels
+    both problems**, and this file already took that step once -- the 810 ms gate became a ratio
+    for the same reason (2026-09-16 note below).
+  - **The bound is the fast mode.** `QA-A-56` cited a minimum for the same reason: a lower bound
+    is what the arithmetic cannot avoid, not what a loaded scheduler happens to deliver.
+    Components (`QA-A-166`, `QA-A-167`, 3072x3072): network 7.71 + tile difference 5.28 +
+    tile selection ~65 (three independent readings agree: 65.4 fast-mode, 63 in-situ, 64.8
+    same-loop) + memory 2.46 = **~76 ms**.
+  - **1.3x, and why that number.** The old target was 2.21x its bound (60 / 27.1) -- applied here
+    that would be 168 ms, *above* what already ships, so it would ask for nothing. The shipped
+    code is already at roughly 1.6x. 1.3x asks for a real improvement while staying above the
+    floor. **It is a target, not a gate**; the regression gate remains the ratio gate below.
+  - **Both terms must come from the same mode.** A ratio built from a fast-mode bound and a
+    slow-mode measurement reports 1.47x of improvement that does not exist. `QA-A-165`'s 131 ms
+    and `QA-A-166`'s 122 ms were **not** recorded with their mode, so the current ratio is not
+    yet established -- see the status note.
+  - **Machine identity closed (`QA-A-167`).** The `QA-A-84` note names the development machine as
+    i7-12700 and this lane runs a 12th Gen Intel Core i7-12700. Same **model**; not proof of the
+    same **unit**, and the `memcpy` 0.88x gap is within what the bimodality above can produce. for a 3072x3072 FLOAT32 frame. The regression gate is a **machine-relative ratio**, not an absolute time — see the 2026-09-16 note below; the absolute `<= 810 ms` that stood here was retired on that date. The previous line read "< 35ms ... (scalar); < 12ms (AVX2, sorting network for median-of-9)".
 
 > **Which machine the 60 ms target refers to (clarified 2026-09-17, QA-A-84).** Until this date the
 > line above named four conditions — AVX2, single thread, 3072x3072, FLOAT32 — and **no machine**. This
@@ -209,11 +345,103 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 > QA-A-56), so that is the machine it refers to. This records where the number came from; it does not
 > change the number.
 >
-> **Status against that definition** (from existing reports, not re-measured): development machine
-> **62.4-63.9 ms** (QA-A-69) — **not met, 1.04-1.07x away.** The "1.6x on the CI runner" figure further
+> **Status against the 2026-09-29 definition** (`QA-A-168`, measured): shipped path
+> **121.2 ms** (minimum of 12 runs; 3072x3072 FLOAT32, AVX2, single thread, i7-12700) against a
+> **76 ms** lower bound = **1.59x**. Target is 1.3x, so the remaining improvement is **1.23x**,
+> or roughly **98.8 ms**. The bound is the sum of per-term minima and is therefore a floor, not
+> a reachable schedule -- nothing guarantees all three stages hit their best in one run.
+>
+> **Absolute milliseconds in this lane now carry their conditions** (`QA-A-168` §3): machine,
+> frame, build, and how the figure was reduced from repeated runs. Figures recorded before that
+> convention -- `QA-A-165`'s 131 ms and `QA-A-166`'s 122 ms among them -- do not, and were not
+> re-measured.
+>
+> **Superseded status line** (against the retired 60 ms definition): the lane machine
+> **62.4-63.9 ms** (QA-A-69) — **not met, 1.04-1.07x away.**
+>
+> **Transcription corrected 2026-09-29 (`QA-A-166`, `#143`).** This line used to say *development
+> machine*. `QA-A-69`'s own words are *"이 기계에서 1.0~1.1배 (62.4~63.9 ms)"* -- **this machine**.
+> `QA-A-56` says the same. Both are lane-pre reports and **neither names a machine**; the identification
+> with the development machine was made here, not there. What is measurable across the two is
+> `memcpy`: **0.88x** (40.7 vs 35.9 GB/s, `QA-A-166`). The AVX2 terms are **not** comparable -- the
+> kernels differ (19-CE nine-element vs `MedianOfEight8`), so `QA-A-166`'s 7.71 ms must not be read
+> against `QA-A-56`'s 15.97 ms. The "1.6x on the CI runner" figure further
 > down has **no absolute CI time behind it in the lane reports** — it is a ratio-derived statement, and
 > no report records a CI millisecond value for the current code. CI does not enforce the 60 ms target
 > at all: the ratio gate guards CI against regression, and that is its only job there.
+
+> **The 60 ms target predates the algorithm that now meets the accuracy requirements (recorded 2026-09-29, `#143`).**
+>
+> The derivation above is explicit about what the 27.1 ms lower bound contains: **15.97 ms** (19-CE
+> network, AVX2, gather excluded) **+ 11.1 ms global sigma** (`QA-A-56`). It contains **no tile-sigma
+> stage**, because none existed. `QA-A-164` landed `6d` (tile 128 + blend w=0.10) because `QA-A-163`
+> measured that a single global sigma cannot meet FPR on structured frames -- `edge` was 75x over,
+> and the misdetections were 100% on the noisier half of the frame while an ORACLE detector given the
+> true local sigma balanced 12-to-16. **The second sigma estimator is what closed `#148`'s family.**
+>
+> So the target and the algorithm no longer describe the same computation. Measured on the lane
+> machine (`QA-A-164`, `QA-A-165`, 3072x3072):
+>
+> | Stage | ms |
+> |---|---|
+> | `ComputeGlobalSigma` | 55 -> **removed** (`QA-A-164` found it unread: `ResolveSigma` skips the floor branch when `blendWeight > 0`) |
+> | `ComputeTileSigmas` | 72 -> **63** after the `QA-A-59`-shaped allocation fix |
+> | detection row loop | 55 |
+> | **total** | 187 -> 131 -> **122** |
+>
+> `QA-A-165` decomposed why the allocation fix bought only 7%: **90-93% of the tile stage is median
+> selection**, not buffer growth. `SelectKthSmallest` carries a per-call fixed cost (a 65536-bucket
+> histogram allocated and zeroed twice, both ranges walked) that does not scale with `n`. The global
+> pass called it twice; the tile pass calls it **1152 times**. Removing that fixed cost entirely
+> still leaves `6 + 41 + 53 = 98 ms`, **1.6x the target** -- so 60 ms is not reachable by tuning; it
+> needs a different selection algorithm, which would move the accuracy numbers.
+>
+> **What this file does NOT do here:** it does not change the 60 ms number. A replacement target has
+> to be derived from a measured lower bound for *this* algorithm, the way `QA-A-56` derived the
+> current one -- that measurement does not exist yet. Until it does, treat 60 ms as **the target for
+> the pre-`6d` configuration** and this note as the record that the shipped algorithm is measured
+> against a number derived without its largest stage.
+>
+> **Machine caveat still applies.** `QA-A-165` did not establish that the lane machine is the
+> development machine of the line above; the ratio is the transferable part, the absolute ms is not.
+
+> **The 60 ms target now sits below the measured lower bound (`QA-A-166`, 2026-09-29, `#143`).**
+>
+> The table below retired two earlier targets for exactly this reason -- *"both sat below the measured
+> lower bound, so no implementation could reach them"*. **The same verdict now applies to 60 ms.**
+>
+> Lower bound for the shipped algorithm, lane machine, 3072x3072, best-of-N:
+>
+> | Term | ms |
+> |---|---|
+> | detection network (`MedianOfEight8`, AVX2) | 7.71 |
+> | tile-sigma difference generation | 5.28 |
+> | tile-sigma **selection** (in-situ) | **63** |
+> | memory traffic | 2.46 |
+> | **lower bound** | **~76** |
+> | *(global sigma, measured as a control -- not on the current path)* | *50.7 / 13.04 traffic bound* |
+>
+> Shipped today: **122 ms = 1.6x that bound.** Target 60 ms is **0.79x the bound** -- unreachable by
+> any implementation of this algorithm, as 35 ms and 12 ms were for the previous one.
+>
+> **Two corrections `QA-A-166` made to its own earlier work, both recorded because they change what is
+> believed:**
+>
+> 1. `QA-A-165` calculated *"remove the fixed cost and selection is 41 ms, total 98 ms"*. Implemented
+>    and measured, the fixed-cost-free variant is **20% SLOWER** (116.32 vs 97.28 ms). The calculation
+>    took the per-element cost of one large-`n` call as a fixed-cost-free floor, but at large `n` the
+>    fixed cost is **buried, not absent**; removing it at small `n` needs a touched-bucket list whose
+>    sort costs more than the 65536-slot linear walk. **The original implementation was already the
+>    good choice.**
+> 2. `nth_element` measured **239.27 ms**, 3.5x slower -- not an alternative. Probe only.
+>
+> **Open, and it changes the margin:** the selection term has two measurements that differ by 1.5x --
+> **63 ms in situ vs 97 ms isolated**. If the isolated figure is the honest one the bound is ~110 ms,
+> not ~76. The verdict (target below bound) holds either way; the size of the gap does not. The
+> hypothesis -- radix splits on the high 16 bits, so a narrow dynamic range makes the second pass
+> expensive -- is **unverified**.
+>
+> **No replacement number is set here.** It waits on that 1.5x being resolved.
 
 > **Why the old numbers were replaced.** Both sat **below the measured lower bound**, so no implementation could reach them (QA-A-56, this machine, 3072x3072):
 >
@@ -412,6 +640,174 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 - **SRS**: SRS-SAFE-004
 - **Traceability**: SWU-1.1, SWU-1.2
 
+### 4.3b Subsystem Requirements — 온도 보상 · 고스트 · 비닝 (신설 2026-09-28, `#211`)
+
+> **왜 신설인가.** 커밋 `bc22093`(2026-04-16)이 이 SPEC 을 585행 → 361행으로 줄이면서 요구 46개를 지웠습니다(`REQ-P1A-` 정의 **71 → 25**). 대부분은 살아남은 번호로 흡수됐지만, **세 서브시스템은 흡수처 없이 사라졌습니다** — 정의행 제목 27개 중 `temp`·`ghost`·`binning` 을 담은 것이 **0건**(대조군 `offset` 3건)인데, 셋 다 구현돼 있고 `xpe_ghost_*` 는 **수출 API** 입니다.
+>
+> **옛 문구를 복원하지 않았습니다.** 아래는 현재 구현을 읽어 쓴 것이고, 옛 요구와 다른 곳은 그 자리에 적었습니다 — `#204`·`#207`·`#209` 에서 옛 문구가 실재와 달랐던 전례가 있습니다.
+>
+> 새 번호(`080~`)를 씁니다. 옛 번호를 재사용하면 코드에 남은 옛 인용이 **다른 뜻으로 되살아납니다** — `#197` 이 그 형태였습니다.
+
+#### REQ-P1A-080: Temperature Compensation Execution
+
+**When** `xpe_temp_compensate(img, detectorTempC, configJsonOrNull)` is called with a **UINT16** buffer, the module **shall** scale each pixel by the inverse of the dark-current factor relative to `T_ref = 25 °C`, computed as `exp(-Eg/2kT) / exp(-Eg/2kT_ref)`, writing the result **in place** and clamping to `65535`.
+
+- **측정된 계약** (`temp_compensate.cpp`): 단일 버퍼 in-place — `input`/`output` 쌍이 아닙니다. **UINT16 전용** (`xpe_buffer_has_format(img, XPE_PIXEL_UINT16, …)`); **`REQ-P1A-012`(결함 보정)가 FLOAT32 전용인 것과 반대**입니다
+- `exp_ref < 1e-300` 이면 보정 없이 `XPE_OK` — 물리적으로 불가능하나 방어적으로 둡니다
+- **Verification**: Test
+- **Status**: 구현 있음, 요구는 이 항목이 처음입니다
+
+#### REQ-P1A-081: Temperature Input Guard
+
+**If** `detectorTempC` is `NaN`, the module **shall** substitute `25.0 °C`. **If** the (substituted) value is outside `[-20.0, +60.0] °C`, the module **shall** return `XPE_ERR_INVALID_INPUT` without modifying the image.
+
+- **측정된 계약** (`temp_compensate.cpp:33`, `:36-37`): NaN 치환이 범위 검사보다 **앞섭니다** — `NaN` 은 `25.0` 이 되어 통과합니다
+- **⚠️ 옛 `REQ-P1A-007` 과 다른 점**: 옛 문구는 NaN 치환 시 *"post an INFO-level alert"* 를 요구했습니다. **구현에 알림이 0건**입니다(`xpe_alert`·`post_alert`·`XPE_ALERT` 전수). **요구에 넣지 않았습니다** — 없는 동작을 보증하지 않기 위함이고, 알림이 필요한지는 별건입니다
+- **Verification**: Test
+
+#### REQ-P1A-082: Temperature Compensation Flag
+
+**While** the pre-processing pipeline runs the temperature stage successfully, the pipeline **shall** set `XPE_FLAG_TEMP_COMPENSATED` in `XpeImageMetadata.flags`.
+
+- **측정된 계약**: 플래그는 **`pipeline.cpp:139` 가** 설정합니다. `xpe_temp_compensate` 를 **직접 호출하면 플래그가 설정되지 않습니다** — 그 함수는 메타데이터를 받지 않습니다
+- **⚠️ 옛 `REQ-P1A-008` 과 다른 점**: 옛 문구는 주체를 밝히지 않아 *"보정 함수가 설정한다"* 로 읽혔습니다. 실재는 파이프라인입니다
+- **Verification**: Test (`test_pipeline_stages.cpp:115`, `:197`)
+
+#### REQ-P1A-085: Ghost Corrector Handle Lifecycle
+
+**When** `xpe_ghost_create(width, height, …)` is called with non-zero dimensions, the module **shall** allocate an opaque handle holding frame history and return it through `handleOut`; **if** allocation fails it **shall** return `XPE_ERR_OUT_OF_MEMORY`. `xpe_ghost_destroy` **shall** invalidate the handle before freeing it.
+
+- **측정된 계약** (`ghost_correct.cpp:27`, `:33`, `:264`): `!handleOut || width == 0 || height == 0` → `XPE_ERR_INVALID_INPUT`. `destroy` 는 `magic = 0` 으로 **무효화한 뒤** 해제합니다
+- **Traceability**: 수출 API 4종 — `xpe_ghost_create`·`correct`·`reset`·`destroy` (`preprocess_api.h:578`·`595`·`608`·`617`)
+- **Verification**: Test
+
+#### REQ-P1A-086: Ghost Handle Validity Guard
+
+**If** `xpe_ghost_correct`, `xpe_ghost_reset`, or `xpe_ghost_destroy` receives a handle that was never created or has been destroyed, the module **shall** return `XPE_ERR_INVALID_INPUT` (and `xpe_ghost_destroy` **shall** return without effect) rather than dereference it.
+
+- **측정된 계약**: `GhostCorrectorHandle::isValid(handle)` 가 **세 지점 모두**에서 호출됩니다 — `:202`·`:249`·`:262` (정의 `xpe_preprocess_internal.h:65`)
+- **조사 기록**: 리더가 `magic` 을 `grep` 했을 때 `:264`(쓰기) 하나만 보여 *"쓰기만 되고 읽히지 않는다 = use-after-free"* 로 갈 뻔했습니다. 읽는 쪽은 헤더의 `isValid` 안에 있었습니다. **한 파일 grep 으로 부재를 단정하면 없는 결함을 만듭니다**
+- **Verification**: Test
+
+#### REQ-P1A-087: Ghost Correction Execution
+
+**When** `xpe_ghost_correct(handle, img, meta)` is called with a valid handle and a **FLOAT32** buffer, the module **shall** subtract the lag contribution estimated from the handle's frame history, in place.
+
+- **측정된 계약** (`:209`): **FLOAT32 전용** — `REQ-P1A-080`(온도, UINT16)과 형식이 다릅니다. 파이프라인 단계 순서상 게인 보정 이후이기 때문입니다
+- **Verification**: Test
+
+#### REQ-P1A-088: Ghost Corrector Reset
+
+**When** `xpe_ghost_reset(handle)` is called with a valid handle, the module **shall** clear the accumulated frame history and the exposure state, so that the next `xpe_ghost_correct` behaves as if the handle had just been created.
+
+- **측정된 계약** (`ghost_correct.cpp` `xpe_ghost_reset`): `hist1`·`hist2` 를 `0.0f` 로 채우고, `lastAcqTimeSec = 0.0` · `lastFrameMean = 0.0f` · `exposureWeight = 1.0` 로 되돌립니다. **이력 두 개만이 아니라 노출 상태 셋도 함께** 초기화합니다
+- **왜 별도 요구인가**: `REQ-P1A-086`(핸들 유효성 가드)이 `reset` 을 **이름으로 부르지만** *"이력을 비운다"* 는 말하지 않습니다. 유효성과 의미론은 다른 계약이고, `086` 에 끼워 넣으면 그 요구가 두 가지를 말하게 됩니다
+- **`#211` 경위**: 옛 `REQ-P1A-034` 를 인용하던 4곳이 실제로는 **이 동작**을 서술하고 있었습니다(옛 `032` 의 내용 — 번호가 밀린 채). 레인(`QA-A-150`)이 *"`096` 으로 옮기면 정반대가 된다"* 며 옮기지 않고 보고했고, 그 판단이 이 요구를 만들었습니다
+- **Verification**: Test (`test_ghost_correct.cpp`)
+
+#### REQ-P1A-090: Binning Correction Execution
+
+**When** `xpe_binning_correct(img, binningMode, …)` is called with a **FLOAT32** buffer and `binningMode` is `2` or `4`, the module **shall** normalize each pixel by `1 / binningMode²` to compensate summed charge, in place.
+
+- **측정된 계약** (`binning_correct.cpp:22`, `:36`): FLOAT32 전용, 정규화 계수 `1/mode²`
+- **Verification**: Test
+
+#### REQ-P1A-091: Binning Mode Guard
+
+**While** `binningMode == 1`, the module **shall** return `XPE_OK` without modifying the image. **If** `binningMode` is not `1`, `2`, or `4`, it **shall** return `XPE_ERR_CONFIG_INVALID`. **If** any pixel is non-finite during normalization, it **shall** return `XPE_ERR_PROCESSING_FAILED`.
+
+- **측정된 계약** (`:25`, `:30-31`, `:39`): 세 갈래 모두 실재합니다
+- **Verification**: Test
+
+> **이 절의 미검증**
+>
+> - 위 요구는 **현재 구현을 서술**한 것이고, 그 구현이 **임상적으로 옳은지는 이 절이 답하지 않습니다.** 온도 보상의 `Eg`·`k` 상수 출처와 UINT16 선택 근거는 확인하지 않았습니다
+> - 옛 요구 중 **`REQ-P1A-007` 의 INFO 알림**은 구현에 없어 요구에 넣지 않았습니다. 필요 여부는 별건입니다
+> - `#211` 의 (C) 갈래(파이프라인 6건·성능 예산 3건·로깅·1×1 edge case)는 **아직 판정하지 않았습니다**
+> - 원문 추출 실패 4건(`045` `051` `053` `055`)은 아직 읽지 않았습니다
+
+### 4.3c Pipeline Requirements (신설 2026-09-28, `#211`)
+
+> **왜 신설인가.** 수출 API 48개를 요구와 전수 대조한 결과(대조군 양성 `xpe_defect_correct` → 3개 요구, 음성 지어낸 이름 → 0건) **23개가 고유 요구 없이 수출**되고 있었고, 파이프라인 4종이 그중에 있었습니다. `spec.md` 정의행 제목에 `pipeline` 이 **0건**입니다.
+>
+> 아래는 `pipeline.cpp` 를 읽어 쓴 것입니다. 옛 요구(`043`~`049`)와 다른 곳은 그 자리에 적었습니다.
+
+#### REQ-P1A-095: Pipeline Stage Order
+
+**When** `xpe_preprocess_pipeline(img, meta, calibPath, ghostHandle, configJsonOrNull)` is called, the module **shall** run the correction stages in this fixed order, each consuming the previous stage's output:
+
+`readout validation → temperature → offset → nonlinearity → gain → binning → defect → ghost`
+
+- **측정된 계약** (`pipeline.cpp:122`·`139`·`155`·`181`·`203`·`230`·`273`·`297`): 여덟 단계, 각각 성공 시 대응 `XPE_FLAG_*` 를 설정합니다
+- **Verification**: Test
+
+#### REQ-P1A-096: Pipeline Stage Flags
+
+**While** a stage completes successfully, the pipeline **shall** set that stage's bit in `XpeImageMetadata.flags`: `READOUT_VALIDATED` · `TEMP_COMPENSATED` · `OFFSET_CORRECTED` · `NONLINEARITY_CORRECTED` · `GAIN_CORRECTED` · `BINNING_CORRECTED` · `DEFECT_CORRECTED` · `GHOST_CORRECTED`.
+
+- **측정된 계약**: 플래그 설정은 **파이프라인만** 합니다. 개별 보정 함수를 직접 부르면 설정되지 않습니다 — `REQ-P1A-082` 가 온도에 대해 같은 것을 말합니다
+- 비선형만 조건이 하나 더 있습니다 — `meta && applied` (`:181`). 적용되지 않으면 플래그가 서지 않습니다
+- **Verification**: Test
+
+#### REQ-P1A-097: Per-Stage Bypass Configuration
+
+**If** `configJsonOrNull` sets a stage's bypass key to `"true"`, the pipeline **shall** skip that stage without error and **shall not** set its flag.
+
+- **측정된 계약** (`:52-80`): 여덟 단계 각각에 bypass 키가 있습니다. 문자열 `"true"` 와의 정확한 일치로 판정합니다 — 다른 값은 bypass 하지 않습니다
+- **⚠️ 옛 `REQ-P1A-049` 와 다른 점**: 옛 문구는 *"비활성인데 캘리브 데이터가 실려 있으면 DEBUG 로그"* 를 요구했습니다. 확인하지 않았습니다 — 로깅은 이 절의 범위 밖으로 둡니다
+- **Verification**: Test
+
+#### REQ-P1A-098: Ghost Stage Handle Dependency
+
+**While** `ghostHandle` is `NULL`, the pipeline **shall** skip the ghost stage and complete the remaining stages successfully, leaving `XPE_FLAG_GHOST_CORRECTED` unset.
+
+- **측정된 계약** (`:280`): `if (!cfg.bypassGhost && ghostHandle)` — 핸들이 없으면 **조용히** 건너뜁니다
+- **⚠️ 옛 `REQ-P1A-045` 와 다른 점**: 옛 문구는 건너뛸 때 *"post a WARNING alert indicating lag artifacts may be present"* 를 요구했습니다. **파이프라인 전체에 알림 호출이 0건**입니다(`alert`·`Alert` 전수). **요구에 넣지 않았습니다** — 없는 동작을 보증하지 않기 위함입니다
+- **플래그가 안 서는 것이 유일한 신호입니다.** 호출자가 플래그를 안 보면 잔상 보정이 빠진 것을 알 수 없습니다 — 알림이 필요한지는 별건입니다
+- **Verification**: Test
+
+#### REQ-P1A-099: Ghost Stage Buffer Isolation
+
+**When** the ghost stage runs, the pipeline **shall** give `xpe_ghost_correct` its own copy of the previous stage's frame rather than the stage-6 buffer itself.
+
+- **근거** (`:292-294`, QA-A-104): 고스트 보정은 in-place 로 동작합니다. 이전에는 stage-6 을 정정하면서 **비어 있는** stage-7 버퍼를 되복사해 **출력이 0** 이었습니다. 이 복사가 그 결함의 수정이고, **요구로 고정하지 않으면 최적화로 다시 제거될 수 있습니다**
+- **Verification**: Test
+
+#### REQ-P1A-100: Pipeline Data Domain Transition
+
+**When** the pipeline runs, stages before gain correction **shall** operate on `UINT16` and stages from gain correction onward **shall** operate on `FLOAT32`; the transition **shall** occur inside the gain stage.
+
+- **측정된 계약** (`pipeline.cpp:194`·`:199`): *"This performs UINT16 → FLOAT32 domain transition"* — stage 4(gain) 에서 전이하고, 이후 stage 5·6·7 이 모두 `XPE_PIXEL_FLOAT32`(`:219`·`:262`·`:286`)
+- **옛 `REQ-P1A-043` 과의 차이**: 옛 문구는 *"stage 2(gain correction)"* 라 적었습니다. **단계 번호 체계가 달라졌을 뿐** 전이가 게인에서 일어난다는 내용은 같습니다 — 번호가 아니라 **함수 이름**으로 다시 썼습니다
+- **왜 요구로 고정하는가**: 이 전이 지점이 바뀌면 이후 모든 단계의 버퍼 형식이 바뀝니다. `REQ-P1A-080`(온도, **UINT16**)과 `REQ-P1A-087`·`090`(고스트·비닝, **FLOAT32**)이 서로 다른 형식을 요구하는 이유가 이 경계입니다
+- **Verification**: Test
+
+#### REQ-P1A-101: Defect Stage Calibration Availability
+
+**If** the defect stage is reached and no defect map is loaded, the pipeline **shall** return `XPE_ERR_CALIB_NOT_LOADED` without running that stage or any later stage.
+
+- **측정된 계약** (`pipeline.cpp:248-253`): `defectAvailable = (g_calib.defect_map != nullptr)`, 거짓이면 즉시 반환
+- **⚠️ 옛 `REQ-P1A-046` 과 두 곳이 다릅니다:**
+  - 옛 문구는 **`XPE_ERR_CALIBRATION_EXPIRED`** 를 요구했습니다. 실재는 **`XPE_ERR_CALIB_NOT_LOADED`** 입니다 — `#117` 결정 B 가 "미초기화" 와 "캘리브 미적재" 를 나눈 뒤의 코드이고, `EXPIRED`(만료)는 또 다른 상태입니다. **실재가 맞습니다**
+  - 옛 문구는 *"**각** 단계가 대응 캘리브 가용성을 확인"* 이라 적었습니다. **실재는 결함 단계 하나뿐입니다** — `available` 검사가 `pipeline.cpp` 전체에서 `:248-253` 한 곳입니다
+- **Verification**: Test
+
+> **`REQ-P1A-101` 이 덮지 않는 것 — 기록**
+>
+> 오프셋·게인 단계에는 **파이프라인 수준의 가용성 검사가 없습니다.** 그 단계들은 개별 보정 함수가 자기 안에서 `XPE_ERR_CALIB_NOT_LOADED` 를 반환하고(`REQ-P1A-020a`), 파이프라인은 그 반환을 그대로 올립니다.
+>
+> **결과는 비슷하지만 계약이 다릅니다** — 결함은 *"단계에 들어가기 전에"* 막고, 나머지는 *"함수가 거부해서"* 막힙니다. 옛 `046` 이 요구한 **균일한 단계별 검사는 구현된 적이 없고**, 이 요구는 실재하는 한 곳만 고정합니다.
+>
+> 균일하게 만들지는 별건입니다. 지금 요구로 적으면 **없는 동작을 보증**하게 됩니다.
+
+
+> **이 절의 미검증**
+>
+> - `xpe_preprocess_pipeline_ex` 와 `_batch` 는 **아직 서술하지 않았습니다.** `_ex` 는 `REQ-P1A-016a` 가 이름을 부르지만 그것은 캘리브 상태 계약이지 파이프라인 계약이 아닙니다. `_batch` 는 어떤 요구도 부르지 않습니다
+> - 옛 `043`(uint16→float32 전이 지점) `044`(비닝 비활성 시 건너뜀) `046`(단계별 캘리브 가용성 확인) `047`(단계별 플래그)은 위 요구와 겹치거나 더 구체적입니다 — **건별 대조를 하지 않았습니다**
+> - 성능 예산(옛 `050` 500ms)은 여기 넣지 않았습니다 → `#204`
+> - 로깅(옛 `049`·`068`)은 범위 밖입니다
+
 ### 4.4 Unwanted Behavior Requirements (금지 동작)
 
 #### REQ-P1A-030: No Exceptions Across C ABI
@@ -548,7 +944,27 @@ Verification:
 |----|-----------------------------------|--------------|----------|
 | 14 | `xpe_preprocess_get_param_range()` | SRS-SAFE-002 | Medium   |
 
-### 5.6 Excluded Functions (Phase 2+)
+### 5.6 Excluded Functions (Phase 2+) — **이 표는 더 이상 유효하지 않습니다** (`#211`, 2026-09-28)
+
+> **결론 먼저: 아래 일곱 함수는 이 SPEC 의 모듈에 구현돼 있고, 이 SPEC 의 파이프라인에서 실행되며, 요구는 §4.3b·§4.3c 에 있습니다.** 표가 가리키는 이관 대상은 **하나도 만들어지지 않았습니다.**
+>
+> **측정** (`#211`, QA-A-150 이 지목 → 리더 확인):
+>
+> | 이관 대상 | 실재 |
+> |---|---|
+> | `SPEC-XPE-P1C` (temp) | **없음** |
+> | `SPEC-XPE-P1D` (nonlinearity) | **없음** |
+> | `SPEC-XPE-P1E` (binning) | **없음** |
+> | `SPEC-XPE-P1B` (ghost 4종) | 존재하나 **`-DICOM`·`-DISP`·`-ENH`** 셋뿐이고, 세 문서 전부 `ghost`·`temp_compensate`·`binning`·`nonlinearity` **0건** |
+>
+> 대조군: 같은 검색이 각 SPEC 의 주제어를 잡습니다 — `DICOM` 163 · `window` 10 · `enhance` 45. **검색이 눈먼 것이 아닙니다.**
+>
+> **그래서 이 표는 "나중에 다른 SPEC 에서" 를 약속했고, 그 나중이 오지 않은 채 구현이 여기 들어왔습니다.** 일곱 함수 모두 `modules/preprocess` 에 있고 `preprocess_api.h` 에서 수출되며 `pipeline.cpp` 가 단계로 실행합니다. 요구만 없었습니다 — `#211` 이 찾은 것이 그것입니다.
+>
+> **표를 지우지 않고 남깁니다.** 어느 시점에 그 분리가 계획됐다는 사실은 기록이고, 지우면 다음 사람이 "왜 P1A 에 다 있지" 를 다시 조사합니다. 다만 **현재 상태의 서술로 읽어서는 안 됩니다.**
+>
+> **되살릴 조건**: 실제로 `P1C`~`P1E` 를 세우고 구현을 옮긴다면 그때 §4.3b 의 `REQ-P1A-080`~`091` 을 그쪽으로 이관합니다. 그 결정은 이 이슈의 범위 밖입니다.
+
 
 | Function                    | Reason                          | Target SPEC  |
 |-----------------------------|---------------------------------|--------------|
@@ -568,7 +984,29 @@ Verification:
 
 > **⚠ 출처 정정 2026-09-17 (QA-A-85).** 이 표는 `XPE-ALG-001` 을 출처로 인용했지만, **그 문서에 이 표의 수치가 없습니다** — `docs/post-processing/xpe/XPE-ALG-001_…md` 에서 `55 ms` 계열 0건, `95 ms` 계열 0건 (대조군: 같은 검색이 그 문서의 ms 값 86줄을 찾음). 오히려 ALG-001 의 `xpe_offset_correct` 주석은 `≤500ms (SRS-PERF-001)` 이고, 이 파일의 offset 목표는 `< 55ms` 입니다.
 >
-> **아래 표의 수치는 유도 근거를 찾지 못했습니다** (탐색 범위: `.moai/reports/lane-pre/`, `.moai/specs/SPEC-XPE-P1A/`, `docs/` 전체). 기계도 적혀 있지 않습니다. 성능 판정의 근거로 **인용하지 마십시오**. 런타임 검출의 현행 목표는 위 Performance 절(개발 기계 기준 60 ms)입니다. 그리고 같은 defect 연산에 목표가 **둘**입니다 — `research.md:215` 는 `< 60ms`, 이 파일과 `acceptance.md:583` 은 `< 95ms`. 어느 쪽인지 정해지지 않았습니다.
+> **아래 표의 수치는 유도 근거를 찾지 못했습니다** (탐색 범위: `.moai/reports/lane-pre/`, `.moai/specs/SPEC-XPE-P1A/`, `docs/` 전체). 기계도 적혀 있지 않습니다. 성능 판정의 근거로 **인용하지 마십시오**. 런타임 검출의 현행 목표는 위 Performance 절(개발 기계 기준 60 ms)입니다.
+>
+> **[정정 2026-09-27, #144 — 충돌은 검출이 아니라 보정에 있습니다]**
+>
+> 이 주석이 *"같은 defect 연산에 목표가 둘"* 이라고 적었는데, **두 연산을 섞었습니다.**
+> 두 수치는 서로 다른 요구에 붙어 있습니다:
+>
+> | 요구 | 연산 | `research.md` | 이 파일 · `acceptance.md` |
+> |---|---|---|---|
+> | `REQ-P1A-012` | defect **보정** (이웃 평균 / 군집 median) | `:218` **`< 60ms`** | `:177`·`:577` **`< 95ms`** ← **충돌은 여기** |
+> | `REQ-P1A-013` | 런타임 **검출** (Hampel: median + MAD) | `:224` `< 35ms` scalar / `< 12ms` AVX2 | 위 Performance 절 **60 ms** (2026-09-12 재정의) |
+>
+> **검출(013)에는 충돌이 없습니다.** 옛 `35/12 ms` 는 측정 하한(`260.3 ms` / `27.1 ms`) 아래라
+> 도달 불가여서 위 절이 대체했고, 그 재정의는 근거가 기록돼 있습니다. 현재 개발 기계에서
+> **1.1배**(CI 러너 1.6배) 남아 사실상 달성입니다.
+>
+> **충돌은 보정(012)에 있습니다 — `60` 대 `95`.** 그리고 **어느 쪽도 유도 근거가 없습니다**
+> (위 출처 정정 참조). `research.md` 쪽은 *"baseline path, bilinear"* 라 적는데 `#125` 가
+> 정정했듯 **구현에 가중치가 없습니다** — 서술부터 현재 알고리즘과 다릅니다.
+>
+> **따라서 둘 중 하나를 고르지 않습니다.** 근거 없는 수치 둘 중에서 고르는 것은 근거 없는
+> 수치를 하나 남기는 일입니다. 검출(013)을 고친 방식 그대로 — **측정 하한을 먼저 재고 그
+> 측정에서 목표를 세웁니다.** 그때까지 보정 목표는 **미정**이며 판정 근거로 쓰지 마십시오.
 
 | Algorithm          | Target     | SIMD Target (AVX2) |
 |--------------------|------------|--------------------|

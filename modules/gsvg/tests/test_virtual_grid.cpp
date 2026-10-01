@@ -28,18 +28,21 @@
 #include <string>
 #include <vector>
 
+#include "test_data_paths.h"
+
 namespace vg = xpe_gsvg_detail;
 
 namespace {
 
-constexpr const char* kTablePath = "tests/data/virtual_grid_synthetic_table.csv";
+// #229 (QA-B-163): absolute, so the cwd cannot decide whether this resolves.
+const std::string kTablePath = xpe_gsvg_test::Data("virtual_grid_synthetic_table.csv");
 constexpr int    kN = 256;
 constexpr double kPitchMm = 1.0;
 constexpr double kKvp = 80.0;
 constexpr double kI0 = 60000.0;
 constexpr double kIdealRatio = 100.0;   // tp 1, ts 0 in the synthetic table
 
-std::string ReadRaw(const char* path) {
+std::string ReadRaw(const std::string& path) {
     std::ifstream f(path, std::ios::binary);
     std::ostringstream ss;
     ss << f.rdbuf();
@@ -51,7 +54,7 @@ std::string ReadRaw(const char* path) {
 // checkout turned the CSV into CRLF and five cases silently edited nothing).
 // The parser's own CRLF handling is tested on the raw bytes
 // (GsvgVirtualGridTable.ParserReadsCrlfAndLfAlike).
-std::string ReadFile(const char* path) {
+std::string ReadFile(const std::string& path) {
     std::string s = ReadRaw(path);
     std::string out;
     out.reserve(s.size());
@@ -752,7 +755,8 @@ TEST(GsvgVirtualGridApi, InitNeedsEveryValue)
     EXPECT_EQ(xpe_gsvg_init(&h, noIter.c_str()), XPE_ERR_CONFIG_INVALID);
 
     std::string missingFile = Config();
-    missingFile.replace(missingFile.find(kTablePath), std::string(kTablePath).size(), "tests/data/no_such_table.csv");
+    missingFile.replace(missingFile.find(kTablePath), kTablePath.size(),
+                        xpe_gsvg_test::Data("no_such_table.csv"));
     EXPECT_EQ(xpe_gsvg_init(&h, missingFile.c_str()), XPE_ERR_CONFIG_INVALID);
 
     std::string both = Config(", \"grid_suppression\": true");

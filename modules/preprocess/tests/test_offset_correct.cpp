@@ -1,6 +1,6 @@
 /**
  * @file test_offset_correct.cpp
- * @brief Tests for SWU-1.1: xpe_offset_correct (REQ-P1A-009 to REQ-P1A-011)
+ * @brief Tests for SWU-1.1: xpe_offset_correct (REQ-P1A-010, REQ-P1A-021)
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  */
 

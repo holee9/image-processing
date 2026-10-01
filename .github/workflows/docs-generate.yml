@@ -69,6 +69,61 @@ jobs:
         run: docfx docs/help/docfx/docfx.json
         shell: bash
 
+      # GUI-C-169 found this job green with nothing in it: 0 API pages and a
+      # 52-byte xrefmap.yml. docfx's metadata src pointed at `../../gui`, which
+      # from docs/help/docfx/ resolves to docs/gui -- a directory that does not
+      # exist. The sibling Doxyfile at the same depth correctly uses `../../../`;
+      # only this file was short by one level. docfx finds no projects, emits
+      # nothing, and exits 0, so the job passed for as long as the path was wrong.
+      #
+      # The path is fixed. This step is the part that makes the fix hold: an
+      # empty generation is now a failure rather than a pass. The threshold is
+      # deliberately 1, not a count that tracks the project list -- this asserts
+      # "something was generated", which is the property that was silently false.
+      # Two directories, because docfx writes to two and they are configured
+      # relative to different roots:
+      #   metadata.dest = "api"               -> docs/help/docfx/api/   (.yml)
+      #   build.output  = "../generated/docfx" -> docs/help/generated/docfx/ (.html)
+      # The first says metadata ran; the second says it reached the artifact
+      # that gets uploaded and packaged. GUI-C-169 inspected the second and
+      # found it empty, so that is the one the original finding is about.
+      #
+      # The first version of this step checked for .yml under the OUTPUT dir --
+      # wrong root and wrong extension, so it failed on a run where generation
+      # had actually started working. The listing below exists because of that:
+      # when this guard fails it must say what it did see, or the next run only
+      # tells me "still wrong" again.
+      - name: Assert DocFX produced managed API pages
+        shell: pwsh
+        run: |
+          $meta = 'docs/help/docfx/api'
+          $site = 'docs/help/generated/docfx/api'
+          $metaPages = @()
+          $sitePages = @()
+          if (Test-Path -LiteralPath $meta) {
+            $metaPages = @(Get-ChildItem -LiteralPath $meta -Filter *.yml -Recurse |
+                           Where-Object { $_.Name -ne 'toc.yml' })
+          }
+          if (Test-Path -LiteralPath $site) {
+            $sitePages = @(Get-ChildItem -LiteralPath $site -Filter *.html -Recurse |
+                           Where-Object { $_.Name -ne 'toc.html' })
+          }
+          Write-Host ("metadata .yml : {0}" -f $metaPages.Count)
+          Write-Host ("rendered .html: {0}" -f $sitePages.Count)
+          if ($metaPages.Count -ge 1 -and $sitePages.Count -ge 1) { exit 0 }
+
+          Write-Host '--- what is actually on disk ---'
+          foreach ($d in @('docs/help/docfx', 'docs/help/generated/docfx')) {
+            Write-Host ("[{0}]" -f $d)
+            if (Test-Path -LiteralPath $d) {
+              Get-ChildItem -LiteralPath $d -Recurse -File |
+                Select-Object -First 40 |
+                ForEach-Object { Write-Host ("   {0}  {1} B" -f $_.FullName, $_.Length) }
+            } else { Write-Host '   (absent)' }
+          }
+          Write-Error 'docfx produced no managed API pages - a green job with no content'
+          exit 1
+
       - name: Upload DocFX artifact
         uses: actions/upload-artifact@v4
         with:

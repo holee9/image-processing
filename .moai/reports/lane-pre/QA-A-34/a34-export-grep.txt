@@ -1,0 +1,12 @@
+# 공개 export 의 정의 위치
+modules/preprocess/src/xpe_calib_mode.cpp:230:uint32_t xpe_calib_get_max_points(void) {
+modules/preprocess/src/xpe_calib_mode.cpp:242:uint32_t xpe_calib_get_poly_degree(void) {
+
+# 죽은 네임스페이스 호출자 (정의 파일 제외)
+grep_exit=1
+
+# 죽은 함수가 공개 export 를 부르는 방향 (역의존)
+230:uint32_t xpe_calib_get_max_points(void) {
+242:uint32_t xpe_calib_get_poly_degree(void) {
+317:    uint32_t max_points = xpe_calib_get_max_points();
+333:    return xpe_calib_get_poly_degree();

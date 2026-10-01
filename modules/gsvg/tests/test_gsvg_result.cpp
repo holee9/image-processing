@@ -18,12 +18,15 @@
 #include <string>
 #include <vector>
 
+#include "test_data_paths.h"
+
 using namespace gsvg_test;
 
 namespace {
 
 constexpr int kN = 512;
-constexpr const char* kTablePath = "tests/data/virtual_grid_synthetic_table.csv";
+// #229 (QA-B-163): absolute, so the cwd cannot decide whether this resolves.
+const std::string kTablePath = xpe_gsvg_test::Data("virtual_grid_synthetic_table.csv");
 
 std::vector<uint16_t> ToU16(const Image& img) {
     std::vector<uint16_t> out(img.px.size());

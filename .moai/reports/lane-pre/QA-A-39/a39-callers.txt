@@ -1,0 +1,58 @@
+./clients/ImageProcTest.IntegrationTests/PInvoke/XpePreprocessNative.cs:37:    /// xpe_calib_generate_offset(dark_frames[], num_frames, integration_ms, temperature_c, output_path).
+./modules/preprocess/include/xpe/preprocess_api.h:21: * - xpe_calib_generate_offset()
+./modules/preprocess/include/xpe/preprocess_api.h:257:XPE_API XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* dark_frames,
+./modules/preprocess/src/xpe_calib_generate_offset.cpp:90:extern "C" XPE_API XpeErrorCode xpe_calib_generate_offset(
+./modules/preprocess/tests/test_calibration_manager.cpp:91:              xpe_calib_generate_offset(nullptr, 1, 10.0f, 20.0f,
+./modules/preprocess/tests/test_calibration_manager.cpp:107:              xpe_calib_generate_offset(&frame, 0, 10.0f, 20.0f,
+./modules/preprocess/tests/test_calibration_manager.cpp:123:              xpe_calib_generate_offset(&frame, 1, 10.0f, 20.0f, nullptr, nullptr));
+./modules/preprocess/tests/test_calibration_roundtrip.cpp:14: *   - xpe_calib_generate_offset(frames, n, integration_ms, temp_c, out_path, nullptr)
+./modules/preprocess/tests/test_calibration_roundtrip.cpp:156:    ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(&frame, 1, kIntegrationMs,
+./modules/preprocess/tests/test_calibration_roundtrip.cpp:177:    ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(frames.data(), frameCount,
+./modules/preprocess/tests/test_calibration_roundtrip.cpp:199:    ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(frames, 3, kIntegrationMs,
+./modules/preprocess/tests/test_calibration_roundtrip.cpp:215:              xpe_calib_generate_offset(&frame, 0, kIntegrationMs,
+./modules/preprocess/tests/test_calibration_roundtrip.cpp:371:        ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(frames.data(), frameCount,
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:38:XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* dark_frames,
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:112:        xpe_calib_generate_offset(frames, 3, &out.buf, nullptr));
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:130:        xpe_calib_generate_offset(frames, 2, &out.buf, "{\"method\":\"mean\"}"));
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:149:        xpe_calib_generate_offset(frames, 3, &out.buf, "{\"method\":\"median\"}"));
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:169:        xpe_calib_generate_offset(frames, 4, &out.buf, "{\"method\":\"median\"}"));
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:190:        xpe_calib_generate_offset(frames, 5, &out.buf, "{\"method\":\"median\"}"));
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:215:        xpe_calib_generate_offset(bufs.data(), 21, &out.buf,
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:235:        xpe_calib_generate_offset(frames, 3, &out.buf,
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:257:        xpe_calib_generate_offset(frames, 5, &out.buf,
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:281:        xpe_calib_generate_offset(frames, 5, &out.buf,
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:308:        xpe_calib_generate_offset(frames, 5, &out.buf,
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:329:        xpe_calib_generate_offset(&f1.buf, 1, &out.buf,
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:341:        xpe_calib_generate_offset(&f1.buf, 1, &out.buf, nullptr));
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:357:        xpe_calib_generate_offset(&f1.buf, 1, &out.buf, "{\"method\":\"median\"}"));
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:384:        xpe_calib_generate_offset(frames, 5, &out.buf, "{\"method\":\"median\"}"));
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:407:        xpe_calib_generate_offset(bufs.data(), 21, &out.buf,
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:441:        xpe_calib_generate_offset(frames, 4, &out.buf,
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:468:            xpe_calib_generate_offset(frames, 2, &out.buf, config));
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:490:        xpe_calib_generate_offset(frames, 3, &out.buf,
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:509:        xpe_calib_generate_offset(frames, 3, &out.buf,
+./modules/preprocess/tests/test_calib_generate_offset_multi.cpp:536:        xpe_calib_generate_offset(bufs.data(), kFrameCount, &out.buf,
+./modules/preprocess/tests/test_error_precedence.cpp:109:        return xpe_calib_generate_offset(nullptr, 1, 100.0f, 25.0f, "a14_probe.xcal", nullptr);
+./modules/preprocess/tests/test_error_precedence.cpp:113:        return xpe_calib_generate_offset(&f.buf, 1, 100.0f, 25.0f, nullptr, nullptr);
+./modules/preprocess/tests/test_sigma_clip_nmin.cpp:263:    ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(
+./modules/preprocess/tests/test_xpe_calib_generate_offset.cpp:77:    XpeErrorCode rc = xpe_calib_generate_offset(&f.buf, 1, 10.0f, 25.0f, out_path, nullptr);
+./modules/preprocess/tests/test_xpe_calib_generate_offset.cpp:100:    ASSERT_EQ(xpe_calib_generate_offset(frames, 2, 10.0f, 25.0f, out_path, nullptr), XPE_OK);
+./modules/preprocess/tests/test_xpe_calib_generate_offset.cpp:123:    ASSERT_EQ(xpe_calib_generate_offset(frames, 3, 10.0f, 25.0f, out_path, nullptr), XPE_OK);
+./modules/preprocess/tests/test_xpe_calib_generate_offset.cpp:143:    ASSERT_EQ(xpe_calib_generate_offset(&f.buf, 1, 0.0f, 0.0f, out_path, nullptr), XPE_OK);
+./modules/preprocess/tests/test_xpe_calib_generate_offset.cpp:156:    EXPECT_EQ(xpe_calib_generate_offset(nullptr, 1, 0.0f, 0.0f, out_path, nullptr),
+./modules/preprocess/tests/test_xpe_calib_generate_offset.cpp:165:    EXPECT_EQ(xpe_calib_generate_offset(&f.buf, 1, 0.0f, 0.0f, nullptr, nullptr),
+./modules/preprocess/tests/test_xpe_calib_generate_offset.cpp:174:    EXPECT_EQ(xpe_calib_generate_offset(&f.buf, 0, 0.0f, 0.0f, out_path, nullptr),
+./modules/preprocess/tests/test_xpe_calib_generate_offset.cpp:183:    EXPECT_EQ(xpe_calib_generate_offset(&f.buf, -5, 0.0f, 0.0f, out_path, nullptr),
+./modules/preprocess/tests/test_xpe_calib_generate_offset.cpp:195:    EXPECT_EQ(xpe_calib_generate_offset(frames, 2, 0.0f, 0.0f, out_path, nullptr),
+./modules/preprocess/tests/test_xpe_calib_generate_offset.cpp:212:    EXPECT_EQ(xpe_calib_generate_offset(&buf, 1, 0.0f, 0.0f, out_path, nullptr),
+./modules/preprocess/tests/test_xpe_calib_generate_offset.cpp:221:    ASSERT_EQ(xpe_calib_generate_offset(&f.buf, 1, 0.0f, 0.0f, out_path, nullptr), XPE_OK);
+./modules/preprocess/tests/test_xpe_calib_generate_offset.cpp:236:    ASSERT_EQ(xpe_calib_generate_offset(&f.buf, 1, 0.0f, 0.0f, out_path, nullptr), XPE_OK);
+./modules/preprocess/tests/test_xpe_preprocess.cpp:1166:    XpeErrorCode result = xpe_calib_generate_offset(
+./modules/preprocess/tests/test_xpe_preprocess.cpp:1196:    XpeErrorCode result = xpe_calib_generate_offset(
+./modules/preprocess/tests/test_xpe_preprocess.cpp:1221:    XpeErrorCode result = xpe_calib_generate_offset(
+./modules/preprocess/tests/test_xpe_preprocess_calibration.cpp:259:    XpeErrorCode result = xpe_calib_generate_offset(
+./modules/preprocess/tests/test_xpe_preprocess_calibration.cpp:290:    XpeErrorCode result = xpe_calib_generate_offset(
+./modules/preprocess/tests/test_xpe_preprocess_calibration.cpp:313:    XpeErrorCode result = xpe_calib_generate_offset(
+./modules/preprocess/tests/test_xpe_preprocess_calibration.cpp:336:    XpeErrorCode result = xpe_calib_generate_offset(
+./modules/preprocess/tests/test_xpe_preprocess_calibration.cpp:363:    XpeErrorCode result = xpe_calib_generate_offset(
+./modules/preprocess/tools/xpe_calib_fixture_gen.cpp:310:        if (xpe_calib_generate_offset(bufs.data(), static_cast<int32_t>(bufs.size()),

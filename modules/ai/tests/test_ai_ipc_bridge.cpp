@@ -50,7 +50,7 @@ XpeErrorCode xpe_ai_ipc_bridge_connect(XpeAiIpcBridge* bridge);
  * @brief Send a message to the worker.
  *
  * @param bridge Bridge instance.
- * @param header Message header (32 bytes).
+ * @param header Message header (40 bytes).
  * @param payload JSON payload (can be NULL for zero-length messages).
  * @param payload_size Size of payload in bytes.
  * @return XPE_OK on success, error code on failure.
@@ -64,7 +64,7 @@ XpeErrorCode xpe_ai_ipc_bridge_send(XpeAiIpcBridge* bridge,
  * @brief Receive a message from the worker.
  *
  * @param bridge Bridge instance.
- * @param header_out Output buffer for message header (32 bytes).
+ * @param header_out Output buffer for message header (40 bytes).
  * @param payload_out Output buffer for JSON payload (caller-allocated).
  * @param payload_size Size of payload_out buffer.
  * @param bytes_received Output: actual bytes received (including header).
@@ -247,7 +247,11 @@ TEST_F(AiIpcBridgeTest, Send_PayloadSizeExceedsMaximum_ReturnsInvalidInput) {
 }
 
 // ============================================================================
-// Test Cases: Timeout Handling (REQ-AI-009)
+// Test Cases: Timeout Handling (REQ-AI-092; was AI requirement 009, a number
+// SPEC-XPE-P3-AI does not define -- #210, QA-B-157). These assert the
+// named-pipe connect/receive timeout, NOT an inference time budget: the
+// bridge is never wired into the inference path, so nothing here shows
+// REQ-AI-092 being enforced end to end.
 // ============================================================================
 
 /**

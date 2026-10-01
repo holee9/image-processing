@@ -1,0 +1,18 @@
+files calling xpe_defect_detect_runtime, and any multi-frame loop / inject / 'frames' / TPR text in each (count of matching lines):
+test_defect_correct.cpp                              loops:0 inject:1 tpr:0 frames-word:0
+test_runtime_detection_avx2_parity.cpp               loops:0 inject:0 tpr:0 frames-word:1
+test_runtime_detection_buffer_reuse.cpp              loops:0 inject:2 tpr:0 frames-word:0
+test_runtime_detection_determinism.cpp               loops:0 inject:0 tpr:1 frames-word:0
+test_runtime_detection_errors.cpp                    loops:0 inject:0 tpr:0 frames-word:0
+test_runtime_detection_functional.cpp                loops:0 inject:18 tpr:0 frames-word:0
+test_runtime_detection_performance_gate.cpp          loops:3 inject:3 tpr:1 frames-word:0
+test_runtime_detection_rates.cpp                     loops:0 inject:15 tpr:37 frames-word:8
+test_temp_nonlinearity_binning.cpp                   loops:0 inject:0 tpr:0 frames-word:0
+test_xpe_preprocess.cpp                              loops:0 inject:0 tpr:0 frames-word:14
+test_zz_a161_probe.cpp                               loops:0 inject:3 tpr:41 frames-word:9
+test_zz_a172_path.cpp                                loops:1 inject:0 tpr:0 frames-word:2
+test_zz_a173_gate.cpp                                loops:0 inject:3 tpr:0 frames-word:8
+test_zz_a174_floor.cpp                               loops:0 inject:0 tpr:0 frames-word:0
+
+control: same grep on the file known to inject (rates):
+14

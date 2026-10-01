@@ -1,0 +1,7 @@
+ modules/preprocess/src/pipeline.cpp                |  19 ++-
+ modules/preprocess/src/runtime_detection.cpp       |  78 +++-------
+ modules/preprocess/src/xpe_calib_mode.cpp          | 163 ++-------------------
+ modules/preprocess/tests/test_calib_mode.cpp       |  95 +++---------
+ modules/preprocess/tests/test_pipeline_stages.cpp  |  37 +++--
+ .../tests/test_runtime_detection_functional.cpp    |   7 +-
+ 6 files changed, 92 insertions(+), 307 deletions(-)

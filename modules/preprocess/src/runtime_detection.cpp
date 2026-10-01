@@ -111,15 +111,16 @@ XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* img,
     // threshold to be set from outside, so the parsers were removed rather than
     // wired up. Callers that need other values use the internal
     // DetectDefectivePixel(img, x, y, config) directly.
-    RuntimeDetectionConfig config = RuntimeDetection_DefaultConfig();
-
-    // QA-A-43 (#143): the floor is frame-wide, so it is computed here -- this is
-    // the only layer that sees the whole frame. RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR
-    // names the fraction; the rationale lives on that constant.
-    const float sigmaGlobal = xpe::preprocess::internal::ComputeGlobalSigma(img);
-    config.globalSigmaFloor = RUNTIME_DETECTION_GLOBAL_SIGMA_FLOOR * sigmaGlobal;
-    // QA-A-46 (#143): the ceiling shares that one measurement -- no second pass.
-    config.globalSigmaCap = RUNTIME_DETECTION_GLOBAL_SIGMA_CAP * sigmaGlobal;
+    //
+    // QA-A-164 (#143): the frame-dependent part -- the per-tile sigma table and
+    // the blend weight that reads it -- is built by BuildFrameConfig so this
+    // path and the parity tests cannot hold different copies of the rule. The
+    // measurements behind the tile size and the weight are on
+    // RUNTIME_DETECTION_TILE_SIZE and RUNTIME_DETECTION_BLEND_WEIGHT; the frame
+    // sigma that used to be computed here has no reader left under that rule.
+    std::vector<float> tileSigmas;
+    RuntimeDetectionConfig config =
+        xpe::preprocess::internal::BuildFrameConfig(img, tileSigmas);
 
     // Validate configuration
     XpeErrorCode err = ValidateConfig(config);

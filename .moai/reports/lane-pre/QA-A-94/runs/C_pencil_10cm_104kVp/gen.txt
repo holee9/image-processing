@@ -1,0 +1,1 @@
+wrote /root/mcsim/runs/C_pencil_10cm_104kVp  mean=50.04 keV  HVL1=3.614 mm Al  dropped<5keV=0.000e+00  aperture=0.0000 deg

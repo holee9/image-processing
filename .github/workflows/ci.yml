@@ -323,15 +323,38 @@ jobs:
       #
       # cwd is modules/gsvg because gsvg_tests reads its phantoms by relative path; the
       # other binaries were measured to be cwd-independent under that setting (QA-B-140).
-      # ONE glob only — listing *.exe alongside test_*/`*_tests` visits the same file twice
-      # on Windows and inflated a 12-binary count to 22 during that card.
+      #
+      # #205 (2026-09-27): the binary list comes from CTEST, not from a glob. It used to be
+      # `Get-ChildItem -Filter *.exe` over build/ci-post/bin, which assumes every executable
+      # in that directory is a gtest binary. Turning on BUILD_AI put `xpe_ai_worker.exe`
+      # there — an IPC worker, not a test — and this step ran it and reported
+      # "no gtest summary line - the run did not complete". The glob could not tell a test
+      # from a program that merely sits next to one. ctest's own registry can: each
+      # registered test names the binary it runs, so a non-test executable is absent by
+      # construction and a renamed test binary cannot silently drop out of the list.
+      # (This also retires the earlier double-listing hazard the one-glob rule worked
+      # around — `Sort-Object -Unique` on the path is what dedupes now.)
+      # `working-directory: modules/gsvg` was removed 2026-09-30 (#229). It was
+      # holding up 13 cwd-dependent test paths in gsvg -- not by design, by
+      # accident: the step skips the ctest layer on purpose (to see order
+      # dependence), and skipping ctest also removes the WORKING_DIRECTORY it
+      # would have set. gsvg happened to be the one directory where those
+      # relative paths resolved; modules/ai's did not, which is how #130 found
+      # the class. QA-B-162 and QA-B-163 pinned every path with a compile-time
+      # macro guarded by #error, so no binary here reads a relative path now.
+      # Checked before removing: enhance_basic, enhance_advanced and display
+      # have zero relative data paths in their tests, so the line held up gsvg
+      # alone.
       - name: Run post test binaries as one process each (#162)
         shell: pwsh
-        working-directory: modules/gsvg
         run: |
           $binDir = Join-Path $env:GITHUB_WORKSPACE 'build/ci-post/bin'
-          $exes = @(Get-ChildItem -Path $binDir -Recurse -Filter *.exe -File)
-          if ($exes.Count -eq 0) { Write-Error "no test binaries under $binDir - cannot run the single-process check"; exit 1 }
+          $reg = ctest --test-dir "$env:GITHUB_WORKSPACE/build/ci-post" --build-config RelWithDebInfo --show-only=json-v1 | Out-String | ConvertFrom-Json
+          $paths = @($reg.tests | ForEach-Object { $_.command[0] } | Sort-Object -Unique)
+          $exes = @($paths | Where-Object { Test-Path $_ } | ForEach-Object { Get-Item $_ })
+          if ($exes.Count -eq 0) { Write-Error "ctest registered no test binaries under $binDir - cannot run the single-process check"; exit 1 }
+          if ($exes.Count -ne $paths.Count) { Write-Error ("ctest names {0} test binaries but only {1} exist on disk - the build and the registry disagree" -f $paths.Count, $exes.Count); exit 1 }
+          Write-Host ("single-process check will run {0} test binary(ies) named by ctest" -f $exes.Count)
           # Same exclusion as the ctest step above, for the same reason: these measure the
           # machine, not the code, and timing regressions are the benchmark workflow's gate.
           # Keep in sync with the ctest -E regex and XpeCoverage.cmake. Omitting it made this
@@ -374,6 +397,89 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
           path: build/ci-post/bin/
+
+  # ONNX Runtime inference gate (#130, QA-B-160).
+  #
+  # WHY THIS IS ITS OWN JOB AND NOT A FLAG ON post-build.
+  # ci-post leaves XPE_AI_USE_ONNXRUNTIME off, so modules/ai builds as a stub
+  # and QA-B-160's five inference assertions call GTEST_SKIP. ctest counts a
+  # skip as a pass, which is exactly the shape of #205: a suite cited as green
+  # that never ran the thing it is named for. Turning ci-post itself into a
+  # full build would make an 82 MB download a precondition for every Lane B
+  # test, so a failed fetch would redden work that has nothing to do with AI.
+  # A separate job keeps that blast radius here.
+  #
+  # XPE_AI_EXPECT_ONNX=1 is the guard QA-B-160 added: with it set, a stub build
+  # FAILS instead of skipping. Measured both ways before landing --
+  # stub+expect = red, full+expect = green, stub+no-expect = green (control).
+  # Without that variable this job could pass while linking nothing.
+  ai-onnx:
+    needs: detect-lane
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
+    runs-on: windows-2025
+    timeout-minutes: 30
+
+    env:
+      ORT_VERSION: 1.30.0
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Ensure Ninja is available
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {
+            choco install ninja -y --no-progress
+          }
+          ninja --version
+
+      - name: Configure MSVC developer environment
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File ./tools/ci/Use-MsvcDevShell.ps1 -PersistForGitHubActions
+
+      # Keyed on the version so a bump re-downloads and a re-run does not.
+      # Measured payload: 82,645,522 B (QA-B-160).
+      - name: Cache ONNX Runtime
+        id: ort-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/_deps/onnxruntime-win-x64-${{ env.ORT_VERSION }}
+          key: ort-win-x64-${{ env.ORT_VERSION }}
+
+      - name: Fetch ONNX Runtime
+        if: steps.ort-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $v = $env:ORT_VERSION
+          $url = "https://github.com/microsoft/onnxruntime/releases/download/v$v/onnxruntime-win-x64-$v.zip"
+          $zip = Join-Path $env:RUNNER_TEMP "ort.zip"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          $deps = Join-Path $env:GITHUB_WORKSPACE "_deps"
+          New-Item -ItemType Directory -Force -Path $deps | Out-Null
+          Expand-Archive -Path $zip -DestinationPath $deps -Force
+          Get-ChildItem $deps
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          $ort = Join-Path $env:GITHUB_WORKSPACE "_deps/onnxruntime-win-x64-$env:ORT_VERSION"
+          if (-not (Test-Path (Join-Path $ort 'lib/onnxruntime.lib'))) {
+            throw "onnxruntime.lib not found under $ort -- layout changed, see QA-B-160"
+          }
+          cmake --preset ci-ai "-DONNXRUNTIME_ROOT=$ort"
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build --preset ci-ai --parallel
+
+      # XPE_AI_EXPECT_ONNX=1 turns "skipped because this is a stub" into a
+      # failure. A green here therefore means the inference path ran.
+      - name: Run AI tests (a stub build fails here, it does not skip)
+        shell: pwsh
+        env:
+          XPE_AI_EXPECT_ONNX: '1'
+        run: ctest --test-dir build/ci-ai --build-config RelWithDebInfo --output-on-failure
 
   dotnet-tests:
     needs: [detect-lane, common-build, preprocess-tests, post-build]
@@ -446,6 +552,61 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
           path: build/dotnet-test-results/
+
+  # GUI shell contract runners (#227).
+  #
+  # WHY THIS JOB EXISTS. `gui/ImageProcTest.E2E` and `gui/ImageProcTest.SelfCheck`
+  # are built by the solution but were executed by NO workflow. #228 is what that
+  # costs: the E2E runner asserted a constant window title, HAZ-GUI-005 (#175)
+  # made the title dynamic so an operator cannot miss a mock backend, and the
+  # runner sat broken for TWELVE DAYS because nothing ran it. Two more of its
+  # assertions had gone stale the same way (menu items #225 enabled, a panel
+  # toggle #165 removed) and were only found once the first one was fixed.
+  #
+  # WHY IT IS NOT REDUNDANT. Measured before adding: these runners assert the
+  # XAML shell contract -- six canonical top-level menu groups, command bindings
+  # present, specific items still disabled -- and no suite that CI runs asserts
+  # any of it. `gui-automation` produces DisabledFutureCommandCount but nothing
+  # asserts it; the clients E2E suite drives the app through UIA and checks
+  # behaviour, not shell structure.
+  #
+  # Both runners resolve paths by walking up to the repository root, so they run
+  # only where a checkout exists -- which is true here and is exactly why they
+  # are a CI job rather than a shipped operator feature.
+  gui-shell-runners:
+    needs: detect-lane
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
+    runs-on: windows-2025
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build operator app and runners
+        shell: pwsh
+        run: |
+          dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug
+          dotnet build gui/ImageProcTest.SelfCheck/ImageProcTest.SelfCheck.csproj -c Debug
+          dotnet build gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj -c Debug
+
+      # SelfCheck first: the E2E runner shells out to it, so a SelfCheck failure
+      # would otherwise surface as an E2E failure with the wrong cause attached.
+      - name: Run SelfCheck
+        shell: pwsh
+        run: dotnet run --project gui/ImageProcTest.SelfCheck/ImageProcTest.SelfCheck.csproj -c Debug --no-build
+
+      # Creates its own MainWindow in-process (Program.cs:16-74) rather than
+      # searching the desktop, so it needs no interactive session and cannot
+      # attach to a stray window.
+      - name: Run GUI shell E2E
+        shell: pwsh
+        run: dotnet run --project gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj -c Debug --no-build
 
   gui-automation:
     # WPF automation run of the operator app (gui/ImageProcTest) on a hosted
@@ -558,7 +719,22 @@ jobs:
     # S-05 demands a real semver and fails if the app silently fell back to Mock.
     needs: [detect-lane, common-build, preprocess-tests, post-build]
     runs-on: windows-2025
-    timeout-minutes: 20
+    # 20 -> 30 (2026-09-30). Measured on main, same job, three consecutive runs:
+    # 18 min, 19 min, then 20:14 -- cancelled exactly at the 20-minute limit
+    # during "Run FlaUI E2E smoke (Native)". Ten other jobs were green in that
+    # run, so this is the suite outgrowing its budget, not a hang.
+    #
+    # This is a BUDGET change, not a fix, and it is deliberately not treated as
+    # one: raising a limit to clear a red light is how a real slowdown gets
+    # hidden. What the 18 -> 20 trend cannot tell apart is content growth
+    # (GUI-C-159 added ~5 s per automation run; C-160/161 added scenarios) from
+    # runner variance -- this repository has measured the same runner swinging
+    # 1.5x in a week. GUI-C-164 is dispatched to measure per-scenario duration
+    # so the next budget number is derived rather than guessed.
+    #
+    # 30 matches the peer jobs (preprocess-tests, ai-onnx, dotnet-tests) and
+    # restores roughly 50% headroom over the last observed 20 min.
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -571,6 +747,27 @@ jobs:
       - name: Build gui app
         shell: pwsh
         run: dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug
+
+      # A04/A05/A06 drive the two console runners THROUGH the app and assert it
+      # reports their verdict. This job built only the app, so all three landed
+      # as NotExecuted on every run -- and the skip guard then failed the job
+      # for an unexplained skip, which is how the gap surfaced at all.
+      #
+      # The alternative was an allow-list row saying "the runners are absent
+      # here". That is the #205 shape: three scenarios permanently accounted
+      # for and never run anywhere, because gui-shell-runners exercises the
+      # runners standalone and never through the app. Building them is the only
+      # option under which the scenarios produce a verdict.
+      #
+      # Whether building is SUFFICIENT is not established -- the app resolves
+      # the runners by path, and if it does not find them here the three skip
+      # again, with a reason that says why. GUI-C-165 is asked that question;
+      # this run is the measurement.
+      - name: Build the console runners the app drives
+        shell: pwsh
+        run: |
+          dotnet build gui/ImageProcTest.SelfCheck/ImageProcTest.SelfCheck.csproj -c Debug
+          dotnet build gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj -c Debug
 
       - name: Stage native DLLs into a locator-only directory
         uses: actions/download-artifact@v6
@@ -761,6 +958,51 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
           path: build/e2e-native-results/
+
+  doxygen-headers:
+    # QA-A-170: `Documentation Generation` caught a real header-doc regression
+    # and stayed red for five runs because it triggers only on push to main --
+    # after the merge -- and nothing reads its conclusion. The check itself was
+    # fine; its placement was not. This job runs the identical command on the
+    # lane branches and on every PR, so the lane sees it before the merge.
+    #
+    # It does NOT replace tools/docs/check_header_docs.py (#159). That script
+    # reported "20 headers, 0 findings, EXIT=0" on the same broken tree: its
+    # declaration regex matches only `XPE_API xpe_*`, so the four inline
+    # `xpe::preprocess::internal` functions were invisible, and it models
+    # neither missing @return nor comment-block adjacency. Widening it would
+    # still miss both of those -- which is why the gate is doxygen itself.
+    #
+    # Steps are copied verbatim from docs-generate.yml rather than simplified:
+    # a different invocation would produce a different verdict, and the point
+    # is that this job and that workflow agree. The awesome-css clone is not
+    # decoration -- HTML_EXTRA_STYLESHEET points into it, and a missing file
+    # is a warning, which WARN_AS_ERROR=FAIL_ON_WARNINGS turns into a failure.
+    name: Header docs (doxygen)
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Doxygen
+        uses: ssciwr/doxygen-install@v2
+        with:
+          version: "1.12.0"
+
+      - name: Clone doxygen-awesome-css
+        run: |
+          git clone --depth 1 https://github.com/jothepro/doxygen-awesome-css.git docs/help/doxygen/doxygen-awesome
+        shell: bash
+
+      - name: Create Doxygen output directory
+        run: mkdir -p docs/help/generated/doxygen
+        shell: bash
+
+      - name: Generate Doxygen documentation
+        run: doxygen Doxyfile
+        working-directory: docs/help/doxygen
+        shell: bash
 
   coverage:
     # Dispatch-only and self-contained (own configure/build). Not gated on the

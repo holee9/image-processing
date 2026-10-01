@@ -9,17 +9,17 @@ worktree D:/workspace-github/xpe-gui, branch dev/gui
 
 [2] neither launches ImageProcTest.exe
     E2E/Program.cs — what it starts and what it news up:
-      
+
       static void RunSelfCheck()
       {
           var repoRoot = FindRepoRoot(AppContext.BaseDirectory);
           var selfCheckExe = Path.Combine(repoRoot, "gui", "ImageProcTest.SelfCheck", "bin", "Debug", "net8.0-windows", "ImageProcTest.SelfCheck.exe");
           Assert(File.Exists(selfCheckExe), $"Self-check exe not found: {selfCheckExe}");
-      
+
           using var process = Process.Start(new ProcessStartInfo
           {
           };
-      
+
           var window = new MainWindow();
           try
     grep for the app exe in both runners:
@@ -33,7 +33,7 @@ worktree D:/workspace-github/xpe-gui, branch dev/gui
 [4] the marker that already exists, and why IsAutomationMode is not enough
         public bool IsAutomationMode =>
             !string.IsNullOrWhiteSpace(RawPath) && !string.IsNullOrWhiteSpace(ReportPath);
-    
+
             startInfo.ArgumentList.Add("--automation-backend");
             startInfo.ArgumentList.Add(BackendMode);
     -> the fixture always passes --automation-backend, but not --automation-report,

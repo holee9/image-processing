@@ -553,6 +553,18 @@ Per `SPEC-XPE-P1B-DISP v1.0.0 Section 1.2`:
 
 > LUT Manager (SWU-3.4: preset CRUD, auto-select) — deferred to separate SPEC or P1B-DISP iteration 2
 
+**Tracking item: `#215`.** Until this line existed, the deferral was stated in
+many documents and pointed at nothing — `SPEC-XPE-P1B-DISP` defers it to a
+"future SPEC" that does not exist in `.moai/specs/`. Deferral and loss are
+distinguished only by a tracking item, and `#215` is now it. The same shape has
+already cost this repository once: `SPEC-XPE-P1A §5.6` excluded seven functions
+into `P1B`~`P1E`, three of those SPECs never existed, and the implementation
+arrived in the `P1A` module unrequirement-ed (`#211`).
+
+Note that SWU-3.4 is **not** cancelled: `SPEC-XPE-MASTER/spec.md:324` still
+carries `P1b-08 LUT Manager (preset CRUD + auto-select)` as **Must**. What is
+deferred is when, not whether.
+
 Documents that reference SWU-3.4 (and are therefore ahead of implementation):
 - `docs/display/README.md` — references LUT Manager API and factory presets
 - `docs/display/xpe-display-prd.md` — Section 6 describes full LUT Manager

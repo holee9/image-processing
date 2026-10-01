@@ -8,15 +8,20 @@
  *
  * REQ-AI-003: Worker-isolated architecture (IPC via named pipe).
  * REQ-AI-004: Sidecar metadata delivery (not mutating XpeImageMetadata).
- * REQ-AI-009: Time budget enforcement (inference timeout).
+ * REQ-AI-092: Time budget enforcement (inference timeout).
+ *   Was AI requirement 009, which SPEC-XPE-P3-AI does not define (#210,
+ *   QA-B-157).
+ *   Only part of REQ-AI-092 is implemented; the accounting is in
+ *   src/ai_ipc_bridge.cpp's header comment.
  *
  * Pipe naming convention:
- *   Windows: \\.\pipe\xpe_ai_worker_{PID}
+ *   Windows: `\\.\pipe\xpe_ai_worker_{PID}`
  *   The PID suffix ensures uniqueness when multiple XPE host processes run.
  *
  * Wire format:
- *   All messages are little-endian. The envelope is fixed-size (32 bytes)
- *   followed by a variable-length JSON payload.
+ *   All messages are little-endian. The envelope is fixed-size (40 bytes:
+ *   six uint32 fields, a uint64 timestamp and 8 reserved bytes -- pinned by
+ *   the static_assert below) followed by a variable-length JSON payload.
  *
  * @ingroup xpe_ai
  */
@@ -33,8 +38,9 @@ extern "C" {
  * Protocol Version
  * -------------------------------------------------------------------------- */
 
-/** Major.minor protocol version for DLL-worker compatibility check. */
+/** Major protocol version; the worker rejects a header whose major differs. */
 #define XPE_AI_PROTOCOL_VERSION_MAJOR  1
+/** Minor protocol version; carried in the header, not compared by the worker. */
 #define XPE_AI_PROTOCOL_VERSION_MINOR  0
 
 /* ==========================================================================
@@ -60,7 +66,7 @@ extern "C" {
 #define XPE_AI_MAX_BODYPART_LEN    64
 
 /* ==========================================================================
- * Message Envelope (fixed 32-byte header)
+ * Message Envelope (fixed 40-byte header)
  * -------------------------------------------------------------------------- */
 
 #pragma pack(push, 8)
@@ -83,6 +89,16 @@ typedef struct XpeAiMessageHeader {
 } XpeAiMessageHeader;
 
 #pragma pack(pop)
+
+/* This header said "32 bytes" in two places while sizeof was 40 (QA-B-169
+ * measured it): six uint32 (24) + uint64 timestamp (8) + reserved[8] (8).
+ * A comment that is wrong about the wire format misleads every reader and
+ * fails no build, so the number is pinned here instead. */
+#ifdef __cplusplus
+static_assert(sizeof(XpeAiMessageHeader) == 40, "XpeAiMessageHeader wire size changed");
+#else
+_Static_assert(sizeof(XpeAiMessageHeader) == 40, "XpeAiMessageHeader wire size changed");
+#endif
 
 /** Magic number for protocol validation. */
 #define XPE_AI_MSG_MAGIC  0x58504541u
@@ -205,6 +221,34 @@ typedef enum XpeAiExecutionProvider {
  *   "error_message": "ONNX session creation failed",
  *   "fallback_recommended": true
  * }
+ *
+ * Binary payload layout (QA-B-170). A message that carries an image sets
+ * XPE_AI_FLAG_HAS_BINARY_PAYLOAD, and its payload (payloadSize bytes in total)
+ * is:
+ *
+ *     uint32 little-endian  jsonSize
+ *     jsonSize bytes        JSON metadata
+ *     the rest              raw pixels, row-major, no padding
+ *
+ * The length prefix exists because the JSON has no terminator the reader can
+ * trust once binary bytes follow it.
+ *
+ * Bone suppress request (type BONE_SUPPRESS, binary):
+ *   JSON  {"width": 3, "height": 3, "format": "float32"}
+ *   pixels width*height float32 -- the binary part must be EXACTLY that long
+ *
+ * Bone suppress response (type BONE_SUPPRESS_RESP, binary):
+ *   JSON  {"success": true, "width": 3, "height": 3, "format": "float32"}
+ *   pixels width*height float32 -- the soft-tissue image
+ *
+ * A failed request gets XPE_AI_MSG_ERROR (no binary payload), whose error_code
+ * is the same XPE_ERR_* the in-process xpe_bone_suppress returns for the same
+ * fault: not found IO_FAILED, unloadable CONFIG_INVALID, and so on. The model
+ * is <model_dir from INIT>/bone_suppress.onnx, resolved as ai.cpp does.
+ *
+ * INIT response extension: worker_version, mode ("stub" or "full") and
+ * capabilities. capabilities is 1 when a real model serves BONE_SUPPRESS and 0
+ * when none does; a stub worker reports 0 because it cannot run one.
  *
  * Model card response payload (JSON, REQ-AI-010/011):
  * {

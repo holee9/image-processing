@@ -1473,6 +1473,20 @@ Grid_abnormal:
 
 각 데이터셋 실행 후 생성되는 E2E 보고서:
 
+> **⚠️ 이 예시 레코드는 정의식·요구와 어긋납니다 (`#218`, 2026-09-28 표시).**
+> 값은 고치지 않고 표시만 합니다 — 어느 쪽이 의도였는지 원천에 없기 때문입니다.
+> 스키마(어떤 키가 나오는가)는 유효하고, **값과 주석의 합격선은 인용하지 마십시오.**
+>
+> | 어긋남 | 이 예시 | 정본 |
+> |---|---|---|
+> | `FlatResidualPct` ↔ `PRNU_CV` 배율 | `0.8` 과 `0.035` | `Preprocessing-E2E-Automated-Evaluation-Protocol.md:218-219` — `FlatResidualPct = 100 × PRNU_CV`. `100 × 0.035 = 3.5` 이지 `0.8` 이 아닙니다. 둘 중 하나가 틀렸습니다 |
+> | `PRNU_CV` 단위 | 주석 `< 5% 합격` | 프로토콜의 `PRNU_CV = std/mean` 은 **분수**입니다. 퍼센트 합격선을 분수에 걸면 100배 느슨해집니다 |
+> | `DefectRecall` 합격선 | 주석 `> 95%`, 값 `0.96` | `SRS-CALIB-001` §FUNC-019 — *"Synthetic BPM oracle cases shall require **100% defect recall**"*. `0.96` 은 요구 불합격입니다 |
+> | `DefectFPR` 합격선 | 주석 `< 1%`, 값 `0.008` | 같은 요구 — *"false-positive rate below **0.001%**"*. 주석이 1000배 느슨합니다 |
+>
+> 따라서 이 레코드의 `"verdict": "PASS"` 는 요구 기준으로는 **PASS 가 아닙니다.**
+> 구현이 참조할 정의식은 `Preprocessing-E2E-…-Protocol.md` §5.3, 합격선은 `SRS-CALIB-001` 입니다.
+
 ```json
 {
   "dataset_id": "caldata_6_mc_multistep",

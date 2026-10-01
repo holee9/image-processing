@@ -217,10 +217,31 @@ Covers static BPM + runtime detection. State-of-the-art 2022-2026:
 Pixel-accuracy targets for REQ-P1A-012:
 - Defect-pixel correction rate (recall): >= 99% for isolated defects in BPM
 - Artifact suppression: zero new edges introduced at defect sites (gradient check at defect boundary)
-- Processing time (baseline path, bilinear): < 60ms for 3072x3072 with typical 0.1% defect density
+- Processing time: **see `spec.md` §REQ-P1A-012 Performance** — 재정의됨 (2026-09-27, `#204`). 이전 줄은 `(baseline path, bilinear): < 60ms for 3072x3072 with typical 0.1% defect density` 였고, **두 곳이 틀렸습니다**: `bilinear` 는 구현된 적 없는 알고리즘이며(`#125` 정정 — 유효 4근방 **비가중** 평균), `60ms` 는 유도 근거가 없었습니다. 현행 목표는 측정 하한에서 유도한 `< 45ms` 이고 근거는 `spec.md` 에 있습니다 — **여기서 수치를 인용하지 마십시오.**
 
 Pixel-accuracy targets for REQ-P1A-013 (Runtime):
-- True-positive rate (TPR) on injected 5-sigma transients: >= 99.9%
+- True-positive rate (TPR) on injected **10-sigma** transients: >= 99.9%
+    - **Amended 2026-09-29 (`#143`).** This line used to say *5-sigma*, which is the same
+      number as the detector threshold `lambda = 5.0` in Algorithm step 4. A transient whose
+      amplitude equals the threshold sits exactly on the decision boundary, so the neighbour
+      median's own noise splits it roughly in half -- **0.5 by construction, not by
+      implementation quality.** `QA-A-161` proved this mechanically: an ORACLE detector given
+      each pixel's TRUE local sigma (estimation error exactly zero) still measured
+      **TPR@5-sigma = 0.5088**. No sigma-estimation improvement can reach 0.999 there.
+    - Informative, same measurement, shipping algorithm: TPR **0.5536** @5-sigma,
+      **0.71** @6-sigma, **0.96** @8-sigma, **0.9865** @10-sigma.
+    - **The shipping algorithm does NOT meet the amended requirement either** (0.9865 < 0.999).
+      Corrected 2026-09-29 by `QA-A-162`. The 0.9990 quoted when this amendment was first
+      written came from `#143`'s issue body, which predates `QA-A-43`'s global sigma floor.
+      `test_runtime_detection_rates.cpp:279` records the transition in place --
+      `10 sigma 0.998959 -> 0.986472` -- and two independent harnesses now measure 0.9865.
+      The same file (:211) states the trade: the floor costs 9% of the detection rate and
+      buys a 168x reduction in false positives. That trade was taken at 5-sigma; it costs here too.
+    - Candidates measured by `QA-A-162` reach TPR 1.0000 @10-sigma on every structure class
+      while meeting FPR, so the amended pair is reachable -- by a change, not by the code as
+      it ships today.
+    - The threshold and the amplitude at which TPR is specified are now different numbers
+      on purpose. Do not re-align them.
 - False-positive rate (FPR) on clean clinical frames: < 0.001% (< 9 false pixels per 3072x3072)
 - Processing time: < 35ms for 3072x3072 (scalar), < 12ms (AVX2)
 
@@ -342,7 +363,7 @@ Priority ordering uses the MoAI priority scheme (High / Medium / Low). No time e
 2. IEC 62304 Class B (no exceptions across C ABI, 1000-cycle memory safety)
 3. Performance budgets met (3072x3072 Offset < 55ms, Gain < 55ms, Defect < 95ms)
 4. SIMD parity contract honoured (Section 9)
-5. Runtime defect detection TPR >= 99.9% / FPR < 0.001% (Section 8.3 targets)
+5. Runtime defect detection TPR >= 99.9% **@10-sigma** (`#143`, 2026-09-29 — 5-sigma was the detector threshold itself) / FPR < 0.001% (Section 8.3 targets)
 6. 85% statement coverage maintained
 
 ---

@@ -868,10 +868,10 @@ IF NOT enabled: output = input; RETURN
 4. Reassemble patches with overlap blending
 5. soft_tissue = input - bone_prediction
 6. Validate: PSNR >= 33dB, SSIM >= 0.97 vs reference (if available)
-7. Tag output as AI-processed (SRS-SAFE-008)
+7. Tag output as AI-processed (SRS-SAFE-008, SRS-ALERT-004)
 
 Fallback:
-  AI worker failure → return input unchanged + SRS-ALERT-004
+  AI worker failure → return input unchanged + SRS-SAFE-008
 ```
 
 #### Edge Case
@@ -882,6 +882,27 @@ Fallback:
 | Worker crash | AI failure | Return input + alert | SRS-SAFE-008 / HAZ-008 |
 | Non-chest image | wrong body part | Skip + return input | Only applicable to PA/AP chest |
 | Low confidence | uncertain result | Return input + WARNING | Safety |
+
+> **정정 2026-09-30 (`#130` / `QA-B-167`)** — 위 Fallback 줄은 원래
+> `SRS-ALERT-004` 를 적었고, 그것이 낡은 것이었습니다.
+>
+> `SRS-ALERT-004` 는 **성공 알림**입니다 — `XPE-SRS-001:102` 가
+> *"DL processing 적용됨 | Info | "AI-processed" label 표시"* 로 정의합니다.
+> 근거 셋:
+>
+> 1. **같은 문서가 이미 그렇게 쓰고 있습니다** — 성공 태깅(위 7번)과
+>    실패 표(아래 `Worker crash` 행) 둘 다 `SRS-SAFE-008` 로 돌립니다.
+>    `ALERT-004` 를 실패로 쓴 것은 그 Fallback 한 줄뿐이었습니다.
+> 2. **등급이 맞지 않습니다** — SRS 가 `Info` 로 정의하는데
+>    worker failure 가 `Info` 일 수 없습니다(표의 실패 조건은 전부
+>    `Warning`/`Error`).
+> 3. `docs/project/api-spec.md:362` 는 둘 다 인용할 뿐 극성을 주장하지
+>    않아 반증도 지지도 하지 않습니다.
+>
+> 그래서 7번에 `SRS-ALERT-004` 를 넣고 Fallback 을 `SRS-SAFE-008` 로
+> 바꿨습니다. **양쪽 모두 오늘 코드에 구현이 없습니다** —
+> `xpe_alert_push` 제품 20건에 `ALERT-004` 는 0건이고(대조군: 다른
+> `SRS-ALERT-*` 는 5~14건씩 존재), 그것이 `#130` 의 남은 범위입니다.
 
 ---
 

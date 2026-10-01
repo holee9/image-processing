@@ -26,7 +26,7 @@
  * test_calib_save_expiry.cpp (QA-A-29).
  *
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
- * REQ coverage: REQ-P1A-035 to REQ-P1A-040
+ * REQ coverage: REQ-P1A-014 to REQ-P1A-019
  */
 
 #include <gtest/gtest.h>
@@ -138,7 +138,7 @@ protected:
 
 // ==========================================================================
 // Stage 1: xpe_calib_generate_offset -- per-pixel mean computation
-// REQ-P1A-039
+// REQ-P1A-019
 // ==========================================================================
 class RoundtripGenerateOffsetTest : public CalibFixture {
 protected:
@@ -218,7 +218,7 @@ TEST_F(RoundtripGenerateOffsetTest, ZeroFrameCountReturnsError) {
 
 // ==========================================================================
 // Stages 2-3: xpe_calib_load_* -> xpe_calib_save round-trip
-// REQ-P1A-035 to REQ-P1A-038
+// REQ-P1A-014 to REQ-P1A-016, REQ-P1A-018
 // ==========================================================================
 class SaveLoadRoundtripTest : public CalibFixture {
 protected:
@@ -351,7 +351,7 @@ TEST_F(ExpiryRoundtripTest, ExpiryClassificationIsCorrect) {
 // ==========================================================================
 // Full Pipeline: generate_offset -> load -> apply_offset
 // End-to-end verification of pixel-accurate calibration correction
-// REQ-P1A-035 to REQ-P1A-040
+// REQ-P1A-014 to REQ-P1A-019
 // ==========================================================================
 class FullPipelineTest : public CalibFixture {
 protected:

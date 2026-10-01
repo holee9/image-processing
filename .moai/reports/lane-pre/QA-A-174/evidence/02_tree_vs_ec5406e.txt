@@ -1,0 +1,10 @@
+HEAD=ec5406ef2fc7e37e5619d22d07ee97002f5ab959
+ec5406e
+--- git status (tracked changes vs HEAD):
+ D .claude/scheduled_tasks.lock
+ M modules/preprocess/CMakeLists.txt
+--- diff --stat vs HEAD:
+ modules/preprocess/CMakeLists.txt | 1 +
+ 1 file changed, 1 insertion(+)
+--- untracked under modules/:
+?? modules/preprocess/tests/test_zz_a174_floor.cpp
