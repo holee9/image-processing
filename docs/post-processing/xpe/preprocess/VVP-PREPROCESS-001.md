@@ -146,7 +146,8 @@ they are triaged, 54 cases sit on disk with no recorded reason for their exclusi
 | REQ-P1A-010 floor-at-zero | No negative / no wraparound | Edge-case test with offset > image |
 | REQ-P1A-011 no NaN/Inf | Zero violations | FLOAT32 isfinite() check on output |
 | REQ-P1A-012 no artificial edges | Gradient delta < 10% local contrast | Gradient analysis at defect boundaries |
-| REQ-P1A-013 TPR / FPR | TPR ≥ 99.9%, FPR < 0.001% | 1000-frame synthetic injection test |
+| REQ-P1A-013 TPR / FPR | TPR ≥ 99.9% on **10-sigma** injected transients (amended 2026-09-29 from 5-sigma, `#143`), FPR < 0.001% | 1000-frame synthetic injection test. Status 2026-10-01: FPR met (7.82e-06); TPR **not met** on striped frames (0.9865, disposition `QA-A-163`) |
+| REQ-P1A-013 performance | ≤ 1.3x the measured lower bound, same machine and timing mode (amended 2026-09-29, `#143`) | **Cannot be judged** (2026-10-01, `QA-A-174` / `#230`): the lower bound's selection term is an in-situ measurement of the shipped code, so no independent bound exists. History: `docs/project/REQ-CHANGE-LOG-P1A.md` |
 | REQ-SIMD-001~004 AVX2 parity | 4 files, 10 total cases (2+2+2+4) | offset/gain/defect/runtime_detect parity tests — **10/10 VERIFIED 2026-05-09** |
 | BP-01~05 DegradedMode | 6/6 PASS (Frozen) | `test_preprocess_degraded.cpp` |
 
