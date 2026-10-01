@@ -1,0 +1,12 @@
+##### ctest -N -R OffsetAVX2Parity
+Total Tests: 0
+##### ctest -N -R GainAVX2Parity
+Total Tests: 0
+##### ctest -N -R DefectAVX2Parity
+Total Tests: 0
+##### ctest -N -R RuntimeDetectAVX2Parity
+Total Tests: 0
+##### ctest -N -R AVX2Parity
+Total Tests: 6
+##### ctest -N -R Avx2Parity
+Total Tests: 10

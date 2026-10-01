@@ -13,7 +13,9 @@
  * has nothing to read without a config -- and stopped being sound when
  * QA-A-127 replaced that parse with the report. Its cited requirement,
  * REQ-P1A-013, is a renumbering orphan: in the current set that number is
- * defect correction.
+ * runtime defect detection (REQ-P1A-012 is defect correction). The
+ * nonlinearity requirement is SRS-CALIB-FUNC-006 -- see the header of
+ * test_temp_nonlinearity_binning.cpp.
  *
  * WHY THE FREQUENCY IS ASSERTED WITH A NUMBER, AND WHY THE NUMBER CHANGED.
  * QA-A-140 latched this report to once per condition, on the argument that a

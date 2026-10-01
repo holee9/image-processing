@@ -105,7 +105,8 @@ TEST(NonlinearityCorrect, NullImgReturnsError) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_nonlinearity_correct(nullptr, nullptr));
 }
 
-// REQ-P1A-013: no-op if no coefficients provided (null config -> success, unchanged)
+// SRS-CALIB-FUNC-006 (not REQ-P1A-013; see the file header): no-op if no
+// coefficients provided (null config -> success, unchanged)
 TEST(NonlinearityCorrect, NullConfigIsNoOp) {
     std::vector<uint16_t> data(16, 5000);
     XpeImageBuffer buf = make_uint16_buf(data, 4, 4);

@@ -283,10 +283,13 @@ TEST(PreprocessDegraded, BP04_GhostZeroLagCoefficientIsIdentity) {
  * BP-05-DEG: Temperature/Nonlinearity, flat curve (identity correction)
  *
  * Expectation:
- *   - Temperature compensation at T=25C (reference) applies scale = 1.0,
+ *   - Temperature compensation at T=25C (reference, REQ-P1A-080) applies scale = 1.0,
  *     so pixel values are preserved.
- *   - Nonlinearity correction with null config is a documented no-op
- *     (REQ-P1A-013) and must return XPE_OK with unchanged pixels.
+ *   - Nonlinearity correction with null config is a documented no-op and
+ *     must return XPE_OK with unchanged pixels. Requirement: SRS-CALIB-FUNC-006
+ *     (f_nonlin is supplied by the calibration profile; the null-config
+ *     sentence itself is not in the SRS). NOT REQ-P1A-013: in the current
+ *     SPEC that number is runtime defect detection (QA-A-176).
  * ========================================================================== */
 
 TEST(PreprocessDegraded, BP05_TempCompensateReferenceIsIdentity) {
@@ -328,7 +331,8 @@ TEST(PreprocessDegraded, BP05_NonlinearityNullConfigIsIdentity) {
     EXPECT_EQ(XPE_OK, rc);
     EXPECT_LT(ms, kDegradedBudgetMs);
 
-    // REQ-P1A-013: null-config nonlinearity correction is a no-op.
+    // SRS-CALIB-FUNC-006 (not REQ-P1A-013; see the BP-05-DEG header):
+    // null-config nonlinearity correction is a no-op.
     for (size_t i = 0; i < data.size(); ++i) {
         EXPECT_EQ(kPixelValue, data[i])
             << "Null-config nonlinearity correction must be identity at pixel " << i;
