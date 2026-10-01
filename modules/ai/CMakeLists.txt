@@ -369,6 +369,9 @@ if(_XPE_AI_BUILD_TESTS)
         # first test that connects the two halves QA-B-167 found speaking
         # different message enums
         test_worker_protocol_conformance.cpp
+        # #130 (QA-B-171): the bridge's time budget against a worker that stops
+        # answering -- the conditions QA-B-170's five arms never injected
+        test_ipc_deadline.cpp
     )
 
     # Check if test files exist in this module's tests/ directory

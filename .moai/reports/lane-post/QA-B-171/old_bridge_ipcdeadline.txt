@@ -1,0 +1,60 @@
+Note: Google Test filter = IpcDeadline.*
+[==========] Running 9 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 9 tests from IpcDeadline
+[ RUN      ] IpcDeadline.ControlAWorkerThatAnswersIsAnsweredWithinTheBudget
+[       OK ] IpcDeadline.ControlAWorkerThatAnswersIsAnsweredWithinTheBudget (23 ms)
+[ RUN      ] IpcDeadline.AWorkerThatNeverAnswersReturnsControlAfterTheBudget
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(280): error: Value of: o.hung
+  Actual: true
+Expected: false
+receive has no time limit: hung=1 rc=-9 elapsed=4000 ms (budget 400 ms)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(283): error: Expected equality of these values:
+  -3
+  o.rc
+    Which is: -9
+hung=1 rc=-9 elapsed=4000 ms (budget 400 ms)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(286): error: Expected: (o.elapsed_ms) <= (kBudgetMs + kSlackMs), actual: 4000 vs 1900
+hung=1 rc=-9 elapsed=4000 ms (budget 400 ms)
+
+[  FAILED  ] IpcDeadline.AWorkerThatNeverAnswersReturnsControlAfterTheBudget (4008 ms)
+[ RUN      ] IpcDeadline.TheBudgetIsTheConfiguredValueNotAConstant
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(310): error: Expected: (longMs) >= (shortMs + 500), actual: 4000 vs 4500
+300 ms budget took 4000 ms, 1200 ms budget took 4000 ms
+
+[  FAILED  ] IpcDeadline.TheBudgetIsTheConfiguredValueNotAConstant (8011 ms)
+[ RUN      ] IpcDeadline.BoneSuppressWithAStalledWorkerFailsAfterTheBudgetAndLeavesTheOutputAlone
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(325): error: Value of: o.hung
+  Actual: true
+Expected: false
+hung=1 rc=-9 elapsed=4000 ms (budget 400 ms)
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(327): error: Expected: (o.elapsed_ms) <= (kBudgetMs + kSlackMs), actual: 4000 vs 1900
+hung=1 rc=-9 elapsed=4000 ms (budget 400 ms)
+
+[  FAILED  ] IpcDeadline.BoneSuppressWithAStalledWorkerFailsAfterTheBudgetAndLeavesTheOutputAlone (3991 ms)
+[ RUN      ] IpcDeadline.AReplyThatStopsHalfWayAndStallsIsNotCountedAsSuccess
+[       OK ] IpcDeadline.AReplyThatStopsHalfWayAndStallsIsNotCountedAsSuccess (15 ms)
+[ RUN      ] IpcDeadline.AReplyThatStopsHalfWayAndClosesIsNotCountedAsSuccess
+[       OK ] IpcDeadline.AReplyThatStopsHalfWayAndClosesIsNotCountedAsSuccess (15 ms)
+[ RUN      ] IpcDeadline.ControlTheRealWorkerAnswersAHeartbeatBeforeAnyKill
+[       OK ] IpcDeadline.ControlTheRealWorkerAnswersAHeartbeatBeforeAnyKill (95 ms)
+[ RUN      ] IpcDeadline.ADeadWorkerIsReportedPromptlyNotAwaitedForever
+[       OK ] IpcDeadline.ADeadWorkerIsReportedPromptlyNotAwaitedForever (90 ms)
+[ RUN      ] IpcDeadline.PipeClosureAloneDoesNotSeparateAnExitOnRequestFromADeath
+[measure] exit-on-request: bridge rc=-3 hung=0 process exit code=0
+[measure] death:           bridge rc=-3 hung=0 process exit code=99
+[       OK ] IpcDeadline.PipeClosureAloneDoesNotSeparateAnExitOnRequestFromADeath (155 ms)
+[----------] 9 tests from IpcDeadline (16408 ms total)
+
+[----------] Global test environment tear-down
+[==========] 9 tests from 1 test suite ran. (16408 ms total)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] IpcDeadline.AWorkerThatNeverAnswersReturnsControlAfterTheBudget
+[  FAILED  ] IpcDeadline.TheBudgetIsTheConfiguredValueNotAConstant
+[  FAILED  ] IpcDeadline.BoneSuppressWithAStalledWorkerFailsAfterTheBudgetAndLeavesTheOutputAlone
+
+ 3 FAILED TESTS
