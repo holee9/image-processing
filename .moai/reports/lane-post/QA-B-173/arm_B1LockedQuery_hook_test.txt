@@ -1,0 +1,53 @@
+Note: Google Test filter = WorkerPathFixture.WorkerState*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from WorkerPathFixture
+[ RUN      ] WorkerPathFixture.WorkerStateBeforeInitIsNotInitializedAndLeavesTheOutputsAlone
+[       OK ] WorkerPathFixture.WorkerStateBeforeInitIsNotInitializedAndLeavesTheOutputsAlone (5 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateRefusesANullStateAndAcceptsNullOptionalOutputs
+[2026-10-01 22:30:34.553] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 22:30:34.553] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.WorkerStateRefusesANullStateAndAcceptsNullOptionalOutputs (5 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateIsNotUsedWhenTheWorkerPathIsOff
+[2026-10-01 22:30:34.558] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 22:30:34.593] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 22:30:34.593] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.WorkerStateIsNotUsedWhenTheWorkerPathIsOff (40 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateFollowsTheConsecutiveFailuresAndStaysDisabledAtTheCeiling
+[2026-10-01 22:30:34.599] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 22:30:35.230] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 22:30:35.230] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 22:30:35.230] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 22:30:35.232] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.WorkerStateFollowsTheConsecutiveFailuresAndStaysDisabledAtTheCeiling (638 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker
+[2026-10-01 22:30:35.238] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 22:30:40.557] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[measure] xpe_ai_worker_state while a call waits on a frozen worker: 5203 ms
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(854): error: Expected: (took) < (1000ull), actual: 5203 vs 1000
+the status query waited 5203 ms for the stuck call
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(855): error: Value of: done.load()
+  Actual: true
+Expected: false
+the call was still stuck while the query returned
+
+[2026-10-01 22:30:40.558] [info] xpe_ai shutdown: worker_pid=%u
+[  FAILED  ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker (5326 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateKeepsTheLastCompletedStateUntilTheCallThatChangesItHasFinished
+[2026-10-01 22:30:40.564] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 22:30:40.606] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 22:30:40.606] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 22:30:41.859] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 22:30:41.866] [info] xpe_ai shutdown: worker_pid=%u
+[measure] state queries while the third failure was in progress: 1144 showing ACTIVE, wrong: 0
+[       OK ] WorkerPathFixture.WorkerStateKeepsTheLastCompletedStateUntilTheCallThatChangesItHasFinished (1307 ms)
+[----------] 6 tests from WorkerPathFixture (7324 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (7324 ms total)
+[  PASSED  ] 5 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker
+
+ 1 FAILED TEST

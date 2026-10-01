@@ -1,0 +1,158 @@
+Note: Google Test filter = WorkerPathFixture.*
+[==========] Running 22 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 22 tests from WorkerPathFixture
+[ RUN      ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert
+[       OK ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert (30 ms)
+[ RUN      ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore
+[2026-10-01 21:41:56.533] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:41:56.568] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 21:41:56.573] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 21:41:56.574] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:41:56.574] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 21:41:56.580] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore (51 ms)
+[ RUN      ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll
+[2026-10-01 21:41:56.585] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:41:56.585] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 21:41:56.585] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 21:41:56.585] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:41:56.660] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll (93 ms)
+[ RUN      ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(320): Skipped
+full build: the stall test below covers failure on a real worker
+
+[  SKIPPED ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged (4 ms)
+[ RUN      ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers
+[2026-10-01 21:41:56.683] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:41:59.004] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:41:59.092] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers (2421 ms)
+[ RUN      ] WorkerPathFixture.EveryFailureAlertsAndAHealthyWorkerThatRefusesTheModelThreeTimesIsSwitchedOffForTheSession
+[2026-10-01 21:41:59.105] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:41:59.143] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:41:59.149] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:41:59.154] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:41:59.187] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.EveryFailureAlertsAndAHealthyWorkerThatRefusesTheModelThreeTimesIsSwitchedOffForTheSession (87 ms)
+[ RUN      ] WorkerPathFixture.ShutdownThenInitRecoversAWorkerSwitchedOffByModelErrors
+[2026-10-01 21:41:59.192] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:41:59.253] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:41:59.253] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:41:59.253] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:41:59.255] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 21:41:59.255] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:41:59.299] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:41:59.305] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.ShutdownThenInitRecoversAWorkerSwitchedOffByModelErrors (120 ms)
+[ RUN      ] WorkerPathFixture.ASuccessResetsTheConsecutiveFailureCount
+[2026-10-01 21:41:59.313] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:41:59.345] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:41:59.345] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:01.633] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:01.712] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.ASuccessResetsTheConsecutiveFailureCount (2413 ms)
+[ RUN      ] WorkerPathFixture.IntermittentFailuresAlertOnEveryFailureAndAreNeverBlocked
+[2026-10-01 21:42:01.726] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:42:01.770] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:01.770] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:04.061] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:04.102] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:04.137] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.IntermittentFailuresAlertOnEveryFailureAndAreNeverBlocked (2423 ms)
+[ RUN      ] WorkerPathFixture.AWorkerThatFailsOnEveryCallRaisesThreeAlertsThenIsSwitchedOffAndKeepsOtherWarnings
+[2026-10-01 21:42:04.150] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:42:04.184] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:04.184] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:04.185] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:04.186] [info] xpe_ai shutdown: worker_pid=%u
+[alert-volume] 80 failing calls: queue holds 4 alerts, 3 of them worker alerts, unrelated earlier warning still queued: yes
+[       OK ] WorkerPathFixture.AWorkerThatFailsOnEveryCallRaisesThreeAlertsThenIsSwitchedOffAndKeepsOtherWarnings (41 ms)
+[ RUN      ] WorkerPathFixture.AnOverflowingDeclaredSizeIsRefusedBeforeTheWorkerIsEverTried
+[2026-10-01 21:42:04.192] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:42:04.197] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.AnOverflowingDeclaredSizeIsRefusedBeforeTheWorkerIsEverTried (9 ms)
+[ RUN      ] WorkerPathFixture.TheModuleMaximumImageTravelsTheWorkerPathLikeAnyOtherImage
+[2026-10-01 21:42:04.227] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:42:04.239] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 21:42:04.291] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 21:42:04.293] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:42:04.550] [info] xpe_ai shutdown: worker_pid=%u
+[measure] 4096x4096 float32 through the worker: rc 0, 235 ms, worker peak working set 350 MiB
+[       OK ] WorkerPathFixture.TheModuleMaximumImageTravelsTheWorkerPathLikeAnyOtherImage (367 ms)
+[ RUN      ] WorkerPathFixture.TheModuleMaximumImageIsReturnedUnchangedOnceTheWorkerIsSwitchedOff
+[2026-10-01 21:42:04.569] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:42:04.611] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:04.611] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:04.611] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:04.671] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.TheModuleMaximumImageIsReturnedUnchangedOnceTheWorkerIsSwitchedOff (108 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateBeforeInitIsNotInitializedAndLeavesTheOutputsAlone
+[       OK ] WorkerPathFixture.WorkerStateBeforeInitIsNotInitializedAndLeavesTheOutputsAlone (6 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateRefusesANullStateAndAcceptsNullOptionalOutputs
+[2026-10-01 21:42:04.683] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:42:04.683] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.WorkerStateRefusesANullStateAndAcceptsNullOptionalOutputs (5 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateIsNotUsedWhenTheWorkerPathIsOff
+[2026-10-01 21:42:04.689] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:42:04.689] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 21:42:04.689] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.WorkerStateIsNotUsedWhenTheWorkerPathIsOff (6 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateFollowsTheConsecutiveFailuresAndStaysDisabledAtTheCeiling
+[2026-10-01 21:42:04.695] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:42:04.737] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:04.737] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:04.737] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:04.739] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.WorkerStateFollowsTheConsecutiveFailuresAndStaysDisabledAtTheCeiling (49 ms)
+[ RUN      ] WorkerPathFixture.AskingForTheWorkerStateRaisesNoAlertAndChangesNothing
+[2026-10-01 21:42:04.745] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:42:04.783] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:04.783] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.AskingForTheWorkerStateRaisesNoAlertAndChangesNothing (45 ms)
+[ RUN      ] WorkerPathFixture.ShutdownThenInitGivesAFreshWorkerState
+[2026-10-01 21:42:04.791] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:42:04.829] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:04.829] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:04.829] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:04.831] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 21:42:04.831] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:42:04.831] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.ShutdownThenInitGivesAFreshWorkerState (45 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker
+[2026-10-01 21:42:04.837] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:42:08.161] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(774): error: Expected: (took) < (250ull), actual: 2922 vs 250
+the status query waited 2922 ms for the stuck call
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(775): error: Value of: done.load()
+  Actual: true
+Expected: false
+the call was still stuck while the query returned
+
+[2026-10-01 21:42:08.162] [info] xpe_ai shutdown: worker_pid=%u
+[  FAILED  ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker (3330 ms)
+[ RUN      ] WorkerPathFixture.NoScalingIsAppliedToTheInputOrTheOutputOnEitherPath
+[2026-10-01 21:42:08.167] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:42:08.168] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-01 21:42:08.168] [info] xpe_ai shutdown: worker_pid=%u
+[2026-10-01 21:42:08.168] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:42:08.396] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.NoScalingIsAppliedToTheInputOrTheOutputOnEitherPath (242 ms)
+[ RUN      ] WorkerPathFixture.InPlaceFailureOfTheWorkerLeavesEveryInputByte
+[2026-10-01 21:42:08.410] [info] xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms
+[2026-10-01 21:42:08.454] [warning] bone_suppress: worker path failed (%d), input returned unchanged (%u of %u consecutive failures)
+[2026-10-01 21:42:08.454] [info] xpe_ai shutdown: worker_pid=%u
+[       OK ] WorkerPathFixture.InPlaceFailureOfTheWorkerLeavesEveryInputByte (51 ms)
+[----------] 22 tests from WorkerPathFixture (11958 ms total)
+
+[----------] Global test environment tear-down
+[==========] 22 tests from 1 test suite ran. (11958 ms total)
+[  PASSED  ] 20 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker
+
+ 1 FAILED TEST

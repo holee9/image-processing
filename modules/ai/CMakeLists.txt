@@ -358,6 +358,21 @@ if(BUILD_TESTING OR BUILD_TESTS)
     set(_XPE_AI_BUILD_TESTS ON)
 endif()
 
+# Test-only hook (QA-B-173, Codex audit #19): xpe_ai.dll calls a callback the tests register right after
+# xpe_bone_suppress has locked the module mutex, so a test KNOWS a call holds the mutex instead of inferring
+# it. With the option OFF the DLL contains neither the hook call nor the exported setter
+# (xpe_ai_test_set_mutex_held_hook), and the tests that need it skip.
+#
+# DEFAULT: ON when the module's tests are built. Every preset in CMakePresets.json builds them
+# (BUILD_TESTS=ON), and BUILD_TESTING is ON by default as well, so the default cannot tell a delivery
+# build from a test build. A build whose xpe_ai.dll is DELIVERED must pass -DXPE_AI_TEST_HOOKS=OFF.
+# (Checked with dumpbin /exports on both an OFF build of the tests and a no-tests build: no
+# xpe_ai_test_* export. See .moai/reports/lane-post/QA-B-173/report.md.)
+option(XPE_AI_TEST_HOOKS "Compile the test-only hooks into xpe_ai.dll; OFF for a delivery build" ${_XPE_AI_BUILD_TESTS})
+if(XPE_AI_TEST_HOOKS)
+    target_compile_definitions(xpe_ai PRIVATE XPE_AI_TEST_HOOKS=1)
+endif()
+
 if(_XPE_AI_BUILD_TESTS)
     # Only add tests if source files exist (avoids configure errors when
     # test files have not been generated yet -- tests are written by xpe-qa).
@@ -500,6 +515,10 @@ if(_XPE_AI_BUILD_TESTS)
         else()
             target_compile_definitions(xpe_ai_tests PRIVATE XPE_AI_USE_ONNXRUNTIME=1)
             target_link_libraries(xpe_ai_tests PRIVATE onnxruntime)
+        endif()
+
+        if(XPE_AI_TEST_HOOKS)
+            target_compile_definitions(xpe_ai_tests PRIVATE XPE_AI_TEST_HOOKS=1)   # the option above
         endif()
 
         target_include_directories(xpe_ai_tests

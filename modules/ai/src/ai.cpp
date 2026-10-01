@@ -144,6 +144,19 @@ struct AiModuleState {
     /** Set at kWorkerFailureCeiling consecutive failures: the worker is off for the rest of the session. */
     bool workerDisabled{false};
 
+    /**
+     * What xpe_ai_worker_state reports: the two fields above as of the last COMPLETED call, packed in ONE
+     * word (bit 31 = disabled, bits 0..30 = consecutive failures) and stored only when a call is done
+     * with everything it does -- the count, the switch-off, ending the worker process and raising the
+     * alert (Codex audit #17). The two fields above are working state, written inside a call with mtx
+     * held and never read by a client. They are kept apart from this word for two reasons: a status query
+     * must not wait for mtx (a call holds it for its whole time budget on a silent worker, which would
+     * freeze the client's UI thread for that long), and a query that read them directly would see the
+     * third failure's switch-off while that call was still running and its worker still alive. One word
+     * also means a reader can never combine a count from one moment with a flag from another (QA-B-173).
+     */
+    std::atomic<uint32_t> workerPublished{0};
+
     // --- Worker process state ---
     /** PID of the worker process (0 if not running). */
     uint32_t workerPid{0};
@@ -434,6 +447,32 @@ static XpeErrorCode boneSuppressViaWorker(AiModuleState* state, const XpeImageBu
  */
 static constexpr uint32_t kWorkerFailureCeiling = 3;
 
+#ifdef XPE_AI_TEST_HOOKS
+// TEST-ONLY (QA-B-173, Codex audit #19). Compiled only when modules/ai/CMakeLists.txt defines
+// XPE_AI_TEST_HOOKS, i.e. when the XPE_AI_TEST_HOOKS option is ON. Its default is ON whenever the module's
+// tests are built, and every preset builds them, so a build whose DLL is DELIVERED must turn it OFF
+// (-DXPE_AI_TEST_HOOKS=OFF, e.g. set in the release preset). With the option OFF the DLL has neither this
+// variable, nor the call in xpe_bone_suppress, nor the exported setter.
+// A test registers a callback that xpe_bone_suppress calls on the calling thread immediately after it has
+// locked the module mutex, so the test KNOWS a call is inside its critical section (and, with a frozen
+// worker, stuck there) rather than inferring it from timing.
+static std::atomic<void (*)(void)> g_testMutexHeldHook{nullptr};
+
+extern "C" XPE_API void xpe_ai_test_set_mutex_held_hook(void (*hook)(void)) {
+    g_testMutexHeldHook.store(hook, std::memory_order_release);
+}
+#endif
+
+/** Bit 31 of AiModuleState::workerPublished: the worker is switched off for the session. */
+static constexpr uint32_t kWorkerPublishedDisabledBit = 0x80000000u;
+
+/** Publishes the working worker state as the one snapshot xpe_ai_worker_state reads. Caller holds mtx. */
+static void publishWorkerState(AiModuleState* state) {
+    const uint32_t word = (state->workerConsecutiveFailures & ~kWorkerPublishedDisabledBit) |
+                          (state->workerDisabled ? kWorkerPublishedDisabledBit : 0u);
+    state->workerPublished.store(word, std::memory_order_release);
+}
+
 /** SRS-ALERT-004: DL processing was applied (Info). One place, so both paths say the same thing. */
 static void pushAiProcessedAlert() {
     xpe_alert_push("AI-processed: bone suppression applied (SRS-ALERT-004)", XPE_ALERT_INFO);
@@ -499,6 +538,31 @@ XPE_API XpeErrorCode xpe_ai_init(const char* modelDirPath,
                 static_cast<int>(state->executionProvider),
                 state->timeoutMs);
 
+    return XPE_OK;
+}
+
+XPE_API XpeErrorCode xpe_ai_worker_state(int32_t* stateOut,
+                                          uint32_t* consecutiveFailuresOut,
+                                          uint32_t* ceilingOut)
+{
+    if (!stateOut) return XPE_ERR_INVALID_INPUT;
+    XpeErrorCode ec = checkInitialized();
+    if (ec != XPE_OK) return ec;
+
+    // Deliberately NO lock_guard on state->mtx: see AiModuleState::workerPublished. One load of one word:
+    // the count and the flag in it were stored together, so they always belong to the same completed call.
+    const AiModuleState* state = g_aiState;
+    const uint32_t word = state->workerPublished.load(std::memory_order_acquire);
+    const bool disabled = (word & kWorkerPublishedDisabledBit) != 0u;
+    const uint32_t failures = word & ~kWorkerPublishedDisabledBit;
+
+    int32_t st = XPE_AI_WORKER_NOT_USED;
+    if (state->useWorker) {
+        st = disabled ? XPE_AI_WORKER_DISABLED : XPE_AI_WORKER_ACTIVE;
+    }
+    *stateOut = st;
+    if (consecutiveFailuresOut) *consecutiveFailuresOut = failures;
+    if (ceilingOut) *ceilingOut = kWorkerFailureCeiling;
     return XPE_OK;
 }
 
@@ -744,6 +808,9 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
     }
 
     std::lock_guard<std::mutex> lock(state->mtx);
+#ifdef XPE_AI_TEST_HOOKS
+    if (auto* hook = g_testMutexHeldHook.load(std::memory_order_acquire)) hook();   // the mutex IS held here
+#endif
 
     // QA-B-171C (REQ-AI-092, REQ-AI-002, SDD-002 "AI worker failure -> return input unchanged"):
     // opt-in worker path. A failure of any kind -- budget exceeded, a worker that died or went silent,
@@ -785,6 +852,7 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
         if (wrc == XPE_OK) {
             state->workerConsecutiveFailures = 0;
             pushAiProcessedAlert();
+            publishWorkerState(state);   // after everything the call does: the snapshot is of a finished call
             return XPE_OK;
         }
         std::memmove(softTissueOut->data, img->data, bytes);
@@ -810,6 +878,9 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
                           static_cast<unsigned>(kWorkerFailureCeiling));
         }
         xpe_alert_push(msg, XPE_ALERT_WARNING);
+        // Published only now: the count, the switch-off, the end of the worker process and the alert are
+        // all done. A status query before this point still reports the previous completed call.
+        publishWorkerState(state);
         return wrc;
     }
 

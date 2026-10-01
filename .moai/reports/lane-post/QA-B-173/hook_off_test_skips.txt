@@ -1,0 +1,16 @@
+Note: Google Test filter = WorkerPathFixture.WorkerStateAnswers*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from WorkerPathFixture
+[ RUN      ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(832): Skipped
+built without XPE_AI_TEST_HOOKS: no way to know the call holds the mutex
+
+[  SKIPPED ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker (5 ms)
+[----------] 1 test from WorkerPathFixture (5 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (5 ms total)
+[  PASSED  ] 0 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker

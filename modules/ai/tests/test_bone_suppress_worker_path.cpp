@@ -42,6 +42,9 @@
 #include "xpe/ai/ai_onnx_session.h"
 #include "xpe/common/xpe_error.h"
 
+#include <thread>
+#include <atomic>
+#include <memory>
 #include <windows.h>
 #include <psapi.h>
 #include <tlhelp32.h>
@@ -190,6 +193,20 @@ void Freeze(DWORD pid) {
 }
 
 const std::string kDirMissing = std::string(XPE_AI_TEST_DATA_DIR) + "/models_missing";
+
+struct WState {
+    XpeErrorCode rc = XPE_OK;
+    int32_t state = -777;
+    uint32_t failures = 777777u;
+    uint32_t ceiling = 777777u;
+};
+
+WState QueryState() {
+    WState w;
+    w.rc = xpe_ai_worker_state(&w.state, &w.failures, &w.ceiling);
+    return w;
+}
+
 
 /** One call with the standard 3x3 input; the output buffer starts as a sentinel. */
 struct OneCall {
@@ -497,8 +514,11 @@ TEST_F(WorkerPathFixture, IntermittentFailuresAlertOnEveryFailureAndAreNeverBloc
 
     EXPECT_NE(XPE_OK, CallOnce().rc);                                    // F: no model
     EXPECT_NE(XPE_OK, CallOnce().rc);                                    // F
+    EXPECT_EQ(2u, QueryState().failures);
     ASSERT_TRUE(CopyFileA(good.c_str(), model.c_str(), FALSE) != 0);
     EXPECT_EQ(XPE_OK, CallOnce().rc);                                    // S
+    EXPECT_EQ(0u, QueryState().failures) << "a success must show as a reset count";
+    EXPECT_EQ(XPE_AI_WORKER_ACTIVE, QueryState().state);
     const auto first = ChildWorkers();
     ASSERT_EQ(1u, first.size());
     Freeze(first[0]);
@@ -648,6 +668,286 @@ TEST_F(WorkerPathFixture, TheModuleMaximumImageIsReturnedUnchangedOnceTheWorkerI
     EXPECT_TRUE(SameBytes(in.px, out.px)) << "switched-off call must return the input, every pixel";
     EXPECT_EQ(alerts_before, CountAlerts(kFailureNeedle)) << "no new alert after the switch-off";
     EXPECT_EQ(0u, ChildWorkers().size()) << "a switched-off worker must not be restarted";
+}
+
+// --- QA-B-173 (1): xpe_ai_worker_state, the read-only session status ----------------------------------
+// The GUI needs a source of truth for "the AI worker is off for this session" that outlives the alert
+// queue (alerts are drained and can overflow), and a reason to show a recover button.
+
+TEST_F(WorkerPathFixture, WorkerStateBeforeInitIsNotInitializedAndLeavesTheOutputsAlone) {
+    const WState w = QueryState();
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, w.rc);
+    EXPECT_EQ(-777, w.state);
+    EXPECT_EQ(777777u, w.failures);
+    EXPECT_EQ(777777u, w.ceiling);
+}
+
+TEST_F(WorkerPathFixture, WorkerStateRefusesANullStateAndAcceptsNullOptionalOutputs) {
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDirMissing.c_str(), "{\"use_worker\": true}"));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_ai_worker_state(nullptr, nullptr, nullptr));
+    int32_t st = -777;
+    EXPECT_EQ(XPE_OK, xpe_ai_worker_state(&st, nullptr, nullptr));
+    EXPECT_EQ(XPE_AI_WORKER_ACTIVE, st);
+}
+
+TEST_F(WorkerPathFixture, WorkerStateIsNotUsedWhenTheWorkerPathIsOff) {
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDirX2.c_str(), "{\"use_worker\": false}"));
+    WState w = QueryState();
+    EXPECT_EQ(XPE_OK, w.rc);
+    EXPECT_EQ(XPE_AI_WORKER_NOT_USED, w.state);
+    EXPECT_EQ(0u, w.failures);
+    EXPECT_EQ(3u, w.ceiling) << "the ceiling is reported whether or not the worker path is on";
+    CallOnce();   // an in-process call changes nothing about the worker state
+    w = QueryState();
+    EXPECT_EQ(XPE_AI_WORKER_NOT_USED, w.state);
+    EXPECT_EQ(0u, w.failures);
+}
+
+// The whole progression the GUI will show, in both builds (a model directory with no model fails every
+// call deterministically): active with 0, active with 1, active with 2, DISABLED at 3 and it stays at 3.
+TEST_F(WorkerPathFixture, WorkerStateFollowsTheConsecutiveFailuresAndStaysDisabledAtTheCeiling) {
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDirMissing.c_str(), "{\"use_worker\": true}"));
+    WState w = QueryState();
+    EXPECT_EQ(XPE_AI_WORKER_ACTIVE, w.state);
+    EXPECT_EQ(0u, w.failures);
+    EXPECT_EQ(3u, w.ceiling);
+    EXPECT_EQ(0u, ChildWorkers().size()) << "asking for the state must not start a worker";
+
+    for (uint32_t k = 1; k <= 2; ++k) {
+        CallOnce();
+        w = QueryState();
+        EXPECT_EQ(XPE_AI_WORKER_ACTIVE, w.state) << "after failure " << k;
+        EXPECT_EQ(k, w.failures);
+    }
+    CallOnce();   // the third consecutive failure switches the worker off
+    w = QueryState();
+    EXPECT_EQ(XPE_AI_WORKER_DISABLED, w.state);
+    EXPECT_EQ(3u, w.failures);
+    for (int i = 0; i < 4; ++i) CallOnce();   // later calls neither retry nor count
+    w = QueryState();
+    EXPECT_EQ(XPE_AI_WORKER_DISABLED, w.state);
+    EXPECT_EQ(3u, w.failures) << "a switched-off worker's count must stay at the ceiling";
+}
+
+TEST_F(WorkerPathFixture, AskingForTheWorkerStateRaisesNoAlertAndChangesNothing) {
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDirMissing.c_str(), "{\"use_worker\": true}"));
+    CallOnce();
+    xpe_clear_alerts();
+    for (int i = 0; i < 50; ++i) QueryState();
+    EXPECT_EQ(0, static_cast<int>(xpe_get_pending_alert_count())) << "a status query must not alert";
+    const WState w = QueryState();
+    EXPECT_EQ(1u, w.failures) << "a status query must not count as a call";
+}
+
+// The recovery the GUI button performs: shutdown, then init, is a new session with a clean state.
+TEST_F(WorkerPathFixture, ShutdownThenInitGivesAFreshWorkerState) {
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDirMissing.c_str(), "{\"use_worker\": true}"));
+    for (int i = 0; i < 3; ++i) CallOnce();
+    ASSERT_EQ(XPE_AI_WORKER_DISABLED, QueryState().state);
+    xpe_ai_shutdown();
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, QueryState().rc);
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDirMissing.c_str(), "{\"use_worker\": true}"));
+    const WState w = QueryState();
+    EXPECT_EQ(XPE_AI_WORKER_ACTIVE, w.state);
+    EXPECT_EQ(0u, w.failures);
+}
+
+/**
+ * A std::thread that joins in its destructor (this project builds as C++17, which has no std::jthread).
+ * A joinable std::thread destroyed by an ASSERT that returns early calls std::terminate and takes the
+ * whole test process, and every other test's result, down with it.
+ */
+class JoiningThread {
+public:
+    template <class F>
+    explicit JoiningThread(F&& f) : t_(std::forward<F>(f)) {}
+    JoiningThread(JoiningThread&&) noexcept = default;
+    JoiningThread(const JoiningThread&) = delete;
+    JoiningThread& operator=(const JoiningThread&) = delete;
+    ~JoiningThread() { if (t_.joinable()) t_.join(); }
+
+private:
+    std::thread t_;
+};
+
+#ifdef XPE_AI_TEST_HOOKS
+// Test-only hook of xpe_ai.dll (compiled only when XPE_AI_TEST_HOOKS is defined, see ai.cpp and
+// modules/ai/CMakeLists.txt): the module calls it on the calling thread right after xpe_bone_suppress has
+// locked the module mutex. Not declared in any public header on purpose.
+extern "C" __declspec(dllimport) void xpe_ai_test_set_mutex_held_hook(void (*hook)(void));
+
+namespace {
+HANDLE g_mutexHeldEvent = nullptr;
+void OnMutexHeld() {
+    if (g_mutexHeldEvent) SetEvent(g_mutexHeldEvent);
+}
+
+/** Installs the hook for its lifetime; removes it again (also when an ASSERT returns early). */
+class MutexHeldHook {
+public:
+    MutexHeldHook() {
+        g_mutexHeldEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+        xpe_ai_test_set_mutex_held_hook(&OnMutexHeld);
+    }
+    ~MutexHeldHook() {
+        xpe_ai_test_set_mutex_held_hook(nullptr);
+        HANDLE h = g_mutexHeldEvent;
+        g_mutexHeldEvent = nullptr;
+        if (h) CloseHandle(h);
+    }
+    MutexHeldHook(const MutexHeldHook&) = delete;
+    MutexHeldHook& operator=(const MutexHeldHook&) = delete;
+    bool WaitUntilHeld(DWORD ms) const {
+        return g_mutexHeldEvent && WaitForSingleObject(g_mutexHeldEvent, ms) == WAIT_OBJECT_0;
+    }
+};
+}  // namespace
+#endif
+
+// The property the GUI depends on: a status query returns promptly even while a call is stuck on a
+// silent worker (a call can hold the module for its whole time budget). A query that waited for the
+// call would freeze the UI thread for that long.
+//
+// The call is proven to HOLD the module mutex before the query, by a test-only hook (below) that the
+// product calls on the calling thread immediately after it has locked the mutex and before it waits on
+// the worker. That is a signal, not an inference: an earlier version inferred "held" from a probe thread
+// that had not come back after 150 ms, which looks identical when the probe was merely not scheduled yet
+// or the call had not reached its lock yet, so a query that DID take the mutex could still pass inside
+// the bound (Codex audit #19). The hook exists only in a build with XPE_AI_TEST_HOOKS, which
+// modules/ai/CMakeLists.txt defines when the module's tests are built; a build without tests (the
+// shipped one) contains neither the hook call nor the exported setter, and this test then skips.
+//
+// Its thread is a JoiningThread, joined at scope exit even if an ASSERT returns early, where a joinable
+// std::thread would call std::terminate and take the whole test process down.
+//
+// WHY 1000 ms (measured on the development machine, QA-B-173): the query took 0 ms in three runs (the
+// tick counter's resolution is about 16 ms, so "under 16 ms"). With the query taking the module mutex
+// instead (arm B1) it waited the stuck call's whole budget: 2922 ms of 3000 under the old 3000 ms
+// budget, 4985 ms of 5000 under this one (measured). That failure mode is 5 times the bound, and the
+// bound tolerates a CI machine a full second slower than this one. It is a machine-measured number, not
+// a requirement; if a slow runner still makes this test flaky, widen it -- anything well under
+// timeout_ms separates "did not wait" from "waited".
+TEST_F(WorkerPathFixture, WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker) {
+#ifndef XPE_AI_TEST_HOOKS
+    GTEST_SKIP() << "built without XPE_AI_TEST_HOOKS: no way to know the call holds the mutex";
+#else
+    if (IsStub()) GTEST_SKIP() << "needs a worker that can succeed before it is frozen: full build only";
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDirX2.c_str(), "{\"use_worker\": true, \"timeout_ms\": 5000}"));
+    ASSERT_EQ(XPE_OK, CallOnce().rc);
+    const auto workers = ChildWorkers();
+    ASSERT_EQ(1u, workers.size());
+    Freeze(workers[0]);
+
+    MutexHeldHook hook;   // declared before the thread: destroyed after it has been joined
+    std::atomic<bool> done{false};
+    std::vector<JoiningThread> threads;
+    threads.emplace_back([&] { CallOnce(); done = true; });
+    ASSERT_TRUE(hook.WaitUntilHeld(5000)) << "the call never reported holding the module mutex";
+    ASSERT_FALSE(done.load()) << "the call finished early: the worker was not silent";
+
+    const ULONGLONG t0 = GetTickCount64();
+    const WState w = QueryState();
+    const auto took = static_cast<unsigned long long>(GetTickCount64() - t0);
+    std::printf("[measure] xpe_ai_worker_state while a call waits on a frozen worker: %llu ms\n", took);
+    EXPECT_EQ(XPE_OK, w.rc);
+    EXPECT_EQ(XPE_AI_WORKER_ACTIVE, w.state);
+    EXPECT_LT(took, 1000ull) << "the status query waited " << took << " ms for the stuck call";
+    EXPECT_FALSE(done.load()) << "the call was still stuck while the query returned";
+    threads.clear();   // joins: the call times out and fails
+    EXPECT_EQ(1u, QueryState().failures) << "the stuck call's failure shows once it ends";
+#endif
+}
+
+// Codex audit #17: "the state as of the last COMPLETED call" must hold through the call that changes it,
+// not just until the module starts changing it. The third failure stores its count, switches the worker
+// off, ends the worker process and raises its alert BEFORE it returns; a query that saw DISABLED / 3 in
+// the middle of that saw a call that had not finished and a worker that was still running. The state is
+// published as ONE snapshot after all of that.
+//
+// What is asserted is observable from outside and does not depend on when the calling thread gets
+// around to noting that the call returned: until the first DISABLED, every query shows exactly the
+// previous completed state (ACTIVE, 2); and at the moment a query FIRST shows DISABLED, the call's other
+// effects are already there -- its alert is queued and its worker process is gone. (A flag set after the
+// call returns would be wrong for this: the snapshot is correctly published a few microseconds before
+// that flag, as the last thing the call does.)
+//
+// Both builds: a model directory with no model fails every call deterministically, and a frozen worker
+// makes the third failure take its whole budget, so the poll runs for about a second against the real
+// code. Limit, stated honestly: the window the unmodified old code left open was tens of microseconds
+// (measured below), so the unmodified old code is only caught sometimes by the alert/worker check; the
+// reliable proof is the arm that widens that window (see the report).
+TEST_F(WorkerPathFixture, WorkerStateKeepsTheLastCompletedStateUntilTheCallThatChangesItHasFinished) {
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDirMissing.c_str(), "{\"use_worker\": true, \"timeout_ms\": 1000}"));
+    CallOnce();   // failure 1
+    CallOnce();   // failure 2: a worker is up (it refused, it did not die)
+    ASSERT_EQ(2u, QueryState().failures);
+    const auto workers = ChildWorkers();
+    ASSERT_EQ(1u, workers.size());
+    Freeze(workers[0]);
+    xpe_clear_alerts();
+
+    std::vector<JoiningThread> threads;
+    threads.emplace_back([] { CallOnce(); });   // failure 3: stalls on the frozen worker, then switches off
+
+    unsigned long long active_seen = 0, wrong = 0;
+    std::string first_wrong;
+    bool saw_disabled = false;
+    const ULONGLONG give_up = GetTickCount64() + 15000;
+    while (!saw_disabled && GetTickCount64() < give_up) {
+        const WState w = QueryState();
+        if (w.state == XPE_AI_WORKER_ACTIVE) {
+            ++active_seen;
+            if (w.failures != 2u && wrong++ == 0) {
+                first_wrong = "ACTIVE with " + std::to_string(w.failures) + " failures";
+            }
+        } else if (w.state == XPE_AI_WORKER_DISABLED) {
+            saw_disabled = true;
+            // Checked in this order, cheapest first, immediately: by the time DISABLED is reported the
+            // call must have raised its alert and ended its worker.
+            const int alerts = CountAlerts("disabled");
+            const size_t live = ChildWorkers().size();
+            if (w.failures != 3u || alerts != 1 || live != 0u) {
+                ++wrong;
+                first_wrong = "DISABLED with " + std::to_string(w.failures) + " failures, " +
+                              std::to_string(alerts) + " disabled-alerts, " + std::to_string(live) +
+                              " live workers";
+            }
+        } else {
+            if (wrong++ == 0) first_wrong = "state " + std::to_string(w.state);
+        }
+        std::this_thread::yield();
+    }
+    threads.clear();   // joins
+    std::printf("[measure] state queries while the third failure was in progress: %llu showing ACTIVE, "
+                "wrong: %llu\n", active_seen, wrong);
+    EXPECT_TRUE(saw_disabled) << "the third failure never switched the worker off within the poll";
+    EXPECT_GT(active_seen, 100ull) << "the poll saw too little of the call to prove anything";
+    EXPECT_EQ(0ull, wrong) << "first wrong observation: " << first_wrong;
+    const WState after = QueryState();
+    EXPECT_EQ(XPE_AI_WORKER_DISABLED, after.state);
+    EXPECT_EQ(3u, after.failures);
+}
+
+// --- QA-B-173 (2): no scaling anywhere; the caller supplies the scale the model expects ----------------
+// The SDD says "Preprocess: normalize input to [0, 1]" (XPE-SDD-002:862). Nothing in the module does it:
+// pixels reach the model as given and the model's answer comes back as given. This pins that, on both
+// paths, so the header's statement ("the module neither scales nor clamps") cannot drift from the code.
+TEST_F(WorkerPathFixture, NoScalingIsAppliedToTheInputOrTheOutputOnEitherPath) {
+    if (IsStub()) GTEST_SKIP() << "a stub build runs no model; the scale contract needs a real run";
+    const float values[kN] = {-3.0f, 0.5f, 65535.0f, 1.0e6f, -1.0e6f, 0.0f, 255.0f, 4095.0f, 1.0f};
+    for (const bool use_worker : {false, true}) {
+        xpe_ai_shutdown();
+        ASSERT_EQ(XPE_OK, xpe_ai_init(kDirX2.c_str(), use_worker ? "{\"use_worker\": true}"
+                                                                 : "{\"use_worker\": false}"));
+        Img in(0.0f), out(0.0f, false);
+        for (size_t i = 0; i < kN; ++i) in.px[i] = values[i];
+        ASSERT_EQ(XPE_OK, xpe_bone_suppress(&in.buf, &out.buf, nullptr)) << "use_worker=" << use_worker;
+        for (size_t i = 0; i < kN; ++i) {
+            EXPECT_EQ(2.0f * values[i], out.px[i])
+                << "pixel " << i << " (use_worker=" << use_worker << "): a value outside [0, 1] must reach "
+                << "the model unscaled and its answer must come back unscaled";
+        }
+    }
 }
 
 // A different function proves the fix is in the SHARED validator, not only in xpe_bone_suppress.
