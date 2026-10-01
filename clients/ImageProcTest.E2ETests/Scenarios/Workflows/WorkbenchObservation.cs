@@ -78,19 +78,52 @@ internal static class WorkbenchObservation
         Thread.Sleep(400);
     }
 
-    internal static string BodyPart(Window window) =>
-        window.FindFirstDescendant(cf => cf.ByAutomationId("BodyPartSelector"))!.AsComboBox().SelectedItem?.Text ?? "Abdomen";
+    internal static string BodyPart(Window window)
+    {
+        var combo = window.FindFirstDescendant(cf => cf.ByAutomationId("BodyPartSelector"))!.AsComboBox();
+        var text = combo.SelectedItem?.Text ?? "Abdomen";
+        CloseTheDropDown(combo);
+        return text;
+    }
 
     internal static void SelectBodyPart(Window window, string bodyPart)
     {
         var combo = window.FindFirstDescendant(cf => cf.ByAutomationId("BodyPartSelector"))!.AsComboBox();
         if (combo.SelectedItem?.Text == bodyPart)
         {
+            CloseTheDropDown(combo);
             return;
         }
 
         combo.Select(bodyPart);
+        CloseTheDropDown(combo);
         Thread.Sleep(1200);
+    }
+
+    /// <summary>
+    /// Closes a combo box's drop-down if it is open (GUI-C-174).
+    ///
+    /// <para>Reading or selecting through FlaUI's combo box wrapper can leave the list expanded. A drop-down that is
+    /// left open takes the next click outside it as "close me", so the click never reaches what it was aimed at —
+    /// GUI-C-173 measured the first real click of R01 being spent this way, with
+    /// <c>ComboBox:BodyPartSelector</c> expanded when R01 began. The old menu code pressed ESC before every click,
+    /// which closed it by accident; GUI-C-171 removed those key presses, so the scenario that leaves the list open
+    /// now closes it itself, through UI Automation, with no input sent.</para>
+    /// </summary>
+    internal static void CloseTheDropDown(ComboBox combo)
+    {
+        try
+        {
+            var pattern = combo.Patterns.ExpandCollapse.PatternOrDefault;
+            if (pattern is not null && pattern.ExpandCollapseState.ValueOrDefault == FlaUI.Core.Definitions.ExpandCollapseState.Expanded)
+            {
+                pattern.Collapse();
+            }
+        }
+        catch (Exception)
+        {
+            // A combo box that cannot say, or has gone away, is not an open drop-down.
+        }
     }
 
     internal static string CenterInput(Window window) =>
