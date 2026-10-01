@@ -368,6 +368,46 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// A-14 (#225, GUI-C-176): row 17 — the Benchmark Runner menu describes the build tree it finds, and an
+    /// automation run never reports a verdict it did not get.
+    ///
+    /// <para>Whether <c>build/ci-post</c> has CTest files is read from the disk by this test, independently of
+    /// the app, and each state asserts something: no tree means the "not built" answer with the two commands
+    /// that build it and no launch; a tree means the launch was suppressed (a CI machine must not start a
+    /// multi-minute native benchmark because a check clicked a menu). In both states
+    /// <c>BenchmarkPassed</c> stays null — "did not run", which is not "passed" and not "failed". The ctest
+    /// run itself is the shared runner, whose pass and fail paths A-04 and A-05 observe; the coupling to it is
+    /// asserted in <c>BenchmarkRunnerServiceTests</c>.</para>
+    /// </summary>
+    [SkippableFact]
+    public void A14_BenchmarkRunner_DescribesTheBuildTree_AndReportsNoVerdictItDidNotGet()
+    {
+        var repoRoot = RepositoryRootOrSkip();
+        var (report, _) = Run("A14", "Mock", nativeDirectory: null);
+
+        var status = report.GetProperty("BenchmarkStatus").GetString() ?? string.Empty;
+        var suppressed = report.GetProperty("BenchmarkLaunchSuppressed").GetBoolean();
+        var verdictKind = report.TryGetProperty("BenchmarkPassed", out var verdict) ? verdict.ValueKind : JsonValueKind.Null;
+        Assert.True(verdictKind == JsonValueKind.Null,
+            $"An automation run reported a benchmark verdict ({verdictKind}) although it must not launch ctest. Status: '{status}'.");
+
+        var treeExists = File.Exists(Path.Combine(repoRoot, "build", "ci-post", "CTestTestfile.cmake"));
+        if (treeExists)
+        {
+            Assert.True(suppressed, $"A build tree exists but the run did not record suppressing the launch. Status: '{status}'.");
+            Assert.Contains("launch suppressed", status, StringComparison.Ordinal);
+            Assert.DoesNotContain("not built", status, StringComparison.Ordinal);
+        }
+        else
+        {
+            Assert.False(suppressed, "There is no build tree, yet the run recorded a suppressed launch.");
+            Assert.Contains("not built", status, StringComparison.Ordinal);
+            Assert.Contains("cmake --preset ci-post", status, StringComparison.Ordinal);
+            Assert.Contains("cmake --build --preset ci-post --parallel", status, StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>
     /// A-12 (#225, GUI-C-170): rows 7 and 8 — what the two panels RENDER, read from the panels.
     ///
     /// <para>Two runs, because the calibration panel has two states that must not look alike: with a

@@ -84,6 +84,7 @@
     <!-- #180 (GUI-C-99): the pixel chain model and runner are WPF-free and tested here. -->
     <!-- #225 row 20 (GUI-C-169): dependency-free by design, so it links without dragging services along. -->
     <Compile Include="..\..\gui\ImageProcTest\Services\ApiReferenceService.cs" Link="ApiReference\Linked\ApiReferenceService.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BenchmarkRunnerService.cs" Link="BenchmarkRunner\Linked\BenchmarkRunnerService.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Models\ProcessingChain.cs" Link="Chain\Linked\ProcessingChain.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\ProcessingChainRunner.cs" Link="Chain\Linked\ProcessingChainRunner.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\ProcessingChainPlan.cs" Link="Chain\Linked\ProcessingChainPlan.cs" />

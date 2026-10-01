@@ -252,6 +252,15 @@ public sealed class GuiAutomationReport
     /// <summary>#225 row 20: true when the browser launch was skipped because this is an automation run.</summary>
     public bool ApiReferenceLaunchSuppressed { get; set; }
 
+    /// <summary>#225 row 17 (GUI-C-176): ctest's verdict, or null when nothing ran (no build tree, or a suppressed launch).</summary>
+    public bool? BenchmarkPassed { get; set; }
+
+    /// <summary>#225 row 17: the status line after Tools -> Benchmark Runner.</summary>
+    public string? BenchmarkStatus { get; set; }
+
+    /// <summary>#225 row 17: true when the ctest launch was skipped because this is an automation run.</summary>
+    public bool BenchmarkLaunchSuppressed { get; set; }
+
     /// <summary>
     /// #225 row 13: what the panel showed for each stage, as the panel renders it — the status and the
     /// TIME AS DISPLAYED. A stage that was switched off must appear here with no number, which is the
