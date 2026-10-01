@@ -1,0 +1,5 @@
+builds: gui errors 0 clients errors 0
+ OBS STEP 1 (before any Apply): AiWorkerBanner: found offscreen=False rect=(1042,506,555,16) name='AI worker switched off for this session after 3 of 3 failures in a row: images are returned unchanged until it is restarted.'
+ OBS STEP apply#1+3s: AiWorkerBanner: found offscreen=False rect=(1042,506,555,16) name='AI worker switched off for this session after 3 of 3 failures in a row: images are returned unchanged until it is restarted.' / AiRestartButton: found offscreen=False rect=(1601,503,58,22) name='Restart AI'
+ OBS STEP apply#2+3s: AiWorkerBanner: found offscreen=False rect=(1042,506,555,16) name='AI worker switched off for this session after 3 of 3 failures in a row: images are returned unchanged until it is restarted.' / AiRestartButton: found offscreen=False rect=(1601,503,58,22) name='Restart AI'
+ OBS STEP apply#3+3s: AiWorkerBanner: found offscreen=False rect=(1042,506,555,16) name='AI worker switched off for this session after 3 of 3 failures in a row: images are returned unchanged until it is restarted.' / AiRestartButton: found offscreen=False rect=(1601,503,58,22) name='Restart AI'

@@ -1,0 +1,47 @@
+ARM the-panel-is-back-in-the-toolbar (a120c547 MainWindow.xaml), real window at the real minimum width: built=True
+   selfcheck: exit=0
+   functional: ['실패!  - 실패:     4, 통과:    33, 건너뜀:     0, 전체:    37, 기간: 105 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: AiWorkerPanelLayoutTests.ThePanel_SitsInTheWindowsOwnDock_AsARowOfItsOwn [4 ms]
+     red: AiWorkerPanelLayoutTests.TheMarkAndItsButton_AreNotInsideAToolBar_WhereTheOverflowCanTakeThemOffTheScreen(id: "AiRestartButton") [5 ms]
+     red: AiWorkerPanelLayoutTests.TheMarkAndItsButton_AreNotInsideAToolBar_WhereTheOverflowCanTakeThemOffTheScreen(id: "AiWorkerPanel") [2 ms]
+     red: AiWorkerPanelLayoutTests.TheMarkAndItsButton_AreNotInsideAToolBar_WhereTheOverflowCanTakeThemOffTheScreen(id: "AiWorkerBanner") [1 ms]
+   e2e: ['실패!  - 실패:     1, 통과:     8, 건너뜀:     0, 전체:     9, 기간: 10 s - ImageProcTest.E2ETests.dll (net8.0)']
+     red: AiWorkerMarkAtMinimumWidthScenarios.M01_TheMark_IsInTheAutomationTree_AtTheLaunchWidth_AndAtTheMinimumWidth [10 s]
+     msg: At the window's minimum width (1280 px) the mark is not in the automation tree: banner NOT found, Restart AI NOT found. MinWidth 1280 DIP at 96 dpi = 1280 px expected; the window shrank to 1280 px; width after the check 1280 px; CanResize=True
+   restored byte-identical: True
+ARM the-window-is-not-shrunk (ResizeToMinimum asks for nothing): built=True
+   selfcheck: exit=0
+   functional: ['통과!  - 실패:     0, 통과:    37, 건너뜀:     0, 전체:    37, 기간: 55 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   e2e: ['실패!  - 실패:     1, 통과:     8, 건너뜀:     0, 전체:     9, 기간: 667 ms - ImageProcTest.E2ETests.dll (net8.0)']
+     red: AiWorkerMarkAtMinimumWidthScenarios.M01_TheMark_IsInTheAutomationTree_AtTheLaunchWidth_AndAtTheMinimumWidth [608 ms]
+     msg: The window is not at its minimum width, so this run says nothing about it: MinWidth 1280 DIP at 96 dpi = 1280 px expected; the window shrank to 1560 px; width after the check 1560 px; CanResize=True. PROBLEM: the smallest width the window accepts (1560 px) is
+     msg: M01 minimum width: MinWidth 1280 DIP at 96 dpi = 1280 px expected; the window shrank to 1560 px; width after the check 1560 px; CanResize=True. PROBLEM: the smallest width the window accepts (1560 px) is not the 1280 px that the app's MinWidth implies
+   restored byte-identical: True
+ARM the-verdict-rule-accepts-anything (ProblemWith always null): built=True
+   selfcheck: exit=0
+   functional: ['통과!  - 실패:     0, 통과:    37, 건너뜀:     0, 전체:    37, 기간: 60 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   e2e: ['실패!  - 실패:     1, 통과:     8, 건너뜀:     0, 전체:     9, 기간: 1 s - ImageProcTest.E2ETests.dll (net8.0)']
+     red: WindowMinimumWidthTests.AWindowThatStopsSomewhereElse_IsAProblem_WhichIsWhatAWideRunOrAWrongDpiLooksLike [< 1 ms]
+   restored byte-identical: True
+ARM the-fault-answers-the-inner-backend (the injected status is ignored): built=True
+   selfcheck: exit=3762504530 [6 ai-worker-disabled fault] the injected status was AiWorkerStatus { State = Unknown, ConsecutiveFailures = 0, Ceiling = 0, Detail = , Diagnostics =  } [6 ai-worker-disabled fault] the summary of the injected status was 'worker=Unknown' [6 ai-worker-disabled fault] the injected status does not show the mark
+   functional: ['통과!  - 실패:     0, 통과:    37, 건너뜀:     0, 전체:    37, 기간: 55 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   e2e: ['실패!  - 실패:     1, 통과:     8, 건너뜀:     0, 전체:     9, 기간: 20 s - ImageProcTest.E2ETests.dll (net8.0)']
+     red: AiWorkerMarkAtMinimumWidthScenarios.M01_TheMark_IsInTheAutomationTree_AtTheLaunchWidth_AndAtTheMinimumWidth [20 s]
+   restored byte-identical: True
+ARM the-parser-ignores-the-fault: built=True
+   selfcheck: exit=0
+   functional: ['실패!  - 실패:     2, 통과:    35, 건너뜀:     0, 전체:    37, 기간: 77 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: AutomationArgsTests.BothFaults_CanBeGivenTogether [< 1 ms]
+     red: AutomationArgsTests.AiWorkerDisabledFault_IsAcceptedExactly_AndArmsOnlyThatFault [< 1 ms]
+   e2e: ['실패!  - 실패:     1, 통과:     8, 건너뜀:     0, 전체:     9, 기간: 20 s - ImageProcTest.E2ETests.dll (net8.0)']
+     red: AiWorkerMarkAtMinimumWidthScenarios.M01_TheMark_IsInTheAutomationTree_AtTheLaunchWidth_AndAtTheMinimumWidth [20 s]
+   restored byte-identical: True
+ARM c09-drops-the-minimum-width-assertion: built=True
+   selfcheck: exit=0
+   functional: ['실패!  - 실패:     1, 통과:    36, 건너뜀:     0, 전체:    37, 기간: 68 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: AiWorkerPanelLayoutTests.C09_RunsAtTheMinimumWidth_WaitsForTheBannerAsAnEvent_AndItsFailureSaysWhatWasRead [1 ms]
+   e2e: ['통과!  - 실패:     0, 통과:     9, 건너뜀:     0, 전체:     9, 기간: 1 s - ImageProcTest.E2ETests.dll (net8.0)']
+   restored byte-identical: True
+AFTER RESTORE: True 0 ['통과!  - 실패:     0, 통과:    37, 건너뜀:     0, 전체:    37, 기간: 63 ms - ImageProcTest.IntegrationTests.dll (net8.0)'] ['통과!  - 실패:     0, 통과:     9, 건너뜀:     0, 전체:     9, 기간: 886 ms - ImageProcTest.E2ETests.dll (net8.0)']
+sources: 518e91b88c54 5a5f4bcbe263 964898cfdbbe 6407a78b3d9b 146fd39ce586

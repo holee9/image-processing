@@ -414,8 +414,19 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
         var directory = Path.Combine(Path.GetTempPath(), $"xpe-ai-e2e-{Environment.ProcessId}-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
         File.WriteAllText(Path.Combine(directory, "bone_suppress.onnx"), "not a model");
+        var originalWidth = 0;
         try
         {
+            // GUI-C-191: the mark has to be reachable at the narrowest window the app allows (MinWidth 1280). It sat in a ToolBar, and below
+            // about 1400 px the ToolBar sent it to its overflow popup, which is neither on screen nor in the automation tree; this run's
+            // window width is whatever the runner gives it, so the width is set here instead of left to the machine.
+            originalWidth = (int)window.BoundingRectangle.Width;
+            var minimum = WindowMinimumWidth.ResizeToMinimum(window);
+            output.WriteLine($"C09 window width before: {originalWidth}; at the minimum: {minimum.Describe()}");
+            // GUI-C-191b: "resized" is not "at the minimum". A window with no Transform pattern, or one that stopped somewhere else, would
+            // run the rest of this scenario at whatever width it had and say nothing about the narrow case, so it FAILS here.
+            Assert.True(minimum.Problem is null, "C-09 is not running at the window's minimum width: " + minimum.Describe());
+
             SetText(window, "AiModelDirectoryInput", directory);
             SetAiStage(window, false);
             ApplyDisplayPipeline(window);
@@ -431,8 +442,13 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
                 Assert.Matches(@"ai_bone_suppress: AI bone suppression (NOT applied|not attempted) \(code -?\d+", status);
                 Assert.DoesNotContain("was not found", status, StringComparison.Ordinal);
                 Assert.DoesNotContain("no model at", status, StringComparison.Ordinal);
-                Thread.Sleep(2500); // the render that follows the click, and the state read after it
-                shown = AiBanner(window) is not null;
+                // The render that follows the click, and the state read after it. Waited for as an event (the banner appearing) inside the same
+                // 2.5 s bound it always had: a banner that is there ends the wait at once, one that is not costs the full bound as before.
+                // GUI-C-191b: how long after the chain text the banner takes, logged every attempt: the 2.5 s bound has to come from what the
+                // native runs measure, and it is not raised here.
+                var sinceChain = System.Diagnostics.Stopwatch.StartNew();
+                shown = PollFor(() => AiBanner(window) is not null, TimeSpan.FromMilliseconds(2500));
+                var bannerAfterChain = shown ? $"{sinceChain.ElapsedMilliseconds} ms" : $"not within {sinceChain.ElapsedMilliseconds} ms";
 
                 // Diagnostics only: nothing here is asserted. The summary is the GUI's reading of the module's state; the diagnostics
                 // are the module's own raw answers (its state before this process's init, the init call, each read), so a red run says
@@ -449,15 +465,21 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
                     diagnostics = $"(unreadable: {ex.GetType().Name}: {ex.Message})";
                 }
 
-                var line = $"attempt {attempt}: banner={(shown ? "shown" : "absent")}; summary='{summary}'; diagnostics='{diagnostics}'";
+                var line = $"attempt {attempt}: banner={(shown ? "shown" : "absent")} (after the chain text: {bannerAfterChain}); summary='{summary}'; diagnostics='{diagnostics}'";
                 seen.Add(line);
                 output.WriteLine($"C09 {line}");
             }
 
             var banner = AiBanner(window);
+            // GUI-C-191: the failure says what was READ, not what it guesses. The first native run said "the module never reported the
+            // worker switched off" over a line that read `worker=Disabled`: the module HAD said so, and the mark was missing on screen.
+            var lastSummary = AiStatusSummary(window);
+            var width = (int)window.BoundingRectangle.Width;
             Assert.True(banner is not null,
-                "Six failed calls in a row, and the module never reported the worker switched off. What the app said after each attempt: "
-                + string.Join(" | ", seen));
+                (lastSummary.StartsWith("worker=Disabled", StringComparison.Ordinal)
+                    ? $"The app's own status says the worker is switched off ('{lastSummary}'), and the mark is not in the automation tree (window width {width}). "
+                    : $"After six attempts the app never read the worker as switched off (last status '{lastSummary}'; window width {width}). ")
+                + "What the app said after each attempt: " + string.Join(" | ", seen));
             var text = banner!.Name;
             output.WriteLine($"C09 mark: '{text}'");
             var numbers = Regex.Match(text, @"after (\d+) of (\d+) failures");
@@ -499,8 +521,47 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             SetAiStage(window, false);
             SetText(window, "AiModelDirectoryInput", string.Empty);
             ApplyDisplayPipeline(window);
+            if (originalWidth > 0)
+            {
+                ResizeTo(window, originalWidth);
+            }
+
             Directory.Delete(directory, recursive: true);
         }
+    }
+
+    /// <summary>Polls for <paramref name="condition"/> and returns at once when it holds; false when it did not within <paramref name="limit"/>.</summary>
+    private static bool PollFor(Func<bool> condition, TimeSpan limit)
+    {
+        var deadline = DateTime.UtcNow + limit;
+        while (true)
+        {
+            if (condition())
+            {
+                return true;
+            }
+
+            if (DateTime.UtcNow >= deadline)
+            {
+                return false;
+            }
+
+            Thread.Sleep(100);
+        }
+    }
+
+    /// <summary>Resizes the window through UI Automation, keeping its height; the width it ended up with, or -1 when the window cannot be resized.</summary>
+    private static int ResizeTo(Window window, int width)
+    {
+        var transform = window.Patterns.Transform.PatternOrDefault;
+        if (transform is null || !transform.CanResize)
+        {
+            return -1;
+        }
+
+        transform.Resize(width, window.BoundingRectangle.Height);
+        PollFor(() => (int)window.BoundingRectangle.Width == width, TimeSpan.FromSeconds(3));
+        return (int)window.BoundingRectangle.Width;
     }
 
     private static FlaUI.Core.AutomationElements.AutomationElement? AiBanner(Window window) =>

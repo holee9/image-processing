@@ -26,10 +26,11 @@ public partial class MainWindow : System.Windows.Window
         _settingsFilePath = settingsService.FilePath;
         // #171 (GUI-C-79): Wrap returns the real backend untouched unless --automation-fault was given.
         var failAfter = App.AutomationDisplayPipelineFailAfter;
+        var aiWorkerDisabled = App.AutomationAiWorkerDisabled;
         var viewModel = new MainWindowViewModel(
             settings,
             settingsService,
-            s => FaultInjectingBackend.Wrap(XpeBackendFactory.Create(s), failAfter),
+            s => FaultInjectingBackend.Wrap(XpeBackendFactory.Create(s), failAfter, aiWorkerDisabled),
             preservedSettingsPath,
             preservedIsFromEarlier);
         DataContext = viewModel;

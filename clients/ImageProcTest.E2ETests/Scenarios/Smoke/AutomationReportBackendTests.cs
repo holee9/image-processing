@@ -707,11 +707,19 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
         var present = report.TryGetProperty(property, out var value) &&
                       value.ValueKind is JsonValueKind.True or JsonValueKind.False;
 
-        // GUI-C-190b: ONE sentence used to cover every missing verdict ("no executable beside the app"), and a runner that had grown
-        // past the app's wait for it was read as that. The text now follows the status line (RunnerVerdictWording).
-        Skip.IfNot(present, RunnerVerdictWording.NoVerdict(label, runnerProject, status));
+        if (present)
+        {
+            return value.GetBoolean();
+        }
 
-        return value.GetBoolean();
+        // GUI-C-190b/191: ONE sentence used to cover every missing verdict ("no executable beside the app"), and a runner that had grown
+        // past the app's wait for it was read as that. The text follows the status line (RunnerVerdictWording), and only a configuration
+        // WITHOUT the runner skips: a runner that is there and gave no verdict (too slow, could not start, unexplained) is an observed
+        // problem and fails, with the status line quoted.
+        var gap = RunnerVerdictWording.Classify(status);
+        var reason = RunnerVerdictWording.NoVerdict(label, runnerProject, status);
+        Skip.If(RunnerVerdictWording.SkipsInsteadOfFailing(gap), reason);
+        throw new Xunit.Sdk.XunitException(reason);
     }
 
     /// <summary>

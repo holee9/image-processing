@@ -170,5 +170,49 @@ public sealed class AutomationArgsTests
         Assert.False(parsed.IsValid);
         Assert.Contains("--automation-fault", parsed.Error, StringComparison.Ordinal);
         Assert.Null(parsed.DisplayPipelineFailAfter);
+        Assert.False(parsed.AiWorkerDisabled);
+    }
+
+    // ---- GUI-C-191b: the second fault, ai-worker-disabled ----------------------------------------------------------------------------
+
+    [Fact]
+    public void AiWorkerDisabledFault_IsAcceptedExactly_AndArmsOnlyThatFault()
+    {
+        var parsed = AutomationArgs.Parse(["--automation-fault", "ai-worker-disabled"]);
+
+        Assert.True(parsed.IsValid);
+        Assert.True(parsed.AiWorkerDisabled);
+        Assert.Null(parsed.DisplayPipelineFailAfter);   // the other fault stays off
+    }
+
+    [Fact]
+    public void AiWorkerDisabledFault_IsOffUnlessGiven()
+    {
+        Assert.False(AutomationArgs.Parse(["--automation-raw", "frame.raw"]).AiWorkerDisabled);
+        Assert.False(AutomationArgs.Parse(["--automation-fault", "display-pipeline-after:2"]).AiWorkerDisabled);
+    }
+
+    [Fact]
+    public void BothFaults_CanBeGivenTogether()
+    {
+        var parsed = AutomationArgs.Parse(["--automation-fault", "display-pipeline-after:2", "--automation-fault", "ai-worker-disabled"]);
+
+        Assert.True(parsed.IsValid);
+        Assert.True(parsed.AiWorkerDisabled);
+        Assert.Equal(2, parsed.DisplayPipelineFailAfter);
+    }
+
+    [Theory]
+    [InlineData("AI-Worker-Disabled")]
+    [InlineData("ai-worker-disabled ")]
+    [InlineData("ai-worker-enabled")]
+    [InlineData("ai-worker-disabled:1")]
+    public void AiWorkerDisabledFault_RefusesAnySpellingButTheExactOne(string given)
+    {
+        var parsed = AutomationArgs.Parse(["--automation-report", "r.json", "--automation-fault", given]);
+
+        Assert.False(parsed.IsValid);
+        Assert.Contains("--automation-fault", parsed.Error, StringComparison.Ordinal);
+        Assert.False(parsed.AiWorkerDisabled);
     }
 }

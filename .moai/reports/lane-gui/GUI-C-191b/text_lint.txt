@@ -1,0 +1,19 @@
+gui/ImageProcTest/App.xaml.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=134
+gui/ImageProcTest/MainWindow.xaml.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=926
+gui/ImageProcTest/Services/AutomationArgs.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=210
+gui/ImageProcTest/Services/FaultInjectingBackend.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=102
+gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=688
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ProcessingChainScenarios.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=716
+clients/ImageProcTest.E2ETests/Fixtures/AiWorkerDisabledApplicationFixture.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=25
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/AiWorkerMarkAtMinimumWidthScenarios.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=61
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/WindowMinimumWidth.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=112
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/WindowMinimumWidthTests.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=52
+clients/ImageProcTest.IntegrationTests/Functional/AiWorkerPanelLayoutTests.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=93
+clients/ImageProcTest.IntegrationTests/Functional/AutomationArgsTests.cs: trailing_ws=0 control_bytes=0 crlf=218 lf=218
+clients/ImageProcTest.IntegrationTests/Functional/AutomationRunSelectionConsumptionTests.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=185
+.moai/reports/lane-gui/GUI-C-191b/report.md: trailing_ws=0 control_bytes=0 crlf=0 lf=73
+.moai/reports/lane-gui/GUI-C-191b/falsification_arms.txt: trailing_ws=0 control_bytes=0 crlf=0 lf=47
+.moai/reports/lane-gui/GUI-C-191b/stale_status_read_observation.txt: trailing_ws=0 control_bytes=0 crlf=0 lf=30
+.moai/reports/lane-gui/GUI-C-191b/selfcheck_runs.txt: trailing_ws=0 control_bytes=0 crlf=13 lf=13
+.moai/reports/lane-gui/GUI-C-191b/local_runs.txt: trailing_ws=0 control_bytes=0 crlf=0 lf=6
+TOTAL=0

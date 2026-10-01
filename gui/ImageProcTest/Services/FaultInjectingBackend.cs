@@ -20,26 +20,30 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
 {
     private readonly IXpeBackend _inner;
     private readonly int _failAfter;
+    private readonly bool _displayFault;
+    private readonly bool _aiWorkerDisabled;
     private int _calls;
 
-    private FaultInjectingBackend(IXpeBackend inner, int failAfter)
+    private FaultInjectingBackend(IXpeBackend inner, int? failAfter, bool aiWorkerDisabled)
     {
         _inner = inner;
-        _failAfter = failAfter;
+        _displayFault = failAfter is not null;
+        _failAfter = failAfter ?? int.MaxValue;
+        _aiWorkerDisabled = aiWorkerDisabled;
     }
 
     /// <summary>The last wrapper created in this process, or null when fault injection is off.</summary>
     public static FaultInjectingBackend? Armed { get; private set; }
 
     /// <summary>Returns <paramref name="backend"/> itself unless a fault was requested.</summary>
-    public static IXpeBackend Wrap(IXpeBackend backend, int? failAfter)
+    public static IXpeBackend Wrap(IXpeBackend backend, int? failAfter, bool aiWorkerDisabled = false)
     {
-        if (failAfter is null)
+        if (failAfter is null && !aiWorkerDisabled)
         {
             return backend;
         }
 
-        Armed = new FaultInjectingBackend(backend, failAfter.Value);
+        Armed = new FaultInjectingBackend(backend, failAfter, aiWorkerDisabled);
         return Armed;
     }
 
@@ -47,7 +51,10 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
     public static string Describe() =>
         Armed is null
             ? "faultInjection=off"
-            : $"faultInjection={AutomationArgs.DisplayPipelineFaultPrefix}{Armed._failAfter} calls={Armed._calls}";
+            : Armed._displayFault
+                ? $"faultInjection={AutomationArgs.DisplayPipelineFaultPrefix}{Armed._failAfter} calls={Armed._calls}"
+                    + (Armed._aiWorkerDisabled ? $" {AutomationArgs.AiWorkerDisabledFault}" : string.Empty)
+                : $"faultInjection={AutomationArgs.AiWorkerDisabledFault} calls={Armed._calls}";
 
     public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
     {
@@ -75,7 +82,9 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
 
     // GUI-C-185: the wrapper adds no fault of its own to the AI session; it passes the question to the backend it wraps.
     AiWorkerStatus IAiSessionBackend.GetAiWorkerStatus() =>
-        _inner is IAiSessionBackend session ? session.GetAiWorkerStatus() : AiWorkerStatus.Unknown;
+        _aiWorkerDisabled
+            ? new AiWorkerStatus(AiWorkerState.Disabled, 3, 3)   // the injected fault: the worker is "switched off after 3 of 3"
+            : _inner is IAiSessionBackend session ? session.GetAiWorkerStatus() : AiWorkerStatus.Unknown;
 
     AiRestartResult IAiSessionBackend.RestartAiSession(string modelDirectory) =>
         (_inner as IAiSessionBackend)?.RestartAiSession(modelDirectory)

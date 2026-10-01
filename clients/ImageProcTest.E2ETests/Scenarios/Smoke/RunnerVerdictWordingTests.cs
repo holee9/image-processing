@@ -58,6 +58,42 @@ public sealed class RunnerVerdictWordingTests
         Assert.Contains(status, text, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(RunnerVerdictGap.NoExecutable, true)]
+    [InlineData(RunnerVerdictGap.StillRunning, false)]
+    [InlineData(RunnerVerdictGap.DidNotStart, false)]
+    [InlineData(RunnerVerdictGap.Unexplained, false)]
+    public void OnlyAMissingExecutableSkips_EveryOtherGapFails(RunnerVerdictGap gap, bool skips)
+    {
+        Assert.Equal(skips, RunnerVerdictWording.SkipsInsteadOfFailing(gap));
+    }
+
+    /// <summary>The scenarios' own gate (VerdictOrSkip) applies that rule, and throws with the quoted status line (a source reading).</summary>
+    [Fact]
+    public void VerdictOrSkip_SkipsOnlyThroughTheRule_AndOtherwiseThrowsTheReason()
+    {
+        string? source = null;
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        {
+            var candidate = Path.Combine(dir.FullName, "clients", "ImageProcTest.E2ETests", "Scenarios", "Smoke", "AutomationReportBackendTests.cs");
+            if (File.Exists(candidate))
+            {
+                source = File.ReadAllText(candidate);
+                break;
+            }
+        }
+
+        Assert.True(source is not null, "AutomationReportBackendTests.cs was not found above the test output directory.");
+        var start = source!.IndexOf("private static bool VerdictOrSkip(", StringComparison.Ordinal);
+        var end = source.IndexOf("The staged native directory, or a skip.", start, StringComparison.Ordinal);
+        Assert.True(start >= 0 && end > start, "VerdictOrSkip was not found.");
+        var body = source[start..end];
+
+        Assert.Contains("Skip.If(RunnerVerdictWording.SkipsInsteadOfFailing(gap), reason);", body, StringComparison.Ordinal);
+        Assert.Contains("throw new Xunit.Sdk.XunitException(reason);", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("Skip.IfNot(present", body, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void TheFourCauses_AreFourDifferentTexts()
     {

@@ -2,7 +2,7 @@
 namespace ImageProcTest.E2ETests.Scenarios.Smoke;
 
 /// <summary>What a missing verdict means.</summary>
-internal enum RunnerVerdictGap
+public enum RunnerVerdictGap
 {
     /// <summary>There is no runner executable (or no checkout to find it in). Normal where the job builds only the app.</summary>
     NoExecutable,
@@ -22,7 +22,7 @@ internal enum RunnerVerdictGap
 /// configuration has no runner executable beside the app" — and a runner that had grown from 9 s to 17 s, past the 15 s the app waits
 /// for it, was read as exactly that. The text now follows the status line the app left, which says which of the three it was.
 /// </summary>
-internal static class RunnerVerdictWording
+public static class RunnerVerdictWording
 {
     public static RunnerVerdictGap Classify(string status)
     {
@@ -45,7 +45,14 @@ internal static class RunnerVerdictWording
         return RunnerVerdictGap.Unexplained;
     }
 
-    /// <summary>The reason shown for a scenario that has no verdict to judge. Every text starts with the cause in capitals.</summary>
+    /// <summary>
+    /// Only a configuration WITHOUT the runner skips (GUI-C-191, leader decision on the GUI-C-190b report): the runner being absent is a
+    /// property of the environment. A runner that is there and gave no verdict in time, could not be started, or left a status line
+    /// nobody recognises is something that was observed, and it fails.
+    /// </summary>
+    public static bool SkipsInsteadOfFailing(RunnerVerdictGap gap) => gap == RunnerVerdictGap.NoExecutable;
+
+    /// <summary>The reason shown for a scenario that has no verdict to judge (a skip or a failure; see <see cref="SkipsInsteadOfFailing"/>). Every text starts with the cause in capitals.</summary>
     public static string NoVerdict(string label, string runnerProject, string status) => Classify(status) switch
     {
         RunnerVerdictGap.NoExecutable =>
