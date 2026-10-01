@@ -1,0 +1,19 @@
+Note: Google Test filter = AiLogMacrosSpdlog.ModelNotFoundWithNoDefault*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from AiLogMacrosSpdlog
+[ RUN      ] AiLogMacrosSpdlog.ModelNotFoundWithNoDefaultLoggerStillReturnsTheOriginalError
+unknown file: error: SEH exception with code 0xc0000005 thrown in the test body.
+Stack trace:
+
+
+[  FAILED  ] AiLogMacrosSpdlog.ModelNotFoundWithNoDefaultLoggerStillReturnsTheOriginalError (0 ms)
+[----------] 1 test from AiLogMacrosSpdlog (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] AiLogMacrosSpdlog.ModelNotFoundWithNoDefaultLoggerStillReturnsTheOriginalError
+
+ 1 FAILED TEST

@@ -371,6 +371,10 @@ endif()
 option(XPE_AI_TEST_HOOKS "Compile the test-only hooks into xpe_ai.dll; OFF for a delivery build" ${_XPE_AI_BUILD_TESTS})
 if(XPE_AI_TEST_HOOKS)
     target_compile_definitions(xpe_ai PRIVATE XPE_AI_TEST_HOOKS=1)
+    # QA-B-177: also let a test attach a sink to the DLL's own spdlog, to read the log text as emitted.
+    if(TARGET spdlog::spdlog)
+        target_compile_definitions(xpe_ai PRIVATE XPE_AI_TEST_LOG_CAPTURE=1)
+    endif()
 endif()
 
 if(_XPE_AI_BUILD_TESTS)
@@ -382,6 +386,12 @@ if(_XPE_AI_BUILD_TESTS)
     # root CMakeLists (#109). Moved in QA-B-33; the target is unchanged.
     set(XPE_AI_TEST_SOURCES
         test_ai_abi.cpp
+        # QA-B-177: log text must carry values, not printf placeholders (DLL call sites + both macro branches)
+        test_ai_log_format.cpp
+        test_ai_log_macros.cpp
+        test_ai_log_macros_spdlog.cpp
+        # QA-B-178: xpe_ai_shutdown ends its lock before deleting the state
+        test_ai_shutdown_lifetime.cpp
         test_ai_fallback.cpp
         test_ai_model_card.cpp
         test_ai_worker_isolation.cpp
@@ -519,6 +529,20 @@ if(_XPE_AI_BUILD_TESTS)
 
         if(XPE_AI_TEST_HOOKS)
             target_compile_definitions(xpe_ai_tests PRIVATE XPE_AI_TEST_HOOKS=1)   # the option above
+            if(TARGET spdlog::spdlog)
+                target_compile_definitions(xpe_ai_tests PRIVATE XPE_AI_TEST_LOG_CAPTURE=1)
+            endif()
+        endif()
+        # QA-B-177b: test seam in ai_log.h (exe only, never the DLL) so allocation failures can be injected
+        # strictly inside log calls.
+        target_compile_definitions(xpe_ai_tests PRIVATE XPE_AI_LOG_TEST_SCOPE=1)
+        if(TARGET spdlog::spdlog)
+            # the exe compiles ai_onnx_session.cpp itself; give it the DLL's logging configuration so its LOG_* are live
+            target_compile_definitions(xpe_ai_tests PRIVATE XPE_AI_USE_SPDLOG=1)
+        endif()
+        # QA-B-177: the macro-level log tests compile ai_log.h's spdlog branch themselves and need spdlog.
+        if(TARGET spdlog::spdlog)
+            target_link_libraries(xpe_ai_tests PRIVATE spdlog::spdlog)
         endif()
 
         target_include_directories(xpe_ai_tests

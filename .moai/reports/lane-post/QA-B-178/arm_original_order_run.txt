@@ -1,0 +1,336 @@
+Note: Google Test filter = ShutdownLifetime*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from ShutdownLifetimeFixture
+[ RUN      ] ShutdownLifetimeFixture.TheStateMutexIsNotHeldWhenTheStateIsDeleted
+[2026-10-02 00:20:28.220] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.221] [info] xpe_ai shutdown: worker_pid=0
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_shutdown_lifetime.cpp(58): error: Expected equality of these values:
+  0
+  g_heldCalls.load()
+    Which is: 1
+xpe_ai_shutdown deletes the state while its lock_guard is still alive
+
+[  FAILED  ] ShutdownLifetimeFixture.TheStateMutexIsNotHeldWhenTheStateIsDeleted (1 ms)
+[ RUN      ] ShutdownLifetimeFixture.ShuttingDownAnUninitialisedModuleIsANoOp
+[       OK ] ShutdownLifetimeFixture.ShuttingDownAnUninitialisedModuleIsANoOp (0 ms)
+[ RUN      ] ShutdownLifetimeFixture.ARepeatedInitUseShutdownCycleStaysCorrect
+[2026-10-02 00:20:28.222] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.222] [info] Fallback mode enabled
+[2026-10-02 00:20:28.222] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.222] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.222] [info] Fallback mode enabled
+[2026-10-02 00:20:28.222] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.222] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.222] [info] Fallback mode enabled
+[2026-10-02 00:20:28.222] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.222] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.222] [info] Fallback mode enabled
+[2026-10-02 00:20:28.222] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.222] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.222] [info] Fallback mode enabled
+[2026-10-02 00:20:28.222] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.222] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.222] [info] Fallback mode enabled
+[2026-10-02 00:20:28.222] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.222] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.222] [info] Fallback mode enabled
+[2026-10-02 00:20:28.222] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.222] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.222] [info] Fallback mode enabled
+[2026-10-02 00:20:28.222] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.222] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.222] [info] Fallback mode enabled
+[2026-10-02 00:20:28.222] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.223] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.223] [info] Fallback mode enabled
+[2026-10-02 00:20:28.223] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.223] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.223] [info] Fallback mode enabled
+[2026-10-02 00:20:28.223] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.223] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.223] [info] Fallback mode enabled
+[2026-10-02 00:20:28.223] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.223] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.223] [info] Fallback mode enabled
+[2026-10-02 00:20:28.223] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.223] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.223] [info] Fallback mode enabled
+[2026-10-02 00:20:28.223] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.223] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.223] [info] Fallback mode enabled
+[2026-10-02 00:20:28.223] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.223] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.223] [info] Fallback mode enabled
+[2026-10-02 00:20:28.223] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.223] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.223] [info] Fallback mode enabled
+[2026-10-02 00:20:28.223] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.223] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.223] [info] Fallback mode enabled
+[2026-10-02 00:20:28.223] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.223] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.223] [info] Fallback mode enabled
+[2026-10-02 00:20:28.223] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.223] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.223] [info] Fallback mode enabled
+[2026-10-02 00:20:28.223] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.223] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.223] [info] Fallback mode enabled
+[2026-10-02 00:20:28.223] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.223] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.223] [info] Fallback mode enabled
+[2026-10-02 00:20:28.223] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.223] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.223] [info] Fallback mode enabled
+[2026-10-02 00:20:28.223] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.224] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.224] [info] Fallback mode enabled
+[2026-10-02 00:20:28.224] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.224] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.224] [info] Fallback mode enabled
+[2026-10-02 00:20:28.224] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.224] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.224] [info] Fallback mode enabled
+[2026-10-02 00:20:28.224] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.224] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.224] [info] Fallback mode enabled
+[2026-10-02 00:20:28.224] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.224] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.224] [info] Fallback mode enabled
+[2026-10-02 00:20:28.224] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.224] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.224] [info] Fallback mode enabled
+[2026-10-02 00:20:28.224] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.224] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.224] [info] Fallback mode enabled
+[2026-10-02 00:20:28.224] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.224] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.224] [info] Fallback mode enabled
+[2026-10-02 00:20:28.224] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.224] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.224] [info] Fallback mode enabled
+[2026-10-02 00:20:28.224] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.224] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.224] [info] Fallback mode enabled
+[2026-10-02 00:20:28.224] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.224] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.224] [info] Fallback mode enabled
+[2026-10-02 00:20:28.224] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.224] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.224] [info] Fallback mode enabled
+[2026-10-02 00:20:28.224] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.224] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.224] [info] Fallback mode enabled
+[2026-10-02 00:20:28.224] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.225] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.225] [info] Fallback mode enabled
+[2026-10-02 00:20:28.225] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.225] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.225] [info] Fallback mode enabled
+[2026-10-02 00:20:28.225] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.225] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.225] [info] Fallback mode enabled
+[2026-10-02 00:20:28.225] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.225] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.225] [info] Fallback mode enabled
+[2026-10-02 00:20:28.225] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.225] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.225] [info] Fallback mode enabled
+[2026-10-02 00:20:28.225] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.225] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.225] [info] Fallback mode enabled
+[2026-10-02 00:20:28.225] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.225] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.225] [info] Fallback mode enabled
+[2026-10-02 00:20:28.225] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.225] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.225] [info] Fallback mode enabled
+[2026-10-02 00:20:28.225] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.225] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.225] [info] Fallback mode enabled
+[2026-10-02 00:20:28.225] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.225] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.225] [info] Fallback mode enabled
+[2026-10-02 00:20:28.225] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.225] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.225] [info] Fallback mode enabled
+[2026-10-02 00:20:28.225] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.225] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.225] [info] Fallback mode enabled
+[2026-10-02 00:20:28.225] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.225] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.225] [info] Fallback mode enabled
+[2026-10-02 00:20:28.225] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.225] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.225] [info] Fallback mode enabled
+[2026-10-02 00:20:28.225] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.225] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.225] [info] Fallback mode enabled
+[2026-10-02 00:20:28.225] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.226] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.226] [info] Fallback mode enabled
+[2026-10-02 00:20:28.226] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.226] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.226] [info] Fallback mode enabled
+[2026-10-02 00:20:28.226] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.226] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.226] [info] Fallback mode enabled
+[2026-10-02 00:20:28.226] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.226] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.226] [info] Fallback mode enabled
+[2026-10-02 00:20:28.226] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.226] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.226] [info] Fallback mode enabled
+[2026-10-02 00:20:28.226] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.226] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.226] [info] Fallback mode enabled
+[2026-10-02 00:20:28.226] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.226] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.226] [info] Fallback mode enabled
+[2026-10-02 00:20:28.226] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.226] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.226] [info] Fallback mode enabled
+[2026-10-02 00:20:28.226] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.226] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.226] [info] Fallback mode enabled
+[2026-10-02 00:20:28.226] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.226] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.226] [info] Fallback mode enabled
+[2026-10-02 00:20:28.226] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.226] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.226] [info] Fallback mode enabled
+[2026-10-02 00:20:28.226] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.226] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.226] [info] Fallback mode enabled
+[2026-10-02 00:20:28.226] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.226] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.226] [info] Fallback mode enabled
+[2026-10-02 00:20:28.226] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.226] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.226] [info] Fallback mode enabled
+[2026-10-02 00:20:28.226] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.227] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.227] [info] Fallback mode enabled
+[2026-10-02 00:20:28.227] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.227] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.227] [info] Fallback mode enabled
+[2026-10-02 00:20:28.227] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.227] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.227] [info] Fallback mode enabled
+[2026-10-02 00:20:28.227] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.227] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.227] [info] Fallback mode enabled
+[2026-10-02 00:20:28.227] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.227] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.227] [info] Fallback mode enabled
+[2026-10-02 00:20:28.227] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.227] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.227] [info] Fallback mode enabled
+[2026-10-02 00:20:28.227] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.227] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.227] [info] Fallback mode enabled
+[2026-10-02 00:20:28.227] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.227] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.227] [info] Fallback mode enabled
+[2026-10-02 00:20:28.227] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.227] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.227] [info] Fallback mode enabled
+[2026-10-02 00:20:28.227] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.227] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.227] [info] Fallback mode enabled
+[2026-10-02 00:20:28.227] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.227] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.227] [info] Fallback mode enabled
+[2026-10-02 00:20:28.227] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.227] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.227] [info] Fallback mode enabled
+[2026-10-02 00:20:28.227] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.227] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.227] [info] Fallback mode enabled
+[2026-10-02 00:20:28.227] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.228] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.228] [info] Fallback mode enabled
+[2026-10-02 00:20:28.228] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.228] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.228] [info] Fallback mode enabled
+[2026-10-02 00:20:28.228] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.228] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.228] [info] Fallback mode enabled
+[2026-10-02 00:20:28.228] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.228] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.228] [info] Fallback mode enabled
+[2026-10-02 00:20:28.228] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.228] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.228] [info] Fallback mode enabled
+[2026-10-02 00:20:28.228] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.228] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.228] [info] Fallback mode enabled
+[2026-10-02 00:20:28.228] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.228] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.228] [info] Fallback mode enabled
+[2026-10-02 00:20:28.228] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.228] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.228] [info] Fallback mode enabled
+[2026-10-02 00:20:28.228] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.228] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.228] [info] Fallback mode enabled
+[2026-10-02 00:20:28.228] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.228] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.228] [info] Fallback mode enabled
+[2026-10-02 00:20:28.228] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.228] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.228] [info] Fallback mode enabled
+[2026-10-02 00:20:28.228] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.228] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.228] [info] Fallback mode enabled
+[2026-10-02 00:20:28.228] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.228] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.228] [info] Fallback mode enabled
+[2026-10-02 00:20:28.229] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.229] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.229] [info] Fallback mode enabled
+[2026-10-02 00:20:28.229] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.229] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.229] [info] Fallback mode enabled
+[2026-10-02 00:20:28.229] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.229] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.229] [info] Fallback mode enabled
+[2026-10-02 00:20:28.229] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.229] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.229] [info] Fallback mode enabled
+[2026-10-02 00:20:28.229] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.229] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.229] [info] Fallback mode enabled
+[2026-10-02 00:20:28.229] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.229] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.229] [info] Fallback mode enabled
+[2026-10-02 00:20:28.229] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.229] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.229] [info] Fallback mode enabled
+[2026-10-02 00:20:28.229] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.229] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.229] [info] Fallback mode enabled
+[2026-10-02 00:20:28.229] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 00:20:28.229] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.229] [info] Fallback mode enabled
+[2026-10-02 00:20:28.229] [info] xpe_ai shutdown: worker_pid=0
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_shutdown_lifetime.cpp(77): error: Expected equality of these values:
+  0
+  g_heldCalls.load()
+    Which is: 100
+
+[2026-10-02 00:20:28.229] [info] xpe_ai initialized: model_dir=C:/xpe_lifetime_probe/models, ep=0, timeout=5000 ms
+[2026-10-02 00:20:28.229] [info] Fallback mode enabled
+[2026-10-02 00:20:28.229] [info] xpe_ai shutdown: worker_pid=0
+[  FAILED  ] ShutdownLifetimeFixture.ARepeatedInitUseShutdownCycleStaysCorrect (7 ms)
+[----------] 3 tests from ShutdownLifetimeFixture (9 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] ShutdownLifetimeFixture.TheStateMutexIsNotHeldWhenTheStateIsDeleted
+[  FAILED  ] ShutdownLifetimeFixture.ARepeatedInitUseShutdownCycleStaysCorrect
+
+ 2 FAILED TESTS

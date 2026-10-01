@@ -1,0 +1,75 @@
+Note: Google Test filter = AiLogFixture.*:AiLogMacros*.*
+[==========] Running 16 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 6 tests from AiLogFixture
+[ RUN      ] AiLogFixture.InitLogsTheRealModelDirectoryAndSettingsNotPlaceholders
+[2026-10-01 23:39:38.236] [info] xpe_ai initialized: model_dir=C:/xpe_log_probe/models_abc, ep=0, timeout=1234 ms
+[2026-10-01 23:39:38.237] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiLogFixture.InitLogsTheRealModelDirectoryAndSettingsNotPlaceholders (0 ms)
+[ RUN      ] AiLogFixture.ShutdownLogsTheRealWorkerPid
+[2026-10-01 23:39:38.237] [info] xpe_ai initialized: model_dir=C:/xpe_log_probe/models_abc, ep=0, timeout=5000 ms
+[2026-10-01 23:39:38.237] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiLogFixture.ShutdownLogsTheRealWorkerPid (0 ms)
+[ RUN      ] AiLogFixture.FallbackModeMessageNamesTheState
+[2026-10-01 23:39:38.237] [info] xpe_ai initialized: model_dir=C:/xpe_log_probe/models_abc, ep=0, timeout=5000 ms
+[2026-10-01 23:39:38.237] [info] Fallback mode enabled
+[2026-10-01 23:39:38.237] [info] Fallback mode disabled
+[2026-10-01 23:39:38.237] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiLogFixture.FallbackModeMessageNamesTheState (0 ms)
+[ RUN      ] AiLogFixture.WorkerPathFailureLogCarriesTheCodeAndTheCount
+[2026-10-01 23:39:38.237] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-01 23:39:38.278] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-01 23:39:38.278] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-01 23:39:38.278] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiLogFixture.WorkerPathFailureLogCarriesTheCodeAndTheCount (42 ms)
+[ RUN      ] AiLogFixture.InProcessErrorLogNamesThePath
+[2026-10-01 23:39:38.280] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-01 23:39:38.280] [error] Model file not found: D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing/bone_suppress.onnx
+[2026-10-01 23:39:38.280] [error] bone_suppress: no model at D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing/bone_suppress.onnx
+[2026-10-01 23:39:38.280] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiLogFixture.InProcessErrorLogNamesThePath (0 ms)
+[ RUN      ] AiLogFixture.NoPrintfPlaceholderSurvivesAnyLoggedPath
+[2026-10-01 23:39:38.280] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=2000 ms
+[2026-10-01 23:39:38.280] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-01 23:39:38.280] [info] Fallback mode enabled
+[2026-10-01 23:39:38.280] [info] Fallback mode disabled
+[2026-10-01 23:39:38.324] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-01 23:39:38.324] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-01 23:39:38.324] [warning] bone_suppress: worker path failed (-9), input returned unchanged (3 of 3 consecutive failures)
+[2026-10-01 23:39:38.325] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-01 23:39:38.325] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-01 23:39:38.325] [error] Model file not found: D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing/bone_suppress.onnx
+[2026-10-01 23:39:38.325] [error] bone_suppress: no model at D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing/bone_suppress.onnx
+[2026-10-01 23:39:38.325] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiLogFixture.NoPrintfPlaceholderSurvivesAnyLoggedPath (45 ms)
+[----------] 6 tests from AiLogFixture (89 ms total)
+
+[----------] 3 tests from AiLogMacrosPrintf
+[ RUN      ] AiLogMacrosPrintf.FormatsItsArgumentsAndPrefixesTheLevel
+[       OK ] AiLogMacrosPrintf.FormatsItsArgumentsAndPrefixesTheLevel (1 ms)
+[ RUN      ] AiLogMacrosPrintf.TraceAndDebugEmitNothing
+[       OK ] AiLogMacrosPrintf.TraceAndDebugEmitNothing (0 ms)
+[ RUN      ] AiLogMacrosPrintf.ACallIsOneStatementAfterAnUnbracedIf
+[       OK ] AiLogMacrosPrintf.ACallIsOneStatementAfterAnUnbracedIf (1 ms)
+[----------] 3 tests from AiLogMacrosPrintf (2 ms total)
+
+[----------] 7 tests from AiLogMacrosSpdlog
+[ RUN      ] AiLogMacrosSpdlog.FormatsPrintfArgumentsInsteadOfPrintingPlaceholders
+[       OK ] AiLogMacrosSpdlog.FormatsPrintfArgumentsInsteadOfPrintingPlaceholders (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.EachLevelKeepsItsSpdlogLevel
+[       OK ] AiLogMacrosSpdlog.EachLevelKeepsItsSpdlogLevel (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.BracesInTheDataAreNotAFormat
+[       OK ] AiLogMacrosSpdlog.BracesInTheDataAreNotAFormat (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.ALiteralWithBracesAndNoArgumentsIsLoggedAsWritten
+[       OK ] AiLogMacrosSpdlog.ALiteralWithBracesAndNoArgumentsIsLoggedAsWritten (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.APercentSignIsWrittenWithPercentPercent
+[       OK ] AiLogMacrosSpdlog.APercentSignIsWrittenWithPercentPercent (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.ALongMessageIsNotTruncated
+[       OK ] AiLogMacrosSpdlog.ALongMessageIsNotTruncated (0 ms)
+[ RUN      ] AiLogMacrosSpdlog.ACallIsOneStatementAfterAnUnbracedIf
+[       OK ] AiLogMacrosSpdlog.ACallIsOneStatementAfterAnUnbracedIf (0 ms)
+[----------] 7 tests from AiLogMacrosSpdlog (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 16 tests from 3 test suites ran. (92 ms total)
+[  PASSED  ] 16 tests.

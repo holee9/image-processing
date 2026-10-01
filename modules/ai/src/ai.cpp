@@ -41,6 +41,9 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#ifdef XPE_AI_TEST_HOOKS
+#include <thread>   // the before-state-delete probe (test hook only)
+#endif
 #include <string>
 #include <vector>
 
@@ -50,22 +53,10 @@
 #include <nlohmann/json.hpp>
 #endif
 
-// @MX:NOTE: [AUTO] spdlog is a soft dependency; logging falls back to
-//           no-op if not linked.
-#ifdef XPE_AI_USE_SPDLOG
-#include <spdlog/spdlog.h>
-#define AI_LOG_TRACE(...) spdlog::trace(__VA_ARGS__)
-#define AI_LOG_DEBUG(...) spdlog::debug(__VA_ARGS__)
-#define AI_LOG_INFO(...)  spdlog::info(__VA_ARGS__)
-#define AI_LOG_WARN(...)  spdlog::warn(__VA_ARGS__)
-#define AI_LOG_ERROR(...) spdlog::error(__VA_ARGS__)
-#else
-#include <cstdio>
-#define AI_LOG_TRACE(...) do {} while(0)
-#define AI_LOG_DEBUG(...) do {} while(0)
-#define AI_LOG_INFO(...)  std::printf("[AI INFO] " __VA_ARGS__); std::printf("\n")
-#define AI_LOG_WARN(...)  std::printf("[AI WARN] " __VA_ARGS__); std::printf("\n")
-#define AI_LOG_ERROR(...) std::printf("[AI ERROR] " __VA_ARGS__); std::printf("\n")
+#include "ai_log.h"   // AI_LOG_* (spdlog when XPE_AI_USE_SPDLOG, else printf)
+#ifdef XPE_AI_TEST_LOG_CAPTURE
+#include <spdlog/sinks/callback_sink.h>
+#include <algorithm>
 #endif
 
 /* ==========================================================================
@@ -447,6 +438,33 @@ static XpeErrorCode boneSuppressViaWorker(AiModuleState* state, const XpeImageBu
  */
 static constexpr uint32_t kWorkerFailureCeiling = 3;
 
+#ifdef XPE_AI_TEST_LOG_CAPTURE
+// TEST-ONLY (QA-B-177). Compiled only with XPE_AI_TEST_HOOKS and spdlog (modules/ai/CMakeLists.txt defines
+// XPE_AI_TEST_LOG_CAPTURE for exactly that); a build with the XPE_AI_TEST_HOOKS option OFF has neither this
+// code nor the exported setter. The DLL carries its OWN spdlog, so a test cannot reach its default logger
+// from the test process: this adds a callback sink to it, which sees each message exactly as spdlog
+// formatted it -- what a log file would contain -- not as the macro was asked to.
+static std::shared_ptr<spdlog::sinks::sink> g_testLogSink;
+
+extern "C" XPE_API void xpe_ai_test_set_log_capture(void (*cb)(int level, const char* message)) {
+    auto logger = spdlog::default_logger();
+    if (!logger) return;   // no default logger (after shutdown/drop_all): nothing to attach to
+    auto& sinks = logger->sinks();
+    if (g_testLogSink) {
+        sinks.erase(std::remove(sinks.begin(), sinks.end(), g_testLogSink), sinks.end());
+        g_testLogSink.reset();
+    }
+    if (cb) {
+        g_testLogSink = std::make_shared<spdlog::sinks::callback_sink_mt>(
+            [cb](const spdlog::details::log_msg& m) {
+                const std::string text(m.payload.data(), m.payload.size());
+                cb(static_cast<int>(m.level), text.c_str());
+            });
+        sinks.push_back(g_testLogSink);
+    }
+}
+#endif
+
 #ifdef XPE_AI_TEST_HOOKS
 // TEST-ONLY (QA-B-173, Codex audit #19). Compiled only when modules/ai/CMakeLists.txt defines
 // XPE_AI_TEST_HOOKS, i.e. when the XPE_AI_TEST_HOOKS option is ON. Its default is ON whenever the module's
@@ -460,6 +478,17 @@ static std::atomic<void (*)(void)> g_testMutexHeldHook{nullptr};
 
 extern "C" XPE_API void xpe_ai_test_set_mutex_held_hook(void (*hook)(void)) {
     g_testMutexHeldHook.store(hook, std::memory_order_release);
+}
+
+// TEST-ONLY (QA-B-178). Called by xpe_ai_shutdown immediately BEFORE it deletes the module state, with
+// whether the state's mutex is still locked at that moment. A locked mutex means a lock_guard that is still
+// in scope will unlock it AFTER the delete (undefined behaviour, even single-threaded). The probe runs on a
+// helper thread because try_lock by the owning thread is itself undefined for std::mutex. Compiled only with
+// the same XPE_AI_TEST_HOOKS option as the hook above.
+static std::atomic<void (*)(int)> g_testBeforeStateDeleteHook{nullptr};
+
+extern "C" XPE_API void xpe_ai_test_set_before_state_delete_hook(void (*hook)(int mutexStillHeld)) {
+    g_testBeforeStateDeleteHook.store(hook, std::memory_order_release);
 }
 #endif
 
@@ -571,6 +600,8 @@ XPE_API void xpe_ai_shutdown(void)
     if (!g_aiState) return;
 
     auto* state = g_aiState;
+    {   // The lock's scope ENDS before the state is deleted: a lock_guard still alive at `delete state` would
+        // unlock a destroyed mutex when the function returns (QA-B-178, Codex #25).
     std::lock_guard<std::mutex> lock(state->mtx);
 
     // Mark as not initialized first (prevents new calls)
@@ -599,8 +630,21 @@ XPE_API void xpe_ai_shutdown(void)
     state->pipeHandle = nullptr;
     state->workerPid = 0;
 
-    // Free state and null the global pointer
+    // Null the global pointer while still locked (nothing can reach the state through it any more) ...
     g_aiState = nullptr;
+    }   // ... release the lock, and only then destroy the mutex that guarded it.
+
+#ifdef XPE_AI_TEST_HOOKS
+    if (auto* hook = g_testBeforeStateDeleteHook.load(std::memory_order_acquire)) {
+        int held = 0;
+        std::thread probe([state, &held] {
+            held = state->mtx.try_lock() ? 0 : 1;
+            if (!held) state->mtx.unlock();
+        });
+        probe.join();
+        hook(held);
+    }
+#endif
     delete state;
 }
 
