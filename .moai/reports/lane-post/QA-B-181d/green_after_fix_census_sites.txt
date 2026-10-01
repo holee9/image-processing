@@ -1,0 +1,63 @@
+== gsvg
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = GsvgExceptionGuard.*
+[==========] Running 9 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 9 tests from GsvgExceptionGuard
+[ RUN      ] GsvgExceptionGuard.AnUnrepresentableSizeIsInvalidInputForEveryEntryPoint
+[       OK ] GsvgExceptionGuard.AnUnrepresentableSizeIsInvalidInputForEveryEntryPoint (0 ms)
+[ RUN      ] GsvgExceptionGuard.AnUnallocatableGridSuppressionSizeIsOutOfMemoryForEveryEntryPoint
+[       OK ] GsvgExceptionGuard.AnUnallocatableGridSuppressionSizeIsOutOfMemoryForEveryEntryPoint (0 ms)
+[ RUN      ] GsvgExceptionGuard.AnUnallocatableVirtualGridSizeIsOutOfMemoryForEveryEntryPoint
+[       OK ] GsvgExceptionGuard.AnUnallocatableVirtualGridSizeIsOutOfMemoryForEveryEntryPoint (0 ms)
+[ RUN      ] GsvgExceptionGuard.TheHandleStaysUsableAfterAFailedCall
+[       OK ] GsvgExceptionGuard.TheHandleStaysUsableAfterAFailedCall (0 ms)
+[ RUN      ] GsvgExceptionGuard.AnOrdinaryLargeFrameIsNotRejectedBySizeBound
+[       OK ] GsvgExceptionGuard.AnOrdinaryLargeFrameIsNotRejectedBySizeBound (1 ms)
+[ RUN      ] GsvgExceptionGuard.ForRowsPartitionsRowsNearIntMaxWithoutOverflow
+[       OK ] GsvgExceptionGuard.ForRowsPartitionsRowsNearIntMaxWithoutOverflow (3 ms)
+[ RUN      ] GsvgExceptionGuard.ForRowsNeverPlansMoreBandsThanRows
+[       OK ] GsvgExceptionGuard.ForRowsNeverPlansMoreBandsThanRows (0 ms)
+[ RUN      ] GsvgExceptionGuard.AVirtualGridPyramidLevelCountBeyondIntIsRefusedByTheConfig
+[       OK ] GsvgExceptionGuard.AVirtualGridPyramidLevelCountBeyondIntIsRefusedByTheConfig (1 ms)
+[ RUN      ] GsvgExceptionGuard.AVignetteGainMapWithANonFiniteElementIsInvalidInput
+[       OK ] GsvgExceptionGuard.AVignetteGainMapWithANonFiniteElementIsInvalidInput (0 ms)
+[----------] 9 tests from GsvgExceptionGuard (6 ms total)
+
+[----------] Global test environment tear-down
+[==========] 9 tests from 1 test suite ran. (6 ms total)
+[  PASSED  ] 9 tests.
+== ai
+Note: Google Test filter = AiExceptionGuard.*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from AiExceptionGuard
+[ RUN      ] AiExceptionGuard.AnUndecodableModelPathIsAnErrorCodeNotAnException
+[2026-10-02 04:39:26.089] [info] xpe_ai initialized: model_dir=C:\xpe_probe_Ã(, ep=0, timeout=5000 ms
+[2026-10-02 04:39:26.089] [error] Model file not found: C:\xpe_probe_Ã(/bone_suppress.onnx
+[2026-10-02 04:39:26.089] [error] bone_suppress: no model at C:\xpe_probe_Ã(/bone_suppress.onnx
+[2026-10-02 04:39:26.089] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiExceptionGuard.AnUndecodableModelPathIsAnErrorCodeNotAnException (1 ms)
+[ RUN      ] AiExceptionGuard.OnnxSessionCreateReportsAnUndecodablePathAsInvalidModelPath
+[2026-10-02 04:39:26.090] [error] Model file not found: C:\xpe_probe_Ã(\bone_suppress.onnx
+[       OK ] AiExceptionGuard.OnnxSessionCreateReportsAnUndecodablePathAsInvalidModelPath (0 ms)
+[ RUN      ] AiExceptionGuard.StitchEstimateOfAHugeWidthIsTheLimitNotAWrappedValue
+[       OK ] AiExceptionGuard.StitchEstimateOfAHugeWidthIsTheLimitNotAWrappedValue (0 ms)
+[----------] 3 tests from AiExceptionGuard (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (1 ms total)
+[  PASSED  ] 3 tests.
+== display
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *181d*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from GsdfCharacterization
+[ RUN      ] GsdfCharacterization.NonFiniteLuminanceMeasurementsAreInvalidInput_181d
+[       OK ] GsdfCharacterization.NonFiniteLuminanceMeasurementsAreInvalidInput_181d (0 ms)
+[----------] 1 test from GsdfCharacterization (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.

@@ -1,0 +1,11 @@
+ARM display_luminance_finite: build_ok=True failed=1
+GsdfCharacterization.NonFiniteLuminanceMeasurementsAreInvalidInput_181d
+
+case 0
+case 1
+case 2
+case 3
+case 4
+[  FAILED  ] GsdfCharacterization.NonFiniteLuminanceMeasurementsAreInvalidInput_181d (0 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] GsdfCharacterization.NonFiniteLuminanceMeasurementsAreInvalidInput_181d

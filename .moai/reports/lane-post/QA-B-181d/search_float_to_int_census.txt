@@ -1,0 +1,13 @@
+### command (run on commit 547fa8cd, the tree before QA-B-181d), modules ai display dicom enhance_basic enhance_advanced gsvg, src+include:
+git grep -n -E "static_cast<(int|int8_t|int16_t|int32_t|int64_t|unsigned|unsigned int|uint8_t|uint16_t|uint32_t|uint64_t|size_t|long|long long|ptrdiff_t)>\(|\((int|unsigned|size_t|long)\)\s*[A-Za-z_(]|lround|llround|lrint" 547fa8cd -- <module>/src <module>/include
+candidate lines  enhance_basic: 75
+candidate lines  enhance_advanced: 72
+candidate lines  gsvg: 125
+candidate lines  ai: 55
+candidate lines  display: 5
+candidate lines  dicom: 27
+
+### CONTROL: the same search must list the two sites Codex #48 named (and the clip_limit one this card found)
+modules/enhance_basic/src/contrast_enhance.cpp:80:    int clip_count = static_cast<int>(clip_limit * static_cast<float>(tile_area)
+modules/enhance_basic/src/edge_enhance.cpp:100:    int krad = static_cast<int>(std::ceil(2.0f * sigma));
+modules/enhance_basic/src/noise_reduce.cpp:185:    int radius = static_cast<int>(std::ceil(2.0f * sigma_space));

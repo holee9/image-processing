@@ -26,6 +26,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -185,4 +186,61 @@ TEST(GsvgExceptionGuard, ForRowsNeverPlansMoreBandsThanRows) {
     }
     EXPECT_EQ(10, next);
     EXPECT_LE(bands.size(), 10u);
+}
+
+// ---- QA-B-181d (Codex #48 census): two caller-supplied floats reached an integer conversion unchecked ---------
+
+namespace {
+
+std::string VgConfigWithLevels(const char* levels) {
+    return std::string("{\"virtual_grid\": true, \"vg_table_path\": \"") + kTablePath +
+           "\", \"vg_kvp\": 80, \"vg_grid_ratio\": 10, \"vg_pixel_pitch_mm\": 1.0,"
+           " \"vg_air_signal\": 60000, \"vg_iterations\": 5, \"vg_pyramid_levels\": " + levels + "}";
+}
+
+XpeErrorCode InitWith(const std::string& cfg) {
+    void* h = nullptr;
+    const XpeErrorCode rc = xpe_gsvg_init(&h, cfg.c_str());
+    if (rc == XPE_OK) xpe_gsvg_shutdown(h);
+    return rc;
+}
+
+}  // namespace
+
+// vg_pyramid_levels is a JSON number checked only for being integral, then converted to int. 1e10 is integral and
+// is no int; the 4..8 range test came AFTER the conversion, on whatever the conversion produced.
+TEST(GsvgExceptionGuard, AVirtualGridPyramidLevelCountBeyondIntIsRefusedByTheConfig) {
+    ASSERT_EQ(XPE_OK, InitWith(VgConfigWithLevels("6"))) << "control: an ordinary level count is accepted";
+    for (const char* bad : {"1e10", "-1e10", "4294967296", "1e300", "9"}) {
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, InitWith(VgConfigWithLevels(bad))) << "vg_pyramid_levels=" << bad;
+    }
+    EXPECT_EQ(XPE_OK, InitWith(VgConfigWithLevels("0"))) << "0 (no pyramid) stays valid";
+    EXPECT_EQ(XPE_OK, InitWith(VgConfigWithLevels("8"))) << "the upper boundary stays valid";
+}
+
+// A NaN gain (or inf * 0) made clamp() a no-op -- both comparisons are false -- and the cast of NaN to uint16 undefined.
+TEST(GsvgExceptionGuard, AVignetteGainMapWithANonFiniteElementIsInvalidInput) {
+    void* h = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_gsvg_init(&h, "{\"vignette_correction\": true}"));
+    const int w = 16, hgt = 16;
+    std::vector<uint16_t> src(w * hgt, 1000), dst(w * hgt, 7);
+    std::vector<float> gain(w * hgt, 1.0f);
+    EXPECT_EQ(XPE_OK, xpe_gsvg_process(h, src.data(), src.size(), dst.data(), dst.size(), w, hgt, gain.data(), gain.size()))
+        << "control: a finite gain map is applied";
+
+    const float bad[] = {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity(),
+                         -std::numeric_limits<float>::infinity()};
+    for (float b : bad) {
+        std::vector<float> g = gain;
+        g[100] = b;
+        std::vector<uint16_t> out(w * hgt, 7);
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gsvg_process(h, src.data(), src.size(), out.data(), out.size(), w, hgt, g.data(), g.size()))
+            << "gain=" << b;
+        EXPECT_EQ(std::vector<uint16_t>(w * hgt, 7), out) << "a refused call must not write the output, gain=" << b;
+    }
+    // Large FINITE gains stay legal: the product is clamped to 65535 before the conversion.
+    std::vector<float> huge(w * hgt, 1e30f);
+    EXPECT_EQ(XPE_OK, xpe_gsvg_process(h, src.data(), src.size(), dst.data(), dst.size(), w, hgt, huge.data(), huge.size()));
+    EXPECT_EQ(65535u, dst[0]);
+    xpe_gsvg_shutdown(h);
 }

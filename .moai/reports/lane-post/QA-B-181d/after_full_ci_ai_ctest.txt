@@ -1,0 +1,770 @@
+Internal ctest changing into directory: D:/workspace-github/xpe-post/build/ci-ai
+Test project D:/workspace-github/xpe-post/build/ci-ai
+        Start   1: XpeCommonTest.InitReturnsOk
+  1/376 Test   #1: XpeCommonTest.InitReturnsOk ....................................................................................   Passed    0.05 sec
+        Start   2: XpeCommonTest.InitWithEmptyConfigReturnsInvalid
+  2/376 Test   #2: XpeCommonTest.InitWithEmptyConfigReturnsInvalid ................................................................   Passed    0.01 sec
+        Start   3: XpeCommonTest.ShutdownWithoutInitIsNoOp
+  3/376 Test   #3: XpeCommonTest.ShutdownWithoutInitIsNoOp ........................................................................   Passed    0.01 sec
+        Start   4: XpeCommonTest.VersionReturnsValidString
+  4/376 Test   #4: XpeCommonTest.VersionReturnsValidString ........................................................................   Passed    0.01 sec
+        Start   5: XpeCommonTest.ConfigureWithNullReturnsInvalid
+  5/376 Test   #5: XpeCommonTest.ConfigureWithNullReturnsInvalid ..................................................................   Passed    0.01 sec
+        Start   6: XpeCommonTest.ConfigureWithInvalidJsonReturnsInvalid
+  6/376 Test   #6: XpeCommonTest.ConfigureWithInvalidJsonReturnsInvalid ...........................................................   Passed    0.01 sec
+        Start   7: XpeCommonTest.ConfigureWithValidJsonSucceeds
+  7/376 Test   #7: XpeCommonTest.ConfigureWithValidJsonSucceeds ...................................................................   Passed    0.01 sec
+        Start   8: XpeCommonTest.GetParamRangeWithNullPtrReturnsInvalid
+  8/376 Test   #8: XpeCommonTest.GetParamRangeWithNullPtrReturnsInvalid ...........................................................   Passed    0.01 sec
+        Start   9: XpeCommonTest.GetParamRangeReturnsValidValues
+  9/376 Test   #9: XpeCommonTest.GetParamRangeReturnsValidValues ..................................................................   Passed    0.01 sec
+        Start  10: XpeCommonTest.GetParamRangeForUnknownParamReturnsDefaults
+ 10/376 Test  #10: XpeCommonTest.GetParamRangeForUnknownParamReturnsDefaults ......................................................   Passed    0.60 sec
+        Start  11: XpeCommonTest.ErrorStringReturnsNonNullForAllCodes
+ 11/376 Test  #11: XpeCommonTest.ErrorStringReturnsNonNullForAllCodes .............................................................   Passed    0.02 sec
+        Start  12: XpeCommonTest.GetPendingAlertCountInitiallyZero
+ 12/376 Test  #12: XpeCommonTest.GetPendingAlertCountInitiallyZero ................................................................   Passed    0.02 sec
+        Start  13: XpeCommonTest.InjectedAlertAppearsInQueue
+ 13/376 Test  #13: XpeCommonTest.InjectedAlertAppearsInQueue ......................................................................   Passed    0.02 sec
+        Start  14: XpeCommonTest.GetPendingAlertRetrievesMessage
+ 14/376 Test  #14: XpeCommonTest.GetPendingAlertRetrievesMessage ..................................................................   Passed    0.02 sec
+        Start  15: XpeCommonTest.GetPendingAlertWithNullPtrReturnsInvalid
+ 15/376 Test  #15: XpeCommonTest.GetPendingAlertWithNullPtrReturnsInvalid .........................................................   Passed    0.02 sec
+        Start  16: XpeCommonTest.GetPendingAlertWithSmallBufferReturnsBufferTooSmall
+ 16/376 Test  #16: XpeCommonTest.GetPendingAlertWithSmallBufferReturnsBufferTooSmall ..............................................   Passed    0.02 sec
+        Start  17: XpeCommonTest.ClearAlertsEmptiesQueue
+ 17/376 Test  #17: XpeCommonTest.ClearAlertsEmptiesQueue ..........................................................................   Passed    0.13 sec
+        Start  18: XpeCommonTest.LogSetLevelWithInvalidValueReturnsInvalid
+ 18/376 Test  #18: XpeCommonTest.LogSetLevelWithInvalidValueReturnsInvalid ........................................................   Passed    0.01 sec
+        Start  19: XpeCommonTest.LogSetLevelAcceptsValidRange
+ 19/376 Test  #19: XpeCommonTest.LogSetLevelAcceptsValidRange .....................................................................   Passed    0.01 sec
+        Start  20: XpeCommonTest.LogSetFileReopensSink
+ 20/376 Test  #20: XpeCommonTest.LogSetFileReopensSink ............................................................................   Passed    0.02 sec
+        Start  21: XpeCommonTest.ShutdownReleasesLogFileSink
+ 21/376 Test  #21: XpeCommonTest.ShutdownReleasesLogFileSink ......................................................................   Passed    0.63 sec
+        Start  22: XpeCommonTest.LogFlushAfterShutdownDoesNotCrash
+ 22/376 Test  #22: XpeCommonTest.LogFlushAfterShutdownDoesNotCrash ................................................................   Passed    0.02 sec
+        Start  23: XpeCommonTest.AllocImageWithNullPtrReturnsInvalid
+ 23/376 Test  #23: XpeCommonTest.AllocImageWithNullPtrReturnsInvalid ..............................................................   Passed    0.02 sec
+        Start  24: XpeCommonTest.AllocImageWithZeroDimensionsReturnsInvalid
+ 24/376 Test  #24: XpeCommonTest.AllocImageWithZeroDimensionsReturnsInvalid .......................................................   Passed    0.01 sec
+        Start  25: XpeCommonTest.AllocImageWithLargeDimensionsReturnsInvalid
+ 25/376 Test  #25: XpeCommonTest.AllocImageWithLargeDimensionsReturnsInvalid ......................................................   Passed    0.02 sec
+        Start  26: XpeCommonTest.AllocImageSucceedsForValidInput
+ 26/376 Test  #26: XpeCommonTest.AllocImageSucceedsForValidInput ..................................................................   Passed    0.01 sec
+        Start  27: XpeCommonTest.AllocImageForFloat32Format
+ 27/376 Test  #27: XpeCommonTest.AllocImageForFloat32Format .......................................................................   Passed    0.01 sec
+        Start  28: XpeCommonTest.AllocImageForUint8Format
+ 28/376 Test  #28: XpeCommonTest.AllocImageForUint8Format .........................................................................   Passed    0.01 sec
+        Start  29: XpeCommonTest.FreeImageWithNullPtrReturnsInvalid
+ 29/376 Test  #29: XpeCommonTest.FreeImageWithNullPtrReturnsInvalid ...............................................................   Passed    0.02 sec
+        Start  30: XpeCommonTest.FreeImageReleasesMemory
+ 30/376 Test  #30: XpeCommonTest.FreeImageReleasesMemory ..........................................................................   Passed    0.02 sec
+        Start  31: XpeCommonTest.CopyImageWithNullPtrReturnsInvalid
+ 31/376 Test  #31: XpeCommonTest.CopyImageWithNullPtrReturnsInvalid ...............................................................   Passed    0.01 sec
+        Start  32: XpeCommonTest.CopyImageSucceeds
+ 32/376 Test  #32: XpeCommonTest.CopyImageSucceeds ................................................................................   Passed    0.01 sec
+        Start  33: XpeCommonTest.CopyImageWithSmallBufferReturnsBufferTooSmall
+ 33/376 Test  #33: XpeCommonTest.CopyImageWithSmallBufferReturnsBufferTooSmall ....................................................   Passed    0.01 sec
+        Start  34: XpeCommonTest.InitDoubleInitReturnsOk
+ 34/376 Test  #34: XpeCommonTest.InitDoubleInitReturnsOk ..........................................................................   Passed    0.01 sec
+        Start  35: XpeCommonTest.ShutdownReturnsNotInitializedWhenNotInit
+ 35/376 Test  #35: XpeCommonTest.ShutdownReturnsNotInitializedWhenNotInit .........................................................   Passed    0.02 sec
+        Start  36: XpeCommonTest.InitShutdownCycleRepeated
+ 36/376 Test  #36: XpeCommonTest.InitShutdownCycleRepeated ........................................................................   Passed    0.01 sec
+        Start  37: XpeCommonTest.ConfigureWithEmptyStringReturnsInvalid
+ 37/376 Test  #37: XpeCommonTest.ConfigureWithEmptyStringReturnsInvalid ...........................................................   Passed    0.01 sec
+        Start  38: XpeCommonTest.ConfigureWithPartialJsonReturnsOk
+ 38/376 Test  #38: XpeCommonTest.ConfigureWithPartialJsonReturnsOk ................................................................   Passed    0.13 sec
+        Start  39: XpeCommonTest.ConfigureAfterReinitSucceeds
+ 39/376 Test  #39: XpeCommonTest.ConfigureAfterReinitSucceeds .....................................................................   Passed    0.01 sec
+        Start  40: XpeCommonTest.ConfigureWithMalformedJsonBodyReturnsInvalid
+ 40/376 Test  #40: XpeCommonTest.ConfigureWithMalformedJsonBodyReturnsInvalid .....................................................   Passed    0.63 sec
+        Start  41: XpeCommonTest.ConfigureWithVeryLongMalformedJsonReturnsNegative
+ 41/376 Test  #41: XpeCommonTest.ConfigureWithVeryLongMalformedJsonReturnsNegative ................................................   Passed    0.01 sec
+        Start  42: XpeCommonTest.VersionFormatSemanticVersioning
+ 42/376 Test  #42: XpeCommonTest.VersionFormatSemanticVersioning ..................................................................   Passed    0.01 sec
+        Start  43: XpeCommonTest.LogSetLevelEachLevel
+ 43/376 Test  #43: XpeCommonTest.LogSetLevelEachLevel .............................................................................   Passed    0.01 sec
+        Start  44: XpeCommonTest.LogSetFileWithInvalidPathReturnsError
+ 44/376 Test  #44: XpeCommonTest.LogSetFileWithInvalidPathReturnsError ............................................................   Passed    0.01 sec
+        Start  45: XpeCommonTest.LogFlushDoesNotCrash
+ 45/376 Test  #45: XpeCommonTest.LogFlushDoesNotCrash .............................................................................   Passed    0.01 sec
+        Start  46: XpeCommonTest.AllocImageZeroInitializesMemory
+ 46/376 Test  #46: XpeCommonTest.AllocImageZeroInitializesMemory ..................................................................   Passed    0.01 sec
+        Start  47: XpeCommonTest.AllocImageUint16Format
+ 47/376 Test  #47: XpeCommonTest.AllocImageUint16Format ...........................................................................   Passed    0.01 sec
+        Start  48: XpeCommonTest.FreeImageNullDataDoesNotCrash
+ 48/376 Test  #48: XpeCommonTest.FreeImageNullDataDoesNotCrash ....................................................................   Passed    0.01 sec
+        Start  49: XpeCommonTest.CopyImageWithNullDataReturnsInvalid
+ 49/376 Test  #49: XpeCommonTest.CopyImageWithNullDataReturnsInvalid ..............................................................   Passed    0.01 sec
+        Start  50: XpeCommonTest.GetParamRangeForDifferentBodyParts
+ 50/376 Test  #50: XpeCommonTest.GetParamRangeForDifferentBodyParts ...............................................................   Passed    0.01 sec
+        Start  51: XpeCommonTest.ErrorStringForUnknownErrorCode
+ 51/376 Test  #51: XpeCommonTest.ErrorStringForUnknownErrorCode ...................................................................   Passed    0.01 sec
+        Start  52: XpeCommonTest.GetPendingAlertWithIndexOutOfBounds
+ 52/376 Test  #52: XpeCommonTest.GetPendingAlertWithIndexOutOfBounds ..............................................................   Passed    0.01 sec
+        Start  53: XpeCommonTest.ClearAlertsWhenEmptyDoesNotCrash
+ 53/376 Test  #53: XpeCommonTest.ClearAlertsWhenEmptyDoesNotCrash .................................................................   Passed    0.01 sec
+        Start  54: XpeCommonTest.AlertQueueFifoOrder
+ 54/376 Test  #54: XpeCommonTest.AlertQueueFifoOrder ..............................................................................   Passed    0.02 sec
+        Start  55: XpeCommonTest.ConcurrentInitShutdownDoesNotCrash
+ 55/376 Test  #55: XpeCommonTest.ConcurrentInitShutdownDoesNotCrash ...............................................................   Passed    0.16 sec
+        Start  56: XpeCommonTest.ConcurrentAlertQueueAccess
+ 56/376 Test  #56: XpeCommonTest.ConcurrentAlertQueueAccess .......................................................................   Passed    0.03 sec
+        Start  57: XpeCommonTest.MemoryLeakTestThousandCycles
+ 57/376 Test  #57: XpeCommonTest.MemoryLeakTestThousandCycles .....................................................................   Passed    0.01 sec
+        Start  58: XpeCommonTest.HeaderDeclaresSixteenExportedFunctions
+ 58/376 Test  #58: XpeCommonTest.HeaderDeclaresSixteenExportedFunctions ...........................................................   Passed    0.01 sec
+        Start  59: XpeCommonTest.ErrorStringForInvalidInputHasExactText
+ 59/376 Test  #59: XpeCommonTest.ErrorStringForInvalidInputHasExactText ...........................................................   Passed    0.01 sec
+        Start  60: XpeCommonTest.CopyImageReproducesEveryByte
+ 60/376 Test  #60: XpeCommonTest.CopyImageReproducesEveryByte .....................................................................   Passed    0.01 sec
+        Start  61: AlertQueueOverflowTest.WarningEvictsOldestInfoNotItself
+ 61/376 Test  #61: AlertQueueOverflowTest.WarningEvictsOldestInfoNotItself ........................................................   Passed    0.01 sec
+        Start  62: AlertQueueOverflowTest.WithoutInfoEvictsOldestWarningAndKeepsError
+ 62/376 Test  #62: AlertQueueOverflowTest.WithoutInfoEvictsOldestWarningAndKeepsError .............................................   Passed    0.01 sec
+        Start  63: AlertQueueOverflowTest.LossAlertIsSingleAndUpdatedInPlace
+ 63/376 Test  #63: AlertQueueOverflowTest.LossAlertIsSingleAndUpdatedInPlace ......................................................   Passed    0.01 sec
+        Start  64: AlertQueueOverflowTest.LossAlertIsNeverEvicted
+ 64/376 Test  #64: AlertQueueOverflowTest.LossAlertIsNeverEvicted .................................................................   Passed    0.01 sec
+        Start  65: AlertQueueOverflowTest.ClearAlertsResetsTheDropCounter
+ 65/376 Test  #65: AlertQueueOverflowTest.ClearAlertsResetsTheDropCounter .........................................................   Passed    0.01 sec
+        Start  66: AlertQueueOverflowTest.NoLossAlertWithoutOverflow
+ 66/376 Test  #66: AlertQueueOverflowTest.NoLossAlertWithoutOverflow ..............................................................   Passed    0.01 sec
+        Start  67: XpeErrorSafetyViolationTest.SafetyViolationErrorCodeExists
+ 67/376 Test  #67: XpeErrorSafetyViolationTest.SafetyViolationErrorCodeExists .....................................................   Passed    0.61 sec
+        Start  68: XpeErrorSafetyViolationTest.SafetyViolationErrorStringMapped
+ 68/376 Test  #68: XpeErrorSafetyViolationTest.SafetyViolationErrorStringMapped ...................................................   Passed    0.02 sec
+        Start  69: CommonErrorPrecedenceTest.NullRequiredPointerWinsOverInitializationState
+ 69/376 Test  #69: CommonErrorPrecedenceTest.NullRequiredPointerWinsOverInitializationState .......................................   Passed    0.01 sec
+        Start  70: AiAbi.VersionReturnsNonNull
+ 70/376 Test  #70: AiAbi.VersionReturnsNonNull ....................................................................................   Passed    0.02 sec
+        Start  71: AiAbi.VersionReturnsNonEmptyString
+ 71/376 Test  #71: AiAbi.VersionReturnsNonEmptyString .............................................................................   Passed    0.02 sec
+        Start  72: AiAbi.VersionFormatIsSemanticVersioning
+ 72/376 Test  #72: AiAbi.VersionFormatIsSemanticVersioning ........................................................................   Passed    0.02 sec
+        Start  73: AiAbi.VersionIsDeterministicAcrossCalls
+ 73/376 Test  #73: AiAbi.VersionIsDeterministicAcrossCalls ........................................................................   Passed    0.02 sec
+        Start  74: AiAbi.InitWithNullModelDirReturnsInvalidInput
+ 74/376 Test  #74: AiAbi.InitWithNullModelDirReturnsInvalidInput ..................................................................   Passed    0.02 sec
+        Start  75: AiAbi.InitWithValidPathSucceeds
+ 75/376 Test  #75: AiAbi.InitWithValidPathSucceeds ................................................................................   Passed    0.02 sec
+        Start  76: AiAbi.InitWithNullConfigUsesDefaults
+ 76/376 Test  #76: AiAbi.InitWithNullConfigUsesDefaults ...........................................................................   Passed    0.02 sec
+        Start  77: AiAbi.InitWithConfigJsonSucceeds
+ 77/376 Test  #77: AiAbi.InitWithConfigJsonSucceeds ...............................................................................   Passed    0.02 sec
+        Start  78: AiAbi.InitIsIdempotent
+ 78/376 Test  #78: AiAbi.InitIsIdempotent .........................................................................................   Passed    0.02 sec
+        Start  79: AiAbi.InitShutdownCycleRepeated
+ 79/376 Test  #79: AiAbi.InitShutdownCycleRepeated ................................................................................   Passed    0.02 sec
+        Start  80: AiAbi.ShutdownWithoutInitIsNoOp
+ 80/376 Test  #80: AiAbi.ShutdownWithoutInitIsNoOp ................................................................................   Passed    0.02 sec
+        Start  81: AiAbi.ShutdownIsIdempotent
+ 81/376 Test  #81: AiAbi.ShutdownIsIdempotent .....................................................................................   Passed    0.02 sec
+        Start  82: AiAbi.StitchEstimateSizeDeterministic
+ 82/376 Test  #82: AiAbi.StitchEstimateSizeDeterministic ..........................................................................   Passed    0.02 sec
+        Start  83: AiAbi.StitchEstimateSizeReturnsValidDimensions
+ 83/376 Test  #83: AiAbi.StitchEstimateSizeReturnsValidDimensions .................................................................   Passed    0.02 sec
+        Start  84: AiAbi.StitchEstimateSizeNullPartsReturnsInvalid
+ 84/376 Test  #84: AiAbi.StitchEstimateSizeNullPartsReturnsInvalid ................................................................   Passed    0.02 sec
+        Start  85: AiAbi.StitchEstimateSizeNullOutputsReturnInvalid
+ 85/376 Test  #85: AiAbi.StitchEstimateSizeNullOutputsReturnInvalid ...............................................................   Passed    0.02 sec
+        Start  86: AiAbi.StitchEstimateSizeSinglePartReturnsInvalid
+ 86/376 Test  #86: AiAbi.StitchEstimateSizeSinglePartReturnsInvalid ...............................................................   Passed    0.02 sec
+        Start  87: AiAbi.StitchEstimateSizeInvalidBufferReturnsInvalid
+ 87/376 Test  #87: AiAbi.StitchEstimateSizeInvalidBufferReturnsInvalid ............................................................   Passed    0.02 sec
+        Start  88: AiAbi.StitchEstimateSizeClampsToMax4096
+ 88/376 Test  #88: AiAbi.StitchEstimateSizeClampsToMax4096 ........................................................................   Passed    0.03 sec
+        Start  89: AiAbi.BodypartRecognizeWithoutInitReturnsNotInitialized
+ 89/376 Test  #89: AiAbi.BodypartRecognizeWithoutInitReturnsNotInitialized ........................................................   Passed    0.02 sec
+        Start  90: AiAbi.StitchImagesWithoutInitReturnsNotInitialized
+ 90/376 Test  #90: AiAbi.StitchImagesWithoutInitReturnsNotInitialized .............................................................   Passed    0.02 sec
+        Start  91: AiAbi.BoneSuppressWithoutInitReturnsNotInitialized
+ 91/376 Test  #91: AiAbi.BoneSuppressWithoutInitReturnsNotInitialized .............................................................   Passed    0.02 sec
+        Start  92: AiAbi.DlDenoiseWithoutInitReturnsNotInitialized
+ 92/376 Test  #92: AiAbi.DlDenoiseWithoutInitReturnsNotInitialized ................................................................   Passed    0.02 sec
+        Start  93: AiAbi.GetModelCardWithoutInitReturnsNotInitialized
+ 93/376 Test  #93: AiAbi.GetModelCardWithoutInitReturnsNotInitialized .............................................................   Passed    0.02 sec
+        Start  94: AiAbi.SetFallbackModeWithoutInitReturnsNotInitialized
+ 94/376 Test  #94: AiAbi.SetFallbackModeWithoutInitReturnsNotInitialized ..........................................................   Passed    0.02 sec
+        Start  95: AiLogFixture.InitLogsTheRealModelDirectoryAndSettingsNotPlaceholders
+ 95/376 Test  #95: AiLogFixture.InitLogsTheRealModelDirectoryAndSettingsNotPlaceholders ...........................................   Passed    0.62 sec
+        Start  96: AiLogFixture.ShutdownLogsTheRealWorkerPid
+ 96/376 Test  #96: AiLogFixture.ShutdownLogsTheRealWorkerPid ......................................................................   Passed    0.02 sec
+        Start  97: AiLogFixture.FallbackModeMessageNamesTheState
+ 97/376 Test  #97: AiLogFixture.FallbackModeMessageNamesTheState ..................................................................   Passed    0.02 sec
+        Start  98: AiLogFixture.WorkerPathFailureLogCarriesTheCodeAndTheCount
+ 98/376 Test  #98: AiLogFixture.WorkerPathFailureLogCarriesTheCodeAndTheCount .....................................................   Passed    0.06 sec
+        Start  99: AiLogFixture.InProcessErrorLogNamesThePath
+ 99/376 Test  #99: AiLogFixture.InProcessErrorLogNamesThePath .....................................................................   Passed    0.02 sec
+        Start 100: AiLogFixture.NoPrintfPlaceholderSurvivesAnyLoggedPath
+100/376 Test #100: AiLogFixture.NoPrintfPlaceholderSurvivesAnyLoggedPath ..........................................................   Passed    0.06 sec
+        Start 101: AiLogMacrosPrintf.FormatsItsArgumentsAndPrefixesTheLevel
+101/376 Test #101: AiLogMacrosPrintf.FormatsItsArgumentsAndPrefixesTheLevel .......................................................   Passed    0.02 sec
+        Start 102: AiLogMacrosPrintf.TraceAndDebugEmitNothing
+102/376 Test #102: AiLogMacrosPrintf.TraceAndDebugEmitNothing .....................................................................   Passed    0.02 sec
+        Start 103: AiLogMacrosPrintf.ACallIsOneStatementAfterAnUnbracedIf
+103/376 Test #103: AiLogMacrosPrintf.ACallIsOneStatementAfterAnUnbracedIf .........................................................   Passed    0.02 sec
+        Start 104: AiLogMacrosPrintf.LogTextCompilesWithoutSpdlogAndEvaluatesNothing
+104/376 Test #104: AiLogMacrosPrintf.LogTextCompilesWithoutSpdlogAndEvaluatesNothing ..............................................   Passed    0.02 sec
+        Start 105: AiLogMacrosPrintf.LogTextIsOneStatementAfterAnUnbracedIf
+105/376 Test #105: AiLogMacrosPrintf.LogTextIsOneStatementAfterAnUnbracedIf .......................................................   Passed    0.02 sec
+        Start 106: AiLogMacrosSpdlog.FormatsPrintfArgumentsInsteadOfPrintingPlaceholders
+106/376 Test #106: AiLogMacrosSpdlog.FormatsPrintfArgumentsInsteadOfPrintingPlaceholders ..........................................   Passed    0.02 sec
+        Start 107: AiLogMacrosSpdlog.EachLevelKeepsItsSpdlogLevel
+107/376 Test #107: AiLogMacrosSpdlog.EachLevelKeepsItsSpdlogLevel .................................................................   Passed    0.02 sec
+        Start 108: AiLogMacrosSpdlog.BracesInTheDataAreNotAFormat
+108/376 Test #108: AiLogMacrosSpdlog.BracesInTheDataAreNotAFormat .................................................................   Passed    0.02 sec
+        Start 109: AiLogMacrosSpdlog.ALiteralWithBracesAndNoArgumentsIsLoggedAsWritten
+109/376 Test #109: AiLogMacrosSpdlog.ALiteralWithBracesAndNoArgumentsIsLoggedAsWritten ............................................   Passed    0.02 sec
+        Start 110: AiLogMacrosSpdlog.APercentSignIsWrittenWithPercentPercent
+110/376 Test #110: AiLogMacrosSpdlog.APercentSignIsWrittenWithPercentPercent ......................................................   Passed    0.02 sec
+        Start 111: AiLogMacrosSpdlog.ALongMessageIsNotTruncated
+111/376 Test #111: AiLogMacrosSpdlog.ALongMessageIsNotTruncated ...................................................................   Passed    0.02 sec
+        Start 112: AiLogMacrosSpdlog.ACallIsOneStatementAfterAnUnbracedIf
+112/376 Test #112: AiLogMacrosSpdlog.ACallIsOneStatementAfterAnUnbracedIf .........................................................   Passed    0.02 sec
+        Start 113: AiLogMacrosSpdlog.NoAllocationFailureEscapesALogCall
+113/376 Test #113: AiLogMacrosSpdlog.NoAllocationFailureEscapesALogCall ...........................................................   Passed    0.02 sec
+        Start 114: AiLogMacrosSpdlog.AllEntryPointsTolerateANullDefaultLogger
+114/376 Test #114: AiLogMacrosSpdlog.AllEntryPointsTolerateANullDefaultLogger .....................................................   Passed    0.02 sec
+        Start 115: AiLogMacrosSpdlog.LogTextKeepsPercentAndBracesAsData
+115/376 Test #115: AiLogMacrosSpdlog.LogTextKeepsPercentAndBracesAsData ...........................................................   Passed    0.02 sec
+        Start 116: AiLogMacrosSpdlog.NoAllocationFailureEscapesALogTextCall
+116/376 Test #116: AiLogMacrosSpdlog.NoAllocationFailureEscapesALogTextCall .......................................................   Passed    0.02 sec
+        Start 117: AiLogMacrosSpdlog.ModelNotFoundReportSurvivesAnyAllocationFailureInItsLogCall
+117/376 Test #117: AiLogMacrosSpdlog.ModelNotFoundReportSurvivesAnyAllocationFailureInItsLogCall ..................................   Passed    0.02 sec
+        Start 118: AiLogMacrosSpdlog.ModelNotFoundWithNoDefaultLoggerStillReturnsTheOriginalError
+118/376 Test #118: AiLogMacrosSpdlog.ModelNotFoundWithNoDefaultLoggerStillReturnsTheOriginalError .................................   Passed    0.02 sec
+        Start 119: AiLogStdoutRedirect.ARedirectCycleDoesNotLeaveTheDefaultLoggerWritingIntoAnUnrelatedHandle
+119/376 Test #119: AiLogStdoutRedirect.ARedirectCycleDoesNotLeaveTheDefaultLoggerWritingIntoAnUnrelatedHandle .....................   Passed    0.02 sec
+        Start 120: ShutdownLifetimeFixture.TheStateMutexIsNotHeldWhenTheStateIsDeleted
+120/376 Test #120: ShutdownLifetimeFixture.TheStateMutexIsNotHeldWhenTheStateIsDeleted ............................................   Passed    0.02 sec
+        Start 121: ShutdownLifetimeFixture.ShuttingDownAnUninitialisedModuleIsANoOp
+121/376 Test #121: ShutdownLifetimeFixture.ShuttingDownAnUninitialisedModuleIsANoOp ...............................................   Passed    0.62 sec
+        Start 122: ShutdownLifetimeFixture.ARepeatedInitUseShutdownCycleStaysCorrect
+122/376 Test #122: ShutdownLifetimeFixture.ARepeatedInitUseShutdownCycleStaysCorrect ..............................................   Passed    0.03 sec
+        Start 123: GuardFixture.BoneSuppressMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock
+123/376 Test #123: GuardFixture.BoneSuppressMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock .........................   Passed    0.02 sec
+        Start 124: GuardFixture.BoneSuppressMapsAnyOtherExceptionToProcessingFailedAndReleasesTheLock
+124/376 Test #124: GuardFixture.BoneSuppressMapsAnyOtherExceptionToProcessingFailedAndReleasesTheLock .............................   Passed    0.02 sec
+        Start 125: GuardFixture.GetModelCardMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock
+125/376 Test #125: GuardFixture.GetModelCardMapsABadAllocInTheLockedRegionToOutOfMemoryAndReleasesTheLock .........................   Passed    0.02 sec
+        Start 126: GuardFixture.TheModuleStaysUsableAfterAFailedCall
+126/376 Test #126: GuardFixture.TheModuleStaysUsableAfterAFailedCall ..............................................................   Passed    0.02 sec
+        Start 127: AiExceptionGuard.AnUndecodableModelPathIsAnErrorCodeNotAnException
+127/376 Test #127: AiExceptionGuard.AnUndecodableModelPathIsAnErrorCodeNotAnException .............................................   Passed    0.03 sec
+        Start 128: AiExceptionGuard.OnnxSessionCreateReportsAnUndecodablePathAsInvalidModelPath
+128/376 Test #128: AiExceptionGuard.OnnxSessionCreateReportsAnUndecodablePathAsInvalidModelPath ...................................   Passed    0.02 sec
+        Start 129: AiExceptionGuard.StitchEstimateOfAHugeWidthIsTheLimitNotAWrappedValue
+129/376 Test #129: AiExceptionGuard.StitchEstimateOfAHugeWidthIsTheLimitNotAWrappedValue ..........................................   Passed    0.02 sec
+        Start 130: AiFallbackTest.SetFallbackModeEnableReturnsOk
+130/376 Test #130: AiFallbackTest.SetFallbackModeEnableReturnsOk ..................................................................   Passed    0.02 sec
+        Start 131: AiFallbackTest.SetFallbackModeDisableReturnsOk
+131/376 Test #131: AiFallbackTest.SetFallbackModeDisableReturnsOk .................................................................   Passed    0.02 sec
+        Start 132: AiFallbackTest.SetFallbackModeToggleRepeated
+132/376 Test #132: AiFallbackTest.SetFallbackModeToggleRepeated ...................................................................   Passed    0.02 sec
+        Start 133: AiFallbackTest.SetFallbackModeNonZeroEnables
+133/376 Test #133: AiFallbackTest.SetFallbackModeNonZeroEnables ...................................................................   Passed    0.02 sec
+        Start 134: AiFallbackTest.BodypartRecognizeStubReturnsProcessingFailed
+134/376 Test #134: AiFallbackTest.BodypartRecognizeStubReturnsProcessingFailed ....................................................   Passed    0.02 sec
+        Start 135: AiFallbackTest.BodypartRecognizeSetsConfidenceToZero
+135/376 Test #135: AiFallbackTest.BodypartRecognizeSetsConfidenceToZero ...........................................................   Passed    0.02 sec
+        Start 136: AiFallbackTest.KnownDivergence_BodypartRecognizeStubSetsUnknownLabel
+136/376 Test #136: AiFallbackTest.KnownDivergence_BodypartRecognizeStubSetsUnknownLabel ...........................................   Passed    0.62 sec
+        Start 137: AiFallbackTest.StitchImagesStubReturnsProcessingFailed
+137/376 Test #137: AiFallbackTest.StitchImagesStubReturnsProcessingFailed .........................................................   Passed    0.02 sec
+        Start 138: AiFallbackTest.BoneSuppressStubReturnsProcessingFailed
+138/376 Test #138: AiFallbackTest.BoneSuppressStubReturnsProcessingFailed .........................................................   Passed    0.02 sec
+        Start 139: AiFallbackTest.DlDenoiseStubReturnsProcessingFailed
+139/376 Test #139: AiFallbackTest.DlDenoiseStubReturnsProcessingFailed ............................................................   Passed    0.02 sec
+        Start 140: AiFallbackTest.ConfidenceThresholdDefaultIs06
+140/376 Test #140: AiFallbackTest.ConfidenceThresholdDefaultIs06 ..................................................................   Passed    0.02 sec
+        Start 141: AiFallbackTest.ConfidenceThresholdInRange
+141/376 Test #141: AiFallbackTest.ConfidenceThresholdInRange ......................................................................   Passed    0.02 sec
+        Start 142: AiFallbackTest.BodypartRecognizeNullImgReturnsInvalid
+142/376 Test #142: AiFallbackTest.BodypartRecognizeNullImgReturnsInvalid ..........................................................   Passed    0.02 sec
+        Start 143: AiFallbackTest.BodypartRecognizeNullLabelReturnsInvalid
+143/376 Test #143: AiFallbackTest.BodypartRecognizeNullLabelReturnsInvalid ........................................................   Passed    0.02 sec
+        Start 144: AiFallbackTest.BodypartRecognizeZeroBufLenReturnsInvalidInput
+144/376 Test #144: AiFallbackTest.BodypartRecognizeZeroBufLenReturnsInvalidInput ..................................................   Passed    0.02 sec
+        Start 145: AiFallbackTest.BodypartRecognizeNullConfOutIsAcceptable
+145/376 Test #145: AiFallbackTest.BodypartRecognizeNullConfOutIsAcceptable ........................................................   Passed    0.02 sec
+        Start 146: AiFallbackTest.StitchImagesNullPartsReturnsInvalid
+146/376 Test #146: AiFallbackTest.StitchImagesNullPartsReturnsInvalid .............................................................   Passed    0.02 sec
+        Start 147: AiFallbackTest.StitchImagesPartCountOneReturnsInvalid
+147/376 Test #147: AiFallbackTest.StitchImagesPartCountOneReturnsInvalid ..........................................................   Passed    0.02 sec
+        Start 148: AiFallbackTest.StitchImagesNullOutputReturnsInvalid
+148/376 Test #148: AiFallbackTest.StitchImagesNullOutputReturnsInvalid ............................................................   Passed    0.02 sec
+        Start 149: AiFallbackTest.StitchImagesNullOutputDataReturnsInvalidInput
+149/376 Test #149: AiFallbackTest.StitchImagesNullOutputDataReturnsInvalidInput ...................................................   Passed    0.02 sec
+        Start 150: AiFallbackTest.BoneSuppressNullImgReturnsInvalid
+150/376 Test #150: AiFallbackTest.BoneSuppressNullImgReturnsInvalid ...............................................................   Passed    0.12 sec
+        Start 151: AiFallbackTest.BoneSuppressNullOutputReturnsInvalid
+151/376 Test #151: AiFallbackTest.BoneSuppressNullOutputReturnsInvalid ............................................................   Passed    0.02 sec
+        Start 152: AiFallbackTest.BoneSuppressDimensionMismatchReturnsInvalid
+152/376 Test #152: AiFallbackTest.BoneSuppressDimensionMismatchReturnsInvalid .....................................................   Passed    0.02 sec
+        Start 153: AiFallbackTest.DlDenoiseNullImgReturnsInvalid
+153/376 Test #153: AiFallbackTest.DlDenoiseNullImgReturnsInvalid ..................................................................   Passed    0.02 sec
+        Start 154: AiFallbackTest.DlDenoiseNullMetaReturnsInvalid
+154/376 Test #154: AiFallbackTest.DlDenoiseNullMetaReturnsInvalid .................................................................   Passed    0.02 sec
+        Start 155: AiFallbackTest.BodypartRecognizeInvalidBufferReturnsInvalid
+155/376 Test #155: AiFallbackTest.BodypartRecognizeInvalidBufferReturnsInvalid ....................................................   Passed    0.02 sec
+        Start 156: AiFallbackTest.DataSizeGuard_BodypartRecognize_ShortReturnsInvalid
+156/376 Test #156: AiFallbackTest.DataSizeGuard_BodypartRecognize_ShortReturnsInvalid .............................................   Passed    0.02 sec
+        Start 157: AiFallbackTest.DataSizeGuard_StitchImages_ShortReturnsInvalid
+157/376 Test #157: AiFallbackTest.DataSizeGuard_StitchImages_ShortReturnsInvalid ..................................................   Passed    0.02 sec
+        Start 158: AiFallbackTest.DataSizeGuard_StitchEstimateSize_ShortReturnsInvalid
+158/376 Test #158: AiFallbackTest.DataSizeGuard_StitchEstimateSize_ShortReturnsInvalid ............................................   Passed    0.61 sec
+        Start 159: AiFallbackTest.DataSizeGuard_BoneSuppress_ShortReturnsInvalid
+159/376 Test #159: AiFallbackTest.DataSizeGuard_BoneSuppress_ShortReturnsInvalid ..................................................   Passed    0.03 sec
+        Start 160: AiFallbackTest.DataSizeGuard_DlDenoise_ShortReturnsInvalid
+160/376 Test #160: AiFallbackTest.DataSizeGuard_DlDenoise_ShortReturnsInvalid .....................................................   Passed    0.02 sec
+        Start 161: AiFallbackTest.DataSizeGuard_BodypartRecognize_ZeroAccepted
+161/376 Test #161: AiFallbackTest.DataSizeGuard_BodypartRecognize_ZeroAccepted ....................................................   Passed    0.03 sec
+        Start 162: AiFallbackTest.DataSizeGuard_StitchImages_ZeroAccepted
+162/376 Test #162: AiFallbackTest.DataSizeGuard_StitchImages_ZeroAccepted .........................................................   Passed    0.02 sec
+        Start 163: AiFallbackTest.DataSizeGuard_StitchEstimateSize_ZeroAccepted
+163/376 Test #163: AiFallbackTest.DataSizeGuard_StitchEstimateSize_ZeroAccepted ...................................................   Passed    0.02 sec
+        Start 164: AiFallbackTest.DataSizeGuard_BoneSuppress_ZeroAccepted
+164/376 Test #164: AiFallbackTest.DataSizeGuard_BoneSuppress_ZeroAccepted .........................................................   Passed    0.02 sec
+        Start 165: AiFallbackTest.DataSizeGuard_DlDenoise_ZeroAccepted
+165/376 Test #165: AiFallbackTest.DataSizeGuard_DlDenoise_ZeroAccepted ............................................................   Passed    0.02 sec
+        Start 166: AiFallbackTest.EmptyImageContract_ZeroWidthIsInvalidInput
+166/376 Test #166: AiFallbackTest.EmptyImageContract_ZeroWidthIsInvalidInput ......................................................   Passed    0.02 sec
+        Start 167: AiFallbackTest.EmptyImageContract_ZeroHeightIsInvalidInput
+167/376 Test #167: AiFallbackTest.EmptyImageContract_ZeroHeightIsInvalidInput .....................................................   Passed    0.02 sec
+        Start 168: AiFallbackTest.EmptyImageContract_NullDataIsInvalidInput
+168/376 Test #168: AiFallbackTest.EmptyImageContract_NullDataIsInvalidInput .......................................................   Passed    0.02 sec
+        Start 169: AiFallbackTest.EmptyImageContract_StitchRejectsEmptyElement
+169/376 Test #169: AiFallbackTest.EmptyImageContract_StitchRejectsEmptyElement ....................................................   Passed    0.02 sec
+        Start 170: AiFallbackTest.EmptyImageContract_ValidImageStillAccepted
+170/376 Test #170: AiFallbackTest.EmptyImageContract_ValidImageStillAccepted ......................................................   Passed    0.02 sec
+        Start 171: AiFallbackTest.OutputBufferContract_ZeroLengthLabelBufferIsInvalidInput
+171/376 Test #171: AiFallbackTest.OutputBufferContract_ZeroLengthLabelBufferIsInvalidInput ........................................   Passed    0.02 sec
+        Start 172: AiFallbackTest.OutputBufferContract_ShortLabelBufferIsBufferTooSmall
+172/376 Test #172: AiFallbackTest.OutputBufferContract_ShortLabelBufferIsBufferTooSmall ...........................................   Passed    0.02 sec
+        Start 173: AiFallbackTest.OutputBufferContract_EmptyStitchOutputIsInvalidInput
+173/376 Test #173: AiFallbackTest.OutputBufferContract_EmptyStitchOutputIsInvalidInput ............................................   Passed    0.02 sec
+        Start 174: AiFallbackTest.OutputBufferContract_ZeroLengthModelCardBufferIsInvalidInput
+174/376 Test #174: AiFallbackTest.OutputBufferContract_ZeroLengthModelCardBufferIsInvalidInput ....................................   Passed    0.02 sec
+        Start 175: AiFallbackTest.OutputBufferContract_AdequateBuffersStillAccepted
+175/376 Test #175: AiFallbackTest.OutputBufferContract_AdequateBuffersStillAccepted ...............................................   Passed    0.02 sec
+        Start 176: AiFallbackTest.KnownDivergence_LabelBufferThresholdFollowsStubLabelLength
+176/376 Test #176: AiFallbackTest.KnownDivergence_LabelBufferThresholdFollowsStubLabelLength ......................................   Passed    0.61 sec
+        Start 177: AiFallbackTest.KnownDivergence_FallbackModeCanBeSetButNeverReadBack
+177/376 Test #177: AiFallbackTest.KnownDivergence_FallbackModeCanBeSetButNeverReadBack ............................................   Passed    0.02 sec
+        Start 178: AiFallbackTest.KnownDivergence_FallbackModeChangesNoObservableOutput
+178/376 Test #178: AiFallbackTest.KnownDivergence_FallbackModeChangesNoObservableOutput ...........................................   Passed    0.03 sec
+        Start 179: AiErrorPrecedenceTest.NullArgumentOutranksNotInitialized
+179/376 Test #179: AiErrorPrecedenceTest.NullArgumentOutranksNotInitialized .......................................................   Passed    0.04 sec
+        Start 180: AiErrorPrecedenceTest.ValidArgumentsReachNotInitialized
+180/376 Test #180: AiErrorPrecedenceTest.ValidArgumentsReachNotInitialized ........................................................   Passed    0.03 sec
+        Start 181: AiErrorPrecedenceTest.BodypartRecognize_NullArgumentOutranksNotInitialized
+181/376 Test #181: AiErrorPrecedenceTest.BodypartRecognize_NullArgumentOutranksNotInitialized .....................................   Passed    0.03 sec
+        Start 182: AiErrorPrecedenceTest.BodypartRecognize_ValidArgumentsReachNotInitialized
+182/376 Test #182: AiErrorPrecedenceTest.BodypartRecognize_ValidArgumentsReachNotInitialized ......................................   Passed    0.02 sec
+        Start 183: AiErrorPrecedenceTest.StitchImages_NullArgumentOutranksNotInitialized
+183/376 Test #183: AiErrorPrecedenceTest.StitchImages_NullArgumentOutranksNotInitialized ..........................................   Passed    0.02 sec
+        Start 184: AiErrorPrecedenceTest.StitchImages_ValidArgumentsReachNotInitialized
+184/376 Test #184: AiErrorPrecedenceTest.StitchImages_ValidArgumentsReachNotInitialized ...........................................   Passed    0.02 sec
+        Start 185: AiErrorPrecedenceTest.BoneSuppress_NullArgumentOutranksNotInitialized
+185/376 Test #185: AiErrorPrecedenceTest.BoneSuppress_NullArgumentOutranksNotInitialized ..........................................   Passed    0.02 sec
+        Start 186: AiErrorPrecedenceTest.BoneSuppress_ValidArgumentsReachNotInitialized
+186/376 Test #186: AiErrorPrecedenceTest.BoneSuppress_ValidArgumentsReachNotInitialized ...........................................   Passed    0.02 sec
+        Start 187: AiErrorPrecedenceTest.GetModelCard_NullArgumentOutranksNotInitialized
+187/376 Test #187: AiErrorPrecedenceTest.GetModelCard_NullArgumentOutranksNotInitialized ..........................................   Passed    0.02 sec
+        Start 188: AiErrorPrecedenceTest.GetModelCard_ValidArgumentsReachNotInitialized
+188/376 Test #188: AiErrorPrecedenceTest.GetModelCard_ValidArgumentsReachNotInitialized ...........................................   Passed    0.67 sec
+        Start 189: AiEndurance.ThousandCycles_CrtHeapDoesNotGrow
+189/376 Test #189: AiEndurance.ThousandCycles_CrtHeapDoesNotGrow ..................................................................   Passed    0.02 sec
+        Start 190: AiEndurance.ThousandCycles_ControlLeakIsCaught
+190/376 Test #190: AiEndurance.ThousandCycles_ControlLeakIsCaught .................................................................   Passed    0.02 sec
+        Start 191: AiModelCardTest.GetModelCardForKnownModelReturnsOk
+191/376 Test #191: AiModelCardTest.GetModelCardForKnownModelReturnsOk .............................................................   Passed    0.02 sec
+        Start 192: AiModelCardTest.GetModelCardContainsModelId
+192/376 Test #192: AiModelCardTest.GetModelCardContainsModelId ....................................................................   Passed    0.02 sec
+        Start 193: AiModelCardTest.KnownDivergence_GetModelCardStubVersionSaysStub
+193/376 Test #193: AiModelCardTest.KnownDivergence_GetModelCardStubVersionSaysStub ................................................   Passed    0.02 sec
+        Start 194: AiModelCardTest.GetModelCardContainsIntendedUse
+194/376 Test #194: AiModelCardTest.GetModelCardContainsIntendedUse ................................................................   Passed    0.02 sec
+        Start 195: AiModelCardTest.GetModelCardContainsLimitations
+195/376 Test #195: AiModelCardTest.GetModelCardContainsLimitations ................................................................   Passed    0.02 sec
+        Start 196: AiModelCardTest.GetModelCardContainsPccpStatus
+196/376 Test #196: AiModelCardTest.GetModelCardContainsPccpStatus .................................................................   Passed    0.02 sec
+        Start 197: AiModelCardTest.GetModelCardContainsPublishedDate
+197/376 Test #197: AiModelCardTest.GetModelCardContainsPublishedDate ..............................................................   Passed    0.02 sec
+        Start 198: AiModelCardTest.GetModelCardContainsTrainingDataSummary
+198/376 Test #198: AiModelCardTest.GetModelCardContainsTrainingDataSummary ........................................................   Passed    0.02 sec
+        Start 199: AiModelCardTest.GetModelCardOutputIsValidJson
+199/376 Test #199: AiModelCardTest.GetModelCardOutputIsValidJson ..................................................................   Passed    0.02 sec
+        Start 200: AiModelCardTest.GetModelCardForStitchModel
+200/376 Test #200: AiModelCardTest.GetModelCardForStitchModel .....................................................................   Passed    0.02 sec
+        Start 201: AiModelCardTest.GetModelCardForBoneSuppressModel
+201/376 Test #201: AiModelCardTest.GetModelCardForBoneSuppressModel ...............................................................   Passed    0.02 sec
+        Start 202: AiModelCardTest.GetModelCardForDenoiseModel
+202/376 Test #202: AiModelCardTest.GetModelCardForDenoiseModel ....................................................................   Passed    0.02 sec
+        Start 203: AiModelCardTest.GetModelCardForUnknownModelReturnsIoFailed
+203/376 Test #203: AiModelCardTest.GetModelCardForUnknownModelReturnsIoFailed .....................................................   Passed    0.02 sec
+        Start 204: AiModelCardTest.GetModelCardForUnknownModelStillWritesJson
+204/376 Test #204: AiModelCardTest.GetModelCardForUnknownModelStillWritesJson .....................................................   Passed    0.02 sec
+        Start 205: AiModelCardTest.GetModelCardForUnknownModelContainsError
+205/376 Test #205: AiModelCardTest.GetModelCardForUnknownModelContainsError .......................................................   Passed    0.02 sec
+        Start 206: AiModelCardTest.GetModelCardNullModelIdReturnsInvalid
+206/376 Test #206: AiModelCardTest.GetModelCardNullModelIdReturnsInvalid ..........................................................   Passed    0.02 sec
+        Start 207: AiModelCardTest.GetModelCardNullBufReturnsInvalid
+207/376 Test #207: AiModelCardTest.GetModelCardNullBufReturnsInvalid ..............................................................   Passed    0.02 sec
+        Start 208: AiModelCardTest.GetModelCardZeroBufSizeReturnsInvalidInput
+208/376 Test #208: AiModelCardTest.GetModelCardZeroBufSizeReturnsInvalidInput .....................................................   Passed    0.02 sec
+        Start 209: AiModelCardTest.GetModelCardSmallBufferReturnsTooSmall
+209/376 Test #209: AiModelCardTest.GetModelCardSmallBufferReturnsTooSmall .........................................................   Passed    0.02 sec
+        Start 210: AiModelCardTest.GetModelCardExactSizeBufferSucceeds
+210/376 Test #210: AiModelCardTest.GetModelCardExactSizeBufferSucceeds ............................................................   Passed    0.02 sec
+        Start 211: AiWorkerIsolationTest.StubModeBodypartRecognizeFallsBackGracefully
+211/376 Test #211: AiWorkerIsolationTest.StubModeBodypartRecognizeFallsBackGracefully .............................................   Passed    0.02 sec
+        Start 212: AiWorkerIsolationTest.StubModeStitchImagesFallsBackGracefully
+212/376 Test #212: AiWorkerIsolationTest.StubModeStitchImagesFallsBackGracefully ..................................................   Passed    0.02 sec
+        Start 213: AiWorkerIsolationTest.StubModeBoneSuppressFallsBackGracefully
+213/376 Test #213: AiWorkerIsolationTest.StubModeBoneSuppressFallsBackGracefully ..................................................   Passed    0.02 sec
+        Start 214: AiWorkerIsolationTest.StubModeDlDenoiseFallsBackGracefully
+214/376 Test #214: AiWorkerIsolationTest.StubModeDlDenoiseFallsBackGracefully .....................................................   Passed    0.03 sec
+        Start 215: AiWorkerIsolationTest.KnownDivergence_RepeatedStubFallbackIsConsistent
+215/376 Test #215: AiWorkerIsolationTest.KnownDivergence_RepeatedStubFallbackIsConsistent .........................................   Passed    0.02 sec
+        Start 216: AiWorkerIsolationTest.ConcurrentBodypartRecognizeIsThreadSafe
+216/376 Test #216: AiWorkerIsolationTest.ConcurrentBodypartRecognizeIsThreadSafe ..................................................   Passed    0.02 sec
+        Start 217: AiWorkerIsolationTest.ConcurrentSetFallbackModeIsThreadSafe
+217/376 Test #217: AiWorkerIsolationTest.ConcurrentSetFallbackModeIsThreadSafe ....................................................   Passed    0.02 sec
+        Start 218: AiWorkerIsolationTest.ProtocolVersionIsDefined
+218/376 Test #218: AiWorkerIsolationTest.ProtocolVersionIsDefined .................................................................   Passed    0.02 sec
+        Start 219: AiWorkerIsolationTest.MessageMagicIsValid
+219/376 Test #219: AiWorkerIsolationTest.MessageMagicIsValid ......................................................................   Passed    0.02 sec
+        Start 220: AiWorkerIsolationTest.TimeoutDefaultIsPositive
+220/376 Test #220: AiWorkerIsolationTest.TimeoutDefaultIsPositive .................................................................   Passed    0.02 sec
+        Start 221: AiWorkerIsolationTest.MaxPayloadSizeIsReasonable
+221/376 Test #221: AiWorkerIsolationTest.MaxPayloadSizeIsReasonable ...............................................................   Passed    0.02 sec
+        Start 222: AiWorkerIsolationTest.PipeBufferSizeIsPositive
+222/376 Test #222: AiWorkerIsolationTest.PipeBufferSizeIsPositive .................................................................   Passed    0.02 sec
+        Start 223: AiWorkerIsolationTest.MaxModelIdLengthIsPositive
+223/376 Test #223: AiWorkerIsolationTest.MaxModelIdLengthIsPositive ...............................................................   Passed    0.02 sec
+        Start 224: AiWorkerIsolationTest.MaxBodypartLengthIsPositive
+224/376 Test #224: AiWorkerIsolationTest.MaxBodypartLengthIsPositive ..............................................................   Passed    0.02 sec
+        Start 225: AiWorkerIsolationTest.RapidInitShutdownCycleDoesNotCrash
+225/376 Test #225: AiWorkerIsolationTest.RapidInitShutdownCycleDoesNotCrash .......................................................   Passed    0.02 sec
+        Start 226: AiWorkerIsolationTest.InitShutdownWithInferenceInBetween
+226/376 Test #226: AiWorkerIsolationTest.InitShutdownWithInferenceInBetween .......................................................   Passed    0.02 sec
+        Start 227: AiIpcBridgeTest.CreateBridge_ValidParameters_Succeeds
+227/376 Test #227: AiIpcBridgeTest.CreateBridge_ValidParameters_Succeeds ..........................................................   Passed    0.02 sec
+        Start 228: AiIpcBridgeTest.CreateBridge_NullPipeName_ReturnsNull
+228/376 Test #228: AiIpcBridgeTest.CreateBridge_NullPipeName_ReturnsNull ..........................................................   Passed    0.02 sec
+        Start 229: AiIpcBridgeTest.Connect_NoWorkerAvailable_ReturnsTimeoutError
+229/376 Test #229: AiIpcBridgeTest.Connect_NoWorkerAvailable_ReturnsTimeoutError ..................................................   Passed    0.02 sec
+        Start 230: AiIpcBridgeTest.Send_NotConnected_ReturnsError
+230/376 Test #230: AiIpcBridgeTest.Send_NotConnected_ReturnsError .................................................................   Passed    0.02 sec
+        Start 231: AiIpcBridgeTest.Receive_NotConnected_ReturnsError
+231/376 Test #231: AiIpcBridgeTest.Receive_NotConnected_ReturnsError ..............................................................   Passed    0.02 sec
+        Start 232: AiIpcBridgeTest.Send_InvalidMagicNumber_ReturnsInvalidInput
+232/376 Test #232: AiIpcBridgeTest.Send_InvalidMagicNumber_ReturnsInvalidInput ....................................................   Passed    0.03 sec
+        Start 233: AiIpcBridgeTest.Send_PayloadSizeExceedsMaximum_ReturnsInvalidInput
+233/376 Test #233: AiIpcBridgeTest.Send_PayloadSizeExceedsMaximum_ReturnsInvalidInput .............................................   Passed    0.02 sec
+        Start 234: AiIpcBridgeTest.Receive_NoResponseWithinTimeout_ReturnsTimeoutError
+234/376 Test #234: AiIpcBridgeTest.Receive_NoResponseWithinTimeout_ReturnsTimeoutError ............................................   Passed    0.02 sec
+        Start 235: AiIpcBridgeTest.Destroy_NullBridge_DoesNotCrash
+235/376 Test #235: AiIpcBridgeTest.Destroy_NullBridge_DoesNotCrash ................................................................   Passed    0.13 sec
+        Start 236: AiIpcBridgeTest.Destroy_MultipleCalls_Safe
+236/376 Test #236: AiIpcBridgeTest.Destroy_MultipleCalls_Safe .....................................................................   Passed    0.59 sec
+        Start 237: AiModelVersioningTest.ModelCardContainsSemverVersion
+237/376 Test #237: AiModelVersioningTest.ModelCardContainsSemverVersion ...........................................................   Passed    0.02 sec
+        Start 238: AiModelVersioningTest.ModelCardContainsModelId
+238/376 Test #238: AiModelVersioningTest.ModelCardContainsModelId .................................................................   Passed    0.02 sec
+        Start 239: AiModelVersioningTest.ModelCardContainsPccpScope
+239/376 Test #239: AiModelVersioningTest.ModelCardContainsPccpScope ...............................................................   Passed    0.02 sec
+        Start 240: AiModelVersioningTest.ModelCardContainsTrainingDataHash
+240/376 Test #240: AiModelVersioningTest.ModelCardContainsTrainingDataHash ........................................................   Passed    0.03 sec
+        Start 241: AiModelVersioningTest.ModelCardContainsValidationMetrics
+241/376 Test #241: AiModelVersioningTest.ModelCardContainsValidationMetrics .......................................................   Passed    0.02 sec
+        Start 242: AiModelVersioningTest.ModelCardContainsAllRequiredMetadataFields
+242/376 Test #242: AiModelVersioningTest.ModelCardContainsAllRequiredMetadataFields ...............................................   Passed    0.03 sec
+        Start 243: AiModelVersioningTest.ModelVersionsCanBeCompared
+243/376 Test #243: AiModelVersioningTest.ModelVersionsCanBeCompared ...............................................................   Passed    0.02 sec
+        Start 244: AiModelVersioningTest.ModelCardForUnknownModelReturnsError
+244/376 Test #244: AiModelVersioningTest.ModelCardForUnknownModelReturnsError .....................................................   Passed    0.02 sec
+        Start 245: AiModelVersioningTest.ModelCardWithTinyBufferReturnsBufferTooSmall
+245/376 Test #245: AiModelVersioningTest.ModelCardWithTinyBufferReturnsBufferTooSmall .............................................   Passed    0.03 sec
+        Start 246: AiModelVersioningTest.ModelCardWithNullModelIdReturnsInvalidInput
+246/376 Test #246: AiModelVersioningTest.ModelCardWithNullModelIdReturnsInvalidInput ..............................................   Passed    0.02 sec
+        Start 247: AiModelVersioningTest.ModelCardWithNullBufferReturnsInvalidInput
+247/376 Test #247: AiModelVersioningTest.ModelCardWithNullBufferReturnsInvalidInput ...............................................   Passed    0.02 sec
+        Start 248: AiDataSizeProbe.ShortDataSizeIsRejectedWithoutOverreading
+248/376 Test #248: AiDataSizeProbe.ShortDataSizeIsRejectedWithoutOverreading ......................................................   Passed    0.03 sec
+        Start 249: AiDataSizeProbe.ShortInputRejectedWhenOutputIsWellFormed
+249/376 Test #249: AiDataSizeProbe.ShortInputRejectedWhenOutputIsWellFormed .......................................................   Passed    0.03 sec
+        Start 250: AiParamDependency.StitchEstimateSize_PartDimensionsReachTheOutput
+250/376 Test #250: AiParamDependency.StitchEstimateSize_PartDimensionsReachTheOutput ..............................................   Passed    0.03 sec
+        Start 251: AiParamDependency.FallbackMode_IsAcceptedAndObservableEffectIsRecorded
+251/376 Test #251: AiParamDependency.FallbackMode_IsAcceptedAndObservableEffectIsRecorded .........................................   Passed    0.02 sec
+        Start 252: AiParamDependency.InferenceEntryPointsStopBeforeTheModel
+252/376 Test #252: AiParamDependency.InferenceEntryPointsStopBeforeTheModel .......................................................   Passed    0.02 sec
+        Start 253: AiConfigWarning.NullConfigIsSilent
+253/376 Test #253: AiConfigWarning.NullConfigIsSilent .............................................................................   Passed    0.03 sec
+        Start 254: AiConfigWarning.EmptyObjectIsSilent
+254/376 Test #254: AiConfigWarning.EmptyObjectIsSilent ............................................................................   Passed    0.02 sec
+        Start 255: AiConfigWarning.FullyValidConfigIsSilent
+255/376 Test #255: AiConfigWarning.FullyValidConfigIsSilent .......................................................................   Passed    0.02 sec
+        Start 256: AiConfigWarning.UnknownKeyIsReportedByName
+256/376 Test #256: AiConfigWarning.UnknownKeyIsReportedByName .....................................................................   Passed    0.02 sec
+        Start 257: AiConfigWarning.TypoOfAKnownKeyIsReportedByName
+257/376 Test #257: AiConfigWarning.TypoOfAKnownKeyIsReportedByName ................................................................   Passed    0.02 sec
+        Start 258: AiConfigWarning.KnownKeyWithWrongTypeIsReported
+258/376 Test #258: AiConfigWarning.KnownKeyWithWrongTypeIsReported ................................................................   Passed    0.02 sec
+        Start 259: AiConfigWarning.MixedConfigNamesOnlyTheUnconsumed
+259/376 Test #259: AiConfigWarning.MixedConfigNamesOnlyTheUnconsumed ..............................................................   Passed    0.02 sec
+        Start 260: AiConfigWarning.ReturnCodeIsUnchangedForUnknownKeys
+260/376 Test #260: AiConfigWarning.ReturnCodeIsUnchangedForUnknownKeys ............................................................   Passed    0.02 sec
+        Start 261: AiConfigWarning.UseWorkerWithAWrongTypeIsReported
+261/376 Test #261: AiConfigWarning.UseWorkerWithAWrongTypeIsReported ..............................................................   Passed    0.13 sec
+        Start 262: AiConfigWarning.ATypoOfUseWorkerIsReportedByName
+262/376 Test #262: AiConfigWarning.ATypoOfUseWorkerIsReportedByName ...............................................................   Passed    0.02 sec
+        Start 263: OnnxSessionFixtures.ModelFilesArePresent
+263/376 Test #263: OnnxSessionFixtures.ModelFilesArePresent .......................................................................   Passed    0.02 sec
+        Start 264: OnnxSessionRun.StubBuildRefusesToRunAndDoesNotEcho
+264/376 Test #264: OnnxSessionRun.StubBuildRefusesToRunAndDoesNotEcho .............................................................***Skipped   0.02 sec
+        Start 265: OnnxSessionRun.RunningADifferentModelChangesTheOutput
+265/376 Test #265: OnnxSessionRun.RunningADifferentModelChangesTheOutput ..........................................................   Passed    0.06 sec
+        Start 266: OnnxSessionRun.OutputIsNotAConstantIndependentOfInput
+266/376 Test #266: OnnxSessionRun.OutputIsNotAConstantIndependentOfInput ..........................................................   Passed    0.07 sec
+        Start 267: OnnxSessionRun.WrongInputLengthIsInvalidInput
+267/376 Test #267: OnnxSessionRun.WrongInputLengthIsInvalidInput ..................................................................   Passed    0.06 sec
+        Start 268: OnnxSessionRun.EmptyInputIsInvalidInput
+268/376 Test #268: OnnxSessionRun.EmptyInputIsInvalidInput ........................................................................   Passed    0.06 sec
+        Start 269: OnnxSessionCreate.MissingModelIsInvalidModelPath
+269/376 Test #269: OnnxSessionCreate.MissingModelIsInvalidModelPath ...............................................................   Passed    0.02 sec
+        Start 270: OnnxSessionCreate.GarbageFileIsModelLoadFailed
+270/376 Test #270: OnnxSessionCreate.GarbageFileIsModelLoadFailed .................................................................   Passed    0.06 sec
+        Start 271: OnnxSessionMetadata.InputAndOutputAreReadFromTheModel
+271/376 Test #271: OnnxSessionMetadata.InputAndOutputAreReadFromTheModel ..........................................................   Passed    0.06 sec
+        Start 272: OnnxSessionBuildMode.AFullBuildIsProvableWhenTheCallerSaysItExpectedOne
+272/376 Test #272: OnnxSessionBuildMode.AFullBuildIsProvableWhenTheCallerSaysItExpectedOne ........................................   Passed    0.02 sec
+        Start 273: OnnxSessionProviders.CpuIsReportedAndTheListComesFromTheRuntime
+273/376 Test #273: OnnxSessionProviders.CpuIsReportedAndTheListComesFromTheRuntime ................................................   Passed    0.02 sec
+        Start 274: BoneSuppressAbi.ModelDirectoriesArePresent
+274/376 Test #274: BoneSuppressAbi.ModelDirectoriesArePresent .....................................................................   Passed    0.02 sec
+        Start 275: BoneSuppressAbi.ADifferentModelDirectoryChangesTheOutput
+275/376 Test #275: BoneSuppressAbi.ADifferentModelDirectoryChangesTheOutput .......................................................   Passed    0.73 sec
+        Start 276: BoneSuppressAbi.TheInputImageIsNotModified
+276/376 Test #276: BoneSuppressAbi.TheInputImageIsNotModified .....................................................................   Passed    0.06 sec
+        Start 277: BoneSuppressAbi.DifferentPixelsGiveDifferentOutput
+277/376 Test #277: BoneSuppressAbi.DifferentPixelsGiveDifferentOutput .............................................................   Passed    0.06 sec
+        Start 278: BoneSuppressAbi.StubBuildFailsAndLeavesTheOutputAlone
+278/376 Test #278: BoneSuppressAbi.StubBuildFailsAndLeavesTheOutputAlone ..........................................................***Skipped   0.02 sec
+        Start 279: BoneSuppressAbi.MissingModelAndBrokenModelGiveDifferentCodes
+279/376 Test #279: BoneSuppressAbi.MissingModelAndBrokenModelGiveDifferentCodes ...................................................   Passed    0.05 sec
+        Start 280: BoneSuppressAbi.NonFloatPixelsAreRejectedRatherThanReinterpreted
+280/376 Test #280: BoneSuppressAbi.NonFloatPixelsAreRejectedRatherThanReinterpreted ...............................................   Passed    0.02 sec
+        Start 281: BoneSuppressAbi.WithoutInitItIsNotInitialized
+281/376 Test #281: BoneSuppressAbi.WithoutInitItIsNotInitialized ..................................................................   Passed    0.02 sec
+        Start 282: BoneSuppressAbi.NullArgumentsOutrankEverythingElse
+282/376 Test #282: BoneSuppressAbi.NullArgumentsOutrankEverythingElse .............................................................   Passed    0.02 sec
+        Start 283: BoneSuppressAbi.MismatchedDimensionsAreInvalidInput
+283/376 Test #283: BoneSuppressAbi.MismatchedDimensionsAreInvalidInput ............................................................   Passed    0.02 sec
+        Start 284: BoneSuppressAbi.ReInitWithADifferentDirectorySwitchesTheModel
+284/376 Test #284: BoneSuppressAbi.ReInitWithADifferentDirectorySwitchesTheModel ..................................................   Passed    0.06 sec
+        Start 285: BoneSuppressAbi.ShutdownThenUseIsRejectedNotCrashed
+285/376 Test #285: BoneSuppressAbi.ShutdownThenUseIsRejectedNotCrashed ............................................................   Passed    0.06 sec
+        Start 286: AiProcessedAlert.TheProbeItselfCanSeeAQueuedInfoAlert
+286/376 Test #286: AiProcessedAlert.TheProbeItselfCanSeeAQueuedInfoAlert ..........................................................   Passed    0.02 sec
+        Start 287: AiProcessedAlert.DlAppliedRaisesTheInfoAlert
+287/376 Test #287: AiProcessedAlert.DlAppliedRaisesTheInfoAlert ...................................................................   Passed    0.06 sec
+        Start 288: AiProcessedAlert.OneCallRaisesExactlyOneAlert
+288/376 Test #288: AiProcessedAlert.OneCallRaisesExactlyOneAlert ..................................................................   Passed    0.07 sec
+        Start 289: AiProcessedAlert.TwoCallsRaiseTwoAlerts
+289/376 Test #289: AiProcessedAlert.TwoCallsRaiseTwoAlerts ........................................................................   Passed    0.06 sec
+        Start 290: AiProcessedAlert.UnsupportedFormatRaisesNothing
+290/376 Test #290: AiProcessedAlert.UnsupportedFormatRaisesNothing ................................................................   Passed    0.02 sec
+        Start 291: AiProcessedAlert.MissingModelRaisesNothing
+291/376 Test #291: AiProcessedAlert.MissingModelRaisesNothing .....................................................................   Passed    0.02 sec
+        Start 292: AiProcessedAlert.BrokenModelRaisesNothing
+292/376 Test #292: AiProcessedAlert.BrokenModelRaisesNothing ......................................................................   Passed    0.06 sec
+        Start 293: AiProcessedAlert.MismatchedDimensionsRaiseNothing
+293/376 Test #293: AiProcessedAlert.MismatchedDimensionsRaiseNothing ..............................................................   Passed    0.02 sec
+        Start 294: AiProcessedAlert.WithoutInitRaisesNothing
+294/376 Test #294: AiProcessedAlert.WithoutInitRaisesNothing ......................................................................   Passed    0.02 sec
+        Start 295: AiProcessedAlert.DlNotAppliedInAStubBuildRaisesNothing
+295/376 Test #295: AiProcessedAlert.DlNotAppliedInAStubBuildRaisesNothing .........................................................***Skipped   0.02 sec
+        Start 296: AiProcessedAlert.DlAppliedRaisesTheAlert_ProvableWhenTheCallerSaysSo
+296/376 Test #296: AiProcessedAlert.DlAppliedRaisesTheAlert_ProvableWhenTheCallerSaysSo ...........................................   Passed    0.02 sec
+        Start 297: WorkerProtocolConformance.TheWorkerLaunchesAndTheBridgeConnects
+297/376 Test #297: WorkerProtocolConformance.TheWorkerLaunchesAndTheBridgeConnects ................................................   Passed    0.31 sec
+        Start 298: WorkerProtocolConformance.ShutdownPerTheHeaderActuallyShutsTheWorkerDown
+298/376 Test #298: WorkerProtocolConformance.ShutdownPerTheHeaderActuallyShutsTheWorkerDown .......................................   Passed    0.09 sec
+        Start 299: WorkerProtocolConformance.InitPerTheHeaderGetsAnInitResponse
+299/376 Test #299: WorkerProtocolConformance.InitPerTheHeaderGetsAnInitResponse ...................................................   Passed    0.08 sec
+        Start 300: WorkerProtocolConformance.TheInitResponseNamesTheBuildTheWorkerReallyIs
+300/376 Test #300: WorkerProtocolConformance.TheInitResponseNamesTheBuildTheWorkerReallyIs ........................................   Passed    0.10 sec
+        Start 301: WorkerProtocolConformance.HeartbeatPerTheHeaderIsAnsweredAsAHeartbeat
+301/376 Test #301: WorkerProtocolConformance.HeartbeatPerTheHeaderIsAnsweredAsAHeartbeat ..........................................   Passed    0.12 sec
+        Start 302: WorkerProtocolConformance.AMessageTheWorkerDoesNotHandleGetsAnErrorThatSaysSo
+302/376 Test #302: WorkerProtocolConformance.AMessageTheWorkerDoesNotHandleGetsAnErrorThatSaysSo ..................................   Passed    0.76 sec
+        Start 303: WorkerProtocolConformance.TheWorkerSourceDeclaresNoPrivateMessageEnum
+303/376 Test #303: WorkerProtocolConformance.TheWorkerSourceDeclaresNoPrivateMessageEnum ..........................................   Passed    0.03 sec
+        Start 304: WorkerBoneSuppress.IpcGivesTheSameAnswerAsInProcessForTheSameModelAndInput
+304/376 Test #304: WorkerBoneSuppress.IpcGivesTheSameAnswerAsInProcessForTheSameModelAndInput .....................................   Passed    1.41 sec
+        Start 305: WorkerBoneSuppress.ChangingTheModelChangesTheIpcOutput
+305/376 Test #305: WorkerBoneSuppress.ChangingTheModelChangesTheIpcOutput .........................................................   Passed    0.76 sec
+        Start 306: WorkerBoneSuppress.DifferentPixelsGiveDifferentIpcOutput
+306/376 Test #306: WorkerBoneSuppress.DifferentPixelsGiveDifferentIpcOutput .......................................................   Passed    1.26 sec
+        Start 307: WorkerBoneSuppress.ANonInferringBuildAnswersWithAnErrorAndLeavesTheOutputAlone
+307/376 Test #307: WorkerBoneSuppress.ANonInferringBuildAnswersWithAnErrorAndLeavesTheOutputAlone .................................***Skipped   0.63 sec
+        Start 308: WorkerBoneSuppress.TheFullBuildIsProvableWhenTheCallerSaysSo
+308/376 Test #308: WorkerBoneSuppress.TheFullBuildIsProvableWhenTheCallerSaysSo ...................................................   Passed    0.02 sec
+        Start 309: WorkerBoneSuppress.FailuresCarryTheSameCodeAsInProcess
+309/376 Test #309: WorkerBoneSuppress.FailuresCarryTheSameCodeAsInProcess .........................................................   Passed    0.17 sec
+        Start 310: WorkerBoneSuppress.AWrongPixelCountIsRefusedAndTheWorkerStaysInSync
+310/376 Test #310: WorkerBoneSuppress.AWrongPixelCountIsRefusedAndTheWorkerStaysInSync ............................................   Passed    0.09 sec
+        Start 311: IpcDeadline.ControlAWorkerThatAnswersIsAnsweredWithinTheBudget
+311/376 Test #311: IpcDeadline.ControlAWorkerThatAnswersIsAnsweredWithinTheBudget .................................................   Passed    0.04 sec
+        Start 312: IpcDeadline.AWorkerThatNeverAnswersReturnsControlAfterTheBudget
+312/376 Test #312: IpcDeadline.AWorkerThatNeverAnswersReturnsControlAfterTheBudget ................................................   Passed    0.45 sec
+        Start 313: IpcDeadline.TheBudgetIsTheConfiguredValueNotAConstant
+313/376 Test #313: IpcDeadline.TheBudgetIsTheConfiguredValueNotAConstant ..........................................................   Passed    1.58 sec
+        Start 314: IpcDeadline.BoneSuppressWithAStalledWorkerFailsAfterTheBudgetAndLeavesTheOutputAlone
+314/376 Test #314: IpcDeadline.BoneSuppressWithAStalledWorkerFailsAfterTheBudgetAndLeavesTheOutputAlone ...........................   Passed    0.45 sec
+        Start 315: IpcDeadline.AReplyThatStopsHalfWayAndStallsIsNotCountedAsSuccess
+315/376 Test #315: IpcDeadline.AReplyThatStopsHalfWayAndStallsIsNotCountedAsSuccess ...............................................   Passed    0.44 sec
+        Start 316: IpcDeadline.AReplyThatStopsHalfWayAndClosesIsNotCountedAsSuccess
+316/376 Test #316: IpcDeadline.AReplyThatStopsHalfWayAndClosesIsNotCountedAsSuccess ...............................................   Passed    0.04 sec
+        Start 317: IpcDeadline.ControlTheRealWorkerAnswersAHeartbeatBeforeAnyKill
+317/376 Test #317: IpcDeadline.ControlTheRealWorkerAnswersAHeartbeatBeforeAnyKill .................................................   Passed    0.71 sec
+        Start 318: IpcDeadline.ADeadWorkerIsReportedPromptlyNotAwaitedForever
+318/376 Test #318: IpcDeadline.ADeadWorkerIsReportedPromptlyNotAwaitedForever .....................................................   Passed    0.11 sec
+        Start 319: IpcDeadline.PipeClosureAloneDoesNotSeparateAnExitOnRequestFromADeath
+319/376 Test #319: IpcDeadline.PipeClosureAloneDoesNotSeparateAnExitOnRequestFromADeath ...........................................   Passed    1.31 sec
+        Start 320: IpcDeadline.ALargeReplyThatArrivesInPiecesIsReadWhole
+320/376 Test #320: IpcDeadline.ALargeReplyThatArrivesInPiecesIsReadWhole ..........................................................   Passed    1.03 sec
+        Start 321: IpcDeadline.ABodyLongerThanTheBufferDropsTheConnection
+321/376 Test #321: IpcDeadline.ABodyLongerThanTheBufferDropsTheConnection .........................................................   Passed    0.58 sec
+        Start 322: IpcDeadline.ABodyWithNoBufferAtAllDropsTheConnection
+322/376 Test #322: IpcDeadline.ABodyWithNoBufferAtAllDropsTheConnection ...........................................................   Passed    0.02 sec
+        Start 323: IpcDeadline.AWrongMagicDropsTheConnection
+323/376 Test #323: IpcDeadline.AWrongMagicDropsTheConnection ......................................................................   Passed    0.63 sec
+        Start 324: IpcDeadline.AReplyToSomeoneElsesRequestDropsTheConnection
+324/376 Test #324: IpcDeadline.AReplyToSomeoneElsesRequestDropsTheConnection ......................................................   Passed    0.02 sec
+        Start 325: IpcDeadline.AReplyOfTheWrongTypeDropsTheConnection
+325/376 Test #325: IpcDeadline.AReplyOfTheWrongTypeDropsTheConnection .............................................................   Passed    0.02 sec
+        Start 326: IpcDeadline.AReplyWithTheWrongPixelLengthDropsTheConnection
+326/376 Test #326: IpcDeadline.AReplyWithTheWrongPixelLengthDropsTheConnection ....................................................   Passed    0.60 sec
+        Start 327: IpcDeadline.ControlAWorkersOwnErrorFrameKeepsTheConnection
+327/376 Test #327: IpcDeadline.ControlAWorkersOwnErrorFrameKeepsTheConnection .....................................................   Passed    0.62 sec
+        Start 328: IpcDeadline.AnErrorFrameWithNoCodeDropsTheConnection
+328/376 Test #328: IpcDeadline.AnErrorFrameWithNoCodeDropsTheConnection ...........................................................   Passed    0.02 sec
+        Start 329: IpcDeadline.AnErrorFrameWithANonNumericCodeDropsTheConnection
+329/376 Test #329: IpcDeadline.AnErrorFrameWithANonNumericCodeDropsTheConnection ..................................................   Passed    0.61 sec
+        Start 330: IpcDeadline.AnErrorFrameWithACodeOutsideTheErrorRangeDropsTheConnection
+330/376 Test #330: IpcDeadline.AnErrorFrameWithACodeOutsideTheErrorRangeDropsTheConnection ........................................   Passed    0.02 sec
+        Start 331: IpcDeadline.ControlAGoodReplyIsWrittenIntoAnInPlaceBuffer
+331/376 Test #331: IpcDeadline.ControlAGoodReplyIsWrittenIntoAnInPlaceBuffer ......................................................   Passed    0.02 sec
+        Start 332: IpcDeadline.AReplyWithTheWrongPixelLengthLeavesAnInPlaceBufferByteForByteIntact
+332/376 Test #332: IpcDeadline.AReplyWithTheWrongPixelLengthLeavesAnInPlaceBufferByteForByteIntact ................................   Passed    0.02 sec
+        Start 333: IpcDeadline.AReplyCutOffHalfWayLeavesAnInPlaceBufferByteForByteIntact
+333/376 Test #333: IpcDeadline.AReplyCutOffHalfWayLeavesAnInPlaceBufferByteForByteIntact ..........................................   Passed    0.02 sec
+        Start 334: IpcDeadline.AStalledWorkerLeavesAnInPlaceBufferByteForByteIntact
+334/376 Test #334: IpcDeadline.AStalledWorkerLeavesAnInPlaceBufferByteForByteIntact ...............................................   Passed    0.43 sec
+        Start 335: WorkerSupervisor.FirstCallStartsAWorkerAndTheSecondReusesIt
+335/376 Test #335: WorkerSupervisor.FirstCallStartsAWorkerAndTheSecondReusesIt ....................................................   Passed    0.06 sec
+        Start 336: WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid
+336/376 Test #336: WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid ............................................   Passed    1.34 sec
+        Start 337: WorkerSupervisor.TheSupervisorReadsTheExitCodeOfTheHandleItHolds
+337/376 Test #337: WorkerSupervisor.TheSupervisorReadsTheExitCodeOfTheHandleItHolds ...............................................   Passed    0.72 sec
+        Start 338: WorkerSupervisor.AnUnrequestedExitIsADeathEvenWithExitCodeZero
+338/376 Test #338: WorkerSupervisor.AnUnrequestedExitIsADeathEvenWithExitCodeZero .................................................   Passed    0.74 sec
+        Start 339: WorkerSupervisor.ARequestedExitIsCleanAndReadAsExitCodeZero
+339/376 Test #339: WorkerSupervisor.ARequestedExitIsCleanAndReadAsExitCodeZero ....................................................   Passed    1.33 sec
+        Start 340: WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne
+340/376 Test #340: WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne ..............................   Passed    2.96 sec
+        Start 341: WorkerSupervisor.AWorkerThatAnswersWithAnErrorIsKeptNotRestarted
+341/376 Test #341: WorkerSupervisor.AWorkerThatAnswersWithAnErrorIsKeptNotRestarted ...............................................   Passed    0.06 sec
+        Start 342: WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress
+342/376 Test #342: WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress .................................................   Passed    0.29 sec
+        Start 343: WorkerSupervisor.NoWorkerOutlivesTheSupervisor
+343/376 Test #343: WorkerSupervisor.NoWorkerOutlivesTheSupervisor .................................................................   Passed    0.09 sec
+        Start 344: WorkerSupervisor.BaselineWithoutASupervisorAStalledWorkerStaysAliveAndTheBridgeStaysDown
+344/376 Test #344: WorkerSupervisor.BaselineWithoutASupervisorAStalledWorkerStaysAliveAndTheBridgeStaysDown .......................   Passed    0.85 sec
+        Start 345: WorkerSupervisor.ControlTheFakeWorkerInOkModeBehavesLikeTheRealOne
+345/376 Test #345: WorkerSupervisor.ControlTheFakeWorkerInOkModeBehavesLikeTheRealOne .............................................   Passed    0.06 sec
+        Start 346: WorkerSupervisor.AHeartbeatAnswerOfTheWrongTypeDiscardsTheWorker
+346/376 Test #346: WorkerSupervisor.AHeartbeatAnswerOfTheWrongTypeDiscardsTheWorker ...............................................   Passed    1.10 sec
+        Start 347: WorkerSupervisor.AHeartbeatAnswerToSomeoneElsesRequestDiscardsTheWorker
+347/376 Test #347: WorkerSupervisor.AHeartbeatAnswerToSomeoneElsesRequestDiscardsTheWorker ........................................   Passed    0.52 sec
+        Start 348: WorkerSupervisor.MeasureTheCostOfRepeatedFailuresWhenAWorkerHangsOrDiesOnStart
+348/376 Test #348: WorkerSupervisor.MeasureTheCostOfRepeatedFailuresWhenAWorkerHangsOrDiesOnStart .................................   Passed    3.24 sec
+        Start 349: WorkerSupervisor.StopAfterAnUnnoticedExitRecordsADeathNotAKill
+349/376 Test #349: WorkerSupervisor.StopAfterAnUnnoticedExitRecordsADeathNotAKill .................................................   Passed    0.06 sec
+        Start 350: WorkerSupervisor.MeasureColdStartAgainstTheDefaultBudget
+350/376 Test #350: WorkerSupervisor.MeasureColdStartAgainstTheDefaultBudget .......................................................   Passed    0.84 sec
+        Start 351: WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert
+351/376 Test #351: WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert ......................................................   Passed    0.07 sec
+        Start 352: WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore
+352/376 Test #352: WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore ............................................   Passed    0.11 sec
+        Start 353: WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll
+353/376 Test #353: WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll .......................................   Passed    0.19 sec
+        Start 354: WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged
+354/376 Test #354: WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged ..........................***Skipped   0.03 sec
+        Start 355: WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers
+355/376 Test #355: WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers ..............................   Passed    2.50 sec
+        Start 356: WorkerPathFixture.EveryFailureAlertsAndAHealthyWorkerThatRefusesTheModelThreeTimesIsSwitchedOffForTheSession
+356/376 Test #356: WorkerPathFixture.EveryFailureAlertsAndAHealthyWorkerThatRefusesTheModelThreeTimesIsSwitchedOffForTheSession ...   Passed    0.17 sec
+        Start 357: WorkerPathFixture.ShutdownThenInitRecoversAWorkerSwitchedOffByModelErrors
+357/376 Test #357: WorkerPathFixture.ShutdownThenInitRecoversAWorkerSwitchedOffByModelErrors ......................................   Passed    0.15 sec
+        Start 358: WorkerPathFixture.ASuccessResetsTheConsecutiveFailureCount
+358/376 Test #358: WorkerPathFixture.ASuccessResetsTheConsecutiveFailureCount .....................................................   Passed    2.49 sec
+        Start 359: WorkerPathFixture.IntermittentFailuresAlertOnEveryFailureAndAreNeverBlocked
+359/376 Test #359: WorkerPathFixture.IntermittentFailuresAlertOnEveryFailureAndAreNeverBlocked ....................................   Passed    3.05 sec
+        Start 360: WorkerPathFixture.AWorkerThatFailsOnEveryCallRaisesThreeAlertsThenIsSwitchedOffAndKeepsOtherWarnings
+360/376 Test #360: WorkerPathFixture.AWorkerThatFailsOnEveryCallRaisesThreeAlertsThenIsSwitchedOffAndKeepsOtherWarnings ...........   Passed    0.10 sec
+        Start 361: WorkerPathFixture.AnOverflowingDeclaredSizeIsRefusedBeforeTheWorkerIsEverTried
+361/376 Test #361: WorkerPathFixture.AnOverflowingDeclaredSizeIsRefusedBeforeTheWorkerIsEverTried .................................   Passed    0.04 sec
+        Start 362: WorkerPathFixture.TheModuleMaximumImageTravelsTheWorkerPathLikeAnyOtherImage
+362/376 Test #362: WorkerPathFixture.TheModuleMaximumImageTravelsTheWorkerPathLikeAnyOtherImage ...................................   Passed    0.45 sec
+        Start 363: WorkerPathFixture.TheModuleMaximumImageIsReturnedUnchangedOnceTheWorkerIsSwitchedOff
+363/376 Test #363: WorkerPathFixture.TheModuleMaximumImageIsReturnedUnchangedOnceTheWorkerIsSwitchedOff ...........................   Passed    0.15 sec
+        Start 364: WorkerPathFixture.WorkerStateBeforeInitIsNotInitializedAndLeavesTheOutputsAlone
+364/376 Test #364: WorkerPathFixture.WorkerStateBeforeInitIsNotInitializedAndLeavesTheOutputsAlone ................................   Passed    0.03 sec
+        Start 365: WorkerPathFixture.WorkerStateRefusesANullStateAndAcceptsNullOptionalOutputs
+365/376 Test #365: WorkerPathFixture.WorkerStateRefusesANullStateAndAcceptsNullOptionalOutputs ....................................   Passed    0.04 sec
+        Start 366: WorkerPathFixture.WorkerStateIsNotUsedWhenTheWorkerPathIsOff
+366/376 Test #366: WorkerPathFixture.WorkerStateIsNotUsedWhenTheWorkerPathIsOff ...................................................   Passed    0.08 sec
+        Start 367: WorkerPathFixture.WorkerStateFollowsTheConsecutiveFailuresAndStaysDisabledAtTheCeiling
+367/376 Test #367: WorkerPathFixture.WorkerStateFollowsTheConsecutiveFailuresAndStaysDisabledAtTheCeiling .........................   Passed    0.09 sec
+        Start 368: WorkerPathFixture.AskingForTheWorkerStateRaisesNoAlertAndChangesNothing
+368/376 Test #368: WorkerPathFixture.AskingForTheWorkerStateRaisesNoAlertAndChangesNothing ........................................   Passed    0.08 sec
+        Start 369: WorkerPathFixture.ShutdownThenInitGivesAFreshWorkerState
+369/376 Test #369: WorkerPathFixture.ShutdownThenInitGivesAFreshWorkerState .......................................................   Passed    0.07 sec
+        Start 370: WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker
+370/376 Test #370: WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker ...................................   Passed    5.37 sec
+        Start 371: WorkerPathFixture.WorkerStateKeepsTheLastCompletedStateUntilTheCallThatChangesItHasFinished
+371/376 Test #371: WorkerPathFixture.WorkerStateKeepsTheLastCompletedStateUntilTheCallThatChangesItHasFinished ....................   Passed    1.36 sec
+        Start 372: WorkerPathFixture.NoScalingIsAppliedToTheInputOrTheOutputOnEitherPath
+372/376 Test #372: WorkerPathFixture.NoScalingIsAppliedToTheInputOrTheOutputOnEitherPath ..........................................   Passed    0.79 sec
+        Start 373: WorkerPathFixture.InPlaceFailureOfTheWorkerLeavesEveryInputByte
+373/376 Test #373: WorkerPathFixture.InPlaceFailureOfTheWorkerLeavesEveryInputByte ................................................   Passed    0.07 sec
+        Start 374: HugeDimensions.TheSharedValidatorRefusesAnOverflowingDeclaredSizeInAnotherFunction
+374/376 Test #374: HugeDimensions.TheSharedValidatorRefusesAnOverflowingDeclaredSizeInAnotherFunction .............................   Passed    0.02 sec
+        Start 375: HugeDimensions.ADeclaredImageAboveTheModuleMaximumIsRefusedEvenWhenDataSizeIsUnspecified
+375/376 Test #375: HugeDimensions.ADeclaredImageAboveTheModuleMaximumIsRefusedEvenWhenDataSizeIsUnspecified .......................   Passed    0.02 sec
+        Start 376: HugeDimensions.AnOverflowingDeclaredSizeIsRefusedOnTheInProcessPathToo
+376/376 Test #376: HugeDimensions.AnOverflowingDeclaredSizeIsRefusedOnTheInProcessPathToo .........................................   Passed    0.02 sec
+
+100% tests passed, 0 tests failed out of 376
+
+Label Time Summary:
+SPEC-XPE-P3-AI    =  58.13 sec*proc (307 tests)
+ai                =  58.13 sec*proc (307 tests)
+unit              =  58.13 sec*proc (307 tests)
+
+Total Test time (real) =  62.33 sec
+
+The following tests did not run:
+	264 - OnnxSessionRun.StubBuildRefusesToRunAndDoesNotEcho (Skipped)
+	278 - BoneSuppressAbi.StubBuildFailsAndLeavesTheOutputAlone (Skipped)
+	295 - AiProcessedAlert.DlNotAppliedInAStubBuildRaisesNothing (Skipped)
+	307 - WorkerBoneSuppress.ANonInferringBuildAnswersWithAnErrorAndLeavesTheOutputAlone (Skipped)
+	354 - WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged (Skipped)

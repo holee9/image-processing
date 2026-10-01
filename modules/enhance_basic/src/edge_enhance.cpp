@@ -75,9 +75,13 @@ extern "C++" static XpeErrorCode xpe_edge_enhance_impl(XpeImageBuffer* img, cons
     const XpeUsmParams* p = params ? params : &defaults;
 
     // REQ-ENH-020: validate parameter ranges
-    if (p->amount < 0.0f || p->amount > 5.0f) return XPE_ERR_INVALID_INPUT;
-    if (p->radius < 0.5f || p->radius > 10.0f) return XPE_ERR_INVALID_INPUT;
-    if (p->threshold < 0.0f) return XPE_ERR_INVALID_INPUT;
+    // QA-B-181d (Codex #48): finiteness is tested explicitly, before the range. A range comparison is false for NaN
+    // under IEEE semantics (and decided by the build's floating-point mode otherwise: /fp:precise lets NaN through,
+    // /fp:fast rejects it), so NaN could reach `static_cast<int>(std::ceil(2.0f * sigma))` below. threshold keeps
+    // +infinity (a threshold nothing reaches: no pixel is sharpened); only NaN is refused for it.
+    if (!std::isfinite(p->amount) || p->amount < 0.0f || p->amount > 5.0f) return XPE_ERR_INVALID_INPUT;
+    if (!std::isfinite(p->radius) || p->radius < 0.5f || p->radius > 10.0f) return XPE_ERR_INVALID_INPUT;
+    if (std::isnan(p->threshold) || p->threshold < 0.0f) return XPE_ERR_INVALID_INPUT;
 
     XpeErrorCode err = validate_float32_image(img);
     if (err != XPE_OK) return err;

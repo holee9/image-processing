@@ -57,6 +57,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <vector>
 
 namespace {
@@ -844,4 +845,24 @@ TEST(GsdfCharacterization, Stage2_ReproducesTheAnalyticLutForSyntheticGammaDispl
     EXPECT_GT(between, 1000)
         << "two different display characteristics produced the same LUT -- the "
            "measured curve is not reaching the output";
+}
+
+// ---- QA-B-181d (Codex #48 census): a non-finite luminance never reaches the DDL conversion --------------------
+// The monotone check `values[i] < values[i-1]` is false whenever either side is NaN, and nothing tested finiteness,
+// so a NaN (or +inf) at either end of the measured curve flowed through the JND maths to std::lround(NaN) cast to
+// int32 -- undefined behaviour. Finite curves are untouched.
+TEST(GsdfCharacterization, NonFiniteLuminanceMeasurementsAreInvalidInput_181d) {
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+    const float inf = std::numeric_limits<float>::infinity();
+    XpePresentationLutParams out{};
+    const std::vector<std::vector<float>> bad = {
+        {nan, 1.0f, 4.0f, 40.0f, 400.0f}, {0.5f, 1.0f, 4.0f, 40.0f, nan}, {0.5f, 1.0f, nan, 40.0f, 400.0f},
+        {0.5f, 1.0f, 4.0f, 40.0f, inf},   {-inf, 1.0f, 4.0f, 40.0f, 400.0f},
+    };
+    for (size_t i = 0; i < bad.size(); ++i) {
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gsdf_calibrate(bad[i].data(), static_cast<uint32_t>(bad[i].size()), &out))
+            << "case " << i;
+    }
+    const float good[] = {0.5f, 1.0f, 4.0f, 40.0f, 400.0f};
+    EXPECT_EQ(XPE_OK, xpe_gsdf_calibrate(good, 5, &out)) << "control: a finite ascending curve is accepted";
 }

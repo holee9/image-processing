@@ -225,3 +225,27 @@ TEST(AiExceptionGuard, SkippedWithoutTestHooks) {
 }
 
 #endif
+
+// ---- QA-B-181d (Codex #48 census): the stitch size estimate is limited before it becomes a uint32 --------------
+// The estimate is a float, max(width) * (1 + 0.7 * (parts - 1)). It was converted to uint32_t first and clamped to
+// 4096 afterwards, so an estimate above UINT32_MAX was an out-of-range conversion. On x86-64 it wraps: 2526451329
+// wide parts (two of them, a format whose size the validator does not bound) estimate 4294967808, which wrapped
+// to 512 and was reported as 512 instead of the 4096 limit.
+TEST(AiExceptionGuard, StitchEstimateOfAHugeWidthIsTheLimitNotAWrappedValue) {
+    uint8_t one = 0;
+    XpeImageBuffer parts[2] = {};
+    for (auto& p : parts) {
+        p.width = 2526451329u;
+        p.height = 1;
+        p.format = XPE_PIXEL_UINT8;   // the validator bounds only UINT16 and FLOAT32 sizes
+        p.data = &one;
+        p.dataSize = 0;               // unspecified
+    }
+    uint32_t w = 0, h = 0;
+    ASSERT_EQ(XPE_OK, xpe_stitch_estimate_size(parts, 2, &w, &h));
+    EXPECT_EQ(4096u, w) << "estimate 4294967808 must come out as the limit, not wrapped";
+
+    for (auto& p : parts) p.width = 1000;   // control: an ordinary width is its estimate (1700), below the limit
+    ASSERT_EQ(XPE_OK, xpe_stitch_estimate_size(parts, 2, &w, &h));
+    EXPECT_EQ(1700u, w);
+}

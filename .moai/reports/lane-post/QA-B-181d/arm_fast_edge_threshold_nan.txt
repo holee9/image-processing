@@ -1,0 +1,7 @@
+MODE fast ARM edge_threshold_nan: build_ok=True failed=1
+ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries
+
+threshold=NaN
+[  FAILED  ] ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries (0 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries

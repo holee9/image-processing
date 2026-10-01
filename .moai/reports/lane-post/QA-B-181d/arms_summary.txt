@@ -1,0 +1,23 @@
+[fast] baseline_new_code: build_ok=True red_tests=0
+[fast] bilateral_sigma_space_finite: build_ok=True red_tests=1
+    ExceptionGuard.BilateralRefusesANonFiniteSpatialSigmaBeforeConvertingIt
+[fast] bilateral_sigma_range_finite: build_ok=True red_tests=0
+[fast] edge_amount_finite: build_ok=True red_tests=0
+[fast] edge_radius_finite: build_ok=True red_tests=0
+[fast] edge_threshold_nan: build_ok=True red_tests=1
+    ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries
+[fast] contrast_clip_limit_finite: build_ok=True red_tests=1
+    ExceptionGuard.ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes
+[precise] baseline_new_code: build_ok=True red_tests=0
+[precise] bilateral_sigma_space_finite: build_ok=True red_tests=1
+    ExceptionGuard.BilateralRefusesANonFiniteSpatialSigmaBeforeConvertingIt
+[precise] bilateral_sigma_range_finite: build_ok=True red_tests=1
+    ExceptionGuard.BilateralRefusesANaNRangeSigma
+[precise] edge_amount_finite: build_ok=True red_tests=1
+    ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries
+[precise] edge_radius_finite: build_ok=True red_tests=1
+    ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries
+[precise] edge_threshold_nan: build_ok=True red_tests=1
+    ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries
+[precise] contrast_clip_limit_finite: build_ok=True red_tests=1
+    ExceptionGuard.ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes

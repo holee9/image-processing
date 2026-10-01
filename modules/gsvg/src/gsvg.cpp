@@ -264,6 +264,10 @@ std::string read_virtual_grid_config(const char* json, GsvgHandle& h)
     double levels = 0;
     if (json_get_number(json, "vg_pyramid_levels", levels)) {
         if (levels != std::floor(levels)) return "vg_pyramid_levels must be an integer";
+        // QA-B-181d (Codex #48 census): bounded BEFORE the conversion. An integral JSON number such as 1e10 is no
+        // int, and the 4..8 test in the chain runs on the converted value, i.e. after an undefined conversion.
+        // 0 (no pyramid) and 4..8 are the only usable counts; 1..3 are refused by the chain as before.
+        if (levels < 0 || levels > 8) return "vg_pyramid_levels must be 0 or 4..8";
         st.pyramidLevels = static_cast<int>(levels);
     }
     // QA-B-101: line density, needed when the table lists several per ratio.
@@ -438,6 +442,11 @@ XpeErrorCode process_impl(void* handle,
     // The vignette step is active only when BOTH the config flag is set AND
     // a gain map is provided. Either absent yields an identity copy.
     if (h->vignette_enabled && gainMap != nullptr) {
+        // QA-B-181d (Codex #48 census): a non-finite gain made the clamp a no-op (every comparison with NaN is
+        // false) and the following float -> uint16 conversion undefined. Refused before anything is written.
+        for (size_t i = 0; i < count; ++i) {
+            if (!std::isfinite(gainMap[i])) return XPE_ERR_INVALID_INPUT;
+        }
         apply_vignette_scalar(src, dst, gainMap, count);
         done.vignetteApplied = 1;
     } else if (src != dst) {

@@ -1,0 +1,15 @@
+MODE fast BASELINE (new code): build_ok=True failed=0
+
+
+[ RUN      ] ExceptionGuard.BilateralStillAcceptsLargeFiniteSpatialSigmasAndLimitsTheRadius
+[       OK ] ExceptionGuard.BilateralStillAcceptsLargeFiniteSpatialSigmasAndLimitsTheRadius (2 ms)
+[ RUN      ] ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries
+[       OK ] ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes
+[       OK ] ExceptionGuard.ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes (0 ms)
+[----------] 24 tests from ExceptionGuard (1254 ms total)
+
+[----------] Global test environment tear-down
+[==========] 24 tests from 1 test suite ran. (1254 ms total)
+[  PASSED  ] 24 tests.
+

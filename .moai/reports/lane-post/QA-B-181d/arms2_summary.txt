@@ -1,0 +1,8 @@
+gsvg_pyramid_levels_bound: build_ok=True red_tests=1
+    GsvgExceptionGuard.AVirtualGridPyramidLevelCountBeyondIntIsRefusedByTheConfig
+gsvg_gain_finite: build_ok=True red_tests=1
+    GsvgExceptionGuard.AVignetteGainMapWithANonFiniteElementIsInvalidInput
+ai_stitch_limit_before_cast: build_ok=True red_tests=1
+    AiExceptionGuard.StitchEstimateOfAHugeWidthIsTheLimitNotAWrappedValue
+display_luminance_finite: build_ok=True red_tests=1
+    GsdfCharacterization.NonFiniteLuminanceMeasurementsAreInvalidInput_181d

@@ -25,6 +25,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <new>
 #include <stdexcept>
 #include <vector>
@@ -485,4 +486,112 @@ TEST(ExceptionGuard, ForRowsNeverPlansMoreBandsThanRows) {
     }
     EXPECT_EQ(10, next);
     EXPECT_LE(bands.size(), 10u);
+}
+
+// ---- QA-B-181d (Codex #48): a float parameter reaches an int conversion only after a finiteness check --------
+//
+// A range comparison is not a finiteness check: NaN is false in every comparison, so `x <= 0 || x > max` lets it
+// through, and +infinity passes any test that only has a lower bound. The values below used to reach
+// static_cast<int>(std::ceil(2 * sigma)) (bilateral, edge) and static_cast<int>(clip_limit * area / bins)
+// (contrast), where an out-of-range float -> int conversion is undefined behaviour. The red state is therefore
+// "the return code is not INVALID_INPUT" (what the conversion yielded differs by toolchain).
+
+namespace {
+
+constexpr float kInf = std::numeric_limits<float>::infinity();
+constexpr float kNaN = std::numeric_limits<float>::quiet_NaN();
+
+struct Outcome {
+    XpeErrorCode rc;
+    bool finite;   // every output pixel is finite
+};
+
+Outcome RunBilateral(float sigmaSpace, float sigmaRange, int w = 32, int h = 32) {
+    std::vector<float> px = Pattern(w, h);
+    XpeImageBuffer img = Declared(static_cast<uint32_t>(w), static_cast<uint32_t>(h), px.data(), px.size() * sizeof(float));
+    XpeNoiseReduceParams p{};
+    p.mode = XPE_NOISE_BILATERAL;
+    p.sigma_space = sigmaSpace;
+    p.sigma_range = sigmaRange;
+    p.search_window = 21;
+    p.patch_size = 7;
+    p.h_param = 10.0f;
+    const XpeErrorCode rc = xpe_noise_reduce(&img, &p);
+    bool finite = true;
+    for (float v : px) finite = finite && std::isfinite(v);
+    return {rc, finite};
+}
+
+Outcome RunUsm(float amount, float radius, float threshold, int w = 32, int h = 32) {
+    std::vector<float> px = Pattern(w, h);
+    XpeImageBuffer img = Declared(static_cast<uint32_t>(w), static_cast<uint32_t>(h), px.data(), px.size() * sizeof(float));
+    XpeUsmParams p{amount, radius, threshold};
+    const XpeErrorCode rc = xpe_edge_enhance(&img, &p);
+    bool finite = true;
+    for (float v : px) finite = finite && std::isfinite(v);
+    return {rc, finite};
+}
+
+Outcome RunClahe(float clipLimit, int w = 32, int h = 32) {
+    std::vector<float> px = Pattern(w, h);
+    XpeImageBuffer img = Declared(static_cast<uint32_t>(w), static_cast<uint32_t>(h), px.data(), px.size() * sizeof(float));
+    XpeClaheParams p{clipLimit, 4, 4};
+    const XpeErrorCode rc = xpe_contrast_enhance(&img, &p);
+    bool finite = true;
+    for (float v : px) finite = finite && std::isfinite(v);
+    return {rc, finite};
+}
+
+}  // namespace
+
+TEST(ExceptionGuard, BilateralRefusesANonFiniteSpatialSigmaBeforeConvertingIt) {
+    for (float s : {kInf, -kInf, kNaN}) {
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunBilateral(s, 50.0f).rc) << "sigma_space=" << s;
+    }
+}
+
+TEST(ExceptionGuard, BilateralRefusesANaNRangeSigma) {
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunBilateral(3.0f, kNaN).rc);
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunBilateral(3.0f, -kInf).rc);
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunBilateral(3.0f, 0.0f).rc);
+}
+
+// Large FINITE values stay legal: the radius is limited to the image-dependent maximum, as it always was.
+// FLT_MAX is the sharp one: 2 * sigma overflows float to infinity before any conversion.
+TEST(ExceptionGuard, BilateralStillAcceptsLargeFiniteSpatialSigmasAndLimitsTheRadius) {
+    for (float s : {0.5f, 3.0f, 7.5f, 100.0f, 1e6f, 1e30f, (std::numeric_limits<float>::max)()}) {
+        const Outcome r = RunBilateral(s, 50.0f);
+        EXPECT_EQ(XPE_OK, r.rc) << "sigma_space=" << s;
+        EXPECT_TRUE(r.finite) << "sigma_space=" << s << ": the output must stay finite";
+    }
+}
+
+TEST(ExceptionGuard, EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries) {
+    for (float v : {kNaN, kInf, -kInf}) {
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunUsm(1.0f, v, 10.0f).rc) << "radius=" << v;
+    }
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunUsm(kNaN, 2.0f, 10.0f).rc) << "amount=NaN";
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunUsm(1.0f, 2.0f, kNaN).rc) << "threshold=NaN";
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunUsm(1.0f, 0.4999f, 10.0f).rc);
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunUsm(1.0f, 10.0001f, 10.0f).rc);
+    EXPECT_EQ(XPE_OK, RunUsm(1.0f, 0.5f, 10.0f).rc) << "the lower boundary is accepted";
+    EXPECT_EQ(XPE_OK, RunUsm(1.0f, 10.0f, 10.0f).rc) << "the upper boundary is accepted";
+    const Outcome ordinary = RunUsm(0.5f, 2.0f, 10.0f);
+    EXPECT_EQ(XPE_OK, ordinary.rc);
+    EXPECT_TRUE(ordinary.finite);
+}
+
+// Contrast: clip_limit >= 1 let +infinity and every huge value through to
+// static_cast<int>(clip_limit * tile_area / bins). NaN passed `clip_limit < 1`. Large finite values stay legal
+// (a clip above the tile area simply never clips).
+TEST(ExceptionGuard, ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes) {
+    for (float c : {kInf, -kInf, kNaN}) {
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunClahe(c).rc) << "clip_limit=" << c;
+    }
+    for (float c : {1.0f, 3.0f, 1e6f, 1e30f, (std::numeric_limits<float>::max)()}) {
+        const Outcome r = RunClahe(c);
+        EXPECT_EQ(XPE_OK, r.rc) << "clip_limit=" << c;
+        EXPECT_TRUE(r.finite) << "clip_limit=" << c;
+    }
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunClahe(0.999f).rc);
 }

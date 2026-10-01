@@ -1,0 +1,12 @@
+ARM gsvg_gain_finite: build_ok=True failed=1
+GsvgExceptionGuard.AVignetteGainMapWithANonFiniteElementIsInvalidInput
+
+gain=nan
+a refused call must not write the output, gain=nan
+gain=inf
+a refused call must not write the output, gain=inf
+gain=-inf
+a refused call must not write the output, gain=-inf
+[  FAILED  ] GsvgExceptionGuard.AVignetteGainMapWithANonFiniteElementIsInvalidInput (0 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] GsvgExceptionGuard.AVignetteGainMapWithANonFiniteElementIsInvalidInput

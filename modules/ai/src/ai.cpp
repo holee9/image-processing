@@ -793,7 +793,10 @@ XPE_API XpeErrorCode xpe_stitch_estimate_size(const XpeImageBuffer* parts,
     float estimatedWidth = static_cast<float>(maxWidth) *
         (1.0f + overlapFactor * static_cast<float>(partCount - 1));
 
-    *widthOut  = static_cast<uint32_t>(estimatedWidth);
+    // QA-B-181d (Codex #48 census): limited as a float BEFORE it becomes a uint32. The estimate can exceed
+    // UINT32_MAX (it is up to 2^32 * 1.7 * ...), where the conversion is undefined and wrapped on x86-64
+    // (4294967808 came out as 512). maxWidth is an integer, so the estimate is finite and positive.
+    *widthOut  = estimatedWidth >= 4096.0f ? 4096u : static_cast<uint32_t>(estimatedWidth);
     *heightOut = maxHeight;
 
     // Clamp to maximum supported size.

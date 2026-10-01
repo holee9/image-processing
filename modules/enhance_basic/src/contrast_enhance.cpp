@@ -77,8 +77,11 @@ static void build_tile_lut(const float* px, int img_w,
 
     // Clip and redistribute excess
     int tile_area = (x1 - x0) * (y1 - y0);
-    int clip_count = static_cast<int>(clip_limit * static_cast<float>(tile_area)
-                                      / static_cast<float>(NUM_BINS));
+    // QA-B-181d (Codex #48): limited before the conversion. clip_limit is finite (checked by the caller) but can be
+    // huge, and the product leaves int; a clip at or above the tile area never clips (no bin holds more pixels
+    // than the tile has), so the cap changes no result.
+    const float clipF = clip_limit * static_cast<float>(tile_area) / static_cast<float>(NUM_BINS);
+    int clip_count = clipF >= static_cast<float>(tile_area) ? tile_area : static_cast<int>(clipF);
     if (clip_count < 1) clip_count = 1;
 
     int excess = 0;
@@ -143,7 +146,8 @@ extern "C++" static XpeErrorCode xpe_contrast_enhance_impl(XpeImageBuffer* img, 
     const XpeClaheParams* p = params ? params : &defaults;
 
     // REQ-ENH-015: clip_limit must be >= 1.0
-    if (p->clip_limit < 1.0f) return XPE_ERR_INVALID_INPUT;
+    // QA-B-181d: finite as well -- see the note in noise_reduce.cpp on NaN and range comparisons.
+    if (!std::isfinite(p->clip_limit) || p->clip_limit < 1.0f) return XPE_ERR_INVALID_INPUT;
 
     // REQ-ENH-016: tile dimensions must be >= 2
     if (p->tile_width < 2 || p->tile_height < 2) return XPE_ERR_INVALID_INPUT;

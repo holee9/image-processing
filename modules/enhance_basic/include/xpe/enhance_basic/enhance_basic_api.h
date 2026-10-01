@@ -167,7 +167,8 @@ XPE_API XpeErrorCode xpe_log_inverse(XpeImageBuffer* img, float normFactor);
  * @param params Noise reduction parameters. NULL returns XPE_ERR_INVALID_INPUT. (REQ-ENH-009)
  * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if params is NULL, the image
  *         is invalid, mode is neither BILATERAL nor NLM, or the mode's own
- *         parameters are out of range (bilateral: sigma_space/sigma_range <= 0;
+ *         parameters are out of range (bilateral: sigma_space/sigma_range <= 0, NaN or
+ *         infinite -- QA-B-181d;
  *         NLM: search_window/patch_size not odd-positive, h_param <= 0);
  *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32. (REQ-ENH-010)
  */
@@ -201,7 +202,8 @@ XPE_API XpeErrorCode xpe_noise_estimate_sigma(const XpeImageBuffer* img, float* 
  *               rejected (#142); a flat image (no value range) is accepted and
  *               returns XPE_OK unchanged.
  * @param params CLAHE parameters, or NULL for defaults.
- * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if clip_limit < 1.0, either
+ * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if clip_limit < 1.0, NaN or
+ *         infinite (QA-B-181d; a large finite value is accepted and never clips), either
  *         tile count < 2, the image is invalid, or the image is smaller than
  *         twice the tile grid (width < tile_width * 2 or height < tile_height * 2);
  *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32.
@@ -224,7 +226,8 @@ XPE_API XpeErrorCode xpe_contrast_enhance(XpeImageBuffer* img, const XpeClahePar
  *               without modifying the buffer.
  * @param params USM parameters, or NULL for defaults.
  * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if amount is outside
- *         [0.0, 5.0], radius outside [0.5, 10.0], threshold < 0.0, or the image
+ *         [0.0, 5.0] or NaN, radius outside [0.5, 10.0] or NaN, threshold < 0.0 or NaN
+ *         (QA-B-181d; +infinity is a valid threshold), or the image
  *         is invalid; XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32.
  *         (REQ-ENH-020)
  */
