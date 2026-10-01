@@ -1,0 +1,15 @@
+# GUI-C-176 — real sources broken on purpose; the named test must go red with a successful build; sources restored byte-identical
+
+ARM pattern-drift: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 32 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   failed: ['실패 ImageProcTest.IntegrationTests.Functional.BenchmarkRunnerServiceTests.ThePattern_IsTheOneTheBenchmarkWorkflowStepUses [5 ms]']
+   restored byte-identical: True
+ARM second-executor: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 33 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   failed: ['실패 ImageProcTest.IntegrationTests.Functional.BenchmarkRunnerServiceTests.AllThreeRunnerCommands_ReachTheSameProcessExecutor [17 ms]']
+   restored byte-identical: True
+ARM no-tests-flag-removed: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 23 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   failed: ['실패 ImageProcTest.IntegrationTests.Functional.BenchmarkRunnerServiceTests.ABuildTree_GetsCiArguments_AsAListWithThePatternAsOneElement [8 ms]']
+   restored byte-identical: True
+sources after all arms: 0d0a75708fac 9fb2dd1b5402
