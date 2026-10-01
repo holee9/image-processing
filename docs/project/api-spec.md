@@ -32,7 +32,7 @@ because a sweep is how the previous errors were introduced.
 | `xpe_enhance_basic` | 8 | `xpe_calc_exposure_index`, `xpe_contrast_enhance`, `xpe_edge_enhance`, `xpe_enhance_basic_version`, `xpe_log_inverse`, `xpe_log_transform`, `xpe_noise_estimate_sigma`, `xpe_noise_reduce` |
 | `xpe_enhance_advanced` | 7 | `xpe_adv_calc_exposure_index`, `xpe_detect_collimation`, `xpe_enhance_advanced_init`, `xpe_enhance_advanced_shutdown`, `xpe_enhance_advanced_version`, `xpe_fractional_process`, `xpe_multiscale_process` |
 | `xpe_display` | 6 | `xpe_apply_modality_lut`, `xpe_apply_presentation_lut`, `xpe_apply_voi_lut`, `xpe_display_version`, `xpe_gsdf_calibrate`, `xpe_voi_preset_create` |
-| `xpe_ai` | 10 | `xpe_ai_get_model_card`, `xpe_ai_init`, `xpe_ai_set_fallback_mode`, `xpe_ai_shutdown`, `xpe_ai_version`, `xpe_bodypart_recognize`, `xpe_bone_suppress`, `xpe_dl_denoise`, `xpe_stitch_estimate_size`, `xpe_stitch_images` |
+| `xpe_ai` | 11 | `xpe_ai_get_model_card`, `xpe_ai_init`, `xpe_ai_set_fallback_mode`, `xpe_ai_shutdown`, `xpe_ai_version`, `xpe_ai_worker_state`, `xpe_bodypart_recognize`, `xpe_bone_suppress`, `xpe_dl_denoise`, `xpe_stitch_estimate_size`, `xpe_stitch_images` |
 | `xpe_dicom` | 10 | `xpe_dicom_cancel`, `xpe_dicom_cfind_mwl`, `xpe_dicom_close`, `xpe_dicom_cstore`, `xpe_dicom_get_metadata`, `xpe_dicom_open`, `xpe_dicom_read_image`, `xpe_dicom_validate`, `xpe_dicom_write`, `xpe_dicom_write_j2k` |
 | `xpe_gsvg` | 4 | `xpe_gsvg_init`, `xpe_gsvg_process`, `xpe_gsvg_shutdown`, `xpe_gsvg_version` |
 
@@ -219,11 +219,11 @@ typedef int32_t GsvgErrorCode;
 | xpe_preprocess.dll | 18 | no change |
 | xpe_enhance_basic.dll | 8 | includes `xpe_calc_exposure_index` moved from enhance_advanced |
 | xpe_enhance_advanced.dll | 7 | `xpe_calc_exposure_index` moved to enhance_basic; count corrected 2026-09-11 (QA-B-39 header audit) |
-| xpe_ai.dll | 10 | count corrected 2026-09-11 (QA-B-39); stub build unless `XPE_AI_USE_ONNXRUNTIME` — inference entry points return `XPE_ERR_PROCESSING_FAILED` after argument validation |
+| xpe_ai.dll | 11 | `xpe_ai_worker_state` added 2026-10-01 (QA-B-173, #130); count corrected 2026-09-11 (QA-B-39); stub build unless `XPE_AI_USE_ONNXRUNTIME` — inference entry points return `XPE_ERR_PROCESSING_FAILED` after argument validation |
 | xpe_display.dll | 6 | count corrected 2026-09-11 (QA-B-39) |
 | xpe_dicom.dll | 10 | no change |
 | gsvg.dll | 4 | count corrected 2026-09-11 (QA-B-39) |
-| **Total** | **79** | **-3 from v1.3.0** |
+| **Total** | **80** | **-3 from v1.3.0, +1 `xpe_ai_worker_state` (2026-10-01)** |
 
 ---
 
@@ -1075,6 +1075,21 @@ XPE_API XpeErrorCode xpe_dl_denoise(XpeImageBuffer* img,
 **SRS**: SRS-AI-040  
 **Thread safety**: Reentrant.  
 **Error codes**: `XPE_OK`, `XPE_ERR_NOT_INITIALIZED`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_PROCESSING_FAILED`
+
+---
+
+### 9.8 xpe_ai_worker_state
+
+```c
+XPE_API XpeErrorCode xpe_ai_worker_state(int32_t* stateOut,
+                                         uint32_t* consecutiveFailuresOut,
+                                         uint32_t* ceilingOut);
+```
+
+**Description**: Read-only query of the bone-suppression worker path for the current session. `*stateOut` is `XPE_AI_WORKER_NOT_USED` (0, `use_worker` off), `XPE_AI_WORKER_ACTIVE` (1) or `XPE_AI_WORKER_DISABLED` (2, switched off after `*ceilingOut` consecutive failures). `consecutiveFailuresOut` and `ceilingOut` may be NULL. The query does not start the worker, raise alerts or change any counter. It does not wait for a call in progress: it reports the state as of the last completed call. Recovery from DISABLED is `xpe_ai_shutdown` then `xpe_ai_init`; this function does not recover.  
+**SRS**: REQ-AI-092 (consecutive-failure ceiling, `docs/project/REQ-CHANGE-LOG-P3-AI.md`)  
+**Thread safety**: Safe to call concurrently with `xpe_bone_suppress`. **Must not run concurrently with `xpe_ai_init` / `xpe_ai_shutdown`** — the caller serialises those (a UI that polls this state and also offers a recovery button must guard both with one lock).  
+**Error codes**: `XPE_OK`, `XPE_ERR_NOT_INITIALIZED` (before init or after shutdown; outputs untouched), `XPE_ERR_INVALID_INPUT` (`stateOut` NULL)
 
 ---
 

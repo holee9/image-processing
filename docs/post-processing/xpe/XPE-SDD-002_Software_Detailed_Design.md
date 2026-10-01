@@ -859,7 +859,10 @@ XPE_API XpeErrorCode xpe_bone_suppress(
 ```
 IF NOT enabled: output = input; RETURN
 
-1. Preprocess: normalize input to [0, 1]
+1. Input scale: the CALLER supplies values in the scale the model expects; the module does not
+   normalize, clamp, shift or range-check (2026-10-01, #130 QA-B-173 — this line used to read
+   "normalize input to [0, 1]", which was never implemented; revisit when a real model card
+   states its input scale)
 2. Tile input into 256x256 patches with 32-pixel overlap
 3. FOR each patch:
    a. Send to xpe_ai_worker.exe via IPC

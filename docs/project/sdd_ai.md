@@ -198,7 +198,7 @@ IDLE              SHUTTING_DOWN  (graceful termination)
 
 **Header**: `modules/ai/include/xpe/ai/ai_api.h`
 
-Exported functions (9 total):
+Exported functions (11 total; the count read 9 while the table listed 10 — corrected 2026-10-01 with `xpe_ai_worker_state`, QA-B-173):
 
 | # | Function | Category | Thread Safety |
 |---|----------|----------|---------------|
@@ -212,6 +212,7 @@ Exported functions (9 total):
 | 8 | `xpe_dl_denoise()` | Inference | Reentrant |
 | 9 | `xpe_ai_get_model_card()` | Transparency | Thread-safe (read-only) |
 | 10 | `xpe_ai_set_fallback_mode()` | Configuration | Thread-safe (atomic) |
+| 11 | `xpe_ai_worker_state()` | Diagnostics | Read-only, lock-free; not concurrent with init/shutdown |
 
 ### 4.2 Internal State
 
