@@ -1,0 +1,12 @@
+# GUI-C-173 — tools/ci/Test-TrackedTextFiles.ps1, official script, run without a pipe
+
+## 1. This card's files (report.md, ci_evidence.txt, text_lint.txt), in a throwaway repo
+output:  Tracked text file validation passed.
+exit code: 0
+
+## 2. The whole dev/gui tree, as it stands today
+exit code: 1 — 9 errors, all in two files this card does not touch:
+  .moai/reports/lane-gui/GUI-C-152/measured.txt   (5 trailing-whitespace lines)
+  .moai/reports/lane-gui/GUI-C-156/measured.txt   (4)
+origin/main already carries the fixes for both (e6bcf191, d7ee2e05); dev/gui is behind main for these paths.
+The earlier GUI-C-171/input_scan_after.txt errors are gone since the cherry-pick of 0fdffccf (841dce29).
