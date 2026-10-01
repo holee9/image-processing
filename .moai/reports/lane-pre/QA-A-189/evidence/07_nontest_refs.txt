@@ -1,0 +1,49 @@
+files scanned: 587
+xpe_binning_correct                  2 refs in  2 files: modules/preprocess/src/binning_correct.cpp:16; modules/preprocess/src/pipeline.cpp:227
+xpe_bpm_generate                     4 refs in  2 files: modules/preprocess/src/xpe_defect_gen.cpp:403; modules/preprocess/tools/xpe_calib_fixture_gen.cpp:37,531
+xpe_calib_cache_clear                1 refs in  1 files: modules/preprocess/src/calibration_cache.cpp:379
+xpe_calib_cache_set_max_size         2 refs in  1 files: modules/preprocess/src/calibration_cache.cpp:45,384
+xpe_calib_check_expiry               9 refs in  5 files: clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:23; clients/ImageProcTest/Services/NativePreprocessPreviewService.cs:164,758; modules/preprocess/src/xcal_validator.cpp:8; modules/preprocess/src/xpe_calibration.cpp:10
+xpe_calib_generate_gain             10 refs in  3 files: modules/preprocess/src/xpe_calib_generate_gain.cpp:2,24; modules/preprocess/src/xpe_calib_generate_nonlin_lut.cpp:31,32; modules/preprocess/tools/xpe_calib_fixture_gen.cpp:37,407
+xpe_calib_generate_gain_polynomial   8 refs in  4 files: modules/preprocess/src/gain_correct.cpp:383; modules/preprocess/src/xpe_calib_generate_gain.cpp:381,384; modules/preprocess/src/xpe_calib_load_gain.cpp:38; modules/preprocess/tools/xpe_calib_fixture_gen.cpp:82,427
+xpe_calib_generate_nonlin_lut        2 refs in  1 files: modules/preprocess/src/xpe_calib_generate_nonlin_lut.cpp:2,197
+xpe_calib_generate_offset           12 refs in  7 files: clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:22; clients/ImageProcTest.E2ETests/Fixtures/NativeProvenance.cs:13; clients/ImageProcTest.E2ETests/Staging/Stage-NativeArtifacts.ps1:8; modules/preprocess/src/xpe_calibration.cpp:9
+xpe_calib_get_max_points             2 refs in  1 files: modules/preprocess/src/xpe_calib_mode.cpp:223,331
+xpe_calib_get_mode                   5 refs in  2 files: modules/preprocess/src/xpe_calib_generate_gain.cpp:204,326; modules/preprocess/src/xpe_calib_mode.cpp:190
+xpe_calib_get_poly_degree            2 refs in  1 files: modules/preprocess/src/xpe_calib_mode.cpp:235,331
+xpe_calib_get_quality_meta           3 refs in  3 files: tools/docs/api_requirement_census.py:9; modules/preprocess/src/xpe_calib_load_gain.cpp:127; modules/preprocess/src/xpe_calib_mode.cpp:206
+xpe_calib_load_defect_cached         2 refs in  1 files: modules/preprocess/src/calibration_cache.cpp:333,343
+xpe_calib_load_defect_map           12 refs in  8 files: gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:73; gui/ImageProcTest/Services/Native/XpePreprocessInterop.cs:72; clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:18; modules/preprocess/src/calibration_cache.cpp:353
+xpe_calib_load_gain                 15 refs in 10 files: gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:72; gui/ImageProcTest/Services/Native/XpePreprocessInterop.cs:69; clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:17; modules/preprocess/src/calibration_cache.cpp:307
+xpe_calib_load_gain_cached           2 refs in  1 files: modules/preprocess/src/calibration_cache.cpp:294,297
+xpe_calib_load_nonlin_lut            5 refs in  2 files: modules/preprocess/src/nonlinearity_correct.cpp:239,358; modules/preprocess/src/xpe_calib_load_nonlin_lut.cpp:2,3
+xpe_calib_load_offset               14 refs in  9 files: gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:71; gui/ImageProcTest/Services/Native/XpePreprocessInterop.cs:66; clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:16; modules/preprocess/src/calibration_cache.cpp:268
+xpe_calib_load_offset_cached         2 refs in  1 files: modules/preprocess/src/calibration_cache.cpp:254,257
+xpe_calib_save                       6 refs in  3 files: clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:24; modules/preprocess/src/xpe_calibration.cpp:8; modules/preprocess/src/xpe_calib_save.cpp:2,3
+xpe_calib_set_mode                   1 refs in  1 files: modules/preprocess/src/xpe_calib_mode.cpp:174
+xpe_calib_state_load                 6 refs in  1 files: modules/preprocess/src/pipeline.cpp:239,318
+xpe_calib_state_release              1 refs in  1 files: modules/preprocess/src/pipeline.cpp:395
+xpe_calib_unload_nonlin_lut          1 refs in  1 files: modules/preprocess/src/xpe_calib_load_nonlin_lut.cpp:92
+xpe_defect_correct                  18 refs in  9 files: gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:155,158; gui/ImageProcTest/Services/Native/XpePreprocessInterop.cs:98; clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:21; clients/ImageProcTest/Diagnostics/XpePreprocessSyntheticOracle.cs:54,63
+xpe_defect_detect_runtime           10 refs in  4 files: clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:26; modules/preprocess/src/runtime_detection.cpp:47,67; modules/preprocess/tools/xpe_detect_experiment.cpp:326,1144; modules/preprocess/tools/xpe_struct_frames.cpp:614,634
+xpe_gain_correct                    14 refs in  9 files: gui/ImageProcTest/Services/PipelineOrchestrator.cs:28; gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:149,152; gui/ImageProcTest/Services/Native/XpePreprocessInterop.cs:92; clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:20
+xpe_ghost_correct                    3 refs in  2 files: modules/preprocess/src/ghost_correct.cpp:81,199; modules/preprocess/src/pipeline.cpp:294
+xpe_ghost_create                     2 refs in  1 files: modules/preprocess/src/ghost_correct.cpp:20,23
+xpe_ghost_destroy                    1 refs in  1 files: modules/preprocess/src/ghost_correct.cpp:264
+xpe_ghost_reset                      1 refs in  1 files: modules/preprocess/src/ghost_correct.cpp:250
+xpe_nonlinearity_correct             5 refs in  4 files: gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:143,146; gui/ImageProcTest/Services/Native/XpePreprocessInterop.cs:87; tools/docs/api_requirement_census.py:10; modules/preprocess/src/nonlinearity_correct.cpp:365
+xpe_offset_correct                  13 refs in  9 files: gui/ImageProcTest/Services/PipelineOrchestrator.cs:28; gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:125,128; gui/ImageProcTest/Services/Native/XpePreprocessInterop.cs:75; clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:19
+xpe_preprocess_get_param_range       5 refs in  2 files: clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:27,151; modules/preprocess/src/preprocess.cpp:85
+xpe_preprocess_init                 22 refs in 14 files: gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:61,64; gui/ImageProcTest/Services/Native/XpePreprocessInterop.cs:60; clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:14; clients/ImageProcTest/Diagnostics/XpePreprocessSyntheticOracle.cs:50,59
+xpe_preprocess_is_initialized        4 refs in  4 files: modules/preprocess/src/defect_correct.cpp:171; modules/preprocess/src/gain_correct.cpp:282; modules/preprocess/src/offset_correct.cpp:178; modules/preprocess/src/preprocess.cpp:34
+xpe_preprocess_pipeline              2 refs in  1 files: modules/preprocess/src/pipeline.cpp:323,326
+xpe_preprocess_pipeline_batch        2 refs in  1 files: modules/preprocess/src/pipeline.cpp:448,451
+xpe_preprocess_pipeline_ex           3 refs in  1 files: modules/preprocess/src/pipeline.cpp:319,423
+xpe_preprocess_shutdown             32 refs in 13 files: gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:87; gui/ImageProcTest/Services/Native/XpePreprocessInterop.cs:63; clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:15; clients/ImageProcTest/Diagnostics/XpePreprocessSyntheticOracle.cs:51,60
+xpe_preprocess_version               3 refs in  2 files: clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:13,74; modules/preprocess/src/preprocess.cpp:39
+xpe_temp_compensate                  3 refs in  2 files: modules/preprocess/src/pipeline.cpp:136; modules/preprocess/src/temp_compensate.cpp:21,24
+xpe_validate_readout_artifact        7 refs in  4 files: clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:25; modules/preprocess/src/pipeline.cpp:119; modules/preprocess/src/readout_validate.cpp:14,17; modules/preprocess/src/xpe_calibration.cpp:3,13
+xpe_verify_defect                    1 refs in  1 files: modules/preprocess/src/xpe_verify_metrics.cpp:607
+xpe_verify_gain                      1 refs in  1 files: modules/preprocess/src/xpe_verify_metrics.cpp:471
+xpe_verify_offset                    1 refs in  1 files: modules/preprocess/src/xpe_verify_metrics.cpp:257
+xpe_verify_pipeline                  1 refs in  1 files: modules/preprocess/src/xpe_verify_metrics.cpp:696
