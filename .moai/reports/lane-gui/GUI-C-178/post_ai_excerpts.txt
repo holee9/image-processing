@@ -1,0 +1,140 @@
+# GUI-C-178 — provenance excerpts. Source: xpe-post worktree, commit 5c3588e4 (dev/postprocess), read with `git show 5c3588e:<path>`; nothing executed.
+
+## modules/ai/include/xpe/ai/ai_api.h @ 5c3588e
+-- lines 83-110
+  83  * The boolean key "use_worker" (default false) routes xpe_bone_suppress through
+  84  * the worker process (xpe_ai_worker.exe, found in the directory of xpe_ai.dll
+  85  * and nowhere else). When that path fails -- the time budget ("timeout_ms") is
+  86  * exceeded, the worker dies or goes silent, or it answers wrongly -- the call
+  87  * copies the INPUT image to the output unchanged, raises one Warning alert and
+  88  * returns a non-OK code; it does not re-run the inference in this process
+  89  * (REQ-AI-003 keeps the model out of the host).
+  90  *
+  91  * After 3 CONSECUTIVE failures the worker is switched off for the rest of the
+  92  * session (until xpe_ai_shutdown): the alert of the 3rd failure says so, its
+  93  * process is ended, and later calls return the input at once with
+  94  * XPE_ERR_PROCESSING_FAILED, start no worker and raise no further alert -- a
+  95  * session raises at most 3 worker alerts. A success resets the count. The
+  96  * ceiling of 3 and the alert rule are values the user approved on 2026-10-01
+  97  * (docs/project/REQ-CHANGE-LOG-P3-AI.md rows 2 and 3), not ones the requirements
+  98  * state. The alert cites REQ-AI-002 and REQ-AI-092; the SRS table has no row for
+  99  * the failure itself.
+ 100  *
+ 101  * EVERY non-OK result of the worker path counts toward the 3, including an error
+ 102  * reply that a healthy worker sends on purpose because the model refused the
+ 103  * request (a missing or unloadable model, an input length it rejects). A model
+ 104  * that refuses three times in a row means AI is unusable for the session, so a
+ 105  * healthy worker is switched off too; xpe_ai_shutdown() followed by
+ 106  * xpe_ai_init() recovers it.
+ 107  *
+ 108  * An image too large for one worker message (about 64 MB of pixels; 4096 x 4096
+ 109  * float32 is just above it) is refused with XPE_ERR_UNSUPPORTED_FORMAT without
+ 110  * trying a worker, without an alert and without counting toward the 3.
+
+-- lines 275-312
+ 275  * MODEL AND SESSION OWNERSHIP (QA-B-161, #130, FUNC-038).
+ 276  * The model is read from `<modelDir>/bone_suppress.onnx`, where `<modelDir>`
+ 277  * is the path given to xpe_ai_init. The session built from it is owned by this
+ 278  * module: it is created on the FIRST call that needs it (not by xpe_ai_init),
+ 279  * reused by later calls, rebuilt if xpe_ai_init is called again with a
+ 280  * different directory, and released by xpe_ai_shutdown.
+ 281  * THE CALLER NEVER RECEIVES, STORES, OR FREES IT. No session handle crosses
+ 282  * this ABI, and nothing here returns a pointer the caller must manage --
+ 283  * @p softTissueOut is the caller's own buffer and stays the caller's.
+ 284  *
+ 285  * @return XPE_OK on success -- ONNX build only; not reachable in a stub build.
+ 286  * @return XPE_ERR_NOT_INITIALIZED if xpe_ai_init not called.
+ 287  * @return XPE_ERR_INVALID_INPUT if img or softTissueOut is NULL, either buffer
+ 288  *         is invalid, the two differ in width or height, a buffer is too small
+ 289  *         for width*height floats, or the model rejected the input length.
+ 290  * @return XPE_ERR_UNSUPPORTED_FORMAT if either image is not XPE_PIXEL_FLOAT32.
+ 291  *         The session speaks float32; reinterpreting 16-bit pixels as floats
+ 292  *         would return numbers instead of an error. Also returned, with
+ 293  *         "use_worker" set, for an image too large for one worker message.
+ 294  * @return XPE_ERR_IO_FAILED if `<modelDir>/bone_suppress.onnx` is not there.
+ 295  * @return XPE_ERR_CONFIG_INVALID if that file exists but is not a loadable
+ 296  *         model. Distinct from IO_FAILED on purpose: "install the model" and
+ 297  *         "the model you installed is broken" need different actions.
+ 298  * @return XPE_ERR_PROCESSING_FAILED if inference itself fails, or the model
+ 299  *         returns a different number of values than the image has pixels. In a
+ 300  *         stub build this is the unconditional outcome once validation passes.
+ 301  *
+ 302  * With "use_worker" set at xpe_ai_init, a failure of the worker path returns
+ 303  * the worker's or the transport's error code (never XPE_OK), raises one Warning
+ 304  * alert and leaves @p softTissueOut equal to @p img byte for byte. Once the
+ 305  * worker has been switched off (3 consecutive failures, see xpe_ai_init) every
+ 306  * call returns XPE_ERR_PROCESSING_FAILED with the same output, without trying
+ 307  * the worker and without an alert.
+ 308  *
+ 309  * Thread safety: Reentrant. Calls are serialised on the module mutex, so
+ 310  * concurrent callers do not race the lazy session load.
+ 311  * SRS: SRS-AI-030
+ 312  */
+
+## modules/ai/src/ai.cpp @ 5c3588e
+-- lines 437-440
+ 437 /** SRS-ALERT-004: DL processing was applied (Info). One place, so both paths say the same thing. */
+ 438 static void pushAiProcessedAlert() {
+ 439     xpe_alert_push("AI-processed: bone suppression applied (SRS-ALERT-004)", XPE_ALERT_INFO);
+ 440 }
+
+-- lines 783-817
+ 783         if (bytes > kWorkerMaxPixelBytes) return XPE_ERR_UNSUPPORTED_FORMAT;
+ 784         if (state->workerDisabled) {
+ 785             std::memmove(softTissueOut->data, img->data, bytes);
+ 786             return XPE_ERR_PROCESSING_FAILED;
+ 787         }
+ 788         const XpeErrorCode wrc = boneSuppressViaWorker(state, img, softTissueOut);
+ 789         if (wrc == XPE_OK) {
+ 790             state->workerConsecutiveFailures = 0;
+ 791             pushAiProcessedAlert();
+ 792             return XPE_OK;
+ 793         }
+ 794         std::memmove(softTissueOut->data, img->data, bytes);
+ 795         ++state->workerConsecutiveFailures;
+ 796         AI_LOG_WARN("bone_suppress: worker path failed (%d), input returned unchanged "
+ 797                     "(%u of %u consecutive failures)",
+ 798                     static_cast<int>(wrc), static_cast<unsigned>(state->workerConsecutiveFailures),
+ 799                     static_cast<unsigned>(kWorkerFailureCeiling));
+ 800         char msg[256];
+ 801         if (state->workerConsecutiveFailures >= kWorkerFailureCeiling) {
+ 802             state->workerDisabled = true;
+ 803             state->workerSupervisor.reset();   // ends the worker process
+ 804             std::snprintf(msg, sizeof(msg),
+ 805                           "AI worker failed (code %d, failure %u of %u) and is disabled for this "
+ 806                           "session: input images are returned unchanged (REQ-AI-002, REQ-AI-092)",
+ 807                           static_cast<int>(wrc), static_cast<unsigned>(state->workerConsecutiveFailures),
+ 808                           static_cast<unsigned>(kWorkerFailureCeiling));
+ 809         } else {
+ 810             std::snprintf(msg, sizeof(msg),
+ 811                           "AI worker failed (code %d, failure %u of %u): the input image is returned "
+ 812                           "unchanged (REQ-AI-002, REQ-AI-092)",
+ 813                           static_cast<int>(wrc), static_cast<unsigned>(state->workerConsecutiveFailures),
+ 814                           static_cast<unsigned>(kWorkerFailureCeiling));
+ 815         }
+ 816         xpe_alert_push(msg, XPE_ALERT_WARNING);
+ 817         return wrc;
+
+-- lines 872-893
+ 872     // SRS-ALERT-004 (QA-B-168, #130): DL processing was applied -- Info,
+ 873     // "AI-processed".
+ 874     //
+ 875     // PLACEMENT IS THE CONTRACT. This sits after the memcpy, on the single
+ 876     // success exit, so it cannot fire on a path that returned an image the
+ 877     // model never touched. Every early return above -- unsupported format, no
+ 878     // model, unloadable model, a failed Run (which is EVERY call in a stub
+ 879     // build) -- leaves the queue untouched. Hoisting it earlier would make an
+ 880     // "always fires" alert that still passes a test asserting only that it
+ 881     // fires; the negative assertions in test_alert_ai_processed.cpp are what
+ 882     // pin this position.
+ 883     //
+ 884     // WHY Info AND WHY HERE. SRS-ALERT-004 reads "DL processing 적용됨 / Info /
+ 885     // AI-processed label" (XPE-SRS-001:102). It is the DL-applied, i.e. SUCCESS,
+ 886     // alert; a worker failure is not ALERT-004 (the failure alert cites
+ 887     // REQ-AI-002 and REQ-AI-092, see the use_worker path above). Severity
+ 888     // settles it on its own: every failure row in the SRS alert table is
+ 889     // Warning or Error.
+ 890     //
+ 891     // The module raises it, not the GUI: all 20 product xpe_alert_push call
+ 892     // sites live under modules/ (QA-B-167), and clients/ only reads the queue.
+ 893     pushAiProcessedAlert();
