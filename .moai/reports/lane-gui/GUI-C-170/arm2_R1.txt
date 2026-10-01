@@ -1,0 +1,10 @@
+[R1] free memory before: 12.6 GB (floor 4.0)
+[R1] mutation applied to the scratch copy only
+[R1] build gui/ImageProcTest.slnx: exit=0
+[R1] build clients/ImageProcTest.slnx: exit=0
+[R1] free memory before tests: 12.5 GB
+[R1] 실패 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A13_PanelFlags_SurviveTheProcess_AndTheVerdictDoesNotDependOnThem [28 s]
+[R1] 실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 28 s - ImageProcTest.E2ETests.dll (net8.0)
+[R1] test exit=1
+[R1] real tree untouched: True
+script exit=0

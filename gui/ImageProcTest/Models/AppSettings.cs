@@ -43,7 +43,11 @@ public sealed class AppSettings : ObservableObject
     private bool _gsdfEnabled;
     private float _modalityRescaleSlope = 1.0f;
     private float _modalityRescaleIntercept = 0.0f;
-    private bool _showDisplayPanel = true;
+    // #225 rows 7/8 (GUI-C-170): both panel flags are OFF at start, like the Logs panel (MENU-001 §9.2). They
+    // were true while no panel existed, which meant nothing; now that a panel reads them, true would open two
+    // extra regions on every start.
+    private bool _showDisplayPanel;
+    private bool _showCalibrationPanel;
     private string _comparisonMode = ComparisonModes.Default;
     private double _comparisonZoomScale;
     private double _comparisonPanX;
@@ -308,12 +312,39 @@ public sealed class AppSettings : ObservableObject
 
     /// <summary>
     /// Gets or sets whether the display settings panel is visible.
+    ///
+    /// <para>#225 row 8 (GUI-C-170). Persisted, reported in the automation report, and — new — READ by
+    /// <c>Views/DisplaySettingsPanel</c>. It was persisted and reported for months with no panel behind it;
+    /// a persisted value is not a reader.</para>
+    ///
+    /// <para><b>The stored key is <c>showDisplaySettingsPanel</c>, not the old <c>showDisplayPanel</c>
+    /// (GUI-C-170b).</b> Before the panel existed this flag defaulted to true, the only menu item for it was
+    /// disabled, and Reset Layout set it back to true — so a <c>true</c> in an existing file was never a
+    /// choice a person made. Reading it with the same key would open the new panel on the first launch after
+    /// an upgrade. A new key does the whole job: an old file's old key is not read (the loader ignores
+    /// unknown keys), so the panel starts closed; a value saved by this code lands under the new key and
+    /// is kept. No version field and no migration step.</para>
     /// </summary>
-    [JsonPropertyName("showDisplayPanel")]
+    [JsonPropertyName("showDisplaySettingsPanel")]
     public bool ShowDisplayPanel
     {
         get => _showDisplayPanel;
         set => SetProperty(ref _showDisplayPanel, value);
+    }
+
+    /// <summary>
+    /// Gets or sets whether the calibration paths panel is visible.
+    ///
+    /// <para>#225 row 7 (GUI-C-170). Moved here from the view model, where its only reader was its own menu
+    /// item. Lives beside <see cref="ShowDisplayPanel"/> because the two are siblings: the lead's reader
+    /// census (GUI-C-170 §1) found the persisted one already reaches the report and the integration tests,
+    /// and two sibling flags stored in two places is what produced the half-wrong comment this replaces.</para>
+    /// </summary>
+    [JsonPropertyName("showCalibrationPanel")]
+    public bool ShowCalibrationPanel
+    {
+        get => _showCalibrationPanel;
+        set => SetProperty(ref _showCalibrationPanel, value);
     }
 
     /// <summary>

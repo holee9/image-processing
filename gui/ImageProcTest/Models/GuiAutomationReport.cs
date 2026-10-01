@@ -103,7 +103,26 @@ public sealed class GuiAutomationReport
 
     public bool CalibrationEvaluationEvidenceExported { get; set; }
 
+    /// <summary>The persisted Settings.ShowDisplayPanel as the run started. Reported, not part of the verdict.</summary>
     public bool DisplayPanelVisible { get; set; }
+
+    /// <summary>#225 row 7 (GUI-C-170): the persisted Settings.ShowCalibrationPanel as the run started.</summary>
+    public bool CalibrationPanelVisible { get; set; }
+
+    /// <summary>#225 rows 7/8: the panel was found in the visual tree, visible and laid out, after its toggle was switched on.</summary>
+    public bool CalibrationPanelRendered { get; set; }
+
+    public bool DisplayPanelRendered { get; set; }
+
+    /// <summary>The panels were on screen when the run STARTED (before the run switched them on) — i.e. because the persisted flag said so.</summary>
+    public bool CalibrationPanelRenderedAtStart { get; set; }
+
+    public bool DisplayPanelRenderedAtStart { get; set; }
+
+    /// <summary>The text blocks of the rendered panel, in tree order — what the operator would read.</summary>
+    public string[]? CalibrationPanelTexts { get; set; }
+
+    public string[]? DisplayPanelTexts { get; set; }
 
     public string DisplayVersion { get; set; } = string.Empty;
 

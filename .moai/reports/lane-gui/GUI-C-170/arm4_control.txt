@@ -1,0 +1,10 @@
+[control] free memory before: 8.9 GB (floor 4.0)
+[control] build gui/ImageProcTest.slnx: exit=0
+[control] build clients/ImageProcTest.slnx: exit=0
+[control] free memory before tests: 8.8 GB
+[control] 통과!  - 실패:     0, 통과:     5, 건너뜀:     0, 전체:     5, 기간: 150 ms - ImageProcTest.IntegrationTests.dll (net8.0)
+[control] 실패 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S07_PanelToggle_ShowsAndHidesItsPanel(toggleId: "ShowCalibrationPanelMenuItem", panelId: "CalibrationPathsPanel") [1 s]
+[control] 실패!  - 실패:     1, 통과:     4, 건너뜀:     0, 전체:     5, 기간: 1 m 4 s - ImageProcTest.E2ETests.dll (net8.0)
+[control] test exit=1
+[control] real tree untouched: True
+script exit=0

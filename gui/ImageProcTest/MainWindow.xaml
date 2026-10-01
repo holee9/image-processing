@@ -70,9 +70,16 @@
         <views:AlgorithmBar DockPanel.Dock="Top" />
 
         <!-- #225 row 13 (GUI-C-168). Collapsed until the Tools menu opens it; the flag has a reader
-             here, which is what ShowCalibrationPanel and Settings.ShowDisplayPanel both lack. -->
+             here, which is what the two panel flags below lacked until GUI-C-170. -->
         <views:PipelineDiagnosticsPanel DockPanel.Dock="Right"
                                         Visibility="{Binding ShowPipelineDiagnostics, Converter={StaticResource BoolToVisibility}}" />
+
+        <!-- #225 rows 7 and 8 (GUI-C-170). Each flag is a persisted Settings.* value and the panel is its
+             reader. Collapsed by default (MENU-001 §9.2), opened by the View toggle. -->
+        <views:CalibrationPathsPanel DockPanel.Dock="Right"
+                                     Visibility="{Binding Settings.ShowCalibrationPanel, Converter={StaticResource BoolToVisibility}}" />
+        <views:DisplaySettingsPanel DockPanel.Dock="Right"
+                                    Visibility="{Binding Settings.ShowDisplayPanel, Converter={StaticResource BoolToVisibility}}" />
 
         <Menu x:Name="MainMenu"
               AutomationProperties.AutomationId="MainMenu"
@@ -202,24 +209,24 @@
                     claim the app cannot honour. MENU-001 §9.2 is being rewritten to match (#165).
                 -->
                 <!--
-                    Phase 1a and 1b (MENU-001 §9.2). Disabled rather than removed: unlike the three
-                    above, these are scheduled — the phase that gives them something to show has not
-                    arrived. An enabled toggle for a panel that does not exist yet is the same lie in
-                    a different tense, which is why both were enabled until #165 and neither did
-                    anything.
+                    Phase 1a and 1b (MENU-001 §9.2). Disabled until #225 rows 7 and 8 (GUI-C-170): an enabled
+                    toggle for a panel that does not exist is a lie in the present tense, which is why both
+                    were enabled until #165 and neither did anything. Each now drives a real panel through a
+                    persisted Settings flag, so the toggle is enabled again and its check mark is the
+                    panel's actual visibility.
                 -->
                 <MenuItem x:Name="ShowCalibrationPanelMenuItem"
                           AutomationProperties.AutomationId="ShowCalibrationPanelMenuItem"
-                          Header="Calibration Paths Panel (Phase 1a)"
-                          IsEnabled="False"
+                          Header="Calibration Paths Panel"
                           IsCheckable="True"
-                          IsChecked="{Binding ShowCalibrationPanel, Mode=TwoWay}" />
+                          IsChecked="{Binding Settings.ShowCalibrationPanel, Mode=TwoWay}"
+                          ToolTip="Show the three calibration directories and their Browse buttons." />
                 <MenuItem x:Name="ShowDisplaySettingsPanelMenuItem"
                           AutomationProperties.AutomationId="ShowDisplaySettingsPanelMenuItem"
-                          Header="Display Settings Panel (Phase 1b)"
-                          IsEnabled="False"
+                          Header="Display Settings Panel"
                           IsCheckable="True"
-                          IsChecked="{Binding Settings.ShowDisplayPanel, Mode=TwoWay}" />
+                          IsChecked="{Binding Settings.ShowDisplayPanel, Mode=TwoWay}"
+                          ToolTip="Show the requested VOI settings next to what the last render used." />
                 <MenuItem x:Name="ShowLogsPanelMenuItem"
                           AutomationProperties.AutomationId="ShowLogsPanelMenuItem"
                           Header="Logs Panel"

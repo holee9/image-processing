@@ -1,0 +1,30 @@
+D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-C-170\c170_ab.py:48: DeprecationWarning: Python 3.14 will, by default, filter extracted tar archives and reject files or modify their metadata. Use the filter argument to control this behavior.
+  tf.extractall(dest)
+A = HEAD 6e81fc7   B = 1400af4 + the same S07 file   N = 5 each, alternating A,B,A,B...
+S07 file sha  A=24b3efc6b680  B=24b3efc6b680
+  A: display flag stored under 'showDisplaySettingsPanel'
+  B: display flag stored under 'showDisplayPanel'
+both built; memory floor 4.0 GB
+run 1A: 실패 (4/5) 열리지 않음
+run 1B: 실패 (4/5) 열리지 않음
+run 2A: 실패 (4/5) 열리지 않음
+run 2B: 실패 (4/5) 열리지 않음
+run 3A: 실패 (4/5) 열리지 않음
+run 3B: 실패 (4/5) 열리지 않음
+run 4A: 실패 (4/5) 열리지 않음
+run 4B: 실패 (4/5) 열리지 않음
+run 5A: 실패 (4/5) 열리지 않음
+run 5B: 실패 (4/5) 열리지 않음
+| 회차 | 빌드 | 가용 GB | E2E 4개 | 실패 종류 |
+|---|---|---|---|---|
+| 1 | A | 8.4 | 실패 (4/5) | 열리지 않음 |
+| 1 | B | 8.5 | 실패 (4/5) | 열리지 않음 |
+| 2 | A | 8.3 | 실패 (4/5) | 열리지 않음 |
+| 2 | B | 8.3 | 실패 (4/5) | 열리지 않음 |
+| 3 | A | 8.2 | 실패 (4/5) | 열리지 않음 |
+| 3 | B | 7.9 | 실패 (4/5) | 열리지 않음 |
+| 4 | A | 8.1 | 실패 (4/5) | 열리지 않음 |
+| 4 | B | 10.5 | 실패 (4/5) | 열리지 않음 |
+| 5 | A | 9.5 | 실패 (4/5) | 열리지 않음 |
+| 5 | B | 9.6 | 실패 (4/5) | 열리지 않음 |
+script exit=0
