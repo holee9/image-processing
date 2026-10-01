@@ -1504,6 +1504,10 @@ public sealed class MainWindowViewModel : ObservableObject
     /// because its executable is ctest, found on PATH, and what must exist is a build tree.
     /// <paramref name="summarize"/> picks the line the verdict quotes from stdout; null keeps the choice the
     /// self-check and E2E runners were measured with (GUI-C-158).
+    ///
+    /// <para>Returns null when nothing could be started (the executable is missing, ctest is not on PATH, the file
+    /// is not a program), false when something ran and exited non-zero, true when it exited zero. The status line
+    /// says "did not run" for the first and "FAILED (exit N)" for the second (GUI-C-177).</para>
     /// </summary>
     private async Task<bool?> ExecuteRunnerAsync(
         string label, string exePath, IReadOnlyList<string>? arguments, string? workingDirectory,
@@ -1514,66 +1518,25 @@ public sealed class MainWindowViewModel : ObservableObject
 
         try
         {
-            var (exitCode, lastLine, elapsedMs) =
-                await Task.Run(() => RunProcess(exePath, arguments, workingDirectory, summarize));
+            var outcome = await Task.Run(() => RunnerProcess.Run(exePath, arguments, workingDirectory, summarize));
 
-            // == 0 and nothing else. See the command's remarks: failure is an exception code.
-            StatusText = exitCode == 0
-                ? $"{label} passed in {elapsedMs:0} ms." + (summarize is null ? string.Empty : $" Exit 0. {lastLine}")
-                : $"{label} FAILED (exit {exitCode}): {lastLine}";
-            Log($"{label} finished: exit={exitCode}, {elapsedMs:0} ms, reported line: {lastLine}");
-            return exitCode == 0;
+            // The wording, and with it the difference between "could not be started" and "ran and failed", is
+            // RunnerProcess.Describe's: nothing here words an outcome. A start that failed has a null verdict,
+            // "did not run", which is not a failure and is not recorded as one (GUI-C-177).
+            StatusText = RunnerProcess.Describe(label, exePath, outcome, quotesSummary: summarize is not null);
+            Log(outcome.Started
+                ? $"{label} finished: exit={outcome.ExitCode}, {outcome.ElapsedMs:0} ms, reported line: {outcome.LastLine}"
+                : $"{label} did not run: {outcome.StartError}");
+            return outcome.Verdict;
         }
         catch (Exception ex)
         {
-            StatusText = $"{label} could not be started: {ex.Message}";
-            Log($"{label} could not be started: {ex.GetType().Name}: {ex.Message}");
+            // Reachable only AFTER the process started (RunnerProcess.Run returns a failed start as an outcome,
+            // not as an exception): something ran and its output could not be read. That is not "did not run".
+            StatusText = $"{label} ended abnormally: {ex.Message}";
+            Log($"{label} ended abnormally: {ex.GetType().Name}: {ex.Message}");
             return false;
         }
-    }
-
-    private static (int ExitCode, string LastLine, double ElapsedMs) RunProcess(
-        string exePath, IReadOnlyList<string>? arguments = null, string? workingDirectory = null,
-        Func<string, string?>? summarize = null)
-    {
-        var start = new System.Diagnostics.ProcessStartInfo(exePath)
-        {
-            WorkingDirectory = workingDirectory ?? Path.GetDirectoryName(exePath)!,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        };
-
-        // An argument list, never a command line: nothing is parsed by a shell, so a pattern with '|' stays one argument.
-        foreach (var argument in arguments ?? Array.Empty<string>())
-        {
-            start.ArgumentList.Add(argument);
-        }
-
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        using var process = System.Diagnostics.Process.Start(start)
-            ?? throw new InvalidOperationException($"Process.Start returned null for '{exePath}'.");
-
-        var stdout = process.StandardOutput.ReadToEnd();
-        var stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-        stopwatch.Stop();
-
-        // Which line to report, measured rather than guessed (GUI-C-158): a failing runner throws, so
-        // stderr begins with "Unhandled exception. ...: <reason>" and CONTINUES with stack frames. The
-        // first attempt reported the LAST line and produced "at Program...line 62" — true, and useless.
-        // The reason is the FIRST stderr line; on success there is no stderr and the runner's verdict
-        // is the last stdout line.
-        var fallback = string.IsNullOrWhiteSpace(stderr)
-            ? stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                .Select(line => line.Trim()).LastOrDefault(line => line.Length > 0)
-            : stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                .Select(line => line.Trim()).FirstOrDefault(line => line.Length > 0);
-
-        var reported = summarize?.Invoke(stdout) ?? fallback;
-
-        return (process.ExitCode, reported ?? "(no output)", stopwatch.Elapsed.TotalMilliseconds);
     }
 
     /// <summary>True while the self-check child process is running.</summary>
