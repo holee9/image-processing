@@ -50,9 +50,21 @@ static void h_blur_row(const float* src_row, float* dst_row, int w,
 
 extern "C" {
 
+// QA-B-181 (QA-B-179, #233): no exception may leave an exported function. The body lives in an `extern "C++"`
+// function (a helper declared inside this extern "C" block would get C linkage and the "never throws" treatment,
+// which optimises the catch away -- see modules/ai/src/ai.cpp for the measurement) and the exported function is a
+// try/catch around it. The handlers allocate nothing.
+extern "C++" static XpeErrorCode xpe_edge_enhance_impl(XpeImageBuffer* img, const XpeUsmParams* params);
+
+
 // @MX:ANCHOR: xpe_edge_enhance applies USM with overshoot clamping.
 // @MX:REASON: [AUTO] Public API boundary, pipeline stage. REQ-ENH-018..022.
 XPE_API XpeErrorCode xpe_edge_enhance(XpeImageBuffer* img, const XpeUsmParams* params)
+{
+    return xpe_guarded_call([&] { return xpe_edge_enhance_impl(img, params); });
+}
+
+extern "C++" static XpeErrorCode xpe_edge_enhance_impl(XpeImageBuffer* img, const XpeUsmParams* params)
 {
     // REQ-ENH-019: use defaults if params is NULL
     XpeUsmParams defaults;

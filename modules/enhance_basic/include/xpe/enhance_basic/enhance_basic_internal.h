@@ -6,6 +6,7 @@
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
 #include <cstdint>
+#include <new>
 
 /* Validate that img is non-null, format==FLOAT32, and data is non-null. */
 /**
@@ -42,12 +43,37 @@ inline XpeErrorCode validate_float32_image(const XpeImageBuffer* img) {
     // descriptor rather than of the pixel type -- an empty UINT16 image is
     // reported as empty, not as the wrong format.
     if (img->width == 0 || img->height == 0) return XPE_ERR_INVALID_INPUT;
+    // QA-B-181: the module indexes with int. A dimension above INT32_MAX became NEGATIVE in
+    // `static_cast<int>(img->width)`, and the size computed from it was a huge size_t, so the allocation threw
+    // (QA-B-179 measured width = 0x80000000 in xpe_edge_enhance and the bilateral xpe_noise_reduce).
+    if (img->width > 0x7FFFFFFFu || img->height > 0x7FFFFFFFu) return XPE_ERR_INVALID_INPUT;
     if (img->format != XPE_PIXEL_FLOAT32) return XPE_ERR_UNSUPPORTED_FORMAT;
     // api-spec "XpeImageBuffer.dataSize on input" (#123). Every enhance_basic
     // entry point routes through here, so the module keeps one definition of
     // the check rather than seven copies.
     if (!xpe_data_size_is_consistent(img)) return XPE_ERR_INVALID_INPUT;
     return XPE_OK;
+}
+
+/**
+ * @brief The outermost guard of an exported function (QA-B-181, QA-B-179, #233).
+ *
+ * No exception may leave an `extern "C"` function. Run the body through this: std::bad_alloc becomes
+ * XPE_ERR_OUT_OF_MEMORY and anything else XPE_ERR_PROCESSING_FAILED. noexcept is safe only because of the
+ * catch-all, and the handlers allocate nothing. The body must be an `extern "C++"` function (not one declared
+ * inside the extern "C" block: that gets C linkage and the "never throws" treatment, which lets the compiler
+ * drop the catch and leaves a lock_guard in the body locked -- measured, modules/ai/src/ai.cpp). Header-inline so
+ * that the test executable can exercise it directly.
+ */
+template <class F>
+inline XpeErrorCode xpe_guarded_call(F&& body) noexcept {
+    try {
+        return body();
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
 }
 
 inline float* float_pixels(XpeImageBuffer* img) {

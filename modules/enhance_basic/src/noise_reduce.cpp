@@ -288,9 +288,21 @@ static XpeErrorCode apply_nlm(XpeImageBuffer* img,
 
 extern "C" {
 
+// QA-B-181 (QA-B-179, #233): no exception may leave an exported function. The body lives in an `extern "C++"`
+// function (a helper declared inside this extern "C" block would get C linkage and the "never throws" treatment,
+// which optimises the catch away -- see modules/ai/src/ai.cpp for the measurement) and the exported function is a
+// try/catch around it. The handlers allocate nothing.
+extern "C++" static XpeErrorCode xpe_noise_reduce_impl(XpeImageBuffer* img, const XpeNoiseReduceParams* params);
+
+
 // @MX:ANCHOR: xpe_noise_reduce applies bilateral or NLM denoising in-place.
 // @MX:REASON: [AUTO] Public API boundary, key pipeline stage. REQ-ENH-007..012.
 XPE_API XpeErrorCode xpe_noise_reduce(XpeImageBuffer* img, const XpeNoiseReduceParams* params)
+{
+    return xpe_guarded_call([&] { return xpe_noise_reduce_impl(img, params); });
+}
+
+extern "C++" static XpeErrorCode xpe_noise_reduce_impl(XpeImageBuffer* img, const XpeNoiseReduceParams* params)
 {
     // REQ-ENH-009: NULL params check
     if (!params) return XPE_ERR_INVALID_INPUT;

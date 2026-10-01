@@ -107,9 +107,21 @@ static inline float tile_lookup(const TileLut& t, float v)
 
 extern "C" {
 
+// QA-B-181 (QA-B-179, #233): no exception may leave an exported function. The body lives in an `extern "C++"`
+// function (a helper declared inside this extern "C" block would get C linkage and the "never throws" treatment,
+// which optimises the catch away -- see modules/ai/src/ai.cpp for the measurement) and the exported function is a
+// try/catch around it. The handlers allocate nothing.
+extern "C++" static XpeErrorCode xpe_contrast_enhance_impl(XpeImageBuffer* img, const XpeClaheParams* params);
+
+
 // @MX:ANCHOR: xpe_contrast_enhance applies CLAHE with bilinear tile interpolation.
 // @MX:REASON: [AUTO] Public API boundary, CLAHE pipeline stage. REQ-ENH-013..017.
 XPE_API XpeErrorCode xpe_contrast_enhance(XpeImageBuffer* img, const XpeClaheParams* params)
+{
+    return xpe_guarded_call([&] { return xpe_contrast_enhance_impl(img, params); });
+}
+
+extern "C++" static XpeErrorCode xpe_contrast_enhance_impl(XpeImageBuffer* img, const XpeClaheParams* params)
 {
     // REQ-ENH-014: use defaults if params is NULL
     XpeClaheParams defaults;
@@ -132,7 +144,11 @@ XPE_API XpeErrorCode xpe_contrast_enhance(XpeImageBuffer* img, const XpeClahePar
     int h = static_cast<int>(img->height);
 
     // Image must be large enough for the tile grid
-    if (w < p->tile_width * 2 || h < p->tile_height * 2) {
+    // QA-B-181: judged in 64 bits. `tile_width * 2` in int overflowed for tile_width >= 2^30 (undefined behaviour:
+    // 0x40000000 wrapped negative, passed this check, and the tile table below was then sized from the wrapped
+    // product), so a window that cannot fit the image was admitted instead of rejected.
+    if (static_cast<int64_t>(w) < static_cast<int64_t>(p->tile_width) * 2 ||
+        static_cast<int64_t>(h) < static_cast<int64_t>(p->tile_height) * 2) {
         return XPE_ERR_INVALID_INPUT;
     }
 
@@ -157,8 +173,9 @@ XPE_API XpeErrorCode xpe_contrast_enhance(XpeImageBuffer* img, const XpeClahePar
     // Build per-tile LUTs with local min/max quantization.
     // REQ-ENH-013: each tile's histogram covers its actual value range,
     // ensuring proper equalization even for low-contrast regions.
-    int total_tiles = num_tiles_x * num_tiles_y;
-    std::vector<TileLut> tiles(static_cast<size_t>(total_tiles));
+    // 64-bit: after the window check each factor is at most 2^30, so the product can reach 2^60.
+    const size_t total_tiles = static_cast<size_t>(num_tiles_x) * static_cast<size_t>(num_tiles_y);
+    std::vector<TileLut> tiles(total_tiles);
 
     for (int ty = 0; ty < num_tiles_y; ++ty) {
         for (int tx = 0; tx < num_tiles_x; ++tx) {

@@ -115,6 +115,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_exposure_index_contract.cpp # #153 (QA-B-56) EIT cancellation record
         tests/test_parameter_dependency.cpp    # #155 (QA-B-58) does each parameter reach the output
         tests/test_empty_image_contract.cpp  # #142 D1 empty-image contract (QA-B-40)
+        tests/test_exception_guard.cpp  # QA-B-181: no exception leaves noise_reduce / contrast_enhance / edge_enhance
     )
 
     add_executable(xpe_enhance_basic_tests
