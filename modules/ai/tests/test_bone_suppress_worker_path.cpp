@@ -18,8 +18,9 @@
  * row 2): a failure of the worker path returns the input unchanged and a non-OK code AND raises one
  * Warning alert, every time. After N = 3 CONSECUTIVE failures the worker is switched off for the rest
  * of the session (its process is ended): the 3rd failure's alert says so ("disabled"), and later calls
- * return the input at once WITHOUT starting a worker and WITHOUT further alerts. So a session raises at
- * most 3 worker alerts. A success resets the count. Failures that are deterministic in both builds come
+ * return the input at once WITHOUT starting a worker and WITHOUT further alerts. So a run of
+ * consecutive failures raises 3 alerts and stops; with successes in between there is no per-session cap
+ * and every failure alerts. A success resets the count. Failures that are deterministic in both builds come
  * from a model directory with no model: the worker answers every request with an error frame.
  *
  * WHAT THE TESTS HOLD FIXED

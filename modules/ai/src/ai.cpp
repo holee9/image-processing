@@ -772,9 +772,10 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
     // after kWorkerFailureCeiling CONSECUTIVE failures the worker is switched off for the rest of the
     // session: its process is ended, the alert of that last failure says so, and later calls return the
     // input at once, without starting a worker and WITHOUT further alerts, with
-    // XPE_ERR_PROCESSING_FAILED (the documented fallback signal). So a session raises at most
-    // kWorkerFailureCeiling worker alerts. A success resets the count. xpe_ai_shutdown/xpe_ai_init begin a
-    // new session with a clean count.
+    // XPE_ERR_PROCESSING_FAILED (the documented fallback signal). So a run of CONSECUTIVE failures raises
+    // kWorkerFailureCeiling alerts and then stops; there is no per-session cap: a success resets the count,
+    // so intermittent failures (fail, fail, succeed, ...) are never blocked and alert on EVERY failure.
+    // xpe_ai_shutdown/xpe_ai_init begin a new session with a clean count.
     if (state->useWorker) {
         if (state->workerDisabled) {
             std::memmove(softTissueOut->data, img->data, bytes);
