@@ -3556,6 +3556,75 @@ TEST_F(DicomReaderTest, Scope_JpegLosslessPrecisionIsComparedWithBitsStoredBefor
     EXPECT_EQ(XPE_OK, ReadScope(wider).read) << "precision 16 above Bits Stored 12 is not refused";
 }
 
+// QA-B-182e (card 182f item 5): a JPEG Lossless stream whose frame header declares three components while the dataset
+// says SamplesPerPixel = 1. A JPEG Lossless frame header carries no sign flag (PixelRepresentation lives in the dataset
+// only), so the component count is the only independent attribute besides precision and size.
+namespace {
+/** The first SOF3 frame header in the file, rewritten to declare `nf` components (a consistent header: length and
+ *  component specs follow). The scan header is left alone, so the file is inconsistent on purpose. */
+bool PatchJpegLosslessComponents(const fs::path& src, const fs::path& dst, int nf) {
+    std::ifstream in(src, std::ios::binary);
+    std::vector<uint8_t> b((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    for (size_t k = 0; k + 12 < b.size(); ++k) {
+        if (b[k] == 0xFF && b[k + 1] == 0xC3 && b[k + 2] == 0x00 && b[k + 3] == 0x0B) {   // SOF3, one component
+            const size_t len = 8 + 3 * static_cast<size_t>(nf);
+            b[k + 2] = static_cast<uint8_t>(len >> 8);
+            b[k + 3] = static_cast<uint8_t>(len & 0xFF);
+            b[k + 9] = static_cast<uint8_t>(nf);
+            std::vector<uint8_t> extra;
+            for (int c = 1; c < nf; ++c) {
+                extra.push_back(static_cast<uint8_t>(c + 1));   // component id
+                extra.push_back(0x11);                          // sampling factors
+                extra.push_back(0x00);                          // quantization table (unused in lossless)
+            }
+            // The bytes added to the frame header must also be added to the length of the pixel-data fragment (item)
+            // that holds it, or the file no longer parses and the reader never reaches the frame header. The item
+            // header is the 8 bytes before the JPEG SOI: tag FE FF 00 E0, then a 4 byte little endian length.
+            size_t soi = k;
+            while (soi >= 2 && !(b[soi] == 0xD8 && b[soi - 1] == 0xFF)) --soi;
+            soi -= 1;                                   // index of the 0xFF of FF D8
+            if (soi < 8 || b[soi - 8] != 0xFE || b[soi - 7] != 0xFF || b[soi - 6] != 0x00 || b[soi - 5] != 0xE0) return false;
+            uint32_t itemLen = static_cast<uint32_t>(b[soi - 4]) | (static_cast<uint32_t>(b[soi - 3]) << 8) |
+                               (static_cast<uint32_t>(b[soi - 2]) << 16) | (static_cast<uint32_t>(b[soi - 1]) << 24);
+            itemLen += static_cast<uint32_t>(extra.size());
+            b[soi - 4] = static_cast<uint8_t>(itemLen & 0xFF);
+            b[soi - 3] = static_cast<uint8_t>((itemLen >> 8) & 0xFF);
+            b[soi - 2] = static_cast<uint8_t>((itemLen >> 16) & 0xFF);
+            b[soi - 1] = static_cast<uint8_t>((itemLen >> 24) & 0xFF);
+            b.insert(b.begin() + static_cast<std::ptrdiff_t>(k + 13), extra.begin(), extra.end());
+            std::ofstream out(dst, std::ios::binary);
+            out.write(reinterpret_cast<const char*>(b.data()), static_cast<std::streamsize>(b.size()));
+            return out.good();
+        }
+    }
+    return false;
+}
+}  // namespace
+
+TEST_F(DicomReaderTest, Scope_JpegLosslessComponentCountIsComparedWithSamplesPerPixelBeforeDecoding) {
+    const fs::path ll = s_tempDir / "jpegll_for_182e_nf.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, ll));
+    const fs::path one = s_tempDir / "jpegll_nf_1.dcm";
+    ASSERT_TRUE(PatchJpegLosslessComponents(ll, one, 1));
+    EXPECT_EQ(XPE_OK, ReadScope(one).read) << "control: one component, SamplesPerPixel 1";
+
+    const fs::path three = s_tempDir / "jpegll_nf_3.dcm";
+    ASSERT_TRUE(PatchJpegLosslessComponents(ll, three, 3));
+    xpe_clear_alerts();
+    const ScopeRead r = ReadScope(three);
+    GTEST_LOG_(INFO) << "QA-B-182e probe: frame header with 3 components, dataset SamplesPerPixel 1 -> rc=" << r.read;
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, r.read) << "the stream says 3 components, the dataset says 1";
+    EXPECT_TRUE(r.outUntouchedOnFailure);
+    EXPECT_EQ(XPE_OK, r.metaAfter);
+    bool named = false;
+    for (int32_t i = 0; i < xpe_get_pending_alert_count(); ++i) {
+        char buf[512] = {0};
+        int32_t sev = -1;
+        if (xpe_get_pending_alert(i, buf, sizeof(buf), &sev) == XPE_OK && std::string(buf).find("component") != std::string::npos) named = true;
+    }
+    EXPECT_TRUE(named) << "the refusal names the component count";
+}
+
 // The refusal reaches the operator: an alert names the attribute or the two values that disagree. (The module's
 // only other channel is its log.) The alert wording is a contract with the clients that display alerts.
 TEST_F(DicomReaderTest, Scope_ARefusalPostsAnAlertThatNamesTheCause) {

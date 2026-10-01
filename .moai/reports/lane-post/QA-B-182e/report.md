@@ -117,3 +117,14 @@ Refs #235
 - P > BitsStored 허용 (§3): 이 reader 가 받아들이는 파일 중에 표준이 "consistent" 로 보지 않는 것이 있을 수 있다. 반대로 엄격히 하면 실제 파일을 거부할 수 있다. 양쪽 모두 이 세션에서 실제 파일로 확인하지 못했다.
 - 반환 코드가 `UNSUPPORTED` → `INVALID` 로 바뀌는 입력 범위는 §4 표가 전부이나, 이 표는 이 reader 의 검사 순서에서 도출한 것이고 모든 조합을 실행한 것이 아니다 (실행한 것은 시험의 13개 조합).
 - 바뀐 알림 문구는 레인 간 계약이다. 이 저장소의 `clients/` 에는 고정한 곳이 없으나 다른 소비자는 모른다.
+
+## 9. 추가 (182f 카드 항목 5, 182e 범위에 포함시킨 일): JPEG LL 성분 수·부호
+
+182f 카드가 "182e 에서 코드스트림을 조작해 DCMTK 가 불일치를 거부하는지 실제로 확인"하라고 했는데 위 커밋에서 빠뜨렸다. 이 절이 그 확인이다.
+
+- **부호**: JPEG Lossless 프레임 헤더(SOF3)에는 부호 플래그가 없다 (PixelRepresentation 은 데이터셋에만 있다). 스트림과 대조할 값 자체가 없다. J2K 는 코드스트림이 부호를 담아 182b 에서 대조했다.
+- **성분 수 (Nf)**: 시험 파일은 donor JPEG LL 의 SOF 를 성분 3개를 선언하도록 다시 쓴다 (헤더 길이와 성분 명세 추가, 조각 item 의 길이도 같이 증가 — 처음에는 item 길이를 고치지 않아 파일이 깨졌고 `DcmSequenceOfItems: Parse error in sequence (7fe0,0010)` 가 나왔다. 그 상태의 결과는 버렸다). 데이터셋은 SamplesPerPixel=1 그대로다.
+- **측정**: reader 의 새 검사를 뺀 상태에서 이 파일을 읽으면 **`rc=-3` (`XPE_ERR_PROCESSING_FAILED`)**. 즉 DCMTK 는 불일치를 거부하지만 코드가 "내부 알고리즘 실패"라 원인을 가리키지 않고, 알림도 없고, 디코드를 이미 시작한 뒤다.
+- **조치**: reader 가 SOF 의 Nf 를 읽어 1 이 아니면 디코드·할당 전에 `XPE_ERR_DICOM_INVALID` + 알림 `JPEG Lossless stream carries %u components, the dataset says 1 (SamplesPerPixel)`. 카드의 "거부하지 않으면 대조를 넣는다" 조건과는 다르게 DCMTK 가 거부는 하지만, 코드와 시점을 바로잡는 쪽이 낫다고 판단해 넣었다. 코드가 `PROCESSING_FAILED` → `DICOM_INVALID` 로 바뀌는 입력이다 (레인 간 계약, §4 표에 한 줄 추가: 성분 수가 SamplesPerPixel 과 다른 JPEG LL, 이전 `PROCESSING_FAILED`, 이후 `DICOM_INVALID`).
+- **시험**: `Scope_JpegLosslessComponentCountIsComparedWithSamplesPerPixelBeforeDecoding` — 성분 1 대조군은 읽힘, 성분 3 은 `DICOM_INVALID` + 출력 버퍼 미변경 + 알림에 `component`. 검사를 지우면 `rc=-3` 으로 빨강. 리더 시험 86건 통과, `ctest ci-dicom` `100% tests passed, 0 tests failed out of 233`.
+- **Gaps**: 성분 수 불일치의 다른 방향(스트림 1개, 데이터셋 3 → 이미 SamplesPerPixel≠1 로 UNSUPPORTED)은 조작하지 않았다. 처음 깨진 파일은 `rc=0` 으로 읽혔는데(조각 길이가 틀린 상태) 그것이 reader 의 결함인지는 조사하지 않았다 — 한 번 관측했고 재현 파일을 남기지 않았다.

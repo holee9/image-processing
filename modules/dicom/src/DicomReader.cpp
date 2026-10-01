@@ -64,7 +64,7 @@ void ensure_jpeg_codecs_registered() {
 // Returns false when no SOF marker is found. A false is NOT a verdict: the
 // caller must not reject on it, because "we could not read the frame header" is
 // a different statement from "the frame is too small".
-bool jpeg_frame_dimensions(const Uint8* data, size_t len, uint32_t& outW, uint32_t& outH, uint32_t* outPrecision = nullptr) {
+bool jpeg_frame_dimensions(const Uint8* data, size_t len, uint32_t& outW, uint32_t& outH, uint32_t* outPrecision = nullptr, uint32_t* outComponents = nullptr) {
     if (data == nullptr || len < 4) return false;
     size_t i = 0;
     if (!(data[0] == 0xFF && data[1] == 0xD8)) return false;   // SOI
@@ -87,6 +87,7 @@ bool jpeg_frame_dimensions(const Uint8* data, size_t len, uint32_t& outW, uint32
             // length(2) precision(1) height(2) width(2)
             if (i + 8 >= len) return false;
             if (outPrecision != nullptr) *outPrecision = data[i + 4];   // QA-B-182e: sample precision P
+            if (outComponents != nullptr && i + 9 < len) *outComponents = data[i + 9];   // Nf, component count
             outH = (static_cast<uint32_t>(data[i + 5]) << 8) | data[i + 6];
             outW = (static_cast<uint32_t>(data[i + 7]) << 8) | data[i + 8];
             return outW != 0 && outH != 0;
@@ -439,10 +440,10 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
                 DcmPixelItem* frag = nullptr;
                 if (encSeq->getItem(frag, 1).good() && frag != nullptr) {
                     Uint8* fragData = nullptr;
-                    uint32_t frameW = 0, frameH = 0, framePrecision = 0;
+                    uint32_t frameW = 0, frameH = 0, framePrecision = 0, frameComponents = 0;
                     if (frag->getUint8Array(fragData).good() && fragData != nullptr &&
                         jpeg_frame_dimensions(fragData, static_cast<size_t>(frag->getLength()),
-                                              frameW, frameH, &framePrecision)) {
+                                              frameW, frameH, &framePrecision, &frameComponents)) {
                         if (frameW != cols || frameH != rows) {
                             spdlog::error("[DicomReader] JPEG frame size does not match the "
                                           "declared size: dataset says {}x{}, frame carries {}x{}",
@@ -455,6 +456,15 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
                         // declared values and P above Bits Allocated does not fit the container: both are refused
                         // before DCMTK decodes. P above Bits Stored is accepted -- the standard does not say what
                         // "consistent" means there and refusing would turn away files with a wider P.
+                        // The component count is compared with SamplesPerPixel, which checkSupportedImageModule has
+                        // already pinned to 1. DCMTK does not do this comparison: a frame header declaring three
+                        // components under SamplesPerPixel 1 was read with rc=0 (QA-B-182e, measured). A JPEG
+                        // Lossless frame header has no sign flag, so there is nothing to compare PixelRepresentation
+                        // with; it is judged from the dataset alone.
+                        if (frameComponents != 0 && frameComponents != 1) {
+                            return refuse(XPE_ERR_DICOM_INVALID, "JPEG Lossless stream carries %u components, the dataset says 1 (SamplesPerPixel)",
+                                          static_cast<unsigned>(frameComponents));
+                        }
                         if (framePrecision != 0 && (framePrecision < bitsStored || framePrecision > bitsAlloc)) {
                             return refuse(XPE_ERR_DICOM_INVALID, "JPEG Lossless stream sample precision %u does not fit the dataset (BitsStored %u, BitsAllocated %u)",
                                           static_cast<unsigned>(framePrecision), static_cast<unsigned>(bitsStored), static_cast<unsigned>(bitsAlloc));
