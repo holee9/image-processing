@@ -17,10 +17,10 @@ endif()
 set(XPE_PREPROCESS_SOURCES
     src/preprocess.cpp           # version + legacy entry point
     src/offset_correct.cpp       # SWU-1.1 REQ-P1A-010, REQ-P1A-021 (new 3-arg g_calib API)
-    src/gain_correct.cpp         # SWU-1.2 REQ-P1A-016..019 (new 3-arg g_calib API)
-    src/readout_validate.cpp     # SWU-1.9 REQ-P1A-001..004
-    src/temp_compensate.cpp      # SWU-1.6 REQ-P1A-005..008
-    src/nonlinearity_correct.cpp # SWU-1.7 REQ-P1A-012..015
+    src/gain_correct.cpp         # SWU-1.2 REQ-P1A-011 (new 3-arg g_calib API); guards REQ-P1A-020, REQ-P1A-020a
+    src/readout_validate.cpp     # SWU-1.9 REQ-P1A-041 (dropped columns, rows above 0.9 x full scale; no line-noise check)
+    src/temp_compensate.cpp      # SWU-1.6 REQ-P1A-080, REQ-P1A-081 (the flag, REQ-P1A-082, is set by the pipeline)
+    src/nonlinearity_correct.cpp # SWU-1.7 SRS-CALIB-FUNC-006 / -006-EXT (SPEC-XPE-P1A has no nonlinearity requirement)
     src/binning_correct.cpp      # SWU-1.8 REQ-P1A-090, REQ-P1A-091
     src/defect_correct.cpp       # SWU-1.3 REQ-P1A-012 (new 3-arg g_calib API); runtime detection REQ-P1A-013 is in runtime_detection.cpp
     src/ghost_correct.cpp        # SWU-1.4 REQ-P1A-085..087
@@ -28,7 +28,7 @@ set(XPE_PREPROCESS_SOURCES
     src/calibration_cache.cpp    # SWU-1.10 LRU calibration cache
     src/runtime_detection.cpp    # REQ-P1A-013 Hampel 5-sigma outlier detection
     src/helpers.cpp              # Shared: interpolation, JSON, CRC-32
-    src/pipeline.cpp             # Full pipeline integration (REQ-P1A-041..047)
+    src/pipeline.cpp             # Full pipeline integration (REQ-P1A-095..101; xpe_calib_state_load: REQ-P1A-016a; _ex/_batch have no REQ)
     src/rle_codec.cpp            # RLE compression for defect maps
     src/xpe_calib_check_expiry.cpp  # REQ-P1A-018 XCal v1 header-only expiry check (3-arg API)
     src/xpe_defect_gen.cpp       # SWU-1.11 BPM Generation (FUNC-022~025)
