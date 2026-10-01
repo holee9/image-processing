@@ -2,15 +2,15 @@
 # command: grep -rnE '<input-API pattern>' clients/ImageProcTest.E2ETests --include=*.cs | grep -vE '/(bin|obj)/|Fixtures/GlobalInput.cs|GlobalInput\.|^\S+:[0-9]+:\s*//'
 (count: 0)
 
-# calls through the gate in the NEW file (RealInputScenarios.cs):
+# calls through the gate in RealInputScenarios.cs:
 47:        GlobalInput.Require("R01 (a real mouse click on the View menu)");
 62:                GlobalInput.Click(viewMenu!);
-95:        GlobalInput.Require("R02 (real key presses into a text box, then a real Tab)");
-119:                GlobalInput.SelectAll();
-120:                GlobalInput.Type(typed);
-131:                GlobalInput.Press(VirtualKeyShort.TAB);
+99:        GlobalInput.Require("R02 (real key presses into a text box, then a real Tab)");
+123:                GlobalInput.SelectAll();
+124:                GlobalInput.Type(typed);
+145:                GlobalInput.Press(VirtualKeyShort.TAB);
 
-# the gate file now also holds (the only file with these calls):
+# the gate file (the only file with these calls):
 46:        Keyboard.Press(key);
 53:        Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_A);
 60:        Keyboard.Type(text);

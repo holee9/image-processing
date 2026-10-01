@@ -1,9 +1,9 @@
-# GUI-C-172 — tools/ci/Test-TrackedTextFiles.ps1 (official script, run without a pipe)
+# GUI-C-172 (Codex #9 fix) — tools/ci/Test-TrackedTextFiles.ps1, official script, run without a pipe
 
-## 1. Only the 9 files this card adds or changes, in a throwaway repo
+## 1. The files of this card (RealInputScenarios.cs + everything under GUI-C-172/), in a throwaway repo
 command: powershell -NoProfile -ExecutionPolicy Bypass -File tools/ci/Test-TrackedTextFiles.ps1
 output:  Tracked text file validation passed.
-exit code: 0
+exit code: 0   (7 files)
 
 ## 2. The whole dev/gui tree, as it stands today
 exit code: 1 — 11 errors, ALL in three files this card does not touch:
@@ -12,6 +12,5 @@ exit code: 1 — 11 errors, ALL in three files this card does not touch:
   .moai/reports/lane-gui/GUI-C-171/input_scan_after.txt   (2)
 
 These are the OLD versions: origin/main already carries the fixes (e6bcf191, d7ee2e05, 0fdffccf) and has 0
-trailing-whitespace lines in each. dev/gui is behind main for these paths (merge-base == dev/gui HEAD cfb28b76),
-so the errors disappear once main is merged into dev/gui; they are not caused by, and not fixed by, this card.
-No file under .moai/reports/lane-gui/GUI-C-172/ and none of the changed .cs/.md files is flagged.
+trailing-whitespace lines in each; dev/gui is behind main for these paths. No file under
+.moai/reports/lane-gui/GUI-C-172/ and no changed .cs/.md file is flagged.
