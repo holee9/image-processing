@@ -64,7 +64,7 @@ void ensure_jpeg_codecs_registered() {
 // Returns false when no SOF marker is found. A false is NOT a verdict: the
 // caller must not reject on it, because "we could not read the frame header" is
 // a different statement from "the frame is too small".
-bool jpeg_frame_dimensions(const Uint8* data, size_t len, uint32_t& outW, uint32_t& outH) {
+bool jpeg_frame_dimensions(const Uint8* data, size_t len, uint32_t& outW, uint32_t& outH, uint32_t* outPrecision = nullptr) {
     if (data == nullptr || len < 4) return false;
     size_t i = 0;
     if (!(data[0] == 0xFF && data[1] == 0xD8)) return false;   // SOI
@@ -86,6 +86,7 @@ bool jpeg_frame_dimensions(const Uint8* data, size_t len, uint32_t& outW, uint32
         if (isSOF) {
             // length(2) precision(1) height(2) width(2)
             if (i + 8 >= len) return false;
+            if (outPrecision != nullptr) *outPrecision = data[i + 4];   // QA-B-182e: sample precision P
             outH = (static_cast<uint32_t>(data[i + 5]) << 8) | data[i + 6];
             outW = (static_cast<uint32_t>(data[i + 7]) << 8) | data[i + 8];
             return outW != 0 && outH != 0;
@@ -313,7 +314,7 @@ static bool readType1Uint16(DcmDataset* ds, const DcmTagKey& key, Uint16& out) {
     return ds->tagExists(key) && ds->findAndGetUint16(key, out).good();
 }
 
-static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, bool isJ2K) {
+static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, bool isJ2K, bool isJpegLL) {
     Uint16 samples = 0, pixelRepresentation = 0, bitsAlloc = 0, bitsStored = 0, highBit = 0;
     struct Required { const char* name; DcmTagKey key; Uint16* value; };
     const Required required[] = {
@@ -342,25 +343,40 @@ static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, bool isJ2K) {
     if (samples != 1) return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "SamplesPerPixel %u (only one sample per pixel is supported)", static_cast<unsigned>(samples));
     if (pixelRepresentation != 0) return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "PixelRepresentation %u (only unsigned pixels are supported)", static_cast<unsigned>(pixelRepresentation));
 
+    // QA-B-182e: the bits attributes are classified against the standard (text quoted in the QA-B-182e report).
+    //   VIOLATION (XPE_ERR_DICOM_INVALID): the dataset breaks a "shall" of PS3.5 8.1.1, which holds for every Pixel
+    //   Data whatever the transfer syntax -- Bits Allocated is 1 or a multiple of 8, Bits Stored is never larger
+    //   than Bits Allocated, High Bit is one less than Bits Stored -- or a value the transfer syntax's own table
+    //   (PS3.5 Table 8.2.1-2 for JPEG Lossless, Table 8.2.4-1 for JPEG 2000) does not list.
+    //   VALID BUT UNSUPPORTED (XPE_ERR_UNSUPPORTED_FORMAT): the dataset is well formed and this reader cannot return
+    //   it (for example 8 or 32 bits allocated in native data).
+    // High Bit = Bits Stored - 1 has been a "shall" since PS3.5 2014c; before that, files with another High Bit were
+    // legal, so an old file can be refused here that its own edition allowed.
+    if (bitsAlloc != 1 && bitsAlloc % 8 != 0) {
+        return refuse(XPE_ERR_DICOM_INVALID, "BitsAllocated %u (PS3.5 8.1.1: it shall be 1 or a multiple of 8)", static_cast<unsigned>(bitsAlloc));
+    }
+    if (bitsStored < 1 || bitsStored > bitsAlloc || highBit != bitsStored - 1) {
+        return refuse(XPE_ERR_DICOM_INVALID, "BitsStored %u with HighBit %u and BitsAllocated %u (PS3.5 8.1.1: HighBit shall be BitsStored - 1, and BitsStored 1..BitsAllocated)",
+                      static_cast<unsigned>(bitsStored), static_cast<unsigned>(highBit), static_cast<unsigned>(bitsAlloc));
+    }
+
     if (isJ2K) {
+        const bool inTable = bitsAlloc == 1 || bitsAlloc == 8 || bitsAlloc == 16 || bitsAlloc == 24 || bitsAlloc == 32 || bitsAlloc == 40;
+        if (!inTable) {
+            return refuse(XPE_ERR_DICOM_INVALID, "BitsAllocated %u for JPEG 2000 (PS3.5 Table 8.2.4-1 lists 1, 8, 16, 24, 32 and 40)", static_cast<unsigned>(bitsAlloc));
+        }
         if (bitsAlloc != 8 && bitsAlloc != 16) {
             return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "BitsAllocated %u for JPEG 2000 (8 or 16 are supported)", static_cast<unsigned>(bitsAlloc));
         }
-        // QA-B-182d (Codex #51): the codestream carries no HighBit, so this is the only place it can be judged. The
-        // significant bits must be the low ones, as on the other paths; a mismatch is an inconsistent dataset
-        // (the same code the codestream comparison uses), not an unsupported feature.
-        if (bitsStored < 1 || bitsStored > bitsAlloc || highBit != bitsStored - 1) {
-            return refuse(XPE_ERR_DICOM_INVALID, "BitsStored %u with HighBit %u for JPEG 2000 (HighBit must be BitsStored - 1, BitsStored 1..BitsAllocated %u)",
-                          static_cast<unsigned>(bitsStored), static_cast<unsigned>(highBit), static_cast<unsigned>(bitsAlloc));
-        }
         return XPE_OK;
+    }
+    if (isJpegLL) {
+        if (bitsAlloc != 8 && bitsAlloc != 16) {
+            return refuse(XPE_ERR_DICOM_INVALID, "BitsAllocated %u for JPEG Lossless (PS3.5 Table 8.2.1-2 lists 8 and 16)", static_cast<unsigned>(bitsAlloc));
+        }
     }
     if (bitsAlloc != 16) {
         return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "BitsAllocated %u (only 16 is supported for uncompressed and JPEG Lossless data)", static_cast<unsigned>(bitsAlloc));
-    }
-    if (bitsStored < 1 || bitsStored > 16 || highBit != bitsStored - 1) {
-        return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "BitsStored %u with HighBit %u (the significant bits must be the low ones: HighBit = BitsStored - 1, BitsStored 1..16)",
-                      static_cast<unsigned>(bitsStored), static_cast<unsigned>(highBit));
     }
     return XPE_OK;
 }
@@ -393,7 +409,7 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
 
     // QA-B-182 (#235): refuse what this reader cannot return faithfully, before any decode or allocation.
     {
-        const XpeErrorCode scope = checkSupportedImageModule(ds, isJ2K);
+        const XpeErrorCode scope = checkSupportedImageModule(ds, isJ2K, isJPEGLL);
         if (scope != XPE_OK) return scope;
     }
 
@@ -423,15 +439,25 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
                 DcmPixelItem* frag = nullptr;
                 if (encSeq->getItem(frag, 1).good() && frag != nullptr) {
                     Uint8* fragData = nullptr;
-                    uint32_t frameW = 0, frameH = 0;
+                    uint32_t frameW = 0, frameH = 0, framePrecision = 0;
                     if (frag->getUint8Array(fragData).good() && fragData != nullptr &&
                         jpeg_frame_dimensions(fragData, static_cast<size_t>(frag->getLength()),
-                                              frameW, frameH)) {
+                                              frameW, frameH, &framePrecision)) {
                         if (frameW != cols || frameH != rows) {
                             spdlog::error("[DicomReader] JPEG frame size does not match the "
                                           "declared size: dataset says {}x{}, frame carries {}x{}",
                                           cols, rows, frameW, frameH);
                             return XPE_ERR_DICOM_INVALID;
+                        }
+                        // QA-B-182e: PS3.5 8.2 requires the pixel attributes to be "consistent with the
+                        // characteristics of the compressed data stream", and the sample precision P in the frame
+                        // header is the one bit depth the stream carries. P below Bits Stored cannot hold the
+                        // declared values and P above Bits Allocated does not fit the container: both are refused
+                        // before DCMTK decodes. P above Bits Stored is accepted -- the standard does not say what
+                        // "consistent" means there and refusing would turn away files with a wider P.
+                        if (framePrecision != 0 && (framePrecision < bitsStored || framePrecision > bitsAlloc)) {
+                            return refuse(XPE_ERR_DICOM_INVALID, "JPEG Lossless stream sample precision %u does not fit the dataset (BitsStored %u, BitsAllocated %u)",
+                                          static_cast<unsigned>(framePrecision), static_cast<unsigned>(bitsStored), static_cast<unsigned>(bitsAlloc));
                         }
                     }
                 }

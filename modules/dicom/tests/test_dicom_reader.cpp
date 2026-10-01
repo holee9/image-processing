@@ -3044,8 +3044,10 @@ TEST_F(DicomReaderTest, Scope_AbsentNumberOfFramesIsASingleFrame) {
 }
 
 // Uncompressed pixel data is copied as 16-bit words, so only a 16-bit declaration can be honest.
-// Bits Allocated {1, 8, 12, 16, 32}: 16 is the control, everything else is unsupported (a well-formed file this
-// reader cannot return), never a read of 16-bit words out of data that is not.
+// Bits Allocated {1, 8, 12, 16, 32}: 16 is the control. 1, 8 and 32 are well-formed files this reader cannot return
+// (unsupported); 12 is not a value PS3.5 8.1.1 allows at all ("shall either be 1, or a multiple of 8"), so it is a
+// malformed dataset (QA-B-182e: it was filed as unsupported before the standard was read). Never a read of 16-bit
+// words out of data that is not.
 TEST_F(DicomReaderTest, Scope_OnlySixteenBitAllocationIsReadFromNativePixelData) {
     const std::vector<uint16_t> baseline = Words(s_validDcm);
     for (int bits : {1, 8, 12, 16, 32}) {
@@ -3060,7 +3062,7 @@ TEST_F(DicomReaderTest, Scope_OnlySixteenBitAllocationIsReadFromNativePixelData)
             EXPECT_EQ(XPE_OK, r.read) << "control: 16 bits allocated reads";
             EXPECT_EQ(baseline, r.words);
         } else {
-            EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, r.read) << "BitsAllocated=" << bits;
+            EXPECT_EQ(bits == 12 ? XPE_ERR_DICOM_INVALID : XPE_ERR_UNSUPPORTED_FORMAT, r.read) << "BitsAllocated=" << bits;
             EXPECT_TRUE(r.outUntouchedOnFailure) << "BitsAllocated=" << bits;
             EXPECT_EQ(XPE_OK, r.metaAfter) << "BitsAllocated=" << bits;
         }
@@ -3077,7 +3079,8 @@ TEST_F(DicomReaderTest, Scope_OnlySixteenBitAllocationIsReadFromNativePixelData)
 }
 
 // With 16 bits allocated, Bits Stored must fit and High Bit must be Bits Stored - 1: a High Bit above that means
-// the significant bits are not the low ones, and the words would come back unshifted.
+// the significant bits are not the low ones, and the words would come back unshifted. PS3.5 8.1.1 makes both a
+// "shall" (QA-B-182e), so a breach is a malformed dataset, not an unsupported feature.
 TEST_F(DicomReaderTest, Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord) {
     struct Case { int stored, high; bool ok; };
     const Case cases[] = {
@@ -3094,7 +3097,7 @@ TEST_F(DicomReaderTest, Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWor
                 ds->putAndInsertUint16(DCM_HighBit, static_cast<Uint16>(c.high));
             });
         const ScopeRead r = ReadScope(p);
-        EXPECT_EQ(c.ok ? XPE_OK : XPE_ERR_UNSUPPORTED_FORMAT, r.read)
+        EXPECT_EQ(c.ok ? XPE_OK : XPE_ERR_DICOM_INVALID, r.read)
             << "BitsStored=" << c.stored << " HighBit=" << c.high;
     }
 }
@@ -3440,6 +3443,117 @@ TEST_F(DicomReaderTest, Scope_AbsentOrEmptyBitsStoredAndHighBitAreMalformedOnEve
             EXPECT_EQ(XPE_ERR_DICOM_INVALID, e.read) << base << " empty";
         }
     }
+}
+
+// ---- QA-B-182e: the bits attributes, judged against the standard -----------------------------------------------
+// PS3.5 8.1.1 (every Pixel Data): Bits Allocated "shall either be 1, or a multiple of 8"; "Bits Stored shall never be
+// larger than Bits Allocated"; "High Bit shall be one less than Bits Stored". PS3.5 Table 8.2.1-2 (JPEG Lossless)
+// lists Bits Allocated 8 or 16; Table 8.2.4-1 (JPEG 2000, monochrome) lists 1, 8, 16, 24, 32 or 40. A value the
+// standard forbids is a malformed dataset (DICOM_INVALID); a value it allows that this reader cannot return is
+// unsupported. The same attribute therefore gets the same answer on every path.
+TEST_F(DicomReaderTest, Scope_BitsAttributesAreViolationOrUnsupportedAsThePixelDataEncodingRulesSay) {
+    const fs::path jpegLl = s_tempDir / "jpegll_for_182e.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, jpegLl));
+    std::vector<uint8_t> codestream;
+    ASSERT_TRUE(ExtractJ2kBitstream(s_j2kDcm, codestream));
+
+    enum Want { OK, INV, UNS, SKIP };
+    struct Case { int alloc, stored, high; Want native, ll, j2k; };
+    // SKIP: the case is not decidable from the tags on that path (the J2K donor codestream is 16 bit, so its own
+    // precision check answers for any stored value other than 16).
+    const Case cases[] = {
+        {16, 16, 15, OK,  OK,  OK},     // control
+        {16, 12, 11, OK,  OK,  SKIP},   // 12 of 16 bits, well formed
+        {16, 12, 15, INV, INV, INV},    // High Bit is not Bits Stored - 1 (the Codex #51 case)
+        {16, 12, 12, INV, INV, INV},
+        {16, 16, 14, INV, INV, INV},
+        {16, 17, 16, INV, INV, INV},    // Bits Stored larger than Bits Allocated
+        {16, 0, 0xFFFF, INV, INV, INV},
+        {12, 12, 11, INV, INV, INV},    // 12 is neither 1 nor a multiple of 8
+        {8, 8, 7, UNS,  UNS, SKIP},     // allowed everywhere, returned nowhere but J2K 8 bit
+        {1, 1, 0, UNS,  INV, UNS},      // JPEG Lossless lists 8 and 16 only
+        {24, 24, 23, UNS, INV, UNS},
+        {32, 32, 31, UNS, INV, UNS},
+        {48, 48, 47, UNS, INV, INV},    // beyond Table 8.2.4-1 as well
+    };
+    const XpeErrorCode answer[] = {XPE_OK, XPE_ERR_DICOM_INVALID, XPE_ERR_UNSUPPORTED_FORMAT, XPE_OK};
+    int n = 0;
+    for (const Case& c : cases) {
+        const std::string tag = std::to_string(c.alloc) + "_" + std::to_string(c.stored) + "_" + std::to_string(c.high);
+        auto mutate = [&](DcmDataset* ds) { SetPixelAttrs(ds, 1, 0, c.alloc, c.stored, c.high); };
+        struct Run { const char* name; Want want; fs::path file; };
+        const Run runs[] = {
+            {"native", c.native, c.native == SKIP ? fs::path() : MakeSameSyntaxVariant(s_validDcm, ("e_nat_" + tag).c_str(), mutate)},
+            {"jpeg_lossless", c.ll, c.ll == SKIP ? fs::path() : MakeSameSyntaxVariant(jpegLl, ("e_ll_" + tag).c_str(), mutate)},
+            {"j2k", c.j2k, c.j2k == SKIP ? fs::path() : MakeJ2kVariant(s_j2kDcm, ("e_j2k_" + tag).c_str(), codestream, mutate)},
+        };
+        for (const Run& r : runs) {
+            if (r.want == SKIP) continue;
+            const ScopeRead got = ReadScope(r.file);
+            EXPECT_EQ(answer[r.want], got.read) << r.name << " alloc/stored/high = " << tag;
+            if (r.want != OK) {
+                EXPECT_TRUE(got.outUntouchedOnFailure) << r.name << " " << tag;
+                EXPECT_EQ(XPE_OK, got.metaAfter) << r.name << " " << tag;
+            }
+            ++n;
+        }
+    }
+    EXPECT_GE(n, 30) << "the table must actually have been run";
+}
+
+// PS3.5 8.2 / 8.2.4: for an encapsulated JPEG stream the pixel attributes "shall contain Values that are consistent
+// with the characteristics of the compressed data stream", and Table 8.2.1-2 says "The Pixel Data characteristics
+// included in the JPEG Interchange Format shall be used to decode the compressed data stream". The only bit depth the
+// JPEG stream carries is the SOF sample precision P. P below Bits Stored cannot hold the declared values; P above
+// Bits Allocated does not fit the declared container. P above Bits Stored is NOT refused: the standard does not say
+// what "consistent" means there, encoders are known to write a wider P, and refusing would turn away real files.
+namespace {
+/** The first SOF3 (JPEG Lossless) frame header in the file, patched to carry sample precision `p`. */
+bool PatchJpegLosslessPrecision(const fs::path& src, const fs::path& dst, int p, int* original) {
+    std::ifstream in(src, std::ios::binary);
+    std::vector<uint8_t> b((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    for (size_t k = 0; k + 4 < b.size(); ++k) {
+        if (b[k] == 0xFF && b[k + 1] == 0xC3 && b[k + 2] == 0x00 && b[k + 3] == 0x0B) {   // SOF3, one component
+            if (original) *original = b[k + 4];
+            b[k + 4] = static_cast<uint8_t>(p);
+            std::ofstream out(dst, std::ios::binary);
+            out.write(reinterpret_cast<const char*>(b.data()), static_cast<std::streamsize>(b.size()));
+            return out.good();
+        }
+    }
+    return false;
+}
+}  // namespace
+
+TEST_F(DicomReaderTest, Scope_JpegLosslessPrecisionIsComparedWithBitsStoredBeforeDecoding) {
+    const fs::path ll = s_tempDir / "jpegll_for_182e_p.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, ll));
+    int original = 0;
+    const fs::path same = s_tempDir / "jpegll_p_same.dcm";
+    ASSERT_TRUE(PatchJpegLosslessPrecision(ll, same, 16, &original));
+    ASSERT_EQ(16, original) << "the donor stream is 16 bit; the patch below is a change";
+    EXPECT_EQ(XPE_OK, ReadScope(same).read) << "control: precision 16, Bits Stored 16";
+
+    for (int p : {12, 8, 20}) {   // 12 and 8 cannot hold Bits Stored 16; 20 does not fit 16 bits allocated
+        const fs::path narrow = s_tempDir / ("jpegll_p_" + std::to_string(p) + ".dcm");
+        ASSERT_TRUE(PatchJpegLosslessPrecision(ll, narrow, p, nullptr));
+        xpe_clear_alerts();
+        const ScopeRead r = ReadScope(narrow);
+        EXPECT_EQ(XPE_ERR_DICOM_INVALID, r.read) << "precision " << p << " does not fit Bits Stored 16 / Bits Allocated 16";
+        EXPECT_TRUE(r.outUntouchedOnFailure) << "precision " << p;
+        EXPECT_EQ(XPE_OK, r.metaAfter) << "precision " << p;
+        bool named = false;
+        for (int32_t i = 0; i < xpe_get_pending_alert_count(); ++i) {
+            char buf[512] = {0};
+            int32_t sev = -1;
+            if (xpe_get_pending_alert(i, buf, sizeof(buf), &sev) == XPE_OK && std::string(buf).find("precision") != std::string::npos) named = true;
+        }
+        EXPECT_TRUE(named) << "the refusal names the stream precision, precision " << p;
+    }
+
+    // A wider stream than Bits Stored is allowed: 16 bit precision, 12 bits stored.
+    const fs::path wider = MakeSameSyntaxVariant(ll, "e_ll_p16_stored12", [](DcmDataset* ds) { SetPixelAttrs(ds, 1, 0, 16, 12, 11); });
+    EXPECT_EQ(XPE_OK, ReadScope(wider).read) << "precision 16 above Bits Stored 12 is not refused";
 }
 
 // The refusal reaches the operator: an alert names the attribute or the two values that disagree. (The module's

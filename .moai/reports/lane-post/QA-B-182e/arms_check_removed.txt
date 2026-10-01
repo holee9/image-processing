@@ -1,0 +1,11 @@
+R0 control (nothing weakened): build_ok=True passed=85 red=[]
+R1 BitsAllocated is 1 or a multiple of 8: build_ok=True passed=83 red=['DicomReaderTest.Scope_BitsAttributesAreViolationOrUnsupportedAsThePixelDataEncodingRulesSay', 'DicomReaderTest.Scope_OnlySixteenBitAllocationIsReadFromNativePixelData']
+R2 BitsStored range and HighBit = BitsStored - 1 (all paths): build_ok=True passed=82 red=['DicomReaderTest.J2kScope_HighBitMustBeBitsStoredMinusOne', 'DicomReaderTest.Scope_BitsAttributesAreViolationOrUnsupportedAsThePixelDataEncodingRulesSay', 'DicomReaderTest.Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord']
+R3 JPEG 2000 BitsAllocated table (Table 8.2.4-1): build_ok=False passed=82 red=['DicomReaderTest.J2kScope_HighBitMustBeBitsStoredMinusOne', 'DicomReaderTest.Scope_BitsAttributesAreViolationOrUnsupportedAsThePixelDataEncodingRulesSay', 'DicomReaderTest.Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord']
+R4 JPEG Lossless BitsAllocated table (Table 8.2.1-2): build_ok=True passed=84 red=['DicomReaderTest.Scope_BitsAttributesAreViolationOrUnsupportedAsThePixelDataEncodingRulesSay']
+R5a JPEG Lossless precision below BitsStored: build_ok=True passed=84 red=['DicomReaderTest.Scope_JpegLosslessPrecisionIsComparedWithBitsStoredBeforeDecoding']
+R5b JPEG Lossless precision above BitsAllocated: build_ok=True passed=84 red=['DicomReaderTest.Scope_JpegLosslessPrecisionIsComparedWithBitsStoredBeforeDecoding']
+RESTORED_BYTE_IDENTICAL=True
+FINAL (restored): build_ok=True passed=85 red=[]
+DONE
+R3 JPEG 2000 BitsAllocated table (Table 8.2.4-1): build_ok=True passed=84 red=['DicomReaderTest.Scope_BitsAttributesAreViolationOrUnsupportedAsThePixelDataEncodingRulesSay']
