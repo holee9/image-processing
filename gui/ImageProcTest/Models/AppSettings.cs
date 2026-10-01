@@ -64,6 +64,8 @@ public sealed class AppSettings : ObservableObject
     private float _laneBVoiWindowWidth;
     private string _lastRunSetId = string.Empty;
     private bool _preprocessInChain;
+    private bool _aiBoneSuppressionInChain;
+    private string _aiModelDirectory = "data/models";
     private float _exposureKvp = 70.0f;
     private float _pixelPitchMm = 0.14f;
     private string _gsvgMode = GsvgModes.None;
@@ -514,6 +516,28 @@ public sealed class AppSettings : ObservableObject
     {
         get => _preprocessInChain;
         set => SetProperty(ref _preprocessInChain, value);
+    }
+
+    /// <summary>
+    /// Whether AI bone suppression runs in the pixel chain after GSVG (#225 row 10, GUI-C-184). Off by default, and
+    /// switched on by the Run AI menu entry the way Run Preprocessing switches <see cref="PreprocessInChain"/> on.
+    /// </summary>
+    [JsonPropertyName("aiBoneSuppressionInChain")]
+    public bool AiBoneSuppressionInChain
+    {
+        get => _aiBoneSuppressionInChain;
+        set => SetProperty(ref _aiBoneSuppressionInChain, value);
+    }
+
+    /// <summary>
+    /// The directory <c>xpe_ai_init</c> reads models from; bone suppression reads <c>bone_suppress.onnx</c> in it
+    /// (ai_api.h). Never empty: the module refuses a NULL path, so an empty value falls back to the default.
+    /// </summary>
+    [JsonPropertyName("aiModelDirectory")]
+    public string AiModelDirectory
+    {
+        get => _aiModelDirectory;
+        set => SetProperty(ref _aiModelDirectory, string.IsNullOrWhiteSpace(value) ? "data/models" : value.Trim());
     }
 
     /// <summary>

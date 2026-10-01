@@ -27,6 +27,9 @@ public static class StageIds
 
     /// <summary>Grid shadow suppression or the virtual grid (gsvg.dll), after preprocess (#180, GUI-C-101).</summary>
     public const string Gsvg = "gsvg";
+
+    /// <summary>AI bone suppression (xpe_ai.dll, worker path), after gsvg and before the display pipeline (#225 row 10, GUI-C-184).</summary>
+    public const string AiBoneSuppression = "ai_bone_suppress";
 }
 
 /// <summary>
