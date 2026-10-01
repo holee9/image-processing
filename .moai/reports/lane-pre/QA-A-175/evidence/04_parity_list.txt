@@ -1,0 +1,13 @@
+Avx2ParityTest.
+  NamedSelectionsMatchTheirScalarTernaries
+  SignedZeroOrderingMatchesTheScalarNetwork
+  PerLaneInputsAgreeBitForBit
+  FrameMapsAreIdenticalPixelForPixel
+  LastRunStartLandsExactlyOnTheFinalInteriorColumn
+  JudgingAColumnTwiceStoresTheSameByte
+  OverlapBoundaryWidthsStillMatchTheScalarRule
+  VectorRunsNeverReadPastTheFrame
+  TheComparedMapsAreNotTriviallyEmpty
+  ShippedEntryPointAgreesWithTheScalarRule
+DetectBuildParityTest.
+  RowRangeMatchesTheScalarRuleAtRealFrameSize

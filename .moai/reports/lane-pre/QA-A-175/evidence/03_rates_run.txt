@@ -1,0 +1,30 @@
+Note: Google Test filter = RuntimeDetectionRatesTest.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from RuntimeDetectionRatesTest
+[ RUN      ] RuntimeDetectionRatesTest.KnownDivergence_TprAtFiveSigmaIsBelowTheRequirement
+[rates] low noise, 5 sigma           injected=961 TP=488 FN=473  TPR=0.507804 | FP=5/1048576 FPR=0.000004768 | 28.6 ms
+[rates] high noise, 5 sigma          injected=961 TP=488 FN=473  TPR=0.507804 | FP=5/1048576 FPR=0.000004768 | 19.8 ms
+[       OK ] RuntimeDetectionRatesTest.KnownDivergence_TprAtFiveSigmaIsBelowTheRequirement (93 ms)
+[ RUN      ] RuntimeDetectionRatesTest.FprOnCleanFramesMeetsTheRequirement
+[rates] low noise, clean FPR         injected=961 TP=488 FN=473  TPR=0.507804 | FP=5/1048576 FPR=0.000004768 | 39.0 ms
+[rates] high noise, clean FPR        injected=961 TP=488 FN=473  TPR=0.507804 | FP=5/1048576 FPR=0.000004768 | 36.7 ms
+[       OK ] RuntimeDetectionRatesTest.FprOnCleanFramesMeetsTheRequirement (119 ms)
+[ RUN      ] RuntimeDetectionRatesTest.TprReachesTheFloorAtTenSigma
+[rates] low noise, 6 sigma           injected=961 TP=779 FN=182  TPR=0.810614 | FP=0/0 FPR=0.000000000 | 19.5 ms
+[rates] low noise, 8 sigma           injected=961 TP=959 FN=2  TPR=0.997919 | FP=0/0 FPR=0.000000000 | 18.4 ms
+[rates] low noise, 10 sigma          injected=961 TP=961 FN=0  TPR=1.000000 | FP=0/0 FPR=0.000000000 | 18.7 ms
+[       OK ] RuntimeDetectionRatesTest.TprReachesTheFloorAtTenSigma (88 ms)
+[ RUN      ] RuntimeDetectionRatesTest.RatesAreInvariantUnderNoiseScaling
+[       OK ] RuntimeDetectionRatesTest.RatesAreInvariantUnderNoiseScaling (92 ms)
+[ RUN      ] RuntimeDetectionRatesTest.CleanFrameStaysUnderTheOnePercentCeiling
+[       OK ] RuntimeDetectionRatesTest.CleanFrameStaysUnderTheOnePercentCeiling (46 ms)
+[ RUN      ] RuntimeDetectionRatesTest.KnownDivergence_StripedFrameMissesTheTprFloor
+[rates] striped(p13), 10 sigma      injected=961 TP=948  TPR=0.986472 | 12.5 ms
+[       OK ] RuntimeDetectionRatesTest.KnownDivergence_StripedFrameMissesTheTprFloor (23 ms)
+[----------] 6 tests from RuntimeDetectionRatesTest (463 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (463 ms total)
+[  PASSED  ] 6 tests.
+RATES_EXIT=0
