@@ -2,7 +2,7 @@
  * @file temp_compensate.cpp
  * @brief SWU-1.6: Temperature compensation for dark current (PRE-07)
  *        Model: I_dark(T) = I_0 * exp(-E_g / (2 * k_B * T))
- *        REQ-P1A-080 to REQ-P1A-082
+ *        REQ-P1A-080, REQ-P1A-081 (the flag, REQ-P1A-082, is set by the pipeline)
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  */
 
@@ -20,7 +20,7 @@ static constexpr float  kTempMax =  60.0f;
 
 // @MX:ANCHOR: [AUTO] xpe_temp_compensate — temperature-dependent dark current scaling
 // @MX:REASON: Public API boundary; called in main pipeline chain; fan_in >= 3
-// @MX:SPEC: REQ-P1A-005
+// @MX:SPEC: REQ-P1A-080, REQ-P1A-081
 XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img,
                                   float detectorTempC,
                                   const char* configJsonOrNull)
@@ -48,7 +48,7 @@ XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img,
 
     const float scale = static_cast<float>(exp_T / exp_ref);
 
-    // REQ-P1A-005: apply correction — divide by scale to compensate dark current
+    // REQ-P1A-080: apply correction — divide by scale to compensate dark current
     auto* px = static_cast<uint16_t*>(img->data);
     for (size_t i = 0; i < n; ++i) {
         const float corrected = static_cast<float>(px[i]) / (scale > 0.f ? scale : 1.f);
