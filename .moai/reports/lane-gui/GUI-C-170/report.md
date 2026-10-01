@@ -158,6 +158,47 @@ E2E `A13` 의 저장 확인도 새 키 이름으로 바꿨다.
 - **`docs/design/reference/gui-README.md:182`** 가 옛 키 `showDisplayPanel` 을 적고 있다. `docs/` 는 리더 소유라 손대지 않았다.
 - **E2E 전체는 돌리지 않았다**(카드가 생략 허용).
 
+## 9. S07 앵커 보강과 A/B 교대 실험
+
+### S07 변경 (`6e81fc7`, 별도 커밋)
+
+리더 승인에 따라 `S07` 이 `OpenViewMenu` 뒤 `ShowLogsPanelMenuItem`(메뉴에 항상 있는 항목)이 보일 때까지 최대 2000 ms 기다리고, 안 보이면 **"The View menu did not open"**, 보이는데 대상 항목이 없으면 **"'X' is gone from the View menu"** 로 갈라서 실패한다. **재시도는 없다** — 첫 클릭 유실은 숨기지 않는다. 진단용 폴링은 넣지 않았다. S06/S07 7/7 통과.
+
+### 실험 (리더 지시: 같은 평범한 4개 조합 `A11·A13·A02·S07`, 두 빌드를 번갈아)
+
+- **A** = `6e81fc7`(현재 트리, 앵커 포함, 표시 플래그를 `showDisplaySettingsPanel` 로 저장)
+- **B** = `1400af4`(170b 이전, `showDisplayPanel` 로 저장) + **A 와 같은 `PanelToggleScenarios.cs`**(sha 둘 다 `24b3efc6b680`)
+- 둘 다 한 번씩만 빌드하고 `--no-build` 로 A,B,A,B… 순서로 각 5회. 가용 메모리 7.9~10.5 GB(하한 4 GB).
+
+| 회차 | 빌드 | 가용 GB | E2E 4개 | 실패한 시험 | 실패 종류 |
+|---|---|---|---|---|---|
+| 1 | A | 8.4 | 실패 (통과 4/5) | S07 `ShowCalibrationPanelMenuItem` | **열리지 않음** |
+| 1 | B | 8.5 | 실패 (통과 4/5) | S07 `ShowCalibrationPanelMenuItem` | **열리지 않음** |
+| 2 | A | 8.3 | 실패 (통과 4/5) | S07 `ShowCalibrationPanelMenuItem` | **열리지 않음** |
+| 2 | B | 8.3 | 실패 (통과 4/5) | S07 `ShowCalibrationPanelMenuItem` | **열리지 않음** |
+| 3 | A | 8.2 | 실패 (통과 4/5) | S07 `ShowCalibrationPanelMenuItem` | **열리지 않음** |
+| 3 | B | 7.9 | 실패 (통과 4/5) | S07 `ShowCalibrationPanelMenuItem` | **열리지 않음** |
+| 4 | A | 8.1 | 실패 (통과 4/5) | S07 `ShowCalibrationPanelMenuItem` | **열리지 않음** |
+| 4 | B | 10.5 | 실패 (통과 4/5) | S07 `ShowCalibrationPanelMenuItem` | **열리지 않음** |
+| 5 | A | 9.5 | 실패 (통과 4/5) | S07 `ShowCalibrationPanelMenuItem` | **열리지 않음** |
+| 5 | B | 9.6 | 실패 (통과 4/5) | S07 `ShowCalibrationPanelMenuItem` | **열리지 않음** |
+
+실패한 시험은 매번 `S07` 의 **첫 케이스**뿐이고, 같은 실행의 `S07` Display 케이스·`A11`·`A13`·`A02` 는 통과했다(5건 중 1건 실패 = 4/5). 회차별 원문: `ab_run<회차>_<A|B>.txt`.
+
+### 결론 (리더의 결론 규칙 적용)
+
+**10회 전부, 양쪽 모두 "열리지 않음"이다.** "항목이 사라짐"은 한 번도 없었다. 규칙대로 **170b 회귀의 증거가 아니라 환경/타이밍 쪽**이다: 같은 앵커 파일을 쓴 두 빌드가 구별되지 않는다(A 0/5 통과, B 0/5 통과).
+
+이 결과가 앞의 보고를 바꾸는 점:
+- §8 의 "평범한 실행에서 현재 트리 0/5 통과 vs 170b 이전·키 되돌린 트리 5/5 통과" 의 **차이는 코드 차이로 재현되지 않았다.** 그 비교는 시간대를 번갈아 맞추지 않은 것이었고, 번갈아 돌린 이번에는 두 빌드가 같다. 그 시점 기계 상태가 영향을 줬다는 설명과 모순되지 않지만, **그렇다고 입증한 것도 아니다.**
+- 이번에는 앵커가 **2초를 기다리고도** 메뉴가 안 열렸다. 그래서 "300 ms 대기가 짧았다"는 설명은 이 조합에서는 맞지 않는다 — 메뉴가 늦게 열린 것이 아니라 **열리지 않았다.** 이것도 §8 의 폴링 진단(T1 통과/T1d 4초 미표시)이 같은 현상의 두 면이었을 가능성과 일치하지만 입증하지 않았다.
+
+### 아직 모르는 것
+
+- **첫 클릭이 왜 메뉴를 열지 못하는지.** 창이 전경이 아니었는지, 앞 시험(A02)이 띄운 앱이 아직 닫히는 중이었는지, UI Automation 클릭이 유실됐는지 가르지 않았다. `OpenViewMenu` 가 `SetForeground`·ESC·클릭을 하는데도 안 열린다는 것까지만 안다.
+- **S07 은 이 조합에서 두 빌드 모두 실패한다.** 즉 리더가 지정한 재실행 범위(`A12·A13·S07`)는 지금 이 기계에서 통과하지 못한다. 고치지 않았다 — 재시도로 통과시키는 것은 지시에 반하고, 원인 진단은 아직 하지 않았다.
+- S07 단독 실행은 통과한다(§8). 이 조합에서만 깨진다는 것은 확인했지만, 앞 시험의 **무엇이** 영향을 주는지는 모른다.
+
 ## 파일
 
 `gui/ImageProcTest/Views/{CalibrationPathsPanel,DisplaySettingsPanel}.xaml(.cs)` (신규) · `MainWindow.xaml(.cs)` · `Models/{AppSettings,GuiAutomationReport}.cs` · `ViewModels/MainWindowViewModel.cs` · `appsettings.json` · `gui/ImageProcTest.E2E/Program.cs` · `clients/…/PanelFlagPersistenceTests.cs`(신규) · `AutomationReportBackendTests.cs` · `PanelToggleScenarios.cs` · `SettingsProcessingConnectionTests.cs`
