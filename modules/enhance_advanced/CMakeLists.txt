@@ -112,6 +112,8 @@ if(BUILD_TESTS)
         tests/test_thread_determinism.cpp
         tests/test_exposure_index.cpp
         tests/test_integration.cpp
+        # QA-B-175 (#179): what the median-of-N budget judgement discriminates (header: tests/perf_budget.h)
+        tests/test_perf_budget_helper.cpp
         # Absorbed from tests/enhance_advanced_tests/ (#113 / QA-B-10). These were an
         # independent suite over the same module — zero test-name overlap with the files
         # above — that no build ever compiled. Suffixed _ext to keep both sets; four

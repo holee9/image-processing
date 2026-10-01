@@ -14,6 +14,7 @@
 #include <cmath>
 #include <chrono>
 #include "perf_measure.h"
+#include "perf_budget.h"
 
 /* ============================================================================
  * Test Fixtures
@@ -357,18 +358,19 @@ TEST_F(CollimationDetectTest, LargeImagePerformance) {
 
     int32_t x0, y0, x1, y1;
 
-    // Act
-    auto start = std::chrono::high_resolution_clock::now();
-    XpeErrorCode result = xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr);
-    auto end = std::chrono::high_resolution_clock::now();
+    // Act: judge the MEDIAN of several timed calls after one untimed warm-up (perf_budget.h, QA-B-175,
+    // #179), not one wall-clock reading. Collimation detection only reads the image, so there is
+    // nothing to restore between calls.
+    const auto m = perf_budget::Measure("LargeImagePerformance_collimation_2048", [] {}, [&] {
+        return xpe_detect_collimation(&img, &x0, &y0, &x1, &y1, nullptr);
+    });
 
-    // Assert
-    EXPECT_EQ(XPE_OK, result);
-
-    // REQ-ADV-062: Performance budget < 500ms for 3072x3072
-    // 2048x2048 should be faster
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    EXPECT_LT(duration.count(), 500) << "Collimation detection exceeds 500ms for 2048x2048 image";
+    // WHERE 500 ms COMES FROM -- the requirement's number applied to a SMALLER image, not a scaled one.
+    // The requirement (PERF-ADV-003, REQ-ADV-062) is 500 ms (scalar) for 3072x3072 FLOAT32 on the
+    // reference hardware; this test reuses it unchanged for 2048x2048 on the grounds that the smaller
+    // image "should be faster". QA-B-175 changed HOW the time is judged, not the value.
+    EXPECT_LT(m.medianUs, 500 * 1000)
+        << "Collimation detection exceeds 500ms for 2048x2048 image: " << perf_budget::Describe(m);
 
     // Verify detection accuracy
     EXPECT_NEAR(x0, 100, 10);

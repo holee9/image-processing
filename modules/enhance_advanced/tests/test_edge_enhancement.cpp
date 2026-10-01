@@ -20,6 +20,7 @@
 #include <cstdio>
 #include <string>
 #include "perf_measure.h"
+#include "perf_budget.h"
 
 /* ============================================================================
  * Test Fixtures
@@ -622,25 +623,27 @@ TEST_F(EdgeEnhancementTest, T308_PerformanceBudget) {
         }
     }
 
-    // Act: Time the execution
-    auto startTime = std::chrono::high_resolution_clock::now();
+    // Act: judge the MEDIAN of several timed calls after one untimed warm-up (perf_budget.h, QA-B-175,
+    // #179). A single scheduling stall on a loaded machine must not fail a call that normally takes a
+    // few milliseconds (QA-B-174: 121 ms once against 6-10 ms in 36 other runs). xpe_fractional_process
+    // works in place, so the input is rebuilt before every call.
+    const auto rebuild = [&] {
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) data[y * width + x] = (x >= width / 2) ? 1.0f : 0.5f;
+        }
+    };
+    const auto m = perf_budget::Measure("T308_fractional_1024", rebuild,
+                                        [&] { return xpe_fractional_process(&img, 1.2f, nullptr); });
 
-    XpeErrorCode result = xpe_fractional_process(&img, 1.2f, nullptr);
+    // WHERE 100 ms COMES FROM -- it is NOT derived from the requirement. The requirement (PERF-ADV-002,
+    // REQ-ADV-061) is 400 ms (scalar) for 3072x3072 FLOAT32 on the reference hardware, and says nothing
+    // about 1024x1024. Scaling that linearly by area gives about 44 ms; the test author chose 100 ms
+    // (about 2.3 times that) as headroom. QA-B-175 changed HOW the time is judged (median of several
+    // calls), not the value.
+    EXPECT_LT(m.medianUs, 100 * 1000)
+        << "Performance test exceeded budget: " << perf_budget::Describe(m);
 
-    auto endTime = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-
-    // Assert:
-    EXPECT_EQ(XPE_OK, result);
-
-    // Performance budget for 1024x1024 (scaled down from 3072x3072 budget)
-    // Original budget: 400ms for 3072x3072
-    // Scaled budget: 400ms * (1024/3072)^2 ≈ 44ms
-    // Use generous threshold for test environment variability
-    EXPECT_LT(duration.count(), 100)
-        << "Performance test exceeded budget: " << duration.count() << "ms";
-
-    std::cout << "Performance: " << duration.count() << "ms for "
+    std::cout << "Performance: median " << m.medianUs / 1000 << "ms for "
               << width << "x" << height << " image\n";
 }
 

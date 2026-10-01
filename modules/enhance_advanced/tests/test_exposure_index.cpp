@@ -19,6 +19,7 @@
 #include <chrono>
 #include <limits>
 #include "perf_measure.h"
+#include "perf_budget.h"
 
 /* ============================================================================
  * Test Fixtures
@@ -542,25 +543,21 @@ TEST_F(ExposureIndexTest, T508_PerformanceBudget) {
     float ei = 0.0f;
     float di = 0.0f;
 
-    // Act: Time the execution
-    auto startTime = std::chrono::high_resolution_clock::now();
+    // Act: judge the MEDIAN of several timed calls after one untimed warm-up (perf_budget.h, QA-B-175,
+    // #179), not one wall-clock reading that a scheduling stall can spoil. The EI calculation only reads
+    // the image, so there is nothing to restore between calls.
+    const auto m = perf_budget::Measure("T508_exposure_index_2048", [] {}, [&] {
+        return xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
+    });
 
-    XpeErrorCode result = xpe_adv_calc_exposure_index(&img, &meta, &ei, &di);
+    // WHERE 100 ms COMES FROM -- it is NOT derived from the requirement. The requirement (PERF-ADV-004)
+    // is 50 ms (scalar) for 3072x3072 FLOAT32 on the reference hardware, and says nothing about
+    // 2048x2048. Scaling that linearly by area gives about 22 ms; the test author chose 100 ms (about
+    // 4.5 times that) as headroom. QA-B-175 changed HOW the time is judged, not the value.
+    EXPECT_LT(m.medianUs, 100 * 1000)
+        << "Performance test exceeded budget: " << perf_budget::Describe(m);
 
-    auto endTime = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-
-    // Assert:
-    EXPECT_EQ(XPE_OK, result);
-
-    // Performance budget for 2048x2048 (scaled from 3072x3072 budget)
-    // Original budget: 50ms for 3072x3072
-    // Scaled budget: 50ms * (2048/3072)^2 ≈ 22ms
-    // Use generous threshold for test environment variability
-    EXPECT_LT(duration.count(), 100)
-        << "Performance test exceeded budget: " << duration.count() << "ms";
-
-    std::cout << "EI Calculation Performance: " << duration.count() << "ms for "
+    std::cout << "EI Calculation Performance: median " << m.medianUs / 1000 << "ms for "
               << width << "x" << height << " image\n";
 }
 
