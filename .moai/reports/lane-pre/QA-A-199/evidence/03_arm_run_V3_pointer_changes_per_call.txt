@@ -1,0 +1,742 @@
+Note: Google Test filter = PreprocessVersion.*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from PreprocessVersion
+[ RUN      ] PreprocessVersion.IsNeverNullAndNonEmpty
+[       OK ] PreprocessVersion.IsNeverNullAndNonEmpty (0 ms)
+[ RUN      ] PreprocessVersion.IsStaticSameAddressAndSameContentOnEveryCall
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 0: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 2: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 4: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 4
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 6: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 6
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 8: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 8
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 10: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 10
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 12: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 12
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 14: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 14
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 16: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 16
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 18: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 18
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 20: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 20
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 22: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 22
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 24: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 24
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 26: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 26
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 28: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 28
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 30: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 30
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 32: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 32
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 34: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 34
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 36: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 36
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 38: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 38
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 40: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 40
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 42: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 42
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 44: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 44
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 46: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 46
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 48: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 48
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 50: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 50
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 52: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 52
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 54: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 54
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 56: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 56
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 58: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 58
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 60: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 60
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 62: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 62
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 64: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 64
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 66: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 66
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 68: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 68
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 70: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 70
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 72: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 72
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 74: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 74
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 76: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 76
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 78: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 78
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 80: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 80
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 82: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 82
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 84: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 84
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 86: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 86
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 88: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 88
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 90: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 90
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 92: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 92
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 94: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 94
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 96: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 96
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(54): error: Expected equality of these values:
+  first
+    Which is: 00007FFCC6391D88
+  again
+    Which is: 00007FFCC6391D5C
+call 98: the pointer must be the same static storage
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(56): error: Expected equality of these values:
+  content
+    Which is: "0.1.0 "
+  again
+    Which is: "0.1.0"
+call 98
+
+[  FAILED  ] PreprocessVersion.IsStaticSameAddressAndSameContentOnEveryCall (1 ms)
+[ RUN      ] PreprocessVersion.DoesNotDependOnTheInitializationState
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(70): error: Expected equality of these values:
+  before
+    Which is: 00007FFCC6391D5C
+  during
+    Which is: 00007FFCC6391D88
+same address before and after init
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(71): error: Expected equality of these values:
+  expected
+    Which is: "0.1.0"
+  during
+    Which is: "0.1.0 "
+same content before and after init
+
+[  FAILED  ] PreprocessVersion.DoesNotDependOnTheInitializationState (0 ms)
+[ RUN      ] PreprocessVersion.HasTheShapeDigitsDotDigitsDotDigits
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(84): error: Value of: isDottedTriple(v)
+  Actual: false
+Expected: true
+version string: "0.1.0 "
+
+[  FAILED  ] PreprocessVersion.HasTheShapeDigitsDotDigitsDotDigits (0 ms)
+[----------] 4 tests from PreprocessVersion (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (1 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] PreprocessVersion.IsStaticSameAddressAndSameContentOnEveryCall
+[  FAILED  ] PreprocessVersion.DoesNotDependOnTheInitializationState
+[  FAILED  ] PreprocessVersion.HasTheShapeDigitsDotDigitsDotDigits
+
+ 3 FAILED TESTS

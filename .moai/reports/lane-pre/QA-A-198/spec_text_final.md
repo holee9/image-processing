@@ -81,7 +81,7 @@
   - 문자열의 **값**은 요구에 고정하지 않는다. 지금의 값(`"0.1.0"`)은 소스의 상수이고 같은 모듈의 CMake 프로젝트 버전(`1.0.0`)과 다르다 — 값을 요구에 적으면 둘이 어긋난 채 굳는다. 값을 정하려면 별도 결정과 시험이 필요하다.
 - **SRS**: 해당 SRS 요구 없음.
 - **Traceability**: 없음 (진단용 수출; `XPE-GUI-NATIVE-INT-READINESS-001` 의 `R1` 행이 사용처)
-- **Verification**: 없음 — `xpe_preprocess_version` 을 부르는 시험이 모듈 시험에 없다. 이 항목을 `spec.md` 에 넣으면 시험 한 건(비-NULL·정적·초기화 무관)이 따라와야 한다.
+- **Verification**: Test (`test_preprocess_version.cpp` — 비-NULL·비어 있지 않음, 호출마다 같은 주소·같은 내용, 초기화 전·후·shutdown 후 같은 주소·같은 내용, 값의 모양 `숫자.숫자.숫자`; 값 자체는 고정하지 않음)
 
 ---
 
@@ -93,7 +93,7 @@
 | REQ-P1A-103 | Implemented | modules/preprocess/src/calibration_cache.cpp, modules/preprocess/src/xpe_calib_load_gain.cpp |
 | REQ-P1A-104 | Implemented | modules/preprocess/src/calibration_cache.cpp |
 | REQ-P1A-105 | Implemented | modules/preprocess/src/pipeline.cpp |
-| REQ-P1A-106 | Implemented (no test) | modules/preprocess/src/preprocess.cpp |
+| REQ-P1A-106 | Implemented | modules/preprocess/src/preprocess.cpp |
 
 ## 각 주장의 근거 (붙이기 전 대조용)
 
@@ -112,7 +112,7 @@
 | 적중이 타임스탬프·세션 id 를 설치한다 | 코드 읽기만 (읽는 공개 API 없음) |
 | 압축(RLE) 파일에서도 같다 | **미관측** — 문안은 압축을 언급하지 않는다 |
 | `_ex` 가 `calibState` 를 읽지 않는다 | 코드 읽기 + 시험 `PipelineExNullStateSkipsCalibration` (모든 단계 우회에서만) |
-| `xpe_preprocess_version` 이 정적이고 초기화와 무관 | 코드 읽기만 (시험 없음) |
+| `xpe_preprocess_version` 이 비-NULL·정적·초기화와 무관·모양이 `숫자.숫자.숫자` | 시험 `PreprocessVersion.*` 4건 (QA-A-199). 도착 때 초록(계약을 고정하는 시험이라 구현 전 빨강은 없음); 반증 팔 5개 — init 따라 값이 다름, init 전 NULL, 호출마다 다른 포인터, 모양 깨짐(`v0.1.0`), 빈 문자열 — 가 각자 맞는 시험을 빨갛게 함 |
 
 ## 문안에 일부러 넣지 않은 것
 

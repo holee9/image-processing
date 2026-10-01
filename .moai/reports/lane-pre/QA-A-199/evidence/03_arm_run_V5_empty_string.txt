@@ -1,0 +1,29 @@
+Note: Google Test filter = PreprocessVersion.*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from PreprocessVersion
+[ RUN      ] PreprocessVersion.IsNeverNullAndNonEmpty
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(45): error: Expected: (std::strlen(v)) > (0u), actual: 0 vs 0
+
+[  FAILED  ] PreprocessVersion.IsNeverNullAndNonEmpty (0 ms)
+[ RUN      ] PreprocessVersion.IsStaticSameAddressAndSameContentOnEveryCall
+[       OK ] PreprocessVersion.IsStaticSameAddressAndSameContentOnEveryCall (0 ms)
+[ RUN      ] PreprocessVersion.DoesNotDependOnTheInitializationState
+[       OK ] PreprocessVersion.DoesNotDependOnTheInitializationState (0 ms)
+[ RUN      ] PreprocessVersion.HasTheShapeDigitsDotDigitsDotDigits
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_preprocess_version.cpp(84): error: Value of: isDottedTriple(v)
+  Actual: false
+Expected: true
+version string: ""
+
+[  FAILED  ] PreprocessVersion.HasTheShapeDigitsDotDigitsDotDigits (0 ms)
+[----------] 4 tests from PreprocessVersion (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 2 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] PreprocessVersion.IsNeverNullAndNonEmpty
+[  FAILED  ] PreprocessVersion.HasTheShapeDigitsDotDigitsDotDigits
+
+ 2 FAILED TESTS

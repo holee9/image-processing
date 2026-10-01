@@ -1,0 +1,5 @@
+ARM V1_value_depends_on_init (BUILD_EXIT=0, exit=1): DoesNotDependOnTheInitializationState
+ARM V2_null_before_init (BUILD_EXIT=0, exit=1): IsNeverNullAndNonEmpty IsStaticSameAddressAndSameContentOnEveryCall DoesNotDependOnTheInitializationState HasTheShapeDigitsDotDigitsDotDigits
+ARM V3_pointer_changes_per_call (BUILD_EXIT=0, exit=1): IsStaticSameAddressAndSameContentOnEveryCall DoesNotDependOnTheInitializationState HasTheShapeDigitsDotDigitsDotDigits
+ARM V4_shape_broken (BUILD_EXIT=0, exit=1): HasTheShapeDigitsDotDigitsDotDigits
+ARM V5_empty_string (BUILD_EXIT=0, exit=1): IsNeverNullAndNonEmpty HasTheShapeDigitsDotDigitsDotDigits
