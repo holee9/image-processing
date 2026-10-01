@@ -15,3 +15,30 @@ ARM old-good-pixel-line-0: exit=1 built_ok=True
    red: 실패 TheLabelsOnScreen_AreBuiltFromTheSameConstants [1 ms]
    restored byte-identical: True
 AFTER RESTORE: 0 True ['통과!  - 실패:     0, 통과:    16, 건너뜀:     0, 전체:    16, 기간: 42 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+
+# Part 2 (leader's follow-up: strict FPR, ungated residual, neighbour-model residual, good-pixel delta against the image before the defect stage)
+
+ARM fpr-back-to-less-or-equal: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    27, 건너뜀:     0, 전체:    28, 기간: 76 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: GatesTests.Fpr_Verdict(percent: 0.001, expected: False) [9 ms]
+   restored byte-identical: True
+ARM residual-gated-again-at-2-ADU: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    27, 건너뜀:     0, 전체:    28, 기간: 66 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: RowsTests.Residual_IsReportedWithNoGate_AndNeverReview [1 ms]
+   restored byte-identical: True
+ARM residual-formula-back-to-abs-output: exit=1 built_ok=True
+   ['실패!  - 실패:     3, 통과:    25, 건너뜀:     0, 전체:    28, 기간: 73 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: RowsTests.Residual_NeighbourModelIgnoresOtherDefectPixels [3 ms]
+   red: RowsTests.Residual_IsTheDifferenceFromTheNeighbours_AndIndependentOfTheImageLevel [< 1 ms]
+   red: RowsTests.Residual_IsReportedWithNoGate_AndNeverReview [< 1 ms]
+   restored byte-identical: True
+ARM neighbour-model-includes-other-defects: exit=1 built_ok=True
+   ['실패!  - 실패:     2, 통과:    26, 건너뜀:     0, 전체:    28, 기간: 87 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: RowsTests.Residual_NeighbourModelIgnoresOtherDefectPixels [3 ms]
+   red: RowsTests.Residual_HasNoNeighbourToCompareWith_IsNaN_NotZero [< 1 ms]
+   restored byte-identical: True
+ARM good-pixel-delta-blind-to-the-defect-stage: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    27, 건너뜀:     0, 전체:    28, 기간: 68 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: RowsTests.GoodPixelDelta_SeesADefectStageThatTouchesGoodPixels [1 ms]
+   restored byte-identical: True
+AFTER RESTORE: 0 True ['통과!  - 실패:     0, 통과:    28, 건너뜀:     0, 전체:    28, 기간: 59 ms - ImageProcTest.IntegrationTests.dll (net8.0)']

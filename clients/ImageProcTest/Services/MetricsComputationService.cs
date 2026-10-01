@@ -5,8 +5,6 @@ using System.Linq;
 
 namespace ImageProcTest
 {
-    internal sealed record DetectorMetricRow(string Metric, string Value, string Gate, string Status);
-
     internal sealed record DetectorDomainMetrics(
         IReadOnlyList<DetectorMetricRow> DarkMetrics,
         IReadOnlyList<DetectorMetricRow> FlatMetrics,
@@ -26,7 +24,8 @@ namespace ImageProcTest
             RawPreviewResult preview,
             ReadOnlySpan<float> output,
             FixtureCaseInfo? fixtureCase,
-            IReadOnlyList<NativePreviewStageResult> stages)
+            IReadOnlyList<NativePreviewStageResult> stages,
+            DefectStageImages? defectImages = null)
         {
             if (preview.SampledPixels.Length != output.Length)
             {
@@ -45,7 +44,7 @@ namespace ImageProcTest
                     ? ComputeFlatMetrics(preview.SampledPixels, output, preview.PreviewWidth, preview.PreviewHeight)
                     : Empty("gain stage not executed").FlatMetrics,
                 defectExecuted || HasRole(fixtureCase, CalibrationRole.DefectOracle)
-                    ? ComputeDefectMetrics(preview, output, fixtureCase)
+                    ? ComputeDefectMetrics(preview, output, fixtureCase, defectExecuted ? defectImages : null)
                     : Empty("defect stage/oracle not available").DefectMetrics);
         }
 
@@ -92,7 +91,8 @@ namespace ImageProcTest
         private static IReadOnlyList<DetectorMetricRow> ComputeDefectMetrics(
             RawPreviewResult preview,
             ReadOnlySpan<float> output,
-            FixtureCaseInfo? fixtureCase)
+            FixtureCaseInfo? fixtureCase,
+            DefectStageImages? defectImages)
         {
             var oracle = LoadMask(preview, fixtureCase, CalibrationRole.DefectOracle);
             if (oracle is null)
@@ -101,73 +101,9 @@ namespace ImageProcTest
             }
 
             var predicted = LoadMask(preview, fixtureCase, CalibrationRole.Defect);
-            var hasPredicted = predicted is not null && predicted.Length == oracle.Length;
 
-            var badCount = 0;
-            var goodCount = 0;
-            var residualSum = 0.0;
-            var goodDeltas = new List<double>();
-            var truePositive = 0;
-            var falsePositive = 0;
-            var falseNegative = 0;
-            var trueNegative = 0;
-
-            for (var i = 0; i < oracle.Length; i++)
-            {
-                if (oracle[i])
-                {
-                    badCount++;
-                    residualSum += Math.Abs(output[i]);
-                }
-                else
-                {
-                    goodCount++;
-                    goodDeltas.Add(Math.Abs(output[i] - preview.SampledPixels[i]));
-                }
-
-                if (!hasPredicted)
-                {
-                    continue;
-                }
-
-                if (oracle[i] && predicted![i])
-                {
-                    truePositive++;
-                }
-                else if (!oracle[i] && predicted![i])
-                {
-                    falsePositive++;
-                }
-                else if (oracle[i])
-                {
-                    falseNegative++;
-                }
-                else
-                {
-                    trueNegative++;
-                }
-            }
-
-            var recall = hasPredicted
-                ? Percent(truePositive, Math.Max(1, truePositive + falseNegative))
-                : double.NaN;
-            var falsePositiveRate = hasPredicted
-                ? Percent(falsePositive, Math.Max(1, falsePositive + trueNegative))
-                : double.NaN;
-            var residual = badCount > 0 ? residualSum / badCount : double.NaN;
-            var p99 = goodCount > 0 ? Percentile99(goodDeltas) : double.NaN;
-
-            return
-            [
-                hasPredicted
-                    ? Row("DefectRecall", recall, "%", DefectMetricGates.RecallGate, DefectMetricGates.RecallPasses(recall))
-                    : Unavailable("DefectRecall", "predicted BPM not selected"),
-                hasPredicted
-                    ? Row("DefectFPR", falsePositiveRate, "%", DefectMetricGates.FprGate, DefectMetricGates.FprPasses(falsePositiveRate))
-                    : Unavailable("DefectFPR", "predicted BPM not selected"),
-                Row("DefectResidualADU", residual, "ADU", DefectMetricGates.ResidualGate, DefectMetricGates.ResidualPasses(residual)),
-                Row("GoodPixelDeltaP99", p99, "ADU", DefectMetricGates.GoodPixelDeltaP99Gate, DefectMetricGates.GoodPixelDeltaP99Passes(p99))
-            ];
+            // The arithmetic lives in DefectMetricRows (array-only, so it is tested); this method only loads the masks.
+            return DefectMetricRows.Build(oracle, predicted, output.ToArray(), defectImages, preview.PreviewWidth, preview.PreviewHeight);
         }
 
         private static DetectorMetricRow Row(string metric, double value, string unit, string gate, bool passed)
@@ -461,19 +397,6 @@ namespace ImageProcTest
 
                 offset += read;
             }
-        }
-
-        private static double Percentile99(List<double> values)
-        {
-            if (values.Count == 0)
-            {
-                return double.NaN;
-            }
-
-            values.Sort();
-            var index = (int)Math.Ceiling(values.Count * 0.99) - 1;
-            index = Math.Clamp(index, 0, values.Count - 1);
-            return values[index];
         }
     }
 }

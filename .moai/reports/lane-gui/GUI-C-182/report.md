@@ -60,4 +60,35 @@
 
 `falsification_arms.txt` · `local_runs.txt` · `text_lint.txt`
 
+---
+
+## 추가 지시(2차, 리더 메시지) — 같은 카드의 이어진 작업
+
+리더가 GUI 명세를 정본에 맞췄다(`97cc5661`)고 알리고 네 가지를 이어서 시켰다. 모두 반영했다. (위 §2 의 "Residual 값 그대로 둠", §5 의 "바꾸지 않은 관찰"은 이 2차로 **대체**된다.)
+
+1. **FPR 엄격 `<`**: `FprPasses` 를 `<` 로, 게이트 문구를 `< 0.001%` 로. 정확히 0.001 이면 통과하지 못한다.
+2. **Residual 은 판정에서 뺐다**: 행은 값만 보이고 Gate 칸에 `reported, no gate`, Status 는 `REPORTED`(PASS/REVIEW 를 만들지 않는다). 리더 지시의 "열 머리말"은 열 전체에 걸리는 머리말이 아니라 **이 행의 Gate 칸**으로 구현했다(다른 행의 Gate 칸에는 각자의 선이 있기 때문). 의도가 다르면 알려 달라.
+3. **GoodPixelDeltaP99 를 정본 정의로**: `|결함 단계 뒤 − 결함 단계 앞|`(정상 화소). 호출부(`NativePreprocessPreviewService`)가 결함 단계는 제자리 보정이라 **호출 전에 영상을 복사**해 두었다가 `DefectStageImages(Before, After)` 로 넘긴다. 결함 단계가 실행되지 않은 구성에서는 `not computed / N/A`(옛 코드는 이때도 숫자를 냈다).
+4. **Residual 공식을 정본으로**: `mean(|Y(결함) − 이웃모형|)`. 정본이 이웃 모형을 정의하지 않아 **이 코드의 정의를 주석(`DefectMetricRows` 머리말)에 적었다**: 결함 화소의 3×3 창에서 **정상(oracle 기준) 화소의 평균**(자기 자신과 다른 결함 화소 제외, 정상 이웃이 없는 결함 화소는 평균에서 제외, 전부 제외되면 NaN). 미리보기는 표본 격자이므로 이웃은 그 격자의 이웃이다. 이 정의는 **내가 고른 것이다** — 정본에 근거 문장이 없으므로 문서 소유자가 다른 정의(예: 5×5, 중앙값)를 원하면 `DefectMetricRows.Residual` 한 곳만 바뀐다.
+
+**구조 변경**: 계산을 배열만 쓰는 `DefectMetricRows.cs`(WPF·파일 의존 없음)로 옮겨 시험이 직접 실행한다. `MetricsComputationService` 는 마스크를 읽어 그것을 부를 뿐이다. `DetectorMetricRow` 레코드도 그 파일로 옮겼다(네임스페이스 그대로).
+
+### 시험 (신규 12건 + 기존 게이트 시험 갱신, 두 클래스 합 28건)
+
+- **리더가 요구한 "옛 정의면 빨강, 새 정의면 초록" 시험**: `GoodPixelDelta_IsAboutTheDefectStage_NotAboutOffsetAndGain` — 오프셋·게인으로 모든 정상 화소가 1000→1170 이 된 구성에서, 새 정의는 0 ADU `PASS`, **같은 영상에 옛 정의(원본 입력과의 차)를 실제로 계산하면 170 ADU 로 게이트 불통과**임을 시험 안에서 단언한다(두 정의가 이 입력에서 갈라지는 것을 보장).
+- 잔여 시험: 영상 레벨 독립(100 과 5000 에서 같은 10 ADU), 다른 결함 화소를 이웃에서 제외(130 두 개 → 30), 이웃 없음은 NaN, 300 ADU 어긋나도 `REPORTED`, 결함 단계 미실행이면 델타 `N/A` 이고 잔여는 그대로 나옴, 재현율 75%·FPR 거짓 경보 행.
+- 정본 본문 결합: §5.5 에서 FPR 이 엄격 `<` 인 줄, 두 정의 문장(`neighbor_model`, `Y_no_defect_stage`)이 그대로 있는지 단언 — 문서가 바뀌면 빨강.
+
+### 증거
+
+- 로컬: `clients.slnx` 빌드 0 오류, `Category=Functional` **247 통과 · 건너뜀 1(기존) · 실패 0**.
+- **반증 5팔**(실제 소스 변형, 빌드 성공, 소스 바이트 동일 복구, 복구 후 28/28): FPR `<=` 복원 → `Fpr_Verdict(0.001)` 빨강 · 잔여에 2 ADU 게이트 복원 → `Residual_IsReportedWithNoGate_AndNeverReview` 빨강 · 잔여 공식을 `|Y|` 로 복원 → 3건 빨강 · 이웃 모형에 다른 결함 화소 포함 → 2건 빨강 · 좋은 화소 델타를 결함 단계 입출력이 아닌 것과 비교(눈먼 정의) → `GoodPixelDelta_SeesADefectStageThatTouchesGoodPixels` 빨강(`falsification_arms.txt`).
+
+### 미검증 · 한계 (2차 기준)
+
+1. **호출부(`NativePreprocessPreviewService`)가 결함 단계 앞·뒤 영상을 실제로 복사해 넘기는 것은 실행으로 확인하지 못했다.** 이 서비스는 네이티브 DLL 과 WPF 에 의존하고 옛 검증 앱을 띄우는 실행은 하지 않았다(실입력·네이티브 빌드 실행은 CI 몫). 근거는 컴파일 성공과 소스를 읽은 것이다. 위 시험은 **받은 두 영상으로 계산하는 부분**을 검증한다.
+2. 옛 검증 앱 화면(`DefectMetricsGrid`)과 보고서에 `REPORTED`·`reported, no gate`·`not computed` 가 실제로 그려지는 것은 관측하지 않았다.
+3. **이웃 모형의 정의는 내가 정했다**(위 4). 실제 결함·실데이터에서 이 정의의 잔여값이 의미 있는 크기인지는 보지 않았다.
+4. `GoodPixelDeltaP99` 의 `Before` 는 결함 단계 직전 영상(오프셋·게인 적용 후)이다. 결함 단계 **뒤에** 다른 단계가 오는 구성이 생기면 `After` 를 단계 직후에 복사해 두므로 영향이 없지만, 단계 순서가 바뀌는 구성은 시험하지 않았다.
+
 🗿 MoAI

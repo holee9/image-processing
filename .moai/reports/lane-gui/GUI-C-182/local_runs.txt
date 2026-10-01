@@ -8,3 +8,9 @@
 
 ## old literals left in MetricsComputationService.cs (grep, exit code read without a pipe: 1 = no match)
   lines matched: 0
+
+## Part 2 (after the follow-up)
+  clients.slnx Debug build: exit 0, 0 errors
+  IntegrationTests Category=Functional (whole suite, incl. DefectMetricGatesTests + DefectMetricRowsTests, 28 tests in the two classes):
+    건너뜀 ImageProcTest.IntegrationTests.Functional.ErrorCodeMappingTests.ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback(code: NOT_IMPLEMENTED) [< 1 ms]
+    통과!  - 실패:     0, 통과:   247, 건너뜀:     1, 전체:   248, 기간: 2 s - ImageProcTest.IntegrationTests.dll (net8.0)

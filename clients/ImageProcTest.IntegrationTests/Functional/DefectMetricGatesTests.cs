@@ -15,7 +15,7 @@ public sealed class DefectMetricGatesTests
 {
     private const string CanonicalProtocol = "docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md";
 
-    private static string Section55()
+    internal static string Section55()
     {
         var text = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile(CanonicalProtocol));
         var start = text.IndexOf("### 5.5 Defect metrics", StringComparison.Ordinal);
@@ -40,8 +40,9 @@ public sealed class DefectMetricGatesTests
     }
 
     [Fact]
-    public void FalsePositiveLine_IsTheProtocols()
+    public void FalsePositiveLine_IsTheProtocols_AndStrict()
     {
+        // The protocol writes '<', not '<=': the regex requires the strict form, so a text change to '<=' is red here too.
         var protocol = NumberAfter(Section55(), @"DefectFPR\s*<\s*([0-9.]+)\s*%");
         Assert.Equal(protocol, DefectMetricGates.FprMaxPercent);
     }
@@ -54,11 +55,21 @@ public sealed class DefectMetricGatesTests
     }
 
     [Fact]
-    public void TheProtocolStillHasNoResidualLine_SoTheKeptTwoAduIsStillAnOpenQuestion()
+    public void TheProtocolStillHasNoResidualLine_SoTheResidualStaysUngated()
     {
-        // If the canonical text ever gains a residual threshold, this goes red on purpose: the constant must then be set
-        // from it (and ResidualMaxAdu's comment, which says there is none, must be rewritten).
+        // If the canonical text ever gains a residual threshold, this goes red on purpose: the residual row must then get
+        // a gate from it (today the row is 'reported, no gate' and cannot produce REVIEW).
         Assert.DoesNotMatch(@"DefectResidualADU\s*(<=|<|≤)\s*[0-9]", Section55());
+    }
+
+    [Fact]
+    public void TheProtocolDefinitions_AreTheOnesTheRowsImplement()
+    {
+        // The two definitions GUI-C-182 moved to: the residual is measured against a neighbour model, the good-pixel delta
+        // against the image without the defect stage. If the document changes either, the implementation must be revisited.
+        var section = Section55();
+        Assert.Contains("DefectResidualADU = mean(abs(Y(defect_pixels) - neighbor_model(defect_pixels)))", section, StringComparison.Ordinal);
+        Assert.Contains("GoodPixelDeltaP99 = percentile99(abs(Y(good_pixels) - Y_no_defect_stage(good_pixels)))", section, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -79,6 +90,8 @@ public sealed class DefectMetricGatesTests
 
     [Theory]
     [InlineData(0.0005, true)]
+    [InlineData(0.00099, true)]
+    [InlineData(0.001, false)] // strict '<': exactly on the line does not pass (the code said '<=' before)
     [InlineData(0.002, false)]
     public void Fpr_Verdict(double percent, bool expected) =>
         Assert.Equal(expected, DefectMetricGates.FprPasses(percent));
@@ -90,15 +103,14 @@ public sealed class DefectMetricGatesTests
         Assert.False(DefectMetricGates.RecallPasses(double.NaN));
         Assert.False(DefectMetricGates.FprPasses(double.NaN));
         Assert.False(DefectMetricGates.GoodPixelDeltaP99Passes(double.NaN));
-        Assert.False(DefectMetricGates.ResidualPasses(double.NaN));
     }
 
     [Fact]
     public void TheLabelsOnScreen_AreBuiltFromTheSameConstants()
     {
         Assert.Equal(">= 100%", DefectMetricGates.RecallGate);
-        Assert.Equal("<= 0.001%", DefectMetricGates.FprGate);
+        Assert.Equal("< 0.001%", DefectMetricGates.FprGate);
         Assert.Equal("<= 1 ADU", DefectMetricGates.GoodPixelDeltaP99Gate);
-        Assert.Equal("<= 2 ADU", DefectMetricGates.ResidualGate);
+        Assert.Equal("reported, no gate", DefectMetricGates.ResidualGate);
     }
 }
