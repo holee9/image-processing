@@ -761,7 +761,7 @@ IPC Protocol:
 |------|-------|--------|-----------|
 | Low confidence (<0.95) | ambiguous | Use DICOM tag fallback | SRS-FUNC-016 |
 | Worker timeout | >5s | Use DICOM tag + WARNING | Degradation |
-| Worker crash | process died | Restart worker + DICOM tag | SRS-SAFE-008 |
+| Worker crash | process died | Restart worker + DICOM tag | (추적 ID 미정 — `SRS-SAFE-008` 은 AI-processed 라벨 요구라 오추적, #130) |
 | No DICOM tag | missing | Use "UNKNOWN" + default preset | Safety |
 
 ---
@@ -915,8 +915,8 @@ Fallback:
 >
 > **열린 항목**: `XPE-SRS-001` 의 시스템 알림 표(`SRS-ALERT-001~007`)에는 AI 처리 실패 행이
 > 없습니다. 새 행을 넣는 것은 요구 신설이라 사용자 승인 대상이며 아직 하지 않았습니다.
-> 같은 문서 §3.x 체형 분류기 Edge Case 표의 `Worker crash | … | SRS-SAFE-008` 행도 같은
-> 오추적이지만 그 모듈의 동작(재시작)이 이 정책과 별개라 이번에 고치지 않았습니다.
+> 같은 문서 §3.x 체형 분류기 Edge Case 표의 `Worker crash` 행도 같은 오추적이어서
+> 추적 ID 를 "미정" 으로 바꿨습니다(Codex #13). 그 모듈의 동작(재시작)은 이 정책과 별개라 그대로입니다.
 
 ---
 
