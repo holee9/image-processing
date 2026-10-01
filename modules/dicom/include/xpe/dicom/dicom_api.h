@@ -123,17 +123,20 @@ XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHa
  *         again and xpe_dicom_get_metadata still works). The handle's internal parse state is not promised
  *         unchanged -- DCMTK loads elements lazily -- only what the API shows. Before this, such files were
  *         returned as XPE_OK with wrong pixels (the 8-bit case as XPE_ERR_DICOM_INVALID "short").
- * @return XPE_ERR_DICOM_INVALID (QA-B-182b) if SamplesPerPixel, PixelRepresentation or BitsAllocated is absent,
- *         empty or not a number (they are Type 1 attributes of the Image Pixel module, PS3.3 C.7.6.3.1.1, and have
- *         no default), if NumberOfFrames is present and not a number >= 1, or if a JPEG 2000 codestream
+ * @return XPE_ERR_DICOM_INVALID (QA-B-182b/182c) if SamplesPerPixel, PixelRepresentation, BitsAllocated, BitsStored
+ *         or HighBit is absent, empty or not a number (they are Type 1 attributes of the Image Pixel module, PS3.3
+ *         C.7.6.3.1.1, and have no default), if NumberOfFrames is present and not a number >= 1, or if a JPEG 2000 codestream
  *         contradicts the dataset: a different number of components, signed samples, a precision that differs
  *         from BitsStored, or BitsAllocated below BitsStored (PS3.5 8.2.4: the attributes shall be consistent
  *         with the compressed data stream).
  * @return XPE_ERR_UNSUPPORTED_FORMAT also for a JPEG 2000 codestream whose precision exceeds 16 bits.
  *
  * @note NumberOfFrames is the one attribute that may be absent (Multi-frame Module): absent means one frame.
- * @note BitsStored and HighBit, when absent, keep the long-standing default (BitsStored = BitsAllocated,
- *       HighBit = BitsStored - 1). They are Type 1 as well; whether to refuse their absence is left open.
+ * @note Every refusal above also posts an XPE_ALERT_ERROR alert "dicom read refused: ..." that names the attribute
+ *       or the two values that disagree (e.g. "JPEG 2000 codestream precision 16 does not match the dataset
+ *       (BitsStored 12, BitsAllocated 16)"). The wording is a contract with the clients that display alerts.
+ * @note Files written by the module's writer before QA-B-182b put a 16-bit-precision codestream under the image's
+ *       BitsStored; those with BitsStored < 16 are refused by this function (XPE_ERR_DICOM_INVALID + that alert).
  * @note On success from a JPEG 2000 file the buffer is XPE_PIXEL_UINT16 with bitsAllocated 16 and bitsStored equal
  *       to the codestream's precision (an 8-bit file is described as 16 allocated, 8 stored: the buffer holds two
  *       bytes per sample).

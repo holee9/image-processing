@@ -12,7 +12,8 @@ Refs #235
 |------|------|
 | `after_full_ci_dicom_ctest.txt` | 이 카드 직후 직렬 ctest 결과(205/205) — 원본 그대로 |
 | `ctest_parallel_j4_unrelated.txt` | `ctest -j 4` 의 47건 실패 기록(시험 간 임시 디렉터리 공유) — 원본 그대로 |
-| `arm_dic_*.txt` ×6, `report.md` | **비어 있음 (1바이트)** |
+| `arm_dic_*.txt` ×6 | 비어 있어(1바이트) QA-B-182c 에서 `git rm` 으로 지웠다. 남겨 두면 증거가 있는 것처럼 읽힌다 |
+| `report.md` | 비어 있었고 이 정정 기록으로 바꿨다 |
 
 ## 대체 증거
 

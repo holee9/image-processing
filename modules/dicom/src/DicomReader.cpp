@@ -13,9 +13,12 @@
 #include <dcmtk/dcmjpeg/djdecode.h>
 #include <openjpeg.h>
 
+#include "xpe/common/xpe_error.h"
 #include "xpe/common/xpe_memory.h"
 
 #include <spdlog/spdlog.h>
+#include <cstdarg>
+#include <cstdio>
 #include <cstring>
 #include <ctime>
 #include <mutex>
@@ -269,7 +272,8 @@ XpeErrorCode DicomReader::open() {
 //
 // Two kinds of refusal, kept apart on purpose:
 //   XPE_ERR_DICOM_INVALID       the file is malformed: a Type 1 attribute of the Image Pixel module (PS3.3
-//                               C.7.6.3.1.1: Samples per Pixel, Pixel Representation, Bits Allocated) is absent,
+//                               C.7.6.3.1.1: Samples per Pixel, Pixel Representation, Bits Allocated, Bits Stored,
+//                               High Bit) is absent,
 //                               empty or not a number, or Number of Frames is present and not a positive number.
 //                               There is no default for a Type 1 attribute; reading its absence as a value was how
 //                               a damaged file used to be accepted.
@@ -278,9 +282,9 @@ XpeErrorCode DicomReader::open() {
 //
 // Native and JPEG Lossless pixel data are copied as 16-bit words, so they are accepted only as
 // Bits Allocated == 16, Bits Stored <= 16, High Bit == Bits Stored - 1 (8 bits included: the general rule absorbs
-// the earlier special case). A present Bits Stored / High Bit that breaks the rule is unsupported; one that is
-// absent keeps the long-standing default (Bits Stored = Bits Allocated, High Bit = Bits Stored - 1), a decision
-// left open for the owner of #235 because those two are Type 1 as well.
+// the earlier special case). A Bits Stored / High Bit that breaks the rule is unsupported. Both are Type 1 as
+// well (QA-B-182c): absent, empty or unreadable is malformed, with no default -- a default would make the rule
+// and the J2K precision check test a value the reader invented.
 //
 // JPEG 2000 is judged against its codestream (decodeJ2KBitstream, before any output is allocated): PS3.5 8.2.4
 // requires these attributes to be consistent with the codestream, and the codestream's own characteristics are the
@@ -288,44 +292,68 @@ XpeErrorCode DicomReader::open() {
 //
 // MONOCHROME1, RescaleSlope/Intercept and bits above BitsStored are NOT judged here: how to report them is a
 // design decision still open in #235, and they keep their current behaviour (stored words, unchanged).
+// A refusal is reported twice: to the log, and as an ALERT the operator can read. The return code alone says
+// "malformed" or "unsupported" but not which attribute or which two values disagree (QA-B-182c). The alert wording
+// is a contract with the clients that display alerts: change it only together with them.
+static XpeErrorCode refuse(XpeErrorCode code, const char* fmt, ...) {
+    char why[320];
+    va_list args;
+    va_start(args, fmt);
+    std::vsnprintf(why, sizeof(why), fmt, args);
+    va_end(args);
+    char msg[400];
+    std::snprintf(msg, sizeof(msg), "dicom read refused: %s", why);
+    spdlog::warn("[DicomReader] {}", msg);
+    xpe_alert_push(msg, XPE_ALERT_ERROR);
+    return code;
+}
+
+// A Type 1 attribute: present, with a value, readable as one unsigned short.
 static bool readType1Uint16(DcmDataset* ds, const DcmTagKey& key, Uint16& out) {
     return ds->tagExists(key) && ds->findAndGetUint16(key, out).good();
 }
 
 static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, bool isJ2K) {
-    Uint16 samples = 0, pixelRepresentation = 0, bitsAlloc = 0;
-    if (!readType1Uint16(ds, DCM_SamplesPerPixel, samples) ||
-        !readType1Uint16(ds, DCM_PixelRepresentation, pixelRepresentation) ||
-        !readType1Uint16(ds, DCM_BitsAllocated, bitsAlloc)) {
-        return XPE_ERR_DICOM_INVALID;
+    Uint16 samples = 0, pixelRepresentation = 0, bitsAlloc = 0, bitsStored = 0, highBit = 0;
+    struct Required { const char* name; DcmTagKey key; Uint16* value; };
+    const Required required[] = {
+        {"SamplesPerPixel (0028,0002)", DCM_SamplesPerPixel, &samples},
+        {"PixelRepresentation (0028,0103)", DCM_PixelRepresentation, &pixelRepresentation},
+        {"BitsAllocated (0028,0100)", DCM_BitsAllocated, &bitsAlloc},
+        {"BitsStored (0028,0101)", DCM_BitsStored, &bitsStored},
+        {"HighBit (0028,0102)", DCM_HighBit, &highBit},
+    };
+    for (const Required& r : required) {
+        if (!readType1Uint16(ds, r.key, *r.value)) {
+            return refuse(XPE_ERR_DICOM_INVALID, "%s is absent, empty or not a number (it is a Type 1 attribute and has no default)", r.name);
+        }
     }
 
     long frames = 1;
     if (ds->tagExists(DCM_NumberOfFrames)) {
         Sint32 v = 0;
-        if (ds->findAndGetSint32(DCM_NumberOfFrames, v).bad() || v < 1) return XPE_ERR_DICOM_INVALID;
+        if (ds->findAndGetSint32(DCM_NumberOfFrames, v).bad() || v < 1) {
+            return refuse(XPE_ERR_DICOM_INVALID, "NumberOfFrames (0028,0008) is present but is not a number >= 1");
+        }
         frames = v;
     }
 
-    Uint16 bitsStored = bitsAlloc;
-    if (ds->tagExists(DCM_BitsStored) && ds->findAndGetUint16(DCM_BitsStored, bitsStored).bad()) {
-        return XPE_ERR_DICOM_INVALID;
-    }
-    Uint16 highBit = static_cast<Uint16>(bitsStored - 1);
-    if (ds->tagExists(DCM_HighBit) && ds->findAndGetUint16(DCM_HighBit, highBit).bad()) {
-        return XPE_ERR_DICOM_INVALID;
-    }
-
-    if (frames > 1) return XPE_ERR_UNSUPPORTED_FORMAT;
-    if (samples != 1) return XPE_ERR_UNSUPPORTED_FORMAT;
-    if (pixelRepresentation != 0) return XPE_ERR_UNSUPPORTED_FORMAT;
+    if (frames > 1) return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "NumberOfFrames %ld (only single-frame images are supported)", frames);
+    if (samples != 1) return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "SamplesPerPixel %u (only one sample per pixel is supported)", static_cast<unsigned>(samples));
+    if (pixelRepresentation != 0) return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "PixelRepresentation %u (only unsigned pixels are supported)", static_cast<unsigned>(pixelRepresentation));
 
     if (isJ2K) {
-        if (bitsAlloc != 8 && bitsAlloc != 16) return XPE_ERR_UNSUPPORTED_FORMAT;
+        if (bitsAlloc != 8 && bitsAlloc != 16) {
+            return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "BitsAllocated %u for JPEG 2000 (8 or 16 are supported)", static_cast<unsigned>(bitsAlloc));
+        }
         return XPE_OK;
     }
-    if (bitsAlloc != 16 || bitsStored < 1 || bitsStored > 16 || highBit != bitsStored - 1) {
-        return XPE_ERR_UNSUPPORTED_FORMAT;
+    if (bitsAlloc != 16) {
+        return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "BitsAllocated %u (only 16 is supported for uncompressed and JPEG Lossless data)", static_cast<unsigned>(bitsAlloc));
+    }
+    if (bitsStored < 1 || bitsStored > 16 || highBit != bitsStored - 1) {
+        return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "BitsStored %u with HighBit %u (the significant bits must be the low ones: HighBit = BitsStored - 1, BitsStored 1..16)",
+                      static_cast<unsigned>(bitsStored), static_cast<unsigned>(highBit));
     }
     return XPE_OK;
 }
@@ -344,8 +372,8 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
     if (ds->findAndGetUint16(DCM_Columns, cols).bad() || cols == 0) return XPE_ERR_DICOM_INVALID;
     ds->findAndGetUint16(DCM_BitsAllocated, bitsAlloc);
     ds->findAndGetUint16(DCM_BitsStored, bitsStored);
-    // Bits Allocated is Type 1: checkSupportedImageModule below refuses its absence, so no default is taken here.
-    if (bitsStored == 0) bitsStored = bitsAlloc;
+    // Bits Allocated and Bits Stored are Type 1: checkSupportedImageModule below refuses their absence, so no
+    // default is taken here.
 
     bool isJ2K = (m_tsUID == TS_J2K_LOSSLESS);
     // #147 (QA-B-68): both JPEG-Lossless syntaxes take this branch. The dispatch
@@ -568,8 +596,7 @@ XpeErrorCode DicomReader::decompressPixelData(DcmFileFormat* dcm, XpeImageBuffer
     ds->findAndGetUint16(DCM_Columns, cols);
     ds->findAndGetUint16(DCM_BitsAllocated, bitsAlloc);
     ds->findAndGetUint16(DCM_BitsStored, bitsStored);
-    if (bitsAlloc == 0) bitsAlloc = 16;
-    if (bitsStored == 0) bitsStored = bitsAlloc;
+    // Both are Type 1 and were read by checkSupportedImageModule before this point: no defaults.
 
     // Get pixel data element (J2K is encapsulated)
     DcmElement* pixElem = nullptr;
@@ -630,27 +657,24 @@ XpeErrorCode DicomReader::decompressPixelData(DcmFileFormat* dcm, XpeImageBuffer
 static XpeErrorCode checkJ2kCodestreamShape(const opj_image_t* image, uint32_t rows, uint32_t cols,
                                             uint16_t bitsAlloc, uint16_t bitsStored) {
     if (image->numcomps != 1 || image->comps == nullptr) {
-        spdlog::error("[DicomReader] J2K codestream carries {} components, the dataset says 1", image->numcomps);
-        return XPE_ERR_DICOM_INVALID;
+        return refuse(XPE_ERR_DICOM_INVALID, "JPEG 2000 codestream carries %u components, the dataset says 1 (SamplesPerPixel)",
+                      static_cast<unsigned>(image->numcomps));
     }
     const opj_image_comp_t& c = image->comps[0];
     if (c.sgnd != 0) {
-        spdlog::error("[DicomReader] J2K codestream is signed, the dataset says unsigned pixels");
-        return XPE_ERR_DICOM_INVALID;
+        return refuse(XPE_ERR_DICOM_INVALID, "JPEG 2000 codestream is signed, the dataset says unsigned pixels (PixelRepresentation 0)");
     }
     if (c.prec > 16) {
-        spdlog::warn("[DicomReader] J2K codestream precision {} exceeds the 16 bits this reader returns", c.prec);
-        return XPE_ERR_UNSUPPORTED_FORMAT;
+        return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "JPEG 2000 codestream precision %u exceeds the 16 bits this reader returns",
+                      static_cast<unsigned>(c.prec));
     }
     if (c.prec != bitsStored || bitsAlloc < bitsStored) {
-        spdlog::error("[DicomReader] J2K codestream precision {} does not match the dataset (bits stored {}, bits "
-                      "allocated {})", c.prec, bitsStored, bitsAlloc);
-        return XPE_ERR_DICOM_INVALID;
+        return refuse(XPE_ERR_DICOM_INVALID, "JPEG 2000 codestream precision %u does not match the dataset (BitsStored %u, BitsAllocated %u)",
+                      static_cast<unsigned>(c.prec), static_cast<unsigned>(bitsStored), static_cast<unsigned>(bitsAlloc));
     }
     if (c.w != cols || c.h != rows) {
-        spdlog::error("[DicomReader] J2K codestream size does not match the declared size: dataset says {}x{}, "
-                      "codestream carries {}x{}", cols, rows, c.w, c.h);
-        return XPE_ERR_DICOM_INVALID;
+        return refuse(XPE_ERR_DICOM_INVALID, "JPEG 2000 codestream size %ux%u does not match the declared Columns x Rows %ux%u",
+                      static_cast<unsigned>(c.w), static_cast<unsigned>(c.h), static_cast<unsigned>(cols), static_cast<unsigned>(rows));
     }
     return XPE_OK;
 }

@@ -1,0 +1,94 @@
+## 1. DICOM files tracked in the repository (extension or DICM magic), 3686 tracked files scanned
+tracked DICOM files found: 0
+(the control writes two probe files into the temp directory: a Part 10 preamble + 'DICM' magic with an unrelated name, and the same name with a .dcm extension and no magic)
+  magic only, no extension: ['DICM magic']
+  extension only, no magic: ['extension']
+  README-like text file: []
+
+## 2. Tracked source files that build or write DICOM datasets (candidates for missing Image Pixel attributes)
+  clients/ImageProcTest/Diagnostics/XpeDicomReadinessProbe.cs  ['xpe_dicom_write']
+  clients/ImageProcTest/Services/NativePresentationExportService.cs  ['xpe_dicom_write']
+  gui/ImageProcTest/Services/PipelineOrchestrator.cs  ['xpe_dicom_write']
+  modules/dicom/include/xpe/dicom/dicom_api.h  ['xpe_dicom_write']
+  modules/dicom/src/DicomNetworkSCU.cpp  ['DcmDataset', 'DcmFileFormat']
+  modules/dicom/src/DicomReader.cpp  ['DcmDataset', 'DcmFileFormat', 'DCM_Rows']
+  modules/dicom/src/DicomReader.h  ['DcmFileFormat']
+  modules/dicom/src/DicomValidator.cpp  ['DcmDataset', 'DcmFileFormat', 'DCM_Rows']
+  modules/dicom/src/DicomWriter.cpp  ['DcmDataset', 'DcmFileFormat', 'DCM_Rows', 'xpe_dicom_write']
+  modules/dicom/src/DicomWriter.h  ['DcmDataset', 'DcmFileFormat', 'xpe_dicom_write']
+  modules/dicom/src/dicom.cpp  ['xpe_dicom_write']
+  modules/dicom/tests/mock_scp.hpp  ['DcmDataset']
+  modules/dicom/tests/test_dicom_network_scu.cpp  ['DcmDataset', 'DcmFileFormat', 'xpe_dicom_write']
+  modules/dicom/tests/test_dicom_reader.cpp  ['DcmDataset', 'DcmFileFormat', 'DCM_Rows', 'xpe_dicom_write', 'DICM']
+  modules/dicom/tests/test_dicom_validator.cpp  ['DcmDataset', 'DcmFileFormat', 'xpe_dicom_write']
+  modules/dicom/tests/test_dicom_writer.cpp  ['xpe_dicom_write']
+  modules/dicom/tests/test_parameter_dependency.cpp  ['xpe_dicom_write']
+
+## 3. Tracked files of 2 bytes or less (git ls-tree -r -l), the empty-evidence search
+--- ec0759f1 (QA-B-182 as committed: CONTROL, must list the six empty evidence files and report.md): 33 files
+  0 bytes  .claude/skills/moai-meta-harness/seeds/.gitkeep
+  0 bytes  .claude/skills/moai/workflows/plan/.gitkeep
+  0 bytes  .claude/skills/moai/workflows/project/.gitkeep
+  0 bytes  .claude/skills/moai/workflows/run/.gitkeep
+  0 bytes  .claude/skills/moai/workflows/sync/.gitkeep
+  0 bytes  .dotnet-cli/.dotnet/.workloadAdvertisingManifestSentinel10.0.100
+  0 bytes  .dotnet-cli/.dotnet/10.0.106.aspNetCertificateSentinel
+  0 bytes  .dotnet-cli/.dotnet/10.0.106.dotnetFirstUseSentinel
+  0 bytes  .dotnet-cli/.dotnet/10.0.106.toolpath.sentinel
+  0 bytes  .moai/design/screenshots/.gitkeep
+  0 bytes  .moai/design/wireframes/.gitkeep
+  0 bytes  .moai/evolution/learnings/.gitkeep
+  0 bytes  .moai/evolution/new-skills/.gitkeep
+  0 bytes  .moai/evolution/telemetry/.gitkeep
+  1 bytes  .moai/reports/lane-post/QA-B-182/arm_dic_all.txt
+  1 bytes  .moai/reports/lane-post/QA-B-182/arm_dic_bits8.txt
+  1 bytes  .moai/reports/lane-post/QA-B-182/arm_dic_defaulted.txt
+  1 bytes  .moai/reports/lane-post/QA-B-182/arm_dic_frames.txt
+  1 bytes  .moai/reports/lane-post/QA-B-182/arm_dic_samples.txt
+  1 bytes  .moai/reports/lane-post/QA-B-182/arm_dic_signed.txt
+  1 bytes  .moai/reports/lane-post/QA-B-182/report.md
+  0 bytes  .moai/reports/lane-pre/QA-A-173/evidence/19_export_list_diff_empty.txt
+  0 bytes  .moai/reports/lane-pre/QA-A-29/a29-export-diff.txt
+  0 bytes  .moai/reports/lane-pre/QA-A-34/a34-export-diff.txt
+  0 bytes  .moai/reports/lane-pre/QA-A-35/a35-export-diff.txt
+  0 bytes  .moai/reports/lane-pre/QA-A-37/a37-export-diff.txt
+  0 bytes  .moai/reports/lane-pre/QA-A-38/a38-export-diff.txt
+  0 bytes  .moai/reports/lane-pre/QA-A-39/a39-export-diff.txt
+  0 bytes  docs/contracts/.gitkeep
+  1 bytes  gui/ImageProcTest/fixtures/gui-s0/calibration/defect/.gitkeep
+  1 bytes  gui/ImageProcTest/fixtures/gui-s0/calibration/gain/.gitkeep
+  1 bytes  gui/ImageProcTest/fixtures/gui-s0/calibration/offset/.gitkeep
+  1 bytes  gui/ImageProcTest/test_data/.gitkeep
+--- HEAD: 32 files
+  0 bytes  .claude/skills/moai-meta-harness/seeds/.gitkeep
+  0 bytes  .claude/skills/moai/workflows/plan/.gitkeep
+  0 bytes  .claude/skills/moai/workflows/project/.gitkeep
+  0 bytes  .claude/skills/moai/workflows/run/.gitkeep
+  0 bytes  .claude/skills/moai/workflows/sync/.gitkeep
+  0 bytes  .dotnet-cli/.dotnet/.workloadAdvertisingManifestSentinel10.0.100
+  0 bytes  .dotnet-cli/.dotnet/10.0.106.aspNetCertificateSentinel
+  0 bytes  .dotnet-cli/.dotnet/10.0.106.dotnetFirstUseSentinel
+  0 bytes  .dotnet-cli/.dotnet/10.0.106.toolpath.sentinel
+  0 bytes  .moai/design/screenshots/.gitkeep
+  0 bytes  .moai/design/wireframes/.gitkeep
+  0 bytes  .moai/evolution/learnings/.gitkeep
+  0 bytes  .moai/evolution/new-skills/.gitkeep
+  0 bytes  .moai/evolution/telemetry/.gitkeep
+  1 bytes  .moai/reports/lane-post/QA-B-182/arm_dic_all.txt
+  1 bytes  .moai/reports/lane-post/QA-B-182/arm_dic_bits8.txt
+  1 bytes  .moai/reports/lane-post/QA-B-182/arm_dic_defaulted.txt
+  1 bytes  .moai/reports/lane-post/QA-B-182/arm_dic_frames.txt
+  1 bytes  .moai/reports/lane-post/QA-B-182/arm_dic_samples.txt
+  1 bytes  .moai/reports/lane-post/QA-B-182/arm_dic_signed.txt
+  0 bytes  .moai/reports/lane-pre/QA-A-173/evidence/19_export_list_diff_empty.txt
+  0 bytes  .moai/reports/lane-pre/QA-A-29/a29-export-diff.txt
+  0 bytes  .moai/reports/lane-pre/QA-A-34/a34-export-diff.txt
+  0 bytes  .moai/reports/lane-pre/QA-A-35/a35-export-diff.txt
+  0 bytes  .moai/reports/lane-pre/QA-A-37/a37-export-diff.txt
+  0 bytes  .moai/reports/lane-pre/QA-A-38/a38-export-diff.txt
+  0 bytes  .moai/reports/lane-pre/QA-A-39/a39-export-diff.txt
+  0 bytes  docs/contracts/.gitkeep
+  1 bytes  gui/ImageProcTest/fixtures/gui-s0/calibration/defect/.gitkeep
+  1 bytes  gui/ImageProcTest/fixtures/gui-s0/calibration/gain/.gitkeep
+  1 bytes  gui/ImageProcTest/fixtures/gui-s0/calibration/offset/.gitkeep
+  1 bytes  gui/ImageProcTest/test_data/.gitkeep

@@ -1,0 +1,50 @@
+ARM bitsstored_required: build_ok=True failed=8
+DicomReaderTest.J2kScope_OwnSixteenBitFileReadsAndIsDescribedAsSixteenBit
+DicomReaderTest.Scope_ARefusalPostsAnAlertThatNamesTheCause
+DicomReaderTest.Scope_AbsentNumberOfFramesIsASingleFrame
+DicomReaderTest.Scope_AbsentOrEmptyBitsStoredAndHighBitAreMalformedOnEveryPath
+DicomReaderTest.Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord
+DicomReaderTest.Scope_OnlySixteenBitAllocationIsReadFromNativePixelData
+DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads
+DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted
+
+[ RUN      ] DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup
+[2026-10-02 04:57:45.776] [warning] [DicomReader] dicom read refused: SamplesPerPixel 3 (only one sample per pixel is supported)
+[2026-10-02 04:57:45.783] [warning] [DicomReader] dicom read refused: SamplesPerPixel 3 (only one sample per pixel is supported)
+[       OK ] DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup (10 ms)
+[ RUN      ] DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted
+[2026-10-02 04:57:45.783] [warning] [DicomReader] dicom read refused: BitsStored 0 with HighBit 15 (the significant bits must be the low ones: HighBit = BitsStored - 1, BitsStored 1..16)
+unknown file: error: SEH exception with code 0xc0000005 thrown in the test body.
+Stack trace:
+
+
+[  FAILED  ] DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted (0 ms)
+[ RUN      ] DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile
+[2026-10-02 04:57:45.787] [warning] [DicomReader] dicom read refused: BitsAllocated 8 (only 16 is supported for uncompressed and JPEG Lossless data)
+[       OK ] DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile (4 ms)
+[ RUN      ] DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted
+[2026-10-02 04:57:45.792] [warning] [DicomReader] dicom read refused: NumberOfFrames (0028,0008) is present but is not a number >= 1
+[2026-10-02 04:57:45.797] [warning] [DicomReader] dicom read refused: NumberOfFrames (0028,0008) is present but is not a number >= 1
+[2026-10-02 04:57:45.802] [warning] [DicomReader] dicom read refused: NumberOfFrames (0028,0008) is present but is not a number >= 1
+[       OK ] DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted (14 ms)
+[ RUN      ] DicomReaderTest.Scope_ARefusedHandleRefusesTheSameWayAgain
+[2026-10-02 04:57:45.806] [warning] [DicomReader] dicom read refused: PixelRepresentation 1 (only unsigned pixels are supported)
+[2026-10-02 04:57:45.806] [warning] [DicomReader] dicom read refused: PixelRepresentation 1 (only unsigned pixels are supported)
+[       OK ] DicomReaderTest.Scope_ARefusedHandleRefusesTheSameWayAgain (4 ms)
+[----------] 20 tests from DicomReaderTest (434 ms total)
+
+[----------] Global test environment tear-down
+[==========] 20 tests from 1 test suite ran. (456 ms total)
+[  PASSED  ] 12 tests.
+[  FAILED  ] 8 tests, listed below:
+[  FAILED  ] DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads
+[  FAILED  ] DicomReaderTest.Scope_AbsentNumberOfFramesIsASingleFrame
+[  FAILED  ] DicomReaderTest.Scope_OnlySixteenBitAllocationIsReadFromNativePixelData
+[  FAILED  ] DicomReaderTest.Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord
+[  FAILED  ] DicomReaderTest.J2kScope_OwnSixteenBitFileReadsAndIsDescribedAsSixteenBit
+[  FAILED  ] DicomReaderTest.Scope_AbsentOrEmptyBitsStoredAndHighBitAreMalformedOnEveryPath
+[  FAILED  ] DicomReaderTest.Scope_ARefusalPostsAnAlertThatNamesTheCause
+[  FAILED  ] DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted
+
+ 8 FAILED TESTS
+

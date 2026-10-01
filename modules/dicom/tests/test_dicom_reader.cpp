@@ -26,8 +26,10 @@
 #include <dcmtk/dcmjpeg/djrplol.h>
 #include "DicomReader.h"   // #146: the accepted transfer-syntax table
 #include "xpe/common/xpe_memory.h"
+#include "xpe/common/xpe_error.h"
 #include <openjpeg.h>   // QA-B-182b: encode variant codestreams inside the test
 #include <atomic>
+#include <functional>
 #include <map>
 #include <set>
 #include <cstdio>
@@ -3326,6 +3328,119 @@ TEST_F(DicomReaderTest, J2kScope_AnImageWrittenWithTwelveBitsStoredIsReadBack) {
     ASSERT_EQ(XPE_OK, r.read);
     EXPECT_EQ(12u, r.bitsStored);
     EXPECT_EQ(original, r.words);
+}
+
+// ---- QA-B-182c: BitsStored and HighBit are Type 1 too, and a refusal says why ---------------------------------
+namespace {
+
+/** Same transfer syntax as the source (a JPEG Lossless file stays JPEG Lossless), pixel attributes edited. */
+template <class F>
+fs::path MakeSameSyntaxVariant(const fs::path& src, const char* name, F mutate) {
+    DcmFileFormat ff;
+    EXPECT_TRUE(ff.loadFile(src.string().c_str()).good());
+    DcmDataset* ds = ff.getDataset();
+    const E_TransferSyntax xfer = ds->getOriginalXfer();
+    mutate(ds);
+    const fs::path out = src.parent_path() / (std::string("same_") + name + ".dcm");
+    EXPECT_TRUE(ff.saveFile(out.string().c_str(), xfer).good());
+    return out;
+}
+
+/** Every pending alert, oldest first. */
+std::vector<std::string> PendingAlerts() {
+    std::vector<std::string> all;
+    const int32_t n = xpe_get_pending_alert_count();
+    for (int32_t i = 0; i < n; ++i) {
+        char buf[512] = {0};
+        int32_t sev = -1;
+        if (xpe_get_pending_alert(i, buf, sizeof(buf), &sev) == XPE_OK) all.emplace_back(buf);
+    }
+    return all;
+}
+
+bool AnyAlertContains(const std::vector<std::string>& alerts, const char* a, const char* b = nullptr) {
+    for (const auto& m : alerts) {
+        if (m.find(a) != std::string::npos && (b == nullptr || m.find(b) != std::string::npos)) return true;
+    }
+    return false;
+}
+
+}  // namespace
+
+// PS3.3 C.7.6.3.1.1: Bits Stored and High Bit are Type 1 like the other three. 182b let them default (Bits Stored =
+// Bits Allocated, High Bit = Bits Stored - 1), which makes the 16-bit rule and the J2K precision check test a value
+// the reader invented. Absent and empty are malformed, on every pixel-data path.
+TEST_F(DicomReaderTest, Scope_AbsentOrEmptyBitsStoredAndHighBitAreMalformedOnEveryPath) {
+    const fs::path jpegLl = s_tempDir / "jpegll_for_182c.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, jpegLl));
+    std::vector<uint8_t> codestream;
+    ASSERT_TRUE(ExtractJ2kBitstream(s_j2kDcm, codestream));
+
+    struct Path { const char* name; std::function<fs::path(const char*, std::function<void(DcmDataset*)>)> make; };
+    const Path paths[] = {
+        {"native", [&](const char* n, std::function<void(DcmDataset*)> m) { return MakeSameSyntaxVariant(s_validDcm, n, m); }},
+        {"jpeg_lossless", [&](const char* n, std::function<void(DcmDataset*)> m) { return MakeSameSyntaxVariant(jpegLl, n, m); }},
+        {"j2k", [&](const char* n, std::function<void(DcmDataset*)> m) { return MakeJ2kVariant(s_j2kDcm, n, codestream, m); }},
+    };
+    struct Tag { const char* name; DcmTagKey key; };
+    const Tag tags[] = {{"bits_stored", DCM_BitsStored}, {"high_bit", DCM_HighBit}};
+
+    for (const Path& p : paths) {
+        // control: the unmodified variant of this path reads
+        EXPECT_EQ(XPE_OK, ReadScope(p.make((std::string("ctl_") + p.name).c_str(), [](DcmDataset*) {})).read)
+            << p.name << ": control";
+        for (const Tag& t : tags) {
+            const std::string base = std::string(p.name) + "_" + t.name;
+            const ScopeRead a = ReadScope(p.make((base + "_absent").c_str(), [&](DcmDataset* ds) { delete ds->remove(t.key); }));
+            EXPECT_EQ(XPE_ERR_DICOM_INVALID, a.read) << base << " absent";
+            EXPECT_TRUE(a.outUntouchedOnFailure) << base << " absent";
+            EXPECT_EQ(XPE_OK, a.metaAfter) << base << " absent";
+            const ScopeRead e = ReadScope(p.make((base + "_empty").c_str(), [&](DcmDataset* ds) { ds->putAndInsertString(t.key, ""); }));
+            EXPECT_EQ(XPE_ERR_DICOM_INVALID, e.read) << base << " empty";
+        }
+    }
+}
+
+// The refusal reaches the operator: an alert names the attribute or the two values that disagree. (The module's
+// only other channel is its log.) The alert wording is a contract with the clients that display alerts.
+TEST_F(DicomReaderTest, Scope_ARefusalPostsAnAlertThatNamesTheCause) {
+    xpe_clear_alerts();
+    const fs::path noBits = MakeScopeVariant(s_validDcm, "alert_no_bitsstored", [](DcmDataset* ds) { delete ds->remove(DCM_BitsStored); });
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, ReadScope(noBits).read);
+    auto alerts = PendingAlerts();
+    EXPECT_TRUE(AnyAlertContains(alerts, "BitsStored", "absent")) << "absent attribute not named";
+
+    xpe_clear_alerts();
+    const fs::path rgb = MakeScopeVariant(s_validDcm, "alert_rgb", [](DcmDataset* ds) { ds->putAndInsertUint16(DCM_SamplesPerPixel, 3); });
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, ReadScope(rgb).read);
+    alerts = PendingAlerts();
+    EXPECT_TRUE(AnyAlertContains(alerts, "SamplesPerPixel", "3")) << "unsupported value not named";
+
+    xpe_clear_alerts();
+    const fs::path ok = s_validDcm;
+    EXPECT_EQ(XPE_OK, ReadScope(ok).read);
+    EXPECT_EQ(0, xpe_get_pending_alert_count()) << "a file that reads must not post a refusal alert";
+    xpe_clear_alerts();
+}
+
+// What the pre-182b writer produced for a 12-bit image: a 16-bit-precision codestream under Bits Stored 12 / High Bit
+// 11. The writer is fixed, but such files may exist; the reader refuses them, and says which two values disagree.
+TEST_F(DicomReaderTest, J2kScope_AFileFromTheOldWriterIsRefusedAndTheAlertSaysWhy) {
+    // reproduce the old writer: 16-bit precision codestream, dataset declaring 12 bits
+    const std::vector<int32_t> px = Ramp(256u * 256u, 4096);
+    J2kSpec sixteen;   // precision 16, as the old writer always encoded
+    const auto cs = EncodeJ2k(sixteen, px);
+    ASSERT_FALSE(cs.empty());
+    const fs::path p = MakeJ2kVariant(s_j2kDcm, "old_writer_12bit", cs, [](DcmDataset* ds) { SetPixelAttrs(ds, 1, 0, 16, 12, 11); });
+
+    xpe_clear_alerts();
+    const ScopeRead r = ReadScope(p);
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, r.read);
+    EXPECT_TRUE(r.outUntouchedOnFailure);
+    const auto alerts = PendingAlerts();
+    EXPECT_TRUE(AnyAlertContains(alerts, "precision 16", "BitsStored 12"))
+        << "the alert must name the codestream precision and the declared Bits Stored";
+    xpe_clear_alerts();
 }
 
 TEST_F(DicomReaderTest, Scope_MultiFrameIsUnsupportedNotTheFirstFrame) {

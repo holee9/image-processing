@@ -1,0 +1,43 @@
+ARM j2k_precision_alert_text: build_ok=True failed=1
+DicomReaderTest.J2kScope_AFileFromTheOldWriterIsRefusedAndTheAlertSaysWhy
+
+[ RUN      ] DicomReaderTest.J2kScope_AFileFromTheOldWriterIsRefusedAndTheAlertSaysWhy
+[2026-10-02 04:57:59.241] [warning] [DicomReader] dicom read refused: JPEG 2000 codestream mismatch 16 12 16
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3441): error: Value of: AnyAlertContains(alerts, "precision 16", "BitsStored 12")
+  Actual: false
+Expected: true
+the alert must name the codestream precision and the declared Bits Stored
+
+[  FAILED  ] DicomReaderTest.J2kScope_AFileFromTheOldWriterIsRefusedAndTheAlertSaysWhy (9 ms)
+[ RUN      ] DicomReaderTest.Scope_MultiFrameIsUnsupportedNotTheFirstFrame
+[2026-10-02 04:57:59.246] [warning] [DicomReader] dicom read refused: NumberOfFrames 3 (only single-frame images are supported)
+[       OK ] DicomReaderTest.Scope_MultiFrameIsUnsupportedNotTheFirstFrame (4 ms)
+[ RUN      ] DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup
+[2026-10-02 04:57:59.251] [warning] [DicomReader] dicom read refused: SamplesPerPixel 3 (only one sample per pixel is supported)
+[2026-10-02 04:57:59.255] [warning] [DicomReader] dicom read refused: SamplesPerPixel 3 (only one sample per pixel is supported)
+[       OK ] DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup (9 ms)
+[ RUN      ] DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted
+[2026-10-02 04:57:59.261] [warning] [DicomReader] dicom read refused: PixelRepresentation 1 (only unsigned pixels are supported)
+[       OK ] DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted (5 ms)
+[ RUN      ] DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile
+[2026-10-02 04:57:59.265] [warning] [DicomReader] dicom read refused: BitsAllocated 8 (only 16 is supported for uncompressed and JPEG Lossless data)
+[       OK ] DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile (3 ms)
+[ RUN      ] DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted
+[2026-10-02 04:57:59.272] [warning] [DicomReader] dicom read refused: NumberOfFrames (0028,0008) is present but is not a number >= 1
+[2026-10-02 04:57:59.278] [warning] [DicomReader] dicom read refused: NumberOfFrames (0028,0008) is present but is not a number >= 1
+[2026-10-02 04:57:59.282] [warning] [DicomReader] dicom read refused: NumberOfFrames (0028,0008) is present but is not a number >= 1
+[       OK ] DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted (17 ms)
+[ RUN      ] DicomReaderTest.Scope_ARefusedHandleRefusesTheSameWayAgain
+[2026-10-02 04:57:59.287] [warning] [DicomReader] dicom read refused: PixelRepresentation 1 (only unsigned pixels are supported)
+[2026-10-02 04:57:59.287] [warning] [DicomReader] dicom read refused: PixelRepresentation 1 (only unsigned pixels are supported)
+[       OK ] DicomReaderTest.Scope_ARefusedHandleRefusesTheSameWayAgain (4 ms)
+[----------] 20 tests from DicomReaderTest (427 ms total)
+
+[----------] Global test environment tear-down
+[==========] 20 tests from 1 test suite ran. (450 ms total)
+[  PASSED  ] 19 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.J2kScope_AFileFromTheOldWriterIsRefusedAndTheAlertSaysWhy
+
+ 1 FAILED TEST
+

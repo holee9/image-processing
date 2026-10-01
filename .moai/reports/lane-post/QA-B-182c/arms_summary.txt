@@ -1,0 +1,23 @@
+bitsstored_required: build_ok=True red_tests=8
+    DicomReaderTest.J2kScope_OwnSixteenBitFileReadsAndIsDescribedAsSixteenBit
+    DicomReaderTest.Scope_ARefusalPostsAnAlertThatNamesTheCause
+    DicomReaderTest.Scope_AbsentNumberOfFramesIsASingleFrame
+    DicomReaderTest.Scope_AbsentOrEmptyBitsStoredAndHighBitAreMalformedOnEveryPath
+    DicomReaderTest.Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord
+    DicomReaderTest.Scope_OnlySixteenBitAllocationIsReadFromNativePixelData
+    DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads
+    DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted
+highbit_required: build_ok=True red_tests=8
+    DicomReaderTest.J2kScope_OwnSixteenBitFileReadsAndIsDescribedAsSixteenBit
+    DicomReaderTest.Scope_ARefusalPostsAnAlertThatNamesTheCause
+    DicomReaderTest.Scope_AbsentNumberOfFramesIsASingleFrame
+    DicomReaderTest.Scope_AbsentOrEmptyBitsStoredAndHighBitAreMalformedOnEveryPath
+    DicomReaderTest.Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord
+    DicomReaderTest.Scope_OnlySixteenBitAllocationIsReadFromNativePixelData
+    DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads
+    DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted
+alert_not_pushed: build_ok=True red_tests=2
+    DicomReaderTest.J2kScope_AFileFromTheOldWriterIsRefusedAndTheAlertSaysWhy
+    DicomReaderTest.Scope_ARefusalPostsAnAlertThatNamesTheCause
+j2k_precision_alert_text: build_ok=True red_tests=1
+    DicomReaderTest.J2kScope_AFileFromTheOldWriterIsRefusedAndTheAlertSaysWhy
