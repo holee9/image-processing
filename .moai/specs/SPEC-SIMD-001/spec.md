@@ -127,6 +127,19 @@ Legend: ✅ = implemented, 🔴 = parity test missing
 | REQ-SIMD-005 | `ctest -R Parity --output-on-failure` exits 0 | CI green |
 | REQ-SIMD-006 | DegradedMode timing assertions < budget | test output |
 
+> **2026-10-01 정정 주석 (`QA-A-176`, `#230`) — 위 표의 명령 넷은 지금 시험을 하나도 잡지 않는다.**
+> 원문(2026-05)은 이력으로 남긴다. 현재 트리에서 실제로 쓰는 명령과 등록 시험:
+>
+> | REQ | 지금 동작하는 명령 | 등록 시험 | 원문 명령의 현재 매칭 |
+> |---|---|---|---|
+> | REQ-SIMD-001 | `ctest -R OffsetCorrectAVX2Parity` | `OffsetCorrectAVX2ParityTest.*` 3건 | `OffsetAVX2Parity` → 0건 |
+> | REQ-SIMD-002 | `ctest -R GainCorrectAVX2Parity` | `GainCorrectAVX2ParityTest.*` 3건 (원문의 "130/130" 은 시험 수가 아니다 — 무엇을 셌는지 미확인) | `GainAVX2Parity` → 0건 |
+> | REQ-SIMD-003 | **해당 시험 없음** — 결함 보정 경로에는 AVX2 코드가 없다(`#207`). 원문이 가리키던 `test_defect_correct_avx2_parity.cpp` 는 `QA-A-145` 에서 개명돼 없다 | — | `DefectAVX2Parity` → 0건 |
+> | REQ-SIMD-004 | `ctest -R Avx2ParityTest` (철자 `Avx2`) | `Avx2ParityTest.*` 10건 | `RuntimeDetectAVX2Parity` → 0건 |
+>
+> 네 패턴을 한 번에: `ctest -R "AVX2Parity|Avx2Parity"` (16건 = 3 + 3 + 10). 시험 이름은 바꾸지 않았다 —
+> CI 등 자동화는 이 이름을 인용하지 않아 끊기지 않지만, 이름 변경은 다른 문서의 인용을 조용히 끊는다.
+
 ---
 
 ## 4. Implementation Priority for Pre-A Lane

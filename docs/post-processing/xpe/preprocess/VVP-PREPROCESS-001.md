@@ -256,7 +256,7 @@ Pre Lane M2 release gate is PASSED when all of the following are true:
 - [ ] L3: Concurrent access test passes on 4 threads
 - [ ] L3: 1000-cycle endurance test enabled AND passing (no leaks)
 - [ ] L4: BP-01 through BP-05 Frozen AND passing (DegradedMode 6/6 PASS confirmed 2026-04-22)
-- [x] L4: SIMD parity suite (SPEC-SIMD-001) — ctest -R AVX2Parity GREEN (10/10 PASS, verified 2026-05-09)
+- [x] L4: SIMD parity suite (SPEC-SIMD-001) — ctest -R AVX2Parity GREEN (10/10 PASS, verified 2026-05-09). *2026-10-01 (`QA-A-176`): that filter now matches only 6; use `ctest -R "AVX2Parity|Avx2Parity"` (16 = offset 3 + gain 3 + runtime detection 10). See SPEC-SIMD-001 §3 correction note.*
 - [ ] Code review complete per TRUST 5 (see `.claude/rules/moai/core/moai-constitution.md`)
 - [ ] No MX:WARN without MX:REASON in modules/preprocess/
 
