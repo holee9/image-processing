@@ -565,3 +565,162 @@ TEST(IpcDeadline, ALargeReplyThatArrivesInPiecesIsReadWhole) {
     EXPECT_EQ(XPE_OK, o.rc) << "a healthy 4 MiB reply was refused, rc=" << o.rc;
     EXPECT_EQ(0, std::memcmp(in.data(), out.data(), kBytes)) << "pixels did not arrive intact";
 }
+
+// --- Codex audit #10: a connection that cannot be trusted is dropped ------------------------
+//
+// A frame consumed in part, a wrong magic, a reply to someone else's request, or
+// a reply of the wrong shape leaves the byte stream at a position the bridge can
+// no longer know. The next call would read whatever follows as a header. Every
+// such path must drop the connection, so the second call fails loudly as "not
+// connected". A worker's own ERROR frame is the opposite case: a complete,
+// well-formed answer, after which the connection is fine -- the control below
+// keeps the fix from becoming "drop on every error".
+
+namespace {
+
+/** Header (with a chosen magic) plus @p body in one go. */
+void ReplyFrame(FakeWorker& w, uint32_t type, uint32_t request_id, uint32_t flags,
+                const std::vector<char>& body, uint32_t magic = XPE_AI_MSG_MAGIC) {
+    XpeAiMessageHeader r = Header(type, request_id, static_cast<uint32_t>(body.size()), flags);
+    r.magic = magic;
+    w.Write(&r, sizeof(r));
+    if (!body.empty()) w.Write(body.data(), static_cast<DWORD>(body.size()));
+}
+
+/** A well-formed 3x3 BONE_SUPPRESS_RESP body: length prefix, JSON, 36 pixel bytes. */
+std::vector<char> GoodBoneBody(size_t pixel_bytes = 36) {
+    const char json[] = "{\"success\":true,\"width\":3,\"height\":3,\"format\":\"float32\"}";
+    const uint32_t jn = static_cast<uint32_t>(sizeof(json) - 1);
+    std::vector<char> b(sizeof(uint32_t) + jn + pixel_bytes, 0);
+    std::memcpy(b.data(), &jn, sizeof(jn));
+    std::memcpy(b.data() + sizeof(jn), json, jn);
+    return b;
+}
+
+/** Serve one request with @p reply, then keep reading so later sends complete. */
+FakeWorker::Behaviour ServeOnce(std::function<void(FakeWorker&, uint32_t)> reply) {
+    return [reply](FakeWorker& w) {
+        XpeAiMessageHeader h;
+        std::vector<char> p;
+        if (!w.ReadRequest(h, p)) return;
+        reply(w, h.requestId);
+        while (w.ReadRequest(h, p)) {}   // a second request must be ACCEPTED by the server
+    };
+}
+
+/** After the first call, is the bridge still usable for a plain send? */
+XpeErrorCode SecondSend(XpeAiIpcBridge* b) {
+    XpeAiMessageHeader req = Header(XPE_AI_MSG_HEARTBEAT, 99);
+    return xpe_ai_ipc_bridge_send(b, &req, nullptr, 0);
+}
+
+const float kIn3x3[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+
+}  // namespace
+
+TEST(IpcDeadline, ABodyLongerThanTheBufferDropsTheConnection) {
+    FakeWorker fw(ServeOnce([](FakeWorker& w, uint32_t id) {
+        ReplyFrame(w, XPE_AI_MSG_HEARTBEAT_ACK, id, 0, std::vector<char>(200, 7));
+    }));
+    ASSERT_TRUE(fw.ok());
+    Client c(fw, 2000);
+    ASSERT_NE(nullptr, c.b);
+    XpeAiMessageHeader req = Header(XPE_AI_MSG_HEARTBEAT, 1);
+    ASSERT_EQ(XPE_OK, xpe_ai_ipc_bridge_send(c.b, &req, nullptr, 0));
+    XpeAiMessageHeader rep{};
+    uint8_t tiny[64];
+    uint32_t got = 0;
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL,
+              xpe_ai_ipc_bridge_receive(c.b, &rep, tiny, sizeof(tiny), &got));
+    // The header was consumed and 200 body bytes are still in the pipe: the next
+    // receive would read them as a header.
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, SecondSend(c.b))
+        << "the connection survived a half-consumed frame";
+}
+
+TEST(IpcDeadline, ABodyWithNoBufferAtAllDropsTheConnection) {
+    FakeWorker fw(ServeOnce([](FakeWorker& w, uint32_t id) {
+        ReplyFrame(w, XPE_AI_MSG_HEARTBEAT_ACK, id, 0, std::vector<char>(16, 7));
+    }));
+    ASSERT_TRUE(fw.ok());
+    Client c(fw, 2000);
+    ASSERT_NE(nullptr, c.b);
+    XpeAiMessageHeader req = Header(XPE_AI_MSG_HEARTBEAT, 1);
+    ASSERT_EQ(XPE_OK, xpe_ai_ipc_bridge_send(c.b, &req, nullptr, 0));
+    XpeAiMessageHeader rep{};
+    uint32_t got = 0;
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, xpe_ai_ipc_bridge_receive(c.b, &rep, nullptr, 0, &got));
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, SecondSend(c.b));
+}
+
+TEST(IpcDeadline, AWrongMagicDropsTheConnection) {
+    FakeWorker fw(ServeOnce([](FakeWorker& w, uint32_t id) {
+        ReplyFrame(w, XPE_AI_MSG_HEARTBEAT_ACK, id, 0, {}, 0xDEADBEEFu);
+    }));
+    ASSERT_TRUE(fw.ok());
+    Client c(fw, 2000);
+    ASSERT_NE(nullptr, c.b);
+    XpeAiMessageHeader req = Header(XPE_AI_MSG_HEARTBEAT, 1);
+    ASSERT_EQ(XPE_OK, xpe_ai_ipc_bridge_send(c.b, &req, nullptr, 0));
+    XpeAiMessageHeader rep{};
+    uint8_t buf[64];
+    uint32_t got = 0;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_ai_ipc_bridge_receive(c.b, &rep, buf, sizeof(buf), &got));
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, SecondSend(c.b));
+}
+
+TEST(IpcDeadline, AReplyToSomeoneElsesRequestDropsTheConnection) {
+    FakeWorker fw(ServeOnce([](FakeWorker& w, uint32_t id) {
+        ReplyFrame(w, XPE_AI_MSG_BONE_SUPPRESS_RESP, id + 1000, XPE_AI_FLAG_HAS_BINARY_PAYLOAD,
+                   GoodBoneBody());
+    }));
+    ASSERT_TRUE(fw.ok());
+    Client c(fw, 2000);
+    ASSERT_NE(nullptr, c.b);
+    float out[9];
+    EXPECT_EQ(XPE_ERR_IO_FAILED, xpe_ai_ipc_bridge_bone_suppress(c.b, 3, 3, kIn3x3, out));
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, SecondSend(c.b));
+}
+
+TEST(IpcDeadline, AReplyOfTheWrongTypeDropsTheConnection) {
+    FakeWorker fw(ServeOnce([](FakeWorker& w, uint32_t id) {
+        ReplyFrame(w, XPE_AI_MSG_HEARTBEAT_ACK, id, XPE_AI_FLAG_HAS_BINARY_PAYLOAD, GoodBoneBody());
+    }));
+    ASSERT_TRUE(fw.ok());
+    Client c(fw, 2000);
+    ASSERT_NE(nullptr, c.b);
+    float out[9];
+    EXPECT_EQ(XPE_ERR_IO_FAILED, xpe_ai_ipc_bridge_bone_suppress(c.b, 3, 3, kIn3x3, out));
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, SecondSend(c.b));
+}
+
+TEST(IpcDeadline, AReplyWithTheWrongPixelLengthDropsTheConnection) {
+    FakeWorker fw(ServeOnce([](FakeWorker& w, uint32_t id) {
+        ReplyFrame(w, XPE_AI_MSG_BONE_SUPPRESS_RESP, id, XPE_AI_FLAG_HAS_BINARY_PAYLOAD,
+                   GoodBoneBody(20));   // 20 pixel bytes where 3x3 float32 needs 36
+    }));
+    ASSERT_TRUE(fw.ok());
+    Client c(fw, 2000);
+    ASSERT_NE(nullptr, c.b);
+    float out[9];
+    for (float& v : out) v = -777.0f;
+    EXPECT_EQ(XPE_ERR_IO_FAILED, xpe_ai_ipc_bridge_bone_suppress(c.b, 3, 3, kIn3x3, out));
+    for (float v : out) EXPECT_EQ(-777.0f, v);
+    EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, SecondSend(c.b));
+}
+
+TEST(IpcDeadline, ControlAWorkersOwnErrorFrameKeepsTheConnection) {
+    // A complete, well-formed answer that says "no": nothing is left in the pipe
+    // and the worker is fine. Dropping here would turn every bad request into a
+    // reconnect, which is the over-fix this control exists to catch.
+    FakeWorker fw(ServeOnce([](FakeWorker& w, uint32_t id) {
+        const std::string body = "{\"error_code\":-9,\"error_message\":\"no model\"}";
+        ReplyFrame(w, XPE_AI_MSG_ERROR, id, 0, std::vector<char>(body.begin(), body.end()));
+    }));
+    ASSERT_TRUE(fw.ok());
+    Client c(fw, 2000);
+    ASSERT_NE(nullptr, c.b);
+    float out[9];
+    EXPECT_EQ(XPE_ERR_IO_FAILED, xpe_ai_ipc_bridge_bone_suppress(c.b, 3, 3, kIn3x3, out));
+    EXPECT_EQ(XPE_OK, SecondSend(c.b)) << "an error FRAME is a healthy answer; the connection stays";
+}

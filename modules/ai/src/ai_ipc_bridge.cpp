@@ -106,15 +106,15 @@ Io TransferUntil(HANDLE h, bool read, void* buf, DWORD len, ULONGLONG deadline) 
                 break;
             }
             const DWORD w = WaitForSingleObject(ev, RemainingMs(deadline));
-            if (w == WAIT_TIMEOUT) {
+            if (w != WAIT_OBJECT_0) {
+                // Timeout OR a failed wait: either way the I/O is still pending
+                // against this stack's OVERLAPPED and this event, and a pending
+                // operation must not outlive them. Cancel it and wait for the
+                // cancel to land before anything is released (Codex audit #10).
                 DWORD ignored = 0;
                 CancelIoEx(h, &ov);
-                GetOverlappedResult(h, &ov, &ignored, TRUE);   // wait for the cancel to land
-                result = Io::kTimeout;
-                break;
-            }
-            if (w != WAIT_OBJECT_0) {
-                result = Io::kError;
+                GetOverlappedResult(h, &ov, &ignored, TRUE);
+                result = (w == WAIT_TIMEOUT) ? Io::kTimeout : Io::kError;
                 break;
             }
         }
@@ -134,10 +134,17 @@ Io TransferUntil(HANDLE h, bool read, void* buf, DWORD len, ULONGLONG deadline) 
 }
 
 /**
- * After a timeout, a half transfer or a broken pipe the byte stream is at an
- * unknown position: a reply that arrives late would be read as the answer to
- * the NEXT request. The connection is dropped instead, so the next call fails
- * loudly (not connected) and the owner reconnects -- or restarts the worker.
+ * Whenever the byte stream may be at a position nobody can know, the connection
+ * is dropped instead of reused: after a timeout, a half transfer, a broken pipe,
+ * a frame consumed in part (wrong magic, a body the buffer cannot hold), or a
+ * reply that is not the answer to this request (wrong request id, wrong type or
+ * length). A late or leftover byte would otherwise be read as the NEXT reply.
+ * The next call then fails loudly (not connected) and the owner reconnects -- or
+ * restarts the worker.
+ *
+ * NOT dropped: argument validation that fails before any I/O, and a worker's
+ * own well-formed XPE_AI_MSG_ERROR frame -- a complete answer, after which the
+ * stream is exactly where it should be.
  */
 void DropConnection(XpeAiIpcBridge* bridge) {
     if (bridge->pipe_handle != INVALID_HANDLE_VALUE) {
@@ -273,7 +280,8 @@ XpeErrorCode xpe_ai_ipc_bridge_receive(XpeAiIpcBridge* bridge,
 //   time budget exceeded PROCESSING_FAILED (the documented fallback signal,
 //                        REQ-AI-002, now with REQ-AI-092's budget behind it)
 //   peer closed (header) PROCESSING_FAILED   peer closed (payload/send) IO_FAILED
-// After any failure past argument validation the connection is dropped.
+// After any failure past argument validation the connection is dropped, except
+// when the worker answered with a complete, well-formed ERROR frame.
 
 namespace {
 
@@ -347,14 +355,21 @@ XpeErrorCode ReceiveUntil(XpeAiIpcBridge* bridge, XpeAiMessageHeader* header_out
     }
     *bytes_received += static_cast<uint32_t>(sizeof(XpeAiMessageHeader));
 
+    // From here a frame has been (partly) consumed. Any path that does not read
+    // it to its end, or reads one that is not a valid frame, leaves the stream
+    // at a position nobody can know -- the next receive would take leftover body
+    // bytes for a header -- so each of them drops the connection (Codex audit #10).
+
     // Validate received header
     if (header_out->magic != XPE_AI_MSG_MAGIC) {
+        DropConnection(bridge);
         return XPE_ERR_INVALID_INPUT;
     }
 
     // Read payload (if any)
     if (header_out->payloadSize > 0) {
         if (!payload_out || payload_size < header_out->payloadSize) {
+            DropConnection(bridge);   // the body is still in the pipe
             return XPE_ERR_BUFFER_TOO_SMALL;
         }
 
@@ -454,7 +469,8 @@ XpeErrorCode xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge,
         return rc;
     }
     if (rh.requestId != header.requestId) {
-        return XPE_ERR_IO_FAILED;   // someone else's answer
+        DropConnection(bridge);   // someone else's answer: the stream is out of step
+        return XPE_ERR_IO_FAILED;
     }
 
     if (rh.messageType == XPE_AI_MSG_ERROR) {
@@ -472,12 +488,14 @@ XpeErrorCode xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge,
     if (rh.messageType != XPE_AI_MSG_BONE_SUPPRESS_RESP ||
         (rh.flags & XPE_AI_FLAG_HAS_BINARY_PAYLOAD) == 0 ||
         rh.payloadSize < sizeof(uint32_t)) {
+        DropConnection(bridge);   // not the reply this request can get
         return XPE_ERR_IO_FAILED;
     }
     uint32_t reply_json = 0;
     std::memcpy(&reply_json, reply.data(), sizeof(reply_json));
     if (static_cast<uint64_t>(sizeof(uint32_t)) + reply_json + pixel_bytes != rh.payloadSize) {
-        return XPE_ERR_IO_FAILED;   // pixel count does not match what was sent
+        DropConnection(bridge);   // pixel count does not match what was sent
+        return XPE_ERR_IO_FAILED;
     }
     std::memcpy(pixels_out, reply.data() + sizeof(uint32_t) + reply_json, pixel_bytes);
     return XPE_OK;

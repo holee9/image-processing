@@ -1,0 +1,85 @@
+Note: Google Test filter = IpcDeadline.*
+[==========] Running 17 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 17 tests from IpcDeadline
+[ RUN      ] IpcDeadline.ControlAWorkerThatAnswersIsAnsweredWithinTheBudget
+[       OK ] IpcDeadline.ControlAWorkerThatAnswersIsAnsweredWithinTheBudget (20 ms)
+[ RUN      ] IpcDeadline.AWorkerThatNeverAnswersReturnsControlAfterTheBudget
+[       OK ] IpcDeadline.AWorkerThatNeverAnswersReturnsControlAfterTheBudget (417 ms)
+[ RUN      ] IpcDeadline.TheBudgetIsTheConfiguredValueNotAConstant
+[       OK ] IpcDeadline.TheBudgetIsTheConfiguredValueNotAConstant (1545 ms)
+[ RUN      ] IpcDeadline.BoneSuppressWithAStalledWorkerFailsAfterTheBudgetAndLeavesTheOutputAlone
+[       OK ] IpcDeadline.BoneSuppressWithAStalledWorkerFailsAfterTheBudgetAndLeavesTheOutputAlone (416 ms)
+[ RUN      ] IpcDeadline.AReplyThatStopsHalfWayAndStallsIsNotCountedAsSuccess
+[       OK ] IpcDeadline.AReplyThatStopsHalfWayAndStallsIsNotCountedAsSuccess (402 ms)
+[ RUN      ] IpcDeadline.AReplyThatStopsHalfWayAndClosesIsNotCountedAsSuccess
+[       OK ] IpcDeadline.AReplyThatStopsHalfWayAndClosesIsNotCountedAsSuccess (15 ms)
+[ RUN      ] IpcDeadline.ControlTheRealWorkerAnswersAHeartbeatBeforeAnyKill
+[       OK ] IpcDeadline.ControlTheRealWorkerAnswersAHeartbeatBeforeAnyKill (64 ms)
+[ RUN      ] IpcDeadline.ADeadWorkerIsReportedPromptlyNotAwaitedForever
+[       OK ] IpcDeadline.ADeadWorkerIsReportedPromptlyNotAwaitedForever (76 ms)
+[ RUN      ] IpcDeadline.PipeClosureAloneDoesNotSeparateAnExitOnRequestFromADeath
+[measure] exit-on-request: bridge rc=-3 hung=0 process exit code=0
+[measure] death:           bridge rc=-3 hung=0 process exit code=99
+[       OK ] IpcDeadline.PipeClosureAloneDoesNotSeparateAnExitOnRequestFromADeath (153 ms)
+[ RUN      ] IpcDeadline.ALargeReplyThatArrivesInPiecesIsReadWhole
+[       OK ] IpcDeadline.ALargeReplyThatArrivesInPiecesIsReadWhole (985 ms)
+[ RUN      ] IpcDeadline.ABodyLongerThanTheBufferDropsTheConnection
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(637): error: Expected equality of these values:
+  -6
+  SecondSend(c.b)
+    Which is: 0
+the connection survived a half-consumed frame
+
+[  FAILED  ] IpcDeadline.ABodyLongerThanTheBufferDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.ABodyWithNoBufferAtAllDropsTheConnection
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(653): error: Expected equality of these values:
+  -6
+  SecondSend(c.b)
+    Which is: 0
+
+[  FAILED  ] IpcDeadline.ABodyWithNoBufferAtAllDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AWrongMagicDropsTheConnection
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(669): error: Expected equality of these values:
+  -6
+  SecondSend(c.b)
+    Which is: 0
+
+[  FAILED  ] IpcDeadline.AWrongMagicDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AReplyToSomeoneElsesRequestDropsTheConnection
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(682): error: Expected equality of these values:
+  -6
+  SecondSend(c.b)
+    Which is: 0
+
+[  FAILED  ] IpcDeadline.AReplyToSomeoneElsesRequestDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AReplyOfTheWrongTypeDropsTheConnection
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(694): error: Expected equality of these values:
+  -6
+  SecondSend(c.b)
+    Which is: 0
+
+[  FAILED  ] IpcDeadline.AReplyOfTheWrongTypeDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AReplyWithTheWrongPixelLengthDropsTheConnection
+D:\workspace-github\xpe-post\modules\ai\tests\test_ipc_deadline.cpp(709): error: Expected equality of these values:
+  -6
+  SecondSend(c.b)
+    Which is: 0
+
+[  FAILED  ] IpcDeadline.AReplyWithTheWrongPixelLengthDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.ControlAWorkersOwnErrorFrameKeepsTheConnection
+[       OK ] IpcDeadline.ControlAWorkersOwnErrorFrameKeepsTheConnection (0 ms)
+[----------] 17 tests from IpcDeadline (4107 ms total)
+
+[----------] Global test environment tear-down
+[==========] 17 tests from 1 test suite ran. (4107 ms total)
+[  PASSED  ] 11 tests.
+[  FAILED  ] 6 tests, listed below:
+[  FAILED  ] IpcDeadline.ABodyLongerThanTheBufferDropsTheConnection
+[  FAILED  ] IpcDeadline.ABodyWithNoBufferAtAllDropsTheConnection
+[  FAILED  ] IpcDeadline.AWrongMagicDropsTheConnection
+[  FAILED  ] IpcDeadline.AReplyToSomeoneElsesRequestDropsTheConnection
+[  FAILED  ] IpcDeadline.AReplyOfTheWrongTypeDropsTheConnection
+[  FAILED  ] IpcDeadline.AReplyWithTheWrongPixelLengthDropsTheConnection
+
+ 6 FAILED TESTS
