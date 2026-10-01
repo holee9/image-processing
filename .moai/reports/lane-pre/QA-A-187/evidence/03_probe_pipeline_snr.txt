@@ -1,0 +1,38 @@
+Note: Google Test filter = A187Probe.*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A187Probe
+[ RUN      ] A187Probe.DISABLED_PipelineSnrMedianVersusMean
+
+[a187] xpe_verify_pipeline snr_improvement_db, gate >= 2.0 dB
+[a187] symmetric noise, reduced 1.20x                       today=  1.6084 dB FAIL | median=  1.6084 (= today) | mean=  1.6077 dB FAIL
+[a187] symmetric noise, reduced 1.26x                       today=  1.9806 dB FAIL | median=  1.9806 (= today) | mean=  1.9798 dB FAIL
+[a187] symmetric noise, reduced 1.30x                       today=  2.2212 dB PASS | median=  2.2212 (= today) | mean=  2.2212 dB PASS
+[a187] symmetric noise, reduced 2.00x                       today=  5.8998 dB PASS | median=  5.8998 (= today) | mean=  5.8998 dB PASS
+[a187] raw skewed (2% of pixels +1500), final clean         today= 11.6624 dB PASS | median= 11.6624 (= today) | mean= 11.5903 dB PASS
+[a187] raw skewed (5% of pixels +1500), final clean         today= 15.2819 dB PASS | median= 15.2819 (= today) | mean= 15.0797 dB PASS
+[a187] raw skewed (10% of pixels +1500), final clean        today= 18.0238 dB PASS | median= 18.0238 (= today) | mean= 17.6053 dB PASS
+[a187] raw skewed (20% of pixels +1500), final clean        today= 21.0027 dB PASS | median= 21.0027 (= today) | mean= 20.1143 dB PASS
+[a187] raw with 8 dead pixels, final repaired               today= 13.0932 dB PASS | median= 13.0932 (= today) | mean= 13.0953 dB PASS
+[a187] raw with 40 dead pixels, final repaired              today= 19.9153 dB PASS | median= 19.9153 (= today) | mean= 19.9271 dB PASS
+[a187] raw with 160 dead pixels, final repaired             today= 25.9281 dB PASS | median= 25.9281 (= today) | mean= 25.9712 dB PASS
+[a187] final skewed (10% of pixels +300), raw sigma 200     today=  3.4234 dB PASS | median=  3.4234 (= today) | mean=  3.4922 dB PASS
+[a187] final skewed (10% of pixels +600), raw sigma 200     today= -0.5880 dB FAIL | median= -0.5880 (= today) | mean= -0.3579 dB FAIL
+[a187] final skewed (10% of pixels +900), raw sigma 200     today= -3.3905 dB FAIL | median= -3.3905 (= today) | mean= -3.0605 dB FAIL
+[a187] sweep: final skewed (10% of pixels +360)             today=  2.6105 dB PASS | median=  2.6105 (= today) | mean=  2.7212 dB PASS
+[a187] sweep: final skewed (10% of pixels +370)             today=  2.4399 dB PASS | median=  2.4399 (= today) | mean=  2.5449 dB PASS
+[a187] sweep: final skewed (10% of pixels +380)             today=  2.2859 dB PASS | median=  2.2859 (= today) | mean=  2.4182 dB PASS
+[a187] sweep: final skewed (10% of pixels +390)             today=  2.2027 dB PASS | median=  2.2027 (= today) | mean=  2.3346 dB PASS
+[a187] sweep: final skewed (10% of pixels +400)             today=  1.9248 dB FAIL | median=  1.9248 (= today) | mean=  2.0518 dB PASS  SPLIT
+[a187] sweep: final skewed (10% of pixels +410)             today=  1.9277 dB FAIL | median=  1.9277 (= today) | mean=  2.0628 dB PASS  SPLIT
+[a187] sweep: final skewed (10% of pixels +420)             today=  1.7013 dB FAIL | median=  1.7013 (= today) | mean=  1.8490 dB FAIL
+[a187] sweep: final skewed (10% of pixels +430)             today=  1.6698 dB FAIL | median=  1.6698 (= today) | mean=  1.8201 dB FAIL
+[a187] sweep: final skewed (10% of pixels +440)             today=  1.5361 dB FAIL | median=  1.5361 (= today) | mean=  1.6825 dB FAIL
+[a187] sweep: final skewed (10% of pixels +450)             today=  1.3006 dB FAIL | median=  1.3006 (= today) | mean=  1.4625 dB FAIL
+[a187] sweep: final skewed (10% of pixels +460)             today=  1.0860 dB FAIL | median=  1.0860 (= today) | mean=  1.2546 dB FAIL
+[       OK ] A187Probe.DISABLED_PipelineSnrMedianVersusMean (89 ms)
+[----------] 1 test from A187Probe (89 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (89 ms total)
+[  PASSED  ] 1 test.

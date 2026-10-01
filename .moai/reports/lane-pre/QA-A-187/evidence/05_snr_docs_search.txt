@@ -1,0 +1,46 @@
+## 'SNR' (case-insens.) in calibration/project docs, excluding generated doxygen
+docs/calibration/CONCEPT-DIAGRAMS.md:373:        D2{"런타임 SNR\n검출 활성?"}
+docs/calibration/CONCEPT-DIAGRAMS.md:374:        D3["SNR 계산\n각 픽셀 대비 이웃"]
+docs/calibration/CONCEPT-DIAGRAMS.md:375:        D4{"SNR < 5 dB?"}
+docs/calibration/IAP-CALIB-001_Image_Acquisition_Protocol.md:787:│ - SNR: σ < 임계값?           │
+docs/calibration/IAP-CALIB-001_Image_Acquisition_Protocol.md:820:| **SNR (σ/μ)** | < 5% | > 5% |
+docs/calibration/IAP-CALIB-001_Image_Acquisition_Protocol.md:1095:| Ranger et al. 2014 | 게인/오프셋 SNR | Section 6.1, 6.2 |
+docs/calibration/IAP-CALIB-001_Image_Acquisition_Protocol.md:1113:| **SNR** | Signal-to-Noise Ratio |
+docs/calibration/KNOWLEDGE-BASE.md:391:| `xpe_defect_detect_runtime()` | 보정 | 1.3 | 런타임 SNR 기반 결함 검출 |
+docs/calibration/PRIOR-ART-BPM-ALGORITHM.md:354:- [ ] 임상 영상 전처리 후 PSNR > 40 dB
+docs/calibration/README.md:741:| SNR 저하 | 95% 신뢰도 구간 밖 | 재캘리브레이션 권장 |
+docs/calibration/README.md:857:| [Ranger et al. 2014](https://pmc.ncbi.nlm.nih.gov/articles/PMC3965338/) | 게인/오프셋 SNR 캘리브레이션 | 드리프트 검출 임계값 |
+docs/calibration/RTM-CALIB-001_Requirements_Traceability_Matrix.md:47:> | FUNC-010 | Apply CRC-32 checksum to all calibration maps | **런타임 결함 검출** `xpe_defect_detect_runtime()`, SNR < 5 dB (:122)
+docs/calibration/SAD-CALIB-001_Software_Architecture_Document.md:131:- Runtime detection: Optional SNR-based defect flagging (log to runtime map)
+docs/calibration/SAD-CALIB-001_Software_Architecture_Document.md:187:- Operation: Calculate per-pixel SNR, flag SNR < 5 dB as defects
+docs/calibration/SAD-CALIB-001_Software_Architecture_Document.md:611:| SRS-CALIB-FUNC-010 (runtime defects) | SWU-1.9 (RuntimeDefectDetector) | Integration test: SNR calculation |
+docs/calibration/SRS-CALIB-001_Software_Requirements_Specification.md:122:| **SRS-CALIB-FUNC-010** | System shall support runtime defect detection via `xpe_defect_detect_runtime()` function to identify new defe
+docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md:330:| **defect_noisy_0.1pct** | Noisy (CV > 20%) | 0.1% | SNR < 5dB 픽셀 검출 |
+docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md:393:| SRS-CALIB-FUNC-010 | 런타임 결함 검출 (SNR 기반) |
+docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md:768:#### 5.2.4 Noisy Pixel 주입 (SNR-based)
+docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md:774:3. 10 프레임 반복 측정에서 SNR < 5 dB 검증
+docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md:1209:| `PRE-E2E-3` | cases with known outputs such as `*_oc.raw` | RMSE/PSNR reference comparison after semantics confirmation |
+docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md:1256:| Ranger et al. | SNR Calibration | 2014 | 드리프트 검출 임계값 |
+docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md:1314:| **합격 기준** | CES ≥ 85, 다항식 R² > 0.99, 임상 PSNR > 40 dB |
+docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md:1451:  ├─ 임상 영상 PSNR > 40 dB ✓
+docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md:1464:  - RMSE/PSNR 검증
+docs/calibration/XPE-GUI-CALIB-001_Calibration_Verification_Test_GUI_Spec.md:368:    "psnr_db_min": 40.0,
+docs/calibration/xray-detector-calibration-prd.md:151:| SNR | Signal-to-Noise Ratio | 신호 대 잡음비 |
+docs/calibration/xray-detector-calibration-prd.md:171:| **DQE** | 입력 SNR² 대비 출력 SNR²의 비율; 검출기의 신호 전달 효율 |
+docs/calibration/xray-detector-calibration-prd.md:778:Gaussian kernel 저역통과 필터 (\(\sigma = 2 \sim 10\) 픽셀)를 사용하며, 이는 SNR을 최적화하는 동시에 구조적 불균일성은 보�
+docs/calibration/xray-detector-calibration-prd.md:827:\text{SNR}(i) = \frac{|x(i) - \hat{\mu}|}{\hat{\sigma}} > \lambda, \quad \lambda = 8.0
+docs/calibration/xray-detector-calibration-prd.md:910:| 방법 | NMSE | PSNR (dB) |
+docs/calibration/xray-detector-calibration-prd.md:1616:픽셀 빈닝(pixel binning)은 인접 픽셀들의 신호를 합산하여 등가 픽셀 크기를 증가시키는 방법이다. [Srinivas & Wilson (2004)]
+docs/calibration/xray-detector-calibration-prd.md:1692:| REQ-BIN-006 | 빈닝 모드별 예상 SNR 개선량을 계산하여 사용자에게 제공해야 한다 | Low | 문서화 |
+docs/calibration/xray-detector-calibration-prd.md:1939:#### 7.3.3 SNR 성능
+docs/calibration/xray-detector-calibration-prd.md:1941:| 노출 레벨 | 목표 SNR | 측정 방법 |
+docs/calibration/xray-detector-calibration-prd.md:2002:| CIRS ATOM 모형 (흉부, 복부) | 임상 시뮬레이션 | CNR, SNR, artifact |
+docs/calibration/xray-detector-calibration-prd.md:2031:| Pediatric (저선량) | 최소 노출 (0.1 μGy) | SNR, defect 보정 품질 |
+docs/calibration/xray-detector-calibration-prd.md:2611:          d. SNR/noise 미리보기 확인
+docs/calibration/xray-detector-calibration-prd.md:2707:| [Willis, C.E. et al. "Gain and offset calibration reduces variation in exposure index"](https://pmc.ncbi.nlm.nih.gov/articles/PMC3965338/) | Med. Phys. |
+docs/calibration/xray-detector-calibration-prd.md:3043:        snr_f2 = (dark_mean - mu_robust) / sigma_robust
+
+## control: 'PRNU' same scope (file count)
+6
+## control: 'SNR' file count
+30

@@ -1,0 +1,37 @@
+# token census, case-sensitive substring (NOT whole-word; the first pass used -w and missed FlatResidualPct)
+## scope: modules
+  FlatResidualPct : 4 files
+  flat_residual : 1 files
+  FlatResidual : 4 files
+  PRNU_CV : 3 files
+  LineArtifactScore : 0 files
+  FPN_Reduction : 0 files
+  DefectRecall : 0 files
+  defect_recall : 0 files
+  DefectFPR : 0 files
+  DefectResidualADU : 0 files
+  GoodPixelDeltaP99 : 0 files
+  -- controls (must be >0 in modules) --
+  prnu_after : 4 files
+  gain_coverage : 3 files
+  defect_density : 3 files
+  snr_improvement_db : 3 files
+  dark_bias : 4 files
+## scope: clients gui tools
+  FlatResidualPct : 1 files
+  flat_residual : 0 files
+  FlatResidual : 1 files
+  PRNU_CV : 1 files
+  LineArtifactScore : 1 files
+  FPN_Reduction : 1 files
+  DefectRecall : 1 files
+  defect_recall : 0 files
+  DefectFPR : 1 files
+  DefectResidualADU : 1 files
+  GoodPixelDeltaP99 : 1 files
+  -- controls (must be >0 in modules) --
+  prnu_after : 0 files
+  gain_coverage : 0 files
+  defect_density : 0 files
+  snr_improvement_db : 0 files
+  dark_bias : 0 files
