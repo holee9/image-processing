@@ -139,10 +139,13 @@ struct AiModuleState {
      * Consecutive failures of the worker path (QA-B-171C policy, user-approved 2026-10-01,
      * docs/project/REQ-CHANGE-LOG-P3-AI.md rows 2 and 3). A success resets it to 0.
      */
-    uint32_t workerConsecutiveFailures{0};
+    std::atomic<uint32_t> workerConsecutiveFailures{0};
 
     /** Set at kWorkerFailureCeiling consecutive failures: the worker is off for the rest of the session. */
-    bool workerDisabled{false};
+    std::atomic<bool> workerDisabled{false};
+    // Both are written only with mtx held (inside a call) but READ without it by xpe_ai_worker_state:
+    // a call holds mtx for its whole time budget, and a status query that waited for it would freeze
+    // the client's UI thread for that long (QA-B-173).
 
     // --- Worker process state ---
     /** PID of the worker process (0 if not running). */
@@ -499,6 +502,33 @@ XPE_API XpeErrorCode xpe_ai_init(const char* modelDirPath,
                 static_cast<int>(state->executionProvider),
                 state->timeoutMs);
 
+    return XPE_OK;
+}
+
+XPE_API XpeErrorCode xpe_ai_worker_state(int32_t* stateOut,
+                                          uint32_t* consecutiveFailuresOut,
+                                          uint32_t* ceilingOut)
+{
+    if (!stateOut) return XPE_ERR_INVALID_INPUT;
+    XpeErrorCode ec = checkInitialized();
+    if (ec != XPE_OK) return ec;
+
+    // Deliberately NO lock_guard on state->mtx: see AiModuleState::workerDisabled. The two fields are
+    // read disabled-first, then the count. The writer sets the count to the ceiling BEFORE it sets
+    // disabled, so a reader that sees disabled == false and a count at the ceiling has caught the
+    // switch-off half way: that is reported as DISABLED, never as "active, 3 of 3".
+    const AiModuleState* state = g_aiState;
+    const bool disabled = state->workerDisabled.load(std::memory_order_acquire);
+    const uint32_t failures = state->workerConsecutiveFailures.load(std::memory_order_acquire);
+
+    int32_t st = XPE_AI_WORKER_NOT_USED;
+    if (state->useWorker) {
+        st = (disabled || failures >= kWorkerFailureCeiling) ? XPE_AI_WORKER_DISABLED
+                                                             : XPE_AI_WORKER_ACTIVE;
+    }
+    *stateOut = st;
+    if (consecutiveFailuresOut) *consecutiveFailuresOut = failures;
+    if (ceilingOut) *ceilingOut = kWorkerFailureCeiling;
     return XPE_OK;
 }
 

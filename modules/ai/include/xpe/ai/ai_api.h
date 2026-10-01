@@ -276,6 +276,19 @@ XPE_API XpeErrorCode xpe_stitch_estimate_size(const XpeImageBuffer* parts,
  *                          are rejected here too.
  * @param configJsonOrNull Optional configuration (model variant, strength).
  *                         Currently ignored.
+ *
+ * PIXEL SCALE (QA-B-173). The CALLER supplies pixels in the scale the model was
+ * trained for; this module does not normalise. The float values of @p img reach
+ * the model exactly as given, on the in-process path and on the worker path,
+ * and the model's output is copied to @p softTissueOut exactly as it comes
+ * back: nothing is scaled, clamped, shifted or range-checked on the way in or
+ * out. A value of 65535.0 or -3.0 is passed on as such, and the values are not
+ * checked at all, not even for NaN. XPE-SDD-002 says "Preprocess:
+ * normalize input to [0, 1]", but no code in this module does that, so an
+ * image that must be in [0, 1] has to be put there by the caller before the
+ * call, and the output is in whatever scale the model produces. Which scale a
+ * given model expects is a property of the model; the module does not know it.
+ *
  * MODEL AND SESSION OWNERSHIP (QA-B-161, #130, FUNC-038).
  * The model is read from `<modelDir>/bone_suppress.onnx`, where `<modelDir>`
  * is the path given to xpe_ai_init. The session built from it is owned by this
@@ -407,6 +420,54 @@ XPE_API XpeErrorCode xpe_ai_get_model_card(const char* modelId,
  * Thread safety: Thread-safe (atomic flag).
  */
 XPE_API XpeErrorCode xpe_ai_set_fallback_mode(int32_t enable);
+
+/** xpe_ai_worker_state(): "use_worker" was not set at xpe_ai_init; there is no worker path. */
+#define XPE_AI_WORKER_NOT_USED  0
+/** xpe_ai_worker_state(): the worker path is in use and has not been switched off. */
+#define XPE_AI_WORKER_ACTIVE    1
+/**
+ * xpe_ai_worker_state(): the worker path was switched off for the rest of this session after
+ * the ceiling of consecutive failures. xpe_bone_suppress now returns its input with
+ * XPE_ERR_PROCESSING_FAILED at once. Recover with xpe_ai_shutdown() then xpe_ai_init().
+ */
+#define XPE_AI_WORKER_DISABLED  2
+
+/**
+ * @brief Reads the worker path's status for this session, without changing anything.
+ *
+ * The source of truth for "the AI worker is off for this session", which the
+ * alert queue cannot be: alerts are drained by the reader and can overflow
+ * (SRS-ALERT-007), the status stays. A client shows it, and offers recovery
+ * (xpe_ai_shutdown() then xpe_ai_init(), which starts a new session with a
+ * clean count) when it reads XPE_AI_WORKER_DISABLED.
+ *
+ * Read-only: it starts no worker, raises no alert, counts as no call and
+ * changes no state. It does NOT wait for a call that is in progress -- a call
+ * can hold the module for its whole time budget on a silent worker, and a
+ * status query that waited would freeze a UI thread for that long. Called
+ * while a call is running, it reports the state as of the last COMPLETED call.
+ *
+ * @param stateOut                One of XPE_AI_WORKER_NOT_USED,
+ *                                XPE_AI_WORKER_ACTIVE, XPE_AI_WORKER_DISABLED.
+ *                                Must not be NULL.
+ * @param consecutiveFailuresOut  Optional (may be NULL): failures in a row since
+ *                                the last success; 0 when the worker path is
+ *                                not used; equal to the ceiling once DISABLED.
+ * @param ceilingOut              Optional (may be NULL): the number of
+ *                                consecutive failures that switches the worker
+ *                                off (3), so a client need not hard-code it.
+ * @return XPE_OK on success.
+ * @return XPE_ERR_NOT_INITIALIZED if xpe_ai_init is not in effect (never
+ *         called, or xpe_ai_shutdown since); the outputs are left untouched.
+ * @return XPE_ERR_INVALID_INPUT if stateOut is NULL.
+ *
+ * Thread safety: Thread-safe and lock-free against running calls. Like every
+ * function here it must not race xpe_ai_init / xpe_ai_shutdown.
+ * REQ-AI-002, REQ-AI-092.
+ */
+XPE_API XpeErrorCode xpe_ai_worker_state(int32_t* stateOut,
+                                          uint32_t* consecutiveFailuresOut,
+                                          uint32_t* ceilingOut);
 
 #ifdef __cplusplus
 }
