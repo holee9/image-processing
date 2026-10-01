@@ -398,6 +398,14 @@ XpeErrorCode process_impl(void* handle,
     if (srcCount < count || dstCount < count) {
         return XPE_ERR_INVALID_INPUT;
     }
+    // QA-B-181 (QA-B-179, #233): the passes keep a double-precision working image of `count` pixels. An image
+    // whose double copy cannot even be REPRESENTED (more than PTRDIFF_MAX bytes: width = height = INT_MAX is
+    // 4.6e18 pixels) made std::vector throw length_error out of the C ABI; it is invalid input, not a
+    // failed allocation. Anything below this bound that the machine cannot supply is reported by the guard
+    // as XPE_ERR_OUT_OF_MEMORY.
+    if (count > static_cast<size_t>(PTRDIFF_MAX) / sizeof(double)) {
+        return XPE_ERR_INVALID_INPUT;
+    }
     // A NULL gainMap means the vignette step is off, so its length is not
     // consulted at all. A gain map that IS supplied must be long enough --
     // QA-B-52 measured this one reading past its end with the step enabled.
@@ -495,6 +503,23 @@ XpeErrorCode process_impl(void* handle,
     return XPE_OK;
 }
 
+// QA-B-181 (QA-B-179, #233): the outermost guard of the three process entry points. No exception may leave an
+// exported function; std::bad_alloc is XPE_ERR_OUT_OF_MEMORY, anything else XPE_ERR_PROCESSING_FAILED, and the
+// handlers allocate nothing. This is an ordinary C++ function (an anonymous-namespace template, not declared in an
+// extern "C" block), so the compiler cannot treat the call as non-throwing and drop the catch. On a failure after
+// the first pass dst may already hold the copied or vignette-corrected pixels (same as any other mid-way error).
+template <class F>
+XpeErrorCode guarded_call(F&& body) noexcept
+{
+    try {
+        return body();
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+}
+
 }  // namespace
 
 XpeErrorCode xpe_gsvg_process(void* handle,
@@ -507,8 +532,10 @@ XpeErrorCode xpe_gsvg_process(void* handle,
                               const float* gainMap,
                               size_t gainCount)
 {
-    return process_impl(handle, src, srcCount, dst, dstCount, width, height,
-                        gainMap, gainCount, nullptr, 0, nullptr);
+    return guarded_call([&] {
+        return process_impl(handle, src, srcCount, dst, dstCount, width, height,
+                            gainMap, gainCount, nullptr, 0, nullptr);
+    });
 }
 
 XpeErrorCode xpe_gsvg_process_masked(void* handle,
@@ -523,8 +550,10 @@ XpeErrorCode xpe_gsvg_process_masked(void* handle,
                                      const uint8_t* fieldMask,
                                      size_t maskCount)
 {
-    return process_impl(handle, src, srcCount, dst, dstCount, width, height,
-                        gainMap, gainCount, fieldMask, maskCount, nullptr);
+    return guarded_call([&] {
+        return process_impl(handle, src, srcCount, dst, dstCount, width, height,
+                            gainMap, gainCount, fieldMask, maskCount, nullptr);
+    });
 }
 
 XpeErrorCode xpe_gsvg_process_ex(void* handle,
@@ -543,8 +572,10 @@ XpeErrorCode xpe_gsvg_process_ex(void* handle,
     // 24 bytes: the first published layout. Checked before anything is touched.
     if (resultOut == nullptr || resultOut->structSize < sizeof(XpeGsvgResult))
         return XPE_ERR_INVALID_INPUT;
-    return process_impl(handle, src, srcCount, dst, dstCount, width, height,
-                        gainMap, gainCount, fieldMask, maskCount, resultOut);
+    return guarded_call([&] {
+        return process_impl(handle, src, srcCount, dst, dstCount, width, height,
+                            gainMap, gainCount, fieldMask, maskCount, resultOut);
+    });
 }
 
 XpeErrorCode xpe_gsvg_shutdown(void* handle)

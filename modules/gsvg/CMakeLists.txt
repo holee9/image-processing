@@ -52,6 +52,8 @@ if(_XPE_BUILD_TESTS)
 
     add_executable(gsvg_tests
         tests/test_gsvg_benchmark.cpp
+        # QA-B-181: no exception leaves xpe_gsvg_process / _masked / _ex
+        tests/test_exception_guard.cpp
         tests/test_gsvg_degraded.cpp
         tests/test_gsvg_coverage.cpp
         tests/test_gsvg_edge_cases.cpp
