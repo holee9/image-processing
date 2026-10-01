@@ -1,0 +1,32 @@
+Note: Google Test filter = CacheGlobalStore.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from CacheGlobalStore
+[ RUN      ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore (4 ms)
+[ RUN      ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore (5 ms)
+[ RUN      ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore (4 ms)
+[ RUN      ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse
+[       OK ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse (7 ms)
+[ RUN      ] CacheGlobalStore.ShutdownEmptiesTheCache
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_cache_global_store.cpp(208): error: Expected equality of these values:
+  300.0f
+    Which is: 300
+  static_cast<const float*>(after.data)[0]
+    Which is: 100
+api-spec.md section 6: a cache-owned view is valid until module shutdown, so a load after shutdown must read the file again (100 here means the old entry survived)
+
+[  FAILED  ] CacheGlobalStore.ShutdownEmptiesTheCache (4 ms)
+[ RUN      ] CacheGlobalStore.ACacheKeyIsThePathStringSoAChangedFileNeedsCacheClear
+[       OK ] CacheGlobalStore.ACacheKeyIsThePathStringSoAChangedFileNeedsCacheClear (4 ms)
+[----------] 6 tests from CacheGlobalStore (32 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (32 ms total)
+[  PASSED  ] 5 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] CacheGlobalStore.ShutdownEmptiesTheCache
+
+ 1 FAILED TEST

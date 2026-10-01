@@ -828,15 +828,25 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_batch(
 /**
  * @brief Load offset calibration map with LRU caching
  *
- * On cache hit, returns cached data without file I/O.
- * On miss, loads from file and inserts into cache.
+ * Returns a cache-owned view of the map: XPE_PIXEL_FLOAT32, 32 bits, dataSize = width * height * 4.
+ *
+ * - Cache key: @p filePath compared as a string, exactly. A file that changes on disk is NOT noticed;
+ *   call xpe_calib_cache_clear() (or shut the module down) to make the next call read it.
+ * - Hit: no file I/O. The module-global calibration store is set to this map, as after a miss, so a
+ *   correction called right after a successful load works. The expiry, SHA-256 and session checks
+ *   of the file read are not repeated on a hit.
+ * - Miss: loads through xpe_calib_load_offset(), copies the map into the cache.
+ * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
+ *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()), or
+ *   xpe_preprocess_shutdown(). Take a copy with xpe_copy_image() to keep it longer.
  *
  * @param filePath Path to calibration file
- * @param offsetMapOut Output: Populated by this function; caller owns the buffer.
- *                     Data pointer is shared with cache — do NOT free.
+ * @param offsetMapOut Output: the cache-owned view (see Ownership)
  * @return XPE_OK on success
- *         XPE_ERR_IO_FAILED on file read error
- *         XPE_ERR_CALIBRATION_EXPIRED if calibration expired
+ *         XPE_ERR_INVALID_INPUT if @p filePath or the output pointer is NULL
+ *         on a miss, the code of the plain loader (XPE_ERR_IO_FAILED, XPE_ERR_CALIBRATION_EXPIRED, ...)
+ *         XPE_ERR_NOT_INITIALIZED if the load left no offset map in the store
+ *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached
  */
 XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
                                                     XpeImageBuffer* offsetMapOut);
@@ -844,11 +854,29 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
 /**
  * @brief Load gain calibration map with LRU caching
  *
+ * Returns a cache-owned view of the scalar gain map: XPE_PIXEL_FLOAT32, 32 bits,
+ * dataSize = width * height * 4.
+ *
+ * - Cache key: @p filePath compared as a string, exactly. A file that changes on disk is NOT noticed;
+ *   call xpe_calib_cache_clear() (or shut the module down) to make the next call read it.
+ * - Hit: no file I/O. The module-global calibration store is set to this map, as after a miss, so a
+ *   correction called right after a successful load works. The expiry, SHA-256 and session checks
+ *   of the file read are not repeated on a hit.
+ * - Miss: loads through xpe_calib_load_gain(), copies the map into the cache.
+ * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
+ *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()), or
+ *   xpe_preprocess_shutdown(). Take a copy with xpe_copy_image() to keep it longer.
+ * - A gain POLYNOMIAL file (XCAL_TYPE_GAIN_POLY) loads into the store, where xpe_gain_correct() uses it,
+ *   but this function returns XPE_ERR_NOT_INITIALIZED for it and caches nothing: it hands back scalar
+ *   maps only (observed, QA-A-193).
+ *
  * @param filePath Path to calibration file
- * @param gainMapOut Output: Populated on hit or miss; data shared with cache.
+ * @param gainMapOut Output: the cache-owned view (see Ownership)
  * @return XPE_OK on success
- *         XPE_ERR_IO_FAILED on file read error
- *         XPE_ERR_CALIBRATION_EXPIRED if calibration expired
+ *         XPE_ERR_INVALID_INPUT if @p filePath or the output pointer is NULL
+ *         on a miss, the code of the plain loader (XPE_ERR_IO_FAILED, XPE_ERR_CALIBRATION_EXPIRED, ...)
+ *         XPE_ERR_NOT_INITIALIZED if the load left no scalar gain map in the store (this is what a gain polynomial file returns)
+ *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached
  */
 XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
                                                   XpeImageBuffer* gainMapOut);
@@ -856,24 +884,43 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
 /**
  * @brief Load defect map with LRU caching
  *
+ * Returns a cache-owned view of the map: XPE_PIXEL_UINT8, 8 bits, dataSize = width * height.
+ *
+ * - Cache key: @p filePath compared as a string, exactly. A file that changes on disk is NOT noticed;
+ *   call xpe_calib_cache_clear() (or shut the module down) to make the next call read it.
+ * - Hit: no file I/O. The module-global calibration store is set to this map, as after a miss, so a
+ *   correction called right after a successful load works. The expiry, SHA-256 and session checks
+ *   of the file read are not repeated on a hit.
+ * - Miss: loads through xpe_calib_load_defect_map(), copies the map into the cache.
+ * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
+ *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()), or
+ *   xpe_preprocess_shutdown(). Take a copy with xpe_copy_image() to keep it longer.
+
+ *
  * @param filePath Path to defect map file
- * @param defectMapOut Output: Populated on hit or miss; data shared with cache.
+ * @param defectMapOut Output: the cache-owned view (see Ownership)
  * @return XPE_OK on success
- *         XPE_ERR_IO_FAILED on file read error
- *         XPE_ERR_CALIBRATION_EXPIRED if calibration expired
+ *         XPE_ERR_INVALID_INPUT if @p filePath or the output pointer is NULL
+ *         on a miss, the code of the plain loader (XPE_ERR_IO_FAILED, XPE_ERR_CALIBRATION_EXPIRED, ...)
+ *         XPE_ERR_NOT_INITIALIZED if the load left no defect map in the store
+ *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached
  */
 XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
                                                     XpeImageBuffer* defectMapOut);
 
 /**
  * @brief Clear all entries from the calibration cache, freeing memory
+ *
+ * Also done by xpe_preprocess_shutdown(). Does not touch the module-global calibration store.
+ * Views returned by the *_cached loaders become invalid.
  */
 XPE_API void xpe_calib_cache_clear(void);
 
 /**
  * @brief Set the maximum number of calibration maps retained in cache
  *
- * Default is 4. Excess entries are evicted (LRU first).
+ * Default is 4. Excess entries are evicted (LRU first). The setting is not reset by
+ * xpe_preprocess_shutdown().
  *
  * @param maxMaps Maximum cache entries (minimum 1)
  */

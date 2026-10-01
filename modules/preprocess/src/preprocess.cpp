@@ -73,6 +73,10 @@ extern "C" XPE_API void xpe_preprocess_shutdown(void)
     try {
         std::lock_guard<std::mutex> lock(g_lifecycleMutex);
         g_initialized.store(false, std::memory_order_release);
+        // QA-A-193 (#216): api-spec.md section 6 -- a cache-owned view is valid until module
+        // shutdown. Done before g_calib_mutex is taken: the cache has its own mutex and the two are
+        // never held together anywhere.
+        xpe_calib_cache_clear();
         std::lock_guard<std::mutex> calib_lock(g_calib_mutex);
         g_calib = CalibrationData{};
         // QA-A-120 (#176): every module global, not only the maps. Clearing one

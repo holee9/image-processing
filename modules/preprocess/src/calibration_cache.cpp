@@ -2,9 +2,12 @@
  * @file calibration_cache.cpp
  * @brief LRU cache for calibration maps to eliminate repeated file I/O.
  *
- * Keeps recently used calibration maps in memory. Cache key is the combination
- * of file path string. Thread-safety: all LRU/index mutations are protected by
- * an internal mutex (IEC 62304 Class B).
+ * Keeps recently used calibration maps in memory. The cache key is the file
+ * path string exactly as the caller passed it: a file that changes on disk is
+ * not noticed until xpe_calib_cache_clear() (or module shutdown, which empties
+ * the cache). A hit still leaves the module-global calibration store holding the
+ * cached map, as a miss does (QA-A-193, #216). Thread-safety: all LRU/index
+ * mutations are protected by an internal mutex (IEC 62304 Class B).
  *
  * SPEC: SPEC-XPE-P1A v1.0.0
  * IEC 62304 Class B
@@ -16,7 +19,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <list>
+#include <memory>
 #include <mutex>
+#include <new>
 #include <unordered_map>
 #include <string>
 #include <utility>
@@ -36,6 +41,10 @@ namespace {
 struct CachedMap {
     XpeImageBuffer buffer;  ///< Image buffer (owns data pointer)
     std::string    path;    ///< File path used as cache key
+    // What the plain loader records next to the pixels (offset and gain files only; zero for a
+    // defect map). Kept so that a hit can put the global store back exactly as the loader did.
+    int64_t        timestamp{0};
+    char           sessionId[64]{};
 };
 
 /**
@@ -81,6 +90,41 @@ public:
     }
 
     /**
+     * @brief get(), plus a private copy of the entry's pixels and metadata taken under the same lock.
+     *
+     * QA-A-193 (#216): a hit must leave the module-global calibration store holding this map. The
+     * install happens outside the cache lock (g_calib_mutex is never taken while this mutex is
+     * held, so the two cannot deadlock), which is why the pixels are copied out here: the cache's
+     * own buffer may be evicted the moment the lock is released.
+     */
+    template <typename T>
+    XpeErrorCode get_copy(const std::string& path, XpeImageBuffer* view, std::unique_ptr<T[]>* pixels,
+                          int64_t* timestamp, char* sessionId64, bool* hit) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto it = index_.find(path);
+        *hit = (it != index_.end());
+        if (!*hit) return XPE_OK;
+
+        lru_.splice(lru_.begin(), lru_, it->second);
+        const CachedMap& entry = *it->second;
+
+        // One copy, straight into the array the global store will own: a 3072x3072 float map is
+        // 37.7 MB, and a second copy cost as much as the first (measured, QA-A-193).
+        const size_t bytes = static_cast<size_t>(entry.buffer.dataSize);
+        const size_t n = static_cast<size_t>(entry.buffer.width) * entry.buffer.height;
+        if (n == 0 || bytes != n * sizeof(T)) return XPE_ERR_PROCESSING_FAILED;
+        std::unique_ptr<T[]> copy(new (std::nothrow) T[n]);
+        if (!copy) return XPE_ERR_OUT_OF_MEMORY;
+        std::memcpy(copy.get(), entry.buffer.data, bytes);
+
+        std::memcpy(view, &entry.buffer, sizeof(XpeImageBuffer));
+        *pixels = std::move(copy);
+        *timestamp = entry.timestamp;
+        std::memcpy(sessionId64, entry.sessionId, sizeof(entry.sessionId));
+        return XPE_OK;
+    }
+
+    /**
      * @brief Insert a new entry into the cache.
      *
      * If the key already exists, the old entry is replaced.
@@ -93,7 +137,7 @@ public:
         if (!buffer || !buffer->data) return;
 
         std::lock_guard<std::mutex> lock(mutex_);
-        put_locked(path, buffer);
+        put_locked(path, buffer, 0, nullptr);
     }
 
     /**
@@ -111,11 +155,11 @@ public:
      * @return true when the entry was inserted and read back
      */
     bool put_and_get(const std::string& path, XpeImageBuffer* buffer,
-                     XpeImageBuffer* out) {
+                     XpeImageBuffer* out, int64_t timestamp, const char* sessionId64) {
         if (!buffer || !buffer->data) return false;
 
         std::lock_guard<std::mutex> lock(mutex_);
-        put_locked(path, buffer);
+        put_locked(path, buffer, timestamp, sessionId64);
 
         auto it = index_.find(path);
         if (it == index_.end()) return false;
@@ -127,7 +171,8 @@ public:
 
 private:
     /** put(), with the caller already holding mutex_. */
-    void put_locked(const std::string& path, XpeImageBuffer* buffer) {
+    void put_locked(const std::string& path, XpeImageBuffer* buffer, int64_t timestamp,
+                    const char* sessionId64) {
         // Check if already cached — replace
         auto it = index_.find(path);
         if (it != index_.end()) {
@@ -148,6 +193,8 @@ private:
         // Insert new entry at front
         CachedMap entry;
         entry.path = path;
+        entry.timestamp = timestamp;
+        if (sessionId64) std::memcpy(entry.sessionId, sessionId64, sizeof(entry.sessionId));
         // Transfer ownership of buffer data to cache
         std::memcpy(&entry.buffer, buffer, sizeof(XpeImageBuffer));
         // Clear the caller's pointer to prevent double-free
@@ -227,7 +274,9 @@ CalibrationLRUCache g_calibCache;
 XpeErrorCode publish_and_view(const std::string& path,
                               const XpeImageBuffer& desc,
                               const void* src,
-                              XpeImageBuffer* out)
+                              XpeImageBuffer* out,
+                              int64_t timestamp,
+                              const char* sessionId64)
 {
     XpeImageBuffer entry = desc;
     entry.data = std::malloc(static_cast<size_t>(entry.dataSize));
@@ -239,10 +288,60 @@ XpeErrorCode publish_and_view(const std::string& path,
     // eviction could remove the entry between the two calls, turning a
     // successful load into XPE_ERR_PROCESSING_FAILED. put_and_get takes
     // ownership of entry.data and nulls it, exactly as put() did.
-    if (!g_calibCache.put_and_get(path, &entry, out)) {
+    if (!g_calibCache.put_and_get(path, &entry, out, timestamp, sessionId64)) {
         return XPE_ERR_PROCESSING_FAILED;
     }
     return XPE_OK;
+}
+
+/* -------------------------------------------------------------------------
+ * Installing a cached map into the module-global calibration store (QA-A-193, #216).
+ *
+ * A miss gets there through the plain loader. A hit has no file read to lean on, so it puts the
+ * cached pixels and metadata where the loader would have put them -- the same fields, written under
+ * g_calib_mutex, and for gain the same "scalar map and polynomial are alternatives" reset.
+ * Not restored on a hit: the expiry / session / SHA-256 checks of the file read, and the quality
+ * metadata the gain loader parses from the file's config JSON (the entry does not carry them).
+ * ----------------------------------------------------------------------- */
+void copy_session(char* dst64, const char* src64) noexcept
+{
+    std::memset(dst64, 0, 64);
+    std::memcpy(dst64, src64, 63);
+}
+
+void install_offset(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
+                    int64_t timestamp, const char* sessionId64)
+{
+    std::lock_guard<std::mutex> lock(g_calib_mutex);
+    g_calib.offset_map       = std::move(map);
+    g_calib.offset_width     = d.width;
+    g_calib.offset_height    = d.height;
+    g_calib.offset_timestamp = timestamp;
+    copy_session(g_calib.offset_session_id, sessionId64);
+}
+
+void install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
+                  int64_t timestamp, const char* sessionId64)
+{
+    std::lock_guard<std::mutex> lock(g_calib_mutex);
+    g_calib.gain_map = std::move(map);
+    g_calib.gain_poly_coeffs.reset();
+    g_calib.gain_poly_num_coeffs = 0;
+    g_calib.gain_poly_has_range  = false;
+    g_calib.gain_poly_dose_min   = 0.0;
+    g_calib.gain_poly_dose_max   = 0.0;
+    g_calib.gain_width     = d.width;
+    g_calib.gain_height    = d.height;
+    g_calib.gain_timestamp = timestamp;
+    copy_session(g_calib.gain_session_id, sessionId64);
+}
+
+void install_defect(std::unique_ptr<uint8_t[]> map, const XpeImageBuffer& d)
+{
+    std::lock_guard<std::mutex> lock(g_calib_mutex);
+    g_calib.defect_map    = std::move(map);
+    g_calib.defect_width  = d.width;
+    g_calib.defect_height = d.height;
 }
 
 } // anonymous namespace
@@ -259,9 +358,21 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
 {
     if (!filePath || !offsetMapOut) return XPE_ERR_INVALID_INPUT;
 
-    // Cache hit: return cached data
-    if (g_calibCache.get(std::string(filePath), offsetMapOut)) {
-        return XPE_OK;
+    // Cache hit: return the cached view AND leave the global store holding that map (QA-A-193).
+    {
+        XpeImageBuffer view{};
+        std::unique_ptr<float[]> pixels;
+        int64_t timestamp = 0;
+        char sessionId[64] = {};
+        bool hit = false;
+        const XpeErrorCode crc = g_calibCache.get_copy<float>(std::string(filePath), &view, &pixels,
+                                                           &timestamp, sessionId, &hit);
+        if (crc != XPE_OK) return crc;
+        if (hit) {
+            install_offset(std::move(pixels), view, timestamp, sessionId);
+            std::memcpy(offsetMapOut, &view, sizeof(XpeImageBuffer));
+            return XPE_OK;
+        }
     }
 
     // Cache miss: load from file via 1-arg API (populates g_calib)
@@ -272,6 +383,8 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
     // back the cache's view of it (#127).
     XpeImageBuffer desc{};
     std::vector<uint8_t> staging;
+    int64_t timestamp = 0;
+    char sessionId[64] = {};
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
         if (!g_calib.offset_map || g_calib.offset_width == 0) return XPE_ERR_NOT_INITIALIZED;
@@ -286,9 +399,11 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
 
         staging.resize(static_cast<size_t>(desc.dataSize));
         std::memcpy(staging.data(), g_calib.offset_map.get(), staging.size());
+        timestamp = g_calib.offset_timestamp;
+        std::memcpy(sessionId, g_calib.offset_session_id, sizeof(sessionId));
     }
 
-    return publish_and_view(std::string(filePath), desc, staging.data(), offsetMapOut);
+    return publish_and_view(std::string(filePath), desc, staging.data(), offsetMapOut, timestamp, sessionId);
 }
 
 // @MX:ANCHOR: [AUTO] xpe_calib_load_gain_cached — cached gain map loader
@@ -299,8 +414,20 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
 {
     if (!filePath || !gainMapOut) return XPE_ERR_INVALID_INPUT;
 
-    if (g_calibCache.get(std::string(filePath), gainMapOut)) {
-        return XPE_OK;
+    {
+        XpeImageBuffer view{};
+        std::unique_ptr<float[]> pixels;
+        int64_t timestamp = 0;
+        char sessionId[64] = {};
+        bool hit = false;
+        const XpeErrorCode crc = g_calibCache.get_copy<float>(std::string(filePath), &view, &pixels,
+                                                           &timestamp, sessionId, &hit);
+        if (crc != XPE_OK) return crc;
+        if (hit) {
+            install_gain(std::move(pixels), view, timestamp, sessionId);
+            std::memcpy(gainMapOut, &view, sizeof(XpeImageBuffer));
+            return XPE_OK;
+        }
     }
 
     // Cache miss: load from file via 1-arg API (populates g_calib)
@@ -311,6 +438,8 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
     // back the cache's view of it (#127).
     XpeImageBuffer desc{};
     std::vector<uint8_t> staging;
+    int64_t timestamp = 0;
+    char sessionId[64] = {};
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
         if (!g_calib.gain_map || g_calib.gain_width == 0) return XPE_ERR_NOT_INITIALIZED;
@@ -325,9 +454,11 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
 
         staging.resize(static_cast<size_t>(desc.dataSize));
         std::memcpy(staging.data(), g_calib.gain_map.get(), staging.size());
+        timestamp = g_calib.gain_timestamp;
+        std::memcpy(sessionId, g_calib.gain_session_id, sizeof(sessionId));
     }
 
-    return publish_and_view(std::string(filePath), desc, staging.data(), gainMapOut);
+    return publish_and_view(std::string(filePath), desc, staging.data(), gainMapOut, timestamp, sessionId);
 }
 
 // @MX:ANCHOR: [AUTO] xpe_calib_load_defect_cached — cached defect map loader
@@ -345,8 +476,20 @@ XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
 {
     if (!filePath || !defectMapOut) return XPE_ERR_INVALID_INPUT;
 
-    if (g_calibCache.get(std::string(filePath), defectMapOut)) {
-        return XPE_OK;
+    {
+        XpeImageBuffer view{};
+        std::unique_ptr<uint8_t[]> pixels;
+        int64_t timestamp = 0;
+        char sessionId[64] = {};
+        bool hit = false;
+        const XpeErrorCode crc = g_calibCache.get_copy<uint8_t>(std::string(filePath), &view, &pixels,
+                                                           &timestamp, sessionId, &hit);
+        if (crc != XPE_OK) return crc;
+        if (hit) {
+            install_defect(std::move(pixels), view);
+            std::memcpy(defectMapOut, &view, sizeof(XpeImageBuffer));
+            return XPE_OK;
+        }
     }
 
     // Cache miss: load from file via 1-arg API (populates g_calib)
@@ -373,7 +516,7 @@ XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
         std::memcpy(staging.data(), g_calib.defect_map.get(), staging.size());
     }
 
-    return publish_and_view(std::string(filePath), desc, staging.data(), defectMapOut);
+    return publish_and_view(std::string(filePath), desc, staging.data(), defectMapOut, 0, nullptr);
 }
 
 XPE_API void xpe_calib_cache_clear(void)

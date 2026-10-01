@@ -1,0 +1,21 @@
+Note: Google Test filter = CacheGlobalStore.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from CacheGlobalStore
+[ RUN      ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore (7 ms)
+[ RUN      ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore (9 ms)
+[ RUN      ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore (7 ms)
+[ RUN      ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse
+[       OK ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse (6 ms)
+[ RUN      ] CacheGlobalStore.ShutdownEmptiesTheCache
+[       OK ] CacheGlobalStore.ShutdownEmptiesTheCache (3 ms)
+[ RUN      ] CacheGlobalStore.ACacheKeyIsThePathStringSoAChangedFileNeedsCacheClear
+[       OK ] CacheGlobalStore.ACacheKeyIsThePathStringSoAChangedFileNeedsCacheClear (3 ms)
+[----------] 6 tests from CacheGlobalStore (39 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (39 ms total)
+[  PASSED  ] 6 tests.

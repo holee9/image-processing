@@ -451,6 +451,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_dim_mismatch.cpp    # QA-A-185 (#232) REQ-P1A-021: calibration map vs input dimensions
         tests/test_defect_oracle.cpp         # QA-A-188 (#218) SRS-CALIB-FUNC-019 synthetic BPM oracle: recall, FPR, GoodPixelDeltaP99
         tests/test_verify_gain_semantics.cpp # QA-A-192 (#220) xpe_verify_gain gain-semantics argument: 0.5% known / 1.0% unknown
+        tests/test_calib_cache_global_store.cpp # QA-A-193 (#216) cached loaders: global store on a hit, shutdown empties the cache
         tests/test_zz_a186_probe.cpp         # QA-A-186 (#220) probe: FlatResidualPct mean vs median (DISABLED_)
         tests/test_zz_a187_probe.cpp         # QA-A-187 (#218) probe: xpe_verify_pipeline SNR median vs mean (DISABLED_)
         tests/test_runtime_detection_rates.cpp

@@ -1,0 +1,14 @@
+Note: Google Test filter = A193Scratch.*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A193Scratch
+[ RUN      ] A193Scratch.DISABLED_GainCachedOnPolynomialFile
+[a193] gain_cached on a GAIN_POLY file, 1st call (miss) -> -6 (NOT_INITIALIZED=-6)
+[a193] 2nd call                                       -> -6
+[a193] xpe_gain_correct afterwards                     -> 0, first pixel 1000.000 (poly is in the global store if != CALIB_NOT_LOADED)
+[       OK ] A193Scratch.DISABLED_GainCachedOnPolynomialFile (6 ms)
+[----------] 1 test from A193Scratch (6 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (6 ms total)
+[  PASSED  ] 1 test.

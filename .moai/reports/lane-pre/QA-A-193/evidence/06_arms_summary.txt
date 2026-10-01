@@ -1,0 +1,4 @@
+ARM 1a_offset_hit_does_not_install (BUILD_EXIT=0, test exit=1): OffsetCacheHitLeavesThatMapInTheGlobalStore
+ARM 1b_gain_hit_does_not_install (BUILD_EXIT=0, test exit=1): GainCacheHitLeavesThatMapInTheGlobalStore
+ARM 1c_defect_hit_does_not_install (BUILD_EXIT=0, test exit=1): DefectCacheHitLeavesThatMapInTheGlobalStore
+ARM 2_shutdown_keeps_the_cache (BUILD_EXIT=0, test exit=1): ShutdownEmptiesTheCache
