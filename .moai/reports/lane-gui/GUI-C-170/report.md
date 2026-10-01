@@ -66,6 +66,29 @@
 - `clients/ImageProcTest.E2ETests/Scenarios/Workflows/ProcessingChainScenarios.cs:322` — 컴파일 경고 xUnit2031(`Where` 뒤 `Assert.Single`). 이 카드가 건드리지 않은 파일이다.
 - 이번 세션에서 첫 기준선 실행을 **내가 10분 제한으로 끊었다**(백그라운드 시간 제한을 600000 으로 줌). 남은 프로세스는 없음을 확인했고, 1시간 제한으로 다시 돌렸다.
 
+## 7. BOM 제거 (리더 판정 후속 커밋)
+
+리더가 `appsettings.json` 첫 바이트에 BOM(U+FEFF)이 새로 붙은 것을 지적했고, 4개 파일 모두 제거하라고 판정했다.
+
+**원인(부분 확인).** 앱 `Save` 는 아니다 — `AppSettingsService.cs:193` 이 `File.WriteAllText(path, text)` 로 BOM 없이 쓰고, 커밋된 diff 는 손으로 쓴 3줄이다. 이 카드의 이전 세션에서 내가 쓴 파이썬 편집 스크립트가 `utf-8-sig` 로 파일을 썼다. 남아 있는 스크립트 둘로는 `SettingsProcessingConnectionTests.cs` 만 확인했고, 나머지 셋은 스크립트가 남아 있지 않아 같은 기전이라는 것은 **추정**이다.
+
+**수정.** `6ee39ec` 의 4개 파일에서 첫 3바이트(`ef bb bf`)만 제거했다. 줄 끝·내용은 그대로.
+
+| 파일 | 수정 전 | 수정 후 |
+|---|---|---|
+| `gui/ImageProcTest/appsettings.json` | `ef bb bf` | `7b 0a 20` |
+| `PanelToggleScenarios.cs` | `ef bb bf` | `2f 2f 20` |
+| `SettingsProcessingConnectionTests.cs` | `ef bb bf` | `2f 2f 20` |
+| `PanelFlagPersistenceTests.cs` | `ef bb bf` | `2f 2f 20` |
+
+- **바이트 증명**: 4개 모두 "수정 후 파일 == `6ee39ec` 의 blob 에서 앞 3바이트를 뺀 것" 이 `IDENTICAL`, CRLF 수 0 → 0. `git diff --stat` 의 파일당 1줄은 BOM 이 1행에 붙어 있어서이고, 그 줄의 내용은 같다.
+- **재실행(지정한 시험만, 전체 스위트는 인코딩만 바뀌어 생략)**: `A12`·`A13`·`S07`(2건) = E2E 4/4, `PanelFlagPersistence` = 통합 3/3. 빌드 오류 0.
+- 원문: `bom_evidence.txt`, `bom_rerun.txt`.
+
+**미검증**: BOM 없는 `appsettings.json` 으로 앱이 시작하는 것은 위 시험들이 간접으로만 보인다. 이 4개 외 파일의 BOM 은 건드리지 않았다(`.cs` 는 220개 중 46개가 BOM 이라 저장소 관례가 혼재).
+
+**기존 경고(이 카드·BOM 과 무관)**: 전체 재빌드에서 `MainWindowViewModel.cs` 의 XML 문서 경고 CS1573 ×4 · CS1574 ×2 가 보인다. `f7ca055` 를 같은 방식(`gui`+`clients`)으로 빌드해도 같은 6건이 한 줄씩 밀린 위치에 있다. 증분 빌드는 이 경고를 보여 주지 않아 앞 실행에서는 0 으로 보였다.
+
 ## 파일
 
 `gui/ImageProcTest/Views/{CalibrationPathsPanel,DisplaySettingsPanel}.xaml(.cs)` (신규) · `MainWindow.xaml(.cs)` · `Models/{AppSettings,GuiAutomationReport}.cs` · `ViewModels/MainWindowViewModel.cs` · `appsettings.json` · `gui/ImageProcTest.E2E/Program.cs` · `clients/…/PanelFlagPersistenceTests.cs`(신규) · `AutomationReportBackendTests.cs` · `PanelToggleScenarios.cs` · `SettingsProcessingConnectionTests.cs`

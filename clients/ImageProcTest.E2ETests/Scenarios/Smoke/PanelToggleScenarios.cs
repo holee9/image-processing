@@ -1,4 +1,4 @@
-﻿// #165 (GUI-C-65): the View menu's panel toggles, after they were matched to the current layout.
+// #165 (GUI-C-65): the View menu's panel toggles, after they were matched to the current layout.
 using System.Diagnostics;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Input;

@@ -1,4 +1,4 @@
-﻿// #225 rows 7 and 8 (GUI-C-170): the two panel flags are persisted Settings values.
+// #225 rows 7 and 8 (GUI-C-170): the two panel flags are persisted Settings values.
 using System.IO;
 using ImageProcTest.Models;
 using ImageProcTest.Services;

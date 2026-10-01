@@ -1,4 +1,4 @@
-﻿// #182 / GUI-C-95: every setting a panel lets the user change either reaches processing, or says it does not.
+// #182 / GUI-C-95: every setting a panel lets the user change either reaches processing, or says it does not.
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
