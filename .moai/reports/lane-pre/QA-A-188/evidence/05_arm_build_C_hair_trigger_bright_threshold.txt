@@ -1,0 +1,9 @@
+'vswhere.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+배치 파일이 아닙니다.
+[1/4] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_defect_gen.cpp.obj
+FAILED: modules/preprocess/CMakeFiles/xpe_preprocess.dir/src/xpe_defect_gen.cpp.obj
+C:\PROGRA~1\MICROS~1\2022\PROFES~1\VC\Tools\MSVC\1444~1.352\bin\Hostx64\x64\cl.exe  /nologo /TP -DFMT_SHARED -DSPDLOG_COMPILED_LIB -DSPDLOG_SHARED_LIB -DXPE_DLL_EXPORT -Dxpe_preprocess_EXPORTS -ID:\workspace-github\xpe-pre\modules\preprocess\include -ID:\workspace-github\xpe-pre\modules\preprocess\..\..\third_party -ID:\workspace-github\xpe-pre\modules\common\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\spdlog-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\nlohmann_json-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\fmt-src\include /DWIN32 /D_WINDOWS /EHsc /Zi /O2 /Ob1 /DNDEBUG -std:c++17 -MD /arch:AVX2 /W4 /utf-8 /WX /wd4251 /wd4275 /showIncludes /Fomodules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_defect_gen.cpp.obj /Fdmodules\preprocess\CMakeFiles\xpe_preprocess.dir\ /FS -c D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_defect_gen.cpp
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_defect_gen.cpp(319): error C2220: 다음 경고는 오류로 처리됩니다.
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_defect_gen.cpp(319): warning C4189: 'tolerance_pct': 지역 변수가 초기화되었으나 참조되지 않았습니다.
+ninja: build stopped: subcommand failed.
+BUILD_EXIT=1
