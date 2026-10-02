@@ -972,7 +972,9 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  *                  and defect.xcal are read as a SET and replace the stored maps -- and the quality
  *                  record xpe_calib_get_quality_meta() serves (the gain file's quality, or "none" when it
  *                  carries none) -- together, or not at all.
- *                  Once the set has loaded it stays loaded even if processing the frame then fails.
+ *                  Once the set has loaded it stays loaded even if processing the frame then fails
+ *                  (QA-A-221b): the maps left in the store are whole and verified -- never a half-replaced
+ *                  set; the replacement of the set is atomic -- and the next call loads them again.
  *         XPE_ERR_BUFFER_TOO_SMALL if img->dataSize is smaller than the frame the pipeline writes back (see @p img)
  *         XPE_ERR_INVALID_INPUT on a NULL img / meta / img->data, an empty or overflowing frame, or a dataSize
  *                  that does not hold the input (see @p img)
@@ -1035,6 +1037,8 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
  *         XPE_ERR_INVALID_INPUT on null/invalid parameters
  *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration is not one finite
  *                  number in range (see xpe_preprocess_pipeline); no frame is touched
+ *         A call that fails after the calibration set was loaded leaves that set in the store (QA-A-221b): whole
+ *                  and verified, never half replaced -- the same rule as xpe_preprocess_pipeline().
  *         first error code if any individual frame fails -- including a frame whose dataSize is too small for
  *                  its result (XPE_ERR_BUFFER_TOO_SMALL, rules of xpe_preprocess_pipeline()): each frame is
  *                  checked as its turn comes, not all before the first, so a refused frame is left untouched
@@ -1104,7 +1108,8 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_batch(
  *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached or an
  *                               allocation failed (no exception leaves this function). On a miss the
  *                               module-global store may already hold the file's map when the entry
- *                               could not be cached; on a hit that fails, the store is unchanged.
+ *                               could not be cached -- a whole, verified map, never a half-loaded one
+ *                               (QA-A-221b); on a hit that fails, the store is unchanged.
  */
 XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
                                                     XpeImageBuffer* offsetMapOut);
@@ -1164,7 +1169,8 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
  *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached or an
  *                               allocation failed (no exception leaves this function). On a miss the
  *                               module-global store may already hold the file's map when the entry
- *                               could not be cached; on a hit that fails, the store is unchanged.
+ *                               could not be cached -- a whole, verified map, never a half-loaded one
+ *                               (QA-A-221b); on a hit that fails, the store is unchanged.
  */
 XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
                                                   XpeImageBuffer* gainMapOut);
@@ -1218,7 +1224,8 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
  *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached or an
  *                               allocation failed (no exception leaves this function). On a miss the
  *                               module-global store may already hold the file's map when the entry
- *                               could not be cached; on a hit that fails, the store is unchanged.
+ *                               could not be cached -- a whole, verified map, never a half-loaded one
+ *                               (QA-A-221b); on a hit that fails, the store is unchanged.
  */
 XPE_API XpeErrorCode xpe_calib_load_defect_cached(const char* filePath,
                                                     XpeImageBuffer* defectMapOut);

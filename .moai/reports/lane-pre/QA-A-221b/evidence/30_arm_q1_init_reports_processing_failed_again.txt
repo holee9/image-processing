@@ -1,0 +1,9 @@
+ARM q1_init_reports_processing_failed_again
+file src/preprocess.cpp
+built=True
+[  FAILED  ] OomInjection.APreprocessInitThatRunsOutOfMemoryReportsItAsSuchAndLeavesTheModuleUninitialized (0 ms)
+[  PASSED  ] 62 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OomInjection.APreprocessInitThatRunsOutOfMemoryReportsItAsSuchAndLeavesTheModuleUninitialized
+reasons (first 3):
+xpe_preprocess_init: allocation #1 failed (rc -3): an allocation failure was reported as another error

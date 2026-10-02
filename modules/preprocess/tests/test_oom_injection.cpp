@@ -906,6 +906,52 @@ XpeErrorCode run(const Entry& call, Frame& f, long* overruns, const char* config
 
 }  // namespace dsz
 
+// QA-A-221b (#233, decision on R1): a call that fails after an earlier step succeeded keeps that step's effect. The
+// in-tree sweeps above start with the three maps ALREADY loaded, so the store comes out the same whatever happens. These
+// start with an EMPTY store: after any failed allocation the store must hold either nothing or the whole verified set the
+// call would have loaded -- never a mixture. (The QA-A-221 sweep saw "the set" after 16 of the 73 failures of the
+// pipeline and "the map" after the last 5 of each cached loader.)
+TEST_F(OomPipeline, AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet) {
+    pipe::setup();                              // loads the three maps of oom_pipe_calib
+    const uint64_t whole = pipe::storeDigest();
+    resetStore();
+    const uint64_t none = pipe::storeDigest();
+    ASSERT_NE(whole, none) << "control: the two states differ";
+    const pipe::Call_t run = [] {
+        return xpe_preprocess_pipeline(&pipe::g_img[0], &pipe::g_meta[0], "oom_pipe_calib", nullptr, pipe::kConfig);
+    };
+    sweep("xpe_preprocess_pipeline (empty store)", [] { pipe::setup(); resetStore(); }, run, false,
+          [=](XpeErrorCode rc) -> std::string {
+              const uint64_t d = pipe::storeDigest();
+              if (rc == XPE_OK) return d == whole ? std::string() : "a successful call left a set other than the directory's";
+              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure must be XPE_ERR_OUT_OF_MEMORY";
+              if (d == none || d == whole) return std::string();
+              return "the store holds neither nothing nor the whole verified set (a half-replaced set)";
+          });
+}
+
+TEST_F(OomPipeline, AFailedCachedOffsetLoadThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeMap) {
+    pipe::setup();
+    resetStore();
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset("oom_pipe_calib/offset.xcal"));
+    const uint64_t whole = pipe::storeDigest();   // only the offset map is in the store
+    resetStore();
+    const uint64_t none = pipe::storeDigest();
+    ASSERT_NE(whole, none) << "control: the two states differ";
+    const pipe::Call_t run = [] {
+        XpeImageBuffer view{};
+        return xpe_calib_load_offset_cached("oom_pipe_calib/offset.xcal", &view);
+    };
+    sweep("xpe_calib_load_offset_cached (empty store)", [] { pipe::setup(); resetStore(); }, run, false,
+          [=](XpeErrorCode rc) -> std::string {
+              const uint64_t d = pipe::storeDigest();
+              if (rc == XPE_OK) return d == whole ? std::string() : "a successful load left something other than the file's map";
+              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure must be XPE_ERR_OUT_OF_MEMORY";
+              if (d == none || d == whole) return std::string();
+              return "the store holds neither nothing nor the whole map";
+          });
+}
+
 TEST_F(OomPipeline, TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims) {
     for (const auto& e : dsz::entries()) {
         SCOPED_TRACE(e.name);
@@ -2081,6 +2127,24 @@ XpeImageBuffer buf(void* d, XpePixelFormat f, uint32_t bits) {
 }
 
 }  // namespace q209b
+
+// QA-A-221b (#233): xpe_preprocess_init answered an allocation failure with PROCESSING_FAILED (-3) -- 19 of 19 in the
+// QA-A-221 sweep -- where the header and every other export say OUT_OF_MEMORY. The module is initialized only by the
+// last statement, so a failed init must leave it uninitialized.
+TEST_F(OomInjection, APreprocessInitThatRunsOutOfMemoryReportsItAsSuchAndLeavesTheModuleUninitialized) {
+    static const std::string cfg =
+        "{\"note\":\"a configuration long enough to need a heap allocation: 0123456789012345678901234567890123456789\"}";
+    sweep("xpe_preprocess_init", [] { xpe_preprocess_shutdown(); },
+          [&] { return xpe_preprocess_init(cfg.c_str()); },
+          /*unchangedOnError=*/false,
+          [](XpeErrorCode rc) -> std::string {
+              const bool up = xpe_preprocess_is_initialized();
+              if (rc == XPE_OK) return up ? std::string() : "a successful init left the module uninitialized";
+              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure was reported as another error";
+              return up ? "the module is initialized although init failed" : std::string();
+          });
+    xpe_preprocess_shutdown();
+}
 
 TEST_F(OomInjection, ANonlinearityCorrectionThatFailsLeavesTheFrameUntouchedAndNoExceptionEscapes) {
     static const std::string cfg = "{\"panel.nonlinearity_mode\":\"POLY\",\"panel.nonlin_poly_c1\":2.0,\"panel.adc_max\":65535}";
