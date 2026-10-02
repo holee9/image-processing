@@ -1,0 +1,7 @@
+ARM b1_no_measured_classification
+file src/xpe_calib_generate_gain.cpp
+built=True
+[  FAILED  ] GainPolyClassifyTest.AMeasuredGainOutOfRangeClassifiesThePixelEvenWhenItsFitWouldBeInRange (4 ms)
+[  PASSED  ] 837 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] GainPolyClassifyTest.AMeasuredGainOutOfRangeClassifiesThePixelEvenWhenItsFitWouldBeInRange

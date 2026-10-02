@@ -432,6 +432,15 @@ if(_XPE_BUILD_TESTS)
         tests/test_fixture_gen_gain_poly.cpp
         # QA-A-210c (#233): per-pixel degree policy of the gain polynomial (monotone either way, final line = least squares)
         tests/test_gain_poly_policy.cpp
+        tests/test_gain_defect_classify.cpp
+        tests/test_gain_poly_classify.cpp
+        tests/test_defect_fill_interior.cpp
+        tests/test_defect_fill_equivalence.cpp
+        tests/test_defect_input_finite.cpp
+        tests/test_nonfinite_inputs.cpp
+        tests/test_ghost_input_finite.cpp   # QA-A-217 (#233): ghost refuses non-finite input, a failed frame leaves its pixels
+        tests/test_ghost_tier3_orientation.cpp   # QA-A-218b (#233): tier 3 3x3 mean reads the incoming frame; scan-direction independent
+        tests/test_xcal_replace_retry.cpp
         # QA-A-140 (#196): the no-op report reaches a null-config caller
         tests/test_nonlin_noop_report.cpp
         # QA-A-35 (#140): FUNC-033 quality metadata, wired to production

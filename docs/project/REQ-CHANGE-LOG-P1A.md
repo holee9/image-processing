@@ -107,6 +107,26 @@ SPEC `spec.md` Informative 문단의 "0.9865 @10σ 미달"도 균일 프레임 1
 
 **정정 기록.** 208c 는 "-1.0 은 파일이 담을 수 없다"·"R² 범위 [0,1]" 을 전제로 -1.0 을 표지값으로 거부했는데, 둘 다 리더가 확인 없이 적은 전제였고 제품 생성기가 음수와 정확히 -1.0 을 낼 수 있었다. 208d 가 표지값을 플래그로 바꿔 대체했다.
 
+## 6-3. 2026-10-02 요구 보강 — 게인 분류·결함 채움·비유한 입력 (pre 체인 병합 `3a991d7c`, #233)
+
+수치 기준(성능·TPR·FPR) 변경은 없다. 새 요구 번호는 쓰지 않았고 기존 요구에 문안을 더하거나 고쳤다. SPEC 버전 1.3.2 → 1.3.3. 알림·반환 코드 상세는 `docs/project/api-spec.md` §6.21.
+
+| 구분 | 항목 | 내용 | 카드 · 이슈 | 승인 |
+|---|---|---|---|---|
+| 요구 보강 | `REQ-P1A-011` | 게인(스칼라 값 또는 다항식 평가값)이 [0.1, 10.0] 밖인 화소는 게인 1.0 으로 보정하고 같은 실행의 결함 단계로 넘긴다. 다항식은 프레임의 5% 초과일 때만 `XPE_ERR_CONFIG_INVALID`. 비닝 + 분류 화소 → 파이프라인 `XPE_ERR_CONFIG_INVALID`(게인 우회 시에도, 결함 단계가 돌면). 다항식 R² 는 분류 화소를 뺀 값이라 프레임 전체보다 좋게 나올 수 있다는 한계를 적음 | `QA-A-211`·`211b` · #233 | 사용자 결정(범위 [0.1, 10] 하나, 범위 밖은 게인 1 + 결함 분류, 상한 초과 시 거부 — `QA-A-211` 보고서 결론) |
+| 요구 보강 | `REQ-P1A-015` | 스칼라 게인 맵의 범위 밖 화소는 적재 실패가 아니라 결함 분류(게인 1.0) + 개수 알림. 분류 비율 5% 초과면 `XPE_ERR_INVALID_CALIB_DATA`. 적재 알림 문구는 211b 판("marked defective: gain 1.0 is used and they are listed for the defect correction stage"). **호환 변화**: 범위 밖 5% 이하인 파일이 이제 적재된다 | `QA-A-211`·`211b` · #233 | 위와 같음 |
+| 요구 보강 | `REQ-P1A-012` | 입력 마스크 = 결함 맵 ∪ 게인 분류 화소. 결함 단계 우회 시 `XPE_WARN_GAIN_PIXELS_UNCORRECTED`. 합집합 5% 초과는 경고만(`XPE_WARN_DEFECT_UNION_OVER_LIMIT`), 보정은 계속 | `QA-A-211` · #233 | 리더 결정 D1·D5 (`QA-A-211` 설계 메모) |
+| 요구 보강 | `REQ-P1A-012` | 덩어리 안쪽(3×3 에 정상 화소 없음)은 체비쇼프 반경 2~16 중 정상 화소가 있는 가장 가까운 고리의 위쪽 중앙값으로 채움. 반경 16 밖은 입력값 유지 + `XPE_WARN_DEFECT_NO_VALID_NEIGHBOUR`, 0 은 쓰지 않음. **출력 변화**: 이전에는 그 화소를 0 으로 썼다(CalData_6 결함 맵에서 마스크의 66.7%) | `QA-A-211b` · #233 | — (결함 수정, Codex #71) |
+| 요구 보강 | `REQ-P1A-012` | 비유한 프레임은 쓰기 전 `XPE_ERR_INVALID_INPUT` + `XPE_WARN_DEFECT_INPUT_NOT_FINITE` | `QA-A-214b` · #233 | — |
+| 요구 보강 | `REQ-P1A-013` | 비유한 프레임은 검출·맵 쓰기 전 `XPE_ERR_INVALID_INPUT` + `XPE_WARN_RUNTIME_DETECT_INPUT_NOT_FINITE`(이전: 맵을 먼저 비우고 NaN 화소를 "정상"으로 냄) | `QA-A-215` · #233 | — |
+| 요구 개정 | `REQ-P1A-091` | 마지막 문장 "If any pixel is non-finite during normalization, it shall return XPE_ERR_PROCESSING_FAILED" → "If any pixel of the input is non-finite, it shall return XPE_ERR_INVALID_INPUT before writing any pixel." 코드는 215 에서 이미 바뀌었고 SPEC 이 뒤처져 있었다 | `QA-A-216` §5 항목 2 (코드 `QA-A-215`) · #233 | — (실재 기술, 문안은 `QA-A-216` 제안 그대로) |
+| 요구 보강 | `REQ-P1A-087` | 고스트도 비유한 프레임을 쓰기 전 `XPE_ERR_INVALID_INPUT` + `XPE_WARN_GHOST_INPUT_NOT_FINITE`, 버퍼·이력 불변(이전: `PROCESSING_FAILED`, 출력 일부 기록) | `QA-A-216`·`217` · #233 | — |
+| 요구 보강 | `REQ-P1A-032` | 고스트의 모든 실패 경로에서 출력 불변(백업 평면으로 복원). 이력 오버플로는 `XPE_ERR_PROCESSING_FAILED`, 이력 미커밋, 다음 정상 프레임은 reset 없이 성공(이전: 오버플로 이력이 커밋돼 이후 프레임 전부 실패). 대가 3072² 프레임당 약 +13~15 ms, 핸들 189 MB | `QA-A-217` · #233 | — |
+| 요구 보강 | `REQ-P1A-019` | XCal 목적지 교체가 Windows 오류 5·32 로 실패하면 합계 약 100 ms 까지 재시도. 최종 실패는 `XPE_ERR_IO_FAILED` + `XPE_WARN_XCAL_REPLACE_FAILED`, 임시 파일 삭제 결과에 따라 맺음말 두 갈래 | `QA-A-212b`·`212c` · #233 | 리더 결정(5·32 만, 합계 약 100 ms — `QA-A-212b` 보고서) |
+| 비규범 문서 | `TDS-GHOST-001` §7.2.1 | NaN 입력의 "이웃 중앙값 또는 0 으로 대체" 서술을 입구 거부로 정정 | `QA-A-216` §5 항목 3 · #233 | — |
+
+**반영하지 않은 것.** `QA-A-211` 보고서의 SRS-CALIB-FUNC-002·003 보강안은 SRS 원문(`docs/calibration/`)에 옮기지 않았다 — 이번 갱신 범위가 SPEC·api-spec·이 문서·TDS 였다. 규칙 4 에 따라 VVP·RTM 의 해당 행도 이번 변경에서 갱신하지 않았다.
+
 ## 7. 앞으로의 규칙
 
 1. 요구 수치를 바꾸는 커밋은 이 문서에 행을 추가하고, 같은 내용을 해당 이슈에 코멘트로 남긴다.

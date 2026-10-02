@@ -1,0 +1,16 @@
+=== new DLLs
+Part 1 CalData_6, defect stage only, BPMap.map (23505 masked)
+  defect map load rc = 0
+  pipeline rc=0 ; masked pixels written as exactly 0: 0 (0.0% of masked) ; non-masked pixels that differ from the input: 0
+  output sha256 d7f49e9665c125b6eadf5e8a383aaee8
+  alerts: []
+Part 2 cyan_test, scalar gain + defect stage with BPM.raw (250 masked)
+  defect map rc = 0
+  combined sha256 of the five outputs: 56ac0584aba6ebb145c29cfefa91ab6acd20e7f9128fa37c1fe8cbc6760392e1 (QA-A-211 evidence: 56ac0584aba6ebb145c29cfefa91ab6acd20e7f9128fa37c1fe8cbc6760392e1)
+Part 3 CalData_6 with the gain classification (scalar maps, levels 0 and 4) + BPMap.map
+  level 0: rc=0 masked 53103 ; masked pixels with NO valid pixel in 3x3 (the interior): 38519 ; written as exactly 0: masked 0, interior 0 ; non-finite 0
+          interior values: min 350.6 max 350.6 ; valid-pixel output range: min 350.6 max 350.6 ; interior inside that range: 38519 of 38519
+          alerts: []
+  level 4: rc=0 masked 48994 ; masked pixels with NO valid pixel in 3x3 (the interior): 37245 ; written as exactly 0: masked 0, interior 0 ; non-finite 0
+          interior values: min 2883.2 max 2883.2 ; valid-pixel output range: min 2883.2 max 2883.2 ; interior inside that range: 37245 of 37245
+          alerts: []

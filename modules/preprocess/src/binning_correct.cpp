@@ -31,13 +31,27 @@ XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
         return XPE_ERR_CONFIG_INVALID;
 
     // REQ-P1A-090: normalize by 1/binningMode^2 to compensate for summed charge
-    // (FLOAT32 only; the non-finite check below is REQ-P1A-091)
+    // (FLOAT32 only; the non-finite handling below is REQ-P1A-091)
     auto* px = static_cast<float*>(img->data);
-    const float norm = 1.0f / static_cast<float>(binningMode * binningMode);
-    for (size_t i = 0; i < n; ++i) {
-        px[i] *= norm;
-        if (!std::isfinite(px[i])) return XPE_ERR_PROCESSING_FAILED;
+
+    // QA-A-215 (#233): A NON-FINITE FRAME IS REFUSED BEFORE ANYTHING IS WRITTEN. The scaling used to be checked after
+    // each pixel was multiplied, so a NaN or an infinity in the middle of the frame answered XPE_ERR_PROCESSING_FAILED
+    // with every pixel before it already divided -- a failure code and a half-changed buffer. The check is on the INPUT
+    // because that is the only way this stage can produce a non-finite value: the factor is 1/4 or 1/16, which can
+    // lower a finite float (to a denormal or to zero, both finite) but never raise it past the largest float. So a
+    // non-finite result needs a non-finite input, and an input a consumer cannot process is INVALID_INPUT, with the
+    // buffer left as it was (QA-A-214b's rule for the defect stage). The pipeline never hands this stage such a frame
+    // (its input is the gain stage's finite output), so the pipeline's results are unchanged.
+    {
+        size_t count = 0, first = 0;
+        if (xpe_find_nonfinite(px, n, &count, &first)) {
+            xpe_alert_nonfinite("XPE_WARN_BINNING_INPUT_NOT_FINITE:", count, first, img->width,
+                                "the frame was not binned and the buffer was not changed");
+            return XPE_ERR_INVALID_INPUT;
+        }
     }
+    const float norm = 1.0f / static_cast<float>(binningMode * binningMode);
+    for (size_t i = 0; i < n; ++i) px[i] *= norm;
 
     (void)configJsonOrNull;
     return XPE_OK;

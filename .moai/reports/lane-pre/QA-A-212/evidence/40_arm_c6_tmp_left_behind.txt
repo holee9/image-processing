@@ -1,0 +1,11 @@
+ARM c6_tmp_left_behind
+file src/xcal_writer.cpp
+built=True
+[  FAILED  ] XcalReplaceRetryTest.ADestinationHeldPastTheBudgetFailsWithTheReasonAndTheOldFileIntact (712 ms)
+[  FAILED  ] XcalReplaceRetryTest.AReadOnlyDestinationFailsAfterTheBudgetNotForever (189 ms)
+[  FAILED  ] XcalReplaceRetryTest.ThePublicSaveGoesTheSameWay (746 ms)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] XcalReplaceRetryTest.ADestinationHeldPastTheBudgetFailsWithTheReasonAndTheOldFileIntact
+[  FAILED  ] XcalReplaceRetryTest.AReadOnlyDestinationFailsAfterTheBudgetNotForever
+[  FAILED  ] XcalReplaceRetryTest.ThePublicSaveGoesTheSameWay

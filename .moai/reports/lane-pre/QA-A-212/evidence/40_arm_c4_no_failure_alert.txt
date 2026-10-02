@@ -1,0 +1,11 @@
+ARM c4_no_failure_alert
+file src/xcal_writer.cpp
+built=True
+[  FAILED  ] XcalReplaceRetryTest.ADestinationHeldPastTheBudgetFailsWithTheReasonAndTheOldFileIntact (716 ms)
+[  FAILED  ] XcalReplaceRetryTest.AReadOnlyDestinationFailsAfterTheBudgetNotForever (181 ms)
+[  FAILED  ] XcalReplaceRetryTest.ThePublicSaveGoesTheSameWay (757 ms)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] XcalReplaceRetryTest.ADestinationHeldPastTheBudgetFailsWithTheReasonAndTheOldFileIntact
+[  FAILED  ] XcalReplaceRetryTest.AReadOnlyDestinationFailsAfterTheBudgetNotForever
+[  FAILED  ] XcalReplaceRetryTest.ThePublicSaveGoesTheSameWay

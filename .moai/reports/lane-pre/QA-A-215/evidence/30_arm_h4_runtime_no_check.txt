@@ -1,0 +1,9 @@
+ARM h4_runtime_no_check
+file src/runtime_detection.cpp
+built=True
+[  FAILED  ] NonFiniteInputTest.RuntimeDetectionRefusesANonFiniteFrameAndLeavesTheMapAlone (0 ms)
+[  FAILED  ] NonFiniteInputTest.RuntimeDetectionTheAlertNamesTheCountAndTheFirstPixel (0 ms)
+[  PASSED  ] 11 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] NonFiniteInputTest.RuntimeDetectionRefusesANonFiniteFrameAndLeavesTheMapAlone
+[  FAILED  ] NonFiniteInputTest.RuntimeDetectionTheAlertNamesTheCountAndTheFirstPixel

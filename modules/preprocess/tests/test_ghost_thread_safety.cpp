@@ -223,3 +223,59 @@ TEST_F(GhostThreadSafety, ResetAndCorrectOnOneHandleEndInASerialisedState) {
     }
     EXPECT_EQ(0, bad) << "runs (of " << kResetRuns << ") that ended in a state no serial order produces; first: " << firstWhy;
 }
+
+// ---------------------------------------------------------------------------
+// Failing frames on a shared handle (QA-A-219, #232 closing check after QA-A-217)
+//
+// QA-A-217 gave xpe_ghost_correct a copy of the incoming frame (handle plane `backup`) that a FAILED frame uses to put
+// its pixels back. That plane is shared by every call on the handle, so it is only safe inside the per-handle lock.
+// Method: seed the handle with one frame of 3e38 (finite, ok). From then on every frame of 2.5e38 (thread A) or
+// 2.4e38 (thread B) overflows the new history and FAILS -- each call must come back PROCESSING_FAILED with ITS OWN
+// pixels unchanged and the handle's history as the seed left it. Without the lock, one thread's restore would copy the
+// other thread's frame into its buffer (or the history would be committed by a call that was meant to fail).
+// ---------------------------------------------------------------------------
+TEST_F(GhostThreadSafety, FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle) {
+    int bad = 0;
+    std::string firstWhy;
+    for (int run = 0; run < kRuns; ++run) {
+        void* h = nullptr;
+        ASSERT_EQ(XPE_OK, xpe_ghost_create(kSide, kSide, "{\"tier\":\"1\"}", &h));
+        XpeImageMetadata meta{};
+        meta.acquisitionTime = kAcqTime;
+        {
+            std::vector<float> seed(static_cast<size_t>(kSide) * kSide, 3.0e38f);
+            XpeImageBuffer s = f32(seed);
+            ASSERT_EQ(XPE_OK, xpe_ghost_correct(h, &s, &meta)) << "control: the seed frame is accepted";
+        }
+        const State seeded = stateOf(h);
+
+        std::atomic<bool> go{false};
+        std::atomic<int> wrongCode{0}, changedPixels{0};
+        auto worker = [&](float value) {
+            std::vector<float> px(static_cast<size_t>(kSide) * kSide);
+            XpeImageMetadata m{};
+            m.acquisitionTime = kAcqTime;
+            while (!go.load(std::memory_order_acquire)) { /* start both together */ }
+            for (int i = 0; i < kCallsPerThread; ++i) {
+                std::fill(px.begin(), px.end(), value);
+                XpeImageBuffer img = f32(px);
+                if (xpe_ghost_correct(h, &img, &m) != XPE_ERR_PROCESSING_FAILED) ++wrongCode;
+                for (float x : px) if (x != value) { ++changedPixels; break; }
+            }
+        };
+        std::thread a(worker, 2.5e38f), b(worker, 2.4e38f);
+        go.store(true, std::memory_order_release);
+        a.join(); b.join();
+
+        const bool stateKept = sameBits(stateOf(h), seeded);
+        if (wrongCode.load() != 0 || changedPixels.load() != 0 || !stateKept) {
+            ++bad;
+            if (firstWhy.empty())
+                firstWhy = "calls with another result than PROCESSING_FAILED: " + std::to_string(wrongCode.load()) +
+                           ", calls whose own pixels changed: " + std::to_string(changedPixels.load()) +
+                           ", history kept as seeded: " + (stateKept ? "yes" : "no");
+        }
+        xpe_ghost_destroy(h);
+    }
+    EXPECT_EQ(0, bad) << "runs (of " << kRuns << ") that broke the contract; first: " << firstWhy;
+}

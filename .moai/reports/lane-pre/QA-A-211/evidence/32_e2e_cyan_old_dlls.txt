@@ -1,0 +1,8 @@
+=== cyan_test (old DLLs)
+defect map rc = 0
+  level 0: load rc=0 alerts=[] ; pipeline rc=0 sha256=2ce3828c61666860
+  level 1: load rc=0 alerts=[] ; pipeline rc=0 sha256=001026994c0c55d9
+  level 2: load rc=0 alerts=[] ; pipeline rc=0 sha256=244ba7d7f632803f
+  level 3: load rc=0 alerts=[] ; pipeline rc=0 sha256=67d50abcc12d40d7
+  level 4: load rc=0 alerts=[] ; pipeline rc=0 sha256=83c8443dcbaa8340
+  combined sha256 of the five outputs: 56ac0584aba6ebb145c29cfefa91ab6acd20e7f9128fa37c1fe8cbc6760392e1

@@ -557,6 +557,24 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
         size_t applier_reject_count = 0;   // pixels no degree can be stored for
         size_t applier_reject_first = 0;
 
+        // QA-A-211 (#233): a pixel whose gain is outside [XPE_GAIN_APPLIED_MIN, XPE_GAIN_APPLIED_MAX] is not refused any
+        // more -- it is CLASSIFIED DEFECTIVE: all its coefficients are stored as 0, which the applier evaluates to a gain
+        // outside the range and so classifies at application time too (gain 1.0, the defect stage fills it). Two ways
+        // to be classified: a MEASURED gain of the pixel is outside the range (a failed pixel, a low-sensitivity edge
+        // band), or no degree down to the least-squares line evaluates inside the range at the measured doses. A
+        // classified pixel is not fitted, so it is not in the quality figures. More than XPE_GAIN_DEFECT_MAX_FRACTION of
+        // the frame classified refuses the generation. (A fit that is in range but more than kApplyTolerance from what
+        // the pixel measured is NOT classified: that is the file failing to carry the data, and refuses as before.)
+        XpeGainScan classified;
+        classified.total = n_pixels;
+        const auto classify_pixel = [&](size_t pix) {
+            if (classified.count == 0) classified.first = pix;
+            ++classified.count;
+            const size_t py = pix / width, px = pix % width;
+            if (py < 64 || py + 64 >= height || px < 64 || px + 64 >= width) ++classified.inBand;
+            // the coefficients stay as the zeros coeff_array was created with
+        };
+
         // For each pixel: fit polynomial with degree reduction if needed
         const size_t sNumLevels = static_cast<size_t>(num_levels);
         const size_t sMaxDegree = static_cast<size_t>(max_degree);
@@ -568,7 +586,20 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
                 y_vals[i] = static_cast<double>(gain_maps[i][pix]);
             }
 
+            // QA-A-211: a measured gain outside the range classifies the pixel before any fit is tried.
+            {
+                bool measured_out_of_range = false;
+                for (size_t i = 0; i < sNumLevels; ++i) {
+                    if (!xpe_gain_value_valid(static_cast<float>(y_vals[i]))) { measured_out_of_range = true; break; }
+                }
+                if (measured_out_of_range) {
+                    classify_pixel(pix);
+                    continue;
+                }
+            }
+
             // Try fitting from max_degree down to degree 1
+            bool deg1_range_failed = false;   // at degree 1 the float32 evaluation left the range (QA-A-211)
             bool fit_success = false;
             bool degree1_solved = false;     // the least-squares line itself could be solved (QA-A-210e)
             size_t final_degree = 1;
@@ -614,6 +645,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
                 // evaluation must be a gain the applier accepts, within kApplyTolerance of the intended one. A fit that
                 // fails lowers the degree like a non-monotone one; at degree 1 the pixel is refused (below).
                 bool apply_ok = true;
+                bool range_failed = false;
                 {
                     float stored_f[5] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
                     for (size_t j = 0; j < n_coeffs; ++j) stored_f[j] = static_cast<float>(stored[j]);
@@ -622,12 +654,15 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
                                                                      static_cast<float>(dose_levels[i]));
                         double intended = 0.0;
                         for (size_t j = n_coeffs; j-- > size_t{0};) intended = intended * dose_levels[i] + temp_coeffs[j];
-                        if (!xpe_gain_value_valid(applied) ||
-                            std::abs(static_cast<double>(applied) - intended) > kApplyTolerance * std::abs(intended)) {
+                        if (!xpe_gain_value_valid(applied)) {
+                            apply_ok = false;
+                            range_failed = true;
+                        } else if (std::abs(static_cast<double>(applied) - intended) > kApplyTolerance * std::abs(intended)) {
                             apply_ok = false;
                         }
                     }
                 }
+                if (deg == 1 && range_failed) deg1_range_failed = true;
 
                 if (apply_ok && validate_monotonicity(
                     stored, static_cast<int32_t>(deg),
@@ -642,6 +677,13 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
                 }
             }
 
+            if (!fit_success && degree1_solved && deg1_range_failed) {
+                // QA-A-211: the least-squares line itself evaluates outside the gain range at a measured dose although
+                // every measured gain is inside it (a pixel at the edge of the range): classified, like a measured
+                // out-of-range gain.
+                classify_pixel(pix);
+                continue;
+            }
             if (!fit_success && degree1_solved) {
                 // Every degree down to the line was solved, and none can be applied by the applier's arithmetic: this
                 // pixel cannot be represented. Counted; the generation is refused after the loop with every such pixel
@@ -710,15 +752,24 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
             char reject_msg[400];
             std::snprintf(reject_msg, sizeof(reject_msg),
                           "XPE_WARN_GAIN_POLY_NOT_APPLICABLE: %zu pixel(s) (first: %zu) have no gain polynomial whose float32 "
-                          "coefficients the applier can use -- evaluated in float32 at a measured dose it falls outside the "
-                          "gain range [%.3f, %.0f] or more than %.1f%% from the fit. The doses are too close together for "
-                          "coefficients stored in the raw dose, or the gain is outside the range; no file was written",
+                          "coefficients the applier can use -- evaluated in float32 at a measured dose it is more than %.1f%% "
+                          "from the fit. The doses are too close together for coefficients stored in the raw dose; "
+                          "no file was written",
                           applier_reject_count, applier_reject_first,
-                          static_cast<double>(XPE_GAIN_APPLIED_MIN), static_cast<double>(XPE_GAIN_APPLIED_MAX),
                           kApplyTolerance * 100.0);
             reject_msg[sizeof(reject_msg) - 1] = '\0';
             xpe_alert_push(reject_msg, XPE_ALERT_ERROR);
             return XPE_ERR_INVALID_CALIB_DATA;
+        }
+
+        // QA-A-211 (#233): the classified pixels. Over the cap the generation is refused (nothing recorded, no file); under
+        // it the count is reported with the cause hint (how many lie in the outer 64-pixel band) and the file is written.
+        if (classified.count > 0) {
+            if (xpe_gain_scan_over_limit(classified)) {
+                xpe_gain_alert_over_limit(classified, "generated");
+                return XPE_ERR_INVALID_CALIB_DATA;
+            }
+            xpe_gain_alert_classified(classified);
         }
 
         // --- FUNC-033: score the whole fit and record the metadata ---

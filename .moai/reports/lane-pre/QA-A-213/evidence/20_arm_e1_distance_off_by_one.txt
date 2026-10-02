@@ -1,0 +1,19 @@
+ARM e1_distance_off_by_one
+file src/defect_correct.cpp
+built=True
+[  FAILED  ] DefectFillTest.TheNearestRingDecidesNotAWiderOne (2 ms)
+[  FAILED  ] DefectFillEquivalenceTest.OneBigBlockWhoseDeepInteriorIsBeyondTheSearchRadius (44 ms)
+[  FAILED  ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorIsWithinTenPixels (24 ms)
+[  FAILED  ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorReachesTwentyPixels (41 ms)
+[  FAILED  ] DefectFillEquivalenceTest.ASparseRealisticMaskOfLonePixelsAndSmallClusters (10 ms)
+[  FAILED  ] DefectFillEquivalenceTest.BlocksTouchingTheFrameEdgesAndCorners (2 ms)
+[  FAILED  ] DefectFillEquivalenceTest.ThreeHundredRandomMasks (3 ms)
+[  PASSED  ] 29 tests.
+[  FAILED  ] 7 tests, listed below:
+[  FAILED  ] DefectFillTest.TheNearestRingDecidesNotAWiderOne
+[  FAILED  ] DefectFillEquivalenceTest.OneBigBlockWhoseDeepInteriorIsBeyondTheSearchRadius
+[  FAILED  ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorIsWithinTenPixels
+[  FAILED  ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorReachesTwentyPixels
+[  FAILED  ] DefectFillEquivalenceTest.ASparseRealisticMaskOfLonePixelsAndSmallClusters
+[  FAILED  ] DefectFillEquivalenceTest.BlocksTouchingTheFrameEdgesAndCorners
+[  FAILED  ] DefectFillEquivalenceTest.ThreeHundredRandomMasks

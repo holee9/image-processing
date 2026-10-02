@@ -1,0 +1,11 @@
+ARM b2_no_generation_cap
+file src/xpe_calib_generate_gain.cpp
+built=True
+[  FAILED  ] GainPolyPolicyTest.AGainOutsideTheAppliersRangeIsRefusedEvenWhenTheFitIsExact (14 ms)
+[  FAILED  ] GainPolyClassifyTest.MoreThanFivePercentClassifiedRefusesTheGenerationAndChangesNothing (4 ms)
+[  FAILED  ] GainPolyClassifyTest.TheCodexDataAsGivenIsRefusedAtGenerationNowThatTheRangeIsTheSrsOne (7 ms)
+[  PASSED  ] 834 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] GainPolyPolicyTest.AGainOutsideTheAppliersRangeIsRefusedEvenWhenTheFitIsExact
+[  FAILED  ] GainPolyClassifyTest.MoreThanFivePercentClassifiedRefusesTheGenerationAndChangesNothing
+[  FAILED  ] GainPolyClassifyTest.TheCodexDataAsGivenIsRefusedAtGenerationNowThatTheRangeIsTheSrsOne

@@ -1,0 +1,11 @@
+RESULT|binning mode 2, CalData_6 bright03|3.49|rc=0 2d3bf9e14f5778799410ef45
+RESULT|binning mode 4, CalData_6 bright03|3.68|rc=0 30d94ed66aa8d9139d64a953
+RESULT|runtime detection, CalData_6 bright03|110.91|rc=0 flagged=4037 d36b5167da0664c5f7b529cd
+RESULT|binning mode 2, cyan_test CalSet_30868|6.92|rc=0 a035e5c6e03eb3863c39fd7a
+RESULT|binning mode 4, cyan_test CalSet_30868|4.62|rc=0 5ae50de0fe2231a15f7e1469
+RESULT|runtime detection, cyan_test CalSet_30868|85.88|rc=0 flagged=6794 70184ff2e91ada8a65ce075f
+RESULT|binning mode 2, synthetic noise + hot pixels|4.19|rc=0 73dd102d69408d858d05beb8
+RESULT|binning mode 4, synthetic noise + hot pixels|3.89|rc=0 db3d04946552dfba6034a3c2
+RESULT|runtime detection, synthetic noise + hot pixels|90.76|rc=0 flagged=343 979f687def8bca484b6e0b79
+RESULT|binning mode 2, float-range extremes|3.87|rc=0 f8b556ded83dffedc984dd33
+RESULT|binning mode 4, float-range extremes|3.78|rc=0 c5616721fb91f51d57364b33

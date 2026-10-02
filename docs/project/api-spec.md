@@ -636,7 +636,7 @@ XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath);
 **Description**: Loads a flat-field gain calibration map in XCal format from `filepath` into the module-global calibration store, together with its interpolation table for kVp-specific gain. There is no output-buffer parameter; the LRU-cached variant `xpe_calib_load_gain_cached(filePath, gainMapOut)` returns the map to the caller.  
 **SRS**: SRS-CALIB-011  
 **Thread safety**: Reentrant; writes the global calibration store under the module mutex.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_NOT_INITIALIZED`, `XPE_ERR_IO_FAILED`, `XPE_ERR_CALIBRATION_EXPIRED`
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_NOT_INITIALIZED`, `XPE_ERR_IO_FAILED`, `XPE_ERR_CALIBRATION_EXPIRED`, `XPE_ERR_INVALID_CALIB_DATA` (게인 범위 밖 화소가 5% 초과 — §6.21 (1))
 
 ---
 
@@ -835,6 +835,61 @@ XpeErrorCode xpe_verify_gain(const XpeImageBuffer* before_gain, const XpeImageBu
 - 실데이터(cyan_test, 3072², 5준위)에서 끝점 갈래는 48.9% → 0%, 파일 R² 는 −0.035 → +0.252, 화소별 R² < 0 은 33.2% → float 반올림 1화소로 바뀌었다.
 - `calibration_pass`(R² ≥ 0.999)는 이 데이터에서 여전히 0 이다. 게이트와 `XPE_WARN_CALIB_POOR_FIT` 문구는 바꾸지 않았다(#233 별도 기록).
 - 아직 main 에 들어오지 않은 것: 단조 검사를 구간 전체에 대해 해석적으로 하는 것, 비유한 선량 거부(QA-A-210d, 검토 중).
+
+---
+
+### 6.21 2026-10-02 계약 보강 3 (pre 체인 병합 `3a991d7c`, #233)
+
+원문과 근거: `.moai/reports/lane-pre/QA-A-211`·`211b`·`212`·`212c`·`214`·`215`·`216`·`217` 보고서. 요구 문안은 SPEC-XPE-P1A `REQ-P1A-011`·`012`·`013`·`015`·`019`·`032`·`087`·`091` 이 정본이다. 아래 알림 문구는 모두 레인 간 계약이며 **접두사로 매칭**한다.
+
+**(1) 게인 범위 밖 화소의 결함 분류 (QA-A-211·211b).** 적용 가능한 게인 범위는 [0.1, 10.0] 하나다(SRS-CALIB-FUNC-002). 범위 밖(비유한 포함) 화소는 게인 1.0 으로 보정하고 결함으로 분류해 결함 단계로 넘긴다. 분류 비율 상한은 5%(SRS-CALIB-FUNC-003 의 결함 밀도 허용치)다. XCal 형식과 공개 함수 시그니처는 바뀌지 않았고, 분류 목록을 조회하는 함수는 없다.
+
+| 함수 | 범위 밖 화소 | 5% 초과 |
+|---|---|---|
+| `xpe_calib_load_gain`(스칼라 맵) | 맵 값을 1.0 으로 바꿔 적재, 분류 목록을 맵과 함께 저장소에 둔다. **변화**: 이전에는 `XPE_ERR_INVALID_CALIB_DATA` | `XPE_ERR_INVALID_CALIB_DATA`, 저장소 불변 |
+| `xpe_calib_load_gain_cached` 적중 | 적재 때와 같은 분류를 설치 | — |
+| `xpe_calib_generate_gain_polynomial` | 측정 게인이 범위 밖인 화소, 그리고 모든 차수를 시도해도 최소제곱 직선이 범위를 벗어나는 화소를 분류(계수 0, 품질 수치에서 제외) | `XPE_ERR_INVALID_CALIB_DATA`, 품질 기록·파일 없음 |
+| `xpe_gain_correct`(다항식) | 평가값이 범위 밖인 화소에 게인 1.0, 프레임 목록에 추가 | `XPE_ERR_CONFIG_INVALID` |
+| `xpe_defect_correct` | 마스크 = 결함 맵 ∪ 저장소 목록 ∪ 프레임 목록 | 합집합 5% 초과는 경고만, 보정 계속 |
+| 파이프라인 | 비닝(binningMode > 1) + 결함 단계로 전달될 분류 화소 → 거부. 게인 단계를 우회해도 결함 단계가 돌고 저장소 목록이 비어 있지 않으면 거부. 둘 다 우회하면 거부 안 함 | `XPE_ERR_CONFIG_INVALID` |
+
+다항식 파일의 `fit_r_squared` 는 적합한 화소에 대해서만 계산된다. 분류 화소는 들어가지 않고 그 수는 `XpeCalibQualityMeta` 에 기록되지 않는다(생성 때 알림으로 한 번 보고). 그래서 보고된 R² 가 프레임 전체의 R² 보다 좋을 수 있다.
+
+| 접두사 | 심각도 | 언제 / 전체 문구 |
+|---|---|---|
+| `XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT:` | 경고 | 적재·생성: `N of TOTAL pixel(s) (P%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect correction stage (K in the outermost 64-pixel band; first: I). Limit: 5.0%`. 다항식 적용: `N pixel(s) of this frame evaluate to a gain outside [0.1, 10.0] and are marked defective (gain 1.0) and listed for the defect correction stage` (QA-A-211b 문구 — 아직 하지 않은 보정을 끝난 것처럼 말하지 않음) |
+| `XPE_WARN_GAIN_PIXELS_OVER_LIMIT:` | 오류 | 상한 초과. 끝이 "the calibration was not loaded / generated / applied" |
+| `XPE_WARN_GAIN_PIXELS_UNCORRECTED:` | 경고 | 파이프라인에서 결함 단계 우회, 또는 `xpe_gain_correct` 단독 호출 |
+| `XPE_WARN_GAIN_PIXELS_WITH_BINNING:` | 오류 | 비닝 + 분류 화소 → 프레임 거부 |
+| `XPE_WARN_DEFECT_UNION_OVER_LIMIT:` | 경고 | 결함 맵 ∪ 분류가 5% 초과 |
+
+**(2) 결함 덩어리 안쪽 채움 (QA-A-211b).** `xpe_defect_correct` 에서 덩어리 화소의 3×3 에 정상 화소가 없으면, 체비쇼프 반경 2~16 가운데 정상 화소가 있는 가장 가까운 고리의 정상 화소 값의 위쪽 중앙값으로 채운다. 반경 16 안에 없으면 입력값을 그대로 두고 프레임당 한 번 알린다. 0 은 쓰지 않는다. **출력 변화**: 이전 빌드는 그 화소를 0 으로 썼다. 결함 맵이 덩어리 안쪽을 만들지 않는 입력(cyan_test 등)의 출력은 같다.
+
+| 접두사 | 심각도 | 전체 문구 |
+|---|---|---|
+| `XPE_WARN_DEFECT_NO_VALID_NEIGHBOUR:` | 경고 | `N masked pixel(s) have no valid pixel within 16 pixels to fill them from and keep their input value` |
+
+**(3) 비유한 입력 — 쓰기 전 거부 (QA-A-214b·215·217).** 아래 네 함수는 NaN 또는 ±무한대 화소가 하나라도 든 프레임을 **아무것도 쓰기 전에** `XPE_ERR_INVALID_INPUT` 으로 거부한다. 기존 인자 검사는 같은 우선순위로 먼저 나온다. 알림은 모두 오류 심각도이고 `<N> pixel(s) of the input frame are NaN or infinite (first: index <I>, x=<X>, y=<Y>); ` 뒤에 함수별 맺음말이 붙는다.
+
+| 함수 | 접두사 | 맺음말 | 이전 동작 |
+|---|---|---|---|
+| `xpe_defect_correct` | `XPE_WARN_DEFECT_INPUT_NOT_FINITE:` | `the frame was not corrected and the output was not written` | 비유한 값이 섞인 출력, `XPE_OK` |
+| `xpe_binning_correct` | `XPE_WARN_BINNING_INPUT_NOT_FINITE:` | `the frame was not binned and the buffer was not changed` | 일부 화소를 나눈 뒤 `XPE_ERR_PROCESSING_FAILED` |
+| `xpe_defect_detect_runtime` | `XPE_WARN_RUNTIME_DETECT_INPUT_NOT_FINITE:` | `no detection was run and the defect map was not written` | 맵을 비우고 씀, NaN 화소는 "정상" |
+| `xpe_ghost_correct` | `XPE_WARN_GHOST_INPUT_NOT_FINITE:` | `the frame was not corrected; the buffer and the handle's history were not changed` | 일부 화소를 쓴 뒤 `XPE_ERR_PROCESSING_FAILED` |
+
+**(4) 고스트 보정의 실패 경로 (QA-A-217).** `xpe_ghost_correct` 가 실패 코드를 돌려주면 `img` 는 호출 전 바이트 그대로이고 핸들 상태도 그대로다. 입구 거부(3) 외의 실패 — 보정값 비유한, 유한 입력에서 새 이력이 비유한(이력 오버플로) — 는 `XPE_ERR_PROCESSING_FAILED` 이며, 핸들의 백업 평면으로 화소를 되돌리고 이력을 커밋하지 않는다. 그다음 정상 프레임은 reset 없이 성공한다. 오버플로 실패에는 알림이 없다. 헤더의 옛 문구("corrected before the failure are not restored")는 더 이상 맞지 않아 고쳤다. 백업 평면 때문에 핸들은 3072² 에서 약 189 MB(이전 151 MB), 프레임당 약 +13~15 ms(한 기계의 측정).
+
+**(5) XCal 목적지 교체 재시도 (QA-A-212b·212c).** 모든 XCal 쓰기(`xpe_calib_save`, 게인·다항식 게인·비선형 LUT·오프셋 생성)는 `<path>.tmp` 에 쓴 뒤 목적지를 교체한다. Windows 에서 교체가 오류 5(`ERROR_ACCESS_DENIED`) 또는 32(`ERROR_SHARING_VIOLATION`)면 1 ms 부터 두 배씩(최대 25 ms) 쉬며 재시도하고, 쉰 시간 합계 100 ms 에서 멈춘다. 그 밖의 오류는 재시도하지 않는다. 재시도 끝에 성공하면 알림이 없다. 끝내 실패하면 `XPE_ERR_IO_FAILED`, 이전 파일은 그대로이고, 임시 파일 삭제를 한 번 시도한 뒤 알림을 올린다(오류). 비 Windows 경로는 바뀌지 않았고 알림도 없다.
+
+```
+XPE_WARN_XCAL_REPLACE_FAILED: could not replace '<path>' with the newly written calibration file: Windows error <E> after <R> retries (<cause>).
+```
+
+- `<cause>`: 5·32 이면 `the destination or the temporary file stayed open in another process, or the destination is read-only or may not be changed`, 그 밖이면 `not a transient condition, so it was not retried`(이때 `<R>` 는 0).
+- 임시 파일을 지웠으면 맺음말: ` The previous file, if any, is unchanged and the temporary file was removed`
+- 못 지웠으면 맺음말: ` The previous file, if any, is unchanged. The temporary file '<path>.tmp' could NOT be removed (Windows error <D>) and was left behind; the next save to this path replaces it once it is free` — 다른 프로세스가 임시 파일을 삭제 공유 없이 열고 있으면 `<D>` 는 32 로 실측. 남은 `.tmp` 는 다음 저장이 덮어쓴다.
+- 확인하지 않은 것(QA-A-212c Gaps): 임시 파일을 아예 열지 못하면 알림 없이 `XPE_ERR_IO_FAILED` 가 된다(코드 읽기로만 확인).
 
 ---
 

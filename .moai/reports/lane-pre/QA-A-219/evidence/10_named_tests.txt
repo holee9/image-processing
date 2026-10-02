@@ -1,0 +1,10 @@
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (78 ms)
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (77 ms)
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (44 ms)
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (385 ms)
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (21 ms)
+[       OK ] CalibDimMismatch.OffsetMapDifferentFromInputReturnsInvalidInput (5 ms)
+[       OK ] CalibDimMismatch.GainMapDifferentFromInputReturnsInvalidInput (1 ms)
+[       OK ] CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput (1 ms)
+[       OK ] CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput (1 ms)
+[  PASSED  ] 9 tests.

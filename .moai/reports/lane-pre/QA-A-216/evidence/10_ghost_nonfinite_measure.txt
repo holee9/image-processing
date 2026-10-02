@@ -1,0 +1,32 @@
+RESULT|case|tier|when|rc|image written before failing (pixels changed)|handle state vs control after bad frame|next clean frame vs control
+RESULT|NaN x1 at pixel 0|1|first frame|rc=-3|0/64|n/a|clean frame after bad == fresh-handle answer: True (rc=0)
+RESULT|NaN x1 mid (pixel 35)|1|first frame|rc=-3|0/64|n/a|clean frame after bad == fresh-handle answer: True (rc=0)
+RESULT|+inf x1 at last pixel|1|first frame|rc=-3|0/64|n/a|clean frame after bad == fresh-handle answer: True (rc=0)
+RESULT|NaN all pixels|1|first frame|rc=-3|0/64|n/a|clean frame after bad == fresh-handle answer: True (rc=0)
+RESULT|NaN x1 at pixel 0|1|after 2 good frames|rc=-3|0/64|n/a|clean frame after bad == control answer: True (rc=0/0)
+RESULT|NaN x1 mid (pixel 35)|1|after 2 good frames|rc=-3|35/64|n/a|clean frame after bad == control answer: True (rc=0/0)
+RESULT|+inf x1 at last pixel|1|after 2 good frames|rc=-3|63/64|n/a|clean frame after bad == control answer: True (rc=0/0)
+RESULT|NaN all pixels|1|after 2 good frames|rc=-3|0/64|n/a|clean frame after bad == control answer: True (rc=0/0)
+RESULT|NaN x1 at pixel 0|2|first frame|rc=-3|0/64|n/a|clean frame after bad == fresh-handle answer: True (rc=0)
+RESULT|NaN x1 mid (pixel 35)|2|first frame|rc=-3|0/64|n/a|clean frame after bad == fresh-handle answer: True (rc=0)
+RESULT|+inf x1 at last pixel|2|first frame|rc=-3|0/64|n/a|clean frame after bad == fresh-handle answer: True (rc=0)
+RESULT|NaN all pixels|2|first frame|rc=-3|0/64|n/a|clean frame after bad == fresh-handle answer: True (rc=0)
+RESULT|NaN x1 at pixel 0|2|after 2 good frames|rc=-3|0/64|n/a|clean frame after bad == control answer: True (rc=0/0)
+RESULT|NaN x1 mid (pixel 35)|2|after 2 good frames|rc=-3|35/64|n/a|clean frame after bad == control answer: True (rc=0/0)
+RESULT|+inf x1 at last pixel|2|after 2 good frames|rc=-3|63/64|n/a|clean frame after bad == control answer: True (rc=0/0)
+RESULT|NaN all pixels|2|after 2 good frames|rc=-3|0/64|n/a|clean frame after bad == control answer: True (rc=0/0)
+RESULT|NaN x1 at pixel 0|3|first frame|rc=-3|0/64|n/a|clean frame after bad == fresh-handle answer: True (rc=0)
+RESULT|NaN x1 mid (pixel 35)|3|first frame|rc=-3|20/64|n/a|clean frame after bad == fresh-handle answer: True (rc=0)
+RESULT|+inf x1 at last pixel|3|first frame|rc=-3|36/64|n/a|clean frame after bad == fresh-handle answer: True (rc=0)
+RESULT|NaN all pixels|3|first frame|rc=-3|0/64|n/a|clean frame after bad == fresh-handle answer: True (rc=0)
+RESULT|NaN x1 at pixel 0|3|after 2 good frames|rc=-3|0/64|n/a|clean frame after bad == control answer: True (rc=0/0)
+RESULT|NaN x1 mid (pixel 35)|3|after 2 good frames|rc=-3|35/64|n/a|clean frame after bad == control answer: True (rc=0/0)
+RESULT|+inf x1 at last pixel|3|after 2 good frames|rc=-3|63/64|n/a|clean frame after bad == control answer: True (rc=0/0)
+RESULT|NaN all pixels|3|after 2 good frames|rc=-3|0/64|n/a|clean frame after bad == control answer: True (rc=0/0)
+RESULT|finite extremes
+RESULT|finite 3e38 frame 1|rc=0|out finite=True
+RESULT|finite 3e38 frame 2|rc=0|out finite=True
+RESULT|finite 3e38 frame 3|rc=-3|out finite=True
+RESULT|finite 3e38 frame 4|rc=-3|out finite=True
+RESULT|ordinary clean frame after that|rc=-3
+RESULT|ordinary clean frame after reset|rc=0

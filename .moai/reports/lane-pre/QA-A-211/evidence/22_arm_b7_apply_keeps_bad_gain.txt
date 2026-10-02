@@ -1,0 +1,13 @@
+ARM b7_apply_keeps_bad_gain
+file src/gain_correct.cpp
+built=True
+[  FAILED  ] GainPolyClassifyTest.AClassifiedPixelIsFilledFromItsNeighboursWhereTheAppliedGainIsOne (8 ms)
+[  FAILED  ] GainPolyClassifyTest.CalledOnItsOwnTheGainStageKeepsGainOneAndSaysNoDefectStageFollows (7 ms)
+[  FAILED  ] GainPolyClassifyTest.ACurveThatLeavesTheRangeBetweenTwoMeasuredDosesClassifiesThatPixelInsteadOfRefusingTheFrame (13 ms)
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys (79 ms)
+[  PASSED  ] 833 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] GainPolyClassifyTest.AClassifiedPixelIsFilledFromItsNeighboursWhereTheAppliedGainIsOne
+[  FAILED  ] GainPolyClassifyTest.CalledOnItsOwnTheGainStageKeepsGainOneAndSaysNoDefectStageFollows
+[  FAILED  ] GainPolyClassifyTest.ACurveThatLeavesTheRangeBetweenTwoMeasuredDosesClassifiesThatPixelInsteadOfRefusingTheFrame
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys

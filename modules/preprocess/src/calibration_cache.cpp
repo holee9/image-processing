@@ -134,6 +134,8 @@ struct EntryMeta {
     FileStamp   stamp;         ///< size and last-write time taken before the file was read
     XpeCalibQualityMeta quality{};   ///< gain only: the parsed FUNC-033 metadata of the file
     bool        hasQuality{false};
+    std::shared_ptr<uint32_t[]> gainDefects;   ///< gain only: the pixels classified defective at load (QA-A-211), shared and immutable
+    uint32_t    gainDefectCount{0};
 };
 
 /// NeedOpenCheck / Unreadable are the two steps of the open check (QA-A-203): see get_copy().
@@ -500,13 +502,16 @@ void install_offset(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
 }
 
 void install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
-                  int64_t timestamp, const char* sessionId64, const XpeCalibQualityMeta* quality)
+                  int64_t timestamp, const char* sessionId64, const XpeCalibQualityMeta* quality,
+                  std::shared_ptr<uint32_t[]> defects, uint32_t defectCount)
 {
     // The store holds the map as a shared_ptr; the control block is allocated here, before the lock, so a
     // failure to allocate it leaves the store untouched.
     std::shared_ptr<float[]> shared(std::move(map));
     std::lock_guard<std::mutex> lock(g_calib_mutex);
     g_calib.gain_map = std::move(shared);
+    g_calib.gain_defect_idx   = std::move(defects);   // a hit installs the classification the load made (QA-A-211)
+    g_calib.gain_defect_count = defectCount;
     g_calib.gain_poly_coeffs.reset();
     g_calib.gain_poly_num_coeffs = 0;
     g_calib.gain_poly_has_range  = false;
@@ -644,7 +649,7 @@ try
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
         if (state == HitState::Hit) {
             install_gain(std::move(pixels), view, meta.timestamp, meta.sessionId,
-                         meta.hasQuality ? &meta.quality : nullptr);
+                         meta.hasQuality ? &meta.quality : nullptr, meta.gainDefects, meta.gainDefectCount);
             std::memcpy(gainMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;
         }
@@ -686,6 +691,8 @@ try
         meta.expiryMs   = g_calib.gain_expiry_ms;
         meta.quality    = g_calib.gain_quality;
         meta.hasQuality = g_calib.gain_has_quality;
+        meta.gainDefects     = g_calib.gain_defect_idx;
+        meta.gainDefectCount = g_calib.gain_defect_count;
         std::memcpy(meta.sessionId, g_calib.gain_session_id, sizeof(meta.sessionId));
     }
 

@@ -1,0 +1,9 @@
+ARM j3_no_alert
+file src/ghost_correct.cpp
+built=True
+[  FAILED  ] GhostInputFinite.ANonFiniteFrameIsRefusedWithNothingWrittenAndTheHandleUntouched (1 ms)
+[  FAILED  ] GhostInputFinite.TheAlertNamesTheCountAndTheFirstPixel (0 ms)
+[  PASSED  ] 16 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] GhostInputFinite.ANonFiniteFrameIsRefusedWithNothingWrittenAndTheHandleUntouched
+[  FAILED  ] GhostInputFinite.TheAlertNamesTheCountAndTheFirstPixel

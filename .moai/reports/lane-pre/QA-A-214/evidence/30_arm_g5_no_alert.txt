@@ -1,0 +1,9 @@
+ARM g5_no_alert
+file src/defect_correct.cpp
+built=True
+[  FAILED  ] DefectInputFiniteTest.ANonFiniteFrameIsRefusedWithInvalidInputAndTheOutputBufferIsLeftAlone (1 ms)
+[  FAILED  ] DefectInputFiniteTest.TheAlertNamesTheCountAndTheFirstPixel (1 ms)
+[  PASSED  ] 24 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] DefectInputFiniteTest.ANonFiniteFrameIsRefusedWithInvalidInputAndTheOutputBufferIsLeftAlone
+[  FAILED  ] DefectInputFiniteTest.TheAlertNamesTheCountAndTheFirstPixel

@@ -1,0 +1,22 @@
+ARM k3_only_the_left_neighbour_corrected
+file src/ghost_correct.cpp
+built=True
+[  FAILED  ] GhostTier3Orientation.AFrameFlippedProcessedAndFlippedBackComesOutAsTheUnflippedOne (0 ms)
+[  FAILED  ] GhostTier3Orientation.TheOutputIsTheTierThreeFormulaWithTheNeighboursReadFromTheIncomingFrame (0 ms)
+[  PASSED  ] 11 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] GhostTier3Orientation.AFrameFlippedProcessedAndFlippedBackComesOutAsTheUnflippedOne
+[  FAILED  ] GhostTier3Orientation.TheOutputIsTheTierThreeFormulaWithTheNeighboursReadFromTheIncomingFrame
+failing orientation cases (size, scene, transform):
+16x16 random, left-right
+16x16 random, rot180
+16x16 random, transpose
+16x16 smooth, left-right
+16x16 smooth, rot180
+16x16 smooth, transpose
+24x24 random, left-right
+24x24 random, rot180
+24x24 random, transpose
+24x24 smooth, left-right
+24x24 smooth, rot180
+24x24 smooth, transpose
