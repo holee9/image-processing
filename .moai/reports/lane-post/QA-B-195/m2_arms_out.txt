@@ -1,0 +1,14 @@
+data snapshot before: 3f662e36dc19b36f
+D1 one byte of a model changed: passed=['2'] red(1)=['EveryTestModelHasACurrentValidSignature']
+D2 a signature file deleted: passed=['1'] red(2)=['EveryTestModelHasACurrentValidSignature', 'NoSignatureFileIsLeftBehindWithoutItsModel']
+D3 a sidecar changed by one byte: passed=['1'] red(2)=['EveryTestModelHasACurrentValidSignature', 'TheCheckAboveCanFail']
+D4 two models swapped their signatures: passed=['1'] red(2)=['EveryTestModelHasACurrentValidSignature', 'TheCheckAboveCanFail']
+D5 an orphan signature left behind: passed=['2'] red(1)=['NoSignatureFileIsLeftBehindWithoutItsModel']
+D6 a sidecar checked out with CRLF line endings: passed=['1'] red(2)=['EveryTestModelHasACurrentValidSignature', 'TheCheckAboveCanFail']
+D7 signed by a key that is not trusted (the second test key): passed=['2'] red(1)=['EveryTestModelHasACurrentValidSignature']
+D8 a sidecar removed: passed=['2'] red(1)=['EveryTestModelHasACurrentValidSignature']
+D9 a signature file one byte short: passed=['2'] red(1)=['EveryTestModelHasACurrentValidSignature']
+D10 signed for the other role: passed=['2'] red(1)=['EveryTestModelHasACurrentValidSignature']
+RESTORED_BYTE_IDENTICAL=True (after: 3f662e36dc19b36f)
+CONTROL: passed=['3'] red=[]
+DONE

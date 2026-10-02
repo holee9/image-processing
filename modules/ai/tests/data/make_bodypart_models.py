@@ -150,6 +150,10 @@ def main() -> int:
     (bd / "bodypart.onnx").write_bytes(b"this is not an onnx model\n")
     (bd / "bodypart.json").write_text(sidecar(LABELS), encoding="utf-8", newline="\n")
     print("models_bodypart_broken/bodypart.onnx: garbage, for the load-failure path")
+    # QA-B-195: every model written here is signed with the TEST key, or the staleness test (ModelAssets.*) goes red.
+    sys.path.insert(0, str(here.parents[3] / "tools" / "ai"))
+    import xpe_model_signing  # noqa: E402
+    print("signed %d test models (tools/ai/xpe_model_signing.py)" % xpe_model_signing.sign_test_assets())
     return 0
 
 

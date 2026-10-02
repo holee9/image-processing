@@ -202,6 +202,10 @@ def main() -> int:
     bd.mkdir(exist_ok=True)
     (bd / "bone_suppress.onnx").write_bytes(b"this is not an onnx model\n")
     print("models_broken/bone_suppress.onnx: garbage, for the load-failure code")
+    # QA-B-195: every model written here is signed with the TEST key, or the staleness test (ModelAssets.*) goes red.
+    sys.path.insert(0, str(here.parents[3] / "tools" / "ai"))
+    import xpe_model_signing  # noqa: E402
+    print("signed %d test models (tools/ai/xpe_model_signing.py)" % xpe_model_signing.sign_test_assets())
     return 0
 
 

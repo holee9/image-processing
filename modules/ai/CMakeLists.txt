@@ -428,6 +428,8 @@ if(_XPE_AI_BUILD_TESTS)
         test_ai_input_validation.cpp
         # #130 (QA-B-195 M1): the model signature verifier, against signatures made by an independent implementation
         test_ai_model_signer.cpp
+        # #130 (QA-B-195 M2): every AI test model has a current signature (renew with tools/ai/xpe_model_signing.py)
+        test_ai_model_assets_signed.cpp
         # #130 (QA-B-168): SRS-ALERT-004 fires when DL was applied -- and, the
         # half that constrains the code, stays quiet on every path that
         # returned an image the model never touched

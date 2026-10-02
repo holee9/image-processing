@@ -81,3 +81,111 @@ def verify(public_key, sig_file, role, model, sidecar=None):
     except Exception:
         return False
     return True
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Command line (QA-B-195 M2)
+#
+#   python tools/ai/xpe_model_signing.py sign --key K.pem --role bodypart --model M.onnx [--sidecar S.json] --out M.sig
+#   python tools/ai/xpe_model_signing.py sign-test-assets      (signs every model under modules/ai/tests/data)
+#   python tools/ai/xpe_model_signing.py check-test-assets     (exit 1 on any missing, stale or orphan signature)
+#
+# The test assets are signed with the committed TEST key (tests/data/signing/test_key_1.pem). Nothing here ever
+# touches a production key: how that key is generated, kept and used is decision D5 of the design memo and is not
+# defined in this repository.
+# ---------------------------------------------------------------------------------------------------------------
+
+import argparse
+import os
+import sys
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.abspath(os.path.join(_HERE, "..", ".."))
+TEST_DATA_DIR = os.path.join(_ROOT, "modules", "ai", "tests", "data")
+TEST_KEY_PEM = os.path.join(TEST_DATA_DIR, "signing", "test_key_1.pem")
+DEFAULT_ROLE = "bone_suppress"   # a fixture that is named for no role (min_scale2.onnx ...) is signed as this one
+
+
+def _read(path):
+    with open(path, "rb") as f:
+        return f.read()
+
+
+def asset_jobs(data_dir=TEST_DATA_DIR):
+    """Every model under `data_dir`: (model path, role, sidecar path or None, sig path).
+
+    The rules (the C++ staleness test, test_ai_model_assets_signed.cpp, repeats them on purpose):
+      role     = the file stem when it is a known role ("bone_suppress", "bodypart"), otherwise DEFAULT_ROLE
+      sidecar  = <stem>.json beside the model, when it exists (its ABSENCE is signed too)
+      sig file = <stem>.sig beside the model
+    """
+    jobs = []
+    for dirpath, dirnames, filenames in os.walk(data_dir):
+        dirnames[:] = sorted(d for d in dirnames if d not in ("signing", "__pycache__"))
+        for name in sorted(filenames):
+            stem, ext = os.path.splitext(name)
+            if ext != ".onnx":
+                continue
+            side = os.path.join(dirpath, stem + ".json")
+            jobs.append((os.path.join(dirpath, name), stem if stem in ROLES else DEFAULT_ROLE,
+                         side if os.path.exists(side) else None, os.path.join(dirpath, stem + ".sig")))
+    return jobs
+
+
+def sign_test_assets(data_dir=TEST_DATA_DIR):
+    key = load_private_key(TEST_KEY_PEM)
+    jobs = asset_jobs(data_dir)
+    for model, role, side, sigpath in jobs:
+        with open(sigpath, "wb") as f:
+            f.write(sign(key, role, _read(model), _read(side) if side else None))
+    return len(jobs)
+
+
+def check_test_assets(data_dir=TEST_DATA_DIR):
+    """Returns the list of problems (empty = every model has a valid, current signature and no signature is orphaned)."""
+    pub = load_private_key(TEST_KEY_PEM).public_key()
+    problems = []
+    models = set()
+    for model, role, side, sigpath in asset_jobs(data_dir):
+        models.add(os.path.normcase(sigpath))
+        if not os.path.exists(sigpath):
+            problems.append("no signature: " + os.path.relpath(model, data_dir))
+        elif not verify(pub, _read(sigpath), role, _read(model), _read(side) if side else None):
+            problems.append("stale or invalid signature: " + os.path.relpath(sigpath, data_dir))
+    for dirpath, dirnames, filenames in os.walk(data_dir):
+        dirnames[:] = [d for d in dirnames if d not in ("signing", "__pycache__")]
+        for name in filenames:
+            if name.endswith(".sig") and os.path.normcase(os.path.join(dirpath, name)) not in models:
+                problems.append("orphan signature (no model beside it): " + os.path.relpath(os.path.join(dirpath, name), data_dir))
+    return problems
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    s = sub.add_parser("sign", help="sign one model")
+    s.add_argument("--key", required=True)
+    s.add_argument("--role", required=True, choices=ROLES)
+    s.add_argument("--model", required=True)
+    s.add_argument("--sidecar")
+    s.add_argument("--out", required=True)
+    sub.add_parser("sign-test-assets", help="sign every model under modules/ai/tests/data with the TEST key")
+    sub.add_parser("check-test-assets", help="verify those signatures; exit 1 on any problem")
+    a = ap.parse_args(argv)
+    if a.cmd == "sign":
+        with open(a.out, "wb") as f:
+            f.write(sign(load_private_key(a.key), a.role, _read(a.model), _read(a.sidecar) if a.sidecar else None))
+        print("wrote", a.out)
+        return 0
+    if a.cmd == "sign-test-assets":
+        print("signed %d test models with the TEST key" % sign_test_assets())
+        return 0
+    problems = check_test_assets()
+    for p in problems:
+        print("PROBLEM:", p)
+    print("%d test models checked, %d problem(s)" % (len(asset_jobs()), len(problems)))
+    return 1 if problems else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
