@@ -1,0 +1,7 @@
+xpe_dicom_read: 0 header(s)
+xpe_dicom_open: 1 header(s)
+xpe_dicom_read_image: 1 header(s)
+xpe_dicom_get_metadata: 1 header(s)
+xpe_dicom_close: 1 header(s)
+xpe_dicom_write: 1 header(s)
+control: xpe_dicom_open present => the search finds real exports

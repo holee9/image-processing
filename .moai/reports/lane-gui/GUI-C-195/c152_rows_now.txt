@@ -1,0 +1,24 @@
+GUI-C-152 rows parsed: 21 (expected 21; unparsed rows would be listed below)
+missing row numbers: []
+ 1 OpenRecentMenuItem                   enabled, Command=no
+ 2 OpenDicomMenuItem                    STILL DISABLED (static)
+ 3 ExportEvidenceBundleMenuItem         enabled, Command=yes
+ 4 NativeBackendModeMenuItem            enabled, Command=yes
+ 5 OpenRuntimeLogsMenuItem              enabled, Command=yes
+ 6 PInvokeSmokeTestMenuItem             enabled, Command=yes
+ 7 ShowCalibrationPanelMenuItem         enabled, Command=no
+ 8 ShowDisplaySettingsPanelMenuItem     enabled, Command=no
+ 9 RunDeterministicBaselineMenuItem     STILL DISABLED (static)
+10 RunFullPipelineMenuItem              enabled, Command=yes
+11 StopProcessingMenuItem               enabled, Command=yes
+12 StageTimingMenuItem                  enabled, Command=yes
+13 OpenPipelineDiagnosticsMenuItem      enabled, Command=yes
+14 OpenEvidenceFolderMenuItem           enabled, Command=yes
+15 RunSelfCheckMenuItem                 enabled, Command=yes
+16 RunGuiE2EMenuItem                    enabled, Command=yes
+17 BenchmarkRunnerMenuItem              enabled, Command=yes
+18 QaConstancyMenuItem                  STILL DISABLED (static)
+19 GsdfCalibrateMenuItem                STILL DISABLED (static)
+20 OpenApiReferenceMenuItem             enabled, Command=yes
+21 OpenTroubleshootingMenuItem          enabled, Command=yes
+still statically disabled: 4
