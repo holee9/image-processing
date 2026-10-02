@@ -1,0 +1,10 @@
+== BEFORE (main f9803071 + nothing): doxygen 1.12.0, docs/help/doxygen/Doxyfile, exit=1
+D:/workspace-github/xpe-post/modules/ai/include/xpe/ai/ai_api.h:191: error: parameters of member xpe_bodypart_recognize are not documented
+D:/workspace-github/xpe-post/modules/ai/include/xpe/ai/ai_api.h:191: error: return type of member xpe_bodypart_recognize is not documented
+Generating code for file D:/workspace-github/xpe-post/modules/common/include/xpe/common/xpe_error.h.D:/workspace-github/xpe-post/modules/ai/include/xpe/ai/ai_api.h:310: error: end of comment block while expecting command </tt>
+Generating docs for compound xpe::ai::TensorMetaD:/workspace-github/xpe-post/modules/ai/include/xpe/ai/ai_api.h:310: error: end of comment block while expecting command </tt>
+
+== AFTER (ai_api.h comment fixed): exit=0, lines matching ': (warning|error)': 0
+Generating XML output for group xpe_dicom
+Generating XML output for group xpe_ai
+finished...

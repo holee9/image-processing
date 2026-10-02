@@ -202,7 +202,7 @@ XPE_API void xpe_ai_shutdown(void);
  *
  * MODEL AND LABELS. The model is read from `{modelDir}/bodypart.onnx` and its class labels from the sidecar
  * `{modelDir}/bodypart.json`, a JSON object with a non-empty `"labels"` array of non-empty strings (each shorter
- * than 64 bytes, each made only of printable ASCII 0x20-0x7E except `"` and `\`: the worker's reply has no
+ * than 64 bytes, each made only of printable ASCII 0x20-0x7E except the double quote and the backslash: the worker's reply has no
  * escapes or encoding, so both paths refuse any other label as an unusable sidecar); `{modelDir}` is the path
  * given to xpe_ai_init. The labels are returned exactly as the sidecar
  * spells them: the module neither changes their case nor checks them against any vocabulary, so a caller that
