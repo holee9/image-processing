@@ -98,6 +98,20 @@ static XpeErrorCode DetectRuntimeImpl(const XpeImageBuffer* img,
     }
     if (defectMapOut->dataSize < outputBytes) return XPE_ERR_BUFFER_TOO_SMALL;
 
+    // QA-A-215 (#233): A NON-FINITE FRAME IS REFUSED AT THE ENTRANCE, before the map is cleared or anything is built.
+    // Measured (QA-A-215 evidence): a NaN pixel is not flagged at all (every comparison with NaN is false, so the
+    // frame's one most obviously broken pixel is reported as good), a +-infinity pixel is flagged, and neither disturbs
+    // the other pixels' flags -- so the damage is silent and one-sided, not a corrupted statistic. A consumer refuses a
+    // non-finite input with XPE_ERR_INVALID_INPUT and writes nothing (QA-A-214b's rule); the caller's map is untouched.
+    {
+        size_t count = 0, first = 0;
+        if (xpe_find_nonfinite(static_cast<const float*>(img->data), pixelCount, &count, &first)) {
+            xpe_alert_nonfinite("XPE_WARN_RUNTIME_DETECT_INPUT_NOT_FINITE:", count, first, img->width,
+                                "no detection was run and the defect map was not written");
+            return XPE_ERR_INVALID_INPUT;
+        }
+    }
+
     // Detection parameters.
     //
     // QA-A-34 (#120): this used to read

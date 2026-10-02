@@ -18,6 +18,40 @@
  * Edge-aware bilinear interpolation
  * Skips neighbours that are also marked as defective in defectMask.
  * ========================================================================= */
+bool xpe_find_nonfinite(const float* values, size_t n, size_t* count, size_t* first) noexcept
+{
+    constexpr uint32_t kExpMask = 0x7F800000u;   // every exponent bit set: NaN or +-infinity
+    uint32_t bad = 0;
+    for (size_t i = 0; i < n; ++i) {
+        uint32_t b;
+        std::memcpy(&b, values + i, sizeof(b));
+        bad |= static_cast<uint32_t>((b & kExpMask) == kExpMask);
+    }
+    if (bad == 0) return false;
+    size_t c = 0, f = 0;
+    for (size_t i = 0; i < n; ++i) {
+        uint32_t b;
+        std::memcpy(&b, values + i, sizeof(b));
+        if ((b & kExpMask) == kExpMask) { if (c == 0) f = i; ++c; }
+    }
+    if (count) *count = c;
+    if (first) *first = f;
+    return true;
+}
+
+void xpe_alert_nonfinite(const char* prefix, size_t count, size_t first, uint32_t width, const char* tail) noexcept
+{
+    try {
+        char msg[400];
+        std::snprintf(msg, sizeof(msg), "%s %zu pixel(s) of the input frame are NaN or infinite (first: index %zu, x=%zu, y=%zu); %s",
+                      prefix, count, first, width ? first % width : size_t{0}, width ? first / width : size_t{0}, tail);
+        msg[sizeof(msg) - 1] = '\0';
+        xpe_alert_push(msg, XPE_ALERT_ERROR);
+    } catch (...) {
+        // advisory
+    }
+}
+
 float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
                              uint32_t x, uint32_t y,
                              uint32_t width, uint32_t height) noexcept

@@ -105,6 +105,18 @@ static_assert(sizeof(CalibFileHeader) == 64u, "CalibFileHeader must be 64 bytes"
  * ========================================================================= */
 
 // @MX:NOTE: [AUTO] Edge-aware bilinear: skips neighbours that are also defective
+/**
+ * QA-A-215 (#233): the entrance check for a float32 frame that a function must not process when it holds a NaN or an
+ * infinity: true when any of the n values is non-finite, and then count (how many) and first (the index of the first)
+ * are set. One linear pass over the exponent bits (all set = NaN or +-infinity); the count and the position are found
+ * by a second pass only when something is wrong. Writes nothing. (xpe_defect_correct, QA-A-214b, has the same loop
+ * written inline.)
+ */
+bool xpe_find_nonfinite(const float* values, size_t n, size_t* count, size_t* first) noexcept;
+
+/** Push the XPE_ALERT_ERROR of a refused non-finite frame: "<prefix> <count> pixel(s) ... (first: index I, x=X, y=Y); <tail>". Never throws. */
+void xpe_alert_nonfinite(const char* prefix, size_t count, size_t first, uint32_t width, const char* tail) noexcept;
+
 float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
                              uint32_t x, uint32_t y,
                              uint32_t width, uint32_t height) noexcept;

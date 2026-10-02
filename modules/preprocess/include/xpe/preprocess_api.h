@@ -639,7 +639,11 @@ XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
  * @param defect_map_output Output defect map (merged with static BPM)
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
- *         XPE_ERR_INVALID_INPUT if NULL pointers
+ *         XPE_ERR_INVALID_INPUT if NULL pointers, or if the image holds a NaN or
+ *         an infinity: refused at the entrance (QA-A-215), the defect map is
+ *         not written, and one Error alert
+ *         XPE_WARN_RUNTIME_DETECT_INPUT_NOT_FINITE names the count and the
+ *         first pixel
  */
 XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* image,
                                                const XpeImageMetadata* metadata,
@@ -817,8 +821,12 @@ XPE_API XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
  *               XPE_ERR_INVALID_INPUT -- implementation behaviour; the SPEC
  *               text says only "FLOAT32")
  * REQ-P1A-091: binningMode == 1 -> XPE_OK, image untouched; a mode other than
- *               1, 2 or 4 -> XPE_ERR_CONFIG_INVALID; a non-finite pixel ->
- *               XPE_ERR_PROCESSING_FAILED
+ *               1, 2 or 4 -> XPE_ERR_CONFIG_INVALID; a frame holding a NaN or
+ *               an infinity -> XPE_ERR_INVALID_INPUT, checked BEFORE any pixel
+ *               is written (QA-A-215), so the buffer keeps its bytes and one
+ *               Error alert XPE_WARN_BINNING_INPUT_NOT_FINITE names the count
+ *               and the first pixel. (Scaling by 1/4 or 1/16 cannot make a
+ *               finite value non-finite, so the input is the only source.)
  * REQ-P1A-095: this stage runs after gain correction in the pipeline
  * The numbers REQ-P1A-020/021/022 this block used to cite are the
  * pre-bc22093 ones. They now name the not-initialized, dimension-mismatch
