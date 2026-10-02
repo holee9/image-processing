@@ -296,8 +296,9 @@ XpeErrorCode DicomReader::open() {
 // requires these attributes to be consistent with the codestream, and the codestream's own characteristics are the
 // ones used for decoding. Here only what the dataset alone can say is checked: Bits Allocated is 8 or 16.
 //
-// MONOCHROME1, RescaleSlope/Intercept and bits above BitsStored are NOT judged here: how to report them is a
-// design decision still open in #235, and they keep their current behaviour (stored words, unchanged).
+// RescaleSlope/Intercept and bits above BitsStored are NOT judged here: how to report them is a design decision
+// still open in #235, and they keep their current behaviour (stored words, unchanged). MONOCHROME1 is accepted here
+// and INVERTED after decoding (QA-B-185, normaliseMonochrome1).
 // A refusal is reported twice: to the log, and as an ALERT the operator can read. The return code alone says
 // "malformed" or "unsupported" but not which attribute or which two values disagree (QA-B-182c). The alert wording
 // is a contract with the clients that display alerts: change it only together with them.
@@ -317,6 +318,39 @@ static XpeErrorCode refuse(XpeErrorCode code, const char* fmt, ...) {
 // A Type 1 attribute: present, with a value, readable as one unsigned short.
 static bool readType1Uint16(DcmDataset* ds, const DcmTagKey& key, Uint16& out) {
     return ds->tagExists(key) && ds->findAndGetUint16(key, out).good();
+}
+
+// QA-B-185 (#235; leader decision after the QA-B-184 report, requirement FR-DCM-109 of SRS-DICOM-001): the image is
+// returned in MONOCHROME2 sense whatever the file says. PS3.3 C.7.6.3.1.2 defines MONOCHROME1 as "the minimum sample
+// value is intended to be displayed as white" and MONOCHROME2 as "... black", so a MONOCHROME1 sample v becomes the
+// value MONOCHROME2 would have shown the same brightness for. The sample is the low BitsStored bits of the word, so
+// the bits above it are masked off first (they are not part of the sample) and the maximum is 2^BitsStored - 1:
+//     v' = (2^B - 1) - (v & (2^B - 1)).
+// It runs on the CALLER'S buffer after the decode, never on the dataset the handle keeps, so a second read on the same
+// handle gives the same words. Every path ends here: the uncompressed and JPEG Lossless copy and the JPEG 2000 decode
+// all produce one unsigned uint16 plane (signed pixels, PixelRepresentation 1, were refused before any decode -- for
+// them the inversion would be -1 - v, a different formula, and no signed image is returned today). outImg->bitsStored
+// is the sample width the returned words really have (the codestream's precision for JPEG 2000).
+// The Window Center/Width and Rescale values in the FILE refer to the STORED samples (PS3.3 C.11.2: the polarity is
+// applied after the VOI transformation). This API returns neither (the metadata struct has no such field), so no
+// returned value needs adjusting; a caller reading them from the file itself must mirror them -- see dicom_api.h.
+static bool isMonochrome1(DcmDataset* ds) {
+    OFString v;
+    return ds->findAndGetOFString(DCM_PhotometricInterpretation, v).good() && std::string(v.c_str()) == "MONOCHROME1";
+}
+
+static void normaliseMonochrome1(XpeImageBuffer* img) {
+    const uint32_t bits = img->bitsStored;   // 1..16 here: BitsStored <= BitsAllocated 16, JPEG 2000 precision <= 16
+    const uint32_t mask = bits >= 16 ? 0xFFFFu : ((1u << bits) - 1u);
+    uint16_t* px = static_cast<uint16_t*>(img->data);
+    const size_t n = static_cast<size_t>(img->width) * img->height;
+    for (size_t i = 0; i < n; ++i) px[i] = static_cast<uint16_t>(mask - (px[i] & mask));
+    char msg[200];
+    std::snprintf(msg, sizeof(msg),
+                  "MONOCHROME1 pixel values were inverted to MONOCHROME2 sense: value = (2^BitsStored - 1) - value, BitsStored %u",
+                  static_cast<unsigned>(bits));
+    spdlog::info("[DicomReader] {}", msg);
+    xpe_alert_push(msg, XPE_ALERT_INFO);
 }
 
 static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, bool isJ2K, bool isJpegLL) {
@@ -366,7 +400,7 @@ static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, bool isJ2K, bool i
     // monochrome values describe it (PS3.3 C.7.6.3.1.2). A value the standard defines for three samples only is a
     // malformed dataset when SamplesPerPixel is 1; PALETTE COLOR (the value is an index into palette tables), the
     // retired values and values whose meaning the standard does not define are well formed, or at least not
-    // malformed, and cannot be returned faithfully. MONOCHROME1 is read as stored: how to invert it is #235.
+    // malformed, and cannot be returned faithfully. MONOCHROME1 is accepted: readImage inverts it (QA-B-185).
     if (pi != "MONOCHROME1" && pi != "MONOCHROME2") {
         const bool threeSamplesOnly = pi == "RGB" || pi == "YBR_FULL" || pi == "YBR_FULL_422" || pi == "YBR_PARTIAL_420" ||
                                       pi == "YBR_ICT" || pi == "YBR_RCT";
@@ -460,9 +494,14 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
         if (scope != XPE_OK) return scope;
     }
 
+    // The scope check has pinned PhotometricInterpretation to MONOCHROME1 or MONOCHROME2.
+    const bool mono1 = isMonochrome1(ds);
+
     if (isJ2K) {
         // J2K: extract raw bitstream and decode with OpenJPEG
-        return decompressPixelData(m_dcmFile.get(), outImg);
+        const XpeErrorCode drc = decompressPixelData(m_dcmFile.get(), outImg);
+        if (drc == XPE_OK && mono1) normaliseMonochrome1(outImg);
+        return drc;
     }
 
     if (isJPEGLL) {
@@ -573,6 +612,7 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
         return XPE_ERR_DICOM_INVALID;
     }
     std::memcpy(outImg->data, pixData, expectedBytes);
+    if (mono1) normaliseMonochrome1(outImg);
 
     return XPE_OK;
 }
