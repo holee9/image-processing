@@ -43,6 +43,11 @@ struct GhostCorrectorHandle {
     int tier{1};
 
     // Dual-exponential IRF coefficients (PMC3465354)
+    // QA-A-226 (#241): true only when the configuration gave all four of alpha1, tau1, alpha2 and tau2 (non-empty).
+    // The defaults below are NOT a calibration -- the forward system they imply has a gain of about 2.45 and
+    // "corrects" a constant exposure to nothing -- so a handle without its own lag parameters passes frames through.
+    bool calibrated{false};
+
     double alpha1{0.9};    // fast component amplitude
     double tau1{1.0};      // fast component time constant (frames)
     double alpha2{0.05};   // slow component amplitude
@@ -121,6 +126,11 @@ bool xpe_find_nonfinite(const float* values, size_t n, size_t* count, size_t* fi
 
 /** Push the XPE_ALERT_ERROR of a refused non-finite frame: "<prefix> <count> pixel(s) ... (first: index I, x=X, y=Y); <tail>". Never throws. */
 void xpe_alert_nonfinite(const char* prefix, size_t count, size_t first, uint32_t width, const char* tail) noexcept;
+
+/** QA-A-226 (#241): whether a ghost handle corrects (its lag parameters were configured) or passes frames through.
+ *  false for a null or invalid handle. Not exported; the pipeline asks it so it does not flag an unchanged frame
+ *  as ghost-corrected. */
+bool xpe_ghost_is_calibrated(const void* handle) noexcept;
 
 float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
                              uint32_t x, uint32_t y,

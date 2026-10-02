@@ -12,6 +12,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "ghost_legacy_lag.h"
 
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
@@ -86,7 +87,7 @@ protected:
     void* create(int tier, const char* extra = "") {
         std::string cfg = "{\"tier\":\"" + std::to_string(tier) + "\"" + extra + "}";
         void* h = nullptr;
-        EXPECT_EQ(XPE_OK, xpe_ghost_create(W, H, cfg.c_str(), &h));
+        EXPECT_EQ(XPE_OK, xpe_ghost_create(W, H, withLegacyLag(cfg.c_str()).c_str(), &h));
         handles_.push_back(h);
         return h;
     }

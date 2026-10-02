@@ -12,6 +12,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "ghost_legacy_lag.h"
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
@@ -155,7 +156,7 @@ TEST(P1A066, T4_GhostCorrect_MultiHandle_ConcurrentNoError) {
     for (int t = 0; t < THREADS; ++t) {
         threads.emplace_back([t, &errors]() {
             void* handle = nullptr;
-            if (xpe_ghost_create(W, H, nullptr, &handle) != XPE_OK) {
+            if (xpe_ghost_create(W, H, withLegacyLag().c_str(), &handle) != XPE_OK) {
                 ++errors;
                 return;
             }

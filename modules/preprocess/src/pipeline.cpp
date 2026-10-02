@@ -418,7 +418,11 @@ namespace {
             result = xpe_ghost_correct(ghostHandle, &stage7, meta);
             if (result != XPE_OK) return result;
 
-            if (meta) meta->flags |= XPE_FLAG_GHOST_CORRECTED;
+            // QA-A-226 (#241): a handle without calibrated lag parameters passes the frame through unchanged, so the
+            // frame is not flagged as ghost-corrected. The output stays float32 either way (final_result_is_float
+            // depends on the handle being present, not on whether it corrected), so the format does not change
+            // with the configuration.
+            if (meta && xpe_ghost_is_calibrated(ghostHandle)) meta->flags |= XPE_FLAG_GHOST_CORRECTED;
         }
 
         // Copy the final frame back to the original img buffer: all of it -- outputBytes, which the room check

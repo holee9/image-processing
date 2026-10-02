@@ -68,6 +68,13 @@ XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
                 if (doc.getString(r.key, &v) && !v.empty() && !xpe_strict::parse_double(v, r.dst))
                     return XPE_ERR_CONFIG_INVALID;
             }
+
+            // QA-A-226 (#241): "calibrated" is a fact about the configuration -- all four lag parameters were given
+            // (non-empty; an empty value keeps the default above, so it does not count). Not about their values.
+            const char* const lagKeys[] = {"alpha1", "tau1", "alpha2", "tau2"};
+            bool all = true;
+            for (const char* k : lagKeys) all = all && doc.getString(k, &v) && !v.empty();
+            handle->calibrated = all;
         }
 
         handle->hist1.assign(pixelCount, 0.0f);
@@ -81,8 +88,21 @@ XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
         return XPE_ERR_PROCESSING_FAILED;
     }
 
+    // QA-A-226 (#241): one Warning per handle, at creation (not per frame). The sentence is a cross-lane contract.
+    if (!handle->calibrated) {
+        xpe_alert_push("XPE_WARN_GHOST_NOT_CALIBRATED: ghost correction is not calibrated: the handle passes frames "
+                       "through unchanged until lag parameters are configured (alpha1, tau1, alpha2, tau2)",
+                       XPE_ALERT_WARNING);
+    }
+
     *handleOut = owner.release();
     return XPE_OK;
+}
+
+bool xpe_ghost_is_calibrated(const void* handle) noexcept
+{
+    if (!GhostCorrectorHandle::isValid(const_cast<void*>(handle))) return false;
+    return static_cast<const GhostCorrectorHandle*>(handle)->calibrated;
 }
 
 // @MX:ANCHOR: [AUTO] xpe_ghost_correct — multi-tier ghost correction with auto-escalation
@@ -260,6 +280,11 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
             return XPE_ERR_INVALID_INPUT;
         }
     }
+
+    // QA-A-226 (#241): a handle without calibrated lag parameters does not correct. It is after the entrance checks
+    // (so a bad frame is refused exactly as before) and before anything is written: the pixels, the history and the
+    // time of the last frame stay as they are.
+    if (!gh->calibrated) return XPE_OK;
 
     // REQ-P1A-033: compute time delta in units of frames (1.0 for first frame)
     const double acquisitionTimeSec = static_cast<double>(meta->acquisitionTime);

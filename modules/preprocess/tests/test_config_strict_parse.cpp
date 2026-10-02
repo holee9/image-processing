@@ -1284,6 +1284,7 @@ TEST_F(ConfigStrictParse, ANullConfigPointerStillMeansTheDefaults) {
     void* handle = nullptr;
     EXPECT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
     ASSERT_NE(nullptr, handle);
+    xpe_clear_alerts();   // QA-A-226: the creation warning (uncalibrated handle) is not what this test is about
     xpe_ghost_destroy(handle);
     std::vector<uint16_t> pixels(N, 1000);
     XpeImageBuffer img = buf(pixels.data(), XPE_PIXEL_UINT16, 16);

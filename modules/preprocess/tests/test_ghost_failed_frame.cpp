@@ -14,6 +14,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "ghost_legacy_lag.h"
 
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
@@ -68,7 +69,7 @@ protected:
     void newGhost() {
         if (ghost_) xpe_ghost_destroy(ghost_);
         ghost_ = nullptr;
-        ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, kGhostConfig, &ghost_));
+        ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withLegacyLag(kGhostConfig).c_str(), &ghost_));
     }
     void* ghost_{nullptr};
 };

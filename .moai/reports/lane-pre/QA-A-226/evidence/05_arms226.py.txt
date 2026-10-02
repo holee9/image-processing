@@ -1,0 +1,53 @@
+import subprocess, sys, shutil, os, re
+R = 'D:/workspace-github/xpe-pre/'
+S = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5/scratchpad/'
+GC = R + 'modules/preprocess/src/ghost_correct.cpp'
+PL = R + 'modules/preprocess/src/pipeline.cpp'
+for f in (GC, PL):
+    if not os.path.exists(S + 'keep226_' + os.path.basename(f)):
+        shutil.copy(f, S + 'keep226_' + os.path.basename(f))
+
+ARMS = {
+    'a1_calibrated_always_true': (GC, 'handle->calibrated = all;', 'handle->calibrated = all || true;'),
+    'a2_no_warning': (GC, 'if (!handle->calibrated) {\n        xpe_alert_push(', 'if (handle->width == 0 && !handle->calibrated) {\n        xpe_alert_push('),
+    'a3_any_instead_of_all': (GC, 'bool all = true;\n            for (const char* k : lagKeys) all = all && doc.getString(k, &v) && !v.empty();',
+                              'bool all = false;\n            for (const char* k : lagKeys) all = all || (doc.getString(k, &v) && !v.empty());'),
+    'a4_pipeline_flag_unconditional': (PL, 'if (meta && xpe_ghost_is_calibrated(ghostHandle)) meta->flags', 'if (meta && (xpe_ghost_is_calibrated(ghostHandle) || true)) meta->flags'),
+    'a5_passthrough_before_entry_checks': (GC, '    auto* gh = static_cast<GhostCorrectorHandle*>(handle);\n    if (img->width != gh->width',
+                                           '    auto* gh = static_cast<GhostCorrectorHandle*>(handle);\n    if (!gh->calibrated) return XPE_OK;\n    if (img->width != gh->width'),
+    'a6_empty_value_counts': (GC, 'all = all && doc.getString(k, &v) && !v.empty();', 'all = all && doc.getString(k, &v);'),
+    'a7_passthrough_removed': (GC, '    if (!gh->calibrated) return XPE_OK;\n\n    // REQ-P1A-033', '    // REQ-P1A-033'),
+    'a8_warning_every_frame': (GC, '    if (!gh->calibrated) return XPE_OK;\n\n    // REQ-P1A-033',
+                               '    if (!gh->calibrated) { xpe_alert_push("XPE_WARN_GHOST_NOT_CALIBRATED: x", XPE_ALERT_WARNING); return XPE_OK; }\n\n    // REQ-P1A-033'),
+}
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', S + 'buildall.bat'], capture_output=True, text=True)
+    return 'BUILD_EXIT=0' in r.stdout, r.stdout
+
+
+def tests():
+    r = subprocess.run([R + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe', '--gtest_filter=GhostUncalibrated.*:PipelineStageValueTest.*'],
+                       cwd=R + 'modules/preprocess', capture_output=True, text=True)
+    failed = sorted(set(re.findall(r'^\[  FAILED  \] ([A-Za-z]\S+)', r.stdout, re.M)))
+    return failed, r.stdout
+
+
+for name in sys.argv[1:]:
+    f, old, new = ARMS[name]
+    keep = S + 'keep226_' + os.path.basename(f)
+    shutil.copy(keep, f)
+    src = open(f, 'rb').read().decode('utf-8')
+    crlf = '\r\n' in src
+    s = src.replace('\r\n', '\n')
+    assert s.count(old) == 1, (name, s.count(old))
+    s = s.replace(old, new)
+    open(f, 'wb').write((s.replace('\n', '\r\n') if crlf else s).encode('utf-8'))
+    ok, out = build()
+    if not ok:
+        print(name, 'BUILD FAILED'); print(out[-1500:])
+    else:
+        failed, _ = tests()
+        print('%-38s -> %d red: %s' % (name, len(failed), ', '.join(failed) if failed else 'NONE (arm did not fire)'))
+    shutil.copy(keep, f)

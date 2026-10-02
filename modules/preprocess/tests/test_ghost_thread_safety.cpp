@@ -17,6 +17,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "ghost_legacy_lag.h"
 
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
@@ -84,7 +85,7 @@ int feed(void* h, int calls, std::mutex* external) {
 
 void* create() {
     void* h = nullptr;
-    EXPECT_EQ(XPE_OK, xpe_ghost_create(kSide, kSide, kNoForgetting, &h));
+    EXPECT_EQ(XPE_OK, xpe_ghost_create(kSide, kSide, withLegacyLag(kNoForgetting).c_str(), &h));
     return h;
 }
 
@@ -189,7 +190,7 @@ TEST_F(GhostThreadSafety, ResetAndCorrectOnOneHandleEndInASerialisedState) {
     std::string firstWhy;
     for (int run = 0; run < kResetRuns; ++run) {
         void* h = nullptr;
-        ASSERT_EQ(XPE_OK, xpe_ghost_create(kResetSide, kResetSide, kNoForgetting, &h));
+        ASSERT_EQ(XPE_OK, xpe_ghost_create(kResetSide, kResetSide, withLegacyLag(kNoForgetting).c_str(), &h));
         std::atomic<bool> go{false}, done{false};
         std::atomic<int> failures{0};
 
@@ -239,7 +240,7 @@ TEST_F(GhostThreadSafety, FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle) 
     std::string firstWhy;
     for (int run = 0; run < kRuns; ++run) {
         void* h = nullptr;
-        ASSERT_EQ(XPE_OK, xpe_ghost_create(kSide, kSide, "{\"tier\":\"1\"}", &h));
+        ASSERT_EQ(XPE_OK, xpe_ghost_create(kSide, kSide, withLegacyLag("{\"tier\":\"1\"}").c_str(), &h));
         XpeImageMetadata meta{};
         meta.acquisitionTime = kAcqTime;
         {

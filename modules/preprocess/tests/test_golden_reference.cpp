@@ -15,6 +15,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "ghost_legacy_lag.h"
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
@@ -352,7 +353,7 @@ protected:
 TEST_F(GoldenGhostTest, Frame0PassesThroughExactly) {
     const float V = 1024.0f;
     std::fill(pixels.begin(), pixels.end(), V);
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withLegacyLag().c_str(), &handle));
 
     meta.acquisitionTime = 1;
     ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &img, &meta));
@@ -366,7 +367,7 @@ TEST_F(GoldenGhostTest, Frame0PassesThroughExactly) {
 // REQ-P1A-087: Frame 1 with constant input matches dual-exponential formula
 TEST_F(GoldenGhostTest, Frame1MatchesDualExponentialFormula) {
     const float V = 2000.0f;
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withLegacyLag().c_str(), &handle));
 
     // Frame 0: sets h1=V, h2=V (corrected passes through = V)
     std::fill(pixels.begin(), pixels.end(), V);
@@ -389,7 +390,7 @@ TEST_F(GoldenGhostTest, Frame1MatchesDualExponentialFormula) {
 // REQ-P1A-088: After reset(), next frame uses zero history (passthrough again)
 TEST_F(GoldenGhostTest, AfterResetHistoryIsZero) {
     const float V = 500.0f;
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withLegacyLag().c_str(), &handle));
 
     // Build up history with 5 frames
     for (int f = 1; f <= 5; ++f) {
@@ -415,7 +416,7 @@ TEST_F(GoldenGhostTest, AfterResetHistoryIsZero) {
 // so corrected[1] = V*(1-0.95) = V*0.05 — aggressive correction is expected
 TEST_F(GoldenGhostTest, GhostSubtractedAfterFirstFrame) {
     const float V = 4096.0f;
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withLegacyLag().c_str(), &handle));
 
     // Frame 0: passthrough (verified by Frame0PassesThroughExactly)
     std::fill(pixels.begin(), pixels.end(), V);

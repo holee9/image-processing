@@ -700,6 +700,18 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
  *                  alpha2, tau2, tier2Threshold, nlcscBeta) is not one finite number in range (notation:
  *                  see xpe_preprocess_pipeline); no handle is handed back and nothing is left allocated
  *
+ * @note CALIBRATED OR NOT (QA-A-226, #241). A handle corrects only when the configuration gave all four lag
+ *       parameters -- alpha1, tau1, alpha2 and tau2, each present and non-empty (an empty value keeps the built-in
+ *       default, so it does not count). The built-in defaults are NOT a calibration: the forward system they imply
+ *       has a gain of about 2.45 and a constant exposure is "corrected" to nothing. A handle made without all four
+ *       (a NULL configuration, `{}`, only tier/tier2Threshold/nlcscBeta, or three of the four) therefore passes
+ *       frames through unchanged (see xpe_ghost_correct) and raises ONE alert at creation, severity
+ *       XPE_ALERT_WARNING, with this text (clients may match on the prefix):
+ *       "XPE_WARN_GHOST_NOT_CALIBRATED: ghost correction is not calibrated: the handle passes frames through
+ *       unchanged until lag parameters are configured (alpha1, tau1, alpha2, tau2)". The warning is per handle, not
+ *       per frame, and a creation that fails raises none. "Calibrated" says the parameters were GIVEN, not that they
+ *       are right: whether a given set is usable is the caller's calibration.
+ *
  * @note The handle holds the frame history twice (width*height floats, four planes) plus one more plane
  *       with the frame as it came in: a frame writes its new history into the second pair and the pairs are
  *       swapped only when the frame succeeded, and a frame that fails gets its pixels put back from the fifth
@@ -735,6 +747,11 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
  *         XPE_WARN_GHOST_INPUT_NOT_FINITE names the count and the first pixel
  *         XPE_ERR_PROCESSING_FAILED when a corrected value or the new history overflows float (finite input
  *         at the extremes of the range)
+ *
+ * @note A handle without calibrated lag parameters (see xpe_ghost_create) does not correct: after the checks above
+ *       the call returns XPE_OK with the image, the history and the time of the last frame all untouched, and no
+ *       alert (the one warning was raised at creation). The entrance checks -- handle, size, float32, non-finite
+ *       pixels -- apply to such a handle exactly as to a calibrated one.
  *
  * @note A frame that fails leaves the handle exactly as it found it: the frame history, the time of the last
  *       frame (so the next frame's time step is measured from the last frame that SUCCEEDED) and the
@@ -937,7 +954,9 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  *        the call returned XPE_OK with a float32 format on a half-written frame (QA-A-205b, Codex #29).
  * @param meta [in/out] Image metadata (updated with processing flags)
  * @param calibPath Calibration data directory path
- * @param ghostHandle Ghost corrector handle (NULL = skip ghost correction)
+ * @param ghostHandle Ghost corrector handle (NULL = skip ghost correction). A handle without calibrated lag
+ *        parameters (see xpe_ghost_create) passes the frame through: the output is still float32 (the format depends
+ *        on the handle being given), but XPE_FLAG_GHOST_CORRECTED is not set (QA-A-226)
  * @param configJsonOrNull Pipeline configuration JSON (bypass flags, temperature, etc.), NUL-terminated.
  *        Reading rule (every configuration text of this module -- this one, xpe_ghost_create's, the nonlinearity
  *        stage's, the offset generation's): the text is ONE valid JSON object and its keys are read from the TOP

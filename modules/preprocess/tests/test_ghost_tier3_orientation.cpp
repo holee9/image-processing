@@ -15,6 +15,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "ghost_legacy_lag.h"
 
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_error.h"
@@ -65,7 +66,7 @@ Grid smoothGrid(uint32_t S, unsigned seed) {   // neighbours alike: a small corr
 Grid run(int tier, uint32_t S, const Grid& f1, const Grid& f2) {
     void* h = nullptr;
     const std::string cfg = "{\"tier\":\"" + std::to_string(tier) + "\"}";
-    EXPECT_EQ(XPE_OK, xpe_ghost_create(S, S, cfg.c_str(), &h));
+    EXPECT_EQ(XPE_OK, xpe_ghost_create(S, S, withLegacyLag(cfg.c_str()).c_str(), &h));
     Grid out;
     uint64_t t = 1;
     for (const Grid* src : {&f1, &f2}) {

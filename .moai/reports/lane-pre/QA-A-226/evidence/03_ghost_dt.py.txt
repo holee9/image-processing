@@ -1,0 +1,52 @@
+"""QA-A-226 D6 measurement (NOT product code): how xpe_ghost_correct uses acquisitionTime (uint64 integer seconds) and tau.
+Explicit, stable config; constant raw frames; vary only the timestamp of frame 2 (and 3)."""
+import ctypes, os, math, sys
+import numpy as np
+
+BIN = 'D:/workspace-github/xpe-pre/build/ci-preprocess/bin'
+os.add_dll_directory(BIN)
+dll = ctypes.CDLL(BIN + '/xpe_preprocess.dll')
+W = H = 8
+
+
+class Buf(ctypes.Structure):
+    _fields_ = [('width', ctypes.c_uint32), ('height', ctypes.c_uint32), ('bitsAllocated', ctypes.c_uint32),
+                ('bitsStored', ctypes.c_uint32), ('format', ctypes.c_int32), ('data', ctypes.c_void_p),
+                ('dataSize', ctypes.c_size_t)]
+
+
+dll.xpe_ghost_create.argtypes = [ctypes.c_uint32, ctypes.c_uint32, ctypes.c_char_p, ctypes.POINTER(ctypes.c_void_p)]
+dll.xpe_ghost_correct.argtypes = [ctypes.c_void_p, ctypes.POINTER(Buf), ctypes.c_void_p]
+A1, T1, A2, T2 = 0.02, 3.0, 0.003, 30.0
+CFG = ('{"tier":1,"alpha1":%g,"tau1":%g,"alpha2":%g,"tau2":%g}' % (A1, T1, A2, T2)).encode()
+
+
+def frames(stamps, raw=1000.0):
+    hnd = ctypes.c_void_p()
+    assert dll.xpe_ghost_create(W, H, CFG, ctypes.byref(hnd)) == 0
+    meta = ctypes.create_string_buffer(96)
+    out = []
+    for t in stamps:
+        px = np.full((H, W), raw, np.float32)
+        buf = Buf(W, H, 32, 32, 1, px.ctypes.data, px.nbytes)
+        ctypes.c_uint64.from_buffer(meta, 80).value = t
+        assert dll.xpe_ghost_correct(hnd, ctypes.byref(buf), meta) == 0
+        out.append(float(px[0, 0]))
+    dll.xpe_ghost_destroy(hnd)
+    return out
+
+
+print('config alpha1=%g tau1=%g alpha2=%g tau2=%g; raw 1000 in every frame; frames at t=100, t2, t2+1' % (A1, T1, A2, T2))
+print('%-34s %-12s %-12s %-12s' % ('stamp of frame 2 (frame 3 = +1 s)', 'corr f1', 'corr f2', 'corr f3'))
+for label, t2 in (('same second (dt = 0 -> 1.0 fallback)', 100), ('1 s later', 101), ('5 s later', 105),
+                  ('600 s later (a patient change)', 700), ('10^7 s later', 10_000_100)):
+    c = frames([100, t2, t2 + 1])
+    print('%-34s %-12.3f %-12.3f %-12.3f' % (label, *c))
+print('\nunknown time (acquisitionTime = 0 on every frame):', ['%.3f' % v for v in frames([0, 0, 0])])
+print('time going backwards (100, 90, 91): ', ['%.3f' % v for v in frames([100, 90, 91])])
+# what an exact "decay the history for the gap BEFORE using it" correction of frame 2 would give for dt seconds (tau in the same unit)
+print('\nreference: frame 2 if the gap decayed the history first (the T1 convention of the QA-A-225 design memo: h(k) weights the previous frame by e^-a, k = 1), tau as the unit of dt:')
+for dt in (1, 5, 600):
+    h1 = 1000.0; h2 = 1000.0
+    c = 1000.0 - A1 * math.exp(-dt / T1) * h1 - A2 * math.exp(-dt / T2) * h2
+    print('  dt = %-4d -> %.3f   (the module gives %.3f for every gap: it uses the history un-decayed)' % (dt, c, frames([100, 100 + dt])[1]))
