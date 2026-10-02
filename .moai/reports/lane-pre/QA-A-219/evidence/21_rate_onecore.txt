@@ -1,0 +1,603 @@
+
+Repeating all tests (iteration 1) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (74 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (74 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (72 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2605 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2853 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2853 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 2) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (73 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (73 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (74 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2485 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2723 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2723 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 3) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (75 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (76 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (76 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2501 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2746 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2746 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 4) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (79 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (76 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (74 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2492 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2740 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2740 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 5) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (73 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (75 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (73 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2518 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2758 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2758 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 6) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (81 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (76 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (76 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2475 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (16 ms)
+[----------] 5 tests from GhostThreadSafety (2727 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2727 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 7) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (92 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (75 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (74 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2464 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2724 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2725 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 8) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (76 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (76 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (73 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2583 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2827 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2827 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 9) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (86 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (73 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (75 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2505 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (18 ms)
+[----------] 5 tests from GhostThreadSafety (2758 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2758 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 10) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (71 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (74 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (73 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2507 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2744 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2744 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 11) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (75 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (87 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (79 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2471 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (19 ms)
+[----------] 5 tests from GhostThreadSafety (2734 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2734 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 12) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (72 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (82 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (73 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2498 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (18 ms)
+[----------] 5 tests from GhostThreadSafety (2746 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2746 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 13) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (86 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (78 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (72 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2494 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (16 ms)
+[----------] 5 tests from GhostThreadSafety (2748 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2748 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 14) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (76 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (76 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (80 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2494 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2745 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2745 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 15) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (78 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (109 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (77 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2523 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2809 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2809 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 16) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (77 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (73 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (78 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2586 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (19 ms)
+[----------] 5 tests from GhostThreadSafety (2834 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2834 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 17) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (75 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (75 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (71 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2488 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2729 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2729 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 18) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (73 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (78 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (73 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2466 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2709 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2709 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 19) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (75 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (81 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (84 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2549 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2808 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2808 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 20) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (74 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (77 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (76 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2466 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (16 ms)
+[----------] 5 tests from GhostThreadSafety (2712 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2712 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 21) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (72 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (72 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (72 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2477 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2713 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2713 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 22) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (75 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (84 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (78 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2504 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2761 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2761 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 23) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (76 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (80 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (75 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2526 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (16 ms)
+[----------] 5 tests from GhostThreadSafety (2776 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2776 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 24) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (72 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (73 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (84 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2483 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2731 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2731 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 25) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (77 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (78 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (72 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2600 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (20 ms)
+[----------] 5 tests from GhostThreadSafety (2849 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2850 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 26) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (75 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (86 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (74 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2474 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2729 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2729 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 27) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (72 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (77 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (72 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2557 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2797 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2797 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 28) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (73 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (74 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (73 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2517 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2756 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2756 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 29) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (72 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (77 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (77 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2495 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (16 ms)
+[----------] 5 tests from GhostThreadSafety (2739 ms total)
+
+[==========] 5 tests from 1 test suite ran. (2739 ms total)
+[  PASSED  ] 5 tests.
+
+Repeating all tests (iteration 30) . . .
+
+Note: Google Test filter = GhostThreadSafety.*
+[==========] Running 5 tests from 1 test suite.
+[----------] 5 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (76 ms)
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (84 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (74 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (2534 ms)
+[ RUN      ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+[       OK ] GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle (17 ms)
+[----------] 5 tests from GhostThreadSafety (2787 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (2788 ms total)
+[  PASSED  ] 5 tests.
+exit=0
