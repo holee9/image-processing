@@ -13,8 +13,7 @@
  * constant, an ignored image or the stub cannot pass both: the first needs the answer to come from the model,
  * the second needs it to come from THIS image.
  *
- * The threshold, the low-confidence event and fallback_mode are M3 and are not tested here: in M2 the
- * confidence is reported as the model gave it and nothing is compared with a threshold.
+ * The threshold, the low-confidence event and fallback_mode (M3, REQ-AI-012) are the last section.
  */
 
 #include <gtest/gtest.h>
@@ -480,4 +479,157 @@ TEST(BodyPartInputSize, TheShapesItWillNot) {
     EXPECT_FALSE(xpe::ai::BodyPartInputSize({1, 1, 4097, 4}, &h, &w)) << "above the module maximum";
     EXPECT_EQ(7u, h) << "a refusal leaves the outputs alone";
     EXPECT_EQ(7u, w);
+}
+
+// ===== M3: the threshold, the low-confidence event (REQ-AI-012) and fallback_mode ====================================
+//
+// models_bodypart_a answers 0.6 / 0.3 / 0.1 for any image, so its confidence is exactly 0.6f, the default
+// threshold. The alert texts below are written out LITERALLY, not built the way the module builds them: a test that
+// rebuilt the text with the module's own formatter would agree with it even when both were wrong.
+
+namespace {
+// The float one step above 0.6f, as JSON that reads back as exactly that float.
+constexpr const char* kJustAbove06 = "{\"confidence_threshold\": 0.6000000834465027}";
+constexpr const char* kJustAbove06FallbackOff =
+    "{\"confidence_threshold\": 0.6000000834465027, \"fallback_mode\": false}";
+
+const char* kLowFallbackOn =
+    "AI body-part confidence 0.6 is below the threshold 0.6000001 (REQ-AI-012): UNKNOWN is returned; "
+    "use the deterministic body-part lookup";
+const char* kLowFallbackOff =
+    "AI body-part confidence 0.6 is below the threshold 0.6000001 (REQ-AI-012): the label CHEST is returned "
+    "because fallback_mode is off; an exposure parameter chosen from it may be wrong";
+
+void ExpectOneAlert(const char* exactText) {
+    const std::vector<Alert> a = Alerts();
+    ASSERT_EQ(1u, a.size());
+    EXPECT_EQ(XPE_ALERT_WARNING, a[0].severity);
+    EXPECT_EQ(std::string(exactText), a[0].text);
+}
+}  // namespace
+
+TEST_F(BodyPart, AConfidenceExactlyAtTheThresholdPasses) {
+    REQUIRE_ONNX();
+    Init(Dir("models_bodypart_a"));   // confidence 0.6f, default threshold 0.6f
+    const Result r = Recognize(Flat(0.0f));
+    EXPECT_EQ(XPE_OK, r.rc);
+    EXPECT_EQ("CHEST", r.label);
+    EXPECT_EQ(0.6f, r.confidence);
+    EXPECT_TRUE(Alerts().empty()) << "equal is not below";
+}
+
+TEST_F(BodyPart, AConfidenceOneFloatBelowTheThresholdIsLowAndFallsBack) {
+    REQUIRE_ONNX();
+    Init(Dir("models_bodypart_a"), kJustAbove06);
+    const Result r = Recognize(Flat(0.0f));
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, r.rc);
+    EXPECT_EQ("UNKNOWN", r.label);
+    EXPECT_EQ(0.6f, r.confidence) << "the MEASURED confidence is reported, not 0.0";
+    ExpectOneAlert(kLowFallbackOn);
+}
+
+TEST_F(BodyPart, WithFallbackModeOffTheLowConfidenceLabelIsReturnedWithAWarning) {
+    REQUIRE_ONNX();
+    Init(Dir("models_bodypart_a"), kJustAbove06FallbackOff);
+    const Result r = Recognize(Flat(0.0f));
+    EXPECT_EQ(XPE_OK, r.rc);
+    EXPECT_EQ("CHEST", r.label);
+    EXPECT_EQ(0.6f, r.confidence);
+    ExpectOneAlert(kLowFallbackOff);
+}
+
+TEST_F(BodyPart, FallbackModeCanBeToggledAtRunTimeAndTheNextCallFollows) {
+    REQUIRE_ONNX();
+    Init(Dir("models_bodypart_a"), kJustAbove06);
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, Recognize(Flat(0.0f)).rc) << "default: fallback on";
+    ASSERT_EQ(XPE_OK, xpe_ai_set_fallback_mode(0));
+    xpe_clear_alerts();
+    const Result off = Recognize(Flat(0.0f));
+    EXPECT_EQ(XPE_OK, off.rc);
+    EXPECT_EQ("CHEST", off.label);
+    ExpectOneAlert(kLowFallbackOff);
+    ASSERT_EQ(XPE_OK, xpe_ai_set_fallback_mode(1));
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, Recognize(Flat(0.0f)).rc) << "switched back on";
+    ExpectOneAlert(kLowFallbackOn);
+}
+
+TEST_F(BodyPart, TheThresholdIsTheConfiguredOneNotAConstant) {
+    REQUIRE_ONNX();
+    const Img flat = Flat(0.0f);   // the dep model gives 0 0 0 for it: confidence 0.0
+    Init(Dir("models_bodypart_dep"));
+    const Result low = Recognize(flat);
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, low.rc) << "0.0 is below the default 0.6";
+    EXPECT_EQ(0.0f, low.confidence);
+    EXPECT_EQ(1u, Alerts().size());
+    Init(Dir("models_bodypart_dep"), "{\"confidence_threshold\": 0.0}");
+    const Result pass = Recognize(flat);
+    EXPECT_EQ(XPE_OK, pass.rc) << "0.0 is not below a threshold of 0.0";
+    EXPECT_EQ("CHEST", pass.label);
+    EXPECT_TRUE(Alerts().empty());
+}
+
+TEST_F(BodyPart, AThresholdOfOneAcceptsOnlyAFullScaleConfidence) {
+    REQUIRE_ONNX();
+    Init(Dir("models_bodypart_dep"), "{\"confidence_threshold\": 1.0}");
+    EXPECT_EQ(XPE_OK, Recognize(Flat(1.0f)).rc) << "the model gives 1 1 0: confidence 1.0 is not below 1.0";
+    EXPECT_TRUE(Alerts().empty());
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, Recognize(TopBright()).rc) << "0.75 is below 1.0";
+    EXPECT_EQ(1u, Alerts().size());
+}
+
+TEST_F(BodyPart, EveryLowConfidenceImageRaisesItsOwnEventButAPassingOneRaisesNone) {
+    REQUIRE_ONNX();
+    Init(Dir("models_bodypart_dep"), "{\"confidence_threshold\": 0.8}");
+    (void)Recognize(TopBright());      // 0.75: low
+    (void)Recognize(BottomBright());   // 0.75: low
+    (void)Recognize(Flat(1.0f));       // 1.0: passes
+    const std::vector<Alert> a = Alerts();
+    ASSERT_EQ(2u, a.size()) << "one event per low-confidence image";
+    for (const Alert& x : a) {
+        EXPECT_EQ(XPE_ALERT_WARNING, x.severity);
+        EXPECT_NE(std::string::npos, x.text.find("below the threshold 0.8")) << x.text;
+    }
+}
+
+TEST_F(BodyPart, ALowConfidenceIsNotAnUnavailableModelAndDoesNotUseUpItsOneWarning) {
+    REQUIRE_ONNX();
+    Init(Dir("models_bodypart_dep"));
+    (void)Recognize(Flat(0.0f));   // low confidence: 0.0
+    EXPECT_EQ(0, CountAlerts("unavailable")) << "the model is fine; it was just not sure";
+    // The "unavailable" warning is still owed to a session whose model turns out to be unusable.
+    Init(Dir("models_missing"));
+    (void)Recognize(Flat(0.0f));
+    EXPECT_EQ(1, CountAlerts("unavailable"));
+}
+
+TEST_F(BodyPart, ALowConfidenceFallbackNeedsRoomForUnknownAndStillRaisesTheEvent) {
+    REQUIRE_ONNX();
+    Init(Dir("models_bodypart_a"), kJustAbove06);
+    const Result tooShort = Recognize(Flat(0.0f), 7);   // "UNKNOWN" needs 8 bytes
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, tooShort.rc);
+    EXPECT_EQ("xxxxxxx", tooShort.label) << "nothing written";
+    EXPECT_EQ(0.0f, tooShort.confidence);
+    ExpectOneAlert(kLowFallbackOn);   // the event is the image's, not the buffer's
+    xpe_clear_alerts();
+    const Result fits = Recognize(Flat(0.0f), 8);
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, fits.rc);
+    EXPECT_EQ("UNKNOWN", fits.label);
+    EXPECT_EQ(0.6f, fits.confidence);
+}
+
+TEST_F(BodyPart, WithFallbackModeOffALabelThatDoesNotFitIsStillBufferTooSmall) {
+    REQUIRE_ONNX();
+    Init(Dir("models_bodypart_a"), kJustAbove06FallbackOff);
+    const Result r = Recognize(Flat(0.0f), 5);   // "CHEST" needs 6
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, r.rc);
+    EXPECT_EQ("xxxxx", r.label);
+    ExpectOneAlert(kLowFallbackOff);
+}
+
+TEST_F(BodyPart, ANonNumericThresholdInTheConfigIsIgnoredAndTheDefaultApplies) {
+    REQUIRE_ONNX();
+    Init(Dir("models_bodypart_a"), "{\"confidence_threshold\": \"0.99\"}");   // a string: not a number
+    const Result r = Recognize(Flat(0.0f));
+    EXPECT_EQ(XPE_OK, r.rc) << "0.6 against the default 0.6 passes; a 0.99 threshold would have refused it";
 }

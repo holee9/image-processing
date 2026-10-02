@@ -1,0 +1,12 @@
+== ci-ai (ONNX build), whole xpe_ai_tests, XPE_AI_EXPECT_ONNX=1 (M3)
+[==========] 360 tests from 38 test suites ran. (55070 ms total)
+[  PASSED  ] 355 tests.
+[  SKIPPED ] 5 tests, listed below:
+BodyPart*, BodyPartResize*, BodyPartInputSize*: OK 41
+pre-existing bodypart tests: OK 16
+
+== stub build (ci-post), whole xpe_ai_tests
+[==========] 360 tests from 38 test suites ran. (24240 ms total)
+[  PASSED  ] 298 tests.
+[  SKIPPED ] 62 tests, listed below:
+BodyPart fixture tests in the stub build: OK 1, skipped 31 (full build only); BodyPartResize+BodyPartInputSize OK 9

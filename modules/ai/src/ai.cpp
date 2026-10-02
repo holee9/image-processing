@@ -41,6 +41,7 @@
 #include <cstdint>
 #include <cstring>
 #include <atomic>
+#include <charconv>
 #include <fstream>
 #include <memory>
 #include <mutex>
@@ -638,6 +639,34 @@ static const char* loadBodyPartModel(AiModuleState* state, std::unique_ptr<BodyP
     return nullptr;
 }
 
+/** A float as the SHORTEST text that reads back as the same float (0.6f is "0.6", the next float up is "0.6000001"). */
+static std::string shortestFloatText(float v) {
+    char buf[32];
+    const auto r = std::to_chars(buf, buf + sizeof(buf), v);
+    return std::string(buf, r.ptr);
+}
+
+/**
+ * REQ-AI-012: the low-confidence event. ONE Warning per image whose confidence is below the threshold (leader
+ * decision QA-B-191 D3: Warning and not Info, because with fallback_mode off the low-confidence label is used
+ * and an exposure parameter chosen from a wrong body part can be wrong; one per image is not a flood).
+ * @p labelUsed is the label that is returned anyway (fallback_mode off), or null when UNKNOWN is returned.
+ *
+ * CROSS-LANE CONTRACT: clients may match these texts; the numbers are the shortest text that reads back as the
+ * same float, so a confidence one float below the threshold is still told apart from it.
+ */
+static void pushLowConfidenceAlert(float confidence, float threshold, const char* labelUsed) {
+    std::string msg = "AI body-part confidence " + shortestFloatText(confidence) + " is below the threshold " +
+                      shortestFloatText(threshold) + " (REQ-AI-012): ";
+    if (labelUsed) {
+        msg += std::string("the label ") + labelUsed +
+               " is returned because fallback_mode is off; an exposure parameter chosen from it may be wrong";
+    } else {
+        msg += "UNKNOWN is returned; use the deterministic body-part lookup";
+    }
+    xpe_alert_push(msg.c_str(), XPE_ALERT_WARNING);
+}
+
 /** Tell the operator once per session that body-part recognition has no usable model (D4). The caller holds state->mtx. */
 static void warnBodyPartUnavailableOnce(AiModuleState* state, const char* reason) {
     if (state->bodyPartUnavailableWarned) return;
@@ -919,10 +948,28 @@ extern "C++" static XpeErrorCode xpe_bodypart_recognize_impl(const XpeImageBuffe
         if (out.value[i] > out.value[best]) best = i;
     }
     const std::string& label = model.labels[best];
+    const float confidence = out.value[best];
+
+    // REQ-AI-012 / REQ-AI-002: a confidence below the threshold is a low-confidence EVENT and, while fallback_mode
+    // is on (the default), the documented fallback outcome. `>=` passes: a confidence exactly at the threshold
+    // is not low. The event does not depend on the caller's buffer: it is posted before any label is written.
+    const float threshold = state->confidenceThreshold;
+    if (confidence < threshold) {
+        const bool fallbackOn = state->fallbackMode.load(std::memory_order_acquire);
+        pushLowConfidenceAlert(confidence, threshold, fallbackOn ? nullptr : label.c_str());
+        if (fallbackOn) {
+            // The caller is told why it must fall back: UNKNOWN, and the confidence that was actually measured.
+            const XpeErrorCode rc = bodyPartUnknown(bodyPartOut, bufLen);
+            if (rc == XPE_ERR_PROCESSING_FAILED && confidenceOut) *confidenceOut = confidence;
+            return rc;
+        }
+        // fallback_mode off: the low-confidence label is returned, with its confidence, and the Warning above.
+    }
+
     if (label.size() + 1 > bufLen) return XPE_ERR_BUFFER_TOO_SMALL;   // never truncated silently
 
     std::memcpy(bodyPartOut, label.c_str(), label.size() + 1);
-    if (confidenceOut) *confidenceOut = out.value[best];
+    if (confidenceOut) *confidenceOut = confidence;
     return XPE_OK;
 }
 

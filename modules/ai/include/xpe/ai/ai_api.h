@@ -227,8 +227,23 @@ XPE_API void xpe_ai_shutdown(void);
  * this image was not AI-processed"); an output outside [0, 1] posts ONE XPE_ALERT_WARNING per call: "AI body-part
  * model output is not a probability vector (a value outside [0, 1]); this image was not AI-classified". These
  * texts are a contract with the clients that display alerts. A successful call posts no alert.
- * NOT YET IMPLEMENTED (QA-B-191 M3): the comparison of the confidence with `confidence_threshold`, the
- * low-confidence event and the use of fallback_mode. Until then a low confidence is returned as the model gave it.
+ *
+ * THRESHOLD AND THE LOW-CONFIDENCE EVENT (REQ-AI-012, QA-B-191 M3). With a usable result, a confidence BELOW the
+ * threshold (`"confidence_threshold"` in the xpe_ai_init config, default 0.6; a confidence EQUAL to it passes) is a
+ * low-confidence event: ONE XPE_ALERT_WARNING per image, and
+ *   - fallback_mode on (the default; `"fallback_mode"` in the config or xpe_ai_set_fallback_mode): returns
+ *     XPE_ERR_PROCESSING_FAILED, the label "UNKNOWN" and the confidence that was MEASURED (not 0.0), so the caller
+ *     can tell this fallback from a failure; the alert reads "AI body-part confidence {c} is below the threshold
+ *     {t} (REQ-AI-012): UNKNOWN is returned; use the deterministic body-part lookup";
+ *   - fallback_mode off: returns XPE_OK, the model's most probable label and its confidence anyway, and the alert
+ *     reads "AI body-part confidence {c} is below the threshold {t} (REQ-AI-012): the label {LABEL} is returned
+ *     because fallback_mode is off; an exposure parameter chosen from it may be wrong".
+ * {c} and {t} are each the SHORTEST text that reads back as the same float (0.6f is "0.6", the next float up is
+ * "0.6000001"). The event is posted before any label is written, so it does not depend on the caller's buffer: a
+ * buffer too short for the label is still XPE_ERR_BUFFER_TOO_SMALL, with the Warning posted and the confidence 0.0.
+ * A low confidence is not a failure of the model: it posts none of the "unavailable" alerts above and is not
+ * counted by any failure counter. The threshold is used as configured, without a range check: 0.0 lets every
+ * confidence pass, a value above 1.0 makes every result a low-confidence event.
  *
  * @param img            Input image. Must not be NULL; zero dimensions, a NULL
  *                       data pointer, a dataSize above 64 MB, or a non-zero
