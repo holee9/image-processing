@@ -103,6 +103,11 @@
     <Compile Include="..\..\gui\ImageProcTest\Services\BaselineDeterminism.cs" Link="Chain\Linked\BaselineDeterminism.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\BaselineParameters.cs" Link="Chain\Linked\BaselineParameters.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\BaselineRunner.cs" Link="Chain\Linked\BaselineRunner.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\EnhanceBasicStage.cs" Link="Chain\Linked\EnhanceBasicStage.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeDisplayInterop.cs" Link="Chain\Linked\XpeDisplayInterop.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpePreprocessInterop.cs" Link="Chain\Linked\XpePreprocessInterop.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeEnhanceBasicInterop.cs" Link="Chain\Linked\XpeEnhanceBasicInterop.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiEnhanceNative.cs" Link="Chain\Linked\GuiEnhanceNative.cs" />
   </ItemGroup>
 
   <!--

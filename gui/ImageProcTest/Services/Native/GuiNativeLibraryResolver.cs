@@ -26,6 +26,7 @@ internal static class GuiNativeLibraryResolver
     private const string PreprocessDll = "xpe_preprocess.dll";
     private const string GsvgDll = "gsvg.dll";
     private const string AiDll = "xpe_ai.dll";
+    private const string EnhanceBasicDll = "xpe_enhance_basic.dll";
 
     private static readonly object Gate = new();
     private static bool _installed;
@@ -131,6 +132,8 @@ internal static class GuiNativeLibraryResolver
             // #225 row 10 (GUI-C-184): xpe_ai.dll follows the same module policy. Its worker executable is looked for
             // beside THIS dll by the module itself, so the two have to be staged together.
             _ when Is(libraryName, AiDll) => NativeModuleLibraryLocator.GetDllCandidates(AiDll, "image-processing"),
+            // #225 row 9 (GUI-C-196 M2): xpe_enhance_basic.dll follows the same module policy as xpe_display.
+            _ when Is(libraryName, EnhanceBasicDll) => NativeModuleLibraryLocator.GetDllCandidates(EnhanceBasicDll, "image-processing"),
             _ => null,
         };
 

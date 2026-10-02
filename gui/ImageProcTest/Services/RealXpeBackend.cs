@@ -293,6 +293,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
             StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings),
             StageIds.Gsvg => RunGsvgStage(input, rawFrame.Width, rawFrame.Height, settings),
             StageIds.AiBoneSuppression => RunAiStage(input, rawFrame.Width, rawFrame.Height, settings),
+            StageIds.EnhanceBasic => RunEnhanceBasicStage(input, rawFrame.Width, rawFrame.Height),
             _ => new StageExecution(false, null, $"Stage '{request.StageId}' is not available in the native backend."),
         });
 
@@ -330,6 +331,16 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
     {
         var result = InvokeNative(() => Native.GuiGsvgRunner.Run(input, width, height, settings));
         return new StageExecution(result.Ran, result.Pixels, result.Message);
+    }
+
+    /// <summary>
+    /// #225 row 9 (GUI-C-196 M2): the basic enhancement stage of the Deterministic Baseline. InvokeNative so the alert drain runs afterwards on every path,
+    /// as for the other stages. All of the stage's rules (one float image, one conversion back, all-or-nothing) are in <see cref="EnhanceBasicStage"/>.
+    /// </summary>
+    private StageExecution RunEnhanceBasicStage(ushort[] input, int width, int height)
+    {
+        var result = InvokeNative(() => EnhanceBasicStage.Run(input, width, height, new Native.NativeEnhanceBasicBackend()));
+        return new StageExecution(result.Ran, result.Pixels, result.Summary);
     }
 
     /// <summary>
