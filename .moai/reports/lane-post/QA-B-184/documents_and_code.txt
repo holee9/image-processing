@@ -1,0 +1,93 @@
+# git grep -n over tracked docs (docs/, .moai/specs, .moai/project): lines that mention MONOCHROME / Photometric / polarity
+.moai/specs/SPEC-XPE-P1B-DICOM/spec.md:193:**REQ-DICOM-016**: The system SHALL set Pixel Data attributes (Rows, Columns, Bits Allocated, Bits Stored, High Bit, Pixel Representation, Samples Per Pixel, Photometric Interpretation) c
+docs/dicom/README.md:130:| MONOCHROME1 | 반전 (MAX - pixel) | MONOCHROME2 | 작은 값 = 밝음 |
+docs/dicom/README.md:131:| MONOCHROME2 | 그대로 사용 | MONOCHROME2 | 작은 값 = 어두움 |
+docs/dicom/README.md:152:[Photometric Correction: MONOCHROME1 → MONOCHROME2]
+docs/dicom/README.md:397:    ├─ Photometric correction:
+docs/dicom/README.md:398:    │   ├─ IF MONOCHROME1: invert (MAX - pixel)
+docs/dicom/README.md:399:    │   └─ IF MONOCHROME2: use as-is
+docs/dicom/RTM-DICOM-001_Requirements_Traceability_Matrix.md:86:| §3.2 | 포토메트릭 고정 (MONOCHROME2) | FR-DCM-205 | 포토메트릭 고정 (MONOCHROME2) | ✓ |
+docs/dicom/RTM-DICOM-001_Requirements_Traceability_Matrix.md:206:| FR-DCM-109 | 포토메트릭 처리 | TC-109 | MONOCHROME1 반전, MONOCHROME2 유지 | ✓ |
+docs/dicom/RTM-DICOM-001_Requirements_Traceability_Matrix.md:222:| FR-DCM-205 | 포토메트릭 고정 | TC-205 | MONOCHROME2 고정 | ✓ |
+docs/dicom/SAD-DICOM-001_Software_Architecture_Document.md:187:10. VALIDATE photometric interpretation
+docs/dicom/SAD-DICOM-001_Software_Architecture_Document.md:189:    IF MONOCHROME1:
+docs/dicom/SAD-DICOM-001_Software_Architecture_Document.md:191:    ELSE IF MONOCHROME2:
+docs/dicom/SAD-DICOM-001_Software_Architecture_Document.md:194:      return XPE_ERR_DICOM_UNSUPPORTED_PHOTOMETRIC
+docs/dicom/SAD-DICOM-001_Software_Architecture_Document.md:308:   // Photometric
+docs/dicom/SAD-DICOM-001_Software_Architecture_Document.md:309:   dataset.put(0x0028, 0x0004, "MONOCHROME2")
+docs/dicom/SAD-DICOM-001_Software_Architecture_Document.md:892:[Photometric Correction]
+docs/dicom/SAD-DICOM-001_Software_Architecture_Document.md:893:    ├─ IF MONOCHROME1: invert (MAX - pixel)
+docs/dicom/SAD-DICOM-001_Software_Architecture_Document.md:894:    └─ IF MONOCHROME2: use as-is
+docs/dicom/SRS-DICOM-001_Software_Requirements_Specification.md:121:  - MONOCHROME1 (작은 값 = 밝음): 자동 반전 (MAX - pixel)
+docs/dicom/SRS-DICOM-001_Software_Requirements_Specification.md:122:  - MONOCHROME2 (작은 값 = 어두움): 그대로 사용
+docs/dicom/SRS-DICOM-001_Software_Requirements_Specification.md:123:  - 다른 값 → XPE_ERR_DICOM_UNSUPPORTED_PHOTOMETRIC
+docs/dicom/SRS-DICOM-001_Software_Requirements_Specification.md:266:#### FR-DCM-205: 포토메트릭 고정 (MONOCHROME2)
+docs/dicom/SRS-DICOM-001_Software_Requirements_Specification.md:268:- **Description**: 모든 출력 이미지 MONOCHROME2로 표준화
+docs/dicom/SRS-DICOM-001_Software_Requirements_Specification.md:270:  - (0028,0004) PhotometricInterpretation = "MONOCHROME2"
+docs/dicom/SRS-DICOM-001_Software_Requirements_Specification.md:271:  - 자동 정규화 (MONOCHROME1 입력일 경우)
+docs/dicom/xpe-dicom-prd.md:45:| **포토메트릭** | MONOCHROME1, MONOCHROME2 (자동 반전) |
+docs/dicom/xpe-dicom-prd.md:136:| **REQ-4.1.9** | 포토메트릭 인터프리테이션 읽기: MONOCHROME1 (자동 반전), MONOCHROME2 | M |
+docs/dicom/xpe-dicom-prd.md:175:| **REQ-4.2.5** | 포토메트릭: MONOCHROME2 고정 (자동 정규화) | M |
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:9468:        {DCM_PhotometricInterpretation,   "PhotometricInterpretation"},
+docs/post-processing/xpe/XPE-SDD-001_Software_Unit_Identification.md:51:| SWU-3.3 | PresentationLUT | GSDF P-Value conversion, MONOCHROME1/2 handling | SRS-FUNC-022, 023 |
+docs/post-processing/xpe/XPE-SDD-002_Software_Detailed_Design.md:902:> 3. `docs/project/api-spec.md:362` 는 둘 다 인용할 뿐 극성을 주장하지
+docs/post-processing/xpe/XPE-SDD-002_Software_Detailed_Design.md:1051:    int32_t               photometricInterpretation,  // 0=MONO1, 1=MONO2
+docs/post-processing/xpe/XPE-SDD-002_Software_Detailed_Design.md:1062:  3. IF photometricInterpretation == MONOCHROME1:
+docs/post-processing/xpe/XPE-SDD-002_Software_Detailed_Design.md:1082:| MONOCHROME1 | inversion needed | Invert output | SRS-FUNC-023 |
+docs/post-processing/xpe/XPE-SDD-002_Software_Detailed_Design.md:1156:   d. (0028,0004) PhotometricInterpretation
+docs/post-processing/xpe/XPE-SRS-001_Software_Requirements_Specification.md:63:| SRS-FUNC-023 | 시스템은 Photometric Interpretation MONOCHROME1/MONOCHROME2를 올바르게 처리해야 한다. | Must | — |
+docs/post-processing/xpe/XPE-STP-001_Software_Test_Plan_and_Cases.md:215:| UT-3.3-003 | MONOCHROME1 | inversion needed | inverted output | 0 | SRS-FUNC-023 |
+docs/post-processing/xpe/XPE-STP-001_Software_Test_Plan_and_Cases.md:217:| UT-3.3-005 | MONOCHROME2 | no inversion | direct output | 0 | SRS-FUNC-023 |
+docs/post-processing/xpe/xpe-iec62304-class-b-package.md:314:| SRS-FUNC-023 | 시스템은 Photometric Interpretation MONOCHROME1/MONOCHROME2를 올바르게 처리해야 한다 | (a) | Must | — |
+docs/post-processing/xpe/xpe-iec62304-class-b-package.md:516:| SWU-3.3 | PresentationLUT | GSDF, photometric interpretation handling |
+docs/post-processing/xpe/xray-postprocessing-prd.md:250:| Photometric Interpretation | MONOCHROME1 (bone=dark) / MONOCHROME2 (bone=bright) 자동 처리 |
+docs/project/XPE-PostProcess-DeepResearch.json:4:    "text": "ARCHIVAL NOTE: This JSON is a raw research-agent transcript for traceability only. It is non-normative and must not override the canonical Markdown set under docs/proje
+docs/project/api-spec.md:1360:- **PhotometricInterpretation (QA-B-182f)**: 없거나 비어 있으면 `DICOM_INVALID`. MONOCHROME1·MONOCHROME2 는 받는다. PALETTE COLOR·XYB·정의 없는 값·폐기된 값은 `UNSUPPORTED_FO
+
+# control: the same search finds the QA-B-182f sentence that already says MONOCHROME1 is returned as stored:
+docs/project/api-spec.md:1360:- **PhotometricInterpretation (QA-B-182f)**: 없거나 비어 있으면 `DICOM_INVALID`. M
+
+# The code today
+modules/dicom/src/DicomReader.cpp:341:    // significant (PS3.5 6.2); DCMTK normalises both when it hands the string over (measured: the values " MONO
+modules/dicom/src/DicomReader.cpp:370:    if (pi != "MONOCHROME1" && pi != "MONOCHROME2") {
+modules/dicom/src/DicomWriter.cpp:147:    ds->putAndInsertString(DCM_PhotometricInterpretation, "MONOCHROME2");
+modules/dicom/src/DicomWriter.cpp:158:    ds->putAndInsertString(DCM_PresentationLUTShape, "IDENTITY");
+
+# XpeImageMetadata layout (modules/common/include/xpe/common/xpe_types.h)
+typedef struct XpeImageMetadata {
+    char     bodyPart[64];    /**< Body part identifier (e.g. "CHEST", "HAND"). Used for EIT lookup in IEC 62494-1. */
+    float    kVp;             /**< X-ray tube peak voltage in kV */
+    float    mAs;             /**< Tube current-time product in mA*s */
+    float    SID_mm;          /**< Source-to-Image Distance in mm */
+    float    pixelPitch_mm;   /**< Detector pixel pitch in mm */
+    uint64_t acquisitionTime; /**< POSIX timestamp of acquisition (seconds since Unix epoch, UTC). 0 = unknown. */
+    uint32_t flags;           /**< Processing stage completion flags. See @ref XPE_FLAG_GHOST_CORRECTED and related defines. */
+} XpeImageMetadata;
+(static_assert size 96: bodyPart 64 + 4 floats 16 + acquisitionTime 8 + flags 4 + 4 bytes tail padding)
+
+# used flag bits
+156:#define XPE_FLAG_GHOST_CORRECTED         0x00000001u  /**< Ghost/lag correction applied (xpe_preprocess) *
+157:#define XPE_FLAG_AI_PROCESSED            0x00000002u  /**< AI module processed (xpe_ai) */
+158:#define XPE_FLAG_DEFECT_CORRECTED        0x00000004u  /**< Bad-pixel / defect map correction applied */
+159:#define XPE_FLAG_GAIN_CORRECTED          0x00000008u  /**< Flat-field gain correction applied */
+160:#define XPE_FLAG_READOUT_VALIDATED       0x00000010u  /**< Detector readout integrity validated */
+161:#define XPE_FLAG_TEMP_COMPENSATED        0x00000020u  /**< Temperature drift compensation applied */
+162:#define XPE_FLAG_NONLINEARITY_CORRECTED  0x00000040u  /**< Detector nonlinearity correction applied */
+163:#define XPE_FLAG_BINNING_CORRECTED       0x00000080u  /**< Binning mode correction applied */
+164:#define XPE_FLAG_OFFSET_CORRECTED        0x00002000u  /**< Dark/offset correction applied */
+165:#define XPE_FLAG_COLLIMATION_DETECTED    0x00000200u  /**< Collimation region detected and masked */
+166:#define XPE_FLAG_STITCHED                0x00000400u  /**< Image assembled from multiple detector panels (
+167:#define XPE_FLAG_BONE_SUPPRESSED         0x00000800u  /**< Bone suppression (AI premium stage) applied */
+168:#define XPE_FLAG_GSVG_SKIPPED            0x00001000u  /**< GSVG stage was skipped (e.g. modality does not 
+
+# modules/display (non-test) literal search for the DICOM polarity vocabulary
+count of MONOCHROME|INVERSE|IDENTITY|PresentationLUTShape|Photometric (case-insensitive, source+headers, tests excluded):
+modules/display/include/xpe/display/display_api.h:1
+modules/display/src/presentation_lut.cpp:2
+modules/display/src/voi_lut.cpp:1
+(no output above = 0 in every file)
+control: the same search over modules/dicom/src finds the vocabulary:
+modules/dicom/src/DicomReader.cpp:11
+modules/dicom/src/DicomWriter.cpp:2
+
+# the 4 hits above, read: display_api.h:231 'LUT identity: slope 1' (modality LUT), presentation_lut.cpp:204/247 'inverse' of a mathematical expression (GSDF Equation 7-1), voi_lut.cpp:140 'identity modality'. None is DICOM Photometric Interpretation or Presentation LUT Shape handling. (An earlier claim of '0 hits' was wrong -- the count was 4 -- and was corrected after this check.)
