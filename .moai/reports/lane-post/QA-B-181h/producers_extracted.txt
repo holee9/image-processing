@@ -1,0 +1,50 @@
+ai               xpe_bodypart_recognize               float* confidenceOut
+ai               xpe_stitch_images                    XpeImageBuffer* stitchedOut
+ai               xpe_bone_suppress                    XpeImageBuffer* softTissueOut
+ai               xpe_dl_denoise                       XpeImageBuffer* img
+common           xpe_get_param_range                  float* minVal; float* maxVal; float* defaultVal
+common           xpe_alloc_image                      XpeImageBuffer* out
+common           xpe_free_image                       XpeImageBuffer* buf
+common           xpe_copy_image                       XpeImageBuffer* dst
+dicom            xpe_dicom_read_image                 XpeImageBuffer* outImg
+display          xpe_apply_modality_lut               XpeImageBuffer* img
+display          xpe_apply_voi_lut                    XpeImageBuffer* img
+display          xpe_apply_presentation_lut           XpeImageBuffer* img
+enhance_advanced xpe_multiscale_process               XpeImageBuffer* img
+enhance_advanced xpe_fractional_process               XpeImageBuffer* img
+enhance_advanced xpe_adv_calc_exposure_index          float* eiOut; float* deviationIndexOut
+enhance_basic    xpe_log_transform                    XpeImageBuffer* img
+enhance_basic    xpe_log_inverse                      XpeImageBuffer* img
+enhance_basic    xpe_noise_reduce                     XpeImageBuffer* img
+enhance_basic    xpe_noise_estimate_sigma             float* outSigma
+enhance_basic    xpe_contrast_enhance                 XpeImageBuffer* img
+enhance_basic    xpe_edge_enhance                     XpeImageBuffer* img
+enhance_basic    xpe_calc_exposure_index              float* outEI; float* outDI
+gsvg             xpe_gsvg_init                        void** handleOut
+gsvg             xpe_gsvg_process                     void* handle; uint16_t* dst
+gsvg             xpe_gsvg_process_masked              void* handle; uint16_t* dst
+gsvg             xpe_gsvg_process_ex                  void* handle; uint16_t* dst
+gsvg             xpe_gsvg_shutdown                    void* handle
+preprocess       xpe_offset_correct                   XpeImageBuffer* output
+preprocess       xpe_gain_correct                     XpeImageBuffer* output
+preprocess       xpe_defect_correct                   XpeImageBuffer* output
+preprocess       xpe_defect_detect_runtime            XpeImageBuffer* defect_map_output
+preprocess       xpe_preprocess_get_param_range       float* min_value; float* max_value
+preprocess       xpe_ghost_create                     void** handleOut
+preprocess       xpe_ghost_correct                    void* handle; XpeImageBuffer* img
+preprocess       xpe_ghost_reset                      void* handle
+preprocess       xpe_ghost_destroy                    void* handle
+preprocess       xpe_temp_compensate                  XpeImageBuffer* img
+preprocess       xpe_nonlinearity_correct             XpeImageBuffer* img
+preprocess       xpe_binning_correct                  XpeImageBuffer* img
+preprocess       xpe_preprocess_pipeline              XpeImageBuffer* img; void* ghostHandle
+preprocess       xpe_preprocess_pipeline_ex           XpeImageBuffer* img; void* ghostHandle
+preprocess       xpe_preprocess_pipeline_batch        XpeImageBuffer* images; void* ghostHandle
+preprocess       xpe_calib_load_offset_cached         XpeImageBuffer* offsetMapOut
+preprocess       xpe_calib_load_gain_cached           XpeImageBuffer* gainMapOut
+preprocess       xpe_calib_load_defect_cached         XpeImageBuffer* defectMapOut
+preprocess       xpe_calib_state_load                 void* state
+preprocess       xpe_calib_state_release              void* state
+preprocess       xpe_bpm_generate                     XpeImageBuffer* bpm_out
+WRITERS 48
+XPE_API declarations parsed 119 distinct 118

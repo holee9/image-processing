@@ -3760,6 +3760,62 @@ TEST_F(DicomReaderTest, Scope_AbsentOrZeroRowsAndColumnsAreRefusedWithAnAlertOnE
     }
 }
 
+// QA-B-181h (Codex #60): the component-count comparison must treat Nf = 0 and an absent Nf as a mismatch. It used `0` both
+// as "not read" and as a real Nf, so a frame header declaring zero components, or one cut off before the Nf byte, passed.
+namespace {
+/** The first SOF3 frame header, with its Nf byte and/or its segment length overwritten (-1 leaves a field alone). */
+bool PatchJpegLosslessSof(const fs::path& src, const fs::path& dst, int nf, int segmentLength) {
+    std::ifstream in(src, std::ios::binary);
+    std::vector<uint8_t> b((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    for (size_t k = 0; k + 12 < b.size(); ++k) {
+        if (b[k] == 0xFF && b[k + 1] == 0xC3 && b[k + 2] == 0x00 && b[k + 3] == 0x0B) {   // SOF3, one component
+            if (nf >= 0) b[k + 9] = static_cast<uint8_t>(nf);
+            if (segmentLength >= 0) {
+                b[k + 2] = static_cast<uint8_t>(segmentLength >> 8);
+                b[k + 3] = static_cast<uint8_t>(segmentLength & 0xFF);
+            }
+            std::ofstream out(dst, std::ios::binary);
+            out.write(reinterpret_cast<const char*>(b.data()), static_cast<std::streamsize>(b.size()));
+            return out.good();
+        }
+    }
+    return false;
+}
+}  // namespace
+
+TEST_F(DicomReaderTest, Scope_JpegLosslessComponentCountMustBeExactlyOneAndPresent) {
+    const fs::path ll = s_tempDir / "jpegll_for_181h.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, ll));
+    struct Case { const char* name; int nf; int segLen; XpeErrorCode want; };
+    const Case cases[] = {
+        {"nf_1_control", 1, -1, XPE_OK},
+        {"nf_0", 0, -1, XPE_ERR_DICOM_INVALID},                 // zero components
+        {"nf_2", 2, -1, XPE_ERR_DICOM_INVALID},
+        {"nf_3", 3, -1, XPE_ERR_DICOM_INVALID},
+        {"nf_byte_beyond_the_segment", -1, 7, XPE_ERR_DICOM_INVALID},   // the segment ends before the Nf byte
+        {"segment_length_zero", -1, 0, XPE_ERR_DICOM_INVALID},
+    };
+    for (const Case& c : cases) {
+        const fs::path p = s_tempDir / (std::string("jpegll_181h_") + c.name + ".dcm");
+        ASSERT_TRUE(PatchJpegLosslessSof(ll, p, c.nf, c.segLen)) << c.name;
+        xpe_clear_alerts();
+        const ScopeRead r = ReadScope(p);
+        GTEST_LOG_(INFO) << "QA-B-181h probe: " << c.name << " -> rc=" << r.read;
+        EXPECT_EQ(c.want, r.read) << c.name;
+        if (c.want != XPE_OK) {
+            EXPECT_TRUE(r.outUntouchedOnFailure) << c.name;
+            EXPECT_EQ(XPE_OK, r.metaAfter) << c.name;
+            bool named = false;
+            for (int32_t i = 0; i < xpe_get_pending_alert_count(); ++i) {
+                char buf[512] = {0};
+                int32_t sev = -1;
+                if (xpe_get_pending_alert(i, buf, sizeof(buf), &sev) == XPE_OK && std::string(buf).find("component") != std::string::npos) named = true;
+            }
+            EXPECT_TRUE(named) << c.name << ": the refusal names the component count";
+        }
+    }
+}
+
 // The refusal reaches the operator: an alert names the attribute or the two values that disagree. (The module's
 // only other channel is its log.) The alert wording is a contract with the clients that display alerts.
 TEST_F(DicomReaderTest, Scope_ARefusalPostsAnAlertThatNamesTheCause) {

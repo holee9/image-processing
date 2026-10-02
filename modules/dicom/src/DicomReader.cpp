@@ -87,7 +87,11 @@ bool jpeg_frame_dimensions(const Uint8* data, size_t len, uint32_t& outW, uint32
             // length(2) precision(1) height(2) width(2)
             if (i + 8 >= len) return false;
             if (outPrecision != nullptr) *outPrecision = data[i + 4];   // QA-B-182e: sample precision P
-            if (outComponents != nullptr && i + 9 < len) *outComponents = data[i + 9];   // Nf, component count
+            // Nf, the component count. QA-B-181h: it exists only if the SEGMENT is long enough to hold it (length(2) +
+            // precision(1) + height(2) + width(2) + Nf(1) = 8) and the data reaches it; otherwise it is reported as 0, and
+            // the caller refuses a header whose Nf is anything but exactly 1. 0 is therefore a real answer ("no
+            // component, or no Nf byte"), never a "not read" marker -- it used to be both.
+            if (outComponents != nullptr) *outComponents = (segLen >= 8 && i + 9 < len) ? data[i + 9] : 0;
             outH = (static_cast<uint32_t>(data[i + 5]) << 8) | data[i + 6];
             outW = (static_cast<uint32_t>(data[i + 7]) << 8) | data[i + 8];
             return outW != 0 && outH != 0;
@@ -498,12 +502,14 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
                         // declared values and P above Bits Allocated does not fit the container: both are refused
                         // before DCMTK decodes. P above Bits Stored is accepted -- the standard does not say what
                         // "consistent" means there and refusing would turn away files with a wider P.
-                        // The component count is compared with SamplesPerPixel, which checkSupportedImageModule has
-                        // already pinned to 1. DCMTK does not do this comparison: a frame header declaring three
-                        // components under SamplesPerPixel 1 was read with rc=0 (QA-B-182e, measured). A JPEG
-                        // Lossless frame header has no sign flag, so there is nothing to compare PixelRepresentation
-                        // with; it is judged from the dataset alone.
-                        if (frameComponents != 0 && frameComponents != 1) {
+                        // The frame header was read (jpeg_frame_dimensions returned true), so its component count is
+                        // judged: exactly 1, the SamplesPerPixel that checkSupportedImageModule has already pinned.
+                        // QA-B-181h: 0, an absent Nf byte and 2 or more are all refused. A header that could not be read
+                        // at all gives no verdict here; DCMTK then decodes or fails on it. DCMTK does not make this
+                        // comparison itself: a frame header declaring three components under SamplesPerPixel 1 was read
+                        // with rc=0 (QA-B-182e, measured). A JPEG Lossless frame header has no sign flag, so there is
+                        // nothing to compare PixelRepresentation with; it is judged from the dataset alone.
+                        if (frameComponents != 1) {
                             return refuse(XPE_ERR_DICOM_INVALID, "JPEG Lossless stream carries %u components, the dataset says 1 (SamplesPerPixel)",
                                           static_cast<unsigned>(frameComponents));
                         }

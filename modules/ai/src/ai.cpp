@@ -27,6 +27,7 @@
 #include "xpe/ai/ai_worker_protocol.h"
 #include "xpe/ai/ai_onnx_session.h"
 #include "ai_worker_supervisor.h"
+#include "ai_finite.h"
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -1010,6 +1011,15 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
         AI_LOG_ERROR("bone_suppress: model returned %zu values, expected %zu",
                      out.value.size(), count);
         return XPE_ERR_PROCESSING_FAILED;
+    }
+
+    // QA-B-181h (Codex #60): a model result that is not finite is not a success. A finite input can
+    // still overflow (Y = 2X on a pixel above FLT_MAX / 2), and a model may emit NaN on its own. The
+    // judgment is made on the whole result BEFORE the copy, so a refusal leaves softTissueOut exactly as
+    // the caller passed it. XPE_ERR_INVALID_INPUT, as the other modules' refusals of this kind.
+    if (!xpe::ai::AllFinite(out.value.data(), count)) {
+        AI_LOG_ERROR("bone_suppress: the model result contains a non-finite value; output left unchanged");
+        return XPE_ERR_INVALID_INPUT;
     }
 
     std::memcpy(softTissueOut->data, out.value.data(), bytes);

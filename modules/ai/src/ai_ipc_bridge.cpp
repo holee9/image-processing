@@ -37,6 +37,7 @@
  */
 
 #include "ai_ipc_bridge.h"
+#include "ai_finite.h"
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -527,7 +528,16 @@ XpeErrorCode xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge,
         DropConnection(bridge);   // pixel count does not match what was sent
         return XPE_ERR_IO_FAILED;
     }
-    std::memcpy(pixels_out, reply.data() + sizeof(uint32_t) + reply_json, pixel_bytes);
+    // QA-B-181h: the bridge, not the worker, is where a non-finite result is refused. The worker is a
+    // separate process whose reply this side cannot vouch for, and this check also holds for any worker
+    // that answers success with such pixels (a model without the check, a fake one). The judgment comes
+    // BEFORE the copy, so a refusal leaves pixels_out untouched. The connection stays up: the frame was
+    // well formed, the pixels are what the model computed.
+    const uint8_t* reply_pixels = reply.data() + sizeof(uint32_t) + reply_json;
+    if (!xpe::ai::AllFinite(reply_pixels, count)) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+    std::memcpy(pixels_out, reply_pixels, pixel_bytes);
     return XPE_OK;
 }
 

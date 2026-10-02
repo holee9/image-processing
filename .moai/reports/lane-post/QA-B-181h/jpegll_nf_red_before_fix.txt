@@ -1,0 +1,69 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *ComponentCountMustBeExactly*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomReaderTest
+[ RUN      ] DicomReaderTest.Scope_JpegLosslessComponentCountMustBeExactlyOneAndPresent
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3803):: QA-B-181h probe: nf_1_control -> rc=0
+[2026-10-02 10:44:08.138] [warning] [DicomReader] JPEG-LL chooseRepresentation failed: Empty JPEG image (DNL not supported)
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3803):: QA-B-181h probe: nf_0 -> rc=-3
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3804): error: Expected equality of these values:
+  c.want
+    Which is: -13
+  r.read
+    Which is: -3
+nf_0
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3814): error: Value of: named
+  Actual: false
+Expected: true
+nf_0: the refusal names the component count
+
+[2026-10-02 10:44:08.155] [warning] [DicomReader] dicom read refused: JPEG Lossless stream carries 2 components, the dataset says 1 (SamplesPerPixel)
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3803):: QA-B-181h probe: nf_2 -> rc=-13
+[2026-10-02 10:44:08.163] [warning] [DicomReader] dicom read refused: JPEG Lossless stream carries 3 components, the dataset says 1 (SamplesPerPixel)
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3803):: QA-B-181h probe: nf_3 -> rc=-13
+[2026-10-02 10:44:08.172] [warning] [DicomReader] JPEG-LL chooseRepresentation failed: Bogus marker length
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3803):: QA-B-181h probe: nf_byte_beyond_the_segment -> rc=-3
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3804): error: Expected equality of these values:
+  c.want
+    Which is: -13
+  r.read
+    Which is: -3
+nf_byte_beyond_the_segment
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3814): error: Value of: named
+  Actual: false
+Expected: true
+nf_byte_beyond_the_segment: the refusal names the component count
+
+[2026-10-02 10:44:08.179] [warning] [DicomReader] JPEG-LL chooseRepresentation failed: Bogus marker length
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3803):: QA-B-181h probe: segment_length_zero -> rc=-3
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3804): error: Expected equality of these values:
+  c.want
+    Which is: -13
+  r.read
+    Which is: -3
+segment_length_zero
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(3814): error: Value of: named
+  Actual: false
+Expected: true
+segment_length_zero: the refusal names the component count
+
+[  FAILED  ] DicomReaderTest.Scope_JpegLosslessComponentCountMustBeExactlyOneAndPresent (62 ms)
+[----------] 1 test from DicomReaderTest (62 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (79 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.Scope_JpegLosslessComponentCountMustBeExactlyOneAndPresent
+
+ 1 FAILED TEST
