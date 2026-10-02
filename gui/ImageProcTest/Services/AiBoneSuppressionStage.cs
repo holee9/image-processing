@@ -486,6 +486,11 @@ internal sealed class AiStatusRefresher(
             return;
         }
 
+        // GUI-C-192g (Codex #68): the COMPLETION is a boundary for what is already on screen too, not only for the answer it brings. A read that
+        // comes back after the session was replaced finds the old answer still shown; it is taken back here, inside the callback, so a new read that
+        // then fails or hangs cannot leave it up until the next timer tick. (192f said "at every completion"; this was the path that was missing.)
+        WithdrawIfTheSessionMoved();
+
         if (generation != _generation || epoch != _epoch() || !ReferenceEquals(backend, currentBackend()))
         {
             Start(); // the answer is for something that no longer exists (GUI-C-192e: a session replaced by code that did not call Reset counts too): drop it and read what exists now

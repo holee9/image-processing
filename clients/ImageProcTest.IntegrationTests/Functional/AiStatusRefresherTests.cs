@@ -917,6 +917,91 @@ public sealed class AiStatusRefresherTests
         Assert.Equal(0, violations);
     }
 
+    // ---- GUI-C-192g (Codex #68): the completion callback is a boundary for what is already on screen ----------------------------------
+
+    /// <summary>
+    /// Neither <c>Request</c> nor the timer is called after the session moves: only an OLD read (started under the earlier session) comes back.
+    /// The shown "Disabled" or "Active" must be taken back INSIDE that completion, and the new read that follows (failing or hanging) must not
+    /// leave it up. Deterministic: the old read is held by an event and the only calls are the completion itself.
+    /// </summary>
+    [Theory]
+    [InlineData(true, "fails")]
+    [InlineData(true, "blocks")]
+    [InlineData(false, "fails")]
+    [InlineData(false, "blocks")]
+    public void TheCompletionOfAnOldRead_WithdrawsTheShownAnswerOfTheReplacedSession(bool disabled, string newRead)
+    {
+        var shownBefore = disabled ? Disabled : Active;
+        var rig = new Rig();
+        var oldRead = new ManualResetEventSlim();
+        var newReadMayEnd = new ManualResetEventSlim();
+        var calls = 0;
+        rig.Read = _ =>
+        {
+            switch (Interlocked.Increment(ref calls))
+            {
+                case 1:
+                    return shownBefore;
+                case 2:
+                    Assert.True(oldRead.Wait(Long));
+                    return shownBefore;                               // the old session's answer, late
+                default:
+                    if (newRead == "blocks")
+                    {
+                        newReadMayEnd.Wait(Long);
+                        return null;
+                    }
+
+                    throw new InvalidOperationException("the new session's read failed");
+            }
+        };
+        rig.Refresher.Request();
+        rig.PumpUntil(() => rig.Applied.Count == 1, "The first answer never reached the screen.");
+        Assert.Equal(shownBefore, rig.Applied[0]);
+
+        rig.Refresher.Request();                                    // the read that will come back late (started under the OLD session)
+        rig.PumpUntil(() => Volatile.Read(ref calls) == 2, "The second read never started.");
+        rig.Epoch++;                                                // the session is replaced; no Reset, no Request, no timer tick from here on
+        oldRead.Set();                                              // the old read comes back
+        rig.PumpUntil(() => rig.Applied.Count >= 2, "The completion did not withdraw the shown answer.");
+
+        Assert.Equal(AiWorkerStatus.Unknown, rig.Applied[1]);       // withdrawn, and by the completion itself (nothing else was called)
+        rig.PumpUntil(() => Volatile.Read(ref calls) >= 3, "The new session's read never started.");
+        rig.Pump();
+        Assert.Equal(2, rig.Applied.Count);                         // the old answer was dropped and nothing else was applied
+        Assert.DoesNotContain(rig.Applied.Skip(1), status => status.State is AiWorkerState.Disabled or AiWorkerState.Active);
+        newReadMayEnd.Set();
+    }
+
+    /// <summary>
+    /// The table of state transitions (192g): every path that can leave an answer of the OLD session on screen compares the session counter, or
+    /// is the path that rewrites the screen itself. A source reading: it sees this tree's text only, and fails when a path loses its comparison.
+    /// </summary>
+    [Fact]
+    public void EveryTransitionPath_ComparesTheSessionOrRewritesTheScreen()
+    {
+        var source = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/Services/AiBoneSuppressionStage.cs"));
+        string Body(string signature)
+        {
+            var at = source.IndexOf(signature, StringComparison.Ordinal);
+            Assert.True(at >= 0, $"{signature} was not found.");
+            var next = source.IndexOf("\n    public ", at + signature.Length, StringComparison.Ordinal);
+            var nextPrivate = source.IndexOf("\n    private ", at + signature.Length, StringComparison.Ordinal);
+            var end = new[] { next, nextPrivate }.Where(i => i > 0).DefaultIfEmpty(source.Length).Min();
+            return source[at..end];
+        }
+
+        // Request, CheckFreshness and the completion callback each compare the counter against what is shown.
+        Assert.Contains("WithdrawIfTheSessionMoved();", Body("public void Request()"), StringComparison.Ordinal);
+        Assert.Contains("WithdrawIfTheSessionMoved()", Body("public void CheckFreshness()"), StringComparison.Ordinal);
+        Assert.Contains("WithdrawIfTheSessionMoved();", Body("private void Complete("), StringComparison.Ordinal);
+        // Reset rewrites the screen itself (Unknown, stamped with the current counter); Show stamps every answer with the counter it belongs to.
+        Assert.Contains("Show(AiWorkerStatus.Unknown);", Body("public void Reset()"), StringComparison.Ordinal);
+        Assert.Contains("_shownEpoch = shownUnderEpoch ?? _epoch();", Body("private void Show("), StringComparison.Ordinal);
+        // The withdrawal itself skips only "nothing shown" and "same counter".
+        Assert.Contains("_shown == AiWorkerState.Unknown || _epoch() == _shownEpoch", Body("private bool WithdrawIfTheSessionMoved()"), StringComparison.Ordinal);
+    }
+
     // ---- GUI-C-192d: an AI that was asked for and never answers is told too ---------------------------------------------------------
 
     /// <summary>A rig whose first read blocks until released, then answers <paramref name="answer"/>. The read is in flight when this returns.</summary>
