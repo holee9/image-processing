@@ -53,7 +53,7 @@ public sealed class EnhanceBasicNativeTests(ITestOutputHelper output)
             // No DllImport resolver is installed here: the linked interop sources compile into THIS assembly, and a resolver on it would replace the default
             // probing every other native test in the assembly relies on (the first version did, and 34 of them went red). Instead both DLLs are loaded by full
             // path, so a later DllImport of the same file name is answered by the already-loaded module.
-            NativeLibrary.Load(Path.Combine(NativeDirectory!, "xpe_common.dll"));
+            ImageProcTest.IntegrationTests.Fixtures.SharedCommonModule.Load(NativeDirectory!);   // GUI-C-199: never a second copy of xpe_common.dll
             NativeLibrary.Load(Path.Combine(NativeDirectory!, "xpe_enhance_basic.dll"));
             _resolverInstalled = true;
         }
