@@ -153,11 +153,15 @@ typedef enum XpeAiMessageType {
 /** Flag: inference timed out; worker sends partial result. */
 #define XPE_AI_FLAG_TIMEOUT             0x00000002u
 
-/** Flag: low confidence result; caller should use fallback. */
-#define XPE_AI_FLAG_LOW_CONFIDENCE      0x00000004u
-
-/** Flag: fallback mode is active; worker skips retries. */
-#define XPE_AI_FLAG_FALLBACK_MODE       0x00000008u
+/*
+ * Bits 0x00000004 and 0x00000008 are RESERVED and NOT USED (QA-B-192). They used to be the macros
+ * XPE_AI_FLAG_LOW_CONFIDENCE ("caller should use fallback") and XPE_AI_FLAG_FALLBACK_MODE ("worker skips
+ * retries"): no sender set them and no receiver read them, and both described a design the protocol does not
+ * follow. A worker's reply carries what the model said in its JSON ("outcome", "body_part", "confidence" --
+ * BODYPART_RECOGNIZE_RESP above) and the HOST applies the threshold and fallback_mode, so no flag is needed to
+ * say "low confidence". The bits stay unassigned so that a future flag does not take a value an old document
+ * gave another meaning.
+ */
 
 /* ==========================================================================
  * Worker State Codes
