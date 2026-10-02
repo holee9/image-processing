@@ -156,7 +156,7 @@ linear VOI centre 32768 / width 65535, GSDF off). The log normalisation factor i
 this command only. Every stage must be applied: a stage the module refuses fails the command (nothing is compared and no DICOM file is written).
 
 **Pass criteria (all of them).** (1) both runs applied every stage; (2) the loaded raw frame is unchanged (SHA-256 before = after); (3) no NaN/Inf was
-counted in any float intermediate; (4) the two final 16-bit outputs are bit-identical; (5) the first output was written as DICOM, the module's own validator
+counted in any float intermediate (the preprocess and enhance_basic float images, and the display step's float image after the modality LUT and after the VOI LUT); (4) the two final 16-bit outputs are bit-identical; (5) the first output was written as DICOM, the module's own validator
 reported `valid:true`, and reading the file back returned the same pixels and the same body part, kVp and pixel pitch; (6) the evidence file
 `baseline.json` was written. Timing is measured and logged; the 3000 ms figure of the product requirements is **not** asserted.
 
@@ -166,7 +166,7 @@ the app and are written as 0 (unknown), never as invented values.
 **Evidence.** `evidence/<RunId>/baseline-<n>/` holds exactly two files: `baseline.dcm` and `baseline.json`. A run that is not a pass leaves no
 `baseline.dcm`: the file is written under a `.partial` name and renamed only after every check, including writing `baseline.json`, succeeded.
 `baseline.json` records `status`, `failureReason`, `startedAt`, `width`, `height`, `runsExecuted`, `inputPreserved`, `inputSha256Before/After`,
-`bitIdentical`, `difference` (first index, count, maximum), `nanInfCount`, `nonFiniteByStageRun1`, `outputSha256`, `stageHashesRun1/2` (SHA-256 of each
+`bitIdentical`, `difference` (first index, count, maximum), `nanInfCount`, `nonFiniteByStageRun1` (one entry per stage plus `display`), `outputSha256`, `stageHashesRun1/2` (SHA-256 of each
 stage's output), `stageTimes`, `runTotalsMs`, `totalMs`, `budgetMs` (3000, "measured against, not asserted"), `exposureIndex`, and `dicom` (`path`,
 `finalFileWritten`, `passed`, `valid`, `report`, `pixelsIdentical`, `metadataAgrees`, `summary`, `cleanupProblem`).
 
@@ -180,7 +180,7 @@ Apply request number, so an Apply in flight is neither superseded by it nor supe
 
 **Known limits.** The DICOM path is passed to the module as ANSI: a folder name with characters outside the system code page makes the write fail
 (`XPE_ERR_IO_FAILED`; measured with Thai text on a Korean Windows, code page 949; tracked as #239). The two runs share one process, so state that survives
-inside a process is not caught. The float intermediates of the display stage are not scanned for NaN/Inf. The time on a 3072x3072 image has not been
+inside a process is not caught. The display step's 16-bit output (after the presentation LUT) cannot hold a NaN/Inf, so only its float image before that LUT is scanned. The time on a 3072x3072 image has not been
 measured; on a synthetic 1024x1024 image the whole command took about 210-290 ms on the development machine.
 
 ## Automation E2E with actual detector raw data

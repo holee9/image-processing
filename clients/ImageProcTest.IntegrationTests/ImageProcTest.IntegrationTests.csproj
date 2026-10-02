@@ -108,6 +108,8 @@
     <Compile Include="..\..\gui\ImageProcTest\Services\BaselineExecution.cs" Link="Chain\Linked\BaselineExecution.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\BaselineAutomationRule.cs" Link="Chain\Linked\BaselineAutomationRule.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\BaselineStageAdapters.cs" Link="Chain\Linked\BaselineStageAdapters.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BaselineDisplayStage.cs" Link="Chain\Linked\BaselineDisplayStage.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiBaselineDisplayNative.cs" Link="Chain\Linked\GuiBaselineDisplayNative.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeDicomInterop.cs" Link="Chain\Linked\XpeDicomInterop.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiDicomNative.cs" Link="Chain\Linked\GuiDicomNative.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeDisplayInterop.cs" Link="Chain\Linked\XpeDisplayInterop.cs" />

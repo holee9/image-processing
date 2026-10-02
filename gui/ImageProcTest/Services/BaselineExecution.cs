@@ -105,7 +105,7 @@ public static class BaselineExecution
                     maxAbsDifference = verdict.Difference.MaxAbsDifference,
                 },
                 nanInfCount = verdict.NaNInfCount,
-                nonFiniteByStageRun1 = runs.Count == 0 ? [] : runs[0].Chain.Stages.Select(s => $"{s.StageId}={s.NonFiniteCount}").ToArray(),
+                nonFiniteByStageRun1 = runs.Count == 0 ? [] : runs[0].Chain.Stages.Select(s => $"{s.StageId}={s.NonFiniteCount}").Append($"display={runs[0].NaNInfCount}").ToArray(),
                 outputSha256 = verdict.OutputSha256,
                 stageHashesRun1 = verdict.StageHashesRun1,
                 stageHashesRun2 = verdict.StageHashesRun2,

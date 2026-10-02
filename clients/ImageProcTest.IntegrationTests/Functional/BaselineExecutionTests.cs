@@ -226,15 +226,18 @@ public sealed class BaselineExecutionTests : IDisposable
     [Fact]
     public void TheBaselineDisplay_ReadsNoUserDisplaySetting()
     {
-        var real = Read("gui/ImageProcTest/Services/RealXpeBackend.cs");
-        var display = Between(real, "private static ushort[] RunBaselineDisplay(", "    /// <summary>\n    /// #225 row 9 (GUI-C-196 M2)");
-        Assert.DoesNotContain("settings", display, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("BaselineParameters.VoiWindowCenter", display, StringComparison.Ordinal);
-        Assert.Contains("BaselineParameters.GsdfEnabled", display, StringComparison.Ordinal);
+        // M7: the display step moved into BaselineDisplayStage; it takes the pixels and a backend and NOTHING ELSE, so no user setting can reach it.
+        var stage = Read("gui/ImageProcTest/Services/BaselineDisplayStage.cs");
+        Assert.DoesNotContain("AppSettings", stage, StringComparison.Ordinal);
+        Assert.Contains("BaselineParameters.VoiWindowCenter", stage, StringComparison.Ordinal);
+        Assert.Contains("BaselineParameters.GsdfEnabled", stage, StringComparison.Ordinal);
+        Assert.Contains("public static BaselineDisplayResult Run(ushort[] input, int width, int height, IBaselineDisplayBackend backend)", stage, StringComparison.Ordinal);
 
-        var once = Between(real, "BaselineSingleRun IBaselineBackend.RunBaselineOnce(", "private static ushort[] RunBaselineDisplay(");
+        var real = Read("gui/ImageProcTest/Services/RealXpeBackend.cs");
+        var once = Between(real, "BaselineSingleRun IBaselineBackend.RunBaselineOnce(", "    /// <summary>\n    /// #225 row 9 (GUI-C-196 M2)");
         Assert.Contains("BaselineParameters.ForBaseline(settings)", once, StringComparison.Ordinal);
         Assert.Contains("ProcessingChainPlan.BuildBaselineStages()", once, StringComparison.Ordinal);
+        Assert.Contains("BaselineDisplayStage.ComposeRun(chain, rawFrame.Width, rawFrame.Height, new Native.NativeBaselineDisplayBackend())", once, StringComparison.Ordinal);
     }
 
     [Fact]

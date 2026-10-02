@@ -269,5 +269,143 @@ public sealed class BaselineReviewFixTests : IDisposable
         Assert.Contains("could not be removed", export.Summary, StringComparison.Ordinal);
     }
 
+    // ---- M7: the display step's float intermediates ----------------------------------------------------------------------------------------------
+
+    private sealed class FakeDisplayBackend(int poison, string? poisonAfter = null, int refuseCode = 0, string? refuseStep = null) : IBaselineDisplayBackend
+    {
+        public readonly int Poison = poison;
+        public readonly string? PoisonAfter = poisonAfter;
+        public readonly int RefuseCode = refuseCode;
+        public readonly string? RefuseStep = refuseStep;
+        public readonly List<string> Calls = [];
+        public int Opens;
+
+        public IBaselineDisplayImage Open(ushort[] input, int width, int height)
+        {
+            Opens++;
+            return new Image(this, input.Select(v => (float)v).ToArray());
+        }
+
+        private sealed class Image(FakeDisplayBackend owner, float[] data) : IBaselineDisplayImage
+        {
+            private int Step(string name, string call)
+            {
+                owner.Calls.Add(call);
+                if (owner.PoisonAfter == name)
+                {
+                    for (var i = 0; i < owner.Poison; i++)
+                    {
+                        data[i] = i % 2 == 0 ? float.NaN : float.NegativeInfinity;
+                    }
+                }
+
+                return owner.RefuseStep == name ? owner.RefuseCode : 0;
+            }
+
+            public int ApplyModality(float slope, float intercept) => Step("modality", $"modality({slope},{intercept})");
+
+            public int ApplyVoi(float center, float width) => Step("voi", $"voi({center},{width})");
+
+            public int ApplyPresentation(bool gsdfEnabled) => Step("presentation", $"presentation({gsdfEnabled})");
+
+            public float[] ReadFloats() => (float[])data.Clone();
+
+            public ushort[] ReadUInt16() => data.Select(v => (ushort)Math.Clamp(v, 0f, 65535f)).ToArray();
+
+            public void Dispose()
+            {
+            }
+        }
+    }
+
+    /// <summary>One baseline run the way RealXpeBackend composes it: the real chain runner and adapters, then BaselineDisplayStage.ComposeRun.</summary>
+    private static BaselineSingleRun RunOnceThroughTheDisplay(FakeDisplayBackend display)
+    {
+        var chain = ProcessingChainRunner.Run(Raw, ProcessingChainPlan.BuildBaselineStages(), (request, input) => request.StageId switch
+        {
+            StageIds.Preprocess => BaselineStageAdapters.FromPreprocess(true, input.Select(v => (ushort)(v + 1)).ToArray(), "Preprocess ok.", 0),
+            StageIds.EnhanceBasic => BaselineStageAdapters.FromEnhance(EnhanceBasicStage.Run(input, 3, 2, new PoisoningBackend(0))),
+            _ => new StageExecution(false, null, "not available"),
+        });
+        return BaselineDisplayStage.ComposeRun(chain, 3, 2, display);
+    }
+
+    [Fact]
+    public void TheDisplayStep_RunsTheThreeLutsInOrder_WithTheFixedParameters_AndCountsNothingWhenClean()
+    {
+        var display = new FakeDisplayBackend(poison: 0);
+        var run = RunOnceThroughTheDisplay(display);
+
+        Assert.Equal(
+            [
+                $"modality({BaselineParameters.ModalityRescaleSlope},{BaselineParameters.ModalityRescaleIntercept})",
+                $"voi({BaselineParameters.VoiWindowCenter},{BaselineParameters.VoiWindowWidth})",
+                $"presentation({BaselineParameters.GsdfEnabled})",
+            ],
+            display.Calls);
+        Assert.Equal(0, run.NaNInfCount);
+        Assert.Equal(Raw.Length, run.Output.Length);
+    }
+
+    [Theory]
+    [InlineData("modality", 2, 1)]       // a non-finite value after the modality LUT ends the step before the VOI LUT
+    [InlineData("voi", 3, 2)]            // after the VOI LUT: before the presentation LUT
+    public void ANonFiniteValueInTheDisplaysFloatImage_IsCounted_StopsTheStep_AndLeavesNoPixels(string after, int poison, int callsMade)
+    {
+        var display = new FakeDisplayBackend(poison, poisonAfter: after);
+        var run = RunOnceThroughTheDisplay(display);
+
+        Assert.Equal(poison, run.NaNInfCount);
+        Assert.Empty(run.Output);
+        Assert.Equal(callsMade, display.Calls.Count);   // nothing after the poisoned LUT ran on the poisoned image
+    }
+
+    [Fact]
+    public void ARefusedDisplayLut_Throws_NamingTheFunctionAndTheCode()
+    {
+        var display = new FakeDisplayBackend(0, refuseCode: -3, refuseStep: "voi");
+        var ex = Assert.Throws<InvalidOperationException>(() => RunOnceThroughTheDisplay(display));
+        Assert.Contains("xpe_apply_voi_lut", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("-3", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void WhenAChainStageWasRefused_TheDisplayIsNotRun()
+    {
+        var display = new FakeDisplayBackend(0);
+        var chain = ProcessingChainRunner.Run(Raw, ProcessingChainPlan.BuildBaselineStages(), (request, input) => new StageExecution(false, null, "refused"));
+
+        var run = BaselineDisplayStage.ComposeRun(chain, 3, 2, display);
+
+        Assert.Equal(0, display.Opens);
+        Assert.Empty(run.Output);
+    }
+
+    [Fact]
+    public void ANonFiniteValueInTheDisplayStep_ThroughTheRealComposition_FailsTheBaseline_WithTheCount_InTheEvidenceFile()
+    {
+        var dicom = new FileDicom();
+        var result = Execute(() => RunOnceThroughTheDisplay(new FakeDisplayBackend(poison: 2, poisonAfter: "voi")), dicom);
+
+        Assert.False(result.Passed);
+        Assert.Equal(4, result.Verdict.NaNInfCount);                  // 2 per run, two runs: the chain and the comparison were fine, only the display count fails it
+        Assert.Contains("4 non-finite", result.Status, StringComparison.Ordinal);
+        Assert.Equal(0, dicom.Writes);
+        var json = ReadJson(result);
+        Assert.Equal("Fail", json.GetProperty("status").GetString());
+        Assert.Equal(4, json.GetProperty("nanInfCount").GetInt64());
+        Assert.Contains("display=2", json.GetProperty("nonFiniteByStageRun1").EnumerateArray().Select(e => e.GetString()));
+    }
+
+    [Fact]
+    public void WithNoNonFiniteValueInTheDisplayStep_TheSameCompositionPasses()
+    {
+        var dicom = new FileDicom();
+        var result = Execute(() => RunOnceThroughTheDisplay(new FakeDisplayBackend(poison: 0)), dicom);
+
+        Assert.True(result.Passed, result.Status);
+        Assert.Contains("display=0", ReadJson(result).GetProperty("nonFiniteByStageRun1").EnumerateArray().Select(e => e.GetString()));
+    }
+
     private static string Read(string relative) => File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile(relative)).Replace("\r\n", "\n");
 }
