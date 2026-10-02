@@ -423,6 +423,7 @@ if(_XPE_AI_BUILD_TESTS)
         test_bodypart_inference.cpp
         test_bodypart_decision.cpp
         test_worker_bodypart.cpp
+        test_bodypart_worker_path.cpp
         # #130 (QA-B-168): SRS-ALERT-004 fires when DL was applied -- and, the
         # half that constrains the code, stays quiet on every path that
         # returned an image the model never touched

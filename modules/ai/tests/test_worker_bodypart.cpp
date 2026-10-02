@@ -335,8 +335,8 @@ TEST(WorkerBodyPartAgreement, TheRealWorkerAndTheInProcessPathSayTheSameThingFor
     const char* dirs[] = {"models_bodypart_a", "models_bodypart_b", "models_bodypart_dep", "models_bodypart_nhwc",
                           "models_bodypart_nonfinite", "models_bodypart_range_high", "models_bodypart_range_low",
                           "models_bodypart_labels_mismatch", "models_bodypart_no_labels", "models_bodypart_broken",
-                          "models_bodypart_rank2", "models_bodypart_dynamic", "models_missing"};
-    int ok = 0, nonFinite = 0, outOfRange = 0, unavailable = 0;
+                          "models_bodypart_rank2", "models_bodypart_dynamic", "models_bodypart_runfail", "models_missing"};
+    int ok = 0, nonFinite = 0, outOfRange = 0, unavailable = 0, error = 0;
     for (const char* d : dirs) {
         for (const Pix& image : images) {
             const std::string inProcess = DescribeInProcess(Dir(d), image);
@@ -346,6 +346,7 @@ TEST(WorkerBodyPartAgreement, TheRealWorkerAndTheInProcessPathSayTheSameThingFor
             else if (worker == "non_finite") ++nonFinite;
             else if (worker == "out_of_range") ++outOfRange;
             else if (worker == "unavailable") ++unavailable;
+            else if (worker == "error") ++error;
         }
     }
     // The control: the matrix really covered every kind of outcome, so "they agree" is not agreement on one kind.
@@ -353,6 +354,7 @@ TEST(WorkerBodyPartAgreement, TheRealWorkerAndTheInProcessPathSayTheSameThingFor
     EXPECT_GT(nonFinite, 0);
     EXPECT_GT(outOfRange, 0);
     EXPECT_GT(unavailable, 0);
+    EXPECT_GT(error, 0) << "a model that exists and fails to run is its own outcome";
 }
 
 TEST(WorkerBodyPartAgreement, TheWorkerResizesTheImageToTheModelsInputAndTheAnswerFollowsTheImage) {

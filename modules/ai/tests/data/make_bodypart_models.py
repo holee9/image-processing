@@ -25,8 +25,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from make_min_models import (  # noqa: E402
-    FLOAT, f_msg, f_str, f_varint, node, tensor_initializer,
+    FLOAT, _varint, f_bytes, f_msg, f_str, f_varint, node, tensor_initializer,
 )
+
+INT64 = 7  # TensorProto.DataType.INT64
 
 LABELS = ["CHEST", "ABDOMEN", "SPINE"]
 INF = float("inf")
@@ -47,16 +49,39 @@ def value_info_dims(name: str, dims) -> bytes:
     return f_str(1, name) + f_msg(2, f_msg(1, t))
 
 
-def model_bytes(in_dims, w, b) -> bytes:
-    """w: 16x3 nested list, b: 3 list. Output [1,3]."""
+def int64_initializer(name: str, dims, ints) -> bytes:
+    # TensorProto { repeated int64 dims = 1; int32 data_type = 2; repeated int64 int64_data = 7 [packed];
+    #               string name = 8; }
+    out = b""
+    for d in dims:
+        out += f_varint(1, d)
+    out += f_varint(2, INT64)
+    out += f_bytes(7, b"".join(_varint(v) for v in ints))
+    out += f_str(8, name)
+    return out
+
+
+def model_bytes(in_dims, w, b, fail_at_run=False) -> bytes:
+    """w: 16x3 nested list, b: 3 list. Output [1,3].
+
+    fail_at_run: append Gather(A, IDX) with IDX = [5] on a [1,3] tensor. The graph is valid, loads, has the same
+    input and output shapes and passes every check this module makes at load time -- and ONNX Runtime refuses to
+    run it (index 5 is out of bounds for an axis of length 1). It is the model that EXISTS and FAILS TO RUN.
+    """
     flat_w = [v for row in w for v in row]
     g = b""
     g += f_msg(1, node("Flatten", ["X"], ["F"], "flatten"))
     g += f_msg(1, node("MatMul", ["F", "W"], ["M"], "matmul"))
-    g += f_msg(1, node("Add", ["M", "B"], ["Y"], "add"))
+    if fail_at_run:
+        g += f_msg(1, node("Add", ["M", "B"], ["A"], "add"))
+        g += f_msg(1, node("Gather", ["A", "IDX"], ["Y"], "gather"))
+    else:
+        g += f_msg(1, node("Add", ["M", "B"], ["Y"], "add"))
     g += f_str(2, "xpe_bodypart_toy")
     g += f_msg(5, tensor_initializer("W", [16, 3], flat_w))
     g += f_msg(5, tensor_initializer("B", [3], b))
+    if fail_at_run:
+        g += f_msg(5, int64_initializer("IDX", [1], [5]))
     g += f_msg(11, value_info_dims("X", in_dims))
     g += f_msg(12, value_info_dims("Y", [1, 3]))
     out = b""
@@ -117,6 +142,8 @@ def main() -> int:
     write_dir(here, "models_bodypart_labels_mismatch", model_bytes(nchw, ZERO_W, [0.6, 0.3, 0.1]),
               labels=["CHEST", "ABDOMEN"])
     write_dir(here, "models_bodypart_no_labels", model_bytes(nchw, ZERO_W, [0.6, 0.3, 0.1]), with_sidecar=False)
+    # A model that loads, has the right shapes and labels, and fails when it is RUN (QA-B-191 M4c).
+    write_dir(here, "models_bodypart_runfail", model_bytes(nchw, ZERO_W, [0.6, 0.3, 0.1], fail_at_run=True))
     # A model file that is not a model.
     bd = here / "models_bodypart_broken"
     bd.mkdir(exist_ok=True)
