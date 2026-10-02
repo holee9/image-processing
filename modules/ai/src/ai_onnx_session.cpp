@@ -340,6 +340,15 @@ OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(
         result.message = std::string("ONNX Runtime rejected the model: ") + e.what();
         LOG_ERROR(result.message);
         return result;               // result.value stays null
+    } catch (const std::bad_alloc&) {
+        // QA-B-194 M5: a shortage of memory is not "the session could not be created" in the sense of a bad model or
+        // a refused provider, and the C ABI must say so (XPE_ERR_OUT_OF_MEMORY). The sweep found this one: the
+        // generic handler below turned a bad_alloc into kSessionCreationFailed, and xpe_bone_suppress into
+        // XPE_ERR_PROCESSING_FAILED. The message is a literal: building a longer one here could itself throw.
+        session->pimpl_->is_valid = false;
+        result.code = OnnxErrorCode::kOutOfMemory;
+        result.message = "out of memory while creating the session";
+        return result;
     } catch (const std::exception& e) {
         session->pimpl_->is_valid = false;
         result.code = OnnxErrorCode::kSessionCreationFailed;

@@ -46,6 +46,16 @@
  *   alert text ("AI model output was non-finite ..."): the input was fine and the model's output was not. These
  *   texts are a contract with the clients that display alerts.
  *
+ * OUT OF MEMORY (QA-B-194 M5). No exception crosses an exported function: an allocation failure inside the
+ * module is XPE_ERR_OUT_OF_MEMORY and leaves the module as it was (nothing leaked, nothing half-initialised, the
+ * module lock released). Swept by failing every allocation of one call in turn: xpe_ai_init, xpe_ai_get_model_card,
+ * xpe_bone_suppress and xpe_bodypart_recognize on a loaded model. THREE THINGS ARE NOT COVERED, and the first is
+ * not coverable from inside the module: (1) the JSON library (nlohmann 3.11.3) frees a non-empty parsed document
+ * with an allocation inside a noexcept destructor, so if memory runs out at that instant the process terminates --
+ * in xpe_ai_init given a config that has keys, in loading the body-part label file (first body-part call) and in
+ * reading a model's metadata file; (2) allocations made by ONNX Runtime's own allocator and (3) by xpe_common (the
+ * alert queue) are not failed by the sweeps.
+ *
  * @ingroup xpe_ai
  */
 #ifndef XPE_AI_API_H

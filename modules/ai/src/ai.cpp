@@ -1507,6 +1507,9 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
                 case xpe::ai::OnnxErrorCode::kModelLoadFailed:
                     AI_LOG_ERROR("bone_suppress: model unreadable: %s", created.message.c_str());
                     return XPE_ERR_CONFIG_INVALID;
+                case xpe::ai::OnnxErrorCode::kOutOfMemory:
+                    // QA-B-194 M5: a shortage of memory is named as one, not as a failed inference.
+                    return XPE_ERR_OUT_OF_MEMORY;
                 default:
                     AI_LOG_ERROR("bone_suppress: session failed: %s", created.message.c_str());
                     return XPE_ERR_PROCESSING_FAILED;

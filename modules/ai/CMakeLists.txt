@@ -614,6 +614,62 @@ if(_XPE_AI_BUILD_TESTS)
                 TIMEOUT 30
         )
 
+        # QA-B-194 M5 (#130): allocation-failure sweeps. A replaced operator new in an executable does not reach
+        # code in another module, and xpe_ai.dll binds to its own runtime's allocator -- so this target compiles the
+        # module's sources into itself instead of linking the DLL (the method of xpe_preprocess_oom_tests and
+        # xpe_common_oom_tests). It must build the sources EXACTLY as the DLL does: the same definitions (stub or
+        # ONNX, spdlog, nlohmann), the same include directories. It links xpe_common (the alert queue lives there,
+        # and its allocations are NOT swept) and NOT xpe_ai, whose exports it provides itself.
+        add_executable(xpe_ai_oom_tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_ai_oom_injection.cpp
+            ${XPE_AI_SOURCES}
+        )
+        target_include_directories(xpe_ai_oom_tests
+            PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+                    ${CMAKE_CURRENT_SOURCE_DIR}/src
+        )
+        target_compile_definitions(xpe_ai_oom_tests PRIVATE
+            XPE_DLL_EXPORT
+            XPE_AI_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
+        if(XPE_AI_STUB_BUILD OR NOT XPE_AI_USE_ONNXRUNTIME)
+            target_compile_definitions(xpe_ai_oom_tests PRIVATE XPE_AI_STUB_BUILD=1)
+        else()
+            target_compile_definitions(xpe_ai_oom_tests PRIVATE XPE_AI_USE_ONNXRUNTIME=1)
+            target_link_libraries(xpe_ai_oom_tests PRIVATE onnxruntime)
+        endif()
+        if(TARGET spdlog::spdlog)
+            target_link_libraries(xpe_ai_oom_tests PRIVATE spdlog::spdlog)
+            target_compile_definitions(xpe_ai_oom_tests PRIVATE XPE_AI_USE_SPDLOG=1)
+        endif()
+        if(TARGET nlohmann_json::nlohmann_json)
+            target_link_libraries(xpe_ai_oom_tests PRIVATE nlohmann_json::nlohmann_json)
+            target_compile_definitions(xpe_ai_oom_tests PRIVATE XPE_AI_USE_NLOHMANN_JSON=1)
+        endif()
+        target_link_libraries(xpe_ai_oom_tests PRIVATE xpe_common GTest::gtest_main)
+        if(WIN32)
+            target_link_libraries(xpe_ai_oom_tests PRIVATE psapi)
+        endif()
+        if(WIN32 AND XPE_AI_USE_ONNXRUNTIME AND NOT XPE_AI_STUB_BUILD AND DEFINED ONNXRUNTIME_ROOT)
+            add_custom_command(TARGET xpe_ai_oom_tests POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${ONNXRUNTIME_ROOT}/lib/onnxruntime.dll"
+                        "$<TARGET_FILE_DIR:xpe_ai_oom_tests>"
+                COMMENT "xpe_ai_oom_tests: staging onnxruntime.dll next to the test exe")
+        endif()
+        target_compile_features(xpe_ai_oom_tests PRIVATE cxx_std_17)
+        if(MSVC)
+            target_compile_options(xpe_ai_oom_tests PRIVATE /W4 /wd4996)
+        else()
+            target_compile_options(xpe_ai_oom_tests PRIVATE -Wall -Wextra -Wpedantic)
+        endif()
+        xpe_target_warnings_as_errors(xpe_ai_oom_tests)
+        gtest_discover_tests(xpe_ai_oom_tests
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            PROPERTIES
+                LABELS "unit\;ai\;SPEC-XPE-P3-AI"
+                TIMEOUT 120
+        )
+
         message(STATUS "xpe_ai tests configured")
     else()
         message(STATUS "xpe_ai tests SKIPPED (test sources not yet created)")

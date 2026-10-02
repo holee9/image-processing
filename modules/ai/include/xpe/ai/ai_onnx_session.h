@@ -68,6 +68,7 @@ enum class OnnxErrorCode {
     kEpNotAvailable = 3,        ///< Requested EP not available
     kSessionCreationFailed = 4, ///< Failed to create session
     kInvalidInput = 5,          ///< Invalid input data
+    kOutOfMemory = 6,           ///< An allocation failed while creating the session (QA-B-194 M5): a shortage, not a bad model
 };
 
 /**
