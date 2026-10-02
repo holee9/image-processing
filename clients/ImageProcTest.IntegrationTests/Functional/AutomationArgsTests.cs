@@ -209,11 +209,13 @@ public sealed class AutomationArgsTests
         var parsed = AutomationArgs.Parse(["--automation-fault", "ai-worker-silent"]);
 
         Assert.True(parsed.IsValid);
-        Assert.True(parsed.AiWorkerSilent);
+        Assert.Equal(1, parsed.AiWorkerSilentAfter);
+        Assert.Equal(0, AutomationArgs.Parse(["--automation-fault", "ai-worker-silent:0"]).AiWorkerSilentAfter);
+        Assert.False(AutomationArgs.Parse(["--automation-report", "r.json", "--automation-fault", "ai-worker-silent:1"]).IsValid);
         Assert.False(parsed.AiWorkerDisabled);
         Assert.Null(parsed.DisplayPipelineFailAfter);
-        Assert.False(AutomationArgs.Parse(["--automation-fault", "ai-worker-disabled"]).AiWorkerSilent);
-        Assert.False(AutomationArgs.Parse(["--automation-raw", "frame.raw"]).AiWorkerSilent);
+        Assert.Null(AutomationArgs.Parse(["--automation-fault", "ai-worker-disabled"]).AiWorkerSilentAfter);
+        Assert.Null(AutomationArgs.Parse(["--automation-raw", "frame.raw"]).AiWorkerSilentAfter);
         Assert.False(AutomationArgs.Parse(["--automation-report", "r.json", "--automation-fault", "Ai-Worker-Silent"]).IsValid);
     }
 

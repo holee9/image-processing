@@ -30,9 +30,11 @@ internal enum AiWorkerState
 
 /// <summary>
 /// The worker's state with the module's own counts. The ceiling is the module's, never a constant here. <see cref="Diagnostics"/> is
-/// for the automation tree only (GUI-C-189): what the native session saw, in one line, so a failed native E2E says WHY.
+/// for the automation tree only (GUI-C-189): what the native session saw, in one line, so a failed native E2E says WHY. <see cref="NeverConfirmed"/>
+/// (GUI-C-192d) is set on <see cref="AiWorkerState.Unconfirmed"/> only: true when no answer was ever applied since the start or the last restart,
+/// false when an "Active" that had been shown stopped being confirmed.
 /// </summary>
-internal sealed record AiWorkerStatus(AiWorkerState State, uint ConsecutiveFailures, uint Ceiling, string? Detail = null, string? Diagnostics = null)
+internal sealed record AiWorkerStatus(AiWorkerState State, uint ConsecutiveFailures, uint Ceiling, string? Detail = null, string? Diagnostics = null, bool NeverConfirmed = false)
 {
     public static readonly AiWorkerStatus Unknown = new(AiWorkerState.Unknown, 0, 0);
 }
@@ -198,9 +200,12 @@ internal sealed class AiStatusRefresher(
     /// </summary>
     public static readonly TimeSpan DefaultActiveFreshFor = TimeSpan.FromSeconds(15);
 
-    private readonly Func<TimeSpan> _clock = clock ?? (() => TimeSpan.FromTicks(System.Diagnostics.Stopwatch.GetTimestamp() * TimeSpan.TicksPerSecond / System.Diagnostics.Stopwatch.Frequency));
+    private static TimeSpan DefaultClock() => TimeSpan.FromTicks(System.Diagnostics.Stopwatch.GetTimestamp() * TimeSpan.TicksPerSecond / System.Diagnostics.Stopwatch.Frequency);
+
+    private readonly Func<TimeSpan> _clock = clock ?? DefaultClock;
     private readonly TimeSpan _activeFreshFor = activeFreshFor ?? DefaultActiveFreshFor;
-    private TimeSpan _lastAnswerAt;
+    private TimeSpan _lastAnswerAt = (clock ?? DefaultClock)();
+    private TimeSpan _readStartedAt;
     private AiWorkerState _shown = AiWorkerState.Unknown;
     private int _generation;
     private int _requests;
@@ -250,7 +255,30 @@ internal sealed class AiStatusRefresher(
     /// </summary>
     public void CheckFreshness()
     {
-        if (_stopped || _shown is not (AiWorkerState.Active or AiWorkerState.Unconfirmed))
+        if (_stopped)
+        {
+            return;
+        }
+
+        var bound = ((int)_activeFreshFor.TotalSeconds).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (_shown == AiWorkerState.Unknown)
+        {
+            // GUI-C-192d: no answer was ever shown since the start or the last Reset, and a read has been outstanding for the whole bound. A
+            // read that RETURNS is an answer, even "Unknown": an AI that was never requested answers at once (the tracker is not started,
+            // AiSessionTracker.OwnStatus, and QueryWorkerState gives that answer before the module is asked; a backend without an AI session
+            // answers Unknown in ReadAiWorkerStatus). Only a read that does not return — behind the session gate, held by an AI frame or a
+            // restart — is "never confirmed". The wait is counted from the later of the read's start and the last answer or Reset.
+            var waiting = _clock() - (_readStartedAt > _lastAnswerAt ? _readStartedAt : _lastAnswerAt);
+            if (_inFlight && waiting >= _activeFreshFor)
+            {
+                _neverConfirmedNotices++;
+                Show(new AiWorkerStatus(AiWorkerState.Unconfirmed, 0, 0, bound, NeverConfirmed: true));
+            }
+
+            return;
+        }
+
+        if (_shown is not (AiWorkerState.Active or AiWorkerState.Unconfirmed))
         {
             return;
         }
@@ -259,19 +287,53 @@ internal sealed class AiStatusRefresher(
         if (age >= _activeFreshFor && _shown == AiWorkerState.Active)
         {
             // The answer on screen outlived the bound although it is asked for again well inside it (below): reads are blocked or failing.
-            Show(new AiWorkerStatus(AiWorkerState.Unconfirmed, 0, 0, ((int)_activeFreshFor.TotalSeconds).ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            _withdrawnNotices++;
+            Show(new AiWorkerStatus(AiWorkerState.Unconfirmed, 0, 0, bound));
         }
         else if (!_inFlight && age >= _activeFreshFor / 3)
         {
+            _rereads++;
             Request();   // nothing is asking, so an old "Active" is just an unrefreshed one, not a silent worker: ask again (background; returns at once)
         }
     }
+
+    // ---- GUI-C-192d: what the refresher measured, for the native CI log (the automation diagnostics line carries it) -------------------
+
+    private int _reads;
+    private int _rereads;
+    private int _withdrawnNotices;
+    private int _neverConfirmedNotices;
+    private TimeSpan _maxReadTime;
+    private TimeSpan _maxAnswerGap;
+
+    /// <summary>
+    /// One line: how many reads ran, the slowest read (start to answer), the longest time a shown answer waited for the next one (the margin
+    /// to the freshness bound: a normal run that gets near it is the false alarm to look for), the periodic re-reads, and the notices raised.
+    /// </summary>
+    public string Measurements =>
+        $"refresher: reads={_reads} maxReadMs={(long)_maxReadTime.TotalMilliseconds} maxAnswerGapMs={(long)_maxAnswerGap.TotalMilliseconds} "
+        + $"boundMs={(long)_activeFreshFor.TotalMilliseconds} rereads={_rereads} noticesWithdrawn={_withdrawnNotices} noticesNeverConfirmed={_neverConfirmedNotices}";
+
+    /// <summary>Counts as changed whenever a number in <see cref="Measurements"/> may have moved; the view model re-publishes the line then.</summary>
+    public int MeasurementsVersion => _reads + _rereads + _withdrawnNotices + _neverConfirmedNotices;
 
     private void Show(AiWorkerStatus status)
     {
         _shown = status.State;
         _lastAnswerAt = _clock();
         apply(status);
+    }
+
+    /// <summary>An answer from a read reaches the screen: how long the screen had waited for it is a measurement.</summary>
+    private void ShowAnswer(AiWorkerStatus status)
+    {
+        var gap = _clock() - _lastAnswerAt;
+        if (gap > _maxAnswerGap)
+        {
+            _maxAnswerGap = gap;
+        }
+
+        Show(status);
     }
 
     /// <summary>The application is closing: nothing started or running now may touch the screen again.</summary>
@@ -284,6 +346,8 @@ internal sealed class AiStatusRefresher(
     private void Start()
     {
         _inFlight = true;
+        _reads++;
+        _readStartedAt = _clock();
         var generation = _generation;
         var requestNumber = _requests;
         var backend = currentBackend();
@@ -306,6 +370,12 @@ internal sealed class AiStatusRefresher(
     private void Complete(int generation, int requestNumber, object? backend, AiWorkerStatus? status)
     {
         _inFlight = false;
+        var took = _clock() - _readStartedAt;
+        if (took > _maxReadTime)
+        {
+            _maxReadTime = took;
+        }
+
         if (_stopped)
         {
             return;
@@ -320,7 +390,7 @@ internal sealed class AiStatusRefresher(
             // GUI-C-192b: the same session (generation and backend checked above) answered "switched off". The module keeps the worker off
             // until xpe_ai_shutdown/xpe_ai_init (ai.cpp, workerDisabled: set once at the failure ceiling, cleared only by a new state), so a
             // newer read cannot say otherwise: this answer cannot be stale in the unsafe direction. Show it now, then serve the newer request.
-            Show(status);
+            ShowAnswer(status);
             Start();
         }
         else if (requestNumber != _requests)
@@ -331,7 +401,7 @@ internal sealed class AiStatusRefresher(
         }
         else if (status is not null)
         {
-            Show(status);
+            ShowAnswer(status);
         }
     }
 }
@@ -576,7 +646,9 @@ internal static class AiBoneSuppressionStage
         AiWorkerState.InitFailed =>
             $"AI session is not running: {status.Detail} Images are returned unchanged. Use Restart AI to try again.",
         AiWorkerState.Unconfirmed =>
-            $"AI worker status unknown: it has not been confirmed for over {status.Detail} s. AI results may not be applied and images may be returned unchanged. Use Restart AI if this stays.",
+            status.NeverConfirmed
+                ? $"AI worker status unknown: it has not been confirmed since the AI session started or was restarted (over {status.Detail} s). AI results may not be applied and images may be returned unchanged. Use Restart AI if this stays."
+                : $"AI worker status unknown: it has not been confirmed for over {status.Detail} s. AI results may not be applied and images may be returned unchanged. Use Restart AI if this stays.",
         _ => string.Empty,
     };
 
@@ -592,7 +664,7 @@ internal static class AiBoneSuppressionStage
         AiWorkerState.Active or AiWorkerState.Disabled =>
             $"worker={status.State}; failures={status.ConsecutiveFailures}; ceiling={status.Ceiling}",
         AiWorkerState.InitFailed => $"worker=InitFailed; detail={status.Detail}",
-        AiWorkerState.Unconfirmed => $"worker=Unconfirmed; bound={status.Detail}s",
+        AiWorkerState.Unconfirmed => $"worker=Unconfirmed; bound={status.Detail}s; since={(status.NeverConfirmed ? "start" : "lastAnswer")}",
         _ => $"worker={status.State}",
     };
 

@@ -356,6 +356,7 @@ public sealed class BackendLifecycleTests
     {
         ["_backend"] = ("the field", null),
         ["MainWindowViewModel"] = ("construction", null),
+        ["AiWorkerDiagnostics"] = ("reads only the TYPE of the backend (is it an AI session) to decide whether to append the refresher's measurements; it neither calls it nor keeps it (GUI-C-192d)", null),
         ["CreateAiStatusRefresher"] = ("status read through AiStatusRefresher (its own generation and identity check)", null),
         ["TakeTicket"] = ("lifetime helper", null),
         ["TakeRequestTicket"] = ("lifetime helper (an Apply's ticket also carries a request number)", null),

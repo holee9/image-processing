@@ -23,31 +23,31 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
     private readonly int _failAfter;
     private readonly bool _displayFault;
     private readonly bool _aiWorkerDisabled;
-    private readonly bool _aiWorkerSilent;
+    private readonly int? _aiWorkerSilentAfter;
     private int _calls;
     private int _statusReads;
 
-    private FaultInjectingBackend(IXpeBackend inner, int? failAfter, bool aiWorkerDisabled, bool aiWorkerSilent)
+    private FaultInjectingBackend(IXpeBackend inner, int? failAfter, bool aiWorkerDisabled, int? aiWorkerSilentAfter)
     {
         _inner = inner;
         _displayFault = failAfter is not null;
         _failAfter = failAfter ?? int.MaxValue;
         _aiWorkerDisabled = aiWorkerDisabled;
-        _aiWorkerSilent = aiWorkerSilent;
+        _aiWorkerSilentAfter = aiWorkerSilentAfter;
     }
 
     /// <summary>The last wrapper created in this process, or null when fault injection is off.</summary>
     public static FaultInjectingBackend? Armed { get; private set; }
 
     /// <summary>Returns <paramref name="backend"/> itself unless a fault was requested.</summary>
-    public static IXpeBackend Wrap(IXpeBackend backend, int? failAfter, bool aiWorkerDisabled = false, bool aiWorkerSilent = false)
+    public static IXpeBackend Wrap(IXpeBackend backend, int? failAfter, bool aiWorkerDisabled = false, int? aiWorkerSilentAfter = null)
     {
-        if (failAfter is null && !aiWorkerDisabled && !aiWorkerSilent)
+        if (failAfter is null && !aiWorkerDisabled && aiWorkerSilentAfter is null)
         {
             return backend;
         }
 
-        Armed = new FaultInjectingBackend(backend, failAfter, aiWorkerDisabled, aiWorkerSilent);
+        Armed = new FaultInjectingBackend(backend, failAfter, aiWorkerDisabled, aiWorkerSilentAfter);
         return Armed;
     }
 
@@ -58,7 +58,7 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
             : Armed._displayFault
                 ? $"faultInjection={AutomationArgs.DisplayPipelineFaultPrefix}{Armed._failAfter} calls={Armed._calls}"
                     + (Armed._aiWorkerDisabled ? $" {AutomationArgs.AiWorkerDisabledFault}" : string.Empty)
-                : $"faultInjection={(Armed._aiWorkerSilent ? AutomationArgs.AiWorkerSilentFault : AutomationArgs.AiWorkerDisabledFault)} calls={Armed._calls}";
+                : $"faultInjection={(Armed._aiWorkerSilentAfter is 0 ? AutomationArgs.AiWorkerSilentFromStartFault : Armed._aiWorkerSilentAfter is not null ? AutomationArgs.AiWorkerSilentFault : AutomationArgs.AiWorkerDisabledFault)} calls={Armed._calls}";
 
     public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
     {
@@ -86,15 +86,15 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
 
     // GUI-C-185: the wrapper adds no fault of its own to the AI session; it passes the question to the backend it wraps.
     AiWorkerStatus IAiSessionBackend.GetAiWorkerStatus() =>
-        _aiWorkerSilent ? SilentWorkerStatus()
+        _aiWorkerSilentAfter is not null ? SilentWorkerStatus(_aiWorkerSilentAfter.Value)
         : _aiWorkerDisabled
             ? new AiWorkerStatus(AiWorkerState.Disabled, 3, 3)   // the injected fault: the worker is "switched off after 3 of 3"
             : _inner is IAiSessionBackend session ? session.GetAiWorkerStatus() : AiWorkerStatus.Unknown;
 
-    /// <summary>GUI-C-192c: the first read answers "active, 0 of 3"; every later one waits (a worker that stopped replying) until the process ends.</summary>
-    private AiWorkerStatus SilentWorkerStatus()
+    /// <summary>GUI-C-192c: the first <c>answers</c> reads answer "active, 0 of 3" (none for ai-worker-silent:0); every later one waits (a worker that stopped replying) until the process ends.</summary>
+    private AiWorkerStatus SilentWorkerStatus(int answers)
     {
-        if (Interlocked.Increment(ref _statusReads) == 1)
+        if (Interlocked.Increment(ref _statusReads) <= answers)
         {
             return new AiWorkerStatus(AiWorkerState.Active, 0, 3);
         }

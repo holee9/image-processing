@@ -557,7 +557,10 @@ public sealed class MainWindowViewModel : ObservableObject
     /// of each read), for the automation tree's item status on the AI checkbox. Empty without a native session. It is not shown to the
     /// operator (GUI-C-189).
     /// </summary>
-    public string AiWorkerDiagnostics => _aiWorkerStatus.Diagnostics ?? string.Empty;
+    public string AiWorkerDiagnostics =>
+        _backend is IAiSessionBackend && _aiStatusRefresher is { } refresher
+            ? string.Join(" | ", new[] { _aiWorkerStatus.Diagnostics, refresher.Measurements }.Where(part => !string.IsNullOrEmpty(part)))   // GUI-C-192d
+            : _aiWorkerStatus.Diagnostics ?? string.Empty;
 
     /// <summary>GUI-C-185: shutdown then init under the one lock; the mark goes when the module reports a new session.</summary>
     public RelayCommand RestartAiSessionCommand { get; }
@@ -581,8 +584,19 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         var refresher = new AiStatusRefresher(() => _backend, ReadAiWorkerStatus, ApplyAiWorkerStatus, work => Task.Run(work), PostToUi);
         // GUI-C-192b: an "Active" nothing has refreshed for the freshness bound is withdrawn; the check is cheap, so it runs every second.
+        var measured = 0;
         _aiFreshnessTimer = new System.Windows.Threading.DispatcherTimer(
-            TimeSpan.FromSeconds(1), System.Windows.Threading.DispatcherPriority.Background, (_, _) => refresher.CheckFreshness(), _uiDispatcher);
+            TimeSpan.FromSeconds(1), System.Windows.Threading.DispatcherPriority.Background,
+            (_, _) =>
+            {
+                refresher.CheckFreshness();
+                if (refresher.MeasurementsVersion != measured)
+                {
+                    measured = refresher.MeasurementsVersion;
+                    OnPropertyChanged(nameof(AiWorkerDiagnostics));   // GUI-C-192d: the native CI log reads the measurements from there
+                }
+            },
+            _uiDispatcher);
         _aiFreshnessTimer.Start();
         return refresher;
     }
@@ -920,7 +934,7 @@ public sealed class MainWindowViewModel : ObservableObject
         Log($"FAULT INJECTION ARMED: {armed}."
             + (armed.Contains(AutomationArgs.DisplayPipelineFaultPrefix, StringComparison.Ordinal) ? " Display pipeline calls past the limit throw on purpose." : string.Empty)
             + (armed.Contains(AutomationArgs.AiWorkerDisabledFault, StringComparison.Ordinal) ? " The AI worker status read answers 'switched off, 3 of 3' whatever the module says." : string.Empty)
-            + (armed.Contains(AutomationArgs.AiWorkerSilentFault, StringComparison.Ordinal) ? " The AI worker status read answers 'active' once and never again." : string.Empty));
+            + (armed.Contains(AutomationArgs.AiWorkerSilentFault, StringComparison.Ordinal) ? " The AI worker status read stops answering after the answers the fault allows (one, or none with :0)." : string.Empty));
         _faultInjectionAnnounced = true;
         OnPropertyChanged(nameof(FaultInjectionStatus));
         OnPropertyChanged(nameof(WindowTitle));

@@ -29,7 +29,7 @@ public sealed record AutomationArgs(
 #if XPE_TEST_FAULTS
     , int? DisplayPipelineFailAfter = null,
     bool AiWorkerDisabled = false,
-    bool AiWorkerSilent = false
+    int? AiWorkerSilentAfter = null
 #endif
     )
 {
@@ -57,6 +57,9 @@ public sealed record AutomationArgs(
     /// the others: command line only, inert without the argument, loud when armed.
     /// </summary>
     public const string AiWorkerSilentFault = "ai-worker-silent";
+
+    /// <summary>GUI-C-192d: <c>ai-worker-silent:0</c> is silent from the very first read (no answer is ever given), the never-confirmed case.</summary>
+    public const string AiWorkerSilentFromStartFault = "ai-worker-silent:0";
 #endif
 
     /// <summary>
@@ -101,7 +104,7 @@ public sealed record AutomationArgs(
 #if XPE_TEST_FAULTS
         int? displayPipelineFailAfter = null;
         var aiWorkerDisabled = false;
-        var aiWorkerSilent = false;
+        int? aiWorkerSilentAfter = null;
 #endif
 
         for (var i = 0; i < args.Length; i++)
@@ -194,7 +197,11 @@ public sealed record AutomationArgs(
             }
             else if (Is(switchName, "--automation-fault") && string.Equals(value, AiWorkerSilentFault, StringComparison.Ordinal))
             {
-                aiWorkerSilent = true;
+                aiWorkerSilentAfter = 1;
+            }
+            else if (Is(switchName, "--automation-fault") && string.Equals(value, AiWorkerSilentFromStartFault, StringComparison.Ordinal))
+            {
+                aiWorkerSilentAfter = 0;
             }
             else if (Is(switchName, "--automation-fault"))
             {
@@ -203,7 +210,7 @@ public sealed record AutomationArgs(
                         System.Globalization.CultureInfo.InvariantCulture, out var failAfter))
                 {
                     error ??= $"--automation-fault '{value}' is not a recognised fault " +
-                              $"(expected {DisplayPipelineFaultPrefix}<non-negative integer>, {AiWorkerDisabledFault} or {AiWorkerSilentFault}).";
+                              $"(expected {DisplayPipelineFaultPrefix}<non-negative integer>, {AiWorkerDisabledFault}, {AiWorkerSilentFault} or {AiWorkerSilentFromStartFault}).";
                     continue;
                 }
 
@@ -227,7 +234,7 @@ public sealed record AutomationArgs(
             ? new AutomationArgs(rawPath, reportPath, backendMode, calibrationDirectory, rawWidth, rawHeight, Error: null,
                 settingsPath, renderDumpPath, selfCheckExePath
 #if XPE_TEST_FAULTS
-                , displayPipelineFailAfter, aiWorkerDisabled, aiWorkerSilent
+                , displayPipelineFailAfter, aiWorkerDisabled, aiWorkerSilentAfter
 #endif
                 )
             : new AutomationArgs(

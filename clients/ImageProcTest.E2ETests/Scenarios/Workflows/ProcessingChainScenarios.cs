@@ -508,6 +508,22 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             var answer = StatusText(window);
             var after = AiStatusSummary(window);
             output.WriteLine($"C09 after restart: status bar='{answer}'; state='{after}'");
+            // GUI-C-192d: the numbers the next native CI log is read for (nothing here is asserted). The status refresher's own measurements ride
+            // in the diagnostics line: the slowest status read, the longest a shown answer waited (against boundMs: a run that gets near it is the
+            // false alarm to look for), the 5 s re-reads, and how many notices were raised. Real AI frames ran in this scenario.
+            string measured;
+            try
+            {
+                var diagnostics = AiDiagnostics(window);
+                var at = diagnostics.IndexOf("refresher:", StringComparison.Ordinal);
+                measured = at >= 0 ? diagnostics[at..] : "(no refresher measurements in the diagnostics line: '" + diagnostics + "')";
+            }
+            catch (Exception ex)
+            {
+                measured = $"(unreadable: {ex.GetType().Name}: {ex.Message})";
+            }
+
+            output.WriteLine($"C09 status-refresher measurements: {measured}");
             Assert.Contains("AI session restarted", answer, StringComparison.Ordinal);
             Assert.Matches(@"^worker=Active; failures=0; ceiling=\d+$", after);
             bodyCompleted = true;

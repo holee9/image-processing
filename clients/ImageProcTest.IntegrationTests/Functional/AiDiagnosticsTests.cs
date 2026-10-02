@@ -54,7 +54,8 @@ public sealed class AiDiagnosticsTests
         Assert.DoesNotContain("Text=\"{Binding AiWorkerDiagnostics}\"", xaml, StringComparison.Ordinal);   // not a visible element
 
         var viewModel = Source("gui/ImageProcTest/ViewModels/MainWindowViewModel.cs");
-        Assert.Contains("public string AiWorkerDiagnostics => _aiWorkerStatus.Diagnostics ?? string.Empty;", viewModel, StringComparison.Ordinal);
+        Assert.Contains("public string AiWorkerDiagnostics =>", viewModel, StringComparison.Ordinal);
+        Assert.Contains(": _aiWorkerStatus.Diagnostics ?? string.Empty;", viewModel, StringComparison.Ordinal);   // without an AI session: the status's own diagnostics, as before (GUI-C-192d)
         Assert.Contains("OnPropertyChanged(nameof(AiWorkerDiagnostics));", viewModel, StringComparison.Ordinal);
     }
 

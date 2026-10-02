@@ -64,5 +64,13 @@ public sealed class AiWorkerUnconfirmedAtMinimumWidthScenarios(AiWorkerSilentApp
             $"At the window's minimum width ({minimum.Final} px) the notice is not in the automation tree: banner {(bannerAtMinimum ? "found" : "NOT found")}, " +
             $"Restart AI {(restartAtMinimum ? "found" : "NOT found")}. {minimum.Describe()}");
         Assert.Contains("status unknown", Banner()!.Name, StringComparison.Ordinal);
+
+        // GUI-C-192d: the measurements the native CI log reads travel in the AI checkbox's item status (the diagnostics line). Read here on the
+        // fault backend so the wiring is observed on every run, not only on the native one: the notice just raised is counted in it.
+        WorkbenchObservation.OpenParameters(window);
+        var diagnostics = window.FindFirstDescendant(cf => cf.ByAutomationId("AiBoneSuppressionInChainCheckBox"))?.Properties.ItemStatus.ValueOrDefault ?? string.Empty;
+        output.WriteLine($"M02 diagnostics line: '{diagnostics}'");
+        Assert.Contains("refresher: reads=", diagnostics, StringComparison.Ordinal);
+        Assert.Contains("noticesWithdrawn=1", diagnostics, StringComparison.Ordinal);
     }
 }

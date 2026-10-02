@@ -547,7 +547,7 @@ public sealed class AiBoneSuppressionStageTests
         Assert.Contains("status unknown", text, StringComparison.Ordinal);
         Assert.Contains("15 s", text, StringComparison.Ordinal);
         Assert.Contains("Restart AI", text, StringComparison.Ordinal);
-        Assert.Equal("worker=Unconfirmed; bound=15s", AiBoneSuppressionStage.DescribeStatus(unconfirmed));
+        Assert.Equal("worker=Unconfirmed; bound=15s; since=lastAnswer", AiBoneSuppressionStage.DescribeStatus(unconfirmed));
 
         Assert.False(AiBoneSuppressionStage.ShowsMark(AiWorkerStatus.Unknown));   // the normal Unknown stays quiet
         Assert.False(AiBoneSuppressionStage.ShowsMark(new AiWorkerStatus(AiWorkerState.Active, 0, 3)));

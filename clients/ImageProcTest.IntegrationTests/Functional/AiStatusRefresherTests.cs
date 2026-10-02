@@ -610,6 +610,107 @@ public sealed class AiStatusRefresherTests
         Assert.Equal(AiWorkerStatus.Unknown, rig.Applied[^1]);
     }
 
+    // ---- GUI-C-192d: an AI that was asked for and never answers is told too ---------------------------------------------------------
+
+    /// <summary>A rig whose first read blocks until released, then answers <paramref name="answer"/>. The read is in flight when this returns.</summary>
+    private static (Rig Rig, ManualResetEventSlim Release) BlockedFirstRead(AiWorkerStatus answer)
+    {
+        var rig = new Rig();
+        var release = new ManualResetEventSlim();
+        rig.Read = _ =>
+        {
+            Assert.True(release.Wait(Long));
+            return answer;
+        };
+        rig.Refresher.Request();
+        rig.PumpUntil(() => Volatile.Read(ref rig.Reads) == 1, "The first read never started.");
+        return (rig, release);
+    }
+
+    /// <summary>The read of an AI session that was asked for and sits behind a silent worker: no notice before the bound, one at it, and it goes when the read returns.</summary>
+    [Fact]
+    public void AReadThatNeverReturnsFromTheStart_RaisesTheNeverConfirmedNotice_AtTheBound()
+    {
+        var (rig, release) = BlockedFirstRead(AiWorkerStatus.Unknown);
+
+        rig.Now = AiStatusRefresher.DefaultActiveFreshFor - TimeSpan.FromTicks(1);
+        rig.Refresher.CheckFreshness();
+        Assert.Empty(rig.Applied);                       // just under the bound: nothing
+
+        rig.Now = AiStatusRefresher.DefaultActiveFreshFor;
+        rig.Refresher.CheckFreshness();
+        Assert.Single(rig.Applied);
+        Assert.Equal(AiWorkerState.Unconfirmed, rig.Applied[0].State);
+        Assert.True(rig.Applied[0].NeverConfirmed);      // the notice says "since the start", not "since the last answer"
+        Assert.Contains("since the AI session started", AiBoneSuppressionStage.BannerFor(rig.Applied[0]), StringComparison.Ordinal);
+
+        rig.Refresher.CheckFreshness();
+        Assert.Single(rig.Applied);                      // raised once
+
+        release.Set();                                   // the read returns "Unknown": the module has no session after all
+        rig.PumpUntil(() => rig.Applied.Count == 2, "The returning read did not clear the notice.");
+        Assert.Equal(AiWorkerStatus.Unknown, rig.Applied[1]);
+    }
+
+    /// <summary>A first read that answers inside the bound never raises a notice, however the answer reads.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AFirstReadThatAnswersInsideTheBound_RaisesNoNotice(bool active)
+    {
+        var (rig, release) = BlockedFirstRead(active ? Active : AiWorkerStatus.Unknown);
+
+        rig.Now = AiStatusRefresher.DefaultActiveFreshFor - TimeSpan.FromTicks(1);
+        rig.Refresher.CheckFreshness();
+        release.Set();
+        rig.PumpUntil(() => rig.Applied.Count == 1, "The first read never reached the screen.");
+        rig.Now = TimeSpan.FromHours(1);
+        rig.Refresher.CheckFreshness();
+
+        Assert.DoesNotContain(rig.Applied, status => status.State == AiWorkerState.Unconfirmed && status.NeverConfirmed);
+    }
+
+    /// <summary>After a restart or a backend swap the wait for a first answer starts again: the Reset is the new start.</summary>
+    [Fact]
+    public void AfterAReset_TheNeverConfirmedWait_CountsFromTheReset()
+    {
+        var (rig, release) = BlockedFirstRead(Active);   // an old read still waiting behind the gate
+
+        rig.Now = TimeSpan.FromSeconds(100);
+        rig.Refresher.Reset();                           // the session is replaced; the old read is still blocked
+        rig.Now = TimeSpan.FromSeconds(100) + AiStatusRefresher.DefaultActiveFreshFor - TimeSpan.FromTicks(1);
+        rig.Refresher.CheckFreshness();
+        Assert.DoesNotContain(rig.Applied, status => status.State == AiWorkerState.Unconfirmed);   // counted from the Reset, not from the old read
+
+        rig.Now = TimeSpan.FromSeconds(100) + AiStatusRefresher.DefaultActiveFreshFor;
+        rig.Refresher.CheckFreshness();
+        Assert.Equal(AiWorkerState.Unconfirmed, rig.Applied[^1].State);
+        Assert.True(rig.Applied[^1].NeverConfirmed);
+        release.Set();
+    }
+
+    /// <summary>The measurements the native CI log carries: the slowest read and the longest wait of a shown answer, in milliseconds, and the notices.</summary>
+    [Fact]
+    public void TheMeasurements_NameTheSlowestRead_TheLongestAnswerGap_AndTheNotices()
+    {
+        var (rig, release) = BlockedFirstRead(Active);
+        rig.Now = TimeSpan.FromMilliseconds(7000);
+        release.Set();
+        rig.PumpUntil(() => rig.Applied.Count == 1, "The read never reached the screen.");
+
+        var line = rig.Refresher.Measurements;
+        Assert.Contains("reads=1", line, StringComparison.Ordinal);
+        Assert.Contains("maxReadMs=7000", line, StringComparison.Ordinal);
+        Assert.Contains("maxAnswerGapMs=7000", line, StringComparison.Ordinal);
+        Assert.Contains("boundMs=15000", line, StringComparison.Ordinal);
+        Assert.Contains("noticesWithdrawn=0 noticesNeverConfirmed=0", line, StringComparison.Ordinal);
+
+        rig.Read = _ => null;                            // reads now fail; the shown "Active" ages out
+        rig.Now += AiStatusRefresher.DefaultActiveFreshFor;
+        rig.Refresher.CheckFreshness();
+        Assert.Contains("noticesWithdrawn=1", rig.Refresher.Measurements, StringComparison.Ordinal);
+    }
+
     /// <summary>A switched-off worker stays switched off until a restart, so the bound never takes a "Disabled" back.</summary>
     [Fact]
     public void ADisabled_IsNeverWithdrawnByTheBound()
