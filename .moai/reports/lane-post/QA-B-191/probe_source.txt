@@ -1,0 +1,102 @@
+// QA-B-191 M1 independent probe (kept as .txt; the build step copies it to build/g191_probe.cpp).
+// Does ONNX Runtime read the hand-written Flatten/MatMul/Add models and give the numbers the generator
+// intended?  Verified BEFORE the module is touched, so a protobuf mistake is not debugged inside the module
+// build (the same rule QA-B-160 followed). Exit code 0 only if every expectation held.
+#include <onnxruntime_cxx_api.h>
+
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <string>
+#include <vector>
+
+static int g_bad = 0;
+
+static std::vector<float> Run(const std::string& path, std::vector<int64_t> shape, const std::vector<float>& x,
+                              std::string* err) {
+    try {
+        Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "probe");
+        Ort::SessionOptions so;
+        so.SetIntraOpNumThreads(1);
+        std::wstring wp(path.begin(), path.end());
+        Ort::Session s(env, wp.c_str(), so);
+        Ort::AllocatorWithDefaultOptions alloc;
+        auto inName = s.GetInputNameAllocated(0, alloc);
+        auto outName = s.GetOutputNameAllocated(0, alloc);
+        auto mem = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+        std::vector<float> copy(x);
+        Ort::Value in = Ort::Value::CreateTensor<float>(mem, copy.data(), copy.size(), shape.data(), shape.size());
+        const char* ins[] = {inName.get()};
+        const char* outs[] = {outName.get()};
+        auto r = s.Run(Ort::RunOptions{nullptr}, ins, &in, 1, outs, 1);
+        const auto info = r[0].GetTensorTypeAndShapeInfo();
+        const float* y = r[0].GetTensorData<float>();
+        return std::vector<float>(y, y + info.GetElementCount());
+    } catch (const Ort::Exception& e) {
+        *err = e.what();
+        return {};
+    }
+}
+
+static void Expect(const char* what, const std::vector<float>& got, const std::vector<float>& want) {
+    bool ok = got.size() == want.size();
+    for (size_t i = 0; ok && i < got.size(); ++i) {
+        const bool bothNan = std::isnan(got[i]) && std::isnan(want[i]);
+        if (!bothNan && got[i] != want[i]) ok = false;   // exact: every value here is exactly representable
+    }
+    std::printf("%-44s %s  got:", what, ok ? "OK  " : "FAIL");
+    for (float v : got) std::printf(" %g", v);
+    std::printf("\n");
+    if (!ok) ++g_bad;
+}
+
+int main() {
+    std::printf("ORT version: %s\n", Ort::GetVersionString().c_str());
+    const std::string D = "modules/ai/tests/data/";
+    std::string err;
+    std::vector<float> topBright(16, 0.0f), bottomBright(16, 0.0f), zeros(16, 0.0f), ones(16, 1.0f);
+    for (int i = 0; i < 8; ++i) topBright[i] = 0.75f;
+    for (int i = 8; i < 16; ++i) bottomBright[i] = 0.75f;
+    const std::vector<int64_t> nchw{1, 1, 4, 4};
+
+    // constant models: the answer must not depend on the image
+    Expect("a / zeros   -> 0.6 0.3 0.1", Run(D + "models_bodypart_a/bodypart.onnx", nchw, zeros, &err), {0.6f, 0.3f, 0.1f});
+    Expect("a / ones    -> 0.6 0.3 0.1", Run(D + "models_bodypart_a/bodypart.onnx", nchw, ones, &err), {0.6f, 0.3f, 0.1f});
+    Expect("b / zeros   -> 0.1 0.3 0.6", Run(D + "models_bodypart_b/bodypart.onnx", nchw, zeros, &err), {0.1f, 0.3f, 0.6f});
+    // image-dependent model: top-bright and bottom-bright give DIFFERENT outputs
+    Expect("dep / top    -> 0.75 0 0", Run(D + "models_bodypart_dep/bodypart.onnx", nchw, topBright, &err), {0.75f, 0.0f, 0.0f});
+    Expect("dep / bottom -> 0 0.75 0", Run(D + "models_bodypart_dep/bodypart.onnx", nchw, bottomBright, &err), {0.0f, 0.75f, 0.0f});
+    Expect("dep / ones   -> 1 1 0", Run(D + "models_bodypart_dep/bodypart.onnx", nchw, ones, &err), {1.0f, 1.0f, 0.0f});
+    // NHWC twin gives the same numbers for the same 16 values
+    Expect("nhwc / top   -> 0.75 0 0", Run(D + "models_bodypart_nhwc/bodypart.onnx", {1, 4, 4, 1}, topBright, &err), {0.75f, 0.0f, 0.0f});
+    // rank-2 input model (the module must refuse its shape; ORT itself runs it)
+    Expect("rank2 / top  -> 0.75 0 0", Run(D + "models_bodypart_rank2/bodypart.onnx", {1, 16}, topBright, &err), {0.75f, 0.0f, 0.0f});
+    // dynamic input dims: ORT runs it for a 4x4 image
+    Expect("dynamic / top-> 0.75 0 0", Run(D + "models_bodypart_dynamic/bodypart.onnx", nchw, topBright, &err), {0.75f, 0.0f, 0.0f});
+    // outputs that are not valid probabilities
+    Expect("range_high   -> 1.5 0 0", Run(D + "models_bodypart_range_high/bodypart.onnx", nchw, zeros, &err), {1.5f, 0.0f, 0.0f});
+    Expect("range_low    -> 0.5 0.2 -0.1", Run(D + "models_bodypart_range_low/bodypart.onnx", nchw, zeros, &err), {0.5f, 0.2f, -0.1f});
+    {
+        auto y = Run(D + "models_bodypart_nonfinite/bodypart.onnx", nchw, ones, &err);
+        bool nonfinite = !y.empty() && !std::isfinite(y[0]);
+        std::printf("%-44s %s  got:", "nonfinite / ones -> first value inf or NaN", nonfinite ? "OK  " : "FAIL");
+        for (float v : y) std::printf(" %g", v);
+        std::printf("\n");
+        if (!nonfinite) ++g_bad;
+        auto z = Run(D + "models_bodypart_nonfinite/bodypart.onnx", nchw, zeros, &err);
+        nonfinite = !z.empty() && !std::isfinite(z[0]);
+        std::printf("%-44s %s  got:", "nonfinite / zeros -> first value NaN", nonfinite ? "OK  " : "FAIL");
+        for (float v : z) std::printf(" %g", v);
+        std::printf("\n");
+        if (!nonfinite) ++g_bad;
+    }
+    // control: the garbage file must be REJECTED, or "OK" above proves nothing about the loader
+    err.clear();
+    auto none = Run(D + "models_bodypart_broken/bodypart.onnx", nchw, zeros, &err);
+    const bool rejected = none.empty() && !err.empty();
+    std::printf("%-44s %s  (%s)\n", "broken file is rejected (control)", rejected ? "OK  " : "FAIL", err.c_str());
+    if (!rejected) ++g_bad;
+
+    std::printf("===PROBE_BAD=%d===\n", g_bad);
+    return g_bad == 0 ? 0 : 1;
+}

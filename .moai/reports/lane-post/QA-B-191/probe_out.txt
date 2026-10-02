@@ -1,0 +1,16 @@
+ORT version: 1.30.0
+a / zeros   -> 0.6 0.3 0.1                   OK    got: 0.6 0.3 0.1
+a / ones    -> 0.6 0.3 0.1                   OK    got: 0.6 0.3 0.1
+b / zeros   -> 0.1 0.3 0.6                   OK    got: 0.1 0.3 0.6
+dep / top    -> 0.75 0 0                     OK    got: 0.75 0 0
+dep / bottom -> 0 0.75 0                     OK    got: 0 0.75 0
+dep / ones   -> 1 1 0                        OK    got: 1 1 0
+nhwc / top   -> 0.75 0 0                     OK    got: 0.75 0 0
+rank2 / top  -> 0.75 0 0                     OK    got: 0.75 0 0
+dynamic / top-> 0.75 0 0                     OK    got: 0.75 0 0
+range_high   -> 1.5 0 0                      OK    got: 1.5 0 0
+range_low    -> 0.5 0.2 -0.1                 OK    got: 0.5 0.2 -0.1
+nonfinite / ones -> first value inf or NaN   OK    got: inf 1 0
+nonfinite / zeros -> first value NaN         OK    got: -nan(ind) 0 0
+broken file is rejected (control)            OK    (Load model from modules/ai/tests/data/models_bodypart_broken/bodypart.onnx failed:Protobuf parsing failed.)
+===PROBE_BAD=0===
