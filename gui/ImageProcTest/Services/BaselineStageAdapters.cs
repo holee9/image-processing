@@ -22,6 +22,12 @@ public static class BaselineStageAdapters
         return count;
     }
 
+    /// <summary>
+    /// The preprocess stage's count (Codex #76 finding 2): the gain stage's float output AND the defect stage's. The gain output feeds the defect stage, which can fill a
+    /// bad pixel with a finite value, so counting only the final image would let a non-finite gain result pass.
+    /// </summary>
+    public static long CountPreprocessNonFinite(ReadOnlySpan<float> gainOut, ReadOnlySpan<float> defectOut) => CountNonFinite(gainOut) + CountNonFinite(defectOut);
+
     /// <summary>The enhance stage's result as the chain runner takes it, with its non-finite count carried.</summary>
     internal static StageExecution FromEnhance(EnhanceBasicResult result) =>
         new(result.Ran, result.Pixels, result.Summary, result.NaNInfCount);

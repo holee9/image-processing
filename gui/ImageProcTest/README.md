@@ -156,7 +156,7 @@ linear VOI centre 32768 / width 65535, GSDF off). The log normalisation factor i
 this command only. Every stage must be applied: a stage the module refuses fails the command (nothing is compared and no DICOM file is written).
 
 **Pass criteria (all of them).** (1) both runs applied every stage; (2) the loaded raw frame is unchanged (SHA-256 before = after); (3) no NaN/Inf was
-counted in any float intermediate (the preprocess and enhance_basic float images, and the display step's float image after the modality LUT and after the VOI LUT); (4) the two final 16-bit outputs are bit-identical; (5) the first output was written as DICOM, the module's own validator
+counted in any float intermediate (the preprocess float images after the gain stage and after the defect stage, the enhance_basic float image, and the display step's float image after the modality LUT and after the VOI LUT); (4) the two final 16-bit outputs are bit-identical; (5) the first output was written as DICOM, the module's own validator
 reported `valid:true`, and reading the file back returned the same pixels and the same body part, kVp and pixel pitch; (6) the evidence file
 `baseline.json` was written. Timing is measured and logged; the 3000 ms figure of the product requirements is **not** asserted.
 
@@ -164,7 +164,7 @@ reported `valid:true`, and reading the file back returned the same pixels and th
 the app and are written as 0 (unknown), never as invented values.
 
 **Evidence.** `evidence/<RunId>/baseline-<n>/` holds exactly two files: `baseline.dcm` and `baseline.json`. A run that is not a pass leaves no
-`baseline.dcm`: the file is written under a `.partial` name and renamed only after every check, including writing `baseline.json`, succeeded.
+`baseline.dcm`: the file is written under a `.partial` name and renamed only after every check, including writing `baseline.json`, succeeded. A run first removes the `baseline.dcm`, its `.partial` file and the `baseline.json` that an earlier run left in the same folder (one it cannot remove makes the run fail, with the reason), so a failed run never sits beside an older pass.
 `baseline.json` records `status`, `failureReason`, `startedAt`, `width`, `height`, `runsExecuted`, `inputPreserved`, `inputSha256Before/After`,
 `bitIdentical`, `difference` (first index, count, maximum), `nanInfCount`, `nonFiniteByStageRun1` (one entry per stage plus `display`), `outputSha256`, `stageHashesRun1/2` (SHA-256 of each
 stage's output), `stageTimes`, `runTotalsMs`, `totalMs`, `budgetMs` (3000, "measured against, not asserted"), `exposureIndex`, and `dicom` (`path`,

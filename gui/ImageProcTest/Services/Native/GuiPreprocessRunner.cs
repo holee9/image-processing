@@ -153,6 +153,10 @@ internal static class GuiPreprocessRunner
                 return new PreprocessRunResult(false, $"xpe_gain_correct failed ({gainCode}).", null);
             }
 
+            // #225 row 9 (GUI-C-196 M8, Codex #76 finding 2): the gain stage's float output is counted too. It goes straight into the defect stage, which can replace a
+            // bad pixel with a finite one, so the final image alone would hide a gain stage that produced NaN or an infinity. Only counted; nothing here changes the pixels.
+            var gainFloats = ReadFloats(gainOut.Data, count);
+
             var defectCode = XpePreprocessNative.xpe_defect_correct(ref gainOut, ref defectOut, ref metadata);
             if (defectCode != XpeOk)
             {
@@ -164,7 +168,9 @@ internal static class GuiPreprocessRunner
             // Apply measures nothing, so its output and its alerts are unchanged.
             var exposure = measureExposureIndex ? MeasureUncalibratedExposureIndex(ref defectOut, ref metadata) : string.Empty;
 
-            var pixels = ReadFloatsAsUInt16(defectOut.Data, count, out var nonFinite);
+            var defectFloats = ReadFloats(defectOut.Data, count);
+            var nonFinite = BaselineStageAdapters.CountPreprocessNonFinite(gainFloats, defectFloats);
+            var pixels = ScaleToUInt16(defectFloats);
             return new PreprocessRunResult(
                 true,
                 $"Preprocess: offset -> nonlinearity -> gain -> defect on {width}x{height} ({bodyPart}).{exposure}",
@@ -224,19 +230,21 @@ internal static class GuiPreprocessRunner
         return true;
     }
 
-    /// <summary>
-    /// Float32 output scaled back into UInt16 for the preview. The scale is display-only — the
-    /// corrected values themselves stay in the native buffer's domain.
-    /// </summary>
-    private static ushort[] ReadFloatsAsUInt16(IntPtr source, int count, out long nonFinite)
+    private static float[] ReadFloats(IntPtr source, int count)
     {
         var floats = new float[count];
         Marshal.Copy(source, floats, 0, count);
+        return floats;
+    }
 
-        // #225 row 9 (GUI-C-196 M6): counted HERE, before the scaling below. The conversion cannot represent NaN or an infinity, so afterwards they look like
-        // ordinary pixels. Only counted: the conversion itself is unchanged, so an ordinary Apply produces what it always did.
-        nonFinite = BaselineStageAdapters.CountNonFinite(floats);
-
+    /// <summary>
+    /// Float32 output scaled back into UInt16 for the preview. The scale is display-only — the
+    /// corrected values themselves stay in the native buffer's domain. Counting happens before this (the caller): the
+    /// conversion cannot represent NaN or an infinity, so afterwards they look like ordinary pixels.
+    /// </summary>
+    private static ushort[] ScaleToUInt16(float[] floats)
+    {
+        var count = floats.Length;
         var max = 0.0f;
         for (var i = 0; i < count; i++)
         {

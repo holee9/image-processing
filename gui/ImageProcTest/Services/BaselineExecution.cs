@@ -43,6 +43,10 @@ public static class BaselineExecution
 
         var now = clock ?? (() => DateTimeOffset.Now);
         var startedAt = now();
+
+        // Codex #76 finding 1 (the leader's ruling, M8): a new run starts by removing the final-named files an earlier run left in the same folder. Without it a Fail run
+        // sits beside the previous run's passing baseline.dcm under its proper name. A file that cannot be removed fails THIS run, with the reason.
+        var staleProblem = ClearPreviousOutputs(evidenceFolder);
         var total = Stopwatch.StartNew();
         var runs = new List<BaselineSingleRun>();
         var runMs = new List<double>();
@@ -58,8 +62,8 @@ public static class BaselineExecution
 
         // D5: a failed verdict writes no DICOM file, so nothing that looks like an output exists for a baseline that did not pass.
         BaselineDicomResult? dicomResult = null;
-        string? failure = verdict.Status == BaselineStatus.Fail ? verdict.FailureReason : null;
-        if (verdict.Status == BaselineStatus.Pass)
+        string? failure = staleProblem ?? (verdict.Status == BaselineStatus.Fail ? verdict.FailureReason : null);
+        if (verdict.Status == BaselineStatus.Pass && staleProblem is null)
         {
             if (dicom is null)
             {
@@ -215,6 +219,34 @@ public static class BaselineExecution
             dicomResult?.Valid ?? false,
             dicomResult?.Pixels is { Identical: true },
             dicomResult?.Summary ?? string.Empty);
+    }
+
+    /// <summary>
+    /// Removes <c>baseline.dcm</c>, its partial file and <c>baseline.json</c> from the evidence folder when they exist. Returns null when none is left, otherwise the reason one
+    /// could not be removed (a missing folder is not a problem: nothing is there to be stale).
+    /// </summary>
+    private static string? ClearPreviousOutputs(string evidenceFolder)
+    {
+        if (!Directory.Exists(evidenceFolder))
+        {
+            return null;   // File.Delete throws on a missing directory, and nothing in one can be stale
+        }
+
+        var problems = new List<string>();
+        foreach (var name in new[] { "baseline.dcm", "baseline.dcm" + BaselineDicomExport.PartialSuffix, "baseline.json" })
+        {
+            var path = Path.Combine(evidenceFolder, name);
+            try
+            {
+                File.Delete(path);
+            }
+            catch (Exception ex)
+            {
+                problems.Add($"{path} ({ex.GetType().Name}: {ex.Message})");
+            }
+        }
+
+        return problems.Count == 0 ? null : "the previous run's output could not be removed, so a stale file could be mistaken for this run's: " + string.Join("; ", problems);
     }
 
     /// <summary>The uncalibrated EI sentence the preprocess stage put in its summary (first run), or empty when it did not measure.</summary>

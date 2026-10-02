@@ -179,10 +179,9 @@ public sealed class BaselineReviewFixTests : IDisposable
         Assert.Contains("return BaselineStageAdapters.FromEnhance(result);", real, StringComparison.Ordinal);
 
         var preprocess = Read("gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs");
-        var method = preprocess[preprocess.IndexOf("private static ushort[] ReadFloatsAsUInt16(", StringComparison.Ordinal)..];
-        var counted = method.IndexOf("nonFinite = BaselineStageAdapters.CountNonFinite(floats);", StringComparison.Ordinal);
-        var scaled = method.IndexOf("var scale = ", StringComparison.Ordinal);
-        Assert.True(counted >= 0 && scaled > counted, "the non-finite count must be taken on the float image BEFORE it is scaled to 16 bits");
+        var counted = preprocess.IndexOf("BaselineStageAdapters.CountPreprocessNonFinite(gainFloats, defectFloats)", StringComparison.Ordinal);
+        var scaled = preprocess.IndexOf("var pixels = ScaleToUInt16(defectFloats);", StringComparison.Ordinal);
+        Assert.True(counted >= 0 && scaled > counted, "the non-finite count must be taken on the float images BEFORE the result is scaled to 16 bits");
     }
 
     // ---- finding 2: the evidence file is required --------------------------------------------------------------------------------------------
@@ -191,8 +190,9 @@ public sealed class BaselineReviewFixTests : IDisposable
     public void WhenOnlyTheEvidenceFileCannotBeWritten_TheBaselineFails_AndLeavesNoDicomFile()
     {
         var folder = Path.Combine(_root, "baseline-1");
-        Directory.CreateDirectory(Path.Combine(folder, "baseline.json"));   // a DIRECTORY with the evidence file's name: DICOM can succeed, the JSON cannot
-        var dicom = new FileDicom();
+        // A DIRECTORY with the evidence file's name: DICOM can succeed, the JSON cannot. Created while the DICOM is written, i.e. AFTER the run's own clearing of old outputs
+        // (M8): a directory that is there beforehand is refused up front, see APreviousDirectoryUnderAFinalName_FailsTheRunBeforeAnythingIsWritten.
+        var dicom = new FileDicom { AfterWrite = _ => Directory.CreateDirectory(Path.Combine(folder, "baseline.json")) };
 
         var result = Execute(() => RunOnce(0, 0), dicom, folder);
 
@@ -240,9 +240,10 @@ public sealed class BaselineReviewFixTests : IDisposable
     public void WhileTheFinalNameIsBlocked_TheBaselineFails_AndLeavesNoPartialFile()
     {
         var folder = Path.Combine(_root, "baseline-1");
-        Directory.CreateDirectory(Path.Combine(folder, "baseline.dcm"));   // the final name is taken by a directory, so the rename cannot happen
+        // The final name is taken by a directory, so the rename cannot happen. Created while the DICOM is written (after the run's own clearing, M8).
+        var dicomSession = new FileDicom { AfterWrite = _ => Directory.CreateDirectory(Path.Combine(folder, "baseline.dcm")) };
 
-        var result = Execute(() => RunOnce(0, 0), new FileDicom(), folder);
+        var result = Execute(() => RunOnce(0, 0), dicomSession, folder);
 
         Assert.False(result.Passed);
         Assert.Contains("final name", result.Status, StringComparison.Ordinal);
@@ -408,4 +409,123 @@ public sealed class BaselineReviewFixTests : IDisposable
     }
 
     private static string Read(string relative) => File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile(relative)).Replace("\r\n", "\n");
+    // ---- Codex #76 finding 1 (M8): a reused evidence folder ----------------------------------------------------------------------------------
+
+    private string PassInto(string folder, FileDicom dicom)
+    {
+        var first = Execute(() => RunOnce(0, 0), dicom, folder);
+        Assert.True(first.Passed, first.Status);
+        Assert.True(File.Exists(Path.Combine(folder, "baseline.dcm")));
+        return folder;
+    }
+
+    [Fact]
+    public void APassThenAChainFailure_InTheSameFolder_LeavesNoFinalDicomFile_AndTheJsonSaysFail()
+    {
+        var folder = PassInto(Path.Combine(_root, "reused-chain"), new FileDicom());
+
+        var second = Execute(() => RunOnce(enhancePoison: 1, preprocessNonFinite: 0), new FileDicom(), folder);
+
+        Assert.False(second.Passed);
+        Assert.False(File.Exists(Path.Combine(folder, "baseline.dcm")), "the previous run's passing DICOM file is still there under its proper name");
+        Assert.Equal("Fail", ReadJson(second).GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public void APassThenADicomFailure_InTheSameFolder_LeavesNoFinalDicomFile()
+    {
+        var folder = PassInto(Path.Combine(_root, "reused-dicom"), new FileDicom());
+
+        var second = Execute(() => RunOnce(0, 0), new FileDicom { Report = "{\"valid\":false,\"errors\":[\"x\"],\"warnings\":[]}" }, folder);
+
+        Assert.False(second.Passed);
+        Assert.False(File.Exists(Path.Combine(folder, "baseline.dcm")), "the previous run's passing DICOM file is still there under its proper name");
+        Assert.False(File.Exists(Path.Combine(folder, "baseline.dcm" + BaselineDicomExport.PartialSuffix)));
+        Assert.Equal("Fail", ReadJson(second).GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public void APreviousFileThatCannotBeRemoved_FailsTheNewRun_WithTheReason_AndWritesNoDicom()
+    {
+        var folder = PassInto(Path.Combine(_root, "reused-locked"), new FileDicom());
+        var dicom = new FileDicom();
+
+        // Held open without sharing: File.Delete throws IOException on Windows, as it would for a file another program has open.
+        using (new FileStream(Path.Combine(folder, "baseline.dcm"), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            var second = Execute(() => RunOnce(0, 0), dicom, folder);
+
+            Assert.False(second.Passed);
+            Assert.Contains("could not be removed", second.Status, StringComparison.Ordinal);
+            Assert.Contains("baseline.dcm", second.Status, StringComparison.Ordinal);
+            Assert.Equal(0, dicom.Writes);
+        }
+    }
+
+    [Fact]
+    public void APreviousDirectoryUnderAFinalName_FailsTheRunBeforeAnythingIsWritten()
+    {
+        var folder = Path.Combine(_root, "reused-directory");
+        Directory.CreateDirectory(Path.Combine(folder, "baseline.dcm"));
+        var dicom = new FileDicom();
+
+        var result = Execute(() => RunOnce(0, 0), dicom, folder);
+
+        Assert.False(result.Passed);
+        Assert.Contains("could not be removed", result.Status, StringComparison.Ordinal);
+        Assert.Equal(0, dicom.Writes);
+    }
+
+    [Fact]
+    public void AFirstRunInAFreshFolder_IsNotAffectedByTheClearing()
+    {
+        var result = Execute(() => RunOnce(0, 0), new FileDicom(), Path.Combine(_root, "never-existed", "nested"));
+
+        Assert.True(result.Passed, result.Status);
+    }
+
+    // ---- Codex #76 finding 2 (M8): the gain stage's float output ---------------------------------------------------------------------------
+
+    [Fact]
+    public void ThePreprocessCount_IncludesTheGainOutput_EvenWhenTheDefectStageFillsThePixelWithAFiniteValue()
+    {
+        float[] gain = [1f, float.NaN, 3f, 4f, 5f, float.PositiveInfinity];
+        float[] defectFilled = [1f, 2f, 3f, 4f, 5f, 6f];
+
+        Assert.Equal(0, BaselineStageAdapters.CountNonFinite(defectFilled));   // what was counted before M8: nothing
+        Assert.Equal(2, BaselineStageAdapters.CountPreprocessNonFinite(gain, defectFilled));
+        Assert.Equal(3, BaselineStageAdapters.CountPreprocessNonFinite(gain, [float.NaN, 2f, 3f, 4f, 5f, 6f]));
+        Assert.Equal(0, BaselineStageAdapters.CountPreprocessNonFinite(defectFilled, defectFilled));
+    }
+
+    [Fact]
+    public void ANonFiniteGainOutput_ThatTheDefectStageHid_FailsTheBaseline_WithTheCountInTheStatusAndTheJson()
+    {
+        float[] gain = [1f, float.NaN, 3f, 4f, 5f, 6f];
+        float[] defectFilled = [1f, 2f, 3f, 4f, 5f, 6f];
+        var counted = BaselineStageAdapters.CountPreprocessNonFinite(gain, defectFilled);
+        var dicom = new FileDicom();
+
+        var result = Execute(() => RunOnce(0, counted), dicom, Path.Combine(_root, "gain-nan"));
+
+        Assert.False(result.Passed);
+        Assert.Equal(0, dicom.Writes);
+        Assert.Contains("non-finite", result.Status, StringComparison.Ordinal);
+        Assert.Equal(2, ReadJson(result).GetProperty("nanInfCount").GetInt64());   // one per run
+        Assert.Contains("preprocess=1", ReadJson(result).GetProperty("nonFiniteByStageRun1").EnumerateArray().Select(e => e.GetString()), StringComparer.Ordinal);
+
+        // The control: the same chain with the pre-M8 count (the filled image alone) passes, so the Fail above comes from the gain count and from nothing else.
+        var control = Execute(() => RunOnce(0, BaselineStageAdapters.CountNonFinite(defectFilled)), new FileDicom(), Path.Combine(_root, "gain-control"));
+        Assert.True(control.Passed, control.Status);
+    }
+
+    [Fact]
+    public void TheRealPreprocessRunner_CountsTheGainOutputBeforeTheDefectStage_AndBothFloatArraysReachTheCount()
+    {
+        var code = Read("gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs");
+        var gainRead = code.IndexOf("var gainFloats = ReadFloats(gainOut.Data, count);", StringComparison.Ordinal);
+        var defectCall = code.IndexOf("xpe_defect_correct(ref gainOut", StringComparison.Ordinal);
+        Assert.True(gainRead > 0 && defectCall > gainRead, "the gain output must be read BEFORE the defect stage is called");
+        Assert.Contains("BaselineStageAdapters.CountPreprocessNonFinite(gainFloats, defectFloats)", code, StringComparison.Ordinal);
+    }
 }

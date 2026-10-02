@@ -1,8 +1,8 @@
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
-index bf25685..cd31f73 100644
+index d2afcdac..84e0f52a 100644
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
-@@ -892,7 +892,7 @@ jobs:
+@@ -938,7 +938,7 @@ jobs:
      # over with XPE_NATIVE_DIR + XPE_NATIVE_DIR_EXCLUSIVE=1 - the app folder holds
      # no xpe_*.dll, so a pass here proves the locator path, not the OS loader.
      # S-05 demands a real semver and fails if the app silently fell back to Mock.
@@ -11,7 +11,7 @@ index bf25685..cd31f73 100644
      runs-on: windows-2025
      # 20 -> 30 (2026-09-30). Measured on main, same job, three consecutive runs:
      # 18 min, 19 min, then 20:14 -- cancelled exactly at the 20-minute limit
-@@ -951,6 +951,26 @@ jobs:
+@@ -997,6 +997,26 @@ jobs:
            merge-multiple: true
            path: build/e2e-native-dlls/
 
@@ -38,7 +38,7 @@ index bf25685..cd31f73 100644
        - name: Verify staged DLLs and that the app folder holds none
          shell: pwsh
          run: |
-@@ -964,7 +984,7 @@ jobs:
+@@ -1010,7 +1030,7 @@ jobs:
            # stage's E2E must reach the module and observe its failure path, not
            # pass on "DLL not found". Both ship in xpe-ci-post-binaries already;
            # listing them makes a missing one fail here instead of in silence.

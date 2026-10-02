@@ -1,19 +1,8 @@
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
-index ba49ddd..c0e2daa 100644
+index bf25685f..d2afcdac 100644
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
-@@ -544,7 +544,9 @@ jobs:
-           name: xpe-ci-dicom-binaries
-           if-no-files-found: warn
-           retention-days: 14
--          path: build/ci-dicom/bin/
-+          path: |
-+            build/ci-dicom/bin/
-+            build/ci-dicom/vcpkg_installed/x64-windows/bin/
-
-   # ONNX Runtime inference gate (#130, QA-B-160).
-   #
-@@ -630,7 +632,7 @@ jobs:
+@@ -634,7 +634,7 @@ jobs:
          run: ctest --test-dir build/ci-ai --build-config RelWithDebInfo --output-on-failure
 
    dotnet-tests:
@@ -22,7 +11,7 @@ index ba49ddd..c0e2daa 100644
      if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane == 'gui'
      runs-on: windows-latest
      timeout-minutes: 30
-@@ -671,11 +673,37 @@ jobs:
+@@ -675,11 +675,37 @@ jobs:
            name: xpe-ci-post-binaries
            path: build/ci-common/bin/
 
@@ -57,11 +46,11 @@ index ba49ddd..c0e2daa 100644
          run: |
            $missing = @()
 -          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_enhance_basic.dll')) {
-+          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_enhance_basic.dll', 'xpe_dicom.dll', 'dcmdata.dll', 'openjp2.dll')) {
++          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_enhance_basic.dll', 'xpe_display.dll', 'xpe_dicom.dll', 'dcmdata.dll', 'openjp2.dll')) {
              if (-not (Test-Path "build/ci-common/bin/$n")) { $missing += $n }
            }
            if ($missing.Count -gt 0) {
-@@ -692,6 +720,26 @@ jobs:
+@@ -696,6 +722,26 @@ jobs:
            --logger "trx;LogFileName=integration-tests.trx"
            --results-directory build/dotnet-test-results
 
@@ -75,7 +64,7 @@ index ba49ddd..c0e2daa 100644
 +          [xml]$doc = Get-Content -LiteralPath build/dotnet-test-results/integration-tests.trx -Raw
 +          $all = @($doc.TestRun.Results.UnitTestResult)
 +          Write-Host ("trx holds {0} result(s)" -f $all.Count)
-+          $min = @{ 'BaselineDicomNativeTests' = 2; 'EnhanceBasicNativeTests' = 4 }
++          $min = @{ 'BaselineDicomNativeTests' = 2; 'EnhanceBasicNativeTests' = 4; 'BaselineDisplayNativeTests' = 2 }
 +          $bad = @()
 +          foreach ($class in $min.Keys) {
 +            $rows = @($all | Where-Object { $_.testName -like "*.$class.*" })
