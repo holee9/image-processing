@@ -624,7 +624,11 @@ XPE_API XpeErrorCode xpe_calib_check_expiry(const char* filepath,
  * @param expiry_epoch_ms Expiry timestamp in Unix milliseconds; 0 = never expires
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
- *         XPE_ERR_IO_FAILED on file write error
+ *         XPE_ERR_IO_FAILED on file write error. A failed save raises an XPE_ALERT_ERROR naming the step and
+ *                           the system error (XPE_WARN_XCAL_TEMP_OPEN_FAILED, _TEMP_WRITE_FAILED,
+ *                           _REPLACE_FAILED) only as long as the alert text can be built: building it can itself
+ *                           run out of memory, and the alert is then dropped -- the return code is the one
+ *                           signal that always arrives (QA-A-221c)
  *         XPE_ERR_OUT_OF_MEMORY on allocation failure
  */
 XPE_API XpeErrorCode xpe_calib_save(const char* filepath,

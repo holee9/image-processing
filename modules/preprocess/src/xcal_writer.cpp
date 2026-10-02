@@ -161,6 +161,22 @@ static void report_replace_failure(const char* path, const std::string& tmp, con
 // step, in the two steps before it -- and the second also left the half-written .tmp behind. Both now raise one
 // XPE_ALERT_ERROR with a prefix of its own (the replace step's is XPE_WARN_XCAL_REPLACE_FAILED), and a failed write
 // removes the temporary file with remove_tmp() and says truthfully whether that worked (QA-A-212c).
+#ifdef XPE_CACHE_TEST_HOOKS
+void (*xpe_xcal_write_step_hook)(int step, std::ios& stream) = nullptr;
+#endif
+
+// Runs after a stream operation of the temporary-file write, before its outcome is judged (see the hook's comment
+// in xcal_writer.hpp). A no-op in the shipped library.
+static inline void xcal_step(int step, std::ios& stream)
+{
+#ifdef XPE_CACHE_TEST_HOOKS
+    if (xpe_xcal_write_step_hook) xpe_xcal_write_step_hook(step, stream);
+#else
+    (void)step;
+    (void)stream;
+#endif
+}
+
 struct IoReason {
     int err = 0;               // errno at the failing call (0 = not reported)
     unsigned long win = 0;     // Windows only: GetLastError() at the failing call (0 = not reported)
@@ -413,35 +429,51 @@ XpeErrorCode write_xcal_file_ex(
             if (!opened) {
                 openFailure = capture_io_reason();
             } else {
-                clear_io_reason();
+                // QA-A-221c (Codex #81): every operation is preceded by clearing the two codes and, if it failed,
+                // followed AT ONCE by capturing them, before any other stream operation runs. errno and
+                // GetLastError() are not reset by a successful call, so a reason captured later -- the old code
+                // cleared once after the open and captured after the last step -- could belong to an earlier step
+                // that succeeded. A step the operating system does not describe (the stream's own failbit)
+                // now reports "no error code" instead of someone else's.
+                bool ok = true;
+                const auto settle = [&](int step, bool closing) {
+                    xcal_step(step, f);
+                    ok = closing ? !f.fail() : f.good();
+                    if (!ok) writeFailure = capture_io_reason();
+                };
+
                 // Write header (pack=1, 152 bytes)
+                clear_io_reason();
                 f.write(reinterpret_cast<const char*>(&hdr_template),
                         sizeof(XCalFileHeader));
-                bool ok = f.good();
+                settle(1, false);
 
                 // Write config_json (may be empty)
                 if (ok && final_config_len > 0) {
+                    clear_io_reason();
                     f.write(reinterpret_cast<const char*>(final_config),
                             static_cast<std::streamsize>(final_config_len));
-                    ok = f.good();
+                    settle(2, false);
                 }
 
                 // Write payload
                 if (ok && final_payload_len > 0) {
+                    clear_io_reason();
                     f.write(reinterpret_cast<const char*>(final_payload),
                             static_cast<std::streamsize>(final_payload_len));
-                    ok = f.good();
+                    settle(3, false);
                 }
 
                 if (ok) {
+                    clear_io_reason();
                     f.flush();
-                    ok = f.good();
+                    settle(4, false);
                 }
                 if (ok) {
+                    clear_io_reason();
                     f.close();               // a failure to close is a failed write too
-                    ok = !f.fail();
+                    settle(5, true);
                 }
-                if (!ok) writeFailure = capture_io_reason();
                 written = ok;
             }
         }  // f is closed here

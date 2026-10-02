@@ -24,7 +24,7 @@
 | `OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet` | **빈 저장소에서 시작**해 `xpe_preprocess_pipeline`(교정 경로) 의 73개 지점을 스윕: 실패 뒤 저장소 디지스트가 "빈 저장소"(`none`) 또는 "디렉터리의 세 맵 전부"(`whole`) 중 하나, 그 사이는 실패. 성공이면 `whole`. 두 기준값은 시험 안에서 실제로 계산하고 서로 다름을 대조로 단언 |
 | `OomPipeline.AFailedCachedOffsetLoadThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeMap` | 같은 방식으로 `xpe_calib_load_offset_cached` 의 20개 지점(캐시 미스): 저장소가 비었거나 파일의 맵 전체 |
 
-기존 시험이 못 본 이유(221 에서 적은 대로): `PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas` 등은 같은 파일이 이미 적재된 채 시작해, 실패 뒤 "적재 전"과 "적재 후"가 같은 디지스트였다. 새 시험은 빈 저장소에서 시작해 둘을 구별한다. 측정 범위 주의: 디지스트는 맵 세 개와 치수를 본다(품질 메타데이터는 포함하지 않는다).
+기존 시험이 못 본 이유(221 에서 적은 대로): `PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas` 등은 같은 파일이 이미 적재된 채 시작해, 실패 뒤 "적재 전"과 "적재 후"가 같은 디지스트였다. 새 시험은 빈 저장소에서 시작해 둘을 구별한다. 측정 범위 주의(QA-A-221c 로 정정): 이 문장은 처음에 "디지스트는 맵 세 개와 치수를 본다"고 적었으나 사실은 **세 너비와 맵 바이트만** 봤고 높이와 맵의 존재 여부는 보지 않았다(Codex #81). 221c 가 맵마다 존재 여부·너비·높이·바이트를 넣었다. 게인 다항식·비선형 LUT·품질 메타데이터·타임스탬프·만료값은 지금도 포함하지 않는다.
 
 ### 반증 (한 번에 하나, 전체 빌드, 전체 OOM 시험 실행, `evidence/30_arm_q*.txt`; 마지막에 복원 + 다시 빌드)
 

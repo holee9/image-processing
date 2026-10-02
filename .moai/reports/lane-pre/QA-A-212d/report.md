@@ -6,7 +6,7 @@
 
 1. **임시 파일을 열지 못함**: 알림 없이 `IO_FAILED` 이던 것이 이제 Error 알림 1건 `XPE_WARN_XCAL_TEMP_OPEN_FAILED` 를 낸다(원인: errno + 문자열, Windows 오류 코드).
 2. **쓰기 도중 실패**: **실측으로 `.tmp` 가 남았다**(옛 코드에서 `fs::exists(tmp) == true`, 알림 없음, `evidence/11_old_code_leftover_tmp.txt`). 이제 212c 의 `remove_tmp()` 로 지우고, 지웠는지·남았는지 사실대로 `XPE_WARN_XCAL_TEMP_WRITE_FAILED` 에 알린다.
-3. `write_xcal_file_ex` 의 반환 경로 전수: 알림 없는 `IO_FAILED` 는 이제 **하나도 없다**(아래 표). 남은 알림 없는 실패는 인자 오류 3곳과 예외 2곳이며 그 코드가 이유를 말한다.
+3. `write_xcal_file_ex` 의 반환 경로 전수: 알림 없는 `IO_FAILED` 는 이제 **하나도 없다 — 알림 구성이 성공하는 한**(아래 표). 알림을 만드는 문자열 구성이나 푸시가 메모리 부족으로 예외를 던지면 그 예외는 삼켜지고 알림 없이 `IO_FAILED` 만 돌아간다(QA-A-221c, Codex #81 보류 3). 남은 알림 없는 실패는 인자 오류 3곳과 예외 2곳이며 그 코드가 이유를 말한다.
 
 ## 변경 (`xcal_writer.cpp`)
 
@@ -73,7 +73,7 @@ p5·p6 이 안 터진 것은 **두 검사가 서로 가려서**이다: 시험이
 | `catch (const std::bad_alloc&)` | `OUT_OF_MEMORY` | 없음 | 코드가 이유를 말한다(할당 실패). 알림을 만들려면 또 할당이 필요해 일부러 두지 않았다 |
 | `catch (...)` | `PROCESSING_FAILED` | 없음 | **알림 없는 포괄 오류** — 어떤 예외인지 알 수 없다. 이 함수 안에서 던질 수 있는 것은 `std::string`/`vector` 할당(`bad_alloc`, 위)과 `rle_encode`·`compute_sha256_two_parts` 의 예외 정도로 보이나 확인하지 않았다 |
 
-즉 "알림 없는 `IO_FAILED`"는 남지 않았다. 남은 `PROCESSING_FAILED` 포괄 경로는 입출력 실패가 아니며 이번 범위 밖이다.
+즉 "알림 없는 `IO_FAILED`"는 알림 구성이 성공하는 한 남지 않았다(구성 자체가 실패하면 알림 없이 -9, QA-A-221c). 남은 `PROCESSING_FAILED` 포괄 경로는 입출력 실패가 아니며 이번 범위 밖이다.
 
 ## 검증
 
