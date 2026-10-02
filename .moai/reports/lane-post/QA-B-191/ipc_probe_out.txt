@@ -1,0 +1,24 @@
+== run 1
+IPC-PROBE side payload_MB(one way) first_call_ms(starts the worker) min_ms median_ms
+IPC-PROBE  512    1.0     111.5      2.0      2.1
+IPC-PROBE 1024    4.2       8.0      7.7      8.0
+IPC-PROBE 2048   16.8      35.4     30.9     32.4
+IPC-PROBE 3072   37.7      71.5     68.4     70.2
+[  PASSED  ] 1 test.
+== run 2
+IPC-PROBE side payload_MB(one way) first_call_ms(starts the worker) min_ms median_ms
+IPC-PROBE  512    1.0    1350.3      2.0      2.0
+IPC-PROBE 1024    4.2       7.9      7.5      8.1
+IPC-PROBE 2048   16.8      34.3     31.4     32.4
+IPC-PROBE 3072   37.7      79.6     68.4     69.7
+[  PASSED  ] 1 test.
+== run 3
+IPC-PROBE side payload_MB(one way) first_call_ms(starts the worker) min_ms median_ms
+IPC-PROBE  512    1.0      97.4      2.1      2.3
+IPC-PROBE 1024    4.2       8.4      7.7      8.1
+IPC-PROBE 2048   16.8      33.9     31.5     33.7
+IPC-PROBE 3072   37.7      72.0     68.3     72.5
+[  PASSED  ] 1 test.
+
+machine: i7-12700, RelWithDebInfo ci-ai, real xpe_ai_worker.exe, toy model models_x2 (Y = 2X); CPU shared with other sessions
+numbers are the round trip of xpe_bone_suppress (image out AND image back), so one way is about half
