@@ -175,6 +175,13 @@ namespace {
         const uint32_t W = gh->width;
         const uint32_t H = gh->height;
 
+        // QA-A-218b (#233): the 3x3 mean reads the frame AS IT CAME IN, not the pixels this loop has already overwritten.
+        // The loop updates px in place, so reading px made the pixels above and to the left count with their CORRECTED
+        // (and zero-clamped) values and the others with their original ones: the output depended on the scan direction
+        // (a frame flipped, processed and flipped back differed in 41-91 % of its pixels, QA-A-218). xpe_ghost_correct
+        // keeps a copy of the incoming frame in gh->backup for the whole call (QA-A-217), which is exactly that.
+        const float* const src = gh->backup.data();
+
         // Apply NLCSC with signal-dependent coefficients
         for (size_t i = 0; i < n; ++i) {
             const float raw = px[i];
@@ -198,8 +205,8 @@ namespace {
                     for (int dy = -1; dy <= 1; ++dy) {
                         for (int dx = -1; dx <= 1; ++dx) {
                             const size_t ni = static_cast<size_t>(static_cast<int>(y) + dy) * static_cast<size_t>(W) + static_cast<size_t>(static_cast<int>(x) + dx);
-                            if (ni < n && std::isfinite(px[ni])) {
-                                localMean += px[ni];
+                            if (ni < n && std::isfinite(src[ni])) {
+                                localMean += src[ni];
                                 ++count;
                             }
                         }

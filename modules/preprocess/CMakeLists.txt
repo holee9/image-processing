@@ -439,6 +439,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_defect_input_finite.cpp
         tests/test_nonfinite_inputs.cpp
         tests/test_ghost_input_finite.cpp   # QA-A-217 (#233): ghost refuses non-finite input, a failed frame leaves its pixels
+        tests/test_ghost_tier3_orientation.cpp   # QA-A-218b (#233): tier 3 3x3 mean reads the incoming frame; scan-direction independent
         tests/test_xcal_replace_retry.cpp
         # QA-A-140 (#196): the no-op report reaches a null-config caller
         tests/test_nonlin_noop_report.cpp
