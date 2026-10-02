@@ -28,7 +28,8 @@ public sealed record AutomationArgs(
     string? SelfCheckExePath = null
 #if XPE_TEST_FAULTS
     , int? DisplayPipelineFailAfter = null,
-    bool AiWorkerDisabled = false
+    bool AiWorkerDisabled = false,
+    bool AiWorkerSilent = false
 #endif
     )
 {
@@ -49,6 +50,13 @@ public sealed record AutomationArgs(
     /// have. Same terms as <see cref="DisplayPipelineFaultPrefix"/>: command line only, inert without the argument, loud when armed.
     /// </summary>
     public const string AiWorkerDisabledFault = "ai-worker-disabled";
+
+    /// <summary>
+    /// GUI-C-192c: the third accepted fault. <c>ai-worker-silent</c> makes the AI worker status read answer "active" once and then never answer
+    /// again (a worker that stopped replying), so the status-unconfirmed notice can be put on screen without a native module. Same terms as
+    /// the others: command line only, inert without the argument, loud when armed.
+    /// </summary>
+    public const string AiWorkerSilentFault = "ai-worker-silent";
 #endif
 
     /// <summary>
@@ -93,6 +101,7 @@ public sealed record AutomationArgs(
 #if XPE_TEST_FAULTS
         int? displayPipelineFailAfter = null;
         var aiWorkerDisabled = false;
+        var aiWorkerSilent = false;
 #endif
 
         for (var i = 0; i < args.Length; i++)
@@ -183,6 +192,10 @@ public sealed record AutomationArgs(
             {
                 aiWorkerDisabled = true;
             }
+            else if (Is(switchName, "--automation-fault") && string.Equals(value, AiWorkerSilentFault, StringComparison.Ordinal))
+            {
+                aiWorkerSilent = true;
+            }
             else if (Is(switchName, "--automation-fault"))
             {
                 if (!value.StartsWith(DisplayPipelineFaultPrefix, StringComparison.Ordinal)
@@ -190,7 +203,7 @@ public sealed record AutomationArgs(
                         System.Globalization.CultureInfo.InvariantCulture, out var failAfter))
                 {
                     error ??= $"--automation-fault '{value}' is not a recognised fault " +
-                              $"(expected {DisplayPipelineFaultPrefix}<non-negative integer> or {AiWorkerDisabledFault}).";
+                              $"(expected {DisplayPipelineFaultPrefix}<non-negative integer>, {AiWorkerDisabledFault} or {AiWorkerSilentFault}).";
                     continue;
                 }
 
@@ -214,7 +227,7 @@ public sealed record AutomationArgs(
             ? new AutomationArgs(rawPath, reportPath, backendMode, calibrationDirectory, rawWidth, rawHeight, Error: null,
                 settingsPath, renderDumpPath, selfCheckExePath
 #if XPE_TEST_FAULTS
-                , displayPipelineFailAfter, aiWorkerDisabled
+                , displayPipelineFailAfter, aiWorkerDisabled, aiWorkerSilent
 #endif
                 )
             : new AutomationArgs(

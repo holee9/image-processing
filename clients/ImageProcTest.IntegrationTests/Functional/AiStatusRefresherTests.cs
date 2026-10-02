@@ -509,6 +509,7 @@ public sealed class AiStatusRefresherTests
             return Active;
         };
         var blocked = Task.Run(rig.Refresher.Request);   // the read waits behind a silent worker
+        rig.PumpUntil(() => Volatile.Read(ref rig.Reads) == 2, "The blocked read never started.");
 
         rig.Now = AiStatusRefresher.DefaultActiveFreshFor - TimeSpan.FromTicks(1);
         rig.Refresher.CheckFreshness();
@@ -516,7 +517,9 @@ public sealed class AiStatusRefresherTests
 
         rig.Now = AiStatusRefresher.DefaultActiveFreshFor;
         rig.Refresher.CheckFreshness();
-        Assert.Equal([Active, AiWorkerStatus.Unknown], rig.Applied);
+        Assert.Equal(2, rig.Applied.Count);
+        Assert.Equal(AiWorkerState.Unconfirmed, rig.Applied[1].State);   // 192c: a state that shows a notice, not the silent Unknown
+        Assert.Equal("15", rig.Applied[1].Detail);
 
         rig.Refresher.CheckFreshness();
         Assert.Equal(2, rig.Applied.Count);              // withdrawn once, not repeated
@@ -527,6 +530,84 @@ public sealed class AiStatusRefresherTests
         #pragma warning restore xUnit1031
         rig.Pump();
         Assert.Equal(AiWorkerState.Active, rig.Applied[^1].State);   // the late answer is shown again
+    }
+
+    /// <summary>192c: an idle app must not age into a false alarm. With no read in flight an old "Active" is READ AGAIN, and stays Active.</summary>
+    [Fact]
+    public void AnIdleActive_IsReadAgain_NotWithdrawn()
+    {
+        var rig = new Rig(backgroundReads: false);
+        rig.Refresher.Request();
+        rig.Pump();
+        Assert.Equal(1, rig.Reads);
+
+        rig.Now = AiStatusRefresher.DefaultActiveFreshFor / 3 - TimeSpan.FromTicks(1);
+        rig.Refresher.CheckFreshness();
+        Assert.Equal(1, rig.Reads);                      // not yet old enough to ask again
+
+        rig.Now = AiStatusRefresher.DefaultActiveFreshFor / 3;
+        rig.Refresher.CheckFreshness();
+        rig.Pump();
+        Assert.Equal(2, rig.Reads);                      // asked again, and the answer was Active again
+
+        for (var second = 1; second <= 120; second++)    // two minutes of an idle app, ticking every second
+        {
+            rig.Now += TimeSpan.FromSeconds(1);
+            rig.Refresher.CheckFreshness();
+            rig.Pump();
+        }
+
+        Assert.DoesNotContain(rig.Applied, status => status.State == AiWorkerState.Unconfirmed);
+        Assert.True(rig.Reads > 10);                     // it kept asking
+    }
+
+    /// <summary>192c: the normal "Unknown" (before the first read, after a Reset) is never turned into a notice, however long it lasts.</summary>
+    [Fact]
+    public void AnUnknownThatWasNeverActive_IsNeverTurnedIntoANotice()
+    {
+        var rig = new Rig(backgroundReads: false) { Read = _ => AiWorkerStatus.Unknown };
+        rig.Refresher.Request();
+        rig.Pump();
+        rig.Now = TimeSpan.FromHours(1);
+        rig.Refresher.CheckFreshness();
+        rig.Refresher.Reset();
+        rig.Now = TimeSpan.FromHours(2);
+        rig.Refresher.CheckFreshness();
+
+        Assert.DoesNotContain(rig.Applied, status => status.State == AiWorkerState.Unconfirmed);
+    }
+
+    /// <summary>192c: the notice goes when a new answer arrives (and when the session is replaced); it is read again meanwhile.</summary>
+    [Fact]
+    public void TheNotice_GoesWhenANewAnswerArrives_AndIsReadAgainWhileItStands()
+    {
+        var rig = new Rig(backgroundReads: false);
+        rig.Refresher.Request();
+        rig.Pump();
+        rig.Read = _ => null;                            // reads fail: nothing is confirmed
+        rig.Now = AiStatusRefresher.DefaultActiveFreshFor;
+        rig.Refresher.CheckFreshness();
+        Assert.Equal(AiWorkerState.Unconfirmed, rig.Applied[^1].State);
+
+        var readsBefore = rig.Reads;
+        rig.Now += AiStatusRefresher.DefaultActiveFreshFor / 3;
+        rig.Refresher.CheckFreshness();                  // the notice is read again too
+        rig.Pump();
+        Assert.Equal(readsBefore + 1, rig.Reads);
+        Assert.Equal(AiWorkerState.Unconfirmed, rig.Applied[^1].State);   // a failed read confirms nothing: the notice stays
+
+        rig.Read = _ => Active;
+        rig.Now += AiStatusRefresher.DefaultActiveFreshFor / 3;
+        rig.Refresher.CheckFreshness();
+        rig.Pump();
+        Assert.Equal(Active, rig.Applied[^1]);           // the worker answered: the notice is gone
+
+        rig.Read = _ => null;
+        rig.Now += AiStatusRefresher.DefaultActiveFreshFor;
+        rig.Refresher.CheckFreshness();
+        Assert.Equal(AiWorkerState.Unconfirmed, rig.Applied[^1].State);
+        rig.Refresher.Reset();                           // a restart or a backend swap
+        Assert.Equal(AiWorkerStatus.Unknown, rig.Applied[^1]);
     }
 
     /// <summary>A switched-off worker stays switched off until a restart, so the bound never takes a "Disabled" back.</summary>

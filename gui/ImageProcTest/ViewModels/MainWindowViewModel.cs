@@ -919,7 +919,8 @@ public sealed class MainWindowViewModel : ObservableObject
         var armed = FaultInjectionStatus;
         Log($"FAULT INJECTION ARMED: {armed}."
             + (armed.Contains(AutomationArgs.DisplayPipelineFaultPrefix, StringComparison.Ordinal) ? " Display pipeline calls past the limit throw on purpose." : string.Empty)
-            + (armed.Contains(AutomationArgs.AiWorkerDisabledFault, StringComparison.Ordinal) ? " The AI worker status read answers 'switched off, 3 of 3' whatever the module says." : string.Empty));
+            + (armed.Contains(AutomationArgs.AiWorkerDisabledFault, StringComparison.Ordinal) ? " The AI worker status read answers 'switched off, 3 of 3' whatever the module says." : string.Empty)
+            + (armed.Contains(AutomationArgs.AiWorkerSilentFault, StringComparison.Ordinal) ? " The AI worker status read answers 'active' once and never again." : string.Empty));
         _faultInjectionAnnounced = true;
         OnPropertyChanged(nameof(FaultInjectionStatus));
         OnPropertyChanged(nameof(WindowTitle));

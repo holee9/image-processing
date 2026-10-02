@@ -35,6 +35,9 @@ public partial class App : System.Windows.Application
 
     /// <summary>GUI-C-191b: <c>--automation-fault ai-worker-disabled</c> was given (the AI worker status read answers "switched off"). Test builds only (GUI-C-193).</summary>
     public static bool AutomationAiWorkerDisabled { get; private set; }
+
+    /// <summary>GUI-C-192c: <c>--automation-fault ai-worker-silent</c> was given (the AI worker status read answers once, then never). Test builds only.</summary>
+    public static bool AutomationAiWorkerSilent { get; private set; }
 #endif
 
     /// <summary>#173 (GUI-C-119): the settings file this run reads and writes, when one was named.</summary>
@@ -82,6 +85,7 @@ public partial class App : System.Windows.Application
 #if XPE_TEST_FAULTS
         AutomationDisplayPipelineFailAfter = parsed.DisplayPipelineFailAfter;
         AutomationAiWorkerDisabled = parsed.AiWorkerDisabled;
+        AutomationAiWorkerSilent = parsed.AiWorkerSilent;
 #endif
         AutomationRawHeight = parsed.RawHeight;
 

@@ -536,4 +536,20 @@ public sealed class AiBoneSuppressionStageTests
             yield return at;
         }
     }
+
+    /// <summary>GUI-C-192c: the withdrawn state shows a notice, with the bound and what the user can do; Unknown and Active still show nothing.</summary>
+    [Fact]
+    public void AnUnconfirmedStatus_ShowsANotice_ThatNamesTheBoundAndTheWayOut()
+    {
+        var unconfirmed = new AiWorkerStatus(AiWorkerState.Unconfirmed, 0, 0, "15");
+        Assert.True(AiBoneSuppressionStage.ShowsMark(unconfirmed));
+        var text = AiBoneSuppressionStage.BannerFor(unconfirmed);
+        Assert.Contains("status unknown", text, StringComparison.Ordinal);
+        Assert.Contains("15 s", text, StringComparison.Ordinal);
+        Assert.Contains("Restart AI", text, StringComparison.Ordinal);
+        Assert.Equal("worker=Unconfirmed; bound=15s", AiBoneSuppressionStage.DescribeStatus(unconfirmed));
+
+        Assert.False(AiBoneSuppressionStage.ShowsMark(AiWorkerStatus.Unknown));   // the normal Unknown stays quiet
+        Assert.False(AiBoneSuppressionStage.ShowsMark(new AiWorkerStatus(AiWorkerState.Active, 0, 3)));
+    }
 }

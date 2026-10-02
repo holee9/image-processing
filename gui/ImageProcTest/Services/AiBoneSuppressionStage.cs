@@ -19,6 +19,13 @@ internal enum AiWorkerState
     /// recovery has just failed (Codex #24 B1).
     /// </summary>
     InitFailed = 3,
+
+    /// <summary>
+    /// This GUI's (GUI-C-192c): an "Active" that nothing confirmed for the freshness bound was withdrawn. Unlike <see cref="Unknown"/>, which is
+    /// the normal state before the first read and right after a restart or a backend swap, this one says something is wrong, so it shows a
+    /// notice. <see cref="AiWorkerStatus.Detail"/> carries the bound in seconds.
+    /// </summary>
+    Unconfirmed = 4,
 }
 
 /// <summary>
@@ -185,7 +192,7 @@ internal sealed class AiStatusRefresher(
     TimeSpan? activeFreshFor = null)
 {
     /// <summary>
-    /// GUI-C-192b: how long an applied "Active" may stand without a newer answer before it is withdrawn to Unknown. 15 s is three times the
+    /// GUI-C-192b: how long an applied "Active" may stand without a newer answer before it is withdrawn to Unconfirmed. 15 s is three times the
     /// module's default IPC timeout (XPE_AI_DEFAULT_TIMEOUT_MS = 5000, ai_worker_protocol.h): one read can queue behind one frame that holds
     /// the session gate for a full timeout, and behind a restart under the same gate, before it is even answered.
     /// </summary>
@@ -236,15 +243,27 @@ internal sealed class AiStatusRefresher(
     }
 
     /// <summary>
-    /// GUI-C-192b: called on a timer by the UI. An "Active" that nothing has refreshed for the freshness bound is withdrawn to Unknown (the
-    /// existing "no answer" state, which shows no mark). Only Active is withdrawn: a switched-off worker stays switched off until a restart,
+    /// GUI-C-192b/192c: called on a timer by the UI. An "Active" older than a third of the bound is read again (so an idle app does not age
+    /// into a false alarm); one that is still unrefreshed at the bound is withdrawn to Unconfirmed, a state that shows a notice (Unknown shows none), and Unconfirmed is read again
+    /// the same way, so a worker that comes back is noticed. Only Active is withdrawn: a switched-off worker stays switched off until a restart,
     /// so a "Disabled" never goes stale in the unsafe direction and is never taken back here.
     /// </summary>
     public void CheckFreshness()
     {
-        if (!_stopped && _shown == AiWorkerState.Active && _clock() - _lastAnswerAt >= _activeFreshFor)
+        if (_stopped || _shown is not (AiWorkerState.Active or AiWorkerState.Unconfirmed))
         {
-            Show(AiWorkerStatus.Unknown);
+            return;
+        }
+
+        var age = _clock() - _lastAnswerAt;
+        if (age >= _activeFreshFor && _shown == AiWorkerState.Active)
+        {
+            // The answer on screen outlived the bound although it is asked for again well inside it (below): reads are blocked or failing.
+            Show(new AiWorkerStatus(AiWorkerState.Unconfirmed, 0, 0, ((int)_activeFreshFor.TotalSeconds).ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        }
+        else if (!_inFlight && age >= _activeFreshFor / 3)
+        {
+            Request();   // nothing is asking, so an old "Active" is just an unrefreshed one, not a silent worker: ask again (background; returns at once)
         }
     }
 
@@ -556,11 +575,13 @@ internal static class AiBoneSuppressionStage
             $"AI worker switched off for this session after {status.ConsecutiveFailures} of {status.Ceiling} failures in a row: images are returned unchanged until it is restarted.",
         AiWorkerState.InitFailed =>
             $"AI session is not running: {status.Detail} Images are returned unchanged. Use Restart AI to try again.",
+        AiWorkerState.Unconfirmed =>
+            $"AI worker status unknown: it has not been confirmed for over {status.Detail} s. AI results may not be applied and images may be returned unchanged. Use Restart AI if this stays.",
         _ => string.Empty,
     };
 
     /// <summary>True when the persistent mark and the Restart AI button show: the worker is off, or the session could not be started.</summary>
-    public static bool ShowsMark(AiWorkerStatus status) => status.State is AiWorkerState.Disabled or AiWorkerState.InitFailed;
+    public static bool ShowsMark(AiWorkerStatus status) => status.State is AiWorkerState.Disabled or AiWorkerState.InitFailed or AiWorkerState.Unconfirmed;
 
     /// <summary>
     /// One line a program can read from the screen (an automation property): the state with the module's own numbers.
@@ -571,6 +592,7 @@ internal static class AiBoneSuppressionStage
         AiWorkerState.Active or AiWorkerState.Disabled =>
             $"worker={status.State}; failures={status.ConsecutiveFailures}; ceiling={status.Ceiling}",
         AiWorkerState.InitFailed => $"worker=InitFailed; detail={status.Detail}",
+        AiWorkerState.Unconfirmed => $"worker=Unconfirmed; bound={status.Detail}s",
         _ => $"worker={status.State}",
     };
 

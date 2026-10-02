@@ -203,6 +203,20 @@ public sealed class AutomationArgsTests
         Assert.Equal(2, parsed.DisplayPipelineFailAfter);
     }
 
+    [Fact]
+    public void AiWorkerSilentFault_IsAcceptedExactly_AndArmsOnlyThatFault()
+    {
+        var parsed = AutomationArgs.Parse(["--automation-fault", "ai-worker-silent"]);
+
+        Assert.True(parsed.IsValid);
+        Assert.True(parsed.AiWorkerSilent);
+        Assert.False(parsed.AiWorkerDisabled);
+        Assert.Null(parsed.DisplayPipelineFailAfter);
+        Assert.False(AutomationArgs.Parse(["--automation-fault", "ai-worker-disabled"]).AiWorkerSilent);
+        Assert.False(AutomationArgs.Parse(["--automation-raw", "frame.raw"]).AiWorkerSilent);
+        Assert.False(AutomationArgs.Parse(["--automation-report", "r.json", "--automation-fault", "Ai-Worker-Silent"]).IsValid);
+    }
+
     [Theory]
     [InlineData("AI-Worker-Disabled")]
     [InlineData("ai-worker-disabled ")]

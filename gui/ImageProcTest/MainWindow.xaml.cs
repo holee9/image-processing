@@ -28,10 +28,11 @@ public partial class MainWindow : System.Windows.Window
         // #171 (GUI-C-79): Wrap returns the real backend untouched unless --automation-fault was given. Test builds only (GUI-C-193).
         var failAfter = App.AutomationDisplayPipelineFailAfter;
         var aiWorkerDisabled = App.AutomationAiWorkerDisabled;
+        var aiWorkerSilent = App.AutomationAiWorkerSilent;
         var viewModel = new MainWindowViewModel(
             settings,
             settingsService,
-            s => FaultInjectingBackend.Wrap(XpeBackendFactory.Create(s), failAfter, aiWorkerDisabled),
+            s => FaultInjectingBackend.Wrap(XpeBackendFactory.Create(s), failAfter, aiWorkerDisabled, aiWorkerSilent),
             preservedSettingsPath,
             preservedIsFromEarlier);
 #else
