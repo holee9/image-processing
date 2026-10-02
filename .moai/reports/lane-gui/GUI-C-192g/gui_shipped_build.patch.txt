@@ -4,7 +4,7 @@ diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
 @@ -640,6 +640,29 @@
          shell: pwsh
          run: dotnet run --project gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj -c Debug --no-build
- 
+
 +  gui-shipped-build:
 +    # GUI-C-192e/192f (GUI-C-193): the shipped (Release) operator app must not contain the test fault switches. Every other job builds Debug, so
 +    # nothing else would notice a Release build that carries them. The script builds Debug as a positive control (the scan must FIND the strings
