@@ -59,6 +59,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <new>
 
 namespace {
 
@@ -194,13 +195,13 @@ std::vector<double> MonotoneTangents(const std::vector<double>& xs,
 
 }  // namespace
 
-XPE_API XpeErrorCode xpe_calib_generate_nonlin_lut(const XpeImageBuffer* flat_frames,
-                                                   const double* dose_levels,
-                                                   int32_t num_levels,
-                                                   const XpeImageBuffer* dark_reference,
-                                                   uint32_t lut_entries,
-                                                   const char* output_path,
-                                                   const char* metadata_json) {
+static XpeErrorCode generate_nonlin_lut_impl(const XpeImageBuffer* flat_frames,
+                                              const double* dose_levels,
+                                              int32_t num_levels,
+                                              const XpeImageBuffer* dark_reference,
+                                              uint32_t lut_entries,
+                                              const char* output_path,
+                                              const char* metadata_json) {
     if (flat_frames == nullptr || dose_levels == nullptr || output_path == nullptr) {
         return XPE_ERR_INVALID_INPUT;
     }
@@ -349,4 +350,23 @@ XPE_API XpeErrorCode xpe_calib_generate_nonlin_lut(const XpeImageBuffer* flat_fr
                            static_cast<uint64_t>(cfg_len),
                            reinterpret_cast<const uint8_t*>(lut.data()),
                            static_cast<uint64_t>(lut.size() * sizeof(uint16_t)));
+}
+
+// Exception boundary (QA-A-204): the knot and table vectors allocate, and write_xcal_file is itself guarded, so only
+// the generation part could let std::bad_alloc out of the C ABI. The output file is written last, atomically.
+XPE_API XpeErrorCode xpe_calib_generate_nonlin_lut(const XpeImageBuffer* flat_frames,
+                                                   const double* dose_levels,
+                                                   int32_t num_levels,
+                                                   const XpeImageBuffer* dark_reference,
+                                                   uint32_t lut_entries,
+                                                   const char* output_path,
+                                                   const char* metadata_json) {
+    try {
+        return generate_nonlin_lut_impl(flat_frames, dose_levels, num_levels, dark_reference, lut_entries,
+                                        output_path, metadata_json);
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
 }

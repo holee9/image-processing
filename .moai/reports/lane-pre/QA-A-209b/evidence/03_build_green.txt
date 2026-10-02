@@ -1,0 +1,20 @@
+'vswhere.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+배치 파일이 아닙니다.
+[1/21] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\nonlinearity_correct.cpp.obj
+[2/21] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\nonlinearity_correct.cpp.obj
+[3/21] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xcal_reader.cpp.obj
+[4/21] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xcal_reader.cpp.obj
+[5/21] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xcal_writer.cpp.obj
+[6/21] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xcal_writer.cpp.obj
+[7/21] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\preprocess.cpp.obj
+[8/21] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\preprocess.cpp.obj
+[9/21] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\helpers.cpp.obj
+[10/21] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\helpers.cpp.obj
+[11/21] Linking CXX shared library bin\xpe_preprocess.dll
+[12/17] Linking CXX executable bin\xpe_preprocess_oom_tests.exe
+[13/17] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\src\xcal_reader.cpp.obj
+[14/17] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\src\xcal_writer.cpp.obj
+[15/17] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_xcal_compression.cpp.obj
+[16/17] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\src\helpers.cpp.obj
+[17/17] Linking CXX executable bin\xpe_preprocess_tests.exe
+BUILD_EXIT=0

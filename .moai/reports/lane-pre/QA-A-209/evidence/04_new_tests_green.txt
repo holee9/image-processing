@@ -1,0 +1,57 @@
+Note: Google Test filter = ConfigStrictParse.*
+[==========] Running 24 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 24 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+[       OK ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[       OK ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (3 ms)
+[ RUN      ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+[       OK ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+[       OK ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable (1 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore (32 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore (14 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule
+[       OK ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule (2 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+[       OK ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly (97 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead
+[       OK ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead (150 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte
+[       OK ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte (105 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted
+[       OK ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted (59 ms)
+[ RUN      ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead
+[       OK ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead (1 ms)
+[ RUN      ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject (2 ms)
+[ RUN      ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage
+[       OK ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage (2 ms)
+[ RUN      ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject (0 ms)
+[ RUN      ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject (0 ms)
+[ RUN      ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject (17 ms)
+[ RUN      ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys
+[       OK ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys (59 ms)
+[ RUN      ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys
+[       OK ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys (135 ms)
+[ RUN      ] ConfigStrictParse.ANullConfigPointerStillMeansTheDefaults
+[       OK ] ConfigStrictParse.ANullConfigPointerStillMeansTheDefaults (0 ms)
+[----------] 24 tests from ConfigStrictParse (688 ms total)
+
+[----------] Global test environment tear-down
+[==========] 24 tests from 1 test suite ran. (688 ms total)
+[  PASSED  ] 24 tests.

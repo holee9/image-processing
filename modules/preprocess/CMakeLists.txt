@@ -430,6 +430,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_gain_poly_dose_range.cpp
         tests/test_nonlin_no_mode_rejection.cpp
         tests/test_fixture_gen_gain_poly.cpp
+        # QA-A-210c (#233): per-pixel degree policy of the gain polynomial (monotone either way, final line = least squares)
+        tests/test_gain_poly_policy.cpp
         # QA-A-140 (#196): the no-op report reaches a null-config caller
         tests/test_nonlin_noop_report.cpp
         # QA-A-35 (#140): FUNC-033 quality metadata, wired to production

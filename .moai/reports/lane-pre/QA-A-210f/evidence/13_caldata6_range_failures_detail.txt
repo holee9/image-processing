@@ -1,0 +1,31 @@
+border band (64 px) = 8.16% of the frame ; defect map pixels in the border band: 22665 of 23505
+
+level 0 (bright03): below 0.1: 43836 (of which exactly 0: 2) ; above 10: 37
+  out-of-range pixels: in defect map 14275, outside 29598 ; in the 64-px border band 43835 (99.9%) ; outside both defect map and border band: 0
+  value of the out-of-range pixels outside the defect map: p50 0.04279  p5 0.01712  p95 0.09128
+  defect-map pixels: 23505 ; of them inside [0.1, 10]: 9230 (39.3%)
+
+level 1 (bright04): below 0.1: 43991 (of which exactly 0: 1) ; above 10: 12
+  out-of-range pixels: in defect map 14278, outside 29725 ; in the 64-px border band 43990 (100.0%) ; outside both defect map and border band: 0
+  value of the out-of-range pixels outside the defect map: p50 0.0415  p5 0.01729  p95 0.09108
+  defect-map pixels: 23505 ; of them inside [0.1, 10]: 9227 (39.3%)
+
+level 2 (bright05): below 0.1: 44143 (of which exactly 0: 1) ; above 10: 1
+  out-of-range pixels: in defect map 14276, outside 29868 ; in the 64-px border band 44142 (100.0%) ; outside both defect map and border band: 0
+  value of the out-of-range pixels outside the defect map: p50 0.04084  p5 0.01648  p95 0.09171
+  defect-map pixels: 23505 ; of them inside [0.1, 10]: 9229 (39.3%)
+
+level 3 (bright06): below 0.1: 44006 (of which exactly 0: 1) ; above 10: 0
+  out-of-range pixels: in defect map 14206, outside 29800 ; in the 64-px border band 44005 (100.0%) ; outside both defect map and border band: 0
+  value of the out-of-range pixels outside the defect map: p50 0.04143  p5 0.01776  p95 0.09198
+  defect-map pixels: 23505 ; of them inside [0.1, 10]: 9299 (39.6%)
+
+level 4 (bright01): below 0.1: 39076 (of which exactly 0: 1) ; above 10: 1
+  out-of-range pixels: in defect map 13588, outside 25489 ; in the 64-px border band 39075 (100.0%) ; outside both defect map and border band: 0
+  value of the out-of-range pixels outside the defect map: p50 0.03919  p5 0.01769  p95 0.08553
+  defect-map pixels: 23505 ; of them inside [0.1, 10]: 9917 (42.2%)
+
+level 5 (bright02): below 0.1: 41300 (of which exactly 0: 1) ; above 10: 0
+  out-of-range pixels: in defect map 13957, outside 27343 ; in the 64-px border band 41299 (100.0%) ; outside both defect map and border band: 0
+  value of the out-of-range pixels outside the defect map: p50 0.04208  p5 0.01755  p95 0.09433
+  defect-map pixels: 23505 ; of them inside [0.1, 10]: 9548 (40.6%)

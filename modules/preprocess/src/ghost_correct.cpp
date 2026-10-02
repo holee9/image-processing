@@ -46,24 +46,27 @@ XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
     const size_t pixelCount = static_cast<size_t>(width) * height;
 
     try {
-        // Parse config JSON for tier and IRF coefficients. An absent or empty value keeps the default.
-        if (configJsonOrNull) {
-            const auto real = [&](const char* key, double* dst) {
-                const std::string v = xpe_json_get_string(configJsonOrNull, key);
-                return v.empty() || xpe_strict::parse_double(v, dst);
-            };
+        // Parse config JSON for tier and IRF coefficients. An absent or empty value keeps the default. The text is
+        // parsed once into its top-level members; one that is not one valid JSON object, is empty, or gives a member
+        // name twice is a refusal (QA-A-209, QA-A-209b). NULL is every default.
+        {
+            XpeConfigDoc doc;
+            XpeErrorCode rc = xpe_config_parse(configJsonOrNull, &doc);
+            if (rc != XPE_OK) return rc;
 
-            const std::string tierStr = xpe_json_get_string(configJsonOrNull, "tier");
-            if (!tierStr.empty()) {
+            std::string v;
+            if (doc.getString("tier", &v) && !v.empty()) {
                 int32_t tier = 1;
-                if (!xpe_strict::parse_int(tierStr, &tier)) return XPE_ERR_CONFIG_INVALID;
+                if (!xpe_strict::parse_int(v, &tier)) return XPE_ERR_CONFIG_INVALID;
                 handle->tier = (tier < 1 || tier > 3) ? 1 : tier;
             }
-            if (!real("alpha1", &handle->alpha1) || !real("tau1", &handle->tau1) ||
-                !real("alpha2", &handle->alpha2) || !real("tau2", &handle->tau2) ||
-                !real("tier2Threshold", &handle->tier2Threshold) ||
-                !real("nlcscBeta", &handle->nlcscBeta)) {
-                return XPE_ERR_CONFIG_INVALID;
+            const struct { const char* key; double* dst; } reals[] = {
+                {"alpha1", &handle->alpha1}, {"tau1", &handle->tau1}, {"alpha2", &handle->alpha2},
+                {"tau2", &handle->tau2}, {"tier2Threshold", &handle->tier2Threshold}, {"nlcscBeta", &handle->nlcscBeta},
+            };
+            for (const auto& r : reals) {
+                if (doc.getString(r.key, &v) && !v.empty() && !xpe_strict::parse_double(v, r.dst))
+                    return XPE_ERR_CONFIG_INVALID;
             }
         }
 

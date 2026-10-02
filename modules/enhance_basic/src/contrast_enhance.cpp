@@ -171,13 +171,27 @@ extern "C++" static XpeErrorCode xpe_contrast_enhance_impl(XpeImageBuffer* img, 
     uint64_t n = static_cast<uint64_t>(w) * h;
 
     // Global min/max for flat-image early exit and final output remapping
+    // QA-B-181f (#233): the finiteness test rides on this pass, which reads every pixel anyway, so it costs no extra
+    // pass over memory (a separate scan measured +3.9 ms on 3072x3072, about 8%). A non-finite pixel poisons the tile
+    // range (+inf makes it infinite and the whole image non-finite) or goes through float->int conversions that are
+    // undefined (NaN), both with rc=0 (QA-B-181e). The image is refused and left untouched -- nothing has been
+    // written yet, the result is built in a separate buffer -- and it is not repaired.
     float val_min = px[0];
     float val_max = px[0];
-    for (uint64_t i = 1; i < n; ++i) {
+    uint32_t nonfinite = 0;
+    for (uint64_t i = 0; i < n; ++i) {
+        uint32_t u;
+        std::memcpy(&u, px + i, sizeof u);
+        nonfinite |= static_cast<uint32_t>((u & 0x7F800000u) == 0x7F800000u);
         if (px[i] < val_min) val_min = px[i];
         if (px[i] > val_max) val_max = px[i];
     }
+    if (nonfinite != 0) return XPE_ERR_INVALID_INPUT;
     float val_range = val_max - val_min;
+    // QA-B-181f (#233): finite pixels whose range overflows float (-3e38 and 3e38) made every output pixel
+    // `val_min + frac * inf`, non-finite, with rc=0 (QA-B-181e). Refused like the non-finite input: the result of
+    // this call could not be finite, and the image is untouched.
+    if (!xpe_float_is_finite(val_range)) return XPE_ERR_INVALID_INPUT;
     if (val_range <= 0.0f) return XPE_OK; // Flat image, no contrast to enhance.
 
     int num_tiles_x = p->tile_width;

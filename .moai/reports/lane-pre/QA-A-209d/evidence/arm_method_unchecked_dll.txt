@@ -1,0 +1,70 @@
+Note: Google Test filter = XCalCompression*
+[==========] Running 20 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 7 tests from XCalCompressionTest
+[ RUN      ] XCalCompressionTest.WriteCompressed_ReadBack_BitIdentical
+[       OK ] XCalCompressionTest.WriteCompressed_ReadBack_BitIdentical (7 ms)
+[ RUN      ] XCalCompressionTest.CompressedFile_SmallerThanUncompressed
+[       OK ] XCalCompressionTest.CompressedFile_SmallerThanUncompressed (4 ms)
+[ RUN      ] XCalCompressionTest.CompressedWithCallerConfig_MetadataMerged
+[       OK ] XCalCompressionTest.CompressedWithCallerConfig_MetadataMerged (1 ms)
+[ RUN      ] XCalCompressionTest.Compressed_TypeMismatch_ConfigInvalid
+[       OK ] XCalCompressionTest.Compressed_TypeMismatch_ConfigInvalid (0 ms)
+[ RUN      ] XCalCompressionTest.UncompressedDefect_StillReadsCorrectly
+[       OK ] XCalCompressionTest.UncompressedDefect_StillReadsCorrectly (7 ms)
+[ RUN      ] XCalCompressionTest.CompressOffsetType_PayloadNotCompressed
+[       OK ] XCalCompressionTest.CompressOffsetType_PayloadNotCompressed (6 ms)
+[ RUN      ] XCalCompressionTest.WorstCaseInput_FallbackToUncompressed
+[       OK ] XCalCompressionTest.WorstCaseInput_FallbackToUncompressed (5 ms)
+[----------] 7 tests from XCalCompressionTest (42 ms total)
+
+[----------] 13 tests from XCalCompressionMetaTest
+[ RUN      ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed
+[       OK ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed (6 ms)
+[ RUN      ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither
+[       OK ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither (8 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem
+[       OK ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem (1 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused
+[       OK ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused (3 ms)
+[ RUN      ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused
+[       OK ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused (9 ms)
+[ RUN      ] XCalCompressionMetaTest.HalfAPairIsRefusedEvenWhenTheRestOfTheFileIsValid
+[       OK ] XCalCompressionMetaTest.HalfAPairIsRefusedEvenWhenTheRestOfTheFileIsValid (2 ms)
+[ RUN      ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo
+[       OK ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo (3 ms)
+[ RUN      ] XCalCompressionMetaTest.TheOldWritersTwoShapesAreReproducedExactlyByTheTestHelper
+[       OK ] XCalCompressionMetaTest.TheOldWritersTwoShapesAreReproducedExactlyByTheTestHelper (0 ms)
+[ RUN      ] XCalCompressionMetaTest.AFileInTheOldWritersShapeLoadsWithTheSameMapAndAWarning
+[       OK ] XCalCompressionMetaTest.AFileInTheOldWritersShapeLoadsWithTheSameMapAndAWarning (7 ms)
+[ RUN      ] XCalCompressionMetaTest.ABlockThatOnlyLooksLikeTheOldWritersShapeIsStillRefused
+[       OK ] XCalCompressionMetaTest.ABlockThatOnlyLooksLikeTheOldWritersShapeIsStillRefused (18 ms)
+[ RUN      ] XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck
+[       OK ] XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck (3 ms)
+[ RUN      ] XCalCompressionMetaTest.ThePairAloneWithADoubledBraceIsNotWhatTheOldWriterMade
+[       OK ] XCalCompressionMetaTest.ThePairAloneWithADoubledBraceIsNotWhatTheOldWriterMade (3 ms)
+[ RUN      ] XCalCompressionMetaTest.TheOldWritersShapesAreOnlyRepairedForAnRleCompressedDefectFile
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(777): error: Expected equality of these values:
+  -4
+  readDefect()
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(774): {"mode":"production"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(777): error: Expected equality of these values:
+  -4
+  readDefect()
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(774): {}
+
+[  FAILED  ] XCalCompressionMetaTest.TheOldWritersShapesAreOnlyRepairedForAnRleCompressedDefectFile (5 ms)
+[----------] 13 tests from XCalCompressionMetaTest (74 ms total)
+
+[----------] Global test environment tear-down
+[==========] 20 tests from 2 test suites ran. (117 ms total)
+[  PASSED  ] 19 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] XCalCompressionMetaTest.TheOldWritersShapesAreOnlyRepairedForAnRleCompressedDefectFile
+
+ 1 FAILED TEST

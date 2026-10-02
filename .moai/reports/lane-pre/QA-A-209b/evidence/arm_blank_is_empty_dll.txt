@@ -1,0 +1,576 @@
+Note: Google Test filter = ConfigStrictParse.*:XCalCompression*:*XpePreprocessInit*:PreprocessInit*
+[==========] Running 41 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 7 tests from XCalCompressionTest
+[ RUN      ] XCalCompressionTest.WriteCompressed_ReadBack_BitIdentical
+[       OK ] XCalCompressionTest.WriteCompressed_ReadBack_BitIdentical (15 ms)
+[ RUN      ] XCalCompressionTest.CompressedFile_SmallerThanUncompressed
+[       OK ] XCalCompressionTest.CompressedFile_SmallerThanUncompressed (6 ms)
+[ RUN      ] XCalCompressionTest.CompressedWithCallerConfig_MetadataMerged
+[       OK ] XCalCompressionTest.CompressedWithCallerConfig_MetadataMerged (1 ms)
+[ RUN      ] XCalCompressionTest.Compressed_TypeMismatch_ConfigInvalid
+[       OK ] XCalCompressionTest.Compressed_TypeMismatch_ConfigInvalid (1 ms)
+[ RUN      ] XCalCompressionTest.UncompressedDefect_StillReadsCorrectly
+[       OK ] XCalCompressionTest.UncompressedDefect_StillReadsCorrectly (8 ms)
+[ RUN      ] XCalCompressionTest.CompressOffsetType_PayloadNotCompressed
+[       OK ] XCalCompressionTest.CompressOffsetType_PayloadNotCompressed (10 ms)
+[ RUN      ] XCalCompressionTest.WorstCaseInput_FallbackToUncompressed
+[       OK ] XCalCompressionTest.WorstCaseInput_FallbackToUncompressed (7 ms)
+[----------] 7 tests from XCalCompressionTest (51 ms total)
+
+[----------] 6 tests from XCalCompressionMetaTest
+[ RUN      ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed
+[       OK ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed (8 ms)
+[ RUN      ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither
+[       OK ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither (8 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem
+[       OK ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem (2 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused
+[       OK ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused (3 ms)
+[ RUN      ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused
+[       OK ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused (8 ms)
+[ RUN      ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo
+[       OK ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo (10 ms)
+[----------] 6 tests from XCalCompressionMetaTest (41 ms total)
+
+[----------] 28 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+[       OK ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[       OK ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (2 ms)
+[ RUN      ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+[       OK ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+[       OK ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore (28 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore (14 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule
+[       OK ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule (1 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+[       OK ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly (90 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead
+[       OK ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead (108 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte
+[       OK ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte (105 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted
+[       OK ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted (71 ms)
+[ RUN      ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead
+[       OK ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead (1 ms)
+[ RUN      ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject (0 ms)
+[ RUN      ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage
+[       OK ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage (2 ms)
+[ RUN      ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject (0 ms)
+[ RUN      ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject (0 ms)
+[ RUN      ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject (16 ms)
+[ RUN      ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys
+[       OK ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys (41 ms)
+[ RUN      ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys
+[       OK ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys (163 ms)
+[ RUN      ] ConfigStrictParse.ABlankConfigTextSuppliedByTheCallerIsRefusedAndNullStillMeansTheDefaults
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline bypassOffset: blank text of 0 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline bypassOffset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline bypassOffset: blank text of 3 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline bypassOffset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline bypassOffset: blank text of 5 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_ex bypassOffset: blank text of 0 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_ex bypassOffset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_ex bypassOffset: blank text of 3 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_ex bypassOffset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_ex bypassOffset: blank text of 5 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_batch bypassOffset: blank text of 0 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_batch bypassOffset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_batch bypassOffset: blank text of 3 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_batch bypassOffset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_batch bypassOffset: blank text of 5 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 0 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 0 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 3 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 3 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 5 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 5 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_nonlinearity_correct panel.linear: blank text of 0 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_nonlinearity_correct panel.linear: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_nonlinearity_correct panel.linear: blank text of 3 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_nonlinearity_correct panel.linear: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_nonlinearity_correct panel.linear: blank text of 5 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 0 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 0 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 3 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 3 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 5 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 5 byte(s)
+
+[  FAILED  ] ConfigStrictParse.ABlankConfigTextSuppliedByTheCallerIsRefusedAndNullStillMeansTheDefaults (4 ms)
+[ RUN      ] ConfigStrictParse.ABlankConfigBlockOfAFileIsRefusedButAnAbsentOneLoads
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1245): error: Expected equality of these values:
+  -4
+  xpe_calib_load_gain("csp_gx.xcal")
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1243): a block of 1 white-space byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1246): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1243): a block of 1 white-space byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1245): error: Expected equality of these values:
+  -4
+  xpe_calib_load_gain("csp_gx.xcal")
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1243): a block of 3 white-space byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1246): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1243): a block of 3 white-space byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1245): error: Expected equality of these values:
+  -4
+  xpe_calib_load_gain("csp_gx.xcal")
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1243): a block of 1 white-space byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1246): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1243): a block of 1 white-space byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1245): error: Expected equality of these values:
+  -4
+  xpe_calib_load_gain("csp_gx.xcal")
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1243): a block of 5 white-space byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1246): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1243): a block of 5 white-space byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1252): error: Expected equality of these values:
+  -4
+  xpe_calib_load_nonlin_lut("csp_gx.xcal")
+    Which is: 0
+
+[  FAILED  ] ConfigStrictParse.ABlankConfigBlockOfAFileIsRefusedButAnAbsentOneLoads (20 ms)
+[ RUN      ] ConfigStrictParse.TheInitConfigFollowsTheSameRule
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1260): error: Expected equality of these values:
+  -4
+  xpe_preprocess_init(bad)
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: []
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1261): error: Value of: xpe_preprocess_is_initialized()
+  Actual: true
+Expected: false
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: []
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1260): error: Expected equality of these values:
+  -4
+  xpe_preprocess_init(bad)
+    Which is: -1
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: [ ]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1261): error: Value of: xpe_preprocess_is_initialized()
+  Actual: true
+Expected: false
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: [ ]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1260): error: Expected equality of these values:
+  -4
+  xpe_preprocess_init(bad)
+    Which is: -1
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: [
+	]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1261): error: Value of: xpe_preprocess_is_initialized()
+  Actual: true
+Expected: false
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: [
+	]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1260): error: Expected equality of these values:
+  -4
+  xpe_preprocess_init(bad)
+    Which is: -1
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: [[]]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1261): error: Value of: xpe_preprocess_is_initialized()
+  Actual: true
+Expected: false
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: [[]]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1260): error: Expected equality of these values:
+  -4
+  xpe_preprocess_init(bad)
+    Which is: -1
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: [{"mode":"a"} x]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1261): error: Value of: xpe_preprocess_is_initialized()
+  Actual: true
+Expected: false
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: [{"mode":"a"} x]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1260): error: Expected equality of these values:
+  -4
+  xpe_preprocess_init(bad)
+    Which is: -1
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: [{"future":1,"future":2}]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1261): error: Value of: xpe_preprocess_is_initialized()
+  Actual: true
+Expected: false
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: [{"future":1,"future":2}]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1260): error: Expected equality of these values:
+  -4
+  xpe_preprocess_init(bad)
+    Which is: -1
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: [{"a":1,}]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1261): error: Value of: xpe_preprocess_is_initialized()
+  Actual: true
+Expected: false
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1259): init text: [{"a":1,}]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1263): error: Expected equality of these values:
+  0
+  xpe_preprocess_init("{\"mode\":\"clinical\",\"nested\":{\"a\":1},\"other\":{\"a\":2}}")
+    Which is: -1
+
+[  FAILED  ] ConfigStrictParse.TheInitConfigFollowsTheSameRule (0 ms)
+[ RUN      ] ConfigStrictParse.ANumberKeyThatIsNotAJsonNumberIsRefusedNotReadByStrtod
+[       OK ] ConfigStrictParse.ANumberKeyThatIsNotAJsonNumberIsRefusedNotReadByStrtod (0 ms)
+[ RUN      ] ConfigStrictParse.ANullConfigPointerStillMeansTheDefaults
+[       OK ] ConfigStrictParse.ANullConfigPointerStillMeansTheDefaults (0 ms)
+[----------] 28 tests from ConfigStrictParse (677 ms total)
+
+[----------] Global test environment tear-down
+[==========] 41 tests from 3 test suites ran. (769 ms total)
+[  PASSED  ] 38 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] ConfigStrictParse.ABlankConfigTextSuppliedByTheCallerIsRefusedAndNullStillMeansTheDefaults
+[  FAILED  ] ConfigStrictParse.ABlankConfigBlockOfAFileIsRefusedButAnAbsentOneLoads
+[  FAILED  ] ConfigStrictParse.TheInitConfigFollowsTheSameRule
+
+ 3 FAILED TESTS

@@ -36,9 +36,11 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_nonlin_lut(const char* filepath) 
         XCalFileHeader hdr;
         std::vector<uint8_t> config_json;
         std::vector<uint8_t> payload;
+        XpeConfigDoc config;   // parsed once by the reader (QA-A-209c)
         XpeErrorCode rc = read_xcal_file(filepath, hdr, config_json, payload,
                                          /*check_expiry=*/true,
-                                         /*expected_type=*/XCAL_TYPE_NONLIN_LUT);
+                                         /*expected_type=*/XCAL_TYPE_NONLIN_LUT,
+                                         &config);
         if (rc != XPE_OK) return rc;
 
         if (payload.size() % sizeof(uint16_t) != 0) return XPE_ERR_CONFIG_INVALID;
@@ -58,9 +60,8 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_nonlin_lut(const char* filepath) 
         // Absent (an older file, or one from another tool) reads as 0 from the
         // helper's default; treat that as "the whole table is measured" rather
         // than rejecting, but a value past the end is a corrupt record.
-        const std::string json(config_json.begin(), config_json.end());
-        const double ext = xpe_json_get_double(json.c_str(),
-                                               "xcal_nonlin_extension_start", 0.0);
+        double ext = 0.0;
+        (void)config.getNumber("xcal_nonlin_extension_start", &ext);
         if (ext < 0.0 || ext > static_cast<double>(entries)) {
             return XPE_ERR_INVALID_CALIB_DATA;
         }

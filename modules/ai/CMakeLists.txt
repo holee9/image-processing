@@ -426,6 +426,8 @@ if(_XPE_AI_BUILD_TESTS)
         # #130 (QA-B-171C): xpe_bone_suppress through the worker, opt-in; failures
         # reported and replaced by the in-process result
         test_bone_suppress_worker_path.cpp
+        # #233 (QA-B-181h): a non-finite model result is refused, in-process and through the worker
+        test_bone_suppress_nonfinite.cpp
     )
 
     # Check if test files exist in this module's tests/ directory

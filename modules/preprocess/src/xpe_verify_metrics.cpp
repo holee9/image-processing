@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <numeric>
 #include <vector>
+#include <new>
 
 /* =============================================================================
  * ABI LOCK for XpeCalibrationMetrics -- SRS-CALIB-FUNC-037, QA-A-159 (#223)
@@ -145,7 +146,7 @@ namespace {
         return sum / static_cast<double>(values.size());
     }
 
-    double compute_robust_mean(const std::vector<double>& values) noexcept {
+    double compute_robust_mean(const std::vector<double>& values) {   // copies and sorts: allocates, so not noexcept (QA-A-204)
         if (values.empty()) return 0.0;
 
         std::vector<double> sorted = values;
@@ -174,7 +175,7 @@ namespace {
     }
 
     // Helper: Compute histogram entropy for flatness measurement
-    double compute_flatness(const std::vector<double>& values, int bins = 256) noexcept {
+    double compute_flatness(const std::vector<double>& values, int bins = 256) {   // builds a histogram: allocates, so not noexcept (QA-A-204)
         if (values.empty()) return 0.0;
 
         // Find min/max
@@ -260,7 +261,7 @@ namespace {
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT on NULL pointers or dimension mismatch
  */
-XPE_API XpeErrorCode xpe_verify_offset(
+static XpeErrorCode verify_offset_impl(
     const XpeImageBuffer* raw_image,
     const XpeImageBuffer* corrected_image,
     const XpeImageMetadata* metadata,
@@ -477,7 +478,7 @@ XPE_API XpeErrorCode xpe_verify_offset(
  *         XPE_ERR_BUFFER_TOO_SMALL on dimension mismatch
  *         XPE_ERR_UNSUPPORTED_FORMAT on format mismatch
  */
-XPE_API XpeErrorCode xpe_verify_gain(
+static XpeErrorCode verify_gain_impl(
     const XpeImageBuffer* before_gain,
     const XpeImageBuffer* after_gain,
     const XpeImageBuffer* gain_map,
@@ -717,7 +718,7 @@ XPE_API XpeErrorCode xpe_verify_defect(
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT on NULL pointers
  */
-XPE_API XpeErrorCode xpe_verify_pipeline(
+static XpeErrorCode verify_pipeline_impl(
     const XpeImageBuffer* raw_image,
     const XpeImageBuffer* final_image,
     const XpeImageMetadata* metadata,
@@ -800,4 +801,62 @@ XPE_API XpeErrorCode xpe_verify_pipeline(
     metrics->overall_pass = (metrics->snr_improvement_db >= SNR_IMPROVE_MIN_DB);
 
     return XPE_OK;
+}
+
+/* =============================================================================
+ * Exception boundary (QA-A-204, QA-A-201 survey). The three metric functions that build working vectors let
+ * std::bad_alloc out of a C ABI function (and two helpers they call were noexcept, so it was std::terminate).
+ * Each public function is now a guard around its _impl: an allocation failure is XPE_ERR_OUT_OF_MEMORY, any other
+ * exception XPE_ERR_PROCESSING_FAILED, and `*metrics` is zeroed -- never half-filled.
+ * ============================================================================ */
+XPE_API XpeErrorCode xpe_verify_offset(
+    const XpeImageBuffer* raw_image,
+    const XpeImageBuffer* corrected_image,
+    const XpeImageMetadata* metadata,
+    XpeCalibrationMetrics* metrics)
+{
+    try {
+        return verify_offset_impl(raw_image, corrected_image, metadata, metrics);
+    } catch (const std::bad_alloc&) {
+        if (metrics) *metrics = {};
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        if (metrics) *metrics = {};
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+}
+
+XPE_API XpeErrorCode xpe_verify_gain(
+    const XpeImageBuffer* before_gain,
+    const XpeImageBuffer* after_gain,
+    const XpeImageBuffer* gain_map,
+    XpeGainSemantics gain_semantics,
+    XpeCalibrationMetrics* metrics)
+{
+    try {
+        return verify_gain_impl(before_gain, after_gain, gain_map, gain_semantics, metrics);
+    } catch (const std::bad_alloc&) {
+        if (metrics) *metrics = {};
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        if (metrics) *metrics = {};
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+}
+
+XPE_API XpeErrorCode xpe_verify_pipeline(
+    const XpeImageBuffer* raw_image,
+    const XpeImageBuffer* final_image,
+    const XpeImageMetadata* metadata,
+    XpeCalibrationMetrics* metrics)
+{
+    try {
+        return verify_pipeline_impl(raw_image, final_image, metadata, metrics);
+    } catch (const std::bad_alloc&) {
+        if (metrics) *metrics = {};
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        if (metrics) *metrics = {};
+        return XPE_ERR_PROCESSING_FAILED;
+    }
 }

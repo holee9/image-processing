@@ -1,0 +1,1042 @@
+Note: Google Test filter = ConfigStrictParse.*:XCalCompressionMetaTest.*
+[==========] Running 32 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 26 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+[       OK ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[       OK ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (2 ms)
+[ RUN      ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+[       OK ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+[       OK ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable (1 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore (51 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore (29 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule
+[       OK ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule (1 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+[       OK ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly (160 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead
+[       OK ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead (239 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte
+[       OK ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte (203 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted
+[       OK ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted (158 ms)
+[ RUN      ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead
+[       OK ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead (1 ms)
+[ RUN      ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline bypassOffset: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline bypassOffset: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline_ex bypassOffset: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline_ex bypassOffset: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline_batch bypassOffset: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -16
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline_batch bypassOffset: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline detectorTempC: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline detectorTempC: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline binningMode: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline binningMode: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.linear: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.linear: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlinearity_mode: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlinearity_mode: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.target_platform: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.target_platform: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlin_poly_c0: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlin_poly_c0: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlin_poly_c4: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.nonlin_poly_c4: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.adc_max: an unknown key given twice at the top level (QA-A-209b)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): pipeline panel.adc_max: an unknown key given twice, object values  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"future":{},"future":[]}
+
+[  FAILED  ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject (3 ms)
+[ RUN      ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage
+[       OK ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage (1 ms)
+[ RUN      ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create alpha1: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create alpha1: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create alpha1: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create alpha1: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tau2: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tau2: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tau2: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tau2: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tier: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tier: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tier: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create tier: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create nlcscBeta: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create nlcscBeta: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create nlcscBeta: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_ghost_create nlcscBeta: an unknown key given twice, object values  {"future":{},"future":[]}
+
+[  FAILED  ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject (0 ms)
+[ RUN      ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.nonlinearity_mode: an unknown key given twice at the top level (QA-A-209b)  {"panel.nonlin_poly_c1":2.0,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.nonlinearity_mode: an unknown key given twice, object values  {"panel.nonlin_poly_c1":2.0,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.nonlin_poly_c1: an unknown key given twice at the top level (QA-A-209b)  {"panel.nonlinearity_mode":"POLY","future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.nonlin_poly_c1: an unknown key given twice, object values  {"panel.nonlinearity_mode":"POLY","future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.target_platform: an unknown key given twice at the top level (QA-A-209b)  {"panel.nonlinearity_mode":"AUTO","panel.nonlin_poly_c1":2.0,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.target_platform: an unknown key given twice, object values  {"panel.nonlinearity_mode":"AUTO","panel.nonlin_poly_c1":2.0,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.linear: an unknown key given twice at the top level (QA-A-209b)  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.linear: an unknown key given twice at the top level (QA-A-209b)  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.linear: an unknown key given twice, object values  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_nonlinearity_correct panel.linear: an unknown key given twice, object values  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"future":{},"future":[]}
+
+[  FAILED  ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject (1 ms)
+[ RUN      ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset sigma: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset sigma: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset sigma: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset sigma: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset method: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset method: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset method: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset method: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset max_iter: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset max_iter: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset max_iter: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset max_iter: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset lower_percentile: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset lower_percentile: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset lower_percentile: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_generate_offset lower_percentile: an unknown key given twice, object values  {"future":{},"future":[]}
+
+[  FAILED  ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject (15 ms)
+[ RUN      ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_gain (polynomial) dose_min: an unknown key given twice at the top level (QA-A-209b)  {"dose_max":100.0,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_gain (polynomial) dose_min: an unknown key given twice at the top level (QA-A-209b)  {"dose_max":100.0,"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_gain (polynomial) dose_min: an unknown key given twice, object values  {"dose_max":100.0,"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_gain (polynomial) dose_min: an unknown key given twice, object values  {"dose_max":100.0,"future":{},"future":[]}
+
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys (62 ms)
+[ RUN      ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_nonlin_lut xcal_nonlin_extension_start: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_nonlin_lut xcal_nonlin_extension_start: an unknown key given twice at the top level (QA-A-209b)  {"future":1,"future":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(946): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_nonlin_lut xcal_nonlin_extension_start: an unknown key given twice, object values  {"future":{},"future":[]}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(947): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(931): xpe_calib_load_nonlin_lut xcal_nonlin_extension_start: an unknown key given twice, object values  {"future":{},"future":[]}
+
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys (132 ms)
+[ RUN      ] ConfigStrictParse.ABlankConfigTextSuppliedByTheCallerIsRefusedAndNullStillMeansTheDefaults
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline bypassOffset: blank text of 0 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline bypassOffset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline bypassOffset: blank text of 3 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline bypassOffset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline bypassOffset: blank text of 5 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_ex bypassOffset: blank text of 0 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_ex bypassOffset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_ex bypassOffset: blank text of 3 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_ex bypassOffset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_ex bypassOffset: blank text of 5 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_batch bypassOffset: blank text of 0 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_batch bypassOffset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_batch bypassOffset: blank text of 3 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_batch bypassOffset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: -8
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): pipeline_batch bypassOffset: blank text of 5 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 0 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 0 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 3 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 3 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 5 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_ghost_create alpha1: blank text of 5 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_nonlinearity_correct panel.linear: blank text of 0 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_nonlinearity_correct panel.linear: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_nonlinearity_correct panel.linear: blank text of 3 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_nonlinearity_correct panel.linear: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_nonlinearity_correct panel.linear: blank text of 5 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 0 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 0 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 3 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 3 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 1 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1226): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+a blank text is not a configuration
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 5 byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1227): error: Value of: o.unchanged
+  Actual: false
+Expected: true
+a refused configuration changed something
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1221): xpe_calib_generate_offset: blank text of 5 byte(s)
+
+[  FAILED  ] ConfigStrictParse.ABlankConfigTextSuppliedByTheCallerIsRefusedAndNullStillMeansTheDefaults (3 ms)
+[ RUN      ] ConfigStrictParse.ABlankConfigBlockOfAFileIsRefusedButAnAbsentOneLoads
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1245): error: Expected equality of these values:
+  -4
+  xpe_calib_load_gain("csp_gx.xcal")
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1243): a block of 1 white-space byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1246): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1243): a block of 1 white-space byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1245): error: Expected equality of these values:
+  -4
+  xpe_calib_load_gain("csp_gx.xcal")
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1243): a block of 3 white-space byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1246): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1243): a block of 3 white-space byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1245): error: Expected equality of these values:
+  -4
+  xpe_calib_load_gain("csp_gx.xcal")
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1243): a block of 1 white-space byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1246): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1243): a block of 1 white-space byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1245): error: Expected equality of these values:
+  -4
+  xpe_calib_load_gain("csp_gx.xcal")
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1243): a block of 5 white-space byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1246): error: The difference between 250.0f and gainResult() is 250, which exceeds 0.01f, where
+250.0f evaluates to 250,
+gainResult() evaluates to 500, and
+0.01f evaluates to 0.0099999997764825821.
+a refused file must not have replaced the gain map
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1243): a block of 5 white-space byte(s)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1252): error: Expected equality of these values:
+  -4
+  xpe_calib_load_nonlin_lut("csp_gx.xcal")
+    Which is: 0
+
+[  FAILED  ] ConfigStrictParse.ABlankConfigBlockOfAFileIsRefusedButAnAbsentOneLoads (27 ms)
+[ RUN      ] ConfigStrictParse.ANullConfigPointerStillMeansTheDefaults
+[       OK ] ConfigStrictParse.ANullConfigPointerStillMeansTheDefaults (0 ms)
+[----------] 26 tests from ConfigStrictParse (1103 ms total)
+
+[----------] 6 tests from XCalCompressionMetaTest
+[ RUN      ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(495): error: Expected equality of these values:
+  0
+  readDefect(&payload)
+    Which is: -4
+a key inside a nested object is not compression metadata
+
+[  FAILED  ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed (5 ms)
+[ RUN      ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(519): error: Expected equality of these values:
+  0
+  xpe_calib_load_offset(path)
+    Which is: -4
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(526): error: Expected equality of these values:
+  0
+  xpe_calib_load_defect_map(path)
+    Which is: -4
+
+[  FAILED  ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither (5 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(537): error: Expected equality of these values:
+  0
+  readDefect(&payload)
+    Which is: -4
+the decoy's 999 was read instead of the top-level 4096
+
+[  FAILED  ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem (16 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(549): error: Expected equality of these values:
+  -4
+  readDefect()
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(547): {"xcal_compression":1,"xcal_compression":1,"xcal_raw_payload_len":4096}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(549): error: Expected equality of these values:
+  -4
+  readDefect()
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(547): {"xcal_compression":1,"xcal_raw_payload_len":4096,"xcal_raw_payload_len":4096}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(549): error: Expected equality of these values:
+  -4
+  readDefect()
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(547): {"xcal_compression":1,"xcal_raw_payload_len":4096,"future":1,"future":2}
+
+[  FAILED  ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused (13 ms)
+[ RUN      ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(567): error: Expected equality of these values:
+  -4
+  readDefect()
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(565): {"xcal_compression":1,"xcal_raw_payload_len":4096
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(567): error: Expected equality of these values:
+  -4
+  readDefect()
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(565): [{"xcal_compression":1,"xcal_raw_payload_len":4096}]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(567): error: Expected equality of these values:
+  -4
+  readDefect()
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(565): {"xcal_compression":1,"xcal_raw_payload_len":4096} x
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(567): error: Expected equality of these values:
+  -4
+  readDefect()
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_compression.cpp(565): {"xcal_compression":1.5,"xcal_raw_payload_len":4096}
+
+[  FAILED  ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused (40 ms)
+[ RUN      ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo
+[       OK ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo (23 ms)
+[----------] 6 tests from XCalCompressionMetaTest (105 ms total)
+
+[----------] Global test environment tear-down
+[==========] 32 tests from 2 test suites ran. (1208 ms total)
+[  PASSED  ] 19 tests.
+[  FAILED  ] 13 tests, listed below:
+[  FAILED  ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys
+[  FAILED  ] ConfigStrictParse.ABlankConfigTextSuppliedByTheCallerIsRefusedAndNullStillMeansTheDefaults
+[  FAILED  ] ConfigStrictParse.ABlankConfigBlockOfAFileIsRefusedButAnAbsentOneLoads
+[  FAILED  ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed
+[  FAILED  ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither
+[  FAILED  ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem
+[  FAILED  ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused
+[  FAILED  ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused
+
+13 FAILED TESTS

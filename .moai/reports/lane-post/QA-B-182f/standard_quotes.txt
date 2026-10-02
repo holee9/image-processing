@@ -1,0 +1,42 @@
+QA-B-182f: text of the DICOM Standard read for this card. Edition: the pages' own header says "DICOM PS3.3 2026d" (the
+"current" edition when fetched). Quotes are verbatim from an HTML-to-text conversion of the page.
+
+[1] PS3.3 Table C.7-11c Image Pixel Description Macro Attributes (the Type 1 list the card asks about)
+    URL: https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.3.3.html
+    (reached through the link on https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.3.html)
+
+    Attribute Name | Tag | Type
+    Samples per Pixel          (0028,0002) 1   "Number of samples (planes) in this image."
+    Photometric Interpretation (0028,0004) 1   "Specifies the intended interpretation of the pixel data."
+    Rows                       (0028,0010) 1   "Number of rows in the image."
+    Columns                    (0028,0011) 1   "Number of columns in the image."
+    Bits Allocated             (0028,0100) 1   "Number of bits allocated for each pixel sample. Each sample shall have the same number of bits allocated. Bits Allocated (0028,0100) shall be either 1, or a multiple of 8."
+    Bits Stored                (0028,0101) 1   "Number of bits stored for each pixel sample. Each sample shall have the same number of bits stored."
+    High Bit                   (0028,0102) 1   "Most significant bit for pixel sample data. Each sample shall have the same high bit. High Bit (0028,0102) shall be one less than Bits Stored (0028,0101)."
+    Pixel Representation       (0028,0103) 1   "Data representation of the pixel samples. ... Enumerated Values: 0000H unsigned integer. 0001H 2's complement"
+    Planar Configuration       (0028,0006) 1C  "Required if Samples per Pixel (0028,0002) has a Value greater than 1."
+    Pixel Aspect Ratio         (0028,0034) 1C  "Required if the aspect ratio values do not have a ratio of 1:1 and the physical pixel spacing is not specified by ..."
+    Smallest / Largest Image Pixel Value (0028,0106/0107) 3
+    Red / Green / Blue Palette Color Lookup Table Descriptor (0028,1101-1103) 1C  "Required if Photometric Interpretation (0028,0004) has a Value of PALETTE COLOR ..."
+
+    (This table also closes the gap QA-B-182e reported: PS3.3 states the BitsAllocated and HighBit rules itself, in the same words as PS3.5 8.1.1.)
+
+[2] PS3.3 C.7.6.3.1.2 Photometric Interpretation
+    URL: https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.3.html
+
+    "The Value of Photometric Interpretation (0028,0004) specifies the intended interpretation of the image pixel data. ...
+     The following Values are defined. Other Values are permitted if supported by the Transfer Syntax but the meaning is not defined by this Standard."
+    MONOCHROME1: "Pixel data represent a single monochrome image plane. The minimum sample value is intended to be displayed as white after any VOI gray scale transformations have been performed. ... This Value may be used only when Samples per Pixel (0028,0002) has a Value of 1."
+    MONOCHROME2: "Pixel data represent a single monochrome image plane. The minimum sample value is intended to be displayed as black after any VOI gray scale transformations have been performed. ... This Value may be used only when Samples per Pixel (0028,0002) has a Value of 1."
+    PALETTE COLOR: "Pixel data describe a color image with a single sample per pixel (single image plane). The pixel value is used as an index into each of the Red, Blue, and Green Palette Color Lookup Tables (0028,1101-1103) and (0028,1201-1203). This Value may be used only when Samples per Pixel (0028,0002) has a Value of 1. ... When the Photometric Interpretation is Palette Color; Red, Blue, and Green Palette Color Lookup Tables shall be present."
+    RGB: "Pixel data represent a color image described by red, green, and blue image planes. ... This Value may be used only when Samples per Pixel (0028,0002) has a Value of 3."
+    YBR_FULL, YBR_PARTIAL_420, YBR_ICT, YBR_RCT: "This photometric interpretation may be used only when Samples per Pixel (0028,0002) has a Value of 3."
+    YBR_FULL_422: "The same as YBR_FULL except that the CB and CR values are sampled horizontally at half the Y rate ..."  (read as three-sample like YBR_FULL; the page does not repeat the sentence)
+    HSV, ARGB, CMYK: "Retired. See PS3.3-2001."
+    XYB: defined as a colour model; the page's sentence on Samples per Pixel for it was not read.
+
+[3] CS value padding. PS3.5 Table 6.2-1 (6.2 Value Representation), VR "CS Code String"
+    URL: https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html
+    "CS Code String  A string of characters identifying a controlled concept. Leading or trailing spaces (20H) are not significant."
+    The reader's behaviour was also measured: " MONOCHROME2" and "MONOCHROME2 " both read as MONOCHROME2 (QA-B-182f test rows
+    monochrome2_padded and monochrome2_leading_space) with no trimming in the reader: DCMTK normalises the string.

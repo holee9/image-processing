@@ -1,0 +1,5 @@
+BUILD_EXIT=0
+arm gain_range_unchecked dll exit=1
+
+[  FAILED  ] GainPolyPolicyTest.AGainOutsideTheAppliersRangeIsRefusedEvenWhenTheFitIsExact
+RESTORED generator

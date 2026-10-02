@@ -214,6 +214,27 @@ if(_XPE_BUILD_TESTS)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
+    # QA-B-181f (#233): a non-finite pixel is refused, not accepted as success; the finite request whose result
+    # would not be finite is refused too.
+    add_executable(test_display_nonfinite_pixels
+        tests/test_nonfinite_pixels.cpp
+    )
+    target_include_directories(test_display_nonfinite_pixels PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(test_display_nonfinite_pixels PRIVATE
+        xpe_display
+        GTest::gtest_main
+    )
+    target_compile_features(test_display_nonfinite_pixels PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_display_nonfinite_pixels PRIVATE /W4)
+    endif()
+    xpe_target_warnings_as_errors(test_display_nonfinite_pixels)
+    gtest_discover_tests(test_display_nonfinite_pixels
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
     # --- test_display_integration (REQ-DISP-029..035) ---
     add_executable(test_display_integration
         tests/test_display_integration.cpp

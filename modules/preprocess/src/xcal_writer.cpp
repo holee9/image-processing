@@ -84,7 +84,13 @@ static std::string build_config_json(
             if (brace_pos != std::string::npos) {
                 meta_str = meta_str.substr(brace_pos + 1);
             }
-            result = caller_str + "," + meta_str + "}";
+            // The merged text ends with its own closing brace below, so the one meta carries is dropped: keeping
+            // both made "...}}", which is not JSON (QA-A-209b; the old substring reader never noticed).
+            if (!meta_str.empty() && meta_str.back() == '}') meta_str.pop_back();
+            // "{}" (no members) must not become "{,...}": a comma only after an existing member
+            size_t tail = caller_str.find_last_not_of(" \t\r\n");
+            const bool has_members = tail != std::string::npos && caller_str[tail] != '{';
+            result = caller_str + (has_members ? "," : "") + meta_str + "}";
         } else {
             result = meta;
         }

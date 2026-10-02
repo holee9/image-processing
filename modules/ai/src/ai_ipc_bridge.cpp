@@ -37,12 +37,15 @@
  */
 
 #include "ai_ipc_bridge.h"
+#include "ai_finite.h"
 #include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <map>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 // ============================================================================
@@ -178,6 +181,91 @@ bool ParseErrorCode(const std::string& body, int* out) {
     while (*p == ' ') ++p;
     if (*p != ',' && *p != '}' && *p != '\0') return false;   // "-9.5", "-9abc": not an integer
     *out = static_cast<int>(-value);
+    return true;
+}
+
+/**
+ * QA-B-181j (Codex #65): is @p json a valid success envelope for a request of @p width x @p height?
+ *
+ * The worker's reply JSON is one flat object: {"success":true,"width":W,"height":H,"format":"float32"}.
+ * This is a strict parser for exactly that shape -- an object of string keys whose values are strings,
+ * non-negative integers, true, false or null; no nesting, no duplicate keys, nothing after the closing
+ * brace -- followed by the semantic checks: success is the boolean true, width and height equal the request,
+ * format is "float32". Anything else is false. (Keys the worker may add later are accepted if they are
+ * well formed; the four named ones are required.)
+ *
+ * WHAT THIS DOES NOT PROVE: that the worker is healthy. A well-formed envelope on a reply whose pixels
+ * are garbage is still a garbage reply that happens to be well formed; the check only stops a reply with a
+ * BROKEN envelope from being taken for an answer.
+ */
+bool ValidSuccessEnvelope(const char* json, size_t n, uint32_t width, uint32_t height) {
+    size_t i = 0;
+    auto ws = [&] { while (i < n && (json[i] == ' ' || json[i] == '\t' || json[i] == '\r' || json[i] == '\n')) ++i; };
+    auto str = [&](std::string* out) {
+        if (i >= n || json[i] != '"') return false;
+        ++i;
+        const size_t start = i;
+        while (i < n && json[i] != '"') {
+            if (json[i] == '\\' || static_cast<unsigned char>(json[i]) < 0x20) return false;   // no escapes in this protocol
+            ++i;
+        }
+        if (i >= n) return false;
+        out->assign(json + start, i - start);
+        ++i;
+        return true;
+    };
+    ws();
+    if (i >= n || json[i] != '{') return false;
+    ++i;
+    std::map<std::string, std::string> kv;   // value kept as its raw text; strings keep a leading quote marker
+    ws();
+    if (i < n && json[i] == '}') {
+        ++i;
+    } else {
+        for (;;) {
+            ws();
+            std::string key;
+            if (!str(&key)) return false;
+            ws();
+            if (i >= n || json[i] != ':') return false;
+            ++i;
+            ws();
+            std::string val;
+            if (i < n && json[i] == '"') {
+                std::string s;
+                if (!str(&s)) return false;
+                val = "\"" + s;
+            } else if (i < n && json[i] >= '0' && json[i] <= '9') {
+                const size_t start = i;
+                while (i < n && json[i] >= '0' && json[i] <= '9') ++i;
+                if (i - start > 10) return false;
+                val.assign(json + start, i - start);
+            } else if (n - i >= 4 && std::memcmp(json + i, "true", 4) == 0) {
+                val = "true"; i += 4;
+            } else if (n - i >= 5 && std::memcmp(json + i, "false", 5) == 0) {
+                val = "false"; i += 5;
+            } else if (n - i >= 4 && std::memcmp(json + i, "null", 4) == 0) {
+                val = "null"; i += 4;
+            } else {
+                return false;
+            }
+            if (!kv.emplace(key, val).second) return false;   // duplicate key
+            ws();
+            if (i < n && json[i] == ',') { ++i; continue; }
+            if (i < n && json[i] == '}') { ++i; break; }
+            return false;
+        }
+    }
+    ws();
+    if (i != n) return false;   // trailing junk
+    auto it = kv.find("success");
+    if (it == kv.end() || it->second != "true") return false;
+    it = kv.find("width");
+    if (it == kv.end() || it->second != std::to_string(width)) return false;
+    it = kv.find("height");
+    if (it == kv.end() || it->second != std::to_string(height)) return false;
+    it = kv.find("format");
+    if (it == kv.end() || it->second != "\"float32") return false;
     return true;
 }
 
@@ -439,6 +527,7 @@ XpeErrorCode xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge,
     if (!bridge || !pixels_in || !pixels_out || width == 0 || height == 0) {
         return XPE_ERR_INVALID_INPUT;
     }
+    bridge->last_result_nonfinite = false;
     const uint64_t count = static_cast<uint64_t>(width) * height;
     // 4 (length prefix) + metadata + pixels must fit one protocol payload.
     if (count > (XPE_AI_MAX_PAYLOAD_SIZE - 512u) / sizeof(float)) {
@@ -527,7 +616,29 @@ XpeErrorCode xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge,
         DropConnection(bridge);   // pixel count does not match what was sent
         return XPE_ERR_IO_FAILED;
     }
-    std::memcpy(pixels_out, reply.data() + sizeof(uint32_t) + reply_json, pixel_bytes);
+    // QA-B-181j: the envelope is judged BEFORE the pixels. A reply whose JSON is missing, unparseable, not
+    // a success, or about another size or format is a protocol fault -- the connection is dropped and the
+    // call is XPE_ERR_IO_FAILED, which the product counts -- whatever its pixels hold. Only a valid success
+    // envelope can reach the non-finite classification below, so garbage cannot borrow its exemption.
+    if (!ValidSuccessEnvelope(reinterpret_cast<const char*>(reply.data()) + sizeof(uint32_t), reply_json,
+                              width, height)) {
+        DropConnection(bridge);
+        return XPE_ERR_IO_FAILED;
+    }
+    // QA-B-181h: the bridge, not the worker, is where a non-finite result is refused. The worker is a
+    // separate process whose reply this side cannot vouch for, and this check also holds for any worker
+    // that answers success with such pixels (a model without the check, a fake one). The judgment comes
+    // BEFORE the copy, so a refusal leaves pixels_out untouched. The connection stays up: the frame was
+    // well formed, the pixels are what the model computed.
+    const uint8_t* reply_pixels = reply.data() + sizeof(uint32_t) + reply_json;
+    // The answer is XPE_ERR_PROCESSING_FAILED (the request was valid and finite; the model could not give a
+    // result), and last_result_nonfinite tells the caller this is NOT a worker or transport fault (QA-B-181i,
+    // Codex #63): the worker answered correctly, so it must not count toward the failure ceiling.
+    if (!xpe::ai::AllFinite(reply_pixels, count)) {
+        bridge->last_result_nonfinite = true;
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+    std::memcpy(pixels_out, reply_pixels, pixel_bytes);
     return XPE_OK;
 }
 

@@ -1,0 +1,395 @@
+Note: Google Test filter = BoneSuppressNonFinite*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from BoneSuppressNonFinite
+[ RUN      ] BoneSuppressNonFinite.InProcessRefusesAFiniteInputWhoseResultLeavesFloat
+[2026-10-02 11:23:50.792] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 11:23:50.856] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-02 11:23:50.856] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(132): error: Expected equality of these values:
+  -3
+  rc
+    Which is: -1
+FLT_MAX_first round 1
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+FLT_MAX_first round 1: the refusal did not alert
+
+[2026-10-02 11:23:50.864] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(132): error: Expected equality of these values:
+  -3
+  rc
+    Which is: -1
+FLT_MAX_middle round 2
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+FLT_MAX_middle round 2: the refusal did not alert
+
+[2026-10-02 11:23:50.864] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(132): error: Expected equality of these values:
+  -3
+  rc
+    Which is: -1
+FLT_MAX_last round 3
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+FLT_MAX_last round 3: the refusal did not alert
+
+[2026-10-02 11:23:50.864] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(132): error: Expected equality of these values:
+  -3
+  rc
+    Which is: -1
+minus_FLT_MAX round 4
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+minus_FLT_MAX round 4: the refusal did not alert
+
+[2026-10-02 11:23:50.864] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(132): error: Expected equality of these values:
+  -3
+  rc
+    Which is: -1
+just_above_half_FLT_MAX round 5
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+just_above_half_FLT_MAX round 5: the refusal did not alert
+
+[2026-10-02 11:23:50.864] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(132): error: Expected equality of these values:
+  -3
+  rc
+    Which is: -1
+FLT_MAX_first round 6
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+FLT_MAX_first round 6: the refusal did not alert
+
+[2026-10-02 11:23:50.865] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(132): error: Expected equality of these values:
+  -3
+  rc
+    Which is: -1
+FLT_MAX_middle round 7
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+FLT_MAX_middle round 7: the refusal did not alert
+
+[2026-10-02 11:23:50.865] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(132): error: Expected equality of these values:
+  -3
+  rc
+    Which is: -1
+FLT_MAX_last round 8
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+FLT_MAX_last round 8: the refusal did not alert
+
+[2026-10-02 11:23:50.865] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(132): error: Expected equality of these values:
+  -3
+  rc
+    Which is: -1
+minus_FLT_MAX round 9
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+minus_FLT_MAX round 9: the refusal did not alert
+
+[2026-10-02 11:23:50.865] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(132): error: Expected equality of these values:
+  -3
+  rc
+    Which is: -1
+just_above_half_FLT_MAX round 10
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+just_above_half_FLT_MAX round 10: the refusal did not alert
+
+[2026-10-02 11:23:50.865] [info] xpe_ai shutdown: worker_pid=0
+[  FAILED  ] BoneSuppressNonFinite.InProcessRefusesAFiniteInputWhoseResultLeavesFloat (73 ms)
+[ RUN      ] BoneSuppressNonFinite.WorkerPathRefusesAFiniteInputWhoseResultLeavesFloat
+[2026-10-02 11:23:50.865] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 11:23:50.978] [warning] bone_suppress: worker path failed (-1), input returned unchanged (1 of 3 consecutive failures)
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(132): error: Expected equality of these values:
+  -3
+  rc
+    Which is: -1
+FLT_MAX_first round 1
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+FLT_MAX_first round 1: the refusal did not alert
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(137): error: Expected equality of these values:
+  0
+  CountAlerts(kWorkerFailedNeedle)
+    Which is: 1
+FLT_MAX_first round 1: counted as a worker fault
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(143): error: Expected equality of these values:
+  0u
+    Which is: 0
+  w.failures
+    Which is: 1
+FLT_MAX_first round 1: counted toward the ceiling
+
+[2026-10-02 11:23:50.978] [warning] bone_suppress: worker path failed (-1), input returned unchanged (2 of 3 consecutive failures)
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(132): error: Expected equality of these values:
+  -3
+  rc
+    Which is: -1
+FLT_MAX_middle round 2
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+FLT_MAX_middle round 2: the refusal did not alert
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(137): error: Expected equality of these values:
+  0
+  CountAlerts(kWorkerFailedNeedle)
+    Which is: 1
+FLT_MAX_middle round 2: counted as a worker fault
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(143): error: Expected equality of these values:
+  0u
+    Which is: 0
+  w.failures
+    Which is: 2
+FLT_MAX_middle round 2: counted toward the ceiling
+
+[2026-10-02 11:23:50.978] [warning] bone_suppress: worker path failed (-1), input returned unchanged (3 of 3 consecutive failures)
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(132): error: Expected equality of these values:
+  -3
+  rc
+    Which is: -1
+FLT_MAX_last round 3
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+FLT_MAX_last round 3: the refusal did not alert
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(137): error: Expected equality of these values:
+  0
+  CountAlerts(kWorkerFailedNeedle)
+    Which is: 1
+FLT_MAX_last round 3: counted as a worker fault
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(142): error: Expected equality of these values:
+  1
+  w.state
+    Which is: 2
+FLT_MAX_last round 3: the worker was switched off
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(143): error: Expected equality of these values:
+  0u
+    Which is: 0
+  w.failures
+    Which is: 3
+FLT_MAX_last round 3: counted toward the ceiling
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+minus_FLT_MAX round 4: the refusal did not alert
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(142): error: Expected equality of these values:
+  1
+  w.state
+    Which is: 2
+minus_FLT_MAX round 4: the worker was switched off
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(143): error: Expected equality of these values:
+  0u
+    Which is: 0
+  w.failures
+    Which is: 3
+minus_FLT_MAX round 4: counted toward the ceiling
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+just_above_half_FLT_MAX round 5: the refusal did not alert
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(142): error: Expected equality of these values:
+  1
+  w.state
+    Which is: 2
+just_above_half_FLT_MAX round 5: the worker was switched off
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(143): error: Expected equality of these values:
+  0u
+    Which is: 0
+  w.failures
+    Which is: 3
+just_above_half_FLT_MAX round 5: counted toward the ceiling
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+FLT_MAX_first round 6: the refusal did not alert
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(142): error: Expected equality of these values:
+  1
+  w.state
+    Which is: 2
+FLT_MAX_first round 6: the worker was switched off
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(143): error: Expected equality of these values:
+  0u
+    Which is: 0
+  w.failures
+    Which is: 3
+FLT_MAX_first round 6: counted toward the ceiling
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+FLT_MAX_middle round 7: the refusal did not alert
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(142): error: Expected equality of these values:
+  1
+  w.state
+    Which is: 2
+FLT_MAX_middle round 7: the worker was switched off
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(143): error: Expected equality of these values:
+  0u
+    Which is: 0
+  w.failures
+    Which is: 3
+FLT_MAX_middle round 7: counted toward the ceiling
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+FLT_MAX_last round 8: the refusal did not alert
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(142): error: Expected equality of these values:
+  1
+  w.state
+    Which is: 2
+FLT_MAX_last round 8: the worker was switched off
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(143): error: Expected equality of these values:
+  0u
+    Which is: 0
+  w.failures
+    Which is: 3
+FLT_MAX_last round 8: counted toward the ceiling
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+minus_FLT_MAX round 9: the refusal did not alert
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(142): error: Expected equality of these values:
+  1
+  w.state
+    Which is: 2
+minus_FLT_MAX round 9: the worker was switched off
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(143): error: Expected equality of these values:
+  0u
+    Which is: 0
+  w.failures
+    Which is: 3
+minus_FLT_MAX round 9: counted toward the ceiling
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(136): error: Expected equality of these values:
+  1
+  CountAlerts(kNonFiniteNeedle)
+    Which is: 0
+just_above_half_FLT_MAX round 10: the refusal did not alert
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(142): error: Expected equality of these values:
+  1
+  w.state
+    Which is: 2
+just_above_half_FLT_MAX round 10: the worker was switched off
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(143): error: Expected equality of these values:
+  0u
+    Which is: 0
+  w.failures
+    Which is: 3
+just_above_half_FLT_MAX round 10: counted toward the ceiling
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(153): error: Expected equality of these values:
+  0
+  xpe_bone_suppress(&in.buf, &out.buf, nullptr)
+    Which is: -3
+the session stopped serving ordinary images
+
+[2026-10-02 11:23:50.986] [info] xpe_ai shutdown: worker_pid=0
+[  FAILED  ] BoneSuppressNonFinite.WorkerPathRefusesAFiniteInputWhoseResultLeavesFloat (121 ms)
+[ RUN      ] BoneSuppressNonFinite.OrdinaryPixelsStillGiveExactlyTwiceTheInputInBothPaths
+[2026-10-02 11:23:50.986] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 11:23:50.987] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-02 11:23:50.987] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 11:23:50.987] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 11:23:51.058] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] BoneSuppressNonFinite.OrdinaryPixelsStillGiveExactlyTwiceTheInputInBothPaths (79 ms)
+[ RUN      ] BoneSuppressNonFinite.ALargestFiniteResultIsNotRefused
+[2026-10-02 11:23:51.065] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 11:23:51.066] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-02 11:23:51.066] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] BoneSuppressNonFinite.ALargestFiniteResultIsNotRefused (0 ms)
+[ RUN      ] BoneSuppressNonFinite.WorkerFaultsStillSwitchTheWorkerOffAtTheCeiling
+[2026-10-02 11:23:51.066] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-02 11:23:51.099] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 11:23:51.099] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-02 11:23:51.099] [warning] bone_suppress: worker path failed (-9), input returned unchanged (3 of 3 consecutive failures)
+[2026-10-02 11:23:51.102] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] BoneSuppressNonFinite.WorkerFaultsStillSwitchTheWorkerOffAtTheCeiling (35 ms)
+[----------] 5 tests from BoneSuppressNonFinite (310 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (310 ms total)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] BoneSuppressNonFinite.InProcessRefusesAFiniteInputWhoseResultLeavesFloat
+[  FAILED  ] BoneSuppressNonFinite.WorkerPathRefusesAFiniteInputWhoseResultLeavesFloat
+
+ 2 FAILED TESTS

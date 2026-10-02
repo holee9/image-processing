@@ -1,0 +1,139 @@
+Note: Google Test filter = GainPolyPolicyTest.*
+[==========] Running 13 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 13 tests from GainPolyPolicyTest
+[ RUN      ] GainPolyPolicyTest.OnRealDataEveryPixelFitAndTheFileAreAtLeastAsGoodAsTheMean
+[       OK ] GainPolyPolicyTest.OnRealDataEveryPixelFitAndTheFileAreAtLeastAsGoodAsTheMean (24 ms)
+[ RUN      ] GainPolyPolicyTest.OnNoiseOnlyDataTheFileRSquaredIsNotNegativeEither
+[       OK ] GainPolyPolicyTest.OnNoiseOnlyDataTheFileRSquaredIsNotNegativeEither (15 ms)
+[ RUN      ] GainPolyPolicyTest.EveryStoredPolynomialIsMonotoneOverTheMeasuredRangeInEitherDirection
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(386): error: Expected equality of these values:
+  0u
+    Which is: 0
+  bad
+    Which is: 1
+stored polynomials that turn inside the measured range (decided analytically, on the stored float32 coefficients)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(378): noise only, max degree 3
+
+[  FAILED  ] GainPolyPolicyTest.EveryStoredPolynomialIsMonotoneOverTheMeasuredRangeInEitherDirection (45 ms)
+[ RUN      ] GainPolyPolicyTest.TheDegreeOfEveryPixelIsThatOfAnIndependentLeastSquaresAndMonotoneCascade
+[       OK ] GainPolyPolicyTest.TheDegreeOfEveryPixelIsThatOfAnIndependentLeastSquaresAndMonotoneCascade (18 ms)
+[ RUN      ] GainPolyPolicyTest.ADecreasingCurveIsKeptAndAFallingThenRisingOneIsReplacedByTheLeastSquaresLine
+[       OK ] GainPolyPolicyTest.ADecreasingCurveIsKeptAndAFallingThenRisingOneIsReplacedByTheLeastSquaresLine (12 ms)
+[ RUN      ] GainPolyPolicyTest.PixelsTheOldPolicyFittedAtDegreeTwoOrMoreAreStoredBitForBit
+[       OK ] GainPolyPolicyTest.PixelsTheOldPolicyFittedAtDegreeTwoOrMoreAreStoredBitForBit (8 ms)
+[ DISABLED ] GainPolyPolicyTest.DISABLED_PrintGolden
+[ RUN      ] GainPolyPolicyTest.TheSyntheticLadderOfTheFixtureGeneratorNoLongerReportsANegativeRSquared
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+gain_poly.xcal 9155a5f3458fcd2772ef9346e223639a8da6eb3029a8059a2cfd9d0a8874ae1e  (degree<=2, 4 dose levels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_gpp_11478_TheSyntheticLadderOfTheFixtureGeneratorNoLongerReportsANegativeRSquared\manifest.json
+[       OK ] GainPolyPolicyTest.TheSyntheticLadderOfTheFixtureGeneratorNoLongerReportsANegativeRSquared (132 ms)
+[ RUN      ] GainPolyPolicyTest.TheOracleItselfSeesATurnBetweenTwoSamples
+[       OK ] GainPolyPolicyTest.TheOracleItselfSeesATurnBetweenTwoSamples (0 ms)
+[ RUN      ] GainPolyPolicyTest.ACurveThatTurnsBetweenTwoSamplesOfTheOldRuleIsNotMonotoneAndGetsTheLeastSquaresLine
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(542): error: Expected equality of these values:
+  1
+  fit.degree(0)
+    Which is: 2
+the derivative changes sign at 1001: not monotone, so the line
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(544): error: Expected equality of these values:
+  1
+  fit.degree(2)
+    Which is: 2
+the mirror turns too
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(548): error: Value of: monotoneOverInterval(c, doses.front(), doses.back())
+  Actual: false
+Expected: true
+pixel 0 is stored non-monotone
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(548): error: Value of: monotoneOverInterval(c, doses.front(), doses.back())
+  Actual: false
+Expected: true
+pixel 2 is stored non-monotone
+
+[  FAILED  ] GainPolyPolicyTest.ACurveThatTurnsBetweenTwoSamplesOfTheOldRuleIsNotMonotoneAndGetsTheLeastSquaresLine (12 ms)
+[ RUN      ] GainPolyPolicyTest.TheDegreeIsDecidedOnTheCoefficientsAsStoredNotOnTheDoubleOnes
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(576): error: Expected: (differ) > (0u), actual: 0 vs 0
+control: at least one pixel is monotone in double and not in float32, so the stored form matters
+
+[  FAILED  ] GainPolyPolicyTest.TheDegreeIsDecidedOnTheCoefficientsAsStoredNotOnTheDoubleOnes (9 ms)
+[ RUN      ] GainPolyPolicyTest.ANonFiniteDoseIsRefusedBeforeAnyFileIsReadOrAnyStateChanges
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(598): error: Expected equality of these values:
+  -1
+  xpe_calib_generate_gain_polynomial(paths, doses.data(), 4, 2, out.c_str())
+    Which is: -9
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(595): doses 1.000000 2.000000 3.000000 inf
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(598): error: Expected equality of these values:
+  -1
+  xpe_calib_generate_gain_polynomial(paths, doses.data(), 4, 2, out.c_str())
+    Which is: -9
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(595): doses -inf 2.000000 3.000000 4.000000
+
+[  FAILED  ] GainPolyPolicyTest.ANonFiniteDoseIsRefusedBeforeAnyFileIsReadOrAnyStateChanges (0 ms)
+[ RUN      ] GainPolyPolicyTest.ANonFiniteGainValueIsRefusedAsBadCalibrationDataAndNeverStoredAsNanCoefficients
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(619): error: Expected equality of these values:
+  -17
+  xpe_calib_generate_gain_polynomial(cp.data(), doses.data(), 4, 2, out.c_str())
+    Which is: 0
+a gain value of nan
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(621): error: Value of: fs::exists(out)
+  Actual: true
+Expected: false
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(619): error: Expected equality of these values:
+  -17
+  xpe_calib_generate_gain_polynomial(cp.data(), doses.data(), 4, 2, out.c_str())
+    Which is: 0
+a gain value of inf
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(621): error: Value of: fs::exists(out)
+  Actual: true
+Expected: false
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(619): error: Expected equality of these values:
+  -17
+  xpe_calib_generate_gain_polynomial(cp.data(), doses.data(), 4, 2, out.c_str())
+    Which is: 0
+a gain value of -inf
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(621): error: Value of: fs::exists(out)
+  Actual: true
+Expected: false
+
+[  FAILED  ] GainPolyPolicyTest.ANonFiniteGainValueIsRefusedAsBadCalibrationDataAndNeverStoredAsNanCoefficients (18 ms)
+[ RUN      ] GainPolyPolicyTest.CloseDosesAreFittedAccuratelyAndNothingBecomesNonFinite
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(281): error: Expected equality of these values:
+  0
+  xpe_calib_generate_gain_polynomial(cpaths.data(), doses.data(), static_cast<int32_t>(doses.size()), maxDegree, out.c_str())
+    Which is: -3
+
+unknown file: error: SEH exception with code 0xc0000005 thrown in the test body.
+Stack trace:
+
+
+[  FAILED  ] GainPolyPolicyTest.CloseDosesAreFittedAccuratelyAndNothingBecomesNonFinite (17 ms)
+[----------] 13 tests from GainPolyPolicyTest (317 ms total)
+
+[----------] Global test environment tear-down
+[==========] 13 tests from 1 test suite ran. (317 ms total)
+[  PASSED  ] 7 tests.
+[  FAILED  ] 6 tests, listed below:
+[  FAILED  ] GainPolyPolicyTest.EveryStoredPolynomialIsMonotoneOverTheMeasuredRangeInEitherDirection
+[  FAILED  ] GainPolyPolicyTest.ACurveThatTurnsBetweenTwoSamplesOfTheOldRuleIsNotMonotoneAndGetsTheLeastSquaresLine
+[  FAILED  ] GainPolyPolicyTest.TheDegreeIsDecidedOnTheCoefficientsAsStoredNotOnTheDoubleOnes
+[  FAILED  ] GainPolyPolicyTest.ANonFiniteDoseIsRefusedBeforeAnyFileIsReadOrAnyStateChanges
+[  FAILED  ] GainPolyPolicyTest.ANonFiniteGainValueIsRefusedAsBadCalibrationDataAndNeverStoredAsNanCoefficients
+[  FAILED  ] GainPolyPolicyTest.CloseDosesAreFittedAccuratelyAndNothingBecomesNonFinite
+
+ 6 FAILED TESTS
+  YOU HAVE 1 DISABLED TEST
+

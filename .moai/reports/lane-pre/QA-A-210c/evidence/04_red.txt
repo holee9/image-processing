@@ -1,0 +1,1395 @@
+Note: Google Test filter = GainPolyPolicyTest.*
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from GainPolyPolicyTest
+[ RUN      ] GainPolyPolicyTest.OnRealDataEveryPixelFitAndTheFileAreAtLeastAsGoodAsTheMean
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(280): error: Expected equality of these values:
+  0u
+    Which is: 0
+  negative
+    Which is: 108
+pixels scored below their own mean (worst R^2 -1.4939214975619106)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(270): max degree 2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(281): error: Expected: (fit.fileR2) >= (0.0), actual: -0.099043290000000006 vs 0
+the pooled R^2 the file records
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(270): max degree 2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(280): error: Expected equality of these values:
+  0u
+    Which is: 0
+  negative
+    Which is: 108
+pixels scored below their own mean (worst R^2 -1.4939214975619106)
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(270): max degree 3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(281): error: Expected: (fit.fileR2) >= (0.0), actual: -0.098960102999999994 vs 0
+the pooled R^2 the file records
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(270): max degree 3
+
+[  FAILED  ] GainPolyPolicyTest.OnRealDataEveryPixelFitAndTheFileAreAtLeastAsGoodAsTheMean (29 ms)
+[ RUN      ] GainPolyPolicyTest.OnNoiseOnlyDataTheFileRSquaredIsNotNegativeEither
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(289): error: Expected: (fit.fileR2) >= (0.0), actual: -0.44972454899999997 vs 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.6026120333643914 vs -1e-06
+pixel 2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.1258319395505922 vs -1e-06
+pixel 3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.7898158103493289 vs -1e-06
+pixel 4
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.1144105069613626 vs -1e-06
+pixel 5
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.51551638213015627 vs -1e-06
+pixel 8
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.9131256889377419 vs -1e-06
+pixel 14
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.4667522557797401 vs -1e-06
+pixel 15
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.3678534402369804 vs -1e-06
+pixel 18
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.5415030801542091 vs -1e-06
+pixel 19
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.71391146092533631 vs -1e-06
+pixel 21
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.048907392109565295 vs -1e-06
+pixel 25
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.1659385517098735 vs -1e-06
+pixel 29
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.1074061019292034 vs -1e-06
+pixel 39
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.8741724154815445 vs -1e-06
+pixel 42
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.95440754738832134 vs -1e-06
+pixel 45
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.2788970375002231 vs -1e-06
+pixel 48
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.8157067179478377 vs -1e-06
+pixel 51
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.8451405429116878 vs -1e-06
+pixel 53
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.6396733873487062 vs -1e-06
+pixel 54
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.0525112733162576 vs -1e-06
+pixel 56
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.502787097800014 vs -1e-06
+pixel 58
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.044722135428521437 vs -1e-06
+pixel 59
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.15947608813693459 vs -1e-06
+pixel 61
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.6643820939388434 vs -1e-06
+pixel 68
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.4737663528780214 vs -1e-06
+pixel 72
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.0484808753166446 vs -1e-06
+pixel 76
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.1046143235123798 vs -1e-06
+pixel 77
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.6946271541107052 vs -1e-06
+pixel 81
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.5163454057185075 vs -1e-06
+pixel 82
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.87319580576123723 vs -1e-06
+pixel 83
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.1988457505493768 vs -1e-06
+pixel 86
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.820545479951492 vs -1e-06
+pixel 88
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.1299415020721737 vs -1e-06
+pixel 91
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.77352893512709686 vs -1e-06
+pixel 94
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.1713884167847382 vs -1e-06
+pixel 98
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.4931679169231931 vs -1e-06
+pixel 99
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.035922432442510255 vs -1e-06
+pixel 102
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.6464644460331312 vs -1e-06
+pixel 103
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.86279356062256807 vs -1e-06
+pixel 104
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.211766393242625 vs -1e-06
+pixel 105
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.14676614234018204 vs -1e-06
+pixel 108
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.6905769985399663 vs -1e-06
+pixel 109
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.17781280536871269 vs -1e-06
+pixel 111
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.83464677102258467 vs -1e-06
+pixel 114
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.9660995189350849 vs -1e-06
+pixel 115
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.4904882302013283 vs -1e-06
+pixel 118
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.2388549736961028 vs -1e-06
+pixel 120
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.450487596145746 vs -1e-06
+pixel 123
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.053510534641614704 vs -1e-06
+pixel 124
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.9068165700299957 vs -1e-06
+pixel 127
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.23272432813960564 vs -1e-06
+pixel 128
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.1538606165949106 vs -1e-06
+pixel 130
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.96947933600282 vs -1e-06
+pixel 131
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.8169760979569567 vs -1e-06
+pixel 134
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.4633036894757514 vs -1e-06
+pixel 135
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.457465011452884 vs -1e-06
+pixel 136
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.19542768939694466 vs -1e-06
+pixel 140
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.45874843460870784 vs -1e-06
+pixel 141
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.3017602119141873 vs -1e-06
+pixel 142
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.757839545522353 vs -1e-06
+pixel 144
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.516906359219782 vs -1e-06
+pixel 146
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.057669699426633247 vs -1e-06
+pixel 148
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.3477202156965378 vs -1e-06
+pixel 152
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.9186706583166138 vs -1e-06
+pixel 153
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.5061220577827932 vs -1e-06
+pixel 154
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.7846785783406007 vs -1e-06
+pixel 156
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.10722353060516987 vs -1e-06
+pixel 158
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.37516487249277031 vs -1e-06
+pixel 160
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.5020323942265783 vs -1e-06
+pixel 165
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.19403347994552123 vs -1e-06
+pixel 167
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.5250080778469299 vs -1e-06
+pixel 170
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.2436977795214088 vs -1e-06
+pixel 172
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.15171947878416314 vs -1e-06
+pixel 175
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.095497208963439828 vs -1e-06
+pixel 179
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.3266660935145769 vs -1e-06
+pixel 180
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.56320314914774472 vs -1e-06
+pixel 183
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.5945846015195348 vs -1e-06
+pixel 184
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.9388392194323769 vs -1e-06
+pixel 185
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.15110662304806488 vs -1e-06
+pixel 188
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.4846338730638902 vs -1e-06
+pixel 189
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.7422917024756983 vs -1e-06
+pixel 190
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.14958609023873692 vs -1e-06
+pixel 194
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.19621060346647234 vs -1e-06
+pixel 197
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.60761302908743087 vs -1e-06
+pixel 198
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.32425756225147229 vs -1e-06
+pixel 199
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.35321446906467968 vs -1e-06
+pixel 201
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.1555083728805542 vs -1e-06
+pixel 203
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.5343284541371118 vs -1e-06
+pixel 204
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.3284216908325184 vs -1e-06
+pixel 205
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.2626199408132384 vs -1e-06
+pixel 206
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.3581180819160998 vs -1e-06
+pixel 209
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.9329797642696658 vs -1e-06
+pixel 210
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.3999564498605803 vs -1e-06
+pixel 211
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.9350060255415431 vs -1e-06
+pixel 212
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.3758475756435455 vs -1e-06
+pixel 214
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.4138970386148504 vs -1e-06
+pixel 219
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.8902286256074028 vs -1e-06
+pixel 222
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.082456583785504245 vs -1e-06
+pixel 224
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.51853287841351658 vs -1e-06
+pixel 226
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.7396942492333833 vs -1e-06
+pixel 227
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.0094388271949 vs -1e-06
+pixel 229
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.5814715578619714 vs -1e-06
+pixel 236
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.082171609347440056 vs -1e-06
+pixel 237
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.6864613650159601 vs -1e-06
+pixel 239
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.8805975160245607 vs -1e-06
+pixel 240
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.3423352470481125 vs -1e-06
+pixel 244
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.7676644668481023 vs -1e-06
+pixel 249
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.1242199734732781 vs -1e-06
+pixel 251
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.87854405188852591 vs -1e-06
+pixel 253
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.1119072962384404 vs -1e-06
+pixel 255
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.9211294663749996 vs -1e-06
+pixel 261
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.75644498743747923 vs -1e-06
+pixel 264
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.18485229711095252 vs -1e-06
+pixel 267
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.3926039504168841 vs -1e-06
+pixel 269
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.11168873016470582 vs -1e-06
+pixel 270
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.32994661348262255 vs -1e-06
+pixel 274
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.3320350925649129 vs -1e-06
+pixel 278
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.5206225731445207 vs -1e-06
+pixel 283
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.70715784112630531 vs -1e-06
+pixel 286
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.52678836951589103 vs -1e-06
+pixel 295
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.7920217160182412 vs -1e-06
+pixel 299
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.48872157723553844 vs -1e-06
+pixel 301
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.099979093158038213 vs -1e-06
+pixel 304
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.4306686045421364 vs -1e-06
+pixel 305
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.7923896459206592 vs -1e-06
+pixel 310
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.10323428332326912 vs -1e-06
+pixel 311
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.33079931001004459 vs -1e-06
+pixel 313
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.4831266488386512 vs -1e-06
+pixel 314
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.2837680488928847 vs -1e-06
+pixel 315
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.12238779464361182 vs -1e-06
+pixel 316
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.337341340413436 vs -1e-06
+pixel 320
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.54842511261294535 vs -1e-06
+pixel 321
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.34186716924115945 vs -1e-06
+pixel 323
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.4201628581614987 vs -1e-06
+pixel 324
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.5334775594691097 vs -1e-06
+pixel 326
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.1997403668916633 vs -1e-06
+pixel 329
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.21167410165397227 vs -1e-06
+pixel 332
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.3691889974627629 vs -1e-06
+pixel 333
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.109616373479215 vs -1e-06
+pixel 334
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.4701317487491776 vs -1e-06
+pixel 336
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.1804752313306168 vs -1e-06
+pixel 337
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.7019309671818674 vs -1e-06
+pixel 338
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.56699359237967228 vs -1e-06
+pixel 340
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.046282796884251631 vs -1e-06
+pixel 341
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.65508446491563976 vs -1e-06
+pixel 343
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.4820671895940531 vs -1e-06
+pixel 345
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.5356472505408059 vs -1e-06
+pixel 346
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.085949103440384977 vs -1e-06
+pixel 347
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.5027360064101392 vs -1e-06
+pixel 350
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.8001799965631595 vs -1e-06
+pixel 352
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.05562640243991 vs -1e-06
+pixel 353
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.0181278823206159 vs -1e-06
+pixel 355
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.3456185704841728 vs -1e-06
+pixel 358
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.40678429425046159 vs -1e-06
+pixel 364
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.78169207852726119 vs -1e-06
+pixel 366
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.0578901522667858 vs -1e-06
+pixel 368
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.0973485220047134 vs -1e-06
+pixel 369
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.8886364060459382 vs -1e-06
+pixel 371
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.9110195921049131 vs -1e-06
+pixel 375
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.25331540484738646 vs -1e-06
+pixel 378
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.69381014216683323 vs -1e-06
+pixel 380
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.8366580633567571 vs -1e-06
+pixel 381
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.9156036836320518 vs -1e-06
+pixel 382
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.2951255945382432 vs -1e-06
+pixel 383
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.28130833233041597 vs -1e-06
+pixel 384
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.44946836175949234 vs -1e-06
+pixel 385
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.59470135721286455 vs -1e-06
+pixel 386
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.8168906860583398 vs -1e-06
+pixel 390
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.8478245929659813 vs -1e-06
+pixel 393
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.8216400845543439 vs -1e-06
+pixel 394
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.22630711475898924 vs -1e-06
+pixel 395
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.10134466354082683 vs -1e-06
+pixel 396
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.2708384356168998 vs -1e-06
+pixel 399
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.044278106163921471 vs -1e-06
+pixel 400
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.1552982727010872 vs -1e-06
+pixel 404
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.0092905167243877 vs -1e-06
+pixel 405
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.2956919459529423 vs -1e-06
+pixel 408
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.1773744886721809 vs -1e-06
+pixel 409
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.8432934599476933 vs -1e-06
+pixel 410
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.9849915224038268 vs -1e-06
+pixel 416
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.9737992665561936 vs -1e-06
+pixel 418
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.50979822452901158 vs -1e-06
+pixel 420
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.8145351237960878 vs -1e-06
+pixel 424
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.533553996108779 vs -1e-06
+pixel 425
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.7034661181227837 vs -1e-06
+pixel 426
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.5045079322841013 vs -1e-06
+pixel 429
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.13796255047328243 vs -1e-06
+pixel 433
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.41473294565987207 vs -1e-06
+pixel 435
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.71964047588112257 vs -1e-06
+pixel 440
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.4366627599735367 vs -1e-06
+pixel 441
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.10543459735690219 vs -1e-06
+pixel 447
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.16322805777935412 vs -1e-06
+pixel 449
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.209384366490494 vs -1e-06
+pixel 451
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.036857729843978504 vs -1e-06
+pixel 452
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.7129864654329614 vs -1e-06
+pixel 456
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.086804000385246605 vs -1e-06
+pixel 457
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.11240478555370625 vs -1e-06
+pixel 459
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.33724151695971916 vs -1e-06
+pixel 461
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.98354491266619548 vs -1e-06
+pixel 462
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.59610784625987301 vs -1e-06
+pixel 463
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.4053021550708324 vs -1e-06
+pixel 468
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.91544743976982845 vs -1e-06
+pixel 469
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.20074357989026259 vs -1e-06
+pixel 470
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.9919061721792977 vs -1e-06
+pixel 471
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.55178016273754316 vs -1e-06
+pixel 472
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.090658847339951443 vs -1e-06
+pixel 478
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.11697292073556853 vs -1e-06
+pixel 480
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.8535402368495424 vs -1e-06
+pixel 481
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.74929984273202721 vs -1e-06
+pixel 482
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.17898765918645321 vs -1e-06
+pixel 488
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.4559784504319127 vs -1e-06
+pixel 489
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.8430913538581768 vs -1e-06
+pixel 492
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.3060365489011247 vs -1e-06
+pixel 494
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.65706517630021621 vs -1e-06
+pixel 496
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.0117199773822341 vs -1e-06
+pixel 498
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.454364290599222 vs -1e-06
+pixel 500
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.429241916890331 vs -1e-06
+pixel 501
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.9241457875886345 vs -1e-06
+pixel 502
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.3787133207954172 vs -1e-06
+pixel 504
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.37959087228331057 vs -1e-06
+pixel 507
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.2984120205933205 vs -1e-06
+pixel 508
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.4607430399756947 vs -1e-06
+pixel 509
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.7241188800227105 vs -1e-06
+pixel 512
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.5155823920730174 vs -1e-06
+pixel 516
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.32211532988726277 vs -1e-06
+pixel 522
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.0999181566779752 vs -1e-06
+pixel 523
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.64440683885767824 vs -1e-06
+pixel 524
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.087353540069874613 vs -1e-06
+pixel 527
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.4054350407035288 vs -1e-06
+pixel 528
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.6685209844282594 vs -1e-06
+pixel 529
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.7460521403036604 vs -1e-06
+pixel 532
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.0930174313496503 vs -1e-06
+pixel 535
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.0885248388941333 vs -1e-06
+pixel 537
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.36216267550385228 vs -1e-06
+pixel 538
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.030921277604605946 vs -1e-06
+pixel 543
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.5467981333484797 vs -1e-06
+pixel 544
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.43867165085455162 vs -1e-06
+pixel 547
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.25973110483095341 vs -1e-06
+pixel 550
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.89911199694934596 vs -1e-06
+pixel 552
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.7823505693244615 vs -1e-06
+pixel 554
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.1937474537927741 vs -1e-06
+pixel 555
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.1905878589259311 vs -1e-06
+pixel 557
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.18110034311323675 vs -1e-06
+pixel 561
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.6849458096458969 vs -1e-06
+pixel 564
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.20545939670268165 vs -1e-06
+pixel 565
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.94741616743924295 vs -1e-06
+pixel 567
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.092959267052205918 vs -1e-06
+pixel 572
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.0646271564464369 vs -1e-06
+pixel 573
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.9002417411851305 vs -1e-06
+pixel 578
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.66828393421852406 vs -1e-06
+pixel 583
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.76008522495261666 vs -1e-06
+pixel 584
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.95489048703581325 vs -1e-06
+pixel 585
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.9063405248584329 vs -1e-06
+pixel 586
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.2023496300345058 vs -1e-06
+pixel 588
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.04173869730032953 vs -1e-06
+pixel 589
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.43281844936359515 vs -1e-06
+pixel 591
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.8807123204974783 vs -1e-06
+pixel 592
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.4995040472648373 vs -1e-06
+pixel 594
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.46730843571103109 vs -1e-06
+pixel 596
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.84542885052813777 vs -1e-06
+pixel 598
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.017465697723207496 vs -1e-06
+pixel 599
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.37319192162449166 vs -1e-06
+pixel 600
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.89857048641387149 vs -1e-06
+pixel 602
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.4487499016254946 vs -1e-06
+pixel 604
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.95000194803784632 vs -1e-06
+pixel 608
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.4576644896850866 vs -1e-06
+pixel 610
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.24352892730322884 vs -1e-06
+pixel 611
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.17609178690151528 vs -1e-06
+pixel 612
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.3338136166009709 vs -1e-06
+pixel 616
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.17906059849098188 vs -1e-06
+pixel 619
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.75506557186843892 vs -1e-06
+pixel 620
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.4518938714317571 vs -1e-06
+pixel 621
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.1865221454528241 vs -1e-06
+pixel 622
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.5688584850159386 vs -1e-06
+pixel 627
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.071800562070524876 vs -1e-06
+pixel 629
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.18130820867510899 vs -1e-06
+pixel 630
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.84793420352180315 vs -1e-06
+pixel 636
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.49562329563088037 vs -1e-06
+pixel 638
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.7257720255341109 vs -1e-06
+pixel 639
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.63226150890208399 vs -1e-06
+pixel 640
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.3187476051534039 vs -1e-06
+pixel 642
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.8523057996167314 vs -1e-06
+pixel 643
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.46212363287686653 vs -1e-06
+pixel 646
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.5195469569125013 vs -1e-06
+pixel 648
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.92992868523282812 vs -1e-06
+pixel 649
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.38282329843551621 vs -1e-06
+pixel 651
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.0766254559615884 vs -1e-06
+pixel 652
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.6231438467879529 vs -1e-06
+pixel 656
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.2846456875952441 vs -1e-06
+pixel 658
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.72278613174303197 vs -1e-06
+pixel 659
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.5676211339795101 vs -1e-06
+pixel 661
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.4626003389398448 vs -1e-06
+pixel 662
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.0136951715672522 vs -1e-06
+pixel 663
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.12115541010680642 vs -1e-06
+pixel 665
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.5097661679700487 vs -1e-06
+pixel 666
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.3413055990025251 vs -1e-06
+pixel 674
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.23910420766748497 vs -1e-06
+pixel 676
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.213922125941044 vs -1e-06
+pixel 677
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.1491408236519369 vs -1e-06
+pixel 682
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.0039393844104920195 vs -1e-06
+pixel 683
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.4306842803607402 vs -1e-06
+pixel 684
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.2311222950418417 vs -1e-06
+pixel 685
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.33112352001888912 vs -1e-06
+pixel 686
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.030161563889274 vs -1e-06
+pixel 689
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.4100279307178045 vs -1e-06
+pixel 694
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.5000817162737512 vs -1e-06
+pixel 697
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.0048345785491958893 vs -1e-06
+pixel 705
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.18279687840256731 vs -1e-06
+pixel 707
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.095897154781274363 vs -1e-06
+pixel 709
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.51362018984976987 vs -1e-06
+pixel 710
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.2380520040339373 vs -1e-06
+pixel 713
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.2546029748612262 vs -1e-06
+pixel 720
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.22235991002518696 vs -1e-06
+pixel 723
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.99370467942920215 vs -1e-06
+pixel 731
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.8438843454554195 vs -1e-06
+pixel 732
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.0853688423118788 vs -1e-06
+pixel 740
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.78978521382317046 vs -1e-06
+pixel 741
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.6798711067832173 vs -1e-06
+pixel 743
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.1343132292890219 vs -1e-06
+pixel 744
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.9007562626020329 vs -1e-06
+pixel 745
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.7190904701672054 vs -1e-06
+pixel 746
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.37350951722114512 vs -1e-06
+pixel 749
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.1277753802747768 vs -1e-06
+pixel 751
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.9049464942886263 vs -1e-06
+pixel 752
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.037992849612467738 vs -1e-06
+pixel 755
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.029598240552696442 vs -1e-06
+pixel 758
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.01429331962005409 vs -1e-06
+pixel 761
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.9906451938259422 vs -1e-06
+pixel 764
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.2659637601703659 vs -1e-06
+pixel 766
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.32087293158920471 vs -1e-06
+pixel 767
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.9983903044772879 vs -1e-06
+pixel 769
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.3385828164789446 vs -1e-06
+pixel 770
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.1889562754195846 vs -1e-06
+pixel 777
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.3469590433837855 vs -1e-06
+pixel 779
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.5433961892526247 vs -1e-06
+pixel 781
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.016650668325306 vs -1e-06
+pixel 782
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.7278685428752869 vs -1e-06
+pixel 785
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.49153449255542125 vs -1e-06
+pixel 787
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.1640755230677917 vs -1e-06
+pixel 790
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.1390461737351552 vs -1e-06
+pixel 791
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.5479010586634523 vs -1e-06
+pixel 792
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.8334459675734367 vs -1e-06
+pixel 796
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.6431825412780059 vs -1e-06
+pixel 801
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.0218811928278253 vs -1e-06
+pixel 806
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.66278024284868264 vs -1e-06
+pixel 808
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.1658757834802671 vs -1e-06
+pixel 811
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.035943657170439236 vs -1e-06
+pixel 813
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.5905019807065051 vs -1e-06
+pixel 817
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.5524924169701637 vs -1e-06
+pixel 819
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.4085694710331325 vs -1e-06
+pixel 820
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.94194337868447309 vs -1e-06
+pixel 822
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.43352528475544583 vs -1e-06
+pixel 823
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.3434852686668228 vs -1e-06
+pixel 824
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.9970124072721571 vs -1e-06
+pixel 826
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.054798715310675039 vs -1e-06
+pixel 835
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.78186980672231954 vs -1e-06
+pixel 839
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.7207178535808385 vs -1e-06
+pixel 843
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.2215689850682936 vs -1e-06
+pixel 844
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.8431336457856022 vs -1e-06
+pixel 847
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.9652342544092138 vs -1e-06
+pixel 848
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.169384867079454 vs -1e-06
+pixel 849
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.5305840035763763 vs -1e-06
+pixel 855
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.8795138495986534 vs -1e-06
+pixel 859
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.1838086745010106 vs -1e-06
+pixel 866
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.5059223867427178 vs -1e-06
+pixel 867
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.1085213647020158 vs -1e-06
+pixel 870
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.5348940978503354 vs -1e-06
+pixel 871
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.6008584394891674 vs -1e-06
+pixel 875
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.3700608144324224 vs -1e-06
+pixel 878
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.4351886783475223 vs -1e-06
+pixel 880
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.8448998329413564 vs -1e-06
+pixel 881
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.3921640109598208 vs -1e-06
+pixel 882
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.9418319653982712 vs -1e-06
+pixel 883
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.69754426665629787 vs -1e-06
+pixel 884
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.3521460717510947 vs -1e-06
+pixel 889
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.32447674636742607 vs -1e-06
+pixel 890
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.73442106376815652 vs -1e-06
+pixel 891
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.8529306380177495 vs -1e-06
+pixel 892
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.73032148724193302 vs -1e-06
+pixel 894
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.9107801857811113 vs -1e-06
+pixel 895
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.4354485454350989 vs -1e-06
+pixel 900
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.2540964219019246 vs -1e-06
+pixel 901
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.56723328882524 vs -1e-06
+pixel 903
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.70744655637650355 vs -1e-06
+pixel 905
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.501208008023494 vs -1e-06
+pixel 906
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.6253423615340905 vs -1e-06
+pixel 911
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.25963795798088007 vs -1e-06
+pixel 914
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.64651131840474862 vs -1e-06
+pixel 916
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.8953798956467045 vs -1e-06
+pixel 921
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.0105587765461439 vs -1e-06
+pixel 922
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.085154368209232612 vs -1e-06
+pixel 924
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.0065411940140301 vs -1e-06
+pixel 928
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.4697699959983632 vs -1e-06
+pixel 929
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.221663662029469 vs -1e-06
+pixel 932
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.23776431602988479 vs -1e-06
+pixel 935
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.137055429951765 vs -1e-06
+pixel 938
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.7040133600835206 vs -1e-06
+pixel 939
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.64385348927155484 vs -1e-06
+pixel 941
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.17896057757050876 vs -1e-06
+pixel 942
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.80268733065981346 vs -1e-06
+pixel 943
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.14483649856901759 vs -1e-06
+pixel 946
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.040855581937602636 vs -1e-06
+pixel 955
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.80807286127739064 vs -1e-06
+pixel 956
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.4712373307288691 vs -1e-06
+pixel 958
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.2413916431047127 vs -1e-06
+pixel 961
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.7339496880111245 vs -1e-06
+pixel 964
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.14668919860003471 vs -1e-06
+pixel 965
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.77596944015114011 vs -1e-06
+pixel 966
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.4209466955535497 vs -1e-06
+pixel 970
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.22637764608892308 vs -1e-06
+pixel 972
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.69145610070884356 vs -1e-06
+pixel 973
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.1158335366750074 vs -1e-06
+pixel 975
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.093226975485440677 vs -1e-06
+pixel 977
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.9160518783546907 vs -1e-06
+pixel 978
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.084893125175078188 vs -1e-06
+pixel 987
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -2.1248066615993251 vs -1e-06
+pixel 988
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.084406942745232527 vs -1e-06
+pixel 989
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.96864171627383566 vs -1e-06
+pixel 992
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.53471396582488517 vs -1e-06
+pixel 996
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.3938183041683319 vs -1e-06
+pixel 997
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.46197504249910581 vs -1e-06
+pixel 1000
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.5399181661811294 vs -1e-06
+pixel 1001
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.4992924741918392 vs -1e-06
+pixel 1002
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.29054222671712626 vs -1e-06
+pixel 1003
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.34471978920750912 vs -1e-06
+pixel 1011
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.71939125807917681 vs -1e-06
+pixel 1014
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -3.1273754572108858 vs -1e-06
+pixel 1015
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.0083161908959291 vs -1e-06
+pixel 1017
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.14477638594200659 vs -1e-06
+pixel 1021
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -1.0229981367335017 vs -1e-06
+pixel 1022
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(290): error: Expected: (pixelR2(fit, p, levels, doses)) >= (-1e-6), actual: -0.12984155191230307 vs -1e-06
+pixel 1023
+
+[  FAILED  ] GainPolyPolicyTest.OnNoiseOnlyDataTheFileRSquaredIsNotNegativeEither (44 ms)
+[ RUN      ] GainPolyPolicyTest.EveryStoredPolynomialIsMonotoneOverTheMeasuredRangeInEitherDirection
+[       OK ] GainPolyPolicyTest.EveryStoredPolynomialIsMonotoneOverTheMeasuredRangeInEitherDirection (39 ms)
+[ RUN      ] GainPolyPolicyTest.TheDegreeOfEveryPixelIsThatOfAnIndependentLeastSquaresAndMonotoneCascade
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(338): error: Expected equality of these values:
+  0u
+    Which is: 0
+  mismatches
+    Which is: 23
+pixels whose stored degree differs from the independent cascade's
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(328): max degree 2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(338): error: Expected equality of these values:
+  0u
+    Which is: 0
+  mismatches
+    Which is: 24
+pixels whose stored degree differs from the independent cascade's
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(328): max degree 3
+
+[  FAILED  ] GainPolyPolicyTest.TheDegreeOfEveryPixelIsThatOfAnIndependentLeastSquaresAndMonotoneCascade (18 ms)
+[ RUN      ] GainPolyPolicyTest.ADecreasingCurveIsKeptAndAFallingThenRisingOneIsReplacedByTheLeastSquaresLine
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(361): error: Expected equality of these values:
+  2
+  fit.degree(0)
+    Which is: 1
+a falling convex curve is monotone: it is kept, not replaced
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(362): error: Expected: (pixelR2(fit, 0, levels, doses)) > (0.999999), actual: -1.2002206523154015 vs 0.999999
+and it explains its data
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(372): error: Expected: (std::fabs(endpoint - fit.c(2, 1))) > (1e-9), actual: 8.4401108267607126e-13 vs 1e-09
+control: the least-squares slope differs from the endpoint slope here
+
+[  FAILED  ] GainPolyPolicyTest.ADecreasingCurveIsKeptAndAFallingThenRisingOneIsReplacedByTheLeastSquaresLine (13 ms)
+[ RUN      ] GainPolyPolicyTest.PixelsTheOldPolicyFittedAtDegreeTwoOrMoreAreStoredBitForBit
+[       OK ] GainPolyPolicyTest.PixelsTheOldPolicyFittedAtDegreeTwoOrMoreAreStoredBitForBit (9 ms)
+[ DISABLED ] GainPolyPolicyTest.DISABLED_PrintGolden
+[ RUN      ] GainPolyPolicyTest.TheSyntheticLadderOfTheFixtureGeneratorNoLongerReportsANegativeRSquared
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+gain_poly.xcal e0190891e74d2f2ee88e3daa1da917b5b6b58f08f88f758b7d2680186dbc4f59  (degree<=2, 4 dose levels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_gpp_11478_TheSyntheticLadderOfTheFixtureGeneratorNoLongerReportsANegativeRSquared\manifest.json
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(430): error: Expected: (r2) >= (0.0), actual: -0.076637433000000005 vs 0
+was -0.0766 under the endpoint-line policy
+
+[  FAILED  ] GainPolyPolicyTest.TheSyntheticLadderOfTheFixtureGeneratorNoLongerReportsANegativeRSquared (144 ms)
+[----------] 7 tests from GainPolyPolicyTest (299 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (299 ms total)
+[  PASSED  ] 2 tests.
+[  FAILED  ] 5 tests, listed below:
+[  FAILED  ] GainPolyPolicyTest.OnRealDataEveryPixelFitAndTheFileAreAtLeastAsGoodAsTheMean
+[  FAILED  ] GainPolyPolicyTest.OnNoiseOnlyDataTheFileRSquaredIsNotNegativeEither
+[  FAILED  ] GainPolyPolicyTest.TheDegreeOfEveryPixelIsThatOfAnIndependentLeastSquaresAndMonotoneCascade
+[  FAILED  ] GainPolyPolicyTest.ADecreasingCurveIsKeptAndAFallingThenRisingOneIsReplacedByTheLeastSquaresLine
+[  FAILED  ] GainPolyPolicyTest.TheSyntheticLadderOfTheFixtureGeneratorNoLongerReportsANegativeRSquared
+
+ 5 FAILED TESTS
+  YOU HAVE 1 DISABLED TEST
+

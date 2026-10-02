@@ -1,0 +1,28 @@
+CalData_6 order by mean: [3, 4, 5, 6, 1, 2] [350.56, 867.38, 1395.75, 2196.23, 2883.16, 5014.57]
+
+=== caldata6
+  gain map 0: rc=0
+  gain map 1: rc=0
+  gain map 2: rc=0
+  gain map 3: rc=0
+  gain map 4: rc=0
+  gain map 5: rc=0
+  gain values over all levels: min 0 max 186.801 ; outside [0.001,1000]: 7 ; non-finite: 0
+  oracle defect pixels: 23505 (0.2491%) ; gain min/max on defect pixels 0 / 186.801 ; on good pixels 0 / 2.39616
+  max_degree 2: rc=-17 file written=False
+    alert: XPE_WARN_GAIN_POLY_NOT_APPLICABLE: 42 pixel(s) (first: 1522994) have no gain polynomial whose float32 coefficients the applier can use -- evaluated in float32 at a measured dose it falls outside the gain range [0.001, 1000] or more than 0.1% from the fit. The
+  max_degree 3: rc=-17 file written=False
+    alert: XPE_WARN_GAIN_POLY_NOT_APPLICABLE: 42 pixel(s) (first: 1522994) have no gain polynomial whose float32 coefficients the applier can use -- evaluated in float32 at a measured dose it falls outside the gain range [0.001, 1000] or more than 0.1% from the fit. The
+
+=== cyan
+  gain map 0: rc=0
+  gain map 1: rc=0
+  gain map 2: rc=0
+  gain map 3: rc=0
+  gain map 4: rc=0
+  gain values over all levels: min 0.695894 max 1.15654 ; outside [0.001,1000]: 0 ; non-finite: 0
+  oracle defect pixels: 250 (0.0026%) ; gain min/max on defect pixels 0.807068 / 1.11525 ; on good pixels 0.695894 / 1.15654
+  max_degree 2: rc=0 file written=True
+    alert: XPE_WARN_CALIB_POOR_FIT: fit_r_squared=0.252129 below 0.999 (max_residual=3.494%, mean_residual=0.226%); increase dose levels or check detector stability
+  max_degree 3: rc=0 file written=True
+    alert: XPE_WARN_CALIB_POOR_FIT: fit_r_squared=0.253331 below 0.999 (max_residual=3.494%, mean_residual=0.225%); increase dose levels or check detector stability

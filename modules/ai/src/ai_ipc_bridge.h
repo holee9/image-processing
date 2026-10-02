@@ -30,6 +30,9 @@ struct XpeAiIpcBridge {
     uint32_t timeout_ms;        /**< Timeout in milliseconds for operations */
     HANDLE pipe_handle;         /**< Win32 handle to named pipe */
     bool connected;             /**< Connection state flag */
+    /** Set by xpe_ai_ipc_bridge_bone_suppress: the LAST call was refused because the worker's reply was well formed
+     *  but held a non-finite pixel (QA-B-181i). Reset at the start of every call. Not a transport fault. */
+    bool last_result_nonfinite = false;
 
     XpeAiIpcBridge(const std::string& name, uint32_t timeout)
         : pipe_name(name), timeout_ms(timeout), pipe_handle(INVALID_HANDLE_VALUE),

@@ -1,0 +1,5 @@
+# per-call cost, the OLD first-occurrence readers put back (the strstr_readers arm; the upfront nonlinearity-key check still runs, 9 more strstr lookups)
+build=0
+rc=0  1.36 us per pipeline call (8 bypass flags, 8x8 frame, nothing else runs)
+rc=0  1.36 us per pipeline call (8 bypass flags, 8x8 frame, nothing else runs)
+rc=0  1.41 us per pipeline call (8 bypass flags, 8x8 frame, nothing else runs)

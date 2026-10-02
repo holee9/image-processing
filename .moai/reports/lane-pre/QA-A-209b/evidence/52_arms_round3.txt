@@ -1,0 +1,10 @@
+BUILD_EXIT=0
+arm nonlin_no_guard dll exit=0
+arm nonlin_no_guard oom exit=1
+[  FAILED  ] OomInjection.ANonlinearityCorrectionThatFailsLeavesTheFrameUntouchedAndNoExceptionEscapes
+[  FAILED  ] OomInjection.ANonlinearityCorrectionWithTheLutPathThatFailsLeavesTheFrameUntouched
+RESTORED helpers.cpp
+RESTORED xcal_reader.cpp
+RESTORED xcal_writer.cpp
+RESTORED nonlinearity_correct.cpp
+RESTORED preprocess.cpp

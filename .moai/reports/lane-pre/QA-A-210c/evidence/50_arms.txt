@@ -1,0 +1,19 @@
+BUILD_EXIT=0
+arm endpoint_revived dll exit=1
+
+[  FAILED  ] GainPolyPolicyTest.OnNoiseOnlyDataTheFileRSquaredIsNotNegativeEither
+[  FAILED  ] GainPolyPolicyTest.OnRealDataEveryPixelFitAndTheFileAreAtLeastAsGoodAsTheMean
+BUILD_EXIT=0
+arm nondecreasing_only dll exit=1
+
+[  FAILED  ] GainPolyPolicyTest.ADecreasingCurveIsKeptAndAFallingThenRisingOneIsReplacedByTheLeastSquaresLine
+[  FAILED  ] GainPolyPolicyTest.OnNoiseOnlyDataTheFileRSquaredIsNotNegativeEither
+[  FAILED  ] GainPolyPolicyTest.OnRealDataEveryPixelFitAndTheFileAreAtLeastAsGoodAsTheMean
+[  FAILED  ] GainPolyPolicyTest.TheDegreeOfEveryPixelIsThatOfAnIndependentLeastSquaresAndMonotoneCascade
+[  FAILED  ] GainPolyPolicyTest.TheSyntheticLadderOfTheFixtureGeneratorNoLongerReportsANegativeRSquared
+BUILD_EXIT=0
+arm nonincreasing_only_degree_gt1 dll exit=1
+
+[  FAILED  ] GainPolyPolicyTest.ADecreasingCurveIsKeptAndAFallingThenRisingOneIsReplacedByTheLeastSquaresLine
+[  FAILED  ] GainPolyPolicyTest.TheDegreeOfEveryPixelIsThatOfAnIndependentLeastSquaresAndMonotoneCascade
+RESTORED generator

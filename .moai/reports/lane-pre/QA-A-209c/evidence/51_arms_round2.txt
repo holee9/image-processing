@@ -1,0 +1,14 @@
+BUILD_EXIT=0
+arm tail_unchecked dll exit=1
+arm tail_unchecked oom exit=0
+
+[  FAILED  ] XCalCompressionMetaTest.ABlockThatOnlyLooksLikeTheOldWritersShapeIsStillRefused
+BUILD_EXIT=0
+arm prefix_comma_unchecked dll exit=0
+arm prefix_comma_unchecked oom exit=0
+BUILD_EXIT=0
+arm doc_pair_unchecked dll exit=0
+arm doc_pair_unchecked oom exit=0
+RESTORED xcal_reader.cpp
+RESTORED xpe_calib_load_gain.cpp
+RESTORED xpe_calib_load_nonlin_lut.cpp

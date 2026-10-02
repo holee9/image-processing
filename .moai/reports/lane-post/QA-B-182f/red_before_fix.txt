@@ -1,0 +1,8 @@
+[  FAILED  ] DicomReaderTest.Scope_AbsentOrZeroRowsAndColumnsAreRefusedWithAnAlertOnEveryPath
+[  FAILED  ] DicomReaderTest.Scope_AbsentOrZeroRowsAndColumnsAreRefusedWithAnAlertOnEveryPath (51 ms)
+[  FAILED  ] DicomReaderTest.Scope_PhotometricInterpretationIsRequiredAndOnlyAMonochromePlaneIsReturned
+[  FAILED  ] DicomReaderTest.Scope_PhotometricInterpretationIsRequiredAndOnlyAMonochromePlaneIsReturned (201 ms)
+[  FAILED  ] DicomReaderTest.Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochrome1IsReturnedAsStored
+[  FAILED  ] DicomReaderTest.Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochrome1IsReturnedAsStored (31 ms)
+
+[  PASSED  ] 0 tests.

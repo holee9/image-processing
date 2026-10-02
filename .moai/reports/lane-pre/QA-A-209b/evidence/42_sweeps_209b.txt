@@ -1,0 +1,8 @@
+[sweep] xpe_calib_load_offset                         10 allocation points covered
+[sweep] xpe_calib_load_offset_cached (miss)           20 allocation points covered
+[sweep] xpe_calib_load_offset_cached (hit)             4 allocation points covered
+[sweep] xpe_preprocess_pipeline_ex                    40 allocation points covered
+[sweep] xpe_preprocess_pipeline                       75 allocation points covered
+[sweep] xpe_preprocess_pipeline_batch                 89 allocation points covered
+[sweep] xpe_preprocess_pipeline                      100 allocation points covered
+[sweep] xpe_preprocess_pipeline_batch                100 allocation points covered

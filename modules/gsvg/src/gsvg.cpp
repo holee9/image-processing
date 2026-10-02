@@ -483,9 +483,24 @@ XpeErrorCode process_impl(void* handle,
         const auto rep = xpe_gsvg_detail::RunVirtualGrid(img, width, height,
                                                          h->vg_table, h->vg_settings,
                                                          xpe_gsvg_detail::VgSwitches{}, fieldMask);
-        if (!rep.error.empty()) {
+        // QA-B-181f (#233): the conversion below is clamp(round(x)) then a cast. For NaN clamp() is a no-op and the
+        // cast is undefined, so a non-finite value (QA-B-181e: vg_pyramid_gain 1e308) became garbage pixels with
+        // rc=0. It is refused like any other virtual-grid failure -- original restored, config error -- not repaired.
+        std::string vgError = rep.error;
+        if (vgError.empty()) {
+            uint64_t bad = 0;
+            for (size_t i = 0; i < count; ++i) {
+                uint64_t u;
+                std::memcpy(&u, &img[i], sizeof u);
+                bad |= static_cast<uint64_t>((u & 0x7FF0000000000000ull) == 0x7FF0000000000000ull);
+            }
+            if (bad != 0) {
+                vgError = "the virtual grid produced a non-finite value (check vg_pyramid_gain, vg_denoise_k, vg_air_signal and the table)";
+            }
+        }
+        if (!vgError.empty()) {
             std::memcpy(dst, original.data(), count * sizeof(uint16_t));
-            alert_virtual_grid(rep.error);
+            alert_virtual_grid(vgError);
             done.vignetteApplied = 0;   // the restore undid it as well
             done.restoredOriginal = 1;
             done.reason = XPE_GSVG_REASON_VG_REFUSED;

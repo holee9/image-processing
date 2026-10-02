@@ -102,12 +102,20 @@ XPE_API const char* xpe_ai_version(void);
  * state. The alert cites REQ-AI-002 and REQ-AI-092; the SRS table has no row for
  * the failure itself.
  *
- * EVERY non-OK result of the worker path counts toward the 3, including an error
- * reply that a healthy worker sends on purpose because the model refused the
- * request (a missing or unloadable model, an input length it rejects). A model
- * that refuses three times in a row means AI is unusable for the session, so a
- * healthy worker is switched off too; xpe_ai_shutdown() followed by
- * xpe_ai_init() recovers it.
+ * The 3 count CONSECUTIVE worker and transport faults. A non-OK result of the
+ * worker path counts, including an error reply that a worker sends on purpose
+ * because the model refused the request (a missing or unloadable model, an input
+ * length it rejects): a model that refuses three times in a row means AI is
+ * unusable for the session, so that worker is switched off too;
+ * xpe_ai_shutdown() followed by xpe_ai_init() recovers it. ONE result is not a
+ * fault: a reply with a VALID success envelope (success true, the request's
+ * width and height, float32) whose pixels are non-finite -- the model could not
+ * give a result for this image. It is refused (see xpe_bone_suppress), raises
+ * its own alert and, like any valid response, ENDS a run of faults; it never
+ * counts, however many come in a row. A reply with a broken envelope (missing or
+ * unparseable JSON, success not true, another size or format) is a protocol
+ * fault and counts. There is no per-session total. A valid envelope does not
+ * prove the worker healthy -- it only keeps a broken one from passing as an answer.
  *
  * Every image the module accepts, up to 4096 x 4096 float32 (64 MiB), travels in one
  * worker message; the worker path has no size limit of its own, and the contract
@@ -334,9 +342,20 @@ XPE_API XpeErrorCode xpe_stitch_estimate_size(const XpeImageBuffer* parts,
  * @return XPE_ERR_CONFIG_INVALID if that file exists but is not a loadable
  *         model. Distinct from IO_FAILED on purpose: "install the model" and
  *         "the model you installed is broken" need different actions.
- * @return XPE_ERR_PROCESSING_FAILED if inference itself fails, or the model
- *         returns a different number of values than the image has pixels. In a
- *         stub build this is the unconditional outcome once validation passes.
+ * @return XPE_ERR_PROCESSING_FAILED if inference itself fails, the model
+ *         returns a different number of values than the image has pixels, or
+ *         the result contains a non-finite value (+/-inf, NaN) -- a finite input
+ *         can overflow, e.g. a x2 model on a pixel above FLT_MAX / 2 (QA-B-181h,
+ *         181i). The input was valid, so this is not INVALID_INPUT. The whole
+ *         result is judged before it is copied; in-process, @p softTissueOut is
+ *         left as the caller passed it. One Warning alert names the cause. With
+ *         "use_worker" the same code is returned and @p softTissueOut holds the
+ *         input, but this refusal is NOT a worker failure: it neither counts
+ *         toward the ceiling below nor alerts as one, and it ends a run of worker
+ *         faults. Its alert, on both paths, reads exactly "AI model output was
+ *         non-finite (inf/NaN); this image was not AI-processed" and says nothing
+ *         of the worker (its state is xpe_ai_worker_state()'s). In a stub build
+ *         PROCESSING_FAILED is the unconditional outcome once validation passes.
  *
  * With "use_worker" set at xpe_ai_init, a failure of the worker path returns
  * the worker's or the transport's error code (never XPE_OK), raises one Warning

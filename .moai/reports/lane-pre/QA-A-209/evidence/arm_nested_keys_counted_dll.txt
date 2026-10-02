@@ -1,0 +1,437 @@
+Note: Google Test filter = ConfigStrictParse.*
+[==========] Running 24 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 24 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+[       OK ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[       OK ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (16 ms)
+[ RUN      ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+[       OK ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+[       OK ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable (3 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore (46 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore (18 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule
+[       OK ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule (2 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(567): error: Expected equality of these values:
+  0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(552): fit_r_squared: only inside a nested object: not given (the nested value is not read)  {"nested":{"fit_r_squared":0.75},"other":2}
+
+[  FAILED  ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly (2 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(683): error: Expected equality of these values:
+  0
+  rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(668): fit_r_squared: a nested object with the same key is not it  {"nested":{"fit_r_squared":"bad"},"fit_r_squared":0.75}
+
+[  FAILED  ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead (26 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte
+[       OK ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte (91 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted
+[       OK ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted (57 ms)
+[ RUN      ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead
+[       OK ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead (0 ms)
+[ RUN      ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: -16
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline bypassOffset: nested one with an effect, top-level one without: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"bypassOffset":true},"bypassOffset":false}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(936): error: Expected equality of these values:
+  p.rcEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline bypassOffset: nested one without, top-level one with an effect: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"bypassOffset":false},"bypassOffset":true}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: -16
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline_ex bypassOffset: nested one with an effect, top-level one without: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"bypassOffset":true},"bypassOffset":false}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(936): error: Expected equality of these values:
+  p.rcEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline_ex bypassOffset: nested one without, top-level one with an effect: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"bypassOffset":false},"bypassOffset":true}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: -16
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline_batch bypassOffset: nested one with an effect, top-level one without: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"bypassOffset":true},"bypassOffset":false}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(936): error: Expected equality of these values:
+  p.rcEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline_batch bypassOffset: nested one without, top-level one with an effect: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"bypassOffset":false},"bypassOffset":true}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline detectorTempC: nested one with an effect, top-level one without: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"detectorTempC":"abc"},"detectorTempC":25.5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline binningMode: nested one with an effect, top-level one without: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"binningMode":"x"},"binningMode":1}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.linear: nested one with an effect, top-level one without: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"panel.linear":"true"},"panel.linear":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(936): error: Expected equality of these values:
+  p.rcEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.linear: nested one without, top-level one with an effect: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"panel.linear":"false"},"panel.linear":"true"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.nonlinearity_mode: nested one with an effect, top-level one without: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"panel.nonlinearity_mode":"true"},"panel.nonlinearity_mode":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(936): error: Expected equality of these values:
+  p.rcEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.nonlinearity_mode: nested one without, top-level one with an effect: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"panel.nonlinearity_mode":"false"},"panel.nonlinearity_mode":"true"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.target_platform: nested one with an effect, top-level one without: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"panel.target_platform":"true"},"panel.target_platform":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(936): error: Expected equality of these values:
+  p.rcEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.target_platform: nested one without, top-level one with an effect: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"panel.target_platform":"false"},"panel.target_platform":"true"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.nonlin_poly_c0: nested one with an effect, top-level one without: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"panel.nonlin_poly_c0":"true"},"panel.nonlin_poly_c0":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(936): error: Expected equality of these values:
+  p.rcEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.nonlin_poly_c0: nested one without, top-level one with an effect: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"panel.nonlin_poly_c0":"false"},"panel.nonlin_poly_c0":"true"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.nonlin_poly_c4: nested one with an effect, top-level one without: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"panel.nonlin_poly_c4":"true"},"panel.nonlin_poly_c4":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(936): error: Expected equality of these values:
+  p.rcEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.nonlin_poly_c4: nested one without, top-level one with an effect: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"panel.nonlin_poly_c4":"false"},"panel.nonlin_poly_c4":"true"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.adc_max: nested one with an effect, top-level one without: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"panel.adc_max":"true"},"panel.adc_max":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(936): error: Expected equality of these values:
+  p.rcEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.adc_max: nested one without, top-level one with an effect: the top-level one  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"nested":{"panel.adc_max":"false"},"panel.adc_max":"true"}
+
+[  FAILED  ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject (2 ms)
+[ RUN      ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage
+[       OK ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage (2 ms)
+[ RUN      ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_ghost_create alpha1: nested one with an effect, top-level one without: the top-level one  {"nested":{"alpha1":"abc"},"alpha1":0.5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_ghost_create tau2: nested one with an effect, top-level one without: the top-level one  {"nested":{"tau2":"1e999"},"tau2":10}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_ghost_create tier: nested one with an effect, top-level one without: the top-level one  {"nested":{"tier":"x"},"tier":2}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_ghost_create nlcscBeta: nested one with an effect, top-level one without: the top-level one  {"nested":{"nlcscBeta":"1.5.2"},"nlcscBeta":0.1}
+
+[  FAILED  ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject (0 ms)
+[ RUN      ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_nonlinearity_correct panel.nonlinearity_mode: nested one with an effect, top-level one without: the top-level one  {"panel.nonlin_poly_c1":2.0,"nested":{"panel.nonlinearity_mode":"POLY"},"panel.nonlinearity_mode":"LUT"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(936): error: Expected equality of these values:
+  p.rcEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_nonlinearity_correct panel.nonlinearity_mode: nested one without, top-level one with an effect: the top-level one  {"panel.nonlin_poly_c1":2.0,"nested":{"panel.nonlinearity_mode":"LUT"},"panel.nonlinearity_mode":"POLY"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(937): error: Value of: o.effect
+  Actual: false
+Expected: true
+the top-level value was not applied
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_nonlinearity_correct panel.nonlinearity_mode: nested one without, top-level one with an effect: the top-level one  {"panel.nonlin_poly_c1":2.0,"nested":{"panel.nonlinearity_mode":"LUT"},"panel.nonlinearity_mode":"POLY"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_nonlinearity_correct panel.nonlin_poly_c1: nested one with an effect, top-level one without: the top-level one  {"panel.nonlinearity_mode":"POLY","nested":{"panel.nonlin_poly_c1":2.0},"panel.nonlin_poly_c1":0.0}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(936): error: Expected equality of these values:
+  p.rcEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_nonlinearity_correct panel.nonlin_poly_c1: nested one without, top-level one with an effect: the top-level one  {"panel.nonlinearity_mode":"POLY","nested":{"panel.nonlin_poly_c1":0.0},"panel.nonlin_poly_c1":2.0}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(937): error: Value of: o.effect
+  Actual: false
+Expected: true
+the top-level value was not applied
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_nonlinearity_correct panel.nonlin_poly_c1: nested one without, top-level one with an effect: the top-level one  {"panel.nonlinearity_mode":"POLY","nested":{"panel.nonlin_poly_c1":0.0},"panel.nonlin_poly_c1":2.0}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_nonlinearity_correct panel.target_platform: nested one with an effect, top-level one without: the top-level one  {"panel.nonlinearity_mode":"AUTO","panel.nonlin_poly_c1":2.0,"nested":{"panel.target_platform":"MCU"},"panel.target_platform":"CPU"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(936): error: Expected equality of these values:
+  p.rcEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_nonlinearity_correct panel.target_platform: nested one without, top-level one with an effect: the top-level one  {"panel.nonlinearity_mode":"AUTO","panel.nonlin_poly_c1":2.0,"nested":{"panel.target_platform":"CPU"},"panel.target_platform":"MCU"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(937): error: Value of: o.effect
+  Actual: false
+Expected: true
+the top-level value was not applied
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_nonlinearity_correct panel.target_platform: nested one without, top-level one with an effect: the top-level one  {"panel.nonlinearity_mode":"AUTO","panel.nonlin_poly_c1":2.0,"nested":{"panel.target_platform":"CPU"},"panel.target_platform":"MCU"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_nonlinearity_correct panel.linear: nested one with an effect, top-level one without: the top-level one  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"nested":{"panel.linear":"true"},"panel.linear":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(941): error: Value of: o.effect
+  Actual: true
+Expected: false
+a value that is not a top-level key was applied
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_nonlinearity_correct panel.linear: nested one with an effect, top-level one without: the top-level one  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"nested":{"panel.linear":"true"},"panel.linear":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(936): error: Expected equality of these values:
+  p.rcEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_nonlinearity_correct panel.linear: nested one without, top-level one with an effect: the top-level one  {"panel.nonlinearity_mode":"POLY","panel.nonlin_poly_c1":2.0,"nested":{"panel.linear":"false"},"panel.linear":"true"}
+
+[  FAILED  ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject (0 ms)
+[ RUN      ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_calib_generate_offset sigma: nested one with an effect, top-level one without: the top-level one  {"nested":{"sigma":-1},"sigma":3.0}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_calib_generate_offset method: nested one with an effect, top-level one without: the top-level one  {"nested":{"method":"bogus"},"method":"mean"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_calib_generate_offset max_iter: nested one with an effect, top-level one without: the top-level one  {"nested":{"max_iter":0},"max_iter":5}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_calib_generate_offset lower_percentile: nested one with an effect, top-level one without: the top-level one  {"nested":{"lower_percentile":-5},"lower_percentile":10.0}
+
+[  FAILED  ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject (14 ms)
+[ RUN      ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_calib_load_gain (polynomial) dose_min: nested one with an effect, top-level one without: the top-level one  {"dose_max":100.0,"nested":{"dose_min":10.0},"dose_min":"none"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(941): error: Value of: o.effect
+  Actual: true
+Expected: false
+a value that is not a top-level key was applied
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_calib_load_gain (polynomial) dose_min: nested one with an effect, top-level one without: the top-level one  {"dose_max":100.0,"nested":{"dose_min":10.0},"dose_min":"none"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(936): error: Expected equality of these values:
+  p.rcEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_calib_load_gain (polynomial) dose_min: nested one without, top-level one with an effect: the top-level one  {"dose_max":100.0,"nested":{"dose_min":"none"},"dose_min":10.0}
+
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys (36 ms)
+[ RUN      ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(940): error: Expected equality of these values:
+  p.rcNoEffect
+    Which is: 0
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_calib_load_nonlin_lut xcal_nonlin_extension_start: nested one with an effect, top-level one without: the top-level one  {"nested":{"xcal_nonlin_extension_start":99999},"xcal_nonlin_extension_start":100}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(936): error: Expected equality of these values:
+  p.rcEffect
+    Which is: -17
+  o.rc
+    Which is: -4
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): xpe_calib_load_nonlin_lut xcal_nonlin_extension_start: nested one without, top-level one with an effect: the top-level one  {"nested":{"xcal_nonlin_extension_start":100},"xcal_nonlin_extension_start":99999}
+
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys (150 ms)
+[ RUN      ] ConfigStrictParse.ANullConfigPointerStillMeansTheDefaults
+[       OK ] ConfigStrictParse.ANullConfigPointerStillMeansTheDefaults (0 ms)
+[----------] 24 tests from ConfigStrictParse (476 ms total)
+
+[----------] Global test environment tear-down
+[==========] 24 tests from 1 test suite ran. (476 ms total)
+[  PASSED  ] 16 tests.
+[  FAILED  ] 8 tests, listed below:
+[  FAILED  ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+[  FAILED  ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead
+[  FAILED  ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys
+
+ 8 FAILED TESTS
