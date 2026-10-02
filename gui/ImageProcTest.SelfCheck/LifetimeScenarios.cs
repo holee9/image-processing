@@ -114,6 +114,8 @@ internal class ScenarioBackend : IXpeBackend
 /// </summary>
 internal sealed class AiScenarioBackend : ScenarioBackend, IAiSessionBackend
 {
+    public bool HasAiSession => true;
+
     /// <summary>The scripted worker ceiling.</summary>
     public int AiCeiling = 3;
 
@@ -132,6 +134,8 @@ internal sealed class AiScenarioBackend : ScenarioBackend, IAiSessionBackend
 /// </summary>
 internal sealed class HeldReadBackend : ScenarioBackend, IAiSessionBackend
 {
+    public bool HasAiSession => true;
+
     public int AiCeiling = 3;
     public readonly ManualResetEventSlim FirstReadEntered = new();
     public readonly ManualResetEventSlim FirstReadRelease = new();
@@ -159,6 +163,8 @@ internal sealed class HeldReadBackend : ScenarioBackend, IAiSessionBackend
 /// </summary>
 internal sealed class ReplacedSessionBackend : ScenarioBackend, IAiSessionBackend
 {
+    public bool HasAiSession => true;
+
     public readonly ManualResetEventSlim OldReadEntered = new();
     public readonly ManualResetEventSlim OldReadRelease = new();
     private int _reads;
@@ -189,6 +195,8 @@ internal sealed class ReplacedSessionBackend : ScenarioBackend, IAiSessionBacken
 /// </summary>
 internal sealed class ScriptedSessionBackend : ScenarioBackend, IAiSessionBackend
 {
+    public bool HasAiSession => true;
+
     public volatile bool ReadsFail;
     private int _epoch;
 

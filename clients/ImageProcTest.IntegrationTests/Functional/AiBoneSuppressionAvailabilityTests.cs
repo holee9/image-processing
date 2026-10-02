@@ -94,4 +94,39 @@ public sealed class AiBoneSuppressionAvailabilityTests
         Assert.True(to > from, "missing end: " + end);
         return text[from..to];
     }
+
+    [Fact]
+    public void TheRuleReadsWhetherTheBackendHasASession_NotWhetherItImplementsTheInterface()
+    {
+        // Codex #78 finding 2: the test wrapper implements IAiSessionBackend for every backend it wraps, a wrapped Mock included.
+        var iface = Read("gui/ImageProcTest/Services/IAiSessionBackend.cs");
+        Assert.Contains("bool HasAiSession { get; }", iface, StringComparison.Ordinal);
+        Assert.DoesNotContain("bool HasAiSession =>", iface, StringComparison.Ordinal);   // required of every implementer: no default that says yes
+
+        Assert.Contains("bool IAiSessionBackend.HasAiSession => true;", Read("gui/ImageProcTest/Services/RealXpeBackend.cs"), StringComparison.Ordinal);
+        Assert.Contains("bool IAiSessionBackend.HasAiSession => _inner is IAiSessionBackend { HasAiSession: true };", Read("gui/ImageProcTest/Services/FaultInjectingBackend.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("HasAiSession", Read("gui/ImageProcTest/Services/MockXpeBackend.cs"), StringComparison.Ordinal);   // the Mock is not an AI session backend at all
+
+        var vm = Read("gui/ImageProcTest/ViewModels/MainWindowViewModel.cs");
+        Assert.Contains("backendHasAiSession: _backend is IAiSessionBackend { HasAiSession: true },", vm, StringComparison.Ordinal);
+        Assert.DoesNotContain("backendHasAiSession: _backend is IAiSessionBackend,", vm, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ThePipelineMenuAsksAgainEachTimeItOpens_BecauseTheDllIsAFactAboutTheDiskNothingWatches()
+    {
+        // Codex #78 finding 3.
+        var xaml = Read("gui/ImageProcTest/MainWindow.xaml");
+        Assert.Contains("SubmenuOpened=\"PipelineMenu_SubmenuOpened\"", Between(xaml, "x:Name=\"PipelineMenu\"", ">"), StringComparison.Ordinal);
+
+        var code = Read("gui/ImageProcTest/MainWindow.xaml.cs");
+        var handler = Between(code, "private void PipelineMenu_SubmenuOpened(", ";");
+        Assert.Contains("RefreshAiBoneSuppressionAvailability()", handler, StringComparison.Ordinal);
+
+        // It reaches the property notice and the command: the same two things the backend-state changes raise.
+        var vm = Read("gui/ImageProcTest/ViewModels/MainWindowViewModel.cs");
+        var refresh = Between(vm, "public void RefreshAiBoneSuppressionAvailability()", "private void");
+        Assert.Contains("OnPropertyChanged(nameof(AiBoneSuppressionAvailability));", refresh, StringComparison.Ordinal);
+        Assert.Contains("RunAiBoneSuppressionCommand.RaiseCanExecuteChanged();", refresh, StringComparison.Ordinal);
+    }
 }

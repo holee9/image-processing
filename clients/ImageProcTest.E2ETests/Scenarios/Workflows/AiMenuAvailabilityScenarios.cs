@@ -90,7 +90,7 @@ public sealed class AiMenuAvailabilityScenarios(WorkflowApplicationFixture app, 
         return condition();
     }
 
-    private static (bool Enabled, string Tip) ReadItem(Window window)
+    internal static (bool Enabled, string Tip) ReadItem(Window window)
     {
         UiaMenu.Open(window, "PipelineMenu");
         try

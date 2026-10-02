@@ -26,7 +26,37 @@ public static class BaselineExecution
     /// <summary>The budget of product.md. MEASURED against, never asserted: it has not been calibrated on a CI runner (design §5, leader's ruling).</summary>
     public const int BudgetMs = 3000;
 
+    /// <summary>The lock file a run holds in its evidence folder while it works. It is not an output: it is deleted when the run ends (never left behind, see <see cref="FolderLock"/>).</summary>
+    internal const string LockFileName = "baseline.lock";
+
     internal static BaselineExecutionResult Run(
+        ushort[] raw,
+        int width,
+        int height,
+        Func<BaselineSingleRun> runOnce,
+        IDicomSession? dicom,
+        BaselineDicomMetadata metadata,
+        string evidenceFolder,
+        Func<DateTimeOffset>? clock = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(evidenceFolder);
+
+        // Codex #78 finding 1 (the leader's ruling, M9): the folder is the run's alone from before it removes anything until it has judged. Without this, run B's start-up
+        // removal could delete the file run A had just moved into place, and A would report Pass with no DICOM file on disk. A folder that is already taken fails THIS run at
+        // once and touches nothing of the other run's.
+        using var folderLock = FolderLock.TryAcquire(evidenceFolder, out var lockProblem);
+        if (folderLock is null)
+        {
+            var reason = "the evidence folder is being used by another run, or its lock could not be taken: " + lockProblem;
+            var notRun = new BaselineVerdict(BaselineStatus.Fail, reason, 0, false, false, null, 0, string.Empty, string.Empty, null, [], []);
+            return new BaselineExecutionResult(false, "Deterministic Baseline FAIL: " + reason, notRun, evidenceFolder, Path.Combine(evidenceFolder, "baseline.json"),
+                string.Empty, string.Empty, 0, null, false, false, string.Empty);
+        }
+
+        return RunLocked(raw, width, height, runOnce, dicom, metadata, evidenceFolder, clock);
+    }
+
+    private static BaselineExecutionResult RunLocked(
         ushort[] raw,
         int width,
         int height,
@@ -219,6 +249,36 @@ public static class BaselineExecution
             dicomResult?.Valid ?? false,
             dicomResult?.Pixels is { Identical: true },
             dicomResult?.Summary ?? string.Empty);
+    }
+
+    /// <summary>
+    /// The exclusive hold on an evidence folder: <c>baseline.lock</c> opened with <c>FileShare.None</c> and <c>DeleteOnClose</c>. A second run that tries to open it fails at
+    /// once (a sharing violation, or access denied while the first handle is closing). Because the operating system deletes the file when the handle closes, the lock file does
+    /// not outlive the run, not even one that ends by an exception, so the folder holds exactly the two outputs afterwards.
+    /// </summary>
+    private sealed class FolderLock : IDisposable
+    {
+        private readonly FileStream _stream;
+
+        private FolderLock(FileStream stream) => _stream = stream;
+
+        public static FolderLock? TryAcquire(string folder, out string? problem)
+        {
+            try
+            {
+                Directory.CreateDirectory(folder);
+                var stream = new FileStream(Path.Combine(folder, LockFileName), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, 1, FileOptions.DeleteOnClose);
+                problem = null;
+                return new FolderLock(stream);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                problem = $"{ex.GetType().Name}: {ex.Message}";
+                return null;
+            }
+        }
+
+        public void Dispose() => _stream.Dispose();
     }
 
     /// <summary>

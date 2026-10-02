@@ -18,6 +18,10 @@ public partial class MainWindow : System.Windows.Window
     /// <summary>Where this run's settings are read from and written to. #136: not the shipped file under automation.</summary>
     private readonly string _settingsFilePath;
 
+    // Codex #78 finding 3 (GUI-C-198): the AI entry's availability includes a file that may appear or vanish while the app runs; it is read again each time the menu opens.
+    private void PipelineMenu_SubmenuOpened(object sender, System.Windows.RoutedEventArgs e) =>
+        (DataContext as MainWindowViewModel)?.RefreshAiBoneSuppressionAvailability();
+
     public MainWindow()
     {
         InitializeComponent();

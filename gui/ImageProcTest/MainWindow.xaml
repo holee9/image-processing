@@ -344,7 +344,8 @@
 
             <MenuItem x:Name="PipelineMenu"
                       AutomationProperties.AutomationId="PipelineMenu"
-                      Header="_Pipeline">
+                      Header="_Pipeline"
+                      SubmenuOpened="PipelineMenu_SubmenuOpened">
                 <MenuItem x:Name="ApplyDisplayPipelineMenuItem"
                           AutomationProperties.AutomationId="ApplyDisplayPipelineMenuItem"
                           Header="Apply _Display Pipeline"

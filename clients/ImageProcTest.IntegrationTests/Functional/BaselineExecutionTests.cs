@@ -175,8 +175,10 @@ public sealed class BaselineExecutionTests : IDisposable
 
         var result = Run(Good, new MemoryDicom(), Path.Combine(blocker, "baseline-1"));   // a folder cannot be created under a file
 
-        Assert.NotNull(result.EvidenceWriteProblem);
-        Assert.False(result.Passed);   // the DICOM export needs the same folder: a baseline whose output could not be written does not pass
+        // M9: the folder is locked before anything else, and a folder that cannot be created cannot be locked: the run fails at once, saying so, and writes nothing.
+        Assert.False(result.Passed);
+        Assert.Contains("lock could not be taken", result.Status, StringComparison.Ordinal);
+        Assert.StartsWith("Deterministic Baseline FAIL: ", result.Status, StringComparison.Ordinal);
     }
 
     [Fact]

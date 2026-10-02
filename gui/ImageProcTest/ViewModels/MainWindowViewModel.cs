@@ -531,7 +531,7 @@ public sealed class MainWindowViewModel : ObservableObject
     /// </summary>
     public AiBoneSuppressionAvailability AiBoneSuppressionAvailability =>
         AiBoneSuppressionAvailability.Evaluate(
-            backendHasAiSession: _backend is IAiSessionBackend,
+            backendHasAiSession: _backend is IAiSessionBackend { HasAiSession: true },
             backendInitialized: string.Equals(RuntimeInfo.State, "Initialized", StringComparison.Ordinal),
             backendTransitioning: Lifecycle.IsTransitioning,
             moduleDllPresent: AiModuleDllPresent());
@@ -554,7 +554,11 @@ public sealed class MainWindowViewModel : ObservableObject
     private static bool AiModuleDllPresent() =>
         NativeModuleLibraryLocator.GetDllCandidates("xpe_ai.dll", "image-processing").Any(File.Exists);
 
-    private void RefreshAiBoneSuppressionAvailability()
+    /// <summary>
+    /// Asks the menu to read the availability again. Called when the backend's state moves AND when the Pipeline menu is opened (Codex #78 finding 3): the DLL's presence
+    /// is a fact about the disk that nothing here watches, so a file that appeared or went away while the app ran is seen at the next opening, not never.
+    /// </summary>
+    public void RefreshAiBoneSuppressionAvailability()
     {
         OnPropertyChanged(nameof(AiBoneSuppressionAvailability));
         OnPropertyChanged(nameof(AiBoneSuppressionMenuToolTip));

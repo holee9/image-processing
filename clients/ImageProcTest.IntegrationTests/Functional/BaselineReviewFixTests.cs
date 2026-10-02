@@ -528,4 +528,61 @@ public sealed class BaselineReviewFixTests : IDisposable
         Assert.True(gainRead > 0 && defectCall > gainRead, "the gain output must be read BEFORE the defect stage is called");
         Assert.Contains("BaselineStageAdapters.CountPreprocessNonFinite(gainFloats, defectFloats)", code, StringComparison.Ordinal);
     }
+
+    // ---- Codex #78 finding 1 (M9): one run at a time in a folder ---------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task TwoRunsInOneFolderAtOnce_OneRuns_TheOtherFailsAtOnce_AndTheHoldersFilesAreUntouched(bool holderPasses)
+    {
+        var folder = Path.Combine(_root, "concurrent-" + holderPasses);
+        using var started = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        var holderDicom = new FileDicom();
+
+        var holder = Task.Run(() => Execute(() =>
+        {
+            started.Set();
+            Assert.True(release.Wait(TimeSpan.FromSeconds(30)));
+            return holderPasses ? RunOnce(0, 0) : RunOnce(enhancePoison: 1, preprocessNonFinite: 0);
+        }, holderDicom, folder));
+        Assert.True(started.Wait(TimeSpan.FromSeconds(30)), "the first run never started");
+
+        var rivalDicom = new FileDicom();
+        var rival = Execute(() => throw new InvalidOperationException("the second run must not run: the folder is taken"), rivalDicom, folder);
+
+        Assert.False(rival.Passed);
+        Assert.Contains("being used by another run", rival.Status, StringComparison.Ordinal);
+        Assert.Equal(0, rivalDicom.Writes);
+        Assert.False(File.Exists(rival.JsonPath), "the second run wrote into a folder it does not own");
+
+        release.Set();
+        var first = await holder;
+
+        Assert.Equal(holderPasses, first.Passed);
+        Assert.Equal(holderPasses, File.Exists(Path.Combine(folder, "baseline.dcm")));
+        Assert.Equal(holderPasses ? "Pass" : "Fail", ReadJson(first).GetProperty("status").GetString());
+        Assert.False(File.Exists(Path.Combine(folder, BaselineExecution.LockFileName)), "the lock file outlived the run");
+
+        // The lock is released with the run: the next run in the same folder is not refused.
+        var third = Execute(() => RunOnce(0, 0), new FileDicom(), folder);
+        Assert.True(third.Passed, third.Status);
+    }
+
+    [Fact]
+    public void TheLockFile_IsNeverAnOutput_PassOrFail_EvenWhenTheRunThrows()
+    {
+        var passFolder = Path.Combine(_root, "lock-pass");
+        Assert.True(Execute(() => RunOnce(0, 0), new FileDicom(), passFolder).Passed);
+        Assert.Equal(["baseline.dcm", "baseline.json"], Directory.GetFiles(passFolder).Select(Path.GetFileName).OrderBy(n => n, StringComparer.Ordinal).ToArray());
+
+        var failFolder = Path.Combine(_root, "lock-fail");
+        Assert.False(Execute(() => RunOnce(enhancePoison: 1, preprocessNonFinite: 0), new FileDicom(), failFolder).Passed);
+        Assert.Equal(["baseline.json"], Directory.GetFiles(failFolder).Select(Path.GetFileName).ToArray());
+
+        var throwFolder = Path.Combine(_root, "lock-throw");
+        Assert.False(Execute(() => throw new InvalidOperationException("boom"), new FileDicom(), throwFolder).Passed);
+        Assert.False(File.Exists(Path.Combine(throwFolder, BaselineExecution.LockFileName)));
+    }
 }

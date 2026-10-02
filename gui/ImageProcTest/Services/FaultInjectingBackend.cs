@@ -103,6 +103,9 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
         return AiWorkerStatus.Unknown;
     }
 
+    // The wrapper has a session only when the backend it wraps has one (Codex #78 finding 2): a wrapped Mock has none, whatever interface the wrapper carries.
+    bool IAiSessionBackend.HasAiSession => _inner is IAiSessionBackend { HasAiSession: true };
+
     int IAiSessionBackend.AiSessionEpoch => (_inner as IAiSessionBackend)?.AiSessionEpoch ?? 0;
 
     AiRestartResult IAiSessionBackend.RestartAiSession(string modelDirectory) =>
