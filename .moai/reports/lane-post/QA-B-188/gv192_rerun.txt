@@ -1,0 +1,96 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = GridVisibility192.*:GsvgGridSuppression.AliasContrastAtTheProductPitch_192:GsvgGridSuppression.SeedSpreadOfTheAliasingFloors_192
+[==========] Running 7 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 2 tests from GsvgGridSuppression
+[ RUN      ] GsvgGridSuppression.AliasContrastAtTheProductPitch_192
+GRIDSUP 192: pitch_mm, lpi, alias_lp_cm, period_cm, contrast_point_sampled, contrast_aperture, aperture/point
+GRIDSUP 192 pitch=0.139 lpi=  170 alias=5.013 lp/cm period=  0.20 cm point=0.05000 aperture=0.0037155 ratio=0.07431
+GRIDSUP 192 pitch=0.139 lpi=  180 alias=1.076 lp/cm period=  0.93 cm point=0.05000 aperture=0.0007591 ratio=0.01518
+GRIDSUP 192 pitch=0.139 lpi=  186 alias=1.286 lp/cm period=  0.78 cm point=0.05000 aperture=0.0008776 ratio=0.01755
+GRIDSUP 192 pitch=0.139 lpi=  103 alias=31.391 lp/cm period=  0.03 cm point=0.05000 aperture=0.0276733 ratio=0.55347
+GRIDSUP 192 pitch=0.140 lpi=  170 alias=4.499 lp/cm period=  0.22 cm point=0.05000 aperture=0.0033392 ratio=0.06679
+GRIDSUP 192 pitch=0.140 lpi=  180 alias=0.562 lp/cm period=  1.78 cm point=0.05000 aperture=0.0003968 ratio=0.00794
+GRIDSUP 192 pitch=0.140 lpi=  186 alias=1.800 lp/cm period=  0.56 cm point=0.05000 aperture=0.0012276 ratio=0.02455
+GRIDSUP 192 pitch=0.140 lpi=  103 alias=30.877 lp/cm period=  0.03 cm point=0.05000 aperture=0.0274025 ratio=0.54805
+[       OK ] GsvgGridSuppression.AliasContrastAtTheProductPitch_192 (60 ms)
+[ RUN      ] GsvgGridSuppression.SeedSpreadOfTheAliasingFloors_192
+GRIDSUP seed192: lpi, seed, after/before, detected
+GRIDSUP seed192 lpi=170 seed=  1 after/before=0.002584 detected=1
+GRIDSUP seed192 lpi=170 seed=  2 after/before=0.002589 detected=1
+GRIDSUP seed192 lpi=170 seed=  3 after/before=0.002582 detected=1
+GRIDSUP seed192 lpi=170 seed=180 after/before=0.002595 detected=1
+GRIDSUP seed192 lpi=170 MIN=0.002582 MAX=0.002595 spread=0.5% (max/min=1.005)
+GRIDSUP seed192 lpi=175 seed=  1 after/before=4.144e-05 detected=1
+GRIDSUP seed192 lpi=175 seed=  2 after/before=4.25e-05 detected=1
+GRIDSUP seed192 lpi=175 seed=  3 after/before=4.167e-05 detected=1
+GRIDSUP seed192 lpi=175 seed=180 after/before=4.153e-05 detected=1
+GRIDSUP seed192 lpi=175 MIN=4.144e-05 MAX=4.25e-05 spread=2.6% (max/min=1.026)
+GRIDSUP seed192 lpi=186 seed=  1 after/before=2.475e-05 detected=1
+GRIDSUP seed192 lpi=186 seed=  2 after/before=2.437e-05 detected=1
+GRIDSUP seed192 lpi=186 seed=  3 after/before=2.424e-05 detected=1
+GRIDSUP seed192 lpi=186 seed=180 after/before=2.401e-05 detected=1
+GRIDSUP seed192 lpi=186 MIN=2.401e-05 MAX=2.475e-05 spread=3.0% (max/min=1.030)
+[       OK ] GsvgGridSuppression.SeedSpreadOfTheAliasingFloors_192 (1210 ms)
+[----------] 2 tests from GsvgGridSuppression (1271 ms total)
+
+[----------] 5 tests from GridVisibility192
+[ RUN      ] GridVisibility192.ObservedAliasFrequencyMatchesTheFoldingPrediction_192
+GV192 alias: lpi pitch predicted_lp_per_cm observed_lp_per_cm cycles_across_field
+GV192 alias 170 0.139  5.013  4.988  71.0
+GV192 alias 170 0.140  4.499  4.534  65.0
+GV192 alias 180 0.139  1.076  1.054  15.0
+GV192 alias 180 0.140  0.562  0.558  8.0
+GV192 alias 186 0.139  1.286  1.265  18.0
+GV192 alias 186 0.140  1.800  1.814  26.0
+[       OK ] GridVisibility192.ObservedAliasFrequencyMatchesTheFoldingPrediction_192 (106 ms)
+[ RUN      ] GridVisibility192.AliasAmplitudeAtTheProductPitch_192
+GV192 amp: lpi pitch point_sampled_% aperture_integrated_% (input depth 5.0%)
+GV192 amp 170 0.139   10.0011   0.74308
+GV192 amp 170 0.140   10.0014   0.66784
+GV192 amp 180 0.139   10.0054   0.15182
+GV192 amp 180 0.140    9.9987   0.07935
+GV192 amp 186 0.139    9.9934   0.17551
+GV192 amp 186 0.140    9.9985   0.24552
+[       OK ] GridVisibility192.AliasAmplitudeAtTheProductPitch_192 (137 ms)
+[ RUN      ] GridVisibility192.TheAmplitudeMeasurementIsNotBlind_192
+GV192 control flat-no-grid modulation=0.000000 %
+GV192 control 60lpi-0.140 modulation=9.9987 % (input depth 5.0 %)
+GV192 control aperture 60lpi=8.2946 % 180lpi=0.07935 % ratio=104.5
+[       OK ] GridVisibility192.TheAmplitudeMeasurementIsNotBlind_192 (33 ms)
+[ RUN      ] GridVisibility192.TheVerdictTurnsOnTheApertureFillFactor_192
+GV192 fill: lpi pitch fill modulation_pct verdict (1JND=0.75 pct)
+GV192 fill 170 0.140 1.00    0.6678  below
+GV192 fill 170 0.140 0.95    1.2096  grey
+GV192 fill 170 0.140 0.90    1.7839  grey
+GV192 fill 170 0.140 0.85    2.3849  VISIBLE
+GV192 fill 170 0.140 0.80    3.0063  VISIBLE
+GV192 fill 170 0.140 0.70    4.2825  VISIBLE
+GV192 fill 180 0.140 1.00    0.0794  below
+GV192 fill 180 0.140 0.95    0.6065  below
+GV192 fill 180 0.140 0.90    1.1767  grey
+GV192 fill 180 0.140 0.85    1.7838  grey
+GV192 fill 180 0.140 0.80    2.4208  VISIBLE
+GV192 fill 180 0.140 0.70    3.7537  VISIBLE
+GV192 fill 186 0.140 1.00    0.2455  below
+GV192 fill 186 0.140 0.95    0.2673  below
+GV192 fill 186 0.140 0.90    0.8298  grey
+GV192 fill 186 0.140 0.85    1.4357  grey
+GV192 fill 186 0.140 0.80    2.0779  VISIBLE
+GV192 fill 186 0.140 0.70    3.4383  VISIBLE
+[       OK ] GridVisibility192.TheVerdictTurnsOnTheApertureFillFactor_192 (189 ms)
+[ RUN      ] GridVisibility192.HowMuchThePointSampledSceneOverstatesTheGrid_192
+GV192 overstate: lpi f*pitch point_% aperture_% ratio  (pitch 0.140)
+GV192 overstate  60  0.3307   9.9987   8.29459     1.2
+GV192 overstate 103  0.5677  10.0001   5.48047     1.8
+GV192 overstate 170  0.9370  10.0014   0.66784    15.0
+GV192 overstate 180  0.9921   9.9987   0.07935   126.0
+GV192 overstate 186  1.0252   9.9985   0.24552    40.7
+GV192 overstate 200  1.1024   9.9987   0.91258    11.0
+GV192 overstate ratio103=1.82 ratio180=126.0
+[       OK ] GridVisibility192.HowMuchThePointSampledSceneOverstatesTheGrid_192 (173 ms)
+[----------] 5 tests from GridVisibility192 (641 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 2 test suites ran. (1912 ms total)
+[  PASSED  ] 7 tests.
