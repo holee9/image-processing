@@ -278,6 +278,43 @@ XpeErrorCode xpe_defect_correct_in(
     if (calib.defect_width  != input->width ||
         calib.defect_height != input->height) return XPE_ERR_INVALID_INPUT;
 
+    // QA-A-214b (#233): THE FRAME MUST BE FINITE. The fill takes a median of neighbours (or a mean, for a lone defect),
+    // and a NaN among them makes the result depend on the order the values were collected in -- mirroring a frame
+    // changed the output of 110 of 400 test frames (QA-A-214) -- while an infinity or a NaN in a mean spreads into the
+    // corrected pixel and the call still answered XPE_OK. A consumer refuses a non-finite input at its entrance and
+    // does not write: the output buffer is untouched (and, called in place, so is the input), and the caller is told
+    // where the first bad pixel is. The whole frame is checked, masked pixels included (their own value is what a pixel
+    // with no valid neighbour keeps). Inside the pipeline this cannot fire: the stage is handed the gain stage's output
+    // (at most 65535 / 0.1), a converted uint16, or binning's checked result. It is the direct callers of this public
+    // function it protects (the GUI preview service, its synthetic oracle and an integration test among them).
+    // One linear pass over the exponent bits; the count and the position are found only when something is wrong.
+    {
+        const float* const frame = static_cast<const float*>(input->data);
+        constexpr uint32_t kExpMask = 0x7F800000u;   // all exponent bits set: NaN or +-infinity
+        uint32_t bad = 0;
+        for (size_t i = 0; i < n; ++i) {
+            uint32_t b;
+            std::memcpy(&b, frame + i, sizeof(b));
+            bad |= static_cast<uint32_t>((b & kExpMask) == kExpMask);
+        }
+        if (bad != 0) {
+            size_t count = 0, first = 0;
+            for (size_t i = 0; i < n; ++i) {
+                uint32_t b;
+                std::memcpy(&b, frame + i, sizeof(b));
+                if ((b & kExpMask) == kExpMask) { if (count == 0) first = i; ++count; }
+            }
+            char msg[320];
+            std::snprintf(msg, sizeof(msg),
+                "XPE_WARN_DEFECT_INPUT_NOT_FINITE: %zu pixel(s) of the input frame are NaN or infinite (first: index %zu, x=%zu, y=%zu); "
+                "the frame was not corrected and the output was not written",
+                count, first, first % input->width, first / input->width);
+            msg[sizeof(msg) - 1] = '\0';
+            xpe_alert_push(msg, XPE_ALERT_ERROR);
+            return XPE_ERR_INVALID_INPUT;
+        }
+    }
+
     // QA-A-202 (#233): shared ownership of the map, no copy of it (9.4 MB at 3072x3072). QA-A-202d (Codex #32):
     // it comes from `calib`, the snapshot the caller took, so a reload during the frame -- or between two
     // stages of it -- leaves this call the map the frame started with.

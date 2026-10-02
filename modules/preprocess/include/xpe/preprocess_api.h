@@ -307,6 +307,12 @@ XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
  * the 4-neighbour path and the r=1..3 ring fallback alike). The two sets are
  * disjoint, so a read can never see an already-corrected value.
  *
+ * NON-FINITE INPUT (QA-A-214b): a frame holding a NaN or an infinity -- masked pixels included -- is refused at the
+ * entrance with XPE_ERR_INVALID_INPUT and one XPE_ALERT_ERROR "XPE_WARN_DEFECT_INPUT_NOT_FINITE: ..." (the count and the
+ * first pixel); nothing is written (the output buffer is untouched, and called in place the input is). The check
+ * follows the argument, format, size, aliasing, initialisation and map checks, so those errors keep their precedence.
+ * The pipeline never hands this stage a non-finite value; the check is for callers of this function.
+ *
  * FILL VALUE (QA-A-211b): a marked pixel takes the mean of its unmarked 4-neighbours (a lone defect), or -- inside a
  * cluster of adjacent marked pixels -- the median of the unmarked pixels of its 3x3; when that 3x3 holds none (the
  * interior of a cluster), the search widens ring by ring to Chebyshev radius 16 and the median of the NEAREST ring

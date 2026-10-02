@@ -1,0 +1,12 @@
+frame                                                              old ms     new ms speedup  output sha256 (first 24)
+no masked pixel (baseline: the early return)                          4.3        5.6    0.8x  IDENTICAL d91ee9b3ce6da70811628c61
+2 masked pixels + one pair                                            7.0        8.3    0.8x  IDENTICAL ab9ba96f6838a08e561cbb8d
+ONE 686x686 block (4.99%): worst case, deep interior                 40.4       42.3    1.0x  IDENTICAL c41af3c3be288d6539e07413
+20x20 blocks on a 60-px grid (about 11%): interior distance <= 10      196.5      202.3    1.0x  IDENTICAL 27f8436a82cdad1dd511ae3e
+40x40 blocks on a 90-px grid (about 20%): interior distance up to 20      420.5      429.4    1.0x  IDENTICAL 4d67be58b0ca5af467757d34
+CalData_6 defect map + gain classification (level 0)                 17.3       19.3    0.9x  IDENTICAL 709b1085d4746f66300671a7
+CalData_6 defect map + gain classification (level 4)                 16.8       19.8    0.9x  IDENTICAL 718236957f1696f5b7cdf18d
+cyan_test BPM.raw (250 defects)                                       6.9        8.8    0.8x  IDENTICAL 57657c8925594a8e941be613
+CalData_6 BPMap.map (the real defect map)                            13.0       14.4    0.9x  IDENTICAL 41b4f2c7d3bf4cbe002d5d29
+all outputs bit-identical old vs new: True
+pathological 686x686 block vs no mask: old 9.3x, new 7.6x the empty-mask frame
