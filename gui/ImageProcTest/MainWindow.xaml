@@ -359,8 +359,9 @@
                 <MenuItem x:Name="RunDeterministicBaselineMenuItem"
                           AutomationProperties.AutomationId="RunDeterministicBaselineMenuItem"
                           Header="Run _Deterministic Baseline (Phase 1b)"
-                          IsEnabled="False"
-                          ToolTip="Requires preprocess, enhance_basic, display, and dicom modules." />
+                          Command="{Binding RunDeterministicBaselineCommand}"
+                          IsEnabled="{Binding CanRunDeterministicBaseline}"
+                          ToolTip="Runs the fixed Phase 1b chain (preprocess, enhance_basic, display LUTs, DICOM write) twice on the loaded image and reports whether the two outputs are bit-identical. Needs the native backend and a loaded image. Changes no setting." />
                 <!-- #225 (GUI-C-184, row 10). The id and the x:Name stay (tests and the three-axis count key on them); the item no
                      longer says "Full Pipeline": today it runs ONE assistive module, bone suppression. The other AI modules
                      and the premium ones are not wired to it. -->

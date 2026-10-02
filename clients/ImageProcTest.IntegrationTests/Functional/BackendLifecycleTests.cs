@@ -362,6 +362,7 @@ public sealed class BackendLifecycleTests
         ["TakeRequestTicket"] = ("lifetime helper (an Apply's ticket also carries a request number)", null),
         ["IsCurrent"] = ("lifetime helper", null),
         ["CanRunPreprocessing"] = ("read-only property (changes nothing, starts nothing)", null),
+        ["CanRunDeterministicBaseline"] = ("read-only property (changes nothing, starts nothing)", null),
         ["BeginShutdown"] = ("lifecycle (starts the transition)", null),
         ["FinishShutdown"] = ("lifecycle (ends the transition)", null),
         ["ShutdownBackendBlocking"] = ("lifecycle (the window could not wait)", null),
@@ -371,6 +372,7 @@ public sealed class BackendLifecycleTests
         ["ApplyBodyPartPreset"] = ("entry point, refuses", "VOI preset"),
         ["ApplyDisplayPipelineAsync"] = ("entry point, refuses and takes a ticket", "Display pipeline"),
         ["RestartAiSession"] = ("entry point, refuses and takes a ticket", "Restart AI"),
+        ["RunDeterministicBaselineAsync"] = ("entry point, refuses and takes a lifetime ticket (no request number)", "Deterministic Baseline"),
     };
 
     // Not in the table because it takes no backend of its own: RenderLanesAsync receives the Apply's ticket and asks it (checked below).
@@ -423,7 +425,7 @@ public sealed class BackendLifecycleTests
         }
 
         // Work that outlives a UI turn asks its ticket after every await and in its failure path.
-        foreach (var (name, minimum) in new[] { ("ApplyDisplayPipelineAsync", 3), ("RenderLanesAsync", 3), ("RestartAiSession", 2) })
+        foreach (var (name, minimum) in new[] { ("ApplyDisplayPipelineAsync", 3), ("RenderLanesAsync", 3), ("RestartAiSession", 2), ("RunDeterministicBaselineAsync", 2) })
         {
             var at = DeclarationOf(source, name);
             var next = source.IndexOf("\n    private ", at + 10, StringComparison.Ordinal);

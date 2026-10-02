@@ -486,13 +486,14 @@ internal static class LifetimeScenarios
             vm.ApplyBodyPartPresetCommand.Execute(null);           // VOI preset
             vm.ApplyDisplayPipelineCommand.Execute(null);          // Display pipeline
             vm.RestartAiSessionCommand.Execute(null);              // Restart AI
+            vm.RunDeterministicBaselineCommand.Execute(null);      // Deterministic Baseline
             vm.InitializeBackendCommand.Execute(null);             // Initialize backend
             vm.SetBackendModeCommand.Execute("Mock");              // (goes through Initialize backend)
-            await Until(() => new[] { "Load image", "VOI preset", "Display pipeline", "Restart AI", "Initialize backend" }.All(entry =>
+            await Until(() => new[] { "Load image", "VOI preset", "Display pipeline", "Restart AI", "Deterministic Baseline", "Initialize backend" }.All(entry =>
                 vm.Logs.Any(line => line.Contains(entry + ": The backend is shutting down", StringComparison.Ordinal))), "every entry point to be refused");
             await FlushUi();                                       // a refusal that was NOT one would have started work by now
 
-            foreach (var entry in new[] { "Load image", "VOI preset", "Display pipeline", "Restart AI", "Initialize backend" })
+            foreach (var entry in new[] { "Load image", "VOI preset", "Display pipeline", "Restart AI", "Deterministic Baseline", "Initialize backend" })
             {
                 Check(vm.Logs.Any(line => line.Contains(entry + ": The backend is shutting down", StringComparison.Ordinal) && line.Contains("not run", StringComparison.Ordinal)),
                     $"'{entry}' was not refused during the transition");

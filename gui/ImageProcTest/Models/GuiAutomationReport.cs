@@ -304,6 +304,40 @@ public sealed class GuiAutomationReport
     /// just be a label that never comes off.</summary>
     public string? StaleReasonAfterParameterRestored { get; set; }
 
+    /// <summary>#225 row 9 (GUI-C-196 M4): whether the Run Deterministic Baseline menu item was enabled when the run reached it (false on Mock).</summary>
+    public bool BaselineMenuEnabled { get; set; }
+
+    /// <summary>True only when the command ran to a result in this automation run.</summary>
+    public bool BaselineRan { get; set; }
+
+    /// <summary><c>Pass</c>, <c>Fail</c> or <c>NotRun</c>. NotRun is a different fact from Fail: nothing was compared.</summary>
+    public string BaselineStatus { get; set; } = "NotRun";
+
+    /// <summary>The command's one-line status, or the reason it did not run.</summary>
+    public string? BaselineStatusText { get; set; }
+
+    /// <summary>Whether the two runs' final pixels were bit-identical; false when nothing was compared.</summary>
+    public bool BaselineBitIdentical { get; set; }
+
+    /// <summary>Where the two outputs first differed (<c>pixel N, M differ, max D</c>), or empty when they did not.</summary>
+    public string BaselineFirstDifference { get; set; } = string.Empty;
+
+    public string? BaselineOutputSha256 { get; set; }
+
+    /// <summary>Per-stage and per-run times as the command logged them. Measured, not asserted against the 3000 ms budget.</summary>
+    public string? BaselineStageTimes { get; set; }
+
+    public double BaselineTotalMs { get; set; }
+
+    public bool BaselineDicomValid { get; set; }
+
+    public bool BaselineDicomRoundTripIdentical { get; set; }
+
+    /// <summary>The "uncalibrated EI" sentence (a measurement, not a pass criterion), or empty.</summary>
+    public string? BaselineExposureIndex { get; set; }
+
+    public string? BaselineEvidenceFolder { get; set; }
+
     public bool MenuCommandReportCreated { get; set; }
 
     public string? Error { get; set; }

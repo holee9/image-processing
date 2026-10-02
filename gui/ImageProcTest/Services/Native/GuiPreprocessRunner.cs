@@ -41,7 +41,8 @@ internal static class GuiPreprocessRunner
         string defectDirectory,
         string bodyPart,
         float kVp,
-        float pixelPitchMm)
+        float pixelPitchMm,
+        bool measureExposureIndex = false)
     {
         var offset = Path.Combine(offsetDirectory, OffsetFile);
         var gain = Path.Combine(gainDirectory, GainFile);
@@ -80,7 +81,7 @@ internal static class GuiPreprocessRunner
                 }
             }
 
-            return RunStages(rawPixels, width, height, bodyPart, kVp, pixelPitchMm);
+            return RunStages(rawPixels, width, height, bodyPart, kVp, pixelPitchMm, measureExposureIndex);
         }
         finally
         {
@@ -95,7 +96,7 @@ internal static class GuiPreprocessRunner
     /// (preprocess_api.h), and allocating the wrong one is a silent wrong answer rather than an error.
     /// </summary>
     private static PreprocessRunResult RunStages(ushort[] rawPixels, int width, int height, string bodyPart,
-        float kVp, float pixelPitchMm)
+        float kVp, float pixelPitchMm, bool measureExposureIndex)
     {
         // kVp and the pixel pitch are the user's settings (AppSettings.ExposureKvp / PixelPitchMm, GUI-C-99
         // and GUI-C-100); both were literals here. mAs and SID are still fixed.
@@ -158,9 +159,14 @@ internal static class GuiPreprocessRunner
                 return new PreprocessRunResult(false, $"xpe_defect_correct failed ({defectCode}).", null);
             }
 
+            // #225 row 9 (GUI-C-196 M4, design D1): EI-0 is measured HERE, on the float image, before it is scaled to 16 bits (after that the values are
+            // normalised by the frame maximum and an EI taken from them would be meaningless). Only the Deterministic Baseline asks for it: an ordinary
+            // Apply measures nothing, so its output and its alerts are unchanged.
+            var exposure = measureExposureIndex ? MeasureUncalibratedExposureIndex(ref defectOut, ref metadata) : string.Empty;
+
             return new PreprocessRunResult(
                 true,
-                $"Preprocess: offset -> nonlinearity -> gain -> defect on {width}x{height} ({bodyPart}).",
+                $"Preprocess: offset -> nonlinearity -> gain -> defect on {width}x{height} ({bodyPart}).{exposure}",
                 ReadFloatsAsUInt16(defectOut.Data, count));
         }
         finally
@@ -169,6 +175,27 @@ internal static class GuiPreprocessRunner
             {
                 allocated[i]();
             }
+        }
+    }
+
+    /// <summary>
+    /// EI and DI of the corrected float image, as text for the stage's summary. A MEASUREMENT, never a pass criterion: the module's S0 reference (1000) has not
+    /// been checked against the gui's gain scale, so the value is labelled "uncalibrated EI" (the leader's wording: 보정 안 된 EI). A failure to measure is
+    /// said, not hidden, and does not fail the stage.
+    /// </summary>
+    private static string MeasureUncalibratedExposureIndex(ref XpeImageBufferNative image, ref XpeImageMetadataNative metadata)
+    {
+        const string Label = " uncalibrated EI (보정 안 된 EI)";
+        try
+        {
+            var code = XpeExposureIndexNative.xpe_calc_exposure_index(ref image, ref metadata, out var ei, out var di);
+            return code == XpeOk
+                ? string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{Label} = {ei:0.##}, DI = {di:0.##} (measured, not a pass criterion; S0 reference not verified against the gui gain scale).")
+                : $"{Label} not measured: xpe_calc_exposure_index returned {code}.";
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+        {
+            return $"{Label} not measured: {ex.Message}";
         }
     }
 

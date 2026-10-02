@@ -7,7 +7,7 @@ using ImageProcTest.Services.Native;
 
 namespace ImageProcTest.Services;
 
-public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
+public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBackend
 {
     private static readonly string[] RequiredCommonExports =
     {
@@ -281,7 +281,10 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
     /// #180 (GUI-C-99): the pixel chain. Order, copies and fallback are ProcessingChainRunner's; this
     /// method only says how each stage runs natively.
     /// </summary>
-    public ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
+    public ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings) =>
+        RunChainCore(rawFrame, stages, settings, measureExposureIndex: false);
+
+    private ChainResult RunChainCore(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings, bool measureExposureIndex)
     {
         if (rawFrame.RawPixels is null || rawFrame.Width <= 0 || rawFrame.Height <= 0)
         {
@@ -290,7 +293,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
 
         var result = ProcessingChainRunner.Run(rawFrame.RawPixels, stages, (request, input) => request.StageId switch
         {
-            StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings),
+            StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings, measureExposureIndex),
             StageIds.Gsvg => RunGsvgStage(input, rawFrame.Width, rawFrame.Height, settings),
             StageIds.AiBoneSuppression => RunAiStage(input, rawFrame.Width, rawFrame.Height, settings),
             StageIds.EnhanceBasic => RunEnhanceBasicStage(input, rawFrame.Width, rawFrame.Height),
@@ -305,7 +308,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
         return result;
     }
 
-    private StageExecution RunPreprocessStage(ushort[] input, int width, int height, AppSettings settings)
+    private StageExecution RunPreprocessStage(ushort[] input, int width, int height, AppSettings settings, bool measureExposureIndex = false)
     {
         // InvokeNative so the alert drain runs afterwards on every path (GUI-C-24), including the
         // failure paths — a stage that refuses is exactly when the queue holds something to show.
@@ -318,7 +321,8 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
             settings.DefectCalibrationDirectory,
             settings.SelectedBodyPart,
             settings.ExposureKvp,
-            settings.PixelPitchMm));
+            settings.PixelPitchMm,
+            measureExposureIndex));
 
         return new StageExecution(result.Ran, result.Pixels, result.Summary);
     }
@@ -331,6 +335,96 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
     {
         var result = InvokeNative(() => Native.GuiGsvgRunner.Run(input, width, height, settings));
         return new StageExecution(result.Ran, result.Pixels, result.Message);
+    }
+
+    // ---- #225 row 9 (GUI-C-196 M4): the Deterministic Baseline ------------------------------------------------------------------------
+
+    bool IBaselineBackend.SupportsDeterministicBaseline => true;
+
+    IDicomSession IBaselineBackend.CreateBaselineDicomSession() => new Native.NativeDicomSession();
+
+    BaselineSingleRun IBaselineBackend.RunBaselineOnce(LoadedImageFrame rawFrame, AppSettings settings)
+    {
+        if (rawFrame.RawPixels is null || rawFrame.Width <= 0 || rawFrame.Height <= 0)
+        {
+            throw new InvalidOperationException("The Deterministic Baseline requires a loaded UInt16 raw frame.");
+        }
+
+        // The user's display settings are not read: ForBaseline overrides them with the fixed values (design D7).
+        var fixedSettings = BaselineParameters.ForBaseline(settings);
+        var chain = RunChainCore(rawFrame, ProcessingChainPlan.BuildBaselineStages(), fixedSettings, measureExposureIndex: true);
+
+        // A chain that did not apply every stage is a failed baseline (D5): the display is not run on a pass-through image.
+        if (chain.Stages.Any(s => s.Status is not (StageStatus.Applied or StageStatus.AppliedNoChange)))
+        {
+            return new BaselineSingleRun(chain, Array.Empty<ushort>());
+        }
+
+        var output = InvokeNative(() => RunBaselineDisplay(chain.DisplayInput, rawFrame.Width, rawFrame.Height));
+        return new BaselineSingleRun(chain, output);
+    }
+
+    /// <summary>
+    /// The display pipeline with the baseline's fixed parameters, returning the final 16-bit pixels (what the DICOM file carries). The same native calls, in the same
+    /// order, as <see cref="ApplyDisplayPipelineCore"/>, which returns only a preview bitmap and takes the user's settings; that method is left as it was.
+    /// </summary>
+    private static ushort[] RunBaselineDisplay(ushort[] input, int width, int height)
+    {
+        var count = checked(width * height);
+        if (input.Length < count)
+        {
+            throw new InvalidOperationException("Baseline display input is smaller than width x height.");
+        }
+
+        var image = default(XpeImageBufferNative);
+        var allocated = false;
+        try
+        {
+            CheckNativeResult(XpeCommonNative.xpe_alloc_image((uint)width, (uint)height, XpePixelFormatNative.Float32, out image), "xpe_alloc_image");
+            allocated = true;
+
+            var floats = new float[count];
+            for (var i = 0; i < count; i++)
+            {
+                floats[i] = input[i];
+            }
+
+            Marshal.Copy(floats, 0, image.Data, count);
+
+            var modality = new XpeModalityLutParamsNative
+            {
+                Mode = 0,
+                RescaleSlope = BaselineParameters.ModalityRescaleSlope,
+                RescaleIntercept = BaselineParameters.ModalityRescaleIntercept,
+                LutData = IntPtr.Zero,
+                LutLength = 0,
+                LutFirstMapped = 0,
+                LutBitsStored = 16,
+            };
+            CheckNativeResult(XpeDisplayNative.xpe_apply_modality_lut(ref image, ref modality), "xpe_apply_modality_lut");
+
+            var voi = new XpeVoiLutParamsNative
+            {
+                Mode = ToNativeVoiMode(BaselineParameters.VoiLutMode),
+                Center = BaselineParameters.VoiWindowCenter,
+                Width = BaselineParameters.VoiWindowWidth,
+                MinOut = 0.0f,
+                MaxOut = 1.0f,
+            };
+            CheckNativeResult(XpeDisplayNative.xpe_apply_voi_lut(ref image, ref voi), "xpe_apply_voi_lut");
+
+            var presentation = XpePresentationLutParamsNative.CreateLinear(BaselineParameters.GsdfEnabled);
+            CheckNativeResult(XpeDisplayNative.xpe_apply_presentation_lut(ref image, ref presentation), "xpe_apply_presentation_lut");
+
+            return CopyNativeUInt16Pixels(image.Data, count);
+        }
+        finally
+        {
+            if (allocated)
+            {
+                XpeCommonNative.xpe_free_image(ref image);
+            }
+        }
     }
 
     /// <summary>
