@@ -1,0 +1,9 @@
+{
+  "model_id": "bodypart_toy",
+  "version": "0.0.1",
+  "note": "QA-B-191 toy model for wiring tests: not a classifier, says nothing about accuracy",
+  "labels": [
+    "CHEST",
+    "ABDOMEN"
+  ]
+}

@@ -22,8 +22,13 @@
  *    the only one with an in-process reference (ai.cpp xpe_bone_suppress), so
  *    its answer can be checked against the answer the other path gives.
  *
- * NOT HANDLED YET: the other eleven inference and model-management messages
- * (10-13, 16-23). They get an XPE_AI_MSG_ERROR reply that says so.
+ * 6. Body-part recognize (QA-B-191 M4b): the second inference message. The model is
+ *    run here, but the DECISION is not: this reply carries what the model said (a
+ *    label and a confidence, or that the output was refused), and the host applies
+ *    the threshold and fallback_mode, which are the host's state.
+ *
+ * NOT HANDLED YET: the other ten inference and model-management messages
+ * (12, 13, 16-23). They get an XPE_AI_MSG_ERROR reply that says so.
  *
  * Build modes:
  * - STUB (default): No ONNX Runtime linked
@@ -47,6 +52,12 @@
 #include "xpe/ai/ai_onnx_session.h"
 #include "xpe/ai/ai_worker_protocol.h"
 #include "xpe/common/xpe_error.h"
+
+// The body-part model loading and judgement are shared with the in-process path (xpe_ai.dll compiles the same
+// headers): one definition of "usable model" and of "what the output means".
+#include "ai_bodypart.h"
+#include "ai_bodypart_decision.h"
+#include "ai_bodypart_model.h"
 
 namespace {
     constexpr DWORD PIPE_BUFFER_SIZE = XPE_AI_PIPE_BUFFER_SIZE;
@@ -314,6 +325,10 @@ private:
                 HandleBoneSuppress(header, payload);
                 break;
 
+            case XPE_AI_MSG_BODYPART_RECOGNIZE:
+                HandleBodyPart(header, payload);
+                break;
+
             default:
                 HandleUnsupported(header);
                 break;
@@ -415,38 +430,11 @@ private:
     void HandleBoneSuppress(const XpeAiMessageHeader& header, const std::vector<char>& payload) {
         const uint32_t id = header.requestId;
 
-        if ((header.flags & XPE_AI_FLAG_HAS_BINARY_PAYLOAD) == 0 ||
-            payload.size() < sizeof(uint32_t)) {
-            SendError(id, XPE_ERR_INVALID_INPUT,
-                      "bone suppress needs a length-prefixed JSON followed by pixel data");
-            return;
-        }
-        uint32_t json_size = 0;
-        std::memcpy(&json_size, payload.data(), sizeof(json_size));
-        if (json_size > payload.size() - sizeof(uint32_t)) {
-            SendError(id, XPE_ERR_INVALID_INPUT, "metadata length exceeds the payload");
-            return;
-        }
-        const std::string meta(payload.data() + sizeof(uint32_t), json_size);
-        const size_t pixel_offset = sizeof(uint32_t) + json_size;
-        const size_t pixel_bytes = payload.size() - pixel_offset;
-
         uint32_t width = 0, height = 0;
-        std::string format;
-        if (!JsonUInt(meta, "width", width) || !JsonUInt(meta, "height", height) ||
-            !JsonString(meta, "format", format)) {
-            SendError(id, XPE_ERR_INVALID_INPUT, "metadata must carry width, height and format");
-            return;
-        }
-        if (format != "float32") {
-            SendError(id, XPE_ERR_UNSUPPORTED_FORMAT, "only float32 pixels are supported");
-            return;
-        }
+        size_t pixel_offset = 0;
+        if (!ParseImageRequest(header, payload, "bone suppress", width, height, pixel_offset)) return;
+        const size_t pixel_bytes = payload.size() - pixel_offset;
         const uint64_t count = static_cast<uint64_t>(width) * height;
-        if (count == 0 || count * sizeof(float) != pixel_bytes) {
-            SendError(id, XPE_ERR_INVALID_INPUT, "pixel data does not match width*height");
-            return;
-        }
 
         const std::string model_path = model_dir_.empty()
             ? std::string("bone_suppress.onnx")
@@ -513,8 +501,119 @@ private:
                     reply.data(), static_cast<uint32_t>(reply.size()));
     }
 
-    void SendError(uint32_t request_id, int code, const std::string& message) {
+    /**
+     * @brief Parse an image request (length-prefixed JSON + raw float32 pixels), answering with an ERROR frame
+     * and returning false when it is malformed. Shared by every message that carries an image, so they all
+     * refuse the same faults with the same codes, in the same order: framing, metadata, format, pixel count.
+     */
+    bool ParseImageRequest(const XpeAiMessageHeader& header, const std::vector<char>& payload, const char* what,
+                           uint32_t& width, uint32_t& height, size_t& pixel_offset) {
+        const uint32_t id = header.requestId;
+        if ((header.flags & XPE_AI_FLAG_HAS_BINARY_PAYLOAD) == 0 || payload.size() < sizeof(uint32_t)) {
+            SendError(id, XPE_ERR_INVALID_INPUT,
+                      std::string(what) + " needs a length-prefixed JSON followed by pixel data");
+            return false;
+        }
+        uint32_t json_size = 0;
+        std::memcpy(&json_size, payload.data(), sizeof(json_size));
+        if (json_size > payload.size() - sizeof(uint32_t)) {
+            SendError(id, XPE_ERR_INVALID_INPUT, "metadata length exceeds the payload");
+            return false;
+        }
+        const std::string meta(payload.data() + sizeof(uint32_t), json_size);
+        pixel_offset = sizeof(uint32_t) + json_size;
+        const size_t pixel_bytes = payload.size() - pixel_offset;
+
+        std::string format;
+        if (!JsonUInt(meta, "width", width) || !JsonUInt(meta, "height", height) ||
+            !JsonString(meta, "format", format)) {
+            SendError(id, XPE_ERR_INVALID_INPUT, "metadata must carry width, height and format");
+            return false;
+        }
+        if (format != "float32") {
+            SendError(id, XPE_ERR_UNSUPPORTED_FORMAT, "only float32 pixels are supported");
+            return false;
+        }
+        const uint64_t count = static_cast<uint64_t>(width) * height;
+        if (count == 0 || count * sizeof(float) != pixel_bytes) {
+            SendError(id, XPE_ERR_INVALID_INPUT, "pixel data does not match width*height");
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * @brief Handle BODYPART_RECOGNIZE (QA-B-191 M4b): a float32 image in, what the model said out.
+     *
+     * Reply (JSON, no pixels): {"success":true,"outcome":"ok","body_part":"CHEST","confidence":0.75}
+     * outcome is "ok", "non_finite" or "out_of_range"; the last two carry no label and no confidence. The
+     * judgement is xpe::ai::JudgeBodyPartOutput, the function the in-process path calls.
+     *
+     * An unusable MODEL (no file, unreadable, bad labels, bad shape, wrong output size) is an ERROR frame that
+     * carries "model_unavailable":true -- a configuration state, not a worker fault, and the host does not count
+     * it. A model that exists but fails to RUN is an ordinary ERROR frame, and the host counts it.
+     */
+    void HandleBodyPart(const XpeAiMessageHeader& header, const std::vector<char>& payload) {
+        const uint32_t id = header.requestId;
+        uint32_t width = 0, height = 0;
+        size_t pixel_offset = 0;
+        if (!ParseImageRequest(header, payload, "body-part recognition", width, height, pixel_offset)) return;
+        const uint64_t count = static_cast<uint64_t>(width) * height;
+
+        if (!bodypart_ || bodypart_dir_ != model_dir_) {
+            std::unique_ptr<xpe::ai::BodyPartModel> built;
+            xpe::ai::BodyPartLoadFailure kind = xpe::ai::BodyPartLoadFailure::kNone;
+            std::string detail;
+            if (const char* why = xpe::ai::LoadBodyPartModel(model_dir_, &built, &kind, &detail)) {
+                bodypart_.reset();
+                if (!detail.empty()) std::cerr << "[Worker] bodypart: " << detail << std::endl;
+                SendError(id, kind == xpe::ai::BodyPartLoadFailure::kNoModelFile ? XPE_ERR_IO_FAILED
+                                                                                 : XPE_ERR_CONFIG_INVALID,
+                          why, /*model_unavailable=*/true);
+                return;
+            }
+            bodypart_ = std::move(built);
+            bodypart_dir_ = model_dir_;
+        }
+
+        std::vector<float> pixels(static_cast<size_t>(count));
+        std::memcpy(pixels.data(), payload.data() + pixel_offset, pixels.size() * sizeof(float));
+        const std::vector<float> input = xpe::ai::ResizeImageFloat(pixels.data(), width, height,
+                                                                   bodypart_->inputWidth, bodypart_->inputHeight);
+        const auto out = bodypart_->session->Run(input);
+        if (out.code != xpe::ai::OnnxErrorCode::kOk) {
+            SendError(id, out.code == xpe::ai::OnnxErrorCode::kInvalidInput ? XPE_ERR_INVALID_INPUT
+                                                                            : XPE_ERR_PROCESSING_FAILED,
+                      "run failed: " + out.message);
+            return;
+        }
+        if (out.value.size() != bodypart_->labels.size()) {
+            SendError(id, XPE_ERR_CONFIG_INVALID, "the model output size differs from the number of labels",
+                      /*model_unavailable=*/true);
+            return;
+        }
+
+        const xpe::ai::BodyPartVerdict verdict = xpe::ai::JudgeBodyPartOutput(out.value.data(), out.value.size());
+        std::string json = "{\"success\":true,\"outcome\":\"";
+        switch (verdict.judgement) {
+            case xpe::ai::BodyPartJudgement::kOk:
+                json += "ok\",\"body_part\":\"" + bodypart_->labels[verdict.best] + "\",\"confidence\":" +
+                        xpe::ai::ShortestFloatText(verdict.confidence) + "}";
+                break;
+            case xpe::ai::BodyPartJudgement::kNonFinite:
+                json += "non_finite\"}";
+                break;
+            default:   // kOutOfRange; kEmpty cannot happen (the size equals the label count, which is non-empty)
+                json += "out_of_range\"}";
+                break;
+        }
+        SendFrame(XPE_AI_MSG_BODYPART_RECOGNIZE_RESP, id, json.c_str());
+    }
+
+    /** @p model_unavailable marks "the model cannot be used" (a state, not a fault); it precedes the message text. */
+    void SendError(uint32_t request_id, int code, const std::string& message, bool model_unavailable = false) {
         const std::string json = "{\"error_code\":" + std::to_string(code) +
+                                 (model_unavailable ? ",\"model_unavailable\":true" : "") +
                                  ",\"error_message\":\"" + JsonEscape(message) + "\"}";
         SendFrame(XPE_AI_MSG_ERROR, request_id, json.c_str());
     }
@@ -567,6 +666,9 @@ private:
     // reloads instead of silently serving the old model.
     std::unique_ptr<xpe::ai::OnnxSession> session_;
     std::string session_dir_;
+    // The body-part model (QA-B-191 M4b), cached the same way and for the same reason.
+    std::unique_ptr<xpe::ai::BodyPartModel> bodypart_;
+    std::string bodypart_dir_;
 };
 
 /**

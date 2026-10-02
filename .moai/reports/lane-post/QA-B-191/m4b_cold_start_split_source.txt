@@ -1,0 +1,25 @@
+
+// TEMPORARY: split the cold start. Ping() starts the worker and connects (process creation, pipe, INIT,
+// heartbeat); the first BodyPartRecognize after it adds the model load and one inference.
+TEST(WorkerBodyPartColdStartProbe, SplitStartFromModelLoad) {
+    if (IsStub()) GTEST_SKIP() << "needs the full build";
+    for (int i = 0; i < 40; ++i) {
+        WorkerSupervisorConfig c;
+        c.worker_exe = XPE_AI_WORKER_EXE;
+        c.model_dir = Dir("models_bodypart_a");
+        c.timeout_ms = 20000;
+        WorkerSupervisor sup(c);
+        const Pix image = Flat(0.0f);
+        BodyPartReply reply;
+        const auto a = std::chrono::steady_clock::now();
+        const XpeErrorCode p = sup.Ping();
+        const auto b = std::chrono::steady_clock::now();
+        const XpeErrorCode rc = sup.BodyPartRecognize(image.w, image.h, image.v.data(), &reply);
+        const auto d = std::chrono::steady_clock::now();
+        EXPECT_EQ(XPE_OK, p);
+        EXPECT_EQ(XPE_OK, rc);
+        std::printf("SPLIT round %2d start+connect %8.1f ms  model-load+infer %8.1f ms\n", i,
+                    std::chrono::duration<double, std::milli>(b - a).count(),
+                    std::chrono::duration<double, std::milli>(d - b).count());
+    }
+}

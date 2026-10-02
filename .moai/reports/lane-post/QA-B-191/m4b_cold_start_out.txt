@@ -1,0 +1,65 @@
+worker cold-start (fresh process each round), 2 runs x 30 rounds, toy model, i7-12700
+== run 1
+COLD-START round  0     98.6 ms
+COLD-START round  1     80.3 ms
+COLD-START round  2     68.3 ms
+COLD-START round  3     78.1 ms
+COLD-START round  4     93.6 ms
+COLD-START round  5     69.9 ms
+COLD-START round  6     80.1 ms
+COLD-START round  7     99.8 ms
+COLD-START round  8     79.1 ms
+COLD-START round  9    685.7 ms
+COLD-START round 10     75.7 ms
+COLD-START round 11     74.3 ms
+COLD-START round 12     97.1 ms
+COLD-START round 13     71.9 ms
+COLD-START round 14     93.8 ms
+COLD-START round 15     70.9 ms
+COLD-START round 16    102.4 ms
+COLD-START round 17     99.5 ms
+COLD-START round 18     68.8 ms
+COLD-START round 19     98.6 ms
+COLD-START round 20     69.5 ms
+COLD-START round 21     72.5 ms
+COLD-START round 22    102.1 ms
+COLD-START round 23     96.6 ms
+COLD-START round 24     81.3 ms
+COLD-START round 25     67.1 ms
+COLD-START round 26     73.0 ms
+COLD-START round 27     80.4 ms
+COLD-START round 28     69.9 ms
+COLD-START round 29     81.8 ms
+COLD-START n=30 min 67.1 median 80.3 p90 102.1 max 685.7
+== run 2
+COLD-START round  0     76.9 ms
+COLD-START round  1     72.4 ms
+COLD-START round  2    691.7 ms
+COLD-START round  3     72.0 ms
+COLD-START round  4     96.6 ms
+COLD-START round  5     97.8 ms
+COLD-START round  6     70.3 ms
+COLD-START round  7     71.2 ms
+COLD-START round  8     69.7 ms
+COLD-START round  9     74.9 ms
+COLD-START round 10     98.9 ms
+COLD-START round 11    671.4 ms
+COLD-START round 12    106.3 ms
+COLD-START round 13     78.6 ms
+COLD-START round 14     75.8 ms
+COLD-START round 15     76.8 ms
+COLD-START round 16     70.1 ms
+COLD-START round 17     68.4 ms
+COLD-START round 18     69.6 ms
+COLD-START round 19     68.7 ms
+COLD-START round 20    735.8 ms
+COLD-START round 21     73.5 ms
+COLD-START round 22     78.2 ms
+COLD-START round 23    103.2 ms
+COLD-START round 24     80.8 ms
+COLD-START round 25     81.5 ms
+COLD-START round 26     74.7 ms
+COLD-START round 27    100.0 ms
+COLD-START round 28    687.8 ms
+COLD-START round 29     72.8 ms
+COLD-START n=30 min 68.4 median 76.9 p90 687.8 max 735.8

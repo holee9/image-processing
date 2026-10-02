@@ -81,9 +81,10 @@ XPE_API const char* xpe_ai_version(void);
  * batch settings, and confidence thresholds. Pass NULL for defaults (CPU EP,
  * 5 s timeout, 0.6 confidence threshold).
  *
- * The boolean key "use_worker" (default false) routes xpe_bone_suppress through
- * the worker process (xpe_ai_worker.exe, found in the directory of xpe_ai.dll
- * and nowhere else). When that path fails -- the time budget ("timeout_ms") is
+ * The boolean key "use_worker" (default false) routes xpe_bone_suppress AND xpe_bodypart_recognize
+ * through the worker process (xpe_ai_worker.exe, found in the directory of xpe_ai.dll
+ * and nowhere else); both share ONE worker, ONE failure count and ONE switch-off, with one exception
+ * for body-part recognition (see xpe_bodypart_recognize, "WORKER PATH"). When that path fails -- the time budget ("timeout_ms") is
  * exceeded, the worker dies or goes silent, or it answers wrongly -- the call
  * copies the INPUT image to the output unchanged, raises one Warning alert and
  * returns a non-OK code; it does not re-run the inference in this process
@@ -194,6 +195,91 @@ XPE_API void xpe_ai_shutdown(void);
  *             XPE_ERR_PROCESSING_FAILED. Caller should use deterministic
  *             body-part lookup as fallback.
  *
+ * WHAT THIS IS AND IS NOT (QA-B-191, #130). In the ONNX build the call runs a model; in a stub build it never does.
+ * The tests use hand-written toy models that prove the WIRING (a model's output becomes the label and the
+ * confidence; a different model or image gives a different answer). NOTHING is known about how well any real model
+ * recognises a body part, how accurate it is or how fast it runs: the SRS requirement SRS-AI-010 ("classify … using a CNN classifier") is not met.
+ *
+ * MODEL AND LABELS. The model is read from `{modelDir}/bodypart.onnx` and its class labels from the sidecar
+ * `{modelDir}/bodypart.json`, a JSON object with a non-empty `"labels"` array of non-empty strings (each shorter
+ * than 64 bytes, each made only of printable ASCII 0x20-0x7E except `"` and `\`: the worker's reply has no
+ * escapes or encoding, so both paths refuse any other label as an unusable sidecar); `{modelDir}` is the path
+ * given to xpe_ai_init. The labels are returned exactly as the sidecar
+ * spells them: the module neither changes their case nor checks them against any vocabulary, so a caller that
+ * hands the label to another function (for example xpe_get_param_range, which accepts only a fixed list of
+ * names) maps it itself. The model must have ONE float32 input of a fixed single-channel image, `[1,1,H,W]` or
+ * `[1,H,W,1]` with 1 <= H, W <= 4096, and ONE float32 output with one value per label. The model emits
+ * PROBABILITIES: the module applies no softmax and refuses an output with a non-finite value or a value outside
+ * [0, 1]. The confidence is the largest value; on a tie the first class wins.
+ * The session is created on the first call that needs it, owned by the module and never visible to the caller.
+ *
+ * PIXEL SCALE AND SIZE. The image is resized to the size the model declares (area average when shrinking, linear
+ * interpolation when enlarging; an image of that size is passed on unchanged). The module does NOT normalise
+ * intensity: the caller supplies pixels in the scale the model was trained for, as for xpe_bone_suppress.
+ * Only XPE_PIXEL_FLOAT32 is accepted once a model is usable; another format is XPE_ERR_UNSUPPORTED_FORMAT.
+ *
+ * WHEN THERE IS NO USABLE ANSWER the outcome is the stub's, whatever the cause: XPE_ERR_PROCESSING_FAILED, the
+ * label "UNKNOWN" and confidence 0.0. The causes are: no model file, a model that cannot be loaded, a missing or
+ * invalid label sidecar, an output size different from the label count, an input shape the module will not feed, a
+ * failed run, a non-finite output, an output outside [0, 1]. Without a usable model the image format is not judged
+ * (the stub never did). Alerts: the first such call of a session posts ONE XPE_ALERT_WARNING for a model that is
+ * unusable -- "AI body-part recognition is unavailable ({reason}): UNKNOWN is returned; use the deterministic
+ * body-part lookup (REQ-AI-002)", {reason} naming the cause -- and later calls of that session post nothing
+ * (a missing model repeats on every call and would fill the alert queue); xpe_ai_init starts a new session. A
+ * non-finite output posts the non-finite alert of xpe_bone_suppress ("AI model output was non-finite (inf/NaN);
+ * this image was not AI-processed"); an output outside [0, 1] posts ONE XPE_ALERT_WARNING per call: "AI body-part
+ * model output is not a probability vector (a value outside [0, 1]); this image was not AI-classified". These
+ * texts are a contract with the clients that display alerts. A successful call posts no alert.
+ *
+ * THRESHOLD AND THE LOW-CONFIDENCE EVENT (REQ-AI-012, QA-B-191 M3). With a usable result, a confidence BELOW the
+ * threshold (`"confidence_threshold"` in the xpe_ai_init config, default 0.6; a confidence EQUAL to it passes) is a
+ * low-confidence event: ONE XPE_ALERT_WARNING per image, and
+ *   - fallback_mode on (the default; `"fallback_mode"` in the config or xpe_ai_set_fallback_mode): returns
+ *     XPE_ERR_PROCESSING_FAILED, the label "UNKNOWN" and the confidence that was MEASURED (not 0.0), so the caller
+ *     can tell this fallback from a failure; the alert reads "AI body-part confidence {c} is below the threshold
+ *     {t} (REQ-AI-012): UNKNOWN is returned; use the deterministic body-part lookup";
+ *   - fallback_mode off: returns XPE_OK, the model's most probable label and its confidence anyway, and the alert
+ *     reads "AI body-part confidence {c} is below the threshold {t} (REQ-AI-012): the label {LABEL} is returned
+ *     because fallback_mode is off; an exposure parameter chosen from it may be wrong".
+ * {c} and {t} are each the SHORTEST text that reads back as the same float (0.6f is "0.6", the next float up is
+ * "0.6000001"). The event is posted before any label is written, so it does not depend on the caller's buffer: a
+ * buffer too short for the label is still XPE_ERR_BUFFER_TOO_SMALL, with the Warning posted and the confidence 0.0.
+ * A low confidence is not a failure of the model: it posts none of the "unavailable" alerts above and is not
+ * counted by any failure counter. The threshold is used as configured, without a range check: 0.0 lets every
+ * confidence pass, a value above 1.0 makes every result a low-confidence event.
+ *
+ * WORKER PATH (`"use_worker": true` at xpe_ai_init, QA-B-191 M4c). The model then runs in xpe_ai_worker.exe and
+ * this process keeps the DECISION: the worker says what the model said, and the threshold, fallback_mode and
+ * their alerts above are applied here, so the same answer gets the same decision on either path. Everything the
+ * "WHEN THERE IS NO USABLE ANSWER" paragraph says holds, with these additions:
+ *   - Time budget (REQ-AI-092): the call waits at most `"timeout_ms"` (default 5000) for the worker, start-up
+ *     included. A worker that does not answer in time, dies, or sends a reply the protocol forbids is a FAILURE:
+ *     the call returns XPE_ERR_PROCESSING_FAILED with "UNKNOWN" and confidence 0.0, ends that worker, and the
+ *     next call starts a new one. The inference is never re-run in this process (REQ-AI-003).
+ *   - One failure count, shared with xpe_bone_suppress and published by xpe_ai_worker_state(): after 3
+ *     CONSECUTIVE failures of either function the worker is switched off for the session, for BOTH functions
+ *     (a switched-off worker is not tried: UNKNOWN at once, no alert, no process). A success resets the count.
+ *     Each failure posts ONE XPE_ALERT_WARNING: "AI worker failed (code {n}, failure {k} of 3): body-part
+ *     recognition returns UNKNOWN; use the deterministic body-part lookup (REQ-AI-002, REQ-AI-092)"; the third
+ *     reads "AI worker failed (code {n}, failure 3 of 3) during {cause} and is disabled for this session:
+ *     body-part recognition returns UNKNOWN, bone suppression returns the input image unchanged (REQ-AI-002,
+ *     REQ-AI-092)", where {cause} is "body-part recognition" or "bone suppression" -- the function whose failure
+ *     was the third; the same text is posted whichever of the two it is, because both are switched off. The count is in XPE_AI_WORKER_* terms, see
+ *     xpe_ai_worker_state().
+ *   - What is NOT a failure and resets the count, because the worker answered correctly: a model output that
+ *     is non-finite or outside [0, 1] (the same two alerts as in-process), a low confidence, and "the model
+ *     cannot be used" (no file, unreadable, unusable sidecar or shape, wrong output size) -- that last one is
+ *     the "unavailable" Warning, once per session, with {reason} "the AI worker has no usable body-part model".
+ *     A body-part model that is missing therefore never switches off bone suppression. A model that EXISTS and
+ *     fails to run IS a failure and counts.
+ *   - One difference from the in-process path, on purpose: a non-XPE_PIXEL_FLOAT32 image is refused with
+ *     XPE_ERR_UNSUPPORTED_FORMAT before the worker is asked, whether or not a model exists (this process does
+ *     not know whether the worker has one); in-process, a missing model gives UNKNOWN for every format.
+ *   - The first call of a session starts the worker, which takes time the in-process path does not spend: about
+ *     65-110 ms measured with the toy models, with a slow tail of roughly 650-700 ms in about one start in ten
+ *     (QA-B-191/m4b_report.md). The time of a real model's load is not known.
+ * These texts are a contract with the clients that display alerts.
+ *
  * @param img            Input image. Must not be NULL; zero dimensions, a NULL
  *                       data pointer, a dataSize above 64 MB, or a non-zero
  *                       dataSize smaller than the declared dimensions (#123)
@@ -201,9 +287,12 @@ XPE_API void xpe_ai_shutdown(void);
  * @param bodyPartOut    Caller-allocated buffer for the label string.
  *                       Must not be NULL.
  * @param bufLen         Size of @p bodyPartOut in bytes. Recommended >= 64.
- * @param confidenceOut  Output: confidence score [0, 1]. May be NULL. On the
- *                       stub path it is set to 0.0 before returning.
+ * @param confidenceOut  Output: confidence score [0, 1]. May be NULL. 0.0 on every
+ *                       outcome that has no result (the stub, and every failure
+ *                       listed above); on XPE_OK the largest model output.
  * @return XPE_OK on success -- ONNX build only; not reachable in a stub build.
+ * @return XPE_ERR_UNSUPPORTED_FORMAT if a usable model exists and the image is
+ *         not XPE_PIXEL_FLOAT32. Nothing is written to @p bodyPartOut.
  * @return XPE_ERR_NOT_INITIALIZED if xpe_ai_init not called.
  * @return XPE_ERR_INVALID_INPUT if img or bodyPartOut is NULL, the image
  *         buffer is invalid, or bufLen is 0 -- a zero-length output buffer is a
@@ -516,6 +605,9 @@ XPE_API XpeErrorCode xpe_ai_set_fallback_mode(int32_t enable);
  * the worker process and raising the alert. While the third failure is still in
  * progress it therefore keeps reporting the previous completed call (active, 2),
  * not DISABLED.
+ *
+ * The count is shared by xpe_bone_suppress and xpe_bodypart_recognize (QA-B-191 M4c): the state is the
+ * worker's, not one function's.
  *
  * Thread safety: Thread-safe and lock-free against running calls to
  * xpe_bone_suppress and the other inference functions. It MUST NOT run

@@ -314,6 +314,16 @@ if(TARGET spdlog::spdlog)
     target_link_libraries(${WORKER_NAME} PRIVATE spdlog::spdlog)
 endif()
 
+# QA-B-191 M4b (D9): the worker reads the body-part label sidecar with the same nlohmann the DLL uses
+# (ai_bodypart_model.h is shared). A hand-written parser for a file the worker does not control would be new
+# code on a trust boundary; the header-only library is already a dependency of this module.
+# The define is XPE_AI_BODYPART_NLOHMANN, not XPE_AI_USE_NLOHMANN_JSON: the latter also switches on the model-card
+# JSON code in ai_onnx_session.cpp, which the worker has never compiled and does not use.
+if(TARGET nlohmann_json::nlohmann_json)
+    target_link_libraries(${WORKER_NAME} PRIVATE nlohmann_json::nlohmann_json)
+    target_compile_definitions(${WORKER_NAME} PRIVATE XPE_AI_BODYPART_NLOHMANN=1)
+endif()
+
 if(MSVC)
     # #226 (QA-B-164): /wd4150 removed here too -- 0 occurrences, measured.
     # This target compiles one file (src/ai_worker_main.cpp) and has no PIMPL,
@@ -409,6 +419,11 @@ if(_XPE_AI_BUILD_TESTS)
         test_onnx_session.cpp
         # #130 (QA-B-161): the first C ABI function wired to that path
         test_bone_suppress_abi.cpp
+        # #130 (QA-B-191, T-006): xpe_bodypart_recognize on a real session (toy models -- wiring only) and its resize helper
+        test_bodypart_inference.cpp
+        test_bodypart_decision.cpp
+        test_worker_bodypart.cpp
+        test_bodypart_worker_path.cpp
         # #130 (QA-B-168): SRS-ALERT-004 fires when DL was applied -- and, the
         # half that constrains the code, stays quiet on every path that
         # returned an image the model never touched
