@@ -87,6 +87,10 @@ public:
     XpeErrorCode BoneSuppress(uint32_t width, uint32_t height, const float* pixels_in,
                               float* pixels_out);
 
+    /** True when the most recent BoneSuppress call was refused because the worker's well-formed reply held a
+     *  non-finite pixel -- a refusal of that image, not a worker or transport fault. */
+    bool LastResultWasNonFinite() const;
+
     /** Ask the worker to shut down; kill it if it does not exit within the budget. */
     void Stop();
 
@@ -124,6 +128,7 @@ private:
     bool shutdown_requested_ = false;
     /** A kill was attempted but the worker's end was not confirmed: do not start another. */
     bool pending_kill_ = false;
+    bool last_result_nonfinite_ = false;   // see LastResultWasNonFinite(); guarded by mtx_
     WorkerExitInfo last_exit_;
     std::vector<uint32_t> started_pids_;
 };

@@ -409,7 +409,8 @@ static_assert(static_cast<size_t>(4096) * 4096 * 4 + 512u <= static_cast<size_t>
  * (the deterministic fallback), never with a half-written reply.
  */
 static XpeErrorCode boneSuppressViaWorker(AiModuleState* state, const XpeImageBuffer* in,
-                                          XpeImageBuffer* out) {
+                                          XpeImageBuffer* out, bool* nonFiniteResult) {
+    *nonFiniteResult = false;
     try {
         if (!state->workerSupervisor) {
             xpe::ai::WorkerSupervisorConfig cfg;
@@ -421,9 +422,10 @@ static XpeErrorCode boneSuppressViaWorker(AiModuleState* state, const XpeImageBu
             cfg.timeout_ms = state->timeoutMs != 0 ? state->timeoutMs : XPE_AI_DEFAULT_TIMEOUT_MS;
             state->workerSupervisor = std::make_unique<xpe::ai::WorkerSupervisor>(std::move(cfg));
         }
-        return state->workerSupervisor->BoneSuppress(in->width, in->height,
-                                                     static_cast<const float*>(in->data),
-                                                     static_cast<float*>(out->data));
+        const XpeErrorCode rc = state->workerSupervisor->BoneSuppress(
+            in->width, in->height, static_cast<const float*>(in->data), static_cast<float*>(out->data));
+        *nonFiniteResult = rc != XPE_OK && state->workerSupervisor->LastResultWasNonFinite();
+        return rc;
     } catch (...) {
         return XPE_ERR_OUT_OF_MEMORY;
     }
@@ -506,6 +508,13 @@ static void publishWorkerState(AiModuleState* state) {
 }
 
 /** SRS-ALERT-004: DL processing was applied (Info). One place, so both paths say the same thing. */
+static void pushNonFiniteResultAlert() {
+    // CROSS-LANE CONTRACT (QA-B-181i): clients may match this text. It names the cause and the likely remedy.
+    xpe_alert_push("AI model output was non-finite (inf/NaN) and was rejected: the image's value range "
+                   "may exceed what the model accepts; the AI worker itself is healthy",
+                   XPE_ALERT_WARNING);
+}
+
 static void pushAiProcessedAlert() {
     xpe_alert_push("AI-processed: bone suppression applied (SRS-ALERT-004)", XPE_ALERT_INFO);
 }
@@ -927,7 +936,22 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
             std::memmove(softTissueOut->data, img->data, bytes);
             return XPE_ERR_PROCESSING_FAILED;
         }
-        const XpeErrorCode wrc = boneSuppressViaWorker(state, img, softTissueOut);
+        bool nonFiniteResult = false;
+        const XpeErrorCode wrc = boneSuppressViaWorker(state, img, softTissueOut, &nonFiniteResult);
+        if (nonFiniteResult) {
+            // QA-B-181i (Codex #63): the worker answered correctly; the MODEL's result for this image left the
+            // finite range. That refuses this image and nothing else: the output holds the input (this path's
+            // documented fallback), one alert names the cause, and the failure count neither grows nor keeps
+            // an earlier run of real faults alive -- a healthy exchange ends a "consecutive" run. A few extreme
+            // images must not switch AI off for the rest of the session.
+            std::memmove(softTissueOut->data, img->data, bytes);
+            state->workerConsecutiveFailures = 0;
+            AI_LOG_WARN("bone_suppress: the model result is non-finite, input returned unchanged "
+                        "(not counted as a worker failure)");
+            pushNonFiniteResultAlert();
+            publishWorkerState(state);
+            return XPE_ERR_PROCESSING_FAILED;
+        }
         if (wrc == XPE_OK) {
             state->workerConsecutiveFailures = 0;
             pushAiProcessedAlert();
@@ -1016,10 +1040,12 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
     // QA-B-181h (Codex #60): a model result that is not finite is not a success. A finite input can
     // still overflow (Y = 2X on a pixel above FLT_MAX / 2), and a model may emit NaN on its own. The
     // judgment is made on the whole result BEFORE the copy, so a refusal leaves softTissueOut exactly as
-    // the caller passed it. XPE_ERR_INVALID_INPUT, as the other modules' refusals of this kind.
+    // the caller passed it. XPE_ERR_PROCESSING_FAILED (QA-B-181i, Codex #63): the input was valid and finite, so
+    // INVALID_INPUT would blame the caller; the model could not give a result. Same code on the worker path.
     if (!xpe::ai::AllFinite(out.value.data(), count)) {
         AI_LOG_ERROR("bone_suppress: the model result contains a non-finite value; output left unchanged");
-        return XPE_ERR_INVALID_INPUT;
+        pushNonFiniteResultAlert();
+        return XPE_ERR_PROCESSING_FAILED;
     }
 
     std::memcpy(softTissueOut->data, out.value.data(), bytes);

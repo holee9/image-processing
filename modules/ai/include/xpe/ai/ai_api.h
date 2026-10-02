@@ -326,12 +326,7 @@ XPE_API XpeErrorCode xpe_stitch_estimate_size(const XpeImageBuffer* parts,
  * @return XPE_ERR_NOT_INITIALIZED if xpe_ai_init not called.
  * @return XPE_ERR_INVALID_INPUT if img or softTissueOut is NULL, either buffer
  *         is invalid, the two differ in width or height, a buffer is too small
- *         for width*height floats, the model rejected the input length, or the
- *         result contains a non-finite value (+/-inf, NaN) -- a finite input can
- *         overflow, e.g. a x2 model on a pixel above FLT_MAX / 2. The whole
- *         result is judged before it is copied, so @p softTissueOut is left as
- *         the caller passed it (QA-B-181h). With "use_worker" the same refusal
- *         is made on the worker's reply, and the failure rules below apply.
+ *         for width*height floats, or the model rejected the input length.
  * @return XPE_ERR_UNSUPPORTED_FORMAT if either image is not XPE_PIXEL_FLOAT32.
  *         The session speaks float32; reinterpreting 16-bit pixels as floats
  *         would return numbers instead of an error.
@@ -339,9 +334,17 @@ XPE_API XpeErrorCode xpe_stitch_estimate_size(const XpeImageBuffer* parts,
  * @return XPE_ERR_CONFIG_INVALID if that file exists but is not a loadable
  *         model. Distinct from IO_FAILED on purpose: "install the model" and
  *         "the model you installed is broken" need different actions.
- * @return XPE_ERR_PROCESSING_FAILED if inference itself fails, or the model
- *         returns a different number of values than the image has pixels. In a
- *         stub build this is the unconditional outcome once validation passes.
+ * @return XPE_ERR_PROCESSING_FAILED if inference itself fails, the model
+ *         returns a different number of values than the image has pixels, or
+ *         the result contains a non-finite value (+/-inf, NaN) -- a finite input
+ *         can overflow, e.g. a x2 model on a pixel above FLT_MAX / 2 (QA-B-181h,
+ *         181i). The input was valid, so this is not INVALID_INPUT. The whole
+ *         result is judged before it is copied; in-process, @p softTissueOut is
+ *         left as the caller passed it. One Warning alert names the cause. With
+ *         "use_worker" the same code is returned and @p softTissueOut holds the
+ *         input, but this refusal is NOT a worker failure: it neither counts
+ *         toward the ceiling below nor alerts as one. In a stub build
+ *         PROCESSING_FAILED is the unconditional outcome once validation passes.
  *
  * With "use_worker" set at xpe_ai_init, a failure of the worker path returns
  * the worker's or the transport's error code (never XPE_OK), raises one Warning

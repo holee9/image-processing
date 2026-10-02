@@ -5,7 +5,8 @@
  * The model models_x2/bone_suppress.onnx computes Y = X * 2. A FINITE pixel above FLT_MAX / 2 therefore
  * comes out as +infinity. Before this card the result went to the caller as XPE_OK, in-process and
  * through the worker. Policy (QA-B-181f): a module neither makes non-finite output from finite input nor
- * reports success on it; the refusal is XPE_ERR_INVALID_INPUT and the caller's image is not touched.
+ * reports success on it. The refusal is XPE_ERR_PROCESSING_FAILED (the input was valid; QA-B-181i changed it
+ * from INVALID_INPUT) with one alert, and on the worker path it is NOT a worker fault.
  *
  * Full ONNX build only (the stub has no model, so no result exists to judge).
  */
@@ -92,23 +93,71 @@ struct BoneSuppressNonFinite : public ::testing::Test {
     void TearDown() override { xpe_ai_shutdown(); }
 };
 
+constexpr const char* kNonFiniteNeedle = "non-finite";
+constexpr const char* kWorkerFailedNeedle = "AI worker failed";
+
+int CountAlerts(const char* needle) {
+    int n = 0;
+    for (int32_t i = 0; i < xpe_get_pending_alert_count(); ++i) {
+        char buf[512] = {0};
+        int32_t sev = -1;
+        if (xpe_get_pending_alert(i, buf, sizeof(buf), &sev) == XPE_OK && std::string(buf).find(needle) != std::string::npos) ++n;
+    }
+    return n;
+}
+
+struct WState { int32_t state = -1; uint32_t failures = 777u; uint32_t ceiling = 777u; };
+WState QueryState() {
+    WState w;
+    EXPECT_EQ(XPE_OK, xpe_ai_worker_state(&w.state, &w.failures, &w.ceiling));
+    return w;
+}
+
+// Leader decision (Codex #63, QA-B-181i): a model result that is not finite is a refusal of THAT image --
+// XPE_ERR_PROCESSING_FAILED (the input was valid and finite; the model could not produce a result), one
+// Warning alert naming the cause -- and it is NOT a worker fault: the failure count and the worker's state
+// do not move, however many such images come in a row.
 void RefusesExtremeInputs(const char* cfg) {
     ASSERT_EQ(XPE_OK, xpe_ai_init(kDirX2.c_str(), cfg));
-    for (const Case& c : ExtremeInputs()) {
-        Img in(c.in);
-        Img out(-7.0f);                                // sentinel: "untouched" must be provable
-        const std::vector<float> outBefore = out.px;
-        const XpeErrorCode rc = xpe_bone_suppress(&in.buf, &out.buf, nullptr);
-        EXPECT_NE(XPE_OK, rc) << c.name << ": a non-finite result was reported as success";
-        EXPECT_FALSE(AnyNonFinite(out.px)) << c.name << ": +/-inf or NaN reached the caller's buffer";
-        EXPECT_TRUE(SameBits(c.in, in.px)) << c.name << ": the input was modified";
-        if (cfg == nullptr) {
-            EXPECT_EQ(XPE_ERR_INVALID_INPUT, rc) << c.name;
-            EXPECT_TRUE(SameBits(outBefore, out.px)) << c.name << ": output not left unchanged";
-        } else {
-            // The worker path's documented fallback on ANY failure: the output holds the input.
-            EXPECT_TRUE(SameBits(c.in, out.px)) << c.name << ": worker-path fallback must be the input";
+    const bool worker = cfg != nullptr;
+    xpe_clear_alerts();
+    int round = 0;
+    for (int rep = 0; rep < 2; ++rep) {   // two passes: six images in a row, more than the worker ceiling of 3
+        for (const Case& c : ExtremeInputs()) {
+            ++round;
+            Img in(c.in);
+            Img out(-7.0f);                                // sentinel: "untouched" must be provable
+            const std::vector<float> outBefore = out.px;
+            xpe_clear_alerts();
+            const XpeErrorCode rc = xpe_bone_suppress(&in.buf, &out.buf, nullptr);
+            EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, rc) << c.name << " round " << round;
+            EXPECT_FALSE(AnyNonFinite(out.px)) << c.name << ": +/-inf or NaN reached the caller's buffer";
+            EXPECT_TRUE(SameBits(c.in, in.px)) << c.name << ": the input was modified";
+            // EVERY image went through the check: one alert naming the cause, and none of the worker-fault kind.
+            EXPECT_EQ(1, CountAlerts(kNonFiniteNeedle)) << c.name << " round " << round << ": the refusal did not alert";
+            EXPECT_EQ(0, CountAlerts(kWorkerFailedNeedle)) << c.name << " round " << round << ": counted as a worker fault";
+            if (worker) {
+                // The documented fallback of the worker path: the output holds the input.
+                EXPECT_TRUE(SameBits(c.in, out.px)) << c.name << ": worker-path fallback must be the input";
+                const WState w = QueryState();
+                EXPECT_EQ(XPE_AI_WORKER_ACTIVE, w.state) << c.name << " round " << round << ": the worker was switched off";
+                EXPECT_EQ(0u, w.failures) << c.name << " round " << round << ": counted toward the ceiling";
+            } else {
+                EXPECT_TRUE(SameBits(outBefore, out.px)) << c.name << ": output not left unchanged";
+            }
         }
+    }
+    // The point of it: the SAME session still processes an ordinary image.
+    Img in(Ordinary());
+    Img out(-7.0f);
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, xpe_bone_suppress(&in.buf, &out.buf, nullptr)) << "the session stopped serving ordinary images";
+    std::vector<float> want = Ordinary();
+    for (float& f : want) f *= 2.0f;
+    EXPECT_TRUE(SameBits(want, out.px));
+    EXPECT_EQ(0, CountAlerts(kNonFiniteNeedle));
+    if (worker) {
+        EXPECT_EQ(XPE_AI_WORKER_ACTIVE, QueryState().state);
     }
 }
 
@@ -169,4 +218,19 @@ TEST(AiStubProducers, StitchAndDenoiseNeverWriteTheirOutputInAnyBuild) {
     EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, xpe_dl_denoise(&img.buf, &meta, nullptr));
     EXPECT_TRUE(SameBits(Ordinary(), img.px)) << "xpe_dl_denoise wrote its image";
     xpe_ai_shutdown();
+}
+
+// The contrast: a REAL worker fault (the worker cannot load its model) still counts, and the third one
+// switches the worker off -- the rule the distinction above must not have loosened.
+TEST_F(BoneSuppressNonFinite, WorkerFaultsStillSwitchTheWorkerOffAtTheCeiling) {
+    const std::string missing = std::string(XPE_AI_TEST_DATA_DIR) + "/models_missing";
+    ASSERT_EQ(XPE_OK, xpe_ai_init(missing.c_str(), "{\"use_worker\": true}"));
+    for (int i = 1; i <= 3; ++i) {
+        Img in(Ordinary());
+        Img out(-7.0f);
+        EXPECT_NE(XPE_OK, xpe_bone_suppress(&in.buf, &out.buf, nullptr));
+        const WState w = QueryState();
+        EXPECT_EQ(static_cast<uint32_t>(i), w.failures);
+        EXPECT_EQ(i == 3 ? XPE_AI_WORKER_DISABLED : XPE_AI_WORKER_ACTIVE, w.state) << "after fault " << i;
+    }
 }

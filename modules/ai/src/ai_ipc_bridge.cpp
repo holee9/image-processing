@@ -440,6 +440,7 @@ XpeErrorCode xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge,
     if (!bridge || !pixels_in || !pixels_out || width == 0 || height == 0) {
         return XPE_ERR_INVALID_INPUT;
     }
+    bridge->last_result_nonfinite = false;
     const uint64_t count = static_cast<uint64_t>(width) * height;
     // 4 (length prefix) + metadata + pixels must fit one protocol payload.
     if (count > (XPE_AI_MAX_PAYLOAD_SIZE - 512u) / sizeof(float)) {
@@ -534,8 +535,12 @@ XpeErrorCode xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge,
     // BEFORE the copy, so a refusal leaves pixels_out untouched. The connection stays up: the frame was
     // well formed, the pixels are what the model computed.
     const uint8_t* reply_pixels = reply.data() + sizeof(uint32_t) + reply_json;
+    // The answer is XPE_ERR_PROCESSING_FAILED (the request was valid and finite; the model could not give a
+    // result), and last_result_nonfinite tells the caller this is NOT a worker or transport fault (QA-B-181i,
+    // Codex #63): the worker answered correctly, so it must not count toward the failure ceiling.
     if (!xpe::ai::AllFinite(reply_pixels, count)) {
-        return XPE_ERR_INVALID_INPUT;
+        bridge->last_result_nonfinite = true;
+        return XPE_ERR_PROCESSING_FAILED;
     }
     std::memcpy(pixels_out, reply_pixels, pixel_bytes);
     return XPE_OK;
