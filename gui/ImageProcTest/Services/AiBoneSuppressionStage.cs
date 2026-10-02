@@ -180,8 +180,21 @@ internal sealed class AiStatusRefresher(
     Func<object?, AiWorkerStatus?> read,
     Action<AiWorkerStatus> apply,
     Action<Action> runInBackground,
-    Action<Action> postToUi)
+    Action<Action> postToUi,
+    Func<TimeSpan>? clock = null,
+    TimeSpan? activeFreshFor = null)
 {
+    /// <summary>
+    /// GUI-C-192b: how long an applied "Active" may stand without a newer answer before it is withdrawn to Unknown. 15 s is three times the
+    /// module's default IPC timeout (XPE_AI_DEFAULT_TIMEOUT_MS = 5000, ai_worker_protocol.h): one read can queue behind one frame that holds
+    /// the session gate for a full timeout, and behind a restart under the same gate, before it is even answered.
+    /// </summary>
+    public static readonly TimeSpan DefaultActiveFreshFor = TimeSpan.FromSeconds(15);
+
+    private readonly Func<TimeSpan> _clock = clock ?? (() => TimeSpan.FromTicks(System.Diagnostics.Stopwatch.GetTimestamp() * TimeSpan.TicksPerSecond / System.Diagnostics.Stopwatch.Frequency));
+    private readonly TimeSpan _activeFreshFor = activeFreshFor ?? DefaultActiveFreshFor;
+    private TimeSpan _lastAnswerAt;
+    private AiWorkerState _shown = AiWorkerState.Unknown;
     private int _generation;
     private int _requests;
     private bool _inFlight;
@@ -219,7 +232,27 @@ internal sealed class AiStatusRefresher(
         }
 
         _generation++;
-        apply(AiWorkerStatus.Unknown);
+        Show(AiWorkerStatus.Unknown);
+    }
+
+    /// <summary>
+    /// GUI-C-192b: called on a timer by the UI. An "Active" that nothing has refreshed for the freshness bound is withdrawn to Unknown (the
+    /// existing "no answer" state, which shows no mark). Only Active is withdrawn: a switched-off worker stays switched off until a restart,
+    /// so a "Disabled" never goes stale in the unsafe direction and is never taken back here.
+    /// </summary>
+    public void CheckFreshness()
+    {
+        if (!_stopped && _shown == AiWorkerState.Active && _clock() - _lastAnswerAt >= _activeFreshFor)
+        {
+            Show(AiWorkerStatus.Unknown);
+        }
+    }
+
+    private void Show(AiWorkerStatus status)
+    {
+        _shown = status.State;
+        _lastAnswerAt = _clock();
+        apply(status);
     }
 
     /// <summary>The application is closing: nothing started or running now may touch the screen again.</summary>
@@ -263,6 +296,14 @@ internal sealed class AiStatusRefresher(
         {
             Start(); // the answer is for something that no longer exists: drop it and read what exists now
         }
+        else if (requestNumber != _requests && status?.State == AiWorkerState.Disabled)
+        {
+            // GUI-C-192b: the same session (generation and backend checked above) answered "switched off". The module keeps the worker off
+            // until xpe_ai_shutdown/xpe_ai_init (ai.cpp, workerDisabled: set once at the failure ceiling, cleared only by a new state), so a
+            // newer read cannot say otherwise: this answer cannot be stale in the unsafe direction. Show it now, then serve the newer request.
+            Show(status);
+            Start();
+        }
         else if (requestNumber != _requests)
         {
             // GUI-C-192: a newer request was made while this read ran, so this answer is older than what the screen is about to show. It used
@@ -271,7 +312,7 @@ internal sealed class AiStatusRefresher(
         }
         else if (status is not null)
         {
-            apply(status);
+            Show(status);
         }
     }
 }

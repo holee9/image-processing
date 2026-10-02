@@ -573,8 +573,19 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private readonly System.Windows.Threading.Dispatcher _uiDispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
 
-    private AiStatusRefresher AiStatus => _aiStatusRefresher ??=
-        new AiStatusRefresher(() => _backend, ReadAiWorkerStatus, ApplyAiWorkerStatus, work => Task.Run(work), PostToUi);
+    private AiStatusRefresher AiStatus => _aiStatusRefresher ??= CreateAiStatusRefresher();
+
+    private System.Windows.Threading.DispatcherTimer? _aiFreshnessTimer;
+
+    private AiStatusRefresher CreateAiStatusRefresher()
+    {
+        var refresher = new AiStatusRefresher(() => _backend, ReadAiWorkerStatus, ApplyAiWorkerStatus, work => Task.Run(work), PostToUi);
+        // GUI-C-192b: an "Active" nothing has refreshed for the freshness bound is withdrawn; the check is cheap, so it runs every second.
+        _aiFreshnessTimer = new System.Windows.Threading.DispatcherTimer(
+            TimeSpan.FromSeconds(1), System.Windows.Threading.DispatcherPriority.Background, (_, _) => refresher.CheckFreshness(), _uiDispatcher);
+        _aiFreshnessTimer.Start();
+        return refresher;
+    }
 
     /// <summary>Runs on a background thread, for the backend that was current when the read was requested.</summary>
     private static AiWorkerStatus? ReadAiWorkerStatus(object? backend) =>
@@ -592,7 +603,11 @@ public sealed class MainWindowViewModel : ObservableObject
     }
 
     /// <summary>The application is closing: no status read, started or running, may update the screen after this.</summary>
-    public void StopAiStatusUpdates() => AiStatus.Stop();
+    public void StopAiStatusUpdates()
+    {
+        _aiFreshnessTimer?.Stop();
+        AiStatus.Stop();
+    }
 
     private void ApplyAiWorkerStatus(AiWorkerStatus status)
     {

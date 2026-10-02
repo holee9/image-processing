@@ -356,7 +356,7 @@ public sealed class BackendLifecycleTests
     {
         ["_backend"] = ("the field", null),
         ["MainWindowViewModel"] = ("construction", null),
-        ["AiStatus"] = ("status read through AiStatusRefresher (its own generation and identity check)", null),
+        ["CreateAiStatusRefresher"] = ("status read through AiStatusRefresher (its own generation and identity check)", null),
         ["TakeTicket"] = ("lifetime helper", null),
         ["TakeRequestTicket"] = ("lifetime helper (an Apply's ticket also carries a request number)", null),
         ["IsCurrent"] = ("lifetime helper", null),

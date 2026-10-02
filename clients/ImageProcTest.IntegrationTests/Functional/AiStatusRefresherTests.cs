@@ -27,6 +27,7 @@ public sealed class AiStatusRefresherTests
         public readonly List<AiWorkerStatus> Applied = [];
         public int Reads;
         public Func<object?, AiWorkerStatus?> Read = _ => Active;
+        public TimeSpan Now;
         public readonly AiStatusRefresher Refresher;
 
         public Rig(bool backgroundReads = true)
@@ -40,7 +41,20 @@ public sealed class AiStatusRefresherTests
                 },
                 Applied.Add,
                 backgroundReads ? work => Task.Run(work) : work => work(),
-                Ui.Enqueue);
+                Ui.Enqueue,
+                () => Now);
+        }
+
+        /// <summary>Runs exactly one waiting UI action (so a test can look between two completions).</summary>
+        public bool PumpOne()
+        {
+            if (!Ui.TryDequeue(out var action))
+            {
+                return false;
+            }
+
+            action();
+            return true;
         }
 
         /// <summary>Runs what is waiting for the UI thread; how many actions ran.</summary>
@@ -400,6 +414,133 @@ public sealed class AiStatusRefresherTests
         Assert.True(read.Wait(Long));
         Assert.Equal(7, read.Result);
         #pragma warning restore xUnit1031
+    }
+
+    // ---- GUI-C-192b (Codex #59): "Disabled" is never held back by newer requests, and an "Active" that nothing refreshes is withdrawn ----
+
+    /// <summary>Reads that each have a newer request arrive while they run, for the first <paramref name="times"/> reads, then quiet.</summary>
+    private static Rig InterleavedRig(AiWorkerStatus answer, int times)
+    {
+        Rig? rig = null;
+        rig = new Rig(backgroundReads: false);
+        var n = 0;
+        rig.Read = _ =>
+        {
+            if (++n <= times)
+            {
+                rig.Refresher.Request();   // a newer request is made while this read runs
+            }
+
+            return answer;
+        };
+        return rig;
+    }
+
+    /// <summary>(a) A request on every read must not keep a "switched off" answer from the screen: it shows from the FIRST Disabled answer.</summary>
+    [Fact]
+    public void ADisabledAnswer_IsShownFromTheFirstAnswer_EvenWhenARequestArrivesDuringEveryRead()
+    {
+        var rig = InterleavedRig(Disabled, times: 4);
+        rig.Refresher.Request();
+
+        Assert.True(rig.PumpOne());
+        Assert.Equal([Disabled], rig.Applied);     // after ONE completion, not after the requests stop
+    }
+
+    /// <summary>(d) 192 still holds: an "Active" answer that a newer request has overtaken is never shown.</summary>
+    [Fact]
+    public void AnActiveAnswer_ThatANewerRequestHasOvertaken_IsStillNeverShown()
+    {
+        var rig = InterleavedRig(Active, times: 1);
+        rig.Refresher.Request();
+
+        Assert.True(rig.PumpOne());
+        Assert.Empty(rig.Applied);                 // the first answer was overtaken
+        rig.Pump();
+        Assert.Equal([Active], rig.Applied);       // only the newest read's answer reached the screen
+    }
+
+    /// <summary>(c) A "Disabled" from before a restart or a backend replacement belongs to a session that no longer exists.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ADisabledAnswer_FromBeforeARestartOrABackendSwap_IsNotShown(bool backendSwap)
+    {
+        var rig = new Rig();
+        var release = new ManualResetEventSlim();
+        var calls = 0;
+        rig.Read = _ =>
+        {
+            if (Interlocked.Increment(ref calls) == 1)
+            {
+                Assert.True(release.Wait(Long));
+                return Disabled;               // the old session's answer
+            }
+
+            return Active;                     // the new session
+        };
+        rig.Refresher.Request();
+        rig.Refresher.Request();               // a newer request too, so the old answer is also superseded
+        if (backendSwap)
+        {
+            rig.Current = new object();
+        }
+
+        rig.Refresher.Reset();                 // restart / replacement: generation up, Unknown on screen
+        release.Set();
+        rig.PumpUntil(() => rig.Applied.Contains(Active), "The new session's read never reached the screen.");
+
+        Assert.DoesNotContain(Disabled, rig.Applied);
+    }
+
+    /// <summary>(b) A read blocked past the bound turns a standing "Active" into the conservative "Unknown"; a late answer then replaces it.</summary>
+    [Fact]
+    public void AnActive_NothingRefreshes_IsWithdrawnAtTheBound_AndNotBefore()
+    {
+        var rig = new Rig(backgroundReads: false);
+        rig.Refresher.Request();
+        rig.Pump();
+        Assert.Equal([Active], rig.Applied);
+
+        var block = new ManualResetEventSlim();
+        rig.Read = _ =>
+        {
+            Assert.True(block.Wait(Long));
+            return Active;
+        };
+        var blocked = Task.Run(rig.Refresher.Request);   // the read waits behind a silent worker
+
+        rig.Now = AiStatusRefresher.DefaultActiveFreshFor - TimeSpan.FromTicks(1);
+        rig.Refresher.CheckFreshness();
+        Assert.Equal([Active], rig.Applied);             // just under the bound: still shown
+
+        rig.Now = AiStatusRefresher.DefaultActiveFreshFor;
+        rig.Refresher.CheckFreshness();
+        Assert.Equal([Active, AiWorkerStatus.Unknown], rig.Applied);
+
+        rig.Refresher.CheckFreshness();
+        Assert.Equal(2, rig.Applied.Count);              // withdrawn once, not repeated
+
+        block.Set();
+        #pragma warning disable xUnit1031 // a bounded wait on a real thread: what is measured here
+        Assert.True(blocked.Wait(Long));
+        #pragma warning restore xUnit1031
+        rig.Pump();
+        Assert.Equal(AiWorkerState.Active, rig.Applied[^1].State);   // the late answer is shown again
+    }
+
+    /// <summary>A switched-off worker stays switched off until a restart, so the bound never takes a "Disabled" back.</summary>
+    [Fact]
+    public void ADisabled_IsNeverWithdrawnByTheBound()
+    {
+        var rig = new Rig(backgroundReads: false) { Read = _ => Disabled };
+        rig.Refresher.Request();
+        rig.Pump();
+
+        rig.Now = TimeSpan.FromHours(1);
+        rig.Refresher.CheckFreshness();
+
+        Assert.Equal([Disabled], rig.Applied);
     }
 
     [Fact]
