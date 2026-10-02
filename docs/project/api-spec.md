@@ -809,6 +809,35 @@ XpeErrorCode xpe_verify_gain(const XpeImageBuffer* before_gain, const XpeImageBu
 
 ---
 
+### 6.20 2026-10-02 계약 보강 2 (pre 체인 병합 `cacb34c9`, #233)
+
+원문과 근거: `dev/preprocess` 의 `.moai/reports/lane-pre/QA-A-209*`·`QA-A-210*` 보고서. 공개 헤더 `preprocess_api.h` 의 `xpe_preprocess_pipeline` 설명에 읽기 규칙이 한 곳에 있고 다른 진입점은 그곳을 가리킨다.
+
+**(1) 설정 JSON 읽기 규칙 (QA-A-209·209b).** 모든 설정 텍스트(파이프라인 3진입점, `xpe_ghost_create`, `xpe_nonlinearity_correct`, 오프셋 생성, 다항식 게인·비선형성 LUT 파일의 설정 블록, `xpe_preprocess_init`)는 **하나의 유효한 JSON 객체**이고 키는 **최상위에서만** 읽는다.
+
+- 중첩 객체·배열 안에만 있는 키는 주어지지 않은 것(기본값)이다. 최상위 키가 같은 이름의 중첩 키를 이긴다.
+- 거부(`XPE_ERR_CONFIG_INVALID`, 영상·메타데이터·교정 저장소·핸들·파일은 호출 전 그대로): 최상위 키 중복(이름과 무관), JSON 객체가 아닌 텍스트(안 닫힘, 최상위 배열, 객체 뒤의 글자, 문자열 속 날 제어 문자, 작은따옴표, 끝 쉼표), **NULL 이 아닌 빈 텍스트·공백뿐인 텍스트**.
+- NULL 은 모든 기본값이다. XCal 파일의 설정 블록이 실제로 없으면(길이 0) 적재하고, 공백뿐인 블록은 거부한다.
+- 값: 빈 문자열과 객체·배열인 값은 주어지지 않은 것이다. 숫자 키는 경로마다 다르다. 파이프라인 `detectorTempC`·`binningMode` 와 고스트 키는 문자열 토큰을 §6.19 (2) 의 엄격 파서로 읽으므로 `" +25"` 같은 따옴표 안의 값을 받는다. 다항식 계수·`adc_max`, 오프셋 생성, 다항식 게인 `dose_min/max`, LUT 키는 따옴표 없는 JSON 숫자만 받는다. **호환 변화**: `+2` 처럼 JSON 이 아닌 토큰은 이전에는 조용히 기본값이 되거나 `strtod` 로 읽혔고, 이제는 `CONFIG_INVALID` 다.
+- 파이프라인은 비선형성 단계가 나중에 읽을 키도 첫 단계 전에 같은 규칙으로 확인한다. 각 설정 텍스트는 호출당 한 번 파싱한다(파이프라인 설정 읽기 24.7 → 약 1.9 µs). XCal 은 reader 가 파싱한 문서를 적재기가 그대로 받는다.
+- `xpe_nonlinearity_correct` 는 이제 `CONFIG_INVALID` 를 반환할 수 있다. LUT 설정 블록은 JSON 객체여야 한다.
+
+**(2) XCal 압축 메타와 옛 writer 산출물 (QA-A-209b·209c·209d).** 압축 여부(`xcal_compression`)와 원시 길이(`xcal_raw_payload_len`)는 설정 블록의 최상위 두 키를 **쌍으로** 읽는다. 중첩된 키는 무시하고, 둘 중 하나만 있으면 거부한다.
+
+- 옛 writer 는 압축된 DEFECT(RLE) 파일에 호출자 설정을 붙일 때 닫는 `}` 를 하나 더 붙였다(호출자 설정이 `{}` 이면 `{,` 로 시작했다). 엄격 파싱이 실패한 경우에만, 그리고 헤더가 DEFECT 이고 압축 방법이 1 이며 블록이 정확히 그 두 모양일 때만, 메모리 사본을 고쳐 다시 엄격 파싱한다. 두 모양 밖의 깨짐은 지금처럼 거부한다.
+- 해시는 저장된 바이트(config‖payload)를 덮고 복구는 파싱용 사본에만 적용되므로, 변조 검출은 약해지지 않는다.
+- 복구된 파일은 해시·압축 해제·만료 검사를 통과한 뒤에만 경고 알림을 남긴다: `XPE_WARN_XCAL_LEGACY_CONFIG: the config block of <path> has the doubled closing brace of an older XCal writer and was read after a deterministic repair; regenerate the file with the current writer`. 이 문구는 레인 간 계약이다(접두사로 매칭).
+
+**(3) 남은 공개 진입점의 예외 경계 (QA-A-204c).** `xpe_verify_offset/gain/pipeline`, `xpe_bpm_generate`, `xpe_defect_detect_runtime`, `xpe_generate_nonlin_lut`, `xpe_nonlinearity_correct` 는 `bad_alloc` 을 `XPE_ERR_OUT_OF_MEMORY` 로, 그 밖의 예외를 `XPE_ERR_PROCESSING_FAILED` 로 바꾸며 출력과 파일을 바꾸지 않는다.
+
+**(4) 다항식 게인 생성 정책 (QA-A-210·210b·210c).** 차수를 줄이는 단조 검사는 **방향과 무관**하다(비감소 또는 비증가). 1차에서 멈출 때는 **1차 최소제곱해**를 저장한다. 끝점 직선 갈래는 없앴다. 이 갈래는 최소제곱해가 아니었고 생성기 자신의 비감소 검사도 통과하지 못했다.
+
+- 실데이터(cyan_test, 3072², 5준위)에서 끝점 갈래는 48.9% → 0%, 파일 R² 는 −0.035 → +0.252, 화소별 R² < 0 은 33.2% → float 반올림 1화소로 바뀌었다.
+- `calibration_pass`(R² ≥ 0.999)는 이 데이터에서 여전히 0 이다. 게이트와 `XPE_WARN_CALIB_POOR_FIT` 문구는 바꾸지 않았다(#233 별도 기록).
+- 아직 main 에 들어오지 않은 것: 단조 검사를 구간 전체에 대해 해석적으로 하는 것, 비유한 선량 거부(QA-A-210d, 검토 중).
+
+---
+
 ## 7. xpe_enhance_basic.dll
 
 Provides fundamental image enhancement operations: logarithmic transforms, noise reduction, contrast, and edge enhancement.
@@ -1316,6 +1345,17 @@ XPE_API XpeErrorCode xpe_lut_auto_select(const XpeImageMetadata* meta,
 Provides DICOM file I/O, tag manipulation, GSPS annotation, and network services (C-STORE / C-FIND MWL).
 
 Dependencies: xpe_common.dll.
+
+### 11.0 `xpe_dicom_read_image` 거부 규칙 (2026-10-02, post 체인 병합 `753cadab`, #235)
+
+> 주의: 아래 11.1 이하의 함수 이름(`xpe_dicom_read` 등)은 실제 수출과 다르다. 실제 수출은 §0 인벤토리와 `modules/dicom/include/xpe/dicom/dicom_api.h` 를 기준으로 한다(`xpe_dicom_open` → `xpe_dicom_read_image` → `xpe_dicom_get_metadata` → `xpe_dicom_close`). 이 절을 고쳐 쓰는 일은 별건으로 남긴다.
+
+reader 는 디코드와 할당 **전에** 다음을 검사하고, 거부할 때 출력 버퍼를 건드리지 않는다. 거부마다 원인을 적은 `XPE_ALERT_ERROR` 알림을 남긴다(예: `dicom read refused: JPEG 2000 codestream precision 16 does not match the dataset (BitsStored 12, BitsAllocated 16)`). reader 가 알림을 남기는 것은 이번이 처음이다. 문구는 레인 간 계약이며 전역 큐에 쌓인다.
+
+- **필수 태그**(Image Pixel 모듈 Type 1): SamplesPerPixel, Rows, Columns, BitsAllocated, BitsStored, HighBit, PixelRepresentation 이 없거나 비어 있으면 `XPE_ERR_DICOM_INVALID`(−13). BitsStored·HighBit 부재에 대한 옛 기본값은 없앴다(QA-B-182c).
+- **비트 기술**: 비압축과 JPEG Lossless 는 BitsAllocated 16, BitsStored ≤ 16, HighBit = BitsStored − 1 만 받는다. JPEG 2000 은 BitsStored 1..BitsAllocated, HighBit = BitsStored − 1 이고(QA-B-182d), 디코드 전에 코드스트림의 성분·부호·정밀도·크기를 태그와 대조한다(PS3.5 8.2.4). 출력은 UINT16 / bitsAllocated 16 / bitsStored = 정밀도다(8비트 J2K 포함).
+- **writer**: 선언한 BitsStored 정밀도로 인코딩한다(옛 writer 는 12비트 선언에 16비트 정밀도를 썼다). 선언 범위를 넘는 화소값은 쓰기 실패(`XPE_ERR_PROCESSING_FAILED`)다. 옛 writer 의 BitsStored < 16 J2K 산출물은 새 reader 가 거부한다(#235 알려진 위험).
+- **아직 main 에 들어오지 않은 것**(QA-B-182e·182f·181g·181h, 검토 중): PS3.5 8.1.1 에 따라 비트 기술 위반을 모든 경로에서 `DICOM_INVALID` 로 통일하는 것(지금은 비압축·JPEG LL 이 `UNSUPPORTED_FORMAT`), PhotometricInterpretation 필수 검사와 값 분류, JPEG LL 성분 수(Nf = 1)와 정밀도 대조, J2K 표의 BitsStored ≤ 38 상한. 병합할 때 이 문단을 고쳐 쓴다.
 
 ### 11.1 xpe_dicom_read
 
