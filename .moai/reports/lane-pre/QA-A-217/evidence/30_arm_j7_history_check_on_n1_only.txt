@@ -1,0 +1,7 @@
+ARM j7_history_check_on_n1_only
+file src/ghost_correct.cpp
+built=True
+[  FAILED  ] GhostInputFinite.AnOverflowOfTheSlowHistoryAloneIsCaughtToo (0 ms)
+[  PASSED  ] 18 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] GhostInputFinite.AnOverflowOfTheSlowHistoryAloneIsCaughtToo

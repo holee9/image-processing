@@ -169,7 +169,8 @@ TEST_F(GhostTierTest, Tier3BetaStrengthensSignalDependence) {
     EXPECT_LT(large, small) << "a larger nlcscBeta subtracts more";
 }
 
-// Every tier rejects a non-finite sample rather than propagating it.
+// Every tier rejects a non-finite sample rather than propagating it. Since QA-A-217 (#233) the frame is refused at the
+// entrance with INVALID_INPUT and its pixels are not touched (it was PROCESSING_FAILED, found part-way through the frame).
 TEST_F(GhostTierTest, EachTierRejectsNonFiniteInput) {
     for (const char* config : {"{\"tier\":1}", "{\"tier\":2}", "{\"tier\":3}"}) {
         void* h = nullptr;
@@ -179,8 +180,10 @@ TEST_F(GhostTierTest, EachTierRejectsNonFiniteInput) {
         Frame f(8, 8, 1000.0f);
         f.pixels[5] = std::numeric_limits<float>::quiet_NaN();
 
-        EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, xpe_ghost_correct(h, &f.buf, &meta))
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_ghost_correct(h, &f.buf, &meta))
             << "config " << config;
+        EXPECT_EQ(1000.0f, f.pixels[4]) << "config " << config << ": a pixel before the bad one was not touched";
+        xpe_clear_alerts();
         xpe_ghost_destroy(h);
     }
 }

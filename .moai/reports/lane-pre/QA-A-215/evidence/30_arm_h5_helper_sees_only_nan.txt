@@ -1,0 +1,9 @@
+ARM h5_helper_sees_only_nan
+file src/helpers.cpp
+built=True
+[  FAILED  ] NonFiniteInputTest.BinningRefusesANonFiniteFrameAndLeavesEveryPixelAsItWas (0 ms)
+[  FAILED  ] NonFiniteInputTest.RuntimeDetectionRefusesANonFiniteFrameAndLeavesTheMapAlone (0 ms)
+[  PASSED  ] 11 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] NonFiniteInputTest.BinningRefusesANonFiniteFrameAndLeavesEveryPixelAsItWas
+[  FAILED  ] NonFiniteInputTest.RuntimeDetectionRefusesANonFiniteFrameAndLeavesTheMapAlone

@@ -303,6 +303,7 @@ TEST_F(GoldenGainTest, ZeroGainIsRefusedAtLoad) {
 
     EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA,
               writeCalibMap(gainPath, XCAL_TYPE_GAIN, sensitivity, W, H));
+    xpe_clear_alerts();   // QA-A-211: the refusal says why (XPE_WARN_GAIN_PIXELS_OVER_LIMIT); a test drains what it raised
 }
 
 // ==========================================================================

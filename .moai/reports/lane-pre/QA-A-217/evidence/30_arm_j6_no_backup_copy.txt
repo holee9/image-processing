@@ -1,0 +1,9 @@
+ARM j6_no_backup_copy
+file src/ghost_correct.cpp
+built=True
+[  FAILED  ] GhostInputFinite.AFiniteFrameThatOverflowsTheHistoryFailsWithoutCommittingItAndTheNextFrameSucceeds (0 ms)
+[  FAILED  ] GhostInputFinite.AFrameThatFailsHalfWayThroughPutsItsPixelsBack (0 ms)
+[  PASSED  ] 16 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] GhostInputFinite.AFiniteFrameThatOverflowsTheHistoryFailsWithoutCommittingItAndTheNextFrameSucceeds
+[  FAILED  ] GhostInputFinite.AFrameThatFailsHalfWayThroughPutsItsPixelsBack

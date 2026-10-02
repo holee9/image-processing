@@ -1,0 +1,9 @@
+ARM b4_classified_pixel_also_fitted
+file src/xpe_calib_generate_gain.cpp
+built=True
+[  FAILED  ] GainPolyClassifyTest.MeasuredGainsOutOfRangeAreClassifiedNotFittedAndTheFileIsWritten (3 ms)
+[  FAILED  ] GainPolyClassifyTest.MoreThanFivePercentClassifiedRefusesTheGenerationAndChangesNothing (28 ms)
+[  PASSED  ] 836 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] GainPolyClassifyTest.MeasuredGainsOutOfRangeAreClassifiedNotFittedAndTheFileIsWritten
+[  FAILED  ] GainPolyClassifyTest.MoreThanFivePercentClassifiedRefusesTheGenerationAndChangesNothing

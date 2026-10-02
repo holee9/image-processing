@@ -250,6 +250,9 @@ namespace {
         // Stage 4: Gain Correction (PRE-03) - uint16 in, float32 out (DOMAIN TRANSITION)
         XpeImageBuffer stage4;
         std::vector<float> stage4Data;
+        // QA-A-211 (#233): the pixels a polynomial gain classified defective in THIS frame, handed to the defect stage
+        // (a scalar map's list travels in the snapshot).
+        std::vector<uint32_t> frameGainDefects;
 
         if (!cfg.bypassGain) {
             stage4Data.resize(pixelCount);
@@ -263,10 +266,36 @@ namespace {
 
             // Use new 3-arg API: xpe_gain_correct(input, output, metadata)
             // This performs UINT16 → FLOAT32 domain transition
-            result = xpe_gain_correct_in(calib, &stage3, &stage4, meta);
+            result = xpe_gain_correct_in(calib, &stage3, &stage4, meta, &frameGainDefects);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_GAIN_CORRECTED;
+
+            // QA-A-211 (#233): pixels the gain calibration classified defective carry the uncorrected value (gain 1.0)
+            // until the defect stage fills them from their neighbours.
+            const uint64_t classified = static_cast<uint64_t>(calib.gain_defect_count) + frameGainDefects.size();
+            if (classified > 0) {
+                if (!cfg.bypassBinning && cfg.binningMode > 1) {
+                    // Binning mixes a pixel with its neighbours BEFORE the defect stage: the uncorrected value would be
+                    // spread into good pixels and no later stage could take it out again. Refused, not warned: the
+                    // result would be a wrong image with nothing to show for it.
+                    xpe_alert_push(
+                        "XPE_WARN_GAIN_PIXELS_WITH_BINNING: pixels classified defective by the gain calibration cannot be "
+                        "combined with binning (binningMode > 1): binning would mix their uncorrected value into their "
+                        "neighbours before the defect correction can replace it; the frame was not processed",
+                        XPE_ALERT_ERROR);
+                    return XPE_ERR_CONFIG_INVALID;
+                }
+                if (cfg.bypassDefect) {
+                    char msg[320];
+                    std::snprintf(msg, sizeof(msg),
+                        "XPE_WARN_GAIN_PIXELS_UNCORRECTED: %llu pixel(s) were classified defective by the gain calibration but no "
+                        "defect correction follows (defect stage bypassed); they carry the uncorrected value with gain 1.0",
+                        static_cast<unsigned long long>(classified));
+                    msg[sizeof(msg) - 1] = '\0';
+                    xpe_alert_push(msg, XPE_ALERT_WARNING);
+                }
+            }
         } else if (final_result_is_float(cfg, ghostHandle) && stage3.format == XPE_PIXEL_UINT16) {
             // QA-A-208 (Codex #34 A1): a bypassed gain stage means "gain = 1", and a float stage follows
             // (binning, defect or ghost), so the frame is converted to float32 here, explicitly -- every float
@@ -287,6 +316,20 @@ namespace {
         } else {
             // No gain correction and no float stage after it: stage4 = stage3 (uint16)
             stage4 = stage3;
+        }
+
+        // QA-A-211b (#233, Codex #71): the same refusal when the GAIN stage is bypassed. The defect stage reads the stored
+        // classification (the scalar map's list, kept in the snapshot) whether or not the gain stage ran, so binning
+        // would mix those pixels' original values into their neighbours and the defect stage would then fill the
+        // listed positions of an already-mixed frame. The list is only delivered when the defect stage runs.
+        if (cfg.bypassGain && !cfg.bypassDefect && calib.gain_defect_count > 0 &&
+            !cfg.bypassBinning && cfg.binningMode > 1) {
+            xpe_alert_push(
+                "XPE_WARN_GAIN_PIXELS_WITH_BINNING: pixels classified defective by the gain calibration cannot be "
+                "combined with binning (binningMode > 1): binning would mix their uncorrected value into their "
+                "neighbours before the defect correction can replace it; the frame was not processed",
+                XPE_ALERT_ERROR);
+            return XPE_ERR_CONFIG_INVALID;
         }
 
         // Stage 5: Binning Correction (PRE-09) - float32 in/out
@@ -347,7 +390,7 @@ namespace {
             // pointer. This stage never ran before the gate was fixed above, so
             // the malformed call had never been reached.
             if (!stage_input_is(stage5, XPE_PIXEL_FLOAT32, floatBytes)) return XPE_ERR_PROCESSING_FAILED;
-            result = xpe_defect_correct_in(calib, &stage5, &stage6, meta);
+            result = xpe_defect_correct_in(calib, &stage5, &stage6, meta, &frameGainDefects);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_DEFECT_CORRECTED;

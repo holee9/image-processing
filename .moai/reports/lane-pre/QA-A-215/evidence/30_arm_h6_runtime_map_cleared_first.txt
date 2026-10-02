@@ -1,0 +1,7 @@
+ARM h6_runtime_map_cleared_first
+file src/runtime_detection.cpp
+built=True
+[  FAILED  ] NonFiniteInputTest.RuntimeDetectionRefusesANonFiniteFrameAndLeavesTheMapAlone (0 ms)
+[  PASSED  ] 12 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] NonFiniteInputTest.RuntimeDetectionRefusesANonFiniteFrameAndLeavesTheMapAlone

@@ -35,6 +35,8 @@ CalibSnapshot xpe_calib_snapshot_locked() noexcept
     s.offset_height        = g_calib.offset_height;
     s.gain_map             = g_calib.gain_map;
     s.gain_poly_coeffs     = g_calib.gain_poly_coeffs;
+    s.gain_defect_idx      = g_calib.gain_defect_idx;
+    s.gain_defect_count    = g_calib.gain_defect_count;
     s.gain_poly_num_coeffs = g_calib.gain_poly_num_coeffs;
     s.gain_poly_has_range  = g_calib.gain_poly_has_range;
     s.gain_poly_dose_min   = g_calib.gain_poly_dose_min;

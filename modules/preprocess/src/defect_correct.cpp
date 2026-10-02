@@ -76,13 +76,90 @@ ClusterInfo analyzeCluster(const uint8_t* defectMask, uint32_t width, uint32_t h
     return info;
 }
 
+// QA-A-211b (#233, Codex #71): how far a masked pixel looks for a valid pixel to fill from. The pixels of a defect
+// cluster (and of a blob of gain-classified pixels) can have no valid pixel in their 3x3 -- on CalData_6, 66.7% of the
+// defect map's own pixels and 72.5% of defect-map-or-classified ones, at most 10 pixels from the nearest valid one
+// (QA-A-211b evidence, 10_distance_to_valid.txt). They used to be filled with 0.0f. 16 is the measured 10 with margin;
+// beyond it the pixel keeps its input value and the frame says so (see the caller).
+constexpr int kFillMaxRadius = 16;
+
+// QA-A-213 (#233): the Chebyshev distance of every masked pixel to the nearest valid pixel, up to kFillMaxRadius, in ONE
+// pass over the masked pixels. QA-A-211b found that distance per pixel by trying ring after ring (up to 1,089 reads a
+// pixel); on a 686x686 block (4.99% of a 3072x3072 frame, inside the density the SRS tolerates) that was 638 ms for the
+// defect stage. The distance is a breadth-first search: layer 1 is the masked pixels that touch a valid pixel (8
+// neighbours), layer k+1 the masked pixels not yet reached that touch layer k. An 8-neighbour step moves one in the
+// Chebyshev metric, and every pixel on a shortest path from a masked pixel to its nearest valid pixel is masked (a
+// valid one would be nearer), so the layer number IS the Chebyshev distance to the nearest valid pixel -- the very
+// number the ring search found by trial. dist is 0 for a pixel not reached within kFillMaxRadius (and for valid
+// pixels, which are never asked).
+struct FillDistance {
+    std::vector<uint8_t> dist;
+    bool ready = false;
+
+    void build(const uint8_t* mask, uint32_t width, uint32_t height) {
+        const size_t n = static_cast<size_t>(width) * height;
+        dist.assign(n, 0);
+        std::vector<uint32_t> frontier, next;
+        auto touchesValid = [&](uint32_t x, uint32_t y) {
+            for (int dy = -1; dy <= 1; ++dy) {
+                const int ny = static_cast<int>(y) + dy;
+                if (ny < 0 || static_cast<uint32_t>(ny) >= height) continue;
+                for (int dx = -1; dx <= 1; ++dx) {
+                    if (dx == 0 && dy == 0) continue;
+                    const int nx = static_cast<int>(x) + dx;
+                    if (nx < 0 || static_cast<uint32_t>(nx) >= width) continue;
+                    if (mask[static_cast<size_t>(ny) * width + static_cast<uint32_t>(nx)] == 0) return true;
+                }
+            }
+            return false;
+        };
+        // Layer 1. Most of a frame is valid, so the scan steps over eight valid bytes at a time.
+        for (size_t idx = 0; idx < n; ++idx) {
+            if (idx + 8 <= n) {
+                uint64_t word;
+                std::memcpy(&word, mask + idx, sizeof(word));
+                if (word == 0) { idx += 7; continue; }
+            }
+            if (mask[idx] != 0 && touchesValid(static_cast<uint32_t>(idx % width), static_cast<uint32_t>(idx / width))) {
+                dist[idx] = 1;
+                frontier.push_back(static_cast<uint32_t>(idx));
+            }
+        }
+        for (int layer = 1; layer < kFillMaxRadius && !frontier.empty(); ++layer) {
+            next.clear();
+            for (const uint32_t idx : frontier) {
+                const uint32_t x = idx % width, y = idx / width;
+                for (int dy = -1; dy <= 1; ++dy) {
+                    const int ny = static_cast<int>(y) + dy;
+                    if (ny < 0 || static_cast<uint32_t>(ny) >= height) continue;
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        if (dx == 0 && dy == 0) continue;
+                        const int nx = static_cast<int>(x) + dx;
+                        if (nx < 0 || static_cast<uint32_t>(nx) >= width) continue;
+                        const size_t nidx = static_cast<size_t>(ny) * width + static_cast<uint32_t>(nx);
+                        if (mask[nidx] != 0 && dist[nidx] == 0) { dist[nidx] = static_cast<uint8_t>(layer + 1); next.push_back(static_cast<uint32_t>(nidx)); }
+                    }
+                }
+            }
+            frontier.swap(next);
+        }
+        ready = true;
+    }
+};
+
 // @MX:NOTE: [AUTO] 3x3 median filter for defect cluster correction
-// Collects valid neighbor pixels and returns median value
+// Collects valid neighbor pixels and returns median value. When the 3x3 holds none (the interior of a cluster), the
+// median of the valid pixels of the NEAREST Chebyshev ring that holds one is used (QA-A-211b); the ring's radius is the
+// pixel's distance to the nearest valid pixel, which `fd` knows from one breadth-first pass (QA-A-213) instead of a
+// trial of ring 2, 3, ... -- the set of values, and so the median, is the one the trial found. A pixel with no valid
+// pixel within kFillMaxRadius keeps its own input value (`found` false), never 0.
+// Only unmasked pixels are read, whatever the radius: the in-place guarantee of xpe_defect_correct_in holds.
 float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
                              uint32_t x, uint32_t y,
-                             uint32_t width, uint32_t height)
+                             uint32_t width, uint32_t height, FillDistance& fd, std::vector<float>& values, bool* found)
 {
-    std::vector<float> values;
+    values.clear();   // a scratch buffer the caller reuses: no allocation per pixel (QA-A-213)
+    *found = true;
 
     for (int dy = -1; dy <= 1; ++dy) {
         for (int dx = -1; dx <= 1; ++dx) {
@@ -103,11 +180,31 @@ float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
     }
 
     if (values.empty()) {
-        return 0.0f;
+        if (!fd.ready) fd.build(defectMask, width, height);
+        const int radius = fd.dist[static_cast<size_t>(y) * width + x];   // 0: none within kFillMaxRadius
+        if (radius >= 2) {
+            for (int dy = -radius; dy <= radius; ++dy) {
+                const int ny = static_cast<int>(y) + dy;
+                if (ny < 0 || static_cast<uint32_t>(ny) >= height) continue;
+                const bool edgeRow = (dy == -radius || dy == radius);
+                for (int dx = -radius; dx <= radius; dx += (edgeRow ? 1 : 2 * radius)) {
+                    const int nx = static_cast<int>(x) + dx;
+                    if (nx < 0 || static_cast<uint32_t>(nx) >= width) continue;
+                    const size_t idx = static_cast<size_t>(ny) * width + static_cast<uint32_t>(nx);
+                    if (defectMask[idx] == 0) values.push_back(pixels[idx]);
+                }
+            }
+        }
     }
 
-    std::sort(values.begin(), values.end());
+    if (values.empty()) {
+        *found = false;
+        return pixels[static_cast<size_t>(y) * width + x];
+    }
+
+    // The element a full sort would leave at size/2 -- the same value, found without sorting the rest.
     size_t mid = values.size() / 2u;
+    std::nth_element(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(mid), values.end());
     return values[mid];
 }
 
@@ -120,7 +217,8 @@ XpeErrorCode xpe_defect_correct_in(
     const CalibSnapshot&    calib,
     const XpeImageBuffer*  input,
     XpeImageBuffer*         output,
-    const XpeImageMetadata* metadata) try
+    const XpeImageMetadata* metadata,
+    const std::vector<uint32_t>* frame_defects) try
 {
     if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;
     if (!input->data || !output->data) return XPE_ERR_INVALID_INPUT;
@@ -180,6 +278,43 @@ XpeErrorCode xpe_defect_correct_in(
     if (calib.defect_width  != input->width ||
         calib.defect_height != input->height) return XPE_ERR_INVALID_INPUT;
 
+    // QA-A-214b (#233): THE FRAME MUST BE FINITE. The fill takes a median of neighbours (or a mean, for a lone defect),
+    // and a NaN among them makes the result depend on the order the values were collected in -- mirroring a frame
+    // changed the output of 110 of 400 test frames (QA-A-214) -- while an infinity or a NaN in a mean spreads into the
+    // corrected pixel and the call still answered XPE_OK. A consumer refuses a non-finite input at its entrance and
+    // does not write: the output buffer is untouched (and, called in place, so is the input), and the caller is told
+    // where the first bad pixel is. The whole frame is checked, masked pixels included (their own value is what a pixel
+    // with no valid neighbour keeps). Inside the pipeline this cannot fire: the stage is handed the gain stage's output
+    // (at most 65535 / 0.1), a converted uint16, or binning's checked result. It is the direct callers of this public
+    // function it protects (the GUI preview service, its synthetic oracle and an integration test among them).
+    // One linear pass over the exponent bits; the count and the position are found only when something is wrong.
+    {
+        const float* const frame = static_cast<const float*>(input->data);
+        constexpr uint32_t kExpMask = 0x7F800000u;   // all exponent bits set: NaN or +-infinity
+        uint32_t bad = 0;
+        for (size_t i = 0; i < n; ++i) {
+            uint32_t b;
+            std::memcpy(&b, frame + i, sizeof(b));
+            bad |= static_cast<uint32_t>((b & kExpMask) == kExpMask);
+        }
+        if (bad != 0) {
+            size_t count = 0, first = 0;
+            for (size_t i = 0; i < n; ++i) {
+                uint32_t b;
+                std::memcpy(&b, frame + i, sizeof(b));
+                if ((b & kExpMask) == kExpMask) { if (count == 0) first = i; ++count; }
+            }
+            char msg[320];
+            std::snprintf(msg, sizeof(msg),
+                "XPE_WARN_DEFECT_INPUT_NOT_FINITE: %zu pixel(s) of the input frame are NaN or infinite (first: index %zu, x=%zu, y=%zu); "
+                "the frame was not corrected and the output was not written",
+                count, first, first % input->width, first / input->width);
+            msg[sizeof(msg) - 1] = '\0';
+            xpe_alert_push(msg, XPE_ALERT_ERROR);
+            return XPE_ERR_INVALID_INPUT;
+        }
+    }
+
     // QA-A-202 (#233): shared ownership of the map, no copy of it (9.4 MB at 3072x3072). QA-A-202d (Codex #32):
     // it comes from `calib`, the snapshot the caller took, so a reload during the frame -- or between two
     // stages of it -- leaves this call the map the frame started with.
@@ -190,6 +325,43 @@ XpeErrorCode xpe_defect_correct_in(
     const float*   src = static_cast<const float*>(input->data);
     float*         dst = static_cast<float*>(output->data);
     const uint8_t* dm  = dm_local.get();
+
+    // QA-A-211 (#233): the pixels the GAIN calibration classified defective are corrected like the map's own. The mask
+    // the kernels read is the UNION of the loaded defect map, the scalar map's list kept in the snapshot and this
+    // frame's list (a polynomial gain classifies per frame). Nothing is copied unless one of the lists is non-empty, so
+    // a calibration whose gain classified nothing takes the path it always took. The map itself is never modified: it
+    // is shared with the store.
+    std::vector<uint8_t> union_mask;
+    const size_t frame_extra = frame_defects ? frame_defects->size() : 0;
+    if (calib.gain_defect_count > 0 || frame_extra > 0) {
+        union_mask.assign(dm, dm + n);
+        if (calib.gain_defect_idx) {
+            for (uint32_t k = 0; k < calib.gain_defect_count; ++k) {
+                const uint32_t idx = calib.gain_defect_idx[k];
+                if (idx < n) union_mask[idx] = 1;
+            }
+        }
+        if (frame_defects) {
+            for (const uint32_t idx : *frame_defects) {
+                if (idx < n) union_mask[idx] = 1;
+            }
+        }
+        dm = union_mask.data();
+
+        // D1: the union is above the density SRS-CALIB-FUNC-003 tolerates -> ONE warning for the frame, never a refusal.
+        size_t u = 0;
+        for (size_t i = 0; i < n; ++i) u += (union_mask[i] != 0);
+        if (static_cast<double>(u) > XPE_GAIN_DEFECT_MAX_FRACTION * static_cast<double>(n)) {
+            char msg[320];
+            std::snprintf(msg, sizeof(msg),
+                "XPE_WARN_DEFECT_UNION_OVER_LIMIT: the defect map together with the pixels classified defective by the gain "
+                "calibration covers %zu of %zu pixel(s) (%.3f%%), above the %.1f%% defect density SRS-CALIB-FUNC-003 tolerates; "
+                "the frame is corrected, but the correction fills a large part of it from neighbours",
+                u, n, 100.0 * static_cast<double>(u) / static_cast<double>(n), 100.0 * XPE_GAIN_DEFECT_MAX_FRACTION);
+            msg[sizeof(msg) - 1] = '\0';
+            xpe_alert_push(msg, XPE_ALERT_WARNING);
+        }
+    }
 
     // Copy input -> output first. SKIPPED WHEN THE CALLER PASSED ONE BUFFER:
     // std::memcpy requires non-overlapping regions, so dst == src is undefined
@@ -248,6 +420,10 @@ XpeErrorCode xpe_defect_correct_in(
     // REQ-P1A-012: cluster-aware defect correction
     std::vector<bool> processed(n, false);
     std::vector<bool> visited(n, false);   // reused by every analyzeCluster call
+    size_t unfilled = 0;                   // masked pixels with no valid pixel within kFillMaxRadius (QA-A-211b)
+    FillDistance fillDistance;             // built on the first cluster pixel whose 3x3 holds no valid pixel (QA-A-213)
+    std::vector<float> fillValues;         // scratch for median_filter_cluster
+    fillValues.reserve(8u * static_cast<size_t>(kFillMaxRadius));
     for (uint32_t y = 0; y < H; ++y) {
         for (uint32_t x = 0; x < W; ++x) {
             uint32_t idx = y * W + x;
@@ -257,7 +433,9 @@ XpeErrorCode xpe_defect_correct_in(
                     for (uint32_t cidx : cluster.positions) {
                         uint32_t cx = cidx % W;
                         uint32_t cy = cidx / W;
-                        dst[cidx] = median_filter_cluster(source, dm, cx, cy, W, H);
+                        bool found = true;
+                        dst[cidx] = median_filter_cluster(source, dm, cx, cy, W, H, fillDistance, fillValues, &found);
+                        if (!found) ++unfilled;
                         processed[cidx] = true;
                     }
                 } else {
@@ -266,6 +444,18 @@ XpeErrorCode xpe_defect_correct_in(
                 }
             }
         }
+    }
+
+    // QA-A-211b: a masked pixel with no valid pixel within kFillMaxRadius was left as it came in. That is a statement of
+    // fact the caller needs, not a correction -- one alert for the frame, with the count.
+    if (unfilled > 0) {
+        char msg[320];
+        std::snprintf(msg, sizeof(msg),
+            "XPE_WARN_DEFECT_NO_VALID_NEIGHBOUR: %zu masked pixel(s) have no valid pixel within %d pixels to fill them from and "
+            "keep their input value",
+            unfilled, kFillMaxRadius);
+        msg[sizeof(msg) - 1] = '\0';
+        xpe_alert_push(msg, XPE_ALERT_WARNING);
     }
 
     output->format        = XPE_PIXEL_FLOAT32;

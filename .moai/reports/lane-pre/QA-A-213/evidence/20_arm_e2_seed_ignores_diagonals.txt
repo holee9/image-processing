@@ -1,0 +1,7 @@
+ARM e2_seed_ignores_diagonals
+file src/defect_correct.cpp
+built=True
+[  FAILED  ] DefectFillEquivalenceTest.ThreeHundredRandomMasks (3 ms)
+[  PASSED  ] 35 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DefectFillEquivalenceTest.ThreeHundredRandomMasks

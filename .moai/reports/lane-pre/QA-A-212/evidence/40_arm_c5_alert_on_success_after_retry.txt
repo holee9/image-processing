@@ -1,0 +1,9 @@
+ARM c5_alert_on_success_after_retry
+file src/xcal_writer.cpp
+built=True
+[  FAILED  ] XcalReplaceRetryTest.ADestinationBusyForAWhileWithinTheBudgetIsReplacedAndNothingIsRaised (44 ms)
+[  FAILED  ] XcalReplaceRetryTest.ThePublicSaveGoesTheSameWay (758 ms)
+[  PASSED  ] 7 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] XcalReplaceRetryTest.ADestinationBusyForAWhileWithinTheBudgetIsReplacedAndNothingIsRaised
+[  FAILED  ] XcalReplaceRetryTest.ThePublicSaveGoesTheSameWay

@@ -1,0 +1,192 @@
+### round 1 old
+[a173perf] obs: 91.4 90.8 95.0 86.6 88.5 89.9 85.8 109.1 95.2 91.5 94.5 107.2
+[a173perf] min 85.8 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 1 new
+[a173perf] obs: 87.3 89.3 100.8 86.3 96.5 96.0 100.2 94.9 97.1 101.4 95.1 89.2
+[a173perf] min 86.3 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 2 new
+[a173perf] obs: 91.8 93.1 89.8 89.0 88.6 93.1 88.3 95.0 89.5 88.7 102.6 96.7
+[a173perf] min 88.3 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 2 old
+[a173perf] obs: 149.1 125.6 109.9 117.7 119.4 103.8 98.8 112.1 112.8 121.0 112.6 109.8
+[a173perf] min 98.8 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 3 old
+[a173perf] obs: 98.7 89.5 93.2 88.6 92.9 89.8 89.7 91.0 96.7 91.4 105.3 100.1
+[a173perf] min 88.6 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 3 new
+[a173perf] obs: 149.4 119.7 108.1 112.3 102.9 100.3 105.3 103.2 97.8 105.4 102.8 98.0
+[a173perf] min 97.8 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 4 new
+[a173perf] obs: 148.6 129.8 115.2 114.0 97.8 101.1 98.5 104.0 107.3 106.5 101.5 109.8
+[a173perf] min 97.8 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 4 old
+[a173perf] obs: 148.7 117.3 112.5 112.7 103.9 102.0 100.1 101.0 102.2 96.9 116.0 121.4
+[a173perf] min 96.9 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 5 old
+[a173perf] obs: 97.2 87.9 94.3 89.2 86.1 88.4 90.3 89.4 85.7 88.5 88.9 87.7
+[a173perf] min 85.7 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 5 new
+[a173perf] obs: 145.1 119.2 114.0 110.8 102.1 100.4 109.9 102.5 100.6 100.3 108.9 101.4
+[a173perf] min 100.3 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 6 new
+[a173perf] obs: 142.6 123.0 108.0 106.6 97.3 96.2 98.5 108.9 107.2 90.5 92.7 89.7
+[a173perf] min 89.7 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 6 old
+[a173perf] obs: 84.5 88.4 88.3 86.8 86.0 87.9 84.6 83.8 94.0 92.8 86.1 89.0
+[a173perf] min 83.8 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 7 old
+[a173perf] obs: 163.6 125.0 111.5 111.9 97.5 100.3 96.1 104.2 96.8 95.8 103.7 111.1
+[a173perf] min 95.8 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 7 new
+[a173perf] obs: 90.0 92.2 94.4 90.5 90.2 90.5 89.8 90.4 100.3 90.6 96.1 90.6
+[a173perf] min 89.8 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 8 new
+[a173perf] obs: 152.3 126.0 112.1 109.4 101.8 106.0 99.0 97.3 96.4 88.0 97.2 103.7
+[a173perf] min 88.0 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 8 old
+[a173perf] obs: 90.0 88.3 90.1 86.3 87.8 89.6 91.9 85.9 86.5 86.9 86.4 91.5
+[a173perf] min 85.9 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 9 old
+[a173perf] obs: 93.4 88.7 88.5 87.8 90.6 87.4 87.7 85.6 86.2 87.6 90.9 90.0
+[a173perf] min 85.6 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 9 new
+[a173perf] obs: 141.2 123.1 110.8 105.8 104.0 101.0 104.7 103.6 102.5 97.8 101.2 97.7
+[a173perf] min 97.7 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 10 new
+[a173perf] obs: 149.3 123.3 111.1 110.5 101.8 106.4 106.3 98.8 100.9 108.9 104.0 105.0
+[a173perf] min 98.8 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 10 old
+[a173perf] obs: 164.5 118.1 113.0 107.8 103.5 96.6 98.3 94.5 95.6 97.5 97.6 100.2
+[a173perf] min 94.5 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 11 old
+[a173perf] obs: 145.5 117.8 109.2 110.9 104.5 100.0 99.5 107.4 104.2 103.3 96.6 100.2
+[a173perf] min 96.6 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 11 new
+[a173perf] obs: 88.4 87.5 88.8 91.4 92.4 94.3 89.3 87.1 87.4 89.5 89.0 102.2
+[a173perf] min 87.1 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 12 new
+[a173perf] obs: 152.4 121.4 118.9 111.8 101.5 99.8 99.3 103.2 98.4 105.6 102.0 99.7
+[a173perf] min 98.4 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 12 old
+[a173perf] obs: 87.2 90.0 88.7 88.9 88.8 92.8 87.9 90.0 90.1 102.1 84.8 94.0
+[a173perf] min 84.8 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 13 old
+[a173perf] obs: 95.6 91.2 89.3 99.5 94.9 89.9 87.6 96.2 85.8 93.2 89.6 88.6
+[a173perf] min 85.8 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 13 new
+[a173perf] obs: 143.1 116.8 105.6 106.3 98.7 103.3 109.6 102.9 95.6 103.6 97.5 97.7
+[a173perf] min 95.6 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 14 new
+[a173perf] obs: 146.2 122.0 108.9 115.5 104.9 109.1 106.4 101.1 100.2 106.5 100.0 98.3
+[a173perf] min 98.3 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 14 old
+[a173perf] obs: 141.6 121.6 105.7 105.6 100.5 104.4 98.9 92.2 87.2 88.5 91.6 93.5
+[a173perf] min 87.2 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 15 old
+[a173perf] obs: 90.2 88.5 87.5 92.2 88.1 91.1 90.5 90.4 88.9 85.2 86.0 86.3
+[a173perf] min 85.2 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 15 new
+[a173perf] obs: 89.9 89.4 92.1 94.9 92.2 99.9 97.2 88.0 86.3 88.7 88.1 93.5
+[a173perf] min 86.3 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 16 new
+[a173perf] obs: 146.2 121.8 114.2 112.7 99.7 99.0 100.2 105.8 103.2 98.2 94.9 106.5
+[a173perf] min 94.9 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 16 old
+[a173perf] obs: 142.5 116.5 103.5 104.6 97.7 94.0 99.5 101.5 96.6 94.0 94.6 111.4
+[a173perf] min 94.0 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 17 old
+[a173perf] obs: 89.8 85.0 85.9 89.8 84.5 91.8 89.4 89.7 86.8 89.6 98.8 85.1
+[a173perf] min 84.5 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 17 new
+[a173perf] obs: 141.0 121.3 112.3 109.9 111.7 101.6 98.7 98.6 102.3 97.5 98.3 103.7
+[a173perf] min 97.5 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 18 new
+[a173perf] obs: 139.7 117.0 112.5 104.7 98.5 98.1 97.8 101.5 99.4 99.3 100.3 99.6
+[a173perf] min 97.8 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 18 old
+[a173perf] obs: 138.2 114.6 101.9 103.8 102.2 94.5 90.8 92.9 92.1 88.0 100.1 90.2
+[a173perf] min 88.0 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 19 old
+[a173perf] obs: 153.3 133.7 110.2 103.0 102.0 98.7 95.5 94.1 95.0 104.0 101.2 99.3
+[a173perf] min 94.1 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 19 new
+[a173perf] obs: 96.3 87.8 90.9 92.3 91.8 95.6 96.4 95.4 88.6 88.9 87.3 92.6
+[a173perf] min 87.3 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 20 new
+[a173perf] obs: 91.2 95.2 94.4 92.8 88.4 88.8 93.1 89.2 89.5 88.2 94.8 88.3
+[a173perf] min 88.2 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 20 old
+[a173perf] obs: 98.7 101.9 96.7 86.3 90.9 86.3 91.7 86.1 87.2 93.9 88.8 87.9
+[a173perf] min 86.1 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 21 old
+[a173perf] obs: 140.7 112.4 108.8 104.9 101.9 98.5 100.2 98.2 97.1 95.9 109.8 94.7
+[a173perf] min 94.7 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 21 new
+[a173perf] obs: 138.7 129.6 110.6 103.2 97.4 96.4 101.6 106.4 98.5 110.9 106.1 104.2
+[a173perf] min 96.4 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 22 new
+[a173perf] obs: 91.5 91.2 106.5 92.1 89.4 94.8 92.6 94.8 92.9 88.2 98.3 88.9
+[a173perf] min 88.2 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 22 old
+[a173perf] obs: 92.0 92.7 89.3 89.7 88.3 88.6 92.8 93.9 87.7 89.1 93.2 113.1
+[a173perf] min 87.7 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 23 old
+[a173perf] obs: 145.8 117.2 107.7 109.5 101.2 101.9 95.0 91.3 100.1 95.8 93.1 93.0
+[a173perf] min 91.3 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 23 new
+[a173perf] obs: 148.3 120.3 127.3 115.3 120.1 109.8 104.8 118.7 111.6 101.3 99.8 106.0
+[a173perf] min 99.8 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 24 new
+[a173perf] obs: 89.0 91.5 92.8 95.3 90.5 90.2 86.7 99.1 97.5 94.6 88.2 91.6
+[a173perf] min 86.7 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.
+### round 24 old
+[a173perf] obs: 137.9 120.5 108.3 100.7 93.4 96.2 99.8 101.1 99.1 94.5 102.8 103.5
+[a173perf] min 93.4 ms  flagged 50  fnv 68dfffca3cdb2a4d
+[  PASSED  ] 1 test.

@@ -241,7 +241,8 @@ XpeErrorCode xpe_gain_correct_in(
     const CalibSnapshot&    calib,
     const XpeImageBuffer*  input,
     XpeImageBuffer*         output,
-    const XpeImageMetadata* metadata)
+    const XpeImageMetadata* metadata,
+    std::vector<uint32_t>*  frame_defects)
 {
     if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;
     if (!input->data || !output->data) return XPE_ERR_INVALID_INPUT;
@@ -408,6 +409,54 @@ XpeErrorCode xpe_gain_correct_in(
                 }
                 msg[sizeof(msg) - 1] = '\0';
                 xpe_alert_push(msg, XPE_ALERT_WARNING);
+            }
+        }
+
+        // QA-A-211 (#233): a pixel whose evaluated polynomial gain is outside [0.1, 10] (or not finite) is CLASSIFIED
+        // DEFECTIVE: gain 1.0 here, its index in the frame's list for the defect stage. The same range as the scalar map's
+        // load-time classification. More than XPE_GAIN_DEFECT_MAX_FRACTION of the frame refuses it (CONFIG_INVALID),
+        // as a gain that is wrong almost everywhere is a bad calibration, not a few failed pixels. A scalar map was
+        // classified when it was loaded, so nothing here changes its path.
+        if (poly != nullptr) {
+            std::vector<uint32_t> bad;
+            XpeGainScan scan;
+            scan.total = n;
+            for (size_t i = 0; i < n; ++i) {
+                if (xpe_gain_value_valid(evaluated[i])) continue;
+                if (scan.count == 0) scan.first = i;
+                ++scan.count;
+                const size_t y = i / input->width, x = i % input->width;
+                if (y < 64 || y + 64 >= input->height || x < 64 || x + 64 >= input->width) ++scan.inBand;
+                bad.push_back(static_cast<uint32_t>(i));
+                evaluated[i] = 1.0f;
+            }
+            if (scan.count > 0) {
+                if (xpe_gain_scan_over_limit(scan)) {
+                    xpe_gain_alert_over_limit(scan, "applied");
+                    return XPE_ERR_CONFIG_INVALID;
+                }
+                {
+                    char msg[320];
+                    std::snprintf(msg, sizeof(msg),
+                        "XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: %llu pixel(s) of this frame evaluate to a gain outside [%.1f, %.1f] and "
+                        "are marked defective (gain 1.0) and listed for the defect correction stage",
+                        static_cast<unsigned long long>(scan.count),
+                        static_cast<double>(XPE_GAIN_APPLIED_MIN), static_cast<double>(XPE_GAIN_APPLIED_MAX));
+                    msg[sizeof(msg) - 1] = '\0';
+                    xpe_alert_push(msg, XPE_ALERT_WARNING);
+                }
+                if (frame_defects != nullptr) {
+                    *frame_defects = std::move(bad);
+                } else {
+                    // a call on its own: no defect stage of this frame follows
+                    char msg[320];
+                    std::snprintf(msg, sizeof(msg),
+                        "XPE_WARN_GAIN_PIXELS_UNCORRECTED: %llu pixel(s) were classified defective by the gain calibration but no defect "
+                        "correction follows (the gain stage was called on its own); they carry the uncorrected value with gain 1.0",
+                        static_cast<unsigned long long>(scan.count));
+                    msg[sizeof(msg) - 1] = '\0';
+                    xpe_alert_push(msg, XPE_ALERT_WARNING);
+                }
             }
         }
 

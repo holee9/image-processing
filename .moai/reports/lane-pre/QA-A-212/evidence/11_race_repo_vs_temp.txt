@@ -1,0 +1,12 @@
+dir: D:/workspace-github/xpe-pre/modules/preprocess/diag212_tmp
+E1 write+replace same path, product never reads it         iterations=1500 failures=0 {} first_fail_at=None
+E2 write+replace same path, product loads it each time     iterations=1500 failures=0 {} first_fail_at=None
+E3 write+replace UNIQUE paths (no existing destination), loads iterations=1500 failures=0 {} first_fail_at=None
+E4 same path, loads, 20 ms pause after each load           iterations=1500 failures=0 {} first_fail_at=None
+E5 same path, no load, 20 ms pause                         iterations=1500 failures=0 {} first_fail_at=None
+dir: C:/Users/drake/AppData/Local/Temp/xpe212_tmp
+E1 write+replace same path, product never reads it         iterations=1500 failures=0 {} first_fail_at=None
+E2 write+replace same path, product loads it each time     iterations=1500 failures=0 {} first_fail_at=None
+E3 write+replace UNIQUE paths (no existing destination), loads iterations=1500 failures=0 {} first_fail_at=None
+E4 same path, loads, 20 ms pause after each load           iterations=1500 failures=0 {} first_fail_at=None
+E5 same path, no load, 20 ms pause                         iterations=1500 failures=0 {} first_fail_at=None

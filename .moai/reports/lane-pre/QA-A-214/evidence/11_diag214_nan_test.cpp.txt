@@ -1,0 +1,73 @@
+// TEMPORARY (QA-A-214) -- removed before commit
+#include <gtest/gtest.h>
+#include "xpe/preprocess_api.h"
+#include "xpe/common/xpe_error.h"
+#include "xpe/preprocess/xcal_format.h"
+#include "xcal_writer.hpp"
+#include "preprocess_state_fixture.h"
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <filesystem>
+#include <limits>
+#include <vector>
+namespace fs = std::filesystem;
+namespace {
+void loadMask(const std::string& dir, uint32_t w, uint32_t h, const std::vector<uint8_t>& m) {
+    XCalFileHeader hdr{};
+    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    hdr.version = XCAL_VERSION; hdr.type = XCAL_TYPE_DEFECT; hdr.pixel_format = XCAL_FMT_UINT8_MASK;
+    hdr.width = w; hdr.height = h; hdr.payload_len = m.size();
+    const std::string p = dir + "/m.xcal";
+    ASSERT_EQ(XPE_OK, write_xcal_file(p.c_str(), hdr, nullptr, 0, m.data(), m.size()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(p.c_str()));
+}
+XpeErrorCode run(std::vector<float>& src, std::vector<float>& out, uint32_t w, uint32_t h) {
+    XpeImageBuffer ib{}, ob{};
+    ib.data = src.data(); ib.width = w; ib.height = h; ib.bitsAllocated = 32; ib.bitsStored = 32; ib.format = XPE_PIXEL_FLOAT32; ib.dataSize = src.size() * 4;
+    ob = ib; ob.data = out.data();
+    XpeImageMetadata meta{};
+    return xpe_defect_correct(&ib, &ob, &meta);
+}
+}
+class Diag214 : public XpePreprocessStateFixture {};
+TEST_F(Diag214, NaN) {
+    const std::string dir = (fs::temp_directory_path() / "xpe_diag214").string();
+    fs::create_directories(dir);
+    constexpr uint32_t W = 12, H = 12;
+    std::vector<uint8_t> m(W * H, 0);
+    for (uint32_t r = 5; r < 7; ++r) for (uint32_t c = 5; c < 7; ++c) m[r * W + c] = 1;   // 2x2 cluster
+    m[1 * W + 1] = 1;                                                                        // a lone defect
+    loadMask(dir, W, H, m);
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+    // 1. standalone: a NaN valid pixel next to the lone defect and in the cluster's 3x3
+    std::vector<float> src(W * H, 100.0f), out(W * H, -1.0f);
+    src[1 * W + 2] = nan; src[4 * W + 4] = nan; src[7 * W + 7] = nan;
+    const XpeErrorCode rc = run(src, out, W, H);
+    std::printf("[DIAG214] standalone xpe_defect_correct with NaN in valid pixels: rc=%d ; lone defect (1,1) -> %g ; cluster (5,5) -> %g (a NaN in the output: %d)\n", rc, out[1 * W + 1], out[5 * W + 5], (int)std::isnan(out[5 * W + 5]) || (int)std::isnan(out[1 * W + 1]));
+    // 2. order dependence: random NaN placement, frame vs its horizontal mirror (mask mirrored too)
+    int differ = 0, total = 0;
+    for (int t = 0; t < 400; ++t) {
+        uint32_t s = 77u + t; auto rnd = [&]() { s = s * 1664525u + 1013904223u; return s >> 8; };
+        std::vector<uint8_t> mm(W * H, 0);
+        for (uint32_t r = 4; r < 8; ++r) for (uint32_t c = 4; c < 8; ++c) mm[r * W + c] = 1;     // 4x4 block, centre ring at distance 2
+        std::vector<float> a(W * H);
+        for (auto& v : a) v = static_cast<float>(rnd() % 1000);
+        for (int k = 0; k < 3; ++k) a[rnd() % a.size()] = nan;
+        std::vector<uint8_t> mir(W * H); std::vector<float> am(W * H);
+        for (uint32_t r = 0; r < H; ++r) for (uint32_t c = 0; c < W; ++c) { mir[r * W + c] = mm[r * W + (W - 1 - c)]; am[r * W + c] = a[r * W + (W - 1 - c)]; }
+        std::vector<float> o1(W * H, -1), o2(W * H, -1), t1 = a, t2 = am;
+        loadMask(dir, W, H, mm); ASSERT_EQ(XPE_OK, run(t1, o1, W, H));
+        loadMask(dir, W, H, mir); ASSERT_EQ(XPE_OK, run(t2, o2, W, H));
+        bool d = false;
+        for (uint32_t r = 0; r < H; ++r) for (uint32_t c = 0; c < W; ++c) {
+            const float x = o1[r * W + c], y = o2[r * W + (W - 1 - c)];
+            if (!(x == y || (std::isnan(x) && std::isnan(y)))) d = true;
+        }
+        ++total; differ += d;
+    }
+    std::printf("[DIAG214] NaN placement fuzz: %d of %d frames give a different result when the same frame is mirrored (an order-independent fill gives 0)\n", differ, total);
+    xpe_clear_alerts();
+    std::error_code ec; fs::remove_all(dir, ec);
+}

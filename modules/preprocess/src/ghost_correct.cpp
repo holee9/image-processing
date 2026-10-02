@@ -74,6 +74,7 @@ XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
         handle->hist2.assign(pixelCount, 0.0f);
         handle->next1.assign(pixelCount, 0.0f);
         handle->next2.assign(pixelCount, 0.0f);
+        handle->backup.assign(pixelCount, 0.0f);
     } catch (const std::bad_alloc&) {
         return XPE_ERR_OUT_OF_MEMORY;
     } catch (...) {
@@ -122,7 +123,7 @@ namespace {
             float corrected = raw - a1 * h1[i] - a2 * h2[i];
             n1[i] = decay1 * h1[i] + raw;
             n2[i] = decay2 * h2[i] + raw;
-            if (!std::isfinite(corrected)) return XPE_ERR_PROCESSING_FAILED;
+            if (!std::isfinite(corrected) || !std::isfinite(n1[i]) || !std::isfinite(n2[i])) return XPE_ERR_PROCESSING_FAILED;
             px[i] = (corrected > 0.0f) ? corrected : 0.0f;
         }
         return XPE_OK;
@@ -152,7 +153,7 @@ namespace {
             float corrected = raw - a1 * h1[i] - a2 * h2[i];
             n1[i] = decay1 * h1[i] + raw;
             n2[i] = decay2 * h2[i] + raw;
-            if (!std::isfinite(corrected)) return XPE_ERR_PROCESSING_FAILED;
+            if (!std::isfinite(corrected) || !std::isfinite(n1[i]) || !std::isfinite(n2[i])) return XPE_ERR_PROCESSING_FAILED;
             px[i] = (corrected > 0.0f) ? corrected : 0.0f;
         }
         return XPE_OK;
@@ -173,6 +174,13 @@ namespace {
         const float beta = static_cast<float>(gh->nlcscBeta); // signal dependency parameter
         const uint32_t W = gh->width;
         const uint32_t H = gh->height;
+
+        // QA-A-218b (#233): the 3x3 mean reads the frame AS IT CAME IN, not the pixels this loop has already overwritten.
+        // The loop updates px in place, so reading px made the pixels above and to the left count with their CORRECTED
+        // (and zero-clamped) values and the others with their original ones: the output depended on the scan direction
+        // (a frame flipped, processed and flipped back differed in 41-91 % of its pixels, QA-A-218). xpe_ghost_correct
+        // keeps a copy of the incoming frame in gh->backup for the whole call (QA-A-217), which is exactly that.
+        const float* const src = gh->backup.data();
 
         // Apply NLCSC with signal-dependent coefficients
         for (size_t i = 0; i < n; ++i) {
@@ -197,8 +205,8 @@ namespace {
                     for (int dy = -1; dy <= 1; ++dy) {
                         for (int dx = -1; dx <= 1; ++dx) {
                             const size_t ni = static_cast<size_t>(static_cast<int>(y) + dy) * static_cast<size_t>(W) + static_cast<size_t>(static_cast<int>(x) + dx);
-                            if (ni < n && std::isfinite(px[ni])) {
-                                localMean += px[ni];
+                            if (ni < n && std::isfinite(src[ni])) {
+                                localMean += src[ni];
                                 ++count;
                             }
                         }
@@ -214,7 +222,7 @@ namespace {
             n1[i] = decay1 * h1[i] + raw;
             n2[i] = decay2 * h2[i] + raw;
 
-            if (!std::isfinite(corrected)) return XPE_ERR_PROCESSING_FAILED;
+            if (!std::isfinite(corrected) || !std::isfinite(n1[i]) || !std::isfinite(n2[i])) return XPE_ERR_PROCESSING_FAILED;
             px[i] = (corrected > 0.0f) ? corrected : 0.0f;
         }
         return XPE_OK;
@@ -238,6 +246,21 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
 
     auto* px = static_cast<float*>(img->data);
 
+    // QA-A-217 (#233): A NON-FINITE FRAME IS REFUSED AT THE ENTRANCE, before anything is written. The tiers used to
+    // work through the frame pixel by pixel and give up with XPE_ERR_PROCESSING_FAILED at the first NaN or infinity,
+    // with every pixel before it already corrected (REQ-P1A-032 asks for the output to be left unmodified on
+    // failure). Same rule as the defect, binning and runtime-detection stages (QA-A-214b, QA-A-215): INVALID_INPUT,
+    // the buffer and the handle untouched, one Error alert with the count and the first pixel. (The history was
+    // never at risk -- it is committed only for a whole successful frame, QA-A-202c; the test pins that.)
+    {
+        size_t count = 0, first = 0;
+        if (xpe_find_nonfinite(px, n, &count, &first)) {
+            xpe_alert_nonfinite("XPE_WARN_GHOST_INPUT_NOT_FINITE:", count, first, img->width,
+                                "the frame was not corrected; the buffer and the handle's history were not changed");
+            return XPE_ERR_INVALID_INPUT;
+        }
+    }
+
     // REQ-P1A-033: compute time delta in units of frames (1.0 for first frame)
     const double acquisitionTimeSec = static_cast<double>(meta->acquisitionTime);
     double dt = (gh->lastAcqTimeSec > 0.0)
@@ -255,6 +278,10 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
     // REQ-P1A-032: apply LTI deconvolution (Tier 1/2/3)
     XpeErrorCode result = XPE_OK;
     FrameStats stats;
+    // A frame can still fail with a finite input (a corrected value, or the new history, overflows float at the
+    // extremes of the range): the pixels are put back as they came in, so a failure leaves the buffer unmodified
+    // (REQ-P1A-032) and the history, which only a successful frame commits, as it was. QA-A-217.
+    std::memcpy(gh->backup.data(), px, n * sizeof(float));
     switch (gh->tier) {
         case 1:
             result = ghost_tier1(gh, px, n, decay1, decay2, a1_base, a2_base, &stats);
@@ -269,7 +296,11 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
             result = ghost_tier1(gh, px, n, decay1, decay2, a1_base, a2_base, &stats);
             break;
     }
-    if (result != XPE_OK) return result;   // the history, the time and the exposure estimate are as they were
+    if (result != XPE_OK) {
+        // the history, the time and the exposure estimate are as they were; the pixels are put back
+        std::memcpy(px, gh->backup.data(), n * sizeof(float));
+        return result;
+    }
 
     // The whole frame succeeded: its history, its time and its exposure estimate become the handle's.
     gh->hist1.swap(gh->next1);

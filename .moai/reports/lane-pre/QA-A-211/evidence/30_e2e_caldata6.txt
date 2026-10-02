@@ -1,0 +1,30 @@
+C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-pre\68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5\scratchpad\m211_e2e.py:111: RuntimeWarning: invalid value encountered in subtract
+  inside = (v >= lo - 1e-3 * np.abs(lo)) & (v <= hi + 1e-3 * np.abs(hi))
+C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-pre\68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5\scratchpad\m211_e2e.py:111: RuntimeWarning: invalid value encountered in add
+  inside = (v >= lo - 1e-3 * np.abs(lo)) & (v <= hi + 1e-3 * np.abs(hi))
+=== CalData_6
+defect map loaded rc = 0
+
+-- scalar level 0: load rc=0 (0.06 s); numpy classified = 43873 (0.465%)
+   alert: XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 43873 of 9437184 pixel(s) (0.465%) have a gain outside [0.1, 10.0] and are treated as defective: gain 1.0 is used and the defect correction stage fills them from their neighbours (43835 in the outermost 64-pixel band; first: 0). Limit: 5.0%
+   pipeline rc=0 ; finite=True ; U = classified|defect = 53103 (0.563%)
+   alerts after the frame: []
+   classified-but-not-in-defect-map pixels checked: 29598 (with a clean neighbour 9810) ; value inside the clean neighbours' [min,max]: 9810
+   of them equal to the uncorrected input value (gain 1.0 left alone): 0
+
+-- scalar level 4: load rc=0 (0.06 s); numpy classified = 39077 (0.414%)
+   alert: XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 39077 of 9437184 pixel(s) (0.414%) have a gain outside [0.1, 10.0] and are treated as defective: gain 1.0 is used and the defect correction stage fills them from their neighbours (39075 in the outermost 64-pixel band; first: 0). Limit: 5.0%
+   pipeline rc=0 ; finite=True ; U = classified|defect = 48994 (0.519%)
+   alerts after the frame: []
+   classified-but-not-in-defect-map pixels checked: 25489 (with a clean neighbour 6973) ; value inside the clean neighbours' [min,max]: 6973
+   of them equal to the uncorrected input value (gain 1.0 left alone): 0
+
+-- polynomial, degree 2, from the six scalar maps (doses = level means)
+   generate rc=0 file=True (6.8 s)
+   alert: XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 44665 of 9437184 pixel(s) (0.473%) have a gain outside [0.1, 10.0] and are treated as defective: gain 1.0 is used and the defect correction stage fills them from their neighbours (44622 in the outermost 64-pixel band; first: 0). Limit: 5.0%
+   alert: XPE_WARN_CALIB_POOR_FIT: fit_r_squared=0.567686 below 0.999 (max_residual=117.348%, mean_residual=0.990%); increase dose levels or check detector stability
+   all-zero coefficient pixels: 44665 ; pixels with a measured gain out of range at any level: 44658 ; equal sets: False
+   zero-coefficient pixels outside the defect map: 30179 ; inside: 14486
+   load rc = 0
+   pipeline on level 0 frame: rc=0 finite=True ; alerts: ["3991739 pixel(s) fell outside the gain polynomial's fitted dose range [350.6, 5014.6] and were evaluated at the range edge; values beyond th", 'XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 44665 pixel(s) of this frame evaluate to a gain outside [0.1, 10.0] and are treated as defective (ga']
+   pipeline on level 5 frame: rc=0 finite=True ; alerts: ["5896372 pixel(s) fell outside the gain polynomial's fitted dose range [350.6, 5014.6] and were evaluated at the range edge; values beyond th", 'XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 44665 pixel(s) of this frame evaluate to a gain outside [0.1, 10.0] and are treated as defective (ga']

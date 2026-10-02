@@ -1,0 +1,7 @@
+=== old DLLs
+no masked pixel (baseline: the early return)                   masked       0 (0.00%) |      4.3 ms (best of 3; runs ['8', '4', '4']) | masked written as 0: 0, left at input 7777: 0
+2 masked pixels + one pair                                     masked       3 (0.00%) |      7.5 ms (best of 3; runs ['12', '8', '8']) | masked written as 0: 0, left at input 7777: 0
+ONE 686x686 block (4.99%): worst case, deep interior           masked  470596 (4.99%) |     19.9 ms (best of 3; runs ['29', '20', '20']) | masked written as 0: 467856, left at input 7777: 0
+20x20 blocks on a 60-px grid (about 11%): interior distance <= 10 masked 1040400 (11.02%) |     54.3 ms (best of 3; runs ['54', '73', '60']) | masked written as 0: 842724, left at input 7777: 0
+40x40 blocks on a 90-px grid (about 20%): interior distance up to 20 masked 1849600 (19.60%) |     66.0 ms (best of 3; runs ['70', '71', '66']) | masked written as 0: 1669264, left at input 7777: 0
+CalData_6 BPMap.map (the real defect map)                      masked   23505 (0.25%) |      9.0 ms (best of 3; runs ['14', '9', '9']) | masked written as 0: 15685, left at input 7777: 0

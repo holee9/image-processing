@@ -146,36 +146,42 @@ TEST_F(GainCorrectReciprocalFMATest, ReciprocalPrecomputationIsValid) {
 TEST_F(GainCorrectReciprocalFMATest, ZeroGainIsRefusedAtLoad) {
     std::fill(gainPixels.begin(), gainPixels.end(), 0.0f);
     EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA, load());
+    xpe_clear_alerts();   // QA-A-211: the refusal says why (XPE_WARN_GAIN_PIXELS_OVER_LIMIT); a test drains what it raised
 }
 
 // Negative gain: outside [0.1, 10.0], refused at load (#188).
 TEST_F(GainCorrectReciprocalFMATest, NegativeGainIsRefusedAtLoad) {
     std::fill(gainPixels.begin(), gainPixels.end(), -1.0f);
     EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA, load());
+    xpe_clear_alerts();   // QA-A-211: the refusal says why (XPE_WARN_GAIN_PIXELS_OVER_LIMIT); a test drains what it raised
 }
 
 // NaN fails every comparison, so it is outside the range too (#188).
 TEST_F(GainCorrectReciprocalFMATest, NaNGainIsRefusedAtLoad) {
     gainPixels[0] = std::numeric_limits<float>::quiet_NaN();
     EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA, load());
+    xpe_clear_alerts();   // QA-A-211: the refusal says why (XPE_WARN_GAIN_PIXELS_OVER_LIMIT); a test drains what it raised
 }
 
 // Inf is above the maximum (#188).
 TEST_F(GainCorrectReciprocalFMATest, InfGainIsRefusedAtLoad) {
     gainPixels[0] = std::numeric_limits<float>::infinity();
     EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA, load());
+    xpe_clear_alerts();   // QA-A-211: the refusal says why (XPE_WARN_GAIN_PIXELS_OVER_LIMIT); a test drains what it raised
 }
 
 // Below the requirement's minimum (#188).
 TEST_F(GainCorrectReciprocalFMATest, GainBelowTheRequirementMinimumIsRefusedAtLoad) {
     std::fill(gainPixels.begin(), gainPixels.end(), 0.0005f);  // Below 0.001
     EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA, load());
+    xpe_clear_alerts();   // QA-A-211: the refusal says why (XPE_WARN_GAIN_PIXELS_OVER_LIMIT); a test drains what it raised
 }
 
 // Above the requirement's maximum (#188).
 TEST_F(GainCorrectReciprocalFMATest, GainAboveTheRequirementMaximumIsRefusedAtLoad) {
     std::fill(gainPixels.begin(), gainPixels.end(), 1001.0f);  // Above 1000
     EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA, load());
+    xpe_clear_alerts();   // QA-A-211: the refusal says why (XPE_WARN_GAIN_PIXELS_OVER_LIMIT); a test drains what it raised
 }
 
 // Boundary: the requirement's minimum is inclusive and corrects normally.

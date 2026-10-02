@@ -1,0 +1,19 @@
+ARM n3_delete_never_attempted
+file src/xcal_writer.cpp
+built=True
+[  FAILED  ] XcalReplaceRetryTest.ADestinationHeldPastTheBudgetFailsWithTheReasonAndTheOldFileIntact (717 ms)
+[  FAILED  ] XcalReplaceRetryTest.AReadOnlyDestinationFailsAfterTheBudgetNotForever (183 ms)
+[  FAILED  ] XcalReplaceRetryTest.ATemporaryFileHeldElsewhereIsReportedAsLeftBehindAndTheNextSaveStillWorks (191 ms)
+[  FAILED  ] XcalReplaceRetryTest.ThePublicSaveGoesTheSameWay (761 ms)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] XcalReplaceRetryTest.ADestinationHeldPastTheBudgetFailsWithTheReasonAndTheOldFileIntact
+[  FAILED  ] XcalReplaceRetryTest.AReadOnlyDestinationFailsAfterTheBudgetNotForever
+[  FAILED  ] XcalReplaceRetryTest.ATemporaryFileHeldElsewhereIsReportedAsLeftBehindAndTheNextSaveStillWorks
+[  FAILED  ] XcalReplaceRetryTest.ThePublicSaveGoesTheSameWay
+alert texts seen in failure messages:
+XPE_WARN_XCAL_REPLACE_FAILED: could not replace 'C:\Users\drake\AppData\Local\Temp\xpe_xrr_4\cal.xcal' with the newly written calibration file: Windows error 32 after 8 retries (the destination or the temporary file stayed open in another process, or the destination is read-only or may not be changed). The previous file, if any, is unchanged and the temporary file was removed
+and does not claim the opposite: XPE_WARN_XCAL_REPLACE_FAILED: could not replace 'C:\Users\drake\AppData\Local\Temp\xpe_xrr_4\cal.xcal' with the newly written calibration file: Windows error 32 after 8 retries (the destination or the temporary file stayed open in another process, or the destination is read-only or may not be changed). The previous file, if any, is unchanged and the temporary file was removed
+and names it: XPE_WARN_XCAL_REPLACE_FAILED: could not replace 'C:\Users\drake\AppData\Local\Temp\xpe_xrr_4\cal.xcal' with the newly written calibration file: Windows error 32 after 8 retries (the destination or the temporary file stayed open in another process, or the destination is read-only or may not be changed). The previous file, if any, is unchanged and the temporary file was removed
+the alert says the file is still there: XPE_WARN_XCAL_REPLACE_FAILED: could not replace 'C:\Users\drake\AppData\Local\Temp\xpe_xrr_4\cal.xcal' with the newly written calibration file: Windows error 32 after 8 retries (the destination or the temporary file stayed open in another process, or the destination is read-only or may not be changed). The previous file, if any, is unchanged and the temporary file was removed
+the error of the failed delete is the sharing violation: XPE_WARN_XCAL_REPLACE_FAILED: could not replace 'C:\Users\drake\AppData\Local\Temp\xpe_xrr_4\cal.xcal' with the newly written calibration file: Windows error 32 after 8 retries (the destination or the temporary file stayed open in another process, or the destination is read-only or may not be changed). The previous file, if any, is unchanged and the temporary file was removed

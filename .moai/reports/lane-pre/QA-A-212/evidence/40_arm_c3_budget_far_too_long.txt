@@ -1,0 +1,11 @@
+ARM c3_budget_far_too_long
+file src/xcal_writer.cpp
+built=True
+[  FAILED  ] XcalReplaceRetryTest.ADestinationHeldPastTheBudgetFailsWithTheReasonAndTheOldFileIntact (726 ms)
+[  FAILED  ] XcalReplaceRetryTest.AReadOnlyDestinationFailsAfterTheBudgetNotForever (10021 ms)
+[  FAILED  ] XcalReplaceRetryTest.ThePublicSaveGoesTheSameWay (769 ms)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] XcalReplaceRetryTest.ADestinationHeldPastTheBudgetFailsWithTheReasonAndTheOldFileIntact
+[  FAILED  ] XcalReplaceRetryTest.AReadOnlyDestinationFailsAfterTheBudgetNotForever
+[  FAILED  ] XcalReplaceRetryTest.ThePublicSaveGoesTheSameWay

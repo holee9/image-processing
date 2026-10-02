@@ -1,0 +1,3 @@
+210e-build cyan degree-2 payload sha256: 50ff4a77e489b2da8332bf05edbb8dd5fc49acf94e73c501949ad5a89d68a4a0
+QA-A-211 build cyan degree-2 payload sha256: 50ff4a77e489b2da8332bf05edbb8dd5fc49acf94e73c501949ad5a89d68a4a0
+byte for byte identical: True ( 113246208 bytes )

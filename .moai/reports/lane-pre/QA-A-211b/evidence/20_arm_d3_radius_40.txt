@@ -1,0 +1,7 @@
+ARM d3_radius_40
+file src/defect_correct.cpp
+built=True
+[  FAILED  ] DefectFillTest.APixelWithNoValidPixelWithinTheSearchRadiusKeepsItsValueAndTheFrameSaysSo (2 ms)
+[  PASSED  ] 50 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DefectFillTest.APixelWithNoValidPixelWithinTheSearchRadiusKeepsItsValueAndTheFrameSaysSo
