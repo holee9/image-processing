@@ -1,0 +1,13 @@
+QA-B-194 M1 arms: every arm built (build_ok=True) and was restored byte-identical; rebuilt from the per-arm gtest outputs build/g194m1-arm_<tag>.txt (J3 and J6 were re-run after stitch was added to the NaN/Inf x position table; the other seven are from the first run)
+
+J1 UINT8 size is not checked again: red(3)=['AiExceptionGuard.StitchEstimateOfAHugeWidthIsTheLimitNotAWrappedValue', 'AiInputValidation.AUint8ImageThatDeclaresMoreThanItSuppliesIsRefused', 'AiInputValidation.TheDeclaredSizeOfEveryFormatIsBoundedByTheModuleMaximum']
+J2 an unknown format value is treated as an image: red(1)=['AiInputValidation.AFormatValueThatIsNotOneOfTheThreeIsNotAnImage']
+J3 bone suppression does not scan: red(3)=['AiInputValidation.ANonFiniteFrameIsRefusedBeforeAnythingIsWrittenByEveryFunctionThatTakesPixels', 'AiInputValidation.TheAlertCountsEveryNonFinitePixelAndNamesTheFirst', 'AiInputValidationWorker.ANonFiniteBoneFrameIsRefusedBeforeAnyWorkerIsStarted']
+J4 body-part recognition does not scan: red(3)=['AiInputValidation.ABodyPartRequestIsRefusedWhetherOrNotAModelExists', 'AiInputValidation.ANonFiniteFrameIsRefusedBeforeAnythingIsWrittenByEveryFunctionThatTakesPixels', 'AiInputValidation.TheAlertCountsEveryNonFinitePixelAndNamesTheFirst']
+J5 denoise does not scan: red(2)=['AiInputValidation.ANonFiniteFrameIsRefusedBeforeAnythingIsWrittenByEveryFunctionThatTakesPixels', 'AiInputValidation.TheAlertCountsEveryNonFinitePixelAndNamesTheFirst']
+J6 stitch does not scan (re-run after stitch joined the table): red(3)=['AiInputValidation.ANonFiniteFrameIsRefusedBeforeAnythingIsWrittenByEveryFunctionThatTakesPixels', 'AiInputValidation.StitchNamesTheFirstPartThatFails', 'AiInputValidation.TheAlertCountsEveryNonFinitePixelAndNamesTheFirst']
+J7 the alert blames the model again: red(3)=['AiInputValidation.ANonFiniteFrameIsRefusedBeforeAnythingIsWrittenByEveryFunctionThatTakesPixels', 'AiInputValidation.StitchNamesTheFirstPartThatFails', 'AiInputValidation.TheAlertCountsEveryNonFinitePixelAndNamesTheFirst']
+J8 the stitch alert names the wrong part: red(1)=['AiInputValidation.StitchNamesTheFirstPartThatFails']
+J9 the body-part refusal resets the confidence anyway: red(2)=['AiInputValidation.ABodyPartRequestIsRefusedWhetherOrNotAModelExists', 'AiInputValidation.ANonFiniteFrameIsRefusedBeforeAnythingIsWrittenByEveryFunctionThatTakesPixels']
+
+CONTROL (files restored): passed=128 red=[] (arms script console output)

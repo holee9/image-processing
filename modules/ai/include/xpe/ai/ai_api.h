@@ -27,6 +27,25 @@
  * a stub build is not. Per-function notes below mark which returns are
  * currently unreachable.
  *
+ * INPUT VALIDATION (REQ-AI-090, QA-B-194 M1). Every function that takes an image judges it at the entrance, before
+ * the module lock, the model or the worker is touched, and a refusal leaves every output the caller gave
+ * UNTOUCHED (no label, no confidence, no pixels):
+ *   - the size: width and height are at least 1, the declared image is at most 64 MB (4096 x 4096 x 4 bytes) in
+ *     whatever format, and a non-zero dataSize holds the declared image. Every format is bounded by its own pixel
+ *     size (UINT8 1 byte, UINT16 2, FLOAT32 4); a format value that is none of the three is not an image. A
+ *     refusal is XPE_ERR_INVALID_INPUT.
+ *   - the pixels: a FLOAT32 image that holds NaN or infinity is refused with XPE_ERR_INVALID_INPUT and ONE
+ *     XPE_ALERT_ERROR that names the count and the first pixel and says the INPUT is at fault: the tag, then
+ *     "N pixel(s) of the input frame are NaN or infinite (first: index I, x=X, y=Y); " and what the call did not do.
+ *     The tags are XPE_WARN_BONE_SUPPRESS_INPUT_NOT_FINITE, XPE_WARN_BODYPART_INPUT_NOT_FINITE,
+ *     XPE_WARN_DL_DENOISE_INPUT_NOT_FINITE and XPE_WARN_STITCH_INPUT_NOT_FINITE (each followed by a colon; the
+ *     stitch text says "input part P" instead of "the input frame"). Integer formats cannot hold either, and
+ *     xpe_stitch_estimate_size reads no pixels, so neither is scanned. No value RANGE is checked: the input scale
+ *     is the caller's, as for the model (see PIXEL SCALE AND SIZE at xpe_bodypart_recognize).
+ *   A non-finite RESULT of a model is a different fault and keeps its own code (XPE_ERR_PROCESSING_FAILED) and
+ *   alert text ("AI model output was non-finite ..."): the input was fine and the model's output was not. These
+ *   texts are a contract with the clients that display alerts.
+ *
  * @ingroup xpe_ai
  */
 #ifndef XPE_AI_API_H
@@ -313,6 +332,17 @@ XPE_API XpeErrorCode xpe_bodypart_recognize(const XpeImageBuffer* img,
                                              float* confidenceOut);
 
 /**
+ * Most parts xpe_stitch_images / xpe_stitch_estimate_size accept in one call (QA-B-194 M2, REQ-AI-090).
+ *
+ * THIS IS AN IMPLEMENTATION SAFETY CAP, NOT A CLINICAL REQUIREMENT. No requirement, SPEC or design document gives a
+ * maximum number of stitch parts (searched: SRS, SPEC, PRD; the only bound anywhere is the 4096 clamp on the output
+ * size). The cap exists because the functions read @c parts[i] for every i below partCount, and a count the array
+ * cannot hold made them read memory the caller never gave. 16 is far above any count a detector produces; when the
+ * product states a real value, change this one constant.
+ */
+#define XPE_AI_MAX_STITCH_PARTS 16u
+
+/**
  * @brief Stitches overlapping partial images into a single wide-field image.
  *
  * Uses AI-based feature matching for alignment. @p stitchedOut must be
@@ -323,14 +353,20 @@ XPE_API XpeErrorCode xpe_bodypart_recognize(const XpeImageBuffer* img,
  *
  * @param parts          Array of partial images. Must not be NULL. Every
  *                       element is validated, not just the first.
- * @param partCount      Number of images in @p parts. Must be >= 2.
+ * @param partCount      Number of images in @p parts. Must be >= 2 and at most
+ *                       XPE_AI_MAX_STITCH_PARTS (an implementation safety cap).
  * @param stitchedOut    Pre-allocated output buffer. Must not be NULL, and must
  *                       carry a non-NULL data pointer and a non-zero dataSize.
  * @param configJsonOrNull  Optional stitch configuration (overlap estimate,
  *                          blend mode). NULL for defaults. Currently ignored.
  * @return XPE_OK on success -- ONNX build only; not reachable in a stub build.
- * @return XPE_ERR_INVALID_INPUT if parts or stitchedOut is NULL, partCount < 2,
- *         any element of @p parts is an invalid image buffer, or stitchedOut
+ * @return XPE_ERR_INVALID_INPUT if parts or stitchedOut is NULL, partCount < 2 or
+ *         above XPE_AI_MAX_STITCH_PARTS (judged before any element is read),
+ *         any element of @p parts is an invalid image buffer, the parts do not all
+ *         have the SAME pixel format (the parts of one stitch are one kind of
+ *         image; a size rule between parts is not defined yet and is not
+ *         checked), a FLOAT32 part holds NaN or infinity (see INPUT VALIDATION
+ *         in the file description), or stitchedOut
  *         has a NULL data pointer or a dataSize of 0 (#142 -- a missing output
  *         argument, the same answer xpe_bone_suppress gives).
  * @return XPE_ERR_BUFFER_TOO_SMALL if the output buffer is real but cannot hold
@@ -359,14 +395,17 @@ XPE_API XpeErrorCode xpe_stitch_images(const XpeImageBuffer* parts,
  *
  * @param parts          Array of partial images. Must not be NULL. Every
  *                       element is validated.
- * @param partCount      Number of images. Must be >= 2.
+ * @param partCount      Number of images. Must be >= 2 and at most
+ *                       XPE_AI_MAX_STITCH_PARTS (an implementation safety cap).
  * @param widthOut       Output: estimated width in pixels, clamped to 4096.
  *                       Must not be NULL.
  * @param heightOut      Output: estimated height in pixels, clamped to 4096.
  *                       Must not be NULL.
  * @return XPE_OK on success.
- * @return XPE_ERR_INVALID_INPUT if any parameter is NULL, partCount < 2, or any
- *         element of @p parts is an invalid image buffer.
+ * @return XPE_ERR_INVALID_INPUT if any parameter is NULL, partCount < 2 or above
+ *         XPE_AI_MAX_STITCH_PARTS (judged before any element is read), any
+ *         element of @p parts is an invalid image buffer, or the parts do not
+ *         all have the same pixel format. The outputs are left untouched.
  * @return XPE_ERR_PROCESSING_FAILED -- documented for the ONNX build. NOT
  *         returned by the current implementation for any input.
  *
