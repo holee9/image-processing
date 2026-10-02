@@ -1,0 +1,11 @@
+ARM j2_wrong_code
+file src/ghost_correct.cpp
+built=True
+[  FAILED  ] GhostTierTest.EachTierRejectsNonFiniteInput (0 ms)
+[  FAILED  ] GhostInputFinite.ANonFiniteFrameIsRefusedWithNothingWrittenAndTheHandleUntouched (1 ms)
+[  FAILED  ] GhostInputFinite.TheAlertNamesTheCountAndTheFirstPixel (0 ms)
+[  PASSED  ] 15 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] GhostTierTest.EachTierRejectsNonFiniteInput
+[  FAILED  ] GhostInputFinite.ANonFiniteFrameIsRefusedWithNothingWrittenAndTheHandleUntouched
+[  FAILED  ] GhostInputFinite.TheAlertNamesTheCountAndTheFirstPixel

@@ -689,9 +689,10 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
  *                  alpha2, tau2, tier2Threshold, nlcscBeta) is not one finite number in range (notation:
  *                  see xpe_preprocess_pipeline); no handle is handed back and nothing is left allocated
  *
- * @note The handle holds the frame history twice (width*height floats, four planes in all): a frame writes
- *       its new history into the second pair and the pairs are swapped only when the frame succeeded (see
- *       xpe_ghost_correct). At 3072x3072 that is about 151 MB per handle.
+ * @note The handle holds the frame history twice (width*height floats, four planes) plus one more plane
+ *       with the frame as it came in: a frame writes its new history into the second pair and the pairs are
+ *       swapped only when the frame succeeded, and a frame that fails gets its pixels put back from the fifth
+ *       plane (see xpe_ghost_correct). At 3072x3072 that is about 189 MB per handle.
  *
  * @note SRS-CALIB-NFR-003: one handle may be shared by several threads. Calls to
  *       xpe_ghost_correct() and xpe_ghost_reset() on the same handle are serialised
@@ -718,15 +719,18 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
  * @param img [in/out] Image to correct (float32 format)
  * @param meta Image metadata (acquisitionTime used for IRF timing)
  * @return XPE_OK on success
- *         XPE_ERR_INVALID_INPUT on NULL/invalid handle or dimension mismatch
- *         XPE_ERR_PROCESSING_FAILED on numerical errors (a non-finite pixel, a non-finite corrected value)
+ *         XPE_ERR_INVALID_INPUT on NULL/invalid handle, dimension mismatch, or a frame holding a NaN or an
+ *         infinity: refused at the entrance (QA-A-217), nothing is written and one Error alert
+ *         XPE_WARN_GHOST_INPUT_NOT_FINITE names the count and the first pixel
+ *         XPE_ERR_PROCESSING_FAILED when a corrected value or the new history overflows float (finite input
+ *         at the extremes of the range)
  *
  * @note A frame that fails leaves the handle exactly as it found it: the frame history, the time of the last
  *       frame (so the next frame's time step is measured from the last frame that SUCCEEDED) and the
- *       exposure estimate. Only a successful frame changes them. The pixels of `img` that were corrected
- *       before the failure are not restored; a caller that needs the original keeps its own copy.
- *       Before QA-A-202c a failure part-way through left the history of the pixels already processed
- *       updated, and the next frame -- in a batch, one that carried on past the failure -- used it.
+ *       exposure estimate. Only a successful frame changes them. Since QA-A-217 a failed frame also leaves
+ *       `img` as it was (REQ-P1A-032): pixels already corrected when the failure was found are put back.
+ *       Before QA-A-217 they were not, and a caller had to keep its own copy; before QA-A-202c a failure
+ *       part-way through left the history of the pixels already processed updated too.
  */
 XPE_API XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
                                         const XpeImageMetadata* meta);

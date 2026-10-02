@@ -66,6 +66,11 @@ struct GhostCorrectorHandle {
     std::vector<float> next1;
     std::vector<float> next2;
 
+    // QA-A-217 (#233): the frame as it came in, kept for the duration of one xpe_ghost_correct call so that a frame
+    // that fails after pixels were already corrected can put them back (REQ-P1A-032: on failure the output is left
+    // unmodified). Allocated once with the handle; a fifth float plane.
+    std::vector<float> backup;
+
     double lastAcqTimeSec{0.0};
     double lastFrameMean{0.0}; // mean signal level for exposure weighting
 
