@@ -1,0 +1,4 @@
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerNeverConfirmedAtMinimumWidthScenarios.M03_TheNeverConfirmedNotice_IsAbsentAtStart_ThenAppears_AndIsInTheTreeAtTheMinimumWidth [16 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerUnconfirmedAtMinimumWidthScenarios.M02_TheUnconfirmedNotice_IsAbsentWhileTheWorkerIsActive_ThenAppears_AndIsInTheTreeAtTheMinimumWidth [15 s]
+ M02 diagnostics line: 'refresher: reads=2 maxReadMs=2 maxAnswerGapMs=4 boundMs=15000 rereads=0 failedReads=0 retries=0 sessionWithdrawals=0 maxUiGapMs=1029 noticesWithdrawn=1 noticesNeverConfirmed=0'
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerMarkAtMinimumWidthScenarios.M01_TheMark_IsInTheAutomationTree_AtTheLaunchWidth_AndAtTheMinimumWidth [849 ms]

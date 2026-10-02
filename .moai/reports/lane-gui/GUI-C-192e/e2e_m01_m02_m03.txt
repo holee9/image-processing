@@ -1,0 +1,12 @@
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerMarkAtMinimumWidthScenarios.M01_TheMark_IsInTheAutomationTree_AtTheLaunchWidth_AndAtTheMinimumWidth [938 ms]
+ M01 launch width 1560: banner 'AI worker switched off for this session after 3 of 3 failures in a row: images are returned unchanged until it is restarted.'
+ M01 minimum width: MinWidth 1280 DIP at 96 dpi = 1280 px expected; the window shrank to 1280 px; width after the check 1280 px; CanResize=True
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerNeverConfirmedAtMinimumWidthScenarios.M03_TheNeverConfirmedNotice_IsAbsentAtStart_ThenAppears_AndIsInTheTreeAtTheMinimumWidth [15 s]
+ M03 no notice 5.4 s after launch
+ M03 notice after 14.7 s: 'AI worker status check delayed: no answer since the AI session started or was restarted (over 15 s). The AI may be busy; AI results may not be applied. Use Restart AI if this stays.'
+ M03 minimum width: MinWidth 1280 DIP at 96 dpi = 1280 px expected; the window shrank to 1280 px; width after the check 1280 px; CanResize=True
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerUnconfirmedAtMinimumWidthScenarios.M02_TheUnconfirmedNotice_IsAbsentWhileTheWorkerIsActive_ThenAppears_AndIsInTheTreeAtTheMinimumWidth [15 s]
+ M02 no notice 5.4 s after launch
+ M02 notice after 14.5 s: 'AI worker status check delayed: the last answer is over 15 s old. The AI may be busy; AI results may not be applied. Use Restart AI if this stays.'
+ M02 minimum width: MinWidth 1280 DIP at 96 dpi = 1280 px expected; the window shrank to 1280 px; width after the check 1280 px; CanResize=True
+ M02 diagnostics line: 'refresher: reads=2 maxReadMs=2 maxAnswerGapMs=4 boundMs=15000 rereads=0 failedReads=0 retries=0 maxUiGapMs=1036 noticesWithdrawn=1 noticesNeverConfirmed=0'

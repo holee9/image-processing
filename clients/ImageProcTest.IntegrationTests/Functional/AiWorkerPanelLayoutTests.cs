@@ -75,6 +75,20 @@ public sealed class AiWorkerPanelLayoutTests
         Assert.Contains("The app's own status says the worker is switched off", c09, StringComparison.Ordinal);
         Assert.Contains("the app never read the worker as switched off", c09, StringComparison.Ordinal);
 
+        // GUI-C-192: the clean-up restores the shared window's width FIRST and guards each step on its own, so one throwing UI call cannot
+        // keep the next scenario in a minimum-width window.
+        var cleanup = c09[c09.IndexOf("finally", StringComparison.Ordinal)..];
+        var restore = cleanup.IndexOf("Guard(\"restore the window width\", () => ResizeTo(window, originalWidth));", StringComparison.Ordinal);
+        var firstUiStep = cleanup.IndexOf("Guard(\"press a leftover Restart AI\"", StringComparison.Ordinal);
+        Assert.True(restore >= 0 && firstUiStep > restore, "The width is not restored before the other clean-up steps.");
+        foreach (var step in new[] { "press a leftover Restart AI", "switch the AI stage off", "clear the AI model directory", "apply the display pipeline", "delete the temporary model directory" })
+        {
+            Assert.Contains($"Guard(\"{step}\"", cleanup, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("bodyCompleted = true;", c09, StringComparison.Ordinal);
+        Assert.Contains("if (bodyCompleted && cleanupErrors.Count > 0)", cleanup, StringComparison.Ordinal);
+
         // The assertions the scenario exists for are still there (nothing was loosened to make it green).
         Assert.Contains("Assert.True(banner is not null,", c09, StringComparison.Ordinal);
         Assert.Contains("Assert.Equal(numbers.Groups[2].Value, numbers.Groups[1].Value);", c09, StringComparison.Ordinal);

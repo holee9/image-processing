@@ -415,6 +415,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
         Directory.CreateDirectory(directory);
         File.WriteAllText(Path.Combine(directory, "bone_suppress.onnx"), "not a model");
         var originalWidth = 0;
+        var bodyCompleted = false;
         try
         {
             // GUI-C-191: the mark has to be reachable at the narrowest window the app allows (MinWidth 1280). It sat in a ToolBar, and below
@@ -507,26 +508,69 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             var answer = StatusText(window);
             var after = AiStatusSummary(window);
             output.WriteLine($"C09 after restart: status bar='{answer}'; state='{after}'");
+            // GUI-C-192d: the numbers the next native CI log is read for (nothing here is asserted). The status refresher's own measurements ride
+            // in the diagnostics line: the slowest status read, the longest a shown answer waited (against boundMs: a run that gets near it is the
+            // false alarm to look for), the 5 s re-reads, and how many notices were raised. Real AI frames ran in this scenario.
+            string measured;
+            try
+            {
+                var diagnostics = AiDiagnostics(window);
+                var at = diagnostics.IndexOf("refresher:", StringComparison.Ordinal);
+                measured = at >= 0 ? diagnostics[at..] : "(no refresher measurements in the diagnostics line: '" + diagnostics + "')";
+            }
+            catch (Exception ex)
+            {
+                measured = $"(unreadable: {ex.GetType().Name}: {ex.Message})";
+            }
+
+            output.WriteLine($"C09 status-refresher measurements: {measured}");
             Assert.Contains("AI session restarted", answer, StringComparison.Ordinal);
             Assert.Matches(@"^worker=Active; failures=0; ceiling=\d+$", after);
+            bodyCompleted = true;
         }
         finally
         {
-            if (window.FindFirstDescendant(cf => cf.ByAutomationId("AiRestartButton")) is { } leftover)
+            // GUI-C-192: the shared window must go back to its width whatever else the clean-up does. The width is restored FIRST, and every
+            // step is guarded on its own: a UI call that throws here (an element gone, a pattern refused) used to end the clean-up before the
+            // restore, and the next scenario then ran in a window left at the minimum width. A failure of the scenario itself is never
+            // replaced by a clean-up failure; a clean-up failure after a passing scenario is reported, not swallowed.
+            var cleanupErrors = new List<Exception>();
+
+            void Guard(string step, Action action)
             {
-                leftover.AsButton().Invoke();
-                Thread.Sleep(600);
+                try
+                {
+                    action();
+                }
+                catch (Exception ex)
+                {
+                    cleanupErrors.Add(new InvalidOperationException($"C-09 clean-up step '{step}' failed: {ex.GetType().Name}: {ex.Message}", ex));
+                    output.WriteLine($"C09 clean-up step '{step}' failed: {ex.GetType().Name}: {ex.Message}");
+                }
             }
 
-            SetAiStage(window, false);
-            SetText(window, "AiModelDirectoryInput", string.Empty);
-            ApplyDisplayPipeline(window);
             if (originalWidth > 0)
             {
-                ResizeTo(window, originalWidth);
+                Guard("restore the window width", () => ResizeTo(window, originalWidth));
             }
 
-            Directory.Delete(directory, recursive: true);
+            Guard("press a leftover Restart AI", () =>
+            {
+                if (window.FindFirstDescendant(cf => cf.ByAutomationId("AiRestartButton")) is { } leftover)
+                {
+                    leftover.AsButton().Invoke();
+                    Thread.Sleep(600);
+                }
+            });
+            Guard("switch the AI stage off", () => SetAiStage(window, false));
+            Guard("clear the AI model directory", () => SetText(window, "AiModelDirectoryInput", string.Empty));
+            Guard("apply the display pipeline", () => ApplyDisplayPipeline(window));
+            Guard("delete the temporary model directory", () => Directory.Delete(directory, recursive: true));
+
+            if (bodyCompleted && cleanupErrors.Count > 0)
+            {
+                throw new AggregateException("C-09 passed, but its clean-up of the shared window failed.", cleanupErrors);
+            }
         }
     }
 

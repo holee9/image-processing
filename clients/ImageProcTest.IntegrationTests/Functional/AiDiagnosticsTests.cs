@@ -38,7 +38,7 @@ public sealed class AiDiagnosticsTests
     public void TheStatusRead_CarriesTheRawAnswersOfTheModule_NotOnlyTheGuisReadingOfThem()
     {
         var runner = Source("gui/ImageProcTest/Services/Native/GuiAiRunner.cs");
-        var query = runner.IndexOf("public static AiWorkerStatus QueryWorkerState() =>", StringComparison.Ordinal);
+        var query = runner.IndexOf("private static AiWorkerStatus QueryWorkerStateUnderGate() =>", StringComparison.Ordinal);
         Assert.True(query >= 0, "QueryWorkerState was not found.");
         var body = runner[query..Math.Min(runner.Length, query + 1500)];
 
@@ -54,7 +54,8 @@ public sealed class AiDiagnosticsTests
         Assert.DoesNotContain("Text=\"{Binding AiWorkerDiagnostics}\"", xaml, StringComparison.Ordinal);   // not a visible element
 
         var viewModel = Source("gui/ImageProcTest/ViewModels/MainWindowViewModel.cs");
-        Assert.Contains("public string AiWorkerDiagnostics => _aiWorkerStatus.Diagnostics ?? string.Empty;", viewModel, StringComparison.Ordinal);
+        Assert.Contains("public string AiWorkerDiagnostics =>", viewModel, StringComparison.Ordinal);
+        Assert.Contains(": _aiWorkerStatus.Diagnostics ?? string.Empty;", viewModel, StringComparison.Ordinal);   // without an AI session: the status's own diagnostics, as before (GUI-C-192d)
         Assert.Contains("OnPropertyChanged(nameof(AiWorkerDiagnostics));", viewModel, StringComparison.Ordinal);
     }
 

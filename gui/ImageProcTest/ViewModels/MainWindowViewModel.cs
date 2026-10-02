@@ -557,7 +557,10 @@ public sealed class MainWindowViewModel : ObservableObject
     /// of each read), for the automation tree's item status on the AI checkbox. Empty without a native session. It is not shown to the
     /// operator (GUI-C-189).
     /// </summary>
-    public string AiWorkerDiagnostics => _aiWorkerStatus.Diagnostics ?? string.Empty;
+    public string AiWorkerDiagnostics =>
+        _backend is IAiSessionBackend && _aiStatusRefresher is { } refresher
+            ? string.Join(" | ", new[] { _aiWorkerStatus.Diagnostics, refresher.Measurements }.Where(part => !string.IsNullOrEmpty(part)))   // GUI-C-192d
+            : _aiWorkerStatus.Diagnostics ?? string.Empty;
 
     /// <summary>GUI-C-185: shutdown then init under the one lock; the mark goes when the module reports a new session.</summary>
     public RelayCommand RestartAiSessionCommand { get; }
@@ -573,8 +576,34 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private readonly System.Windows.Threading.Dispatcher _uiDispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
 
-    private AiStatusRefresher AiStatus => _aiStatusRefresher ??=
-        new AiStatusRefresher(() => _backend, ReadAiWorkerStatus, ApplyAiWorkerStatus, work => Task.Run(work), PostToUi);
+    private AiStatusRefresher AiStatus => _aiStatusRefresher ??= CreateAiStatusRefresher();
+
+    private System.Windows.Threading.DispatcherTimer? _aiFreshnessTimer;
+
+    private AiStatusRefresher CreateAiStatusRefresher()
+    {
+        var refresher = new AiStatusRefresher(() => _backend, ReadAiWorkerStatus, ApplyAiWorkerStatus, work => Task.Run(work), PostToUi,
+            sessionEpoch: () => (_backend as IAiSessionBackend)?.AiSessionEpoch ?? 0);   // GUI-C-192e
+        // GUI-C-192b: an "Active" nothing has refreshed for the freshness bound is withdrawn; the check is cheap, so it runs every second.
+        // GUI-C-192e: it runs when the UI thread is scheduled (Background priority), so the 15 s is a bound on the ANSWER'S age, not a promise about
+        // when the notice reaches the screen: a UI thread that stalls delays the notice by as long as it stalls. The measurements line carries the
+        // longest gap between two checks (maxUiGapMs), which is that stall.
+        var measured = 0;
+        _aiFreshnessTimer = new System.Windows.Threading.DispatcherTimer(
+            TimeSpan.FromSeconds(1), System.Windows.Threading.DispatcherPriority.Background,
+            (_, _) =>
+            {
+                refresher.CheckFreshness();
+                if (refresher.MeasurementsVersion != measured)
+                {
+                    measured = refresher.MeasurementsVersion;
+                    OnPropertyChanged(nameof(AiWorkerDiagnostics));   // GUI-C-192d: the native CI log reads the measurements from there
+                }
+            },
+            _uiDispatcher);
+        _aiFreshnessTimer.Start();
+        return refresher;
+    }
 
     /// <summary>Runs on a background thread, for the backend that was current when the read was requested.</summary>
     private static AiWorkerStatus? ReadAiWorkerStatus(object? backend) =>
@@ -592,7 +621,11 @@ public sealed class MainWindowViewModel : ObservableObject
     }
 
     /// <summary>The application is closing: no status read, started or running, may update the screen after this.</summary>
-    public void StopAiStatusUpdates() => AiStatus.Stop();
+    public void StopAiStatusUpdates()
+    {
+        _aiFreshnessTimer?.Stop();
+        AiStatus.Stop();
+    }
 
     private void ApplyAiWorkerStatus(AiWorkerStatus status)
     {
@@ -625,6 +658,10 @@ public sealed class MainWindowViewModel : ObservableObject
         }
 
         var ticket = TakeTicket();
+        // GUI-C-192e (Codex #62): the session is being replaced from NOW. Raise the generation and show Unknown before anything is awaited, so a
+        // status read that was started under the old session (a "switched off" answer above all) cannot be applied to the new one. The restart
+        // used to leave the generation alone, and the same backend with the same generation made the old answer look current.
+        AiStatus.Reset();
         try
         {
             var directory = Settings.AiModelDirectory;
@@ -882,20 +919,35 @@ public sealed class MainWindowViewModel : ObservableObject
     public bool IsPreviewStale => PreviewStaleReason is not null;
 
     /// <summary>
-    /// #171 (GUI-C-79): <c>faultInjection=off</c> unless the app was started with
-    /// <c>--automation-fault</c>. Exposed as the main window's automation status so the E2E suite can
-    /// check that an ordinary launch carries no fault, not just assume it.
+    /// The fault-injection status the main window publishes for automation: <c>faultInjection=off</c> on an ordinary launch. Exposed so
+    /// the E2E suite can check that an ordinary launch carries no fault, not just assume it. (#171, GUI-C-79; what can arm it exists in
+    /// test builds only, GUI-C-193. This comment is compiled into the documentation file of every build, so it names no switch.)
     /// </summary>
+#if XPE_TEST_FAULTS
+    // #171: in a test build the status is armed by the command-line fault switch (see AutomationArgs).
     public string FaultInjectionStatus => FaultInjectingBackend.Describe();
+#else
+    // GUI-C-193: a shipped build has no fault injection to describe. The status stays the one an unarmed test build reports, so the
+    // automation contract ("faultInjection=off" on an ordinary launch) is the same in both.
+    public string FaultInjectionStatus => "faultInjection=off";
+#endif
 
+#if XPE_TEST_FAULTS
     /// <summary>Called once at start-up when a fault was armed — the log says so first.</summary>
     public void AnnounceFaultInjection()
     {
-        Log($"FAULT INJECTION ARMED: {FaultInjectionStatus}. Display pipeline calls past the limit throw on purpose.");
+        // GUI-C-192: says what is armed. The text used to describe the display fault only, which is wrong for an app armed with
+        // ai-worker-disabled alone (GUI-C-191b added it): no display call throws there.
+        var armed = FaultInjectionStatus;
+        Log($"FAULT INJECTION ARMED: {armed}."
+            + (armed.Contains(AutomationArgs.DisplayPipelineFaultPrefix, StringComparison.Ordinal) ? " Display pipeline calls past the limit throw on purpose." : string.Empty)
+            + (armed.Contains(AutomationArgs.AiWorkerDisabledFault, StringComparison.Ordinal) ? " The AI worker status read answers 'switched off, 3 of 3' whatever the module says." : string.Empty)
+            + (armed.Contains(AutomationArgs.AiWorkerSilentFault, StringComparison.Ordinal) ? " The AI worker status read stops answering after the answers the fault allows (one, or none with :0)." : string.Empty));
         _faultInjectionAnnounced = true;
         OnPropertyChanged(nameof(FaultInjectionStatus));
         OnPropertyChanged(nameof(WindowTitle));
     }
+#endif
 
     /// <summary>
     /// ① — the image is stale when a setting the display pipeline reads differs from the snapshot that
@@ -976,7 +1028,9 @@ public sealed class MainWindowViewModel : ObservableObject
     // positively the native backend counts as Mock: an unknown backend is warned about, not trusted.
     public const string BaseWindowTitle = "ImageProcTest GUI-S0";
 
+#if XPE_TEST_FAULTS
     private bool _faultInjectionAnnounced;
+#endif
 
     public bool IsMockBackend => !string.Equals(RuntimeInfo.BackendName, "RealXpeBackend", StringComparison.Ordinal);
 
@@ -995,7 +1049,10 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>HAZ-GUI-005 (2): <c>[MOCK]</c> in the title while Mock is active.</summary>
     public string WindowTitle =>
         (IsMockBackend ? "[MOCK] " : string.Empty) + BaseWindowTitle
-        + (_faultInjectionAnnounced ? " — FAULT INJECTION ARMED" : string.Empty);
+#if XPE_TEST_FAULTS
+        + (_faultInjectionAnnounced ? " — FAULT INJECTION ARMED" : string.Empty)
+#endif
+        ;
 
     private void RaiseBackendIdentityChanged()
     {
