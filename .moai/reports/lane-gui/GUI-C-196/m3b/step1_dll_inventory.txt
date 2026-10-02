@@ -1,0 +1,73 @@
+SETS:
+  COMMON(xpe-gui build/ci-common/bin): 12 dlls
+  DICOM bin (xpe-post build/ci-dicom/bin): 8 dlls
+  VCPKG release bin: 36 dlls
+
+SAME-NAMED DLLs (present in 2+ sets):
+fmt.dll: DIFFERENT
+    COMMON      332800 bytes  sha 9fa66b34b5b2  pe-ts 1790419963  exports 69
+    DICOM       326144 bytes  sha 20e0c06d72ba  pe-ts 1787907823  exports 69
+    VCPKG release    121344 bytes  sha e30b4389e7e5  pe-ts 1778308290  exports 64
+    export diff: only-in-COMMON 0, only-in-DICOM 0
+gmock.dll: DIFFERENT
+    COMMON     1288704 bytes  sha 7610f0f843f1  pe-ts 1790419982  exports 795
+    DICOM      1206784 bytes  sha 3dc33116289c  pe-ts 1787907824  exports 795
+    VCPKG release    522240 bytes  sha 17fdbf099acc  pe-ts 1778308309  exports 802
+    export diff: only-in-COMMON 0, only-in-DICOM 0
+gmock_main.dll: DIFFERENT
+    COMMON     1288704 bytes  sha 0beda7b04999  pe-ts 1790419982  exports 796
+    DICOM      1206784 bytes  sha 654e71eb0dc2  pe-ts 1787907824  exports 796
+    VCPKG release    522240 bytes  sha 6004281198e1  pe-ts 1778308309  exports 803
+    export diff: only-in-COMMON 0, only-in-DICOM 0
+gtest.dll: DIFFERENT
+    COMMON     1119232 bytes  sha 2bda9d076378  pe-ts 1790419969  exports 653
+    DICOM      1037824 bytes  sha ee4a66d59a35  pe-ts 1787907824  exports 653
+    VCPKG release    454656 bytes  sha 1dc207d4c756  pe-ts 1778308310  exports 660
+    export diff: only-in-COMMON 0, only-in-DICOM 0
+gtest_main.dll: DIFFERENT
+    COMMON      170496 bytes  sha f7aab0eca363  pe-ts 1790419975  exports 250
+    DICOM       170496 bytes  sha bd1ae85c77b0  pe-ts 1787907825  exports 250
+    VCPKG release     74752 bytes  sha bb145be67030  pe-ts 1778308310  exports 252
+    export diff: only-in-COMMON 0, only-in-DICOM 0
+spdlog.dll: DIFFERENT
+    COMMON     1190912 bytes  sha 7ac2b3005c02  pe-ts 1790419963  exports 405
+    DICOM      1102336 bytes  sha beeb34f24565  pe-ts 1787907823  exports 405
+    VCPKG release    290304 bytes  sha 4dbb13a6e527  pe-ts 1778317896  exports 397
+    export diff: only-in-COMMON 0, only-in-DICOM 0
+xpe_common.dll: DIFFERENT
+    COMMON      245248 bytes  sha c31ce66dae88  pe-ts 1790419968  exports 16
+    DICOM       243712 bytes  sha df1f3d4c6cad  pe-ts 1790890386  exports 16
+    export diff: only-in-COMMON 0, only-in-DICOM 0
+
+ONLY in the dicom sets (not in COMMON):
+   cmr.dll <- VCPKG release bin
+   dcmdata.dll <- VCPKG release bin
+   dcmdsig.dll <- VCPKG release bin
+   dcmect.dll <- VCPKG release bin
+   dcmfg.dll <- VCPKG release bin
+   dcmimage.dll <- VCPKG release bin
+   dcmimgle.dll <- VCPKG release bin
+   dcmiod.dll <- VCPKG release bin
+   dcmjpeg.dll <- VCPKG release bin
+   dcmjpls.dll <- VCPKG release bin
+   dcmnet.dll <- VCPKG release bin
+   dcmpmap.dll <- VCPKG release bin
+   dcmpstat.dll <- VCPKG release bin
+   dcmqrdb.dll <- VCPKG release bin
+   dcmrt.dll <- VCPKG release bin
+   dcmseg.dll <- VCPKG release bin
+   dcmsr.dll <- VCPKG release bin
+   dcmtkcharls.dll <- VCPKG release bin
+   dcmtls.dll <- VCPKG release bin
+   dcmtract.dll <- VCPKG release bin
+   dcmwlm.dll <- VCPKG release bin
+   dcmxml.dll <- VCPKG release bin
+   i2d.dll <- VCPKG release bin
+   ijg12.dll <- VCPKG release bin
+   ijg16.dll <- VCPKG release bin
+   ijg8.dll <- VCPKG release bin
+   oficonv.dll <- VCPKG release bin
+   oflog.dll <- VCPKG release bin
+   ofstd.dll <- VCPKG release bin
+   openjp2.dll <- VCPKG release bin
+   xpe_dicom.dll <- DICOM bin
