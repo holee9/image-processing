@@ -1,0 +1,5 @@
+NOT TRACKED: .moai/reports/lane-gui/GUI-C-193/ci_step_check.ps1
+NOT TRACKED: .moai/reports/lane-gui/GUI-C-192e/draft_check_shipped_build.ps1
+NOT TRACKED: .moai/reports/lane-gui/GUI-C-192e/draft_ci_job.diff
+NOT TRACKED: .moai/reports/lane-gui/GUI-C-192f/draft_check_shipped_build.ps1
+NOT TRACKED: .moai/reports/lane-gui/GUI-C-192f/gui_shipped_build.patch

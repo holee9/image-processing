@@ -1,0 +1,12 @@
+# GUI-C-193: fails when a built ImageProcTest.dll carries the test fault seam. Usage: ci_step_check.ps1 <path-to-ImageProcTest.dll>
+param([Parameter(Mandatory = $true)][string]$Dll)
+$bytes = [IO.File]::ReadAllBytes($Dll)
+$latin1 = [Text.Encoding]::GetEncoding(28591).GetString($bytes)   # one char per byte, so IndexOf finds raw byte sequences
+$found = @()
+foreach ($term in 'ai-worker-disabled', 'display-pipeline-after', 'FAULT INJECTION ARMED', 'FaultInjectingBackend') {
+    $utf8 = $term                                                   # metadata names and UTF-8 literals
+    $utf16 = ($term.ToCharArray() -join [string][char]0)            # the user-string heap is UTF-16LE: a NUL after each ASCII char
+    if ($latin1.IndexOf($utf8, [StringComparison]::Ordinal) -ge 0 -or $latin1.IndexOf($utf16, [StringComparison]::Ordinal) -ge 0) { $found += $term }
+}
+if ($found.Count -gt 0) { Write-Error "Test fault seam found in $Dll : $($found -join ', ')"; exit 1 }
+Write-Output "OK: none of the test fault seam strings are in $Dll"

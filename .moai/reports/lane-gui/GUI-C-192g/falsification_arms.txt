@@ -1,0 +1,18 @@
+ARM 1-completion-callback-does-not-withdraw (the 192f state): build ok=True
+    ['실패!  - 실패:     5, 통과:   407, 건너뜀:     1, 전체:   413, 기간: 45 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.AiStatusRefresherTests.TheCompletionOfAnOldRead_WithdrawsTheShownAnswerOfTheReplacedSession(disabled: True, newRead: "fails") [10 s]
+     red: Functional.AiStatusRefresherTests.TheCompletionOfAnOldRead_WithdrawsTheShownAnswerOfTheReplacedSession(disabled: False, newRead: "fails") [10 s]
+     red: Functional.AiStatusRefresherTests.TheCompletionOfAnOldRead_WithdrawsTheShownAnswerOfTheReplacedSession(disabled: True, newRead: "blocks") [10 s]
+     red: Functional.AiStatusRefresherTests.TheCompletionOfAnOldRead_WithdrawsTheShownAnswerOfTheReplacedSession(disabled: False, newRead: "blocks") [10 s]
+     red: Functional.AiStatusRefresherTests.EveryTransitionPath_ComparesTheSessionOrRewritesTheScreen [2 ms]
+   restored byte-identical: True
+ARM 2-shown-answers-not-stamped-with-their-epoch: build ok=True
+    ['실패!  - 실패:     5, 통과:   407, 건너뜀:     1, 전체:   413, 기간: 6 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.AiStatusRefresherTests.ADisabledOrActiveAlreadyOnScreen_IsWithdrawn_WhenTheSessionIsReplacedWithNoReset(disabled: False, newRead: "fails") 
+     red: Functional.AiStatusRefresherTests.ADisabledOrActiveAlreadyOnScreen_IsWithdrawn_WhenTheSessionIsReplacedWithNoReset(disabled: True, newRead: "blocks") 
+     red: Functional.AiStatusRefresherTests.ADisabledOrActiveAlreadyOnScreen_IsWithdrawn_WhenTheSessionIsReplacedWithNoReset(disabled: False, newRead: "blocks")
+     red: Functional.AiStatusRefresherTests.ADisabledOrActiveAlreadyOnScreen_IsWithdrawn_WhenTheSessionIsReplacedWithNoReset(disabled: True, newRead: "fails") [
+     red: Functional.AiStatusRefresherTests.EveryTransitionPath_ComparesTheSessionOrRewritesTheScreen [3 ms]
+   restored byte-identical: True
+rebuild: True
+AFTER RESTORE: ['통과!  - 실패:     0, 통과:   412, 건너뜀:     1, 전체:   413, 기간: 5 s - ImageProcTest.IntegrationTests.dll (net8.0)']
