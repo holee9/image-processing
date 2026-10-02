@@ -155,7 +155,7 @@ public sealed class MainWindowViewModel : ObservableObject
         ApplyDisplayPipelineCommand = new RelayCommand(() => _ = ApplyDisplayPipelineAsync());
         ApplyBodyPartPresetCommand = new RelayCommand(ApplyBodyPartPreset);
         RunPreprocessingCommand = new RelayCommand(RunPreprocessing);
-        RunAiBoneSuppressionCommand = new RelayCommand(RunAiBoneSuppression);
+        RunAiBoneSuppressionCommand = new RelayCommand(RunAiBoneSuppression, () => AiBoneSuppressionAvailability.CanRun);
         RunDeterministicBaselineCommand = new RelayCommand(() => _ = RunDeterministicBaselineAsync());
         RestartAiSessionCommand = new RelayCommand(RestartAiSession);
         ZoomFitCommand = new RelayCommand(ZoomFit);
@@ -524,6 +524,42 @@ public sealed class MainWindowViewModel : ObservableObject
     /// stage. The result is the chain's: Applied only when the module returned 0.
     /// </summary>
     public RelayCommand RunAiBoneSuppressionCommand { get; }
+
+    /// <summary>
+    /// #225 (GUI-C-198, MENU-001 section 8): whether the entry is usable now. Read live (a file-exists check, no native call), so it never answers from a stale state;
+    /// <see cref="RefreshAiBoneSuppressionAvailability"/> tells the menu when to ask again.
+    /// </summary>
+    public AiBoneSuppressionAvailability AiBoneSuppressionAvailability =>
+        AiBoneSuppressionAvailability.Evaluate(
+            backendHasAiSession: _backend is IAiSessionBackend,
+            backendInitialized: string.Equals(RuntimeInfo.State, "Initialized", StringComparison.Ordinal),
+            backendTransitioning: Lifecycle.IsTransitioning,
+            moduleDllPresent: AiModuleDllPresent());
+
+    /// <summary>The entry's tooltip: what it does, and while it is disabled, why.</summary>
+    public string AiBoneSuppressionMenuToolTip
+    {
+        get
+        {
+            var availability = AiBoneSuppressionAvailability;
+            return availability.CanRun ? AiBoneSuppressionToolTipBase : $"{AiBoneSuppressionToolTipBase} Disabled now: {availability.Reason}";
+        }
+    }
+
+    private const string AiBoneSuppressionToolTipBase =
+        "Runs AI bone suppression (xpe_bone_suppress, worker process) on the loaded frame after the other stages. Needs the native backend and xpe_ai.dll with a model in the AI model directory. " +
+        "If the module fails, the original image is shown and the status line says so; a build without an inference runtime always fails. Other AI and premium modules are not wired to this item.";
+
+    // The same search the loader runs (injected directory, then the application directory, then the opt-in developer fallbacks), so "found here" and "loaded later" agree.
+    private static bool AiModuleDllPresent() =>
+        NativeModuleLibraryLocator.GetDllCandidates("xpe_ai.dll", "image-processing").Any(File.Exists);
+
+    private void RefreshAiBoneSuppressionAvailability()
+    {
+        OnPropertyChanged(nameof(AiBoneSuppressionAvailability));
+        OnPropertyChanged(nameof(AiBoneSuppressionMenuToolTip));
+        RunAiBoneSuppressionCommand.RaiseCanExecuteChanged();
+    }
 
     /// <summary>
     /// "AI-processed: bone suppression" when the last chain's AI stage was Applied (the module returned 0 AND the
@@ -1036,6 +1072,7 @@ public sealed class MainWindowViewModel : ObservableObject
             {
                 OnPropertyChanged(nameof(RuntimeVersionSummary));
                 RaiseBackendIdentityChanged();
+                RefreshAiBoneSuppressionAvailability();
             }
         }
     }
@@ -1340,6 +1377,7 @@ public sealed class MainWindowViewModel : ObservableObject
             StatusText = "Backend shutting down...";
             Log("Backend shutdown requested.");
             OnPropertyChanged(nameof(IsBackendTransitioning));
+            RefreshAiBoneSuppressionAvailability();
         }
         else
         {
@@ -1355,6 +1393,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private void FinishShutdown(IXpeBackend backend, Exception? error)
     {
         OnPropertyChanged(nameof(IsBackendTransitioning));
+        RefreshAiBoneSuppressionAvailability();
         if (ReferenceEquals(backend, _backend))
         {
             RuntimeInfo = _backend.GetRuntimeInfo();
@@ -2672,6 +2711,13 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>#225 row 10 (GUI-C-184): AI bone suppression is a stage of the pixel chain; the menu entry switches it on and renders again.</summary>
     private async void RunAiBoneSuppression()
     {
+        if (!AiBoneSuppressionAvailability.CanRun)
+        {
+            StatusText = $"AI bone suppression is not available: {AiBoneSuppressionAvailability.Reason}";
+            Log(StatusText);
+            return;
+        }
+
         if (ActiveImageFrame is null)
         {
             StatusText = "Load a raw image before running AI bone suppression.";

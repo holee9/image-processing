@@ -369,7 +369,8 @@
                           AutomationProperties.AutomationId="RunFullPipelineMenuItem"
                           Header="Run _AI Bone Suppression"
                           Command="{Binding RunAiBoneSuppressionCommand}"
-                          ToolTip="Runs AI bone suppression (xpe_bone_suppress, worker process) on the loaded frame after the other stages. Needs the native backend and xpe_ai.dll with a model in the AI model directory. If the module fails, the original image is shown and the status line says so; a build without an inference runtime always fails. Other AI and premium modules are not wired to this item." />
+                          IsEnabled="{Binding AiBoneSuppressionAvailability.CanRun, Mode=OneWay}"
+                          ToolTip="{Binding AiBoneSuppressionMenuToolTip}" />
                 <!-- #225 (GUI-C-154, row 11): stops the render in flight by discarding its result;
                      the native calls inside are synchronous and are not interrupted. -->
                 <MenuItem x:Name="StopProcessingMenuItem"

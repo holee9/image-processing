@@ -219,9 +219,19 @@ static void RunWpfE2E()
         Assert(!runPreprocessingMenuItem.IsEnabled, "Preprocessing menu must be disabled until Phase 1a.");
         Assert(!runDeterministicBaselineMenuItem.IsEnabled, "Deterministic baseline menu must be disabled until Phase 1b.");
         // #225 row 10 landed (GUI-C-184): the item runs AI bone suppression now and says so in its header. Like the
-        // rows before it this line moved forward rather than staying as a "must be disabled" wait. The item stays
-        // enabled unconditionally: whether the module can succeed (backend, DLL, model) is answered on the status line.
-        Assert(runFullPipelineMenuItem.IsEnabled, "AI bone suppression menu is disabled; #225 row 10 wired it.");
+        // rows before it this line moved forward rather than staying as a "must be disabled" wait. GUI-C-198 (MENU-001 section 8):
+        // the item is enabled exactly when the rule says so (an AI session on the backend, initialized, xpe_ai.dll found), and it
+        // says why when it is not; whether the module can then succeed (model, worker) is still answered on the status line.
+        if (viewModelForMenus is not null)
+        {
+            DoEvents();
+            var aiAvailability = viewModelForMenus.AiBoneSuppressionAvailability;
+            Assert(runFullPipelineMenuItem.IsEnabled == aiAvailability.CanRun,
+                $"AI bone suppression menu enabled={runFullPipelineMenuItem.IsEnabled} but the availability rule says {aiAvailability.CanRun} ({aiAvailability.Reason}); command.CanExecute={runFullPipelineMenuItem.Command?.CanExecute(null)}, backend={viewModelForMenus.RuntimeInfo.BackendName}/{viewModelForMenus.RuntimeInfo.State}; same command={ReferenceEquals(runFullPipelineMenuItem.Command, viewModelForMenus.RunAiBoneSuppressionCommand)}; loaded={runFullPipelineMenuItem.IsLoaded}; local IsEnabled={runFullPipelineMenuItem.ReadLocalValue(UIElement.IsEnabledProperty)}.");
+            Assert(aiAvailability.CanRun || runFullPipelineMenuItem.ToolTip?.ToString()?.Contains(aiAvailability.Reason, StringComparison.Ordinal) == true,
+                "A disabled AI bone suppression item must say why in its tooltip.");
+        }
+
         Assert(runFullPipelineMenuItem.Command is not null, "AI bone suppression menu item has no command bound.");
         Assert(runFullPipelineMenuItem.Header?.ToString()?.Contains("AI Bone Suppression", StringComparison.Ordinal) == true,
             "The row 10 menu item must say what it runs (AI Bone Suppression), not Full Pipeline.");

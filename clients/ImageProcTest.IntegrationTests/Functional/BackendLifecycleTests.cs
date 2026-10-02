@@ -363,6 +363,7 @@ public sealed class BackendLifecycleTests
         ["IsCurrent"] = ("lifetime helper", null),
         ["CanRunPreprocessing"] = ("read-only property (changes nothing, starts nothing)", null),
         ["CanRunDeterministicBaseline"] = ("read-only property (changes nothing, starts nothing)", null),
+        ["AiBoneSuppressionAvailability"] = ("read-only property (changes nothing, starts nothing)", null),
         ["BeginShutdown"] = ("lifecycle (starts the transition)", null),
         ["FinishShutdown"] = ("lifecycle (ends the transition)", null),
         ["ShutdownBackendBlocking"] = ("lifecycle (the window could not wait)", null),
