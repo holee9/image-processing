@@ -137,6 +137,22 @@ dependency: SPEC-XPE-MASTER v3.0.0, SPEC-XPE-REG v1.1, SPEC-XPE-SEC v1.1, SPEC-X
 > ONNX 빌드는 `ci-ai` 프리셋(`XPE_AI_USE_ONNXRUNTIME=ON`, `XPE_AI_STUB_BUILD=OFF`)이고, 등록하는 EP 는 CPU 뿐입니다.
 > 아래 "이 절을 고칠 조건" 이 요구한 재측정이 이것입니다(`QA-B-190` 보고서 §1.2·§3).
 
+> **재측정 2026-10-02 (`QA-B-191`, `#130`)** — 추론 경로는 이제 `xpe_bone_suppress` 와 `xpe_bodypart_recognize` 에 있습니다.
+> `xpe_stitch_images`·`xpe_dl_denoise` 는 여전히 스텁입니다. `xpe_bodypart_recognize` 는 `{modelDir}/bodypart.onnx` 와
+> 라벨 사이드카 `bodypart.json` 을 읽고, 시험은 손으로 만든 장난감 모델(분류기가 아님)로 **배선**만 증명합니다.
+> 실제 부위 인식 모델·정확도·지연·적재 시간은 이 저장소에 없고 측정되지 않았습니다(`SRS-AI-010` 의 "CNN classifier" 는 충족되지 않았습니다).
+> 근거: `modules/ai/src/ai.cpp` `xpe_bodypart_recognize_impl`, 시험 `BodyPart.*`(`test_bodypart_inference.cpp`),
+> 모델 생성기 `modules/ai/tests/data/make_bodypart_models.py`.
+>
+> - **`REQ-AI-003`**(워커 격리): 부위 인식도 opt-in 워커 경로를 가집니다. 두 경로(프로세스 안·워커)가 같은 모델 적재(`ai_bodypart_model.h`)와
+>   같은 판정(`ai_bodypart_decision.h`)을 쓰며, 모델 디렉터리 14개(모델이 없는 디렉터리 1개 포함) × 영상 6장에서 같은 답을 냅니다:
+>   `WorkerBodyPartAgreement.TheRealWorkerAndTheInProcessPathSayTheSameThingForEveryModelAndImage`.
+>   **기본값은 워커 끔**이므로 기본 경로의 격리는 여전히 충족되지 않습니다(아래 `REQ-AI-092` 와 같은 한계).
+> - **`REQ-AI-002`**(결정론적 fallback): 부위 인식이 쓸 수 있는 답을 못 줄 때의 결과는 한 가지입니다 — `XPE_ERR_PROCESSING_FAILED`,
+>   라벨 `"UNKNOWN"`, confidence 0.0(저신뢰일 때는 측정된 confidence). 원인 목록은 `ai_api.h` `xpe_bodypart_recognize` 의
+>   "WHEN THERE IS NO USABLE ANSWER" 절. 시험: `BodyPart.NoModelFileIsTheStubsOutcomeWithOneWarning` 외 `BodyPart.*` 의
+>   "…TheStubsOutcomeWithOneWarning" 군.
+
 ### 시험 156건이 보장하는 것
 
 `QA-B-154` 가 셌습니다:
@@ -154,8 +170,8 @@ dependency: SPEC-XPE-MASTER v3.0.0, SPEC-XPE-REG v1.1, SPEC-XPE-SEC v1.1, SPEC-X
 | 요구 | 실재 |
 |---|---|
 | **`REQ-AI-006`** ONNX 1.20+ · multi-EP 선택 가능 | EP 목록이 **하드코딩**입니다 — 조회가 아닙니다. **그 기계에 없는 EP 를 있다고 답할 수 있습니다.** 그리고 런타임 호출 자체가 0건 |
-| **`REQ-AI-061`** 신뢰도 문턱 미만 → Hough fallback | **미구현 — 두 쪽 다 없습니다**(정정 2026-10-02, `QA-B-190`). 061 은 AI 조리개 검출(`REQ-AI-060`)의 fallback 인데, `modules/ai` 에 AI 조리개 검출 함수가 없어(`ai_api.h`·`ai.cpp` 에 `collimation` 0건) 061 은 도달할 대상이 없습니다. Hough 기준선은 저장소에 있으나 `modules/enhance_advanced` 의 POST-07(`xpe_detect_collimation`)이고 `modules/ai` 에서는 단어 단위 `Hough` 0건입니다. `confidence_threshold` 와 confidence 를 `0.0` 으로 덮는 줄은 **061 이 아니라 `REQ-AI-012`/`REQ-AI-002`(저신뢰 이벤트 → 결정론적 fallback)의 자리**이고, 그 요구는 맞으나 코드가 미완입니다 — `AiModuleState::confidenceThreshold` 는 `xpe_ai_init` 이 대입만 하고 읽는 곳이 없으며, `xpe_bodypart_recognize` 는 추론 없이 `if (confidenceOut) *confidenceOut = 0.0f;` 로 덮고 실패를 반환합니다. `ConfidenceThreshold*` 두 시험은 **헤더 상수값만** 확인합니다 |
-| **`REQ-AI-092`** 시간 예산(기본 5s) → fallback + 알림 | **일부 구현**(정정 2026-10-02, `QA-B-171`·`QA-B-181`, 확인 `QA-B-190`). `xpe_bone_suppress` 의 **opt-in 워커 경로**(`use_worker: true`, 기본값은 끔)에서 예산을 넘으면 입력을 그대로 반환하고 비정상 코드를 돌려주며 Warning 알림을 정확히 1건 냅니다. 시험: `IpcDeadline.*`, `WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers`, `WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne`. **기본 경로(워커 끔)와 나머지 세 진입점(`xpe_bodypart_recognize`·`xpe_stitch_images`·`xpe_dl_denoise`)에는 예산이 없습니다.** 예전 `REQ-AI-009` 인용은 아래 처리 완료 메모 참조 |
+| **`REQ-AI-061`** 신뢰도 문턱 미만 → Hough fallback | **미구현 — 두 쪽 다 없습니다**(정정 2026-10-02, `QA-B-190`). 061 은 AI 조리개 검출(`REQ-AI-060`)의 fallback 인데, `modules/ai` 에 AI 조리개 검출 함수가 없어(`ai_api.h`·`ai.cpp` 에 `collimation` 0건) 061 은 도달할 대상이 없습니다. Hough 기준선은 저장소에 있으나 `modules/enhance_advanced` 의 POST-07(`xpe_detect_collimation`)이고 `modules/ai` 에서는 단어 단위 `Hough` 0건입니다. `confidence_threshold` 와 confidence 를 `0.0` 으로 덮는 줄은 **061 이 아니라 `REQ-AI-012`/`REQ-AI-002`(저신뢰 이벤트 → 결정론적 fallback)의 자리**이고, 그 요구는 맞으나 코드가 미완입니다 — `AiModuleState::confidenceThreshold` 는 `xpe_ai_init` 이 대입만 하고 읽는 곳이 없으며, `xpe_bodypart_recognize` 는 추론 없이 `if (confidenceOut) *confidenceOut = 0.0f;` 로 덮고 실패를 반환합니다. `ConfidenceThreshold*` 두 시험은 **헤더 상수값만** 확인합니다. (정정 2026-10-02, `QA-B-191`: `confidenceThreshold` 는 이제 `xpe_bodypart_recognize` 가 읽습니다(`decideBodyPart`). `REQ-AI-012` 는 부위 인식에 대해 구현됨 — 문턱 미만이면 저신뢰 이벤트 Warning 1건, `fallback_mode` 켬(기본)이면 `UNKNOWN` 과 측정된 confidence 로 `XPE_ERR_PROCESSING_FAILED`, 끔이면 `XPE_OK` 로 라벨을 돌려줍니다. 다른 세 진입점(`xpe_stitch_images`·`xpe_dl_denoise`·`xpe_bone_suppress`)에는 문턱이 없습니다. `ConfidenceThreshold*` 두 시험은 여전히 헤더 상수값만 확인합니다. 시험: `BodyPart.AConfidenceExactlyAtTheThresholdPasses`, `BodyPart.AConfidenceOneFloatBelowTheThresholdIsLowAndFallsBack`, `BodyPart.WithFallbackModeOffTheLowConfidenceLabelIsReturnedWithAWarning`, `BodyPart.FallbackModeCanBeToggledAtRunTimeAndTheNextCallFollows`, `BodyPart.TheThresholdIsTheConfiguredOneNotAConstant`, `BodyPartDecision.TheLowConfidenceTextsAreTheContractedOnes`) |
+| **`REQ-AI-092`** 시간 예산(기본 5s) → fallback + 알림 | **일부 구현**(정정 2026-10-02, `QA-B-171`·`QA-B-181`, 확인 `QA-B-190`). `xpe_bone_suppress` 의 **opt-in 워커 경로**(`use_worker: true`, 기본값은 끔)에서 예산을 넘으면 입력을 그대로 반환하고 비정상 코드를 돌려주며 Warning 알림을 정확히 1건 냅니다. 시험: `IpcDeadline.*`, `WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers`, `WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne`. **기본 경로(워커 끔)와 `xpe_stitch_images`·`xpe_dl_denoise` 에는 예산이 없습니다.** `xpe_bodypart_recognize` 의 opt-in 워커 경로(`use_worker: true`)에는 같은 예산이 있고 뼈 억제와 워커·실패 카운트를 공유합니다(정정 2026-10-02, `QA-B-191` M4c). 시험: `BodyPartWorkerPath.ASilentWorkerIsGivenUpOnAtTheBudgetAndTheNextCallRecoversOnANewWorker`. 예전 `REQ-AI-009` 인용은 아래 처리 완료 메모 참조 |
 
 ### 판정
 

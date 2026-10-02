@@ -8,7 +8,7 @@ SPEC: SPEC-XPE-P3-AI
 | T-003 | ONNX Runtime session manager | REQ-AI-006,008 | T-002 | ai_onnx_session.cpp/h | done |
 | T-004 | Model versioning/metadata parsing | REQ-AI-008 | T-003 | ai_onnx_session.cpp/h | done |
 | T-005 | Sidecar metadata schema | REQ-AI-004 | - | ai_sidecar.cpp/h, model-card.schema.json | pending |
-| T-006 | Wire xpe_bodypart_recognize | REQ-AI-002,003,012 | T-001,T-002,T-003 | ai.cpp | pending |
+| T-006 | Wire xpe_bodypart_recognize | REQ-AI-002,003,012 | T-001,T-002,T-003 | ai.cpp, ai_bodypart.h, ai_bodypart_model.h, ai_bodypart_decision.h, ai_worker_main.cpp, ai_ipc_bridge.cpp, ai_worker_supervisor.cpp | partial — 배선 완료(장난감 모델로 시험), REQ-AI-003 은 opt-in 워커 경로만(기본 경로 미격리), 실제 모델·정확도 없음 |
 | T-007 | Wire xpe_stitch_images | REQ-AI-002,003 | T-001,T-002,T-003 | ai.cpp | pending |
 | T-008 | Wire xpe_bone_suppress | REQ-AI-002,050 | T-001,T-002,T-003 | ai.cpp | pending |
 | T-009 | Wire xpe_dl_denoise | REQ-AI-002,020,022 | T-001,T-002,T-003 | ai.cpp | pending |
@@ -26,6 +26,13 @@ SPEC: SPEC-XPE-P3-AI
 >   다만 이 행이 함께 걸고 있는 `REQ-AI-050`(품질 목표)은 `rtm_ai.md` §12 에서 여전히 `Not implemented` 입니다.
 > - T-013: 시간 예산은 `xpe_bone_suppress` 의 opt-in 워커 경로(`use_worker: true`)에서만 동작합니다
 >   (예산 초과 → 입력 반환 + 비정상 코드 + Warning 1건). 기본 경로(워커 끔)와 나머지 세 진입점에는 예산이 없습니다.
+>   (정정 2026-10-02, `QA-B-191` M4c: `xpe_bodypart_recognize` 의 opt-in 워커 경로에도 같은 예산이 있고 워커·실패 카운트를
+>   뼈 억제와 공유합니다. 기본 경로와 `xpe_stitch_images`·`xpe_dl_denoise` 에는 여전히 없습니다.)
+>
+> **T-006 상태 메모 (2026-10-02, `#130`, `QA-B-191`)** — `done` 이 아니라 `partial` 입니다.
+> - REQ-AI-012(저신뢰 이벤트)·REQ-AI-002(결정론적 fallback)는 부위 인식에 대해 코드와 시험이 있습니다(`BodyPart.*`, `BodyPartDecision.*`).
+> - REQ-AI-003(워커 격리)은 opt-in 워커 경로(`use_worker: true`)에서만 충족되고, 기본값은 워커 끔이라 기본 경로는 격리되지 않습니다.
+> - 시험 모델은 손으로 만든 장난감 모델(`modules/ai/tests/data/make_bodypart_models.py`)이라 실제 부위 인식 모델·정확도·지연은 측정되지 않았습니다.
 
 **Total**: 16 tasks
 **Priority**: Alternative B (Balanced) - Infrastructure + Core Inference Paths

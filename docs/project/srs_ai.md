@@ -206,7 +206,18 @@ Model versioning **shall** follow semantic versioning. Model metadata **shall** 
 | SRS ID | SRS-AI-010 |
 | Priority | Must |
 | SWU | SWU-AI-02 |
-| Verification | TC-FALLBACK-007~014 **[SKELETON: stub returns PROCESSING_FAILED]** |
+| Verification | TC-FALLBACK-007~014 (stub contract) + `BodyPart.*` / `BodyPartWorkerPath.*` / `WorkerBodyPart*.*` (wiring verified with toy models) **[PARTIAL: accuracy and latency not measured — no real model]** |
+
+> **Implementation (2026-10-02, `QA-B-191`, `#130`)** — the requirement text above is unchanged and is not yet
+> met: the module runs `{modelDir}/bodypart.onnx` with the labels in `{modelDir}/bodypart.json`, but the test
+> models are hand-built toy models, not classifiers. No real body-part model, accuracy, or latency exists in
+> this repository.
+>
+> **`SRS-ALERT-004` does not apply** to `xpe_bodypart_recognize`. `SRS-ALERT-004` (`XPE-SRS-001.md`: DL processing
+> applied, Info, "AI-processed" label) marks an image that DL processing changed; this function does not change
+> the image (its result is a label and a confidence only), so a successful call raises no alert (leader decision,
+> `QA-B-191` M3). Evidence: `BodyPart.ConstantModelGivesItsLabelAndItsProbability` (asserts no alert),
+> `BodyPartWorkerPath.ControlTheModelRunsInTheWorkerAndTheAnswerComesBack`.
 
 #### REQ-AI-BP-002: Body-Part Input Validation
 
@@ -324,23 +335,38 @@ Model metadata **shall** include: `model_id`, `version`, `pccp_scope`, `training
 
 **When** AI inference confidence is below the configured threshold (default 0.6), the system **shall** emit a low-confidence event and fall back to the deterministic path.
 
+> **Implementation — body-part recognition (2026-10-02, `QA-B-191`, `#130`)** — the threshold is
+> `confidence_threshold` from `xpe_ai_init` (default 0.6; a confidence equal to it passes). Below it, the call
+> raises one Warning per image. With `fallback_mode` on: `AI body-part confidence {c} is below the threshold {t}
+> (REQ-AI-012): UNKNOWN is returned; use the deterministic body-part lookup`. With it off: `AI body-part
+> confidence {c} is below the threshold {t} (REQ-AI-012): the label {LABEL} is returned because fallback_mode is
+> off; an exposure parameter chosen from it may be wrong`. `{c}` and `{t}` are the shortest text that reads back
+> as the same float. Source: `ai_bodypart_decision.h` `LowConfidenceAlertText`. `xpe_bodypart_recognize` is
+> currently the only function that reads the threshold.
+
 | Attribute | Value |
 |-----------|-------|
 | SRS ID | SRS-AI-FB-001 |
 | Priority | Must |
 | SWU | SWU-AI-08 |
-| Verification | TC-FALLBACK-022 (confidence threshold default) |
+| Verification | TC-FALLBACK-022 (confidence threshold default) + `BodyPart.AConfidenceExactlyAtTheThresholdPasses`, `BodyPart.AConfidenceOneFloatBelowTheThresholdIsLowAndFallsBack`, `BodyPart.WithFallbackModeOffTheLowConfidenceLabelIsReturnedWithAWarning`, `BodyPart.FallbackModeCanBeToggledAtRunTimeAndTheNextCallFollows`, `BodyPart.TheThresholdIsTheConfiguredOneNotAConstant`, `BodyPart.EveryLowConfidenceImageRaisesItsOwnEventButAPassingOneRaisesNone`, `BodyPartDecision.TheLowConfidenceTextsAreTheContractedOnes` (full-text match) |
 
 #### REQ-AI-FB-002: Fallback Mode Toggle
 
-**When** `xpe_ai_set_fallback_mode(enable)` is called, the module **shall** toggle the deterministic fallback mode. When enabled (default), all AI functions return `XPE_ERR_PROCESSING_FAILED` on low confidence. When disabled, AI functions attempt retries.
+**When** `xpe_ai_set_fallback_mode(enable)` is called, the module **shall** toggle the deterministic fallback mode. When enabled (default), `xpe_bodypart_recognize` returns `XPE_ERR_PROCESSING_FAILED` with label `UNKNOWN` and the measured confidence on low confidence. When disabled, it returns `XPE_OK` with the model's most probable label and its confidence, and raises the low-confidence Warning.
+
+> **Correction (2026-10-02, `QA-B-191`, `#130`)** — the earlier text said "When disabled, AI functions attempt
+> retries". No code re-runs inference: in `modules/ai/src` the only retries are the pipe-connection retries while
+> the worker process starts (`ai_ipc_bridge.cpp`, `ai_worker_supervisor.cpp`). The text now follows the code.
+> `xpe_bodypart_recognize` is currently the only function that reads `fallback_mode`; the other entry points
+> connect to it with their own tasks (T-007, T-009).
 
 | Attribute | Value |
 |-----------|-------|
 | SRS ID | SRS-AI-FB-002 |
 | Priority | Must |
 | SWU | SWU-AI-08 |
-| Verification | TC-FALLBACK-001~005 |
+| Verification | TC-FALLBACK-001~005 + `BodyPart.WithFallbackModeOffTheLowConfidenceLabelIsReturnedWithAWarning`, `BodyPart.FallbackModeCanBeToggledAtRunTimeAndTheNextCallFollows`, `BodyPart.WithFallbackModeOffALabelThatDoesNotFitIsStillBufferTooSmall` |
 
 ---
 
@@ -453,6 +479,22 @@ AI inference **shall** enforce a configurable time budget (default 5 s). Exceedi
 > worker for the session (the third Warning says so). A success resets the consecutive count, so
 > intermittent failures keep raising one Warning each; queue overflow is governed by SRS-ALERT-007.
 > `shutdown` then `init` starts a new session. Decision record: `docs/project/REQ-CHANGE-LOG-P3-AI.md`.
+>
+> **Body-part recognition on the worker (2026-10-02, `QA-B-191` M4c/M4e, `#130`)** — `xpe_bodypart_recognize`
+> with `use_worker: true` has the same budget, and shares ONE consecutive-failure count with `xpe_bone_suppress`
+> (one worker process, one health). Each failure raises one Warning:
+> - body-part recognition: `AI worker failed (code {n}, failure {k} of 3): body-part recognition returns UNKNOWN; use the deterministic body-part lookup (REQ-AI-002, REQ-AI-092)`
+> - bone suppression: `AI worker failed (code {n}, failure {k} of 3): the input image is returned unchanged (REQ-AI-002, REQ-AI-092)`
+> - the third failure (both functions): `AI worker failed (code {n}, failure 3 of 3) during {cause} and is disabled for this session: body-part recognition returns UNKNOWN, bone suppression returns the input image unchanged (REQ-AI-002, REQ-AI-092)` — `{cause}` is `body-part recognition` or `bone suppression`
+>
+> "The worker has no usable body-part model" is not a failure: it is not counted and it resets the count to 0,
+> with one Warning per session: `AI body-part recognition is unavailable (the AI worker has no usable body-part model): UNKNOWN is returned; use the deterministic body-part lookup (REQ-AI-002)`.
+> Source: `modules/ai/src/ai.cpp` (`pushWorkerDisabledAlert`, `bodyPartViaWorker`, `warnBodyPartUnavailableOnce`).
+> Evidence: `BodyPartWorkerPath.AModelThatExistsAndFailsToRunIsCountedAndThirdFailureSwitchesTheWorkerOffForBothFunctions`,
+> `BodyPartWorkerPath.BoneSuppressionFailuresSwitchOffBodyPartRecognitionToo`,
+> `BodyPartWorkerPath.AnUnavailableBodyPartModelIsOneWarningAndNeverCountedAndNeverSwitchesTheWorkerOff`,
+> `BodyPartWorkerPath.WithNoBodyPartModelBoneSuppressionIsNotSkippedByTheBodyPartCalls`. Decision record: row 7 of
+> `docs/project/REQ-CHANGE-LOG-P3-AI.md`.
 
 | Attribute | Value |
 |-----------|-------|
