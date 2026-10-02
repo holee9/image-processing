@@ -75,6 +75,22 @@ XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
             bool all = true;
             for (const char* k : lagKeys) all = all && doc.getString(k, &v) && !v.empty();
             handle->calibrated = all;
+
+            // QA-A-226b (#241): a calibrated set must be a forward system that can exist. The history the corrector
+            // subtracts has the steady-state gain S = alpha1/(1-exp(-1/tau1)) + alpha2/(1-exp(-1/tau2)) (one frame
+            // per step); a constant input comes out as input*(1-S) clamped at 0, and a real lag y = x/(1-S) exists
+            // only for S < 1. S >= 1, or a gain that is not a finite number, is refused. Only this weight-free S is
+            // checked: the tier 2/3 exposure weight has no grounded ceiling (QA-A-226 option (c), not taken).
+            // A term with alpha 0 contributes nothing whatever its tau is (a tau so large that exp(-1/tau) is 1.0
+            // makes the denominator 0, and 0/0 would be NaN); a positive alpha over a zero denominator is an
+            // infinite gain and is refused with the rest.
+            if (all) {
+                const auto term = [](double alpha, double tau) {
+                    return alpha == 0.0 ? 0.0 : alpha / (1.0 - std::exp(-1.0 / tau));
+                };
+                const double s = term(handle->alpha1, handle->tau1) + term(handle->alpha2, handle->tau2);
+                if (!std::isfinite(s) || s >= 1.0) return XPE_ERR_CONFIG_INVALID;
+            }
         }
 
         handle->hist1.assign(pixelCount, 0.0f);
@@ -261,7 +277,7 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
     size_t n = 0;
     if (!xpe_buffer_has_format(img, XPE_PIXEL_FLOAT32, &n)) return XPE_ERR_INVALID_INPUT;
 
-    // SRS-CALIB-NFR-003: one call at a time per handle (history and lastAcqTimeSec are updated in place)
+    // SRS-CALIB-NFR-003: one call at a time per handle (the history is updated in place)
     std::lock_guard<std::mutex> lock(gh->mtx);
 
     auto* px = static_cast<float*>(img->data);
@@ -286,16 +302,12 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
     // time of the last frame stay as they are.
     if (!gh->calibrated) return XPE_OK;
 
-    // REQ-P1A-033: compute time delta in units of frames (1.0 for first frame)
-    const double acquisitionTimeSec = static_cast<double>(meta->acquisitionTime);
-    double dt = (gh->lastAcqTimeSec > 0.0)
-                ? (acquisitionTimeSec - gh->lastAcqTimeSec)
-                : 1.0;
-    if (dt <= 0.0) dt = 1.0; // guard against zero/negative dt
-    // gh->lastAcqTimeSec is set below, with the history, once the frame has succeeded (QA-A-202c).
-
-    const float decay1 = static_cast<float>(std::exp(-dt / gh->tau1));
-    const float decay2 = static_cast<float>(std::exp(-dt / gh->tau2));
+    // REQ-P1A-033, QA-A-226b (#241): tau is in FRAMES. Every successful call is one step (dt = 1); acquisitionTime is
+    // not used. Before this the step was the difference of the integer-second times when both were given and 1
+    // otherwise, so the same tau was seconds or frames depending on the input, and the gap between two frames was
+    // applied one frame late. A break in the sequence is the caller's xpe_ghost_reset().
+    const float decay1 = static_cast<float>(std::exp(-1.0 / gh->tau1));
+    const float decay2 = static_cast<float>(std::exp(-1.0 / gh->tau2));
     const float a1_base = static_cast<float>(gh->alpha1);
     const float a2_base = static_cast<float>(gh->alpha2);
 
@@ -330,7 +342,6 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
     // The whole frame succeeded: its history, its time and its exposure estimate become the handle's.
     gh->hist1.swap(gh->next1);
     gh->hist2.swap(gh->next2);
-    gh->lastAcqTimeSec = acquisitionTimeSec;
     if (stats.set) {
         gh->lastFrameMean = stats.meanSignal;
         gh->exposureWeight = stats.exposureWeight;
@@ -346,7 +357,6 @@ XpeErrorCode xpe_ghost_reset(void* handle)
     // REQ-P1A-088: clear accumulated frame history
     std::fill(gh->hist1.begin(), gh->hist1.end(), 0.0f);
     std::fill(gh->hist2.begin(), gh->hist2.end(), 0.0f);
-    gh->lastAcqTimeSec = 0.0;
     gh->lastFrameMean = 0.0f;
     gh->exposureWeight = 1.0;
     return XPE_OK;

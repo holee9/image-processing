@@ -1,0 +1,9 @@
+b1_no_stability_check                  -> 4 red: GhostLagContract.AForwardUnstableSetIsRefusedInEveryTier, GhostLagContract.ANonFiniteGainIsRefused, GhostLagContract.AZeroAlphaContributesNothingWhateverItsTauIs, GhostLagContract.TheBoundaryIsSEqualsOne
+b2_threshold_1p5                       -> 2 red: GhostLagContract.AForwardUnstableSetIsRefusedInEveryTier, GhostLagContract.TheBoundaryIsSEqualsOne
+b3_zero_alpha_not_special              -> 1 red: GhostLagContract.AZeroAlphaContributesNothingWhateverItsTauIs
+b4_time_dependent_step                 -> 2 red: GhostLagContract.EachCallIsOneFrameStep, GhostLagContract.TheOutputDoesNotDependOnTheTimes
+b5_tier1_only                          -> 1 red: GhostLagContract.AForwardUnstableSetIsRefusedInEveryTier
+b6_judges_uncalibrated                 -> 11 red: GhostLagContract.ASetThatIsNotCalibratedIsNotJudged, GhostUncalibrated.ConstantExposureKeepsItsSignal, GhostUncalibrated.DefaultHandlePassesEveryFrameThroughBitForBit, GhostUncalibrated.EmptyValuesCountAsNotGiven, GhostUncalibrated.OneWarningAtCreationAndNoneAfterwards, GhostUncalibrated.PassThroughLeavesTheHandleStateUntouched, GhostUncalibrated.PassThroughStillRefusesWhatTheCorrectingPathRefuses, GhostUncalibrated.ResetStaysValid, GhostUncalibrated.ThreeOfFourParametersIsStillUncalibrated, GhostUncalibrated.TierAndOtherKeysAloneDoNotCalibrate
+b7_step_is_two_frames                  -> 1 red: GhostLagContract.EachCallIsOneFrameStep
+b8_isfinite_dropped                    -> 0 red: NONE (arm did not fire)
+b8_isfinite_dropped                    -> 1 red: GhostLagContract.ANonFiniteGainIsRefused

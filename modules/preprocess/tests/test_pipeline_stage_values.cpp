@@ -14,7 +14,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "ghost_legacy_lag.h"
+#include "ghost_stable_lag.h"
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
@@ -146,7 +146,7 @@ TEST_F(PipelineStageValueTest, BypassingNonlinearityGivesTheSameFrame) {
 // same values (and must not be replaced by an empty buffer).
 TEST_F(PipelineStageValueTest, GhostStageReturnsTheFrameItCorrected) {
     void* gh = nullptr;
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withLegacyLag().c_str(), &gh));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withStableLag().c_str(), &gh));
     const std::string cfg =
         "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassBinning\":true,"
         "\"bypassDefect\":true,\"bypassNonlinearity\":true}";
@@ -255,7 +255,7 @@ TEST_P(PipelineComboTest, OutputMatchesTheFormula) {
                                           nullptr, 0, mask.data(), N));
     }
     void* gh = nullptr;
-    if (c.ghost) ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withLegacyLag().c_str(), &gh));
+    if (c.ghost) ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withStableLag().c_str(), &gh));
     std::string cfg = "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassBinning\":true";
     if (!c.nonlin) cfg += ",\"bypassNonlinearity\":true";
     cfg += "}";
@@ -296,8 +296,8 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_F(PipelineStageValueTest, GhostCorrectionOfTheSecondFrameReachesTheOutput) {
     void* gh = nullptr;
     void* ref = nullptr;
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withLegacyLag().c_str(), &gh));
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withLegacyLag().c_str(), &ref));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withStableLag().c_str(), &gh));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withStableLag().c_str(), &ref));
     const std::string cfg =
         "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassBinning\":true,"
         "\"bypassDefect\":true,\"bypassNonlinearity\":true}";

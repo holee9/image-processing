@@ -12,7 +12,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "ghost_legacy_lag.h"
+#include "ghost_stable_lag.h"
 
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
@@ -54,14 +54,14 @@ std::string findAlert(const std::string& prefix) {
 
 struct State {
     std::vector<float> h1, h2;
-    double lastAcq{0.0}, lastMean{0.0}, weight{0.0};
+    double lastMean{0.0}, weight{0.0};
     bool operator==(const State& o) const {
-        return h1 == o.h1 && h2 == o.h2 && lastAcq == o.lastAcq && lastMean == o.lastMean && weight == o.weight;
+        return h1 == o.h1 && h2 == o.h2 && lastMean == o.lastMean && weight == o.weight;
     }
 };
 State stateOf(void* handle) {
     auto* gh = static_cast<GhostCorrectorHandle*>(handle);
-    return State{gh->hist1, gh->hist2, gh->lastAcqTimeSec, gh->lastFrameMean, gh->exposureWeight};
+    return State{gh->hist1, gh->hist2, gh->lastFrameMean, gh->exposureWeight};
 }
 
 bool sameBytes(const std::vector<float>& a, const std::vector<float>& b) {
@@ -87,7 +87,7 @@ protected:
     void* create(int tier, const char* extra = "") {
         std::string cfg = "{\"tier\":\"" + std::to_string(tier) + "\"" + extra + "}";
         void* h = nullptr;
-        EXPECT_EQ(XPE_OK, xpe_ghost_create(W, H, withLegacyLag(cfg.c_str()).c_str(), &h));
+        EXPECT_EQ(XPE_OK, xpe_ghost_create(W, H, withStableLag(cfg.c_str()).c_str(), &h));
         handles_.push_back(h);
         return h;
     }

@@ -20,7 +20,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "ghost_legacy_lag.h"
+#include "ghost_stable_lag.h"
 
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
@@ -237,7 +237,7 @@ TEST_F(A184Probes, DISABLED_GhostSingleThreadTime) {
     for (uint32_t side : {64u, 1024u}) {
         const int frames = side == 64u ? 20000 : 150;
         void* h = nullptr;
-        ASSERT_EQ(XPE_OK, xpe_ghost_create(side, side, withLegacyLag().c_str(), &h));
+        ASSERT_EQ(XPE_OK, xpe_ghost_create(side, side, withStableLag().c_str(), &h));
         std::vector<float> px(static_cast<size_t>(side) * side, 1000.0f);
         XpeImageBuffer img{};
         img.data = px.data(); img.width = side; img.height = side;

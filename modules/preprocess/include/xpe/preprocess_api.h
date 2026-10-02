@@ -698,7 +698,16 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
  *         XPE_ERR_INVALID_INPUT on NULL handleOut or zero dimensions
  *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration (tier, alpha1, tau1,
  *                  alpha2, tau2, tier2Threshold, nlcscBeta) is not one finite number in range (notation:
- *                  see xpe_preprocess_pipeline); no handle is handed back and nothing is left allocated
+ *                  see xpe_preprocess_pipeline); no handle is handed back and nothing is left allocated.
+ *                  Also (QA-A-226b) when all four lag parameters are given and their steady-state gain
+ *                  S = alpha1/(1-exp(-1/tau1)) + alpha2/(1-exp(-1/tau2)) is >= 1 or not a finite number
+ *                  (a term with alpha 0 counts as 0): such a set is a forward system that cannot exist, and
+ *                  a constant input would come out as input*(1-S) clamped at 0. Only this weight-free S is
+ *                  checked; the tier 2/3 exposure weight is not.
+ *
+ * @note TAU IS IN FRAMES (QA-A-226b). tau1 and tau2 are measured in frames: every successful
+ *       xpe_ghost_correct call is one step. The acquisition time in the metadata is not used by the ghost
+ *       corrector; a break in the sequence (another patient or study, a pause) is xpe_ghost_reset().
  *
  * @note CALIBRATED OR NOT (QA-A-226, #241). A handle corrects only when the configuration gave all four lag
  *       parameters -- alpha1, tau1, alpha2 and tau2, each present and non-empty (an empty value keeps the built-in
@@ -740,7 +749,8 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
  *
  * @param handle Ghost corrector handle (from xpe_ghost_create)
  * @param img [in/out] Image to correct (float32 format)
- * @param meta Image metadata (acquisitionTime used for IRF timing)
+ * @param meta Image metadata; must not be NULL. Its acquisitionTime is NOT used (tau is in frames, one step per
+ *        successful call -- see xpe_ghost_create; QA-A-226b)
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT on NULL/invalid handle, dimension mismatch, or a frame holding a NaN or an
  *         infinity: refused at the entrance (QA-A-217), nothing is written and one Error alert
@@ -749,13 +759,13 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
  *         at the extremes of the range)
  *
  * @note A handle without calibrated lag parameters (see xpe_ghost_create) does not correct: after the checks above
- *       the call returns XPE_OK with the image, the history and the time of the last frame all untouched, and no
+ *       the call returns XPE_OK with the image and the history untouched, and no
  *       alert (the one warning was raised at creation). The entrance checks -- handle, size, float32, non-finite
  *       pixels -- apply to such a handle exactly as to a calibrated one.
  *
- * @note A frame that fails leaves the handle exactly as it found it: the frame history, the time of the last
- *       frame (so the next frame's time step is measured from the last frame that SUCCEEDED) and the
- *       exposure estimate. Only a successful frame changes them. Since QA-A-217 a failed frame also leaves
+ * @note A frame that fails leaves the handle exactly as it found it: the frame history and the exposure
+ *       estimate (a failed call is not a step: the next frame continues from the last frame that SUCCEEDED).
+ *       Only a successful frame changes them. Since QA-A-217 a failed frame also leaves
  *       `img` as it was (REQ-P1A-032): pixels already corrected when the failure was found are put back.
  *       Before QA-A-217 they were not, and a caller had to keep its own copy; before QA-A-202c a failure
  *       part-way through left the history of the pixels already processed updated too.

@@ -76,10 +76,9 @@ struct GhostCorrectorHandle {
     // unmodified). Allocated once with the handle; a fifth float plane.
     std::vector<float> backup;
 
-    double lastAcqTimeSec{0.0};
     double lastFrameMean{0.0}; // mean signal level for exposure weighting
 
-    // SRS-CALIB-NFR-003: guards hist1/hist2 and the three fields above. Held for the whole of
+    // SRS-CALIB-NFR-003: guards hist1/hist2 and lastFrameMean/exposureWeight. Held for the whole of
     // xpe_ghost_correct() and xpe_ghost_reset(), so threads sharing one handle are serialised
     // call by call and no history update is lost. width/height/tier/IRF are set once in
     // xpe_ghost_create() and never change, so they need no lock. xpe_ghost_destroy() must

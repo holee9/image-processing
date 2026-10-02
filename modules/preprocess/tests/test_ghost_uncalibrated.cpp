@@ -156,7 +156,6 @@ TEST_F(GhostUncalibrated, PassThroughLeavesTheHandleStateUntouched) {
         ASSERT_EQ(0.0f, gh->hist1[i]);
         ASSERT_EQ(0.0f, gh->hist2[i]);
     }
-    EXPECT_EQ(0.0, gh->lastAcqTimeSec);
     xpe_ghost_destroy(h);
 }
 

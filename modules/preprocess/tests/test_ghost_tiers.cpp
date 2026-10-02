@@ -16,7 +16,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "ghost_legacy_lag.h"
+#include "ghost_stable_lag.h"
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
@@ -37,7 +37,7 @@ protected:
     }
 
     void create(uint32_t w, uint32_t h, const char* config) {
-        ASSERT_EQ(XPE_OK, xpe_ghost_create(w, h, withLegacyLag(config).c_str(), &handle));
+        ASSERT_EQ(XPE_OK, xpe_ghost_create(w, h, withStableLag(config).c_str(), &handle));
         ASSERT_NE(nullptr, handle);
     }
 
@@ -93,7 +93,7 @@ TEST_F(GhostTierTest, Tier2ExposureWeightScalesWithSignal) {
 
     auto residualAfterTwoFrames = [&](float level) {
         void* h = nullptr;
-        EXPECT_EQ(XPE_OK, xpe_ghost_create(8, 8, withLegacyLag("{\"tier\":2}").c_str(), &h));
+        EXPECT_EQ(XPE_OK, xpe_ghost_create(8, 8, withStableLag("{\"tier\":2}").c_str(), &h));
         XpeImageMetadata m{};
         Frame a(8, 8, level);
         EXPECT_EQ(XPE_OK, xpe_ghost_correct(h, &a.buf, &m));
@@ -152,7 +152,7 @@ TEST_F(GhostTierTest, Tier3BetaStrengthensSignalDependence) {
     // keeps both results above the clamp.
     auto residual = [](const char* config) {
         void* h = nullptr;
-        EXPECT_EQ(XPE_OK, xpe_ghost_create(8, 8, withLegacyLag(config).c_str(), &h));
+        EXPECT_EQ(XPE_OK, xpe_ghost_create(8, 8, withStableLag(config).c_str(), &h));
         XpeImageMetadata m{};
         Frame a(8, 8, 2000.0f);
         EXPECT_EQ(XPE_OK, xpe_ghost_correct(h, &a.buf, &m));
@@ -175,7 +175,7 @@ TEST_F(GhostTierTest, Tier3BetaStrengthensSignalDependence) {
 TEST_F(GhostTierTest, EachTierRejectsNonFiniteInput) {
     for (const char* config : {"{\"tier\":1}", "{\"tier\":2}", "{\"tier\":3}"}) {
         void* h = nullptr;
-        ASSERT_EQ(XPE_OK, xpe_ghost_create(8, 8, withLegacyLag(config).c_str(), &h));
+        ASSERT_EQ(XPE_OK, xpe_ghost_create(8, 8, withStableLag(config).c_str(), &h));
         XpeImageMetadata meta{};
 
         Frame f(8, 8, 1000.0f);
@@ -227,7 +227,7 @@ TEST_F(GhostTierTest, NonIncreasingTimestampUsesGuardedDelta) {
 TEST_F(GhostTierTest, Alpha1OverrideChangesTheCorrection) {
     auto residual = [](const char* config) {
         void* h = nullptr;
-        EXPECT_EQ(XPE_OK, xpe_ghost_create(8, 8, withLegacyLag(config).c_str(), &h));
+        EXPECT_EQ(XPE_OK, xpe_ghost_create(8, 8, withStableLag(config).c_str(), &h));
         XpeImageMetadata m{};
         Frame a(8, 8, 1000.0f);
         EXPECT_EQ(XPE_OK, xpe_ghost_correct(h, &a.buf, &m));

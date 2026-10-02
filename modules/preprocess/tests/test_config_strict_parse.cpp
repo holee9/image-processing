@@ -223,7 +223,7 @@ TEST_F(ConfigStrictParse, GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
 
 TEST_F(ConfigStrictParse, GhostCreateAcceptsOrdinaryNumbers) {
     const char* good =
-        "{\"tier\":\"2\",\"alpha1\":\"0.5\",\"tau1\":1.5,\"alpha2\":\"0.25\",\"tau2\":\"10\","
+        "{\"tier\":\"2\",\"alpha1\":\"0.05\",\"tau1\":1.5,\"alpha2\":\"0.01\",\"tau2\":\"10\","
         "\"tier2Threshold\":\"3000\",\"nlcscBeta\":\"0.1\"}";
     void* handle = nullptr;
     bool threw = false;
