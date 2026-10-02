@@ -1104,7 +1104,8 @@ XPE_API XpeErrorCode xpe_dl_denoise(XpeImageBuffer* img,
     // --- Stub implementation ---
     // Full implementation: send DL_DENOISE over IPC.
     // Model variant selected based on meta->bodyPart and meta->mAs.
-    // REQ-AI-020: Self-supervised denoising (N2N, N2S, N2V, Noise2Sim).
+    // REQ-AI-020: Self-supervised denoising. REQ-AI-021 names the strategies:
+    // Noise2Noise, Noise2Self, Neighbor2Neighbor, Noise2Sim.
     // REQ-AI-022: Latency target <= 500 ms on CPU, <= 100 ms on GPU.
 
     (void)configJsonOrNull;

@@ -1,0 +1,13 @@
+# QA-B-188: how large must the scintillator MTF at 7.09 lp/mm be for the 180 lpi alias at pitch 0.140 mm to reach
+# each criterion, per aperture fill factor?  Throwaway arithmetic, not a product measurement.
+#   residual peak-to-peak % = 10 % (input 2 x 5 % depth) x aperture MTF x scintillator MTF
+import math
+
+lpi, pitch = 180.0, 0.140
+f = lpi / 25.4
+print("fill  apertureMTF  aperture_pp%  scint>=(1 JND 0.75%)  scint>=(visible 2%)  scint>=(noise: MTF_pre>0.012)")
+for fill in (1.0, 0.95, 0.90, 0.85, 0.80, 0.70):
+    x = math.pi * f * pitch * fill
+    ap = abs(math.sin(x) / x)
+    print("%.2f  %.5f      %.4f        %6.3f                %6.3f              %6.3f"
+          % (fill, ap, 10 * ap, 0.75 / (10 * ap), 2.0 / (10 * ap), 0.012 / ap))

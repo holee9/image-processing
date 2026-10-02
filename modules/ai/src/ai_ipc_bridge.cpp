@@ -12,26 +12,30 @@
  *   written anywhere in this repo: the citation checker greps for it and
  *   cannot tell a citation from a historical note, so spelling it out here
  *   ADDED an orphan (4 -> 5) instead of removing one.
- *   That number is not defined in SPEC-XPE-P3-AI at all -- 0 definitions among
- *   its 46, while every other REQ-AI number this module cites has exactly one.
+ *   That number is not defined in SPEC-XPE-P3-AI at all (0 definitions among
+ *   its 46) and never was: it first appears in the bulk commit dd7c8e05
+ *   (2026-04-28), in code and in the RTM at once, so it was a mis-numbering
+ *   and not a renaming (QA-B-190).
  *
- *   REQ-AI-092 is the right requirement for this subject, but this file
- *   implements only PART of it. The requirement reads: "AI inference shall
- *   enforce time budget (configurable, default 5s); exceeding budget triggers
- *   fallback and alert."
- *     configurable  YES -- "timeout_ms" is parsed in ai.cpp
- *     default 5s    YES -- XPE_AI_DEFAULT_TIMEOUT_MS is 5000
- *     fallback      YES -- a timeout here returns XPE_ERR_PROCESSING_FAILED
- *     alert         NO  -- this file makes no alert call (count: 0), while
- *                          xpe_common's alert API exists and is used elsewhere
- *   And the budget does not run in a shipped build at all: nothing outside
- *   this file calls xpe_ai_ipc_bridge_create (callers in src/: 0), ai.cpp
- *   never references the bridge, and the timeout it parses into
- *   state->timeoutMs is only logged, never passed here. The inference entry
- *   points return the stub before any IPC (#130).
- *
- *   The number is corrected because it pointed at nothing. Do not read the
- *   corrected citation as "REQ-AI-092 is satisfied".
+ *   The requirement reads: "AI inference shall enforce time budget
+ *   (configurable, default 5s); exceeding budget triggers fallback and alert."
+ *   Where each part lives today (QA-B-171, QA-B-181):
+ *     configurable  "timeout_ms" is parsed in ai.cpp (xpe_ai_init) and passed
+ *                   to the WorkerSupervisor, which gives it to this bridge as
+ *                   the budget of one whole exchange
+ *     default 5s    XPE_AI_DEFAULT_TIMEOUT_MS is 5000
+ *     fallback      a timeout here is a non-OK result; ai.cpp's worker path
+ *                   (xpe_bone_suppress with "use_worker": true) then returns
+ *                   the INPUT unchanged with that code
+ *     alert         NOT in this file (it makes no alert call): ai.cpp raises
+ *                   one XPE_ALERT_WARNING per failed worker call, citing
+ *                   REQ-AI-002 and REQ-AI-092
+ *   What is still NOT covered: the budget exists only on that opt-in worker
+ *   path. xpe_bone_suppress without "use_worker" (the default) runs
+ *   OnnxSession::Run in-process with no time limit, and xpe_bodypart_recognize,
+ *   xpe_stitch_images and xpe_dl_denoise are stubs with nothing to budget.
+ *   So read the corrected citation as "REQ-AI-092 is satisfied for the
+ *   opt-in worker path of xpe_bone_suppress", not for AI inference as a whole.
  *
  * @ingroup xpe_ai
  */

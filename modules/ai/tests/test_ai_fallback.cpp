@@ -10,6 +10,9 @@
  *
  * REQ-AI-002: Deterministic fallback for all AI functions.
  * REQ-AI-012: Low-confidence event triggers fallback.
+ *   NOT exercised by this file: ConfidenceThreshold* check only the header
+ *   constant, and nothing in modules/ai reads the configured
+ *   confidence_threshold yet (xpe_bodypart_recognize is a stub, #130 T-006).
  *
  * @ingroup xpe_ai_tests
  */
