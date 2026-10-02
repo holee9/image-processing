@@ -1,0 +1,16 @@
+QA-B-195 M3 arms: every arm built (build_ok=True), the three sources restored byte-identical after the last one; from build/g195m3-arm_<tag>.txt
+
+C1 the verification result is ignored: red(9)=['ABuildThatTrustsNoKeyRefusesEveryModel', 'AChangedModelIsNotTrustedWhateverTheChangeAndNothingIsParsedFirst', 'AMissingOrDamagedSignatureIsNotTrustedWithItsOwnReason', 'ASidecarOrSignatureThatExistsButCannotBeReadIsRefusedNotSkipped', 'ASidecarThatWasAddedChangedOrRemovedIsNotTrusted', 'ASignedModelLoadsUnderItsOwnRoleAndOnlyUnderIt', 'ATamperedBodyPartSidecarIsUnavailableOnBothPathsAndNeverAWorkerFailure', 'ATamperedBoneModelIsRefusedAtTheCAbiAndTheOutputIsNotTouched', 'TheTestSigningHelperWritesWhatTheVerifierAcceptsAndOnlyThat']
+C2 the role is not part of the check (always bone_suppress): red(6)=['ASidecarThatWasAddedChangedOrRemovedIsNotTrusted', 'ASignedModelLoadsUnderItsOwnRoleAndOnlyUnderIt', 'ATamperedBodyPartSidecarIsUnavailableOnBothPathsAndNeverAWorkerFailure', 'EndToEndTheLabelsThatAreReturnedAreTheVerifiedOnesEvenIfTheSidecarIsSwappedAfterTheCheck', 'TheSidecarTheCallerReadsIsTheOneThatWasVerified', 'TheTestSigningHelperWritesWhatTheVerifierAcceptsAndOnlyThat']
+C3 the sidecar is not part of the check: red(6)=['ASidecarThatWasAddedChangedOrRemovedIsNotTrusted', 'ASignedModelLoadsUnderItsOwnRoleAndOnlyUnderIt', 'ATamperedBodyPartSidecarIsUnavailableOnBothPathsAndNeverAWorkerFailure', 'EndToEndTheLabelsThatAreReturnedAreTheVerifiedOnesEvenIfTheSidecarIsSwappedAfterTheCheck', 'TheSidecarTheCallerReadsIsTheOneThatWasVerified', 'TheTestSigningHelperWritesWhatTheVerifierAcceptsAndOnlyThat']
+C4 a missing signature file is accepted: red(1)=['AMissingOrDamagedSignatureIsNotTrustedWithItsOwnReason']
+C5 the session is built from the path, not the verified bytes: red(3)=['ASwappedModelFileThatIsGarbageDoesNotBreakAVerifiedLoadEither', 'EndToEndTheBoneModelThatRunsIsTheVerifiedOneEvenIfTheFileIsSwappedAfterTheCheck', 'FilesChangedBetweenTheCheckAndTheLoadDoNotReachTheSession']
+C6 the sidecar is read again from the file after the check: red(2)=['EndToEndTheLabelsThatAreReturnedAreTheVerifiedOnesEvenIfTheSidecarIsSwappedAfterTheCheck', 'TheSidecarTheCallerReadsIsTheOneThatWasVerified']
+C7 a signature or sidecar that cannot be read is skipped: red(1)=['ASidecarOrSignatureThatExistsButCannotBeReadIsRefusedNotSkipped']
+C8 an empty signature file is treated as missing: red(1)=['AMissingOrDamagedSignatureIsNotTrustedWithItsOwnReason']
+C9 a trust entry longer than 128 characters is accepted: red(1)=['AnUnreadableTrustEntryIsIgnoredNeverGuessedAt']
+E1 a non-hex character in a trust entry reads as zero: red(1)=['AnUnreadableTrustEntryIsIgnoredNeverGuessedAt']
+E2 the body-part labels are read again from the file: red(1)=['EndToEndTheLabelsThatAreReturnedAreTheVerifiedOnesEvenIfTheSidecarIsSwappedAfterTheCheck']
+E3 the body-part loader does not name its role: red(2)=['ATamperedBodyPartSidecarIsUnavailableOnBothPathsAndNeverAWorkerFailure', 'EndToEndTheLabelsThatAreReturnedAreTheVerifiedOnesEvenIfTheSidecarIsSwappedAfterTheCheck']
+
+CONTROL (files restored): passed=15 red=[]

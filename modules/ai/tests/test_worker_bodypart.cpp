@@ -33,6 +33,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include "test_signing_helper.h"
 
 using xpe::ai::BodyPartJudgement;
 using xpe::ai::BodyPartReply;
@@ -473,6 +474,7 @@ TEST(WorkerBodyPartAgreement, ALabelOutsidePrintableAsciiOrWithAQuoteOrBackslash
             std::ofstream j(tmp / "bodypart.json");
             j << sidecar;
         }
+        xpe_test::SignDir(tmp, "bodypart");   // QA-B-195: the sidecar changed, so the signature is renewed
         EXPECT_EQ("unavailable", DescribeWorker(tmp.string(), image)) << sidecar;
         EXPECT_EQ("unavailable", DescribeInProcess(tmp.string(), image)) << sidecar;
     }
@@ -481,6 +483,7 @@ TEST(WorkerBodyPartAgreement, ALabelOutsidePrintableAsciiOrWithAQuoteOrBackslash
         std::ofstream j(tmp / "bodypart.json");
         j << "{\"labels\": [\"UPPER ARM~\", \"ABDOMEN\", \"SPINE\"]}";
     }
+    xpe_test::SignDir(tmp, "bodypart");   // QA-B-195: the sidecar changed, so the signature is renewed
     EXPECT_EQ("ok:UPPER ARM~:0.6", DescribeWorker(tmp.string(), image));
     EXPECT_EQ("ok:UPPER ARM~:0.6", DescribeInProcess(tmp.string(), image));
     // The control: the same model with a plain label is usable, so the character is what made the difference.
@@ -488,6 +491,7 @@ TEST(WorkerBodyPartAgreement, ALabelOutsidePrintableAsciiOrWithAQuoteOrBackslash
         std::ofstream j(tmp / "bodypart.json");
         j << "{\"labels\": [\"CHEST\", \"ABDOMEN\", \"SPINE\"]}";
     }
+    xpe_test::SignDir(tmp, "bodypart");   // QA-B-195: the sidecar changed, so the signature is renewed
     EXPECT_EQ(0u, DescribeWorker(tmp.string(), image).rfind("ok:", 0));
     fs::remove_all(tmp);
 }

@@ -32,6 +32,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string_view>
+#include <vector>
 
 namespace xpe::ai {
 
@@ -68,6 +69,22 @@ enum class SignatureStatus {
 
 /** A fixed, human-readable reason class for an alert or a log line. Never null. */
 const char* SignatureStatusText(SignatureStatus status);
+
+/**
+ * The keys this build trusts.
+ *
+ * THE PRODUCTION LIST IS EMPTY, ON PURPOSE (design decision D5, user decision 2026-10-03): the production signing key
+ * is chosen when the real models arrive (#243, mandatory before shipping). An empty list trusts nothing, so a build
+ * without test keys REFUSES EVERY MODEL, including a validly signed one. That is the intended state while no real
+ * model exists; it is not a defect to "fix" by trusting more.
+ *
+ * Test keys (design decision D4): ONLY in a build compiled with XPE_AI_TEST_HOOKS, the environment variable
+ * XPE_AI_TEST_TRUSTED_KEYS adds keys -- one or more 128-hex-character P-256 points (X||Y), separated by commas.
+ * The variable is read on every call, so a test can change what is trusted between two loads. A delivery build
+ * (-DXPE_AI_TEST_HOOKS=OFF) does not contain this code at all. The committed TEST private keys are public; they are
+ * never in the production list.
+ */
+std::vector<TrustedKey> TrustedModelKeys();
 
 /** A byte range. `data` may be null only when `size` is 0. */
 struct Bytes {

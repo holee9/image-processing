@@ -50,21 +50,23 @@ enum class BodyPartLoadFailure {
     kLabels,            ///< the sidecar is missing or unusable
     kInputShape,        ///< the graph's input is not a fixed single-channel image
     kOutputSize,        ///< the graph's fixed output length differs from the label count
+    kNotTrusted,        ///< the model or its sidecar failed signature verification (QA-B-195): nothing was loaded
 };
 
 /**
- * Read `labels` from the sidecar: a JSON object with a non-empty array of non-empty strings, each short enough for
- * the worker protocol's label limit and made only of printable ASCII (0x20-0x7E) without a double quote or a
+ * Read `labels` from the sidecar's TEXT: a JSON object with a non-empty array of non-empty strings, each short enough
+ * for the worker protocol's label limit and made only of printable ASCII (0x20-0x7E) without a double quote or a
  * backslash: the worker's reply format has no escapes and no encoding, so a label it could not carry is refused
  * by both paths alike. Returns the reason text, nullptr on success.
+ *
+ * The text is the sidecar AS VERIFIED (OnnxSession::VerifiedSidecar), never a second read of the file: a sidecar
+ * that was swapped after the signature check cannot reach here (QA-B-195). A null pointer is "no sidecar".
  */
-inline const char* LoadBodyPartLabels(const std::string& sidecarPath, std::vector<std::string>* labels) {
+inline const char* LoadBodyPartLabels(const std::string* sidecarText, std::vector<std::string>* labels) {
 #ifdef XPE_AI_BODYPART_HAS_JSON
-    std::ifstream f(sidecarPath);
-    if (!f) return "label sidecar bodypart.json not found";
+    if (sidecarText == nullptr) return "label sidecar bodypart.json not found";
     try {
-        nlohmann::json j;
-        f >> j;
+        nlohmann::json j = nlohmann::json::parse(*sidecarText);
         if (!j.is_object() || !j.contains("labels") || !j["labels"].is_array() || j["labels"].empty()) {
             return "label sidecar has no non-empty labels array";
         }
@@ -86,7 +88,7 @@ inline const char* LoadBodyPartLabels(const std::string& sidecarPath, std::vecto
     }
     return nullptr;
 #else
-    (void)sidecarPath;
+    (void)sidecarText;
     (void)labels;
     return "this build cannot read the label sidecar";
 #endif
@@ -109,6 +111,7 @@ inline const char* LoadBodyPartModel(const std::string& modelDir, std::unique_pt
 
     OnnxSessionConfig cfg;
     cfg.model_path = modelPath;
+    cfg.role = "bodypart";   // part of what the signature covers (QA-B-195)
     cfg.execution_provider = ExecutionProvider::kCpu;
     cfg.num_threads = 1;
     auto created = OnnxSession::Create(cfg);
@@ -118,12 +121,16 @@ inline const char* LoadBodyPartModel(const std::string& modelDir, std::unique_pt
             why_kind = BodyPartLoadFailure::kNoModelFile;
             return "no model file";
         }
+        if (created.code == OnnxErrorCode::kModelNotTrusted) {
+            why_kind = BodyPartLoadFailure::kNotTrusted;
+            return "the model files failed signature verification";
+        }
         why_kind = BodyPartLoadFailure::kModelUnreadable;
         return "the model file cannot be loaded";
     }
     m->session = std::move(created.value);
 
-    if (const char* why = LoadBodyPartLabels(base + "bodypart.json", &m->labels)) {
+    if (const char* why = LoadBodyPartLabels(m->session->VerifiedSidecar(), &m->labels)) {
         why_kind = BodyPartLoadFailure::kLabels;
         return why;
     }

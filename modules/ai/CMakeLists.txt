@@ -271,6 +271,8 @@ add_executable(${WORKER_NAME}
     # itself for the same reason xpe_ai_tests does -- OnnxSession is a C++ class
     # and xpe_ai.dll exports a C ABI only.
     src/ai_onnx_session.cpp
+    # QA-B-195 M3: OnnxSession::Create verifies model signatures, so the worker compiles the verifier too
+    src/ai_model_signer.cpp
 )
 
 target_include_directories(${WORKER_NAME}
@@ -382,6 +384,11 @@ endif()
 option(XPE_AI_TEST_HOOKS "Compile the test-only hooks into xpe_ai.dll; OFF for a delivery build" ${_XPE_AI_BUILD_TESTS})
 if(XPE_AI_TEST_HOOKS)
     target_compile_definitions(xpe_ai PRIVATE XPE_AI_TEST_HOOKS=1)
+    # QA-B-195 M3 (design decision D4): the worker verifies model signatures with the same code, so a test build must
+    # let it trust the TEST signing key named by XPE_AI_TEST_TRUSTED_KEYS, an environment variable it inherits from
+    # the test process. A delivery build (-DXPE_AI_TEST_HOOKS=OFF) contains no such code and trusts only the
+    # production list, which is EMPTY until the production key exists (#243): it refuses every model.
+    target_compile_definitions(xpe_ai_worker PRIVATE XPE_AI_TEST_HOOKS=1)
     # QA-B-177: also let a test attach a sink to the DLL's own spdlog, to read the log text as emitted.
     if(TARGET spdlog::spdlog)
         target_compile_definitions(xpe_ai PRIVATE XPE_AI_TEST_LOG_CAPTURE=1)
@@ -430,6 +437,10 @@ if(_XPE_AI_BUILD_TESTS)
         test_ai_model_signer.cpp
         # #130 (QA-B-195 M2): every AI test model has a current signature (renew with tools/ai/xpe_model_signing.py)
         test_ai_model_assets_signed.cpp
+        # #130 (QA-B-195 M3): trusts the TEST signing key for the whole test process (the production list is empty)
+        test_trust_setup.cpp
+        # #130 (QA-B-195 M3): model loading verifies signatures: role, tamper matrix, trust list, verified bytes are the used bytes
+        test_ai_model_loading_trust.cpp
         # #130 (QA-B-168): SRS-ALERT-004 fires when DL was applied -- and, the
         # half that constrains the code, stays quiet on every path that
         # returned an image the model never touched
@@ -629,6 +640,7 @@ if(_XPE_AI_BUILD_TESTS)
         # and its allocations are NOT swept) and NOT xpe_ai, whose exports it provides itself.
         add_executable(xpe_ai_oom_tests
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_ai_oom_injection.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_trust_setup.cpp
             ${XPE_AI_SOURCES}
         )
         target_include_directories(xpe_ai_oom_tests
@@ -638,6 +650,10 @@ if(_XPE_AI_BUILD_TESTS)
         target_compile_definitions(xpe_ai_oom_tests PRIVATE
             XPE_DLL_EXPORT
             XPE_AI_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
+        if(XPE_AI_TEST_HOOKS)
+            # the sources are compiled exactly as the DLL builds them, and a test build's DLL trusts the TEST signing key
+            target_compile_definitions(xpe_ai_oom_tests PRIVATE XPE_AI_TEST_HOOKS=1)
+        endif()
         if(XPE_AI_STUB_BUILD OR NOT XPE_AI_USE_ONNXRUNTIME)
             target_compile_definitions(xpe_ai_oom_tests PRIVATE XPE_AI_STUB_BUILD=1)
         else()

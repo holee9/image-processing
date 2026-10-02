@@ -37,6 +37,7 @@
  */
 
 #include "xpe/ai/ai_onnx_session.h"
+#include "ai_model_signer.h"
 #include "xpe/common/xpe_error.h"
 
 #if !ONNX_RUNTIME_STUB_BUILD
@@ -80,6 +81,8 @@ struct OnnxSession::Impl {
     OnnxSessionConfig config;
     ExecutionProvider actual_ep;
     ModelMetadata metadata;
+    std::string sidecar_text;   // QA-B-195: the verified sidecar, kept so callers never read the file again
+    bool has_sidecar{false};
     std::vector<TensorMetadata> inputs;
     std::vector<TensorMetadata> outputs;
     bool is_valid;
@@ -103,6 +106,28 @@ struct OnnxSession::Impl {
 
 namespace {
 
+#ifdef XPE_AI_TEST_HOOKS
+void (*g_afterVerifyHook)(const std::string& modelPath) = nullptr;
+#endif
+
+enum class ReadResult { kOk, kFailed, kTooLarge };
+
+/**
+ * @brief Read a whole file ONCE into memory, refusing one above the verifier's cap (QA-B-195 D8: an implementation
+ *        safety cap, not a requirement). The bytes returned are the bytes that get verified AND the bytes that get used.
+ */
+ReadResult ReadFileBounded(const fs::path& p, std::vector<uint8_t>* out) {
+    std::ifstream f(p, std::ios::binary | std::ios::ate);
+    if (!f) return ReadResult::kFailed;
+    const std::streamoff size = f.tellg();
+    if (size < 0) return ReadResult::kFailed;
+    if (static_cast<unsigned long long>(size) > xpe::ai::kMaxSignedFileBytes) return ReadResult::kTooLarge;
+    out->assign(static_cast<size_t>(size), 0);
+    f.seekg(0);
+    if (size > 0 && !f.read(reinterpret_cast<char*>(out->data()), size)) return ReadResult::kFailed;
+    return ReadResult::kOk;
+}
+
 /**
  * @brief Check if a file exists
  */
@@ -123,18 +148,12 @@ bool FileExists(const std::string& path) {
 }
 
 /**
- * @brief Load JSON metadata from file
+ * @brief Parse JSON metadata from the sidecar's (verified) text
  */
-std::optional<ModelMetadata> LoadMetadataFromFile(const fs::path& metadata_path) {
+std::optional<ModelMetadata> LoadMetadataFromText(const std::string& sidecar_text) {
 #ifdef XPE_AI_USE_NLOHMANN_JSON
-    if (!fs::exists(metadata_path)) {
-        return std::nullopt;
-    }
-
     try {
-        std::ifstream meta_file(metadata_path);
-        json j;
-        meta_file >> j;
+        json j = json::parse(sidecar_text);
 
         ModelMetadata meta;
         if (j.contains("model_id")) {
@@ -160,7 +179,7 @@ std::optional<ModelMetadata> LoadMetadataFromFile(const fs::path& metadata_path)
     }
 #else
     // Fallback: simple key-value parsing without JSON library
-    (void)metadata_path;
+    (void)sidecar_text;
     return std::nullopt;
 #endif
 }
@@ -219,6 +238,11 @@ OnnxSession& OnnxSession::operator=(OnnxSession&& other) noexcept {
     return *this;
 }
 
+#ifdef XPE_AI_TEST_HOOKS
+/** TEST-ONLY: the callback Create() makes right after it verified the files and before it loads them. nullptr clears it. */
+void TestSetAfterVerifyHook(void (*hook)(const std::string& modelPath)) { g_afterVerifyHook = hook; }
+#endif
+
 OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(
         const OnnxSessionConfig& config) {
 
@@ -232,6 +256,67 @@ OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(
         LOG_ERROR(result.message);
         return result;
     }
+
+    // QA-B-195 M3 (REQ-AI-007 / REQ-AI-091): the model, its sidecar and its signature are read ONCE, verified together,
+    // and the session is built from THOSE bytes. Nothing is loaded from a model that does not verify, in a stub build
+    // too (a stub loads nothing, but the refusal must not depend on the build). A build whose trust list is empty --
+    // the production build until the production key exists (#243) -- refuses every model.
+    const fs::path model_fs_path(config.model_path);
+    fs::path sidecar_path = model_fs_path;
+    sidecar_path.replace_extension(".json");
+    fs::path sig_path = model_fs_path;
+    sig_path.replace_extension(".sig");
+
+    std::vector<uint8_t> model_bytes;
+    switch (ReadFileBounded(model_fs_path, &model_bytes)) {
+        case ReadResult::kOk: break;
+        case ReadResult::kTooLarge:
+            result.code = OnnxErrorCode::kModelNotTrusted;
+            result.message = std::string("model signature check failed (") +
+                             SignatureStatusText(SignatureStatus::kTooLarge) + "): " + config.model_path;
+            LOG_ERROR(result.message);
+            return result;
+        case ReadResult::kFailed:
+            result.code = OnnxErrorCode::kModelLoadFailed;
+            result.message = "Model file could not be read: " + config.model_path;
+            LOG_ERROR(result.message);
+            return result;
+    }
+    std::error_code fs_ec;
+    std::vector<uint8_t> sidecar_bytes;
+    const bool has_sidecar = fs::exists(sidecar_path, fs_ec) && !fs_ec;
+    bool sidecar_ok = true;
+    if (has_sidecar) sidecar_ok = ReadFileBounded(sidecar_path, &sidecar_bytes) == ReadResult::kOk;
+    std::vector<uint8_t> sig_bytes;
+    const bool has_sig = fs::exists(sig_path, fs_ec) && !fs_ec;
+    bool sig_ok = true;
+    if (has_sig) sig_ok = ReadFileBounded(sig_path, &sig_bytes) == ReadResult::kOk;
+
+    {
+        static const uint8_t kZero = 0;   // a valid pointer for an empty (but present) file
+        const std::vector<TrustedKey> keys = TrustedModelKeys();
+        const Bytes model{model_bytes.empty() ? &kZero : model_bytes.data(), model_bytes.size()};
+        const Bytes side{sidecar_bytes.empty() ? &kZero : sidecar_bytes.data(), sidecar_bytes.size()};
+        SignatureStatus st;
+        if (!sidecar_ok || !sig_ok) {
+            st = SignatureStatus::kVerifierError;   // a sidecar or signature that exists but cannot be read: refuse
+        } else {
+            st = VerifyModelSignature(keys.data(), keys.size(), config.role, model, has_sidecar ? &side : nullptr,
+                                      has_sig ? (sig_bytes.empty() ? &kZero : sig_bytes.data()) : nullptr, sig_bytes.size());
+        }
+        if (st != SignatureStatus::kOk) {
+            result.code = OnnxErrorCode::kModelNotTrusted;
+            result.message = std::string("model signature check failed (") + SignatureStatusText(st) + "): " + config.model_path;
+            LOG_ERROR(result.message);
+            return result;
+        }
+    }
+
+#ifdef XPE_AI_TEST_HOOKS
+    // TEST-ONLY (QA-B-195 M3): lets a test change the files on disk between the verification above and the load
+    // below, to show that what was verified is what is used. Not compiled into a delivery build.
+    if (g_afterVerifyHook) g_afterVerifyHook(config.model_path);
+#endif
 
     // Create session instance
     auto session = std::unique_ptr<OnnxSession>(new OnnxSession());
@@ -253,12 +338,13 @@ OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(
 
     session->pimpl_->actual_ep = actual_ep;
 
-    // Load metadata from JSON file if present
-    fs::path model_path(config.model_path);
-    fs::path metadata_path = model_path;
-    metadata_path.replace_extension(".json");
-
-    auto metadata_opt = LoadMetadataFromFile(metadata_path);
+    // Metadata comes from the sidecar bytes that were verified, never from a second read of the file.
+    std::optional<ModelMetadata> metadata_opt;
+    if (has_sidecar) {
+        session->pimpl_->sidecar_text.assign(reinterpret_cast<const char*>(sidecar_bytes.data()), sidecar_bytes.size());
+        session->pimpl_->has_sidecar = true;
+        metadata_opt = LoadMetadataFromText(session->pimpl_->sidecar_text);
+    }
     if (metadata_opt.has_value()) {
         session->pimpl_->metadata = std::move(metadata_opt.value());
         LOG_INFO("Loaded model metadata: " + session->pimpl_->metadata.model_id);
@@ -301,12 +387,11 @@ OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(
         // Only the CPU EP is registered. GetAvailableExecutionProviders()
         // reports what this build could offer; registering CUDA/DirectML needs
         // their provider DLLs and is out of this card's scope.
-#ifdef _WIN32
-        const std::wstring wide(config.model_path.begin(), config.model_path.end());
-        session->pimpl_->session.reset(new Ort::Session(*session->pimpl_->env, wide.c_str(), opts));
-#else
-        session->pimpl_->session.reset(new Ort::Session(*session->pimpl_->env, config.model_path.c_str(), opts));
-#endif
+        // From the verified bytes in memory, not from the path: the file cannot change between the check and the load
+        // (QA-B-195). The buffer is released as soon as the runtime has parsed it.
+        session->pimpl_->session.reset(
+            new Ort::Session(*session->pimpl_->env, model_bytes.data(), model_bytes.size(), opts));
+        std::vector<uint8_t>().swap(model_bytes);
 
         Ort::AllocatorWithDefaultOptions alloc;
         Ort::Session& s = *session->pimpl_->session;
@@ -452,6 +537,10 @@ bool OnnxSession::IsValid() const {
 
 ExecutionProvider OnnxSession::GetActualExecutionProvider() const {
     return pimpl_ ? pimpl_->actual_ep : ExecutionProvider::kCpu;
+}
+
+const std::string* OnnxSession::VerifiedSidecar() const {
+    return (pimpl_ && pimpl_->has_sidecar) ? &pimpl_->sidecar_text : nullptr;
 }
 
 const ModelMetadata& OnnxSession::GetModelMetadata() const {

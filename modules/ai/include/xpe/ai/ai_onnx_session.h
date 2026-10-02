@@ -69,6 +69,7 @@ enum class OnnxErrorCode {
     kSessionCreationFailed = 4, ///< Failed to create session
     kInvalidInput = 5,          ///< Invalid input data
     kOutOfMemory = 6,           ///< An allocation failed while creating the session (QA-B-194 M5): a shortage, not a bad model
+    kModelNotTrusted = 7,       ///< The model or its sidecar failed signature verification (QA-B-195 M3): nothing was loaded
 };
 
 /**
@@ -100,6 +101,12 @@ struct OnnxSessionConfig {
     int num_threads = 1;                                           ///< Intra-op thread count; a value below 1 is treated as 1
     LogLevel log_level = LogLevel::kWarning;                       ///< Session logging verbosity
     bool enable_profiling = false;                                 ///< Accepted and ignored: no profile is written (logs a warning)
+    /**
+     * The job this model is loaded for ("bone_suppress" or "bodypart"). It is part of what the signature covers
+     * (QA-B-195), so a model signed for one job is refused for another. A fixture that is named for no job is
+     * signed as "bone_suppress", which is also the default here.
+     */
+    std::string role = "bone_suppress";
 };
 
 /**
@@ -193,6 +200,17 @@ public:
      * @return Metadata of the loaded model; valid for the lifetime of the session
      */
     const ModelMetadata& GetModelMetadata() const;
+
+    /**
+     * @brief The sidecar `<model stem>.json` exactly as it was verified, or nullptr when the model has none.
+     *
+     * Create() reads the model, the sidecar and the signature ONCE, verifies them together and builds the session from
+     * those bytes (QA-B-195, REQ-AI-007 / REQ-AI-091). A caller that needs the sidecar's content (the body-part
+     * labels) takes it from here and never opens the file again: what was verified is what is used, with no window
+     * between the check and the use in which the file could be swapped.
+     * @return Pointer valid for the lifetime of the session.
+     */
+    const std::string* VerifiedSidecar() const;
 
     /**
      * @brief Get input tensor metadata

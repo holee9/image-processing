@@ -662,6 +662,22 @@ static std::atomic<void (*)(int)> g_testBeforeStateDeleteHook{nullptr};
 extern "C" XPE_API void xpe_ai_test_set_before_state_delete_hook(void (*hook)(int mutexStillHeld)) {
     g_testBeforeStateDeleteHook.store(hook, std::memory_order_release);
 }
+
+// TEST-ONLY (QA-B-195 M3). The model loader calls this after it has verified a model's signature and before it builds
+// the session from the verified bytes (OnnxSession::TestSetAfterVerifyHook, ai_onnx_session.cpp). A test registers a
+// callback that changes the files on disk at exactly that point, to show end to end that what was verified is what is
+// used -- the model AND the sidecar the body-part labels come from. Same XPE_AI_TEST_HOOKS option as the hooks above.
+namespace xpe::ai {
+void TestSetAfterVerifyHook(void (*hook)(const std::string& modelPath));
+}
+static std::atomic<void (*)(const char*)> g_testAfterVerifyHook{nullptr};
+static void afterVerifyTrampoline(const std::string& modelPath) {
+    if (auto* hook = g_testAfterVerifyHook.load(std::memory_order_acquire)) hook(modelPath.c_str());
+}
+extern "C" XPE_API void xpe_ai_test_set_after_verify_hook(void (*hook)(const char* modelPath)) {
+    g_testAfterVerifyHook.store(hook, std::memory_order_release);
+    xpe::ai::TestSetAfterVerifyHook(hook ? &afterVerifyTrampoline : nullptr);
+}
 #endif
 
 /** Bit 31 of AiModuleState::workerPublished: the worker is switched off for the session. */
@@ -1492,6 +1508,7 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
     if (!state->boneSuppressSession || state->boneSuppressSessionDir != state->modelDirPath) {
         xpe::ai::OnnxSessionConfig cfg;
         cfg.model_path = modelPath;
+        cfg.role = "bone_suppress";   // part of what the signature covers (QA-B-195)
         cfg.execution_provider = xpe::ai::ExecutionProvider::kCpu;
         cfg.num_threads = 1;
 
@@ -1510,6 +1527,12 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
                 case xpe::ai::OnnxErrorCode::kOutOfMemory:
                     // QA-B-194 M5: a shortage of memory is named as one, not as a failed inference.
                     return XPE_ERR_OUT_OF_MEMORY;
+                case xpe::ai::OnnxErrorCode::kModelNotTrusted:
+                    // QA-B-195 M3: the model or its sidecar failed signature verification. Nothing was loaded. The
+                    // same code as "model unreadable": the caller's answer is the same (no model to use). M4 makes
+                    // the reason visible to the operator.
+                    AI_LOG_ERROR("bone_suppress: %s", created.message.c_str());
+                    return XPE_ERR_CONFIG_INVALID;
                 default:
                     AI_LOG_ERROR("bone_suppress: session failed: %s", created.message.c_str());
                     return XPE_ERR_PROCESSING_FAILED;

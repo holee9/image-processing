@@ -56,6 +56,30 @@
  * reading a model's metadata file; (2) allocations made by ONNX Runtime's own allocator and (3) by xpe_common (the
  * alert queue) are not failed by the sweeps.
  *
+ * MODEL SIGNING (QA-B-195, REQ-AI-007 / REQ-AI-091). Every model the module loads is verified FIRST. For a model
+ * `<dir>/<name>.onnx` (name = bone_suppress or bodypart) the loader reads the model, its sidecar `<name>.json` (when
+ * there is one) and a detached signature `<name>.sig` ONCE, checks them together under a trusted key and the role the
+ * model is loaded for, and builds the session from exactly those bytes -- nothing is loaded from a model that does not
+ * verify, and a file changed after the check cannot reach the session. The signature is ECDSA P-256 over SHA-256 of a
+ * message that holds the role, the model and the sidecar (or the fact that there is none); changing any of them, or
+ * putting a model where another job's model is expected, fails the check. The in-process loaders and the worker use
+ * the same code.
+ *
+ * THE TRUST LIST IS EMPTY IN A PRODUCTION BUILD, and a build with no trusted key refuses EVERY model, a validly signed
+ * one included. That is the intended state while no real model exists: the production signing key is chosen when the
+ * real models arrive (#243, required before shipping). A build compiled with XPE_AI_TEST_HOOKS additionally trusts
+ * the keys named by the environment variable XPE_AI_TEST_TRUSTED_KEYS (test keys, never a production key); a delivery
+ * build (-DXPE_AI_TEST_HOOKS=OFF) contains no such code.
+ *
+ * A refusal behaves like any other "no usable model": xpe_bone_suppress returns XPE_ERR_CONFIG_INVALID,
+ * xpe_bodypart_recognize writes UNKNOWN, raises the one "unavailable" Warning of the session and returns
+ * XPE_ERR_PROCESSING_FAILED, and neither counts against the worker. Only the log carries the reason so far.
+ *
+ * WHAT THIS DOES NOT GUARD AGAINST: the trusted public keys are inside xpe_ai.dll and xpe_ai_worker.exe, so an
+ * attacker who can replace THOSE can replace the keys. The check shows that the model files were not changed; the
+ * protection of the executables (Authenticode, the install directory's permissions) is outside this module. A
+ * validly signed OLDER model is accepted: there is no rollback protection.
+ *
  * @ingroup xpe_ai
  */
 #ifndef XPE_AI_API_H
@@ -162,7 +186,8 @@ XPE_API const char* xpe_ai_version(void);
  * alert saying the new settings did not take effect and xpe_ai_shutdown must
  * come first (QA-B-194 M4, REQ-AI-090); an identical second call is silent.
  *
- * @param modelDirPath      Directory containing signed .onnx model files.
+ * @param modelDirPath      Directory containing signed .onnx model files (see MODEL SIGNING:
+ *                          an unsigned or altered model is refused when it is loaded, not here).
  *                          Must not be NULL or empty (an empty path used to be
  *                          accepted and then resolved against the working
  *                          directory). In the stub build the path is recorded

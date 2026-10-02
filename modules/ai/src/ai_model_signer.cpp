@@ -14,6 +14,7 @@
 #include <bcrypt.h>
 
 #include <cstring>
+#include <string>
 
 #pragma comment(lib, "bcrypt.lib")
 
@@ -82,6 +83,40 @@ struct Sha256 {
     }
 };
 
+#ifdef XPE_AI_TEST_HOOKS
+int HexValue(char ch) {
+    if (ch >= '0' && ch <= '9') return ch - '0';
+    if (ch >= 'a' && ch <= 'f') return ch - 'a' + 10;
+    if (ch >= 'A' && ch <= 'F') return ch - 'A' + 10;
+    return -1;
+}
+
+/** Add the keys named by XPE_AI_TEST_TRUSTED_KEYS. An entry that is not exactly 128 hex characters is ignored (fewer keys, never more). */
+void AddTestKeysFromEnvironment(std::vector<TrustedKey>* keys) {
+    char buf[8192];
+    const DWORD n = GetEnvironmentVariableA("XPE_AI_TEST_TRUSTED_KEYS", buf, sizeof(buf));
+    if (n == 0 || n >= sizeof(buf)) return;
+    const std::string text(buf, n);
+    size_t pos = 0;
+    while (pos <= text.size()) {
+        size_t end = text.find(',', pos);
+        if (end == std::string::npos) end = text.size();
+        const std::string entry = text.substr(pos, end - pos);
+        pos = end + 1;
+        if (entry.size() != 128) continue;
+        TrustedKey k{};
+        bool ok = true;
+        for (size_t i = 0; i < 64 && ok; ++i) {
+            const int hi = HexValue(entry[2 * i]);
+            const int lo = HexValue(entry[2 * i + 1]);
+            if (hi < 0 || lo < 0) ok = false;
+            else k.xy[i] = static_cast<uint8_t>(hi * 16 + lo);
+        }
+        if (ok && FillKeyId(&k)) keys->push_back(k);
+    }
+}
+#endif
+
 }  // namespace
 
 bool FillKeyId(TrustedKey* key) {
@@ -91,6 +126,15 @@ bool FillKeyId(TrustedKey* key) {
     if (!h.Finish(digest)) return false;
     std::memcpy(key->id, digest, sizeof(key->id));
     return true;
+}
+
+std::vector<TrustedKey> TrustedModelKeys() {
+    std::vector<TrustedKey> keys;
+    // The production list. EMPTY until the production key exists (#243); see ai_model_signer.h.
+#ifdef XPE_AI_TEST_HOOKS
+    AddTestKeysFromEnvironment(&keys);
+#endif
+    return keys;
 }
 
 const char* SignatureStatusText(SignatureStatus status) {

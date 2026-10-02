@@ -56,6 +56,7 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include "test_signing_helper.h"
 
 #ifndef XPE_AI_TEST_DATA_DIR
 #error "XPE_AI_TEST_DATA_DIR must be defined by the build (modules/ai/CMakeLists.txt)"
@@ -478,7 +479,7 @@ TEST_F(WorkerPathFixture, ASuccessResetsTheConsecutiveFailureCount) {
 
     EXPECT_NE(XPE_OK, CallOnce().rc);   // no model there yet: failure 1
     EXPECT_NE(XPE_OK, CallOnce().rc);   // failure 2
-    ASSERT_TRUE(CopyFileA((kDirX2 + "/bone_suppress.onnx").c_str(), model.c_str(), FALSE) != 0);
+    ASSERT_TRUE(xpe_test::CopyModelWithSignature(kDirX2, "bone_suppress", flip));
     const OneCall ok = CallOnce();      // the model is there now: success
     EXPECT_EQ(XPE_OK, ok.rc) << "the worker could not recover once the model appeared";
 
@@ -492,8 +493,7 @@ TEST_F(WorkerPathFixture, ASuccessResetsTheConsecutiveFailureCount) {
     EXPECT_EQ(XPE_OK, after.rc) << "the worker was switched off although the failures were not consecutive";
 
     xpe_ai_shutdown();
-    DeleteFileA(model.c_str());
-    RemoveDirectoryA(flip.c_str());
+    xpe_test::RemoveModelDir(flip, "bone_suppress");
 }
 
 // Codex audit #13: "at most 3 alerts per session" was a wrong description. A success resets the
@@ -510,12 +510,11 @@ TEST_F(WorkerPathFixture, IntermittentFailuresAlertOnEveryFailureAndAreNeverBloc
     DeleteFileA(model.c_str());
     ASSERT_EQ(XPE_OK, xpe_ai_init(dir.c_str(), "{\"use_worker\": true, \"timeout_ms\": 2000}"));
     xpe_clear_alerts();
-    const std::string good = kDirX2 + "/bone_suppress.onnx";
 
     EXPECT_NE(XPE_OK, CallOnce().rc);                                    // F: no model
     EXPECT_NE(XPE_OK, CallOnce().rc);                                    // F
     EXPECT_EQ(2u, QueryState().failures);
-    ASSERT_TRUE(CopyFileA(good.c_str(), model.c_str(), FALSE) != 0);
+    ASSERT_TRUE(xpe_test::CopyModelWithSignature(kDirX2, "bone_suppress", dir));
     EXPECT_EQ(XPE_OK, CallOnce().rc);                                    // S
     EXPECT_EQ(0u, QueryState().failures) << "a success must show as a reset count";
     EXPECT_EQ(XPE_AI_WORKER_ACTIVE, QueryState().state);
@@ -525,7 +524,7 @@ TEST_F(WorkerPathFixture, IntermittentFailuresAlertOnEveryFailureAndAreNeverBloc
     EXPECT_NE(XPE_OK, CallOnce().rc);                                    // F: a silent worker, killed
     ASSERT_TRUE(DeleteFileA(model.c_str()) != 0);
     EXPECT_NE(XPE_OK, CallOnce().rc);                                    // F: a fresh worker, no model
-    ASSERT_TRUE(CopyFileA(good.c_str(), model.c_str(), FALSE) != 0);
+    ASSERT_TRUE(xpe_test::CopyModelWithSignature(kDirX2, "bone_suppress", dir));
     EXPECT_EQ(XPE_OK, CallOnce().rc);                                    // S
 
     EXPECT_EQ(4, CountAlerts(kFailureNeedle))
@@ -534,8 +533,7 @@ TEST_F(WorkerPathFixture, IntermittentFailuresAlertOnEveryFailureAndAreNeverBloc
     EXPECT_EQ(XPE_OK, CallOnce().rc) << "the worker must still be in use";
 
     xpe_ai_shutdown();
-    DeleteFileA(model.c_str());
-    RemoveDirectoryA(dir.c_str());
+    xpe_test::RemoveModelDir(dir, "bone_suppress");
 }
 
 // QA-B-171C, alert volume: before the policy a worker that failed on every call raised one alert per

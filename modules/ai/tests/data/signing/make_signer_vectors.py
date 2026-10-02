@@ -59,6 +59,10 @@ def main():
            "// format; the C++ verifier (Windows CNG) must accept them. Test keys only: never trusted by the product.\n\n"]
     out.append(c_array("kKey1Xy", sig.public_xy(k1.public_key())))
     out.append(c_array("kKey2Xy", sig.public_xy(k2.public_key())))
+    # The TEST key 1 private scalar: public in this repository like the key file it comes from. It lets a C++ test sign a
+    # fixture it creates at run time (a temporary model directory with a different sidecar) -- test_signing_helper.h.
+    out.append("// Private scalar of TEST key 1 (test_key_1.pem). NOT a secret; the product never trusts this key.\n")
+    out.append(c_array("kKey1D", k1.private_numbers().private_value.to_bytes(32, "big")))
     out.append(c_array("kSharedModel", MODEL))
     out.append(c_array("kSharedSidecar", SIDECAR))
     rows = []

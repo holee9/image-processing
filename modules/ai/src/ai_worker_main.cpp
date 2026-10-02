@@ -444,6 +444,7 @@ private:
         if (!session_ || session_dir_ != model_dir_) {
             xpe::ai::OnnxSessionConfig cfg;
             cfg.model_path = model_path;
+            cfg.role = "bone_suppress";   // part of what the signature covers (QA-B-195)
             cfg.execution_provider = xpe::ai::ExecutionProvider::kCpu;
             cfg.num_threads = 1;
 
@@ -457,6 +458,11 @@ private:
                     case xpe::ai::OnnxErrorCode::kModelLoadFailed:
                         SendError(id, XPE_ERR_CONFIG_INVALID,
                                   "model unreadable: " + created.message);
+                        break;
+                    case xpe::ai::OnnxErrorCode::kModelNotTrusted:
+                        // QA-B-195 M3. M4 decides how the parent counts and reports it.
+                        SendError(id, XPE_ERR_CONFIG_INVALID,
+                                  "model not trusted: " + created.message);
                         break;
                     default:
                         SendError(id, XPE_ERR_PROCESSING_FAILED,
