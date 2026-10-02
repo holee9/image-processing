@@ -545,36 +545,45 @@
                         AutomationProperties.AutomationId="ClearAlertsButton"
                         Command="{Binding ClearAlertsCommand}"
                         Content="Clear Alerts" />
-                <!-- #225 row 10 (GUI-C-185, 185b): the AI worker switched off for the session, or the AI session that could not be
-                     started. Shown ONLY while the module reports the first (xpe_ai_worker_state) or the last start failed, so it stays when
-                     the alert has scrolled out of the queue; collapsed otherwise, which also takes it out of the automation tree. The
-                     restart button sits with it and stays after a failed restart. -->
-                <StackPanel Orientation="Horizontal" AutomationProperties.AutomationId="AiWorkerPanel">
-                    <StackPanel.Style>
-                        <Style TargetType="StackPanel">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding AiWorkerMarkVisible}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </StackPanel.Style>
-                    <Separator />
-                    <TextBlock x:Name="AiWorkerBanner"
-                               AutomationProperties.AutomationId="AiWorkerBanner"
-                               Text="{Binding AiWorkerBannerText}"
-                               Foreground="#b45309" FontWeight="SemiBold" VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis" MaxWidth="560"
-                               ToolTip="{Binding AiWorkerBannerText}" Margin="4,0" />
-                    <Button x:Name="AiRestartButton"
-                            AutomationProperties.AutomationId="AiRestartButton"
-                            Command="{Binding RestartAiSessionCommand}"
-                            Content="Restart AI"
-                            ToolTip="Shuts the AI module down and starts it again: a new session with a clean failure count." />
-                </StackPanel>
             </ToolBar>
         </ToolBarTray>
+
+        <!-- #225 row 10 (GUI-C-185, 185b): the AI worker switched off for the session, or the AI session that could not be
+             started. Shown ONLY while the module reports the first (xpe_ai_worker_state) or the last start failed, so it stays when
+             the alert has scrolled out of the queue; collapsed otherwise, which also takes it out of the automation tree. The
+             restart button sits with it and stays after a failed restart.
+
+             GUI-C-191: this row is NOT inside the ToolBar above. A ToolBar sends the items that do not fit its width to an overflow
+             popup, and an item there is neither on screen nor in the UI Automation tree. The panel was the toolbar's LAST item and
+             about 700 px wide; on the first native run the module reported the worker off and no banner could be found, because it was
+             in the overflow. A notice that says images are being returned unchanged must not be one click away. -->
+        <Border DockPanel.Dock="Top" Background="#1AB45309" Padding="8,3"
+                AutomationProperties.AutomationId="AiWorkerPanel">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding AiWorkerMarkVisible}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <DockPanel LastChildFill="True">
+                <Button x:Name="AiRestartButton"
+                        DockPanel.Dock="Right" Margin="8,0,0,0" Padding="8,1"
+                        AutomationProperties.AutomationId="AiRestartButton"
+                        Command="{Binding RestartAiSessionCommand}"
+                        Content="Restart AI"
+                        ToolTip="Shuts the AI module down and starts it again: a new session with a clean failure count." />
+                <TextBlock x:Name="AiWorkerBanner"
+                           AutomationProperties.AutomationId="AiWorkerBanner"
+                           Text="{Binding AiWorkerBannerText}"
+                           Foreground="#b45309" FontWeight="SemiBold" VerticalAlignment="Center"
+                           TextWrapping="Wrap"
+                           ToolTip="{Binding AiWorkerBannerText}" />
+            </DockPanel>
+        </Border>
 
         <!-- Workbench Study Queue (Slice 5) -->
         <views:StudyQueue DockPanel.Dock="Left"

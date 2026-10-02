@@ -23,6 +23,11 @@
     alert API surface). gui consumes it as linked source rather than a project reference — both
     projects are WinExe and neither is a library, so the file stays in one place with one author.
   -->
+  <!-- GUI-C-191: the self-check runner scripts the AI session (IAiSessionBackend, AiWorkerStatus) to test what the screen shows for it. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="ImageProcTest.SelfCheck" />
+  </ItemGroup>
+
   <ItemGroup>
     <Compile Include="..\..\clients\ImageProcTest\Services\AlertDisplayFormatter.cs"
              Link="Services\AlertDisplayFormatter.cs" />

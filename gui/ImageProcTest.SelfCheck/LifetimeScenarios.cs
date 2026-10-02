@@ -17,7 +17,7 @@ namespace ImageProcTest.SelfCheck;
 /// A Mock backend with counters and two scripts: one RunChain call can be held (and then fail or succeed on release), and the
 /// shutdown can be held. Nothing else is changed: every answer is the Mock's.
 /// </summary>
-internal sealed class ScenarioBackend : IXpeBackend
+internal class ScenarioBackend : IXpeBackend
 {
     private readonly IXpeBackend _inner = new MockXpeBackend(new RawImageLoader(), "xpe_common.dll", false, "xpe_display.dll", false);
 
@@ -25,6 +25,11 @@ internal sealed class ScenarioBackend : IXpeBackend
     public int PresetCalls;
     public int ChainCalls;
     public int ApplyCalls;
+
+    /// <summary>How many chain calls requested the AI stage, and for each call, in order, whether it did (GUI-C-191).</summary>
+    public int AiCalls;
+
+    public readonly System.Collections.Concurrent.ConcurrentQueue<bool> AiStageRequestedPerCall = new();
 
     /// <summary>The 1-based RunChain call that waits for <see cref="ChainRelease"/> (0: none).</summary>
     public int BlockChainCall;
@@ -41,6 +46,13 @@ internal sealed class ScenarioBackend : IXpeBackend
     public ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
     {
         var call = Interlocked.Increment(ref ChainCalls);
+        var requestsAi = stages.Any(stage => stage.StageId == StageIds.AiBoneSuppression && stage.Enabled);
+        AiStageRequestedPerCall.Enqueue(requestsAi);
+        if (requestsAi)
+        {
+            Interlocked.Increment(ref AiCalls);
+        }
+
         if (call == BlockChainCall)
         {
             ChainBlocked.Set();
@@ -93,6 +105,25 @@ internal sealed class ScenarioBackend : IXpeBackend
     public TelemetrySnapshot GetTelemetrySince(int logsSeen, int alertsSeen) => _inner.GetTelemetrySince(logsSeen, alertsSeen);
 
     public BackendRuntimeInfo GetRuntimeInfo() => _inner.GetRuntimeInfo();
+}
+
+/// <summary>
+/// A scenario backend with a scripted AI session (GUI-C-191): it is an <see cref="IAiSessionBackend"/>, which the plain one must not be
+/// (the view model asks, and Restart AI on a backend without a session answers differently). Every chain call that requests the AI
+/// stage counts as one failure of the scripted worker; <see cref="AiCeiling"/> in a row switch it off.
+/// </summary>
+internal sealed class AiScenarioBackend : ScenarioBackend, IAiSessionBackend
+{
+    /// <summary>The scripted worker ceiling.</summary>
+    public int AiCeiling = 3;
+
+    public AiWorkerStatus GetAiWorkerStatus()
+    {
+        var failures = Math.Min(Volatile.Read(ref AiCalls), AiCeiling);
+        return new AiWorkerStatus(failures >= AiCeiling ? AiWorkerState.Disabled : AiWorkerState.Active, (uint)failures, (uint)AiCeiling);
+    }
+
+    public AiRestartResult RestartAiSession(string modelDirectory) => new(false, "scripted backend: no session to restart");
 }
 
 internal static class LifetimeScenarios
@@ -150,6 +181,9 @@ internal static class LifetimeScenarios
                         await Timed(() => AnOlderApplyFinishingLateChangesNothing(rawPath, width, height, holdLane: false, fail: true));
                         await Timed(() => AnOlderApplyFinishingLateChangesNothing(rawPath, width, height, holdLane: true, fail: false));
                         await Timed(() => AnOlderApplyFinishingLateChangesNothing(rawPath, width, height, holdLane: true, fail: true));
+                        await Timed(() => TheCandidateLaneIsASecondAiCall_AndTheStatusIsReadAfterIt(rawPath, width, height));
+                        await Timed(() => EqualLanesMakeOneAiCallPerApply(rawPath, width, height));
+                        await Timed(() => TheAiWorkerDisabledFault_IsInertWithoutTheArgument_AndAnswersOffWithIt(rawPath, width, height));
                     }
                     catch (Exception ex)
                     {
@@ -182,7 +216,7 @@ internal static class LifetimeScenarios
         }
 
         Directory.Delete(scratch, recursive: true);
-        Console.WriteLine("Lifetime scenarios passed (9 scenarios).");
+        Console.WriteLine("Lifetime scenarios passed (12 scenarios).");
     }
 
     /// <summary>Runs one scenario and prints how long it took: the whole runner has to finish inside the app's wait for it (15 s, MainWindow), and this says where the time goes.</summary>
@@ -220,11 +254,11 @@ internal static class LifetimeScenarios
         Check(condition(), $"timed out waiting for: {what}");
     }
 
-    private static MainWindowViewModel NewViewModel(int width, int height, Func<int, ScenarioBackend> backendFor, string directory, out Func<int> builds)
+    private static MainWindowViewModel NewViewModel(int width, int height, Func<int, ScenarioBackend> backendFor, string directory, out Func<int> builds, float laneBVoiWindowWidth = 500f, bool aiInChain = false)
     {
         var count = 0;
         builds = () => count;
-        var settings = new AppSettings { RawWidth = width, RawHeight = height, LaneBVoiWindowWidth = 500f };
+        var settings = new AppSettings { RawWidth = width, RawHeight = height, LaneBVoiWindowWidth = laneBVoiWindowWidth, AiBoneSuppressionInChain = aiInChain };
         // The constructor builds one backend and InitializeBackend replaces it (builds 1 and 2), so the scripted one answers both.
         return new MainWindowViewModel(
             settings,
@@ -563,5 +597,92 @@ internal static class LifetimeScenarios
         {
             Directory.Delete(directory, recursive: true);
         }
+    }
+
+    // ---- 5: the Candidate lane is a SECOND AI call, and the worker status is read after it (GUI-C-191) --------------------------------
+    //
+    // The first native C-09 run (main CI): the module said "off" on the second attempt, and every attempt made one AI call more than the
+    // chain text showed. This is where it comes from: the Candidate lane's chain is the main chain with the lane's overrides, so it
+    // requests the AI stage too whenever the lanes differ. The status read that ReportChain asks for comes BEFORE the lanes, so a
+    // worker switched off by the lane's call was not shown until the next Apply.
+
+    private static async Task TheCandidateLaneIsASecondAiCall_AndTheStatusIsReadAfterIt(string rawPath, int width, int height)
+    {
+        _scenario = "5 Candidate lane = second AI call, status read after it";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new AiScenarioBackend { AiCeiling = 2 };   // two AI calls in a row switch the scripted worker off
+            var vm = NewViewModel(width, height, _ => backend, directory, out _, laneBVoiWindowWidth: 500f, aiInChain: true);
+            await LoadAndDrawLanes(vm, rawPath);                   // ONE Apply: main chain + Candidate chain, both with the AI stage
+
+            Check(backend.AiCalls == 2, $"one Apply with differing lanes should make 2 AI calls (main + Candidate), made {backend.AiCalls}");
+            Check(backend.AiStageRequestedPerCall.ToArray().All(requested => requested),
+                $"both chains of the Apply should request the AI stage: {string.Join(",", backend.AiStageRequestedPerCall)}");
+
+            // The status is the module's: switched off by the SECOND call. It has to reach the screen without another Apply.
+            await Until(() => vm.AiWorkerMarkVisible, "the worker switched off by the Candidate lane's call to be shown", 5000);
+            Check(vm.AiWorkerStatusSummary == "worker=Disabled; failures=2; ceiling=2",
+                $"the status after the Candidate lane's call was '{vm.AiWorkerStatusSummary}' {State(vm)}");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    private static async Task EqualLanesMakeOneAiCallPerApply(string rawPath, int width, int height)
+    {
+        _scenario = "5b equal lanes = one AI call per Apply";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new AiScenarioBackend { AiCeiling = 2 };
+            var vm = NewViewModel(width, height, _ => backend, directory, out _, laneBVoiWindowWidth: 0f, aiInChain: true);
+            await LoadAndDrawLanes(vm, rawPath);
+
+            Check(backend.AiCalls == 1, $"one Apply with equal lanes should make 1 AI call, made {backend.AiCalls}");
+            Check(backend.ChainCalls == 1, $"one Apply with equal lanes should make 1 chain call (the Candidate is the Reference), made {backend.ChainCalls}");
+            await Until(() => vm.AiWorkerStatusSummary == "worker=Active; failures=1; ceiling=2", "the status of the one AI call", 5000);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- 6: the ai-worker-disabled automation fault (GUI-C-191b) -------------------------------------------------------------------------
+    //
+    // The seam that lets a UI test put the "switched off" mark on screen without a native module. It has to be inert unless asked for
+    // and, when asked, answer exactly "switched off, 3 of 3" while everything else passes through to the real backend.
+
+    private static Task TheAiWorkerDisabledFault_IsInertWithoutTheArgument_AndAnswersOffWithIt(string rawPath, int width, int height)
+    {
+        _scenario = "6 ai-worker-disabled fault";
+        _ = rawPath;
+        _ = width;
+        _ = height;
+        IXpeBackend Mock() => new MockXpeBackend(new RawImageLoader(), "xpe_common.dll", false, "xpe_display.dll", false);
+
+        // Off: the backend itself comes back, and it is not an AI session (the Mock has none).
+        var plain = Mock();
+        var unwrapped = FaultInjectingBackend.Wrap(plain, failAfter: null, aiWorkerDisabled: false);
+        Check(ReferenceEquals(unwrapped, plain), "Wrap changed the backend although no fault was requested");
+        Check(unwrapped is not IAiSessionBackend, "the plain Mock backend became an AI session backend");
+
+        // On: the wrapper answers the injected status and nothing else about the AI session.
+        var armed = FaultInjectingBackend.Wrap(Mock(), failAfter: null, aiWorkerDisabled: true);
+        Check(armed is FaultInjectingBackend, "the fault did not wrap the backend");
+        var status = (armed as IAiSessionBackend)?.GetAiWorkerStatus();
+        Check(status == new AiWorkerStatus(AiWorkerState.Disabled, 3, 3), $"the injected status was {status}");
+        Check(AiBoneSuppressionStage.DescribeStatus(status!) == "worker=Disabled; failures=3; ceiling=3", $"the summary of the injected status was '{AiBoneSuppressionStage.DescribeStatus(status!)}'");
+        Check(AiBoneSuppressionStage.ShowsMark(status!), "the injected status does not show the mark");
+        Check(FaultInjectingBackend.Describe() == "faultInjection=ai-worker-disabled calls=0", $"the fault status line was '{FaultInjectingBackend.Describe()}'");
+
+        // The display fault, when also given, keeps its own wording and behaviour.
+        var both = FaultInjectingBackend.Wrap(Mock(), failAfter: 2, aiWorkerDisabled: true);
+        Check(FaultInjectingBackend.Describe() == "faultInjection=display-pipeline-after:2 calls=0 ai-worker-disabled", $"the combined fault status line was '{FaultInjectingBackend.Describe()}'");
+        _ = both;
+        return Task.CompletedTask;
     }
 }

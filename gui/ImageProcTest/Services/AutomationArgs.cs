@@ -26,7 +26,8 @@ public sealed record AutomationArgs(
     int? DisplayPipelineFailAfter = null,
     string? SettingsPath = null,
     string? RenderDumpPath = null,
-    string? SelfCheckExePath = null)
+    string? SelfCheckExePath = null,
+    bool AiWorkerDisabled = false)
 {
     /// <summary>
     /// #171 (GUI-C-79): the only accepted fault. <c>display-pipeline-after:N</c> lets the first N display
@@ -34,6 +35,13 @@ public sealed record AutomationArgs(
     /// end. Command line only, off unless given, and an unknown fault is refused like any other switch.
     /// </summary>
     public const string DisplayPipelineFaultPrefix = "display-pipeline-after:";
+
+    /// <summary>
+    /// GUI-C-191b: the second accepted fault. <c>ai-worker-disabled</c> makes the AI worker status read answer "switched off, 3 of 3", so
+    /// the mark (banner + Restart AI) can be put on screen WITHOUT a native module and looked at by a UI test at the window sizes users
+    /// have. Same terms as <see cref="DisplayPipelineFaultPrefix"/>: command line only, inert without the argument, loud when armed.
+    /// </summary>
+    public const string AiWorkerDisabledFault = "ai-worker-disabled";
 
     /// <summary>
     /// #225 (GUI-C-159): where the Run Self-Check command should look for its runner, overriding the
@@ -74,6 +82,7 @@ public sealed record AutomationArgs(
         string? renderDumpPath = null;
         string? selfCheckExePath = null;
         int? rawWidth = null, rawHeight = null, displayPipelineFailAfter = null;
+        var aiWorkerDisabled = false;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -158,6 +167,10 @@ public sealed record AutomationArgs(
 
                 rawHeight = height;
             }
+            else if (Is(switchName, "--automation-fault") && string.Equals(value, AiWorkerDisabledFault, StringComparison.Ordinal))
+            {
+                aiWorkerDisabled = true;
+            }
             else if (Is(switchName, "--automation-fault"))
             {
                 if (!value.StartsWith(DisplayPipelineFaultPrefix, StringComparison.Ordinal)
@@ -165,7 +178,7 @@ public sealed record AutomationArgs(
                         System.Globalization.CultureInfo.InvariantCulture, out var failAfter))
                 {
                     error ??= $"--automation-fault '{value}' is not a recognised fault " +
-                              $"(expected {DisplayPipelineFaultPrefix}<non-negative integer>).";
+                              $"(expected {DisplayPipelineFaultPrefix}<non-negative integer> or {AiWorkerDisabledFault}).";
                     continue;
                 }
 
@@ -186,7 +199,7 @@ public sealed record AutomationArgs(
         // --automation-report was seen, there is nowhere to write and the exit code is the signal.
         return error is null
             ? new AutomationArgs(rawPath, reportPath, backendMode, calibrationDirectory, rawWidth, rawHeight, Error: null,
-                displayPipelineFailAfter, settingsPath, renderDumpPath, selfCheckExePath)
+                displayPipelineFailAfter, settingsPath, renderDumpPath, selfCheckExePath, aiWorkerDisabled)
             : new AutomationArgs(
                 RawPath: null, reportPath, BackendMode: null, CalibrationDirectory: null,
                 RawWidth: null, RawHeight: null, error);

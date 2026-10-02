@@ -1,0 +1,6 @@
+gui + clients build: exit 0, 0 errors, xUnit1031 warnings 0
+SelfCheck: Lifetime scenarios passed (11 scenarios); 12 runs in a row 0 failures, 1.8-2.1 s (mean 1.9 s)
+Functional (Category=Functional): 360 passed, 1 skipped, 0 failed
+E2E (Mock) ProcessingChain+AutomationReportBackend+MenuCommand+RunnerVerdictWording+TwoLaneWorkbench+AlertVisibility: exit 0, 41 passed, 9 skipped (Native-only x7, L04/L06 Mock refuses by design), 0 failed
+Real app, Mock, state forced to Disabled (temporary patch + temporary test, both removed): banner/Restart AI found at 1560 and 1400, NOT found at 1280 with the original layout; found at 1560/1400/1280 with the moved layout
+Native E2E (C-09): NOT run locally (#98)

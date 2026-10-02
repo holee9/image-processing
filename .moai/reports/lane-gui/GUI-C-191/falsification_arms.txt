@@ -1,0 +1,22 @@
+ARM the-panel-goes-back-into-the-toolbar (the original MainWindow.xaml): app_build_ok=True selfcheck_exit=0 layout_tests_built=True
+   functional: ['실패!  - 실패:     4, 통과:     2, 건너뜀:     0, 전체:     6, 기간: 69 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiWorkerPanelLayoutTests.ThePanel_SitsInTheWindowsOwnDock_AsARowOfItsOwn [4 ms]
+   red: AiWorkerPanelLayoutTests.TheMarkAndItsButton_AreNotInsideAToolBar_WhereTheOverflowCanTakeThemOffTheScreen(id: "AiRestart
+   red: AiWorkerPanelLayoutTests.TheMarkAndItsButton_AreNotInsideAToolBar_WhereTheOverflowCanTakeThemOffTheScreen(id: "AiWorkerP
+   red: AiWorkerPanelLayoutTests.TheMarkAndItsButton_AreNotInsideAToolBar_WhereTheOverflowCanTakeThemOffTheScreen(id: "AiWorkerB
+   restored byte-identical: True
+ARM the-status-is-not-read-after-the-lanes: app_build_ok=True selfcheck_exit=3762504530 layout_tests_built=True
+   functional: ['통과!  - 실패:     0, 통과:     6, 건너뜀:     0, 전체:     6, 기간: 25 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   selfcheck: [5 Candidate lane = second AI call, status read after it] timed out waiting for: the worker switched off by the Candidate lane's call to be shown
+   selfcheck: [5 Candidate lane = second AI call, status read after it] the status after the Candidate lane's call was 'worker=Active; failures=1; ceiling=2' [screen: processed=3f98e80 laneA=3f98e80 laneB=35eea91 l
+   restored byte-identical: True
+ARM c09-does-not-resize-to-the-minimum-width: app_build_ok=True selfcheck_exit=0 layout_tests_built=True
+   functional: ['실패!  - 실패:     1, 통과:     5, 건너뜀:     0, 전체:     6, 기간: 39 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiWorkerPanelLayoutTests.C09_RunsAtTheMinimumWidth_WaitsForTheBannerAsAnEvent_AndItsFailureSaysWhatWasRead [13 ms]
+   restored byte-identical: True
+ARM c09-failure-text-blames-the-module-again: app_build_ok=True selfcheck_exit=0 layout_tests_built=True
+   functional: ['실패!  - 실패:     1, 통과:     5, 건너뜀:     0, 전체:     6, 기간: 39 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   red: AiWorkerPanelLayoutTests.C09_RunsAtTheMinimumWidth_WaitsForTheBannerAsAnEvent_AndItsFailureSaysWhatWasRead [10 ms]
+   restored byte-identical: True
+AFTER RESTORE: app_build_ok True selfcheck_exit 0 ['Lifetime scenarios passed (11 scenarios).', 'GUI-S0 self-check passed.'] ['통과!  - 실패:     0, 통과:     6, 건너뜀:     0, 전체:     6, 기간: 23 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+sources: efe5b050ef41 518e91b88c54 665bf77a9b6e

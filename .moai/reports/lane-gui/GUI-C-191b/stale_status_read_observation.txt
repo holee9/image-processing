@@ -1,0 +1,30 @@
+GUI-C-191b item 4: does an OLDER Apply's AI status read land on the screen after a NEWER Apply's?
+Method (temporary SelfCheck code, removed): real MainWindowViewModel, scripted AI session whose FIRST status read is held inside the module and answers from
+the state it saw when it ENTERED; Apply B is run and completes while that read is still in flight; then the old read is released. Every change of
+AiWorkerStatusSummary is recorded in the PropertyChanged event (a first version sampled with a timer and missed the stale value: see report).
+
+ROUND 1: AI calls=2; B on screen at 153 ms showing 'worker=Unknown'; old read released at 153 ms
+   t=    0 ms  summary='worker=Unknown'
+   t=  154 ms  summary='worker=Active; failures=0; ceiling=3'
+   t=  154 ms  summary='worker=Active; failures=2; ceiling=3'
+   RESULT: the stale value (failures=1) was never shown
+ROUND 2: AI calls=2; B on screen at 161 ms showing 'worker=Unknown'; old read released at 161 ms
+   t=    0 ms  summary='worker=Unknown'
+   t=  161 ms  summary='worker=Active; failures=0; ceiling=3'
+   t=  161 ms  summary='worker=Active; failures=2; ceiling=3'
+   RESULT: the stale value (failures=1) was never shown
+ROUND 3: AI calls=2; B on screen at 158 ms showing 'worker=Unknown'; old read released at 158 ms
+   t=    0 ms  summary='worker=Unknown'
+   t=  158 ms  summary='worker=Active; failures=0; ceiling=3'
+   t=  158 ms  summary='worker=Active; failures=2; ceiling=3'
+   RESULT: the stale value (failures=1) was never shown
+ROUND 4: AI calls=2; B on screen at 159 ms showing 'worker=Unknown'; old read released at 159 ms
+   t=    0 ms  summary='worker=Unknown'
+   t=  159 ms  summary='worker=Active; failures=0; ceiling=3'
+   t=  159 ms  summary='worker=Active; failures=2; ceiling=3'
+   RESULT: the stale value (failures=1) was never shown
+ROUND 5: AI calls=2; B on screen at 154 ms showing 'worker=Unknown'; old read released at 154 ms
+   t=    0 ms  summary='worker=Unknown'
+   t=  154 ms  summary='worker=Active; failures=0; ceiling=3'
+   t=  154 ms  summary='worker=Active; failures=2; ceiling=3'
+   RESULT: the stale value (failures=1) was never shown

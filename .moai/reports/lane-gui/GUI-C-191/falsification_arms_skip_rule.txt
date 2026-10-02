@@ -1,0 +1,16 @@
+ARM every-gap-skips-again: exit=1 built_ok=True
+   ['실패!  - 실패:     3, 통과:    10, 건너뜀:     0, 전체:    13, 기간: 58 ms - ImageProcTest.E2ETests.dll (net8.0)']
+   red: RunnerVerdictWordingTests.OnlyAMissingExecutableSkips_EveryOtherGapFails(gap: Unexplained, skips: False) [3 ms]
+   red: RunnerVerdictWordingTests.OnlyAMissingExecutableSkips_EveryOtherGapFails(gap: StillRunning, skips: False) [< 1 ms]
+   red: RunnerVerdictWordingTests.OnlyAMissingExecutableSkips_EveryOtherGapFails(gap: DidNotStart, skips: False) [< 1 ms]
+   restored byte-identical: True
+ARM a-slow-runner-skips-again: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    12, 건너뜀:     0, 전체:    13, 기간: 34 ms - ImageProcTest.E2ETests.dll (net8.0)']
+   red: RunnerVerdictWordingTests.OnlyAMissingExecutableSkips_EveryOtherGapFails(gap: StillRunning, skips: False) [< 1 ms]
+   restored byte-identical: True
+ARM the-scenario-gate-skips-on-any-missing-verdict: exit=1 built_ok=True
+   ['실패!  - 실패:     1, 통과:    12, 건너뜀:     0, 전체:    13, 기간: 34 ms - ImageProcTest.E2ETests.dll (net8.0)']
+   red: RunnerVerdictWordingTests.VerdictOrSkip_SkipsOnlyThroughTheRule_AndOtherwiseThrowsTheReason [1 ms]
+   restored byte-identical: True
+AFTER RESTORE: 0 True ['통과!  - 실패:     0, 통과:    13, 건너뜀:     0, 전체:    13, 기간: 32 ms - ImageProcTest.E2ETests.dll (net8.0)']
+sources: 962bb33b31de b73f9e31adbe
