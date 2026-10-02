@@ -339,6 +339,24 @@ XpeErrorCode WorkerSupervisor::BoneSuppress(uint32_t width, uint32_t height,
     return rc;
 }
 
+XpeErrorCode WorkerSupervisor::BodyPartRecognize(uint32_t width, uint32_t height, const float* pixels_in,
+                                                 xpe::ai::BodyPartReply* reply) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    last_model_unavailable_ = false;
+    XpeErrorCode rc = EnsureRunningLocked();
+    if (rc != XPE_OK) return rc;
+    rc = xpe_ai_ipc_bridge_bodypart(bridge_, width, height, pixels_in, reply);
+    last_model_unavailable_ = bridge_ != nullptr && bridge_->last_model_unavailable;
+    // Same rule as BoneSuppress: an error frame leaves the bridge and worker in place, a fault takes both down.
+    DropIfBridgeDownLocked();
+    return rc;
+}
+
+bool WorkerSupervisor::LastModelUnavailable() const {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return last_model_unavailable_;
+}
+
 bool WorkerSupervisor::LastResultWasNonFinite() const {
     std::lock_guard<std::mutex> lock(mtx_);
     return last_result_nonfinite_;

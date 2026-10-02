@@ -211,15 +211,6 @@ typedef enum XpeAiExecutionProvider {
  *   "worker_pid": 12345
  * }
  *
- * Bodypart recognize response payload (JSON):
- * {
- *   "body_part": "CHEST",
- *   "confidence": 0.95,
- *   "model_id": "bodypart_cnn_v1",
- *   "inference_ms": 42,
- *   "sidecar": { ... }               // REQ-AI-004: sidecar metadata
- * }
- *
  * Error response payload (JSON):
  * {
  *   "error_code": -3,
@@ -245,6 +236,28 @@ typedef enum XpeAiExecutionProvider {
  * Bone suppress response (type BONE_SUPPRESS_RESP, binary):
  *   JSON  {"success": true, "width": 3, "height": 3, "format": "float32"}
  *   pixels width*height float32 -- the soft-tissue image
+ *
+ * Body-part recognize request (type BODYPART_RECOGNIZE, binary, QA-B-191 M4b):
+ *   the same layout as the bone suppress request: JSON {"width","height","format":"float32"} then
+ *   width*height float32 pixels. The ORIGINAL image is sent; the worker resizes it to the model's input.
+ *
+ * Body-part recognize response (type BODYPART_RECOGNIZE_RESP, JSON only -- no pixels):
+ *   {"success":true,"outcome":"ok","body_part":"CHEST","confidence":0.75}
+ *   {"success":true,"outcome":"non_finite"}      the model's output held inf/NaN: this image is refused
+ *   {"success":true,"outcome":"out_of_range"}    a value outside [0, 1]: not a probability vector
+ *   "ok" carries a label of 1..63 bytes (no quote, backslash or control character: this reply has no
+ *   escapes) and a finite confidence in [0, 1]; a refusal carries neither. The host reads this reply as
+ *   strictly as the bone suppress envelope -- success must be true, outcome must be one of the three, and a
+ *   reply that deviates is a protocol fault (the connection is dropped and the call counts as a worker
+ *   failure). Keys it does not know are ignored. The reply says what the MODEL said; the threshold and
+ *   fallback_mode are the host's, applied after (REQ-AI-012). The model is
+ *   <model_dir from INIT>/bodypart.onnx with its labels in <model_dir>/bodypart.json.
+ *
+ *   A model that cannot be used (no file, unreadable, unusable labels, input shape or output size) is an
+ *   XPE_AI_MSG_ERROR frame with "model_unavailable":true placed BEFORE error_message:
+ *   {"error_code":-9,"model_unavailable":true,"error_message":"no model file"} -- a state of the installation,
+ *   which the host does not count against the worker (the worker answered and is healthy). A model that
+ *   exists but fails to RUN is an ordinary error frame without the flag, and is counted.
  *
  * A failed request gets XPE_AI_MSG_ERROR (no binary payload), whose error_code
  * is the same XPE_ERR_* the in-process xpe_bone_suppress returns for the same

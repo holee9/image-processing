@@ -335,12 +335,13 @@ TEST(WorkerProtocolConformance, AMessageTheWorkerDoesNotHandleGetsAnErrorThatSay
     ASSERT_TRUE(w.launched);
     ASSERT_TRUE(w.Connect());
 
-    // 10 is defined by the protocol (BODYPART_RECOGNIZE) and not implemented by
-    // the worker yet (QA-B-170): the reply must be an ERROR frame that names
-    // the type, not silence and not a lifecycle acknowledgement.
-    const Reply defined = SendAndReceive(w, XPE_AI_MSG_BODYPART_RECOGNIZE, 44);
+    // 12 is defined by the protocol (STITCH_IMAGES) and not implemented by the
+    // worker yet (QA-B-170): the reply must be an ERROR frame that names the
+    // type, not silence and not a lifecycle acknowledgement. (This used to be 10,
+    // BODYPART_RECOGNIZE, until QA-B-191 M4b implemented it.)
+    const Reply defined = SendAndReceive(w, XPE_AI_MSG_STITCH_IMAGES, 44);
     ASSERT_TRUE(IsFramedReply(defined, XPE_AI_MSG_ERROR, 44));
-    EXPECT_NE(std::string::npos, defined.payload.find("message type 10 is not handled"))
+    EXPECT_NE(std::string::npos, defined.payload.find("message type 12 is not handled"))
         << defined.payload;
 
     // 77 is not in the protocol at all. The worker must survive it and go on

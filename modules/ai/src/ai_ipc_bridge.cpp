@@ -44,6 +44,7 @@
 #include "ai_finite.h"
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -189,20 +190,12 @@ bool ParseErrorCode(const std::string& body, int* out) {
 }
 
 /**
- * QA-B-181j (Codex #65): is @p json a valid success envelope for a request of @p width x @p height?
- *
- * The worker's reply JSON is one flat object: {"success":true,"width":W,"height":H,"format":"float32"}.
- * This is a strict parser for exactly that shape -- an object of string keys whose values are strings,
- * non-negative integers, true, false or null; no nesting, no duplicate keys, nothing after the closing
- * brace -- followed by the semantic checks: success is the boolean true, width and height equal the request,
- * format is "float32". Anything else is false. (Keys the worker may add later are accepted if they are
- * well formed; the four named ones are required.)
- *
- * WHAT THIS DOES NOT PROVE: that the worker is healthy. A well-formed envelope on a reply whose pixels
- * are garbage is still a garbage reply that happens to be well formed; the check only stops a reply with a
- * BROKEN envelope from being taken for an answer.
+ * Parse @p json as ONE flat object (strict: string keys; values are strings without escapes, true, false, null,
+ * non-negative integers and -- only when @p allow_real -- real numbers; no nesting, no duplicate keys, nothing
+ * after the closing brace) into @p kv. A string value is stored with a leading '"'; every other value as its raw
+ * text. Returns false on any deviation.
  */
-bool ValidSuccessEnvelope(const char* json, size_t n, uint32_t width, uint32_t height) {
+bool ParseFlatObject(const char* json, size_t n, bool allow_real, std::map<std::string, std::string>* out) {
     size_t i = 0;
     auto ws = [&] { while (i < n && (json[i] == ' ' || json[i] == '\t' || json[i] == '\r' || json[i] == '\n')) ++i; };
     auto str = [&](std::string* out) {
@@ -221,7 +214,7 @@ bool ValidSuccessEnvelope(const char* json, size_t n, uint32_t width, uint32_t h
     ws();
     if (i >= n || json[i] != '{') return false;
     ++i;
-    std::map<std::string, std::string> kv;   // value kept as its raw text; strings keep a leading quote marker
+    std::map<std::string, std::string>& kv = *out;
     ws();
     if (i < n && json[i] == '}') {
         ++i;
@@ -239,6 +232,13 @@ bool ValidSuccessEnvelope(const char* json, size_t n, uint32_t width, uint32_t h
                 std::string s;
                 if (!str(&s)) return false;
                 val = "\"" + s;
+            } else if (allow_real && i < n && ((json[i] >= '0' && json[i] <= '9') || json[i] == '-')) {
+                // A real number: the characters a number can hold; its value is judged by the caller (strtod).
+                const size_t start = i;
+                while (i < n && ((json[i] >= '0' && json[i] <= '9') || json[i] == '.' || json[i] == 'e' ||
+                                 json[i] == 'E' || json[i] == '+' || json[i] == '-')) ++i;
+                if (i - start > 32) return false;
+                val.assign(json + start, i - start);
             } else if (i < n && json[i] >= '0' && json[i] <= '9') {
                 const size_t start = i;
                 while (i < n && json[i] >= '0' && json[i] <= '9') ++i;
@@ -262,6 +262,26 @@ bool ValidSuccessEnvelope(const char* json, size_t n, uint32_t width, uint32_t h
     }
     ws();
     if (i != n) return false;   // trailing junk
+    return true;
+}
+
+/**
+ * QA-B-181j (Codex #65): is @p json a valid success envelope for a request of @p width x @p height?
+ *
+ * The worker's reply JSON is one flat object: {"success":true,"width":W,"height":H,"format":"float32"}.
+ * This is a strict parser for exactly that shape -- an object of string keys whose values are strings,
+ * non-negative integers, true, false or null; no nesting, no duplicate keys, nothing after the closing
+ * brace -- followed by the semantic checks: success is the boolean true, width and height equal the request,
+ * format is "float32". Anything else is false. (Keys the worker may add later are accepted if they are
+ * well formed; the four named ones are required.)
+ *
+ * WHAT THIS DOES NOT PROVE: that the worker is healthy. A well-formed envelope on a reply whose pixels
+ * are garbage is still a garbage reply that happens to be well formed; the check only stops a reply with a
+ * BROKEN envelope from being taken for an answer.
+ */
+bool ValidSuccessEnvelope(const char* json, size_t n, uint32_t width, uint32_t height) {
+    std::map<std::string, std::string> kv;
+    if (!ParseFlatObject(json, n, /*allow_real=*/false, &kv)) return false;
     auto it = kv.find("success");
     if (it == kv.end() || it->second != "true") return false;
     it = kv.find("width");
@@ -643,6 +663,140 @@ XpeErrorCode xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge,
         return XPE_ERR_PROCESSING_FAILED;
     }
     std::memcpy(pixels_out, reply_pixels, pixel_bytes);
+    return XPE_OK;
+}
+
+// QA-B-191 M4b (#130): the client half of XPE_AI_MSG_BODYPART_RECOGNIZE.
+//
+// Same shape as xpe_ai_ipc_bridge_bone_suppress -- one request, one reply, one time budget (REQ-AI-092) for the
+// whole exchange -- but the reply is JSON only (a label, a confidence, or a refusal), and it is judged as strictly
+// as the bone-suppress envelope: a reply the protocol does not allow is a protocol fault, the connection is
+// dropped and the call is XPE_ERR_IO_FAILED, which the product counts as a worker failure.
+//
+// What a VALID reply can be (ai_worker_protocol.h):
+//   {"success":true,"outcome":"ok","body_part":"CHEST","confidence":0.75}   label 1..63 bytes, confidence finite in [0,1]
+//   {"success":true,"outcome":"non_finite"}  /  {"success":true,"outcome":"out_of_range"}   no label, no confidence
+// "ok" without a usable label or confidence, a refusal WITH a label or confidence, an unknown outcome and
+// success other than true are all invalid.
+XpeErrorCode xpe_ai_ipc_bridge_bodypart(XpeAiIpcBridge* bridge, uint32_t width, uint32_t height,
+                                        const float* pixels_in, XpeAiBodyPartReply* reply_out) {
+    if (!bridge || !pixels_in || !reply_out || width == 0 || height == 0) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+    bridge->last_model_unavailable = false;
+    *reply_out = XpeAiBodyPartReply{};
+    const uint64_t count = static_cast<uint64_t>(width) * height;
+    if (count > (XPE_AI_MAX_PAYLOAD_SIZE - 512u) / sizeof(float)) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+    const size_t pixel_bytes = static_cast<size_t>(count) * sizeof(float);
+
+    char json[96];
+    const int json_len = std::snprintf(
+        json, sizeof(json), "{\"width\":%u,\"height\":%u,\"format\":\"float32\"}",
+        static_cast<unsigned>(width), static_cast<unsigned>(height));
+    if (json_len <= 0 || static_cast<size_t>(json_len) >= sizeof(json)) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+
+    std::vector<uint8_t> payload(sizeof(uint32_t) + static_cast<size_t>(json_len) + pixel_bytes);
+    const uint32_t json_size = static_cast<uint32_t>(json_len);
+    std::memcpy(payload.data(), &json_size, sizeof(json_size));
+    std::memcpy(payload.data() + sizeof(json_size), json, json_size);
+    std::memcpy(payload.data() + sizeof(json_size) + json_size, pixels_in, pixel_bytes);
+
+    static std::atomic<uint32_t> next_request_id{1};
+    XpeAiMessageHeader header{};
+    header.magic = XPE_AI_MSG_MAGIC;
+    header.version = (static_cast<uint32_t>(XPE_AI_PROTOCOL_VERSION_MAJOR) << 16) |
+                     static_cast<uint32_t>(XPE_AI_PROTOCOL_VERSION_MINOR);
+    header.messageType = XPE_AI_MSG_BODYPART_RECOGNIZE;
+    header.requestId = next_request_id.fetch_add(1);
+    header.payloadSize = static_cast<uint32_t>(payload.size());
+    header.flags = XPE_AI_FLAG_HAS_BINARY_PAYLOAD;
+    header.timestamp = static_cast<uint64_t>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count());
+
+    const ULONGLONG deadline = DeadlineFor(bridge);
+    XpeErrorCode rc = SendUntil(bridge, &header, payload.data(),
+                                static_cast<uint32_t>(payload.size()), deadline);
+    if (rc != XPE_OK) {
+        return rc;
+    }
+
+    // A reply is a few hundred bytes at most (the longest label is 63 bytes). A larger one makes receive()
+    // report BUFFER_TOO_SMALL after consuming the header, which leaves the stream unusable and is not retried.
+    uint8_t reply[1024];
+    XpeAiMessageHeader rh{};
+    uint32_t received = 0;
+    rc = ReceiveUntil(bridge, &rh, reply, static_cast<uint32_t>(sizeof(reply)), &received, deadline);
+    if (rc != XPE_OK) {
+        return rc;
+    }
+    if (rh.requestId != header.requestId) {
+        DropConnection(bridge);   // someone else's answer: the stream is out of step
+        return XPE_ERR_IO_FAILED;
+    }
+
+    if (rh.messageType == XPE_AI_MSG_ERROR) {
+        const std::string body(reinterpret_cast<const char*>(reply), rh.payloadSize);
+        int code = 0;
+        if (!ParseErrorCode(body, &code)) {
+            DropConnection(bridge);   // an ERROR frame with no usable code: nothing else this worker says can be trusted
+            return XPE_ERR_PROCESSING_FAILED;
+        }
+        // "model_unavailable":true is read only from BEFORE the free-text message, so text a model error
+        // happens to carry cannot set it.
+        const size_t flag = body.find("\"model_unavailable\":true");
+        const size_t text = body.find("\"error_message\"");
+        bridge->last_model_unavailable = flag != std::string::npos && (text == std::string::npos || flag < text);
+        return static_cast<XpeErrorCode>(code);
+    }
+
+    if (rh.messageType != XPE_AI_MSG_BODYPART_RECOGNIZE_RESP ||
+        (rh.flags & XPE_AI_FLAG_HAS_BINARY_PAYLOAD) != 0) {
+        DropConnection(bridge);   // not the reply this request can get
+        return XPE_ERR_IO_FAILED;
+    }
+
+    std::map<std::string, std::string> kv;
+    auto bad = [&]() {
+        DropConnection(bridge);
+        return XPE_ERR_IO_FAILED;
+    };
+    if (!ParseFlatObject(reinterpret_cast<const char*>(reply), rh.payloadSize, /*allow_real=*/true, &kv)) return bad();
+    auto success = kv.find("success");
+    if (success == kv.end() || success->second != "true") return bad();
+    auto outcome = kv.find("outcome");
+    if (outcome == kv.end() || outcome->second.empty() || outcome->second[0] != '"') return bad();
+    const std::string kind = outcome->second.substr(1);
+    const bool has_label = kv.count("body_part") != 0;
+    const bool has_conf = kv.count("confidence") != 0;
+
+    XpeAiBodyPartReply parsed;
+    if (kind == "ok") {
+        if (!has_label || !has_conf) return bad();
+        const std::string& label = kv["body_part"];
+        if (label.empty() || label[0] != '"') return bad();
+        const std::string text = label.substr(1);
+        if (text.empty() || text.size() >= XPE_AI_MAX_BODYPART_LEN) return bad();
+        const std::string& conf = kv["confidence"];
+        if (conf.empty() || conf[0] == '"' || conf == "true" || conf == "false" || conf == "null") return bad();
+        char* end = nullptr;
+        const float c = std::strtof(conf.c_str(), &end);   // the float the worker printed, read back exactly
+        if (end == conf.c_str() || *end != '\0' || !std::isfinite(c) || c < 0.0f || c > 1.0f) return bad();
+        parsed.judgement = xpe::ai::BodyPartJudgement::kOk;
+        std::memcpy(parsed.label, text.c_str(), text.size() + 1);
+        parsed.confidence = c;
+    } else if (kind == "non_finite" || kind == "out_of_range") {
+        if (has_label || has_conf) return bad();   // a refusal carries no answer
+        parsed.judgement = kind == "non_finite" ? xpe::ai::BodyPartJudgement::kNonFinite
+                                                : xpe::ai::BodyPartJudgement::kOutOfRange;
+    } else {
+        return bad();
+    }
+    *reply_out = parsed;
     return XPE_OK;
 }
 

@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <string>
 
+#include "xpe/ai/ai_worker_protocol.h"
 #include "ai_finite.h"
 
 namespace xpe::ai {
@@ -34,6 +35,13 @@ struct BodyPartVerdict {
     BodyPartJudgement judgement = BodyPartJudgement::kEmpty;
     size_t best = 0;          ///< index of the largest value (the first on a tie); meaningful only when kOk
     float confidence = 0.0f;  ///< the largest value; meaningful only when kOk
+};
+
+/** What a worker's BODYPART_RECOGNIZE reply said. label and confidence are set only when judgement is kOk. */
+struct BodyPartReply {
+    BodyPartJudgement judgement = BodyPartJudgement::kEmpty;
+    char label[XPE_AI_MAX_BODYPART_LEN] = {0};
+    float confidence = 0.0f;
 };
 
 /**

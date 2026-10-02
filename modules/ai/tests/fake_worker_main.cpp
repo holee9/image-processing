@@ -14,6 +14,9 @@
  *   "exit_on_start" exits at once with code 7 (a worker that dies on start)
  *   "bone_valid_nan"    answers a BONE_SUPPRESS request with a VALID success envelope and NaN pixels (QA-B-181j)
  *   "bone_garbage_nan"  answers a BONE_SUPPRESS request with an EMPTY JSON envelope and NaN pixels (QA-B-181j)
+ *   "bodypart_raw"      answers a BODYPART_RECOGNIZE request with a RESP frame whose JSON is the environment
+ *                       variable XPE_FAKE_WORKER_JSON, verbatim (QA-B-191 M4b: the strict-parse table)
+ *   "bodypart_error_raw" answers it with an ERROR frame whose JSON is XPE_FAKE_WORKER_JSON, verbatim
  *
  * It answers the session-start message correctly in every mode, so the supervisor reaches the heartbeat.
  * It exits 0 on a shutdown request, like the real worker.
@@ -77,6 +80,14 @@ void ReplyBoneNaN(const XpeAiMessageHeader& req, const std::vector<char>& payloa
     WriteFile(g_pipe, body.data(), h.payloadSize, &w, nullptr);
 }
 
+/** The reply JSON a "bodypart_raw" / "bodypart_error_raw" worker sends (up to 900 bytes). */
+std::string EnvJson() {
+    char buf[1024] = {0};
+    size_t len = 0;
+    if (getenv_s(&len, buf, sizeof(buf), "XPE_FAKE_WORKER_JSON") != 0 || len == 0) return std::string();
+    return buf;
+}
+
 std::string Mode() {
     char buf[64] = {0};
     size_t len = 0;
@@ -125,6 +136,13 @@ int main(int argc, char** argv) {
                     ReplyBoneNaN(h, payload, "{\"success\":true,\"width\":3,\"height\":3,\"format\":\"float32\"}");
                 } else if (mode == "bone_garbage_nan") {
                     ReplyBoneNaN(h, payload, "");
+                }
+                break;
+            case XPE_AI_MSG_BODYPART_RECOGNIZE:
+                if (mode == "bodypart_raw") {
+                    Reply(XPE_AI_MSG_BODYPART_RECOGNIZE_RESP, h.requestId, EnvJson().c_str());
+                } else if (mode == "bodypart_error_raw") {
+                    Reply(XPE_AI_MSG_ERROR, h.requestId, EnvJson().c_str());
                 }
                 break;
             case XPE_AI_MSG_SHUTDOWN:

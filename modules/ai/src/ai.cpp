@@ -30,6 +30,7 @@
 #include "ai_finite.h"
 #include "ai_bodypart.h"
 #include "ai_bodypart_decision.h"
+#include "ai_bodypart_model.h"
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -75,17 +76,7 @@
  * All mutable state is protected by a single mutex. Atomic flags are
  * used for lock-free reads where appropriate (e.g., initialized check).
  */
-/**
- * The model behind xpe_bodypart_recognize and what was read next to it (QA-B-191, #130, T-006): the session, the
- * class labels from the sidecar `bodypart.json`, and the input size the model's graph declares. Built lazily on the
- * first call that needs it and owned by the module state, like the bone suppression session.
- */
-struct BodyPartModel {
-    std::unique_ptr<xpe::ai::OnnxSession> session;
-    std::vector<std::string> labels;
-    uint32_t inputHeight{0};
-    uint32_t inputWidth{0};
-};
+using xpe::ai::BodyPartModel;   // defined in ai_bodypart_model.h, shared with the worker
 
 struct AiModuleState {
     std::mutex mtx;
@@ -567,77 +558,12 @@ static XpeErrorCode bodyPartUnknown(char* bodyPartOut, size_t bufLen) {
     return XPE_ERR_PROCESSING_FAILED;
 }
 
-/**
- * Read `labels` from the sidecar: a JSON object with a non-empty array of non-empty strings, each short enough
- * for the worker protocol's label limit. Returns the reason text on failure, nullptr on success.
- */
-static const char* loadBodyPartLabels(const std::string& sidecarPath, std::vector<std::string>* labels) {
-#ifdef XPE_AI_USE_NLOHMANN_JSON
-    std::ifstream f(sidecarPath);
-    if (!f) return "label sidecar bodypart.json not found";
-    try {
-        nlohmann::json j;
-        f >> j;
-        if (!j.is_object() || !j.contains("labels") || !j["labels"].is_array() || j["labels"].empty()) {
-            return "label sidecar has no non-empty labels array";
-        }
-        for (const auto& e : j["labels"]) {
-            if (!e.is_string()) return "label sidecar has a label that is not a string";
-            const std::string v = e.get<std::string>();
-            if (v.empty() || v.size() >= XPE_AI_MAX_BODYPART_LEN) return "label sidecar has an empty or too long label";
-            labels->push_back(v);
-        }
-    } catch (const std::exception&) {
-        labels->clear();
-        return "label sidecar is not valid JSON";
-    }
-    return nullptr;
-#else
-    (void)sidecarPath;
-    (void)labels;
-    return "this build cannot read the label sidecar";
-#endif
-}
-
-/**
- * Build the body-part model from `<modelDir>/bodypart.onnx` and `<modelDir>/bodypart.json`. Returns the reason text
- * on failure (the model stays unset), nullptr on success. A model whose output length is fixed and differs from
- * the label count is refused here; one with a dynamic output is checked against each result instead.
- */
+/** Build the model for this session's model directory; the loading rules are shared with the worker (ai_bodypart_model.h). */
 static const char* loadBodyPartModel(AiModuleState* state, std::unique_ptr<BodyPartModel>* out) {
-    const std::string base = state->modelDirPath.empty() ? std::string() : state->modelDirPath + "/";
-    const std::string modelPath = base + "bodypart.onnx";
-    auto m = std::make_unique<BodyPartModel>();
-
-    xpe::ai::OnnxSessionConfig cfg;
-    cfg.model_path = modelPath;
-    cfg.execution_provider = xpe::ai::ExecutionProvider::kCpu;
-    cfg.num_threads = 1;
-    auto created = xpe::ai::OnnxSession::Create(cfg);
-    if (!created.has_value()) {
-        AI_LOG_ERROR("bodypart: cannot load %s: %s", modelPath.c_str(), created.message.c_str());
-        return created.code == xpe::ai::OnnxErrorCode::kInvalidModelPath ? "no model file" : "the model file cannot be loaded";
-    }
-    m->session = std::move(created.value);
-
-    if (const char* why = loadBodyPartLabels(base + "bodypart.json", &m->labels)) return why;
-
-    const std::vector<xpe::ai::TensorMetadata> inputs = m->session->GetInputMetadata();
-    if (inputs.empty() || !xpe::ai::BodyPartInputSize(inputs.front().shape, &m->inputHeight, &m->inputWidth)) {
-        return "the model input shape is not a fixed single-channel image";
-    }
-    const std::vector<xpe::ai::TensorMetadata> outputs = m->session->GetOutputMetadata();
-    if (!outputs.empty()) {
-        int64_t n = 1;
-        bool fixed = true;
-        for (int64_t d : outputs.front().shape) {
-            if (d < 0) { fixed = false; break; }
-            n *= d;
-        }
-        if (fixed && static_cast<size_t>(n) != m->labels.size()) return "the model output size differs from the number of labels";
-    }
-    *out = std::move(m);
-    return nullptr;
+    std::string detail;
+    const char* why = xpe::ai::LoadBodyPartModel(state->modelDirPath, out, nullptr, &detail);
+    if (why && !detail.empty()) AI_LOG_ERROR("bodypart: %s", detail.c_str());
+    return why;
 }
 
 /**
@@ -645,9 +571,8 @@ static const char* loadBodyPartModel(AiModuleState* state, std::unique_ptr<BodyP
  * decision QA-B-191 D3: Warning and not Info, because with fallback_mode off the low-confidence label is used
  * and an exposure parameter chosen from a wrong body part can be wrong; one per image is not a flood).
  * @p labelUsed is the label that is returned anyway (fallback_mode off), or null when UNKNOWN is returned.
- *
- * CROSS-LANE CONTRACT: clients may match these texts; the numbers are the shortest text that reads back as the
- * same float, so a confidence one float below the threshold is still told apart from it.
+ * The text is xpe::ai::LowConfidenceAlertText, shared with the worker path (CROSS-LANE CONTRACT: clients may
+ * match it).
  */
 static void pushLowConfidenceAlert(float confidence, float threshold, const char* labelUsed) {
     const std::string msg = xpe::ai::LowConfidenceAlertText(confidence, threshold, labelUsed);
