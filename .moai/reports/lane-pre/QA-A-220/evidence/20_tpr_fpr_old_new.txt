@@ -1,0 +1,32 @@
+##### old
+[rates] low noise, 5 sigma           injected=961 TP=488 FN=473  TPR=0.507804 | FP=5/1048576 FPR=0.000004768 | 37.4 ms
+[rates] high noise, 5 sigma          injected=961 TP=488 FN=473  TPR=0.507804 | FP=5/1048576 FPR=0.000004768 | 38.6 ms
+[       OK ] RuntimeDetectionRatesTest.KnownDivergence_TprAtFiveSigmaIsBelowTheRequirement (123 ms)
+[rates] low noise, clean FPR         injected=961 TP=488 FN=473  TPR=0.507804 | FP=5/1048576 FPR=0.000004768 | 20.5 ms
+[rates] high noise, clean FPR        injected=961 TP=488 FN=473  TPR=0.507804 | FP=5/1048576 FPR=0.000004768 | 21.1 ms
+[       OK ] RuntimeDetectionRatesTest.FprOnCleanFramesMeetsTheRequirement (87 ms)
+[rates] low noise, 6 sigma           injected=961 TP=779 FN=182  TPR=0.810614 | FP=0/0 FPR=0.000000000 | 9.9 ms
+[rates] low noise, 8 sigma           injected=961 TP=959 FN=2  TPR=0.997919 | FP=0/0 FPR=0.000000000 | 10.3 ms
+[rates] low noise, 10 sigma          injected=961 TP=961 FN=0  TPR=1.000000 | FP=0/0 FPR=0.000000000 | 10.1 ms
+[       OK ] RuntimeDetectionRatesTest.TprReachesTheFloorAtTenSigma (64 ms)
+[       OK ] RuntimeDetectionRatesTest.RatesAreInvariantUnderNoiseScaling (100 ms)
+[       OK ] RuntimeDetectionRatesTest.CleanFrameStaysUnderTheOnePercentCeiling (48 ms)
+[rates] striped(p13), 10 sigma      injected=961 TP=948  TPR=0.986472 | 12.5 ms
+[       OK ] RuntimeDetectionRatesTest.KnownDivergence_StripedFrameMissesTheTprFloor (24 ms)
+[  PASSED  ] 6 tests.
+##### new
+[rates] low noise, 5 sigma           injected=961 TP=488 FN=473  TPR=0.507804 | FP=5/1048576 FPR=0.000004768 | 38.9 ms
+[rates] high noise, 5 sigma          injected=961 TP=488 FN=473  TPR=0.507804 | FP=5/1048576 FPR=0.000004768 | 37.5 ms
+[       OK ] RuntimeDetectionRatesTest.KnownDivergence_TprAtFiveSigmaIsBelowTheRequirement (121 ms)
+[rates] low noise, clean FPR         injected=961 TP=488 FN=473  TPR=0.507804 | FP=5/1048576 FPR=0.000004768 | 20.0 ms
+[rates] high noise, clean FPR        injected=961 TP=488 FN=473  TPR=0.507804 | FP=5/1048576 FPR=0.000004768 | 20.2 ms
+[       OK ] RuntimeDetectionRatesTest.FprOnCleanFramesMeetsTheRequirement (85 ms)
+[rates] low noise, 6 sigma           injected=961 TP=779 FN=182  TPR=0.810614 | FP=0/0 FPR=0.000000000 | 10.3 ms
+[rates] low noise, 8 sigma           injected=961 TP=959 FN=2  TPR=0.997919 | FP=0/0 FPR=0.000000000 | 9.9 ms
+[rates] low noise, 10 sigma          injected=961 TP=961 FN=0  TPR=1.000000 | FP=0/0 FPR=0.000000000 | 9.9 ms
+[       OK ] RuntimeDetectionRatesTest.TprReachesTheFloorAtTenSigma (63 ms)
+[       OK ] RuntimeDetectionRatesTest.RatesAreInvariantUnderNoiseScaling (113 ms)
+[       OK ] RuntimeDetectionRatesTest.CleanFrameStaysUnderTheOnePercentCeiling (51 ms)
+[rates] striped(p13), 10 sigma      injected=961 TP=948  TPR=0.986472 | 14.5 ms
+[       OK ] RuntimeDetectionRatesTest.KnownDivergence_StripedFrameMissesTheTprFloor (26 ms)
+[  PASSED  ] 6 tests.
