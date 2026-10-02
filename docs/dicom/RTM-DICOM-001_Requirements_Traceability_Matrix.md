@@ -203,7 +203,7 @@ SRS (Software Requirements Specification)
 | FR-DCM-106 | CR IOD 파싱 | TC-106 | CR SOP Class 검증 | ✓ |
 | FR-DCM-107 | GSPS IOD 읽기 | TC-107 | GSPS SOP Class 검증 + Referenced Series | ✓ |
 | FR-DCM-108 | Rows/Columns 추출 | TC-108 | 이미지 크기 추출 및 범위 검증 | ✓ |
-| FR-DCM-109 | 포토메트릭 처리 | TC-109 | MONOCHROME1 반전, MONOCHROME2 유지 | ✓ |
+| FR-DCM-109 | 포토메트릭 처리 | TC-109 | MONOCHROME1 반전, MONOCHROME2 유지. 시험: `Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEveryPath`, `Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInverting`, `Tc109_Monochrome1_ReadingTwiceOnOneHandleGivesTheSameWords`, `Tc109_Monochrome1WithSignedPixelsIsRefusedLikeEverySignedImage`, `Tc109_Monochrome1PlusInverse_RoundTripKeepsThePolarity` (왕복은 극성만 보존). 현재 동작 기록(요구 아님): `Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrPresentationShapeFromTheSourceFile` | ✓ |
 | FR-DCM-110 | 픽셀 간격 읽기 | TC-110 | Pixel spacing 범위 검증 | ✓ |
 | FR-DCM-111 | Window/Level 읽기 | TC-111 | VOI LUT 프리셋 추출 | ✓ |
 | FR-DCM-112 | 환자 정보 추출 | TC-112 | Patient ID, Name, DOB 추출 | ✓ |

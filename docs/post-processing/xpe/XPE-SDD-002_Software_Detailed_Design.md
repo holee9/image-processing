@@ -1040,16 +1040,14 @@ W/L range check (SRS-SAFE-006, HAZ-006):
 
 ### 4.3 SWU-3.3: PresentationLUT
 
-**설계 목적**: GSDF P-Value 변환. Trace: SRS-FUNC-022, SRS-FUNC-023
+**설계 목적**: GSDF P-Value 변환. Trace: SRS-FUNC-022
 
 #### DLL API
 
 ```cpp
 XPE_API XpeErrorCode xpe_apply_presentation_lut(
-    const XpeImageBuffer* input,
-    XpeImageBuffer*       output,
-    int32_t               photometricInterpretation,  // 0=MONO1, 1=MONO2
-    int32_t               gsdfEnabled);
+    XpeImageBuffer*                 img,
+    const XpePresentationLutParams* params);   // lutData[1024], gsdfEnabled
 ```
 
 #### Pseudocode
@@ -1059,8 +1057,6 @@ DICOM PS3.14 GSDF:
   1. Convert input to Luminance (cd/m2) using display calibration
   2. Apply GSDF curve: P-Value = f(Luminance)
      - GSDF ensures perceptually linear JND spacing
-  3. IF photometricInterpretation == MONOCHROME1:
-       output = maxVal - pValue   // invert for white=low density
 
 GSDF compliance check (SRS-SAFE-007, HAZ-007):
   IF NOT gsdfEnabled:
@@ -1074,12 +1070,14 @@ Comparison viewport support (SRS-FUNC-024, SRS-SAFE-009, SRS-SAFE-013, HAZ-009):
   Toggle/switch latency: < 100ms for mode changes without pipeline reprocessing
 ```
 
+**극성 처리**: 극성은 `xpe_dicom_read_image` 가 읽을 때 정규화한다(FR-DCM-109). 이 단계는 항상 MONOCHROME2 의미의 입력을 받고 반전하지 않는다. 읽기 정규화가 보존하는 것은 극성이다. `xpe_dicom_write` 는 원본 파일의 Window Center/Width, Rescale, Presentation LUT Shape 를 보존하지 않고(Window 없음, Rescale 1/0, IDENTITY) 소스 파일에서 아무것도 복사하지 않으므로, 원본에 비항등 VOI 나 Rescale 이 있었다면 읽기→쓰기 뒤 밝기·대비가 달라질 수 있다.
+
 #### Edge Case
 
 | Case | Input | Action | Rationale |
 |------|-------|--------|-----------|
 | Non-GSDF display | gsdfEnabled=0 | Linear LUT + WARNING | SRS-SAFE-007 |
-| MONOCHROME1 | inversion needed | Invert output | SRS-FUNC-023 |
+| MONOCHROME1 | 이 단계 전에 리더가 반전해 MONOCHROME2 의미가 됨 | 이 단계는 반전하지 않음 (원본의 Window·Rescale 은 쓰기에서 보존되지 않는다) | SRS-FUNC-023 |
 | Toggle / compare request | switch comparison mode | < 100ms switch without source overwrite | SRS-SAFE-009, SRS-SAFE-013, SRS-FUNC-024 |
 
 ---
