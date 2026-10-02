@@ -30,6 +30,13 @@ public static class StageIds
 
     /// <summary>AI bone suppression (xpe_ai.dll, worker path), after gsvg and before the display pipeline (#225 row 10, GUI-C-184).</summary>
     public const string AiBoneSuppression = "ai_bone_suppress";
+
+    /// <summary>
+    /// Phase-1b basic enhancement as ONE stage (#225 row 9, GUI-C-196): log transform, noise reduction, contrast (CLAHE) and edge enhancement (USM) run
+    /// in float inside the stage and are converted to 16 bits once, at its end (xpe_enhance_basic.dll). Part of the Deterministic Baseline's fixed stage
+    /// list only; the ordinary Apply does not run it.
+    /// </summary>
+    public const string EnhanceBasic = "enhance_basic";
 }
 
 /// <summary>
