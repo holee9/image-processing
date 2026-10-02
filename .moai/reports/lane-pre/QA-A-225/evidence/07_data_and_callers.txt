@@ -1,0 +1,19 @@
+== test_data subdirs (main checkout, where payloads live)
+CalData_6: 13 files; sample: CalData_6/BPMap.map CalData_6/bright01.raw CalData_6/bright02.raw CalData_6/bright03.raw
+Grid_abnormal: 15 files; sample: Grid_abnormal/2G_Pre.raw Grid_abnormal/2G_Pre_Horizontal.raw Grid_abnormal/2G_Pre_Vertical.raw Grid_abnormal/Blue_Horizontal.raw
+calibration_cases: 88 files; sample: calibration_cases/.gitignore calibration_cases/aed_shock_had1717mc/calibration/BPM.raw calibration_cases/aed_shock_had1717mc/calibration/cDark.raw calibration_cases/aed_shock_had1717mc/calibration/cDark_AverMasDark.raw
+cyan_test: 56 files; sample: cyan_test/Bright_Chest phantom_75kv_320ma_25.6(SID_110)_00.raw cyan_test/Bright_Chest phantom_75kv_320ma_25.6(SID_110)_00_result.raw cyan_test/Bright_Chest phantom_75kv_320ma_25.6(SID_110)_01.raw cyan_test/Bright_Chest phantom_75kv_320ma_25.6(SID_110)_01_result.raw
+
+== tracked README/manifest for test_data
+tests/test_data/CalData_6/README.md
+tests/test_data/CalData_6/fixture.json
+tests/test_data/Grid_abnormal/README.md
+tests/test_data/Grid_abnormal/fixture.json
+tests/test_data/calibration_cases/.gitignore
+tests/test_data/calibration_cases/README.md
+tests/test_data/cyan_test/README.md
+tests/test_data/cyan_test/fixture.json
+
+== callers of xpe_verify_* outside modules/preprocess (clients, gui, tools, other modules)
+(none above = none)
+control: P/Invoke of a known export in clients: 12 files

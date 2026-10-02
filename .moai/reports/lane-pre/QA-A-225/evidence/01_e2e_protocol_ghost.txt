@@ -1,0 +1,25 @@
+docs/ghost-correction/IAP-GHOST-001_Image_Acquisition_Protocol.md
+docs/ghost-correction/README.md
+docs/ghost-correction/TDS-GHOST-001_Test_Dataset_Specification.md
+docs/ghost-correction/rtm_ghost_correction.md
+docs/ghost-correction/sad_ghost_correction.md
+docs/ghost-correction/sdd_ghost_correction.md
+docs/ghost-correction/srs_ghost_correction.md
+docs/ghost-correction/stp_stc_ghost_correction.md
+docs/ghost-correction/sw_lag_correction_prd_v2.md
+======
+## E2E protocol
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md:34:- Starman et al. lag correction and NLCSC basis: https://pmc.ncbi.nlm.nih.gov/articles/PMC3465354/
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md:35:- Pang et al. lag/ghosting physics and distinction: https://pmc.ncbi.nlm.nih.gov/articles/PMC5722609/
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md:57:| `H_k(x,y)` | Previous-frame history for lag/ghost correction | float32 |
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md:101:10. lag/ghost correction with deterministic tier escalation;
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md:171:### 4.6 Lag and ghost correction model
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md:173:Lag and ghost correction shall remain one preprocessing stage with internal tier escalation:
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md:266:### 5.6 Lag and ghost metrics
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md:269:LagResidualPct(k) = 100 * abs(mean(Y_blank_k) - mean(DarkRef)) / max(mean(ExposureSignal), epsilon)
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md:270:GhostRemovalPct = 100 * (LagRawPct - LagResidualPct) / max(LagRawPct, epsilon)
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md:276:- `GhostRemovalPct >= 90%` for benchmark sequences where lag is present;
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md:277:- first frame after reset reports `ghost_bypassed=true`;
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md:321:  0.12 * LagGhostScore +
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md:346:| `PRE-E2E-1` | Synthetic oracle | Prove exact arithmetic for offset, gain, defect, nonlinearity, binning, and lag micro-cases | Yes |
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md:402:| `PRE-E2E-BL-002` | Add synthetic oracle generator for offset/gain/nonlinearity/defect/lag | deterministic raw + expected output |

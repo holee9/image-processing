@@ -1,0 +1,18 @@
+== this worktree tests/test_data
+CalData_6/
+Grid_abnormal/
+calibration_cases/
+cyan_test/
+
+== main checkout tests/test_data (gitignored payloads live here)
+CalData_6/
+Grid_abnormal/
+calibration_cases/
+cyan_test/
+
+== any lag/ghost/blank/dark-sequence-like names anywhere under both
+(none above = none found)
+
+== control: a known payload kind exists
+75
+0

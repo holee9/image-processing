@@ -1,0 +1,78 @@
+== ghost API (header)
+709: *       xpe_ghost_correct() and xpe_ghost_reset() on the same handle are serialised
+713: *       without its own synchronisation, and xpe_ghost_destroy() (see there).
+715:XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
+725: * Serialised per handle with xpe_ghost_reset() and other xpe_ghost_correct() calls
+746:XPE_API XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
+754: * Serialised per handle with xpe_ghost_correct(): a concurrent correct sees the history
+761:XPE_API XpeErrorCode xpe_ghost_reset(void* handle);
+773:XPE_API void xpe_ghost_destroy(void* handle);
+
+== ghost sources / tests
+ghost_correct.cpp
+test_ghost_correct.cpp
+test_ghost_failed_frame.cpp
+test_ghost_input_finite.cpp
+test_ghost_thread_safety.cpp
+test_ghost_tier3_orientation.cpp
+test_ghost_tiers.cpp
+
+== ghost_correct.cpp: tiers, constants, history
+3: * @brief SWU-1.4: Ghost/Lag Correction Tier 1/2/3 — LTI/NLCSC deconvolution (PRE-04)
+5: *        Tier 1: LTI deconvolution
+6: *        Tier 2: Exposure-weighted LTI
+7: *        Tier 3: NLCSC (Nonlinear Causal Spatial Context)
+20:#include <string>
+21:#include <cstring>
+34:    // REQ-P1A-085: allocate handle with frame history buffer
+38:    // exception at any step frees it (it used to leak the handle and its history buffers when a number in
+49:        // Parse config JSON for tier and IRF coefficients. An absent or empty value keeps the default. The text is
+57:            std::string v;
+58:            if (doc.getString("tier", &v) && !v.empty()) {
+59:                int32_t tier = 1;
+60:                if (!xpe_strict::parse_int(v, &tier)) return XPE_ERR_CONFIG_INVALID;
+61:                handle->tier = (tier < 1 || tier > 3) ? 1 : tier;
+65:                {"tau2", &handle->tau2}, {"tier2Threshold", &handle->tier2Threshold}, {"nlcscBeta", &handle->nlcscBeta},
+68:                if (doc.getString(r.key, &v) && !v.empty() && !xpe_strict::parse_double(v, r.dst))
+88:// @MX:ANCHOR: [AUTO] xpe_ghost_correct — multi-tier ghost correction with auto-escalation
+90:// @MX:SPEC: REQ-P1A-032, REQ-P1A-033 (Tier 1/2/3)
+93:    // Helper: compute mean signal level for exposure estimation
+105:    // What a tier works out about the frame as a whole. It is committed to the handle with the history, and
+110:        float exposureWeight{1.0f};
+113:    // Tier 1: Standard LTI deconvolution
+114:    XpeErrorCode ghost_tier1(GhostCorrectorHandle* gh, float* px, size_t n,
+132:    // Tier 2: Exposure-weighted LTI deconvolution
+133:    XpeErrorCode ghost_tier2(GhostCorrectorHandle* gh, float* px, size_t n,
+138:        // Scale alpha based on exposure level (higher exposure = stronger correction)
+140:        const float exposureWeight = 1.0f + (meanSignal / 32768.0f) * 0.5f;
+141:        *stats = FrameStats{true, meanSignal, exposureWeight};
+143:        const float a1 = a1_base * exposureWeight;
+144:        const float a2 = a2_base * exposureWeight;
+162:    // Tier 3: NLCSC (Nonlinear Causal Spatial Context) with signal-dependent coefficients
+163:    XpeErrorCode ghost_tier3(GhostCorrectorHandle* gh, float* px, size_t n,
+166:        const float exposureWeight = 1.0f + (meanSignal / 32768.0f) * 0.5f;
+167:        *stats = FrameStats{true, meanSignal, exposureWeight};
+185:        // Apply NLCSC with signal-dependent coefficients
+192:            const float a1 = a1_base * exposureWeight * signalDependence;
+193:            const float a2 = a2_base * exposureWeight * signalDependence;
+216:                        // Blend corrected with local mean (0.7 : 0.3)
+217:                        corrected = 0.7f * corrected + 0.3f * localMean;
+244:    // SRS-CALIB-NFR-003: one call at a time per handle (history and lastAcqTimeSec are updated in place)
+249:    // QA-A-217 (#233): A NON-FINITE FRAME IS REFUSED AT THE ENTRANCE, before anything is written. The tiers used to
+253:    // the buffer and the handle untouched, one Error alert with the count and the first pixel. (The history was
+259:                                "the frame was not corrected; the buffer and the handle's history were not changed");
+270:    // gh->lastAcqTimeSec is set below, with the history, once the frame has succeeded (QA-A-202c).
+277:    // Select tier based on handle configuration
+278:    // REQ-P1A-032: apply LTI deconvolution (Tier 1/2/3)
+281:    // A frame can still fail with a finite input (a corrected value, or the new history, overflows float at the
+283:    // (REQ-P1A-032) and the history, which only a successful frame commits, as it was. QA-A-217.
+285:    switch (gh->tier) {
+287:            result = ghost_tier1(gh, px, n, decay1, decay2, a1_base, a2_base, &stats);
+290:            result = ghost_tier2(gh, px, n, decay1, decay2, a1_base, a2_base, &stats);
+293:            result = ghost_tier3(gh, px, n, decay1, decay2, a1_base, a2_base, &stats);
+296:            result = ghost_tier1(gh, px, n, decay1, decay2, a1_base, a2_base, &stats);
+300:        // the history, the time and the exposure estimate are as they were; the pixels are put back
+305:    // The whole frame succeeded: its history, its time and its exposure estimate become the handle's.
+311:        gh->exposureWeight = stats.exposureWeight;
+321:    // REQ-P1A-088: clear accumulated frame history
+326:    gh->exposureWeight = 1.0;

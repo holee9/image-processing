@@ -1,0 +1,128 @@
+== BYPASS-like flags/fields in the public types + header (control: GHOST_CORRECTED exists)
+GHOST_CORRECTED: 2  BYPASS: 0 in types, 0 ghost-bypass in preprocess_api.h
+
+== old ghost SRS 6.3 GCR formula (srs_ghost_correction.md 246-262)
+- `Σbₙ < 1.0` 이 교정 제약 (물리적 의미: 총 lag 비율 < 100%)
+
+### 6.3 GCR 추정 수식 (FR-702)
+
+```
+GCR = σ_block / μ_global
+
+계산:
+  1. 이미지를 N_b × N_b 블록 분할 (권장: N_b = 16)
+  2. 각 블록의 mean 계산 → M_i (i = 1...(H/N_b) × (W/N_b))
+  3. μ_global = mean(M_i)
+  4. σ_block = std(M_i)
+  5. GCR = σ_block / μ_global
+
+빠른 추정 (서브샘플링):
+  4×4 서브샘플링 사용 → 1/16 픽셀로 추정
+  정밀도 차이: < 0.01% (실험적 검증)
+
+== TDS-GHOST acceptance numbers (425-475)
+
+### 6.2 표준 FPD (a-Si TFT) 기준값
+
+#### 6.2.1 Varex XRD 4343N (3072×3072)
+
+**Tier 1 (Offset Correction)**:
+```
+입력 (FB 미적용, 높은 신호):
+  평균 GCR (Ghost Coefficient Ratio) = 0.33% (미보정)
+
+출력 (Tier 1 후):
+  GCR = 0.33% (Tier 1은 offset만, lag 보정 아님)
+
+기대: 이 값 그대로 (Tier 2로 진행)
+```
+
+**Tier 2 (LTI + Exposure-Weighted)**:
+```
+입력 (Tier 1 + Dark 정정):
+  D_post1 잔여 래그 신호 = 0.015% 검출기 신호
+
+출력 (Tier 2 후):
+  GCR = 0.25% (기준문헌 Starman et al.)
+
+기대: GCR < 0.25% (검증 성공)
+```
+
+**Tier 3 (NLCSC)**:
+```
+입력 (Tier 2 + 신호 의존 비선형성):
+  노출 의존 a2_n 계수 활성화
+
+출력 (Tier 3 후):
+  1st frame GCR = < 0.29% (Starman et al. Table 1)
+  50th frame GCR = < 0.0052% (극도로 작음)
+
+기대:
+  1st frame: < 0.29%
+  50th frame: < 0.0052%
+```
+
+#### 6.2.2 AUO R1717 (3072×3072)
+
+**기대값** (동일 모듈 아키텍처):
+```
+Tier 2: GCR < 0.25%
+Tier 3: 1st frame < 0.29%, 50th frame < 0.0052%
+```
+
+---
+
+
+== PRD 5.3 NLCSC pseudocode (477-520)
+### 5.3 Tier 3: NLCSC Correction
+
+```
+FUNCTION tier3_nlcsc_correct(I_oc, irf, history, history_count, temp, output, state):
+
+    // State variables Sn carry across frames (persistent)
+    // On first call or after long idle, state should be zeroed
+
+    FOR each pixel (x,y):
+        y_k = (int32_t)I_oc.data[y][x]
+
+        // Step 1: Update state variables with time decay
+        FOR n = 0 TO N_EXP_TERMS-1:
+            // Compute time-adjusted decay
+            dt = current_time - last_frame_time  // in seconds
+            tau_n = get_tau(n, irf, temp)
+            decay = exp_lut(-dt / tau_n)  // LUT-based exp
+
+            // State update: Sn = Sn_prev × decay + x_hat_prev × bn(E_prev)
+            E_prev = history[last].exposure_level
+            bn_E = lookup_bn(n, E_prev, irf, temp)
+
+            state[n][y][x] = fixed_mul(state[n][y][x], decay)
+                           + fixed_mul(x_hat_prev[y][x], bn_E)
+
+        // Step 2: Compute corrected signal
+        lag_sum = 0
+        FOR n = 0 TO N_EXP_TERMS-1:
+            lag_sum += state[n][y][x]
+
+        x_hat = (y_k - lag_sum) / irf.b0  // Fixed-point division
+
+        // Step 3: Clamp and store
+        output.data[y][x] = CLAMP(x_hat, 0, 65535)
+
+        // Step 4: Update stored charge estimate (for NLCSC nonlinear adaptation)
+        q_stored = 0
+        FOR n = 0 TO N_EXP_TERMS-1:
+            an_E = lookup_an(n, E_current, irf, temp)
+            IF an_E > 0:
+                q_stored += state[n][y][x] / (1 - exp_lut(-an_E))
+
+    RETURN CORR_OK
+```
+
+
+== current SPEC 1.3.3: Nyquist / MTF / NFR-206 / ghost removal
+302:      **0.71** @6-sigma, **0.96** @8-sigma, **0.9865** @10-sigma.
+303:    - **The shipping algorithm does NOT meet the amended requirement either** (0.9865 < 0.999).
+307:      `10 sigma 0.998959 -> 0.986472` -- and two independent harnesses now measure 0.9865.
+567:> **The row tail (2026-09-16, QA-A-69).** The vector run stopped at `x + 8 <= w - 1`, dropping the last seven interior pixels of every row onto the scalar path. That cost is **fixed per row**, so
+(none above = none)

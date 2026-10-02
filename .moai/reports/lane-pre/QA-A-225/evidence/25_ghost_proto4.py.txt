@@ -1,0 +1,24 @@
+"""QA-A-225 design evidence, round 4 (NOT product code): what does the tier-3 blend (0.7*corrected + 0.3*localMean(src))
+do to the removal the module can reach? Stable self-model truth, 64x64 frames (so most pixels are interior),
+nlcscBeta = 0 to take the signal-dependence term out of the comparison."""
+import sys, math
+import numpy as np
+sys.path.insert(0, 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5/scratchpad')
+import ghost_proto as g
+import ghost_proto2 as g2
+g.W = g.H = 64
+
+a1, t1, a2, t2 = 0.02, 3.0, 0.003, 30.0
+d1, d2 = math.exp(-1.0 / t1), math.exp(-1.0 / t2)
+SAT = g.SAT
+for level in (0.02, 0.27, 0.92):
+    xs = np.concatenate([np.zeros(5), np.full(200, level * SAT), np.zeros(50)])
+    ys = np.zeros(len(xs)); h1 = h2 = 0.0
+    for k, xk in enumerate(xs):
+        ys[k] = xk + a1 * h1 + a2 * h2
+        h1 = d1 * h1 + ys[k]; h2 = d2 * h2 + ys[k]
+    print('--- level %d%% (self-model truth: tier 1 with the same alpha/tau inverts it exactly) ---' % round(level * 100))
+    for tier in (1, 2, 3):
+        cfg = '{"tier":%d,"alpha1":%g,"tau1":%g,"alpha2":%g,"tau2":%g,"nlcscBeta":0}' % (tier, a1, t1, a2, t2)
+        cor = g.run_dll(ys, cfg)
+        print(g2.full('tier %d (beta 0)' % tier, xs, ys, cor, 5, 200, 50))
