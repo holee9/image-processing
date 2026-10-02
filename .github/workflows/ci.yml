@@ -544,7 +544,11 @@ jobs:
           name: xpe-ci-dicom-binaries
           if-no-files-found: warn
           retention-days: 14
-          path: build/ci-dicom/bin/
+          # vcpkg_installed/.../bin carries the DCMTK/OpenJPEG runtime xpe_dicom.dll
+          # loads; bin/ alone would upload a DLL that cannot load (GUI-C-196 M3b).
+          path: |
+            build/ci-dicom/bin/
+            build/ci-dicom/vcpkg_installed/x64-windows/bin/
 
   # ONNX Runtime inference gate (#130, QA-B-160).
   #
