@@ -226,16 +226,19 @@ TEST(AiExceptionGuard, SkippedWithoutTestHooks) {
 
 #endif
 
-// ---- QA-B-181d (Codex #48 census): the stitch size estimate is limited before it becomes a uint32 --------------
-// The estimate is a float, max(width) * (1 + 0.7 * (parts - 1)). It was converted to uint32_t first and clamped to
-// 4096 afterwards, so an estimate above UINT32_MAX was an out-of-range conversion. On x86-64 it wraps: 2526451329
-// wide parts (two of them, a format whose size the validator did not bound) estimate 4294967808, which wrapped
+// ---- QA-B-181d (Codex #48 census), narrowed in QA-B-194 (Codex #83, low) ------------------------------------
+// HISTORY. The estimate is a float, max(width) * (1 + 0.7 * (parts - 1)). It was converted to uint32_t first and
+// clamped to 4096 afterwards, so an estimate above UINT32_MAX was an out-of-range conversion; on x86-64 it wraps:
+// two 2526451329-wide parts (a format whose size the validator did not bound) estimated 4294967808, which wrapped
 // to 512 and was reported as 512 instead of the 4096 limit.
 //
-// QA-B-194 M1: the validator now bounds EVERY format's size (UINT8 included), so the 2526451329-wide parts that
-// reached the conversion are refused at the entrance -- the first assertion below. The clamp itself stays, and is
-// still held to its job at the widest image the validator accepts (a UINT8 image may hold 64 MB of pixels).
-TEST(AiExceptionGuard, StitchEstimateOfAHugeWidthIsTheLimitNotAWrappedValue) {
+// WHAT THIS TEST CAN STILL CATCH. Since QA-B-194 M1 the validator bounds EVERY format's size (UINT8 included: at
+// most 64 MB, so at most 67108864 UINT8 pixels of width), and the largest estimate a validated input can reach is
+// about 114 million -- far below UINT32_MAX. The over-range conversion above is therefore NOT reachable through
+// this function any more, and this test no longer detects its return (clamping after the cast would pass it).
+// It holds the two things that are still observable: an oversized input is refused with nothing written, and a
+// valid input whose estimate exceeds 4096 is reported as 4096, not as the raw estimate.
+TEST(AiExceptionGuard, StitchEstimateRefusesAnOversizedPartAndLimitsAValidOneTo4096) {
     uint8_t one = 0;
     XpeImageBuffer parts[2] = {};
     for (auto& p : parts) {
