@@ -266,10 +266,18 @@ bool ParseFlatObject(const char* json, size_t n, bool allow_real, bool allow_esc
  *     loaded or configured). Where it does not (bone suppression has no such notion), its presence in any form is
  *     a fault: the frame says something this request has no word for, so nothing in it can be trusted.
  * Keys it does not know are ignored, as in a success reply.
+ * Both request types call it with the frame's HEADER too: the one place that decides whether an ERROR frame is
+ * acceptable also decides the binary-payload bit (QA-B-193b), so neither request can skip it.
  * Returns false for a frame that deviates or contradicts itself; the caller drops the connection.
  */
-bool ParseWorkerErrorFrame(const char* json, size_t n, bool allow_model_unavailable, int* code_out,
-                           bool* unavailable_out) {
+bool ParseWorkerErrorFrame(const XpeAiMessageHeader& header, const char* json, size_t n,
+                           bool allow_model_unavailable, int* code_out, bool* unavailable_out) {
+    // QA-B-193b (Codex #79): XPE_AI_MSG_ERROR is a JSON-ONLY frame (ai_worker_protocol.h). The binary-payload bit
+    // belongs to replies that carry pixels; on an ERROR frame it says the worker is not following the protocol, so
+    // the frame is refused whatever its JSON says -- before the JSON is looked at, so a perfectly formed
+    // {"model_unavailable":true} cannot be believed from a frame that is already wrong. The reserved bits
+    // (0x2, 0x4, 0x8; QA-B-192) are NOT refused: nothing reads them and no receiver rejects unknown bits.
+    if ((header.flags & XPE_AI_FLAG_HAS_BINARY_PAYLOAD) != 0) return false;
     std::map<std::string, std::string> kv;
     if (!ParseFlatObject(json, n, /*allow_real=*/true, /*allow_escapes=*/true, &kv)) return false;
     auto ec = kv.find("error_code");
@@ -652,7 +660,7 @@ XpeErrorCode xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge,
         // field in its ERROR frame is a fault too (QA-B-193).
         int code = 0;
         bool unavailable = false;
-        if (!ParseWorkerErrorFrame(reinterpret_cast<const char*>(reply.data()), rh.payloadSize,
+        if (!ParseWorkerErrorFrame(rh, reinterpret_cast<const char*>(reply.data()), rh.payloadSize,
                                    /*allow_model_unavailable=*/false, &code, &unavailable)) {
             DropConnection(bridge);
             return XPE_ERR_PROCESSING_FAILED;
@@ -786,7 +794,7 @@ XpeErrorCode xpe_ai_ipc_bridge_bodypart(XpeAiIpcBridge* bridge, uint32_t width, 
         // connection dropped, the call counts as a worker failure.
         int code = 0;
         bool unavailable = false;
-        if (!ParseWorkerErrorFrame(reinterpret_cast<const char*>(reply), rh.payloadSize,
+        if (!ParseWorkerErrorFrame(rh, reinterpret_cast<const char*>(reply), rh.payloadSize,
                                    /*allow_model_unavailable=*/true, &code, &unavailable)) {
             return bad();
         }

@@ -270,6 +270,8 @@ typedef enum XpeAiExecutionProvider {
  *   true or false. Keys it does not know are ignored. A frame that deviates, or that sets the flag with a code it
  *   does not go with, is a protocol fault: the connection is dropped and the call counts as a worker failure.
  *   The label in a success reply is held to the range of the label sidecar: printable ASCII 0x20-0x7E.
+ *   An ERROR frame is JSON only: XPE_AI_FLAG_HAS_BINARY_PAYLOAD on it is a protocol fault too, whatever the JSON
+ *   says (QA-B-193b). The reserved bits 0x2, 0x4, 0x8 are not refused.
  *
  * A failed request gets XPE_AI_MSG_ERROR (no binary payload), whose error_code
  * is the same XPE_ERR_* the in-process xpe_bone_suppress returns for the same

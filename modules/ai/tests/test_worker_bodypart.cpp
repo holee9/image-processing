@@ -95,13 +95,15 @@ Pix BottomBright(uint32_t w, uint32_t h) {
 /** Sets the fake worker's mode and the JSON it will send for the duration of a test. */
 class FakeReply {
 public:
-    FakeReply(const char* mode, const std::string& json) {
+    FakeReply(const char* mode, const std::string& json, uint32_t flags = 0) {
         _putenv_s("XPE_FAKE_WORKER_MODE", mode);
         _putenv_s("XPE_FAKE_WORKER_JSON", json.c_str());
+        _putenv_s("XPE_FAKE_WORKER_FLAGS", std::to_string(flags).c_str());
     }
     ~FakeReply() {
         _putenv_s("XPE_FAKE_WORKER_MODE", "");
         _putenv_s("XPE_FAKE_WORKER_JSON", "");
+        _putenv_s("XPE_FAKE_WORKER_FLAGS", "");
     }
 };
 
@@ -120,8 +122,8 @@ struct Outcome {
 };
 
 /** One call to a fake worker that answers with @p json as a RESP frame (or as an ERROR frame). */
-Outcome AskFake(const char* mode, const std::string& json) {
-    FakeReply f(mode, json);
+Outcome AskFake(const char* mode, const std::string& json, uint32_t flags = 0) {
+    FakeReply f(mode, json, flags);
     WorkerSupervisor sup(FakeCfg());
     const Pix image = Flat(0.5f);
     Outcome o{};
@@ -499,8 +501,8 @@ struct BoneOutcome {
     bool workerKept;
     bool unavailableFlagSeen;
 };
-BoneOutcome AskFakeBone(const std::string& json) {
-    FakeReply f("bone_error_raw", json);
+BoneOutcome AskFakeBone(const std::string& json, uint32_t flags = 0) {
+    FakeReply f("bone_error_raw", json, flags);
     WorkerSupervisor sup(FakeCfg());
     const float in[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
     float out[9];
@@ -578,5 +580,51 @@ TEST(WorkerBoneErrorFrame, TheRealWorkersOwnErrorFramesAreAcceptedAndKeepTheWork
         }
         EXPECT_EQ(1u, sup.StartCount()) << c.dir << ": an error frame is a healthy answer, the worker is kept";
         EXPECT_NE(0u, sup.WorkerPid()) << c.dir;
+    }
+}
+
+// ===== the binary-payload bit on an ERROR frame (QA-B-193b, Codex #79) =====================================
+
+TEST(WorkerErrorFrameFlags, AnErrorFrameIsJsonOnlySoTheBinaryBitIsAFaultForBothRequestTypes) {
+    // The JSON below is exactly the frame the unavailable-model rule believes -- with flags 0 it is accepted and
+    // keeps the worker. The ONLY difference in the second call is the header bit.
+    const std::string unavailable = R"({"error_code":-9,"model_unavailable":true,"error_message":"no model file"})";
+    const Outcome control = AskFake("bodypart_error_raw", unavailable, 0);
+    EXPECT_EQ(XPE_ERR_IO_FAILED, control.rc) << "the control: the frame is valid with flags 0";
+    EXPECT_TRUE(control.unavailable);
+    EXPECT_TRUE(control.workerKept);
+
+    const Outcome bp = AskFake("bodypart_error_raw", unavailable, XPE_AI_FLAG_HAS_BINARY_PAYLOAD);
+    EXPECT_EQ(XPE_ERR_IO_FAILED, bp.rc);
+    EXPECT_FALSE(bp.unavailable) << "a frame already wrong in its header must not be believed";
+    EXPECT_FALSE(bp.workerKept) << "protocol fault: the connection is dropped and the worker discarded";
+
+    const std::string plain = R"({"error_code":-9,"error_message":"no model"})";
+    const BoneOutcome boneControl = AskFakeBone(plain, 0);
+    EXPECT_EQ(XPE_ERR_IO_FAILED, boneControl.rc) << "the control: the worker's own code with flags 0";
+    EXPECT_TRUE(boneControl.workerKept);
+    const BoneOutcome bone = AskFakeBone(plain, XPE_AI_FLAG_HAS_BINARY_PAYLOAD);
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, bone.rc) << "bone suppression's fault code, as for any unreadable ERROR frame";
+    EXPECT_FALSE(bone.workerKept);
+}
+
+TEST(WorkerErrorFrameFlags, TheBinaryBitCombinedWithReservedBitsIsStillAFault) {
+    const std::string json = R"({"error_code":-3,"error_message":"x"})";
+    for (const uint32_t flags : {0x1u | 0x2u, 0x1u | 0x4u, 0x1u | 0x8u, 0x1u | 0x2u | 0x4u | 0x8u}) {
+        EXPECT_FALSE(AskFake("bodypart_error_raw", json, flags).workerKept) << flags;
+        EXPECT_FALSE(AskFakeBone(json, flags).workerKept) << flags;
+    }
+}
+
+TEST(WorkerErrorFrameFlags, TheReservedBitsAreNotRefusedOnAnErrorFrame) {
+    // 0x2, 0x4 and 0x8 are reserved and unused (QA-B-192): nothing reads them, no receiver rejects unknown bits.
+    const std::string json = R"({"error_code":-3,"error_message":"x"})";
+    for (const uint32_t flags : {0x2u, 0x4u, 0x8u, 0x2u | 0x4u | 0x8u}) {
+        const Outcome bp = AskFake("bodypart_error_raw", json, flags);
+        EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, bp.rc) << flags;
+        EXPECT_TRUE(bp.workerKept) << flags;
+        const BoneOutcome bone = AskFakeBone(json, flags);
+        EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, bone.rc) << flags;
+        EXPECT_TRUE(bone.workerKept) << flags;
     }
 }
