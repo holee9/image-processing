@@ -1,4 +1,5 @@
 // #171 (GUI-C-79): a test fault, armed only from the command line.
+#if XPE_TEST_FAULTS   // GUI-C-193: this type exists only in a test build; a shipped build does not contain it.
 using ImageProcTest.Models;
 
 namespace ImageProcTest.Services;
@@ -100,3 +101,4 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
 
     public void Shutdown() => _inner.Shutdown();
 }
+#endif

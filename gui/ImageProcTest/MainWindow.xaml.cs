@@ -24,7 +24,8 @@ public partial class MainWindow : System.Windows.Window
 
         var (settings, settingsService, preservedSettingsPath, preservedIsFromEarlier) = CreateSettings();
         _settingsFilePath = settingsService.FilePath;
-        // #171 (GUI-C-79): Wrap returns the real backend untouched unless --automation-fault was given.
+#if XPE_TEST_FAULTS
+        // #171 (GUI-C-79): Wrap returns the real backend untouched unless --automation-fault was given. Test builds only (GUI-C-193).
         var failAfter = App.AutomationDisplayPipelineFailAfter;
         var aiWorkerDisabled = App.AutomationAiWorkerDisabled;
         var viewModel = new MainWindowViewModel(
@@ -33,14 +34,24 @@ public partial class MainWindow : System.Windows.Window
             s => FaultInjectingBackend.Wrap(XpeBackendFactory.Create(s), failAfter, aiWorkerDisabled),
             preservedSettingsPath,
             preservedIsFromEarlier);
+#else
+        var viewModel = new MainWindowViewModel(
+            settings,
+            settingsService,
+            XpeBackendFactory.Create,
+            preservedSettingsPath,
+            preservedIsFromEarlier);
+#endif
         DataContext = viewModel;
 
+#if XPE_TEST_FAULTS
         if (FaultInjectingBackend.Armed is not null)
         {
             // Loud on purpose: a window carrying an injected fault must not look like a normal one.
             // The title is bound to WindowTitle, which adds the marker once this is announced.
             viewModel.AnnounceFaultInjection();
         }
+#endif
 
         Loaded += OnLoaded;
 

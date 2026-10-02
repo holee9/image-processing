@@ -128,6 +128,7 @@ public sealed class AutomationArgsTests
         Assert.Contains("--automation-width", parsed.Error);
     }
 
+#if XPE_TEST_FAULTS   // GUI-C-193: the fault switches exist only in a test build (Debug).
     // ---- #171 (GUI-C-79): the fault switch -------------------------------------------------------
 
     /// <summary>Without the switch there is no fault — the ordinary case every normal launch takes.</summary>
@@ -215,4 +216,34 @@ public sealed class AutomationArgsTests
         Assert.Contains("--automation-fault", parsed.Error, StringComparison.Ordinal);
         Assert.False(parsed.AiWorkerDisabled);
     }
+#else
+    // ---- GUI-C-193: a shipped (non-test) build does not know the fault switches --------------------------------------------------------
+
+    /// <summary>
+    /// Both fault switches are refused exactly like any unknown automation switch: the same message, the run does not start. (This branch
+    /// compiles and runs only when the test project is built without XPE_TEST_FAULTS, i.e. in Release.)
+    /// </summary>
+    [Theory]
+    [InlineData("display-pipeline-after:2")]
+    [InlineData("ai-worker-disabled")]
+    public void TheFaultSwitch_IsNotRecognised_InAShippedBuild(string given)
+    {
+        var parsed = AutomationArgs.Parse(["--automation-report", "r.json", "--automation-fault", given]);
+
+        Assert.False(parsed.IsValid);
+        Assert.Equal("--automation-fault is not a recognised automation switch.", parsed.Error);
+    }
+
+    [Fact]
+    public void TheFaultSwitch_IsRefusedLikeAnyMadeUpSwitch_InAShippedBuild()
+    {
+        var fault = AutomationArgs.Parse(["--automation-fault", "ai-worker-disabled"]);
+        var madeUp = AutomationArgs.Parse(["--automation-fault-xyz", "ai-worker-disabled"]);
+
+        Assert.False(fault.IsValid);
+        Assert.False(madeUp.IsValid);
+        Assert.EndsWith("is not a recognised automation switch.", fault.Error, StringComparison.Ordinal);
+        Assert.EndsWith("is not a recognised automation switch.", madeUp.Error, StringComparison.Ordinal);
+    }
+#endif
 }

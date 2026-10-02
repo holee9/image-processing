@@ -209,7 +209,9 @@ internal static class LifetimeScenarios
                         await Timed(() => AnOlderApplyFinishingLateChangesNothing(rawPath, width, height, holdLane: true, fail: true));
                         await Timed(() => TheCandidateLaneIsASecondAiCall_AndTheStatusIsReadAfterIt(rawPath, width, height));
                         await Timed(() => EqualLanesMakeOneAiCallPerApply(rawPath, width, height));
+#if XPE_TEST_FAULTS
                         await Timed(() => TheAiWorkerDisabledFault_IsInertWithoutTheArgument_AndAnswersOffWithIt(rawPath, width, height));
+#endif
                         await Timed(() => AnOlderStatusReadIsNeverShownAfterANewerRequest(rawPath, width, height));
                     }
                     catch (Exception ex)
@@ -243,14 +245,17 @@ internal static class LifetimeScenarios
         }
 
         Directory.Delete(scratch, recursive: true);
-        Console.WriteLine("Lifetime scenarios passed (13 scenarios).");
+        Console.WriteLine($"Lifetime scenarios passed ({_scenariosRun} scenarios).");
     }
 
     /// <summary>Runs one scenario and prints how long it took: the whole runner has to finish inside the app's wait for it (15 s, MainWindow), and this says where the time goes.</summary>
+    private static int _scenariosRun;
+
     private static async Task Timed(Func<Task> scenario)
     {
         var watch = System.Diagnostics.Stopwatch.StartNew();
         await scenario();
+        _scenariosRun++;
         Console.WriteLine($"  scenario '{_scenario}': {watch.ElapsedMilliseconds} ms");
     }
 
@@ -683,6 +688,7 @@ internal static class LifetimeScenarios
     // The seam that lets a UI test put the "switched off" mark on screen without a native module. It has to be inert unless asked for
     // and, when asked, answer exactly "switched off, 3 of 3" while everything else passes through to the real backend.
 
+#if XPE_TEST_FAULTS
     private static Task TheAiWorkerDisabledFault_IsInertWithoutTheArgument_AndAnswersOffWithIt(string rawPath, int width, int height)
     {
         _scenario = "6 ai-worker-disabled fault";
@@ -712,6 +718,7 @@ internal static class LifetimeScenarios
         _ = both;
         return Task.CompletedTask;
     }
+#endif
 
     // ---- 7: an older status read is never shown after a newer request (GUI-C-192, the GUI-C-191b reproduction) ---------------------------
     //

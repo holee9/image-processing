@@ -29,11 +29,13 @@ public partial class App : System.Windows.Application
     /// <summary>#141: directory holding the generated XCal set for this run, when one was supplied.</summary>
     public static string? AutomationCalibrationDirectory { get; private set; }
 
-    /// <summary>#171 (GUI-C-79): armed only by <c>--automation-fault</c>; null means no fault injection.</summary>
+#if XPE_TEST_FAULTS
+    /// <summary>#171 (GUI-C-79): armed only by <c>--automation-fault</c>; null means no fault injection. Test builds only (GUI-C-193).</summary>
     public static int? AutomationDisplayPipelineFailAfter { get; private set; }
 
-    /// <summary>GUI-C-191b: <c>--automation-fault ai-worker-disabled</c> was given (the AI worker status read answers "switched off").</summary>
+    /// <summary>GUI-C-191b: <c>--automation-fault ai-worker-disabled</c> was given (the AI worker status read answers "switched off"). Test builds only (GUI-C-193).</summary>
     public static bool AutomationAiWorkerDisabled { get; private set; }
+#endif
 
     /// <summary>#173 (GUI-C-119): the settings file this run reads and writes, when one was named.</summary>
     public static string? AutomationSettingsPath { get; private set; }
@@ -77,8 +79,10 @@ public partial class App : System.Windows.Application
         // look like a user preference.
         Controls.ImageComparisonViewport.AutomationRenderDumpPath = parsed.RenderDumpPath;
         AutomationRawWidth = parsed.RawWidth;
+#if XPE_TEST_FAULTS
         AutomationDisplayPipelineFailAfter = parsed.DisplayPipelineFailAfter;
         AutomationAiWorkerDisabled = parsed.AiWorkerDisabled;
+#endif
         AutomationRawHeight = parsed.RawHeight;
 
         if (!parsed.IsValid)

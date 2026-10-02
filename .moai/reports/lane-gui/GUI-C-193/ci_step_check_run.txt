@@ -1,0 +1,8 @@
+== Release
+OK: none of the test fault seam strings are in D:/workspace-github/xpe-gui/gui/ImageProcTest/bin/Release/net8.0-windows/ImageProcTest.dll
+exit=0
+== Debug
+D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-C-193\ci_step_check.ps1 : Test fault seam found in D:/workspace-
+github/xpe-gui/gui/ImageProcTest/bin/Debug/net8.0-windows/ImageProcTest.dll : ai-worker-disabled, display-pipeline-afte
+r, FAULT INJECTION ARMED, FaultInjectingBackend
+exit=1

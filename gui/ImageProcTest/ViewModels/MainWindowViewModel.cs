@@ -882,12 +882,20 @@ public sealed class MainWindowViewModel : ObservableObject
     public bool IsPreviewStale => PreviewStaleReason is not null;
 
     /// <summary>
-    /// #171 (GUI-C-79): <c>faultInjection=off</c> unless the app was started with
-    /// <c>--automation-fault</c>. Exposed as the main window's automation status so the E2E suite can
-    /// check that an ordinary launch carries no fault, not just assume it.
+    /// The fault-injection status the main window publishes for automation: <c>faultInjection=off</c> on an ordinary launch. Exposed so
+    /// the E2E suite can check that an ordinary launch carries no fault, not just assume it. (#171, GUI-C-79; what can arm it exists in
+    /// test builds only, GUI-C-193. This comment is compiled into the documentation file of every build, so it names no switch.)
     /// </summary>
+#if XPE_TEST_FAULTS
+    // #171: in a test build the status is armed by the command-line fault switch (see AutomationArgs).
     public string FaultInjectionStatus => FaultInjectingBackend.Describe();
+#else
+    // GUI-C-193: a shipped build has no fault injection to describe. The status stays the one an unarmed test build reports, so the
+    // automation contract ("faultInjection=off" on an ordinary launch) is the same in both.
+    public string FaultInjectionStatus => "faultInjection=off";
+#endif
 
+#if XPE_TEST_FAULTS
     /// <summary>Called once at start-up when a fault was armed — the log says so first.</summary>
     public void AnnounceFaultInjection()
     {
@@ -901,6 +909,7 @@ public sealed class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(FaultInjectionStatus));
         OnPropertyChanged(nameof(WindowTitle));
     }
+#endif
 
     /// <summary>
     /// ① — the image is stale when a setting the display pipeline reads differs from the snapshot that
@@ -981,7 +990,9 @@ public sealed class MainWindowViewModel : ObservableObject
     // positively the native backend counts as Mock: an unknown backend is warned about, not trusted.
     public const string BaseWindowTitle = "ImageProcTest GUI-S0";
 
+#if XPE_TEST_FAULTS
     private bool _faultInjectionAnnounced;
+#endif
 
     public bool IsMockBackend => !string.Equals(RuntimeInfo.BackendName, "RealXpeBackend", StringComparison.Ordinal);
 
@@ -1000,7 +1011,10 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>HAZ-GUI-005 (2): <c>[MOCK]</c> in the title while Mock is active.</summary>
     public string WindowTitle =>
         (IsMockBackend ? "[MOCK] " : string.Empty) + BaseWindowTitle
-        + (_faultInjectionAnnounced ? " — FAULT INJECTION ARMED" : string.Empty);
+#if XPE_TEST_FAULTS
+        + (_faultInjectionAnnounced ? " — FAULT INJECTION ARMED" : string.Empty)
+#endif
+        ;
 
     private void RaiseBackendIdentityChanged()
     {

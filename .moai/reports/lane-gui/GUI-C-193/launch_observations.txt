@@ -1,0 +1,10 @@
+﻿# Launch observations (GUI-C-193). Each row: configuration, arguments, what the process did.
+
+Release  args=[--automation-report C:\Users\drake\AppData\Local\Temp\xpe-c193\report-8fa1b5.json --automation-fault ai-worker-disabled] -> exited=True exitCode=2 windowTitle='' reportError='--automation-fault is not a recognised automation switch.'
+Release  args=[--automation-report C:\Users\drake\AppData\Local\Temp\xpe-c193\report-14ea0d.json --automation-fault ai-worker-disabled] -> exited=True exitCode=2 windowTitle='' reportError='--automation-fault is not a recognised automation switch.'
+Release  args=[--automation-report C:\Users\drake\AppData\Local\Temp\xpe-c193\report-b9f882.json --automation-fault display-pipeline-after:2] -> exited=True exitCode=2 windowTitle='' reportError='--automation-fault is not a recognised automation switch.'
+Release  args=[--automation-report C:\Users\drake\AppData\Local\Temp\xpe-c193\report-b45f03.json --automation-faultxyz ai-worker-disabled] -> exited=True exitCode=2 windowTitle='' reportError='--automation-faultxyz is not a recognised automation switch.'
+Release  args=[--automation-report C:\Users\drake\AppData\Local\Temp\xpe-c193\report-fbb25c.json] -> exited=False exitCode=(still running) windowTitle='[MOCK] ImageProcTest GUI-S0' reportError=''
+Debug    args=[--automation-report C:\Users\drake\AppData\Local\Temp\xpe-c193\report-7dcb2b.json --automation-fault ai-worker-disabled] -> exited=False exitCode=(still running) windowTitle='[MOCK] ImageProcTest GUI-S0 — FAULT INJECTION ARMED' reportError=''
+Debug    args=[--automation-report C:\Users\drake\AppData\Local\Temp\xpe-c193\report-ba3100.json --automation-fault display-pipeline-after:2] -> exited=False exitCode=(still running) windowTitle='[MOCK] ImageProcTest GUI-S0 — FAULT INJECTION ARMED' reportError=''
+Debug    args=[--automation-report C:\Users\drake\AppData\Local\Temp\xpe-c193\report-2cfbea.json] -> exited=False exitCode=(still running) windowTitle='[MOCK] ImageProcTest GUI-S0' reportError=''

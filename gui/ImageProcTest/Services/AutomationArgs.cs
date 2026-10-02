@@ -23,14 +23,21 @@ public sealed record AutomationArgs(
     int? RawWidth,
     int? RawHeight,
     string? Error,
-    int? DisplayPipelineFailAfter = null,
     string? SettingsPath = null,
     string? RenderDumpPath = null,
-    string? SelfCheckExePath = null,
-    bool AiWorkerDisabled = false)
+    string? SelfCheckExePath = null
+#if XPE_TEST_FAULTS
+    , int? DisplayPipelineFailAfter = null,
+    bool AiWorkerDisabled = false
+#endif
+    )
 {
+#if XPE_TEST_FAULTS
+    // GUI-C-193: everything about the two fault switches is compiled only in a test build (XPE_TEST_FAULTS, Debug by default). A shipped
+    // build has no such members, no such strings and no such branch below: the switch is "not a recognised automation switch".
+
     /// <summary>
-    /// #171 (GUI-C-79): the only accepted fault. <c>display-pipeline-after:N</c> lets the first N display
+    /// #171 (GUI-C-79): the first accepted fault. <c>display-pipeline-after:N</c> lets the first N display
     /// pipeline calls succeed and makes every later one throw, so the failure path can be tested end to
     /// end. Command line only, off unless given, and an unknown fault is refused like any other switch.
     /// </summary>
@@ -42,12 +49,13 @@ public sealed record AutomationArgs(
     /// have. Same terms as <see cref="DisplayPipelineFaultPrefix"/>: command line only, inert without the argument, loud when armed.
     /// </summary>
     public const string AiWorkerDisabledFault = "ai-worker-disabled";
+#endif
 
     /// <summary>
     /// #225 (GUI-C-159): where the Run Self-Check command should look for its runner, overriding the
     /// path derived from the repository root.
     ///
-    /// <para>It exists for the same reason <see cref="DisplayPipelineFaultPrefix"/> does: the FAILING
+    /// <para>It exists for the same reason the test fault switches do (#171): the FAILING
     /// path has to be observable. Without it a test can only watch the self-check succeed, and
     /// "reports success correctly" and "reports everything as success" look identical — the shape
     /// #205, #207 and #212 each turned out to be. A test points this at a copy of the runner staged
@@ -81,8 +89,11 @@ public sealed record AutomationArgs(
         string? settingsPath = null;
         string? renderDumpPath = null;
         string? selfCheckExePath = null;
-        int? rawWidth = null, rawHeight = null, displayPipelineFailAfter = null;
+        int? rawWidth = null, rawHeight = null;
+#if XPE_TEST_FAULTS
+        int? displayPipelineFailAfter = null;
         var aiWorkerDisabled = false;
+#endif
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -167,6 +178,7 @@ public sealed record AutomationArgs(
 
                 rawHeight = height;
             }
+#if XPE_TEST_FAULTS
             else if (Is(switchName, "--automation-fault") && string.Equals(value, AiWorkerDisabledFault, StringComparison.Ordinal))
             {
                 aiWorkerDisabled = true;
@@ -184,6 +196,7 @@ public sealed record AutomationArgs(
 
                 displayPipelineFailAfter = failAfter;
             }
+#endif
             else
             {
                 // #136: an --automation-* switch nobody recognises is refused, not skipped. A typo in
@@ -199,7 +212,11 @@ public sealed record AutomationArgs(
         // --automation-report was seen, there is nowhere to write and the exit code is the signal.
         return error is null
             ? new AutomationArgs(rawPath, reportPath, backendMode, calibrationDirectory, rawWidth, rawHeight, Error: null,
-                displayPipelineFailAfter, settingsPath, renderDumpPath, selfCheckExePath, aiWorkerDisabled)
+                settingsPath, renderDumpPath, selfCheckExePath
+#if XPE_TEST_FAULTS
+                , displayPipelineFailAfter, aiWorkerDisabled
+#endif
+                )
             : new AutomationArgs(
                 RawPath: null, reportPath, BackendMode: null, CalibrationDirectory: null,
                 RawWidth: null, RawHeight: null, error);
