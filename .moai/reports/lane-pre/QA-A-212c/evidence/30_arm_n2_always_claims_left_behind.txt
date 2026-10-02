@@ -1,0 +1,10 @@
+ARM n2_always_claims_left_behind
+file src/xcal_writer.cpp
+built=True
+[  FAILED  ] XcalReplaceRetryTest.ADestinationHeldPastTheBudgetFailsWithTheReasonAndTheOldFileIntact (710 ms)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] XcalReplaceRetryTest.ADestinationHeldPastTheBudgetFailsWithTheReasonAndTheOldFileIntact
+alert texts seen in failure messages:
+QA-A-212c: it was removed, and the alert says so: XPE_WARN_XCAL_REPLACE_FAILED: could not replace 'C:\Users\drake\AppData\Local\Temp\xpe_xrr_2\cal.xcal' with the newly written calibration file: Windows error 5 after 8 retries (the destination or the temporary file stayed open in another process, or the destination is read-only or may not be changed). The previous file, if any, is unchanged. The temporary file 'C:\Users\drake\AppData\Local\Temp\xpe_xrr_2\cal.xcal.tmp' could NOT be removed (Windows error 0) and was left behind; the next save to this path replaces it once it is free
+XPE_WARN_XCAL_REPLACE_FAILED: could not replace 'C:\Users\drake\AppData\Local\Temp\xpe_xrr_2\cal.xcal' with the newly written calibration file: Windows error 5 after 8 retries (the destination or the temporary file stayed open in another process, or the destination is read-only or may not be changed). The previous file, if any, is unchanged. The temporary file 'C:\Users\drake\AppData\Local\Temp\xpe_xrr_2\cal.xcal.tmp' could NOT be removed (Windows error 0) and was left behind; the next save to this path replaces it once it is free
