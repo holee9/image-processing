@@ -434,6 +434,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_gain_poly_policy.cpp
         tests/test_gain_defect_classify.cpp
         tests/test_gain_poly_classify.cpp
+        tests/test_xcal_replace_retry.cpp
         # QA-A-140 (#196): the no-op report reaches a null-config caller
         tests/test_nonlin_noop_report.cpp
         # QA-A-35 (#140): FUNC-033 quality metadata, wired to production

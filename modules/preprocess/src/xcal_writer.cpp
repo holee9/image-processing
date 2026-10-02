@@ -12,6 +12,7 @@
 #include "xcal_writer.hpp"
 #include "xpe_sha256.hpp"
 #include "xcal_validator.hpp"
+#include "xpe/common/xpe_error.h"
 #include "rle_codec.hpp"
 
 #include <cstring>
@@ -37,13 +38,84 @@
 // existing calibration file. std::rename replaces on POSIX but refuses an
 // existing destination on Windows, which made every second write to the same
 // path fail with XPE_ERR_IO_FAILED and keep the old file.
-static bool replace_file(const std::string& tmp, const char* path)
+//
+// QA-A-212b (#233): ON WINDOWS THE MOVE IS RETRIED, BRIEFLY, WHEN THE DESTINATION IS BUSY.
+// QA-A-212 found why a calibration write failed now and then with XPE_ERR_IO_FAILED (-9) while nothing in this
+// module was wrong: MoveFileEx answered ERROR_ACCESS_DENIED (5) because ANOTHER PROCESS -- a virus scanner, a
+// search indexer, a file watcher -- had the destination open without FILE_SHARE_DELETE at that instant. The
+// destination was not locked: opening it for DELETE or READ right after the failure worked, and the same call
+// succeeded 1 ms later (13 of 13 events). A program with no calibration code in it failed the same way in the same
+// folder at the same time; a program that opens the destination in a loop made 1565 of 3000 replaces fail with 5
+// (opening the temp file instead gives 32, ERROR_SHARING_VIOLATION). Both codes mean "somebody else has it open
+// right now", so both are retried; every other error is final at once.
+//
+// The budget is ONE constant. 100 ms is two orders above the 1 ms in which every observed event cleared, and
+// below what a person waiting on a save notices. Sleeps double from 1 ms up to a cap of 25 ms, so the total slept
+// stays within the budget. ERROR_ACCESS_DENIED is also what a READ-ONLY destination or a missing permission
+// answers, and those never clear: they cost the full budget and then fail exactly as before -- an
+// XPE_ERR_IO_FAILED, the temp file removed, the old file untouched.
+//
+// A failure after the retries is not silent any more (QA-A-212's second defect: the caller could not tell why):
+// an XPE_ALERT_ERROR "XPE_WARN_XCAL_REPLACE_FAILED: ..." carries the path, the last Windows error and the number
+// of retries. A write that succeeds after retrying raises nothing. POSIX is unchanged: std::rename replaces
+// atomically and does not meet this.
+constexpr unsigned kReplaceRetryBudgetMs = 100;   // QA-A-212: observed clearing time 1 ms; see above
+constexpr unsigned kReplaceRetryMaxSleepMs = 25;
+
+struct ReplaceOutcome {
+    bool ok = false;
+    unsigned long lastError = 0;   // Windows only: the last GetLastError() of a failed move
+    unsigned retries = 0;          // Windows only: how many times the move was repeated
+};
+
+static ReplaceOutcome replace_file(const std::string& tmp, const char* path)
+{
+    ReplaceOutcome out;
+#ifdef _WIN32
+    unsigned slept = 0;
+    unsigned delay = 1;
+    for (;;) {
+        if (MoveFileExA(tmp.c_str(), path, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0) {
+            out.ok = true;
+            return out;
+        }
+        out.lastError = GetLastError();
+        const bool busy = (out.lastError == ERROR_ACCESS_DENIED || out.lastError == ERROR_SHARING_VIOLATION);
+        if (!busy || slept >= kReplaceRetryBudgetMs) return out;
+        if (delay > kReplaceRetryBudgetMs - slept) delay = kReplaceRetryBudgetMs - slept;
+        Sleep(delay);
+        slept += delay;
+        ++out.retries;
+        if (delay < kReplaceRetryMaxSleepMs) delay = (delay * 2 > kReplaceRetryMaxSleepMs) ? kReplaceRetryMaxSleepMs : delay * 2;
+    }
+#else
+    out.ok = (std::rename(tmp.c_str(), path) == 0);
+    return out;
+#endif
+}
+
+// The alert for a move that failed for good (see above). Advisory: it must never turn the failure into another
+// one, so an allocation failure while building it is swallowed.
+static void report_replace_failure(const char* path, const ReplaceOutcome& o)
 {
 #ifdef _WIN32
-    return MoveFileExA(tmp.c_str(), path,
-                       MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
+    try {
+        const bool busy = (o.lastError == ERROR_ACCESS_DENIED || o.lastError == ERROR_SHARING_VIOLATION);
+        std::string msg = "XPE_WARN_XCAL_REPLACE_FAILED: could not replace '";
+        msg += path;
+        msg += "' with the newly written calibration file: Windows error ";
+        msg += std::to_string(o.lastError);
+        msg += " after ";
+        msg += std::to_string(o.retries);
+        msg += " retries (";
+        msg += busy ? "the destination stayed open in another process, is read-only, or may not be changed"
+                    : "not a transient condition, so it was not retried";
+        msg += "). The previous file, if any, is unchanged and the temporary file was removed";
+        xpe_alert_push(msg.c_str(), XPE_ALERT_ERROR);
+    } catch (...) {
+    }
 #else
-    return std::rename(tmp.c_str(), path) == 0;
+    (void)path; (void)o;
 #endif
 }
 
@@ -232,8 +304,10 @@ XpeErrorCode write_xcal_file_ex(
         }  // f is closed here
 
         // Atomic rename
-        if (!replace_file(tmp_path, path)) {
+        const ReplaceOutcome moved = replace_file(tmp_path, path);
+        if (!moved.ok) {
             std::remove(tmp_path.c_str());
+            report_replace_failure(path, moved);
             return XPE_ERR_IO_FAILED;
         }
 
