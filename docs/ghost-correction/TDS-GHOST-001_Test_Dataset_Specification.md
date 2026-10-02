@@ -549,21 +549,24 @@ real_fsrf/dark_signal_50pct.raw
 
 #### 7.2.1 NaN 입력 (부동소수점 오류)
 
+> **정정 2026-10-02 (`#233` / `QA-A-216` §5 항목 3, `QA-A-217`).** 이 시험 케이스의 옛 "예상 동작"은 NaN 화소를 *"이웃 중앙값 또는 0 으로 대체"* 하고 보정을 계속한다고 적었다. 출하 SPEC 의 어느 요구도 대체를 정하지 않았고, 실패 시 출력을 부분 기록하지 말라는 `SPEC-XPE-P1A` `REQ-P1A-032` 와도 맞지 않는다. 구현(`xpe_ghost_correct`)은 비유한 화소가 하나라도 든 프레임을 **쓰기 전에 거부**한다(`REQ-P1A-087`). 아래는 그 계약에 맞춰 고친 것이다. 옛 서술의 "offset correction 단계에서 감지"도 고스트 단계의 입구 검사로 바꿨다.
+
 ```
 테스트 케이스 7.2.1: NaN 픽셀
 
-상황: 산술 오류로 일부 픽셀이 NaN
+상황: 산술 오류로 일부 픽셀이 NaN (±Inf 도 같음)
   I_raw[100][100] = NaN
 
 예상 동작:
-  ├─ 감지: NaN check during offset correction
-  ├─ 처리: Replace with median of neighbors OR 0
-  └─ 로깅: NaN pixel count reported
+  ├─ 감지: xpe_ghost_correct 입구에서 프레임 전체의 비유한 화소 검사
+  ├─ 처리: 쓰기 전 거부 → XPE_ERR_INVALID_INPUT (대체·건너뜀 없음)
+  └─ 로깅: XPE_WARN_GHOST_INPUT_NOT_FINITE 알림 (개수, 첫 화소 위치)
 
 기대 결과:
-  NaN pixels handled gracefully
-  Output: valid image (no NaN propagation)
-  PASS: NaN count < 10 pixels/frame
+  버퍼는 호출 전 바이트 그대로
+  핸들의 이력·노출 상태 불변 (뒤따르는 정상 프레임 결과가
+  실패를 겪지 않은 핸들과 비트 단위로 같음)
+  PASS: 위 셋 모두 성립
 ```
 
 **테스트 파일**: `edge_case_nan_pixels.raw`
