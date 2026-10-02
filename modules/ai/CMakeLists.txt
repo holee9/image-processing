@@ -171,6 +171,7 @@ set(XPE_AI_SOURCES
     src/ai_ipc_bridge.cpp  # T-001: Named pipe IPC bridge
     src/ai_worker_supervisor.cpp  # QA-B-171B: owns the worker process (launch, kill on fault, restart)
     src/ai_onnx_session.cpp  # T-003: ONNX Runtime session manager
+    src/ai_model_signer.cpp  # QA-B-195 M1: model signature verification (REQ-AI-007/091); connected to loading in M3
 )
 
 add_library(${MODULE_NAME} SHARED
@@ -425,6 +426,8 @@ if(_XPE_AI_BUILD_TESTS)
         test_worker_bodypart.cpp
         test_bodypart_worker_path.cpp
         test_ai_input_validation.cpp
+        # #130 (QA-B-195 M1): the model signature verifier, against signatures made by an independent implementation
+        test_ai_model_signer.cpp
         # #130 (QA-B-168): SRS-ALERT-004 fires when DL was applied -- and, the
         # half that constrains the code, stays quiet on every path that
         # returned an image the model never touched
@@ -494,6 +497,8 @@ if(_XPE_AI_BUILD_TESTS)
             # would put std::vector and std::string in the module's public
             # contract, which the C ABI exists to keep out.
             ${CMAKE_CURRENT_SOURCE_DIR}/src/ai_onnx_session.cpp
+            # QA-B-195: internal like the bridge, so compiled in rather than exported
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/ai_model_signer.cpp
         )
 
         # #130 (QA-B-162): the test data directory is baked in at COMPILE time.
