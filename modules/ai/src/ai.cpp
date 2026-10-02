@@ -527,6 +527,24 @@ static void publishWorkerState(AiModuleState* state) {
     state->workerPublished.store(word, std::memory_order_release);
 }
 
+/**
+ * The Warning that says the worker is switched off for the session (QA-B-191 M4e, leader decision replacing D10).
+ * The count is shared by xpe_bone_suppress and xpe_bodypart_recognize, so BOTH stop using the worker whichever of
+ * them failed the third time; the text says both effects and which function's failure caused it, because an alert
+ * that named only the failing function would leave the other function's change unexplained.
+ * CROSS-LANE CONTRACT: clients may match it.
+ */
+static void pushWorkerDisabledAlert(XpeErrorCode code, uint32_t failures, const char* cause) {
+    char msg[320];
+    std::snprintf(msg, sizeof(msg),
+                  "AI worker failed (code %d, failure %u of %u) during %s and is disabled for this session: "
+                  "body-part recognition returns UNKNOWN, bone suppression returns the input image unchanged "
+                  "(REQ-AI-002, REQ-AI-092)",
+                  static_cast<int>(code), static_cast<unsigned>(failures), static_cast<unsigned>(kWorkerFailureCeiling),
+                  cause);
+    xpe_alert_push(msg, XPE_ALERT_WARNING);
+}
+
 /** SRS-ALERT-004: DL processing was applied (Info). One place, so both paths say the same thing. */
 static void pushNonFiniteResultAlert() {
     // CROSS-LANE CONTRACT (QA-B-181i, reworded in 181j): clients may match this text. Only what was observed:
@@ -709,23 +727,19 @@ static XpeErrorCode bodyPartViaWorker(AiModuleState* state, const XpeImageBuffer
     AI_LOG_WARN("bodypart: worker path failed (%d), UNKNOWN returned (%u of %u consecutive failures)",
                 static_cast<int>(rc), static_cast<unsigned>(state->workerConsecutiveFailures),
                 static_cast<unsigned>(kWorkerFailureCeiling));
-    char msg[256];
     if (state->workerConsecutiveFailures >= kWorkerFailureCeiling) {
         state->workerDisabled = true;
         state->workerSupervisor.reset();   // ends the worker process
-        std::snprintf(msg, sizeof(msg),
-                      "AI worker failed (code %d, failure %u of %u) and is disabled for this session: "
-                      "body-part recognition returns UNKNOWN (REQ-AI-002, REQ-AI-092)",
-                      static_cast<int>(rc), static_cast<unsigned>(state->workerConsecutiveFailures),
-                      static_cast<unsigned>(kWorkerFailureCeiling));
+        pushWorkerDisabledAlert(rc, state->workerConsecutiveFailures, "body-part recognition");
     } else {
+        char msg[256];
         std::snprintf(msg, sizeof(msg),
                       "AI worker failed (code %d, failure %u of %u): body-part recognition returns UNKNOWN; "
                       "use the deterministic body-part lookup (REQ-AI-002, REQ-AI-092)",
                       static_cast<int>(rc), static_cast<unsigned>(state->workerConsecutiveFailures),
                       static_cast<unsigned>(kWorkerFailureCeiling));
+        xpe_alert_push(msg, XPE_ALERT_WARNING);
     }
-    xpe_alert_push(msg, XPE_ALERT_WARNING);
     // Published last: the count, the switch-off, the end of the worker process and the alert are all done.
     publishWorkerState(state);
     return bodyPartUnknown(bodyPartOut, bufLen);
@@ -1246,23 +1260,19 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
                     "(%u of %u consecutive failures)",
                     static_cast<int>(wrc), static_cast<unsigned>(state->workerConsecutiveFailures),
                     static_cast<unsigned>(kWorkerFailureCeiling));
-        char msg[256];
         if (state->workerConsecutiveFailures >= kWorkerFailureCeiling) {
             state->workerDisabled = true;
             state->workerSupervisor.reset();   // ends the worker process
-            std::snprintf(msg, sizeof(msg),
-                          "AI worker failed (code %d, failure %u of %u) and is disabled for this "
-                          "session: input images are returned unchanged (REQ-AI-002, REQ-AI-092)",
-                          static_cast<int>(wrc), static_cast<unsigned>(state->workerConsecutiveFailures),
-                          static_cast<unsigned>(kWorkerFailureCeiling));
+            pushWorkerDisabledAlert(wrc, state->workerConsecutiveFailures, "bone suppression");
         } else {
+            char msg[256];
             std::snprintf(msg, sizeof(msg),
                           "AI worker failed (code %d, failure %u of %u): the input image is returned "
                           "unchanged (REQ-AI-002, REQ-AI-092)",
                           static_cast<int>(wrc), static_cast<unsigned>(state->workerConsecutiveFailures),
                           static_cast<unsigned>(kWorkerFailureCeiling));
+            xpe_alert_push(msg, XPE_ALERT_WARNING);
         }
-        xpe_alert_push(msg, XPE_ALERT_WARNING);
         // Published only now: the count, the switch-off, the end of the worker process and the alert are
         // all done. A status query before this point still reports the previous completed call.
         publishWorkerState(state);

@@ -1,0 +1,6 @@
+E1 the old disabled-alert wording (body-part only): build_ok=True passed=['16'] crashed=False red(3)=['2', 'BodyPartWorkerPath.AModelThatExistsAndFailsToRunIsCountedAndThirdFailureSwitchesTheWorkerOffForBothFunctions', 'BodyPartWorkerPath.BoneSuppressionFailuresSwitchOffBodyPartRecognitionToo']
+E2 the loader accepts a non-ASCII label: build_ok=True passed=['17'] crashed=False red(2)=['1', 'WorkerBodyPartAgreement.ALabelOutsidePrintableAsciiOrWithAQuoteOrBackslashIsUnavailableInBothPaths']
+E3 bone suppression names the wrong cause: build_ok=True passed=['17'] crashed=False red(2)=['1', 'BodyPartWorkerPath.BoneSuppressionFailuresSwitchOffBodyPartRecognitionToo']
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: build_ok=True passed=['18'] red=[]
+DONE

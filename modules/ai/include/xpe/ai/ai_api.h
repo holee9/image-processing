@@ -202,9 +202,9 @@ XPE_API void xpe_ai_shutdown(void);
  *
  * MODEL AND LABELS. The model is read from `{modelDir}/bodypart.onnx` and its class labels from the sidecar
  * `{modelDir}/bodypart.json`, a JSON object with a non-empty `"labels"` array of non-empty strings (each shorter
- * than 64 bytes, none holding a double quote, a backslash or a control character: the worker's reply has no
- * escapes, so both paths refuse such a label as an unusable sidecar); `{modelDir}` is the path given to
- * xpe_ai_init. The labels are returned exactly as the sidecar
+ * than 64 bytes, each made only of printable ASCII 0x20-0x7E except `"` and `\`: the worker's reply has no
+ * escapes or encoding, so both paths refuse any other label as an unusable sidecar); `{modelDir}` is the path
+ * given to xpe_ai_init. The labels are returned exactly as the sidecar
  * spells them: the module neither changes their case nor checks them against any vocabulary, so a caller that
  * hands the label to another function (for example xpe_get_param_range, which accepts only a fixed list of
  * names) maps it itself. The model must have ONE float32 input of a fixed single-channel image, `[1,1,H,W]` or
@@ -261,8 +261,10 @@ XPE_API void xpe_ai_shutdown(void);
  *     (a switched-off worker is not tried: UNKNOWN at once, no alert, no process). A success resets the count.
  *     Each failure posts ONE XPE_ALERT_WARNING: "AI worker failed (code {n}, failure {k} of 3): body-part
  *     recognition returns UNKNOWN; use the deterministic body-part lookup (REQ-AI-002, REQ-AI-092)"; the third
- *     reads "AI worker failed (code {n}, failure 3 of 3) and is disabled for this session: body-part
- *     recognition returns UNKNOWN (REQ-AI-002, REQ-AI-092)". The count is in XPE_AI_WORKER_* terms, see
+ *     reads "AI worker failed (code {n}, failure 3 of 3) during {cause} and is disabled for this session:
+ *     body-part recognition returns UNKNOWN, bone suppression returns the input image unchanged (REQ-AI-002,
+ *     REQ-AI-092)", where {cause} is "body-part recognition" or "bone suppression" -- the function whose failure
+ *     was the third; the same text is posted whichever of the two it is, because both are switched off. The count is in XPE_AI_WORKER_* terms, see
  *     xpe_ai_worker_state().
  *   - What is NOT a failure and resets the count, because the worker answered correctly: a model output that
  *     is non-finite or outside [0, 1] (the same two alerts as in-process), a low confidence, and "the model

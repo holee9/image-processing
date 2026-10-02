@@ -386,22 +386,40 @@ TEST(WorkerBodyPartAgreement, AnUnavailableModelKeepsTheWorkerAndIsNotAFault) {
     EXPECT_NE(0u, sup.WorkerPid());
 }
 
-TEST(WorkerBodyPartAgreement, ALabelWithAQuoteIsUnavailableInBothPaths) {
-    // The worker's reply has no escapes, so the loader both paths share refuses a label it could not carry.
+TEST(WorkerBodyPartAgreement, ALabelOutsidePrintableAsciiOrWithAQuoteOrBackslashIsUnavailableInBothPaths) {
+    // The worker's reply has no escapes and no encoding, so the loader both paths share refuses a label it could
+    // not carry: anything but printable ASCII 0x20-0x7E, and the double quote and backslash among those.
     REQUIRE_ONNX();
     namespace fs = std::filesystem;
     const fs::path tmp = fs::temp_directory_path() / "xpe_bodypart_quote_label";
     fs::remove_all(tmp);
     fs::create_directories(tmp);
     fs::copy_file(fs::path(Dir("models_bodypart_a")) / "bodypart.onnx", tmp / "bodypart.onnx");
+    const Pix image = Flat(0.0f);
+    const char* refused[] = {
+        "{\"labels\": [\"CH\\\"EST\", \"ABDOMEN\", \"SPINE\"]}",        // a double quote
+        "{\"labels\": [\"CH\\\\EST\", \"ABDOMEN\", \"SPINE\"]}",       // a backslash
+        "{\"labels\": [\"CH\\u0007EST\", \"ABDOMEN\", \"SPINE\"]}",      // a control character (BEL)
+        "{\"labels\": [\"CH\\u00c9ST\", \"ABDOMEN\", \"SPINE\"]}",       // a non-ASCII letter (U+00C9)
+        "{\"labels\": [\"\\u80f8\", \"ABDOMEN\", \"SPINE\"]}",           // a non-ASCII label (U+80F8)
+        "{\"labels\": [\"CHEST\\u007f\", \"ABDOMEN\", \"SPINE\"]}",      // DEL (0x7F)
+    };
+    for (const char* sidecar : refused) {
+        {
+            std::ofstream j(tmp / "bodypart.json");
+            j << sidecar;
+        }
+        EXPECT_EQ("unavailable", DescribeWorker(tmp.string(), image)) << sidecar;
+        EXPECT_EQ("unavailable", DescribeInProcess(tmp.string(), image)) << sidecar;
+    }
+    // The edges that ARE allowed: space (0x20) and tilde (0x7E).
     {
         std::ofstream j(tmp / "bodypart.json");
-        j << "{\"labels\": [\"CH\\\"EST\", \"ABDOMEN\", \"SPINE\"]}";
+        j << "{\"labels\": [\"UPPER ARM~\", \"ABDOMEN\", \"SPINE\"]}";
     }
-    const Pix image = Flat(0.0f);
-    EXPECT_EQ("unavailable", DescribeWorker(tmp.string(), image));
-    EXPECT_EQ("unavailable", DescribeInProcess(tmp.string(), image));
-    // The control: the same model with a plain label is usable, so the quote is what made the difference.
+    EXPECT_EQ("ok:UPPER ARM~:0.6", DescribeWorker(tmp.string(), image));
+    EXPECT_EQ("ok:UPPER ARM~:0.6", DescribeInProcess(tmp.string(), image));
+    // The control: the same model with a plain label is usable, so the character is what made the difference.
     {
         std::ofstream j(tmp / "bodypart.json");
         j << "{\"labels\": [\"CHEST\", \"ABDOMEN\", \"SPINE\"]}";

@@ -54,8 +54,9 @@ enum class BodyPartLoadFailure {
 
 /**
  * Read `labels` from the sidecar: a JSON object with a non-empty array of non-empty strings, each short enough for
- * the worker protocol's label limit and free of the characters the worker's reply cannot carry (a quote, a
- * backslash, a control character: the reply format has no escapes). Returns the reason text, nullptr on success.
+ * the worker protocol's label limit and made only of printable ASCII (0x20-0x7E) without a double quote or a
+ * backslash: the worker's reply format has no escapes and no encoding, so a label it could not carry is refused
+ * by both paths alike. Returns the reason text, nullptr on success.
  */
 inline const char* LoadBodyPartLabels(const std::string& sidecarPath, std::vector<std::string>* labels) {
 #ifdef XPE_AI_BODYPART_HAS_JSON
@@ -72,8 +73,9 @@ inline const char* LoadBodyPartLabels(const std::string& sidecarPath, std::vecto
             const std::string v = e.get<std::string>();
             if (v.empty() || v.size() >= XPE_AI_MAX_BODYPART_LEN) return "label sidecar has an empty or too long label";
             for (const char c : v) {
-                if (c == '"' || c == '\\' || static_cast<unsigned char>(c) < 0x20) {
-                    return "label sidecar has a label with a quote, backslash or control character";
+                const unsigned char u = static_cast<unsigned char>(c);
+                if (c == '"' || c == '\\' || u < 0x20 || u > 0x7E) {
+                    return "label sidecar has a label with a character outside printable ASCII, or a quote or backslash";
                 }
             }
             labels->push_back(v);

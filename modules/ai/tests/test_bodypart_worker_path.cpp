@@ -208,9 +208,12 @@ std::string Failed(int failure) {
            " of 3): body-part recognition returns UNKNOWN; use the deterministic body-part lookup "
            "(REQ-AI-002, REQ-AI-092)";
 }
-const char* kDisabledAtThree =
-    "AI worker failed (code -3, failure 3 of 3) and is disabled for this session: body-part recognition returns "
-    "UNKNOWN (REQ-AI-002, REQ-AI-092)";
+// QA-B-191 M4e: the switch-off alert says BOTH effects (the count is shared) and which function's failure caused it.
+std::string DisabledAtThree(int code, const char* cause) {
+    return "AI worker failed (code " + std::to_string(code) + ", failure 3 of 3) during " + cause +
+           " and is disabled for this session: body-part recognition returns UNKNOWN, bone suppression returns the "
+           "input image unchanged (REQ-AI-002, REQ-AI-092)";
+}
 
 }  // namespace
 
@@ -366,7 +369,7 @@ TEST_F(BodyPartWorkerPath, AModelThatExistsAndFailsToRunIsCountedAndThirdFailure
         EXPECT_EQ("UNKNOWN", r.label) << k;
         const auto a = Alerts();
         ASSERT_EQ(static_cast<size_t>(k), a.size()) << "one Warning per failure";
-        EXPECT_EQ(k < 3 ? Failed(k) : std::string(kDisabledAtThree), a.back()) << k;
+        EXPECT_EQ(k < 3 ? Failed(k) : DisabledAtThree(-3, "body-part recognition"), a.back()) << k;
         EXPECT_EQ(static_cast<uint32_t>(k), State().failures) << k;
     }
     const WState s = State();
@@ -399,6 +402,10 @@ TEST_F(BodyPartWorkerPath, BoneSuppressionFailuresSwitchOffBodyPartRecognitionTo
     for (int i = 0; i < 3; ++i) (void)Bone();
     EXPECT_EQ(XPE_AI_WORKER_DISABLED, State().state);
     EXPECT_TRUE(WaitForChildWorkers(0, 3000));
+    // The same text as when body-part recognition causes the switch-off, with the cause named: bone suppression.
+    // (A missing bone model is an IO_FAILED error frame: code -9.)
+    ASSERT_FALSE(Alerts().empty());
+    EXPECT_EQ(DisabledAtThree(-9, "bone suppression"), Alerts().back());
     xpe_clear_alerts();
     const Result r = Recognize(Pix(4, 4, 0.0f));
     EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, r.rc);
