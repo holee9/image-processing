@@ -1,5 +1,7 @@
 # QA-B-185 — MONOCHROME1 은 읽을 때 반전해 항상 MONOCHROME2 의미로 (리더 결정, #235)
 
+> **정정 (QA-B-185b, Codex #70)**: 이 보고서가 왕복을 "표시가 보존된다"고 쓴 곳은 과한 표현이다. 보존되는 것은 극성이고, `xpe_dicom_write` 는 원본의 Window·Rescale·Presentation LUT Shape 를 보존하지 않는다. 알림 문구의 식(§4)도 구현과 달랐다 — 현재 문구와 문서 초안(§7)은 QA-B-185b 보고서가 대체한다.
+
 ## 요약
 
 | 항목 | 결과 |
@@ -7,7 +9,7 @@
 | `xpe_dicom_read_image` 가 MONOCHROME1 을 반전 | 구현했다. 세 경로(비압축·JPEG LL·JPEG 2000) 모두, 디코드 뒤 호출자 버퍼에서, 식 `(2^B − 1) − (v & (2^B − 1))` (B = 반환 버퍼의 `bitsStored`, 마스크가 먼저) |
 | 메타데이터의 Window·Rescale 정합성 | 반환 메타(`XpeImageMetadata`)에 Window·Rescale 필드가 없어 **맞출 값이 없다**. 파일에서 따로 읽는 호출자를 위한 반전 공식을 표준 근거와 함께 헤더에 적었고 수치로 검증했다 (§3) |
 | 알림 | 반전한 읽기마다 Info 1건. 문구는 레인 간 계약 (§4) |
-| 왕복 | MONOCHROME1+INVERSE → 읽기 → `xpe_dicom_write` → 읽기: 복사본이 원본과 **같게 표시된다**(화소 단위 단언) |
+| 왕복 | MONOCHROME1+INVERSE → 읽기 → `xpe_dicom_write` → 읽기: **극성**이 보존된다(VOI 항등·Rescale 1/0 인 픽스처에서 화소 단위 단언). 표시 전체의 보존은 아니다 — QA-B-185b 정정 |
 | 고정 시험 2개 | 하나는 반대 단언으로 바뀌고(옛 근거 §5), 다른 하나는 MONOCHROME2 부분이 그대로 유효해 유지하고 MONOCHROME1 부분을 새 시험으로 분리했다 |
 | 반증 | 8가지 약화 각각이 해당 시험만 빨강으로 만든다. 마스크를 지우면 마스크 시험만 빨강 (§6) |
 | 회귀 | 리더 시험 95/95, `ci-dicom` ctest 242개 중 실패 0 |

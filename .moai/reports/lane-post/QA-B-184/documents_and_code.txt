@@ -78,7 +78,7 @@ typedef struct XpeImageMetadata {
 165:#define XPE_FLAG_COLLIMATION_DETECTED    0x00000200u  /**< Collimation region detected and masked */
 166:#define XPE_FLAG_STITCHED                0x00000400u  /**< Image assembled from multiple detector panels (
 167:#define XPE_FLAG_BONE_SUPPRESSED         0x00000800u  /**< Bone suppression (AI premium stage) applied */
-168:#define XPE_FLAG_GSVG_SKIPPED            0x00001000u  /**< GSVG stage was skipped (e.g. modality does not 
+168:#define XPE_FLAG_GSVG_SKIPPED            0x00001000u  /**< GSVG stage was skipped (e.g. modality does not
 
 # modules/display (non-test) literal search for the DICOM polarity vocabulary
 count of MONOCHROME|INVERSE|IDENTITY|PresentationLUTShape|Photometric (case-insensitive, source+headers, tests excluded):

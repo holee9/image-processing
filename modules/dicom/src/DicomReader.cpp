@@ -345,9 +345,12 @@ static void normaliseMonochrome1(XpeImageBuffer* img) {
     uint16_t* px = static_cast<uint16_t*>(img->data);
     const size_t n = static_cast<size_t>(img->width) * img->height;
     for (size_t i = 0; i < n; ++i) px[i] = static_cast<uint16_t>(mask - (px[i] & mask));
-    char msg[200];
+    // CROSS-LANE CONTRACT (QA-B-185b): the whole text, including the formula, which is exactly what is computed above
+    // (the stored word is masked to BitsStored first). Change it only together with the clients.
+    char msg[256];
     std::snprintf(msg, sizeof(msg),
-                  "MONOCHROME1 pixel values were inverted to MONOCHROME2 sense: value = (2^BitsStored - 1) - value, BitsStored %u",
+                  "MONOCHROME1 pixel values were inverted to MONOCHROME2 sense: "
+                  "value = (2^BitsStored - 1) - (stored & (2^BitsStored - 1)), BitsStored %u",
                   static_cast<unsigned>(bits));
     spdlog::info("[DicomReader] {}", msg);
     xpe_alert_push(msg, XPE_ALERT_INFO);
