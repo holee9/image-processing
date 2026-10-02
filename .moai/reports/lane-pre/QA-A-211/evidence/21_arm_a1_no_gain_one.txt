@@ -1,0 +1,19 @@
+ARM a1_no_gain_one
+file src/xpe_calib_load_gain.cpp
+built=True
+[  FAILED  ] GainDefectClassifyTest.ExactlyFivePercentLoadsOneMoreIsRefusedAndTheLoadedMapStays (4 ms)
+[  FAILED  ] GainDefectClassifyTest.TheClassifiedPixelsAreFilledFromTheirNeighboursByTheDefectStage (3 ms)
+[  FAILED  ] GainDefectClassifyTest.TheDefectMapAndTheClassificationAreBothCorrected (3 ms)
+[  FAILED  ] GainDefectClassifyTest.WithTheDefectStageBypassedTheClassifiedPixelsPassAtGainOneAndTheFrameSaysSo (1 ms)
+[  FAILED  ] GainDefectClassifyTest.ClassifiedPixelsWithBinningAreRefusedBecauseBinningWouldSpreadTheUncorrectedValue (2 ms)
+[  FAILED  ] GainDefectClassifyTest.AUnionAboveFivePercentWarnsOncePerFrameAndStillCorrects (3 ms)
+[  FAILED  ] GainDefectClassifyTest.ACacheHitInstallsTheSameClassificationAsTheMiss (2 ms)
+[  PASSED  ] 16 tests.
+[  FAILED  ] 7 tests, listed below:
+[  FAILED  ] GainDefectClassifyTest.ExactlyFivePercentLoadsOneMoreIsRefusedAndTheLoadedMapStays
+[  FAILED  ] GainDefectClassifyTest.TheClassifiedPixelsAreFilledFromTheirNeighboursByTheDefectStage
+[  FAILED  ] GainDefectClassifyTest.TheDefectMapAndTheClassificationAreBothCorrected
+[  FAILED  ] GainDefectClassifyTest.WithTheDefectStageBypassedTheClassifiedPixelsPassAtGainOneAndTheFrameSaysSo
+[  FAILED  ] GainDefectClassifyTest.ClassifiedPixelsWithBinningAreRefusedBecauseBinningWouldSpreadTheUncorrectedValue
+[  FAILED  ] GainDefectClassifyTest.AUnionAboveFivePercentWarnsOncePerFrameAndStillCorrects
+[  FAILED  ] GainDefectClassifyTest.ACacheHitInstallsTheSameClassificationAsTheMiss

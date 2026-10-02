@@ -21,6 +21,61 @@
 #include <string>
 #include <vector>
 
+XpeGainScan xpe_gain_scan_scalar(const float* values, uint32_t width, uint32_t height, std::vector<uint32_t>* idx) {
+    XpeGainScan scan;
+    const uint64_t n = static_cast<uint64_t>(width) * height;
+    scan.total = n;
+    for (uint64_t i = 0; i < n; ++i) {
+        // NaN fails both comparisons, so it is classified too.
+        if (values[i] >= XPE_GAIN_APPLIED_MIN && values[i] <= XPE_GAIN_APPLIED_MAX) continue;
+        if (scan.count == 0) scan.first = i;
+        ++scan.count;
+        const uint64_t y = i / width, x = i % width;
+        if (y < 64 || y + 64 >= height || x < 64 || x + 64 >= width) ++scan.inBand;
+        if (idx) idx->push_back(static_cast<uint32_t>(i));
+    }
+    return scan;
+}
+
+bool xpe_gain_scan_over_limit(const XpeGainScan& scan) noexcept {
+    return static_cast<double>(scan.count) > XPE_GAIN_DEFECT_MAX_FRACTION * static_cast<double>(scan.total);
+}
+
+void xpe_gain_alert_classified(const XpeGainScan& scan) noexcept {
+    try {
+        char msg[400];
+        std::snprintf(msg, sizeof(msg),
+            "XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: %llu of %llu pixel(s) (%.3f%%) have a gain outside [%.1f, %.1f] and are "
+            "treated as defective: gain 1.0 is used and the defect correction stage fills them from their neighbours "
+            "(%llu in the outermost 64-pixel band; first: %llu). Limit: %.1f%%",
+            static_cast<unsigned long long>(scan.count), static_cast<unsigned long long>(scan.total),
+            scan.total ? 100.0 * static_cast<double>(scan.count) / static_cast<double>(scan.total) : 0.0,
+            static_cast<double>(XPE_GAIN_APPLIED_MIN), static_cast<double>(XPE_GAIN_APPLIED_MAX),
+            static_cast<unsigned long long>(scan.inBand), static_cast<unsigned long long>(scan.first),
+            100.0 * XPE_GAIN_DEFECT_MAX_FRACTION);
+        msg[sizeof(msg) - 1] = '\0';
+        xpe_alert_push(msg, XPE_ALERT_WARNING);
+    } catch (...) {
+        // advisory: lost under memory pressure
+    }
+}
+
+void xpe_gain_alert_over_limit(const XpeGainScan& scan, const char* verb) noexcept {
+    try {
+        char msg[400];
+        std::snprintf(msg, sizeof(msg),
+            "XPE_WARN_GAIN_PIXELS_OVER_LIMIT: %llu of %llu pixel(s) (%.3f%%) have a gain outside [%.1f, %.1f], above the %.1f%% "
+            "limit; the calibration was not %s",
+            static_cast<unsigned long long>(scan.count), static_cast<unsigned long long>(scan.total),
+            scan.total ? 100.0 * static_cast<double>(scan.count) / static_cast<double>(scan.total) : 0.0,
+            static_cast<double>(XPE_GAIN_APPLIED_MIN), static_cast<double>(XPE_GAIN_APPLIED_MAX),
+            100.0 * XPE_GAIN_DEFECT_MAX_FRACTION, verb);
+        msg[sizeof(msg) - 1] = '\0';
+        xpe_alert_push(msg, XPE_ALERT_ERROR);
+    } catch (...) {
+    }
+}
+
 XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcept {
     try {
         if (filepath == nullptr || out == nullptr) {
@@ -72,24 +127,31 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
         const size_t num_coeffs = is_poly ? (payload.size() / plane) : 1;
         const size_t n_floats   = payload.size() / sizeof(float);
 
-        // SRS-CALIB-FUNC-002 (#188, QA-A-107): "Values shall be in range
-        // [0.1, 10.0]; out-of-range values shall trigger
-        // XPE_ERR_INVALID_CALIB_DATA error." Checked here, at load, which is
-        // where FUNC-002 places it. Scalar maps only: a coefficient of
-        // G(x,y,E) is not a gain value.
-        if (!is_poly) {
-            const float* values = reinterpret_cast<const float*>(payload.data());
-            for (size_t i = 0; i < n_floats; ++i) {
-                if (!(values[i] >= XPE_CALIB_GAIN_MIN && values[i] <= XPE_CALIB_GAIN_MAX)) {
-                    return XPE_ERR_INVALID_CALIB_DATA;
-                }
-            }
-        }
-
-        // Allocate and copy pixel data
+        // SRS-CALIB-FUNC-002 (QA-A-211, #233): "Values shall be in range [0.1, 10.0]". A pixel outside it -- a failed
+        // pixel, or the low-sensitivity edge band some detectors have (CalData_6: 99.9% of 39-44 thousand such pixels lie
+        // in the outer 64-pixel band, two thirds of them outside the defect map) -- no longer refuses the whole map: it is
+        // CLASSIFIED DEFECTIVE, its gain is replaced by 1.0 and its index is kept for the defect stage. The count is
+        // reported, and a map with more than XPE_GAIN_DEFECT_MAX_FRACTION of its pixels classified is refused as before
+        // (XPE_ERR_INVALID_CALIB_DATA). Scalar maps only: a coefficient of G(x,y,E) is not a gain value.
+        // Everything that allocates is done here, before the commit.
         // Overwritten by the memcpy below; no value-initialisation (QA-A-105).
         std::shared_ptr<float[]> map(new float[n_floats]);
         std::memcpy(map.get(), payload.data(), payload.size());
+        std::shared_ptr<uint32_t[]> defect_idx;
+        XpeGainScan scan;
+        if (!is_poly) {
+            std::vector<uint32_t> idx;
+            scan = xpe_gain_scan_scalar(map.get(), hdr.width, hdr.height, &idx);
+            if (xpe_gain_scan_over_limit(scan)) {
+                xpe_gain_alert_over_limit(scan, "loaded");
+                return XPE_ERR_INVALID_CALIB_DATA;
+            }
+            if (scan.count > 0) {
+                defect_idx.reset(new uint32_t[idx.size()]);
+                std::memcpy(defect_idx.get(), idx.data(), idx.size() * sizeof(uint32_t));
+                for (const uint32_t k : idx) map[k] = 1.0f;
+            }
+        }
 
         // Commit under mutex. The two gain models are alternatives: whichever
         // is loaded clears the other, so a scalar map left over from an earlier
@@ -121,6 +183,10 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
 
         StagedGain staged;
         staged.map          = std::move(map);
+        staged.defectIdx    = std::move(defect_idx);
+        staged.defectCount  = static_cast<uint32_t>(scan.count);
+        staged.defectInBand = static_cast<uint32_t>(scan.inBand);
+        staged.defectFirst  = static_cast<uint32_t>(scan.first);
         staged.isPoly       = is_poly;
         staged.numCoeffs    = static_cast<uint32_t>(num_coeffs);
         staged.width        = hdr.width;
@@ -156,8 +222,12 @@ void xpe_calib_commit_gain_locked(StagedGain& staged) noexcept {
         g_calib.gain_poly_coeffs     = std::move(staged.map);
         g_calib.gain_poly_num_coeffs = staged.numCoeffs;
         g_calib.gain_map.reset();
+        g_calib.gain_defect_idx.reset();
+        g_calib.gain_defect_count = 0;
     } else {
         g_calib.gain_map = std::move(staged.map);
+        g_calib.gain_defect_idx   = std::move(staged.defectIdx);
+        g_calib.gain_defect_count = staged.defectCount;
         g_calib.gain_poly_coeffs.reset();
         g_calib.gain_poly_num_coeffs = 0;
     }
@@ -191,6 +261,12 @@ void xpe_calib_after_gain_commit(const StagedGain& staged) noexcept {
     const bool present     = staged.rangePresent;
     const double lo_a      = staged.doseLo;
     const double hi_a      = staged.doseHi;
+    if (!poly_loaded && staged.defectCount > 0) {
+        XpeGainScan scan;
+        scan.count = staged.defectCount; scan.inBand = staged.defectInBand; scan.first = staged.defectFirst;
+        scan.total = static_cast<uint64_t>(staged.width) * staged.height;
+        xpe_gain_alert_classified(scan);
+    }
 
         // The alerts are advisory: raising one allocates, and an allocation failure there must not
         // turn a load that has succeeded and been committed into an error.

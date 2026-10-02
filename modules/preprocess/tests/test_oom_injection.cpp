@@ -266,11 +266,11 @@ void writeDefect(const char* path, bool flagged) {
 /** Everything the loaders write, reduced to comparable values. */
 struct Snap {
     const void* om; uint32_t ow, oh; int64_t ot, oe;
-    const void* gm; const void* gp; uint32_t gnc, gw, gh; int64_t gt, ge; bool ghq; double gqr; unsigned gqd;
+    const void* gm; const void* gp; const void* gdi; uint32_t gdc; uint32_t gnc, gw, gh; int64_t gt, ge; bool ghq; double gqr; unsigned gqd;
     const void* dm; uint32_t dw, dh; int64_t de;
     bool operator==(const Snap& o) const {
         return om == o.om && ow == o.ow && oh == o.oh && ot == o.ot && oe == o.oe &&
-               gm == o.gm && gp == o.gp && gnc == o.gnc && gw == o.gw && gh == o.gh && gt == o.gt &&
+               gm == o.gm && gp == o.gp && gdi == o.gdi && gdc == o.gdc && gnc == o.gnc && gw == o.gw && gh == o.gh && gt == o.gt &&
                ge == o.ge && ghq == o.ghq && gqr == o.gqr && gqd == o.gqd && dm == o.dm && dw == o.dw && dh == o.dh && de == o.de;
     }
 };
@@ -278,7 +278,8 @@ Snap snap() {
     std::lock_guard<std::mutex> lk(g_calib_mutex);
     return Snap{g_calib.offset_map.get(), g_calib.offset_width, g_calib.offset_height, g_calib.offset_timestamp,
                 g_calib.offset_expiry_ms,
-                g_calib.gain_map.get(), g_calib.gain_poly_coeffs.get(), g_calib.gain_poly_num_coeffs,
+                g_calib.gain_map.get(), g_calib.gain_poly_coeffs.get(), g_calib.gain_defect_idx.get(), g_calib.gain_defect_count,
+                g_calib.gain_poly_num_coeffs,
                 g_calib.gain_width, g_calib.gain_height, g_calib.gain_timestamp, g_calib.gain_expiry_ms,
                 g_calib.gain_has_quality, g_calib.gain_quality.r_squared,
                 static_cast<unsigned>(g_calib.gain_quality.polynomial_degree),
@@ -2469,4 +2470,126 @@ TEST_F(OomInjection, ALegacyFileThatFailsToBuildItsWarningLeavesEveryOutputArgum
     }
     EXPECT_GT(failures, 10) << "control: the sweep reached many failure points";
     std::remove(path.c_str());
+}
+
+
+/* =========================================================================
+ * QA-A-211 (#233): the classification paths allocate too -- the scan's index vector, the list the store keeps, the
+ * polynomial's per-frame list, the union mask of the defect stage. Each of them fails at every allocation point.
+ * 20x20 files: a 4x4 frame cannot hold a bad pixel under the 5% cap.
+ * ========================================================================= */
+namespace q211 {
+
+constexpr uint32_t kW = 20, kH = 20;
+constexpr size_t kN = static_cast<size_t>(kW) * kH;
+
+void writeBig(const char* path, uint32_t type, uint32_t fmt, const void* data, size_t bytes) {
+    std::remove(path);
+    XCalFileHeader hdr{};
+    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    hdr.version = XCAL_VERSION; hdr.type = type; hdr.pixel_format = fmt;
+    hdr.width = kW; hdr.height = kH; hdr.payload_len = bytes;
+    const std::string json = "{}";
+    ASSERT_EQ(XPE_OK, write_xcal_file(path, hdr, reinterpret_cast<const uint8_t*>(json.data()), json.size(),
+                                      static_cast<const uint8_t*>(data), bytes));
+}
+void writeScalarWithBad(const char* path) {
+    std::vector<float> m(kN, 2.0f);
+    m[37] = 0.0f; m[205] = 50.0f;
+    writeBig(path, XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, m.data(), m.size() * sizeof(float));
+}
+// degree 1, gain = c0 + c1 * x: pixel 37 has all-zero coefficients (classified), the rest are the constant 2.0
+void writePolyWithBad(const char* path) {
+    std::vector<float> c(kN * 2, 0.0f);
+    for (size_t q = 0; q < kN; ++q) c[q * 2] = (q == 37) ? 0.0f : 2.0f;
+    writeBig(path, XCAL_TYPE_GAIN_POLY, XCAL_FMT_FLOAT32, c.data(), c.size() * sizeof(float));
+}
+void writeEmptyDefects(const char* path) {
+    std::vector<uint8_t> m(kN, 0);
+    writeBig(path, XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, m.data(), m.size());
+}
+
+}  // namespace q211
+
+TEST_F(OomInjection, AScalarGainLoadThatClassifiesPixelsAndFailsLeavesTheStoreUntouched) {
+    using namespace q211;
+    writeGain("oom_q.xcal", 4.0f, "{}");
+    writeScalarWithBad("oom_long_entry_file_name.xcal");
+    sweep("xpe_calib_load_gain (classified pixels)",
+          [] { resetStore(); xpe_calib_cache_clear(); xpe_clear_alerts(); ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_q.xcal")); },
+          [] { return xpe_calib_load_gain("oom_long_entry_file_name.xcal"); }, /*unchangedOnError=*/true,
+          [](XpeErrorCode rc) -> std::string {
+              if (rc != XPE_OK) return {};
+              std::lock_guard<std::mutex> lk(g_calib_mutex);
+              return g_calib.gain_defect_count == 2 && g_calib.gain_defect_idx ? std::string() : "a load that succeeded lost the classification";
+          });
+}
+
+TEST_F(OomInjection, ACachedScalarGainHitThatClassifiesPixelsAndFailsLeavesTheStoreUntouched) {
+    using namespace q211;
+    writeGain("oom_q.xcal", 4.0f, "{}");
+    writeScalarWithBad("oom_long_entry_file_name.xcal");
+    sweep("xpe_calib_load_gain_cached (hit, classified)",
+          [] {
+              resetStore(); xpe_calib_cache_clear(); xpe_clear_alerts();
+              XpeImageBuffer v{};
+              ASSERT_EQ(XPE_OK, xpe_calib_load_gain_cached("oom_long_entry_file_name.xcal", &v));   // cached with its list
+              ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_q.xcal"));                                 // store = Q, no classification
+          },
+          [] { XpeImageBuffer v{}; return xpe_calib_load_gain_cached("oom_long_entry_file_name.xcal", &v); }, /*unchangedOnError=*/true,
+          [](XpeErrorCode rc) -> std::string {
+              if (rc != XPE_OK) return {};
+              std::lock_guard<std::mutex> lk(g_calib_mutex);
+              return g_calib.gain_defect_count == 2 && g_calib.gain_defect_idx ? std::string() : "a hit that succeeded did not install the classification";
+          });
+}
+
+TEST_F(OomInjection, ADefectCorrectionThatUnitesTheGainClassificationAndFailsLeavesTheStoreUntouched) {
+    using namespace q211;
+    writeScalarWithBad("oom_q.xcal");
+    writeEmptyDefects("oom_long_entry_file_name.xcal");
+    static std::vector<float> in(kN, 1000.0f), out(kN, 0.0f);
+    in[37] = 9000.0f; in[205] = 9000.0f;
+    sweep("xpe_defect_correct (gain-classified pixels)",
+          [] {
+              resetStore(); xpe_clear_alerts();
+              xpe_preprocess_init(nullptr);
+              ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_q.xcal"));
+              ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map("oom_long_entry_file_name.xcal"));
+          },
+          [] {
+              XpeImageBuffer i{}, o{};
+              i.data = in.data(); i.width = kW; i.height = kH; i.bitsAllocated = 32; i.bitsStored = 32; i.format = XPE_PIXEL_FLOAT32;
+              i.dataSize = static_cast<uint32_t>(kN * 4);
+              o = i;
+              o.data = out.data();
+              XpeImageMetadata meta{};
+              return xpe_defect_correct(&i, &o, &meta);
+          }, /*unchangedOnError=*/true,
+          [](XpeErrorCode rc) -> std::string {
+              if (rc != XPE_OK) return {};
+              return (out[37] == 1000.0f && out[205] == 1000.0f) ? std::string() : "the classified pixels were not corrected";
+          });
+}
+
+TEST_F(OomInjection, APolynomialGainApplicationThatClassifiesPixelsAndFailsReportsOutOfMemory) {
+    using namespace q211;
+    writePolyWithBad("oom_q.xcal");
+    static std::vector<uint16_t> in(kN, 3000);
+    static std::vector<float> out(kN, 0.0f);
+    sweep("xpe_gain_correct (polynomial, classified pixels)",
+          [] { resetStore(); xpe_clear_alerts(); xpe_preprocess_init(nullptr); ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_q.xcal")); },
+          [] {
+              XpeImageBuffer i{}, o{};
+              i.data = in.data(); i.width = kW; i.height = kH; i.bitsAllocated = 16; i.bitsStored = 16; i.format = XPE_PIXEL_UINT16;
+              i.dataSize = static_cast<uint32_t>(kN * 2);
+              o.data = out.data(); o.width = kW; o.height = kH; o.bitsAllocated = 32; o.bitsStored = 32; o.format = XPE_PIXEL_FLOAT32;
+              o.dataSize = static_cast<uint32_t>(kN * 4);
+              XpeImageMetadata meta{};
+              return xpe_gain_correct(&i, &o, &meta);
+          }, /*unchangedOnError=*/true,
+          [](XpeErrorCode rc) -> std::string {
+              if (rc == XPE_OK) return out[37] == 3000.0f ? std::string() : "the classified pixel did not carry gain 1.0";
+              return rc == XPE_ERR_OUT_OF_MEMORY ? std::string() : "an allocation failure was reported as another error";
+          });
 }

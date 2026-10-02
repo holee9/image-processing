@@ -1,0 +1,7 @@
+ARM a5_no_binning_refusal
+file src/pipeline.cpp
+built=True
+[  FAILED  ] GainDefectClassifyTest.ClassifiedPixelsWithBinningAreRefusedBecauseBinningWouldSpreadTheUncorrectedValue (2 ms)
+[  PASSED  ] 22 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] GainDefectClassifyTest.ClassifiedPixelsWithBinningAreRefusedBecauseBinningWouldSpreadTheUncorrectedValue

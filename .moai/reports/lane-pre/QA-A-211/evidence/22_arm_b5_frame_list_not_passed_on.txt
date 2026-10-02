@@ -1,0 +1,9 @@
+ARM b5_frame_list_not_passed_on
+file src/gain_correct.cpp
+built=True
+[  FAILED  ] GainPolyClassifyTest.AClassifiedPixelIsFilledFromItsNeighboursWhereTheAppliedGainIsOne (9 ms)
+[  FAILED  ] GainPolyClassifyTest.ACurveThatLeavesTheRangeBetweenTwoMeasuredDosesClassifiesThatPixelInsteadOfRefusingTheFrame (12 ms)
+[  PASSED  ] 835 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] GainPolyClassifyTest.AClassifiedPixelIsFilledFromItsNeighboursWhereTheAppliedGainIsOne
+[  FAILED  ] GainPolyClassifyTest.ACurveThatLeavesTheRangeBetweenTwoMeasuredDosesClassifiesThatPixelInsteadOfRefusingTheFrame

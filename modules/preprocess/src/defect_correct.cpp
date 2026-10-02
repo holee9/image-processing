@@ -120,7 +120,8 @@ XpeErrorCode xpe_defect_correct_in(
     const CalibSnapshot&    calib,
     const XpeImageBuffer*  input,
     XpeImageBuffer*         output,
-    const XpeImageMetadata* metadata) try
+    const XpeImageMetadata* metadata,
+    const std::vector<uint32_t>* frame_defects) try
 {
     if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;
     if (!input->data || !output->data) return XPE_ERR_INVALID_INPUT;
@@ -190,6 +191,43 @@ XpeErrorCode xpe_defect_correct_in(
     const float*   src = static_cast<const float*>(input->data);
     float*         dst = static_cast<float*>(output->data);
     const uint8_t* dm  = dm_local.get();
+
+    // QA-A-211 (#233): the pixels the GAIN calibration classified defective are corrected like the map's own. The mask
+    // the kernels read is the UNION of the loaded defect map, the scalar map's list kept in the snapshot and this
+    // frame's list (a polynomial gain classifies per frame). Nothing is copied unless one of the lists is non-empty, so
+    // a calibration whose gain classified nothing takes the path it always took. The map itself is never modified: it
+    // is shared with the store.
+    std::vector<uint8_t> union_mask;
+    const size_t frame_extra = frame_defects ? frame_defects->size() : 0;
+    if (calib.gain_defect_count > 0 || frame_extra > 0) {
+        union_mask.assign(dm, dm + n);
+        if (calib.gain_defect_idx) {
+            for (uint32_t k = 0; k < calib.gain_defect_count; ++k) {
+                const uint32_t idx = calib.gain_defect_idx[k];
+                if (idx < n) union_mask[idx] = 1;
+            }
+        }
+        if (frame_defects) {
+            for (const uint32_t idx : *frame_defects) {
+                if (idx < n) union_mask[idx] = 1;
+            }
+        }
+        dm = union_mask.data();
+
+        // D1: the union is above the density SRS-CALIB-FUNC-003 tolerates -> ONE warning for the frame, never a refusal.
+        size_t u = 0;
+        for (size_t i = 0; i < n; ++i) u += (union_mask[i] != 0);
+        if (static_cast<double>(u) > XPE_GAIN_DEFECT_MAX_FRACTION * static_cast<double>(n)) {
+            char msg[320];
+            std::snprintf(msg, sizeof(msg),
+                "XPE_WARN_DEFECT_UNION_OVER_LIMIT: the defect map together with the pixels classified defective by the gain "
+                "calibration covers %zu of %zu pixel(s) (%.3f%%), above the %.1f%% defect density SRS-CALIB-FUNC-003 tolerates; "
+                "the frame is corrected, but the correction fills a large part of it from neighbours",
+                u, n, 100.0 * static_cast<double>(u) / static_cast<double>(n), 100.0 * XPE_GAIN_DEFECT_MAX_FRACTION);
+            msg[sizeof(msg) - 1] = '\0';
+            xpe_alert_push(msg, XPE_ALERT_WARNING);
+        }
+    }
 
     // Copy input -> output first. SKIPPED WHEN THE CALLER PASSED ONE BUFFER:
     // std::memcpy requires non-overlapping regions, so dst == src is undefined

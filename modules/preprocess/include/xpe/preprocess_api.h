@@ -162,6 +162,19 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
  * by atoi/atof and now refuse the file -- an intended policy (QA-A-204, QA-A-205b): a quality field that is not
  * a number is not data. The generator (xpe_calib_generate_gain) writes plain numbers.
  *
+ * Gain range and failed pixels (SRS-CALIB-FUNC-002, QA-A-211): a scalar map's values shall be in [0.1, 10.0]. A pixel
+ * outside it -- a failed pixel, or the low-sensitivity edge band some detectors have -- does NOT refuse the map: it is
+ * CLASSIFIED DEFECTIVE. Its gain is replaced by 1.0, its index is kept in the calibration store, and the defect
+ * correction stage corrects it from its neighbours together with the pixels of the loaded defect map (the stage reads
+ * the union of the two). The count is reported on the alert queue (XPE_ALERT_WARNING,
+ * "XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: ..."), and a map with MORE than 5% of its pixels classified (the defect
+ * density SRS-CALIB-FUNC-003 tolerates) is refused with XPE_ERR_INVALID_CALIB_DATA and an alert
+ * "XPE_WARN_GAIN_PIXELS_OVER_LIMIT: ..." (XPE_ALERT_ERROR), the store unchanged. The same range and rule apply to a
+ * gain polynomial, evaluated at each pixel value when a frame is corrected (see xpe_gain_correct). Pixels classified
+ * by the gain calibration are corrected only by a defect stage that follows: with the defect stage bypassed, or with
+ * xpe_gain_correct called on its own, they carry the uncorrected value (gain 1.0) and the frame says so
+ * ("XPE_WARN_GAIN_PIXELS_UNCORRECTED: ..."); the pipeline refuses such a frame when binning is on.
+ *
  * @param filepath Path to XCal format gain file
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
@@ -169,6 +182,7 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
  *         XPE_ERR_CALIBRATION_EXPIRED if calibration expired
  *         XPE_ERR_CONFIG_INVALID if the config block is not one valid JSON object, or a present quality field is
  *                                not a number in its range
+ *         XPE_ERR_INVALID_CALIB_DATA if more than 5% of a scalar map's pixels are outside [0.1, 10.0]
  */
 XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath);
 
@@ -237,7 +251,14 @@ XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
  *                               map's dimensions differ from the input's (REQ-P1A-021)
  *         XPE_ERR_BUFFER_TOO_SMALL if the output's dimensions differ from the input's
  *         XPE_ERR_UNSUPPORTED_FORMAT if format mismatch
- *         XPE_ERR_CONFIG_INVALID if gain map contains invalid values
+ *         XPE_ERR_CONFIG_INVALID if the gain map contains invalid values, or (polynomial gain) if more than 5% of the
+ *                               frame's pixels evaluate to a gain outside [0.1, 10.0] (QA-A-211)
+ *
+ * @note A pixel whose polynomial gain, evaluated in float32 at its own value, is outside [0.1, 10.0] (or not finite) is
+ *       classified defective for this frame: gain 1.0, and the pipeline hands its index to the defect stage of the same
+ *       frame. Called on its own this function cannot do that -- the pixel keeps gain 1.0 and an alert
+ *       "XPE_WARN_GAIN_PIXELS_UNCORRECTED: ..." says no defect stage follows. A scalar map was classified when it was
+ *       loaded (see xpe_calib_load_gain), and xpe_defect_correct reads that classification from the store.
  *
  * @note The map this function reads is the one in the calibration store when it is CALLED (it takes its own
  *       snapshot under the store's lock, then reads it in place; a load that lands during the call does not
@@ -527,10 +548,16 @@ XPE_API void xpe_calib_unload_nonlin_lut(void);
  *         XPE_ERR_INVALID_CALIB_DATA if a gain map holds a value that is not finite (QA-A-210d), or if
  *         some pixel has no polynomial the APPLIER can use (QA-A-210e): the coefficients are stored as float32 in the
  *         raw dose and applied in float32 Horner at the pixel value, and a fit whose float32 evaluation at a measured
- *         dose falls outside the applier's gain range [0.001, 1000] or more than 0.1% from the fit (typically doses so
- *         close together that the float32 intercept cannot carry the slope) lowers the degree like a non-monotone
- *         one; if even the least-squares line fails, no quality record is made and no file is written, and an alert
- *         "XPE_WARN_GAIN_POLY_NOT_APPLICABLE: ..." (XPE_ALERT_ERROR) gives the pixel count and the first pixel. The
+ *         dose is more than 0.1% from the fit (typically doses so close together that the float32 intercept cannot
+ *         carry the slope) lowers the degree like a non-monotone one; if even the least-squares line fails, no quality
+ *         record is made and no file is written, and an alert "XPE_WARN_GAIN_POLY_NOT_APPLICABLE: ..."
+ *         (XPE_ALERT_ERROR) gives the pixel count and the first pixel. A pixel whose gain is outside the gain range
+ *         [0.1, 10.0] (SRS-CALIB-FUNC-002) is not refused but CLASSIFIED DEFECTIVE (QA-A-211): when a measured gain of
+ *         it is outside the range, or the least-squares line leaves the range at a measured dose, its coefficients are
+ *         stored as 0 (the applier classifies it again at every frame), it is not fitted and not in the quality figures
+ *         below, and the count is reported ("XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: ..."); more than 5% of the frame
+ *         classified refuses the generation (XPE_ERR_INVALID_CALIB_DATA, alert "XPE_WARN_GAIN_PIXELS_OVER_LIMIT: ...",
+ *         nothing recorded, no file). The
  *         fit_r_squared the file records is computed in the applier's arithmetic from the stored coefficients, so it is
  *         the quality of the correction that will be performed, or
  *         when num_levels / max_degree exceed the active calibration mode

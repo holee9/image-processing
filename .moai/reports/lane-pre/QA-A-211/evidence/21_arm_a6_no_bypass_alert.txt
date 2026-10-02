@@ -1,0 +1,7 @@
+ARM a6_no_bypass_alert
+file src/pipeline.cpp
+built=True
+[  FAILED  ] GainDefectClassifyTest.WithTheDefectStageBypassedTheClassifiedPixelsPassAtGainOneAndTheFrameSaysSo (2 ms)
+[  PASSED  ] 22 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] GainDefectClassifyTest.WithTheDefectStageBypassedTheClassifiedPixelsPassAtGainOneAndTheFrameSaysSo

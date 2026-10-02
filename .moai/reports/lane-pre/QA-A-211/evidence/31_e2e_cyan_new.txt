@@ -1,0 +1,12 @@
+=== cyan_test (new DLLs)
+defect map rc = 0
+  level 0: load rc=0 alerts=[] ; pipeline rc=0 sha256=2ce3828c61666860
+  level 1: load rc=0 alerts=[] ; pipeline rc=0 sha256=001026994c0c55d9
+  level 2: load rc=0 alerts=[] ; pipeline rc=0 sha256=244ba7d7f632803f
+  level 3: load rc=0 alerts=[] ; pipeline rc=0 sha256=67d50abcc12d40d7
+  level 4: load rc=0 alerts=[] ; pipeline rc=0 sha256=83c8443dcbaa8340
+  combined sha256 of the five outputs: 56ac0584aba6ebb145c29cfefa91ab6acd20e7f9128fa37c1fe8cbc6760392e1
+  polynomial degree 2: rc=0 alerts=['XPE_WARN_CALIB_POOR_FIT: fit_r_squared=0.252129 below 0.999 (max_residual=3.494%, mean_residual=0.226%); increase dose levels or check detec']
+  all-zero coefficient pixels: 0
+  coefficient payload sha256: 50ff4a77e489b2da8332bf05edbb8dd5fc49acf94e73c501949ad5a89d68a4a0
+  quality rc = 0  r_squared = 0.252128995 (QA-A-210e report: 0.252129036)

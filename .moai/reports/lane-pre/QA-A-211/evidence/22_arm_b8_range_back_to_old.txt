@@ -1,0 +1,27 @@
+ARM b8_range_back_to_old
+file include/xpe/preprocess/xpe_preprocess_internal.h
+built=True
+[  FAILED  ] GainPolyNotAppliedTest.ScalarGainValuesOutsideTheRangeAreRejected (23 ms)
+[  FAILED  ] GainDefectClassifyTest.AMapWithAFewBadPixelsLoadsAndTheCountIsReported (1 ms)
+[  FAILED  ] GainDefectClassifyTest.TheClassifiedPixelsAreFilledFromTheirNeighboursByTheDefectStage (5 ms)
+[  FAILED  ] GainPolyClassifyTest.MeasuredGainsOutOfRangeAreClassifiedNotFittedAndTheFileIsWritten (6 ms)
+[  FAILED  ] GainPolyClassifyTest.APixelWhoseLeastSquaresLineLeavesTheRangeAtAMeasuredDoseIsClassifiedToo (7 ms)
+[  FAILED  ] GainPolyClassifyTest.MoreThanFivePercentClassifiedRefusesTheGenerationAndChangesNothing (7 ms)
+[  FAILED  ] GainPolyClassifyTest.AClassifiedPixelIsFilledFromItsNeighboursWhereTheAppliedGainIsOne (8 ms)
+[  FAILED  ] GainPolyClassifyTest.CalledOnItsOwnTheGainStageKeepsGainOneAndSaysNoDefectStageFollows (9 ms)
+[  FAILED  ] GainPolyClassifyTest.ACurveThatLeavesTheRangeBetweenTwoMeasuredDosesClassifiesThatPixelInsteadOfRefusingTheFrame (20 ms)
+[  FAILED  ] GainPolyClassifyTest.TheCodexDataAsGivenIsRefusedAtGenerationNowThatTheRangeIsTheSrsOne (7 ms)
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys (84 ms)
+[  PASSED  ] 826 tests.
+[  FAILED  ] 11 tests, listed below:
+[  FAILED  ] GainPolyNotAppliedTest.ScalarGainValuesOutsideTheRangeAreRejected
+[  FAILED  ] GainDefectClassifyTest.AMapWithAFewBadPixelsLoadsAndTheCountIsReported
+[  FAILED  ] GainDefectClassifyTest.TheClassifiedPixelsAreFilledFromTheirNeighboursByTheDefectStage
+[  FAILED  ] GainPolyClassifyTest.MeasuredGainsOutOfRangeAreClassifiedNotFittedAndTheFileIsWritten
+[  FAILED  ] GainPolyClassifyTest.APixelWhoseLeastSquaresLineLeavesTheRangeAtAMeasuredDoseIsClassifiedToo
+[  FAILED  ] GainPolyClassifyTest.MoreThanFivePercentClassifiedRefusesTheGenerationAndChangesNothing
+[  FAILED  ] GainPolyClassifyTest.AClassifiedPixelIsFilledFromItsNeighboursWhereTheAppliedGainIsOne
+[  FAILED  ] GainPolyClassifyTest.CalledOnItsOwnTheGainStageKeepsGainOneAndSaysNoDefectStageFollows
+[  FAILED  ] GainPolyClassifyTest.ACurveThatLeavesTheRangeBetweenTwoMeasuredDosesClassifiesThatPixelInsteadOfRefusingTheFrame
+[  FAILED  ] GainPolyClassifyTest.TheCodexDataAsGivenIsRefusedAtGenerationNowThatTheRangeIsTheSrsOne
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys

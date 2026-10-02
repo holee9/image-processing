@@ -1,0 +1,9 @@
+ARM b9_defect_stage_ignores_frame_list
+file src/defect_correct.cpp
+built=True
+[  FAILED  ] GainPolyClassifyTest.AClassifiedPixelIsFilledFromItsNeighboursWhereTheAppliedGainIsOne (9 ms)
+[  FAILED  ] GainPolyClassifyTest.ACurveThatLeavesTheRangeBetweenTwoMeasuredDosesClassifiesThatPixelInsteadOfRefusingTheFrame (18 ms)
+[  PASSED  ] 835 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] GainPolyClassifyTest.AClassifiedPixelIsFilledFromItsNeighboursWhereTheAppliedGainIsOne
+[  FAILED  ] GainPolyClassifyTest.ACurveThatLeavesTheRangeBetweenTwoMeasuredDosesClassifiesThatPixelInsteadOfRefusingTheFrame
