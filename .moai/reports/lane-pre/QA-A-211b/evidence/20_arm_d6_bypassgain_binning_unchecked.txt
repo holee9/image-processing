@@ -1,0 +1,7 @@
+ARM d6_bypassgain_binning_unchecked
+file src/pipeline.cpp
+built=True
+[  FAILED  ] DefectFillTest.ABypassedGainStageDoesNotLetBinningMixInAStoredClassification (2 ms)
+[  PASSED  ] 50 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DefectFillTest.ABypassedGainStageDoesNotLetBinningMixInAStoredClassification

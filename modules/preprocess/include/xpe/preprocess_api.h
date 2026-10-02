@@ -306,6 +306,13 @@ XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
  * kernels read only unmarked ones (defect_correct.cpp:96, helpers.cpp:30 on
  * the 4-neighbour path and the r=1..3 ring fallback alike). The two sets are
  * disjoint, so a read can never see an already-corrected value.
+ *
+ * FILL VALUE (QA-A-211b): a marked pixel takes the mean of its unmarked 4-neighbours (a lone defect), or -- inside a
+ * cluster of adjacent marked pixels -- the median of the unmarked pixels of its 3x3; when that 3x3 holds none (the
+ * interior of a cluster), the search widens ring by ring to Chebyshev radius 16 and the median of the NEAREST ring
+ * holding an unmarked pixel is used. A pixel with no unmarked pixel within 16 pixels keeps its input value and one
+ * alert "XPE_WARN_DEFECT_NO_VALID_NEIGHBOUR: ..." (XPE_ALERT_WARNING) gives the count; it is never written as 0.
+ * (Before QA-A-211b a cluster pixel with an empty 3x3 was written as 0.0f -- on CalData_6, 66.7% of the defect map.)
  * That invariant is a property of the CURRENT kernels, not a structural
  * guarantee -- a kernel that read a defective neighbour would break in-place
  * silently, so what holds it is a test, not this comment:

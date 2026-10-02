@@ -439,7 +439,7 @@ XpeErrorCode xpe_gain_correct_in(
                     char msg[320];
                     std::snprintf(msg, sizeof(msg),
                         "XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: %llu pixel(s) of this frame evaluate to a gain outside [%.1f, %.1f] and "
-                        "are treated as defective (gain 1.0)",
+                        "are marked defective (gain 1.0) and listed for the defect correction stage",
                         static_cast<unsigned long long>(scan.count),
                         static_cast<double>(XPE_GAIN_APPLIED_MIN), static_cast<double>(XPE_GAIN_APPLIED_MAX));
                     msg[sizeof(msg) - 1] = '\0';

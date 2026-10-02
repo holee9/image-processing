@@ -1,0 +1,17 @@
+ARM d1_no_widening
+file src/defect_correct.cpp
+built=True
+[  FAILED  ] DefectFillTest.ACentre3x3ClassifiedByTheGainMapIsFilledFromTheRingNotWithZero (2 ms)
+[  FAILED  ] DefectFillTest.AClusterOfTheDefectMapItselfIsFilledTheSameWay (2 ms)
+[  FAILED  ] DefectFillTest.TheNearestRingDecidesNotAWiderOne (2 ms)
+[  FAILED  ] DefectFillTest.InPlaceAndOutOfPlaceAgreeOnTheRingPathAndNeitherIsZero (2 ms)
+[  FAILED  ] DefectFillTest.APixelWithNoValidPixelWithinTheSearchRadiusKeepsItsValueAndTheFrameSaysSo (1 ms)
+[  FAILED  ] DefectFillTest.AFrameWhoseMaskedPixelsAllHaveAValidNeighbourRaisesNothing (1 ms)
+[  PASSED  ] 45 tests.
+[  FAILED  ] 6 tests, listed below:
+[  FAILED  ] DefectFillTest.ACentre3x3ClassifiedByTheGainMapIsFilledFromTheRingNotWithZero
+[  FAILED  ] DefectFillTest.AClusterOfTheDefectMapItselfIsFilledTheSameWay
+[  FAILED  ] DefectFillTest.TheNearestRingDecidesNotAWiderOne
+[  FAILED  ] DefectFillTest.InPlaceAndOutOfPlaceAgreeOnTheRingPathAndNeitherIsZero
+[  FAILED  ] DefectFillTest.APixelWithNoValidPixelWithinTheSearchRadiusKeepsItsValueAndTheFrameSaysSo
+[  FAILED  ] DefectFillTest.AFrameWhoseMaskedPixelsAllHaveAValidNeighbourRaisesNothing

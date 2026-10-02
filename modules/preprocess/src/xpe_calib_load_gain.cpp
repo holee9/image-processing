@@ -46,7 +46,7 @@ void xpe_gain_alert_classified(const XpeGainScan& scan) noexcept {
         char msg[400];
         std::snprintf(msg, sizeof(msg),
             "XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: %llu of %llu pixel(s) (%.3f%%) have a gain outside [%.1f, %.1f] and are "
-            "treated as defective: gain 1.0 is used and the defect correction stage fills them from their neighbours "
+            "marked defective: gain 1.0 is used and they are listed for the defect correction stage "
             "(%llu in the outermost 64-pixel band; first: %llu). Limit: %.1f%%",
             static_cast<unsigned long long>(scan.count), static_cast<unsigned long long>(scan.total),
             scan.total ? 100.0 * static_cast<double>(scan.count) / static_cast<double>(scan.total) : 0.0,

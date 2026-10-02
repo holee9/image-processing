@@ -318,6 +318,20 @@ namespace {
             stage4 = stage3;
         }
 
+        // QA-A-211b (#233, Codex #71): the same refusal when the GAIN stage is bypassed. The defect stage reads the stored
+        // classification (the scalar map's list, kept in the snapshot) whether or not the gain stage ran, so binning
+        // would mix those pixels' original values into their neighbours and the defect stage would then fill the
+        // listed positions of an already-mixed frame. The list is only delivered when the defect stage runs.
+        if (cfg.bypassGain && !cfg.bypassDefect && calib.gain_defect_count > 0 &&
+            !cfg.bypassBinning && cfg.binningMode > 1) {
+            xpe_alert_push(
+                "XPE_WARN_GAIN_PIXELS_WITH_BINNING: pixels classified defective by the gain calibration cannot be "
+                "combined with binning (binningMode > 1): binning would mix their uncorrected value into their "
+                "neighbours before the defect correction can replace it; the frame was not processed",
+                XPE_ALERT_ERROR);
+            return XPE_ERR_CONFIG_INVALID;
+        }
+
         // Stage 5: Binning Correction (PRE-09) - float32 in/out
         XpeImageBuffer stage5 = stage4;
         std::vector<float> stage5Data;

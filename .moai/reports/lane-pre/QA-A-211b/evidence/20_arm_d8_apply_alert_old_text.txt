@@ -1,0 +1,7 @@
+ARM d8_apply_alert_old_text
+file src/gain_correct.cpp
+built=True
+[  FAILED  ] DefectFillTest.TheApplicationAlertOfAPolynomialSaysMarkedAndListedNotFilled (2 ms)
+[  PASSED  ] 50 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DefectFillTest.TheApplicationAlertOfAPolynomialSaysMarkedAndListedNotFilled
