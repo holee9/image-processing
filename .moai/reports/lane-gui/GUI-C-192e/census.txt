@@ -1,0 +1,12 @@
+== GetTimestamp census (gui + clients, excluding obj/bin) ==
+gui/ImageProcTest/Controls/ImageComparisonViewport.cs:258:        viewport._handedOffAt = Stopwatch.GetTimestamp();
+gui/ImageProcTest/Controls/ImageComparisonViewport.cs:383:            _renderMs = (Stopwatch.GetTimestamp() - _handedOffAt) * 1000.0 / Stopwatch.Frequency;
+gui/ImageProcTest/Services/AiBoneSuppressionStage.cs:204:    public static MonotonicClock Create() => new(System.Diagnostics.Stopwatch.GetTimestamp, System.Diagnostics.Stopwatch.Frequency);
+
+== control: the same search finds the pattern in the tests that deliberately contain it ==
+698:    /// Finding 3: the default clock multiplied the raw counter by TicksPerSecond in a long, which overflows at counter 922,337,203,685 (about
+705:        const long overflowsAt = long.MaxValue / TimeSpan.TicksPerSecond;      // 922_337_203_685: where counter * 10^7 leaves a long
+706:        Assert.True(unchecked(overflowsAt * 2 * TimeSpan.TicksPerSecond) < 0, "the old formula is expected to overflow here, or this test shows nothing");
+
+== blocking waits in gui app code (UI-stall candidates) ==
+gui/ImageProcTest/Services/FaultInjectingBackend.cs:102:        Thread.Sleep(Timeout.Infinite);

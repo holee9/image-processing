@@ -1,4 +1,4 @@
-// #225 (GUI-C-192c): the "AI worker status unknown" notice at the narrowest window, in the UI, without a native module.
+// #225 (GUI-C-192c): the "AI worker status check delayed" notice at the narrowest window, in the UI, without a native module.
 using ImageProcTest.E2ETests.Fixtures;
 using Xunit;
 using Xunit.Abstractions;
@@ -52,7 +52,7 @@ public sealed class AiWorkerUnconfirmedAtMinimumWidthScenarios(AiWorkerSilentApp
         Assert.True(PollFor(() => Banner() is not null, TimeSpan.FromSeconds(40)),
             $"The worker went silent but no notice appeared; fault '{WorkbenchObservation.FaultInjectionStatus(window)}'.");
         output.WriteLine($"M02 notice after {(DateTime.UtcNow - started).TotalSeconds:F1} s: '{Banner()!.Name}'");
-        Assert.Contains("status unknown", Banner()!.Name, StringComparison.Ordinal);
+        Assert.Contains("status check delayed", Banner()!.Name, StringComparison.Ordinal);
 
         var minimum = WindowMinimumWidth.ResizeToMinimum(window);
         output.WriteLine($"M02 minimum width: {minimum.Describe()}");
@@ -63,7 +63,7 @@ public sealed class AiWorkerUnconfirmedAtMinimumWidthScenarios(AiWorkerSilentApp
         Assert.True(bannerAtMinimum && restartAtMinimum,
             $"At the window's minimum width ({minimum.Final} px) the notice is not in the automation tree: banner {(bannerAtMinimum ? "found" : "NOT found")}, " +
             $"Restart AI {(restartAtMinimum ? "found" : "NOT found")}. {minimum.Describe()}");
-        Assert.Contains("status unknown", Banner()!.Name, StringComparison.Ordinal);
+        Assert.Contains("status check delayed", Banner()!.Name, StringComparison.Ordinal);
 
         // GUI-C-192d: the measurements the native CI log reads travel in the AI checkbox's item status (the diagnostics line). Read here on the
         // fault backend so the wiring is observed on every run, not only on the native one: the notice just raised is counted in it.

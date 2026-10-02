@@ -152,6 +152,37 @@ internal sealed class HeldReadBackend : ScenarioBackend, IAiSessionBackend
     public AiRestartResult RestartAiSession(string modelDirectory) => new(false, "scripted backend: no session to restart");
 }
 
+/// <summary>
+/// GUI-C-192e: an AI session whose FIRST status read is held and answers "switched off" (the old session's answer), while every later read
+/// answers from the new session ("active, 0 of 3"). The restart does not touch the epoch unless asked to, so the view model's own Restart AI wiring
+/// is what is observed; <see cref="ReplaceSessionWithoutTellingAnyone"/> moves the epoch the way a frame's re-init would.
+/// </summary>
+internal sealed class ReplacedSessionBackend : ScenarioBackend, IAiSessionBackend
+{
+    public readonly ManualResetEventSlim OldReadEntered = new();
+    public readonly ManualResetEventSlim OldReadRelease = new();
+    private int _reads;
+    private int _epoch;
+
+    public AiWorkerStatus GetAiWorkerStatus()
+    {
+        if (Interlocked.Increment(ref _reads) == 1)
+        {
+            OldReadEntered.Set();
+            OldReadRelease.Wait(TimeSpan.FromSeconds(30));
+            return new AiWorkerStatus(AiWorkerState.Disabled, 3, 3);
+        }
+
+        return new AiWorkerStatus(AiWorkerState.Active, 0, 3);
+    }
+
+    public AiRestartResult RestartAiSession(string modelDirectory) => new(true, "AI session restarted: scripted");
+
+    public void ReplaceSessionWithoutTellingAnyone() => Interlocked.Increment(ref _epoch);
+
+    int IAiSessionBackend.AiSessionEpoch => Volatile.Read(ref _epoch);
+}
+
 internal static class LifetimeScenarios
 {
     private static readonly List<string> Failures = [];
@@ -213,6 +244,8 @@ internal static class LifetimeScenarios
                         await Timed(() => TheAiWorkerDisabledFault_IsInertWithoutTheArgument_AndAnswersOffWithIt(rawPath, width, height));
 #endif
                         await Timed(() => AnOlderStatusReadIsNeverShownAfterANewerRequest(rawPath, width, height));
+                        await Timed(() => AnOldDisabledAnswerIsNeverShownForANewSession(rawPath, width, height, viaRestartCommand: true));
+                        await Timed(() => AnOldDisabledAnswerIsNeverShownForANewSession(rawPath, width, height, viaRestartCommand: false));
                     }
                     catch (Exception ex)
                     {
@@ -774,6 +807,75 @@ internal static class LifetimeScenarios
 
             Check(timeline.Count == 1 && timeline[0] == "worker=Active; failures=2; ceiling=3",
                 $"the screen showed {timeline.Count} change(s) [{string.Join(" | ", timeline)}]; expected exactly the newest answer, never the older one");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- 8: an older "switched off" answer is never shown for a NEW session (GUI-C-192e, Codex #62 finding 1) ----------------------------
+    //
+    // The first read is held inside the module and will answer "switched off" (the old session). Then the session is replaced, through the real
+    // Restart AI command (viaRestartCommand) or the way a frame's re-init would, with nobody calling Reset (the epoch). The old answer is released
+    // AFTER; it must never reach the screen. Recorded at PropertyChanged, not sampled.
+
+    private static async Task AnOldDisabledAnswerIsNeverShownForANewSession(string rawPath, int width, int height, bool viaRestartCommand)
+    {
+        _scenario = viaRestartCommand ? "8 Restart AI vs an older Disabled answer" : "8b session replaced without Reset (epoch)";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new ReplacedSessionBackend();
+            var vm = NewViewModel(width, height, _ => backend, directory, out _, laneBVoiWindowWidth: 0f, aiInChain: true);
+            var timeline = new List<string>();
+            vm.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(MainWindowViewModel.AiWorkerStatusSummary))
+                {
+                    timeline.Add(vm.AiWorkerStatusSummary);
+                }
+            };
+
+            int ChainsReported() => vm.Logs.Count(line => line.Contains("Chain ai_bone_suppress:", StringComparison.Ordinal));
+
+            Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", rawPath);
+            try
+            {
+                vm.LoadImageCommand.Execute(null);                 // Apply A: its status read starts and is held (the old session's answer)
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", null);
+            }
+
+            await Until(() => backend.OldReadEntered.IsSet, "the old status read to be inside the module");
+            await Until(() => vm.ProcessedImage is not null, "Apply A's image");
+            await FlushUi();
+
+            if (viaRestartCommand)
+            {
+                vm.RestartAiSessionCommand.Execute(null);          // the real command: it must raise the generation itself
+                await Until(() => vm.Logs.Any(line => line.Contains("AI session restarted", StringComparison.Ordinal)), "the restart to finish");
+            }
+            else
+            {
+                var chainsBefore = ChainsReported();
+                backend.ReplaceSessionWithoutTellingAnyone();      // no Reset: only the epoch moves
+                vm.ApplyDisplayPipelineCommand.Execute(null);      // a newer request, as in the real wiring
+                await Until(() => ChainsReported() > chainsBefore, "Apply B's chain to be reported");
+            }
+
+            await FlushUi();
+            Check(timeline.Count == 0 || timeline.All(entry => !entry.Contains("Disabled", StringComparison.Ordinal)),
+                $"a 'switched off' status reached the screen before the old read was released: {string.Join(" | ", timeline)}");
+
+            backend.OldReadRelease.Set();                          // the old session's answer comes back, late
+            await Until(() => timeline.Any(entry => entry.Contains("worker=Active; failures=0", StringComparison.Ordinal)), "the new session's status to be shown", 5000);
+            await FlushUi();
+
+            Check(timeline.All(entry => !entry.Contains("Disabled", StringComparison.Ordinal)),
+                $"the old session's 'switched off' answer was shown for the new session: [{string.Join(" | ", timeline)}]");
         }
         finally
         {

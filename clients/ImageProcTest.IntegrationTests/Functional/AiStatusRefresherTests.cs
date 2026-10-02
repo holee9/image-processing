@@ -28,6 +28,7 @@ public sealed class AiStatusRefresherTests
         public int Reads;
         public Func<object?, AiWorkerStatus?> Read = _ => Active;
         public TimeSpan Now;
+        public int Epoch;
         public readonly AiStatusRefresher Refresher;
 
         public Rig(bool backgroundReads = true)
@@ -42,7 +43,8 @@ public sealed class AiStatusRefresherTests
                 Applied.Add,
                 backgroundReads ? work => Task.Run(work) : work => work(),
                 Ui.Enqueue,
-                () => Now);
+                () => Now,
+                sessionEpoch: () => Epoch);
         }
 
         /// <summary>Runs exactly one waiting UI action (so a test can look between two completions).</summary>
@@ -610,6 +612,154 @@ public sealed class AiStatusRefresherTests
         Assert.Equal(AiWorkerStatus.Unknown, rig.Applied[^1]);
     }
 
+    // ---- GUI-C-192e (Codex #62) ------------------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Finding 2: a first read that THROWS is not an answer. It is asked again, and when the failures go on for the bound the never-confirmed
+    /// notice is raised; a read that RETURNS Unknown (AI not requested) is an answer and is never retried.
+    /// </summary>
+    [Fact]
+    public void AFirstReadThatFails_IsRetried_AndRaisesTheNoticeWhenTheFailuresGoOn()
+    {
+        var rig = new Rig(backgroundReads: false) { Read = _ => throw new InvalidOperationException("the read failed") };
+        rig.Refresher.Request();
+        rig.Pump();
+        Assert.Equal(1, rig.Reads);
+        Assert.Empty(rig.Applied);
+
+        rig.Now = AiStatusRefresher.DefaultActiveFreshFor / 3 - TimeSpan.FromTicks(1);
+        rig.Refresher.CheckFreshness();
+        Assert.Equal(1, rig.Reads);                       // not asked again before a third of the bound
+
+        rig.Now = AiStatusRefresher.DefaultActiveFreshFor / 3;
+        rig.Refresher.CheckFreshness();
+        rig.Pump();
+        Assert.Equal(2, rig.Reads);                       // asked again
+
+        for (var second = 6; second < 15; second++)       // the failures go on, a check every second: retries are spaced, not a storm
+        {
+            rig.Now = TimeSpan.FromSeconds(second);
+            rig.Refresher.CheckFreshness();
+            rig.Pump();
+        }
+
+        Assert.Empty(rig.Applied);                        // under the bound: no notice
+        Assert.InRange(rig.Reads, 3, 4);
+
+        rig.Now = AiStatusRefresher.DefaultActiveFreshFor;
+        rig.Refresher.CheckFreshness();
+        Assert.Single(rig.Applied);
+        Assert.True(rig.Applied[0].NeverConfirmed);       // counted from the FIRST unanswered read, not from the last retry
+        Assert.Equal(AiWorkerState.Unconfirmed, rig.Applied[0].State);
+
+        rig.Read = _ => AiWorkerStatus.Unknown;           // the read returns at last: an answer, even "Unknown", ends the notice
+        rig.Now += AiStatusRefresher.DefaultActiveFreshFor / 3;
+        rig.Refresher.CheckFreshness();
+        rig.Pump();
+        Assert.Equal(AiWorkerStatus.Unknown, rig.Applied[^1]);
+        var readsAfterAnswer = rig.Reads;
+        rig.Now += TimeSpan.FromHours(1);
+        rig.Refresher.CheckFreshness();
+        Assert.Equal(readsAfterAnswer, rig.Reads);        // an answered Unknown is never retried
+    }
+
+    /// <summary>Finding 1: a session replaced by code that does not call Reset (a frame's re-init) still cannot show its predecessor's "Disabled".</summary>
+    [Fact]
+    public void ADisabledAnswer_ReadUnderAnEarlierSession_IsDropped_EvenWithNoReset()
+    {
+        var (rig, release) = BlockedFirstRead(Disabled);
+        rig.Refresher.Request();                          // a newer request exists, as in the real wiring
+        rig.Epoch++;                                      // the module session was replaced; nobody called Reset
+        rig.Read = _ => Active;                           // the new session
+        release.Set();
+        rig.PumpUntil(() => rig.Applied.Contains(Active), "The new session's answer never reached the screen.");
+
+        Assert.DoesNotContain(Disabled, rig.Applied);
+    }
+
+    /// <summary>Finding 4: the longest gap between two checks (the UI stall) is measured.</summary>
+    [Fact]
+    public void TheLongestGapBetweenChecks_IsMeasured()
+    {
+        var rig = new Rig(backgroundReads: false);
+        rig.Now = TimeSpan.FromSeconds(1);
+        rig.Refresher.CheckFreshness();
+        rig.Now = TimeSpan.FromSeconds(2);
+        rig.Refresher.CheckFreshness();
+        rig.Now = TimeSpan.FromSeconds(22);               // the UI thread did not run for 20 s
+        rig.Refresher.CheckFreshness();
+        rig.Now = TimeSpan.FromSeconds(23);
+        rig.Refresher.CheckFreshness();
+
+        Assert.Contains("maxUiGapMs=20000", rig.Refresher.Measurements, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Finding 3: the default clock multiplied the raw counter by TicksPerSecond in a long, which overflows at counter 922,337,203,685 (about
+    /// 25.6 h at 10 MHz). The clock now converts a DIFFERENCE from its own start. Counter values are injected on both sides of that boundary.
+    /// </summary>
+    [Fact]
+    public void TheMonotonicClock_DoesNotOverflow_AndDoesNotAssumeTheCounterStartsAtZero()
+    {
+        const long frequency = 10_000_000;
+        const long overflowsAt = long.MaxValue / TimeSpan.TicksPerSecond;      // 922_337_203_685: where counter * 10^7 leaves a long
+        Assert.True(unchecked(overflowsAt * 2 * TimeSpan.TicksPerSecond) < 0, "the old formula is expected to overflow here, or this test shows nothing");
+
+        var counter = overflowsAt - 4 * frequency;                              // a start 4 s below the old formula's limit
+        var clock = new MonotonicClock(() => counter, frequency);
+        Assert.Equal(TimeSpan.Zero, clock.Elapsed());
+        var last = TimeSpan.Zero;
+        for (var step = 1; step <= 20; step++)                                  // 20 s in 1 s steps, across the boundary
+        {
+            counter += frequency;
+            var elapsed = clock.Elapsed();
+            Assert.Equal(TimeSpan.FromSeconds(step), elapsed);
+            Assert.True(elapsed > last, "the clock went backwards");
+            last = elapsed;
+        }
+
+        counter += frequency / 2;
+        Assert.Equal(TimeSpan.FromSeconds(20.5), clock.Elapsed());
+
+        var odd = new MonotonicClock(() => counter, 1_000_000_007);             // a frequency that does not divide a second evenly
+        var oddStart = counter;
+        counter = oddStart + 2_500_000_017;
+        Assert.InRange(odd.Elapsed().TotalSeconds, 2.4999999, 2.5000001);
+    }
+
+    /// <summary>The 5 s and 15 s decisions are right across the boundary: the refresher on the real clock class, counter injected.</summary>
+    [Fact]
+    public void TheDecisions_AreRightAcrossTheCounterBoundary()
+    {
+        const long frequency = 10_000_000;
+        var counter = long.MaxValue / TimeSpan.TicksPerSecond - 3 * frequency;
+        var clock = new MonotonicClock(() => counter, frequency);
+        var applied = new List<AiWorkerStatus>();
+        var reads = 0;
+        var ui = new Queue<Action>();
+        var refresher = new AiStatusRefresher(() => this, _ => { reads++; return Active; }, applied.Add, work => work(), ui.Enqueue, clock.Elapsed);
+        refresher.Request();
+        while (ui.Count > 0) { ui.Dequeue()(); }
+        Assert.Equal([Active], applied);
+
+        counter += 5 * frequency;                         // 5 s later, past the old formula's limit: asked again
+        refresher.CheckFreshness();
+        while (ui.Count > 0) { ui.Dequeue()(); }
+        Assert.Equal(2, reads);
+
+        refresher = new AiStatusRefresher(() => this, _ => null, applied.Add, work => work(), ui.Enqueue, clock.Elapsed);
+        applied.Clear();
+        refresher.Request();                              // reads fail from here on
+        while (ui.Count > 0) { ui.Dequeue()(); }
+        counter += 14 * frequency;
+        refresher.CheckFreshness();
+        Assert.Empty(applied);                            // 14 s: still under the bound
+        counter += 1 * frequency;
+        refresher.CheckFreshness();
+        Assert.Single(applied);                           // 15 s: the notice
+        Assert.True(applied[0].NeverConfirmed);
+    }
+
     // ---- GUI-C-192d: an AI that was asked for and never answers is told too ---------------------------------------------------------
 
     /// <summary>A rig whose first read blocks until released, then answers <paramref name="answer"/>. The read is in flight when this returns.</summary>
@@ -642,7 +792,7 @@ public sealed class AiStatusRefresherTests
         Assert.Single(rig.Applied);
         Assert.Equal(AiWorkerState.Unconfirmed, rig.Applied[0].State);
         Assert.True(rig.Applied[0].NeverConfirmed);      // the notice says "since the start", not "since the last answer"
-        Assert.Contains("since the AI session started", AiBoneSuppressionStage.BannerFor(rig.Applied[0]), StringComparison.Ordinal);
+        Assert.Contains("no answer since the AI session started", AiBoneSuppressionStage.BannerFor(rig.Applied[0]), StringComparison.Ordinal);
 
         rig.Refresher.CheckFreshness();
         Assert.Single(rig.Applied);                      // raised once
@@ -731,7 +881,7 @@ public sealed class AiStatusRefresherTests
         var source = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/ViewModels/MainWindowViewModel.cs"));
 
         // The refresher is built with a real background runner and the UI dispatcher, and the refresh path waits for nothing.
-        Assert.Contains("new AiStatusRefresher(() => _backend, ReadAiWorkerStatus, ApplyAiWorkerStatus, work => Task.Run(work), PostToUi)", source, StringComparison.Ordinal);
+        Assert.Contains("new AiStatusRefresher(() => _backend, ReadAiWorkerStatus, ApplyAiWorkerStatus, work => Task.Run(work), PostToUi,", source, StringComparison.Ordinal);
         Assert.Contains("private void RefreshAiWorkerStatus() => AiStatus.Request();", source, StringComparison.Ordinal);
         Assert.Contains("_uiDispatcher.BeginInvoke(", source, StringComparison.Ordinal);
 

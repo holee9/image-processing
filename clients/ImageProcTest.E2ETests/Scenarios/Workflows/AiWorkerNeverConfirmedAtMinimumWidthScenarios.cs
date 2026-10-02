@@ -49,7 +49,7 @@ public sealed class AiWorkerNeverConfirmedAtMinimumWidthScenarios(AiWorkerMuteAp
         Assert.True(PollFor(() => Banner() is not null, TimeSpan.FromSeconds(40)),
             $"The worker never answered but no notice appeared; fault '{WorkbenchObservation.FaultInjectionStatus(window)}'.");
         output.WriteLine($"M03 notice after {(DateTime.UtcNow - started).TotalSeconds:F1} s: '{Banner()!.Name}'");
-        Assert.Contains("since the AI session started", Banner()!.Name, StringComparison.Ordinal);
+        Assert.Contains("no answer since the AI session started", Banner()!.Name, StringComparison.Ordinal);
 
         var minimum = WindowMinimumWidth.ResizeToMinimum(window);
         output.WriteLine($"M03 minimum width: {minimum.Describe()}");
@@ -60,6 +60,6 @@ public sealed class AiWorkerNeverConfirmedAtMinimumWidthScenarios(AiWorkerMuteAp
         Assert.True(bannerAtMinimum && restartAtMinimum,
             $"At the window's minimum width ({minimum.Final} px) the notice is not in the automation tree: banner {(bannerAtMinimum ? "found" : "NOT found")}, " +
             $"Restart AI {(restartAtMinimum ? "found" : "NOT found")}. {minimum.Describe()}");
-        Assert.Contains("since the AI session started", Banner()!.Name, StringComparison.Ordinal);
+        Assert.Contains("no answer since the AI session started", Banner()!.Name, StringComparison.Ordinal);
     }
 }

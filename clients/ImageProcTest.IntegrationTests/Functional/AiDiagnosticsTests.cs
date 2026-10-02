@@ -38,7 +38,7 @@ public sealed class AiDiagnosticsTests
     public void TheStatusRead_CarriesTheRawAnswersOfTheModule_NotOnlyTheGuisReadingOfThem()
     {
         var runner = Source("gui/ImageProcTest/Services/Native/GuiAiRunner.cs");
-        var query = runner.IndexOf("public static AiWorkerStatus QueryWorkerState() =>", StringComparison.Ordinal);
+        var query = runner.IndexOf("private static AiWorkerStatus QueryWorkerStateUnderGate() =>", StringComparison.Ordinal);
         Assert.True(query >= 0, "QueryWorkerState was not found.");
         var body = runner[query..Math.Min(runner.Length, query + 1500)];
 

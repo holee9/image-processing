@@ -103,6 +103,8 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
         return AiWorkerStatus.Unknown;
     }
 
+    int IAiSessionBackend.AiSessionEpoch => (_inner as IAiSessionBackend)?.AiSessionEpoch ?? 0;
+
     AiRestartResult IAiSessionBackend.RestartAiSession(string modelDirectory) =>
         (_inner as IAiSessionBackend)?.RestartAiSession(modelDirectory)
         ?? new AiRestartResult(false, "AI session restart needs the native backend.");

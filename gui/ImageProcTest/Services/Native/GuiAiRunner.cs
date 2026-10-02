@@ -66,7 +66,7 @@ internal static class GuiAiSession
     // GUI-C-189: what this process's native session has seen, for the automation tree (AiWorkerStatus.Diagnostics). Written only
     // under the gate. The first native C-09 run (main CI, 53ec370a) saw six failed calls and no "switched off" state, and could not
     // say whether the module was ever on the worker path: this records the module's own answers instead of the GUI's reading of them.
-    private static string _initDiagnostics = "init: none yet";
+    private static volatile string _initDiagnostics = "init: none yet";   // read without the gate by the status call (GUI-C-192e): volatile
     private static int _initCount;
     private static int _readCount;
 
@@ -155,7 +155,26 @@ internal static class GuiAiSession
     /// limit — a frame waiting on a silent worker holds it for up to the module's time budget — so it is called OFF the UI
     /// thread (<see cref="AiStatusRefresher"/>, GUI-C-186d).
     /// </summary>
-    public static AiWorkerStatus QueryWorkerState() =>
+    public static AiWorkerStatus QueryWorkerState()
+    {
+        // GUI-C-192e (Codex #62): the GUI's own answer is given BEFORE the gate is taken. It used to be read inside the lock, so a first init or a
+        // restart that held the gate delayed even "not started", which needs no module at all. Safe: the tracker's fields are written under the
+        // gate and are volatile, and the answer is re-checked under the gate below (a start that finished meanwhile is not missed). What this
+        // does NOT cover: once the session has started, a frame that holds the gate through its first inference (the model loads lazily on that
+        // first call, ai.cpp) still delays the module's answer, so "no answer for the bound" cannot be told from a slow load by this code alone.
+        var early = Tracker.OwnStatus();
+        if (early is not null)
+        {
+            return early with { Diagnostics = $"{_initDiagnostics}; the GUI answered this itself, before the gate (the module was not asked)" };
+        }
+
+        return QueryWorkerStateUnderGate();
+    }
+
+    /// <summary>The session counter (<see cref="AiSessionTracker.Epoch"/>): up whenever a session ends or one starts from nothing.</summary>
+    public static int SessionEpoch => Tracker.Epoch;
+
+    private static AiWorkerStatus QueryWorkerStateUnderGate() =>
         WithLock(() =>
         {
             var own = Tracker.OwnStatus();

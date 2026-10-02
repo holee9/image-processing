@@ -143,6 +143,11 @@ public sealed class FaultSeamCompiledOutTests
         Assert.Contains("<DefineConstants>$(DefineConstants);XPE_TEST_FAULTS</DefineConstants>", props, StringComparison.Ordinal);
         Assert.Contains("Condition=\"'$(XpeTestFaults)' == 'true'\"", props, StringComparison.Ordinal);
 
+        // GUI-C-192e: a Release build cannot be asked to carry the symbol: the combination is an error before anything is compiled.
+        Assert.Contains("<Target Name=\"XpeTestFaultsRefusedInRelease\" BeforeTargets=\"CoreCompile\"", props, StringComparison.Ordinal);
+        Assert.Contains("Condition=\"'$(XpeTestFaults)' == 'true' And '$(Configuration)' == 'Release'\"", props, StringComparison.Ordinal);
+        Assert.Contains("<Error Code=\"XPE0001\"", props, StringComparison.Ordinal);
+
         foreach (var project in new[]
         {
             "gui/ImageProcTest/ImageProcTest.csproj",

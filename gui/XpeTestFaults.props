@@ -13,4 +13,14 @@
   <PropertyGroup Condition="'$(XpeTestFaults)' == 'true'">
     <DefineConstants>$(DefineConstants);XPE_TEST_FAULTS</DefineConstants>
   </PropertyGroup>
+
+  <!--
+    GUI-C-192e (Codex #62): the property can be given on the command line, and then it defines the symbol in a Release build too. A shipped
+    configuration must not be able to carry the test switches, whoever passes what, so that combination is an ERROR before anything is compiled.
+  -->
+  <Target Name="XpeTestFaultsRefusedInRelease" BeforeTargets="CoreCompile"
+          Condition="'$(XpeTestFaults)' == 'true' And '$(Configuration)' == 'Release'">
+    <Error Code="XPE0001"
+           Text="XpeTestFaults=true is not allowed in the Release configuration: a shipped build must not contain the test fault switches (GUI-C-193). Build Debug for a test build, or drop -p:XpeTestFaults=true." />
+  </Target>
 </Project>

@@ -408,7 +408,14 @@ public sealed class AiBoneSuppressionStageTests
         Assert.Matches(@"public static AiRestartResult Restart\(string modelDirectory\) =>\s*WithLock\(", runner);
         // The status read takes the same gate and does its work under it. It waits with no limit: the caller is the background
         // read of AiStatusRefresher, never the UI thread (GUI-C-186d).
-        Assert.Matches(@"public static AiWorkerStatus QueryWorkerState\(\) =>\s*WithLock\(", runner);
+        Assert.Matches(@"private static AiWorkerStatus QueryWorkerStateUnderGate\(\) =>\s*WithLock\(", runner);
+        // GUI-C-192e: the GUI's own answer ("not started", a failed start) is given BEFORE the gate, and checked again under it.
+        var query = runner.IndexOf("public static AiWorkerStatus QueryWorkerState()", StringComparison.Ordinal);
+        var own = runner.IndexOf("Tracker.OwnStatus()", query, StringComparison.Ordinal);
+        var underGate = runner.IndexOf("return QueryWorkerStateUnderGate();", query, StringComparison.Ordinal);
+        Assert.True(query >= 0 && own > query && underGate > own, "QueryWorkerState must read the GUI's own status before it takes the gate.");
+        var guarded = runner.IndexOf("if (early is not null)", query, StringComparison.Ordinal);
+        Assert.True(guarded > own && guarded < underGate, "QueryWorkerState must RETURN the GUI's own status when there is one, before the gate (an unconditional or disabled check does not).");
     }
 
     [Fact]
@@ -544,7 +551,8 @@ public sealed class AiBoneSuppressionStageTests
         var unconfirmed = new AiWorkerStatus(AiWorkerState.Unconfirmed, 0, 0, "15");
         Assert.True(AiBoneSuppressionStage.ShowsMark(unconfirmed));
         var text = AiBoneSuppressionStage.BannerFor(unconfirmed);
-        Assert.Contains("status unknown", text, StringComparison.Ordinal);
+        Assert.Contains("status check delayed", text, StringComparison.Ordinal);   // an observation, not a claim that the worker failed (GUI-C-192e)
+        Assert.DoesNotContain("unknown", text, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("15 s", text, StringComparison.Ordinal);
         Assert.Contains("Restart AI", text, StringComparison.Ordinal);
         Assert.Equal("worker=Unconfirmed; bound=15s; since=lastAnswer", AiBoneSuppressionStage.DescribeStatus(unconfirmed));

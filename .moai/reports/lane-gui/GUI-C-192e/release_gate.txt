@@ -1,0 +1,11 @@
+== Release + XpeTestFaults=true (expected: build FAILS with XPE0001) ==
+    오류 1개
+D:\workspace-github\xpe-gui\gui\XpeTestFaults.props(23,5): error XPE0001: XpeTestFaults=true is not allowed in the Release configuration: a shipped build must not contain the test fault switches (GUI-C-193). Build Debug for a test build, or drop -p:XpeTestFaults=true. [D:\workspace-github\xpe-gui\gu
+exit via pipe not used; rerun for exit code:
+exit code 1
+== Release default (expected: succeeds) ==
+exit code 0
+== Debug + XpeTestFaults=true (expected: succeeds) ==
+exit code 0
+== SelfCheck Release + true (expected: fails) ==
+exit code 1

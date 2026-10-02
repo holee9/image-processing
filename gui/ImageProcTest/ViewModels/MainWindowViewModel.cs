@@ -582,8 +582,12 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private AiStatusRefresher CreateAiStatusRefresher()
     {
-        var refresher = new AiStatusRefresher(() => _backend, ReadAiWorkerStatus, ApplyAiWorkerStatus, work => Task.Run(work), PostToUi);
+        var refresher = new AiStatusRefresher(() => _backend, ReadAiWorkerStatus, ApplyAiWorkerStatus, work => Task.Run(work), PostToUi,
+            sessionEpoch: () => (_backend as IAiSessionBackend)?.AiSessionEpoch ?? 0);   // GUI-C-192e
         // GUI-C-192b: an "Active" nothing has refreshed for the freshness bound is withdrawn; the check is cheap, so it runs every second.
+        // GUI-C-192e: it runs when the UI thread is scheduled (Background priority), so the 15 s is a bound on the ANSWER'S age, not a promise about
+        // when the notice reaches the screen: a UI thread that stalls delays the notice by as long as it stalls. The measurements line carries the
+        // longest gap between two checks (maxUiGapMs), which is that stall.
         var measured = 0;
         _aiFreshnessTimer = new System.Windows.Threading.DispatcherTimer(
             TimeSpan.FromSeconds(1), System.Windows.Threading.DispatcherPriority.Background,
@@ -654,6 +658,10 @@ public sealed class MainWindowViewModel : ObservableObject
         }
 
         var ticket = TakeTicket();
+        // GUI-C-192e (Codex #62): the session is being replaced from NOW. Raise the generation and show Unknown before anything is awaited, so a
+        // status read that was started under the old session (a "switched off" answer above all) cannot be applied to the new one. The restart
+        // used to leave the generation alone, and the same backend with the same generation made the old answer look current.
+        AiStatus.Reset();
         try
         {
             var directory = Settings.AiModelDirectory;
