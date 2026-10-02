@@ -603,6 +603,11 @@ static XpeErrorCode verify_gain_impl(
     // measurable frame whose spread is exactly zero; a frame that is not measurable fails (SRS-CALIB-FUNC-036),
     // claims no improvement, and is not reported as measured for PRNU or the improvement.
     const bool after_measurable = std::isfinite(mean_after) && mean_after > 0.0;
+    // QA-A-224c (#242): the same condition on the RAW side. A raw frame whose mean is not finite and positive -- a
+    // dead sensor delivers zeros; the frame is UINT16, so zero is the only way to fail -- leaves prnu_before at the
+    // placeholder 0, and the "already flat" exception below would waive the improvement gates for it: all-zero raw
+    // plus a flat corrected frame passed. It is not a verified correction.
+    const bool before_measurable = std::isfinite(mean_before) && mean_before > 0.0;
     const bool after_perfect = after_measurable && std_after == 0.0;
 
     // Compute flatness
@@ -611,7 +616,7 @@ static XpeErrorCode verify_gain_impl(
     // Compute gain coverage
     metrics->gain_coverage = static_cast<double>(valid_gain_count) / pixel_count;
     metrics->measured_mask |= XPE_METRIC_GAIN_COVERAGE;
-    if (after_measurable) metrics->measured_mask |= XPE_METRIC_PRNU | XPE_METRIC_SNR;
+    if (before_measurable && after_measurable) metrics->measured_mask |= XPE_METRIC_PRNU | XPE_METRIC_SNR;
 
     // Compute the improvement in dB. In this function the value is the PRNU improvement,
     // 20*log10(prnu_before/prnu_after); the field keeps the name snr_improvement_db (ABI lock,
@@ -666,10 +671,11 @@ static XpeErrorCode verify_gain_impl(
         : FLAT_RESIDUAL_KNOWN_MAX_PCT;
     bool flat_residual_ok = (metrics->prnu_after <= flat_residual_limit);
 
-    // An unmeasurable corrected frame never passes, whatever the other gates read from its placeholder zeros --
-    // including the "already flat" exception above, which would otherwise wave through a before frame that is flat
-    // and an after frame that is garbage (QA-A-224b).
-    metrics->overall_pass = after_measurable && prnu_improved && coverage_ok && snr_improved && flat_residual_ok;
+    // A frame that cannot be measured -- the corrected one (QA-A-224b) or the raw one (QA-A-224c) -- never passes,
+    // whatever the other gates read from its placeholder zeros; that includes the "already flat" exception above,
+    // which would otherwise wave through a flat before frame with a garbage after frame, or a dead (all-zero) raw
+    // frame with a flat after frame.
+    metrics->overall_pass = before_measurable && after_measurable && prnu_improved && coverage_ok && snr_improved && flat_residual_ok;
 
     return XPE_OK;
 }

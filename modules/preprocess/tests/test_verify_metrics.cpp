@@ -844,6 +844,45 @@ TEST_F(VerifyMetricsTest, VerifyGain_AnAlreadyFlatPanelWithAnUnmeasurableCorrect
     expectUnmeasurableAfter(m, "flat before, all -1000 after");
 }
 
+/* ---------------------------------------------------------------------------
+ * QA-A-224c (#242): the same measurement condition on the RAW side.
+ *
+ * QA-A-224b made a corrected frame whose mean is not finite and positive "could not be measured" and a failure. The
+ * raw (before) frame is the other half of the comparison: a dead sensor delivers all zeros, whose mean is 0, so
+ * prnu_before is a placeholder 0 and the "already flat" exception (both PRNU < 0.01%) waived the improvement gates --
+ * all-zero raw plus a flat corrected frame PASSED (measured on the DLL in QA-A-224b). Dead-sensor input is not a
+ * verified correction.
+ *
+ * The raw frame is UINT16: it cannot hold a NaN, an infinity or a negative value, so zero is the only way its mean
+ * can fail the condition; there is no NaN or negative-mean raw case to test.
+ * ------------------------------------------------------------------------- */
+TEST_F(VerifyMetricsTest, VerifyGain_AllZeroRawFrameDoesNotPass) {
+    XpeErrorCode rc = XPE_OK;
+    // verifyGainOn builds a 1000-ADU raw frame; here the raw frame is all zeros, so build the call by hand.
+    U16ImageHelper raw(W, H, 0);
+    F32ImageHelper corrected(W, H, 1000.0f);
+    F32ImageHelper gain(W, H, 1.0f);
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    rc = xpe_verify_gain(&raw.buf, &corrected.buf, &gain.buf, XPE_GAIN_SEMANTICS_UNKNOWN, &m);
+    ASSERT_EQ(XPE_OK, rc);
+    EXPECT_FALSE(m.overall_pass) << "a dead sensor's all-zero frame is not a verified correction";
+    EXPECT_EQ(0.0, m.snr_improvement_db) << "no improvement may be claimed for a raw frame that was not measured";
+    EXPECT_EQ(0u, m.measured_mask & XPE_METRIC_PRNU) << "PRNU was not measured";
+    EXPECT_EQ(0u, m.measured_mask & XPE_METRIC_SNR) << "the improvement was not measured";
+    EXPECT_NE(0u, m.measured_mask & XPE_METRIC_GAIN_COVERAGE) << "gain coverage still was";
+}
+
+TEST_F(VerifyMetricsTest, VerifyGain_AllZeroRawAndAllZeroCorrectedFramesDoNotPass) {
+    U16ImageHelper raw(W, H, 0);
+    F32ImageHelper corrected(W, H, 0.0f);
+    F32ImageHelper gain(W, H, 1.0f);
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    ASSERT_EQ(XPE_OK, xpe_verify_gain(&raw.buf, &corrected.buf, &gain.buf, XPE_GAIN_SEMANTICS_UNKNOWN, &m));
+    EXPECT_FALSE(m.overall_pass);
+}
+
 TEST_F(VerifyMetricsTest, VerifyGain_FlatBeforeAndFlatAfterPassesWithoutAnyImprovement) {
     // Decision (QA-A-224b, #242): an already flat panel has nothing to improve, and SRS-CALIB-FUNC-017 sets a residual
     // limit, not an improvement. Pinned so a change is deliberate. xpe_verify_pipeline differs: its field is an SNR

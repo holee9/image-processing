@@ -1490,7 +1490,9 @@ XPE_API XpeErrorCode xpe_verify_offset(
  *       mean) with a spread of exactly zero reports `snr_improvement_db` as 200 dB, a reporting
  *       convention for an infinite improvement (QA-A-224). A corrected frame that cannot be measured
  *       (mean <= 0 or NaN, or a non-finite pixel) never passes: it reports no improvement (0.0), and
- *       `measured_mask` has neither `XPE_METRIC_PRNU` nor `XPE_METRIC_SNR` (QA-A-224b).
+ *       `measured_mask` has neither `XPE_METRIC_PRNU` nor `XPE_METRIC_SNR` (QA-A-224b). The same holds
+ *       for a raw frame that cannot be measured -- all zeros, a dead sensor's frame; it is UINT16, so
+ *       zero is the only way its mean fails the condition (QA-A-224c).
  * @note A raw frame and a corrected frame that are BOTH flat (PRNU < 0.01%) pass without any improvement:
  *       an already flat panel has nothing to improve, and the requirement (SRS-CALIB-FUNC-017) sets a
  *       residual limit, not an improvement. `xpe_verify_pipeline` differs: its field is an SNR difference
