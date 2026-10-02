@@ -119,7 +119,7 @@
 - **Description**: 이미지 밝기 표현 읽기 (0028,0004)
 - **Acceptance Criteria**:
   - MONOCHROME1 (작은 값 = 밝음): 자동 반전 (MAX - pixel). MAX = `2^BitsStored − 1` 이며, 반전 전에 BitsStored 위의 비트를 먼저 마스크한다: `(2^BitsStored − 1) − (값 & (2^BitsStored − 1))`.
-  - MONOCHROME2 (작은 값 = 어두움): 그대로 사용
+  - MONOCHROME2 (작은 값 = 어두움): 그대로 사용하되 BitsStored 위 비트는 마스크한다(MONOCHROME1 과 같은 규칙, `값 & (2^BitsStored − 1)`). 값이 바뀐 화소가 있을 때만 그 개수를 Info 알림 1건으로 알린다.
   - 다른 값 → XPE_ERR_DICOM_UNSUPPORTED_PHOTOMETRIC
 - **Priority**: M
 
@@ -218,6 +218,18 @@
   - 최대 이미지: 3072×3072 uint16
   - 메모리 사용: ≤ 150 MB
   - 메모리 초과 → XPE_ERR_OUT_OF_MEMORY
+- **Priority**: M
+
+#### FR-DCM-121: 리스케일 처리 (읽기)
+
+- **Description**: Rescale Slope (0028,1053)·Rescale Intercept (0028,1052)·Modality LUT Sequence (0028,3000) 를 읽을 때의 처리 (QA-B-187·187c, #235)
+- **Acceptance Criteria**:
+  - Rescale Slope/Intercept 는 적용하지 않는다. 반환 화소는 저장값이다
+  - 둘 다 없으면 항등(1/0)으로 보고 알림을 내지 않는다
+  - 항등이 아니면 읽기가 성공한 뒤 Warning 알림 1건을 낸다
+  - 값이 하나의 유한한 수로 읽히지 않거나 기울기가 0 이면 → XPE_ERR_DICOM_INVALID (디코드 전, 출력 버퍼 불변)
+  - 두 속성은 쌍으로 있어야 한다(PS3.3 C.11.1). 한쪽만 있으면 → XPE_ERR_DICOM_INVALID 이며, 알림이 빠진 속성을 밝힌다
+  - Modality LUT Sequence 에 항목이 있으면 저장값을 그대로 돌려주고 Warning 알림 1건을 낸다(LUT 는 적용하지 않음)
 - **Priority**: M
 
 ---
@@ -794,7 +806,7 @@ int xpe_gsps_create(
 
 | PRD 절 | SRS 요구사항 |
 |--------|------------|
-| §3.1 (DicomReader) | FR-DCM-101~120 |
+| §3.1 (DicomReader) | FR-DCM-101~121 |
 | §3.2 (DicomWriter) | FR-DCM-201~217 |
 | §3.3 (PresentationStateIO) | FR-DCM-301~306 |
 | §3.4 (DicomNetworkSCU) | FR-DCM-401~413 |

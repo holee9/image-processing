@@ -70,8 +70,9 @@ SRS (Software Requirements Specification)
 | §3.1 | DICOM 형식 검증 | FR-DCM-118 | DICOM 형식 검증 | ✓ |
 | §3.1 | Unsupported TS 감지 | FR-DCM-119 | Unsupported Transfer Syntax 감지 | ✓ |
 | §3.1 | 메모리 효율 (읽기) | FR-DCM-120 | 메모리 효율 (읽기) | ✓ |
+| §3.1 | 리스케일 처리 (읽기) | FR-DCM-121 | 리스케일 처리 (읽기) | ✓ |
 
-**커버리지**: 20/20 (100%)
+**커버리지**: 21/21 (100%)
 
 ---
 
@@ -144,7 +145,7 @@ SRS (Software Requirements Specification)
 
 | SRS ID | 요구사항 | SAD 섹션 | 설계 요소 | 상태 |
 |--------|---------|---------|----------|------|
-| FR-DCM-101~120 | DicomReader | §2.1 | DicomReader 알고리즘, TS 지원 매트릭스 | ✓ |
+| FR-DCM-101~121 | DicomReader | §2.1 | DicomReader 알고리즘, TS 지원 매트릭스 | ✓ |
 | FR-DCM-201~217 | DicomWriter | §2.2 | DicomWriter 알고리즘, Lossy 검증 | ✓ |
 | FR-DCM-301~306 | PresentationStateIO | §2.3 | GSPS 알고리즘, 참조 링크 | ✓ |
 | FR-DCM-401~413 | DicomNetworkSCU | §2.4 | 상태 머신, C-STORE/C-FIND 알고리즘 | ✓ |
@@ -203,7 +204,7 @@ SRS (Software Requirements Specification)
 | FR-DCM-106 | CR IOD 파싱 | TC-106 | CR SOP Class 검증 | ✓ |
 | FR-DCM-107 | GSPS IOD 읽기 | TC-107 | GSPS SOP Class 검증 + Referenced Series | ✓ |
 | FR-DCM-108 | Rows/Columns 추출 | TC-108 | 이미지 크기 추출 및 범위 검증 | ✓ |
-| FR-DCM-109 | 포토메트릭 처리 | TC-109 | MONOCHROME1 반전, MONOCHROME2 유지. 시험: `Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEveryPath`, `Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInverting`, `Tc109_Monochrome1_ReadingTwiceOnOneHandleGivesTheSameWords`, `Tc109_Monochrome1WithSignedPixelsIsRefusedLikeEverySignedImage`, `Tc109_Monochrome1PlusInverse_RoundTripKeepsThePolarity` (왕복은 극성만 보존). 현재 동작 기록(요구 아님): `Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrPresentationShapeFromTheSourceFile` | ✓ |
+| FR-DCM-109 | 포토메트릭 처리 | TC-109 | MONOCHROME1 반전, MONOCHROME2 유지. 시험: `Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEveryPath`, `Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInverting`, `Tc109_Monochrome1_ReadingTwiceOnOneHandleGivesTheSameWords`, `Tc109_Monochrome1WithSignedPixelsIsRefusedLikeEverySignedImage`, `Tc109_Monochrome1PlusInverse_RoundTripKeepsThePolarity` (왕복은 극성만 보존). 현재 동작 기록(요구 아님): `Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrPresentationShapeFromTheSourceFile`, `Tc235_Monochrome1_{Native,JpegLl,J2k}_InvertedWithInfoAlert`, `Tc235_BitsAboveBitsStored_{Native,JpegLl}_MaskedWithInfoAlert`, `Tc235_BitsAboveBitsStored_Native_NothingToMaskPostsNothing`, `Issue235Decided_BitsAboveBitsStoredAreMaskedForMonochrome2Too` | ✓ |
 | FR-DCM-110 | 픽셀 간격 읽기 | TC-110 | Pixel spacing 범위 검증 | ✓ |
 | FR-DCM-111 | Window/Level 읽기 | TC-111 | VOI LUT 프리셋 추출 | ✓ |
 | FR-DCM-112 | 환자 정보 추출 | TC-112 | Patient ID, Name, DOB 추출 | ✓ |
@@ -215,6 +216,7 @@ SRS (Software Requirements Specification)
 | FR-DCM-118 | DICOM 형식 검증 | TC-118 | DICM preamble 검증, 손상 감지 | ✓ |
 | FR-DCM-119 | Unsupported TS 감지 | TC-119 | MPEG-2, RLE 등 미지원 TS 거부 | ✓ |
 | FR-DCM-120 | 메모리 효율 (읽기) | TC-120 | 3072×3072 읽기 메모리 ≤ 150 MB | ✓ |
+| FR-DCM-121 | 리스케일 처리 (읽기) | TC-121 | 저장값 반환, 비항등이면 Warning, 읽을 수 없는 값·기울기 0·한쪽만 있는 쌍은 거부, Modality LUT Sequence 는 Warning. 시험: `Tc235_RescaleNonIdentity_{Native,JpegLl,J2k}_StoredValuesWithWarning`, `Tc235_RescaleIdentityExplicit_*`, `Tc235_RescaleSlopeZero_*`, `Tc235_RescaleSlopeNotANumber_*`, `Tc235_RescaleInterceptNotANumber_*`, `Tc235_RescaleSlopeEmpty_*`, `Tc235_RescaleSlopeNotFinite_*`, `Tc235_RescaleSlopeTwoValues_*`, `Issue235Decided_RescaleIsNotAppliedButWarned`, `Tc235_RescaleSlopeOnly_*`, `Tc235_RescaleInterceptOnly_*`, `Tc235_RescaleInterceptTwoValues_Native_RefusedInvalid`, `Tc235_RescaleBothAbsent_*`, `Tc235_ModalityLutSequence_*`, `Tc235_RescaleDs{Exponent,PlusSign,Padded}_Native_Accepted`, `Tc235_RescaleDsDecimal_Native_AcceptedWithWarning` | ✓ |
 | FR-DCM-201 | DX IOD 생성 | TC-201 | DX SOP Class UID 설정 | ✓ |
 | FR-DCM-202 | Explicit VR LE 쓰기 | TC-202 | Explicit VR LE 파일 쓰기 | ✓ |
 | FR-DCM-203 | J2K Lossless 쓰기 | TC-203 | JPEG 2000 Lossless 인코딩 | ✓ |
