@@ -1,0 +1,23 @@
+BUILD_EXIT=0
+arm sample_rule_back dll exit=1
+
+[  FAILED  ] GainPolyPolicyTest.ACurveThatTurnsBetweenTwoSamplesOfTheOldRuleIsNotMonotoneAndGetsTheLeastSquaresLine
+[  FAILED  ] GainPolyPolicyTest.EveryStoredPolynomialIsMonotoneOverTheMeasuredRangeInEitherDirection
+[  FAILED  ] GainPolyPolicyTest.TheDegreeIsDecidedOnTheCoefficientsAsStoredNotOnTheDoubleOnes
+BUILD_EXIT=0
+arm decide_on_double dll exit=1
+
+[  FAILED  ] GainPolyPolicyTest.TheDegreeIsDecidedOnTheCoefficientsAsStoredNotOnTheDoubleOnes
+BUILD_EXIT=0
+arm no_finite_dose_check dll exit=1
+
+[  FAILED  ] GainPolyPolicyTest.ANonFiniteDoseIsRefusedBeforeAnyFileIsReadOrAnyStateChanges
+BUILD_EXIT=0
+arm raw_normal_equations dll exit=1
+
+[  FAILED  ] GainPolyPolicyTest.CloseDosesAreFittedAccuratelyAndNothingBecomesNonFinite
+BUILD_EXIT=0
+arm no_gain_finite_check dll exit=1
+
+[  FAILED  ] GainPolyPolicyTest.ANonFiniteGainValueIsRefusedAsBadCalibrationDataAndNeverStoredAsNanCoefficients
+RESTORED generator

@@ -1,0 +1,246 @@
+Note: Google Test filter = GainPolyPolicyTest.*:*GainPoly*:*Gain*Poly*:CalibQualityMeta*:FixtureGen*
+[==========] Running 79 tests from 11 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from XCalValidatorTest
+[ RUN      ] XCalValidatorTest.GainPolyAcceptsWholeNumberOfPlanes
+[       OK ] XCalValidatorTest.GainPolyAcceptsWholeNumberOfPlanes (0 ms)
+[----------] 1 test from XCalValidatorTest (0 ms total)
+
+[----------] 2 tests from GenerateGainTest
+[ RUN      ] GenerateGainTest.GenerateGainPolynomial_ThreeLevels
+[       OK ] GenerateGainTest.GenerateGainPolynomial_ThreeLevels (4 ms)
+[ RUN      ] GenerateGainTest.GenerateGainPolynomial_NullPaths
+[       OK ] GenerateGainTest.GenerateGainPolynomial_NullPaths (0 ms)
+[----------] 2 tests from GenerateGainTest (13 ms total)
+
+[----------] 1 test from CalibOverwriteTest
+[ RUN      ] CalibOverwriteTest.GenerateGainPolynomialReplacesAnExistingFile
+[       OK ] CalibOverwriteTest.GenerateGainPolynomialReplacesAnExistingFile (18 ms)
+[----------] 1 test from CalibOverwriteTest (18 ms total)
+
+[----------] 10 tests from GainPolyNotAppliedTest
+[ RUN      ] GainPolyNotAppliedTest.ScalarGainMapIsApplied
+[       OK ] GainPolyNotAppliedTest.ScalarGainMapIsApplied (4 ms)
+[ RUN      ] GainPolyNotAppliedTest.PolynomialGainLoadsAndIsAppliedWithoutAlerts
+[       OK ] GainPolyNotAppliedTest.PolynomialGainLoadsAndIsAppliedWithoutAlerts (1 ms)
+[ RUN      ] GainPolyNotAppliedTest.PolynomialLoadReplacesAWorkingScalarMapAndAppliesInstead
+[       OK ] GainPolyNotAppliedTest.PolynomialLoadReplacesAWorkingScalarMapAndAppliesInstead (6 ms)
+[ RUN      ] GainPolyNotAppliedTest.ScalarGainValuesInsideTheRangeLoad
+[       OK ] GainPolyNotAppliedTest.ScalarGainValuesInsideTheRangeLoad (37 ms)
+[ RUN      ] GainPolyNotAppliedTest.ScalarGainValuesOutsideTheRangeAreRejected
+[       OK ] GainPolyNotAppliedTest.ScalarGainValuesOutsideTheRangeAreRejected (26 ms)
+[ RUN      ] GainPolyNotAppliedTest.ASingleOutOfRangePixelIsRejected
+[       OK ] GainPolyNotAppliedTest.ASingleOutOfRangePixelIsRejected (1 ms)
+[ RUN      ] GainPolyNotAppliedTest.ARejectedMapDoesNotReplaceTheLoadedOne
+[       OK ] GainPolyNotAppliedTest.ARejectedMapDoesNotReplaceTheLoadedOne (9 ms)
+[ RUN      ] GainPolyNotAppliedTest.PolynomialCoefficientsOutsideTheScalarRangeStillLoad
+[       OK ] GainPolyNotAppliedTest.PolynomialCoefficientsOutsideTheScalarRangeStillLoad (1 ms)
+[ RUN      ] GainPolyNotAppliedTest.PolynomialGainIsAppliedPerPixelUsingThePixelsOwnValue
+[       OK ] GainPolyNotAppliedTest.PolynomialGainIsAppliedPerPixelUsingThePixelsOwnValue (1 ms)
+[ RUN      ] GainPolyNotAppliedTest.TheModelLoadedLastIsTheOneApplied
+[       OK ] GainPolyNotAppliedTest.TheModelLoadedLastIsTheOneApplied (13 ms)
+[----------] 10 tests from GainPolyNotAppliedTest (103 ms total)
+
+[----------] 16 tests from GainPolyDoseRangeTest
+[ RUN      ] GainPolyDoseRangeTest.TheGeneratedFileCarriesTheFittedDoseRange
+[       OK ] GainPolyDoseRangeTest.TheGeneratedFileCarriesTheFittedDoseRange (13 ms)
+[ RUN      ] GainPolyDoseRangeTest.ASaturatedPixelReceivesTheDMaxGainInsteadOfTheExtrapolatedOne
+[       OK ] GainPolyDoseRangeTest.ASaturatedPixelReceivesTheDMaxGainInsteadOfTheExtrapolatedOne (12 ms)
+[ RUN      ] GainPolyDoseRangeTest.ASaturatedPixelIsNotDarkerThanADMaxPixel
+[       OK ] GainPolyDoseRangeTest.ASaturatedPixelIsNotDarkerThanADMaxPixel (15 ms)
+[ RUN      ] GainPolyDoseRangeTest.ClampingRaisesExactlyOneAlertCarryingTheCount
+[       OK ] GainPolyDoseRangeTest.ClampingRaisesExactlyOneAlertCarryingTheCount (12 ms)
+[ RUN      ] GainPolyDoseRangeTest.AFrameInsideTheRangeRaisesNoClampAlert
+[       OK ] GainPolyDoseRangeTest.AFrameInsideTheRangeRaisesNoClampAlert (14 ms)
+[ RUN      ] GainPolyDoseRangeTest.AFrameEntirelyOutOfRangeSaysSo
+[       OK ] GainPolyDoseRangeTest.AFrameEntirelyOutOfRangeSaysSo (12 ms)
+[ RUN      ] GainPolyDoseRangeTest.APartialClampKeepsThePlainWording
+[       OK ] GainPolyDoseRangeTest.APartialClampKeepsThePlainWording (14 ms)
+[ RUN      ] GainPolyDoseRangeTest.AMilligrayMagnitudeLadderIsReported
+[       OK ] GainPolyDoseRangeTest.AMilligrayMagnitudeLadderIsReported (14 ms)
+[ RUN      ] GainPolyDoseRangeTest.ANormalAduLadderIsNotReported
+[       OK ] GainPolyDoseRangeTest.ANormalAduLadderIsNotReported (13 ms)
+[ RUN      ] GainPolyDoseRangeTest.AFileWithoutARangeStillLoadsAndSaysWhy
+[       OK ] GainPolyDoseRangeTest.AFileWithoutARangeStillLoadsAndSaysWhy (13 ms)
+[ RUN      ] GainPolyDoseRangeTest.AFileWithoutARangeIsNotClamped
+[       OK ] GainPolyDoseRangeTest.AFileWithoutARangeIsNotClamped (14 ms)
+[ RUN      ] GainPolyDoseRangeTest.DescendingDoseLevelsAreRefused
+[       OK ] GainPolyDoseRangeTest.DescendingDoseLevelsAreRefused (4 ms)
+[ RUN      ] GainPolyDoseRangeTest.OneOutOfOrderLevelInTheMiddleIsRefused
+[       OK ] GainPolyDoseRangeTest.OneOutOfOrderLevelInTheMiddleIsRefused (4 ms)
+[ RUN      ] GainPolyDoseRangeTest.DuplicateDoseLevelsAreRefused
+[       OK ] GainPolyDoseRangeTest.DuplicateDoseLevelsAreRefused (4 ms)
+[ RUN      ] GainPolyDoseRangeTest.AscendingDoseLevelsAreStillAccepted
+[       OK ] GainPolyDoseRangeTest.AscendingDoseLevelsAreStillAccepted (13 ms)
+[ RUN      ] GainPolyDoseRangeTest.AnInvertedRangeIsReportedAsInvertedNotAsMissing
+[       OK ] GainPolyDoseRangeTest.AnInvertedRangeIsReportedAsInvertedNotAsMissing (15 ms)
+[----------] 16 tests from GainPolyDoseRangeTest (196 ms total)
+
+[----------] 6 tests from FixtureGenGainPolyTest
+[ RUN      ] FixtureGenGainPolyTest.TypeByteIsGainPoly
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+gain_poly.xcal f3fe495b6ba96244697aa5316885bc31442ed81eea6aca09a4669f4aa7187c1b  (degree<=2, 4 dose levels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790907012994_TypeByteIsGainPoly\manifest.json
+[       OK ] FixtureGenGainPolyTest.TypeByteIsGainPoly (152 ms)
+[ RUN      ] FixtureGenGainPolyTest.DefaultRunStaysScalarAndWritesNoPolyFile
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790907013147_DefaultRunStaysScalarAndWritesNoPolyFile\manifest.json
+[       OK ] FixtureGenGainPolyTest.DefaultRunStaysScalarAndWritesNoPolyFile (685 ms)
+[ RUN      ] FixtureGenGainPolyTest.GeneratedPolyFileLoads
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+gain_poly.xcal aeefce11e8033df3a622c6d9cc062315ef41e1765a8f17c5dc3e117a5a4dab09  (degree<=2, 4 dose levels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790907013833_GeneratedPolyFileLoads\manifest.json
+[       OK ] FixtureGenGainPolyTest.GeneratedPolyFileLoads (150 ms)
+[ RUN      ] FixtureGenGainPolyTest.LoadAloneIsSilent
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+gain_poly.xcal a91f23367659c83681d10a38f3d2af2537b728ea598ae48219e80b48d04e192c  (degree<=2, 4 dose levels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790907013983_LoadAloneIsSilent\manifest.json
+[       OK ] FixtureGenGainPolyTest.LoadAloneIsSilent (142 ms)
+[ RUN      ] FixtureGenGainPolyTest.PolyAlertIsPushed
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+gain_poly.xcal e97b5d4928e91d1f4b10be6d8eac03219f6701f674dc86f558f218cb931116ba  (degree<=2, 4 dose levels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790907014126_PolyAlertIsPushed\manifest.json
+[       OK ] FixtureGenGainPolyTest.PolyAlertIsPushed (150 ms)
+[ RUN      ] FixtureGenGainPolyTest.ScalarGainRaisesNoPolyAlert
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790907014277_ScalarGainRaisesNoPolyAlert\manifest.json
+[       OK ] FixtureGenGainPolyTest.ScalarGainRaisesNoPolyAlert (112 ms)
+[----------] 6 tests from FixtureGenGainPolyTest (1395 ms total)
+
+[----------] 17 tests from GainPolyPolicyTest
+[ RUN      ] GainPolyPolicyTest.OnRealDataEveryPixelFitAndTheFileAreAtLeastAsGoodAsTheMean
+[       OK ] GainPolyPolicyTest.OnRealDataEveryPixelFitAndTheFileAreAtLeastAsGoodAsTheMean (21 ms)
+[ RUN      ] GainPolyPolicyTest.OnNoiseOnlyDataTheFileRSquaredIsNotNegativeEither
+[       OK ] GainPolyPolicyTest.OnNoiseOnlyDataTheFileRSquaredIsNotNegativeEither (9 ms)
+[ RUN      ] GainPolyPolicyTest.EveryStoredPolynomialIsMonotoneOverTheMeasuredRangeInEitherDirection
+[       OK ] GainPolyPolicyTest.EveryStoredPolynomialIsMonotoneOverTheMeasuredRangeInEitherDirection (47 ms)
+[ RUN      ] GainPolyPolicyTest.TheDegreeOfEveryPixelIsThatOfAnIndependentLeastSquaresAndMonotoneCascade
+[       OK ] GainPolyPolicyTest.TheDegreeOfEveryPixelIsThatOfAnIndependentLeastSquaresAndMonotoneCascade (24 ms)
+[ RUN      ] GainPolyPolicyTest.ADecreasingCurveIsKeptAndAFallingThenRisingOneIsReplacedByTheLeastSquaresLine
+[       OK ] GainPolyPolicyTest.ADecreasingCurveIsKeptAndAFallingThenRisingOneIsReplacedByTheLeastSquaresLine (11 ms)
+[ RUN      ] GainPolyPolicyTest.PixelsTheOldPolicyFittedAtDegreeTwoOrMoreAreStoredBitForBit
+[       OK ] GainPolyPolicyTest.PixelsTheOldPolicyFittedAtDegreeTwoOrMoreAreStoredBitForBit (9 ms)
+[ DISABLED ] GainPolyPolicyTest.DISABLED_PrintGolden
+[ RUN      ] GainPolyPolicyTest.TheSyntheticLadderOfTheFixtureGeneratorNoLongerReportsANegativeRSquared
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+gain_poly.xcal 1f04eea6d88a7401715528d2022318be421574691999b1adfacfe28de30ce30f  (degree<=2, 4 dose levels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_gpp_28145_TheSyntheticLadderOfTheFixtureGeneratorNoLongerReportsANegativeRSquared\manifest.json
+[       OK ] GainPolyPolicyTest.TheSyntheticLadderOfTheFixtureGeneratorNoLongerReportsANegativeRSquared (137 ms)
+[ RUN      ] GainPolyPolicyTest.TheOracleItselfSeesATurnBetweenTwoSamples
+[       OK ] GainPolyPolicyTest.TheOracleItselfSeesATurnBetweenTwoSamples (0 ms)
+[ RUN      ] GainPolyPolicyTest.ACurveThatTurnsBetweenTwoSamplesOfTheOldRuleIsNotMonotoneAndGetsTheLeastSquaresLine
+[       OK ] GainPolyPolicyTest.ACurveThatTurnsBetweenTwoSamplesOfTheOldRuleIsNotMonotoneAndGetsTheLeastSquaresLine (9 ms)
+[ RUN      ] GainPolyPolicyTest.TheDegreeIsDecidedOnTheCoefficientsAsStoredNotOnTheDoubleOnes
+[       OK ] GainPolyPolicyTest.TheDegreeIsDecidedOnTheCoefficientsAsStoredNotOnTheDoubleOnes (9 ms)
+[ RUN      ] GainPolyPolicyTest.ANonFiniteDoseIsRefusedBeforeAnyFileIsReadOrAnyStateChanges
+[       OK ] GainPolyPolicyTest.ANonFiniteDoseIsRefusedBeforeAnyFileIsReadOrAnyStateChanges (0 ms)
+[ RUN      ] GainPolyPolicyTest.ANonFiniteGainValueIsRefusedAsBadCalibrationDataAndNeverStoredAsNanCoefficients
+[       OK ] GainPolyPolicyTest.ANonFiniteGainValueIsRefusedAsBadCalibrationDataAndNeverStoredAsNanCoefficients (10 ms)
+[ RUN      ] GainPolyPolicyTest.CloseDosesAreFittedAccuratelyAndNothingBecomesNonFinite
+[       OK ] GainPolyPolicyTest.CloseDosesAreFittedAccuratelyAndNothingBecomesNonFinite (9 ms)
+[ RUN      ] GainPolyPolicyTest.ACodexReproductionWhoseStoredCoefficientsApplyBelowTheGainFloorIsRefusedNotWrittenAsSuccess
+[       OK ] GainPolyPolicyTest.ACodexReproductionWhoseStoredCoefficientsApplyBelowTheGainFloorIsRefusedNotWrittenAsSuccess (6 ms)
+[ RUN      ] GainPolyPolicyTest.WhateverTheGeneratorWritesTheApplierCanApplyAtEveryMeasuredDose
+[       OK ] GainPolyPolicyTest.WhateverTheGeneratorWritesTheApplierCanApplyAtEveryMeasuredDose (30 ms)
+[ RUN      ] GainPolyPolicyTest.TheRSquaredTheFileRecordsIsTheOneOfTheApplierArithmeticOnTheStoredCoefficients
+[       OK ] GainPolyPolicyTest.TheRSquaredTheFileRecordsIsTheOneOfTheApplierArithmeticOnTheStoredCoefficients (30 ms)
+[ RUN      ] GainPolyPolicyTest.AFitWhoseFloat32EvaluationDeviatesFromItBeyondTheToleranceIsRefusedEvenWithValidGains
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(812): error: Expected equality of these values:
+  -17
+  xpe_calib_generate_gain_polynomial(cp.data(), doses.data(), 5, 1, out.c_str())
+    Which is: 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(813): error: Value of: fs::exists(out)
+  Actual: true
+Expected: false
+
+[  FAILED  ] GainPolyPolicyTest.AFitWhoseFloat32EvaluationDeviatesFromItBeyondTheToleranceIsRefusedEvenWithValidGains (4 ms)
+[----------] 17 tests from GainPolyPolicyTest (373 ms total)
+
+[----------] 15 tests from CalibQualityMetaTest
+[ RUN      ] CalibQualityMetaTest.R2QualityGate_Pass_WhenAboveThreshold
+[       OK ] CalibQualityMetaTest.R2QualityGate_Pass_WhenAboveThreshold (4 ms)
+[ RUN      ] CalibQualityMetaTest.R2FallsAsTheSeriesDepartsFromTheFit
+[       OK ] CalibQualityMetaTest.R2FallsAsTheSeriesDepartsFromTheFit (20 ms)
+[ RUN      ] CalibQualityMetaTest.R2QualityGate_Fail_WhenBelowThreshold
+[       OK ] CalibQualityMetaTest.R2QualityGate_Fail_WhenBelowThreshold (4 ms)
+[ RUN      ] CalibQualityMetaTest.GoodFitRaisesNoWarning
+[       OK ] CalibQualityMetaTest.GoodFitRaisesNoWarning (4 ms)
+[ RUN      ] CalibQualityMetaTest.PreviousRSquared_Regression
+[       OK ] CalibQualityMetaTest.PreviousRSquared_Regression (13 ms)
+[ RUN      ] CalibQualityMetaTest.PreviousRSquared_Stable
+[       OK ] CalibQualityMetaTest.PreviousRSquared_Stable (7 ms)
+[ RUN      ] CalibQualityMetaTest.GeneratedFileCarriesTheMetadataFields
+[       OK ] CalibQualityMetaTest.GeneratedFileCarriesTheMetadataFields (8 ms)
+[ RUN      ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenTheFitDropsADegree
+[       OK ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenTheFitDropsADegree (9 ms)
+[ RUN      ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenNoDegreeIsDropped
+[       OK ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenNoDegreeIsDropped (12 ms)
+[ RUN      ] CalibQualityMetaTest.ResidualFieldsCarryTheHandComputedValues
+[       OK ] CalibQualityMetaTest.ResidualFieldsCarryTheHandComputedValues (8 ms)
+[ RUN      ] CalibQualityMetaTest.ResidualFieldsAreZeroForAnExactFit
+[       OK ] CalibQualityMetaTest.ResidualFieldsAreZeroForAnExactFit (8 ms)
+[ RUN      ] CalibQualityMetaTest.MetadataSurvivesSaveAndLoad
+[       OK ] CalibQualityMetaTest.MetadataSurvivesSaveAndLoad (2 ms)
+[ RUN      ] CalibQualityMetaTest.LoadedGateVerdictIsRecomputedNotTrusted
+[       OK ] CalibQualityMetaTest.LoadedGateVerdictIsRecomputedNotTrusted (1 ms)
+[ RUN      ] CalibQualityMetaTest.LegacyFileWithoutMetadataStillLoads
+[       OK ] CalibQualityMetaTest.LegacyFileWithoutMetadataStillLoads (1 ms)
+[ RUN      ] CalibQualityMetaTest.UnrelatedConfigJsonIsIgnored
+[       OK ] CalibQualityMetaTest.UnrelatedConfigJsonIsIgnored (4 ms)
+[----------] 15 tests from CalibQualityMetaTest (113 ms total)
+
+[----------] 8 tests from GainPolyLoadTest
+[ RUN      ] GainPolyLoadTest.PolyFileWrittenByTheApiLoads
+[       OK ] GainPolyLoadTest.PolyFileWrittenByTheApiLoads (8 ms)
+[ RUN      ] GainPolyLoadTest.PolyMetadataSurvivesTheRoundTrip
+[       OK ] GainPolyLoadTest.PolyMetadataSurvivesTheRoundTrip (7 ms)
+[ RUN      ] GainPolyLoadTest.LoadingPolyClearsTheScalarGainMap
+[       OK ] GainPolyLoadTest.LoadingPolyClearsTheScalarGainMap (9 ms)
+[ RUN      ] GainPolyLoadTest.TypeMismatchStillReportsConfigInvalid
+[       OK ] GainPolyLoadTest.TypeMismatchStillReportsConfigInvalid (8 ms)
+[ RUN      ] GainPolyLoadTest.PayloadThatIsNotAWholeNumberOfPlanesIsRejected
+[       OK ] GainPolyLoadTest.PayloadThatIsNotAWholeNumberOfPlanesIsRejected (3 ms)
+[ RUN      ] GainPolyLoadTest.SingleDoseGainFileCarriesTheMandatoryFields
+[       OK ] GainPolyLoadTest.SingleDoseGainFileCarriesTheMandatoryFields (5 ms)
+[ RUN      ] GainPolyLoadTest.SingleDoseMetadataSurvivesTheRoundTrip
+[       OK ] GainPolyLoadTest.SingleDoseMetadataSurvivesTheRoundTrip (5 ms)
+[ RUN      ] GainPolyLoadTest.CallerMetadataIsNotDiscarded
+[       OK ] GainPolyLoadTest.CallerMetadataIsNotDiscarded (5 ms)
+[----------] 8 tests from GainPolyLoadTest (54 ms total)
+
+[----------] 1 test from CalibDimMismatch
+[ RUN      ] CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput (8 ms)
+[----------] 1 test from CalibDimMismatch (8 ms total)
+
+[----------] 2 tests from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess
+[       OK ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess (4 ms)
+[ RUN      ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore
+[       OK ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore (5 ms)
+[----------] 2 tests from CacheSameVerdict (10 ms total)
+
+[----------] Global test environment tear-down
+[==========] 79 tests from 11 test suites ran. (2287 ms total)
+[  PASSED  ] 78 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] GainPolyPolicyTest.AFitWhoseFloat32EvaluationDeviatesFromItBeyondTheToleranceIsRefusedEvenWithValidGains
+
+ 1 FAILED TEST
+  YOU HAVE 1 DISABLED TEST
+

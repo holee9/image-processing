@@ -109,6 +109,34 @@ float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
                              uint32_t x, uint32_t y,
                              uint32_t width, uint32_t height) noexcept;
 
+/* =========================================================================
+ * The gain applier's arithmetic, shared with the gain polynomial generator (QA-A-210e, Codex #61)
+ *
+ * A gain polynomial is generated in one place and applied in another, and a file the generator calls a success must be
+ * one the applier can use, with the quality the generator reports. So the two use ONE definition of what "applying"
+ * computes: the float32 Horner evaluation of the stored float32 coefficients at the pixel value as a float, and the
+ * guard that refuses a gain outside the applier's range. gain_correct.cpp applies them to a frame; xpe_calib_generate_gain
+ * applies them to the measured doses of each pixel to score and to accept the fit.
+ * ========================================================================= */
+
+/** The applier refuses a gain outside [XPE_GAIN_APPLIED_MIN, XPE_GAIN_APPLIED_MAX] (gain_correct.cpp: a second line of defence behind the load-time range). */
+constexpr float XPE_GAIN_APPLIED_MIN = 0.001f;
+constexpr float XPE_GAIN_APPLIED_MAX = 1000.0f;
+
+/** Whether the applier would accept this gain value (finite, positive, within its range). */
+inline bool xpe_gain_value_valid(float gain) noexcept {
+    return std::isfinite(gain) && gain > 0.0f && gain >= XPE_GAIN_APPLIED_MIN && gain <= XPE_GAIN_APPLIED_MAX;
+}
+
+/** Float32 Horner from the highest coefficient down, `ncoeffs` coefficients c[0..ncoeffs-1] -- what the applier evaluates per pixel. */
+inline float xpe_gain_poly_eval_f32(const float* c, uint32_t ncoeffs, float x) noexcept {
+    float acc = c[ncoeffs - 1];
+    for (uint32_t j = ncoeffs - 1; j > 0; --j) {
+        acc = acc * x + c[j - 1];
+    }
+    return acc;
+}
+
 /** One top-level member of a configuration object (QA-A-209b). */
 struct XpeConfigEntry {
     std::string key;     ///< the member name, escapes interpreted

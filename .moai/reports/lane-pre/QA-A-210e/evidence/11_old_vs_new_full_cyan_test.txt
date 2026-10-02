@@ -1,0 +1,16 @@
+
+=== max degree 2, 9437184 pixels
+file R^2   old 0.252129038   new 0.252129036
+stored degree histogram  old [0, 8188540, 1248644]  new [0, 8188540, 1248644]
+pixels whose chosen degree differs: 0 (0.000000%)
+pixels at degree >= 2 in both: 1248644 ; bit-identical coefficients: 1248644 (100.0000%)
+same-degree pixels not bit-identical: 0 (0.0000% of all)
+stored polynomials that turn inside the dose range (analytic): old 0, new 0
+
+=== max degree 3, 9437184 pixels
+file R^2   old 0.253331175   new 0.253331174
+stored degree histogram  old [0, 8086022, 1053762, 297400]  new [0, 8086022, 1053762, 297400]
+pixels whose chosen degree differs: 0 (0.000000%)
+pixels at degree >= 2 in both: 1351162 ; bit-identical coefficients: 1351162 (100.0000%)
+same-degree pixels not bit-identical: 0 (0.0000% of all)
+stored polynomials that turn inside the dose range (analytic): old 0, new 0

@@ -1,0 +1,24 @@
+
+=== max degree 2, 9437184 pixels
+file R^2   old 0.252162253   new 0.252129038
+stored degree histogram  old [0, 8175387, 1261797]  new [0, 8188540, 1248644]
+pixels whose chosen degree differs: 13153 (0.139374%)
+  (old degree, new degree) -> count: [((2, 1), 13153)]
+pixels at degree >= 2 in both: 1248644 ; bit-identical coefficients: 1248024 (99.9503%)
+same-degree pixels not bit-identical: 696 (0.0074% of all)
+  float32 ulps apart, over differing coefficients: max 97, p99 22, median 1
+  predicted gain over the dose range, |old - new|: max 8.381e-10, p99 2.181e-10, median 1.917e-13
+  pixels that changed degree: predicted gain |old - new| max 3.039e-03 median 3.378e-04
+stored polynomials that turn inside the dose range (analytic): old 13153, new 0
+
+=== max degree 3, 9437184 pixels
+file R^2   old 0.253360241   new 0.253331175
+stored degree histogram  old [0, 8074250, 1064000, 298934]  new [0, 8086022, 1053762, 297400]
+pixels whose chosen degree differs: 13036 (0.138134%)
+  (old degree, new degree) -> count: [((2, 1), 11502), ((3, 1), 270), ((3, 2), 1264)]
+pixels at degree >= 2 in both: 1349898 ; bit-identical coefficients: 1348752 (99.9151%)
+same-degree pixels not bit-identical: 1222 (0.0129% of all)
+  float32 ulps apart, over differing coefficients: max 230, p99 16, median 1
+  predicted gain over the dose range, |old - new|: max 6.705e-09, p99 1.110e-09, median 6.906e-13
+  pixels that changed degree: predicted gain |old - new| max 4.338e-03 median 2.965e-04
+stored polynomials that turn inside the dose range (analytic): old 13036, new 0

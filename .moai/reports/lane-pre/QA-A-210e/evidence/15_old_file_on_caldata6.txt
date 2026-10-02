@@ -1,0 +1,11 @@
+OLD generator on CalData_6, max degree 2: rc=0 file=True
+init 0
+load old poly file: rc=0
+xpe_gain_correct on the level-3 frame with the old file: rc=-4
+xpe_gain_correct on the level-1 frame with the old file: rc=-4
+xpe_gain_correct on the level-2 frame with the old file: rc=-4
+
+stored polynomials whose float32 evaluation at a measured dose is outside [0.001, 1000]: 42 (first index 1522994)
+  of those, in the oracle defect map: 42 ; not in it: 0
+  the oracle defect map has 23505 pixels; so 0.1787% of the defect pixels are among the rejected
+  rejected pixel indices (first 12): [1522994, 1572318, 1826757, 2120564, 2145033, 2267371, 2644272, 2677466, 2847241, 3128883, 3224208, 3312412]

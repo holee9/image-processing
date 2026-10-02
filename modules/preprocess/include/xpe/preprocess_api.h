@@ -480,7 +480,9 @@ XPE_API void xpe_calib_unload_nonlin_lut(void);
  *   1. Load N gain maps from FUNC-026 output files
  *   2. For each pixel: fit polynomial via least-squares
  *   3. Validate monotonicity in [dose_min, dose_max]: the curve must be non-decreasing OR non-increasing
- *      (SRS-CALIB-FUNC-027 says "monotone", not "increasing"; QA-A-210c)
+ *      (SRS-CALIB-FUNC-027 says "monotone", not "increasing"; QA-A-210c) over the WHOLE range, decided
+ *      analytically -- from the real roots of the derivative's derivative -- on the coefficients as the file
+ *      stores them (float32), not by sampling (QA-A-210d: a quadratic can turn between two samples)
  *   4. Reduce degree if non-monotone; degree 1 is the LEAST-SQUARES line, which is monotone whichever way it
  *      points, so the descent always ends there (min degree = 1). No pixel is stored with a worse-than-its-own-mean
  *      model: the straight line through the first and last measurement that earlier stood at the end of the
@@ -519,7 +521,18 @@ XPE_API void xpe_calib_unload_nonlin_lut(void);
  * @param max_degree Maximum polynomial degree (1 ≤ max_degree ≤ 4)
  * @param output_path Output XCal file path for gain polynomial
  * @return XPE_OK on success
- *         XPE_ERR_INVALID_INPUT if NULL pointers or invalid parameters, or
+ *         XPE_ERR_INVALID_INPUT if NULL pointers or invalid parameters (a dose level that is not finite -- NaN or
+ *         +-infinity -- is one, checked before any file is read, any mode is resolved or the quality metadata can change;
+ *         QA-A-210d), or
+ *         XPE_ERR_INVALID_CALIB_DATA if a gain map holds a value that is not finite (QA-A-210d), or if
+ *         some pixel has no polynomial the APPLIER can use (QA-A-210e): the coefficients are stored as float32 in the
+ *         raw dose and applied in float32 Horner at the pixel value, and a fit whose float32 evaluation at a measured
+ *         dose falls outside the applier's gain range [0.001, 1000] or more than 0.1% from the fit (typically doses so
+ *         close together that the float32 intercept cannot carry the slope) lowers the degree like a non-monotone
+ *         one; if even the least-squares line fails, no quality record is made and no file is written, and an alert
+ *         "XPE_WARN_GAIN_POLY_NOT_APPLICABLE: ..." (XPE_ALERT_ERROR) gives the pixel count and the first pixel. The
+ *         fit_r_squared the file records is computed in the applier's arithmetic from the stored coefficients, so it is
+ *         the quality of the correction that will be performed, or
  *         when num_levels / max_degree exceed the active calibration mode
  *         (SRS-CALIB-FUNC-031 (3)(4); under AUTO, more than 10 levels)
  *         XPE_ERR_IO_FAILED on file read/write error

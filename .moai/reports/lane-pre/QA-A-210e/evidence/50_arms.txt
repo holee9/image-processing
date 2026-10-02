@@ -1,0 +1,21 @@
+BUILD_EXIT=0
+arm no_apply_check dll exit=1
+
+[  FAILED  ] GainPolyPolicyTest.ACodexReproductionWhoseStoredCoefficientsApplyBelowTheGainFloorIsRefusedNotWrittenAsSuccess
+[  FAILED  ] GainPolyPolicyTest.AFitWhoseFloat32EvaluationDeviatesFromItBeyondTheToleranceIsRefusedEvenWithValidGains
+BUILD_EXIT=0
+arm tolerance_off dll exit=1
+
+[  FAILED  ] GainPolyPolicyTest.AFitWhoseFloat32EvaluationDeviatesFromItBeyondTheToleranceIsRefusedEvenWithValidGains
+BUILD_EXIT=0
+arm gain_range_unchecked dll exit=0
+BUILD_EXIT=0
+arm score_in_double dll exit=1
+
+[  FAILED  ] GainPolyPolicyTest.TheRSquaredTheFileRecordsIsTheOneOfTheApplierArithmeticOnTheStoredCoefficients
+BUILD_EXIT=0
+arm reject_not_reported dll exit=1
+
+[  FAILED  ] GainPolyPolicyTest.ACodexReproductionWhoseStoredCoefficientsApplyBelowTheGainFloorIsRefusedNotWrittenAsSuccess
+[  FAILED  ] GainPolyPolicyTest.AFitWhoseFloat32EvaluationDeviatesFromItBeyondTheToleranceIsRefusedEvenWithValidGains
+RESTORED generator
