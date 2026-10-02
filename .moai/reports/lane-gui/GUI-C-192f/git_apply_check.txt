@@ -1,0 +1,10 @@
+== git apply --check (against the real working tree; exit code follows) ==
+git apply --check exit 0
+== git apply --stat ==
+ .github/workflows/ci.yml      |   23 +++++++++++++
+ tools/check_shipped_build.ps1 |   71 +++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 94 insertions(+)
+== control: the OLD draft ==
+error: No valid patches in input (allow with "--allow-empty")
+old draft exit 128
+patched ci.yml parses; job keys: ['if', 'needs', 'runs-on', 'steps', 'timeout-minutes'] steps: ['Checkout', 'Set up .NET', 'Check the shipped build']

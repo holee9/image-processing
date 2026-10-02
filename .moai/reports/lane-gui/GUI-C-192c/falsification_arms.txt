@@ -1,0 +1,24 @@
+ARM notice-not-shown (ShowsMark ignores Unconfirmed): build ok=True
+   unit: ['실패!  - 실패:     1, 통과:    82, 건너뜀:     0, 전체:    83, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiBoneSuppressionStageTests.AnUnconfirmedStatus_ShowsANotice_ThatNamesTheBoundAndTheWayOut [< 1 ms]']
+   M02: ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 45 s - ImageProcTest.E2ETests.dll (net8.0)'] ['AiWorkerUnconfirmedAtMinimumWidthScenarios.M02_TheUnconfirmedNotice_IsAbsentWhileTheWorkerIsActive_ThenAppears_AndIsInTheTreeAtThe']
+   restored byte-identical: True
+ARM withdrawn-to-silent-Unknown (192b behaviour: no notice state): build ok=True
+   unit: ['실패!  - 실패:     2, 통과:    81, 건너뜀:     0, 전체:    83, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiStatusRefresherTests.TheNotice_GoesWhenANewAnswerArrives_AndIsReadAgainWhileItStands [2 ms]', 'Functional.AiStatusRefresherTests.AnActive_NothingRefreshes_IsWithdrawnAtTheBound_AndNotBefore [< 1 ms]']
+   M02: ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 45 s - ImageProcTest.E2ETests.dll (net8.0)'] ['AiWorkerUnconfirmedAtMinimumWidthScenarios.M02_TheUnconfirmedNotice_IsAbsentWhileTheWorkerIsActive_ThenAppears_AndIsInTheTreeAtThe']
+   restored byte-identical: True
+ARM idle-active-not-reread (idle app ages into a false alarm): build ok=True
+   unit: ['실패!  - 실패:     2, 통과:    81, 건너뜀:     0, 전체:    83, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiStatusRefresherTests.TheNotice_GoesWhenANewAnswerArrives_AndIsReadAgainWhileItStands [2 ms]', 'Functional.AiStatusRefresherTests.AnIdleActive_IsReadAgain_NotWithdrawn [< 1 ms]']
+   restored byte-identical: True
+ARM notice-not-reread (Unconfirmed is never asked again): build ok=True
+   unit: ['실패!  - 실패:     1, 통과:    82, 건너뜀:     0, 전체:    83, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiStatusRefresherTests.TheNotice_GoesWhenANewAnswerArrives_AndIsReadAgainWhileItStands [1 ms]']
+   restored byte-identical: True
+ARM startup-unknown-warns (any shown state is withdrawn after the bound, Unknown too): build ok=True
+   unit: ['실패!  - 실패:     2, 통과:    81, 건너뜀:     0, 전체:    83, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiStatusRefresherTests.AnUnknownThatWasNeverActive_IsNeverTurnedIntoANotice [2 ms]', 'Functional.AiStatusRefresherTests.ADisabled_IsNeverWithdrawnByTheBound [1 ms]']
+   restored byte-identical: True
+ARM banner-text-empty (the notice has no text): build ok=True
+   unit: ['실패!  - 실패:     1, 통과:    82, 건너뜀:     0, 전체:    83, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiBoneSuppressionStageTests.AnUnconfirmedStatus_ShowsANotice_ThatNamesTheBoundAndTheWayOut [< 1 ms]']
+   restored byte-identical: True
+rebuild gui/ImageProcTest.slnx True
+rebuild clients/ImageProcTest.slnx True
+AFTER RESTORE unit: ['통과!  - 실패:     0, 통과:    83, 건너뜀:     0, 전체:    83, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+AFTER RESTORE M02: ['통과!  - 실패:     0, 통과:     1, 건너뜀:     0, 전체:     1, 기간: 15 s - ImageProcTest.E2ETests.dll (net8.0)']

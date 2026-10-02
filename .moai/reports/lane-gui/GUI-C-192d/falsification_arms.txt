@@ -1,0 +1,21 @@
+ARM never-confirmed-notice-removed (a read that never returns raises nothing): build ok=True
+   unit: ['실패!  - 실패:     2, 통과:    86, 건너뜀:     0, 전체:    88, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiStatusRefresherTests.AReadThatNeverReturnsFromTheStart_RaisesTheNeverConfirmedNotice_AtTheBound [15 ms]', 'Functional.AiStatusRefresherTests.AfterAReset_TheNeverConfirmedWait_CountsFromTheReset [12 ms]']
+   M02: ['실패!  - 실패:     1, 통과:     1, 건너뜀:     0, 전체:     2, 기간: 1 m 2 s - ImageProcTest.E2ETests.dll (net8.0)'] ['AiWorkerNeverConfirmedAtMinimumWidthScenarios.M03_TheNeverConfirmedNotice_IsAbsentAtStart_ThenAppears_AndIsInTheTreeAtTheMinimumWi']
+   restored byte-identical: True
+ARM wait-counted-from-read-start-only (a Reset does not restart the wait): build ok=True
+   unit: ['실패!  - 실패:     1, 통과:    87, 건너뜀:     0, 전체:    88, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiStatusRefresherTests.AfterAReset_TheNeverConfirmedWait_CountsFromTheReset [16 ms]']
+   restored byte-identical: True
+ARM ai-not-requested-warns (a returned Unknown is also never-confirmed): build ok=True
+   unit: ['실패!  - 실패:     2, 통과:    86, 건너뜀:     0, 전체:    88, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiStatusRefresherTests.AnUnknownThatWasNeverActive_IsNeverTurnedIntoANotice [2 ms]', 'Functional.AiStatusRefresherTests.AFirstReadThatAnswersInsideTheBound_RaisesNoNotice(active: False) [30 ms]']
+   restored byte-identical: True
+ARM measurements-do-not-count-the-slowest-read: build ok=True
+   unit: ['실패!  - 실패:     1, 통과:    87, 건너뜀:     0, 전체:    88, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiStatusRefresherTests.TheMeasurements_NameTheSlowestRead_TheLongestAnswerGap_AndTheNotices [16 ms]']
+   restored byte-identical: True
+ARM diagnostics-line-without-measurements (the CI log would carry none): build ok=True
+   unit: ['통과!  - 실패:     0, 통과:    88, 건너뜀:     0, 전체:    88, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)'] []
+   M02: ['실패!  - 실패:     1, 통과:     1, 건너뜀:     0, 전체:     2, 기간: 32 s - ImageProcTest.E2ETests.dll (net8.0)'] ['AiWorkerUnconfirmedAtMinimumWidthScenarios.M02_TheUnconfirmedNotice_IsAbsentWhileTheWorkerIsActive_ThenAppears_AndIsInTheTreeAtThe']
+   restored byte-identical: True
+rebuild gui/ImageProcTest.slnx True
+rebuild clients/ImageProcTest.slnx True
+AFTER RESTORE unit: ['통과!  - 실패:     0, 통과:    88, 건너뜀:     0, 전체:    88, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+AFTER RESTORE M02+M03: ['통과!  - 실패:     0, 통과:     2, 건너뜀:     0, 전체:     2, 기간: 32 s - ImageProcTest.E2ETests.dll (net8.0)']

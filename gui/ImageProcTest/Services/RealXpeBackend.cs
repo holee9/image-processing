@@ -345,6 +345,8 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
     AiWorkerStatus IAiSessionBackend.GetAiWorkerStatus() => Native.GuiAiSession.QueryWorkerState();
 
     /// <summary>GUI-C-185: InvokeNative so any alert the restart raises reaches the list.</summary>
+    int IAiSessionBackend.AiSessionEpoch => Native.GuiAiSession.SessionEpoch;
+
     AiRestartResult IAiSessionBackend.RestartAiSession(string modelDirectory) =>
         InvokeNative(() => Native.GuiAiSession.Restart(modelDirectory));
 

@@ -640,6 +640,29 @@ jobs:
         shell: pwsh
         run: dotnet run --project gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj -c Debug --no-build
 
+  gui-shipped-build:
+    # GUI-C-192e/192f (GUI-C-193): the shipped (Release) operator app must not contain the test fault switches. Every other job builds Debug, so
+    # nothing else would notice a Release build that carries them. The script builds Debug as a positive control (the scan must FIND the strings
+    # there), builds Release and scans its dll/pdb/xml, checks that -p:XpeTestFaults=true is refused for Release with error XPE0001, and runs the
+    # Release exe with each switch expecting exit code 2.
+    needs: detect-lane
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
+    runs-on: windows-2025
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Check the shipped build
+        shell: pwsh
+        run: ./tools/ci/Test-ShippedBuild.ps1
+
   gui-automation:
     # WPF automation run of the operator app (gui/ImageProcTest) on a hosted
     # runner. GUI-C-25 (#136) showed a hidden-window non-interactive run works

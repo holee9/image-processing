@@ -1,0 +1,34 @@
+# Metadata scan (System.Reflection.Metadata; nothing loaded or run). Needles are matched case-insensitively in type, method, field, property names and in string literals.
+
+Debug/ImageProcTest.dll: scanned 235 types, 2252 methods, 1334 fields, 658 properties, 1126 string literals; needles: FaultInjecting, ai-worker-disabled, display-pipeline-after, FAULT INJECTION ARMED, DisplayPipelineFailAfter, AiWorkerDisabledFault, AutomationAiWorkerDisabled, DisplayPipelineFaultPrefix, automation-fault, AnnounceFaultInjection, _faultInjectionAnnounced
+  FOUND 26:
+    field     ImageProcTest.App::<AutomationAiWorkerDisabled>k__BackingField
+    field     ImageProcTest.App::<AutomationDisplayPipelineFailAfter>k__BackingField
+    field     ImageProcTest.Services.AutomationArgs::<DisplayPipelineFailAfter>k__BackingField
+    field     ImageProcTest.Services.AutomationArgs::AiWorkerDisabledFault
+    field     ImageProcTest.Services.AutomationArgs::DisplayPipelineFaultPrefix
+    field     ImageProcTest.ViewModels.MainWindowViewModel::_faultInjectionAnnounced
+    literal   " ? FAULT INJECTION ARMED"
+    literal   " ai-worker-disabled"
+    literal   "--automation-fault '"
+    literal   "--automation-fault"
+    literal   ", DisplayPipelineFailAfter = "
+    literal   "(--automation-fault "
+    literal   "ai-worker-disabled"
+    literal   "display-pipeline-after:"
+    literal   "FAULT INJECTION ARMED: "
+    method    ImageProcTest.App::get_AutomationAiWorkerDisabled
+    method    ImageProcTest.App::get_AutomationDisplayPipelineFailAfter
+    method    ImageProcTest.App::set_AutomationAiWorkerDisabled
+    method    ImageProcTest.App::set_AutomationDisplayPipelineFailAfter
+    method    ImageProcTest.Services.AutomationArgs::get_DisplayPipelineFailAfter
+    method    ImageProcTest.Services.AutomationArgs::set_DisplayPipelineFailAfter
+    method    ImageProcTest.ViewModels.MainWindowViewModel::AnnounceFaultInjection
+    property  ImageProcTest.App::AutomationAiWorkerDisabled
+    property  ImageProcTest.App::AutomationDisplayPipelineFailAfter
+    property  ImageProcTest.Services.AutomationArgs::DisplayPipelineFailAfter
+    type      ImageProcTest.Services.FaultInjectingBackend
+
+Release/ImageProcTest.dll: scanned 230 types, 2195 methods, 1223 fields, 652 properties, 1106 string literals; needles: FaultInjecting, ai-worker-disabled, display-pipeline-after, FAULT INJECTION ARMED, DisplayPipelineFailAfter, AiWorkerDisabledFault, AutomationAiWorkerDisabled, DisplayPipelineFaultPrefix, automation-fault, AnnounceFaultInjection, _faultInjectionAnnounced
+  FOUND: nothing
+

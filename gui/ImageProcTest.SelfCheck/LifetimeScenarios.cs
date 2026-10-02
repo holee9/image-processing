@@ -126,6 +126,82 @@ internal sealed class AiScenarioBackend : ScenarioBackend, IAiSessionBackend
     public AiRestartResult RestartAiSession(string modelDirectory) => new(false, "scripted backend: no session to restart");
 }
 
+/// <summary>
+/// An AI session whose FIRST status read is held inside the module and answers from what it saw when it STARTED (GUI-C-192): the read of
+/// an Apply that is slow, behind the AI session gate, and whose answer is already old when it comes back.
+/// </summary>
+internal sealed class HeldReadBackend : ScenarioBackend, IAiSessionBackend
+{
+    public int AiCeiling = 3;
+    public readonly ManualResetEventSlim FirstReadEntered = new();
+    public readonly ManualResetEventSlim FirstReadRelease = new();
+    private int _reads;
+
+    public AiWorkerStatus GetAiWorkerStatus()
+    {
+        var seen = Volatile.Read(ref AiCalls);
+        if (Interlocked.Increment(ref _reads) == 1)
+        {
+            FirstReadEntered.Set();
+            FirstReadRelease.Wait(TimeSpan.FromSeconds(30));
+        }
+
+        return new AiWorkerStatus(AiWorkerState.Active, (uint)Math.Min(seen, AiCeiling), (uint)AiCeiling);
+    }
+
+    public AiRestartResult RestartAiSession(string modelDirectory) => new(false, "scripted backend: no session to restart");
+}
+
+/// <summary>
+/// GUI-C-192e: an AI session whose FIRST status read is held and answers "switched off" (the old session's answer), while every later read
+/// answers from the new session ("active, 0 of 3"). The restart does not touch the epoch unless asked to, so the view model's own Restart AI wiring
+/// is what is observed; <see cref="ReplaceSessionWithoutTellingAnyone"/> moves the epoch the way a frame's re-init would.
+/// </summary>
+internal sealed class ReplacedSessionBackend : ScenarioBackend, IAiSessionBackend
+{
+    public readonly ManualResetEventSlim OldReadEntered = new();
+    public readonly ManualResetEventSlim OldReadRelease = new();
+    private int _reads;
+    private int _epoch;
+
+    public AiWorkerStatus GetAiWorkerStatus()
+    {
+        if (Interlocked.Increment(ref _reads) == 1)
+        {
+            OldReadEntered.Set();
+            OldReadRelease.Wait(TimeSpan.FromSeconds(30));
+            return new AiWorkerStatus(AiWorkerState.Disabled, 3, 3);
+        }
+
+        return new AiWorkerStatus(AiWorkerState.Active, 0, 3);
+    }
+
+    public AiRestartResult RestartAiSession(string modelDirectory) => new(true, "AI session restarted: scripted");
+
+    public void ReplaceSessionWithoutTellingAnyone() => Interlocked.Increment(ref _epoch);
+
+    int IAiSessionBackend.AiSessionEpoch => Volatile.Read(ref _epoch);
+}
+
+/// <summary>
+/// GUI-C-192f: an AI session whose status read answers from a script the scenario changes (Disabled first, then a failure), and whose epoch the
+/// scenario moves the way a frame's re-init does: with nobody calling Reset.
+/// </summary>
+internal sealed class ScriptedSessionBackend : ScenarioBackend, IAiSessionBackend
+{
+    public volatile bool ReadsFail;
+    private int _epoch;
+
+    public AiWorkerStatus GetAiWorkerStatus() =>
+        ReadsFail ? throw new InvalidOperationException("scripted: the new session's read fails") : new AiWorkerStatus(AiWorkerState.Disabled, 3, 3);
+
+    public AiRestartResult RestartAiSession(string modelDirectory) => new(true, "AI session restarted: scripted");
+
+    public void ReplaceSessionWithoutTellingAnyone() => Interlocked.Increment(ref _epoch);
+
+    int IAiSessionBackend.AiSessionEpoch => Volatile.Read(ref _epoch);
+}
+
 internal static class LifetimeScenarios
 {
     private static readonly List<string> Failures = [];
@@ -183,7 +259,13 @@ internal static class LifetimeScenarios
                         await Timed(() => AnOlderApplyFinishingLateChangesNothing(rawPath, width, height, holdLane: true, fail: true));
                         await Timed(() => TheCandidateLaneIsASecondAiCall_AndTheStatusIsReadAfterIt(rawPath, width, height));
                         await Timed(() => EqualLanesMakeOneAiCallPerApply(rawPath, width, height));
+#if XPE_TEST_FAULTS
                         await Timed(() => TheAiWorkerDisabledFault_IsInertWithoutTheArgument_AndAnswersOffWithIt(rawPath, width, height));
+#endif
+                        await Timed(() => AnOlderStatusReadIsNeverShownAfterANewerRequest(rawPath, width, height));
+                        await Timed(() => AnOldDisabledAnswerIsNeverShownForANewSession(rawPath, width, height, viaRestartCommand: true));
+                        await Timed(() => AnOldDisabledAnswerIsNeverShownForANewSession(rawPath, width, height, viaRestartCommand: false));
+                        await Timed(() => ADisabledAlreadyOnScreenIsTakenBackWhenTheSessionIsReplaced(rawPath, width, height));
                     }
                     catch (Exception ex)
                     {
@@ -216,14 +298,17 @@ internal static class LifetimeScenarios
         }
 
         Directory.Delete(scratch, recursive: true);
-        Console.WriteLine("Lifetime scenarios passed (12 scenarios).");
+        Console.WriteLine($"Lifetime scenarios passed ({_scenariosRun} scenarios).");
     }
 
     /// <summary>Runs one scenario and prints how long it took: the whole runner has to finish inside the app's wait for it (15 s, MainWindow), and this says where the time goes.</summary>
+    private static int _scenariosRun;
+
     private static async Task Timed(Func<Task> scenario)
     {
         var watch = System.Diagnostics.Stopwatch.StartNew();
         await scenario();
+        _scenariosRun++;
         Console.WriteLine($"  scenario '{_scenario}': {watch.ElapsedMilliseconds} ms");
     }
 
@@ -656,6 +741,7 @@ internal static class LifetimeScenarios
     // The seam that lets a UI test put the "switched off" mark on screen without a native module. It has to be inert unless asked for
     // and, when asked, answer exactly "switched off, 3 of 3" while everything else passes through to the real backend.
 
+#if XPE_TEST_FAULTS
     private static Task TheAiWorkerDisabledFault_IsInertWithoutTheArgument_AndAnswersOffWithIt(string rawPath, int width, int height)
     {
         _scenario = "6 ai-worker-disabled fault";
@@ -684,5 +770,177 @@ internal static class LifetimeScenarios
         Check(FaultInjectingBackend.Describe() == "faultInjection=display-pipeline-after:2 calls=0 ai-worker-disabled", $"the combined fault status line was '{FaultInjectingBackend.Describe()}'");
         _ = both;
         return Task.CompletedTask;
+    }
+#endif
+
+    // ---- 7: an older status read is never shown after a newer request (GUI-C-192, the GUI-C-191b reproduction) ---------------------------
+    //
+    // Recorded where the screen's property changes (PropertyChanged), not sampled: a stale value shown for a millisecond is exactly what
+    // a poll misses (the first version of this experiment did miss it).
+
+    private static async Task AnOlderStatusReadIsNeverShownAfterANewerRequest(string rawPath, int width, int height)
+    {
+        _scenario = "7 older status read never shown";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new HeldReadBackend();
+            var vm = NewViewModel(width, height, _ => backend, directory, out _, laneBVoiWindowWidth: 0f, aiInChain: true);
+            var timeline = new List<string>();
+            vm.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(MainWindowViewModel.AiWorkerStatusSummary))
+                {
+                    timeline.Add(vm.AiWorkerStatusSummary);
+                }
+            };
+
+            // ReportChain logs one line per stage and asks for the status read right after publishing the chain. (LastChain is no use as the
+            // event: a chain equal to the last one is not a change, and Apply B's chain equals Apply A's.)
+            int ChainsReported() => vm.Logs.Count(line => line.Contains("Chain ai_bone_suppress:", StringComparison.Ordinal));
+
+            Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", rawPath);
+            try
+            {
+                vm.LoadImageCommand.Execute(null);                 // Apply A: one AI call; its status read starts and is held
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", null);
+            }
+
+            await Until(() => backend.FirstReadEntered.IsSet, "the first status read to be inside the module");
+            await Until(() => vm.ProcessedImage is not null, "Apply A's image");
+            await FlushUi();
+
+            var chainsBeforeB = ChainsReported();
+            vm.ApplyDisplayPipelineCommand.Execute(null);          // Apply B: a second AI call, its read is requested while the first is held
+            // Apply B's own request for a status read comes at the END of its chain (ReportChain), not when its AI call starts: the held
+            // read can only be "older than a newer request" once that request has been made, so B is waited for as an event.
+            await Until(() => ChainsReported() > chainsBeforeB, "Apply B's chain to be reported");
+            await FlushUi();
+            Check(timeline.Count == 0, $"a status reached the screen while the only read was held: {string.Join(" | ", timeline)}");
+
+            backend.FirstReadRelease.Set();                        // the old read answers (it saw fewer AI calls than there are now)
+            await Until(() => timeline.Any(entry => entry.Contains("failures=2", StringComparison.Ordinal)), "the newest status to be shown", 5000);
+            await FlushUi();
+
+            Check(timeline.Count == 1 && timeline[0] == "worker=Active; failures=2; ceiling=3",
+                $"the screen showed {timeline.Count} change(s) [{string.Join(" | ", timeline)}]; expected exactly the newest answer, never the older one");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- 8: an older "switched off" answer is never shown for a NEW session (GUI-C-192e, Codex #62 finding 1) ----------------------------
+    //
+    // The first read is held inside the module and will answer "switched off" (the old session). Then the session is replaced, through the real
+    // Restart AI command (viaRestartCommand) or the way a frame's re-init would, with nobody calling Reset (the epoch). The old answer is released
+    // AFTER; it must never reach the screen. Recorded at PropertyChanged, not sampled.
+
+    private static async Task AnOldDisabledAnswerIsNeverShownForANewSession(string rawPath, int width, int height, bool viaRestartCommand)
+    {
+        _scenario = viaRestartCommand ? "8 Restart AI vs an older Disabled answer" : "8b session replaced without Reset (epoch)";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new ReplacedSessionBackend();
+            var vm = NewViewModel(width, height, _ => backend, directory, out _, laneBVoiWindowWidth: 0f, aiInChain: true);
+            var timeline = new List<string>();
+            vm.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(MainWindowViewModel.AiWorkerStatusSummary))
+                {
+                    timeline.Add(vm.AiWorkerStatusSummary);
+                }
+            };
+
+            int ChainsReported() => vm.Logs.Count(line => line.Contains("Chain ai_bone_suppress:", StringComparison.Ordinal));
+
+            Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", rawPath);
+            try
+            {
+                vm.LoadImageCommand.Execute(null);                 // Apply A: its status read starts and is held (the old session's answer)
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", null);
+            }
+
+            await Until(() => backend.OldReadEntered.IsSet, "the old status read to be inside the module");
+            await Until(() => vm.ProcessedImage is not null, "Apply A's image");
+            await FlushUi();
+
+            if (viaRestartCommand)
+            {
+                vm.RestartAiSessionCommand.Execute(null);          // the real command: it must raise the generation itself
+                await Until(() => vm.Logs.Any(line => line.Contains("AI session restarted", StringComparison.Ordinal)), "the restart to finish");
+            }
+            else
+            {
+                var chainsBefore = ChainsReported();
+                backend.ReplaceSessionWithoutTellingAnyone();      // no Reset: only the epoch moves
+                vm.ApplyDisplayPipelineCommand.Execute(null);      // a newer request, as in the real wiring
+                await Until(() => ChainsReported() > chainsBefore, "Apply B's chain to be reported");
+            }
+
+            await FlushUi();
+            Check(timeline.Count == 0 || timeline.All(entry => !entry.Contains("Disabled", StringComparison.Ordinal)),
+                $"a 'switched off' status reached the screen before the old read was released: {string.Join(" | ", timeline)}");
+
+            backend.OldReadRelease.Set();                          // the old session's answer comes back, late
+            await Until(() => timeline.Any(entry => entry.Contains("worker=Active; failures=0", StringComparison.Ordinal)), "the new session's status to be shown", 5000);
+            await FlushUi();
+
+            Check(timeline.All(entry => !entry.Contains("Disabled", StringComparison.Ordinal)),
+                $"the old session's 'switched off' answer was shown for the new session: [{string.Join(" | ", timeline)}]");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- 9: a "switched off" ALREADY on screen is taken back when the session is replaced with no Reset (GUI-C-192f, Codex #66 finding 1) -----
+    //
+    // The mark is on screen. A frame then replaces the session (the epoch moves; Reset is NOT called) and every later read fails. The mark must go
+    // at the next timer tick (one second) and stay gone: a failing read is exactly what used to leave the old banner up for good.
+
+    private static async Task ADisabledAlreadyOnScreenIsTakenBackWhenTheSessionIsReplaced(string rawPath, int width, int height)
+    {
+        _scenario = "9 Disabled on screen vs a replaced session";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new ScriptedSessionBackend();
+            var vm = NewViewModel(width, height, _ => backend, directory, out _, laneBVoiWindowWidth: 0f, aiInChain: true);
+
+            Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", rawPath);
+            try
+            {
+                vm.LoadImageCommand.Execute(null);
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", null);
+            }
+
+            await Until(() => vm.AiWorkerMarkVisible, "the switched-off mark to be on screen", 5000);
+
+            backend.ReadsFail = true;                              // the new session's reads fail
+            backend.ReplaceSessionWithoutTellingAnyone();          // no Reset: only the epoch moves
+            await Until(() => !vm.AiWorkerMarkVisible, "the old switched-off mark to be taken back (the timer ticks once a second)", 5000);
+            Check(vm.AiWorkerStatusSummary == "worker=Unknown", $"after the withdrawal the summary was '{vm.AiWorkerStatusSummary}', expected worker=Unknown");
+
+            await Task.Delay(1500);                                // the failing reads go on; the old mark must not come back
+            await FlushUi();
+            Check(!vm.AiWorkerMarkVisible && !vm.AiWorkerDisabled, "the old switched-off state came back while the new session's reads were failing");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
     }
 }

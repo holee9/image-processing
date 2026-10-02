@@ -1,0 +1,13 @@
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ProcessingChainScenarios.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=744
+clients/ImageProcTest.IntegrationTests/Functional/AiStatusRefresherTests.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=551
+clients/ImageProcTest.IntegrationTests/Functional/AiWorkerPanelLayoutTests.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=107
+gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=776
+gui/ImageProcTest/Services/AiBoneSuppressionStage.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=549
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=3524
+clients/ImageProcTest.IntegrationTests/Functional/FaultAnnouncementTests.cs: trailing_ws=0 control_bytes=0 crlf=0 lf=44
+.moai/reports/lane-gui/GUI-C-192/report.md: trailing_ws=0 control_bytes=0 crlf=0 lf=78
+.moai/reports/lane-gui/GUI-C-192/falsification_arms.txt: trailing_ws=0 control_bytes=0 crlf=0 lf=23
+.moai/reports/lane-gui/GUI-C-192/falsification_arm_c09_order.txt: trailing_ws=0 control_bytes=0 crlf=0 lf=5
+.moai/reports/lane-gui/GUI-C-192/selfcheck_runs.txt: trailing_ws=0 control_bytes=0 crlf=13 lf=13
+.moai/reports/lane-gui/GUI-C-192/local_runs.txt: trailing_ws=0 control_bytes=0 crlf=0 lf=5
+TOTAL=0

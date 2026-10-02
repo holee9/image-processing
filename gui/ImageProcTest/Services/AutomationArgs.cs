@@ -23,14 +23,22 @@ public sealed record AutomationArgs(
     int? RawWidth,
     int? RawHeight,
     string? Error,
-    int? DisplayPipelineFailAfter = null,
     string? SettingsPath = null,
     string? RenderDumpPath = null,
-    string? SelfCheckExePath = null,
-    bool AiWorkerDisabled = false)
+    string? SelfCheckExePath = null
+#if XPE_TEST_FAULTS
+    , int? DisplayPipelineFailAfter = null,
+    bool AiWorkerDisabled = false,
+    int? AiWorkerSilentAfter = null
+#endif
+    )
 {
+#if XPE_TEST_FAULTS
+    // GUI-C-193: everything about the two fault switches is compiled only in a test build (XPE_TEST_FAULTS, Debug by default). A shipped
+    // build has no such members, no such strings and no such branch below: the switch is "not a recognised automation switch".
+
     /// <summary>
-    /// #171 (GUI-C-79): the only accepted fault. <c>display-pipeline-after:N</c> lets the first N display
+    /// #171 (GUI-C-79): the first accepted fault. <c>display-pipeline-after:N</c> lets the first N display
     /// pipeline calls succeed and makes every later one throw, so the failure path can be tested end to
     /// end. Command line only, off unless given, and an unknown fault is refused like any other switch.
     /// </summary>
@@ -44,10 +52,21 @@ public sealed record AutomationArgs(
     public const string AiWorkerDisabledFault = "ai-worker-disabled";
 
     /// <summary>
+    /// GUI-C-192c: the third accepted fault. <c>ai-worker-silent</c> makes the AI worker status read answer "active" once and then never answer
+    /// again (a worker that stopped replying), so the status-unconfirmed notice can be put on screen without a native module. Same terms as
+    /// the others: command line only, inert without the argument, loud when armed.
+    /// </summary>
+    public const string AiWorkerSilentFault = "ai-worker-silent";
+
+    /// <summary>GUI-C-192d: <c>ai-worker-silent:0</c> is silent from the very first read (no answer is ever given), the never-confirmed case.</summary>
+    public const string AiWorkerSilentFromStartFault = "ai-worker-silent:0";
+#endif
+
+    /// <summary>
     /// #225 (GUI-C-159): where the Run Self-Check command should look for its runner, overriding the
     /// path derived from the repository root.
     ///
-    /// <para>It exists for the same reason <see cref="DisplayPipelineFaultPrefix"/> does: the FAILING
+    /// <para>It exists for the same reason the test fault switches do (#171): the FAILING
     /// path has to be observable. Without it a test can only watch the self-check succeed, and
     /// "reports success correctly" and "reports everything as success" look identical — the shape
     /// #205, #207 and #212 each turned out to be. A test points this at a copy of the runner staged
@@ -81,8 +100,12 @@ public sealed record AutomationArgs(
         string? settingsPath = null;
         string? renderDumpPath = null;
         string? selfCheckExePath = null;
-        int? rawWidth = null, rawHeight = null, displayPipelineFailAfter = null;
+        int? rawWidth = null, rawHeight = null;
+#if XPE_TEST_FAULTS
+        int? displayPipelineFailAfter = null;
         var aiWorkerDisabled = false;
+        int? aiWorkerSilentAfter = null;
+#endif
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -167,9 +190,18 @@ public sealed record AutomationArgs(
 
                 rawHeight = height;
             }
+#if XPE_TEST_FAULTS
             else if (Is(switchName, "--automation-fault") && string.Equals(value, AiWorkerDisabledFault, StringComparison.Ordinal))
             {
                 aiWorkerDisabled = true;
+            }
+            else if (Is(switchName, "--automation-fault") && string.Equals(value, AiWorkerSilentFault, StringComparison.Ordinal))
+            {
+                aiWorkerSilentAfter = 1;
+            }
+            else if (Is(switchName, "--automation-fault") && string.Equals(value, AiWorkerSilentFromStartFault, StringComparison.Ordinal))
+            {
+                aiWorkerSilentAfter = 0;
             }
             else if (Is(switchName, "--automation-fault"))
             {
@@ -178,12 +210,13 @@ public sealed record AutomationArgs(
                         System.Globalization.CultureInfo.InvariantCulture, out var failAfter))
                 {
                     error ??= $"--automation-fault '{value}' is not a recognised fault " +
-                              $"(expected {DisplayPipelineFaultPrefix}<non-negative integer> or {AiWorkerDisabledFault}).";
+                              $"(expected {DisplayPipelineFaultPrefix}<non-negative integer>, {AiWorkerDisabledFault}, {AiWorkerSilentFault} or {AiWorkerSilentFromStartFault}).";
                     continue;
                 }
 
                 displayPipelineFailAfter = failAfter;
             }
+#endif
             else
             {
                 // #136: an --automation-* switch nobody recognises is refused, not skipped. A typo in
@@ -199,7 +232,11 @@ public sealed record AutomationArgs(
         // --automation-report was seen, there is nowhere to write and the exit code is the signal.
         return error is null
             ? new AutomationArgs(rawPath, reportPath, backendMode, calibrationDirectory, rawWidth, rawHeight, Error: null,
-                displayPipelineFailAfter, settingsPath, renderDumpPath, selfCheckExePath, aiWorkerDisabled)
+                settingsPath, renderDumpPath, selfCheckExePath
+#if XPE_TEST_FAULTS
+                , displayPipelineFailAfter, aiWorkerDisabled, aiWorkerSilentAfter
+#endif
+                )
             : new AutomationArgs(
                 RawPath: null, reportPath, BackendMode: null, CalibrationDirectory: null,
                 RawWidth: null, RawHeight: null, error);

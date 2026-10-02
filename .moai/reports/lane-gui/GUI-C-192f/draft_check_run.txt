@@ -1,0 +1,5 @@
+control ok: the Debug build carries 12 seam strings the scan finds
+release ok: none of the seam strings are in the Release dll, pdb or xml
+gate ok: Release with XpeTestFaults=true is refused with XPE0001
+refusal ok: the shipped exe exits 2 for every test fault switch
+script exit 0

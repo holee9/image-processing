@@ -13,4 +13,10 @@ internal interface IAiSessionBackend
 
     /// <summary>Shutdown then init under the one lock. Starts a new session with a clean failure count.</summary>
     AiRestartResult RestartAiSession(string modelDirectory);
+
+    /// <summary>
+    /// GUI-C-192e: counts the AI sessions this backend has had (<see cref="AiSessionTracker.Epoch"/>). A status answer read under one count
+    /// is dropped when the count has moved, so a session replaced by code that does not tell the refresher still cannot show its predecessor's state.
+    /// </summary>
+    int AiSessionEpoch => 0;
 }

@@ -1,0 +1,36 @@
+ARM 1-restart-does-not-raise-the-generation (Restart AI without Reset): build ok=True
+   unit: ['통과!  - 실패:     0, 통과:   398, 건너뜀:     1, 전체:   399, 기간: 6 s - ImageProcTest.IntegrationTests.dll (net8.0)'] []
+   selfcheck: exit 3762504530; Unhandled exception. System.InvalidOperationException: Lifetime scenarios failed:; [8 Restart AI vs an older Disabled answer] the old session's 'switched off' answer was shown for the new session: [worker=Disabled; failures=3; ceilin
+   restored byte-identical: True
+ARM 2-no-session-epoch-check (a replaced session looks current): build ok=True
+   unit: ['실패!  - 실패:     1, 통과:   397, 건너뜀:     1, 전체:   399, 기간: 5 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiStatusRefresherTests.ADisabledAnswer_ReadUnderAnEarlierSession_IsDropped_EvenWithNoReset [30 ms]']
+   selfcheck: exit 3762504530; Unhandled exception. System.InvalidOperationException: Lifetime scenarios failed:; [8b session replaced without Reset (epoch)] the old session's 'switched off' answer was shown for the new session: [worker=Disabled; failures=3; ceili
+   restored byte-identical: True
+ARM 3-failed-read-not-tracked (a thrown read is not an unanswered one): build ok=True
+   unit: ['실패!  - 실패:     2, 통과:   396, 건너뜀:     1, 전체:   399, 기간: 5 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiStatusRefresherTests.AFirstReadThatFails_IsRetried_AndRaisesTheNoticeWhenTheFailuresGoOn [1 ms]', 'Functional.AiStatusRefresherTests.TheDecisions_AreRightAcrossTheCounterBoundary [1 ms]']
+   restored byte-identical: True
+ARM 4-naive-clock (raw counter times TicksPerSecond): build ok=True
+   unit: ['실패!  - 실패:     2, 통과:   396, 건너뜀:     1, 전체:   399, 기간: 6 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiStatusRefresherTests.TheMonotonicClock_DoesNotOverflow_AndDoesNotAssumeTheCounterStartsAtZero [2 ms]', 'Functional.AiStatusRefresherTests.TheDecisions_AreRightAcrossTheCounterBoundary [1 ms]']
+   restored byte-identical: True
+ARM 5-own-status-read-inside-the-gate-only (the early answer removed): build ok=True
+   unit: ['통과!  - 실패:     0, 통과:   398, 건너뜀:     1, 전체:   399, 기간: 5 s - ImageProcTest.IntegrationTests.dll (net8.0)'] []
+   restored byte-identical: True
+ARM 6-ui-stall-not-measured: build ok=True
+   unit: ['실패!  - 실패:     1, 통과:   397, 건너뜀:     1, 전체:   399, 기간: 5 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiStatusRefresherTests.TheLongestGapBetweenChecks_IsMeasured [1 ms]']
+   restored byte-identical: True
+ARM 7-release-with-the-symbol-not-refused (props target removed): build ok=True
+   unit: ['실패!  - 실패:     1, 통과:   397, 건너뜀:     1, 전체:   399, 기간: 6 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.FaultSeamCompiledOutTests.TheBuildSymbol_IsDefinedOnlyForDebug_AndEveryProjectThatCompilesTheSeamImportsIt [1']
+   shipped-build script: exit 1; control ok: the Debug build carries 12 seam strings the scan finds; Release build with -p:XpeTestFaults=true SUCCEEDED; it must be refused (XPE0001).; + ... ed -eq 0) { throw 'Release build with -p:XpeTestFaults=true SUCCEEDED ...; + FullyQualifiedErrorId : Release build with -p:XpeTestFaults=true SUCCEEDED; it must be refused (XPE0001).
+   restored byte-identical: True
+rebuild: True
+AFTER RESTORE unit: ['통과!  - 실패:     0, 통과:   398, 건너뜀:     1, 전체:   399, 기간: 6 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+AFTER RESTORE selfcheck exit: 0
+release rebuilt clean: True
+ARM 5-own-status-read-inside-the-gate-only (the early answer removed): build ok=False
+   unit: [] []
+   restored byte-identical: True
+rebuild: False
+ARM 5-own-status-read-inside-the-gate-only (the early answer removed): build ok=True
+   unit: ['실패!  - 실패:     1, 통과:   397, 건너뜀:     1, 전체:   399, 기간: 5 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiBoneSuppressionStageTests.TheRestart_IsOneStepUnderTheLock [< 1 ms]']
+   restored byte-identical: True
+rebuild: True

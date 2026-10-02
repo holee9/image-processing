@@ -12,6 +12,15 @@
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
+  <!-- GUI-C-193: XPE_TEST_FAULTS (test fault switches) is defined for Debug only. -->
+  <Import Project="..\XpeTestFaults.props" />
+
+  <!-- GUI-C-193: not compiled at all outside a test build (the file also guards itself with #if), so even the symbols of a shipped build
+       carry no trace of the type. -->
+  <ItemGroup Condition="'$(XpeTestFaults)' != 'true'">
+    <Compile Remove="Services\FaultInjectingBackend.cs" />
+  </ItemGroup>
+
   <!-- WinForms types must be used via fully-qualified names to avoid WPF ambiguity -->
   <ItemGroup>
     <Using Remove="System.Windows.Forms" />

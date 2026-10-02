@@ -1,0 +1,7 @@
+== Release byte search (dll, pdb, xml), utf8 + utf16 ==
+Release ImageProcTest.dll none
+Release ImageProcTest.pdb none
+Release ImageProcTest.xml none
+Debug ImageProcTest.dll ['ai-worker-disabled', 'display-pipeline-after', 'FAULT INJECTION ARMED', 'FaultInjectingBackend', '--automation-fault']
+Debug ImageProcTest.pdb ['FaultInjectingBackend']
+Debug ImageProcTest.xml ['ai-worker-disabled', 'display-pipeline-after', 'FaultInjectingBackend', '--automation-fault']

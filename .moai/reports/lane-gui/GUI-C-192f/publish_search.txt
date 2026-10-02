@@ -1,0 +1,37 @@
+== publish / packaging search (tracked files in this worktree; excludes bin/obj/node_modules/.git/.moai/reports) ==
+-- terms in workflows, tools, gui, clients, docs, root build files:
+tools/ci/Build-DicomModule.ps1:34:$vsWhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
+tools/ci/Invoke-LocalVsCommonBuild.ps1:13:$vsWhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
+tools/ci/Use-MsvcDevShell.ps1:13:$vswhere = Join-Path $programFilesX86 'Microsoft Visual Studio\Installer\vswhere.exe'
+tools/docs/check_req_citations.py:12:        SRS-CALIB-001. The RTM stayed internally consistent with its own test
+Binary file tools/mcsim/phantoms/step_80kVp_512_total.f32 matches
+gui/ImageProcTest.E2E/Program.cs:178:        // that inconsistency. Whether determinism is a requirement to raise is the lead's call; what this
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/GsvgWristSliceScenarios.cs:610:    /// build with itself cannot tell a preserved output from a consistently wrong one.<
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/TwoLaneWorkbenchScenarios.cs:26:/// keys compared only with themselves pass while the renderer is consistently wrong, a
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ViewStateRenderScenarios.cs:128:    /// where it started. A renderer that computed the scale wrongly but consistently p
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ViewStateRenderScenarios.cs:182:    /// image at half the requested distance, or twice it, as long as it does so consis
+docs/project/api-spec.md:1209:**Description**: Batch-applies the same VOI LUT windowing to an array of `imgCount` images for consistent series display. Equivalent to call
+docs/project/production-integration-guide.md:64:| runtime DLLs | installer / IT | low |
+docs/project/production-integration-guide.md:261:- [ ] optional DLLs are labelled optional in installer logic
+docs/project/sdd_adv.md:283:Module state consists of a single `g_initialized` boolean protected by `g_initMutex` (std::mutex). These are defined at global scope in `xpe_e
+docs/project/SPEC-XPE-MASTER.md:96:The minimum releasable product consists of:
+docs/project/vvp_adv.md:350:| TC-ROI-ALG-005 | Penumbra handling | Soft collimation edge (gradient transition) | Locates 50% penumbra point consistently |
+docs/project/vvp_adv.md:488:| Consistency | Unified | clang-format compliance, naming conventions |
+docs/project/vvp_ai.md:348:| `AiWorkerIsolationTest.RepeatedFallbackIsConsistent` | repeated calls give the same result |
+docs/project/vvp_ai.md:510:| `AiWorkerIsolationTest.RepeatedFallbackIsConsistent` | fallback decision is deterministic |
+docs/project/vvp_ai.md:598:| Consistency | Unified | clang-format, C ABI conventions shared with the other six modules | In place |
+docs/project/vvp_ai.md:639:| Repeated failure | result is consistent across calls | `AiWorkerIsolationTest.RepeatedFallbackIsConsistent` |
+docs/project/XPE-10-Pass-Review-Log.md:64:| 1 | Physics and Mathematics | Verified all 10 new formulas against published references: PCD charge-sharing model (Ballabriga
+docs/project/xpe-algorithm-spec-deepsync.md:15:This revision (ds5) adds preprocessing E2E proof contracts, detector-domain automatic evaluation formulas, local raw/calibr
+docs/project/XPE-PostProcess-DeepResearch.json:4:    "text": "ARCHIVAL NOTE: This JSON is a raw research-agent transcript for traceability only. It is non-normative and m
+docs/project/XPE-PreProcess-DeepResearch.json:4:    "text": "ARCHIVAL NOTE: This JSON is a raw research-agent transcript for traceability only. It is non-normative and mu
+-- file names:
+.agents/skills/moai-platform-chrome-extension/modules/publishing-guide.md
+.moai/reports/lane-post/QA-B-173/arm_E18PublishEarly.txt
+.moai/reports/lane-post/QA-B-173/arm_F18PublishEveryMutation.txt
+-- git ls-files count searched: 4676
+-- CMake install/CPack in modules and root:
+modules/ai/CMakeLists.txt:345:install(TARGETS ${MODULE_NAME} xpe_ai_worker
+modules/ai/CMakeLists.txt:350:    install(FILES "${ONNXRUNTIME_ROOT}/lib/onnxruntime.dll" DESTINATION ${CMAKE_INSTALL_BINDIR})
+modules/common/CMakeLists.txt:183:install(TARGETS xpe_common
+modules/common/CMakeLists.txt:187:install(DIRECTORY include/
