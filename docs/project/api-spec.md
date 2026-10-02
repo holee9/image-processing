@@ -1355,7 +1355,9 @@ reader 는 디코드와 할당 **전에** 다음을 검사하고, 거부할 때 
 - **필수 태그**(Image Pixel 모듈 Type 1): SamplesPerPixel, Rows, Columns, BitsAllocated, BitsStored, HighBit, PixelRepresentation 이 없거나 비어 있으면 `XPE_ERR_DICOM_INVALID`(−13). BitsStored·HighBit 부재에 대한 옛 기본값은 없앴다(QA-B-182c).
 - **비트 기술**: 비압축과 JPEG Lossless 는 BitsAllocated 16, BitsStored ≤ 16, HighBit = BitsStored − 1 만 받는다. JPEG 2000 은 BitsStored 1..BitsAllocated, HighBit = BitsStored − 1 이고(QA-B-182d), 디코드 전에 코드스트림의 성분·부호·정밀도·크기를 태그와 대조한다(PS3.5 8.2.4). 출력은 UINT16 / bitsAllocated 16 / bitsStored = 정밀도다(8비트 J2K 포함).
 - **writer**: 선언한 BitsStored 정밀도로 인코딩한다(옛 writer 는 12비트 선언에 16비트 정밀도를 썼다). 선언 범위를 넘는 화소값은 쓰기 실패(`XPE_ERR_PROCESSING_FAILED`)다. 옛 writer 의 BitsStored < 16 J2K 산출물은 새 reader 가 거부한다(#235 알려진 위험).
-- **아직 main 에 들어오지 않은 것**(QA-B-182e·182f·181g·181h, 검토 중): PS3.5 8.1.1 에 따라 비트 기술 위반을 모든 경로에서 `DICOM_INVALID` 로 통일하는 것(지금은 비압축·JPEG LL 이 `UNSUPPORTED_FORMAT`), PhotometricInterpretation 필수 검사와 값 분류, JPEG LL 성분 수(Nf = 1)와 정밀도 대조, J2K 표의 BitsStored ≤ 38 상한. 병합할 때 이 문단을 고쳐 쓴다.
+- **비트 기술 통일 (QA-B-182e·181g, `7deba35b`)**: PS3.5 8.1.1(2014c 부터 압축 여부와 무관)에 따라 HighBit ≠ BitsStored − 1, BitsStored > BitsAllocated, BitsAllocated 가 1 이나 8 의 배수가 아닌 경우는 모든 경로에서 `DICOM_INVALID` 다. 전송 구문 표에 없는 BitsAllocated(JPEG LL 은 8·16, J2K 는 1·8·16·24·32·40)도 `DICOM_INVALID` 이고, J2K 는 표 8.2.4-1 의 BitsStored 1–38 상한도 같다. 표준이 허용하지만 이 API 가 돌려줄 수 없는 값은 `UNSUPPORTED_FORMAT` 이다. 2014c 이전 판으로 기록된 파일은 이제 거부될 수 있다(#235)
+- **JPEG LL 코드스트림 (QA-B-182e·181h)**: SOF 의 성분 수 Nf 는 정확히 1 이어야 한다(바이트가 없거나 0 이거나 2 이상이면 `DICOM_INVALID`). 정밀도 P 는 P < BitsStored 또는 P > BitsAllocated 일 때 거부하고, P > BitsStored 는 받는다(표준이 "consistent" 의 뜻을 정하지 않았다). 모두 디코드 전에 검사한다
+- **PhotometricInterpretation (QA-B-182f)**: 없거나 비어 있으면 `DICOM_INVALID`. MONOCHROME1·MONOCHROME2 는 받는다. PALETTE COLOR·XYB·정의 없는 값·폐기된 값은 `UNSUPPORTED_FORMAT`. RGB·YBR 계열이 SamplesPerPixel = 1 이면 표준 위반이라 `DICOM_INVALID`. **MONOCHROME1 은 저장된 그대로 돌려주며 호출자가 이를 구별할 수단이 없다** — 극성 정책은 #235 의 별도 결정이다
 
 ### 11.1 xpe_dicom_read
 
