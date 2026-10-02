@@ -1,0 +1,32 @@
+# gtest summary lines and the first failure lines before the fix
+[       OK ] DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_BitsAboveBitsStoredAreNotMasked (7 ms)
+[       OK ] DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_RescaleIsNotAppliedNorReported (8 ms)
+[       OK ] DicomReaderTest.Tc109_Monochrome1WithSignedPixelsIsRefusedLikeEverySignedImage (9 ms)
+[       OK ] DicomReaderTest.Tc109_Monochrome1_ReadingTwiceOnOneHandleGivesTheSameWords (46 ms)
+[  FAILED  ] 5 tests, listed below:
+[  FAILED  ] DicomReaderTest.Issue235Decided_Monochrome1IsInvertedToMonochrome2Sense
+[  FAILED  ] DicomReaderTest.Issue235Decided_Monochrome1IsInvertedToMonochrome2Sense (9 ms)
+[  FAILED  ] DicomReaderTest.Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochrome1IsReturnedAsStored
+[  FAILED  ] DicomReaderTest.Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochrome1IsReturnedAsStored (32 ms)
+[  FAILED  ] DicomReaderTest.Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEveryPath
+[  FAILED  ] DicomReaderTest.Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEveryPath (79 ms)
+[  FAILED  ] DicomReaderTest.Tc109_Monochrome1PlusInverse_RoundTripKeepsHowTheImageDisplays
+[  FAILED  ] DicomReaderTest.Tc109_Monochrome1PlusInverse_RoundTripKeepsHowTheImageDisplays (26 ms)
+[  FAILED  ] DicomReaderTest.Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInverting
+[  FAILED  ] DicomReaderTest.Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInverting (26 ms)
+[  PASSED  ] 4 tests.
+---
+JPEG 2000: 65536 words differ from (2^BitsStored - 1) - value (BitsStored 16)
+JPEG 2000: exactly one alert says the values were inverted
+JPEG 2000: it is an Info alert
+JPEG Lossless: 65536 words differ from (2^BitsStored - 1) - value (BitsStored 16)
+JPEG Lossless: exactly one alert says the values were inverted
+JPEG Lossless: it is an Info alert
+native 12-bit: 65536 words differ from (2^BitsStored - 1) - value (BitsStored 12)
+native 12-bit: exactly one alert says the values were inverted
+native 12-bit: it is an Info alert
+native 16-bit: 65536 words differ from (2^BitsStored - 1) - value (BitsStored 16)
+native 16-bit: exactly one alert says the values were inverted
+native 16-bit: it is an Info alert
+one alert says the values were inverted
+the copy displays differently from the original at 65536 pixels

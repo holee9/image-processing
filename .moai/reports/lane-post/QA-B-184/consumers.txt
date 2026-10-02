@@ -1,0 +1,40 @@
+## 1. tracked files that mention xpe_dicom_read_image (git grep -c, .moai/reports excluded)
+.moai/project/api-spec.md:1
+.moai/specs/SPEC-XPE-P1B-DICOM/acceptance.md:3
+.moai/specs/SPEC-XPE-P1B-DICOM/plan.md:1
+.moai/specs/SPEC-XPE-P1B-DICOM/spec.md:8
+clients/ImageProcTest/Diagnostics/XpeDicomReadinessProbe.cs:1
+docs/post-processing/xpe/VVP-P1B-001.md:1
+docs/project/api-spec.md:3
+docs/project/vvp-p1b-001-addendum.md:1
+modules/dicom/include/xpe/dicom/dicom_api.h:3
+modules/dicom/src/DicomReader.h:1
+modules/dicom/src/dicom.cpp:3
+modules/dicom/tests/test_dicom_reader.cpp:35
+modules/dicom/tests/test_dicom_writer.cpp:2
+modules/dicom/tests/test_parameter_dependency.cpp:2
+modules/preprocess/tools/xpe_real_frames.cpp:5
+
+## 2. control A: the definition is found (must list dicom_api.h and dicom.cpp)
+modules/dicom/include/xpe/dicom/dicom_api.h:164:XPE_API XpeErrorCode xpe_dicom_read_image(XpeDicomHandle* handle, XpeImageBuffer* outImg);
+modules/dicom/src/dicom.cpp:54:XPE_API XpeErrorCode xpe_dicom_read_image(XpeDicomHandle* handle, XpeImageBuffer* outImg) {
+
+## 3. control B: an independent token. Every file that calls read_image must also call/declare xpe_dicom_open (files with open but not read_image listed after)
+read_image files not in open set:
+docs/post-processing/xpe/VVP-P1B-001.md
+open files not in read_image set:
+.moai/specs/SPEC-XPE-P1B-DICOM/progress.md
+modules/dicom/src/DicomReader.cpp
+
+## 4. gui/: every mention of an xpe_dicom_ symbol
+gui/ImageProcTest/Services/PipelineOrchestrator.cs:31:        new DllExportInfo { DllName = "xpe_dicom.dll", RequiredExports = new[] { "xpe_dicom_read", "xpe_dicom_write" } }
+
+## 5. gui/ and clients/: DllImport / NativeLibrary names that contain 'dicom' (case-insensitive)
+clients/ImageProcTest/Services/NativePresentationExportService.cs:287:            if (!NativeLibrary.TryLoad(dicomDllPath, out var dicomHandle))
+clients/ImageProcTest/Services/NativePresentationExportService.cs:348:                NativeLibrary.Free(dicomHandle);
+
+## 6. other languages (py, ps1, bat, cmake) mentioning read_image
+
+## 7. clients/: is the ReadImageDelegate declared in XpeDicomWrapper.cs ever used?
+clients/ImageProcTest/PInvokeWrappers/XpeDicomWrapper.cs:16:        internal delegate XpeCommonApi.XpeErrorCode ReadImageDelegate(
+(only the declaration above; no GetRequiredDelegate<ReadImageDelegate> call exists)

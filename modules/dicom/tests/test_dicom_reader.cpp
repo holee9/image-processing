@@ -3661,7 +3661,7 @@ TEST_F(DicomReaderTest, Scope_PhotometricInterpretationIsRequiredAndOnlyAMonochr
         {"control_monochrome2", "MONOCHROME2", 1, OK},
         {"monochrome2_padded", "MONOCHROME2 ", 1, OK},          // a CS value of odd length is padded with a space
         {"monochrome2_leading_space", " MONOCHROME2", 1, OK},   // leading and trailing spaces of a CS are not significant (PS3.5 6.2)
-        {"monochrome1", "MONOCHROME1", 1, OK},                  // read as stored (#235 decides the inversion policy)
+        {"monochrome1", "MONOCHROME1", 1, OK},                  // read, inverted to MONOCHROME2 sense (QA-B-185, FR-DCM-109)
         {"absent", nullptr, 1, INV},
         {"empty", "", 1, INV},
         {"palette_color", "PALETTE COLOR", 1, UNS},             // valid, but the value is an index, not a gray level
@@ -3702,7 +3702,7 @@ TEST_F(DicomReaderTest, Scope_PhotometricInterpretationIsRequiredAndOnlyAMonochr
     EXPECT_EQ(14 * 3, n);
 }
 
-TEST_F(DicomReaderTest, Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochrome1IsReturnedAsStored) {
+TEST_F(DicomReaderTest, Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochrome1IsInverted) {
     xpe_clear_alerts();
     const fs::path absent = MakeScopeVariant(s_validDcm, "f_alert_absent", [](DcmDataset* ds) { delete ds->remove(DCM_PhotometricInterpretation); });
     EXPECT_EQ(XPE_ERR_DICOM_INVALID, ReadScope(absent).read);
@@ -3718,14 +3718,20 @@ TEST_F(DicomReaderTest, Scope_PhotometricInterpretationRefusalsNameTheValueAndMo
     EXPECT_EQ(XPE_ERR_DICOM_INVALID, ReadScope(rgb1).read);
     EXPECT_TRUE(AlertNames("RGB") && AlertNames("SamplesPerPixel")) << "the value and the sample count that contradict each other are named";
 
-    // MONOCHROME1 is read exactly as MONOCHROME2 is: the words come back as stored, and nothing tells the caller.
+    // QA-B-185 (#235): MONOCHROME1 is read, and returned INVERTED to MONOCHROME2 sense (FR-DCM-109); one Info alert
+    // tells the caller. (QA-B-182f pinned the opposite: "the words come back as stored, and nothing tells the caller".)
     const std::vector<uint16_t> baseline = Words(s_validDcm);
     xpe_clear_alerts();
     const fs::path mono1 = MakeScopeVariant(s_validDcm, "f_mono1", [](DcmDataset* ds) { ds->putAndInsertString(DCM_PhotometricInterpretation, "MONOCHROME1"); });
     const ScopeRead r = ReadScope(mono1);
     EXPECT_EQ(XPE_OK, r.read);
-    EXPECT_EQ(baseline, r.words) << "no inversion";
-    EXPECT_EQ(0, xpe_get_pending_alert_count()) << "no alert tells the caller the stored values are inverted-sense (current state, #235)";
+    ASSERT_EQ(baseline.size(), r.words.size());
+    size_t wrong = 0;
+    for (size_t i = 0; i < baseline.size(); ++i) {
+        if (r.words[i] != static_cast<uint16_t>(0xFFFFu - baseline[i])) ++wrong;
+    }
+    EXPECT_EQ(0u, wrong) << "inverted: 65535 - stored (BitsStored 16)";
+    EXPECT_EQ(1, xpe_get_pending_alert_count()) << "one alert says the values were inverted";
 }
 
 // Rows and Columns are Type 1 too. They were read, and an absent or zero value was refused with the right code, but
@@ -3958,14 +3964,22 @@ TEST_F(DicomReaderTest, Scope_ARefusedHandleRefusesTheSameWayAgain) {
 // They are returned as stored today. When #235 decides (normalise MONOCHROME1 to MONOCHROME2, report or apply the
 // rescale, mask above BitsStored), THESE TESTS MUST CHANGE with it: each one fails the day the behaviour does.
 
-TEST_F(DicomReaderTest, Pinned_Issue235AwaitsDesignDecision_Monochrome1IsReturnedAsStored) {
+// QA-B-185: DECIDED (leader, after the QA-B-184 report). This was "Pinned_Issue235AwaitsDesignDecision_Monochrome1Is
+// ReturnedAsStored", asserting "no inversion, and no signal that the data is inverted" -- the state QA-B-182f recorded
+// so that the day the behaviour changed this test would fail. It changed: FR-DCM-109 (SRS-DICOM-001, SAD step 10,
+// README, PRD REQ-4.1.9) requires the inversion, so the assertion is now its opposite. The full matrix is in the
+// Tc109_ tests at the end of this file.
+TEST_F(DicomReaderTest, Issue235Decided_Monochrome1IsInvertedToMonochrome2Sense) {
     const std::vector<uint16_t> baseline = Words(s_validDcm);
     const fs::path p = MakeScopeVariant(s_validDcm, "mono1", [](DcmDataset* ds) {
         ds->putAndInsertString(DCM_PhotometricInterpretation, "MONOCHROME1");
     });
     const ScopeRead r = ReadScope(p);
     EXPECT_EQ(XPE_OK, r.read);
-    EXPECT_EQ(baseline, r.words) << "no inversion, and no signal that the data is inverted";
+    ASSERT_EQ(baseline.size(), r.words.size());
+    for (size_t i = 0; i < baseline.size(); ++i) {
+        ASSERT_EQ(static_cast<uint16_t>(0xFFFFu - baseline[i]), r.words[i]) << "pixel " << i;
+    }
 }
 
 TEST_F(DicomReaderTest, Pinned_Issue235AwaitsDesignDecision_RescaleIsNotAppliedNorReported) {
@@ -3990,4 +4004,297 @@ TEST_F(DicomReaderTest, Pinned_Issue235AwaitsDesignDecision_BitsAboveBitsStoredA
     const ScopeRead r = ReadScope(p);
     EXPECT_EQ(XPE_OK, r.read);
     EXPECT_EQ(w, r.words) << "the 4 bits above BitsStored are returned, not masked";
+    // QA-B-185: this stays true for MONOCHROME2 (the decision for MONOCHROME1 did not change it). For MONOCHROME1 the
+    // bits ARE masked, because the inversion needs the sample alone: Tc109_Monochrome1_MasksTheBitsAboveBitsStored
+    // BeforeInverting.
+}
+
+// ===========================================================================
+// QA-B-185 (#235, leader decision after QA-B-184): MONOCHROME1 is inverted on read.
+//
+// TC-109 / FR-DCM-109 (SRS-DICOM-001): "MONOCHROME1 (small value = bright): automatic inversion (MAX - pixel);
+// MONOCHROME2: used as is." SAD-DICOM-001 step 10, README, PRD REQ-4.1.9 and RTM-DICOM row FR-DCM-109 say the same;
+// until now the code returned the stored words and the tests pinned that (QA-B-182f "Pinned_..._Monochrome1IsReturned
+// AsStored"). The tests below are the ones the RTM's TC-109 row points at.
+//
+// WHAT "MAX" IS: the mask of the buffer's BitsStored, 2^B - 1, applied to the stored word first (the bits above
+// BitsStored are not part of the sample): v' = (2^B - 1) - (v & (2^B - 1)). The result is the value MONOCHROME2
+// reading of the same image would have: PS3.3 C.7.6.3.1.2 says the MINIMUM sample is displayed white for
+// MONOCHROME1 and black for MONOCHROME2, so the inversion maps the one onto the other.
+// ===========================================================================
+namespace {
+
+/** @p src with the unique occurrence of @p from replaced by @p to (same length); false unless it occurs exactly once. */
+bool PatchOnce(const fs::path& src, const fs::path& dst, const std::string& from, const std::string& to) {
+    std::ifstream in(src, std::ios::binary);
+    std::string b((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    if (from.size() != to.size()) return false;
+    const size_t at = b.find(from);
+    if (at == std::string::npos || b.find(from, at + 1) != std::string::npos) return false;
+    b.replace(at, from.size(), to);
+    std::ofstream out(dst, std::ios::binary);
+    out.write(b.data(), static_cast<std::streamsize>(b.size()));
+    return out.good();
+}
+
+/** A conformant DX MONOCHROME1 copy of @p src: PI MONOCHROME1 and, where the file has one, Presentation LUT Shape INVERSE. */
+bool MakeMonochrome1(const fs::path& src, const fs::path& dst) {
+    if (!PatchOnce(src, dst, "MONOCHROME2", "MONOCHROME1")) return false;
+    std::ifstream in(dst, std::ios::binary);
+    const std::string b((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    if (b.find("IDENTITY") == std::string::npos) return true;   // compressed copies written by DCMTK carry no shape
+    return PatchOnce(dst, dst, "IDENTITY", "INVERSE ");         // CS values are padded to even length with a space
+}
+
+uint32_t BitsMask(uint32_t bitsStored) { return bitsStored >= 16 ? 0xFFFFu : ((1u << bitsStored) - 1u); }
+
+/** Pending alerts with @p needle in the text, and the severity of the last one. */
+int AlertsWith(const char* needle, int32_t* severity = nullptr) {
+    int n = 0;
+    for (int32_t i = 0; i < xpe_get_pending_alert_count(); ++i) {
+        char buf[512] = {0};
+        int32_t sev = -1;
+        if (xpe_get_pending_alert(i, buf, sizeof(buf), &sev) == XPE_OK && std::string(buf).find(needle) != std::string::npos) {
+            ++n;
+            if (severity) *severity = sev;
+        }
+    }
+    return n;
+}
+
+constexpr const char* kMono1Alert = "MONOCHROME1";
+
+// The WHOLE text is the cross-lane contract (QA-B-185b). It states the exact formula the code evaluates: the stored
+// word is masked to BitsStored first, so a word with bits above BitsStored gives (2^B - 1) - (stored & (2^B - 1)).
+std::string Mono1AlertText(unsigned bitsStored) {
+    return "MONOCHROME1 pixel values were inverted to MONOCHROME2 sense: "
+           "value = (2^BitsStored - 1) - (stored & (2^BitsStored - 1)), BitsStored " + std::to_string(bitsStored);
+}
+
+/** The text of the first pending alert that contains @p needle ("" when none). */
+std::string AlertTextWith(const char* needle) {
+    for (int32_t i = 0; i < xpe_get_pending_alert_count(); ++i) {
+        char buf[512] = {0};
+        int32_t sev = -1;
+        if (xpe_get_pending_alert(i, buf, sizeof(buf), &sev) == XPE_OK && std::string(buf).find(needle) != std::string::npos) return buf;
+    }
+    return std::string();
+}
+
+}  // namespace
+
+TEST_F(DicomReaderTest, Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEveryPath) {
+    struct Source { const char* name; fs::path file; };
+    std::vector<Source> sources;
+    sources.push_back({"native 16-bit", s_validDcm});
+    // The 12-bit native file: the words really are 12-bit.
+    {
+        std::vector<uint16_t> w = Words(s_validDcm);
+        for (uint16_t& v : w) v &= 0x0FFF;
+        sources.push_back({"native 12-bit", MakeScopeVariant(s_validDcm, "m1_native12", [&](DcmDataset* ds) {
+            ds->putAndInsertUint16(DCM_BitsStored, 12);
+            ds->putAndInsertUint16(DCM_HighBit, 11);
+            PutWords(ds, w);
+        })});
+    }
+    const fs::path ll = s_tempDir / "jpegll_for_185.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, ll));
+    sources.push_back({"JPEG Lossless", ll});
+    sources.push_back({"JPEG 2000", s_j2kDcm});
+
+    for (const Source& s : sources) {
+        const fs::path m1 = s_tempDir / (std::string("m1_") + s.file.filename().string());
+        ASSERT_TRUE(MakeMonochrome1(s.file, m1)) << s.name << ": the MONOCHROME1 copy could not be made";
+        xpe_clear_alerts();
+        const ScopeRead a = ReadScope(s.file);   // MONOCHROME2: kept
+        ASSERT_EQ(XPE_OK, a.read) << s.name;
+        EXPECT_EQ(0, AlertsWith(kMono1Alert)) << s.name << ": MONOCHROME2 must not mention an inversion";
+        xpe_clear_alerts();
+        const ScopeRead b = ReadScope(m1);       // MONOCHROME1: inverted
+        ASSERT_EQ(XPE_OK, b.read) << s.name;
+        ASSERT_EQ(a.words.size(), b.words.size()) << s.name;
+        EXPECT_EQ(a.bitsStored, b.bitsStored) << s.name;
+        EXPECT_EQ(a.bitsAllocated, b.bitsAllocated) << s.name;
+        EXPECT_EQ(XPE_PIXEL_UINT16, b.format) << s.name;
+        const uint32_t M = BitsMask(b.bitsStored);
+        size_t wrong = 0;
+        for (size_t i = 0; i < a.words.size(); ++i) {
+            if (b.words[i] != static_cast<uint16_t>(M - (a.words[i] & M))) ++wrong;
+        }
+        EXPECT_EQ(0u, wrong) << s.name << ": " << wrong << " words differ from (2^BitsStored - 1) - value (BitsStored " << b.bitsStored << ")";
+        int32_t sev = -1;
+        EXPECT_EQ(1, AlertsWith(kMono1Alert, &sev)) << s.name << ": exactly one alert says the values were inverted";
+        EXPECT_EQ(Mono1AlertText(b.bitsStored), AlertTextWith(kMono1Alert)) << s.name << ": the alert text is the contract text, whole";
+        EXPECT_EQ(XPE_ALERT_INFO, sev) << s.name << ": it is an Info alert";
+    }
+}
+
+// The bits above BitsStored are not part of the sample: they are masked off BEFORE the inversion, so a MONOCHROME1
+// word never comes out larger than 2^BitsStored - 1. (MONOCHROME2 is unchanged: those bits are still returned.)
+TEST_F(DicomReaderTest, Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInverting) {
+    std::vector<uint16_t> w = Words(s_validDcm);
+    for (size_t i = 0; i < w.size(); ++i) w[i] = static_cast<uint16_t>((w[i] & 0x0FFF) | 0xF000);
+    const fs::path m2 = MakeScopeVariant(s_validDcm, "m1_high_bits", [&](DcmDataset* ds) {
+        ds->putAndInsertUint16(DCM_BitsStored, 12);
+        ds->putAndInsertUint16(DCM_HighBit, 11);
+        PutWords(ds, w);
+    });
+    const fs::path m1 = s_tempDir / "m1_high_bits_mono1.dcm";
+    ASSERT_TRUE(MakeMonochrome1(m2, m1));
+    const ScopeRead a = ReadScope(m2);
+    const ScopeRead b = ReadScope(m1);
+    ASSERT_EQ(XPE_OK, a.read);
+    ASSERT_EQ(XPE_OK, b.read);
+    EXPECT_EQ(w, a.words) << "MONOCHROME2: the 4 bits above BitsStored are returned, as before";
+    size_t wrong = 0, tooBig = 0;
+    for (size_t i = 0; i < w.size(); ++i) {
+        if (b.words[i] != static_cast<uint16_t>(0x0FFFu - (w[i] & 0x0FFFu))) ++wrong;
+        if (b.words[i] > 0x0FFF) ++tooBig;
+    }
+    EXPECT_EQ(0u, wrong) << "MONOCHROME1: 4095 - (value & 4095)";
+    EXPECT_EQ(0u, tooBig) << "a MONOCHROME1 word never exceeds 2^BitsStored - 1";
+}
+
+// A second read on the same handle must not invert again: the inversion is made on the caller's buffer, never on the
+// dataset the handle keeps.
+TEST_F(DicomReaderTest, Tc109_Monochrome1_ReadingTwiceOnOneHandleGivesTheSameWords) {
+    const fs::path m1 = s_tempDir / "m1_twice.dcm";
+    ASSERT_TRUE(MakeMonochrome1(s_validDcm, m1));
+    const fs::path ll = s_tempDir / "jpegll_for_185_twice.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, ll));
+    const fs::path m1ll = s_tempDir / "m1_twice_ll.dcm";
+    ASSERT_TRUE(MakeMonochrome1(ll, m1ll));
+    const fs::path m1j2k = s_tempDir / "m1_twice_j2k.dcm";
+    ASSERT_TRUE(MakeMonochrome1(s_j2kDcm, m1j2k));
+    for (const fs::path& p : {m1, m1ll, m1j2k}) {
+        XpeDicomHandle* h = nullptr;
+        ASSERT_EQ(XPE_OK, xpe_dicom_open(p.string().c_str(), &h)) << p;
+        std::vector<uint16_t> first, second;
+        for (std::vector<uint16_t>* out : {&first, &second}) {
+            XpeImageBuffer img{};
+            ASSERT_EQ(XPE_OK, xpe_dicom_read_image(h, &img)) << p;
+            const uint16_t* d = static_cast<const uint16_t*>(img.data);
+            out->assign(d, d + static_cast<size_t>(img.width) * img.height);
+            xpe_free_image(&img);
+        }
+        xpe_dicom_close(h);
+        EXPECT_EQ(first, second) << p << ": the second read on the same handle differs (inverted twice?)";
+    }
+}
+
+// Signed pixels with MONOCHROME1: PS3.3 does not tie Photometric Interpretation to Pixel Representation, so the
+// combination is legal, and for it the inversion would be -1 - v (a different formula). Signed pixels are refused for
+// every Photometric Interpretation (the buffer is unsigned words), so the combination stays refused, untouched.
+TEST_F(DicomReaderTest, Tc109_Monochrome1WithSignedPixelsIsRefusedLikeEverySignedImage) {
+    std::vector<uint16_t> w = Words(s_validDcm);
+    w[1] = static_cast<uint16_t>(static_cast<int16_t>(-1000));
+    const fs::path p = MakeScopeVariant(s_validDcm, "m1_signed", [&](DcmDataset* ds) {
+        ds->putAndInsertString(DCM_PhotometricInterpretation, "MONOCHROME1");
+        ds->putAndInsertUint16(DCM_PixelRepresentation, 1);
+        PutWords(ds, w);
+    });
+    xpe_clear_alerts();
+    const ScopeRead r = ReadScope(p);
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, r.read);
+    EXPECT_TRUE(r.outUntouchedOnFailure);
+    EXPECT_EQ(XPE_OK, r.metaAfter);
+    EXPECT_EQ(0, AlertsWith(kMono1Alert)) << "a refusal is not an inversion: no 'inverted' alert";
+}
+
+// The reason for the decision (QA-B-184 section 4): read a MONOCHROME1 + INVERSE file, write what was read, read it
+// again. Before this card the words came back as stored and the writer labelled them MONOCHROME2 + IDENTITY, so the
+// copy showed the image inverted relative to the original. Now the POLARITY survives: for a file whose VOI is the
+// identity and whose Rescale is 1/0 (this fixture), display(original, INVERSE) = (2^B - 1) - stored and
+// display(copy, IDENTITY) = its words = the same numbers. This is a statement about polarity under an identity VOI,
+// NOT about the whole presentation: xpe_dicom_write copies no Window, Rescale or Presentation LUT from the source
+// (Tc109_CurrentBehaviour_WriteDoesNotCarry... below records exactly that).
+TEST_F(DicomReaderTest, Tc109_Monochrome1PlusInverse_RoundTripKeepsThePolarity) {
+    const fs::path m1 = s_tempDir / "m1_roundtrip.dcm";
+    ASSERT_TRUE(MakeMonochrome1(s_validDcm, m1));
+    const std::vector<uint16_t> stored = Words(s_validDcm);   // the words stored in the MONOCHROME1 file (same bytes)
+    const ScopeRead first = ReadScope(m1);
+    ASSERT_EQ(XPE_OK, first.read);
+
+    XpeImageBuffer img{};
+    ASSERT_EQ(XPE_OK, xpe_alloc_image(256, 256, XPE_PIXEL_UINT16, &img));
+    std::memcpy(img.data, first.words.data(), first.words.size() * sizeof(uint16_t));
+    img.bitsStored = first.bitsStored;
+    img.bitsAllocated = first.bitsAllocated;
+    const fs::path copy = s_tempDir / "m1_roundtrip_copy.dcm";
+    XpeImageMetadata meta{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_write(copy.string().c_str(), &img, &meta));
+    xpe_free_image(&img);
+
+    const ScopeRead second = ReadScope(copy);
+    ASSERT_EQ(XPE_OK, second.read);
+    EXPECT_EQ(first.words, second.words) << "the copy's words are what the first read returned";
+    const uint32_t M = BitsMask(first.bitsStored);
+    size_t wrong = 0;
+    for (size_t i = 0; i < stored.size(); ++i) {
+        const uint32_t displayedOriginal = M - (stored[i] & M);   // INVERSE: minimum stored value is displayed white
+        if (second.words[i] != displayedOriginal) ++wrong;        // IDENTITY + MONOCHROME2: the word is the brightness
+    }
+    EXPECT_EQ(0u, wrong) << "the copy has the opposite polarity to the original at " << wrong << " pixels (identity VOI, Rescale 1/0)";
+    // And the copy carries no inversion label of its own.
+    std::ifstream in(copy, std::ios::binary);
+    const std::string bytes((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    EXPECT_NE(std::string::npos, bytes.find("MONOCHROME2"));
+    EXPECT_EQ(std::string::npos, bytes.find("MONOCHROME1"));
+}
+
+// ---- RECORDS CURRENT BEHAVIOUR, IS NOT A REQUIREMENT (QA-B-185b, Codex #70) -----------------------------------------
+// The inversion keeps the POLARITY across read -> write. It does not keep how the image displays in general: the writer
+// builds its own dataset from the pixel buffer and the metadata struct and copies nothing from the file the pixels came
+// from, so a source file's Window Center/Width, Rescale Slope/Intercept and Presentation LUT Shape are gone, and the
+// copy carries Rescale 1/0, no Window and IDENTITY (REQ-DICOM-022 defaults). An image whose file had a non-identity VOI
+// or Rescale therefore displays with different brightness and contrast after read -> write (PS3.3 C.11.2).
+// If a later decision makes the writer preserve any of this, THIS TEST MUST CHANGE with it.
+TEST_F(DicomReaderTest, Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrPresentationShapeFromTheSourceFile) {
+    const fs::path m1 = MakeScopeVariant(s_validDcm, "m1_vois", [](DcmDataset* ds) {
+        ds->putAndInsertString(DCM_PhotometricInterpretation, "MONOCHROME1");
+        ds->putAndInsertString(DCM_PresentationLUTShape, "INVERSE");
+        ds->putAndInsertString(DCM_WindowCenter, "1500");
+        ds->putAndInsertString(DCM_WindowWidth, "800");
+        ds->putAndInsertString(DCM_RescaleSlope, "2");
+        ds->putAndInsertString(DCM_RescaleIntercept, "-1024");
+    });
+    // The control: the source file really carries what the test says it carries.
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(m1.string().c_str()).good());
+        OFString v;
+        ASSERT_TRUE(ff.getDataset()->findAndGetOFString(DCM_WindowCenter, v).good());
+        EXPECT_EQ("1500", std::string(v.c_str()));
+        ASSERT_TRUE(ff.getDataset()->findAndGetOFString(DCM_RescaleSlope, v).good());
+        EXPECT_EQ("2", std::string(v.c_str()));
+        ASSERT_TRUE(ff.getDataset()->findAndGetOFString(DCM_PresentationLUTShape, v).good());
+        EXPECT_EQ("INVERSE", std::string(v.c_str()));
+    }
+    const ScopeRead first = ReadScope(m1);
+    ASSERT_EQ(XPE_OK, first.read);
+
+    XpeImageBuffer img{};
+    ASSERT_EQ(XPE_OK, xpe_alloc_image(256, 256, XPE_PIXEL_UINT16, &img));
+    std::memcpy(img.data, first.words.data(), first.words.size() * sizeof(uint16_t));
+    img.bitsStored = first.bitsStored;
+    img.bitsAllocated = first.bitsAllocated;
+    const fs::path copy = s_tempDir / "m1_vois_copy.dcm";
+    XpeImageMetadata meta{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_write(copy.string().c_str(), &img, &meta));
+    xpe_free_image(&img);
+
+    DcmFileFormat out;
+    ASSERT_TRUE(out.loadFile(copy.string().c_str()).good());
+    DcmDataset* ds = out.getDataset();
+    OFString v;
+    EXPECT_FALSE(ds->tagExists(DCM_WindowCenter)) << "the source's Window Center is not carried";
+    EXPECT_FALSE(ds->tagExists(DCM_WindowWidth)) << "the source's Window Width is not carried";
+    ASSERT_TRUE(ds->findAndGetOFString(DCM_RescaleSlope, v).good());
+    EXPECT_EQ("1", std::string(v.c_str())) << "Rescale Slope is the writer's default, not the source's 2";
+    ASSERT_TRUE(ds->findAndGetOFString(DCM_RescaleIntercept, v).good());
+    EXPECT_EQ("0", std::string(v.c_str())) << "Rescale Intercept is the writer's default, not the source's -1024";
+    ASSERT_TRUE(ds->findAndGetOFString(DCM_PresentationLUTShape, v).good());
+    EXPECT_EQ("IDENTITY", std::string(v.c_str())) << "the shape is the writer's fixed IDENTITY, not the source's INVERSE";
+    ASSERT_TRUE(ds->findAndGetOFString(DCM_PhotometricInterpretation, v).good());
+    EXPECT_EQ("MONOCHROME2", std::string(v.c_str()));
 }
