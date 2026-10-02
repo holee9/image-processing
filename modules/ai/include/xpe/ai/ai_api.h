@@ -194,6 +194,42 @@ XPE_API void xpe_ai_shutdown(void);
  *             XPE_ERR_PROCESSING_FAILED. Caller should use deterministic
  *             body-part lookup as fallback.
  *
+ * WHAT THIS IS AND IS NOT (QA-B-191, #130). In the ONNX build the call runs a model; in a stub build it never does.
+ * The tests use hand-written toy models that prove the WIRING (a model's output becomes the label and the
+ * confidence; a different model or image gives a different answer). NOTHING is known about how well any real model
+ * recognises a body part, how accurate it is or how fast it runs: the SRS requirement SRS-AI-010 ("classify … using a CNN classifier") is not met.
+ *
+ * MODEL AND LABELS. The model is read from `{modelDir}/bodypart.onnx` and its class labels from the sidecar
+ * `{modelDir}/bodypart.json`, a JSON object with a non-empty `"labels"` array of non-empty strings (each shorter
+ * than 64 bytes); `{modelDir}` is the path given to xpe_ai_init. The labels are returned exactly as the sidecar
+ * spells them: the module neither changes their case nor checks them against any vocabulary, so a caller that
+ * hands the label to another function (for example xpe_get_param_range, which accepts only a fixed list of
+ * names) maps it itself. The model must have ONE float32 input of a fixed single-channel image, `[1,1,H,W]` or
+ * `[1,H,W,1]` with 1 <= H, W <= 4096, and ONE float32 output with one value per label. The model emits
+ * PROBABILITIES: the module applies no softmax and refuses an output with a non-finite value or a value outside
+ * [0, 1]. The confidence is the largest value; on a tie the first class wins.
+ * The session is created on the first call that needs it, owned by the module and never visible to the caller.
+ *
+ * PIXEL SCALE AND SIZE. The image is resized to the size the model declares (area average when shrinking, linear
+ * interpolation when enlarging; an image of that size is passed on unchanged). The module does NOT normalise
+ * intensity: the caller supplies pixels in the scale the model was trained for, as for xpe_bone_suppress.
+ * Only XPE_PIXEL_FLOAT32 is accepted once a model is usable; another format is XPE_ERR_UNSUPPORTED_FORMAT.
+ *
+ * WHEN THERE IS NO USABLE ANSWER the outcome is the stub's, whatever the cause: XPE_ERR_PROCESSING_FAILED, the
+ * label "UNKNOWN" and confidence 0.0. The causes are: no model file, a model that cannot be loaded, a missing or
+ * invalid label sidecar, an output size different from the label count, an input shape the module will not feed, a
+ * failed run, a non-finite output, an output outside [0, 1]. Without a usable model the image format is not judged
+ * (the stub never did). Alerts: the first such call of a session posts ONE XPE_ALERT_WARNING for a model that is
+ * unusable -- "AI body-part recognition is unavailable ({reason}): UNKNOWN is returned; use the deterministic
+ * body-part lookup (REQ-AI-002)", {reason} naming the cause -- and later calls of that session post nothing
+ * (a missing model repeats on every call and would fill the alert queue); xpe_ai_init starts a new session. A
+ * non-finite output posts the non-finite alert of xpe_bone_suppress ("AI model output was non-finite (inf/NaN);
+ * this image was not AI-processed"); an output outside [0, 1] posts ONE XPE_ALERT_WARNING per call: "AI body-part
+ * model output is not a probability vector (a value outside [0, 1]); this image was not AI-classified". These
+ * texts are a contract with the clients that display alerts. A successful call posts no alert.
+ * NOT YET IMPLEMENTED (QA-B-191 M3): the comparison of the confidence with `confidence_threshold`, the
+ * low-confidence event and the use of fallback_mode. Until then a low confidence is returned as the model gave it.
+ *
  * @param img            Input image. Must not be NULL; zero dimensions, a NULL
  *                       data pointer, a dataSize above 64 MB, or a non-zero
  *                       dataSize smaller than the declared dimensions (#123)
@@ -201,9 +237,12 @@ XPE_API void xpe_ai_shutdown(void);
  * @param bodyPartOut    Caller-allocated buffer for the label string.
  *                       Must not be NULL.
  * @param bufLen         Size of @p bodyPartOut in bytes. Recommended >= 64.
- * @param confidenceOut  Output: confidence score [0, 1]. May be NULL. On the
- *                       stub path it is set to 0.0 before returning.
+ * @param confidenceOut  Output: confidence score [0, 1]. May be NULL. 0.0 on every
+ *                       outcome that has no result (the stub, and every failure
+ *                       listed above); on XPE_OK the largest model output.
  * @return XPE_OK on success -- ONNX build only; not reachable in a stub build.
+ * @return XPE_ERR_UNSUPPORTED_FORMAT if a usable model exists and the image is
+ *         not XPE_PIXEL_FLOAT32. Nothing is written to @p bodyPartOut.
  * @return XPE_ERR_NOT_INITIALIZED if xpe_ai_init not called.
  * @return XPE_ERR_INVALID_INPUT if img or bodyPartOut is NULL, the image
  *         buffer is invalid, or bufLen is 0 -- a zero-length output buffer is a

@@ -409,6 +409,8 @@ if(_XPE_AI_BUILD_TESTS)
         test_onnx_session.cpp
         # #130 (QA-B-161): the first C ABI function wired to that path
         test_bone_suppress_abi.cpp
+        # #130 (QA-B-191, T-006): xpe_bodypart_recognize on a real session (toy models -- wiring only) and its resize helper
+        test_bodypart_inference.cpp
         # #130 (QA-B-168): SRS-ALERT-004 fires when DL was applied -- and, the
         # half that constrains the code, stays quiet on every path that
         # returned an image the model never touched

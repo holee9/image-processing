@@ -28,6 +28,7 @@
 #include "xpe/ai/ai_onnx_session.h"
 #include "ai_worker_supervisor.h"
 #include "ai_finite.h"
+#include "ai_bodypart.h"
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -40,6 +41,7 @@
 #include <cstdint>
 #include <cstring>
 #include <atomic>
+#include <fstream>
 #include <memory>
 #include <mutex>
 #include <new>
@@ -71,6 +73,18 @@
  * All mutable state is protected by a single mutex. Atomic flags are
  * used for lock-free reads where appropriate (e.g., initialized check).
  */
+/**
+ * The model behind xpe_bodypart_recognize and what was read next to it (QA-B-191, #130, T-006): the session, the
+ * class labels from the sidecar `bodypart.json`, and the input size the model's graph declares. Built lazily on the
+ * first call that needs it and owned by the module state, like the bone suppression session.
+ */
+struct BodyPartModel {
+    std::unique_ptr<xpe::ai::OnnxSession> session;
+    std::vector<std::string> labels;
+    uint32_t inputHeight{0};
+    uint32_t inputWidth{0};
+};
+
 struct AiModuleState {
     std::mutex mtx;
 
@@ -114,6 +128,19 @@ struct AiModuleState {
     /** Model directory the cached session was built from, so a re-init with a
      *  different directory does not silently keep serving the old model. */
     std::string boneSuppressSessionDir;
+
+    /** The body-part model (QA-B-191); null until the first call that needs it succeeds. Guarded by `mtx`. */
+    std::unique_ptr<BodyPartModel> bodyPart;
+
+    /** Directory `bodyPart` was built from (same reason as boneSuppressSessionDir). */
+    std::string bodyPartDir;
+
+    /**
+     * True once this session has told the operator that the body-part model is unusable. ONE Warning per
+     * xpe_ai_init, on the first such call (QA-B-191 D4): a user who switched AI on with no model must be able
+     * to find out, and a missing model repeats on every call so a per-call alert would fill the queue.
+     */
+    bool bodyPartUnavailableWarned{false};
 
     /**
      * Opt-in (QA-B-171C): route xpe_bone_suppress through the worker process. Default OFF -- the
@@ -521,6 +548,108 @@ static void pushAiProcessedAlert() {
 }
 
 /* ==========================================================================
+ * Body-part recognition helpers (QA-B-191, #130, T-006)
+ *
+ * THE MODELS THE TESTS USE ARE NOT CLASSIFIERS (tests/data/make_bodypart_models.py). What is wired and tested here
+ * is the path: a number the model produces becomes the label, the confidence and the decision. Nothing here says
+ * how well any model recognises a body part.
+ * ========================================================================== */
+
+/** The label written when there is no usable answer; it is the stub's label, so a caller sees one outcome. */
+static const char kBodyPartUnknown[] = "UNKNOWN";
+
+/** Write "UNKNOWN" and report the documented fallback signal. A buffer too short for it is BUFFER_TOO_SMALL, as in the stub. */
+static XpeErrorCode bodyPartUnknown(char* bodyPartOut, size_t bufLen) {
+    if (bufLen < sizeof(kBodyPartUnknown)) return XPE_ERR_BUFFER_TOO_SMALL;
+    std::memcpy(bodyPartOut, kBodyPartUnknown, sizeof(kBodyPartUnknown));
+    return XPE_ERR_PROCESSING_FAILED;
+}
+
+/**
+ * Read `labels` from the sidecar: a JSON object with a non-empty array of non-empty strings, each short enough
+ * for the worker protocol's label limit. Returns the reason text on failure, nullptr on success.
+ */
+static const char* loadBodyPartLabels(const std::string& sidecarPath, std::vector<std::string>* labels) {
+#ifdef XPE_AI_USE_NLOHMANN_JSON
+    std::ifstream f(sidecarPath);
+    if (!f) return "label sidecar bodypart.json not found";
+    try {
+        nlohmann::json j;
+        f >> j;
+        if (!j.is_object() || !j.contains("labels") || !j["labels"].is_array() || j["labels"].empty()) {
+            return "label sidecar has no non-empty labels array";
+        }
+        for (const auto& e : j["labels"]) {
+            if (!e.is_string()) return "label sidecar has a label that is not a string";
+            const std::string v = e.get<std::string>();
+            if (v.empty() || v.size() >= XPE_AI_MAX_BODYPART_LEN) return "label sidecar has an empty or too long label";
+            labels->push_back(v);
+        }
+    } catch (const std::exception&) {
+        labels->clear();
+        return "label sidecar is not valid JSON";
+    }
+    return nullptr;
+#else
+    (void)sidecarPath;
+    (void)labels;
+    return "this build cannot read the label sidecar";
+#endif
+}
+
+/**
+ * Build the body-part model from `<modelDir>/bodypart.onnx` and `<modelDir>/bodypart.json`. Returns the reason text
+ * on failure (the model stays unset), nullptr on success. A model whose output length is fixed and differs from
+ * the label count is refused here; one with a dynamic output is checked against each result instead.
+ */
+static const char* loadBodyPartModel(AiModuleState* state, std::unique_ptr<BodyPartModel>* out) {
+    const std::string base = state->modelDirPath.empty() ? std::string() : state->modelDirPath + "/";
+    const std::string modelPath = base + "bodypart.onnx";
+    auto m = std::make_unique<BodyPartModel>();
+
+    xpe::ai::OnnxSessionConfig cfg;
+    cfg.model_path = modelPath;
+    cfg.execution_provider = xpe::ai::ExecutionProvider::kCpu;
+    cfg.num_threads = 1;
+    auto created = xpe::ai::OnnxSession::Create(cfg);
+    if (!created.has_value()) {
+        AI_LOG_ERROR("bodypart: cannot load %s: %s", modelPath.c_str(), created.message.c_str());
+        return created.code == xpe::ai::OnnxErrorCode::kInvalidModelPath ? "no model file" : "the model file cannot be loaded";
+    }
+    m->session = std::move(created.value);
+
+    if (const char* why = loadBodyPartLabels(base + "bodypart.json", &m->labels)) return why;
+
+    const std::vector<xpe::ai::TensorMetadata> inputs = m->session->GetInputMetadata();
+    if (inputs.empty() || !xpe::ai::BodyPartInputSize(inputs.front().shape, &m->inputHeight, &m->inputWidth)) {
+        return "the model input shape is not a fixed single-channel image";
+    }
+    const std::vector<xpe::ai::TensorMetadata> outputs = m->session->GetOutputMetadata();
+    if (!outputs.empty()) {
+        int64_t n = 1;
+        bool fixed = true;
+        for (int64_t d : outputs.front().shape) {
+            if (d < 0) { fixed = false; break; }
+            n *= d;
+        }
+        if (fixed && static_cast<size_t>(n) != m->labels.size()) return "the model output size differs from the number of labels";
+    }
+    *out = std::move(m);
+    return nullptr;
+}
+
+/** Tell the operator once per session that body-part recognition has no usable model (D4). The caller holds state->mtx. */
+static void warnBodyPartUnavailableOnce(AiModuleState* state, const char* reason) {
+    if (state->bodyPartUnavailableWarned) return;
+    state->bodyPartUnavailableWarned = true;
+    char msg[256];
+    std::snprintf(msg, sizeof(msg),
+                  "AI body-part recognition is unavailable (%s): UNKNOWN is returned; use the deterministic body-part "
+                  "lookup (REQ-AI-002)", reason);
+    xpe_alert_push(msg, XPE_ALERT_WARNING);
+}
+
+/* ==========================================================================
  * Exported API Implementation
  * ========================================================================== */
 
@@ -544,6 +673,8 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
                                                          XpeImageBuffer* softTissueOut,
                                                          const char* configJsonOrNull);
 extern "C++" static XpeErrorCode xpe_ai_get_model_card_impl(const char* modelId, char* buf, size_t bufSize);
+extern "C++" static XpeErrorCode xpe_bodypart_recognize_impl(const XpeImageBuffer* img, char* bodyPartOut,
+                                                              size_t bufLen, float* confidenceOut);
 
 XPE_API const char* xpe_ai_version(void)
 {
@@ -650,6 +781,8 @@ XPE_API void xpe_ai_shutdown(void)
     // still runs while the object it belongs to is intact.
     state->boneSuppressSession.reset();
     state->boneSuppressSessionDir.clear();
+    state->bodyPart.reset();
+    state->bodyPartDir.clear();
 
     // QA-B-171C: ends the worker (graceful, then terminate): nothing outlives the module.
     state->workerSupervisor.reset();
@@ -681,6 +814,21 @@ XPE_API XpeErrorCode xpe_bodypart_recognize(const XpeImageBuffer* img,
                                              char* bodyPartOut, size_t bufLen,
                                              float* confidenceOut)
 {
+    // Same shape as xpe_ai_get_model_card: the body is an ordinary C++ function that owns the lock, and this
+    // exported function is only the try/catch (see the note above the forward declarations).
+    try {
+        return xpe_bodypart_recognize_impl(img, bodyPartOut, bufLen, confidenceOut);
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+}
+
+extern "C++" static XpeErrorCode xpe_bodypart_recognize_impl(const XpeImageBuffer* img,
+                                                              char* bodyPartOut, size_t bufLen,
+                                                              float* confidenceOut)
+{
     // Pre-conditions
     // Required-pointer NULL checks run before the initialisation guard, per
     // the api-spec error-code precedence contract (#119). Order only; the
@@ -703,30 +851,79 @@ XPE_API XpeErrorCode xpe_bodypart_recognize(const XpeImageBuffer* img,
     // at all (the trap QA-B-39 documented).
     if (bufLen == 0) return XPE_ERR_INVALID_INPUT;
 
-    // --- Stub implementation ---
-    // Full implementation: send BODYPART_RECOGNIZE over IPC, await response.
-    //
-    // Fallback routing logic (REQ-AI-002):
-    //   1. Send request to worker with timeout
-    //   2. If worker responds with confidence < threshold:
-    //      - If fallbackMode: return XPE_ERR_PROCESSING_FAILED
-    //      - Else: return the low-confidence result
-    //   3. If worker times out or crashes:
-    //      - Return XPE_ERR_PROCESSING_FAILED (trigger caller fallback)
-
-    // Return placeholder result indicating no inference performed.
-    // Caller should fall back to deterministic body-part lookup.
+    // Every outcome below that is not a result leaves the confidence at 0.0, as the stub always did.
     if (confidenceOut) *confidenceOut = 0.0f;
 
-    static const char kStubLabel[] = "UNKNOWN";
-    if (bufLen < sizeof(kStubLabel)) {
-        return XPE_ERR_BUFFER_TOO_SMALL;
-    }
-    std::memcpy(bodyPartOut, kStubLabel, sizeof(kStubLabel));
+    // A stub build has no runtime to ask. Its outcome is the stub's, unchanged and silent: "UNKNOWN", 0.0,
+    // PROCESSING_FAILED -- the documented signal for the caller to use the deterministic body-part lookup.
+    if (xpe::ai::OnnxSession::IsStubBuild()) return bodyPartUnknown(bodyPartOut, bufLen);
 
-    // In stub mode, we signal that AI is not available.
-    // The caller should use deterministic fallback.
-    return XPE_ERR_PROCESSING_FAILED;
+    AiModuleState* state = g_aiState;
+    std::lock_guard<std::mutex> lock(state->mtx);
+
+    // The model, built on the first call that needs it. A model that is not there, cannot be read, has no usable
+    // labels or has an input this module will not feed is NOT a call error: it is the documented fallback outcome,
+    // with ONE Warning per session so the operator can find out.
+    if (!state->bodyPart || state->bodyPartDir != state->modelDirPath) {
+        std::unique_ptr<BodyPartModel> built;
+        if (const char* why = loadBodyPartModel(state, &built)) {
+            state->bodyPart.reset();
+            warnBodyPartUnavailableOnce(state, why);
+            return bodyPartUnknown(bodyPartOut, bufLen);
+        }
+        state->bodyPart = std::move(built);
+        state->bodyPartDir = state->modelDirPath;
+    }
+    BodyPartModel& model = *state->bodyPart;
+
+    // Float pixels only (the same refusal as xpe_bone_suppress): the session speaks float32, and reading
+    // 16-bit pixels as floats would produce numbers rather than an error. Judged AFTER the model is known to be
+    // usable, on purpose: without a model the outcome is the stub's for every image (the stub never looked at the
+    // pixel format), and a caller that never had a model must not start getting a new error code from this call.
+    if (img->format != XPE_PIXEL_FLOAT32) return XPE_ERR_UNSUPPORTED_FORMAT;
+
+    // Resize to the size the model declares. No intensity normalisation: the caller supplies the model's scale.
+    const std::vector<float> input = xpe::ai::ResizeImageFloat(static_cast<const float*>(img->data), img->width,
+                                                               img->height, model.inputWidth, model.inputHeight);
+    const auto out = model.session->Run(input);
+    if (out.code != xpe::ai::OnnxErrorCode::kOk) {
+        AI_LOG_ERROR("bodypart: run failed: %s", out.message.c_str());
+        return bodyPartUnknown(bodyPartOut, bufLen);
+    }
+    if (out.value.size() != model.labels.size()) {
+        AI_LOG_ERROR("bodypart: the model returned %zu values for %zu labels", out.value.size(), model.labels.size());
+        warnBodyPartUnavailableOnce(state, "the model output size differs from the number of labels");
+        return bodyPartUnknown(bodyPartOut, bufLen);
+    }
+
+    // The module applies no softmax: the model emits probabilities, and a vector that is not one is refused.
+    // Judged on the whole result BEFORE anything is written, so a refusal leaves the label as UNKNOWN.
+    if (!xpe::ai::AllFinite(out.value.data(), out.value.size())) {
+        AI_LOG_ERROR("bodypart: the model result contains a non-finite value");
+        pushNonFiniteResultAlert();
+        return bodyPartUnknown(bodyPartOut, bufLen);
+    }
+    for (float v : out.value) {
+        if (v < 0.0f || v > 1.0f) {
+            AI_LOG_ERROR("bodypart: the model result has a value outside [0, 1]");
+            // CROSS-LANE CONTRACT (QA-B-191): clients may match this text.
+            xpe_alert_push("AI body-part model output is not a probability vector (a value outside [0, 1]); "
+                           "this image was not AI-classified", XPE_ALERT_WARNING);
+            return bodyPartUnknown(bodyPartOut, bufLen);
+        }
+    }
+
+    // The most probable class; on a tie the first.
+    size_t best = 0;
+    for (size_t i = 1; i < out.value.size(); ++i) {
+        if (out.value[i] > out.value[best]) best = i;
+    }
+    const std::string& label = model.labels[best];
+    if (label.size() + 1 > bufLen) return XPE_ERR_BUFFER_TOO_SMALL;   // never truncated silently
+
+    std::memcpy(bodyPartOut, label.c_str(), label.size() + 1);
+    if (confidenceOut) *confidenceOut = out.value[best];
+    return XPE_OK;
 }
 
 XPE_API XpeErrorCode xpe_stitch_images(const XpeImageBuffer* parts,
