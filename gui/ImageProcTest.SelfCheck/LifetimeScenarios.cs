@@ -183,6 +183,25 @@ internal sealed class ReplacedSessionBackend : ScenarioBackend, IAiSessionBacken
     int IAiSessionBackend.AiSessionEpoch => Volatile.Read(ref _epoch);
 }
 
+/// <summary>
+/// GUI-C-192f: an AI session whose status read answers from a script the scenario changes (Disabled first, then a failure), and whose epoch the
+/// scenario moves the way a frame's re-init does: with nobody calling Reset.
+/// </summary>
+internal sealed class ScriptedSessionBackend : ScenarioBackend, IAiSessionBackend
+{
+    public volatile bool ReadsFail;
+    private int _epoch;
+
+    public AiWorkerStatus GetAiWorkerStatus() =>
+        ReadsFail ? throw new InvalidOperationException("scripted: the new session's read fails") : new AiWorkerStatus(AiWorkerState.Disabled, 3, 3);
+
+    public AiRestartResult RestartAiSession(string modelDirectory) => new(true, "AI session restarted: scripted");
+
+    public void ReplaceSessionWithoutTellingAnyone() => Interlocked.Increment(ref _epoch);
+
+    int IAiSessionBackend.AiSessionEpoch => Volatile.Read(ref _epoch);
+}
+
 internal static class LifetimeScenarios
 {
     private static readonly List<string> Failures = [];
@@ -246,6 +265,7 @@ internal static class LifetimeScenarios
                         await Timed(() => AnOlderStatusReadIsNeverShownAfterANewerRequest(rawPath, width, height));
                         await Timed(() => AnOldDisabledAnswerIsNeverShownForANewSession(rawPath, width, height, viaRestartCommand: true));
                         await Timed(() => AnOldDisabledAnswerIsNeverShownForANewSession(rawPath, width, height, viaRestartCommand: false));
+                        await Timed(() => ADisabledAlreadyOnScreenIsTakenBackWhenTheSessionIsReplaced(rawPath, width, height));
                     }
                     catch (Exception ex)
                     {
@@ -876,6 +896,47 @@ internal static class LifetimeScenarios
 
             Check(timeline.All(entry => !entry.Contains("Disabled", StringComparison.Ordinal)),
                 $"the old session's 'switched off' answer was shown for the new session: [{string.Join(" | ", timeline)}]");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- 9: a "switched off" ALREADY on screen is taken back when the session is replaced with no Reset (GUI-C-192f, Codex #66 finding 1) -----
+    //
+    // The mark is on screen. A frame then replaces the session (the epoch moves; Reset is NOT called) and every later read fails. The mark must go
+    // at the next timer tick (one second) and stay gone: a failing read is exactly what used to leave the old banner up for good.
+
+    private static async Task ADisabledAlreadyOnScreenIsTakenBackWhenTheSessionIsReplaced(string rawPath, int width, int height)
+    {
+        _scenario = "9 Disabled on screen vs a replaced session";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new ScriptedSessionBackend();
+            var vm = NewViewModel(width, height, _ => backend, directory, out _, laneBVoiWindowWidth: 0f, aiInChain: true);
+
+            Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", rawPath);
+            try
+            {
+                vm.LoadImageCommand.Execute(null);
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", null);
+            }
+
+            await Until(() => vm.AiWorkerMarkVisible, "the switched-off mark to be on screen", 5000);
+
+            backend.ReadsFail = true;                              // the new session's reads fail
+            backend.ReplaceSessionWithoutTellingAnyone();          // no Reset: only the epoch moves
+            await Until(() => !vm.AiWorkerMarkVisible, "the old switched-off mark to be taken back (the timer ticks once a second)", 5000);
+            Check(vm.AiWorkerStatusSummary == "worker=Unknown", $"after the withdrawal the summary was '{vm.AiWorkerStatusSummary}', expected worker=Unknown");
+
+            await Task.Delay(1500);                                // the failing reads go on; the old mark must not come back
+            await FlushUi();
+            Check(!vm.AiWorkerMarkVisible && !vm.AiWorkerDisabled, "the old switched-off state came back while the new session's reads were failing");
         }
         finally
         {

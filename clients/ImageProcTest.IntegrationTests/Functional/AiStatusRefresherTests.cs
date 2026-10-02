@@ -760,6 +760,163 @@ public sealed class AiStatusRefresherTests
         Assert.True(applied[0].NeverConfirmed);
     }
 
+    // ---- GUI-C-192f (Codex #66) ------------------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Finding 1: an answer ALREADY on screen belongs to the session it was read under. When a frame replaces the session with no Reset, the
+    /// epoch moves; the shown "Active" or "Disabled" is taken back to Unknown at once, and the new read's answer, failure or delay is what follows,
+    /// never the old answer standing. Each shown state x each kind of new read.
+    /// </summary>
+    [Theory]
+    [InlineData(true, "answers")]
+    [InlineData(true, "fails")]
+    [InlineData(true, "blocks")]
+    [InlineData(false, "answers")]
+    [InlineData(false, "fails")]
+    [InlineData(false, "blocks")]
+    public void ADisabledOrActiveAlreadyOnScreen_IsWithdrawn_WhenTheSessionIsReplacedWithNoReset(bool disabled, string newRead)
+    {
+        var shownBefore = disabled ? Disabled : Active;
+        var rig = new Rig();
+        var block = new ManualResetEventSlim();
+        var calls = 0;
+        rig.Read = _ =>
+        {
+            if (Interlocked.Increment(ref calls) == 1)
+            {
+                return shownBefore;                              // the old session's answer
+            }
+
+            return newRead switch
+            {
+                "answers" => new AiWorkerStatus(AiWorkerState.Active, 0, 3),
+                "fails" => throw new InvalidOperationException("the new session's read failed"),
+                _ => WaitThenAnswer(block),
+            };
+        };
+        rig.Refresher.Request();
+        rig.PumpUntil(() => rig.Applied.Count == 1, "The first answer never reached the screen.");
+        Assert.Equal(shownBefore, rig.Applied[0]);
+
+        rig.Epoch++;                                             // a frame replaced the session; nobody called Reset
+        rig.Now = TimeSpan.FromSeconds(1);
+        rig.Refresher.CheckFreshness();                          // the timer tick
+        Assert.Equal(AiWorkerStatus.Unknown, rig.Applied[1]);    // withdrawn AT ONCE, before the new read can say anything
+
+        if (newRead == "answers")
+        {
+            rig.PumpUntil(() => rig.Applied.Count == 3, "The new session's answer never reached the screen.");
+            Assert.Equal(AiWorkerState.Active, rig.Applied[2].State);
+            return;
+        }
+
+        // The new read fails or hangs: the old answer must NOT come back, and the failure ends in the never-confirmed notice at the bound.
+        rig.PumpUntil(() => Volatile.Read(ref calls) >= 2, "The new session's read never started.");
+        for (var second = 2; second <= 17; second++)
+        {
+            rig.Now = TimeSpan.FromSeconds(second);
+            rig.Refresher.CheckFreshness();
+            rig.Pump();
+        }
+
+        Assert.DoesNotContain(rig.Applied.Skip(1), status => status.State == AiWorkerState.Disabled);
+        Assert.Equal(AiWorkerState.Unconfirmed, rig.Applied[^1].State);
+        Assert.True(rig.Applied[^1].NeverConfirmed);
+        block.Set();
+    }
+
+    private static AiWorkerStatus WaitThenAnswer(ManualResetEventSlim release)
+    {
+        release.Wait(Long);
+        return new AiWorkerStatus(AiWorkerState.Active, 0, 3);
+    }
+
+    /// <summary>The request path notices the moved session as well, not only the timer.</summary>
+    [Fact]
+    public void ARequest_WithdrawsAnAnswerOfAReplacedSession_BeforeItReads()
+    {
+        var rig = new Rig(backgroundReads: false) { Read = _ => Disabled };
+        rig.Refresher.Request();
+        rig.Pump();
+        Assert.Equal([Disabled], rig.Applied);
+
+        rig.Epoch++;
+        rig.Read = _ => throw new InvalidOperationException("the new session's read failed");
+        rig.Refresher.Request();
+        rig.Pump();
+
+        Assert.Equal(AiWorkerStatus.Unknown, rig.Applied[^1]);   // the old "switched off" is gone and does not return
+        Assert.Contains("sessionWithdrawals=1", rig.Refresher.Measurements, StringComparison.Ordinal);
+    }
+
+    // ---- Finding 2: the epoch and the state the status call reads without the gate are ONE value --------------------------------------
+
+    /// <summary>
+    /// A reader that runs while the writer is between building the next value and publishing it sees the OLD value whole: the old state with the
+    /// old epoch. (Before: the epoch was raised first and the state written after, so this reader saw the old state under the NEW epoch.)
+    /// </summary>
+    [Fact]
+    public void TheTrackerSnapshot_IsOldWhole_OrNewWhole_NeverAMixture()
+    {
+        var tracker = new AiSessionTracker();
+        tracker.InitSucceeded("models");                          // started, epoch 1
+        AiSessionTracker.SessionState? duringStop = null;
+        AiWorkerStatus? ownDuringStop = null;
+        tracker.BeforePublish = () =>
+        {
+            duringStop = tracker.Snapshot;                        // the writer is paused here, mid-update
+            ownDuringStop = tracker.OwnStatus();
+        };
+        tracker.Stopped();
+        tracker.BeforePublish = null;
+
+        Assert.NotNull(duringStop);
+        Assert.True(duringStop!.Started && duringStop.Epoch == 1, $"a reader mid-update saw a mixture: {duringStop}");
+        Assert.Null(ownDuringStop);                               // the old session's own answer: ask the module
+        Assert.False(tracker.Snapshot.Started);
+        Assert.Equal(2, tracker.Snapshot.Epoch);
+        Assert.Equal(AiWorkerStatus.Unknown, tracker.OwnStatus());
+
+        AiSessionTracker.SessionState? duringStart = null;
+        tracker.BeforePublish = () => duringStart = tracker.Snapshot;
+        tracker.InitSucceeded("models");
+        tracker.BeforePublish = null;
+        Assert.True(!duringStart!.Started && duringStart.Epoch == 2, $"a reader mid-update saw a mixture: {duringStart}");
+        Assert.True(tracker.Snapshot.Started && tracker.Snapshot.Epoch == 3);
+    }
+
+    /// <summary>The same property under real concurrency: a started session always has an odd epoch, a stopped one an even one.</summary>
+    [Fact]
+    public void TheTrackerSnapshot_KeepsItsInvariant_UnderConcurrentReads()
+    {
+        var tracker = new AiSessionTracker();
+        var stop = new ManualResetEventSlim();
+        var violations = 0;
+        var readers = Enumerable.Range(0, 3).Select(_ => Task.Run(() =>
+        {
+            while (!stop.IsSet)
+            {
+                var snapshot = tracker.Snapshot;
+                if (snapshot.Started != (snapshot.Epoch % 2 == 1))
+                {
+                    Interlocked.Increment(ref violations);
+                }
+            }
+        })).ToArray();
+
+        for (var round = 0; round < 50_000; round++)
+        {
+            tracker.InitSucceeded("models");
+            tracker.Stopped();
+        }
+
+        stop.Set();
+        #pragma warning disable xUnit1031 // a bounded wait on real threads: what is measured here
+        Assert.True(Task.WaitAll(readers, Long));
+        #pragma warning restore xUnit1031
+        Assert.Equal(0, violations);
+    }
+
     // ---- GUI-C-192d: an AI that was asked for and never answers is told too ---------------------------------------------------------
 
     /// <summary>A rig whose first read blocks until released, then answers <paramref name="answer"/>. The read is in flight when this returns.</summary>

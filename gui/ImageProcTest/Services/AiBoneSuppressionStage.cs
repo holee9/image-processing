@@ -130,55 +130,65 @@ internal static class AiFrame
 /// </summary>
 internal sealed class AiSessionTracker
 {
-    // GUI-C-192e: read by the status call WITHOUT the gate (OwnStatus, before the gate is taken), written under it: volatile, so the read sees the write.
-    private volatile bool _started;
-    private volatile string? _startedDirectory;
-    private volatile string? _initFailure;
-    private int _epoch;
+    /// <summary>
+    /// GUI-C-192f (Codex #66): everything the status call reads WITHOUT the gate, as ONE immutable value. The epoch and the state used to be
+    /// separate fields written one after the other, so a reader between the two writes took the old state for the new session's answer. Now a
+    /// reader gets the old value whole or the new one whole: the writer builds the next value and replaces the one reference.
+    /// </summary>
+    internal sealed record SessionState(bool Started, string? Directory, string? Failure, int Epoch);
 
-    public bool Started => _started;
+    // Written under the gate (one writer at a time), read without it: a volatile reference, so a reader sees a complete value.
+    private volatile SessionState _state = new(false, null, null, 0);
+
+    /// <summary>Test seam, null in the app: runs after the next value is built and BEFORE it replaces the current one, so a test can read in between.</summary>
+    internal Action? BeforePublish;
+
+    private void Publish(SessionState next)
+    {
+        BeforePublish?.Invoke();
+        _state = next;
+    }
+
+    public SessionState Snapshot => _state;
+
+    public bool Started => _state.Started;
 
     /// <summary>
     /// GUI-C-192e: counts the sessions this tracker has seen. It goes up when a session ENDS (<see cref="Stopped"/>: shutdown, restart, a new
     /// directory) and when one STARTS from nothing, so a status answer read under one session is never applied to another, whichever code
     /// replaced it. A repeated init for the session already running does not count (the module ignores it, and counting it would drop every read).
     /// </summary>
-    public int Epoch => Volatile.Read(ref _epoch);
+    public int Epoch => _state.Epoch;
 
-    public bool NeedsNewSession(string directory) => _started && AiBoneSuppressionStage.NeedsNewSession(_startedDirectory, directory);
+    public bool NeedsNewSession(string directory)
+    {
+        var state = _state;
+        return state.Started && AiBoneSuppressionStage.NeedsNewSession(state.Directory, directory);
+    }
 
     public void InitSucceeded(string directory)
     {
-        if (!_started)
-        {
-            Interlocked.Increment(ref _epoch);
-        }
-
-        _started = true;
-        _startedDirectory = directory;
-        _initFailure = null;
+        var state = _state;
+        Publish(new SessionState(true, directory, null, state.Started ? state.Epoch : state.Epoch + 1));
     }
 
     /// <summary>The last start did not work. Stays until a start works or the session is deliberately stopped.</summary>
-    public void InitFailed(string detail) => _initFailure = detail;
+    public void InitFailed(string detail) => Publish(_state with { Failure = detail });
 
     /// <summary>A deliberate stop: nothing is running, and nothing is wrong.</summary>
-    public void Stopped()
-    {
-        Interlocked.Increment(ref _epoch);
-        _started = false;
-        _startedDirectory = null;
-        _initFailure = null;
-    }
+    public void Stopped() => Publish(new SessionState(false, null, null, _state.Epoch + 1));
 
     /// <summary>
     /// The status the GUI answers itself, or null when the module should be asked. A failed start wins over "not started":
-    /// that is the persistent error state, with its detail.
+    /// that is the persistent error state, with its detail. Read from ONE snapshot.
     /// </summary>
-    public AiWorkerStatus? OwnStatus() =>
-        _initFailure is not null ? new AiWorkerStatus(AiWorkerState.InitFailed, 0, 0, _initFailure)
-        : !_started ? AiWorkerStatus.Unknown
-        : null;
+    public AiWorkerStatus? OwnStatus()
+    {
+        var state = _state;
+        return state.Failure is not null ? new AiWorkerStatus(AiWorkerState.InitFailed, 0, 0, state.Failure)
+            : !state.Started ? AiWorkerStatus.Unknown
+            : null;
+    }
 }
 
 /// <summary>Whether a restart worked, and the line to show.</summary>
@@ -245,6 +255,8 @@ internal sealed class AiStatusRefresher(
     private TimeSpan _lastAttemptAt;
     private TimeSpan? _lastCheckAt;
     private bool _lastReadFailed;
+    private int _shownEpoch;
+    private int _epochWithdrawals;
     private AiWorkerState _shown = AiWorkerState.Unknown;
     private int _generation;
     private int _requests;
@@ -265,6 +277,7 @@ internal sealed class AiStatusRefresher(
             return;
         }
 
+        WithdrawIfTheSessionMoved();
         _requests++;
         if (_inFlight)
         {
@@ -303,6 +316,12 @@ internal sealed class AiStatusRefresher(
         _lastCheckAt = now;
         if (_stopped)
         {
+            return;
+        }
+
+        if (WithdrawIfTheSessionMoved())
+        {
+            Request();   // ask the NEW session; a read that then fails or hangs is counted from here and ends in the never-confirmed notice
             return;
         }
 
@@ -369,14 +388,33 @@ internal sealed class AiStatusRefresher(
     /// </summary>
     public string Measurements =>
         $"refresher: reads={_reads} maxReadMs={(long)_maxReadTime.TotalMilliseconds} maxAnswerGapMs={(long)_maxAnswerGap.TotalMilliseconds} "
-        + $"boundMs={(long)_activeFreshFor.TotalMilliseconds} rereads={_rereads} failedReads={_failedReads} retries={_retries} maxUiGapMs={(long)_maxTickGap.TotalMilliseconds} "
+        + $"boundMs={(long)_activeFreshFor.TotalMilliseconds} rereads={_rereads} failedReads={_failedReads} retries={_retries} sessionWithdrawals={_epochWithdrawals} maxUiGapMs={(long)_maxTickGap.TotalMilliseconds} "
         + $"noticesWithdrawn={_withdrawnNotices} noticesNeverConfirmed={_neverConfirmedNotices}";
 
     /// <summary>Counts as changed whenever a number in <see cref="Measurements"/> may have moved; the view model re-publishes the line then.</summary>
-    public int MeasurementsVersion => _reads + _rereads + _failedReads + _retries + _withdrawnNotices + _neverConfirmedNotices;
+    public int MeasurementsVersion => _reads + _rereads + _failedReads + _retries + _epochWithdrawals + _withdrawnNotices + _neverConfirmedNotices;
 
-    private void Show(AiWorkerStatus status)
+    /// <summary>
+    /// GUI-C-192f (Codex #66): the session counter is a boundary for what is ALREADY on screen, not only for reads in flight. An answer was
+    /// shown under one epoch; when the epoch has moved (a frame replaced the session with no Reset: the model folder changed) it describes a
+    /// session that no longer exists, a "switched off" included, and is taken back to Unknown. Checked at every timer tick and request, so a
+    /// read that then fails or hangs cannot leave the old answer standing.
+    /// </summary>
+    private bool WithdrawIfTheSessionMoved()
     {
+        if (_shown == AiWorkerState.Unknown || _epoch() == _shownEpoch)
+        {
+            return false;
+        }
+
+        _epochWithdrawals++;
+        Show(AiWorkerStatus.Unknown);
+        return true;
+    }
+
+    private void Show(AiWorkerStatus status, int? shownUnderEpoch = null)
+    {
+        _shownEpoch = shownUnderEpoch ?? _epoch();
         _shown = status.State;
         _lastAnswerAt = _clock();
         _pendingSince = null;
@@ -384,7 +422,7 @@ internal sealed class AiStatusRefresher(
     }
 
     /// <summary>An answer from a read reaches the screen: how long the screen had waited for it is a measurement.</summary>
-    private void ShowAnswer(AiWorkerStatus status)
+    private void ShowAnswer(AiWorkerStatus status, int epoch)
     {
         var gap = _clock() - _lastAnswerAt;
         if (gap > _maxAnswerGap)
@@ -392,7 +430,7 @@ internal sealed class AiStatusRefresher(
             _maxAnswerGap = gap;
         }
 
-        Show(status);
+        Show(status, epoch);   // remembered with the epoch the read was made under, so a session that moved since is noticed
     }
 
     /// <summary>The application is closing: nothing started or running now may touch the screen again.</summary>
@@ -457,7 +495,7 @@ internal sealed class AiStatusRefresher(
             // GUI-C-192b: the same session (generation and backend checked above) answered "switched off". The module keeps the worker off
             // until xpe_ai_shutdown/xpe_ai_init (ai.cpp, workerDisabled: set once at the failure ceiling, cleared only by a new state), so a
             // newer read cannot say otherwise: this answer cannot be stale in the unsafe direction. Show it now, then serve the newer request.
-            ShowAnswer(status);
+            ShowAnswer(status, epoch);
             Start();
         }
         else if (requestNumber != _requests)
@@ -468,7 +506,7 @@ internal sealed class AiStatusRefresher(
         }
         else if (status is not null)
         {
-            ShowAnswer(status);
+            ShowAnswer(status, epoch);
         }
     }
 }
