@@ -21,8 +21,8 @@ dependency: SPEC-XPE-MASTER v3.0.0, SPEC-XPE-REG v1.1, SPEC-XPE-SEC v1.1, SPEC-X
 
 - **강등 근거**: AI 모듈(xpe_ai.dll)은 Phase 3 기능. 결정적 전용 Phase 1/2 릴리스는 본 SPEC 비해당 → 출시 블로커 아님
 - **조건부 Must 승격**: Phase 3 AI-DSF 배포를 공식 결정하고 FDA/EU 제출 계획이 확정되면 다음 항목은 Must로 승격:
-  - REQ-AI-010~012 (Model Card) — FDA Transparency 대응
-  - REQ-AI-013 (Data Lineage) — GMLP Principle #3
+  - REQ-AI-010~011 (Model Card) — FDA Transparency 대응 (정정 2026-10-02 `#210`: 예전 표기 `010~012` 의 `REQ-AI-012` 는 모델 카드가 아니라 저신뢰 이벤트 요구입니다)
+  - REQ-AI-024 (Data Lineage) — GMLP Principle #3 (정정 2026-10-02 `#210`: 예전 표기 `REQ-AI-013` 은 이 SPEC 에 정의가 없습니다. 데이터 계보를 다루는 정의된 요구는 `REQ-AI-024` 입니다)
   - REQ-AI-002 (Deterministic Fallback) — 의료기기 안전 기본
   - REQ-AI-110~112 (PCCP Boundary) — FDA PCCP 대응
 - **현재 실행 범위**: Phase 2 완료 후 Phase 3 진입 결정 시 재평가
@@ -129,7 +129,13 @@ dependency: SPEC-XPE-MASTER v3.0.0, SPEC-XPE-REG v1.1, SPEC-XPE-SEC v1.1, SPEC-X
 | **대조군** `nlohmann` (같은 파일) | 2 |
 | **대조군** `XpeErrorCode` (`modules/` 전체) | 841 |
 
-추론 경로가 **존재하지 않습니다.** ONNX Runtime 을 조달해 링크해도 그것을 호출하는 코드가 없습니다.
+~~추론 경로가 **존재하지 않습니다.** ONNX Runtime 을 조달해 링크해도 그것을 호출하는 코드가 없습니다.~~
+
+> **재측정 2026-10-02 (`QA-B-190`, `#210`)** — 위 표와 문장은 2026-09-28 의 상태이고 지금은 낡았습니다.
+> 추론 경로는 **`xpe_bone_suppress` 에만 있습니다**(`OnnxSession::Run`, opt-in 워커 경로 포함).
+> `xpe_bodypart_recognize`·`xpe_stitch_images`·`xpe_dl_denoise` 는 여전히 추론이 없는 스텁입니다.
+> ONNX 빌드는 `ci-ai` 프리셋(`XPE_AI_USE_ONNXRUNTIME=ON`, `XPE_AI_STUB_BUILD=OFF`)이고, 등록하는 EP 는 CPU 뿐입니다.
+> 아래 "이 절을 고칠 조건" 이 요구한 재측정이 이것입니다(`QA-B-190` 보고서 §1.2·§3).
 
 ### 시험 156건이 보장하는 것
 
@@ -148,8 +154,8 @@ dependency: SPEC-XPE-MASTER v3.0.0, SPEC-XPE-REG v1.1, SPEC-XPE-SEC v1.1, SPEC-X
 | 요구 | 실재 |
 |---|---|
 | **`REQ-AI-006`** ONNX 1.20+ · multi-EP 선택 가능 | EP 목록이 **하드코딩**입니다 — 조회가 아닙니다. **그 기계에 없는 EP 를 있다고 답할 수 있습니다.** 그리고 런타임 호출 자체가 0건 |
-| **`REQ-AI-061`** 신뢰도 문턱 미만 → Hough fallback | `modules/ai` 전체에 **`hough` 0건**. `confidence_threshold` 는 `ai.cpp:206` 에서 저장되지만 **`ai.cpp:418` 이 confidence 를 `0.0` 으로 무조건 덮어** 문턱 비교가 도달하지 못합니다. `ConfidenceThreshold*` 두 시험은 **헤더 상수값만** 확인합니다 |
-| **`REQ-AI-092`** 시간 예산(기본 5s) → fallback + 알림 | 시험 **0건**. `ai_ipc_bridge.cpp:9` 주석이 같은 기능을 **`REQ-AI-009`** 로 적는데 **그 번호는 이 SPEC 에 존재하지 않습니다** |
+| **`REQ-AI-061`** 신뢰도 문턱 미만 → Hough fallback | **미구현 — 두 쪽 다 없습니다**(정정 2026-10-02, `QA-B-190`). 061 은 AI 조리개 검출(`REQ-AI-060`)의 fallback 인데, `modules/ai` 에 AI 조리개 검출 함수가 없어(`ai_api.h`·`ai.cpp` 에 `collimation` 0건) 061 은 도달할 대상이 없습니다. Hough 기준선은 저장소에 있으나 `modules/enhance_advanced` 의 POST-07(`xpe_detect_collimation`)이고 `modules/ai` 에서는 단어 단위 `Hough` 0건입니다. `confidence_threshold` 와 confidence 를 `0.0` 으로 덮는 줄은 **061 이 아니라 `REQ-AI-012`/`REQ-AI-002`(저신뢰 이벤트 → 결정론적 fallback)의 자리**이고, 그 요구는 맞으나 코드가 미완입니다 — `AiModuleState::confidenceThreshold` 는 `xpe_ai_init` 이 대입만 하고 읽는 곳이 없으며, `xpe_bodypart_recognize` 는 추론 없이 `if (confidenceOut) *confidenceOut = 0.0f;` 로 덮고 실패를 반환합니다. `ConfidenceThreshold*` 두 시험은 **헤더 상수값만** 확인합니다 |
+| **`REQ-AI-092`** 시간 예산(기본 5s) → fallback + 알림 | **일부 구현**(정정 2026-10-02, `QA-B-171`·`QA-B-181`, 확인 `QA-B-190`). `xpe_bone_suppress` 의 **opt-in 워커 경로**(`use_worker: true`, 기본값은 끔)에서 예산을 넘으면 입력을 그대로 반환하고 비정상 코드를 돌려주며 Warning 알림을 정확히 1건 냅니다. 시험: `IpcDeadline.*`, `WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers`, `WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne`. **기본 경로(워커 끔)와 나머지 세 진입점(`xpe_bodypart_recognize`·`xpe_stitch_images`·`xpe_dl_denoise`)에는 예산이 없습니다.** 예전 `REQ-AI-009` 인용은 아래 처리 완료 메모 참조 |
 
 ### 판정
 
@@ -167,16 +173,26 @@ dependency: SPEC-XPE-MASTER v3.0.0, SPEC-XPE-REG v1.1, SPEC-XPE-SEC v1.1, SPEC-X
 > | `docs/project/vvp_ai.md` 4곳 · `rtm_ai.md` 2곳 | 리더가 정정(`#210`), 각 문서에 옛 번호와 사유를 주석으로 남김 |
 >
 > **문서 쪽은 이 줄이 예상하지 못한 자리입니다.** 이 줄은 오류를 *코드 주석*으로만
-> 보았고 실제로는 **개명이 코드에서만 반영되고 문서 여섯 곳에서 끊긴** 형태였습니다 —
+> 보았고 실제로는 문서 여섯 곳에도 같은 번호가 있었습니다 —
 > 하나를 고치면 다른 인용도 같이 봐야 한다는 것을 이 줄 자신이 적어 두었는데
 > (*"하나가 개명됐다면 다른 인용도 같이 끊겨 있을 수 있습니다"*, `#210` 본문),
 > 범위는 코드로 좁혀 적혀 있었습니다.
 >
-> 정의 존재 대조군: 같은 정의 패턴이 `REQ-AI-092` 를 `srs_ai.md:446` 과
-> `SPEC-XPE-P3-AI/spec.md:272` 두 곳에서 찾고 `REQ-AI-009` 는 **0건**입니다.
+> **정정 2026-10-02 (`QA-B-190`)** — 이 메모가 처음에 적은 "개명이 코드에서만 반영되고
+> 문서에서 끊긴 형태" 라는 설명은 이력이 뒷받침하지 않습니다. `REQ-AI-009` 는 정의된 적이
+> 한 번도 없는 번호이고(정의 줄 패턴으로 찾는 `git log -G` 0 커밋, 대조군으로 같은 패턴이
+> `092` 는 찾음), 저장소에 처음 나타난 곳은 대량 커밋 `dd7c8e05`(2026-04-28)입니다 — 그
+> 커밋이 RTM 행과 코드 세 곳의 주석에 같은 오번호를 **한꺼번에** 넣었습니다. 개명이 아니라,
+> 정의된 적이 없는 번호가 한 대량 커밋에서 코드와 문서에 함께 들어간 것입니다.
 >
-> **`REQ-AI-061`·`REQ-AI-092` 의 미구현 자체는 그대로 열려 있습니다** — 번호가
-> 정리된 것이지 기능이 생긴 것이 아닙니다.
+> 정의 존재 대조군: 같은 정의 패턴이 `REQ-AI-092` 를 `srs_ai.md` 의
+> `#### REQ-AI-092: Time Budget Enforcement` 와 이 SPEC 의 `**REQ-AI-092** (Ubiquitous):`
+> 두 곳에서 찾고 `REQ-AI-009` 는 **0건**입니다. (예전 줄번호 인용 `spec.md:272` 는 이 문서가
+> 늘어나면서 밀렸으므로 이름으로 인용합니다.)
+>
+> **`REQ-AI-061` 의 미구현은 그대로 열려 있습니다.** `REQ-AI-092` 는 그 뒤 일부 구현됐습니다
+> (워커 경로의 `xpe_bone_suppress` 만, 위 표 참조) — 번호 정리와는 별개로 생긴 것이고,
+> 기본 경로와 나머지 진입점은 여전히 열려 있습니다.
 
 ### 이 절을 고칠 조건
 
