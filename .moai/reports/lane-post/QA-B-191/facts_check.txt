@@ -1,0 +1,53 @@
+== no bodypart model in the repository (tracked *.onnx):
+modules/ai/tests/data/min_scale2.onnx
+modules/ai/tests/data/min_scale3.onnx
+modules/ai/tests/data/models_broken/bone_suppress.onnx
+modules/ai/tests/data/models_x2/bone_suppress.onnx
+modules/ai/tests/data/models_x3/bone_suppress.onnx
+modules/ai/tests/data/not_a_model.onnx
+(count: 6; control: the same listing finds the toy bone models above)
+== model file layout the module reads today
+873:    // <modelDir>/bone_suppress.onnx; this wires the path, not the clinical
+998:        ? std::string("bone_suppress.onnx")
+999:        : state->modelDirPath + "/bone_suppress.onnx";
+modules/ai/src/ai.cpp:584:        "bodypart_cnn_v1",
+== sidecar metadata file next to a model (<model>.json) already exists in OnnxSession::Create
+259:    metadata_path.replace_extension(".json");
+== worker handles which request types
+301:            case XPE_AI_MSG_INIT:
+305:            case XPE_AI_MSG_HEARTBEAT:
+309:            case XPE_AI_MSG_SHUTDOWN:
+313:            case XPE_AI_MSG_BONE_SUPPRESS:
+== supervisor entry points
+87:    XpeErrorCode BoneSuppress(uint32_t width, uint32_t height, const float* pixels_in,
+== bodypart body in ai.cpp: does it read state / call the session?
+0
+== existing stub-contract tests for bodypart (names)
+AiAbi, BodypartRecognizeWithoutInitReturnsNotInitialized
+AiErrorPrecedenceTest, BodypartRecognize_NullArgumentOutranksNotInitialized
+AiErrorPrecedenceTest, BodypartRecognize_ValidArgumentsReachNotInitialized
+AiFallbackTest, BodypartRecognizeInvalidBufferReturnsInvalid
+AiFallbackTest, BodypartRecognizeNullConfOutIsAcceptable
+AiFallbackTest, BodypartRecognizeNullImgReturnsInvalid
+AiFallbackTest, BodypartRecognizeNullLabelReturnsInvalid
+AiFallbackTest, BodypartRecognizeSetsConfidenceToZero
+AiFallbackTest, BodypartRecognizeStubReturnsProcessingFailed
+AiFallbackTest, BodypartRecognizeZeroBufLenReturnsInvalidInput
+AiFallbackTest, DataSizeGuard_BodypartRecognize_ShortReturnsInvalid
+AiFallbackTest, DataSizeGuard_BodypartRecognize_ZeroAccepted
+AiFallbackTest, KnownDivergence_BodypartRecognizeStubSetsUnknownLabel
+AiWorkerIsolationTest, ConcurrentBodypartRecognizeIsThreadSafe
+AiWorkerIsolationTest, MaxBodypartLengthIsPositive
+AiWorkerIsolationTest, StubModeBodypartRecognizeFallsBackGracefully
+(count: 16)
+== consumers of xpe_bodypart_recognize outside modules/ai
+C# files calling it: 0   (control: C# files calling xpe_bone_suppress: 4)
+== body-part vocabularies
+        "CHEST", "ABDOMEN", "PELVIS", "SPINE", "SKULL", "HEAD", "EXTREMITY"
+25: {"CHEST", 200.0f}, 26: {"HAND", 100.0f}, 27: {"FOOT", 100.0f}, 28: {"ABDOMEN", 250.0f}, 29: {"PELVIS", 250.0f}, 30: {"SPINE", 300.0f}, 31: {"SKULL", 320.0f},
+62:1. Chest (흉부) 63:2. Abdomen (복부) 64:3. Spine (척추) 65:4. Pelvis (골반) 66:5. Extremity-Arm (상지) 67:6. Extremity-Leg (하지) 68:7. Hand (손) 69:8. Foot (발) 70:9. Skull (두개골) 71:10. Facial (안면) 72:11. Shoulder (어깨) 73:12. Knee (무릎) 74:13. Ankle (발목) 75:14. Wrist (손목) 76:15. Cervical (경추)
+== threshold values in the three sources
+62:#define XPE_AI_DEFAULT_CONFIDENCE_THRESHOLD  0.6f
+54:- OOD(Out-Of-Distribution) 탐지: 최대 신뢰도 < 0.70 → `body_part = "UNKNOWN"` 반환
+58:- 신뢰도 < 0.70인 경우 자동으로 "UNKNOWN" 반환
+278:- 최대 신뢰도 임계값: 0.70 (SWU-2.7)
