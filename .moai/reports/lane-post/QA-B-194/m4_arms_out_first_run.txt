@@ -1,0 +1,15 @@
+P1 the empty directory is accepted: build_ok=True passed=['110'] crashed=False red(3)=['2', 'AiInitHardening.AnEmptyModelDirectoryIsAMissingArgumentAndLeavesTheModuleUntouched', 'AiInitHardening.AnEmptyModelDirectoryIsRefusedWhetherOrNotTheModuleIsAlreadyInitialised']
+P2 the empty directory is judged only for a fresh init: build_ok=True passed=['111'] crashed=False red(2)=['1', 'AiInitHardening.AnEmptyModelDirectoryIsRefusedWhetherOrNotTheModuleIsAlreadyInitialised']
+P3 a config that is not valid JSON is not announced: build_ok=True passed=['111'] crashed=False red(2)=['1', 'AiInitHardening.AConfigThatCannotBeUsedSaysSoAndTheCallStillSucceeds']
+P4 a config that is not an object is not announced: build_ok=True passed=['111'] crashed=False red(2)=['1', 'AiInitHardening.AConfigThatCannotBeUsedSaysSoAndTheCallStillSucceeds']
+P5 a signed timeout is not range-checked: build_ok=True passed=['111'] crashed=False red(2)=['1', 'AiInitHardening.ATimeoutOutsideZeroToTwoToTheThirtyOneIsIgnoredWithAnAlert']
+P6 an unsigned timeout is not range-checked: build_ok=True passed=['111'] crashed=False red(2)=['1', 'AiInitHardening.ATimeoutOutsideZeroToTwoToTheThirtyOneIsIgnoredWithAnAlert']
+P7 the upper bound is off by one (2147483647 refused): build_ok=True passed=['112'] crashed=False red(0)=[]
+P8 zero is refused (it means the default): build_ok=True passed=['112'] crashed=False red(0)=[]
+P9 a second init never says anything: build_ok=True passed=['111'] crashed=False red(2)=['1', 'AiInitHardening.ASecondInitIsIgnoredAndSaysSoOnlyWhenItAskedForSomethingDifferent']
+Q1 a second init always says something: build_ok=True passed=['111'] crashed=False red(2)=['1', 'AiInitHardening.ASecondInitIsIgnoredAndSaysSoOnlyWhenItAskedForSomethingDifferent']
+Q2 a second init compares only the directory: build_ok=True passed=['111'] crashed=False red(2)=['1', 'AiInitHardening.ASecondInitIsIgnoredAndSaysSoOnlyWhenItAskedForSomethingDifferent']
+Q3 a second init compares only the config: build_ok=True passed=['111'] crashed=False red(2)=['1', 'AiInitHardening.ASecondInitIsIgnoredAndSaysSoOnlyWhenItAskedForSomethingDifferent']
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: build_ok=True passed=['112'] red=[]
+DONE

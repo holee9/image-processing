@@ -91,6 +91,9 @@ struct AiModuleState {
     /** Path to the model directory (set by xpe_ai_init). */
     std::string modelDirPath;
 
+    /** The configuration text the session was started with ("" for NULL): what a second xpe_ai_init is compared to (D8). */
+    std::string configJson;
+
     /** Selected execution provider. */
     XpeAiExecutionProvider executionProvider{XPE_AI_EP_CPU};
 
@@ -381,6 +384,17 @@ static void parseConfig(AiModuleState* state, const char* configJsonOrNull) {
     auto cfg = nlohmann::json::parse(configJsonOrNull, nullptr, false);
     if (cfg.is_discarded()) {
         AI_LOG_WARN("AI config JSON parse failed, using defaults");
+        // QA-B-194 M4 (D7): the log line alone is silence to the caller; the alert is what a client can show.
+        // RETURN CODE UNCHANGED (the #145 line: a config that cannot be used is a warning, not an error).
+        xpe_alert_push("ai config is not valid JSON and was ignored: every setting uses its default",
+                       XPE_ALERT_WARNING);
+        return;
+    }
+    if (!cfg.is_object()) {
+        // Valid JSON that is not an object ([], 5, "x", null, true): there is no key to read, and before M4 it was
+        // accepted without a word.
+        xpe_alert_push("ai config is valid JSON but not an object and was ignored: every setting uses its default",
+                       XPE_ALERT_WARNING);
         return;
     }
 
@@ -394,7 +408,32 @@ static void parseConfig(AiModuleState* state, const char* configJsonOrNull) {
     }
 
     if (cfg.contains("timeout_ms") && cfg["timeout_ms"].is_number_integer()) {
-        state->timeoutMs = static_cast<uint32_t>(cfg["timeout_ms"].get<int>());
+        // QA-B-194 M4 (D7): the value is a number of milliseconds that becomes a uint32_t deadline. The old
+        // get<int>() + static_cast turned -1 into 4294967295 ms (about 49 days) and silently truncated anything
+        // above int range. Accepted: 0 (= the default, as everywhere timeoutMs is used) up to 2^31 - 1; anything
+        // else is ignored with an alert and the default stays.
+        const nlohmann::json& t = cfg["timeout_ms"];
+        constexpr int64_t kMaxTimeoutMs = 2147483647;
+        bool inRange = false;
+        int64_t value = 0;
+        if (t.is_number_unsigned()) {
+            const uint64_t u = t.get<uint64_t>();
+            inRange = u <= static_cast<uint64_t>(kMaxTimeoutMs);
+            value = static_cast<int64_t>(u);
+        } else {
+            value = t.get<int64_t>();
+            inRange = value >= 0 && value <= kMaxTimeoutMs;
+        }
+        if (inRange) {
+            state->timeoutMs = static_cast<uint32_t>(value);
+        } else {
+            char msg[192];
+            std::snprintf(msg, sizeof(msg),
+                          "ai config key 'timeout_ms' is out of range (0 to 2147483647 ms) and was ignored: "
+                          "the default is used (value: %s)",
+                          t.dump().c_str());
+            xpe_alert_push(msg, XPE_ALERT_WARNING);
+        }
     }
 
     if (cfg.contains("confidence_threshold") && cfg["confidence_threshold"].is_number()) {
@@ -877,6 +916,7 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
                                                          XpeImageBuffer* softTissueOut,
                                                          const char* configJsonOrNull);
 extern "C++" static XpeErrorCode xpe_ai_get_model_card_impl(const char* modelId, char* buf, size_t bufSize);
+extern "C++" static XpeErrorCode xpe_ai_init_impl(const char* modelDirPath, const char* configJsonOrNull);
 extern "C++" static XpeErrorCode xpe_bodypart_recognize_impl(const XpeImageBuffer* img, char* bodyPartOut,
                                                               size_t bufLen, float* confidenceOut);
 
@@ -888,24 +928,57 @@ XPE_API const char* xpe_ai_version(void)
 XPE_API XpeErrorCode xpe_ai_init(const char* modelDirPath,
                                   const char* configJsonOrNull)
 {
+    // QA-B-194 M4: no exception crosses the C ABI. The body is an ordinary C++ function (see the note above the
+    // xpe_*_impl prototypes) and this is only the try/catch around it.
+    try {
+        return xpe_ai_init_impl(modelDirPath, configJsonOrNull);
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+}
+
+extern "C++" static XpeErrorCode xpe_ai_init_impl(const char* modelDirPath,
+                                                  const char* configJsonOrNull)
+{
     // Validate required parameter
     if (!modelDirPath) return XPE_ERR_INVALID_INPUT;
+
+    // QA-B-194 M4 (D1): an empty directory is a missing argument, like a zero-length buffer (#142). It used to be
+    // accepted, and the model was then looked up relative to the working directory -- the opposite of the worker's
+    // "next to the DLL, never the working directory" rule. Judged before the already-initialised short-circuit
+    // below: an argument is wrong whatever the module's state is.
+    if (modelDirPath[0] == '\0') return XPE_ERR_INVALID_INPUT;
 
     // If already initialized, return success (idempotent)
     if (g_aiState && g_aiState->initialized.load(std::memory_order_acquire)) {
         AI_LOG_WARN("xpe_ai_init called while already initialized -- ignoring");
+        // QA-B-194 M4 (D8): the call stays OK and ignored (a client test holds "ignored" as the contract), but when
+        // it asked for something DIFFERENT the silence hid that the new settings did not take effect. Different means
+        // not byte-identical: the directory text or the config text.
+        const std::string newConfig = configJsonOrNull ? configJsonOrNull : "";
+        if (g_aiState->modelDirPath != modelDirPath || g_aiState->configJson != newConfig) {
+            xpe_alert_push("xpe_ai_init was called again with a different model directory or config while the module "
+                           "is already initialised: the call was ignored and the first settings stay in effect "
+                           "(call xpe_ai_shutdown first to change them)",
+                           XPE_ALERT_WARNING);
+        }
         return XPE_OK;
     }
 
-    // Allocate module state
-    auto* state = new (std::nothrow) AiModuleState();
+    // Allocate module state. QA-B-194 M4: owned by a unique_ptr until the very last step, so an allocation failure
+    // or an exception in parseConfig / the string copies frees it and leaves g_aiState exactly as it was (before,
+    // such an exception both leaked the state and left the caller with an exception through a C ABI).
+    std::unique_ptr<AiModuleState> state(new (std::nothrow) AiModuleState());
     if (!state) return XPE_ERR_OUT_OF_MEMORY;
 
-    // Store model directory
+    // Store model directory and the config the session starts with
     state->modelDirPath = modelDirPath;
+    state->configJson = configJsonOrNull ? configJsonOrNull : "";
 
     // Parse optional configuration
-    parseConfig(state, configJsonOrNull);
+    parseConfig(state.get(), configJsonOrNull);
 
     // --- Worker process launch ---
     // Stub: In the full implementation, this would:
@@ -924,13 +997,14 @@ XPE_API XpeErrorCode xpe_ai_init(const char* modelDirPath,
 
     // Mark as initialized
     state->initialized.store(true, std::memory_order_release);
-    g_aiState = state;
 
     AI_LOG_INFO("xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms",
                 modelDirPath,
                 static_cast<int>(state->executionProvider),
                 state->timeoutMs);
 
+    // The one step that cannot throw, and the last: from here the module is initialised.
+    g_aiState = state.release();
     return XPE_OK;
 }
 

@@ -147,18 +147,32 @@ XPE_API const char* xpe_ai_version(void);
  * REQ-AI-006: ONNX Runtime 1.20+ integration.
  *
  * Calling this again while already initialised is not an error: the call is
- * ignored and XPE_OK is returned (ai.cpp:272-275).
+ * ignored and XPE_OK is returned. When the second call asked for a DIFFERENT
+ * model directory or config (not byte-identical text), it raises one Warning
+ * alert saying the new settings did not take effect and xpe_ai_shutdown must
+ * come first (QA-B-194 M4, REQ-AI-090); an identical second call is silent.
  *
  * @param modelDirPath      Directory containing signed .onnx model files.
- *                          Must not be NULL. In the stub build the path is
- *                          recorded but never opened, so a non-existent
- *                          directory does NOT fail here.
+ *                          Must not be NULL or empty (an empty path used to be
+ *                          accepted and then resolved against the working
+ *                          directory). In the stub build the path is recorded
+ *                          but never opened, so a non-existent directory does
+ *                          NOT fail here.
  * @param configJsonOrNull  UTF-8 JSON configuration, or NULL for defaults.
- *                          Malformed JSON is logged and ignored -- defaults are
- *                          used and the call still succeeds (ai.cpp parseConfig).
+ *                          A config that cannot be used raises a Warning alert
+ *                          and the defaults apply -- the call still succeeds,
+ *                          the #145 line: malformed JSON, valid JSON that is not
+ *                          an object, and an integer @c timeout_ms outside
+ *                          0 to 2147483647 (a negative one used to become a
+ *                          49-day deadline). A key this module does not read,
+ *                          or reads with the wrong type, is also named (#145).
  * @return XPE_OK on success, and also when already initialised.
- * @return XPE_ERR_INVALID_INPUT if modelDirPath is NULL.
- * @return XPE_ERR_OUT_OF_MEMORY if module state cannot be allocated.
+ * @return XPE_ERR_INVALID_INPUT if modelDirPath is NULL or empty.
+ * @return XPE_ERR_OUT_OF_MEMORY if module state cannot be allocated; on this
+ *         and every other failure the module stays exactly as it was (not
+ *         initialised, nothing leaked) and no exception crosses this function.
+ * @return XPE_ERR_PROCESSING_FAILED if an unexpected exception ends the call
+ *         (rolled back the same way).
  * @return XPE_ERR_IO_FAILED -- documented for the ONNX build, where the worker
  *         process is launched. Not reachable in the stub build.
  * @return XPE_ERR_CONFIG_INVALID -- documented for the ONNX build. NOT returned
