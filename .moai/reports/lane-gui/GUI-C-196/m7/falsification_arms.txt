@@ -1,0 +1,37 @@
+ARM 1-no-count-after-the-modality-LUT: build ok=True
+    ['실패!  - 실패:     1, 통과:    51, 건너뜀:     0, 전체:    52, 기간: 324 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineReviewFixTests.ANonFiniteValueInTheDisplaysFloatImage_IsCounted_StopsTheStep_AndLeavesNoPixels(after: "modality", poison: 2, callsM
+   restored byte-identical: True
+ARM 2-no-count-after-the-VOI-LUT: build ok=True
+    ['실패!  - 실패:     2, 통과:    50, 건너뜀:     0, 전체:    52, 기간: 283 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineReviewFixTests.ANonFiniteValueInTheDisplayStep_ThroughTheRealComposition_FailsTheBaseline_WithTheCount_InTheEvidenceFile [3 ms]
+     red: Functional.BaselineReviewFixTests.ANonFiniteValueInTheDisplaysFloatImage_IsCounted_StopsTheStep_AndLeavesNoPixels(after: "voi", poison: 3, callsMade:
+   restored byte-identical: True
+ARM 3-the-run-drops-the-display-count: build ok=True
+    ['실패!  - 실패:     3, 통과:    49, 건너뜀:     0, 전체:    52, 기간: 296 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineReviewFixTests.ANonFiniteValueInTheDisplayStep_ThroughTheRealComposition_FailsTheBaseline_WithTheCount_InTheEvidenceFile [2 ms]
+     red: Functional.BaselineReviewFixTests.ANonFiniteValueInTheDisplaysFloatImage_IsCounted_StopsTheStep_AndLeavesNoPixels(after: "modality", poison: 2, callsM
+     red: Functional.BaselineReviewFixTests.ANonFiniteValueInTheDisplaysFloatImage_IsCounted_StopsTheStep_AndLeavesNoPixels(after: "voi", poison: 3, callsMade:
+   restored byte-identical: True
+ARM 4-the-real-backend-bypasses-the-composition: build ok=True
+    ['실패!  - 실패:     1, 통과:    51, 건너뜀:     0, 전체:    52, 기간: 327 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineExecutionTests.TheBaselineDisplay_ReadsNoUserDisplaySetting [1 ms]
+   restored byte-identical: True
+ARM 5-the-evidence-file-omits-the-display-entry: build ok=True
+    ['실패!  - 실패:     2, 통과:    50, 건너뜀:     0, 전체:    52, 기간: 337 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineReviewFixTests.ANonFiniteValueInTheDisplayStep_ThroughTheRealComposition_FailsTheBaseline_WithTheCount_InTheEvidenceFile [11 ms]
+     red: Functional.BaselineReviewFixTests.WithNoNonFiniteValueInTheDisplayStep_TheSameCompositionPasses [8 ms]
+   restored byte-identical: True
+ARM 6-the-step-continues-on-a-poisoned-image: build ok=True
+    ['실패!  - 실패:     1, 통과:    51, 건너뜀:     0, 전체:    52, 기간: 302 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineReviewFixTests.ANonFiniteValueInTheDisplaysFloatImage_IsCounted_StopsTheStep_AndLeavesNoPixels(after: "modality", poison: 2, callsM
+   restored byte-identical: True
+ARM 7-the-display-runs-after-a-refused-stage: build ok=True
+    ['실패!  - 실패:     1, 통과:    51, 건너뜀:     0, 전체:    52, 기간: 300 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineReviewFixTests.WhenAChainStageWasRefused_TheDisplayIsNotRun [2 ms]
+   restored byte-identical: True
+ARM 8-the-native-voi-output-range-changed (native): build ok=True
+    ['실패!  - 실패:     1, 통과:    51, 건너뜀:     0, 전체:    52, 기간: 378 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDisplayNativeTests.TheDisplayStep_ReturnsExactlyWhatTheDirectNativeCallSequenceReturns [6 ms]
+   restored byte-identical: True
+AFTER RESTORE Functional (native env): ['통과!  - 실패:     0, 통과:   522, 건너뜀:     1, 전체:   523, 기간: 8 s - ImageProcTest.IntegrationTests.dll (net8.0)']

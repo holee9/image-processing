@@ -1,0 +1,57 @@
+ARM 1-the-validator's-verdict-is-ignored (valid = true): build ok=True
+    ['실패!  - 실패:     6, 통과:    21, 건너뜀:     0, 전체:    27, 기간: 135 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDicomExportTests.AReportThatDoesNotSayValidTrue_IsNotValid(report: "{\"errors\":[]}") [3 ms]
+     red: Functional.BaselineDicomExportTests.AReportThatDoesNotSayValidTrue_IsNotValid(report: "{\"valid\":\"true\"}") [1 ms]
+     red: Functional.BaselineDicomExportTests.AReportThatDoesNotSayValidTrue_IsNotValid(report: "") [< 1 ms]
+     red: Functional.BaselineDicomExportTests.AReportThatDoesNotSayValidTrue_IsNotValid(report: "not json at all") [< 1 ms]
+     red: Functional.BaselineDicomExportTests.AReportThatDoesNotSayValidTrue_IsNotValid(report: "[true]") [< 1 ms]
+     red: Functional.BaselineDicomExportTests.AFileTheValidatorCallsInvalid_Fails_EvenWhenThePixelsComeBackIdentical [< 1 ms]
+   restored byte-identical: True
+ARM 2-the-pixel-comparison-is-ignored: build ok=True
+    ['실패!  - 실패:     1, 통과:    26, 건너뜀:     0, 전체:    27, 기간: 143 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDicomExportTests.OnePixelDifferentAfterTheRoundTrip_Fails_AndSaysWhere [1 ms]
+   restored byte-identical: True
+ARM 3-a-refused-write-does-not-stop-the-export: build ok=True
+    ['실패!  - 실패:     1, 통과:    26, 건너뜀:     0, 전체:    27, 기간: 132 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDicomExportTests.AWriteTheModuleRefuses_StopsBeforeValidatingOrReading [1 ms]
+   restored byte-identical: True
+ARM 4-kVp-no-longer-compared: build ok=True
+    ['실패!  - 실패:     2, 통과:    25, 건너뜀:     0, 전체:    27, 기간: 139 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDicomExportTests.AKnownMetadataValueThatChanged_FailsTheExport_AndNamesIt(body: "CHEST", kvp: 121, pitch: 0.150
+     red: Functional.BaselineDicomExportTests.ADecimalRoundingInTheLastPlace_IsNotAMetadataDifference_ButOnePercentIs [1 ms]
+   restored byte-identical: True
+ARM 5-the-string-"true"-counts-as-valid: build ok=True
+    ['실패!  - 실패:     1, 통과:    26, 건너뜀:     0, 전체:    27, 기간: 133 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDicomExportTests.AReportThatDoesNotSayValidTrue_IsNotValid(report: "{\"valid\":\"true\"}") [1 ms]
+   restored byte-identical: True
+ARM 6-metadata-tolerance-widened-to-5%: build ok=True
+    ['실패!  - 실패:     3, 통과:    24, 건너뜀:     0, 전체:    27, 기간: 136 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDicomExportTests.AKnownMetadataValueThatChanged_FailsTheExport_AndNamesIt(body: "CHEST", kvp: 121, pitch: 0.150
+     red: Functional.BaselineDicomExportTests.AKnownMetadataValueThatChanged_FailsTheExport_AndNamesIt(body: "CHEST", kvp: 120, pitch: 0.200
+     red: Functional.BaselineDicomExportTests.ADecimalRoundingInTheLastPlace_IsNotAMetadataDifference_ButOnePercentIs [< 1 ms]
+   restored byte-identical: True
+ARM 7-a-read-back-problem-is-ignored: build ok=True
+    ['실패!  - 실패:     1, 통과:    26, 건너뜀:     0, 전체:    27, 기간: 134 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDicomExportTests.AReadBackWithAProblem_FailsEvenWithTheRightPixels [1 ms]
+   restored byte-identical: True
+ARM 8-native-read-back-one-pixel-short: build ok=True
+    ['실패!  - 실패:     1, 통과:    26, 건너뜀:     0, 전체:    27, 기간: 146 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDicomNativeTests.TheExport_OnTheRealModule_IsValid_AndTheReadBackIsBitIdentical [33 ms]
+   restored byte-identical: True
+ARM 9-native-write-swaps-width-and-height: build ok=True
+    ['실패!  - 실패:     1, 통과:    26, 건너뜀:     0, 전체:    27, 기간: 137 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDicomNativeTests.TheExport_OnTheRealModule_IsValid_AndTheReadBackIsBitIdentical [23 ms]
+   restored byte-identical: True
+ARM 10-an-exposure-is-invented (mAs 0 -> 100): build ok=True
+    ['실패!  - 실패:     1, 통과:    26, 건너뜀:     0, 전체:    27, 기간: 129 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDicomExportTests.TheMetadataWrittenIsOnlyWhatTheGuiKnows [2 ms]
+   restored byte-identical: True
+ARM 11-resolver-does-not-map-the-dll: build ok=True
+    ['실패!  - 실패:     1, 통과:    26, 건너뜀:     0, 전체:    27, 기간: 158 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDicomExportTests.TheResolverMapsTheDicomDll [3 ms]
+   restored byte-identical: True
+ARM 12-native-write-declares-the-wrong-bit-depth (BitsStored 12): build ok=True
+    ['실패!  - 실패:     1, 통과:    26, 건너뜀:     0, 전체:    27, 기간: 143 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDicomNativeTests.TheExport_OnTheRealModule_IsValid_AndTheReadBackIsBitIdentical [36 ms]
+   restored byte-identical: True
+AFTER RESTORE: ['통과!  - 실패:     0, 통과:    27, 건너뜀:     0, 전체:    27, 기간: 126 ms - ImageProcTest.IntegrationTests.dll (net8.0)']

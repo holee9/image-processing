@@ -30,6 +30,13 @@ public static class StageIds
 
     /// <summary>AI bone suppression (xpe_ai.dll, worker path), after gsvg and before the display pipeline (#225 row 10, GUI-C-184).</summary>
     public const string AiBoneSuppression = "ai_bone_suppress";
+
+    /// <summary>
+    /// Phase-1b basic enhancement as ONE stage (#225 row 9, GUI-C-196): log transform, noise reduction, contrast (CLAHE) and edge enhancement (USM) run
+    /// in float inside the stage and are converted to 16 bits once, at its end (xpe_enhance_basic.dll). Part of the Deterministic Baseline's fixed stage
+    /// list only; the ordinary Apply does not run it.
+    /// </summary>
+    public const string EnhanceBasic = "enhance_basic";
 }
 
 /// <summary>
@@ -64,7 +71,8 @@ public sealed record StageRequest(string StageId, bool Enabled);
 /// stage that was not requested. It is the module's time plus this app's marshalling, and NOT the time
 /// to get the result on screen — the display pipeline and the render follow it.
 /// </param>
-public sealed record StageOutcome(string StageId, StageStatus Status, ushort[]? Pixels, string Reason, double ElapsedMs = 0.0);
+/// <param name="NonFiniteCount">NaN/Inf values the stage counted in its float intermediates (#225 row 9, GUI-C-196 M6); 0 when it counted none.</param>
+public sealed record StageOutcome(string StageId, StageStatus Status, ushort[]? Pixels, string Reason, double ElapsedMs = 0.0, long NonFiniteCount = 0);
 
 /// <summary>The chain's result. <see cref="Raw"/> is the loaded frame's array, never written to.</summary>
 public sealed record ChainResult(ushort[] Raw, IReadOnlyList<StageOutcome> Stages)

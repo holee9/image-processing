@@ -1,0 +1,63 @@
+ARM 1-a-failed-DICOM-export-does-not-fail-the-command: build ok=True
+    ['실패!  - 실패:     3, 통과:    27, 건너뜀:     0, 전체:    30, 기간: 242 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineExecutionTests.WithoutADicomSession_APassingComparisonCannotPass [1 ms]
+     red: Functional.BaselineExecutionTests.APassingComparisonWithAnInvalidDicomFile_IsStillAFailure [1 ms]
+     red: Functional.BaselineExecutionTests.AnEvidenceFolderThatCannotBeCreated_IsReported_AndTheBaselineDoesNotPassWithNoFile [1 ms]
+   restored byte-identical: True
+ARM 2-a-failed-verdict-still-writes-a-DICOM-file: build ok=True
+    ['실패!  - 실패:     3, 통과:    27, 건너뜀:     0, 전체:    30, 기간: 225 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineExecutionTests.ARunThatThrows_IsAFailureWithItsMessage [1 ms]
+     red: Functional.BaselineExecutionTests.ARefusedStage_EndsAfterOneRun_AsAFailure_WithNoDicom [3 ms]
+     red: Functional.BaselineExecutionTests.TwoRunsThatDiffer_Fail_NameTheFirstDifference_AndWriteNoDicom [2 ms]
+   restored byte-identical: True
+ARM 3-the-budget-becomes-an-assertion: build ok=True
+    ['실패!  - 실패:     1, 통과:    29, 건너뜀:     0, 전체:    30, 기간: 277 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineExecutionTests.TheBudgetIsMeasuredAgainst_NeverAsserted [1 ms]
+   restored byte-identical: True
+ARM 4-the-command-writes-a-setting: build ok=True
+    ['실패!  - 실패:     1, 통과:    29, 건너뜀:     0, 전체:    30, 기간: 284 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineExecutionTests.TheCommand_ChangesNoSetting_AndNoImageOnScreen_AndNoStageTiming [4 ms]
+   restored byte-identical: True
+ARM 5-the-command-takes-an-Apply-request-number: build ok=True
+    ['실패!  - 실패:     1, 통과:    29, 건너뜀:     0, 전체:    30, 기간: 243 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineExecutionTests.TheCommand_ChangesNoSetting_AndNoImageOnScreen_AndNoStageTiming [4 ms]
+   restored byte-identical: True
+ARM 6-the-command-replaces-the-image-on-screen: build ok=True
+    ['실패!  - 실패:     1, 통과:    29, 건너뜀:     0, 전체:    30, 기간: 222 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineExecutionTests.TheCommand_ChangesNoSetting_AndNoImageOnScreen_AndNoStageTiming [5 ms]
+   restored byte-identical: True
+ARM 7-the-baseline-display-reads-a-user-setting: build ok=True
+    ['실패!  - 실패:     1, 통과:    29, 건너뜀:     0, 전체:    30, 기간: 264 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineExecutionTests.TheBaselineDisplay_ReadsNoUserDisplaySetting [1 ms]
+   restored byte-identical: True
+ARM 8-the-ordinary-chain-measures-the-exposure-index: build ok=True
+    ['실패!  - 실패:     1, 통과:    29, 건너뜀:     0, 전체:    30, 기간: 270 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineExecutionTests.TheOrdinaryChain_NeverMeasuresTheExposureIndex [1 ms]
+   restored byte-identical: True
+ARM 9-the-menu-item-is-disabled-again: build ok=True
+    ['실패!  - 실패:     1, 통과:    29, 건너뜀:     0, 전체:    30, 기간: 271 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineExecutionTests.TheMenuItem_IsACommandBoundToTheBackendCapability_AndLeftTheDisabledList [2 ms]
+   restored byte-identical: True
+ARM 10-the-entry-point-does-not-refuse-during-a-transition: build ok=True
+    ['실패!  - 실패:     1, 통과:    29, 건너뜀:     0, 전체:    30, 기간: 256 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BackendLifecycleTests.EveryMemberThatUsesTheBackend_IsInTheTable_AndTheTableIsWhatTheScenariosExercise [6 ms]
+   restored byte-identical: True
+ARM 11-the-item-is-still-in-the-disabled-list: build ok=True
+    ['실패!  - 실패:     1, 통과:    29, 건너뜀:     0, 전체:    30, 기간: 259 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineExecutionTests.TheMenuItem_IsACommandBoundToTheBackendCapability_AndLeftTheDisabledList [1 ms]
+   restored byte-identical: True
+ARM 12-the-EI-loses-its-uncalibrated-label (native E2E): build ok=True
+    ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 1 m 5 s - ImageProcTest.E2ETests.dll (net8.0)']
+     red: Scenarios.Smoke.AutomationReportBackendTests.A19_Baseline_OnNative_PassesTwice_AndTheDicomFileIsValidAndReadsBackIdentical [1 m 5 s]
+   restored byte-identical: True
+ARM 13-a-Mock-run-reports-the-baseline-as-Fail (Mock E2E): build ok=True
+    ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 23 s - ImageProcTest.E2ETests.dll (net8.0)']
+     red: Scenarios.Smoke.AutomationReportBackendTests.A18_Baseline_OnMock_IsNotRun_NeverAPassOrAFail [22 s]
+   restored byte-identical: True
+AFTER RESTORE Functional: ['통과!  - 실패:     0, 통과:   489, 건너뜀:     1, 전체:   490, 기간: 7 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+AFTER RESTORE E2E A18+A19: ['통과!  - 실패:     0, 통과:     2, 건너뜀:     0, 전체:     2, 기간: 1 m 29 s - ImageProcTest.E2ETests.dll (net8.0)']
+ARM 14-the-baseline-is-attempted-without-a-calibration-set (native E2E): build ok=True
+    ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 26 s - ImageProcTest.E2ETests.dll (net8.0)']
+     red: Scenarios.Smoke.AutomationReportBackendTests.A20_Baseline_OnNativeWithoutACalibrationSet_IsNotAttempted_NotAFailure [26 s]
+   restored byte-identical: True
+AFTER RESTORE E2E A20: ['통과!  - 실패:     0, 통과:     1, 건너뜀:     0, 전체:     1, 기간: 25 s - ImageProcTest.E2ETests.dll (net8.0)']

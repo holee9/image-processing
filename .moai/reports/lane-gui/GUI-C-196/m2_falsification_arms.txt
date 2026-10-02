@@ -1,0 +1,73 @@
+ARM 1-round-half-away-from-zero (not half-to-even): build ok=True
+    ['실패!  - 실패:     1, 통과:    17, 건너뜀:     0, 전체:    18, 기간: 806 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.EnhanceBasicStageTests.TheConversionBackTo16Bits_RoundsHalfToEven_AndClampsAndCountsWhatItClamped [4 ms]
+   restored byte-identical: True
+ARM 2-no-clamp-above (wraps): build ok=True
+    ['실패!  - 실패:     1, 통과:    17, 건너뜀:     0, 전체:    18, 기간: 849 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.EnhanceBasicStageTests.TheConversionBackTo16Bits_RoundsHalfToEven_AndClampsAndCountsWhatItClamped [4 ms]
+   restored byte-identical: True
+ARM 3-a-refusal-does-not-stop-the-stage: build ok=True
+    ['실패!  - 실패:     5, 통과:    13, 건너뜀:     0, 전체:    18, 기간: 877 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.EnhanceBasicNativeTests.AnImageSmallerThanTwiceTheTileGrid_IsRefusedByTheModule_AndTheStageSaysWhichStep [1 m
+     red: Functional.EnhanceBasicStageTests.AStepTheModuleRefuses_RefusesTheWholeStage_AndTheLaterStepsDoNotRun(step: "log", index
+     red: Functional.EnhanceBasicStageTests.AStepTheModuleRefuses_RefusesTheWholeStage_AndTheLaterStepsDoNotRun(step: "noise", ind
+     red: Functional.EnhanceBasicStageTests.AStepTheModuleRefuses_RefusesTheWholeStage_AndTheLaterStepsDoNotRun(step: "contrast",
+     red: Functional.EnhanceBasicStageTests.AStepTheModuleRefuses_RefusesTheWholeStage_AndTheLaterStepsDoNotRun(step: "edge", inde
+   restored byte-identical: True
+ARM 4-non-finite-values-not-checked: build ok=True
+    ['실패!  - 실패:     1, 통과:    17, 건너뜀:     0, 전체:    18, 기간: 694 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.EnhanceBasicStageTests.ANonFiniteValueLeftByAStep_RefusesTheStage_AndIsCounted [< 1 ms]
+   restored byte-identical: True
+ARM 5-working-image-not-released: build ok=True
+    ['실패!  - 실패:     6, 통과:    12, 건너뜀:     0, 전체:    18, 기간: 891 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.EnhanceBasicStageTests.AStepTheModuleRefuses_RefusesTheWholeStage_AndTheLaterStepsDoNotRun(step: "log", index
+     red: Functional.EnhanceBasicStageTests.AStepTheModuleRefuses_RefusesTheWholeStage_AndTheLaterStepsDoNotRun(step: "noise", ind
+     red: Functional.EnhanceBasicStageTests.AStepTheModuleRefuses_RefusesTheWholeStage_AndTheLaterStepsDoNotRun(step: "contrast",
+     red: Functional.EnhanceBasicStageTests.AStepTheModuleRefuses_RefusesTheWholeStage_AndTheLaterStepsDoNotRun(step: "edge", inde
+     red: Functional.EnhanceBasicStageTests.TheStepsRunInOrder_OnceEach_WithTheFixedParameters [9 ms]
+     red: Functional.EnhanceBasicStageTests.AStepThatThrows_IsARefusalWithItsMessage [< 1 ms]
+   restored byte-identical: True
+ARM 6-noise-and-contrast-swapped: build ok=True
+    ['실패!  - 실패:     5, 통과:    13, 건너뜀:     0, 전체:    18, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.EnhanceBasicStageTests.AStepTheModuleRefuses_RefusesTheWholeStage_AndTheLaterStepsDoNotRun(step: "noise", ind
+     red: Functional.EnhanceBasicStageTests.AStepTheModuleRefuses_RefusesTheWholeStage_AndTheLaterStepsDoNotRun(step: "contrast",
+     red: Functional.EnhanceBasicStageTests.AStepTheModuleRefuses_RefusesTheWholeStage_AndTheLaterStepsDoNotRun(step: "edge", inde
+     red: Functional.EnhanceBasicStageTests.TheStepsRunInOrder_OnceEach_WithTheFixedParameters [7 ms]
+     red: Functional.EnhanceBasicStageTests.ANonFiniteValueLeftByAStep_RefusesTheStage_AndIsCounted [1 ms]
+   restored byte-identical: True
+ARM 7-a-fixed-parameter-edited (clip limit 3 -> 2): build ok=True
+    ['실패!  - 실패:     1, 통과:    17, 건너뜀:     0, 전체:    18, 기간: 835 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.EnhanceBasicStageTests.TheFixedParameters_AreTheDefaultsTheModuleHeaderDocuments [7 ms]
+   restored byte-identical: True
+ARM 8-native-struct-layout-wrong (TileWidth is a short): build ok=False
+    []
+   restored byte-identical: True
+ARM 9-native-read-back-one-pixel-short: build ok=True
+    ['실패!  - 실패:     3, 통과:    15, 건너뜀:     0, 전체:    18, 기간: 719 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.EnhanceBasicNativeTests.TheStage_AtFullSize_IsMeasured_AndStillDeterministic [624 ms]
+     red: Functional.EnhanceBasicNativeTests.AFlatImage_IsAccepted_NotRefused [1 ms]
+     red: Functional.EnhanceBasicNativeTests.TheStage_RunsOnTheRealModule_AndTwoRunsAreBitIdentical [13 ms]
+   restored byte-identical: True
+ARM 10-real-backend-does-not-dispatch-the-stage: build ok=True
+    ['실패!  - 실패:     1, 통과:    17, 건너뜀:     0, 전체:    18, 기간: 754 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.EnhanceBasicStageTests.TheEnhanceStage_IsWiredIntoTheRealBackend_TheResolver_AndRefusedByTheMock [1 ms]
+   restored byte-identical: True
+ARM 11-resolver-does-not-map-the-dll: build ok=True
+    ['실패!  - 실패:     1, 통과:    17, 건너뜀:     0, 전체:    18, 기간: 733 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.EnhanceBasicStageTests.TheEnhanceStage_IsWiredIntoTheRealBackend_TheResolver_AndRefusedByTheMock [1 ms]
+   restored byte-identical: True
+AFTER RESTORE: ['통과!  - 실패:     0, 통과:    18, 건너뜀:     0, 전체:    18, 기간: 731 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+Traceback (most recent call last):
+  File "C:\Users\drake\AppData\Local\Temp/arm8.py", line 10, in <module>
+    exec(head+tail)
+  File "<string>", line 49
+    arm("8b-native-struct-field-order-wrong (TileWidth before ClipLimit)", INTEROP, "    public float ClipLimit;
+                                                                                    ^
+SyntaxError: unterminated string literal (detected at line 49)
+ARM 8b-native-struct-field-order-wrong (TileWidth before ClipLimit): build ok=True
+    ['실패!  - 실패:     3, 통과:    15, 건너뜀:     0, 전체:    18, 기간: 439 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.EnhanceBasicNativeTests.TheStage_AtFullSize_IsMeasured_AndStillDeterministic [351 ms]
+     red: Functional.EnhanceBasicNativeTests.AFlatImage_IsAccepted_NotRefused [1 ms]
+     red: Functional.EnhanceBasicNativeTests.TheStage_RunsOnTheRealModule_AndTwoRunsAreBitIdentical [4 ms]
+   restored byte-identical: True
+AFTER RESTORE: ['통과!  - 실패:     0, 통과:    18, 건너뜀:     0, 전체:    18, 기간: 764 ms - ImageProcTest.IntegrationTests.dll (net8.0)']

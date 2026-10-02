@@ -1,0 +1,11 @@
+# GUI-C-198 after the fix (final tree). Functional full; E2E groups; Native with and without xpe_ai.dll
+PASS!  - FAIL:     0, PASS:   527, SKIP:     5, 전체:   532, 기간: 9 s - ImageProcTest.IntegrationTests.dll (net8.0)
+## E2E Mock: AutomationReport + ProcessingChain + AiMenuAvailability + DeterministicBaseline (runners rebuilt first)
+PASS!  - FAIL:     0, PASS:    25, SKIP:    10, 전체:    35, 기간: 8 m 50 s - ImageProcTest.E2ETests.dll (net8.0)
+## E2E Native, no xpe_ai.dll in the pinned dir: AiMenuAvailability + C08
+PASS!  - FAIL:     0, PASS:     3, SKIP:     0, 전체:     3, 기간: 13 s - ImageProcTest.E2ETests.dll (net8.0)
+## E2E Native, xpe_ai.dll present (a local build that lacks xpe_ai_worker_state, so C09 is not run): AiMenuAvailability + C08
+PASS!  - FAIL:     0, PASS:     3, SKIP:     0, 전체:     3, 기간: 12 s - ImageProcTest.E2ETests.dll (net8.0)
+## shell E2E runner (rebuilt)
+GUI-S0 E2E passed.
+

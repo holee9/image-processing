@@ -1,0 +1,24 @@
+## arm 1: the run does not clear the earlier outputs (finding 1)
+build exit=0
+Functional exit=1; red tests: 4
+   RED BaselineReviewFixTests.APassThenADicomFailure_InTheSameFolder_LeavesNoFinalDicomFile
+   RED BaselineReviewFixTests.APreviousFileThatCannotBeRemoved_FailsTheNewRun_WithTheReason_AndWritesNoDicom
+   RED BaselineReviewFixTests.APreviousDirectoryUnderAFinalName_FailsTheRunBeforeAnythingIsWritten
+   RED BaselineReviewFixTests.APassThenAChainFailure_InTheSameFolder_LeavesNoFinalDicomFile_AndTheJsonSaysFail
+restored byte-identical: True
+
+## arm 2: the preprocess count ignores the gain output (finding 2)
+build exit=0
+Functional exit=1; red tests: 2
+   RED BaselineReviewFixTests.ANonFiniteGainOutput_ThatTheDefectStageHid_FailsTheBaseline_WithTheCountInTheStatusAndTheJson
+   RED BaselineReviewFixTests.ThePreprocessCount_IncludesTheGainOutput_EvenWhenTheDefectStageFillsThePixelWithAFiniteValue
+restored byte-identical: True
+
+## arm 3: the real runner hands the defect floats twice instead of the gain floats (finding 2)
+build exit=0
+Functional exit=1; red tests: 2
+   RED BaselineReviewFixTests.TheRealPreprocessRunner_CountsTheGainOutputBeforeTheDefectStage_AndBothFloatArraysReachTheCount
+   RED BaselineReviewFixTests.TheRealBackendAndThePreprocessRunner_UseTheCountingHops
+restored byte-identical: True
+
+final rebuild exit=0
