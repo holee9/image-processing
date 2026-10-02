@@ -1,0 +1,16 @@
+== GhostRemovalPct / LagResidualPct tokens (control: prnu_after in modules)
+GhostRemovalPct modules: 0  clients+gui+tools: 0
+ghost_removal modules: 0  clients+gui+tools: 0
+LagResidualPct modules: 0  clients+gui+tools: 0
+lag_residual modules: 0  clients+gui+tools: 0
+prnu_after modules: 6  clients+gui+tools: 0
+
+
+== GUI recall gate
+12:    /// recall &gt;= 95% (canonical: 100%) and good-pixel P99 &lt;= 0 ADU (canonical: &lt;= 1 ADU).</para>
+19:        /// <summary>Protocol §5.5: "synthetic BPM oracle: DefectRecall = 100%".</summary>
+20:        public const double RecallMinPercent = 100.0;
+35:        public static string RecallGate => string.Create(CultureInfo.InvariantCulture, $">= {RecallMinPercent:0.###}%");
+41:        public static bool RecallPasses(double recallPercent) => recallPercent >= RecallMinPercent;
+
+== issue 216 / 218 labels + any later issue refs for FUNC-020

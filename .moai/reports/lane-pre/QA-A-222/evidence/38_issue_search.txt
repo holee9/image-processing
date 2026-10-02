@@ -1,0 +1,19 @@
+control: search FlatResidualPct (expect #218)
+#218 OPEN [spec] xpe_verify_* 가 요구의 합격 기준과 다른 지표로 판정한다 — FUNC-017 FlatResidualPct 0건, FUNC
+#220 CLOSED [defect] FlatResidualPct 게이트가 정본과 세 곳에서 다른 양을 잰다 — 분모가 평균이 아니라 중앙값 기반
+#223 CLOSED [defect] dsnu 필드가 정본의 DSNU_ADU 가 아니다 — 정본에 해당하는 값은 residual_noise 에 있다
+#216 OPEN [spec] preprocess 수출 API 48개 중 21개가 REQ-P1A 요구에 이름이 없다 — xpe_verify_* 4종 포함 (상한,
+FUNC-020 / ghost removal, all states:
+#216 OPEN [spec] preprocess 수출 API 48개 중 21개가 REQ-P1A 요구에 이름이 없다 — xpe_verify_* 4종 포함 (상한, SRS-CALIB
+#203 CLOSED 교정 SRS 에 없는 데이터 관리 요구 14건 — 세울지 폐기할지 결정
+#195 CLOSED [docs] RTM 과 SRS 의 FUNC-00x 번호가 다른 요구를 가리킨다 — 추적이 끊겨 있다
+#211 CLOSED [spec] 커밋 bc22093 이 SPEC-XPE-P1A 요구 46개를 지웠고 코드는 그중 16개를 계속 인용한다
+#197 CLOSED [docs] SPEC-XPE-P1A 재번호가 코드 인용 63건을 고아로 만들었다 — 없는 ID 가 전부 재번호 빈칸에 떨어진다
+#196 CLOSED [defect] 비선형 단계가 저장소 자신의 설정을 거부한다 — 검출기 모드와 운용 모드가 같은 "mode" 키를 공유
+#179 CLOSED [perf] REQ-ADV-061(fractional 3072², 400 ms)을 확인하는 게이트가 없습니다 — 유일한 대리 시험도 CI 제외
+--- open issues list (titles) mentioning verify|threshold|SNR
+#240 [safety] SHA 가 AI 부위 인식 OOD 문턱 0.70 을 '구현됨'으로 적었으나 실제는 0.6, 배선만 있고 효과 미검증 — 통제 재평가
+#218 [spec] xpe_verify_* 가 요구의 합격 기준과 다른 지표로 판정한다 — FUNC-017 FlatResidualPct 0건, FUNC-019 recall/FPR 0건
+#216 [spec] preprocess 수출 API 48개 중 21개가 REQ-P1A 요구에 이름이 없다 — xpe_verify_* 4종 포함 (상한, SRS-CALIB 대조 필요)
+#210 [spec] REQ-AI-061 은 문턱 비교가 도달하지 못하고 REQ-AI-092 는 코드 주석이 REQ-AI-009 로 적는다
+#190 [req] GSVG 요구 5건이 잠정 회귀 바닥만 있고 임상 합격선이 없다 — 실장비 영상 대기

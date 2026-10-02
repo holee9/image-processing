@@ -1,0 +1,7 @@
+HEAD=ed16b134 origin/main=d43e80c2
+fa3da63b ancestor_of_origin_main=yes ancestor_of_HEAD=yes  feat(preprocess): FUNC-017 의 FlatResidualPct 게이트를 단다 (QA-A-154)
+edc53cbc ancestor_of_origin_main=yes ancestor_of_HEAD=yes  fix(preprocess): verify 지표를 정본의 산술평균으로 맞춘다 (QA-A-156)
+4bcad45 ancestor_of_origin_main=yes ancestor_of_HEAD=yes  docs(preprocess): verify 문턱 출처를 기록하고 034 인용을 088 로 옮긴다 (QA
+498fc3c ancestor_of_origin_main=yes ancestor_of_HEAD=yes  refactor(preprocess)!: xpe_crc32 수출을 거둔다 (QA-A-152)
+48a1b07 ancestor_of_origin_main=yes ancestor_of_HEAD=yes  docs(report): #216 상한 21 을 실측 5(+1) 로 바꾼다 (QA-A-151)
+control: HEAD~1 ancestor of origin/main? no ; origin/main ancestor of HEAD? no

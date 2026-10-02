@@ -1,0 +1,39 @@
+== tokens in modules/ (files containing), control = prnu_after
+prnu_after: 6 files
+FlatResidual: 5 files
+flat_residual: 1 files
+DefectRecall: 1 files
+defect_recall: 0 files
+DefectFPR: 1 files
+GoodPixelDeltaP99: 1 files
+DefectResidualADU: 0 files
+oracle: 7 files
+recall: 3 files
+xpe_crc32: 2 files
+
+== FlatResidual gate tests (names)
+modules/preprocess/tests/test_verify_metrics.cpp:570: * FlatResidualPct is defined on the ARITHMETIC mean -- Preprocessing-E2E-
+modules/preprocess/tests/test_verify_metrics.cpp:582:TEST_F(VerifyMetricsTest, VerifyGain_FlatResidualUsesTheArithmeticMean) {
+modules/preprocess/tests/test_verify_metrics.cpp:599:        << "FlatResidualPct must be std/mean*100 about the arithmetic mean; "
+modules/preprocess/tests/test_verify_metrics.cpp:602:        << "SRS-CALIB-FUNC-017 accepts this panel (protocol value 0.9569%)";
+modules/preprocess/tests/test_verify_metrics.cpp:642: * SRS-CALIB-FUNC-017 gates xpe_verify_gain on FlatResidualPct <= 1.0%.
+modules/preprocess/tests/test_verify_metrics.cpp:652: * FlatResidualPct is not a new number: the protocol defines it as
+modules/preprocess/tests/test_verify_metrics.cpp:682:        << "this fixture is built to sit above FlatResidualPct 1.0% (got "
+modules/preprocess/tests/test_verify_metrics.cpp:685:        << "SRS-CALIB-FUNC-017 requires FlatResidualPct <= 1.0%; residual was "
+
+== recall/FPR/oracle in tests
+modules/preprocess/tests/test_defect_correct.cpp:304:// REQ-P1A-012: correction recall >= 99% on synthetic defects
+modules/preprocess/tests/test_defect_correct.cpp:305:TEST_F(DefectCorrectTest, CorrectionRecallOnSyntheticDefects) {
+modules/preprocess/tests/test_defect_correct.cpp:327:    // REQ-P1A-012: recall >= 99%
+modules/preprocess/tests/test_defect_correct.cpp:328:    float recall = static_cast<float>(correctedCount) / static_cast<float>(defectPositions.size()
+modules/preprocess/tests/test_defect_correct.cpp:329:    EXPECT_GE(recall, 0.99f) << "Correction recall " << recall << " below 99% threshold";
+modules/preprocess/tests/test_defect_oracle.cpp:2: * @file test_defect_oracle.cpp
+modules/preprocess/tests/test_defect_oracle.cpp:3: * @brief SRS-CALIB-FUNC-019 synthetic BPM oracle (QA-A-188, #218).
+modules/preprocess/tests/test_defect_oracle.cpp:5: * FUNC-019 (SRS-CALIB-001:150): "Synthetic BPM oracle cases shall require 100% defect recall and
+modules/preprocess/tests/test_defect_oracle.cpp:9: *   DefectRecall      = TP / max(TP + FN, 1)                    required = 100%
+modules/preprocess/tests/test_defect_oracle.cpp:10: *   DefectFPR         = FP / max(FP + TN, 1)                    required < 0.001%
+modules/preprocess/tests/test_defect_oracle.cpp:15: * map from dark and bright frames, then xpe_defect_correct() applies it. Recall and FPR compare th
+modules/preprocess/tests/test_defect_oracle.cpp:48:struct Oracle {
+
+== xpe_crc32 in exports
+xpe_crc32 rows: 0 | control xpe_init rows: 0

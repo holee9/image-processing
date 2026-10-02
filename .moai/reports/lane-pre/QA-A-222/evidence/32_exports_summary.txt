@@ -1,0 +1,21 @@
+named exports 53 (C 48)
+blocks 48
+control+ ['REQ-P1A-012', 'REQ-P1A-020a'] control- NONE
+no REQ-P1A body names it: 16
+  xpe_bpm_generate | SRS [] | RTM ['SRS-CALIB-FUNC-022']
+  xpe_calib_generate_nonlin_lut | SRS [] | RTM ['SRS-CALIB-FUNC-006']
+  xpe_calib_get_max_points | SRS ['SRS-CALIB-FUNC-038'] | RTM []
+  xpe_calib_get_mode | SRS ['SRS-CALIB-FUNC-031'] | RTM []
+  xpe_calib_get_poly_degree | SRS ['SRS-CALIB-FUNC-038'] | RTM []
+  xpe_calib_load_nonlin_lut | SRS [] | RTM ['SRS-CALIB-FUNC-006']
+  xpe_calib_set_mode | SRS ['SRS-CALIB-FUNC-031'] | RTM []
+  xpe_calib_state_release | SRS ['SRS-CALIB-FUNC-038'] | RTM []
+  xpe_calib_unload_nonlin_lut | SRS [] | RTM ['SRS-CALIB-FUNC-006']
+  xpe_nonlinearity_correct | SRS [] | RTM ['SRS-CALIB-FUNC-006']
+  xpe_preprocess_is_initialized | SRS ['SRS-CALIB-FUNC-038'] | RTM []
+  xpe_preprocess_pipeline_batch | SRS ['SRS-CALIB-FUNC-038'] | RTM []
+  xpe_verify_defect | SRS [] | RTM ['SRS-CALIB-FUNC-019']
+  xpe_verify_gain | SRS ['SRS-CALIB-FUNC-036'] | RTM ['SRS-CALIB-FUNC-017']
+  xpe_verify_offset | SRS ['SRS-CALIB-FUNC-036'] | RTM ['SRS-CALIB-FUNC-016']
+  xpe_verify_pipeline | SRS [] | RTM ['SRS-CALIB-FUNC-015', 'SRS-CALIB-FUNC-021']
+named by none of the three: 0 []

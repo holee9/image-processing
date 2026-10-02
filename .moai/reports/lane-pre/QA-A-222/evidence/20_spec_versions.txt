@@ -1,0 +1,5 @@
+worktree(HEAD)      : version: 1.3.2
+origin/main         :
+image-processing    : version: 1.3.3
+control (git show works on a known path): 240 lines
+header same in worktree vs image-processing: DIFFERENT
