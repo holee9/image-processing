@@ -34,8 +34,9 @@
 // this comment used to cite does not exist in the SPEC (searched .moai/specs
 // and docs: only AC-GAIN-001..003). Kept as a second line of defence for maps
 // that do not come through the loader (none today).
-constexpr float MIN_GAIN_VALUE = 0.001f;
-constexpr float MAX_GAIN_VALUE = 1000.0f;
+// (the range itself lives in xpe_preprocess_internal.h: the polynomial generator checks a fit against the same guard, QA-A-210e)
+constexpr float MIN_GAIN_VALUE = XPE_GAIN_APPLIED_MIN;
+constexpr float MAX_GAIN_VALUE = XPE_GAIN_APPLIED_MAX;
 
 // @MX:NOTE: [AUTO] ULP tolerance for parity validation
 // AC-GAIN-004: 1 ULP tolerance between scalar and AVX2/FMA
@@ -97,10 +98,7 @@ constexpr int32_t MAX_ULP_DIFFERENCE = 1;
  * @return true if gain is valid (finite, positive, within range)
  */
 static inline bool is_valid_gain(float gain) noexcept {
-    return std::isfinite(gain) &&
-           gain > 0.0f &&
-           gain >= MIN_GAIN_VALUE &&
-           gain <= MAX_GAIN_VALUE;
+    return xpe_gain_value_valid(gain);   // shared with the polynomial generator (QA-A-210e)
 }
 
 // QA-A-72 (#160): xpe_gain_has_avx2() was here, and it was a correct probe --
@@ -364,12 +362,8 @@ XpeErrorCode xpe_gain_correct_in(
                         ++clamped_count;
                     }
                 }
-                const float* c = poly + i * poly_coeffs;
-                float acc = c[poly_coeffs - 1];
-                for (uint32_t j = poly_coeffs - 1; j > 0; --j) {
-                    acc = acc * x + c[j - 1];
-                }
-                evaluated[i] = acc;
+                // the same float32 Horner the polynomial generator scores and accepts a fit with (QA-A-210e)
+                evaluated[i] = xpe_gain_poly_eval_f32(poly + i * poly_coeffs, poly_coeffs, x);
             }
 
             // One alert for the frame, carrying the count. Pushing per pixel

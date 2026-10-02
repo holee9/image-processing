@@ -547,6 +547,16 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
         size_t   residual_count = 0;
         uint32_t highest_degree = 0;
 
+        // QA-A-210e (Codex #61): what the applier does with a stored fit decides whether the fit is accepted and what
+        // the file reports. kApplyTolerance is the largest relative difference accepted between the gain the applier's
+        // float32 arithmetic computes at a measured dose and the gain the least-squares fit intended there: 0.1% -- a
+        // tenth of the 1% flat-field residual the gain verification allows (xpe_verify_gain), and below the 0.3%
+        // level-to-level scatter of the real calibration data (QA-A-210b). A larger departure means the stored
+        // polynomial is not the fit.
+        constexpr double kApplyTolerance = 1e-3;
+        size_t applier_reject_count = 0;   // pixels no degree can be stored for
+        size_t applier_reject_first = 0;
+
         // For each pixel: fit polynomial with degree reduction if needed
         const size_t sNumLevels = static_cast<size_t>(num_levels);
         const size_t sMaxDegree = static_cast<size_t>(max_degree);
@@ -560,6 +570,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
 
             // Try fitting from max_degree down to degree 1
             bool fit_success = false;
+            bool degree1_solved = false;     // the least-squares line itself could be solved (QA-A-210e)
             size_t final_degree = 1;
             std::vector<double> coeffs(sMaxCoeffsPoly);
 
@@ -575,6 +586,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
                 if (rc != XPE_OK) {
                     continue; // Try lower degree
                 }
+                if (deg == 1) degree1_solved = true;
 
                 // QA-A-210d: the coefficients are decided on AS THEY WILL BE STORED (float32), and a non-finite one fails the
                 // degree. The analytic monotonicity test then covers the whole range [dose_min, dose_max] for the
@@ -593,7 +605,31 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
                 double dose_min = dose_levels[0];
                 double dose_max = dose_levels[num_levels - 1];
 
-                if (validate_monotonicity(
+                // QA-A-210e (Codex #61): and the fit must survive the APPLIER's arithmetic. The applier evaluates the stored
+                // float32 coefficients in float32 Horner at the pixel value and refuses a gain outside its range; a large
+                // intercept and slope that cancel in double can fail to cancel in float32 (doses 1000 .. 1000.00004,
+                // gain 0.001 + 5 (dose - 1000): stored [-5000, 5.00000095], gain at 1000 evaluates to 0.00097656, below the
+                // applier's floor). Checked at every measured dose -- the curve is monotone, so its extremes over the
+                // range are at the first and last dose -- against the double-precision value of the same fit: the float32
+                // evaluation must be a gain the applier accepts, within kApplyTolerance of the intended one. A fit that
+                // fails lowers the degree like a non-monotone one; at degree 1 the pixel is refused (below).
+                bool apply_ok = true;
+                {
+                    float stored_f[5] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+                    for (size_t j = 0; j < n_coeffs; ++j) stored_f[j] = static_cast<float>(stored[j]);
+                    for (int32_t i = 0; i < num_levels && apply_ok; ++i) {
+                        const float applied = xpe_gain_poly_eval_f32(stored_f, static_cast<uint32_t>(n_coeffs),
+                                                                     static_cast<float>(dose_levels[i]));
+                        double intended = 0.0;
+                        for (size_t j = n_coeffs; j-- > size_t{0};) intended = intended * dose_levels[i] + temp_coeffs[j];
+                        if (!xpe_gain_value_valid(applied) ||
+                            std::abs(static_cast<double>(applied) - intended) > kApplyTolerance * std::abs(intended)) {
+                            apply_ok = false;
+                        }
+                    }
+                }
+
+                if (apply_ok && validate_monotonicity(
                     stored, static_cast<int32_t>(deg),
                     dose_min, dose_max))
                 {
@@ -606,6 +642,14 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
                 }
             }
 
+            if (!fit_success && degree1_solved) {
+                // Every degree down to the line was solved, and none can be applied by the applier's arithmetic: this
+                // pixel cannot be represented. Counted; the generation is refused after the loop with every such pixel
+                // reported, before the quality record or the file is touched.
+                if (applier_reject_count == 0) applier_reject_first = pix;
+                ++applier_reject_count;
+                continue;
+            }
             if (!fit_success) {
                 // Degree 1 is the last stop and always passes validate_monotonicity (a straight line is monotone
                 // whichever way it points), so this is reached only when the least-squares system itself cannot be
@@ -622,12 +666,15 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
                 for (size_t i = 0; i < sNumLevels; ++i) y_mean += y_vals[i];
                 y_mean /= static_cast<double>(sNumLevels);
 
+                // QA-A-210e: scored in the APPLIER's arithmetic -- the stored float32 coefficients, float32 Horner, the
+                // dose as a float -- so the quality the file reports is the one of the correction it will perform.
+                // (It used to be the double coefficients in double arithmetic, which agree on well-conditioned data and
+                // part where float32 cannot carry the fit.)
+                float stored_cf[5] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+                for (size_t j = 0; j <= final_degree; ++j) stored_cf[j] = static_cast<float>(coeffs[j]);
                 for (size_t i = 0; i < sNumLevels; ++i) {
-                    // Horner evaluation of the fitted polynomial at this dose.
-                    double predicted = 0.0;
-                    for (size_t j = final_degree + size_t{1}; j-- > size_t{0};) {
-                        predicted = predicted * dose_levels[i] + coeffs[j];
-                    }
+                    const double predicted = static_cast<double>(xpe_gain_poly_eval_f32(
+                        stored_cf, static_cast<uint32_t>(final_degree + size_t{1}), static_cast<float>(dose_levels[i])));
                     const double residual = y_vals[i] - predicted;
                     ss_res_total += residual * residual;
                     const double dev = y_vals[i] - y_mean;
@@ -654,6 +701,24 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
             for (size_t j = final_degree + size_t{1}; j < sMaxCoeffsPoly; ++j) {
                 coeff_array[offset + j] = 0.0f;
             }
+        }
+
+        // QA-A-210e: a pixel for which no degree can be stored refuses the whole generation -- no quality record, no file.
+        // INVALID_CALIB_DATA, like the other "this data cannot make a calibration" refusals (a non-finite gain value,
+        // an unusable fit), with an alert that names the cause and how many pixels.
+        if (applier_reject_count > 0) {
+            char reject_msg[400];
+            std::snprintf(reject_msg, sizeof(reject_msg),
+                          "XPE_WARN_GAIN_POLY_NOT_APPLICABLE: %zu pixel(s) (first: %zu) have no gain polynomial whose float32 "
+                          "coefficients the applier can use -- evaluated in float32 at a measured dose it falls outside the "
+                          "gain range [%.3f, %.0f] or more than %.1f%% from the fit. The doses are too close together for "
+                          "coefficients stored in the raw dose, or the gain is outside the range; no file was written",
+                          applier_reject_count, applier_reject_first,
+                          static_cast<double>(XPE_GAIN_APPLIED_MIN), static_cast<double>(XPE_GAIN_APPLIED_MAX),
+                          kApplyTolerance * 100.0);
+            reject_msg[sizeof(reject_msg) - 1] = '\0';
+            xpe_alert_push(reject_msg, XPE_ALERT_ERROR);
+            return XPE_ERR_INVALID_CALIB_DATA;
         }
 
         // --- FUNC-033: score the whole fit and record the metadata ---

@@ -1,0 +1,103 @@
+Note: Google Test filter = GainPolyPolicyTest.*
+[==========] Running 16 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 16 tests from GainPolyPolicyTest
+[ RUN      ] GainPolyPolicyTest.OnRealDataEveryPixelFitAndTheFileAreAtLeastAsGoodAsTheMean
+[       OK ] GainPolyPolicyTest.OnRealDataEveryPixelFitAndTheFileAreAtLeastAsGoodAsTheMean (30 ms)
+[ RUN      ] GainPolyPolicyTest.OnNoiseOnlyDataTheFileRSquaredIsNotNegativeEither
+[       OK ] GainPolyPolicyTest.OnNoiseOnlyDataTheFileRSquaredIsNotNegativeEither (50 ms)
+[ RUN      ] GainPolyPolicyTest.EveryStoredPolynomialIsMonotoneOverTheMeasuredRangeInEitherDirection
+[       OK ] GainPolyPolicyTest.EveryStoredPolynomialIsMonotoneOverTheMeasuredRangeInEitherDirection (44 ms)
+[ RUN      ] GainPolyPolicyTest.TheDegreeOfEveryPixelIsThatOfAnIndependentLeastSquaresAndMonotoneCascade
+[       OK ] GainPolyPolicyTest.TheDegreeOfEveryPixelIsThatOfAnIndependentLeastSquaresAndMonotoneCascade (21 ms)
+[ RUN      ] GainPolyPolicyTest.ADecreasingCurveIsKeptAndAFallingThenRisingOneIsReplacedByTheLeastSquaresLine
+[       OK ] GainPolyPolicyTest.ADecreasingCurveIsKeptAndAFallingThenRisingOneIsReplacedByTheLeastSquaresLine (18 ms)
+[ RUN      ] GainPolyPolicyTest.PixelsTheOldPolicyFittedAtDegreeTwoOrMoreAreStoredBitForBit
+[       OK ] GainPolyPolicyTest.PixelsTheOldPolicyFittedAtDegreeTwoOrMoreAreStoredBitForBit (11 ms)
+[ DISABLED ] GainPolyPolicyTest.DISABLED_PrintGolden
+[ RUN      ] GainPolyPolicyTest.TheSyntheticLadderOfTheFixtureGeneratorNoLongerReportsANegativeRSquared
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+gain_poly.xcal 8ce15c53dcc3ff02bc4ddea6f9edb9b566525f80a2102d42699a952de297fe80  (degree<=2, 4 dose levels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_gpp_11478_TheSyntheticLadderOfTheFixtureGeneratorNoLongerReportsANegativeRSquared\manifest.json
+[       OK ] GainPolyPolicyTest.TheSyntheticLadderOfTheFixtureGeneratorNoLongerReportsANegativeRSquared (171 ms)
+[ RUN      ] GainPolyPolicyTest.TheOracleItselfSeesATurnBetweenTwoSamples
+[       OK ] GainPolyPolicyTest.TheOracleItselfSeesATurnBetweenTwoSamples (0 ms)
+[ RUN      ] GainPolyPolicyTest.ACurveThatTurnsBetweenTwoSamplesOfTheOldRuleIsNotMonotoneAndGetsTheLeastSquaresLine
+[       OK ] GainPolyPolicyTest.ACurveThatTurnsBetweenTwoSamplesOfTheOldRuleIsNotMonotoneAndGetsTheLeastSquaresLine (13 ms)
+[ RUN      ] GainPolyPolicyTest.TheDegreeIsDecidedOnTheCoefficientsAsStoredNotOnTheDoubleOnes
+[       OK ] GainPolyPolicyTest.TheDegreeIsDecidedOnTheCoefficientsAsStoredNotOnTheDoubleOnes (12 ms)
+[ RUN      ] GainPolyPolicyTest.ANonFiniteDoseIsRefusedBeforeAnyFileIsReadOrAnyStateChanges
+[       OK ] GainPolyPolicyTest.ANonFiniteDoseIsRefusedBeforeAnyFileIsReadOrAnyStateChanges (0 ms)
+[ RUN      ] GainPolyPolicyTest.ANonFiniteGainValueIsRefusedAsBadCalibrationDataAndNeverStoredAsNanCoefficients
+[       OK ] GainPolyPolicyTest.ANonFiniteGainValueIsRefusedAsBadCalibrationDataAndNeverStoredAsNanCoefficients (21 ms)
+[ RUN      ] GainPolyPolicyTest.CloseDosesAreFittedAccuratelyAndNothingBecomesNonFinite
+[       OK ] GainPolyPolicyTest.CloseDosesAreFittedAccuratelyAndNothingBecomesNonFinite (23 ms)
+[ RUN      ] GainPolyPolicyTest.ACodexReproductionWhoseStoredCoefficientsApplyBelowTheGainFloorIsRefusedNotWrittenAsSuccess
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(711): error: Expected equality of these values:
+  -17
+  rc
+    Which is: 0
+the calibration cannot be applied by the applier's arithmetic
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(712): error: Value of: fs::exists(out)
+  Actual: true
+Expected: false
+no file is written for a calibration the applier would refuse
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(715): error: Expected equality of these values:
+  0
+  std::memcmp(&before, &after, sizeof(before))
+    Which is: -1
+the quality record is not changed by a refused generation
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(723): error: Value of: said
+  Actual: false
+Expected: true
+an alert names the cause
+
+[  FAILED  ] GainPolyPolicyTest.ACodexReproductionWhoseStoredCoefficientsApplyBelowTheGainFloorIsRefusedNotWrittenAsSuccess (9 ms)
+[ RUN      ] GainPolyPolicyTest.WhateverTheGeneratorWritesTheApplierCanApplyAtEveryMeasuredDose
+[       OK ] GainPolyPolicyTest.WhateverTheGeneratorWritesTheApplierCanApplyAtEveryMeasuredDose (30 ms)
+[ RUN      ] GainPolyPolicyTest.TheRSquaredTheFileRecordsIsTheOneOfTheApplierArithmeticOnTheStoredCoefficients
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(790): error: The difference between want and fit.fileR2 is 6.7697201236449622e-07, which exceeds 1e-8, where
+want evaluates to 0.24916014602798764,
+fit.fileR2 evaluates to 0.249160823, and
+1e-8 evaluates to 1e-08.
+the file's R^2 must be the applied-arithmetic R^2
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(786): real crop, degree 2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(790): error: The difference between want and fit.fileR2 is 6.3998075139348742e-07, which exceeds 1e-8, where
+want evaluates to 0.25100892201924863,
+fit.fileR2 evaluates to 0.25100956200000002, and
+1e-8 evaluates to 1e-08.
+the file's R^2 must be the applied-arithmetic R^2
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(786): real crop, degree 3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(790): error: The difference between want and fit.fileR2 is 4.2658836928552564, which exceeds 1e-8, where
+want evaluates to -3.265883849855256,
+fit.fileR2 evaluates to 0.999999843, and
+1e-8 evaluates to 1e-08.
+the file's R^2 must be the applied-arithmetic R^2
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(786): close doses (float32 intercept cannot carry the slope)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_gain_poly_policy.cpp(793): error: Expected: (closeR2) < (0.99), actual: 0.999999843 vs 0.99
+control: where float32 cannot carry the fit, the recorded R^2 says so (it was ~1 from doubles)
+
+[  FAILED  ] GainPolyPolicyTest.TheRSquaredTheFileRecordsIsTheOneOfTheApplierArithmeticOnTheStoredCoefficients (27 ms)
+[----------] 16 tests from GainPolyPolicyTest (489 ms total)
+
+[----------] Global test environment tear-down
+[==========] 16 tests from 1 test suite ran. (489 ms total)
+[  PASSED  ] 14 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] GainPolyPolicyTest.ACodexReproductionWhoseStoredCoefficientsApplyBelowTheGainFloorIsRefusedNotWrittenAsSuccess
+[  FAILED  ] GainPolyPolicyTest.TheRSquaredTheFileRecordsIsTheOneOfTheApplierArithmeticOnTheStoredCoefficients
+
+ 2 FAILED TESTS
+  YOU HAVE 1 DISABLED TEST
+
