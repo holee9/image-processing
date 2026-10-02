@@ -204,6 +204,15 @@ namespace {
     double compute_flatness(const std::vector<double>& values, int bins = 256) {   // builds a histogram: allocates, so not noexcept (QA-A-204)
         if (values.empty()) return 0.0;
 
+        // QA-A-224b (#242): a non-finite value used to reach `static_cast<int>((v - min) / bin_width)` as NaN, which
+        // converts to INT_MIN and indexes the histogram far out of range -- an access violation on a corrected frame
+        // with one NaN pixel (found while pinning "a NaN pixel does not pass"; the crash predates that card).
+        // Flatness of a frame that is not entirely finite is not measurable: 0.0, the value this field already
+        // carries when nothing could be measured.
+        for (double v : values) {
+            if (!std::isfinite(v)) return 0.0;
+        }
+
         // Find min/max
         auto [min_it, max_it] = std::minmax_element(values.begin(), values.end());
         double min_val = *min_it;
@@ -588,12 +597,21 @@ static XpeErrorCode verify_gain_impl(
     double std_after = compute_std(after_vals, mean_after);
     metrics->prnu_after = (mean_after > 0.0) ? (std_after / mean_after) * 100.0 : 0.0;
 
+    // QA-A-224b (#242, Codex #82): a corrected frame whose mean is <= 0 or NaN also leaves prnu_after at 0 -- the
+    // ratio has no meaning there -- so "prnu_after == 0" alone cannot tell a perfect correction from one that could
+    // not be measured. This frame is MEASURABLE when its mean is finite and positive. A perfect correction is a
+    // measurable frame whose spread is exactly zero; a frame that is not measurable fails (SRS-CALIB-FUNC-036),
+    // claims no improvement, and is not reported as measured for PRNU or the improvement.
+    const bool after_measurable = std::isfinite(mean_after) && mean_after > 0.0;
+    const bool after_perfect = after_measurable && std_after == 0.0;
+
     // Compute flatness
     metrics->flatness_pct = compute_flatness(after_vals) * 100.0;
 
     // Compute gain coverage
     metrics->gain_coverage = static_cast<double>(valid_gain_count) / pixel_count;
-    metrics->measured_mask |= XPE_METRIC_PRNU | XPE_METRIC_GAIN_COVERAGE | XPE_METRIC_SNR;
+    metrics->measured_mask |= XPE_METRIC_GAIN_COVERAGE;
+    if (after_measurable) metrics->measured_mask |= XPE_METRIC_PRNU | XPE_METRIC_SNR;
 
     // Compute the improvement in dB. In this function the value is the PRNU improvement,
     // 20*log10(prnu_before/prnu_after); the field keeps the name snr_improvement_db (ABI lock,
@@ -602,11 +620,12 @@ static XpeErrorCode verify_gain_impl(
     // QA-A-224 (#242): a residual of EXACTLY zero used to fall into the else branch and report
     // 0.0, so the most improved frame possible failed snr_improved below -- a perfectly
     // corrected panel was rejected while the same panel with 1e-6 noise passed (94 dB). Zero is
-    // an infinite improvement, reported as ZERO_SPREAD_DB. The test is `== 0.0`, not `<= 0.0`: a
-    // NaN residual must keep falling through to 0.0 (and fail), not be read as perfection.
+    // an infinite improvement, reported as ZERO_SPREAD_DB -- but only for a frame that is perfect in the
+    // sense above (QA-A-224b): measurable, with a spread of exactly zero. A zero that came from an
+    // unmeasurable frame (mean <= 0, NaN) reports 0.0 and fails below.
     if (metrics->prnu_before > 0.0 && metrics->prnu_after > 0.0) {
         metrics->snr_improvement_db = 20.0 * std::log10(metrics->prnu_before / metrics->prnu_after);
-    } else if (metrics->prnu_before > 0.0 && metrics->prnu_after == 0.0) {
+    } else if (metrics->prnu_before > 0.0 && after_perfect) {
         metrics->snr_improvement_db = ZERO_SPREAD_DB;
     } else {
         metrics->snr_improvement_db = 0.0;
@@ -647,7 +666,10 @@ static XpeErrorCode verify_gain_impl(
         : FLAT_RESIDUAL_KNOWN_MAX_PCT;
     bool flat_residual_ok = (metrics->prnu_after <= flat_residual_limit);
 
-    metrics->overall_pass = prnu_improved && coverage_ok && snr_improved && flat_residual_ok;
+    // An unmeasurable corrected frame never passes, whatever the other gates read from its placeholder zeros --
+    // including the "already flat" exception above, which would otherwise wave through a before frame that is flat
+    // and an after frame that is garbage (QA-A-224b).
+    metrics->overall_pass = after_measurable && prnu_improved && coverage_ok && snr_improved && flat_residual_ok;
 
     return XPE_OK;
 }

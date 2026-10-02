@@ -1,0 +1,102 @@
+Note: Google Test filter = *Verify*
+[==========] Running 45 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 33 tests from VerifyMetricsTest
+[ RUN      ] VerifyMetricsTest.VerifyOffset_PerfectCorrection
+[       OK ] VerifyMetricsTest.VerifyOffset_PerfectCorrection (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_ClampVerification
+[       OK ] VerifyMetricsTest.VerifyOffset_ClampVerification (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_PerfectFlatField
+[       OK ] VerifyMetricsTest.VerifyGain_PerfectFlatField (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_DetectsBadGain
+[       OK ] VerifyMetricsTest.VerifyGain_DetectsBadGain (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyDefect_CountsDefects
+[       OK ] VerifyMetricsTest.VerifyDefect_CountsDefects (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_PublishesTheDarkReductionTheGateUsed
+[       OK ] VerifyMetricsTest.VerifyOffset_PublishesTheDarkReductionTheGateUsed (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_DsnuAduIsTheCanonicalStdNotTheCv
+[       OK ] VerifyMetricsTest.VerifyOffset_DsnuAduIsTheCanonicalStdNotTheCv (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_UnmeasurableFrameReportsNotMeasured
+[       OK ] VerifyMetricsTest.VerifyOffset_UnmeasurableFrameReportsNotMeasured (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_MeasurableFrameReportsMeasured
+[       OK ] VerifyMetricsTest.VerifyOffset_MeasurableFrameReportsMeasured (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_PassesByDarkReductionWhenBiasExceedsFive
+[       OK ] VerifyMetricsTest.VerifyOffset_PassesByDarkReductionWhenBiasExceedsFive (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_HighDsnuNoLongerBlocksTheGate
+[       OK ] VerifyMetricsTest.VerifyOffset_HighDsnuNoLongerBlocksTheGate (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_TooFewDarkPixelsIsUnmeasurableNotWholeFrame
+[       OK ] VerifyMetricsTest.VerifyOffset_TooFewDarkPixelsIsUnmeasurableNotWholeFrame (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_UnmeasurableFrameDoesNotPass
+[       OK ] VerifyMetricsTest.VerifyOffset_UnmeasurableFrameDoesNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_FlatResidualUsesTheArithmeticMean
+[       OK ] VerifyMetricsTest.VerifyGain_FlatResidualUsesTheArithmeticMean (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_DarkBiasUsesTheArithmeticMean
+[       OK ] VerifyMetricsTest.VerifyOffset_DarkBiasUsesTheArithmeticMean (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_ImprovedButStillAboveOnePercentFails
+[       OK ] VerifyMetricsTest.VerifyGain_ImprovedButStillAboveOnePercentFails (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_PerfectCorrectionPasses
+[       OK ] VerifyMetricsTest.VerifyGain_PerfectCorrectionPasses (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_TinyResidualNoiseStillPasses
+[       OK ] VerifyMetricsTest.VerifyGain_TinyResidualNoiseStillPasses (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_NoImprovementStillFails
+[       OK ] VerifyMetricsTest.VerifyGain_NoImprovementStillFails (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_AllNegativeCorrectedFrameDoesNotPass
+[       OK ] VerifyMetricsTest.VerifyGain_AllNegativeCorrectedFrameDoesNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_AllZeroCorrectedFrameDoesNotPass
+[       OK ] VerifyMetricsTest.VerifyGain_AllZeroCorrectedFrameDoesNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_ANanPixelInTheCorrectedFrameDoesNotPass
+[       OK ] VerifyMetricsTest.VerifyGain_ANanPixelInTheCorrectedFrameDoesNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_AnAlreadyFlatPanelWithAnUnmeasurableCorrectedFrameDoesNotPass
+[       OK ] VerifyMetricsTest.VerifyGain_AnAlreadyFlatPanelWithAnUnmeasurableCorrectedFrameDoesNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_FlatBeforeAndFlatAfterPassesWithoutAnyImprovement
+[       OK ] VerifyMetricsTest.VerifyGain_FlatBeforeAndFlatAfterPassesWithoutAnyImprovement (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyPipeline_PerfectFinalPassesWithAFiniteField
+[       OK ] VerifyMetricsTest.VerifyPipeline_PerfectFinalPassesWithAFiniteField (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyPipeline_TwoFlatFramesReportAFiniteValueAndDoNotPass
+[       OK ] VerifyMetricsTest.VerifyPipeline_TwoFlatFramesReportAFiniteValueAndDoNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyPipeline_FlatRawMadeNoisyReportsAFiniteValueAndFails
+[       OK ] VerifyMetricsTest.VerifyPipeline_FlatRawMadeNoisyReportsAFiniteValueAndFails (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyPipeline_ANanPixelIsNotReadAsAPerfectFrame
+[       OK ] VerifyMetricsTest.VerifyPipeline_ANanPixelIsNotReadAsAPerfectFrame (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyPipeline_NoImprovementStillFails
+[       OK ] VerifyMetricsTest.VerifyPipeline_NoImprovementStillFails (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyDefect_GateMatchesTheFivePercentRequirement
+[       OK ] VerifyMetricsTest.VerifyDefect_GateMatchesTheFivePercentRequirement (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyPipeline_SNRImprovement
+[       OK ] VerifyMetricsTest.VerifyPipeline_SNRImprovement (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyMetrics_NullInput
+[       OK ] VerifyMetricsTest.VerifyMetrics_NullInput (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyMetrics_DimensionMismatch
+[       OK ] VerifyMetricsTest.VerifyMetrics_DimensionMismatch (0 ms)
+[----------] 33 tests from VerifyMetricsTest (2 ms total)
+
+[----------] 12 tests from VerifyMetricsEdgeTest
+[ RUN      ] VerifyMetricsEdgeTest.VerifyOffsetRejectsFloatInput
+[       OK ] VerifyMetricsEdgeTest.VerifyOffsetRejectsFloatInput (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyOffsetRejectsFloatCorrectedImage
+[       OK ] VerifyMetricsEdgeTest.VerifyOffsetRejectsFloatCorrectedImage (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyOffsetFallsBackWhenNoDarkPixelsExist
+[       OK ] VerifyMetricsEdgeTest.VerifyOffsetFallsBackWhenNoDarkPixelsExist (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyGainHandlesPerfectlyUniformOutput
+[       OK ] VerifyMetricsEdgeTest.VerifyGainHandlesPerfectlyUniformOutput (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyGainComputesFlatnessOverVariedOutput
+[       OK ] VerifyMetricsEdgeTest.VerifyGainComputesFlatnessOverVariedOutput (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyGainRejectsWrongGainMapFormat
+[       OK ] VerifyMetricsEdgeTest.VerifyGainRejectsWrongGainMapFormat (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyDefectRejectsWrongMaskFormat
+[       OK ] VerifyMetricsEdgeTest.VerifyDefectRejectsWrongMaskFormat (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyDefectHandlesMaskWithNoDefects
+[       OK ] VerifyMetricsEdgeTest.VerifyDefectHandlesMaskWithNoDefects (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyDefectHandlesFullyDefectiveMask
+[       OK ] VerifyMetricsEdgeTest.VerifyDefectHandlesFullyDefectiveMask (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyPipelineRejectsFloatInput
+[       OK ] VerifyMetricsEdgeTest.VerifyPipelineRejectsFloatInput (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyPipelineHandlesFlatFinalImage
+[       OK ] VerifyMetricsEdgeTest.VerifyPipelineHandlesFlatFinalImage (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.OddPixelCountUsesTheOddMedianBranch
+[       OK ] VerifyMetricsEdgeTest.OddPixelCountUsesTheOddMedianBranch (0 ms)
+[----------] 12 tests from VerifyMetricsEdgeTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 45 tests from 2 test suites ran. (2 ms total)
+[  PASSED  ] 45 tests.

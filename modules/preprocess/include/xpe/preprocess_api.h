@@ -1330,7 +1330,10 @@ typedef struct {
     ///  - xpe_verify_pipeline: SNR_final - SNR_raw with SNR = 20*log10(mean/std). A flat frame
     ///    (std exactly 0) has an infinite SNR and counts as 200, so a noisy raw frame processed
     ///    to a flat one reports 200 minus the raw SNR.
-    /// 200 is a reporting convention, not a bound: a nonzero residual is reported as measured.
+    /// 200 is a reporting convention, not a bound: a nonzero residual is reported as measured. It is a
+    /// value on the same axis as any finite improvement, not a flag: whether a correction was perfect is
+    /// `prnu_after == 0` of a frame that was MEASURED (see `measured_mask`); an unmeasurable corrected
+    /// frame also leaves `prnu_after` at 0 but reports 0.0 here and fails (QA-A-224b).
     /// Non-finite pixels are outside this guarantee (the field may then be NaN and the verdict
     /// is a failure).
     double snr_improvement_db;
@@ -1483,8 +1486,16 @@ XPE_API XpeErrorCode xpe_verify_offset(
  * @note PROVISIONAL thresholds (QA-A-223, #242): the 3.0 dB improvement line and the 0.99
  *       coverage line have no requirement basis; they are kept, not derived. `FlatResidualPct`
  *       (SRS-CALIB-FUNC-017) is the criterion the requirement states.
- * @note A perfectly corrected frame (residual exactly 0) passes: its `snr_improvement_db` is
- *       reported as 200 dB, a reporting convention for an infinite improvement (QA-A-224).
+ * @note A perfectly corrected frame passes: a corrected frame that can be measured (finite, positive
+ *       mean) with a spread of exactly zero reports `snr_improvement_db` as 200 dB, a reporting
+ *       convention for an infinite improvement (QA-A-224). A corrected frame that cannot be measured
+ *       (mean <= 0 or NaN, or a non-finite pixel) never passes: it reports no improvement (0.0), and
+ *       `measured_mask` has neither `XPE_METRIC_PRNU` nor `XPE_METRIC_SNR` (QA-A-224b).
+ * @note A raw frame and a corrected frame that are BOTH flat (PRNU < 0.01%) pass without any improvement:
+ *       an already flat panel has nothing to improve, and the requirement (SRS-CALIB-FUNC-017) sets a
+ *       residual limit, not an improvement. `xpe_verify_pipeline` differs: its field is an SNR difference
+ *       and two flat frames improve nothing, so it does not pass. Decided in QA-A-224b; revisited when #242
+ *       is decided.
  *
  * @warning ABI break (QA-A-192, #220): the 5-argument form replaced the 4-argument form under
  *       the SAME exported name, so a binary built against the old header still links and

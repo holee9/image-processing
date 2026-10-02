@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 #include <cstring>
 #include <cmath>
+#include <functional>
 #include <limits>
 #include <vector>
 #include <random>
@@ -771,6 +772,87 @@ TEST_F(VerifyMetricsTest, VerifyGain_NoImprovementStillFails) {
     ASSERT_EQ(XPE_OK, rc);
     EXPECT_LT(m.snr_improvement_db, 3.0);
     EXPECT_FALSE(m.overall_pass) << "a correction that improved nothing must not pass";
+}
+
+/* ---------------------------------------------------------------------------
+ * QA-A-224b (#242, Codex #82): the zero branch must not read an UNMEASURABLE frame as a perfect one.
+ *
+ * xpe_verify_gain has always set prnu_after to 0 when the corrected frame's mean is <= 0 or NaN (the ratio has no
+ * meaning there). QA-A-224 then gave "prnu_after == 0" a meaning of its own -- an infinite improvement, 200 dB --
+ * and a corrected frame of all -1000 passed every gate (original alternating 950/1050, found by Codex #82). A
+ * perfect correction is a corrected frame that is measurable (finite, positive mean) with a spread of exactly zero;
+ * anything else that leaves prnu_after at 0 is "could not be measured" and fails (SRS-CALIB-FUNC-036).
+ * ------------------------------------------------------------------------- */
+static XpeCalibrationMetrics verifyGainOn(bool alternatingBefore, const std::function<float(uint32_t, uint32_t)>& afterAt,
+                                          XpeErrorCode* rc) {
+    const float level = 1000.0f;
+    U16ImageHelper raw(W, H, 1000);
+    F32ImageHelper corrected(W, H, level);
+    F32ImageHelper gain(W, H, 1.0f);
+    for (uint32_t y = 0; y < H; ++y) {
+        for (uint32_t x = 0; x < W; ++x) {
+            const bool up = ((x + y) % 2) == 0;
+            if (alternatingBefore) raw.set(y, x, static_cast<uint16_t>(level * (up ? 1.05f : 0.95f)));
+            corrected.set(y, x, afterAt(y, x));
+        }
+    }
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    *rc = xpe_verify_gain(&raw.buf, &corrected.buf, &gain.buf, XPE_GAIN_SEMANTICS_UNKNOWN, &m);
+    return m;
+}
+
+// Common assertions for "the corrected frame could not be measured": fail, no improvement claimed, the PRNU and
+// SNR metrics are not reported as measured.
+static void expectUnmeasurableAfter(const XpeCalibrationMetrics& m, const char* what) {
+    EXPECT_FALSE(m.overall_pass) << what << ": an unmeasurable corrected frame must not pass";
+    EXPECT_EQ(0.0, m.snr_improvement_db) << what << ": no improvement may be claimed for a frame that was not measured";
+    EXPECT_EQ(0u, m.measured_mask & XPE_METRIC_PRNU) << what << ": PRNU was not measured";
+    EXPECT_EQ(0u, m.measured_mask & XPE_METRIC_SNR) << what << ": the improvement was not measured";
+}
+
+TEST_F(VerifyMetricsTest, VerifyGain_AllNegativeCorrectedFrameDoesNotPass) {
+    XpeErrorCode rc = XPE_OK;
+    const XpeCalibrationMetrics m = verifyGainOn(true, [](uint32_t, uint32_t) { return -1000.0f; }, &rc);
+    ASSERT_EQ(XPE_OK, rc);
+    ASSERT_GT(m.prnu_before, 4.0) << "control: the raw frame is the 5% panel";
+    expectUnmeasurableAfter(m, "all -1000");
+}
+
+TEST_F(VerifyMetricsTest, VerifyGain_AllZeroCorrectedFrameDoesNotPass) {
+    XpeErrorCode rc = XPE_OK;
+    const XpeCalibrationMetrics m = verifyGainOn(true, [](uint32_t, uint32_t) { return 0.0f; }, &rc);
+    ASSERT_EQ(XPE_OK, rc);
+    expectUnmeasurableAfter(m, "all 0");
+}
+
+TEST_F(VerifyMetricsTest, VerifyGain_ANanPixelInTheCorrectedFrameDoesNotPass) {
+    XpeErrorCode rc = XPE_OK;
+    const XpeCalibrationMetrics m = verifyGainOn(
+        true, [](uint32_t y, uint32_t x) { return (y == 0 && x == 0) ? std::numeric_limits<float>::quiet_NaN() : 1000.0f; }, &rc);
+    ASSERT_EQ(XPE_OK, rc);
+    expectUnmeasurableAfter(m, "flat with one NaN pixel");
+}
+
+TEST_F(VerifyMetricsTest, VerifyGain_AnAlreadyFlatPanelWithAnUnmeasurableCorrectedFrameDoesNotPass) {
+    // The same family reached through the "already flat" exception: before is flat, so the improvement gates are
+    // waived, and an after frame of -1000 used to satisfy the rest by having prnu_after == 0.
+    XpeErrorCode rc = XPE_OK;
+    const XpeCalibrationMetrics m = verifyGainOn(false, [](uint32_t, uint32_t) { return -1000.0f; }, &rc);
+    ASSERT_EQ(XPE_OK, rc);
+    ASSERT_EQ(0.0, m.prnu_before) << "control: the raw frame is flat";
+    expectUnmeasurableAfter(m, "flat before, all -1000 after");
+}
+
+TEST_F(VerifyMetricsTest, VerifyGain_FlatBeforeAndFlatAfterPassesWithoutAnyImprovement) {
+    // Decision (QA-A-224b, #242): an already flat panel has nothing to improve, and SRS-CALIB-FUNC-017 sets a residual
+    // limit, not an improvement. Pinned so a change is deliberate. xpe_verify_pipeline differs: its field is an SNR
+    // difference, and two flat frames improve nothing, so it does not pass (VerifyPipeline_TwoFlatFrames...).
+    XpeErrorCode rc = XPE_OK;
+    const XpeCalibrationMetrics m = verifyGainOn(false, [](uint32_t, uint32_t) { return 1000.0f; }, &rc);
+    ASSERT_EQ(XPE_OK, rc);
+    EXPECT_EQ(0.0, m.snr_improvement_db);
+    EXPECT_TRUE(m.overall_pass);
 }
 
 TEST_F(VerifyMetricsTest, VerifyPipeline_PerfectFinalPassesWithAFiniteField) {
