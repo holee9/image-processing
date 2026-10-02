@@ -1,0 +1,9 @@
+ARM p1_open_failure_silent_again
+file src/xcal_writer.cpp
+built=True
+[  FAILED  ] XcalReplaceRetryTest.ATemporaryFileThatCannotBeCreatedIsReportedWithItsReason (0 ms)
+[  FAILED  ] XcalReplaceRetryTest.ATemporaryFileHeldExclusivelyCannotBeOpenedAndTheNextSaveWorksOnceItIsFree (1 ms)
+[  PASSED  ] 9 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] XcalReplaceRetryTest.ATemporaryFileThatCannotBeCreatedIsReportedWithItsReason
+[  FAILED  ] XcalReplaceRetryTest.ATemporaryFileHeldExclusivelyCannotBeOpenedAndTheNextSaveWorksOnceItIsFree

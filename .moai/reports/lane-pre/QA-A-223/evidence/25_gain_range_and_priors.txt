@@ -1,0 +1,29 @@
+== SPEC 1.3.3 :168 (verbatim, first 900 chars)
+- **게인 범위 밖 화소의 분류** (추가 2026-10-02, `#233` / `QA-A-211`·`211b` — 문안은 `QA-A-211` 보고서 "요구사항 문안" 절의 REQ-P1A-011 보강안 그대로): A pixel whose gain value (scalar) or evaluated polynomial value is outside [0.1, 10.0] **shall** be corrected with gain 1.0 and reported to the defect correction stage of the same pipeline run. `xpe_gain_correct` **shall** return `XPE_ERR_CONFIG_INVALID` for a polynomial gain only when more than 5% of the frame's pixels evaluate outside the range. When binning is enabled and any pixel is classified, the pipeline **shall** return `XPE_ERR_CONFIG_INVALID`.
+
+== SRS FUNC-002 gain range
+33:| **SRS-CALIB-FUNC-002** | System shall load gain calibration file (.xpe_calib format) containing normalization factors (float32). File format: 34-byte header + CRC-32 + gain coefficients (3072×3072×4 bytes). Values shall be in range [0.1, 10.0]; out-of-range values shall trigger `XPE_ERR_INVALID_CALIB_DATA` error. | Gain map normalizes pixel-to-pixel sensitivity variation (FPN). Float32 enables multi-gain polynomial support. Range limits prevent over/under-correction artifacts. | Test: Range validation, file parsing |
+38:> 위 FUNC-001·FUNC-002 와 아래 SAFE-003·PERF-003 이 적은 파일 형식은 실제 구현과 다릅니다. 실제(`.xcal`)는 다음과 같습니다.
+
+== earlier cards/reports that mention the three constants or gain_coverage
+.moai/reports/lane-pre/QA-A-152/verdict.md
+.moai/reports/lane-pre/QA-A-153/verdict.md
+.moai/reports/lane-pre/QA-A-154/verdict.md
+.moai/reports/lane-pre/QA-A-187/evidence/01_token_census.txt
+.moai/reports/lane-pre/QA-A-187/verdict.md
+.moai/reports/lane-pre/QA-A-222/evidence/00_issue_216.txt
+.moai/reports/lane-pre/QA-A-222/evidence/00_issue_218.txt
+.moai/reports/lane-pre/QA-A-222/report.md
+.moai/reports/lane-pre/QA-A-223/evidence/10_pickaxe.txt
+.moai/reports/lane-pre/QA-A-223/evidence/11_origin_commit.txt
+.moai/reports/lane-pre/QA-A-223/evidence/12_values_and_scope.txt
+.moai/reports/lane-pre/QA-A-223/evidence/23_deepsync_and_code.txt
+
+== QA-A-152 report lines on the three
+30:| `PRNU_IMPROVE_MIN_DB` | 3.0 dB | **없음** | 없음 (+ 이름 오용, §4) |
+31:| `GAIN_COVERAGE_MIN` | 0.99 | **없음** | 없음 |
+32:| `SNR_IMPROVE_MIN_DB` | 2.0 dB | **없음** | 없음 |
+94:`PRNU_IMPROVE_MIN_DB`·`GAIN_COVERAGE_MIN`·`SNR_IMPROVE_MIN_DB`: 위 범위에서 값·개념 모두 0건.
+96:추가로 **`PRNU_IMPROVE_MIN_DB` 는 PRNU 에 쓰이지 않습니다**:
+100:bool snr_improved = (metrics->snr_improvement_db >= PRNU_IMPROVE_MIN_DB) || ...
+103:**SNR 값을 PRNU 이름의 상수와 비교**합니다. 그리고 진짜 `SNR_IMPROVE_MIN_DB`(2.0)는 다른 함수

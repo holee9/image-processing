@@ -1,0 +1,19 @@
+== formerly-none five: REQ-P1A blocks naming them now
+xpe_calib_load_offset_cached: 581:**When** `xpe_calib_load_offset(filepath)` is called with a valid XCal file path, the module **shall** par|838:**When** `xpe_calib_load_offset_cached(filePath, offsetMapOut)` is called with non-NULL arguments, the mod|
+xpe_calib_load_gain_cached: 588:**When** `xpe_calib_load_gain(filepath)` is called with a valid XCal file path, the module **shall** parse|858:**When** `xpe_calib_load_gain_cached(filePath, gainMapOut)` is called with non-NULL arguments, the module |
+xpe_calib_load_defect_cached: 600:**When** `xpe_calib_load_defect_map(filepath)` is called with a valid XCal file path, the module **shall**|871:**When** `xpe_calib_load_defect_cached(filePath, defectMapOut)` is called with non-NULL arguments, the mod|
+xpe_preprocess_pipeline_ex: 28:| 1.3.2   | 2026-10-02 | xpe-leader | #216: REQ-P1A-102~106 added (cached offset/gain/defect loaders, `xpe_|607:**When** `xpe_calib_state_load(state, calibPath)` is called with a non-NULL zero-initialized `state` and a|884:**When** `xpe_preprocess_pipeline_ex(img, meta, calibState, ghostHandle, configJsonOrNull)` is called with|
+xpe_preprocess_version: 899:**When** `xpe_preprocess_version()` is called, the module **shall** return a pointer to a NUL-terminated s|
+xpe_calib_cache_clear: 842:  - 반환 버퍼: `XPE_PIXEL_FLOAT32`, `bitsAllocated = bitsStored = 32`, `dataSize = width × height × |847:  - **알려진 한계**: 적중은 파일을 다시 해시하지 않는다. 같은 크기·같은 수정 |880:> `xpe_calib_cache_clear` · `xpe_calib_cache_set_max_size` 의 계약은 SRS-CALIB-FUNC-038 이 이름으|
+xpe_calib_cache_set_max_size: 842:  - 반환 버퍼: `XPE_PIXEL_FLOAT32`, `bitsAllocated = bitsStored = 32`, `dataSize = width × height × |880:> `xpe_calib_cache_clear` · `xpe_calib_cache_set_max_size` 의 계약은 SRS-CALIB-FUNC-038 이 이름으|
+
+== SPEC 1.3.3 changelog row
+27:| 1.3.3   | 2026-10-02 | xpe-leader | #233: gain-out-of-range classification added to REQ-P1A-011/015 (QA-A-211·211b), defect-stage union mask, cluster fill rule and non-finite entry rejection added to REQ-P1A-012 (QA-A-211b·214b), non-finite entry rejection added to REQ-P1A-013 (QA-A-215) and REQ-P1A-087 (QA-A-217), REQ-P1A-091 last sentence revised to the QA-A-216 §5 text, ghost failure behaviour recorded under REQ-P1A-032 (QA-A-217), XCal replace retry recorded under REQ-P1A-019 (QA-A-212b·212c). No new requirement number. Pre chain merge `3a991d7c`. |
+
+== SRS FUNC-036/037/038
+467:| **SRS-CALIB-FUNC-036** | **Verification metrics shall distinguish "failed" from "could not be measured."** Every `xpe_verify_*` function shall report, separately from its pass/fail result, whether each metric was actually measured. A metric that could not be measured shall never be reported as a measured value, and shall not on its own produce a pass. Until a dedicated status field exists, an unmeasurable metri
+468:| **SRS-CALIB-FUNC-037** | **The verification metrics structure shall carry every value its gates decide on, under the canonical name, plus a per-metric measured/unmeasured status.** `XpeCalibrationMetrics` shall be extended once, not three times, to close the three gaps that share it: (i) `DarkReduction_dB` (`FUNC-016`) shall be reported, not computed and discarded; (ii) the canonical `DSNU_ADU = std(Y_dark_roi)
+469:| **SRS-CALIB-FUNC-038** | **Management-surface APIs shall carry a lifetime and error contract, traced as one requirement rather than one each.** The exported functions that administer state rather than deliver a calibration capability — cache control (`xpe_calib_cache_clear`, `xpe_calib_cache_set_max_size`), configuration getters (`xpe_calib_get_max_points`, `xpe_calib_get_poly_degree`, `xpe_calib_get_quality_
+
+== xpe_crc32 in header/DLL
+1

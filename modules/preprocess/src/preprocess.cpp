@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cstring>
 #include <mutex>
+#include <new>
 #include <nlohmann/json.hpp>
 
 namespace {
@@ -60,6 +61,11 @@ extern "C" XPE_API XpeErrorCode xpe_preprocess_init(const char* configJsonOrNull
 
         g_initialized.store(true, std::memory_order_release);
         return XPE_OK;
+    } catch (const std::bad_alloc&) {
+        // QA-A-221b (#233): the header documents XPE_ERR_OUT_OF_MEMORY for an allocation failure and every other export
+        // returns it; this one answered PROCESSING_FAILED (19 of 19 injected failures in the QA-A-221 sweep). The
+        // initialized flag is set last, so the module is as it was.
+        return XPE_ERR_OUT_OF_MEMORY;
     } catch (...) {
         return XPE_ERR_PROCESSING_FAILED;
     }

@@ -2,14 +2,17 @@
  * @file xpe_defect_gen.cpp
  * @brief BPM (Bad Pixel Map) Generation API (SWU-1.11)
  *
- * SPEC: SAD-CALIB-001 SWU-1.11 (FUNC-022~025)
+ * SPEC: SAD-CALIB-001 SWU-1.11 (FUNC-022, FUNC-023; merging and reflect padding are
+ * implementation behaviour, not SRS-CALIB-FUNC-024/-025 -- QA-A-224, #216)
  * IEC 62304 Class B
  *
  * Algorithms:
  * - FUNC-022: Dark BPM generation using RMM (Robust Mask Maker)
  * - FUNC-023: Bright BPM generation using local mean deviation
- * - FUNC-024: BPM merging (dark U bright)
- * - FUNC-025: Reflect padding for boundary handling
+ * - BPM merging (dark U bright) -- implementation behaviour (SRS-CALIB-FUNC-024 is the gain
+ *   frame-count tiers)
+ * - Reflect padding for boundary handling -- implementation behaviour (SRS-CALIB-FUNC-025 is
+ *   the post-BPM LineArtifactScore limit)
  */
 
 #include "xpe/preprocess_api.h"
@@ -152,7 +155,8 @@ XpeErrorCode compute_frame_mean(const XpeImageBuffer* frames,
 /**
  * @brief Extract local window with reflect padding
  *
- * FUNC-025: Reflect padding at boundaries
+ * Reflect padding at boundaries (implementation behaviour; SRS-CALIB-FUNC-025 is the
+ * LineArtifactScore limit)
  *
  * @param image Source image (float32)
  * @param width Image width
@@ -353,7 +357,8 @@ XpeErrorCode generate_bright_bpm(const float* bright_mean,
 /**
  * @brief Merge dark and bright BPM using logical OR
  *
- * FUNC-024: BPM merging (dark U bright)
+ * BPM merging (dark U bright) (implementation behaviour; SRS-CALIB-FUNC-024 is the gain
+ * frame-count tiers)
  *
  * @param dark_bpm Dark BPM (0=good, 1=dead)
  * @param bright_bpm Bright BPM (0=good, 2=hot)
@@ -389,7 +394,7 @@ void merge_bpm(const std::vector<uint8_t>& dark_bpm,
 /**
  * @brief Generate BPM (Bad Pixel Map) from dark and bright frames
  *
- * SWU-1.11: BPM Generation API (FUNC-022~025)
+ * SWU-1.11: BPM Generation API (FUNC-022, FUNC-023)
  *
  * @param dark_frames Array of dark frames (UINT16)
  * @param num_dark Number of dark frames (≥ min_frames_dark)

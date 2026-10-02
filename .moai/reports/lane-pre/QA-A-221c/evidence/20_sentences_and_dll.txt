@@ -1,0 +1,10 @@
+== sentences to correct (QA-A-221 / 221b reports)
+
+27:기존 시험이 못 본 이유(221 에서 적은 대로): `PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas` 등은 같은 파일이 이미 적재된 채 시작해, 실패 뒤 "적재 전"과 "적재 후"가 같은 디지스트였다. 새 시험은 빈 �
+35:| (캐시 적재 시험) | **반증을 만들지 못했다** — 이 시험의 "반쯤" 은 한 맵 안의 상태인데, 저장소 설치가 한 잠금에서 맵·치수를 함께 바꾸는 구조라 자연스러운 손상 지점이 없다. 이 시험은 "�
+
+== is the hook absent from the shipped DLL? (control: a known export name)
+xpe_xcal_write_step_hook 0
+xpe_calib_after_set_commit_hook 0
+xpe_preprocess_init 1
+xcal_step 0

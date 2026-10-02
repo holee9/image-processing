@@ -1,0 +1,6 @@
+ARM a2_pass_gate_without_the_measurable_condition
+built=True
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AnAlreadyFlatPanelWithAnUnmeasurableCorrectedFrameDoesNotPass (0 ms)
+[  PASSED  ] 44 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AnAlreadyFlatPanelWithAnUnmeasurableCorrectedFrameDoesNotPass

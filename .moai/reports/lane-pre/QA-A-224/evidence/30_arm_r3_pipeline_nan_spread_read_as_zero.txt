@@ -1,0 +1,7 @@
+ARM r3_pipeline_nan_spread_read_as_zero
+file src/xpe_verify_metrics.cpp
+built=True
+[  FAILED  ] VerifyMetricsTest.VerifyPipeline_ANanPixelIsNotReadAsAPerfectFrame (0 ms)
+[  PASSED  ] 39 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] VerifyMetricsTest.VerifyPipeline_ANanPixelIsNotReadAsAPerfectFrame

@@ -1,0 +1,22 @@
+== FUNC-036 unmeasurable tests
+modules/preprocess/tests/test_verify_metrics.cpp:416:TEST_F(VerifyMetricsTest, VerifyOffset_UnmeasurableFrameReportsNotMeasured) {
+modules/preprocess/tests/test_verify_metrics.cpp:436:TEST_F(VerifyMetricsTest, VerifyOffset_MeasurableFrameReportsMeasured) {
+modules/preprocess/tests/test_verify_metrics.cpp:515:TEST_F(VerifyMetricsTest, VerifyOffset_TooFewDarkPixelsIsUnmeasurableNotWholeFrame) {
+modules/preprocess/tests/test_verify_metrics.cpp:547:TEST_F(VerifyMetricsTest, VerifyOffset_UnmeasurableFrameDoesNotPass) {
+modules/preprocess/tests/test_verify_metrics_edges.cpp:100:TEST_F(VerifyMetricsEdgeTest, VerifyOffsetFallsBackWhenNoDarkPixelsExist) {
+modules/preprocess/tests/test_verify_metrics_edges.cpp:113:TEST_F(VerifyMetricsEdgeTest, VerifyGainHandlesPerfectlyUniformOutput) {
+
+== SRS ghost removal line
+135:| **SRS-CALIB-FUNC-013** | System shall support three-tier ghost/lag correction with auto-escalation: (1) Tier 1: Multi-exponential LTI deconvolution (N=4 exponentials, model: `Lag(t) = Σ(α_i × exp(-t/τ_i))`); (2) Tier 2: Exposure-weighted LTI (accounts for variable exposure); (3) Tier 3: NL
+151:| **SRS-CALIB-FUNC-020** | System shall compute lag/ghost metrics: `LagResidualPct`, `GhostRemovalPct`, history length, tier selection, and bypass reason. Benchmark sequences with measurable lag shall require at least 90% ghost removal. | Lag and ghost correction is stateful; tier and bypass tra
+333:| **SRS-CALIB-PERF-002** | Peak memory allocation shall not exceed 200 MB per frame processing pipeline. Breakdown: offset map (18.9 MB) + gain map (37.7 MB) + BPM (9.4 MB) + working buffer (37.7 MB) + ghost history (150 MB, optional) = max 190 MB. System shall free allocated memory after frame
+
+== ghost removal rate in tests (control: ghost tests exist)
+ghost test files: 6
+
+== GUI thresholds (not pre-owned)
+clients/ImageProcTest/Services/DefectMetricGates.cs:25:        /// <summary>Protocol §5.5: "GoodPixelDeltaP99 &lt;= 1 ADU".</summary>
+clients/ImageProcTest/Services/DefectMetricGates.cs:26:        public const double GoodPixelDeltaP99MaxAdu = 1.0;
+clients/ImageProcTest/Services/DefectMetricGates.cs:39:        public static string GoodPixelDeltaP99Gate => string.Create(CultureInfo.InvariantCulture, $"<= {GoodPixelDe
+clients/ImageProcTest/Services/DefectMetricGates.cs:45:        public static bool GoodPixelDeltaP99Passes(double p99Adu) => p99Adu <= GoodPixelDeltaP99MaxAdu;
+clients+gui cs files scanned: 257

@@ -1,0 +1,564 @@
+// QA-A-201 TEMPORARY audit probe (not committed).
+//
+// Compiles the product sources AND modules/common/src/xpe_common.cpp (included below, so its static
+// mutex / queue / flags are visible) into one executable with a replacement operator new, then sweeps an
+// allocation failure over the exported extern "C" functions and records, per function:
+//   escaped      - an exception left the C ABI function
+//   lock leaked  - a mutex the function takes was still held afterwards
+//   partial      - the call failed (error code or escape) but state it owns had changed
+//   leak         - live operator-new blocks after a failed call exceed the count before it
+// Nothing is fixed; the output is the measurement for the QA-A-201 table.
+#include "../../common/src/xpe_common.cpp"
+
+#include <gtest/gtest.h>
+
+#include "xpe/preprocess_api.h"
+#include "xpe/preprocess/xpe_preprocess_internal.h"
+#include "xpe/preprocess/xcal_format.h"
+#include "xcal_writer.hpp"
+#include "runtime_detection.h"
+
+#include <algorithm>
+#include <atomic>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <map>
+#include <new>
+#include <string>
+#include <vector>
+
+std::mutex& audit_log_mutex();
+void audit_install_seh_handler();
+
+/* ---------------------------------------------------------------- allocator */
+namespace {
+std::atomic<long> g_failAt{0}, g_count{0}, g_live{0};
+std::atomic<bool> g_injected{false};
+}  // namespace
+
+void* operator new(std::size_t n) {
+    const long limit = g_failAt.load(std::memory_order_relaxed);
+    if (limit > 0 && g_count.fetch_add(1) + 1 == limit) {
+        g_injected.store(true);
+        throw std::bad_alloc();
+    }
+    if (void* p = std::malloc(n ? n : 1)) { g_live.fetch_add(1); return p; }
+    throw std::bad_alloc();
+}
+void* operator new[](std::size_t n) { return operator new(n); }
+void operator delete(void* p) noexcept { if (p) { g_live.fetch_sub(1); std::free(p); } }
+void operator delete[](void* p) noexcept { operator delete(p); }
+void operator delete(void* p, std::size_t) noexcept { operator delete(p); }
+void operator delete[](void* p, std::size_t) noexcept { operator delete(p); }
+
+/* ---------------------------------------------------------------- harness */
+namespace {
+
+void arm(long k) { g_count.store(0); g_injected.store(false); g_failAt.store(k); }
+bool disarm() { g_failAt.store(0); return g_injected.load(); }
+
+struct Row {
+    std::string label;
+    long points{0}, escaped{0}, lockLeaked{0}, partial{0}, leaked{0}, leakedReset{0}, failed{0};
+    std::map<int, long> rcs;   // QA-A-221: the error codes the failed calls returned
+    bool baselineOk{true};
+    std::string note;
+};
+std::vector<Row> g_rows;
+
+/** Releases a mutex that a function left held, and says whether it was. */
+bool leaked(std::mutex& m) {
+    if (m.try_lock()) { m.unlock(); return false; }
+    m.unlock();
+    return true;
+}
+
+struct Probe {
+    std::function<void()> setup;                 // un-armed
+    std::function<int()> call;                   // returns an error code (0 = OK) or 0 for void functions
+    std::function<std::string()> state;          // comparable snapshot of state the function owns
+    std::vector<std::function<bool()>> locks;    // each returns true when a lock leaked (and releases it)
+    bool voidFn{false};
+};
+
+void sweep(const std::string& label, const Probe& p, long kMax = 600) {
+    Row row;
+    row.label = label;
+    std::fprintf(stderr, "[audit-progress] %s\n", label.c_str()); std::fflush(stderr);
+    // baseline: the call must succeed un-armed, or the sweep proves nothing
+    p.setup();
+    int base = 0;
+    try { base = p.call(); } catch (...) { base = -999; }
+    if (base != 0) { row.baselineOk = false; row.note = "baseline rc=" + std::to_string(base); g_rows.push_back(row); return; }
+    p.setup();
+    const long liveBaseline = g_live.load();   // live blocks after a successful call and a full reset
+    for (long k = 1; k <= kMax; ++k) {
+        p.setup();
+        const std::string before = p.state();
+        const long liveBefore = g_live.load();
+        bool escaped = false;
+        int rc = 0;
+        if (getenv("AUDIT_TRACE")) { std::fprintf(stderr, "[audit-k] %ld\n", k); std::fflush(stderr); }
+        arm(k);
+        std::string escWhat;
+        try { rc = p.call(); } catch (const std::exception& e) { escaped = true; escWhat = e.what(); } catch (...) { escaped = true; escWhat = "non-std exception"; }
+        const bool injected = disarm();
+        const long liveAfter = g_live.load();
+        bool anyLeak = false;
+        for (auto& l : p.locks) anyLeak = l() || anyLeak;
+        const std::string after = p.state();
+        if (!injected) { break; }
+        ++row.points;
+        const bool failed = escaped || rc != 0;
+        if (escaped) { ++row.escaped; if (getenv("AUDIT_DETAIL")) std::printf("[audit-detail] escaped at k=%ld: %s\n", k, escWhat.c_str()); }
+        if (anyLeak) ++row.lockLeaked;
+        if (failed) {
+            ++row.failed;
+            if (!escaped) ++row.rcs[rc];
+            if (before != after) { ++row.partial; if (getenv("AUDIT_DETAIL")) std::printf("[audit-detail] partial at k=%ld (rc=%d escaped=%d)\n", k, rc, int(escaped)); }
+            if (liveAfter > liveBefore) ++row.leaked;       // raw growth: leak OR retained state
+            p.setup();
+            if (g_live.load() > liveBaseline) ++row.leakedReset;  // growth that survives a reset (noisy)
+        }
+    }
+    g_rows.push_back(row);
+}
+
+/* ---------------------------------------------------------------- fixtures */
+constexpr uint32_t W = 8, H = 8;
+constexpr size_t N = size_t(W) * H;
+
+void resetAll() {
+    { std::lock_guard<std::mutex> lk(g_calib_mutex); g_calib = CalibrationData{}; }
+    xpe_calib_cache_clear();
+    xpe_preprocess_shutdown();
+    xpe_shutdown();
+    xpe_clear_alerts();
+}
+void writeFile(const char* path, uint32_t type, uint32_t fmt, const void* data, size_t bytes) {
+    std::remove(path);
+    XCalFileHeader hdr{};
+    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    hdr.version = XCAL_VERSION; hdr.type = type; hdr.pixel_format = fmt;
+    hdr.width = W; hdr.height = H; hdr.payload_len = bytes;
+    write_xcal_file(path, hdr, reinterpret_cast<const uint8_t*>("{}"), 2, static_cast<const uint8_t*>(data), bytes);
+}
+void makeFiles() {
+    std::vector<float> off(N, 100.f), gain(N, 2.f);
+    std::vector<uint8_t> def(N, 0);
+    def[10] = 1;
+    writeFile("ap_off.xcal", XCAL_TYPE_OFFSET, XCAL_FMT_FLOAT32, off.data(), off.size() * 4);
+    writeFile("ap_gain.xcal", XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, gain.data(), gain.size() * 4);
+    writeFile("ap_def.xcal", XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, def.data(), def.size());
+}
+void loadAll() {
+    xpe_preprocess_init(nullptr);
+    xpe_calib_load_offset("ap_off.xcal");
+    xpe_calib_load_gain("ap_gain.xcal");
+    xpe_calib_load_defect_map("ap_def.xcal");
+}
+XpeImageBuffer buf(void* d, XpePixelFormat f, uint32_t bits) {
+    XpeImageBuffer b{};
+    b.data = d; b.width = W; b.height = H; b.bitsAllocated = bits; b.bitsStored = bits; b.format = f;
+    b.dataSize = uint32_t(N * (bits / 8));
+    return b;
+}
+
+std::string commonState() {
+    std::lock_guard<std::mutex> lk(g_mutex);
+    std::string s = std::to_string(g_initialized) + "|" + std::to_string(g_logLevel) + "|" + g_configJson + "|" +
+                    std::to_string(g_alertsDropped) + "|" + std::to_string(g_alertQueue.size());
+    for (auto& e : g_alertQueue) s += "|" + e.message + ":" + std::to_string(e.severity) + (e.isLossAlert ? "L" : "");
+    return s;
+}
+std::string calibState() {
+    std::lock_guard<std::mutex> lk(g_calib_mutex);
+    return std::to_string(reinterpret_cast<uintptr_t>(g_calib.offset_map.get())) + "|" +
+           std::to_string(reinterpret_cast<uintptr_t>(g_calib.gain_map.get())) + "|" +
+           std::to_string(reinterpret_cast<uintptr_t>(g_calib.defect_map.get()));
+}
+const std::string kLongMsg = "a warning message long enough to need a heap allocation: 0123456789012345678901234567890123456789";
+const std::string kLongCfg = "{\"note\":\"a configuration long enough to need a heap allocation: 01234567890123456789012345678901\"}";
+
+std::vector<std::pair<std::string, Probe>> g_probes;
+void add(const std::string& label, const Probe& p) { g_probes.emplace_back(label, p); }
+
+}  // namespace
+
+// Run one probe per process (AUDIT_ONLY=<index>): an exception that crosses an extern "C" function can
+// kill the process, and that is itself a result worth recording.
+TEST(AuditProbe, Sweep) {
+    audit_install_seh_handler();
+    makeFiles();
+    auto calibLeak = [] { return leaked(g_calib_mutex); };
+    auto commonLeak = [] { return leaked(g_mutex); };
+    auto logLeak = [] { return leaked(audit_log_mutex()); };
+    std::vector<uint16_t> in16(N, 1000);
+    std::vector<float> ghin(N, 1000.f), vgb(N, 500.f), vgg(N, 2.f);
+    std::vector<uint16_t> pimg(N, 1000), va16(N, 1000), vb16(N, 100), vga(N, 1000);
+    for (size_t i = 0; i < N; ++i) { va16[i] = uint16_t(100 + (i % 4) * 50 + (i / 4) * 7); vb16[i] = uint16_t(va16[i] > 90 ? va16[i] - 90 : 0); }
+    std::vector<uint8_t> pbytes(N * sizeof(float), 0);   // QA-A-205: the pipeline writes a float32 result into the buffer it is given
+    std::vector<float> f32in(N, 1000.f), f32out(N, 0.f), f32out2(N, 0.f);
+    std::vector<uint16_t> out16(N, 0);
+    XpeImageMetadata meta{};
+
+    // ---- modules/common ---------------------------------------------------------------------
+    add("xpe_alert_push (empty queue)", Probe{
+        [] { resetAll(); xpe_init(nullptr); },
+        [] { xpe_alert_push(kLongMsg.c_str(), XPE_ALERT_WARNING); return 0; },
+        commonState, {commonLeak}, true});
+    add("xpe_alert_push (full queue, evicts)", Probe{
+        [] { resetAll(); xpe_init(nullptr); for (int i = 0; i < 64; ++i) xpe_alert_push("filler", XPE_ALERT_INFO); },
+        [] { xpe_alert_push(kLongMsg.c_str(), XPE_ALERT_WARNING); return 0; },
+        commonState, {commonLeak}, true});
+    add("xpe_init (with config)", Probe{
+        [] { resetAll(); std::lock_guard<std::mutex> lk(g_mutex); std::string().swap(g_configJson); },
+        [] { return int(xpe_init(kLongCfg.c_str())); },
+        [] { float a = 0, b = 0, c = 0; return std::to_string(xpe_get_param_range("CHEST", "gamma", &a, &b, &c) == XPE_ERR_NOT_INITIALIZED); },
+        {commonLeak}});
+    add("xpe_configure", Probe{
+        [] { resetAll(); xpe_init(nullptr); std::lock_guard<std::mutex> lk(g_mutex); std::string().swap(g_configJson); },
+        [] { return int(xpe_configure(kLongCfg.c_str())); },
+        commonState, {commonLeak}});
+    add("xpe_shutdown", Probe{
+        [] { resetAll(); xpe_init(kLongCfg.c_str()); },
+        [] { xpe_shutdown(); return 0; },
+        commonState, {commonLeak, logLeak}, true});
+    add("xpe_log_set_file (valid path)", Probe{
+        [] { resetAll(); xpe_init(nullptr); },
+        [] { return int(xpe_log_set_file("ap_log.txt")); },
+        [] { return std::string("n/a"); }, {logLeak}});
+    add("xpe_log_set_level", Probe{
+        [] { resetAll(); },
+        [] { return int(xpe_log_set_level(3)); },
+        [] { return std::string(); }, {logLeak}});
+    add("xpe_log_flush", Probe{
+        [] { resetAll(); xpe_init(nullptr); xpe_log_set_file("ap_log.txt"); },
+        [] { xpe_log_flush(); return 0; },
+        [] { return std::string(); }, {logLeak}, true});
+    add("xpe_get_pending_alert_count", Probe{
+        [] { resetAll(); xpe_init(nullptr); xpe_alert_push("x", 0); },
+        [] { return int(xpe_get_pending_alert_count()) > 0 ? 0 : 1; },
+        commonState, {commonLeak}});
+    add("xpe_get_pending_alert", Probe{
+        [] { resetAll(); xpe_init(nullptr); xpe_alert_push("x", 0); },
+        [] { char m[64]; int32_t s = 0; return int(xpe_get_pending_alert(0, m, sizeof m, &s)); },
+        commonState, {commonLeak}});
+    add("xpe_clear_alerts", Probe{
+        [] { resetAll(); xpe_init(nullptr); xpe_alert_push("x", 0); },
+        [] { xpe_clear_alerts(); return 0; },
+        commonState, {commonLeak}, true});
+
+    // ---- modules/preprocess: correctors -----------------------------------------------------
+    add("xpe_offset_correct", Probe{
+        [] { resetAll(); loadAll(); },
+        [&] { XpeImageBuffer i = buf(in16.data(), XPE_PIXEL_UINT16, 16), o = buf(out16.data(), XPE_PIXEL_UINT16, 16);
+              return int(xpe_offset_correct(&i, &o, &meta)); },
+        calibState, {calibLeak}});
+    add("xpe_gain_correct", Probe{
+        [] { resetAll(); loadAll(); },
+        [&] { XpeImageBuffer i = buf(in16.data(), XPE_PIXEL_UINT16, 16), o = buf(f32out.data(), XPE_PIXEL_FLOAT32, 32);
+              return int(xpe_gain_correct(&i, &o, &meta)); },
+        calibState, {calibLeak}});
+    add("xpe_defect_correct", Probe{
+        [] { resetAll(); loadAll(); },
+        [&] { XpeImageBuffer i = buf(f32in.data(), XPE_PIXEL_FLOAT32, 32), o = buf(f32out2.data(), XPE_PIXEL_FLOAT32, 32);
+              return int(xpe_defect_correct(&i, &o, &meta)); },
+        calibState, {calibLeak}});
+    void* gh = nullptr;
+    add("xpe_ghost_create (with config)", Probe{
+        [&] { resetAll(); gh = nullptr; },
+        [&] { return int(xpe_ghost_create(W, H, kLongCfg.c_str(), &gh)); },
+        [] { return std::string(); }, {}});
+    add("xpe_ghost_create (config with long values)", Probe{
+        [&] { resetAll(); if (gh) { xpe_ghost_destroy(gh); gh = nullptr; } },
+        [&] { return int(xpe_ghost_create(W, H,
+              "{\"tier\":\"2\",\"alpha1\":\"0.123456789012345678901234567890\",\"tau1\":\"1.234567890123456789012345678\"}", &gh)); },
+        [] { return std::string(); }, {}});
+    add("xpe_ghost_correct", Probe{
+        [&] { resetAll(); xpe_preprocess_init(nullptr); if (!gh) xpe_ghost_create(W, H, nullptr, &gh); },
+        [&] { std::fill(ghin.begin(), ghin.end(), 1000.f); XpeImageBuffer i = buf(ghin.data(), XPE_PIXEL_FLOAT32, 32);
+              return int(xpe_ghost_correct(gh, &i, &meta)); },
+        [] { return std::string(); }, {}});
+    add("xpe_preprocess_pipeline_ex (all stages, valid)", Probe{
+        [] { resetAll(); loadAll(); },
+        [&] { auto* q = reinterpret_cast<uint16_t*>(pbytes.data()); for (size_t k = 0; k < N; ++k) q[k] = 1000;
+              XpeImageBuffer i = buf(pbytes.data(), XPE_PIXEL_UINT16, 16); i.dataSize = uint32_t(N * sizeof(float));
+              return int(xpe_preprocess_pipeline_ex(&i, &meta, nullptr, nullptr,
+                         "{\"bypassNonlinearity\":\"true\",\"bypassGhost\":\"true\",\"bypassBinning\":\"true\"}")); },
+        calibState, {calibLeak}});
+    add("xpe_verify_offset", Probe{
+        [] { resetAll(); },
+        [&] { XpeImageBuffer ia = buf(va16.data(), XPE_PIXEL_UINT16, 16), ib = buf(vb16.data(), XPE_PIXEL_UINT16, 16);
+              XpeCalibrationMetrics m{}; return int(xpe_verify_offset(&ia, &ib, &meta, &m)); },
+        [] { return std::string(); }, {}});
+    add("xpe_verify_gain", Probe{
+        [] { resetAll(); },
+        [&] { XpeImageBuffer ia = buf(vga.data(), XPE_PIXEL_UINT16, 16), ib = buf(vgb.data(), XPE_PIXEL_FLOAT32, 32), ig = buf(vgg.data(), XPE_PIXEL_FLOAT32, 32);
+              XpeCalibrationMetrics m{}; return int(xpe_verify_gain(&ia, &ib, &ig, XPE_GAIN_SEMANTICS_UNKNOWN, &m)); },
+        [] { return std::string(); }, {}});
+
+
+    // ---- QA-A-221: the QA-A-201 "read only" entries, now swept too -------------------------------------
+    std::filesystem::create_directories("ap_dir");
+    {
+        std::vector<float> off(N, 100.f), gain(N, 2.f);
+        std::vector<uint8_t> def(N, 0); def[10] = 1;
+        writeFile("ap_dir/offset.xcal", XCAL_TYPE_OFFSET, XCAL_FMT_FLOAT32, off.data(), off.size() * 4);
+        writeFile("ap_dir/gain.xcal", XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, gain.data(), gain.size() * 4);
+        writeFile("ap_dir/defect.xcal", XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, def.data(), def.size());
+    }
+    static const std::string kPipeCfg = "{\"detectorTempC\":\"25.5\",\"binningMode\":\"2\",\"note\":\"padding so that this configuration does not fit in a small string: 0123456789012345678901234567890123456789\"}";
+    auto fillPipe = [&] { auto* q = reinterpret_cast<uint16_t*>(pbytes.data()); for (size_t k = 0; k < N; ++k) q[k] = uint16_t(1000 + (k * 37) % 300); };
+    auto pipeBuf = [&] { XpeImageBuffer i = buf(pbytes.data(), XPE_PIXEL_UINT16, 16); i.dataSize = uint32_t(N * sizeof(float)); return i; };
+    add("xpe_preprocess_pipeline (calib dir)", Probe{
+        [] { resetAll(); xpe_preprocess_init(nullptr); },
+        [&] { fillPipe(); XpeImageBuffer i = pipeBuf(); return int(xpe_preprocess_pipeline(&i, &meta, "ap_dir", nullptr, kPipeCfg.c_str())); },
+        calibState, {calibLeak}});
+    add("xpe_preprocess_pipeline_batch (1 frame)", Probe{
+        [] { resetAll(); xpe_preprocess_init(nullptr); },
+        [&] { fillPipe(); XpeImageBuffer i = pipeBuf(); return int(xpe_preprocess_pipeline_batch(&i, 1, &meta, "ap_dir", nullptr, kPipeCfg.c_str())); },
+        calibState, {calibLeak}});
+    std::vector<uint16_t> vraw(N), vcor(N);
+    std::vector<float> vfin(N);
+    for (size_t i = 0; i < N; ++i) { vraw[i] = uint16_t(1000 + (i % 4) * 60); vfin[i] = 1000.0f + float(i % 3); }
+    add("xpe_verify_pipeline", Probe{
+        [] { resetAll(); },
+        [&] { XpeImageBuffer r = buf(vraw.data(), XPE_PIXEL_UINT16, 16), f = buf(vfin.data(), XPE_PIXEL_FLOAT32, 32);
+              XpeCalibrationMetrics m{}; return int(xpe_verify_pipeline(&r, &f, nullptr, &m)); },
+        [] { return std::string(); }, {}});
+    std::vector<float> rtimg(N, 1000.0f); rtimg[5] = 9000.0f;
+    std::vector<uint8_t> rtout(N, 0xAB);
+    add("xpe_defect_detect_runtime", Probe{
+        [&] { resetAll(); std::fill(rtout.begin(), rtout.end(), uint8_t(0xAB)); },
+        [&] { std::fill(rtout.begin(), rtout.end(), uint8_t(0xAB)); XpeImageBuffer i = buf(rtimg.data(), XPE_PIXEL_FLOAT32, 32), o = buf(rtout.data(), XPE_PIXEL_UINT8, 8);
+              return int(xpe_defect_detect_runtime(&i, nullptr, &o)); },
+        [&] { return std::string(rtout.begin(), rtout.end()); }, {}});
+    std::vector<std::vector<uint16_t>> bdark(5, std::vector<uint16_t>(N, 100)), bbright(10, std::vector<uint16_t>(N, 3000));
+    bdark[1][5] = 3000; bbright[2][9] = 5;
+    std::vector<XpeImageBuffer> bd, bb;
+    for (auto& f : bdark) bd.push_back(buf(f.data(), XPE_PIXEL_UINT16, 16));
+    for (auto& f : bbright) bb.push_back(buf(f.data(), XPE_PIXEL_UINT16, 16));
+    std::vector<uint8_t> bout(N, 0xAB);
+    add("xpe_bpm_generate", Probe{
+        [&] { resetAll(); std::fill(bout.begin(), bout.end(), uint8_t(0xAB)); },
+        [&] { std::fill(bout.begin(), bout.end(), uint8_t(0xAB)); XpeImageBuffer o = buf(bout.data(), XPE_PIXEL_UINT8, 8);
+              return int(xpe_bpm_generate(bd.data(), 5, bb.data(), 10, nullptr, &o)); },
+        [&] { return std::string(bout.begin(), bout.end()); }, {}});
+    constexpr int kLv = 10;
+    std::vector<std::vector<uint16_t>> nflat(kLv);
+    std::vector<XpeImageBuffer> nbufs;
+    static double ndoses[kLv];
+    for (int l = 0; l < kLv; ++l) { ndoses[l] = 100.0 * (l + 1); nflat[l].assign(N, uint16_t(300 * (l + 1))); nbufs.push_back(buf(nflat[l].data(), XPE_PIXEL_UINT16, 16)); }
+    add("xpe_calib_generate_nonlin_lut", Probe{
+        [] { resetAll(); std::remove("ap_nlut.xcal"); std::remove("ap_nlut.xcal.tmp"); },
+        [&] { std::remove("ap_nlut.xcal"); std::remove("ap_nlut.xcal.tmp");
+              return int(xpe_calib_generate_nonlin_lut(nbufs.data(), ndoses, kLv, nullptr, 4096u, "ap_nlut.xcal", nullptr)); },
+        [] { std::ifstream a("ap_nlut.xcal"), b("ap_nlut.xcal.tmp"); return std::to_string(a.good()) + std::to_string(b.good()); }, {}});
+    static const std::string kNlCfg = "{\"panel.nonlinearity_mode\":\"POLY\",\"panel.nonlin_poly_c1\":2.0,\"panel.adc_max\":65535}";
+    static std::vector<uint16_t> nlpx(N);
+    add("xpe_nonlinearity_correct (polynomial)", Probe{
+        [&] { resetAll(); xpe_preprocess_init(nullptr); std::fill(nlpx.begin(), nlpx.end(), uint16_t(1000)); },
+        [&] { std::fill(nlpx.begin(), nlpx.end(), uint16_t(1000)); XpeImageBuffer i = buf(nlpx.data(), XPE_PIXEL_UINT16, 16);
+              return int(xpe_nonlinearity_correct(&i, kNlCfg.c_str())); },
+        [&] { return std::string(reinterpret_cast<const char*>(nlpx.data()), nlpx.size() * 2); }, {calibLeak}});
+    add("xpe_calib_load_offset (plain)", Probe{
+        [] { resetAll(); xpe_preprocess_init(nullptr); },
+        [] { return int(xpe_calib_load_offset("ap_off.xcal")); },
+        calibState, {calibLeak}});
+    add("xpe_calib_load_gain (plain)", Probe{
+        [] { resetAll(); xpe_preprocess_init(nullptr); },
+        [] { return int(xpe_calib_load_gain("ap_gain.xcal")); },
+        calibState, {calibLeak}});
+    add("xpe_calib_load_defect_map (plain)", Probe{
+        [] { resetAll(); xpe_preprocess_init(nullptr); },
+        [] { return int(xpe_calib_load_defect_map("ap_def.xcal")); },
+        calibState, {calibLeak}});
+    add("xpe_calib_load_offset_cached", Probe{
+        [] { resetAll(); xpe_preprocess_init(nullptr); },
+        [] { XpeImageBuffer v{}; return int(xpe_calib_load_offset_cached("ap_off.xcal", &v)); },
+        calibState, {calibLeak}});
+    add("xpe_calib_save (offset)", Probe{
+        [] { resetAll(); loadAll(); std::remove("ap_save.xcal"); },
+        [] { std::remove("ap_save.xcal"); return int(xpe_calib_save("ap_save.xcal", "offset", 0)); },
+        calibState, {calibLeak}});
+    static std::vector<std::vector<uint16_t>> gdark(4, std::vector<uint16_t>(N, 100));
+    static std::vector<XpeImageBuffer> gfr;
+    for (auto& f : gdark) gfr.push_back(buf(f.data(), XPE_PIXEL_UINT16, 16));
+    add("xpe_calib_generate_offset", Probe{
+        [] { resetAll(); xpe_preprocess_init(nullptr); std::remove("ap_gen_off.xcal"); },
+        [&] { std::remove("ap_gen_off.xcal");
+              return int(xpe_calib_generate_offset(gfr.data(), 4, 10.0f, 25.0f, "ap_gen_off.xcal", nullptr)); },
+        calibState, {calibLeak}});
+
+    add("xpe_calib_load_gain_cached", Probe{
+        [] { resetAll(); xpe_preprocess_init(nullptr); },
+        [] { XpeImageBuffer v{}; return int(xpe_calib_load_gain_cached("ap_gain.xcal", &v)); },
+        calibState, {calibLeak}});
+    add("xpe_calib_load_defect_cached", Probe{
+        [] { resetAll(); xpe_preprocess_init(nullptr); },
+        [] { XpeImageBuffer v{}; return int(xpe_calib_load_defect_cached("ap_def.xcal", &v)); },
+        calibState, {calibLeak}});
+    // the one definition left inside an extern "C" block of the product that is not a plain export (runtime_detection.h, line 270)
+    add("RuntimeDetection_DefaultConfig (extern C inline)", Probe{
+        [] { resetAll(); },
+        [] { volatile auto c = RuntimeDetection_DefaultConfig(); (void)c; return 0; },
+        [] { return std::string(); }, {}});
+
+    // ---- QA-A-221: the remaining allocating exports ---------------------------------------------------
+    static std::vector<std::vector<uint16_t>> gflat(4, std::vector<uint16_t>(N, 2000));
+    static std::vector<uint16_t> gdarkpx(N, 100);
+    static std::vector<XpeImageBuffer> gflatBufs;
+    for (auto& f : gflat) gflatBufs.push_back(buf(f.data(), XPE_PIXEL_UINT16, 16));
+    static XpeImageBuffer gdarkBuf = buf(gdarkpx.data(), XPE_PIXEL_UINT16, 16);
+    add("xpe_calib_generate_gain", Probe{
+        [] { resetAll(); xpe_preprocess_init(nullptr); std::remove("ap_gen_gain.xcal"); },
+        [&] { std::remove("ap_gen_gain.xcal");
+              return int(xpe_calib_generate_gain(gflatBufs.data(), 4, &gdarkBuf, "ap_gen_gain.xcal", nullptr)); },
+        [] { std::ifstream a("ap_gen_gain.xcal"), b("ap_gen_gain.xcal.tmp"); return std::to_string(a.good()) + std::to_string(b.good()); }, {calibLeak}});
+    {
+        for (int i = 0; i < 3; ++i) {
+            std::vector<float> g(N, 1.0f + 0.5f * float(i));
+            writeFile((std::string("ap_g") + std::to_string(i + 1) + ".xcal").c_str(), XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, g.data(), g.size() * 4);
+        }
+    }
+    static const char* gpaths[3] = {"ap_g1.xcal", "ap_g2.xcal", "ap_g3.xcal"};
+    static const double gdoses[3] = {100.0, 200.0, 300.0};
+    add("xpe_calib_generate_gain_polynomial", Probe{
+        [] { resetAll(); xpe_preprocess_init(nullptr); std::remove("ap_gen_poly.xcal"); },
+        [&] { std::remove("ap_gen_poly.xcal"); return int(xpe_calib_generate_gain_polynomial(gpaths, gdoses, 3, 1, "ap_gen_poly.xcal")); },
+        [] { std::ifstream a("ap_gen_poly.xcal"), b("ap_gen_poly.xcal.tmp"); return std::to_string(a.good()) + std::to_string(b.good()); }, {calibLeak}});
+    {
+        std::vector<uint16_t> lut(4096u);
+        for (uint32_t i = 0; i < 4096u; ++i) lut[i] = static_cast<uint16_t>(i / 2u);
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version = XCAL_VERSION; hdr.type = static_cast<uint32_t>(XCAL_TYPE_NONLIN_LUT);
+        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_UINT16);
+        hdr.width = 4096; hdr.height = 1; hdr.payload_len = lut.size() * sizeof(uint16_t);
+        hdr.created_epoch_ms = 1700000000000ll;
+        std::remove("ap_nlut_in.xcal");
+        write_xcal_file("ap_nlut_in.xcal", hdr, reinterpret_cast<const uint8_t*>("{}"), 2,
+                        reinterpret_cast<const uint8_t*>(lut.data()), lut.size() * sizeof(uint16_t));
+    }
+    add("xpe_calib_load_nonlin_lut", Probe{
+        [] { resetAll(); xpe_preprocess_init(nullptr); },
+        [] { return int(xpe_calib_load_nonlin_lut("ap_nlut_in.xcal")); },
+        [] { return std::string(); }, {calibLeak}});
+    add("xpe_calib_check_expiry", Probe{
+        [] { resetAll(); xpe_preprocess_init(nullptr); },
+        [] { bool e = false; int32_t d = 0; return int(xpe_calib_check_expiry("ap_off.xcal", &e, &d)); },
+        [] { return std::string(); }, {}});
+    add("xpe_preprocess_init (config)", Probe{
+        [] { resetAll(); },
+        [] { return int(xpe_preprocess_init(kLongCfg.c_str())); },
+        [] { return std::to_string(xpe_preprocess_is_initialized()); }, {calibLeak}});
+    add("xpe_preprocess_shutdown", Probe{
+        [] { resetAll(); xpe_preprocess_init(kLongCfg.c_str()); loadAll(); },
+        [] { xpe_preprocess_shutdown(); return 0; },
+        calibState, {calibLeak}, true});
+
+    // ---- cache list/index consistency after a failed insert (AUDIT_ONLY=cache) ---------------------
+    if (const char* c = std::getenv("AUDIT_ONLY"); c && std::string(c) == "cache") {
+        std::vector<float> off2(N, 200.f);
+        writeFile("ap_off2.xcal", XCAL_TYPE_OFFSET, XCAL_FMT_FLOAT32, off2.data(), off2.size() * 4);
+        long points = 0, failed = 0, escaped = 0, lostHit = 0;
+        for (long k = 1; k <= 200; ++k) {
+            resetAll();
+            xpe_calib_cache_set_max_size(2);
+            XpeImageBuffer v{};
+            bool esc = false;
+            int rc = 0;
+            arm(k);
+            try { rc = int(xpe_calib_load_offset_cached("ap_off.xcal", &v)); } catch (...) { esc = true; }
+            const bool injected = disarm();
+            if (!injected) break;
+            ++points;
+            if (!(esc || rc != 0)) continue;
+            ++failed;
+            if (esc) ++escaped;
+            { std::lock_guard<std::mutex> lk(g_calib_mutex); }   // would throw if the store lock leaked
+            XpeImageBuffer a1{}, b1{}, a2{};
+            const int ra1 = int(xpe_calib_load_offset_cached("ap_off.xcal", &a1));    // miss: loads and caches A
+            const int rb1 = int(xpe_calib_load_offset_cached("ap_off2.xcal", &b1));   // miss: loads and caches B
+            const int ra2 = int(xpe_calib_load_offset_cached("ap_off.xcal", &a2));    // A must still be cached: a hit
+            if (ra1 == 0 && rb1 == 0 && ra2 == 0 && a2.data != a1.data) ++lostHit;
+        }
+        std::printf("[audit] put_locked after a failed insert (capacity 2): points=%ld failed=%ld escaped=%ld "
+                    "A-no-longer-cached-after-A,B,A=%ld\n", points, failed, escaped, lostHit);
+        std::fflush(stdout);
+        return;
+    }
+
+    // ---- run one ---------------------------------------------------------------------------
+    const char* only = std::getenv("AUDIT_ONLY");
+    if (!only) {
+        for (size_t i = 0; i < g_probes.size(); ++i) std::printf("[audit-list] %zu\t%s\n", i, g_probes[i].first.c_str());
+        SUCCEED();
+        return;
+    }
+    if (std::string(only) != "cfg" && std::string(only) != "cfgdirect") {
+        const size_t idx = static_cast<size_t>(std::atoi(only));
+        ASSERT_LT(idx, g_probes.size());
+        std::printf("[audit-start] %zu\t%s\n", idx, g_probes[idx].first.c_str());
+        std::fflush(stdout);
+        sweep(g_probes[idx].first, g_probes[idx].second);
+        const Row& r = g_rows.back();
+        if (!r.baselineOk) {
+            std::printf("[audit] %-46s BASELINE FAILED (%s)\n", r.label.c_str(), r.note.c_str());
+        } else {
+            std::string rcs;
+            for (const auto& kv : r.rcs) rcs += (rcs.empty() ? "" : ",") + std::to_string(kv.first) + "x" + std::to_string(kv.second);
+            std::printf("[audit] %-46s points=%ld failed=%ld escaped=%ld lockleak=%ld partial=%ld growth=%ld growthAfterReset=%ld rc={%s}\n", r.label.c_str(),
+                        r.points, r.failed, r.escaped, r.lockLeaked, r.partial, r.leaked, r.leakedReset, rcs.c_str());
+        }
+        std::fflush(stdout);
+        return;
+    }
+
+    // ---- non-OOM escape: malformed numbers in the config JSON ------------------------------
+    resetAll(); loadAll();
+    {
+        const char* bad[] = {"{\"detectorTempC\":\"abc\"}", "{\"binningMode\":\"x\"}", "{\"detectorTempC\":\"1e999\"}",
+                             "{\"binningMode\":\"99999999999999999999\"}"};
+        for (const char* cfg : bad) {
+            std::vector<uint16_t> img(N, 1000);
+            XpeImageBuffer i = buf(img.data(), XPE_PIXEL_UINT16, 16);
+            std::string what = "returned";
+            int rc = 0;
+            if (std::string(only) == "cfgdirect") {
+                // The call sits directly inside the try block of a plain C++ caller.
+                try { rc = int(xpe_preprocess_pipeline_ex(&i, &meta, nullptr, nullptr, cfg)); what += " rc=" + std::to_string(rc); }
+                catch (const std::exception& e) { what = std::string("CAUGHT std::exception: ") + e.what(); }
+                catch (...) { what = "CAUGHT unknown"; }
+            } else {
+                // Same call, one indirection away (std::function), so the call site is an ordinary one.
+                std::function<int()> f = [&] { return int(xpe_preprocess_pipeline_ex(&i, &meta, nullptr, nullptr, cfg)); };
+                try { rc = f(); what += " rc=" + std::to_string(rc); }
+                catch (const std::exception& e) { what = std::string("THREW std::exception: ") + e.what(); }
+                catch (...) { what = "THREW unknown"; }
+            }
+            std::printf("[audit] pipeline_ex config %-44s -> %s\n", cfg, what.c_str());
+            std::fflush(stdout);
+        }
+        // xpe_ghost_create parses its config outside its try block: a malformed number throws after the
+        // handle (and its two history buffers) has been allocated.
+        for (const char* gcfg : {"{\"alpha1\":\"abc\"}", "{\"tier\":\"x\"}", "{\"tau2\":\"1e999\"}"}) {
+            void* h = nullptr;
+            const long l0 = g_live.load();
+            std::string what = "returned";
+            std::function<int()> f = [&] { return int(xpe_ghost_create(W, H, gcfg, &h)); };
+            try { const int rc = f(); what += " rc=" + std::to_string(rc); }
+            catch (const std::exception& e) { what = std::string("THREW std::exception: ") + e.what(); }
+            catch (...) { what = "THREW unknown"; }
+            std::printf("[audit] ghost_create config %-24s -> %s ; live blocks +%ld ; handleOut=%s\n", gcfg, what.c_str(),
+                        g_live.load() - l0, h ? "set" : "null");
+            std::fflush(stdout);
+        }
+    }
+    SUCCEED();
+}

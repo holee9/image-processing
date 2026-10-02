@@ -1,0 +1,15 @@
+ARM q2_pipeline_commits_the_offset_before_the_rest_is_staged
+file src/pipeline.cpp
+built=True
+[  FAILED  ] OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet (34 ms)
+[  FAILED  ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas (96 ms)
+[  FAILED  ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas (69 ms)
+[  PASSED  ] 60 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet
+[  FAILED  ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+[  FAILED  ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+reasons (first 3):
+xpe_preprocess_pipeline (empty store): allocation #35 failed (rc -2): the store holds neither nothing nor the whole verified set (a half-replaced set)
+xpe_preprocess_pipeline: allocation #35 failed (rc -2): the store is neither set A nor set B: a failed load replaced part of it
+xpe_preprocess_pipeline_batch: allocation #35 failed (rc -2): the store is neither set A nor set B: a failed load replaced part of it

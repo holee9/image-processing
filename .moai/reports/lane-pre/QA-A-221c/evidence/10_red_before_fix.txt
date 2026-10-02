@@ -1,0 +1,84 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *AWriteFailureIsReportedWithItsOwnCause*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from OomInjection
+[ RUN      ] OomInjection.AWriteFailureIsReportedWithItsOwnCauseNotWhatAnEarlierStepLeftBehind
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(967): error: Expected: (std::string::npos) != (a.find("the system reported no error code")), actual: 18446744073709551615 vs 18446744073709551615
+step 2: the failing step reported no OS error, and the alert must say so: XPE_WARN_XCAL_TEMP_WRITE_FAILED: writing the temporary file 'oom_stale_error.xcal.tmp' for the calibration file 'oom_stale_error.xcal' failed (errno 22: Invalid argument, Windows error 1234). The previous file, if any, is unchanged and the temporary file was removed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(969): error: Expected equality of these values:
+  std::string::npos
+    Which is: 18446744073709551615
+  a.find("1234")
+    Which is: 185
+step 2: a stale Windows error leaked: XPE_WARN_XCAL_TEMP_WRITE_FAILED: writing the temporary file 'oom_stale_error.xcal.tmp' for the calibration file 'oom_stale_error.xcal' failed (errno 22: Invalid argument, Windows error 1234). The previous file, if any, is unchanged and the temporary file was removed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(970): error: Expected equality of these values:
+  std::string::npos
+    Which is: 18446744073709551615
+  a.find("errno 22")
+    Which is: 143
+step 2: a stale errno leaked: XPE_WARN_XCAL_TEMP_WRITE_FAILED: writing the temporary file 'oom_stale_error.xcal.tmp' for the calibration file 'oom_stale_error.xcal' failed (errno 22: Invalid argument, Windows error 1234). The previous file, if any, is unchanged and the temporary file was removed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(967): error: Expected: (std::string::npos) != (a.find("the system reported no error code")), actual: 18446744073709551615 vs 18446744073709551615
+step 3: the failing step reported no OS error, and the alert must say so: XPE_WARN_XCAL_TEMP_WRITE_FAILED: writing the temporary file 'oom_stale_error.xcal.tmp' for the calibration file 'oom_stale_error.xcal' failed (errno 22: Invalid argument, Windows error 1234). The previous file, if any, is unchanged and the temporary file was removed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(969): error: Expected equality of these values:
+  std::string::npos
+    Which is: 18446744073709551615
+  a.find("1234")
+    Which is: 185
+step 3: a stale Windows error leaked: XPE_WARN_XCAL_TEMP_WRITE_FAILED: writing the temporary file 'oom_stale_error.xcal.tmp' for the calibration file 'oom_stale_error.xcal' failed (errno 22: Invalid argument, Windows error 1234). The previous file, if any, is unchanged and the temporary file was removed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(970): error: Expected equality of these values:
+  std::string::npos
+    Which is: 18446744073709551615
+  a.find("errno 22")
+    Which is: 143
+step 3: a stale errno leaked: XPE_WARN_XCAL_TEMP_WRITE_FAILED: writing the temporary file 'oom_stale_error.xcal.tmp' for the calibration file 'oom_stale_error.xcal' failed (errno 22: Invalid argument, Windows error 1234). The previous file, if any, is unchanged and the temporary file was removed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(967): error: Expected: (std::string::npos) != (a.find("the system reported no error code")), actual: 18446744073709551615 vs 18446744073709551615
+step 4: the failing step reported no OS error, and the alert must say so: XPE_WARN_XCAL_TEMP_WRITE_FAILED: writing the temporary file 'oom_stale_error.xcal.tmp' for the calibration file 'oom_stale_error.xcal' failed (errno 22: Invalid argument, Windows error 1234). The previous file, if any, is unchanged and the temporary file was removed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(969): error: Expected equality of these values:
+  std::string::npos
+    Which is: 18446744073709551615
+  a.find("1234")
+    Which is: 185
+step 4: a stale Windows error leaked: XPE_WARN_XCAL_TEMP_WRITE_FAILED: writing the temporary file 'oom_stale_error.xcal.tmp' for the calibration file 'oom_stale_error.xcal' failed (errno 22: Invalid argument, Windows error 1234). The previous file, if any, is unchanged and the temporary file was removed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(970): error: Expected equality of these values:
+  std::string::npos
+    Which is: 18446744073709551615
+  a.find("errno 22")
+    Which is: 143
+step 4: a stale errno leaked: XPE_WARN_XCAL_TEMP_WRITE_FAILED: writing the temporary file 'oom_stale_error.xcal.tmp' for the calibration file 'oom_stale_error.xcal' failed (errno 22: Invalid argument, Windows error 1234). The previous file, if any, is unchanged and the temporary file was removed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(967): error: Expected: (std::string::npos) != (a.find("the system reported no error code")), actual: 18446744073709551615 vs 18446744073709551615
+step 5: the failing step reported no OS error, and the alert must say so: XPE_WARN_XCAL_TEMP_WRITE_FAILED: writing the temporary file 'oom_stale_error.xcal.tmp' for the calibration file 'oom_stale_error.xcal' failed (errno 22: Invalid argument, Windows error 1234). The previous file, if any, is unchanged and the temporary file was removed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(969): error: Expected equality of these values:
+  std::string::npos
+    Which is: 18446744073709551615
+  a.find("1234")
+    Which is: 185
+step 5: a stale Windows error leaked: XPE_WARN_XCAL_TEMP_WRITE_FAILED: writing the temporary file 'oom_stale_error.xcal.tmp' for the calibration file 'oom_stale_error.xcal' failed (errno 22: Invalid argument, Windows error 1234). The previous file, if any, is unchanged and the temporary file was removed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(970): error: Expected equality of these values:
+  std::string::npos
+    Which is: 18446744073709551615
+  a.find("errno 22")
+    Which is: 143
+step 5: a stale errno leaked: XPE_WARN_XCAL_TEMP_WRITE_FAILED: writing the temporary file 'oom_stale_error.xcal.tmp' for the calibration file 'oom_stale_error.xcal' failed (errno 22: Invalid argument, Windows error 1234). The previous file, if any, is unchanged and the temporary file was removed
+
+[  FAILED  ] OomInjection.AWriteFailureIsReportedWithItsOwnCauseNotWhatAnEarlierStepLeftBehind (14 ms)
+[----------] 1 test from OomInjection (14 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (14 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OomInjection.AWriteFailureIsReportedWithItsOwnCauseNotWhatAnEarlierStepLeftBehind
+
+ 1 FAILED TEST

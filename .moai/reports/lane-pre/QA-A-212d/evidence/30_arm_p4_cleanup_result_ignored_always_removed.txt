@@ -1,0 +1,7 @@
+ARM p4_cleanup_result_ignored_always_removed
+file src/xcal_writer.cpp
+built=True
+[  FAILED  ] XcalReplaceRetryTest.AWriteThatFailsWhileTheTemporaryFileCannotBeDeletedSaysItWasLeftBehind (6 ms)
+[  PASSED  ] 10 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] XcalReplaceRetryTest.AWriteThatFailsWhileTheTemporaryFileCannotBeDeletedSaysItWasLeftBehind

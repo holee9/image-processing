@@ -686,12 +686,24 @@ uint64_t storeDigest() {
         const auto* b = static_cast<const unsigned char*>(p);
         for (size_t i = 0; i < n; ++i) { h ^= b[i]; h *= 1099511628211ull; }
     };
-    mix(&g_calib.offset_width, sizeof g_calib.offset_width);
-    mix(&g_calib.gain_width, sizeof g_calib.gain_width);
-    mix(&g_calib.defect_width, sizeof g_calib.defect_width);
-    if (g_calib.offset_map) mix(g_calib.offset_map.get(), N * sizeof(float));
-    if (g_calib.gain_map) mix(g_calib.gain_map.get(), N * sizeof(float));
-    if (g_calib.defect_map) mix(g_calib.defect_map.get(), N);
+    // QA-A-221c (Codex #81): this used to see the three widths and the map bytes. It did not see a height, nor whether
+    // a map was present at all, so two stores differing only in a height, or one holding a map and one holding none
+    // of the same bytes, digested alike -- and a sweep that compares digests would have called them unchanged.
+    // Now: for each of the three maps, whether it is present, its width, its height, and its bytes. NOT covered: the
+    // gain polynomial, the nonlinearity LUT, the quality metadata, the timestamps and expiry values.
+    const auto mixMap = [&mix](bool present, uint32_t w, uint32_t hgt, const void* data, size_t bytes) {
+        const unsigned char flag = present ? 1 : 0;
+        mix(&flag, 1);
+        mix(&w, sizeof w);
+        mix(&hgt, sizeof hgt);
+        if (present) mix(data, bytes);
+    };
+    mixMap(static_cast<bool>(g_calib.offset_map), g_calib.offset_width, g_calib.offset_height,
+           g_calib.offset_map.get(), N * sizeof(float));
+    mixMap(static_cast<bool>(g_calib.gain_map), g_calib.gain_width, g_calib.gain_height,
+           g_calib.gain_map.get(), N * sizeof(float));
+    mixMap(static_cast<bool>(g_calib.defect_map), g_calib.defect_width, g_calib.defect_height,
+           g_calib.defect_map.get(), N);
     return h;
 }
 
@@ -905,6 +917,152 @@ XpeErrorCode run(const Entry& call, Frame& f, long* overruns, const char* config
 }
 
 }  // namespace dsz
+
+// QA-A-221c (#233, Codex #81 finding 2): the digest the empty-store sweeps compare must tell stores apart by
+// presence and by every dimension, not by widths and bytes alone. Each mutation below changes ONE thing the old digest
+// could not see (a height), or saw only as a missing line (presence), and puts it back -- the digest must move, then
+// return. The control is the restore: if it did not return to the original, the mutation did more than it claims.
+TEST_F(OomPipeline, TheStoreDigestTellsStoresApartByPresenceAndByEveryDimension) {
+    pipe::setup();
+    const uint64_t d0 = pipe::storeDigest();
+    struct Case { const char* what; std::function<void()> mutate; std::function<void()> restore; };
+    std::shared_ptr<float[]> offsetSaved, gainSaved;
+    std::shared_ptr<uint8_t[]> defectSaved;
+    const std::vector<Case> cases = {
+        {"offset height + 1", [] { ++g_calib.offset_height; }, [] { --g_calib.offset_height; }},
+        {"gain height + 1", [] { ++g_calib.gain_height; }, [] { --g_calib.gain_height; }},
+        {"defect height + 1", [] { ++g_calib.defect_height; }, [] { --g_calib.defect_height; }},
+        {"offset width + 1", [] { ++g_calib.offset_width; }, [] { --g_calib.offset_width; }},
+        {"offset map absent", [&] { offsetSaved = std::move(g_calib.offset_map); },
+                              [&] { g_calib.offset_map = std::move(offsetSaved); }},
+        {"gain map absent", [&] { gainSaved = std::move(g_calib.gain_map); },
+                            [&] { g_calib.gain_map = std::move(gainSaved); }},
+        {"defect map absent", [&] { defectSaved = std::move(g_calib.defect_map); },
+                              [&] { g_calib.defect_map = std::move(defectSaved); }},
+    };
+    for (const Case& c : cases) {
+        { std::lock_guard<std::mutex> lk(g_calib_mutex); c.mutate(); }
+        const uint64_t changed = pipe::storeDigest();
+        { std::lock_guard<std::mutex> lk(g_calib_mutex); c.restore(); }
+        EXPECT_NE(d0, changed) << "the digest did not see: " << c.what;
+        EXPECT_EQ(d0, pipe::storeDigest()) << "control: the store was not restored after: " << c.what;
+    }
+}
+
+// QA-A-221c (#233, Codex #81 finding 1): the reason a failed write reports must be the failing step's own.
+// capture_io_reason() reads errno / GetLastError, and neither is reset by a successful call. The old code cleared
+// them once, right after the temporary file was opened, then ran header, config, payload, flush and close and
+// captured after the failure -- so a failure the operating system does not describe (the stream's own failbit: a
+// buffer allocation that failed inside the stream, say) was reported with whatever an EARLIER, successful step
+// had left behind. This seam leaves a stale error after every step before the failing one and fails the chosen
+// step with no OS error at all; the alert must then say that no code was reported, and must not carry the stale one.
+static int g_xcalFailStep = 0;
+static std::vector<int> g_xcalSteps;
+static void xcalStepHook(int step, std::ios& stream) {
+    g_xcalSteps.push_back(step);
+    if (g_xcalFailStep != 0 && step < g_xcalFailStep) {   // a step that SUCCEEDED, leaving a last error behind
+        errno = EINVAL;
+#ifdef _WIN32
+        SetLastError(1234);
+#endif
+    }
+    if (step == g_xcalFailStep) stream.setstate(step == 5 ? std::ios::failbit : std::ios::badbit);
+}
+static std::string firstAlertWithPrefix(const char* prefix) {
+    const int32_t n = xpe_get_pending_alert_count();
+    for (int32_t i = 0; i < n; ++i) {
+        char buf[1024] = {0};
+        int32_t sev = 0;
+        if (xpe_get_pending_alert(i, buf, sizeof(buf), &sev) == XPE_OK && std::string(buf).rfind(prefix, 0) == 0) return buf;
+    }
+    return std::string();
+}
+
+TEST_F(OomInjection, AWriteFailureIsReportedWithItsOwnCauseNotWhatAnEarlierStepLeftBehind) {
+    const char* path = "oom_stale_error.xcal";
+    std::vector<float> m(N, 100.0f);
+    auto save = [&]() {
+        std::remove(path);
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version = XCAL_VERSION; hdr.type = XCAL_TYPE_OFFSET; hdr.pixel_format = XCAL_FMT_FLOAT32;
+        hdr.width = W; hdr.height = H; hdr.payload_len = m.size() * sizeof(float);
+        return write_xcal_file(path, hdr, reinterpret_cast<const uint8_t*>("{}"), 2,
+                               reinterpret_cast<const uint8_t*>(m.data()), m.size() * sizeof(float));
+    };
+
+    xpe_xcal_write_step_hook = xcalStepHook;
+    g_xcalFailStep = 0;
+    g_xcalSteps.clear();
+    ASSERT_EQ(XPE_OK, save()) << "control: with no failure injected the save succeeds";
+    const std::vector<int> seen = g_xcalSteps;
+    for (int need : {1, 3, 4, 5}) {
+        ASSERT_NE(seen.end(), std::find(seen.begin(), seen.end(), need)) << "control: step " << need << " ran";
+    }
+
+    for (int failStep : seen) {
+        xpe_clear_alerts();
+        g_xcalFailStep = failStep;
+        const XpeErrorCode rc = save();
+        EXPECT_EQ(XPE_ERR_IO_FAILED, rc) << "step " << failStep;
+        const std::string a = firstAlertWithPrefix("XPE_WARN_XCAL_TEMP_WRITE_FAILED");
+        ASSERT_FALSE(a.empty()) << "step " << failStep << ": a failed write raises its alert";
+        EXPECT_NE(std::string::npos, a.find("the system reported no error code"))
+            << "step " << failStep << ": the failing step reported no OS error, and the alert must say so: " << a;
+        EXPECT_EQ(std::string::npos, a.find("1234")) << "step " << failStep << ": a stale Windows error leaked: " << a;
+        EXPECT_EQ(std::string::npos, a.find("errno 22")) << "step " << failStep << ": a stale errno leaked: " << a;
+    }
+    xpe_xcal_write_step_hook = nullptr;
+    g_xcalFailStep = 0;
+    std::remove(path);
+    std::remove((std::string(path) + ".tmp").c_str());
+}
+
+// QA-A-221b (#233, decision on R1): a call that fails after an earlier step succeeded keeps that step's effect. The
+// in-tree sweeps above start with the three maps ALREADY loaded, so the store comes out the same whatever happens. These
+// start with an EMPTY store: after any failed allocation the store must hold either nothing or the whole verified set the
+// call would have loaded -- never a mixture. (The QA-A-221 sweep saw "the set" after 16 of the 73 failures of the
+// pipeline and "the map" after the last 5 of each cached loader.)
+TEST_F(OomPipeline, AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet) {
+    pipe::setup();                              // loads the three maps of oom_pipe_calib
+    const uint64_t whole = pipe::storeDigest();
+    resetStore();
+    const uint64_t none = pipe::storeDigest();
+    ASSERT_NE(whole, none) << "control: the two states differ";
+    const pipe::Call_t run = [] {
+        return xpe_preprocess_pipeline(&pipe::g_img[0], &pipe::g_meta[0], "oom_pipe_calib", nullptr, pipe::kConfig);
+    };
+    sweep("xpe_preprocess_pipeline (empty store)", [] { pipe::setup(); resetStore(); }, run, false,
+          [=](XpeErrorCode rc) -> std::string {
+              const uint64_t d = pipe::storeDigest();
+              if (rc == XPE_OK) return d == whole ? std::string() : "a successful call left a set other than the directory's";
+              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure must be XPE_ERR_OUT_OF_MEMORY";
+              if (d == none || d == whole) return std::string();
+              return "the store holds neither nothing nor the whole verified set (a half-replaced set)";
+          });
+}
+
+TEST_F(OomPipeline, AFailedCachedOffsetLoadThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeMap) {
+    pipe::setup();
+    resetStore();
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset("oom_pipe_calib/offset.xcal"));
+    const uint64_t whole = pipe::storeDigest();   // only the offset map is in the store
+    resetStore();
+    const uint64_t none = pipe::storeDigest();
+    ASSERT_NE(whole, none) << "control: the two states differ";
+    const pipe::Call_t run = [] {
+        XpeImageBuffer view{};
+        return xpe_calib_load_offset_cached("oom_pipe_calib/offset.xcal", &view);
+    };
+    sweep("xpe_calib_load_offset_cached (empty store)", [] { pipe::setup(); resetStore(); }, run, false,
+          [=](XpeErrorCode rc) -> std::string {
+              const uint64_t d = pipe::storeDigest();
+              if (rc == XPE_OK) return d == whole ? std::string() : "a successful load left something other than the file's map";
+              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure must be XPE_ERR_OUT_OF_MEMORY";
+              if (d == none || d == whole) return std::string();
+              return "the store holds neither nothing nor the whole map";
+          });
+}
 
 TEST_F(OomPipeline, TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims) {
     for (const auto& e : dsz::entries()) {
@@ -2081,6 +2239,24 @@ XpeImageBuffer buf(void* d, XpePixelFormat f, uint32_t bits) {
 }
 
 }  // namespace q209b
+
+// QA-A-221b (#233): xpe_preprocess_init answered an allocation failure with PROCESSING_FAILED (-3) -- 19 of 19 in the
+// QA-A-221 sweep -- where the header and every other export say OUT_OF_MEMORY. The module is initialized only by the
+// last statement, so a failed init must leave it uninitialized.
+TEST_F(OomInjection, APreprocessInitThatRunsOutOfMemoryReportsItAsSuchAndLeavesTheModuleUninitialized) {
+    static const std::string cfg =
+        "{\"note\":\"a configuration long enough to need a heap allocation: 0123456789012345678901234567890123456789\"}";
+    sweep("xpe_preprocess_init", [] { xpe_preprocess_shutdown(); },
+          [&] { return xpe_preprocess_init(cfg.c_str()); },
+          /*unchangedOnError=*/false,
+          [](XpeErrorCode rc) -> std::string {
+              const bool up = xpe_preprocess_is_initialized();
+              if (rc == XPE_OK) return up ? std::string() : "a successful init left the module uninitialized";
+              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure was reported as another error";
+              return up ? "the module is initialized although init failed" : std::string();
+          });
+    xpe_preprocess_shutdown();
+}
 
 TEST_F(OomInjection, ANonlinearityCorrectionThatFailsLeavesTheFrameUntouchedAndNoExceptionEscapes) {
     static const std::string cfg = "{\"panel.nonlinearity_mode\":\"POLY\",\"panel.nonlin_poly_c1\":2.0,\"panel.adc_max\":65535}";

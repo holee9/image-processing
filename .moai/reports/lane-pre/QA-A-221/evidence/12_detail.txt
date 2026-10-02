@@ -1,0 +1,45 @@
+## idx 32
+[audit-detail] escaped at k=1: bad allocation
+[audit-detail] escaped at k=2: bad allocation
+[audit-detail] escaped at k=3: bad allocation
+[audit-detail] escaped at k=4: bad allocation
+[audit] xpe_calib_generate_offset                      points=11 failed=11 escaped=4 lockleak=0 partial=0 growth=0 growthAfterReset=7 rc={-2x7}
+## idx 20
+[audit-detail] partial at k=58 (rc=-2 escaped=0)
+[audit-detail] partial at k=59 (rc=-2 escaped=0)
+[audit-detail] partial at k=60 (rc=-2 escaped=0)
+[audit-detail] partial at k=61 (rc=-2 escaped=0)
+[audit-detail] partial at k=62 (rc=-2 escaped=0)
+[audit-detail] partial at k=66 (rc=-2 escaped=0)
+[audit-detail] partial at k=67 (rc=-2 escaped=0)
+[audit-detail] partial at k=68 (rc=-2 escaped=0)
+[audit-detail] partial at k=69 (rc=-2 escaped=0)
+[audit-detail] partial at k=70 (rc=-2 escaped=0)
+[audit-detail] partial at k=71 (rc=-2 escaped=0)
+[audit-detail] partial at k=72 (rc=-2 escaped=0)
+[audit-detail] partial at k=73 (rc=-2 escaped=0)
+[audit-detail] partial at k=74 (rc=-2 escaped=0)
+[audit-detail] partial at k=75 (rc=-2 escaped=0)
+[audit-detail] partial at k=76 (rc=-2 escaped=0)
+[audit] xpe_preprocess_pipeline (calib dir)            points=76 failed=73 escaped=0 lockleak=0 partial=16 growth=16 growthAfterReset=73 rc={-2x73}
+## idx 22
+[audit] xpe_verify_pipeline                            points=4 failed=4 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=4 rc={-2x4}
+## idx 23
+[audit-detail] partial at k=1 (rc=-2 escaped=0)
+[audit] xpe_defect_detect_runtime                      points=8 failed=8 escaped=0 lockleak=0 partial=1 growth=0 growthAfterReset=8 rc={-2x8}
+## idx 24
+[audit-detail] partial at k=1 (rc=-2 escaped=0)
+[audit] xpe_bpm_generate                               points=72 failed=72 escaped=0 lockleak=0 partial=1 growth=0 growthAfterReset=72 rc={-2x72}
+## idx 27
+[audit] xpe_calib_load_offset (plain)                  points=10 failed=10 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=10 rc={-2x10}
+## idx 28
+[audit] xpe_calib_load_gain (plain)                    points=13 failed=13 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=13 rc={-2x13}
+## idx 29
+[audit] xpe_calib_load_defect_map (plain)              points=10 failed=10 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=10 rc={-2x10}
+## idx 30
+[audit-detail] partial at k=12 (rc=-2 escaped=0)
+[audit-detail] partial at k=13 (rc=-2 escaped=0)
+[audit-detail] partial at k=14 (rc=-2 escaped=0)
+[audit-detail] partial at k=15 (rc=-2 escaped=0)
+[audit-detail] partial at k=16 (rc=-2 escaped=0)
+[audit] xpe_calib_load_offset_cached                   points=16 failed=15 escaped=0 lockleak=0 partial=5 growth=5 growthAfterReset=15 rc={-2x15}

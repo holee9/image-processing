@@ -1,0 +1,19 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from AuditProbe
+[ RUN      ] AuditProbe.Sweep
+[audit-start] 33	xpe_calib_load_gain_cached
+[audit-progress] xpe_calib_load_gain_cached
+[audit-detail] partial at k=15 (rc=-2 escaped=0)
+[audit-detail] partial at k=16 (rc=-2 escaped=0)
+[audit-detail] partial at k=17 (rc=-2 escaped=0)
+[audit-detail] partial at k=18 (rc=-2 escaped=0)
+[audit-detail] partial at k=19 (rc=-2 escaped=0)
+[audit] xpe_calib_load_gain_cached                     points=19 failed=18 escaped=0 lockleak=0 partial=5 growth=5 growthAfterReset=18 rc={-2x18}
+[       OK ] AuditProbe.Sweep (11 ms)
+[----------] 1 test from AuditProbe (11 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (11 ms total)
+[  PASSED  ] 1 test.

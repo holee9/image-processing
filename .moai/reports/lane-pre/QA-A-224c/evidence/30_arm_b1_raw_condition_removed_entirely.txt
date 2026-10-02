@@ -1,0 +1,6 @@
+ARM b1_raw_condition_removed_entirely
+built=True
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AllZeroRawFrameDoesNotPass (0 ms)
+[  PASSED  ] 46 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AllZeroRawFrameDoesNotPass

@@ -1,0 +1,57 @@
+Note: Google Test filter = XcalReplaceRetry*
+[==========] Running 11 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 11 tests from XcalReplaceRetryTest
+[ RUN      ] XcalReplaceRetryTest.ControlTheHoldReallyMakesAPlainMoveFailWithAccessDenied
+[       OK ] XcalReplaceRetryTest.ControlTheHoldReallyMakesAPlainMoveFailWithAccessDenied (207 ms)
+[ RUN      ] XcalReplaceRetryTest.ADestinationBusyForAWhileWithinTheBudgetIsReplacedAndNothingIsRaised
+[       OK ] XcalReplaceRetryTest.ADestinationBusyForAWhileWithinTheBudgetIsReplacedAndNothingIsRaised (46 ms)
+[ RUN      ] XcalReplaceRetryTest.ADestinationHeldPastTheBudgetFailsWithTheReasonAndTheOldFileIntact
+[       OK ] XcalReplaceRetryTest.ADestinationHeldPastTheBudgetFailsWithTheReasonAndTheOldFileIntact (714 ms)
+[ RUN      ] XcalReplaceRetryTest.AReadOnlyDestinationFailsAfterTheBudgetNotForever
+[       OK ] XcalReplaceRetryTest.AReadOnlyDestinationFailsAfterTheBudgetNotForever (178 ms)
+[ RUN      ] XcalReplaceRetryTest.ATemporaryFileHeldElsewhereIsReportedAsLeftBehindAndTheNextSaveStillWorks
+[       OK ] XcalReplaceRetryTest.ATemporaryFileHeldElsewhereIsReportedAsLeftBehindAndTheNextSaveStillWorks (198 ms)
+[ RUN      ] XcalReplaceRetryTest.AStaleTemporaryFileFromEarlierIsOverwrittenBySave
+[       OK ] XcalReplaceRetryTest.AStaleTemporaryFileFromEarlierIsOverwrittenBySave (9 ms)
+[ RUN      ] XcalReplaceRetryTest.ATemporaryFileThatCannotBeCreatedIsReportedWithItsReason
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_replace_retry.cpp(277): error: Value of: a.empty()
+  Actual: true
+Expected: false
+a failure that used to be silent now says why
+
+[  FAILED  ] XcalReplaceRetryTest.ATemporaryFileThatCannotBeCreatedIsReportedWithItsReason (0 ms)
+[ RUN      ] XcalReplaceRetryTest.ATemporaryFileHeldExclusivelyCannotBeOpenedAndTheNextSaveWorksOnceItIsFree
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_replace_retry.cpp(295): error: Value of: a.empty()
+  Actual: true
+Expected: false
+an exclusively held temporary file is reported, not swallowed
+
+[  FAILED  ] XcalReplaceRetryTest.ATemporaryFileHeldExclusivelyCannotBeOpenedAndTheNextSaveWorksOnceItIsFree (2 ms)
+[ RUN      ] XcalReplaceRetryTest.AWriteThatFailsHalfWayRemovesTheTemporaryFileAndSaysWhy
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_replace_retry.cpp(317): error: Value of: a.empty()
+  Actual: true
+Expected: false
+a failed write used to return IO_FAILED with nothing to say why
+
+[  FAILED  ] XcalReplaceRetryTest.AWriteThatFailsHalfWayRemovesTheTemporaryFileAndSaysWhy (2 ms)
+[ RUN      ] XcalReplaceRetryTest.AWriteThatFailsWhileTheTemporaryFileCannotBeDeletedSaysItWasLeftBehind
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_replace_retry.cpp(342): error: Value of: a.empty()
+  Actual: true
+Expected: false
+
+[  FAILED  ] XcalReplaceRetryTest.AWriteThatFailsWhileTheTemporaryFileCannotBeDeletedSaysItWasLeftBehind (2 ms)
+[ RUN      ] XcalReplaceRetryTest.ThePublicSaveGoesTheSameWay
+[       OK ] XcalReplaceRetryTest.ThePublicSaveGoesTheSameWay (760 ms)
+[----------] 11 tests from XcalReplaceRetryTest (2131 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 1 test suite ran. (2131 ms total)
+[  PASSED  ] 7 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] XcalReplaceRetryTest.ATemporaryFileThatCannotBeCreatedIsReportedWithItsReason
+[  FAILED  ] XcalReplaceRetryTest.ATemporaryFileHeldExclusivelyCannotBeOpenedAndTheNextSaveWorksOnceItIsFree
+[  FAILED  ] XcalReplaceRetryTest.AWriteThatFailsHalfWayRemovesTheTemporaryFileAndSaysWhy
+[  FAILED  ] XcalReplaceRetryTest.AWriteThatFailsWhileTheTemporaryFileCannotBeDeletedSaysItWasLeftBehind
+
+ 4 FAILED TESTS

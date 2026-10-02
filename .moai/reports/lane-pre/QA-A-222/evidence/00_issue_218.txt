@@ -1,0 +1,246 @@
+# [spec] xpe_verify_* 가 요구의 합격 기준과 다른 지표로 판정한다 — FUNC-017 FlatResidualPct 0건, FUNC-019 recall/FPR 0건
+
+## 무엇
+
+`#216` 의 문턱 조사에서 한 겹 더 나왔습니다. **요구에 합격 기준이 있는데, 코드는 그 지표를 계산하지 않고 다른 것으로 합격을 판정합니다.**
+
+*"문턱에 출처가 없다"* 보다 나쁩니다 — **출처가 있는 기준 쪽이 구현되지 않았습니다.**
+
+## 측정
+
+| 요구 | 요구가 정한 합격 기준 | 코드가 재는 것 |
+|---|---|---|
+| **`SRS-CALIB-FUNC-017`** | **`FlatResidualPct <= 1.0%`** (release target `<= 0.5%`) | `prnu_improved` · `gain_coverage` · `snr_improvement_db` |
+| **`SRS-CALIB-FUNC-019`** | **100% recall + FPR < 0.001%** | `defect_density` |
+
+리더 확인: `FlatResidual`·`flat_residual` 이 `modules/preprocess/src/` 에서 **0건**입니다. 대조군으로 코드가 실제 쓰는 지표(`prnu_after`·`prnu_before`·`gain_coverage`·`snr_improvement_db`)는 같은 검색에서 잡힙니다 — **검색이 눈먼 것이 아닙니다.**
+
+`recall`·`FPR` 도 `xpe_verify_defect` 경로에 없습니다.
+
+## 왜 중요한가
+
+`xpe_verify_*` 는 **`overall_pass` 를 냅니다** — 지표만 내는 게 아니라 합격 판정입니다(`#216`).
+
+그 판정이 **요구가 정한 기준과 다른 축으로** 이뤄집니다. 즉:
+
+- 요구는 *"평탄장 잔차가 1% 이하여야 한다"* 고 말합니다
+- 코드는 *"PRNU 가 개선됐고 커버리지가 99% 이상이고 SNR 이 2dB 이상 올랐다"* 로 합격을 줍니다
+- **둘이 같은 것을 보증하는지 아무도 확인하지 않았습니다**
+
+IEC 62304 Class B 에서 **검증 함수가 요구와 다른 기준으로 합격을 내는 것**은 추적성 결함입니다. 시험이 통과해도 요구가 충족됐다는 근거가 없습니다.
+
+## 세 갈래 — 건별 판단
+
+| | 뜻 |
+|---|---|
+| **요구 기준이 옳고 구현이 미달** | `FlatResidualPct`·`recall`·`FPR` 을 구현해야 합니다 |
+| **구현 지표가 더 낫고 요구가 낡음** | 요구를 바꿔야 하고, 그 근거를 적어야 합니다 |
+| **둘이 사실상 같은 것을 다르게 잼** | 대응을 문서화하면 됩니다 — **그 대응을 누군가 증명해야 합니다** |
+
+**세 번째가 가장 그럴듯하고 가장 위험합니다.** *"PRNU 개선이 곧 평탄장 잔차 감소"* 는 그럴듯하지만, 그것이 참인지 아무도 재지 않았습니다. `#155`(자릿수가 맞는 우연)·`#154`(자기 비교)에서 본 형태입니다.
+
+## 범위
+
+`docs/calibration/SRS-CALIB-001` (lead) + `modules/preprocess` (pre).
+
+**`#216` 과 분리하는 이유**: `#216` 은 *"요구에 이름이 없다"* 이고, 이것은 *"요구가 있는데 다른 것을 잰다"* 입니다. 전자는 문서 작업이고 후자는 **무엇이 옳은지를 정해야 하는 제품 판단**입니다.
+
+관련: `#216`(이 조사에서 나옴), `#217`(같은 함수의 단위 결함), `#207`·`#212`(이름·단언이 실재와 다른 형태)
+
+🗿 MoAI
+
+
+--- COMMENTS ---
+[holee9 2026-09-28T10:41:19Z]
+## 덧 — 같은 지표에 합격선이 **둘**입니다
+
+`QA-A-152` 가 카드 밖에서 찾았고 리더가 확인했습니다.
+
+```cpp
+// xpe_verify_metrics.cpp
+:31   constexpr double PRNU_IMPROVE_MIN_DB = 3.0;   // 주석: "gain correction should improve PRNU"
+:38   constexpr double SNR_IMPROVE_MIN_DB  = 2.0;   // 주석: "minimum SNR improvement"
+
+:348  bool snr_improved = (metrics->snr_improvement_db >= PRNU_IMPROVE_MIN_DB) || ...
+:525  metrics->overall_pass = (metrics->snr_improvement_db >= SNR_IMPROVE_MIN_DB);
+```
+
+**같은 `snr_improvement_db` 를 `:348` 은 `3.0`, `:525` 는 `2.0` 과 비교합니다.**
+
+그리고 **`PRNU_IMPROVE_MIN_DB` 는 PRNU 에 쓰이지 않습니다** — 이름이 PRNU 인데 SNR 지표에 걸려 있습니다.
+
+### 왜 이 이슈에 붙이는가
+
+`2.0` 과 `3.0` 중 어느 것이 옳은지는 **요구가 정해야 합니다.** 그런데 이 이슈가 밝힌 대로 **요구는 SNR 개선을 합격 기준으로 쓰지 않습니다** — `FUNC-017` 은 `FlatResidualPct <= 1.0%` 입니다.
+
+즉 **둘 다 요구에 없는 기준이고, 서로도 안 맞습니다.** 어느 쪽으로 통일할지를 정하는 것이 아니라, **그 축이 애초에 맞는 축인지**가 먼저입니다.
+
+### 이름과 값이 따로 노는 형태
+
+| 상수 | 이름이 말하는 것 | 실제로 비교되는 것 |
+|---|---|---|
+| `PRNU_IMPROVE_MIN_DB` | PRNU 개선 하한 | **SNR** 개선 (`:348`) |
+| `SNR_IMPROVE_MIN_DB` | SNR 개선 하한 | SNR 개선 (`:525`) ✔ |
+
+오늘 반복해서 본 것과 같습니다 — 이름이 약속하는 것과 코드가 하는 것이 다릅니다(`#207` 없는 AVX2, `#217` 주석은 5% 값은 0.05%).
+
+### 문턱 여섯 (정정)
+
+`#216` 코멘트에서 제가 **셋만** 열거했습니다. 실제는 **여섯**이고 전부 `overall_pass` 에 직접 들어갑니다(`:240`·`:351`·`:436`·`:525`):
+
+| 상수 | 출처 |
+|---|---|
+| `DARK_BIAS_MAX` 5.0 ADU | **`FUNC-016`** ✔ |
+| `DEFECT_DENSITY_MAX` 0.05 | **`FUNC-003`** ✔ — 다만 단위가 틀림 → **`#217`** |
+| `DSNU_MAX_PCT` 1.0 | **없음** (채택 불가 판정: 근거 문서가 스스로 *"진단 소프트웨어 아님"*, 분모도 다름) |
+| `PRNU_IMPROVE_MIN_DB` 3.0 | **없음** + 이름·용도 불일치 |
+| `GAIN_COVERAGE_MIN` 0.99 | **없음** |
+| `SNR_IMPROVE_MIN_DB` 2.0 | **없음** |
+
+**출처 없는 넷을 폐기하지 않습니다.** 이 이슈가 먼저 답해야 합니다 — 요구 기준(`FlatResidualPct`·`recall`/`FPR`)과 구현 지표 중 **무엇이 옳은 축인가.** 그 답에 따라 넷은 폐기되거나, 요구로 올라가거나, 다른 지표로 대체됩니다.
+
+🗿 MoAI
+
+
+=====
+[holee9 2026-09-28T11:29:50Z]
+## 판정 — **요구 쪽이 정본입니다. 다만 두 요구는 사는 곳이 다릅니다**
+
+"어느 축이 맞나" 를 물었습니다. 답은 SRS 이지만, `FUNC-017` 과 `FUNC-019` 를 **같은 자리에 넣으면 안 됩니다.**
+
+### 측정 (2026-09-28, 검색 범위 `modules/`)
+
+| 요구가 이름 지은 지표 | 파일 수 | | 대조군 (실제로 있는 것) | 파일 수 |
+|---|---|---|---|---|
+| `FlatResidualPct` / `flat_residual` | **0** | | `prnu_after` | 3 |
+| `PRNU_CV` · `LineArtifactScore` · `FPN_Reduction` | **0** | | `gain_coverage` | 2 |
+| `DefectRecall` / `defect_recall` | **0** | | `defect_density` | 3 |
+| `DefectFPR` · `DefectResidualADU` · `GoodPixelDeltaP99` | **0** | | `snr_improvement_db` | 3 |
+| | | | `dark_bias` | 4 |
+
+11개 토큰 전부 0, 대조군 5개 전부 적중 — 검색이 눈멀지 않았습니다. **부재는 실재합니다.**
+
+### 왜 둘을 갈라야 하나
+
+| | `FUNC-017` (flat) | `FUNC-019` (defect) |
+|---|---|---|
+| 요구 본문 | `FlatResidualPct <= 1.0%` (release `<= 0.5%`) | *"**Synthetic BPM oracle cases** shall require 100% recall, FPR < 0.001%"* |
+| 계산에 필요한 것 | 보정 전/후 프레임뿐 | **정답 BPM** — 어느 화소가 실제 결함인지 |
+| 임의 입력에서 가능한가 | **가능** | **불가능** — 정답이 없으면 recall 이 정의되지 않습니다 |
+
+`FUNC-019` 는 요구 본문 스스로 *"synthetic oracle cases"* 로 범위를 못 박고 있습니다. **런타임 라이브러리 게이트가 아니라 시험 하네스 요구**입니다. `xpe_verify_defect` 안에 넣으라는 요구가 아닙니다.
+
+`FUNC-017` 은 다릅니다. 런타임에 계산 가능하고, `xpe_verify_gain` 이 이미 그 자리에 있습니다(`RTM-CALIB-001:241` 이 `FUNC-017 → xpe_verify_gain` 으로 매핑).
+
+### 따라서
+
+1. **`xpe_verify_gain` 이 `FlatResidualPct` 를 계산하고 `<= 1.0%` 로 게이트해야 합니다** — 이것이 요구가 말한 합격 조건이고, 지금 코드는 전혀 다른 축(`snr_improvement_db >= 3.0`)으로 통과시키고 있습니다
+2. **`FUNC-019` 는 시험 쪽입니다** — 합성 BPM 오라클 시험에서 recall/FPR 를 재야 하고, 제품 코드의 게이트가 아닙니다. 별도 카드로 세웁니다
+3. **출처 없는 상수 넷은 지금 답이 나옵니다** — `#217` 에서 레인이 `NO REQUIREMENT FOUND` 를 달아 둔 `DSNU_MAX_PCT` · `PRNU_IMPROVE_MIN_DB` · `GAIN_COVERAGE_MIN` · `SNR_IMPROVE_MIN_DB` 는 **요구가 없는 축**입니다. 출처를 더 찾는 것이 아니라, `FUNC-017` 지표가 들어온 뒤 **요구를 세우거나 거두거나** 둘 중 하나입니다. 이 셋을 지금 건드리지 않습니다 — 순서가 있습니다
+
+### 미검증 (Gaps)
+
+- 검색 범위는 `modules/` 뿐입니다. `clients/` · `tools/` 는 보지 않았습니다 — GUI 가 이 지표들을 이름으로 표시하겠다고 적은 문서(`XPE-GUI-CALIB-001:167`)가 있으니 **GUI 쪽에는 이름이 있을 수 있습니다.** 그것은 계산이 아니라 표시입니다
+- `FlatResidualPct` 의 **정의식**을 확인하지 않았습니다. `XPE-GUI-CALIB-001:167` 은 *"same as PRNU_CV (alias)"* 라고 적는데, 그렇다면 이미 있는 `prnu_after` 와 같은 양일 수 있습니다 — **그 경우 필요한 것은 새 계산이 아니라 이름과 게이트**입니다. 카드가 먼저 답할 질문입니다
+
+🗿 MoAI
+
+
+=====
+[holee9 2026-09-28T11:43:20Z]
+## QA-A-154 — **같은 양입니다.** 필요한 건 계산이 아니라 게이트였습니다. `fa3da63` (미푸시)
+
+### §1 답 — 정의식은 GUI 문서가 아니라 프로토콜에 있습니다
+
+`docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md:218-219`:
+
+```text
+PRNU_CV         = std(Y_flat_roi) / max(mean(Y_flat_roi), epsilon)
+FlatResidualPct = 100 * PRNU_CV
+```
+
+코드 `:370` 은 `(std/mean) * 100` — **바로 그 퍼센트**입니다. 이름은 `prnu_after` 인데 담긴 값은 `PRNU_CV` 가 아니라 **`100 × PRNU_CV`**. → **새 계산 불필요, 게이트만 없었습니다.**
+
+### 문서 넷이 어긋납니다
+
+| 출처 | 말하는 것 | |
+|---|---|---|
+| `Preprocessing-E2E-…:218-219` | `FlatResidualPct = 100 × PRNU_CV` | **정의식 — 근거로 씀** |
+| `SRS-CALIB-001:148` | 넷을 나열 + `<= 1.0%` 요구 | 모순 아님 |
+| `XPE-GUI-CALIB-001:167` | *"same as PRNU_CV (alias)"* 인데 같은 표에서 `PRNU_CV = stdev/mean × 100` | **100배를 흘림** |
+| `TDS-CALIB-001:1481-82` | 한 레코드에 `0.8` 과 `0.035` | `100×0.035 = 3.5 ≠ 0.8` — **정의식과 불일치** |
+
+**카드가 경고한 함정을 실제로 만났습니다.** `#217` 의 `DSNU` 가 *"같은 숫자, 다른 분모"* 였다면 여기는 *"같은 양, 다른 배율(100×)"* 입니다. **GUI 문서만 읽고 alias 를 받았다면** 분수인 `PRNU_CV` 에 `<= 1.0` 을 걸어 **100% 를 허용하는 게이트**가 됐을 것입니다.
+
+**이름이 닮은 함정 하나 더**: `flatness_pct`(`:373`)는 `FlatResidualPct` 가 **아닙니다** — `compute_flatness` 는 **히스토그램 엔트로피**(높을수록 좋음, 시험이 `>90` 기대)이고 `FlatResidualPct` 는 **낮을수록 좋은 잔차**입니다. 이름으로 골랐다면 **반대 방향** 게이트를 달았을 자리입니다.
+
+### §2 구현 — 한 줄
+
+```cpp
+bool flat_residual_ok = (metrics->prnu_after <= FLAT_RESIDUAL_MAX_PCT);   // 1.0, FUNC-017
+metrics->overall_pass = prnu_improved && coverage_ok && snr_improved && flat_residual_ok;
+```
+
+**상대 축을 걷어내지 않았습니다** — 개선 검사를 빼면 *이미 평탄한데 보정 안 된* 패널이, 이 검사를 빼면 *나쁘게 보정된* 패널이 통과합니다. **서로 다른 것을 막습니다.**
+`prnu_after` 필드명은 공개 구조체라 유지하고, 헤더에 *"이 필드가 `FlatResidualPct`"* 를 적었습니다.
+
+### §3 반증 — 그런 입력이 **실재합니다**
+
+게이트를 런타임-거짓으로 무력화:
+
+```
+test_verify_metrics.cpp(380): error: Value of: m.overall_pass
+SRS-CALIB-FUNC-017 requires FlatResidualPct <= 1.0%;
+residual was 5.0024431958457791% with 6.0205999132796242 dB improvement
+```
+
+**잔차 5.00%, 개선 6.02 dB 로 통과**합니다 — 요구가 허용하는 것의 5배인데 상대 축은 전부 만족. **두 축은 같은 것을 재고 있지 않습니다.**
+
+**카드 §2 둘째 요구**(단언에 걸리는가)도 확인했습니다 — `#217` 의 교훈대로:
+
+| 시험 | 단언 | 새 게이트 |
+|---|---|---|
+| `VerifyGain_PerfectFlatField:250` | `TRUE` | 잔차≈0 → 통과 ✔ |
+| `VerifyGain_DetectsBadGain:291` | `FALSE` | 이미 불합격 ✔ |
+| **신규** | `FALSE` | **이 게이트가 유일 사유** |
+
+> 시험 첫 판은 `rc=-7`(UNSUPPORTED_FORMAT)로 빨갰습니다 — `before` 를 FLOAT32 로 만들었는데 이 API 는 **UINT16** 을 받습니다. **제 오류**였고, "빨갛다" 만 보고 결함 확인으로 적을 뻔한 자리라 남깁니다.
+
+### 검증
+
+`BUILD_EXIT=0` · ctest **759/759**(직전 758 + 신규 1) · 네 순서 모두 `ran=690`, `PASSED 682`, 실패 0 · 깨진 기존 시험 0건
+
+### 하지 않은 것 (카드 §3)
+
+출처 없는 상수 넷 · `FUNC-019`(recall/FPR) · `xpe_verify_offset` 무조건 합격(`#219`)
+
+### 미검증
+
+- **평균 추정기가 다릅니다** — 프로토콜은 `mean`, 코드는 `compute_robust_mean`(중앙값 기반). 요구가 어느 쪽을 뜻하는지 문서에 없습니다
+- 프로토콜의 `Y_flat_roi`(ROI) 개념이 구현에 없어 **전체 유효 화소**를 씁니다
+- `release-hardening <= 0.5%` 는 *"where gain semantics are known"* 조건부라 코드가 알 방법이 없어 **넣지 않았습니다**
+- `TDS`·`GUI-CALIB` 의 불일치는 **보고만** (제 소유 아님) / 실제 픽스처 영향은 미측정
+
+보고서: `.moai/reports/lane-pre/QA-A-154/verdict.md`
+
+🗿 MoAI
+
+
+=====
+[holee9 2026-10-01T11:20:40Z]
+## 오늘 상태 (QA-A-187, 2026-10-01)
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| FUNC-017 `FlatResidualPct` 게이트 | **해소** | `fa3da63b`(QA-A-154, 게이트) + `edc53cbc`(QA-A-156, 분모 산술평균). 게이트 단언 시험 4건 통과. 남은 0.5% 조건부 문턱·ROI 는 #220 |
+| FUNC-019 recall / FPR / GoodPixelDeltaP99 | **판정 안 함** | `xpe_verify_defect` 는 `defect_density < 5%` 하나로 `overall_pass` 를 정한다. 정답 결함 맵과 결함 단계 전 영상이 인자에 없어 recall·FPR 을 계산할 수 없다 — 이 요구는 함수가 아니라 시험 쪽에서 합성 오라클로 검증할 대상 |
+| `xpe_verify_pipeline` 의 "SNR 개선 2.0 dB" | **근거 없음** | 정본(E2E 평가 프로토콜)과 SRS FUNC-015/021 어디에도 SNR 개선 지표나 2.0 dB 선이 없다. 중심을 중앙값으로 하느냐 평균으로 하느냐에 따라 2.0 dB 바로 아래 좁은 띠에서 판정이 갈린다(실측) |
+
+### 결정 (리더)
+
+- **FUNC-019**: 합성 결함 맵 오라클 시험(recall 100%, FPR < 0.001%, 정본 합격선)을 pre 레인이 세운다.
+- **SNR 2.0 dB**: 판정 동작은 바꾸지 않고 코드에 "요구 근거 없음" 을 명시한다. 이 지표를 정본에 정의할지 판정에서 뺄지는 열린 결정으로 남긴다.
+- 부수 발견: GUI `MetricsComputationService.cs:163-169` 가 같은 네 지표를 계산하지만 합격선이 정본과 다르다(recall ≥95% vs 정본 100%, GoodPixelDeltaP99 ≤0 vs ≤1 ADU). gui 레인 카드로 다룬다.
+
+🗿 MoAI
+

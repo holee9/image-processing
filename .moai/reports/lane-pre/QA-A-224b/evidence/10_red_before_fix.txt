@@ -1,0 +1,115 @@
+Note: Google Test filter = VerifyMetricsTest.VerifyGain_*
+[==========] Running 12 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 12 tests from VerifyMetricsTest
+[ RUN      ] VerifyMetricsTest.VerifyGain_PerfectFlatField
+[       OK ] VerifyMetricsTest.VerifyGain_PerfectFlatField (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_DetectsBadGain
+[       OK ] VerifyMetricsTest.VerifyGain_DetectsBadGain (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_FlatResidualUsesTheArithmeticMean
+[       OK ] VerifyMetricsTest.VerifyGain_FlatResidualUsesTheArithmeticMean (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_ImprovedButStillAboveOnePercentFails
+[       OK ] VerifyMetricsTest.VerifyGain_ImprovedButStillAboveOnePercentFails (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_PerfectCorrectionPasses
+[       OK ] VerifyMetricsTest.VerifyGain_PerfectCorrectionPasses (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_TinyResidualNoiseStillPasses
+[       OK ] VerifyMetricsTest.VerifyGain_TinyResidualNoiseStillPasses (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_NoImprovementStillFails
+[       OK ] VerifyMetricsTest.VerifyGain_NoImprovementStillFails (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_AllNegativeCorrectedFrameDoesNotPass
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(808): error: Value of: m.overall_pass
+  Actual: true
+Expected: false
+all -1000: an unmeasurable corrected frame must not pass
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(809): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  m.snr_improvement_db
+    Which is: 200
+all -1000: no improvement may be claimed for a frame that was not measured
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(810): error: Expected equality of these values:
+  0u
+    Which is: 0
+  m.measured_mask & XPE_METRIC_PRNU
+    Which is: 4
+all -1000: PRNU was not measured
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(811): error: Expected equality of these values:
+  0u
+    Which is: 0
+  m.measured_mask & XPE_METRIC_SNR
+    Which is: 32
+all -1000: the improvement was not measured
+
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AllNegativeCorrectedFrameDoesNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_AllZeroCorrectedFrameDoesNotPass
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(808): error: Value of: m.overall_pass
+  Actual: true
+Expected: false
+all 0: an unmeasurable corrected frame must not pass
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(809): error: Expected equality of these values:
+  0.0
+    Which is: 0
+  m.snr_improvement_db
+    Which is: 200
+all 0: no improvement may be claimed for a frame that was not measured
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(810): error: Expected equality of these values:
+  0u
+    Which is: 0
+  m.measured_mask & XPE_METRIC_PRNU
+    Which is: 4
+all 0: PRNU was not measured
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(811): error: Expected equality of these values:
+  0u
+    Which is: 0
+  m.measured_mask & XPE_METRIC_SNR
+    Which is: 32
+all 0: the improvement was not measured
+
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AllZeroCorrectedFrameDoesNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_ANanPixelInTheCorrectedFrameDoesNotPass
+unknown file: error: SEH exception with code 0xc0000005 thrown in the test body.
+Stack trace:
+
+
+[  FAILED  ] VerifyMetricsTest.VerifyGain_ANanPixelInTheCorrectedFrameDoesNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_AnAlreadyFlatPanelWithAnUnmeasurableCorrectedFrameDoesNotPass
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(808): error: Value of: m.overall_pass
+  Actual: true
+Expected: false
+flat before, all -1000 after: an unmeasurable corrected frame must not pass
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(810): error: Expected equality of these values:
+  0u
+    Which is: 0
+  m.measured_mask & XPE_METRIC_PRNU
+    Which is: 4
+flat before, all -1000 after: PRNU was not measured
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(811): error: Expected equality of these values:
+  0u
+    Which is: 0
+  m.measured_mask & XPE_METRIC_SNR
+    Which is: 32
+flat before, all -1000 after: the improvement was not measured
+
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AnAlreadyFlatPanelWithAnUnmeasurableCorrectedFrameDoesNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_FlatBeforeAndFlatAfterPassesWithoutAnyImprovement
+[       OK ] VerifyMetricsTest.VerifyGain_FlatBeforeAndFlatAfterPassesWithoutAnyImprovement (0 ms)
+[----------] 12 tests from VerifyMetricsTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 12 tests from 1 test suite ran. (1 ms total)
+[  PASSED  ] 8 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AllNegativeCorrectedFrameDoesNotPass
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AllZeroCorrectedFrameDoesNotPass
+[  FAILED  ] VerifyMetricsTest.VerifyGain_ANanPixelInTheCorrectedFrameDoesNotPass
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AnAlreadyFlatPanelWithAnUnmeasurableCorrectedFrameDoesNotPass
+
+ 4 FAILED TESTS

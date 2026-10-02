@@ -1,0 +1,13 @@
+probe BEFORE-FIX (64x64, gain map 1.0, semantics UNKNOWN)
+gain     G1 noisy 5% -> perfectly flat (residual exactly 0)   rc=0 prnu 4.9564% -> 0.000000%  snr_improvement_db=0.0000  overall_pass=False mask=44
+gain     G2 noisy 5% -> 0.0001% noise (control)               rc=0 prnu 4.9564% -> 0.000098%  snr_improvement_db=94.0465  overall_pass=True mask=44
+gain     G3 noisy 5% -> 0.5% noise (control)                  rc=0 prnu 4.9564% -> 0.510860%  snr_improvement_db=19.7374  overall_pass=True mask=44
+gain     G4 noisy 5% -> noisy 5% (no improvement)             rc=0 prnu 4.9564% -> 4.940005%  snr_improvement_db=0.0288  overall_pass=False mask=44
+gain     G5 uniform -> uniform (both flat)                    rc=0 prnu 0.0000% -> 0.000000%  snr_improvement_db=0.0000  overall_pass=True mask=44
+gain     G6 uniform -> noisy 5% (made worse)                  rc=0 prnu 0.0000% -> 4.955140%  snr_improvement_db=0.0000  overall_pass=False mask=44
+pipeline P1 noisy 5% -> perfectly flat                        rc=0 snr_improvement_db=inf  overall_pass=True mask=32
+pipeline P2 noisy 5% -> 0.0001% noise (control)               rc=0 snr_improvement_db=94.0556  overall_pass=True mask=32
+pipeline P3 noisy 5% -> 0.5% noise (control)                  rc=0 snr_improvement_db=19.7479  overall_pass=True mask=32
+pipeline P4 noisy 5% -> noisy 5% (no improvement)             rc=0 snr_improvement_db=0.0342  overall_pass=False mask=32
+pipeline P5 uniform -> uniform (both flat)                    rc=0 snr_improvement_db=nan  overall_pass=False mask=32
+pipeline P6 uniform -> noisy 5% (made worse)                  rc=0 snr_improvement_db=-inf  overall_pass=False mask=32

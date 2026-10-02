@@ -1,0 +1,30 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *PreprocessInit*:*EmptyStore*
+[==========] Running 3 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from OomInjection
+[ RUN      ] OomInjection.APreprocessInitThatRunsOutOfMemoryReportsItAsSuchAndLeavesTheModuleUninitialized
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(358): error: Value of: extraWhy.empty()
+  Actual: false
+Expected: true
+xpe_preprocess_init: allocation #1 failed (rc -3): an allocation failure was reported as another error
+
+[  FAILED  ] OomInjection.APreprocessInitThatRunsOutOfMemoryReportsItAsSuchAndLeavesTheModuleUninitialized (0 ms)
+[----------] 1 test from OomInjection (8 ms total)
+
+[----------] 2 tests from OomPipeline
+[ RUN      ] OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet
+[sweep] xpe_preprocess_pipeline (empty store)         73 allocation points covered
+[       OK ] OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet (34 ms)
+[ RUN      ] OomPipeline.AFailedCachedOffsetLoadThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeMap
+[sweep] xpe_calib_load_offset_cached (empty store)    20 allocation points covered
+[       OK ] OomPipeline.AFailedCachedOffsetLoadThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeMap (9 ms)
+[----------] 2 tests from OomPipeline (43 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 2 test suites ran. (52 ms total)
+[  PASSED  ] 2 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OomInjection.APreprocessInitThatRunsOutOfMemoryReportsItAsSuchAndLeavesTheModuleUninitialized
+
+ 1 FAILED TEST

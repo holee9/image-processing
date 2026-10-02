@@ -1,0 +1,55 @@
+b6c19b8a drake.lee 2026-04-26
+feat(calibration): 7건 결함 수정 + FUNC-026/022~025/검증메트릭 구현
+
+CRITICAL 수정:
+- API 헤더 3중 충돌 → preprocess_api.h 통합 (34함수, 12 Phase)
+- 오프셋 온도보상 활성화 (DARK_CURRENT_TEMP_COEFF=0.05f/°C, PREP 감쇠)
+
+HIGH 수정:
+- xpe_defect.cpp 데드코드 삭제
+- Gain 생성 API 구현 (SWU-1.12, FUNC-026)
+- BPM 생성 API 구현 (SWU-1.11, FUNC-022~025, RMM λ=8.0)
+
+MEDIUM 수정:
+- Gain 오류 삼킴 수정 (XPE_ERR_CONFIG_INVALID 전파)
+- 검증 메트릭 API 구현 (DSNU, PRNU, SNR, defect density)
+
+신규 파일: xpe_calib_generate_gain.cpp, xpe_defect_gen.cpp, xpe_verify_metrics.cpp
+삭제: preprocess_api.h(중복), xpe_preprocess_api.h(중복), xpe_defect.cpp(데드코드)
+21개 .cpp/.test #include 경로 업데이트
+
+🗿 MoAI <email@mo.ai.kr>
+
+
+ modules/preprocess/CMakeLists.txt                  |   4 +
+ .../include/xpe/preprocess/preprocess_api.h        |  18 -
+ .../include/xpe/preprocess/xcal_format.h           |   7 +-
+ .../include/xpe/preprocess/xpe_preprocess_api.h    | 423 ---------------
+ modules/preprocess/include/xpe/preprocess_api.h    | 574 +++++++++++++++++++++
+ modules/preprocess/src/binning_correct.cpp         |   2 +-
+ modules/preprocess/src/calibration_cache.cpp       |   2 +-
+ modules/preprocess/src/calibration_manager.cpp     |   2 +-
+ modules/preprocess/src/ghost_correct.cpp           |   2 +-
+ modules/preprocess/src/nonlinearity_correct.cpp    |   2 +-
+ modules/preprocess/src/pipeline.cpp                |   2 +-
+ modules/preprocess/src/temp_compensate.cpp         |   2 +-
+ modules/preprocess/src/xpe_calib_generate_gain.cpp | 510 ++++++++++++++++++
+ modules/preprocess/src/xpe_defect.cpp              | 301 -----------
+ modules/preprocess/src/xpe_defect_gen.cpp          | 489 ++++++++++++++++++
+ modules/preprocess/src/xpe_gain.cpp                |   7 +-
+ modules/preprocess/src/xpe_offset.cpp              |  47 +-
+======
+27:    constexpr double DARK_BIAS_MAX       = 5.0;     // ADU — corrected dark should be near zero
+28:    constexpr double DSNU_MAX_PCT        = 1.0;     // % — dark non-uniformity should be small
+31:    constexpr double PRNU_IMPROVE_MIN_DB = 3.0;     // dB — gain correction should improve PRNU
+32:    constexpr double GAIN_COVERAGE_MIN   = 0.99;    // 99% of gain values must be valid
+35:    constexpr double DEFECT_DENSITY_MAX  = 0.05;    // 5% max defect density
+38:    constexpr double SNR_IMPROVE_MIN_DB  = 2.0;     // minimum SNR improvement
+219:    metrics->overall_pass = (metrics->dark_bias < DARK_BIAS_MAX) &&
+296:        metrics->overall_pass = false;
+324:    bool prnu_improved = (metrics->prnu_after < metrics->prnu_before);
+325:    bool coverage_ok = (metrics->gain_coverage >= GAIN_COVERAGE_MIN);
+326:    bool snr_improved = (metrics->snr_improvement_db >= PRNU_IMPROVE_MIN_DB);
+328:    metrics->overall_pass = prnu_improved && coverage_ok && snr_improved;
+413:    metrics->overall_pass = (metrics->defect_density < DEFECT_DENSITY_MAX);
+501:    metrics->overall_pass = (metrics->snr_improvement_db >= SNR_IMPROVE_MIN_DB);

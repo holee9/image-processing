@@ -1,0 +1,27 @@
+== deepsync:95 and :498 verbatim
+| Gain/offset calibration SNR | Ranger et al., J Digit Imaging 2014, [PMC3965338](https://pmc.ncbi.nlm.nih.gov/articles/PMC3965338/) | Gain/offset calibration reduces SNR variation. Recalibration indicated when SNR falls outside 95% CI. | **VERIFIED** - Quantitative SNR improvement data confirmed |
+| Calibration QC metrics | DQE/MTF/NPS per IEC 62220 | Real-time flat-field residual monitoring, SNR confidence intervals | **Gap**: No runtime QC metric computation specified | Medium |
+
+== deepsync: lines mentioning verify / xpe_verify / overall_pass / acceptance of calibration QC
+53:| Detector QC metrics | MTF, NPS, DQE measured on detector-domain images only. |
+498:| Calibration QC metrics | DQE/MTF/NPS per IEC 62220 | Real-time flat-field residual monitoring, SNR confidence intervals | **Gap**: No runtime QC metric computation specified | Medium |
+531:- Real-time calibration QC metric computation
+
+== code: how gain_coverage / snr_improvement_db are computed (current)
+43:static_assert(offsetof(XpeCalibrationMetrics, gain_coverage)      ==  48, "ABI: gain_coverage moved");
+48:static_assert(offsetof(XpeCalibrationMetrics, snr_improvement_db) ==  80, "ABI: snr_improvement_db moved");
+70:     * (3 dB, 0.99, 99%, 2 dB) and by concept (PRNU, coverage, SNR
+99:                                                    // snr_improvement_db (:348), not PRNU.
+467: * Computes PRNU before/after, flatness, gain coverage, and SNR improvement.
+568:    // Compute gain coverage
+569:    metrics->gain_coverage = static_cast<double>(valid_gain_count) / pixel_count;
+574:        metrics->snr_improvement_db = 20.0 * std::log10(metrics->prnu_before / metrics->prnu_after);
+576:        metrics->snr_improvement_db = 0.0;
+582:    bool coverage_ok = (metrics->gain_coverage >= GAIN_COVERAGE_MIN);
+583:    bool snr_improved = (metrics->snr_improvement_db >= PRNU_IMPROVE_MIN_DB) ||
+590:     * relative improvement (prnu_improved, snr_improved) plus coverage -- so a
+614:    metrics->overall_pass = prnu_improved && coverage_ok && snr_improved && flat_residual_ok;
+785:    double snr_raw = (mean_raw > 0.0) ? (20.0 * std::log10(mean_raw / std_raw)) : 0.0;
+786:    double snr_final = (mean_final > 0.0) ? (20.0 * std::log10(mean_final / std_final)) : 0.0;
+788:    metrics->snr_improvement_db = snr_final - snr_raw;
+801:    metrics->overall_pass = (metrics->snr_improvement_db >= SNR_IMPROVE_MIN_DB);

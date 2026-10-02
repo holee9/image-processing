@@ -1,0 +1,10 @@
+ARM a1_zero_branch_back_to_prnu_after_equals_zero
+built=True
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AllNegativeCorrectedFrameDoesNotPass (0 ms)
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AllZeroCorrectedFrameDoesNotPass (0 ms)
+[  FAILED  ] VerifyMetricsTest.VerifyGain_ANanPixelInTheCorrectedFrameDoesNotPass (0 ms)
+[  PASSED  ] 42 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AllNegativeCorrectedFrameDoesNotPass
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AllZeroCorrectedFrameDoesNotPass
+[  FAILED  ] VerifyMetricsTest.VerifyGain_ANanPixelInTheCorrectedFrameDoesNotPass

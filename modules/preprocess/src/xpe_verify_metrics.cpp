@@ -94,10 +94,26 @@ namespace {
                                                     // denominator -- do not adopt it as the source.
 
     // Gain correction thresholds
-    constexpr double PRNU_IMPROVE_MIN_DB = 3.0;     // dB -- NO REQUIREMENT FOUND (scope above).
-                                                    // Also misnamed: it is compared against
-                                                    // snr_improvement_db (:348), not PRNU.
-    constexpr double GAIN_COVERAGE_MIN   = 0.99;    // -- NO REQUIREMENT FOUND (scope above)
+    //
+    // PROVISIONAL -- NO REQUIREMENT BASIS (QA-A-223, #242): PRNU_IMPROVE_MIN_DB,
+    // GAIN_COVERAGE_MIN and SNR_IMPROVE_MIN_DB came in together with this function in
+    // b6c19b8a (2026-04-26); that commit changed no document and the values have never been
+    // revised. Searched by value and by concept over docs/, .moai/specs and .moai/project: no
+    // requirement states any of them. They are KEPT at these values on purpose -- dropping a
+    // gate loosens the verdict and cannot be undone safely -- so read them as placeholders,
+    // not as criteria anyone derived. The issue stays open until a basis exists.
+    constexpr double PRNU_IMPROVE_MIN_DB = 3.0;     // dB -- PROVISIONAL, see above.
+                                                    // Named for PRNU, and rightly: in xpe_verify_gain
+                                                    // snr_improvement_db is 20*log10(prnu_before /
+                                                    // prnu_after), a PRNU improvement. It is the SAME
+                                                    // quantity as xpe_verify_pipeline's SNR_final -
+                                                    // SNR_raw (both are the CV in dB), whose line is
+                                                    // SNR_IMPROVE_MIN_DB = 2.0: two lines for one
+                                                    // quantity, no recorded reason for the gap.
+    constexpr double GAIN_COVERAGE_MIN   = 0.99;    // -- PROVISIONAL, see above. "Valid" here means
+                                                    // finite and > 0 (the loop in xpe_verify_gain),
+                                                    // wider than the product's [0.1, 10.0]
+                                                    // (SRS-CALIB-FUNC-002, REQ-P1A-011).
     constexpr double FLAT_RESIDUAL_MAX_PCT = 1.0;   // %. SRS-CALIB-FUNC-017: "Phase 1 acceptance
                                                     // shall require FlatResidualPct <= 1.0%".
                                                     // Applied when the gain semantics are unknown.
@@ -126,7 +142,17 @@ namespace {
                                                     // wrong thing was this comparison.
 
     // Overall thresholds
-    constexpr double SNR_IMPROVE_MIN_DB  = 2.0;     // dB -- NO REQUIREMENT FOUND (scope above)
+    constexpr double SNR_IMPROVE_MIN_DB  = 2.0;     // dB -- PROVISIONAL, see "Gain correction
+                                                    // thresholds" above; the same quantity as
+                                                    // PRNU_IMPROVE_MIN_DB (3.0).
+
+    // Value reported for an INFINITE improvement or SNR -- not a threshold, and no gate reads it
+    // (QA-A-224, #242). A frame whose spread is exactly zero has an infinite SNR, and +inf / NaN
+    // do not survive a C ABI consumer or JSON. 200 dB is a reporting convention, well above what
+    // float32 rounding noise leaves for ordinary frames (about 120 dB for a 5% panel corrected to
+    // the last bit). It is NOT a bound: a nonzero residual could in principle show more (one
+    // flipped bit in a 9.4-megapixel frame is ~214 dB) and is reported as measured.
+    constexpr double ZERO_SPREAD_DB = 200.0;
 
     // Helper: Compute robust mean using median (more resistant to outliers)
     /* QA-A-156 (#220): the canonical metrics are defined on the ARITHMETIC mean.
@@ -177,6 +203,15 @@ namespace {
     // Helper: Compute histogram entropy for flatness measurement
     double compute_flatness(const std::vector<double>& values, int bins = 256) {   // builds a histogram: allocates, so not noexcept (QA-A-204)
         if (values.empty()) return 0.0;
+
+        // QA-A-224b (#242): a non-finite value used to reach `static_cast<int>((v - min) / bin_width)` as NaN, which
+        // converts to INT_MIN and indexes the histogram far out of range -- an access violation on a corrected frame
+        // with one NaN pixel (found while pinning "a NaN pixel does not pass"; the crash predates that card).
+        // Flatness of a frame that is not entirely finite is not measurable: 0.0, the value this field already
+        // carries when nothing could be measured.
+        for (double v : values) {
+            if (!std::isfinite(v)) return 0.0;
+        }
 
         // Find min/max
         auto [min_it, max_it] = std::minmax_element(values.begin(), values.end());
@@ -562,16 +597,41 @@ static XpeErrorCode verify_gain_impl(
     double std_after = compute_std(after_vals, mean_after);
     metrics->prnu_after = (mean_after > 0.0) ? (std_after / mean_after) * 100.0 : 0.0;
 
+    // QA-A-224b (#242, Codex #82): a corrected frame whose mean is <= 0 or NaN also leaves prnu_after at 0 -- the
+    // ratio has no meaning there -- so "prnu_after == 0" alone cannot tell a perfect correction from one that could
+    // not be measured. This frame is MEASURABLE when its mean is finite and positive. A perfect correction is a
+    // measurable frame whose spread is exactly zero; a frame that is not measurable fails (SRS-CALIB-FUNC-036),
+    // claims no improvement, and is not reported as measured for PRNU or the improvement.
+    const bool after_measurable = std::isfinite(mean_after) && mean_after > 0.0;
+    // QA-A-224c (#242): the same condition on the RAW side. A raw frame whose mean is not finite and positive -- a
+    // dead sensor delivers zeros; the frame is UINT16, so zero is the only way to fail -- leaves prnu_before at the
+    // placeholder 0, and the "already flat" exception below would waive the improvement gates for it: all-zero raw
+    // plus a flat corrected frame passed. It is not a verified correction.
+    const bool before_measurable = std::isfinite(mean_before) && mean_before > 0.0;
+    const bool after_perfect = after_measurable && std_after == 0.0;
+
     // Compute flatness
     metrics->flatness_pct = compute_flatness(after_vals) * 100.0;
 
     // Compute gain coverage
     metrics->gain_coverage = static_cast<double>(valid_gain_count) / pixel_count;
-    metrics->measured_mask |= XPE_METRIC_PRNU | XPE_METRIC_GAIN_COVERAGE | XPE_METRIC_SNR;
+    metrics->measured_mask |= XPE_METRIC_GAIN_COVERAGE;
+    if (before_measurable && after_measurable) metrics->measured_mask |= XPE_METRIC_PRNU | XPE_METRIC_SNR;
 
-    // Compute SNR improvement in dB
+    // Compute the improvement in dB. In this function the value is the PRNU improvement,
+    // 20*log10(prnu_before/prnu_after); the field keeps the name snr_improvement_db (ABI lock,
+    // SRS-CALIB-FUNC-037).
+    //
+    // QA-A-224 (#242): a residual of EXACTLY zero used to fall into the else branch and report
+    // 0.0, so the most improved frame possible failed snr_improved below -- a perfectly
+    // corrected panel was rejected while the same panel with 1e-6 noise passed (94 dB). Zero is
+    // an infinite improvement, reported as ZERO_SPREAD_DB -- but only for a frame that is perfect in the
+    // sense above (QA-A-224b): measurable, with a spread of exactly zero. A zero that came from an
+    // unmeasurable frame (mean <= 0, NaN) reports 0.0 and fails below.
     if (metrics->prnu_before > 0.0 && metrics->prnu_after > 0.0) {
         metrics->snr_improvement_db = 20.0 * std::log10(metrics->prnu_before / metrics->prnu_after);
+    } else if (metrics->prnu_before > 0.0 && after_perfect) {
+        metrics->snr_improvement_db = ZERO_SPREAD_DB;
     } else {
         metrics->snr_improvement_db = 0.0;
     }
@@ -611,7 +671,11 @@ static XpeErrorCode verify_gain_impl(
         : FLAT_RESIDUAL_KNOWN_MAX_PCT;
     bool flat_residual_ok = (metrics->prnu_after <= flat_residual_limit);
 
-    metrics->overall_pass = prnu_improved && coverage_ok && snr_improved && flat_residual_ok;
+    // A frame that cannot be measured -- the corrected one (QA-A-224b) or the raw one (QA-A-224c) -- never passes,
+    // whatever the other gates read from its placeholder zeros; that includes the "already flat" exception above,
+    // which would otherwise wave through a flat before frame with a garbage after frame, or a dead (all-zero) raw
+    // frame with a flat after frame.
+    metrics->overall_pass = before_measurable && after_measurable && prnu_improved && coverage_ok && snr_improved && flat_residual_ok;
 
     return XPE_OK;
 }
@@ -702,6 +766,20 @@ XPE_API XpeErrorCode xpe_verify_defect(
     return XPE_OK;
 }
 
+/* SNR in dB of a frame, 20*log10(mean/std), as xpe_verify_pipeline uses it (QA-A-224, #242).
+ *  - mean <= 0 (or NaN): 0.0, as before.
+ *  - std exactly 0: an infinite SNR, reported as ZERO_SPREAD_DB. The test is `== 0.0` on
+ *    purpose: a NaN std (an infinite pixel makes mean inf and std NaN) falls through to the
+ *    formula and stays NaN, so such a frame still fails instead of reading as perfect.
+ *  - otherwise the formula. For finite input the result is finite: a finite ratio has a finite
+ *    logarithm, so no clamp is needed (and one could never be exercised). */
+static double snr_db(double mean, double std_dev)
+{
+    if (!(mean > 0.0)) return 0.0;
+    if (std_dev == 0.0) return ZERO_SPREAD_DB;
+    return 20.0 * std::log10(mean / std_dev);
+}
+
 /**
  * @brief Verify full pipeline quality
  *
@@ -781,9 +859,15 @@ static XpeErrorCode verify_pipeline_impl(
     double mean_final = compute_robust_mean(final_vals);
     double std_final = compute_std(final_vals, mean_final);
 
-    // Compute SNR improvement (using coefficient of variation: std/mean)
-    double snr_raw = (mean_raw > 0.0) ? (20.0 * std::log10(mean_raw / std_raw)) : 0.0;
-    double snr_final = (mean_final > 0.0) ? (20.0 * std::log10(mean_final / std_final)) : 0.0;
+    // Compute SNR improvement (using coefficient of variation: std/mean). The same quantity as
+    // xpe_verify_gain's field of the same name -- see PRNU_IMPROVE_MIN_DB.
+    //
+    // QA-A-224 (#242): a flat frame (std exactly 0) used to give +inf here, and NaN or -inf when
+    // both frames or only the raw one were flat; inf and NaN went out through the C ABI.
+    // snr_db() turns every flat-frame case into a finite number. Verdicts are unchanged:
+    // noisy -> flat still passes, flat -> flat and flat -> noisy still fail.
+    const double snr_raw = snr_db(mean_raw, std_raw);
+    const double snr_final = snr_db(mean_final, std_final);
 
     metrics->snr_improvement_db = snr_final - snr_raw;
     metrics->measured_mask |= XPE_METRIC_SNR;
@@ -798,6 +882,8 @@ static XpeErrorCode verify_pipeline_impl(
     // not the arithmetic mean the protocol uses for its own metrics; QA-A-187 measured the two
     // disagreeing on this gate for inputs just below 2.0 dB. The value and the line are kept as they
     // were: this comment changes no behaviour.
+    // PROVISIONAL (QA-A-223, #242): the 2.0 has no requirement basis and is kept until one
+    // exists; the same quantity is gated at 3.0 in xpe_verify_gain.
     metrics->overall_pass = (metrics->snr_improvement_db >= SNR_IMPROVE_MIN_DB);
 
     return XPE_OK;

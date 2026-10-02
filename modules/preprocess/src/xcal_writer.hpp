@@ -17,6 +17,9 @@
 #include "xpe/common/xpe_types.h"
 #include <cstdint>
 #include <cstddef>
+#ifdef XPE_CACHE_TEST_HOOKS
+#include <ios>
+#endif
 
 /**
  * @brief Write an XCal v1 file atomically.
@@ -79,5 +82,17 @@ XPE_API XpeErrorCode write_xcal_file_ex(
     const uint8_t* payload,
     uint64_t payload_len,
     bool compress_defect);
+
+#ifdef XPE_CACHE_TEST_HOOKS
+/**
+ * Test-only (QA-A-221c, Codex #81): called right after each stream operation of the temporary-file write and
+ * before its outcome is judged, with the step number -- 1 header, 2 config (only when there is one), 3 payload
+ * (only when there is one), 4 flush, 5 close -- and the stream itself, so a test can leave a stale error behind
+ * after a step that succeeded and fail the next step in a way the operating system does not report (the
+ * stream's own failbit). Only the allocation-failure executable defines XPE_CACHE_TEST_HOOKS; the shipped
+ * library has neither the declaration nor the call.
+ */
+extern void (*xpe_xcal_write_step_hook)(int step, std::ios& stream);
+#endif
 
 #endif /* XPE_XCAL_WRITER_HPP */

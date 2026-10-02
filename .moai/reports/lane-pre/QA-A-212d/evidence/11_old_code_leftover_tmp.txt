@@ -1,0 +1,33 @@
+Note: Google Test filter = *AWriteThatFailsHalfWay*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from XcalReplaceRetryTest
+[ RUN      ] XcalReplaceRetryTest.AWriteThatFailsHalfWayRemovesTheTemporaryFileAndSaysWhy
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_replace_retry.cpp(317): error: Value of: a.empty()
+  Actual: true
+Expected: false
+a failed write used to return IO_FAILED with nothing to say why
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_replace_retry.cpp(318): error: Expected: (std::string::npos) != (a.find("cal.xcal.tmp")), actual: 18446744073709551615 vs 18446744073709551615
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_replace_retry.cpp(319): error: Expected: (std::string::npos) != (a.find("Windows error 33")), actual: 18446744073709551615 vs 18446744073709551615
+the system said: the file is locked by another process:
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_replace_retry.cpp(320): error: Expected: (std::string::npos) != (a.find("the temporary file was removed")), actual: 18446744073709551615 vs 18446744073709551615
+and it was removed:
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xcal_replace_retry.cpp(325): error: Value of: fs::exists(tmp())
+  Actual: true
+Expected: false
+no half-written temporary file stays behind
+
+[  FAILED  ] XcalReplaceRetryTest.AWriteThatFailsHalfWayRemovesTheTemporaryFileAndSaysWhy (18 ms)
+[----------] 1 test from XcalReplaceRetryTest (18 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (18 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] XcalReplaceRetryTest.AWriteThatFailsHalfWayRemovesTheTemporaryFileAndSaysWhy
+
+ 1 FAILED TEST

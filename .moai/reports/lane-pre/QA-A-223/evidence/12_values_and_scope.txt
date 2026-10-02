@@ -1,0 +1,28 @@
+== did the VALUES ever change? (pickaxe on the assignment text, all history)
+'PRNU_IMPROVE_MIN_DB = 3.0': 1 commits touching that exact text
+'GAIN_COVERAGE_MIN   = 0.99': 1 commits touching that exact text
+'SNR_IMPROVE_MIN_DB  = 2.0': 1 commits touching that exact text
+
+== which doc trees exist
+.moai/specs/
+docs/README.md
+docs/ai-module/
+docs/archive/
+docs/audit/
+docs/calibration/
+docs/common/
+docs/contracts/
+docs/design/
+docs/development/
+docs/dicom/
+docs/display/
+docs/enhance-advanced/
+docs/enhance-basic/
+docs/ghost-correction/
+docs/help/
+docs/interop/
+docs/operations/
+docs/panel-defect/
+docs/panel-defect-algorithm/
+
+md files under docs/ + .moai/specs + .moai/project: 299

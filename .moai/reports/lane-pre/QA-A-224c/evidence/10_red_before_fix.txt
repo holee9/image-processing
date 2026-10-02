@@ -1,0 +1,60 @@
+Note: Google Test filter = VerifyMetricsTest.VerifyGain_*
+[==========] Running 14 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 14 tests from VerifyMetricsTest
+[ RUN      ] VerifyMetricsTest.VerifyGain_PerfectFlatField
+[       OK ] VerifyMetricsTest.VerifyGain_PerfectFlatField (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_DetectsBadGain
+[       OK ] VerifyMetricsTest.VerifyGain_DetectsBadGain (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_FlatResidualUsesTheArithmeticMean
+[       OK ] VerifyMetricsTest.VerifyGain_FlatResidualUsesTheArithmeticMean (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_ImprovedButStillAboveOnePercentFails
+[       OK ] VerifyMetricsTest.VerifyGain_ImprovedButStillAboveOnePercentFails (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_PerfectCorrectionPasses
+[       OK ] VerifyMetricsTest.VerifyGain_PerfectCorrectionPasses (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_TinyResidualNoiseStillPasses
+[       OK ] VerifyMetricsTest.VerifyGain_TinyResidualNoiseStillPasses (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_NoImprovementStillFails
+[       OK ] VerifyMetricsTest.VerifyGain_NoImprovementStillFails (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_AllNegativeCorrectedFrameDoesNotPass
+[       OK ] VerifyMetricsTest.VerifyGain_AllNegativeCorrectedFrameDoesNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_AllZeroCorrectedFrameDoesNotPass
+[       OK ] VerifyMetricsTest.VerifyGain_AllZeroCorrectedFrameDoesNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_ANanPixelInTheCorrectedFrameDoesNotPass
+[       OK ] VerifyMetricsTest.VerifyGain_ANanPixelInTheCorrectedFrameDoesNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_AnAlreadyFlatPanelWithAnUnmeasurableCorrectedFrameDoesNotPass
+[       OK ] VerifyMetricsTest.VerifyGain_AnAlreadyFlatPanelWithAnUnmeasurableCorrectedFrameDoesNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_AllZeroRawFrameDoesNotPass
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(869): error: Value of: m.overall_pass
+  Actual: true
+Expected: false
+a dead sensor's all-zero frame is not a verified correction
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(871): error: Expected equality of these values:
+  0u
+    Which is: 0
+  m.measured_mask & XPE_METRIC_PRNU
+    Which is: 4
+PRNU was not measured
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(872): error: Expected equality of these values:
+  0u
+    Which is: 0
+  m.measured_mask & XPE_METRIC_SNR
+    Which is: 32
+the improvement was not measured
+
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AllZeroRawFrameDoesNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_AllZeroRawAndAllZeroCorrectedFramesDoNotPass
+[       OK ] VerifyMetricsTest.VerifyGain_AllZeroRawAndAllZeroCorrectedFramesDoNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_FlatBeforeAndFlatAfterPassesWithoutAnyImprovement
+[       OK ] VerifyMetricsTest.VerifyGain_FlatBeforeAndFlatAfterPassesWithoutAnyImprovement (0 ms)
+[----------] 14 tests from VerifyMetricsTest (9 ms total)
+
+[----------] Global test environment tear-down
+[==========] 14 tests from 1 test suite ran. (9 ms total)
+[  PASSED  ] 13 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AllZeroRawFrameDoesNotPass
+
+ 1 FAILED TEST

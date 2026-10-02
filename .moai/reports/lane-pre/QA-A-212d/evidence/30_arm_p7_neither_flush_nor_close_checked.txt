@@ -1,0 +1,9 @@
+ARM p7_neither_flush_nor_close_checked
+file src/xcal_writer.cpp
+built=True
+[  FAILED  ] XcalReplaceRetryTest.AWriteThatFailsHalfWayRemovesTheTemporaryFileAndSaysWhy (2 ms)
+[  FAILED  ] XcalReplaceRetryTest.AWriteThatFailsWhileTheTemporaryFileCannotBeDeletedSaysItWasLeftBehind (185 ms)
+[  PASSED  ] 9 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] XcalReplaceRetryTest.AWriteThatFailsHalfWayRemovesTheTemporaryFileAndSaysWhy
+[  FAILED  ] XcalReplaceRetryTest.AWriteThatFailsWhileTheTemporaryFileCannotBeDeletedSaysItWasLeftBehind

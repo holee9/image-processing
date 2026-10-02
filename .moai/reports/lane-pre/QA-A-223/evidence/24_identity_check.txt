@@ -1,0 +1,7 @@
+identity of the two dB quantities under SAME estimators (arithmetic mean, population std):
+ trial 0 gain-form 10.942495842 dB  pipeline-form 10.942495842 dB  diff 3.55e-15
+ trial 1 gain-form 4.926155043 dB  pipeline-form 4.926155043 dB  diff 3.55e-15
+ trial 2 gain-form 2.793658867 dB  pipeline-form 2.793658867 dB  diff 7.99e-15
+ trial 3 gain-form 8.251176746 dB  pipeline-form 8.251176746 dB  diff 0.00e+00
+ trial 4 gain-form 5.453106797 dB  pipeline-form 5.453106797 dB  diff 0.00e+00
+verdict split: an improvement of 2.5 dB -> verify_gain needs >=3.0 (FAIL), verify_pipeline needs >=2.0 (PASS)

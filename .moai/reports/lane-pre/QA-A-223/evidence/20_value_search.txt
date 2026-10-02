@@ -1,0 +1,16 @@
+tree: origin/main f9803071; scope: docs/ .moai/specs .moai/project (md and other tracked text)
+### CONTROL +: DarkBias 5 ADU (expect SRS FUNC-016)
+docs/calibration/PRIOR-ART-BPM-ALGORITHM.md:382:- DarkBias: |offset| ≤ 5 ADU
+docs/calibration/SRS-CALIB-001_Software_Requirements_Specification.md:147:| **SRS-CALIB-FUNC-016** | System shall compute detector-domain dark/offset metrics: `DarkBias`, `DSNU_ADU`, `DarkReduction_dB`, and `ClampRate`. Phase 1 ac
+### CONTROL -: fabricated metric (expect nothing)
+
+### A. coverage 99% / 0.99 near gain|coverage|valid
+docs/calibration/SAD-CALIB-001_Software_Architecture_Document.md:748:| **TDS-CALIB-001** | Test Dataset Specification | `docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md` | Specifies test inputs for verification of all
+docs/project/XPE-PostProcess-DeepResearch.json:4:    "text": "ARCHIVAL NOTE: This JSON is a raw research-agent transcript for traceability only. It is non-normative and must not override the canonical Markdown set under docs/proje
+docs/project/XPE-PreProcess-DeepResearch.json:4:    "text": "ARCHIVAL NOTE: This JSON is a raw research-agent transcript for traceability only. It is non-normative and must not override the canonical Markdown set under docs/projec
+
+### B. PRNU with 3 dB
+
+### C. SNR with 2 dB
+docs/post-processing/xpe/XPE-STP-001_Software_Test_Plan_and_Cases.md:123:| UT-2.2-001 | Bilateral basic | noisy synthetic (sigma=0.05) | SNR improved | SNR gain >= 2dB | SRS-FUNC-011 |
+docs/project/XPE-PostProcess-DeepResearch.json:4:    "text": "ARCHIVAL NOTE: This JSON is a raw research-agent transcript for traceability only. It is non-normative and must not override the canonical Markdown set under docs/proje

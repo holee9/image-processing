@@ -1,0 +1,42 @@
+[audit] xpe_alert_push (empty queue)                   points=3 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0 rc={}
+[audit] xpe_alert_push (full queue, evicts)            points=4 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0 rc={}
+[audit] xpe_init (with config)                         points=1 failed=1 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=1 rc={-2x1}
+[audit] xpe_configure                                  points=19 failed=19 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=19 rc={-2x19}
+[audit] xpe_shutdown                                   points=4 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0 rc={}
+[audit] xpe_log_set_file (valid path)                  points=3 failed=3 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=3 rc={-2x3}
+[audit] xpe_log_set_level                              points=0 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0 rc={}
+[audit] xpe_log_flush                                  points=0 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0 rc={}
+[audit] xpe_get_pending_alert_count                    points=0 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0 rc={}
+[audit] xpe_get_pending_alert                          points=0 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0 rc={}
+[audit] xpe_clear_alerts                               points=0 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0 rc={}
+[audit] xpe_offset_correct                             points=0 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0 rc={}
+[audit] xpe_gain_correct                               points=1 failed=1 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=1 rc={-2x1}
+[audit] xpe_defect_correct                             points=7 failed=7 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=7 rc={-2x7}
+[audit] xpe_ghost_create (with config)                 points=25 failed=25 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=25 rc={-2x25}
+[audit] xpe_ghost_create (config with long values)     points=25 failed=25 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=25 rc={-2x25}
+[audit] xpe_ghost_correct                              points=0 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0 rc={}
+[audit] xpe_preprocess_pipeline_ex (all stages, valid) points=28 failed=28 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=28 rc={-2x28}
+[audit] xpe_verify_offset                              points=3 failed=3 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=3 rc={-2x3}
+[audit] xpe_verify_gain                                points=2 failed=2 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=2 rc={-2x2}
+[audit] xpe_preprocess_pipeline (calib dir)            points=76 failed=73 escaped=0 lockleak=0 partial=16 growth=16 growthAfterReset=73 rc={-2x73}
+[audit] xpe_preprocess_pipeline_batch (1 frame)        points=76 failed=73 escaped=0 lockleak=0 partial=16 growth=16 growthAfterReset=73 rc={-2x73}
+[audit] xpe_verify_pipeline                            points=4 failed=4 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=4 rc={-2x4}
+[audit] xpe_defect_detect_runtime                      points=8 failed=8 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=8 rc={-2x8}
+[audit] xpe_bpm_generate                               points=72 failed=72 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=72 rc={-2x72}
+[audit] xpe_calib_generate_nonlin_lut                  points=11 failed=11 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=11 rc={-2x11}
+[audit] xpe_nonlinearity_correct (polynomial)          points=23 failed=23 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=23 rc={-2x23}
+[audit] xpe_calib_load_offset (plain)                  points=10 failed=10 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=10 rc={-2x10}
+[audit] xpe_calib_load_gain (plain)                    points=13 failed=13 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=13 rc={-2x13}
+[audit] xpe_calib_load_defect_map (plain)              points=10 failed=10 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=10 rc={-2x10}
+[audit] xpe_calib_load_offset_cached                   points=16 failed=15 escaped=0 lockleak=0 partial=5 growth=5 growthAfterReset=15 rc={-2x15}
+[audit] xpe_calib_save (offset)                        points=4 failed=4 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=4 rc={-2x4}
+[audit] xpe_calib_generate_offset                      points=7 failed=7 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=7 rc={-2x7}
+[audit] xpe_calib_load_gain_cached                     points=19 failed=18 escaped=0 lockleak=0 partial=5 growth=5 growthAfterReset=18 rc={-2x18}
+[audit] xpe_calib_load_defect_cached                   points=16 failed=15 escaped=0 lockleak=0 partial=5 growth=5 growthAfterReset=15 rc={-2x15}
+[audit] RuntimeDetection_DefaultConfig (extern C inline) points=0 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0 rc={}
+[audit] xpe_calib_generate_gain                        points=8 failed=8 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=8 rc={-2x8}
+[audit] xpe_calib_generate_gain_polynomial             points=547 failed=547 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=547 rc={-2x547}
+[audit] xpe_calib_load_nonlin_lut                      points=10 failed=10 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=10 rc={-2x10}
+[audit] xpe_calib_check_expiry                         points=0 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0 rc={}
+[audit] xpe_preprocess_init (config)                   points=19 failed=19 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=19 rc={-3x19}
+[audit] xpe_preprocess_shutdown                        points=0 failed=0 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=0 rc={}
