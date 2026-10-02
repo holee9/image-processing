@@ -1,0 +1,80 @@
+# QA-B-189 part 1: DLL exports vs header declarations vs the names api-spec.md uses.
+# Run from the repo root:  PYTHONIOENCODING=utf-8 python <this file> > api_names_out.txt
+# (kept as .txt: .gitignore excludes .py under .moai/reports)
+import re
+import sys
+
+REPORT = '.moai/reports/lane-post/QA-B-189/'
+DLL = open(REPORT + 'dll_exports.txt', encoding='utf-8', errors='replace').read()
+HDR = open('modules/dicom/include/xpe/dicom/dicom_api.h', encoding='utf-8').read()
+DOC_LINES = open('docs/project/api-spec.md', encoding='utf-8').read().split('\n')
+
+out = []
+
+
+def say(s=''):
+    out.append(s)
+
+
+# exports: lines "ordinal hint RVA name = ..." under the "ordinal hint RVA      name" header
+exports = sorted(re.findall(r'^\s+\d+\s+[0-9A-F]+\s+[0-9A-F]{8}\s+(\w+)\s+=', DLL, re.M))
+declared = sorted(re.findall(r'^XPE_API\s+[\w ]+?\s+(\w+)\(', HDR, re.M))
+say('== A. xpe_dicom.dll exports (dumpbin /exports) vs XPE_API declarations in dicom_api.h')
+say('exports  (%d): %s' % (len(exports), ', '.join(exports)))
+say('declared (%d): %s' % (len(declared), ', '.join(declared)))
+say('exported but not declared: %s' % (sorted(set(exports) - set(declared)) or 'none'))
+say('declared but not exported: %s' % (sorted(set(declared) - set(exports)) or 'none'))
+say('control: the dumpbin parse found %d names (summary line of the file says "number of names": %s)' %
+    (len(exports), re.search(r'(\d+) number of names', DLL).group(1)))
+assert len(exports) == int(re.search(r'(\d+) number of names', DLL).group(1)), 'the export parse lost names'
+
+# every dicom/gsps identifier in api-spec.md, classified
+say()
+say('== B. Every xpe_dicom_* / xpe_gsps_* identifier in docs/project/api-spec.md, by line, against the exports')
+ID = re.compile(r'\bxpe_(?:dicom|gsps)_\w+')
+occ = {}
+for i, ln in enumerate(DOC_LINES, 1):
+    for m in ID.finditer(ln):
+        occ.setdefault(m.group(0), []).append(i)
+for name in sorted(occ):
+    status = 'EXPORTED' if name in exports else 'NOT EXPORTED'
+    say('%-30s %-13s lines %s' % (name, status, ','.join(str(x) for x in occ[name])))
+missing_in_doc = sorted(set(exports) - set(occ))
+say('exported but never mentioned in api-spec.md: %s' % (missing_in_doc or 'none'))
+say('control: %d distinct identifiers found; %d of them exported' % (len(occ), len([n for n in occ if n in exports])))
+
+# the section 11 sub-headings
+say()
+say('== C. api-spec.md section 11 sub-sections: heading line, heading name, exported?')
+for i, ln in enumerate(DOC_LINES, 1):
+    m = re.match(r'### 11\.(\d+) (xpe_\w+)', ln)
+    if m:
+        say('L%-5d 11.%-3s %-28s %s' % (i, m.group(1), m.group(2), 'EXPORTED' if m.group(2) in exports else 'NOT EXPORTED'))
+
+# signatures in the doc code blocks vs header
+say()
+say('== D. Signature of each section-11 code block in the doc, parameter list vs the header')
+
+
+def params(text):
+    inside = text[text.index('(') + 1:text.rindex(')')]
+    return [re.sub(r'\s+', ' ', p.strip()) for p in inside.split(',') if p.strip()]
+
+
+doc_sig = {}
+txt = '\n'.join(DOC_LINES[1342:1540])
+for m in re.finditer(r'XPE_API\s+[\w ]+?\s+(\w+)\((.*?)\);', txt, re.S):
+    doc_sig[m.group(1)] = params('(' + m.group(2) + ')')
+hdr_sig = {}
+for m in re.finditer(r'^XPE_API\s+[\w ]+?\s+(\w+)\((.*?)\);', HDR, re.M | re.S):
+    hdr_sig[m.group(1)] = params('(' + m.group(2) + ')')
+for name in sorted(doc_sig):
+    h = hdr_sig.get(name)
+    same = (h == doc_sig[name]) if h is not None else None
+    say('%-28s doc %d params, header %s -> %s' % (name, len(doc_sig[name]), (len(h) if h is not None else '-'),
+                                                  'no such export' if h is None else ('same' if same else 'DIFFERENT')))
+    if h is not None and not same:
+        say('    doc   : %s' % doc_sig[name])
+        say('    header: %s' % h)
+
+sys.stdout.write('\n'.join(out) + '\n')
