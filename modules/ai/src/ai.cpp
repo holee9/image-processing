@@ -29,6 +29,7 @@
 #include "ai_worker_supervisor.h"
 #include "ai_finite.h"
 #include "ai_bodypart.h"
+#include "ai_bodypart_decision.h"
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -639,13 +640,6 @@ static const char* loadBodyPartModel(AiModuleState* state, std::unique_ptr<BodyP
     return nullptr;
 }
 
-/** A float as the SHORTEST text that reads back as the same float (0.6f is "0.6", the next float up is "0.6000001"). */
-static std::string shortestFloatText(float v) {
-    char buf[32];
-    const auto r = std::to_chars(buf, buf + sizeof(buf), v);
-    return std::string(buf, r.ptr);
-}
-
 /**
  * REQ-AI-012: the low-confidence event. ONE Warning per image whose confidence is below the threshold (leader
  * decision QA-B-191 D3: Warning and not Info, because with fallback_mode off the low-confidence label is used
@@ -656,14 +650,7 @@ static std::string shortestFloatText(float v) {
  * same float, so a confidence one float below the threshold is still told apart from it.
  */
 static void pushLowConfidenceAlert(float confidence, float threshold, const char* labelUsed) {
-    std::string msg = "AI body-part confidence " + shortestFloatText(confidence) + " is below the threshold " +
-                      shortestFloatText(threshold) + " (REQ-AI-012): ";
-    if (labelUsed) {
-        msg += std::string("the label ") + labelUsed +
-               " is returned because fallback_mode is off; an exposure parameter chosen from it may be wrong";
-    } else {
-        msg += "UNKNOWN is returned; use the deterministic body-part lookup";
-    }
+    const std::string msg = xpe::ai::LowConfidenceAlertText(confidence, threshold, labelUsed);
     xpe_alert_push(msg.c_str(), XPE_ALERT_WARNING);
 }
 
@@ -927,28 +914,23 @@ extern "C++" static XpeErrorCode xpe_bodypart_recognize_impl(const XpeImageBuffe
 
     // The module applies no softmax: the model emits probabilities, and a vector that is not one is refused.
     // Judged on the whole result BEFORE anything is written, so a refusal leaves the label as UNKNOWN.
-    if (!xpe::ai::AllFinite(out.value.data(), out.value.size())) {
+    const xpe::ai::BodyPartVerdict verdict = xpe::ai::JudgeBodyPartOutput(out.value.data(), out.value.size());
+    if (verdict.judgement == xpe::ai::BodyPartJudgement::kNonFinite) {
         AI_LOG_ERROR("bodypart: the model result contains a non-finite value");
         pushNonFiniteResultAlert();
         return bodyPartUnknown(bodyPartOut, bufLen);
     }
-    for (float v : out.value) {
-        if (v < 0.0f || v > 1.0f) {
-            AI_LOG_ERROR("bodypart: the model result has a value outside [0, 1]");
-            // CROSS-LANE CONTRACT (QA-B-191): clients may match this text.
-            xpe_alert_push("AI body-part model output is not a probability vector (a value outside [0, 1]); "
-                           "this image was not AI-classified", XPE_ALERT_WARNING);
-            return bodyPartUnknown(bodyPartOut, bufLen);
-        }
+    if (verdict.judgement != xpe::ai::BodyPartJudgement::kOk) {
+        AI_LOG_ERROR("bodypart: the model result has a value outside [0, 1]");
+        // CROSS-LANE CONTRACT (QA-B-191): clients may match this text.
+        xpe_alert_push("AI body-part model output is not a probability vector (a value outside [0, 1]); "
+                       "this image was not AI-classified", XPE_ALERT_WARNING);
+        return bodyPartUnknown(bodyPartOut, bufLen);
     }
 
-    // The most probable class; on a tie the first.
-    size_t best = 0;
-    for (size_t i = 1; i < out.value.size(); ++i) {
-        if (out.value[i] > out.value[best]) best = i;
-    }
-    const std::string& label = model.labels[best];
-    const float confidence = out.value[best];
+    // The most probable class; on a tie the first (decided in JudgeBodyPartOutput, shared with the worker path).
+    const std::string& label = model.labels[verdict.best];
+    const float confidence = verdict.confidence;
 
     // REQ-AI-012 / REQ-AI-002: a confidence below the threshold is a low-confidence EVENT and, while fallback_mode
     // is on (the default), the documented fallback outcome. `>=` passes: a confidence exactly at the threshold
