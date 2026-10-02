@@ -804,6 +804,57 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// A-21 (#225 row 9, GUI-C-196 M5, the leader's ruling): a baseline that FAILS fails the automation report. The failure here is real, not injected: the native directory
+    /// the app is pinned to holds every module but <c>xpe_dicom.dll</c>, so the two runs agree and the DICOM write cannot happen. The report must say Fail, must say it was the
+    /// file and not the comparison, and must not pass.
+    /// </summary>
+    [SkippableFact]
+    public void A21_Baseline_WhoseDicomWriteCannotHappen_FailsTheAutomationReport()
+    {
+        var nativeDirectory = NativeDirectoryOrSkip();
+        Skip.IfNot(File.Exists(Path.Combine(nativeDirectory, "xpe_enhance_basic.dll")), "xpe_enhance_basic.dll is not staged, so the baseline cannot reach its DICOM step.");
+        var calibration = ApplicationFixture.SharedCalibrationSet(out var calibrationNote);
+        Skip.If(calibration is null, calibrationNote);
+
+        var without = Path.Combine(Path.GetTempPath(), $"xpe-a21-native-{Environment.ProcessId}");
+        Directory.CreateDirectory(without);
+        try
+        {
+            foreach (var file in Directory.GetFiles(nativeDirectory))
+            {
+                if (!string.Equals(Path.GetFileName(file), "xpe_dicom.dll", StringComparison.OrdinalIgnoreCase))
+                {
+                    File.Copy(file, Path.Combine(without, Path.GetFileName(file)), overwrite: true);
+                }
+            }
+
+            Assert.False(File.Exists(Path.Combine(without, "xpe_dicom.dll")));
+
+            var (report, exitCode) = Run("A21", "Native", without, extraArgs: ["--automation-calib", calibration!]);
+            output.WriteLine("BASELINE: " + report.GetProperty("BaselineStatusText").GetString());
+
+            Assert.Equal("Native", report.GetProperty("ActualBackendMode").GetString());
+            Assert.True(report.GetProperty("BaselineRan").GetBoolean());
+            Assert.Equal("Fail", report.GetProperty("BaselineStatus").GetString());
+            Assert.True(report.GetProperty("BaselineBitIdentical").GetBoolean(), "the two runs agreed; it is the file that failed");
+            Assert.False(report.GetProperty("BaselineDicomValid").GetBoolean());
+            Assert.StartsWith("Deterministic Baseline FAIL: DICOM export", report.GetProperty("BaselineStatusText").GetString(), StringComparison.Ordinal);
+            Assert.False(report.GetProperty("Passed").GetBoolean(), "a failed baseline must fail the automation report");
+            Assert.True(exitCode != 0, $"the failed report exited {exitCode}");
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(without, recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+    }
+
+    /// <summary>
     /// The staged native directory, or a skip. Row 6 asserts the libraries ANSWER, so a run without
     /// them cannot observe it — and passing it anyway would make "the DLLs are absent" and "the DLLs
     /// are broken" the same green (#214). ci.yml:454-455 says the Mock job has no native DLLs.
