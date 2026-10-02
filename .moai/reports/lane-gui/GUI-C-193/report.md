@@ -133,3 +133,8 @@
 `il_scan.txt` · `byte_search.txt` · `launch_observations.txt` · `release_automation_run.txt` · `release_functional.txt` · `release_selfcheck.txt` · `ci_step_check.ps1` · `ci_step_check_run.txt` · `falsification_arms.txt` · `selfcheck_runs.txt` · `local_runs.txt` · `text_lint.txt`
 
 🗿 MoAI
+
+## 리더 판정 반영 (2026-10-02)
+
+- 출하 빌드에서 시험 플래그를 주면 종료 코드 2 로 거부하는 지금 동작이 맞다(리더 확인).
+- 사실 기록: CI 는 Debug 만 빌드하므로 Release 구성은 CI 가 시험하지 않는다. 출하 구성의 증거는 이 보고서의 로컬 Release 실행뿐이다. 별도 카드로 다룰지는 리더가 정한다.
