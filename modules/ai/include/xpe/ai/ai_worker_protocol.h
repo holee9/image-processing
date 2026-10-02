@@ -9,10 +9,11 @@
  * REQ-AI-003: Worker-isolated architecture (IPC via named pipe).
  * REQ-AI-004: Sidecar metadata delivery (not mutating XpeImageMetadata).
  * REQ-AI-092: Time budget enforcement (inference timeout).
- *   Was AI requirement 009, which SPEC-XPE-P3-AI does not define (#210,
- *   QA-B-157).
- *   Only part of REQ-AI-092 is implemented; the accounting is in
- *   src/ai_ipc_bridge.cpp's header comment.
+ *   Was AI requirement 009, which SPEC-XPE-P3-AI never defined (#210,
+ *   QA-B-157, QA-B-190).
+ *   Enforced on the opt-in worker path of xpe_bone_suppress only; the
+ *   accounting of what is and is not covered is in src/ai_ipc_bridge.cpp's
+ *   header comment.
  *
  * Pipe naming convention:
  *   Windows: `\\.\pipe\xpe_ai_worker_{PID}`
