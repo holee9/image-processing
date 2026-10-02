@@ -27,6 +27,25 @@
  * a stub build is not. Per-function notes below mark which returns are
  * currently unreachable.
  *
+ * INPUT VALIDATION (REQ-AI-090, QA-B-194 M1). Every function that takes an image judges it at the entrance, before
+ * the module lock, the model or the worker is touched, and a refusal leaves every output the caller gave
+ * UNTOUCHED (no label, no confidence, no pixels):
+ *   - the size: width and height are at least 1, the declared image is at most 64 MB (4096 x 4096 x 4 bytes) in
+ *     whatever format, and a non-zero dataSize holds the declared image. Every format is bounded by its own pixel
+ *     size (UINT8 1 byte, UINT16 2, FLOAT32 4); a format value that is none of the three is not an image. A
+ *     refusal is XPE_ERR_INVALID_INPUT.
+ *   - the pixels: a FLOAT32 image that holds NaN or infinity is refused with XPE_ERR_INVALID_INPUT and ONE
+ *     XPE_ALERT_ERROR that names the count and the first pixel and says the INPUT is at fault: the tag, then
+ *     "N pixel(s) of the input frame are NaN or infinite (first: index I, x=X, y=Y); " and what the call did not do.
+ *     The tags are XPE_WARN_BONE_SUPPRESS_INPUT_NOT_FINITE, XPE_WARN_BODYPART_INPUT_NOT_FINITE,
+ *     XPE_WARN_DL_DENOISE_INPUT_NOT_FINITE and XPE_WARN_STITCH_INPUT_NOT_FINITE (each followed by a colon; the
+ *     stitch text says "input part P" instead of "the input frame"). Integer formats cannot hold either, and
+ *     xpe_stitch_estimate_size reads no pixels, so neither is scanned. No value RANGE is checked: the input scale
+ *     is the caller's, as for the model (see PIXEL SCALE AND SIZE at xpe_bodypart_recognize).
+ *   A non-finite RESULT of a model is a different fault and keeps its own code (XPE_ERR_PROCESSING_FAILED) and
+ *   alert text ("AI model output was non-finite ..."): the input was fine and the model's output was not. These
+ *   texts are a contract with the clients that display alerts.
+ *
  * @ingroup xpe_ai
  */
 #ifndef XPE_AI_API_H

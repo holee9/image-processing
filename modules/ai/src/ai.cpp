@@ -238,10 +238,15 @@ static XpeErrorCode validateImageBuffer(const XpeImageBuffer* img) {
     // smaller than the declared dimensions cannot hold the image and is read
     // past its allocation.
     {
+        // QA-B-194 M1 (REQ-AI-090): every format the enum has gets its pixel size, UINT8 included -- it used to
+        // fall through with bpp 0, so a UINT8 image declaring 4000 x 4000 and supplying one byte passed (measured).
+        // A value that is not one of the three formats is not an image at all.
         uint32_t bpp = 0u;
-        if (img->format == XPE_PIXEL_UINT16)       bpp = 2u;
+        if (img->format == XPE_PIXEL_UINT8)        bpp = 1u;
+        else if (img->format == XPE_PIXEL_UINT16)  bpp = 2u;
         else if (img->format == XPE_PIXEL_FLOAT32) bpp = 4u;
-        if (bpp != 0u) {
+        if (bpp == 0u) return XPE_ERR_INVALID_INPUT;
+        {
             // width * height cannot overflow 64 bits (each is below 2^32); width * height * bpp CAN:
             // 2^31 x 2^31 x 4 is 2^64, which is 0, and a required size of 0 is satisfied by any dataSize
             // (Codex audit #12). So the product is bounded by DIVISION first. The bound is the module
@@ -258,6 +263,47 @@ static XpeErrorCode validateImageBuffer(const XpeImageBuffer* img) {
         }
     }
     return XPE_OK;
+}
+
+/**
+ * @brief Refuse a float image that holds NaN or infinity, BEFORE anything is written (QA-B-194 M1, REQ-AI-090).
+ *
+ * The consumer's rule, the same as the preprocess entry points (api-spec "non-finite input"): one non-finite pixel
+ * and the call returns XPE_ERR_INVALID_INPUT with every output untouched and ONE XPE_ALERT_ERROR that names the
+ * count and the first pixel and says the INPUT is at fault. Before this the image went on to the model, which
+ * produced a non-finite result, and the alert that came out blamed the MODEL's output ("AI model output was
+ * non-finite") for a fault that was the caller's.
+ *
+ * Only XPE_PIXEL_FLOAT32 can hold one (integer formats cannot). The image has been through validateImageBuffer, so
+ * width * height * 4 bytes are readable. The scan is the branch-free AllFinite the module already runs on every
+ * model output (3072 x 3072: about 1.4 ms with the pixels in cache, QA-B-194 design section 3); the count and the
+ * position are found by a second pass over the failing frame only.
+ *
+ * @param prefix  the alert's fixed tag, e.g. "XPE_WARN_BONE_SUPPRESS_INPUT_NOT_FINITE:"
+ * @param what    "the input frame" or "input part 2"
+ * @param tail    what the call did NOT do, per function
+ * CROSS-LANE CONTRACT: clients may match these texts; ai_api.h records them.
+ */
+static XpeErrorCode checkImageFinite(const XpeImageBuffer* img, const char* prefix, const char* what,
+                                     const char* tail) {
+    if (img->format != XPE_PIXEL_FLOAT32) return XPE_OK;
+    const size_t n = static_cast<size_t>(img->width) * img->height;
+    if (xpe::ai::AllFinite(img->data, n)) return XPE_OK;
+    size_t count = 0, first = 0;
+    const unsigned char* b = static_cast<const unsigned char*>(img->data);
+    for (size_t i = 0; i < n; ++i) {
+        uint32_t u;
+        std::memcpy(&u, b + i * sizeof(uint32_t), sizeof(u));
+        if ((u & 0x7F800000u) == 0x7F800000u) {
+            if (count == 0) first = i;
+            ++count;
+        }
+    }
+    char msg[320];
+    std::snprintf(msg, sizeof(msg), "%s %zu pixel(s) of %s are NaN or infinite (first: index %zu, x=%zu, y=%zu); %s",
+                  prefix, count, what, first, first % img->width, first / img->width, tail);
+    xpe_alert_push(msg, XPE_ALERT_ERROR);
+    return XPE_ERR_INVALID_INPUT;
 }
 
 /**
@@ -947,6 +993,14 @@ extern "C++" static XpeErrorCode xpe_bodypart_recognize_impl(const XpeImageBuffe
     // at all (the trap QA-B-39 documented).
     if (bufLen == 0) return XPE_ERR_INVALID_INPUT;
 
+    // QA-B-194 M1 (D2): a non-finite input is the caller's fault -- INVALID_INPUT with NOTHING written: not the
+    // label "UNKNOWN" (that is the documented fallback for "no usable answer", a different thing) and not the
+    // confidence. Judged before the stub return and before the model, so it does not depend on the build or on
+    // whether a model exists.
+    ec = checkImageFinite(img, "XPE_WARN_BODYPART_INPUT_NOT_FINITE:", "the input frame",
+                          "the image was not classified and the label and confidence were not written");
+    if (ec != XPE_OK) return ec;
+
     // Every outcome below that is not a result leaves the confidence at 0.0, as the stub always did.
     if (confidenceOut) *confidenceOut = 0.0f;
 
@@ -1047,6 +1101,15 @@ XPE_API XpeErrorCode xpe_stitch_images(const XpeImageBuffer* parts,
     // result.
     if (!stitchedOut->data || stitchedOut->dataSize == 0) {
         return XPE_ERR_INVALID_INPUT;
+    }
+
+    // QA-B-194 M1: every part is scanned before anything is written; the alert names the first part that fails.
+    for (uint32_t i = 0; i < partCount; ++i) {
+        char what[40];
+        std::snprintf(what, sizeof(what), "input part %u", static_cast<unsigned>(i));
+        ec = checkImageFinite(&parts[i], "XPE_WARN_STITCH_INPUT_NOT_FINITE:", what,
+                              "the parts were not stitched and the output buffer was not written");
+        if (ec != XPE_OK) return ec;
     }
 
     // --- Stub implementation ---
@@ -1184,6 +1247,12 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
     if (img->dataSize < bytes || softTissueOut->dataSize < bytes) {
         return XPE_ERR_INVALID_INPUT;
     }
+
+    // QA-B-194 M1: a non-finite input is the CALLER's fault, refused here, before the lock, the model or the
+    // worker, with the output buffer untouched.
+    ec = checkImageFinite(img, "XPE_WARN_BONE_SUPPRESS_INPUT_NOT_FINITE:", "the input frame",
+                          "the image was not processed and the output buffer was not changed");
+    if (ec != XPE_OK) return ec;
 
     std::lock_guard<std::mutex> lock(state->mtx);
 #ifdef XPE_AI_TEST_HOOKS
@@ -1384,6 +1453,11 @@ XPE_API XpeErrorCode xpe_dl_denoise(XpeImageBuffer* img,
     if (ec != XPE_OK) return ec;
 
     ec = validateImageBuffer(img);
+    if (ec != XPE_OK) return ec;
+
+    // QA-B-194 M1: the frame is denoised IN PLACE, so refusing it before anything is read is what keeps it intact.
+    ec = checkImageFinite(img, "XPE_WARN_DL_DENOISE_INPUT_NOT_FINITE:", "the input frame",
+                          "the image was not denoised and the buffer was not changed");
     if (ec != XPE_OK) return ec;
 
     // --- Stub implementation ---
