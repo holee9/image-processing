@@ -1,0 +1,13 @@
+ARM e4_stops_one_layer_early
+file src/defect_correct.cpp
+built=True
+[  FAILED  ] DefectFillTest.APixelWithNoValidPixelWithinTheSearchRadiusKeepsItsValueAndTheFrameSaysSo (2 ms)
+[  FAILED  ] DefectFillEquivalenceTest.OneBigBlockWhoseDeepInteriorIsBeyondTheSearchRadius (40 ms)
+[  FAILED  ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorReachesTwentyPixels (34 ms)
+[  FAILED  ] DefectFillEquivalenceTest.ThreeHundredRandomMasks (3 ms)
+[  PASSED  ] 32 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] DefectFillTest.APixelWithNoValidPixelWithinTheSearchRadiusKeepsItsValueAndTheFrameSaysSo
+[  FAILED  ] DefectFillEquivalenceTest.OneBigBlockWhoseDeepInteriorIsBeyondTheSearchRadius
+[  FAILED  ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorReachesTwentyPixels
+[  FAILED  ] DefectFillEquivalenceTest.ThreeHundredRandomMasks

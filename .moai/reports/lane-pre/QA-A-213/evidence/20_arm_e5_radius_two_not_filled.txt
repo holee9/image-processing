@@ -1,0 +1,29 @@
+ARM e5_radius_two_not_filled
+file src/defect_correct.cpp
+built=True
+[  FAILED  ] DefectFillTest.ACentre3x3ClassifiedByTheGainMapIsFilledFromTheRingNotWithZero (3 ms)
+[  FAILED  ] DefectFillTest.AClusterOfTheDefectMapItselfIsFilledTheSameWay (2 ms)
+[  FAILED  ] DefectFillTest.TheNearestRingDecidesNotAWiderOne (2 ms)
+[  FAILED  ] DefectFillTest.InPlaceAndOutOfPlaceAgreeOnTheRingPathAndNeitherIsZero (2 ms)
+[  FAILED  ] DefectFillTest.APixelWithNoValidPixelWithinTheSearchRadiusKeepsItsValueAndTheFrameSaysSo (1 ms)
+[  FAILED  ] DefectFillTest.AFrameWhoseMaskedPixelsAllHaveAValidNeighbourRaisesNothing (1 ms)
+[  FAILED  ] DefectFillEquivalenceTest.OneBigBlockWhoseDeepInteriorIsBeyondTheSearchRadius (40 ms)
+[  FAILED  ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorIsWithinTenPixels (21 ms)
+[  FAILED  ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorReachesTwentyPixels (34 ms)
+[  FAILED  ] DefectFillEquivalenceTest.ASparseRealisticMaskOfLonePixelsAndSmallClusters (9 ms)
+[  FAILED  ] DefectFillEquivalenceTest.BlocksTouchingTheFrameEdgesAndCorners (2 ms)
+[  FAILED  ] DefectFillEquivalenceTest.ThreeHundredRandomMasks (3 ms)
+[  PASSED  ] 24 tests.
+[  FAILED  ] 12 tests, listed below:
+[  FAILED  ] DefectFillTest.ACentre3x3ClassifiedByTheGainMapIsFilledFromTheRingNotWithZero
+[  FAILED  ] DefectFillTest.AClusterOfTheDefectMapItselfIsFilledTheSameWay
+[  FAILED  ] DefectFillTest.TheNearestRingDecidesNotAWiderOne
+[  FAILED  ] DefectFillTest.InPlaceAndOutOfPlaceAgreeOnTheRingPathAndNeitherIsZero
+[  FAILED  ] DefectFillTest.APixelWithNoValidPixelWithinTheSearchRadiusKeepsItsValueAndTheFrameSaysSo
+[  FAILED  ] DefectFillTest.AFrameWhoseMaskedPixelsAllHaveAValidNeighbourRaisesNothing
+[  FAILED  ] DefectFillEquivalenceTest.OneBigBlockWhoseDeepInteriorIsBeyondTheSearchRadius
+[  FAILED  ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorIsWithinTenPixels
+[  FAILED  ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorReachesTwentyPixels
+[  FAILED  ] DefectFillEquivalenceTest.ASparseRealisticMaskOfLonePixelsAndSmallClusters
+[  FAILED  ] DefectFillEquivalenceTest.BlocksTouchingTheFrameEdgesAndCorners
+[  FAILED  ] DefectFillEquivalenceTest.ThreeHundredRandomMasks

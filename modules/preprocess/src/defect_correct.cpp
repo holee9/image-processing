@@ -83,17 +83,82 @@ ClusterInfo analyzeCluster(const uint8_t* defectMask, uint32_t width, uint32_t h
 // beyond it the pixel keeps its input value and the frame says so (see the caller).
 constexpr int kFillMaxRadius = 16;
 
+// QA-A-213 (#233): the Chebyshev distance of every masked pixel to the nearest valid pixel, up to kFillMaxRadius, in ONE
+// pass over the masked pixels. QA-A-211b found that distance per pixel by trying ring after ring (up to 1,089 reads a
+// pixel); on a 686x686 block (4.99% of a 3072x3072 frame, inside the density the SRS tolerates) that was 638 ms for the
+// defect stage. The distance is a breadth-first search: layer 1 is the masked pixels that touch a valid pixel (8
+// neighbours), layer k+1 the masked pixels not yet reached that touch layer k. An 8-neighbour step moves one in the
+// Chebyshev metric, and every pixel on a shortest path from a masked pixel to its nearest valid pixel is masked (a
+// valid one would be nearer), so the layer number IS the Chebyshev distance to the nearest valid pixel -- the very
+// number the ring search found by trial. dist is 0 for a pixel not reached within kFillMaxRadius (and for valid
+// pixels, which are never asked).
+struct FillDistance {
+    std::vector<uint8_t> dist;
+    bool ready = false;
+
+    void build(const uint8_t* mask, uint32_t width, uint32_t height) {
+        const size_t n = static_cast<size_t>(width) * height;
+        dist.assign(n, 0);
+        std::vector<uint32_t> frontier, next;
+        auto touchesValid = [&](uint32_t x, uint32_t y) {
+            for (int dy = -1; dy <= 1; ++dy) {
+                const int ny = static_cast<int>(y) + dy;
+                if (ny < 0 || static_cast<uint32_t>(ny) >= height) continue;
+                for (int dx = -1; dx <= 1; ++dx) {
+                    if (dx == 0 && dy == 0) continue;
+                    const int nx = static_cast<int>(x) + dx;
+                    if (nx < 0 || static_cast<uint32_t>(nx) >= width) continue;
+                    if (mask[static_cast<size_t>(ny) * width + static_cast<uint32_t>(nx)] == 0) return true;
+                }
+            }
+            return false;
+        };
+        // Layer 1. Most of a frame is valid, so the scan steps over eight valid bytes at a time.
+        for (size_t idx = 0; idx < n; ++idx) {
+            if (idx + 8 <= n) {
+                uint64_t word;
+                std::memcpy(&word, mask + idx, sizeof(word));
+                if (word == 0) { idx += 7; continue; }
+            }
+            if (mask[idx] != 0 && touchesValid(static_cast<uint32_t>(idx % width), static_cast<uint32_t>(idx / width))) {
+                dist[idx] = 1;
+                frontier.push_back(static_cast<uint32_t>(idx));
+            }
+        }
+        for (int layer = 1; layer < kFillMaxRadius && !frontier.empty(); ++layer) {
+            next.clear();
+            for (const uint32_t idx : frontier) {
+                const uint32_t x = idx % width, y = idx / width;
+                for (int dy = -1; dy <= 1; ++dy) {
+                    const int ny = static_cast<int>(y) + dy;
+                    if (ny < 0 || static_cast<uint32_t>(ny) >= height) continue;
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        if (dx == 0 && dy == 0) continue;
+                        const int nx = static_cast<int>(x) + dx;
+                        if (nx < 0 || static_cast<uint32_t>(nx) >= width) continue;
+                        const size_t nidx = static_cast<size_t>(ny) * width + static_cast<uint32_t>(nx);
+                        if (mask[nidx] != 0 && dist[nidx] == 0) { dist[nidx] = static_cast<uint8_t>(layer + 1); next.push_back(static_cast<uint32_t>(nidx)); }
+                    }
+                }
+            }
+            frontier.swap(next);
+        }
+        ready = true;
+    }
+};
+
 // @MX:NOTE: [AUTO] 3x3 median filter for defect cluster correction
 // Collects valid neighbor pixels and returns median value. When the 3x3 holds none (the interior of a cluster), the
-// search widens ring by ring (Chebyshev radius 2, 3, ... kFillMaxRadius) and the median of the NEAREST ring that holds a
-// valid pixel is used -- the same nearest-valid-pixel idea the single-pixel path applies in a ring of radius 1..3. A
-// pixel with no valid pixel within kFillMaxRadius keeps its own input value (`found` false), never 0.
+// median of the valid pixels of the NEAREST Chebyshev ring that holds one is used (QA-A-211b); the ring's radius is the
+// pixel's distance to the nearest valid pixel, which `fd` knows from one breadth-first pass (QA-A-213) instead of a
+// trial of ring 2, 3, ... -- the set of values, and so the median, is the one the trial found. A pixel with no valid
+// pixel within kFillMaxRadius keeps its own input value (`found` false), never 0.
 // Only unmasked pixels are read, whatever the radius: the in-place guarantee of xpe_defect_correct_in holds.
 float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
                              uint32_t x, uint32_t y,
-                             uint32_t width, uint32_t height, bool* found)
+                             uint32_t width, uint32_t height, FillDistance& fd, std::vector<float>& values, bool* found)
 {
-    std::vector<float> values;
+    values.clear();   // a scratch buffer the caller reuses: no allocation per pixel (QA-A-213)
     *found = true;
 
     for (int dy = -1; dy <= 1; ++dy) {
@@ -114,16 +179,20 @@ float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
         }
     }
 
-    for (int radius = 2; values.empty() && radius <= kFillMaxRadius; ++radius) {
-        for (int dy = -radius; dy <= radius; ++dy) {
-            const int ny = static_cast<int>(y) + dy;
-            if (ny < 0 || static_cast<uint32_t>(ny) >= height) continue;
-            const bool edgeRow = (dy == -radius || dy == radius);
-            for (int dx = -radius; dx <= radius; dx += (edgeRow ? 1 : 2 * radius)) {
-                const int nx = static_cast<int>(x) + dx;
-                if (nx < 0 || static_cast<uint32_t>(nx) >= width) continue;
-                const size_t idx = static_cast<size_t>(ny) * width + static_cast<uint32_t>(nx);
-                if (defectMask[idx] == 0) values.push_back(pixels[idx]);
+    if (values.empty()) {
+        if (!fd.ready) fd.build(defectMask, width, height);
+        const int radius = fd.dist[static_cast<size_t>(y) * width + x];   // 0: none within kFillMaxRadius
+        if (radius >= 2) {
+            for (int dy = -radius; dy <= radius; ++dy) {
+                const int ny = static_cast<int>(y) + dy;
+                if (ny < 0 || static_cast<uint32_t>(ny) >= height) continue;
+                const bool edgeRow = (dy == -radius || dy == radius);
+                for (int dx = -radius; dx <= radius; dx += (edgeRow ? 1 : 2 * radius)) {
+                    const int nx = static_cast<int>(x) + dx;
+                    if (nx < 0 || static_cast<uint32_t>(nx) >= width) continue;
+                    const size_t idx = static_cast<size_t>(ny) * width + static_cast<uint32_t>(nx);
+                    if (defectMask[idx] == 0) values.push_back(pixels[idx]);
+                }
             }
         }
     }
@@ -133,8 +202,9 @@ float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
         return pixels[static_cast<size_t>(y) * width + x];
     }
 
-    std::sort(values.begin(), values.end());
+    // The element a full sort would leave at size/2 -- the same value, found without sorting the rest.
     size_t mid = values.size() / 2u;
+    std::nth_element(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(mid), values.end());
     return values[mid];
 }
 
@@ -314,6 +384,9 @@ XpeErrorCode xpe_defect_correct_in(
     std::vector<bool> processed(n, false);
     std::vector<bool> visited(n, false);   // reused by every analyzeCluster call
     size_t unfilled = 0;                   // masked pixels with no valid pixel within kFillMaxRadius (QA-A-211b)
+    FillDistance fillDistance;             // built on the first cluster pixel whose 3x3 holds no valid pixel (QA-A-213)
+    std::vector<float> fillValues;         // scratch for median_filter_cluster
+    fillValues.reserve(8u * static_cast<size_t>(kFillMaxRadius));
     for (uint32_t y = 0; y < H; ++y) {
         for (uint32_t x = 0; x < W; ++x) {
             uint32_t idx = y * W + x;
@@ -324,7 +397,7 @@ XpeErrorCode xpe_defect_correct_in(
                         uint32_t cx = cidx % W;
                         uint32_t cy = cidx / W;
                         bool found = true;
-                        dst[cidx] = median_filter_cluster(source, dm, cx, cy, W, H, &found);
+                        dst[cidx] = median_filter_cluster(source, dm, cx, cy, W, H, fillDistance, fillValues, &found);
                         if (!found) ++unfilled;
                         processed[cidx] = true;
                     }
