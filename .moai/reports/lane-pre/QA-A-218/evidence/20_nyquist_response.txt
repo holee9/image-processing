@@ -1,0 +1,6 @@
+RESULT|Nyquist response of the first frame (zero history, so only the 3x3 blend acts): alternating columns 8000/12000 (amplitude 2000), interior columns 4..27
+RESULT|tier 1 output amplitude 2000.0 of 2000 -> response 1.000
+RESULT|tier 2 output amplitude 2000.0 of 2000 -> response 1.000
+RESULT|tier 3 output amplitude 1250.0 of 2000 -> response 0.625
+RESULT|tier 3 original-neighbour variant response 0.600 (first frame)
+RESULT|analytic: blend 0.7*1 + 0.3*H, H(nyquist, 1-D box of 3) = (1+2cos(pi))/3 = -1/3 -> 0.6 per axis
