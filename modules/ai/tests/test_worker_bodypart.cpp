@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 
 #include "ai_bodypart_decision.h"
+#include "error_frame_cases.h"
 #include "ai_worker_supervisor.h"
 #include "xpe/ai/ai_api.h"
 #include "xpe/ai/ai_onnx_session.h"
@@ -285,48 +286,7 @@ TEST(WorkerBodyPartReply, AnErrorFrameTheProtocolAllowsIsAcceptedAndKeepsTheWork
 
 TEST(WorkerBodyPartReply, EveryErrorFrameTheProtocolForbidsIsAProtocolFaultAndTheWorkerIsDiscarded) {
     // Codex #77 (QA-B-191 M4f): the flag changes what the host counts, so the frame is judged like a success reply.
-    const std::vector<std::pair<const char*, std::string>> forbidden = {
-        // a flag that contradicts its code: "the model cannot be used" goes with IO_FAILED or CONFIG_INVALID only
-        {"flag true with PROCESSING_FAILED", R"({"error_code":-3,"model_unavailable":true,"error_message":"x"})"},
-        {"flag true with INVALID_INPUT", R"({"error_code":-1,"model_unavailable":true})"},
-        {"flag true with BUFFER_TOO_SMALL", R"({"error_code":-8,"model_unavailable":true})"},
-        {"flag true with an unknown code", R"({"error_code":-50,"model_unavailable":true})"},
-        // the flag itself
-        {"flag a string", R"({"error_code":-4,"model_unavailable":"true"})"},
-        {"flag a number", R"({"error_code":-4,"model_unavailable":1})"},
-        {"flag null", R"({"error_code":-4,"model_unavailable":null})"},
-        {"flag twice", R"({"error_code":-4,"model_unavailable":true,"model_unavailable":true})"},
-        // the code
-        {"no code", R"({"error_message":"x"})"},
-        {"code twice", R"({"error_code":-4,"error_code":-3})"},
-        {"code zero", R"({"error_code":0})"},
-        {"code minus zero", R"({"error_code":-0})"},
-        {"code positive", R"({"error_code":3})"},
-        {"code positive with two digits", R"({"error_code":13})"},    // only the sign check refuses these two:
-        {"code positive, the largest", R"({"error_code":99})"},      // the length and digit checks all pass
-        {"code a lone minus", R"({"error_code":-})"},
-        {"code below the range", R"({"error_code":-100})"},
-        {"code with a leading zero", R"({"error_code":-03})"},
-        {"code a decimal", R"({"error_code":-3.0})"},
-        {"code with an exponent", R"({"error_code":-3e0})"},
-        {"code a string", R"({"error_code":"-3"})"},
-        {"code null", R"({"error_code":null})"},
-        // the message
-        {"message a number", R"({"error_code":-3,"error_message":5})"},
-        {"message null", R"({"error_code":-3,"error_message":null})"},
-        {"message with an unknown escape", R"({"error_code":-3,"error_message":"a\nb"})"},
-        // built by concatenation: written inside a raw string, the compiler turns the escape into a letter
-        {"message with a unicode escape", std::string(R"({"error_code":-3,"error_message":"a)") + "\\u0041" + R"(b"})"},
-        {"message with a raw control character", std::string(R"({"error_code":-3,"error_message":"a)") + "\x07" + R"(b"})"},
-        {"message never closed", R"({"error_code":-3,"error_message":"abc})"},
-        // the object
-        {"trailing junk", R"({"error_code":-3}x)"},
-        {"nested object", R"({"error_code":-3,"detail":{"a":1}})"},
-        {"an array", R"([{"error_code":-3}])"},
-        {"empty object", "{}"},
-        {"empty body", ""},
-        {"not JSON", "error -3"},
-    };
+    const auto forbidden = error_frame_cases::ForbiddenEverywhere();
     for (const auto& c : forbidden) {
         const Outcome o = AskFake("bodypart_error_raw", c.second);
         EXPECT_EQ(XPE_ERR_IO_FAILED, o.rc) << c.first << ": " << c.second;
@@ -528,4 +488,95 @@ TEST(WorkerBodyPartAgreement, ALabelOutsidePrintableAsciiOrWithAQuoteOrBackslash
     }
     EXPECT_EQ(0u, DescribeWorker(tmp.string(), image).rfind("ok:", 0));
     fs::remove_all(tmp);
+}
+
+// ===== bone suppression's ERROR frames: the SAME parser (QA-B-193) =========================================
+
+namespace {
+/** One BONE_SUPPRESS call to a fake worker that answers with @p json as an ERROR frame. */
+struct BoneOutcome {
+    XpeErrorCode rc;
+    bool workerKept;
+    bool unavailableFlagSeen;
+};
+BoneOutcome AskFakeBone(const std::string& json) {
+    FakeReply f("bone_error_raw", json);
+    WorkerSupervisor sup(FakeCfg());
+    const float in[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    float out[9];
+    for (float& v : out) v = -777.0f;
+    BoneOutcome o{};
+    o.rc = sup.BoneSuppress(3, 3, in, out);
+    o.workerKept = sup.WorkerPid() != 0;
+    o.unavailableFlagSeen = sup.LastModelUnavailable();   // the supervisor's last BODY-PART flag: must stay false
+    for (float v : out) EXPECT_EQ(-777.0f, v) << json << ": a failed call leaves the output untouched";
+    return o;
+}
+}  // namespace
+
+TEST(WorkerBoneErrorFrame, EveryFrameTheProtocolForbidsEverywhereIsAFaultForBoneSuppressionToo) {
+    for (const auto& c : error_frame_cases::ForbiddenEverywhere()) {
+        const BoneOutcome o = AskFakeBone(c.second);
+        EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, o.rc) << c.first << ": " << c.second;
+        EXPECT_FALSE(o.workerKept) << c.first << ": a worker that sent a forbidden ERROR frame was kept";
+    }
+}
+
+TEST(WorkerBoneErrorFrame, TheBodyPartFieldIsAFaultInAnyFormBecauseBoneSuppressionHasNoSuchNotion) {
+    // "model_unavailable" belongs to body-part requests. In a bone suppression ERROR frame the worker is saying
+    // something this request has no word for, so nothing in the frame is trusted -- even a value the body-part
+    // parser would accept (true with IO_FAILED, false).
+    const std::vector<std::pair<const char*, std::string>> cases = {
+        {"true with IO_FAILED", R"({"error_code":-9,"model_unavailable":true,"error_message":"x"})"},
+        {"true with CONFIG_INVALID", R"({"error_code":-4,"model_unavailable":true})"},
+        {"false", R"({"error_code":-9,"model_unavailable":false})"},
+        {"a string", R"({"error_code":-9,"model_unavailable":"x"})"},
+    };
+    for (const auto& c : cases) {
+        const BoneOutcome o = AskFakeBone(c.second);
+        EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, o.rc) << c.first << ": " << c.second;
+        EXPECT_FALSE(o.workerKept) << c.first;
+    }
+}
+
+TEST(WorkerBoneErrorFrame, EveryFrameTheProtocolAllowsIsPassedThroughAndKeepsTheWorker) {
+    struct Case { const char* name; std::string json; int code; };
+    const std::vector<Case> allowed = {
+        {"minimal", R"({"error_code":-9})", -9},
+        {"with a message", R"({"error_code":-4,"error_message":"model unreadable: x"})", -4},
+        {"a quote and a backslash in the message", R"({"error_code":-9,"error_message":"no model at C:\\m \"x\""})", -9},
+        {"a key the protocol does not know", R"({"error_code":-3,"error_message":"x","detail":"y"})", -3},
+        {"the largest code", R"({"error_code":-99})", -99},
+        {"whitespace between tokens", R"( { "error_code" : -3 } )", -3},
+    };
+    for (const Case& c : allowed) {
+        const BoneOutcome o = AskFakeBone(c.json);
+        EXPECT_EQ(static_cast<XpeErrorCode>(c.code), o.rc) << c.name;
+        EXPECT_TRUE(o.workerKept) << c.name << ": an ERROR frame the protocol allows leaves the worker in place";
+        EXPECT_FALSE(o.unavailableFlagSeen) << c.name;
+    }
+}
+
+TEST(WorkerBoneErrorFrame, TheRealWorkersOwnErrorFramesAreAcceptedAndKeepTheWorker) {
+    // Compatibility: the frames the REAL worker sends for a bone request it cannot serve must pass the parser,
+    // or every such answer would become a protocol fault and a restart. models_missing has no bone model (the
+    // worker answers IO_FAILED, its message holds a path); models_broken has a file that is not a model
+    // (CONFIG_INVALID). Two calls each: the same worker must serve the second.
+    if (IsStub()) GTEST_SKIP() << "needs ONNX Runtime: the full build only";
+    struct Case { const char* dir; XpeErrorCode code; };
+    for (const Case c : {Case{"models_missing", XPE_ERR_IO_FAILED}, Case{"models_broken", XPE_ERR_CONFIG_INVALID}}) {
+        WorkerSupervisorConfig cfg;
+        cfg.worker_exe = XPE_AI_WORKER_EXE;
+        cfg.model_dir = Dir(c.dir);
+        cfg.timeout_ms = kBudgetMs;
+        WorkerSupervisor sup(cfg);
+        const float in[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+        float out[9];
+        for (int i = 0; i < 2; ++i) {
+            EXPECT_EQ(c.code, sup.BoneSuppress(3, 3, in, out)) << c.dir << " call " << i
+                << ": the worker's own code, not a fault";
+        }
+        EXPECT_EQ(1u, sup.StartCount()) << c.dir << ": an error frame is a healthy answer, the worker is kept";
+        EXPECT_NE(0u, sup.WorkerPid()) << c.dir;
+    }
 }

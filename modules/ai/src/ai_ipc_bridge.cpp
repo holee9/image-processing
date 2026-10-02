@@ -163,33 +163,6 @@ void DropConnection(XpeAiIpcBridge* bridge) {
 }
 
 /**
- * Read `"error_code":<integer>` from a worker's ERROR frame. Accepts only a plain integer in
- * [-99, -1]: the XPE_ERR_* codes are -1 .. -17 today, and the margin keeps a future code from being
- * mistaken for garbage. Anything else (missing key, a string, 0, a positive, trailing junk in the
- * number, out of range) is rejected.
- */
-bool ParseErrorCode(const std::string& body, int* out) {
-    static const char kKey[] = "\"error_code\":";
-    const size_t at = body.find(kKey);
-    if (at == std::string::npos) return false;
-    const char* p = body.c_str() + at + sizeof(kKey) - 1;
-    while (*p == ' ') ++p;
-    if (*p != '-') return false;   // every error code is negative
-    ++p;
-    if (*p < '0' || *p > '9') return false;
-    long value = 0;
-    for (; *p >= '0' && *p <= '9'; ++p) {
-        value = value * 10 + (*p - '0');
-        if (value > 99) return false;
-    }
-    if (value < 1) return false;
-    while (*p == ' ') ++p;
-    if (*p != ',' && *p != '}' && *p != '\0') return false;   // "-9.5", "-9abc": not an integer
-    *out = static_cast<int>(-value);
-    return true;
-}
-
-/**
  * Parse @p json as ONE flat object (strict: string keys; values are strings (escapes only when @p allow_escapes), true, false, null,
  * non-negative integers and -- only when @p allow_real -- real numbers; no nesting, no duplicate keys, nothing
  * after the closing brace) into @p kv. A string value is stored with a leading '"'; every other value as its raw
@@ -274,6 +247,52 @@ bool ParseFlatObject(const char* json, size_t n, bool allow_real, bool allow_esc
     }
     ws();
     if (i != n) return false;   // trailing junk
+    return true;
+}
+
+/**
+ * Parse a worker's ERROR frame (QA-B-193; first written for body-part recognition in QA-B-191 M4f, Codex #77).
+ * ONE function for every request type, so the bridge has one rule for what an ERROR frame is and a field added to
+ * it later is judged in one place:
+ *   - one flat JSON object, no duplicate key, nothing after it (an escaped quote and an escaped backslash are
+ *     allowed in the text; no other escape);
+ *   - "error_code" is required and is an integer from -1 to -99 (the XPE_ERR_* codes are -1 .. -17 today; the
+ *     margin keeps a future code from being taken for garbage); "-0", a leading zero, a decimal and an exponent
+ *     are not integers here;
+ *   - "error_message", if present, is a string;
+ *   - "model_unavailable" is a field of BODY-PART requests only. @p allow_model_unavailable says whether this
+ *     request type has it: where it does, it is true or false, and true is believed ONLY with
+ *     XPE_ERR_IO_FAILED (no model file) or XPE_ERR_CONFIG_INVALID (the rest of the ways a model cannot be
+ *     loaded or configured). Where it does not (bone suppression has no such notion), its presence in any form is
+ *     a fault: the frame says something this request has no word for, so nothing in it can be trusted.
+ * Keys it does not know are ignored, as in a success reply.
+ * Returns false for a frame that deviates or contradicts itself; the caller drops the connection.
+ */
+bool ParseWorkerErrorFrame(const char* json, size_t n, bool allow_model_unavailable, int* code_out,
+                           bool* unavailable_out) {
+    std::map<std::string, std::string> kv;
+    if (!ParseFlatObject(json, n, /*allow_real=*/true, /*allow_escapes=*/true, &kv)) return false;
+    auto ec = kv.find("error_code");
+    if (ec == kv.end()) return false;
+    const std::string& e = ec->second;
+    // "-" then 1 or 2 digits, no leading zero: -1 .. -99
+    if (e.size() < 2 || e.size() > 3 || e[0] != '-' || e[1] < '1' || e[1] > '9' ||
+        (e.size() == 3 && (e[2] < '0' || e[2] > '9'))) {
+        return false;
+    }
+    const int code = -std::atoi(e.c_str() + 1);
+    auto em = kv.find("error_message");
+    if (em != kv.end() && (em->second.empty() || em->second[0] != '"')) return false;
+    bool unavailable = false;
+    auto mu = kv.find("model_unavailable");
+    if (mu != kv.end()) {
+        if (!allow_model_unavailable) return false;
+        if (mu->second != "true" && mu->second != "false") return false;
+        unavailable = mu->second == "true";
+    }
+    if (unavailable && code != XPE_ERR_IO_FAILED && code != XPE_ERR_CONFIG_INVALID) return false;
+    *code_out = code;
+    *unavailable_out = unavailable;
     return true;
 }
 
@@ -626,14 +645,15 @@ XpeErrorCode xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge,
     }
 
     if (rh.messageType == XPE_AI_MSG_ERROR) {
-        // The worker's own code, verbatim -- but only a code that parses as a number in the range
-        // the XPE_ERR_* codes occupy. An ERROR frame with no code, a code that is not a number,
-        // zero (success) or a value outside that range is a worker speaking garbage: the answer is
-        // a failure of unknown kind (never a success) and the connection is dropped, because
-        // nothing else this worker says can be trusted either (Codex audit #11).
-        const std::string body(reinterpret_cast<const char*>(reply.data()), rh.payloadSize);
+        // The worker's own code, verbatim -- but only from an ERROR frame that parses as the protocol says
+        // (ParseWorkerErrorFrame). A frame that deviates is a worker speaking garbage: the answer is a failure of
+        // unknown kind (never a success) and the connection is dropped, because nothing else this worker says
+        // can be trusted either (Codex audit #11). Bone suppression has no "model_unavailable" notion, so that
+        // field in its ERROR frame is a fault too (QA-B-193).
         int code = 0;
-        if (!ParseErrorCode(body, &code)) {
+        bool unavailable = false;
+        if (!ParseWorkerErrorFrame(reinterpret_cast<const char*>(reply.data()), rh.payloadSize,
+                                   /*allow_model_unavailable=*/false, &code, &unavailable)) {
             DropConnection(bridge);
             return XPE_ERR_PROCESSING_FAILED;
         }
@@ -761,36 +781,15 @@ XpeErrorCode xpe_ai_ipc_bridge_bodypart(XpeAiIpcBridge* bridge, uint32_t width, 
         // QA-B-191 M4f (Codex #77): an ERROR frame is judged as strictly as a success reply, because one of its
         // fields -- "model_unavailable" -- changes what the host counts. It was found as a substring, so a frame
         // that contradicted itself ({"error_code":-3,"model_unavailable":true,...}) was believed and a run of real
-        // faults could be reset to zero without ever reaching the ceiling.
-        //   - one flat JSON object, no duplicate key, nothing after it (escaped quote/backslash allowed in text);
-        //   - "error_code" is required and is an integer in [-99, -1]; "error_message", if present, is a string;
-        //   - "model_unavailable", if present, is true or false;
-        //   - true is believed ONLY with the codes the worker uses for a model that cannot be loaded or
-        //     configured: XPE_ERR_IO_FAILED (no model file) and XPE_ERR_CONFIG_INVALID. With any other code the
-        //     frame contradicts itself.
-        // Anything else is a protocol fault: connection dropped, the call counts as a worker failure.
-        if (!ParseFlatObject(reinterpret_cast<const char*>(reply), rh.payloadSize, /*allow_real=*/true,
-                             /*allow_escapes=*/true, &kv)) {
-            return bad();
-        }
-        auto ec = kv.find("error_code");
-        if (ec == kv.end()) return bad();
-        const std::string& e = ec->second;
-        // "-" then 1 or 2 digits, no leading zero: -1 .. -99
-        if (e.size() < 2 || e.size() > 3 || e[0] != '-' || e[1] < '1' || e[1] > '9' ||
-            (e.size() == 3 && (e[2] < '0' || e[2] > '9'))) {
-            return bad();
-        }
-        const int code = -std::atoi(e.c_str() + 1);
-        auto em = kv.find("error_message");
-        if (em != kv.end() && (em->second.empty() || em->second[0] != '"')) return bad();
+        // faults could be reset to zero without ever reaching the ceiling. The rules are ParseWorkerErrorFrame's,
+        // the same function bone suppression uses (QA-B-193). A frame that deviates is a protocol fault:
+        // connection dropped, the call counts as a worker failure.
+        int code = 0;
         bool unavailable = false;
-        auto mu = kv.find("model_unavailable");
-        if (mu != kv.end()) {
-            if (mu->second != "true" && mu->second != "false") return bad();
-            unavailable = mu->second == "true";
+        if (!ParseWorkerErrorFrame(reinterpret_cast<const char*>(reply), rh.payloadSize,
+                                   /*allow_model_unavailable=*/true, &code, &unavailable)) {
+            return bad();
         }
-        if (unavailable && code != XPE_ERR_IO_FAILED && code != XPE_ERR_CONFIG_INVALID) return bad();
         bridge->last_model_unavailable = unavailable;
         return static_cast<XpeErrorCode>(code);
     }

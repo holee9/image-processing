@@ -17,6 +17,8 @@
  *   "bodypart_raw"      answers a BODYPART_RECOGNIZE request with a RESP frame whose JSON is the environment
  *                       variable XPE_FAKE_WORKER_JSON, verbatim (QA-B-191 M4b: the strict-parse table)
  *   "bodypart_error_raw" answers it with an ERROR frame whose JSON is XPE_FAKE_WORKER_JSON, verbatim
+ *   "bone_error_raw"    answers a BONE_SUPPRESS request with an ERROR frame whose JSON is XPE_FAKE_WORKER_JSON,
+ *                       verbatim (QA-B-193)
  *
  * It answers the session-start message correctly in every mode, so the supervisor reaches the heartbeat.
  * It exits 0 on a shutdown request, like the real worker.
@@ -136,6 +138,8 @@ int main(int argc, char** argv) {
                     ReplyBoneNaN(h, payload, "{\"success\":true,\"width\":3,\"height\":3,\"format\":\"float32\"}");
                 } else if (mode == "bone_garbage_nan") {
                     ReplyBoneNaN(h, payload, "");
+                } else if (mode == "bone_error_raw") {
+                    Reply(XPE_AI_MSG_ERROR, h.requestId, EnvJson().c_str());
                 }
                 break;
             case XPE_AI_MSG_BODYPART_RECOGNIZE:
