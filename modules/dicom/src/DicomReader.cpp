@@ -17,10 +17,13 @@
 #include "xpe/common/xpe_memory.h"
 
 #include <spdlog/spdlog.h>
+#include <cmath>
 #include <cstdarg>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <string>
 #include <mutex>
 #include <vector>
 
@@ -296,9 +299,8 @@ XpeErrorCode DicomReader::open() {
 // requires these attributes to be consistent with the codestream, and the codestream's own characteristics are the
 // ones used for decoding. Here only what the dataset alone can say is checked: Bits Allocated is 8 or 16.
 //
-// RescaleSlope/Intercept and bits above BitsStored are NOT judged here: how to report them is a design decision
-// still open in #235, and they keep their current behaviour (stored words, unchanged). MONOCHROME1 is accepted here
-// and INVERTED after decoding (QA-B-185, normaliseMonochrome1).
+// Rescale is judged in checkRescale and the bits above BitsStored are masked in maskToBitsStored (QA-B-187).
+// MONOCHROME1 is accepted here and INVERTED after decoding (QA-B-185, normaliseMonochrome1).
 // A refusal is reported twice: to the log, and as an ALERT the operator can read. The return code alone says
 // "malformed" or "unsupported" but not which attribute or which two values disagree (QA-B-182c). The alert wording
 // is a contract with the clients that display alerts: change it only together with them.
@@ -354,6 +356,106 @@ static void normaliseMonochrome1(XpeImageBuffer* img) {
                   static_cast<unsigned>(bits));
     spdlog::info("[DicomReader] {}", msg);
     xpe_alert_push(msg, XPE_ALERT_INFO);
+}
+
+// QA-B-187 (#235; leader decisions after the QA-B-186 matrix): the Modality LUT's Rescale Slope / Intercept are NOT
+// applied -- the returned pixels are the stored values, and applying or reporting the rescale is a separate decision --
+// but they are no longer ignored in silence:
+//   * a Rescale attribute that is present and is not ONE finite number (empty, text, two values, inf/nan), or a Rescale
+//     Slope of 0 (the rescale would send every pixel to the intercept), is a malformed dataset: XPE_ERR_DICOM_INVALID,
+//     before any decode, with an alert that names the attribute and the value;
+//   * a rescale that is not the identity (slope 1 and intercept 0; an absent attribute counts as its identity value)
+//     posts ONE Warning after a successful read: the pixels are stored values and the rescale was not applied.
+// The check runs for every path because it runs before the path-specific decode.
+struct RescaleNote {
+    bool nonIdentity = false;
+    std::string slope = "(absent)";
+    std::string intercept = "(absent)";
+};
+
+static std::string trimSpaces(const char* raw) {
+    std::string s(raw);
+    const size_t b = s.find_first_not_of(' ');
+    if (b == std::string::npos) return std::string();
+    return s.substr(b, s.find_last_not_of(' ') - b + 1);
+}
+
+// One decimal string (PS3.5 VR DS: digits, sign, '.', 'E'/'e') that is a finite number. A backslash would be a second value.
+static bool parseDecimalString(const std::string& s, double* out) {
+    if (s.empty() || s.find_first_not_of("0123456789+-.eE") != std::string::npos) return false;
+    char* end = nullptr;
+    const double v = std::strtod(s.c_str(), &end);
+    if (end == s.c_str() || *end != '\0' || !std::isfinite(v)) return false;
+    *out = v;
+    return true;
+}
+
+static XpeErrorCode readRescaleAttribute(DcmDataset* ds, const DcmTagKey& key, const char* label, const char* tag,
+                                         double identityValue, double* out, std::string* text) {
+    *out = identityValue;
+    if (!ds->tagExists(key)) return XPE_OK;
+    OFString raw;
+    const OFCondition c = ds->findAndGetOFStringArray(key, raw);
+    const std::string s = trimSpaces(raw.c_str());
+    if (c.bad() || !parseDecimalString(s, out)) {
+        return refuse(XPE_ERR_DICOM_INVALID, "%s (%s) \"%s\" is not a single finite number", label, tag, s.c_str());
+    }
+    *text = s;
+    return XPE_OK;
+}
+
+static XpeErrorCode checkRescale(DcmDataset* ds, RescaleNote* note) {
+    double slope = 1.0, intercept = 0.0;
+    XpeErrorCode rc = readRescaleAttribute(ds, DCM_RescaleSlope, "RescaleSlope", "0028,1053", 1.0, &slope, &note->slope);
+    if (rc != XPE_OK) return rc;
+    rc = readRescaleAttribute(ds, DCM_RescaleIntercept, "RescaleIntercept", "0028,1052", 0.0, &intercept, &note->intercept);
+    if (rc != XPE_OK) return rc;
+    if (slope == 0.0) {
+        return refuse(XPE_ERR_DICOM_INVALID, "RescaleSlope (0028,1053) is zero: the rescale would map every pixel to the intercept");
+    }
+    note->nonIdentity = slope != 1.0 || intercept != 0.0;
+    return XPE_OK;
+}
+
+// QA-B-187: the bits above BitsStored are not part of the sample (PS3.5 8.1.1), so every returned word is
+// stored & (2^BitsStored - 1) -- MONOCHROME2 as well as MONOCHROME1 (which was already masked before its inversion).
+// Returns how many words changed. BitsStored 16 masks nothing, so the pass is skipped.
+static size_t maskToBitsStored(XpeImageBuffer* img) {
+    const uint32_t bits = img->bitsStored;   // 1..16 here: BitsStored <= BitsAllocated 16, JPEG 2000 precision <= 16
+    if (bits >= 16) return 0;
+    const uint16_t mask = static_cast<uint16_t>((1u << bits) - 1u);
+    uint16_t* px = static_cast<uint16_t*>(img->data);
+    const size_t n = static_cast<size_t>(img->width) * img->height;
+    size_t changed = 0;
+    for (size_t i = 0; i < n; ++i) {
+        const uint16_t v = static_cast<uint16_t>(px[i] & mask);
+        if (v != px[i]) { px[i] = v; ++changed; }
+    }
+    return changed;
+}
+
+// What every successful read does to the decoded words, in this order, whichever path produced them (QA-B-185/187).
+static void finishRead(XpeImageBuffer* img, bool mono1, const RescaleNote& rescale) {
+    const size_t masked = maskToBitsStored(img);
+    if (masked > 0) {
+        // CROSS-LANE CONTRACT (QA-B-187): the whole text. Posted only when at least one word changed.
+        char msg[200];
+        std::snprintf(msg, sizeof(msg),
+                      "%llu pixel(s) had bits above BitsStored %u set; those bits were masked off: value = stored & (2^BitsStored - 1)",
+                      static_cast<unsigned long long>(masked), static_cast<unsigned>(img->bitsStored));
+        spdlog::info("[DicomReader] {}", msg);
+        xpe_alert_push(msg, XPE_ALERT_INFO);
+    }
+    if (mono1) normaliseMonochrome1(img);
+    if (rescale.nonIdentity) {
+        // CROSS-LANE CONTRACT (QA-B-187): the whole text, with the values as the file spells them.
+        char msg[256];
+        std::snprintf(msg, sizeof(msg),
+                      "RescaleSlope %s, RescaleIntercept %s (the identity is 1 and 0): returned pixels are stored values; rescale not applied",
+                      rescale.slope.c_str(), rescale.intercept.c_str());
+        spdlog::warn("[DicomReader] {}", msg);
+        xpe_alert_push(msg, XPE_ALERT_WARNING);
+    }
 }
 
 static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, bool isJ2K, bool isJpegLL) {
@@ -499,11 +601,16 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
 
     // The scope check has pinned PhotometricInterpretation to MONOCHROME1 or MONOCHROME2.
     const bool mono1 = isMonochrome1(ds);
+    RescaleNote rescale;
+    {
+        const XpeErrorCode rrc = checkRescale(ds, &rescale);   // QA-B-187: malformed Rescale is refused before any decode
+        if (rrc != XPE_OK) return rrc;
+    }
 
     if (isJ2K) {
         // J2K: extract raw bitstream and decode with OpenJPEG
         const XpeErrorCode drc = decompressPixelData(m_dcmFile.get(), outImg);
-        if (drc == XPE_OK && mono1) normaliseMonochrome1(outImg);
+        if (drc == XPE_OK) finishRead(outImg, mono1, rescale);
         return drc;
     }
 
@@ -615,7 +722,7 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
         return XPE_ERR_DICOM_INVALID;
     }
     std::memcpy(outImg->data, pixData, expectedBytes);
-    if (mono1) normaliseMonochrome1(outImg);
+    finishRead(outImg, mono1, rescale);
 
     return XPE_OK;
 }

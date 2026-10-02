@@ -140,7 +140,9 @@ XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHa
  *           component count other than 1 (PS3.5 8.2: the attributes shall be consistent with the compressed data
  *           stream; a precision above BitsStored is accepted);
  *         - a JPEG 2000 codestream contradicts the dataset: a different number of components, signed samples, a
- *           precision that differs from BitsStored, or BitsAllocated below BitsStored (PS3.5 8.2.4).
+ *           precision that differs from BitsStored, or BitsAllocated below BitsStored (PS3.5 8.2.4);
+ *         - RescaleSlope (0028,1053) or RescaleIntercept (0028,1052) is present and is not ONE finite number (empty,
+ *           text, two values, inf or nan), or RescaleSlope is 0 (QA-B-187; judged before any decode, on every path).
  * @return XPE_ERR_UNSUPPORTED_FORMAT also for a JPEG 2000 codestream whose precision exceeds 16 bits.
  *
  * @note NumberOfFrames is the one attribute that may be absent (Multi-frame Module): absent means one frame.
@@ -177,8 +179,19 @@ XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHa
  *       window is centred at c - 0.5, PS3.3 C.11.2.1.2). Slope 1 and intercept 0 give M - c and M - c + 1. An explicit
  *       VOI LUT table would have to be reversed instead (not covered here).
  *       Signed pixels (PixelRepresentation 1) are refused for every PhotometricInterpretation, MONOCHROME1 included.
- * @note NOT judged, and returned as stored (#235 awaits a design decision): RescaleSlope / RescaleIntercept (not
- *       applied, not reported) and bits above BitsStored for MONOCHROME2 (not masked).
+ * @note Rescale (QA-B-187): the Modality LUT's RescaleSlope / RescaleIntercept are NOT applied and NOT returned (the
+ *       metadata struct has no field for them): the returned pixels are the stored values. When the file's rescale is
+ *       not the identity (slope 1 and intercept 0; an absent attribute counts as its identity value) ONE
+ *       XPE_ALERT_WARNING is posted after a successful read, with exactly this text, the values spelled as the file
+ *       spells them (a contract with the clients that display alerts):
+ *       "RescaleSlope <s>, RescaleIntercept <b> (the identity is 1 and 0): returned pixels are stored values; rescale
+ *       not applied". An explicit identity (1.0 and 0.0) posts nothing. A malformed rescale is refused, see the
+ *       XPE_ERR_DICOM_INVALID list above. Whether to apply or report the rescale is a separate decision.
+ * @note Bits above BitsStored (QA-B-187, #235 item (h)): they are not part of the sample (PS3.5 8.1.1), so every
+ *       returned word is (stored & (2^BitsStored - 1)) for MONOCHROME2 as well as MONOCHROME1. When at least one word
+ *       changed, ONE XPE_ALERT_INFO is posted with exactly this text: "<N> pixel(s) had bits above BitsStored <B> set;
+ *       those bits were masked off: value = stored & (2^BitsStored - 1)". Nothing is posted when no word changed;
+ *       BitsStored 16 masks nothing.
  *
  * @note Transfer-Syntax support is decided in xpe_dicom_open(), not here: an
  *       unsupported syntax has already been rejected before a handle exists.

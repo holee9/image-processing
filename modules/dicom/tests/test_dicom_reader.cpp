@@ -43,6 +43,12 @@ namespace fs = std::filesystem;
 // Test fixture: creates synthetic DICOM files before all tests
 // ---------------------------------------------------------------------------
 class DicomReaderTest : public ::testing::Test {
+public:
+    // Read access for the free helper functions of the Tc235 matrix (QA-B-187).
+    static const fs::path& ValidDcm() { return s_validDcm; }
+    static const fs::path& J2kDcm() { return s_j2kDcm; }
+    static const fs::path& TempDir() { return s_tempDir; }
+
 protected:
     static void SetUpTestSuite();
     static void TearDownTestSuite();
@@ -3982,18 +3988,28 @@ TEST_F(DicomReaderTest, Issue235Decided_Monochrome1IsInvertedToMonochrome2Sense)
     }
 }
 
-TEST_F(DicomReaderTest, Pinned_Issue235AwaitsDesignDecision_RescaleIsNotAppliedNorReported) {
+// QA-B-187: DECIDED (leader, after the QA-B-186 matrix). This was "Pinned_Issue235AwaitsDesignDecision_RescaleIsNot
+// AppliedNorReported", asserting "stored values, neither rescaled nor flagged". The stored values are still what is
+// returned (applying or reporting the rescale is a separate decision), but it is no longer silent: a non-identity
+// Rescale posts one Warning. The full matrix is the Tc235_ tests at the end of this file.
+TEST_F(DicomReaderTest, Issue235Decided_RescaleIsNotAppliedButWarned) {
     const std::vector<uint16_t> baseline = Words(s_validDcm);
     const fs::path p = MakeScopeVariant(s_validDcm, "rescale", [](DcmDataset* ds) {
         ds->putAndInsertString(DCM_RescaleSlope, "2");
         ds->putAndInsertString(DCM_RescaleIntercept, "-1024");
     });
+    xpe_clear_alerts();
     const ScopeRead r = ReadScope(p);
     EXPECT_EQ(XPE_OK, r.read);
-    EXPECT_EQ(baseline, r.words) << "stored values, neither rescaled nor flagged";
+    EXPECT_EQ(baseline, r.words) << "stored values, not rescaled";
+    EXPECT_TRUE(AlertNames("rescale not applied")) << "and the caller is told";
 }
 
-TEST_F(DicomReaderTest, Pinned_Issue235AwaitsDesignDecision_BitsAboveBitsStoredAreNotMasked) {
+// QA-B-187: DECIDED (leader; issue #235 body item (h)). This was "Pinned_Issue235AwaitsDesignDecision_BitsAbove
+// BitsStoredAreNotMasked": "the 4 bits above BitsStored are returned, not masked" (QA-B-182f recorded it; QA-B-185 kept it
+// true for MONOCHROME2 while MONOCHROME1 already masked). The bits above BitsStored are not part of the sample (PS3.5
+// 8.1.1), so MONOCHROME2 is masked too -- one rule for both polarities.
+TEST_F(DicomReaderTest, Issue235Decided_BitsAboveBitsStoredAreMaskedForMonochrome2Too) {
     std::vector<uint16_t> w = Words(s_validDcm);
     for (size_t i = 0; i < w.size(); ++i) w[i] = static_cast<uint16_t>((w[i] & 0x0FFF) | 0xF000);
     const fs::path p = MakeScopeVariant(s_validDcm, "high_bits", [&](DcmDataset* ds) {
@@ -4003,10 +4019,8 @@ TEST_F(DicomReaderTest, Pinned_Issue235AwaitsDesignDecision_BitsAboveBitsStoredA
     });
     const ScopeRead r = ReadScope(p);
     EXPECT_EQ(XPE_OK, r.read);
-    EXPECT_EQ(w, r.words) << "the 4 bits above BitsStored are returned, not masked";
-    // QA-B-185: this stays true for MONOCHROME2 (the decision for MONOCHROME1 did not change it). For MONOCHROME1 the
-    // bits ARE masked, because the inversion needs the sample alone: Tc109_Monochrome1_MasksTheBitsAboveBitsStored
-    // BeforeInverting.
+    ASSERT_EQ(w.size(), r.words.size());
+    for (size_t i = 0; i < w.size(); ++i) ASSERT_EQ(static_cast<uint16_t>(w[i] & 0x0FFF), r.words[i]) << "pixel " << i;
 }
 
 // ===========================================================================
@@ -4130,7 +4144,7 @@ TEST_F(DicomReaderTest, Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept
 }
 
 // The bits above BitsStored are not part of the sample: they are masked off BEFORE the inversion, so a MONOCHROME1
-// word never comes out larger than 2^BitsStored - 1. (MONOCHROME2 is unchanged: those bits are still returned.)
+// word never comes out larger than 2^BitsStored - 1. (QA-B-187: MONOCHROME2 is masked too.)
 TEST_F(DicomReaderTest, Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInverting) {
     std::vector<uint16_t> w = Words(s_validDcm);
     for (size_t i = 0; i < w.size(); ++i) w[i] = static_cast<uint16_t>((w[i] & 0x0FFF) | 0xF000);
@@ -4145,7 +4159,8 @@ TEST_F(DicomReaderTest, Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInver
     const ScopeRead b = ReadScope(m1);
     ASSERT_EQ(XPE_OK, a.read);
     ASSERT_EQ(XPE_OK, b.read);
-    EXPECT_EQ(w, a.words) << "MONOCHROME2: the 4 bits above BitsStored are returned, as before";
+    // QA-B-187: MONOCHROME2 is masked too now (it returned the words unmasked until this card).
+    for (size_t i = 0; i < w.size(); ++i) ASSERT_EQ(static_cast<uint16_t>(w[i] & 0x0FFF), a.words[i]) << "MONOCHROME2 pixel " << i;
     size_t wrong = 0, tooBig = 0;
     for (size_t i = 0; i < w.size(); ++i) {
         if (b.words[i] != static_cast<uint16_t>(0x0FFFu - (w[i] & 0x0FFFu))) ++wrong;
@@ -4297,4 +4312,292 @@ TEST_F(DicomReaderTest, Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrP
     EXPECT_EQ("IDENTITY", std::string(v.c_str())) << "the shape is the writer's fixed IDENTITY, not the source's INVERSE";
     ASSERT_TRUE(ds->findAndGetOFString(DCM_PhotometricInterpretation, v).good());
     EXPECT_EQ("MONOCHROME2", std::string(v.c_str()));
+}
+
+// ===========================================================================
+// QA-B-187 (#235 closing): the five items of the issue title x the three compression paths, as NAMED tests.
+//
+// QA-B-186 read these cells with a temporary probe and found three with no named test and one that was silent
+// (Rescale). Every cell below is `Tc235_<item>_<path>_<expectation>`, so `grep Tc235_` lists the whole matrix and a
+// regression in any one cell turns exactly that test red. Paths: Native (uncompressed Explicit VR LE), JpegLl
+// (JPEG Lossless), J2k (JPEG 2000 Lossless). The files are built with the helpers the earlier scope tests use.
+// ===========================================================================
+namespace {
+
+enum class PathId { Native, JpegLl, J2k };
+
+struct Tc235Env {
+    bool ok = false;
+    fs::path ll;
+    std::vector<uint8_t> codestream;
+    std::vector<uint16_t> base;   // the unmodified donor's words (all three donors read back the same words)
+};
+
+Tc235Env& Env235() {
+    static Tc235Env env;
+    static fs::path builtFor;
+    if (builtFor != DicomReaderTest::TempDir()) {   // the suite's temp directory is created once; rebuild if it moved
+        builtFor = DicomReaderTest::TempDir();
+        env = Tc235Env{};
+        env.ll = DicomReaderTest::TempDir() / "jpegll_for_235.dcm";
+        env.ok = WriteJpegLosslessCopy(DicomReaderTest::ValidDcm(), env.ll) && ExtractJ2kBitstream(DicomReaderTest::J2kDcm(), env.codestream);
+        if (env.ok) {
+            env.base = Words(DicomReaderTest::ValidDcm());
+            env.ok = env.base.size() == 65536u && Words(env.ll) == env.base && Words(DicomReaderTest::J2kDcm()) == env.base;
+        }
+    }
+    return env;
+}
+
+using Mutator = void (*)(DcmDataset*, bool native);
+
+/** The file for @p path with @p mutate applied; @p native tells a mutator that it may rewrite the pixel words. */
+fs::path File235(PathId path, const char* tag, Mutator mutate) {
+    Tc235Env& e = Env235();
+    const char* suffix = path == PathId::Native ? "_nat" : path == PathId::JpegLl ? "_ll" : "_j2k";
+    const std::string name = std::string("tc235_") + tag + suffix;
+    const bool native = path == PathId::Native;
+    auto apply = [&](DcmDataset* ds) { mutate(ds, native); };
+    if (path == PathId::Native) return MakeSameSyntaxVariant(DicomReaderTest::ValidDcm(), name.c_str(), apply);
+    if (path == PathId::JpegLl) return MakeSameSyntaxVariant(e.ll, name.c_str(), apply);
+    return MakeJ2kVariant(DicomReaderTest::J2kDcm(), name.c_str(), e.codestream, apply);
+}
+
+struct Alert235 { std::string text; int32_t severity; };
+
+struct Obs235 {
+    ScopeRead read;
+    std::vector<Alert235> alerts;
+};
+
+Obs235 Observe235(const fs::path& file) {
+    Obs235 o;
+    xpe_clear_alerts();
+    o.read = ReadScope(file);
+    for (int32_t i = 0; i < xpe_get_pending_alert_count(); ++i) {
+        char buf[512] = {0};
+        int32_t sev = -1;
+        if (xpe_get_pending_alert(i, buf, sizeof(buf), &sev) == XPE_OK) o.alerts.push_back({buf, sev});
+    }
+    return o;
+}
+
+/** The refusal cell: the code, nothing written, the handle still serves its metadata, ONE Error alert that names @p needle. */
+void ExpectRefused235(PathId path, const char* tag, Mutator mutate, XpeErrorCode code, const char* needle) {
+    ASSERT_TRUE(Env235().ok) << "the fixtures of the matrix could not be built";
+    const Obs235 o = Observe235(File235(path, tag, mutate));
+    EXPECT_EQ(code, o.read.read);
+    EXPECT_TRUE(o.read.outUntouchedOnFailure) << "the caller's buffer must not be touched";
+    EXPECT_EQ(XPE_OK, o.read.metaAfter) << "the same handle still serves its metadata";
+    ASSERT_EQ(1u, o.alerts.size()) << "a refusal posts exactly one alert";
+    EXPECT_EQ(XPE_ALERT_ERROR, o.alerts[0].severity);
+    EXPECT_NE(std::string::npos, o.alerts[0].text.find(needle)) << "the alert names the cause: " << o.alerts[0].text;
+}
+
+// ---- the contract texts (cross-lane: clients display them), whole -------------------------------------------------
+std::string RescaleWarning235(const char* slope, const char* intercept) {
+    return std::string("RescaleSlope ") + slope + ", RescaleIntercept " + intercept +
+           " (the identity is 1 and 0): returned pixels are stored values; rescale not applied";
+}
+
+// ---- mutators ------------------------------------------------------------------------------------------------------
+void MutSigned(DcmDataset* ds, bool) { ds->putAndInsertUint16(DCM_PixelRepresentation, 1); }
+void MutMonochrome1(DcmDataset* ds, bool) { ds->putAndInsertString(DCM_PhotometricInterpretation, "MONOCHROME1"); }
+void MutRescaleNonIdentity(DcmDataset* ds, bool) {
+    ds->putAndInsertString(DCM_RescaleSlope, "2");
+    ds->putAndInsertString(DCM_RescaleIntercept, "-1024");
+}
+void MutRescaleIdentityExplicit(DcmDataset* ds, bool) {
+    ds->putAndInsertString(DCM_RescaleSlope, "1.0");
+    ds->putAndInsertString(DCM_RescaleIntercept, "0.0");
+}
+void MutRescaleSlopeZero(DcmDataset* ds, bool) {
+    ds->putAndInsertString(DCM_RescaleSlope, "0");
+    ds->putAndInsertString(DCM_RescaleIntercept, "0");
+}
+void MutRescaleSlopeNotANumber(DcmDataset* ds, bool) { ds->putAndInsertString(DCM_RescaleSlope, "abc"); }
+void MutRescaleInterceptNotANumber(DcmDataset* ds, bool) { ds->putAndInsertString(DCM_RescaleIntercept, "xyz"); }
+void MutRescaleSlopeEmpty(DcmDataset* ds, bool) { ds->putAndInsertString(DCM_RescaleSlope, ""); }
+void MutRescaleSlopeNotFinite(DcmDataset* ds, bool) { ds->putAndInsertString(DCM_RescaleSlope, "inf"); }
+void MutRescaleTwoValues(DcmDataset* ds, bool) { ds->putAndInsertString(DCM_RescaleSlope, "1\\2"); }
+void MutMultiFrame(DcmDataset* ds, bool native) {
+    ds->putAndInsertString(DCM_NumberOfFrames, "3");
+    if (native) {
+        const std::vector<uint16_t> one = Words(DicomReaderTest::ValidDcm());
+        std::vector<uint16_t> three;
+        for (int k = 0; k < 3; ++k) three.insert(three.end(), one.begin(), one.end());
+        PutWords(ds, three);
+    }
+}
+void MutRgb(DcmDataset* ds, bool) {
+    ds->putAndInsertUint16(DCM_SamplesPerPixel, 3);
+    ds->putAndInsertString(DCM_PhotometricInterpretation, "RGB");
+    ds->putAndInsertUint16(DCM_PlanarConfiguration, 0);
+}
+void MutRgbLabelOnOnePlane(DcmDataset* ds, bool) { ds->putAndInsertString(DCM_PhotometricInterpretation, "RGB"); }
+
+void ExpectMonochrome1Inverted235(PathId path) {
+    ASSERT_TRUE(Env235().ok);
+    const Obs235 o = Observe235(File235(path, "mono1", MutMonochrome1));
+    ASSERT_EQ(XPE_OK, o.read.read);
+    ASSERT_EQ(Env235().base.size(), o.read.words.size());
+    const uint32_t M = BitsMask(o.read.bitsStored);
+    size_t wrong = 0;
+    for (size_t i = 0; i < o.read.words.size(); ++i) {
+        if (o.read.words[i] != static_cast<uint16_t>(M - (Env235().base[i] & M))) ++wrong;
+    }
+    EXPECT_EQ(0u, wrong) << "every word is (2^B - 1) - (stored & (2^B - 1))";
+    ASSERT_EQ(1u, o.alerts.size());
+    EXPECT_EQ(XPE_ALERT_INFO, o.alerts[0].severity);
+    EXPECT_EQ(Mono1AlertText(o.read.bitsStored), o.alerts[0].text);
+}
+
+void ExpectRescaleStoredWithWarning235(PathId path) {
+    ASSERT_TRUE(Env235().ok);
+    const Obs235 o = Observe235(File235(path, "rescale", MutRescaleNonIdentity));
+    ASSERT_EQ(XPE_OK, o.read.read);
+    EXPECT_EQ(Env235().base, o.read.words) << "the returned pixels are the stored values, not rescaled";
+    ASSERT_EQ(1u, o.alerts.size()) << "one Warning says so";
+    EXPECT_EQ(XPE_ALERT_WARNING, o.alerts[0].severity);
+    EXPECT_EQ(RescaleWarning235("2", "-1024"), o.alerts[0].text);
+}
+
+void ExpectRescaleIdentityQuiet235(PathId path) {
+    ASSERT_TRUE(Env235().ok);
+    const Obs235 o = Observe235(File235(path, "rescale_id", MutRescaleIdentityExplicit));
+    ASSERT_EQ(XPE_OK, o.read.read);
+    EXPECT_EQ(Env235().base, o.read.words);
+    EXPECT_TRUE(o.alerts.empty()) << "an explicit identity (1.0 and 0.0) is not announced";
+}
+
+}  // namespace
+
+#define TC235_REFUSED(Item, Path, Expect, Code, Mut, Needle) \
+    TEST_F(DicomReaderTest, Tc235_##Item##_##Path##_##Expect) { ExpectRefused235(PathId::Path, #Item, Mut, Code, Needle); }
+
+// ---- 1. signed pixels ----------------------------------------------------------------------------------------------
+TC235_REFUSED(Signed, Native, RefusedUnsupported, XPE_ERR_UNSUPPORTED_FORMAT, MutSigned, "PixelRepresentation 1")
+TC235_REFUSED(Signed, JpegLl, RefusedUnsupported, XPE_ERR_UNSUPPORTED_FORMAT, MutSigned, "PixelRepresentation 1")
+TC235_REFUSED(Signed, J2k, RefusedUnsupported, XPE_ERR_UNSUPPORTED_FORMAT, MutSigned, "PixelRepresentation 1")
+
+// ---- 2. MONOCHROME1 ------------------------------------------------------------------------------------------------
+TEST_F(DicomReaderTest, Tc235_Monochrome1_Native_InvertedWithInfoAlert) { ExpectMonochrome1Inverted235(PathId::Native); }
+TEST_F(DicomReaderTest, Tc235_Monochrome1_JpegLl_InvertedWithInfoAlert) { ExpectMonochrome1Inverted235(PathId::JpegLl); }
+TEST_F(DicomReaderTest, Tc235_Monochrome1_J2k_InvertedWithInfoAlert) { ExpectMonochrome1Inverted235(PathId::J2k); }
+
+// ---- 3. rescale: stored values and a Warning when it is not the identity; refusal when it cannot be read -------------
+TEST_F(DicomReaderTest, Tc235_RescaleNonIdentity_Native_StoredValuesWithWarning) { ExpectRescaleStoredWithWarning235(PathId::Native); }
+TEST_F(DicomReaderTest, Tc235_RescaleNonIdentity_JpegLl_StoredValuesWithWarning) { ExpectRescaleStoredWithWarning235(PathId::JpegLl); }
+TEST_F(DicomReaderTest, Tc235_RescaleNonIdentity_J2k_StoredValuesWithWarning) { ExpectRescaleStoredWithWarning235(PathId::J2k); }
+TEST_F(DicomReaderTest, Tc235_RescaleIdentityExplicit_Native_StoredValuesNoAlert) { ExpectRescaleIdentityQuiet235(PathId::Native); }
+TEST_F(DicomReaderTest, Tc235_RescaleIdentityExplicit_JpegLl_StoredValuesNoAlert) { ExpectRescaleIdentityQuiet235(PathId::JpegLl); }
+TEST_F(DicomReaderTest, Tc235_RescaleIdentityExplicit_J2k_StoredValuesNoAlert) { ExpectRescaleIdentityQuiet235(PathId::J2k); }
+TC235_REFUSED(RescaleSlopeZero, Native, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleSlopeZero, "RescaleSlope")
+TC235_REFUSED(RescaleSlopeZero, JpegLl, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleSlopeZero, "RescaleSlope")
+TC235_REFUSED(RescaleSlopeZero, J2k, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleSlopeZero, "RescaleSlope")
+TC235_REFUSED(RescaleSlopeNotANumber, Native, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleSlopeNotANumber, "RescaleSlope")
+TC235_REFUSED(RescaleSlopeNotANumber, JpegLl, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleSlopeNotANumber, "RescaleSlope")
+TC235_REFUSED(RescaleSlopeNotANumber, J2k, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleSlopeNotANumber, "RescaleSlope")
+TC235_REFUSED(RescaleInterceptNotANumber, Native, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleInterceptNotANumber, "RescaleIntercept")
+TC235_REFUSED(RescaleInterceptNotANumber, JpegLl, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleInterceptNotANumber, "RescaleIntercept")
+TC235_REFUSED(RescaleInterceptNotANumber, J2k, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleInterceptNotANumber, "RescaleIntercept")
+TC235_REFUSED(RescaleSlopeEmpty, Native, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleSlopeEmpty, "RescaleSlope")
+TC235_REFUSED(RescaleSlopeEmpty, JpegLl, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleSlopeEmpty, "RescaleSlope")
+TC235_REFUSED(RescaleSlopeEmpty, J2k, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleSlopeEmpty, "RescaleSlope")
+TC235_REFUSED(RescaleSlopeNotFinite, Native, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleSlopeNotFinite, "RescaleSlope")
+TC235_REFUSED(RescaleSlopeNotFinite, JpegLl, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleSlopeNotFinite, "RescaleSlope")
+TC235_REFUSED(RescaleSlopeNotFinite, J2k, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleSlopeNotFinite, "RescaleSlope")
+TC235_REFUSED(RescaleSlopeTwoValues, Native, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleTwoValues, "RescaleSlope")
+TC235_REFUSED(RescaleSlopeTwoValues, JpegLl, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleTwoValues, "RescaleSlope")
+TC235_REFUSED(RescaleSlopeTwoValues, J2k, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleTwoValues, "RescaleSlope")
+
+// ---- 4. multi-frame --------------------------------------------------------------------------------------------------
+TC235_REFUSED(MultiFrame, Native, RefusedUnsupported, XPE_ERR_UNSUPPORTED_FORMAT, MutMultiFrame, "NumberOfFrames 3")
+TC235_REFUSED(MultiFrame, JpegLl, RefusedUnsupported, XPE_ERR_UNSUPPORTED_FORMAT, MutMultiFrame, "NumberOfFrames 3")
+TC235_REFUSED(MultiFrame, J2k, RefusedUnsupported, XPE_ERR_UNSUPPORTED_FORMAT, MutMultiFrame, "NumberOfFrames 3")
+
+// ---- 5. RGB ----------------------------------------------------------------------------------------------------------
+TC235_REFUSED(Rgb, Native, RefusedUnsupported, XPE_ERR_UNSUPPORTED_FORMAT, MutRgb, "SamplesPerPixel 3")
+TC235_REFUSED(Rgb, JpegLl, RefusedUnsupported, XPE_ERR_UNSUPPORTED_FORMAT, MutRgb, "SamplesPerPixel 3")
+TC235_REFUSED(Rgb, J2k, RefusedUnsupported, XPE_ERR_UNSUPPORTED_FORMAT, MutRgb, "SamplesPerPixel 3")
+TC235_REFUSED(RgbLabelOnOnePlane, Native, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRgbLabelOnOnePlane, "RGB with SamplesPerPixel 1")
+TC235_REFUSED(RgbLabelOnOnePlane, JpegLl, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRgbLabelOnOnePlane, "RGB with SamplesPerPixel 1")
+TC235_REFUSED(RgbLabelOnOnePlane, J2k, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRgbLabelOnOnePlane, "RGB with SamplesPerPixel 1")
+
+// ---- (h) MONOCHROME2: the bits above BitsStored are not part of the sample ---------------------------------------------
+// Words with the four bits above BitsStored 12 set: they are masked off (value & 4095) and ONE Info alert counts the
+// words that changed. A file whose words are all within range changes nothing and posts nothing (the control).
+namespace {
+std::string BitsAboveAlert235(size_t changed, unsigned bitsStored) {
+    return std::to_string(changed) + " pixel(s) had bits above BitsStored " + std::to_string(bitsStored) +
+           " set; those bits were masked off: value = stored & (2^BitsStored - 1)";
+}
+}  // namespace
+
+TEST_F(DicomReaderTest, Tc235_BitsAboveBitsStored_Native_MaskedWithInfoAlert) {
+    ASSERT_TRUE(Env235().ok);
+    std::vector<uint16_t> w = Env235().base;
+    size_t changed = 0;
+    for (size_t i = 0; i < w.size(); ++i) {
+        const uint16_t clean = static_cast<uint16_t>(w[i] & 0x0FFF);
+        if (i % 2 == 0) { w[i] = static_cast<uint16_t>(clean | 0xF000); ++changed; }   // half the words carry junk above BitsStored
+        else w[i] = clean;
+    }
+    const fs::path p = MakeSameSyntaxVariant(DicomReaderTest::ValidDcm(), "tc235_bits_above", [&](DcmDataset* ds) {
+        ds->putAndInsertUint16(DCM_BitsStored, 12);
+        ds->putAndInsertUint16(DCM_HighBit, 11);
+        PutWords(ds, w);
+    });
+    const Obs235 o = Observe235(p);
+    ASSERT_EQ(XPE_OK, o.read.read);
+    ASSERT_EQ(w.size(), o.read.words.size());
+    size_t wrong = 0;
+    for (size_t i = 0; i < w.size(); ++i) {
+        if (o.read.words[i] != (w[i] & 0x0FFF)) ++wrong;
+    }
+    EXPECT_EQ(0u, wrong) << "every word is value & (2^BitsStored - 1)";
+    ASSERT_EQ(1u, o.alerts.size());
+    EXPECT_EQ(XPE_ALERT_INFO, o.alerts[0].severity);
+    EXPECT_EQ(BitsAboveAlert235(changed, 12), o.alerts[0].text);
+}
+
+TEST_F(DicomReaderTest, Tc235_BitsAboveBitsStored_Native_NothingToMaskPostsNothing) {
+    ASSERT_TRUE(Env235().ok);
+    std::vector<uint16_t> w = Env235().base;
+    for (uint16_t& v : w) v &= 0x0FFF;
+    const fs::path p = MakeSameSyntaxVariant(DicomReaderTest::ValidDcm(), "tc235_bits_clean", [&](DcmDataset* ds) {
+        ds->putAndInsertUint16(DCM_BitsStored, 12);
+        ds->putAndInsertUint16(DCM_HighBit, 11);
+        PutWords(ds, w);
+    });
+    const Obs235 o = Observe235(p);
+    ASSERT_EQ(XPE_OK, o.read.read);
+    EXPECT_EQ(w, o.read.words);
+    EXPECT_TRUE(o.alerts.empty());
+}
+
+// JPEG Lossless allows a frame precision above BitsStored (PS3.5 8.2: P < BitsStored is the violation), so a lossless
+// file that declares BitsStored 12 can carry 16-bit samples: the bits above BitsStored are masked there too. (A JPEG
+// 2000 codestream's precision must EQUAL BitsStored, so no word of it can carry such bits; there is no J2k cell.)
+TEST_F(DicomReaderTest, Tc235_BitsAboveBitsStored_JpegLl_MaskedWithInfoAlert) {
+    ASSERT_TRUE(Env235().ok);
+    const std::vector<uint16_t>& base = Env235().base;
+    size_t changed = 0;
+    for (uint16_t v : base) if ((v & 0xF000) != 0) ++changed;
+    ASSERT_GT(changed, 0u) << "the donor's gradient must have words above 4095";
+    const fs::path p = MakeSameSyntaxVariant(Env235().ll, "tc235_ll_bits_above", [](DcmDataset* ds) {
+        ds->putAndInsertUint16(DCM_BitsStored, 12);
+        ds->putAndInsertUint16(DCM_HighBit, 11);
+    });
+    const Obs235 o = Observe235(p);
+    ASSERT_EQ(XPE_OK, o.read.read);
+    ASSERT_EQ(base.size(), o.read.words.size());
+    size_t wrong = 0;
+    for (size_t i = 0; i < base.size(); ++i) {
+        if (o.read.words[i] != (base[i] & 0x0FFF)) ++wrong;
+    }
+    EXPECT_EQ(0u, wrong);
+    ASSERT_EQ(1u, o.alerts.size());
+    EXPECT_EQ(XPE_ALERT_INFO, o.alerts[0].severity);
+    EXPECT_EQ(BitsAboveAlert235(changed, 12), o.alerts[0].text);
 }
