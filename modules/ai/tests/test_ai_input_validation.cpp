@@ -441,3 +441,106 @@ TEST_F(AiInputValidation, TheDeclaredSizeOfEveryFormatIsBoundedByTheModuleMaximu
         EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_stitch_estimate_size(parts, 2, &w, &h)) << "format " << c.f << ": one pixel over";
     }
 }
+
+// ===== M2: the parts of one stitch ==========================================================================
+
+namespace {
+
+/** @p n valid float parts of the same size. */
+std::vector<Img> Parts(size_t n, uint32_t w = 6, uint32_t h = 6) {
+    std::vector<Img> v;
+    for (size_t i = 0; i < n; ++i) v.emplace_back(w, h);
+    return v;
+}
+
+std::vector<XpeImageBuffer> Buffers(const std::vector<Img>& imgs) {
+    std::vector<XpeImageBuffer> b;
+    for (const Img& i : imgs) b.push_back(i.Buffer());
+    return b;
+}
+
+}  // namespace
+
+TEST_F(AiInputValidation, ThePartCountCapIsSixteenAndIsAnImplementationSafetyCap) {
+    // The value is pinned so a change is a decision, not an accident (QA-B-194 D5: no product value exists; the
+    // header says so). The behaviour at the cap is below.
+    static_assert(XPE_AI_MAX_STITCH_PARTS == 16u, "the cap is a documented implementation value");
+    EXPECT_EQ(16u, XPE_AI_MAX_STITCH_PARTS);
+}
+
+TEST_F(AiInputValidation, SixteenPartsAreAcceptedAndSeventeenAreRefusedByBothStitchFunctions) {
+    // 17 parts exist in memory, so even a function that wrongly accepted 17 reads only valid parts.
+    const std::vector<Img> imgs = Parts(17);
+    const std::vector<XpeImageBuffer> b = Buffers(imgs);
+    Img out(64, 6);
+    XpeImageBuffer ob = out.Buffer();
+    for (const uint32_t n : {2u, 15u, 16u}) {
+        uint32_t w = 0, h = 0;
+        EXPECT_EQ(XPE_OK, xpe_stitch_estimate_size(b.data(), n, &w, &h)) << "estimate, " << n << " parts";
+        EXPECT_NE(XPE_ERR_INVALID_INPUT, xpe_stitch_images(b.data(), n, &ob, nullptr)) << "stitch, " << n << " parts";
+    }
+    uint32_t w = 777, h = 888;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_stitch_estimate_size(b.data(), 17, &w, &h));
+    EXPECT_EQ(777u, w) << "a refused estimate leaves its outputs alone";
+    EXPECT_EQ(888u, h);
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_stitch_images(b.data(), 17, &ob, nullptr));
+}
+
+TEST_F(AiInputValidation, AWildPartCountIsRefusedWithoutReadingTheArray) {
+    // 2 parts supplied, a count of 4 billion: the cap is judged before any parts[i] is read. (Before M2 this walked
+    // billions of XpeImageBuffers off the end of the array.)
+    const std::vector<Img> imgs = Parts(2);
+    const std::vector<XpeImageBuffer> b = Buffers(imgs);
+    uint32_t w = 0, h = 0;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_stitch_estimate_size(b.data(), 4000000000u, &w, &h));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_stitch_estimate_size(b.data(), 0xFFFFFFFFu, &w, &h));
+    Img out(32, 6);
+    XpeImageBuffer ob = out.Buffer();
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_stitch_images(b.data(), 4000000000u, &ob, nullptr));
+}
+
+TEST_F(AiInputValidation, ThePartsOfOneStitchHaveOnePixelFormat) {
+    // Measured in QA-B-194: a UINT16 part among float parts was accepted (estimate 19 x 8).
+    const std::vector<Img> imgs = Parts(3);
+    const std::vector<XpeImageBuffer> b = Buffers(imgs);
+    std::vector<uint16_t> u16(6 * 6, 5);
+    XpeImageBuffer odd{};
+    odd.width = 6;
+    odd.height = 6;
+    odd.bitsAllocated = 16;
+    odd.bitsStored = 16;
+    odd.format = XPE_PIXEL_UINT16;
+    odd.data = u16.data();
+    odd.dataSize = u16.size() * sizeof(uint16_t);
+
+    Img out(32, 6);
+    XpeImageBuffer ob = out.Buffer();
+    xpe_clear_alerts();
+    for (size_t at = 0; at < b.size(); ++at) {   // the odd one in every position, first and last included
+        std::vector<XpeImageBuffer> mixed = b;
+        mixed[at] = odd;
+        uint32_t w = 777, h = 888;
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_stitch_estimate_size(mixed.data(), 3, &w, &h)) << "odd part at " << at;
+        EXPECT_EQ(777u, w) << "odd part at " << at;
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_stitch_images(mixed.data(), 3, &ob, nullptr)) << "odd part at " << at;
+    }
+    // the control: all UINT16 is a consistent set and passes the entrance (a stub then fails the stitch itself)
+    const std::vector<XpeImageBuffer> all16(3, odd);
+    uint32_t w = 0, h = 0;
+    EXPECT_EQ(XPE_OK, xpe_stitch_estimate_size(all16.data(), 3, &w, &h));
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, xpe_stitch_images(all16.data(), 3, &ob, nullptr));
+    // and the format refusal raised no alert of its own: it is a plain INVALID_INPUT
+    EXPECT_TRUE(Alerts().empty());
+}
+
+TEST_F(AiInputValidation, NoSizeRuleBetweenPartsIsInventedBecauseTheAlgorithmDoesNotExistYet) {
+    // D6: parts of different sizes are accepted. How the parts of a stitch relate in size depends on a stitching
+    // algorithm nobody has written; a rule made up now would be a requirement nobody gave. This test pins the
+    // ABSENCE so a future tidy-up that adds one has to change this test and say why.
+    const std::vector<Img> a = {Img(6, 6), Img(9, 4), Img(3, 11)};
+    const std::vector<XpeImageBuffer> b = Buffers(a);
+    uint32_t w = 0, h = 0;
+    EXPECT_EQ(XPE_OK, xpe_stitch_estimate_size(b.data(), 3, &w, &h));
+    EXPECT_GT(w, 0u);
+    EXPECT_GT(h, 0u);
+}

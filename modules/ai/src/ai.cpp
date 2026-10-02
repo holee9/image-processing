@@ -266,6 +266,26 @@ static XpeErrorCode validateImageBuffer(const XpeImageBuffer* img) {
 }
 
 /**
+ * @brief Validate the parts of one stitch call: each is a valid image, and they are all the SAME pixel format.
+ *
+ * QA-B-194 M2 (REQ-AI-090, design D6). The parts of one stitch are one kind of image; a UINT16 part among float
+ * parts (measured: accepted, estimate 19 x 8) has no meaning for any stitching. A SIZE rule between parts is NOT
+ * checked: how the parts relate in size depends on the stitching algorithm, which does not exist yet, and a rule
+ * made up now would be a requirement nobody gave. The count is judged by the caller BEFORE this runs (it must not
+ * read an element of an array it cannot trust to hold that many).
+ */
+static XpeErrorCode validateStitchParts(const XpeImageBuffer* parts, uint32_t partCount) {
+    for (uint32_t i = 0; i < partCount; ++i) {
+        const XpeErrorCode ec = validateImageBuffer(&parts[i]);
+        if (ec != XPE_OK) return ec;
+    }
+    for (uint32_t i = 1; i < partCount; ++i) {
+        if (parts[i].format != parts[0].format) return XPE_ERR_INVALID_INPUT;
+    }
+    return XPE_OK;
+}
+
+/**
  * @brief Refuse a float image that holds NaN or infinity, BEFORE anything is written (QA-B-194 M1, REQ-AI-090).
  *
  * The consumer's rule, the same as the preprocess entry points (api-spec "non-finite input"): one non-finite pixel
@@ -1081,16 +1101,15 @@ XPE_API XpeErrorCode xpe_stitch_images(const XpeImageBuffer* parts,
     // Required-pointer NULL checks run before the initialisation guard, per
     // the api-spec error-code precedence contract (#119). Order only; the
     // checks themselves are unchanged.
-    if (!parts || partCount < 2 || !stitchedOut) return XPE_ERR_INVALID_INPUT;
+    // QA-B-194 M2: an upper bound on partCount, judged here with the other arguments and before any parts[i] is read.
+    if (!parts || partCount < 2 || partCount > XPE_AI_MAX_STITCH_PARTS || !stitchedOut) return XPE_ERR_INVALID_INPUT;
 
     XpeErrorCode ec = checkInitialized();
     if (ec != XPE_OK) return ec;
 
-    // Validate all input parts
-    for (uint32_t i = 0; i < partCount; ++i) {
-        ec = validateImageBuffer(&parts[i]);
-        if (ec != XPE_OK) return ec;
-    }
+    // Validate all input parts: each valid, all the same format
+    ec = validateStitchParts(parts, partCount);
+    if (ec != XPE_OK) return ec;
 
     // Validate output buffer.
     // #142 (QA-B-42): a NULL data pointer or a declared size of 0 is a missing
@@ -1127,13 +1146,14 @@ XPE_API XpeErrorCode xpe_stitch_estimate_size(const XpeImageBuffer* parts,
                                                uint32_t* heightOut)
 {
     // Pre-conditions
-    if (!parts || partCount < 2 || !widthOut || !heightOut) {
+    // QA-B-194 M2: the same upper bound as xpe_stitch_images, before any parts[i] is read.
+    if (!parts || partCount < 2 || partCount > XPE_AI_MAX_STITCH_PARTS || !widthOut || !heightOut) {
         return XPE_ERR_INVALID_INPUT;
     }
 
-    // Validate all input parts
-    for (uint32_t i = 0; i < partCount; ++i) {
-        XpeErrorCode ec = validateImageBuffer(&parts[i]);
+    // Validate all input parts: each valid, all the same format
+    {
+        const XpeErrorCode ec = validateStitchParts(parts, partCount);
         if (ec != XPE_OK) return ec;
     }
 
