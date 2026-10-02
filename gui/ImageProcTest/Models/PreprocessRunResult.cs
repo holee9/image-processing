@@ -11,8 +11,10 @@ namespace ImageProcTest.Models;
 /// <param name="Summary">One line for the log and the status bar.</param>
 /// <param name="Pixels">Corrected pixels, scaled to UInt16 for the preview.</param>
 /// <param name="ProcessedPreview">Preview built from those pixels, or null when the run refused.</param>
+/// <param name="NonFiniteCount">NaN/Inf values in the corrected float image, counted before it was scaled to 16 bits (#225 row 9, GUI-C-196 M6).</param>
 public sealed record PreprocessRunResult(
     bool Ran,
     string Summary,
     ushort[]? Pixels,
-    System.Windows.Media.Imaging.BitmapSource? ProcessedPreview = null);
+    System.Windows.Media.Imaging.BitmapSource? ProcessedPreview = null,
+    long NonFiniteCount = 0);

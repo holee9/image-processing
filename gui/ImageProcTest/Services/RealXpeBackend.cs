@@ -324,7 +324,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             settings.PixelPitchMm,
             measureExposureIndex));
 
-        return new StageExecution(result.Ran, result.Pixels, result.Summary);
+        return BaselineStageAdapters.FromPreprocess(result.Ran, result.Pixels, result.Summary, result.NonFiniteCount);
     }
 
     /// <summary>
@@ -434,7 +434,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
     private StageExecution RunEnhanceBasicStage(ushort[] input, int width, int height)
     {
         var result = InvokeNative(() => EnhanceBasicStage.Run(input, width, height, new Native.NativeEnhanceBasicBackend()));
-        return new StageExecution(result.Ran, result.Pixels, result.Summary);
+        return BaselineStageAdapters.FromEnhance(result);
     }
 
     /// <summary>

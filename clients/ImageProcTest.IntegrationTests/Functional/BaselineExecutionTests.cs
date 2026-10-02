@@ -46,6 +46,7 @@ public sealed class BaselineExecutionTests : IDisposable
         {
             Writes++;
             Written = (ushort[])pixels.Clone();
+            File.WriteAllBytes(path, [0x44, 0x49, 0x43, 0x4D]);   // the file the real module would leave
             return 0;
         }
 

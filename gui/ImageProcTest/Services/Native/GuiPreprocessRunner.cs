@@ -164,10 +164,13 @@ internal static class GuiPreprocessRunner
             // Apply measures nothing, so its output and its alerts are unchanged.
             var exposure = measureExposureIndex ? MeasureUncalibratedExposureIndex(ref defectOut, ref metadata) : string.Empty;
 
+            var pixels = ReadFloatsAsUInt16(defectOut.Data, count, out var nonFinite);
             return new PreprocessRunResult(
                 true,
                 $"Preprocess: offset -> nonlinearity -> gain -> defect on {width}x{height} ({bodyPart}).{exposure}",
-                ReadFloatsAsUInt16(defectOut.Data, count));
+                pixels,
+                null,
+                nonFinite);
         }
         finally
         {
@@ -225,10 +228,14 @@ internal static class GuiPreprocessRunner
     /// Float32 output scaled back into UInt16 for the preview. The scale is display-only — the
     /// corrected values themselves stay in the native buffer's domain.
     /// </summary>
-    private static ushort[] ReadFloatsAsUInt16(IntPtr source, int count)
+    private static ushort[] ReadFloatsAsUInt16(IntPtr source, int count, out long nonFinite)
     {
         var floats = new float[count];
         Marshal.Copy(source, floats, 0, count);
+
+        // #225 row 9 (GUI-C-196 M6): counted HERE, before the scaling below. The conversion cannot represent NaN or an infinity, so afterwards they look like
+        // ordinary pixels. Only counted: the conversion itself is unchanged, so an ordinary Apply produces what it always did.
+        nonFinite = BaselineStageAdapters.CountNonFinite(floats);
 
         var max = 0.0f;
         for (var i = 0; i < count; i++)

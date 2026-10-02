@@ -42,6 +42,11 @@ public sealed class BaselineDicomExportTests : IDisposable
                 throw new IOException("disk full");
             }
 
+            if (WriteCode == 0)
+            {
+                File.WriteAllBytes(path, [0x44, 0x49, 0x43, 0x4D]);   // the file the real module would leave
+            }
+
             return WriteCode;
         }
 

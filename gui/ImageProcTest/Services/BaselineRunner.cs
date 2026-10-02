@@ -87,7 +87,7 @@ public static class BaselineRunner
 
         var after = BaselineDeterminism.Sha256Hex(raw);
         var preserved = string.Equals(before, after, StringComparison.Ordinal);
-        var nanInf = first.NaNInfCount + second.NaNInfCount;
+        var nanInf = NonFiniteOf(first) + NonFiniteOf(second);
         var difference = BaselineDeterminism.Compare(first.Output, second.Output);
         var outputHash = BaselineDeterminism.Sha256Hex(first.Output);
 
@@ -145,6 +145,13 @@ public static class BaselineRunner
         return null;
     }
 
+    /// <summary>
+    /// Every non-finite value a run saw: the ones its stages counted in their float intermediates (carried on the chain result) plus the run's own count for steps
+    /// outside the chain. Read from the CHAIN, not from a value the caller must remember to pass, so a stage's count cannot be lost between the stage and the verdict.
+    /// </summary>
+    private static long NonFiniteOf(BaselineSingleRun? run) =>
+        run is null ? 0 : run.NaNInfCount + run.Chain.Stages.Sum(s => s.NonFiniteCount);
+
     private static List<string> StageHashes(BaselineSingleRun run) =>
         run.Chain.Stages.Select(s => s.Pixels is null ? "-" : BaselineDeterminism.Sha256Hex(s.Pixels)).ToList();
 
@@ -156,7 +163,7 @@ public static class BaselineRunner
             string.Equals(before, BaselineDeterminism.Sha256Hex(raw), StringComparison.Ordinal),
             false,
             null,
-            (first?.NaNInfCount ?? 0) + (second?.NaNInfCount ?? 0),
+            NonFiniteOf(first) + NonFiniteOf(second),
             before,
             BaselineDeterminism.Sha256Hex(raw),
             null,

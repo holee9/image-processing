@@ -1,12 +1,12 @@
-// #225 row 9 (GUI-C-196 M4): the whole Deterministic Baseline command apart from the window: two runs, the verdict, the DICOM export, the evidence file, the
-// one-line status. Free of WPF and of native code, so the integration tests link it and the view model only has to schedule it.
+// #225 row 9 (GUI-C-196 M4, reworked in M6 after Codex #73): the whole Deterministic Baseline command apart from the window: two runs, the verdict, the DICOM export,
+// the evidence file, the one-line status. Free of WPF and of native code, so the integration tests link it and the view model only has to schedule it.
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 
 namespace ImageProcTest.Services;
 
-/// <summary>Everything one baseline command produced. <see cref="Passed"/> needs the verdict AND the DICOM export to pass.</summary>
+/// <summary>Everything one baseline command produced. <see cref="Passed"/> needs the verdict, the DICOM export AND the evidence file to be in order.</summary>
 public sealed record BaselineExecutionResult(
     bool Passed,
     string Status,
@@ -67,6 +67,8 @@ public static class BaselineExecution
             }
             else
             {
+                // The export leaves a PASSING file under its partial name and a failing one deleted (Codex #73 finding 3): the final name is given below, only
+                // after the evidence file has been written too.
                 dicomResult = BaselineDicomExport.Export(Path.Combine(evidenceFolder, "baseline.dcm"), runs[0].Output, width, height, metadata, dicom);
                 if (!dicomResult.Passed)
                 {
@@ -75,23 +77,18 @@ public static class BaselineExecution
             }
         }
 
-        var passed = failure is null;
         var totalMs = total.Elapsed.TotalMilliseconds;
         var stageTimes = string.Join(" | ", runs.Select((r, i) => $"run{i + 1}: {r.Chain.Timings.Replace("times: ", string.Empty)}, total {runMs[i]:0} ms"));
         var exposure = ExposureOf(runs);
-        var status = passed
-            ? $"Deterministic Baseline PASS: two runs bit-identical ({width}x{height}, {totalMs:0} ms; DICOM valid)"
-            : $"Deterministic Baseline FAIL: {failure}";
-
         var jsonPath = Path.Combine(evidenceFolder, "baseline.json");
-        string? writeProblem = null;
-        try
+
+        string WriteEvidence(string? currentFailure, bool finalFile)
         {
             Directory.CreateDirectory(evidenceFolder);
             var document = new
             {
-                status = passed ? "Pass" : "Fail",
-                failureReason = failure ?? string.Empty,
+                status = currentFailure is null ? "Pass" : "Fail",
+                failureReason = currentFailure ?? string.Empty,
                 startedAt = startedAt.ToString("o", System.Globalization.CultureInfo.InvariantCulture),
                 width,
                 height,
@@ -108,6 +105,7 @@ public static class BaselineExecution
                     maxAbsDifference = verdict.Difference.MaxAbsDifference,
                 },
                 nanInfCount = verdict.NaNInfCount,
+                nonFiniteByStageRun1 = runs.Count == 0 ? [] : runs[0].Chain.Stages.Select(s => $"{s.StageId}={s.NonFiniteCount}").ToArray(),
                 outputSha256 = verdict.OutputSha256,
                 stageHashesRun1 = verdict.StageHashesRun1,
                 stageHashesRun2 = verdict.StageHashesRun2,
@@ -120,20 +118,89 @@ public static class BaselineExecution
                 dicom = dicomResult is null ? null : new
                 {
                     path = dicomResult.Path,
+                    finalFileWritten = finalFile,
                     passed = dicomResult.Passed,
                     valid = dicomResult.Valid,
                     report = dicomResult.ReportJson,
                     pixelsIdentical = dicomResult.Pixels is { Identical: true },
                     metadataAgrees = dicomResult.MetadataAgrees,
                     summary = dicomResult.Summary,
+                    cleanupProblem = dicomResult.CleanupProblem,
                 },
             };
             File.WriteAllText(jsonPath, JsonSerializer.Serialize(document, new JsonSerializerOptions { WriteIndented = true }));
+            return jsonPath;
+        }
+
+        // The evidence file is REQUIRED (Codex #73 finding 2, the leader's ruling): a baseline whose record cannot be written is a Fail, and no success is announced.
+        // `status` inside the file is decided before the write, from everything judged so far; if the write or the promotion below fails, the result becomes Fail and
+        // the file is rewritten to say so where that is still possible.
+        string? writeProblem = null;
+        try
+        {
+            WriteEvidence(failure, finalFile: false);
         }
         catch (Exception ex)
         {
             writeProblem = $"{ex.GetType().Name}: {ex.Message}";
+            failure ??= $"the evidence file {jsonPath} could not be written ({writeProblem})";
         }
+
+        if (dicomResult is { Passed: true })
+        {
+            if (failure is null)
+            {
+                var promoteProblem = BaselineDicomExport.Promote(dicomResult);
+                if (promoteProblem is not null)
+                {
+                    failure = $"the DICOM file could not be given its final name ({promoteProblem})";
+                    dicomResult = BaselineDicomExport.Discard(dicomResult);
+                    try
+                    {
+                        WriteEvidence(failure, finalFile: false);
+                    }
+                    catch (Exception ex)
+                    {
+                        writeProblem ??= $"{ex.GetType().Name}: {ex.Message}";
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        WriteEvidence(null, finalFile: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        // The final file exists but its record cannot say so: not a baseline output that anyone can find in order. Removed, and the result is a Fail.
+                        writeProblem = $"{ex.GetType().Name}: {ex.Message}";
+                        failure = $"the evidence file {jsonPath} could not be updated ({writeProblem})";
+                        try
+                        {
+                            File.Delete(dicomResult.Path);
+                        }
+                        catch (Exception deleteEx)
+                        {
+                            failure += $"; and {dicomResult.Path} could not be removed ({deleteEx.GetType().Name}: {deleteEx.Message})";
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Something else failed (the evidence file): the passing DICOM is not kept under any name.
+                dicomResult = BaselineDicomExport.Discard(dicomResult);
+                if (dicomResult.CleanupProblem is not null)
+                {
+                    failure += $"; the partial DICOM file could not be removed ({dicomResult.CleanupProblem})";
+                }
+            }
+        }
+
+        var passed = failure is null && writeProblem is null;
+        var status = passed
+            ? $"Deterministic Baseline PASS: two runs bit-identical ({width}x{height}, {totalMs:0} ms; DICOM valid)"
+            : $"Deterministic Baseline FAIL: {failure ?? writeProblem}";
 
         return new BaselineExecutionResult(
             passed,

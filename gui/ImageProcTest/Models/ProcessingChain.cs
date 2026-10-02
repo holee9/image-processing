@@ -71,7 +71,8 @@ public sealed record StageRequest(string StageId, bool Enabled);
 /// stage that was not requested. It is the module's time plus this app's marshalling, and NOT the time
 /// to get the result on screen — the display pipeline and the render follow it.
 /// </param>
-public sealed record StageOutcome(string StageId, StageStatus Status, ushort[]? Pixels, string Reason, double ElapsedMs = 0.0);
+/// <param name="NonFiniteCount">NaN/Inf values the stage counted in its float intermediates (#225 row 9, GUI-C-196 M6); 0 when it counted none.</param>
+public sealed record StageOutcome(string StageId, StageStatus Status, ushort[]? Pixels, string Reason, double ElapsedMs = 0.0, long NonFiniteCount = 0);
 
 /// <summary>The chain's result. <see cref="Raw"/> is the loaded frame's array, never written to.</summary>
 public sealed record ChainResult(ushort[] Raw, IReadOnlyList<StageOutcome> Stages)

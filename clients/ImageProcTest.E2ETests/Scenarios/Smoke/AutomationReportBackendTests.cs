@@ -781,6 +781,8 @@ public sealed class AutomationReportBackendTests(ITestOutputHelper output)
         var folder = report.GetProperty("BaselineEvidenceFolder").GetString()!;
         Assert.True(File.Exists(Path.Combine(folder, "baseline.json")), "no evidence file at " + folder);
         Assert.True(File.Exists(Path.Combine(folder, "baseline.dcm")), "no DICOM file at " + folder);
+        Assert.False(File.Exists(Path.Combine(folder, "baseline.dcm.partial")), "the partial DICOM file was left behind at " + folder);
+        Assert.Equal(new[] { "baseline.dcm", "baseline.json" }, Directory.GetFiles(folder).Select(Path.GetFileName).Order().ToArray());
         Assert.True(exitCode == 0);
     }
 

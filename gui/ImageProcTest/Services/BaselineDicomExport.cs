@@ -47,7 +47,9 @@ internal sealed record BaselineDicomResult(
     PixelDifference? Pixels,
     bool MetadataAgrees,
     string MetadataDetail,
-    string Summary)
+    string Summary,
+    string? PartialPath = null,
+    string? CleanupProblem = null)
 {
     public bool Passed => Written && ReportProduced && Valid && ReadBackSucceeded && SizeMatches && Pixels is { Identical: true } && MetadataAgrees;
 }
@@ -64,11 +66,21 @@ internal static class BaselineDicomExport
 {
     private const double MetadataRelativeTolerance = 1e-4;
 
+    /// <summary>The file the module writes to until the whole export has been judged: the final name plus this suffix.</summary>
+    internal const string PartialSuffix = ".partial";
+
+    /// <summary>
+    /// Writes, validates and reads back, ALL on <c>path + ".partial"</c> (Codex #73 finding 3). A file that failed any check never carries the final name, so a
+    /// reader of the evidence folder cannot take it for a baseline output. A passing result still has its file under the partial name: the caller decides, once
+    /// everything else it has to record is recorded, whether to <see cref="Promote"/> it or <see cref="Discard"/> it. A failing result has already been cleaned up.
+    /// </summary>
     public static BaselineDicomResult Export(string path, ushort[] pixels, int width, int height, BaselineDicomMetadata metadata, IDicomSession session)
     {
         ArgumentNullException.ThrowIfNull(pixels);
         ArgumentNullException.ThrowIfNull(metadata);
         ArgumentNullException.ThrowIfNull(session);
+
+        var partial = path + PartialSuffix;
 
         if (width <= 0 || height <= 0 || pixels.Length != checked(width * height))
         {
@@ -82,23 +94,34 @@ internal static class BaselineDicomExport
             {
                 Directory.CreateDirectory(directory);
             }
+
+            // A partial file left by an earlier run is never reused: what this export judges is what this export wrote.
+            if (File.Exists(partial))
+            {
+                File.Delete(partial);
+            }
         }
         catch (Exception ex)
         {
-            return Failed(path, $"DICOM export: could not create the folder: {ex.Message}");
+            return Failed(path, $"DICOM export: could not prepare the folder: {ex.Message}");
         }
 
-        var writeCode = Guarded(() => session.Write(path, pixels, width, height, metadata), out var writeFault);
+        var writeCode = Guarded(() => session.Write(partial, pixels, width, height, metadata), out var writeFault);
         if (writeFault is not null || writeCode != 0)
         {
-            return Failed(path, writeFault is null ? $"xpe_dicom_write returned {writeCode}; no file was validated." : $"xpe_dicom_write threw: {writeFault}");
+            return Discard(Failed(path, writeFault is null ? $"xpe_dicom_write returned {writeCode}; no file was validated." : $"xpe_dicom_write threw: {writeFault}") with { PartialPath = partial });
         }
 
-        var (validateCode, json, validateFault) = ValidateGuarded(session, path);
+        if (!File.Exists(partial))
+        {
+            return Failed(path, "xpe_dicom_write returned success but no file exists at the path it was given.");
+        }
+
+        var (validateCode, json, validateFault) = ValidateGuarded(session, partial);
         var reportProduced = json.Length > 0 && validateCode is 0;
         var valid = reportProduced && ReportSaysValid(json, out _);
 
-        var readBack = ReadBackGuarded(session, path);
+        var readBack = ReadBackGuarded(session, partial);
         var readBackOk = readBack is { OpenCode: 0, ReadCode: 0, MetadataCode: 0, Pixels: not null, Problem: null };
         var sizeMatches = readBackOk && readBack!.Width == width && readBack.Height == height;
         PixelDifference? difference = readBackOk && sizeMatches ? BaselineDeterminism.Compare(pixels, readBack!.Pixels!) : null;
@@ -114,7 +137,59 @@ internal static class BaselineDicomExport
             "metadata " + (readBackOk ? metadataDetail : "not compared"),
         };
 
-        return new BaselineDicomResult(path, true, reportProduced, valid, json, readBackOk, sizeMatches, difference, metadataAgrees, metadataDetail, string.Join("; ", parts));
+        var result = new BaselineDicomResult(path, true, reportProduced, valid, json, readBackOk, sizeMatches, difference, metadataAgrees, metadataDetail, string.Join("; ", parts), partial);
+        return result.Passed ? result : Discard(result);
+    }
+
+    /// <summary>
+    /// Gives a passing export its final name. Returns null on success, otherwise why not. Replaces a file that is already there: the final name belongs to the
+    /// export that just passed.
+    /// </summary>
+    internal static string? Promote(BaselineDicomResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        if (result.PartialPath is null)
+        {
+            return "there is no partial file to promote";
+        }
+
+        try
+        {
+            File.Move(result.PartialPath, result.Path, overwrite: true);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            return $"{ex.GetType().Name}: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Removes the partial file of an export that is not going to be kept. A failure to remove it is RECORDED on the result (and in its summary), not swallowed: a
+    /// leftover file is exactly what a reader of the folder could mistake for an output.
+    /// </summary>
+    internal static BaselineDicomResult Discard(BaselineDicomResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        if (result.PartialPath is null)
+        {
+            return result;
+        }
+
+        try
+        {
+            if (File.Exists(result.PartialPath))
+            {
+                File.Delete(result.PartialPath);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            var problem = $"{ex.GetType().Name}: {ex.Message}";
+            return result with { CleanupProblem = problem, Summary = result.Summary + $"; the partial file {result.PartialPath} could not be removed ({problem})" };
+        }
     }
 
     /// <summary>True when the report's top-level <c>"valid"</c> is the JSON value true. A report that is not JSON, or has no such member, is not valid.</summary>

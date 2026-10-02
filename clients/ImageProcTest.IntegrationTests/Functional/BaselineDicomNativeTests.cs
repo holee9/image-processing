@@ -101,9 +101,13 @@ public sealed class BaselineDicomNativeTests(ITestOutputHelper output) : IDispos
         var path = Path.Combine(_root, "baseline-1", "output.dcm");
 
         var result = BaselineDicomExport.Export(path, pixels, 128, 96, new BaselineDicomMetadata("CHEST", 120f, 0.15f), new NativeDicomSession());
+        Assert.True(result.Passed, result.Summary);
+        Assert.Null(BaselineDicomExport.Promote(result));   // the file has its final name only after it passed
         output.WriteLine("SUMMARY: " + result.Summary);
         output.WriteLine("REPORT: " + result.ReportJson);
         output.WriteLine($"file bytes: {(File.Exists(path) ? new FileInfo(path).Length : -1)}");
+        Assert.True(File.Exists(path), "no file under the final name after Promote");
+        Assert.False(File.Exists(path + BaselineDicomExport.PartialSuffix), "the partial file is still there after Promote");
 
         Assert.True(result.Written, result.Summary);
         Assert.True(result.ReportProduced, result.Summary);
@@ -112,6 +116,39 @@ public sealed class BaselineDicomNativeTests(ITestOutputHelper output) : IDispos
         Assert.True(result.Pixels is { Identical: true }, result.Summary);
         Assert.True(result.MetadataAgrees, result.MetadataDetail);
         Assert.True(result.Passed, result.Summary);
+    }
+
+    /// <summary>
+    /// MEASUREMENT (Codex #73 recommendation 4): the export under an evidence path that contains Hangul. The path is marshalled as ANSI, so what happens depends on the
+    /// system code page and on how the DICOM module opens files; this records each step instead of assuming. The test fails only when the export reports a state that
+    /// contradicts itself (a pass with no final file, or a failure that left a file under the final name).
+    /// </summary>
+    [SkippableTheory]
+    [InlineData("증거-한글경로")]          // inside the Korean ANSI code page (949)
+    [InlineData("หลักฐาน-ไทย")]      // Thai: outside code page 949, so the ANSI conversion cannot represent it
+    public void TheExport_UnderANonAsciiPath_IsMeasuredStepByStep(string folderName)
+    {
+        RequireNative();
+        var folder = Path.Combine(_root, folderName, "baseline-1");
+        var path = Path.Combine(folder, "baseline.dcm");
+        var pixels = Image(64, 64);
+
+        var result = BaselineDicomExport.Export(path, pixels, 64, 64, new BaselineDicomMetadata("CHEST", 120f, 0.15f), new NativeDicomSession());
+        output.WriteLine($"HANGUL PATH ({folderName}): {path}");
+        output.WriteLine($"HANGUL written={result.Written} reportProduced={result.ReportProduced} valid={result.Valid} readBack={result.ReadBackSucceeded} sizeMatches={result.SizeMatches} pixelsIdentical={result.Pixels is { Identical: true }} metadataAgrees={result.MetadataAgrees}");
+        output.WriteLine("HANGUL summary: " + result.Summary);
+        output.WriteLine($"HANGUL partial exists={File.Exists(path + BaselineDicomExport.PartialSuffix)} final exists={File.Exists(path)}; system ANSI code page = {System.Globalization.CultureInfo.CurrentCulture.TextInfo.ANSICodePage}");
+
+        if (result.Passed)
+        {
+            Assert.Null(BaselineDicomExport.Promote(result));
+            Assert.True(File.Exists(path));
+        }
+        else
+        {
+            Assert.False(File.Exists(path), "a failed export left a file under the final name");
+            Assert.False(File.Exists(path + BaselineDicomExport.PartialSuffix), "a failed export left its partial file");
+        }
     }
 
     [SkippableFact]
@@ -123,8 +160,11 @@ public sealed class BaselineDicomNativeTests(ITestOutputHelper output) : IDispos
         var a = Path.Combine(_root, "a.dcm");
         var b = Path.Combine(_root, "b.dcm");
 
-        Assert.True(BaselineDicomExport.Export(a, pixels, 64, 64, meta, new NativeDicomSession()).Written);
-        Assert.True(BaselineDicomExport.Export(b, pixels, 64, 64, meta, new NativeDicomSession()).Written);
+        var first = BaselineDicomExport.Export(a, pixels, 64, 64, meta, new NativeDicomSession());
+        var second = BaselineDicomExport.Export(b, pixels, 64, 64, meta, new NativeDicomSession());
+        Assert.True(first.Passed && second.Passed);
+        Assert.Null(BaselineDicomExport.Promote(first));
+        Assert.Null(BaselineDicomExport.Promote(second));
 
         var bytesA = File.ReadAllBytes(a);
         var bytesB = File.ReadAllBytes(b);
