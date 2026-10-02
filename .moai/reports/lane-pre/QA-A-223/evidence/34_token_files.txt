@@ -1,0 +1,8 @@
+xpe-pre-e2e-report-v1 files:
+docs/calibration/SRS-CALIB-001_Software_Requirements_Specification.md
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md
+docs/project/XPE-GUI-NATIVE-INT-READINESS-001_GUI_Native_Module_Integration_Readiness.md
+LineArtifactScore files:
+clients/ImageProcTest/Services/MetricsComputationService.cs
+CES line in verify cpp:
+797:    // a CES score, not this gate. The centre used above is the median, with an RMS spread about it --

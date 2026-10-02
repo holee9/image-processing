@@ -1,0 +1,96 @@
+##### nonlinearity_correct
+
+/**
+ * @brief Adjust pixel values for dark current temperature dependence
+ *
+ * REQ-P1A-005: Apply temperature-dependent dark current scaling
+ * REQ-P1A-081: NaN -> use 25.0C fallback
+ * REQ-P1A-081: Temp out of [-20, +60] range -> XPE_ERR_INVALID_INPUT
+ * Model: I_dark(T) = I_0 * exp(-E_g / (2 * k_B * T))
+ *
+ * @param img [in/out] Image to correct (uint16 format)
+ * @param detectorTempC Detector temperature in Celsius; NaN -> use 25.0C fallback
+ * @param configJsonOrNull Optional calibration coefficient override JSON
+ * @return XPE_OK on success
+ *         XPE_ERR_INVALID_INPUT if NULL img or temp out of range
+ */
+XPE_API XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img,
+                                          float detectorTempC,
+                                          const char* configJsonOrNull);
+
+/**
+ * @brief Apply piecewise linear or polynomial correction to linearize detector response
+ *
+ * Requirement: SRS-CALIB-FUNC-006 / -006-EXT (SRS-CALIB-001), not a REQ-P1A-
+ * number. SPEC-XPE-P1A puts nonlinearity out of its scope (spec.md:55, PRE-08)
+ * and the SPEC-XPE-P1D it names does not exist.
+ *   - Apply the loaded LUT (6a) or polynomial (6b): SRS-CALIB-FUNC-006-EXT.
+ *   - No LUT and no coefficients: no-op with an alert, XPE_OK (QA-A-127,
+ *     QA-A-140, #196). No requirement states this sentence; the nearest text
+ *     is SRS-CALIB-FUNC-006 (the profile supplies f_nonlin) and
+ *     SRS-CALIB-SAFE-001 (nonlinearity is optional and conditional).
+ *   - An unrecognised "mode" is not an error: the stage reads no meaning
+ *     from it (QA-A-127, #196).
+ * The numbers REQ-P1A-012..015 this block used to cite are the pre-bc22093
+ * ones and now name other requirements. Its "identity polynomial for
+ * baseline" line has no counterpart in SRS 6b or in the implementation.
+ *
+ * @param img [in/out] Image to correct (uint16 format)
+ * @param configJsonOrNull Optional detector mode/coefficient override JSON (reading rule: see
+ *        xpe_preprocess_pipeline -- one valid JSON object, top-level keys; panel.linear, panel.nonlinearity_mode,
+ *        panel.target_platform, panel.nonlin_poly_c0..c4 and panel.adc_max are the keys read)
+ * @return XPE_OK on success
+ *         XPE_ERR_CONFIG_INVALID if a key is given twice at the top level or the text is not one valid JSON
+ *         object (the frame is untouched)
+ *         XPE_ERR_CALIB_NOT_LOADED if the panel is declared non-linear and no
+ *         LUT is loaded
+ *         XPE_ERR_INVALID_INPUT if NULL img
+ */
+XPE_API XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
+                                               const char* configJsonOrNull);
+
+/**
+
+##### bpm_generate
+
+/**
+ * @brief Generate BPM (Bad Pixel Map) from dark and bright frames
+ *
+ * FUNC-022: Dark BPM Generation
+ *   Uses RMM (Robust Mask Maker) with adaptive local statistics:
+ *   - Compute dark_mean = average(dark_frames)
+ *   - For each pixel: extract mask_size_dark × mask_size_dark window
+ *   - Compute local median M and MAD σ_r = 1.4826 × median(|w_i - M|)
+ *   - Flag if |dark_mean[x,y] - M| > lambda_dark × σ_r
+ *
+ * FUNC-023: Bright BPM Generation
+ *   - Compute bright_mean = average(bright_frames)
+ *   - For each pixel: extract mask_size_bright × mask_size_bright window
+ *   - Compute maskAvg = mean(window)
+ *   - Flag if |bright_mean[x,y] - maskAvg| > maskAvg × tolerance_pct
+ *
+ * FUNC-024: BPM Merging
+ *   - final_bpm[x,y] = max(dark_bpm[x,y], bright_bpm[x,y])
+ *   - Values: 0=good, 1=dead/stuck, 2=hot/noisy, 3=both
+ *
+ * FUNC-025: Reflect Padding
+ *   - Window extraction uses reflect mode at boundaries
+ *   - Prevents false detections at image borders
+ *
+ * SRS-CALIB-FUNC-022..025: BPM generation for FPD calibration
+ *
+ * @param dark_frames Array of dark frames (UINT16, offset-uncorrected)
+ * @param num_dark Number of dark frames (≥ min_frames_dark)
+ * @param bright_frames Array of bright/flat-field frames (UINT16)
+ * @param num_bright Number of bright frames (≥ min_frames_bright)
+ * @param cfg Algorithm configuration (NULL = use defaults)
+ * @param bpm_out Output BPM (UINT8, 0=good, 1=dead/stuck, 2=hot/noisy, 3=both)
+ * @return XPE_OK on success
+ *         XPE_ERR_INVALID_INPUT on NULL pointers or invalid parameters
+ *         XPE_ERR_BUFFER_TOO_SMALL if output buffer too small
+ *         XPE_ERR_UNSUPPORTED_FORMAT if output format is not UINT8
+ */
+XPE_API XpeErrorCode xpe_bpm_generate(
+    const XpeImageBuffer* dark_frames,
+    uint32_t num_dark,
+    const XpeImageBuffer* bright_frames,

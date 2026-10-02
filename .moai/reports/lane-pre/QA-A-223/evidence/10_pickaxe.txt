@@ -1,0 +1,22 @@
+== first commits introducing PRNU_IMPROVE_MIN_DB (any path, oldest first)
+b6c19b8a 2026-04-26 feat(calibration): 7건 결함 수정 + FUNC-026/022~025/검증메트릭 구현
+4bcad451 2026-09-28 docs(preprocess): verify 문턱 출처를 기록하고 034 인용을 088 로 옮긴다 (QA-A-152)
+0814afbb 2026-09-28 fix(preprocess): 결함 밀도 게이트의 단위 오류를 고친다 (QA-A-153)
+fa3da63b 2026-09-28 feat(preprocess): FUNC-017 의 FlatResidualPct 게이트를 단다 (QA-A-154)
+== first commits introducing GAIN_COVERAGE_MIN (any path, oldest first)
+b6c19b8a 2026-04-26 feat(calibration): 7건 결함 수정 + FUNC-026/022~025/검증메트릭 구현
+4bcad451 2026-09-28 docs(preprocess): verify 문턱 출처를 기록하고 034 인용을 088 로 옮긴다 (QA-A-152)
+0814afbb 2026-09-28 fix(preprocess): 결함 밀도 게이트의 단위 오류를 고친다 (QA-A-153)
+fa3da63b 2026-09-28 feat(preprocess): FUNC-017 의 FlatResidualPct 게이트를 단다 (QA-A-154)
+== first commits introducing SNR_IMPROVE_MIN_DB (any path, oldest first)
+b6c19b8a 2026-04-26 feat(calibration): 7건 결함 수정 + FUNC-026/022~025/검증메트릭 구현
+4bcad451 2026-09-28 docs(preprocess): verify 문턱 출처를 기록하고 034 인용을 088 로 옮긴다 (QA-A-152)
+0814afbb 2026-09-28 fix(preprocess): 결함 밀도 게이트의 단위 오류를 고친다 (QA-A-153)
+fa3da63b 2026-09-28 feat(preprocess): FUNC-017 의 FlatResidualPct 게이트를 단다 (QA-A-154)
+
+== file history of the verify metrics source (oldest 5)
+b6c19b8a 2026-04-26 feat(calibration): 7건 결함 수정 + FUNC-026/022~025/검증메트릭 구현
+86d2894d 2026-04-26 fix(calibration): 테스트-구현 불일치 4건 수정
+ce008d92 2026-04-27 fix(ci): MSVC C4365 signed/unsigned 불일치 수정 — 신규 cpp 파일 4건
+7e889a7a 2026-04-27 fix(ci): MSVC C4365 — xpe_verify_metrics compute_flatness hist 인덱스 수정
+9f883e86 2026-04-27 fix(ci): MSVC C4100 — xpe_verify_metrics 미사용 metadata 파라미터 억제

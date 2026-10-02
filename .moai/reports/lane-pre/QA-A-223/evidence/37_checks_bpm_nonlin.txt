@@ -1,0 +1,41 @@
+== SRS: merge / reflect / padding / min frames (control: 'Fritsch' exists)
+[Fritsch] srs lines: 1
+[reflect] srs lines: 1
+[merg] srs lines: 5
+[max(dark] srs lines: 0
+[min_frames] srs lines: 0
+122:| **SRS-CALIB-FUNC-010** | System shall support runtime defect detection via `xpe_defect_detect_runtime()` function to identify new defects not present in static BPM. Detection algorithm: calculat
+211:| **SRS-CALIB-FUNC-028** | System shall support field calibration workflow via `xpe_calib_field_generate()`. This function combines offset and gain generation for field use with simplified acquisi
+
+== generator: identity endpoint / extension handling in code
+20: *       6. "Boundary conditions: LUT[0] = 0" -- the upper identity pin was
+170:        // interpolant would have to leave the data's range to reach it.
+214:    const double adc_max = static_cast<double>(lut_entries - 1u);
+238:    if (meas.back() >= adc_max) return XPE_ERR_INVALID_CALIB_DATA;
+263:    // NO upper knot. The SPEC correction (#186) withdrew `LUT[ADC_max] =
+264:    // ADC_max`: a detector's full scale has no physical reason to coincide with
+274:    // --- step 5: monotone cubic inside the measured range, then extension ---
+276:    // The extension slope is the last measured interval's secant. Reading
+283:    const uint32_t extension_start =
+299:        // The table holds uint16, so the extension saturates rather than wraps.
+332:        "{\"xcal_nonlin_entries\":%u,\"xcal_nonlin_adc_max\":%.0f,"
+338:        "\"xcal_nonlin_extension_start\":%u,"
+340:        lut_entries, adc_max, g_nominal, num_levels, dose.front(), dose.back(),
+341:        extension_start,
+
+== SPEC 1.3.3 scope line for nonlinearity
+51:- API 명세서(api-spec.md v1.3.0) Section 6의 18개 함수 중 본 SPEC 범위 14개 함수 (Ghost/Temp/Nonlinearity/Binning 제외)
+57:- **PRE-08**: Nonlinearity Correction -- 별도 SPEC
+769:`readout validation → temperature → offset → nonlinearity → gain → binning → defect → ghost`
+776:**While** a stage completes successfully, the pipeline **shall** set that stage's bit in `XpeImageMetadata.flags`: `READOUT_VALIDATED` · `TEMP_COMPENSATED` · `OFFSET_CORRECTED` · `NONLINEARITY_CORRECTED`
+1070:> | `SPEC-XPE-P1D` (nonlinearity) | **없음** |
+1072:> | `SPEC-XPE-P1B` (ghost 4종) | 존재하나 **`-DICOM`·`-DISP`·`-ENH`** 셋뿐이고, 세 문서 전부 `ghost`·`temp_compensate`·`binning`·`nonlinearity` **0건** |
+
+== SPEC mentions of bpm_generate / nonlin LUT / verify_defect / verify_pipeline
+xpe_bpm_generate: 0 lines in SPEC 1.3.3
+xpe_calib_generate_nonlin_lut: 0 lines in SPEC 1.3.3
+xpe_calib_load_nonlin_lut: 0 lines in SPEC 1.3.3
+xpe_calib_unload_nonlin_lut: 0 lines in SPEC 1.3.3
+xpe_verify_defect: 0 lines in SPEC 1.3.3
+xpe_verify_pipeline: 0 lines in SPEC 1.3.3
+xpe_nonlinearity_correct: 1 lines in SPEC 1.3.3
