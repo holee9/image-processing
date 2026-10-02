@@ -23,7 +23,10 @@
 #include "xpe/common/xpe_error.h"
 #include "ai_bodypart.h"
 
+#include <algorithm>
+#include <chrono>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <fstream>
 #include <string>
@@ -632,4 +635,75 @@ TEST_F(BodyPart, ANonNumericThresholdInTheConfigIsIgnoredAndTheDefaultApplies) {
     Init(Dir("models_bodypart_a"), "{\"confidence_threshold\": \"0.99\"}");   // a string: not a number
     const Result r = Recognize(Flat(0.0f));
     EXPECT_EQ(XPE_OK, r.rc) << "0.6 against the default 0.6 passes; a 0.99 threshold would have refused it";
+}
+
+// ===== M3b: what the resize costs (a measurement, not a requirement) ===============================================
+//
+// PRD (xpe-ai-prd.md, SWU-2.7) asks for <= 300 ms on a 3072 x 3072 image INCLUDING resize and inference. This
+// measures the part this repository owns, the resize, at the sizes the PRD names. THE INFERENCE TIME PRINTED FOR
+// THE TOY MODEL IS NOT A CLAIM ABOUT ANY REAL MODEL: the toy takes a 4 x 4 input and does one matrix product, so
+// it says nothing about a 512 x 512 MobileNet. The test asserts no time limit (a limit measured on one machine
+// would fail on another, #214); it asserts only that the measurement is not blind -- the call really ran, and the
+// cost grows with the area.
+
+namespace {
+using Clock = std::chrono::steady_clock;
+
+double Ms(Clock::time_point a, Clock::time_point b) {
+    return std::chrono::duration<double, std::milli>(b - a).count();
+}
+
+struct Stats {
+    double min;
+    double median;
+};
+
+template <typename F>
+Stats Time(int runs, F&& f) {
+    std::vector<double> t;
+    for (int i = 0; i < runs; ++i) {
+        const auto a = Clock::now();
+        f();
+        t.push_back(Ms(a, Clock::now()));
+    }
+    std::sort(t.begin(), t.end());
+    return {t.front(), t[t.size() / 2]};
+}
+}  // namespace
+
+TEST_F(BodyPart, MeasureResizeAndRecognizeLatency) {
+    REQUIRE_ONNX();
+    constexpr int kRuns = 12;
+    std::printf("BP-LATENCY runs=%d (min and median of %d), RelWithDebInfo, single thread\n", kRuns, kRuns);
+    std::printf("BP-LATENCY resize only, target 512x512 (the PRD's input size), no model: side min_ms median_ms\n");
+    double resizeMin1024 = 0.0, resizeMin3072 = 0.0;
+    for (const uint32_t side : {1024u, 3072u}) {
+        const Img image = TopBright(side, side);
+        std::vector<float> sink;
+        const Stats s = Time(kRuns, [&] { sink = xpe::ai::ResizeImageFloat(image.px.data(), side, side, 512, 512); });
+        EXPECT_EQ(static_cast<size_t>(512) * 512, sink.size());
+        EXPECT_EQ(0.75f, sink[0]) << "the measured call really resized (top rows are bright)";
+        EXPECT_EQ(0.0f, sink[static_cast<size_t>(511) * 512]) << "and the bottom rows are not";
+        std::printf("BP-LATENCY resize %4u %8.2f %8.2f\n", side, s.min, s.median);
+        (side == 1024u ? resizeMin1024 : resizeMin3072) = s.min;
+    }
+    EXPECT_GT(resizeMin3072, resizeMin1024) << "nine times the pixels must cost more";
+
+    std::printf("BP-LATENCY whole call through the C ABI with the TOY model (4x4 input, NOT a real model): "
+                "side min_ms median_ms\n");
+    Init(Dir("models_bodypart_dep"));
+    for (const uint32_t side : {1024u, 3072u}) {
+        const Img image = TopBright(side, side);
+        Result r{};
+        const Stats s = Time(kRuns, [&] { r = Recognize(image); });
+        EXPECT_EQ(XPE_OK, r.rc);
+        EXPECT_EQ("CHEST", r.label) << "the measured call really answered";
+        std::printf("BP-LATENCY recognize %4u %8.2f %8.2f\n", side, s.min, s.median);
+    }
+    std::printf("BP-LATENCY the toy model's own inference at 4x4, for scale (image already 4x4): ");
+    const Img tiny = TopBright();
+    Result r{};
+    const Stats s = Time(kRuns, [&] { r = Recognize(tiny); });
+    EXPECT_EQ(XPE_OK, r.rc);
+    std::printf("min %.3f ms median %.3f ms\n", s.min, s.median);
 }
