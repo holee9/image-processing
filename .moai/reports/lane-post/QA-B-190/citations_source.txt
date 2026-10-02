@@ -1,0 +1,61 @@
+# QA-B-190: every REQ-AI-NNN citation in tracked product/doc files, beside the definition it points at.
+# Run from the repo root:  PYTHONIOENCODING=utf-8 python <this file> > citations_out.txt
+# (kept as .txt: .gitignore excludes .py under .moai/reports)
+#
+# Scope (stated, because an absence claim needs it): git-tracked files, excluding docs/help/generated (doxygen output),
+# .moai/reports (evidence), .moai/lanes (card files). Definitions are the lines of the form  **REQ-AI-NNN** (Kind):  in
+# .moai/specs/SPEC-XPE-P3-AI/spec.md -- the same DEFINITION pattern tools/docs/check_req_citations.py uses.
+import re
+import subprocess
+import sys
+
+DEF = re.compile(r'^\*\*(REQ-AI-\d+)\*\* \(([\w-]+)\): (.*)$')
+spec = open('.moai/specs/SPEC-XPE-P3-AI/spec.md', encoding='utf-8').read().split('\n')
+defs = {}
+for i, ln in enumerate(spec, 1):
+    m = DEF.match(ln)
+    if m:
+        defs.setdefault(m.group(1), []).append((i, m.group(3)))
+
+files = subprocess.run(['git', 'ls-files'], capture_output=True, text=True, encoding='utf-8').stdout.split('\n')
+skip = ('docs/help/generated/', '.moai/reports/', '.moai/lanes/')
+CIT = re.compile(r'REQ-AI-(\d+)')
+rows = []
+scanned = 0
+for f in files:
+    if not f or f.startswith(skip):
+        continue
+    try:
+        text = open(f, encoding='utf-8').read()
+    except Exception:
+        continue
+    scanned += 1
+    for i, ln in enumerate(text.split('\n'), 1):
+        for m in CIT.finditer(ln):
+            rows.append((f, i, 'REQ-AI-' + m.group(1), ln.strip()))
+
+out = []
+def say(x=''):
+    out.append(x)
+
+
+say('== A. Definitions in SPEC-XPE-P3-AI/spec.md: %d distinct ids' % len(defs))
+dup = {k: v for k, v in defs.items() if len(v) > 1}
+say('   defined more than once: %s' % (dup or 'none'))
+for k in sorted(defs):
+    ln, txt = defs[k][0]
+    say('   %s  spec.md:%d  %s' % (k, ln, txt[:150]))
+say()
+say('== B. Citations: %d in %d files (of %d tracked text files scanned)' % (len(rows), len(set(r[0] for r in rows)), scanned))
+cited = sorted(set(r[2] for r in rows))
+orph = [c for c in cited if c not in defs]
+say('   distinct ids cited: %d; cited but not defined (orphan): %s' % (len(cited), orph or 'none'))
+say('   defined but never cited outside the SPEC: %s' % (sorted(set(defs) - set(r[2] for r in rows if not r[0].startswith('.moai/specs/'))) or 'none'))
+say()
+say('== C. Every citation, grouped by id (file:line  text)')
+for c in cited:
+    say('-- %s  [%s]' % (c, defs[c][0][1][:90] if c in defs else 'NOT DEFINED'))
+    for f, i, cid, ln in rows:
+        if cid == c:
+            say('   %s:%d  %s' % (f, i, ln[:200]))
+sys.stdout.write('\n'.join(x.rstrip() for x in out) + '\n')

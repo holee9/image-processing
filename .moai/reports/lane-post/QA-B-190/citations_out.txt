@@ -1,0 +1,445 @@
+== A. Definitions in SPEC-XPE-P3-AI/spec.md: 46 distinct ids
+   defined more than once: none
+   REQ-AI-001  spec.md:195  The xpe_ai.dll shall be Layer 1 (depends only on xpe_common.dll); no lateral Layer 1 dependencies.
+   REQ-AI-002  spec.md:197  All AI inference shall have a deterministic fallback path that maintains clinical usability when AI is disabled, fails, or confidence is below thresho
+   REQ-AI-003  spec.md:199  AI modules shall run in worker-isolated architecture: inference in separate process, IPC via shared memory or pipe, main process crash-immune.
+   REQ-AI-004  spec.md:201  AI metadata SHALL be delivered via sidecar (not mutating XpeImageMetadata) per SPEC-XPE-MASTER v3.0 Sidecar Contract.
+   REQ-AI-005  spec.md:203  AI execution shall be opt-in per pipeline configuration; default off until explicit activation.
+   REQ-AI-006  spec.md:205  ONNX Runtime 1.20+ SHALL be the model runtime. Execution Provider selection shall be configurable: CPU (always), CUDA (x86 GPU), TensorRT (NVIDIA), Di
+   REQ-AI-007  spec.md:207  Model files (.onnx) SHALL be signed (Ed25519 or ECDSA P-256) and verified at load time.
+   REQ-AI-008  spec.md:209  Model versioning shall follow semver; model metadata shall include: model_id, version, pccp_scope, training_data_hash, validation_metrics.
+   REQ-AI-010  spec.md:213  For each AI model, `xpe_ai_get_model_card(model_id, buf, buf_size)` shall return JSON with: intended_use, training_data_summary, demographic_performan
+   REQ-AI-011  spec.md:215  Model card JSON shall conform to schema `schemas/model-card.schema.json`.
+   REQ-AI-012  spec.md:217  When AI inference confidence is below threshold (configurable, default 0.6), the system shall emit a low-confidence event and fall back to determinist
+   REQ-AI-020  spec.md:221  The POST-02 AI tier shall implement a self-supervised denoising model trainable without clean reference images.
+   REQ-AI-021  spec.md:223  Supported SSL training strategies: Noise2Noise (N2N), Noise2Self (N2S), Neighbor2Neighbor, Noise2Sim (similarity-based).
+   REQ-AI-022  spec.md:225  SSL model inference latency target: ≤ 500 ms per 3000x3000 image on CPU, ≤ 100 ms on GPU (TensorRT).
+   REQ-AI-023  spec.md:227  SSL model quality shall be benchmarked against deterministic MFP (SPEC-XPE-P2-ADV §4.1) on matched phantom sets; pass criteria PSNR ≥ matched, SSIM ≥
+   REQ-AI-024  spec.md:229  SSL training data shall include phantom and anonymized clinical images per site agreement; data lineage recorded per REQ-REG-013.
+   REQ-AI-030  spec.md:233  Optional diffusion-prior enhancement tier SHALL be provided as opt-in premium path.
+   REQ-AI-031  spec.md:235  Supported strategies: NEED (Noise-Inspired Diffusion), SAD (Structure-Aware Diffusion), DiffDenoise (Conditional Diffusion).
+   REQ-AI-032  spec.md:237  Diffusion tier latency target: ≤ 5 s per image on GPU (configurable DDIM steps).
+   REQ-AI-033  spec.md:239  Diffusion tier shall document perceptual benefit over SSL baseline via user study or radiologist reader study (reference: Medical Physics 2025 methodo
+   REQ-AI-040  spec.md:243  ML defect correction shall use ViT Autoencoder-based model per existing Panel Defect PRD.
+   REQ-AI-041  spec.md:245  ML tier quality target: NMSE ≥ 14x improvement over basic interpolation (existing Panel Defect PRD target).
+   REQ-AI-042  spec.md:247  ML defect correction shall emit class-aware routing decision (defect_type: hot, dead, cluster) as sidecar metadata.
+   REQ-AI-050  spec.md:251  Bone Suppression shall use U-Net architecture trained on DES (Dual Energy Subtraction) paired data.
+   REQ-AI-051  spec.md:253  Bone Suppression quality target: pulmonary nodule sensitivity +16.8% over non-suppressed (Phase 2 brainstorming target).
+   REQ-AI-052  spec.md:255  Bone Suppression shall emit IHE AIR-compatible DICOM SR (cross-ref SPEC-XPE-IOP §4.4.4).
+   REQ-AI-060  spec.md:259  AI collimation detection shall augment POST-07 baseline Hough-based detection.
+   REQ-AI-061  spec.md:261  AI confidence below threshold shall trigger fallback to Hough deterministic path.
+   REQ-AI-062  spec.md:263  AI-refined ROI shall be delivered via sidecar JSON (cross-ref SPEC-XPE-MASTER v3.0).
+   REQ-AI-070  spec.md:267  XAI sidecar generation shall be opt-in per inference.
+   REQ-AI-071  spec.md:269  Supported XAI methods: Grad-CAM (gradient-based saliency), SHAP (feature attribution for tabular-features AI).
+   REQ-AI-072  spec.md:271  XAI sidecar JSON shall include: method, model_id, version, saliency_map_reference (DICOM UID or file path), confidence, disclaimer text.
+   REQ-AI-073  spec.md:273  XAI disclaimer shall warn: "Post-hoc explanations may not reflect actual decision process; use as hint, not diagnostic justification" per BMC Medical
+   REQ-AI-080  spec.md:277  For classification-like AI outputs (bone vs no-bone, defect class), conformal prediction sets with coverage guarantee α (default 0.90) shall be provid
+   REQ-AI-081  spec.md:279  CP calibration set shall be maintained separately from training and independent test sets.
+   REQ-AI-082  spec.md:281  Prediction set size and coverage shall be reported per inference in sidecar metadata.
+   REQ-AI-083  spec.md:283  Conformal Ordinal variant (arXiv 2207.02238) SHALL be supported for severity rating tasks.
+   REQ-AI-090  spec.md:287  AI input validation shall include: image dimension bounds, pixel value bounds, DICOM metadata schema check.
+   REQ-AI-091  spec.md:289  AI model loading shall verify Ed25519/ECDSA signature (REQ-AI-007).
+   REQ-AI-092  spec.md:291  AI inference shall enforce time budget (configurable, default 5s); exceeding budget triggers fallback and alert.
+   REQ-AI-093  spec.md:293  AI inference process shall run with minimum privilege (no network, no file write except sidecar scratch).
+   REQ-AI-100  spec.md:297  AI modules shall emit input fingerprints per REQ-OPS-020.
+   REQ-AI-101  spec.md:299  When drift alert triggers per REQ-OPS-022, AI modules shall tag subsequent inferences with `drift_flagged: true` in sidecar.
+   REQ-AI-110  spec.md:303  At model load time, PCCP metadata shall be verified against deployed AI-DSF module's authorized PCCP.
+   REQ-AI-111  spec.md:305  If a model's PCCP scope exceeds the authorized one, the model shall fail to load with error `XPE_ERR_PCCP_EXCEEDED`.
+   REQ-AI-112  spec.md:307  Model audit event (per REQ-REG-007) shall be emitted at each model load/unload.
+
+== B. Citations: 343 in 35 files (of 1980 tracked text files scanned)
+   distinct ids cited: 48; cited but not defined (orphan): ['REQ-AI-009', 'REQ-AI-013']
+   defined but never cited outside the SPEC: ['REQ-AI-021', 'REQ-AI-023', 'REQ-AI-024', 'REQ-AI-031', 'REQ-AI-032', 'REQ-AI-033', 'REQ-AI-041', 'REQ-AI-042', 'REQ-AI-052', 'REQ-AI-061', 'REQ-AI-062', 'REQ-AI-071', 'REQ-AI-072', 'REQ-AI-073', 'REQ-AI-081', 'REQ-AI-082', 'REQ-AI-083', 'REQ-AI-091', 'REQ-AI-101', 'REQ-AI-111', 'REQ-AI-112']
+
+== C. Every citation, grouped by id (file:line  text)
+-- REQ-AI-001  [The xpe_ai.dll shall be Layer 1 (depends only on xpe_common.dll); no lateral Layer 1 depen]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:195  **REQ-AI-001** (Ubiquitous): The xpe_ai.dll shall be Layer 1 (depends only on xpe_common.dll); no lateral Layer 1 dependencies.
+   docs/project/rtm_ai.md:46  | REQ-AI-001 | Layer 1 dependency (xpe_common only) | SRS-AI-ARCH-001 | SDD Sec 2.2, 6 | `modules/ai/src/ai.cpp` | TC-ABI-001: InitShutdownCycle | Written | XPE-VVP-AI-001 §4.1 |
+   docs/project/rtm_ai.md:174  | REQ-AI-001 | Concurrent bodypart_recognize (4 threads, 100 calls) | SRS-AI-ARCH-001 | SDD Sec 7.2 | `modules/ai/src/ai.cpp` | TC-WORKER-005~007: ConcurrentBodyPart | Written | XPE-VVP-AI-001 §4.7 |
+   docs/project/rtm_ai.md:264  | 0.1.0 | 2026-04-22 | xpe-docs | Initial RTM for skeleton implementation. 78 test cases covering REQ-AI-001~005, 008, 010~012. |
+   docs/project/srs_ai.md:58  #### REQ-AI-001: Layer 1 Dependency
+   docs/project/srs_ai.md:524  | 0.1.0 | 2026-04-22 | xpe-docs | Initial SRS for skeleton implementation. Covers REQ-AI-001~005, 008, 010~012. |
+   docs/project/vvp_ai.md:264  **Requirements Addressed**: REQ-AI-LC-001..003, REQ-AI-005 (opt-in, default off), REQ-AI-001
+   docs/project/vvp_ai.md:281  **§2 Architecture Principles** rows REQ-AI-001 and REQ-AI-005. Those rows carry
+   docs/project/vvp_ai.md:458  **Requirements Addressed**: REQ-AI-003 (partial), REQ-AI-001 (thread safety)
+   modules/ai/CMakeLists.txt:6  # REQ-AI-001: Layer 1 dependency (xpe_common only, no lateral DLL deps)
+   modules/ai/CMakeLists.txt:213  # Mandatory dependency: xpe_common (Layer 1 -- REQ-AI-001)
+   modules/ai/include/xpe/ai/ai_api.h:14  * REQ-AI-001 through REQ-AI-012 (SPEC-XPE-P3-AI v1.1).
+   modules/ai/include/xpe/ai/ai_api.h:56  * REQ-AI-001: Layer 1 dependency (xpe_common only)
+   modules/ai/include/xpe/ai/ai_api.h:125  * REQ-AI-001: Only xpe_common dependency.
+   modules/ai/src/ai.cpp:14  * REQ-AI-001: Layer 1 dependency (xpe_common only).
+   modules/ai/tests/test_ai_abi.cpp:8  * REQ-AI-001: Layer 1 dependency (xpe_common only).
+-- REQ-AI-002  [All AI inference shall have a deterministic fallback path that maintains clinical usabilit]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:26  - REQ-AI-002 (Deterministic Fallback) — 의료기기 안전 기본
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:140  | 스텁 계약을 단언 (전부 `REQ-AI-002` 결정론적 fallback) | **19** (12%) |
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:197  **REQ-AI-002** (Ubiquitous): All AI inference shall have a deterministic fallback path that maintains clinical usability when AI is disabled, fails, or confidence is below threshold.
+   .moai/specs/SPEC-XPE-P3-AI/tasks.md:11  | T-006 | Wire xpe_bodypart_recognize | REQ-AI-002,003,012 | T-001,T-002,T-003 | ai.cpp | pending |
+   .moai/specs/SPEC-XPE-P3-AI/tasks.md:12  | T-007 | Wire xpe_stitch_images | REQ-AI-002,003 | T-001,T-002,T-003 | ai.cpp | pending |
+   .moai/specs/SPEC-XPE-P3-AI/tasks.md:13  | T-008 | Wire xpe_bone_suppress | REQ-AI-002,050 | T-001,T-002,T-003 | ai.cpp | pending |
+   .moai/specs/SPEC-XPE-P3-AI/tasks.md:14  | T-009 | Wire xpe_dl_denoise | REQ-AI-002,020,022 | T-001,T-002,T-003 | ai.cpp | pending |
+   docs/post-processing/xpe/XPE-SDD-002_Software_Detailed_Design.md:877  AI worker failure → return input unchanged + Warning alert (REQ-AI-002, REQ-AI-092)
+   docs/post-processing/xpe/XPE-SDD-002_Software_Detailed_Design.md:885  | Worker crash | AI failure | Return input + alert | REQ-AI-002 / REQ-AI-092 |
+   docs/post-processing/xpe/XPE-SDD-002_Software_Detailed_Design.md:914  > 실패 알림을 정하는 규범 요구는 `docs/project/srs_ai.md` 의 `REQ-AI-002`(결정론적 fallback)와
+   docs/project/REQ-CHANGE-LOG-P3-AI.md:16  | 1 | 2026-10-01 | #130 · `QA-B-171C` | **fallback 대상 = 입력을 그대로 반환**(결정론적) + 알림. in-process 재추론이 아님 | `REQ-AI-002`(결정론적 fallback), `REQ-AI-003`(추론은 별도 프로세스, 주 프로세스는 충돌 면역), `SDD-002:874`("AI worker fa
+   docs/project/REQ-CHANGE-LOG-P3-AI.md:19  | 4 | 2026-10-01 | #130 · `QA-B-171C` Codex #12 | **실패 예산은 모든 non-OK 를 센다** — 전송 실패·무응답·프로세스 종료뿐 아니라 워커가 정상적으로 돌려준 모델 오류(모델 없음, 입력 거부)도 포함. 건강한 워커도 연속 3회 모델 오류면 그 세션 동안 중단되고 `shutdown`→`init` 으로 복구한다.
+   docs/project/REQ-CHANGE-LOG-P3-AI.md:24  - `docs/ai-module/SRS-AI-001_Software_Requirements_Specification.md:447` 은 AI 비활성화 뒤 *classical fallback* 을 요구한다. 그러나 구현은 입력을 그대로 복사한다(1행의 결정과 같다). 1행이 근거로 든 `REQ-AI-002`·`SDD-002:874` 와 SRS-AI-001 의
+   docs/project/rtm_ai.md:47  | REQ-AI-002 | Deterministic fallback routing | SRS-AI-ARCH-002 | SDD Sec 4.3 | `modules/ai/src/ai.cpp` | TC-FALLBACK-001~023 | Written | XPE-VVP-AI-001 §4.8 |
+   docs/project/rtm_ai.md:175  | REQ-AI-002 | Concurrent set_fallback_mode (4 threads, 400 calls) | SRS-AI-ARCH-002 | SDD Sec 7.2 | `modules/ai/src/ai.cpp` | TC-WORKER-008~010: ConcurrentFallback | Written | XPE-VVP-AI-001 §4.7 |
+   docs/project/sdd_ai.md:31  - Deterministic fallback for all AI operations (REQ-AI-002)
+   docs/project/srs_ai.md:69  #### REQ-AI-002: Deterministic Fallback Routing
+   docs/project/vvp_ai.md:103  point is the *specified* stub behaviour (REQ-AI-002 deterministic fallback routing). Tests assert
+   docs/project/vvp_ai.md:499  **Requirements Addressed**: REQ-AI-002, REQ-AI-FB-001, REQ-AI-FB-002
+   docs/project/vvp_ai.md:514  value from a model, so the "confidence below threshold" arm of REQ-AI-002 (`ai.cpp:370-373`,
+   docs/project/vvp_ai.md:519  `docs/project/rtm_ai.md` **§10 Fallback Router** and **§2** row REQ-AI-002 — those rows carry
+   docs/project/vvp_ai.md:641  | Low-confidence model result | fall back per REQ-AI-002 | **Not verified** — unreachable in stub mode (§4.8) |
+   modules/ai/CMakeLists.txt:149  # inference path, REQ-AI-002's deterministic fallback contract and
+   modules/ai/include/xpe/ai/ai_api.h:25  * is the documented fallback signal (REQ-AI-002), so a caller written against
+   modules/ai/include/xpe/ai/ai_api.h:57  * REQ-AI-002: Deterministic fallback for all AI functions
+   modules/ai/include/xpe/ai/ai_api.h:102  * state. The alert cites REQ-AI-002 and REQ-AI-092; the SRS table has no row for
+   modules/ai/include/xpe/ai/ai_api.h:193  * REQ-AI-002: If AI fails or confidence < threshold, returns
+   modules/ai/include/xpe/ai/ai_api.h:232  * REQ-AI-002: On failure, caller should fall back to deterministic
+   modules/ai/include/xpe/ai/ai_api.h:300  * REQ-AI-002: On failure, caller should use the original image unchanged
+   modules/ai/include/xpe/ai/ai_api.h:383  * REQ-AI-002: On failure, caller should fall back to classical
+   modules/ai/include/xpe/ai/ai_api.h:461  * REQ-AI-002: Deterministic fallback router.
+   modules/ai/include/xpe/ai/ai_api.h:526  * REQ-AI-002, REQ-AI-092.
+   modules/ai/src/ai.cpp:15  * REQ-AI-002: Deterministic fallback routing for all AI functions.
+   modules/ai/src/ai.cpp:80  /** True when fallback mode is active (default: true per REQ-AI-002). */
+   modules/ai/src/ai.cpp:709  // Fallback routing logic (REQ-AI-002):
+   modules/ai/src/ai.cpp:904  // QA-B-171C (REQ-AI-092, REQ-AI-002, SDD-002 "AI worker failure -> return input unchanged"):
+   modules/ai/src/ai.cpp:916  // documented signal to use the original image (REQ-AI-002). The copy is for a caller that uses
+   modules/ai/src/ai.cpp:980  "session: input images are returned unchanged (REQ-AI-002, REQ-AI-092)",
+   modules/ai/src/ai.cpp:986  "unchanged (REQ-AI-002, REQ-AI-092)",
+   modules/ai/src/ai.cpp:1075  // REQ-AI-002 and REQ-AI-092, see the use_worker path above). Severity
+   modules/ai/src/ai_ipc_bridge.cpp:396  //                        REQ-AI-002, now with REQ-AI-092's budget behind it)
+   modules/ai/src/ai_worker_supervisor.h:13  * this class is that mitigation. The requirements it implements are REQ-AI-002
+   modules/ai/tests/test_ai_fallback.cpp:11  * REQ-AI-002: Deterministic fallback for all AI functions.
+   modules/ai/tests/test_ai_worker_isolation.cpp:11  * REQ-AI-002: Deterministic fallback for all AI functions.
+   modules/ai/tests/test_bone_suppress_worker_path.cpp:9  * REQ-AI-002 "deterministic fallback path that maintains clinical usability when AI fails", and
+   modules/ai/tests/test_bone_suppress_worker_path.cpp:337  EXPECT_EQ(1, CountAlerts("REQ-AI-002")) << "the alert cites REQ-AI-002";
+   modules/ai/tests/test_bone_suppress_worker_path.cpp:337  EXPECT_EQ(1, CountAlerts("REQ-AI-002")) << "the alert cites REQ-AI-002";
+   modules/ai/tests/test_bone_suppress_worker_path.cpp:373  EXPECT_EQ(1, CountAlerts("REQ-AI-002")) << "the alert cites REQ-AI-002";
+   modules/ai/tests/test_bone_suppress_worker_path.cpp:373  EXPECT_EQ(1, CountAlerts("REQ-AI-002")) << "the alert cites REQ-AI-002";
+   modules/ai/tests/test_bone_suppress_worker_path.cpp:430  EXPECT_EQ(3, CountAlerts("REQ-AI-002")) << "every alert cites REQ-AI-002";
+   modules/ai/tests/test_bone_suppress_worker_path.cpp:430  EXPECT_EQ(3, CountAlerts("REQ-AI-002")) << "every alert cites REQ-AI-002";
+   modules/ai/tests/test_ipc_deadline.cpp:283  // PROCESSING_FAILED is the documented fallback signal (REQ-AI-002) and what
+   modules/ai/tests/test_parameter_dependency.cpp:13  //                                   (REQ-AI-002 fallback routing).
+-- REQ-AI-003  [AI modules shall run in worker-isolated architecture: inference in separate process, IPC v]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:199  **REQ-AI-003** (Ubiquitous): AI modules shall run in worker-isolated architecture: inference in separate process, IPC via shared memory or pipe, main process crash-immune.
+   .moai/specs/SPEC-XPE-P3-AI/tasks.md:6  | T-001 | Named pipe IPC bridge (DLL side) | REQ-AI-003 | - | ai_ipc_bridge.cpp/h | done |
+   .moai/specs/SPEC-XPE-P3-AI/tasks.md:7  | T-002 | Worker process skeleton | REQ-AI-003,006 | T-001 | ai_worker_main.cpp | done |
+   docs/project/REQ-CHANGE-LOG-P3-AI.md:16  | 1 | 2026-10-01 | #130 · `QA-B-171C` | **fallback 대상 = 입력을 그대로 반환**(결정론적) + 알림. in-process 재추론이 아님 | `REQ-AI-002`(결정론적 fallback), `REQ-AI-003`(추론은 별도 프로세스, 주 프로세스는 충돌 면역), `SDD-002:874`("AI worker fa
+   docs/project/rtm_ai.md:48  | REQ-AI-003 | Worker-isolated architecture (IPC) | SRS-AI-ARCH-003 | SDD Sec 3.1 | `modules/ai/include/xpe/ai/ai_worker_protocol.h` | TC-WORKER-001~014 | Deferred | XPE-VVP-AI-001 §4.7 |
+   docs/project/srs_ai.md:89  #### REQ-AI-003: Worker-Isolated Architecture
+   docs/project/vvp_ai.md:454  **Purpose**: REQ-AI-003 requires inference to run in a sandboxed `xpe_ai_worker.exe` reached over a
+   docs/project/vvp_ai.md:458  **Requirements Addressed**: REQ-AI-003 (partial), REQ-AI-001 (thread safety)
+   docs/project/vvp_ai.md:490  `docs/project/rtm_ai.md` **§2** row REQ-AI-003 and **§11 Thread Safety** — those rows carry
+   docs/project/vvp_ai.md:532  | **Worker round trip (REQ-AI-003)** | No test launches `xpe_ai_worker.exe`; only negative transport paths are covered (§4.7). |
+   docs/project/vvp_ai.md:689  | G-AI-4 | No worker round-trip (positive-path) test for REQ-AI-003 | Phase 3 |
+   gui/ImageProcTest/Services/Native/GuiAiRunner.cs:36  /// the host process, which REQ-AI-003 forbids.
+   modules/ai/CMakeLists.txt:7  # REQ-AI-003: Worker isolation (xpe_ai_worker.exe over named pipe IPC)
+   modules/ai/CMakeLists.txt:259  # REQ-AI-003: Worker runs in isolated process. The DLL proxy communicates
+   modules/ai/CMakeLists.txt:467  # (REQ-AI-003 keeps the named-pipe protocol private). Its tests therefore
+   modules/ai/include/xpe/ai/ai_api.h:58  * REQ-AI-003: Worker-isolated architecture (IPC)
+   modules/ai/include/xpe/ai/ai_api.h:90  * (REQ-AI-003 keeps the model out of the host).
+   modules/ai/include/xpe/ai/ai_api.h:126  * REQ-AI-003: Worker process isolation.
+   modules/ai/include/xpe/ai/ai_api.h:165  * REQ-AI-003: IPC cleanup.
+   modules/ai/include/xpe/ai/ai_worker_protocol.h:9  * REQ-AI-003: Worker-isolated architecture (IPC via named pipe).
+   modules/ai/src/ai.cpp:16  * REQ-AI-003: Worker-isolated architecture (IPC via named pipe).
+   modules/ai/src/ai.cpp:908  // WHY THE INPUT AND NOT THE IN-PROCESS RESULT. REQ-AI-003 runs inference in a separate process so
+   modules/ai/src/ai_ipc_bridge.cpp:8  * REQ-AI-003: Worker-isolated architecture (IPC via named pipe).
+   modules/ai/src/ai_ipc_bridge.h:8  * REQ-AI-003: Worker-isolated architecture (IPC via named pipe).
+   modules/ai/src/ai_onnx_session.cpp:23  *   - Worker-process isolation (REQ-AI-003) does not go through this class.
+   modules/ai/src/ai_worker_main.cpp:3  * @brief Worker process entry point for AI inference (REQ-AI-003, REQ-AI-006)
+   modules/ai/src/ai_worker_main.cpp:374  * @MX:REASON: Clean shutdown - the process must actually exit, or REQ-AI-003 isolation leaves it resident.
+   modules/ai/src/ai_worker_supervisor.h:5  * Internal to xpe_ai (not exported; REQ-AI-003 keeps the pipe protocol private).
+   modules/ai/tests/test_ai_ipc_bridge.cpp:6  * Covers REQ-AI-003 (Worker-isolated architecture).
+   modules/ai/tests/test_ai_ipc_bridge.cpp:117  // Test Cases: Connection Lifecycle (REQ-AI-003)
+   modules/ai/tests/test_ai_worker_isolation.cpp:10  * REQ-AI-003: Worker-isolated architecture (IPC via named pipe).
+   modules/ai/tests/test_bone_suppress_worker_path.cpp:12  * WHY NOT RE-RUN THE SAME INFERENCE IN-PROCESS. (QA-B-171C first draft did, and was corrected.) REQ-AI-003
+   modules/ai/tests/test_worker_protocol_conformance.cpp:275  "failure REQ-AI-003 process isolation exists to avoid.";
+-- REQ-AI-004  [AI metadata SHALL be delivered via sidecar (not mutating XpeImageMetadata) per SPEC-XPE-MA]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:201  **REQ-AI-004** (Ubiquitous): AI metadata SHALL be delivered via sidecar (not mutating XpeImageMetadata) per SPEC-XPE-MASTER v3.0 Sidecar Contract.
+   .moai/specs/SPEC-XPE-P3-AI/tasks.md:10  | T-005 | Sidecar metadata schema | REQ-AI-004 | - | ai_sidecar.cpp/h, model-card.schema.json | pending |
+   docs/project/rtm_ai.md:28  no test case (REQ-AI-004, REQ-AI-006, REQ-AI-007). The mapping closes IEC 62304 §5.7.4 SRS→test
+   docs/project/rtm_ai.md:49  | REQ-AI-004 | Sidecar metadata delivery | SRS-AI-ARCH-004 | SDD Sec 4.5 | (not yet implemented) | -- | Deferred | — |
+   docs/project/rtm_ai.md:238  test; 4 are deferred (REQ-AI-004, REQ-AI-006, REQ-AI-007, REQ-AI-092 — see §12). Requirement counts
+   docs/project/rtm_ai.md:266  | 0.3.0 | 2026-09-10 | xpe-docs (issue #125) | **VVP Ref** filled for 64 of 67 rows against the new `XPE-VVP-AI-001` v1.0.0 (`docs/project/vvp_ai.md`). The 3 rows still `—` (REQ-AI-004 sidecar metadat
+   docs/project/srs_ai.md:102  #### REQ-AI-004: Sidecar Metadata Delivery
+   docs/project/vvp_ai.md:550  | **Sidecar metadata (REQ-AI-004), XAI, conformal prediction, drift detection, PCCP boundary** | Not implemented; enumerated in `docs/project/rtm_ai.md` §12 Deferred Requirements. |
+   modules/ai/include/xpe/ai/ai_worker_protocol.h:10  * REQ-AI-004: Sidecar metadata delivery (not mutating XpeImageMetadata).
+   modules/ai/include/xpe/ai/ai_worker_protocol.h:219  *   "sidecar": { ... }               // REQ-AI-004: sidecar metadata
+-- REQ-AI-005  [AI execution shall be opt-in per pipeline configuration; default off until explicit activa]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:203  **REQ-AI-005** (Ubiquitous): AI execution shall be opt-in per pipeline configuration; default off until explicit activation.
+   docs/project/rtm_ai.md:50  | REQ-AI-005 | Opt-in activation (default off) | SRS-AI-ARCH-005 | SDD Sec 4.2 | `modules/ai/src/ai.cpp` | TC-ABI: Not-initialized guards (6 functions) | Written | XPE-VVP-AI-001 §4.1 |
+   docs/project/srs_ai.md:113  #### REQ-AI-005: Opt-In Activation
+   docs/project/vvp_ai.md:264  **Requirements Addressed**: REQ-AI-LC-001..003, REQ-AI-005 (opt-in, default off), REQ-AI-001
+   docs/project/vvp_ai.md:281  **§2 Architecture Principles** rows REQ-AI-001 and REQ-AI-005. Those rows carry
+   modules/ai/include/xpe/ai/ai_api.h:59  * REQ-AI-005: Opt-in activation (default off)
+   modules/ai/src/ai.cpp:17  * REQ-AI-005: Opt-in activation (default off until xpe_ai_init called).
+   modules/ai/tests/test_ai_abi.cpp:9  * REQ-AI-005: Opt-in activation (default off until init).
+-- REQ-AI-006  [ONNX Runtime 1.20+ SHALL be the model runtime. Execution Provider selection shall be confi]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:150  | **`REQ-AI-006`** ONNX 1.20+ · multi-EP 선택 가능 | EP 목록이 **하드코딩**입니다 — 조회가 아닙니다. **그 기계에 없는 EP 를 있다고 답할 수 있습니다.** 그리고 런타임 호출 자체가 0건 |
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:205  **REQ-AI-006** (Ubiquitous): ONNX Runtime 1.20+ SHALL be the model runtime. Execution Provider selection shall be configurable: CPU (always), CUDA (x86 GPU), TensorRT (NVIDIA), DirectML (Windows GPU).
+   .moai/specs/SPEC-XPE-P3-AI/tasks.md:8  | T-003 | ONNX Runtime session manager | REQ-AI-006,008 | T-002 | ai_onnx_session.cpp/h | done |
+   docs/post-processing/xpe/XPE-SOUP-001_SOUP_Analysis.md:24  > **[해소 `#130`, 2026-09-29]** 조달됐습니다. `QA-B-160` 이 **ONNX Runtime 1.30.0** 으로 `modules/ai` 를 실제로 빌드하고 세션을 띄워 추론을 돌렸습니다 — 표를 그 실측값으로 갱신했습니다. 라이선스 MIT, 배포 형태는 사전 빌드 `onnxruntime-win-x64`(zip 82,645,522
+   docs/post-processing/xpe/XPE-SOUP-001_SOUP_Analysis.md:30  > 이 표는 `1.17.x` 를 등록하고 있었고, 알려진 문제 항목도 *"Version ≥ 1.17 사용"* 으로 적혀 있었습니다. 그런데 **`REQ-AI-006` 은 `ONNX Runtime 1.20+` 을 요구합니다**(`SPEC-XPE-P3-AI/spec.md:130`). 등록된 버전이 요구를 만족하지 않습니다.
+   docs/post-processing/xpe/XPE-SOUP-001_SOUP_Analysis.md:32  > **`SOUP-003` 이 존재한다는 것과 `REQ-AI-006` 을 만족한다는 것은 다른 상태입니다.** 앞의 것만 확인하고 뒤의 것을 확인하지 않아 한 번 잘못 보고했습니다.
+   docs/post-processing/xpe/XPE-SOUP-001_SOUP_Analysis.md:73  | SOUP-003 | github.com/microsoft/onnxruntime/issues | CUDA EP memory leak (fixed 1.16+) | **1.30.0 사용** — `REQ-AI-006`(1.20+) 만족 |
+   docs/project/rtm_ai.md:28  no test case (REQ-AI-004, REQ-AI-006, REQ-AI-007). The mapping closes IEC 62304 §5.7.4 SRS→test
+   docs/project/rtm_ai.md:51  | REQ-AI-006 | ONNX Runtime 1.20+ multi-EP | SRS-AI-ARCH-006 | SDD Sec 5.1 | `modules/ai/CMakeLists.txt` | -- | Deferred | — |
+   docs/project/rtm_ai.md:185  | REQ-AI-006 | SRS-AI-ARCH-006 | ONNX Runtime multi-EP | Stub mode: no ONNX Runtime |
+   docs/project/rtm_ai.md:238  test; 4 are deferred (REQ-AI-004, REQ-AI-006, REQ-AI-007, REQ-AI-092 — see §12). Requirement counts
+   docs/project/rtm_ai.md:266  | 0.3.0 | 2026-09-10 | xpe-docs (issue #125) | **VVP Ref** filled for 64 of 67 rows against the new `XPE-VVP-AI-001` v1.0.0 (`docs/project/vvp_ai.md`). The 3 rows still `—` (REQ-AI-004 sidecar metadat
+   docs/project/srs_ai.md:124  #### REQ-AI-006: ONNX Runtime 1.20+ Integration
+   docs/project/srs_ai.md:505  | REQ-AI-006 | SRS-AI-ARCH-006 | ONNX Runtime multi-EP | Stub mode only |
+   docs/project/vvp_ai.md:531  | **ONNX Runtime integration (REQ-AI-006)** | `XPE_AI_USE_ONNXRUNTIME` is `OFF` in every preset; `modules/ai/src/ai_onnx_session.cpp` is compiled but its runtime path is unreachable in stub mode. No e
+   modules/ai/CMakeLists.txt:8  # REQ-AI-006: ONNX Runtime 1.20+ integration with multi-EP support
+   modules/ai/include/xpe/ai/ai_api.h:60  * REQ-AI-006: ONNX Runtime 1.20+ multi-EP
+   modules/ai/include/xpe/ai/ai_api.h:127  * REQ-AI-006: ONNX Runtime 1.20+ integration.
+   modules/ai/include/xpe/ai/ai_onnx_session.h:8  * REQ-AI-006: ONNX Runtime 1.20+ integration with multi-EP support
+   modules/ai/include/xpe/ai/ai_onnx_session.h:42  * @brief Execution Provider types (REQ-AI-006)
+   modules/ai/include/xpe/ai/ai_onnx_session.h:133  * @brief ONNX Runtime session manager (REQ-AI-006, REQ-AI-008)
+   modules/ai/include/xpe/ai/ai_onnx_session.h:209  * @brief Run the loaded model on one float input tensor (REQ-AI-006)
+   modules/ai/include/xpe/ai/ai_worker_protocol.h:177  * Execution Provider Types (REQ-AI-006)
+   modules/ai/src/ai_onnx_session.cpp:32  * @MX:SPEC: SPEC-XPE-P3-AI REQ-AI-006
+   modules/ai/src/ai_onnx_session.cpp:34  * REQ-AI-006: ONNX Runtime 1.20+ integration with multi-EP support
+   modules/ai/src/ai_worker_main.cpp:3  * @brief Worker process entry point for AI inference (REQ-AI-003, REQ-AI-006)
+   modules/ai/tests/test_onnx_session.cpp:5  * REQ-AI-006: ONNX Runtime 1.20+ integration.
+   tools/docs/check_req_citations.py:99  #   `**REQ-AI-006** (Ubiquitous): ONNX Runtime ...`   (bold,    9 SPECs)
+-- REQ-AI-007  [Model files (.onnx) SHALL be signed (Ed25519 or ECDSA P-256) and verified at load time.]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:207  **REQ-AI-007** (Ubiquitous): Model files (.onnx) SHALL be signed (Ed25519 or ECDSA P-256) and verified at load time.
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:289  **REQ-AI-091** (Ubiquitous): AI model loading shall verify Ed25519/ECDSA signature (REQ-AI-007).
+   .moai/specs/SPEC-XPE-P3-AI/tasks.md:15  | T-010 | Model signing/verification | REQ-AI-007,091 | T-003 | ai_model_signer.cpp/h | pending |
+   docs/project/rtm_ai.md:28  no test case (REQ-AI-004, REQ-AI-006, REQ-AI-007). The mapping closes IEC 62304 §5.7.4 SRS→test
+   docs/project/rtm_ai.md:52  | REQ-AI-007 | Model signing (Ed25519/ECDSA) | SRS-AI-ARCH-007 | SDD Sec 9 | (not yet implemented) | -- | Deferred | — |
+   docs/project/rtm_ai.md:186  | REQ-AI-007 | SRS-AI-ARCH-007 | Model signing | Not implemented |
+   docs/project/rtm_ai.md:238  test; 4 are deferred (REQ-AI-004, REQ-AI-006, REQ-AI-007, REQ-AI-092 — see §12). Requirement counts
+   docs/project/rtm_ai.md:266  | 0.3.0 | 2026-09-10 | xpe-docs (issue #125) | **VVP Ref** filled for 64 of 67 rows against the new `XPE-VVP-AI-001` v1.0.0 (`docs/project/vvp_ai.md`). The 3 rows still `—` (REQ-AI-004 sidecar metadat
+   docs/project/srs_ai.md:135  #### REQ-AI-007: Model Signing
+   docs/project/srs_ai.md:506  | REQ-AI-007 | SRS-AI-ARCH-007 | Model signing | Not implemented |
+   docs/project/vvp_ai.md:443  Model **signing** (REQ-AI-007) is not implemented and not tested.
+   docs/project/vvp_ai.md:533  | **Model signing (REQ-AI-007)** | Not implemented. |
+   docs/project/vvp_ai.md:692  | G-AI-7 | Model signing (REQ-AI-007) and time budget (REQ-AI-092) not implemented, not tested | RTM-AI-001 §12 |
+-- REQ-AI-008  [Model versioning shall follow semver; model metadata shall include: model_id, version, pcc]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:209  **REQ-AI-008** (Ubiquitous): Model versioning shall follow semver; model metadata shall include: model_id, version, pccp_scope, training_data_hash, validation_metrics.
+   .moai/specs/SPEC-XPE-P3-AI/tasks.md:9  | T-004 | Model versioning/metadata parsing | REQ-AI-008 | T-003 | ai_onnx_session.cpp/h | done |
+   docs/project/rtm_ai.md:53  | REQ-AI-008 | Model versioning (semver) | SRS-AI-ARCH-008 | SDD Sec 4.5 | `modules/ai/src/ai.cpp` | TC-MODELCARD-001~017 | Written | XPE-VVP-AI-001 §4.6 |
+   docs/project/srs_ai.md:146  #### REQ-AI-008: Model Versioning
+   docs/project/vvp_ai.md:423  **Requirements Addressed**: REQ-AI-MC-001, REQ-AI-MC-002, REQ-AI-008 (semver model versioning)
+   docs/project/vvp_ai.md:448  REQ-AI-008 — those rows carry `XPE-VVP-AI-001 §4.6`.
+   modules/ai/include/xpe/ai/ai_api.h:417  * REQ-AI-008: Model metadata (model_id, version, pccp_scope, etc.).
+   modules/ai/include/xpe/ai/ai_onnx_session.h:9  * REQ-AI-008: Model versioning and metadata
+   modules/ai/include/xpe/ai/ai_onnx_session.h:74  * @brief Model metadata (REQ-AI-008)
+   modules/ai/include/xpe/ai/ai_onnx_session.h:133  * @brief ONNX Runtime session manager (REQ-AI-006, REQ-AI-008)
+   modules/ai/include/xpe/ai/ai_onnx_session.h:191  * @brief Get model metadata (REQ-AI-008)
+   modules/ai/src/ai_onnx_session.cpp:36  * REQ-AI-008: Model versioning and metadata
+   modules/ai/tests/test_ai_model_card.cpp:13  * REQ-AI-008: Model metadata.
+   modules/ai/tests/test_ai_model_card.cpp:108  // The requirement (REQ-AI-008) asks the card to carry a model version at
+   modules/ai/tests/test_ai_model_versioning.cpp:5  * REQ-AI-008: Model versioning shall follow semver; model metadata shall include:
+   modules/ai/tests/test_ai_model_versioning.cpp:46  * T-004.1: Model Version Format Validation (REQ-AI-008)
+   modules/ai/tests/test_ai_model_versioning.cpp:84  * T-004.2: Model ID Field Present (REQ-AI-008)
+   modules/ai/tests/test_ai_model_versioning.cpp:98  * T-004.3: PCCP Scope Field Present (REQ-AI-008)
+   modules/ai/tests/test_ai_model_versioning.cpp:119  * T-004.4: Training Data Hash Field Present (REQ-AI-008)
+   modules/ai/tests/test_ai_model_versioning.cpp:153  * T-004.5: Validation Metrics Field Present (REQ-AI-008)
+   modules/ai/tests/test_ai_model_versioning.cpp:176  * T-004.6: All Required Fields Present (REQ-AI-008)
+   modules/ai/tests/test_ai_model_versioning.cpp:186  // Check all required fields from REQ-AI-008
+-- REQ-AI-009  [NOT DEFINED]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:152  | **`REQ-AI-092`** 시간 예산(기본 5s) → fallback + 알림 | 시험 **0건**. `ai_ipc_bridge.cpp:9` 주석이 같은 기능을 **`REQ-AI-009`** 로 적는데 **그 번호는 이 SPEC 에 존재하지 않습니다** |
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:160  ~~**`REQ-AI-009` 인용만 실제 오류입니다** — 존재하지 않는 번호이므로 `REQ-AI-092` 로 고쳐야 합니다. 코드 주석이라 `modules/ai` 소유이고 별도 카드로 냅니다.~~
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:166  > | `modules/ai` 코드 주석·시험 | `QA-B-157` 이 정정 — `REQ-AI-009` 리터럴 **0건** |
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:176  > `SPEC-XPE-P3-AI/spec.md:272` 두 곳에서 찾고 `REQ-AI-009` 는 **0건**입니다.
+   docs/project/rtm_ai.md:189  > **정정 2026-09-30 (`#210`)** — 이 문서가 시간 예산 요구를 `REQ-AI-009` 로 인용하고
+   docs/project/rtm_ai.md:194  > `modules/ai` 쪽 인용은 `QA-B-157` 이 이미 고쳤고(`REQ-AI-009` 리터럴 0건), 이 문서들이
+   docs/project/vvp_ai.md:536  > **정정 2026-09-30 (`#210`)** — 이 문서가 시간 예산 요구를 `REQ-AI-009` 로 인용하고
+   docs/project/vvp_ai.md:541  > `modules/ai` 쪽 인용은 `QA-B-157` 이 이미 고쳤고(`REQ-AI-009` 리터럴 0건), 이 문서들이
+-- REQ-AI-010  [For each AI model, `xpe_ai_get_model_card(model_id, buf, buf_size)` shall return JSON with]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:24  - REQ-AI-010~012 (Model Card) — FDA Transparency 대응
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:213  **REQ-AI-010** (Ubiquitous): For each AI model, `xpe_ai_get_model_card(model_id, buf, buf_size)` shall return JSON with: intended_use, training_data_summary, demographic_performance, limitations, mode
+   modules/ai/include/xpe/ai/ai_api.h:415  * REQ-AI-010: Model Card transparency API.
+   modules/ai/include/xpe/ai/ai_worker_protocol.h:257  * Model card response payload (JSON, REQ-AI-010/011):
+   modules/ai/src/ai.cpp:1157  // REQ-AI-010: Return model card with all required fields.
+   modules/ai/tests/test_ai_model_card.cpp:11  * REQ-AI-010: Model Card transparency API.
+-- REQ-AI-011  [Model card JSON shall conform to schema `schemas/model-card.schema.json`.]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:215  **REQ-AI-011** (Ubiquitous): Model card JSON shall conform to schema `schemas/model-card.schema.json`.
+   modules/ai/include/xpe/ai/ai_api.h:416  * REQ-AI-011: JSON schema conformance.
+   modules/ai/src/ai.cpp:1158  // REQ-AI-011: JSON conforms to schemas/model-card.schema.json.
+   modules/ai/tests/test_ai_model_card.cpp:12  * REQ-AI-011: JSON schema conformance.
+-- REQ-AI-012  [When AI inference confidence is below threshold (configurable, default 0.6), the system sh]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:217  **REQ-AI-012** (Event-driven): When AI inference confidence is below threshold (configurable, default 0.6), the system shall emit a low-confidence event and fall back to deterministic path.
+   modules/ai/include/xpe/ai/ai_api.h:14  * REQ-AI-001 through REQ-AI-012 (SPEC-XPE-P3-AI v1.1).
+   modules/ai/include/xpe/ai/ai_api.h:462  * REQ-AI-012: Low-confidence event triggers fallback.
+   modules/ai/tests/test_ai_fallback.cpp:12  * REQ-AI-012: Low-confidence event triggers fallback.
+-- REQ-AI-013  [NOT DEFINED]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:25  - REQ-AI-013 (Data Lineage) — GMLP Principle #3
+-- REQ-AI-020  [The POST-02 AI tier shall implement a self-supervised denoising model trainable without cl]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:221  **REQ-AI-020** (Ubiquitous): The POST-02 AI tier shall implement a self-supervised denoising model trainable without clean reference images.
+   docs/project/rtm_ai.md:199  | REQ-AI-020~024 | SRS-AI-SSL-001~002 | Self-Supervised Denoising | Not implemented |
+   docs/project/srs_ai.md:349  #### REQ-AI-020: SSL Denoising
+   docs/project/srs_ai.md:507  | REQ-AI-020~024 | SRS-AI-SSL-001~002 | Self-Supervised Denoising | Not implemented |
+   modules/ai/src/ai.cpp:1107  // REQ-AI-020: Self-supervised denoising (N2N, N2S, N2V, Noise2Sim).
+-- REQ-AI-021  [Supported SSL training strategies: Noise2Noise (N2N), Noise2Self (N2S), Neighbor2Neighbor,]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:223  **REQ-AI-021** (Ubiquitous): Supported SSL training strategies: Noise2Noise (N2N), Noise2Self (N2S), Neighbor2Neighbor, Noise2Sim (similarity-based).
+-- REQ-AI-022  [SSL model inference latency target: ≤ 500 ms per 3000x3000 image on CPU, ≤ 100 ms on GPU (]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:225  **REQ-AI-022** (Ubiquitous): SSL model inference latency target: ≤ 500 ms per 3000x3000 image on CPU, ≤ 100 ms on GPU (TensorRT).
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:325  - [ ] Inference latency meets REQ-AI-022
+   docs/project/srs_ai.md:360  #### REQ-AI-022: SSL Latency Target
+   modules/ai/src/ai.cpp:1108  // REQ-AI-022: Latency target <= 500 ms on CPU, <= 100 ms on GPU.
+-- REQ-AI-023  [SSL model quality shall be benchmarked against deterministic MFP (SPEC-XPE-P2-ADV §4.1) on]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:227  **REQ-AI-023** (Ubiquitous): SSL model quality shall be benchmarked against deterministic MFP (SPEC-XPE-P2-ADV §4.1) on matched phantom sets; pass criteria PSNR ≥ matched, SSIM ≥ matched, FROC AUC ≥ 0
+-- REQ-AI-024  [SSL training data shall include phantom and anonymized clinical images per site agreement;]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:229  **REQ-AI-024** (Ubiquitous): SSL training data shall include phantom and anonymized clinical images per site agreement; data lineage recorded per REQ-REG-013.
+-- REQ-AI-030  [Optional diffusion-prior enhancement tier SHALL be provided as opt-in premium path.]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:233  **REQ-AI-030** (Ubiquitous): Optional diffusion-prior enhancement tier SHALL be provided as opt-in premium path.
+   docs/project/rtm_ai.md:200  | REQ-AI-030~033 | SRS-AI-DIFF-001 | Diffusion Priors | Not implemented |
+   docs/project/srs_ai.md:375  #### REQ-AI-030: Diffusion Enhancement
+   docs/project/srs_ai.md:508  | REQ-AI-030~033 | SRS-AI-DIFF-001 | Diffusion Priors | Not implemented |
+-- REQ-AI-031  [Supported strategies: NEED (Noise-Inspired Diffusion), SAD (Structure-Aware Diffusion), Di]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:235  **REQ-AI-031** (Ubiquitous): Supported strategies: NEED (Noise-Inspired Diffusion), SAD (Structure-Aware Diffusion), DiffDenoise (Conditional Diffusion).
+-- REQ-AI-032  [Diffusion tier latency target: ≤ 5 s per image on GPU (configurable DDIM steps).]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:237  **REQ-AI-032** (Ubiquitous): Diffusion tier latency target: ≤ 5 s per image on GPU (configurable DDIM steps).
+-- REQ-AI-033  [Diffusion tier shall document perceptual benefit over SSL baseline via user study or radio]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:239  **REQ-AI-033** (Ubiquitous): Diffusion tier shall document perceptual benefit over SSL baseline via user study or radiologist reader study (reference: Medical Physics 2025 methodology).
+-- REQ-AI-040  [ML defect correction shall use ViT Autoencoder-based model per existing Panel Defect PRD.]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:243  **REQ-AI-040** (Ubiquitous): ML defect correction shall use ViT Autoencoder-based model per existing Panel Defect PRD.
+   docs/project/rtm_ai.md:201  | REQ-AI-040~042 | -- | ML Defect Correction | Not implemented |
+   docs/project/srs_ai.md:509  | REQ-AI-040~042 | -- | ML Defect Correction | Not implemented |
+-- REQ-AI-041  [ML tier quality target: NMSE ≥ 14x improvement over basic interpolation (existing Panel De]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:245  **REQ-AI-041** (Ubiquitous): ML tier quality target: NMSE ≥ 14x improvement over basic interpolation (existing Panel Defect PRD target).
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:335  - [ ] Each module passes quality thresholds (REQ-AI-041, 051, 061)
+-- REQ-AI-042  [ML defect correction shall emit class-aware routing decision (defect_type: hot, dead, clus]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:247  **REQ-AI-042** (Ubiquitous): ML defect correction shall emit class-aware routing decision (defect_type: hot, dead, cluster) as sidecar metadata.
+-- REQ-AI-050  [Bone Suppression shall use U-Net architecture trained on DES (Dual Energy Subtraction) pai]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:251  **REQ-AI-050** (Ubiquitous): Bone Suppression shall use U-Net architecture trained on DES (Dual Energy Subtraction) paired data.
+   docs/project/rtm_ai.md:202  | REQ-AI-050~052 | -- | Bone Suppression quality targets | Not implemented |
+   docs/project/srs_ai.md:510  | REQ-AI-050~052 | -- | Bone Suppression quality targets | Not implemented |
+   modules/ai/include/xpe/ai/ai_api.h:297  * Uses a U-Net style model (REQ-AI-050). @p softTissueOut must be
+   modules/ai/src/ai.cpp:870  // REQ-AI-050: U-Net architecture trained on DES paired data.
+   modules/ai/tests/test_bone_suppress_abi.cpp:5  * REQ-AI-050 / REQ-AI-051 name a U-Net and a sensitivity target. NEITHER IS
+-- REQ-AI-051  [Bone Suppression quality target: pulmonary nodule sensitivity +16.8% over non-suppressed (]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:253  **REQ-AI-051** (Ubiquitous): Bone Suppression quality target: pulmonary nodule sensitivity +16.8% over non-suppressed (Phase 2 brainstorming target).
+   modules/ai/src/ai.cpp:871  // REQ-AI-051: Quality target: pulmonary nodule sensitivity +16.8%.
+   modules/ai/tests/test_bone_suppress_abi.cpp:5  * REQ-AI-050 / REQ-AI-051 name a U-Net and a sensitivity target. NEITHER IS
+-- REQ-AI-052  [Bone Suppression shall emit IHE AIR-compatible DICOM SR (cross-ref SPEC-XPE-IOP §4.4.4).]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:255  **REQ-AI-052** (Ubiquitous): Bone Suppression shall emit IHE AIR-compatible DICOM SR (cross-ref SPEC-XPE-IOP §4.4.4).
+-- REQ-AI-060  [AI collimation detection shall augment POST-07 baseline Hough-based detection.]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:259  **REQ-AI-060** (Ubiquitous): AI collimation detection shall augment POST-07 baseline Hough-based detection.
+   docs/project/rtm_ai.md:203  | REQ-AI-060~062 | -- | AI Collimation Detection | Not implemented |
+   docs/project/srs_ai.md:511  | REQ-AI-060~062 | -- | AI Collimation Detection | Not implemented |
+-- REQ-AI-061  [AI confidence below threshold shall trigger fallback to Hough deterministic path.]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:151  | **`REQ-AI-061`** 신뢰도 문턱 미만 → Hough fallback | `modules/ai` 전체에 **`hough` 0건**. `confidence_threshold` 는 `ai.cpp:206` 에서 저장되지만 **`ai.cpp:418` 이 confidence 를 `0.0` 으로 무조건 덮어** 문턱 비교가 도달하지 못합니다. `Confi
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:178  > **`REQ-AI-061`·`REQ-AI-092` 의 미구현 자체는 그대로 열려 있습니다** — 번호가
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:261  **REQ-AI-061** (Ubiquitous): AI confidence below threshold shall trigger fallback to Hough deterministic path.
+-- REQ-AI-062  [AI-refined ROI shall be delivered via sidecar JSON (cross-ref SPEC-XPE-MASTER v3.0).]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:263  **REQ-AI-062** (Ubiquitous): AI-refined ROI shall be delivered via sidecar JSON (cross-ref SPEC-XPE-MASTER v3.0).
+-- REQ-AI-070  [XAI sidecar generation shall be opt-in per inference.]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:267  **REQ-AI-070** (Ubiquitous): XAI sidecar generation shall be opt-in per inference.
+   .moai/specs/SPEC-XPE-P3-AI/tasks.md:19  | T-014 | XAI sidecar generation | REQ-AI-070,071,072,073 | T-003,T-005 | ai_xai.cpp/h | pending |
+   docs/project/rtm_ai.md:204  | REQ-AI-070~073 | SRS-AI-XAI-001 | XAI Sidecar | Not implemented |
+   docs/project/srs_ai.md:390  #### REQ-AI-070: XAI Sidecar Generation
+   docs/project/srs_ai.md:512  | REQ-AI-070~073 | SRS-AI-XAI-001 | XAI Sidecar | Not implemented |
+-- REQ-AI-071  [Supported XAI methods: Grad-CAM (gradient-based saliency), SHAP (feature attribution for t]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:269  **REQ-AI-071** (Ubiquitous): Supported XAI methods: Grad-CAM (gradient-based saliency), SHAP (feature attribution for tabular-features AI).
+-- REQ-AI-072  [XAI sidecar JSON shall include: method, model_id, version, saliency_map_reference (DICOM U]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:271  **REQ-AI-072** (Ubiquitous): XAI sidecar JSON shall include: method, model_id, version, saliency_map_reference (DICOM UID or file path), confidence, disclaimer text.
+-- REQ-AI-073  [XAI disclaimer shall warn: "Post-hoc explanations may not reflect actual decision process;]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:273  **REQ-AI-073** (Ubiquitous): XAI disclaimer shall warn: "Post-hoc explanations may not reflect actual decision process; use as hint, not diagnostic justification" per BMC Medical Imaging Systematic Re
+-- REQ-AI-080  [For classification-like AI outputs (bone vs no-bone, defect class), conformal prediction s]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:277  **REQ-AI-080** (Ubiquitous): For classification-like AI outputs (bone vs no-bone, defect class), conformal prediction sets with coverage guarantee α (default 0.90) shall be provided.
+   .moai/specs/SPEC-XPE-P3-AI/tasks.md:20  | T-015 | Conformal prediction framework | REQ-AI-080,081,082,083 | T-005 | ai_conformal.cpp/h | pending |
+   docs/project/rtm_ai.md:205  | REQ-AI-080~083 | SRS-AI-CP-001 | Conformal Prediction UQ | Not implemented |
+   docs/project/srs_ai.md:405  #### REQ-AI-080: Conformal Prediction
+   docs/project/srs_ai.md:513  | REQ-AI-080~083 | SRS-AI-CP-001 | Conformal Prediction UQ | Not implemented |
+-- REQ-AI-081  [CP calibration set shall be maintained separately from training and independent test sets.]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:279  **REQ-AI-081** (Ubiquitous): CP calibration set shall be maintained separately from training and independent test sets.
+-- REQ-AI-082  [Prediction set size and coverage shall be reported per inference in sidecar metadata.]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:281  **REQ-AI-082** (Ubiquitous): Prediction set size and coverage shall be reported per inference in sidecar metadata.
+-- REQ-AI-083  [Conformal Ordinal variant (arXiv 2207.02238) SHALL be supported for severity rating tasks.]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:283  **REQ-AI-083** (Ubiquitous): Conformal Ordinal variant (arXiv 2207.02238) SHALL be supported for severity rating tasks.
+-- REQ-AI-090  [AI input validation shall include: image dimension bounds, pixel value bounds, DICOM metad]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:287  **REQ-AI-090** (Ubiquitous): AI input validation shall include: image dimension bounds, pixel value bounds, DICOM metadata schema check.
+   .moai/specs/SPEC-XPE-P3-AI/tasks.md:17  | T-012 | Input validation hardening | REQ-AI-090 | - | ai.cpp | pending |
+   docs/project/rtm_ai.md:206  | REQ-AI-090~093 | SRS-AI-SEC-001~002 | Adversarial Robustness | Partial (null checks only) |
+   docs/project/srs_ai.md:435  #### REQ-AI-090: Input Validation
+   docs/project/srs_ai.md:514  | REQ-AI-090~093 | SRS-AI-SEC-001~002 | Adversarial Robustness | Partial (input null checks) |
+   docs/project/vvp_ai.md:292  REQ-AI-090~093 (adversarial robustness — **partial**: null and size checks only)
+-- REQ-AI-091  [AI model loading shall verify Ed25519/ECDSA signature (REQ-AI-007).]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:289  **REQ-AI-091** (Ubiquitous): AI model loading shall verify Ed25519/ECDSA signature (REQ-AI-007).
+-- REQ-AI-092  [AI inference shall enforce time budget (configurable, default 5s); exceeding budget trigge]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:152  | **`REQ-AI-092`** 시간 예산(기본 5s) → fallback + 알림 | 시험 **0건**. `ai_ipc_bridge.cpp:9` 주석이 같은 기능을 **`REQ-AI-009`** 로 적는데 **그 번호는 이 SPEC 에 존재하지 않습니다** |
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:160  ~~**`REQ-AI-009` 인용만 실제 오류입니다** — 존재하지 않는 번호이므로 `REQ-AI-092` 로 고쳐야 합니다. 코드 주석이라 `modules/ai` 소유이고 별도 카드로 냅니다.~~
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:175  > 정의 존재 대조군: 같은 정의 패턴이 `REQ-AI-092` 를 `srs_ai.md:446` 과
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:178  > **`REQ-AI-061`·`REQ-AI-092` 의 미구현 자체는 그대로 열려 있습니다** — 번호가
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:291  **REQ-AI-092** (Ubiquitous): AI inference shall enforce time budget (configurable, default 5s); exceeding budget triggers fallback and alert.
+   .moai/specs/SPEC-XPE-P3-AI/tasks.md:18  | T-013 | Time budget enforcement | REQ-AI-092 | T-001 | ai_ipc_bridge.cpp/h | pending |
+   docs/post-processing/xpe/XPE-SDD-002_Software_Detailed_Design.md:877  AI worker failure → return input unchanged + Warning alert (REQ-AI-002, REQ-AI-092)
+   docs/post-processing/xpe/XPE-SDD-002_Software_Detailed_Design.md:885  | Worker crash | AI failure | Return input + alert | REQ-AI-002 / REQ-AI-092 |
+   docs/post-processing/xpe/XPE-SDD-002_Software_Detailed_Design.md:915  > `REQ-AI-092`(예산 초과 시 fallback + 알림)이므로 Fallback 줄과 아래 `Worker crash` 행을
+   docs/project/REQ-CHANGE-LOG-P3-AI.md:8  ## `REQ-AI-092` 시간 예산 → fallback + 알림
+   docs/project/REQ-CHANGE-LOG-P3-AI.md:19  | 4 | 2026-10-01 | #130 · `QA-B-171C` Codex #12 | **실패 예산은 모든 non-OK 를 센다** — 전송 실패·무응답·프로세스 종료뿐 아니라 워커가 정상적으로 돌려준 모델 오류(모델 없음, 입력 거부)도 포함. 건강한 워커도 연속 3회 모델 오류면 그 세션 동안 중단되고 `shutdown`→`init` 으로 복구한다.
+   docs/project/REQ-CHANGE-LOG-P3-AI.md:20  | 5 | 2026-10-01 | #130 · `QA-B-171C` Codex #13 | **3행의 "세션당 워커 알림 최대 3건" 은 틀린 서술 — 철회.** 성공이 연속 횟수를 0 으로 되돌리므로 실패·실패·성공이 반복되면 차단 없이 실패마다 Warning 이 나간다(예: 33회 반복 → 66건). 정책(실패마다 알림, 연속 3회에 세션 동안 중단)은
+   docs/project/api-spec.md:1168  **SRS**: REQ-AI-092 (consecutive-failure ceiling, `docs/project/REQ-CHANGE-LOG-P3-AI.md`)
+   docs/project/rtm_ai.md:187  | REQ-AI-092 | -- | Time budget enforcement | Not implemented |
+   docs/project/rtm_ai.md:190  > 있었습니다. **그 번호는 정의된 적이 없습니다** — 정의는 `REQ-AI-092`(`srs_ai.md:446`,
+   docs/project/rtm_ai.md:238  test; 4 are deferred (REQ-AI-004, REQ-AI-006, REQ-AI-007, REQ-AI-092 — see §12). Requirement counts
+   docs/project/srs_ai.md:446  #### REQ-AI-092: Time Budget Enforcement
+   docs/project/vvp_ai.md:534  | **Time-budget enforcement (REQ-AI-092)** | Not implemented; no latency measurement exists. |
+   docs/project/vvp_ai.md:537  > 있었습니다. **그 번호는 정의된 적이 없습니다** — 정의는 `REQ-AI-092`(`srs_ai.md:446`,
+   docs/project/vvp_ai.md:606  **No performance budget is verified for this module.** REQ-AI-092 (time-budget enforcement) is not
+   docs/project/vvp_ai.md:692  | G-AI-7 | Model signing (REQ-AI-007) and time budget (REQ-AI-092) not implemented, not tested | RTM-AI-001 §12 |
+   docs/project/vvp_ai.md:708  7. ☐ Performance budget defined and measured (REQ-AI-092)
+   modules/ai/include/xpe/ai/ai_api.h:102  * state. The alert cites REQ-AI-002 and REQ-AI-092; the SRS table has no row for
+   modules/ai/include/xpe/ai/ai_api.h:526  * REQ-AI-002, REQ-AI-092.
+   modules/ai/include/xpe/ai/ai_worker_protocol.h:11  * REQ-AI-092: Time budget enforcement (inference timeout).
+   modules/ai/include/xpe/ai/ai_worker_protocol.h:14  *   Only part of REQ-AI-092 is implemented; the accounting is in
+   modules/ai/src/ai.cpp:437  * NOT derived from the requirements, which give no number (REQ-AI-092 says "fallback and alert"; the
+   modules/ai/src/ai.cpp:904  // QA-B-171C (REQ-AI-092, REQ-AI-002, SDD-002 "AI worker failure -> return input unchanged"):
+   modules/ai/src/ai.cpp:933  // row 2): EVERY failure raises one Warning alert -- a budget overrun must alert, REQ-AI-092 -- and
+   modules/ai/src/ai.cpp:980  "session: input images are returned unchanged (REQ-AI-002, REQ-AI-092)",
+   modules/ai/src/ai.cpp:986  "unchanged (REQ-AI-002, REQ-AI-092)",
+   modules/ai/src/ai.cpp:1075  // REQ-AI-002 and REQ-AI-092, see the use_worker path above). Severity
+   modules/ai/src/ai_ipc_bridge.cpp:9  * REQ-AI-092: Time budget enforcement (inference timeout).
+   modules/ai/src/ai_ipc_bridge.cpp:18  *   REQ-AI-092 is the right requirement for this subject, but this file
+   modules/ai/src/ai_ipc_bridge.cpp:34  *   corrected citation as "REQ-AI-092 is satisfied".
+   modules/ai/src/ai_ipc_bridge.cpp:52  // Time-budgeted transfers (QA-B-171, #130, REQ-AI-092)
+   modules/ai/src/ai_ipc_bridge.cpp:396  //                        REQ-AI-002, now with REQ-AI-092's budget behind it)
+   modules/ai/src/ai_ipc_bridge.cpp:565  // ONE time budget (REQ-AI-092) for the whole exchange: the request write,
+   modules/ai/src/ai_ipc_bridge.h:9  * REQ-AI-092: Time budget enforcement (inference timeout).
+   modules/ai/src/ai_ipc_bridge.h:12  *   Only part of REQ-AI-092 is implemented -- see ai_ipc_bridge.cpp.
+   modules/ai/src/ai_worker_supervisor.h:9  * call a time budget (REQ-AI-092) and drops its connection after a fault -- but a
+   modules/ai/src/ai_worker_supervisor.h:14  * and REQ-AI-092.
+   modules/ai/src/ai_worker_supervisor.h:70  /** REQ-AI-092 time budget per call and per start-up (default 5 s). */
+   modules/ai/tests/test_ai_ipc_bridge.cpp:250  // Test Cases: Timeout Handling (REQ-AI-092; was AI requirement 009, a number
+   modules/ai/tests/test_ai_ipc_bridge.cpp:254  // REQ-AI-092 being enforced end to end.
+   modules/ai/tests/test_bone_suppress_worker_path.cpp:3  * @brief xpe_bone_suppress through the worker process, opt-in (QA-B-171C, #130, REQ-AI-092).
+   modules/ai/tests/test_bone_suppress_worker_path.cpp:8  * unchanged, with a non-OK code: REQ-AI-092 "exceeding the budget shall trigger fallback and alert",
+   modules/ai/tests/test_bone_suppress_worker_path.cpp:338  EXPECT_EQ(1, CountAlerts("REQ-AI-092")) << "the alert cites REQ-AI-092";
+   modules/ai/tests/test_bone_suppress_worker_path.cpp:338  EXPECT_EQ(1, CountAlerts("REQ-AI-092")) << "the alert cites REQ-AI-092";
+   modules/ai/tests/test_bone_suppress_worker_path.cpp:374  EXPECT_EQ(1, CountAlerts("REQ-AI-092")) << "the alert cites REQ-AI-092";
+   modules/ai/tests/test_bone_suppress_worker_path.cpp:374  EXPECT_EQ(1, CountAlerts("REQ-AI-092")) << "the alert cites REQ-AI-092";
+   modules/ai/tests/test_bone_suppress_worker_path.cpp:429  EXPECT_EQ(3, CountAlerts("REQ-AI-092")) << "every alert cites REQ-AI-092";
+   modules/ai/tests/test_bone_suppress_worker_path.cpp:429  EXPECT_EQ(3, CountAlerts("REQ-AI-092")) << "every alert cites REQ-AI-092";
+   modules/ai/tests/test_ipc_deadline.cpp:11  * REQ-AI-092 (SRS-AI-SEC-002): "AI inference shall enforce a configurable time
+   modules/ai/tests/test_worker_supervisor.cpp:10  *     next call start a fresh one?               (REQ-AI-092 + HAZ-008)
+   modules/ai/tests/test_worker_supervisor.cpp:233  // --- REQ-AI-092 + HAZ-008: a worker that stalls ----------------------------------------
+   modules/ai/tests/test_worker_supervisor.cpp:537  // REQ-AI-092's default is 5 s (XPE_AI_DEFAULT_TIMEOUT_MS). That budget bounds worker start-up AND the
+-- REQ-AI-093  [AI inference process shall run with minimum privilege (no network, no file write except si]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:293  **REQ-AI-093** (Ubiquitous): AI inference process shall run with minimum privilege (no network, no file write except sidecar scratch).
+   modules/ai/src/ai_onnx_session.cpp:296  // policy question (REQ-AI-093 restricts writes), not a detail to
+-- REQ-AI-100  [AI modules shall emit input fingerprints per REQ-OPS-020.]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:297  **REQ-AI-100** (Ubiquitous): AI modules shall emit input fingerprints per REQ-OPS-020.
+   .moai/specs/SPEC-XPE-P3-AI/tasks.md:21  | T-016 | Drift fingerprint emission | REQ-AI-100,101 | T-005 | ai_sidecar.cpp/h | pending |
+   docs/project/rtm_ai.md:207  | REQ-AI-100~101 | -- | Drift Detection | Not implemented |
+   docs/project/srs_ai.md:515  | REQ-AI-100~101 | -- | Drift Detection | Not implemented |
+-- REQ-AI-101  [When drift alert triggers per REQ-OPS-022, AI modules shall tag subsequent inferences with]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:299  **REQ-AI-101** (Event-driven): When drift alert triggers per REQ-OPS-022, AI modules shall tag subsequent inferences with `drift_flagged: true` in sidecar.
+-- REQ-AI-110  [At model load time, PCCP metadata shall be verified against deployed AI-DSF module's autho]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:27  - REQ-AI-110~112 (PCCP Boundary) — FDA PCCP 대응
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:303  **REQ-AI-110** (Ubiquitous): At model load time, PCCP metadata shall be verified against deployed AI-DSF module's authorized PCCP.
+   .moai/specs/SPEC-XPE-P3-AI/tasks.md:16  | T-011 | PCCP boundary enforcement | REQ-AI-110,111,112 | T-004 | ai_onnx_session.cpp/h | pending |
+   docs/project/rtm_ai.md:208  | REQ-AI-110~112 | SRS-AI-PCCP-001 | PCCP Boundary | Not implemented |
+   docs/project/srs_ai.md:420  #### REQ-AI-110: PCCP Boundary Check
+   docs/project/srs_ai.md:516  | REQ-AI-110~112 | SRS-AI-PCCP-001 | PCCP Boundary | Not implemented |
+-- REQ-AI-111  [If a model's PCCP scope exceeds the authorized one, the model shall fail to load with erro]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:305  **REQ-AI-111** (Event-driven): If a model's PCCP scope exceeds the authorized one, the model shall fail to load with error `XPE_ERR_PCCP_EXCEEDED`.
+-- REQ-AI-112  [Model audit event (per REQ-REG-007) shall be emitted at each model load/unload.]
+   .moai/specs/SPEC-XPE-P3-AI/spec.md:307  **REQ-AI-112** (Ubiquitous): Model audit event (per REQ-REG-007) shall be emitted at each model load/unload.
