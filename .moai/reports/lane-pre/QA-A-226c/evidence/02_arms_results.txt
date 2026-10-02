@@ -1,0 +1,33 @@
+== first pass (c1 and c7 first attempts failed to BUILD under /WX; c4 was read as 'did not fire' because the process died with no FAILED line -- fixed in the script, see report 5):
+c1_tier1_alpha2_ignored BUILD FAILED
+b\xpe-pre\modules\preprocess\src -ID:\workspace-github\xpe-pre\modules\preprocess\..\..\third_party -ID:\workspace-github\xpe-pre\modules\common\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\spdlog-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\nlohmann_json-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\fmt-src\include -external:ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include -external:ID:\works
+D:\workspace-github\xpe-pre\modules\preprocess\src\ghost_correct.cpp(159): error C2220: 다음 경고는 오류로 처리됩니다.
+D:\workspace-github\xpe-pre\modules\preprocess\src\ghost_correct.cpp(159): warning C4100: 'a2': 참조되지 않은 매개 변수
+ninja: build stopped: subcommand failed.
+BUILD_EXIT=1
+
+c2_tier1_alpha1_sign_flipped         -> 7 red: GhostCorrectTest.RepeatedFramesApplyHistoryCorrection, GhostLagContract.EachCallIsOneFrameStep, GhostTierTest.Alpha1OverrideChangesTheCorrection, GhostTierTest.OutOfRangeTierFallsBackToTierOne, GhostUncalibrated.ExplicitConfigurationRaisesNoWarningAndStillCorrects, GoldenGhostTest.Frame1MatchesDualExponentialFormula, GoldenGhostTest.GhostSubtractedAfterFirstFrame
+c3_tier3_reads_corrected_pixels      -> 2 red: GhostTier3Orientation.AFrameFlippedProcessedAndFlippedBackComesOutAsTheUnflippedOne, GhostTier3Orientation.TheOutputIsTheTierThreeFormulaWithTheNeighboursReadFromTheIncomingFrame
+c4_no_lock_in_correct                -> 0 red: NONE (arm did not fire)
+
+== c1 c4 c5 c6 (script now records the exit code):
+c1_tier1_alpha2_ignored              -> 3 red: GhostLagContract.EachCallIsOneFrameStep, GhostUncalibrated.ExplicitConfigurationRaisesNoWarningAndStillCorrects, GoldenGhostTest.Frame1MatchesDualExponentialFormula
+c4_no_lock_in_correct                -> 1 red [PROCESS DIED, exit 3221225477]: GhostThreadSafety.SharedHandleLosesNoUpdates
+c5_history_not_committed             -> 8 red: GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory, GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas, GhostInputFinite.AFrameThatFailsHalfWayThroughPutsItsPixelsBack, GhostLagContract.EachCallIsOneFrameStep, GhostTier3Orientation.TheOutputIsTheTierThreeFormulaWithTheNeighboursReadFromTheIncomingFrame, GhostTierTest.Alpha1OverrideChangesTheCorrection, GhostUncalibrated.ExplicitConfigurationRaisesNoWarningAndStillCorrects, GoldenGhostTest.Frame1MatchesDualExponentialFormula
+c6_tier2_weight_ignored              -> 1 red: GhostTierTest.Tier2ExposureWeightScalesWithSignal
+
+== c13 c7(failed build) c8 c9:
+c13_no_history_at_all                -> 19 red: GhostCorrectTest.RepeatedFramesApplyHistoryCorrection, GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory, GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas, GhostInputFinite.AFiniteFrameThatOverflowsTheHistoryFailsWithoutCommittingItAndTheNextFrameSucceeds, GhostInputFinite.AFrameThatFailsHalfWayThroughPutsItsPixelsBack, GhostInputFinite.AnOverflowOfTheSlowHistoryAloneIsCaughtToo, GhostLagContract.EachCallIsOneFrameSte
+c7_tier3_beta_ignored BUILD FAILED
+es\preprocess\src -ID:\workspace-github\xpe-pre\modules\preprocess\..\..\third_party -ID:\workspace-github\xpe-pre\modules\common\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\spdlog-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\nlohmann_json-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\fmt-src\include -external:ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include -external:ID:\workspace-github\xpe
+ninja: build stopped: subcommand failed.
+BUILD_EXIT=1
+
+c8_alpha1_hard_coded                 -> 3 red: GhostLagContract.EachCallIsOneFrameStep, GhostTierTest.Alpha1OverrideChangesTheCorrection, GhostUncalibrated.ExplicitConfigurationRaisesNoWarningAndStillCorrects
+c9_failed_pixels_not_restored        -> 1 red: GhostInputFinite.AFrameThatFailsHalfWayThroughPutsItsPixelsBack
+
+== c7 c10 c11 c12:
+c7_tier3_beta_ignored                -> 5 red: GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory, GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas, GhostInputFinite.AFrameThatFailsHalfWayThroughPutsItsPixelsBack, GhostTier3Orientation.TheOutputIsTheTierThreeFormulaWithTheNeighboursReadFromTheIncomingFrame, GhostTierTest.Tier3BetaStrengthensSignalDependence
+c10_pipeline_discards_ghost_output   -> 1 red: PipelineStageValueTest.GhostCorrectionOfTheSecondFrameReachesTheOutput
+c11_ordinary_number_refused          -> 50 red: ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers, ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable, ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject, GhostCorrectTest.CorrectDimensionMismatchReturnsError, GhostCorrectTest.CorrectSucceedsOnValidHandle, GhostCorrectTest.RepeatedFramesApplyHistoryCorrection, GhostCorrectTest.ResetSucceeds, GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory, GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas, GhostInputFinite.AFiniteFrameSti
+c12_failed_frame_commits_history     -> 11 red: GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory, GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas, GhostInputFinite.AFiniteFrameThatOverflowsTheHistoryFailsWithoutCommittingItAndTheNextFrameSucceeds, GhostInputFinite.AFrameThatFailsHalfWayThroughPutsItsPixelsBack, GhostInputFinite.AnOverflowOfTheSlowHistoryAloneIsCaughtToo, GhostLagContract.EachCallIsOneFrameStep, GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle, GhostTier3Orientation.TheOutputIsTheTierThreeFormulaWithTheNeighboursReadFromThe

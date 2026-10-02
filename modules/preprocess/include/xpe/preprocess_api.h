@@ -699,10 +699,12 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
  *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration (tier, alpha1, tau1,
  *                  alpha2, tau2, tier2Threshold, nlcscBeta) is not one finite number in range (notation:
  *                  see xpe_preprocess_pipeline); no handle is handed back and nothing is left allocated.
- *                  Also (QA-A-226b) when all four lag parameters are given and their steady-state gain
- *                  S = alpha1/(1-exp(-1/tau1)) + alpha2/(1-exp(-1/tau2)) is >= 1 or not a finite number
- *                  (a term with alpha 0 counts as 0): such a set is a forward system that cannot exist, and
- *                  a constant input would come out as input*(1-S) clamped at 0. Only this weight-free S is
+ *                  Also, when all four lag parameters are given (QA-A-226b, QA-A-226c): an alpha below 0 (it
+ *                  would ADD signal), a tau that is 0 or negative (the history would grow), or a steady-state
+ *                  gain S = alpha1/(1-exp(-1/tau1)) + alpha2/(1-exp(-1/tau2)) >= 1 (a term with alpha 0 counts
+ *                  as 0): such a set is a forward system that cannot exist, and a constant input would come
+ *                  out as input*(1-S) clamped at 0. alpha 0 is allowed; so is a very small positive tau. An
+ *                  alpha of 1 or more can never pass (each term is >= its alpha). Only this weight-free S is
  *                  checked; the tier 2/3 exposure weight is not.
  *
  * @note TAU IS IN FRAMES (QA-A-226b). tau1 and tau2 are measured in frames: every successful

@@ -76,20 +76,28 @@ XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
             for (const char* k : lagKeys) all = all && doc.getString(k, &v) && !v.empty();
             handle->calibrated = all;
 
-            // QA-A-226b (#241): a calibrated set must be a forward system that can exist. The history the corrector
-            // subtracts has the steady-state gain S = alpha1/(1-exp(-1/tau1)) + alpha2/(1-exp(-1/tau2)) (one frame
-            // per step); a constant input comes out as input*(1-S) clamped at 0, and a real lag y = x/(1-S) exists
-            // only for S < 1. S >= 1, or a gain that is not a finite number, is refused. Only this weight-free S is
-            // checked: the tier 2/3 exposure weight has no grounded ceiling (QA-A-226 option (c), not taken).
-            // A term with alpha 0 contributes nothing whatever its tau is (a tau so large that exp(-1/tau) is 1.0
-            // makes the denominator 0, and 0/0 would be NaN); a positive alpha over a zero denominator is an
-            // infinite gain and is refused with the rest.
+            // QA-A-226b/226c (#241): a calibrated set must be a forward system that can exist.
+            //  - each alpha is >= 0 (a negative one ADDS signal: 1000 -> 1100 -> 1137, QA-A-226b) and each tau is > 0
+            //    (zero or negative makes the decay factor exp(-1/tau) 0 or above 1, so the history grows). tau is
+            //    finite by the notation rules ("inf" and "nan" are refused when the number is read).
+            //  - the history the corrector subtracts has the steady-state gain
+            //    S = alpha1/(1-exp(-1/tau1)) + alpha2/(1-exp(-1/tau2)) (one frame per step); a constant input comes out
+            //    as input*(1-S) clamped at 0, and a real lag y = x/(1-S) exists only for S < 1, so S >= 1 is refused.
+            //    Each term is alpha/(1-exp(-1/tau)) >= alpha, so alpha < 1 follows from S < 1 and needs no check of
+            //    its own. With the ranges above no term is negative and none is NaN (an alpha of 0 is taken as 0
+            //    whatever its tau: a tau so large that exp(-1/tau) is 1.0 makes the denominator 0, and 0/0 would be
+            //    NaN); a positive alpha over a zero denominator is +inf, which S >= 1 refuses. So S is never NaN or
+            //    -inf here and "S is not finite" needs no check either.
+            //  Only this weight-free S is checked: the tier 2/3 exposure weight has no grounded ceiling (QA-A-226
+            //  option (c), not taken).
             if (all) {
+                if (!(handle->alpha1 >= 0.0) || !(handle->alpha2 >= 0.0) || !(handle->tau1 > 0.0) || !(handle->tau2 > 0.0))
+                    return XPE_ERR_CONFIG_INVALID;
                 const auto term = [](double alpha, double tau) {
                     return alpha == 0.0 ? 0.0 : alpha / (1.0 - std::exp(-1.0 / tau));
                 };
                 const double s = term(handle->alpha1, handle->tau1) + term(handle->alpha2, handle->tau2);
-                if (!std::isfinite(s) || s >= 1.0) return XPE_ERR_CONFIG_INVALID;
+                if (s >= 1.0) return XPE_ERR_CONFIG_INVALID;
             }
         }
 

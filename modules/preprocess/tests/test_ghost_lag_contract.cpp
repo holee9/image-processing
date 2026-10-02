@@ -135,8 +135,65 @@ TEST_F(GhostLagContract, ANonFiniteGainIsRefused) {
     // tau tiny enough that 1-exp(-1/tau) rounds to 1 is fine; a huge alpha overflows S to infinity.
     void* h = nullptr;
     EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_ghost_create(W, H, lagConfig(1, 1.0e308, 1.0, 1.0e308, 1.0).c_str(), &h));
-    // the check that is not the S >= 1 one: a negative alpha over a zero denominator is -inf, which S >= 1 lets through
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_ghost_create(W, H, lagConfig(1, -0.1, 1.0e20, 0.0, 20.0).c_str(), &h));
+}
+
+// ---- QA-A-226c: each parameter has its own range ------------------------------------------------------------
+
+TEST_F(GhostLagContract, ANegativeAlphaIsRefused) {
+    // A negative alpha ADDS signal (QA-A-226b measured 1000 -> 1100 -> 1137), and over a zero denominator its term is -inf,
+    // which the S >= 1 check lets through. Refused whatever the rest of the set is.
+    const struct { double a1, t1, a2, t2; } bad[] = {
+        {-0.1, 1.0, 0.0, 20.0}, {0.0, 1.0, -1.0e-300, 20.0}, {-0.1, 1.0e20, 0.0, 20.0}, {0.01, 1.0, -0.5, 20.0},
+    };
+    for (const auto& c : bad)
+        for (int tier = 1; tier <= 3; ++tier) {
+            void* h = reinterpret_cast<void*>(0x1);
+            EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_ghost_create(W, H, lagConfig(tier, c.a1, c.t1, c.a2, c.t2).c_str(), &h))
+                << "alpha1 " << c.a1 << " alpha2 " << c.a2 << ", tier " << tier;
+            EXPECT_EQ(reinterpret_cast<void*>(0x1), h);
+        }
+    EXPECT_EQ(0, xpe_get_pending_alert_count());
+}
+
+TEST_F(GhostLagContract, TauMustBeAFinitePositiveNumber) {
+    // zero, negative (the decay factor exp(-1/tau) is then 0 or above 1: the history grows), and the non-finite
+    // spellings the notation rules already refuse. A zero alpha does not excuse its tau.
+    const char* bad[] = {
+        "{\"alpha1\":0.1,\"tau1\":0,\"alpha2\":0.01,\"tau2\":20}",
+        "{\"alpha1\":0.1,\"tau1\":-1,\"alpha2\":0.01,\"tau2\":20}",
+        "{\"alpha1\":0.1,\"tau1\":-1e-300,\"alpha2\":0.01,\"tau2\":20}",
+        "{\"alpha1\":0.1,\"tau1\":1,\"alpha2\":0.01,\"tau2\":0}",
+        "{\"alpha1\":0.1,\"tau1\":1,\"alpha2\":0.01,\"tau2\":-20}",
+        "{\"alpha1\":0,\"tau1\":0,\"alpha2\":0,\"tau2\":20}",
+        "{\"alpha1\":0.1,\"tau1\":\"inf\",\"alpha2\":0.01,\"tau2\":20}",
+        "{\"alpha1\":0.1,\"tau1\":\"nan\",\"alpha2\":0.01,\"tau2\":20}",
+        "{\"alpha1\":0.1,\"tau1\":1,\"alpha2\":0.01,\"tau2\":\"-inf\"}",
+    };
+    for (const char* c : bad)
+        for (const char* tier : {"1", "2", "3"}) {
+            std::string cfg = c;
+            cfg.insert(1, std::string("\"tier\":") + tier + ",");
+            void* h = reinterpret_cast<void*>(0x1);
+            EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_ghost_create(W, H, cfg.c_str(), &h)) << cfg;
+            EXPECT_EQ(reinterpret_cast<void*>(0x1), h) << cfg;
+        }
+    EXPECT_EQ(0, xpe_get_pending_alert_count());
+}
+
+TEST_F(GhostLagContract, TheRangeBoundariesAreInclusiveWhereTheyShouldBe) {
+    void* h = nullptr;
+    // alpha 0 is allowed (that term does nothing), also for both terms: S = 0
+    EXPECT_EQ(XPE_OK, xpe_ghost_create(W, H, lagConfig(1, 0.0, 1.0, 0.0, 20.0).c_str(), &h));
+    xpe_ghost_destroy(h);
+    // a very small positive tau is allowed: exp(-1/tau) is 0, the term is alpha itself
+    EXPECT_EQ(XPE_OK, xpe_ghost_create(W, H, lagConfig(1, 0.5, 1.0e-300, 0.25, 1.0e-300).c_str(), &h));
+    xpe_ghost_destroy(h);
+    // alpha just under 1 (with a tiny tau, S = alpha) is accepted; alpha = 1 is S = 1 and refused. alpha >= 1 can never
+    // pass: each term is alpha/(1-exp(-1/tau)) >= alpha, so the alpha < 1 range is implied by S < 1.
+    EXPECT_EQ(XPE_OK, xpe_ghost_create(W, H, lagConfig(1, 0.999999, 1.0e-300, 0.0, 20.0).c_str(), &h));
+    xpe_ghost_destroy(h);
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_ghost_create(W, H, lagConfig(1, 1.0, 1.0e-300, 0.0, 20.0).c_str(), &h));
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_ghost_create(W, H, lagConfig(1, 1.5, 1.0e-300, 0.0, 20.0).c_str(), &h));
 }
 
 TEST_F(GhostLagContract, AZeroAlphaContributesNothingWhateverItsTauIs) {
