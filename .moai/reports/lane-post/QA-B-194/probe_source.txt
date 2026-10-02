@@ -1,0 +1,149 @@
+
+// TEMPORARY MEASUREMENT (QA-B-194 design, NOT committed as a test): what do the xpe_ai entry points do today with
+// input the module should refuse? Appended to test_bodypart_worker_path.cpp (it has the fixture and the helpers),
+// run, then removed with a byte-identical restore. Nothing here asserts; every line printed starts with "PROBE".
+namespace {
+const float kNaN = std::numeric_limits<float>::quiet_NaN();
+const float kInf = std::numeric_limits<float>::infinity();
+
+void PrintAlerts(const char* tag) {
+    const auto a = Alerts();
+    std::printf("PROBE %s alerts=%zu", tag, a.size());
+    for (const std::string& t : a) std::printf(" | %.90s", t.c_str());
+    std::printf("\n");
+}
+std::vector<float> Ramp(size_t n) {
+    std::vector<float> v(n);
+    for (size_t i = 0; i < n; ++i) v[i] = 0.25f + 0.01f * static_cast<float>(i % 16);
+    return v;
+}
+XpeImageBuffer Buf(std::vector<float>& px, uint32_t w, uint32_t h, XpePixelFormat f = XPE_PIXEL_FLOAT32) {
+    XpeImageBuffer b{};
+    b.width = w;
+    b.height = h;
+    b.bitsAllocated = 32;
+    b.bitsStored = 32;
+    b.format = f;
+    b.data = px.data();
+    b.dataSize = px.size() * sizeof(float);
+    return b;
+}
+}  // namespace
+
+TEST_F(BodyPartWorkerPath, ProbeNonFiniteInput) {
+    if (IsStub()) GTEST_SKIP();
+    for (const float bad : {kNaN, kInf, -kInf}) {
+        const char* name = std::isnan(bad) ? "NaN" : (bad > 0 ? "+Inf" : "-Inf");
+        // body part, in-process, constant model (ignores the image) and image-dependent model
+        for (const char* dir : {"models_bodypart_a", "models_bodypart_dep"}) {
+            Init(Dir(dir), "{}");
+            std::vector<float> px = Ramp(16);
+            px[5] = bad;
+            const XpeImageBuffer b = Buf(px, 4, 4);
+            char label[64] = "xxxx";
+            float conf = -1.0f;
+            const XpeErrorCode rc = xpe_bodypart_recognize(&b, label, sizeof(label), &conf);
+            std::printf("PROBE bodypart %s model=%s rc=%d label=%s conf=%g\n", name, dir, rc, label, conf);
+            PrintAlerts("bodypart");
+        }
+        // bone suppression, in-process, x2 model
+        Init(Dir("models_x2"), "{}");
+        std::vector<float> in = Ramp(9), out(9, -777.0f);
+        in[4] = bad;
+        const XpeImageBuffer ib = Buf(in, 3, 3);
+        XpeImageBuffer ob = Buf(out, 3, 3);
+        const XpeErrorCode rc = xpe_bone_suppress(&ib, &ob, nullptr);
+        std::printf("PROBE bone %s rc=%d out[4]=%g out[0]=%g\n", name, rc, out[4], out[0]);
+        PrintAlerts("bone");
+        // dl_denoise and stitch (stubs)
+        XpeImageMetadata meta{};
+        strcpy_s(meta.bodyPart, sizeof(meta.bodyPart), "CHEST");
+        meta.kVp = 80; meta.mAs = 5; meta.SID_mm = 1000; meta.pixelPitch_mm = 0.15f;
+        std::vector<float> dn = Ramp(16);
+        dn[3] = bad;
+        XpeImageBuffer db = Buf(dn, 4, 4);
+        std::printf("PROBE denoise %s rc=%d\n", name, xpe_dl_denoise(&db, &meta, nullptr));
+    }
+}
+
+TEST_F(BodyPartWorkerPath, ProbeFormatSizeAndMetadata) {
+    Init(Dir("models_missing"), "{}");
+    XpeImageMetadata meta{};
+    strcpy_s(meta.bodyPart, sizeof(meta.bodyPart), "CHEST");
+    meta.kVp = 80; meta.mAs = 5; meta.SID_mm = 1000; meta.pixelPitch_mm = 0.15f;
+    // a UINT8 image that declares 4000x4000 and supplies ONE byte
+    unsigned char one = 7;
+    XpeImageBuffer u8{};
+    u8.width = 4000; u8.height = 4000; u8.bitsAllocated = 8; u8.bitsStored = 8;
+    u8.format = XPE_PIXEL_UINT8; u8.data = &one; u8.dataSize = 1;
+    std::printf("PROBE denoise uint8 4000x4000 dataSize=1 -> rc=%d (INVALID_INPUT=%d)\n", xpe_dl_denoise(&u8, &meta, nullptr), XPE_ERR_INVALID_INPUT);
+    // metadata: NaN, negative, zero, unterminated label
+    XpeImageMetadata badMeta = meta;
+    badMeta.kVp = kNaN; badMeta.mAs = -5; badMeta.SID_mm = 0; badMeta.pixelPitch_mm = kInf;
+    std::memset(badMeta.bodyPart, 'A', sizeof(badMeta.bodyPart));   // no terminator at all
+    std::vector<float> px = Ramp(16);
+    XpeImageBuffer ok = Buf(px, 4, 4);
+    std::printf("PROBE denoise garbage metadata (NaN kVp, negative mAs, SID 0, inf pitch, unterminated label) -> rc=%d\n", xpe_dl_denoise(&ok, &badMeta, nullptr));
+    // stitch: three parts of different formats and sizes; output smaller than the estimate
+    std::vector<float> a = Ramp(16), b = Ramp(64);
+    std::vector<uint16_t> c(16, 1);
+    XpeImageBuffer parts[3] = {Buf(a, 4, 4), Buf(b, 8, 8), {}};
+    parts[2].width = 4; parts[2].height = 4; parts[2].format = XPE_PIXEL_UINT16; parts[2].data = c.data(); parts[2].dataSize = c.size() * 2;
+    uint32_t w = 0, h = 0;
+    const XpeErrorCode erc = xpe_stitch_estimate_size(parts, 3, &w, &h);   // a separate statement: printf's argument order is unspecified
+    std::printf("PROBE stitch_estimate_size mixed formats/sizes -> rc=%d w=%u h=%u\n", erc, w, h);
+    std::vector<float> tiny(4);
+    XpeImageBuffer out = Buf(tiny, 2, 2);
+    std::printf("PROBE stitch_images mixed parts, tiny output -> rc=%d\n", xpe_stitch_images(parts, 3, &out, nullptr));
+    // partCount that exceeds the array: the third and fourth structs are read from memory the caller did not give
+    XpeImageBuffer two[2] = {Buf(a, 4, 4), Buf(b, 8, 8)};
+    uint32_t w2 = 0, h2 = 0;
+    const XpeErrorCode erc2 = xpe_stitch_estimate_size(two, 2, &w2, &h2);
+    std::printf("PROBE stitch_estimate_size partCount=2 (control) rc=%d w=%u h=%u\n", erc2, w2, h2);
+}
+
+TEST_F(BodyPartWorkerPath, ProbeConfigAndLifecycle) {
+    // malformed config, non-object config, wrong types, out-of-range numbers
+    for (const char* cfg : {"{bad", "[]", "5", "\"x\"", "{\"timeout_ms\": -1}", "{\"timeout_ms\": 10000000000}",
+                            "{\"confidence_threshold\": -5}", "{\"confidence_threshold\": 1e999}", "{\"fallback_mode\": 1}"}) {
+        xpe_ai_shutdown();
+        xpe_clear_alerts();
+        const XpeErrorCode rc = xpe_ai_init(Dir("models_bodypart_a").c_str(), cfg);
+        const auto a = Alerts();
+        std::printf("PROBE init config=%s rc=%d alerts=%zu", cfg, rc, a.size());
+        for (const std::string& t : a) std::printf(" | %.70s", t.c_str());
+        std::printf("\n");
+    }
+    // an empty model directory string: where does the model come from?
+    namespace fs = std::filesystem;
+    const fs::path tmp = fs::temp_directory_path() / "xpe_probe_cwd";
+    fs::remove_all(tmp);
+    fs::create_directories(tmp);
+    fs::copy_file(fs::path(Dir("models_bodypart_a")) / "bodypart.onnx", tmp / "bodypart.onnx");
+    fs::copy_file(fs::path(Dir("models_bodypart_a")) / "bodypart.json", tmp / "bodypart.json");
+    const fs::path cwd = fs::current_path();
+    fs::current_path(tmp);
+    xpe_ai_shutdown();
+    xpe_clear_alerts();
+    const XpeErrorCode irc = xpe_ai_init("", "{}");
+    std::vector<float> px = Ramp(16);
+    const XpeImageBuffer b = Buf(px, 4, 4);
+    char label[64] = "xxxx";
+    float conf = -1.0f;
+    const XpeErrorCode rc = xpe_bodypart_recognize(&b, label, sizeof(label), &conf);
+    std::printf("PROBE init(\"\") rc=%d then recognize rc=%d label=%s conf=%g (the model was read from the working directory)\n", irc, rc, label, conf);
+    fs::current_path(cwd);
+    fs::remove_all(tmp);
+    // second init with a different config: ignored?
+    xpe_ai_shutdown();
+    xpe_clear_alerts();
+    xpe_ai_init(Dir("models_bodypart_a").c_str(), "{}");
+    const XpeErrorCode rc2 = xpe_ai_init(Dir("models_bodypart_b").c_str(), "{\"confidence_threshold\": 0.99}");
+    const auto a2 = Alerts();
+    const Result r = Recognize(Pix(4, 4, 0.0f));
+    std::printf("PROBE second init (other dir, threshold 0.99) rc=%d alerts=%zu then recognize label=%s rc=%d (still the first session's)\n", rc2, a2.size(), r.label.c_str(), r.rc);
+    // model card with a quote in the id
+    char card[1024] = {0};
+    const XpeErrorCode crc = xpe_ai_get_model_card("a\"b", card, sizeof(card));
+    std::printf("PROBE model_card id=a\"b rc=%d card=%.120s\n", crc, card);
+}

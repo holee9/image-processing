@@ -1,0 +1,20 @@
+
+// TEMPORARY MEASUREMENT (QA-B-194 design, NOT committed): what does an entrance scan for non-finite pixels cost?
+// xpe::ai::AllFinite is the function that already checks the model's OUTPUT (ai_finite.h).
+TEST(Probe194, ScanCost) {
+    for (const size_t side : {1024u, 3072u, 4096u}) {
+        std::vector<float> v(side * side, 0.5f);
+        double best = 1e9;
+        bool ok = true;
+        for (int r = 0; r < 15; ++r) {
+            const auto a = std::chrono::steady_clock::now();
+            ok = xpe::ai::AllFinite(v.data(), v.size()) && ok;
+            const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - a).count();
+            if (ms < best) best = ms;
+        }
+        v[v.size() - 1] = std::numeric_limits<float>::quiet_NaN();   // the worst case for an early exit: the bad pixel is last
+        const bool found = !xpe::ai::AllFinite(v.data(), v.size());
+        std::printf("PROBE scan %zux%zu (%.1f MB): min of 15 = %.3f ms, ok=%d, NaN-at-the-end found=%d\n", side, side,
+                    static_cast<double>(v.size()) * 4.0 / 1e6, best, ok ? 1 : 0, found ? 1 : 0);
+    }
+}
