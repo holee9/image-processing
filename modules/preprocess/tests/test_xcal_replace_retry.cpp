@@ -105,14 +105,19 @@ private:
 /** QA-A-212c: another "process" holding the TEMPORARY file (created if absent) without FILE_SHARE_DELETE until release(). */
 class TempHolder {
 public:
-    explicit TempHolder(const std::string& path) {
-        h_ = CreateFileA(path.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_ALWAYS, 0, nullptr);
+    /** `share` is what the holder lets others do; `lockRange` also takes a byte-range lock on the first MiB (writes by any
+     *  other handle into it fail with ERROR_LOCK_VIOLATION -- a real operating-system write failure, QA-A-212d). */
+    explicit TempHolder(const std::string& path, DWORD share = FILE_SHARE_READ | FILE_SHARE_WRITE, bool lockRange = false) {
+        h_ = CreateFileA(path.c_str(), GENERIC_READ | GENERIC_WRITE, share, nullptr, OPEN_ALWAYS, 0, nullptr);
+        if (lockRange && h_ != INVALID_HANDLE_VALUE) locked_ = (LockFile(h_, 0, 0, 1u << 20, 0) != 0);
     }
     ~TempHolder() { release(); }
     bool opened() const { return h_ != INVALID_HANDLE_VALUE; }
+    bool locked() const { return locked_; }
     void release() { if (h_ != INVALID_HANDLE_VALUE) { CloseHandle(h_); h_ = INVALID_HANDLE_VALUE; } }
 private:
     HANDLE h_ = INVALID_HANDLE_VALUE;
+    bool locked_ = false;
 };
 
 class XcalReplaceRetryTest : public XpePreprocessStateFixture {
@@ -252,6 +257,97 @@ TEST_F(XcalReplaceRetryTest, AStaleTemporaryFileFromEarlierIsOverwrittenBySave) 
     EXPECT_EQ(XPE_OK, MakeGainXCal(dest().c_str(), W, H, 9.0f));
     EXPECT_FLOAT_EQ(9.0f, firstGain(dest()));
     EXPECT_FALSE(fs::exists(tmp()));
+    EXPECT_EQ(0, xpe_get_pending_alert_count());
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// QA-A-212d (#233): the two steps BEFORE the move are no longer silent.
+//   - the temporary file cannot be created  -> XPE_WARN_XCAL_TEMP_OPEN_FAILED
+//   - writing the temporary file fails      -> XPE_WARN_XCAL_TEMP_WRITE_FAILED, and the half-written .tmp is removed
+//     (or reported as left behind, as in 212c)
+// A write failure is made by the operating system, not by a test hook in the product: another handle holds a byte-range
+// lock on the first MiB of the temporary file, so WriteFile by the writer fails with ERROR_LOCK_VIOLATION. (A small
+// volume would need administrator rights; a hook would test the hook.)
+// ---------------------------------------------------------------------------------------------------------------------
+TEST_F(XcalReplaceRetryTest, ATemporaryFileThatCannotBeCreatedIsReportedWithItsReason) {
+    const std::string badDest = p("no_such_dir") + "\\cal.xcal";
+    const XpeErrorCode rc = MakeGainXCal(badDest.c_str(), W, H, 5.0f);
+    EXPECT_EQ(XPE_ERR_IO_FAILED, rc);
+    const std::string a = findAlert("XPE_WARN_XCAL_TEMP_OPEN_FAILED:");
+    ASSERT_FALSE(a.empty()) << "a failure that used to be silent now says why";
+    EXPECT_NE(std::string::npos, a.find("no_such_dir")) << "it names the path: " << a;
+    EXPECT_NE(std::string::npos, a.find("cal.xcal.tmp")) << "and the temporary file: " << a;
+    EXPECT_NE(std::string::npos, a.find("No such file or directory")) << "and the reason the system gave: " << a;
+    EXPECT_NE(std::string::npos, a.find("Nothing was written")) << a;
+    EXPECT_TRUE(findAlert("XPE_WARN_XCAL_REPLACE_FAILED:").empty()) << "the move was never reached";
+    EXPECT_TRUE(findAlert("XPE_WARN_XCAL_TEMP_WRITE_FAILED:").empty());
+    EXPECT_FALSE(fs::exists(fs::path(p("no_such_dir")))) << "no directory was made";
+}
+
+TEST_F(XcalReplaceRetryTest, ATemporaryFileHeldExclusivelyCannotBeOpenedAndTheNextSaveWorksOnceItIsFree) {
+    ASSERT_EQ(XPE_OK, MakeGainXCal(dest().c_str(), W, H, 2.0f));
+    xpe_clear_alerts();
+    {
+        TempHolder hold(tmp(), 0 /* share nothing */);
+        ASSERT_TRUE(hold.opened());
+        EXPECT_EQ(XPE_ERR_IO_FAILED, MakeGainXCal(dest().c_str(), W, H, 5.0f));
+        const std::string a = findAlert("XPE_WARN_XCAL_TEMP_OPEN_FAILED:");
+        ASSERT_FALSE(a.empty()) << "an exclusively held temporary file is reported, not swallowed";
+        EXPECT_NE(std::string::npos, a.find("cal.xcal.tmp")) << a;
+        EXPECT_FLOAT_EQ(2.0f, firstGain(dest())) << "the previous file is untouched";
+    }
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_OK, MakeGainXCal(dest().c_str(), W, H, 7.0f)) << "and the leftover does not block the next save";
+    EXPECT_FLOAT_EQ(7.0f, firstGain(dest()));
+    EXPECT_EQ(0, xpe_get_pending_alert_count());
+}
+
+TEST_F(XcalReplaceRetryTest, AWriteThatFailsHalfWayRemovesTheTemporaryFileAndSaysWhy) {
+    ASSERT_EQ(XPE_OK, MakeGainXCal(dest().c_str(), W, H, 2.0f));
+    xpe_clear_alerts();
+    XpeErrorCode rc = XPE_OK;
+    {
+        // the holder allows deleting (FILE_SHARE_DELETE) but locks the first MiB: writing fails, deleting does not
+        TempHolder hold(tmp(), FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, true);
+        ASSERT_TRUE(hold.opened());
+        ASSERT_TRUE(hold.locked());
+        rc = MakeGainXCal(dest().c_str(), W, H, 5.0f);
+        EXPECT_EQ(XPE_ERR_IO_FAILED, rc);
+        const std::string a = findAlert("XPE_WARN_XCAL_TEMP_WRITE_FAILED:");
+        ASSERT_FALSE(a.empty()) << "a failed write used to return IO_FAILED with nothing to say why";
+        EXPECT_NE(std::string::npos, a.find("cal.xcal.tmp")) << a;
+        EXPECT_NE(std::string::npos, a.find("Windows error 33")) << "the system said: the file is locked by another process: " << a;
+        EXPECT_NE(std::string::npos, a.find("the temporary file was removed")) << "and it was removed: " << a;
+        EXPECT_EQ(std::string::npos, a.find("could NOT be removed")) << a;
+        EXPECT_TRUE(findAlert("XPE_WARN_XCAL_REPLACE_FAILED:").empty()) << "the move was never reached";
+        EXPECT_FLOAT_EQ(2.0f, firstGain(dest())) << "the previous file is untouched";
+    }
+    EXPECT_FALSE(fs::exists(tmp())) << "no half-written temporary file stays behind";
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_OK, MakeGainXCal(dest().c_str(), W, H, 7.0f)) << "the next save works";
+    EXPECT_FLOAT_EQ(7.0f, firstGain(dest()));
+    EXPECT_EQ(0, xpe_get_pending_alert_count());
+}
+
+TEST_F(XcalReplaceRetryTest, AWriteThatFailsWhileTheTemporaryFileCannotBeDeletedSaysItWasLeftBehind) {
+    ASSERT_EQ(XPE_OK, MakeGainXCal(dest().c_str(), W, H, 2.0f));
+    xpe_clear_alerts();
+    {
+        TempHolder hold(tmp(), FILE_SHARE_READ | FILE_SHARE_WRITE, true);   // no FILE_SHARE_DELETE: it cannot be deleted either
+        ASSERT_TRUE(hold.opened());
+        ASSERT_TRUE(hold.locked());
+        EXPECT_EQ(XPE_ERR_IO_FAILED, MakeGainXCal(dest().c_str(), W, H, 5.0f));
+        EXPECT_TRUE(fs::exists(tmp())) << "control: the held file could not be deleted";
+        const std::string a = findAlert("XPE_WARN_XCAL_TEMP_WRITE_FAILED:");
+        ASSERT_FALSE(a.empty());
+        EXPECT_NE(std::string::npos, a.find("could NOT be removed (Windows error 32)")) << a;
+        EXPECT_NE(std::string::npos, a.find("was left behind")) << a;
+        EXPECT_EQ(std::string::npos, a.find("the temporary file was removed")) << "and does not claim the opposite: " << a;
+    }
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_OK, MakeGainXCal(dest().c_str(), W, H, 7.0f)) << "a leftover half-written file does not block the next save";
+    EXPECT_FLOAT_EQ(7.0f, firstGain(dest()));
+    EXPECT_FALSE(fs::exists(tmp())) << "the leftover was overwritten and consumed by the move";
     EXPECT_EQ(0, xpe_get_pending_alert_count());
 }
 

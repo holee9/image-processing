@@ -1,0 +1,4 @@
+ARM p5_flush_result_not_checked
+file src/xcal_writer.cpp
+built=True
+[  PASSED  ] 11 tests.

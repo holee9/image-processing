@@ -1,0 +1,9 @@
+ARM p3_tmp_not_removed_but_claimed_removed
+file src/xcal_writer.cpp
+built=True
+[  FAILED  ] XcalReplaceRetryTest.AWriteThatFailsHalfWayRemovesTheTemporaryFileAndSaysWhy (9 ms)
+[  FAILED  ] XcalReplaceRetryTest.AWriteThatFailsWhileTheTemporaryFileCannotBeDeletedSaysItWasLeftBehind (5 ms)
+[  PASSED  ] 9 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] XcalReplaceRetryTest.AWriteThatFailsHalfWayRemovesTheTemporaryFileAndSaysWhy
+[  FAILED  ] XcalReplaceRetryTest.AWriteThatFailsWhileTheTemporaryFileCannotBeDeletedSaysItWasLeftBehind

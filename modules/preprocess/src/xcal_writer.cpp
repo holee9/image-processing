@@ -155,6 +155,106 @@ static void report_replace_failure(const char* path, const std::string& tmp, con
 #endif
 }
 
+// QA-A-212d (#233): THE TWO WAYS THE TEMPORARY FILE CAN FAIL BEFORE THE MOVE are no longer silent.
+// Until now a temporary file that could not be created, and one whose writing failed half way (disk full, a write
+// error), both returned XPE_ERR_IO_FAILED with nothing to say why -- the second defect QA-A-212 found in the replace
+// step, in the two steps before it -- and the second also left the half-written .tmp behind. Both now raise one
+// XPE_ALERT_ERROR with a prefix of its own (the replace step's is XPE_WARN_XCAL_REPLACE_FAILED), and a failed write
+// removes the temporary file with remove_tmp() and says truthfully whether that worked (QA-A-212c).
+struct IoReason {
+    int err = 0;               // errno at the failing call (0 = not reported)
+    unsigned long win = 0;     // Windows only: GetLastError() at the failing call (0 = not reported)
+};
+
+// Called right after a failed stream operation. The caller clears both codes just before the operation: a successful
+// CreateFile on an existing file leaves ERROR_ALREADY_EXISTS in GetLastError(), which would otherwise be read as the
+// reason for a later, unrelated failure.
+static IoReason capture_io_reason() noexcept
+{
+    IoReason r;
+    r.err = errno;
+#ifdef _WIN32
+    r.win = GetLastError();
+#endif
+    return r;
+}
+
+static void clear_io_reason() noexcept
+{
+    errno = 0;
+#ifdef _WIN32
+    SetLastError(0);
+#endif
+}
+
+static std::string describe_io_reason(const IoReason& r)
+{
+    std::string s;
+    if (r.err != 0) {
+        char text[160] = {0};
+#ifdef _WIN32
+        if (strerror_s(text, sizeof(text), r.err) != 0) text[0] = '\0';
+#else
+        const char* t = std::strerror(r.err);
+        if (t) { std::strncpy(text, t, sizeof(text) - 1); }
+#endif
+        s += "errno ";
+        s += std::to_string(r.err);
+        if (text[0] != '\0') { s += ": "; s += text; }
+    }
+#ifdef _WIN32
+    if (r.win != 0) {
+        if (!s.empty()) s += ", ";
+        s += "Windows error ";
+        s += std::to_string(r.win);
+    }
+#endif
+    if (s.empty()) s = "the system reported no error code";
+    return s;
+}
+
+// Advisory like report_replace_failure(): an allocation failure while building the text is swallowed.
+static void report_temp_open_failure(const char* path, const std::string& tmp, const IoReason& r)
+{
+    try {
+        std::string msg = "XPE_WARN_XCAL_TEMP_OPEN_FAILED: could not create the temporary file '";
+        msg += tmp;
+        msg += "' for the calibration file '";
+        msg += path;
+        msg += "' (";
+        msg += describe_io_reason(r);
+        msg += "). Nothing was written and the previous file, if any, is unchanged";
+        xpe_alert_push(msg.c_str(), XPE_ALERT_ERROR);
+    } catch (...) {
+    }
+}
+
+static void report_temp_write_failure(const char* path, const std::string& tmp, const IoReason& r, const TmpCleanup& cleanup)
+{
+    try {
+        std::string msg = "XPE_WARN_XCAL_TEMP_WRITE_FAILED: writing the temporary file '";
+        msg += tmp;
+        msg += "' for the calibration file '";
+        msg += path;
+        msg += "' failed (";
+        msg += describe_io_reason(r);
+        if (cleanup.gone) {
+            msg += "). The previous file, if any, is unchanged and the temporary file was removed";
+        } else {
+            msg += "). The previous file, if any, is unchanged. The temporary file could NOT be removed (";
+#ifdef _WIN32
+            msg += "Windows error ";
+#else
+            msg += "errno ";
+#endif
+            msg += std::to_string(cleanup.error);
+            msg += ") and was left behind; the next save to this path replaces it once it is free";
+        }
+        xpe_alert_push(msg.c_str(), XPE_ALERT_ERROR);
+    } catch (...) {
+    }
+}
+
 // Internal helper: build compression metadata JSON string.
 // Returns empty string if no compression metadata is needed.
 static std::string build_config_json(
@@ -301,43 +401,60 @@ XpeErrorCode write_xcal_file_ex(
         // Build tmp path
         std::string tmp_path = std::string(path) + ".tmp";
 
-        // Write to tmp file
+        // Write to tmp file. The outcome is carried out of the block so that the stream is closed before the
+        // temporary file is removed (QA-A-212d): a delete while our own handle is open would fail.
+        bool opened = false;
+        bool written = false;
+        IoReason openFailure, writeFailure;
+        clear_io_reason();
         {
             std::ofstream f(tmp_path, std::ios::binary | std::ios::trunc);
-            if (!f.is_open()) {
-                return XPE_ERR_IO_FAILED;
-            }
+            opened = f.is_open();
+            if (!opened) {
+                openFailure = capture_io_reason();
+            } else {
+                clear_io_reason();
+                // Write header (pack=1, 152 bytes)
+                f.write(reinterpret_cast<const char*>(&hdr_template),
+                        sizeof(XCalFileHeader));
+                bool ok = f.good();
 
-            // Write header (pack=1, 152 bytes)
-            f.write(reinterpret_cast<const char*>(&hdr_template),
-                    sizeof(XCalFileHeader));
-            if (!f.good()) {
-                return XPE_ERR_IO_FAILED;
-            }
-
-            // Write config_json (may be empty)
-            if (final_config_len > 0) {
-                f.write(reinterpret_cast<const char*>(final_config),
-                        static_cast<std::streamsize>(final_config_len));
-                if (!f.good()) {
-                    return XPE_ERR_IO_FAILED;
+                // Write config_json (may be empty)
+                if (ok && final_config_len > 0) {
+                    f.write(reinterpret_cast<const char*>(final_config),
+                            static_cast<std::streamsize>(final_config_len));
+                    ok = f.good();
                 }
-            }
 
-            // Write payload
-            if (final_payload_len > 0) {
-                f.write(reinterpret_cast<const char*>(final_payload),
-                        static_cast<std::streamsize>(final_payload_len));
-                if (!f.good()) {
-                    return XPE_ERR_IO_FAILED;
+                // Write payload
+                if (ok && final_payload_len > 0) {
+                    f.write(reinterpret_cast<const char*>(final_payload),
+                            static_cast<std::streamsize>(final_payload_len));
+                    ok = f.good();
                 }
-            }
 
-            f.flush();
-            if (!f.good()) {
-                return XPE_ERR_IO_FAILED;
+                if (ok) {
+                    f.flush();
+                    ok = f.good();
+                }
+                if (ok) {
+                    f.close();               // a failure to close is a failed write too
+                    ok = !f.fail();
+                }
+                if (!ok) writeFailure = capture_io_reason();
+                written = ok;
             }
         }  // f is closed here
+
+        if (!opened) {
+            report_temp_open_failure(path, tmp_path, openFailure);
+            return XPE_ERR_IO_FAILED;
+        }
+        if (!written) {
+            const TmpCleanup cleanup = remove_tmp(tmp_path);
+            report_temp_write_failure(path, tmp_path, writeFailure, cleanup);
+            return XPE_ERR_IO_FAILED;
+        }
 
         // Atomic rename
         const ReplaceOutcome moved = replace_file(tmp_path, path);
