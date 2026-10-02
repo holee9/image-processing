@@ -1,0 +1,74 @@
+== A. Every table: data rows, classified by the SRS ID column (no row left unclassified)
+line   section                                       rows   FR   SR other ticked  unique-IDs
+L38    1.2 추적성 정의                                       4    0    0     4      0  1
+L51    2.1 SWU-4.1 (DicomReader) 매핑                    21   21    0     0     21  21
+L81    2.2 SWU-4.2 (DicomWriter) 매핑                    17   17    0     0     17  17
+L107   2.3 SWU-4.3 (PresentationStateIO) 매핑             6    6    0     0      6  6
+L122   2.4 SWU-4.4 (DicomNetworkSCU) 매핑                13   13    0     0     13  13
+L146   3.1 기능 요구사항 (FR) → SWU 설계                        4    4    0     0      4  4
+L159   3.2 안전 요구사항 (SR) → 설계 통제                         8    0    8     0      8  8
+L178   4.1 안전 요구사항 → 위험 통제                              8    0    8     0      8  7
+L197   5.1 기능 요구사항 테스트 매핑                              57   57    0     0     57  57
+L263   5.2 안전 요구사항 테스트 매핑                               3    0    3     0      3  3
+L271   5.2 안전 요구사항 테스트 매핑                               5    0    5     0      5  5
+L285   6.1 전체 커버리지 요약                                   5    0    0     5      0  1
+L295   6.2 SWU별 커버리지                                    5    0    0     5      0  1
+L305   6.3 요구사항 상태 분포                                   3    0    0     3      0  1
+L313   6.4 Critical Requirements (CRITICAL 요구사항)        2    1    1     0      0  2
+L354   7.3 양방향 매핑 완전성                                   5    0    0     5      0  1
+L368   8.1 버전 관리                                        5    0    0     5      0  1
+rows without a tick in the last column:
+control: rows 171, classified 171, unclassified 0
+
+== B. Stated coverage lines ("**커버리지**: a/b") against the row count of the table just above them
+line   stated    table above (start line, section)  rows | FR | SR  -> verdict
+L75    21/21     L51 2.1 SWU-4.1 (DicomReader) 매핑   21 | 21 | 0  -> match
+L101   17/17     L81 2.2 SWU-4.2 (DicomWriter) 매핑   17 | 17 | 0  -> match
+L116   6/6      L107 2.3 SWU-4.3 (PresentationState 6 | 6 | 0  -> match
+L138   13/13     L122 2.4 SWU-4.4 (DicomNetworkSCU)  13 | 13 | 0  -> match
+L153   4/4      L146 3.1 기능 요구사항 (FR) → SWU 설계      4 | 4 | 0  -> match
+L170   8/8      L159 3.2 안전 요구사항 (SR) → 설계 통제       8 | 0 | 8  -> match
+L189   8/8      L178 4.1 안전 요구사항 → 위험 통제            8 | 0 | 8  -> match
+L257   59/59     L197 5.1 기능 요구사항 테스트 매핑             57 | 57 | 0  -> MISMATCH (rows 57)
+L277   8/8      L271 5.2 안전 요구사항 테스트 매핑             5 | 0 | 5  -> MISMATCH (rows 5)
+
+== C. Requirement universe from section 2 (PRD -> SRS)
+FR IDs in section 2: 57 unique (57 rows); SR IDs in section 2: 0; duplicated IDs: none
+FR per SWU by section-2 table: SWU-4.1=21, SWU-4.2=17, SWU-4.3=6, SWU-4.4=13
+  L51 2.1 SWU-4.1 (DicomReader) 매핑: 21 rows, FR 21, SR 0, other 0
+  L81 2.2 SWU-4.2 (DicomWriter) 매핑: 17 rows, FR 17, SR 0, other 0
+  L107 2.3 SWU-4.3 (PresentationStateIO) 매핑: 6 rows, FR 6, SR 0, other 0
+  L122 2.4 SWU-4.4 (DicomNetworkSCU) 매핑: 13 rows, FR 13, SR 0, other 0
+
+== D. Section 3.1 ranges against the universe
+  L148 FR-DCM-101~121: 21 IDs of the universe fall in 101..121 (range spans 21 numbers)
+  L149 FR-DCM-201~217: 17 IDs of the universe fall in 201..217 (range spans 17 numbers)
+  L150 FR-DCM-301~306: 6 IDs of the universe fall in 301..306 (range spans 6 numbers)
+  L151 FR-DCM-401~413: 13 IDs of the universe fall in 401..413 (range spans 13 numbers)
+  universe FR 57, covered by the ranges 57, uncovered none
+
+== E. Safety requirement IDs
+3.2 (SAD)  : 8 rows, 8 unique IDs
+4.1 (SHA)  : 8 rows, 7 unique IDs ['SR-DCM-001', 'SR-DCM-002', 'SR-DCM-003', 'SR-DCM-004', 'SR-DCM-006', 'SR-DCM-007', 'SR-DCM-008']; missing from SHA table: ['SR-DCM-005']
+5.2 (Test) : 8 rows over 2 tables (the table is split by a blockquote), 8 unique IDs; missing: none
+
+== F. Section 5.1 (FR -> Test) against the universe
+rows 57, unique FR IDs 57, universe FR 57, FR without a test row: none, test rows for an ID outside the universe: none
+Test Case IDs: 57 unique of 57; duplicated: none
+
+== G. Totals as the document states them, beside the recount (the count of record is the unique-ID count)
+item                   stated     recount
+2.1 coverage line      21/21      21/21
+2.2 coverage line      17/17      17/17
+6.1 PRD->SRS           56         57
+6.1 SRS->SAD           56         57 FR covered by 3.1 ranges
+6.1 SRS->SHA           8          7 unique SR in 4.1
+6.1 SRS->Test          67         57 FR + 8 SR = 65
+5.1 coverage line      59/59      57/57
+6.2 SWU-4.1 FR         20         21
+6.2 SWU-4.2 FR         17         17
+6.2 SWU-4.3 FR         6          6
+6.2 SWU-4.4 FR         13         13
+6.2 FR total           56         57
+6.2 SR total           16         8 unique SR (the document gives no per-SWU SR mapping to recount)
+6.3 Traced             72         FR 57 + SR 8 = 65

@@ -188,6 +188,8 @@ Output: XpeImage (populated)
     photo = dataset.get(0x0028, 0x0004)
     IF MONOCHROME1:
       invert pixels: p_out = MAX_VALUE - p_in
+      // MAX_VALUE = 2^BitsStored - 1; mask bits above BitsStored first:
+      // p_out = (2^BitsStored - 1) - (p_in & (2^BitsStored - 1))
     ELSE IF MONOCHROME2:
       use as-is
     ELSE:

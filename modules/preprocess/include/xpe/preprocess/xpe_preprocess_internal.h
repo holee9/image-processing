@@ -66,6 +66,11 @@ struct GhostCorrectorHandle {
     std::vector<float> next1;
     std::vector<float> next2;
 
+    // QA-A-217 (#233): the frame as it came in, kept for the duration of one xpe_ghost_correct call so that a frame
+    // that fails after pixels were already corrected can put them back (REQ-P1A-032: on failure the output is left
+    // unmodified). Allocated once with the handle; a fifth float plane.
+    std::vector<float> backup;
+
     double lastAcqTimeSec{0.0};
     double lastFrameMean{0.0}; // mean signal level for exposure weighting
 
@@ -105,6 +110,18 @@ static_assert(sizeof(CalibFileHeader) == 64u, "CalibFileHeader must be 64 bytes"
  * ========================================================================= */
 
 // @MX:NOTE: [AUTO] Edge-aware bilinear: skips neighbours that are also defective
+/**
+ * QA-A-215 (#233): the entrance check for a float32 frame that a function must not process when it holds a NaN or an
+ * infinity: true when any of the n values is non-finite, and then count (how many) and first (the index of the first)
+ * are set. One linear pass over the exponent bits (all set = NaN or +-infinity); the count and the position are found
+ * by a second pass only when something is wrong. Writes nothing. (xpe_defect_correct, QA-A-214b, has the same loop
+ * written inline.)
+ */
+bool xpe_find_nonfinite(const float* values, size_t n, size_t* count, size_t* first) noexcept;
+
+/** Push the XPE_ALERT_ERROR of a refused non-finite frame: "<prefix> <count> pixel(s) ... (first: index I, x=X, y=Y); <tail>". Never throws. */
+void xpe_alert_nonfinite(const char* prefix, size_t count, size_t first, uint32_t width, const char* tail) noexcept;
+
 float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
                              uint32_t x, uint32_t y,
                              uint32_t width, uint32_t height) noexcept;
@@ -119,9 +136,32 @@ float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
  * applies them to the measured doses of each pixel to score and to accept the fit.
  * ========================================================================= */
 
-/** The applier refuses a gain outside [XPE_GAIN_APPLIED_MIN, XPE_GAIN_APPLIED_MAX] (gain_correct.cpp: a second line of defence behind the load-time range). */
-constexpr float XPE_GAIN_APPLIED_MIN = 0.001f;
-constexpr float XPE_GAIN_APPLIED_MAX = 1000.0f;
+/**
+ * The gain range of SRS-CALIB-FUNC-002, ONE range for the scalar map and the polynomial (QA-A-211, #233): a pixel whose gain
+ * is outside [XPE_GAIN_APPLIED_MIN, XPE_GAIN_APPLIED_MAX] is not usable as a gain -- it is CLASSIFIED DEFECTIVE: gain 1.0 is
+ * applied and the defect stage fills it from its neighbours. (Before QA-A-211 the scalar loader refused the whole map at
+ * [0.1, 10] and the polynomial path refused the whole frame at [0.001, 1000].)
+ */
+constexpr float XPE_GAIN_APPLIED_MIN = 0.1f;
+constexpr float XPE_GAIN_APPLIED_MAX = 10.0f;
+
+/** The largest fraction of a frame that may be classified defective by the gain calibration (SRS-CALIB-FUNC-003: 5% defect density tolerance). */
+constexpr double XPE_GAIN_DEFECT_MAX_FRACTION = 0.05;
+
+/** What a scan of a scalar gain map found (QA-A-211): the pixels whose gain is outside the range, which are classified defective. */
+struct XpeGainScan {
+    uint64_t count{0};     ///< pixels outside [XPE_GAIN_APPLIED_MIN, XPE_GAIN_APPLIED_MAX], non-finite included
+    uint64_t inBand{0};    ///< of those, how many lie in the outermost 64-pixel band of the frame
+    uint64_t first{0};     ///< index of the first one (meaningful when count > 0)
+    uint64_t total{0};     ///< pixels scanned
+};
+/** Scan a scalar map; append the indices of the out-of-range pixels, ascending, to idx when it is not null. May throw bad_alloc (idx). */
+XpeGainScan xpe_gain_scan_scalar(const float* values, uint32_t width, uint32_t height, std::vector<uint32_t>* idx);
+/** Whether the classified fraction is above XPE_GAIN_DEFECT_MAX_FRACTION. */
+bool xpe_gain_scan_over_limit(const XpeGainScan& scan) noexcept;
+/** Push the XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT warning (scan.count > 0) / the XPE_WARN_GAIN_PIXELS_OVER_LIMIT error; `verb` is "generated" or "loaded". Advisory: never throws. */
+void xpe_gain_alert_classified(const XpeGainScan& scan) noexcept;
+void xpe_gain_alert_over_limit(const XpeGainScan& scan, const char* verb) noexcept;
 
 /** Whether the applier would accept this gain value (finite, positive, within its range). */
 inline bool xpe_gain_value_valid(float gain) noexcept {
@@ -375,6 +415,10 @@ struct CalibrationData {
     // frame takes a CalibSnapshot of the three maps when it starts, and a load that replaces the store while
     // the frame runs must leave the frame the maps it began with. A map is never modified in place.
     std::shared_ptr<float[]>   gain_map;
+    // QA-A-211: scalar map only -- the pixels the loader classified defective (gain outside the range): their map value was
+    // replaced by 1.0 and their indices kept here, ascending, for the defect stage. Replaced with the map, never in place.
+    std::shared_ptr<uint32_t[]> gain_defect_idx;
+    uint32_t gain_defect_count{0};
     uint32_t gain_width{0};
     uint32_t gain_height{0};
     int64_t  gain_timestamp{0};
@@ -460,6 +504,8 @@ struct CalibSnapshot {
     uint32_t offset_height{0};
 
     std::shared_ptr<float[]>   gain_map;           ///< the scalar plane; null while a polynomial is loaded
+    std::shared_ptr<uint32_t[]> gain_defect_idx;   ///< scalar map: ascending indices of the pixels classified defective at load (QA-A-211); null when none
+    uint32_t gain_defect_count{0};
     std::shared_ptr<float[]>   gain_poly_coeffs;   ///< pixel-major coefficient planes; null for a scalar map
     uint32_t gain_poly_num_coeffs{0};
     bool     gain_poly_has_range{false};
@@ -485,9 +531,11 @@ CalibSnapshot xpe_calib_snapshot() noexcept;
 XpeErrorCode xpe_offset_correct_in(const CalibSnapshot& calib, const XpeImageBuffer* input,
                                    XpeImageBuffer* output, const XpeImageMetadata* metadata);
 XpeErrorCode xpe_gain_correct_in(const CalibSnapshot& calib, const XpeImageBuffer* input,
-                                 XpeImageBuffer* output, const XpeImageMetadata* metadata);
+                                 XpeImageBuffer* output, const XpeImageMetadata* metadata,
+                                 std::vector<uint32_t>* frame_defects = nullptr);
 XpeErrorCode xpe_defect_correct_in(const CalibSnapshot& calib, const XpeImageBuffer* input,
-                                   XpeImageBuffer* output, const XpeImageMetadata* metadata);
+                                   XpeImageBuffer* output, const XpeImageMetadata* metadata,
+                                   const std::vector<uint32_t>* frame_defects = nullptr);
 
 /* =========================================================================
  * Staged calibration loads (QA-A-202c, #233 / Codex #27 A1)
@@ -511,6 +559,10 @@ struct StagedOffset {
 };
 
 struct StagedGain {
+    std::shared_ptr<uint32_t[]> defectIdx;   ///< scalar map: the pixels classified defective, ascending (QA-A-211); their map value is already 1.0
+    uint32_t defectCount{0};
+    uint32_t defectInBand{0};                ///< how many of them lie in the outermost 64-pixel band (alert detail)
+    uint32_t defectFirst{0};
     std::shared_ptr<float[]> map;      ///< the scalar plane, or the coefficient planes of a polynomial
                                        ///< (shared: the store holds it so, and converting at commit would allocate)
     bool     isPoly{false};

@@ -1,0 +1,16 @@
+[       OK ] DicomReaderTest.Issue235Decided_Monochrome1IsInvertedToMonochrome2Sense (7 ms)
+[       OK ] DicomReaderTest.Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochrome1IsInverted (27 ms)
+[       OK ] DicomReaderTest.Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrPresentationShapeFromTheSourceFile (13 ms)
+[       OK ] DicomReaderTest.Tc109_Monochrome1PlusInverse_RoundTripKeepsThePolarity (24 ms)
+[       OK ] DicomReaderTest.Tc109_Monochrome1WithSignedPixelsIsRefusedLikeEverySignedImage (8 ms)
+[       OK ] DicomReaderTest.Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInverting (27 ms)
+[       OK ] DicomReaderTest.Tc109_Monochrome1_ReadingTwiceOnOneHandleGivesTheSameWords (47 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEveryPath
+[  FAILED  ] DicomReaderTest.Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEveryPath (79 ms)
+[  PASSED  ] 7 tests.
+---
+JPEG 2000: the alert text is the contract text, whole
+JPEG Lossless: the alert text is the contract text, whole
+native 12-bit: the alert text is the contract text, whole
+native 16-bit: the alert text is the contract text, whole

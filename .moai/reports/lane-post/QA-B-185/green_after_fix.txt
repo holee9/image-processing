@@ -1,0 +1,10 @@
+[       OK ] DicomReaderTest.Issue235Decided_Monochrome1IsInvertedToMonochrome2Sense (9 ms)
+[       OK ] DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_BitsAboveBitsStoredAreNotMasked (8 ms)
+[       OK ] DicomReaderTest.Pinned_Issue235AwaitsDesignDecision_RescaleIsNotAppliedNorReported (8 ms)
+[       OK ] DicomReaderTest.Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochrome1IsReturnedAsStored (31 ms)
+[       OK ] DicomReaderTest.Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEveryPath (72 ms)
+[       OK ] DicomReaderTest.Tc109_Monochrome1PlusInverse_RoundTripKeepsHowTheImageDisplays (24 ms)
+[       OK ] DicomReaderTest.Tc109_Monochrome1WithSignedPixelsIsRefusedLikeEverySignedImage (6 ms)
+[       OK ] DicomReaderTest.Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInverting (25 ms)
+[       OK ] DicomReaderTest.Tc109_Monochrome1_ReadingTwiceOnOneHandleGivesTheSameWords (42 ms)
+[  PASSED  ] 9 tests.

@@ -1,0 +1,11 @@
+ARM g4_wrong_error_code
+file src/defect_correct.cpp
+built=True
+[  FAILED  ] DefectInputFiniteTest.ANonFiniteFrameIsRefusedWithInvalidInputAndTheOutputBufferIsLeftAlone (1 ms)
+[  FAILED  ] DefectInputFiniteTest.CalledInPlaceARefusedFrameLeavesTheInputBytesAsTheyWere (1 ms)
+[  FAILED  ] DefectInputFiniteTest.TheAlertNamesTheCountAndTheFirstPixel (1 ms)
+[  PASSED  ] 23 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] DefectInputFiniteTest.ANonFiniteFrameIsRefusedWithInvalidInputAndTheOutputBufferIsLeftAlone
+[  FAILED  ] DefectInputFiniteTest.CalledInPlaceARefusedFrameLeavesTheInputBytesAsTheyWere
+[  FAILED  ] DefectInputFiniteTest.TheAlertNamesTheCountAndTheFirstPixel

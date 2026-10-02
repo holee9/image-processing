@@ -1,0 +1,458 @@
+Note: Google Test filter = IpcDeadline.*:WorkerPathFixture.*:WorkerSupervisor.A*:AiFallbackTest.*:AiIpcBridgeTest.Receive*
+[==========] Running 108 tests from 5 test suites.
+[----------] Global test environment set-up.
+[----------] 49 tests from AiFallbackTest
+[ RUN      ] AiFallbackTest.SetFallbackModeEnableReturnsOk
+[2026-10-02 16:18:08.523] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.523] [info] Fallback mode enabled
+[2026-10-02 16:18:08.523] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.SetFallbackModeEnableReturnsOk (0 ms)
+[ RUN      ] AiFallbackTest.SetFallbackModeDisableReturnsOk
+[2026-10-02 16:18:08.523] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.523] [info] Fallback mode disabled
+[2026-10-02 16:18:08.523] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.SetFallbackModeDisableReturnsOk (0 ms)
+[ RUN      ] AiFallbackTest.SetFallbackModeToggleRepeated
+[2026-10-02 16:18:08.523] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.523] [info] Fallback mode disabled
+[2026-10-02 16:18:08.523] [info] Fallback mode enabled
+[2026-10-02 16:18:08.523] [info] Fallback mode disabled
+[2026-10-02 16:18:08.523] [info] Fallback mode enabled
+[2026-10-02 16:18:08.523] [info] Fallback mode disabled
+[2026-10-02 16:18:08.523] [info] Fallback mode enabled
+[2026-10-02 16:18:08.523] [info] Fallback mode disabled
+[2026-10-02 16:18:08.523] [info] Fallback mode enabled
+[2026-10-02 16:18:08.523] [info] Fallback mode disabled
+[2026-10-02 16:18:08.523] [info] Fallback mode enabled
+[2026-10-02 16:18:08.523] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.SetFallbackModeToggleRepeated (0 ms)
+[ RUN      ] AiFallbackTest.SetFallbackModeNonZeroEnables
+[2026-10-02 16:18:08.523] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.523] [info] Fallback mode enabled
+[2026-10-02 16:18:08.523] [info] Fallback mode enabled
+[2026-10-02 16:18:08.523] [info] Fallback mode enabled
+[2026-10-02 16:18:08.523] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.SetFallbackModeNonZeroEnables (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeStubReturnsProcessingFailed
+[2026-10-02 16:18:08.523] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.523] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BodypartRecognizeStubReturnsProcessingFailed (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeSetsConfidenceToZero
+[2026-10-02 16:18:08.523] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.523] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BodypartRecognizeSetsConfidenceToZero (0 ms)
+[ RUN      ] AiFallbackTest.KnownDivergence_BodypartRecognizeStubSetsUnknownLabel
+[2026-10-02 16:18:08.523] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.523] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.KnownDivergence_BodypartRecognizeStubSetsUnknownLabel (0 ms)
+[ RUN      ] AiFallbackTest.StitchImagesStubReturnsProcessingFailed
+[2026-10-02 16:18:08.523] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.524] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.StitchImagesStubReturnsProcessingFailed (0 ms)
+[ RUN      ] AiFallbackTest.BoneSuppressStubReturnsProcessingFailed
+[2026-10-02 16:18:08.524] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.524] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BoneSuppressStubReturnsProcessingFailed (0 ms)
+[ RUN      ] AiFallbackTest.DlDenoiseStubReturnsProcessingFailed
+[2026-10-02 16:18:08.524] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.524] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.DlDenoiseStubReturnsProcessingFailed (0 ms)
+[ RUN      ] AiFallbackTest.ConfidenceThresholdDefaultIs06
+[2026-10-02 16:18:08.524] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.524] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.ConfidenceThresholdDefaultIs06 (0 ms)
+[ RUN      ] AiFallbackTest.ConfidenceThresholdInRange
+[2026-10-02 16:18:08.524] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.524] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.ConfidenceThresholdInRange (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeNullImgReturnsInvalid
+[2026-10-02 16:18:08.524] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.524] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BodypartRecognizeNullImgReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeNullLabelReturnsInvalid
+[2026-10-02 16:18:08.524] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.524] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BodypartRecognizeNullLabelReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeZeroBufLenReturnsInvalidInput
+[2026-10-02 16:18:08.524] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.524] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BodypartRecognizeZeroBufLenReturnsInvalidInput (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeNullConfOutIsAcceptable
+[2026-10-02 16:18:08.524] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.524] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BodypartRecognizeNullConfOutIsAcceptable (0 ms)
+[ RUN      ] AiFallbackTest.StitchImagesNullPartsReturnsInvalid
+[2026-10-02 16:18:08.524] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.524] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.StitchImagesNullPartsReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.StitchImagesPartCountOneReturnsInvalid
+[2026-10-02 16:18:08.524] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.524] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.StitchImagesPartCountOneReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.StitchImagesNullOutputReturnsInvalid
+[2026-10-02 16:18:08.524] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.StitchImagesNullOutputReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.StitchImagesNullOutputDataReturnsInvalidInput
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.StitchImagesNullOutputDataReturnsInvalidInput (0 ms)
+[ RUN      ] AiFallbackTest.BoneSuppressNullImgReturnsInvalid
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BoneSuppressNullImgReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.BoneSuppressNullOutputReturnsInvalid
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BoneSuppressNullOutputReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.BoneSuppressDimensionMismatchReturnsInvalid
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BoneSuppressDimensionMismatchReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DlDenoiseNullImgReturnsInvalid
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.DlDenoiseNullImgReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DlDenoiseNullMetaReturnsInvalid
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.DlDenoiseNullMetaReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeInvalidBufferReturnsInvalid
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BodypartRecognizeInvalidBufferReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_BodypartRecognize_ShortReturnsInvalid
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.DataSizeGuard_BodypartRecognize_ShortReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_StitchImages_ShortReturnsInvalid
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.DataSizeGuard_StitchImages_ShortReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_StitchEstimateSize_ShortReturnsInvalid
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.DataSizeGuard_StitchEstimateSize_ShortReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_BoneSuppress_ShortReturnsInvalid
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.DataSizeGuard_BoneSuppress_ShortReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_DlDenoise_ShortReturnsInvalid
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.DataSizeGuard_DlDenoise_ShortReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_BodypartRecognize_ZeroAccepted
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.DataSizeGuard_BodypartRecognize_ZeroAccepted (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_StitchImages_ZeroAccepted
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.DataSizeGuard_StitchImages_ZeroAccepted (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_StitchEstimateSize_ZeroAccepted
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.DataSizeGuard_StitchEstimateSize_ZeroAccepted (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_BoneSuppress_ZeroAccepted
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.DataSizeGuard_BoneSuppress_ZeroAccepted (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_DlDenoise_ZeroAccepted
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.DataSizeGuard_DlDenoise_ZeroAccepted (0 ms)
+[ RUN      ] AiFallbackTest.EmptyImageContract_ZeroWidthIsInvalidInput
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.525] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.EmptyImageContract_ZeroWidthIsInvalidInput (0 ms)
+[ RUN      ] AiFallbackTest.EmptyImageContract_ZeroHeightIsInvalidInput
+[2026-10-02 16:18:08.525] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.526] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.EmptyImageContract_ZeroHeightIsInvalidInput (0 ms)
+[ RUN      ] AiFallbackTest.EmptyImageContract_NullDataIsInvalidInput
+[2026-10-02 16:18:08.526] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.526] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.EmptyImageContract_NullDataIsInvalidInput (0 ms)
+[ RUN      ] AiFallbackTest.EmptyImageContract_StitchRejectsEmptyElement
+[2026-10-02 16:18:08.526] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.526] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.EmptyImageContract_StitchRejectsEmptyElement (0 ms)
+[ RUN      ] AiFallbackTest.EmptyImageContract_ValidImageStillAccepted
+[2026-10-02 16:18:08.526] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.526] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.EmptyImageContract_ValidImageStillAccepted (0 ms)
+[ RUN      ] AiFallbackTest.OutputBufferContract_ZeroLengthLabelBufferIsInvalidInput
+[2026-10-02 16:18:08.526] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.526] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.OutputBufferContract_ZeroLengthLabelBufferIsInvalidInput (0 ms)
+[ RUN      ] AiFallbackTest.OutputBufferContract_ShortLabelBufferIsBufferTooSmall
+[2026-10-02 16:18:08.526] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.526] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.OutputBufferContract_ShortLabelBufferIsBufferTooSmall (0 ms)
+[ RUN      ] AiFallbackTest.OutputBufferContract_EmptyStitchOutputIsInvalidInput
+[2026-10-02 16:18:08.526] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.526] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.OutputBufferContract_EmptyStitchOutputIsInvalidInput (0 ms)
+[ RUN      ] AiFallbackTest.OutputBufferContract_ZeroLengthModelCardBufferIsInvalidInput
+[2026-10-02 16:18:08.526] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.526] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.OutputBufferContract_ZeroLengthModelCardBufferIsInvalidInput (0 ms)
+[ RUN      ] AiFallbackTest.OutputBufferContract_AdequateBuffersStillAccepted
+[2026-10-02 16:18:08.526] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.526] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.OutputBufferContract_AdequateBuffersStillAccepted (0 ms)
+[ RUN      ] AiFallbackTest.KnownDivergence_LabelBufferThresholdFollowsStubLabelLength
+[2026-10-02 16:18:08.526] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.526] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.KnownDivergence_LabelBufferThresholdFollowsStubLabelLength (0 ms)
+[ RUN      ] AiFallbackTest.KnownDivergence_FallbackModeCanBeSetButNeverReadBack
+[2026-10-02 16:18:08.526] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_ai_fallback.cpp(931):: xpe_ai.dll exports 14 names; fallback read-backs: 0
+[2026-10-02 16:18:08.526] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.KnownDivergence_FallbackModeCanBeSetButNeverReadBack (0 ms)
+[ RUN      ] AiFallbackTest.KnownDivergence_FallbackModeChangesNoObservableOutput
+[2026-10-02 16:18:08.526] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:18:08.526] [info] Fallback mode enabled
+[2026-10-02 16:18:08.526] [info] Fallback mode disabled
+
+[  INFO ] D:\workspace-github\xpe-post\modules\ai\tests\test_ai_fallback.cpp(959):: both settings returned -3 (XPE_ERR_PROCESSING_FAILED is the stub's early return) -- this case cannot separate unwired from unreached
+[2026-10-02 16:18:08.526] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.KnownDivergence_FallbackModeChangesNoObservableOutput (0 ms)
+[----------] 49 tests from AiFallbackTest (2 ms total)
+
+[----------] 2 tests from AiIpcBridgeTest
+[ RUN      ] AiIpcBridgeTest.Receive_NotConnected_ReturnsError
+[       OK ] AiIpcBridgeTest.Receive_NotConnected_ReturnsError (0 ms)
+[ RUN      ] AiIpcBridgeTest.Receive_NoResponseWithinTimeout_ReturnsTimeoutError
+[       OK ] AiIpcBridgeTest.Receive_NoResponseWithinTimeout_ReturnsTimeoutError (0 ms)
+[----------] 2 tests from AiIpcBridgeTest (0 ms total)
+
+[----------] 24 tests from IpcDeadline
+[ RUN      ] IpcDeadline.ControlAWorkerThatAnswersIsAnsweredWithinTheBudget
+[       OK ] IpcDeadline.ControlAWorkerThatAnswersIsAnsweredWithinTheBudget (24 ms)
+[ RUN      ] IpcDeadline.AWorkerThatNeverAnswersReturnsControlAfterTheBudget
+[       OK ] IpcDeadline.AWorkerThatNeverAnswersReturnsControlAfterTheBudget (418 ms)
+[ RUN      ] IpcDeadline.TheBudgetIsTheConfiguredValueNotAConstant
+[       OK ] IpcDeadline.TheBudgetIsTheConfiguredValueNotAConstant (1541 ms)
+[ RUN      ] IpcDeadline.BoneSuppressWithAStalledWorkerFailsAfterTheBudgetAndLeavesTheOutputAlone
+[       OK ] IpcDeadline.BoneSuppressWithAStalledWorkerFailsAfterTheBudgetAndLeavesTheOutputAlone (428 ms)
+[ RUN      ] IpcDeadline.AReplyThatStopsHalfWayAndStallsIsNotCountedAsSuccess
+[       OK ] IpcDeadline.AReplyThatStopsHalfWayAndStallsIsNotCountedAsSuccess (403 ms)
+[ RUN      ] IpcDeadline.AReplyThatStopsHalfWayAndClosesIsNotCountedAsSuccess
+[       OK ] IpcDeadline.AReplyThatStopsHalfWayAndClosesIsNotCountedAsSuccess (15 ms)
+[ RUN      ] IpcDeadline.ControlTheRealWorkerAnswersAHeartbeatBeforeAnyKill
+[       OK ] IpcDeadline.ControlTheRealWorkerAnswersAHeartbeatBeforeAnyKill (95 ms)
+[ RUN      ] IpcDeadline.ADeadWorkerIsReportedPromptlyNotAwaitedForever
+[       OK ] IpcDeadline.ADeadWorkerIsReportedPromptlyNotAwaitedForever (75 ms)
+[ RUN      ] IpcDeadline.PipeClosureAloneDoesNotSeparateAnExitOnRequestFromADeath
+[measure] exit-on-request: bridge rc=-3 hung=0 process exit code=0
+[measure] death:           bridge rc=-3 hung=0 process exit code=99
+[       OK ] IpcDeadline.PipeClosureAloneDoesNotSeparateAnExitOnRequestFromADeath (175 ms)
+[ RUN      ] IpcDeadline.ALargeReplyThatArrivesInPiecesIsReadWhole
+[       OK ] IpcDeadline.ALargeReplyThatArrivesInPiecesIsReadWhole (987 ms)
+[ RUN      ] IpcDeadline.ABodyLongerThanTheBufferDropsTheConnection
+[       OK ] IpcDeadline.ABodyLongerThanTheBufferDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.ABodyWithNoBufferAtAllDropsTheConnection
+[       OK ] IpcDeadline.ABodyWithNoBufferAtAllDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AWrongMagicDropsTheConnection
+[       OK ] IpcDeadline.AWrongMagicDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AReplyToSomeoneElsesRequestDropsTheConnection
+[       OK ] IpcDeadline.AReplyToSomeoneElsesRequestDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AReplyOfTheWrongTypeDropsTheConnection
+[       OK ] IpcDeadline.AReplyOfTheWrongTypeDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AReplyWithTheWrongPixelLengthDropsTheConnection
+[       OK ] IpcDeadline.AReplyWithTheWrongPixelLengthDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.ControlAWorkersOwnErrorFrameKeepsTheConnection
+[       OK ] IpcDeadline.ControlAWorkersOwnErrorFrameKeepsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AnErrorFrameWithNoCodeDropsTheConnection
+[       OK ] IpcDeadline.AnErrorFrameWithNoCodeDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AnErrorFrameWithANonNumericCodeDropsTheConnection
+[       OK ] IpcDeadline.AnErrorFrameWithANonNumericCodeDropsTheConnection (0 ms)
+[ RUN      ] IpcDeadline.AnErrorFrameWithACodeOutsideTheErrorRangeDropsTheConnection
+[       OK ] IpcDeadline.AnErrorFrameWithACodeOutsideTheErrorRangeDropsTheConnection (1 ms)
+[ RUN      ] IpcDeadline.ControlAGoodReplyIsWrittenIntoAnInPlaceBuffer
+[       OK ] IpcDeadline.ControlAGoodReplyIsWrittenIntoAnInPlaceBuffer (0 ms)
+[ RUN      ] IpcDeadline.AReplyWithTheWrongPixelLengthLeavesAnInPlaceBufferByteForByteIntact
+[       OK ] IpcDeadline.AReplyWithTheWrongPixelLengthLeavesAnInPlaceBufferByteForByteIntact (0 ms)
+[ RUN      ] IpcDeadline.AReplyCutOffHalfWayLeavesAnInPlaceBufferByteForByteIntact
+[       OK ] IpcDeadline.AReplyCutOffHalfWayLeavesAnInPlaceBufferByteForByteIntact (0 ms)
+[ RUN      ] IpcDeadline.AStalledWorkerLeavesAnInPlaceBufferByteForByteIntact
+[       OK ] IpcDeadline.AStalledWorkerLeavesAnInPlaceBufferByteForByteIntact (423 ms)
+[----------] 24 tests from IpcDeadline (4593 ms total)
+
+[----------] 10 tests from WorkerSupervisor
+[ RUN      ] WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid
+[       OK ] WorkerSupervisor.AfterTheWorkerIsKilledTheNextCallSucceedsOnANewPid (104 ms)
+[ RUN      ] WorkerSupervisor.AnUnrequestedExitIsADeathEvenWithExitCodeZero
+[       OK ] WorkerSupervisor.AnUnrequestedExitIsADeathEvenWithExitCodeZero (92 ms)
+[ RUN      ] WorkerSupervisor.ARequestedExitIsCleanAndReadAsExitCodeZero
+[       OK ] WorkerSupervisor.ARequestedExitIsCleanAndReadAsExitCodeZero (88 ms)
+[ RUN      ] WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne
+[       OK ] WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne (2479 ms)
+[ RUN      ] WorkerSupervisor.AWorkerThatAnswersWithAnErrorIsKeptNotRestarted
+[       OK ] WorkerSupervisor.AWorkerThatAnswersWithAnErrorIsKeptNotRestarted (45 ms)
+[ RUN      ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress
+[       OK ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress (190 ms)
+[ RUN      ] WorkerSupervisor.AValidEnvelopeWithNaNPixelsIsAModelRefusalAndKeepsTheWorker
+[       OK ] WorkerSupervisor.AValidEnvelopeWithNaNPixelsIsAModelRefusalAndKeepsTheWorker (49 ms)
+[ RUN      ] WorkerSupervisor.AGarbageEnvelopeWithNaNPixelsIsAProtocolFaultNotAModelRefusal
+[       OK ] WorkerSupervisor.AGarbageEnvelopeWithNaNPixelsIsAProtocolFaultNotAModelRefusal (31 ms)
+[ RUN      ] WorkerSupervisor.AHeartbeatAnswerOfTheWrongTypeDiscardsTheWorker
+[       OK ] WorkerSupervisor.AHeartbeatAnswerOfTheWrongTypeDiscardsTheWorker (511 ms)
+[ RUN      ] WorkerSupervisor.AHeartbeatAnswerToSomeoneElsesRequestDiscardsTheWorker
+[       OK ] WorkerSupervisor.AHeartbeatAnswerToSomeoneElsesRequestDiscardsTheWorker (476 ms)
+[----------] 10 tests from WorkerSupervisor (4070 ms total)
+
+[----------] 23 tests from WorkerPathFixture
+[ RUN      ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert
+[       OK ] WorkerPathFixture.ControlTheProbesCanSeeAWorkerAndAnAlert (75 ms)
+[ RUN      ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore
+[2026-10-02 16:18:17.266] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 16:18:17.301] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-02 16:18:17.325] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 16:18:17.325] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 16:18:17.326] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-02 16:18:17.352] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] WorkerPathFixture.OffByDefaultMeansNoWorkerAndTheSameAnswerAsBefore (112 ms)
+[ RUN      ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll
+[2026-10-02 16:18:17.379] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 16:18:17.380] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-02 16:18:17.380] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 16:18:17.380] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 16:18:17.481] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll (162 ms)
+[ RUN      ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_worker_path.cpp(321): Skipped
+full build: the stall test below covers failure on a real worker
+
+[  SKIPPED ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged (24 ms)
+[ RUN      ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers
+[2026-10-02 16:18:17.567] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=2000 ms
+[2026-10-02 16:18:19.934] [warning] bone_suppress: worker path failed (-3), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 16:18:20.121] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers (2592 ms)
+[ RUN      ] WorkerPathFixture.EveryFailureAlertsAndAHealthyWorkerThatRefusesTheModelThreeTimesIsSwitchedOffForTheSession
+[2026-10-02 16:18:20.160] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-02 16:18:20.223] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 16:18:20.249] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-02 16:18:20.276] [warning] bone_suppress: worker path failed (-9), input returned unchanged (3 of 3 consecutive failures)
+[2026-10-02 16:18:20.451] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] WorkerPathFixture.EveryFailureAlertsAndAHealthyWorkerThatRefusesTheModelThreeTimesIsSwitchedOffForTheSession (317 ms)
+[ RUN      ] WorkerPathFixture.ShutdownThenInitRecoversAWorkerSwitchedOffByModelErrors
+[2026-10-02 16:18:20.477] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-02 16:18:20.516] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 16:18:20.516] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-02 16:18:20.516] [warning] bone_suppress: worker path failed (-9), input returned unchanged (3 of 3 consecutive failures)
+[2026-10-02 16:18:20.519] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 16:18:20.519] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-02 16:18:20.563] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 16:18:20.587] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] WorkerPathFixture.ShutdownThenInitRecoversAWorkerSwitchedOffByModelErrors (138 ms)
+[ RUN      ] WorkerPathFixture.ASuccessResetsTheConsecutiveFailureCount
+[2026-10-02 16:18:20.615] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe_ai_flip_42820, ep=0, timeout=2000 ms
+[2026-10-02 16:18:20.686] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 16:18:20.686] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-02 16:18:23.057] [warning] bone_suppress: worker path failed (-3), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 16:18:23.133] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] WorkerPathFixture.ASuccessResetsTheConsecutiveFailureCount (2550 ms)
+[ RUN      ] WorkerPathFixture.IntermittentFailuresAlertOnEveryFailureAndAreNeverBlocked
+[2026-10-02 16:18:23.166] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe_ai_ffs_42820, ep=0, timeout=2000 ms
+[2026-10-02 16:18:23.223] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 16:18:23.223] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-02 16:18:25.557] [warning] bone_suppress: worker path failed (-3), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 16:18:25.594] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-02 16:18:25.636] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] WorkerPathFixture.IntermittentFailuresAlertOnEveryFailureAndAreNeverBlocked (2502 ms)
+[ RUN      ] WorkerPathFixture.AWorkerThatFailsOnEveryCallRaisesThreeAlertsThenIsSwitchedOffAndKeepsOtherWarnings
+[2026-10-02 16:18:25.669] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-02 16:18:25.731] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 16:18:25.731] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-02 16:18:25.731] [warning] bone_suppress: worker path failed (-9), input returned unchanged (3 of 3 consecutive failures)
+[2026-10-02 16:18:25.733] [info] xpe_ai shutdown: worker_pid=0
+[alert-volume] 80 failing calls: queue holds 4 alerts, 3 of them worker alerts, unrelated earlier warning still queued: yes
+[       OK ] WorkerPathFixture.AWorkerThatFailsOnEveryCallRaisesThreeAlertsThenIsSwitchedOffAndKeepsOtherWarnings (89 ms)
+[ RUN      ] WorkerPathFixture.AnOverflowingDeclaredSizeIsRefusedBeforeTheWorkerIsEverTried
+[2026-10-02 16:18:25.758] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 16:18:25.786] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] WorkerPathFixture.AnOverflowingDeclaredSizeIsRefusedBeforeTheWorkerIsEverTried (58 ms)
+[ RUN      ] WorkerPathFixture.TheModuleMaximumImageTravelsTheWorkerPathLikeAnyOtherImage
+[2026-10-02 16:18:25.851] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 16:18:25.863] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-02 16:18:25.922] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 16:18:25.924] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 16:18:26.184] [info] xpe_ai shutdown: worker_pid=0
+[measure] 4096x4096 float32 through the worker: rc 0, 203 ms, worker peak working set 350 MiB
+[       OK ] WorkerPathFixture.TheModuleMaximumImageTravelsTheWorkerPathLikeAnyOtherImage (408 ms)
+[ RUN      ] WorkerPathFixture.TheModuleMaximumImageIsReturnedUnchangedOnceTheWorkerIsSwitchedOff
+[2026-10-02 16:18:26.225] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-02 16:18:26.270] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 16:18:26.270] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-02 16:18:26.270] [warning] bone_suppress: worker path failed (-9), input returned unchanged (3 of 3 consecutive failures)
+[2026-10-02 16:18:26.367] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] WorkerPathFixture.TheModuleMaximumImageIsReturnedUnchangedOnceTheWorkerIsSwitchedOff (173 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateBeforeInitIsNotInitializedAndLeavesTheOutputsAlone
+[       OK ] WorkerPathFixture.WorkerStateBeforeInitIsNotInitializedAndLeavesTheOutputsAlone (26 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateRefusesANullStateAndAcceptsNullOptionalOutputs
+[2026-10-02 16:18:26.425] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-02 16:18:26.425] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] WorkerPathFixture.WorkerStateRefusesANullStateAndAcceptsNullOptionalOutputs (30 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateIsNotUsedWhenTheWorkerPathIsOff
+[2026-10-02 16:18:26.456] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 16:18:26.456] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-02 16:18:26.457] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] WorkerPathFixture.WorkerStateIsNotUsedWhenTheWorkerPathIsOff (43 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateFollowsTheConsecutiveFailuresAndStaysDisabledAtTheCeiling
+[2026-10-02 16:18:26.499] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-02 16:18:26.594] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 16:18:26.594] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-02 16:18:26.594] [warning] bone_suppress: worker path failed (-9), input returned unchanged (3 of 3 consecutive failures)
+[2026-10-02 16:18:26.596] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] WorkerPathFixture.WorkerStateFollowsTheConsecutiveFailuresAndStaysDisabledAtTheCeiling (125 ms)
+[ RUN      ] WorkerPathFixture.AskingForTheWorkerStateRaisesNoAlertAndChangesNothing
+[2026-10-02 16:18:26.625] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-02 16:18:26.684] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 16:18:26.684] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] WorkerPathFixture.AskingForTheWorkerStateRaisesNoAlertAndChangesNothing (88 ms)
+[ RUN      ] WorkerPathFixture.ShutdownThenInitGivesAFreshWorkerState
+[2026-10-02 16:18:26.713] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-02 16:18:26.778] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 16:18:26.778] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-02 16:18:26.778] [warning] bone_suppress: worker path failed (-9), input returned unchanged (3 of 3 consecutive failures)
+[2026-10-02 16:18:26.780] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 16:18:26.781] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-02 16:18:26.781] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] WorkerPathFixture.ShutdownThenInitGivesAFreshWorkerState (93 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker
+[2026-10-02 16:18:26.807] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 16:18:32.219] [warning] bone_suppress: worker path failed (-3), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 16:18:32.219] [info] xpe_ai shutdown: worker_pid=0
+[measure] xpe_ai_worker_state while a call waits on a frozen worker: 0 ms
+[       OK ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker (5435 ms)
+[ RUN      ] WorkerPathFixture.WorkerStateKeepsTheLastCompletedStateUntilTheCallThatChangesItHasFinished
+[2026-10-02 16:18:32.243] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=1000 ms
+[2026-10-02 16:18:32.309] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 16:18:32.309] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-02 16:18:33.598] [warning] bone_suppress: worker path failed (-3), input returned unchanged (3 of 3 consecutive failures)
+[2026-10-02 16:18:33.622] [info] xpe_ai shutdown: worker_pid=0
+[measure] state queries while the third failure was in progress: 14985955 showing ACTIVE, wrong: 0
+[       OK ] WorkerPathFixture.WorkerStateKeepsTheLastCompletedStateUntilTheCallThatChangesItHasFinished (1403 ms)
+[ RUN      ] WorkerPathFixture.NoScalingIsAppliedToTheInputOrTheOutputOnEitherPath
+[2026-10-02 16:18:33.647] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 16:18:33.647] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-02 16:18:33.647] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 16:18:33.647] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 16:18:33.727] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] WorkerPathFixture.NoScalingIsAppliedToTheInputOrTheOutputOnEitherPath (111 ms)
+[ RUN      ] WorkerPathFixture.InPlaceFailureOfTheWorkerLeavesEveryInputByte
+[2026-10-02 16:18:33.758] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-02 16:18:33.794] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 16:18:33.794] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] WorkerPathFixture.InPlaceFailureOfTheWorkerLeavesEveryInputByte (64 ms)
+[----------] 23 tests from WorkerPathFixture (16631 ms total)
+
+[----------] Global test environment tear-down
+[==========] 108 tests from 5 test suites ran. (25299 ms total)
+[  PASSED  ] 107 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged

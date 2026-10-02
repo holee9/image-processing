@@ -1,0 +1,11 @@
+ARM c1_no_retry
+file src/xcal_writer.cpp
+built=True
+[  FAILED  ] XcalReplaceRetryTest.ADestinationBusyForAWhileWithinTheBudgetIsReplacedAndNothingIsRaised (46 ms)
+[  FAILED  ] XcalReplaceRetryTest.ADestinationHeldPastTheBudgetFailsWithTheReasonAndTheOldFileIntact (709 ms)
+[  FAILED  ] XcalReplaceRetryTest.ThePublicSaveGoesTheSameWay (748 ms)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] XcalReplaceRetryTest.ADestinationBusyForAWhileWithinTheBudgetIsReplacedAndNothingIsRaised
+[  FAILED  ] XcalReplaceRetryTest.ADestinationHeldPastTheBudgetFailsWithTheReasonAndTheOldFileIntact
+[  FAILED  ] XcalReplaceRetryTest.ThePublicSaveGoesTheSameWay

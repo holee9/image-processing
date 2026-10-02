@@ -1,0 +1,6 @@
+level 0 defect map alone  masked  23505 | pixels with NO valid pixel in 3x3 (distance>1):  15685 (66.7% of masked) | max distance   4 | beyond radius 3:   3072, beyond 8:      0, beyond 16:      0
+level 0 classified alone  masked  43873 | pixels with NO valid pixel in 3x3 (distance>1):  30757 (70.1% of masked) | max distance   9 | beyond radius 3:  17236, beyond 8:      3, beyond 16:      0
+level 0 union             masked  53103 | pixels with NO valid pixel in 3x3 (distance>1):  38519 (72.5% of masked) | max distance  10 | beyond radius 3:  24639, beyond 8:   2847, beyond 16:      0
+level 4 defect map alone  masked  23505 | pixels with NO valid pixel in 3x3 (distance>1):  15685 (66.7% of masked) | max distance   4 | beyond radius 3:   3072, beyond 8:      0, beyond 16:      0
+level 4 classified alone  masked  39077 | pixels with NO valid pixel in 3x3 (distance>1):  28901 (74.0% of masked) | max distance   9 | beyond radius 3:  16366, beyond 8:      1, beyond 16:      0
+level 4 union             masked  48994 | pixels with NO valid pixel in 3x3 (distance>1):  37245 (76.0% of masked) | max distance  10 | beyond radius 3:  24365, beyond 8:   2845, beyond 16:      0

@@ -1,0 +1,2217 @@
+Note: Randomizing tests' orders with a seed of 20261 .
+[==========] Running 846 tests from 108 test suites.
+[----------] Global test environment set-up.
+[----------] 2 tests from GoldenGainTest
+[ RUN      ] GoldenGainTest.FormulaMatchesExactFloat
+[       OK ] GoldenGainTest.FormulaMatchesExactFloat (1 ms)
+[ RUN      ] GoldenGainTest.ZeroGainIsRefusedAtLoad
+[       OK ] GoldenGainTest.ZeroGainIsRefusedAtLoad (1 ms)
+[----------] 2 tests from GoldenGainTest (2 ms total)
+
+[----------] 14 tests from PipelineExTest
+[ RUN      ] PipelineExTest.BatchProcessesMultipleFrames
+[       OK ] PipelineExTest.BatchProcessesMultipleFrames (9 ms)
+[ RUN      ] PipelineExTest.BatchZeroCountReturnsError
+[       OK ] PipelineExTest.BatchZeroCountReturnsError (2 ms)
+[ RUN      ] PipelineExTest.StateLoadNonexistentDirSkipsMaps
+[       OK ] PipelineExTest.StateLoadNonexistentDirSkipsMaps (2 ms)
+[ RUN      ] PipelineExTest.PipelineExNullStateSkipsCalibration
+[       OK ] PipelineExTest.PipelineExNullStateSkipsCalibration (3 ms)
+[ RUN      ] PipelineExTest.StateLoadPopulatesAllMaps
+[       OK ] PipelineExTest.StateLoadPopulatesAllMaps (6 ms)
+[ RUN      ] PipelineExTest.PipelineExWithState
+[       OK ] PipelineExTest.PipelineExWithState (7 ms)
+[ RUN      ] PipelineExTest.StateReleaseFreesMemory
+[       OK ] PipelineExTest.StateReleaseFreesMemory (7 ms)
+[ RUN      ] PipelineExTest.BatchNullMetasReturnsError
+[       OK ] PipelineExTest.BatchNullMetasReturnsError (2 ms)
+[ RUN      ] PipelineExTest.StateReleaseOnZeroInitIsSafe
+[       OK ] PipelineExTest.StateReleaseOnZeroInitIsSafe (2 ms)
+[ RUN      ] PipelineExTest.BatchContinuesOnError
+[       OK ] PipelineExTest.BatchContinuesOnError (7 ms)
+[ RUN      ] PipelineExTest.PipelineExNullImgReturnsError
+[       OK ] PipelineExTest.PipelineExNullImgReturnsError (2 ms)
+[ RUN      ] PipelineExTest.BatchSingleFrameWorks
+[       OK ] PipelineExTest.BatchSingleFrameWorks (5 ms)
+[ RUN      ] PipelineExTest.StateLoadNullReturnsError
+[       OK ] PipelineExTest.StateLoadNullReturnsError (2 ms)
+[ RUN      ] PipelineExTest.BatchNullImagesReturnsError
+[       OK ] PipelineExTest.BatchNullImagesReturnsError (3 ms)
+[----------] 14 tests from PipelineExTest (66 ms total)
+
+[----------] 12 tests from NonlinApplyTest
+[ RUN      ] NonlinApplyTest.CorrectedPixelsFollowTheIdealLinearResponse
+[       OK ] NonlinApplyTest.CorrectedPixelsFollowTheIdealLinearResponse (5 ms)
+[ RUN      ] NonlinApplyTest.ALinearPanelSkipsTheStageAndLeavesThePixelsAlone
+[       OK ] NonlinApplyTest.ALinearPanelSkipsTheStageAndLeavesThePixelsAlone (5 ms)
+[ RUN      ] NonlinApplyTest.TheFlagFollowsWhetherPixelsActuallyChanged
+[       OK ] NonlinApplyTest.TheFlagFollowsWhetherPixelsActuallyChanged (6 ms)
+[ RUN      ] NonlinApplyTest.NullPathIsRejected
+[       OK ] NonlinApplyTest.NullPathIsRejected (1 ms)
+[ RUN      ] NonlinApplyTest.ANonLinearPanelWithoutALutIsAnError
+[       OK ] NonlinApplyTest.ANonLinearPanelWithoutALutIsAnError (1 ms)
+[ RUN      ] NonlinApplyTest.TheDarkReferenceIsSubtractedBeforeTheMeansAreTaken
+[       OK ] NonlinApplyTest.TheDarkReferenceIsSubtractedBeforeTheMeansAreTaken (16 ms)
+[ RUN      ] NonlinApplyTest.AnIdentityTableChangesTheOutputComparedToTheRealOne
+[       OK ] NonlinApplyTest.AnIdentityTableChangesTheOutputComparedToTheRealOne (10 ms)
+[ RUN      ] NonlinApplyTest.A4096TableClampsRawValuesAboveItsLastIndex
+[       OK ] NonlinApplyTest.A4096TableClampsRawValuesAboveItsLastIndex (5 ms)
+[ RUN      ] NonlinApplyTest.TheCorrectionRunsAfterOffsetAndBeforeGain
+[       OK ] NonlinApplyTest.TheCorrectionRunsAfterOffsetAndBeforeGain (16 ms)
+[ RUN      ] NonlinApplyTest.ANonMonotoneOrWrongSizedTableIsRefusedAtLoad
+[       OK ] NonlinApplyTest.ANonMonotoneOrWrongSizedTableIsRefusedAtLoad (10 ms)
+[ RUN      ] NonlinApplyTest.TheSixtyFiveThousandEntryTableIsAppliedWithCorrectIndexing
+[       OK ] NonlinApplyTest.TheSixtyFiveThousandEntryTableIsAppliedWithCorrectIndexing (6 ms)
+[ RUN      ] NonlinApplyTest.TheUncorrectedFrameIsNowhereNearTheIdealLine
+[       OK ] NonlinApplyTest.TheUncorrectedFrameIsNowhereNearTheIdealLine (1 ms)
+[----------] 12 tests from NonlinApplyTest (88 ms total)
+
+[----------] 3 tests from GainCorrectAVX2ParityTest
+[ RUN      ] GainCorrectAVX2ParityTest.ParityWithNonMultipleStride
+[       OK ] GainCorrectAVX2ParityTest.ParityWithNonMultipleStride (21 ms)
+[ RUN      ] GainCorrectAVX2ParityTest.MultipleCallsAreBitIdentical
+[       OK ] GainCorrectAVX2ParityTest.MultipleCallsAreBitIdentical (28 ms)
+[ RUN      ] GainCorrectAVX2ParityTest.ShippedPathMatchesTheScalarReference
+[gain-parity] 1024x768  differing=0 of 786432  worst_ulp=0
+[       OK ] GainCorrectAVX2ParityTest.ShippedPathMatchesTheScalarReference (33 ms)
+[----------] 3 tests from GainCorrectAVX2ParityTest (84 ms total)
+
+[----------] 12 tests from NonlinLutGenerateTest
+[ RUN      ] NonlinLutGenerateTest.EveryEntryIsNonDecreasing
+[       OK ] NonlinLutGenerateTest.EveryEntryIsNonDecreasing (6 ms)
+[ RUN      ] NonlinLutGenerateTest.LutMatchesTheIndependentlyComputedIdealAtEveryKnot
+[       OK ] NonlinLutGenerateTest.LutMatchesTheIndependentlyComputedIdealAtEveryKnot (5 ms)
+[ RUN      ] NonlinLutGenerateTest.OnlyTheTwoSpecifiedEntryCountsAreAccepted
+[       OK ] NonlinLutGenerateTest.OnlyTheTwoSpecifiedEntryCountsAreAccepted (1 ms)
+[ RUN      ] NonlinLutGenerateTest.NonMonotoneMeasuredResponseIsRejected
+[       OK ] NonlinLutGenerateTest.NonMonotoneMeasuredResponseIsRejected (0 ms)
+[ RUN      ] NonlinLutGenerateTest.InterpolationAcrossTheMeasuredRangeStaysWithinThreeTenthsOfAPercent
+[       OK ] NonlinLutGenerateTest.InterpolationAcrossTheMeasuredRangeStaysWithinThreeTenthsOfAPercent (6 ms)
+[ RUN      ] NonlinLutGenerateTest.TheFileIsNotReadableAsAnotherCalibrationType
+[       OK ] NonlinLutGenerateTest.TheFileIsNotReadableAsAnotherCalibrationType (5 ms)
+[ RUN      ] NonlinLutGenerateTest.TheDarkEndIsPinnedToZero
+[       OK ] NonlinLutGenerateTest.TheDarkEndIsPinnedToZero (6 ms)
+[ RUN      ] NonlinLutGenerateTest.SixtyFiveThousandEntriesUseA4096By16Geometry
+[       OK ] NonlinLutGenerateTest.SixtyFiveThousandEntriesUseA4096By16Geometry (5 ms)
+[ RUN      ] NonlinLutGenerateTest.FileRoundTripPreservesEntriesAndRecordsTheConditions
+[       OK ] NonlinLutGenerateTest.FileRoundTripPreservesEntriesAndRecordsTheConditions (5 ms)
+[ RUN      ] NonlinLutGenerateTest.FewerThanTenDoseLevelsIsRejected
+[       OK ] NonlinLutGenerateTest.FewerThanTenDoseLevelsIsRejected (0 ms)
+[ RUN      ] NonlinLutGenerateTest.NullArgumentsAndNonIncreasingDoseAreRejected
+[       OK ] NonlinLutGenerateTest.NullArgumentsAndNonIncreasingDoseAreRejected (0 ms)
+[ RUN      ] NonlinLutGenerateTest.AboveTheMeasuredRangeTheTableIsExtendedAndSaysSo
+[       OK ] NonlinLutGenerateTest.AboveTheMeasuredRangeTheTableIsExtendedAndSaysSo (5 ms)
+[----------] 12 tests from NonlinLutGenerateTest (49 ms total)
+
+[----------] 8 tests from CalibModeTest
+[ RUN      ] CalibModeTest.QualityMeta_NullPointer_Rejected
+[       OK ] CalibModeTest.QualityMeta_NullPointer_Rejected (0 ms)
+[ RUN      ] CalibModeTest.GetMaxPoints_PerMode
+[       OK ] CalibModeTest.GetMaxPoints_PerMode (0 ms)
+[ RUN      ] CalibModeTest.SetGetRoundtrip_AllModes
+[       OK ] CalibModeTest.SetGetRoundtrip_AllModes (0 ms)
+[ RUN      ] CalibModeTest.MaxPoints_HardCap_10
+[       OK ] CalibModeTest.MaxPoints_HardCap_10 (0 ms)
+[ RUN      ] CalibModeTest.QualityMeta_InitialState
+[       OK ] CalibModeTest.QualityMeta_InitialState (22 ms)
+[ RUN      ] CalibModeTest.DefaultModeIsMultiPoint8
+[       OK ] CalibModeTest.DefaultModeIsMultiPoint8 (0 ms)
+[ RUN      ] CalibModeTest.SetMode_InvalidValue_Rejected
+[       OK ] CalibModeTest.SetMode_InvalidValue_Rejected (0 ms)
+[ RUN      ] CalibModeTest.GetPolyDegree_PerMode
+[       OK ] CalibModeTest.GetPolyDegree_PerMode (0 ms)
+[----------] 8 tests from CalibModeTest (22 ms total)
+
+[----------] 4 tests from SigmaClipConformanceTest
+[ RUN      ] SigmaClipConformanceTest.PopulationStddevReproducesTheSpecifiedResult
+[       OK ] SigmaClipConformanceTest.PopulationStddevReproducesTheSpecifiedResult (0 ms)
+[ RUN      ] SigmaClipConformanceTest.NMinMarkDoesNotAlterTheClippedMean
+[       OK ] SigmaClipConformanceTest.NMinMarkDoesNotAlterTheClippedMean (0 ms)
+[ RUN      ] SigmaClipConformanceTest.NoOutlierIsPlainMean
+[       OK ] SigmaClipConformanceTest.NoOutlierIsPlainMean (0 ms)
+[ RUN      ] SigmaClipConformanceTest.DefaultKappaIsMaskedByASingleLargeOutlier
+[       OK ] SigmaClipConformanceTest.DefaultKappaIsMaskedByASingleLargeOutlier (0 ms)
+[----------] 4 tests from SigmaClipConformanceTest (0 ms total)
+
+[----------] 4 tests from PipelineBypassTest
+[ RUN      ] PipelineBypassTest.JsonBooleanBypassFlagsAreHonoured
+[       OK ] PipelineBypassTest.JsonBooleanBypassFlagsAreHonoured (0 ms)
+[ RUN      ] PipelineBypassTest.QuotedBypassFlagsStillHonoured
+[       OK ] PipelineBypassTest.QuotedBypassFlagsStillHonoured (0 ms)
+[ RUN      ] PipelineBypassTest.WhitespaceAroundBooleanIsTolerated
+[       OK ] PipelineBypassTest.WhitespaceAroundBooleanIsTolerated (0 ms)
+[ RUN      ] PipelineBypassTest.JsonBooleanFalseDoesNotBypass
+[       OK ] PipelineBypassTest.JsonBooleanFalseDoesNotBypass (0 ms)
+[----------] 4 tests from PipelineBypassTest (0 ms total)
+
+[----------] 13 tests from OffsetCorrectTest
+[ RUN      ] OffsetCorrectTest.NotInitializedReturnsNotInitialized
+[       OK ] OffsetCorrectTest.NotInitializedReturnsNotInitialized (1 ms)
+[ RUN      ] OffsetCorrectTest.InputDataSizeLargerThanDimensionsIsAccepted
+[       OK ] OffsetCorrectTest.InputDataSizeLargerThanDimensionsIsAccepted (1 ms)
+[ RUN      ] OffsetCorrectTest.ClampsUnderflowToZero
+[       OK ] OffsetCorrectTest.ClampsUnderflowToZero (2 ms)
+[ RUN      ] OffsetCorrectTest.UndersizedInputBufferIsRejected
+[       OK ] OffsetCorrectTest.UndersizedInputBufferIsRejected (0 ms)
+[ RUN      ] OffsetCorrectTest.SubtractsOffsetFromRawPixels
+[       OK ] OffsetCorrectTest.SubtractsOffsetFromRawPixels (1 ms)
+[ RUN      ] OffsetCorrectTest.ZeroOffsetLeavesPixelsUnchanged
+[       OK ] OffsetCorrectTest.ZeroOffsetLeavesPixelsUnchanged (2 ms)
+[ RUN      ] OffsetCorrectTest.RoundsHalfUpAfterFloatOffsetSubtraction
+[       OK ] OffsetCorrectTest.RoundsHalfUpAfterFloatOffsetSubtraction (5 ms)
+[ RUN      ] OffsetCorrectTest.CalibNotLoadedIsDistinctFromNotInitialized
+[       OK ] OffsetCorrectTest.CalibNotLoadedIsDistinctFromNotInitialized (1 ms)
+[ RUN      ] OffsetCorrectTest.InputDataSizeZeroIsUnspecifiedAndAccepted
+[       OK ] OffsetCorrectTest.InputDataSizeZeroIsUnspecifiedAndAccepted (0 ms)
+[ RUN      ] OffsetCorrectTest.DimensionMismatchReturnsError
+[       OK ] OffsetCorrectTest.DimensionMismatchReturnsError (1 ms)
+[ RUN      ] OffsetCorrectTest.InitializedWithoutCalibrationReturnsCalibNotLoaded
+[       OK ] OffsetCorrectTest.InitializedWithoutCalibrationReturnsCalibNotLoaded (0 ms)
+[ RUN      ] OffsetCorrectTest.NullInputReturnsError
+[       OK ] OffsetCorrectTest.NullInputReturnsError (0 ms)
+[ RUN      ] OffsetCorrectTest.NullOutputReturnsError
+[       OK ] OffsetCorrectTest.NullOutputReturnsError (0 ms)
+[----------] 13 tests from OffsetCorrectTest (20 ms total)
+
+[----------] 1 test from PreprocessErrorPrecedenceTest
+[ RUN      ] PreprocessErrorPrecedenceTest.NullRequiredPointerWinsOverInitializationState
+
+entry point                      NULL argument          uninitialized  initialized
+xpe_calib_load_offset            filepath               -1             -1
+xpe_calib_load_gain              filepath               -1             -1
+xpe_calib_load_defect_map        filepath               -1             -1
+xpe_offset_correct               input                  -1             -1
+xpe_offset_correct               output                 -1             -1
+xpe_gain_correct                 input                  -1             -1
+xpe_gain_correct                 output                 -1             -1
+xpe_defect_correct               input                  -1             -1
+xpe_defect_correct               output                 -1             -1
+xpe_calib_generate_offset        dark_frames            -1             -1
+xpe_calib_generate_offset        output_path            -1             -1
+xpe_calib_check_expiry           filepath               -1             -1
+xpe_calib_check_expiry           is_expired             -1             -1
+xpe_calib_check_expiry           remaining_days         -1             -1
+xpe_calib_save                   filepath               -1             -1
+xpe_calib_save                   calib_type             -1             -1
+xpe_validate_readout_artifact    image                  -1             -1
+xpe_validate_readout_artifact    has_dropped_columns    -1             -1
+xpe_preprocess_pipeline          img                    -1             -1
+xpe_preprocess_pipeline          meta                   -1             -1
+xpe_calib_load_offset_cached     filePath               -1             -1
+xpe_calib_load_offset_cached     offsetMapOut           -1             -1
+xpe_calib_load_gain_cached       gainMapOut             -1             -1
+xpe_calib_load_defect_cached     defectMapOut           -1             -1
+xpe_preprocess_get_param_range   param_name             -1             -1
+xpe_preprocess_get_param_range   min_value              -1             -1
+xpe_ghost_correct                handle                 -1             -1
+xpe_ghost_reset                  handle                 -1             -1
+(XPE_ERR_INVALID_INPUT = -1, XPE_ERR_NOT_INITIALIZED = -6)
+
+[       OK ] PreprocessErrorPrecedenceTest.NullRequiredPointerWinsOverInitializationState (0 ms)
+[----------] 1 test from PreprocessErrorPrecedenceTest (0 ms total)
+
+[----------] 5 tests from CalibFixtureGenTest
+[ RUN      ] CalibFixtureGenTest.SameSeedProducesIdenticalBytes
+offset.xcal  0581ce02cfb58b70cff2fe09ddba468c22f7ea42c2d8ffd742a833ed414d24b4
+gain.xcal    4b6e178c920ca8b2e24e5a2493fbe29b29c025e1008bc82dc48e1b78d1829ccd
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790918719480_SameSeedProducesIdenticalBytes\a\manifest.json
+offset.xcal  0581ce02cfb58b70cff2fe09ddba468c22f7ea42c2d8ffd742a833ed414d24b4
+gain.xcal    4b6e178c920ca8b2e24e5a2493fbe29b29c025e1008bc82dc48e1b78d1829ccd
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790918719480_SameSeedProducesIdenticalBytes\b\manifest.json
+[       OK ] CalibFixtureGenTest.SameSeedProducesIdenticalBytes (5553 ms)
+[ RUN      ] CalibFixtureGenTest.GeneratedSetDrivesThePipeline
+offset.xcal  e068c85a76f1838e473f76ca606c3e0fde65771200388313c935332ef8159c7d
+gain.xcal    c6330b7a0442eacead97712e59b2936415943bb9491e8e5151b874699e725d95
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790918725033_GeneratedSetDrivesThePipeline\pipe\manifest.json
+[       OK ] CalibFixtureGenTest.GeneratedSetDrivesThePipeline (2733 ms)
+[ RUN      ] CalibFixtureGenTest.DifferentSeedChangesOffsetAndGain
+offset.xcal  19971d0a2c8d8b2a5e33fa13e5a14d167532c0dd439dbcb30cb6ee0901116f5e
+gain.xcal    d93bc7ec0012af549f6e8afef30c9507ffc4a28b8c778116f84d11cc4b5367a0
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790918727767_DifferentSeedChangesOffsetAndGain\s1\manifest.json
+offset.xcal  f364e326d00ad47314133523f7a5a942bceccda7a651dd6e0e90d96c4657d68a
+gain.xcal    d17a3ea2429996ba53e3c600fbe41f7fc4383e69cda22e74388d6d73132540d2
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790918727767_DifferentSeedChangesOffsetAndGain\s2\manifest.json
+[       OK ] CalibFixtureGenTest.DifferentSeedChangesOffsetAndGain (5460 ms)
+[ RUN      ] CalibFixtureGenTest.ExpiryTimestampRoundTrips
+offset.xcal  5794b4a786e43780ef067daec9bf53d0834e05bc0c761bd1b19b9f5f1ec4a8be
+gain.xcal    00f81a10fab65ec7580ea947901c97323d917ef122d6f1895bc6db5b6dfb8301
+defect.xcal  af1a7a0b2fc35eb4b9dd02569438bfc359e1aada5e4bcdc09eb32197494c4343  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790918733227_ExpiryTimestampRoundTrips\expired\manifest.json
+offset.xcal  3983c8277625018769d7baac1fbbd9f97a1d4271603bd75ce887faff68c8958c
+gain.xcal    ee57b27ff84e9fe3f72f6c81424eee7ad238421c3d22ad4c621f128fe0b55067
+defect.xcal  0da377dbec851282426c9f5f1a77acf0d0e1720cf25ba5dd8ad2f14adb92a76b  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790918733227_ExpiryTimestampRoundTrips\valid\manifest.json
+[       OK ] CalibFixtureGenTest.ExpiryTimestampRoundTrips (5659 ms)
+[ RUN      ] CalibFixtureGenTest.EmitsThreeXCalFilesAndManifest
+offset.xcal  e068c85a76f1838e473f76ca606c3e0fde65771200388313c935332ef8159c7d
+gain.xcal    c6330b7a0442eacead97712e59b2936415943bb9491e8e5151b874699e725d95
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1790918738886_EmitsThreeXCalFilesAndManifest\set\manifest.json
+[       OK ] CalibFixtureGenTest.EmitsThreeXCalFilesAndManifest (2736 ms)
+[----------] 5 tests from CalibFixtureGenTest (22143 ms total)
+
+[----------] 3 tests from GlobalStateHygieneTest
+[ RUN      ] GlobalStateHygieneTest.TheProbeDetectsAnInitializedModule
+[       OK ] GlobalStateHygieneTest.TheProbeDetectsAnInitializedModule (0 ms)
+[ RUN      ] GlobalStateHygieneTest.TheProbeDetectsAChangedCalibrationMode
+[       OK ] GlobalStateHygieneTest.TheProbeDetectsAChangedCalibrationMode (0 ms)
+[ RUN      ] GlobalStateHygieneTest.TheProbeDetectsAPendingAlert
+[       OK ] GlobalStateHygieneTest.TheProbeDetectsAPendingAlert (0 ms)
+[----------] 3 tests from GlobalStateHygieneTest (0 ms total)
+
+[----------] 5 tests from CalibSaveExpiryTest
+[ RUN      ] CalibSaveExpiryTest.PastExpiryReadsAsExpired
+[       OK ] CalibSaveExpiryTest.PastExpiryReadsAsExpired (17 ms)
+[ RUN      ] CalibSaveExpiryTest.ExpiredFileIsRefusedByLoader
+[       OK ] CalibSaveExpiryTest.ExpiredFileIsRefusedByLoader (8 ms)
+[ RUN      ] CalibSaveExpiryTest.ZeroMeansNeverExpires
+[       OK ] CalibSaveExpiryTest.ZeroMeansNeverExpires (4 ms)
+[ RUN      ] CalibSaveExpiryTest.InvalidTypeStillRejectedWithExpiryArgument
+[       OK ] CalibSaveExpiryTest.InvalidTypeStillRejectedWithExpiryArgument (3 ms)
+[ RUN      ] CalibSaveExpiryTest.FutureExpiryIsRecordedAndReadsAsNotExpired
+[       OK ] CalibSaveExpiryTest.FutureExpiryIsRecordedAndReadsAsNotExpired (10 ms)
+[----------] 5 tests from CalibSaveExpiryTest (45 ms total)
+
+[----------] 3 tests from NonlinearityCorrect
+[ RUN      ] NonlinearityCorrect.NullConfigIsNoOp
+[       OK ] NonlinearityCorrect.NullConfigIsNoOp (0 ms)
+[ RUN      ] NonlinearityCorrect.UnknownModeIsNoLongerAnError
+[       OK ] NonlinearityCorrect.UnknownModeIsNoLongerAnError (0 ms)
+[ RUN      ] NonlinearityCorrect.NullImgReturnsError
+[       OK ] NonlinearityCorrect.NullImgReturnsError (0 ms)
+[----------] 3 tests from NonlinearityCorrect (0 ms total)
+
+[----------] 7 tests from XCalCompressionTest
+[ RUN      ] XCalCompressionTest.CompressedFile_SmallerThanUncompressed
+[       OK ] XCalCompressionTest.CompressedFile_SmallerThanUncompressed (4 ms)
+[ RUN      ] XCalCompressionTest.WorstCaseInput_FallbackToUncompressed
+[       OK ] XCalCompressionTest.WorstCaseInput_FallbackToUncompressed (5 ms)
+[ RUN      ] XCalCompressionTest.UncompressedDefect_StillReadsCorrectly
+[       OK ] XCalCompressionTest.UncompressedDefect_StillReadsCorrectly (7 ms)
+[ RUN      ] XCalCompressionTest.WriteCompressed_ReadBack_BitIdentical
+[       OK ] XCalCompressionTest.WriteCompressed_ReadBack_BitIdentical (5 ms)
+[ RUN      ] XCalCompressionTest.Compressed_TypeMismatch_ConfigInvalid
+[       OK ] XCalCompressionTest.Compressed_TypeMismatch_ConfigInvalid (1 ms)
+[ RUN      ] XCalCompressionTest.CompressedWithCallerConfig_MetadataMerged
+[       OK ] XCalCompressionTest.CompressedWithCallerConfig_MetadataMerged (1 ms)
+[ RUN      ] XCalCompressionTest.CompressOffsetType_PayloadNotCompressed
+[       OK ] XCalCompressionTest.CompressOffsetType_PayloadNotCompressed (6 ms)
+[----------] 7 tests from XCalCompressionTest (32 ms total)
+
+[----------] 2 tests from GoldenOffsetTest
+[ RUN      ] GoldenOffsetTest.FormulaAppliedElementWise
+[       OK ] GoldenOffsetTest.FormulaAppliedElementWise (1 ms)
+[ RUN      ] GoldenOffsetTest.SpecificPixelValues
+[       OK ] GoldenOffsetTest.SpecificPixelValues (0 ms)
+[----------] 2 tests from GoldenOffsetTest (2 ms total)
+
+[----------] 4 tests from MapLengthTest
+[ RUN      ] MapLengthTest.ShortMapIsRejectedWithoutBeingWritten
+[       OK ] MapLengthTest.ShortMapIsRejectedWithoutBeingWritten (0 ms)
+[ RUN      ] MapLengthTest.ShortMapIsRejectedOnTheThreadedPathToo
+[       OK ] MapLengthTest.ShortMapIsRejectedOnTheThreadedPathToo (0 ms)
+[ RUN      ] MapLengthTest.SurplusBeyondWidthTimesHeightIsNotTouched
+[       OK ] MapLengthTest.SurplusBeyondWidthTimesHeightIsNotTouched (0 ms)
+[ RUN      ] MapLengthTest.ExactLengthMapIsFilledAndDoesNotFault
+[       OK ] MapLengthTest.ExactLengthMapIsFilledAndDoesNotFault (0 ms)
+[----------] 4 tests from MapLengthTest (0 ms total)
+
+[----------] 11 tests from GhostCorrectTest
+[ RUN      ] GhostCorrectTest.CreateSucceeds
+[       OK ] GhostCorrectTest.CreateSucceeds (0 ms)
+[ RUN      ] GhostCorrectTest.ZeroHeightReturnsError
+[       OK ] GhostCorrectTest.ZeroHeightReturnsError (0 ms)
+[ RUN      ] GhostCorrectTest.ResetNullHandleReturnsError
+[       OK ] GhostCorrectTest.ResetNullHandleReturnsError (0 ms)
+[ RUN      ] GhostCorrectTest.ResetSucceeds
+[       OK ] GhostCorrectTest.ResetSucceeds (0 ms)
+[ RUN      ] GhostCorrectTest.RepeatedFramesApplyHistoryCorrection
+[       OK ] GhostCorrectTest.RepeatedFramesApplyHistoryCorrection (0 ms)
+[ RUN      ] GhostCorrectTest.DestroyNullIsNoOp
+[       OK ] GhostCorrectTest.DestroyNullIsNoOp (0 ms)
+[ RUN      ] GhostCorrectTest.NullHandleOutReturnsError
+[       OK ] GhostCorrectTest.NullHandleOutReturnsError (0 ms)
+[ RUN      ] GhostCorrectTest.ZeroWidthReturnsError
+[       OK ] GhostCorrectTest.ZeroWidthReturnsError (0 ms)
+[ RUN      ] GhostCorrectTest.CorrectDimensionMismatchReturnsError
+[       OK ] GhostCorrectTest.CorrectDimensionMismatchReturnsError (0 ms)
+[ RUN      ] GhostCorrectTest.CorrectSucceedsOnValidHandle
+[       OK ] GhostCorrectTest.CorrectSucceedsOnValidHandle (0 ms)
+[ RUN      ] GhostCorrectTest.CorrectNullHandleReturnsError
+[       OK ] GhostCorrectTest.CorrectNullHandleReturnsError (0 ms)
+[----------] 11 tests from GhostCorrectTest (0 ms total)
+
+[----------] 12 tests from GenerateOffsetTest
+[ RUN      ] GenerateOffsetTest.SingleFrame_OutputEqualsInput
+[       OK ] GenerateOffsetTest.SingleFrame_OutputEqualsInput (4 ms)
+[ RUN      ] GenerateOffsetTest.TwoFrames_AverageIsCorrect
+[       OK ] GenerateOffsetTest.TwoFrames_AverageIsCorrect (4 ms)
+[ RUN      ] GenerateOffsetTest.ZeroFrames_ReturnsInvalidInput
+[       OK ] GenerateOffsetTest.ZeroFrames_ReturnsInvalidInput (0 ms)
+[ RUN      ] GenerateOffsetTest.NullFrames_ReturnsInvalidInput
+[       OK ] GenerateOffsetTest.NullFrames_ReturnsInvalidInput (0 ms)
+[ RUN      ] GenerateOffsetTest.DimensionMismatch_ReturnsInvalidInput
+[       OK ] GenerateOffsetTest.DimensionMismatch_ReturnsInvalidInput (0 ms)
+[ RUN      ] GenerateOffsetTest.OutputHeader_WidthHeightMatchInput
+[       OK ] GenerateOffsetTest.OutputHeader_WidthHeightMatchInput (3 ms)
+[ RUN      ] GenerateOffsetTest.ThreeFrames_AverageIsCorrect
+[       OK ] GenerateOffsetTest.ThreeFrames_AverageIsCorrect (4 ms)
+[ RUN      ] GenerateOffsetTest.UnsupportedFormat_ReturnsUnsupportedFormat
+[       OK ] GenerateOffsetTest.UnsupportedFormat_ReturnsUnsupportedFormat (0 ms)
+[ RUN      ] GenerateOffsetTest.NullOutputPath_ReturnsInvalidInput
+[       OK ] GenerateOffsetTest.NullOutputPath_ReturnsInvalidInput (0 ms)
+[ RUN      ] GenerateOffsetTest.OutputFile_PassesSHA256AndTypeVerification
+[       OK ] GenerateOffsetTest.OutputFile_PassesSHA256AndTypeVerification (3 ms)
+[ RUN      ] GenerateOffsetTest.OutputHeader_PixelFormatIsFloat32
+[       OK ] GenerateOffsetTest.OutputHeader_PixelFormatIsFloat32 (4 ms)
+[ RUN      ] GenerateOffsetTest.NegativeFrames_ReturnsInvalidInput
+[       OK ] GenerateOffsetTest.NegativeFrames_ReturnsInvalidInput (0 ms)
+[----------] 12 tests from GenerateOffsetTest (26 ms total)
+
+[----------] 5 tests from Sha256BackendTest
+[ RUN      ] Sha256BackendTest.MatchesPicoSha2AtBlockBoundaries
+[       OK ] Sha256BackendTest.MatchesPicoSha2AtBlockBoundaries (14 ms)
+[ RUN      ] Sha256BackendTest.FileHashedByPicoSha2StillVerifies
+[       OK ] Sha256BackendTest.FileHashedByPicoSha2StillVerifies (2 ms)
+[ RUN      ] Sha256BackendTest.ChunkedUpdatesMatchOneShot
+[       OK ] Sha256BackendTest.ChunkedUpdatesMatchOneShot (58 ms)
+[ RUN      ] Sha256BackendTest.BackendNameIsReported
+
+[  INFO ] D:\workspace-github\xpe-pre\modules\preprocess\tests\test_sha256_backend_parity.cpp(55):: SHA-256 backend: cng
+[       OK ] Sha256BackendTest.BackendNameIsReported (0 ms)
+[ RUN      ] Sha256BackendTest.TwoPartsMatchesTheConcatenation
+[       OK ] Sha256BackendTest.TwoPartsMatchesTheConcatenation (0 ms)
+[----------] 5 tests from Sha256BackendTest (75 ms total)
+
+[----------] 16 tests from GainPolyDoseRangeTest
+[ RUN      ] GainPolyDoseRangeTest.AnInvertedRangeIsReportedAsInvertedNotAsMissing
+[       OK ] GainPolyDoseRangeTest.AnInvertedRangeIsReportedAsInvertedNotAsMissing (20 ms)
+[ RUN      ] GainPolyDoseRangeTest.DescendingDoseLevelsAreRefused
+[       OK ] GainPolyDoseRangeTest.DescendingDoseLevelsAreRefused (3 ms)
+[ RUN      ] GainPolyDoseRangeTest.ANormalAduLadderIsNotReported
+[       OK ] GainPolyDoseRangeTest.ANormalAduLadderIsNotReported (13 ms)
+[ RUN      ] GainPolyDoseRangeTest.ASaturatedPixelIsNotDarkerThanADMaxPixel
+[       OK ] GainPolyDoseRangeTest.ASaturatedPixelIsNotDarkerThanADMaxPixel (19 ms)
+[ RUN      ] GainPolyDoseRangeTest.ClampingRaisesExactlyOneAlertCarryingTheCount
+[       OK ] GainPolyDoseRangeTest.ClampingRaisesExactlyOneAlertCarryingTheCount (17 ms)
+[ RUN      ] GainPolyDoseRangeTest.AMilligrayMagnitudeLadderIsReported
+[       OK ] GainPolyDoseRangeTest.AMilligrayMagnitudeLadderIsReported (12 ms)
+[ RUN      ] GainPolyDoseRangeTest.TheGeneratedFileCarriesTheFittedDoseRange
+[       OK ] GainPolyDoseRangeTest.TheGeneratedFileCarriesTheFittedDoseRange (16 ms)
+[ RUN      ] GainPolyDoseRangeTest.AFileWithoutARangeStillLoadsAndSaysWhy
+[       OK ] GainPolyDoseRangeTest.AFileWithoutARangeStillLoadsAndSaysWhy (24 ms)
+[ RUN      ] GainPolyDoseRangeTest.AFrameEntirelyOutOfRangeSaysSo
+[       OK ] GainPolyDoseRangeTest.AFrameEntirelyOutOfRangeSaysSo (16 ms)
+[ RUN      ] GainPolyDoseRangeTest.APartialClampKeepsThePlainWording
+[       OK ] GainPolyDoseRangeTest.APartialClampKeepsThePlainWording (16 ms)
+[ RUN      ] GainPolyDoseRangeTest.OneOutOfOrderLevelInTheMiddleIsRefused
+[       OK ] GainPolyDoseRangeTest.OneOutOfOrderLevelInTheMiddleIsRefused (4 ms)
+[ RUN      ] GainPolyDoseRangeTest.AFileWithoutARangeIsNotClamped
+[       OK ] GainPolyDoseRangeTest.AFileWithoutARangeIsNotClamped (21 ms)
+[ RUN      ] GainPolyDoseRangeTest.DuplicateDoseLevelsAreRefused
+[       OK ] GainPolyDoseRangeTest.DuplicateDoseLevelsAreRefused (4 ms)
+[ RUN      ] GainPolyDoseRangeTest.AFrameInsideTheRangeRaisesNoClampAlert
+[       OK ] GainPolyDoseRangeTest.AFrameInsideTheRangeRaisesNoClampAlert (16 ms)
+[ RUN      ] GainPolyDoseRangeTest.ASaturatedPixelReceivesTheDMaxGainInsteadOfTheExtrapolatedOne
+[       OK ] GainPolyDoseRangeTest.ASaturatedPixelReceivesTheDMaxGainInsteadOfTheExtrapolatedOne (15 ms)
+[ RUN      ] GainPolyDoseRangeTest.AscendingDoseLevelsAreStillAccepted
+[       OK ] GainPolyDoseRangeTest.AscendingDoseLevelsAreStillAccepted (13 ms)
+[----------] 16 tests from GainPolyDoseRangeTest (237 ms total)
+
+[----------] 4 tests from BufferReuseParityTest
+[ RUN      ] BufferReuseParityTest.IdenticalWithInjectedTransients
+[       OK ] BufferReuseParityTest.IdenticalWithInjectedTransients (21 ms)
+[ RUN      ] BufferReuseParityTest.IdenticalOnANarrowFrame
+[       OK ] BufferReuseParityTest.IdenticalOnANarrowFrame (2 ms)
+[ RUN      ] BufferReuseParityTest.IdenticalOnAGaussianFrame
+[       OK ] BufferReuseParityTest.IdenticalOnAGaussianFrame (20 ms)
+[ RUN      ] BufferReuseParityTest.IdenticalOnAFlatFieldWithBorders
+[       OK ] BufferReuseParityTest.IdenticalOnAFlatFieldWithBorders (1 ms)
+[----------] 4 tests from BufferReuseParityTest (45 ms total)
+
+[----------] 10 tests from GainCorrectTest
+[ RUN      ] GainCorrectTest.NullInputReturnsError
+[       OK ] GainCorrectTest.NullInputReturnsError (1 ms)
+[ RUN      ] GainCorrectTest.NullOutputReturnsError
+[       OK ] GainCorrectTest.NullOutputReturnsError (1 ms)
+[ RUN      ] GainCorrectTest.TruncatedInputDataSizeReturnsError
+[       OK ] GainCorrectTest.TruncatedInputDataSizeReturnsError (0 ms)
+[ RUN      ] GainCorrectTest.ZeroWidthReturnsError
+[       OK ] GainCorrectTest.ZeroWidthReturnsError (0 ms)
+[ RUN      ] GainCorrectTest.OutputFormatIsFloat32
+[       OK ] GainCorrectTest.OutputFormatIsFloat32 (0 ms)
+[ RUN      ] GainCorrectTest.AppliesGainCorrection
+[       OK ] GainCorrectTest.AppliesGainCorrection (1 ms)
+[ RUN      ] GainCorrectTest.UnityGainPreservesValues
+[       OK ] GainCorrectTest.UnityGainPreservesValues (2 ms)
+[ RUN      ] GainCorrectTest.OutputDataSizeEqualsPixelCountTimesFloat
+[       OK ] GainCorrectTest.OutputDataSizeEqualsPixelCountTimesFloat (0 ms)
+[ RUN      ] GainCorrectTest.GainMapNotLoadedReturnsCalibNotLoaded
+[       OK ] GainCorrectTest.GainMapNotLoadedReturnsCalibNotLoaded (0 ms)
+[ RUN      ] GainCorrectTest.DimensionMismatchReturnsError
+[       OK ] GainCorrectTest.DimensionMismatchReturnsError (0 ms)
+[----------] 10 tests from GainCorrectTest (11 ms total)
+
+[----------] 10 tests from SigmaClipNMinTest
+[ RUN      ] SigmaClipNMinTest.OrMergeAddsBitsWithoutClearingAnyone
+[       OK ] SigmaClipNMinTest.OrMergeAddsBitsWithoutClearingAnyone (0 ms)
+[ RUN      ] SigmaClipNMinTest.NMinFormulaMatchesTheSpec
+[       OK ] SigmaClipNMinTest.NMinFormulaMatchesTheSpec (0 ms)
+[ RUN      ] SigmaClipNMinTest.OrMergeRejectsASizeMismatch
+[       OK ] SigmaClipNMinTest.OrMergeRejectsASizeMismatch (0 ms)
+[ RUN      ] SigmaClipNMinTest.MeanMethodMarksNothing
+[       OK ] SigmaClipNMinTest.MeanMethodMarksNothing (0 ms)
+[ RUN      ] SigmaClipNMinTest.PixelBelowTheFloorIsMarkedDefective
+[       OK ] SigmaClipNMinTest.PixelBelowTheFloorIsMarkedDefective (0 ms)
+[ RUN      ] SigmaClipNMinTest.OrMergeOfAnEmptyMaskChangesNothing
+[       OK ] SigmaClipNMinTest.OrMergeOfAnEmptyMaskChangesNothing (0 ms)
+[ RUN      ] SigmaClipNMinTest.PublicEntryPointCreatesNoDefectMap
+[       OK ] SigmaClipNMinTest.PublicEntryPointCreatesNoDefectMap (1 ms)
+[ RUN      ] SigmaClipNMinTest.NMinAppliedAtThreeFrameCounts
+[       OK ] SigmaClipNMinTest.NMinAppliedAtThreeFrameCounts (0 ms)
+[ RUN      ] SigmaClipNMinTest.PixelAboveTheFloorIsNotMarked
+[       OK ] SigmaClipNMinTest.PixelAboveTheFloorIsNotMarked (0 ms)
+[ RUN      ] SigmaClipNMinTest.MarkingDoesNotChangeTheOffsetValue
+[       OK ] SigmaClipNMinTest.MarkingDoesNotChangeTheOffsetValue (0 ms)
+[----------] 10 tests from SigmaClipNMinTest (6 ms total)
+
+[----------] 6 tests from PipelineStageValueTest
+[ RUN      ] PipelineStageValueTest.OffsetThenNonlinearityThenGainReturnsTheCorrectedFrame
+[       OK ] PipelineStageValueTest.OffsetThenNonlinearityThenGainReturnsTheCorrectedFrame (2 ms)
+[ RUN      ] PipelineStageValueTest.GhostStageReturnsTheFrameItCorrected
+[       OK ] PipelineStageValueTest.GhostStageReturnsTheFrameItCorrected (2 ms)
+[ RUN      ] PipelineStageValueTest.NonlinearityWithoutCorrectionLeavesTheFlagClear
+[       OK ] PipelineStageValueTest.NonlinearityWithoutCorrectionLeavesTheFlagClear (2 ms)
+[ RUN      ] PipelineStageValueTest.GhostCorrectionOfTheSecondFrameReachesTheOutput
+[       OK ] PipelineStageValueTest.GhostCorrectionOfTheSecondFrameReachesTheOutput (2 ms)
+[ RUN      ] PipelineStageValueTest.BinningStageReturnsTheBinnedFrame
+[       OK ] PipelineStageValueTest.BinningStageReturnsTheBinnedFrame (3 ms)
+[ RUN      ] PipelineStageValueTest.BypassingNonlinearityGivesTheSameFrame
+[       OK ] PipelineStageValueTest.BypassingNonlinearityGivesTheSameFrame (2 ms)
+[----------] 6 tests from PipelineStageValueTest (17 ms total)
+
+[----------] 9 tests from CalibrationCacheTest
+[ RUN      ] CalibrationCacheTest.CacheHitReturnsSameData
+[       OK ] CalibrationCacheTest.CacheHitReturnsSameData (5 ms)
+[ RUN      ] CalibrationCacheTest.SetMaxSizeZeroClampsToOne
+[       OK ] CalibrationCacheTest.SetMaxSizeZeroClampsToOne (6 ms)
+[ RUN      ] CalibrationCacheTest.ClearEvictsAllEntries
+[       OK ] CalibrationCacheTest.ClearEvictsAllEntries (5 ms)
+[ RUN      ] CalibrationCacheTest.SetMaxSizeEvictsExcess
+[       OK ] CalibrationCacheTest.SetMaxSizeEvictsExcess (7 ms)
+[ RUN      ] CalibrationCacheTest.NullOutReturnsError
+[       OK ] CalibrationCacheTest.NullOutReturnsError (2 ms)
+[ RUN      ] CalibrationCacheTest.NullPathReturnsError
+[       OK ] CalibrationCacheTest.NullPathReturnsError (2 ms)
+[ RUN      ] CalibrationCacheTest.CacheMissLoadsFromFile
+[       OK ] CalibrationCacheTest.CacheMissLoadsFromFile (6 ms)
+[ RUN      ] CalibrationCacheTest.GainCacheMissAndHit
+[       OK ] CalibrationCacheTest.GainCacheMissAndHit (9 ms)
+[ RUN      ] CalibrationCacheTest.DefectCacheMissAndHit
+[       OK ] CalibrationCacheTest.DefectCacheMissAndHit (8 ms)
+[----------] 9 tests from CalibrationCacheTest (54 ms total)
+
+[----------] 15 tests from XCalValidatorTest
+[ RUN      ] XCalValidatorTest.ValidGainHeader_ReturnsOk
+[       OK ] XCalValidatorTest.ValidGainHeader_ReturnsOk (0 ms)
+[ RUN      ] XCalValidatorTest.BadVersion_ReturnsConfigInvalid
+[       OK ] XCalValidatorTest.BadVersion_ReturnsConfigInvalid (0 ms)
+[ RUN      ] XCalValidatorTest.HeightExceedsMax_ReturnsConfigInvalid
+[       OK ] XCalValidatorTest.HeightExceedsMax_ReturnsConfigInvalid (0 ms)
+[ RUN      ] XCalValidatorTest.TypeOutOfRange_ReturnsConfigInvalid
+[       OK ] XCalValidatorTest.TypeOutOfRange_ReturnsConfigInvalid (0 ms)
+[ RUN      ] XCalValidatorTest.GainPolyAcceptsWholeNumberOfPlanes
+[       OK ] XCalValidatorTest.GainPolyAcceptsWholeNumberOfPlanes (0 ms)
+[ RUN      ] XCalValidatorTest.PixelFormatOutOfRange_ReturnsConfigInvalid
+[       OK ] XCalValidatorTest.PixelFormatOutOfRange_ReturnsConfigInvalid (0 ms)
+[ RUN      ] XCalValidatorTest.ValidOffsetHeader_ReturnsOk
+[       OK ] XCalValidatorTest.ValidOffsetHeader_ReturnsOk (0 ms)
+[ RUN      ] XCalValidatorTest.PayloadLenMismatch_ReturnsConfigInvalid
+[       OK ] XCalValidatorTest.PayloadLenMismatch_ReturnsConfigInvalid (0 ms)
+[ RUN      ] XCalValidatorTest.BadMagic_ReturnsConfigInvalid
+[       OK ] XCalValidatorTest.BadMagic_ReturnsConfigInvalid (0 ms)
+[ RUN      ] XCalValidatorTest.TypeFormatSemanticMismatch_ReturnsConfigInvalid
+[       OK ] XCalValidatorTest.TypeFormatSemanticMismatch_ReturnsConfigInvalid (0 ms)
+[ RUN      ] XCalValidatorTest.ConfigJsonLenOverCap_ReturnsConfigInvalid
+[       OK ] XCalValidatorTest.ConfigJsonLenOverCap_ReturnsConfigInvalid (0 ms)
+[ RUN      ] XCalValidatorTest.BytesPerPixel_CorrectValues
+[       OK ] XCalValidatorTest.BytesPerPixel_CorrectValues (0 ms)
+[ RUN      ] XCalValidatorTest.ValidDefectHeader_ReturnsOk
+[       OK ] XCalValidatorTest.ValidDefectHeader_ReturnsOk (0 ms)
+[ RUN      ] XCalValidatorTest.WidthZero_ReturnsConfigInvalid
+[       OK ] XCalValidatorTest.WidthZero_ReturnsConfigInvalid (0 ms)
+[ RUN      ] XCalValidatorTest.ExpectedTypeMismatch_ReturnsConfigInvalid
+[       OK ] XCalValidatorTest.ExpectedTypeMismatch_ReturnsConfigInvalid (0 ms)
+[----------] 15 tests from XCalValidatorTest (0 ms total)
+
+[----------] 4 tests from GoldenTempTest
+[ RUN      ] GoldenTempTest.RefTempProducesNoChange
+[       OK ] GoldenTempTest.RefTempProducesNoChange (0 ms)
+[ RUN      ] GoldenTempTest.Below25cScaleIsLessThanOne
+[       OK ] GoldenTempTest.Below25cScaleIsLessThanOne (0 ms)
+[ RUN      ] GoldenTempTest.Above25cReducesPixelValues
+[       OK ] GoldenTempTest.Above25cReducesPixelValues (0 ms)
+[ RUN      ] GoldenTempTest.OutOfRangeReturnsError
+[       OK ] GoldenTempTest.OutOfRangeReturnsError (0 ms)
+[----------] 4 tests from GoldenTempTest (0 ms total)
+
+[----------] 2 tests from ExpiryRoundtripTest
+[ RUN      ] ExpiryRoundtripTest.ExpiryTimestampPreservedRoundtrip
+[       OK ] ExpiryRoundtripTest.ExpiryTimestampPreservedRoundtrip (4 ms)
+[ RUN      ] ExpiryRoundtripTest.ExpiryClassificationIsCorrect
+[       OK ] ExpiryRoundtripTest.ExpiryClassificationIsCorrect (6 ms)
+[----------] 2 tests from ExpiryRoundtripTest (10 ms total)
+
+[----------] 4 tests from GoldenReadoutTest
+[ RUN      ] GoldenReadoutTest.CleanImageReportsNoArtifacts
+[       OK ] GoldenReadoutTest.CleanImageReportsNoArtifacts (0 ms)
+[ RUN      ] GoldenReadoutTest.AllZeroColumnReportsDroppedColumn
+[       OK ] GoldenReadoutTest.AllZeroColumnReportsDroppedColumn (0 ms)
+[ RUN      ] GoldenReadoutTest.SingleSaturatedRowReportsNonuniformGain
+[       OK ] GoldenReadoutTest.SingleSaturatedRowReportsNonuniformGain (0 ms)
+[ RUN      ] GoldenReadoutTest.FullySaturatedImageReportsNonuniformGain
+[       OK ] GoldenReadoutTest.FullySaturatedImageReportsNonuniformGain (0 ms)
+[----------] 4 tests from GoldenReadoutTest (0 ms total)
+
+[----------] 17 tests from PreprocessCorrectionTest
+[ RUN      ] PreprocessCorrectionTest.OffsetCorrect_DimensionMismatch
+[       OK ] PreprocessCorrectionTest.OffsetCorrect_DimensionMismatch (1 ms)
+[ RUN      ] PreprocessCorrectionTest.OffsetCorrect_NullMetadata
+[       OK ] PreprocessCorrectionTest.OffsetCorrect_NullMetadata (2 ms)
+[ RUN      ] PreprocessCorrectionTest.GainCorrect_NoNaNInfInOutput
+[       OK ] PreprocessCorrectionTest.GainCorrect_NoNaNInfInOutput (2 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_NullBuffers
+[       OK ] PreprocessCorrectionTest.DefectCorrect_NullBuffers (0 ms)
+[ RUN      ] PreprocessCorrectionTest.GainCorrect_NullBuffers
+[       OK ] PreprocessCorrectionTest.GainCorrect_NullBuffers (0 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_BasicInterpolation
+[       OK ] PreprocessCorrectionTest.DefectCorrect_BasicInterpolation (3 ms)
+[ RUN      ] PreprocessCorrectionTest.OffsetCorrect_NullBuffers
+[       OK ] PreprocessCorrectionTest.OffsetCorrect_NullBuffers (0 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_ClusterDefectHandling
+[       OK ] PreprocessCorrectionTest.DefectCorrect_ClusterDefectHandling (3 ms)
+[ RUN      ] PreprocessCorrectionTest.GainCorrect_UINT16ToFLOAT32Conversion
+[       OK ] PreprocessCorrectionTest.GainCorrect_UINT16ToFLOAT32Conversion (2 ms)
+[ RUN      ] PreprocessCorrectionTest.GainCorrect_DimensionMismatch
+[       OK ] PreprocessCorrectionTest.GainCorrect_DimensionMismatch (1 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_EdgeDefectHandling
+[       OK ] PreprocessCorrectionTest.DefectCorrect_EdgeDefectHandling (3 ms)
+[ RUN      ] PreprocessCorrectionTest.GainCorrect_FormatMismatch
+[       OK ] PreprocessCorrectionTest.GainCorrect_FormatMismatch (3 ms)
+[ RUN      ] PreprocessCorrectionTest.OffsetCorrect_BasicSubtraction
+[       OK ] PreprocessCorrectionTest.OffsetCorrect_BasicSubtraction (2 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_FormatMismatch
+[       OK ] PreprocessCorrectionTest.DefectCorrect_FormatMismatch (2 ms)
+[ RUN      ] PreprocessCorrectionTest.OffsetCorrect_FormatMismatch
+[       OK ] PreprocessCorrectionTest.OffsetCorrect_FormatMismatch (3 ms)
+[ RUN      ] PreprocessCorrectionTest.OffsetCorrect_FloorAtZeroClamping
+[       OK ] PreprocessCorrectionTest.OffsetCorrect_FloorAtZeroClamping (2 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_DimensionMismatch
+[       OK ] PreprocessCorrectionTest.DefectCorrect_DimensionMismatch (2 ms)
+[----------] 17 tests from PreprocessCorrectionTest (37 ms total)
+
+[----------] 10 tests from RuntimeDetectionErrorTest
+[ RUN      ] RuntimeDetectionErrorTest.ZeroDimensionImageIsRejected
+[       OK ] RuntimeDetectionErrorTest.ZeroDimensionImageIsRejected (0 ms)
+[ RUN      ] RuntimeDetectionErrorTest.UndersizedImageIsRejected
+[       OK ] RuntimeDetectionErrorTest.UndersizedImageIsRejected (0 ms)
+[ RUN      ] RuntimeDetectionErrorTest.NonFloatImageIsRejected
+[       OK ] RuntimeDetectionErrorTest.NonFloatImageIsRejected (0 ms)
+[ RUN      ] RuntimeDetectionErrorTest.HeightMismatchIsRejected
+[       OK ] RuntimeDetectionErrorTest.HeightMismatchIsRejected (0 ms)
+[ RUN      ] RuntimeDetectionErrorTest.NullMetadataIsAccepted
+[       OK ] RuntimeDetectionErrorTest.NullMetadataIsAccepted (0 ms)
+[ RUN      ] RuntimeDetectionErrorTest.NullImageDataIsRejected
+[       OK ] RuntimeDetectionErrorTest.NullImageDataIsRejected (0 ms)
+[ RUN      ] RuntimeDetectionErrorTest.NullOutputDataIsRejected
+[       OK ] RuntimeDetectionErrorTest.NullOutputDataIsRejected (0 ms)
+[ RUN      ] RuntimeDetectionErrorTest.WidthMismatchIsRejected
+[       OK ] RuntimeDetectionErrorTest.WidthMismatchIsRejected (0 ms)
+[ RUN      ] RuntimeDetectionErrorTest.NonUint8DefectMapIsRejected
+[       OK ] RuntimeDetectionErrorTest.NonUint8DefectMapIsRejected (0 ms)
+[ RUN      ] RuntimeDetectionErrorTest.UndersizedDefectMapReportsBufferTooSmall
+[       OK ] RuntimeDetectionErrorTest.UndersizedDefectMapReportsBufferTooSmall (0 ms)
+[----------] 10 tests from RuntimeDetectionErrorTest (0 ms total)
+
+[----------] 22 tests from GainCorrectReciprocalFMATest
+[ RUN      ] GainCorrectReciprocalFMATest.InfGainIsRefusedAtLoad
+[       OK ] GainCorrectReciprocalFMATest.InfGainIsRefusedAtLoad (1 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.GainBelowTheRequirementMinimumIsRefusedAtLoad
+[       OK ] GainCorrectReciprocalFMATest.GainBelowTheRequirementMinimumIsRefusedAtLoad (11 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.ZeroGainIsRefusedAtLoad
+[       OK ] GainCorrectReciprocalFMATest.ZeroGainIsRefusedAtLoad (1 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.NegativeGainIsRefusedAtLoad
+[       OK ] GainCorrectReciprocalFMATest.NegativeGainIsRefusedAtLoad (1 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.NaNGainIsRefusedAtLoad
+[       OK ] GainCorrectReciprocalFMATest.NaNGainIsRefusedAtLoad (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.NonAVX2AlignedImageSize
+[       OK ] GainCorrectReciprocalFMATest.NonAVX2AlignedImageSize (1 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.GainAtTheRequirementMinimumSucceeds
+[       OK ] GainCorrectReciprocalFMATest.GainAtTheRequirementMinimumSucceeds (1 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.DimensionMismatchReturnsInvalidInput
+[       OK ] GainCorrectReciprocalFMATest.DimensionMismatchReturnsInvalidInput (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.ReciprocalAccuracyAcrossGainRange
+[       OK ] GainCorrectReciprocalFMATest.ReciprocalAccuracyAcrossGainRange (8 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.GainAtTheRequirementMaximumSucceeds
+[       OK ] GainCorrectReciprocalFMATest.GainAtTheRequirementMaximumSucceeds (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.SmallGainProducesLargeOutput
+[       OK ] GainCorrectReciprocalFMATest.SmallGainProducesLargeOutput (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.NullImgReturnsInvalidInput
+[       OK ] GainCorrectReciprocalFMATest.NullImgReturnsInvalidInput (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.OutputFormatIsFloat32
+[       OK ] GainCorrectReciprocalFMATest.OutputFormatIsFloat32 (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.ZeroWidthReturnsInvalidInput
+[       OK ] GainCorrectReciprocalFMATest.ZeroWidthReturnsInvalidInput (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.OutputDataSizeIsCorrect
+[       OK ] GainCorrectReciprocalFMATest.OutputDataSizeIsCorrect (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.GainAboveTheRequirementMaximumIsRefusedAtLoad
+[       OK ] GainCorrectReciprocalFMATest.GainAboveTheRequirementMaximumIsRefusedAtLoad (5 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.ReciprocalPrecomputationIsValid
+[       OK ] GainCorrectReciprocalFMATest.ReciprocalPrecomputationIsValid (1 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.PerPixelGainMapVariation
+[       OK ] GainCorrectReciprocalFMATest.PerPixelGainMapVariation (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.UnityGainProducesIdentityConversion
+[       OK ] GainCorrectReciprocalFMATest.UnityGainProducesIdentityConversion (1 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.NullOutputReturnsInvalidInput
+[       OK ] GainCorrectReciprocalFMATest.NullOutputReturnsInvalidInput (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.LargeInputWithLargeGain
+[       OK ] GainCorrectReciprocalFMATest.LargeInputWithLargeGain (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.SmallInputWithSmallGain
+[       OK ] GainCorrectReciprocalFMATest.SmallInputWithSmallGain (0 ms)
+[----------] 22 tests from GainCorrectReciprocalFMATest (44 ms total)
+
+[----------] 4 tests from RoundtripGenerateOffsetTest
+[ RUN      ] RoundtripGenerateOffsetTest.SingleFrameMeanEqualsFrame
+[       OK ] RoundtripGenerateOffsetTest.SingleFrameMeanEqualsFrame (4 ms)
+[ RUN      ] RoundtripGenerateOffsetTest.ZeroFrameCountReturnsError
+[       OK ] RoundtripGenerateOffsetTest.ZeroFrameCountReturnsError (0 ms)
+[ RUN      ] RoundtripGenerateOffsetTest.ThreeFramesMeanIsCorrect
+[       OK ] RoundtripGenerateOffsetTest.ThreeFramesMeanIsCorrect (4 ms)
+[ RUN      ] RoundtripGenerateOffsetTest.MultiFrameSameValueMeanEqualsValue
+[       OK ] RoundtripGenerateOffsetTest.MultiFrameSameValueMeanEqualsValue (4 ms)
+[----------] 4 tests from RoundtripGenerateOffsetTest (13 ms total)
+
+[----------] 6 tests from ThreadParityTest
+[ RUN      ] ThreadParityTest.RealFrameSizeIsIdenticalAtEveryThreadCount
+[       OK ] ThreadParityTest.RealFrameSizeIsIdenticalAtEveryThreadCount (563 ms)
+[ RUN      ] ThreadParityTest.GlobalSigmaIsIdenticalAtEveryThreadCount
+[       OK ] ThreadParityTest.GlobalSigmaIsIdenticalAtEveryThreadCount (448 ms)
+[ RUN      ] ThreadParityTest.ConcurrentCallsWithDifferentThreadCountsAreIndependent
+[       OK ] ThreadParityTest.ConcurrentCallsWithDifferentThreadCountsAreIndependent (30 ms)
+[ RUN      ] ThreadParityTest.DetectFrameClearsTheMapItself
+[       OK ] ThreadParityTest.DetectFrameClearsTheMapItself (47 ms)
+[ RUN      ] ThreadParityTest.RepeatedThreadedRunsAreDeterministic
+[       OK ] ThreadParityTest.RepeatedThreadedRunsAreDeterministic (154 ms)
+[ RUN      ] ThreadParityTest.DefectMapIsIdenticalPixelForPixelAtEveryThreadCount
+[       OK ] ThreadParityTest.DefectMapIsIdenticalPixelForPixelAtEveryThreadCount (139 ms)
+[----------] 6 tests from ThreadParityTest (1384 ms total)
+
+[----------] 2 tests from DefectCorrectDeterminismTest
+[ RUN      ] DefectCorrectDeterminismTest.DeterministicOnANonMultipleStride
+[       OK ] DefectCorrectDeterminismTest.DeterministicOnANonMultipleStride (17 ms)
+[ RUN      ] DefectCorrectDeterminismTest.MultipleCallsAreBitIdentical
+[       OK ] DefectCorrectDeterminismTest.MultipleCallsAreBitIdentical (8 ms)
+[----------] 2 tests from DefectCorrectDeterminismTest (25 ms total)
+
+[----------] 9 tests from ReadoutValidateTest
+[ RUN      ] ReadoutValidateTest.DataSizeZeroIsUnspecifiedAndAccepted
+[       OK ] ReadoutValidateTest.DataSizeZeroIsUnspecifiedAndAccepted (0 ms)
+[ RUN      ] ReadoutValidateTest.DataSizeSmallerThanDimensionsIsRejected
+[       OK ] ReadoutValidateTest.DataSizeSmallerThanDimensionsIsRejected (0 ms)
+[ RUN      ] ReadoutValidateTest.NullImageReturnsError
+[       OK ] ReadoutValidateTest.NullImageReturnsError (0 ms)
+[ RUN      ] ReadoutValidateTest.NullNonuniformOutReturnsError
+[       OK ] ReadoutValidateTest.NullNonuniformOutReturnsError (0 ms)
+[ RUN      ] ReadoutValidateTest.NullMetadataReturnsError
+[       OK ] ReadoutValidateTest.NullMetadataReturnsError (0 ms)
+[ RUN      ] ReadoutValidateTest.CleanImageReturnsOkNoArtifacts
+[       OK ] ReadoutValidateTest.CleanImageReturnsOkNoArtifacts (0 ms)
+[ RUN      ] ReadoutValidateTest.HighNoiseStillReturnsOk
+[       OK ] ReadoutValidateTest.HighNoiseStillReturnsOk (0 ms)
+[ RUN      ] ReadoutValidateTest.DataSizeLargerThanDimensionsIsAccepted
+[       OK ] ReadoutValidateTest.DataSizeLargerThanDimensionsIsAccepted (0 ms)
+[ RUN      ] ReadoutValidateTest.NullDroppedOutReturnsError
+[       OK ] ReadoutValidateTest.NullDroppedOutReturnsError (0 ms)
+[----------] 9 tests from ReadoutValidateTest (0 ms total)
+
+[----------] 8 tests from PipelineStageTest
+[ RUN      ] PipelineStageTest.DefectStageFailsWhenItsMapIsNotLoaded
+[       OK ] PipelineStageTest.DefectStageFailsWhenItsMapIsNotLoaded (0 ms)
+[ RUN      ] PipelineStageTest.AllStagesEnabledRunInSequence
+[       OK ] PipelineStageTest.AllStagesEnabledRunInSequence (3 ms)
+[ RUN      ] PipelineStageTest.GainStageFailurePropagates
+[       OK ] PipelineStageTest.GainStageFailurePropagates (0 ms)
+[ RUN      ] PipelineStageTest.OffsetAndGainStagesRunWithCalibrationLoaded
+[       OK ] PipelineStageTest.OffsetAndGainStagesRunWithCalibrationLoaded (2 ms)
+[ RUN      ] PipelineStageTest.BypassDefectStillSkipsTheStageCleanly
+[       OK ] PipelineStageTest.BypassDefectStillSkipsTheStageCleanly (0 ms)
+[ RUN      ] PipelineStageTest.ReadoutAndTempStagesRunAndSetFlags
+[       OK ] PipelineStageTest.ReadoutAndTempStagesRunAndSetFlags (0 ms)
+[ RUN      ] PipelineStageTest.NonlinearityAndBinningStagesRun
+[       OK ] PipelineStageTest.NonlinearityAndBinningStagesRun (0 ms)
+[ RUN      ] PipelineStageTest.OffsetStageFailurePropagates
+[       OK ] PipelineStageTest.OffsetStageFailurePropagates (0 ms)
+[----------] 8 tests from PipelineStageTest (9 ms total)
+
+[----------] 12 tests from VerifyMetricsEdgeTest
+[ RUN      ] VerifyMetricsEdgeTest.VerifyOffsetRejectsFloatInput
+[       OK ] VerifyMetricsEdgeTest.VerifyOffsetRejectsFloatInput (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyGainComputesFlatnessOverVariedOutput
+[       OK ] VerifyMetricsEdgeTest.VerifyGainComputesFlatnessOverVariedOutput (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyOffsetFallsBackWhenNoDarkPixelsExist
+[       OK ] VerifyMetricsEdgeTest.VerifyOffsetFallsBackWhenNoDarkPixelsExist (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.OddPixelCountUsesTheOddMedianBranch
+[       OK ] VerifyMetricsEdgeTest.OddPixelCountUsesTheOddMedianBranch (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyDefectHandlesFullyDefectiveMask
+[       OK ] VerifyMetricsEdgeTest.VerifyDefectHandlesFullyDefectiveMask (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyDefectHandlesMaskWithNoDefects
+[       OK ] VerifyMetricsEdgeTest.VerifyDefectHandlesMaskWithNoDefects (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyGainHandlesPerfectlyUniformOutput
+[       OK ] VerifyMetricsEdgeTest.VerifyGainHandlesPerfectlyUniformOutput (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyPipelineHandlesFlatFinalImage
+[       OK ] VerifyMetricsEdgeTest.VerifyPipelineHandlesFlatFinalImage (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyDefectRejectsWrongMaskFormat
+[       OK ] VerifyMetricsEdgeTest.VerifyDefectRejectsWrongMaskFormat (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyGainRejectsWrongGainMapFormat
+[       OK ] VerifyMetricsEdgeTest.VerifyGainRejectsWrongGainMapFormat (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyPipelineRejectsFloatInput
+[       OK ] VerifyMetricsEdgeTest.VerifyPipelineRejectsFloatInput (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyOffsetRejectsFloatCorrectedImage
+[       OK ] VerifyMetricsEdgeTest.VerifyOffsetRejectsFloatCorrectedImage (0 ms)
+[----------] 12 tests from VerifyMetricsEdgeTest (0 ms total)
+
+[----------] 4 tests from DefectOracle
+[ RUN      ] DefectOracle.ControlOneMissedDefectBreaksRecall
+[       OK ] DefectOracle.ControlOneMissedDefectBreaksRecall (27 ms)
+[ RUN      ] DefectOracle.ControlFlaggingManyGoodPixelsBreaksGoodPixelDelta
+[       OK ] DefectOracle.ControlFlaggingManyGoodPixelsBreaksGoodPixelDelta (49 ms)
+[ RUN      ] DefectOracle.RecallFprAndGoodPixelDeltaMeetTheCanonicalLines
+[oracle] seed=1 truth=130 (isolated 59, cluster 45, line 16, edge 10) TP=130 FN=0 FP=0 recall=100.0000% FPR=0.000000% GoodPixelDeltaP99=0.0000 ADU
+[oracle] seed=2 truth=130 (isolated 59, cluster 45, line 16, edge 10) TP=130 FN=0 FP=0 recall=100.0000% FPR=0.000000% GoodPixelDeltaP99=0.0000 ADU
+[oracle] seed=3 truth=130 (isolated 59, cluster 45, line 16, edge 10) TP=130 FN=0 FP=0 recall=100.0000% FPR=0.000000% GoodPixelDeltaP99=0.0000 ADU
+[       OK ] DefectOracle.RecallFprAndGoodPixelDeltaMeetTheCanonicalLines (7973 ms)
+[ RUN      ] DefectOracle.ControlOneFalseAlarmShowsInFpr
+[       OK ] DefectOracle.ControlOneFalseAlarmShowsInFpr (32 ms)
+[----------] 4 tests from DefectOracle (8083 ms total)
+
+[----------] 20 tests from VerifyMetricsTest
+[ RUN      ] VerifyMetricsTest.VerifyOffset_TooFewDarkPixelsIsUnmeasurableNotWholeFrame
+[       OK ] VerifyMetricsTest.VerifyOffset_TooFewDarkPixelsIsUnmeasurableNotWholeFrame (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_PerfectCorrection
+[       OK ] VerifyMetricsTest.VerifyOffset_PerfectCorrection (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_DetectsBadGain
+[       OK ] VerifyMetricsTest.VerifyGain_DetectsBadGain (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_MeasurableFrameReportsMeasured
+[       OK ] VerifyMetricsTest.VerifyOffset_MeasurableFrameReportsMeasured (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyPipeline_SNRImprovement
+[       OK ] VerifyMetricsTest.VerifyPipeline_SNRImprovement (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_PassesByDarkReductionWhenBiasExceedsFive
+[       OK ] VerifyMetricsTest.VerifyOffset_PassesByDarkReductionWhenBiasExceedsFive (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_PublishesTheDarkReductionTheGateUsed
+[       OK ] VerifyMetricsTest.VerifyOffset_PublishesTheDarkReductionTheGateUsed (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_FlatResidualUsesTheArithmeticMean
+[       OK ] VerifyMetricsTest.VerifyGain_FlatResidualUsesTheArithmeticMean (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_DarkBiasUsesTheArithmeticMean
+[       OK ] VerifyMetricsTest.VerifyOffset_DarkBiasUsesTheArithmeticMean (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_PerfectFlatField
+[       OK ] VerifyMetricsTest.VerifyGain_PerfectFlatField (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyDefect_CountsDefects
+[       OK ] VerifyMetricsTest.VerifyDefect_CountsDefects (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_UnmeasurableFrameDoesNotPass
+[       OK ] VerifyMetricsTest.VerifyOffset_UnmeasurableFrameDoesNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_HighDsnuNoLongerBlocksTheGate
+[       OK ] VerifyMetricsTest.VerifyOffset_HighDsnuNoLongerBlocksTheGate (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyMetrics_NullInput
+[       OK ] VerifyMetricsTest.VerifyMetrics_NullInput (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_UnmeasurableFrameReportsNotMeasured
+[       OK ] VerifyMetricsTest.VerifyOffset_UnmeasurableFrameReportsNotMeasured (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyMetrics_DimensionMismatch
+[       OK ] VerifyMetricsTest.VerifyMetrics_DimensionMismatch (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_ClampVerification
+[       OK ] VerifyMetricsTest.VerifyOffset_ClampVerification (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyDefect_GateMatchesTheFivePercentRequirement
+[       OK ] VerifyMetricsTest.VerifyDefect_GateMatchesTheFivePercentRequirement (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_ImprovedButStillAboveOnePercentFails
+[       OK ] VerifyMetricsTest.VerifyGain_ImprovedButStillAboveOnePercentFails (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyOffset_DsnuAduIsTheCanonicalStdNotTheCv
+[       OK ] VerifyMetricsTest.VerifyOffset_DsnuAduIsTheCanonicalStdNotTheCv (0 ms)
+[----------] 20 tests from VerifyMetricsTest (1 ms total)
+
+[----------] 5 tests from RadixSelectParityTest
+[ RUN      ] RadixSelectParityTest.BranchlessSortKeyEqualsTheTernaryItReplaced
+[       OK ] RadixSelectParityTest.BranchlessSortKeyEqualsTheTernaryItReplaced (1 ms)
+[ RUN      ] RadixSelectParityTest.ZeroSignChoiceCannotChangeTheSigma
+[       OK ] RadixSelectParityTest.ZeroSignChoiceCannotChangeTheSigma (0 ms)
+[ RUN      ] RadixSelectParityTest.MatchesNthElementBitForBit
+[       OK ] RadixSelectParityTest.MatchesNthElementBitForBit (159 ms)
+[ RUN      ] RadixSelectParityTest.GlobalSigmaMatchesThePreviousImplementation
+[       OK ] RadixSelectParityTest.GlobalSigmaMatchesThePreviousImplementation (58 ms)
+[ RUN      ] RadixSelectParityTest.SortKeyIsOrderPreservingAndInvertible
+[       OK ] RadixSelectParityTest.SortKeyIsOrderPreservingAndInvertible (3 ms)
+[----------] 5 tests from RadixSelectParityTest (224 ms total)
+
+[----------] 7 tests from Sha256Test
+[ RUN      ] Sha256Test.ABCDBCDE56_KnownAnswer
+[       OK ] Sha256Test.ABCDBCDE56_KnownAnswer (0 ms)
+[ RUN      ] Sha256Test.TwoParts_SplitABC_MatchesCombined
+[       OK ] Sha256Test.TwoParts_SplitABC_MatchesCombined (0 ms)
+[ RUN      ] Sha256Test.ABC_KnownAnswer
+[       OK ] Sha256Test.ABC_KnownAnswer (0 ms)
+[ RUN      ] Sha256Test.TwoParts_EmptyFirstPart
+[       OK ] Sha256Test.TwoParts_EmptyFirstPart (0 ms)
+[ RUN      ] Sha256Test.TwoParts_EmptySecondPart
+[       OK ] Sha256Test.TwoParts_EmptySecondPart (0 ms)
+[ RUN      ] Sha256Test.TwoParts_BothEmpty_EqualsEmptyDigest
+[       OK ] Sha256Test.TwoParts_BothEmpty_EqualsEmptyDigest (0 ms)
+[ RUN      ] Sha256Test.EmptyString_KnownAnswer
+[       OK ] Sha256Test.EmptyString_KnownAnswer (0 ms)
+[----------] 7 tests from Sha256Test (0 ms total)
+
+[----------] 8 tests from AllCombinations/PipelineComboTest
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_NoDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_NoDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_NoDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_OneDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_OneDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_OneDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_NoDefect (3 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_OneDefect (4 ms)
+[----------] 8 tests from AllCombinations/PipelineComboTest (28 ms total)
+
+[----------] 1 test from DetectBuildParityTest
+[ RUN      ] DetectBuildParityTest.RowRangeMatchesTheScalarRuleAtRealFrameSize
+[build-parity] XPE_DETECT_HAS_AVX2=1  3072x3072  flagged=18085  digest=383c0efe8d90160e
+[       OK ] DetectBuildParityTest.RowRangeMatchesTheScalarRuleAtRealFrameSize (822 ms)
+[----------] 1 test from DetectBuildParityTest (822 ms total)
+
+[----------] 15 tests from CalibManagerTest
+[ RUN      ] CalibManagerTest.CalibSaveUnloadedOffsetReturnsError
+[       OK ] CalibManagerTest.CalibSaveUnloadedOffsetReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.LoadDefectMapNonExistentFileReturnsIoError
+[       OK ] CalibManagerTest.LoadDefectMapNonExistentFileReturnsIoError (0 ms)
+[ RUN      ] CalibManagerTest.GenerateOffsetZeroFramesReturnsError
+[       OK ] CalibManagerTest.GenerateOffsetZeroFramesReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.GenerateOffsetNullOutputPathReturnsError
+[       OK ] CalibManagerTest.GenerateOffsetNullOutputPathReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.LoadGainNonExistentFileReturnsIoError
+[       OK ] CalibManagerTest.LoadGainNonExistentFileReturnsIoError (0 ms)
+[ RUN      ] CalibManagerTest.CalibSaveNullPathReturnsError
+[       OK ] CalibManagerTest.CalibSaveNullPathReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.CalibSaveInvalidTypeReturnsError
+[       OK ] CalibManagerTest.CalibSaveInvalidTypeReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.LoadOffsetNullPathReturnsError
+[       OK ] CalibManagerTest.LoadOffsetNullPathReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.CheckExpiryNonExistentFileReturnsError
+[       OK ] CalibManagerTest.CheckExpiryNonExistentFileReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.LoadGainNullPathReturnsError
+[       OK ] CalibManagerTest.LoadGainNullPathReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.GenerateOffsetNullFramesReturnsError
+[       OK ] CalibManagerTest.GenerateOffsetNullFramesReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.LoadDefectMapNullPathReturnsError
+[       OK ] CalibManagerTest.LoadDefectMapNullPathReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.CheckExpiryNullPathReturnsError
+[       OK ] CalibManagerTest.CheckExpiryNullPathReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.CalibSaveNullTypeReturnsError
+[       OK ] CalibManagerTest.CalibSaveNullTypeReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.LoadOffsetNonExistentFileReturnsIoError
+[       OK ] CalibManagerTest.LoadOffsetNonExistentFileReturnsIoError (0 ms)
+[----------] 15 tests from CalibManagerTest (0 ms total)
+
+[----------] 15 tests from TileLanesTest
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile16
+[       OK ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile16 (15 ms)
+[ RUN      ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile8
+[       OK ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile8 (678 ms)
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile100
+[       OK ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile100 (32 ms)
+[ RUN      ] TileLanesTest.TilesNarrowerThanEightStayScalarAndAgree_Tile4
+[       OK ] TileLanesTest.TilesNarrowerThanEightStayScalarAndAgree_Tile4 (18 ms)
+[ RUN      ] TileLanesTest.ThreadedRunsMatchOneThread
+[       OK ] TileLanesTest.ThreadedRunsMatchOneThread (63 ms)
+[ RUN      ] TileLanesTest.TilesNarrowerThanEightStayScalarAndAgree_Tile7
+[       OK ] TileLanesTest.TilesNarrowerThanEightStayScalarAndAgree_Tile7 (15 ms)
+[ RUN      ] TileLanesTest.HistoricalRuleIsUnchanged
+[       OK ] TileLanesTest.HistoricalRuleIsUnchanged (3 ms)
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile64OddSize
+[       OK ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile64OddSize (8 ms)
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile8
+[       OK ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile8 (10 ms)
+[ RUN      ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile128
+[       OK ] TileLanesTest.StraddlingRunsMatchTheScalarRule_Tile128 (87 ms)
+[ RUN      ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile64OddSize
+[       OK ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile64OddSize (88 ms)
+[ RUN      ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile100
+[       OK ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile100 (208 ms)
+[ RUN      ] TileLanesTest.NoTileTableUsesTheFrameReferenceAndAgrees
+[       OK ] TileLanesTest.NoTileTableUsesTheFrameReferenceAndAgrees (3 ms)
+[ RUN      ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile16
+[       OK ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile16 (643 ms)
+[ RUN      ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile128
+[       OK ] TileLanesTest.HazardPixelsAreDecidedByTheScalarRule_Tile128 (178 ms)
+[----------] 15 tests from TileLanesTest (2056 ms total)
+
+[----------] 4 tests from BinningCorrect
+[ RUN      ] BinningCorrect.NullImgReturnsError
+[       OK ] BinningCorrect.NullImgReturnsError (0 ms)
+[ RUN      ] BinningCorrect.UnknownBinningModeReturnsError
+[       OK ] BinningCorrect.UnknownBinningModeReturnsError (0 ms)
+[ RUN      ] BinningCorrect.Binning2x2ReturnsOk
+[       OK ] BinningCorrect.Binning2x2ReturnsOk (0 ms)
+[ RUN      ] BinningCorrect.Binning1x1IsNoOp
+[       OK ] BinningCorrect.Binning1x1IsNoOp (0 ms)
+[----------] 4 tests from BinningCorrect (0 ms total)
+
+[----------] 10 tests from GainPolyClassifyTest
+[ RUN      ] GainPolyClassifyTest.APixelWhoseLeastSquaresLineLeavesTheRangeAtAMeasuredDoseIsClassifiedToo
+[       OK ] GainPolyClassifyTest.APixelWhoseLeastSquaresLineLeavesTheRangeAtAMeasuredDoseIsClassifiedToo (9 ms)
+[ RUN      ] GainPolyClassifyTest.CalledOnItsOwnTheGainStageKeepsGainOneAndSaysNoDefectStageFollows
+[       OK ] GainPolyClassifyTest.CalledOnItsOwnTheGainStageKeepsGainOneAndSaysNoDefectStageFollows (9 ms)
+[ RUN      ] GainPolyClassifyTest.MoreThanFivePercentClassifiedRefusesTheGenerationAndChangesNothing
+[       OK ] GainPolyClassifyTest.MoreThanFivePercentClassifiedRefusesTheGenerationAndChangesNothing (30 ms)
+[ RUN      ] GainPolyClassifyTest.ACleanLadderRaisesNoClassificationAlert
+[       OK ] GainPolyClassifyTest.ACleanLadderRaisesNoClassificationAlert (8 ms)
+[ RUN      ] GainPolyClassifyTest.ACurveThatLeavesTheRangeBetweenTwoMeasuredDosesClassifiesThatPixelInsteadOfRefusingTheFrame
+[       OK ] GainPolyClassifyTest.ACurveThatLeavesTheRangeBetweenTwoMeasuredDosesClassifiesThatPixelInsteadOfRefusingTheFrame (13 ms)
+[ RUN      ] GainPolyClassifyTest.AMeasuredGainOutOfRangeClassifiesThePixelEvenWhenItsFitWouldBeInRange
+[       OK ] GainPolyClassifyTest.AMeasuredGainOutOfRangeClassifiesThePixelEvenWhenItsFitWouldBeInRange (10 ms)
+[ RUN      ] GainPolyClassifyTest.TheCodexDataAsGivenIsRefusedAtGenerationNowThatTheRangeIsTheSrsOne
+[       OK ] GainPolyClassifyTest.TheCodexDataAsGivenIsRefusedAtGenerationNowThatTheRangeIsTheSrsOne (3 ms)
+[ RUN      ] GainPolyClassifyTest.AClassifiedPixelIsFilledFromItsNeighboursWhereTheAppliedGainIsOne
+[       OK ] GainPolyClassifyTest.AClassifiedPixelIsFilledFromItsNeighboursWhereTheAppliedGainIsOne (9 ms)
+[ RUN      ] GainPolyClassifyTest.TheClassifiedPixelsAreNotInTheQualityFigures
+[       OK ] GainPolyClassifyTest.TheClassifiedPixelsAreNotInTheQualityFigures (4 ms)
+[ RUN      ] GainPolyClassifyTest.MeasuredGainsOutOfRangeAreClassifiedNotFittedAndTheFileIsWritten
+[       OK ] GainPolyClassifyTest.MeasuredGainsOutOfRangeAreClassifiedNotFittedAndTheFileIsWritten (4 ms)
+[----------] 10 tests from GainPolyClassifyTest (104 ms total)
+
+[----------] 13 tests from GainDefectClassifyTest
+[ RUN      ] GainDefectClassifyTest.TheDefectMapAndTheClassificationAreBothCorrected
+[       OK ] GainDefectClassifyTest.TheDefectMapAndTheClassificationAreBothCorrected (2 ms)
+[ RUN      ] GainDefectClassifyTest.ACacheHitInstallsTheSameClassificationAsTheMiss
+[       OK ] GainDefectClassifyTest.ACacheHitInstallsTheSameClassificationAsTheMiss (4 ms)
+[ RUN      ] GainDefectClassifyTest.ACleanMapTakesThePathItAlwaysTookAndRaisesNothing
+[       OK ] GainDefectClassifyTest.ACleanMapTakesThePathItAlwaysTookAndRaisesNothing (2 ms)
+[ RUN      ] GainDefectClassifyTest.AWholeMapOutOfRangeIsStillRefused
+[       OK ] GainDefectClassifyTest.AWholeMapOutOfRangeIsStillRefused (5 ms)
+[ RUN      ] GainDefectClassifyTest.WithTheDefectStageBypassedTheClassifiedPixelsPassAtGainOneAndTheFrameSaysSo
+[       OK ] GainDefectClassifyTest.WithTheDefectStageBypassedTheClassifiedPixelsPassAtGainOneAndTheFrameSaysSo (1 ms)
+[ RUN      ] GainDefectClassifyTest.ExactlyFivePercentLoadsOneMoreIsRefusedAndTheLoadedMapStays
+[       OK ] GainDefectClassifyTest.ExactlyFivePercentLoadsOneMoreIsRefusedAndTheLoadedMapStays (8 ms)
+[ RUN      ] GainDefectClassifyTest.AMapWithAFewBadPixelsLoadsAndTheCountIsReported
+[       OK ] GainDefectClassifyTest.AMapWithAFewBadPixelsLoadsAndTheCountIsReported (1 ms)
+[ RUN      ] GainDefectClassifyTest.ANonFiniteGainIsClassifiedToo
+[       OK ] GainDefectClassifyTest.ANonFiniteGainIsClassifiedToo (4 ms)
+[ RUN      ] GainDefectClassifyTest.AMapWithNoBadPixelRaisesNoAlertAndTheBoundsAreInclusive
+[       OK ] GainDefectClassifyTest.AMapWithNoBadPixelRaisesNoAlertAndTheBoundsAreInclusive (2 ms)
+[ RUN      ] GainDefectClassifyTest.WithNothingClassifiedBinningIsNotRefusedByThisRule
+[       OK ] GainDefectClassifyTest.WithNothingClassifiedBinningIsNotRefusedByThisRule (2 ms)
+[ RUN      ] GainDefectClassifyTest.ClassifiedPixelsWithBinningAreRefusedBecauseBinningWouldSpreadTheUncorrectedValue
+[       OK ] GainDefectClassifyTest.ClassifiedPixelsWithBinningAreRefusedBecauseBinningWouldSpreadTheUncorrectedValue (2 ms)
+[ RUN      ] GainDefectClassifyTest.TheClassifiedPixelsAreFilledFromTheirNeighboursByTheDefectStage
+[       OK ] GainDefectClassifyTest.TheClassifiedPixelsAreFilledFromTheirNeighboursByTheDefectStage (2 ms)
+[ RUN      ] GainDefectClassifyTest.AUnionAboveFivePercentWarnsOncePerFrameAndStillCorrects
+[       OK ] GainDefectClassifyTest.AUnionAboveFivePercentWarnsOncePerFrameAndStillCorrects (2 ms)
+[----------] 13 tests from GainDefectClassifyTest (45 ms total)
+
+[----------] 2 tests from XpePreprocessEndurance
+[ RUN      ] XpePreprocessEndurance.NoMemoryLeakAfter1000Frames
+
+[  INFO ] D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_memleak.cpp(149):: heap growth 0 bytes / 0 blocks over 1000 cycles, working set 0 bytes (not asserted)
+[       OK ] XpePreprocessEndurance.NoMemoryLeakAfter1000Frames (344 ms)
+[ RUN      ] XpePreprocessEndurance.ControlLeakIsCaught
+
+[  INFO ] D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_memleak.cpp(164):: control 64 B/cycle: heap growth 64000 bytes / 1000 blocks over 1000 cycles, working set 61440 bytes (not asserted)
+[       OK ] XpePreprocessEndurance.ControlLeakIsCaught (349 ms)
+[----------] 2 tests from XpePreprocessEndurance (693 ms total)
+
+[----------] 2 tests from GhostFailedFrame
+[ RUN      ] GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory
+[       OK ] GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory (1 ms)
+[ RUN      ] GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas
+[       OK ] GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas (0 ms)
+[----------] 2 tests from GhostFailedFrame (1 ms total)
+
+[----------] 13 tests from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss (103 ms)
+[ RUN      ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess
+[       OK ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess (5 ms)
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[       OK ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (7 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss (55 ms)
+[ RUN      ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore
+[       OK ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore (6 ms)
+[ RUN      ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss (112 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+[       OK ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime (13 ms)
+[ RUN      ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss (13 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss (27 ms)
+[ RUN      ] CacheSameVerdict.AnExpiredFileThatCannotBeOpenedIsIoFailedNotExpired
+[       OK ] CacheSameVerdict.AnExpiredFileThatCannotBeOpenedIsIoFailedNotExpired (3364 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (1134 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+[       OK ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded (18 ms)
+[ RUN      ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear
+[       OK ] CacheSameVerdict.AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear (9 ms)
+[----------] 13 tests from CacheSameVerdict (4872 ms total)
+
+[----------] 5 tests from GainSemantics
+[ RUN      ] GainSemantics.TheMeasuredValuesDoNotDependOnTheSemantics
+[       OK ] GainSemantics.TheMeasuredValuesDoNotDependOnTheSemantics (0 ms)
+[ RUN      ] GainSemantics.AFormatMismatchOnANonEmptyFrameStaysUnsupportedFormat
+[       OK ] GainSemantics.AFormatMismatchOnANonEmptyFrameStaysUnsupportedFormat (0 ms)
+[ RUN      ] GainSemantics.FlatResidualLineIsHalfAPercentWhenKnownAndOnePercentWhenUnknown
+[       OK ] GainSemantics.FlatResidualLineIsHalfAPercentWhenKnownAndOnePercentWhenUnknown (2 ms)
+[ RUN      ] GainSemantics.AnUnknownEnumerationValueIsRejectedWithoutTouchingTheOutput
+[       OK ] GainSemantics.AnUnknownEnumerationValueIsRejectedWithoutTouchingTheOutput (0 ms)
+[ RUN      ] GainSemantics.AZeroDimensionIsInvalidInputNotUnsupportedFormat
+[       OK ] GainSemantics.AZeroDimensionIsInvalidInputNotUnsupportedFormat (0 ms)
+[----------] 5 tests from GainSemantics (3 ms total)
+
+[----------] 5 tests from RuntimeDetection
+[ RUN      ] RuntimeDetection.ZeroDimensionsReturnInvalidInput
+[       OK ] RuntimeDetection.ZeroDimensionsReturnInvalidInput (0 ms)
+[ RUN      ] RuntimeDetection.OutputDataSizeTooSmallReturnsBufferTooSmall
+[       OK ] RuntimeDetection.OutputDataSizeTooSmallReturnsBufferTooSmall (0 ms)
+[ RUN      ] RuntimeDetection.InputDataSizeTooSmallReturnsInvalidInput
+[       OK ] RuntimeDetection.InputDataSizeTooSmallReturnsInvalidInput (0 ms)
+[ RUN      ] RuntimeDetection.CleanImageClearsOnlyMaskPixelBytes
+[       OK ] RuntimeDetection.CleanImageClearsOnlyMaskPixelBytes (0 ms)
+[ RUN      ] RuntimeDetection.HotPixelOnFlatFieldIsDetected
+[       OK ] RuntimeDetection.HotPixelOnFlatFieldIsDetected (0 ms)
+[----------] 5 tests from RuntimeDetection (0 ms total)
+
+[----------] 15 tests from DefectCorrectTest
+[ RUN      ] DefectCorrectTest.InPlaceMatchesOutOfPlace
+[       OK ] DefectCorrectTest.InPlaceMatchesOutOfPlace (1 ms)
+[ RUN      ] DefectCorrectTest.SingleDefectPixelIsReplaced
+[       OK ] DefectCorrectTest.SingleDefectPixelIsReplaced (4 ms)
+[ RUN      ] DefectCorrectTest.NullOutputReturnsError
+[       OK ] DefectCorrectTest.NullOutputReturnsError (0 ms)
+[ RUN      ] DefectCorrectTest.NullInputReturnsError
+[       OK ] DefectCorrectTest.NullInputReturnsError (0 ms)
+[ RUN      ] DefectCorrectTest.DetectRuntimeNullOutReturnsError
+[       OK ] DefectCorrectTest.DetectRuntimeNullOutReturnsError (0 ms)
+[ RUN      ] DefectCorrectTest.EdgeDefectUsesInBoundsNeighbors
+[       OK ] DefectCorrectTest.EdgeDefectUsesInBoundsNeighbors (5 ms)
+[ RUN      ] DefectCorrectTest.PartiallyOverlappingBuffersAreRefused
+[       OK ] DefectCorrectTest.PartiallyOverlappingBuffersAreRefused (1 ms)
+[ RUN      ] DefectCorrectTest.NoDefectsLeavesImageUnchanged
+[       OK ] DefectCorrectTest.NoDefectsLeavesImageUnchanged (0 ms)
+[ RUN      ] DefectCorrectTest.DefectMapNotLoadedReturnsCalibNotLoaded
+[       OK ] DefectCorrectTest.DefectMapNotLoadedReturnsCalibNotLoaded (0 ms)
+[ RUN      ] DefectCorrectTest.DetectRuntimeNullImgReturnsError
+[       OK ] DefectCorrectTest.DetectRuntimeNullImgReturnsError (0 ms)
+[ RUN      ] DefectCorrectTest.CorrectionRecallOnSyntheticDefects
+[       OK ] DefectCorrectTest.CorrectionRecallOnSyntheticDefects (1 ms)
+[ RUN      ] DefectCorrectTest.DetectRuntimeCleanImageYieldsZeroDefects
+[       OK ] DefectCorrectTest.DetectRuntimeCleanImageYieldsZeroDefects (0 ms)
+[ RUN      ] DefectCorrectTest.DefectClusterUsesMedianFilter
+[       OK ] DefectCorrectTest.DefectClusterUsesMedianFilter (0 ms)
+[ RUN      ] DefectCorrectTest.OutOfPlaceStillCorrectsWithoutTheSnapshot
+[       OK ] DefectCorrectTest.OutOfPlaceStillCorrectsWithoutTheSnapshot (0 ms)
+[ RUN      ] DefectCorrectTest.DimensionMismatchReturnsError
+[       OK ] DefectCorrectTest.DimensionMismatchReturnsError (0 ms)
+[----------] 15 tests from DefectCorrectTest (18 ms total)
+
+[----------] 1 test from P1A066IoTest
+[ RUN      ] P1A066IoTest.T2_LoadOffset_DirectoryPath_ReturnsIoFailed
+[       OK ] P1A066IoTest.T2_LoadOffset_DirectoryPath_ReturnsIoFailed (0 ms)
+[----------] 1 test from P1A066IoTest (0 ms total)
+
+[----------] 2 tests from ParamRangeNamesTest
+[ RUN      ] ParamRangeNamesTest.UnknownParameterIsRejected
+[       OK ] ParamRangeNamesTest.UnknownParameterIsRejected (0 ms)
+[ RUN      ] ParamRangeNamesTest.EveryNamedParameterReturnsAnOrderedRange
+[       OK ] ParamRangeNamesTest.EveryNamedParameterReturnsAnOrderedRange (0 ms)
+[----------] 2 tests from ParamRangeNamesTest (0 ms total)
+
+[----------] 4 tests from PreprocessVersion
+[ RUN      ] PreprocessVersion.IsNeverNullAndNonEmpty
+[       OK ] PreprocessVersion.IsNeverNullAndNonEmpty (0 ms)
+[ RUN      ] PreprocessVersion.DoesNotDependOnTheInitializationState
+[       OK ] PreprocessVersion.DoesNotDependOnTheInitializationState (0 ms)
+[ RUN      ] PreprocessVersion.HasTheShapeDigitsDotDigitsDotDigits
+[       OK ] PreprocessVersion.HasTheShapeDigitsDotDigitsDotDigits (0 ms)
+[ RUN      ] PreprocessVersion.IsStaticSameAddressAndSameContentOnEveryCall
+[       OK ] PreprocessVersion.IsStaticSameAddressAndSameContentOnEveryCall (0 ms)
+[----------] 4 tests from PreprocessVersion (0 ms total)
+
+[----------] 7 tests from NonlinNoopReportTest
+[ RUN      ] NonlinNoopReportTest.ConfigPresentStillReports
+[       OK ] NonlinNoopReportTest.ConfigPresentStillReports (0 ms)
+[ RUN      ] NonlinNoopReportTest.LutLoadedIsSilentAndActuallyChangesTheFrame
+[       OK ] NonlinNoopReportTest.LutLoadedIsSilentAndActuallyChangesTheFrame (6 ms)
+[ RUN      ] NonlinNoopReportTest.EveryNoopFrameReportsOnce
+[       OK ] NonlinNoopReportTest.EveryNoopFrameReportsOnce (0 ms)
+[ RUN      ] NonlinNoopReportTest.RemovingSuppressionDidNotSilenceTheOtherPaths
+[       OK ] NonlinNoopReportTest.RemovingSuppressionDidNotSilenceTheOtherPaths (5 ms)
+[ RUN      ] NonlinNoopReportTest.NonLinearPanelWithoutLutIsStillAnError
+[       OK ] NonlinNoopReportTest.NonLinearPanelWithoutLutIsStillAnError (0 ms)
+[ RUN      ] NonlinNoopReportTest.NullConfigStillReports
+[       OK ] NonlinNoopReportTest.NullConfigStillReports (0 ms)
+[ RUN      ] NonlinNoopReportTest.WithAHostThatDrainsEachCallTheQueueNeverGrows
+[       OK ] NonlinNoopReportTest.WithAHostThatDrainsEachCallTheQueueNeverGrows (0 ms)
+[----------] 7 tests from NonlinNoopReportTest (12 ms total)
+
+[----------] 4 tests from CalibDimMismatch
+[ RUN      ] CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.GainPolynomialMapDifferentFromInputReturnsInvalidInput (1 ms)
+[ RUN      ] CalibDimMismatch.GainMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.GainMapDifferentFromInputReturnsInvalidInput (0 ms)
+[ RUN      ] CalibDimMismatch.OffsetMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.OffsetMapDifferentFromInputReturnsInvalidInput (3 ms)
+[ RUN      ] CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput (0 ms)
+[----------] 4 tests from CalibDimMismatch (7 ms total)
+
+[----------] 9 tests from XCalReaderTest
+[ RUN      ] XCalReaderTest.RoundTrip_OffsetData_BitIdentical
+[       OK ] XCalReaderTest.RoundTrip_OffsetData_BitIdentical (6 ms)
+[ RUN      ] XCalReaderTest.TruncatedFile_ReturnsIoFailed
+[       OK ] XCalReaderTest.TruncatedFile_ReturnsIoFailed (10 ms)
+[ RUN      ] XCalReaderTest.TypeMismatch_ReturnsConfigInvalid
+[       OK ] XCalReaderTest.TypeMismatch_ReturnsConfigInvalid (4 ms)
+[ RUN      ] XCalReaderTest.NeverExpires_WithCheckExpiry_ReturnsOk
+[       OK ] XCalReaderTest.NeverExpires_WithCheckExpiry_ReturnsOk (7 ms)
+[ RUN      ] XCalReaderTest.TamperedPayload_ReturnsConfigInvalid
+[       OK ] XCalReaderTest.TamperedPayload_ReturnsConfigInvalid (10 ms)
+[ RUN      ] XCalReaderTest.NonExistentFile_ReturnsIoFailed
+[       OK ] XCalReaderTest.NonExistentFile_ReturnsIoFailed (0 ms)
+[ RUN      ] XCalReaderTest.NullPath_ReturnsInvalidInput
+[       OK ] XCalReaderTest.NullPath_ReturnsInvalidInput (0 ms)
+[ RUN      ] XCalReaderTest.BadMagic_ReturnsConfigInvalid
+[       OK ] XCalReaderTest.BadMagic_ReturnsConfigInvalid (0 ms)
+[ RUN      ] XCalReaderTest.ExpiredFile_ReturnsCalibrationExpired
+[       OK ] XCalReaderTest.ExpiredFile_ReturnsCalibrationExpired (7 ms)
+[----------] 9 tests from XCalReaderTest (48 ms total)
+
+[----------] 6 tests from FixtureGenGainPolyTest
+[ RUN      ] FixtureGenGainPolyTest.GeneratedPolyFileLoads
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+gain_poly.xcal b2f396e7cc282af82f3f0be6e671f7757fa0f7c2a49082ff6de50f9a3a39e776  (degree<=2, 4 dose levels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790918760732_GeneratedPolyFileLoads\manifest.json
+[       OK ] FixtureGenGainPolyTest.GeneratedPolyFileLoads (141 ms)
+[ RUN      ] FixtureGenGainPolyTest.DefaultRunStaysScalarAndWritesNoPolyFile
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790918760874_DefaultRunStaysScalarAndWritesNoPolyFile\manifest.json
+[       OK ] FixtureGenGainPolyTest.DefaultRunStaysScalarAndWritesNoPolyFile (114 ms)
+[ RUN      ] FixtureGenGainPolyTest.TypeByteIsGainPoly
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+gain_poly.xcal d90a021037340ea6c8dc0f978230aef54c234633e326827f609b8384acdf5423  (degree<=2, 4 dose levels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790918760988_TypeByteIsGainPoly\manifest.json
+[       OK ] FixtureGenGainPolyTest.TypeByteIsGainPoly (133 ms)
+[ RUN      ] FixtureGenGainPolyTest.LoadAloneIsSilent
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+gain_poly.xcal 11f54a4b1af74a6f2145a426170aae762032d62c276d02a5d15f00480e5b8ff5  (degree<=2, 4 dose levels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790918761121_LoadAloneIsSilent\manifest.json
+[       OK ] FixtureGenGainPolyTest.LoadAloneIsSilent (138 ms)
+[ RUN      ] FixtureGenGainPolyTest.PolyAlertIsPushed
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+gain_poly.xcal 8d1bea86e2239e2d0284be24c320ad5d6316047eccf6dd630b396906cd39cda3  (degree<=2, 4 dose levels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790918761260_PolyAlertIsPushed\manifest.json
+[       OK ] FixtureGenGainPolyTest.PolyAlertIsPushed (139 ms)
+[ RUN      ] FixtureGenGainPolyTest.ScalarGainRaisesNoPolyAlert
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixpoly_1790918761400_ScalarGainRaisesNoPolyAlert\manifest.json
+[       OK ] FixtureGenGainPolyTest.ScalarGainRaisesNoPolyAlert (113 ms)
+[----------] 6 tests from FixtureGenGainPolyTest (780 ms total)
+
+[----------] 6 tests from BpmGenerateTest
+[ RUN      ] BpmGenerateTest.BpmGenerate_NullInput
+[       OK ] BpmGenerateTest.BpmGenerate_NullInput (0 ms)
+[ RUN      ] BpmGenerateTest.BpmGenerate_OutputFormatCheck
+[       OK ] BpmGenerateTest.BpmGenerate_OutputFormatCheck (1462 ms)
+[ RUN      ] BpmGenerateTest.BpmGenerate_BasicDetection
+[       OK ] BpmGenerateTest.BpmGenerate_BasicDetection (1463 ms)
+[ RUN      ] BpmGenerateTest.BpmGenerate_CustomConfig
+[       OK ] BpmGenerateTest.BpmGenerate_CustomConfig (5823 ms)
+[ RUN      ] BpmGenerateTest.BpmGenerate_DefaultConfig
+[       OK ] BpmGenerateTest.BpmGenerate_DefaultConfig (1482 ms)
+[ RUN      ] BpmGenerateTest.BpmGenerate_InsufficientFrames
+[       OK ] BpmGenerateTest.BpmGenerate_InsufficientFrames (0 ms)
+[----------] 6 tests from BpmGenerateTest (10233 ms total)
+
+[----------] 10 tests from Avx2ParityTest
+[ RUN      ] Avx2ParityTest.TheComparedMapsAreNotTriviallyEmpty
+[       OK ] Avx2ParityTest.TheComparedMapsAreNotTriviallyEmpty (25 ms)
+[ RUN      ] Avx2ParityTest.JudgingAColumnTwiceStoresTheSameByte
+[       OK ] Avx2ParityTest.JudgingAColumnTwiceStoresTheSameByte (0 ms)
+[ RUN      ] Avx2ParityTest.FrameMapsAreIdenticalPixelForPixel
+[       OK ] Avx2ParityTest.FrameMapsAreIdenticalPixelForPixel (28 ms)
+[ RUN      ] Avx2ParityTest.VectorRunsNeverReadPastTheFrame
+[       OK ] Avx2ParityTest.VectorRunsNeverReadPastTheFrame (0 ms)
+[ RUN      ] Avx2ParityTest.SignedZeroOrderingMatchesTheScalarNetwork
+[       OK ] Avx2ParityTest.SignedZeroOrderingMatchesTheScalarNetwork (0 ms)
+[ RUN      ] Avx2ParityTest.NamedSelectionsMatchTheirScalarTernaries
+[       OK ] Avx2ParityTest.NamedSelectionsMatchTheirScalarTernaries (0 ms)
+[ RUN      ] Avx2ParityTest.PerLaneInputsAgreeBitForBit
+[       OK ] Avx2ParityTest.PerLaneInputsAgreeBitForBit (0 ms)
+[ RUN      ] Avx2ParityTest.ShippedEntryPointAgreesWithTheScalarRule
+[       OK ] Avx2ParityTest.ShippedEntryPointAgreesWithTheScalarRule (4 ms)
+[ RUN      ] Avx2ParityTest.LastRunStartLandsExactlyOnTheFinalInteriorColumn
+[       OK ] Avx2ParityTest.LastRunStartLandsExactlyOnTheFinalInteriorColumn (0 ms)
+[ RUN      ] Avx2ParityTest.OverlapBoundaryWidthsStillMatchTheScalarRule
+[       OK ] Avx2ParityTest.OverlapBoundaryWidthsStillMatchTheScalarRule (1 ms)
+[----------] 10 tests from Avx2ParityTest (60 ms total)
+
+[----------] 18 tests from RuntimeDetectionFunctionalTest
+[ RUN      ] RuntimeDetectionFunctionalTest.MultipleSeparatedOutliersAreAllFlagged
+[       OK ] RuntimeDetectionFunctionalTest.MultipleSeparatedOutliersAreAllFlagged (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.EveryWindowSizeDetectsALoneOutlier
+[       OK ] RuntimeDetectionFunctionalTest.EveryWindowSizeDetectsALoneOutlier (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.CornersAreSkippedAndEdgesAreJudged
+[       OK ] RuntimeDetectionFunctionalTest.CornersAreSkippedAndEdgesAreJudged (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.DarkOutlierIsFlagged
+[       OK ] RuntimeDetectionFunctionalTest.DarkOutlierIsFlagged (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.UniformImageFlagsNothing
+[       OK ] RuntimeDetectionFunctionalTest.UniformImageFlagsNothing (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.WindowIsClippedAtTheBorder
+[       OK ] RuntimeDetectionFunctionalTest.WindowIsClippedAtTheBorder (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.SparseDefectsInLowNoiseField
+[       OK ] RuntimeDetectionFunctionalTest.SparseDefectsInLowNoiseField (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.MadIsTheScaledSigmaEstimate
+[       OK ] RuntimeDetectionFunctionalTest.MadIsTheScaledSigmaEstimate (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.ImageSmallerThanTheWindowIsHandled
+[       OK ] RuntimeDetectionFunctionalTest.ImageSmallerThanTheWindowIsHandled (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.DefectSurvivesHighNoise
+[       OK ] RuntimeDetectionFunctionalTest.DefectSurvivesHighNoise (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.BrightOutlierIsFlaggedAtItsOwnCoordinate
+[       OK ] RuntimeDetectionFunctionalTest.BrightOutlierIsFlaggedAtItsOwnCoordinate (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.MedianMatchesHandComputedValues
+[       OK ] RuntimeDetectionFunctionalTest.MedianMatchesHandComputedValues (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.SmallestImageIsHandled
+[       OK ] RuntimeDetectionFunctionalTest.SmallestImageIsHandled (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.OneOutlierMovesNeitherMedianNorMad
+[       OK ] RuntimeDetectionFunctionalTest.OneOutlierMovesNeitherMedianNorMad (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.LargeImageDetectsItsInjectedDefect
+[       OK ] RuntimeDetectionFunctionalTest.LargeImageDetectsItsInjectedDefect (19 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.WindowSizeControlsHowManySamplesAreCollected
+[       OK ] RuntimeDetectionFunctionalTest.WindowSizeControlsHowManySamplesAreCollected (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.SigmaThresholdControlsSensitivity
+[       OK ] RuntimeDetectionFunctionalTest.SigmaThresholdControlsSensitivity (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.GaussianNoiseKeepsFalsePositivesLow
+[       OK ] RuntimeDetectionFunctionalTest.GaussianNoiseKeepsFalsePositivesLow (0 ms)
+[----------] 18 tests from RuntimeDetectionFunctionalTest (21 ms total)
+
+[----------] 4 tests from RuntimeDetectDeterminismTest
+[ RUN      ] RuntimeDetectDeterminismTest.DefectMapBitIdentical
+[       OK ] RuntimeDetectDeterminismTest.DefectMapBitIdentical (8 ms)
+[ RUN      ] RuntimeDetectDeterminismTest.RepeatedCallParity_5x
+[       OK ] RuntimeDetectDeterminismTest.RepeatedCallParity_5x (15 ms)
+[ RUN      ] RuntimeDetectDeterminismTest.NullConfigUsesDefaults
+[       OK ] RuntimeDetectDeterminismTest.NullConfigUsesDefaults (4 ms)
+[ RUN      ] RuntimeDetectDeterminismTest.DifferentInputProducesDifferentOutput
+[       OK ] RuntimeDetectDeterminismTest.DifferentInputProducesDifferentOutput (9 ms)
+[----------] 4 tests from RuntimeDetectDeterminismTest (37 ms total)
+
+[----------] 18 tests from GainPolyPolicyTest
+[ RUN      ] GainPolyPolicyTest.ADecreasingCurveIsKeptAndAFallingThenRisingOneIsReplacedByTheLeastSquaresLine
+[       OK ] GainPolyPolicyTest.ADecreasingCurveIsKeptAndAFallingThenRisingOneIsReplacedByTheLeastSquaresLine (20 ms)
+[ RUN      ] GainPolyPolicyTest.TheDegreeIsDecidedOnTheCoefficientsAsStoredNotOnTheDoubleOnes
+[       OK ] GainPolyPolicyTest.TheDegreeIsDecidedOnTheCoefficientsAsStoredNotOnTheDoubleOnes (23 ms)
+[ RUN      ] GainPolyPolicyTest.TheDegreeOfEveryPixelIsThatOfAnIndependentLeastSquaresAndMonotoneCascade
+[       OK ] GainPolyPolicyTest.TheDegreeOfEveryPixelIsThatOfAnIndependentLeastSquaresAndMonotoneCascade (30 ms)
+[ RUN      ] GainPolyPolicyTest.OnNoiseOnlyDataTheFileRSquaredIsNotNegativeEither
+[       OK ] GainPolyPolicyTest.OnNoiseOnlyDataTheFileRSquaredIsNotNegativeEither (13 ms)
+[ RUN      ] GainPolyPolicyTest.ANonFiniteGainValueIsRefusedAsBadCalibrationDataAndNeverStoredAsNanCoefficients
+[       OK ] GainPolyPolicyTest.ANonFiniteGainValueIsRefusedAsBadCalibrationDataAndNeverStoredAsNanCoefficients (14 ms)
+[ RUN      ] GainPolyPolicyTest.ACodexReproductionWhoseStoredCoefficientsApplyBelowTheGainFloorIsRefusedNotWrittenAsSuccess
+[       OK ] GainPolyPolicyTest.ACodexReproductionWhoseStoredCoefficientsApplyBelowTheGainFloorIsRefusedNotWrittenAsSuccess (7 ms)
+[ RUN      ] GainPolyPolicyTest.AGainOutsideTheAppliersRangeIsRefusedEvenWhenTheFitIsExact
+[       OK ] GainPolyPolicyTest.AGainOutsideTheAppliersRangeIsRefusedEvenWhenTheFitIsExact (12 ms)
+[ RUN      ] GainPolyPolicyTest.PixelsTheOldPolicyFittedAtDegreeTwoOrMoreAreStoredBitForBit
+[       OK ] GainPolyPolicyTest.PixelsTheOldPolicyFittedAtDegreeTwoOrMoreAreStoredBitForBit (13 ms)
+[ RUN      ] GainPolyPolicyTest.EveryStoredPolynomialIsMonotoneOverTheMeasuredRangeInEitherDirection
+[       OK ] GainPolyPolicyTest.EveryStoredPolynomialIsMonotoneOverTheMeasuredRangeInEitherDirection (39 ms)
+[ RUN      ] GainPolyPolicyTest.TheSyntheticLadderOfTheFixtureGeneratorNoLongerReportsANegativeRSquared
+offset.xcal  9bea526a5d5fbff7025d9dbb2550a252819fca4db12c441a2eff774f429cc2aa
+gain.xcal    ae7b63923ec120befaf3b687faf191b463cc1b616f9091ee465dff9e59520afe
+defect.xcal  9d5f6f77d01367639ad129ac7801329a443968316e8651b1b0674d2611d2d488  (308 defect pixels)
+gain_poly.xcal d9e36fa25c402e923e33beea045057bb5d0e08aab1faf9ac6086059b08fe7af1  (degree<=2, 4 dose levels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_gpp_24464_TheSyntheticLadderOfTheFixtureGeneratorNoLongerReportsANegativeRSquared\manifest.json
+[       OK ] GainPolyPolicyTest.TheSyntheticLadderOfTheFixtureGeneratorNoLongerReportsANegativeRSquared (134 ms)
+[ RUN      ] GainPolyPolicyTest.TheOracleItselfSeesATurnBetweenTwoSamples
+[       OK ] GainPolyPolicyTest.TheOracleItselfSeesATurnBetweenTwoSamples (0 ms)
+[ RUN      ] GainPolyPolicyTest.AFitWhoseFloat32EvaluationDeviatesFromItBeyondTheToleranceIsRefusedEvenWithValidGains
+[       OK ] GainPolyPolicyTest.AFitWhoseFloat32EvaluationDeviatesFromItBeyondTheToleranceIsRefusedEvenWithValidGains (11 ms)
+[ DISABLED ] GainPolyPolicyTest.DISABLED_PrintGolden
+[ RUN      ] GainPolyPolicyTest.ACurveThatTurnsBetweenTwoSamplesOfTheOldRuleIsNotMonotoneAndGetsTheLeastSquaresLine
+[       OK ] GainPolyPolicyTest.ACurveThatTurnsBetweenTwoSamplesOfTheOldRuleIsNotMonotoneAndGetsTheLeastSquaresLine (13 ms)
+[ RUN      ] GainPolyPolicyTest.ANonFiniteDoseIsRefusedBeforeAnyFileIsReadOrAnyStateChanges
+[       OK ] GainPolyPolicyTest.ANonFiniteDoseIsRefusedBeforeAnyFileIsReadOrAnyStateChanges (0 ms)
+[ RUN      ] GainPolyPolicyTest.CloseDosesAreFittedAccuratelyAndNothingBecomesNonFinite
+[       OK ] GainPolyPolicyTest.CloseDosesAreFittedAccuratelyAndNothingBecomesNonFinite (13 ms)
+[ RUN      ] GainPolyPolicyTest.OnRealDataEveryPixelFitAndTheFileAreAtLeastAsGoodAsTheMean
+[       OK ] GainPolyPolicyTest.OnRealDataEveryPixelFitAndTheFileAreAtLeastAsGoodAsTheMean (18 ms)
+[ RUN      ] GainPolyPolicyTest.WhateverTheGeneratorWritesTheApplierCanApplyAtEveryMeasuredDose
+[       OK ] GainPolyPolicyTest.WhateverTheGeneratorWritesTheApplierCanApplyAtEveryMeasuredDose (27 ms)
+[ RUN      ] GainPolyPolicyTest.TheRSquaredTheFileRecordsIsTheOneOfTheApplierArithmeticOnTheStoredCoefficients
+[       OK ] GainPolyPolicyTest.TheRSquaredTheFileRecordsIsTheOneOfTheApplierArithmeticOnTheStoredCoefficients (30 ms)
+[----------] 18 tests from GainPolyPolicyTest (427 ms total)
+
+[----------] 8 tests from Boundary
+[ RUN      ] Boundary.GainCorrect1x1
+[       OK ] Boundary.GainCorrect1x1 (0 ms)
+[ RUN      ] Boundary.DefectCorrect1x1NoDefect
+[       OK ] Boundary.DefectCorrect1x1NoDefect (0 ms)
+[ RUN      ] Boundary.OffsetCorrectMaxUint16NoCrash
+[       OK ] Boundary.OffsetCorrectMaxUint16NoCrash (0 ms)
+[ RUN      ] Boundary.CalibSaveNullTypeReturnsError
+[       OK ] Boundary.CalibSaveNullTypeReturnsError (0 ms)
+[ RUN      ] Boundary.ReadoutValidate1x1ReturnsOk
+[       OK ] Boundary.ReadoutValidate1x1ReturnsOk (0 ms)
+[ RUN      ] Boundary.GhostUseAfterDestroyReturnsError
+[       OK ] Boundary.GhostUseAfterDestroyReturnsError (0 ms)
+[ RUN      ] Boundary.CalibSaveNullPathReturnsError
+[       OK ] Boundary.CalibSaveNullPathReturnsError (0 ms)
+[ RUN      ] Boundary.OffsetCorrect1x1
+[       OK ] Boundary.OffsetCorrect1x1 (0 ms)
+[----------] 8 tests from Boundary (0 ms total)
+
+[----------] 1 test from Integration
+[ RUN      ] Integration.UncalibratedPipelineComposes
+[       OK ] Integration.UncalibratedPipelineComposes (0 ms)
+[ DISABLED ] Integration.DISABLED_PipelinePerformance3072x3072
+[----------] 1 test from Integration (0 ms total)
+
+[----------] 3 tests from P1A066
+[ RUN      ] P1A066.T3_LoadOffset_WrongSha256_ReturnsConfigInvalid
+[       OK ] P1A066.T3_LoadOffset_WrongSha256_ReturnsConfigInvalid (1 ms)
+[ RUN      ] P1A066.T4_GhostCorrect_MultiHandle_ConcurrentNoError
+[       OK ] P1A066.T4_GhostCorrect_MultiHandle_ConcurrentNoError (0 ms)
+[ RUN      ] P1A066.T1_GainCorrect_HugeDimension_RejectsBeforeAllocation
+[       OK ] P1A066.T1_GainCorrect_HugeDimension_RejectsBeforeAllocation (0 ms)
+[----------] 3 tests from P1A066 (1 ms total)
+
+[----------] 3 tests from OffsetCorrectAVX2ParityTest
+[ RUN      ] OffsetCorrectAVX2ParityTest.ParityWithNonMultipleStride
+[       OK ] OffsetCorrectAVX2ParityTest.ParityWithNonMultipleStride (25 ms)
+[ RUN      ] OffsetCorrectAVX2ParityTest.MultipleCallsAreBitIdentical
+[       OK ] OffsetCorrectAVX2ParityTest.MultipleCallsAreBitIdentical (18 ms)
+[ RUN      ] OffsetCorrectAVX2ParityTest.ShippedPathMatchesTheScalarReference
+[offset-parity] 1024x768  differing=0 of 786432  worst_gap=0
+[       OK ] OffsetCorrectAVX2ParityTest.ShippedPathMatchesTheScalarReference (29 ms)
+[----------] 3 tests from OffsetCorrectAVX2ParityTest (73 ms total)
+
+[----------] 3 tests from SigmaBufferParityTest
+[ RUN      ] SigmaBufferParityTest.DegenerateDimensionsMatchThePushBackImplementation
+[       OK ] SigmaBufferParityTest.DegenerateDimensionsMatchThePushBackImplementation (0 ms)
+[ RUN      ] SigmaBufferParityTest.BufferReuseDoesNotLeakBetweenDirections
+[       OK ] SigmaBufferParityTest.BufferReuseDoesNotLeakBetweenDirections (5 ms)
+[ RUN      ] SigmaBufferParityTest.NonSquareFramesMatchThePushBackImplementation
+[       OK ] SigmaBufferParityTest.NonSquareFramesMatchThePushBackImplementation (132 ms)
+[----------] 3 tests from SigmaBufferParityTest (138 ms total)
+
+[----------] 5 tests from CacheGlobalStore
+[ RUN      ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.GainCacheHitLeavesThatMapInTheGlobalStore (7 ms)
+[ RUN      ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.OffsetCacheHitLeavesThatMapInTheGlobalStore (5 ms)
+[ RUN      ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse
+[       OK ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse (2 ms)
+[ RUN      ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore (1 ms)
+[ RUN      ] CacheGlobalStore.ShutdownEmptiesTheCache
+[       OK ] CacheGlobalStore.ShutdownEmptiesTheCache (1 ms)
+[----------] 5 tests from CacheGlobalStore (18 ms total)
+
+[----------] 7 tests from CalibModeEnforcementTest
+[ RUN      ] CalibModeEnforcementTest.PolynomialGeneratorRefusesLevelsAboveTheExplicitCap
+[       OK ] CalibModeEnforcementTest.PolynomialGeneratorRefusesLevelsAboveTheExplicitCap (64 ms)
+[ RUN      ] CalibModeEnforcementTest.AutoAboveTheHardCapFailsLikeMultiPoint10
+[       OK ] CalibModeEnforcementTest.AutoAboveTheHardCapFailsLikeMultiPoint10 (14 ms)
+[ RUN      ] CalibModeEnforcementTest.AutoResolvesToTheSmallestFittingMode
+[       OK ] CalibModeEnforcementTest.AutoResolvesToTheSmallestFittingMode (93 ms)
+[ RUN      ] CalibModeEnforcementTest.SingleDoseGeneratorIsAcceptedByEveryMode
+[       OK ] CalibModeEnforcementTest.SingleDoseGeneratorIsAcceptedByEveryMode (23 ms)
+[ RUN      ] CalibModeEnforcementTest.SingleDoseGeneratorUnderAutoRecordsSinglePoint
+[       OK ] CalibModeEnforcementTest.SingleDoseGeneratorUnderAutoRecordsSinglePoint (9 ms)
+[ RUN      ] CalibModeEnforcementTest.AutoResolutionIsReportedOnTheAlertQueue
+[       OK ] CalibModeEnforcementTest.AutoResolutionIsReportedOnTheAlertQueue (9 ms)
+[ RUN      ] CalibModeEnforcementTest.AutoMatchesTheExplicitModeAtEveryBoundary
+[       OK ] CalibModeEnforcementTest.AutoMatchesTheExplicitModeAtEveryBoundary (143 ms)
+[----------] 7 tests from CalibModeEnforcementTest (359 ms total)
+
+[----------] 28 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+[       OK ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly (66 ms)
+[ RUN      ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+[       OK ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched (0 ms)
+[ RUN      ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys
+[       OK ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys (32 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore (29 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte
+[       OK ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte (113 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.TheInitConfigFollowsTheSameRule
+[       OK ] ConfigStrictParse.TheInitConfigFollowsTheSameRule (0 ms)
+[ RUN      ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead
+[       OK ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead (1 ms)
+[ RUN      ] ConfigStrictParse.ANullConfigPointerStillMeansTheDefaults
+[       OK ] ConfigStrictParse.ANullConfigPointerStillMeansTheDefaults (0 ms)
+[ RUN      ] ConfigStrictParse.ANumberKeyThatIsNotAJsonNumberIsRefusedNotReadByStrtod
+[       OK ] ConfigStrictParse.ANumberKeyThatIsNotAJsonNumberIsRefusedNotReadByStrtod (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+[       OK ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing (0 ms)
+[ RUN      ] ConfigStrictParse.ABlankConfigTextSuppliedByTheCallerIsRefusedAndNullStillMeansTheDefaults
+[       OK ] ConfigStrictParse.ABlankConfigTextSuppliedByTheCallerIsRefusedAndNullStillMeansTheDefaults (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+[       OK ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage
+[       OK ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage (2 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted
+[       OK ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted (64 ms)
+[ RUN      ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject (0 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead
+[       OK ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead (165 ms)
+[ RUN      ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys
+[       OK ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys (143 ms)
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[       OK ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (6 ms)
+[ RUN      ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject (13 ms)
+[ RUN      ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject (0 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule
+[       OK ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule (2 ms)
+[ RUN      ] ConfigStrictParse.ABlankConfigBlockOfAFileIsRefusedButAnAbsentOneLoads
+[       OK ] ConfigStrictParse.ABlankConfigBlockOfAFileIsRefusedButAnAbsentOneLoads (17 ms)
+[ RUN      ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore (28 ms)
+[----------] 28 tests from ConfigStrictParse (690 ms total)
+
+[----------] 2 tests from RuntimeDetectionPerformanceGateTest
+[ RUN      ] RuntimeDetectionPerformanceGateTest.Frame1024SquaredMachineRatioDiagnostic
+[perf-gate] 1024x1024 single thread, warm, min of 5: 10.4 ms  (samples 10.7 / 10.7 / 10.7 / 10.4 / 10.7)
+[perf-gate] reference kernel: 51.1 ms
+[perf-gate-ratio] 1024 ratio=0.204 limit=none (diagnostic only, see the comment above this test)
+[       OK ] RuntimeDetectionPerformanceGateTest.Frame1024SquaredMachineRatioDiagnostic (485 ms)
+[ RUN      ] RuntimeDetectionPerformanceGateTest.Frame3072SquaredWithinMachineRatio
+[perf-gate-machine] cpu="12th Gen Intel(R) Core(TM) i7-12700" logical=20 avx2=1 bandwidth=28.5 GB/s
+[perf-gate-machine] cache L1=48KB L2=1280KB L3=25600KB
+[perf-gate-machine] numerator=xpe_preprocess(/arch:AVX2) denominator=in-test kernel(default arch)
+[perf-gate] round 1/3 3072x3072 single thread, warm, min of 5: 94.6 ms  (samples 94.6 / 96.2 / 96.2 / 95.8 / 118.7)
+[perf-gate] round 1/3 reference kernel: 50.2 ms (5.6 GB/s effective)
+[perf-gate-ratio] 3072 round=1 ratio=1.886 limit=1.450
+[perf-gate] round 2/3 3072x3072 single thread, warm, min of 5: 94.8 ms  (samples 94.8 / 96.4 / 95.4 / 101.9 / 98.0)
+[perf-gate] round 2/3 reference kernel: 50.1 ms (5.7 GB/s effective)
+[perf-gate-ratio] 3072 round=2 ratio=1.893 limit=1.450
+[perf-gate] round 3/3 3072x3072 single thread, warm, min of 5: 93.0 ms  (samples 97.1 / 93.6 / 95.7 / 100.3 / 93.0)
+[perf-gate] round 3/3 reference kernel: 50.2 ms (5.6 GB/s effective)
+[perf-gate-ratio] 3072 round=3 ratio=1.852 limit=1.450
+[perf-gate-ratio] 3072 ratio=1.852 limit=1.450  (minimum of 3 rounds: 1.886 / 1.893 / 1.852)
+[perf-gate] SPEC improvement target 60 ms (AVX2, single thread) -- currently 1.6x the target on this machine
+[perf-gate-OVER] 3072 ratio=1.852 exceeds limit=1.450 -- ASSERTION SUSPENDED (#179, QA-A-119)
+[perf-gate-OVER] 3072x3072 runtime detection: ratio 1.852 exceeds limit 1.450.
+  detection  93.0 ms (samples 97.1 / 93.6 / 95.7 / 100.3 / 93.0)
+  reference  50.2 ms  (frozen kernel, same process, same warm-up)
+  HOW TO READ THIS: the ratio is detection / reference, so a slow
+  machine raises BOTH and leaves the ratio alone. A raised ratio means
+  the DETECTOR got slower relative to this machine -- that is a code
+  regression, and re-running will not clear it.
+  If instead the absolutes look high but the ratio is near its usual
+  value, the machine is slow and the code is fine.
+  (Do NOT read three high samples as proof of a regression: on a slow
+  machine all three are high and consistent -- QA-A-59's CI run showed
+  exactly that, 1360.9 / 1363.3 / 1340.9 with 1.7% spread.)
+[perf-gate-abs] 3072 best=93.0 ms budget=400.0 ms
+[       OK ] RuntimeDetectionPerformanceGateTest.Frame3072SquaredWithinMachineRatio (3095 ms)
+[----------] 2 tests from RuntimeDetectionPerformanceGateTest (3580 ms total)
+
+[----------] 15 tests from CalibQualityMetaTest
+[ RUN      ] CalibQualityMetaTest.R2FallsAsTheSeriesDepartsFromTheFit
+[       OK ] CalibQualityMetaTest.R2FallsAsTheSeriesDepartsFromTheFit (31 ms)
+[ RUN      ] CalibQualityMetaTest.LegacyFileWithoutMetadataStillLoads
+[       OK ] CalibQualityMetaTest.LegacyFileWithoutMetadataStillLoads (1 ms)
+[ RUN      ] CalibQualityMetaTest.ResidualFieldsAreZeroForAnExactFit
+[       OK ] CalibQualityMetaTest.ResidualFieldsAreZeroForAnExactFit (8 ms)
+[ RUN      ] CalibQualityMetaTest.PreviousRSquared_Stable
+[       OK ] CalibQualityMetaTest.PreviousRSquared_Stable (10 ms)
+[ RUN      ] CalibQualityMetaTest.MetadataSurvivesSaveAndLoad
+[       OK ] CalibQualityMetaTest.MetadataSurvivesSaveAndLoad (1 ms)
+[ RUN      ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenTheFitDropsADegree
+[       OK ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenTheFitDropsADegree (9 ms)
+[ RUN      ] CalibQualityMetaTest.R2QualityGate_Pass_WhenAboveThreshold
+[       OK ] CalibQualityMetaTest.R2QualityGate_Pass_WhenAboveThreshold (4 ms)
+[ RUN      ] CalibQualityMetaTest.R2QualityGate_Fail_WhenBelowThreshold
+[       OK ] CalibQualityMetaTest.R2QualityGate_Fail_WhenBelowThreshold (6 ms)
+[ RUN      ] CalibQualityMetaTest.LoadedGateVerdictIsRecomputedNotTrusted
+[       OK ] CalibQualityMetaTest.LoadedGateVerdictIsRecomputedNotTrusted (1 ms)
+[ RUN      ] CalibQualityMetaTest.PreviousRSquared_Regression
+[       OK ] CalibQualityMetaTest.PreviousRSquared_Regression (8 ms)
+[ RUN      ] CalibQualityMetaTest.ResidualFieldsCarryTheHandComputedValues
+[       OK ] CalibQualityMetaTest.ResidualFieldsCarryTheHandComputedValues (7 ms)
+[ RUN      ] CalibQualityMetaTest.GeneratedFileCarriesTheMetadataFields
+[       OK ] CalibQualityMetaTest.GeneratedFileCarriesTheMetadataFields (8 ms)
+[ RUN      ] CalibQualityMetaTest.GoodFitRaisesNoWarning
+[       OK ] CalibQualityMetaTest.GoodFitRaisesNoWarning (4 ms)
+[ RUN      ] CalibQualityMetaTest.UnrelatedConfigJsonIsIgnored
+[       OK ] CalibQualityMetaTest.UnrelatedConfigJsonIsIgnored (7 ms)
+[ RUN      ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenNoDegreeIsDropped
+[       OK ] CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenNoDegreeIsDropped (8 ms)
+[----------] 15 tests from CalibQualityMetaTest (123 ms total)
+
+[----------] 4 tests from GoldenBinningTest
+[ RUN      ] GoldenBinningTest.UnknownModeReturnsError
+[       OK ] GoldenBinningTest.UnknownModeReturnsError (0 ms)
+[ RUN      ] GoldenBinningTest.Mode1IsIdentity
+[       OK ] GoldenBinningTest.Mode1IsIdentity (0 ms)
+[ RUN      ] GoldenBinningTest.Mode2DividesByFour
+[       OK ] GoldenBinningTest.Mode2DividesByFour (0 ms)
+[ RUN      ] GoldenBinningTest.Mode4DividesBySixteen
+[       OK ] GoldenBinningTest.Mode4DividesBySixteen (0 ms)
+[----------] 4 tests from GoldenBinningTest (0 ms total)
+
+[----------] 4 tests from Median8ParityTest
+[ RUN      ] Median8ParityTest.FastPathMatchesGenericBitForBit
+[       OK ] Median8ParityTest.FastPathMatchesGenericBitForBit (32 ms)
+[ RUN      ] Median8ParityTest.DetectionMapIsIdenticalPixelForPixel
+[       OK ] Median8ParityTest.DetectionMapIsIdenticalPixelForPixel (12 ms)
+[ RUN      ] Median8ParityTest.MadMatchesGenericBitForBit
+[       OK ] Median8ParityTest.MadMatchesGenericBitForBit (11 ms)
+[ RUN      ] Median8ParityTest.ZeroSignDifferenceCannotChangeADecision
+[       OK ] Median8ParityTest.ZeroSignDifferenceCannotChangeADecision (0 ms)
+[----------] 4 tests from Median8ParityTest (56 ms total)
+
+[----------] 2 tests from CalibCacheConcurrencyTest
+[ RUN      ] CalibCacheConcurrencyTest.LoadUnderConcurrentEvictionNeverReportsSpuriousFailure
+[QA-A-31] eviction race: iterations=25000 spurious_PROCESSING_FAILED=0
+[       OK ] CalibCacheConcurrencyTest.LoadUnderConcurrentEvictionNeverReportsSpuriousFailure (1574 ms)
+[ RUN      ] CalibCacheConcurrencyTest.LoadUnderConcurrentClearNeverReportsSpuriousFailure
+[QA-A-31] iterations=50000 ok=50000 spurious_PROCESSING_FAILED=0 other_failures=0
+[       OK ] CalibCacheConcurrencyTest.LoadUnderConcurrentClearNeverReportsSpuriousFailure (2632 ms)
+[----------] 2 tests from CalibCacheConcurrencyTest (4207 ms total)
+
+[----------] 4 tests from CalibOverwriteTest
+[ RUN      ] CalibOverwriteTest.GenerateOffsetReplacesAnExistingFile
+[       OK ] CalibOverwriteTest.GenerateOffsetReplacesAnExistingFile (14 ms)
+[ RUN      ] CalibOverwriteTest.CalibSaveReplacesAnExistingFile
+[       OK ] CalibOverwriteTest.CalibSaveReplacesAnExistingFile (16 ms)
+[ RUN      ] CalibOverwriteTest.GenerateGainPolynomialReplacesAnExistingFile
+[       OK ] CalibOverwriteTest.GenerateGainPolynomialReplacesAnExistingFile (17 ms)
+[ RUN      ] CalibOverwriteTest.GenerateGainReplacesAnExistingFile
+[       OK ] CalibOverwriteTest.GenerateGainReplacesAnExistingFile (10 ms)
+[----------] 4 tests from CalibOverwriteTest (67 ms total)
+
+[----------] 22 tests from PreprocessCalibrationTest
+[ RUN      ] PreprocessCalibrationTest.GenerateOffset_DimensionMismatch
+[       OK ] PreprocessCalibrationTest.GenerateOffset_DimensionMismatch (1 ms)
+[ RUN      ] PreprocessCalibrationTest.GenerateOffset_DarkFrameAveraging
+[       OK ] PreprocessCalibrationTest.GenerateOffset_DarkFrameAveraging (6 ms)
+[ RUN      ] PreprocessCalibrationTest.LoadOffset_ValidXCalFile
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_calibration.cpp(134): Skipped
+XCal fixture not yet implemented (T-005)
+
+[  SKIPPED ] PreprocessCalibrationTest.LoadOffset_ValidXCalFile (0 ms)
+[ RUN      ] PreprocessCalibrationTest.Save_NullCalibType
+[       OK ] PreprocessCalibrationTest.Save_NullCalibType (0 ms)
+[ RUN      ] PreprocessCalibrationTest.LoadDefectMap_InvalidFilePath
+[       OK ] PreprocessCalibrationTest.LoadDefectMap_InvalidFilePath (0 ms)
+[ RUN      ] PreprocessCalibrationTest.CheckExpiry_NullOutputPointers
+[       OK ] PreprocessCalibrationTest.CheckExpiry_NullOutputPointers (0 ms)
+[ RUN      ] PreprocessCalibrationTest.Save_NullFilePath
+[       OK ] PreprocessCalibrationTest.Save_NullFilePath (0 ms)
+[ RUN      ] PreprocessCalibrationTest.Save_InvalidCalibType
+[       OK ] PreprocessCalibrationTest.Save_InvalidCalibType (0 ms)
+[ RUN      ] PreprocessCalibrationTest.GenerateOffset_NullFrames
+[       OK ] PreprocessCalibrationTest.GenerateOffset_NullFrames (0 ms)
+[ RUN      ] PreprocessCalibrationTest.LoadOffset_CorruptedFile
+[       OK ] PreprocessCalibrationTest.LoadOffset_CorruptedFile (0 ms)
+[ RUN      ] PreprocessCalibrationTest.LoadDefectMap_ValidXCalFile
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_calibration.cpp(219): Skipped
+XCal fixture not yet implemented (T-005)
+
+[  SKIPPED ] PreprocessCalibrationTest.LoadDefectMap_ValidXCalFile (0 ms)
+[ RUN      ] PreprocessCalibrationTest.LoadGain_InvalidFilePath
+[       OK ] PreprocessCalibrationTest.LoadGain_InvalidFilePath (0 ms)
+[ RUN      ] PreprocessCalibrationTest.Save_GainCalibration
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_calibration.cpp(491): Skipped
+XCal fixture not yet implemented (T-005)
+
+[  SKIPPED ] PreprocessCalibrationTest.Save_GainCalibration (0 ms)
+[ RUN      ] PreprocessCalibrationTest.CheckExpiry_NullFilePath
+[       OK ] PreprocessCalibrationTest.CheckExpiry_NullFilePath (0 ms)
+[ RUN      ] PreprocessCalibrationTest.GenerateOffset_InvalidFrameCount
+[       OK ] PreprocessCalibrationTest.GenerateOffset_InvalidFrameCount (0 ms)
+[ RUN      ] PreprocessCalibrationTest.LoadOffset_InvalidFilePath
+[       OK ] PreprocessCalibrationTest.LoadOffset_InvalidFilePath (0 ms)
+[ RUN      ] PreprocessCalibrationTest.CheckExpiry_ExpiredCalibration
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_calibration.cpp(418): Skipped
+Requires XCal v1 writer fixture from T-005
+
+[  SKIPPED ] PreprocessCalibrationTest.CheckExpiry_ExpiredCalibration (0 ms)
+[ RUN      ] PreprocessCalibrationTest.GenerateOffset_SingleFrame
+[       OK ] PreprocessCalibrationTest.GenerateOffset_SingleFrame (3 ms)
+[ RUN      ] PreprocessCalibrationTest.LoadOffset_NullFilePath
+[       OK ] PreprocessCalibrationTest.LoadOffset_NullFilePath (0 ms)
+[ RUN      ] PreprocessCalibrationTest.Save_OffsetCalibration
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_calibration.cpp(471): Skipped
+XCal fixture not yet implemented (T-005)
+
+[  SKIPPED ] PreprocessCalibrationTest.Save_OffsetCalibration (0 ms)
+[ RUN      ] PreprocessCalibrationTest.LoadGain_ValidXCalFile
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_calibration.cpp(191): Skipped
+XCal fixture not yet implemented (T-005)
+
+[  SKIPPED ] PreprocessCalibrationTest.LoadGain_ValidXCalFile (0 ms)
+[ RUN      ] PreprocessCalibrationTest.CheckExpiry_ValidCalibration
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_calibration.cpp(391): Skipped
+XCal fixture not yet implemented (T-005)
+
+[  SKIPPED ] PreprocessCalibrationTest.CheckExpiry_ValidCalibration (0 ms)
+[----------] 22 tests from PreprocessCalibrationTest (14 ms total)
+
+[----------] 5 tests from NonlinPolyTest
+[ RUN      ] NonlinPolyTest.PolynomialCorrectionMeetsTheZeroPointThreePercentResidual
+[       OK ] NonlinPolyTest.PolynomialCorrectionMeetsTheZeroPointThreePercentResidual (0 ms)
+[ RUN      ] NonlinPolyTest.AutoSelectsPolynomialOnlyForEmbeddedTargets
+[       OK ] NonlinPolyTest.AutoSelectsPolynomialOnlyForEmbeddedTargets (0 ms)
+[ RUN      ] NonlinPolyTest.PanelLinearGovernsEnableAndDisable
+[       OK ] NonlinPolyTest.PanelLinearGovernsEnableAndDisable (0 ms)
+[ RUN      ] NonlinPolyTest.PolyModeWithoutCoefficientsDoesNotZeroTheFrame
+[       OK ] NonlinPolyTest.PolyModeWithoutCoefficientsDoesNotZeroTheFrame (0 ms)
+[ RUN      ] NonlinPolyTest.NonMonotonePolynomialIsRejectedAndFallsBackToLut
+[       OK ] NonlinPolyTest.NonMonotonePolynomialIsRejectedAndFallsBackToLut (0 ms)
+[----------] 5 tests from NonlinPolyTest (0 ms total)
+
+[----------] 10 tests from GhostTierTest
+[ RUN      ] GhostTierTest.NonIncreasingTimestampUsesGuardedDelta
+[       OK ] GhostTierTest.NonIncreasingTimestampUsesGuardedDelta (0 ms)
+[ RUN      ] GhostTierTest.Tier3SkipsSpatialContextOnTinyImage
+[       OK ] GhostTierTest.Tier3SkipsSpatialContextOnTinyImage (0 ms)
+[ RUN      ] GhostTierTest.Tier3RunsWithSpatialContext
+[       OK ] GhostTierTest.Tier3RunsWithSpatialContext (0 ms)
+[ RUN      ] GhostTierTest.Tier2ExposureWeightScalesWithSignal
+[       OK ] GhostTierTest.Tier2ExposureWeightScalesWithSignal (0 ms)
+[ RUN      ] GhostTierTest.OutOfRangeTierFallsBackToTierOne
+[       OK ] GhostTierTest.OutOfRangeTierFallsBackToTierOne (0 ms)
+[ RUN      ] GhostTierTest.Tier2FirstFrameIsUnchanged
+[       OK ] GhostTierTest.Tier2FirstFrameIsUnchanged (0 ms)
+[ RUN      ] GhostTierTest.Tier3BetaStrengthensSignalDependence
+[       OK ] GhostTierTest.Tier3BetaStrengthensSignalDependence (0 ms)
+[ RUN      ] GhostTierTest.Alpha1OverrideChangesTheCorrection
+[       OK ] GhostTierTest.Alpha1OverrideChangesTheCorrection (0 ms)
+[ RUN      ] GhostTierTest.Tier2SecondFrameIsReducedByHistory
+[       OK ] GhostTierTest.Tier2SecondFrameIsReducedByHistory (0 ms)
+[ RUN      ] GhostTierTest.EachTierRejectsNonFiniteInput
+[       OK ] GhostTierTest.EachTierRejectsNonFiniteInput (0 ms)
+[----------] 10 tests from GhostTierTest (0 ms total)
+
+[----------] 13 tests from XCalCompressionMetaTest
+[ RUN      ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither
+[       OK ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither (9 ms)
+[ RUN      ] XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck
+[       OK ] XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck (4 ms)
+[ RUN      ] XCalCompressionMetaTest.ABlockThatOnlyLooksLikeTheOldWritersShapeIsStillRefused
+[       OK ] XCalCompressionMetaTest.ABlockThatOnlyLooksLikeTheOldWritersShapeIsStillRefused (45 ms)
+[ RUN      ] XCalCompressionMetaTest.HalfAPairIsRefusedEvenWhenTheRestOfTheFileIsValid
+[       OK ] XCalCompressionMetaTest.HalfAPairIsRefusedEvenWhenTheRestOfTheFileIsValid (11 ms)
+[ RUN      ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo
+[       OK ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo (10 ms)
+[ RUN      ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed
+[       OK ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed (6 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem
+[       OK ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem (2 ms)
+[ RUN      ] XCalCompressionMetaTest.TheOldWritersShapesAreOnlyRepairedForAnRleCompressedDefectFile
+[       OK ] XCalCompressionMetaTest.TheOldWritersShapesAreOnlyRepairedForAnRleCompressedDefectFile (11 ms)
+[ RUN      ] XCalCompressionMetaTest.TheOldWritersTwoShapesAreReproducedExactlyByTheTestHelper
+[       OK ] XCalCompressionMetaTest.TheOldWritersTwoShapesAreReproducedExactlyByTheTestHelper (0 ms)
+[ RUN      ] XCalCompressionMetaTest.ThePairAloneWithADoubledBraceIsNotWhatTheOldWriterMade
+[       OK ] XCalCompressionMetaTest.ThePairAloneWithADoubledBraceIsNotWhatTheOldWriterMade (12 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused
+[       OK ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused (7 ms)
+[ RUN      ] XCalCompressionMetaTest.AFileInTheOldWritersShapeLoadsWithTheSameMapAndAWarning
+[       OK ] XCalCompressionMetaTest.AFileInTheOldWritersShapeLoadsWithTheSameMapAndAWarning (10 ms)
+[ RUN      ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused
+[       OK ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused (17 ms)
+[----------] 13 tests from XCalCompressionMetaTest (149 ms total)
+
+[----------] 6 tests from PreprocessDegraded
+[ RUN      ] PreprocessDegraded.BP03_DefectEmptyListIsNoOp
+[       OK ] PreprocessDegraded.BP03_DefectEmptyListIsNoOp (0 ms)
+[ RUN      ] PreprocessDegraded.BP05_TempCompensateReferenceIsIdentity
+[       OK ] PreprocessDegraded.BP05_TempCompensateReferenceIsIdentity (0 ms)
+[ RUN      ] PreprocessDegraded.BP01_OffsetNullCalibrationReturnsNotInitialized
+[       OK ] PreprocessDegraded.BP01_OffsetNullCalibrationReturnsNotInitialized (0 ms)
+[ RUN      ] PreprocessDegraded.BP02_GainIdentityPreservesInputStatistics
+[       OK ] PreprocessDegraded.BP02_GainIdentityPreservesInputStatistics (0 ms)
+[ RUN      ] PreprocessDegraded.BP05_NonlinearityNullConfigIsIdentity
+[       OK ] PreprocessDegraded.BP05_NonlinearityNullConfigIsIdentity (0 ms)
+[ RUN      ] PreprocessDegraded.BP04_GhostZeroLagCoefficientIsIdentity
+[       OK ] PreprocessDegraded.BP04_GhostZeroLagCoefficientIsIdentity (0 ms)
+[----------] 6 tests from PreprocessDegraded (0 ms total)
+
+[----------] 8 tests from CheckExpiryTest
+[ RUN      ] CheckExpiryTest.PastExpiry_IsExpiredTrue
+[       OK ] CheckExpiryTest.PastExpiry_IsExpiredTrue (4 ms)
+[ RUN      ] CheckExpiryTest.NullRemainingDays_ReturnsInvalidInput
+[       OK ] CheckExpiryTest.NullRemainingDays_ReturnsInvalidInput (0 ms)
+[ RUN      ] CheckExpiryTest.NeverExpires_IsExpiredFalse_RemainingMax
+[       OK ] CheckExpiryTest.NeverExpires_IsExpiredFalse_RemainingMax (6 ms)
+[ RUN      ] CheckExpiryTest.BadMagic_ReturnsError
+[       OK ] CheckExpiryTest.BadMagic_ReturnsError (0 ms)
+[ RUN      ] CheckExpiryTest.NonExistentFile_ReturnsIoFailed
+[       OK ] CheckExpiryTest.NonExistentFile_ReturnsIoFailed (0 ms)
+[ RUN      ] CheckExpiryTest.FutureExpiry_IsExpiredFalse
+[       OK ] CheckExpiryTest.FutureExpiry_IsExpiredFalse (4 ms)
+[ RUN      ] CheckExpiryTest.NullIsExpired_ReturnsInvalidInput
+[       OK ] CheckExpiryTest.NullIsExpired_ReturnsInvalidInput (0 ms)
+[ RUN      ] CheckExpiryTest.NullFilepath_ReturnsInvalidInput
+[       OK ] CheckExpiryTest.NullFilepath_ReturnsInvalidInput (0 ms)
+[----------] 8 tests from CheckExpiryTest (16 ms total)
+
+[----------] 6 tests from RuntimeDetectionRatesTest
+[ RUN      ] RuntimeDetectionRatesTest.KnownDivergence_TprAtFiveSigmaIsBelowTheRequirement
+[rates] low noise, 5 sigma           injected=961 TP=488 FN=473  TPR=0.507804 | FP=5/1048576 FPR=0.000004768 | 21.8 ms
+[rates] high noise, 5 sigma          injected=961 TP=488 FN=473  TPR=0.507804 | FP=5/1048576 FPR=0.000004768 | 21.1 ms
+[       OK ] RuntimeDetectionRatesTest.KnownDivergence_TprAtFiveSigmaIsBelowTheRequirement (87 ms)
+[ RUN      ] RuntimeDetectionRatesTest.TprReachesTheFloorAtTenSigma
+[rates] low noise, 6 sigma           injected=961 TP=779 FN=182  TPR=0.810614 | FP=0/0 FPR=0.000000000 | 10.5 ms
+[rates] low noise, 8 sigma           injected=961 TP=959 FN=2  TPR=0.997919 | FP=0/0 FPR=0.000000000 | 12.9 ms
+[rates] low noise, 10 sigma          injected=961 TP=961 FN=0  TPR=1.000000 | FP=0/0 FPR=0.000000000 | 13.9 ms
+[       OK ] RuntimeDetectionRatesTest.TprReachesTheFloorAtTenSigma (72 ms)
+[ RUN      ] RuntimeDetectionRatesTest.KnownDivergence_StripedFrameMissesTheTprFloor
+[rates] striped(p13), 10 sigma      injected=961 TP=948  TPR=0.986472 | 10.4 ms
+[       OK ] RuntimeDetectionRatesTest.KnownDivergence_StripedFrameMissesTheTprFloor (21 ms)
+[ RUN      ] RuntimeDetectionRatesTest.CleanFrameStaysUnderTheOnePercentCeiling
+[       OK ] RuntimeDetectionRatesTest.CleanFrameStaysUnderTheOnePercentCeiling (42 ms)
+[ RUN      ] RuntimeDetectionRatesTest.RatesAreInvariantUnderNoiseScaling
+[       OK ] RuntimeDetectionRatesTest.RatesAreInvariantUnderNoiseScaling (90 ms)
+[ RUN      ] RuntimeDetectionRatesTest.FprOnCleanFramesMeetsTheRequirement
+[rates] low noise, clean FPR         injected=961 TP=488 FN=473  TPR=0.507804 | FP=5/1048576 FPR=0.000004768 | 25.5 ms
+[rates] high noise, clean FPR        injected=961 TP=488 FN=473  TPR=0.507804 | FP=5/1048576 FPR=0.000004768 | 21.2 ms
+[       OK ] RuntimeDetectionRatesTest.FprOnCleanFramesMeetsTheRequirement (92 ms)
+[----------] 6 tests from RuntimeDetectionRatesTest (406 ms total)
+
+[----------] 9 tests from CalibSaveTest
+[ RUN      ] CalibSaveTest.RoundTrip_Gain_BitIdentical
+[       OK ] CalibSaveTest.RoundTrip_Gain_BitIdentical (19 ms)
+[ RUN      ] CalibSaveTest.NullFilepath_ReturnsInvalidInput
+[       OK ] CalibSaveTest.NullFilepath_ReturnsInvalidInput (0 ms)
+[ RUN      ] CalibSaveTest.RoundTrip_Defect_BitIdentical
+[       OK ] CalibSaveTest.RoundTrip_Defect_BitIdentical (17 ms)
+[ RUN      ] CalibSaveTest.InvalidCalibType_ReturnsInvalidInput
+[       OK ] CalibSaveTest.InvalidCalibType_ReturnsInvalidInput (0 ms)
+[ RUN      ] CalibSaveTest.SaveOffset_SHA256Verifies
+[       OK ] CalibSaveTest.SaveOffset_SHA256Verifies (5 ms)
+[ RUN      ] CalibSaveTest.SaveOffset_WhenNotLoaded_ReturnsInvalidInput
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_calib_save.cpp(167): Skipped
+Global g_calib state is shared; skipped to avoid ordering dependency
+
+[  SKIPPED ] CalibSaveTest.SaveOffset_WhenNotLoaded_ReturnsInvalidInput (0 ms)
+[ RUN      ] CalibSaveTest.SaveOffset_HeaderFieldsAreCorrect
+[       OK ] CalibSaveTest.SaveOffset_HeaderFieldsAreCorrect (5 ms)
+[ RUN      ] CalibSaveTest.RoundTrip_Offset_BitIdentical
+[       OK ] CalibSaveTest.RoundTrip_Offset_BitIdentical (5 ms)
+[ RUN      ] CalibSaveTest.NullCalibType_ReturnsInvalidInput
+[       OK ] CalibSaveTest.NullCalibType_ReturnsInvalidInput (0 ms)
+[----------] 9 tests from CalibSaveTest (55 ms total)
+
+[----------] 8 tests from XCalWriterTest
+[ RUN      ] XCalWriterTest.OffsetFloat32_ShaMatchesRecompute
+[       OK ] XCalWriterTest.OffsetFloat32_ShaMatchesRecompute (5 ms)
+[ RUN      ] XCalWriterTest.NullPath_ReturnsInvalidInput
+[       OK ] XCalWriterTest.NullPath_ReturnsInvalidInput (0 ms)
+[ RUN      ] XCalWriterTest.AtomicWrite_TmpFileAbsentAfterSuccess
+[       OK ] XCalWriterTest.AtomicWrite_TmpFileAbsentAfterSuccess (1 ms)
+[ RUN      ] XCalWriterTest.WithConfigJson_ExactFileSize
+[       OK ] XCalWriterTest.WithConfigJson_ExactFileSize (5 ms)
+[ RUN      ] XCalWriterTest.NullPayloadNonzeroLen_ReturnsInvalidInput
+[       OK ] XCalWriterTest.NullPayloadNonzeroLen_ReturnsInvalidInput (0 ms)
+[ RUN      ] XCalWriterTest.DefectUint8Mask_ExactFileSize
+[       OK ] XCalWriterTest.DefectUint8Mask_ExactFileSize (8 ms)
+[ RUN      ] XCalWriterTest.NullConfigJsonNonzeroLen_ReturnsInvalidInput
+[       OK ] XCalWriterTest.NullConfigJsonNonzeroLen_ReturnsInvalidInput (0 ms)
+[ RUN      ] XCalWriterTest.OffsetFloat32_ExactFileSize
+[       OK ] XCalWriterTest.OffsetFloat32_ExactFileSize (5 ms)
+[----------] 8 tests from XCalWriterTest (26 ms total)
+
+[----------] 20 tests from PreprocessLifecycleTest
+[ RUN      ] PreprocessLifecycleTest.InitWithInvalidJson
+[       OK ] PreprocessLifecycleTest.InitWithInvalidJson (0 ms)
+[ RUN      ] PreprocessLifecycleTest.LC003_DoubleInitGuard
+[       OK ] PreprocessLifecycleTest.LC003_DoubleInitGuard (0 ms)
+[ RUN      ] PreprocessLifecycleTest.ThreadSafety_MultipleShutdownConcurrent
+[       OK ] PreprocessLifecycleTest.ThreadSafety_MultipleShutdownConcurrent (0 ms)
+[ RUN      ] PreprocessLifecycleTest.InitWithMalformedJson
+[       OK ] PreprocessLifecycleTest.InitWithMalformedJson (0 ms)
+[ RUN      ] PreprocessLifecycleTest.InitWithDifferentModes
+[       OK ] PreprocessLifecycleTest.InitWithDifferentModes (0 ms)
+[ RUN      ] PreprocessLifecycleTest.ThreadSafety_ConcurrentInit
+[       OK ] PreprocessLifecycleTest.ThreadSafety_ConcurrentInit (0 ms)
+[ RUN      ] PreprocessLifecycleTest.InitWithComplexConfig
+[       OK ] PreprocessLifecycleTest.InitWithComplexConfig (0 ms)
+[ RUN      ] PreprocessLifecycleTest.ThreadSafety_InitShutdownConcurrent
+[       OK ] PreprocessLifecycleTest.ThreadSafety_InitShutdownConcurrent (0 ms)
+[ RUN      ] PreprocessLifecycleTest.LC002_InitWithEmptyJsonConfig
+[       OK ] PreprocessLifecycleTest.LC002_InitWithEmptyJsonConfig (0 ms)
+[ RUN      ] PreprocessLifecycleTest.MultipleInitShutdownCycles
+[       OK ] PreprocessLifecycleTest.MultipleInitShutdownCycles (0 ms)
+[ RUN      ] PreprocessLifecycleTest.LC002_InitWithResearchMode
+[       OK ] PreprocessLifecycleTest.LC002_InitWithResearchMode (0 ms)
+[ RUN      ] PreprocessLifecycleTest.ShutdownWithoutInit
+[       OK ] PreprocessLifecycleTest.ShutdownWithoutInit (0 ms)
+[ RUN      ] PreprocessLifecycleTest.NormalShutdown
+[       OK ] PreprocessLifecycleTest.NormalShutdown (0 ms)
+[ RUN      ] PreprocessLifecycleTest.MultipleShutdownCalls
+[       OK ] PreprocessLifecycleTest.MultipleShutdownCalls (0 ms)
+[ RUN      ] PreprocessLifecycleTest.LC002_InitWithJsonConfig
+[       OK ] PreprocessLifecycleTest.LC002_InitWithJsonConfig (0 ms)
+[ RUN      ] PreprocessLifecycleTest.MapLoadedWithoutInitSurvivesInitWithoutShutdown
+[       OK ] PreprocessLifecycleTest.MapLoadedWithoutInitSurvivesInitWithoutShutdown (8 ms)
+[ RUN      ] PreprocessLifecycleTest.LC001_InitWithDefaultConfig
+[       OK ] PreprocessLifecycleTest.LC001_InitWithDefaultConfig (0 ms)
+[ RUN      ] PreprocessLifecycleTest.ShutdownWithoutInitReleasesMapsLoadedWithoutInit
+[       OK ] PreprocessLifecycleTest.ShutdownWithoutInitReleasesMapsLoadedWithoutInit (7 ms)
+[ RUN      ] PreprocessLifecycleTest.ReinitializationAfterShutdown
+[       OK ] PreprocessLifecycleTest.ReinitializationAfterShutdown (0 ms)
+[ RUN      ] PreprocessLifecycleTest.LC002_InitWithLogLevel
+[       OK ] PreprocessLifecycleTest.LC002_InitWithLogLevel (0 ms)
+[----------] 20 tests from PreprocessLifecycleTest (16 ms total)
+
+[----------] 10 tests from GainPolyNotAppliedTest
+[ RUN      ] GainPolyNotAppliedTest.ScalarGainMapIsApplied
+[       OK ] GainPolyNotAppliedTest.ScalarGainMapIsApplied (7 ms)
+[ RUN      ] GainPolyNotAppliedTest.PolynomialLoadReplacesAWorkingScalarMapAndAppliesInstead
+[       OK ] GainPolyNotAppliedTest.PolynomialLoadReplacesAWorkingScalarMapAndAppliesInstead (9 ms)
+[ RUN      ] GainPolyNotAppliedTest.PolynomialGainLoadsAndIsAppliedWithoutAlerts
+[       OK ] GainPolyNotAppliedTest.PolynomialGainLoadsAndIsAppliedWithoutAlerts (1 ms)
+[ RUN      ] GainPolyNotAppliedTest.ARejectedMapDoesNotReplaceTheLoadedOne
+[       OK ] GainPolyNotAppliedTest.ARejectedMapDoesNotReplaceTheLoadedOne (9 ms)
+[ RUN      ] GainPolyNotAppliedTest.PolynomialGainIsAppliedPerPixelUsingThePixelsOwnValue
+[       OK ] GainPolyNotAppliedTest.PolynomialGainIsAppliedPerPixelUsingThePixelsOwnValue (1 ms)
+[ RUN      ] GainPolyNotAppliedTest.ASingleOutOfRangePixelIsClassifiedDefectiveNotRejected
+[       OK ] GainPolyNotAppliedTest.ASingleOutOfRangePixelIsClassifiedDefectiveNotRejected (1 ms)
+[ RUN      ] GainPolyNotAppliedTest.ScalarGainValuesInsideTheRangeLoad
+[       OK ] GainPolyNotAppliedTest.ScalarGainValuesInsideTheRangeLoad (40 ms)
+[ RUN      ] GainPolyNotAppliedTest.PolynomialCoefficientsOutsideTheScalarRangeStillLoad
+[       OK ] GainPolyNotAppliedTest.PolynomialCoefficientsOutsideTheScalarRangeStillLoad (5 ms)
+[ RUN      ] GainPolyNotAppliedTest.ScalarGainValuesOutsideTheRangeAreRejected
+[       OK ] GainPolyNotAppliedTest.ScalarGainValuesOutsideTheRangeAreRejected (37 ms)
+[ RUN      ] GainPolyNotAppliedTest.TheModelLoadedLastIsTheOneApplied
+[       OK ] GainPolyNotAppliedTest.TheModelLoadedLastIsTheOneApplied (7 ms)
+[----------] 10 tests from GainPolyNotAppliedTest (120 ms total)
+
+[----------] 8 tests from GainPolyLoadTest
+[ RUN      ] GainPolyLoadTest.PolyFileWrittenByTheApiLoads
+[       OK ] GainPolyLoadTest.PolyFileWrittenByTheApiLoads (8 ms)
+[ RUN      ] GainPolyLoadTest.PayloadThatIsNotAWholeNumberOfPlanesIsRejected
+[       OK ] GainPolyLoadTest.PayloadThatIsNotAWholeNumberOfPlanesIsRejected (8 ms)
+[ RUN      ] GainPolyLoadTest.SingleDoseMetadataSurvivesTheRoundTrip
+[       OK ] GainPolyLoadTest.SingleDoseMetadataSurvivesTheRoundTrip (6 ms)
+[ RUN      ] GainPolyLoadTest.TypeMismatchStillReportsConfigInvalid
+[       OK ] GainPolyLoadTest.TypeMismatchStillReportsConfigInvalid (9 ms)
+[ RUN      ] GainPolyLoadTest.PolyMetadataSurvivesTheRoundTrip
+[       OK ] GainPolyLoadTest.PolyMetadataSurvivesTheRoundTrip (10 ms)
+[ RUN      ] GainPolyLoadTest.SingleDoseGainFileCarriesTheMandatoryFields
+[       OK ] GainPolyLoadTest.SingleDoseGainFileCarriesTheMandatoryFields (5 ms)
+[ RUN      ] GainPolyLoadTest.LoadingPolyClearsTheScalarGainMap
+[       OK ] GainPolyLoadTest.LoadingPolyClearsTheScalarGainMap (12 ms)
+[ RUN      ] GainPolyLoadTest.CallerMetadataIsNotDiscarded
+[       OK ] GainPolyLoadTest.CallerMetadataIsNotDiscarded (5 ms)
+[----------] 8 tests from GainPolyLoadTest (68 ms total)
+
+[----------] 2 tests from CorrectMapSharing
+[ RUN      ] CorrectMapSharing.OffsetCorrectionDuringAReloadIsWhollyOneMapOrTheOther
+[       OK ] CorrectMapSharing.OffsetCorrectionDuringAReloadIsWhollyOneMapOrTheOther (1527 ms)
+[ RUN      ] CorrectMapSharing.DefectCorrectionDuringAReloadIsWhollyOneMapOrTheOther
+[       OK ] CorrectMapSharing.DefectCorrectionDuringAReloadIsWhollyOneMapOrTheOther (1519 ms)
+[----------] 2 tests from CorrectMapSharing (3047 ms total)
+
+[----------] 5 tests from NonlinModeTest
+[ RUN      ] NonlinModeTest.AnOperatingModeNoLongerFailsThePipeline
+[       OK ] NonlinModeTest.AnOperatingModeNoLongerFailsThePipeline (0 ms)
+[ RUN      ] NonlinModeTest.ControlAPipelineWithNoModeKeySucceeds
+[       OK ] NonlinModeTest.ControlAPipelineWithNoModeKeySucceeds (0 ms)
+[ RUN      ] NonlinModeTest.DoingNothingIsReported
+[       OK ] NonlinModeTest.DoingNothingIsReported (0 ms)
+[ RUN      ] NonlinModeTest.DoingNothingIsReportedWithNoModeKeyEither
+[       OK ] NonlinModeTest.DoingNothingIsReportedWithNoModeKeyEither (0 ms)
+[ RUN      ] NonlinModeTest.AnArbitraryModeNameIsAlsoAccepted
+[       OK ] NonlinModeTest.AnArbitraryModeNameIsAlsoAccepted (0 ms)
+[----------] 5 tests from NonlinModeTest (0 ms total)
+
+[----------] 7 tests from GenerateGainTest
+[ RUN      ] GenerateGainTest.GenerateGain_NullInput
+[       OK ] GenerateGainTest.GenerateGain_NullInput (0 ms)
+[ RUN      ] GenerateGainTest.GenerateGainPolynomial_NullPaths
+[       OK ] GenerateGainTest.GenerateGainPolynomial_NullPaths (0 ms)
+[ RUN      ] GenerateGainTest.GenerateGain_WithDarkSubtraction
+[       OK ] GenerateGainTest.GenerateGain_WithDarkSubtraction (6 ms)
+[ RUN      ] GenerateGainTest.GenerateGainPolynomial_ThreeLevels
+[       OK ] GenerateGainTest.GenerateGainPolynomial_ThreeLevels (10 ms)
+[ RUN      ] GenerateGainTest.GenerateGain_SingleFrame
+[       OK ] GenerateGainTest.GenerateGain_SingleFrame (5 ms)
+[ RUN      ] GenerateGainTest.GenerateGain_ZeroFrames
+[       OK ] GenerateGainTest.GenerateGain_ZeroFrames (0 ms)
+[ RUN      ] GenerateGainTest.GenerateGain_BasicFlatField
+[       OK ] GenerateGainTest.GenerateGain_BasicFlatField (16 ms)
+[----------] 7 tests from GenerateGainTest (39 ms total)
+
+[----------] 7 tests from RleCodecTest
+[ RUN      ] RleCodecTest.NullData_InvalidInput
+[       OK ] RleCodecTest.NullData_InvalidInput (0 ms)
+[ RUN      ] RleCodecTest.RoundTrip_AllZero
+[       OK ] RleCodecTest.RoundTrip_AllZero (0 ms)
+[ RUN      ] RleCodecTest.RoundTrip_SparseDefect
+[       OK ] RleCodecTest.RoundTrip_SparseDefect (1 ms)
+[ RUN      ] RleCodecTest.CompressionRatio_LargeAllZero
+[       OK ] RleCodecTest.CompressionRatio_LargeAllZero (5 ms)
+[ RUN      ] RleCodecTest.TruncatedEncoded_ConfigInvalid
+[       OK ] RleCodecTest.TruncatedEncoded_ConfigInvalid (0 ms)
+[ RUN      ] RleCodecTest.DecodedSize_MatchesActual
+[       OK ] RleCodecTest.DecodedSize_MatchesActual (0 ms)
+[ RUN      ] RleCodecTest.Decode_WrongExpectedLen_ConfigInvalid
+[       OK ] RleCodecTest.Decode_WrongExpectedLen_ConfigInvalid (0 ms)
+[----------] 7 tests from RleCodecTest (6 ms total)
+
+[----------] 4 tests from GhostThreadSafety
+[ RUN      ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlExternalMutexMatchesSerialReplay (53 ms)
+[ RUN      ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+[       OK ] GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState (264 ms)
+[ RUN      ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+[       OK ] GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay (30 ms)
+[ RUN      ] GhostThreadSafety.SharedHandleLosesNoUpdates
+[       OK ] GhostThreadSafety.SharedHandleLosesNoUpdates (52 ms)
+[----------] 4 tests from GhostThreadSafety (401 ms total)
+
+[----------] 6 tests from CalibCacheOwnershipTest
+[ RUN      ] CalibCacheOwnershipTest.MissAndHitReturnTheSamePointer
+[       OK ] CalibCacheOwnershipTest.MissAndHitReturnTheSamePointer (4 ms)
+[ RUN      ] CalibCacheOwnershipTest.RepeatedLoadsDoNotAccumulateBuffers
+[       OK ] CalibCacheOwnershipTest.RepeatedLoadsDoNotAccumulateBuffers (14 ms)
+[ RUN      ] CalibCacheOwnershipTest.SetMaxSizeEvictsDownToTheNewCapacity
+[       OK ] CalibCacheOwnershipTest.SetMaxSizeEvictsDownToTheNewCapacity (3 ms)
+[ RUN      ] CalibCacheOwnershipTest.GainLoaderFollowsTheSameContract
+[       OK ] CalibCacheOwnershipTest.GainLoaderFollowsTheSameContract (3 ms)
+[ RUN      ] CalibCacheOwnershipTest.OutParameterIsOverwrittenNotReallocated
+[       OK ] CalibCacheOwnershipTest.OutParameterIsOverwrittenNotReallocated (2 ms)
+[ RUN      ] CalibCacheOwnershipTest.EvictionDropsTheLeastRecentlyUsedEntry
+[       OK ] CalibCacheOwnershipTest.EvictionDropsTheLeastRecentlyUsedEntry (3 ms)
+[----------] 6 tests from CalibCacheOwnershipTest (31 ms total)
+
+[----------] 20 tests from MultiOffsetTest
+[ RUN      ] MultiOffsetTest.Median_EvenFrameCount
+[       OK ] MultiOffsetTest.Median_EvenFrameCount (0 ms)
+[ RUN      ] MultiOffsetTest.SigmaClip_CustomSigma
+[       OK ] MultiOffsetTest.SigmaClip_CustomSigma (0 ms)
+[ RUN      ] MultiOffsetTest.MeanExplicit_SameAsDefault
+[       OK ] MultiOffsetTest.MeanExplicit_SameAsDefault (0 ms)
+[ RUN      ] MultiOffsetTest.Median_OutlierRobust
+[       OK ] MultiOffsetTest.Median_OutlierRobust (0 ms)
+[ RUN      ] MultiOffsetTest.Median_PerPixelVarying
+[       OK ] MultiOffsetTest.Median_PerPixelVarying (0 ms)
+[ RUN      ] MultiOffsetTest.MeanDefault_NullConfig_BackwardCompat
+[       OK ] MultiOffsetTest.MeanDefault_NullConfig_BackwardCompat (0 ms)
+[ RUN      ] MultiOffsetTest.Winsor_AllIdentical_NoChange
+[       OK ] MultiOffsetTest.Winsor_AllIdentical_NoChange (0 ms)
+[ RUN      ] MultiOffsetTest.OutputMetadata_CorrectForAllMethods
+[       OK ] MultiOffsetTest.OutputMetadata_CorrectForAllMethods (0 ms)
+[ RUN      ] MultiOffsetTest.Winsor_TightPercentiles
+[       OK ] MultiOffsetTest.Winsor_TightPercentiles (0 ms)
+[ RUN      ] MultiOffsetTest.Median_SingleFrame_Identity
+[       OK ] MultiOffsetTest.Median_SingleFrame_Identity (0 ms)
+[ RUN      ] MultiOffsetTest.NullConfig_DefaultsToMean
+[       OK ] MultiOffsetTest.NullConfig_DefaultsToMean (0 ms)
+[ RUN      ] MultiOffsetTest.LargeFrameCount_64Frames
+[       OK ] MultiOffsetTest.LargeFrameCount_64Frames (0 ms)
+[ RUN      ] MultiOffsetTest.SigmaClip_AllIdentical_NoDivision
+[       OK ] MultiOffsetTest.SigmaClip_AllIdentical_NoDivision (0 ms)
+[ RUN      ] MultiOffsetTest.Median_OddFrameCount
+[       OK ] MultiOffsetTest.Median_OddFrameCount (0 ms)
+[ RUN      ] MultiOffsetTest.Winsor_PerPixelMixed
+[       OK ] MultiOffsetTest.Winsor_PerPixelMixed (0 ms)
+[ RUN      ] MultiOffsetTest.SigmaClip_PerPixelOutlier
+[       OK ] MultiOffsetTest.SigmaClip_PerPixelOutlier (0 ms)
+[ RUN      ] MultiOffsetTest.SigmaClip_NoOutliers_SameAsMean
+[       OK ] MultiOffsetTest.SigmaClip_NoOutliers_SameAsMean (0 ms)
+[ RUN      ] MultiOffsetTest.Winsor_ClipsExtremeValues
+[       OK ] MultiOffsetTest.Winsor_ClipsExtremeValues (0 ms)
+[ RUN      ] MultiOffsetTest.SigmaClip_RemovesOutlier
+[       OK ] MultiOffsetTest.SigmaClip_RemovesOutlier (0 ms)
+[ RUN      ] MultiOffsetTest.UnknownMethod_ReturnsConfigInvalid
+[       OK ] MultiOffsetTest.UnknownMethod_ReturnsConfigInvalid (0 ms)
+[----------] 20 tests from MultiOffsetTest (0 ms total)
+
+[----------] 4 tests from GoldenGhostTest
+[ RUN      ] GoldenGhostTest.Frame1MatchesDualExponentialFormula
+[       OK ] GoldenGhostTest.Frame1MatchesDualExponentialFormula (0 ms)
+[ RUN      ] GoldenGhostTest.GhostSubtractedAfterFirstFrame
+[       OK ] GoldenGhostTest.GhostSubtractedAfterFirstFrame (0 ms)
+[ RUN      ] GoldenGhostTest.AfterResetHistoryIsZero
+[       OK ] GoldenGhostTest.AfterResetHistoryIsZero (0 ms)
+[ RUN      ] GoldenGhostTest.Frame0PassesThroughExactly
+[       OK ] GoldenGhostTest.Frame0PassesThroughExactly (0 ms)
+[----------] 4 tests from GoldenGhostTest (0 ms total)
+
+[----------] 8 tests from GenerateOffsetConfigTest
+[ RUN      ] GenerateOffsetConfigTest.SigmaClipProducesADifferentMapThanMean
+[xpe] sigma-clip N_min: 4 pixel(s) below the floor, 4 newly marked in the defect map (XPE-ALG-001 9.8.2.1)
+[       OK ] GenerateOffsetConfigTest.SigmaClipProducesADifferentMapThanMean (5 ms)
+[ RUN      ] GenerateOffsetConfigTest.NMinMarksLandInTheGlobalDefectMap
+[xpe] sigma-clip N_min: 4 pixel(s) below the floor, 4 newly marked in the defect map (XPE-ALG-001 9.8.2.1)
+[       OK ] GenerateOffsetConfigTest.NMinMarksLandInTheGlobalDefectMap (4 ms)
+[ RUN      ] GenerateOffsetConfigTest.NullConfigIsTheSameAsExplicitMean
+[       OK ] GenerateOffsetConfigTest.NullConfigIsTheSameAsExplicitMean (7 ms)
+[ RUN      ] GenerateOffsetConfigTest.RunsThatMarkNothingCreateNoDefectMap
+[       OK ] GenerateOffsetConfigTest.RunsThatMarkNothingCreateNoDefectMap (1 ms)
+[ RUN      ] GenerateOffsetConfigTest.MarksAgainstADifferentSizedDefectMapAreRefused
+[       OK ] GenerateOffsetConfigTest.MarksAgainstADifferentSizedDefectMapAreRefused (5 ms)
+[ RUN      ] GenerateOffsetConfigTest.MalformedConfigIsReported
+[       OK ] GenerateOffsetConfigTest.MalformedConfigIsReported (0 ms)
+[ RUN      ] GenerateOffsetConfigTest.MedianIsReachable
+[       OK ] GenerateOffsetConfigTest.MedianIsReachable (5 ms)
+[ RUN      ] GenerateOffsetConfigTest.MarksAgainstASameSizedDefectMapAreMerged
+[xpe] sigma-clip N_min: 4 pixel(s) below the floor, 4 newly marked in the defect map (XPE-ALG-001 9.8.2.1)
+[       OK ] GenerateOffsetConfigTest.MarksAgainstASameSizedDefectMapAreMerged (6 ms)
+[----------] 8 tests from GenerateOffsetConfigTest (37 ms total)
+
+[----------] 6 tests from EnduranceTest
+[ RUN      ] EnduranceTest.LoadCycles_DoNotGrowCrtHeap
+
+[  INFO ] D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_calib_endurance.cpp(104):: heap growth 0 bytes / 0 blocks over 1000 cycles, working set 0 bytes (not asserted)
+[       OK ] EnduranceTest.LoadCycles_DoNotGrowCrtHeap (294 ms)
+[ RUN      ] EnduranceTest.FourThreadsConcurrentLoadOffset_NoCrash
+[       OK ] EnduranceTest.FourThreadsConcurrentLoadOffset_NoCrash (11 ms)
+[ RUN      ] EnduranceTest.LoadCycles_ControlLeakIsCaught
+
+[  INFO ] D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_calib_endurance.cpp(118):: control 64 B/cycle: heap growth 64000 bytes / 1000 blocks over 1000 cycles, working set 57344 bytes (not asserted)
+[       OK ] EnduranceTest.LoadCycles_ControlLeakIsCaught (310 ms)
+[ RUN      ] EnduranceTest.FourThreadsMixedLoad_NoCrash
+[       OK ] EnduranceTest.FourThreadsMixedLoad_NoCrash (9 ms)
+[ RUN      ] EnduranceTest.FourThreadsConcurrentLoadGain_NoCrash
+[       OK ] EnduranceTest.FourThreadsConcurrentLoadGain_NoCrash (10 ms)
+[ RUN      ] EnduranceTest.ThousandCycles_NocrashAllOk
+[       OK ] EnduranceTest.ThousandCycles_NocrashAllOk (254 ms)
+[----------] 6 tests from EnduranceTest (890 ms total)
+
+[----------] 2 tests from FullPipelineTest
+[ RUN      ] FullPipelineTest.OffsetExceedsRawClampsToZero
+[       OK ] FullPipelineTest.OffsetExceedsRawClampsToZero (5 ms)
+[ RUN      ] FullPipelineTest.DarkSubtractionEndToEnd
+[       OK ] FullPipelineTest.DarkSubtractionEndToEnd (4 ms)
+[----------] 2 tests from FullPipelineTest (10 ms total)
+
+[----------] 19 tests from CalibLoadTest
+[ RUN      ] CalibLoadTest.LoadOffset_TamperedPayload_ReturnsConfigInvalid
+[       OK ] CalibLoadTest.LoadOffset_TamperedPayload_ReturnsConfigInvalid (17 ms)
+[ RUN      ] CalibLoadTest.LoadOffset_BadMagic_ReturnsError
+[       OK ] CalibLoadTest.LoadOffset_BadMagic_ReturnsError (0 ms)
+[ RUN      ] CalibLoadTest.LoadGain_WrongType_ReturnsConfigInvalid
+[       OK ] CalibLoadTest.LoadGain_WrongType_ReturnsConfigInvalid (4 ms)
+[ RUN      ] CalibLoadTest.LoadGain_HappyPath_ReturnsOk
+[       OK ] CalibLoadTest.LoadGain_HappyPath_ReturnsOk (4 ms)
+[ RUN      ] CalibLoadTest.LoadDefect_NonExistentFile_ReturnsIoFailed
+[       OK ] CalibLoadTest.LoadDefect_NonExistentFile_ReturnsIoFailed (0 ms)
+[ RUN      ] CalibLoadTest.LoadDefect_HappyPath_ReturnsOk
+[       OK ] CalibLoadTest.LoadDefect_HappyPath_ReturnsOk (4 ms)
+[ RUN      ] CalibLoadTest.LoadOffset_NonExistentFile_ReturnsIoFailed
+[       OK ] CalibLoadTest.LoadOffset_NonExistentFile_ReturnsIoFailed (0 ms)
+[ RUN      ] CalibLoadTest.LoadDefect_TamperedPayload_ReturnsConfigInvalid
+[       OK ] CalibLoadTest.LoadDefect_TamperedPayload_ReturnsConfigInvalid (8 ms)
+[ RUN      ] CalibLoadTest.LoadOffset_WrongType_ReturnsConfigInvalid
+[       OK ] CalibLoadTest.LoadOffset_WrongType_ReturnsConfigInvalid (4 ms)
+[ RUN      ] CalibLoadTest.LoadGain_TamperedPayload_ReturnsConfigInvalid
+[       OK ] CalibLoadTest.LoadGain_TamperedPayload_ReturnsConfigInvalid (8 ms)
+[ RUN      ] CalibLoadTest.LoadDefect_ExpiredTimestamp_ReturnsCalibrationExpired
+[       OK ] CalibLoadTest.LoadDefect_ExpiredTimestamp_ReturnsCalibrationExpired (8 ms)
+[ RUN      ] CalibLoadTest.LoadOffset_HappyPath_ReturnsOk
+[       OK ] CalibLoadTest.LoadOffset_HappyPath_ReturnsOk (4 ms)
+[ RUN      ] CalibLoadTest.LoadGain_NonExistentFile_ReturnsIoFailed
+[       OK ] CalibLoadTest.LoadGain_NonExistentFile_ReturnsIoFailed (0 ms)
+[ RUN      ] CalibLoadTest.LoadOffset_ExpiredFile_ReturnsCalibrationExpired
+[       OK ] CalibLoadTest.LoadOffset_ExpiredFile_ReturnsCalibrationExpired (4 ms)
+[ RUN      ] CalibLoadTest.LoadGain_ExpiredFile_ReturnsCalibrationExpired
+[       OK ] CalibLoadTest.LoadGain_ExpiredFile_ReturnsCalibrationExpired (6 ms)
+[ RUN      ] CalibLoadTest.LoadGain_NullPath_ReturnsInvalidInput
+[       OK ] CalibLoadTest.LoadGain_NullPath_ReturnsInvalidInput (0 ms)
+[ RUN      ] CalibLoadTest.LoadOffset_NullPath_ReturnsInvalidInput
+[       OK ] CalibLoadTest.LoadOffset_NullPath_ReturnsInvalidInput (0 ms)
+[ RUN      ] CalibLoadTest.LoadDefect_NullPath_ReturnsInvalidInput
+[       OK ] CalibLoadTest.LoadDefect_NullPath_ReturnsInvalidInput (0 ms)
+[ RUN      ] CalibLoadTest.LoadDefect_WrongType_ReturnsConfigInvalid
+[       OK ] CalibLoadTest.LoadDefect_WrongType_ReturnsConfigInvalid (5 ms)
+[----------] 19 tests from CalibLoadTest (84 ms total)
+
+[----------] 5 tests from TempCompensate
+[ RUN      ] TempCompensate.TempBelowRangeReturnsError
+[       OK ] TempCompensate.TempBelowRangeReturnsError (0 ms)
+[ RUN      ] TempCompensate.ValidTempAtBoundaryReturnsOk
+[       OK ] TempCompensate.ValidTempAtBoundaryReturnsOk (0 ms)
+[ RUN      ] TempCompensate.NanTemperatureUsesFallback
+[       OK ] TempCompensate.NanTemperatureUsesFallback (0 ms)
+[ RUN      ] TempCompensate.NullImgReturnsError
+[       OK ] TempCompensate.NullImgReturnsError (0 ms)
+[ RUN      ] TempCompensate.TempAboveRangeReturnsError
+[       OK ] TempCompensate.TempAboveRangeReturnsError (0 ms)
+[----------] 5 tests from TempCompensate (0 ms total)
+
+[----------] 4 tests from SaveLoadRoundtripTest
+[ RUN      ] SaveLoadRoundtripTest.CorruptedPayloadFailsHashCheck
+[       OK ] SaveLoadRoundtripTest.CorruptedPayloadFailsHashCheck (8 ms)
+[ RUN      ] SaveLoadRoundtripTest.ExpiredCalibrationReturnsExpiryError
+[       OK ] SaveLoadRoundtripTest.ExpiredCalibrationReturnsExpiryError (5 ms)
+[ RUN      ] SaveLoadRoundtripTest.GainFloat32RoundtripPreservesPixels
+[       OK ] SaveLoadRoundtripTest.GainFloat32RoundtripPreservesPixels (6 ms)
+[ RUN      ] SaveLoadRoundtripTest.OffsetRoundtripPreservesPixels
+[       OK ] SaveLoadRoundtripTest.OffsetRoundtripPreservesPixels (9 ms)
+[----------] 4 tests from SaveLoadRoundtripTest (29 ms total)
+
+[----------] Global test environment tear-down
+[==========] 846 tests from 108 test suites ran. (67929 ms total)
+[  PASSED  ] 838 tests.
+[  SKIPPED ] 8 tests, listed below:
+[  SKIPPED ] CalibSaveTest.SaveOffset_WhenNotLoaded_ReturnsInvalidInput
+[  SKIPPED ] PreprocessCalibrationTest.LoadOffset_ValidXCalFile
+[  SKIPPED ] PreprocessCalibrationTest.LoadDefectMap_ValidXCalFile
+[  SKIPPED ] PreprocessCalibrationTest.Save_GainCalibration
+[  SKIPPED ] PreprocessCalibrationTest.CheckExpiry_ExpiredCalibration
+[  SKIPPED ] PreprocessCalibrationTest.Save_OffsetCalibration
+[  SKIPPED ] PreprocessCalibrationTest.LoadGain_ValidXCalFile
+[  SKIPPED ] PreprocessCalibrationTest.CheckExpiry_ValidCalibration
+
+  YOU HAVE 41 DISABLED TESTS
+

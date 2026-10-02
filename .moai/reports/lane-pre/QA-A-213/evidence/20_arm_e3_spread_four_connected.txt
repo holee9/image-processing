@@ -1,0 +1,7 @@
+ARM e3_spread_four_connected
+file src/defect_correct.cpp
+built=True
+[  FAILED  ] DefectFillEquivalenceTest.ThreeHundredRandomMasks (4 ms)
+[  PASSED  ] 35 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DefectFillEquivalenceTest.ThreeHundredRandomMasks

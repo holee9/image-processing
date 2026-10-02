@@ -1,0 +1,22 @@
+ARM k2_only_the_row_above_corrected
+file src/ghost_correct.cpp
+built=True
+[  FAILED  ] GhostTier3Orientation.AFrameFlippedProcessedAndFlippedBackComesOutAsTheUnflippedOne (1 ms)
+[  FAILED  ] GhostTier3Orientation.TheOutputIsTheTierThreeFormulaWithTheNeighboursReadFromTheIncomingFrame (0 ms)
+[  PASSED  ] 11 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] GhostTier3Orientation.AFrameFlippedProcessedAndFlippedBackComesOutAsTheUnflippedOne
+[  FAILED  ] GhostTier3Orientation.TheOutputIsTheTierThreeFormulaWithTheNeighboursReadFromTheIncomingFrame
+failing orientation cases (size, scene, transform):
+16x16 random, rot180
+16x16 random, transpose
+16x16 random, up-down
+16x16 smooth, rot180
+16x16 smooth, transpose
+16x16 smooth, up-down
+24x24 random, rot180
+24x24 random, transpose
+24x24 random, up-down
+24x24 smooth, rot180
+24x24 smooth, transpose
+24x24 smooth, up-down

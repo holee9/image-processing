@@ -1,0 +1,21 @@
+ARM f1_median_picks_the_next_value
+file src/defect_correct.cpp
+built=True
+[  FAILED  ] DefectFillEquivalenceTest.OneBigBlockWhoseDeepInteriorIsBeyondTheSearchRadius (39 ms)
+[  FAILED  ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorIsWithinTenPixels (21 ms)
+[  FAILED  ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorReachesTwentyPixels (33 ms)
+[  FAILED  ] DefectFillEquivalenceTest.ASparseRealisticMaskOfLonePixelsAndSmallClusters (9 ms)
+[  FAILED  ] DefectFillEquivalenceTest.BlocksTouchingTheFrameEdgesAndCorners (2 ms)
+[  FAILED  ] DefectFillEquivalenceTest.ThinLinesAndDiagonals (1 ms)
+[  FAILED  ] DefectFillEquivalenceTest.WhenTheRingMixesNegativeAndPositiveZeroTheFilledValueIsTheReferenceValue (2 ms)
+[  FAILED  ] DefectFillEquivalenceTest.ThreeHundredRandomMasks (3 ms)
+[  PASSED  ] 30 tests.
+[  FAILED  ] 8 tests, listed below:
+[  FAILED  ] DefectFillEquivalenceTest.OneBigBlockWhoseDeepInteriorIsBeyondTheSearchRadius
+[  FAILED  ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorIsWithinTenPixels
+[  FAILED  ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorReachesTwentyPixels
+[  FAILED  ] DefectFillEquivalenceTest.ASparseRealisticMaskOfLonePixelsAndSmallClusters
+[  FAILED  ] DefectFillEquivalenceTest.BlocksTouchingTheFrameEdgesAndCorners
+[  FAILED  ] DefectFillEquivalenceTest.ThinLinesAndDiagonals
+[  FAILED  ] DefectFillEquivalenceTest.WhenTheRingMixesNegativeAndPositiveZeroTheFilledValueIsTheReferenceValue
+[  FAILED  ] DefectFillEquivalenceTest.ThreeHundredRandomMasks

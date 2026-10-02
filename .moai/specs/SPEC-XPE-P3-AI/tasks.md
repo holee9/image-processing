@@ -20,6 +20,13 @@ SPEC: SPEC-XPE-P3-AI
 | T-015 | Conformal prediction framework | REQ-AI-080,081,082,083 | T-005 | ai_conformal.cpp/h | pending |
 | T-016 | Drift fingerprint emission | REQ-AI-100,101 | T-005 | ai_sidecar.cpp/h | pending |
 
+> **T-008·T-013 상태 메모 (2026-10-02, `#210`, `QA-B-190`)** — 두 행은 `pending` 으로 두었습니다.
+> 일부만 끝났고 `done` 이라고 적을 근거는 없기 때문입니다.
+> - T-008: `xpe_bone_suppress` 는 `OnnxSession::Run` 으로 추론 경로가 이어졌고 opt-in 워커 경로도 있습니다.
+>   다만 이 행이 함께 걸고 있는 `REQ-AI-050`(품질 목표)은 `rtm_ai.md` §12 에서 여전히 `Not implemented` 입니다.
+> - T-013: 시간 예산은 `xpe_bone_suppress` 의 opt-in 워커 경로(`use_worker: true`)에서만 동작합니다
+>   (예산 초과 → 입력 반환 + 비정상 코드 + Warning 1건). 기본 경로(워커 끔)와 나머지 세 진입점에는 예산이 없습니다.
+
 **Total**: 16 tasks
 **Priority**: Alternative B (Balanced) - Infrastructure + Core Inference Paths
 **Complexity**: 4 High, 6 Medium, 3 Low, 3 Medium

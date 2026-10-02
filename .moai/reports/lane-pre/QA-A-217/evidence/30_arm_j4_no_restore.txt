@@ -1,0 +1,7 @@
+ARM j4_no_restore
+file src/ghost_correct.cpp
+built=True
+[  FAILED  ] GhostInputFinite.AFrameThatFailsHalfWayThroughPutsItsPixelsBack (0 ms)
+[  PASSED  ] 17 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] GhostInputFinite.AFrameThatFailsHalfWayThroughPutsItsPixelsBack

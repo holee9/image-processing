@@ -1,0 +1,9 @@
+ARM b3_no_line_range_classification
+file src/xpe_calib_generate_gain.cpp
+built=True
+[  FAILED  ] GainPolyClassifyTest.APixelWhoseLeastSquaresLineLeavesTheRangeAtAMeasuredDoseIsClassifiedToo (6 ms)
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys (49 ms)
+[  PASSED  ] 835 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] GainPolyClassifyTest.APixelWhoseLeastSquaresLineLeavesTheRangeAtAMeasuredDoseIsClassifiedToo
+[  FAILED  ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys

@@ -1,0 +1,7 @@
+ARM b6_no_apply_cap
+file src/gain_correct.cpp
+built=True
+[  FAILED  ] GainPolyClassifyTest.ACurveThatLeavesTheRangeBetweenTwoMeasuredDosesClassifiesThatPixelInsteadOfRefusingTheFrame (12 ms)
+[  PASSED  ] 836 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] GainPolyClassifyTest.ACurveThatLeavesTheRangeBetweenTwoMeasuredDosesClassifiesThatPixelInsteadOfRefusingTheFrame

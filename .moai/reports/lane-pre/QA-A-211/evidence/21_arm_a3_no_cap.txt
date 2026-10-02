@@ -1,0 +1,13 @@
+ARM a3_no_cap
+file src/xpe_calib_load_gain.cpp
+built=True
+[  FAILED  ] GainPolyNotAppliedTest.ScalarGainValuesOutsideTheRangeAreRejected (25 ms)
+[  FAILED  ] GainPolyNotAppliedTest.ARejectedMapDoesNotReplaceTheLoadedOne (10 ms)
+[  FAILED  ] GainDefectClassifyTest.ExactlyFivePercentLoadsOneMoreIsRefusedAndTheLoadedMapStays (2 ms)
+[  FAILED  ] GainDefectClassifyTest.AWholeMapOutOfRangeIsStillRefused (4 ms)
+[  PASSED  ] 19 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] GainPolyNotAppliedTest.ScalarGainValuesOutsideTheRangeAreRejected
+[  FAILED  ] GainPolyNotAppliedTest.ARejectedMapDoesNotReplaceTheLoadedOne
+[  FAILED  ] GainDefectClassifyTest.ExactlyFivePercentLoadsOneMoreIsRefusedAndTheLoadedMapStays
+[  FAILED  ] GainDefectClassifyTest.AWholeMapOutOfRangeIsStillRefused

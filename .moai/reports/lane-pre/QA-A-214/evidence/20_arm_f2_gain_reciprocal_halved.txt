@@ -1,0 +1,13 @@
+ARM f2_gain_reciprocal_halved
+file src/gain_correct.cpp
+built=True
+[  FAILED  ] DefectFillTest.ACentre3x3ClassifiedByTheGainMapIsFilledFromTheRingNotWithZero (10 ms)
+[  FAILED  ] DefectFillTest.AClusterOfTheDefectMapItselfIsFilledTheSameWay (9 ms)
+[  FAILED  ] DefectFillTest.TheNearestRingDecidesNotAWiderOne (3 ms)
+[  FAILED  ] DefectFillEquivalenceTest.ThroughThePipelineTheDefectStageIsOnlyEverGivenFiniteValues (9 ms)
+[  PASSED  ] 34 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] DefectFillTest.ACentre3x3ClassifiedByTheGainMapIsFilledFromTheRingNotWithZero
+[  FAILED  ] DefectFillTest.AClusterOfTheDefectMapItselfIsFilledTheSameWay
+[  FAILED  ] DefectFillTest.TheNearestRingDecidesNotAWiderOne
+[  FAILED  ] DefectFillEquivalenceTest.ThroughThePipelineTheDefectStageIsOnlyEverGivenFiniteValues

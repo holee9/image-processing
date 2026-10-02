@@ -1,0 +1,41 @@
+# QA-B-190 temporary measurement (NOT committed as a test; kept as evidence): does confidence_threshold change what
+# xpe_bodypart_recognize does, in the ONNX build?  Calls the real xpe_ai.dll of build/ci-ai through ctypes.
+# Run from the repo root:  PYTHONIOENCODING=utf-8 python <this file> > bodypart_probe_out.txt
+# (kept as .txt: .gitignore excludes .py under .moai/reports)
+import ctypes
+import os
+
+BIN = os.path.abspath('build/ci-ai/bin')
+os.add_dll_directory(BIN)
+os.environ['PATH'] = BIN + os.pathsep + os.environ['PATH']
+ai = ctypes.CDLL(os.path.join(BIN, 'xpe_ai.dll'))
+
+
+class Img(ctypes.Structure):
+    _fields_ = [('width', ctypes.c_uint32), ('height', ctypes.c_uint32), ('bitsAllocated', ctypes.c_uint32),
+                ('bitsStored', ctypes.c_uint32), ('format', ctypes.c_int32), ('data', ctypes.c_void_p),
+                ('dataSize', ctypes.c_size_t)]
+
+
+assert ctypes.sizeof(Img) == 40
+ai.xpe_ai_init.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+ai.xpe_ai_init.restype = ctypes.c_int32
+ai.xpe_ai_shutdown.restype = None
+ai.xpe_bodypart_recognize.argtypes = [ctypes.POINTER(Img), ctypes.c_char_p, ctypes.c_size_t,
+                                      ctypes.POINTER(ctypes.c_float)]
+ai.xpe_bodypart_recognize.restype = ctypes.c_int32
+
+px = (ctypes.c_float * (64 * 64))(*[float(i % 97) for i in range(64 * 64)])
+img = Img(64, 64, 32, 32, 1, ctypes.cast(px, ctypes.c_void_p), ctypes.sizeof(px))
+
+print('build under test: build/ci-ai/bin/xpe_ai.dll (XPE_AI_USE_ONNXRUNTIME=ON)')
+print('%-34s %-8s %-6s %-12s %s' % ('config', 'init_rc', 'rc', 'label', 'confidence'))
+for cfg in (b'{"confidence_threshold": 0.0}', b'{"confidence_threshold": 0.6}', b'{"confidence_threshold": 1.0}',
+            b'{"confidence_threshold": 0.6, "fallback_mode": false}'):
+    irc = ai.xpe_ai_init(b'.', cfg)
+    buf = ctypes.create_string_buffer(64)
+    conf = ctypes.c_float(-1.0)
+    rc = ai.xpe_bodypart_recognize(ctypes.byref(img), buf, 64, ctypes.byref(conf))
+    print('%-34s %-8d %-6d %-12s %s' % (cfg.decode(), irc, rc, buf.value.decode(), conf.value))
+    ai.xpe_ai_shutdown()
+print('control: init with a config of a different shape still returns rc 0 and the call is reached (init_rc 0 above)')

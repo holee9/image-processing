@@ -247,7 +247,7 @@ Output = Stored_Value × Rescale_Slope + Rescale_Intercept
 |-------------|--------------|
 | DICOM Part 14 | Grayscale Standard Display Function (GSDF) 준수 |
 | P-Value 출력 | Perceptually linear luminance space |
-| Photometric Interpretation | MONOCHROME1 (bone=dark) / MONOCHROME2 (bone=bright) 자동 처리 |
+| Photometric Interpretation | 읽기 단계에서 MONOCHROME2 의미로 정규화(극성만; 원본 Window·Rescale 은 쓰기에서 보존되지 않음) |
 | Presentation LUT Shape | IDENTITY / INVERSE 지원 |
 | Calibration | Display 장치별 GSDF LUT 생성 도구 포함 |
 

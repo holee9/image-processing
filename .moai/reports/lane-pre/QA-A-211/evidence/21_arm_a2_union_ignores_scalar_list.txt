@@ -1,0 +1,11 @@
+ARM a2_union_ignores_scalar_list
+file src/defect_correct.cpp
+built=True
+[  FAILED  ] GainDefectClassifyTest.TheClassifiedPixelsAreFilledFromTheirNeighboursByTheDefectStage (3 ms)
+[  FAILED  ] GainDefectClassifyTest.TheDefectMapAndTheClassificationAreBothCorrected (3 ms)
+[  FAILED  ] GainDefectClassifyTest.ACacheHitInstallsTheSameClassificationAsTheMiss (4 ms)
+[  PASSED  ] 20 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] GainDefectClassifyTest.TheClassifiedPixelsAreFilledFromTheirNeighboursByTheDefectStage
+[  FAILED  ] GainDefectClassifyTest.TheDefectMapAndTheClassificationAreBothCorrected
+[  FAILED  ] GainDefectClassifyTest.ACacheHitInstallsTheSameClassificationAsTheMiss

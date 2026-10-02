@@ -1,0 +1,4 @@
+processes per variant: 24 24
+old: min of all obs 83.8 | per-process-min: min 83.8 p25 85.7 median 87.8 p75 94.4 | all-obs median 94.5 | fnv {'68dfffca3cdb2a4d'}
+new: min of all obs 86.3 | per-process-min: min 86.3 p25 88.0 median 95.2 p75 97.8 | all-obs median 99.8 | fnv {'68dfffca3cdb2a4d'}
+paired (same round, new-old) of per-process mins: median 2.1 mean 3.4, new slower in 19 of 24 rounds

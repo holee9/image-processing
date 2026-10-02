@@ -1,0 +1,4 @@
+RESULT|frame 1 (zero history) program vs in-place reference: differing pixels / max abs (0, 0.0)
+RESULT|frame 2 program vs reference reading the ALREADY-CORRECTED earlier pixels (what the code does): differing pixels / max abs (0, 0.0)
+RESULT|frame 2 program vs reference reading the ORIGINAL neighbours: differing pixels / max abs (113, 2837.2421875)
+RESULT|interior pixels 196 of 256 ; frame 2: in-place vs original-neighbour reference differ at 113 pixels, max abs 2837.2421875

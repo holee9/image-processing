@@ -1,0 +1,9 @@
+ARM h3_binning_no_alert
+file src/binning_correct.cpp
+built=True
+[  FAILED  ] NonFiniteInputTest.BinningRefusesANonFiniteFrameAndLeavesEveryPixelAsItWas (0 ms)
+[  FAILED  ] NonFiniteInputTest.BinningTheAlertNamesTheCountAndTheFirstPixel (0 ms)
+[  PASSED  ] 11 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] NonFiniteInputTest.BinningRefusesANonFiniteFrameAndLeavesEveryPixelAsItWas
+[  FAILED  ] NonFiniteInputTest.BinningTheAlertNamesTheCountAndTheFirstPixel

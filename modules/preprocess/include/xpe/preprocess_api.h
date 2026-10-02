@@ -162,6 +162,19 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
  * by atoi/atof and now refuse the file -- an intended policy (QA-A-204, QA-A-205b): a quality field that is not
  * a number is not data. The generator (xpe_calib_generate_gain) writes plain numbers.
  *
+ * Gain range and failed pixels (SRS-CALIB-FUNC-002, QA-A-211): a scalar map's values shall be in [0.1, 10.0]. A pixel
+ * outside it -- a failed pixel, or the low-sensitivity edge band some detectors have -- does NOT refuse the map: it is
+ * CLASSIFIED DEFECTIVE. Its gain is replaced by 1.0, its index is kept in the calibration store, and the defect
+ * correction stage corrects it from its neighbours together with the pixels of the loaded defect map (the stage reads
+ * the union of the two). The count is reported on the alert queue (XPE_ALERT_WARNING,
+ * "XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: ..."), and a map with MORE than 5% of its pixels classified (the defect
+ * density SRS-CALIB-FUNC-003 tolerates) is refused with XPE_ERR_INVALID_CALIB_DATA and an alert
+ * "XPE_WARN_GAIN_PIXELS_OVER_LIMIT: ..." (XPE_ALERT_ERROR), the store unchanged. The same range and rule apply to a
+ * gain polynomial, evaluated at each pixel value when a frame is corrected (see xpe_gain_correct). Pixels classified
+ * by the gain calibration are corrected only by a defect stage that follows: with the defect stage bypassed, or with
+ * xpe_gain_correct called on its own, they carry the uncorrected value (gain 1.0) and the frame says so
+ * ("XPE_WARN_GAIN_PIXELS_UNCORRECTED: ..."); the pipeline refuses such a frame when binning is on.
+ *
  * @param filepath Path to XCal format gain file
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
@@ -169,6 +182,7 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
  *         XPE_ERR_CALIBRATION_EXPIRED if calibration expired
  *         XPE_ERR_CONFIG_INVALID if the config block is not one valid JSON object, or a present quality field is
  *                                not a number in its range
+ *         XPE_ERR_INVALID_CALIB_DATA if more than 5% of a scalar map's pixels are outside [0.1, 10.0]
  */
 XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath);
 
@@ -237,7 +251,14 @@ XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
  *                               map's dimensions differ from the input's (REQ-P1A-021)
  *         XPE_ERR_BUFFER_TOO_SMALL if the output's dimensions differ from the input's
  *         XPE_ERR_UNSUPPORTED_FORMAT if format mismatch
- *         XPE_ERR_CONFIG_INVALID if gain map contains invalid values
+ *         XPE_ERR_CONFIG_INVALID if the gain map contains invalid values, or (polynomial gain) if more than 5% of the
+ *                               frame's pixels evaluate to a gain outside [0.1, 10.0] (QA-A-211)
+ *
+ * @note A pixel whose polynomial gain, evaluated in float32 at its own value, is outside [0.1, 10.0] (or not finite) is
+ *       classified defective for this frame: gain 1.0, and the pipeline hands its index to the defect stage of the same
+ *       frame. Called on its own this function cannot do that -- the pixel keeps gain 1.0 and an alert
+ *       "XPE_WARN_GAIN_PIXELS_UNCORRECTED: ..." says no defect stage follows. A scalar map was classified when it was
+ *       loaded (see xpe_calib_load_gain), and xpe_defect_correct reads that classification from the store.
  *
  * @note The map this function reads is the one in the calibration store when it is CALLED (it takes its own
  *       snapshot under the store's lock, then reads it in place; a load that lands during the call does not
@@ -285,6 +306,19 @@ XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
  * kernels read only unmarked ones (defect_correct.cpp:96, helpers.cpp:30 on
  * the 4-neighbour path and the r=1..3 ring fallback alike). The two sets are
  * disjoint, so a read can never see an already-corrected value.
+ *
+ * NON-FINITE INPUT (QA-A-214b): a frame holding a NaN or an infinity -- masked pixels included -- is refused at the
+ * entrance with XPE_ERR_INVALID_INPUT and one XPE_ALERT_ERROR "XPE_WARN_DEFECT_INPUT_NOT_FINITE: ..." (the count and the
+ * first pixel); nothing is written (the output buffer is untouched, and called in place the input is). The check
+ * follows the argument, format, size, aliasing, initialisation and map checks, so those errors keep their precedence.
+ * The pipeline never hands this stage a non-finite value; the check is for callers of this function.
+ *
+ * FILL VALUE (QA-A-211b): a marked pixel takes the mean of its unmarked 4-neighbours (a lone defect), or -- inside a
+ * cluster of adjacent marked pixels -- the median of the unmarked pixels of its 3x3; when that 3x3 holds none (the
+ * interior of a cluster), the search widens ring by ring to Chebyshev radius 16 and the median of the NEAREST ring
+ * holding an unmarked pixel is used. A pixel with no unmarked pixel within 16 pixels keeps its input value and one
+ * alert "XPE_WARN_DEFECT_NO_VALID_NEIGHBOUR: ..." (XPE_ALERT_WARNING) gives the count; it is never written as 0.
+ * (Before QA-A-211b a cluster pixel with an empty 3x3 was written as 0.0f -- on CalData_6, 66.7% of the defect map.)
  * That invariant is a property of the CURRENT kernels, not a structural
  * guarantee -- a kernel that read a defective neighbour would break in-place
  * silently, so what holds it is a test, not this comment:
@@ -527,10 +561,16 @@ XPE_API void xpe_calib_unload_nonlin_lut(void);
  *         XPE_ERR_INVALID_CALIB_DATA if a gain map holds a value that is not finite (QA-A-210d), or if
  *         some pixel has no polynomial the APPLIER can use (QA-A-210e): the coefficients are stored as float32 in the
  *         raw dose and applied in float32 Horner at the pixel value, and a fit whose float32 evaluation at a measured
- *         dose falls outside the applier's gain range [0.001, 1000] or more than 0.1% from the fit (typically doses so
- *         close together that the float32 intercept cannot carry the slope) lowers the degree like a non-monotone
- *         one; if even the least-squares line fails, no quality record is made and no file is written, and an alert
- *         "XPE_WARN_GAIN_POLY_NOT_APPLICABLE: ..." (XPE_ALERT_ERROR) gives the pixel count and the first pixel. The
+ *         dose is more than 0.1% from the fit (typically doses so close together that the float32 intercept cannot
+ *         carry the slope) lowers the degree like a non-monotone one; if even the least-squares line fails, no quality
+ *         record is made and no file is written, and an alert "XPE_WARN_GAIN_POLY_NOT_APPLICABLE: ..."
+ *         (XPE_ALERT_ERROR) gives the pixel count and the first pixel. A pixel whose gain is outside the gain range
+ *         [0.1, 10.0] (SRS-CALIB-FUNC-002) is not refused but CLASSIFIED DEFECTIVE (QA-A-211): when a measured gain of
+ *         it is outside the range, or the least-squares line leaves the range at a measured dose, its coefficients are
+ *         stored as 0 (the applier classifies it again at every frame), it is not fitted and not in the quality figures
+ *         below, and the count is reported ("XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: ..."); more than 5% of the frame
+ *         classified refuses the generation (XPE_ERR_INVALID_CALIB_DATA, alert "XPE_WARN_GAIN_PIXELS_OVER_LIMIT: ...",
+ *         nothing recorded, no file). The
  *         fit_r_squared the file records is computed in the applier's arithmetic from the stored coefficients, so it is
  *         the quality of the correction that will be performed, or
  *         when num_levels / max_degree exceed the active calibration mode
@@ -599,7 +639,11 @@ XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
  * @param defect_map_output Output defect map (merged with static BPM)
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
- *         XPE_ERR_INVALID_INPUT if NULL pointers
+ *         XPE_ERR_INVALID_INPUT if NULL pointers, or if the image holds a NaN or
+ *         an infinity: refused at the entrance (QA-A-215), the defect map is
+ *         not written, and one Error alert
+ *         XPE_WARN_RUNTIME_DETECT_INPUT_NOT_FINITE names the count and the
+ *         first pixel
  */
 XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* image,
                                                const XpeImageMetadata* metadata,
@@ -645,9 +689,10 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
  *                  alpha2, tau2, tier2Threshold, nlcscBeta) is not one finite number in range (notation:
  *                  see xpe_preprocess_pipeline); no handle is handed back and nothing is left allocated
  *
- * @note The handle holds the frame history twice (width*height floats, four planes in all): a frame writes
- *       its new history into the second pair and the pairs are swapped only when the frame succeeded (see
- *       xpe_ghost_correct). At 3072x3072 that is about 151 MB per handle.
+ * @note The handle holds the frame history twice (width*height floats, four planes) plus one more plane
+ *       with the frame as it came in: a frame writes its new history into the second pair and the pairs are
+ *       swapped only when the frame succeeded, and a frame that fails gets its pixels put back from the fifth
+ *       plane (see xpe_ghost_correct). At 3072x3072 that is about 189 MB per handle.
  *
  * @note SRS-CALIB-NFR-003: one handle may be shared by several threads. Calls to
  *       xpe_ghost_correct() and xpe_ghost_reset() on the same handle are serialised
@@ -674,15 +719,18 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
  * @param img [in/out] Image to correct (float32 format)
  * @param meta Image metadata (acquisitionTime used for IRF timing)
  * @return XPE_OK on success
- *         XPE_ERR_INVALID_INPUT on NULL/invalid handle or dimension mismatch
- *         XPE_ERR_PROCESSING_FAILED on numerical errors (a non-finite pixel, a non-finite corrected value)
+ *         XPE_ERR_INVALID_INPUT on NULL/invalid handle, dimension mismatch, or a frame holding a NaN or an
+ *         infinity: refused at the entrance (QA-A-217), nothing is written and one Error alert
+ *         XPE_WARN_GHOST_INPUT_NOT_FINITE names the count and the first pixel
+ *         XPE_ERR_PROCESSING_FAILED when a corrected value or the new history overflows float (finite input
+ *         at the extremes of the range)
  *
  * @note A frame that fails leaves the handle exactly as it found it: the frame history, the time of the last
  *       frame (so the next frame's time step is measured from the last frame that SUCCEEDED) and the
- *       exposure estimate. Only a successful frame changes them. The pixels of `img` that were corrected
- *       before the failure are not restored; a caller that needs the original keeps its own copy.
- *       Before QA-A-202c a failure part-way through left the history of the pixels already processed
- *       updated, and the next frame -- in a batch, one that carried on past the failure -- used it.
+ *       exposure estimate. Only a successful frame changes them. Since QA-A-217 a failed frame also leaves
+ *       `img` as it was (REQ-P1A-032): pixels already corrected when the failure was found are put back.
+ *       Before QA-A-217 they were not, and a caller had to keep its own copy; before QA-A-202c a failure
+ *       part-way through left the history of the pixels already processed updated too.
  */
 XPE_API XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
                                         const XpeImageMetadata* meta);
@@ -777,8 +825,12 @@ XPE_API XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
  *               XPE_ERR_INVALID_INPUT -- implementation behaviour; the SPEC
  *               text says only "FLOAT32")
  * REQ-P1A-091: binningMode == 1 -> XPE_OK, image untouched; a mode other than
- *               1, 2 or 4 -> XPE_ERR_CONFIG_INVALID; a non-finite pixel ->
- *               XPE_ERR_PROCESSING_FAILED
+ *               1, 2 or 4 -> XPE_ERR_CONFIG_INVALID; a frame holding a NaN or
+ *               an infinity -> XPE_ERR_INVALID_INPUT, checked BEFORE any pixel
+ *               is written (QA-A-215), so the buffer keeps its bytes and one
+ *               Error alert XPE_WARN_BINNING_INPUT_NOT_FINITE names the count
+ *               and the first pixel. (Scaling by 1/4 or 1/16 cannot make a
+ *               finite value non-finite, so the input is the only source.)
  * REQ-P1A-095: this stage runs after gain correction in the pipeline
  * The numbers REQ-P1A-020/021/022 this block used to cite are the
  * pre-bc22093 ones. They now name the not-initialized, dimension-mismatch

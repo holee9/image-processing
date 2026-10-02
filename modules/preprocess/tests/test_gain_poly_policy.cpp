@@ -554,7 +554,7 @@ TEST_F(GainPolyPolicyTest, TheDegreeIsDecidedOnTheCoefficientsAsStoredNotOnTheDo
     // parabolas whose vertex sits a hair outside the first dose: monotone in double arithmetic, and whether the float32
     // coefficients still are depends on the rounding. The oracle decides on the float32 values; the product must agree.
     const std::vector<double> doses{8000.0, 12000.0, 16000.0, 20000.0};
-    constexpr uint32_t kScan = 240, kPix = kScan + 2;
+    constexpr uint32_t kScan = 240, kCtrl = 16, kPix = kScan + kCtrl;
     std::vector<std::vector<float>> levels(4, std::vector<float>(kPix));
     size_t differ = 0;
     for (uint32_t i = 0; i < kScan; ++i) {
@@ -565,16 +565,16 @@ TEST_F(GainPolyPolicyTest, TheDegreeIsDecidedOnTheCoefficientsAsStoredNotOnTheDo
             levels[l][i] = static_cast<float>(1.0 + 4e-9 * d * d);
         }
     }
-    // the two pixels whose vertex is exactly the first dose and whose curvature makes the float32 rounding of the
-    // coefficients reach the derivative at that dose (measured: the derivative there is a hair of one sign in double
-    // arithmetic and of the other once the coefficients are float32) -- the control that the stored form matters
-    const double kCurv[2] = {1e-6, 2e-6};
-    for (uint32_t k = 0; k < 2; ++k) {
+    // the pixels whose vertex is exactly the first dose and whose curvature makes the float32 rounding of the
+    // coefficients reach the derivative at that dose (the derivative there is a hair of one sign in double arithmetic and
+    // of the other once the coefficients are float32) -- the control that the stored form matters. The curvatures are
+    // small (QA-A-211: every gain stays inside the gain range [0.1, 10], the highest at d = 12000), and which of them
+    // flips depends on the rounding of each, so a spread of them is tried and the control asks for at least one.
+    for (uint32_t k = 0; k < kCtrl; ++k) {
+        const double curv = (1.0 + 0.2 * static_cast<double>(k)) * 1e-8;
         for (size_t l = 0; l < 4; ++l) {
             const double d = doses[l] - 8000.0;
-            // base 100: every gain AND the least-squares line stay inside the applier's range [0.001, 1000] (QA-A-210e),
-            // so the generation is accepted; the flip survives the base (measured)
-            levels[l][kScan + k] = static_cast<float>(100.0 + kCurv[k] * d * d);
+            levels[l][kScan + k] = static_cast<float>(2.0 + curv * d * d);
         }
     }
     const Fit fit = generate(levels, kPix, 1, doses, 2);
@@ -701,7 +701,9 @@ TEST_F(GainPolyPolicyTest, ACodexReproductionWhoseStoredCoefficientsApplyBelowTh
     // file is wrong; it now refuses the calibration.
     const std::vector<double> doses{1000.0, 1000.00001, 1000.00002, 1000.00003, 1000.00004};
     std::vector<std::vector<float>> levels(5, std::vector<float>(1));
-    for (size_t l = 0; l < 5; ++l) levels[l][0] = static_cast<float>(0.001 + 5.0 * (doses[l] - 1000.0));
+    // QA-A-211: the base is the lower bound of the gain range (0.1; it was 0.001, the old applier floor) -- measured gains
+    // inside the range, so the pixel is not classified; the failure is the float32 coefficients, as in Codex #61
+    for (size_t l = 0; l < 5; ++l) levels[l][0] = static_cast<float>(0.1 + 5.0 * (doses[l] - 1000.0));
     std::vector<std::string> paths;
     for (size_t l = 0; l < 5; ++l) paths.push_back(writeLevel(("lvl" + std::to_string(l) + ".xcal").c_str(), 1, 1, levels[l].data()));
     std::vector<const char*> cp;

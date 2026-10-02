@@ -1,0 +1,9 @@
+=== old DLLs
+Part 1 CalData_6, defect stage only, BPMap.map (23505 masked)
+  defect map load rc = 0
+  pipeline rc=0 ; masked pixels written as exactly 0: 15685 (66.7% of masked) ; non-masked pixels that differ from the input: 0
+  output sha256 9e1af1885508997176d5140189a829ad
+  alerts: []
+Part 2 cyan_test, scalar gain + defect stage with BPM.raw (250 masked)
+  defect map rc = 0
+  combined sha256 of the five outputs: 56ac0584aba6ebb145c29cfefa91ab6acd20e7f9128fa37c1fe8cbc6760392e1 (QA-A-211 evidence: 56ac0584aba6ebb145c29cfefa91ab6acd20e7f9128fa37c1fe8cbc6760392e1)

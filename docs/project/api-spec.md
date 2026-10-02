@@ -1342,13 +1342,34 @@ XPE_API XpeErrorCode xpe_lut_auto_select(const XpeImageMetadata* meta,
 
 ## 11. xpe_dicom.dll
 
-Provides DICOM file I/O, tag manipulation, GSPS annotation, and network services (C-STORE / C-FIND MWL).
+DICOM Part 10 file reading, writing, validation, and the network services C-STORE / C-FIND MWL. The DLL exports exactly 10 functions: `xpe_dicom_open`, `xpe_dicom_read_image`, `xpe_dicom_get_metadata`, `xpe_dicom_close`, `xpe_dicom_write`, `xpe_dicom_write_j2k`, `xpe_dicom_validate`, `xpe_dicom_cstore`, `xpe_dicom_cfind_mwl`, `xpe_dicom_cancel`. Reading is a session: open a handle, read the image and the metadata from it, close it. There is no one-shot read, no tag-string accessor and no GSPS function.
 
 Dependencies: xpe_common.dll.
 
-### 11.0 `xpe_dicom_read_image` 거부 규칙 (2026-10-02, post 체인 병합 `753cadab`, #235)
+> **Never implemented (removed 2026-10-02, QA-B-189):** earlier revisions of this section documented `xpe_dicom_read`, `xpe_dicom_query_dimensions`, `xpe_dicom_read_tag_string` and `xpe_dicom_set_tag_string`. None of them was ever exported (`git log -S<name> -- modules` returns 0 commits for each), so their sections were removed. `xpe_gsps_create` and `xpe_gsps_apply` were removed for the same reason; see FR-DCM-301~306 status in RTM-DICOM-001 (no implementation or test exists).
 
-> 주의: 아래 11.1 이하의 함수 이름(`xpe_dicom_read` 등)은 실제 수출과 다르다. 실제 수출은 §0 인벤토리와 `modules/dicom/include/xpe/dicom/dicom_api.h` 를 기준으로 한다(`xpe_dicom_open` → `xpe_dicom_read_image` → `xpe_dicom_get_metadata` → `xpe_dicom_close`). 이 절을 고쳐 쓰는 일은 별건으로 남긴다.
+### 11.1 xpe_dicom_open
+
+```c
+XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHandle);
+```
+
+**Description**: Opens and parses a DICOM Part 10 file and returns a handle in `*outHandle` (NULL on error). Judges readability only: a file with no Part 10 meta header still opens (a missing Transfer Syntax UID is read as Explicit VR Little Endian); use `xpe_dicom_validate` to judge Part 10 conformance.  
+**Thread safety**: Different handles may be used from different threads; one handle must not be used by two threads at the same time (`xpe_dicom_read_image`, `xpe_dicom_get_metadata` and `xpe_dicom_close` on one handle are serialised by the caller).  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (NULL argument), `XPE_ERR_IO_FAILED` (file missing or unreadable), `XPE_ERR_DICOM_INVALID` (not a DICOM Part 10 file), `XPE_ERR_UNSUPPORTED_FORMAT` (unsupported Transfer Syntax)
+
+---
+
+### 11.2 xpe_dicom_read_image
+
+```c
+XPE_API XpeErrorCode xpe_dicom_read_image(XpeDicomHandle* handle, XpeImageBuffer* outImg);
+```
+
+**Description**: Extracts the pixel data of an open file into `outImg` (`XPE_PIXEL_UINT16`). The buffer is allocated by the module and owned by the caller (`xpe_free_image`). On any refusal `outImg` is left untouched; every refusal posts one `XPE_ALERT_ERROR` naming the cause. The refusal rules, the MONOCHROME1 inversion, the Rescale and Modality LUT Sequence handling and the bit masking are the rules listed under 11.2.1 below; the exact alert texts are in `dicom_api.h`.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_OUT_OF_MEMORY`, `XPE_ERR_DICOM_INVALID`, `XPE_ERR_UNSUPPORTED_FORMAT`, `XPE_ERR_PROCESSING_FAILED` (decompression failed)
+
+#### 11.2.1 거부 규칙 (2026-10-02, post 체인 병합 `753cadab`, #235)
 
 reader 는 디코드와 할당 **전에** 다음을 검사하고, 거부할 때 출력 버퍼를 건드리지 않는다. 거부마다 원인을 적은 `XPE_ALERT_ERROR` 알림을 남긴다(예: `dicom read refused: JPEG 2000 codestream precision 16 does not match the dataset (BitsStored 12, BitsAllocated 16)`). reader 가 알림을 남기는 것은 이번이 처음이다. 문구는 레인 간 계약이며 전역 큐에 쌓인다.
 
@@ -1357,165 +1378,58 @@ reader 는 디코드와 할당 **전에** 다음을 검사하고, 거부할 때 
 - **writer**: 선언한 BitsStored 정밀도로 인코딩한다(옛 writer 는 12비트 선언에 16비트 정밀도를 썼다). 선언 범위를 넘는 화소값은 쓰기 실패(`XPE_ERR_PROCESSING_FAILED`)다. 옛 writer 의 BitsStored < 16 J2K 산출물은 새 reader 가 거부한다(#235 알려진 위험).
 - **비트 기술 통일 (QA-B-182e·181g, `7deba35b`)**: PS3.5 8.1.1(2014c 부터 압축 여부와 무관)에 따라 HighBit ≠ BitsStored − 1, BitsStored > BitsAllocated, BitsAllocated 가 1 이나 8 의 배수가 아닌 경우는 모든 경로에서 `DICOM_INVALID` 다. 전송 구문 표에 없는 BitsAllocated(JPEG LL 은 8·16, J2K 는 1·8·16·24·32·40)도 `DICOM_INVALID` 이고, J2K 는 표 8.2.4-1 의 BitsStored 1–38 상한도 같다. 표준이 허용하지만 이 API 가 돌려줄 수 없는 값은 `UNSUPPORTED_FORMAT` 이다. 2014c 이전 판으로 기록된 파일은 이제 거부될 수 있다(#235)
 - **JPEG LL 코드스트림 (QA-B-182e·181h)**: SOF 의 성분 수 Nf 는 정확히 1 이어야 한다(바이트가 없거나 0 이거나 2 이상이면 `DICOM_INVALID`). 정밀도 P 는 P < BitsStored 또는 P > BitsAllocated 일 때 거부하고, P > BitsStored 는 받는다(표준이 "consistent" 의 뜻을 정하지 않았다). 모두 디코드 전에 검사한다
-- **PhotometricInterpretation (QA-B-182f)**: 없거나 비어 있으면 `DICOM_INVALID`. MONOCHROME1·MONOCHROME2 는 받는다. PALETTE COLOR·XYB·정의 없는 값·폐기된 값은 `UNSUPPORTED_FORMAT`. RGB·YBR 계열이 SamplesPerPixel = 1 이면 표준 위반이라 `DICOM_INVALID`. **MONOCHROME1 은 저장된 그대로 돌려주며 호출자가 이를 구별할 수단이 없다** — 극성 정책은 #235 의 별도 결정이다
+- **PhotometricInterpretation (QA-B-182f)**: 없거나 비어 있으면 `DICOM_INVALID`. MONOCHROME1·MONOCHROME2 는 받는다. PALETTE COLOR·XYB·정의 없는 값·폐기된 값은 `UNSUPPORTED_FORMAT`. RGB·YBR 계열이 SamplesPerPixel = 1 이면 표준 위반이라 `DICOM_INVALID`. **MONOCHROME1 은 읽을 때 `(2^BitsStored − 1) − (값 & (2^BitsStored − 1))` 로 반전해 MONOCHROME2 의미로 돌려주고(FR-DCM-109), 반전한 읽기마다 Info 알림 1건(문구 전체는 `dicom_api.h`)을 낸다.** 부호 있는 화소는 PI 와 무관하게 거부한다. 파일의 Window/Rescale 은 저장된 표본 기준이라 반환값과 함께 쓰려면 `dicom_api.h` 의 거울 공식을 따른다. **보존되는 것은 극성이다: `xpe_dicom_write` 는 원본의 Window·Rescale·Presentation LUT Shape 를 보존하지 않는다(Window 없음, Rescale 1/0, IDENTITY).** 리스케일 처리는 아래 항목을 따른다.
+- **리스케일 (QA-B-187·187c)**: RescaleSlope (0028,1053)·RescaleIntercept (0028,1052) 는 적용하지도 돌려주지도 않는다. 반환 화소는 저장값이다. 둘 다 없으면 항등(1/0)으로 보고 알림이 없다. 항등이 아니면 읽기가 성공한 뒤 Warning 1건(`RescaleSlope <s>, RescaleIntercept <b> (the identity is 1 and 0): returned pixels are stored values; rescale not applied`)을 낸다. 속성이 있는데 하나의 유한한 수로 읽히지 않거나(빈 값·글자·값 두 개·inf·nan) 기울기가 0 이면 `DICOM_INVALID`(디코드 전, 출력 불변)다. 두 속성은 쌍으로 있어야 하므로(PS3.3 C.11.1) 한쪽만 있어도 `XPE_ERR_DICOM_INVALID` 로 거부하고, 알림이 빠진 속성을 밝힌다. Modality LUT Sequence (0028,3000) 에 항목이 있으면 저장값을 그대로 돌려주고 Warning 1건(적용하지 않음)을 낸다. 세 경로(비압축·JPEG Lossless·JPEG 2000) 공통이다.
+- **상위 비트 (#235 (h), QA-B-187)**: BitsStored 위 비트는 표본이 아니므로 MONOCHROME1·2 모두 `stored & (2^BitsStored − 1)` 로 마스크해 돌려준다. 값이 바뀐 워드가 있을 때만 Info 1건(`<N> pixel(s) had bits above BitsStored <B> set; those bits were masked off: value = stored & (2^BitsStored - 1)`)을 내고, 바뀐 것이 없으면 알림이 없다.
 
-### 11.1 xpe_dicom_read
+### 11.3 xpe_dicom_get_metadata
 
 ```c
-XPE_API XpeErrorCode xpe_dicom_read(const char* filePath,
-                                     XpeImageBuffer* imgOut,
-                                     XpeImageMetadata* metaOut);
+XPE_API XpeErrorCode xpe_dicom_get_metadata(XpeDicomHandle* handle, XpeImageMetadata* outMeta);
 ```
 
-**Description**: Reads a DICOM file from `filePath`, decodes the pixel data into `imgOut` (caller pre-allocates or passes zeroed struct for auto-allocation), and fills `metaOut` with key attributes.  
-**SRS**: SRS-DICOM-001, SRS-DICOM-002  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_IO_FAILED`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_UNSUPPORTED_FORMAT`, `XPE_ERR_OUT_OF_MEMORY`
+**Description**: Extracts acquisition metadata from an open file. Missing tags are silently defaulted (empty string / 0.0 / 0); absence is never an error, and a caller cannot tell an absent tag from a present empty one.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (NULL argument), `XPE_ERR_DICOM_INVALID` (the file carries no dataset)
 
 ---
 
-### 11.2 xpe_dicom_query_dimensions
+### 11.4 xpe_dicom_close
 
 ```c
-XPE_API XpeErrorCode xpe_dicom_query_dimensions(const char* filePath,
-                                                 uint32_t* widthOut,
-                                                 uint32_t* heightOut,
-                                                 XpePixelFormat* formatOut);
+XPE_API void xpe_dicom_close(XpeDicomHandle* handle);
 ```
 
-**Description**: Reads only the image dimension and format tags from `filePath` without decoding pixel data. Use to pre-allocate the buffer before calling `xpe_dicom_read`.  
-**SRS**: SRS-DICOM-003  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_IO_FAILED`, `XPE_ERR_INVALID_INPUT`
+**Description**: Closes a session and frees everything it holds. Passing NULL is a no-op. Returns nothing.
 
 ---
 
-### 11.3 xpe_dicom_read_tag_string
-
-```c
-XPE_API XpeErrorCode xpe_dicom_read_tag_string(const char* filePath,
-                                                uint16_t group, uint16_t element,
-                                                char* valueOut, size_t bufLen);
-```
-
-**Description**: Reads a single DICOM tag identified by `(group, element)` from `filePath` and writes its string representation to `valueOut`. Supports VRs: LO, LT, SH, ST, UI, UN, UT.  
-**SRS**: SRS-DICOM-004  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_IO_FAILED`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_BUFFER_TOO_SMALL`
-
----
-
-### 11.4 xpe_dicom_write
+### 11.5 xpe_dicom_write
 
 ```c
 XPE_API XpeErrorCode xpe_dicom_write(const char* filePath,
                                       const XpeImageBuffer* img,
-                                      const XpeImageMetadata* meta,
-                                      const char* configJsonOrNull);
+                                      const XpeImageMetadata* meta);
 ```
 
-**Description**: Encodes `img` and `meta` into a DICOM Part 10 file at `filePath`. `configJsonOrNull` may specify transfer syntax (Explicit Little Endian, JPEG 2000 Lossless, etc.).  
-**SRS**: SRS-DICOM-010, SRS-DICOM-011  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_IO_FAILED`, `XPE_ERR_CONFIG_INVALID`
+**Description**: Encodes `img` and `meta` into a DICOM Part 10 file (Explicit VR Little Endian) with a generated SOP Instance UID and a meta group regenerated from the dataset, so the output satisfies `xpe_dicom_validate`. The dataset is built from `img` and `meta` only: nothing is copied from the file the pixels were read from. Photometric Interpretation is always MONOCHROME2, Presentation LUT Shape IDENTITY, Rescale Slope / Intercept 1 / 0, and no Window Center / Width is written. A pixel value outside the declared BitsStored range is a write failure.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (NULL pointer, empty image, or `dataSize` inconsistent with the dimensions), `XPE_ERR_IO_FAILED`, `XPE_ERR_PROCESSING_FAILED`
 
 ---
 
-### 11.5 xpe_dicom_write_j2k
+### 11.6 xpe_dicom_write_j2k
 
 ```c
 XPE_API XpeErrorCode xpe_dicom_write_j2k(const char* filePath,
                                            const XpeImageBuffer* img,
-                                           const XpeImageMetadata* meta,
-                                           float compressionRatio);
+                                           const XpeImageMetadata* meta);
 ```
 
-**Description**: Writes a DICOM file with JPEG 2000 compressed pixel data at the specified `compressionRatio` (1.0 = lossless). Convenience wrapper for `xpe_dicom_write` with J2K transfer syntax.  
-**SRS**: SRS-DICOM-012  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_IO_FAILED`, `XPE_ERR_PROCESSING_FAILED`
+**Description**: Like `xpe_dicom_write`, with Transfer Syntax JPEG 2000 Lossless Only (1.2.840.10008.1.2.4.90); the round trip is bit-exact. The codestream is encoded at the declared BitsStored precision. There is no compression-ratio parameter and no lossy mode.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_IO_FAILED`, `XPE_ERR_PROCESSING_FAILED` (J2K compression failed, or a pixel value above the declared range)
 
 ---
 
-### 11.6 xpe_dicom_set_tag_string
-
-```c
-XPE_API XpeErrorCode xpe_dicom_set_tag_string(const char* filePath,
-                                               uint16_t group, uint16_t element,
-                                               const char* value);
-```
-
-**Description**: Updates or inserts a string-valued DICOM tag in an existing file at `filePath`. The file is modified in-place; a backup is not created.  
-**SRS**: SRS-DICOM-005  
-**Thread safety**: Not thread-safe per file path; serialize modifications to the same file.  
-**Error codes**: `XPE_OK`, `XPE_ERR_IO_FAILED`, `XPE_ERR_INVALID_INPUT`
-
----
-
-### 11.7 xpe_gsps_create
-
-```c
-XPE_API XpeErrorCode xpe_gsps_create(const char* referencedFilePath,
-                                      const char* annotationJson,
-                                      const char* gspsFilePathOut,
-                                      size_t gspsPathBufLen);
-```
-
-**Description**: Creates a DICOM Grayscale Softcopy Presentation State (GSPS) object referencing `referencedFilePath` and embedding annotations from `annotationJson` (ROI, overlay, measurement). Writes the GSPS file path to `gspsFilePathOut`.  
-**SRS**: SRS-DICOM-020  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_IO_FAILED`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_BUFFER_TOO_SMALL`
-
----
-
-### 11.8 xpe_gsps_apply
-
-```c
-XPE_API XpeErrorCode xpe_gsps_apply(const char* gspsFilePath,
-                                     XpeImageBuffer* img,
-                                     const char* configJsonOrNull);
-```
-
-**Description**: Renders the annotations from a GSPS file onto `img` in-place (burns-in overlays). Useful for secondary capture or print output.  
-**SRS**: SRS-DICOM-021  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_IO_FAILED`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_PROCESSING_FAILED`
-
----
-
-### 11.9 xpe_dicom_cstore
-
-```c
-XPE_API XpeErrorCode xpe_dicom_cstore(const char* filePath,
-                                       const char* remoteAeTitle,
-                                       const char* remoteHost,
-                                       uint16_t    remotePort,
-                                       const char* localAeTitle);
-```
-
-**Description**: Sends a DICOM file to a remote SCP via C-STORE. Blocks until the SCP returns a status response or a timeout occurs (configurable via `xpe_configure`).  
-**SRS**: SRS-DICOM-030  
-**Thread safety**: Reentrant (each call uses an independent DICOM association).  
-**Error codes**: `XPE_OK`, `XPE_ERR_NETWORK_FAILED`, `XPE_ERR_IO_FAILED`, `XPE_ERR_INVALID_INPUT`
-
----
-
-### 11.10 xpe_dicom_cfind_mwl
-
-```c
-XPE_API XpeErrorCode xpe_dicom_cfind_mwl(const char* host, uint16_t port, const char* aet,
-                                          const char* queryJson, char* outJson,
-                                          uint32_t outBufLen, uint32_t timeoutMs);
-```
-
-**Description**: Queries a Modality Worklist SCP using C-FIND. `queryJson` encodes the query keys (Patient ID, Accession Number, etc.). Results are returned as a JSON array of matching worklist items in `resultsJsonOut`.   **Corrected 2026-09-11 (QA-B-39):** argument order/names above match the header (`dicom_api.h`); the earlier `(queryJson, remoteAeTitle, remoteHost, remotePort, localAeTitle, resultsJsonOut, resultsBufLen)` form never existed. Supported query keys: `PatientID`, `PatientName`, `Modality`, `AccessionNumber` (unknown keys are ignored — unfiltered worklist). Uses the negotiated presentation context (QA-B-32, #137).
-**SRS**: SRS-DICOM-031  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_NETWORK_FAILED`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_BUFFER_TOO_SMALL`, `XPE_ERR_PROCESSING_FAILED`
-
----
-
-### 11.11 xpe_dicom_validate
+### 11.7 xpe_dicom_validate
 
 ```c
 XPE_API XpeErrorCode xpe_dicom_validate(const char* filePath, char* outReportJson, uint32_t reportBufLen);
@@ -1531,7 +1445,47 @@ XPE_API XpeErrorCode xpe_dicom_validate(const char* filePath, char* outReportJso
 Each failing condition contributes one entry to the error report, tagged with the group-0002 element it concerns. When a dataset-side tag is itself missing, the missing-Type-1 report covers it and no separate meta mismatch is reported. Files written by `xpe_dicom_write` / `xpe_dicom_write_j2k` satisfy these rules (round-trip verified).  
 **SRS**: SRS-IF-002  
 **Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_IO_FAILED`
+**Error codes**: `XPE_OK` (report produced; check `valid`), `XPE_ERR_INVALID_INPUT` (NULL argument or `reportBufLen` 0), `XPE_ERR_DICOM_INVALID` (file cannot be parsed; a report is still written), `XPE_ERR_BUFFER_TOO_SMALL` (required size written as `uint32_t` in the first 4 bytes; the buffer is not valid JSON). `XPE_ERR_IO_FAILED` is not in the header's return list (corrected 2026-10-02, QA-B-189).
+
+---
+
+### 11.8 xpe_dicom_cstore
+
+```c
+XPE_API XpeErrorCode xpe_dicom_cstore(const char* host,
+                                       uint16_t port,
+                                       const char* aet,
+                                       const char* filePath,
+                                       uint32_t timeoutMs);
+```
+
+**Description**: Sends a DICOM file to a remote Storage SCP via C-STORE. `host` may be `"CALLED_AE@hostname"` to name the called AE title (default `ANY-SCP`); `aet` is the calling AE title; `timeoutMs` 0 means no timeout. If the file's meta group names no SOP Class UID the dataset's is used, then DX For Presentation. Returns `XPE_OK` only for RSP status 0x0000.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_NETWORK_FAILED` (connection failure, timeout, rejection, non-success status), `XPE_ERR_IO_FAILED`, `XPE_ERR_PROCESSING_FAILED` (a cancel is latched; see `xpe_dicom_cancel`)
+
+---
+
+### 11.9 xpe_dicom_cfind_mwl
+
+```c
+XPE_API XpeErrorCode xpe_dicom_cfind_mwl(const char* host, uint16_t port, const char* aet,
+                                          const char* queryJson, char* outJson,
+                                          uint32_t outBufLen, uint32_t timeoutMs);
+```
+
+**Description**: Queries a Modality Worklist SCP using C-FIND. `queryJson` encodes the query keys (Patient ID, Accession Number, etc.). Results are returned as a JSON array in `outJson` (`[]` when empty). Supported query keys: `PatientID`, `PatientName`, `Modality`, `AccessionNumber` (unknown keys are ignored — unfiltered worklist). Uses the negotiated presentation context (QA-B-32, #137).  
+**SRS**: SRS-DICOM-031  
+**Thread safety**: Reentrant.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_NETWORK_FAILED`, `XPE_ERR_PROCESSING_FAILED` (`queryJson` not parseable — judged after the association is negotiated), `XPE_ERR_BUFFER_TOO_SMALL` (nothing is written to `outJson`)
+
+---
+
+### 11.10 xpe_dicom_cancel
+
+```c
+XPE_API void xpe_dicom_cancel(void);
+```
+
+**Description**: Signals cancellation to an in-progress C-STORE or C-FIND. Thread-safe, callable from any thread, a no-op if nothing is running. The cancel flag is cleared on entry to `xpe_dicom_cstore` and `xpe_dicom_cfind_mwl`, so calling it before an operation does not pre-cancel it; it takes effect only when set during a running operation, and is observed before connecting and just after the association is established. A cancelled operation returns `XPE_ERR_PROCESSING_FAILED`.
 
 ---
 
@@ -1749,10 +1703,8 @@ XPE uses an **explicit-path API pattern**: all file and directory operations req
 | `xpe_calib_load_defect_map` | `filePath` | input calibration | `"C:\\data\\calib\\defect_map.xpe_calib"` |
 | `xpe_calib_save` | `filePath` | output calibration | `"C:\\data\\calib\\offset_generated.xpe_calib"` |
 | `xpe_calib_check_expiry` | `filePath` | input calibration | `"C:\\data\\calib\\offset_2024.xpe_calib"` |
-| `xpe_dicom_read` | `filePath` | input DICOM | `"C:\\clinical\\patient_001.dcm"` |
+| `xpe_dicom_open` | `filePath` | input DICOM | `"C:\\clinical\\patient_001.dcm"` |
 | `xpe_dicom_write` | `filePath` | output DICOM | `"C:\\processed\\patient_001_xpe.dcm"` |
-| `xpe_dicom_read_tag_string` | `filePath` | input DICOM | `"C:\\clinical\\patient_001.dcm"` |
-| `xpe_dicom_set_tag_string` | `filePath` | input/output DICOM | `"C:\\processed\\patient_001.dcm"` |
 | `xpe_dicom_cstore` | `filePath` | input DICOM | `"C:\\processed\\patient_001.dcm"` |
 | `xpe_dicom_write_j2k` | `filePath` | output DICOM | `"C:\\processed\\lossless.dcm"` |
 | `xpe_ai_init` | `modelDirPath` | input directory | `"C:\\data\\models\\"` |

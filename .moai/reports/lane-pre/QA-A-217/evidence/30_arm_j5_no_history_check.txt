@@ -1,0 +1,9 @@
+ARM j5_no_history_check
+file src/ghost_correct.cpp
+built=True
+[  FAILED  ] GhostInputFinite.AFiniteFrameThatOverflowsTheHistoryFailsWithoutCommittingItAndTheNextFrameSucceeds (0 ms)
+[  FAILED  ] GhostInputFinite.AnOverflowOfTheSlowHistoryAloneIsCaughtToo (0 ms)
+[  PASSED  ] 17 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] GhostInputFinite.AFiniteFrameThatOverflowsTheHistoryFailsWithoutCommittingItAndTheNextFrameSucceeds
+[  FAILED  ] GhostInputFinite.AnOverflowOfTheSlowHistoryAloneIsCaughtToo

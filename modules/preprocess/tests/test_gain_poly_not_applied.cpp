@@ -221,8 +221,10 @@ TEST_F(GainPolyNotAppliedTest, ScalarGainValuesOutsideTheRangeAreRejected) {
     }
 }
 
-// One bad pixel is enough; the rest of the map being valid does not excuse it.
-TEST_F(GainPolyNotAppliedTest, ASingleOutOfRangePixelIsRejected) {
+// QA-A-211 (#233): ONE bad pixel no longer refuses the map -- it is classified defective (gain 1.0, index kept for the
+// defect stage). It used to be refused ("the rest of the map being valid does not excuse it"); what refuses a map now is
+// more than 5% of it being out of range (test_gain_defect_classify.cpp). An 8x8 map: 1 of 64 is 1.6%.
+TEST_F(GainPolyNotAppliedTest, ASingleOutOfRangePixelIsClassifiedDefectiveNotRejected) {
     const std::string path = p("one_bad.xcal");
     std::vector<float> data(N, 1.0f);
     data[N / 2] = 12.0f;
@@ -236,7 +238,8 @@ TEST_F(GainPolyNotAppliedTest, ASingleOutOfRangePixelIsRejected) {
     ASSERT_EQ(XPE_OK, write_xcal_file(path.c_str(), hdr, nullptr, 0,
                                       reinterpret_cast<const uint8_t*>(data.data()),
                                       hdr.payload_len));
-    EXPECT_EQ(XPE_ERR_INVALID_CALIB_DATA, xpe_calib_load_gain(path.c_str()));
+    EXPECT_EQ(XPE_OK, xpe_calib_load_gain(path.c_str()));
+    xpe_clear_alerts();
 }
 
 // A rejected file must not become the active calibration.

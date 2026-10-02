@@ -1,0 +1,3 @@
+isolated ConfigStrictParse suite: 40 runs, 0 failed
+full suite: 2 runs, 0 failed
+shuffled full suite: 2 runs, 0 failed

@@ -48,7 +48,7 @@ XPE software items(XPE-SAD-001)를 software unit 수준으로 분해하여 식�
 |---------|-----------|---------------|-----------|
 | SWU-3.1 | ModalityLUT | Rescale Slope × StoredValue + Intercept | SRS-FUNC-020 |
 | SWU-3.2 | VoiLUT | W/L Linear, LINEAR_EXACT, SIGMOID, LUT Sequence | SRS-FUNC-021 |
-| SWU-3.3 | PresentationLUT | GSDF P-Value conversion, MONOCHROME1/2 handling | SRS-FUNC-022, 023 |
+| SWU-3.3 | PresentationLUT | GSDF P-Value conversion | SRS-FUNC-022 |
 | SWU-3.4 | LUTManager | Body-part preset storage, custom LUT CRUD, auto-selection | SRS-FUNC-021 |
 
 ## 5. SWI-4: DICOM I/O Module — Units

@@ -1,0 +1,7 @@
+ARM d2_nearest_ring_skipped
+file src/defect_correct.cpp
+built=True
+[  FAILED  ] DefectFillTest.TheNearestRingDecidesNotAWiderOne (2 ms)
+[  PASSED  ] 50 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DefectFillTest.TheNearestRingDecidesNotAWiderOne

@@ -1,0 +1,9 @@
+ARM a8_no_classified_alert
+file src/xpe_calib_load_gain.cpp
+built=True
+[  FAILED  ] GainDefectClassifyTest.AMapWithAFewBadPixelsLoadsAndTheCountIsReported (1 ms)
+[  FAILED  ] GainDefectClassifyTest.ANonFiniteGainIsClassifiedToo (1 ms)
+[  PASSED  ] 21 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] GainDefectClassifyTest.AMapWithAFewBadPixelsLoadsAndTheCountIsReported
+[  FAILED  ] GainDefectClassifyTest.ANonFiniteGainIsClassifiedToo

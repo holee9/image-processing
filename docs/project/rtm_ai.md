@@ -171,7 +171,7 @@ This matrix traces every requirement (REQ-AI-XXX) from SRS-AI-001 to:
 
 | Req ID | Requirement | SRS Ref | SDD Ref | Implementation Files | Test IDs | Status | **VVP Ref** |
 |--------|------------|---------|---------|---------------------|----------|--------|---------|
-| REQ-AI-001 | Concurrent bodypart_recognize (4 threads, 100 calls) | SRS-AI-ARCH-001 | SDD Sec 7.2 | `modules/ai/src/ai.cpp` | TC-WORKER-005~007: ConcurrentBodyPart | Written | XPE-VVP-AI-001 §4.7 |
+| 추적 요구 없음 — 헤더 계약만(ai_api.h), 요구 신설 대기 (#210) | Concurrent bodypart_recognize (4 threads, 100 calls) | SRS-AI-ARCH-001 | SDD Sec 7.2 | `modules/ai/src/ai.cpp` | TC-WORKER-005~007: ConcurrentBodyPart | Written | XPE-VVP-AI-001 §4.7 |
 | REQ-AI-002 | Concurrent set_fallback_mode (4 threads, 400 calls) | SRS-AI-ARCH-002 | SDD Sec 7.2 | `modules/ai/src/ai.cpp` | TC-WORKER-008~010: ConcurrentFallback | Written | XPE-VVP-AI-001 §4.7 |
 
 ---
@@ -182,18 +182,22 @@ The following SPEC requirements have no test coverage in the current skeleton:
 
 | SPEC REQ | SRS Mapping | Description | Reason |
 |----------|-------------|-------------|--------|
-| REQ-AI-006 | SRS-AI-ARCH-006 | ONNX Runtime multi-EP | Stub mode: no ONNX Runtime |
+| REQ-AI-006 | SRS-AI-ARCH-006 | ONNX Runtime multi-EP | Partial — ONNX build exists (`ci-ai` preset, `XPE_AI_USE_ONNXRUNTIME=ON`); only the CPU EP is registered, multi-EP not implemented (QA-B-190) |
 | REQ-AI-007 | SRS-AI-ARCH-007 | Model signing | Not implemented |
-| REQ-AI-092 | -- | Time budget enforcement | Not implemented |
+| REQ-AI-092 | -- | Time budget enforcement | Partial (xpe_bone_suppress worker path) — opt-in `use_worker: true` only: budget overrun returns the input unchanged + non-OK code + exactly one Warning alert (`IpcDeadline.*`, `WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers`, `WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne`). Default path (worker off) and the other three entry points have no budget (QA-B-190) |
 
 > **정정 2026-09-30 (`#210`)** — 이 문서가 시간 예산 요구를 `REQ-AI-009` 로 인용하고
-> 있었습니다. **그 번호는 정의된 적이 없습니다** — 정의는 `REQ-AI-092`(`srs_ai.md:446`,
-> `SPEC-XPE-P3-AI/spec.md:272`)이고, 대조군으로 같은 정의 패턴이 `092` 를 두 곳에서
+> 있었습니다. **그 번호는 정의된 적이 없습니다** — 정의는 `REQ-AI-092`(`srs_ai.md` 의
+> `#### REQ-AI-092: Time Budget Enforcement`, `SPEC-XPE-P3-AI/spec.md` 의
+> `**REQ-AI-092** (Ubiquitous):`)이고, 대조군으로 같은 정의 패턴이 `092` 를 두 곳에서
 > 찾는 반면 `009` 는 0건입니다.
 >
 > `modules/ai` 쪽 인용은 `QA-B-157` 이 이미 고쳤고(`REQ-AI-009` 리터럴 0건), 이 문서들이
-> 남아 있었습니다. **개명이 코드에서만 반영되고 문서에서 끊긴 형태**이고, 이 저장소가
-> *"인용한 이름은 grep 으로 대조한다"* 로 적어 둔 것입니다.
+> 남아 있었습니다. 정의된 적이 없는 번호가 한 대량 커밋(`dd7c8e05`, 2026-04-28)에서 이
+> RTM 행과 코드 세 곳의 주석에 **함께** 들어간 것이고, 이 저장소가
+> *"인용한 이름은 grep 으로 대조한다"* 로 적어 둔 것입니다. (정정 2026-10-02, `QA-B-190`:
+> 처음 이 메모는 "개명이 코드에서만 반영되고 문서에서 끊긴 형태" 라고 적었으나 이력이 그
+> 설명을 뒷받침하지 않습니다 — 개명된 적이 없습니다.)
 >
 > 요구의 내용은 바뀌지 않았습니다 — 번호만 정정했습니다.
 | REQ-AI-020~024 | SRS-AI-SSL-001~002 | Self-Supervised Denoising | Not implemented |
@@ -237,6 +241,8 @@ Counts below are the actual `TEST` / `TEST_F` macro counts in `modules/ai/tests/
 Requirement coverage is unchanged from v0.1.0: **22 of 26** SPEC requirements have at least one
 test; 4 are deferred (REQ-AI-004, REQ-AI-006, REQ-AI-007, REQ-AI-092 — see §12). Requirement counts
 were not re-derived in this revision; only the test-case counts were re-measured.
+(Note 2026-10-02, QA-B-190: since this count was taken, REQ-AI-092 has become partially implemented
+and tested on the opt-in worker path — see §12. The 22-of-26 figure was not re-derived.)
 
 ### Test File Summary
 

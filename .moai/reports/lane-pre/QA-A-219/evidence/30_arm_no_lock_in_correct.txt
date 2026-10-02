@@ -1,0 +1,5 @@
+ARM: lock_guard removed from xpe_ghost_correct (reset keeps its lock)
+SharedHandleLosesNoUpdates: not green in 30 of 30 processes (20 of them died without a test verdict: crash)
+FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle: not green in 30 of 30 processes (0 of them died without a test verdict: crash)
+ResetAndCorrectOnOneHandleEndInASerialisedState: not green in 30 of 30 processes (30 of them died without a test verdict: crash)
+restored and rebuilt: True
