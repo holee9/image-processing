@@ -430,6 +430,126 @@ jobs:
           retention-days: 14
           path: build/ci-post/bin/
 
+  # DICOM module gate (#235, 2026-10-02).
+  #
+  # Until this job, NO push-triggered job built modules/dicom: ci-post sets
+  # BUILD_DICOM=OFF and the only dicom preset (coverage-dicom) runs on
+  # workflow_dispatch alone. Every dicom change merged through #235
+  # (QA-B-182..185b) was gated by lane-local runs only — the "ci-dicom 243/0"
+  # cited in lane reports was a hand-configured local build directory, not a
+  # CI job. Found while judging GUI-C-196 M3, whose DICOM write test skips in
+  # dotnet-tests for the same reason (no xpe_dicom.dll is staged there).
+  #
+  # This job builds and runs the dicom tests on every main/lane push. It shares
+  # coverage-dicom's vcpkg binary cache (same manifest, same key), so DCMTK is
+  # built once and restored after. The binaries are uploaded for a later
+  # dotnet-tests handoff; that handoff is not wired yet because the DLL pairing
+  # (dicom's vcpkg fmt/spdlog vs common's) failed when overwritten locally
+  # (GUI-C-196 m3_report, 0x8007007F) and needs its own measurement.
+  dicom-build:
+    needs: detect-lane
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
+    runs-on: windows-2025
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Ensure Ninja is available
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {
+            choco install ninja -y --no-progress
+          }
+          ninja --version
+
+      - name: Configure MSVC developer environment
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Use-MsvcDevShell.ps1 -PersistForGitHubActions
+
+      - name: Point VCPKG_ROOT at the runner vcpkg
+        shell: pwsh
+        run: |
+          $root = $env:VCPKG_INSTALLATION_ROOT
+          if (-not $root -or -not (Test-Path $root)) { $root = 'C:\vcpkg' }
+          if (-not (Test-Path (Join-Path $root 'scripts\buildsystems\vcpkg.cmake'))) {
+            Write-Error "vcpkg toolchain not found under $root"; exit 1
+          }
+          $cache = Join-Path $env:RUNNER_TEMP 'vcpkg-bincache'
+          New-Item -ItemType Directory -Force -Path $cache | Out-Null
+          "VCPKG_ROOT=$root" >> $env:GITHUB_ENV
+          "VCPKG_DEFAULT_BINARY_CACHE=$cache" >> $env:GITHUB_ENV
+          "VCPKG_DISABLE_METRICS=1" >> $env:GITHUB_ENV
+          & (Join-Path $root 'vcpkg.exe') --version
+
+      # Same key as coverage-dicom on purpose: one DCMTK build serves both.
+      - name: Restore vcpkg binary cache
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/vcpkg-bincache
+          key: vcpkg-bincache-${{ runner.os }}-dicom-${{ hashFiles('third_party/dicom/vcpkg.json') }}
+          restore-keys: |
+            vcpkg-bincache-${{ runner.os }}-dicom-
+
+      - name: Configure CMake
+        shell: pwsh
+        run: cmake --preset ci-dicom
+
+      # Saved right after configure (the vcpkg install happens there), so a
+      # later test failure does not throw the DCMTK build away.
+      - name: Save vcpkg binary cache
+        if: always() && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/vcpkg-bincache
+          key: vcpkg-bincache-${{ runner.os }}-dicom-${{ hashFiles('third_party/dicom/vcpkg.json') }}
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build --preset ci-dicom --parallel
+
+      - name: Put vcpkg runtime DLLs on PATH
+        shell: pwsh
+        run: |
+          $bin = Join-Path (Get-Location) 'build\ci-dicom\vcpkg_installed\x64-windows\bin'
+          "$bin;$env:PATH" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      # The count is printed so a reader can compare it with the lane reports'
+      # figure; a ctest run that registers zero tests is a failure, not a pass.
+      - name: Run dicom tests (timing-budget cases excluded)
+        shell: pwsh
+        run: |
+          $reg = ctest --test-dir build/ci-dicom --build-config RelWithDebInfo --show-only=json-v1 | Out-String | ConvertFrom-Json
+          $n = @($reg.tests).Count
+          Write-Host ("ctest registers {0} dicom test(s)" -f $n)
+          if ($n -eq 0) { Write-Error "ctest registered no tests under build/ci-dicom"; exit 1 }
+          ctest --test-dir build/ci-dicom --build-config RelWithDebInfo --output-on-failure -E "Performance|Within[0-9]+ms|PerformanceBudget|LargeImagePerformance"
+          exit $LASTEXITCODE
+
+      - name: Upload dicom test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: xpe-ci-dicom-test-results
+          if-no-files-found: ignore
+          retention-days: 14
+          path: build/ci-dicom/Testing/
+
+      - name: Upload dicom binaries
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: xpe-ci-dicom-binaries
+          if-no-files-found: warn
+          retention-days: 14
+          # vcpkg_installed/.../bin carries the DCMTK/OpenJPEG runtime xpe_dicom.dll
+          # loads; bin/ alone would upload a DLL that cannot load (GUI-C-196 M3b).
+          path: |
+            build/ci-dicom/bin/
+            build/ci-dicom/vcpkg_installed/x64-windows/bin/
+
   # ONNX Runtime inference gate (#130, QA-B-160).
   #
   # WHY THIS IS ITS OWN JOB AND NOT A FLAG ON post-build.
