@@ -1,0 +1,42 @@
+[audit-list] 0	xpe_alert_push (empty queue)
+[audit-list] 1	xpe_alert_push (full queue, evicts)
+[audit-list] 2	xpe_init (with config)
+[audit-list] 3	xpe_configure
+[audit-list] 4	xpe_shutdown
+[audit-list] 5	xpe_log_set_file (valid path)
+[audit-list] 6	xpe_log_set_level
+[audit-list] 7	xpe_log_flush
+[audit-list] 8	xpe_get_pending_alert_count
+[audit-list] 9	xpe_get_pending_alert
+[audit-list] 10	xpe_clear_alerts
+[audit-list] 11	xpe_offset_correct
+[audit-list] 12	xpe_gain_correct
+[audit-list] 13	xpe_defect_correct
+[audit-list] 14	xpe_ghost_create (with config)
+[audit-list] 15	xpe_ghost_create (config with long values)
+[audit-list] 16	xpe_ghost_correct
+[audit-list] 17	xpe_preprocess_pipeline_ex (all stages, valid)
+[audit-list] 18	xpe_verify_offset
+[audit-list] 19	xpe_verify_gain
+[audit-list] 20	xpe_preprocess_pipeline (calib dir)
+[audit-list] 21	xpe_preprocess_pipeline_batch (1 frame)
+[audit-list] 22	xpe_verify_pipeline
+[audit-list] 23	xpe_defect_detect_runtime
+[audit-list] 24	xpe_bpm_generate
+[audit-list] 25	xpe_calib_generate_nonlin_lut
+[audit-list] 26	xpe_nonlinearity_correct (polynomial)
+[audit-list] 27	xpe_calib_load_offset (plain)
+[audit-list] 28	xpe_calib_load_gain (plain)
+[audit-list] 29	xpe_calib_load_defect_map (plain)
+[audit-list] 30	xpe_calib_load_offset_cached
+[audit-list] 31	xpe_calib_save (offset)
+[audit-list] 32	xpe_calib_generate_offset
+[audit-list] 33	xpe_calib_load_gain_cached
+[audit-list] 34	xpe_calib_load_defect_cached
+[audit-list] 35	RuntimeDetection_DefaultConfig (extern C inline)
+[audit-list] 36	xpe_calib_generate_gain
+[audit-list] 37	xpe_calib_generate_gain_polynomial
+[audit-list] 38	xpe_calib_load_nonlin_lut
+[audit-list] 39	xpe_calib_check_expiry
+[audit-list] 40	xpe_preprocess_init (config)
+[audit-list] 41	xpe_preprocess_shutdown

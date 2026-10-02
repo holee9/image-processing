@@ -1,0 +1,14 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from AuditProbe
+[ RUN      ] AuditProbe.Sweep
+[audit-start] 37	xpe_calib_generate_gain_polynomial
+[audit-progress] xpe_calib_generate_gain_polynomial
+[audit] xpe_calib_generate_gain_polynomial             points=547 failed=547 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=547 rc={-2x547}
+[       OK ] AuditProbe.Sweep (122 ms)
+[----------] 1 test from AuditProbe (122 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (122 ms total)
+[  PASSED  ] 1 test.

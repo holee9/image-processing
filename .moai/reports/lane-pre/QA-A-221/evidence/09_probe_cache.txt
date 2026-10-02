@@ -1,0 +1,12 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from AuditProbe
+[ RUN      ] AuditProbe.Sweep
+[audit] put_locked after a failed insert (capacity 2): points=16 failed=15 escaped=0 A-no-longer-cached-after-A,B,A=0
+[       OK ] AuditProbe.Sweep (17 ms)
+[----------] 1 test from AuditProbe (17 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (17 ms total)
+[  PASSED  ] 1 test.

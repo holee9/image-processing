@@ -1,0 +1,2 @@
+// QA-A-221 TEMPORARY probe (not committed): xpe_memory.cpp compiled into the probe executable.
+#include "../../common/src/xpe_memory.cpp"

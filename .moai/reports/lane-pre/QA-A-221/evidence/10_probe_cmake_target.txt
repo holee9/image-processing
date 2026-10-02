@@ -1,0 +1,21 @@
+++ b/modules/preprocess/CMakeLists.txt
+    # QA-A-221 TEMPORARY allocation-failure audit probe (QA-A-201 method); never committed.
+    add_executable(xpe_audit_probe
+        tests/audit_probe_main.cpp tests/audit_probe_seh.cpp tests/audit_probe_log.cpp tests/audit_probe_mem.cpp
+        ${XPE_PREPROCESS_SOURCES}
+    )
+    target_include_directories(xpe_audit_probe
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/src
+                ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party ${CMAKE_CURRENT_SOURCE_DIR}/../common/include
+                ${CMAKE_CURRENT_SOURCE_DIR}/../common/src
+    )
+    target_compile_definitions(xpe_audit_probe PRIVATE XPE_DLL_EXPORT XPE_CACHE_TEST_HOOKS)
+    target_link_libraries(xpe_audit_probe PRIVATE spdlog::spdlog fmt::fmt nlohmann_json::nlohmann_json GTest::gtest_main)
+    if(WIN32)
+        target_link_libraries(xpe_audit_probe PRIVATE bcrypt dbghelp)
+    endif()
+    target_compile_features(xpe_audit_probe PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(xpe_audit_probe PRIVATE /W3 /arch:AVX2)
+    endif()
+
