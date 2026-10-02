@@ -1,0 +1,66 @@
+run 1: 1 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 5: 3 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 6: 2 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 8: 3 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 10: 1 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 11: 2 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 12: 1 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 13: 2 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 15: 1 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 17: 2 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 18: 1 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 19: 3 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 20: 2 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 21: 1 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 22: 1 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 25: 1 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 26: 1 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 27: 2 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 28: 1 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 34: 1 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 39: 1 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
+run 40: 1 XCAL_DIAG line(s): XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+XCAL_DIAG step=replace GLE=5 path=csp_gx.xcal
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(357): error: Expected equality of these values:
