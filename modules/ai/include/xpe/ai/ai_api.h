@@ -513,13 +513,22 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
  *
  * @param img              Image to denoise (modified in-place). Must not be NULL.
  * @param meta             Acquisition metadata for model selection. Must not be
- *                         NULL. Its contents are not inspected in a stub build.
+ *                         NULL. Judged at the entrance in every build (REQ-AI-090,
+ *                         QA-B-194 M3): bodyPart is a NUL-terminated string within
+ *                         its 64 bytes; kVp, mAs, SID_mm and pixelPitch_mm are
+ *                         finite and not negative (0 means "unknown", as everywhere
+ *                         in the metadata). acquisitionTime and flags are not
+ *                         judged, and no clinical range is imposed: finite and
+ *                         non-negative is the whole contract.
  * @param configJsonOrNull Optional configuration (model variant, strength).
  *                         Currently ignored.
  * @return XPE_OK on success -- ONNX build only; not reachable in a stub build.
  * @return XPE_ERR_NOT_INITIALIZED if xpe_ai_init not called.
- * @return XPE_ERR_INVALID_INPUT if img or meta is NULL, or the image buffer is
- *         invalid.
+ * @return XPE_ERR_INVALID_INPUT if img or meta is NULL, the image buffer is
+ *         invalid, the metadata breaks the rules above (judged before the pixels
+ *         are scanned, with no alert), or a FLOAT32 image holds NaN or infinity
+ *         (see INPUT VALIDATION in the file description). The image is not
+ *         modified.
  * @return XPE_ERR_PROCESSING_FAILED if inference fails. In a stub build this is
  *         the unconditional outcome once validation passes; the image is left
  *         unmodified.
@@ -554,13 +563,19 @@ XPE_API XpeErrorCode xpe_dl_denoise(XpeImageBuffer* img,
  * "error":"model_not_loaded" and then returns XPE_ERR_IO_FAILED. A caller must
  * therefore check the return code rather than the presence of output.
  *
- * @param modelId    Model identifier string (e.g., "bone_suppress_v1").
- *                    Must not be NULL.
+ * @param modelId    Model identifier string (e.g., "bone_suppress_unet_v1").
+ *                    Must not be NULL, and is 1 to 64 characters of letters,
+ *                    digits, '.', '_' and '-' (REQ-AI-090, QA-B-194 M3): the
+ *                    identifier is copied into the card's JSON, so a quote or a
+ *                    backslash in it used to make the card invalid JSON.
  * @param buf        Caller-allocated buffer for JSON output. Must not be NULL.
  * @param bufSize    Size of @p buf in bytes. Recommended >= 4096.
  * @return XPE_OK if the model is known and the card fits.
- * @return XPE_ERR_INVALID_INPUT if modelId or buf is NULL, or bufSize is 0
- *         (#142).
+ * @return XPE_ERR_INVALID_INPUT if modelId or buf is NULL, bufSize is 0
+ *         (#142), or modelId is not an identifier as described above (checked
+ *         once the module is initialised and bufSize is known; @p buf is not
+ *         written). A well-formed identifier that is not loaded is not invalid:
+ *         it gets the "model_not_loaded" card and XPE_ERR_IO_FAILED.
  * @return XPE_ERR_BUFFER_TOO_SMALL if the card does not fit; @p buf still holds
  *         the truncated JSON in that case.
  * @return XPE_ERR_NOT_INITIALIZED if xpe_ai_init not called.

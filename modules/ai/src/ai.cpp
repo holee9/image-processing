@@ -41,6 +41,7 @@
 #include <windows.h>
 
 #include <cstdint>
+#include <cmath>
 #include <cstring>
 #include <atomic>
 #include <charconv>
@@ -263,6 +264,47 @@ static XpeErrorCode validateImageBuffer(const XpeImageBuffer* img) {
         }
     }
     return XPE_OK;
+}
+
+/**
+ * @brief Judge the acquisition metadata a caller hands to xpe_dl_denoise (QA-B-194 M3, REQ-AI-090, design D3).
+ *
+ * The metadata chooses the model variant and scales the noise estimate ("mAs"), so a NaN or a negative dose is not
+ * a harmless label: it would pick a variant, or scale a model, by garbage. What is checked, and no more:
+ *   - bodyPart is a NUL-terminated C string within its 64 bytes (the fixed-size field is read as a string);
+ *   - kVp, mAs, SID_mm and pixelPitch_mm are finite and not negative. Zero means "unknown", as everywhere else in
+ *     the metadata (xpe_types.h), so zero is accepted.
+ * acquisitionTime and flags are not judged: any 64-bit time and any bit pattern is a value they can hold (0 means
+ * unknown for the time), and the flags are written by the stages, not read as input here.
+ * No range is invented either (a "plausible kVp" is clinical knowledge nobody gave): finite and non-negative is the
+ * whole contract.
+ */
+static XpeErrorCode validateDenoiseMetadata(const XpeImageMetadata* meta) {
+    if (std::memchr(meta->bodyPart, '\0', sizeof(meta->bodyPart)) == nullptr) return XPE_ERR_INVALID_INPUT;
+    const float physical[] = {meta->kVp, meta->mAs, meta->SID_mm, meta->pixelPitch_mm};
+    for (const float v : physical) {
+        if (!std::isfinite(v) || v < 0.0f) return XPE_ERR_INVALID_INPUT;
+    }
+    return XPE_OK;
+}
+
+/**
+ * @brief Is @p id a model identifier: 1 to 64 characters of [A-Za-z0-9._-] (QA-B-194 M3, design D4).
+ *
+ * The identifier is copied verbatim into the JSON the model card returns (both the real card and the "model not
+ * loaded" card), so a quote or a backslash in it made the card invalid JSON (measured). The grammar is the file
+ * names the model directory holds, and it is judged before the identifier is used for anything. The scan stops at
+ * the 65th byte, so it never reads further into a caller's string than a legal identifier plus its terminator.
+ */
+static bool isValidModelId(const char* id) {
+    size_t n = 0;
+    for (; n <= 64 && id[n] != '\0'; ++n) {
+        const char ch = id[n];
+        const bool ok = (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') ||
+                        ch == '.' || ch == '_' || ch == '-';
+        if (!ok) return false;
+    }
+    return n >= 1 && n <= 64;
 }
 
 /**
@@ -1475,6 +1517,10 @@ XPE_API XpeErrorCode xpe_dl_denoise(XpeImageBuffer* img,
     ec = validateImageBuffer(img);
     if (ec != XPE_OK) return ec;
 
+    // QA-B-194 M3 (D3): the metadata is input too -- judged before the pixels are scanned, and before anything runs.
+    ec = validateDenoiseMetadata(meta);
+    if (ec != XPE_OK) return ec;
+
     // QA-B-194 M1: the frame is denoised IN PLACE, so refusing it before anything is read is what keeps it intact.
     ec = checkImageFinite(img, "XPE_WARN_DL_DENOISE_INPUT_NOT_FINITE:", "the input frame",
                           "the image was not denoised and the buffer was not changed");
@@ -1517,6 +1563,9 @@ extern "C++" static XpeErrorCode xpe_ai_get_model_card_impl(const char* modelId,
 
     // #142 (QA-B-42): zero-length output buffer is a missing argument.
     if (bufSize == 0) return XPE_ERR_INVALID_INPUT;
+
+    // QA-B-194 M3 (D4): the identifier is echoed into JSON, so it must be one a JSON string can carry unescaped.
+    if (!isValidModelId(modelId)) return XPE_ERR_INVALID_INPUT;
 
     // Look up model in loaded models list
     auto* state = g_aiState;

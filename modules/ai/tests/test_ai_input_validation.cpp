@@ -544,3 +544,157 @@ TEST_F(AiInputValidation, NoSizeRuleBetweenPartsIsInventedBecauseTheAlgorithmDoe
     EXPECT_GT(w, 0u);
     EXPECT_GT(h, 0u);
 }
+
+// ===== M3: the denoise metadata and the model identifier ====================================================
+
+namespace {
+
+/** xpe_dl_denoise on a clean 8 x 8 frame with @p meta; also reports whether the frame's bytes were left alone. */
+XpeErrorCode DenoiseWith(const XpeImageMetadata& meta, bool* frameUntouched = nullptr) {
+    Img img(8, 8);
+    const std::vector<float> before = img.v;
+    XpeImageBuffer b = img.Buffer();
+    const XpeErrorCode rc = xpe_dl_denoise(&b, &meta, nullptr);
+    if (frameUntouched) *frameUntouched = std::memcmp(before.data(), img.v.data(), before.size() * sizeof(float)) == 0;
+    return rc;
+}
+
+}  // namespace
+
+TEST_F(AiInputValidation, ControlMetadataThatIsMerelyUnusualIsNotRefused) {
+    // Without these, every refusal below could be "denoise refuses all metadata". They also pin what is NOT judged:
+    // zero (= unknown, as everywhere in the metadata), an empty body part, an extreme but finite dose, any time and
+    // any flag bits. No clinical range is invented.
+    XpeImageMetadata m = Meta();
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, DenoiseWith(m)) << "the ordinary case";
+
+    XpeImageMetadata zeros{};
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, DenoiseWith(zeros)) << "all zero = all unknown";
+
+    m = Meta();
+    m.bodyPart[0] = '\0';
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, DenoiseWith(m)) << "an empty body part is a string";
+
+    m = Meta();
+    m.kVp = FLT_MAX;
+    m.mAs = FLT_MAX;
+    m.SID_mm = FLT_MAX;
+    m.pixelPitch_mm = FLT_MAX;
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, DenoiseWith(m)) << "huge is not invalid: no range is invented";
+
+    m = Meta();
+    m.acquisitionTime = 0xFFFFFFFFFFFFFFFFull;
+    m.flags = 0xFFFFFFFFu;
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, DenoiseWith(m)) << "time and flags are not judged";
+
+    m = Meta();
+    std::memset(m.bodyPart, 'A', sizeof(m.bodyPart) - 1);   // 63 characters + the terminator already there
+    m.bodyPart[sizeof(m.bodyPart) - 1] = '\0';
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, DenoiseWith(m)) << "63 characters and a terminator fit";
+}
+
+TEST_F(AiInputValidation, ADoseOrGeometryThatIsNotAFiniteNonNegativeNumberIsRefusedAndTheFrameIsLeftAlone) {
+    struct Field { const char* name; float XpeImageMetadata::*member; };
+    const Field fields[] = {
+        {"kVp", &XpeImageMetadata::kVp},
+        {"mAs", &XpeImageMetadata::mAs},
+        {"SID_mm", &XpeImageMetadata::SID_mm},
+        {"pixelPitch_mm", &XpeImageMetadata::pixelPitch_mm},
+    };
+    for (const Field& f : fields) {
+        for (const float bad : {kNaN, kInf, -kInf, -1.0f, -0.0001f, -FLT_MAX}) {
+            XpeImageMetadata m = Meta();
+            m.*(f.member) = bad;
+            xpe_clear_alerts();
+            bool untouched = false;
+            EXPECT_EQ(XPE_ERR_INVALID_INPUT, DenoiseWith(m, &untouched)) << f.name << " = " << bad;
+            EXPECT_TRUE(untouched) << f.name << " = " << bad << ": a refused call writes nothing";
+            EXPECT_TRUE(Alerts().empty()) << f.name << " = " << bad << ": a plain INVALID_INPUT, like the size checks";
+        }
+    }
+}
+
+TEST_F(AiInputValidation, ABodyPartThatIsNotATerminatedStringIsRefused) {
+    // 64 bytes of 'A' and no NUL: the field would be read past its end as a C string.
+    XpeImageMetadata m = Meta();
+    std::memset(m.bodyPart, 'A', sizeof(m.bodyPart));
+    bool untouched = false;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, DenoiseWith(m, &untouched));
+    EXPECT_TRUE(untouched);
+}
+
+TEST_F(AiInputValidation, TheMetadataIsJudgedBeforeThePixelsAreScanned) {
+    // Both are wrong: the cheap metadata check answers first, and no NaN alert is raised for a frame that was never
+    // looked at. (Pinned so the order is a decision: the scan is the expensive one.)
+    Img img(8, 8);
+    img.v[3] = kNaN;
+    XpeImageMetadata m = Meta();
+    m.mAs = kNaN;
+    XpeImageBuffer b = img.Buffer();
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dl_denoise(&b, &m, nullptr));
+    EXPECT_TRUE(Alerts().empty());
+}
+
+namespace {
+
+struct Card {
+    XpeErrorCode rc;
+    std::string text;
+    bool bufferUntouched;
+};
+
+Card CardFor(const std::string& id) {
+    char buf[1024];
+    std::memset(buf, 'x', sizeof(buf));
+    Card c;
+    c.rc = xpe_ai_get_model_card(id.c_str(), buf, sizeof(buf));
+    c.bufferUntouched = true;
+    for (char ch : buf) c.bufferUntouched = c.bufferUntouched && ch == 'x';
+    c.text = std::string(buf, strnlen(buf, sizeof(buf)));
+    return c;
+}
+
+}  // namespace
+
+TEST_F(AiInputValidation, AModelIdentifierIsOneToSixtyFourOfLettersDigitsDotUnderscoreHyphen) {
+    // Controls first: the identifiers the product uses, the shortest and the longest legal one.
+    EXPECT_EQ(XPE_OK, CardFor("bodypart_cnn_v1").rc);
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, CardFor("a").rc);
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, CardFor(std::string(64, 'm')).rc);
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, CardFor("Model-1.2_final").rc);
+
+    const std::string refused[] = {
+        "",
+        std::string(65, 'm'),
+        std::string("a\"b"),           // a quote: made the card invalid JSON (measured)
+        std::string("a\\b"),           // a backslash
+        std::string("a b"),            // a space
+        std::string("a/b"),
+        std::string("a\nb"),
+        std::string("a\tb"),
+        std::string("a\x01" "b"),
+        std::string("caf\xC3\xA9"),    // not ASCII
+        std::string("a{b}"),
+        std::string("a,b"),
+        std::string("a:b"),
+    };
+    for (const std::string& id : refused) {
+        const Card c = CardFor(id);
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, c.rc) << "id of " << id.size() << " bytes, first '" << (id.empty() ? '?' : id[0]) << "'";
+        EXPECT_TRUE(c.bufferUntouched) << "a refused identifier writes nothing to the caller's buffer";
+    }
+}
+
+TEST_F(AiInputValidation, AWellFormedButUnknownIdentifierStillGetsAWellFormedUnavailableCard) {
+    // The grammar must not turn "not loaded" into "invalid": an unknown identifier that is legal is a model that is
+    // not loaded, the documented IO_FAILED, with a card that says so -- and the card is JSON a parser accepts, which
+    // is what the quote in the identifier used to break.
+    const Card c = CardFor("no_such_model.v2-x");
+    EXPECT_EQ(XPE_ERR_IO_FAILED, c.rc);
+    EXPECT_NE(std::string::npos, c.text.find("\"model_id\":\"no_such_model.v2-x\""));
+    EXPECT_NE(std::string::npos, c.text.find("\"error\":\"model_not_loaded\""));
+    EXPECT_EQ('{', c.text.front());
+    EXPECT_EQ('}', c.text.back());
+    EXPECT_EQ(std::string::npos, c.text.find('\\')) << "nothing in the card needs escaping";
+}
