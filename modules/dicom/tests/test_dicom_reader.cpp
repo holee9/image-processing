@@ -4420,6 +4420,46 @@ void MutRescaleInterceptNotANumber(DcmDataset* ds, bool) { ds->putAndInsertStrin
 void MutRescaleSlopeEmpty(DcmDataset* ds, bool) { ds->putAndInsertString(DCM_RescaleSlope, ""); }
 void MutRescaleSlopeNotFinite(DcmDataset* ds, bool) { ds->putAndInsertString(DCM_RescaleSlope, "inf"); }
 void MutRescaleTwoValues(DcmDataset* ds, bool) { ds->putAndInsertString(DCM_RescaleSlope, "1\\2"); }
+// QA-B-187c: PS3.3 C.11.1 -- the Slope / Intercept pair is required together. The writer's donor carries both, so the
+// one-sided files are made by deleting the other element.
+void MutRescaleSlopeOnly(DcmDataset* ds, bool) {
+    ds->putAndInsertString(DCM_RescaleSlope, "2");
+    ds->findAndDeleteElement(DCM_RescaleIntercept);
+}
+void MutRescaleInterceptOnly(DcmDataset* ds, bool) {
+    ds->putAndInsertString(DCM_RescaleIntercept, "-1024");
+    ds->findAndDeleteElement(DCM_RescaleSlope);
+}
+void MutRescaleBothAbsent(DcmDataset* ds, bool) {
+    ds->findAndDeleteElement(DCM_RescaleSlope);
+    ds->findAndDeleteElement(DCM_RescaleIntercept);
+}
+// A Modality LUT Sequence instead of the pair (the other legal form of the module).
+void MutModalityLutSequence(DcmDataset* ds, bool) {
+    ds->findAndDeleteElement(DCM_RescaleSlope);
+    ds->findAndDeleteElement(DCM_RescaleIntercept);
+    DcmItem* item = nullptr;
+    ds->findOrCreateSequenceItem(DCM_ModalityLUTSequence, item, -2);
+    if (item != nullptr) item->putAndInsertString(DCM_LUTExplanation, "tc235 modality lut");
+}
+// Legal DS notations (PS3.5 6.2): exponent, explicit plus, padding spaces, a decimal point.
+void MutRescaleDsExponent(DcmDataset* ds, bool) {
+    ds->putAndInsertString(DCM_RescaleSlope, "1E0");
+    ds->putAndInsertString(DCM_RescaleIntercept, "0e0");
+}
+void MutRescaleDsPlusSign(DcmDataset* ds, bool) {
+    ds->putAndInsertString(DCM_RescaleSlope, "+1");
+    ds->putAndInsertString(DCM_RescaleIntercept, "+0");
+}
+void MutRescaleDsPadded(DcmDataset* ds, bool) {
+    ds->putAndInsertString(DCM_RescaleSlope, " 1 ");
+    ds->putAndInsertString(DCM_RescaleIntercept, " 0 ");
+}
+void MutRescaleDsDecimal(DcmDataset* ds, bool) {
+    ds->putAndInsertString(DCM_RescaleSlope, "1");
+    ds->putAndInsertString(DCM_RescaleIntercept, "-1024.0");
+}
+void MutRescaleInterceptTwoValues(DcmDataset* ds, bool) { ds->putAndInsertString(DCM_RescaleIntercept, "0\\1"); }
 void MutMultiFrame(DcmDataset* ds, bool native) {
     ds->putAndInsertString(DCM_NumberOfFrames, "3");
     if (native) {
@@ -4470,6 +4510,40 @@ void ExpectRescaleIdentityQuiet235(PathId path) {
     EXPECT_TRUE(o.alerts.empty()) << "an explicit identity (1.0 and 0.0) is not announced";
 }
 
+// A readable DS spelling: the pixels are stored values; warnSlope == nullptr means the rescale it spells is the identity.
+void ExpectDsAccepted235(PathId path, const char* tag, Mutator mut, const char* warnSlope, const char* warnIntercept) {
+    ASSERT_TRUE(Env235().ok);
+    const Obs235 o = Observe235(File235(path, tag, mut));
+    ASSERT_EQ(XPE_OK, o.read.read);
+    EXPECT_EQ(Env235().base, o.read.words);
+    if (warnSlope == nullptr) {
+        EXPECT_TRUE(o.alerts.empty()) << "an identity spelled in a legal notation is not announced";
+    } else {
+        ASSERT_EQ(1u, o.alerts.size());
+        EXPECT_EQ(XPE_ALERT_WARNING, o.alerts[0].severity);
+        EXPECT_EQ(RescaleWarning235(warnSlope, warnIntercept), o.alerts[0].text);
+    }
+}
+
+void ExpectBothAbsentIdentity235(PathId path) {
+    ASSERT_TRUE(Env235().ok);
+    const Obs235 o = Observe235(File235(path, "rescale_none", MutRescaleBothAbsent));
+    ASSERT_EQ(XPE_OK, o.read.read);
+    EXPECT_EQ(Env235().base, o.read.words);
+    EXPECT_TRUE(o.alerts.empty()) << "both absent is the identity: nothing is announced";
+}
+
+void ExpectModalityLutWarned235(PathId path) {
+    ASSERT_TRUE(Env235().ok);
+    const Obs235 o = Observe235(File235(path, "mod_lut", MutModalityLutSequence));
+    ASSERT_EQ(XPE_OK, o.read.read);
+    EXPECT_EQ(Env235().base, o.read.words) << "the stored values are returned, the LUT is not applied";
+    ASSERT_EQ(1u, o.alerts.size()) << "one Warning says so";
+    EXPECT_EQ(XPE_ALERT_WARNING, o.alerts[0].severity);
+    EXPECT_EQ("ModalityLUTSequence (0028,3000) is present: returned pixels are stored values; the Modality LUT was not applied",
+              o.alerts[0].text);
+}
+
 }  // namespace
 
 #define TC235_REFUSED(Item, Path, Expect, Code, Mut, Needle) \
@@ -4510,6 +4584,25 @@ TC235_REFUSED(RescaleSlopeNotFinite, J2k, RefusedInvalid, XPE_ERR_DICOM_INVALID,
 TC235_REFUSED(RescaleSlopeTwoValues, Native, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleTwoValues, "RescaleSlope")
 TC235_REFUSED(RescaleSlopeTwoValues, JpegLl, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleTwoValues, "RescaleSlope")
 TC235_REFUSED(RescaleSlopeTwoValues, J2k, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleTwoValues, "RescaleSlope")
+
+// ---- 3b. QA-B-187c: one side of the pair, the Modality LUT Sequence, legal DS notations ------------------------------
+TC235_REFUSED(RescaleSlopeOnly, Native, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleSlopeOnly, "RescaleIntercept (0028,1052) is absent")
+TC235_REFUSED(RescaleSlopeOnly, JpegLl, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleSlopeOnly, "RescaleIntercept (0028,1052) is absent")
+TC235_REFUSED(RescaleSlopeOnly, J2k, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleSlopeOnly, "RescaleIntercept (0028,1052) is absent")
+TC235_REFUSED(RescaleInterceptOnly, Native, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleInterceptOnly, "RescaleSlope (0028,1053) is absent")
+TC235_REFUSED(RescaleInterceptOnly, JpegLl, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleInterceptOnly, "RescaleSlope (0028,1053) is absent")
+TC235_REFUSED(RescaleInterceptOnly, J2k, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleInterceptOnly, "RescaleSlope (0028,1053) is absent")
+TC235_REFUSED(RescaleInterceptTwoValues, Native, RefusedInvalid, XPE_ERR_DICOM_INVALID, MutRescaleInterceptTwoValues, "RescaleIntercept")
+TEST_F(DicomReaderTest, Tc235_RescaleBothAbsent_Native_IdentityNoAlert) { ExpectBothAbsentIdentity235(PathId::Native); }
+TEST_F(DicomReaderTest, Tc235_RescaleBothAbsent_JpegLl_IdentityNoAlert) { ExpectBothAbsentIdentity235(PathId::JpegLl); }
+TEST_F(DicomReaderTest, Tc235_RescaleBothAbsent_J2k_IdentityNoAlert) { ExpectBothAbsentIdentity235(PathId::J2k); }
+TEST_F(DicomReaderTest, Tc235_ModalityLutSequence_Native_StoredValuesWithWarning) { ExpectModalityLutWarned235(PathId::Native); }
+TEST_F(DicomReaderTest, Tc235_ModalityLutSequence_JpegLl_StoredValuesWithWarning) { ExpectModalityLutWarned235(PathId::JpegLl); }
+TEST_F(DicomReaderTest, Tc235_ModalityLutSequence_J2k_StoredValuesWithWarning) { ExpectModalityLutWarned235(PathId::J2k); }
+TEST_F(DicomReaderTest, Tc235_RescaleDsExponent_Native_Accepted) { ExpectDsAccepted235(PathId::Native, "ds_exp", MutRescaleDsExponent, nullptr, nullptr); }
+TEST_F(DicomReaderTest, Tc235_RescaleDsPlusSign_Native_Accepted) { ExpectDsAccepted235(PathId::Native, "ds_plus", MutRescaleDsPlusSign, nullptr, nullptr); }
+TEST_F(DicomReaderTest, Tc235_RescaleDsPadded_Native_Accepted) { ExpectDsAccepted235(PathId::Native, "ds_pad", MutRescaleDsPadded, nullptr, nullptr); }
+TEST_F(DicomReaderTest, Tc235_RescaleDsDecimal_Native_AcceptedWithWarning) { ExpectDsAccepted235(PathId::Native, "ds_dec", MutRescaleDsDecimal, "1", "-1024.0"); }
 
 // ---- 4. multi-frame --------------------------------------------------------------------------------------------------
 TC235_REFUSED(MultiFrame, Native, RefusedUnsupported, XPE_ERR_UNSUPPORTED_FORMAT, MutMultiFrame, "NumberOfFrames 3")

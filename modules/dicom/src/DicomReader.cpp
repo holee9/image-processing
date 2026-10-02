@@ -369,6 +369,7 @@ static void normaliseMonochrome1(XpeImageBuffer* img) {
 // The check runs for every path because it runs before the path-specific decode.
 struct RescaleNote {
     bool nonIdentity = false;
+    bool lutSequence = false;   // a Modality LUT Sequence (0028,3000) with at least one item
     std::string slope = "(absent)";
     std::string intercept = "(absent)";
 };
@@ -391,9 +392,10 @@ static bool parseDecimalString(const std::string& s, double* out) {
 }
 
 static XpeErrorCode readRescaleAttribute(DcmDataset* ds, const DcmTagKey& key, const char* label, const char* tag,
-                                         double identityValue, double* out, std::string* text) {
+                                         double identityValue, double* out, std::string* text, bool* present) {
     *out = identityValue;
-    if (!ds->tagExists(key)) return XPE_OK;
+    *present = ds->tagExists(key);
+    if (!*present) return XPE_OK;
     OFString raw;
     const OFCondition c = ds->findAndGetOFStringArray(key, raw);
     const std::string s = trimSpaces(raw.c_str());
@@ -406,10 +408,19 @@ static XpeErrorCode readRescaleAttribute(DcmDataset* ds, const DcmTagKey& key, c
 
 static XpeErrorCode checkRescale(DcmDataset* ds, RescaleNote* note) {
     double slope = 1.0, intercept = 0.0;
-    XpeErrorCode rc = readRescaleAttribute(ds, DCM_RescaleSlope, "RescaleSlope", "0028,1053", 1.0, &slope, &note->slope);
+    bool hasSlope = false, hasIntercept = false;
+    XpeErrorCode rc = readRescaleAttribute(ds, DCM_RescaleSlope, "RescaleSlope", "0028,1053", 1.0, &slope, &note->slope, &hasSlope);
     if (rc != XPE_OK) return rc;
-    rc = readRescaleAttribute(ds, DCM_RescaleIntercept, "RescaleIntercept", "0028,1052", 0.0, &intercept, &note->intercept);
+    rc = readRescaleAttribute(ds, DCM_RescaleIntercept, "RescaleIntercept", "0028,1052", 0.0, &intercept, &note->intercept, &hasIntercept);
     if (rc != XPE_OK) return rc;
+    // PS3.3 C.11.1: the Slope / Intercept pair is required together; one without the other is not a Modality LUT.
+    if (hasSlope != hasIntercept) {
+        return refuse(XPE_ERR_DICOM_INVALID, "%s is absent while %s is present: the Modality LUT needs both RescaleSlope and RescaleIntercept (PS3.3 C.11.1)",
+                      hasSlope ? "RescaleIntercept (0028,1052)" : "RescaleSlope (0028,1053)",
+                      hasSlope ? "RescaleSlope (0028,1053)" : "RescaleIntercept (0028,1052)");
+    }
+    DcmSequenceOfItems* lut = nullptr;
+    note->lutSequence = ds->findAndGetSequence(DCM_ModalityLUTSequence, lut).good() && lut != nullptr && lut->card() > 0;
     if (slope == 0.0) {
         return refuse(XPE_ERR_DICOM_INVALID, "RescaleSlope (0028,1053) is zero: the rescale would map every pixel to the intercept");
     }
@@ -447,6 +458,12 @@ static void finishRead(XpeImageBuffer* img, bool mono1, const RescaleNote& resca
         xpe_alert_push(msg, XPE_ALERT_INFO);
     }
     if (mono1) normaliseMonochrome1(img);
+    if (rescale.lutSequence) {
+        // CROSS-LANE CONTRACT (QA-B-187c): the whole text.
+        const char* msg = "ModalityLUTSequence (0028,3000) is present: returned pixels are stored values; the Modality LUT was not applied";
+        spdlog::warn("[DicomReader] {}", msg);
+        xpe_alert_push(msg, XPE_ALERT_WARNING);
+    }
     if (rescale.nonIdentity) {
         // CROSS-LANE CONTRACT (QA-B-187): the whole text, with the values as the file spells them.
         char msg[256];

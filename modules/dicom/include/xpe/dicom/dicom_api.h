@@ -142,7 +142,9 @@ XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHa
  *         - a JPEG 2000 codestream contradicts the dataset: a different number of components, signed samples, a
  *           precision that differs from BitsStored, or BitsAllocated below BitsStored (PS3.5 8.2.4);
  *         - RescaleSlope (0028,1053) or RescaleIntercept (0028,1052) is present and is not ONE finite number (empty,
- *           text, two values, inf or nan), or RescaleSlope is 0 (QA-B-187; judged before any decode, on every path).
+ *           text, two values, inf or nan), or RescaleSlope is 0, or exactly ONE of the two is present (PS3.3 C.11.1
+ *           requires the pair together; the alert names the missing one) (QA-B-187, QA-B-187c; judged before any
+ *           decode, on every path). Both absent is the identity and is accepted.
  * @return XPE_ERR_UNSUPPORTED_FORMAT also for a JPEG 2000 codestream whose precision exceeds 16 bits.
  *
  * @note NumberOfFrames is the one attribute that may be absent (Multi-frame Module): absent means one frame.
@@ -157,13 +159,13 @@ XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHa
  * @note PhotometricInterpretation MONOCHROME1 is returned INVERTED, in MONOCHROME2 sense (QA-B-185, #235,
  *       SRS-DICOM-001 FR-DCM-109): with B = outImg->bitsStored every returned word is
  *       (2^B - 1) - (stored & (2^B - 1)) -- the bits above BitsStored are not part of the sample and are masked off
- *       first. MONOCHROME2 is returned as stored. The inversion is made on every path (uncompressed, JPEG Lossless,
+ *       first. MONOCHROME2 is not inverted (its bits above BitsStored are masked as well, see the note below). The inversion is made on every path (uncompressed, JPEG Lossless,
  *       JPEG 2000), after the decode and on the caller's buffer, so a second read on the same handle returns the same
  *       words. One XPE_ALERT_INFO alert is posted per inverted read, with exactly this text (the wording is a
  *       contract with the clients that display alerts; {B} stands for the buffer's bitsStored, the braces only mark where a
  *       value is inserted):
  *       "MONOCHROME1 pixel values were inverted to MONOCHROME2 sense: value = (2^BitsStored - 1) - (stored &
- *       (2^BitsStored - 1)), BitsStored {B}". Nothing is posted for MONOCHROME2.
+ *       (2^BitsStored - 1)), BitsStored {B}". This alert is not posted for MONOCHROME2; an Info alert below is posted when its pixels changed.
  *       WHAT SURVIVES read -> write is the POLARITY, not the presentation: xpe_dicom_write always writes MONOCHROME2 +
  *       IDENTITY, so a MONOCHROME1 file read and written again is a MONOCHROME2 file with the inverted words, which
  *       has the polarity of the original. xpe_dicom_write does NOT preserve the source file's Window Center / Width
@@ -186,8 +188,12 @@ XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHa
  *       XPE_ALERT_WARNING is posted after a successful read, with exactly this text, the values spelled as the file
  *       spells them (a contract with the clients that display alerts; {s} and {b} mark where they are inserted):
  *       "RescaleSlope {s}, RescaleIntercept {b} (the identity is 1 and 0): returned pixels are stored values; rescale
- *       not applied". An explicit identity (1.0 and 0.0) posts nothing. A malformed rescale is refused, see the
- *       XPE_ERR_DICOM_INVALID list above. Whether to apply or report the rescale is a separate decision.
+ *       not applied". An explicit identity (1.0 and 0.0) posts nothing. A malformed or one-sided rescale is refused,
+ *       see the XPE_ERR_DICOM_INVALID list above. Whether to apply or report the rescale is a separate decision.
+ * @note Modality LUT Sequence (QA-B-187c): a file whose (0028,3000) sequence has at least one item is read as
+ *       stored values too (the LUT is not applied), and ONE XPE_ALERT_WARNING is posted with exactly this text:
+ *       "ModalityLUTSequence (0028,3000) is present: returned pixels are stored values; the Modality LUT was not
+ *       applied".
  * @note Bits above BitsStored (QA-B-187, #235 item (h)): they are not part of the sample (PS3.5 8.1.1), so every
  *       returned word is (stored & (2^BitsStored - 1)) for MONOCHROME2 as well as MONOCHROME1. When at least one word
  *       changed, ONE XPE_ALERT_INFO is posted with exactly this text ({N} and {B} mark where the count of changed
