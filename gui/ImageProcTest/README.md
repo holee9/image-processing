@@ -39,6 +39,11 @@ reworded so nobody re-investigates whether they exist:
 dotnet build gui\ImageProcTest\ImageProcTest.csproj -c Debug
 ```
 
+The Debug build also compiles the test fault switches (`--automation-fault display-pipeline-after:N`, `ai-worker-disabled`, `ai-worker-silent`,
+`ai-worker-silent:0`) that the E2E suite uses. A Release (shipped) build does not contain them: the parser has no branch for them, so the exe refuses
+the switch (exit code 2), and Release with `-p:XpeTestFaults=true` fails with error `XPE0001`. The CI job `gui-shipped-build`
+(`tools/ci/Test-ShippedBuild.ps1`) checks this.
+
 ## Self-check
 
 ```powershell
@@ -125,6 +130,58 @@ The emitted report includes:
 - `ComparisonViewportDetected`
 - `ComparisonSourcePreserved`
 - `ComparisonEvidenceExported`
+- `BaselineMenuEnabled`, `BaselineRan`, `BaselineStatus`
+- `BaselineStatusText`
+- `BaselineBitIdentical`, `BaselineFirstDifference`, `BaselineOutputSha256`
+- `BaselineStageTimes`, `BaselineTotalMs`
+- `BaselineDicomValid`, `BaselineDicomRoundTripIdentical`
+- `BaselineExposureIndex`, `BaselineEvidenceFolder`
+
+**`BaselineStatus` and `Passed`.** `Pass` - the Deterministic Baseline command ran and passed. `Fail` - it ran and failed, **or it was attempted and produced
+no result** (it threw, its result was dropped, or it did not finish in 60 s). `NotRun` - it was not attempted: the menu item was disabled (Mock), or
+preprocessing did not run in this automation run, so no calibration set was given. A report with `Fail` has `Passed=false` (the process exits 1); `NotRun`
+leaves `Passed` unchanged. `NotRun` is never a pass and never a fail: nothing was compared. In the Native CI job an unexplained skip of the baseline tests
+fails the job separately.
+
+## Run Deterministic Baseline (Pipeline menu)
+
+Runs the Phase 1b chain **twice** on the loaded raw image, in the same process, and reports whether the two outputs are bit-identical. Native backend
+only; the menu item is disabled on Mock. "Deterministic" here is the property being checked, not a mode, and not the product's non-AI image path that
+other documents also call the deterministic baseline.
+
+**Chain (fixed; no user setting is read).** preprocess (offset, nonlinearity, gain, defect; the uncalibrated EI is measured on its float image) ->
+enhance_basic (log, bilateral noise reduction sigma-space 3.0 / sigma-range 50.0, CLAHE clip 3.0 with 8x8 tiles, unsharp mask amount 0.5 / radius 2.0 /
+threshold 10.0, all on one float image, converted to 16 bits once at the end with round-half-even and clamping) -> display (modality slope 1 / intercept 0,
+linear VOI centre 32768 / width 65535, GSDF off). The log normalisation factor is 65535/log10(65536); no document specifies it, so it is an assumption of
+this command only. Every stage must be applied: a stage the module refuses fails the command (nothing is compared and no DICOM file is written).
+
+**Pass criteria (all of them).** (1) both runs applied every stage; (2) the loaded raw frame is unchanged (SHA-256 before = after); (3) no NaN/Inf was
+counted in any float intermediate; (4) the two final 16-bit outputs are bit-identical; (5) the first output was written as DICOM, the module's own validator
+reported `valid:true`, and reading the file back returned the same pixels and the same body part, kVp and pixel pitch; (6) the evidence file
+`baseline.json` was written. Timing is measured and logged; the 3000 ms figure of the product requirements is **not** asserted.
+
+**What the DICOM metadata carries.** Body part, kVp and pixel pitch from the settings. mAs, source-to-image distance and acquisition time are not known to
+the app and are written as 0 (unknown), never as invented values.
+
+**Evidence.** `evidence/<RunId>/baseline-<n>/` holds exactly two files: `baseline.dcm` and `baseline.json`. A run that is not a pass leaves no
+`baseline.dcm`: the file is written under a `.partial` name and renamed only after every check, including writing `baseline.json`, succeeded.
+`baseline.json` records `status`, `failureReason`, `startedAt`, `width`, `height`, `runsExecuted`, `inputPreserved`, `inputSha256Before/After`,
+`bitIdentical`, `difference` (first index, count, maximum), `nanInfCount`, `nonFiniteByStageRun1`, `outputSha256`, `stageHashesRun1/2` (SHA-256 of each
+stage's output), `stageTimes`, `runTotalsMs`, `totalMs`, `budgetMs` (3000, "measured against, not asserted"), `exposureIndex`, and `dicom` (`path`,
+`finalFileWritten`, `passed`, `valid`, `report`, `pixelsIdentical`, `metadataAgrees`, `summary`, `cleanupProblem`).
+
+**Uncalibrated EI.** The command logs and records `uncalibrated EI (보정 안 된 EI) = <EI>, DI = <DI>`: the Exposure Index and Deviation Index the enhance_basic module
+computes (`EI = EIT x mean / S0`, `DI = 10 x log10(EI / EIT)`) on the corrected float image before it is scaled to 16 bits. It is a **measurement, not a
+pass criterion**: the module's S0 reference (1000) has not been checked against this app's gain scale. On the synthetic 1024x1024 fixture it read
+EI 3098.64, DI 10.93 (one observation on one machine).
+
+**Does not touch.** Settings, the image on screen, the chain status and the stage timing the last render left. It takes a backend lifetime ticket but no
+Apply request number, so an Apply in flight is neither superseded by it nor supersedes it.
+
+**Known limits.** The DICOM path is passed to the module as ANSI: a folder name with characters outside the system code page makes the write fail
+(`XPE_ERR_IO_FAILED`; measured with Thai text on a Korean Windows, code page 949; tracked as #239). The two runs share one process, so state that survives
+inside a process is not caught. The float intermediates of the display stage are not scanned for NaN/Inf. The time on a 3072x3072 image has not been
+measured; on a synthetic 1024x1024 image the whole command took about 210-290 ms on the development machine.
 
 ## Automation E2E with actual detector raw data
 
