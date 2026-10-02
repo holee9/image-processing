@@ -1,0 +1,40 @@
+xpe_preprocess_init rc = 0
+
+=== CalData_6 (levels in mean order 03,04,05,06,01,02; zero dark)
+oracle defect map: 23505 pixels (0.2491%)
+  level 0: map min 0 max 186.801 | outside SRS [0.1,10]: 43873 (in defect map 14275, outside it 29598) | outside applier [0.001,1000]: 2
+     xpe_calib_load_gain rc = -17
+     first out-of-range pixels (index: value, in defect map?): 0: 0.005705 N, 1: 0.005705 N, 2: 0.005705 N, 3: 0.008558 N, 4: 0.005705 N, 5: 0.005705 N
+  level 1: map min 0 max 75.124 | outside SRS [0.1,10]: 44003 (in defect map 14278, outside it 29725) | outside applier [0.001,1000]: 1
+     xpe_calib_load_gain rc = -17
+     first out-of-range pixels (index: value, in defect map?): 0: 0.003459 N, 1: 0.002306 N, 2: 0.005764 N, 3: 0.005764 N, 4: 0.003459 N, 5: 0.005764 N
+  level 2: map min 0 max 46.7521 | outside SRS [0.1,10]: 44144 (in defect map 14276, outside it 29868) | outside applier [0.001,1000]: 1
+     xpe_calib_load_gain rc = -17
+     first out-of-range pixels (index: value, in defect map?): 0: 0.002866 N, 1: 0.005015 N, 2: 0.005015 N, 3: 0.004299 N, 4: 0.003582 N, 5: 0.005732 N
+  level 3: map min 0 max 6.1756 | outside SRS [0.1,10]: 44006 (in defect map 14206, outside it 29800) | outside applier [0.001,1000]: 1
+     xpe_calib_load_gain rc = -17
+     first out-of-range pixels (index: value, in defect map?): 0: 0.004098 N, 1: 0.003643 N, 2: 0.004098 N, 3: 0.005919 N, 4: 0.005464 N, 5: 0.00683 N
+  level 4: map min 0 max 22.7296 | outside SRS [0.1,10]: 39077 (in defect map 13588, outside it 25489) | outside applier [0.001,1000]: 1
+     xpe_calib_load_gain rc = -17
+     first out-of-range pixels (index: value, in defect map?): 0: 0.003468 N, 1: 0.003122 N, 2: 0.003815 N, 3: 0.004162 N, 4: 0.004162 N, 5: 0.005549 N
+  level 5: map min 0 max 2.70472 | outside SRS [0.1,10]: 41300 (in defect map 13957, outside it 27343) | outside applier [0.001,1000]: 1
+     xpe_calib_load_gain rc = -17
+     first out-of-range pixels (index: value, in defect map?): 0: 0.003789 N, 1: 0.00339 N, 2: 0.003789 N, 3: 0.004188 N, 4: 0.005185 N, 5: 0.005584 N
+
+=== cyan_test (CalSets, MasterDark; defect map = calfiles/BPM.raw)
+oracle defect map: 250 pixels (0.0026%)
+  level 0: map min 0.697553 max 1.15654 | outside SRS [0.1,10]: 0 (in defect map 0, outside it 0) | outside applier [0.001,1000]: 0
+     xpe_calib_load_gain rc = 0
+     xpe_gain_correct on this level's own frame rc = 0 ; output finite: True
+  level 1: map min 0.697965 max 1.14035 | outside SRS [0.1,10]: 0 (in defect map 0, outside it 0) | outside applier [0.001,1000]: 0
+     xpe_calib_load_gain rc = 0
+     xpe_gain_correct on this level's own frame rc = 0 ; output finite: True
+  level 2: map min 0.698152 max 1.134 | outside SRS [0.1,10]: 0 (in defect map 0, outside it 0) | outside applier [0.001,1000]: 0
+     xpe_calib_load_gain rc = 0
+     xpe_gain_correct on this level's own frame rc = 0 ; output finite: True
+  level 3: map min 0.695894 max 1.13532 | outside SRS [0.1,10]: 0 (in defect map 0, outside it 0) | outside applier [0.001,1000]: 0
+     xpe_calib_load_gain rc = 0
+     xpe_gain_correct on this level's own frame rc = 0 ; output finite: True
+  level 4: map min 0.697427 max 1.13173 | outside SRS [0.1,10]: 0 (in defect map 0, outside it 0) | outside applier [0.001,1000]: 0
+     xpe_calib_load_gain rc = 0
+     xpe_gain_correct on this level's own frame rc = 0 ; output finite: True
