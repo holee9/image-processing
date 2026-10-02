@@ -1,0 +1,18 @@
+[sweep] xpe_calib_load_gain                           35 allocation points covered
+[sweep] xpe_calib_load_offset                         10 allocation points covered
+[sweep] xpe_calib_load_defect_map                     10 allocation points covered
+[sweep] xpe_calib_load_gain (polynomial, range)       34 allocation points covered
+[sweep] xpe_calib_load_gain (polynomial, no range)    34 allocation points covered
+[sweep] xpe_calib_load_gain_cached (miss)             45 allocation points covered
+[sweep] xpe_calib_load_gain_cached (polynomial)       36 allocation points covered
+[sweep] xpe_calib_load_offset_cached (miss)           20 allocation points covered
+[sweep] xpe_calib_load_defect_cached (miss)           20 allocation points covered
+[sweep] xpe_calib_load_gain_cached (hit)               4 allocation points covered
+[sweep] xpe_calib_load_offset_cached (hit)             4 allocation points covered
+[sweep] xpe_calib_load_defect_cached (hit)             4 allocation points covered
+[sweep] xpe_verify_pipeline                            4 allocation points covered
+[sweep] xpe_preprocess_pipeline_ex                    40 allocation points covered
+[sweep] xpe_preprocess_pipeline                       73 allocation points covered
+[sweep] xpe_preprocess_pipeline_batch                 87 allocation points covered
+[sweep] xpe_preprocess_pipeline                       82 allocation points covered
+[sweep] xpe_preprocess_pipeline_batch                 82 allocation points covered

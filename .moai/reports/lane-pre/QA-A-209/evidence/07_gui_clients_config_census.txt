@@ -1,0 +1,63 @@
+# Which configuration JSON do gui/ and clients/ send to the preprocess module? (QA-A-209)
+# search: every C# call of an export that takes a configuration text, in gui/ and clients/ sources (bin/obj excluded)
+
+== xpe_preprocess_init (call sites, extern declarations excluded)
+gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:61:        var initCode = XpePreprocessNative.xpe_preprocess_init(null);
+gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:64:            return new PreprocessRunResult(false, $"xpe_preprocess_init failed ({initCode}).", null);
+clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:14:            "xpe_preprocess_init",
+clients/ImageProcTest/Diagnostics/XpePreprocessSyntheticOracle.cs:50:                if (!TryGetDelegate(handle, "xpe_preprocess_init", out InitDelegate? init) ||
+clients/ImageProcTest/Diagnostics/XpePreprocessSyntheticOracle.cs:59:                var initFn = init ?? throw new InvalidOperationException("xpe_preprocess_init delegate is null.");
+clients/ImageProcTest/Diagnostics/XpePreprocessSyntheticOracle.cs:71:                        Details: $"xpe_preprocess_init(NULL) returned {initResult}.",
+clients/ImageProcTest/Services/NativePreprocessPreviewService.cs:162:                var init = GetRequiredDelegate<InitDelegate>(handle, "xpe_preprocess_init");
+clients/ImageProcTest/Services/NativePreprocessPreviewService.cs:173:                    throw new InvalidOperationException($"xpe_preprocess_init(NULL) returned {initResult}.");
+clients/ImageProcTest.IntegrationTests/Functional/DataSizeContractTests.cs:141:            var init = GetExport<XpePreprocessNative.InitDelegate>(handle, "xpe_preprocess_init");
+clients/ImageProcTest.IntegrationTests/Functional/PreprocessDelegateArityGuardTests.cs:41:        ["InitDelegate", "xpe_preprocess_init"],
+clients/ImageProcTest.IntegrationTests/P1AReady/GainPolyClampAlertTests.cs:221:            var init = GetDelegate<XpePreprocessNative.InitDelegate>(handle, "xpe_preprocess_init");
+clients/ImageProcTest.IntegrationTests/P1AReady/NonlinearityStageWiringTests.cs:51:            var init = GetDelegate<XpePreprocessNative.InitDelegate>(handle, "xpe_preprocess_init");
+clients/ImageProcTest.IntegrationTests/P1AReady/NonlinearityStageWiringTests.cs:115:            var init = GetDelegate<XpePreprocessNative.InitDelegate>(handle, "xpe_preprocess_init");
+clients/ImageProcTest.IntegrationTests/P1AReady/PreprocessCorrectionChainSmokeTests.cs:45:            var init = GetDelegate<XpePreprocessNative.InitDelegate>(handle, "xpe_preprocess_init");
+clients/ImageProcTest.IntegrationTests/P1AReady/PreprocessCorrectionChainSmokeTests.cs:159:        var init = GetDelegate<XpePreprocessNative.InitDelegate>(handle, "xpe_preprocess_init");
+clients/ImageProcTest.IntegrationTests/P1AReady/PreprocessHandshakeTests.cs:47:    /// <summary>REQ-GUI-IT-060: xpe_preprocess_init / xpe_preprocess_shutdown lifecycle works.</summary>
+clients/ImageProcTest.IntegrationTests/P1AReady/PreprocessHandshakeTests.cs:57:            Assert.True(NativeLibrary.TryGetExport(handle, "xpe_preprocess_init", out var initSym));
+clients/ImageProcTest.IntegrationTests/PInvoke/XpePreprocessNative.cs:70:        "xpe_preprocess_init",
+   hits: 18
+== xpe_nonlinearity_correct (call sites, extern declarations excluded)
+gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:143:            var nonlinearityCode = XpePreprocessNative.xpe_nonlinearity_correct(ref offsetOut, null);
+gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:146:                return new PreprocessRunResult(false, $"xpe_nonlinearity_correct failed ({nonlinearityCode}).", null);
+clients/ImageProcTest.IntegrationTests/Functional/NonlinearityLutCallSiteTests.cs:69:        var match = Regex.Match(text, @"xpe_nonlinearity_correct\(\s*ref\s+\w+\s*,\s*(\w+)\s*\)");
+clients/ImageProcTest.IntegrationTests/Functional/NonlinearityLutCallSiteTests.cs:71:        Assert.True(match.Success, "GuiPreprocessRunner no longer calls xpe_nonlinearity_correct.");
+clients/ImageProcTest.IntegrationTests/P1AReady/NonlinearityStageWiringTests.cs:60:                var correct = GetDelegate<NonlinearityDelegate>(handle, "xpe_nonlinearity_correct");
+clients/ImageProcTest.IntegrationTests/P1AReady/NonlinearityStageWiringTests.cs:123:                var correct = GetDelegate<NonlinearityDelegate>(handle, "xpe_nonlinearity_correct");
+clients/ImageProcTest.IntegrationTests/P1AReady/NonlinearityStageWiringTests.cs:172:        var nonlinearity = source.IndexOf("xpe_nonlinearity_correct(ref offsetOut", StringComparison.Ordinal);
+clients/ImageProcTest.IntegrationTests/P1AReady/NonlinearityStageWiringTests.cs:177:            "GuiPreprocessRunner does not call xpe_nonlinearity_correct, so the gui skips the module's " +
+   hits: 8
+== xpe_ghost_create (call sites, extern declarations excluded)
+   hits: 0
+== xpe_preprocess_pipeline (call sites, extern declarations excluded)
+   hits: 0
+== xpe_calib_generate_offset (call sites, extern declarations excluded)
+clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:22:            "xpe_calib_generate_offset",
+clients/ImageProcTest.E2ETests/Fixtures/NativeProvenance.cs:13:/// <c>xpe_preprocess.dll</c> predated the six-argument <c>xpe_calib_generate_offset</c> it was
+clients/ImageProcTest.IntegrationTests/Functional/PreprocessDelegateArityGuardTests.cs:15:/// GUI-C-39 was opened for exactly that on <c>xpe_calib_generate_offset</c>, and QA-A-29 had already
+clients/ImageProcTest.IntegrationTests/Functional/PreprocessDelegateArityGuardTests.cs:37:        ["CalibGenerateOffsetDelegate", "xpe_calib_generate_offset"],
+clients/ImageProcTest.IntegrationTests/P1AReady/PreprocessCorrectionChainSmokeTests.cs:18:/// xpe_calib_generate_offset / xpe_calib_generate_gain into a temp directory. The repo's
+clients/ImageProcTest.IntegrationTests/P1AReady/PreprocessCorrectionChainSmokeTests.cs:204:        var generateOffset = GetDelegate<XpePreprocessNative.CalibGenerateOffsetDelegate>(handle, "xpe_calib_generate_o
+clients/ImageProcTest.IntegrationTests/PInvoke/XpePreprocessNative.cs:37:    /// xpe_calib_generate_offset(dark_frames[], num_frames, integration_ms, temperature_c,
+clients/ImageProcTest.IntegrationTests/PInvoke/XpePreprocessNative.cs:78:        "xpe_calib_generate_offset",
+   hits: 8
+== xpe_calib_load_gain (call sites, extern declarations excluded)
+gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs:72:                         (gain, XpePreprocessNative.xpe_calib_load_gain, "gain"),
+clients/ImageProcTest/Diagnostics/XpePreprocessReadinessProbe.cs:17:            "xpe_calib_load_gain",
+clients/ImageProcTest.IntegrationTests/Functional/NonlinearityLutCallSiteTests.cs:42:        var gain = Count(text, "xpe_calib_load_gain");
+clients/ImageProcTest.IntegrationTests/P1AReady/CalibrationCheckExpirySmokeTests.cs:30:    /// <summary>REQ-GUI-IT-062: xpe_calib_load_gain with non-existent path returns IO_FAILED.</summary>
+clients/ImageProcTest.IntegrationTests/P1AReady/CalibrationCheckExpirySmokeTests.cs:36:        RunCalibLoadTest("xpe_calib_load_gain");
+clients/ImageProcTest.IntegrationTests/P1AReady/GainPolyClampAlertTests.cs:223:            var loadGain = GetDelegate<XpePreprocessNative.CalibLoadDelegate>(handle, "xpe_calib_load_gain");
+clients/ImageProcTest.IntegrationTests/P1AReady/PreprocessCorrectionChainSmokeTests.cs:207:        var loadGain = GetDelegate<XpePreprocessNative.CalibLoadDelegate>(handle, "xpe_calib_load_gain");
+clients/ImageProcTest.IntegrationTests/PInvoke/XpePreprocessNative.cs:76:        "xpe_calib_load_gain",
+   hits: 8
+== xpe_calib_load_nonlin_lut (call sites, extern declarations excluded)
+clients/ImageProcTest.IntegrationTests/Functional/NonlinearityLutCallSiteTests.cs:51:        var load = Count(text, "xpe_calib_load_nonlin_lut");
+   hits: 1
+
+== JSON object literals passed as a configuration text (a string starting with {" next to a panel./bypass/tier key)
+clients/ImageProcTest.IntegrationTests/P1AReady/NonlinearityStageWiringTests.cs:139:                    var code = correct(ref image, "{\"panel.linear\":\"false\"}");

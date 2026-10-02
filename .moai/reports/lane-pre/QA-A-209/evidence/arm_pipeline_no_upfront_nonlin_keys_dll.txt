@@ -1,0 +1,207 @@
+Note: Google Test filter = ConfigStrictParse.*
+[==========] Running 24 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 24 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+[       OK ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[       OK ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (3 ms)
+[ RUN      ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+[       OK ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+[       OK ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable (1 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore (38 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore (12 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule
+[       OK ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule (1 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+[       OK ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly (72 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead
+[       OK ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead (128 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte
+[       OK ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte (88 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted
+[       OK ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted (74 ms)
+[ RUN      ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead
+[       OK ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead (0 ms)
+[ RUN      ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.linear: given twice at the top level (two neutral values)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.linear":"false","panel.linear":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.linear: given twice at the top level (effect, then neutral)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.linear":"true","panel.linear":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.linear: given twice at the top level, a nested one between  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.linear":"false","nested":{"panel.linear":"true"},"panel.linear":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.nonlinearity_mode: given twice at the top level (two neutral values)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlinearity_mode":"false","panel.nonlinearity_mode":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.nonlinearity_mode: given twice at the top level (effect, then neutral)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlinearity_mode":"true","panel.nonlinearity_mode":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.nonlinearity_mode: given twice at the top level, a nested one between  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlinearity_mode":"false","nested":{"panel.nonlinearity_mode":"true"},"panel.nonlinearity_mode":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.target_platform: given twice at the top level (two neutral values)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.target_platform":"false","panel.target_platform":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.target_platform: given twice at the top level (effect, then neutral)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.target_platform":"true","panel.target_platform":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.target_platform: given twice at the top level, a nested one between  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.target_platform":"false","nested":{"panel.target_platform":"true"},"panel.target_platform":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.nonlin_poly_c0: given twice at the top level (two neutral values)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlin_poly_c0":"false","panel.nonlin_poly_c0":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.nonlin_poly_c0: given twice at the top level (effect, then neutral)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlin_poly_c0":"true","panel.nonlin_poly_c0":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.nonlin_poly_c0: given twice at the top level, a nested one between  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlin_poly_c0":"false","nested":{"panel.nonlin_poly_c0":"true"},"panel.nonlin_poly_c0":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.nonlin_poly_c4: given twice at the top level (two neutral values)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlin_poly_c4":"false","panel.nonlin_poly_c4":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.nonlin_poly_c4: given twice at the top level (effect, then neutral)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlin_poly_c4":"true","panel.nonlin_poly_c4":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.nonlin_poly_c4: given twice at the top level, a nested one between  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.nonlin_poly_c4":"false","nested":{"panel.nonlin_poly_c4":"true"},"panel.nonlin_poly_c4":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.adc_max: given twice at the top level (two neutral values)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.adc_max":"false","panel.adc_max":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.adc_max: given twice at the top level (effect, then neutral)  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.adc_max":"true","panel.adc_max":"false"}
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(944): error: Expected equality of these values:
+  -4
+  o.rc
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(929): pipeline panel.adc_max: given twice at the top level, a nested one between  {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,"bypassDefect":true,"bypassGhost":true,"panel.adc_max":"false","nested":{"panel.adc_max":"true"},"panel.adc_max":"false"}
+
+[  FAILED  ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject (2 ms)
+[ RUN      ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1056): error: Expected equality of these values:
+  -4
+  rc
+    Which is: -8
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1057): error: Value of: offsetLoaded()
+  Actual: true
+Expected: false
+a refused configuration must not have loaded the calibration files
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1062): error: Expected equality of these values:
+  -4
+  rc
+    Which is: -8
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_config_strict_parse.cpp(1063): error: Value of: offsetLoaded()
+  Actual: true
+Expected: false
+
+[  FAILED  ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage (3 ms)
+[ RUN      ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject (0 ms)
+[ RUN      ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject (1 ms)
+[ RUN      ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject (18 ms)
+[ RUN      ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys
+[       OK ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys (36 ms)
+[ RUN      ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys
+[       OK ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys (142 ms)
+[ RUN      ] ConfigStrictParse.ANullConfigPointerStillMeansTheDefaults
+[       OK ] ConfigStrictParse.ANullConfigPointerStillMeansTheDefaults (0 ms)
+[----------] 24 tests from ConfigStrictParse (629 ms total)
+
+[----------] Global test environment tear-down
+[==========] 24 tests from 1 test suite ran. (629 ms total)
+[  PASSED  ] 22 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject
+[  FAILED  ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage
+
+ 2 FAILED TESTS

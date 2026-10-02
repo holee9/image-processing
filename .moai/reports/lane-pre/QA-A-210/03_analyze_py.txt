@@ -1,0 +1,208 @@
+"""QA-A-210: an independent recomputation of the gain-polynomial generator's fit and R^2 for one input.
+
+Reads the four per-dose gain maps and the generated gain_poly.xcal that xpe_calib_fixture_gen wrote
+(--width 32 --height 32 --seed 7 --gain-poly: doses 8000/12000/16000/20000, max degree 2), then
+  (A) evaluates the coefficients the generator STORED, with the generator's own R^2 formula, in exact
+      rational arithmetic            -> must reproduce the file's fit_r_squared if the formula is what it says
+  (B) fits every pixel by exact (rational) least squares, degree 2 and degree 1, with intercept
+  (C) simulates the generator's policy (degree 2 -> degree 1 -> endpoint line, monotone-increasing check)
+      with exact fits
+  (D) classifies each pixel by the path the generator actually took (from its stored coefficients)
+Only the Python standard library; no numpy.
+"""
+import json, math, struct, sys
+from fractions import Fraction
+
+D = sys.argv[1]
+HDR = 152
+DOSES = [20000.0 * (0.40 + 0.20 * lv) for lv in range(4)]
+
+
+def read_xcal(path):
+    b = open(path, 'rb').read()
+    magic, ver, typ, fmt, w, h = struct.unpack_from('<4sIIIII', b, 0)
+    cfg_len, pay_len = struct.unpack_from('<QQ', b, 104)
+    cfg = b[HDR:HDR + cfg_len].decode('utf-8')
+    pay = b[HDR + cfg_len:HDR + cfg_len + pay_len]
+    return typ, w, h, cfg, pay
+
+
+maps = []
+for lv in range(4):
+    typ, w, h, cfg, pay = read_xcal(f'{D}/_scratch_gainmap_lv{lv}.xcal')
+    n = w * h
+    maps.append(struct.unpack(f'<{n}f', pay))
+N = w * h
+typ, pw, ph, cfg, pay = read_xcal(f'{D}/gain_poly.xcal')
+cfgj = json.loads(cfg)
+stride = len(pay) // 4 // N
+coef = struct.unpack(f'<{N * stride}f', pay)
+print(f'maps: {len(maps)} levels, {w}x{h}={N} pixels; polynomial file type={typ} stride={stride}; doses={DOSES}')
+print('generator config:', {k: cfgj[k] for k in ('polynomial_degree', 'fit_r_squared', 'max_residual_pct', 'mean_residual_pct', 'calibration_pass', 'dose_min', 'dose_max') if k in cfgj})
+print('gain-map statistics: per level mean = %s' % ['%.6f' % (sum(m) / N) for m in maps])
+print('  per-pixel across-level spread (max-min): mean %.3e, max %.3e' % (
+    sum(max(m[p] for m in maps) - min(m[p] for m in maps) for p in range(N)) / N,
+    max(max(m[p] for m in maps) - min(m[p] for m in maps) for p in range(N))))
+
+
+def exact_ls(xs, ys, deg):
+    """exact least squares with intercept, Fractions; None when singular"""
+    xs = [Fraction(x) for x in xs]
+    ys = [Fraction(y) for y in ys]
+    m = deg + 1
+    a = [[sum(x ** (j + k) for x in xs) for k in range(m)] + [sum((x ** j) * y for x, y in zip(xs, ys))] for j in range(m)]
+    for c in range(m):
+        piv = next((r for r in range(c, m) if a[r][c] != 0), None)
+        if piv is None:
+            return None
+        a[c], a[piv] = a[piv], a[c]
+        for r in range(m):
+            if r != c and a[r][c] != 0:
+                f = a[r][c] / a[c][c]
+                a[r] = [u - f * v for u, v in zip(a[r], a[c])]
+    return [a[i][m] / a[i][i] for i in range(m)]
+
+
+def horner(c, x):
+    p = Fraction(0)
+    for cj in reversed(c):
+        p = p * Fraction(x) + Fraction(cj)
+    return p
+
+
+def monotone_up(cf, deg, xmin, xmax, ns=100):
+    """the generator's check, in doubles: sample ns points, y must never decrease"""
+    dx = (xmax - xmin) / (ns - 1)
+    prev = None
+    for i in range(ns):
+        x = xmin + i * dx
+        y = cf[0]
+        xp = x
+        for j in range(1, deg + 1):
+            y += cf[j] * xp
+            xp *= x
+        if prev is not None and y < prev:
+            return False
+        prev = y
+    return True
+
+
+def pooled(preds_by_pixel):
+    ssr = Fraction(0)
+    sst = Fraction(0)
+    for p in range(N):
+        ys = [Fraction(maps[lv][p]) for lv in range(4)]
+        mean = sum(ys) / 4
+        for lv in range(4):
+            r = ys[lv] - preds_by_pixel[p][lv]
+            ssr += r * r
+            sst += (ys[lv] - mean) ** 2
+    return ssr, sst
+
+
+xmin, xmax = DOSES[0], DOSES[-1]
+stored_pred, ls2_pred, ls1_pred, policy_pred = [], [], [], []
+paths = {'deg2': 0, 'deg1': 0, 'endpoint': 0}
+sim_paths = {'deg2': 0, 'deg1': 0, 'endpoint': 0}
+agree = 0
+coef_gap = []
+neg_pixel_r2 = 0
+for p in range(N):
+    ys = [maps[lv][p] for lv in range(4)]
+    cf = [coef[p * stride + j] for j in range(stride)]
+    # (D) the generator's path, from what it stored
+    ep_slope = (ys[-1] - ys[0]) / (DOSES[-1] - DOSES[0])
+    if cf[2] != 0.0:
+        path = 'deg2'
+    elif cf[0] == ys[0] and abs(cf[1] - ep_slope) <= 1e-9 * max(1.0, abs(ep_slope)) + 1e-18:
+        path = 'endpoint'
+    else:
+        path = 'deg1'
+    paths[path] += 1
+    stored_pred.append([horner(cf, x) for x in DOSES])
+    # (B)
+    e2 = exact_ls(DOSES, ys, 2)
+    e1 = exact_ls(DOSES, ys, 1)
+    ls2_pred.append([horner(e2, x) for x in DOSES])
+    ls1_pred.append([horner(e1, x) for x in DOSES])
+    # (C) policy with exact fits
+    f2 = [float(v) for v in e2]
+    f1 = [float(v) for v in e1]
+    if monotone_up(f2, 2, xmin, xmax):
+        sp, pc = 'deg2', e2
+    elif monotone_up(f1, 1, xmin, xmax):
+        sp, pc = 'deg1', e1
+    else:
+        sp, pc = 'endpoint', [Fraction(ys[0]), (Fraction(ys[-1]) - Fraction(ys[0])) / (Fraction(DOSES[-1]) - Fraction(DOSES[0]))]
+    sim_paths[sp] += 1
+    agree += (sp == path)
+    policy_pred.append([horner(pc, x) for x in DOSES])
+    if path == 'deg2':
+        coef_gap.append(max(abs(float(e2[j]) - cf[j]) / (abs(float(e2[j])) + 1e-30) for j in range(3)))
+    # per-pixel R^2 of the stored fit
+    ymean = sum(Fraction(v) for v in ys) / 4
+    sst_p = sum((Fraction(v) - ymean) ** 2 for v in ys)
+    ssr_p = sum((Fraction(ys[i]) - stored_pred[-1][i]) ** 2 for i in range(4))
+    if sst_p > 0 and ssr_p > sst_p:
+        neg_pixel_r2 += 1
+
+
+def r2(pred):
+    ssr, sst = pooled(pred)
+    return float(1 - ssr / sst), float(ssr), float(sst)
+
+print()
+print('(D) path the generator took, read from its stored coefficients: %s' % paths)
+print('(C) path an exact-arithmetic run of the same policy takes:       %s   (same path for %d / %d pixels)' % (sim_paths, agree, N))
+for name, pred in (('(A) generator-stored coefficients, exact evaluation', stored_pred),
+                   ('(B) exact least squares, degree 2, no monotone check', ls2_pred),
+                   ('(B) exact least squares, degree 1, no monotone check', ls1_pred),
+                   ('(C) policy simulated with exact fits', policy_pred)):
+    v, ssr, sst = r2(pred)
+    print('%-58s R2 = %+.9f   (SS_res = %.6e, SS_tot = %.6e)' % (name, v, ssr, sst))
+print('file fit_r_squared (what the generator wrote): %+.9f' % cfgj['fit_r_squared'])
+print('pixels whose OWN stored fit is worse than their mean (SS_res > SS_tot): %d / %d' % (neg_pixel_r2, N))
+if coef_gap:
+    coef_gap.sort()
+    print('deg-2 pixels: relative gap between the generator coefficients and exact least squares: median %.3e, max %.3e' % (coef_gap[len(coef_gap) // 2], coef_gap[-1]))
+
+
+# ---- (E) what the endpoint fallback is, and what other policies would give on the same input ------------------
+def monotone_any(cf, deg, xmin, xmax, ns=100):
+    return monotone_up(cf, deg, xmin, xmax, ns) or monotone_up([-v for v in cf], deg, xmin, xmax, ns)
+
+ep_pixels = [p for p in range(N) if sim_paths and True]  # placeholder, replaced below
+ep_idx, ls1_neg, ep_neg, ep_pos = [], 0, 0, 0
+pol_any_pred, ls1_always_pred = [], []
+any_paths = {'deg2': 0, 'deg1': 0}
+for p in range(N):
+    ys = [maps[lv][p] for lv in range(4)]
+    cf = [coef[p * stride + j] for j in range(stride)]
+    ep_slope = (ys[-1] - ys[0]) / (DOSES[-1] - DOSES[0])
+    e2 = exact_ls(DOSES, ys, 2)
+    e1 = exact_ls(DOSES, ys, 1)
+    f2 = [float(v) for v in e2]
+    f1 = [float(v) for v in e1]
+    took_endpoint = (cf[2] == 0.0 and cf[0] == ys[0] and abs(cf[1] - ep_slope) <= 1e-9 * max(1.0, abs(ep_slope)) + 1e-18)
+    if took_endpoint:
+        ep_idx.append(p)
+        if f1[1] < 0:
+            ls1_neg += 1
+        if ep_slope < 0:
+            ep_neg += 1
+        else:
+            ep_pos += 1
+    # alternative policy: a polynomial that is monotone in EITHER direction is acceptable (the SRS says "monotone")
+    if monotone_any(f2, 2, xmin, xmax):
+        any_paths['deg2'] += 1
+        pol_any_pred.append([horner(e2, x) for x in DOSES])
+    else:
+        any_paths['deg1'] += 1                      # a degree-1 fit is monotone in one direction or the other, always
+        pol_any_pred.append([horner(e1, x) for x in DOSES])
+print()
+print('(E) the %d endpoint-fallback pixels: their degree-1 least-squares slope is negative for %d of them;' % (len(ep_idx), ls1_neg))
+print('    the endpoint line the generator stored instead has slope < 0 for %d and >= 0 for %d of them' % (ep_neg, ep_pos))
+print('    (the generator\'s monotone check demands NON-DECREASING: %d of the stored endpoint lines would themselves fail it)' % ep_neg)
+v, ssr, sst = r2(pol_any_pred)
+print('    alternative policy "monotone in either direction, else degree-1 least squares":  R2 = %+.9f   paths %s' % (v, any_paths))
+print('    alternative policy "degree-1 least squares for every pixel":                      R2 = %+.9f' % r2(ls1_pred)[0])

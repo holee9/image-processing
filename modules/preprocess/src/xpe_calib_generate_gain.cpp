@@ -16,8 +16,8 @@
  * Algorithm (FUNC-027):
  *   1. Load N gain maps from FUNC-026 output files
  *   2. For each pixel: fit polynomial G(x,y,E) = c0 + c1*E + c2*E² + ...
- *   3. Validate monotonicity in [E_min, E_max]
- *   4. If non-monotone: reduce degree, refit (min degree = 1)
+ *   3. Validate monotonicity in [E_min, E_max] (non-decreasing OR non-increasing -- QA-A-210c)
+ *   4. If non-monotone: reduce degree, refit; degree 1 is the least-squares line and always passes (min degree = 1)
  *   5. Store coefficient array: (d+1) × W × H
  *   6. Write via xcal_writer (XCAL_TYPE_GAIN_POLY format)
  *
@@ -130,14 +130,18 @@ static XpeErrorCode fit_polynomial_ls(
 }
 
 /**
- * @brief Validate monotonicity of polynomial in [x_min, x_max]
+ * @brief Validate monotonicity of polynomial in [x_min, x_max], in EITHER direction
+ *
+ * QA-A-210c (#233): non-decreasing OR non-increasing. SRS-CALIB-FUNC-027 says "monotone", not "increasing"; requiring
+ * non-decreasing sent half of the pixels of real calibration data (cyan_test, QA-A-210b) to a worse-than-mean model,
+ * because their least-squares slope is a small negative number of the size of the level-to-level scatter.
  *
  * @param coeffs Coefficient array, size (degree+1)
  * @param degree Polynomial degree
  * @param x_min Lower bound of interval
  * @param x_max Upper bound of interval
  * @param num_samples Number of samples to check (default: 100)
- * @return true if monotone increasing, false otherwise
+ * @return true if the sampled curve is non-decreasing or non-increasing, false otherwise
  */
 static bool validate_monotonicity(
     const double* coeffs,
@@ -153,6 +157,8 @@ static bool validate_monotonicity(
     double dx = (x_max - x_min) / (num_samples - 1);
     double prev_y = 0.0;
     bool first = true;
+    bool can_rise = true;    // no sample has been below its predecessor
+    bool can_fall = true;    // no sample has been above its predecessor
 
     for (int32_t i = 0; i < num_samples; ++i) {
         double x = x_min + i * dx;
@@ -163,8 +169,12 @@ static bool validate_monotonicity(
             x_pow *= x;
         }
 
-        if (!first && y < prev_y) {
-            return false; // Not monotonic increasing
+        if (!first) {
+            if (y < prev_y) can_rise = false;
+            if (y > prev_y) can_fall = false;
+            if (!can_rise && !can_fall) {
+                return false; // up and down: not monotone
+            }
         }
         prev_y = y;
         first = false;
@@ -542,11 +552,13 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(
             }
 
             if (!fit_success) {
-                // Fallback: linear fit through first and last points
-                coeffs[0] = y_vals[0];
-                coeffs[1] = (y_vals[sNumLevels - size_t{1}] - y_vals[0]) /
-                           (dose_levels[num_levels - 1] - dose_levels[0]);
-                final_degree = 1;
+                // Degree 1 is the last stop and always passes validate_monotonicity (a straight line is monotone
+                // whichever way it points), so this is reached only when the least-squares system itself cannot be
+                // solved -- doses so close together that the normal equations are singular. QA-A-210c (#233): the
+                // straight line through the first and last measurement that used to stand here is gone; it was not
+                // a least-squares solution, so a pixel on it could score worse than its own mean (R^2 < 0), and on
+                // real data half the pixels were on it.
+                return XPE_ERR_PROCESSING_FAILED;
             }
 
             // FUNC-033 (1): score this pixel's fit before storing it.

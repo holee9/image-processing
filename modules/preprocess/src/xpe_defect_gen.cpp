@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <new>
 #include <cmath>
 #include <limits>
 
@@ -121,7 +122,7 @@ XpeErrorCode compute_frame_mean(const XpeImageBuffer* frames,
                                 uint32_t num_frames,
                                 uint32_t width,
                                 uint32_t height,
-                                std::vector<float>& mean_out) noexcept {
+                                std::vector<float>& mean_out) {
     const size_t num_pixels = static_cast<size_t>(width) * static_cast<size_t>(height);
     mean_out.resize(num_pixels, 0.0f);
 
@@ -165,7 +166,7 @@ void extract_window_reflect(const float* image,
                             uint32_t width, uint32_t height,
                             uint32_t cx, uint32_t cy,
                             uint32_t mask_size,
-                            std::vector<float>& window_out) noexcept {
+                            std::vector<float>& window_out) {
     const int half_size = static_cast<int>(mask_size / 2u);
     const int actual_size = 2 * half_size + 1;
     window_out.resize(static_cast<size_t>(actual_size) * static_cast<size_t>(actual_size));
@@ -247,7 +248,7 @@ float compute_median(std::vector<float>& values) noexcept {
 XpeErrorCode generate_dark_bpm(const float* dark_mean,
                                uint32_t width, uint32_t height,
                                const XpeBpmConfig& config,
-                               std::vector<uint8_t>& dark_bpm_out) noexcept {
+                               std::vector<uint8_t>& dark_bpm_out) {
     const size_t num_pixels = static_cast<size_t>(width) * static_cast<size_t>(height);
     dark_bpm_out.resize(num_pixels, BPM_PIXEL_GOOD);
 
@@ -311,7 +312,7 @@ XpeErrorCode generate_dark_bpm(const float* dark_mean,
 XpeErrorCode generate_bright_bpm(const float* bright_mean,
                                  uint32_t width, uint32_t height,
                                  const XpeBpmConfig& config,
-                                 std::vector<uint8_t>& bright_bpm_out) noexcept {
+                                 std::vector<uint8_t>& bright_bpm_out) {
     const size_t num_pixels = static_cast<size_t>(width) * static_cast<size_t>(height);
     bright_bpm_out.resize(num_pixels, BPM_PIXEL_GOOD);
 
@@ -360,7 +361,7 @@ XpeErrorCode generate_bright_bpm(const float* bright_mean,
  */
 void merge_bpm(const std::vector<uint8_t>& dark_bpm,
                const std::vector<uint8_t>& bright_bpm,
-               std::vector<uint8_t>& bpm_out) noexcept {
+               std::vector<uint8_t>& bpm_out) {
     const size_t num_pixels = dark_bpm.size();
     bpm_out.resize(num_pixels);
 
@@ -400,7 +401,7 @@ void merge_bpm(const std::vector<uint8_t>& dark_bpm,
  *         XPE_ERR_INVALID_INPUT on NULL pointers or invalid parameters
  *         XPE_ERR_BUFFER_TOO_SMALL if output buffer too small
  */
-extern "C" XPE_API XpeErrorCode xpe_bpm_generate(
+static XpeErrorCode bpm_generate_impl(
     const XpeImageBuffer* dark_frames,
     uint32_t num_dark,
     const XpeImageBuffer* bright_frames,
@@ -500,4 +501,24 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_generate(
     std::memcpy(bpm_out->data, merged_bpm.data(), num_pixels);
 
     return XPE_OK;
+}
+
+/* Exception boundary (QA-A-204): the five working-vector helpers above were noexcept, so an allocation failure was
+ * std::terminate; they now propagate and this guard maps it. `bpm_out` is written by the last statement of the
+ * implementation only, so a failed call leaves it exactly as the caller gave it. */
+extern "C" XPE_API XpeErrorCode xpe_bpm_generate(
+    const XpeImageBuffer* dark_frames,
+    uint32_t num_dark,
+    const XpeImageBuffer* bright_frames,
+    uint32_t num_bright,
+    const XpeBpmConfig* cfg,
+    XpeImageBuffer* bpm_out)
+{
+    try {
+        return bpm_generate_impl(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out);
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
 }

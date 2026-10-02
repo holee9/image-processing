@@ -1,0 +1,99 @@
+Note: Google Test filter = ConfigStrictParse.*:XCalCompression*:*XpePreprocessInit*:PreprocessInit*
+[==========] Running 42 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 7 tests from XCalCompressionTest
+[ RUN      ] XCalCompressionTest.WriteCompressed_ReadBack_BitIdentical
+[       OK ] XCalCompressionTest.WriteCompressed_ReadBack_BitIdentical (15 ms)
+[ RUN      ] XCalCompressionTest.CompressedFile_SmallerThanUncompressed
+[       OK ] XCalCompressionTest.CompressedFile_SmallerThanUncompressed (5 ms)
+[ RUN      ] XCalCompressionTest.CompressedWithCallerConfig_MetadataMerged
+[       OK ] XCalCompressionTest.CompressedWithCallerConfig_MetadataMerged (1 ms)
+[ RUN      ] XCalCompressionTest.Compressed_TypeMismatch_ConfigInvalid
+[       OK ] XCalCompressionTest.Compressed_TypeMismatch_ConfigInvalid (1 ms)
+[ RUN      ] XCalCompressionTest.UncompressedDefect_StillReadsCorrectly
+[       OK ] XCalCompressionTest.UncompressedDefect_StillReadsCorrectly (13 ms)
+[ RUN      ] XCalCompressionTest.CompressOffsetType_PayloadNotCompressed
+[       OK ] XCalCompressionTest.CompressOffsetType_PayloadNotCompressed (17 ms)
+[ RUN      ] XCalCompressionTest.WorstCaseInput_FallbackToUncompressed
+[       OK ] XCalCompressionTest.WorstCaseInput_FallbackToUncompressed (6 ms)
+[----------] 7 tests from XCalCompressionTest (61 ms total)
+
+[----------] 7 tests from XCalCompressionMetaTest
+[ RUN      ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed
+[       OK ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed (8 ms)
+[ RUN      ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither
+[       OK ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither (8 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem
+[       OK ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem (2 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused
+[       OK ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused (3 ms)
+[ RUN      ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused
+[       OK ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused (8 ms)
+[ RUN      ] XCalCompressionMetaTest.HalfAPairIsRefusedEvenWhenTheRestOfTheFileIsValid
+[       OK ] XCalCompressionMetaTest.HalfAPairIsRefusedEvenWhenTheRestOfTheFileIsValid (2 ms)
+[ RUN      ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo
+[       OK ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo (4 ms)
+[----------] 7 tests from XCalCompressionMetaTest (38 ms total)
+
+[----------] 28 tests from ConfigStrictParse
+[ RUN      ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing
+[       OK ] ConfigStrictParse.PipelineExRefusesAMalformedNumberAndChangesNothing (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.PipelineExAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration
+[       OK ] ConfigStrictParse.PipelineWithAMalformedConfigLoadsNoCalibration (2 ms)
+[ RUN      ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched
+[       OK ] ConfigStrictParse.PipelineBatchRefusesAMalformedNumberAndLeavesEveryImageUntouched (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+[       OK ] ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle (0 ms)
+[ RUN      ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+[       OK ] ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable
+[       OK ] ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable (0 ms)
+[ RUN      ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AMalformedQualityFieldInAGainFileRefusesTheLoadAndLeavesTheStore (33 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore
+[       OK ] ConfigStrictParse.AQualityFieldThatIsPresentButEmptyOrNotAScalarRefusesTheLoadAndLeavesTheStore (11 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule
+[       OK ] ConfigStrictParse.AQualityFieldThatIsAbsentIsStillNotGivenAndThePipelineConfigKeepsItsEmptyValueRule (1 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly
+[       OK ] ConfigStrictParse.AQualityFieldIsTakenFromTheTopLevelOfTheConfigOnly (68 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead
+[       OK ] ConfigStrictParse.AQualityConfigMustBeOneValidJsonObjectAndItsKeysAreComparedAfterTheEscapesAreRead (93 ms)
+[ RUN      ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte
+[       OK ] ConfigStrictParse.AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulByte (70 ms)
+[ RUN      ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted
+[       OK ] ConfigStrictParse.AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted (62 ms)
+[ RUN      ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead
+[       OK ] ConfigStrictParse.WellFormedQualityFieldsInAGainFileAreStillRead (0 ms)
+[ RUN      ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject (0 ms)
+[ RUN      ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage
+[       OK ] ConfigStrictParse.ThePipelineWithARefusedTopLevelConfigLoadsNoCalibrationAndTheBatchLeavesEveryImage (1 ms)
+[ RUN      ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject (0 ms)
+[ RUN      ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject (0 ms)
+[ RUN      ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject
+[       OK ] ConfigStrictParse.TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject (14 ms)
+[ RUN      ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys
+[       OK ] ConfigStrictParse.TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys (38 ms)
+[ RUN      ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys
+[       OK ] ConfigStrictParse.TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys (149 ms)
+[ RUN      ] ConfigStrictParse.ABlankConfigTextSuppliedByTheCallerIsRefusedAndNullStillMeansTheDefaults
+[       OK ] ConfigStrictParse.ABlankConfigTextSuppliedByTheCallerIsRefusedAndNullStillMeansTheDefaults (0 ms)
+[ RUN      ] ConfigStrictParse.ABlankConfigBlockOfAFileIsRefusedButAnAbsentOneLoads
+[       OK ] ConfigStrictParse.ABlankConfigBlockOfAFileIsRefusedButAnAbsentOneLoads (18 ms)
+[ RUN      ] ConfigStrictParse.TheInitConfigFollowsTheSameRule
+[       OK ] ConfigStrictParse.TheInitConfigFollowsTheSameRule (0 ms)
+[ RUN      ] ConfigStrictParse.ANumberKeyThatIsNotAJsonNumberIsRefusedNotReadByStrtod
+[       OK ] ConfigStrictParse.ANumberKeyThatIsNotAJsonNumberIsRefusedNotReadByStrtod (0 ms)
+[ RUN      ] ConfigStrictParse.ANullConfigPointerStillMeansTheDefaults
+[       OK ] ConfigStrictParse.ANullConfigPointerStillMeansTheDefaults (0 ms)
+[----------] 28 tests from ConfigStrictParse (572 ms total)
+
+[----------] Global test environment tear-down
+[==========] 42 tests from 3 test suites ran. (673 ms total)
+[  PASSED  ] 42 tests.

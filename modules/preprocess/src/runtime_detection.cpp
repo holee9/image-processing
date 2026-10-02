@@ -13,6 +13,7 @@
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 #include <cstring>
 #include <vector>
+#include <new>
 #include <cstdlib>
 
 // JSON parsing is minimal for this implementation
@@ -39,8 +40,6 @@ static XpeErrorCode ValidateConfig(const RuntimeDetectionConfig& config) {
  * Public API Implementation
  * ========================================================================= */
 
-extern "C" {
-
 /**
  * @brief Detect transient defect pixels via Hampel 5-sigma outlier detection.
  *
@@ -64,9 +63,9 @@ extern "C" {
  * @note TPR >= 99.9% for synthetic defects (outliers > 5-sigma)
  * @note FPR < 0.001% for clean Gaussian noise images
  */
-XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* img,
-                                                const XpeImageMetadata* metadata,
-                                                XpeImageBuffer* defectMapOut) {
+static XpeErrorCode DetectRuntimeImpl(const XpeImageBuffer* img,
+                                      const XpeImageMetadata* metadata,
+                                      XpeImageBuffer* defectMapOut) {
     (void)metadata;
     // Validate input parameters
     if (img == nullptr) return XPE_ERR_INVALID_INPUT;
@@ -126,9 +125,6 @@ XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* img,
     XpeErrorCode err = ValidateConfig(config);
     if (err != XPE_OK) return err;
 
-    // Clear output defect map
-    std::memset(defectMapOut->data, 0, outputBytes);
-
     // Detect defective pixels
     uint8_t* defectMap = static_cast<uint8_t*>(defectMapOut->data);
 
@@ -142,6 +138,10 @@ XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* img,
     windowValues.reserve(64);
     deviations.reserve(64);
 
+    // Clear the output map only now: every allocation of the setup (tile sigmas, the two buffers) has succeeded, so
+    // a failed allocation above returns with the caller's map untouched (QA-A-204).
+    std::memset(defectMapOut->data, 0, outputBytes);
+
     // QA-A-65 (#144): one row loop, shared with DetectFrame's workers. It takes
     // the AVX2 path where that computes the same thing (3x3 window, interior
     // rows, runs of eight columns) and DetectDefectivePixel everywhere else.
@@ -154,4 +154,18 @@ XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* img,
     return XPE_OK;
 }
 
-} // extern "C"
+// Exception boundary (QA-A-204): building the frame configuration and the working buffers allocates; an allocation
+// failure is XPE_ERR_OUT_OF_MEMORY, never an exception out of a C ABI function. Kept outside any extern "C" block's
+// static helpers (the impl above is a plain C++ function).
+extern "C" XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* img,
+                                                          const XpeImageMetadata* metadata,
+                                                          XpeImageBuffer* defectMapOut) {
+    try {
+        return DetectRuntimeImpl(img, metadata, defectMapOut);
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+}
+

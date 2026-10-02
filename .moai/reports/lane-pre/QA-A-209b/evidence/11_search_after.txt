@@ -1,0 +1,23 @@
+src/ghost_correct.cpp:54:            XpeErrorCode rc = xpe_config_parse(configJsonOrNull, &doc);
+src/helpers.cpp:152:    const bool ok = nlohmann::json::sax_parse(text, end, &builder, nlohmann::json::input_format_t::json,
+src/helpers.cpp:184:    const double d = std::strtod(e->text.c_str(), &end);
+src/helpers.cpp:204:XpeErrorCode xpe_config_parse(const char* text, XpeConfigDoc* doc) {
+src/helpers.cpp:210:XpeErrorCode xpe_config_parse_block(const char* text, size_t len, XpeConfigDoc* doc) {
+src/nonlinearity_correct.cpp:56:    // QA-A-209: the keys are TOP-LEVEL numbers of the configuration, parsed once (xpe_config_parse): a bare JSON
+src/nonlinearity_correct.cpp:150:    const XpeErrorCode rc = xpe_config_parse(configJsonOrNull, &doc);
+src/pipeline.cpp:64:            XpeErrorCode rc = xpe_config_parse(configJson, &cfg.doc);
+src/preprocess.cpp:57:            auto parsed = nlohmann::json::parse(configJsonOrNull,
+src/xcal_reader.cpp:35:// The block is ONE valid JSON object (xpe_config_parse_block); the metadata is the pair of TOP-LEVEL keys
+src/xcal_reader.cpp:49:    const XpeErrorCode rc = xpe_config_parse_block(reinterpret_cast<const char*>(config_json), config_len, &doc);
+src/xcal_reader.cpp:52:    const XpeConfigEntry* method = doc.find("xcal_compression");
+src/xcal_reader.cpp:53:    const XpeConfigEntry* raw = doc.find("xcal_raw_payload_len");
+src/xpe_calib_generate_offset_methods.cpp:181:    // QA-A-209 / QA-A-209b: the text is parsed once into its top-level members (xpe_config_parse): one that is not one
+src/xpe_calib_generate_offset_methods.cpp:186:        const XpeErrorCode rc = ::xpe_config_parse(config_json, &doc);
+src/xpe_calib_load_gain.cpp:105:            const XpeErrorCode crc = xpe_config_parse_block(reinterpret_cast<const char*>(config_json.data()),
+src/xpe_calib_load_nonlin_lut.cpp:64:            const XpeErrorCode crc = xpe_config_parse_block(reinterpret_cast<const char*>(config_json.data()),
+src/xpe_calib_mode.cpp:344:    if (const XpeConfigEntry* r2 = doc.find(std::string("fit_r_squared"))) {
+include/xpe/preprocess/xpe_preprocess_internal.h:127: *   - xpe_config_parse: a text the caller supplies. NULL is "no configuration" (an empty document); a text that is
+include/xpe/preprocess/xpe_preprocess_internal.h:129: *   - xpe_config_parse_block: a block stored with its length (an XCal file's config). Length 0 is "no block" (an empty
+include/xpe/preprocess/xpe_preprocess_internal.h:148:XpeErrorCode xpe_config_parse(const char* text, XpeConfigDoc* doc);
+include/xpe/preprocess/xpe_preprocess_internal.h:149:XpeErrorCode xpe_config_parse_block(const char* text, size_t len, XpeConfigDoc* doc);
+include/xpe/preprocess/xpe_preprocess_internal.h:625: * @param config The file's config block, parsed once (xpe_config_parse_block): one valid JSON object, top-level keys.

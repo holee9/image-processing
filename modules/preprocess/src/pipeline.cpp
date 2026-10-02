@@ -40,11 +40,9 @@ namespace {
         bool bypassOffset{false};
         bool bypassNonlinearity{false};
 
-        // QA-A-111 (#186): the nonlinearity stage reads `panel.linear` from the
-        // caller's config, so the pointer travels with the parsed flags. It is
-        // borrowed, not owned -- the public entry points keep the caller's
-        // string alive for the whole pipeline_core() call.
-        const char* rawJson{nullptr};
+        // QA-A-111 (#186): the nonlinearity stage reads `panel.*` from the caller's config, so the parsed
+        // configuration travels with the flags (QA-A-209b: parsed once, here, for the whole call).
+        XpeConfigDoc doc;
         bool bypassGain{false};
         bool bypassBinning{false};
         bool bypassDefect{false};
@@ -57,47 +55,35 @@ namespace {
         // below is strict (the whole value, finite, in range -- xpe_strict_parse.hpp); a failure is
         // XPE_ERR_CONFIG_INVALID and `*out` is left as it was.
         static XpeErrorCode fromJson(const char* configJson, PipelineConfig* out) {
-            // set first so an early return still carries it
             PipelineConfig cfg;
-            cfg.rawJson = configJson;
-            if (!configJson) { *out = cfg; return XPE_OK; }
 
-            // Parse bypass flags
-            std::string bypassStr = xpe_json_get_string(configJson, "bypassReadout");
-            if (!bypassStr.empty() && bypassStr == "true") cfg.bypassReadout = true;
+            // QA-A-209 / QA-A-209b: the text is parsed ONCE into its top-level members. A text that is not one valid
+            // JSON object, or a member name given twice (any name -- including the nonlinearity stage's keys, which
+            // are read later, so a duplicate among them cannot fail the run half way), is XPE_ERR_CONFIG_INVALID; a
+            // name only inside a nested object is not given; NULL is every default; an empty text is a refusal.
+            XpeErrorCode rc = xpe_config_parse(configJson, &cfg.doc);
+            if (rc != XPE_OK) return rc;
 
-            bypassStr = xpe_json_get_string(configJson, "bypassTemp");
-            if (!bypassStr.empty() && bypassStr == "true") cfg.bypassTemp = true;
+            std::string v;
+            const struct { const char* key; bool* flag; } flags[] = {
+                {"bypassReadout", &cfg.bypassReadout},         {"bypassTemp", &cfg.bypassTemp},
+                {"bypassOffset", &cfg.bypassOffset},           {"bypassNonlinearity", &cfg.bypassNonlinearity},
+                {"bypassGain", &cfg.bypassGain},               {"bypassBinning", &cfg.bypassBinning},
+                {"bypassDefect", &cfg.bypassDefect},           {"bypassGhost", &cfg.bypassGhost},
+            };
+            for (const auto& f : flags) {
+                if (cfg.doc.getString(f.key, &v) && v == "true") *f.flag = true;
+            }
 
-            bypassStr = xpe_json_get_string(configJson, "bypassOffset");
-            if (!bypassStr.empty() && bypassStr == "true") cfg.bypassOffset = true;
-
-            bypassStr = xpe_json_get_string(configJson, "bypassNonlinearity");
-            if (!bypassStr.empty() && bypassStr == "true") cfg.bypassNonlinearity = true;
-
-            bypassStr = xpe_json_get_string(configJson, "bypassGain");
-            if (!bypassStr.empty() && bypassStr == "true") cfg.bypassGain = true;
-
-            bypassStr = xpe_json_get_string(configJson, "bypassBinning");
-            if (!bypassStr.empty() && bypassStr == "true") cfg.bypassBinning = true;
-
-            bypassStr = xpe_json_get_string(configJson, "bypassDefect");
-            if (!bypassStr.empty() && bypassStr == "true") cfg.bypassDefect = true;
-
-            bypassStr = xpe_json_get_string(configJson, "bypassGhost");
-            if (!bypassStr.empty() && bypassStr == "true") cfg.bypassGhost = true;
-
-            // Parse temperature
-            std::string tempStr = xpe_json_get_string(configJson, "detectorTempC");
-            if (!tempStr.empty() && !xpe_strict::parse_float(tempStr, &cfg.detectorTempC))
+            // Parse temperature (a string or a bare number; an empty value is not given)
+            if (cfg.doc.getString("detectorTempC", &v) && !v.empty() && !xpe_strict::parse_float(v, &cfg.detectorTempC))
                 return XPE_ERR_CONFIG_INVALID;
 
             // Parse binning mode
-            std::string binningStr = xpe_json_get_string(configJson, "binningMode");
-            if (!binningStr.empty() && !xpe_strict::parse_int(binningStr, &cfg.binningMode))
+            if (cfg.doc.getString("binningMode", &v) && !v.empty() && !xpe_strict::parse_int(v, &cfg.binningMode))
                 return XPE_ERR_CONFIG_INVALID;
 
-            *out = cfg;
+            *out = std::move(cfg);
             return XPE_OK;
         }
     };
@@ -254,7 +240,7 @@ namespace {
             // QA-A-111 (#186): the stage now reads the config -- `panel.linear`
             // decides whether the correction applies at all, and it used to be
             // dropped here by passing nullptr.
-            result = xpe_nonlinearity_apply(&stage3, cfg.rawJson, &applied);
+            result = xpe_nonlinearity_apply_doc(&stage3, cfg.doc, &applied);
             if (result != XPE_OK) return result;
 
             // Set only when pixels were corrected (#184).

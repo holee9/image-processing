@@ -1,0 +1,52 @@
+Note: Google Test filter = XCalCompression*
+[==========] Running 20 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 7 tests from XCalCompressionTest
+[ RUN      ] XCalCompressionTest.WriteCompressed_ReadBack_BitIdentical
+[       OK ] XCalCompressionTest.WriteCompressed_ReadBack_BitIdentical (13 ms)
+[ RUN      ] XCalCompressionTest.CompressedFile_SmallerThanUncompressed
+[       OK ] XCalCompressionTest.CompressedFile_SmallerThanUncompressed (6 ms)
+[ RUN      ] XCalCompressionTest.CompressedWithCallerConfig_MetadataMerged
+[       OK ] XCalCompressionTest.CompressedWithCallerConfig_MetadataMerged (1 ms)
+[ RUN      ] XCalCompressionTest.Compressed_TypeMismatch_ConfigInvalid
+[       OK ] XCalCompressionTest.Compressed_TypeMismatch_ConfigInvalid (1 ms)
+[ RUN      ] XCalCompressionTest.UncompressedDefect_StillReadsCorrectly
+[       OK ] XCalCompressionTest.UncompressedDefect_StillReadsCorrectly (7 ms)
+[ RUN      ] XCalCompressionTest.CompressOffsetType_PayloadNotCompressed
+[       OK ] XCalCompressionTest.CompressOffsetType_PayloadNotCompressed (6 ms)
+[ RUN      ] XCalCompressionTest.WorstCaseInput_FallbackToUncompressed
+[       OK ] XCalCompressionTest.WorstCaseInput_FallbackToUncompressed (6 ms)
+[----------] 7 tests from XCalCompressionTest (43 ms total)
+
+[----------] 13 tests from XCalCompressionMetaTest
+[ RUN      ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed
+[       OK ] XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed (6 ms)
+[ RUN      ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither
+[       OK ] XCalCompressionMetaTest.TheLoadersAreNotFooledEither (6 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem
+[       OK ] XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem (1 ms)
+[ RUN      ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused
+[       OK ] XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused (3 ms)
+[ RUN      ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused
+[       OK ] XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused (7 ms)
+[ RUN      ] XCalCompressionMetaTest.HalfAPairIsRefusedEvenWhenTheRestOfTheFileIsValid
+[       OK ] XCalCompressionMetaTest.HalfAPairIsRefusedEvenWhenTheRestOfTheFileIsValid (2 ms)
+[ RUN      ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo
+[       OK ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo (4 ms)
+[ RUN      ] XCalCompressionMetaTest.TheOldWritersTwoShapesAreReproducedExactlyByTheTestHelper
+[       OK ] XCalCompressionMetaTest.TheOldWritersTwoShapesAreReproducedExactlyByTheTestHelper (0 ms)
+[ RUN      ] XCalCompressionMetaTest.AFileInTheOldWritersShapeLoadsWithTheSameMapAndAWarning
+[       OK ] XCalCompressionMetaTest.AFileInTheOldWritersShapeLoadsWithTheSameMapAndAWarning (6 ms)
+[ RUN      ] XCalCompressionMetaTest.ABlockThatOnlyLooksLikeTheOldWritersShapeIsStillRefused
+[       OK ] XCalCompressionMetaTest.ABlockThatOnlyLooksLikeTheOldWritersShapeIsStillRefused (14 ms)
+[ RUN      ] XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck
+[       OK ] XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck (3 ms)
+[ RUN      ] XCalCompressionMetaTest.ThePairAloneWithADoubledBraceIsNotWhatTheOldWriterMade
+[       OK ] XCalCompressionMetaTest.ThePairAloneWithADoubledBraceIsNotWhatTheOldWriterMade (4 ms)
+[ RUN      ] XCalCompressionMetaTest.TheOldWritersShapesAreOnlyRepairedForAnRleCompressedDefectFile
+[       OK ] XCalCompressionMetaTest.TheOldWritersShapesAreOnlyRepairedForAnRleCompressedDefectFile (5 ms)
+[----------] 13 tests from XCalCompressionMetaTest (69 ms total)
+
+[----------] Global test environment tear-down
+[==========] 20 tests from 2 test suites ran. (112 ms total)
+[  PASSED  ] 20 tests.

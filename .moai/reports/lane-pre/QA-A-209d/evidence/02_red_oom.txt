@@ -1,0 +1,103 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomInjection.ALegacyFile*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from OomInjection
+[ RUN      ] OomInjection.ALegacyFileThatFailsToBuildItsWarningLeavesEveryOutputArgumentUntouched
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2461): error: Expected equality of these values:
+  -2
+  rc
+    Which is: -4
+allocation #51
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2462): error: Expected equality of these values:
+  0
+  std::memcmp(&outHdr, &sentinelHdr, sizeof(outHdr))
+    Which is: -1
+the header output was changed by a failed read (allocation #52)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2463): error: Expected equality of these values:
+  sentinelCfg
+    Which is: { '\x1' (1), '\x2' (2), '\x3' (3) }
+  outCfg
+    Which is: { '{' (123, 0x7B), '"' (34, 0x22), 'm' (109, 0x6D), 'o' (111, 0x6F), 'd' (100, 0x64), 'e' (101, 0x65), '"' (34, 0x22), ':' (58, 0x3A), '"' (34, 0x22), 'p' (112, 0x70), 'r' (114, 0x72), 'o' (111, 0x6F), 'd' (100, 0x64), 'u' (117, 0x75), 'c' (99, 0x63), 't' (116, 0x74), 'i' (105, 0x69), 'o' (111, 0x6F), 'n' (110, 0x6E), '"' (34, 0x22), ',' (44, 0x2C), '"' (34, 0x22), 'x' (120, 0x78), 'c' (99, 0x63), 'a' (97, 0x61), 'l' (108, 0x6C), '_' (95, 0x5F), 'c' (99, 0x63), 'o' (111, 0x6F), 'm' (109, 0x6D), 'p' (112, 0x70), 'r' (114, 0x72), ... }
+the config output was changed by a failed read (allocation #52)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2464): error: Expected equality of these values:
+  sentinelPay
+    Which is: { '\t' (9), '\t' (9) }
+  outPay
+    Which is: { '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', ... }
+the payload output was changed by a failed read (allocation #52)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2465): error: Expected equality of these values:
+  1u
+    Which is: 1
+  outDoc.entries.size()
+    Which is: 3
+the document output was changed by a failed read (allocation #52)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2462): error: Expected equality of these values:
+  0
+  std::memcmp(&outHdr, &sentinelHdr, sizeof(outHdr))
+    Which is: -1
+the header output was changed by a failed read (allocation #53)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2463): error: Expected equality of these values:
+  sentinelCfg
+    Which is: { '\x1' (1), '\x2' (2), '\x3' (3) }
+  outCfg
+    Which is: { '{' (123, 0x7B), '"' (34, 0x22), 'm' (109, 0x6D), 'o' (111, 0x6F), 'd' (100, 0x64), 'e' (101, 0x65), '"' (34, 0x22), ':' (58, 0x3A), '"' (34, 0x22), 'p' (112, 0x70), 'r' (114, 0x72), 'o' (111, 0x6F), 'd' (100, 0x64), 'u' (117, 0x75), 'c' (99, 0x63), 't' (116, 0x74), 'i' (105, 0x69), 'o' (111, 0x6F), 'n' (110, 0x6E), '"' (34, 0x22), ',' (44, 0x2C), '"' (34, 0x22), 'x' (120, 0x78), 'c' (99, 0x63), 'a' (97, 0x61), 'l' (108, 0x6C), '_' (95, 0x5F), 'c' (99, 0x63), 'o' (111, 0x6F), 'm' (109, 0x6D), 'p' (112, 0x70), 'r' (114, 0x72), ... }
+the config output was changed by a failed read (allocation #53)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2464): error: Expected equality of these values:
+  sentinelPay
+    Which is: { '\t' (9), '\t' (9) }
+  outPay
+    Which is: { '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', ... }
+the payload output was changed by a failed read (allocation #53)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2465): error: Expected equality of these values:
+  1u
+    Which is: 1
+  outDoc.entries.size()
+    Which is: 3
+the document output was changed by a failed read (allocation #53)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2462): error: Expected equality of these values:
+  0
+  std::memcmp(&outHdr, &sentinelHdr, sizeof(outHdr))
+    Which is: -1
+the header output was changed by a failed read (allocation #54)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2463): error: Expected equality of these values:
+  sentinelCfg
+    Which is: { '\x1' (1), '\x2' (2), '\x3' (3) }
+  outCfg
+    Which is: { '{' (123, 0x7B), '"' (34, 0x22), 'm' (109, 0x6D), 'o' (111, 0x6F), 'd' (100, 0x64), 'e' (101, 0x65), '"' (34, 0x22), ':' (58, 0x3A), '"' (34, 0x22), 'p' (112, 0x70), 'r' (114, 0x72), 'o' (111, 0x6F), 'd' (100, 0x64), 'u' (117, 0x75), 'c' (99, 0x63), 't' (116, 0x74), 'i' (105, 0x69), 'o' (111, 0x6F), 'n' (110, 0x6E), '"' (34, 0x22), ',' (44, 0x2C), '"' (34, 0x22), 'x' (120, 0x78), 'c' (99, 0x63), 'a' (97, 0x61), 'l' (108, 0x6C), '_' (95, 0x5F), 'c' (99, 0x63), 'o' (111, 0x6F), 'm' (109, 0x6D), 'p' (112, 0x70), 'r' (114, 0x72), ... }
+the config output was changed by a failed read (allocation #54)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2464): error: Expected equality of these values:
+  sentinelPay
+    Which is: { '\t' (9), '\t' (9) }
+  outPay
+    Which is: { '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', ... }
+the payload output was changed by a failed read (allocation #54)
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2465): error: Expected equality of these values:
+  1u
+    Which is: 1
+  outDoc.entries.size()
+    Which is: 3
+the document output was changed by a failed read (allocation #54)
+
+[  FAILED  ] OomInjection.ALegacyFileThatFailsToBuildItsWarningLeavesEveryOutputArgumentUntouched (11 ms)
+[----------] 1 test from OomInjection (11 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (11 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OomInjection.ALegacyFileThatFailsToBuildItsWarningLeavesEveryOutputArgumentUntouched
+
+ 1 FAILED TEST

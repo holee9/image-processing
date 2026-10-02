@@ -1,0 +1,53 @@
+xpe_calib_generate_gain CalSet_14037 rc=0
+xpe_calib_generate_gain CalSet_17285 rc=0
+xpe_calib_generate_gain CalSet_20985 rc=0
+xpe_calib_generate_gain CalSet_30868 rc=0
+xpe_calib_generate_gain CalSet_42677 rc=0
+gain_14037.xcal mean 1.000000 min 0.6976 max 1.1565
+gain_17285.xcal mean 1.000000 min 0.6980 max 1.1403
+gain_20985.xcal mean 1.000000 min 0.6982 max 1.1340
+gain_30868.xcal mean 1.000000 min 0.6959 max 1.1353
+gain_42677.xcal mean 1.000000 min 0.6974 max 1.1317
+
+=== darkcorrected_adu_deg2: doses=['2867.2', '5931.5', '9283.1', '18485.6', '29488.4'] max_degree=2
+product fit_r_squared = 0.252162207 ; replica R^2 = 0.252162207
+control: |product - replica| = 4.57e-10
+  pixels fitted by degree 2 LS :   1261797  (13.370%)
+  pixels fitted by degree 1 LS :   8175387  (86.630%)
+  pixels on the ENDPOINT line    :         0  (0.000%)
+  endpoint pixels with NEGATIVE degree-1 LS slope: 0 (0.000% of endpoint pixels, 0.000% of all)
+  (none)
+  overall per-pixel spread over doses (rms about own mean), all pixels: p50 2.94e-03 p95 5.91e-03
+  per-pixel R^2 percentiles (1,5,25,50,75,95): 0.0001 0.0021 0.0512 0.1884 0.4038 0.7298
+  per-pixel R^2 < 0: 1 (0.000%) ; of those on the endpoint line: 0
+  lowest per-pixel R^2: -3.109e-15 at pixel 8201920 (its SS_tot 3.983e-05, SS_res 3.983e-05)
+  pooled R^2 of the degree 2 pixels alone: 0.421412
+
+=== darkcorrected_adu_deg3: doses=['2867.2', '5931.5', '9283.1', '18485.6', '29488.4'] max_degree=3
+product fit_r_squared = 0.253360196 ; replica R^2 = 0.253360248
+control: |product - replica| = 5.20e-08
+  pixels fitted by degree 3 LS :    298941  (3.168%)
+  pixels fitted by degree 2 LS :   1063997  (11.275%)
+  pixels fitted by degree 1 LS :   8074246  (85.558%)
+  pixels on the ENDPOINT line    :         0  (0.000%)
+  endpoint pixels with NEGATIVE degree-1 LS slope: 0 (0.000% of endpoint pixels, 0.000% of all)
+  (none)
+  overall per-pixel spread over doses (rms about own mean), all pixels: p50 2.94e-03 p95 5.91e-03
+  per-pixel R^2 percentiles (1,5,25,50,75,95): 0.0001 0.0021 0.0512 0.1885 0.4043 0.7363
+  per-pixel R^2 < 0: 1 (0.000%) ; of those on the endpoint line: 0
+  lowest per-pixel R^2: -3.109e-15 at pixel 8201920 (its SS_tot 3.983e-05, SS_res 3.983e-05)
+  pooled R^2 of the degree 3 pixels alone: 0.735203
+
+=== filenumber_deg2: doses=['14037.0', '17285.0', '20985.0', '30868.0', '42677.0'] max_degree=2
+product fit_r_squared = 0.252468154 ; replica R^2 = 0.252468154
+control: |product - replica| = 4.51e-10
+  pixels fitted by degree 2 LS :   1266656  (13.422%)
+  pixels fitted by degree 1 LS :   8170528  (86.578%)
+  pixels on the ENDPOINT line    :         0  (0.000%)
+  endpoint pixels with NEGATIVE degree-1 LS slope: 0 (0.000% of endpoint pixels, 0.000% of all)
+  (none)
+  overall per-pixel spread over doses (rms about own mean), all pixels: p50 2.94e-03 p95 5.91e-03
+  per-pixel R^2 percentiles (1,5,25,50,75,95): 0.0001 0.0021 0.0512 0.1887 0.4044 0.7306
+  per-pixel R^2 < 0: 0 (0.000%) ; of those on the endpoint line: 0
+  lowest per-pixel R^2: 6.461e-14 at pixel 162590 (its SS_tot 8.995e-05, SS_res 8.995e-05)
+  pooled R^2 of the degree 2 pixels alone: 0.420893

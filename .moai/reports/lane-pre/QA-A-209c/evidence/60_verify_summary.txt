@@ -1,0 +1,23 @@
+BUILD_EXIT=0
+common oom exit=0
+common tests exit=0
+pre full exit=0
+pre shuffle exit=0
+pre oom exit=0
+[==========] 12 tests from 1 test suite ran. (176 ms total)
+[  PASSED  ] 12 tests.
+[==========] 69 tests from 4 test suites ran. (129 ms total)
+[  PASSED  ] 69 tests.
+[==========] 803 tests from 105 test suites ran. (68217 ms total)
+[  PASSED  ] 795 tests.
+[==========] 803 tests from 105 test suites ran. (73881 ms total)
+[  PASSED  ] 795 tests.
+[==========] 55 tests from 2 test suites ran. (4491 ms total)
+[  PASSED  ] 55 tests.
+Total Tests: 979
+preprocess exports diff exit=0
+16
+header docs exit=0
+-- 20 headers, 0 declarations skipped as unparseable, 0 findings
+preset exit=0
+  12 declared, 12 compared, 0 not comparable

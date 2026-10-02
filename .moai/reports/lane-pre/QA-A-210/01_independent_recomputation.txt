@@ -1,0 +1,20 @@
+maps: 4 levels, 32x32=1024 pixels; polynomial file type=3 stride=3; doses=[8000.0, 12000.000000000002, 16000.0, 20000.0]
+generator config: {'polynomial_degree': 2, 'fit_r_squared': -0.076637433, 'max_residual_pct': 0.370691, 'mean_residual_pct': 0.060974, 'calibration_pass': 0, 'dose_min': 8000.0, 'dose_max': 20000.0}
+gain-map statistics: per level mean = ['1.000000', '1.000000', '1.000000', '1.000000']
+  per-pixel across-level spread (max-min): mean 1.795e-03, max 6.106e-03
+
+(D) path the generator took, read from its stored coefficients: {'deg2': 105, 'deg1': 402, 'endpoint': 517}
+(C) path an exact-arithmetic run of the same policy takes:       {'deg2': 105, 'deg1': 402, 'endpoint': 517}   (same path for 1024 / 1024 pixels)
+(A) generator-stored coefficients, exact evaluation        R2 = -0.076637434   (SS_res = 2.629733e-03, SS_tot = 2.442543e-03)
+(B) exact least squares, degree 2, no monotone check       R2 = +0.763877287   (SS_res = 5.767399e-04, SS_tot = 2.442543e-03)
+(B) exact least squares, degree 1, no monotone check       R2 = +0.461239965   (SS_res = 1.315945e-03, SS_tot = 2.442543e-03)
+(C) policy simulated with exact fits                       R2 = -0.076637433   (SS_res = 2.629733e-03, SS_tot = 2.442543e-03)
+file fit_r_squared (what the generator wrote): -0.076637433
+pixels whose OWN stored fit is worse than their mean (SS_res > SS_tot): 418 / 1024
+deg-2 pixels: relative gap between the generator coefficients and exact least squares: median 3.205e-08, max 5.726e-08
+
+(E) the 517 endpoint-fallback pixels: their degree-1 least-squares slope is negative for 517 of them;
+    the endpoint line the generator stored instead has slope < 0 for 485 and >= 0 for 32 of them
+    (the generator's monotone check demands NON-DECREASING: 485 of the stored endpoint lines would themselves fail it)
+    alternative policy "monotone in either direction, else degree-1 least squares":  R2 = +0.464813930   paths {'deg2': 198, 'deg1': 826}
+    alternative policy "degree-1 least squares for every pixel":                      R2 = +0.461239965

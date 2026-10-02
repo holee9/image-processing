@@ -1,0 +1,57 @@
+BUILD_EXIT=0
+arm verify_wrong_code AVerify exit=1
+arm verify_wrong_code ABpm exit=0
+arm verify_wrong_code ARuntime exit=0
+arm verify_wrong_code ANonlinearityLut exit=0
+[  FAILED  ] OomInjection.AVerifyGainThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+[  FAILED  ] OomInjection.AVerifyOffsetThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+[  FAILED  ] OomInjection.AVerifyPipelineThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+BUILD_EXIT=0
+arm verify_not_cleared AVerify exit=1
+arm verify_not_cleared ABpm exit=0
+arm verify_not_cleared ARuntime exit=0
+arm verify_not_cleared ANonlinearityLut exit=0
+[  FAILED  ] OomInjection.AVerifyGainThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+BUILD_EXIT=0
+arm robust_mean_noexcept AVerify exit=3
+arm robust_mean_noexcept ABpm exit=0
+arm robust_mean_noexcept ARuntime exit=0
+arm robust_mean_noexcept ANonlinearityLut exit=0
+BUILD_EXIT=0
+arm flatness_noexcept AVerify exit=3
+arm flatness_noexcept ABpm exit=0
+arm flatness_noexcept ARuntime exit=0
+arm flatness_noexcept ANonlinearityLut exit=0
+BUILD_EXIT=0
+arm bpm_helper_noexcept AVerify exit=0
+arm bpm_helper_noexcept ABpm exit=3
+arm bpm_helper_noexcept ARuntime exit=0
+arm bpm_helper_noexcept ANonlinearityLut exit=0
+BUILD_EXIT=0
+arm bpm_wrong_code AVerify exit=0
+arm bpm_wrong_code ABpm exit=1
+arm bpm_wrong_code ARuntime exit=0
+arm bpm_wrong_code ANonlinearityLut exit=0
+[  FAILED  ] OomInjection.ABpmGenerationThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes
+BUILD_EXIT=0
+arm runtime_memset_early AVerify exit=0
+arm runtime_memset_early ABpm exit=0
+arm runtime_memset_early ARuntime exit=1
+arm runtime_memset_early ANonlinearityLut exit=0
+[  FAILED  ] OomInjection.ARuntimeDetectionThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes
+BUILD_EXIT=0
+arm runtime_wrong_code AVerify exit=0
+arm runtime_wrong_code ABpm exit=0
+arm runtime_wrong_code ARuntime exit=1
+arm runtime_wrong_code ANonlinearityLut exit=0
+[  FAILED  ] OomInjection.ARuntimeDetectionThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes
+BUILD_EXIT=0
+arm lut_wrong_code AVerify exit=0
+arm lut_wrong_code ABpm exit=0
+arm lut_wrong_code ARuntime exit=0
+arm lut_wrong_code ANonlinearityLut exit=1
+[  FAILED  ] OomInjection.ANonlinearityLutGenerationThatFailsWritesNoFileAndNoExceptionEscapes
+RESTORED xpe_verify_metrics.cpp
+RESTORED xpe_defect_gen.cpp
+RESTORED runtime_detection.cpp
+RESTORED xpe_calib_generate_nonlin_lut.cpp

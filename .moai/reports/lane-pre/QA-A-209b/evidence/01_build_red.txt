@@ -1,0 +1,12 @@
+'vswhere.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+배치 파일이 아닙니다.
+[1/13] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\helpers.cpp.obj
+[2/13] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\helpers.cpp.obj
+[3/13] Linking CXX shared library bin\xpe_preprocess.dll
+[4/9] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_xcal_compression.cpp.obj
+[5/9] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\tests\test_oom_injection.cpp.obj
+[6/9] Linking CXX executable bin\xpe_preprocess_oom_tests.exe
+[7/9] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\src\helpers.cpp.obj
+[8/9] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_config_strict_parse.cpp.obj
+[9/9] Linking CXX executable bin\xpe_preprocess_tests.exe
+BUILD_EXIT=0
