@@ -160,9 +160,10 @@ XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHa
  *       first. MONOCHROME2 is returned as stored. The inversion is made on every path (uncompressed, JPEG Lossless,
  *       JPEG 2000), after the decode and on the caller's buffer, so a second read on the same handle returns the same
  *       words. One XPE_ALERT_INFO alert is posted per inverted read, with exactly this text (the wording is a
- *       contract with the clients that display alerts; <B> is the buffer's bitsStored):
+ *       contract with the clients that display alerts; {B} stands for the buffer's bitsStored, the braces only mark where a
+ *       value is inserted):
  *       "MONOCHROME1 pixel values were inverted to MONOCHROME2 sense: value = (2^BitsStored - 1) - (stored &
- *       (2^BitsStored - 1)), BitsStored <B>". Nothing is posted for MONOCHROME2.
+ *       (2^BitsStored - 1)), BitsStored {B}". Nothing is posted for MONOCHROME2.
  *       WHAT SURVIVES read -> write is the POLARITY, not the presentation: xpe_dicom_write always writes MONOCHROME2 +
  *       IDENTITY, so a MONOCHROME1 file read and written again is a MONOCHROME2 file with the inverted words, which
  *       has the polarity of the original. xpe_dicom_write does NOT preserve the source file's Window Center / Width
@@ -183,14 +184,15 @@ XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHa
  *       metadata struct has no field for them): the returned pixels are the stored values. When the file's rescale is
  *       not the identity (slope 1 and intercept 0; an absent attribute counts as its identity value) ONE
  *       XPE_ALERT_WARNING is posted after a successful read, with exactly this text, the values spelled as the file
- *       spells them (a contract with the clients that display alerts):
- *       "RescaleSlope <s>, RescaleIntercept <b> (the identity is 1 and 0): returned pixels are stored values; rescale
+ *       spells them (a contract with the clients that display alerts; {s} and {b} mark where they are inserted):
+ *       "RescaleSlope {s}, RescaleIntercept {b} (the identity is 1 and 0): returned pixels are stored values; rescale
  *       not applied". An explicit identity (1.0 and 0.0) posts nothing. A malformed rescale is refused, see the
  *       XPE_ERR_DICOM_INVALID list above. Whether to apply or report the rescale is a separate decision.
  * @note Bits above BitsStored (QA-B-187, #235 item (h)): they are not part of the sample (PS3.5 8.1.1), so every
  *       returned word is (stored & (2^BitsStored - 1)) for MONOCHROME2 as well as MONOCHROME1. When at least one word
- *       changed, ONE XPE_ALERT_INFO is posted with exactly this text: "<N> pixel(s) had bits above BitsStored <B> set;
- *       those bits were masked off: value = stored & (2^BitsStored - 1)". Nothing is posted when no word changed;
+ *       changed, ONE XPE_ALERT_INFO is posted with exactly this text ({N} and {B} mark where the count of changed
+ *       words and the BitsStored are inserted): "{N} pixel(s) had bits above BitsStored {B} set; those bits were
+ *       masked off: value = stored & (2^BitsStored - 1)". Nothing is posted when no word changed;
  *       BitsStored 16 masks nothing.
  *
  * @note Transfer-Syntax support is decided in xpe_dicom_open(), not here: an
