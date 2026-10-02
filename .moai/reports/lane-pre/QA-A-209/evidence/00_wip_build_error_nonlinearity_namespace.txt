@@ -1,0 +1,38 @@
+'vswhere.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+배치 파일이 아닙니다.
+[1/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\calibration_manager.cpp.obj
+[2/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\nonlinearity_correct.cpp.obj
+FAILED: modules/preprocess/CMakeFiles/xpe_preprocess.dir/src/nonlinearity_correct.cpp.obj
+C:\PROGRA~1\MICROS~1\2022\PROFES~1\VC\Tools\MSVC\1444~1.352\bin\Hostx64\x64\cl.exe  /nologo /TP -DFMT_SHARED -DSPDLOG_COMPILED_LIB -DSPDLOG_SHARED_LIB -DXPE_DLL_EXPORT -Dxpe_preprocess_EXPORTS -ID:\workspace-github\xpe-pre\modules\preprocess\include -ID:\workspace-github\xpe-pre\modules\preprocess\..\..\third_party -ID:\workspace-github\xpe-pre\modules\common\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\spdlog-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\nlohmann_json-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\fmt-src\include /DWIN32 /D_WINDOWS /EHsc /Zi /O2 /Ob1 /DNDEBUG -std:c++17 -MD /arch:AVX2 /W4 /utf-8 /WX /wd4251 /wd4275 /showIncludes /Fomodules\preprocess\CMakeFiles\xpe_preprocess.dir\src\nonlinearity_correct.cpp.obj /Fdmodules\preprocess\CMakeFiles\xpe_preprocess.dir\ /FS -c D:\workspace-github\xpe-pre\modules\preprocess\src\nonlinearity_correct.cpp
+D:\workspace-github\xpe-pre\modules\preprocess\src\nonlinearity_correct.cpp(184): error C2872: 'XPE_NONLINEARITY_CONFIG_KEYS': 모호한 기호입니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess/xpe_preprocess_internal.h(156): note: 'const char *const XPE_NONLINEARITY_CONFIG_KEYS[9]'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\src\nonlinearity_correct.cpp(32): note: 또는       'const char *const `anonymous-namespace'::XPE_NONLINEARITY_CONFIG_KEYS[9]'
+D:\workspace-github\xpe-pre\modules\preprocess\src\nonlinearity_correct.cpp(186): error C2872: 'XPE_NONLINEARITY_CONFIG_KEYS': 모호한 기호입니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess/xpe_preprocess_internal.h(156): note: 'const char *const XPE_NONLINEARITY_CONFIG_KEYS[9]'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\src\nonlinearity_correct.cpp(32): note: 또는       'const char *const `anonymous-namespace'::XPE_NONLINEARITY_CONFIG_KEYS[9]'
+D:\workspace-github\xpe-pre\modules\preprocess\src\nonlinearity_correct.cpp(188): error C2872: 'XPE_NONLINEARITY_CONFIG_KEYS': 모호한 기호입니다.
+D:\workspace-github\xpe-pre\modules\preprocess\include\xpe/preprocess/xpe_preprocess_internal.h(156): note: 'const char *const XPE_NONLINEARITY_CONFIG_KEYS[9]'일 수 있습니다.
+D:\workspace-github\xpe-pre\modules\preprocess\src\nonlinearity_correct.cpp(32): note: 또는       'const char *const `anonymous-namespace'::XPE_NONLINEARITY_CONFIG_KEYS[9]'
+[3/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calibration.cpp.obj
+[4/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\readout_validate.cpp.obj
+[5/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\temp_compensate.cpp.obj
+[6/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\binning_correct.cpp.obj
+[7/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_save.cpp.obj
+[8/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\offset_correct.cpp.obj
+[9/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\gain_correct.cpp.obj
+[10/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\defect_correct.cpp.obj
+[11/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_load_gain.cpp.obj
+[12/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_load_offset.cpp.obj
+[13/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_check_expiry.cpp.obj
+[14/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_load_defect_map.cpp.obj
+[15/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_defect_gen.cpp.obj
+[16/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\pipeline.cpp.obj
+[17/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\ghost_correct.cpp.obj
+[18/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_mode.cpp.obj
+[19/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\runtime_detection.cpp.obj
+[20/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_generate_offset.cpp.obj
+[21/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\calibration_cache.cpp.obj
+[22/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\preprocess.cpp.obj
+[23/72] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\helpers.cpp.obj
+ninja: build stopped: subcommand failed.
+BUILD_EXIT=1

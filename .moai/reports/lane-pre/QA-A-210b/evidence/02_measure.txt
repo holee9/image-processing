@@ -1,0 +1,53 @@
+xpe_calib_generate_gain CalSet_14037 rc=0
+xpe_calib_generate_gain CalSet_17285 rc=0
+xpe_calib_generate_gain CalSet_20985 rc=0
+xpe_calib_generate_gain CalSet_30868 rc=0
+xpe_calib_generate_gain CalSet_42677 rc=0
+gain_14037.xcal mean 1.000000 min 0.6976 max 1.1565
+gain_17285.xcal mean 1.000000 min 0.6980 max 1.1403
+gain_20985.xcal mean 1.000000 min 0.6982 max 1.1340
+gain_30868.xcal mean 1.000000 min 0.6959 max 1.1353
+gain_42677.xcal mean 1.000000 min 0.6974 max 1.1317
+
+=== darkcorrected_adu_deg2: doses=['2867.2', '5931.5', '9283.1', '18485.6', '29488.4'] max_degree=2
+product fit_r_squared = -0.035243042 ; replica R^2 = -0.035243042
+control: |product - replica| = 1.04e-10
+  pixels fitted by degree 2 LS :    648502  (6.872%)
+  pixels fitted by degree 1 LS :   4170506  (44.192%)
+  pixels on the ENDPOINT line    :   4618176  (48.936%)
+  endpoint pixels with NEGATIVE degree-1 LS slope: 4618176 (100.000% of endpoint pixels, 48.936% of all)
+  |slope*span| of the negative-slope endpoint pixels (gain units, gain mean=1): p50 3.24e-03 p95 9.85e-03 max 2.99e-02
+  overall per-pixel spread over doses (rms about own mean), all pixels: p50 2.94e-03 p95 5.91e-03
+  per-pixel R^2 percentiles (1,5,25,50,75,95): -1.2952 -0.9639 -0.2247 0.0685 0.3168 0.6906
+  per-pixel R^2 < 0: 3137477 (33.246%) ; of those on the endpoint line: 3137477
+  pooled R^2 of the degree 2 pixels alone: 0.420127
+  pooled R^2 of the endpoint pixels alone: -0.302707
+
+=== darkcorrected_adu_deg3: doses=['2867.2', '5931.5', '9283.1', '18485.6', '29488.4'] max_degree=3
+product fit_r_squared = -0.034666233 ; replica R^2 = -0.034666351
+control: |product - replica| = 1.18e-07
+  pixels fitted by degree 3 LS :    155339  (1.646%)
+  pixels fitted by degree 2 LS :    545816  (5.784%)
+  pixels fitted by degree 1 LS :   4117853  (43.634%)
+  pixels on the ENDPOINT line    :   4618176  (48.936%)
+  endpoint pixels with NEGATIVE degree-1 LS slope: 4618176 (100.000% of endpoint pixels, 48.936% of all)
+  |slope*span| of the negative-slope endpoint pixels (gain units, gain mean=1): p50 3.24e-03 p95 9.85e-03 max 2.99e-02
+  overall per-pixel spread over doses (rms about own mean), all pixels: p50 2.94e-03 p95 5.91e-03
+  per-pixel R^2 percentiles (1,5,25,50,75,95): -1.2952 -0.9639 -0.2247 0.0685 0.3170 0.6935
+  per-pixel R^2 < 0: 3137477 (33.246%) ; of those on the endpoint line: 3137477
+  pooled R^2 of the degree 3 pixels alone: 0.735223
+  pooled R^2 of the endpoint pixels alone: -0.302707
+
+=== filenumber_deg2: doses=['14037.0', '17285.0', '20985.0', '30868.0', '42677.0'] max_degree=2
+product fit_r_squared = 0.048050219 ; replica R^2 = 0.048050219
+control: |product - replica| = 1.91e-10
+  pixels fitted by degree 2 LS :    650925  (6.897%)
+  pixels fitted by degree 1 LS :   4168146  (44.167%)
+  pixels on the ENDPOINT line    :   4618113  (48.935%)
+  endpoint pixels with NEGATIVE degree-1 LS slope: 4618113 (100.000% of endpoint pixels, 48.935% of all)
+  |slope*span| of the negative-slope endpoint pixels (gain units, gain mean=1): p50 3.24e-03 p95 9.85e-03 max 2.99e-02
+  overall per-pixel spread over doses (rms about own mean), all pixels: p50 2.94e-03 p95 5.91e-03
+  per-pixel R^2 percentiles (1,5,25,50,75,95): -1.6303 -0.8547 -0.1620 0.0562 0.2602 0.6229
+  per-pixel R^2 < 0: 3214178 (34.059%) ; of those on the endpoint line: 3214178
+  pooled R^2 of the degree 2 pixels alone: 0.419789
+  pooled R^2 of the endpoint pixels alone: -0.141749

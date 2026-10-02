@@ -1,0 +1,6 @@
+MasterDark mean 11020.61 p0.1 10928 p50 11011 p99.9 11151
+CalSet_14037 mean 13887.77  minus-dark mean 2867.17  min 13039 max 20561
+CalSet_17285 mean 16952.13  minus-dark mean 5931.53  min 15179 max 22988
+CalSet_20985 mean 20303.68  minus-dark mean 9283.08  min 17520 max 25776
+CalSet_30868 mean 29506.18  minus-dark mean 18485.57  min 23903 max 33666
+CalSet_42677 mean 40509.01  minus-dark mean 29488.40  min 31605 max 44460

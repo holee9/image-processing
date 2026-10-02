@@ -1,0 +1,14 @@
+'vswhere.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+배치 파일이 아닙니다.
+[1/16] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_defect_gen.cpp.obj
+[2/16] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_calib_generate_nonlin_lut.cpp.obj
+[3/16] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_generate_nonlin_lut.cpp.obj
+[4/16] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_defect_gen.cpp.obj
+[5/16] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\xpe_verify_metrics.cpp.obj
+[6/16] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_verify_metrics.cpp.obj
+[7/16] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\runtime_detection.cpp.obj
+[8/16] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\runtime_detection.cpp.obj
+[9/16] Linking CXX shared library bin\xpe_preprocess.dll
+[10/11] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\tests\test_oom_injection.cpp.obj
+[11/11] Linking CXX executable bin\xpe_preprocess_oom_tests.exe
+BUILD_EXIT=0

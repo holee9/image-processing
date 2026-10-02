@@ -1,0 +1,16 @@
+BUILD_EXIT=0
+arm half_pair_ok dll exit=1
+arm half_pair_ok oom exit=0
+[  FAILED  ] XCalCompressionMetaTest.HalfAPairIsRefusedEvenWhenTheRestOfTheFileIsValid
+BUILD_EXIT=0
+arm writer_always_comma dll exit=1
+arm writer_always_comma oom exit=0
+[  FAILED  ] XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo
+BUILD_EXIT=1
+D:\workspace-github\xpe-pre\modules\preprocess\src\nonlinearity_correct.cpp(387): error C2220: 다음 경고는 오류로 처리됩니다.
+arm nonlin_no_guard: BUILD FAILED - arm invalid
+RESTORED helpers.cpp
+RESTORED xcal_reader.cpp
+RESTORED xcal_writer.cpp
+RESTORED nonlinearity_correct.cpp
+RESTORED preprocess.cpp

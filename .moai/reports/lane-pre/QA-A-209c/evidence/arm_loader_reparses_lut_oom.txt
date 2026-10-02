@@ -1,0 +1,22 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomInjection.EveryLoaderParses*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from OomInjection
+[ RUN      ] OomInjection.EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2388): error: Expected equality of these values:
+  1ul
+    Which is: 1
+  q209c::parsesDuring([&] { return xpe_calib_load_nonlin_lut("oom_q209c_lut.xcal"); }, &rc)
+    Which is: 2
+
+[  FAILED  ] OomInjection.EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce (7 ms)
+[----------] 1 test from OomInjection (7 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (7 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OomInjection.EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce
+
+ 1 FAILED TEST

@@ -30,6 +30,8 @@
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 #include "xpe/preprocess/xcal_format.h"
 #include "xcal_writer.hpp"
+#include "xcal_reader.hpp"
+#include "rle_codec.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -2059,4 +2061,412 @@ TEST_F(OomPipeline, WithNoEarlierR2TheHistoryIsFlaggedAsNoneEvenWhenTheFirstReco
     EXPECT_DOUBLE_EQ(-1.0, q.previous_r_squared) << "the generation's -1.0 is a real R2";
     EXPECT_EQ(1u, q.has_previous_r_squared);
     qcur::removeAll();
+}
+
+/* =========================================================================
+ * xpe_nonlinearity_correct, the stand-alone entry point (QA-A-209b, Codex #49 item 4; QA-A-201 survey)
+ * ========================================================================= */
+//
+// It had no guard, and the parsing of its configuration allocates (QA-A-209): a failed allocation was an exception
+// out of a C ABI function. It now returns XPE_ERR_OUT_OF_MEMORY and leaves the frame as it found it.
+
+namespace q209b {
+
+XpeImageBuffer buf(void* d, XpePixelFormat f, uint32_t bits) {
+    XpeImageBuffer b{};
+    b.data = d; b.width = W; b.height = H; b.bitsAllocated = bits; b.bitsStored = bits; b.format = f;
+    b.dataSize = static_cast<uint32_t>(N * (bits / 8));
+    return b;
+}
+
+}  // namespace q209b
+
+TEST_F(OomInjection, ANonlinearityCorrectionThatFailsLeavesTheFrameUntouchedAndNoExceptionEscapes) {
+    static const std::string cfg = "{\"panel.nonlinearity_mode\":\"POLY\",\"panel.nonlin_poly_c1\":2.0,\"panel.adc_max\":65535}";
+    static std::vector<uint16_t> px(N);
+    sweep("xpe_nonlinearity_correct", [] { xpe_preprocess_init(nullptr); },
+          [&] {
+              std::fill(px.begin(), px.end(), static_cast<uint16_t>(1000));
+              XpeImageBuffer img = q209b::buf(px.data(), XPE_PIXEL_UINT16, 16);
+              return xpe_nonlinearity_correct(&img, cfg.c_str());
+          },
+          /*unchangedOnError=*/false,
+          [&](XpeErrorCode rc) -> std::string {
+              bool same = true, doubled = true;
+              for (const uint16_t v : px) { same = same && v == 1000; doubled = doubled && v == 2000; }
+              if (rc == XPE_OK) return doubled ? std::string() : "the polynomial was not applied";
+              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure was reported as another error";
+              return same ? std::string() : "the frame was changed although the call failed";
+          });
+}
+
+TEST_F(OomInjection, ANonlinearityCorrectionWithTheLutPathThatFailsLeavesTheFrameUntouched) {
+    // the configuration names no polynomial, a table is loaded: the LUT path (a clamp-free identity-halving table)
+    {
+        std::vector<uint16_t> lut(4096u);
+        for (uint32_t i = 0; i < 4096u; ++i) lut[i] = static_cast<uint16_t>(i / 2u);
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version = XCAL_VERSION; hdr.type = static_cast<uint32_t>(XCAL_TYPE_NONLIN_LUT);
+        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_UINT16);
+        hdr.width = 4096; hdr.height = 1; hdr.payload_len = lut.size() * sizeof(uint16_t);
+        hdr.created_epoch_ms = 1700000000000ll;
+        std::remove("oom_nlut_halving.xcal");
+        ASSERT_EQ(XPE_OK, write_xcal_file("oom_nlut_halving.xcal", hdr, reinterpret_cast<const uint8_t*>("{}"), 2,
+                                          reinterpret_cast<const uint8_t*>(lut.data()), lut.size() * sizeof(uint16_t)));
+    }
+    static const std::string cfg = "{\"panel.linear\":\"false\",\"panel.target_platform\":\"CPU\"}";
+    static std::vector<uint16_t> px(N);
+    sweep("xpe_nonlinearity_correct (table)",
+          [] { xpe_preprocess_init(nullptr); EXPECT_EQ(XPE_OK, xpe_calib_load_nonlin_lut("oom_nlut_halving.xcal")); },
+          [&] {
+              std::fill(px.begin(), px.end(), static_cast<uint16_t>(1000));
+              XpeImageBuffer img = q209b::buf(px.data(), XPE_PIXEL_UINT16, 16);
+              return xpe_nonlinearity_correct(&img, cfg.c_str());
+          },
+          /*unchangedOnError=*/false,
+          [&](XpeErrorCode rc) -> std::string {
+              bool same = true, halved = true;
+              for (const uint16_t v : px) { same = same && v == 1000; halved = halved && v == 500; }
+              if (rc == XPE_OK) return halved ? std::string() : "the table was not applied";
+              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure was reported as another error";
+              return same ? std::string() : "the frame was changed although the call failed";
+          });
+    std::remove("oom_nlut_halving.xcal");
+}
+
+/* =========================================================================
+ * The exports that left an allocation failure unguarded (QA-A-204 3/3, QA-A-201 survey item 5)
+ * ========================================================================= */
+//
+// xpe_verify_offset / _gain / _pipeline, xpe_bpm_generate, xpe_defect_detect_runtime,
+// xpe_calib_generate_nonlin_lut and xpe_nonlinearity_correct had no guard: a failed allocation was an exception out
+// of a C ABI function. Two more things made it worse than that. Seven helpers were declared noexcept and allocate
+// (the sort copy and the histogram of the verify metrics, the five working-buffer builders of the BPM generator), so a
+// failed allocation in them is std::terminate, not an exception. And a call that dies half way leaves what it had
+// written: the verify functions clear and then fill the caller's metrics. A failed call now returns
+// XPE_ERR_OUT_OF_MEMORY and leaves what a refused call leaves -- the metrics cleared (the contract of every other
+// error return of those functions), an output buffer or file untouched.
+
+namespace q204c {
+
+XpeImageBuffer buf(void* d, XpePixelFormat f, uint32_t bits) {
+    XpeImageBuffer b{};
+    b.data = d; b.width = W; b.height = H; b.bitsAllocated = bits; b.bitsStored = bits; b.format = f;
+    b.dataSize = static_cast<uint32_t>(N * (bits / 8));
+    return b;
+}
+
+XpeCalibrationMetrics g_metrics{};
+XpeCalibrationMetrics g_baseline{};
+
+bool sameBytes(const double& a, const double& b) { return std::memcmp(&a, &b, sizeof(double)) == 0; }
+
+bool sameMetrics(const XpeCalibrationMetrics& a, const XpeCalibrationMetrics& b) {
+    return sameBytes(a.dark_bias, b.dark_bias) && sameBytes(a.dsnu, b.dsnu) &&
+           sameBytes(a.residual_noise, b.residual_noise) && sameBytes(a.prnu_before, b.prnu_before) &&
+           sameBytes(a.prnu_after, b.prnu_after) && sameBytes(a.flatness_pct, b.flatness_pct) &&
+           sameBytes(a.gain_coverage, b.gain_coverage) && a.invalid_gain_count == b.invalid_gain_count &&
+           a.defect_count == b.defect_count && sameBytes(a.defect_density, b.defect_density) &&
+           sameBytes(a.correction_error, b.correction_error) && sameBytes(a.snr_improvement_db, b.snr_improvement_db) &&
+           a.overall_pass == b.overall_pass && sameBytes(a.dark_reduction_db, b.dark_reduction_db) &&
+           sameBytes(a.dsnu_adu, b.dsnu_adu) && a.measured_mask == b.measured_mask;
+}
+
+bool isCleared(const XpeCalibrationMetrics& m) {
+    XpeCalibrationMetrics z{};
+    return sameMetrics(m, z);
+}
+
+void fillGarbage(XpeCalibrationMetrics* m) { std::memset(m, 0x5A, sizeof(*m)); }
+
+/** The metrics sweep: the call leaves g_metrics; a failure leaves it cleared, a success leaves exactly the baseline. */
+void sweepMetrics(const char* label, const Call& call) {
+    sweep(label, [] {}, [&] { fillGarbage(&g_metrics); return call(); }, /*unchangedOnError=*/false,
+          [](XpeErrorCode rc) -> std::string {
+              if (rc == XPE_OK) return sameMetrics(g_metrics, g_baseline) ? std::string() : "the result differs from the call that failed nothing";
+              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure was reported as another error";
+              return isCleared(g_metrics) ? std::string() : "the metrics were left half filled";
+          });
+}
+
+}  // namespace q204c
+
+TEST_F(OomInjection, AVerifyOffsetThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes) {
+    using namespace q204c;
+    static std::vector<uint16_t> raw(N), cor(N);
+    for (size_t i = 0; i < N; ++i) {
+        raw[i] = static_cast<uint16_t>(100 + (i % 4) * 50 + (i / 4) * 7);
+        cor[i] = static_cast<uint16_t>(raw[i] > 90 ? raw[i] - 90 : 0);
+    }
+    XpeImageBuffer r = buf(raw.data(), XPE_PIXEL_UINT16, 16), c = buf(cor.data(), XPE_PIXEL_UINT16, 16);
+    fillGarbage(&g_baseline);
+    ASSERT_EQ(XPE_OK, xpe_verify_offset(&r, &c, nullptr, &g_baseline));
+    ASSERT_NE(0u, g_baseline.measured_mask) << "control: the baseline measured something";
+    sweepMetrics("xpe_verify_offset", [&] { return xpe_verify_offset(&r, &c, nullptr, &g_metrics); });
+}
+
+TEST_F(OomInjection, AVerifyGainThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes) {
+    using namespace q204c;
+    static std::vector<uint16_t> before(N);
+    static std::vector<float> after(N), gain(N, 1.0f);
+    for (size_t i = 0; i < N; ++i) {
+        before[i] = static_cast<uint16_t>(1000 + (i % 4) * 40);
+        after[i] = 1000.0f + static_cast<float>(i % 3);
+    }
+    XpeImageBuffer b = buf(before.data(), XPE_PIXEL_UINT16, 16), a = buf(after.data(), XPE_PIXEL_FLOAT32, 32),
+                   g = buf(gain.data(), XPE_PIXEL_FLOAT32, 32);
+    fillGarbage(&g_baseline);
+    ASSERT_EQ(XPE_OK, xpe_verify_gain(&b, &a, &g, XPE_GAIN_SEMANTICS_UNKNOWN, &g_baseline));
+    ASSERT_NE(0u, g_baseline.measured_mask) << "control: the baseline measured something";
+    sweepMetrics("xpe_verify_gain", [&] { return xpe_verify_gain(&b, &a, &g, XPE_GAIN_SEMANTICS_UNKNOWN, &g_metrics); });
+}
+
+TEST_F(OomInjection, AVerifyPipelineThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes) {
+    using namespace q204c;
+    static std::vector<uint16_t> raw(N);
+    static std::vector<float> fin(N);
+    for (size_t i = 0; i < N; ++i) {
+        raw[i] = static_cast<uint16_t>(1000 + (i % 4) * 60);
+        fin[i] = 1000.0f + static_cast<float>(i % 3);
+    }
+    XpeImageBuffer r = buf(raw.data(), XPE_PIXEL_UINT16, 16), f = buf(fin.data(), XPE_PIXEL_FLOAT32, 32);
+    fillGarbage(&g_baseline);
+    ASSERT_EQ(XPE_OK, xpe_verify_pipeline(&r, &f, nullptr, &g_baseline));
+    ASSERT_NE(0u, g_baseline.measured_mask) << "control: the baseline measured something";
+    sweepMetrics("xpe_verify_pipeline", [&] { return xpe_verify_pipeline(&r, &f, nullptr, &g_metrics); });
+}
+
+TEST_F(OomInjection, AVerifyDefectAllocatesNothingSoThereIsNothingToGuard) {
+    using namespace q204c;
+    static std::vector<float> img(N, 1000.0f);
+    static std::vector<uint8_t> map(N, 0);
+    map[3] = 1;
+    XpeImageBuffer i = buf(img.data(), XPE_PIXEL_FLOAT32, 32), m = buf(map.data(), XPE_PIXEL_UINT8, 8);
+    XpeCalibrationMetrics out{};
+    arm(1000000000L);
+    XpeErrorCode rc = XPE_OK;
+    try { rc = std::function<XpeErrorCode()>([&] { return xpe_verify_defect(&i, &m, &out); })(); } catch (...) { rc = XPE_ERR_INTERNAL; }
+    const long allocations = g_count.load();
+    disarm();
+    EXPECT_EQ(XPE_OK, rc);
+    EXPECT_EQ(0, allocations);
+}
+
+TEST_F(OomInjection, ABpmGenerationThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes) {
+    static std::vector<std::vector<uint16_t>> dark(5, std::vector<uint16_t>(N, 100)), bright(10, std::vector<uint16_t>(N, 3000));
+    dark[1][5] = 3000;                      // a hot pixel, so the map is not all zero
+    bright[2][9] = 5;                       // a dead one
+    static std::vector<XpeImageBuffer> d, b;
+    d.clear(); b.clear();
+    for (auto& f : dark) d.push_back(q204c::buf(f.data(), XPE_PIXEL_UINT16, 16));
+    for (auto& f : bright) b.push_back(q204c::buf(f.data(), XPE_PIXEL_UINT16, 16));
+    static std::vector<uint8_t> out(N), baseline(N);
+    XpeImageBuffer o = q204c::buf(out.data(), XPE_PIXEL_UINT8, 8);
+    std::fill(out.begin(), out.end(), static_cast<uint8_t>(0xAB));
+    ASSERT_EQ(XPE_OK, xpe_bpm_generate(d.data(), 5, b.data(), 10, nullptr, &o));
+    baseline = out;
+    sweep("xpe_bpm_generate", [] {},
+          [&] {
+              std::fill(out.begin(), out.end(), static_cast<uint8_t>(0xAB));
+              return xpe_bpm_generate(d.data(), 5, b.data(), 10, nullptr, &o);
+          },
+          /*unchangedOnError=*/false,
+          [&](XpeErrorCode rc) -> std::string {
+              if (rc == XPE_OK) return out == baseline ? std::string() : "the map differs from an undisturbed run";
+              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure was reported as another error";
+              for (const uint8_t v : out) if (v != 0xAB) return "the output map was written although the call failed";
+              return std::string();
+          });
+}
+
+TEST_F(OomInjection, ARuntimeDetectionThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes) {
+    static std::vector<float> img(N, 1000.0f);
+    img[5] = 9000.0f;
+    static std::vector<uint8_t> out(N), baseline(N);
+    XpeImageBuffer i = q204c::buf(img.data(), XPE_PIXEL_FLOAT32, 32), o = q204c::buf(out.data(), XPE_PIXEL_UINT8, 8);
+    std::fill(out.begin(), out.end(), static_cast<uint8_t>(0xAB));
+    ASSERT_EQ(XPE_OK, xpe_defect_detect_runtime(&i, nullptr, &o));
+    baseline = out;
+    sweep("xpe_defect_detect_runtime", [] {},
+          [&] {
+              std::fill(out.begin(), out.end(), static_cast<uint8_t>(0xAB));
+              return xpe_defect_detect_runtime(&i, nullptr, &o);
+          },
+          /*unchangedOnError=*/false,
+          [&](XpeErrorCode rc) -> std::string {
+              if (rc == XPE_OK) return out == baseline ? std::string() : "the map differs from an undisturbed run";
+              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure was reported as another error";
+              for (const uint8_t v : out) if (v != 0xAB) return "the output map was written although the call failed";
+              return std::string();
+          });
+}
+
+TEST_F(OomInjection, ANonlinearityLutGenerationThatFailsWritesNoFileAndNoExceptionEscapes) {
+    const char* path = "oom_nlut_out.xcal";
+    static const std::string tmpPath = std::string(path) + ".tmp";
+    constexpr int kLevels = 10;
+    static std::vector<std::vector<uint16_t>> flats(kLevels);
+    static std::vector<XpeImageBuffer> bufs;
+    static double doses[kLevels];
+    bufs.clear();
+    for (int l = 0; l < kLevels; ++l) {
+        doses[l] = 100.0 * (l + 1);
+        flats[l].assign(N, static_cast<uint16_t>(300 * (l + 1)));       // a linear response: gain 3
+        bufs.push_back(q204c::buf(flats[l].data(), XPE_PIXEL_UINT16, 16));
+    }
+    std::remove(path); std::remove((std::string(path) + ".tmp").c_str());
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_nonlin_lut(bufs.data(), doses, kLevels, nullptr, 4096u, path, nullptr));
+    ASSERT_TRUE(std::filesystem::exists(path)) << "control: the undisturbed call wrote the table";
+    std::remove(path);
+    sweep("xpe_calib_generate_nonlin_lut", [] {},
+          [&] {
+              std::remove(path); std::remove(tmpPath.c_str());   // tmpPath is built outside: nothing in here may allocate
+              return xpe_calib_generate_nonlin_lut(bufs.data(), doses, kLevels, nullptr, 4096u, path, nullptr);
+          },
+          /*unchangedOnError=*/false,
+          [&](XpeErrorCode rc) -> std::string {
+              const bool file = std::filesystem::exists(path), tmp = std::filesystem::exists(std::string(path) + ".tmp");
+              std::remove(path); std::remove((std::string(path) + ".tmp").c_str());
+              if (rc == XPE_OK) return file ? std::string() : "the call succeeded and wrote no file";
+              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure was reported as another error";
+              return (file || tmp) ? "a failed call left a file behind" : std::string();
+          });
+}
+
+/* =========================================================================
+ * An XCal config block is parsed ONCE per load (QA-A-209c, Codex #53 item 2)
+ * ========================================================================= */
+//
+// read_xcal_file parsed the block to read the compression metadata and threw the document away; the gain and
+// nonlinearity-table loaders then parsed the same text again for the quality fields, the dose range and the
+// extension start. The reader now hands its document to the loader. xpe_config_parse_calls counts every parse
+// (compiled into this executable only, with XPE_CACHE_TEST_HOOKS).
+
+namespace q209c {
+
+unsigned long parsesDuring(const std::function<XpeErrorCode()>& call, XpeErrorCode* rc) {
+    const unsigned long before = xpe_config_parse_calls;
+    *rc = call();
+    return xpe_config_parse_calls - before;
+}
+
+}  // namespace q209c
+
+TEST_F(OomInjection, EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce) {
+    xpe_preprocess_init(nullptr);
+    XpeErrorCode rc = XPE_OK;
+
+    // a gain file whose block carries quality fields, so the loader has something to read from the document
+    {
+        std::vector<float> g(N, 1.0f);
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version = XCAL_VERSION; hdr.type = static_cast<uint32_t>(XCAL_TYPE_GAIN);
+        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_FLOAT32); hdr.width = W; hdr.height = H;
+        hdr.created_epoch_ms = 1700000000000ll;
+        const std::string cfg = "{\"fit_r_squared\":0.9995,\"polynomial_degree\":1,\"actual_dose_levels\":4,\"calibration_mode\":1}";
+        std::remove("oom_q209c_gain.xcal");
+        ASSERT_EQ(XPE_OK, write_xcal_file("oom_q209c_gain.xcal", hdr, reinterpret_cast<const uint8_t*>(cfg.data()), cfg.size(),
+                                          reinterpret_cast<const uint8_t*>(g.data()), g.size() * sizeof(float)));
+    }
+    EXPECT_EQ(1ul, q209c::parsesDuring([&] { return xpe_calib_load_gain("oom_q209c_gain.xcal"); }, &rc));
+    EXPECT_EQ(XPE_OK, rc);
+
+    // a nonlinearity table with the extension-start key
+    {
+        std::vector<uint16_t> lut(4096u);
+        for (uint32_t i = 0; i < 4096u; ++i) lut[i] = static_cast<uint16_t>(i);
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version = XCAL_VERSION; hdr.type = static_cast<uint32_t>(XCAL_TYPE_NONLIN_LUT);
+        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_UINT16); hdr.width = 4096; hdr.height = 1;
+        hdr.created_epoch_ms = 1700000000000ll;
+        const std::string cfg = "{\"xcal_nonlin_extension_start\":4000}";
+        std::remove("oom_q209c_lut.xcal");
+        ASSERT_EQ(XPE_OK, write_xcal_file("oom_q209c_lut.xcal", hdr, reinterpret_cast<const uint8_t*>(cfg.data()), cfg.size(),
+                                          reinterpret_cast<const uint8_t*>(lut.data()), lut.size() * sizeof(uint16_t)));
+    }
+    EXPECT_EQ(1ul, q209c::parsesDuring([&] { return xpe_calib_load_nonlin_lut("oom_q209c_lut.xcal"); }, &rc));
+    EXPECT_EQ(XPE_OK, rc);
+
+    std::remove("oom_q209c_gain.xcal");
+    std::remove("oom_q209c_lut.xcal");
+}
+
+/* =========================================================================
+ * The legacy-repair alert is built BEFORE any output is touched (QA-A-209d, Codex #56 item 1)
+ * ========================================================================= */
+//
+// read_xcal_file raises a warning when it accepted a file of the older writer's shape. The text is a std::string built
+// from the file's path, so it can fail to allocate. It used to be built AFTER the outputs (header, config, payload,
+// document) were set to the success values: a failed allocation reported OUT_OF_MEMORY with the caller's variables
+// already overwritten. It is now built first, and the alert is pushed -- a call that cannot throw -- after the outputs
+// are committed.
+
+TEST_F(OomInjection, ALegacyFileThatFailsToBuildItsWarningLeavesEveryOutputArgumentUntouched) {
+    // an old-writer file: a DEFECT map, RLE-compressed, with a caller config -> the block ends "}}"
+    const std::string longDir(80, 'd');   // a long path, so the alert text is a real allocation
+    const std::string path = "oom_legacy_" + longDir + ".xcal";
+    {
+        const std::vector<uint8_t> raw(4096u, 0u);
+        std::vector<uint8_t> rle;
+        ASSERT_EQ(XPE_OK, rle_encode(raw.data(), raw.size(), rle));
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version = XCAL_VERSION; hdr.type = static_cast<uint32_t>(XCAL_TYPE_DEFECT);
+        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_UINT8_MASK); hdr.width = 64; hdr.height = 64;
+        hdr.created_epoch_ms = 1700000000000ll;
+        const std::string legacy = "{\"mode\":\"production\",\"xcal_compression\":1,\"xcal_raw_payload_len\":4096}}";
+        std::remove(path.c_str());
+        ASSERT_EQ(XPE_OK, write_xcal_file_ex(path.c_str(), hdr, reinterpret_cast<const uint8_t*>(legacy.data()), legacy.size(),
+                                             rle.data(), rle.size(), /*compress_defect=*/false));
+    }
+
+    static XCalFileHeader outHdr;
+    static std::vector<uint8_t> outCfg, outPay;
+    static XpeConfigDoc outDoc;
+    static XCalFileHeader sentinelHdr;
+    std::memset(&sentinelHdr, 0x5A, sizeof(sentinelHdr));
+    const std::vector<uint8_t> sentinelCfg{1, 2, 3}, sentinelPay{9, 9};
+    auto reset = [&] {
+        outHdr = sentinelHdr;
+        outCfg = sentinelCfg;
+        outPay = sentinelPay;
+        outDoc.entries.clear();
+        outDoc.entries.push_back(XpeConfigEntry{"sentinel", "kept", true, true});
+    };
+
+    // The real sweep: the reset happens before arming, so the armed region is read_xcal_file alone.
+    constexpr long kMax = 400;
+    long failures = 0;
+    for (long k = 1; k <= kMax; ++k) {
+        reset();
+        xpe_clear_alerts();
+        bool escaped = false;
+        XpeErrorCode rc = XPE_OK;
+        arm(k);
+        try {
+            rc = read_xcal_file(path.c_str(), outHdr, outCfg, outPay, /*check_expiry=*/false, XCAL_TYPE_DEFECT, &outDoc);
+        } catch (...) {
+            escaped = true;
+        }
+        const bool injected = disarm();
+        ASSERT_FALSE(escaped) << "allocation #" << k;
+        if (rc == XPE_OK) {
+            EXPECT_EQ(4096u, outPay.size()) << "a successful read returns the decompressed map (allocation #" << k << ")";
+            EXPECT_NE(nullptr, outDoc.find("xcal_compression"));
+        } else {
+            ++failures;
+            EXPECT_EQ(XPE_ERR_OUT_OF_MEMORY, rc) << "allocation #" << k;
+            EXPECT_EQ(0, std::memcmp(&outHdr, &sentinelHdr, sizeof(outHdr))) << "the header output was changed by a failed read (allocation #" << k << ")";
+            EXPECT_EQ(sentinelCfg, outCfg) << "the config output was changed by a failed read (allocation #" << k << ")";
+            EXPECT_EQ(sentinelPay, outPay) << "the payload output was changed by a failed read (allocation #" << k << ")";
+            EXPECT_EQ(1u, outDoc.entries.size()) << "the document output was changed by a failed read (allocation #" << k << ")";
+            EXPECT_EQ(0, xpe_get_pending_alert_count()) << "a failed read raised its warning (allocation #" << k << ")";
+        }
+        if (!injected) break;                              // this run made fewer allocations than k: the sweep is complete
+    }
+    EXPECT_GT(failures, 10) << "control: the sweep reached many failure points";
+    std::remove(path.c_str());
 }

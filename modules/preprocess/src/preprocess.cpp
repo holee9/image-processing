@@ -51,14 +51,11 @@ extern "C" XPE_API XpeErrorCode xpe_preprocess_init(const char* configJsonOrNull
         }
 
         if (configJsonOrNull != nullptr) {
-            if (configJsonOrNull[0] == '\0') {
-                return XPE_ERR_CONFIG_INVALID;
-            }
-            auto parsed = nlohmann::json::parse(configJsonOrNull,
-                                                nullptr, /*allow_exceptions=*/false);
-            if (parsed.is_discarded()) {
-                return XPE_ERR_CONFIG_INVALID;
-            }
+            // The same rule as every configuration this module reads (QA-A-209b): one valid JSON object, no member
+            // name given twice at the top level; an empty or white-space-only text is not one.
+            XpeConfigDoc doc;
+            const XpeErrorCode rc = xpe_config_parse(configJsonOrNull, &doc);
+            if (rc != XPE_OK) return rc;
         }
 
         g_initialized.store(true, std::memory_order_release);

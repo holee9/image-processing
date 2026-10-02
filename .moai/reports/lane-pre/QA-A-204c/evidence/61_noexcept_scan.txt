@@ -1,0 +1,2 @@
+
+0 noexcept function definitions in 42 files contain an allocating construct and have NO catch in the body (heuristic; review each)

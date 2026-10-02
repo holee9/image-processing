@@ -17,6 +17,8 @@
 #include <vector>
 #include <cstdint>
 
+struct XpeConfigDoc;   // xpe_preprocess_internal.h
+
 /**
  * @brief Read and validate an XCal v1 file.
  *
@@ -35,10 +37,16 @@
  * @param out_payload  Receives pixel payload bytes.
  * @param check_expiry When true, validate expiry timestamp.
  * @param expected_type Expected XCalType (XCAL_TYPE_*). Pass -1 to skip.
+ * @param out_config_doc When given, receives the config block PARSED (QA-A-209c): the reader parses the block once, to
+ *                     read the compression metadata, and hands that document to the caller, so a loader that reads
+ *                     keys from the block (quality fields, dose range, extension start) does not parse it again. It
+ *                     is the document of the REPAIRED text when the block was one of the old writer's two shapes
+ *                     (xcal_format.h). An empty document for a block of length 0.
  * @return XPE_OK on success.
  *         XPE_ERR_INVALID_INPUT if path is nullptr.
  *         XPE_ERR_IO_FAILED on file not found or read error.
- *         XPE_ERR_CONFIG_INVALID on header validation or SHA-256 mismatch.
+ *         XPE_ERR_CONFIG_INVALID on header validation, SHA-256 mismatch, or a config block that is not one valid
+ *                                JSON object (xpe_config_parse_block; the old writer's two shapes excepted).
  *         XPE_ERR_CALIBRATION_EXPIRED if file has expired.
  *         XPE_ERR_OUT_OF_MEMORY on allocation failure.
  */
@@ -48,6 +56,7 @@ XPE_API XpeErrorCode read_xcal_file(
     std::vector<uint8_t>&  out_config,
     std::vector<uint8_t>&  out_payload,
     bool                   check_expiry = true,
-    int                    expected_type = -1);
+    int                    expected_type = -1,
+    XpeConfigDoc*          out_config_doc = nullptr);
 
 #endif /* XPE_XCAL_READER_HPP */

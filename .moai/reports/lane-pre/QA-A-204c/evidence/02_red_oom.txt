@@ -1,0 +1,29 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomInjection.AVerify*:OomInjection.ABpm*:OomInjection.ARuntime*:OomInjection.ANonlinearityLut*
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from OomInjection
+[ RUN      ] OomInjection.AVerifyOffsetThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(352): error: Value of: escaped
+  Actual: true
+Expected: false
+xpe_verify_offset: an exception left the C ABI function when allocation #1 failed
+
+[  FAILED  ] OomInjection.AVerifyOffsetThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.AVerifyGainThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(352): error: Value of: escaped
+  Actual: true
+Expected: false
+xpe_verify_gain: an exception left the C ABI function when allocation #1 failed
+
+[  FAILED  ] OomInjection.AVerifyGainThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.AVerifyPipelineThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(352): error: Value of: escaped
+  Actual: true
+Expected: false
+xpe_verify_pipeline: an exception left the C ABI function when allocation #1 failed
+
+[  FAILED  ] OomInjection.AVerifyPipelineThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.AVerifyDefectAllocatesNothingSoThereIsNothingToGuard
+[       OK ] OomInjection.AVerifyDefectAllocatesNothingSoThereIsNothingToGuard (0 ms)
+[ RUN      ] OomInjection.ABpmGenerationThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes
