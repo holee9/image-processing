@@ -127,7 +127,7 @@ GSPS (Grayscale Softcopy Presentation State)
 
 | 인터프리테이션 | 입력 처리 | 출력 | 설명 |
 |-------------|---------|------|------|
-| MONOCHROME1 | 반전 (MAX - pixel) | MONOCHROME2 | 작은 값 = 밝음 |
+| MONOCHROME1 | 반전 (MAX - pixel) | MONOCHROME2 | 작은 값 = 밝음. MAX = `2^BitsStored − 1`, 반전 전에 BitsStored 위의 비트를 먼저 마스크한다 |
 | MONOCHROME2 | 그대로 사용 | MONOCHROME2 | 작은 값 = 어두움 |
 
 ---

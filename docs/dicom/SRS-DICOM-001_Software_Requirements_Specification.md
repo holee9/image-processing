@@ -118,7 +118,7 @@
 
 - **Description**: 이미지 밝기 표현 읽기 (0028,0004)
 - **Acceptance Criteria**:
-  - MONOCHROME1 (작은 값 = 밝음): 자동 반전 (MAX - pixel)
+  - MONOCHROME1 (작은 값 = 밝음): 자동 반전 (MAX - pixel). MAX = `2^BitsStored − 1` 이며, 반전 전에 BitsStored 위의 비트를 먼저 마스크한다: `(2^BitsStored − 1) − (값 & (2^BitsStored − 1))`.
   - MONOCHROME2 (작은 값 = 어두움): 그대로 사용
   - 다른 값 → XPE_ERR_DICOM_UNSUPPORTED_PHOTOMETRIC
 - **Priority**: M
@@ -268,7 +268,7 @@
 - **Description**: 모든 출력 이미지 MONOCHROME2로 표준화
 - **Acceptance Criteria**:
   - (0028,0004) PhotometricInterpretation = "MONOCHROME2"
-  - 자동 정규화 (MONOCHROME1 입력일 경우)
+  - 쓰기기는 입력 화소의 극성을 해석하지 않고 항상 MONOCHROME2 로 쓴다. MONOCHROME1 정규화는 읽기 단계(FR-DCM-109)에서 이미 일어난다.
 - **Priority**: M
 
 #### FR-DCM-206: 필수 Type 1 태그 쓰기

@@ -118,8 +118,8 @@ XpeErrorCode xpe_enhance_basic_process(
 // EI 계산
 xpe_ei_compute_baseline(input, k_gain, ei_t, meta, &ei, &di, &flags);
 
-// Log Transform
-xpe_log_transform(image, epsilon);
+// Log Transform: output = normFactor * log10(input + 1.0), normFactor > 0
+xpe_log_transform(image, normFactor);
 
 // CLAHE
 xpe_clahe_process(image, tile_size, clip_limit);
