@@ -1,0 +1,11 @@
+QA-B-191 M4f arms: every arm built (build_ok=True) and was restored byte-identical; summary rebuilt from the per-arm gtest outputs build/g191m4f-arm_<tag>.txt
+F2 first run: build_ok=True, passed=32, red=0 -> a test gap (only two-digit positive codes isolate the sign check); two cases added, F2 re-run below
+
+F1 a contradictory flag is believed (any code): passed=['30'] red(2)=['WorkerBodyPartReply.EveryErrorFrameTheProtocolForbidsIsAProtocolFaultAndTheWorkerIsDiscarded', 'WorkerBodyPartReply.ThreeContradictoryFramesInARowAreThreeCountedFailuresNeverAnUnavailableAnswer']
+F2 a positive error code is accepted (re-run after adding the two-digit positive cases): passed=['31'] red(1)=['WorkerBodyPartReply.EveryErrorFrameTheProtocolForbidsIsAProtocolFaultAndTheWorkerIsDiscarded']
+F3 the ERROR frame is parsed without escapes: passed=['30'] red(2)=['WorkerBodyPartReply.AnErrorFrameTheProtocolAllowsIsAcceptedAndKeepsTheWorker', 'WorkerBodyPartReply.TheFlagIsParsedNotSearchedSoTextThatLooksLikeItIsOnlyText']
+F4 a non-boolean flag value is accepted: passed=['31'] red(1)=['WorkerBodyPartReply.EveryErrorFrameTheProtocolForbidsIsAProtocolFaultAndTheWorkerIsDiscarded']
+F5 the success label is not range-checked: passed=['31'] red(1)=['WorkerBodyPartReply.EveryReplyTheProtocolForbidsIsAProtocolFaultAndTheWorkerIsDiscarded']
+F6 the loader accepts DEL: passed=['30'] red(2)=['BodyPartWorkerPath.ARefusedLabelIsOneWarningPerSessionOnBothPathsAndNeverAWorkerFailure', 'WorkerBodyPartAgreement.ALabelOutsidePrintableAsciiOrWithAQuoteOrBackslashIsUnavailableInBothPaths']
+
+CONTROL (after the last arm, files restored): passed=32 red=[]  (from the arms script console output)

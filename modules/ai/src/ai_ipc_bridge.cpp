@@ -190,24 +190,36 @@ bool ParseErrorCode(const std::string& body, int* out) {
 }
 
 /**
- * Parse @p json as ONE flat object (strict: string keys; values are strings without escapes, true, false, null,
+ * Parse @p json as ONE flat object (strict: string keys; values are strings (escapes only when @p allow_escapes), true, false, null,
  * non-negative integers and -- only when @p allow_real -- real numbers; no nesting, no duplicate keys, nothing
  * after the closing brace) into @p kv. A string value is stored with a leading '"'; every other value as its raw
  * text. Returns false on any deviation.
  */
-bool ParseFlatObject(const char* json, size_t n, bool allow_real, std::map<std::string, std::string>* out) {
+bool ParseFlatObject(const char* json, size_t n, bool allow_real, bool allow_escapes,
+                     std::map<std::string, std::string>* out) {
     size_t i = 0;
     auto ws = [&] { while (i < n && (json[i] == ' ' || json[i] == '\t' || json[i] == '\r' || json[i] == '\n')) ++i; };
     auto str = [&](std::string* out) {
         if (i >= n || json[i] != '"') return false;
         ++i;
         const size_t start = i;
+        std::string text;
         while (i < n && json[i] != '"') {
-            if (json[i] == '\\' || static_cast<unsigned char>(json[i]) < 0x20) return false;   // no escapes in this protocol
+            if (static_cast<unsigned char>(json[i]) < 0x20) return false;
+            if (json[i] == '\\') {
+                // An ERROR frame's free text may hold an escaped quote or backslash -- the only two escapes the
+                // worker writes (JsonEscape). Nothing else is an escape in this protocol.
+                if (!allow_escapes || i + 1 >= n || (json[i + 1] != '"' && json[i + 1] != '\\')) return false;
+                text += json[i + 1];
+                i += 2;
+                continue;
+            }
+            text += json[i];
             ++i;
         }
         if (i >= n) return false;
-        out->assign(json + start, i - start);
+        (void)start;
+        out->assign(text);
         ++i;
         return true;
     };
@@ -281,7 +293,7 @@ bool ParseFlatObject(const char* json, size_t n, bool allow_real, std::map<std::
  */
 bool ValidSuccessEnvelope(const char* json, size_t n, uint32_t width, uint32_t height) {
     std::map<std::string, std::string> kv;
-    if (!ParseFlatObject(json, n, /*allow_real=*/false, &kv)) return false;
+    if (!ParseFlatObject(json, n, /*allow_real=*/false, /*allow_escapes=*/false, &kv)) return false;
     auto it = kv.find("success");
     if (it == kv.end() || it->second != "true") return false;
     it = kv.find("width");
@@ -739,18 +751,47 @@ XpeErrorCode xpe_ai_ipc_bridge_bodypart(XpeAiIpcBridge* bridge, uint32_t width, 
         return XPE_ERR_IO_FAILED;
     }
 
+    std::map<std::string, std::string> kv;
+    auto bad = [&]() {
+        DropConnection(bridge);
+        return XPE_ERR_IO_FAILED;
+    };
+
     if (rh.messageType == XPE_AI_MSG_ERROR) {
-        const std::string body(reinterpret_cast<const char*>(reply), rh.payloadSize);
-        int code = 0;
-        if (!ParseErrorCode(body, &code)) {
-            DropConnection(bridge);   // an ERROR frame with no usable code: nothing else this worker says can be trusted
-            return XPE_ERR_PROCESSING_FAILED;
+        // QA-B-191 M4f (Codex #77): an ERROR frame is judged as strictly as a success reply, because one of its
+        // fields -- "model_unavailable" -- changes what the host counts. It was found as a substring, so a frame
+        // that contradicted itself ({"error_code":-3,"model_unavailable":true,...}) was believed and a run of real
+        // faults could be reset to zero without ever reaching the ceiling.
+        //   - one flat JSON object, no duplicate key, nothing after it (escaped quote/backslash allowed in text);
+        //   - "error_code" is required and is an integer in [-99, -1]; "error_message", if present, is a string;
+        //   - "model_unavailable", if present, is true or false;
+        //   - true is believed ONLY with the codes the worker uses for a model that cannot be loaded or
+        //     configured: XPE_ERR_IO_FAILED (no model file) and XPE_ERR_CONFIG_INVALID. With any other code the
+        //     frame contradicts itself.
+        // Anything else is a protocol fault: connection dropped, the call counts as a worker failure.
+        if (!ParseFlatObject(reinterpret_cast<const char*>(reply), rh.payloadSize, /*allow_real=*/true,
+                             /*allow_escapes=*/true, &kv)) {
+            return bad();
         }
-        // "model_unavailable":true is read only from BEFORE the free-text message, so text a model error
-        // happens to carry cannot set it.
-        const size_t flag = body.find("\"model_unavailable\":true");
-        const size_t text = body.find("\"error_message\"");
-        bridge->last_model_unavailable = flag != std::string::npos && (text == std::string::npos || flag < text);
+        auto ec = kv.find("error_code");
+        if (ec == kv.end()) return bad();
+        const std::string& e = ec->second;
+        // "-" then 1 or 2 digits, no leading zero: -1 .. -99
+        if (e.size() < 2 || e.size() > 3 || e[0] != '-' || e[1] < '1' || e[1] > '9' ||
+            (e.size() == 3 && (e[2] < '0' || e[2] > '9'))) {
+            return bad();
+        }
+        const int code = -std::atoi(e.c_str() + 1);
+        auto em = kv.find("error_message");
+        if (em != kv.end() && (em->second.empty() || em->second[0] != '"')) return bad();
+        bool unavailable = false;
+        auto mu = kv.find("model_unavailable");
+        if (mu != kv.end()) {
+            if (mu->second != "true" && mu->second != "false") return bad();
+            unavailable = mu->second == "true";
+        }
+        if (unavailable && code != XPE_ERR_IO_FAILED && code != XPE_ERR_CONFIG_INVALID) return bad();
+        bridge->last_model_unavailable = unavailable;
         return static_cast<XpeErrorCode>(code);
     }
 
@@ -760,12 +801,10 @@ XpeErrorCode xpe_ai_ipc_bridge_bodypart(XpeAiIpcBridge* bridge, uint32_t width, 
         return XPE_ERR_IO_FAILED;
     }
 
-    std::map<std::string, std::string> kv;
-    auto bad = [&]() {
-        DropConnection(bridge);
-        return XPE_ERR_IO_FAILED;
-    };
-    if (!ParseFlatObject(reinterpret_cast<const char*>(reply), rh.payloadSize, /*allow_real=*/true, &kv)) return bad();
+    if (!ParseFlatObject(reinterpret_cast<const char*>(reply), rh.payloadSize, /*allow_real=*/true,
+                         /*allow_escapes=*/false, &kv)) {
+        return bad();
+    }
     auto success = kv.find("success");
     if (success == kv.end() || success->second != "true") return bad();
     auto outcome = kv.find("outcome");
@@ -781,6 +820,14 @@ XpeErrorCode xpe_ai_ipc_bridge_bodypart(XpeAiIpcBridge* bridge, uint32_t width, 
         if (label.empty() || label[0] != '"') return bad();
         const std::string text = label.substr(1);
         if (text.empty() || text.size() >= XPE_AI_MAX_BODYPART_LEN) return bad();
+        // The same range the label sidecar is held to (ai_bodypart_model.h): printable ASCII 0x20-0x7E. A quote or a
+        // backslash cannot reach this point (the parser ends a string at a quote and has no escapes here); a control
+        // character cannot either, but DEL and bytes above 0x7F can, and a worker that sends one is not following
+        // the protocol.
+        for (const char ch : text) {
+            const unsigned char u = static_cast<unsigned char>(ch);
+            if (u < 0x20 || u > 0x7E) return bad();
+        }
         const std::string& conf = kv["confidence"];
         if (conf.empty() || conf[0] == '"' || conf == "true" || conf == "false" || conf == "null") return bad();
         char* end = nullptr;

@@ -197,6 +197,11 @@ TEST(WorkerBodyPartReply, EveryReplyTheProtocolForbidsIsAProtocolFaultAndTheWork
          R"({"success":true,"outcome":"ok","body_part":")" + std::string(XPE_AI_MAX_BODYPART_LEN, 'A') +
              R"(","confidence":0.5})"},
         {"label not a string", R"({"success":true,"outcome":"ok","body_part":5,"confidence":0.5})"},
+        {"label with DEL", std::string(R"({"success":true,"outcome":"ok","body_part":"AB)") + "\x7f" + R"(C","confidence":0.5})"},
+        {"label with a non-ASCII byte", std::string(R"({"success":true,"outcome":"ok","body_part":"AB)") + "\xc3\xa9" + R"(C","confidence":0.5})"},
+        {"label with a control character", std::string(R"({"success":true,"outcome":"ok","body_part":"AB)") + "\x07" + R"(C","confidence":0.5})"},
+        {"label with an escaped quote", R"({"success":true,"outcome":"ok","body_part":"A\"B","confidence":0.5})"},
+        {"label with an escaped backslash", R"({"success":true,"outcome":"ok","body_part":"A\\B","confidence":0.5})"},
         {"confidence a string", R"({"success":true,"outcome":"ok","body_part":"C","confidence":"0.5"})"},
         {"confidence true", R"({"success":true,"outcome":"ok","body_part":"C","confidence":true})"},
         {"confidence null", R"({"success":true,"outcome":"ok","body_part":"C","confidence":null})"},
@@ -240,14 +245,111 @@ TEST(WorkerBodyPartReply, AnErrorFrameWithoutTheFlagIsAnOrdinaryErrorAndTheWorke
     EXPECT_TRUE(o.workerKept);
 }
 
-TEST(WorkerBodyPartReply, TheFlagCountsOnlyBeforeTheFreeTextMessage) {
-    // The message is the model's own text; a flag that follows it could have come from that text.
-    const Outcome after = AskFake("bodypart_error_raw",
-                                  R"({"error_code":-3,"error_message":"x","model_unavailable":true})");
-    EXPECT_FALSE(after.unavailable);
+TEST(WorkerBodyPartReply, TheFlagIsParsedNotSearchedSoTextThatLooksLikeItIsOnlyText) {
+    // The model's error text can hold anything. The flag is read from the parsed object, so a message that contains
+    // the characters "model_unavailable":true (escaped, as the worker writes it) is only a message.
+    const Outcome text = AskFake("bodypart_error_raw",
+                                 R"({"error_code":-4,"error_message":"a \"model_unavailable\":true b"})");
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, text.rc);
+    EXPECT_FALSE(text.unavailable) << "text that looks like the flag must not set it";
+    EXPECT_TRUE(text.workerKept);
+    // The order of the keys does not matter: the real flag is believed wherever it is, with a code it may go with.
     const Outcome before = AskFake("bodypart_error_raw",
-                                   R"({"error_code":-3,"model_unavailable":true,"error_message":"x"})");
-    EXPECT_TRUE(before.unavailable) << "the control: the same two keys in the other order";
+                                   R"({"error_code":-4,"model_unavailable":true,"error_message":"x"})");
+    const Outcome after = AskFake("bodypart_error_raw",
+                                  R"({"error_code":-4,"error_message":"x","model_unavailable":true})");
+    EXPECT_TRUE(before.unavailable);
+    EXPECT_TRUE(after.unavailable);
+}
+
+TEST(WorkerBodyPartReply, AnErrorFrameTheProtocolAllowsIsAcceptedAndKeepsTheWorker) {
+    struct Case { const char* name; std::string json; int code; bool unavailable; };
+    const std::vector<Case> allowed = {
+        {"minimal", R"({"error_code":-3})", -3, false},
+        {"with a message", R"({"error_code":-3,"error_message":"run failed: x"})", -3, false},
+        {"a quote and a backslash in the message", R"({"error_code":-3,"error_message":"a \"b\" c\\d"})", -3, false},
+        {"flag false", R"({"error_code":-3,"model_unavailable":false,"error_message":"x"})", -3, false},
+        {"flag true with IO_FAILED", R"({"error_code":-9,"model_unavailable":true,"error_message":"no model file"})", -9, true},
+        {"flag true with CONFIG_INVALID", R"({"error_code":-4,"model_unavailable":true,"error_message":"x"})", -4, true},
+        {"a key the protocol does not know", R"({"error_code":-3,"error_message":"x","detail":"y"})", -3, false},
+        {"the largest code", R"({"error_code":-99})", -99, false},
+        {"whitespace between tokens", R"( { "error_code" : -3 , "model_unavailable" : false } )", -3, false},
+    };
+    for (const Case& c : allowed) {
+        const Outcome o = AskFake("bodypart_error_raw", c.json);
+        EXPECT_EQ(static_cast<XpeErrorCode>(c.code), o.rc) << c.name;
+        EXPECT_EQ(c.unavailable, o.unavailable) << c.name;
+        EXPECT_TRUE(o.workerKept) << c.name << ": an ERROR frame the protocol allows leaves the worker in place";
+    }
+}
+
+TEST(WorkerBodyPartReply, EveryErrorFrameTheProtocolForbidsIsAProtocolFaultAndTheWorkerIsDiscarded) {
+    // Codex #77 (QA-B-191 M4f): the flag changes what the host counts, so the frame is judged like a success reply.
+    const std::vector<std::pair<const char*, std::string>> forbidden = {
+        // a flag that contradicts its code: "the model cannot be used" goes with IO_FAILED or CONFIG_INVALID only
+        {"flag true with PROCESSING_FAILED", R"({"error_code":-3,"model_unavailable":true,"error_message":"x"})"},
+        {"flag true with INVALID_INPUT", R"({"error_code":-1,"model_unavailable":true})"},
+        {"flag true with BUFFER_TOO_SMALL", R"({"error_code":-8,"model_unavailable":true})"},
+        {"flag true with an unknown code", R"({"error_code":-50,"model_unavailable":true})"},
+        // the flag itself
+        {"flag a string", R"({"error_code":-4,"model_unavailable":"true"})"},
+        {"flag a number", R"({"error_code":-4,"model_unavailable":1})"},
+        {"flag null", R"({"error_code":-4,"model_unavailable":null})"},
+        {"flag twice", R"({"error_code":-4,"model_unavailable":true,"model_unavailable":true})"},
+        // the code
+        {"no code", R"({"error_message":"x"})"},
+        {"code twice", R"({"error_code":-4,"error_code":-3})"},
+        {"code zero", R"({"error_code":0})"},
+        {"code minus zero", R"({"error_code":-0})"},
+        {"code positive", R"({"error_code":3})"},
+        {"code positive with two digits", R"({"error_code":13})"},    // only the sign check refuses these two:
+        {"code positive, the largest", R"({"error_code":99})"},      // the length and digit checks all pass
+        {"code a lone minus", R"({"error_code":-})"},
+        {"code below the range", R"({"error_code":-100})"},
+        {"code with a leading zero", R"({"error_code":-03})"},
+        {"code a decimal", R"({"error_code":-3.0})"},
+        {"code with an exponent", R"({"error_code":-3e0})"},
+        {"code a string", R"({"error_code":"-3"})"},
+        {"code null", R"({"error_code":null})"},
+        // the message
+        {"message a number", R"({"error_code":-3,"error_message":5})"},
+        {"message null", R"({"error_code":-3,"error_message":null})"},
+        {"message with an unknown escape", R"({"error_code":-3,"error_message":"a\nb"})"},
+        // built by concatenation: written inside a raw string, the compiler turns the escape into a letter
+        {"message with a unicode escape", std::string(R"({"error_code":-3,"error_message":"a)") + "\\u0041" + R"(b"})"},
+        {"message with a raw control character", std::string(R"({"error_code":-3,"error_message":"a)") + "\x07" + R"(b"})"},
+        {"message never closed", R"({"error_code":-3,"error_message":"abc})"},
+        // the object
+        {"trailing junk", R"({"error_code":-3}x)"},
+        {"nested object", R"({"error_code":-3,"detail":{"a":1}})"},
+        {"an array", R"([{"error_code":-3}])"},
+        {"empty object", "{}"},
+        {"empty body", ""},
+        {"not JSON", "error -3"},
+    };
+    for (const auto& c : forbidden) {
+        const Outcome o = AskFake("bodypart_error_raw", c.second);
+        EXPECT_EQ(XPE_ERR_IO_FAILED, o.rc) << c.first << ": " << c.second;
+        EXPECT_FALSE(o.workerKept) << c.first << ": a worker that sent a forbidden ERROR frame was kept";
+        EXPECT_FALSE(o.unavailable) << c.first << ": nothing is believed from a bad frame";
+    }
+}
+
+TEST(WorkerBodyPartReply, ThreeContradictoryFramesInARowAreThreeCountedFailuresNeverAnUnavailableAnswer) {
+    // Codex #77: believing a contradictory flag reset the host's failure count each time, so three of them in a row
+    // never reached the ceiling. The host counts a call as a failure unless it returned a code AND the supervisor
+    // reports "model unavailable" (ai.cpp bodyPartViaWorker). Three calls to a worker that answers
+    // {"error_code":-3,"model_unavailable":true,...} must each be a failure on that test.
+    FakeReply f("bodypart_error_raw", R"({"error_code":-3,"model_unavailable":true,"error_message":"contradiction"})");
+    const Pix image = Flat(0.5f);
+    for (int i = 0; i < 3; ++i) {
+        WorkerSupervisor sup(FakeCfg());   // the faulty worker is discarded each time, so each call starts one
+        BodyPartReply reply;
+        const XpeErrorCode rc = sup.BodyPartRecognize(image.w, image.h, image.v.data(), &reply);
+        EXPECT_NE(XPE_OK, rc) << i;
+        EXPECT_FALSE(sup.LastModelUnavailable()) << i << ": the contradiction must not be taken for an unavailable model";
+        EXPECT_EQ(0u, sup.WorkerPid()) << i << ": the worker that contradicted itself is discarded";
+    }
 }
 
 TEST(WorkerBodyPartReply, AnErrorFrameWithNoUsableCodeIsAFaultAndTheWorkerIsDiscarded) {

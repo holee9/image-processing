@@ -150,14 +150,13 @@ typedef enum XpeAiMessageType {
 /** Flag: this message carries binary (image) payload after JSON payload. */
 #define XPE_AI_FLAG_HAS_BINARY_PAYLOAD  0x00000001u
 
-/** Flag: inference timed out; worker sends partial result. */
-#define XPE_AI_FLAG_TIMEOUT             0x00000002u
-
 /*
- * Bits 0x00000004 and 0x00000008 are RESERVED and NOT USED (QA-B-192). They used to be the macros
- * XPE_AI_FLAG_LOW_CONFIDENCE ("caller should use fallback") and XPE_AI_FLAG_FALLBACK_MODE ("worker skips
- * retries"): no sender set them and no receiver read them, and both described a design the protocol does not
- * follow. A worker's reply carries what the model said in its JSON ("outcome", "body_part", "confidence" --
+ * Bits 0x00000002, 0x00000004 and 0x00000008 are RESERVED and NOT USED (QA-B-192, QA-B-191 M4f). They used to
+ * be the macros XPE_AI_FLAG_TIMEOUT ("worker sends partial result"), XPE_AI_FLAG_LOW_CONFIDENCE ("caller
+ * should use fallback") and XPE_AI_FLAG_FALLBACK_MODE ("worker skips retries"): no sender set them and no
+ * receiver read them, and all three described a design the protocol does not follow. A time budget is the
+ * HOST's (REQ-AI-092): a worker that does not answer in time is given up on, it is never asked for a partial
+ * result. A worker's reply carries what the model said in its JSON ("outcome", "body_part", "confidence" --
  * BODYPART_RECOGNIZE_RESP above) and the HOST applies the threshold and fallback_mode, so no flag is needed to
  * say "low confidence". The bits stay unassigned so that a future flag does not take a value an old document
  * gave another meaning.
@@ -258,10 +257,19 @@ typedef enum XpeAiExecutionProvider {
  *   <model_dir from INIT>/bodypart.onnx with its labels in <model_dir>/bodypart.json.
  *
  *   A model that cannot be used (no file, unreadable, unusable labels, input shape or output size) is an
- *   XPE_AI_MSG_ERROR frame with "model_unavailable":true placed BEFORE error_message:
+ *   XPE_AI_MSG_ERROR frame with "model_unavailable":true:
  *   {"error_code":-9,"model_unavailable":true,"error_message":"no model file"} -- a state of the installation,
- *   which the host does not count against the worker (the worker answered and is healthy). A model that
- *   exists but fails to RUN is an ordinary error frame without the flag, and is counted.
+ *   which the host does not count against the worker (the worker answered and is healthy). The flag goes only
+ *   with XPE_ERR_IO_FAILED (no model file) or XPE_ERR_CONFIG_INVALID (the rest); with any other code the frame
+ *   contradicts itself. A model that exists but fails to RUN is an ordinary error frame without the flag, and is
+ *   counted.
+ *
+ *   The host reads this ERROR frame as strictly as the success reply: one flat JSON object, no duplicate key,
+ *   nothing after it; "error_code" required, an integer from -1 to -99; "error_message", if present, a string
+ *   (the only escapes are an escaped double quote and an escaped backslash); "model_unavailable", if present,
+ *   true or false. Keys it does not know are ignored. A frame that deviates, or that sets the flag with a code it
+ *   does not go with, is a protocol fault: the connection is dropped and the call counts as a worker failure.
+ *   The label in a success reply is held to the range of the label sidecar: printable ASCII 0x20-0x7E.
  *
  * A failed request gets XPE_AI_MSG_ERROR (no binary payload), whose error_code
  * is the same XPE_ERR_* the in-process xpe_bone_suppress returns for the same

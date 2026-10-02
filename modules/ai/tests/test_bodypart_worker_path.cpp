@@ -25,6 +25,8 @@
 #include <atomic>
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
+#include <fstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -479,4 +481,58 @@ TEST_F(BodyPartWorkerPath, ANonFloatImageIsRefusedBeforeTheWorkerIsAskedWhatever
     EXPECT_TRUE(Alerts().empty());
     Init(Dir("models_missing"), "{}");   // in-process, the control
     EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, Recognize(image).rc) << "the in-process path answers UNKNOWN here";
+}
+
+// ===== an unusable label sidecar, on both paths: ONE Warning per session, and never a worker failure ==========
+
+TEST_F(BodyPartWorkerPath, ARefusedLabelIsOneWarningPerSessionOnBothPathsAndNeverAWorkerFailure) {
+    // QA-B-191 M4f (Codex #77, medium): the label character range (printable ASCII 0x20-0x7E, no quote or
+    // backslash) must hold for the in-process path AND the worker path, and a refused sidecar must behave like
+    // every other "the model cannot be used": the first call of a session posts the one "unavailable" Warning,
+    // later calls post nothing, and nothing is counted against the worker.
+    REQUIRE_ONNX();
+    namespace fs = std::filesystem;
+    const fs::path tmp = fs::temp_directory_path() / "xpe_bodypart_label_session";
+    fs::remove_all(tmp);
+    fs::create_directories(tmp);
+    fs::copy_file(fs::path(Dir("models_bodypart_a")) / "bodypart.onnx", tmp / "bodypart.onnx");
+    const char* refused[] = {
+        "{\"labels\": [\"CH\\\"EST\", \"ABDOMEN\", \"SPINE\"]}",     // a double quote
+        "{\"labels\": [\"CH\\EST\", \"ABDOMEN\", \"SPINE\"]}",     // a backslash
+        "{\"labels\": [\"CHEST\u007f\", \"ABDOMEN\", \"SPINE\"]}",  // DEL
+        "{\"labels\": [\"CH\u00c9ST\", \"ABDOMEN\", \"SPINE\"]}",   // a non-ASCII letter
+    };
+    for (const char* sidecar : refused) {
+        {
+            std::ofstream j(tmp / "bodypart.json");
+            j << sidecar;
+        }
+        for (const bool worker : {false, true}) {
+            Init(tmp.string(), worker ? "{\"use_worker\": true}" : "{}");
+            for (int i = 0; i < 4; ++i) {   // past the ceiling of 3
+                const Result r = Recognize(Pix(4, 4, 0.0f));
+                EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, r.rc) << sidecar << " worker=" << worker << " call " << i;
+                EXPECT_EQ("UNKNOWN", r.label) << sidecar << " worker=" << worker;
+            }
+            EXPECT_EQ(1, CountAlerts("unavailable")) << sidecar << " worker=" << worker << ": ONE Warning per session";
+            EXPECT_EQ(1u, Alerts().size()) << sidecar << " worker=" << worker << ": and nothing else";
+            if (worker) {
+                const WState s = State();
+                EXPECT_EQ(XPE_AI_WORKER_ACTIVE, s.state) << sidecar;
+                EXPECT_EQ(0u, s.failures) << sidecar << ": a refused label is not a worker failure";
+            }
+        }
+    }
+    // The control: the same model with a plain label answers on both paths, so the label is what was refused.
+    {
+        std::ofstream j(tmp / "bodypart.json");
+        j << "{\"labels\": [\"CHEST\", \"ABDOMEN\", \"SPINE\"]}";
+    }
+    for (const bool worker : {false, true}) {
+        Init(tmp.string(), worker ? "{\"use_worker\": true}" : "{}");
+        const Result r = Recognize(Pix(4, 4, 0.0f));
+        EXPECT_EQ(XPE_OK, r.rc) << "worker=" << worker;
+        EXPECT_EQ("CHEST", r.label) << "worker=" << worker;
+    }
+    fs::remove_all(tmp);
 }
