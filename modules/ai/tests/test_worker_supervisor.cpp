@@ -426,6 +426,35 @@ TEST(WorkerSupervisor, ControlTheFakeWorkerInOkModeBehavesLikeTheRealOne) {
     EXPECT_EQ(1u, sup.StartCount());
 }
 
+// QA-B-181j (Codex #65): the supervisor reports "the last refusal was the MODEL's" only for a reply with a valid
+// success envelope. An empty envelope with the same NaN pixels is a protocol fault -- IO_FAILED, the worker
+// discarded with its connection, and NOT the exemption that keeps a call out of the failure count.
+TEST(WorkerSupervisor, AValidEnvelopeWithNaNPixelsIsAModelRefusalAndKeepsTheWorker) {
+    FakeMode m("bone_valid_nan");
+    WorkerSupervisor sup(FakeCfg());
+    const float in[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    float out[9];
+    for (float& v : out) v = -777.0f;
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, sup.BoneSuppress(3, 3, in, out));
+    EXPECT_TRUE(sup.LastResultWasNonFinite());
+    for (float v : out) EXPECT_EQ(-777.0f, v);
+    EXPECT_NE(0u, sup.WorkerPid()) << "a valid response must keep the worker";
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, sup.BoneSuppress(3, 3, in, out));   // and the next call is served by it
+    EXPECT_EQ(1u, sup.StartCount());
+}
+
+TEST(WorkerSupervisor, AGarbageEnvelopeWithNaNPixelsIsAProtocolFaultNotAModelRefusal) {
+    FakeMode m("bone_garbage_nan");
+    WorkerSupervisor sup(FakeCfg());
+    const float in[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    float out[9];
+    for (float& v : out) v = -777.0f;
+    EXPECT_EQ(XPE_ERR_IO_FAILED, sup.BoneSuppress(3, 3, in, out));
+    EXPECT_FALSE(sup.LastResultWasNonFinite()) << "a broken envelope must not borrow the model-refusal exemption";
+    for (float v : out) EXPECT_EQ(-777.0f, v);
+    EXPECT_EQ(0u, sup.WorkerPid()) << "a worker with a broken envelope was kept";
+}
+
 TEST(WorkerSupervisor, AHeartbeatAnswerOfTheWrongTypeDiscardsTheWorker) {
     // The answer is a complete frame, so the bridge keeps its connection; only the supervisor can
     // see that it is not an answer to a heartbeat. A worker that answers nonsense is not healthy.

@@ -1,0 +1,76 @@
+# Excerpt (full log was 54 KB): the gtest summary lines and the first 60 failure lines
+[       OK ] BoneSuppressNonFinite.ALargestFiniteResultIsNotRefused (1 ms)
+[       OK ] BoneSuppressNonFinite.AValidNonFiniteResponseEndsARunOfWorkerFaultsAndNeverSwitchesTheWorkerOff (2449 ms)
+[       OK ] BoneSuppressNonFinite.OrdinaryPixelsStillGiveExactlyTwiceTheInputInBothPaths (92 ms)
+[       OK ] BoneSuppressNonFinite.WorkerFaultsStillSwitchTheWorkerOffAtTheCeiling (64 ms)
+[       OK ] IpcEnvelope.ControlAValidEnvelopeWithFinitePixelsIsAccepted (0 ms)
+[       OK ] IpcEnvelope.ControlAValidEnvelopeWithNonFinitePixelsIsAModelRefusalNotAProtocolFault (0 ms)
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] BoneSuppressNonFinite.InProcessRefusesAFiniteInputWhoseResultLeavesFloat
+[  FAILED  ] BoneSuppressNonFinite.InProcessRefusesAFiniteInputWhoseResultLeavesFloat (39 ms)
+[  FAILED  ] BoneSuppressNonFinite.WorkerPathRefusesAFiniteInputWhoseResultLeavesFloat
+[  FAILED  ] BoneSuppressNonFinite.WorkerPathRefusesAFiniteInputWhoseResultLeavesFloat (115 ms)
+[  FAILED  ] IpcEnvelope.ABadEnvelopeIsAProtocolFaultWhateverThePixelsAre
+[  FAILED  ] IpcEnvelope.ABadEnvelopeIsAProtocolFaultWhateverThePixelsAre (15 ms)
+[  PASSED  ] 6 tests.
+---
+14:empty_json + NaN pixels
+20:empty_json + NaN pixels: the connection was kept
+26:empty_json + finite pixels
+32:empty_json + finite pixels: the connection was kept
+39:empty_json + finite pixels: pixels were written
+46:empty_json + finite pixels: pixels were written
+53:empty_json + finite pixels: pixels were written
+60:empty_json + finite pixels: pixels were written
+67:empty_json + finite pixels: pixels were written
+74:empty_json + finite pixels: pixels were written
+81:empty_json + finite pixels: pixels were written
+88:empty_json + finite pixels: pixels were written
+95:empty_json + finite pixels: pixels were written
+101:garbage_json + NaN pixels
+107:garbage_json + NaN pixels: the connection was kept
+113:garbage_json + finite pixels
+119:garbage_json + finite pixels: the connection was kept
+126:garbage_json + finite pixels: pixels were written
+133:garbage_json + finite pixels: pixels were written
+140:garbage_json + finite pixels: pixels were written
+147:garbage_json + finite pixels: pixels were written
+154:garbage_json + finite pixels: pixels were written
+161:garbage_json + finite pixels: pixels were written
+168:garbage_json + finite pixels: pixels were written
+175:garbage_json + finite pixels: pixels were written
+182:garbage_json + finite pixels: pixels were written
+188:unterminated_object + NaN pixels
+194:unterminated_object + NaN pixels: the connection was kept
+200:unterminated_object + finite pixels
+206:unterminated_object + finite pixels: the connection was kept
+213:unterminated_object + finite pixels: pixels were written
+220:unterminated_object + finite pixels: pixels were written
+227:unterminated_object + finite pixels: pixels were written
+234:unterminated_object + finite pixels: pixels were written
+241:unterminated_object + finite pixels: pixels were written
+248:unterminated_object + finite pixels: pixels were written
+255:unterminated_object + finite pixels: pixels were written
+262:unterminated_object + finite pixels: pixels were written
+269:unterminated_object + finite pixels: pixels were written
+275:success_false + NaN pixels
+281:success_false + NaN pixels: the connection was kept
+287:success_false + finite pixels
+293:success_false + finite pixels: the connection was kept
+300:success_false + finite pixels: pixels were written
+307:success_false + finite pixels: pixels were written
+314:success_false + finite pixels: pixels were written
+321:success_false + finite pixels: pixels were written
+328:success_false + finite pixels: pixels were written
+335:success_false + finite pixels: pixels were written
+342:success_false + finite pixels: pixels were written
+349:success_false + finite pixels: pixels were written
+356:success_false + finite pixels: pixels were written
+362:success_missing + NaN pixels
+368:success_missing + NaN pixels: the connection was kept
+374:success_missing + finite pixels
+380:success_missing + finite pixels: the connection was kept
+387:success_missing + finite pixels: pixels were written
+394:success_missing + finite pixels: pixels were written
+401:success_missing + finite pixels: pixels were written
+408:success_missing + finite pixels: pixels were written

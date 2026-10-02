@@ -1,12 +1,14 @@
 # QA-B-181i — Codex #63 보류: 모델 결과의 비유한 값을 워커 고장으로 세지 않는다 (#233)
 
+> **정정 (QA-B-181j)**: 이 보고서가 "6장"이라 적은 곳은 실제로 5가지 × 2회 = **10장**이다 (시험 코드의 반복 구조를 잘못 센 것). 위 본문은 10장으로 고쳤다.
+
 ## 요약
 
 | 항목 | 결과 |
 |------|------|
 | 극단 영상 3장이면 정상 워커가 세션 내내 꺼짐 | **실행으로 재현했다**: 수정 전 3번째 극단 영상에서 `xpe_ai_worker_state` 가 `DISABLED(2)`, 실패 횟수가 1·2·3 으로 증가 (`red_before_fix.txt`). 구분해서 고쳤다: 결과가 비유한이면 출력 거부 + 알림, 실패 횟수·워커 상태는 움직이지 않는다. |
 | 반환 코드 | 두 경로 모두 `XPE_ERR_PROCESSING_FAILED` (181h 의 `INVALID_INPUT` 에서 변경) |
-| 시험의 허점 (카드 2) | 맞았다. 이번 시험은 **케이스마다** 알림 1건·워커 장애 알림 0건·상태 `ACTIVE`·실패 횟수 0 을 단언하고, 극단 영상 6장을 연속으로 넣은 뒤 같은 세션에서 정상 영상이 처리됨을 확인한다. |
+| 시험의 허점 (카드 2) | 맞았다. 이번 시험은 **케이스마다** 알림 1건·워커 장애 알림 0건·상태 `ACTIVE`·실패 횟수 0 을 단언하고, 극단 영상 10장(5가지 × 2회)을 연속으로 넣은 뒤 같은 세션에서 정상 영상이 처리됨을 확인한다. |
 
 ## 정정 (QA-B-181h 보고서)
 
@@ -34,8 +36,8 @@
 
 | 시험 | 내용 |
 |------|------|
-| `InProcess…` | 극단 입력 6장 연속: 매번 `PROCESSING_FAILED`, 출력 센티널 불변, 입력 불변, 알림 정확히 1건, 이어서 정상 영상 `OK` = `2X` 비트 동일 |
-| `WorkerPath…` | 같은 6장 연속: 매번 `PROCESSING_FAILED`, 출력 = 입력, 알림 1건(원인) + "AI worker failed" 0건, `xpe_ai_worker_state` = `ACTIVE`·실패 0 (케이스마다), 이어서 같은 세션에서 정상 영상 `OK` = `2X` |
+| `InProcess…` | 극단 입력 10장 연속(5가지 × 2회): 매번 `PROCESSING_FAILED`, 출력 센티널 불변, 입력 불변, 알림 정확히 1건, 이어서 정상 영상 `OK` = `2X` 비트 동일 |
+| `WorkerPath…` | 같은 10장 연속: 매번 `PROCESSING_FAILED`, 출력 = 입력, 알림 1건(원인) + "AI worker failed" 0건, `xpe_ai_worker_state` = `ACTIVE`·실패 0 (케이스마다), 이어서 같은 세션에서 정상 영상 `OK` = `2X` |
 | `WorkerFaultsStillSwitchTheWorkerOffAtTheCeiling` | 대조: 모델이 없는 디렉터리의 실제 워커 장애는 여전히 1·2·3 으로 세고 3번째에 `DISABLED` |
 | 유지 | `OrdinaryPixels…`, `ALargestFiniteResultIsNotRefused`, `AiStubProducers…` |
 

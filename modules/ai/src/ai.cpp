@@ -509,9 +509,10 @@ static void publishWorkerState(AiModuleState* state) {
 
 /** SRS-ALERT-004: DL processing was applied (Info). One place, so both paths say the same thing. */
 static void pushNonFiniteResultAlert() {
-    // CROSS-LANE CONTRACT (QA-B-181i): clients may match this text. It names the cause and the likely remedy.
-    xpe_alert_push("AI model output was non-finite (inf/NaN) and was rejected: the image's value range "
-                   "may exceed what the model accepts; the AI worker itself is healthy",
+    // CROSS-LANE CONTRACT (QA-B-181i, reworded in 181j): clients may match this text. Only what was observed:
+    // the model's output was non-finite and this image was not AI-processed. Nothing about the worker -- the
+    // in-process path has none, and its state is reported by xpe_ai_worker_state().
+    xpe_alert_push("AI model output was non-finite (inf/NaN); this image was not AI-processed",
                    XPE_ALERT_WARNING);
 }
 
@@ -915,12 +916,18 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
     // documented signal to use the original image (REQ-AI-002). The copy is for a caller that uses
     // the output buffer anyway: it holds the input, never stale or half-written pixels.
     //
-    // WHAT COUNTS (leader decision, Codex audit #12): EVERY non-OK result of the worker path counts toward
-    // the ceiling, including an ERROR frame that a perfectly HEALTHY worker sent on purpose because the
-    // model refused the request. A model that refuses three times in a row means AI is unusable for this
-    // session, and counting such refusals separately would bring back an unbounded alert stream. A healthy
-    // worker whose model keeps failing is therefore switched off after 3; xpe_ai_shutdown() followed by
-    // xpe_ai_init() recovers it.
+    // WHAT COUNTS (leader decisions, Codex audit #12, then #63/#65): the ceiling counts CONSECUTIVE worker and
+    // transport faults -- a non-OK result of the worker path, including an ERROR frame that a worker sent on
+    // purpose because the model refused the request, which still counts (a model that refuses three times in
+    // a row means AI is unusable for this session, and counting such refusals separately would bring back an
+    // unbounded alert stream). ONE kind of result is not a fault: a reply with a VALID success envelope whose
+    // pixels are non-finite. The bridge validated the envelope (success, size, format) before judging the
+    // pixels, so this is the observation "the worker works; the model's result for this image left the finite
+    // range". That refuses the image (one alert) and ENDS a run of faults, like any other valid response, so
+    // extreme images can never switch AI off -- and a reply with a broken envelope is a protocol fault and
+    // counts. There is no per-session total: a session that alternates faults and valid responses is not
+    // switched off by them. A worker switched off after 3 consecutive faults is recovered by xpe_ai_shutdown()
+    // followed by xpe_ai_init().
     //
     // THE POLICY AROUND IT (user-approved 2026-10-01, REQ-CHANGE-LOG-P3-AI.md row 3, which replaced
     // row 2): EVERY failure raises one Warning alert -- a budget overrun must alert, REQ-AI-092 -- and

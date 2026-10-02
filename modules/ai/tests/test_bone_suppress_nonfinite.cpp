@@ -15,6 +15,9 @@
 #include "xpe/ai/ai_api.h"
 #include "xpe/ai/ai_onnx_session.h"
 
+#include <windows.h>
+#include <tlhelp32.h>
+
 #include <cfloat>
 #include <cmath>
 #include <cstdint>
@@ -94,6 +97,26 @@ struct BoneSuppressNonFinite : public ::testing::Test {
 };
 
 constexpr const char* kNonFiniteNeedle = "non-finite";
+// The WHOLE text is the cross-lane contract (QA-B-181j). It states only what was observed -- the model's output
+// was non-finite and this image was not AI-processed -- and says nothing about the worker: the in-process path
+// has none, and the worker's state is for xpe_ai_worker_state() to report.
+constexpr const char* kNonFiniteAlertText =
+    "AI model output was non-finite (inf/NaN); this image was not AI-processed";
+
+/** True when exactly one pending alert has exactly @p text, and no pending alert mentions the worker's health. */
+bool OnlyTheContractAlert(const char* text, int* count) {
+    *count = 0;
+    bool forbidden = false;
+    for (int32_t i = 0; i < xpe_get_pending_alert_count(); ++i) {
+        char buf[512] = {0};
+        int32_t sev = -1;
+        if (xpe_get_pending_alert(i, buf, sizeof(buf), &sev) != XPE_OK) continue;
+        const std::string m(buf);
+        if (m == text) ++*count;
+        if (m.find("healthy") != std::string::npos) forbidden = true;
+    }
+    return !forbidden;
+}
 constexpr const char* kWorkerFailedNeedle = "AI worker failed";
 
 int CountAlerts(const char* needle) {
@@ -122,7 +145,7 @@ void RefusesExtremeInputs(const char* cfg) {
     const bool worker = cfg != nullptr;
     xpe_clear_alerts();
     int round = 0;
-    for (int rep = 0; rep < 2; ++rep) {   // two passes: six images in a row, more than the worker ceiling of 3
+    for (int rep = 0; rep < 2; ++rep) {   // two passes: 5 cases x 2 = ten images in a row, more than the worker ceiling of 3
         for (const Case& c : ExtremeInputs()) {
             ++round;
             Img in(c.in);
@@ -135,6 +158,9 @@ void RefusesExtremeInputs(const char* cfg) {
             EXPECT_TRUE(SameBits(c.in, in.px)) << c.name << ": the input was modified";
             // EVERY image went through the check: one alert naming the cause, and none of the worker-fault kind.
             EXPECT_EQ(1, CountAlerts(kNonFiniteNeedle)) << c.name << " round " << round << ": the refusal did not alert";
+            int exact = 0;
+            EXPECT_TRUE(OnlyTheContractAlert(kNonFiniteAlertText, &exact)) << c.name << ": the alert asserts something about the worker";
+            EXPECT_EQ(1, exact) << c.name << " round " << round << ": the alert text is not the contract text";
             EXPECT_EQ(0, CountAlerts(kWorkerFailedNeedle)) << c.name << " round " << round << ": counted as a worker fault";
             if (worker) {
                 // The documented fallback of the worker path: the output holds the input.
@@ -233,4 +259,86 @@ TEST_F(BoneSuppressNonFinite, WorkerFaultsStillSwitchTheWorkerOffAtTheCeiling) {
         EXPECT_EQ(static_cast<uint32_t>(i), w.failures);
         EXPECT_EQ(i == 3 ? XPE_AI_WORKER_DISABLED : XPE_AI_WORKER_ACTIVE, w.state) << "after fault " << i;
     }
+}
+
+
+// --- the policy, pinned (leader decision, Codex #65): a VALID model response ends a run of worker faults -------------
+//
+// The ceiling counts CONSECUTIVE worker and transport faults. A response that carries a valid envelope is the
+// observation "the worker works" -- the model refusing a pixel range is the model's business -- so it ends the run.
+// There is no per-session total; a session that alternates faults and refusals is never switched off by them.
+// This test fixes the order  fault, fault, valid-but-non-finite, fault, fault  : without the reset the fourth
+// event would be the third of a run and switch the worker off; with it the count reads 2 and the worker stays on.
+namespace {
+std::vector<DWORD> ChildWorkers() {
+    std::vector<DWORD> pids;
+    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snap == INVALID_HANDLE_VALUE) return pids;
+    PROCESSENTRY32 pe{};
+    pe.dwSize = sizeof(pe);
+    for (BOOL ok = Process32First(snap, &pe); ok; ok = Process32Next(snap, &pe)) {
+        if (pe.th32ParentProcessID == GetCurrentProcessId() && _stricmp(pe.szExeFile, "xpe_ai_worker.exe") == 0) {
+            pids.push_back(pe.th32ProcessID);
+        }
+    }
+    CloseHandle(snap);
+    return pids;
+}
+
+void Freeze(DWORD pid) {   // suspend every thread of pid: alive and silent
+    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+    if (snap == INVALID_HANDLE_VALUE) return;
+    THREADENTRY32 te{};
+    te.dwSize = sizeof(te);
+    for (BOOL ok = Thread32First(snap, &te); ok; ok = Thread32Next(snap, &te)) {
+        if (te.th32OwnerProcessID != pid) continue;
+        if (HANDLE t = OpenThread(THREAD_SUSPEND_RESUME, FALSE, te.th32ThreadID)) {
+            SuspendThread(t);
+            CloseHandle(t);
+        }
+    }
+    CloseHandle(snap);
+}
+
+XpeErrorCode CallWith(const std::vector<float>& px) {
+    Img in(px);
+    Img out(-7.0f);
+    return xpe_bone_suppress(&in.buf, &out.buf, nullptr);
+}
+}  // namespace
+
+TEST_F(BoneSuppressNonFinite, AValidNonFiniteResponseEndsARunOfWorkerFaultsAndNeverSwitchesTheWorkerOff) {
+    char tmp[MAX_PATH] = {0};
+    GetTempPathA(sizeof(tmp), tmp);
+    const std::string dir = std::string(tmp) + "xpe_ai_mix_" + std::to_string(GetCurrentProcessId());
+    CreateDirectoryA(dir.c_str(), nullptr);
+    const std::string model = dir + "/bone_suppress.onnx";
+    DeleteFileA(model.c_str());
+    ASSERT_EQ(XPE_OK, xpe_ai_init(dir.c_str(), "{\"use_worker\": true, \"timeout_ms\": 2000}"));
+    xpe_clear_alerts();
+
+    EXPECT_NE(XPE_OK, CallWith(Ordinary()));                       // fault 1: no model
+    EXPECT_NE(XPE_OK, CallWith(Ordinary()));                       // fault 2
+    EXPECT_EQ(2u, QueryState().failures);
+    ASSERT_TRUE(CopyFileA((kDirX2 + "/bone_suppress.onnx").c_str(), model.c_str(), FALSE) != 0);
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, CallWith(ExtremeInputs()[0].in));   // valid response, non-finite result
+    EXPECT_EQ(0u, QueryState().failures) << "a valid response must end the run of worker faults";
+    EXPECT_EQ(XPE_AI_WORKER_ACTIVE, QueryState().state);
+
+    const auto workers = ChildWorkers();
+    ASSERT_EQ(1u, workers.size());
+    Freeze(workers[0]);
+    EXPECT_NE(XPE_OK, CallWith(Ordinary()));                       // fault 3 (a new run): a silent worker, killed
+    ASSERT_TRUE(DeleteFileA(model.c_str()) != 0);
+    EXPECT_NE(XPE_OK, CallWith(Ordinary()));                       // fault 4: a fresh worker, no model
+    const WState w = QueryState();
+    EXPECT_EQ(2u, w.failures) << "two faults after the valid response are the first two of a new run";
+    EXPECT_EQ(XPE_AI_WORKER_ACTIVE, w.state) << "four faults in total, but never three in a row";
+    EXPECT_EQ(4, CountAlerts("AI worker failed")) << "one alert per worker fault";
+    EXPECT_EQ(1, CountAlerts(kNonFiniteNeedle)) << "and one for the refusal";
+    EXPECT_EQ(0, CountAlerts("disabled"));
+
+    xpe_ai_shutdown();
+    DeleteFileA(model.c_str());
+    RemoveDirectoryA(dir.c_str());
 }
