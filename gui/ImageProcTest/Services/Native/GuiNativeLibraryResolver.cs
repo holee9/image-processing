@@ -27,6 +27,7 @@ internal static class GuiNativeLibraryResolver
     private const string GsvgDll = "gsvg.dll";
     private const string AiDll = "xpe_ai.dll";
     private const string EnhanceBasicDll = "xpe_enhance_basic.dll";
+    private const string DicomDll = "xpe_dicom.dll";
 
     private static readonly object Gate = new();
     private static bool _installed;
@@ -134,6 +135,8 @@ internal static class GuiNativeLibraryResolver
             _ when Is(libraryName, AiDll) => NativeModuleLibraryLocator.GetDllCandidates(AiDll, "image-processing"),
             // #225 row 9 (GUI-C-196 M2): xpe_enhance_basic.dll follows the same module policy as xpe_display.
             _ when Is(libraryName, EnhanceBasicDll) => NativeModuleLibraryLocator.GetDllCandidates(EnhanceBasicDll, "image-processing"),
+            // #225 row 9 (GUI-C-196 M3): the DICOM writer/reader the baseline export uses.
+            _ when Is(libraryName, DicomDll) => NativeModuleLibraryLocator.GetDllCandidates(DicomDll, "image-processing"),
             _ => null,
         };
 
