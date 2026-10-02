@@ -21,7 +21,7 @@ docs/project/vvp_ai.md:348:| `AiWorkerIsolationTest.RepeatedFallbackIsConsistent
 docs/project/vvp_ai.md:510:| `AiWorkerIsolationTest.RepeatedFallbackIsConsistent` | fallback decision is deterministic |
 docs/project/vvp_ai.md:598:| Consistency | Unified | clang-format, C ABI conventions shared with the other six modules | In place |
 docs/project/vvp_ai.md:639:| Repeated failure | result is consistent across calls | `AiWorkerIsolationTest.RepeatedFallbackIsConsistent` |
-docs/project/XPE-10-Pass-Review-Log.md:64:| 1 | Physics and Mathematics | Verified all 10 new formulas against published references: PCD charge-sharing model (Ballabriga 
+docs/project/XPE-10-Pass-Review-Log.md:64:| 1 | Physics and Mathematics | Verified all 10 new formulas against published references: PCD charge-sharing model (Ballabriga
 docs/project/xpe-algorithm-spec-deepsync.md:15:This revision (ds5) adds preprocessing E2E proof contracts, detector-domain automatic evaluation formulas, local raw/calibr
 docs/project/XPE-PostProcess-DeepResearch.json:4:    "text": "ARCHIVAL NOTE: This JSON is a raw research-agent transcript for traceability only. It is non-normative and m
 docs/project/XPE-PreProcess-DeepResearch.json:4:    "text": "ARCHIVAL NOTE: This JSON is a raw research-agent transcript for traceability only. It is non-normative and mu
