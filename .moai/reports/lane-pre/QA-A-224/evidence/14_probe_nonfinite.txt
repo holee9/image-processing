@@ -1,0 +1,5 @@
+pipeline final has one +inf pixel (raw noisy)                 rc=0 snr_improvement_db=-inf  overall_pass=False mask=32
+pipeline final has one NaN pixel (raw noisy)                  rc=0 snr_improvement_db=nan  overall_pass=False mask=32
+pipeline final has one -inf pixel (raw noisy)                 rc=0 snr_improvement_db=-inf  overall_pass=False mask=32
+pipeline final 0.5% noise + one +inf pixel                    rc=0 snr_improvement_db=-inf  overall_pass=False mask=32
+pipeline final 0.5% noise + one NaN pixel                     rc=0 snr_improvement_db=-26.0862  overall_pass=False mask=32

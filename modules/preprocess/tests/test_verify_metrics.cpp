@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 #include <cstring>
 #include <cmath>
+#include <limits>
 #include <vector>
 #include <random>
 #include "xpe/preprocess_api.h"
@@ -684,6 +685,151 @@ TEST_F(VerifyMetricsTest, VerifyGain_ImprovedButStillAboveOnePercentFails) {
     EXPECT_FALSE(m.overall_pass)
         << "SRS-CALIB-FUNC-017 requires FlatResidualPct <= 1.0%; residual was "
         << m.prnu_after << "% with " << m.snr_improvement_db << " dB improvement";
+}
+
+/* ---------------------------------------------------------------------------
+ * QA-A-224 (#242): a perfect correction, and what the report field holds.
+ *
+ * xpe_verify_gain computed the improvement only when BOTH PRNU values were above zero and
+ * otherwise reported 0.0. A corrected frame that is exactly flat has PRNU 0, so the most
+ * improved frame possible reported "no improvement", failed the 3 dB gate, and overall_pass
+ * was false -- while the same panel left with 1e-6 noise reported ~94 dB and passed. Probed
+ * on the real DLL in QA-A-223 before this test existed.
+ *
+ * xpe_verify_pipeline divides by the spread too, so a flat frame put +inf, NaN or -inf into
+ * snr_improvement_db and out through the C ABI. Its verdicts were already right (noisy -> flat
+ * passed by luck of IEEE arithmetic); the field was not finite.
+ *
+ * The first test of each group is the one that was red; the others pin what must not move.
+ * ------------------------------------------------------------------------- */
+static XpeCalibrationMetrics verifyAlternatingGain(float afterFrac, XpeErrorCode* rc) {
+    // Raw: alternating +/-5% around 1000 ADU, PRNU 5%. Corrected: the same alternation at
+    // afterFrac (0 = exactly flat). Gain map all 1.0, semantics UNKNOWN (flat-residual line 1.0%).
+    const float level = 1000.0f;
+    U16ImageHelper raw(W, H, 1000);
+    F32ImageHelper corrected(W, H, level);
+    F32ImageHelper gain(W, H, 1.0f);
+    for (uint32_t y = 0; y < H; ++y) {
+        for (uint32_t x = 0; x < W; ++x) {
+            const bool up = ((x + y) % 2) == 0;
+            raw.set(y, x, static_cast<uint16_t>(level * (up ? 1.05f : 0.95f)));
+            corrected.set(y, x, level * (1.0f + (up ? afterFrac : -afterFrac)));
+        }
+    }
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    *rc = xpe_verify_gain(&raw.buf, &corrected.buf, &gain.buf, XPE_GAIN_SEMANTICS_UNKNOWN, &m);
+    return m;
+}
+
+static XpeCalibrationMetrics verifyAlternatingPipeline(float rawFrac, float finalFrac, XpeErrorCode* rc) {
+    // Raw (UINT16) alternates 1000*(1 +/- rawFrac); final (FLOAT32) alternates 1000*(1 +/- finalFrac).
+    // A fraction of 0 is an exactly flat frame.
+    const float level = 1000.0f;
+    U16ImageHelper raw(W, H, 1000);
+    F32ImageHelper fin(W, H, level);
+    for (uint32_t y = 0; y < H; ++y) {
+        for (uint32_t x = 0; x < W; ++x) {
+            const bool up = ((x + y) % 2) == 0;
+            raw.set(y, x, static_cast<uint16_t>(level * (1.0f + (up ? rawFrac : -rawFrac))));
+            fin.set(y, x, level * (1.0f + (up ? finalFrac : -finalFrac)));
+        }
+    }
+    XpeImageMetadata meta = {};
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    *rc = xpe_verify_pipeline(&raw.buf, &fin.buf, &meta, &m);
+    return m;
+}
+
+TEST_F(VerifyMetricsTest, VerifyGain_PerfectCorrectionPasses) {
+    XpeErrorCode rc = XPE_OK;
+    const XpeCalibrationMetrics m = verifyAlternatingGain(0.0f, &rc);
+    ASSERT_EQ(XPE_OK, rc);
+    // Control: the fixture really is the case in question -- a before that is not flat and an
+    // after that is exactly flat. If either moved, the assertions below would test nothing.
+    ASSERT_GT(m.prnu_before, 4.0);
+    ASSERT_EQ(0.0, m.prnu_after);
+    EXPECT_TRUE(std::isfinite(m.snr_improvement_db)) << "the field must be finite on every path";
+    EXPECT_GE(m.snr_improvement_db, 3.0) << "an infinite improvement is at least the 3 dB line";
+    EXPECT_TRUE(m.overall_pass)
+        << "a perfectly corrected panel must pass; reported improvement " << m.snr_improvement_db << " dB";
+}
+
+TEST_F(VerifyMetricsTest, VerifyGain_TinyResidualNoiseStillPasses) {
+    XpeErrorCode rc = XPE_OK;
+    const XpeCalibrationMetrics m = verifyAlternatingGain(1e-6f, &rc);   // PRNU after ~1e-4 %
+    ASSERT_EQ(XPE_OK, rc);
+    ASSERT_GT(m.prnu_after, 0.0) << "control: this one is NOT exactly flat";
+    EXPECT_GT(m.snr_improvement_db, 80.0);
+    EXPECT_TRUE(m.overall_pass);
+}
+
+TEST_F(VerifyMetricsTest, VerifyGain_NoImprovementStillFails) {
+    XpeErrorCode rc = XPE_OK;
+    const XpeCalibrationMetrics m = verifyAlternatingGain(0.05f, &rc);   // after == before
+    ASSERT_EQ(XPE_OK, rc);
+    EXPECT_LT(m.snr_improvement_db, 3.0);
+    EXPECT_FALSE(m.overall_pass) << "a correction that improved nothing must not pass";
+}
+
+TEST_F(VerifyMetricsTest, VerifyPipeline_PerfectFinalPassesWithAFiniteField) {
+    XpeErrorCode rc = XPE_OK;
+    const XpeCalibrationMetrics m = verifyAlternatingPipeline(0.05f, 0.0f, &rc);
+    ASSERT_EQ(XPE_OK, rc);
+    EXPECT_TRUE(std::isfinite(m.snr_improvement_db)) << "got " << m.snr_improvement_db;
+    EXPECT_GE(m.snr_improvement_db, 2.0);
+    EXPECT_TRUE(m.overall_pass);
+}
+
+TEST_F(VerifyMetricsTest, VerifyPipeline_TwoFlatFramesReportAFiniteValueAndDoNotPass) {
+    // Nothing was improved, so it is not a pass -- the verdict this function already gave (NaN
+    // compared false). What changes is that the field is a number.
+    XpeErrorCode rc = XPE_OK;
+    const XpeCalibrationMetrics m = verifyAlternatingPipeline(0.0f, 0.0f, &rc);
+    ASSERT_EQ(XPE_OK, rc);
+    EXPECT_TRUE(std::isfinite(m.snr_improvement_db)) << "got " << m.snr_improvement_db;
+    EXPECT_FALSE(m.overall_pass);
+}
+
+TEST_F(VerifyMetricsTest, VerifyPipeline_FlatRawMadeNoisyReportsAFiniteValueAndFails) {
+    XpeErrorCode rc = XPE_OK;
+    const XpeCalibrationMetrics m = verifyAlternatingPipeline(0.0f, 0.05f, &rc);
+    ASSERT_EQ(XPE_OK, rc);
+    EXPECT_TRUE(std::isfinite(m.snr_improvement_db)) << "got " << m.snr_improvement_db;
+    EXPECT_LT(m.snr_improvement_db, 0.0) << "the frame got worse";
+    EXPECT_FALSE(m.overall_pass);
+}
+
+TEST_F(VerifyMetricsTest, VerifyPipeline_ANanPixelIsNotReadAsAPerfectFrame) {
+    // One NaN pixel in an otherwise flat final frame: the robust centre stays finite and the
+    // spread is NaN (measured on the DLL, QA-A-224). The zero-spread rule is `std == 0`, not
+    // `!(std > 0)`: a NaN spread must not be reported as the 200 dB of a flat frame, or a frame
+    // with a corrupt pixel would pass. The field is NaN here -- non-finite pixels are outside the
+    // finiteness guarantee; what is pinned is the verdict.
+    const float level = 1000.0f;
+    U16ImageHelper raw(W, H, 1000);
+    F32ImageHelper fin(W, H, level);
+    for (uint32_t y = 0; y < H; ++y) {
+        for (uint32_t x = 0; x < W; ++x) {
+            const bool up = ((x + y) % 2) == 0;
+            raw.set(y, x, static_cast<uint16_t>(level * (up ? 1.05f : 0.95f)));
+        }
+    }
+    fin.set(0, 0, std::numeric_limits<float>::quiet_NaN());
+    XpeImageMetadata meta = {};
+    XpeCalibrationMetrics m{};
+    std::memset(&m, 0, sizeof(m));
+    ASSERT_EQ(XPE_OK, xpe_verify_pipeline(&raw.buf, &fin.buf, &meta, &m));
+    EXPECT_FALSE(m.overall_pass) << "a frame with a NaN pixel must not pass; field " << m.snr_improvement_db;
+}
+
+TEST_F(VerifyMetricsTest, VerifyPipeline_NoImprovementStillFails) {
+    XpeErrorCode rc = XPE_OK;
+    const XpeCalibrationMetrics m = verifyAlternatingPipeline(0.05f, 0.05f, &rc);
+    ASSERT_EQ(XPE_OK, rc);
+    EXPECT_TRUE(std::isfinite(m.snr_improvement_db));
+    EXPECT_FALSE(m.overall_pass);
 }
 
 /* ---------------------------------------------------------------------------

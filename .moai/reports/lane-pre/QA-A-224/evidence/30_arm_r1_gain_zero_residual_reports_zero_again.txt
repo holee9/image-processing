@@ -1,0 +1,7 @@
+ARM r1_gain_zero_residual_reports_zero_again
+file src/xpe_verify_metrics.cpp
+built=True
+[  FAILED  ] VerifyMetricsTest.VerifyGain_PerfectCorrectionPasses (0 ms)
+[  PASSED  ] 39 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] VerifyMetricsTest.VerifyGain_PerfectCorrectionPasses

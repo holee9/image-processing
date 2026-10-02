@@ -444,11 +444,16 @@ XPE_API XpeErrorCode xpe_calib_generate_gain(const XpeImageBuffer* flat_frames,
  * Writes an XCAL_TYPE_NONLIN_LUT file: a flat uint16 table where the index is
  * the raw ADU value and the entry is the linearized ADU value.
  *
- * Procedure, per the requirement: the mean signal of each flat frame is measured
- * in ADU, an ideal response `S_ideal = G_nominal * D` is fitted through the
- * origin, the pairs `(S_meas, S_ideal)` become knots together with the boundary
- * conditions `LUT[0] = 0` and `LUT[ADC_max] = ADC_max`, and the entries between
- * knots are filled by monotone cubic interpolation (Fritsch-Carlson 1980).
+ * Procedure, per the requirement as corrected on 2026-09-18 (#186): the mean signal
+ * of each flat frame is measured in ADU, an ideal response `S_ideal = G_nominal * D`
+ * is fitted through the origin, the pairs `(S_meas, S_ideal)` become knots together
+ * with the boundary condition `LUT[0] = 0`, and the entries between knots are filled
+ * by monotone cubic interpolation (Fritsch-Carlson 1980). There is NO upper knot: the
+ * `LUT[ADC_max] = ADC_max` identity pin was withdrawn. Above the highest measured
+ * signal the table continues along the last measured interval's secant, saturating at
+ * 65535, and the first entry of that extension is recorded in the file
+ * (`xcal_nonlin_extension_start`); the accuracy clause is judged inside the measured
+ * range only.
  *
  * The flat frames are taken rather than gain maps because
  * xpe_calib_generate_gain() normalizes each map to unit mean, which discards the
@@ -466,7 +471,9 @@ XPE_API XpeErrorCode xpe_calib_generate_gain(const XpeImageBuffer* flat_frames,
  *         XPE_ERR_INVALID_INPUT for a null argument, fewer than 10 levels, an
  *                       unsupported entry count, or non-increasing dose values
  *         XPE_ERR_INVALID_CALIB_DATA when the measured response is not strictly
- *                       increasing, or cannot reach the identity endpoint
+ *                       increasing, its lowest value is not above zero, its highest
+ *                       value reaches `lut_entries - 1`, or the fit gives a table that
+ *                       is not finite or not non-decreasing
  *         XPE_ERR_IO_FAILED on write failure
  */
 XPE_API XpeErrorCode xpe_calib_generate_nonlin_lut(const XpeImageBuffer* flat_frames,
@@ -1312,7 +1319,17 @@ typedef struct {
     double   correction_error;  ///< Mean absolute difference between corrected pixels and neighbor mean
 
     // Overall
-    double snr_improvement_db;  ///< SNR improvement in dB (before vs after)
+    /// Improvement in dB, finite for finite input (QA-A-224, #242). The name is kept (ABI lock,
+    /// SRS-CALIB-FUNC-037); the two functions that write it fill it with the same quantity:
+    ///  - xpe_verify_gain: 20*log10(prnu_before/prnu_after), the PRNU improvement. A residual of
+    ///    exactly zero is an infinite improvement and is reported as 200, which passes the gate.
+    ///  - xpe_verify_pipeline: SNR_final - SNR_raw with SNR = 20*log10(mean/std). A flat frame
+    ///    (std exactly 0) has an infinite SNR and counts as 200, so a noisy raw frame processed
+    ///    to a flat one reports 200 minus the raw SNR.
+    /// 200 is a reporting convention, not a bound: a nonzero residual is reported as measured.
+    /// Non-finite pixels are outside this guarantee (the field may then be NaN and the verdict
+    /// is a failure).
+    double snr_improvement_db;
     bool   overall_pass;        ///< Overall pass/fail based on thresholds
 
     /* ---------------------------------------------------------------------
@@ -1459,6 +1476,12 @@ XPE_API XpeErrorCode xpe_verify_offset(
  *       approved: the release gate separately requires `gain_semantics != UNKNOWN`
  *       (SRS-CALIB-FUNC-018: unknown semantics "shall not pass release gates").
  *
+ * @note PROVISIONAL thresholds (QA-A-223, #242): the 3.0 dB improvement line and the 0.99
+ *       coverage line have no requirement basis; they are kept, not derived. `FlatResidualPct`
+ *       (SRS-CALIB-FUNC-017) is the criterion the requirement states.
+ * @note A perfectly corrected frame (residual exactly 0) passes: its `snr_improvement_db` is
+ *       reported as 200 dB, a reporting convention for an infinite improvement (QA-A-224).
+ *
  * @warning ABI break (QA-A-192, #220): the 5-argument form replaced the 4-argument form under
  *       the SAME exported name, so a binary built against the old header still links and
  *       loads, and then calls with four arguments: `metrics` is read from the wrong register
@@ -1509,6 +1532,12 @@ XPE_API XpeErrorCode xpe_verify_defect(
  * covers xpe_verify_* (spec.md does not mention them); the REQ-P1A-041..047 this line
  * used to cite were the pre-bc22093 pipeline-stage requirements, now REQ-P1A-095..101.
  *
+ * PROVISIONAL threshold (QA-A-223, #242): the 2.0 dB line has no requirement basis (neither the
+ * evaluation protocol nor the SRS defines it) and is kept, not derived. `snr_improvement_db` is
+ * finite for finite input: a flat frame (std exactly 0) counts as an SNR of 200 dB, so a noisy
+ * raw frame processed to a perfectly flat one passes and two flat frames do not (nothing
+ * improved).
+ *
  * @param raw_image Original raw image (UINT16)
  * @param final_image Final processed image (FLOAT32)
  * @param metadata Image metadata
@@ -1548,8 +1577,9 @@ XPE_API XpeErrorCode xpe_verify_pipeline(
  * Phase 12: BPM (Bad Pixel Map) Generation (SWU-1.11)
  * FUNC-022: Dark BPM generation using RMM (Robust Mask Maker)
  * FUNC-023: Bright BPM generation using local mean deviation
- * FUNC-024: BPM merging (dark U bright)
- * FUNC-025: Reflect padding for boundary handling
+ * BPM merging (dark U bright) and reflect padding at the borders are implementation
+ * behaviour, not requirements: SRS-CALIB-FUNC-024 and -025 are the gain frame-count tiers
+ * and the post-BPM LineArtifactScore limit (QA-A-224, #216).
  * ============================================================================ */
 
 #ifdef __cplusplus
@@ -1599,15 +1629,17 @@ typedef struct {
  *   - Compute maskAvg = mean(window)
  *   - Flag if |bright_mean[x,y] - maskAvg| > maskAvg × tolerance_pct
  *
- * FUNC-024: BPM Merging
+ * BPM Merging (implementation behaviour -- no SRS text states it; SRS-CALIB-FUNC-024 is
+ * the gain frame-count tiers; QA-A-224, #216)
  *   - final_bpm[x,y] = max(dark_bpm[x,y], bright_bpm[x,y])
  *   - Values: 0=good, 1=dead/stuck, 2=hot/noisy, 3=both
  *
- * FUNC-025: Reflect Padding
+ * Reflect Padding (implementation behaviour -- no SRS text states it; SRS-CALIB-FUNC-025
+ * is the post-BPM LineArtifactScore limit)
  *   - Window extraction uses reflect mode at boundaries
  *   - Prevents false detections at image borders
  *
- * SRS-CALIB-FUNC-022..025: BPM generation for FPD calibration
+ * SRS-CALIB-FUNC-022 and -023: the detection parameters of BPM generation for FPD calibration
  *
  * @param dark_frames Array of dark frames (UINT16, offset-uncorrected)
  * @param num_dark Number of dark frames (≥ min_frames_dark)
