@@ -12,6 +12,8 @@
  *   "wrong_id"      answers a heartbeat with the right type but someone else's request id
  *   "no_pipe"       never creates its pipe: alive, and nobody can ever connect (a worker that hangs on start)
  *   "exit_on_start" exits at once with code 7 (a worker that dies on start)
+ *   "bone_valid_nan"    answers a BONE_SUPPRESS request with a VALID success envelope and NaN pixels (QA-B-181j)
+ *   "bone_garbage_nan"  answers a BONE_SUPPRESS request with an EMPTY JSON envelope and NaN pixels (QA-B-181j)
  *
  * It answers the session-start message correctly in every mode, so the supervisor reaches the heartbeat.
  * It exits 0 on a shutdown request, like the real worker.
@@ -23,6 +25,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -46,6 +49,32 @@ void Reply(uint32_t type, uint32_t request_id, const char* json) {
     DWORD w = 0;
     WriteFile(g_pipe, &h, sizeof(h), &w, nullptr);
     if (h.payloadSize > 0) WriteFile(g_pipe, json, h.payloadSize, &w, nullptr);
+}
+
+/** Answer a BONE_SUPPRESS request with an envelope of the caller's choice and every pixel NaN. */
+void ReplyBoneNaN(const XpeAiMessageHeader& req, const std::vector<char>& payload, const std::string& json) {
+    uint32_t reqjson = 0;
+    if (payload.size() >= sizeof(reqjson)) std::memcpy(&reqjson, payload.data(), sizeof(reqjson));
+    const size_t pixel_bytes = payload.size() >= sizeof(reqjson) + reqjson ? payload.size() - sizeof(reqjson) - reqjson : 0;
+    const uint32_t jn = static_cast<uint32_t>(json.size());
+    std::vector<char> body(sizeof(jn) + jn + pixel_bytes);
+    std::memcpy(body.data(), &jn, sizeof(jn));
+    std::memcpy(body.data() + sizeof(jn), json.data(), jn);
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+    for (size_t i = 0; i + sizeof(float) <= pixel_bytes; i += sizeof(float)) {
+        std::memcpy(body.data() + sizeof(jn) + jn + i, &nan, sizeof(float));
+    }
+    XpeAiMessageHeader h{};
+    h.magic = XPE_AI_MSG_MAGIC;
+    h.version = (static_cast<uint32_t>(XPE_AI_PROTOCOL_VERSION_MAJOR) << 16) |
+                static_cast<uint32_t>(XPE_AI_PROTOCOL_VERSION_MINOR);
+    h.messageType = XPE_AI_MSG_BONE_SUPPRESS_RESP;
+    h.requestId = req.requestId;
+    h.payloadSize = static_cast<uint32_t>(body.size());
+    h.flags = XPE_AI_FLAG_HAS_BINARY_PAYLOAD;
+    DWORD w = 0;
+    WriteFile(g_pipe, &h, sizeof(h), &w, nullptr);
+    WriteFile(g_pipe, body.data(), h.payloadSize, &w, nullptr);
 }
 
 std::string Mode() {
@@ -89,6 +118,13 @@ int main(int argc, char** argv) {
                     Reply(XPE_AI_MSG_HEARTBEAT_ACK, h.requestId + 1000, "{\"state\":0}");
                 } else {
                     Reply(XPE_AI_MSG_HEARTBEAT_ACK, h.requestId, "{\"state\":0}");
+                }
+                break;
+            case XPE_AI_MSG_BONE_SUPPRESS:
+                if (mode == "bone_valid_nan") {
+                    ReplyBoneNaN(h, payload, "{\"success\":true,\"width\":3,\"height\":3,\"format\":\"float32\"}");
+                } else if (mode == "bone_garbage_nan") {
+                    ReplyBoneNaN(h, payload, "");
                 }
                 break;
             case XPE_AI_MSG_SHUTDOWN:

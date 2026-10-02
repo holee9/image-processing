@@ -41,6 +41,18 @@ extern "C" XpeErrorCode xpe_apply_modality_lut(XpeImageBuffer*             img,
         // REQ-DISP-001: output[i] = input[i] * slope + intercept
         const float slope     = params->rescaleSlope;
         const float intercept = params->rescaleIntercept;
+        // QA-B-181f (#233): the parameters must be finite (`== 0` above says nothing about NaN or infinity), the
+        // image must be finite, and the result must stay finite. A NaN or infinite pixel, slope or intercept, or a
+        // product that leaves float (slope 1e38), used to go through with rc=0 and reach the next stage as NaN or
+        // +inf. The result is linear, so the largest and smallest pixel bound it. Nothing is written on refusal.
+        if (!xpe_float_is_finite(slope) || !xpe_float_is_finite(intercept)) return XPE_ERR_INVALID_INPUT;
+        {
+            float lo, hi;
+            if (!xpe_scan_finite(px, count, &lo, &hi)) return XPE_ERR_INVALID_INPUT;
+            if (!xpe_float_is_finite(lo * slope + intercept) || !xpe_float_is_finite(hi * slope + intercept)) {
+                return XPE_ERR_INVALID_INPUT;
+            }
+        }
         for (size_t i = 0; i < count; ++i) {
             px[i] = px[i] * slope + intercept;
         }
@@ -57,6 +69,10 @@ extern "C" XpeErrorCode xpe_apply_modality_lut(XpeImageBuffer*             img,
         const uint16_t* lut        = params->lutData;
         const int32_t   len        = static_cast<int32_t>(params->lutLength);
         const int32_t   firstMapped = params->lutFirstMapped;
+
+        // QA-B-181f (#233): refuse a non-finite pixel before converting it. `xpe_round_to_int` of NaN or an
+        // infinity is undefined behaviour; it used to come out as index 0 or a saturated end, with rc=0.
+        if (!xpe_all_finite(px, count)) return XPE_ERR_INVALID_INPUT;
 
         for (size_t i = 0; i < count; ++i) {
             int32_t idx = xpe_round_to_int(px[i]) - firstMapped;

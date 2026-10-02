@@ -1,0 +1,6 @@
+H0 control: build_ok=True passed=90 red=[]
+H1 old condition: Nf 0 passes: build_ok=True passed=89 red=['DicomReaderTest.Scope_JpegLosslessComponentCountMustBeExactlyOneAndPresent']
+H2 Nf byte presence is not checked against the segment length: build_ok=True passed=89 red=['DicomReaderTest.Scope_JpegLosslessComponentCountMustBeExactlyOneAndPresent']
+RESTORED_BYTE_IDENTICAL=True
+FINAL: build_ok=True passed=90 red=[]
+DONE

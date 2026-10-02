@@ -1,0 +1,50 @@
+QA-B-181g worst-input sweep. Inputs: +-FLT_MAX patterns (flat +MAX, flat -MAX, checkerboard +-MAX, one MAX spike in zeros, a finite ramp -MAX..MAX). Parameters: valid extremes per function.
+OFFENDER = the call answered rc==OK and the output holds a non-finite value (finite input, non-finite output, no error).
+'before' = DLLs built from HEAD (b69d22df) sources; 'after' = the 181g sources.
+
+=================== before
+noise_reduce bilateral       cases= 100  rc==OK= 100  OFFENDERS= 56  crashes=0
+    space=0.500000 range=0.001000 | flat +MAX | rc=0 nonfinite=1024/1024
+    space=0.500000 range=50.000000 | flat +MAX | rc=0 nonfinite=1024/1024
+    space=0.500000 range=1000000015047466219876688855040.000000 | flat +MAX | rc=0 nonfinite=1024/1024
+    space=0.500000 range=340282346638528859811704183484516925440.000000 | flat +MAX | rc=0 nonfinite=1024/1024
+    space=3.000000 range=0.001000 | flat +MAX | rc=0 nonfinite=1024/1024
+noise_reduce NLM             cases=  75  rc==OK=  75  OFFENDERS= 30  crashes=0
+    h=0.001000 win=3 patch=1 | flat +MAX | rc=0 nonfinite=576/576
+    h=0.001000 win=5 patch=3 | flat +MAX | rc=0 nonfinite=576/576
+    h=0.001000 win=21 patch=7 | flat +MAX | rc=0 nonfinite=576/576
+    h=10.000000 win=3 patch=1 | flat +MAX | rc=0 nonfinite=576/576
+    h=10.000000 win=5 patch=3 | flat +MAX | rc=0 nonfinite=576/576
+edge_enhance                 cases= 300  rc==OK= 300  OFFENDERS= 20  crashes=0
+    amount=0.500000 radius=10.000000 thr=inf | flat +MAX | rc=0 nonfinite=1024/1024
+    amount=1.000000 radius=10.000000 thr=inf | flat +MAX | rc=0 nonfinite=1024/1024
+    amount=5.000000 radius=10.000000 thr=340282346638528859811704183484516925440.000000 | flat +MAX | rc=0 nonfinite=1024/1024
+    amount=5.000000 radius=10.000000 thr=inf | flat +MAX | rc=0 nonfinite=1024/1024
+    amount=0.500000 radius=10.000000 thr=inf | flat -MAX | rc=0 nonfinite=1024/1024
+contrast_enhance             cases=  60  rc==OK=  36  OFFENDERS=  0  crashes=0
+log_transform                cases=  25  rc==OK=  21  OFFENDERS=  0  crashes=0
+log_inverse                  cases=  25  rc==OK=   9  OFFENDERS=  0  crashes=0
+modality LINEAR              cases=  75  rc==OK=  23  OFFENDERS=  0  crashes=0
+modality TABLE               cases=   5  rc==OK=   5  OFFENDERS=  0  crashes=0
+voi_lut                      cases= 540  rc==OK= 540  OFFENDERS=  0  crashes=0
+multiscale_process           cases=   5  rc==OK=   5  OFFENDERS=  5  crashes=0
+    default config | flat +MAX | rc=0 nonfinite=4096/4096
+    default config | flat -MAX | rc=0 nonfinite=4096/4096
+    default config | checker +-MAX | rc=0 nonfinite=4096/4096
+    default config | spike MAX in 0 | rc=0 nonfinite=1/4096
+    default config | ramp -MAX..MAX | rc=0 nonfinite=4096/4096
+fractional_process           cases=  25  rc==OK=  25  OFFENDERS=  0  crashes=0
+
+=================== after
+noise_reduce bilateral       cases= 100  rc==OK=   0  OFFENDERS=  0  crashes=0
+noise_reduce NLM             cases=  75  rc==OK=   0  OFFENDERS=  0  crashes=0
+edge_enhance                 cases= 300  rc==OK=  75  OFFENDERS=  0  crashes=0
+contrast_enhance             cases=  60  rc==OK=  36  OFFENDERS=  0  crashes=0
+log_transform                cases=  25  rc==OK=  21  OFFENDERS=  0  crashes=0
+log_inverse                  cases=  25  rc==OK=   9  OFFENDERS=  0  crashes=0
+modality LINEAR              cases=  75  rc==OK=  23  OFFENDERS=  0  crashes=0
+modality TABLE               cases=   5  rc==OK=   5  OFFENDERS=  0  crashes=0
+voi_lut                      cases= 540  rc==OK= 540  OFFENDERS=  0  crashes=0
+multiscale_process           cases=   5  rc==OK=   0  OFFENDERS=  0  crashes=0
+fractional_process           cases=  25  rc==OK=  25  OFFENDERS=  0  crashes=0
+

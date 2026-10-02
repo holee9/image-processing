@@ -3044,8 +3044,10 @@ TEST_F(DicomReaderTest, Scope_AbsentNumberOfFramesIsASingleFrame) {
 }
 
 // Uncompressed pixel data is copied as 16-bit words, so only a 16-bit declaration can be honest.
-// Bits Allocated {1, 8, 12, 16, 32}: 16 is the control, everything else is unsupported (a well-formed file this
-// reader cannot return), never a read of 16-bit words out of data that is not.
+// Bits Allocated {1, 8, 12, 16, 32}: 16 is the control. 1, 8 and 32 are well-formed files this reader cannot return
+// (unsupported); 12 is not a value PS3.5 8.1.1 allows at all ("shall either be 1, or a multiple of 8"), so it is a
+// malformed dataset (QA-B-182e: it was filed as unsupported before the standard was read). Never a read of 16-bit
+// words out of data that is not.
 TEST_F(DicomReaderTest, Scope_OnlySixteenBitAllocationIsReadFromNativePixelData) {
     const std::vector<uint16_t> baseline = Words(s_validDcm);
     for (int bits : {1, 8, 12, 16, 32}) {
@@ -3060,7 +3062,7 @@ TEST_F(DicomReaderTest, Scope_OnlySixteenBitAllocationIsReadFromNativePixelData)
             EXPECT_EQ(XPE_OK, r.read) << "control: 16 bits allocated reads";
             EXPECT_EQ(baseline, r.words);
         } else {
-            EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, r.read) << "BitsAllocated=" << bits;
+            EXPECT_EQ(bits == 12 ? XPE_ERR_DICOM_INVALID : XPE_ERR_UNSUPPORTED_FORMAT, r.read) << "BitsAllocated=" << bits;
             EXPECT_TRUE(r.outUntouchedOnFailure) << "BitsAllocated=" << bits;
             EXPECT_EQ(XPE_OK, r.metaAfter) << "BitsAllocated=" << bits;
         }
@@ -3077,7 +3079,8 @@ TEST_F(DicomReaderTest, Scope_OnlySixteenBitAllocationIsReadFromNativePixelData)
 }
 
 // With 16 bits allocated, Bits Stored must fit and High Bit must be Bits Stored - 1: a High Bit above that means
-// the significant bits are not the low ones, and the words would come back unshifted.
+// the significant bits are not the low ones, and the words would come back unshifted. PS3.5 8.1.1 makes both a
+// "shall" (QA-B-182e), so a breach is a malformed dataset, not an unsupported feature.
 TEST_F(DicomReaderTest, Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord) {
     struct Case { int stored, high; bool ok; };
     const Case cases[] = {
@@ -3094,7 +3097,7 @@ TEST_F(DicomReaderTest, Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWor
                 ds->putAndInsertUint16(DCM_HighBit, static_cast<Uint16>(c.high));
             });
         const ScopeRead r = ReadScope(p);
-        EXPECT_EQ(c.ok ? XPE_OK : XPE_ERR_UNSUPPORTED_FORMAT, r.read)
+        EXPECT_EQ(c.ok ? XPE_OK : XPE_ERR_DICOM_INVALID, r.read)
             << "BitsStored=" << c.stored << " HighBit=" << c.high;
     }
 }
@@ -3438,6 +3441,377 @@ TEST_F(DicomReaderTest, Scope_AbsentOrEmptyBitsStoredAndHighBitAreMalformedOnEve
             EXPECT_EQ(XPE_OK, a.metaAfter) << base << " absent";
             const ScopeRead e = ReadScope(p.make((base + "_empty").c_str(), [&](DcmDataset* ds) { ds->putAndInsertString(t.key, ""); }));
             EXPECT_EQ(XPE_ERR_DICOM_INVALID, e.read) << base << " empty";
+        }
+    }
+}
+
+// ---- QA-B-182e: the bits attributes, judged against the standard -----------------------------------------------
+// PS3.5 8.1.1 (every Pixel Data): Bits Allocated "shall either be 1, or a multiple of 8"; "Bits Stored shall never be
+// larger than Bits Allocated"; "High Bit shall be one less than Bits Stored". PS3.5 Table 8.2.1-2 (JPEG Lossless)
+// lists Bits Allocated 8 or 16; Table 8.2.4-1 (JPEG 2000, monochrome) lists 1, 8, 16, 24, 32 or 40. A value the
+// standard forbids is a malformed dataset (DICOM_INVALID); a value it allows that this reader cannot return is
+// unsupported. The same attribute therefore gets the same answer on every path.
+TEST_F(DicomReaderTest, Scope_BitsAttributesAreViolationOrUnsupportedAsThePixelDataEncodingRulesSay) {
+    const fs::path jpegLl = s_tempDir / "jpegll_for_182e.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, jpegLl));
+    std::vector<uint8_t> codestream;
+    ASSERT_TRUE(ExtractJ2kBitstream(s_j2kDcm, codestream));
+
+    enum Want { OK, INV, UNS, SKIP };
+    struct Case { int alloc, stored, high; Want native, ll, j2k; };
+    // SKIP: the case is not decidable from the tags on that path (the J2K donor codestream is 16 bit, so its own
+    // precision check answers for any stored value other than 16).
+    const Case cases[] = {
+        {16, 16, 15, OK,  OK,  OK},     // control
+        {16, 12, 11, OK,  OK,  SKIP},   // 12 of 16 bits, well formed
+        {16, 12, 15, INV, INV, INV},    // High Bit is not Bits Stored - 1 (the Codex #51 case)
+        {16, 12, 12, INV, INV, INV},
+        {16, 16, 14, INV, INV, INV},
+        {16, 17, 16, INV, INV, INV},    // Bits Stored larger than Bits Allocated
+        {16, 0, 0xFFFF, INV, INV, INV},
+        {12, 12, 11, INV, INV, INV},    // 12 is neither 1 nor a multiple of 8
+        {8, 8, 7, UNS,  UNS, SKIP},     // allowed everywhere, returned nowhere but J2K 8 bit
+        {1, 1, 0, UNS,  INV, UNS},      // JPEG Lossless lists 8 and 16 only
+        {24, 24, 23, UNS, INV, UNS},
+        {32, 32, 31, UNS, INV, UNS},
+        {48, 48, 47, UNS, INV, INV},    // beyond Table 8.2.4-1 as well
+        // QA-B-181g (Codex #57): Table 8.2.4-1 lists BitsAllocated 40 AND BitsStored 1-38 / HighBit 0-37 for JPEG 2000.
+        // An allocation the table allows can still carry a BitsStored it does not.
+        {40, 40, 39, UNS, INV, INV},    // BitsStored 40 is beyond 38
+        {40, 39, 38, UNS, INV, INV},    // BitsStored 39 is beyond 38 (the Codex case)
+        {40, 38, 37, UNS, INV, UNS},    // the table allows it, this reader does not return it
+    };
+    const XpeErrorCode answer[] = {XPE_OK, XPE_ERR_DICOM_INVALID, XPE_ERR_UNSUPPORTED_FORMAT, XPE_OK};
+    int n = 0;
+    for (const Case& c : cases) {
+        const std::string tag = std::to_string(c.alloc) + "_" + std::to_string(c.stored) + "_" + std::to_string(c.high);
+        auto mutate = [&](DcmDataset* ds) { SetPixelAttrs(ds, 1, 0, c.alloc, c.stored, c.high); };
+        struct Run { const char* name; Want want; fs::path file; };
+        const Run runs[] = {
+            {"native", c.native, c.native == SKIP ? fs::path() : MakeSameSyntaxVariant(s_validDcm, ("e_nat_" + tag).c_str(), mutate)},
+            {"jpeg_lossless", c.ll, c.ll == SKIP ? fs::path() : MakeSameSyntaxVariant(jpegLl, ("e_ll_" + tag).c_str(), mutate)},
+            {"j2k", c.j2k, c.j2k == SKIP ? fs::path() : MakeJ2kVariant(s_j2kDcm, ("e_j2k_" + tag).c_str(), codestream, mutate)},
+        };
+        for (const Run& r : runs) {
+            if (r.want == SKIP) continue;
+            const ScopeRead got = ReadScope(r.file);
+            EXPECT_EQ(answer[r.want], got.read) << r.name << " alloc/stored/high = " << tag;
+            if (r.want != OK) {
+                EXPECT_TRUE(got.outUntouchedOnFailure) << r.name << " " << tag;
+                EXPECT_EQ(XPE_OK, got.metaAfter) << r.name << " " << tag;
+            }
+            ++n;
+        }
+    }
+    EXPECT_GE(n, 30) << "the table must actually have been run";
+}
+
+// PS3.5 8.2 / 8.2.4: for an encapsulated JPEG stream the pixel attributes "shall contain Values that are consistent
+// with the characteristics of the compressed data stream", and Table 8.2.1-2 says "The Pixel Data characteristics
+// included in the JPEG Interchange Format shall be used to decode the compressed data stream". The only bit depth the
+// JPEG stream carries is the SOF sample precision P. P below Bits Stored cannot hold the declared values; P above
+// Bits Allocated does not fit the declared container. P above Bits Stored is NOT refused: the standard does not say
+// what "consistent" means there, encoders are known to write a wider P, and refusing would turn away real files.
+namespace {
+/** The first SOF3 (JPEG Lossless) frame header in the file, patched to carry sample precision `p`. */
+bool PatchJpegLosslessPrecision(const fs::path& src, const fs::path& dst, int p, int* original) {
+    std::ifstream in(src, std::ios::binary);
+    std::vector<uint8_t> b((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    for (size_t k = 0; k + 4 < b.size(); ++k) {
+        if (b[k] == 0xFF && b[k + 1] == 0xC3 && b[k + 2] == 0x00 && b[k + 3] == 0x0B) {   // SOF3, one component
+            if (original) *original = b[k + 4];
+            b[k + 4] = static_cast<uint8_t>(p);
+            std::ofstream out(dst, std::ios::binary);
+            out.write(reinterpret_cast<const char*>(b.data()), static_cast<std::streamsize>(b.size()));
+            return out.good();
+        }
+    }
+    return false;
+}
+}  // namespace
+
+TEST_F(DicomReaderTest, Scope_JpegLosslessPrecisionIsComparedWithBitsStoredBeforeDecoding) {
+    const fs::path ll = s_tempDir / "jpegll_for_182e_p.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, ll));
+    int original = 0;
+    const fs::path same = s_tempDir / "jpegll_p_same.dcm";
+    ASSERT_TRUE(PatchJpegLosslessPrecision(ll, same, 16, &original));
+    ASSERT_EQ(16, original) << "the donor stream is 16 bit; the patch below is a change";
+    EXPECT_EQ(XPE_OK, ReadScope(same).read) << "control: precision 16, Bits Stored 16";
+
+    for (int p : {12, 8, 20}) {   // 12 and 8 cannot hold Bits Stored 16; 20 does not fit 16 bits allocated
+        const fs::path narrow = s_tempDir / ("jpegll_p_" + std::to_string(p) + ".dcm");
+        ASSERT_TRUE(PatchJpegLosslessPrecision(ll, narrow, p, nullptr));
+        xpe_clear_alerts();
+        const ScopeRead r = ReadScope(narrow);
+        EXPECT_EQ(XPE_ERR_DICOM_INVALID, r.read) << "precision " << p << " does not fit Bits Stored 16 / Bits Allocated 16";
+        EXPECT_TRUE(r.outUntouchedOnFailure) << "precision " << p;
+        EXPECT_EQ(XPE_OK, r.metaAfter) << "precision " << p;
+        bool named = false;
+        for (int32_t i = 0; i < xpe_get_pending_alert_count(); ++i) {
+            char buf[512] = {0};
+            int32_t sev = -1;
+            if (xpe_get_pending_alert(i, buf, sizeof(buf), &sev) == XPE_OK && std::string(buf).find("precision") != std::string::npos) named = true;
+        }
+        EXPECT_TRUE(named) << "the refusal names the stream precision, precision " << p;
+    }
+
+    // A wider stream than Bits Stored is allowed: 16 bit precision, 12 bits stored.
+    const fs::path wider = MakeSameSyntaxVariant(ll, "e_ll_p16_stored12", [](DcmDataset* ds) { SetPixelAttrs(ds, 1, 0, 16, 12, 11); });
+    EXPECT_EQ(XPE_OK, ReadScope(wider).read) << "precision 16 above Bits Stored 12 is not refused";
+}
+
+// QA-B-182e (card 182f item 5): a JPEG Lossless stream whose frame header declares three components while the dataset
+// says SamplesPerPixel = 1. A JPEG Lossless frame header carries no sign flag (PixelRepresentation lives in the dataset
+// only), so the component count is the only independent attribute besides precision and size.
+namespace {
+/** The first SOF3 frame header in the file, rewritten to declare `nf` components (a consistent header: length and
+ *  component specs follow). The scan header is left alone, so the file is inconsistent on purpose. */
+bool PatchJpegLosslessComponents(const fs::path& src, const fs::path& dst, int nf) {
+    std::ifstream in(src, std::ios::binary);
+    std::vector<uint8_t> b((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    for (size_t k = 0; k + 12 < b.size(); ++k) {
+        if (b[k] == 0xFF && b[k + 1] == 0xC3 && b[k + 2] == 0x00 && b[k + 3] == 0x0B) {   // SOF3, one component
+            const size_t len = 8 + 3 * static_cast<size_t>(nf);
+            b[k + 2] = static_cast<uint8_t>(len >> 8);
+            b[k + 3] = static_cast<uint8_t>(len & 0xFF);
+            b[k + 9] = static_cast<uint8_t>(nf);
+            std::vector<uint8_t> extra;
+            for (int c = 1; c < nf; ++c) {
+                extra.push_back(static_cast<uint8_t>(c + 1));   // component id
+                extra.push_back(0x11);                          // sampling factors
+                extra.push_back(0x00);                          // quantization table (unused in lossless)
+            }
+            // The bytes added to the frame header must also be added to the length of the pixel-data fragment (item)
+            // that holds it, or the file no longer parses and the reader never reaches the frame header. The item
+            // header is the 8 bytes before the JPEG SOI: tag FE FF 00 E0, then a 4 byte little endian length.
+            size_t soi = k;
+            while (soi >= 2 && !(b[soi] == 0xD8 && b[soi - 1] == 0xFF)) --soi;
+            soi -= 1;                                   // index of the 0xFF of FF D8
+            if (soi < 8 || b[soi - 8] != 0xFE || b[soi - 7] != 0xFF || b[soi - 6] != 0x00 || b[soi - 5] != 0xE0) return false;
+            uint32_t itemLen = static_cast<uint32_t>(b[soi - 4]) | (static_cast<uint32_t>(b[soi - 3]) << 8) |
+                               (static_cast<uint32_t>(b[soi - 2]) << 16) | (static_cast<uint32_t>(b[soi - 1]) << 24);
+            itemLen += static_cast<uint32_t>(extra.size());
+            b[soi - 4] = static_cast<uint8_t>(itemLen & 0xFF);
+            b[soi - 3] = static_cast<uint8_t>((itemLen >> 8) & 0xFF);
+            b[soi - 2] = static_cast<uint8_t>((itemLen >> 16) & 0xFF);
+            b[soi - 1] = static_cast<uint8_t>((itemLen >> 24) & 0xFF);
+            b.insert(b.begin() + static_cast<std::ptrdiff_t>(k + 13), extra.begin(), extra.end());
+            std::ofstream out(dst, std::ios::binary);
+            out.write(reinterpret_cast<const char*>(b.data()), static_cast<std::streamsize>(b.size()));
+            return out.good();
+        }
+    }
+    return false;
+}
+}  // namespace
+
+TEST_F(DicomReaderTest, Scope_JpegLosslessComponentCountIsComparedWithSamplesPerPixelBeforeDecoding) {
+    const fs::path ll = s_tempDir / "jpegll_for_182e_nf.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, ll));
+    const fs::path one = s_tempDir / "jpegll_nf_1.dcm";
+    ASSERT_TRUE(PatchJpegLosslessComponents(ll, one, 1));
+    EXPECT_EQ(XPE_OK, ReadScope(one).read) << "control: one component, SamplesPerPixel 1";
+
+    const fs::path three = s_tempDir / "jpegll_nf_3.dcm";
+    ASSERT_TRUE(PatchJpegLosslessComponents(ll, three, 3));
+    xpe_clear_alerts();
+    const ScopeRead r = ReadScope(three);
+    GTEST_LOG_(INFO) << "QA-B-182e probe: frame header with 3 components, dataset SamplesPerPixel 1 -> rc=" << r.read;
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, r.read) << "the stream says 3 components, the dataset says 1";
+    EXPECT_TRUE(r.outUntouchedOnFailure);
+    EXPECT_EQ(XPE_OK, r.metaAfter);
+    bool named = false;
+    for (int32_t i = 0; i < xpe_get_pending_alert_count(); ++i) {
+        char buf[512] = {0};
+        int32_t sev = -1;
+        if (xpe_get_pending_alert(i, buf, sizeof(buf), &sev) == XPE_OK && std::string(buf).find("component") != std::string::npos) named = true;
+    }
+    EXPECT_TRUE(named) << "the refusal names the component count";
+}
+
+// ---- QA-B-182f: PhotometricInterpretation (Type 1) and the rest of the Image Pixel Description Macro -------------
+// PS3.3 Table C.7-11c (Image Pixel Description Macro): Samples per Pixel, Photometric Interpretation, Rows, Columns,
+// Bits Allocated, Bits Stored, High Bit and Pixel Representation are Type 1. C.7.6.3.1.2 defines the values:
+// MONOCHROME1 / MONOCHROME2 "may be used only when Samples per Pixel has a Value of 1" (a single plane, minimum
+// displayed as white / black); PALETTE COLOR is a single plane whose value is an index into the palette tables (so a
+// gray uint16 buffer would misrepresent it); RGB, YBR_FULL, YBR_FULL_422, YBR_PARTIAL_420, YBR_ICT, YBR_RCT "may be
+// used only when Samples per Pixel has a Value of 3" (so with one sample they are a malformed dataset); other values
+// are "permitted if supported by the Transfer Syntax but the meaning is not defined by this Standard".
+namespace {
+bool AlertNames(const char* needle) {
+    for (int32_t i = 0; i < xpe_get_pending_alert_count(); ++i) {
+        char buf[512] = {0};
+        int32_t sev = -1;
+        if (xpe_get_pending_alert(i, buf, sizeof(buf), &sev) == XPE_OK && std::string(buf).find(needle) != std::string::npos) return true;
+    }
+    return false;
+}
+}  // namespace
+
+TEST_F(DicomReaderTest, Scope_PhotometricInterpretationIsRequiredAndOnlyAMonochromePlaneIsReturned) {
+    const fs::path jpegLl = s_tempDir / "jpegll_for_182f.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, jpegLl));
+    std::vector<uint8_t> codestream;
+    ASSERT_TRUE(ExtractJ2kBitstream(s_j2kDcm, codestream));
+
+    enum Want { OK, INV, UNS };
+    struct Row { const char* label; const char* pi; int samples; Want want; };   // pi == nullptr: absent
+    const Row rows[] = {
+        {"control_monochrome2", "MONOCHROME2", 1, OK},
+        {"monochrome2_padded", "MONOCHROME2 ", 1, OK},          // a CS value of odd length is padded with a space
+        {"monochrome2_leading_space", " MONOCHROME2", 1, OK},   // leading and trailing spaces of a CS are not significant (PS3.5 6.2)
+        {"monochrome1", "MONOCHROME1", 1, OK},                  // read as stored (#235 decides the inversion policy)
+        {"absent", nullptr, 1, INV},
+        {"empty", "", 1, INV},
+        {"palette_color", "PALETTE COLOR", 1, UNS},             // valid, but the value is an index, not a gray level
+        {"rgb_one_sample", "RGB", 1, INV},                      // RGB is defined only for 3 samples
+        {"ybr_full_one_sample", "YBR_FULL", 1, INV},
+        {"ybr_full_422_one_sample", "YBR_FULL_422", 1, INV},
+        {"ybr_rct_one_sample", "YBR_RCT", 1, INV},
+        {"xyb", "XYB", 1, UNS},
+        {"undefined_value", "FOO", 1, UNS},                     // "permitted ... but the meaning is not defined"
+        {"rgb_three_samples", "RGB", 3, UNS},                   // well formed colour, which this reader cannot return
+    };
+    const XpeErrorCode answer[] = {XPE_OK, XPE_ERR_DICOM_INVALID, XPE_ERR_UNSUPPORTED_FORMAT};
+    int n = 0;
+    for (const Row& r : rows) {
+        auto mutate = [&](DcmDataset* ds) {
+            if (r.pi == nullptr) delete ds->remove(DCM_PhotometricInterpretation);
+            else ds->putAndInsertString(DCM_PhotometricInterpretation, r.pi);
+            if (r.samples != 1) ds->putAndInsertUint16(DCM_SamplesPerPixel, static_cast<Uint16>(r.samples));
+        };
+        struct Run { const char* name; fs::path file; };
+        const Run runs[] = {
+            {"native", MakeSameSyntaxVariant(s_validDcm, (std::string("f_nat_") + r.label).c_str(), mutate)},
+            {"jpeg_lossless", MakeSameSyntaxVariant(jpegLl, (std::string("f_ll_") + r.label).c_str(), mutate)},
+            {"j2k", MakeJ2kVariant(s_j2kDcm, (std::string("f_j2k_") + r.label).c_str(), codestream, mutate)},
+        };
+        for (const Run& run : runs) {
+            xpe_clear_alerts();
+            const ScopeRead got = ReadScope(run.file);
+            EXPECT_EQ(answer[r.want], got.read) << run.name << " PhotometricInterpretation=" << (r.pi ? r.pi : "<absent>") << " samples=" << r.samples;
+            if (r.want != OK) {
+                EXPECT_TRUE(got.outUntouchedOnFailure) << run.name << " " << r.label;
+                EXPECT_EQ(XPE_OK, got.metaAfter) << run.name << " " << r.label;
+                EXPECT_TRUE(AlertNames("PhotometricInterpretation") || AlertNames("SamplesPerPixel")) << run.name << " " << r.label << ": the refusal names the attribute";
+            }
+            ++n;
+        }
+    }
+    EXPECT_EQ(14 * 3, n);
+}
+
+TEST_F(DicomReaderTest, Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochrome1IsReturnedAsStored) {
+    xpe_clear_alerts();
+    const fs::path absent = MakeScopeVariant(s_validDcm, "f_alert_absent", [](DcmDataset* ds) { delete ds->remove(DCM_PhotometricInterpretation); });
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, ReadScope(absent).read);
+    EXPECT_TRUE(AlertNames("PhotometricInterpretation (0028,0004) is absent")) << "absent attribute not named";
+
+    xpe_clear_alerts();
+    const fs::path palette = MakeScopeVariant(s_validDcm, "f_alert_palette", [](DcmDataset* ds) { ds->putAndInsertString(DCM_PhotometricInterpretation, "PALETTE COLOR"); });
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, ReadScope(palette).read);
+    EXPECT_TRUE(AlertNames("PALETTE COLOR")) << "the unsupported value is named";
+
+    xpe_clear_alerts();
+    const fs::path rgb1 = MakeScopeVariant(s_validDcm, "f_alert_rgb1", [](DcmDataset* ds) { ds->putAndInsertString(DCM_PhotometricInterpretation, "RGB"); });
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, ReadScope(rgb1).read);
+    EXPECT_TRUE(AlertNames("RGB") && AlertNames("SamplesPerPixel")) << "the value and the sample count that contradict each other are named";
+
+    // MONOCHROME1 is read exactly as MONOCHROME2 is: the words come back as stored, and nothing tells the caller.
+    const std::vector<uint16_t> baseline = Words(s_validDcm);
+    xpe_clear_alerts();
+    const fs::path mono1 = MakeScopeVariant(s_validDcm, "f_mono1", [](DcmDataset* ds) { ds->putAndInsertString(DCM_PhotometricInterpretation, "MONOCHROME1"); });
+    const ScopeRead r = ReadScope(mono1);
+    EXPECT_EQ(XPE_OK, r.read);
+    EXPECT_EQ(baseline, r.words) << "no inversion";
+    EXPECT_EQ(0, xpe_get_pending_alert_count()) << "no alert tells the caller the stored values are inverted-sense (current state, #235)";
+}
+
+// Rows and Columns are Type 1 too. They were read, and an absent or zero value was refused with the right code, but
+// silently: the other Type 1 attributes post an alert that names the cause (QA-B-182c).
+TEST_F(DicomReaderTest, Scope_AbsentOrZeroRowsAndColumnsAreRefusedWithAnAlertOnEveryPath) {
+    const fs::path jpegLl = s_tempDir / "jpegll_for_182f_rc.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, jpegLl));
+    std::vector<uint8_t> codestream;
+    ASSERT_TRUE(ExtractJ2kBitstream(s_j2kDcm, codestream));
+    struct Tag { const char* name; DcmTagKey key; };
+    const Tag tags[] = {{"Rows", DCM_Rows}, {"Columns", DCM_Columns}};
+    for (const Tag& t : tags) {
+        for (int mode = 0; mode < 2; ++mode) {   // 0 absent, 1 zero
+            auto mutate = [&](DcmDataset* ds) {
+                if (mode == 0) delete ds->remove(t.key);
+                else ds->putAndInsertUint16(t.key, 0);
+            };
+            const std::string base = std::string("f_rc_") + t.name + (mode == 0 ? "_absent" : "_zero");
+            const struct { const char* name; fs::path file; } runs[] = {
+                {"native", MakeSameSyntaxVariant(s_validDcm, (base + "_nat").c_str(), mutate)},
+                {"jpeg_lossless", MakeSameSyntaxVariant(jpegLl, (base + "_ll").c_str(), mutate)},
+                {"j2k", MakeJ2kVariant(s_j2kDcm, (base + "_j2k").c_str(), codestream, mutate)},
+            };
+            for (const auto& run : runs) {
+                xpe_clear_alerts();
+                const ScopeRead got = ReadScope(run.file);
+                EXPECT_EQ(XPE_ERR_DICOM_INVALID, got.read) << run.name << " " << base;
+                EXPECT_TRUE(got.outUntouchedOnFailure) << run.name << " " << base;
+                EXPECT_TRUE(AlertNames(t.name)) << run.name << " " << base << ": the refusal names the attribute";
+            }
+        }
+    }
+}
+
+// QA-B-181h (Codex #60): the component-count comparison must treat Nf = 0 and an absent Nf as a mismatch. It used `0` both
+// as "not read" and as a real Nf, so a frame header declaring zero components, or one cut off before the Nf byte, passed.
+namespace {
+/** The first SOF3 frame header, with its Nf byte and/or its segment length overwritten (-1 leaves a field alone). */
+bool PatchJpegLosslessSof(const fs::path& src, const fs::path& dst, int nf, int segmentLength) {
+    std::ifstream in(src, std::ios::binary);
+    std::vector<uint8_t> b((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    for (size_t k = 0; k + 12 < b.size(); ++k) {
+        if (b[k] == 0xFF && b[k + 1] == 0xC3 && b[k + 2] == 0x00 && b[k + 3] == 0x0B) {   // SOF3, one component
+            if (nf >= 0) b[k + 9] = static_cast<uint8_t>(nf);
+            if (segmentLength >= 0) {
+                b[k + 2] = static_cast<uint8_t>(segmentLength >> 8);
+                b[k + 3] = static_cast<uint8_t>(segmentLength & 0xFF);
+            }
+            std::ofstream out(dst, std::ios::binary);
+            out.write(reinterpret_cast<const char*>(b.data()), static_cast<std::streamsize>(b.size()));
+            return out.good();
+        }
+    }
+    return false;
+}
+}  // namespace
+
+TEST_F(DicomReaderTest, Scope_JpegLosslessComponentCountMustBeExactlyOneAndPresent) {
+    const fs::path ll = s_tempDir / "jpegll_for_181h.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, ll));
+    struct Case { const char* name; int nf; int segLen; XpeErrorCode want; };
+    const Case cases[] = {
+        {"nf_1_control", 1, -1, XPE_OK},
+        {"nf_0", 0, -1, XPE_ERR_DICOM_INVALID},                 // zero components
+        {"nf_2", 2, -1, XPE_ERR_DICOM_INVALID},
+        {"nf_3", 3, -1, XPE_ERR_DICOM_INVALID},
+        {"nf_byte_beyond_the_segment", -1, 7, XPE_ERR_DICOM_INVALID},   // the segment ends before the Nf byte
+        {"segment_length_zero", -1, 0, XPE_ERR_DICOM_INVALID},
+    };
+    for (const Case& c : cases) {
+        const fs::path p = s_tempDir / (std::string("jpegll_181h_") + c.name + ".dcm");
+        ASSERT_TRUE(PatchJpegLosslessSof(ll, p, c.nf, c.segLen)) << c.name;
+        xpe_clear_alerts();
+        const ScopeRead r = ReadScope(p);
+        GTEST_LOG_(INFO) << "QA-B-181h probe: " << c.name << " -> rc=" << r.read;
+        EXPECT_EQ(c.want, r.read) << c.name;
+        if (c.want != XPE_OK) {
+            EXPECT_TRUE(r.outUntouchedOnFailure) << c.name;
+            EXPECT_EQ(XPE_OK, r.metaAfter) << c.name;
+            bool named = false;
+            for (int32_t i = 0; i < xpe_get_pending_alert_count(); ++i) {
+                char buf[512] = {0};
+                int32_t sev = -1;
+                if (xpe_get_pending_alert(i, buf, sizeof(buf), &sev) == XPE_OK && std::string(buf).find("component") != std::string::npos) named = true;
+            }
+            EXPECT_TRUE(named) << c.name << ": the refusal names the component count";
         }
     }
 }

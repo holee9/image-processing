@@ -1,0 +1,5 @@
+ 1 FAILED TEST
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.Scope_JpegLosslessPrecisionIsComparedWithBitsStoredBeforeDecoding
+[  FAILED  ] DicomReaderTest.Scope_JpegLosslessPrecisionIsComparedWithBitsStoredBeforeDecoding (53 ms)
+[  PASSED  ] 14 tests.

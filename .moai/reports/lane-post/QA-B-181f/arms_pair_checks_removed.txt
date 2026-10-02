@@ -1,0 +1,9 @@
+P1 log_transform: normFactor check + result overflow [fast]: build_ok=True passed=11 red=['NonFinitePixels.LogTransformRefusesAFiniteRequestWhoseResultWouldNotBeFinite', 'NonFinitePixels.LogTransformRefusesANonFiniteNormFactor']
+P1 log_transform: normFactor check + result overflow [precise]: build_ok=True passed=11 red=['NonFinitePixels.LogTransformRefusesAFiniteRequestWhoseResultWouldNotBeFinite', 'NonFinitePixels.LogTransformRefusesANonFiniteNormFactor']
+P2 modality LINEAR: parameter check + overflow check [shipped]: build_ok=True passed=9 red=['DisplayNonFinite.ModalityLinearRefusesAFiniteRequestWhoseResultWouldNotBeFinite', 'DisplayNonFinite.ModalityLinearRefusesANonFiniteSlopeOrIntercept', 'DisplayNonFinite.TheModalityToPresentationChainStopsAtTheFirstStage']
+P3 modality LINEAR: pixel scan + overflow check [shipped]: build_ok=True passed=10 red=['DisplayNonFinite.ModalityLinearRefusesAFiniteRequestWhoseResultWouldNotBeFinite', 'DisplayNonFinite.ModalityLinearRefusesANonFinitePixelAndLeavesTheImageAlone']
+P4 modality LINEAR: all three [shipped]: build_ok=True passed=8 red=['DisplayNonFinite.ModalityLinearRefusesAFiniteRequestWhoseResultWouldNotBeFinite', 'DisplayNonFinite.ModalityLinearRefusesANonFinitePixelAndLeavesTheImageAlone', 'DisplayNonFinite.ModalityLinearRefusesANonFiniteSlopeOrIntercept', 'DisplayNonFinite.TheModalityToPresentationChainStopsAtTheFirstStage']
+RESTORED_BYTE_IDENTICAL=True (3 files)
+CONTROL eb: build_ok=True passed=13 red=[]
+CONTROL dp: build_ok=True passed=12 red=[]
+DONE

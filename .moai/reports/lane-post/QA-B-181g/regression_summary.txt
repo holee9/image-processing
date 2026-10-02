@@ -1,0 +1,6 @@
+function                      old ms     new ms      delta     pct
+bilateral 3072^2                99.45     103.10      +3.65    +3.7%
+edge_enhance 3072^2             16.66      18.47      +1.81   +10.9%
+multiscale 3072^2              244.30     244.71      +0.41    +0.2%
+nlm 96^2 (win 11, patch 5)      35.17      34.69      -0.48    -1.4%
+output hash identical old vs new in all 4 rounds: YES (4 functions)

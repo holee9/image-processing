@@ -42,6 +42,7 @@
 #include <cstdio>
 #include <cstring>
 #include <functional>
+#include <limits>
 #include <string>
 #include <thread>
 #include <vector>
@@ -829,4 +830,95 @@ TEST(IpcDeadline, AStalledWorkerLeavesAnInPlaceBufferByteForByteIntact) {
     EXPECT_FALSE(o.hung);
     EXPECT_NE(XPE_OK, o.rc);
     EXPECT_EQ(0, std::memcmp(original, buf, sizeof(original))) << "the caller's input was overwritten";
+}
+
+// --- QA-B-181j (Codex #65): the envelope of a success reply is checked before its pixels are judged ------------
+//
+// The bridge used to look at the frame type, the flags and the total length only. A reply whose JSON was
+// garbage (or empty) was accepted as long as the pixel area had the right size, and -- since QA-B-181i -- a
+// garbage reply whose pixels were NaN was even classified as "a healthy worker's valid answer, the model's
+// result is non-finite", which keeps it out of the failure count. The envelope must be valid FIRST:
+// {"success":true, width/height equal to the request, "format":"float32"}. Anything else is a PROTOCOL
+// fault: the connection is dropped and the call answers XPE_ERR_IO_FAILED, which the product counts.
+namespace {
+
+std::vector<char> BodyWithJson(const std::string& json, float pixel_value, size_t pixel_bytes = 36) {
+    const uint32_t jn = static_cast<uint32_t>(json.size());
+    std::vector<char> b(sizeof(uint32_t) + jn + pixel_bytes, 0);
+    std::memcpy(b.data(), &jn, sizeof(jn));
+    std::memcpy(b.data() + sizeof(jn), json.data(), jn);
+    for (size_t i = 0; i + sizeof(float) <= pixel_bytes; i += sizeof(float)) {
+        std::memcpy(b.data() + sizeof(jn) + jn + i, &pixel_value, sizeof(float));
+    }
+    return b;
+}
+
+const float kNaN = std::numeric_limits<float>::quiet_NaN();
+const char kGoodJson[] = "{\"success\":true,\"width\":3,\"height\":3,\"format\":\"float32\"}";
+
+/** One 3x3 call against a fake worker that answers with @p body; returns the bridge's answer. */
+struct EnvelopeResult {
+    XpeErrorCode rc;
+    XpeErrorCode second_send;
+    float out[9];
+};
+
+EnvelopeResult CallWithBody(const std::vector<char>& body) {
+    EnvelopeResult r{};
+    FakeWorker fw(ServeOnce([body](FakeWorker& w, uint32_t id) {
+        ReplyFrame(w, XPE_AI_MSG_BONE_SUPPRESS_RESP, id, XPE_AI_FLAG_HAS_BINARY_PAYLOAD, body);
+    }));
+    EXPECT_TRUE(fw.ok());
+    Client c(fw, 2000);
+    EXPECT_NE(nullptr, c.b);
+    for (float& v : r.out) v = -777.0f;
+    r.rc = xpe_ai_ipc_bridge_bone_suppress(c.b, 3, 3, kIn3x3, r.out);
+    r.second_send = SecondSend(c.b);
+    return r;
+}
+
+struct BadEnvelope { const char* name; std::string json; };
+
+std::vector<BadEnvelope> BadEnvelopes() {
+    return {
+        {"empty_json", ""},
+        {"garbage_json", "this is not json"},
+        {"unterminated_object", "{\"success\":true,\"width\":3,\"height\":3,\"format\":\"float32\""},
+        {"success_false", "{\"success\":false,\"width\":3,\"height\":3,\"format\":\"float32\"}"},
+        {"success_missing", "{\"width\":3,\"height\":3,\"format\":\"float32\"}"},
+        {"success_not_a_bool", "{\"success\":\"true\",\"width\":3,\"height\":3,\"format\":\"float32\"}"},
+        {"wrong_width", "{\"success\":true,\"width\":4,\"height\":3,\"format\":\"float32\"}"},
+        {"wrong_height", "{\"success\":true,\"width\":3,\"height\":9,\"format\":\"float32\"}"},
+        {"width_missing", "{\"success\":true,\"height\":3,\"format\":\"float32\"}"},
+        {"wrong_format", "{\"success\":true,\"width\":3,\"height\":3,\"format\":\"uint16\"}"},
+        {"format_missing", "{\"success\":true,\"width\":3,\"height\":3}"},
+        {"duplicate_key", "{\"success\":true,\"width\":3,\"width\":3,\"height\":3,\"format\":\"float32\"}"},
+        {"trailing_junk", "{\"success\":true,\"width\":3,\"height\":3,\"format\":\"float32\"} x"},
+    };
+}
+}  // namespace
+
+TEST(IpcEnvelope, ControlAValidEnvelopeWithNonFinitePixelsIsAModelRefusalNotAProtocolFault) {
+    const EnvelopeResult r = CallWithBody(BodyWithJson(kGoodJson, kNaN));
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, r.rc);
+    EXPECT_EQ(XPE_OK, r.second_send) << "a valid reply must keep the connection";
+    for (float v : r.out) EXPECT_EQ(-777.0f, v) << "the refused pixels were written";
+}
+
+TEST(IpcEnvelope, ControlAValidEnvelopeWithFinitePixelsIsAccepted) {
+    const EnvelopeResult r = CallWithBody(BodyWithJson(kGoodJson, 5.0f));
+    EXPECT_EQ(XPE_OK, r.rc);
+    for (float v : r.out) EXPECT_EQ(5.0f, v);
+}
+
+TEST(IpcEnvelope, ABadEnvelopeIsAProtocolFaultWhateverThePixelsAre) {
+    for (const BadEnvelope& e : BadEnvelopes()) {
+        for (float px : {kNaN, 5.0f}) {   // NaN: the Codex #65 path; finite: the gap that existed before 181i
+            const EnvelopeResult r = CallWithBody(BodyWithJson(e.json, px));
+            const std::string what = std::string(e.name) + (px == 5.0f ? " + finite pixels" : " + NaN pixels");
+            EXPECT_EQ(XPE_ERR_IO_FAILED, r.rc) << what;
+            EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, r.second_send) << what << ": the connection was kept";
+            for (float v : r.out) EXPECT_EQ(-777.0f, v) << what << ": pixels were written";
+        }
+    }
 }

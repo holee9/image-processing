@@ -1,0 +1,195 @@
+Note: Google Test filter = BoneSuppressNonFinite*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from BoneSuppressNonFinite
+[ RUN      ] BoneSuppressNonFinite.InProcessRefusesAFiniteInputWhoseResultLeavesFloat
+[2026-10-02 10:57:10.240] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 10:57:10.278] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(102): error: Expected: (0) != (rc), actual: 0 vs 0
+FLT_MAX_first: a non-finite result was reported as success
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(103): error: Value of: AnyNonFinite(out.px)
+  Actual: true
+Expected: false
+FLT_MAX_first: +/-inf or NaN reached the caller's buffer
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(106): error: Expected equality of these values:
+  -1
+  rc
+    Which is: 0
+FLT_MAX_first
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(107): error: Value of: SameBits(outBefore, out.px)
+  Actual: false
+Expected: true
+FLT_MAX_first: output not left unchanged
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(102): error: Expected: (0) != (rc), actual: 0 vs 0
+FLT_MAX_middle: a non-finite result was reported as success
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(103): error: Value of: AnyNonFinite(out.px)
+  Actual: true
+Expected: false
+FLT_MAX_middle: +/-inf or NaN reached the caller's buffer
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(106): error: Expected equality of these values:
+  -1
+  rc
+    Which is: 0
+FLT_MAX_middle
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(107): error: Value of: SameBits(outBefore, out.px)
+  Actual: false
+Expected: true
+FLT_MAX_middle: output not left unchanged
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(102): error: Expected: (0) != (rc), actual: 0 vs 0
+FLT_MAX_last: a non-finite result was reported as success
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(103): error: Value of: AnyNonFinite(out.px)
+  Actual: true
+Expected: false
+FLT_MAX_last: +/-inf or NaN reached the caller's buffer
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(106): error: Expected equality of these values:
+  -1
+  rc
+    Which is: 0
+FLT_MAX_last
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(107): error: Value of: SameBits(outBefore, out.px)
+  Actual: false
+Expected: true
+FLT_MAX_last: output not left unchanged
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(102): error: Expected: (0) != (rc), actual: 0 vs 0
+minus_FLT_MAX: a non-finite result was reported as success
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(103): error: Value of: AnyNonFinite(out.px)
+  Actual: true
+Expected: false
+minus_FLT_MAX: +/-inf or NaN reached the caller's buffer
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(106): error: Expected equality of these values:
+  -1
+  rc
+    Which is: 0
+minus_FLT_MAX
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(107): error: Value of: SameBits(outBefore, out.px)
+  Actual: false
+Expected: true
+minus_FLT_MAX: output not left unchanged
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(102): error: Expected: (0) != (rc), actual: 0 vs 0
+just_above_half_FLT_MAX: a non-finite result was reported as success
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(103): error: Value of: AnyNonFinite(out.px)
+  Actual: true
+Expected: false
+just_above_half_FLT_MAX: +/-inf or NaN reached the caller's buffer
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(106): error: Expected equality of these values:
+  -1
+  rc
+    Which is: 0
+just_above_half_FLT_MAX
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(107): error: Value of: SameBits(outBefore, out.px)
+  Actual: false
+Expected: true
+just_above_half_FLT_MAX: output not left unchanged
+
+[2026-10-02 10:57:10.278] [info] xpe_ai shutdown: worker_pid=0
+[  FAILED  ] BoneSuppressNonFinite.InProcessRefusesAFiniteInputWhoseResultLeavesFloat (38 ms)
+[ RUN      ] BoneSuppressNonFinite.WorkerPathRefusesAFiniteInputWhoseResultLeavesFloat
+[2026-10-02 10:57:10.279] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(102): error: Expected: (0) != (rc), actual: 0 vs 0
+FLT_MAX_first: a non-finite result was reported as success
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(103): error: Value of: AnyNonFinite(out.px)
+  Actual: true
+Expected: false
+FLT_MAX_first: +/-inf or NaN reached the caller's buffer
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(110): error: Value of: SameBits(c.in, out.px)
+  Actual: false
+Expected: true
+FLT_MAX_first: worker-path fallback must be the input
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(102): error: Expected: (0) != (rc), actual: 0 vs 0
+FLT_MAX_middle: a non-finite result was reported as success
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(103): error: Value of: AnyNonFinite(out.px)
+  Actual: true
+Expected: false
+FLT_MAX_middle: +/-inf or NaN reached the caller's buffer
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(110): error: Value of: SameBits(c.in, out.px)
+  Actual: false
+Expected: true
+FLT_MAX_middle: worker-path fallback must be the input
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(102): error: Expected: (0) != (rc), actual: 0 vs 0
+FLT_MAX_last: a non-finite result was reported as success
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(103): error: Value of: AnyNonFinite(out.px)
+  Actual: true
+Expected: false
+FLT_MAX_last: +/-inf or NaN reached the caller's buffer
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(110): error: Value of: SameBits(c.in, out.px)
+  Actual: false
+Expected: true
+FLT_MAX_last: worker-path fallback must be the input
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(102): error: Expected: (0) != (rc), actual: 0 vs 0
+minus_FLT_MAX: a non-finite result was reported as success
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(103): error: Value of: AnyNonFinite(out.px)
+  Actual: true
+Expected: false
+minus_FLT_MAX: +/-inf or NaN reached the caller's buffer
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(110): error: Value of: SameBits(c.in, out.px)
+  Actual: false
+Expected: true
+minus_FLT_MAX: worker-path fallback must be the input
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(102): error: Expected: (0) != (rc), actual: 0 vs 0
+just_above_half_FLT_MAX: a non-finite result was reported as success
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(103): error: Value of: AnyNonFinite(out.px)
+  Actual: true
+Expected: false
+just_above_half_FLT_MAX: +/-inf or NaN reached the caller's buffer
+
+D:\workspace-github\xpe-post\modules\ai\tests\test_bone_suppress_nonfinite.cpp(110): error: Value of: SameBits(c.in, out.px)
+  Actual: false
+Expected: true
+just_above_half_FLT_MAX: worker-path fallback must be the input
+
+[2026-10-02 10:57:10.381] [info] xpe_ai shutdown: worker_pid=0
+[  FAILED  ] BoneSuppressNonFinite.WorkerPathRefusesAFiniteInputWhoseResultLeavesFloat (109 ms)
+[ RUN      ] BoneSuppressNonFinite.OrdinaryPixelsStillGiveExactlyTwiceTheInputInBothPaths
+[2026-10-02 10:57:10.388] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 10:57:10.388] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-02 10:57:10.388] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 10:57:10.389] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 10:57:10.462] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] BoneSuppressNonFinite.OrdinaryPixelsStillGiveExactlyTwiceTheInputInBothPaths (81 ms)
+[ RUN      ] BoneSuppressNonFinite.ALargestFiniteResultIsNotRefused
+[2026-10-02 10:57:10.469] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 10:57:10.470] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-02 10:57:10.470] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] BoneSuppressNonFinite.ALargestFiniteResultIsNotRefused (0 ms)
+[----------] 4 tests from BoneSuppressNonFinite (229 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (229 ms total)
+[  PASSED  ] 2 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] BoneSuppressNonFinite.InProcessRefusesAFiniteInputWhoseResultLeavesFloat
+[  FAILED  ] BoneSuppressNonFinite.WorkerPathRefusesAFiniteInputWhoseResultLeavesFloat
+
+ 2 FAILED TESTS

@@ -1,5 +1,6 @@
 #include "mfp_scalar.h"
 #include "xpe/common/xpe_error.h"
+#include "xpe/enhance_advanced/internal.h"
 #include <cmath>
 #include <algorithm>
 #include <cstring>
@@ -110,7 +111,7 @@ LaplacianPyramid::LaplacianPyramid(const float* data, int width, int height, int
                 coarsestW * coarsestH * sizeof(float));
 }
 
-void LaplacianPyramid::reconstruct(const MfpConfig& config, float* outData) {
+bool LaplacianPyramid::reconstruct(const MfpConfig& config, float* outData) {
     // Start with coarsest level (Gaussian, not Laplacian)
     std::vector<float> reconstructed = levels_[numLevels_ - 1];
 
@@ -155,8 +156,15 @@ void LaplacianPyramid::reconstruct(const MfpConfig& config, float* outData) {
         reconstructed = upsampled;
     }
 
+    // QA-B-181g (Codex #57 sweep): the result is built in `reconstructed` and copied at the end, so it can be judged
+    // before anything is written. On an image at +-FLT_MAX the Laplacian detail (a difference of two levels) and the
+    // gains leave float, and the call used to answer rc=0 with a non-finite image; a NaN pixel does the same through
+    // the blur. Refused exactly when the RESULT is not finite, with the image untouched.
+    if (!all_finite(reconstructed.data(), static_cast<uint64_t>(width_) * static_cast<uint64_t>(height_))) return false;
+
     // Copy to output
     std::memcpy(outData, reconstructed.data(), width_ * height_ * sizeof(float));
+    return true;
 }
 
 void LaplacianPyramid::gaussianBlur(float* data, int width, int height) {
@@ -284,7 +292,9 @@ XpeErrorCode applyMfpScalar(XpeImageBuffer* img, const MfpConfig& config) {
         );
 
         // Reconstruct with enhancement
-        pyramid.reconstruct(config, static_cast<float*>(img->data));
+        if (!pyramid.reconstruct(config, static_cast<float*>(img->data))) {
+            return XPE_ERR_INVALID_INPUT;   // QA-B-181g: the result would not be finite; the image is untouched
+        }
 
         return XPE_OK;
     } catch (const std::exception&) {

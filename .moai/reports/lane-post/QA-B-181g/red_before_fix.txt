@@ -1,0 +1,28 @@
+== enhance_basic (before the fix: tests written first)
+[  FAILED  ] NonFinitePixels.BilateralRefusesANonFinitePixelAndStillProcessesLargeFiniteOnes
+[  FAILED  ] NonFinitePixels.BilateralRefusesANonFinitePixelAndStillProcessesLargeFiniteOnes (1 ms)
+[  FAILED  ] NonFinitePixels.BilateralRefusesAnImageWhoseWeightedSumWouldLeaveFloat
+[  FAILED  ] NonFinitePixels.BilateralRefusesAnImageWhoseWeightedSumWouldLeaveFloat (1 ms)
+[  FAILED  ] NonFinitePixels.EdgeEnhanceRefusesANonFinitePixelAndStillProcessesLargeFiniteOnes
+[  FAILED  ] NonFinitePixels.EdgeEnhanceRefusesANonFinitePixelAndStillProcessesLargeFiniteOnes (0 ms)
+[  FAILED  ] NonFinitePixels.EdgeEnhanceRefusesImagesWhoseBlurOrSharpenTermsWouldLeaveFloat
+[  FAILED  ] NonFinitePixels.EdgeEnhanceRefusesImagesWhoseBlurOrSharpenTermsWouldLeaveFloat (0 ms)
+[  FAILED  ] NonFinitePixels.NlmRefusesANonFinitePixelAndStillProcessesLargeFiniteOnes
+[  FAILED  ] NonFinitePixels.NlmRefusesANonFinitePixelAndStillProcessesLargeFiniteOnes (4 ms)
+[  FAILED  ] NonFinitePixels.NlmRefusesAnImageWhoseWeightedSumWouldLeaveFloat
+[  FAILED  ] NonFinitePixels.NlmRefusesAnImageWhoseWeightedSumWouldLeaveFloat (0 ms)
+[  PASSED  ] 13 tests.
+
+== enhance_advanced (before the fix)
+[  FAILED  ] NonFinitePixelsCollimation.MultiscaleRefusesANonFinitePixelAndStillProcessesAnOrdinaryImage
+[  FAILED  ] NonFinitePixelsCollimation.MultiscaleRefusesANonFinitePixelAndStillProcessesAnOrdinaryImage (0 ms)
+[  FAILED  ] NonFinitePixelsCollimation.MultiscaleRefusesAnImageWhoseResultWouldNotBeFinite
+[  FAILED  ] NonFinitePixelsCollimation.MultiscaleRefusesAnImageWhoseResultWouldNotBeFinite (0 ms)
+[  PASSED  ] 3 tests.
+
+== dicom Scope_BitsAttributes (before the J2K table limit)
+[  FAILED  ] DicomReaderTest.Scope_BitsAttributesAreViolationOrUnsupportedAsThePixelDataEncodingRulesSay
+[  FAILED  ] DicomReaderTest.Scope_BitsAttributesAreViolationOrUnsupportedAsThePixelDataEncodingRulesSay (152 ms)
+[  PASSED  ] 0 tests.
+j2k alloc/stored/high = 40_39_38
+j2k alloc/stored/high = 40_40_39

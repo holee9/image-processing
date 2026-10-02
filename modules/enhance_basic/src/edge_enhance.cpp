@@ -8,6 +8,7 @@
 #include <vector>
 #include <algorithm>
 #include <cstdint>
+#include <limits>
 
 namespace {
 
@@ -132,6 +133,22 @@ extern "C++" static XpeErrorCode xpe_edge_enhance_impl(XpeImageBuffer* img, cons
     // speed.  The ring buffer limits page faults to ~27 (108 KB / 4 KB) ≈ 0.03 ms.
     std::vector<float> ring(static_cast<size_t>(ksize) * w);
     std::vector<float> blurred_row(static_cast<size_t>(w));
+
+    // The check is BEHIND the allocations above: a declared row size no machine can hold must still fail there
+    // (QA-B-181), before any pixel is read. It is still before the first write.
+    // QA-B-181g (Codex #57): refuse before the first write when the float terms below could leave float. The call works
+    // in place, so this has to be decided from the input. With M the largest |pixel|: the normalised blur is at most
+    // M(1 + rounding), diff = orig - blur at most 2M, amount * diff at most 5 * 2M, sharpened = orig + amount * diff at
+    // most 11M; the overshoot limits only ever lower that (a limit that overflows to +-inf is never selected). 12M with a
+    // 1% margin is therefore a bound the call stays inside. The same pass refuses a non-finite pixel. On the worst
+    // input (a +FLT_MAX centre in -FLT_MAX, amount 1, threshold FLT_MAX) the call wrote +inf with rc=0.
+    {
+        float lo, hi;
+        const uint64_t count = static_cast<uint64_t>(w) * static_cast<uint64_t>(h);
+        if (!xpe_scan_finite(px, count, &lo, &hi)) return XPE_ERR_INVALID_INPUT;
+        const double peak = std::max(std::fabs(static_cast<double>(lo)), std::fabs(static_cast<double>(hi)));
+        if (peak * 12.0 * 1.01 > static_cast<double>((std::numeric_limits<float>::max)())) return XPE_ERR_INVALID_INPUT;
+    }
 
     // Pre-fill ring with h-blurred rows 0..ksize-1 (top boundary clamped).
     for (int r = 0; r < ksize; ++r) {

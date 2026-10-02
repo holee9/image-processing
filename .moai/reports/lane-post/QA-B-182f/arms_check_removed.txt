@@ -1,0 +1,10 @@
+F0 control (nothing weakened): build_ok=True passed=89 red=[]
+F1 PhotometricInterpretation absent or empty is refused: build_ok=True passed=87 red=['DicomReaderTest.Scope_PhotometricInterpretationIsRequiredAndOnlyAMonochromePlaneIsReturned', 'DicomReaderTest.Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochrome1IsReturnedAsStored']
+F2 RGB and YBR with one sample are a violation: build_ok=True passed=87 red=['DicomReaderTest.Scope_PhotometricInterpretationIsRequiredAndOnlyAMonochromePlaneIsReturned', 'DicomReaderTest.Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochrome1IsReturnedAsStored']
+F3 only MONOCHROME1 and MONOCHROME2 are returned: build_ok=True passed=87 red=['DicomReaderTest.Scope_PhotometricInterpretationIsRequiredAndOnlyAMonochromePlaneIsReturned', 'DicomReaderTest.Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochrome1IsReturnedAsStored']
+F4 CS padding is trimmed: ANCHOR MISSING
+F5 Rows absent or zero is refused with an alert: build_ok=True passed=88 red=['DicomReaderTest.Scope_AbsentOrZeroRowsAndColumnsAreRefusedWithAnAlertOnEveryPath']
+F6 Columns absent or zero is refused with an alert: build_ok=True passed=88 red=['DicomReaderTest.Scope_AbsentOrZeroRowsAndColumnsAreRefusedWithAnAlertOnEveryPath']
+RESTORED_BYTE_IDENTICAL=True
+FINAL (restored): build_ok=True passed=89 red=[]
+DONE

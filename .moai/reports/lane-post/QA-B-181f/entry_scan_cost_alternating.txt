@@ -1,0 +1,80 @@
+=== round 1 old
+contrast_enhance           rc=0 median   47.10 ms  min   44.21  hash a9db506daf284a27
+log_transform              rc=0 median    3.93 ms  min    3.33  hash ccdf2974120967fb
+log_inverse                rc=0 median    3.43 ms  min    3.01  hash c0b04dddbf1de387
+modality TABLE             rc=0 median   16.74 ms  min   16.30  hash 8d125742f017e88a
+modality LINEAR            rc=0 median    1.96 ms  min    1.91  hash 0702dc9373e0ba2a
+presentation_lut           rc=0 median   21.59 ms  min   21.34  hash d19fff2e79846cf7
+voi LINEAR_EXACT           rc=0 median    2.48 ms  min    2.46  hash 6eb105611a5296d6
+voi SIGMOID                rc=0 median   35.42 ms  min   34.39  hash 940d5c9c3e13f389
+detect_collimation         rc=0 median   30.25 ms  min   23.16  box=(200,200)-(799,799) [1024x1024]
+=== round 1 new
+contrast_enhance           rc=0 median   45.00 ms  min   44.45  hash a9db506daf284a27
+log_transform              rc=0 median    5.20 ms  min    4.96  hash ccdf2974120967fb
+log_inverse                rc=0 median    4.75 ms  min    4.66  hash c0b04dddbf1de387
+modality TABLE             rc=0 median   18.62 ms  min   18.06  hash 8d125742f017e88a
+modality LINEAR            rc=0 median    4.11 ms  min    3.63  hash 0702dc9373e0ba2a
+presentation_lut           rc=0 median   24.43 ms  min   22.46  hash d19fff2e79846cf7
+voi LINEAR_EXACT           rc=0 median    5.09 ms  min    4.53  hash 6eb105611a5296d6
+voi SIGMOID                rc=0 median   38.75 ms  min   36.37  hash 940d5c9c3e13f389
+detect_collimation         rc=0 median   36.85 ms  min   27.86  box=(200,200)-(799,799) [1024x1024]
+=== round 2 old
+contrast_enhance           rc=0 median   48.03 ms  min   44.72  hash a9db506daf284a27
+log_transform              rc=0 median    3.44 ms  min    3.27  hash ccdf2974120967fb
+log_inverse                rc=0 median    2.98 ms  min    2.93  hash c0b04dddbf1de387
+modality TABLE             rc=0 median   16.53 ms  min   16.39  hash 8d125742f017e88a
+modality LINEAR            rc=0 median    1.93 ms  min    1.91  hash 0702dc9373e0ba2a
+presentation_lut           rc=0 median   21.78 ms  min   20.95  hash d19fff2e79846cf7
+voi LINEAR_EXACT           rc=0 median    2.72 ms  min    2.45  hash 6eb105611a5296d6
+voi SIGMOID                rc=0 median   34.84 ms  min   34.27  hash 940d5c9c3e13f389
+detect_collimation         rc=0 median   32.11 ms  min   27.86  box=(200,200)-(799,799) [1024x1024]
+=== round 2 new
+contrast_enhance           rc=0 median   45.91 ms  min   44.27  hash a9db506daf284a27
+log_transform              rc=0 median    6.10 ms  min    4.96  hash ccdf2974120967fb
+log_inverse                rc=0 median    5.13 ms  min    4.72  hash c0b04dddbf1de387
+modality TABLE             rc=0 median   18.46 ms  min   18.02  hash 8d125742f017e88a
+modality LINEAR            rc=0 median    3.62 ms  min    3.59  hash 0702dc9373e0ba2a
+presentation_lut           rc=0 median   22.57 ms  min   22.35  hash d19fff2e79846cf7
+voi LINEAR_EXACT           rc=0 median    4.43 ms  min    4.05  hash 6eb105611a5296d6
+voi SIGMOID                rc=0 median   38.43 ms  min   37.57  hash 940d5c9c3e13f389
+detect_collimation         rc=0 median   31.27 ms  min   28.22  box=(200,200)-(799,799) [1024x1024]
+=== round 3 old
+contrast_enhance           rc=0 median   45.46 ms  min   44.29  hash a9db506daf284a27
+log_transform              rc=0 median    3.26 ms  min    3.24  hash ccdf2974120967fb
+log_inverse                rc=0 median    3.16 ms  min    2.97  hash c0b04dddbf1de387
+modality TABLE             rc=0 median   16.88 ms  min   16.41  hash 8d125742f017e88a
+modality LINEAR            rc=0 median    2.10 ms  min    1.92  hash 0702dc9373e0ba2a
+presentation_lut           rc=0 median   21.34 ms  min   20.64  hash d19fff2e79846cf7
+voi LINEAR_EXACT           rc=0 median    2.52 ms  min    2.46  hash 6eb105611a5296d6
+voi SIGMOID                rc=0 median   35.28 ms  min   34.75  hash 940d5c9c3e13f389
+detect_collimation         rc=0 median   32.67 ms  min   28.17  box=(200,200)-(799,799) [1024x1024]
+=== round 3 new
+contrast_enhance           rc=0 median   46.26 ms  min   44.30  hash a9db506daf284a27
+log_transform              rc=0 median    4.99 ms  min    4.92  hash ccdf2974120967fb
+log_inverse                rc=0 median    5.60 ms  min    5.10  hash c0b04dddbf1de387
+modality TABLE             rc=0 median   19.23 ms  min   17.88  hash 8d125742f017e88a
+modality LINEAR            rc=0 median    3.84 ms  min    3.60  hash 0702dc9373e0ba2a
+presentation_lut           rc=0 median   23.53 ms  min   22.37  hash d19fff2e79846cf7
+voi LINEAR_EXACT           rc=0 median    4.43 ms  min    4.14  hash 6eb105611a5296d6
+voi SIGMOID                rc=0 median   38.94 ms  min   37.22  hash 940d5c9c3e13f389
+detect_collimation         rc=0 median   31.30 ms  min   25.41  box=(200,200)-(799,799) [1024x1024]
+=== round 4 old
+contrast_enhance           rc=0 median   47.31 ms  min   44.22  hash a9db506daf284a27
+log_transform              rc=0 median    3.27 ms  min    3.20  hash ccdf2974120967fb
+log_inverse                rc=0 median    3.18 ms  min    2.96  hash c0b04dddbf1de387
+modality TABLE             rc=0 median   16.88 ms  min   16.37  hash 8d125742f017e88a
+modality LINEAR            rc=0 median    1.92 ms  min    1.91  hash 0702dc9373e0ba2a
+presentation_lut           rc=0 median   21.20 ms  min   20.66  hash d19fff2e79846cf7
+voi LINEAR_EXACT           rc=0 median    2.76 ms  min    2.50  hash 6eb105611a5296d6
+voi SIGMOID                rc=0 median   35.65 ms  min   34.40  hash 940d5c9c3e13f389
+detect_collimation         rc=0 median   35.92 ms  min   27.98  box=(200,200)-(799,799) [1024x1024]
+=== round 4 new
+contrast_enhance           rc=0 median   48.03 ms  min   46.15  hash a9db506daf284a27
+log_transform              rc=0 median    5.79 ms  min    5.17  hash ccdf2974120967fb
+log_inverse                rc=0 median    5.09 ms  min    4.75  hash c0b04dddbf1de387
+modality TABLE             rc=0 median   18.79 ms  min   18.04  hash 8d125742f017e88a
+modality LINEAR            rc=0 median    3.62 ms  min    3.57  hash 0702dc9373e0ba2a
+presentation_lut           rc=0 median   22.72 ms  min   22.23  hash d19fff2e79846cf7
+voi LINEAR_EXACT           rc=0 median    4.51 ms  min    3.99  hash 6eb105611a5296d6
+voi SIGMOID                rc=0 median   39.36 ms  min   36.81  hash 940d5c9c3e13f389
+detect_collimation         rc=0 median   38.38 ms  min   33.43  box=(200,200)-(799,799) [1024x1024]
