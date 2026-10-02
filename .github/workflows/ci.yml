@@ -634,7 +634,7 @@ jobs:
         run: ctest --test-dir build/ci-ai --build-config RelWithDebInfo --output-on-failure
 
   dotnet-tests:
-    needs: [detect-lane, common-build, preprocess-tests, post-build]
+    needs: [detect-lane, common-build, preprocess-tests, post-build, dicom-build]
     if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane == 'gui'
     runs-on: windows-latest
     timeout-minutes: 30
@@ -675,11 +675,37 @@ jobs:
           name: xpe-ci-post-binaries
           path: build/ci-common/bin/
 
+      # GUI-C-196 M3b. The real-module DICOM tests need xpe_dicom.dll AND the
+      # DCMTK/OpenJPEG runtime next to it. The merge rule is "never replace a
+      # name that is already there": the common/preprocess/post set was built
+      # together and wins. Measured locally with a stand-in vcpkg tree: the
+      # no-replace rule loads and passes; replacing common's fmt/spdlog/gtest
+      # with the vcpkg-tree copies fails to load xpe_dicom.dll with 0x8007007F
+      # (m3b/step2_copy_rules.txt). The CI vcpkg tree's own contents were NOT
+      # measured; the rule does not depend on them.
+      - name: Download dicom binaries
+        uses: actions/download-artifact@v6
+        with:
+          name: xpe-ci-dicom-binaries
+          path: build/ci-dicom/
+
+      - name: Merge dicom DLLs into the common set (never replace)
+        shell: pwsh
+        run: |
+          $dest = 'build/ci-common/bin'
+          $added = @(); $kept = @()
+          Get-ChildItem build/ci-dicom -Recurse -Filter *.dll | Sort-Object FullName | ForEach-Object {
+            $target = Join-Path $dest $_.Name
+            if (Test-Path $target) { $kept += $_.Name } else { Copy-Item $_.FullName $target; $added += $_.Name }
+          }
+          Write-Host ("added {0} dll(s): {1}" -f $added.Count, ($added -join ', '))
+          Write-Host ("kept the common set's copy of {0} dll(s): {1}" -f $kept.Count, ($kept -join ', '))
+
       - name: Verify native binaries present
         shell: pwsh
         run: |
           $missing = @()
-          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_enhance_basic.dll')) {
+          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_enhance_basic.dll', 'xpe_display.dll', 'xpe_dicom.dll', 'dcmdata.dll', 'openjp2.dll')) {
             if (-not (Test-Path "build/ci-common/bin/$n")) { $missing += $n }
           }
           if ($missing.Count -gt 0) {
@@ -695,6 +721,26 @@ jobs:
           -c Debug
           --logger "trx;LogFileName=integration-tests.trx"
           --results-directory build/dotnet-test-results
+
+      # GUI-C-196 M3b. These tests are [SkippableFact]: without their DLLs they
+      # end NotExecuted and the run is still green. Here a skip is a failure,
+      # and so is finding fewer results than expected (zero rows would otherwise
+      # pass a "none failed" check).
+      - name: Assert the real-module tests ran (a skip fails)
+        shell: pwsh
+        run: |
+          [xml]$doc = Get-Content -LiteralPath build/dotnet-test-results/integration-tests.trx -Raw
+          $all = @($doc.TestRun.Results.UnitTestResult)
+          Write-Host ("trx holds {0} result(s)" -f $all.Count)
+          $min = @{ 'BaselineDicomNativeTests' = 2; 'EnhanceBasicNativeTests' = 4; 'BaselineDisplayNativeTests' = 2 }
+          $bad = @()
+          foreach ($class in $min.Keys) {
+            $rows = @($all | Where-Object { $_.testName -like "*.$class.*" })
+            $passed = @($rows | Where-Object { $_.outcome -eq 'Passed' })
+            Write-Host ("{0}: {1} result(s), {2} passed, {3} not executed" -f $class, $rows.Count, $passed.Count, @($rows | Where-Object { $_.outcome -eq 'NotExecuted' }).Count)
+            if ($rows.Count -lt $min[$class] -or $passed.Count -ne $rows.Count) { $bad += $class }
+          }
+          if ($bad.Count -gt 0) { Write-Error ("real-module tests skipped or missing: " + ($bad -join ', ')); exit 1 }
 
       - name: Upload C# test results
         if: always()
@@ -892,7 +938,7 @@ jobs:
     # over with XPE_NATIVE_DIR + XPE_NATIVE_DIR_EXCLUSIVE=1 - the app folder holds
     # no xpe_*.dll, so a pass here proves the locator path, not the OS loader.
     # S-05 demands a real semver and fails if the app silently fell back to Mock.
-    needs: [detect-lane, common-build, preprocess-tests, post-build]
+    needs: [detect-lane, common-build, preprocess-tests, post-build, dicom-build]
     runs-on: windows-2025
     # 20 -> 30 (2026-09-30). Measured on main, same job, three consecutive runs:
     # 18 min, 19 min, then 20:14 -- cancelled exactly at the 20-minute limit
@@ -951,6 +997,26 @@ jobs:
           merge-multiple: true
           path: build/e2e-native-dlls/
 
+      # GUI-C-196 M4 (A19 runs the Deterministic Baseline on the real modules and needs xpe_dicom.dll with the DCMTK/OpenJPEG runtime). Without them A19
+      # SKIPS, and this job's unexplained-skip gate below fails on it. Same merge rule as dotnet-tests (GUI-C-196 M3b): a name already staged is never replaced.
+      - name: Stage dicom DLLs into the same directory (never replace)
+        uses: actions/download-artifact@v6
+        with:
+          name: xpe-ci-dicom-binaries
+          path: build/ci-dicom/
+
+      - name: Merge dicom DLLs (never replace)
+        shell: pwsh
+        run: |
+          $dest = 'build/e2e-native-dlls'
+          $added = @(); $kept = @()
+          Get-ChildItem build/ci-dicom -Recurse -Filter *.dll | Sort-Object FullName | ForEach-Object {
+            $target = Join-Path $dest $_.Name
+            if (Test-Path $target) { $kept += $_.Name } else { Copy-Item $_.FullName $target; $added += $_.Name }
+          }
+          Write-Host ("added {0} dll(s): {1}" -f $added.Count, ($added -join ', '))
+          Write-Host ("kept the staged copy of {0} dll(s): {1}" -f $kept.Count, ($kept -join ', '))
+
       - name: Verify staged DLLs and that the app folder holds none
         shell: pwsh
         run: |
@@ -964,7 +1030,7 @@ jobs:
           # stage's E2E must reach the module and observe its failure path, not
           # pass on "DLL not found". Both ship in xpe-ci-post-binaries already;
           # listing them makes a missing one fail here instead of in silence.
-          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_display.dll', 'gsvg.dll', 'xpe_ai.dll', 'xpe_ai_worker.exe')) {
+          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_display.dll', 'gsvg.dll', 'xpe_ai.dll', 'xpe_ai_worker.exe', 'xpe_enhance_basic.dll', 'xpe_dicom.dll', 'dcmdata.dll', 'openjp2.dll')) {
             if (-not (Test-Path "$dir/$n")) { Write-Error "missing $n in $dir"; exit 1 }
           }
           $appDir = 'gui/ImageProcTest/bin/Debug/net8.0-windows'

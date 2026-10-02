@@ -1,0 +1,35 @@
+# GUI-C-196 M9 falsification arms. Each arm edits one place, rebuilds, runs the targeted tests, writes the original bytes back and checks the SHA-256 is unchanged.
+
+## arm 1: the folder lock is shared instead of exclusive (finding 1)
+build ok: True
+[functional] exit=1; red: 2
+   RED BaselineReviewFixTests.TwoRunsInOneFolderAtOnce_OneRuns_TheOtherFailsAtOnce_AndTheHoldersFilesAreUntouched(holderPasses: True)
+   RED BaselineReviewFixTests.TwoRunsInOneFolderAtOnce_OneRuns_TheOtherFailsAtOnce_AndTheHoldersFilesAreUntouched(holderPasses: False)
+restored byte-identical: True
+
+## arm 1b: the lock file is not deleted when the run ends (finding 1)
+build ok: True
+[functional] exit=1; red: 3
+   RED BaselineReviewFixTests.TwoRunsInOneFolderAtOnce_OneRuns_TheOtherFailsAtOnce_AndTheHoldersFilesAreUntouched(holderPasses: True)
+   RED BaselineReviewFixTests.TwoRunsInOneFolderAtOnce_OneRuns_TheOtherFailsAtOnce_AndTheHoldersFilesAreUntouched(holderPasses: False)
+   RED BaselineReviewFixTests.TheLockFile_IsNeverAnOutput_PassOrFail_EvenWhenTheRunThrows
+restored byte-identical: True
+
+## arm 2: the wrapper claims an AI session whatever it wraps (finding 2)
+build ok: True
+[functional] exit=1; red: 1
+   RED AiBoneSuppressionAvailabilityTests.TheRuleReadsWhetherTheBackendHasASession_NotWhetherItImplementsTheInterface
+[e2e L01, Mock backend, XPE_NATIVE_DIR pointing at a directory that holds xpe_ai.dll] exit=1; red: 1
+   RED AiMenuWrappedBackendScenarios.L01_TheEntry_FollowsTheWrappedBackend_NotTheWrappersInterface
+restored byte-identical: True
+   (first pass of arm 2: the e2e L01 run on a plain Mock stayed green, because with no xpe_ai.dll anywhere the entry is disabled for the DLL reason whatever the wrapper claims; the arm was rerun with XPE_NATIVE_DIR pointing at a directory that holds xpe_ai.dll, which is the run that discriminates)
+
+## arm 3: the Pipeline menu does not re-read the availability when it opens (finding 3)
+build ok: True
+[functional] exit=1; red: 1
+   RED AiBoneSuppressionAvailabilityTests.ThePipelineMenuAsksAgainEachTimeItOpens_BecauseTheDllIsAFactAboutTheDiskNothingWatches
+[e2e L02, Native with xpe_ai.dll source] exit=1; red: 1
+   RED AiMenuLateDllScenarios.L02_ADllThatAppearsOrVanishesWhileTheAppRuns_IsSeenAtTheNextMenuOpening
+restored byte-identical: True
+
+final rebuild ok: True

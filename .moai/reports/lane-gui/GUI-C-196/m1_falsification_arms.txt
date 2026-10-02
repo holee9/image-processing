@@ -1,0 +1,62 @@
+ARM 1-comparison-ignores-the-last-pixel: build ok=True
+    ['실패!  - 실패:     3, 통과:    15, 건너뜀:     0, 전체:    18, 기간: 113 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDeterminismTests.Compare_SaysIdentical_OnlyWhenEveryPixelAndTheLengthAreEqual [10 ms]
+     red: Functional.BaselineDeterminismTests.OneDifferentPixelBetweenTheRuns_Fails_AndSaysWhere [< 1 ms]
+     red: Functional.BaselineDeterminismTests.Compare_ReportsWhereTheArraysFirstDiffer_HowManyDiffer_AndByHowMuch [< 1 ms]
+   restored byte-identical: True
+ARM 2-max-difference-is-the-first-one: build ok=True
+    ['실패!  - 실패:     1, 통과:    17, 건너뜀:     0, 전체:    18, 기간: 106 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDeterminismTests.Compare_ReportsWhereTheArraysFirstDiffer_HowManyDiffer_AndByHowMuch [< 1 ms]
+   restored byte-identical: True
+ARM 3-a-different-length-is-not-a-difference: build ok=True
+    ['실패!  - 실패:     2, 통과:    16, 건너뜀:     0, 전체:    18, 기간: 102 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDeterminismTests.AnOutputOfAnotherLength_Fails [< 1 ms]
+     red: Functional.BaselineDeterminismTests.Compare_TreatsADifferentLengthAsADifference_EvenWhenTheCommonPartMatches [< 1 ms]
+   restored byte-identical: True
+ARM 4-hash-over-big-endian-words: build ok=True
+    ['실패!  - 실패:     1, 통과:    17, 건너뜀:     0, 전체:    18, 기간: 108 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDeterminismTests.Sha256Hex_IsOverLittleEndianWords_AndSeesEveryBit [1 ms]
+   restored byte-identical: True
+ARM 5-second-run-not-made (the first result is reused): build ok=True
+    ['실패!  - 실패:     5, 통과:    13, 건너뜀:     0, 전체:    18, 기간: 112 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDeterminismTests.TwoIdenticalRunsOverAnUnchangedInput_Pass_AfterExactlyTwoRuns [4 ms]
+     red: Functional.BaselineDeterminismTests.AnOutputOfAnotherLength_Fails [< 1 ms]
+     red: Functional.BaselineDeterminismTests.AStageThatDoesNotApplyOnTheSecondRun_AlsoFails [< 1 ms]
+     red: Functional.BaselineDeterminismTests.OneDifferentPixelBetweenTheRuns_Fails_AndSaysWhere [< 1 ms]
+     red: Functional.BaselineDeterminismTests.ARunThatChangesTheLoadedFrame_FailsEvenIfTheOutputsAgree [< 1 ms]
+   restored byte-identical: True
+ARM 6-stage-status-ignored: build ok=True
+    ['실패!  - 실패:     3, 통과:    15, 건너뜀:     0, 전체:    18, 기간: 110 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDeterminismTests.AStageThatDoesNotApply_EndsTheCommandAsAFailure_AndNothingIsCompared [< 1 ms]
+     red: Functional.BaselineDeterminismTests.AStageThatWasNotRequested_IsNotAnAppliedStage [< 1 ms]
+     red: Functional.BaselineDeterminismTests.AStageThatDoesNotApplyOnTheSecondRun_AlsoFails [< 1 ms]
+   restored byte-identical: True
+ARM 7-input-preservation-not-checked: build ok=True
+    ['실패!  - 실패:     1, 통과:    17, 건너뜀:     0, 전체:    18, 기간: 100 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDeterminismTests.ARunThatChangesTheLoadedFrame_FailsEvenIfTheOutputsAgree [< 1 ms]
+   restored byte-identical: True
+ARM 8-non-finite-values-tolerated: build ok=True
+    ['실패!  - 실패:     1, 통과:    17, 건너뜀:     0, 전체:    18, 기간: 108 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDeterminismTests.ANonFiniteValueInAFloatIntermediate_Fails [< 1 ms]
+   restored byte-identical: True
+ARM 9-chain-identity-not-checked: build ok=True
+    ['실패!  - 실패:     1, 통과:    17, 건너뜀:     0, 전체:    18, 기간: 106 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDeterminismTests.AChainThatIsNotExactlyTheBaselineChain_Fails [1 ms]
+   restored byte-identical: True
+ARM 10-baseline-plan-carries-an-assistive-stage: build ok=True
+    ['실패!  - 실패:     9, 통과:     9, 건너뜀:     0, 전체:    18, 기간: 122 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDeterminismTests.TwoIdenticalRunsOverAnUnchangedInput_Pass_AfterExactlyTwoRuns [4 ms]
+     red: Functional.BaselineDeterminismTests.AStageThatDoesNotApply_EndsTheCommandAsAFailure_AndNothingIsCompared [1 ms]
+     red: Functional.BaselineDeterminismTests.AnOutputOfAnotherLength_Fails [< 1 ms]
+     red: Functional.BaselineDeterminismTests.AStageThatDoesNotApplyOnTheSecondRun_AlsoFails [< 1 ms]
+     red: Functional.BaselineDeterminismTests.OneDifferentPixelBetweenTheRuns_Fails_AndSaysWhere [1 ms]
+     red: Functional.BaselineDeterminismTests.TheBaselineChain_IsFixed_AndNeverCarriesAnAssistiveStage [9 ms]
+     red: Functional.BaselineDeterminismTests.ARunThatChangesTheLoadedFrame_FailsEvenIfTheOutputsAgree [< 1 ms]
+     red: Functional.BaselineDeterminismTests.AStageThatAppliedWithNoChange_StillCounts [< 1 ms]
+     red: Functional.BaselineDeterminismTests.ANonFiniteValueInAFloatIntermediate_Fails [< 1 ms]
+   restored byte-identical: True
+ARM 11-user-display-settings-are-read: build ok=True
+    ['실패!  - 실패:     1, 통과:    17, 건너뜀:     0, 전체:    18, 기간: 102 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineDeterminismTests.ForBaseline_NeverReadsTheUsersDisplaySettings_AndKeepsWhatPreprocessNeeds [36 ms]
+   restored byte-identical: True
+AFTER RESTORE: True ['통과!  - 실패:     0, 통과:    18, 건너뜀:     0, 전체:    18, 기간: 98 ms - ImageProcTest.IntegrationTests.dll (net8.0)']

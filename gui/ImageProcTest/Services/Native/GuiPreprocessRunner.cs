@@ -41,7 +41,8 @@ internal static class GuiPreprocessRunner
         string defectDirectory,
         string bodyPart,
         float kVp,
-        float pixelPitchMm)
+        float pixelPitchMm,
+        bool measureExposureIndex = false)
     {
         var offset = Path.Combine(offsetDirectory, OffsetFile);
         var gain = Path.Combine(gainDirectory, GainFile);
@@ -80,7 +81,7 @@ internal static class GuiPreprocessRunner
                 }
             }
 
-            return RunStages(rawPixels, width, height, bodyPart, kVp, pixelPitchMm);
+            return RunStages(rawPixels, width, height, bodyPart, kVp, pixelPitchMm, measureExposureIndex);
         }
         finally
         {
@@ -95,7 +96,7 @@ internal static class GuiPreprocessRunner
     /// (preprocess_api.h), and allocating the wrong one is a silent wrong answer rather than an error.
     /// </summary>
     private static PreprocessRunResult RunStages(ushort[] rawPixels, int width, int height, string bodyPart,
-        float kVp, float pixelPitchMm)
+        float kVp, float pixelPitchMm, bool measureExposureIndex)
     {
         // kVp and the pixel pitch are the user's settings (AppSettings.ExposureKvp / PixelPitchMm, GUI-C-99
         // and GUI-C-100); both were literals here. mAs and SID are still fixed.
@@ -152,16 +153,30 @@ internal static class GuiPreprocessRunner
                 return new PreprocessRunResult(false, $"xpe_gain_correct failed ({gainCode}).", null);
             }
 
+            // #225 row 9 (GUI-C-196 M8, Codex #76 finding 2): the gain stage's float output is counted too. It goes straight into the defect stage, which can replace a
+            // bad pixel with a finite one, so the final image alone would hide a gain stage that produced NaN or an infinity. Only counted; nothing here changes the pixels.
+            var gainFloats = ReadFloats(gainOut.Data, count);
+
             var defectCode = XpePreprocessNative.xpe_defect_correct(ref gainOut, ref defectOut, ref metadata);
             if (defectCode != XpeOk)
             {
                 return new PreprocessRunResult(false, $"xpe_defect_correct failed ({defectCode}).", null);
             }
 
+            // #225 row 9 (GUI-C-196 M4, design D1): EI-0 is measured HERE, on the float image, before it is scaled to 16 bits (after that the values are
+            // normalised by the frame maximum and an EI taken from them would be meaningless). Only the Deterministic Baseline asks for it: an ordinary
+            // Apply measures nothing, so its output and its alerts are unchanged.
+            var exposure = measureExposureIndex ? MeasureUncalibratedExposureIndex(ref defectOut, ref metadata) : string.Empty;
+
+            var defectFloats = ReadFloats(defectOut.Data, count);
+            var nonFinite = BaselineStageAdapters.CountPreprocessNonFinite(gainFloats, defectFloats);
+            var pixels = ScaleToUInt16(defectFloats);
             return new PreprocessRunResult(
                 true,
-                $"Preprocess: offset -> nonlinearity -> gain -> defect on {width}x{height} ({bodyPart}).",
-                ReadFloatsAsUInt16(defectOut.Data, count));
+                $"Preprocess: offset -> nonlinearity -> gain -> defect on {width}x{height} ({bodyPart}).{exposure}",
+                pixels,
+                null,
+                nonFinite);
         }
         finally
         {
@@ -169,6 +184,27 @@ internal static class GuiPreprocessRunner
             {
                 allocated[i]();
             }
+        }
+    }
+
+    /// <summary>
+    /// EI and DI of the corrected float image, as text for the stage's summary. A MEASUREMENT, never a pass criterion: the module's S0 reference (1000) has not
+    /// been checked against the gui's gain scale, so the value is labelled "uncalibrated EI" (the leader's wording: 보정 안 된 EI). A failure to measure is
+    /// said, not hidden, and does not fail the stage.
+    /// </summary>
+    private static string MeasureUncalibratedExposureIndex(ref XpeImageBufferNative image, ref XpeImageMetadataNative metadata)
+    {
+        const string Label = " uncalibrated EI (보정 안 된 EI)";
+        try
+        {
+            var code = XpeExposureIndexNative.xpe_calc_exposure_index(ref image, ref metadata, out var ei, out var di);
+            return code == XpeOk
+                ? string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{Label} = {ei:0.##}, DI = {di:0.##} (measured, not a pass criterion; S0 reference not verified against the gui gain scale).")
+                : $"{Label} not measured: xpe_calc_exposure_index returned {code}.";
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+        {
+            return $"{Label} not measured: {ex.Message}";
         }
     }
 
@@ -194,15 +230,21 @@ internal static class GuiPreprocessRunner
         return true;
     }
 
-    /// <summary>
-    /// Float32 output scaled back into UInt16 for the preview. The scale is display-only — the
-    /// corrected values themselves stay in the native buffer's domain.
-    /// </summary>
-    private static ushort[] ReadFloatsAsUInt16(IntPtr source, int count)
+    private static float[] ReadFloats(IntPtr source, int count)
     {
         var floats = new float[count];
         Marshal.Copy(source, floats, 0, count);
+        return floats;
+    }
 
+    /// <summary>
+    /// Float32 output scaled back into UInt16 for the preview. The scale is display-only — the
+    /// corrected values themselves stay in the native buffer's domain. Counting happens before this (the caller): the
+    /// conversion cannot represent NaN or an infinity, so afterwards they look like ordinary pixels.
+    /// </summary>
+    private static ushort[] ScaleToUInt16(float[] floats)
+    {
+        var count = floats.Length;
         var max = 0.0f;
         for (var i = 0; i < count; i++)
         {

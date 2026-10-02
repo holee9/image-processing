@@ -1,0 +1,126 @@
+base: leader main = 4e7902b2 (2026-10-02)
+
+### 1. the test fault switches: where do DOCS name them?
+$ git grep -E automation-fault|display-pipeline-after|ai-worker-(disabled|silent)|XPE_TEST_FAULTS|XPE0001|FaultInjecting|XpeTestFaults main -- docs gui/ImageProcTest/README.md docs/design/reference/gui-README.md
+(no match)
+
+### 1b. the same names in CODE and CI (the facts the drafts cite)
+$ git grep -E XPE_TEST_FAULTS|XPE0001|XpeTestFaults main -- gui/XpeTestFaults.props gui/ImageProcTest/ImageProcTest.csproj gui/ImageProcTest/Services/AutomationArgs.cs gui/ImageProcTest/App.xaml.cs
+gui/ImageProcTest/App.xaml.cs:32:#if XPE_TEST_FAULTS
+gui/ImageProcTest/App.xaml.cs:85:#if XPE_TEST_FAULTS
+gui/ImageProcTest/ImageProcTest.csproj:15:  <!-- GUI-C-193: XPE_TEST_FAULTS (test fault switches) is defined for Debug only. -->
+gui/ImageProcTest/ImageProcTest.csproj:16:  <Import Project="..\XpeTestFaults.props" />
+gui/ImageProcTest/ImageProcTest.csproj:20:  <ItemGroup Condition="'$(XpeTestFaults)' != 'true'">
+gui/ImageProcTest/Services/AutomationArgs.cs:29:#if XPE_TEST_FAULTS
+gui/ImageProcTest/Services/AutomationArgs.cs:36:#if XPE_TEST_FAULTS
+gui/ImageProcTest/Services/AutomationArgs.cs:37:    // GUI-C-193: everything about the two fault switches is compiled only in a test build (XPE_TEST_FAULTS, Debug by default). A shipped
+gui/ImageProcTest/Services/AutomationArgs.cs:104:#if XPE_TEST_FAULTS
+gui/ImageProcTest/Services/AutomationArgs.cs:193:#if XPE_TEST_FAULTS
+gui/ImageProcTest/Services/AutomationArgs.cs:236:#if XPE_TEST_FAULTS
+gui/XpeTestFaults.props:4:    and the one with display-pipeline-after:N) exist only in test builds. They are compiled in when XPE_TEST_FAULTS is defined, which
+gui/XpeTestFaults.props:5:    is when XpeTestFaults is true, which is by default the Debug configuration only. A Release (shipped) build has no parser branch,
+gui/XpeTestFaults.props:8:    change. To get a test configuration of something else: pass /p:XpeTestFaults=true. To check a shipped one: build -c Release.
+gui/XpeTestFaults.props:11:    <XpeTestFaults Condition="'$(XpeTestFaults)' == '' and '$(Configuration)' == 'Debug'">true</XpeTestFaults>
+gui/XpeTestFaults.props:13:  <PropertyGroup Condition="'$(XpeTestFaults)' == 'true'">
+gui/XpeTestFaults.props:14:    <DefineConstants>$(DefineConstants);XPE_TEST_FAULTS</DefineConstants>
+gui/XpeTestFaults.props:21:  <Target Name="XpeTestFaultsRefusedInRelease" BeforeTargets="CoreCompile"
+gui/XpeTestFaults.props:22:          Condition="'$(XpeTestFaults)' == 'true' And '$(Configuration)' == 'Release'">
+gui/XpeTestFaults.props:23:    <Error Code="XPE0001"
+gui/XpeTestFaults.props:24:           Text="XpeTestFaults=true is not allowed in the Release configuration: a shipped build must not contain the test fault switches (GUI-C-193). Build Debug for a test build, or drop -p:XpeTestFaul
+
+$ git grep -E gui-shipped-build|Test-ShippedBuild main -- .github/workflows/ci.yml tools/ci/Test-ShippedBuild.ps1
+.github/workflows/ci.yml:763:  gui-shipped-build:
+.github/workflows/ci.yml:784:        run: ./tools/ci/Test-ShippedBuild.ps1
+tools/ci/Test-ShippedBuild.ps1:1:# GUI-C-192e/192f / GUI-C-193 shipped-build gate (CI job gui-shipped-build). Renamed from the lane draft check_shipped_build.ps1, which .gitignore (*_build.ps1) would have excluded.
+
+### 2. the statement that the fault device is off in an ordinary run (SHA-GUI-001) and its test (W-24)
+$ git grep -E 결함 주입 장치 main -- docs
+docs/post-processing/xpe/SHA-GUI-001_Software_Hazard_Analysis.md:110:> | 결함 주입 장치가 일반 실행에서 비활성 | 명령줄 전용 | W-24 |
+
+$ git grep -E W-24|W24_ main -- docs clients/ImageProcTest.E2ETests/Scenarios/Workflows/ViewportTruthScenarios.cs
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ViewportTruthScenarios.cs:216:    /// W-24 (#171): an ordinary launch carries no fault — checked, not assumed.
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/ViewportTruthScenarios.cs:224:    public void W24_OrdinaryLaunch_HasNoFaultInjection()
+docs/post-processing/xpe/SHA-GUI-001_Software_Hazard_Analysis.md:110:> | 결함 주입 장치가 일반 실행에서 비활성 | 명령줄 전용 | W-24 |
+
+$ git grep -E HAZ-GUI-004 \(Stale preview\) main -- docs/post-processing/xpe/RTM-GUI-001_Requirements_Traceability_Matrix.md
+docs/post-processing/xpe/RTM-GUI-001_Requirements_Traceability_Matrix.md:178:| HAZ-GUI-004 (Stale preview) | ARCH-001 §4.3, DISP-INT-001 §4.3 | **E2E W-20~W-26** (메인·분리 뷰어, Mock+Native, CI `3537a13`) — 이전 표�
+
+$ git grep -E gui-automation. / .gui-e2e-native main -- docs/project/XPE-GUI-E2E-001_FlaUI_E2E_Plan.md
+docs/project/XPE-GUI-E2E-001_FlaUI_E2E_Plan.md:13:> 않습니다.** 실행 절차의 기준은 `.github/workflows/ci.yml` 의 `gui-automation` / `gui-e2e-native` 잡입니다.
+
+### 3. the Debug-only build instruction in the gui README
+$ git grep -E dotnet build gui.ImageProcTest.ImageProcTest.csproj main -- gui/ImageProcTest/README.md
+gui/ImageProcTest/README.md:39:dotnet build gui\ImageProcTest\ImageProcTest.csproj -c Debug
+
+$ git grep -i -E Release main -- gui/ImageProcTest/README.md
+gui/ImageProcTest/README.md:219:- Tile-backed rendering for images larger than 4096x4096 remains a planned extension before larger-size release claims.
+
+### 4. the automation switches the docs name, against the switches the code has
+$ git grep -E ImageProcTest.exe --automation|--scenario main -- docs/project/XPE-GUI-ARCH-001_XAML_MVVM_Architecture.md
+docs/project/XPE-GUI-ARCH-001_XAML_MVVM_Architecture.md:367:- `ImageProcTest.exe --automation` 플래그로 실행 시 **자동 스크립트 모드** 진입
+docs/project/XPE-GUI-ARCH-001_XAML_MVVM_Architecture.md:368:- 인자로 YAML 시나리오 파일 지정 가능 (`--scenario smoke.yaml`)
+
+$ git grep -F -e "--scenario" -e "--automation" main -- gui clients
+(no match)
+
+$ git grep -E Is\(switchName, "--automation-[a-z-]+"\) main -- gui/ImageProcTest/Services/AutomationArgs.cs
+gui/ImageProcTest/Services/AutomationArgs.cs:126:            if (Is(switchName, "--automation-raw"))
+gui/ImageProcTest/Services/AutomationArgs.cs:130:            else if (Is(switchName, "--automation-report"))
+gui/ImageProcTest/Services/AutomationArgs.cs:134:            else if (Is(switchName, "--automation-backend"))
+gui/ImageProcTest/Services/AutomationArgs.cs:152:            else if (Is(switchName, "--automation-export-render"))
+gui/ImageProcTest/Services/AutomationArgs.cs:160:            else if (Is(switchName, "--automation-settings"))
+gui/ImageProcTest/Services/AutomationArgs.cs:167:            else if (Is(switchName, "--automation-calib"))
+gui/ImageProcTest/Services/AutomationArgs.cs:173:            else if (Is(switchName, "--automation-width"))
+gui/ImageProcTest/Services/AutomationArgs.cs:183:            else if (Is(switchName, "--automation-height"))
+gui/ImageProcTest/Services/AutomationArgs.cs:194:            else if (Is(switchName, "--automation-fault") && string.Equals(value, AiWorkerDisabledFault, StringComparison.Ordinal))
+gui/ImageProcTest/Services/AutomationArgs.cs:198:            else if (Is(switchName, "--automation-fault") && string.Equals(value, AiWorkerSilentFault, StringComparison.Ordinal))
+gui/ImageProcTest/Services/AutomationArgs.cs:202:            else if (Is(switchName, "--automation-fault") && string.Equals(value, AiWorkerSilentFromStartFault, StringComparison.Ordinal))
+gui/ImageProcTest/Services/AutomationArgs.cs:206:            else if (Is(switchName, "--automation-fault"))
+
+### 5. Run Deterministic Baseline in the docs
+$ git grep -i -E deterministic (baseline|test mode) main -- docs/project docs/post-processing/xpe gui/ImageProcTest/README.md
+docs/post-processing/xpe/XPE-PLAN-001_Consolidated_Execution_Plan.md:65:| Body-Part Recognition (CNN) | **Phase 3** | AI worker 의존, deterministic baseline과 분리 |
+docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md:81:XPE는 "Raw detector data에서 DICOM delivery까지 연결되는 모듈형 X-ray 영상처리 엔진"이어야 한다. 핵심은 화려한 AI보다 먼저,
+docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md:253:| PRD-PROG-004 | 모든 기능은 deterministic baseline path를 먼저 정의해야 한다 | Must | AI 의존 Must-Have 없음 |
+docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md:300:| PRD-P2-001 | deterministic baseline collimation 구현 | Must | low-confidence fallback 포함 |
+docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md:290:| `BI-06.01.01` | Implement deterministic baseline collimation detector | `PRD-P2-001` | Must | `BI-05.01.04` |
+docs/project/Regulatory-Feature-Boundary-Matrix.md:20:| detector correction, EI baseline, display LUT, DICOM export, benchmark and QC telemetry export | release-safe | deterministic image processing and auditable telemetry | part
+docs/project/SPEC-XPE-MASTER.md:143:If Phase 3 fails, the deterministic baseline remains the delivery path.
+docs/project/XPE-10-Pass-Review-Log.md:43:- explicit separation between deterministic baseline, deterministic premium, and assistive AI.
+docs/project/XPE-AI-REG-001_AI_Regulatory_Strategy.md:24:- replace the deterministic baseline image,
+docs/project/XPE-AI-REG-001_AI_Regulatory_Strategy.md:61:The deterministic baseline path remains the primary delivered image path at all times.
+docs/project/XPE-AI-REG-001_AI_Regulatory_Strategy.md:90:- how to revert to the deterministic baseline.
+docs/project/XPE-AI-REG-001_AI_Regulatory_Strategy.md:136:- comparison against the deterministic baseline.
+docs/project/XPE-Brainstorming-DeepSync-Execution.md:73:- **66 / 100** for first implementation complete at `Phase 1b deterministic baseline`,
+docs/project/XPE-Brainstorming-DeepSync-Execution.md:146:1. deterministic baseline always available,
+docs/project/XPE-Brainstorming-DeepSync-Execution.md:238:2. strong deterministic baseline quality,
+docs/project/XPE-DOC-HELP-001_Documentation_and_Help_Strategy.md:194:| Phase 1b | deterministic baseline workflow help, display and DICOM pages, troubleshooting mapped to alerts and common operator tasks |
+docs/project/XPE-GUI-MENU-001_Menu_and_Command_Strategy.md:134:- `Run Deterministic Baseline`
+docs/project/XPE-GUI-MENU-001_Menu_and_Command_Strategy.md:191:| Phase 1b | `File` and `Pipeline` cover deterministic baseline workflow and DICOM-owned actions |
+docs/project/XPE-GUI-MENU-001_Menu_and_Command_Strategy.md:231:| `Run Deterministic Baseline` | xpe_preprocess.dll | 1a | Same + deterministic test mode active |
+docs/project/XPE-Implementation-Analysis-Report.md:50:- deterministic baseline image delivery works end-to-end,
+docs/project/XPE-Implementation-Analysis-Report.md:71:- It is a strong deterministic baseline, not a finished premium product.
+docs/project/XPE-MRD-001_Market_Requirements_Document.md:40:- preserve deterministic baseline image delivery,
+docs/project/XPE-Module-Reinforcement-Plan.md:114:Assuming the project sits at **66 / 100** when `Phase 1b deterministic baseline` is first implemented, the preferred route to **85 / 100** is:
+docs/project/XPE-Module-Reinforcement-Plan.md:146:- Do not allow assistive AI output to overwrite the deterministic baseline silently.
+docs/project/XPE-PRD-SYSTEM-001_System_Product_Requirements.md:26:- the release gates that separate deterministic baseline, deterministic premium, and assistive AI.
+docs/project/XPE-PRD-SYSTEM-001_System_Product_Requirements.md:72:8. The host comparison viewer is a QA and integration review aid; it shall preserve the source frame and shall not silently replace the deterministic baseline outpu
+docs/project/XPE-PRD-SYSTEM-001_System_Product_Requirements.md:83:| Phase 1b | deterministic baseline | enhancement, display, DICOM, whole-image EI complete |
+docs/project/XPE-PRD-SYSTEM-001_System_Product_Requirements.md:95:| `PR-FUNC-001` | The system shall convert detector-domain raw input into a diagnostic-ready deterministic baseline image using Phases 1a and 1b only. | `MR-MKT-001
+docs/project/XPE-PRD-SYSTEM-001_System_Product_Requirements.md:99:| `PR-FUNC-005` | The system shall provide GSDF-aligned presentation processing and diagnostic DICOM export in the deterministic baseline. | `MR-REG-002` |
+docs/project/XPE-PRD-SYSTEM-001_System_Product_Requirements.md:100:| `PR-FUNC-006` | The system shall support optional deterministic premium processing, including baseline collimation, multiscale, fractional processing, and GSVG,
+docs/project/XPE-PRD-SYSTEM-001_System_Product_Requirements.md:117:| `PR-SAFE-005` | Premium suppressive or nonlinear outputs shall never silently overwrite the deterministic baseline image. | `MR-IMG-004`, `MR-AI-001` |
+docs/project/XPE-PRD-SYSTEM-001_System_Product_Requirements.md:182:- deterministic baseline image delivery complete,
+docs/project/XPE-PRD-SYSTEM-001_System_Product_Requirements.md:186:- workflow help pages and troubleshooting entry points are synchronized with the deterministic baseline release,
+docs/project/XPE-SVVP-001_System_Verification_Validation_Plan.md:20:- deterministic baseline processing,
+docs/project/XPE-SVVP-001_System_Verification_Validation_Plan.md:148:- degraded-mode comparison to the deterministic baseline.
+docs/project/pipeline-spec.md:112:- `(13)` and `(13b)` must never overwrite the deterministic baseline image silently; they produce tagged assistive outputs.
+docs/project/product.md:183:| Phase 1 total latency | deterministic baseline completes within 3000 ms |
+docs/project/production-integration-guide.md:142:Missing optional components must not block the deterministic baseline.
+docs/project/tech.md:147:Inference shall not run as opaque logic inside the deterministic baseline DLL chain. The worker model remains:
+
+### 6. the automation report field list in the gui README
+$ git grep -E The emitted report includes|ComparisonEvidenceExported main -- gui/ImageProcTest/README.md
+gui/ImageProcTest/README.md:117:The emitted report includes:
+gui/ImageProcTest/README.md:127:- `ComparisonEvidenceExported`
+

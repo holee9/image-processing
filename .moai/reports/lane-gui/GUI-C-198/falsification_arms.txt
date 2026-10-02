@@ -1,0 +1,31 @@
+# GUI-C-198 falsification arms. Each arm edits the named places, rebuilds, runs the targeted tests, writes the original bytes back and checks the SHA-256 is unchanged.
+# exit=1 means at least one test of that run went red, exit=0 means all green. The per-test names are given in my own words below: the console runner prints Korean verdict
+# words and the script's filter did not match them, so only exit codes were captured by the script itself. Arm 1-4 per-test results of the FIRST pass (before the IsEnabled
+# binding was added) were read from the runner output directly and are in the report (report.md), not here.
+
+arm 1: the command has no canExecute, the entry is still bound to the rule through IsEnabled
+  functional: exit=1  (the wiring test that pins `new RelayCommand(RunAiBoneSuppression, () => AiBoneSuppressionAvailability.CanRun)`)
+  e2e Mock:   exit=0  (EXPECTED green: the IsEnabled binding alone keeps the item disabled. Two independent paths carry the rule; removing one must not change the behaviour, and
+                       the test that guards the other path is the functional one)
+  restored byte-identical: True
+
+arm 1b: no canExecute AND no IsEnabled binding (the card's defect: the item is always enabled)
+  functional: exit=1
+  e2e Mock:   exit=1  (E-01 and E-02 find the item enabled on the Mock backend)
+  restored byte-identical: True
+
+arm 2: the rule ignores a missing xpe_ai.dll (a runtime-false condition: /WX turns a literal `false &&` into a build error)
+  functional: exit=1  (the dll:false row of the rule table, and the reasons test)
+  e2e Native with no xpe_ai.dll in the pinned directory: exit=1  (the item is enabled although the module cannot be loaded)
+  restored byte-identical: True
+
+arm 3: the menu is never told to ask again (no property notice, no CanExecuteChanged)
+  functional: exit=1
+  e2e Native with xpe_ai.dll in the pinned directory: exit=1  (after Shutdown the item stays enabled)
+  restored byte-identical: True
+
+arm 4: the handler does not refuse for itself (its guard made runtime-false)
+  functional: exit=1  (the wiring test)
+  restored byte-identical: True
+
+final rebuild after all arms: succeeded

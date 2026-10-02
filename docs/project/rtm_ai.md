@@ -86,6 +86,20 @@ This matrix traces every requirement (REQ-AI-XXX) from SRS-AI-001 to:
 | REQ-AI-BP-002 | Invalid buffer returns BUFFER_TOO_SMALL | SRS-AI-010-VAL | SDD Sec 4.3 | `modules/ai/src/ai.cpp` | TC-FALLBACK-012: InvalidBuffer | Written | XPE-VVP-AI-001 §4.2 |
 | REQ-AI-BP-001 | Stub fallback returns PROCESSING_FAILED | SRS-AI-010 | SDD Sec 4.3 | `modules/ai/src/ai.cpp` | TC-FALLBACK-013: StubFallback | Written | XPE-VVP-AI-001 §4.3 |
 | REQ-AI-BP-001 | Stub returns label and confidence | SRS-AI-010 | SDD Sec 4.3 | `modules/ai/src/ai.cpp` | TC-FALLBACK-014: StubLabelConf | Written | XPE-VVP-AI-001 §4.3 |
+| REQ-AI-BP-001 | The model's output becomes the label and confidence | SRS-AI-010 | SDD Sec 4.3 | `ai.cpp`, `ai_bodypart_model.h` | `BodyPart.ConstantModelGivesItsLabelAndItsProbability`, `BodyPart.ADifferentModelDirectoryChangesTheLabel`, `BodyPart.TheImageChangesTheLabel`, `BodyPart.ATieGoesToTheFirstClassAndAFullScaleProbabilityIsAccepted`, `BodyPart.ANhwcModelGivesTheSameAnswersAsTheNchwOne` | Written | XPE-VVP-AI-001 §4.3 |
+| REQ-AI-BP-001 | The image is resized to the model's input | SRS-AI-010 | SDD Sec 4.3 | `ai_bodypart.h` | `BodyPart.AnImageOfAnotherSizeIsResizedToTheModelsInputBeforeItIsRun`, `BodyPartResize.ShrinkingAveragesTheArea`, `BodyPartResize.EnlargingInterpolatesAndStaysInsideTheSourceRange`, `BodyPartInputSize.TheShapesTheModuleWillFeed` | Written | XPE-VVP-AI-001 §4.3 |
+| REQ-AI-002 | No usable answer → `UNKNOWN`, 0.0, PROCESSING_FAILED (+ one Warning per session) | -- | SDD Sec 4.3 | `ai.cpp` | `BodyPart.NoModelFileIsTheStubsOutcomeWithOneWarning`, `BodyPart.ABrokenModelFileIsTheStubsOutcomeWithOneWarning`, `BodyPart.MissingLabelsAreTheStubsOutcomeWithOneWarning`, `BodyPart.MoreOutputsThanLabelsAreTheStubsOutcomeWithOneWarning`, `BodyPart.ARankTwoInputIsTheStubsOutcomeWithOneWarning`, `BodyPart.ADynamicInputIsTheStubsOutcomeWithOneWarning`, `BodyPart.WithoutAModelNoImageFormatChangesTheOutcome` | Written | XPE-VVP-AI-001 §4.3 |
+| REQ-AI-002 | A model output that is not a probability vector is refused | -- | SDD Sec 4.3 | `ai_bodypart_decision.h` | `BodyPart.ANonFiniteModelResultIsRefusedWithTheNonFiniteAlert`, `BodyPart.AProbabilityAboveOneIsRefused`, `BodyPart.ANegativeValueIsRefusedEvenWhenTheLargestIsInRange`, `BodyPartDecision.AValueJustOutsideTheRangeIsRefusedWhole`, `BodyPartDecision.NonFiniteIsToldApartFromOutOfRangeAndCheckedFirst` | Written | XPE-VVP-AI-001 §4.3 |
+| REQ-AI-FB-001 (= REQ-AI-012) | Below the threshold → low-confidence event and fallback | SRS-AI-FB-001 | SDD Sec 4.3 | `ai.cpp` `decideBodyPart` | `BodyPart.AConfidenceExactlyAtTheThresholdPasses`, `BodyPart.AConfidenceOneFloatBelowTheThresholdIsLowAndFallsBack`, `BodyPart.TheThresholdIsTheConfiguredOneNotAConstant`, `BodyPart.AThresholdOfOneAcceptsOnlyAFullScaleConfidence`, `BodyPart.EveryLowConfidenceImageRaisesItsOwnEventButAPassingOneRaisesNone`, `BodyPart.ALowConfidenceFallbackNeedsRoomForUnknownAndStillRaisesTheEvent` | Written | XPE-VVP-AI-001 §4.3 |
+| REQ-AI-FB-002 | `fallback_mode` off → label returned with a Warning; run-time toggle | SRS-AI-FB-002 | SDD Sec 4.3 | `ai.cpp` | `BodyPart.WithFallbackModeOffTheLowConfidenceLabelIsReturnedWithAWarning`, `BodyPart.FallbackModeCanBeToggledAtRunTimeAndTheNextCallFollows`, `BodyPart.WithFallbackModeOffALabelThatDoesNotFitIsStillBufferTooSmall` | Written | XPE-VVP-AI-001 §4.3 |
+| REQ-AI-003 | Worker protocol: strict reply parsing (success and ERROR frames) | -- | SDD Sec 4.3 | `ai_ipc_bridge.cpp`, `ai_worker_main.cpp` | `WorkerBodyPartReply.EveryReplyTheProtocolForbidsIsAProtocolFaultAndTheWorkerIsDiscarded`, `WorkerBodyPartReply.ControlAValidReplyIsAcceptedAndKeepsTheWorker`, `WorkerBodyPartReply.TheFlagIsParsedNotSearchedSoTextThatLooksLikeItIsOnlyText`, `WorkerBodyPartReply.ARefusalOfTheModelsOutputIsAValidReplyThatCarriesNoAnswer`, `WorkerBodyPartReply.EveryErrorFrameTheProtocolForbidsIsAProtocolFaultAndTheWorkerIsDiscarded`, `WorkerBodyPartReply.ThreeContradictoryFramesInARowAreThreeCountedFailuresNeverAnUnavailableAnswer` | Written | XPE-VVP-AI-001 §4.3 |
+| REQ-AI-003 | The worker path and the in-process path give the same answer | -- | SDD Sec 4.3 | `ai_bodypart_model.h`, `ai_bodypart_decision.h` | `WorkerBodyPartAgreement.TheRealWorkerAndTheInProcessPathSayTheSameThingForEveryModelAndImage`, `WorkerBodyPartAgreement.TheWorkerResizesTheImageToTheModelsInputAndTheAnswerFollowsTheImage`, `WorkerBodyPartAgreement.ALabelOutsidePrintableAsciiOrWithAQuoteOrBackslashIsUnavailableInBothPaths` | Written | XPE-VVP-AI-001 §4.3 |
+| REQ-AI-092 | A silent worker is given up on at the budget; the next call uses a new worker | -- | SDD Sec 4.3 | `ai_worker_supervisor.cpp` | `BodyPartWorkerPath.ASilentWorkerIsGivenUpOnAtTheBudgetAndTheNextCallRecoversOnANewWorker` | Written | XPE-VVP-AI-001 §4.3 |
+| REQ-AI-002 | Three consecutive failures switch the worker off (count shared by both functions); "unavailable" is not counted | -- | SDD Sec 4.3 | `ai.cpp` `bodyPartViaWorker` | `BodyPartWorkerPath.AModelThatExistsAndFailsToRunIsCountedAndThirdFailureSwitchesTheWorkerOffForBothFunctions`, `BodyPartWorkerPath.BoneSuppressionFailuresSwitchOffBodyPartRecognitionToo`, `BodyPartWorkerPath.AnUnavailableBodyPartModelIsOneWarningAndNeverCountedAndNeverSwitchesTheWorkerOff`, `BodyPartWorkerPath.WithNoBodyPartModelBoneSuppressionIsNotSkippedByTheBodyPartCalls`, `BodyPartWorkerPath.AnUnavailableAnswerEndsARunOfBoneSuppressionFailures`, `BodyPartWorkerPath.ShutdownThenInitRecoversAWorkerSwitchedOffByBodyPartFailures` | Written | XPE-VVP-AI-001 §4.3 |
+
+> **Note (2026-10-02, `QA-B-191`, `#130`)** — the rows after `TC-FALLBACK-014` cite test names rather than new TC
+> numbers. These tests exercise the full build (`ci-ai` preset); the stub build skips the full-build-only tests.
+> All test models are hand-built toy models, not classifiers — the rows verify **wiring**, not accuracy or latency.
 
 ---
 
@@ -163,7 +177,7 @@ This matrix traces every requirement (REQ-AI-XXX) from SRS-AI-001 to:
 | REQ-AI-FB-002 | Disable fallback mode | SRS-AI-FB-002 | SDD Sec 4.3 | `modules/ai/src/ai.cpp` | TC-FALLBACK-002: DisableFallback | Written | XPE-VVP-AI-001 §4.8 |
 | REQ-AI-FB-002 | Repeated toggle | SRS-AI-FB-002 | SDD Sec 4.3 | `modules/ai/src/ai.cpp` | TC-FALLBACK-003: RepeatedToggle | Written | XPE-VVP-AI-001 §4.8 |
 | REQ-AI-FB-002 | Non-zero values enable | SRS-AI-FB-002 | SDD Sec 4.3 | `modules/ai/src/ai.cpp` | TC-FALLBACK-004: NonZeroEnables | Written | XPE-VVP-AI-001 §4.8 |
-| REQ-AI-FB-001 | Confidence threshold default (0.6) | SRS-AI-FB-001 | SDD Sec 4.2 | `modules/ai/src/ai.cpp` | TC-FALLBACK-022: ConfThresholdDefault | Written | XPE-VVP-AI-001 §4.8 |
+| REQ-AI-FB-001 | Confidence threshold default (0.6) | SRS-AI-FB-001 | SDD Sec 4.2 | `modules/ai/src/ai.cpp` | TC-FALLBACK-022: `AiFallbackTest.ConfidenceThresholdDefaultIs06` (header constant only; the decision is verified in §4) | Written | XPE-VVP-AI-001 §4.8 |
 
 ---
 
@@ -184,7 +198,7 @@ The following SPEC requirements have no test coverage in the current skeleton:
 |----------|-------------|-------------|--------|
 | REQ-AI-006 | SRS-AI-ARCH-006 | ONNX Runtime multi-EP | Partial — ONNX build exists (`ci-ai` preset, `XPE_AI_USE_ONNXRUNTIME=ON`); only the CPU EP is registered, multi-EP not implemented (QA-B-190) |
 | REQ-AI-007 | SRS-AI-ARCH-007 | Model signing | Not implemented |
-| REQ-AI-092 | -- | Time budget enforcement | Partial (xpe_bone_suppress worker path) — opt-in `use_worker: true` only: budget overrun returns the input unchanged + non-OK code + exactly one Warning alert (`IpcDeadline.*`, `WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers`, `WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne`). Default path (worker off) and the other three entry points have no budget (QA-B-190) |
+| REQ-AI-092 | -- | Time budget enforcement | Partial (xpe_bone_suppress worker path) — opt-in `use_worker: true` only: budget overrun returns the input unchanged + non-OK code + exactly one Warning alert (`IpcDeadline.*`, `WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers`, `WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne`). Default path (worker off) and the other three entry points have no budget (QA-B-190). Correction 2026-10-02 (QA-B-191 M4c): the opt-in worker path of `xpe_bodypart_recognize` has the same budget and shares the failure count with bone suppression (§4, `BodyPartWorkerPath.ASilentWorkerIsGivenUpOnAtTheBudgetAndTheNextCallRecoversOnANewWorker`); `xpe_stitch_images` and `xpe_dl_denoise` still have none |
 
 > **정정 2026-09-30 (`#210`)** — 이 문서가 시간 예산 요구를 `REQ-AI-009` 로 인용하고
 > 있었습니다. **그 번호는 정의된 적이 없습니다** — 정의는 `REQ-AI-092`(`srs_ai.md` 의
@@ -260,6 +274,17 @@ All six files are registered in `modules/ai/CMakeLists.txt` (`XPE_AI_TEST_SOURCE
 the `xpe_ai_tests` target. Execution record: 129/129 pass, Lane B worktree, 2026-09-10
 (`XPE-VVP-AI-001 §3.3.3`). No coverage figure exists for this module — `BUILD_AI=OFF` in every
 coverage preset (issue #124).
+
+> **Addition (2026-10-02, `QA-B-191`, `#130`)** — body-part recognition added four test files, also registered in
+> `XPE_AI_TEST_SOURCES`. Case counts are the `TEST` / `TEST_F` macro counts on 2026-10-03; the table and total above
+> were not re-derived and do not include them.
+>
+> | Test File | Cases | Focus |
+> |-----------|------:|-------|
+> | `test_bodypart_inference.cpp` | 42 | In-process path with toy models: answers, resizing, threshold, fallback_mode, refusals |
+> | `test_bodypart_decision.cpp` | 8 | Output judgement and the low-confidence alert texts |
+> | `test_worker_bodypart.cpp` | 24 | Worker protocol (strict reply and ERROR-frame parsing), worker vs in-process agreement |
+> | `test_bodypart_worker_path.cpp` | 15 | Worker path: budget, shared failure count, switch-off, unavailable model |
 
 ---
 

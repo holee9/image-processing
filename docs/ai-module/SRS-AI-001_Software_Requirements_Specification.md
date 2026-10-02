@@ -90,12 +90,12 @@ int xpe_ai_body_part_classify(
 - 입력: 512×512 float32 그레이스케일
 - 처리: MobileNet-v3-Small ONNX 추론
 - 출력: JSON sidecar (body_part, confidence, top3, model_version)
-- 신뢰도 < 0.70 → "UNKNOWN"
+- 신뢰도 < 0.6(설정 가능, 기본값) → "UNKNOWN" (정정 2026-10-02, `QA-B-191`: 0.70 → SPEC `REQ-AI-012` 정본 0.6)
 
 **가능성 기준**:
 - 정확도: Top-1 ≥ 95% (15개 부위)
 - 레이턴시: ≤ 300ms (포함: 리사이즈 + 추론)
-- OOD 감지: confidence < 0.70 시 자동 "UNKNOWN" 반환
+- OOD 감지: confidence < 0.6(기본값) 시 자동 "UNKNOWN" 반환
 
 #### FR-AI-140: 출력 Sidecar 관리
 **상태**: MANDATORY  
@@ -322,7 +322,7 @@ if (computed_hash != expected_hash):
 **규칙**: 모든 추론의 신뢰도 점수가 임계값 이상이어야 함; 미달 시 자동 fallback
 
 **임계값**:
-- SWU-2.7 (신체 부위): confidence ≥ 0.70
+- SWU-2.7 (신체 부위): confidence ≥ 0.6 (기본값, 설정 가능)
 - SWU-2.8-AI (ROI): confidence ≥ 0.65
 - SWU-2.11 (뼈 억제): confidence ≥ 0.80
 
@@ -425,7 +425,7 @@ AI 기능은 config JSON으로 런타임에 제어:
 {
   "ai": {
     "enabled": true,
-    "body_part_recognition": { "enabled": true, "confidence_threshold": 0.70 },
+    "body_part_recognition": { "enabled": true, "confidence_threshold": 0.6 },
     "collimation_refinement": { "enabled": true },
     "bone_suppression": { "enabled": true },
     "stitch_images": { "enabled": false },

@@ -18,6 +18,10 @@ public partial class MainWindow : System.Windows.Window
     /// <summary>Where this run's settings are read from and written to. #136: not the shipped file under automation.</summary>
     private readonly string _settingsFilePath;
 
+    // Codex #78 finding 3 (GUI-C-198): the AI entry's availability includes a file that may appear or vanish while the app runs; it is read again each time the menu opens.
+    private void PipelineMenu_SubmenuOpened(object sender, System.Windows.RoutedEventArgs e) =>
+        (DataContext as MainWindowViewModel)?.RefreshAiBoneSuppressionAvailability();
+
     public MainWindow()
     {
         InitializeComponent();
@@ -420,7 +424,8 @@ public partial class MainWindow : System.Windows.Window
                     // RunPreprocessingMenuItem is no longer a placeholder (#141, GUI-C-36): it is
                     // enabled on the native backend, so counting it as a disabled future command
                     // would make this report claim the opposite of what the app now does.
-                    RunDeterministicBaselineMenuItem,
+                    // RunDeterministicBaselineMenuItem is a command now (#225 row 9, GUI-C-196 M4): enabled on the native backend, disabled on Mock with a command
+                    // still bound, so it left this list exactly as RunPreprocessingMenuItem did.
                     StopProcessingMenuItem,
                     StageTimingMenuItem,
                     RunSelfCheckMenuItem,
@@ -597,6 +602,56 @@ public partial class MainWindow : System.Windows.Window
             report.EvidenceFolderLaunchSuppressed = viewModel.EvidenceFolderLaunchSuppressed;
 
 
+            // #225 row 9 (GUI-C-196 M4): the Deterministic Baseline, through the MENU a user has, LAST among the measurements: it takes seconds on the native
+            // backend and sets the status line, the alerts and the log, none of which the steps above may see changed. NotRun (menu disabled, as on Mock) is
+            // recorded as NotRun, never as a pass or a fail.
+            report.BaselineMenuEnabled = RunDeterministicBaselineMenuItem.IsEnabled;
+            var baselineNotAttempted = string.Empty;
+            var baselineAttempted = false;
+            if (report.BaselineMenuEnabled && !report.PreprocessRan)
+            {
+                // Without a calibration set the preprocess stage cannot run, and the baseline would FAIL for that reason in every automation run that has none.
+                // A failure that means "no calibration was given" is not the baseline's verdict: it is recorded as not attempted, with why.
+                baselineNotAttempted = " (not attempted in this automation run: preprocessing did not run, so no calibration set was given)";
+            }
+            else if (report.BaselineMenuEnabled)
+            {
+                ClickMenuItem(RunDeterministicBaselineMenuItem);
+                baselineAttempted = true;
+                // Ends on a result, on the command's own failure line (it threw: no result will come), or after 60 s.
+                for (var waited = 0;
+                     waited < 600 && viewModel.LastBaselineResult is null && !viewModel.BaselineStatusText.StartsWith("Deterministic Baseline FAIL", StringComparison.Ordinal);
+                     waited++)
+                {
+                    await Task.Delay(100);
+                }
+            }
+
+            var baseline = viewModel.LastBaselineResult;
+            report.BaselineStatusText = viewModel.BaselineStatusText + baselineNotAttempted;
+            // #225 row 9 (GUI-C-196 M5): the status comes from the rule that the verdict below also uses. A baseline that was tried and left no result is a Fail.
+            report.BaselineStatus = BaselineAutomationRule.StatusOf(baselineAttempted, baseline);
+            if (baselineAttempted && baseline is null && !report.BaselineStatusText.StartsWith("Deterministic Baseline FAIL", StringComparison.Ordinal))
+            {
+                report.BaselineStatusText = $"Deterministic Baseline FAIL: no result within 60 s (status line: '{viewModel.BaselineStatusText}')";
+            }
+
+            if (baseline is not null)
+            {
+                report.BaselineRan = true;
+                report.BaselineBitIdentical = baseline.Verdict.BitIdentical;
+                report.BaselineFirstDifference = baseline.Verdict.Difference is { Identical: false } d
+                    ? $"pixel {d.FirstIndex}, {d.DifferentCount} differ, max {d.MaxAbsDifference}"
+                    : string.Empty;
+                report.BaselineOutputSha256 = baseline.Verdict.OutputSha256;
+                report.BaselineStageTimes = baseline.StageTimes;
+                report.BaselineTotalMs = Math.Round(baseline.TotalMs, 1);
+                report.BaselineDicomValid = baseline.DicomValid;
+                report.BaselineDicomRoundTripIdentical = baseline.DicomRoundTripIdentical;
+                report.BaselineExposureIndex = baseline.ExposureIndex;
+                report.BaselineEvidenceFolder = baseline.EvidenceFolder;
+            }
+
             ClickMenuItem(ExportAutomationReportMenuItem);
             await Task.Delay(200);
             var menuCommandReportPath = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
@@ -704,7 +759,9 @@ public partial class MainWindow : System.Windows.Window
                 report.MenuCommandReportCreated &&
                 report.LogCountAfterClear == 0 &&
                 report.AlertCountAfterClear == 0 &&
-                report.RuntimeStateAfterShutdown == "Shutdown";
+                report.RuntimeStateAfterShutdown == "Shutdown" &&
+                // #225 row 9 (GUI-C-196 M5, the leader's ruling): a baseline that FAILED fails the report; NotRun leaves it alone. See BaselineAutomationRule.
+                BaselineAutomationRule.AllowsAutomationPass(report.BaselineStatus);
         }
         catch (Exception ex)
         {

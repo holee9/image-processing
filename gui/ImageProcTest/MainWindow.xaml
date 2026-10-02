@@ -344,7 +344,8 @@
 
             <MenuItem x:Name="PipelineMenu"
                       AutomationProperties.AutomationId="PipelineMenu"
-                      Header="_Pipeline">
+                      Header="_Pipeline"
+                      SubmenuOpened="PipelineMenu_SubmenuOpened">
                 <MenuItem x:Name="ApplyDisplayPipelineMenuItem"
                           AutomationProperties.AutomationId="ApplyDisplayPipelineMenuItem"
                           Header="Apply _Display Pipeline"
@@ -359,8 +360,9 @@
                 <MenuItem x:Name="RunDeterministicBaselineMenuItem"
                           AutomationProperties.AutomationId="RunDeterministicBaselineMenuItem"
                           Header="Run _Deterministic Baseline (Phase 1b)"
-                          IsEnabled="False"
-                          ToolTip="Requires preprocess, enhance_basic, display, and dicom modules." />
+                          Command="{Binding RunDeterministicBaselineCommand}"
+                          IsEnabled="{Binding CanRunDeterministicBaseline}"
+                          ToolTip="Runs the fixed Phase 1b chain (preprocess, enhance_basic, display LUTs, DICOM write) twice on the loaded image and reports whether the two outputs are bit-identical. Needs the native backend and a loaded image. Changes no setting." />
                 <!-- #225 (GUI-C-184, row 10). The id and the x:Name stay (tests and the three-axis count key on them); the item no
                      longer says "Full Pipeline": today it runs ONE assistive module, bone suppression. The other AI modules
                      and the premium ones are not wired to it. -->
@@ -368,7 +370,8 @@
                           AutomationProperties.AutomationId="RunFullPipelineMenuItem"
                           Header="Run _AI Bone Suppression"
                           Command="{Binding RunAiBoneSuppressionCommand}"
-                          ToolTip="Runs AI bone suppression (xpe_bone_suppress, worker process) on the loaded frame after the other stages. Needs the native backend and xpe_ai.dll with a model in the AI model directory. If the module fails, the original image is shown and the status line says so; a build without an inference runtime always fails. Other AI and premium modules are not wired to this item." />
+                          IsEnabled="{Binding AiBoneSuppressionAvailability.CanRun, Mode=OneWay}"
+                          ToolTip="{Binding AiBoneSuppressionMenuToolTip}" />
                 <!-- #225 (GUI-C-154, row 11): stops the render in flight by discarding its result;
                      the native calls inside are synchronous and are not interrupted. -->
                 <MenuItem x:Name="StopProcessingMenuItem"

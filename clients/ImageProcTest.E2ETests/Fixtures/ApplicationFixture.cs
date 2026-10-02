@@ -463,7 +463,7 @@ public class ApplicationFixture : IDisposable
         }, LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>Returns the shared set, generating it on first use.</summary>
-    private static string? SharedCalibrationSet(out string note)
+    internal static string? SharedCalibrationSet(out string note)
     {
         var (directory, generatedNote) = SharedCalibration.Value;
         note = generatedNote;

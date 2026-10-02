@@ -127,6 +127,28 @@ SPEC `spec.md` Informative 문단의 "0.9865 @10σ 미달"도 균일 프레임 1
 
 **반영하지 않은 것.** `QA-A-211` 보고서의 SRS-CALIB-FUNC-002·003 보강안은 SRS 원문(`docs/calibration/`)에 옮기지 않았다 — 이번 갱신 범위가 SPEC·api-spec·이 문서·TDS 였다. 규칙 4 에 따라 VVP·RTM 의 해당 행도 이번 변경에서 갱신하지 않았다.
 
+## 6-4. 2026-10-03 요구 추가 — 비선형 보정 공개 함수와 BPM 생성 (#216, `QA-A-223`)
+
+수치 기준(성능·TPR·FPR) 변경은 없다. 요구 다섯 개를 새로 적었다. SPEC 버전 1.3.3 → 1.3.4. 문안 원본은 `QA-A-223` 보고서 §2.3 초안 D1~D4 이고, SRS 가 서술하거나 헤더가 적은 동작만 옮겼다. 초안의 오류 조건은 헤더에서 옮긴 것이라 하나하나 `modules/preprocess/src` 에서 확인했고, 확인되지 않은 것은 옮기지 않았다.
+
+| 구분 | 항목 | 내용 | 카드 · 이슈 | 승인 |
+|---|---|---|---|---|
+| 범위 결정 | `§1.3` PRE-08 | 비선형 보정 공개 함수는 이 모듈이 수출하므로 SPEC-XPE-P1A 범위. "별도 SPEC" 줄에 정정 주석 | `QA-A-223` · #216 | 리더 결정 2026-10-03 |
+| 요구 추가 | `REQ-P1A-107` | `xpe_nonlinearity_correct`: `panel.linear` true 면 무변경 `XPE_OK`; 모드가 다항식을 고르면 6b, 거부되면 LUT 경로; 적재된 LUT 가 있으면 6a 적용(`panel.linear` 보다 우선); LUT 없음 + `panel.linear` false 면 `XPE_ERR_CALIB_NOT_LOADED`; LUT 없음 + 그 밖이면 경고 알림 + 무변경 `XPE_OK`(SRS 에 없던 문장). 설정 JSON 오류는 `XPE_ERR_CONFIG_INVALID`, 프레임 불변 | `QA-A-223` · #216 | 리더 결정 2026-10-03 (범위) |
+| 요구 추가 | `REQ-P1A-108` | `xpe_calib_generate_nonlin_lut`: 6a 절차(#186 정정판, 상단 항등 매듭 없음), `XCAL_TYPE_NONLIN_LUT` 파일과 `xcal_nonlin_extension_start` 기록. 오류 `INVALID_INPUT`·`INVALID_CALIB_DATA`(최고 측정값 ≥ `lut_entries − 1` 포함)·`IO_FAILED` | `QA-A-223` · #216 | 위와 같음 |
+| 요구 추가 | `REQ-P1A-109` | `xpe_calib_load_nonlin_lut`: 항목 수 4096·65536, 비감소, 확장 경계 [0, 항목 수] 검사 후 저장소의 활성 LUT 로. 실패 시 이전 LUT 유지 | `QA-A-223` · #216 | 위와 같음 |
+| 요구 추가 | `REQ-P1A-110` | `xpe_calib_unload_nonlin_lut`: 활성 LUT 제거. **SRS 서술 없음 — 코드에서 도출**한 한 문장 | `QA-A-223` · #216 | 리더 결정 2026-10-03 (코드 기술) |
+| 요구 추가 | `REQ-P1A-111` | `xpe_bpm_generate`: FUNC-022(창 ≥ 32, RMM λ 8.0)·FUNC-023(창 ≥ 128, 허용도 5~9%) 검출, 0/1/2/3 범주 병합, 경계 반사. 병합·반사는 SRS 에 없음(코드에서 옮김) | `QA-A-223` · #216 | 위와 같음 |
+| RTM 정정 | `RTM-CALIB-001` §5.1 | `xpe_verify_defect` 를 FUNC-019 행에서, `xpe_verify_pipeline` 을 FUNC-015/021 행에서 떼어 각각 "SRS 서술 없음 — #216" 행으로. 함수가 실제로 하는 일을 적음 | `QA-A-223` · #216 | 리더 결정 2026-10-03 |
+
+**초안과 다르게 적은 것.** D1 의 "LUT 도 계수도 없으면 무동작" 은 코드와 맞지 않았다 — 계수는 모드가 다항식을 고를 때만 읽고, 무동작 경로의 조건은 "LUT 없음 + `panel.linear` 가 false 아님" 이다. D4 의 "화소별 큰 값" 병합도 코드와 달랐다(1·2 → 코드는 3). 둘 다 코드대로 적었다.
+
+**반영하지 않은 것.**
+- `panel.nonlinearity_mode` 의 알 수 없는 값을 거부하지 않고 LUT 경로로 보내는 동작은 요구로 고정하지 않았다 (코드 주석이 P1D 에서 새 키와 함께 되살릴 수 있다고 적은 결정이다). 보고서가 우선순위 미확인이라 한 D1 의 두 조건은 코드에서 순서를 확인해 적었다.
+- SRS 6a 의 "선량 5~95% 범위" 와 "보간 오차 ≤ 0.3%" 는 생성 함수가 검사하지 않으므로 REQ-P1A-108 의 오류 조건으로 넣지 않았다.
+- 헤더의 낡은 주석 둘(`xpe_calib_generate_nonlin_lut` 의 상단 항등 문구, `xpe_bpm_generate` 의 FUNC-024/025 라벨)은 pre 레인 `QA-A-224` 가 코드에서 고친다 — 이 변경에서 손대지 않았다.
+- 규칙 4: RTM `§5.1` 의 `SRS-CALIB-FUNC-022..025` ↔ `xpe_bpm_generate` 행(FUNC-024 는 게인 프레임 수, FUNC-025 는 `LineArtifactScore`)과 FUNC-006 행에 새 요구 번호(`REQ-P1A-107~111`)를 다는 일, VVP 의 대응 행은 이번 변경에서 갱신하지 않았다.
+
 ## 7. 앞으로의 규칙
 
 1. 요구 수치를 바꾸는 커밋은 이 문서에 행을 추가하고, 같은 내용을 해당 이슈에 코멘트로 남긴다.

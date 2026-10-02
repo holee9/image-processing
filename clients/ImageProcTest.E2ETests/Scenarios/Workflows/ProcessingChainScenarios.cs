@@ -362,7 +362,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             output.WriteLine($"C08 before: chain='{before}' hash={beforeHash}");
             Assert.NotEqual("-", beforeHash);
 
-            InvokeAiMenuItem(window);
+            RequestAiStage(window);
 
             var after = WaitForChain(window, "ai_bone_suppress=RequestedNotApplied");
             var afterHash = DrawnHash(window);
@@ -437,7 +437,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             var seen = new List<string>();   // what the app said after each attempt (GUI-C-189): the failure message carries it
             for (var attempt = 1; attempt <= 6 && !shown; attempt++)
             {
-                InvokeAiMenuItem(window);
+                InvokeAiMenuItem(window, requireEnabled: true);
                 var status = WaitForChain(window, "ai_bone_suppress=RequestedNotApplied");
                 output.WriteLine($"C09 attempt {attempt}: chain='{status}'");
                 Assert.Matches(@"ai_bone_suppress: AI bone suppression (NOT applied|not attempted) \(code -?\d+", status);
@@ -631,7 +631,46 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
     private static string StatusText(Window window) =>
         window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"))?.Name ?? string.Empty;
 
-    private static void InvokeAiMenuItem(Window window)
+    /// <summary>
+    /// GUI-C-198: asks for the AI stage the way a user does, through the menu entry. Where the entry is disabled (the Mock backend, or a native run without xpe_ai.dll; the
+    /// rule is E-01's) the same request is made through the "AI bone suppression in chain" setting, which reaches the same stage and the same refusal.
+    /// </summary>
+    private static void RequestAiStage(Window window)
+    {
+        if (AiMenuItemIsEnabled(window))
+        {
+            InvokeAiMenuItem(window);
+            return;
+        }
+
+        SetAiStage(window, true);
+        ApplyDisplayPipeline(window);
+    }
+
+    private static bool AiMenuItemIsEnabled(Window window)
+    {
+        var menu = window.FindFirstDescendant(cf => cf.ByAutomationId("PipelineMenu"));
+        Assert.True(menu is not null, "PipelineMenu was not found.");
+        menu!.AsMenuItem().Expand();
+        try
+        {
+            FlaUI.Core.AutomationElements.AutomationElement? item = null;
+            for (var attempt = 0; attempt < 20 && item is null; attempt++)
+            {
+                item = window.FindFirstDescendant(cf => cf.ByAutomationId("RunFullPipelineMenuItem"));
+                if (item is null) Thread.Sleep(100);
+            }
+
+            Assert.True(item is not null, "RunFullPipelineMenuItem did not appear under PipelineMenu.");
+            return item!.IsEnabled;
+        }
+        finally
+        {
+            try { menu.AsMenuItem().Collapse(); } catch (Exception) { /* already closed */ }
+        }
+    }
+
+    private static void InvokeAiMenuItem(Window window, bool requireEnabled = false)
     {
         var menu = window.FindFirstDescendant(cf => cf.ByAutomationId("PipelineMenu"));
         Assert.True(menu is not null, "PipelineMenu was not found.");
@@ -645,6 +684,8 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
         }
 
         Assert.True(item is not null, "RunFullPipelineMenuItem did not appear under PipelineMenu.");
+        Assert.True(!requireEnabled || item!.IsEnabled,
+            "RunFullPipelineMenuItem is disabled, so the module is never asked: this scenario needs the native backend with xpe_ai.dll in the pinned native directory (GUI-C-198).");
         item!.AsMenuItem().Invoke();
         try { menu.AsMenuItem().Collapse(); } catch (Exception) { /* already closed */ }
         Thread.Sleep(400);

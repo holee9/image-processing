@@ -155,7 +155,8 @@ public sealed class MainWindowViewModel : ObservableObject
         ApplyDisplayPipelineCommand = new RelayCommand(() => _ = ApplyDisplayPipelineAsync());
         ApplyBodyPartPresetCommand = new RelayCommand(ApplyBodyPartPreset);
         RunPreprocessingCommand = new RelayCommand(RunPreprocessing);
-        RunAiBoneSuppressionCommand = new RelayCommand(RunAiBoneSuppression);
+        RunAiBoneSuppressionCommand = new RelayCommand(RunAiBoneSuppression, () => AiBoneSuppressionAvailability.CanRun);
+        RunDeterministicBaselineCommand = new RelayCommand(() => _ = RunDeterministicBaselineAsync());
         RestartAiSessionCommand = new RelayCommand(RestartAiSession);
         ZoomFitCommand = new RelayCommand(ZoomFit);
         ZoomActualCommand = new RelayCommand(ZoomActual);
@@ -525,6 +526,46 @@ public sealed class MainWindowViewModel : ObservableObject
     public RelayCommand RunAiBoneSuppressionCommand { get; }
 
     /// <summary>
+    /// #225 (GUI-C-198, MENU-001 section 8): whether the entry is usable now. Read live (a file-exists check, no native call), so it never answers from a stale state;
+    /// <see cref="RefreshAiBoneSuppressionAvailability"/> tells the menu when to ask again.
+    /// </summary>
+    public AiBoneSuppressionAvailability AiBoneSuppressionAvailability =>
+        AiBoneSuppressionAvailability.Evaluate(
+            backendHasAiSession: _backend is IAiSessionBackend { HasAiSession: true },
+            backendInitialized: string.Equals(RuntimeInfo.State, "Initialized", StringComparison.Ordinal),
+            backendTransitioning: Lifecycle.IsTransitioning,
+            moduleDllPresent: AiModuleDllPresent());
+
+    /// <summary>The entry's tooltip: what it does, and while it is disabled, why.</summary>
+    public string AiBoneSuppressionMenuToolTip
+    {
+        get
+        {
+            var availability = AiBoneSuppressionAvailability;
+            return availability.CanRun ? AiBoneSuppressionToolTipBase : $"{AiBoneSuppressionToolTipBase} Disabled now: {availability.Reason}";
+        }
+    }
+
+    private const string AiBoneSuppressionToolTipBase =
+        "Runs AI bone suppression (xpe_bone_suppress, worker process) on the loaded frame after the other stages. Needs the native backend and xpe_ai.dll with a model in the AI model directory. " +
+        "If the module fails, the original image is shown and the status line says so; a build without an inference runtime always fails. Other AI and premium modules are not wired to this item.";
+
+    // The same search the loader runs (injected directory, then the application directory, then the opt-in developer fallbacks), so "found here" and "loaded later" agree.
+    private static bool AiModuleDllPresent() =>
+        NativeModuleLibraryLocator.GetDllCandidates("xpe_ai.dll", "image-processing").Any(File.Exists);
+
+    /// <summary>
+    /// Asks the menu to read the availability again. Called when the backend's state moves AND when the Pipeline menu is opened (Codex #78 finding 3): the DLL's presence
+    /// is a fact about the disk that nothing here watches, so a file that appeared or went away while the app ran is seen at the next opening, not never.
+    /// </summary>
+    public void RefreshAiBoneSuppressionAvailability()
+    {
+        OnPropertyChanged(nameof(AiBoneSuppressionAvailability));
+        OnPropertyChanged(nameof(AiBoneSuppressionMenuToolTip));
+        RunAiBoneSuppressionCommand.RaiseCanExecuteChanged();
+    }
+
+    /// <summary>
     /// "AI-processed: bone suppression" when the last chain's AI stage was Applied (the module returned 0 AND the
     /// pixels changed); empty otherwise. Never set for a stage that was refused or failed, nor for one that returned 0
     /// with an unchanged image.
@@ -737,6 +778,24 @@ public sealed class MainWindowViewModel : ObservableObject
     /// the entry stays visible with a tooltip rather than disappearing, so the reason is on screen.
     /// </summary>
     public bool CanRunPreprocessing => _backend.SupportsPreprocessing;
+
+    /// <summary>
+    /// #225 row 9 (GUI-C-196 M4): whether the Deterministic Baseline can run on this backend. False on Mock, which has none of its modules; the menu entry stays
+    /// visible and says why in its tooltip.
+    /// </summary>
+    public bool CanRunDeterministicBaseline => _backend is IBaselineBackend { SupportsDeterministicBaseline: true };
+
+    /// <summary>The Phase 1b baseline: the fixed chain and display twice on the loaded image, a bit comparison, a DICOM write and read-back. Changes no setting and no image on screen.</summary>
+    public RelayCommand RunDeterministicBaselineCommand { get; }
+
+    /// <summary>The last baseline command's complete result, or null before the first one finished.</summary>
+    public BaselineExecutionResult? LastBaselineResult { get; private set; }
+
+    /// <summary>One line: "not run", the pass line, or the failure with its reason.</summary>
+    public string BaselineStatusText { get; private set; } = "Deterministic Baseline: not run";
+
+    private bool _baselineRunning;
+    private int _baselineRunCount;
 
     public RelayCommand ZoomFitCommand { get; }
 
@@ -1017,6 +1076,7 @@ public sealed class MainWindowViewModel : ObservableObject
             {
                 OnPropertyChanged(nameof(RuntimeVersionSummary));
                 RaiseBackendIdentityChanged();
+                RefreshAiBoneSuppressionAvailability();
             }
         }
     }
@@ -1321,6 +1381,7 @@ public sealed class MainWindowViewModel : ObservableObject
             StatusText = "Backend shutting down...";
             Log("Backend shutdown requested.");
             OnPropertyChanged(nameof(IsBackendTransitioning));
+            RefreshAiBoneSuppressionAvailability();
         }
         else
         {
@@ -1336,6 +1397,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private void FinishShutdown(IXpeBackend backend, Exception? error)
     {
         OnPropertyChanged(nameof(IsBackendTransitioning));
+        RefreshAiBoneSuppressionAvailability();
         if (ReferenceEquals(backend, _backend))
         {
             RuntimeInfo = _backend.GetRuntimeInfo();
@@ -1918,6 +1980,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 _backend = _backendFactory(Settings);
             }
             RuntimeInfo = _backend.Initialize(Settings);
+            OnPropertyChanged(nameof(CanRunDeterministicBaseline));
             DrainBackendTelemetry();
 
             // #178 (GUI-C-89): every successful initialisation starts a new run set. The actual backend can
@@ -2534,9 +2597,131 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// #225 row 9 (GUI-C-196 M4): the Deterministic Baseline. Unlike Run Preprocessing it changes NO setting and does not touch the image on screen or the stage
+    /// timing the last render left: the baseline is its own measurement with fixed parameters (design D3, D7), and its result is the status line, the log, one
+    /// alert and the evidence folder. Takes a lifetime ticket but not a request number, so it neither supersedes nor is superseded by an Apply.
+    /// </summary>
+    internal async Task RunDeterministicBaselineAsync()
+    {
+        if (RefusedWhileTransitioning("Deterministic Baseline"))
+        {
+            return;
+        }
+
+        var ticket = TakeTicket();
+        if (ticket.Backend is not IBaselineBackend { SupportsDeterministicBaseline: true } backend)
+        {
+            FinishBaselineWithoutRun("Deterministic Baseline requires the native backend (preprocess, enhance_basic, display and dicom modules).", "BASELINE_NEEDS_NATIVE");
+            return;
+        }
+
+        if (_baselineRunning)
+        {
+            StatusText = "Deterministic Baseline is already running.";
+            Log(StatusText);
+            return;
+        }
+
+        if (ActiveImageFrame is not { RawPixels: not null } frame)
+        {
+            FinishBaselineWithoutRun("Deterministic Baseline requires a loaded raw image.", "BASELINE_NO_IMAGE");
+            return;
+        }
+
+        _baselineRunning = true;
+        StatusText = "Running Deterministic Baseline (two runs)...";
+        Log(StatusText);
+        try
+        {
+            var inputs = Settings.Snapshot();
+            var runId = string.IsNullOrWhiteSpace(RunSet.RunId) ? "adhoc-" + DateTimeOffset.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture) : RunSet.RunId;
+            var folder = Path.Combine(AppContext.BaseDirectory, "evidence", runId, $"baseline-{++_baselineRunCount}");
+            var metadata = new BaselineDicomMetadata(inputs.SelectedBodyPart, inputs.ExposureKvp, inputs.PixelPitchMm);
+
+            var result = await Task.Run(() => BaselineExecution.Run(
+                frame.RawPixels!,
+                frame.Width,
+                frame.Height,
+                () => backend.RunBaselineOnce(frame, inputs),
+                backend.CreateBaselineDicomSession(),
+                metadata,
+                folder));
+
+            if (!IsCurrent(ticket))
+            {
+                Log($"Deterministic Baseline result dropped: {WhyStale(ticket)}");
+                return;
+            }
+
+            DrainBackendTelemetry();
+            LastBaselineResult = result;
+            BaselineStatusText = result.Status;
+            StatusText = result.Status + (result.EvidenceWriteProblem is null ? string.Empty : $" (evidence not written: {result.EvidenceWriteProblem})");
+            Log(StatusText);
+            Log($"Baseline times: {result.StageTimes}; total {result.TotalMs:0} ms against the {BaselineExecution.BudgetMs} ms budget (measured, not asserted).");
+            Log($"Baseline hashes: input {result.Verdict.InputSha256Before[..12]}, output {result.Verdict.OutputSha256?[..12] ?? "none"}, stage run 1 [{string.Join(", ", result.Verdict.StageHashesRun1.Select(h => h[..Math.Min(12, h.Length)]))}].");
+            if (result.ExposureIndex.Length > 0)
+            {
+                Log($"Baseline {result.ExposureIndex}");
+            }
+
+            Log($"Baseline evidence: {result.EvidenceFolder}");
+            RaiseAlert(new AlertEntry
+            {
+                Severity = result.Passed ? "INFO" : "ERROR",
+                Code = result.Passed ? "BASELINE_PASS" : "BASELINE_FAILED",
+                Message = result.Status,
+                Timestamp = DateTimeOffset.Now
+            });
+            OnPropertyChanged(nameof(LastBaselineResult));
+            OnPropertyChanged(nameof(BaselineStatusText));
+        }
+        catch (Exception ex)
+        {
+            if (!IsCurrent(ticket))
+            {
+                Log($"Deterministic Baseline of a backend that is no longer current failed ({ex.Message}); dropped.");
+                return;
+            }
+
+            BaselineStatusText = $"Deterministic Baseline FAIL: {ex.Message}";
+            StatusText = BaselineStatusText;
+            Log(StatusText);
+            RaiseAlert(new AlertEntry
+            {
+                Severity = "ERROR",
+                Code = "BASELINE_FAILED",
+                Message = ex.Message,
+                Timestamp = DateTimeOffset.Now
+            });
+            OnPropertyChanged(nameof(BaselineStatusText));
+        }
+        finally
+        {
+            _baselineRunning = false;
+        }
+    }
+
+    private void FinishBaselineWithoutRun(string message, string code)
+    {
+        StatusText = message;
+        BaselineStatusText = message;
+        Log(message);
+        RaiseAlert(new AlertEntry { Severity = "WARN", Code = code, Message = message, Timestamp = DateTimeOffset.Now });
+        OnPropertyChanged(nameof(BaselineStatusText));
+    }
+
     /// <summary>#225 row 10 (GUI-C-184): AI bone suppression is a stage of the pixel chain; the menu entry switches it on and renders again.</summary>
     private async void RunAiBoneSuppression()
     {
+        if (!AiBoneSuppressionAvailability.CanRun)
+        {
+            StatusText = $"AI bone suppression is not available: {AiBoneSuppressionAvailability.Reason}";
+            Log(StatusText);
+            return;
+        }
+
         if (ActiveImageFrame is null)
         {
             StatusText = "Load a raw image before running AI bone suppression.";

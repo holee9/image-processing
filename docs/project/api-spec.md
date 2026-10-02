@@ -1109,8 +1109,11 @@ XPE_API XpeErrorCode xpe_ai_init(const char* modelDirPath,
 |---|---|---|
 | `execution_provider` | string — `cpu` / `cuda` / `tensorrt` / `directml` / `auto` | selects the inference device |
 | `timeout_ms` | **integer** | IPC timeout |
-| `confidence_threshold` | number | inference confidence floor |
+| `confidence_threshold` | number | confidence floor for `xpe_bodypart_recognize` (default 0.6; a confidence equal to it passes) |
 | `fallback_mode` | boolean | enables fallback |
+| `use_worker` | boolean | routes `xpe_bone_suppress` and `xpe_bodypart_recognize` through the worker process (default false) |
+
+**`use_worker` was missing from this table** until 2026-10-02 (`QA-B-191`), although `ai.cpp` parses it (`state->useWorker`) and §9.8 already described it.
 
 **These four keys were absent from this document until 2026-09-12** — the code read more than the document described, which is the rare direction here (every earlier correction in this file ran the other way). "batch settings" appeared in the sentence this replaces and **no such key is read**.
 
@@ -1142,10 +1145,10 @@ XPE_API XpeErrorCode xpe_bodypart_recognize(const XpeImageBuffer* img,
                                              float* confidenceOut);
 ```
 
-**Description**: Classifies the anatomical body part in `img` using a CNN classifier. Writes the label (e.g., `"CHEST"`) to `bodyPartOut` and the confidence score [0,1] to `*confidenceOut`.  
+**Description**: Classifies the anatomical body part in `img` using a CNN classifier. Writes the label (e.g., `"CHEST"`) to `bodyPartOut` and the confidence score [0,1] to `*confidenceOut`. Runs `{modelDir}/bodypart.onnx` (labels in `{modelDir}/bodypart.json`; each label shorter than 64 bytes and made only of printable ASCII 0x20–0x7E except `"` and `\`). The model must emit probabilities (no softmax is applied). A confidence below `confidence_threshold` (default 0.6) is a low-confidence event: with `fallback_mode` on (default) the call returns `XPE_ERR_PROCESSING_FAILED`, label `"UNKNOWN"` and the measured confidence; with it off, `XPE_OK` and the label, with a Warning. With no usable answer (no model, unreadable model, bad label sidecar, run failure, non-finite or out-of-range output) the outcome is `XPE_ERR_PROCESSING_FAILED`, `"UNKNOWN"`, 0.0. `use_worker: true` runs the model in `xpe_ai_worker.exe` (time budget `timeout_ms`; failure count shared with `xpe_bone_suppress`). The full contract is the header comment in `ai_api.h`. The tests use toy models; no accuracy is claimed (2026-10-02, `QA-B-191`).  
 **SRS**: SRS-AI-010  
 **Thread safety**: Reentrant (thread-safe inference session per call).  
-**Error codes**: `XPE_OK`, `XPE_ERR_NOT_INITIALIZED`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_BUFFER_TOO_SMALL`, `XPE_ERR_PROCESSING_FAILED`
+**Error codes**: `XPE_OK`, `XPE_ERR_NOT_INITIALIZED`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_BUFFER_TOO_SMALL`, `XPE_ERR_PROCESSING_FAILED`, `XPE_ERR_UNSUPPORTED_FORMAT` (a usable model and an image that is not FLOAT32; with `use_worker` regardless of whether a model exists)
 
 ---
 
@@ -1219,7 +1222,7 @@ XPE_API XpeErrorCode xpe_ai_worker_state(int32_t* stateOut,
                                          uint32_t* ceilingOut);
 ```
 
-**Description**: Read-only query of the bone-suppression worker path for the current session. `*stateOut` is `XPE_AI_WORKER_NOT_USED` (0, `use_worker` off), `XPE_AI_WORKER_ACTIVE` (1) or `XPE_AI_WORKER_DISABLED` (2, switched off after `*ceilingOut` consecutive failures). `consecutiveFailuresOut` and `ceilingOut` may be NULL. The query does not start the worker, raise alerts or change any counter. It does not wait for a call in progress: it reports the state as of the last completed call. Recovery from DISABLED is `xpe_ai_shutdown` then `xpe_ai_init`; this function does not recover.  
+**Description**: Read-only query of the worker path (shared by `xpe_bone_suppress` and `xpe_bodypart_recognize`) for the current session. The consecutive-failure count is one count shared by both functions: the state is the worker's, not one function's (QA-B-191 M4c). `*stateOut` is `XPE_AI_WORKER_NOT_USED` (0, `use_worker` off), `XPE_AI_WORKER_ACTIVE` (1) or `XPE_AI_WORKER_DISABLED` (2, switched off after `*ceilingOut` consecutive failures). `consecutiveFailuresOut` and `ceilingOut` may be NULL. The query does not start the worker, raise alerts or change any counter. It does not wait for a call in progress: it reports the state as of the last completed call. Recovery from DISABLED is `xpe_ai_shutdown` then `xpe_ai_init`; this function does not recover.  
 **SRS**: REQ-AI-092 (consecutive-failure ceiling, `docs/project/REQ-CHANGE-LOG-P3-AI.md`)  
 **Thread safety**: Safe to call concurrently with `xpe_bone_suppress`. **Must not run concurrently with `xpe_ai_init` / `xpe_ai_shutdown`** — the caller serialises those (a UI that polls this state and also offers a recovery button must guard both with one lock).  
 **Error codes**: `XPE_OK`, `XPE_ERR_NOT_INITIALIZED` (before init or after shutdown; outputs untouched), `XPE_ERR_INVALID_INPUT` (`stateOut` NULL)

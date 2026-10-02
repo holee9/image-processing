@@ -1,0 +1,12 @@
+[xml]$doc = Get-Content -LiteralPath build/dotnet-test-results/integration-tests.trx -Raw
+$all = @($doc.TestRun.Results.UnitTestResult)
+Write-Host ("trx holds {0} result(s)" -f $all.Count)
+$min = @{ 'BaselineDicomNativeTests' = 2; 'EnhanceBasicNativeTests' = 4; 'BaselineDisplayNativeTests' = 2 }
+$bad = @()
+foreach ($class in $min.Keys) {
+  $rows = @($all | Where-Object { $_.testName -like "*.$class.*" })
+  $passed = @($rows | Where-Object { $_.outcome -eq 'Passed' })
+  Write-Host ("{0}: {1} result(s), {2} passed, {3} not executed" -f $class, $rows.Count, $passed.Count, @($rows | Where-Object { $_.outcome -eq 'NotExecuted' }).Count)
+  if ($rows.Count -lt $min[$class] -or $passed.Count -ne $rows.Count) { $bad += $class }
+}
+if ($bad.Count -gt 0) { Write-Error ("real-module tests skipped or missing: " + ($bad -join ', ')); exit 1 }

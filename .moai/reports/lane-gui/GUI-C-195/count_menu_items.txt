@@ -1,0 +1,13 @@
+MenuItem elements in MainWindow.xaml (regex): 64
+control: grep -c '<MenuItem': 64
+by attribute IsEnabled="False": 4
+   OpenDicomMenuItem | has Command attribute: False
+   RunDeterministicBaselineMenuItem | has Command attribute: False
+   QaConstancyMenuItem | has Command attribute: False
+   GsdfCalibrateMenuItem | has Command attribute: False
+by name (the four the card lists) present in XAML: 4
+lines: [115, 362, 441, 446]
+runtime (app started, Mock backend, hidden window; the automation report):
+exit=0 backend=Mock Passed=True
+DisabledFutureCommandCount = 4
+UnimplementedMenuLeafCount = 4

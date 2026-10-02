@@ -90,6 +90,7 @@
     <Compile Include="..\..\gui\ImageProcTest\Services\TroubleshootingPageService.cs" Link="TroubleshootingPage\Linked\TroubleshootingPageService.cs" />
     <!-- #225 row 10 (GUI-C-184): the AI stage's reading of the module's answer, native-call-free so the tests run it. -->
     <Compile Include="..\..\gui\ImageProcTest\Services\AiBoneSuppressionStage.cs" Link="AiBoneSuppression\Linked\AiBoneSuppressionStage.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\AiBoneSuppressionAvailability.cs" Link="AiBoneSuppression\Linked\AiBoneSuppressionAvailability.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\BackendLifecycle.cs" Link="AiBoneSuppression\Linked\BackendLifecycle.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\BackendTelemetry.cs" Link="AiBoneSuppression\Linked\BackendTelemetry.cs" />
     <!-- #218 side finding (GUI-C-182): the defect metric pass lines, dependency-free, checked against the canonical protocol's text. -->
@@ -100,6 +101,22 @@
     <Compile Include="..\..\gui\ImageProcTest\Models\ProcessingChain.cs" Link="Chain\Linked\ProcessingChain.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\ProcessingChainRunner.cs" Link="Chain\Linked\ProcessingChainRunner.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\ProcessingChainPlan.cs" Link="Chain\Linked\ProcessingChainPlan.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BaselineDeterminism.cs" Link="Chain\Linked\BaselineDeterminism.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BaselineParameters.cs" Link="Chain\Linked\BaselineParameters.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BaselineRunner.cs" Link="Chain\Linked\BaselineRunner.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\EnhanceBasicStage.cs" Link="Chain\Linked\EnhanceBasicStage.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BaselineDicomExport.cs" Link="Chain\Linked\BaselineDicomExport.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BaselineExecution.cs" Link="Chain\Linked\BaselineExecution.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BaselineAutomationRule.cs" Link="Chain\Linked\BaselineAutomationRule.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BaselineStageAdapters.cs" Link="Chain\Linked\BaselineStageAdapters.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BaselineDisplayStage.cs" Link="Chain\Linked\BaselineDisplayStage.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiBaselineDisplayNative.cs" Link="Chain\Linked\GuiBaselineDisplayNative.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeDicomInterop.cs" Link="Chain\Linked\XpeDicomInterop.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiDicomNative.cs" Link="Chain\Linked\GuiDicomNative.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeDisplayInterop.cs" Link="Chain\Linked\XpeDisplayInterop.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpePreprocessInterop.cs" Link="Chain\Linked\XpePreprocessInterop.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeEnhanceBasicInterop.cs" Link="Chain\Linked\XpeEnhanceBasicInterop.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiEnhanceNative.cs" Link="Chain\Linked\GuiEnhanceNative.cs" />
   </ItemGroup>
 
   <!--

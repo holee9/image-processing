@@ -9,10 +9,10 @@
 
 ---
 id: SPEC-XPE-P1A
-version: 1.3.3
+version: 1.3.4
 status: M2 Complete (SUP-01 + M2 algorithms implemented)
 created: 2026-04-16
-updated: 2026-10-02
+updated: 2026-10-03
 author: manager-spec (MoAI)
 priority: High
 issue_number: 16
@@ -24,6 +24,7 @@ development_mode: TDD
 
 | Version | Date       | Author  | Changes                  |
 |---------|------------|---------|--------------------------|
+| 1.3.4   | 2026-10-03 | xpe-leader | #216: REQ-P1A-107~111 added from QA-A-223 drafts D1~D4 — `xpe_nonlinearity_correct` (107), `xpe_calib_generate_nonlin_lut` (108), `xpe_calib_load_nonlin_lut` (109), `xpe_calib_unload_nonlin_lut` (110, derived from code — no SRS text), `xpe_bpm_generate` (111). Leader decision: nonlinearity public functions are in this SPEC's scope; §1.3 PRE-08 annotated. Only behaviour the SRS describes or the header states was transcribed; every error condition was checked against `modules/preprocess/src` (D1 no-op condition and D4 merge rule corrected to the code). |
 | 1.3.3   | 2026-10-02 | xpe-leader | #233: gain-out-of-range classification added to REQ-P1A-011/015 (QA-A-211·211b), defect-stage union mask, cluster fill rule and non-finite entry rejection added to REQ-P1A-012 (QA-A-211b·214b), non-finite entry rejection added to REQ-P1A-013 (QA-A-215) and REQ-P1A-087 (QA-A-217), REQ-P1A-091 last sentence revised to the QA-A-216 §5 text, ghost failure behaviour recorded under REQ-P1A-032 (QA-A-217), XCal replace retry recorded under REQ-P1A-019 (QA-A-212b·212c). No new requirement number. Pre chain merge `3a991d7c`. |
 | 1.3.2   | 2026-10-02 | xpe-leader | #216: REQ-P1A-102~106 added (cached offset/gain/defect loaders, `xpe_preprocess_pipeline_ex` on the loaded calibration, version string) from QA-A-198 final text; §4.3c open-items note updated (`_ex` now described). Pre chain merge `af21f669`. |
 | 1.3.1   | 2026-09-10 | manager-docs (lead) | #117: converged the SPEC on the implemented global-calibration design (SPEC-XPE-P1A M2, commit e9b8ed4). REQ-P1A-010~012 restated with the `(input, output, metadata)` signatures reading the module-global calibration store; REQ-P1A-014~016 restated as single-path loaders that populate that store; REQ-P1A-016a added (`xpe_calib_state_load` contract); REQ-P1A-020 narrowed to "module not initialized"; REQ-P1A-020a added for `XPE_ERR_CALIB_NOT_LOADED`; REQ-P1A-003 annotated (loaders write the store, processing calls only read it). |
@@ -54,7 +55,7 @@ xpe_preprocess.dll의 핵심 전처리 알고리즘 3종(SWU-1.1 Offset Correcti
 
 - **PRE-04/PRE-05**: Ghost/Lag Correction (SWU-1.4) -- 별도 SPEC으로 분리 (상태유지 handle 기반 아키텍처)
 - **PRE-07**: Temperature Compensation (SWU-1.6) -- 별도 SPEC, MCU 이관 가능 구조 필요
-- **PRE-08**: Nonlinearity Correction -- 별도 SPEC
+- **PRE-08**: Nonlinearity Correction -- 별도 SPEC *(2026-10-03 정정: 그 SPEC 은 만들어지지 않았고, 수출된 공개 함수의 요구는 이 SPEC 의 REQ-P1A-107~110 에 있다 — 리더 결정, #216, QA-A-223. §5.6 참조)*
 - **PRE-09**: Pixel Binning Correction -- 별도 SPEC, 형광투시/CBCT 전용
 - **PRE-06 ML/ViT AE**: 고급 defect correction -- Phase 2 Differentiator
 - GPU offload (CUDA/OpenCL) -- Phase 3 최적화 단계
@@ -905,6 +906,77 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 - **Traceability**: 없음 (진단용 수출; `XPE-GUI-NATIVE-INT-READINESS-001` 의 `R1` 행이 사용처)
 - **Verification**: Test (`test_preprocess_version.cpp` — 비-NULL·비어 있지 않음, 호출마다 같은 주소·같은 내용, 초기화 전·후·shutdown 후 같은 주소·같은 내용, 값의 모양 `숫자.숫자.숫자`; 값 자체는 고정하지 않음)
 
+> **REQ-P1A-107~111 추가 (2026-10-03, #216, QA-A-223)**: 비선형 보정 공개 함수 넷과 `xpe_bpm_generate` 는 이 모듈이 수출하고 파이프라인이 단계로 실행하므로 이 SPEC 의 범위다 (리더 결정 2026-10-03 — §1.3 의 PRE-08 "별도 SPEC" 은 §5.6 의 표와 같은 사정으로 더 이상 유효하지 않다). 문안 원본은 `dev/preprocess` 의 `.moai/reports/lane-pre/QA-A-223/report.md` §2.3 초안 D1~D4 이고, **SRS 가 서술하거나 헤더가 적은 동작만** 옮겼다. 오류 조건은 초안이 헤더에서 옮긴 것이라, 하나하나 `modules/preprocess/src` 의 코드에서 확인한 것만 적었다 (확인 위치는 각 요구의 계약 항목).
+
+#### REQ-P1A-107: Nonlinearity Correction
+
+**When** `xpe_nonlinearity_correct(img, configJsonOrNull)` is called with a non-NULL UINT16 `img`, the module **shall** read the detector profile keys from `configJsonOrNull` and: leave the frame unchanged and return `XPE_OK` when `panel.linear` is `true`; otherwise, when `panel.nonlinearity_mode` is `"POLY"` (or `"AUTO"` with `panel.target_platform` `"MCU"` or `"FPGA"`), linearize the frame with the polynomial of SRS-CALIB-FUNC-006-EXT 6b from `panel.nonlin_poly_c0`..`c4`, and fall back to the LUT path when the polynomial is rejected; on the LUT path, when a nonlinearity LUT is loaded, replace every pixel with `LUT[I_raw]` (6a); when no LUT is loaded and `panel.linear` is `false`, return `XPE_ERR_CALIB_NOT_LOADED` with an error alert and the frame unchanged; and when no LUT is loaded and `panel.linear` is not `false`, leave the frame unchanged, post a warning alert and return `XPE_OK`.
+
+- **계약**:
+  - `img` 가 NULL 이거나 UINT16 이 아니면 `XPE_ERR_INVALID_INPUT` (`nonlinearity_correct.cpp` `xpe_nonlinearity_apply`, `xpe_nonlinearity_apply_doc` 첫 두 검사).
+  - 설정 텍스트는 판정 전에 한 번 해석한다. 하나의 JSON 객체가 아니거나, 비었거나(공백뿐 포함), 최상위 키를 두 번 주면 `XPE_ERR_CONFIG_INVALID` 이고 프레임은 그대로다. NULL 은 "설정 없음" 이라 오류가 아니다 (`helpers.cpp` `xpe_config_parse`·`parse_text`).
+  - 다항식 거부 = 계수 다섯이 모두 0(없음과 구별하지 않음), 비유한 계수, `[0, panel.adc_max]`(기본 65535) 의 정수 입력에서 비단조. 거부되면 경고(비유한 계수는 오류) 알림을 올리고 LUT 경로로 넘어간다. 다항식 결과는 [0, 65535] 로 자른다 (`xpe_nonlinearity_apply_polynomial`).
+  - LUT 가 4096 항목이면 그보다 큰 원시값은 마지막 항목으로 읽는다(범위 밖을 읽지 않는다).
+  - LUT 경로와 `XPE_ERR_CALIB_NOT_LOADED` 의 우선순위: 적재된 LUT 가 먼저다 — LUT 가 있으면 `panel.linear` 가 `false` 여도 적용된다. `XPE_ERR_CALIB_NOT_LOADED` 는 LUT 가 없을 때만 나온다.
+  - 할당 실패는 `XPE_ERR_OUT_OF_MEMORY`, 다른 예외는 `XPE_ERR_PROCESSING_FAILED` 이며 둘 다 첫 화소를 쓰기 전이다 (`xpe_nonlinearity_correct` 의 예외 경계).
+- **요구에 쓰지 않은 것**: 초안 D1 의 "LUT 도 계수도 없으면 무동작" 은 코드와 맞지 않아 옮기지 않았다 — 계수는 `panel.nonlinearity_mode` 가 다항식을 고를 때만 읽고, 무동작 알림 경로는 "LUT 없음 + `panel.linear` 가 `false` 아님" 이다. `panel.nonlinearity_mode` 의 알 수 없는 값은 거부하지 않고 LUT 경로로 간다 (코드 주석의 결정) — 이 동작은 요구로 고정하지 않았다.
+- **SRS**: SRS-CALIB-FUNC-006, SRS-CALIB-FUNC-006-EXT 6a·6b·6c (방법 선택). 무동작 + 알림 + `XPE_OK` 는 SRS 에 없고 헤더가 "No requirement states this sentence" 라고 적은 동작이다 — 이 요구가 처음으로 적는다.
+- **Traceability**: PRE-08
+- **Verification**: Test (`test_nonlin_lut_apply.cpp`, `test_nonlin_poly_apply.cpp`, `test_nonlin_noop_report.cpp`, `test_nonlin_no_mode_rejection.cpp`, `test_config_strict_parse.cpp`)
+
+#### REQ-P1A-108: Nonlinearity LUT Generation
+
+**When** `xpe_calib_generate_nonlin_lut(flat_frames, dose_levels, num_levels, dark_reference, lut_entries, output_path, metadata_json)` is called, the module **shall** build the LUT by the procedure of SRS-CALIB-FUNC-006-EXT 6a as corrected for #186 (mean signal per dose level after optional dark subtraction, ideal line `S_ideal = G_nominal × D` fitted through the origin, `LUT[0] = 0`, monotone cubic interpolation between the measured knots, **no** upper identity knot, the last measured interval's slope continued above the highest measured level) and write it as an `XCAL_TYPE_NONLIN_LUT` file whose configuration block records the generation conditions, including `xcal_nonlin_extension_start` (the first extrapolated entry).
+
+- **계약** (`xpe_calib_generate_nonlin_lut.cpp` `generate_nonlin_lut_impl`):
+  - `XPE_ERR_INVALID_INPUT`: `flat_frames`·`dose_levels`·`output_path` 중 NULL; `num_levels < 10`; `lut_entries` 가 4096·65536 이 아님; 선량이 유한한 양수가 아니거나 엄격히 증가하지 않음; 평탄 프레임이 UINT16 이 아니거나 비었거나 `dataSize` 가 모자람, 또는 `dark_reference` 가 크기·형식(UINT16/FLOAT32)이 맞지 않음; 검출기 메타데이터가 512바이트 설정 블록에 들어가지 않음.
+  - `XPE_ERR_INVALID_CALIB_DATA`: 측정 평균 신호가 엄격히 증가하지 않음; 첫 측정값 ≤ 0; 최고 측정값 ≥ `lut_entries − 1`; `G_nominal` 이 유한한 양수가 아님; 표가 비유한 값을 내거나 비단조.
+  - `XPE_ERR_IO_FAILED`: 파일 쓰기 실패 (`xcal_writer.cpp` `write_xcal_file_ex`).
+  - 할당 실패는 `XPE_ERR_OUT_OF_MEMORY`, 다른 예외는 `XPE_ERR_PROCESSING_FAILED`. 출력 파일은 마지막에 쓴다.
+  - 표의 값은 uint16 으로 포화한다 — 연장 구간이 65535 에 닿으면 이웃 항목이 같아질 수 있고(단조성 `≤` 가 허용), 뒤집히지는 않는다.
+- **요구에 쓰지 않은 것**: SRS 6a 의 "5%~95% ADC full scale 에 걸친 선량" 과 "보간 오차 ≤ 0.3%(측정 구간 안)" 은 이 함수가 검사하지 않는다 — 생성 절차를 수행하는 쪽의 조건으로 남는다.
+- **SRS**: SRS-CALIB-FUNC-006-EXT 6a (2026-09-18 정정 포함). 입력 형식·출력 파일 형식·오류 코드는 SRS 에 없고 코드에서 옮겼다.
+- **Traceability**: PRE-08, SUP-01 (XCal 쓰기 경로는 REQ-P1A-019 와 같다)
+- **Verification**: Test (`test_nonlin_lut_generate.cpp`)
+
+#### REQ-P1A-109: Nonlinearity LUT Loader
+
+**When** `xpe_calib_load_nonlin_lut(filepath)` is called, the module **shall** read and verify the XCal file as the other calibration loaders do, check the table's content, and on success make that table the active nonlinearity LUT in the module-global calibration store, used by REQ-P1A-107 and the pipeline's nonlinearity stage.
+
+- **계약** (`xpe_calib_load_nonlin_lut.cpp`):
+  - `filepath` 가 NULL 이면 `XPE_ERR_INVALID_INPUT`.
+  - 파일 읽기의 판정은 `read_xcal_file` 의 것이다 (`xcal_reader.cpp`): 열기·읽기 실패 `XPE_ERR_IO_FAILED`; 설정 블록이 하나의 JSON 객체가 아니거나 최상위 키를 두 번 줌, 헤더 검증 실패, XCal 타입이 `XCAL_TYPE_NONLIN_LUT` 가 아님, SHA-256 불일치는 `XPE_ERR_CONFIG_INVALID`; 만료된 파일은 `XPE_ERR_CALIBRATION_EXPIRED`.
+  - 내용 판정: 페이로드 길이가 홀수면 `XPE_ERR_CONFIG_INVALID`; 항목 수가 4096·65536 이 아니면, 표가 비감소가 아니면(`LUT[i] > LUT[i+1]`), 기록된 `xcal_nonlin_extension_start` 가 [0, 항목 수] 밖이면 `XPE_ERR_INVALID_CALIB_DATA`. 키가 없으면 0(표 전체가 측정 구간)으로 읽는다.
+  - 모든 검사는 저장소를 바꾸기 전이다 — 실패한 적재는 이전에 적재된 LUT 를 그대로 둔다. 커밋은 `g_calib_mutex` 아래서 한다.
+  - 할당 실패는 `XPE_ERR_OUT_OF_MEMORY`, 다른 예외는 `XPE_ERR_PROCESSING_FAILED`.
+- **SRS**: SRS-CALIB-FUNC-006-EXT 6a (LUT 크기, 단조성 검사와 그 오류 코드), SRS-CALIB-FUNC-006 ("교정 프로파일에 저장"). 파일을 활성 교정으로 만든다는 계약과 확장 경계 검사는 SRS 에 없고 코드에서 옮겼다.
+- **Traceability**: PRE-08, SUP-01
+- **Verification**: Test (`test_nonlin_lut_apply.cpp`)
+
+#### REQ-P1A-110: Nonlinearity LUT Unload
+
+The module **shall** provide `xpe_calib_unload_nonlin_lut()`, which removes the active nonlinearity LUT from the module-global calibration store (under `g_calib_mutex`), so that a host switching detector profiles can return the module to "no nonlinearity LUT loaded" without restarting the process; after the call REQ-P1A-107 behaves as when no LUT has been loaded. *(Derived from code — QA-A-223: no SRS text describes this function; the sentence states what `xpe_calib_load_nonlin_lut.cpp` `xpe_calib_unload_nonlin_lut` does.)*
+
+- **계약**: 반환값이 없고(`void`) 실패 경로가 없다. LUT 와 함께 항목 수·확장 경계·타임스탬프를 0 으로 되돌린다. LUT 가 없을 때 불러도 같은 결과다.
+- **SRS**: 해당 SRS 요구 없음 (SRS-CALIB-FUNC-038 은 수명 함수로 `xpe_calib_state_release` 만 묶는다).
+- **Traceability**: PRE-08
+- **Verification**: 간접 — `test_nonlin_lut_apply.cpp` 의 픽스처가 SetUp·TearDown 에서 불러 "LUT 없음" 사례의 전제를 만든다. 이 함수의 효과를 직접 단언하는 시험은 확인하지 않았다 (미검증)
+
+#### REQ-P1A-111: Bad Pixel Map Generation
+
+**When** `xpe_bpm_generate(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out)` is called, the module **shall** average the dark frames and the bright frames separately; flag a pixel as dark-defective when its dark mean deviates from the local median by more than `λ × 1.4826 × MAD` over a window of at least 32×32 (SRS-CALIB-FUNC-022, RMM, default λ = 8.0); flag it as bright-defective when its bright mean deviates from the local window mean by more than `tolerance × window mean` over a window of at least 128×128 with tolerance in 5–9% (SRS-CALIB-FUNC-023, default 7%); and write a UINT8 map with 0 = good, 1 = dark-defective only, 2 = bright-defective only, 3 = both. Windows that cross the image border **shall** be filled by reflection. *(The four-value merge and the reflection are not in the SRS — derived from code, QA-A-223.)*
+
+- **계약** (`xpe_defect_gen.cpp` `bpm_generate_impl`, `validate_bpm_config`, `compute_frame_mean`):
+  - `cfg` 가 NULL 이면 기본값(λ 8.0, 다크 창 32, 허용도 0.07, 밝은 창 128, 최소 프레임 다크 5·밝은 10).
+  - `XPE_ERR_INVALID_INPUT`: 다크·밝은 프레임 배열 NULL 또는 개수 0; `bpm_out` 또는 그 `data` 가 NULL; `cfg` 의 λ ≤ 0, 다크 창 < 32, 허용도가 [0.05, 0.09] 밖, 밝은 창 < 128, 최소 프레임 수 0; 프레임 수가 최소 프레임 수보다 적음; 프레임 크기 불일치(밝은 프레임은 다크 프레임 크기와도); 프레임이 UINT16 이 아님.
+  - `bpm_out` 이 UINT8 이 아니면 `XPE_ERR_UNSUPPORTED_FORMAT`; 크기가 프레임과 다르거나 `dataSize < width × height` 면 `XPE_ERR_BUFFER_TOO_SMALL`.
+  - `bpm_out` 은 마지막 문장에서만 쓴다 — 실패한 호출은 출력을 건드리지 않는다. 할당 실패는 `XPE_ERR_OUT_OF_MEMORY`, 다른 예외는 `XPE_ERR_PROCESSING_FAILED`.
+  - 창의 실제 한 변은 `2 × ⌊창 크기 / 2⌋ + 1` 이다 — 짝수 창 크기 32 는 33×33 으로 돈다 (`extract_window_reflect`). 측정한 사실이 아니라 코드에서 읽은 것이다.
+- **요구에 쓰지 않은 것**: 초안 D4 는 병합을 "화소별로 큰 값" 으로 적었는데 코드는 그렇지 않다(1 과 2 의 큰 값은 2 이지만 코드는 3 을 쓴다) — 코드가 하는 범주 병합으로 적었다. 헤더와 RTM 이 병합·반사에 붙인 "FUNC-024"·"FUNC-025" 는 SRS 에서 다른 요구(게인 프레임 수 등급, BPM 보정 뒤 `LineArtifactScore`)다 — 이 요구는 그 둘을 인용하지 않는다 (헤더 라벨 정정은 pre 레인 `QA-A-224`).
+- **SRS**: SRS-CALIB-FUNC-022, SRS-CALIB-FUNC-023. 병합 규칙·반사 패딩·최소 프레임 수·출력 규약은 SRS 에 없다.
+- **Traceability**: PRE-06 (정적 BPM 생성), SUP-01
+- **Verification**: Test (`test_defect_gen.cpp`)
+
 > **이 절의 미검증**
 >
 > - `xpe_preprocess_pipeline_ex` 는 `REQ-P1A-105` 로 서술했습니다(2026-10-02). `_batch` 는 아직 어떤 요구도 부르지 않습니다
@@ -1161,6 +1233,11 @@ Verification:
 | REQ-P1A-104 | Implemented | modules/preprocess/src/calibration_cache.cpp |
 | REQ-P1A-105 | Implemented | modules/preprocess/src/pipeline.cpp |
 | REQ-P1A-106 | Implemented | modules/preprocess/src/preprocess.cpp |
+| REQ-P1A-107 | Implemented | modules/preprocess/src/nonlinearity_correct.cpp |
+| REQ-P1A-108 | Implemented | modules/preprocess/src/xpe_calib_generate_nonlin_lut.cpp |
+| REQ-P1A-109 | Implemented | modules/preprocess/src/xpe_calib_load_nonlin_lut.cpp |
+| REQ-P1A-110 | Implemented | modules/preprocess/src/xpe_calib_load_nonlin_lut.cpp |
+| REQ-P1A-111 | Implemented | modules/preprocess/src/xpe_defect_gen.cpp |
 
 ### Core Validators & Utilities
 

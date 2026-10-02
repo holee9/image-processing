@@ -236,23 +236,38 @@ static std::unordered_map<std::string, ModelInfo> g_modelRegistry;
 ```
 xpe_bodypart_recognize(img, out, bufLen, conf)
     |
-    +-- if (!g_initialized) return NOT_INITIALIZED
-    +-- if (img == null || out == null) return INVALID_INPUT
-    +-- if (bufLen == 0) return BUFFER_TOO_SMALL
+    +-- if (img == null || out == null) return INVALID_INPUT   // before the init guard (#119)
+    +-- if (!initialized) return NOT_INITIALIZED
+    +-- image buffer validation
+    +-- if (bufLen == 0) return INVALID_INPUT                  // #142
     |
     +-- if (STUB_BUILD)
-    |       return PROCESSING_FAILED    // triggers caller fallback
+    |       return PROCESSING_FAILED + "UNKNOWN" + 0.0         // triggers caller fallback
     |
-    +-- [FULL BUILD]
-    |   +-- Send IPC request to worker
-    |   +-- Wait for response (timeout: 5s)
-    |   +-- if (timeout) return PROCESSING_FAILED
-    |   +-- if (worker crash) return PROCESSING_FAILED
-    |   +-- if (confidence < threshold):
-    |   |       if (g_fallbackMode) return PROCESSING_FAILED
-    |   |       else return result + LOW_CONFIDENCE flag
-    |   +-- return result
+    +-- if (use_worker)                                        // opt-in, default off
+    |       format not FLOAT32 -> UNSUPPORTED_FORMAT
+    |       ask the worker (budget timeout_ms, default 5 s) -> label + confidence,
+    |           or a refusal (non-finite / out of range), or "model unavailable"
+    |       failure (no answer, worker exit, malformed reply, run failure)
+    |           -> consecutive failures +1; the 3rd switches the worker off (count shared with bone suppression)
+    +-- else                                                   // in-process
+    |       load the model (bodypart.onnx + bodypart.json), resize to the model's input, run
+    |
+    +-- judge the output: finite -> within [0, 1] -> top class (a tie goes to the first class)
+    +-- if (confidence < threshold):
+    |       Warning (the low-confidence event)
+    |       if (fallback_mode) return PROCESSING_FAILED + "UNKNOWN" + measured confidence
+    |       else return OK + label + confidence
+    +-- return OK + label + confidence
 ```
+
+`LOW_CONFIDENCE` is not a field of the public API. The worker-protocol flag of the same name in the earlier design
+was removed in `QA-B-192`; bits 0x4 and 0x8 are reserved and unused, and bit 0x2 (the former `XPE_AI_FLAG_TIMEOUT`)
+was reserved the same way in `QA-B-191` M4f (`ai_worker_protocol.h`, Message Flags). Low confidence is expressed
+by the combination of return code, label and alert; the worker's reply carries only what the model said
+(`outcome`, `body_part`, `confidence`), and the host applies the threshold and `fallback_mode`
+(`BodyPartWorkerPath.ALowConfidenceFromTheWorkerGetsTheDecisionOfThisProcess`). Code: `ai.cpp`
+`xpe_bodypart_recognize_impl`, `decideBodyPart`, `bodyPartViaWorker`.
 
 ### 4.4 Stitch Size Estimation (Deterministic)
 

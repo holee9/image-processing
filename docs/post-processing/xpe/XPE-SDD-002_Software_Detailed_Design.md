@@ -727,42 +727,56 @@ Key difference from MFP:
 
 #### DLL API
 
+> **정정 2026-10-02 (`QA-B-191`, `#130`)** — 이 절의 이전 설계(함수 이름 `xpe_recognize_bodypart`, 224×224 입력,
+> [0, 1] 정규화, 문턱 0.95, 모듈 안의 DICOM 태그 (0018,0015) fallback)는 구현과 달라 아래로 바꿨다. 문턱은
+> SPEC `REQ-AI-012`·`srs_ai.md` REQ-AI-FB-001·코드가 일치하는 0.6 을 따른다. 시험은 장난감 모델로 **배선**만
+> 증명하며, 실제 부위 인식 모델·정확도(`SRS-FUNC-016`)·지연은 측정되지 않았다.
+
 ```cpp
-// xpe_ai.dll export (proxy to xpe_ai_worker.exe)
-XPE_API XpeErrorCode xpe_recognize_bodypart(
-    const XpeImageBuffer* input,
-    char*                 bodyPartOut,    // buffer >= 64 chars
-    size_t                bodyPartLen,
-    float*                confidence);
+// xpe_ai.dll export (opt-in: use_worker 일 때 xpe_ai_worker.exe 에서 추론)
+XPE_API XpeErrorCode xpe_bodypart_recognize(
+    const XpeImageBuffer* img,
+    char*                 bodyPartOut,    // 권장 >= 64 bytes
+    size_t                bufLen,
+    float*                confidenceOut);
 ```
 
 #### Pseudocode
 
 ```
-1. Resize input to 224x224 (MobileNet-v3 input size)
-2. Normalize to [0, 1] range
-3. Run ONNX inference via xpe_ai_worker.exe (IPC)
-4. Argmax over 15+ categories
-5. IF confidence >= 0.95:
-     bodyPartOut = predicted_category
-   ELSE:
-     bodyPartOut = DICOM tag (0018,0015) fallback
+1. 모델: {modelDir}/bodypart.onnx + 라벨 사이드카 {modelDir}/bodypart.json
+   (라벨은 64 바이트 미만, 인쇄 가능한 ASCII 0x20-0x7E 중 " 와 \ 제외)
+2. 모델이 선언한 입력 크기로 맞춘다 — [1,1,H,W] 또는 [1,H,W,1], 1 <= H,W <= 4096
+   (줄일 때 면적 평균, 키울 때 선형 보간, 같은 크기면 그대로)
+3. 강도 정규화는 하지 않는다 — 호출자가 모델이 학습한 스케일로 화소를 준다. FLOAT32 만 받는다
+4. ONNX 추론 (기본: 프로세스 안, use_worker: true 이면 워커 프로세스)
+5. 출력 판정: 유한 -> 모든 값이 [0, 1] -> 최대 클래스 (동점이면 첫 클래스). 소프트맥스는 모델 몫
+6. IF confidence >= confidence_threshold (기본 0.6, 설정 가능):
+     OK + 라벨 + confidence
+   ELSE (저신뢰 이벤트: Warning 1건):
+     fallback_mode 켬(기본): PROCESSING_FAILED + "UNKNOWN" + 측정된 confidence
+     fallback_mode 끔:       OK + 최상위 라벨 + confidence
+7. 쓸 수 있는 답이 없으면(모델 없음·적재 불가·사이드카 문제·실행 실패·비유한·범위 밖)
+     PROCESSING_FAILED + "UNKNOWN" + 0.0
+   DICOM 태그 등 결정론적 부위 조회는 이 모듈이 아니라 호출자가 한다
 
-IPC Protocol:
-  Main process → worker: shared memory image + config JSON
-  Worker → main: result JSON { "bodyPart": "CHEST", "confidence": 0.97 }
-  Timeout: 5s → fallback to DICOM tag
-  Worker crash: restart + use DICOM tag
+워커 프로토콜 (use_worker):
+  호스트 -> 워커: 이진 요청 (원본 영상, 크기 조정은 워커가)
+  워커 -> 호스트: 엄격한 JSON 응답 { "outcome": ok | non_finite | out_of_range, "body_part", "confidence" }
+  문턱·fallback_mode 판정은 호스트가 한다
+  시간 예산(timeout_ms, 기본 5 s) 초과·워커 종료·잘못된 응답·실행 실패: 실패 1회로 세고 UNKNOWN,
+  연속 3회면 세션 동안 워커 중단 (뼈 억제와 카운트 공유, REQ-AI-092)
 ```
 
 #### Edge Case
 
 | Case | Input | Action | Rationale |
 |------|-------|--------|-----------|
-| Low confidence (<0.95) | ambiguous | Use DICOM tag fallback | SRS-FUNC-016 |
-| Worker timeout | >5s | Use DICOM tag + WARNING | Degradation |
-| Worker crash | process died | Restart worker + DICOM tag | (추적 ID 미정 — `SRS-SAFE-008` 은 AI-processed 라벨 요구라 오추적, #130) |
-| No DICOM tag | missing | Use "UNKNOWN" + default preset | Safety |
+| Low confidence (< 문턱, 기본 0.6) | ambiguous | Warning 1건, fallback_mode 켬이면 `UNKNOWN`·PROCESSING_FAILED 반환 → 호출자가 결정론적 조회 | REQ-AI-012 (`srs_ai.md` REQ-AI-FB-001·FB-002) |
+| 모델 없음·사용 불가 | 파일·사이드카 문제 | `UNKNOWN`·0.0·PROCESSING_FAILED, 세션당 Warning 1건 | REQ-AI-002 |
+| Worker timeout | > timeout_ms | 실패 1회 + Warning, `UNKNOWN` 반환 | REQ-AI-092 |
+| Worker crash | process died | 실패 1회 + Warning, 다음 호출은 새 워커, 연속 3회면 중단 | REQ-AI-092 (추적 ID 미정 — `SRS-SAFE-008` 은 AI-processed 라벨 요구라 오추적, #130) |
+| FLOAT32 아닌 영상 | 다른 형식 | `XPE_ERR_UNSUPPORTED_FORMAT` (use_worker 에서는 모델 유무와 무관) | ai_api.h |
 
 ---
 

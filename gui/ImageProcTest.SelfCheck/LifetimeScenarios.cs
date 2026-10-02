@@ -114,6 +114,8 @@ internal class ScenarioBackend : IXpeBackend
 /// </summary>
 internal sealed class AiScenarioBackend : ScenarioBackend, IAiSessionBackend
 {
+    public bool HasAiSession => true;
+
     /// <summary>The scripted worker ceiling.</summary>
     public int AiCeiling = 3;
 
@@ -132,6 +134,8 @@ internal sealed class AiScenarioBackend : ScenarioBackend, IAiSessionBackend
 /// </summary>
 internal sealed class HeldReadBackend : ScenarioBackend, IAiSessionBackend
 {
+    public bool HasAiSession => true;
+
     public int AiCeiling = 3;
     public readonly ManualResetEventSlim FirstReadEntered = new();
     public readonly ManualResetEventSlim FirstReadRelease = new();
@@ -159,6 +163,8 @@ internal sealed class HeldReadBackend : ScenarioBackend, IAiSessionBackend
 /// </summary>
 internal sealed class ReplacedSessionBackend : ScenarioBackend, IAiSessionBackend
 {
+    public bool HasAiSession => true;
+
     public readonly ManualResetEventSlim OldReadEntered = new();
     public readonly ManualResetEventSlim OldReadRelease = new();
     private int _reads;
@@ -189,6 +195,8 @@ internal sealed class ReplacedSessionBackend : ScenarioBackend, IAiSessionBacken
 /// </summary>
 internal sealed class ScriptedSessionBackend : ScenarioBackend, IAiSessionBackend
 {
+    public bool HasAiSession => true;
+
     public volatile bool ReadsFail;
     private int _epoch;
 
@@ -486,13 +494,14 @@ internal static class LifetimeScenarios
             vm.ApplyBodyPartPresetCommand.Execute(null);           // VOI preset
             vm.ApplyDisplayPipelineCommand.Execute(null);          // Display pipeline
             vm.RestartAiSessionCommand.Execute(null);              // Restart AI
+            vm.RunDeterministicBaselineCommand.Execute(null);      // Deterministic Baseline
             vm.InitializeBackendCommand.Execute(null);             // Initialize backend
             vm.SetBackendModeCommand.Execute("Mock");              // (goes through Initialize backend)
-            await Until(() => new[] { "Load image", "VOI preset", "Display pipeline", "Restart AI", "Initialize backend" }.All(entry =>
+            await Until(() => new[] { "Load image", "VOI preset", "Display pipeline", "Restart AI", "Deterministic Baseline", "Initialize backend" }.All(entry =>
                 vm.Logs.Any(line => line.Contains(entry + ": The backend is shutting down", StringComparison.Ordinal))), "every entry point to be refused");
             await FlushUi();                                       // a refusal that was NOT one would have started work by now
 
-            foreach (var entry in new[] { "Load image", "VOI preset", "Display pipeline", "Restart AI", "Initialize backend" })
+            foreach (var entry in new[] { "Load image", "VOI preset", "Display pipeline", "Restart AI", "Deterministic Baseline", "Initialize backend" })
             {
                 Check(vm.Logs.Any(line => line.Contains(entry + ": The backend is shutting down", StringComparison.Ordinal) && line.Contains("not run", StringComparison.Ordinal)),
                     $"'{entry}' was not refused during the transition");

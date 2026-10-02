@@ -7,7 +7,7 @@ using ImageProcTest.Services.Native;
 
 namespace ImageProcTest.Services;
 
-public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
+public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBackend
 {
     private static readonly string[] RequiredCommonExports =
     {
@@ -281,7 +281,10 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
     /// #180 (GUI-C-99): the pixel chain. Order, copies and fallback are ProcessingChainRunner's; this
     /// method only says how each stage runs natively.
     /// </summary>
-    public ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
+    public ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings) =>
+        RunChainCore(rawFrame, stages, settings, measureExposureIndex: false);
+
+    private ChainResult RunChainCore(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings, bool measureExposureIndex)
     {
         if (rawFrame.RawPixels is null || rawFrame.Width <= 0 || rawFrame.Height <= 0)
         {
@@ -290,9 +293,10 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
 
         var result = ProcessingChainRunner.Run(rawFrame.RawPixels, stages, (request, input) => request.StageId switch
         {
-            StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings),
+            StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings, measureExposureIndex),
             StageIds.Gsvg => RunGsvgStage(input, rawFrame.Width, rawFrame.Height, settings),
             StageIds.AiBoneSuppression => RunAiStage(input, rawFrame.Width, rawFrame.Height, settings),
+            StageIds.EnhanceBasic => RunEnhanceBasicStage(input, rawFrame.Width, rawFrame.Height),
             _ => new StageExecution(false, null, $"Stage '{request.StageId}' is not available in the native backend."),
         });
 
@@ -304,7 +308,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
         return result;
     }
 
-    private StageExecution RunPreprocessStage(ushort[] input, int width, int height, AppSettings settings)
+    private StageExecution RunPreprocessStage(ushort[] input, int width, int height, AppSettings settings, bool measureExposureIndex = false)
     {
         // InvokeNative so the alert drain runs afterwards on every path (GUI-C-24), including the
         // failure paths — a stage that refuses is exactly when the queue holds something to show.
@@ -317,9 +321,10 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
             settings.DefectCalibrationDirectory,
             settings.SelectedBodyPart,
             settings.ExposureKvp,
-            settings.PixelPitchMm));
+            settings.PixelPitchMm,
+            measureExposureIndex));
 
-        return new StageExecution(result.Ran, result.Pixels, result.Summary);
+        return BaselineStageAdapters.FromPreprocess(result.Ran, result.Pixels, result.Summary, result.NonFiniteCount);
     }
 
     /// <summary>
@@ -332,6 +337,38 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
         return new StageExecution(result.Ran, result.Pixels, result.Message);
     }
 
+    // ---- #225 row 9 (GUI-C-196 M4): the Deterministic Baseline ------------------------------------------------------------------------
+
+    bool IBaselineBackend.SupportsDeterministicBaseline => true;
+
+    IDicomSession IBaselineBackend.CreateBaselineDicomSession() => new Native.NativeDicomSession();
+
+    BaselineSingleRun IBaselineBackend.RunBaselineOnce(LoadedImageFrame rawFrame, AppSettings settings)
+    {
+        if (rawFrame.RawPixels is null || rawFrame.Width <= 0 || rawFrame.Height <= 0)
+        {
+            throw new InvalidOperationException("The Deterministic Baseline requires a loaded UInt16 raw frame.");
+        }
+
+        // The user's display settings are not read: ForBaseline overrides them with the fixed values (design D7), and the display step below takes no settings at all.
+        var fixedSettings = BaselineParameters.ForBaseline(settings);
+        var chain = RunChainCore(rawFrame, ProcessingChainPlan.BuildBaselineStages(), fixedSettings, measureExposureIndex: true);
+
+        // Display step: BaselineDisplayStage runs it only on a fully applied chain (a refused stage is a failed baseline, D5) and carries the NaN/Inf count of its
+        // float intermediates into the run (M7). InvokeNative so the alert drain runs afterwards.
+        return InvokeNative(() => BaselineDisplayStage.ComposeRun(chain, rawFrame.Width, rawFrame.Height, new Native.NativeBaselineDisplayBackend()));
+    }
+
+    /// <summary>
+    /// #225 row 9 (GUI-C-196 M2): the basic enhancement stage of the Deterministic Baseline. InvokeNative so the alert drain runs afterwards on every path,
+    /// as for the other stages. All of the stage's rules (one float image, one conversion back, all-or-nothing) are in <see cref="EnhanceBasicStage"/>.
+    /// </summary>
+    private StageExecution RunEnhanceBasicStage(ushort[] input, int width, int height)
+    {
+        var result = InvokeNative(() => EnhanceBasicStage.Run(input, width, height, new Native.NativeEnhanceBasicBackend()));
+        return BaselineStageAdapters.FromEnhance(result);
+    }
+
     /// <summary>
     /// #225 row 10 (GUI-C-184): AI bone suppression. InvokeNative so the alert drain runs afterwards on every path:
     /// the module raises its own alerts (success Info, failure Warnings, the third failure's "disabled for this
@@ -342,6 +379,8 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
         InvokeNative(() => Native.GuiAiRunner.Run(input, width, height, settings.AiModelDirectory));
 
     /// <summary>GUI-C-185: read-only, under the session lock (no time limit: the caller is off the UI thread, GUI-C-186d); no alert drain (the call raises none). Explicit: the types are internal.</summary>
+    bool IAiSessionBackend.HasAiSession => true;
+
     AiWorkerStatus IAiSessionBackend.GetAiWorkerStatus() => Native.GuiAiSession.QueryWorkerState();
 
     /// <summary>GUI-C-185: InvokeNative so any alert the restart raises reaches the list.</summary>

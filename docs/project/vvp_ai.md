@@ -333,9 +333,12 @@ Traced in `docs/project/rtm_ai.md` §4 (REQ-AI-BP-002 rows), §5 (REQ-AI-ST-001 
 
 ### 4.3 SWU-AI-02: Body-Part Recognition
 
-**Purpose**: CNN body-part classification. **Not implemented** — stub.
+**Purpose**: CNN body-part classification. **Wiring implemented, no real model** (2026-10-02, `QA-B-191`, `#130`).
+The stub build is verified against the stub contract (V4.3.1); the full build (`ci-ai` preset) verifies the wiring
+with hand-built toy models (V4.3.2, V4.3.3).
 
-**Requirements Addressed**: REQ-AI-BP-001, REQ-AI-BP-002
+**Requirements Addressed**: REQ-AI-BP-001, REQ-AI-BP-002 (and, for body-part recognition, REQ-AI-002, REQ-AI-003,
+REQ-AI-FB-001 / REQ-AI-012, REQ-AI-FB-002, REQ-AI-092 — see `rtm_ai.md` §4)
 
 #### Verification Method V4.3.1: Stub-Contract Unit Tests (L1)
 
@@ -348,8 +351,32 @@ Traced in `docs/project/rtm_ai.md` §4 (REQ-AI-BP-002 rows), §5 (REQ-AI-ST-001 
 | `AiWorkerIsolationTest.RepeatedFallbackIsConsistent` | repeated calls give the same result |
 | + 5 validation cases (§4.2) | null/short-buffer rejection |
 
-**Not verified**: classification accuracy, confidence calibration, demographic performance,
-inference latency. None of these is measurable in this build (§4.9).
+#### Verification Method V4.3.2: Toy-Model Unit Tests, In-Process Path (L1, full build)
+
+| Group | Cases |
+|---|---|
+| Answer | `BodyPart.ConstantModelGivesItsLabelAndItsProbability`, `BodyPart.ADifferentModelDirectoryChangesTheLabel`, `BodyPart.TheImageChangesTheLabel`, `BodyPart.ATieGoesToTheFirstClassAndAFullScaleProbabilityIsAccepted`, `BodyPart.ANhwcModelGivesTheSameAnswersAsTheNchwOne` |
+| Size | `BodyPart.AnImageOfAnotherSizeIsResizedToTheModelsInputBeforeItIsRun`, `BodyPartResize.ShrinkingAveragesTheArea`, `BodyPartResize.EnlargingInterpolatesAndStaysInsideTheSourceRange`, `BodyPartInputSize.TheShapesTheModuleWillFeed` |
+| No usable answer (fallback) | `BodyPart.NoModelFileIsTheStubsOutcomeWithOneWarning`, `BodyPart.ABrokenModelFileIsTheStubsOutcomeWithOneWarning`, `BodyPart.MissingLabelsAreTheStubsOutcomeWithOneWarning`, `BodyPart.MoreOutputsThanLabelsAreTheStubsOutcomeWithOneWarning`, `BodyPart.ARankTwoInputIsTheStubsOutcomeWithOneWarning`, `BodyPart.ADynamicInputIsTheStubsOutcomeWithOneWarning`, `BodyPart.WithoutAModelNoImageFormatChangesTheOutcome` |
+| Threshold and fallback_mode | `BodyPart.AConfidenceExactlyAtTheThresholdPasses`, `BodyPart.AConfidenceOneFloatBelowTheThresholdIsLowAndFallsBack`, `BodyPart.TheThresholdIsTheConfiguredOneNotAConstant`, `BodyPart.AThresholdOfOneAcceptsOnlyAFullScaleConfidence`, `BodyPart.EveryLowConfidenceImageRaisesItsOwnEventButAPassingOneRaisesNone`, `BodyPart.ALowConfidenceFallbackNeedsRoomForUnknownAndStillRaisesTheEvent`, `BodyPart.WithFallbackModeOffTheLowConfidenceLabelIsReturnedWithAWarning`, `BodyPart.FallbackModeCanBeToggledAtRunTimeAndTheNextCallFollows`, `BodyPart.WithFallbackModeOffALabelThatDoesNotFitIsStillBufferTooSmall`, `BodyPartDecision.TheLowConfidenceTextsAreTheContractedOnes` |
+| Refusal | `BodyPart.ANonFiniteModelResultIsRefusedWithTheNonFiniteAlert`, `BodyPart.AProbabilityAboveOneIsRefused`, `BodyPart.ANegativeValueIsRefusedEvenWhenTheLargestIsInRange`, `BodyPartDecision.AValueJustOutsideTheRangeIsRefusedWhole`, `BodyPartDecision.NonFiniteIsToldApartFromOutOfRangeAndCheckedFirst` |
+
+#### Verification Method V4.3.3: Worker Path (L1, full build)
+
+| Group | Cases |
+|---|---|
+| Strict reply parser (fake worker) | `WorkerBodyPartReply.*` — incl. `WorkerBodyPartReply.EveryReplyTheProtocolForbidsIsAProtocolFaultAndTheWorkerIsDiscarded`, `WorkerBodyPartReply.EveryErrorFrameTheProtocolForbidsIsAProtocolFaultAndTheWorkerIsDiscarded`, `WorkerBodyPartReply.ThreeContradictoryFramesInARowAreThreeCountedFailuresNeverAnUnavailableAnswer` |
+| Real worker vs in-process | `WorkerBodyPartAgreement.*` |
+| Budget, shared failure count, switch-off | `BodyPartWorkerPath.*` |
+
+Falsification records: `.moai/reports/lane-post/QA-B-191/m4b_arms_run2_out.txt`, `m4c_arms_out.txt`,
+`m4e_arms_out.txt`, `m4f_arms_out.txt`.
+
+**Not verified**: classification accuracy, confidence calibration, demographic performance, and the inference and
+load latency of a real model. The test models are not classifiers (`modules/ai/tests/data/make_bodypart_models.py`).
+Measured (one PC, toy model; not a claim about a real model): resizing 3072² → 512², minimum of 12 runs 7.10–7.29 ms
+across three runs (`QA-B-191/m3b_report.md`); worker first call (fresh process) median 77–80 ms, with 5 of 60 calls
+at about 670–740 ms, all in the start-and-connect stage (`QA-B-191/m4b_report.md`).
 
 #### RTM Cross-Reference (SWU-AI-02)
 

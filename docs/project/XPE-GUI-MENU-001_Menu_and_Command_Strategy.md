@@ -228,9 +228,9 @@ Toolbar buttons are shortcuts for high-frequency menu commands, not separate beh
 | Command | Owner DLL | Phase | Enabled When |
 |---------|-----------|:-----:|--------------|
 | `Run Preprocessing` | xpe_preprocess.dll | **1a** | P1A DLL present + image loaded + calibration paths valid |
-| `Run Deterministic Baseline` | xpe_preprocess.dll | 1a | Same + deterministic test mode active |
+| `Run Deterministic Baseline` | xpe_preprocess.dll, xpe_enhance_basic.dll, xpe_display.dll, xpe_dicom.dll | **1b** | **예외 (아래 "Run Deterministic Baseline" 참조)** — 백엔드가 Native 이면 enabled. DLL 존재는 활성 시점에 확인하지 않음. 실행 시 raw 영상과 교정 셋이 필요 |
 | `Apply Display Pipeline` | xpe_display.dll | **1b** | P1B DLL present + image loaded + VOI params set |
-| `Run Full Pipeline` | all modules | **1b** | Pre + Display + (optional Enhance) all ready |
+| `Run AI Bone Suppression` (옛 이름 `Run Full Pipeline`; AutomationId `RunFullPipelineMenuItem` 은 유지, GUI-C-184) | xpe_ai.dll | 3 | 위 일반 규칙대로 AI 세션이 있는 백엔드·초기화됨·전환 중 아님·xpe_ai.dll 이 보일 때만 enabled(`AiBoneSuppressionAvailability`, 메뉴를 열 때 다시 평가; 꺼졌을 때 툴팁에 이유 — GUI-C-198). 영상이 없으면 상태 줄에 안내하고 실행하지 않음. 실행 시 Native 백엔드와 모델이 든 xpe_ai.dll 이 필요하고, 모듈이 실패하면 원본 영상을 보이고 상태 줄에 알림 |
 | `Stop Processing` | N/A | 1a+ | IsProcessing == true |
 | `Stage Timing` | N/A | 1a+ | Last pipeline execution completed |
 | `Open Pipeline Diagnostics` | N/A | 1a+ | Always enabled after first pipeline run |
@@ -244,6 +244,21 @@ Rules:
 - [HARD] 각 명령은 **disabled 상태에서도 메뉴에 표시**하되, tooltip으로 비활성 사유 (예: "xpe_preprocess.dll not staged") 제공
 - [HARD] Phase 이전 DLL이 accidentally staged 될 경우 command 활성화 차단 (version pinning으로 방어, SPEC-XPE-GUI-IT REQ-GUI-IT-053)
 - [HARD] AI 관련 명령은 반드시 confidence score 표시 및 fallback 경로 제공 (HAZ-GUI-005 연계)
+
+#### Run Deterministic Baseline — 활성 규칙의 예외와 동작 (GUI-C-196/197)
+
+메뉴 이름은 `Run Deterministic Baseline (Phase 1b)` 이다. 여기서 "deterministic" 은 **확인하는 성질**이지 모드가 아니다. 제품 문서의 "deterministic baseline"(비-AI 영상 경로)과 혼동하지 않는다 — 이 명령은 그 경로의 Phase 1b 체인이 결정적인지(같은 입력으로 두 번 돌려 출력이 비트 단위로 같은지)를 확인한다.
+
+- **활성 규칙 (이 행만의 예외)**: 위 일반 규칙("owner module DLL이 존재하고 `IsNativeReady`일 때만 enabled")은 이 명령에 적용하지 않는다. 문서를 코드에 맞춘다 — 백엔드가 Native 이면 enabled(`CanRunDeterministicBaseline`), Mock 이면 disabled. DLL 누락은 활성 시점에 확인하지 않으며, 실행이 `Fail` 로 끝나고 사유가 기록된다(자동화 보고서 `Passed=false`). 영상이 없으면 경고 알림 `BASELINE_NO_IMAGE` 를 내고 실행하지 않는다.
+- **툴팁**: `Runs the fixed Phase 1b chain (preprocess, enhance_basic, display LUTs, DICOM write) twice on the loaded image and reports whether the two outputs are bit-identical. Needs the native backend and a loaded image. Changes no setting.`
+- **고정 체인 (사용자 설정을 읽지 않음)**: preprocess(offset·비선형·gain·defect) → enhance_basic(log, bilateral σspace 3.0 / σrange 50.0, CLAHE clip 3.0 · 8×8 타일, unsharp mask amount 0.5 / radius 2.0 / threshold 10.0) → display(modality slope 1 / intercept 0, 선형 VOI center 32768 / width 65535, GSDF 끔). 모듈이 거절한 단계가 하나라도 있으면 명령은 실패한다(비교하지 않고 DICOM 도 쓰지 않음).
+- **판정 기준 (여섯 가지 모두 충족해야 Pass)**: ① 두 실행 모두 모든 단계를 적용함 ② 불러온 raw 프레임이 바뀌지 않음(SHA-256 전후 동일) ③ float 중간 결과에 NaN/Inf 가 없음 ④ 두 최종 16비트 출력이 비트 단위로 같음 ⑤ 첫 출력이 DICOM 으로 쓰였고 모듈 자체 검증기가 `valid:true` 를 냈으며, 다시 읽은 파일의 화소와 body part·kVp·pixel pitch 가 같음 ⑥ 증거 파일 `baseline.json` 이 쓰임. 소요 시간은 측정·기록만 하고 제품 요구의 3000 ms 는 판정하지 않는다.
+- **증거 폴더**: `evidence/<RunId>/baseline-<n>/` 에 정확히 두 파일 `baseline.dcm` 과 `baseline.json` 만 남는다. Pass 가 아닌 실행은 `baseline.dcm` 을 남기지 않는다(파일은 `.partial` 이름으로 쓰고 모든 확인이 끝난 뒤에만 이름을 바꿈).
+- **보정 안 된 EI**: 로그와 `baseline.json` 에 `uncalibrated EI (보정 안 된 EI)` 로 기록하는 EI·DI 는 **측정값이지 판정 기준이 아니다** — 모듈의 S0 기준(1000)이 이 앱의 gain 스케일과 대조되지 않았다.
+- **건드리지 않는 것**: 설정, 화면의 영상, 체인 상태, 마지막 렌더의 단계 시간.
+- **자동화 보고서 필드**: `BaselineMenuEnabled`, `BaselineRan`, `BaselineStatus`, `BaselineStatusText`, `BaselineBitIdentical`, `BaselineFirstDifference`, `BaselineOutputSha256`, `BaselineStageTimes`, `BaselineTotalMs`, `BaselineDicomValid`, `BaselineDicomRoundTripIdentical`, `BaselineExposureIndex`, `BaselineEvidenceFolder`.
+- **`BaselineStatus` 와 `Passed`**: `Pass` — 실행해서 통과. `Fail` — 실행해서 실패했거나, **시도했지만 결과가 없음**(예외, 결과 유실, 60초 안에 끝나지 않음). `NotRun` — 시도하지 않음(메뉴 disabled 인 Mock, 또는 이번 자동화 실행에서 전처리가 돌지 않아 교정 셋이 없음). `Fail` 이면 보고서 `Passed=false`(프로세스 종료 코드 1), `NotRun` 은 `Passed` 를 바꾸지 않는다(`BaselineAutomationRule`).
+- **알려진 한계**: DICOM 경로가 ANSI 로 모듈에 전달되어, 시스템 코드 페이지 밖의 문자가 든 폴더 이름에서는 쓰기가 실패한다(`XPE_ERR_IO_FAILED`, #239).
 
 ---
 
