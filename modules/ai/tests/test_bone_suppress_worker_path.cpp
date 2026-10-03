@@ -259,7 +259,7 @@ TEST_F(WorkerPathFixture, ControlTheProbesCanSeeAWorkerAndAnAlert) {
     char pipe[96];
     std::snprintf(pipe, sizeof(pipe), "\\\\.\\pipe\\xpe_ai_probe_%lu",
                   static_cast<unsigned long>(GetCurrentProcessId()));
-    std::string cmd = std::string("\"") + LoadedDllDir("xpe_ai.dll") + "\\xpe_ai_worker.exe\" " + pipe;
+    std::string cmd = std::string("\"") + LoadedDllDir("xpe_ai.dll") + "\\xpe_ai_worker.exe\" --diagnostic " + pipe;
     ASSERT_TRUE(CreateProcessA(nullptr, cmd.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW,
                                nullptr, nullptr, &si, &pi) != 0)
         << "cannot launch the worker next to xpe_ai.dll: " << cmd;

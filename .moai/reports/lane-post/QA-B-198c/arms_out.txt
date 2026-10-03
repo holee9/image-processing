@@ -1,0 +1,31 @@
+=== ARM bone_verification_back_inside_the_lock
+build: ===BUILD=0===
+red tests: TrustRecheck.ASecondCallForTheSameRoleDuringItsFirstLoadAnswersUnavailableAtOnceAndTheNextCallWorks, TrustRecheck.AnotherThreadIsNotKeptWaitingWhileARefusedModelIsVerifiedAgain
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM bodypart_verification_back_inside_the_lock
+build: ===BUILD=0===
+red tests: TrustRecheck.AnotherThreadIsNotKeptWaitingWhileARefusedBodyPartModelIsVerifiedAgain
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM bone_second_call_does_not_answer_at_once
+build: ===BUILD=0===
+red tests: TrustRecheck.ASecondCallForTheSameRoleDuringItsFirstLoadAnswersUnavailableAtOnceAndTheNextCallWorks
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM worker_accepts_an_extra_supervised_argument
+build: ===BUILD=0===
+red tests: WorkerPipePeer.AnExtraArgumentEndsTheWorkerInBothForms
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM worker_accepts_an_extra_diagnostic_argument
+build: ===BUILD=0===
+red tests: WorkerPipePeer.AnExtraArgumentEndsTheWorkerInBothForms
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== DONE

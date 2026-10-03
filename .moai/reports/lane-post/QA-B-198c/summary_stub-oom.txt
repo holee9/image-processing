@@ -1,0 +1,2 @@
+[==========] 13 tests from 1 test suite ran. (83 ms total)
+[  PASSED  ] 6 tests.

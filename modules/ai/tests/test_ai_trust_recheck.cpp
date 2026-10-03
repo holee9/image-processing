@@ -275,6 +275,129 @@ TEST(TrustRecheck, AnInferenceIsNotKeptOutByASlowCardLookup) {
     xpe_ai_shutdown();
 }
 
+// ---------------------------------------------------------------------------------------------------------------------
+// QA-B-198c (Codex #99): a refused model is verified again on every call -- WITHOUT the module lock
+// ---------------------------------------------------------------------------------------------------------------------
+
+TEST(TrustRecheck, AnotherThreadIsNotKeptWaitingWhileARefusedModelIsVerifiedAgain) {
+    if (OnnxSession::IsStubBuild()) GTEST_SKIP() << "stub build: no model is verified, no inference takes the module lock";
+    const TempDir t("refused_vs_others");
+    t.CopyFrom("models_x2");
+    t.CopyFrom("models_bodypart_a");
+    std::vector<uint8_t> m = xpe_test::ReadBytes(t / "bone_suppress.onnx");
+    m[m.size() / 2] ^= 0x01;   // the bone model is refused; the body-part model is good
+    WriteBytes(t / "bone_suppress.onnx", m);
+    xpe_ai_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_ai_init(t.path.string().c_str(), "{}"));
+    ASSERT_EQ("CHEST", RecognizeLabel()) << "warm: the body-part model is loaded, so the next call reads no file";
+
+    const SlowReads slow;
+    long long refusedMs = 0, inferMs = 0, cardMs = 0;
+    XpeErrorCode refusedRc = XPE_OK, cardRc = XPE_ERR_PROCESSING_FAILED;
+    std::thread a([&] {
+        t_slow = true;   // only this thread's reads are slow: a large model
+        std::vector<float> out;
+        const auto start = Clock::now();
+        refusedRc = BoneCall(&out);
+        refusedMs = MsSince(start);
+    });
+    Sleep(250);   // the refused verification is inside its first read
+    const auto s1 = Clock::now();
+    const std::string label = RecognizeLabel();   // an inference on the OTHER role, under the module lock
+    inferMs = MsSince(s1);
+    char buf[8192];
+    const auto s2 = Clock::now();
+    cardRc = xpe_ai_get_model_card("bodypart_toy", buf, sizeof(buf));
+    cardMs = MsSince(s2);
+    a.join();
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, refusedRc) << "control: the bone model is refused";
+    EXPECT_GE(refusedMs, 1000) << "control: the refused verification really was slow (about 3 x 400 ms)";
+    EXPECT_EQ("CHEST", label);
+    EXPECT_EQ(XPE_OK, cardRc);
+    EXPECT_LT(inferMs, 400) << "was: about " << (refusedMs - 250) << " ms -- the inference waited for the verification";
+    EXPECT_LT(cardMs, 400) << "was: about " << (refusedMs - 250) << " ms -- the card lookup waited for the verification";
+    xpe_ai_shutdown();
+    xpe_clear_alerts();
+}
+
+TEST(TrustRecheck, AnotherThreadIsNotKeptWaitingWhileARefusedBodyPartModelIsVerifiedAgain) {
+    if (OnnxSession::IsStubBuild()) GTEST_SKIP() << "stub build: no model is verified, no inference takes the module lock";
+    // The same measurement with the roles swapped: the body-part model is the refused one.
+    const TempDir t("refused_part_vs_others");
+    t.CopyFrom("models_x2");
+    t.CopyFrom("models_bodypart_a");
+    std::vector<uint8_t> sidecar = xpe_test::ReadBytes(t / "bodypart.json");
+    std::string text(sidecar.begin(), sidecar.end());
+    const size_t at = text.find("CHEST");
+    ASSERT_NE(std::string::npos, at);
+    text.replace(at, 5, "CHESS");   // the signature is now stale: the body-part model is refused
+    WriteBytes(t / "bodypart.json", std::vector<uint8_t>(text.begin(), text.end()));
+    xpe_ai_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_ai_init(t.path.string().c_str(), "{}"));
+    std::vector<float> warm;
+    ASSERT_EQ(XPE_OK, BoneCall(&warm)) << "warm: the bone model is loaded, so the next call reads no file";
+
+    const SlowReads slow;
+    long long refusedMs = 0, boneMs = 0, cardMs = 0;
+    std::string refusedLabel;
+    std::thread a([&] {
+        t_slow = true;
+        const auto start = Clock::now();
+        refusedLabel = RecognizeLabel();
+        refusedMs = MsSince(start);
+    });
+    Sleep(250);
+    std::vector<float> out;
+    const auto s1 = Clock::now();
+    const XpeErrorCode boneRc = BoneCall(&out);
+    boneMs = MsSince(s1);
+    char buf[8192];
+    const auto s2 = Clock::now();
+    const XpeErrorCode cardRc = xpe_ai_get_model_card("bone_toy_x2", buf, sizeof(buf));
+    cardMs = MsSince(s2);
+    a.join();
+    EXPECT_EQ("UNKNOWN", refusedLabel) << "control: the body-part model is refused";
+    EXPECT_GE(refusedMs, 1000) << "control: the refused verification really was slow";
+    EXPECT_EQ(XPE_OK, boneRc);
+    EXPECT_EQ(XPE_OK, cardRc);
+    EXPECT_LT(boneMs, 400) << "was: about " << (refusedMs - 250) << " ms -- the bone inference waited for the verification";
+    EXPECT_LT(cardMs, 400) << "was: about " << (refusedMs - 250) << " ms -- the card lookup waited for the verification";
+    xpe_ai_shutdown();
+    xpe_clear_alerts();
+}
+
+TEST(TrustRecheck, ASecondCallForTheSameRoleDuringItsFirstLoadAnswersUnavailableAtOnceAndTheNextCallWorks) {
+    if (OnnxSession::IsStubBuild()) GTEST_SKIP() << "stub build: xpe_bone_suppress answers before it looks for a model";
+    // The choice (QA-B-198c): a second call for a role whose model is being read does NOT wait; it answers "model
+    // unavailable" and remembers nothing. This holds for a GOOD model too, for the length of its first load.
+    const TempDir t("second_call");
+    t.CopyFrom("models_x2");
+    xpe_ai_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_ai_init(t.path.string().c_str(), "{}"));
+    const SlowReads slow;
+    XpeErrorCode firstRc = XPE_ERR_PROCESSING_FAILED;
+    std::vector<float> firstOut;
+    std::thread a([&] {
+        t_slow = true;
+        firstRc = BoneCall(&firstOut);
+    });
+    Sleep(250);
+    std::vector<float> out;
+    const auto start = Clock::now();
+    const XpeErrorCode second = BoneCall(&out);
+    const long long ms = MsSince(start);
+    a.join();
+    EXPECT_EQ(XPE_OK, firstRc) << "the first call loads the good model and runs it";
+    for (const float v : firstOut) EXPECT_EQ(2.0f, v);
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, second) << "was: XPE_OK -- the second call loaded the model itself instead of answering at once";
+    for (const float v : out) EXPECT_EQ(-777.0f, v) << "the output is untouched";
+    EXPECT_LT(ms, 400) << "the second call did not wait for the first load";
+    std::vector<float> third;
+    EXPECT_EQ(XPE_OK, BoneCall(&third)) << "nothing was remembered: the next call uses the loaded model";
+    xpe_ai_shutdown();
+    xpe_clear_alerts();
+}
+
 /**
  * MEASUREMENT, not a check (run with --gtest_also_run_disabled_tests --gtest_filter=TrustRecheck.DISABLED_*): what a REFUSED
  * call costs now that nothing is remembered -- the model is read and hashed and the signature refused, every call. The model is

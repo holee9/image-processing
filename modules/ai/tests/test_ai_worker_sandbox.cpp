@@ -253,7 +253,7 @@ struct DirectWorker {
     DirectWorker() {
         static int serial = 0;
         pipe = "\\\\.\\pipe\\xpe_ai_worker_sandbox_test_" + std::to_string(GetCurrentProcessId()) + "_" + std::to_string(serial++);
-        std::string cmd = std::string("\"") + XPE_AI_WORKER_EXE + "\" " + pipe;
+        std::string cmd = std::string("\"") + XPE_AI_WORKER_EXE + "\" --diagnostic " + pipe;
         STARTUPINFOA si{};
         si.cb = sizeof(si);
         if (!CreateProcessA(nullptr, cmd.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi)) pi = {};

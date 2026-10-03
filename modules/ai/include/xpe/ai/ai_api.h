@@ -90,6 +90,15 @@
  *     a failure of the worker path like any other. A test build (XPE_AI_TEST_HOOKS) can start the worker unrestricted with
  *     XPE_AI_TEST_WORKER_UNRESTRICTED=1; a delivery build has no such switch.
  *
+ * MODEL LOADS DO NOT HOLD THE MODULE LOCK (QA-B-198c). The in-process paths of xpe_bone_suppress and
+ * xpe_bodypart_recognize read and verify a model without the module lock, so a large model -- or a refused one, which is
+ * read and verified again on every call -- does not keep other calls out while it is read (256 MiB: 343 ms). After the read
+ * the lock is taken again and the result is used only if the module still points at the directory that was read. A call for
+ * a role whose model is being read by another thread RIGHT NOW does not wait for it: it answers as if the model were
+ * unavailable at once (xpe_bone_suppress: XPE_ERR_CONFIG_INVALID; xpe_bodypart_recognize: UNKNOWN), raises no alert and
+ * remembers nothing, so the next call tries again. This can happen to a good model when two threads make the first call for
+ * the same role at the same moment.
+ *
  * MODEL SIGNING (QA-B-195, REQ-AI-007 / REQ-AI-091). Every model the module loads is verified FIRST. For a model
  * `<dir>/<name>.onnx` (name = bone_suppress or bodypart) the loader reads the model, its sidecar `<name>.json` (when
  * there is one) and a detached signature `<name>.sig` ONCE, checks them together under a trusted key and the role the
@@ -719,7 +728,10 @@ XPE_API XpeErrorCode xpe_dl_denoise(XpeImageBuffer* img,
  *
  * Lifecycle: the label below does NOT cover concurrency with xpe_ai_init / xpe_ai_shutdown -- see the
  * LIFECYCLE CONTRACT at xpe_ai_shutdown().
- * Thread safety: Thread-safe (the module lock is held while the files are read).
+ * Thread safety: Thread-safe against other calls of the module. The model files are read and verified WITHOUT the module
+ * lock (a large model takes a measurable time, and the lock is the one inference takes): the lock is held only to copy the
+ * model directory and, after the read, to confirm the module still points at it. Concurrent calls with xpe_ai_init /
+ * xpe_ai_shutdown are NOT allowed (LIFECYCLE CONTRACT at xpe_ai_shutdown()).
  */
 XPE_API XpeErrorCode xpe_ai_get_model_card(const char* modelId,
                                              char* buf, size_t bufSize);

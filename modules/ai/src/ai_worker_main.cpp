@@ -908,20 +908,29 @@ int main(int argc, char* argv[]) {
     std::cout << "[Worker] Mode: FULL (with ONNX Runtime)" << std::endl;
 #endif
 
-    // Use default pipe name
+    // QA-B-198c: exactly two forms are accepted, and anything else ends the worker (exit code 2) -- an extra argument is
+    // never ignored:
+    //   supervised  xpe_ai_worker <pipe> <host-pid>       the way a supervisor starts it; the only form that has a host
+    //   diagnostic  xpe_ai_worker --diagnostic [<pipe>]   a worker started by hand (diagnostics, protocol tests): no host
+    //                                                     check, the default pipe when none is named
     std::string pipe_name = XPE_AI_WORKER_PIPE_NAME;
-
-    // Allow override via command line
-    if (argc > 1) {
+    const bool diagnostic = argc >= 2 && std::strcmp(argv[1], "--diagnostic") == 0;
+    if (diagnostic ? argc > 3 : argc != 3) {
+        std::cerr << "usage: xpe_ai_worker <pipe> <host-pid>   |   xpe_ai_worker --diagnostic [<pipe>]" << std::endl;
+        return 2;
+    }
+    if (diagnostic) {
+        if (argc == 3) pipe_name = argv[2];
+    } else {
         pipe_name = argv[1];
     }
 
     std::cout << "[Worker] Pipe: " << pipe_name << std::endl;
 
-    // QA-B-198b: argv[2] is the host's process id, the only process whose pipe client is accepted. A value that is
-    // present but not a plain positive number ends the worker (fail closed) rather than disabling the check.
+    // QA-B-198b: argv[2] of the supervised form is the host's process id, the only process whose pipe client is accepted.
+    // A value that is not a plain positive number ends the worker (fail closed) rather than disabling the check.
     DWORD host_pid = 0;
-    if (argc > 2) {
+    if (!diagnostic) {
         char* end = nullptr;
         errno = 0;
         const unsigned long v = std::strtoul(argv[2], &end, 10);

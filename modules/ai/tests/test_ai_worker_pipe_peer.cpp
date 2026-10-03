@@ -66,12 +66,24 @@ std::string UniquePipeName() {
     return "\\\\.\\pipe\\xpe_ai_peer_test_" + std::to_string(GetCurrentProcessId()) + "_" + std::to_string(serial++);
 }
 
-/** The REAL worker, started directly as the test's own user. @p hostArg is argv[2]; empty = none. */
+/**
+ * The REAL worker, started directly as the test's own user. @p hostArg picks the argument form (QA-B-198c):
+ *   a number   the supervised form: `<pipe> <hostArg>`
+ *   "diag"     the diagnostic form: `--diagnostic <pipe>`
+ *   ""         the old pipe-only form `<pipe>` (now refused)
+ *   "none"     no argument at all (refused)
+ * @p extra is appended to whatever form was chosen (an extra argument, refused).
+ */
 struct PeerWorker {
     PROCESS_INFORMATION pi{};
     std::string pipe;
-    PeerWorker(const std::string& hostArg, const std::string& pipeName = UniquePipeName()) : pipe(pipeName) {
-        std::string cmd = std::string("\"") + XPE_AI_WORKER_EXE + "\" " + pipe + (hostArg.empty() ? "" : " " + hostArg);
+    PeerWorker(const std::string& hostArg, const std::string& pipeName = UniquePipeName(), const std::string& extra = "")
+        : pipe(pipeName) {
+        std::string args = hostArg == "diag" ? "--diagnostic " + pipe
+                         : hostArg == "none" ? std::string()
+                         : pipe + (hostArg.empty() ? "" : " " + hostArg);
+        if (!extra.empty()) args += (args.empty() ? "" : " ") + extra;
+        std::string cmd = std::string("\"") + XPE_AI_WORKER_EXE + "\" " + args;
         STARTUPINFOA si{};
         si.cb = sizeof(si);
         if (!CreateProcessA(nullptr, cmd.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi)) pi = {};
@@ -165,13 +177,33 @@ TEST(WorkerPipePeer, AfterTooManyForeignClientsTheWorkerExitsInsteadOfServingThe
     EXPECT_GE(connected, 17) << "the worker refused its bound of foreign clients before it exited";
 }
 
-TEST(WorkerPipePeer, AWorkerThatIsToldNoHostDoesNotCheck) {
-    PeerWorker w("");   // started by hand: the diagnostics and protocol tests; a supervisor always passes the id
+TEST(WorkerPipePeer, AWorkerStartedInTheDiagnosticFormDoesNotCheck) {
+    PeerWorker w("diag");   // started by hand: the diagnostics and protocol tests; a supervisor always passes the id
     ASSERT_NE(nullptr, w.pi.hProcess);
     HANDLE c = ConnectTo(w.pipe);
     ASSERT_NE(INVALID_HANDLE_VALUE, c);
     EXPECT_TRUE(HeartbeatAnswered(c));
     CloseHandle(c);
+}
+
+TEST(WorkerPipePeer, AnExtraArgumentEndsTheWorkerInBothForms) {
+    // QA-B-198c: the supervised form is exactly `<pipe> <host-pid>`, the diagnostic form `--diagnostic [<pipe>]`. An extra
+    // argument is not ignored (it used to be: a fourth argument was dropped silently).
+    for (const char* hostArg : {"supervised", "diag"}) {
+        const bool diag = std::string(hostArg) == "diag";
+        PeerWorker w(diag ? "diag" : std::to_string(GetCurrentProcessId()), UniquePipeName(), "unexpected");
+        ASSERT_NE(nullptr, w.pi.hProcess);
+        EXPECT_EQ(2, w.ExitCodeWithin(10000)) << hostArg << " form with an extra argument";
+    }
+}
+
+TEST(WorkerPipePeer, ThePipeOnlyFormAndNoArgumentAreRefused) {
+    // `<pipe>` alone used to start a worker with no host check, by accident of the argument count. It is not a form now.
+    for (const char* form : {"", "none"}) {
+        PeerWorker w(form);
+        ASSERT_NE(nullptr, w.pi.hProcess);
+        EXPECT_EQ(2, w.ExitCodeWithin(10000)) << "form '" << form << "'";
+    }
 }
 
 TEST(WorkerPipePeer, ABadHostIdEndsTheWorkerInsteadOfSwitchingTheCheckOff) {

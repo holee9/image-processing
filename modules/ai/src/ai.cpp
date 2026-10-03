@@ -145,6 +145,14 @@ struct AiModuleState {
     bool boneTrustAlerted{false};
     bool bodyPartTrustAlerted{false};
 
+    /**
+     * QA-B-198c: a model of this role is being read and verified by some thread RIGHT NOW (set under mtx before the lock
+     * is released for the read, cleared under mtx after it is taken again). A second call for the same role does not wait
+     * for it: it answers "model unavailable" at once.
+     */
+    bool boneLoading{false};
+    bool bodyPartLoading{false};
+
     // QA-B-198b: there is NO memo of a refused load. A previous version remembered "refused" under a stamp of the model
     // files' size and write time and answered from it; a file put back as it was, with its time restored, stayed refused for
     // the whole session. A refused role is verified again on every call (the cost is in the QA-B-198b report); only the
@@ -728,9 +736,9 @@ static XpeErrorCode bodyPartUnknown(char* bodyPartOut, size_t bufLen) {
 }
 
 /** Build the model for this session's model directory; the loading rules are shared with the worker (ai_bodypart_model.h). */
-static const char* loadBodyPartModel(AiModuleState* state, std::unique_ptr<BodyPartModel>* out,
+static const char* loadBodyPartModel(const std::string& modelDir, std::unique_ptr<BodyPartModel>* out,
                                      xpe::ai::BodyPartLoadFailure* kind, std::string* detail) {
-    const char* why = xpe::ai::LoadBodyPartModel(state->modelDirPath, out, kind, detail);
+    const char* why = xpe::ai::LoadBodyPartModel(modelDir, out, kind, detail);
     if (why && !detail->empty()) AI_LOG_ERROR("bodypart: %s", detail->c_str());
     return why;
 }
@@ -1235,7 +1243,7 @@ extern "C++" static XpeErrorCode xpe_bodypart_recognize_impl(const XpeImageBuffe
     if (xpe::ai::OnnxSession::IsStubBuild()) return bodyPartUnknown(bodyPartOut, bufLen);
 
     AiModuleState* state = g_aiState;
-    std::lock_guard<std::mutex> lock(state->mtx);
+    std::unique_lock<std::mutex> lock(state->mtx);
 
     // use_worker (opt-in): the model runs in the worker process; this process keeps the decision.
     if (state->useWorker) {
@@ -1246,10 +1254,33 @@ extern "C++" static XpeErrorCode xpe_bodypart_recognize_impl(const XpeImageBuffe
     // labels or has an input this module will not feed is NOT a call error: it is the documented fallback outcome,
     // with ONE Warning per session so the operator can find out.
     if (!state->bodyPart || state->bodyPartDir != state->modelDirPath) {
+        // QA-B-198c: the model is read and verified WITHOUT the module lock (a large model takes hundreds of
+        // milliseconds, and a refused one takes them on every call). Under the lock only the directory is copied and the
+        // "loading" mark set; after the read the lock is taken again and the result is used only if the module still
+        // points at the directory that was read. A second call for this role while a load is in flight does not wait: it
+        // answers UNKNOWN at once (see AiModuleState::bodyPartLoading).
+        if (state->bodyPartLoading) return bodyPartUnknown(bodyPartOut, bufLen);
+        const std::string dir = state->modelDirPath;
         std::unique_ptr<BodyPartModel> built;
         xpe::ai::BodyPartLoadFailure kind = xpe::ai::BodyPartLoadFailure::kNone;
         std::string detail;
-        if (const char* why = loadBodyPartModel(state, &built, &kind, &detail)) {
+        const char* why = nullptr;
+        state->bodyPartLoading = true;
+        lock.unlock();
+        try {
+            why = loadBodyPartModel(dir, &built, &kind, &detail);
+        } catch (...) {
+            lock.lock();
+            state->bodyPartLoading = false;
+            throw;
+        }
+        lock.lock();
+        state->bodyPartLoading = false;
+        if (!state->initialized.load(std::memory_order_acquire) || state->modelDirPath != dir) {
+            // The module was pointed somewhere else while the files were being read: nothing of this result is used.
+            return bodyPartUnknown(bodyPartOut, bufLen);
+        }
+        if (why) {
             state->bodyPart.reset();
             if (kind == xpe::ai::BodyPartLoadFailure::kOutOfMemory) {
                 // QA-B-194b: a shortage of memory is named as one, like the bone-suppression path and the other
@@ -1496,7 +1527,7 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
                           "the image was not processed and the output buffer was not changed");
     if (ec != XPE_OK) return ec;
 
-    std::lock_guard<std::mutex> lock(state->mtx);
+    std::unique_lock<std::mutex> lock(state->mtx);
 #ifdef XPE_AI_TEST_HOOKS
     if (auto* hook = g_testMutexHeldHook.load(std::memory_order_acquire)) hook();   // the mutex IS held here
 #endif
@@ -1610,13 +1641,36 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
 
     // Lazy load, and reload when init pointed somewhere else.
     if (!state->boneSuppressSession || state->boneSuppressSessionDir != state->modelDirPath) {
+        // QA-B-198c: the model is read and verified WITHOUT the module lock (a refused model costs that on every call:
+        // 343 ms for 256 MiB). Under the lock only the path is copied and the "loading" mark set; after the read the lock
+        // is taken again and the result is used only if the module still points at the directory that was read. A second
+        // call for this role while a load is in flight does not wait: it answers "model unavailable" at once.
+        if (state->boneLoading) return XPE_ERR_CONFIG_INVALID;
+        const std::string dir = state->modelDirPath;
         xpe::ai::OnnxSessionConfig cfg;
         cfg.model_path = modelPath;
         cfg.role = "bone_suppress";   // part of what the signature covers (QA-B-195)
         cfg.execution_provider = xpe::ai::ExecutionProvider::kCpu;
         cfg.num_threads = 1;
 
-        auto created = xpe::ai::OnnxSession::Create(cfg);
+        state->boneLoading = true;
+        auto created = [&] {
+            lock.unlock();
+            try {
+                auto r = xpe::ai::OnnxSession::Create(cfg);
+                lock.lock();
+                state->boneLoading = false;
+                return r;
+            } catch (...) {
+                lock.lock();
+                state->boneLoading = false;
+                throw;
+            }
+        }();
+        if (!state->initialized.load(std::memory_order_acquire) || state->modelDirPath != dir) {
+            // The module was pointed somewhere else while the files were being read: nothing of this result is used.
+            return XPE_ERR_CONFIG_INVALID;
+        }
         if (!created.has_value()) {
             // Three causes, three codes -- a caller that gets one code for all
             // of them cannot tell "install the model" from "the model is
