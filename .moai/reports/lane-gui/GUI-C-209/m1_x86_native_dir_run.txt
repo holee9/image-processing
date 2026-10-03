@@ -1,0 +1,9 @@
+# Whole IntegrationTests suite with XPE_NATIVE_DIR pointing at a directory whose xpe_common.dll is the real DLL with its PE Machine field changed to i386 (0x014C)
+[xUnit.net 00:00:10.80]     ImageProcTest.IntegrationTests.Smoke.DllLoadSmokeTests.ResolvedDll_IsX64Architecture [FAIL]
+[xUnit.net 00:00:10.81]       DLL architecture mismatch: Architecture mismatch: C:\Users\drake\AppData\Local\Temp\c209_x86dir\xpe_common.dll is not x64
+[xUnit.net 00:00:10.81]         D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Smoke\DllLoadSmokeTests.cs(53,0): at ImageProcTest.IntegrationTests.Smoke.DllLoadSmokeTests.ResolvedDll_IsX64Architecture()
+[xUnit.net 00:00:10.85]       xpe_common.dll not found. Set XPE_NATIVE_DIR or build the native project first. Searched: Architecture mismatch: C:\Users\drake\AppData\Local\Temp\c209_x86dir\xpe_common.dll is not x64
+[xUnit.net 00:00:10.85]       xpe_common.dll not found. Set XPE_NATIVE_DIR or build the native project first. Searched: Architecture mismatch: C:\Users\drake\AppData\Local\Temp\c209_x86dir\xpe_common.dll is not x64
+[xUnit.net 00:00:10.86]       xpe_common.dll not found. Set XPE_NATIVE_DIR or build the native project first. Searched: Architecture mismatch: C:\Users\drake\AppData\Local\Temp\c209_x86dir\xpe_common.dll is not x64
+[xUnit.net 00:00:10.86]       xpe_common.dll not found. Set XPE_NATIVE_DIR or build the native project first. Searched: Architecture mismatch: C:\Users\drake\AppData\Local\Temp\c209_x86dir\xpe_common.dll is not x64
+  실패 ImageProcTest.IntegrationTests.Smoke.DllLoadSmokeTests.ResolvedDll_IsX64Architecture [< 1 ms]
