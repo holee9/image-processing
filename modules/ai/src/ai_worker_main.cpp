@@ -45,6 +45,7 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <new>
 #include <string>
 #include <vector>
 
@@ -461,6 +462,10 @@ private:
                         SendError(id, XPE_ERR_CONFIG_INVALID,
                                   "model unreadable: " + created.message);
                         break;
+                    case xpe::ai::OnnxErrorCode::kOutOfMemory:
+                        // QA-B-194b: named as a shortage of memory, never as a failed or unusable model.
+                        SendError(id, XPE_ERR_OUT_OF_MEMORY, "out of memory while loading the model");
+                        break;
                     case xpe::ai::OnnxErrorCode::kModelNotTrusted:
                         // QA-B-195 D6: a model that fails signature verification is unavailable, like a missing
                         // one: the worker is healthy, so the host must not count it toward switching the worker off.
@@ -576,6 +581,10 @@ private:
             if (const char* why = xpe::ai::LoadBodyPartModel(model_dir_, &built, &kind, &detail)) {
                 bodypart_.reset();
                 if (!detail.empty()) std::cerr << "[Worker] bodypart: " << detail << std::endl;
+                if (kind == xpe::ai::BodyPartLoadFailure::kOutOfMemory) {
+                    SendError(id, XPE_ERR_OUT_OF_MEMORY, why);   // QA-B-194b: not "unavailable"
+                    return;
+                }
                 SendError(id, kind == xpe::ai::BodyPartLoadFailure::kNoModelFile ? XPE_ERR_IO_FAILED
                                                                                  : XPE_ERR_CONFIG_INVALID,
                           why, /*model_unavailable=*/true);
@@ -683,7 +692,25 @@ private:
 /**
  * @brief Main entry point for worker process
  */
+#ifdef XPE_AI_TEST_HOOKS
+namespace xpe::ai {
+void TestSetBeforeSessionHook(void (*hook)());   // ai_onnx_session.cpp, test builds only
+}
+// TEST-ONLY (QA-B-194b): with XPE_AI_TEST_FAIL_SESSION_CREATE=oom in the environment the worker fails every session
+// creation the way a shortage of memory does, so the host's handling of that answer can be tested through a REAL
+// worker. Not compiled into a delivery build.
+static void ThrowOutOfMemory() { throw std::bad_alloc(); }
+#endif
+
 int main(int argc, char* argv[]) {
+#ifdef XPE_AI_TEST_HOOKS
+    {
+        char v[8] = {0};
+        if (GetEnvironmentVariableA("XPE_AI_TEST_FAIL_SESSION_CREATE", v, sizeof(v)) > 0 && std::strcmp(v, "oom") == 0) {
+            xpe::ai::TestSetBeforeSessionHook(&ThrowOutOfMemory);
+        }
+    }
+#endif
     std::cout << "[Worker] XPE AI Worker Process v" << WORKER_VERSION_STRING << std::endl;
     std::cout << "[Worker] Built: " << __DATE__ << " " << __TIME__ << std::endl;
 

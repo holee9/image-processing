@@ -393,3 +393,60 @@ TEST_F(AiOom, BodyPartRecognitionFailsCleanlyAtEveryAllocation) {
               return "";
           });
 }
+
+/* =========================================================================
+ * Session creation that runs out of memory, on the cold paths no allocation sweep can reach (QA-B-194b)
+ *
+ * The cold body-part path reads a JSON sidecar, and a sweep that fails an allocation inside a non-empty nlohmann DOM
+ * ends the process (see the file header). The shortage that matters here happens at one place -- where the ONNX Runtime
+ * session is built -- so it is injected there: OnnxSession::TestSetBeforeSessionHook is called inside the try block
+ * that builds the session, and a hook that throws std::bad_alloc is that shortage at exactly that place.
+ * ========================================================================= */
+
+namespace xpe::ai {
+void TestSetBeforeSessionHook(void (*hook)());   // ai_onnx_session.cpp, test builds only
+}
+
+namespace {
+void ThrowBadAlloc() { throw std::bad_alloc(); }
+struct SessionOomScope {
+    SessionOomScope() { xpe::ai::TestSetBeforeSessionHook(&ThrowBadAlloc); }
+    ~SessionOomScope() { xpe::ai::TestSetBeforeSessionHook(nullptr); }
+    SessionOomScope(const SessionOomScope&) = delete;
+    SessionOomScope& operator=(const SessionOomScope&) = delete;
+};
+}  // namespace
+
+TEST_F(AiOom, ABodyPartSessionThatRunsOutOfMemoryIsOutOfMemoryNotAnUnavailableModel) {
+    if (IsStubBuild()) GTEST_SKIP() << "stub build: no session is built";
+    Img in(4, 4, 0.0f);
+    char label[64];
+    float confidence = -1.0f;
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kBodyPartA.c_str(), nullptr));
+    XpeErrorCode rc;
+    {
+        const SessionOomScope oom;
+        rc = xpe_bodypart_recognize(&in.buf, label, sizeof(label), &confidence);
+    }
+    EXPECT_EQ(XPE_ERR_OUT_OF_MEMORY, rc) << "the cold first call; was UNKNOWN + PROCESSING_FAILED before QA-B-194b";
+    EXPECT_EQ(0, xpe_get_pending_alert_count()) << "a shortage of memory is not 'the model is unavailable': no alert";
+    // not remembered as unavailable: the next call, with memory, loads the model and answers
+    EXPECT_EQ(XPE_OK, xpe_bodypart_recognize(&in.buf, label, sizeof(label), &confidence));
+    EXPECT_STREQ("CHEST", label);
+}
+
+TEST_F(AiOom, ABoneSessionThatRunsOutOfMemoryIsOutOfMemoryOnTheInProcessPath) {
+    if (IsStubBuild()) GTEST_SKIP() << "stub build: no session is built";
+    Img in(3, 3, 1.0f);
+    Img out(3, 3, 0.0f);
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kModelsX2.c_str(), nullptr));
+    std::fill(out.px.begin(), out.px.end(), -777.0f);
+    XpeErrorCode rc;
+    {
+        const SessionOomScope oom;
+        rc = xpe_bone_suppress(&in.buf, &out.buf, nullptr);
+    }
+    EXPECT_EQ(XPE_ERR_OUT_OF_MEMORY, rc);
+    for (const float v : out.px) EXPECT_EQ(-777.0f, v) << "the output is untouched";
+    EXPECT_EQ(XPE_OK, xpe_bone_suppress(&in.buf, &out.buf, nullptr)) << "usable afterwards";
+}

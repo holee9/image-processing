@@ -23,11 +23,7 @@
 #include "xpe/ai/ai_worker_protocol.h"
 #include "ai_bodypart.h"
 
-// The DLL defines XPE_AI_USE_NLOHMANN_JSON; the worker defines only XPE_AI_BODYPART_NLOHMANN (see CMakeLists.txt).
-#if defined(XPE_AI_USE_NLOHMANN_JSON) || defined(XPE_AI_BODYPART_NLOHMANN)
-#define XPE_AI_BODYPART_HAS_JSON 1
-#include <nlohmann/json.hpp>
-#endif
+#include <nlohmann/json.hpp>   // a required dependency of the DLL and of the worker (QA-B-194b)
 
 namespace xpe::ai {
 
@@ -51,6 +47,7 @@ enum class BodyPartLoadFailure {
     kInputShape,        ///< the graph's input is not a fixed single-channel image
     kOutputSize,        ///< the graph's fixed output length differs from the label count
     kNotTrusted,        ///< the model or its sidecar failed signature verification (QA-B-195): nothing was loaded
+    kOutOfMemory,       ///< a shortage of memory while creating the session (QA-B-194b): NOT "the model is unavailable"
 };
 
 /**
@@ -63,7 +60,6 @@ enum class BodyPartLoadFailure {
  * that was swapped after the signature check cannot reach here (QA-B-195). A null pointer is "no sidecar".
  */
 inline const char* LoadBodyPartLabels(const std::string* sidecarText, std::vector<std::string>* labels) {
-#ifdef XPE_AI_BODYPART_HAS_JSON
     if (sidecarText == nullptr) return "label sidecar bodypart.json not found";
     try {
         nlohmann::json j = nlohmann::json::parse(*sidecarText);
@@ -87,11 +83,6 @@ inline const char* LoadBodyPartLabels(const std::string* sidecarText, std::vecto
         return "label sidecar is not valid JSON";
     }
     return nullptr;
-#else
-    (void)sidecarText;
-    (void)labels;
-    return "this build cannot read the label sidecar";
-#endif
 }
 
 /**
@@ -124,6 +115,10 @@ inline const char* LoadBodyPartModel(const std::string& modelDir, std::unique_pt
         if (created.code == OnnxErrorCode::kModelNotTrusted) {
             why_kind = BodyPartLoadFailure::kNotTrusted;
             return "the model files failed signature verification";
+        }
+        if (created.code == OnnxErrorCode::kOutOfMemory) {
+            why_kind = BodyPartLoadFailure::kOutOfMemory;
+            return "out of memory";
         }
         why_kind = BodyPartLoadFailure::kModelUnreadable;
         return "the model file cannot be loaded";

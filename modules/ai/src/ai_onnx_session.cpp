@@ -64,10 +64,8 @@
     #define LOG_ERROR(msg) ((void)0)
 #endif
 
-#ifdef XPE_AI_USE_NLOHMANN_JSON
-    #include <nlohmann/json.hpp>
-    using json = nlohmann::json;
-#endif
+#include <nlohmann/json.hpp>   // a required dependency (QA-B-194b)
+using json = nlohmann::json;
 
 namespace fs = std::filesystem;
 
@@ -108,6 +106,7 @@ namespace {
 
 #ifdef XPE_AI_TEST_HOOKS
 void (*g_afterVerifyHook)(const std::string& modelPath) = nullptr;
+void (*g_beforeSessionHook)() = nullptr;
 #endif
 
 enum class ReadResult { kOk, kFailed, kTooLarge };
@@ -151,7 +150,6 @@ bool FileExists(const std::string& path) {
  * @brief Parse JSON metadata from the sidecar's (verified) text
  */
 std::optional<ModelMetadata> LoadMetadataFromText(const std::string& sidecar_text) {
-#ifdef XPE_AI_USE_NLOHMANN_JSON
     try {
         json j = json::parse(sidecar_text);
 
@@ -174,14 +172,10 @@ std::optional<ModelMetadata> LoadMetadataFromText(const std::string& sidecar_tex
 
         return meta;
     } catch (const std::exception& e) {
+        (void)e;   // the log macros are empty in a build without spdlog (the worker)
         LOG_ERROR(std::string("Failed to load metadata: ") + e.what());
         return std::nullopt;
     }
-#else
-    // Fallback: simple key-value parsing without JSON library
-    (void)sidecar_text;
-    return std::nullopt;
-#endif
 }
 
 /**
@@ -241,6 +235,13 @@ OnnxSession& OnnxSession::operator=(OnnxSession&& other) noexcept {
 #ifdef XPE_AI_TEST_HOOKS
 /** TEST-ONLY: the callback Create() makes right after it verified the files and before it loads them. nullptr clears it. */
 void TestSetAfterVerifyHook(void (*hook)(const std::string& modelPath)) { g_afterVerifyHook = hook; }
+/**
+ * TEST-ONLY (QA-B-194b): the callback Create() makes INSIDE the try block that builds the ONNX Runtime session, right
+ * before it builds it. A hook that throws std::bad_alloc is the out-of-memory of session creation, at exactly the
+ * place where a real one happens, without failing allocations one by one (which the cold body-part path cannot take:
+ * see test_ai_oom_injection.cpp on nlohmann::json). Full builds only; nullptr clears it.
+ */
+void TestSetBeforeSessionHook(void (*hook)()) { g_beforeSessionHook = hook; }
 #endif
 
 OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(
@@ -368,6 +369,9 @@ OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(
     // load must not come back is_valid, because every caller reads that flag
     // as "the model is ready".
     try {
+#ifdef XPE_AI_TEST_HOOKS
+        if (g_beforeSessionHook) g_beforeSessionHook();
+#endif
         session->pimpl_->env.reset(new Ort::Env(
             config.log_level == LogLevel::kVerbose ? ORT_LOGGING_LEVEL_VERBOSE :
             config.log_level == LogLevel::kInfo    ? ORT_LOGGING_LEVEL_INFO :

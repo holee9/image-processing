@@ -55,6 +55,18 @@
  * in xpe_ai_init given a config that has keys, in loading the body-part label file (first body-part call) and in
  * reading a model's metadata file; (2) allocations made by ONNX Runtime's own allocator and (3) by xpe_common (the
  * alert queue) are not failed by the sweeps.
+ * A shortage of memory while the ONNX Runtime session of a model is created (QA-B-194b) is XPE_ERR_OUT_OF_MEMORY
+ * on every path that loads a model, and never "the model is unavailable": xpe_bone_suppress and the first
+ * xpe_bodypart_recognize call return it in process (no alert, no label written, nothing remembered: the next call
+ * tries again); a worker answers it with the same code. On the worker path it is counted toward switching the worker off
+ * like any other failure of that path (only a signature refusal is exempt), and xpe_bodypart_recognize still returns
+ * its documented fallback signal there (UNKNOWN, XPE_ERR_PROCESSING_FAILED) while the alert names code -2. This is
+ * proved by throwing std::bad_alloc at the place where the session is built (a test hook), not by an allocation
+ * sweep, which the cold body-part path cannot take for the reason in (1).
+ *
+ * JSON PARSER: nlohmann_json is a REQUIRED dependency of the module and of the worker; there is no second parser, so
+ * the warnings promised above for broken config JSON and out-of-range values hold in every build. A configuration
+ * without nlohmann_json stops at CMake configure.
  *
  * MODEL SIGNING (QA-B-195, REQ-AI-007 / REQ-AI-091). Every model the module loads is verified FIRST. For a model
  * `<dir>/<name>.onnx` (name = bone_suppress or bodypart) the loader reads the model, its sidecar `<name>.json` (when

@@ -55,11 +55,9 @@
 #include <string>
 #include <vector>
 
-// @MX:NOTE: [AUTO] nlohmann/json included for config parsing;
-//           conditional compilation avoids hard dependency.
-#ifdef XPE_AI_USE_NLOHMANN_JSON
+// nlohmann/json is a REQUIRED dependency (QA-B-194b): the config parser, and with it the warnings the public header promises
+// for broken JSON and out-of-range values, must not depend on how the build was configured.
 #include <nlohmann/json.hpp>
-#endif
 
 #include "ai_log.h"   // AI_LOG_* (spdlog when XPE_AI_USE_SPDLOG, else printf)
 #ifdef XPE_AI_TEST_LOG_CAPTURE
@@ -391,13 +389,11 @@ static XpeErrorCode checkImageFinite(const XpeImageBuffer* img, const char* pref
 /**
  * @brief Parse config JSON and update module state.
  *
- * Uses nlohmann/json when available; otherwise falls back to simple
- * string scanning for key parameters.
+ * Uses nlohmann/json (a required dependency since QA-B-194b: there is no second parser).
  */
 static void parseConfig(AiModuleState* state, const char* configJsonOrNull) {
     if (!configJsonOrNull) return;
 
-#ifdef XPE_AI_USE_NLOHMANN_JSON
     auto cfg = nlohmann::json::parse(configJsonOrNull, nullptr, false);
     if (cfg.is_discarded()) {
         AI_LOG_WARN("AI config JSON parse failed, using defaults");
@@ -508,28 +504,6 @@ static void parseConfig(AiModuleState* state, const char* configJsonOrNull) {
             }
         }
     }
-#else
-    // Minimal config parsing without nlohmann/json.
-    // Only parse "timeout_ms" for basic functionality.
-    const char* timeoutKey = std::strstr(configJsonOrNull, "\"timeout_ms\"");
-    if (timeoutKey) {
-        const char* colon = std::strchr(timeoutKey, ':');
-        if (colon) {
-            int val = std::atoi(colon + 1);
-            if (val > 0) state->timeoutMs = static_cast<uint32_t>(val);
-        }
-    }
-    const char* workerKey = std::strstr(configJsonOrNull, "\"use_worker\"");
-    if (workerKey) {
-        const char* colon = std::strchr(workerKey, ':');
-        if (colon) {
-            ++colon;
-            while (*colon == ' ') ++colon;
-            state->useWorker = std::strncmp(colon, "true", 4) == 0;
-        }
-    }
-    AI_LOG_INFO("Config parsed (minimal parser, nlohmann/json not linked)");
-#endif
 }
 
 /**
@@ -1253,6 +1227,13 @@ extern "C++" static XpeErrorCode xpe_bodypart_recognize_impl(const XpeImageBuffe
         std::string detail;
         if (const char* why = loadBodyPartModel(state, &built, &kind, &detail)) {
             state->bodyPart.reset();
+            if (kind == xpe::ai::BodyPartLoadFailure::kOutOfMemory) {
+                // QA-B-194b: a shortage of memory is named as one, like the bone-suppression path and the other
+                // allocating entry points do. Not "the model is unavailable": no alert, no memo, and the next
+                // call tries again.
+                state->bodyPartTrustFailStamp.clear();
+                return XPE_ERR_OUT_OF_MEMORY;
+            }
             if (kind == xpe::ai::BodyPartLoadFailure::kNotTrusted) {
                 state->bodyPartTrustFailStamp = stamp;
                 pushModelNotTrustedAlertOnce(&state->bodyPartTrustAlerted, "body-part recognition",

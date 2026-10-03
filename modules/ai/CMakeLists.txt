@@ -199,16 +199,18 @@ else()
     message(STATUS "xpe_ai: FULL build with ONNX Runtime")
 endif()
 
-# Soft dependencies: spdlog and nlohmann_json (optional but recommended)
-# These are detected at configure time; the source code uses #ifdef guards.
+# Required dependency: nlohmann_json (QA-B-194b). The config parser -- and with it the warnings the public header
+# promises for broken JSON and out-of-range values -- and the sidecar readers must behave the same in every build, so
+# there is no second parser to fall back to: a configuration without nlohmann_json stops here.
+if(NOT TARGET nlohmann_json::nlohmann_json)
+    message(FATAL_ERROR "xpe_ai: nlohmann_json::nlohmann_json is required (the root CMakeLists.txt finds it or fetches it)")
+endif()
+target_link_libraries(${MODULE_NAME} PRIVATE nlohmann_json::nlohmann_json)
+
+# Soft dependency: spdlog (optional but recommended). Detected at configure time; the source code uses #ifdef guards.
 if(TARGET spdlog::spdlog)
     target_link_libraries(${MODULE_NAME} PRIVATE spdlog::spdlog)
     target_compile_definitions(${MODULE_NAME} PRIVATE XPE_AI_USE_SPDLOG=1)
-endif()
-
-if(TARGET nlohmann_json::nlohmann_json)
-    target_link_libraries(${MODULE_NAME} PRIVATE nlohmann_json::nlohmann_json)
-    target_compile_definitions(${MODULE_NAME} PRIVATE XPE_AI_USE_NLOHMANN_JSON=1)
 endif()
 
 # Mandatory dependency: xpe_common (Layer 1 -- REQ-AI-001)
@@ -320,12 +322,7 @@ endif()
 # QA-B-191 M4b (D9): the worker reads the body-part label sidecar with the same nlohmann the DLL uses
 # (ai_bodypart_model.h is shared). A hand-written parser for a file the worker does not control would be new
 # code on a trust boundary; the header-only library is already a dependency of this module.
-# The define is XPE_AI_BODYPART_NLOHMANN, not XPE_AI_USE_NLOHMANN_JSON: the latter also switches on the model-card
-# JSON code in ai_onnx_session.cpp, which the worker has never compiled and does not use.
-if(TARGET nlohmann_json::nlohmann_json)
-    target_link_libraries(${WORKER_NAME} PRIVATE nlohmann_json::nlohmann_json)
-    target_compile_definitions(${WORKER_NAME} PRIVATE XPE_AI_BODYPART_NLOHMANN=1)
-endif()
+target_link_libraries(${WORKER_NAME} PRIVATE nlohmann_json::nlohmann_json)
 
 if(MSVC)
     # #226 (QA-B-164): /wd4150 removed here too -- 0 occurrences, measured.
@@ -441,6 +438,10 @@ if(_XPE_AI_BUILD_TESTS)
         test_trust_setup.cpp
         # #130 (QA-B-195 M3): model loading verifies signatures: role, tamper matrix, trust list, verified bytes are the used bytes
         test_ai_model_loading_trust.cpp
+        # #130 (QA-B-194b): a copy of xpe_ai.dll with no xpe_ai_worker.exe beside it -- is that failure counted?
+        test_ai_worker_exe_missing.cpp
+        # #130 (QA-B-194b): a session that runs out of memory inside a REAL worker
+        test_ai_oom_worker.cpp
         # #130 (QA-B-168): SRS-ALERT-004 fires when DL was applied -- and, the
         # half that constrains the code, stays quiet on every path that
         # returned an image the model never touched
@@ -539,6 +540,7 @@ if(_XPE_AI_BUILD_TESTS)
         # test that cannot launch it would fail for the wrong reason.
         target_compile_definitions(xpe_ai_tests PRIVATE
             XPE_AI_WORKER_EXE="$<TARGET_FILE:xpe_ai_worker>"
+            XPE_AI_DLL_PATH="$<TARGET_FILE:xpe_ai>"
             XPE_AI_WORKER_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}/src/ai_worker_main.cpp")
         add_dependencies(xpe_ai_tests xpe_ai_worker)
 
@@ -664,10 +666,7 @@ if(_XPE_AI_BUILD_TESTS)
             target_link_libraries(xpe_ai_oom_tests PRIVATE spdlog::spdlog)
             target_compile_definitions(xpe_ai_oom_tests PRIVATE XPE_AI_USE_SPDLOG=1)
         endif()
-        if(TARGET nlohmann_json::nlohmann_json)
-            target_link_libraries(xpe_ai_oom_tests PRIVATE nlohmann_json::nlohmann_json)
-            target_compile_definitions(xpe_ai_oom_tests PRIVATE XPE_AI_USE_NLOHMANN_JSON=1)
-        endif()
+        target_link_libraries(xpe_ai_oom_tests PRIVATE nlohmann_json::nlohmann_json)
         target_link_libraries(xpe_ai_oom_tests PRIVATE xpe_common GTest::gtest_main)
         if(WIN32)
             target_link_libraries(xpe_ai_oom_tests PRIVATE psapi)
