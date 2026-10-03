@@ -193,6 +193,36 @@ public sealed class PreprocessOracleVerdicts219dTests : IDisposable
         Assert.Equal(0, Volatile.Read(ref runnerCalls));
     }
 
+    // ---------------------------------------------------------------------------------------------------------------------------------- GUI-C-226b: one writer for the preview text
+
+    /// <summary>
+    /// Codex #122: the refusal notice is kept in front of the preview text only if every write to that text goes through one function. A direct assignment anywhere else would overwrite the notice
+    /// (and a later refresh would bring the stale one back). The number of assignments to the text box in the app's sources is held at exactly one, inside <c>RenderNativePreviewText</c>; the
+    /// text box is named nowhere else in code.
+    /// </summary>
+    [Fact]
+    public void TheNativePreviewText_HasExactlyOneWriter_AndNothingElseNamesTheTextBox()
+    {
+        var appDir = FindAppDir();
+        var assignments = new List<string>();
+        foreach (var file in Directory.EnumerateFiles(appDir, "*.cs", SearchOption.AllDirectories).Where(f => !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar, StringComparison.Ordinal)))
+        {
+            var text = File.ReadAllText(file);
+            foreach (Match m in Regex.Matches(text, @"NativePreviewText\s*\.\s*Text\s*\+?=(?!=)"))
+            {
+                assignments.Add(Path.GetFileName(file) + " @ " + text[Math.Max(0, m.Index - 160)..m.Index].Replace("\r", " ").Replace("\n", " "));
+            }
+
+            if (Path.GetFileName(file) != "MainWindow.xaml.cs" && Path.GetFileName(file) != "MainWindow.g.cs")
+            {
+                Assert.DoesNotContain("NativePreviewText", text, StringComparison.Ordinal);
+            }
+        }
+
+        Assert.True(assignments.Count == 1, "the native preview text must be written in exactly one place; found: " + string.Join(" || ", assignments));
+        Assert.Contains("RenderNativePreviewText()", assignments[0], StringComparison.Ordinal);
+    }
+
     // ---------------------------------------------------------------------------------------------------------------------------------- item 3: the end of the job
 
     /// <summary>Codex #116 finding 3: an ask that arrives just BEFORE the job decides it is over gets another pass.</summary>

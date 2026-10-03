@@ -199,6 +199,65 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
         Assert.Equal(changed.CommandBefore, changed.CommandAfter);                          // and the command did not run
     }
 
+    private const string ReadyAgainText = "They were checked again and are ready now";
+    private const string StillWaitingText = "They are checked again automatically";
+
+    /// <summary>
+    /// GUI-C-226b (Codex #122): the life of the refusal text. After a refusal (1) the notice stays on screen when other things happen to the preview text, and never comes back in its old form;
+    /// (2) when the check the refusal started has succeeded the notice says so instead of telling the user to wait; (3) a command that goes ahead removes the notice AT ONCE, even when that
+    /// command writes nothing else to the preview text. UIA patterns only (tab select, Invoke, Toggle, reading names): no key, no mouse.
+    /// </summary>
+    [SkippableFact]
+    public void R06_TheRefusalText_SurvivesOtherWrites_SaysWhenTheCheckHasSucceeded_AndGoesWhenACommandRuns()
+    {
+        var native = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
+        Skip.If(string.IsNullOrEmpty(native) || !File.Exists(Path.Combine(native, "xpe_preprocess.dll")), "XPE_NATIVE_DIR does not name a folder containing xpe_preprocess.dll.");
+        var copy = Path.Combine(Path.GetTempPath(), $"xpe_c226b_native_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(copy);
+        try
+        {
+            foreach (var file in Directory.GetFiles(native!)) File.Copy(file, Path.Combine(copy, Path.GetFileName(file)));
+            using var app = LegacyApp.LaunchOrSkip(breakTemp: false, extraEnvironment: new Dictionary<string, string> { ["XPE_NATIVE_DIR"] = copy });
+            app.WaitForPreprocessVerdict();
+            var before = app.ReadText("Calibration", "AlgorithmValidationResultText");
+
+            // the refusal, as in R05
+            ReplaceLikeARedeploy(Path.Combine(copy, "xpe_preprocess.dll"));
+            app.ClickButtonById("Calibration", "RunSelectedAlgorithmButton");
+            var refused = app.WaitForTextOnTab("Evaluation", "NativePreviewText", t => t.Contains(RefusalText, StringComparison.Ordinal), TimeSpan.FromSeconds(15));
+            output.WriteLine("refused:      " + refused);
+
+            // (2) the check the refusal started succeeds: the notice stops telling the user to wait
+            app.WaitForTextOnTab("Evaluation", "StageModesInfoText", t => t.StartsWith("Preprocess=ready", StringComparison.Ordinal), TimeSpan.FromSeconds(60));
+            var ready = app.WaitForTextOnTab("Evaluation", "NativePreviewText", t => t.Contains(ReadyAgainText, StringComparison.Ordinal), TimeSpan.FromSeconds(15));
+            output.WriteLine("ready again:  " + ready);
+            Assert.DoesNotContain(StillWaitingText, ready, StringComparison.Ordinal);
+
+            // (1) another write to the preview text (a stage switch) does not remove the notice, and a refresh does not bring back the old wording
+            app.ToggleCheckBox("Evaluation", "OffsetEnabledCheckBox");
+            var afterToggle = app.WaitForTextOnTab("Evaluation", "NativePreviewText", t => t.Contains("stage selection changed", StringComparison.Ordinal), TimeSpan.FromSeconds(15));
+            output.WriteLine("after toggle: " + afterToggle);
+            Assert.Contains(RefusalText, afterToggle, StringComparison.Ordinal);
+            Assert.DoesNotContain(StillWaitingText, afterToggle, StringComparison.Ordinal);
+            app.ClickButtonOnTab("Diagnostics", "Refresh Modules");
+            app.WaitForTextOnTab("Evaluation", "StageModesInfoText", t => t.StartsWith("Preprocess=ready", StringComparison.Ordinal), TimeSpan.FromSeconds(60));
+            var afterRefresh = app.ReadText("Evaluation", "NativePreviewText");
+            output.WriteLine("after refresh:" + afterRefresh);
+            Assert.DoesNotContain(StillWaitingText, afterRefresh, StringComparison.Ordinal);
+
+            // (3) a command that goes ahead: the notice is gone at once (this command only writes its own text box, not the preview text)
+            app.ClickButtonById("Calibration", "RunSelectedAlgorithmButton");
+            app.WaitForTextOnTab("Calibration", "AlgorithmValidationResultText", t => t != before, TimeSpan.FromSeconds(15));
+            var afterRun = app.ReadText("Evaluation", "NativePreviewText");
+            output.WriteLine("after run:    " + afterRun);
+            Assert.DoesNotContain(RefusalText, afterRun, StringComparison.Ordinal);
+        }
+        finally
+        {
+            try { Directory.Delete(copy, recursive: true); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* a DLL the app still holds */ }
+        }
+    }
+
     private sealed record ClickOutcome(string CommandBefore, string CommandAfter, string PreviewText);
 
     private static ClickOutcome RunTheCommandAfter(bool changeDll)
@@ -387,6 +446,20 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
         {
             SelectTab("Diagnostics");
             WaitForText("PreprocessSmokeText", t => t.Contains("pass=", StringComparison.Ordinal), TimeSpan.FromSeconds(60));
+        }
+
+        public string WaitForTextOnTab(string tab, string automationId, Func<string, bool> done, TimeSpan timeout)
+        {
+            SelectTab(tab);
+            return WaitForText(automationId, done, timeout);
+        }
+
+        public void ToggleCheckBox(string tab, string automationId)
+        {
+            SelectTab(tab);
+            var box = _window.FindFirstDescendant(cf => cf.ByAutomationId(automationId))?.AsCheckBox();
+            Assert.True(box is not null && box.IsEnabled, $"check box '{automationId}' was not found or is not enabled");
+            box!.Toggle();   // UIA TogglePattern: no mouse
         }
 
         public string ReadText(string tab, string automationId)

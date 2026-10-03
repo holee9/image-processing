@@ -1,0 +1,4 @@
+== arm 3: the notice is not updated when the check has succeeded
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R06_TheRefusalText_SurvivesOtherWrites_SaysWhenTheCheckHasSucceeded_AndGoesWhenACommandRuns [21 s]
+[xUnit.net 00:00:22.80]       The Mock job runs with no native DLLs (ci.yml:454-455), so a red smoke is CORRECT there. Asserting it anyway would make 'the DLLs are absent' and 'the DLLs are broken' the same green.
+   The Mock job runs with no native DLLs (ci.yml:454-455), so a red smoke is CORRECT there. Asserting it anyway would make 'the DLLs are absent' and 'the DLLs are broken' the same green.
