@@ -659,7 +659,7 @@ Card CardFor(const std::string& id) {
 
 TEST_F(AiInputValidation, AModelIdentifierIsOneToSixtyFourOfLettersDigitsDotUnderscoreHyphen) {
     // Controls first: the identifiers the product uses, the shortest and the longest legal one.
-    EXPECT_EQ(XPE_OK, CardFor("bodypart_cnn_v1").rc);
+    EXPECT_EQ(XPE_OK, CardFor("bone_toy_x2").rc);   // the model of this fixture (QA-B-197: the card comes from its sidecar)
     EXPECT_NE(XPE_ERR_INVALID_INPUT, CardFor("a").rc);
     EXPECT_NE(XPE_ERR_INVALID_INPUT, CardFor(std::string(64, 'm')).rc);
     EXPECT_NE(XPE_ERR_INVALID_INPUT, CardFor("Model-1.2_final").rc);
@@ -687,13 +687,13 @@ TEST_F(AiInputValidation, AModelIdentifierIsOneToSixtyFourOfLettersDigitsDotUnde
 }
 
 TEST_F(AiInputValidation, AWellFormedButUnknownIdentifierStillGetsAWellFormedUnavailableCard) {
-    // The grammar must not turn "not loaded" into "invalid": an unknown identifier that is legal is a model that is
-    // not loaded, the documented IO_FAILED, with a card that says so -- and the card is JSON a parser accepts, which
-    // is what the quote in the identifier used to break.
+    // The grammar must not turn "unavailable" into "invalid": an unknown identifier that is legal is a model no verified
+    // model has (QA-B-197: -4 "unavailable", it was IO_FAILED "not loaded"), with an answer that says so -- and the
+    // answer is JSON a parser accepts, which is what the quote in the identifier used to break.
     const Card c = CardFor("no_such_model.v2-x");
-    EXPECT_EQ(XPE_ERR_IO_FAILED, c.rc);
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, c.rc);
     EXPECT_NE(std::string::npos, c.text.find("\"model_id\":\"no_such_model.v2-x\""));
-    EXPECT_NE(std::string::npos, c.text.find("\"error\":\"model_not_loaded\""));
+    EXPECT_NE(std::string::npos, c.text.find("\"error\":\"model_unavailable\""));
     EXPECT_EQ('{', c.text.front());
     EXPECT_EQ('}', c.text.back());
     EXPECT_EQ(std::string::npos, c.text.find('\\')) << "nothing in the card needs escaping";

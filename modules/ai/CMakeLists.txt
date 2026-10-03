@@ -599,6 +599,11 @@ if(_XPE_AI_BUILD_TESTS)
                     GTest::gtest_main
         )
 
+        # QA-B-197 M2: the model-card tests read the sidecar files and the card with an independent parser, and check the
+        # card against tests/data/schemas/model-card.schema.json (json_schema_mini.h). nlohmann is the module's own
+        # required dependency, so this adds nothing new to the build.
+        target_link_libraries(xpe_ai_tests PRIVATE nlohmann_json::nlohmann_json)
+
         # Windows: psapi.lib is required for GetProcessMemoryInfo
         # (heap-growth endurance measurement, #105 G3)
         if(WIN32)

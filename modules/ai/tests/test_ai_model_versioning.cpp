@@ -1,274 +1,228 @@
 /**
  * @file test_ai_model_versioning.cpp
- * @brief Model versioning and metadata parsing tests -- SPEC-XPE-P3-AI T-004
+ * @brief Model versioning and metadata (REQ-AI-008) as the model card reports it -- SPEC-XPE-P3-AI T-004
  *
  * REQ-AI-008: Model versioning shall follow semver; model metadata shall include:
  * model_id, version, pccp_scope, training_data_hash, validation_metrics.
  *
- * Tests:
- * - Model metadata parsing from JSON
- * - Semver version validation
- * - PCCP scope verification
- * - Training data hash validation
- * - Validation metrics extraction
- *
- * @ingroup xpe_ai_tests
+ * WHY THIS FILE CHANGED (QA-B-197 M2, found by QA-B-196). These tests used to ask a table of constants: "bodypart_cnn_v1"
+ * and three other hard-coded ids always had a card, and the tests asserted that the card contained the fields -- fields
+ * the module wrote itself, whatever any model said. They also demanded things no requirement states (a "sha256:" prefix on
+ * the training data hash, one of four metric names) because the constants happened to have them, and one test
+ * ("ModelVersionsCanBeCompared") asserted nothing. Now the card comes from the verified sidecar of a verified model, so every
+ * field is compared with an independent reading of that sidecar file, and the semantic version is checked against the
+ * semantic-versioning grammar itself.
  */
 
+#include "test_signing_helper.h"
 #include "xpe/ai/ai_api.h"
 #include "xpe/common/xpe_error.h"
+
 #include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
+
+#include <windows.h>
 
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
+#include <regex>
 #include <string>
+#include <vector>
 
-/* ============================================================================
- * Test Fixture
- * ============================================================================ */
+#ifndef XPE_AI_TEST_DATA_DIR
+#error "XPE_AI_TEST_DATA_DIR must be defined by the build (modules/ai/CMakeLists.txt)"
+#endif
+
+namespace {
+
+namespace fs = std::filesystem;
+using nlohmann::json;
+
+const std::string kData = XPE_AI_TEST_DATA_DIR;
+
+/** The semantic versioning 2.0.0 grammar, as published on semver.org. */
+bool IsSemver(const std::string& v) {
+    static const std::regex re(
+        "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
+        "(\\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$");
+    return std::regex_match(v, re);
+}
+
+json ReadJson(const fs::path& p) {
+    std::ifstream f(p, std::ios::binary);
+    return json::parse(std::string((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>()));
+}
+
+struct Case {
+    const char* dir;
+    const char* sidecarName;
+    const char* id;
+};
+const Case kCases[] = {{"models_card_full", "bone_suppress.json", "bone_card_full_toy"},
+                       {"models_x2", "bone_suppress.json", "bone_toy_x2"},
+                       {"models_bodypart_a", "bodypart.json", "bodypart_toy"}};
+
+}  // namespace
 
 class AiModelVersioningTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Initialize AI module before each test
         xpe_ai_shutdown();
-        ec = xpe_ai_init("test_models", nullptr);
-        ASSERT_EQ(ec, XPE_OK) << "AI init failed";
+        xpe_clear_alerts();
     }
-
     void TearDown() override {
         xpe_ai_shutdown();
+        xpe_clear_alerts();
     }
-
-    XpeErrorCode ec;
+    static void Init(const std::string& dir) { ASSERT_EQ(XPE_OK, xpe_ai_init(dir.c_str(), nullptr)); }
+    /** The card of @p id as parsed JSON, and the sidecar file it should come from. */
+    static void CardAndSidecar(const Case& c, json* card, json* sidecar) {
+        xpe_ai_shutdown();
+        Init(kData + "/" + c.dir);
+        char buffer[8192];
+        ASSERT_EQ(XPE_OK, xpe_ai_get_model_card(c.id, buffer, sizeof(buffer))) << c.id;
+        *card = json::parse(buffer, nullptr, false);
+        ASSERT_FALSE(card->is_discarded()) << buffer;
+        *sidecar = ReadJson(fs::path(kData) / c.dir / c.sidecarName);
+    }
 };
 
 /* ============================================================================
- * T-004.1: Model Version Format Validation (REQ-AI-008)
+ * T-004.1: the version is the sidecar's, and a semantic version (REQ-AI-008)
  * ============================================================================ */
 
-TEST_F(AiModelVersioningTest, ModelCardContainsSemverVersion) {
-    char buffer[4096];
-    ec = xpe_ai_get_model_card("bodypart_cnn_v1", buffer, sizeof(buffer));
-    ASSERT_EQ(ec, XPE_OK);
-
-    // Parse JSON and check model_version field
-    // Expect format "X.Y.Z" per semver.org
-    std::string json(buffer);
-    ASSERT_NE(json.find("\"model_version\":"), std::string::npos);
-
-    // Extract version and validate semver format
-    size_t verPos = json.find("\"model_version\":");
-    ASSERT_NE(verPos, std::string::npos);
-
-    // Find the value after the key
-    size_t colonPos = json.find(":", verPos);
-    size_t quoteStart = json.find("\"", colonPos + 1);
-    size_t quoteEnd = json.find("\"", quoteStart + 1);
-
-    ASSERT_NE(quoteStart, std::string::npos);
-    ASSERT_NE(quoteEnd, std::string::npos);
-
-    std::string version = json.substr(quoteStart + 1, quoteEnd - quoteStart - 1);
-
-    // Validate semver format: X.Y.Z
-    int major = 0, minor = 0, patch = 0;
-    int parsed = sscanf_s(version.c_str(), "%d.%d.%d", &major, &minor, &patch);
-
-    EXPECT_EQ(parsed, 3) << "Version must be semver format X.Y.Z, got: " << version;
-    EXPECT_GE(major, 0) << "Major version must be >= 0";
-    EXPECT_GE(minor, 0) << "Minor version must be >= 0";
-    EXPECT_GE(patch, 0) << "Patch version must be >= 0";
+TEST_F(AiModelVersioningTest, TheCardVersionIsTheSidecarsVersionAndASemanticVersion) {
+    for (const Case& c : kCases) {
+        json card, sidecar;
+        CardAndSidecar(c, &card, &sidecar);
+        const std::string version = card["model_version"].get<std::string>();
+        EXPECT_EQ(sidecar["version"].get<std::string>(), version) << c.id;
+        EXPECT_TRUE(IsSemver(version)) << c.id << ": '" << version << "' is not a semantic version";
+    }
+    // the control for the grammar check above: it does refuse what semver refuses
+    for (const char* bad : {"1.0", "01.0.0", "1.0.0.0", "v1.0.0", "1.0.0-", "1.0.0-01"}) EXPECT_FALSE(IsSemver(bad)) << bad;
+    for (const char* good : {"0.0.1", "1.2.3-rc.1+build.7", "10.20.30"}) EXPECT_TRUE(IsSemver(good)) << good;
 }
 
 /* ============================================================================
- * T-004.2: Model ID Field Present (REQ-AI-008)
+ * T-004.2 ... T-004.6: each REQ-AI-008 field is the sidecar's
  * ============================================================================ */
 
-TEST_F(AiModelVersioningTest, ModelCardContainsModelId) {
-    char buffer[4096];
-    ec = xpe_ai_get_model_card("bone_suppress_unet_v1", buffer, sizeof(buffer));
-    ASSERT_EQ(ec, XPE_OK);
-
-    std::string json(buffer);
-    ASSERT_NE(json.find("\"model_id\":"), std::string::npos);
-    ASSERT_NE(json.find("\"model_id\":\"bone_suppress_unet_v1\""), std::string::npos);
+TEST_F(AiModelVersioningTest, TheCardModelIdIsTheSidecarsModelId) {
+    for (const Case& c : kCases) {
+        json card, sidecar;
+        CardAndSidecar(c, &card, &sidecar);
+        EXPECT_EQ(sidecar["model_id"], card["model_id"]) << c.id;
+        EXPECT_EQ(c.id, card["model_id"].get<std::string>());
+    }
 }
 
-/* ============================================================================
- * T-004.3: PCCP Scope Field Present (REQ-AI-008)
- * ============================================================================ */
-
-TEST_F(AiModelVersioningTest, ModelCardContainsPccpScope) {
-    char buffer[4096];
-    ec = xpe_ai_get_model_card("dl_denoise_ssl_v1", buffer, sizeof(buffer));
-    ASSERT_EQ(ec, XPE_OK);
-
-    std::string json(buffer);
-    ASSERT_NE(json.find("\"pccp_status\":"), std::string::npos);
-
-    // Valid pccp_status values: "within_boundary", "exceeds_boundary", "not_applicable"
-    bool hasValidStatus =
-        json.find("\"pccp_status\":\"within_boundary\"") != std::string::npos ||
-        json.find("\"pccp_status\":\"exceeds_boundary\"") != std::string::npos ||
-        json.find("\"pccp_status\":\"not_applicable\"") != std::string::npos;
-
-    EXPECT_TRUE(hasValidStatus) << "pccp_status must have a valid value";
+TEST_F(AiModelVersioningTest, TheCardPccpScopeIsTheSidecarsAndItsStatusIsNotEvaluated) {
+    for (const Case& c : kCases) {
+        json card, sidecar;
+        CardAndSidecar(c, &card, &sidecar);
+        EXPECT_EQ(sidecar["pccp_scope"], card["pccp_scope"]) << c.id;
+        EXPECT_EQ("not_evaluated", card["pccp_status"].get<std::string>())
+            << c.id << ": no authorized PCCP exists to compare the scope with, so the status is not 'within_boundary'";
+    }
 }
 
-/* ============================================================================
- * T-004.4: Training Data Hash Field Present (REQ-AI-008)
- * ============================================================================ */
+TEST_F(AiModelVersioningTest, TheCardTrainingDataHashIsTheSidecarsAndNotEmpty) {
+    for (const Case& c : kCases) {
+        json card, sidecar;
+        CardAndSidecar(c, &card, &sidecar);
+        EXPECT_EQ(sidecar["training_data_hash"], card["training_data_hash"]) << c.id;
+        EXPECT_FALSE(card["training_data_hash"].get<std::string>().empty()) << c.id;
+        // No algorithm prefix is demanded: no requirement says what a hash looks like.
+    }
+}
 
-TEST_F(AiModelVersioningTest, ModelCardContainsTrainingDataHash) {
-    char buffer[4096];
-    ec = xpe_ai_get_model_card("stitch_feature_match_v1", buffer, sizeof(buffer));
-    ASSERT_EQ(ec, XPE_OK);
+TEST_F(AiModelVersioningTest, TheCardValidationMetricsAreTheSidecarsObject) {
+    for (const Case& c : kCases) {
+        json card, sidecar;
+        CardAndSidecar(c, &card, &sidecar);
+        EXPECT_EQ(sidecar["validation_metrics"], card["validation_metrics"]) << c.id;
+        EXPECT_TRUE(card["validation_metrics"].is_object() && !card["validation_metrics"].empty()) << c.id;
+    }
+}
 
-    std::string json(buffer);
-    ASSERT_NE(json.find("\"training_data_hash\":"), std::string::npos);
-
-    // Hash format should be "sha256:..." or similar
-    size_t hashPos = json.find("\"training_data_hash\":");
-    if (hashPos != std::string::npos) {
-        size_t colonPos = json.find(":", hashPos);
-        size_t quoteStart = json.find("\"", colonPos + 1);
-        size_t quoteEnd = json.find("\"", quoteStart + 1);
-
-        if (quoteStart != std::string::npos && quoteEnd != std::string::npos) {
-            std::string hash = json.substr(quoteStart + 1, quoteEnd - quoteStart - 1);
-            EXPECT_FALSE(hash.empty()) << "Training data hash must not be empty";
-
-            // If hash is provided, it should start with algorithm prefix
-            if (hash != "N/A") {
-                EXPECT_TRUE(hash.find("sha256:") == 0 ||
-                            hash.find("sha512:") == 0 ||
-                            hash.find("md5:") == 0)
-                    << "Hash should have algorithm prefix (sha256:, sha512:, md5:), got: " << hash;
-            }
+TEST_F(AiModelVersioningTest, TheCardCarriesAllFiveRequiredMetadataFieldsWithTheSidecarsValues) {
+    for (const Case& c : kCases) {
+        json card, sidecar;
+        CardAndSidecar(c, &card, &sidecar);
+        const std::vector<std::pair<const char*, const char*>> fields = {{"model_id", "model_id"},
+                                                                         {"version", "model_version"},
+                                                                         {"pccp_scope", "pccp_scope"},
+                                                                         {"training_data_hash", "training_data_hash"},
+                                                                         {"validation_metrics", "validation_metrics"}};
+        for (const auto& f : fields) {
+            ASSERT_TRUE(card.contains(f.second)) << c.id << ": missing " << f.second;
+            EXPECT_EQ(sidecar[f.first], card[f.second]) << c.id << ": " << f.second;
         }
     }
 }
 
 /* ============================================================================
- * T-004.5: Validation Metrics Field Present (REQ-AI-008)
+ * T-004.7: two models, each with its own version (replaces "ModelVersionsCanBeCompared", which asserted nothing)
  * ============================================================================ */
 
-TEST_F(AiModelVersioningTest, ModelCardContainsValidationMetrics) {
+TEST_F(AiModelVersioningTest, TwoModelsInOneDirectoryEachReportTheirOwnVersionAndId) {
+    const fs::path dir = fs::temp_directory_path() / ("xpe_versions_" + std::to_string(GetCurrentProcessId()));
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+    fs::create_directories(dir);
+    for (const auto& e : fs::directory_iterator(fs::path(kData) / "models_card_full")) {
+        fs::copy_file(e.path(), dir / e.path().filename(), fs::copy_options::overwrite_existing);   // the bone model
+    }
+    for (const auto& e : fs::directory_iterator(fs::path(kData) / "models_bodypart_a")) {
+        fs::copy_file(e.path(), dir / e.path().filename(), fs::copy_options::overwrite_existing);   // the body-part model
+    }
+    Init(dir.string());
+    char bone[8192], part[8192];
+    ASSERT_EQ(XPE_OK, xpe_ai_get_model_card("bone_card_full_toy", bone, sizeof(bone)));
+    ASSERT_EQ(XPE_OK, xpe_ai_get_model_card("bodypart_toy", part, sizeof(part)));
+    const json b = json::parse(bone), p = json::parse(part);
+    EXPECT_EQ("1.2.3-rc.1+build.7", b["model_version"].get<std::string>());
+    EXPECT_EQ("0.0.1", p["model_version"].get<std::string>());
+    EXPECT_NE(b["model_version"], p["model_version"]);
+    fs::remove_all(dir, ec);
+}
+
+/* ============================================================================
+ * T-004.8: a model that is not there has no card
+ * ============================================================================ */
+
+TEST_F(AiModelVersioningTest, ModelCardForUnknownModelIsUnavailableWithAnErrorField) {
+    Init(kData + "/models_x2");
     char buffer[4096];
-    ec = xpe_ai_get_model_card("bodypart_cnn_v1", buffer, sizeof(buffer));
-    ASSERT_EQ(ec, XPE_OK);
-
-    std::string json(buffer);
-    ASSERT_NE(json.find("\"validation_metrics\":"), std::string::npos);
-
-    // validation_metrics should be a JSON object with numeric values
-    // Look for common metrics: accuracy, precision, recall, f1_score, psnr, ssim
-    bool hasMetric =
-        json.find("\"psnr\"") != std::string::npos ||
-        json.find("\"ssim\"") != std::string::npos ||
-        json.find("\"accuracy\"") != std::string::npos ||
-        json.find("\"f1_score\"") != std::string::npos;
-
-    EXPECT_TRUE(hasMetric) << "Validation metrics should contain at least one numeric metric";
+    const XpeErrorCode ec = xpe_ai_get_model_card("unknown_model_xyz", buffer, sizeof(buffer));
+    // QA-B-197: this was XPE_ERR_IO_FAILED with a "model_not_loaded" card; the model-less case is now "unavailable", -4.
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, ec);
+    const json j = json::parse(buffer, nullptr, false);
+    ASSERT_FALSE(j.is_discarded()) << buffer;
+    EXPECT_EQ("model_unavailable", j["error"].get<std::string>());
 }
 
 /* ============================================================================
- * T-004.6: All Required Fields Present (REQ-AI-008)
- * ============================================================================ */
-
-TEST_F(AiModelVersioningTest, ModelCardContainsAllRequiredMetadataFields) {
-    char buffer[4096];
-    ec = xpe_ai_get_model_card("bodypart_cnn_v1", buffer, sizeof(buffer));
-    ASSERT_EQ(ec, XPE_OK);
-
-    std::string json(buffer);
-
-    // Check all required fields from REQ-AI-008
-    EXPECT_NE(json.find("\"model_id\":"), std::string::npos) << "Missing model_id";
-    EXPECT_NE(json.find("\"model_version\":"), std::string::npos) << "Missing model_version";
-    EXPECT_NE(json.find("\"pccp_status\":"), std::string::npos) << "Missing pccp_status";
-    EXPECT_NE(json.find("\"training_data_hash\":"), std::string::npos) << "Missing training_data_hash";
-    EXPECT_NE(json.find("\"validation_metrics\":"), std::string::npos) << "Missing validation_metrics";
-}
-
-/* ============================================================================
- * T-004.7: Version Comparison (Semver Ordering)
- * ============================================================================ */
-
-TEST_F(AiModelVersioningTest, ModelVersionsCanBeCompared) {
-    // This test verifies that version strings follow semver for proper comparison
-    // In a real implementation, this would test a version comparison utility
-
-    char buffer1[4096], buffer2[4096];
-
-    // Get model cards for two different models
-    ec = xpe_ai_get_model_card("bodypart_cnn_v1", buffer1, sizeof(buffer1));
-    ASSERT_EQ(ec, XPE_OK);
-
-    ec = xpe_ai_get_model_card("bone_suppress_unet_v1", buffer2, sizeof(buffer2));
-    ASSERT_EQ(ec, XPE_OK);
-
-    // Extract versions and verify they are comparable
-    std::string json1(buffer1);
-    std::string json2(buffer2);
-
-    // Both should have valid semver versions
-    size_t pos1 = json1.find("\"model_version\":");
-    size_t pos2 = json2.find("\"model_version\":");
-
-    ASSERT_NE(pos1, std::string::npos);
-    ASSERT_NE(pos2, std::string::npos);
-
-    // In full implementation, this would verify semver comparison logic
-    // For now, just ensure both have the field
-}
-
-/* ============================================================================
- * T-004.8: Missing Model Returns Error
- * ============================================================================ */
-
-TEST_F(AiModelVersioningTest, ModelCardForUnknownModelReturnsError) {
-    char buffer[4096];
-    ec = xpe_ai_get_model_card("unknown_model_xyz", buffer, sizeof(buffer));
-
-    EXPECT_EQ(ec, XPE_ERR_IO_FAILED) << "Unknown model should return XPE_ERR_IO_FAILED";
-
-    // Buffer should contain error information
-    std::string json(buffer);
-    EXPECT_NE(json.find("\"error\":"), std::string::npos);
-}
-
-/* ============================================================================
- * T-004.9: Buffer Too Small Handling
+ * T-004.9 ... T-004.11: buffers and null arguments (unchanged by QA-B-197)
  * ============================================================================ */
 
 TEST_F(AiModelVersioningTest, ModelCardWithTinyBufferReturnsBufferTooSmall) {
+    Init(kData + "/models_x2");
     char tinyBuffer[10];
-    ec = xpe_ai_get_model_card("bodypart_cnn_v1", tinyBuffer, sizeof(tinyBuffer));
-
-    EXPECT_EQ(ec, XPE_ERR_BUFFER_TOO_SMALL);
-
-    // Buffer should be null-terminated even when too small
-    EXPECT_EQ(tinyBuffer[9], '\0');
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, xpe_ai_get_model_card("bone_toy_x2", tinyBuffer, sizeof(tinyBuffer)));
+    EXPECT_EQ('\0', tinyBuffer[9]) << "null-terminated even when too small";
 }
-
-/* ============================================================================
- * T-004.10: Null Model ID Handling
- * ============================================================================ */
 
 TEST_F(AiModelVersioningTest, ModelCardWithNullModelIdReturnsInvalidInput) {
+    Init(kData + "/models_x2");
     char buffer[4096];
-    ec = xpe_ai_get_model_card(nullptr, buffer, sizeof(buffer));
-
-    EXPECT_EQ(ec, XPE_ERR_INVALID_INPUT);
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_ai_get_model_card(nullptr, buffer, sizeof(buffer)));
 }
 
-/* ============================================================================
- * T-004.11: Null Buffer Handling
- * ============================================================================ */
-
 TEST_F(AiModelVersioningTest, ModelCardWithNullBufferReturnsInvalidInput) {
-    ec = xpe_ai_get_model_card("bodypart_cnn_v1", nullptr, 4096);
-
-    EXPECT_EQ(ec, XPE_ERR_INVALID_INPUT);
+    Init(kData + "/models_x2");
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_ai_get_model_card("bone_toy_x2", nullptr, 4096));
 }

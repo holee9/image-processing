@@ -299,18 +299,20 @@ Setup initModels() {
 }
 }  // namespace
 
+// QA-B-197 M2: the card is made from the verified sidecar of a model in the model directory (it used to be a constant),
+// so the first call reads and verifies the files, parses the sidecar and builds the card -- all of it under the sweep.
 TEST_F(AiOom, ModelCardOfALoadedModelFailsCleanlyAtEveryAllocation) {
     char buf[4096];
     sweep("xpe_ai_get_model_card (a loaded model)",
           initModels(),
-          [&] { return xpe_ai_get_model_card("bodypart_cnn_v1", buf, sizeof(buf)); },
+          [&] { return xpe_ai_get_model_card("bone_toy_x2", buf, sizeof(buf)); },
           [] { Reset(); },
           [&](const Observation& o) -> std::string {
               if (o.rc == XPE_OK) return buf[0] == '{' ? "" : "OK but no card";
               if (o.rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure must be OUT_OF_MEMORY";
               if (o.liveDelta != 0) return std::to_string(o.liveDelta) + " allocation(s) kept by a failed call";
               // usable afterwards: the lock is not held and the answer is the normal one
-              return xpe_ai_get_model_card("bodypart_cnn_v1", buf, sizeof(buf)) == XPE_OK ? "" : "not usable afterwards";
+              return xpe_ai_get_model_card("bone_toy_x2", buf, sizeof(buf)) == XPE_OK ? "" : "not usable afterwards";
           });
 }
 
@@ -321,10 +323,10 @@ TEST_F(AiOom, ModelCardOfAnUnknownModelFailsCleanlyAtEveryAllocation) {
           [&] { return xpe_ai_get_model_card("no_such_model_for_the_sweep", buf, sizeof(buf)); },
           [] { Reset(); },
           [&](const Observation& o) -> std::string {
-              if (o.rc == XPE_ERR_IO_FAILED) return "";   // the documented not-loaded answer
+              if (o.rc == XPE_ERR_CONFIG_INVALID) return "";   // the documented unavailable answer (QA-B-197: was IO_FAILED)
               if (o.rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure must be OUT_OF_MEMORY";
               if (o.liveDelta != 0) return std::to_string(o.liveDelta) + " allocation(s) kept by a failed call";
-              return xpe_ai_get_model_card("no_such_model_for_the_sweep", buf, sizeof(buf)) == XPE_ERR_IO_FAILED
+              return xpe_ai_get_model_card("no_such_model_for_the_sweep", buf, sizeof(buf)) == XPE_ERR_CONFIG_INVALID
                          ? ""
                          : "not usable afterwards";
           });

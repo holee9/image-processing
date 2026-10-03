@@ -52,8 +52,9 @@
  * xpe_bone_suppress and xpe_bodypart_recognize on a loaded model. THREE THINGS ARE NOT COVERED, and the first is
  * not coverable from inside the module: (1) the JSON library (nlohmann 3.11.3) frees a non-empty parsed document
  * with an allocation inside a noexcept destructor, so if memory runs out at that instant the process terminates --
- * in xpe_ai_init given a config that has keys, in loading the body-part label file (first body-part call) and in
- * reading a model's metadata file; (2) allocations made by ONNX Runtime's own allocator and (3) by xpe_common (the
+ * in xpe_ai_init given a config that has keys and in loading the body-part label file (first body-part call);
+ * a model's sidecar is read with an event parser that builds no document (QA-B-197 M1), so it is not one of them;
+ * (2) allocations made by ONNX Runtime's own allocator and (3) by xpe_common (the
  * alert queue) are not failed by the sweeps.
  * A shortage of memory while the ONNX Runtime session of a model is created (QA-B-194b) is XPE_ERR_OUT_OF_MEMORY
  * on every path that loads a model, and never "the model is unavailable": xpe_bone_suppress and the first
@@ -631,47 +632,69 @@ XPE_API XpeErrorCode xpe_dl_denoise(XpeImageBuffer* img,
                                      const char* configJsonOrNull);
 
 /**
- * @brief Retrieves the Model Card for a loaded AI model.
+ * @brief Retrieves the Model Card of an AI model of the model directory.
  *
  * Returns JSON conforming to schemas/model-card.schema.json containing:
- * intended_use, training_data_summary, demographic_performance, limitations,
- * model_version, pccp_status, published_date.
+ * model_id, model_version, intended_use, training_data_summary,
+ * demographic_performance, limitations, pccp_status, published_date,
+ * pccp_scope, training_data_hash, validation_metrics.
  *
  * REQ-AI-010: Model Card transparency API.
  * REQ-AI-011: JSON schema conformance.
  * REQ-AI-008: Model metadata (model_id, version, pccp_scope, etc.).
  *
- * In a stub build the card is a placeholder: model_version is "0.1.0-stub" and
- * the limitations field states that ONNX Runtime is not linked. The loaded-model
- * list is fixed at init time (bodypart_cnn_v1, stitch_feature_match_v1,
- * bone_suppress_unet_v1, dl_denoise_ssl_v1); no directory is scanned.
+ * WHERE THE CARD COMES FROM (QA-B-197 M2). Only from the sidecar of a model that
+ * passed the checks a load applies: the model's signature (MODEL SIGNING above),
+ * and then the sidecar's required fields (MODEL SIDECAR above). The module looks
+ * at the two model files of the model directory (bone_suppress.onnx and
+ * bodypart.onnx, with their .json and .sig) and answers for the one whose sidecar
+ * says model_id == @p modelId. No value of the card is a constant of this module:
+ *  - model_id, model_version (the sidecar's "version"), pccp_scope,
+ *    training_data_hash and validation_metrics are the sidecar's;
+ *  - intended_use, training_data_summary, demographic_performance, limitations
+ *    and published_date are the sidecar's when it has them, and JSON null when it
+ *    does not -- they are never filled in with a default or a guess;
+ *  - pccp_status is "not_evaluated": no authorized PCCP exists in the module to
+ *    compare pccp_scope with, so it does not claim "within_boundary".
+ * A model that is not in the directory, whose signature does not verify, or whose
+ * sidecar is missing or invalid has no card: the answer is the "unavailable"
+ * document below and XPE_ERR_CONFIG_INVALID (-4, the same code a signature
+ * refusal gives elsewhere). The files are read again when their size or write
+ * time changes, so a model replaced while the module runs is seen on the next
+ * call. Before QA-B-197 the card was a table of four fixed model ids, answered
+ * whether or not a model existed, with "0.1.0-stub" as the version.
  *
  * On every path that reaches the copy step, @p buf receives a null-terminated
- * JSON document -- including the not-found path, which writes a card carrying
- * "error":"model_not_loaded" and then returns XPE_ERR_IO_FAILED. A caller must
- * therefore check the return code rather than the presence of output.
+ * JSON document -- including the unavailable path, which writes
+ * {"model_id":...,"error":"model_unavailable","reason":...} and then returns
+ * XPE_ERR_CONFIG_INVALID. A caller must therefore check the return code rather
+ * than the presence of output.
  *
  * @param modelId    Model identifier string (e.g., "bone_suppress_unet_v1").
  *                    Must not be NULL, and is 1 to 64 characters of letters,
  *                    digits, '.', '_' and '-' (REQ-AI-090, QA-B-194 M3): the
- *                    identifier is copied into the card's JSON, so a quote or a
+ *                    identifier is copied into the answer's JSON, so a quote or a
  *                    backslash in it used to make the card invalid JSON.
  * @param buf        Caller-allocated buffer for JSON output. Must not be NULL.
  * @param bufSize    Size of @p buf in bytes. Recommended >= 4096.
- * @return XPE_OK if the model is known and the card fits.
+ * @return XPE_OK if a verified model has this model_id and the card fits.
  * @return XPE_ERR_INVALID_INPUT if modelId or buf is NULL, bufSize is 0
  *         (#142), or modelId is not an identifier as described above (checked
  *         once the module is initialised and bufSize is known; @p buf is not
- *         written). A well-formed identifier that is not loaded is not invalid:
- *         it gets the "model_not_loaded" card and XPE_ERR_IO_FAILED.
+ *         written). A well-formed identifier that no verified model has is not
+ *         invalid: it gets the "model_unavailable" answer and
+ *         XPE_ERR_CONFIG_INVALID.
  * @return XPE_ERR_BUFFER_TOO_SMALL if the card does not fit; @p buf still holds
  *         the truncated JSON in that case.
  * @return XPE_ERR_NOT_INITIALIZED if xpe_ai_init not called.
- * @return XPE_ERR_IO_FAILED if model is not found or not loaded.
+ * @return XPE_ERR_CONFIG_INVALID if no verified model has this model_id (it was
+ *         XPE_ERR_IO_FAILED until QA-B-197).
+ * @return XPE_ERR_OUT_OF_MEMORY if memory ran out while reading or building the
+ *         card (the module is as it was before the call).
  *
  * Lifecycle: the label below does NOT cover concurrency with xpe_ai_init / xpe_ai_shutdown -- see the
  * LIFECYCLE CONTRACT at xpe_ai_shutdown().
- * Thread safety: Thread-safe (read-only model metadata).
+ * Thread safety: Thread-safe (the module lock is held while the files are read).
  */
 XPE_API XpeErrorCode xpe_ai_get_model_card(const char* modelId,
                                              char* buf, size_t bufSize);

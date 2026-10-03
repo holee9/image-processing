@@ -178,7 +178,9 @@ TEST_F(GuardFixture, TheModuleStaysUsableAfterAFailedCall) {
     Escaped([&] { return xpe_bone_suppress(&f.a, &f.b, nullptr); }, &rc);
     g_throwMode = 0;
     char buf[4096];
-    EXPECT_EQ(XPE_OK, xpe_ai_get_model_card("bone_suppress_unet_v1", buf, sizeof(buf)));
+    // QA-B-197: the probe directory has no model, so a card is "unavailable" (-4); what matters here is that the call
+    // answers normally again (it used to answer OK from a constant table).
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_ai_get_model_card("bone_suppress_unet_v1", buf, sizeof(buf)));
     EXPECT_NE(std::string::npos, std::string(buf).find("bone_suppress_unet_v1"));
     EXPECT_EQ(XPE_ERR_IO_FAILED, xpe_bone_suppress(&f.a, &f.b, nullptr)) << "no model on disk: the normal -9";
 }

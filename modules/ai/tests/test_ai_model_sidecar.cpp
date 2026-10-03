@@ -407,6 +407,7 @@ TEST(ModelSidecarLoading, EveryShippedTestModelThatHasASidecarHasAValidOne) {
     for (const auto& e : fs::recursive_directory_iterator(fs::path(kData))) {
         if (!e.is_regular_file() || e.path().extension() != ".json") continue;
         if (e.path().parent_path().filename() == "signing") continue;
+        if (e.path().parent_path().filename() == "schemas") continue;   // QA-B-197 M2: JSON Schema documents, not sidecars
         std::ifstream f(e.path(), std::ios::binary);
         const std::string text((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
         EXPECT_EQ("", Reason(text)) << e.path().string();
