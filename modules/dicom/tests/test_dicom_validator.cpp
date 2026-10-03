@@ -761,18 +761,20 @@ TEST_F(DicomValidatorTest, PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExc
         bool valid;
         int missing;      // "Missing required Type 1 tag" reports for Pixel Data
         int exclusive;    // "mutually exclusive" reports
+        int jpipPixel;    // "shall not be present under a JPIP Referenced transfer syntax" reports (PS3.5 A.6)
         int reference;    // "by reference" warnings
     };
     const Case cases[] = {
-        {"ordinary file: Pixel Data, no URL", EXS_LittleEndianExplicit, true, nullptr, true, 0, 0, 0},
-        {"JPIP Referenced (.94): URL only", EXS_JPIPReferenced, false, kUrl, true, 0, 0, 1},
-        {"JPIP Referenced: Pixel Data and URL", EXS_JPIPReferenced, true, kUrl, false, 0, 1, 0},
-        {"other syntax: URL only, it replaces nothing", EXS_LittleEndianExplicit, false, kUrl, false, 1, 0, 0},
-        {"other syntax: Pixel Data and URL", EXS_LittleEndianExplicit, true, kUrl, false, 0, 1, 0},
-        {"other syntax: neither", EXS_LittleEndianExplicit, false, nullptr, false, 1, 0, 0},
-        {"JPIP Referenced: neither", EXS_JPIPReferenced, false, nullptr, false, 1, 0, 0},
-        {"JPIP Referenced: an EMPTY URL is not a provider", EXS_JPIPReferenced, false, "", false, 1, 0, 0},
-        {"other syntax: Pixel Data and a URL element with no value (present counts)", EXS_LittleEndianExplicit, true, "", false, 0, 1, 0},
+        {"ordinary file: Pixel Data, no URL", EXS_LittleEndianExplicit, true, nullptr, true, 0, 0, 0, 0},
+        {"JPIP Referenced (.94): URL only", EXS_JPIPReferenced, false, kUrl, true, 0, 0, 0, 1},
+        {"JPIP Referenced: Pixel Data and URL breaks both rules", EXS_JPIPReferenced, true, kUrl, false, 0, 1, 1, 0},
+        {"JPIP Referenced: Pixel Data, no URL (PS3.5 A.6)", EXS_JPIPReferenced, true, nullptr, false, 0, 0, 1, 0},
+        {"other syntax: URL only, it replaces nothing", EXS_LittleEndianExplicit, false, kUrl, false, 1, 0, 0, 0},
+        {"other syntax: Pixel Data and URL", EXS_LittleEndianExplicit, true, kUrl, false, 0, 1, 0, 0},
+        {"other syntax: neither", EXS_LittleEndianExplicit, false, nullptr, false, 1, 0, 0, 0},
+        {"JPIP Referenced: neither", EXS_JPIPReferenced, false, nullptr, false, 1, 0, 0, 0},
+        {"JPIP Referenced: an EMPTY URL is not a provider", EXS_JPIPReferenced, false, "", false, 1, 0, 0, 0},
+        {"other syntax: Pixel Data and a URL element with no value (present counts)", EXS_LittleEndianExplicit, true, "", false, 0, 1, 0, 0},
     };
     int n = 0;
     for (const Case& c : cases) {
@@ -792,7 +794,8 @@ TEST_F(DicomValidatorTest, PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExc
         EXPECT_EQ(c.valid, j["valid"].get<bool>()) << c.what << ": " << j.dump();
         EXPECT_EQ(c.missing, CountMessages(j["errors"], "7FE0,0010", "Missing required Type 1 tag")) << c.what << ": " << j.dump();
         EXPECT_EQ(c.exclusive, CountMessages(j["errors"], "0028,7FE0", "mutually exclusive")) << c.what << ": " << j.dump();
-        EXPECT_EQ(static_cast<size_t>(c.missing + c.exclusive), j["errors"].size()) << c.what << ": no other error: " << j.dump();
+        EXPECT_EQ(c.jpipPixel, CountMessages(j["errors"], "7FE0,0010", "shall not be present under a JPIP")) << c.what << ": " << j.dump();
+        EXPECT_EQ(static_cast<size_t>(c.missing + c.exclusive + c.jpipPixel), j["errors"].size()) << c.what << ": no other error: " << j.dump();
         EXPECT_EQ(c.reference, CountMessages(j["warnings"], "7FE0,0010", "by reference")) << c.what << ": " << j.dump();
         EXPECT_EQ(static_cast<size_t>(c.reference), j["warnings"].size()) << c.what << ": no other warning: " << j.dump();
     }
