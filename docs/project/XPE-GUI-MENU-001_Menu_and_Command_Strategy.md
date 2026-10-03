@@ -183,6 +183,8 @@ Rules:
 - Help pages shall be version-matched to the running build.
 - `F1` or equivalent context help should open the current workflow help once workflow context exists.
 
+Current state (2026-10-03, measured in `GUI-C-204`): `Current Workflow Help` has no page of its own — its handler opens the same `quick-start.html` page as `Quick Start`, because no workflow context is tracked yet. This is a deliberate interim mapping (lead decision recorded in `GUI-C-206` report §3), not a missing feature defect; a dedicated per-workflow page remains planned for when workflow context exists.
+
 ---
 
 ## 5. Progressive Rollout
