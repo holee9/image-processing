@@ -1,88 +1,125 @@
-// GUI-C-229: what a failed real-keystroke scenario must be able to say about WHERE a key went. Pure code, no input and no application.
+// GUI-C-229, 229b: what a failed real-keystroke scenario can say about WHERE keys went, from observations taken only before and after the input. Pure code, no input and no application.
 using System.Text;
 
 namespace ImageProcTest.E2ETests.Fixtures;
 
-/// <summary>One key of a typed text: when it was sent, and whether the application was in front just before it. A key that was not sent is one the harness refused to send because the application was not in front.</summary>
-internal readonly record struct KeyStep(int Index, char Key, long AtMs, bool AppInFrontBefore, bool Sent);
+/// <summary>
+/// What was read from the window at one moment: the Center and Width boxes, who holds the keyboard focus (as UI Automation names it) and which process holds the system foreground. Reads happen before the
+/// keys and after them, never between them: the gap between the keys of the real input is the condition under which the failure was seen, and it must not change.
+/// </summary>
+internal readonly record struct Observation(string Center, string Width, string FocusAutomationId, int FocusProcessId, int ForegroundProcessId)
+{
+    public override string ToString() =>
+        $"center '{Center}', width '{Width}', keyboard focus '{FocusAutomationId}' (pid {FocusProcessId}), foreground pid {ForegroundProcessId}";
+}
 
 /// <summary>
-/// The three explanations for "typed 4321, the box holds 43" that the first red run (CI run 37157733109, GUI-C-229) left open, told apart from what a failed scenario can observe afterwards:
+/// "Typed 4321, the box holds 43" (CI run 37157733109, GUI-C-229): which of the explanations the observations fit. A reading aid for the failure message that decides nothing: the scenario's own assertion is
+/// strict and fails whatever this says. When the observations fit more than one explanation, or none, the answer is <see cref="Cause.Unclassified"/>.
 ///
+/// <para>What each name rests on (facts are the observations; the name is the inference):</para>
 /// <list type="bullet">
-/// <item><b>ForegroundLeft</b> — the application was not in front before some key. The harness stops there and sends nothing to whatever was in front, so the keys are not typed into another window.</item>
-/// <item><b>ReadTooEarly</b> — the box shows the whole text a moment later: the keys arrived, the read came before the application had taken them in.</item>
-/// <item><b>KeysWentToAnotherBox</b> — the missing characters are in another text box of the application: the keyboard focus moved inside the application.</item>
-/// <item><b>FocusLeftTheBox</b> / <b>BoxOverwritten</b> — the box never showed the rest and does not change afterwards; whether the focus was still in the box separates "the keys went elsewhere" from "the application replaced the value".</item>
+/// <item><b>NotSentForegroundWasNotTheApp</b> — checked just BEFORE the keys: the application was not in front, so no key was sent and the scenario failed there.</item>
+/// <item><b>ForegroundLeftDuringTyping</b> — a later reading has another process in front while the reading before the keys had the application. Keys sent after that point went to the other window.</item>
+/// <item><b>ReadTooEarly</b> — the box read short at 600 ms and held the whole text 1.5 s later.</item>
+/// <item><b>KeysWentToAnotherBox</b> — the Width box, which is read to the letter before the keys, ends up as its old text plus exactly the characters that are missing from Center.</item>
+/// <item><b>FocusLeftTheBoxStayedInApp</b> — the application stays in front, Center stays short, Width did not take the missing characters, and the keyboard focus is no longer in Center. Where the keys went is not observed.</item>
+/// <item><b>KeysNotInBoxFocusStayed</b> — the application stays in front, Center stays short and the focus is still in Center. "The application replaced the value after the keys arrived" and "the application dropped the keys" are not told apart by these observations, so they share this name.</item>
 /// </list>
 ///
-/// The class is a reading aid for the failure message. It decides nothing: the scenario's assertion is the strict one and fails whatever this says.
+/// <para>The Width reading says something only if Width's old text is not itself the missing tail: a Width that already ended in "21" before the keys and still does after them cannot show whether the keys went there.
+/// In that case the readings that rest on Width are not claimed.</para>
 /// </summary>
 internal static class KeyLossDiagnosis
 {
     internal enum Cause
     {
         None,
-        ForegroundLeft,
+        NotSentForegroundWasNotTheApp,
+        ForegroundLeftDuringTyping,
         ReadTooEarly,
         KeysWentToAnotherBox,
-        FocusLeftTheBox,
-        BoxOverwritten,
+        FocusLeftTheBoxStayedInApp,
+        KeysNotInBoxFocusStayed,
         Unclassified,
     }
 
-    internal static Cause Classify(IReadOnlyList<KeyStep> steps, string typed, string seen, string seenLater, string? otherBoxText, bool focusInTheBoxAfterwards)
+    /// <summary>The refusal message, or null when the application is in front and the keys may be sent. Pure: the scenario calls it just before the first key and fails with the message instead of sending.</summary>
+    internal static string? RefuseIfNotInFront(bool appInFront, string whatIsInFront) =>
+        appInFront
+            ? null
+            : "The application was not the window in front just before the keys, so NO key was sent (a key goes to whichever window is in front, GUI-C-171). " + whatIsInFront;
+
+    /// <param name="typed">The text sent.</param>
+    /// <param name="before">Read just before the keys.</param>
+    /// <param name="at600">Read 600 ms after the last key (the reading the scenario's assertion uses).</param>
+    /// <param name="later">Read 1.5 s after that, or null if it was not taken.</param>
+    /// <param name="appProcessId">The application's process id.</param>
+    /// <param name="keysSent">False only when the scenario refused to send because the application was not in front.</param>
+    internal static Cause Classify(string typed, Observation before, Observation at600, Observation? later, int appProcessId, bool keysSent)
     {
-        if (seen == typed)
+        if (!keysSent)
+        {
+            return Cause.NotSentForegroundWasNotTheApp;
+        }
+
+        if (at600.Center == typed)
         {
             return Cause.None;
         }
 
-        if (steps.Any(s => !s.Sent))
+        var last = later ?? at600;
+        var matches = new List<Cause>();
+
+        if (before.ForegroundProcessId == appProcessId && (at600.ForegroundProcessId != appProcessId || last.ForegroundProcessId != appProcessId))
         {
-            return Cause.ForegroundLeft;
+            matches.Add(Cause.ForegroundLeftDuringTyping);
         }
 
-        if (seenLater == typed)
+        if (later is { } l && l.Center == typed)
         {
-            return Cause.ReadTooEarly;
+            matches.Add(Cause.ReadTooEarly);
         }
 
-        if (typed.StartsWith(seen, StringComparison.Ordinal) && seen.Length < typed.Length
-            && otherBoxText is not null && otherBoxText.EndsWith(typed[seen.Length..], StringComparison.Ordinal))
+        var shortBox = typed.StartsWith(at600.Center, StringComparison.Ordinal) && at600.Center.Length < typed.Length;
+        var tail = shortBox ? typed[at600.Center.Length..] : null;
+        var widthSays = tail is not null && !before.Width.EndsWith(tail, StringComparison.Ordinal);   // Width's old text is not itself the tail: its change is informative
+        var stillShort = later is { } l2 ? l2.Center == at600.Center : true;
+        var appInFrontThroughout = at600.ForegroundProcessId == appProcessId && last.ForegroundProcessId == appProcessId;
+
+        if (tail is not null && widthSays && last.Width == before.Width + tail)
         {
-            return Cause.KeysWentToAnotherBox;
+            matches.Add(Cause.KeysWentToAnotherBox);
         }
 
-        if (seenLater == seen)
+        if (tail is not null && widthSays && stillShort && appInFrontThroughout && last.Width == before.Width)
         {
-            return focusInTheBoxAfterwards ? Cause.BoxOverwritten : Cause.FocusLeftTheBox;
+            matches.Add(last.FocusAutomationId == at600.FocusAutomationId && last.FocusAutomationId == before.FocusAutomationId && last.FocusProcessId == appProcessId
+                ? Cause.KeysNotInBoxFocusStayed
+                : Cause.FocusLeftTheBoxStayedInApp);
         }
 
-        return Cause.Unclassified;
+        return matches.Count == 1 ? matches[0] : Cause.Unclassified;
     }
 
     internal static string Explain(Cause cause) => cause switch
     {
-        Cause.ForegroundLeft => "(a) the application was not in front before a key: the focus left it while typing. The harness stopped sending, so no key went to another window.",
-        Cause.ReadTooEarly => "(c) the box held the whole text a moment later: the keys arrived and were taken in after the read. The scenario read too early for this machine's load.",
-        Cause.KeysWentToAnotherBox => "(a) the missing characters are in another text box of the application: the keyboard focus moved inside the application while typing.",
-        Cause.FocusLeftTheBox => "(a) the box did not change afterwards and no longer holds the keyboard focus: the focus moved away while typing.",
-        Cause.BoxOverwritten => "(b) the box did not change afterwards and still holds the keyboard focus: the keys were sent while it had the focus and the value was replaced or the keys were dropped inside the application.",
-        Cause.Unclassified => "none of the explanations fits the readings (see the key trace).",
+        Cause.NotSentForegroundWasNotTheApp => "the application was not in front just before the keys; nothing was sent.",
+        Cause.ForegroundLeftDuringTyping => "another process held the foreground after the keys began: keys sent after that point went to that window.",
+        Cause.ReadTooEarly => "the box held the whole text a moment later: the keys arrived and were taken in after the 600 ms read.",
+        Cause.KeysWentToAnotherBox => "the missing characters are in the Width box: the keyboard focus moved to it while typing.",
+        Cause.FocusLeftTheBoxStayedInApp => "the application stayed in front, Center stayed short, Width did not take the missing characters and the keyboard focus is no longer in Center: where the keys went is not observed.",
+        Cause.KeysNotInBoxFocusStayed => "the application stayed in front, Center stayed short and the keyboard focus stayed in Center: the value was replaced after the keys arrived or the keys were dropped; these observations do not tell those two apart.",
+        Cause.Unclassified => "the observations fit no single explanation (more than one fits, or none).",
         _ => "the box holds what was typed.",
     };
 
-    /// <summary>The per-key record, for the failure message and for the log of a passing run.</summary>
-    internal static string Trace(IReadOnlyList<KeyStep> steps)
-    {
-        var sb = new StringBuilder();
-        foreach (var s in steps)
-        {
-            sb.Append($"key {s.Index} '{s.Key}' at +{s.AtMs} ms, app in front before it: {(s.AppInFrontBefore ? "yes" : "NO")}, {(s.Sent ? "sent" : "NOT sent")}");
-            sb.Append("; ");
-        }
-
-        return sb.ToString().TrimEnd(' ', ';');
-    }
+    /// <summary>The observations, in order, for the failure message and for the log of a passing run.</summary>
+    internal static string Facts(Observation before, Observation after, Observation at600, Observation? later) =>
+        new StringBuilder()
+            .Append("before the keys: ").Append(before)
+            .Append("; right after the keys: ").Append(after)
+            .Append("; 600 ms after: ").Append(at600)
+            .Append("; 1.5 s later: ").Append(later is { } l ? l.ToString() : "(not read)")
+            .ToString();
 }

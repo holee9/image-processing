@@ -147,17 +147,31 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
                 const string typed = "4321";
                 Assert.NotEqual(typed, input.Text);
 
-                GlobalInput.SelectAll();
-                var steps = TypeKeyByKey(window, typed);
-                Thread.Sleep(600);
-
-                // The assertion is the same strict one as ever: all four characters, 600 ms after the last key. When it
-                // fails, the message says where the keys went (GUI-C-229, the first red run: typed 4321, the box held 43).
-                var seen = input.Text;
-                output.WriteLine("R02 key trace: " + KeyLossDiagnosis.Trace(steps));
-                if (seen != typed)
+                // Read BEFORE the keys, then ONE check just before the first key: if the application is not in front, nothing is sent and the scenario fails here, not skipped
+                // (a key goes to whichever window is in front, GUI-C-171). The check is the last thing before the keys; it is skipped over nothing and adds nothing between them.
+                var appPid = window.Properties.ProcessId.ValueOrDefault;
+                var before = Observe(window, input);
+                var inFront = AppIsForeground(window);
+                var refusal = KeyLossDiagnosis.RefuseIfNotInFront(inFront, inFront ? string.Empty : PanelToggleScenarios.DescribeWhatIsInFront(window));
+                if (refusal is not null)
                 {
-                    Assert.Fail(DescribeLostKeys(window, input, typed, steps, seen));
+                    Assert.Fail(refusal + " Read before the keys: " + before);
+                }
+
+                // The input is what it always was: Ctrl+A, then ONE call that types the four characters. Nothing is read between the keys (GUI-C-229b: the spacing of the keys is the
+                // condition under which the failure was seen).
+                GlobalInput.SelectAll();
+                GlobalInput.Type(typed);
+                var sinceTyped = Stopwatch.StartNew();
+                var after = Observe(window, input);
+                Thread.Sleep((int)Math.Max(0, 600 - sinceTyped.ElapsedMilliseconds));   // the reading below is still taken 600 ms after the last key
+
+                // The assertion is the strict one it always was: all four characters, 600 ms after the last key. When it fails, the message says what was read around the input.
+                var at600 = Observe(window, input);
+                output.WriteLine("R02 observations: " + KeyLossDiagnosis.Facts(before, after, at600, null));
+                if (at600.Center != typed)
+                {
+                    Assert.Fail(DescribeLostKeys(window, input, typed, before, after, at600, appPid));
                 }
 
                 Assert.Equal(typed, input.Text);
@@ -211,9 +225,9 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
     private const string NextBoxInTabOrder = "VoiWindowWidthInput";
 
     /// <summary>
-    /// R02d (GUI-C-229): the lost-keys message that R02 builds when it fails can be built from the real window, with no key sent. R02 itself needs real input and runs only where that is allowed, so this
-    /// is where the code that reads the boxes, the focus and the foreground for the message is shown to work: it is handed a made-up trace in which the third key was refused, and the message must
-    /// carry every reading and name the foreground explanation.
+    /// R02d (GUI-C-229b): the failure message that R02 builds when it fails can be built from the real window, with no key sent. R02 itself needs real input and runs only where that is allowed, so
+    /// this is where the code that reads the boxes, the focus and the foreground for the message is shown to work. The three readings are taken from the real window with nothing typed, so the
+    /// box does not hold the text and the message is built as for a failure; the message must carry every section.
     /// </summary>
     [SkippableFact]
     public void R02d_TheLostKeysMessage_IsBuiltFromTheRealWindow_WithoutSendingAKey()
@@ -222,69 +236,49 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
         {
             OpenParameters(window);
             var input = window.FindFirstDescendant(cf => cf.ByAutomationId(CenterBox))!.AsTextBox();
-            var seen = input.Text;
-            Assert.NotEqual("4321", seen);   // the made-up trace below only reads as a failure if the box does not hold the text
+            Assert.NotEqual("4321", input.Text);   // read as a failure only if the box does not hold the text
 
-            var steps = new List<KeyStep>
-            {
-                new(0, '4', 0, AppInFrontBefore: true, Sent: true),
-                new(1, '3', 8, AppInFrontBefore: true, Sent: true),
-                new(2, '2', 16, AppInFrontBefore: false, Sent: false),
-                new(3, '1', 16, AppInFrontBefore: false, Sent: false),
-            };
-
-            var message = DescribeLostKeys(window, input, "4321", steps, seen);
+            var appPid = window.Properties.ProcessId.ValueOrDefault;
+            var before = Observe(window, input);
+            var after = Observe(window, input);
+            var at600 = Observe(window, input);
+            var message = DescribeLostKeys(window, input, "4321", before, after, at600, appPid);
             output.WriteLine("R02d message: " + message);
 
-            Assert.Contains($"center box held '{seen}' 600 ms after the last key and '{seen}' 1.5 s later", message, StringComparison.Ordinal);
-            Assert.Contains("the Width box holds '", message, StringComparison.Ordinal);
-            Assert.Contains("Keyboard focus now:", message, StringComparison.Ordinal);
-            Assert.Contains("key 2 '2' at +16 ms, app in front before it: NO, NOT sent", message, StringComparison.Ordinal);
-            Assert.Contains("Reading: (a) the application was not in front before a key", message, StringComparison.Ordinal);
+            Assert.Contains("typed '4321' but the center box held '" + at600.Center + "'", message, StringComparison.Ordinal);
+            Assert.Contains("FACTS (observed):", message, StringComparison.Ordinal);
+            Assert.Contains("before the keys: center '", message, StringComparison.Ordinal);
+            Assert.Contains("right after the keys: center '", message, StringComparison.Ordinal);
+            Assert.Contains("600 ms after: center '", message, StringComparison.Ordinal);
+            Assert.Contains("1.5 s later: center '", message, StringComparison.Ordinal);
+            Assert.Contains("keyboard focus '", message, StringComparison.Ordinal);
+            Assert.Contains($"foreground pid {at600.ForegroundProcessId}", message, StringComparison.Ordinal);
+            Assert.Contains("READING (an inference from the facts above, not an observation):", message, StringComparison.Ordinal);
         });
     }
 
-    /// <summary>
-    /// Types the text one real key at a time, and before each key checks that the application is the window in front. If it is not, that key and every later one are NOT sent (they would go to
-    /// whatever is in front, GUI-C-171) and the trace says so. Nothing in the application is read between keys, so the timing of the keys is that of one burst.
-    /// </summary>
-    private static List<KeyStep> TypeKeyByKey(Window window, string text)
+    /// <summary>What can be read right now: both text boxes, the keyboard focus (any process) and the process that holds the system foreground. UI Automation reads, so never taken between keys.</summary>
+    private static Observation Observe(Window window, TextBox input)
     {
-        var steps = new List<KeyStep>();
-        var clock = Stopwatch.StartNew();
-        var refused = false;
-        for (var i = 0; i < text.Length; i++)
-        {
-            var inFront = AppIsForeground(window);
-            var send = inFront && !refused;
-            steps.Add(new KeyStep(i, text[i], clock.ElapsedMilliseconds, inFront, send));
-            if (!send)
-            {
-                refused = true;
-                continue;
-            }
-
-            GlobalInput.Type(text[i].ToString());
-        }
-
-        return steps;
+        var center = SafeText(input);
+        var width = SafeText(window.FindFirstDescendant(cf => cf.ByAutomationId(NextBoxInTabOrder))?.AsTextBox());
+        var focused = FocusedInfo(window);
+        return new Observation(center, width, focused?.AutomationId ?? "(none)", focused?.ProcessId ?? 0, ForegroundProcessId());
     }
 
     /// <summary>
-    /// The failure message for lost keys: what the box held when read and 1.5 s later, what the Width box holds (the next control in tab order), who holds the keyboard focus now, what is in front, the
-    /// per-key trace, and which explanation fits (<see cref="KeyLossDiagnosis"/>). It only describes; the scenario has already failed.
+    /// The failure message for lost keys. It reads once more, 1.5 s after the 600 ms reading, and then lists the observations (facts) and, separately, which explanation they fit (an inference, and
+    /// <c>Unclassified</c> when more than one or none fits: <see cref="KeyLossDiagnosis"/>). It only describes; the scenario has already failed.
     /// </summary>
-    private static string DescribeLostKeys(Window window, TextBox input, string typed, IReadOnlyList<KeyStep> steps, string seen)
+    private static string DescribeLostKeys(Window window, TextBox input, string typed, Observation before, Observation after, Observation at600, int appPid)
     {
         Thread.Sleep(1500);
-        var seenLater = SafeText(input);
-        var width = SafeText(window.FindFirstDescendant(cf => cf.ByAutomationId(NextBoxInTabOrder))?.AsTextBox());
-        var focused = FocusedInfo(window);
-        var cause = KeyLossDiagnosis.Classify(steps, typed, seen, seenLater, width, focused is { AutomationId: CenterBox });
+        var later = Observe(window, input);
+        var cause = KeyLossDiagnosis.Classify(typed, before, at600, later, appPid, keysSent: true);
         return
-            $"Real key presses typed '{typed}' but the center box held '{seen}' 600 ms after the last key and '{seenLater}' 1.5 s later; the Width box holds '{width}'. " +
-            $"Keyboard focus now: {Describe(focused)}. {PanelToggleScenarios.DescribeWhatIsInFront(window)} " +
-            $"Key trace: {KeyLossDiagnosis.Trace(steps)}. Reading: {KeyLossDiagnosis.Explain(cause)}";
+            $"Real key presses typed '{typed}' but the center box held '{at600.Center}' 600 ms after the last key (application pid {appPid}). " +
+            $"FACTS (observed): {KeyLossDiagnosis.Facts(before, after, at600, later)}. {PanelToggleScenarios.DescribeWhatIsInFront(window)} " +
+            $"READING (an inference from the facts above, not an observation): {cause} - {KeyLossDiagnosis.Explain(cause)}";
     }
 
     private static string SafeText(TextBox? box)
@@ -341,6 +335,19 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern uint GetWindowThreadProcessId(IntPtr handle, out uint processId);
+
+    /// <summary>The process that holds the system foreground right now, or 0.</summary>
+    private static int ForegroundProcessId()
+    {
+        var foreground = GetForegroundWindow();
+        if (foreground == IntPtr.Zero)
+        {
+            return 0;
+        }
+
+        GetWindowThreadProcessId(foreground, out var processId);
+        return (int)processId;
+    }
 
     /// <summary>True when the window that holds the system foreground belongs to the app under test.</summary>
     private static bool AppIsForeground(Window window)
