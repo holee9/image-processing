@@ -1,0 +1,74 @@
+# GUI-C-208 M2 falsification arms (each edits ONE thing, rebuilds, runs the named test(s), restores byte-identical)
+
+## arm D1: the all-codes test asks for the unmapped code -999 instead of each code (so every row must see the fallback)
+build ok: True
+exit=1; 18 result(s): {'RED': 18, 'green': 0, 'SKIPPED': 0}
+   RED     Functional.ErrorCodeMappingTests.ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback(code: NOT_IMPLEMENTED)
+   RED     Functional.ErrorCodeMappingTests.ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback(code: SAFETY_VIOLATION)
+   RED     Functional.ErrorCodeMappingTests.ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback(code: BUFFER_TOO_SMALL)
+   RED     Functional.ErrorCodeMappingTests.ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback(code: INTERNAL)
+   RED     Functional.ErrorCodeMappingTests.ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback(code: DICOM_INVALID)
+   RED     Functional.ErrorCodeMappingTests.ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback(code: DICOM_CONFORMANCE)
+restored byte-identical: True
+
+## arm D2 (a): one pinned GCHandle is leaked inside the 1000-cycle loop
+build ok: True
+exit=1; 1 result(s): {'RED': 1, 'green': 0, 'SKIPPED': 0}
+   RED     Safety.LeakEnduranceTests.InitShutdown_1000Cycles_NoLeak
+restored byte-identical: True
+
+## arm D2 (b): a pinned GCHandle is leaked just before the 'at this point' check
+build ok: True
+exit=1; 1 result(s): {'RED': 1, 'green': 0, 'SKIPPED': 0}
+   RED     Safety.LeakEnduranceTests.PinnedObjects_AtThisPoint_AreNoMoreThanWhenTheFixtureWasCreated
+restored byte-identical: True
+
+## arm D3: the locator consults PATH first (a decoy xpe_common.dll earlier on PATH wins)
+build ok: True
+exit=1; 1 result(s): {'RED': 1, 'green': 0, 'SKIPPED': 0}
+   RED     Safety.DllSearchPathSafetyTests.ADecoyEarlierOnPath_IsNotWhatTheLocatorReturns_WhenItIsPlacedBeforeTheLocatorRuns
+restored byte-identical: True
+
+## arm D4 (a): the Mock scan is asked for a type that IS loaded (the assertion must be able to fail)
+build ok: True
+exit=1; 1 result(s): {'RED': 1, 'green': 0, 'SKIPPED': 0}
+   RED     Safety.MockBlockingTests.MockXpeBackend_TypeNotLoadedInTestAssemblies
+restored byte-identical: True
+
+## arm D4 (b): the scan silently sees nothing (SafeGetTypes swallows everything)
+build ok: True
+exit=1; 1 result(s): {'RED': 1, 'green': 0, 'SKIPPED': 0}
+   RED     Safety.MockBlockingTests.TheTypeScan_FindsATypeThatIsLoaded
+restored byte-identical: True
+
+## arm D5: the architecture guard's accepted machine is i386 instead of AMD64
+build ok: True
+exit=1; 1 result(s): {'RED': 1, 'green': 0, 'SKIPPED': 0}
+   RED     Smoke.DllLoadSmokeTests.ArchitectureGuard_RejectsABinaryThatIsNotX64_AndAcceptsOneThatIs
+restored byte-identical: True
+
+## arm D7: the diagnostic no longer writes its record
+build ok: True
+exit=1; 1 result(s): {'RED': 1, 'green': 0, 'SKIPPED': 0}
+   RED     Diagnostics.PlatformDetectionTests.ProcessArchitecture_IsRecordedForDiagnostics
+restored byte-identical: True
+
+## arm D13: DICOM_INVALID's value in the mirror is -23 instead of -13
+build ok: True
+exit=1; 1 result(s): {'RED': 1, 'green': 0, 'SKIPPED': 0}
+   RED     Functional.StructLayoutParityTests.XpeErrorCode_EnumValues_MatchNativeAbi
+restored byte-identical: True
+
+## arm D6 (new): no DLL can be located; ResolvedDll_IsX64Architecture must SKIP
+build ok: True
+exit=0; 1 result(s): {'RED': 0, 'green': 0, 'SKIPPED': 1}
+   SKIPPED Smoke.DllLoadSmokeTests.ResolvedDll_IsX64Architecture
+restored byte-identical: True
+
+## arm D6 (old): the committed (pre-GUI-C-208) DllLoadSmokeTests under the same 'no DLL' condition
+build ok: True
+exit=0; 1 result(s): {'RED': 0, 'green': 1, 'SKIPPED': 0}
+   green   Smoke.DllLoadSmokeTests.ResolvedDll_IsX64Architecture
+restored byte-identical: fixture True, smoke test True
+
+final rebuild ok: True

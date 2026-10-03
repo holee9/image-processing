@@ -44,7 +44,7 @@ public sealed class DllLoadSmokeTests
     /// REQ-GUI-IT-042: Resolved DLL is x64 architecture (verified in NativeLibraryFixture).
     /// If fixture reports arch mismatch, surface as test failure with resolved path.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public void ResolvedDll_IsX64Architecture()
     {
         // If fixture failed due to architecture mismatch, report it.
@@ -53,8 +53,8 @@ public sealed class DllLoadSmokeTests
             Assert.Fail($"DLL architecture mismatch: {_fixture.ResolvedPath}");
         }
 
-        if (!_fixture.IsAvailable)
-            return; // DLL not available — test skipped
+        // GUI-C-208 (D6): with no DLL this used to `return`, which xUnit counts as a PASS. It is a skip, with the fixture's reason.
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         // Process itself must be x64.
         Assert.Equal(Architecture.X64, RuntimeInformation.ProcessArchitecture);
@@ -63,32 +63,48 @@ public sealed class DllLoadSmokeTests
         Assert.Equal(8, IntPtr.Size);
     }
 
-    /// <summary>
-    /// REQ-GUI-IT-043: Platform architecture diagnostic — records architecture without failing baseline tests.
-    /// </summary>
-    [Fact]
-    public void ProcessArchitecture_IsRecordedForDiagnostics()
-    {
-        // This test always runs and records architecture. It does not fail non-x64 builds.
-        var arch = RuntimeInformation.ProcessArchitecture;
-        // On x64 CI this must be X64.
-        Assert.True(
-            arch == Architecture.X64 || arch == Architecture.Arm64,
-            $"Unexpected architecture: {arch}");
-    }
-
+    // GUI-C-208 (D7): ProcessArchitecture_IsRecordedForDiagnostics lived here. It recorded nothing and failed any architecture but X64 or Arm64. REQ-GUI-IT-043 asks for a diagnostic
+    // that RECORDS the architecture and does not fail other tests; that is PlatformDetectionTests.ProcessArchitecture_IsRecordedForDiagnostics now.
     /// <summary>
     /// REQ-GUI-IT-041: Missing DLL must raise DllNotFoundException deterministically (not crash).
     /// Verified structurally: if DLL is absent, fixture.IsAvailable is false and SkipReason is set.
     /// This test verifies that the fixture correctly diagnosed absence.
     /// </summary>
+    /// <summary>
+    /// REQ-GUI-IT-042 (the half the fixture can check without a second DLL): the bootstrap's architecture guard accepts an x64 binary and rejects anything else instead of crashing.
+    /// GUI-C-208 (D5) replaced <c>WhenDllAbsent_FixtureReportsUnavailable_NotCrash</c>, whose assertion <c>IsAvailable || SkipReason non-empty</c> was true in every state the fixture
+    /// can be in (an unavailable fixture always has a reason) and so could never fail. The PE headers here are built by the test, so the verdicts do not depend on the real DLL.
+    /// </summary>
     [Fact]
-    public void WhenDllAbsent_FixtureReportsUnavailable_NotCrash()
+    public void ArchitectureGuard_RejectsABinaryThatIsNotX64_AndAcceptsOneThatIs()
     {
-        // If DLL is available, this assertion path is trivially true.
-        // If DLL is absent, fixture.IsAvailable should be false — no unhandled exception occurred.
-        var isAvailableOrAbsent = _fixture.IsAvailable || !string.IsNullOrEmpty(_fixture.SkipReason);
-        Assert.True(isAvailableOrAbsent, "Fixture must deterministically report DLL absence without crashing.");
+        var dir = Path.Combine(Path.GetTempPath(), $"xpe_pe_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            string Write(string name, byte[] bytes) { var p = Path.Combine(dir, name); File.WriteAllBytes(p, bytes); return p; }
+
+            static byte[] Pe(ushort machine)
+            {
+                var b = new byte[0x80];
+                b[0] = (byte)'M'; b[1] = (byte)'Z';
+                BitConverter.GetBytes(0x40).CopyTo(b, 0x3C);          // e_lfanew
+                b[0x40] = (byte)'P'; b[0x41] = (byte)'E';              // the PE signature
+                BitConverter.GetBytes(machine).CopyTo(b, 0x44);       // IMAGE_FILE_HEADER.Machine
+                return b;
+            }
+
+            Assert.True(NativeLibraryFixture.VerifyX64Pe(Write("x64.dll", Pe(0x8664))), "a PE with machine AMD64 must be accepted");
+            Assert.False(NativeLibraryFixture.VerifyX64Pe(Write("x86.dll", Pe(0x014C))), "a PE with machine i386 must be rejected");
+            Assert.False(NativeLibraryFixture.VerifyX64Pe(Write("arm64.dll", Pe(0xAA64))), "a PE with machine ARM64 must be rejected");
+            Assert.False(NativeLibraryFixture.VerifyX64Pe(Write("mz_only.dll", new byte[] { 0x4D, 0x5A })), "a two-byte MZ stub must be rejected, not crash");
+            Assert.False(NativeLibraryFixture.VerifyX64Pe(Write("not_pe.dll", System.Text.Encoding.ASCII.GetBytes(new string('x', 0x80)))), "a file without the MZ signature must be rejected");
+            Assert.False(NativeLibraryFixture.VerifyX64Pe(Path.Combine(dir, "missing.dll")), "a missing file must be rejected, not throw");
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
     }
 
     /// <summary>

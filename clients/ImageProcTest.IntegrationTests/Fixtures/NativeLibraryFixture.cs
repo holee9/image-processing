@@ -38,6 +38,12 @@ public sealed class NativeLibraryFixture : IDisposable
     /// <summary>Process-wide handle of the loaded DLL, reused by <see cref="Resolver"/>.</summary>
     private readonly IntPtr _handle;
 
+    /// <summary>
+    /// GUI-C-208 (D2): pinned objects the runtime saw in a full blocking collection when this fixture was created, i.e. before any test of the collection ran. A test that
+    /// asks "is anything pinned that was not pinned then" compares against this.
+    /// </summary>
+    public long PinnedObjectsAtStart { get; } = PinnedObjects.AfterFullCollection();
+
     public NativeLibraryFixture()
     {
         NativeLibrary.SetDllImportResolver(typeof(NativeLibraryFixture).Assembly, Resolver);
@@ -72,7 +78,7 @@ public sealed class NativeLibraryFixture : IDisposable
         }
     }
 
-    private static (bool found, string path) TryLocateDll()
+    internal static (bool found, string path) TryLocateDll()
     {
         // Priority 1: Env var override
         var envDir = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
@@ -127,7 +133,7 @@ public sealed class NativeLibraryFixture : IDisposable
         return null;
     }
 
-    private static bool VerifyX64Pe(string path)
+    internal static bool VerifyX64Pe(string path)
     {
         try
         {
