@@ -46,7 +46,11 @@ namespace ImageProcTest
             out float minValue,
             out float maxValue);
 
-        public static PreprocessHealthResult Check()
+        /// <param name="waitForOracle">
+        /// True: wait for the synthetic oracle (headless callers, and every caller before GUI-C-219). False: take the verdict if it is in and otherwise report "checking" without waiting; the
+        /// oracle runs on a thread-pool thread and <see cref="PreprocessOracleVerdicts.Completed"/> says when it is done.
+        /// </param>
+        public static PreprocessHealthResult Check(bool waitForOracle = true)
         {
             PreprocessHealthResult? fallback = null;
             foreach (var candidate in XpePreprocessLibraryLocator.GetDllCandidates())
@@ -97,7 +101,25 @@ namespace ImageProcTest
                         continue;
                     }
 
-                    var synthetic = XpePreprocessOracleProcess.Run(candidate);
+                    var synthetic = waitForOracle ? PreprocessOracleVerdicts.Wait(candidate) : PreprocessOracleVerdicts.TryGet(candidate);
+                    if (synthetic is null)
+                    {
+                        return new PreprocessHealthResult(
+                            Status: "Synthetic oracle checking",
+                            Version: version,
+                            DllPath: candidate,
+                            Details: "Preprocess exports are discoverable; the 16x16 synthetic adapter-chain oracle is running in the background. Preprocess stays blocked, as for any unconfirmed module, until it answers.",
+                            PresentExports: present,
+                            MissingExports: missing,
+                            MissingExecutionExports: missingExecution,
+                            SyntheticOracle: PreprocessSyntheticOracleResult.Checking(),
+                            ParameterRanges: parameterRanges,
+                            IsVersionReady: true,
+                            IsExportReady: true,
+                            IsSyntheticOracleReady: false,
+                            IsSyntheticOracleChecking: true);
+                    }
+
                     var result = new PreprocessHealthResult(
                         Status: synthetic.Passed ? "Synthetic oracle ready" : "Export checklist ready",
                         Version: version,

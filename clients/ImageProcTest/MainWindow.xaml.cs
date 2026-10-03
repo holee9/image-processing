@@ -57,7 +57,20 @@ namespace ImageProcTest
             InitializeComponent();
             SelectedAlgorithmChainListBox.ItemsSource = selectedAlgorithmChain;
             ModuleReadinessGrid.ItemsSource = moduleReadinessViewModel.Modules;
+            // GUI-C-219: the synthetic oracle runs off this thread; when its verdict arrives the window refreshes once, here.
+            PreprocessOracleVerdicts.Completed += OnPreprocessOracleVerdict;
         }
+
+        private void OnPreprocessOracleVerdict(string dllPath)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (isClosingWindow) return;
+                RefreshNativeHealth();
+            }));
+        }
+
+        private bool isClosingWindow;
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
@@ -108,13 +121,13 @@ namespace ImageProcTest
 
         private void MenuRefreshNativeDiagnostics_Click(object sender, RoutedEventArgs e)
         {
-            RefreshNativeHealth();
+            RefreshNativeHealth(recheckOracle: true);
         }
 
         private void MenuRunSmokeTest_Click(object sender, RoutedEventArgs e)
         {
             SelectTab("Diagnostics");
-            RefreshNativeHealth();
+            RefreshNativeHealth(recheckOracle: true);
         }
 
         private void MenuShowEvaluation_Click(object sender, RoutedEventArgs e)
@@ -306,7 +319,7 @@ namespace ImageProcTest
 
         private void RefreshButton_Click(object sender, RoutedEventArgs e)
         {
-            RefreshNativeHealth();
+            RefreshNativeHealth(recheckOracle: true);
         }
 
         private void RefreshFixturesButton_Click(object sender, RoutedEventArgs e)
@@ -316,6 +329,8 @@ namespace ImageProcTest
 
         private void RefreshModulesButton_Click(object sender, RoutedEventArgs e)
         {
+            // the user's refresh: the synthetic oracle is asked again (every other refresh reuses its verdict)
+            PreprocessOracleVerdicts.Invalidate();
             RefreshModuleReadiness();
         }
 
@@ -966,8 +981,13 @@ namespace ImageProcTest
             }
         }
 
-        private void RefreshNativeHealth()
+        private void RefreshNativeHealth(bool recheckOracle = false)
         {
+            if (recheckOracle)
+            {
+                PreprocessOracleVerdicts.Invalidate();
+            }
+
             SetStatus("Checking native common backend...", Brushes.Goldenrod);
             var result = backend.CheckHealth();
             lastBackendHealth = result;
@@ -985,17 +1005,19 @@ namespace ImageProcTest
 
             try
             {
-                var report = NativeReadinessProbe.WriteReport(result);
+                var report = NativeReadinessProbe.WriteReport(result, waitForOracle: false);
                 lastReadinessReportPath = report.ReportPath;
                 lastPreprocessHealth = report.PreprocessHealth;
                 DisplayHealthText.Text = $"Display health: {report.DisplaySummary}";
                 DicomHealthText.Text = $"DICOM health: {report.DicomSummary}";
                 GsvgHealthText.Text = $"GSVG health: {report.GsvgSummary}";
                 PreprocessHealthText.Text = $"Preprocess health: {report.PreprocessSummary}";
-                PreprocessSmokeText.Text =
-                    $"Preprocess smoke: {report.PreprocessHealth.SyntheticOracle.Status}; " +
-                    $"pass={report.PreprocessHealth.SyntheticOracle.Passed}; " +
-                    $"latency={report.PreprocessHealth.SyntheticOracle.TotalLatencyMs:0.###}ms";
+                // GUI-C-219: while the oracle runs in the background there is no pass/fail to print; the line says so (and carries no "pass=" until there is one)
+                PreprocessSmokeText.Text = report.PreprocessHealth.IsSyntheticOracleChecking
+                    ? "Preprocess smoke: checking in the background"
+                    : $"Preprocess smoke: {report.PreprocessHealth.SyntheticOracle.Status}; " +
+                      $"pass={report.PreprocessHealth.SyntheticOracle.Passed}; " +
+                      $"latency={report.PreprocessHealth.SyntheticOracle.TotalLatencyMs:0.###}ms";
                 PreprocessParamRangeText.Text =
                     $"Preprocess parameter ranges: {NativeReadinessProbe.FormatPreprocessParameterRanges(report.PreprocessHealth.ParameterRanges)}";
                 PreprocessParamRangeGrid.ItemsSource = report.PreprocessHealth.ParameterRanges;
@@ -1021,6 +1043,8 @@ namespace ImageProcTest
 
         private void Window_Closed(object? sender, System.EventArgs e)
         {
+            isClosingWindow = true;
+            PreprocessOracleVerdicts.Completed -= OnPreprocessOracleVerdict;
             backend.Shutdown();
         }
 
@@ -1573,7 +1597,7 @@ namespace ImageProcTest
 
         private void RefreshModuleReadiness()
         {
-            currentModuleReadiness = moduleReadinessViewModel.Refresh(lastBackendHealth);
+            currentModuleReadiness = moduleReadinessViewModel.Refresh(lastBackendHealth, waitForOracle: false);
             ModuleReadinessSummaryText.Text = moduleReadinessViewModel.SummaryText;
             RefreshAlgorithmValidation();
             UpdateNativePreviewControls();
@@ -1664,7 +1688,8 @@ namespace ImageProcTest
         private void UpdateAlgorithmChainPlan()
         {
             currentAlgorithmChainPlan = AlgorithmChainCatalogService.BuildPlan(
-                selectedAlgorithmChain.Select(step => step.Node).ToArray());
+                selectedAlgorithmChain.Select(step => step.Node).ToArray(),
+                preprocessChecking: lastPreprocessHealth?.IsSyntheticOracleChecking == true);
             WorkflowRuleFindingsGrid.ItemsSource = currentAlgorithmChainPlan.Findings;
 
             var inputState = currentCalibrationContext is null
@@ -2134,7 +2159,9 @@ namespace ImageProcTest
 
             if (!preprocessReady && !enhanceReady)
             {
-                StageModesInfoText.Text = "Native pre/post exports are not ready, so algorithm execution switches stay disabled.";
+                StageModesInfoText.Text = lastPreprocessHealth?.IsSyntheticOracleChecking == true
+                    ? "Native preprocess is being checked in the background, so algorithm execution switches stay disabled until it answers."
+                    : "Native pre/post exports are not ready, so algorithm execution switches stay disabled.";
                 NativePreviewText.Text = lastPreprocessHealth is null
                     ? "Native preview: readiness has not been checked."
                     : $"Native preview: unavailable (pre={lastPreprocessHealth.Status}; exportsReady={lastPreprocessHealth.IsExportReady}; synthetic={lastPreprocessHealth.SyntheticOracle.Status}).";

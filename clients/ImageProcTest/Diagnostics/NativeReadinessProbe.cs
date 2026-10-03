@@ -77,7 +77,8 @@ namespace ImageProcTest
         IReadOnlyList<PreprocessParameterRangeResult> ParameterRanges,
         bool IsVersionReady,
         bool IsExportReady,
-        bool IsSyntheticOracleReady);
+        bool IsSyntheticOracleReady,
+        bool IsSyntheticOracleChecking = false);
 
     internal sealed record PreprocessParameterRangeResult(
         string ParamName,
@@ -89,12 +90,16 @@ namespace ImageProcTest
 
     internal static class NativeReadinessProbe
     {
-        public static NativeReadinessReportWriteResult WriteReport(BackendHealthResult commonResult)
+        /// <param name="commonResult">The common backend's health.</param>
+        /// <param name="waitForOracle">
+        /// True (headless callers): wait for the synthetic oracle. False (the window, GUI-C-219): never wait; a verdict not yet in is reported as "checking" and the window is told when it arrives.
+        /// </param>
+        public static NativeReadinessReportWriteResult WriteReport(BackendHealthResult commonResult, bool waitForOracle = true)
         {
             var display = XpeDisplayVersionProbe.Check();
             var dicom = XpeDicomReadinessProbe.Check();
             var gsvg = XpeGsvgReadinessProbe.Check();
-            var preprocess = XpePreprocessReadinessProbe.Check();
+            var preprocess = XpePreprocessReadinessProbe.Check(waitForOracle);
             var report = new
             {
                 schema = "xpe-native-readiness-v1",

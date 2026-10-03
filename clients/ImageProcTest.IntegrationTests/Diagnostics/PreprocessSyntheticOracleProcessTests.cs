@@ -173,7 +173,9 @@ public sealed class PreprocessSyntheticOracleProcessTests
         // Control: the scan sees the call that must exist (the host's worker entry), so an empty result cannot be a scan that read nothing.
         Assert.Contains("XpePreprocessOracleProcess.cs", callers);
         Assert.Equal(["XpePreprocessOracleProcess.cs"], callers);
-        Assert.Contains("XpePreprocessOracleProcess.Run(", File.ReadAllText(Path.Combine(appDir, "Diagnostics", "XpePreprocessReadinessProbe.cs")), StringComparison.Ordinal);
+        // GUI-C-219: the readiness probe asks the shared verdict holder, and the holder's runner is the child-process host: the in-process oracle is reached by neither.
+        Assert.Contains("PreprocessOracleVerdicts.", File.ReadAllText(Path.Combine(appDir, "Diagnostics", "XpePreprocessReadinessProbe.cs")), StringComparison.Ordinal);
+        Assert.Contains("= XpePreprocessOracleProcess.Run;", File.ReadAllText(Path.Combine(appDir, "Diagnostics", "PreprocessOracleVerdicts.cs")), StringComparison.Ordinal);
     }
 
     private static string FindAppDir()

@@ -39,6 +39,15 @@ public class ApplicationFixture : IDisposable
     }
 
     /// <summary>
+    /// GUI-C-219: construction with a chosen budget for the main window. A budget of a millisecond makes the launch fail AFTER the app has started, which is the case the constructor's
+    /// cleanup exists for and the only way to prove it.
+    /// </summary>
+    internal ApplicationFixture(TimeSpan mainWindowTimeout)
+        : this(rawImageRelativePath: null, simulateUnreadableChecks: 0, skipLeftoverSweep: false, extraArguments: null, forcedNativeDirectory: null, mainWindowTimeout: mainWindowTimeout)
+    {
+    }
+
+    /// <summary>
     /// Test-only construction that arms the seams for ONE fixture (GUI-C-52).
     ///
     /// The seams used to be static fields reset in a <c>finally</c>. GUI-C-51 recorded the risk and
@@ -101,103 +110,114 @@ public class ApplicationFixture : IDisposable
         int simulateUnreadableChecks,
         bool skipLeftoverSweep,
         IReadOnlyList<string>? extraArguments = null,
-        string? forcedNativeDirectory = null)
+        string? forcedNativeDirectory = null,
+        TimeSpan? mainWindowTimeout = null)
     {
         _simulateUnreadableChecks = simulateUnreadableChecks;
         Automation = new UIA3Automation();
-
-        var exePath = ResolveApplicationExecutable();
-        if (exePath is null)
+        try
         {
-            SkipReason =
-                "gui/ImageProcTest/bin/Debug/net8.0-windows/ImageProcTest.exe was not found. " +
-                "Build the gui project (or the clients solution, which now includes it) before the E2E suite.";
-            return;
-        }
 
-        // #163 / GUI-C-109: the exe that is about to be launched must be newer than the sources it was
-        // built from. This throws rather than skipping: a stale-binary run is the failure mode that
-        // reports a green for code that never ran, and a skip would hide it the same way.
-        EnsureApplicationIsFresh(exePath);
-
-        BackendMode = forcedNativeDirectory is null ? ResolveBackendMode() : "Native";
-        if (BackendMode is null)
-        {
-            SkipReason =
-                $"XPE_E2E_BACKEND='{Environment.GetEnvironmentVariable(BackendVariable)}' is not one of " +
-                $"{string.Join(" | ", AcceptedBackendModes)}.";
-            return;
-        }
-
-        LeftoverNote = skipLeftoverSweep ? "sweep skipped (test seam)" : KillLeftovers(exePath);
-
-        var startInfo = new ProcessStartInfo(exePath)
-        {
-            WorkingDirectory = Path.GetDirectoryName(exePath)!,
-            UseShellExecute = false,
-        };
-        startInfo.ArgumentList.Add("--automation-backend");
-        startInfo.ArgumentList.Add(BackendMode);
-
-        if (rawImageRelativePath is not null)
-        {
-            var raw = Path.Combine(Path.GetDirectoryName(exePath)!, rawImageRelativePath);
-            if (!File.Exists(raw))
+            var exePath = ResolveApplicationExecutable();
+            if (exePath is null)
             {
-                SkipReason = $"Fixture image not found: {raw}";
+                SkipReason =
+                    "gui/ImageProcTest/bin/Debug/net8.0-windows/ImageProcTest.exe was not found. " +
+                    "Build the gui project (or the clients solution, which now includes it) before the E2E suite.";
                 return;
             }
 
-            // Width/height must accompany the path — the loader reads raw bytes and cannot infer them.
-            startInfo.ArgumentList.Add("--automation-raw");
-            startInfo.ArgumentList.Add(raw);
-            startInfo.ArgumentList.Add("--automation-width");
-            startInfo.ArgumentList.Add("1024");
-            startInfo.ArgumentList.Add("--automation-height");
-            startInfo.ArgumentList.Add("1024");
-            RawImagePath = raw;
-        }
+            // #163 / GUI-C-109: the exe that is about to be launched must be newer than the sources it was
+            // built from. This throws rather than skipping: a stale-binary run is the failure mode that
+            // reports a green for code that never ran, and a skip would hide it the same way.
+            EnsureApplicationIsFresh(exePath);
 
-        if (BackendMode == "Native")
-        {
-            CalibrationDirectory = SharedCalibrationSet(out var calibrationNote);
-            CalibrationNote = calibrationNote;
-
-            if (CalibrationDirectory is not null)
+            BackendMode = forcedNativeDirectory is null ? ResolveBackendMode() : "Native";
+            if (BackendMode is null)
             {
-                startInfo.ArgumentList.Add("--automation-calib");
-                startInfo.ArgumentList.Add(CalibrationDirectory);
+                SkipReason =
+                    $"XPE_E2E_BACKEND='{Environment.GetEnvironmentVariable(BackendVariable)}' is not one of " +
+                    $"{string.Join(" | ", AcceptedBackendModes)}.";
+                return;
             }
 
-            // The app resolves native DLLs through XPE_NATIVE_DIR; pinning it EXCLUSIVE keeps the
-            // search from wandering into build directories or sibling checkouts (GUI-C-16/#129), so
-            // a Native run names exactly which binaries it exercised.
-            var nativeDir = forcedNativeDirectory ?? Environment.GetEnvironmentVariable(NativeDirVariable);
-            if (!string.IsNullOrWhiteSpace(nativeDir))
+            LeftoverNote = skipLeftoverSweep ? "sweep skipped (test seam)" : KillLeftovers(exePath);
+
+            var startInfo = new ProcessStartInfo(exePath)
             {
-                startInfo.Environment[NativeDirVariable] = nativeDir;
-                startInfo.Environment["XPE_NATIVE_DIR_EXCLUSIVE"] = "1";
-                NativeDirectory = nativeDir;
+                WorkingDirectory = Path.GetDirectoryName(exePath)!,
+                UseShellExecute = false,
+            };
+            startInfo.ArgumentList.Add("--automation-backend");
+            startInfo.ArgumentList.Add(BackendMode);
+
+            if (rawImageRelativePath is not null)
+            {
+                var raw = Path.Combine(Path.GetDirectoryName(exePath)!, rawImageRelativePath);
+                if (!File.Exists(raw))
+                {
+                    SkipReason = $"Fixture image not found: {raw}";
+                    return;
+                }
+
+                // Width/height must accompany the path — the loader reads raw bytes and cannot infer them.
+                startInfo.ArgumentList.Add("--automation-raw");
+                startInfo.ArgumentList.Add(raw);
+                startInfo.ArgumentList.Add("--automation-width");
+                startInfo.ArgumentList.Add("1024");
+                startInfo.ArgumentList.Add("--automation-height");
+                startInfo.ArgumentList.Add("1024");
+                RawImagePath = raw;
             }
-        }
 
-        foreach (var argument in extraArguments ?? [])
+            if (BackendMode == "Native")
+            {
+                CalibrationDirectory = SharedCalibrationSet(out var calibrationNote);
+                CalibrationNote = calibrationNote;
+
+                if (CalibrationDirectory is not null)
+                {
+                    startInfo.ArgumentList.Add("--automation-calib");
+                    startInfo.ArgumentList.Add(CalibrationDirectory);
+                }
+
+                // The app resolves native DLLs through XPE_NATIVE_DIR; pinning it EXCLUSIVE keeps the
+                // search from wandering into build directories or sibling checkouts (GUI-C-16/#129), so
+                // a Native run names exactly which binaries it exercised.
+                var nativeDir = forcedNativeDirectory ?? Environment.GetEnvironmentVariable(NativeDirVariable);
+                if (!string.IsNullOrWhiteSpace(nativeDir))
+                {
+                    startInfo.Environment[NativeDirVariable] = nativeDir;
+                    startInfo.Environment["XPE_NATIVE_DIR_EXCLUSIVE"] = "1";
+                    NativeDirectory = nativeDir;
+                }
+            }
+
+            foreach (var argument in extraArguments ?? [])
+            {
+                startInfo.ArgumentList.Add(argument);
+            }
+
+            _timing = LaunchTimingRecorder.StartIfEnabled();
+            _application = Application.Launch(startInfo);
+            var launched = _application.GetMainWindow(Automation, mainWindowTimeout ?? TimeSpan.FromSeconds(30));
+            if (_timing is not null)
+            {
+                _timing.MainWindowReturnedUtc = DateTime.UtcNow;
+                _timing.ProcessId = _application.ProcessId;
+            }
+
+            ProbeAcquisitionRoutes(launched);
+            MainWindow = WithReadableProperties(launched);
+            ExecutablePath = exePath;
+        }
+        catch
         {
-            startInfo.ArgumentList.Add(argument);
+            // GUI-C-219 (the same shape as GUI-C-218 found in the legacy fixture): a constructor that throws is never disposed, so a failure AFTER the app was launched
+            // (the main window did not come, a probe threw) left the app running, holding the test host's output handles. Everything this constructor started is ended here.
+            CleanUpAfterFailedConstruction();
+            throw;
         }
-
-        _timing = LaunchTimingRecorder.StartIfEnabled();
-        _application = Application.Launch(startInfo);
-        var launched = _application.GetMainWindow(Automation, TimeSpan.FromSeconds(30));
-        if (_timing is not null)
-        {
-            _timing.MainWindowReturnedUtc = DateTime.UtcNow;
-            _timing.ProcessId = _application.ProcessId;
-        }
-
-        ProbeAcquisitionRoutes(launched);
-        MainWindow = WithReadableProperties(launched);
-        ExecutablePath = exePath;
     }
 
     /// <summary>
@@ -411,6 +431,29 @@ public class ApplicationFixture : IDisposable
 
     /// <summary>True when a window is available to drive.</summary>
     public bool IsAvailable => MainWindow is not null;
+
+    /// <summary>Ends what a constructor that is about to throw had started: the app and everything it started, the watch handle, the timing recorder and the automation object. Never throws.</summary>
+    private void CleanUpAfterFailedConstruction()
+    {
+        try
+        {
+            if (_application is not null)
+            {
+                using var process = Process.GetProcessById(_application.ProcessId);
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit(5000);
+            }
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            // already gone
+        }
+
+        _timing?.Dispose();
+        _watched?.Dispose();
+        _application?.Dispose();
+        Automation.Dispose();
+    }
 
     public void Dispose()
     {

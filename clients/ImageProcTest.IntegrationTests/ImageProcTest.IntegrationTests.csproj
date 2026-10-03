@@ -129,6 +129,8 @@
     <Compile Include="..\ImageProcTest\Diagnostics\XpePreprocessSyntheticOracle.cs" Link="OracleCall\Linked\XpePreprocessSyntheticOracle.cs" />
     <!-- GUI-C-212b: the child-process host of the oracle (timeout, kill, one JSON result line). It touches no WPF type. -->
     <Compile Include="..\ImageProcTest\Diagnostics\XpePreprocessOracleProcess.cs" Link="OracleCall\Linked\XpePreprocessOracleProcess.cs" />
+    <!-- GUI-C-219: the shared, background-produced verdict the window asks for instead of running the oracle itself. -->
+    <Compile Include="..\ImageProcTest\Diagnostics\PreprocessOracleVerdicts.cs" Link="OracleCall\Linked\PreprocessOracleVerdicts.cs" />
   </ItemGroup>
 
   <!--
