@@ -47,6 +47,43 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
         Assert.False(view.Evaluation, $"Evaluation tab: {view.EvaluationEvidence}");
     }
 
+    /// <summary>
+    /// GUI-C-218: a launch that fails after the app has started leaves no app, no fault file and no automation object behind. The failure is made certain by giving the window a 1 ms budget
+    /// (the app needs about half a second to show one); the check is on the system, not on the fixture's own bookkeeping.
+    /// </summary>
+    [SkippableFact]
+    public void ALaunchThatFailsAfterTheAppStarted_LeavesNoAppAndNoFaultFileBehind()
+    {
+        var exe = FindLegacyExecutable();
+        Skip.If(exe is null, "clients/ImageProcTest/bin/Debug/net8.0-windows/ImageProcTest.exe was not found: build clients/ImageProcTest first.");
+        var before = AppProcessIds(exe!);
+        var faultFilesBefore = Directory.GetFiles(Path.GetTempPath(), "xpe_not_a_directory_*").Length;
+
+        Assert.ThrowsAny<Exception>(() => LegacyApp.LaunchOrSkip(breakTemp: true, windowTimeout: TimeSpan.FromMilliseconds(1)));
+
+        var leaked = AppProcessIds(exe!).Except(before).ToList();
+        foreach (var pid in leaked) { try { Process.GetProcessById(pid).Kill(entireProcessTree: true); } catch (ArgumentException) { } }   // do not let a failing run leak either
+        Assert.True(leaked.Count == 0, $"a failed launch left {leaked.Count} app instance(s) running: {string.Join(", ", leaked)}");
+        Assert.Equal(faultFilesBefore, Directory.GetFiles(Path.GetTempPath(), "xpe_not_a_directory_*").Length);
+    }
+
+    private static string? FindLegacyExecutable()
+    {
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        {
+            var candidate = Path.Combine(dir.FullName, "clients", "ImageProcTest", "bin", "Debug", "net8.0-windows", "ImageProcTest.exe");
+            if (File.Exists(candidate)) return candidate;
+        }
+
+        return null;
+    }
+
+    private static HashSet<int> AppProcessIds(string exe) =>
+        Process.GetProcessesByName(Path.GetFileNameWithoutExtension(exe))
+            .Where(p => { try { return string.Equals(p.MainModule?.FileName, exe, StringComparison.OrdinalIgnoreCase); } catch (Exception) { return false; } })
+            .Select(p => p.Id)
+            .ToHashSet();
+
     private sealed record TabView(bool Diagnostics, string DiagnosticsEvidence, bool Calibration, string CalibrationEvidence, bool Evaluation, string EvaluationEvidence)
     {
         public string Describe() => $"diagnostics={Diagnostics} [{DiagnosticsEvidence}] | calibration={Calibration} [{CalibrationEvidence}] | evaluation={Evaluation} [{EvaluationEvidence}]";
@@ -67,7 +104,13 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             _faultFile = faultFile;
         }
 
-        public static LegacyApp LaunchOrSkip(bool breakTemp)
+        /// <summary>
+        /// GUI-C-218 (#249): everything from the moment the app exists is exception-safe. This used to <c>Application.Launch</c> and then <c>GetMainWindow</c> with nothing around them, so a
+        /// UIA timeout in <c>GetMainWindow</c> (FlaUI's connection timeout is 2 s; the app's UI thread can be busy that long at startup) threw out of here BEFORE a <see cref="LegacyApp"/>
+        /// existed. The test's <c>using var app</c> then had nothing to dispose: the app, the automation object and the fault file leaked, and the leaked app (started with
+        /// <c>UseShellExecute=false</c>, so it inherits this process's standard handles) kept the test host's output pipe open, which is what made <c>dotnet test</c> look hung.
+        /// </summary>
+        public static LegacyApp LaunchOrSkip(bool breakTemp, TimeSpan? windowTimeout = null)
         {
             var exe = FindExecutable();
             Skip.If(exe is null, "clients/ImageProcTest/bin/Debug/net8.0-windows/ImageProcTest.exe was not found: build clients/ImageProcTest first.");
@@ -88,11 +131,39 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
                 info.Environment["TEMP"] = faultFile;
             }
 
-            var automation = new UIA3Automation();
-            var application = Application.Launch(info);
-            var window = application.GetMainWindow(automation, TimeSpan.FromSeconds(60));
-            Assert.NotNull(window);
-            return new LegacyApp(application, window, automation, faultFile);
+            UIA3Automation? automation = null;
+            Application? application = null;
+            try
+            {
+                automation = new UIA3Automation();
+                application = Application.Launch(info);
+                var window = application.GetMainWindow(automation, windowTimeout ?? TimeSpan.FromSeconds(60));
+                Assert.NotNull(window);
+                return new LegacyApp(application, window, automation, faultFile);
+            }
+            catch
+            {
+                KillTree(application);
+                automation?.Dispose();
+                if (faultFile is not null) { try { File.Delete(faultFile); } catch (IOException) { } }
+                throw;
+            }
+        }
+
+        /// <summary>Ends the app and anything it started, and does not throw: this runs on failure paths where the original exception is the one worth reporting.</summary>
+        private static void KillTree(Application? application)
+        {
+            if (application is null) return;
+            try
+            {
+                using var process = Process.GetProcessById(application.ProcessId);
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit(5000);
+            }
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+            {
+                // already gone
+            }
         }
 
         public TabView ReadPreprocessOnEveryTab()
@@ -161,13 +232,7 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
                 // The process may already be gone; the kill below is the guarantee.
             }
 
-            try
-            {
-                if (!_application.HasExited) _application.Kill();
-            }
-            catch (Exception)
-            {
-            }
+            KillTree(_application);
 
             _automation.Dispose();
             if (_faultFile is not null) { try { File.Delete(_faultFile); } catch (IOException) { } }
