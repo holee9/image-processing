@@ -1,0 +1,121 @@
+[2026-10-03 15:17:58.763] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.765] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.765] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.765] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.766] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.766] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.766] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.766] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.766] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.766] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.766] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.766] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.766] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.766] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.767] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.767] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.767] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.767] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.767] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.767] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.767] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.768] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.768] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.768] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.769] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.769] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.769] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.769] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.769] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.769] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.769] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.769] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.769] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.770] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.770] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.770] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.770] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.770] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.770] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.770] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.770] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.770] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.770] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.770] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.770] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.770] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.770] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.771] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.771] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.771] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.771] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.771] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.771] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.771] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.771] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.771] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.771] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.772] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.772] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.772] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.772] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.772] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.772] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.772] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.772] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.772] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.772] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.772] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.772] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.773] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.774] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.774] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.778] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.778] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.793] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.793] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.808] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.809] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.824] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.824] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.839] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.839] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.854] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.855] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.869] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.870] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.885] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.885] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.901] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.901] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.916] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.918] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.926] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.926] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.926] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.930] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.930] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.930] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.930] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.930] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.930] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.930] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.931] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.931] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 15:17:58.931] [xpe_stderr] [info] xpe_init: library initialised
+
+entry point              NULL argument  uninitialized  initialized
+xpe_configure            jsonConfig     -1             -1
+xpe_get_param_range      bodyPart       -1             -1
+xpe_get_param_range      paramName      -1             -1
+xpe_get_param_range      minValue       -1             -1
+xpe_get_pending_alert    message        -1             -1
+xpe_get_pending_alert    severity       -1             -1
+xpe_alloc_image          out            -1             -1
+xpe_free_image           buffer         -1             -1
+xpe_copy_image           source         -1             -1
+xpe_copy_image           target         -1             -1
+(XPE_ERR_INVALID_INPUT = -1, XPE_ERR_NOT_INITIALIZED = -6)
+
+[==========] 69 tests from 4 test suites ran. (177 ms total)
+[  PASSED  ] 69 tests.

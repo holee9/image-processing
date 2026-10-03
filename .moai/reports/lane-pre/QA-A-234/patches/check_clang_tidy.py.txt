@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+"""clang-tidy baseline gate (QA-A-234, #253). Draft for tools/ci/check_clang_tidy.py.
+
+Runs clang-tidy over modules/<module>/src/*.cpp with the module's own .clang-tidy, counts findings per
+(check, file) -- no line numbers, they move with every edit -- and compares with a baseline file.
+A (check, file) pair whose count is above its baseline (or is not in the baseline) fails the run.
+A count below the baseline is reported so the baseline can be tightened, and does not fail.
+
+usage: check_clang_tidy.py <module> <build-dir> <baseline-file> [--write-baseline]
+The build dir must be configured (Ninja); the compile database is taken from `ninja -t compdb`.
+"""
+import collections
+import glob
+import os
+import re
+import subprocess
+import sys
+import tempfile
+
+EXTRA = ['--extra-arg=-D_CRT_USE_BUILTIN_OFFSETOF']  # MSVC offsetof is not a constant expression for clang
+PAT = re.compile(r'^(?P<path>.+?):\d+:\d+: warning: .*\[(?P<check>[\w\-.]+)\]$', re.M)
+
+
+def find_tidy():
+    for cand in (os.environ.get('CLANG_TIDY'), 'clang-tidy'):
+        if not cand:
+            continue
+        try:
+            if subprocess.run([cand, '--version'], capture_output=True).returncode == 0:
+                return cand
+        except FileNotFoundError:
+            pass
+    vs = os.environ.get('VCINSTALLDIR', '')
+    cand = os.path.join(vs, 'Tools', 'Llvm', 'x64', 'bin', 'clang-tidy.exe')
+    if vs and os.path.exists(cand):
+        return cand
+    sys.exit('clang-tidy was not found (not on PATH, CLANG_TIDY unset, none under VCINSTALLDIR\\Tools\\Llvm): '
+             'this runner image has no clang-tidy')
+
+
+def main():
+    module, build, baseline_path = sys.argv[1:4]
+    write = '--write-baseline' in sys.argv
+    tidy = find_tidy()
+    db = tempfile.mkdtemp()
+    with open(os.path.join(db, 'compile_commands.json'), 'w', encoding='utf-8') as f:
+        subprocess.run(['ninja', '-C', build, '-t', 'compdb'], stdout=f, check=True)
+    files = sorted(glob.glob(f'modules/{module}/src/*.cpp'))
+    if not files:
+        sys.exit(f'no sources under modules/{module}/src: a run over nothing is not a pass')
+    seen = collections.Counter()
+    for src in files:
+        p = subprocess.run([tidy, '-p', db, '--quiet', *EXTRA, src], capture_output=True, text=True,
+                           encoding='utf-8', errors='replace')
+        if re.search(r': error: ', p.stdout + p.stderr):
+            sys.exit(f'clang-tidy could not parse {src}: the count would be meaningless\n' + (p.stdout + p.stderr)[:2000])
+        for m in PAT.finditer(p.stdout):
+            if '/modules/' not in m['path'].replace(chr(92), '/').lower():
+                continue  # a finding inside a toolchain or third-party header is not this module's
+            seen[(m['check'], os.path.basename(m['path']).lower())] += 1
+    lines = sorted(f'{c} {f} {n}' for (c, f), n in seen.items())
+    if write:
+        with open(baseline_path, 'w', encoding='utf-8', newline='\n') as f:
+            f.write('\n'.join(lines) + ('\n' if lines else ''))
+        print(f'wrote {len(lines)} baseline lines, {sum(seen.values())} findings over {len(files)} files')
+        return
+    base = {}
+    for ln in open(baseline_path, encoding='utf-8').read().split('\n'):
+        if ln.strip():
+            c, f, n = ln.split()
+            base[(c, f)] = int(n)
+    bad = [(k, n, base.get(k, 0)) for k, n in sorted(seen.items()) if n > base.get(k, 0)]
+    better = [(k, base[k], seen.get(k, 0)) for k in sorted(base) if seen.get(k, 0) < base[k]]
+    print(f'{sum(seen.values())} findings over {len(files)} files; baseline {sum(base.values())}')
+    for (c, f), n in better:
+        print(f'  below baseline (tighten it): {c} {f} {n} -> {seen.get((c, f), 0)}')
+    for (c, f), n, b in bad:
+        print(f'  NEW: {c} {f} {n} (baseline {b})')
+    sys.exit(1 if bad else 0)
+
+
+if __name__ == '__main__':
+    main()

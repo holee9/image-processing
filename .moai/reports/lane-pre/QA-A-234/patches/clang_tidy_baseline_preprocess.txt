@@ -1,0 +1,6 @@
+bugprone-implicit-widening-of-multiplication-result xcal_reader.cpp 1
+bugprone-implicit-widening-of-multiplication-result xcal_validator.cpp 1
+bugprone-incorrect-roundings nonlinearity_correct.cpp 1
+bugprone-misplaced-widening-cast xpe_calib_generate_gain.cpp 1
+bugprone-narrowing-conversions xpe_verify_metrics.cpp 4
+performance-enum-size calibration_cache.cpp 2

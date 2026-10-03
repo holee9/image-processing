@@ -1,0 +1,32 @@
+Note: Google Test filter = A235LoadBreakdown.*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A235LoadBreakdown
+[ RUN      ] A235LoadBreakdown.Measure
+[load-breakdown] offset read file           min    20.9  median    21.8  max    23.4 ms (n=9)
+[load-breakdown] offset SHA-256 in memory   min    16.8  median    17.5  max    17.6 ms (n=9)
+[load-breakdown] offset whole load          min    52.0  median    55.5  max    59.2 ms (n=9)
+[load-breakdown] gain read file             min    21.1  median    21.4  max    23.1 ms (n=9)
+[load-breakdown] gain SHA-256 in memory     min    17.0  median    17.2  max    18.1 ms (n=9)
+[load-breakdown] gain whole load            min    58.2  median    60.3  max    62.6 ms (n=9)
+[load-breakdown] defect read file           min     5.2  median     5.4  max     6.5 ms (n=9)
+[load-breakdown] defect SHA-256 in memory   min     4.2  median     4.3  max     4.5 ms (n=9)
+[load-breakdown] defect whole load          min    12.7  median    13.3  max    14.1 ms (n=9)
+[load-breakdown] reference SHA-256 of 64 MiB min    30.1  median    30.8  max    31.7 ms (n=9)
+[       OK ] A235LoadBreakdown.Measure (2541 ms)
+[----------] 1 test from A235LoadBreakdown (2541 ms total)
+
+[----------] Global test environment tear-down
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_global_state_hygiene.cpp(227): error: Failed
+Tests left global module state changed. Each of these has to undo
+what it did -- restore only what the fixture itself raised, in
+TearDown. Leaving state behind passes under ctest (one process per
+test) and fails whenever the binary is run directly or shuffled.
+  A235LoadBreakdown.Measure -- pending alerts 0 -> 1 (drain with xpe_clear_alerts());
+
+
+[==========] 1 test from 1 test suite ran. (2549 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS

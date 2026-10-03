@@ -506,7 +506,7 @@ XpeErrorCode publish_and_view(const std::string& path,
     // successful load into XPE_ERR_PROCESSING_FAILED. put_and_get takes
     // ownership of entry.data and nulls it, exactly as put() did.
     const bool ok = g_calibCache.put_and_get(path, &entry, out, meta);
-    if (entry.data == nullptr) owner.release();   // the cache took the buffer
+    if (entry.data == nullptr) { auto* const taken = owner.release(); (void)taken; }   // the cache took the buffer
     if (!ok) return XPE_ERR_PROCESSING_FAILED;
     return XPE_OK;
 }

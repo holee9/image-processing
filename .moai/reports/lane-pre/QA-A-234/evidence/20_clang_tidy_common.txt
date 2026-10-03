@@ -1,0 +1,8 @@
+## xpe_common.cpp exit=0 warnings=5
+## xpe_logging.cpp exit=0 warnings=6
+## xpe_memory.cpp exit=0 warnings=0
+
+## by check
+   11 bugprone-empty-catch
+
+TOTAL 11 over 3 files

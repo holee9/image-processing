@@ -156,6 +156,7 @@ XPE_API XpeErrorCode xpe_log_set_file(const char* filePath) {
             try {
                 spdlog::drop(previous->name());
             } catch (...) {
+                // [no-throw-boundary] the dropped logger is only a registry entry; a failed drop leaves an unused name behind, nothing else
             }
         }
         return XPE_OK;
@@ -183,6 +184,7 @@ void xpe_log_internal_init() {
             spdlog::drop(previous->name());
         }
     } catch (...) {
+        // [no-throw-boundary] a failed install of the stderr default leaves the previous default logger in place; xpe_init has no error to return
     }
 }
 
@@ -195,6 +197,7 @@ void xpe_log_internal_write(int level, const char* msg) {
         std::shared_ptr<spdlog::logger> target = spdlog::default_logger();
         if (target) target->log(to_spdlog_level(level), msg);
     } catch (...) {
+        // [no-throw-boundary] a log line must never turn into an error for the caller
         // a log line must never turn into an error for the caller
     }
 }
@@ -216,16 +219,20 @@ void xpe_log_internal_reset() {
             std::make_shared<spdlog::sinks::null_sink_mt>());
         spdlog::set_default_logger(null_logger);
     } catch (...) {
-        // set_default_logger must not break the reset sequence
+        // [no-throw-boundary] set_default_logger must not break the reset sequence
     }
 
     if (g_logger) {
         try {
             g_logger->flush();
-        } catch (...) {}
+        } catch (...) {
+            // [no-throw-boundary] a failed flush at shutdown cannot be reported; the file is closed next anyway
+        }
         try {
             spdlog::drop("xpe_file");
-        } catch (...) {}
+        } catch (...) {
+            // [no-throw-boundary] a failed drop at shutdown leaves only an unused registry name
+        }
         g_logger.reset();
     }
 }

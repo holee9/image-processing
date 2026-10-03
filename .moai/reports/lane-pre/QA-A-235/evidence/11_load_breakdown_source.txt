@@ -1,0 +1,82 @@
+// QA-A-235 measurement only (NOT registered by the commit): where the time of the one-time calibration load goes.
+// For each map kind at 3072 x 3072, per round and in alternation: (a) reading the file, (b) SHA-256 of the same bytes
+// in memory, (c) the whole xpe_calib_load_*. Prints min / median / max over the rounds.
+#include <gtest/gtest.h>
+
+#include <algorithm>
+#include <chrono>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <vector>
+
+#include "xpe/preprocess_api.h"
+#include "xpe/preprocess/xcal_format.h"
+#include "xcal_writer.hpp"
+#include "xpe_sha256.hpp"
+#include "fixtures/make_xcal.hpp"
+
+namespace {
+using Clock = std::chrono::steady_clock;
+double ms(Clock::time_point a, Clock::time_point b) { return std::chrono::duration<double, std::milli>(b - a).count(); }
+void report(const char* what, std::vector<double> v) {
+    std::sort(v.begin(), v.end());
+    std::printf("[load-breakdown] %-26s min %7.1f  median %7.1f  max %7.1f ms (n=%zu)\n", what, v.front(), v[v.size() / 2], v.back(), v.size());
+}
+}  // namespace
+
+TEST(A235LoadBreakdown, Measure) {
+    constexpr uint32_t W = 3072, H = 3072;
+    const auto dir = std::filesystem::temp_directory_path() / "a235_breakdown";
+    std::filesystem::remove_all(dir);
+    std::filesystem::create_directories(dir);
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    const std::string off = (dir / "o.xcal").string(), gain = (dir / "g.xcal").string(), def = (dir / "d.xcal").string();
+    ASSERT_EQ(XPE_OK, MakeOffsetXCal(off.c_str(), W, H, 100.0f));
+    ASSERT_EQ(XPE_OK, MakeGainXCal(gain.c_str(), W, H, 2.0f));
+    {
+        std::vector<uint8_t> payload(static_cast<size_t>(W) * H, 0);
+        for (size_t i = 0; i < payload.size(); i += 9973) payload[i] = 1;
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version = XCAL_VERSION; hdr.type = XCAL_TYPE_DEFECT; hdr.pixel_format = XCAL_FMT_UINT8_MASK;
+        hdr.width = W; hdr.height = H; hdr.payload_len = payload.size();
+        ASSERT_EQ(XPE_OK, write_xcal_file(def.c_str(), hdr, nullptr, 0, payload.data(), payload.size()));
+    }
+    struct K { const char* name; std::string path; std::vector<double> rd, sha, whole; };
+    K ks[3] = {{"offset", off, {}, {}, {}}, {"gain", gain, {}, {}, {}}, {"defect", def, {}, {}, {}}};
+    std::vector<double> ref;  // a fixed amount of work, to tell a slow machine from a slow code path
+    std::vector<uint8_t> refbuf(64u << 20, 7);
+    for (int round = 0; round < 9; ++round) {
+        for (auto& k : ks) {
+            const uint64_t size = std::filesystem::file_size(k.path);
+            std::vector<uint8_t> buf(size);
+            auto t0 = Clock::now();
+            { std::ifstream f(k.path, std::ios::binary); size_t done = 0;
+              while (done < buf.size()) { size_t c = std::min<size_t>(1u << 20, buf.size() - done);
+                  f.read(reinterpret_cast<char*>(buf.data() + done), static_cast<std::streamsize>(c)); done += c; } }
+            auto t1 = Clock::now();
+            { Sha256Stream h; h.update(buf.data(), buf.size()); (void)h.digest(); }
+            auto t2 = Clock::now();
+            XpeErrorCode rc = k.name[0] == 'o' ? xpe_calib_load_offset(k.path.c_str())
+                           : k.name[0] == 'g' ? xpe_calib_load_gain(k.path.c_str()) : xpe_calib_load_defect_map(k.path.c_str());
+            auto t3 = Clock::now();
+            ASSERT_EQ(XPE_OK, rc);
+            k.rd.push_back(ms(t0, t1)); k.sha.push_back(ms(t1, t2)); k.whole.push_back(ms(t2, t3));
+        }
+        auto r0 = Clock::now();
+        { Sha256Stream h; h.update(refbuf.data(), refbuf.size()); (void)h.digest(); }
+        ref.push_back(ms(r0, Clock::now()));
+    }
+    for (auto& k : ks) {
+        char nm[64];
+        std::snprintf(nm, sizeof(nm), "%s read file", k.name);   report(nm, k.rd);
+        std::snprintf(nm, sizeof(nm), "%s SHA-256 in memory", k.name); report(nm, k.sha);
+        std::snprintf(nm, sizeof(nm), "%s whole load", k.name);  report(nm, k.whole);
+    }
+    report("reference SHA-256 of 64 MiB", ref);
+    xpe_preprocess_shutdown();
+    std::filesystem::remove_all(dir);
+}

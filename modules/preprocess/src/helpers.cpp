@@ -48,7 +48,7 @@ void xpe_alert_nonfinite(const char* prefix, size_t count, size_t first, uint32_
         msg[sizeof(msg) - 1] = '\0';
         xpe_alert_push(msg, XPE_ALERT_ERROR);
     } catch (...) {
-        // advisory
+        // [no-throw-boundary] advisory
     }
 }
 

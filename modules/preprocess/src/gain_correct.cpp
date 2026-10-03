@@ -195,7 +195,7 @@ static void apply_gain_avx2(
     uint32_t width,
     uint32_t height) noexcept
 {
-    const size_t pixel_count = width * height;
+    const size_t pixel_count = static_cast<size_t>(width) * height;
     size_t i = 0;
 
     // Process 8 pixels at a time (AVX2 width)
