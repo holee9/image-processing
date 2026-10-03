@@ -357,10 +357,14 @@ XPE_API XpeErrorCode xpe_dicom_write_j2k(const char* filePath,
  * Type 2: present, and an empty value is conformant. A missing attribute and an
  * attribute with no value are separate entries. A UID that has a value must be
  * in dotted-numeric form; a UID with no value is reported once, as having no
- * value, and its format is not judged as well. Pixel Data is Type 1C: when it
- * is absent and a Pixel Data Provider URL (0028,7FE0) with a value is present,
- * the file is not reported invalid, and "warnings" gets one entry saying that
- * pixel data by reference is not supported by this module.
+ * value, and its format is not judged as well. Pixel Data is Type 1C, and the
+ * Pixel Data Provider URL (0028,7FE0) belongs to the JPIP Referenced transfer
+ * syntaxes (1.2.840.10008.1.2.4.94 and .95, read from (0002,0010)) alone: under
+ * one of them, a file with no Pixel Data and a URL with a value is not reported
+ * invalid, and "warnings" gets one entry saying that pixel data by reference is
+ * not supported by this module. Under any other transfer syntax a URL replaces
+ * nothing, and missing Pixel Data is an error. Pixel Data and the URL together
+ * are an error under every syntax (mutually exclusive, PS3.5 8.2).
  *
  * @return XPE_OK on success (check "valid" field in report). XPE_OK means the
  *         report was produced, NOT that the file is conformant.

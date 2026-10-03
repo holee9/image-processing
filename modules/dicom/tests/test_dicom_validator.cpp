@@ -710,7 +710,7 @@ TEST_F(DicomValidatorTest, EveryRequiredAttributeIsJudgedByTheTypeTheStandardGiv
 // QA-B-206 M2c (Codex #113): Pixel Data (7FE0,0010) is Type 1C in the Image Pixel module -- "required if Pixel Data Provider URL
 // (0028,7FE0) is not present". A file that gives its pixels by reference has no Pixel Data and is not wrong for that; this
 // module cannot read pixels by reference, so it says so once, as a warning that leaves `valid` alone. The URL has to carry a
-// value to count as a provider. Five cases, by what the file holds.
+// value to count as a provider. The cases are the table in the M2d test below.
 // ---------------------------------------------------------------------------
 
 namespace {
@@ -725,45 +725,97 @@ int CountMessages(const json& list, const char* tag, const char* text) {
 
 }  // namespace
 
-TEST_F(DicomValidatorTest, PixelDataIsTypeOneCSoAFileWithOnlyAProviderUrlIsAWarningNotAnError) {
+// QA-B-206 M2d (Codex #114): the Provider URL is part of the JPIP Referenced transfer syntaxes alone (1.2.840.10008.1.2.4.94 and
+// .95), and Pixel Data and the URL are mutually exclusive (PS3.5 8.2). What a URL means therefore depends on the transfer syntax
+// the file declares in its meta group, so every case is written UNDER the syntax it names (DCMTK sets the meta group's
+// TransferSyntaxUID from the syntax it is asked to write). The first M2c version of this test treated "both present" as valid
+// and ignored the syntax; this is the table the lead set in QA-B-206.md (M2d).
+namespace {
+
+/** Like ValidateChanged, but the file is written under transfer syntax @p xfer. */
+json ValidateChangedUnder(E_TransferSyntax xfer, const fs::path& conformant, const fs::path& out,
+                          const std::function<void(DcmDataset*)>& change, XpeErrorCode* rc, bool* saved) {
+    DcmFileFormat ff;
+    EXPECT_TRUE(ff.loadFile(conformant.string().c_str()).good());
+    change(ff.getDataset());
+    const OFCondition st = ff.saveFile(out.string().c_str(), xfer);
+    *saved = st.good();
+    if (!st.good()) {
+        ADD_FAILURE() << "DCMTK cannot write this file under that transfer syntax: " << st.text();
+        return json::object();
+    }
+    char report[8192] = {};
+    *rc = xpe_dicom_validate(out.string().c_str(), report, sizeof(report));
+    return json::parse(report);
+}
+
+}  // namespace
+
+TEST_F(DicomValidatorTest, PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData) {
+    const char* kUrl = "http://example.invalid/jpip";
     struct Case {
         const char* what;
-        std::function<void(DcmDataset*)> change;
+        E_TransferSyntax xfer;
+        bool pixelData;   // false: the element is deleted
+        const char* url;  // nullptr: no URL element; "": the element with no value
         bool valid;
-        int missingErrors;      // "Missing required Type 1 tag" reports for Pixel Data
-        int referenceWarnings;  // "by reference" warnings
+        int missing;      // "Missing required Type 1 tag" reports for Pixel Data
+        int exclusive;    // "mutually exclusive" reports
+        int reference;    // "by reference" warnings
     };
     const Case cases[] = {
-        {"Pixel Data present", [](DcmDataset*) {}, true, 0, 0},
-        {"Provider URL only",
-         [](DcmDataset* d) {
-             d->findAndDeleteElement(DCM_PixelData);
-             d->putAndInsertString(DCM_PixelDataProviderURL, "http://example.invalid/jpip");
-         },
-         true, 0, 1},
-        {"neither", [](DcmDataset* d) { d->findAndDeleteElement(DCM_PixelData); }, false, 1, 0},
-        {"an EMPTY Provider URL is not a provider",
-         [](DcmDataset* d) {
-             d->findAndDeleteElement(DCM_PixelData);
-             d->putAndInsertString(DCM_PixelDataProviderURL, "");
-         },
-         false, 1, 0},
-        {"both present: the pixels are there, the URL is not what is used",
-         [](DcmDataset* d) { d->putAndInsertString(DCM_PixelDataProviderURL, "http://example.invalid/jpip"); }, true, 0, 0},
+        {"ordinary file: Pixel Data, no URL", EXS_LittleEndianExplicit, true, nullptr, true, 0, 0, 0},
+        {"JPIP Referenced (.94): URL only", EXS_JPIPReferenced, false, kUrl, true, 0, 0, 1},
+        {"JPIP Referenced: Pixel Data and URL", EXS_JPIPReferenced, true, kUrl, false, 0, 1, 0},
+        {"other syntax: URL only, it replaces nothing", EXS_LittleEndianExplicit, false, kUrl, false, 1, 0, 0},
+        {"other syntax: Pixel Data and URL", EXS_LittleEndianExplicit, true, kUrl, false, 0, 1, 0},
+        {"other syntax: neither", EXS_LittleEndianExplicit, false, nullptr, false, 1, 0, 0},
+        {"JPIP Referenced: neither", EXS_JPIPReferenced, false, nullptr, false, 1, 0, 0},
+        {"JPIP Referenced: an EMPTY URL is not a provider", EXS_JPIPReferenced, false, "", false, 1, 0, 0},
+        {"other syntax: Pixel Data and a URL element with no value (present counts)", EXS_LittleEndianExplicit, true, "", false, 0, 1, 0},
     };
     int n = 0;
     for (const Case& c : cases) {
         XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
-        const json j = ValidateChanged(s_conformantDcm, s_tempDir / ("m2c_px_" + std::to_string(n++) + ".dcm"), c.change, &rc);
+        bool saved = false;
+        const json j = ValidateChangedUnder(
+            c.xfer, s_conformantDcm, s_tempDir / ("m2d_px_" + std::to_string(n++) + ".dcm"),
+            [&](DcmDataset* d) {
+                if (!c.pixelData) d->findAndDeleteElement(DCM_PixelData);
+                if (c.url) d->putAndInsertString(DCM_PixelDataProviderURL, c.url);
+            },
+            &rc, &saved);
+        if (!saved) continue;
         // a file that parses but does not conform is a report with valid:false and rc OK; DICOM_INVALID is for a file that
         // cannot be parsed at all
         EXPECT_EQ(XPE_OK, rc) << c.what << ": " << j.dump();
         EXPECT_EQ(c.valid, j["valid"].get<bool>()) << c.what << ": " << j.dump();
-        EXPECT_EQ(c.missingErrors, CountMessages(j["errors"], "7FE0,0010", "Missing required Type 1 tag")) << c.what << ": " << j.dump();
-        EXPECT_EQ(c.referenceWarnings, CountMessages(j["warnings"], "7FE0,0010", "by reference")) << c.what << ": " << j.dump();
-        EXPECT_EQ(static_cast<size_t>(c.referenceWarnings), j["warnings"].size()) << c.what << ": no other warning: " << j.dump();
-        if (c.valid) EXPECT_TRUE(j["errors"].empty()) << c.what << ": " << j.dump();
+        EXPECT_EQ(c.missing, CountMessages(j["errors"], "7FE0,0010", "Missing required Type 1 tag")) << c.what << ": " << j.dump();
+        EXPECT_EQ(c.exclusive, CountMessages(j["errors"], "0028,7FE0", "mutually exclusive")) << c.what << ": " << j.dump();
+        EXPECT_EQ(static_cast<size_t>(c.missing + c.exclusive), j["errors"].size()) << c.what << ": no other error: " << j.dump();
+        EXPECT_EQ(c.reference, CountMessages(j["warnings"], "7FE0,0010", "by reference")) << c.what << ": " << j.dump();
+        EXPECT_EQ(static_cast<size_t>(c.reference), j["warnings"].size()) << c.what << ": no other warning: " << j.dump();
     }
+}
+
+// .95 (JPIP Referenced Deflate) belongs in the table above exactly like .94, but this DCMTK build cannot read a file under it at
+// all: the validator gets "Unsupported compression or encryption" from loadFile and reports the file as unparseable, so nothing
+// about Pixel Data or the URL is ever judged. Recorded as what is observed, not as what is wanted: when the dependency gains
+// deflate support this goes red, and the .95 case is added to the table (the code already treats .95 like .94).
+TEST_F(DicomValidatorTest, KnownDivergence_JpipReferencedDeflateCannotBeParsedByThisDcmtkBuild) {
+    XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+    bool saved = false;
+    const json j = ValidateChangedUnder(
+        EXS_JPIPReferencedDeflate, s_conformantDcm, s_tempDir / "m2d_px_deflate.dcm",
+        [](DcmDataset* d) {
+            d->findAndDeleteElement(DCM_PixelData);
+            d->putAndInsertString(DCM_PixelDataProviderURL, "http://example.invalid/jpip");
+        },
+        &rc, &saved);
+    if (!saved) return;
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, rc) << j.dump();
+    EXPECT_FALSE(j["valid"].get<bool>()) << j.dump();
+    EXPECT_EQ(1, CountMessages(j["errors"], "0008,0000", "cannot be parsed")) << j.dump();
 }
 
 TEST_F(DicomValidatorTest, ABlankUidIsReportedOnceAsNoValueAndItsFormatIsNotJudgedAsWell) {
