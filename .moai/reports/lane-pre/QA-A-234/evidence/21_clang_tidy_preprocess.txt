@@ -1,0 +1,46 @@
+## binning_correct.cpp exit=0 warnings=0
+## calibration_cache.cpp exit=0 warnings=6
+## calibration_manager.cpp exit=0 warnings=0
+## defect_correct.cpp exit=0 warnings=1
+## gain_correct.cpp exit=0 warnings=1
+## ghost_correct.cpp exit=0 warnings=6
+## helpers.cpp exit=0 warnings=1
+## nonlinearity_correct.cpp exit=0 warnings=1
+## offset_correct.cpp exit=0 warnings=0
+## pipeline.cpp exit=0 warnings=2
+## preprocess.cpp exit=0 warnings=1
+## readout_validate.cpp exit=0 warnings=0
+## rle_codec.cpp exit=0 warnings=1
+## runtime_detection.cpp exit=0 warnings=0
+## temp_compensate.cpp exit=0 warnings=0
+## xcal_reader.cpp exit=0 warnings=3
+## xcal_validator.cpp exit=0 warnings=1
+## xcal_writer.cpp exit=0 warnings=3
+## xpe_calib_check_expiry.cpp exit=0 warnings=0
+## xpe_calib_generate_gain.cpp exit=0 warnings=4
+## xpe_calib_generate_nonlin_lut.cpp exit=0 warnings=1
+## xpe_calib_generate_offset.cpp exit=0 warnings=2
+## xpe_calib_generate_offset_methods.cpp exit=0 warnings=1
+## xpe_calib_load_defect_map.cpp exit=0 warnings=0
+## xpe_calib_load_gain.cpp exit=0 warnings=3
+## xpe_calib_load_nonlin_lut.cpp exit=0 warnings=0
+## xpe_calib_load_offset.cpp exit=0 warnings=0
+## xpe_calib_mode.cpp exit=0 warnings=0
+## xpe_calib_save.cpp exit=0 warnings=0
+## xpe_calibration.cpp exit=0 warnings=1
+## xpe_defect_gen.cpp exit=0 warnings=4
+## xpe_sha256_backend.cpp exit=0 warnings=0
+## xpe_verify_metrics.cpp exit=0 warnings=5
+
+## by check
+   25 bugprone-easily-swappable-parameters
+    9 bugprone-empty-catch
+    4 bugprone-narrowing-conversions
+    3 bugprone-implicit-widening-of-multiplication-result
+    2 clang-analyzer-optin.core.EnumCastOutOfRange
+    2 performance-enum-size
+    1 bugprone-unused-return-value
+    1 bugprone-incorrect-roundings
+    1 bugprone-misplaced-widening-cast
+
+TOTAL 48 over 33 files
