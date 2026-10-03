@@ -199,3 +199,77 @@ TEST(EdgeEnhanceFormula, E1_ADarkPixelMayOvershootByAmountTimesThresholdWhenThat
     ASSERT_FLOAT_EQ(80.0f, spec[dot]) << "precondition: the reference is held by the amount*threshold term here";
     EXPECT_FLOAT_EQ(80.0f, out[dot]);
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// QA-B-201 M3: a sharpened pixel is never below 0 (user decision, #251). The upper bound is unchanged.
+// ---------------------------------------------------------------------------------------------------------------------
+
+TEST(EdgeEnhanceFloor, ASharpenedPixelBesideADarkRegionIsNeverBelowZero) {
+    // The dark side of a strong edge: the formula (REQ-ENH-018) goes far below 0 -- the reference shows it -- and the
+    // module cuts it at 0. Two bases: 0 (a collimated strip) and 30 (a value an "orig-based" floor would keep).
+    struct Scene {
+        float low, contrast, amount;
+    } scenes[] = {{0.0f, 4000.0f, 5.0f}, {30.0f, 4000.0f, 5.0f}, {0.0f, 4000.0f, 0.5f}, {0.0f, 4000.0f, 1.0f}};
+    for (const Scene& sc : scenes) {
+        const std::vector<float> in = StepImage(sc.low, sc.contrast);
+        XpeErrorCode rc;
+        const std::vector<float> out = ModuleUsm(in, sc.amount, 2.0f, 10.0f, &rc);
+        ASSERT_EQ(XPE_OK, rc);
+        const std::vector<float> spec = SpecUsm(in, sc.amount, 2.0f, 10.0f);
+        const size_t dark = 32u * kW + 31u;   // the dark-side edge pixel
+        float moduleMin = out[0], specMin = spec[0];
+        size_t negatives = 0;
+        for (size_t i = 0; i < out.size(); ++i) {
+            moduleMin = std::min(moduleMin, out[i]);
+            specMin = std::min(specMin, spec[i]);
+            if (out[i] < 0.0f) ++negatives;
+        }
+        std::printf("M3 FLOOR: base %.0f, contrast %.0f, amount %.1f: reference min %.1f, module min %.1f, module negatives %zu\n",
+                    sc.low, sc.contrast, sc.amount, specMin, moduleMin, negatives);
+        ASSERT_LT(spec[dark], 0.0f) << "precondition: the formula alone goes below 0 here (so the floor is what is tested)";
+        EXPECT_EQ(0u, negatives) << "base " << sc.low << " amount " << sc.amount;
+        EXPECT_FLOAT_EQ(0.0f, out[dark]) << "the dark-side edge pixel is cut at 0, not at its input (" << in[dark] << ")";
+    }
+}
+
+TEST(EdgeEnhanceFloor, TheFloorDoesNotChangeAnyPixelThatTheFormulaLeavesAtOrAboveZero) {
+    // The control for the test above and the statement that the 16-bit result does not change: where the reference stays
+    // >= 0 the module equals the formula (within the blur difference), so the floor touched only what was below 0.
+    const std::vector<float> in = StepImage(1000.0f, 1000.0f);   // nothing goes below 0 here
+    XpeErrorCode rc;
+    const std::vector<float> out = ModuleUsm(in, 1.0f, 2.0f, 10.0f, &rc);
+    ASSERT_EQ(XPE_OK, rc);
+    const std::vector<float> spec = SpecUsm(in, 1.0f, 2.0f, 10.0f);
+    float specMin = spec[0];
+    for (float v : spec) specMin = std::min(specMin, v);
+    ASSERT_GT(specMin, 0.0f) << "precondition";
+    const size_t dark = 32u * kW + 31u;
+    EXPECT_NEAR(spec[dark], out[dark], 0.02f * std::fabs(spec[dark] - in[dark])) << "the undershoot above 0 is kept";
+    EXPECT_LT(out[dark], in[dark]) << "and it is still an undershoot";
+}
+
+TEST(EdgeEnhanceFloor, TheUpperBoundIsUnchangedByTheFloor) {
+    // The same scene as the REQ-ENH-021 test above: the bound is max(2 * original, original + amount * threshold).
+    const std::vector<float> in = StepImage(10.0f, 10000.0f);
+    XpeErrorCode rc;
+    const std::vector<float> out = ModuleUsm(in, 5.0f, 2.0f, 10.0f, &rc);
+    ASSERT_EQ(XPE_OK, rc);
+    const size_t bright = 32u * kW + 32u;
+    EXPECT_FLOAT_EQ(2.0f * in[bright], out[bright]);
+    for (size_t i = 0; i < in.size(); ++i) {
+        EXPECT_LE(out[i], std::max(in[i] * 2.0f, in[i] + 5.0f * 10.0f) * (1.0f + 1e-6f)) << "pixel " << i;
+        EXPECT_GE(out[i], 0.0f) << "pixel " << i;
+    }
+}
+
+TEST(EdgeEnhanceFloor, APixelThatIsNotSharpenedKeepsItsInputValueEvenWhenItIsNegative) {
+    // The floor belongs to the sharpened value. A flat image has no difference to the blur, so nothing is sharpened and
+    // every pixel is returned as it came, a negative one included -- a negative INPUT is outside what the pipelines
+    // produce (the log stage cuts it, REQ-ENH-002) and is not this stage's to rewrite.
+    const std::vector<float> in(static_cast<size_t>(kW) * kH, -5.0f);
+    XpeErrorCode rc;
+    const std::vector<float> out = ModuleUsm(in, 5.0f, 2.0f, 10.0f, &rc);
+    ASSERT_EQ(XPE_OK, rc);
+    EXPECT_EQ(0.0f, MaxChange(in, out));
+    EXPECT_FLOAT_EQ(-5.0f, out[100]);
+}

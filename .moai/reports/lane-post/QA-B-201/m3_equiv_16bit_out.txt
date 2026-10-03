@@ -1,0 +1,16 @@
+cases 96; cases where the 16-bit results differ: 0; pixels that differ after the 16-bit conversion, in total: 0
+cases with negative floats without the floor: 78; with the floor: 0 (lowest float with the floor: 0.000)
+float pixels changed by the floor, in total: 216576
+first rows (case | negatives no floor | negatives floor | float px changed | 16-bit px changed):
+  anatomy|lin|0.5|0               746      0     746     0
+  anatomy|lin|0.5|10              746      0     746     0
+  anatomy|lin|0.5|100             746      0     746     0
+  anatomy|lin|1|0                1294      0    1294     0
+  anatomy|lin|1|10               1294      0    1294     0
+  anatomy|lin|1|100              1294      0    1294     0
+  anatomy|lin|2|0                1858      0    1858     0
+  anatomy|lin|2|10               1858      0    1858     0
+  anatomy|lin|2|100              1858      0    1858     0
+  anatomy|lin|5|0                2755      0    2755     0
+  anatomy|lin|5|10               2755      0    2755     0
+  anatomy|lin|5|100              2755      0    2755     0

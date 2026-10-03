@@ -218,7 +218,9 @@ XPE_API XpeErrorCode xpe_contrast_enhance(XpeImageBuffer* img, const XpeClahePar
  * @brief Apply Unsharp Masking edge enhancement to a float32 image in-place.
  *
  * output[i] = input[i] + amount * (input[i] - blur[i]) where |diff| >= threshold.
- * Overshoot is clamped per REQ-ENH-021.
+ * Overshoot is clamped per REQ-ENH-021 to max(original * 2, original + amount * threshold),
+ * and a sharpened pixel is never below 0 (QA-B-201 M3): the undershoot beside a dark region is cut at 0.
+ * A pixel that is not sharpened keeps its input value.
  * If params is NULL, defaults are used (amount=0.5, radius=2.0, threshold=10.0). (REQ-ENH-019)
  *
  * @param img    Float32 image buffer (modified in-place). A zero-sized image is

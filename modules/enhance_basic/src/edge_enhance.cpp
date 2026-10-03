@@ -213,6 +213,12 @@ extern "C++" static XpeErrorCode xpe_edge_enhance_impl(XpeImageBuffer* img, cons
             // exactly amount * threshold whatever the edge and threshold 0 moved nothing. The SPEC states no lower bound.
             const float hi = std::max(orig * 2.0f, orig + max_add);
             if (sharpened > hi) sharpened = hi;
+            // QA-B-201 M3 (user decision, #251): a sharpened pixel is never below 0. The SPEC bounds only the overshoot, and
+            // the undershoot beside a dark region (a collimated strip of 0 counts, air) went far below 0 (-1363 on a
+            // synthetic collimated scene at the default amount). Every consumer already cut it at 0 (QA-B-201 M1), so the
+            // 16-bit output is the same; the float no longer carries a value no consumer can use. A pixel that is NOT
+            // sharpened keeps its input value, whatever it is.
+            if (sharpened < 0.0f) sharpened = 0.0f;
             row[x] = (abs_diff >= threshold) ? sharpened : orig;
         }
 
