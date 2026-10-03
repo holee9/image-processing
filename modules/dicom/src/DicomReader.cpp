@@ -508,7 +508,7 @@ static bool parseIntegerString(const OFString& raw, int64_t* out) {
 //   (0018,9332) Exposure in mAs   FD, the exact value                     written with 4 decimals: +-0.0001 mAs
 //   (0018,1152) Exposure          IS, whole mAs                           rounded to 1 mAs: +-0.5 mAs
 // An attribute that is absent, not a valid IS (or an FD that is not finite), or negative is skipped. The first valid one
-// is the mAs. When another valid one differs from it by more than the two tolerances together, the file contradicts itself:
+// is the mAs. When any two valid ones differ by more than their two tolerances together, the file contradicts itself:
 // the choice is still the first, and ONE WARNING alert names every value as the file spells it and the one used.
 static void readExposure(DcmDataset* ds, XpeImageMetadata* outMeta) {
     struct Candidate {
@@ -523,21 +523,23 @@ static void readExposure(DcmDataset* ds, XpeImageMetadata* outMeta) {
                       {"(0018,9332)", "mAs", 0.0, 0.0001, "", false},
                       {"(0018,1152)", "mAs", 0.0, 0.5, "", false}};
     // All three attributes have VM 1 (PS3.6): DCMTK would hand back the first value of "25\00" as 25, so a value count
-    // other than one is refused here, as an invalid value is.
-    auto single = [ds](const DcmTagKey& key) {
+    // other than one is refused here, as an invalid value is. The element's own length (the bytes in the file, padding
+    // included) is checked too, because OFString values come back with their padding already stripped: an IS of 12
+    // spaces and a "1" is 13 bytes (14 padded) and not an IS, but reads as "1" (QA-B-200 M2a4, Codex #105).
+    auto single = [ds](const DcmTagKey& key, Uint32 maxBytes) {
         DcmElement* e = nullptr;
-        return ds->findAndGetElement(key, e).good() && e && e->getVM() == 1;
+        return ds->findAndGetElement(key, e).good() && e && e->getVM() == 1 && e->getLength() <= maxBytes;
     };
     OFString text;
     int64_t whole = 0;
-    if (single(DCM_ExposureInuAs) && ds->findAndGetOFString(DCM_ExposureInuAs, text).good() && parseIntegerString(text, &whole) &&
-        whole >= 0) {
+    if (single(DCM_ExposureInuAs, 12) && ds->findAndGetOFString(DCM_ExposureInuAs, text).good() &&
+        parseIntegerString(text, &whole) && whole >= 0) {
         c[0].valid = true;
         c[0].mAs = static_cast<double>(whole) / 1000.0;
         c[0].spelled = std::to_string(whole);
     }
     Float64 exact = 0.0;
-    if (single(DCM_ExposureInmAs) && ds->findAndGetFloat64(DCM_ExposureInmAs, exact).good() && std::isfinite(exact) &&
+    if (single(DCM_ExposureInmAs, 8) && ds->findAndGetFloat64(DCM_ExposureInmAs, exact).good() && std::isfinite(exact) &&
         exact >= 0.0) {
         c[1].valid = true;
         c[1].mAs = exact;
@@ -545,7 +547,7 @@ static void readExposure(DcmDataset* ds, XpeImageMetadata* outMeta) {
         std::snprintf(buf, sizeof(buf), "%.6g", exact);
         c[1].spelled = buf;
     }
-    if (single(DCM_Exposure) && ds->findAndGetOFString(DCM_Exposure, text).good() && parseIntegerString(text, &whole) &&
+    if (single(DCM_Exposure, 12) && ds->findAndGetOFString(DCM_Exposure, text).good() && parseIntegerString(text, &whole) &&
         whole >= 0) {
         c[2].valid = true;
         c[2].mAs = static_cast<double>(whole);
@@ -562,9 +564,14 @@ static void readExposure(DcmDataset* ds, XpeImageMetadata* outMeta) {
     if (!chosen) return;
     outMeta->mAs = static_cast<float>(chosen->mAs);
 
+    // EVERY pair of valid values is compared, not only each against the chosen one: two values can each be within their
+    // tolerance of the chosen one and still contradict each other (1153 = 2500 uAs, 9332 = 2.4994, 1152 = 3: the chosen 2.5
+    // agrees with both, yet 9332 and 1152 are 0.5006 apart and the two tolerances allow 0.5001; QA-B-200 M2a4).
     bool disagree = false;
-    for (const Candidate& k : c) {
-        if (k.valid && std::fabs(k.mAs - chosen->mAs) > k.tolerance + chosen->tolerance + 1e-9) disagree = true;
+    for (int i = 0; i < 3; ++i) {
+        for (int j = i + 1; j < 3; ++j) {
+            if (c[i].valid && c[j].valid && std::fabs(c[i].mAs - c[j].mAs) > c[i].tolerance + c[j].tolerance + 1e-9) disagree = true;
+        }
     }
     if (!disagree) return;
     // CROSS-LANE CONTRACT (QA-B-200 M2a3): the whole text.

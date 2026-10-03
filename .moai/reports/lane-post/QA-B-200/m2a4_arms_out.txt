@@ -1,0 +1,24 @@
+=== ARM pairs_compared_only_against_the_chosen_value_as_before_M2a4
+red tests: DicomExposureTag.TwoValuesThatContradictEachOtherPostTheAlertEvenWhenEachAgreesWithTheChosenOne
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM pair_tolerance_ignored
+red tests: DicomExposureTag.ThreeExposureAttributesThatAgreeWithinTheirRoundingPostNoAlertAndThatDisagreePostOne, DicomExposureTag.TwoValuesThatContradictEachOtherPostTheAlertEvenWhenEachAgreesWithTheChosenOne
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM pair_tolerance_far_too_wide
+red tests: DicomExposureTag.ThreeExposureAttributesThatAgreeWithinTheirRoundingPostNoAlertAndThatDisagreePostOne, DicomExposureTag.TwoValuesThatContradictEachOtherPostTheAlertEvenWhenEachAgreesWithTheChosenOne
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM stored_length_not_checked_only_the_stripped_text
+RESULT: BUILD FAILED
+restored byte-identical: True
+=== ARM stored_length_limit_off_by_one
+red tests: DicomExposureTag.AFileThatOnlyHas9332StillReadsAsThatValue, DicomExposureTag.TheReadOrderIs1153Then9332Then1152, DicomExposureTag.TheTwelveByteLimitOfAnIntegerStringIsMeasuredOnTheValueAsStored, DicomExposureTag.ThreeExposureAttributesThatAgreeWithinTheirRoundingPostNoAlertAndThatDisagreePostOne, DicomExposureTag.TwoValuesThatContradictEachOtherPostTheAlertEvenWhenEachAgreesWithTheChosenOne
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM stored_length_not_checked_only_the_stripped_text
+red tests: DicomExposureTag.TheTwelveByteLimitOfAnIntegerStringIsMeasuredOnTheValueAsStored
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+(the fourth arm was rerun after a build failure: its first version left an unused variable that warnings-as-errors rejects)

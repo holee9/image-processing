@@ -349,6 +349,50 @@ TEST(DicomExposureTag, ThreeExposureAttributesThatAgreeWithinTheirRoundingPostNo
     xpe_clear_alerts();
 }
 
+TEST(DicomExposureTag, TwoValuesThatContradictEachOtherPostTheAlertEvenWhenEachAgreesWithTheChosenOne) {
+    // 1153 = 2500 uAs = 2.5 mAs (+-0.0005) is chosen; 9332 = 2.4994 (+-0.0001) agrees with it, 1152 = 3 (+-0.5) agrees with
+    // it -- but 9332 and 1152 are 0.5006 apart and their tolerances allow 0.5001 (QA-B-200 M2a4, Codex #105).
+    const TempDir t("c1_pairs");
+    xpe_clear_alerts();
+    const fs::path f = WithExposureAttributes(t, "pair", "2500", "2.4994", "3");
+    EXPECT_NEAR(2.5f, ReadMas(f), 1e-4f) << "the priority is unchanged: (0018,1153) wins";
+    std::vector<Alert> alerts = DisagreementAlerts();
+    ASSERT_EQ(1u, alerts.size()) << "exactly one alert per read";
+    for (const char* part : {"(0018,1153) = 2500 uAs", "(0018,9332) = 2.4994 mAs", "(0018,1152) = 3 mAs", "using (0018,1153) = 2.5000 mAs"})
+        EXPECT_NE(std::string::npos, alerts[0].text.find(part)) << part << " | " << alerts[0].text;
+
+    // the same shape with the 9332 value at the edge of the tolerance: 2.4999 and 3 are 0.5001 apart, which both tolerances
+    // together (0.5 + 0.0001) allow -- no alert (the control that the comparison is not simply stricter)
+    xpe_clear_alerts();
+    EXPECT_NEAR(2.5f, ReadMas(WithExposureAttributes(t, "edge", "2500", "2.4999", "3")), 1e-4f);
+    EXPECT_EQ(0u, DisagreementAlerts().size()) << "0.5001 apart is within 0.5 + 0.0001";
+
+    // and a pair that conflicts while the CHOSEN value is the one in the middle: 1153 = 3.0 mAs, 9332 = 2.4 (|0.6| > 0.5006
+    // against 1153), 1152 = 3: the chosen agrees with 1152, contradicts 9332 -- the old chosen-only rule caught this one too
+    xpe_clear_alerts();
+    EXPECT_NEAR(3.0f, ReadMas(WithExposureAttributes(t, "chosen_vs_other", "3000", "2.4", "3")), 1e-4f);
+    EXPECT_EQ(1u, DisagreementAlerts().size());
+    xpe_clear_alerts();
+}
+
+TEST(DicomExposureTag, TheTwelveByteLimitOfAnIntegerStringIsMeasuredOnTheValueAsStored) {
+    // DCMTK hands back an IS with its padding already stripped, so the limit has to be read from the element's own length:
+    // twelve spaces and a "1" is 13 bytes (14 padded) and not an IS, whatever the digits are (Codex #105).
+    const TempDir t("c1_len");
+    const std::string pad12 = std::string(12, ' ');
+    const std::string pad11 = std::string(11, ' ');
+    // (0018,1152) alone: 13 bytes -> no value; exactly 12 bytes -> accepted (the control)
+    EXPECT_EQ(0.0f, ReadMas(WithExposureAttributes(t, "len13", nullptr, nullptr, (pad12 + "1").c_str())))
+        << "13 bytes: not an IS, although the digits are";
+    EXPECT_NEAR(1.0f, ReadMas(WithExposureAttributes(t, "len12", nullptr, nullptr, (pad11 + "1").c_str())), 1e-4f)
+        << "exactly 12 bytes: accepted";
+    // (0018,1153): too long is skipped and (0018,1152) is used; exactly 12 bytes is read
+    EXPECT_NEAR(7.0f, ReadMas(WithExposureAttributes(t, "uas13", (std::string(9, ' ') + "2500").c_str(), nullptr, "7")), 1e-4f)
+        << "(0018,1153) with 13 bytes is skipped";
+    EXPECT_NEAR(2.5f, ReadMas(WithExposureAttributes(t, "uas12", (std::string(8, ' ') + "2500").c_str(), nullptr, "7")), 1e-4f)
+        << "(0018,1153) with exactly 12 bytes is read";
+}
+
 TEST(DicomModuleVersion, TheModuleExportsAVersionStringLikeTheOtherModules) {
     // REQ-P0-033: every module exports a version function; xpe_display_version, xpe_enhance_basic_version and the
     // others return a non-empty "major.minor.patch" string whose lifetime is the process.
