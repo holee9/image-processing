@@ -1,7 +1,7 @@
 # SPEC-XPE-P1B-ENH: Phase 1b Basic Enhancement + EI Baseline
 
 **Document ID**: SPEC-XPE-P1B-ENH
-**Version**: 1.3.1
+**Version**: 1.3.2
 **Date**: 2026-10-03
 **Status**: Implemented
 **Parent**: SPEC-XPE-MASTER v2.0.0
@@ -20,6 +20,7 @@
 | 1.0.0 | 2026-04-16 | MoAI (manager-spec) | Initial EARS requirements from SPEC-XPE-MASTER v2.0.0 and ALG-SPEC-001 v3.0.0-ds2 |
 | 1.1.0 | 2026-04-16 | MoAI (sync) | Implementation complete — 67/67 tests passing, all 5 SWUs delivered |
 | 1.2.0 | 2026-10-03 | lead (QA-B-199) | 요구 실태 대조 반영(#251): 결함 후보 E1~E9 해당 요구에 상태 메모 추가(요구 문구는 바꾸지 않음), CC-001 의 API 수 불일치 메모, tasks.md 상태 열 정정 |
+| 1.3.2 | 2026-10-03 | lead | REQ-ENH-CC-002 의 비 FLOAT32 반환 코드를 `XPE_ERR_UNSUPPORTED_FORMAT` 으로(코드·헤더에 맞춤, 사용자 결정, #251). 변경 기록 §6 |
 | 1.3.1 | 2026-10-03 | lead | REQ-ENH-021 에 출력 하한 0 추가(사용자 결정 "0에서 자르기", #251). 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md` §5 |
 | 1.3.0 | 2026-10-03 | lead | 사용자 결정(#245 코멘트 묶음 ④ "문서를 실제에 맞게", #251): REQ-ENH-CC-001 과 머리말 API Count 를 7 → 10 으로(헤더 `enhance_basic_api.h` 의 `XPE_API` 10개). §2.2 의 7개 목록은 처리 함수 목록으로 둔다. 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md` |
 
@@ -371,7 +372,7 @@ target_compile_definitions(xpe_enhance_basic PRIVATE XPE_DLL_EXPORT)
 >
 > **정정 (2026-10-03, 사용자 결정 #245 코멘트 묶음 ④ "문서를 실제에 맞게", #251).** 옛 문구 "all 7 API functions" 를 헤더에 맞춰 10 으로 고쳤다. 근거: 이 체크아웃의 `modules/enhance_basic/include/xpe/enhance_basic/enhance_basic_api.h` 의 `XPE_API` 선언 10개 — §2.2 의 7개(`xpe_log_transform`, `xpe_log_inverse`, `xpe_noise_reduce`, `xpe_noise_estimate_sigma`, `xpe_contrast_enhance`, `xpe_edge_enhance`, `xpe_calc_exposure_index`)에 `xpe_enhance_basic_version`, `xpe_enhance_basic_set_max_threads`, `xpe_enhance_basic_get_max_threads` 를 더한 수. 헤더 머리말의 "8" 은 헤더(레인 소유)의 문제로 남는다. 새로 만든 DLL 의 수출 표는 이번에 세지 않았다(헤더 기준).
 
-**REQ-ENH-CC-002**: IF any API function receives a NULL `img` pointer or an image with `format != XPE_PIXEL_FLOAT32`, THEN the system SHALL return `XPE_ERR_INVALID_INPUT`.
+**REQ-ENH-CC-002**: IF any API function receives a NULL `img` pointer, THEN the system SHALL return `XPE_ERR_INVALID_INPUT`. IF it receives an image with `format != XPE_PIXEL_FLOAT32`, THEN the system SHALL return `XPE_ERR_UNSUPPORTED_FORMAT` (문구 정정: 2026-10-03 사용자 결정 "문서를 실제에 맞게", #251, QA-B-204 재현 — 7개 처리 함수 모두 UINT16 에 −7, 공개 헤더와 일치).
 
 > **상태 메모 (2026-10-03, QA-B-199, 후보 E3)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. FLOAT32 가 아닌 영상에 구현은 `XPE_ERR_UNSUPPORTED_FORMAT` 을 반환한다(`enhance_basic_internal.h`). 이 분기를 지나는 시험이 없다.
 

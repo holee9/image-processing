@@ -89,4 +89,20 @@
 
 ---
 
+## 6. QA-B-204 결과에 대한 사용자 결정 — 문서를 실제에 맞게 (2026-10-03)
+
+근거: 2026-10-03 사용자 답변(리더 세션 AskUserQuestion), #251 코멘트 "QA-B-204 판정에 대한 사용자 결정". 재현: post `QA-B-204` 보고서(dev/postprocess `9a9247b0`).
+
+| 요구 ID | 문서 | 옛 문구 → 새 문구 | 재현 |
+|---|---|---|---|
+| REQ-ENH-CC-002 | SPEC-XPE-P1B-ENH v1.3.2 | 비 FLOAT32 → `INVALID_INPUT` → `UNSUPPORTED_FORMAT` (NULL 은 그대로 `INVALID_INPUT`) | E3: 7개 함수 모두 UINT16 에 −7 |
+| REQ-DICOM-009 의 Acquisition Time 매핑 | SPEC-XPE-P1B-DICOM v1.3.0 | epoch ms → epoch 초(UTC, 0 = 모름) | C2: 초로 쓰고 읽음, ms 값은 0 으로 읽힘 |
+| REQ-DICOM-026 | SPEC-XPE-P1B-DICOM v1.3.0 | `tag ""`, `"Not a valid DICOM file"` → `tag "0008,0000"`, 메시지 접두 `"File cannot be parsed as DICOM: "` | C4 |
+| REQ-DISP-021 | SPEC-XPE-P1B-DISP v1.3.0 | "[0,1] 밖은 클램프" → 유한한 값은 클램프, NaN·±inf 는 `INVALID_INPUT`(버퍼 불변) | D4 |
+| REQ-DISP-029 주석 | SPEC-XPE-P1B-DISP v1.3.0 | "NaN 광도는 가드를 통과" 서술 삭제 → 거부됨을 기록 | D6: 7경우 모두 거부 |
+
+같은 결정 묶음에서 **코드를 요구에 맞추기로 한 것**(C3 요구대로 거부, E6 표준 CLAHE, D1·D3·D8 입구 거부)은 post `QA-B-207` 로 구현한다. D1·D3·D8 의 거부 조건과 E6 의 보간 명시는 그 병합 때 요구 문구에 더한다.
+
+---
+
 *끝*

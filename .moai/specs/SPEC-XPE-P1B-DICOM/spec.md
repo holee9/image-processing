@@ -1,7 +1,7 @@
 # SPEC-XPE-P1B-DICOM: DICOM I/O Module
 
 **Document ID**: SPEC-XPE-P1B-DICOM
-**Version**: 1.2.0
+**Version**: 1.3.0
 **Date**: 2026-10-03
 **Status**: Released
 **Parent**: SPEC-XPE-MASTER v2.0.0
@@ -167,11 +167,11 @@ xpe_dicom_close(handle) --> free all resources
 - (0018,1152) Exposure (mAs) --> `outMeta->mAs`
 - (0018,1110) Distance Source to Detector (SID) --> `outMeta->SID_mm`
 - (0028,0030) Pixel Spacing --> `outMeta->pixelPitch_mm` (first value)
-- (0008,0032) Acquisition Time --> `outMeta->acquisitionTime` (epoch ms)
+- (0008,0032) Acquisition Time --> `outMeta->acquisitionTime` (seconds since Unix epoch, UTC; 0 = unknown — 단위 정정 2026-10-03 사용자 결정 "문서를 실제에 맞게", #251, QA-B-204 재현, `xpe_types.h` 와 일치)
 
 > **상태 메모 (2026-10-03, QA-B-199, 후보 C1·C2·C15)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251.
 > - C1: 구현은 mAs 를 (0018,1152) Exposure 가 아니라 (0018,9332) ExposureInmAs 로 읽고 쓴다(`DicomReader.cpp`·`DicomWriter.cpp` 의 `DCM_ExposureInmAs`, 2026-10-03 grep 으로 확인). 왕복 시험은 같은 선택을 공유해 통과하지만, 다른 시스템이 만든 (0018,1152) 파일은 mAs 0 으로 읽힌다.
-> - C2: 이 요구는 `acquisitionTime` 을 epoch ms 로 적지만, 타입 헤더 `xpe_types.h` 와 두 코드 경로는 epoch 초를 쓴다.
+> - C2: 이 요구는 `acquisitionTime` 을 epoch ms 로 적었지만, 타입 헤더 `xpe_types.h` 와 두 코드 경로는 epoch 초를 쓴다. **해결 (2026-10-03)**: 문구를 초로 정정(사용자 결정). 밀리초 값을 넘기면 오류 없이 날짜가 사라지는(읽으면 0) 위험은 남는다 — 범위 검사는 정하지 않았다.
 > - C15: Patient ID·Study/Series Instance UID·Modality 를 "핸들로 얻을 수 있다" 고 했으나 `getMetadata` 는 이 태그들을 읽지 않고 접근자도 없다.
 > - C1·C2 는 SPEC 을 따라 코드를 고칠지, SPEC 을 코드에 맞출지 결정이 필요하다(#251). 요구 문구는 바꾸지 않았다.
 
@@ -239,7 +239,7 @@ xpe_dicom_close(handle) --> free all resources
 
 > **상태 메모 (2026-10-03, QA-B-199, 후보 C6)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 잘못된 UID 가 `warnings` 와 `errors` 양쪽에 들어가고 `valid=false` 가 된다 — 비치명 문제가 치명 오류로 올라간다(`DicomValidator.cpp`).
 
-**REQ-DICOM-026**: IF the file is not a valid DICOM file (cannot be parsed at all), THEN the system SHALL return `XPE_ERR_DICOM_INVALID` and write `{"valid":false,"errors":[{"tag":"","message":"Not a valid DICOM file"}],"warnings":[]}` to the report buffer.
+**REQ-DICOM-026**: IF the file is not a valid DICOM file (cannot be parsed at all), THEN the system SHALL return `XPE_ERR_DICOM_INVALID` and write a report with `"valid":false`, an empty `warnings` array, and one `errors` entry whose `tag` is `"0008,0000"` and whose `message` begins with `"File cannot be parsed as DICOM: "` followed by the parser's status text (문구 정정: 2026-10-03 사용자 결정 "문서를 실제에 맞게", #251, QA-B-204 재현 — 뒤의 상태 문구는 DCMTK 버전에 따라 바뀔 수 있으므로 접두만 계약이다).
 
 > **상태 메모 (2026-10-03, QA-B-199, 후보 C4)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 구현은 이 보고 대신 `tag "0008,0000"`, `"File cannot be parsed as DICOM: …"` 를 낸다(`DicomValidator.cpp`). 시험은 `errors` 가 비어 있지 않음만 확인한다.
 
@@ -404,6 +404,7 @@ XPE_API void        xpe_dicom_cancel(void);
 | 1.0.0 | 2026-04-16 | MoAI (manager-spec) | Initial EARS requirements (46 REQs) for Sprint S1-B DICOM module |
 | 1.1.0 | 2026-04-21 | MoAI (manager-spec) | **Released** — 46 EARS 요구사항 교차검증 완료. 10 C API 함수 전량 구현(dicom_api.h ↔ dicom.cpp), 35/35 Google Test 통과, TRUST 5 게이트 통과. Header EARS Count 40→46 정정 |
 | 1.2.0 | 2026-10-03 | lead (QA-B-199) | 결함 후보 C1~C16 상태 메모 추가, 요구 문구 불변 (#251) |
+| 1.3.0 | 2026-10-03 | lead | REQ-DICOM-041 함수 수 11, Acquisition Time 단위를 초로(C2), REQ-DICOM-026 파싱 불가 보고를 실제 형식으로(C4) — 사용자 결정, #251. 변경 기록 §5·§6 |
 
 ---
 

@@ -1,7 +1,7 @@
 # SPEC-XPE-P1B-DISP: Phase 1b Display Processing
 
 **Document ID**: SPEC-XPE-P1B-DISP
-**Version**: 1.2.0
+**Version**: 1.3.0
 **Date**: 2026-10-03
 **Status**: Completed
 **Parent**: SPEC-XPE-MASTER v2.0.0
@@ -22,6 +22,7 @@
 | 1.0.0 | 2026-04-16 | MoAI (manager-spec) | Initial EARS requirements for Display Processing (SWU-3.1/3.2/3.3), 28 REQs |
 | 1.0.0-impl | 2026-04-16 | Agent Teams (xpe-orchestrator + teammates) | Complete implementation of all 3 SWUs (5 C API functions), 48 test cases, TRUST 5 quality gates passed, GUI integration completed |
 | 1.1.0 | 2026-10-03 | lead (QA-B-199) | 요구 실태 대조 반영(#251): §3.4 의 중복 정의 `REQ-DISP-029`(ABI 요구)를 `REQ-DISP-036` 으로 재번호(두 문구 모두 유지), 결함 후보 D1~D9 해당 요구에 상태 메모 추가(요구 문구는 바꾸지 않음), §6 추적 범위 갱신 |
+| 1.3.0 | 2026-10-03 | lead | REQ-DISP-021 을 실제 동작으로(유한은 클램프, 비유한은 거부 — D4), REQ-DISP-029 주석의 낡은 NaN 서술 정정(D6) — 사용자 결정, #251. 변경 기록 §6 |
 | 1.2.0 | 2026-10-03 | lead | 사용자 결정(#245 코멘트 묶음 ④ "문서를 실제에 맞게", #251): REQ-DISP-024 를 실제 동작으로(`gsdfEnabled` 는 기록만, 적용은 플래그와 무관), REQ-DISP-036·§2.3 의 수출 함수 수 5 → 6(`xpe_display_version` 포함, 헤더 `XPE_API` 6개). 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md` |
 
 ---
@@ -382,7 +383,7 @@ output[i] = clamp( ((input[i] - center) / width + 0.5) * (maxOut - minOut) + min
 
 **REQ-DISP-020**: WHEN `xpe_apply_presentation_lut` completes successfully, the system SHALL convert `img->format` from `XPE_PIXEL_FLOAT32` to `XPE_PIXEL_UINT16` and update `img->bitsAllocated`, `img->bitsStored`, and `img->dataSize` accordingly (float32 -> uint16 domain transition).
 
-**REQ-DISP-021**: IF the input pixel values are outside [0.0, 1.0] range, THEN the system SHALL clamp them to [0.0, 1.0] before LUT lookup.
+**REQ-DISP-021**: IF finite input pixel values are outside [0.0, 1.0] range, THEN the system SHALL clamp them to [0.0, 1.0] before LUT lookup. IF any input pixel is NaN or ±infinity, THEN the system SHALL return `XPE_ERR_INVALID_INPUT` without modifying the buffer (문구 정정: 2026-10-03 사용자 결정 "문서를 실제에 맞게", #251, QA-B-204 재현 — QA-B-181f 이후 동작).
 
 > **상태 메모 (2026-10-03, QA-B-199, 후보 D4)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. QA-B-181f 이후 구현은 ±inf·NaN 화소를 클램프하기 전에 `XPE_ERR_INVALID_INPUT` 으로 거부한다. 이 요구의 "[0,1] 밖은 클램프" 는 비유한 값까지 포함하는 문구라 코드와 반대다. 문구 갱신 여부는 결정 대기(#251) — 요구 문구는 바꾸지 않았다.
 
@@ -445,8 +446,7 @@ output[i] = clamp( ((input[i] - center) / width + 0.5) * (maxOut - minOut) + min
 > 구동이라 보수적입니다. **다만 선택이지 귀결이 아닙니다**(상단·중점도 표준을
 > 만족합니다).
 >
-> **미검출로 남는 것**: 등간격 위반(구조적), 그리고 **NaN 광도** — 비교가 전부 거짓이라
-> 이 가드를 통과합니다. 후속 후보입니다.
+> **미검출로 남는 것**: 등간격 위반(구조적). (옛 서술 "NaN 광도는 비교가 전부 거짓이라 이 가드를 통과한다" 는 낡았다 — 2026-10-03 QA-B-204 재현에서 NaN·±inf 를 처음·중간·끝에 둔 7경우 모두 `XPE_ERR_INVALID_INPUT`, `outParams` 불변. 사용자 결정 "문서를 실제에 맞게", #251.)
 >
 > **상태 메모 (2026-10-03, QA-B-199, 후보 D6)**: 위 "NaN 광도는 가드를 통과한다" 는 서술은 QA-B-181d 이후 코드와 반대일 수 있다 — 지금 구현은 비유한 원소를 모두 거부한다(`presentation_lut.cpp`, 읽기로 찾은 후보). 재현 확인 중(QA-B-200), #251. 서술은 그대로 두었다.
 
