@@ -1,0 +1,7 @@
+build_exit=0 test_exit=1
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(359): error: Value of: extraWhy.empty()
+xpe_ghost_create (default config): allocation #7 failed (rc 0): an OK creation handed back a handle the module does not recognise
+[  FAILED  ] OomInjection.AGhostCreationWhoseAllocationFailsHandsBackNothingAndLeaksNothing (0 ms)
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(359): error: Value of: extraWhy.empty()
+xpe_ghost_create (calibrated config): allocation #19 failed (rc 0): an OK creation handed back a handle the module does not recognise
+[  FAILED  ] OomInjection.ACalibratedGhostCreationWhoseAllocationFailsHandsBackNothingAndLeaksNothing (0 ms)

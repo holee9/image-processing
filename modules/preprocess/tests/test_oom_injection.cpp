@@ -584,6 +584,53 @@ TEST_F(OomInjection, AGhostCreationThatIsRefusedLeavesNoBlocksBehind) {
     }
 }
 
+// QA-A-230 M2 (#245): xpe_ghost_create's LAST step is to register the handle (REQ-P1A-086, QA-A-229 M5), which
+// allocates a registry node. The case above only refuses a malformed number (no injection at all), and the
+// sweeps below build their ghost handle outside the injection, so nothing made that allocation fail. Every
+// allocation of a SUCCESSFUL configuration is failed in turn here, the registry node included. A creation that
+// reports an error must hand back no handle and leave no block behind (the sweep's live-block count); one that
+// reports OK must hand back a handle the module recognises -- an OK with an unregistered handle would be refused
+// by every later ghost call. The setup warms the registry first (its singleton and bucket array are allocated
+// once and never freed, which the live-block count would otherwise read as a leak on the first iteration).
+namespace ghostcreate {
+void* g_h = nullptr;
+bool g_valid = false;
+XpeErrorCode create(const std::string& cfg) {
+    g_h = nullptr;
+    g_valid = false;
+    void* h = nullptr;
+    const XpeErrorCode rc = xpe_ghost_create(W, H, cfg.empty() ? nullptr : cfg.c_str(), &h);
+    g_h = h;
+    g_valid = (h != nullptr) && GhostCorrectorHandle::isValid(h);
+    if (rc == XPE_OK && h != nullptr) xpe_ghost_destroy(h);   // freed inside the call: nothing is left to count
+    return rc;
+}
+void warm() {
+    void* h = nullptr;
+    if (xpe_ghost_create(W, H, nullptr, &h) == XPE_OK) xpe_ghost_destroy(h);
+    xpe_clear_alerts();
+}
+std::string verdict(XpeErrorCode rc) {
+    if (rc == XPE_OK) return g_valid ? std::string() : "an OK creation handed back a handle the module does not recognise";
+    if (g_h != nullptr) return "a refused creation handed back a handle";
+    if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure was reported as another error";
+    return std::string();
+}
+}  // namespace ghostcreate
+
+TEST_F(OomInjection, AGhostCreationWhoseAllocationFailsHandsBackNothingAndLeaksNothing) {
+    sweep("xpe_ghost_create (default config)", [] { ghostcreate::warm(); },
+          [] { return ghostcreate::create(std::string()); }, /*unchangedOnError=*/false,
+          ghostcreate::verdict);
+}
+
+TEST_F(OomInjection, ACalibratedGhostCreationWhoseAllocationFailsHandsBackNothingAndLeaksNothing) {
+    const std::string cfg = withStableLag();
+    sweep("xpe_ghost_create (calibrated config)", [] { ghostcreate::warm(); },
+          [cfg] { return ghostcreate::create(cfg); }, /*unchangedOnError=*/false,
+          ghostcreate::verdict);
+}
+
 // The defect correction takes shared ownership of the map and reads it in place: no request in a frame is as
 // large as the map (it used to copy the whole map, under the lock). The frame is 256x256, so a copy of the
 // map is a 65536-byte request, while the clustering bit-sets are 8 KiB.
