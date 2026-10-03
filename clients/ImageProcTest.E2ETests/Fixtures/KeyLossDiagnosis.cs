@@ -1,4 +1,4 @@
-// GUI-C-229, 229b, 229c, 229d: what a failed real-keystroke scenario can say about WHERE keys went, from observations taken before the input and AFTER the judgment read. Pure code, no input and no application.
+// GUI-C-229, 229b, 229c, 229d, 229e: what a failed real-keystroke scenario can say about WHERE keys went, from observations taken before the input and AFTER the judgment read. Pure code, no input and no application.
 using System.Text;
 
 namespace ImageProcTest.E2ETests.Fixtures;
@@ -12,6 +12,30 @@ internal readonly record struct Observation(string Center, string Width, string 
 {
     public override string ToString() =>
         $"center '{Center}', width '{Width}', keyboard focus '{FocusAutomationId}' (pid {FocusProcessId}), foreground pid {ForegroundProcessId}";
+}
+
+/// <summary>
+/// An <see cref="Observation"/> that may not have been possible to take. A diagnostic read that throws is kept as a note (<c>diagnostic read failed: type: message</c>) instead of an exception, so a failed
+/// lookup of Width or of the focus can never change a verdict or erase a record (GUI-C-229e).
+/// </summary>
+internal readonly record struct Reading(Observation? Value, string? Failure)
+{
+    public static implicit operator Reading(Observation value) => new(value, null);
+
+    /// <summary>Takes the reading inside a best-effort guard: any exception becomes the note.</summary>
+    public static Reading Take(Func<Observation> read)
+    {
+        try
+        {
+            return new Reading(read(), null);
+        }
+        catch (Exception ex)
+        {
+            return new Reading(null, $"diagnostic read failed: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    public override string ToString() => Value is { } v ? v.ToString() : Failure ?? "(not read)";
 }
 
 /// <summary>
@@ -129,12 +153,12 @@ internal static class KeyLossDiagnosis
     };
 
     /// <summary>The foreground facts as sentences, or an empty string when the application held the foreground at every reading after the keys. No destination is claimed.</summary>
-    internal static string ForegroundFacts(Observation at600, Observation? later, int appProcessId)
+    internal static string ForegroundFacts(Observation? at600, Observation? later, int appProcessId)
     {
         var sb = new StringBuilder();
-        if (at600.ForegroundProcessId != appProcessId)
+        if (at600 is { } a && a.ForegroundProcessId != appProcessId)
         {
-            sb.Append($"At the 600 ms reading the foreground was process {at600.ForegroundProcessId}, not the application (pid {appProcessId}). ");
+            sb.Append($"At the 600 ms reading the foreground was process {a.ForegroundProcessId}, not the application (pid {appProcessId}). ");
         }
 
         if (later is { } l && l.ForegroundProcessId != appProcessId)
@@ -151,10 +175,34 @@ internal static class KeyLossDiagnosis
     }
 
     /// <summary>The observations, in order, for the failure message and for the log of a passing run.</summary>
-    internal static string Facts(Observation before, Observation at600, long readStartedAtMs, long readCompletedAtMs, Observation? later) =>
+    internal static string Facts(Reading before, Reading at600, long readStartedAtMs, long readCompletedAtMs, Reading? later) =>
         new StringBuilder()
             .Append("before the keys: ").Append(before)
             .Append($"; 600 ms after (judgment read +{readStartedAtMs}..+{readCompletedAtMs} ms): ").Append(at600)
             .Append("; 1.5 s later: ").Append(later is { } l ? l.ToString() : "(not read)")
             .ToString();
+
+    /// <summary>
+    /// <see cref="Classify"/> for readings that may be missing: when a diagnostic read failed the answer is <see cref="Cause.Unclassified"/> (the judgment value <paramref name="center"/> is not a diagnostic and
+    /// is always there). A missing re-read is passed on as "not taken".
+    /// </summary>
+    internal static Cause ClassifyReadings(string typed, string center, Reading before, Reading at600, Reading? later, int appProcessId, bool keysSent)
+    {
+        if (!keysSent)
+        {
+            return Cause.NotSentForegroundWasNotTheApp;
+        }
+
+        if (center == typed)
+        {
+            return Cause.None;
+        }
+
+        if (before.Value is not { } b || at600.Value is not { } a)
+        {
+            return Cause.Unclassified;
+        }
+
+        return Classify(typed, b, a, later?.Value, appProcessId, keysSent: true);
+    }
 }
