@@ -27,8 +27,11 @@
 
 #include <chrono>
 #include <cstdint>
+#include <functional>
 #include <new>
+#include <set>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #ifndef XPE_AI_TEST_DATA_DIR
@@ -356,5 +359,120 @@ TEST(SidecarDuplicateKeys, TheLabelReaderIsLinearToo) {
     EXPECT_EQ(nullptr, reason);
     EXPECT_EQ(n, labels.size());
     std::printf("[ measured ] %zu labels, %zu bytes: %.1f ms (bound %.0f ms)\n", n, text.size(), ms, kBoundMs);
+    EXPECT_LT(ms, kBoundMs);
+}
+
+/* =========================================================================
+ * 4. Keys chosen to collide in a hash set (Codex #92, medium)
+ * =========================================================================
+ * A hash set made the duplicate-key check linear for ORDINARY keys, but the keys of a signed sidecar are chosen by whoever
+ * signed it, and MSVC's std::hash<std::string> is a fixed FNV-1a: keys can be chosen that all fall in one bucket, which makes
+ * an unordered set O(n^2) again. The check is an ordered set now (worst case O(n log n) for the whole sidecar). The corpus
+ * below is built FROM the hash function: FNV-1a's low k bits depend only on the low k bits of its state, so the strings
+ * whose hash ends in the same 20 bits are found by meeting in the middle -- a 4-character prefix and a 3-character suffix.
+ * It is verified against the real std::hash; where the standard library hashes differently the corpus cannot be built and the
+ * tests SKIP (they say so) instead of passing on keys that collide nowhere.
+ */
+
+namespace {
+
+constexpr unsigned kCollideBits = 20;
+constexpr uint64_t kCollideMask = (uint64_t{1} << kCollideBits) - 1;
+
+/** Up to @p want distinct 7-character keys whose std::hash<std::string> has the same low 20 bits (0). Empty when it cannot be built. */
+std::vector<std::string> BuildCollidingKeys(size_t want) {
+    const uint64_t prime = 1099511628211ull;               // FNV-1a 64-bit, as MSVC's x64 std::hash uses
+    const uint64_t basis = 14695981039346656037ull;
+    auto step = [&](uint64_t s, unsigned char b) { return ((s ^ b) * prime) & kCollideMask; };
+    uint64_t pinv = prime & kCollideMask;                   // modular inverse of the (odd) prime, Newton's iteration
+    for (int i = 0; i < 6; ++i) pinv = (pinv * (2 - (prime & kCollideMask) * pinv)) & kCollideMask;
+    auto unstep = [&](uint64_t t, unsigned char b) { return (((t * pinv) & kCollideMask) ^ b) & kCollideMask; };
+
+    std::string alphabet;
+    for (char c = 'a'; c <= 'z'; ++c) alphabet += c;
+    for (char c = '0'; c <= '9'; ++c) alphabet += c;
+    for (char c = 'A'; c <= 'L'; ++c) alphabet += c;      // 48 characters
+    const size_t a = alphabet.size();
+
+    // every 4-character prefix, grouped by the low 20 bits of its state
+    std::vector<uint32_t> count((size_t{1} << kCollideBits) + 1, 0);
+    auto prefixState = [&](size_t code) {
+        uint64_t st = basis & kCollideMask;
+        size_t c = code;
+        for (int i = 0; i < 4; ++i) { st = step(st, static_cast<unsigned char>(alphabet[c % a])); c /= a; }
+        return st;
+    };
+    const size_t prefixes = a * a * a * a;
+    for (size_t code = 0; code < prefixes; ++code) ++count[prefixState(code) + 1];
+    for (size_t i = 1; i < count.size(); ++i) count[i] += count[i - 1];
+    std::vector<uint32_t> byState(prefixes);
+    {
+        std::vector<uint32_t> fill(count.begin(), count.end() - 1);
+        for (size_t code = 0; code < prefixes; ++code) byState[fill[prefixState(code)]++] = static_cast<uint32_t>(code);
+    }
+
+    std::vector<std::string> keys;
+    const std::hash<std::string> h;
+    for (size_t suffix = 0; suffix < a * a * a && keys.size() < want; ++suffix) {
+        const unsigned char c1 = static_cast<unsigned char>(alphabet[suffix % a]);
+        const unsigned char c2 = static_cast<unsigned char>(alphabet[(suffix / a) % a]);
+        const unsigned char c3 = static_cast<unsigned char>(alphabet[(suffix / a / a) % a]);
+        uint64_t need = 0;                                  // the state the prefix must leave, so that the suffix ends at 0
+        need = unstep(need, c3);
+        need = unstep(need, c2);
+        need = unstep(need, c1);
+        for (uint32_t i = count[need]; i < count[need + 1] && keys.size() < want; ++i) {
+            std::string key;
+            size_t c = byState[i];
+            for (int k = 0; k < 4; ++k) { key += alphabet[c % a]; c /= a; }
+            key += static_cast<char>(c1);
+            key += static_cast<char>(c2);
+            key += static_cast<char>(c3);
+            if ((h(key) & kCollideMask) == 0) keys.push_back(key);   // verified against the REAL hash
+        }
+    }
+    return keys;
+}
+
+std::string SidecarOfKeys(const std::vector<std::string>& keys, size_t from, size_t to) {
+    std::string tail;
+    for (size_t i = from; i < to; ++i) tail += ",\"" + keys[i] + "\":0";
+    return SidecarWith(tail);
+}
+
+}  // namespace
+
+TEST(SidecarCollidingKeys, TheCorpusReallyCollidesInAnUnorderedSetOfThisStandardLibrary) {
+    // The control for the next test: keys that collide nowhere would let it pass for any implementation.
+    const std::vector<std::string> keys = BuildCollidingKeys(20000);
+    if (keys.size() < 20000) GTEST_SKIP() << "only " << keys.size() << " keys could be built: this standard library hashes strings differently";
+    std::unordered_set<std::string> hashed;
+    std::set<std::string> ordered;
+    auto t0 = std::chrono::steady_clock::now();
+    for (const std::string& k : keys) ordered.insert(k);
+    const double orderedMs = MillisSince(t0);
+    t0 = std::chrono::steady_clock::now();
+    for (const std::string& k : keys) hashed.insert(k);
+    const double hashedMs = MillisSince(t0);
+    std::printf("[ measured ] %zu colliding keys: ordered set %.1f ms, unordered set %.1f ms\n", keys.size(), orderedMs, hashedMs);
+    EXPECT_GT(hashed.bucket_size(hashed.bucket(keys[0])), keys.size() * 9 / 10) << "the keys share one bucket";
+    EXPECT_GT(hashedMs, orderedMs * 10) << "and that is what makes a hash set slow on them";
+}
+
+TEST(SidecarCollidingKeys, AFullSizeSidecarOfKeysThatShareOneHashBucketIsParsedInTimeToo) {
+    const std::vector<std::string> keys = BuildCollidingKeys(80000);
+    if (keys.size() < 70000) GTEST_SKIP() << "only " << keys.size() << " colliding keys could be built: this standard library hashes strings differently";
+    // as many as fit under the sidecar cap
+    size_t n = keys.size();
+    while (n > 0 && SidecarOfKeys(keys, 0, n).size() + 16 >= xpe::ai::kMaxSidecarBytes) --n;
+    ASSERT_GT(n, 60000u) << "the sidecar is full size (control)";
+    const std::string text = SidecarOfKeys(keys, 0, n);
+    ModelSidecar sc;
+    std::string why;
+    const auto t0 = std::chrono::steady_clock::now();
+    const bool ok = ParseModelSidecar(&text, &sc, &why);
+    const double ms = MillisSince(t0);
+    EXPECT_TRUE(ok) << why << " (distinct keys, whatever they hash to, are not a fault)";
+    std::printf("[ measured ] %zu keys of one hash bucket, %zu bytes: %.1f ms (bound %.0f ms)\n", n, text.size(), ms, kBoundMs);
     EXPECT_LT(ms, kBoundMs);
 }

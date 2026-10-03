@@ -78,15 +78,6 @@
  */
 using xpe::ai::BodyPartModel;   // defined in ai_bodypart_model.h, shared with the worker
 
-/** One role's model as the model card sees it (QA-B-197 M2). */
-struct CardEntry {
-    bool evaluated{false};     ///< the files were looked at (the other fields mean something)
-    std::string stamp;         ///< modelFilesStamp() of the three files when they were looked at
-    bool ok{false};            ///< the model verified AND its sidecar says what REQ-AI-008 requires
-    std::string modelId;       ///< the sidecar's model_id (only when ok)
-    std::string cardJson;      ///< the card, already built (only when ok): a call that finds it allocates nothing
-};
-
 struct AiModuleState {
     std::mutex mtx;
 
@@ -205,15 +196,6 @@ struct AiModuleState {
 
     /** Handle to the named pipe (platform-specific). */
     void* pipeHandle{nullptr};
-
-    // --- Model cards (QA-B-197 M2) ---
-    /**
-     * What the verified sidecars of the two roles say, per role, kept while the three files of a role keep the size and
-     * write time they had when the card was last made (modelFilesStamp). A card is made ONLY from here: there is no list
-     * of model ids in this module any more.
-     */
-    CardEntry cardBone;
-    CardEntry cardPart;
 
     AiModuleState() = default;
 
@@ -529,6 +511,19 @@ static void parseConfig(AiModuleState* state, const char* configJsonOrNull) {
  * if this module's own path cannot be read the answer is "none" and the worker path fails (reported,
  * and replaced by the in-process result) instead of searching.
  */
+#ifdef XPE_AI_TEST_HOOKS
+// TEST-ONLY (QA-B-195d). Called on the calling thread at the start of the try block that starts and asks the worker
+// (xpe_bone_suppress and xpe_bodypart_recognize with "use_worker"); a hook that throws puts an exception of the test's
+// choosing exactly there, so the classification of what the block catches can be tested: std::bad_alloc is
+// XPE_ERR_OUT_OF_MEMORY, anything else is XPE_ERR_PROCESSING_FAILED. A delivery build (XPE_AI_TEST_HOOKS OFF) has neither
+// this variable, nor the calls, nor the setter.
+static std::atomic<void (*)(void)> g_testWorkerPathHook{nullptr};
+
+extern "C" XPE_API void xpe_ai_test_set_worker_path_hook(void (*hook)(void)) {
+    g_testWorkerPathHook.store(hook, std::memory_order_release);
+}
+#endif
+
 static std::string workerExePath() {
     HMODULE self = nullptr;
     if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
@@ -563,6 +558,9 @@ static XpeErrorCode boneSuppressViaWorker(AiModuleState* state, const XpeImageBu
                                           XpeImageBuffer* out, bool* nonFiniteResult) {
     *nonFiniteResult = false;
     try {
+#ifdef XPE_AI_TEST_HOOKS
+        if (auto* hook = g_testWorkerPathHook.load(std::memory_order_acquire)) hook();
+#endif
         if (!state->workerSupervisor) {
             xpe::ai::WorkerSupervisorConfig cfg;
             cfg.worker_exe = workerExePath();
@@ -577,8 +575,11 @@ static XpeErrorCode boneSuppressViaWorker(AiModuleState* state, const XpeImageBu
             in->width, in->height, static_cast<const float*>(in->data), static_cast<float*>(out->data));
         *nonFiniteResult = rc != XPE_OK && state->workerSupervisor->LastResultWasNonFinite();
         return rc;
-    } catch (...) {
+    } catch (const std::bad_alloc&) {
         return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        // QA-B-195d (Codex #92): an exception that is not a shortage of memory is not reported as one.
+        return XPE_ERR_PROCESSING_FAILED;
     }
 }
 
@@ -848,32 +849,27 @@ static void pushWorkerRefusedModelAlertOnce(bool* alerted, const char* role) {
 }
 
 /**
- * Prepare one role's card entry (QA-B-197 M2). When the three files of the role are as they were when @p current was
- * made, nothing is read and false is returned. Otherwise the model is read and its signature verified through the SAME
- * function a load uses (xpe::ai::ReadVerifiedModelFiles), the sidecar is judged by the SAME rule (ParseModelSidecar), the
- * card is built, and true is returned with the result in @p fresh. A model that does not verify, or whose sidecar does
- * not say what REQ-AI-008 requires, gives an entry that is not ok: it has no card.
- * This changes nothing but @p fresh: the caller commits the entries of BOTH roles only after both are prepared (moves of
- * strings, which do not throw), so an allocation failure in the second leaves the first as it was. Caller holds state->mtx.
+ * The card of the model of one role, when that model is the one called @p modelId (QA-B-197 M2, QA-B-195d). The model is
+ * read and its signature verified through the SAME function a load uses (xpe::ai::ReadVerifiedModelFiles) and the sidecar is
+ * judged by the SAME rule (ParseModelSidecar), EVERY time: nothing is remembered between calls. (A first version kept the
+ * card while the files kept their size and write time; a sidecar changed to another of the same size, its write time put
+ * back, then kept a card for a file that no longer verified -- a fast path that gave a verdict the slow path would not.)
+ * Returns true with the card in @p card; false when the model is not there, does not verify, has no valid sidecar, or is
+ * another model. Changes no module state, so an allocation failure leaves nothing behind. Caller holds state->mtx.
  */
-static bool prepareCardEntry(const AiModuleState* state, const CardEntry& current, const char* stem, const char* role,
-                             CardEntry* fresh) {
-    std::string stamp = modelFilesStamp(state->modelDirPath, stem);
-    if (current.evaluated && current.stamp == stamp) return false;
+static bool cardOfRoleIfItIs(const AiModuleState* state, const char* stem, const char* role, const std::string& modelId,
+                             std::string* card) {
     const std::string base = state->modelDirPath.empty() ? std::string() : state->modelDirPath + "/";
     xpe::ai::VerifiedModelFiles files;
     std::string message;
-    if (xpe::ai::ReadVerifiedModelFiles(base + stem + ".onnx", role, &files, &message) == xpe::ai::OnnxErrorCode::kOk) {
-        xpe::ai::ModelSidecar sidecar;
-        std::string why;
-        if (xpe::ai::ParseModelSidecar(files.has_sidecar ? &files.sidecar_text : nullptr, &sidecar, &why)) {
-            fresh->cardJson = xpe::ai::BuildModelCardJson(sidecar);
-            fresh->modelId = sidecar.model_id;
-            fresh->ok = true;
-        }
+    if (xpe::ai::ReadVerifiedModelFiles(base + stem + ".onnx", role, &files, &message) != xpe::ai::OnnxErrorCode::kOk) {
+        return false;
     }
-    fresh->stamp = std::move(stamp);
-    fresh->evaluated = true;
+    xpe::ai::ModelSidecar sidecar;
+    std::string why;
+    if (!xpe::ai::ParseModelSidecar(files.has_sidecar ? &files.sidecar_text : nullptr, &sidecar, &why)) return false;
+    if (sidecar.model_id != modelId) return false;
+    *card = xpe::ai::BuildModelCardJson(sidecar);
     return true;
 }
 
@@ -941,6 +937,9 @@ static XpeErrorCode bodyPartViaWorker(AiModuleState* state, const XpeImageBuffer
     XpeErrorCode rc = XPE_ERR_PROCESSING_FAILED;
     bool unavailable = false;
     try {
+#ifdef XPE_AI_TEST_HOOKS
+        if (auto* hook = g_testWorkerPathHook.load(std::memory_order_acquire)) hook();
+#endif
         if (!state->workerSupervisor) {
             xpe::ai::WorkerSupervisorConfig cfg;
             cfg.worker_exe = workerExePath();
@@ -957,8 +956,10 @@ static XpeErrorCode bodyPartViaWorker(AiModuleState* state, const XpeImageBuffer
                                                             static_cast<const float*>(img->data), &reply);
             unavailable = rc != XPE_OK && state->workerSupervisor->LastModelUnavailable();
         }
-    } catch (...) {
+    } catch (const std::bad_alloc&) {
         rc = XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        rc = XPE_ERR_PROCESSING_FAILED;   // QA-B-195d (Codex #92): not a shortage of memory, so not reported as one
     }
 
     if (rc == XPE_OK) {
@@ -1830,25 +1831,14 @@ extern "C++" static XpeErrorCode xpe_ai_get_model_card_impl(const char* modelId,
     // REQ-AI-010 / 011 (QA-B-197 M2): the card of a model is made ONLY from the sidecar of a model that passed the same
     // checks a load applies (signature, then REQ-AI-008). No constant of this module is ever put into a card; a field the
     // sidecar does not carry is null. A model that is not there, does not verify, or has no valid sidecar has no card.
-    // The answer for "no such model" is built BEFORE the entries are prepared, and the entries are committed only when
-    // both are prepared: an allocation failure anywhere leaves the module exactly as it was before the call.
+    // The answer for "no such model" is built first; nothing below changes module state.
     const std::string unavailable = "{\"model_id\":" + xpe::ai::JsonQuote(modelId) +
                                     ",\"error\":\"model_unavailable\",\"reason\":\"no verified model in the model "
                                     "directory has this model_id\"}";
-    CardEntry freshBone, freshPart;
-    const bool newBone = prepareCardEntry(state, state->cardBone, "bone_suppress", "bone_suppress", &freshBone);
-    const bool newPart = prepareCardEntry(state, state->cardPart, "bodypart", "bodypart", &freshPart);
-    // Both are prepared: committing is moves of strings, which do not throw.
-    if (newBone) state->cardBone = std::move(freshBone);
-    if (newPart) state->cardPart = std::move(freshPart);
-    const CardEntry* hit = nullptr;
-    if (state->cardBone.ok && state->cardBone.modelId == modelId) {
-        hit = &state->cardBone;
-    } else if (state->cardPart.ok && state->cardPart.modelId == modelId) {
-        hit = &state->cardPart;
-    }
-    const bool found = hit != nullptr;
-    const std::string& cardJson = found ? hit->cardJson : unavailable;
+    std::string made;
+    const bool found = cardOfRoleIfItIs(state, "bone_suppress", "bone_suppress", modelId, &made) ||
+                       cardOfRoleIfItIs(state, "bodypart", "bodypart", modelId, &made);
+    const std::string& cardJson = found ? made : unavailable;
 
     // Copy to caller buffer
     size_t copyLen = (cardJson.size() < bufSize - 1)

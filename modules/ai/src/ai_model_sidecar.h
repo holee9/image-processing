@@ -40,7 +40,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
-#include <unordered_set>
+#include <set>
 #include <vector>
 
 #include <nlohmann/json.hpp>
@@ -218,6 +218,9 @@ public:
         if (depth_ == 1) {
             // QA-B-195c: a set, not a scan of the keys so far (a sidecar of 100000 distinct keys was ~5 * 10^9
             // comparisons), and the parse STOPS at the first repeated key: nothing after it can change the verdict.
+            // QA-B-195d: an ORDERED set (worst case O(log n) per key), not a hash set: the sidecar is signed, but whoever
+            // signed it chose its keys, and MSVC's std::hash<std::string> is a fixed FNV-1a, so keys can be chosen that
+            // all land in one bucket and make an unordered set O(n^2) again (a corpus of such keys is in the tests).
             if (!keys_.insert(k).second) {
                 duplicate = k;
                 return false;
@@ -246,7 +249,7 @@ private:
     Entry* cur_ = nullptr;             ///< the entry the current top-level member belongs to (null: a key not named here)
     std::vector<bool> comma_;          ///< per open container of the current member: has an element been written?
     bool afterKey_ = false;
-    std::unordered_set<std::string> keys_;   ///< the top-level keys seen, to find a duplicate
+    std::set<std::string> keys_;   ///< the top-level keys seen, to find a duplicate
 
     Entry* lookup(const std::string& k) {
         if (k == "model_id") return &model_id;

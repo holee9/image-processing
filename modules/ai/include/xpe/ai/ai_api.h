@@ -673,9 +673,13 @@ XPE_API XpeErrorCode xpe_dl_denoise(XpeImageBuffer* img,
  * A model that is not in the directory, whose signature does not verify, or whose
  * sidecar is missing or invalid has no card: the answer is the "unavailable"
  * document below and XPE_ERR_CONFIG_INVALID (-4, the same code a signature
- * refusal gives elsewhere). The files are read again when their size or write
- * time changes, so a model replaced while the module runs is seen on the next
- * call. Before QA-B-197 the card was a table of four fixed model ids, answered
+ * refusal gives elsewhere). The model and its sidecar are read and verified on
+ * EVERY call -- nothing is remembered between calls -- so a model replaced while
+ * the module runs is seen on the next call, and one that no longer verifies has
+ * no card, whatever its size and write time say. The cost is one read and one
+ * signature check of each model file the lookup has to visit (a lookup that
+ * finds the bone-suppression model visits only that one); it is measured in the
+ * QA-B-195d report. Before QA-B-197 the card was a table of four fixed model ids, answered
  * whether or not a model existed, with "0.1.0-stub" as the version.
  *
  * On every path that reaches the copy step, @p buf receives a null-terminated

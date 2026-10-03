@@ -28,7 +28,10 @@
 
 #include <windows.h>
 
+#include <algorithm>
 #include <chrono>
+#include <cstdlib>
+#include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -269,6 +272,60 @@ TEST_F(AiModelCardTest, ACardFollowsTheFilesWhenTheyChangeInTheSameSession) {
     EXPECT_EQ(XPE_ERR_CONFIG_INVALID, GetCard("bone_toy_x2").rc) << "...and its old id is gone";
 }
 
+// QA-B-195d (Codex #92). A first version kept each card while the size and write time of the three files stayed as they were
+// when it was made. The test above puts the write time ONE HOUR FORWARD, which is exactly the case such a cache sees; the two
+// tests below are the cases it does not: the SAME size, and the write time put back. Every lookup now reads and verifies.
+TEST_F(AiModelCardTest, ASidecarChangedToTheSameSizeWithItsWriteTimePutBackIsRefusedNotServedFromMemory) {
+    const TempDir t("same_size_tamper");
+    t.CopyFrom("models_x2");
+    Init(t.path.string());
+    ASSERT_EQ(XPE_OK, GetCard("bone_toy_x2").rc) << "the control: the model has a card (and a cache, if there were one, is warm)";
+
+    const fs::path json = t.path / "bone_suppress.json";
+    const auto writeTime = fs::last_write_time(json);
+    std::string text = ReadText(json);
+    const size_t at = text.find("wiring");
+    ASSERT_NE(std::string::npos, at);
+    text[at] = 'W';                                  // one character, same length: the signature no longer matches
+    WriteText(json, text);
+    fs::last_write_time(json, writeTime);            // ...and the write time is put back
+    ASSERT_EQ(text.size(), static_cast<size_t>(fs::file_size(json)));
+
+    const Card now = GetCard("bone_toy_x2");
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, now.rc) << "a sidecar that no longer verifies has no card: " << now.text;
+    EXPECT_NE(std::string::npos, now.text.find("model_unavailable"));
+}
+
+TEST_F(AiModelCardTest, AValidSidecarAndSignatureOfTheSameSizeAndTimeAreSeenAtOnce) {
+    const TempDir t("same_size_valid");
+    t.CopyFrom("models_x2");
+    Init(t.path.string());
+    const Card before = GetCard("bone_toy_x2");
+    ASSERT_EQ(XPE_OK, before.rc);
+    ASSERT_EQ("0.0.1", Parsed(before)["model_version"].get<std::string>());
+
+    const fs::path json = t.path / "bone_suppress.json";
+    const fs::path sig = t.path / "bone_suppress.sig";
+    const auto jsonTime = fs::last_write_time(json);
+    const auto sigTime = fs::last_write_time(sig);
+    const auto jsonSize = fs::file_size(json);
+    const auto sigSize = fs::file_size(sig);
+    std::string text = ReadText(json);
+    const size_t at = text.find("0.0.1");
+    ASSERT_NE(std::string::npos, at);
+    text.replace(at, 5, "0.0.2");                    // same length
+    WriteText(json, text);
+    ASSERT_TRUE(xpe_test::SignDir(t.path, "bone_suppress"));   // a valid pair again
+    fs::last_write_time(json, jsonTime);
+    fs::last_write_time(sig, sigTime);
+    ASSERT_EQ(jsonSize, fs::file_size(json));
+    ASSERT_EQ(sigSize, fs::file_size(sig)) << "the premise: size and write time of every file are what they were";
+
+    const Card now = GetCard("bone_toy_x2");
+    ASSERT_EQ(XPE_OK, now.rc) << now.text;
+    EXPECT_EQ("0.0.2", Parsed(now)["model_version"].get<std::string>()) << "the new card, not the one made before";
+}
+
 TEST_F(AiModelCardTest, ATextWithQuotesBackslashesControlCharactersAndNonAsciiSurvivesIntoValidJson) {
     const TempDir t("escapes");
     t.CopyFrom("models_x2");
@@ -418,4 +475,70 @@ TEST(ModelCardNotInitialized, WithoutInitThereIsNoCardAndTheCodeSaysSo) {
     xpe_ai_shutdown();
     char buf[4096] = {};
     EXPECT_EQ(XPE_ERR_NOT_INITIALIZED, xpe_ai_get_model_card("bone_toy_x2", buf, sizeof(buf)));
+}
+
+/* ============================================================================
+ * What a lookup costs now that it reads and verifies every time (QA-B-195d)
+ * ============================================================================ */
+
+namespace {
+
+/** A model directory whose model file is @p mib MiB of bytes (never parsed as ONNX by a card lookup), signed. */
+void MakeSizedModelDir(const fs::path& dir, size_t mib) {
+    fs::create_directories(dir);
+    {
+        std::ofstream f(dir / "bone_suppress.onnx", std::ios::binary | std::ios::trunc);
+        std::vector<char> block(1u << 20);
+        uint32_t x = 12345u;
+        for (size_t m = 0; m < mib; ++m) {
+            for (char& c : block) {
+                x = x * 1664525u + 1013904223u;
+                c = static_cast<char>(x >> 24);
+            }
+            f.write(block.data(), static_cast<std::streamsize>(block.size()));
+        }
+    }
+    WriteText(dir / "bone_suppress.json", SidecarText("cost_toy"));
+    ASSERT_TRUE(xpe_test::SignDir(dir, "bone_suppress"));
+}
+
+double MillisOf(const std::chrono::steady_clock::time_point& t0) {
+    return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+}
+
+}  // namespace
+
+// The cost of one lookup of the bone-suppression model: one read of the model file and one SHA-256 + ECDSA verification of it.
+// Sizes: XPE_CARD_COST_MIB (comma separated, default "1,16"); the QA-B-195d report was measured with "1,16,64,256,768".
+// The bound is an UPPER-BOUND ESTIMATE for a shared CI machine, chosen far above the local figure printed here.
+TEST(ModelCardCost, ALookupOfTheModelItFindsIsReadAndVerifiedEveryTimeAndStaysWithinABound) {
+    char env[64] = {0};
+    const std::string sizes = GetEnvironmentVariableA("XPE_CARD_COST_MIB", env, sizeof(env)) > 0 ? std::string(env) : std::string("1,16");
+    size_t pos = 0;
+    while (pos < sizes.size()) {
+        const size_t comma = sizes.find(',', pos);
+        const size_t mib = static_cast<size_t>(std::atoi(sizes.substr(pos, comma == std::string::npos ? std::string::npos : comma - pos).c_str()));
+        pos = comma == std::string::npos ? sizes.size() : comma + 1;
+        if (mib == 0) continue;
+
+        const TempDir t(("cost_" + std::to_string(mib)).c_str());
+        fs::remove_all(t.path);
+        MakeSizedModelDir(t.path, mib);
+        xpe_ai_shutdown();
+        ASSERT_EQ(XPE_OK, xpe_ai_init(t.path.string().c_str(), nullptr));
+        std::vector<double> ms;
+        for (int i = 0; i < 5; ++i) {
+            const auto t0 = std::chrono::steady_clock::now();
+            const Card c = GetCard("cost_toy");
+            ms.push_back(MillisOf(t0));
+            ASSERT_EQ(XPE_OK, c.rc) << mib << " MiB: " << c.text;
+        }
+        std::vector<double> sorted = ms;
+        std::sort(sorted.begin(), sorted.end());
+        const double bound = 5000.0 + 100.0 * static_cast<double>(mib);   // an upper-bound estimate, not a measurement
+        std::printf("[ measured ] a card lookup, %zu MiB model: first %.1f ms, median of 5 %.1f ms, max %.1f ms (bound %.0f ms)\n",
+                    mib, ms.front(), sorted[2], sorted.back(), bound);
+        EXPECT_LT(sorted.back(), bound) << mib << " MiB";
+        xpe_ai_shutdown();
+    }
 }

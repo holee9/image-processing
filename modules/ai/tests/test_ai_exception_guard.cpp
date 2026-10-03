@@ -33,10 +33,12 @@
 
 #include "xpe/ai/ai_api.h"
 #include "xpe/ai/ai_onnx_session.h"
+#include "xpe/common/xpe_error.h"
 #include "xpe/common/xpe_types.h"
 
 #ifdef XPE_AI_TEST_HOOKS
 extern "C" __declspec(dllimport) void xpe_ai_test_set_mutex_held_hook(void (*hook)(void));
+extern "C" __declspec(dllimport) void xpe_ai_test_set_worker_path_hook(void (*hook)(void));   // QA-B-195d
 
 namespace {
 
@@ -263,3 +265,82 @@ TEST(AiExceptionGuard, StitchEstimateRefusesAnOversizedPartAndLimitsAValidOneTo4
     ASSERT_EQ(XPE_OK, xpe_stitch_estimate_size(parts, 2, &w, &h));
     EXPECT_EQ(1700u, w);
 }
+
+/* =========================================================================
+ * QA-B-195d (Codex #92): the worker path reports a shortage of memory as one, and nothing else as one
+ * =========================================================================
+ * xpe_bone_suppress and xpe_bodypart_recognize with "use_worker" start and ask the worker inside a try block that used to
+ * answer ANY exception with XPE_ERR_OUT_OF_MEMORY. A hook inside that block (xpe_ai_test_set_worker_path_hook) throws what the
+ * test chooses: std::bad_alloc is -2 (unchanged), any other exception is -3. The body-part function returns UNKNOWN with
+ * XPE_ERR_PROCESSING_FAILED either way and names the worker's code in its Warning, so that is where its code is read.
+ */
+
+#ifdef XPE_AI_TEST_HOOKS
+namespace {
+
+std::atomic<int> g_workerThrow{0};   // 0 none, 1 std::bad_alloc, 2 std::runtime_error
+
+void WorkerPathHook() {
+    const int m = g_workerThrow.load();
+    if (m == 1) throw std::bad_alloc();
+    if (m == 2) throw std::runtime_error("injected where the worker is started and asked");
+}
+
+struct WorkerPathClassification : public ::testing::Test {
+    void SetUp() override {
+        if (xpe::ai::OnnxSession::IsStubBuild()) GTEST_SKIP() << "stub build: the worker path is not taken";
+        g_workerThrow = 0;
+        xpe_ai_shutdown();
+        xpe_clear_alerts();
+        const std::string dir = std::string(XPE_AI_TEST_DATA_DIR) + "/models_x2";
+        ASSERT_EQ(XPE_OK, xpe_ai_init(dir.c_str(), "{\"use_worker\": true}"));
+        xpe_ai_test_set_worker_path_hook(&WorkerPathHook);
+    }
+    void TearDown() override {
+        g_workerThrow = 0;
+        xpe_ai_test_set_worker_path_hook(nullptr);
+        xpe_ai_shutdown();
+        xpe_clear_alerts();
+    }
+
+    /** The text of every pending alert, joined. */
+    static std::string AlertText() {
+        std::string all;
+        const int32_t n = xpe_get_pending_alert_count();
+        for (int32_t i = 0; i < n; ++i) {
+            char msg[512] = {0};
+            int32_t sev = -1;
+            if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) == XPE_OK) all += std::string(msg) + "\n";
+        }
+        return all;
+    }
+};
+
+}  // namespace
+
+TEST_F(WorkerPathClassification, BoneSuppressMapsABadAllocToOutOfMemoryAndAnyOtherExceptionToProcessingFailed) {
+    Frame f;
+    g_workerThrow = 1;
+    EXPECT_EQ(XPE_ERR_OUT_OF_MEMORY, xpe_bone_suppress(&f.a, &f.b, nullptr)) << "unchanged: a shortage of memory is -2";
+    g_workerThrow = 2;
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, xpe_bone_suppress(&f.a, &f.b, nullptr))
+        << "was XPE_ERR_OUT_OF_MEMORY: an exception that is not a shortage of memory is not reported as one";
+}
+
+TEST_F(WorkerPathClassification, BodyPartRecognizeNamesAShortageOfMemoryAsCodeMinusTwoAndAnyOtherExceptionAsCodeMinusThree) {
+    Frame f;
+    char label[64] = {0};
+    float confidence = -1.0f;
+    g_workerThrow = 1;
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, xpe_bodypart_recognize(&f.a, label, sizeof(label), &confidence));
+    EXPECT_STREQ("UNKNOWN", label);
+    const std::string oom = AlertText();
+    EXPECT_NE(std::string::npos, oom.find("(code -2,")) << oom;
+    xpe_clear_alerts();
+    g_workerThrow = 2;
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, xpe_bodypart_recognize(&f.a, label, sizeof(label), &confidence));
+    const std::string other = AlertText();
+    EXPECT_NE(std::string::npos, other.find("(code -3,")) << "was code -2: " << other;
+    EXPECT_EQ(std::string::npos, other.find("(code -2,")) << other;
+}
+#endif  // XPE_AI_TEST_HOOKS
