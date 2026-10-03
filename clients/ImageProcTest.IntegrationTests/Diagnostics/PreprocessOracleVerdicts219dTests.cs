@@ -55,13 +55,13 @@ public sealed class PreprocessOracleVerdicts219dTests : IDisposable
         PreprocessOracleVerdicts.Completed += _ => settled.Release();
 
         Assert.Equal("run1", PreprocessOracleVerdicts.Wait(_dll).Status);
-        settled.Wait(5000);   // the announcement of run 1
+        Assert.True(settled.Wait(VerdictTestWaits.OuterWait), "the announcement of run 1 never came: " + PreprocessOracleVerdicts.DescribeState(_dll));
         Assert.True(await ProcessingContentGate.ConfirmAsync(_dll), "the files are the ones the verdict was made for: the command may run");
 
         ReplaceKeepingTheTimestamp(_dll, "y");
 
         Assert.False(await ProcessingContentGate.ConfirmAsync(_dll), "the original changed after the verdict: the command must not run");
-        Assert.True(await settled.WaitAsync(10000), "the new content was never verified");
+        Assert.True(await settled.WaitAsync(VerdictTestWaits.OuterWait), $"the new content was never verified (runs={Volatile.Read(ref runs)}); {PreprocessOracleVerdicts.DescribeState(_dll)}");
         Assert.Equal("run2", PreprocessOracleVerdicts.TryGet(_dll)!.Status);
         Assert.True(await ProcessingContentGate.ConfirmAsync(_dll), "the new content has its own verdict now");
     }
@@ -73,8 +73,7 @@ public sealed class PreprocessOracleVerdicts219dTests : IDisposable
         File.WriteAllText(dependency, "d1");
         PreprocessOracleVerdicts.Runner = _ => Verdict("ok");
         Assert.False(await ProcessingContentGate.ConfirmAsync(_dll), "nothing has been verified yet");   // (this ask also starts the verification)
-        var deadline = DateTime.UtcNow.AddSeconds(30);
-        while (PreprocessOracleVerdicts.TryGet(_dll) is null && DateTime.UtcNow < deadline) await Task.Delay(20);
+        await VerdictTestWaits.PollAsync(() => PreprocessOracleVerdicts.TryGet(_dll), "the first verdict exists", () => PreprocessOracleVerdicts.DescribeState(_dll));
         Assert.True(await ProcessingContentGate.ConfirmAsync(_dll));
 
         ReplaceKeepingTheTimestamp(dependency, "d2");
@@ -232,21 +231,21 @@ public sealed class PreprocessOracleVerdicts219dTests : IDisposable
         var stamp = File.GetLastWriteTimeUtc(_dll);
         var runs = 0;
         PreprocessOracleVerdicts.Runner = _ => Verdict($"run{Interlocked.Increment(ref runs)}");
-        using var atTheGap = new ManualResetEventSlim();
-        using var go = new ManualResetEventSlim();
-        PreprocessOracleVerdicts.BeforeRerunDecision = _ => { if (!atTheGap.IsSet) { atTheGap.Set(); go.Wait(15000); } };
+        using var gap = new VerdictTestWaits.Gap();
+        PreprocessOracleVerdicts.BeforeRerunDecision = _ => gap.Hit();
         using var second = new ManualResetEventSlim();
         var announced = 0;
         PreprocessOracleVerdicts.Completed += _ => { if (Interlocked.Increment(ref announced) == 2) second.Set(); };
 
         Assert.Null(PreprocessOracleVerdicts.TryGet(_dll));
-        Assert.True(atTheGap.Wait(30000));                    // the pass is over and the job has not decided yet
+        VerdictTestWaits.Expect(gap.Reached, "the first pass is over and the job has not decided yet", () => $"runs={Volatile.Read(ref runs)}, announced={Volatile.Read(ref announced)}; {PreprocessOracleVerdicts.DescribeState(_dll)}");
         File.WriteAllText(_dll, "q"); File.SetLastWriteTimeUtc(_dll, stamp);
         PreprocessOracleVerdicts.TryGet(_dll);
-        go.Set();
+        gap.Release();
 
-        Assert.True(second.Wait(30000), "the ask that came before the decision was swallowed");
+        VerdictTestWaits.Expect(second, "the ask that came before the decision gets its own pass", () => $"runs={Volatile.Read(ref runs)}, announced={Volatile.Read(ref announced)}; {PreprocessOracleVerdicts.DescribeState(_dll)}");
         Assert.Equal("run2", PreprocessOracleVerdicts.TryGet(_dll)!.Status);
+        gap.AssertHeldUntilReleased("before the rerun decision");
     }
 
     /// <summary>
@@ -259,21 +258,21 @@ public sealed class PreprocessOracleVerdicts219dTests : IDisposable
         var stamp = File.GetLastWriteTimeUtc(_dll);
         var runs = 0;
         PreprocessOracleVerdicts.Runner = _ => Verdict($"run{Interlocked.Increment(ref runs)}");
-        using var inTheGap = new ManualResetEventSlim();
-        using var go = new ManualResetEventSlim();
-        PreprocessOracleVerdicts.AfterRerunDecision = _ => { if (!inTheGap.IsSet) { inTheGap.Set(); go.Wait(15000); } };
+        using var gap = new VerdictTestWaits.Gap();
+        PreprocessOracleVerdicts.AfterRerunDecision = _ => gap.Hit();
         using var second = new ManualResetEventSlim();
         var announced = 0;
         PreprocessOracleVerdicts.Completed += _ => { if (Interlocked.Increment(ref announced) == 2) second.Set(); };
 
         Assert.Null(PreprocessOracleVerdicts.TryGet(_dll));
-        Assert.True(inTheGap.Wait(30000));                    // the decision is made; the job is still on its way out
+        VerdictTestWaits.Expect(gap.Reached, "the decision is made and the job is still on its way out", () => $"runs={Volatile.Read(ref runs)}, announced={Volatile.Read(ref announced)}; {PreprocessOracleVerdicts.DescribeState(_dll)}");
         File.WriteAllText(_dll, "q"); File.SetLastWriteTimeUtc(_dll, stamp);
         PreprocessOracleVerdicts.TryGet(_dll);
-        go.Set();
+        gap.Release();
 
-        Assert.True(second.Wait(30000), "the ask that came after the decision was swallowed by the job that was leaving");
+        VerdictTestWaits.Expect(second, "the ask that came after the decision starts a job of its own (it was swallowed by the job that was leaving)", () => $"runs={Volatile.Read(ref runs)}, announced={Volatile.Read(ref announced)}; {PreprocessOracleVerdicts.DescribeState(_dll)}");
         Assert.Equal("run2", PreprocessOracleVerdicts.TryGet(_dll)!.Status);
+        gap.AssertHeldUntilReleased("after the rerun decision");
     }
 
     // ---------------------------------------------------------------------------------------------------------------------------------- item 4: the guard without a window

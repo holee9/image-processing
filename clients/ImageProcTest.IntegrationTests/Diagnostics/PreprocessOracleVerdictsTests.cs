@@ -97,9 +97,8 @@ public sealed class PreprocessOracleVerdictsTests : IDisposable
     [Fact]
     public void TryGet_DoesNotReadTheFileOnTheCallersThread_EvenWhenTheReadIsSlow()
     {
-        using var hold = new ManualResetEventSlim();
-        using var inCopy = new ManualResetEventSlim();
-        PreprocessOracleVerdicts.AfterSnapshotCopy = _ => { inCopy.Set(); hold.Wait(15000); };   // bounded: a regression that reads on the caller's thread fails the timing check instead of hanging
+        using var gap = new VerdictTestWaits.Gap();   // bounded: a regression that reads on the caller's thread fails the timing check instead of hanging; and a hook that lets go by itself fails the test
+        PreprocessOracleVerdicts.AfterSnapshotCopy = _ => gap.Hit();
         PreprocessOracleVerdicts.Runner = _ => Verdict("done");
 
         var watch = Stopwatch.StartNew();
@@ -109,10 +108,11 @@ public sealed class PreprocessOracleVerdictsTests : IDisposable
 
         Assert.Null(first);
         Assert.Null(second);
-        Assert.True(inCopy.Wait(5000), "the snapshot was never started");
+        VerdictTestWaits.Expect(gap.Reached, "the worker reaches the copy", () => PreprocessOracleVerdicts.DescribeState(_dll), TimeSpan.FromSeconds(5));
         Assert.True(watch.ElapsedMilliseconds < 300, $"two asks took {watch.ElapsedMilliseconds} ms while the worker's file read was held");
-        hold.Set();
+        gap.Release();
         Assert.Equal("done", PreprocessOracleVerdicts.Wait(_dll).Status);
+        gap.AssertHeldUntilReleased("the worker's file read");
     }
 
     /// <summary>Three asks (the diagnostics report, the module readiness, a second refresh) are one run.</summary>
@@ -313,7 +313,7 @@ public sealed class PreprocessOracleVerdictsTests : IDisposable
         Assert.Contains("xpe_preprocess.dll=" + Sha(original), PreprocessOracleVerdicts.StoredIdentityOf(_dll));   // run 1 is stored under the bytes it was given
 
         Assert.Equal("run1", PreprocessOracleVerdicts.TryGet(_dll)!.Status);   // the stored verdict, at once; its verification starts in the background
-        Assert.True(secondDone.Wait(30000), "the new content was never checked");
+        VerdictTestWaits.Expect(secondDone, "the replaced content is checked", () => $"runs={Volatile.Read(ref runs)}, announced={Volatile.Read(ref announced)}, changed={Volatile.Read(ref changed)}; {PreprocessOracleVerdicts.DescribeState(_dll)}");
 
         Assert.Equal("run2", PreprocessOracleVerdicts.TryGet(_dll)!.Status);
         Assert.Contains("xpe_preprocess.dll=" + Sha(File.ReadAllBytes(_dll)), PreprocessOracleVerdicts.StoredIdentityOf(_dll));
@@ -348,7 +348,7 @@ public sealed class PreprocessOracleVerdictsTests : IDisposable
         Assert.Null(PreprocessOracleVerdicts.TryGet(_dll));   // an ask now: the running job does not cover it
         release.Set();
 
-        Assert.True(secondDone.Wait(30000), "the ask that came after the snapshot was never verified");
+        VerdictTestWaits.Expect(secondDone, "the ask after the snapshot is verified", () => $"runs={Volatile.Read(ref runs)}, announced={Volatile.Read(ref announced)}; {PreprocessOracleVerdicts.DescribeState(_dll)}");
         Assert.Equal("run2", PreprocessOracleVerdicts.TryGet(_dll)!.Status);
     }
 

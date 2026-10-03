@@ -1,0 +1,5 @@
+== arm 3: a real stall (the job does not release itself after its last decision), outer wait 5 s: what the failing wait says
+  실패 ImageProcTest.IntegrationTests.Diagnostics.PreprocessOracleVerdicts219dTests.AnAskJustAfterTheJobDecidedItIsOver_StartsAJobOfItsOwn [5 s]
+  오류 메시지:
+   step 'the ask that came after the decision starts a job of its own (it was swallowed by the job that was leaving)' did not happen within 5 s (waited 5.0 s; runs=1, announced=1; holder: JobQueued=False, SnapshotTaken=False, Rerun=False, stored result=run1, stored identity=xpe_preprocess.dll=2D711..., generation=1)
+     실패: 1
