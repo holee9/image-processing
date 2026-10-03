@@ -1,0 +1,9 @@
+# Legacy diagnostic oracle (clients/ImageProcTest/Diagnostics/XpePreprocessSyntheticOracle.cs) run once against the SAME xpe_preprocess.dll the xUnit tests use
+# Command: dotnet oracle210.dll <IntegrationTests bin>/xpe_preprocess.dll  (throwaway console outside the repository linking the oracle file and its dependencies)
+# Verbatim output:
+Status=Synthetic oracle fail; Executed=True; Passed=False; InputPreserved=True; NaNInf=0; Rmse=0; Min=0; Max=0
+Details=Synthetic adapter chain executed but one or more gates failed.
+  stage offset: CALIB_NOT_LOADED maxAbsErr=0 passed=False
+  stage gain: CALIB_NOT_LOADED maxAbsErr=1096 passed=False
+  stage defect: INVALID_INPUT maxAbsErr=0 passed=False
+# The new xUnit chain on the same DLL: offset OK, gain OK, defect OK (CorrectionChain_* tests, 6 passed).

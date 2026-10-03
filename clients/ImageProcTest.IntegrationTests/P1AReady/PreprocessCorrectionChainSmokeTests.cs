@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using ImageProcTest.IntegrationTests.Fixtures;
 using ImageProcTest.IntegrationTests.PInvoke;
 
@@ -26,6 +27,15 @@ public sealed class PreprocessCorrectionChainSmokeTests
     private const int Width = 16;
     private const int Height = 16;
     private const int PixelCount = Width * Height;
+
+    /// <summary>
+    /// Pixels the chain's defect map marks (GUI-C-210, REQ-GUI-IT-061). Two isolated pixels well apart: each has eight unmarked neighbours, so the correction's
+    /// fill is a plain neighbour statistic. The synthetic input carries a hot value there (<see cref="HotValue"/>), so a defect stage that does nothing leaves a value
+    /// 59,000 ADU away from its neighbours — a correction cannot go unnoticed.
+    /// </summary>
+    private static readonly int[] DefectPixels = [5 * Width + 5, 12 * Width + 9];
+
+    private const ushort HotValue = 60000;
 
     private static readonly string? DllPath = XpePreprocessNative.TryFindDll();
     private static readonly string SkipReason = DllPath is null
@@ -93,7 +103,7 @@ public sealed class PreprocessCorrectionChainSmokeTests
     }
 
     /// <summary>
-    /// REQ-GUI-IT-061: with calibration loaded, running the offset→gain chain twice on
+    /// REQ-GUI-IT-061: with calibration loaded, running the offset→gain→defect chain twice on
     /// identical input MUST produce bit-identical output — RMSE between runs == 0.
     /// Non-determinism would break reproducibility for regulated workflows.
     /// </summary>
@@ -116,7 +126,7 @@ public sealed class PreprocessCorrectionChainSmokeTests
     }
 
     /// <summary>
-    /// REQ-GUI-IT-061: output of the calibrated chain must contain no NaN or Infinity.
+    /// REQ-GUI-IT-061: output of the three-stage (offset→gain→defect) calibrated chain must contain no NaN or Infinity.
     /// Such sentinels would propagate through windowing and edge enhancement downstream.
     /// </summary>
     [SkippableFact]
@@ -125,16 +135,93 @@ public sealed class PreprocessCorrectionChainSmokeTests
         var handle = LoadDll();
         try
         {
-            RunCalibratedChain(handle, out var gain);
-            for (var i = 0; i < gain.Length; i++)
+            RunCalibratedChain(handle, out var output);
+            for (var i = 0; i < output.Length; i++)
             {
-                Assert.False(float.IsNaN(gain[i]), $"gain[{i}] is NaN");
-                Assert.False(float.IsInfinity(gain[i]), $"gain[{i}] is Infinity");
+                Assert.False(float.IsNaN(output[i]), $"output[{i}] is NaN");
+                Assert.False(float.IsInfinity(output[i]), $"output[{i}] is Infinity");
             }
         }
         finally
         {
             NativeLibrary.Free(handle);
+        }
+    }
+
+    /// <summary>
+    /// REQ-GUI-IT-061 (GUI-C-210), the defect stage. The map is really loaded (<c>xpe_calib_load_defect_map</c> must return OK; without it the stage answers CALIB_NOT_LOADED, see the
+    /// first test) and really used: the pixels it marks hold a hot value (60,000) in the input, and after the stage each of them lies within the range of its eight neighbours
+    /// (the correction fills a defective pixel from its neighbours), far from the hot value, while EVERY OTHER pixel is bit-identical to what the gain stage produced.
+    /// </summary>
+    [SkippableFact]
+    public void CorrectionChain_DefectStage_CorrectsExactlyTheMarkedPixels_AndLeavesTheRestBitIdentical()
+    {
+        var handle = LoadDll();
+        try
+        {
+            var run = RunChain(handle);
+
+            foreach (var i in DefectPixels)
+            {
+                Assert.True(run.GainOutput[i] > 50000f, $"setup: the hot input must still be hot after the gain stage (pixel {i}: {run.GainOutput[i]})");
+                var neighbours = Neighbours(i).Select(n => run.GainOutput[n]).ToArray();
+                Assert.InRange(run.DefectOutput[i], neighbours.Min(), neighbours.Max());
+                Assert.True(Math.Abs(run.DefectOutput[i] - run.GainOutput[i]) > 50000f, $"pixel {i} was not corrected: {run.GainOutput[i]} -> {run.DefectOutput[i]}");
+            }
+
+            var changed = Enumerable.Range(0, PixelCount)
+                .Where(i => BitConverter.SingleToInt32Bits(run.DefectOutput[i]) != BitConverter.SingleToInt32Bits(run.GainOutput[i]))
+                .ToArray();
+            Assert.Equal(DefectPixels.OrderBy(i => i), changed);
+        }
+        finally
+        {
+            NativeLibrary.Free(handle);
+        }
+    }
+
+    /// <summary>
+    /// REQ-GUI-IT-061 (GUI-C-210): the input buffer's SHA-256 is the same after the chain as before — the stages read their input and write their own output. The instrument is held by two
+    /// checks: the "before" hash equals the hash of an independently regenerated copy of the input (it is the hash of the right thing), and
+    /// <see cref="Control_Sha256Hex_SeesAOneByteChange"/> shows the hash sees a one-byte change (a hash that cannot change would pass any regression).
+    /// </summary>
+    [SkippableFact]
+    public void CorrectionChain_InputBuffer_Sha256IsPreserved()
+    {
+        var handle = LoadDll();
+        try
+        {
+            var run = RunChain(handle);
+            Assert.Equal(Sha256Hex(ChainInput()), run.InputSha256Before);
+            Assert.Equal(run.InputSha256Before, run.InputSha256After);
+        }
+        finally
+        {
+            NativeLibrary.Free(handle);
+        }
+    }
+
+    /// <summary>The hash the preservation test relies on changes when one byte of the input changes (it would otherwise pass an in-place write).</summary>
+    [Fact]
+    public void Control_Sha256Hex_SeesAOneByteChange()
+    {
+        var input = ChainInput();
+        var before = Sha256Hex(input);
+        input[DefectPixels[0] + 1] ^= 1;
+        Assert.NotEqual(before, Sha256Hex(input));
+    }
+
+    private static IEnumerable<int> Neighbours(int index)
+    {
+        var (row, col) = (index / Width, index % Width);
+        for (var dr = -1; dr <= 1; dr++)
+        {
+            for (var dc = -1; dc <= 1; dc++)
+            {
+                if ((dr, dc) == (0, 0)) continue;
+                var (r, c) = (row + dr, col + dc);
+                if (r >= 0 && r < Height && c >= 0 && c < Width) yield return r * Width + c;
+            }
         }
     }
 
@@ -154,12 +241,58 @@ public sealed class PreprocessCorrectionChainSmokeTests
     /// Returns the FLOAT32 gain-stage output. Every native call's return code is asserted,
     /// so a failure names the step that broke rather than surfacing as odd pixels.
     /// </summary>
-    private static void RunCalibratedChain(IntPtr handle, out float[] gainOutput)
+    private static void RunCalibratedChain(IntPtr handle, out float[] output)
+    {
+        output = RunChain(handle).DefectOutput;
+    }
+
+    /// <summary>One run of the whole chain: what went in, what each stage produced, and the input's hash before and after.</summary>
+    private sealed record ChainRun(ushort[] Input, string InputSha256Before, string InputSha256After, float[] GainOutput, float[] DefectOutput);
+
+    /// <summary>The input of the chain: a ramp, with a hot value at every pixel the defect map marks.</summary>
+    private static ushort[] ChainInput()
+    {
+        var raw = SyntheticUInt16();
+        foreach (var i in DefectPixels) raw[i] = HotValue;
+        return raw;
+    }
+
+    private static string Sha256Hex<T>(T[] values) where T : struct =>
+        Convert.ToHexString(SHA256.HashData(MemoryMarshal.AsBytes(values.AsSpan())));
+
+    /// <summary>
+    /// A DEFECT XCal file for <see cref="DefectPixels"/>: the 152-byte header of xcal_format.h (magic, version 1, type DEFECT, UINT8_MASK, 16x16, no expiry, empty session,
+    /// no config, payload 256 bytes, SHA-256 of config||payload) and the mask. Written here because the module has no generator for defect maps.
+    /// </summary>
+    private static void WriteDefectMapFile(string path)
+    {
+        var mask = new byte[PixelCount];
+        foreach (var i in DefectPixels) mask[i] = 1;
+
+        using var stream = File.Create(path);
+        using var w = new BinaryWriter(stream);
+        w.Write("XCAL"u8);
+        w.Write(1u);                      // version
+        w.Write(2u);                      // type: DEFECT
+        w.Write(2u);                      // pixel format: UINT8_MASK
+        w.Write((uint)Width);
+        w.Write((uint)Height);
+        w.Write(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        w.Write(0L);                      // expiry: never
+        w.Write(new byte[64]);            // session id
+        w.Write(0UL);                     // config length
+        w.Write((ulong)mask.Length);      // payload length
+        w.Write(SHA256.HashData(mask));   // SHA-256 of (config || payload)
+        w.Write(mask);
+    }
+
+    private static ChainRun RunChain(IntPtr handle)
     {
         var init = GetDelegate<XpePreprocessNative.InitDelegate>(handle, "xpe_preprocess_init");
         var shutdown = GetDelegate<XpePreprocessNative.ShutdownDelegate>(handle, "xpe_preprocess_shutdown");
         var offsetCorrect = GetDelegate<XpePreprocessNative.CorrectionDelegate>(handle, "xpe_offset_correct");
         var gainCorrect = GetDelegate<XpePreprocessNative.CorrectionDelegate>(handle, "xpe_gain_correct");
+        var defectCorrect = GetDelegate<XpePreprocessNative.CorrectionDelegate>(handle, "xpe_defect_correct");
 
         shutdown();
         Assert.Equal(XpeCommonNative.XpeErrorCode.OK, init(IntPtr.Zero));
@@ -170,9 +303,11 @@ public sealed class PreprocessCorrectionChainSmokeTests
         {
             GenerateAndLoadCalibration(handle, tempDir);
 
-            var raw = SyntheticUInt16();
+            var raw = ChainInput();
+            var shaBefore = Sha256Hex(raw);
             var offsetOut = new ushort[PixelCount];
             var gainOut = new float[PixelCount];
+            var defectOut = new float[PixelCount];
             var metadata = CreateMetadata();
 
             Assert.Equal(
@@ -189,7 +324,14 @@ public sealed class PreprocessCorrectionChainSmokeTests
                     MakeBuffer(XpeCommonNative.XpePixelFormat.Float32, 32, PixelCount * sizeof(float)),
                     ref metadata));
 
-            gainOutput = gainOut;
+            Assert.Equal(
+                XpeCommonNative.XpeErrorCode.OK,
+                CallPinned(defectCorrect, gainOut, defectOut,
+                    MakeBuffer(XpeCommonNative.XpePixelFormat.Float32, 32, PixelCount * sizeof(float)),
+                    MakeBuffer(XpeCommonNative.XpePixelFormat.Float32, 32, PixelCount * sizeof(float)),
+                    ref metadata));
+
+            return new ChainRun(raw, shaBefore, Sha256Hex(raw), gainOut, defectOut);
         }
         finally
         {
@@ -238,6 +380,12 @@ public sealed class PreprocessCorrectionChainSmokeTests
                 XpeCommonNative.XpeErrorCode.OK,
                 generateGain(new[] { flatFrame }, 1, IntPtr.Zero, gainPath, null));
             Assert.Equal(XpeCommonNative.XpeErrorCode.OK, loadGain(gainPath));
+
+            // The defect map is loaded for real, from an XCal file the test writes (there is no generator for it in the module's API).
+            var defectPath = Path.Combine(tempDir, "defect.xcal");
+            WriteDefectMapFile(defectPath);
+            var loadDefect = GetDelegate<XpePreprocessNative.CalibLoadDelegate>(handle, "xpe_calib_load_defect_map");
+            Assert.Equal(XpeCommonNative.XpeErrorCode.OK, loadDefect(defectPath));
         }
         finally
         {
