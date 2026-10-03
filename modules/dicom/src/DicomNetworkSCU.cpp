@@ -36,6 +36,21 @@ std::string statusText(Uint16 status) {
     return buf;
 }
 
+/**
+ * @brief The caller's timeout in milliseconds as the whole seconds DCMTK takes (QA-B-206 C10).
+ *
+ * DcmSCU::setACSETimeout / setDIMSETimeout / setConnectionTimeout take whole seconds and have no millisecond form
+ * (scu.h). The conversion used to be `timeoutMs / 1000`, which is 0 for anything under one second -- and a DCMTK timeout of
+ * 0 does not mean "immediately", it means the library's own default wait: a call against a peer that accepts the
+ * connection and stays silent returned after ~100 s for timeoutMs 300 (QA-B-204). Rounding DOWN also made 1500 ms a 1 s
+ * timeout, shorter than asked. Rounded UP and at least 1, a timeout never fires before the time requested and a small one
+ * stays small. The caller only passes values > 0 (0 keeps the DCMTK defaults, see the callers).
+ */
+Sint32 timeoutSeconds(uint32_t timeoutMs) {
+    const uint64_t seconds = (static_cast<uint64_t>(timeoutMs) + 999u) / 1000u;
+    return static_cast<Sint32>(seconds < 1u ? 1u : seconds);
+}
+
 }  // namespace
 
 // @MX:WARN: [AUTO] Global cancellation flag accessed from multiple threads
@@ -105,9 +120,9 @@ XpeErrorCode DicomNetworkSCU::cstore(const char* host,
     scu.setPeerAETitle(calledAet.c_str());
 
     if (timeoutMs > 0) {
-        scu.setConnectionTimeout(static_cast<Sint32>(timeoutMs / 1000));
-        scu.setACSETimeout(static_cast<Sint32>(timeoutMs / 1000));
-        scu.setDIMSETimeout(static_cast<Sint32>(timeoutMs / 1000));
+        scu.setConnectionTimeout(timeoutSeconds(timeoutMs));
+        scu.setACSETimeout(static_cast<Uint32>(timeoutSeconds(timeoutMs)));
+        scu.setDIMSETimeout(static_cast<Uint32>(timeoutSeconds(timeoutMs)));
     }
 
     // Add presentation context for the SOP class
@@ -215,9 +230,9 @@ XpeErrorCode DicomNetworkSCU::cfindMwl(const char* host,
     scu.setPeerAETitle(calledAet.c_str());
 
     if (timeoutMs > 0) {
-        scu.setConnectionTimeout(static_cast<Sint32>(timeoutMs / 1000));
-        scu.setACSETimeout(static_cast<Sint32>(timeoutMs / 1000));
-        scu.setDIMSETimeout(static_cast<Sint32>(timeoutMs / 1000));
+        scu.setConnectionTimeout(timeoutSeconds(timeoutMs));
+        scu.setACSETimeout(static_cast<Uint32>(timeoutSeconds(timeoutMs)));
+        scu.setDIMSETimeout(static_cast<Uint32>(timeoutSeconds(timeoutMs)));
     }
 
     // Add Modality Worklist presentation context

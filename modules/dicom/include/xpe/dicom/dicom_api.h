@@ -260,6 +260,10 @@ XPE_API void xpe_dicom_close(XpeDicomHandle* handle);
  *                  data pointer, is rejected (#142). A non-zero dataSize
  *                  smaller than width * height * bytes-per-pixel is rejected
  *                  (#123); dataSize == 0 means unspecified and is accepted.
+ *                  Whatever dataSize says, the file's PixelData holds exactly
+ *                  width * height * 2 bytes: dataSize == 0 writes the whole
+ *                  image, and bytes beyond the image in a larger buffer are
+ *                  not written (QA-B-206 C13).
  * @param meta      Acquisition metadata to embed. Must not be NULL.
  * @return XPE_OK on success.
  * @return XPE_ERR_INVALID_INPUT if any pointer is NULL, the image is empty,
@@ -364,7 +368,8 @@ XPE_API XpeErrorCode xpe_dicom_validate(const char* filePath,
  * @param port       Remote DICOM port (e.g. 104, 11112).
  * @param aet        Calling AE title. Must not be NULL.
  * @param filePath   Path to the DICOM file to send. Must not be NULL.
- * @param timeoutMs  Connection/operation timeout in milliseconds (0 = no timeout).
+ * @param timeoutMs  Connection/operation timeout in milliseconds (0 = no timeout). DCMTK takes whole seconds, so the
+ *                  value is rounded UP to whole seconds, at least 1 s (QA-B-206 C10): 300 ms waits 1 s, 1400 ms waits 2 s.
  * @return XPE_OK on C-STORE success (RSP status 0x0000).
  * @return XPE_ERR_INVALID_INPUT if host, aet, or filePath is NULL.
  * @return XPE_ERR_NETWORK_FAILED on connection failure, timeout, rejection, or
@@ -401,7 +406,7 @@ XPE_API XpeErrorCode xpe_dicom_cstore(const char* host,
  * @param queryJson  JSON object with DICOM tag key-value pairs. Must not be NULL.
  * @param outJson    Buffer to receive JSON array of results. Must not be NULL.
  * @param outBufLen  Size of outJson in bytes.
- * @param timeoutMs  Timeout in milliseconds (0 = no timeout).
+ * @param timeoutMs  Timeout in milliseconds (0 = no timeout); rounded up to whole seconds, at least 1 s (QA-B-206 C10).
  * @return XPE_OK on success (empty result writes "[]").
  * @return XPE_ERR_INVALID_INPUT if host, aet, queryJson, or outJson is NULL, or
  *         if outBufLen is 0 (#142). Judged before the association, so a broken

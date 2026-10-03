@@ -510,3 +510,92 @@ TEST_F(DicomWriterTest, EmptyImageContract_ValidImageStillAccepted) {
             << w.name << " rejected a well-formed image";
     }
 }
+
+// ---------------------------------------------------------------------------
+// QA-B-206 C13: the PixelData length is what the dimensions say (api-spec "XpeImageBuffer.dataSize on input", #123).
+//
+// dataSize == 0 is "unspecified": the writer trusts width * height * bytes-per-pixel. It used to take the PixelData length
+// from dataSize itself, so dataSize == 0 produced a file with a zero-length PixelData and the call said XPE_OK (QA-B-204:
+// xpe_dicom_read_image then refused it with XPE_ERR_DICOM_INVALID), and a larger dataSize wrote the caller's surplus bytes
+// into PixelData. A dataSize SMALLER than the image is still refused (the DataSizeGuard tests above).
+// ---------------------------------------------------------------------------
+
+namespace {
+
+/** The value length of the (7FE0,0010) element of an Explicit VR Little Endian file; -1 when it cannot be found. */
+int64_t PixelDataLength(const std::filesystem::path& p) {
+    const std::string bytes = FileBytes(p);
+    const char tag[4] = {static_cast<char>(0xE0), static_cast<char>(0x7F), static_cast<char>(0x10), static_cast<char>(0x00)};
+    const size_t at = bytes.find(std::string(tag, 4));
+    if (at == std::string::npos || at + 12 > bytes.size()) return -1;
+    if (bytes[at + 4] != 'O' || (bytes[at + 5] != 'W' && bytes[at + 5] != 'B')) return -1;
+    uint32_t len = 0;
+    std::memcpy(&len, bytes.data() + at + 8, sizeof(len));
+    return static_cast<int64_t>(len);
+}
+
+}  // namespace
+
+TEST_F(DicomWriterTest, ZeroDataSizeWritesTheWholeImageAndTheFileReadsBackExactly) {
+    XpeImageBuffer img = m_img;
+    img.dataSize = 0;
+    const auto path = m_tempDir / "zero_full.dcm";
+    ASSERT_EQ(XPE_OK, xpe_dicom_write(path.string().c_str(), &img, &m_meta));
+    const int64_t expected = static_cast<int64_t>(m_img.width) * m_img.height * 2;
+    EXPECT_EQ(expected, PixelDataLength(path)) << "was 0: a file with no pixels, reported as success";
+
+    XpeDicomHandle* h = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &h));
+    XpeImageBuffer back{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_read_image(h, &back)) << "was XPE_ERR_DICOM_INVALID";
+    EXPECT_EQ(static_cast<size_t>(expected), back.dataSize);
+    EXPECT_EQ(0, std::memcmp(back.data, m_img.data, static_cast<size_t>(expected)));
+    xpe_free_image(&back);
+    xpe_dicom_close(h);
+}
+
+TEST_F(DicomWriterTest, ZeroDataSizeWritesTheWholeImageForTheJ2kWriterToo) {
+    XpeImageBuffer img = m_img;
+    img.dataSize = 0;
+    const auto path = m_tempDir / "zero_full_j2k.dcm";
+    ASSERT_EQ(XPE_OK, xpe_dicom_write_j2k(path.string().c_str(), &img, &m_meta));
+    XpeDicomHandle* h = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &h));
+    XpeImageBuffer back{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_read_image(h, &back));
+    EXPECT_EQ(0, std::memcmp(back.data, m_img.data, static_cast<size_t>(m_img.width) * m_img.height * 2));
+    xpe_free_image(&back);
+    xpe_dicom_close(h);
+}
+
+TEST_F(DicomWriterTest, ASurplusBeyondTheImageInALargerBufferIsNotWrittenIntoPixelData) {
+    const size_t imageBytes = static_cast<size_t>(m_img.width) * m_img.height * 2;
+    std::vector<uint8_t> big(imageBytes + 64, 0xEEu);   // 64 bytes of surplus the file must not contain
+    std::memcpy(big.data(), m_img.data, imageBytes);
+    XpeImageBuffer img = m_img;
+    img.data = big.data();
+    img.dataSize = big.size();
+    const auto path = m_tempDir / "surplus.dcm";
+    ASSERT_EQ(XPE_OK, xpe_dicom_write(path.string().c_str(), &img, &m_meta));
+    EXPECT_EQ(static_cast<int64_t>(imageBytes), PixelDataLength(path)) << "was imageBytes + 64: the surplus was written";
+
+    XpeDicomHandle* h = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &h));
+    XpeImageBuffer back{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_read_image(h, &back));
+    EXPECT_EQ(imageBytes, back.dataSize);
+    EXPECT_EQ(0, std::memcmp(back.data, m_img.data, imageBytes));
+    xpe_free_image(&back);
+    xpe_dicom_close(h);
+}
+
+TEST_F(DicomWriterTest, ADataSizeOfOneByteLessThanTheImageIsStillRefusedAndNoFileIsMade) {
+    const size_t imageBytes = static_cast<size_t>(m_img.width) * m_img.height * 2;
+    for (const size_t declared : {static_cast<size_t>(1), imageBytes - 1}) {
+        XpeImageBuffer img = m_img;
+        img.dataSize = declared;
+        const auto path = m_tempDir / ("short_" + std::to_string(declared) + ".dcm");
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_write(path.string().c_str(), &img, &m_meta)) << declared;
+        EXPECT_FALSE(std::filesystem::exists(path)) << declared << ": the refusal comes before any file exists";
+    }
+}

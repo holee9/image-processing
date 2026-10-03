@@ -46,11 +46,21 @@ XpeErrorCode DicomWriter::write(const char* filePath,
     XpeErrorCode rc = populateDataset(ds, img, meta);
     if (rc != XPE_OK) return rc;
 
-    // Set uncompressed pixel data
+    // Set uncompressed pixel data.
+    //
+    // QA-B-206 C13: the length is width * height * 2 -- what the dimensions say -- and NOT img->dataSize. api-spec
+    // "XpeImageBuffer.dataSize on input" (#123): dataSize == 0 is *unspecified* and the entry point trusts the
+    // dimensions; a larger dataSize is accepted (a caller's buffer may be bigger than the image). Taking the length from
+    // dataSize wrote a PixelData of length 0 for dataSize == 0 (a file xpe_dicom_read_image refused, reported XPE_OK) and
+    // wrote the caller's surplus bytes into PixelData when dataSize was larger. The public entry points have already
+    // refused a dataSize below this size and every format but UINT16 (two bytes per pixel).
+    const unsigned long pixelBytes = static_cast<unsigned long>(img->width) *
+                                     static_cast<unsigned long>(img->height) *
+                                     static_cast<unsigned long>(sizeof(uint16_t));
     OFCondition status = ds->putAndInsertUint8Array(
         DCM_PixelData,
         static_cast<const Uint8*>(img->data),
-        static_cast<unsigned long>(img->dataSize)
+        pixelBytes
     );
     if (status.bad()) {
         spdlog::warn("[DicomWriter] putAndInsertUint8Array failed: {}", status.text());
