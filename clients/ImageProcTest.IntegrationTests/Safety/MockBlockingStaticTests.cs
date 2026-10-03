@@ -1,4 +1,4 @@
-// REQ-GUI-IT-007 (GUI-C-228b, 228c, 228d): "Mock fallback is a test failure", asserted from the test assembly's own metadata and from a conservative source scan, so the verdict does not depend on which test ran first.
+// REQ-GUI-IT-007 (GUI-C-228b, c, d, e): "Mock fallback is a test failure", asserted from the test assembly's own metadata and from a conservative source scan, so the verdict does not depend on which test ran first.
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
@@ -18,12 +18,13 @@ namespace ImageProcTest.IntegrationTests.Safety;
 /// files in, so a Mock reaches it as a TypeDef (source linked in) or as a TypeRef/AssemblyRef (a reference added). A generic argument is a type use like any other and carries its own row.</para>
 ///
 /// <para><b>2. Source scan (what is forbidden, not proven absent).</b> A type built at run time from a path or a name has no metadata row. Reflection escapes cannot be excluded by a static check
-/// in general, and chasing the shapes one at a time (Codex #126, #127) leaves the next shape open. So the dynamic-load and reflection-creation APIs are forbidden outright in the test project's
-/// sources, whatever their arguments look like. The pattern table, the allow-list of the few legitimate uses (file, the exact line, why it loads no assembly and creates no app type) and the
-/// controls live in <c>Resources/forbidden-reflection-apis.json</c>, which is not compiled and so cannot hide code; this file names none of those APIs. EVERY .cs file is scanned, this one
-/// included, with no exempt region. Only a line that is wholly a comment is left out (<see cref="CodeLines"/>); strings and end-of-line comments are scanned, so a false alarm is possible and goes
-/// to the allow-list, while a hidden call is not. What the scan does NOT see: a call that goes through another assembly, generated code, an API missing from the table, a native library loaded
-/// by path, and a line of a multi-line string that looks like a comment and holds no quote.</para>
+/// in general, and chasing the shapes one at a time (Codex #126, #127, #128) leaves the next shape open, so no rule here guesses at C# syntax. The dynamic-load and reflection-creation APIs
+/// are forbidden outright in the sources compiled into this assembly, whatever their arguments look like. The pattern table, the allow-list and the controls live in
+/// <c>Resources/forbidden-reflection-apis.json</c>, which is not compiled and so cannot hide code; this file names none of those APIs. The files scanned are not found by walking a folder: they are
+/// the Document table of the assembly's own PDB, so the sources linked in from outside the project folder and the generated sources are in it, this file included. EVERY line of every one of them is
+/// scanned, comments and strings too; nothing is classified or skipped. A line that names an API in prose is a hit like any other and is allow-listed as the whole line, in the named file, with its
+/// reason; an allow-list entry whose line changed or vanished is red. What the scan does NOT see: an API missing from the table, a call that goes through another assembly, code generated while the
+/// tests run, and a native library loaded by path (a native module is not a managed type of the apps).</para>
 /// </summary>
 [Trait("Category", "Safety")]
 public sealed class MockBlockingStaticTests
@@ -140,6 +141,9 @@ public sealed class MockBlockingStaticTests
 
     private sealed record ScanData(IReadOnlyList<Pattern> Patterns, IReadOnlyList<AllowedLine> Allowed, IReadOnlyList<ControlLine> Controls, IReadOnlyList<ScanCase> Cases);
 
+    /// <summary>A source file the compiler read, as the PDB names it, and where it is in this checkout.</summary>
+    internal sealed record CompiledSource(string PdbPath, string Key, string FullPath);
+
     /// <summary>The ids the data file must define. The ids are labels, not API names.</summary>
     private static readonly string[] RequiredPatternIds =
     [
@@ -170,114 +174,163 @@ public sealed class MockBlockingStaticTests
         Assert.NotEmpty(cases);
         Assert.NotEmpty(controls);
         Assert.True(allowed.All(a => a.Why.Length > 20), "Every allow-list entry needs its reason.");
+        Assert.True(allowed.Select(a => (a.File, a.Line)).Distinct().Count() == allowed.Count, "The allow-list holds the same (file, line) twice.");
         return new ScanData(patterns, allowed, controls, cases);
     }
+
+    private static string RepoRoot => Path.GetDirectoryName(BenchmarkRunnerServiceTests.ResolveRepositoryFile("CMakePresets.json"))!;
 
     private static string ProjectDir => Path.GetDirectoryName(BenchmarkRunnerServiceTests.ResolveRepositoryFile("clients/ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj"))!;
 
     /// <summary>
-    /// The lines to scan, with their numbers. A line is left out only when it is wholly a comment: its trimmed text starts with two slashes, or it lies inside a block comment from its first
-    /// character to its last. A line that holds a quote is always scanned, and so is a line where code follows the end of a block comment. No attempt is made to understand strings or to
-    /// find a comment that starts after code, which is where a lexer mistake would hide a call.
+    /// The source files the compiler actually read for the test assembly, from the Document table of its portable PDB (a separate file next to the assembly, or embedded in it). That list holds
+    /// the project's own files, the files linked in from outside the project folder, and generated files. Nothing is excluded here. A document that cannot be found in this checkout is an
+    /// error, not a skip: the path in the PDB is where the build machine had the file, so when it is not there, the same path is looked for under the repository root by its longest existing tail.
     /// </summary>
-    internal static IEnumerable<(int No, string Text)> CodeLines(string text)
+    internal static List<CompiledSource> CompiledSources(string? assemblyPath = null, string? repoRoot = null)
     {
-        var lines = text.Replace("\r\n", "\n").Split('\n');
-        var inBlock = false;
-        for (var i = 0; i < lines.Length; i++)
+        assemblyPath ??= TestAssemblyPath;
+        repoRoot ??= RepoRoot;
+        using var assemblyStream = File.OpenRead(assemblyPath);
+        using var pe = new PEReader(assemblyStream);
+        var found = pe.TryOpenAssociatedPortablePdb(assemblyPath, p => File.Exists(p) ? File.OpenRead(p) : null, out var provider, out var pdbPath);
+        Assert.True(found && provider is not null, "No portable PDB found for " + assemblyPath + " (neither embedded nor next to it): the list of compiled sources cannot be read.");
+        using (provider)
         {
-            var raw = lines[i];
-            var t = raw.Trim();
-            var hasQuote = t.Contains('"');
-            if (inBlock)
+            var md = provider!.GetMetadataReader();
+            var list = new List<CompiledSource>();
+            var unresolved = new List<string>();
+            foreach (var h in md.Documents)
             {
-                var close = t.IndexOf("*/", StringComparison.Ordinal);
-                if (close < 0)
-                {
-                    if (hasQuote) yield return (i + 1, raw);
-                    continue;
-                }
-
-                inBlock = false;
-                if (t[(close + 2)..].Trim().Length == 0 && !hasQuote) continue;
-                yield return (i + 1, raw);
-                continue;
+                var name = md.GetString(md.GetDocument(h).Name);
+                if (!name.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)) continue;
+                var full = ResolveDocument(name, repoRoot);
+                if (full is null) { unresolved.Add(name); continue; }
+                list.Add(new CompiledSource(name, KeyOf(full, repoRoot), full));
             }
 
-            if (t.StartsWith("//", StringComparison.Ordinal) && !hasQuote) continue;
-
-            if (t.StartsWith("/*", StringComparison.Ordinal))
-            {
-                var close = t.IndexOf("*/", 2, StringComparison.Ordinal);
-                if (close < 0)
-                {
-                    inBlock = true;
-                    if (hasQuote) yield return (i + 1, raw);
-                    continue;
-                }
-
-                if (t[(close + 2)..].Trim().Length == 0 && !hasQuote) continue;
-            }
-
-            yield return (i + 1, raw);
+            Assert.True(md.Documents.Count > 0, "The PDB " + pdbPath + " lists no documents.");
+            Assert.True(unresolved.Count == 0, "These compiled sources named by the PDB cannot be found in this checkout:\n" + string.Join("\n", unresolved));
+            Assert.True(list.Count > 100, $"Only {list.Count} compiled sources found in the PDB; the project has far more.");
+            return list;
         }
     }
 
+    private static string? ResolveDocument(string name, string repoRoot)
+    {
+        if (File.Exists(name)) return Path.GetFullPath(name);
+        var parts = name.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+        for (var k = 1; k < parts.Length; k++)
+        {
+            var candidate = Path.Combine(new[] { repoRoot }.Concat(parts[k..]).ToArray());
+            if (File.Exists(candidate)) return candidate;
+        }
+
+        return null;
+    }
+
+    /// <summary>The repository-relative path with forward slashes, or the full path for a file outside the repository.</summary>
+    internal static string KeyOf(string full, string repoRoot)
+    {
+        var root = Path.GetFullPath(repoRoot).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+        var f = Path.GetFullPath(full);
+        return (f.StartsWith(root, StringComparison.OrdinalIgnoreCase) ? f[root.Length..] : f).Replace('\\', '/');
+    }
+
+    /// <summary>
+    /// Every line is scanned: comments, strings and code alike. No line is classified, so there is no syntax rule to get wrong. A line that names an API in prose is a hit like any other and is
+    /// listed in the allow-list with its reason.
+    /// </summary>
     private static IEnumerable<(string Id, int No, string Line)> HitsIn(string text, IEnumerable<Pattern> patterns)
     {
         var all = patterns.ToList();
-        foreach (var (no, raw) in CodeLines(text))
+        var lines = text.Replace("\r\n", "\n").Split('\n');
+        for (var i = 0; i < lines.Length; i++)
         {
             foreach (var p in all)
             {
-                if (p.Regex.IsMatch(raw)) yield return (p.Id, no, raw.Trim());
+                if (p.Regex.IsMatch(lines[i])) yield return (p.Id, i + 1, lines[i].Trim());
             }
         }
     }
 
-    /// <summary>Every scanned hit in every .cs file of the project, with no file and no region left out.</summary>
-    private static List<(string File, string Line, string Id, int No)> ForbiddenHits(ScanData data, out int filesScanned)
+    /// <summary>Every hit in every compiled source, as (repository-relative path, trimmed line, pattern id, line number).</summary>
+    private static List<(string File, string Line, string Id, int No)> ForbiddenHits(ScanData data, IEnumerable<CompiledSource> sources)
     {
         var hits = new List<(string, string, string, int)>();
-        filesScanned = 0;
-        foreach (var file in Directory.EnumerateFiles(ProjectDir, "*.cs", SearchOption.AllDirectories))
+        foreach (var s in sources)
         {
-            var rel = file[ProjectDir.Length..].Replace('\\', '/').TrimStart('/');
-            if (rel.StartsWith("obj/") || rel.StartsWith("bin/")) continue;
-            filesScanned++;
-            hits.AddRange(HitsIn(File.ReadAllText(file), data.Patterns).Select(h => (rel, h.Line, h.Id, h.No)));
+            hits.AddRange(HitsIn(File.ReadAllText(s.FullPath), data.Patterns).Select(h => (s.Key, h.Line, h.Id, h.No)));
         }
 
         return hits;
     }
 
     /// <summary>
-    /// The scan. No dynamic-load or reflection-creation API appears in any .cs of the project except the exact allow-listed lines, and every allow-listed line is still there and still needed.
+    /// The scan. No dynamic-load or reflection-creation API appears in any source compiled into the test assembly except the exact allow-listed lines (the whole trimmed line, in the named
+    /// file), and every allow-listed line is still there and still needed.
     /// </summary>
     [Fact]
-    public void EveryCsFileOfTheTestProject_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList()
+    public void EverySourceCompiledIntoTheTestAssembly_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList()
     {
         var data = LoadScanData();
-        var hits = ForbiddenHits(data, out var scanned);
-        Assert.True(scanned > 50, $"The scan read only {scanned} files; it is not looking at the project.");
+        var hits = ForbiddenHits(data, CompiledSources());
 
         var unallowed = hits.Where(h => !data.Allowed.Any(a => a.File == h.File && a.Line == h.Line)).Select(h => $"{h.File}:{h.No} [{h.Id}] {h.Line}").Distinct().ToList();
         Assert.True(unallowed.Count == 0,
-            "A dynamic-load or reflection-creation API appears in the test project. Remove it, or add the exact line to the allow-list in Resources/forbidden-reflection-apis.json with the reason it loads no assembly and creates no app type:\n" + string.Join("\n", unallowed));
+            "A dynamic-load or reflection-creation API appears in a source compiled into the test assembly. Remove it, or add the file and the whole line to the allow-list in Resources/forbidden-reflection-apis.json with the reason it loads no assembly and creates no app type:\n" + string.Join("\n", unallowed));
 
         var stale = data.Allowed.Where(a => !hits.Any(h => h.File == a.File && h.Line == a.Line)).Select(a => $"{a.File}: {a.Line}").ToList();
         Assert.True(stale.Count == 0, "These allow-list entries no longer match a line (the line changed or the use is gone); update or remove them:\n" + string.Join("\n", stale));
     }
 
-    /// <summary>Control: this file is among the scanned files and reaches the scan almost whole, so there is no region of it to put code in.</summary>
+    /// <summary>
+    /// Control: the PDB list is the real compile list. It holds this file, a source linked in from outside the project folder, and a generated source; and every explicit compile item of the
+    /// project file is in it, so nothing the project says it compiles is missing from what is scanned.
+    /// </summary>
     [Fact]
-    public void ThisFile_IsScanned_LikeEveryOtherCsFile()
+    public void TheCompiledSourceList_HoldsThisFile_ALinkedAppSource_AGeneratedSource_AndEveryCompileItem()
+    {
+        var sources = CompiledSources();
+        var keys = sources.Select(s => s.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        Assert.Contains("clients/ImageProcTest.IntegrationTests/Safety/MockBlockingStaticTests.cs", keys);
+        Assert.Contains("clients/ImageProcTest/Diagnostics/XpePreprocessOracleProcess.cs", keys);
+        Assert.Contains(keys, k => k.StartsWith("clients/ImageProcTest.IntegrationTests/obj/", StringComparison.OrdinalIgnoreCase));
+
+        var csproj = File.ReadAllText(Path.Combine(ProjectDir, "ImageProcTest.IntegrationTests.csproj"));
+        var items = Regex.Matches(csproj, @"<Compile\s+Include=""([^""]+)""").Select(m => m.Groups[1].Value).ToList();
+        Assert.NotEmpty(items);
+        var missing = items.Where(i => !keys.Contains(KeyOf(Path.GetFullPath(Path.Combine(ProjectDir, i)), RepoRoot))).ToList();
+        Assert.True(missing.Count == 0, "These explicit compile items are not in the compiled-source list read from the PDB:\n" + string.Join("\n", missing));
+    }
+
+    /// <summary>Control: the PDB reader is strict. A copy of the assembly with no PDB next to it is an error, not an empty list.</summary>
+    [Fact]
+    public void ThePdbReader_FailsWhenThereIsNoPdb()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "mbs_nopdb_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var copy = Path.Combine(dir, Path.GetFileName(TestAssemblyPath));
+            File.Copy(TestAssemblyPath, copy);
+            Assert.ThrowsAny<Exception>(() => CompiledSources(copy));
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    /// <summary>Control: this file is scanned like every other, in full, and holds none of the patterns itself.</summary>
+    [Fact]
+    public void ThisFile_IsScannedInFull_AndHoldsNoPattern()
     {
         var data = LoadScanData();
         var self = File.ReadAllText(Path.Combine(ProjectDir, "Safety", "MockBlockingStaticTests.cs"));
 
         Assert.Empty(HitsIn(self, data.Patterns));
-        Assert.True(CodeLines(self).Count() > 100, "most of this file must reach the scan");
         Assert.NotEmpty(HitsIn(self + "\n[Fact] public void Hidden() { var o = " + "Acti" + "vator.Create" + "Instance(t); }\n", data.Patterns));
     }
 
@@ -298,9 +351,9 @@ public sealed class MockBlockingStaticTests
         }
     }
 
-    /// <summary>Control: the comment rule. Each synthetic source from the data file is scanned; a whole-line comment is skipped, anything with code on the line is not.</summary>
+    /// <summary>Control: no line is excluded. Each synthetic source from the data file is scanned whole; comment-looking lines, a line inside an interpolated raw string and code after a comment all report.</summary>
     [Fact]
-    public void TheCommentRule_SkipsOnlyWholeLineComments_AndNeverHidesACallOnTheSameLine()
+    public void NoLineIsExcluded_ByCommentOrByAnythingElse()
     {
         var data = LoadScanData();
         foreach (var c in data.Cases)
