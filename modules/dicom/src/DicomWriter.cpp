@@ -4,6 +4,7 @@
  * SPEC: SPEC-XPE-P1B-DICOM REQ-DICOM-013..022
  */
 #include "DicomWriter.h"
+#include "DicomImageLimits.h"
 
 #include <dcmtk/dcmdata/dctk.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
@@ -54,9 +55,12 @@ XpeErrorCode DicomWriter::write(const char* filePath,
     // dataSize wrote a PixelData of length 0 for dataSize == 0 (a file xpe_dicom_read_image refused, reported XPE_OK) and
     // wrote the caller's surplus bytes into PixelData when dataSize was larger. The public entry points have already
     // refused a dataSize below this size and every format but UINT16 (two bytes per pixel).
-    const unsigned long pixelBytes = static_cast<unsigned long>(img->width) *
-                                     static_cast<unsigned long>(img->height) *
-                                     static_cast<unsigned long>(sizeof(uint16_t));
+    //
+    // QA-B-206 M1b (Codex #108): the length is computed in 64 bits and narrowed only after image_size_is_representable. The
+    // first version multiplied `unsigned long`s, which are 32 bits on Windows: 65535 x 32769 x 2 = 4,295,032,830 wrapped to
+    // 65,534 and a file with a PixelData far shorter than its Rows x Columns was written.
+    if (!image_size_is_representable(img->width, img->height)) return XPE_ERR_INVALID_INPUT;
+    const unsigned long pixelBytes = static_cast<unsigned long>(pixel_data_bytes(img->width, img->height));
     OFCondition status = ds->putAndInsertUint8Array(
         DCM_PixelData,
         static_cast<const Uint8*>(img->data),
@@ -84,6 +88,7 @@ XpeErrorCode DicomWriter::writeJ2K(const char* filePath,
                                     const XpeImageMetadata* meta) {
     spdlog::debug("[DicomWriter] writeJ2K: {}", filePath ? filePath : "(null)");
     if (!filePath || !img || !meta) return XPE_ERR_INVALID_INPUT;
+    if (!image_size_is_representable(img->width, img->height)) return XPE_ERR_INVALID_INPUT;   // QA-B-206 M1b
 
     // Compress pixel data with OpenJPEG J2K Lossless
     std::vector<uint8_t> j2kData = compressJ2K(img);

@@ -16,6 +16,7 @@
 #include "DicomWriter.h"
 #include "DicomValidator.h"
 #include "DicomNetworkSCU.h"
+#include "DicomImageLimits.h"
 
 #include <spdlog/spdlog.h>
 
@@ -123,6 +124,19 @@ bool pixel_format_is_writable(const XpeImageBuffer* img) {
     return img != nullptr && img->format == XPE_PIXEL_UINT16;
 }
 
+// QA-B-206 M1b (Codex #108): the descriptor must agree with the 16-bit words the writer emits. `format == UINT16` with
+// bitsAllocated 8 used to be written as a file whose (0028,0100) says 8 over 16-bit pixel data, which this module's own
+// reader refuses. BitsAllocated is 16 and BitsStored 1..16; 0 is not a "default" anyone promised (header, api-spec).
+bool bits_are_writable(const XpeImageBuffer* img) {
+    return img != nullptr && xpe::dicom::image_bits_are_writable(img->bitsAllocated, img->bitsStored);
+}
+
+// QA-B-206 M1b (Codex #108): Rows/Columns are 16-bit attributes and PixelData an element of at most 0xFFFFFFFE bytes. A
+// size beyond either cannot be described by a file; it used to be truncated by a 32-bit product / a 16-bit cast.
+bool size_is_representable(const XpeImageBuffer* img) {
+    return img != nullptr && xpe::dicom::image_size_is_representable(img->width, img->height);
+}
+
 // Called after pixel_format_is_writable, so the image is UINT16: two bytes per pixel. (It used to size FLOAT32 too, and
 // returned "consistent" for a format it could not size; no format other than UINT16 reaches it any more, QA-B-201 M4.)
 bool data_size_is_consistent(const XpeImageBuffer* img) {
@@ -141,6 +155,8 @@ XPE_API XpeErrorCode xpe_dicom_write(const char* filePath,
     if (!filePath || !img || !meta) return XPE_ERR_INVALID_INPUT;
     if (!image_is_non_empty(img)) return XPE_ERR_INVALID_INPUT;
     if (!pixel_format_is_writable(img)) return XPE_ERR_INVALID_INPUT;
+    if (!bits_are_writable(img)) return XPE_ERR_INVALID_INPUT;
+    if (!size_is_representable(img)) return XPE_ERR_INVALID_INPUT;
     if (!data_size_is_consistent(img)) return XPE_ERR_INVALID_INPUT;
     try {
         return xpe::dicom::DicomWriter::write(filePath, img, meta);
@@ -157,6 +173,8 @@ XPE_API XpeErrorCode xpe_dicom_write_j2k(const char* filePath,
     if (!filePath || !img || !meta) return XPE_ERR_INVALID_INPUT;
     if (!image_is_non_empty(img)) return XPE_ERR_INVALID_INPUT;
     if (!pixel_format_is_writable(img)) return XPE_ERR_INVALID_INPUT;
+    if (!bits_are_writable(img)) return XPE_ERR_INVALID_INPUT;
+    if (!size_is_representable(img)) return XPE_ERR_INVALID_INPUT;
     if (!data_size_is_consistent(img)) return XPE_ERR_INVALID_INPUT;
     try {
         return xpe::dicom::DicomWriter::writeJ2K(filePath, img, meta);

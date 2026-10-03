@@ -185,6 +185,7 @@ if(_XPE_BUILD_TESTS)
     )
     target_include_directories(test_dicom_writer PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src   # DicomImageLimits.h (header-inline predicates, QA-B-206 M1b)
     )
     target_link_libraries(test_dicom_writer PRIVATE
         xpe_dicom

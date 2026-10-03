@@ -599,3 +599,126 @@ TEST_F(DicomWriterTest, ADataSizeOfOneByteLessThanTheImageIsStillRefusedAndNoFil
         EXPECT_FALSE(std::filesystem::exists(path)) << declared << ": the refusal comes before any file exists";
     }
 }
+
+// ---------------------------------------------------------------------------
+// QA-B-206 M1b (Codex #108): what a file can describe is decided at the door of both public writers.
+//
+//  1. The PixelData length is width * height * 2 computed in 64 bits. The first version of the C13 fix multiplied
+//     `unsigned long`s (32 bits on Windows): 65535 x 32769 x 2 = 4,295,032,830 wrapped to 65,534. An image the file cannot
+//     describe -- Rows/Columns above 65535 (16-bit attributes) or PixelData above 0xFFFFFFFE bytes -- is refused with
+//     XPE_ERR_INVALID_INPUT before any file exists. The rejection cases pass a TINY buffer with dataSize 0 (unspecified):
+//     if the refusal were not first, the writer would read far past it.
+//  2. The descriptor has to agree with the 16-bit words the writer emits: BitsAllocated 16, BitsStored 1..16. 0 is refused
+//     (nothing promises it means "default"); bitsAllocated 8 over 16-bit pixels used to be written as a file that
+//     contradicts its own PixelData and that this module's reader refuses.
+// ---------------------------------------------------------------------------
+
+#include "DicomImageLimits.h"
+
+namespace {
+
+XpeImageBuffer TinyBufferClaiming(uint32_t width, uint32_t height, std::vector<uint16_t>* storage) {
+    storage->assign(16, 0x0123u);
+    XpeImageBuffer img{};
+    img.width = width;
+    img.height = height;
+    img.format = XPE_PIXEL_UINT16;
+    img.bitsAllocated = 16;
+    img.bitsStored = 16;
+    img.data = storage->data();
+    img.dataSize = 0;   // unspecified: the entry point trusts the dimensions -- which is why the size must be checked first
+    return img;
+}
+
+}  // namespace
+
+TEST(DicomImageLimits, TheLengthIsComputedIn64BitsAndTheBoundaryIsWhereTheElementEnds) {
+    using xpe::dicom::image_size_is_representable;
+    using xpe::dicom::pixel_data_bytes;
+    EXPECT_EQ(4295032830ull, pixel_data_bytes(65535u, 32769u)) << "the case of Codex #108: 32-bit arithmetic gave 65,534";
+    EXPECT_EQ(65534u, static_cast<uint32_t>(pixel_data_bytes(65535u, 32769u))) << "control: this is what the wrap looks like";
+
+    EXPECT_TRUE(image_size_is_representable(1u, 1u));
+    EXPECT_TRUE(image_size_is_representable(46340u, 46340u)) << "2,144,... pixels x 2 = 4,294,791,200 bytes: just below the limit";
+    EXPECT_FALSE(image_size_is_representable(46341u, 46341u)) << "x 2 = 4,294,... > 0xFFFFFFFE: just above";
+    EXPECT_TRUE(image_size_is_representable(65535u, 32768u)) << "4,294,901,760 bytes";
+    EXPECT_FALSE(image_size_is_representable(65535u, 32769u)) << "4,295,032,830 bytes";
+    EXPECT_FALSE(image_size_is_representable(65536u, 1u)) << "Columns is a 16-bit attribute";
+    EXPECT_FALSE(image_size_is_representable(1u, 65536u)) << "Rows is a 16-bit attribute";
+    EXPECT_FALSE(image_size_is_representable(0xFFFFFFFFu, 0xFFFFFFFFu)) << "the product of two full 32-bit values";
+    EXPECT_FALSE(image_size_is_representable(0u, 5u));
+    EXPECT_FALSE(image_size_is_representable(5u, 0u));
+    EXPECT_TRUE(xpe::dicom::kMaxPixelDataBytes % 2u == 0u) << "an OB/OW length is even";
+}
+
+TEST_F(DicomWriterTest, AnImageTheFileCannotDescribeIsRefusedBeforeAnyFileExistsByBothWriters) {
+    struct Size {
+        uint32_t w, h;
+        const char* why;
+    } sizes[] = {{65535u, 32769u, "Codex #108: width*height*2 = 4,295,032,830 wrapped to 65,534"},
+                 {46341u, 46341u, "just above the PixelData limit"},
+                 {65536u, 1u, "Columns above 65535"},
+                 {1u, 65536u, "Rows above 65535"},
+                 {0x7FFFFFFFu, 2u, "a dimension the module's other entry points accept as int"}};
+    int n = 0;
+    for (const Size& s : sizes) {
+        std::vector<uint16_t> storage;
+        const XpeImageBuffer img = TinyBufferClaiming(s.w, s.h, &storage);
+        const auto a = m_tempDir / ("huge_a" + std::to_string(n) + ".dcm");
+        const auto b = m_tempDir / ("huge_b" + std::to_string(n) + ".dcm");
+        ++n;
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_write(a.string().c_str(), &img, &m_meta)) << s.why;
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_write_j2k(b.string().c_str(), &img, &m_meta)) << s.why;
+        EXPECT_FALSE(std::filesystem::exists(a)) << s.why;
+        EXPECT_FALSE(std::filesystem::exists(b)) << s.why;
+    }
+}
+
+TEST_F(DicomWriterTest, ADescriptorThatContradictsTheSixteenBitWordsIsRefusedByBothWritersAndNoFileIsMade) {
+    struct Bits {
+        uint32_t allocated, stored;
+        const char* why;
+    } bad[] = {{8u, 8u, "Codex #108: BitsAllocated 8 over 16-bit words"},
+               {8u, 16u, "BitsAllocated 8, BitsStored 16"},
+               {32u, 16u, "BitsAllocated 32 over 16-bit words"},
+               {0u, 16u, "BitsAllocated 0: nothing promises it means default"},
+               {16u, 0u, "BitsStored 0"},
+               {16u, 17u, "BitsStored above BitsAllocated"},
+               {16u, 32u, "BitsStored 32"}};
+    int n = 0;
+    for (const Bits& c : bad) {
+        XpeImageBuffer img = m_img;
+        img.bitsAllocated = c.allocated;
+        img.bitsStored = c.stored;
+        const auto a = m_tempDir / ("bits_a" + std::to_string(n) + ".dcm");
+        const auto b = m_tempDir / ("bits_b" + std::to_string(n) + ".dcm");
+        ++n;
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_write(a.string().c_str(), &img, &m_meta)) << c.why;
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_write_j2k(b.string().c_str(), &img, &m_meta)) << c.why;
+        EXPECT_FALSE(std::filesystem::exists(a)) << c.why;
+        EXPECT_FALSE(std::filesystem::exists(b)) << c.why;
+    }
+}
+
+TEST_F(DicomWriterTest, EveryBitsStoredFromOneToSixteenIsWrittenAndReadsBack) {
+    // The control for the refusals above: the whole accepted range (BitsAllocated 16, BitsStored 1..16) still writes and the
+    // module's own reader reads the file. Pixel values stay below 2^BitsStored so the J2K precision and the check agree.
+    for (uint32_t stored = 1; stored <= 16; ++stored) {
+        XpeImageBuffer img = m_img;
+        img.bitsAllocated = 16;
+        img.bitsStored = stored;
+        const uint16_t mask = static_cast<uint16_t>(stored == 16 ? 0xFFFFu : ((1u << stored) - 1u));
+        std::vector<uint16_t> px(static_cast<size_t>(img.width) * img.height);
+        for (size_t i = 0; i < px.size(); ++i) px[i] = static_cast<uint16_t>(i & mask);
+        img.data = px.data();
+        const auto path = m_tempDir / ("bits_ok_" + std::to_string(stored) + ".dcm");
+        ASSERT_EQ(XPE_OK, xpe_dicom_write(path.string().c_str(), &img, &m_meta)) << "BitsStored " << stored;
+        XpeDicomHandle* h = nullptr;
+        ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &h)) << stored;
+        XpeImageBuffer back{};
+        ASSERT_EQ(XPE_OK, xpe_dicom_read_image(h, &back)) << stored;
+        EXPECT_EQ(0, std::memcmp(back.data, px.data(), px.size() * 2)) << "BitsStored " << stored;
+        xpe_free_image(&back);
+        xpe_dicom_close(h);
+    }
+}
