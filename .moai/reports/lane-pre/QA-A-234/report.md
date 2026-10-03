@@ -67,3 +67,13 @@ post·gui 모듈의 도구 지적은 측정하지 못했다(§2). 모듈별 단�
 - "59건"은 내가 고른 점검 집합(`bugprone`·`clang-analyzer`·`performance`)에서의 수이고 지적이 곧 결함은 아니다.
 - 러너에 clang-tidy·LLVM 경로가 있는지, ASan 런타임 DLL 이 러너 PATH 에 있는지 확인하지 않았다(로컬은 vcvars 가 채운다).
 - ASan 제외 3개의 원인은 추정이다.
+
+## 7. 재개 메모 (리더 결정 반영: 2026-10-03)
+
+결정: ASan 게이트(제외 3개는 이유를 주석으로), cppcheck·clang-tidy 기준선, 커버리지 main 자동, MISRA 안 함.
+다음 세션이 할 일 (M2, 패치 초안은 `.txt`, ci.yml 은 리더 소유):
+1. ASan 잡 패치 초안: 프리셋은 `/EHsc` 유지, `build/asan-a17` 구성 참고. 제외 필터는 `EnduranceTest.LoadCycles_ControlLeakIsCaught`, `XpePreprocessEndurance.ControlLeakIsCaught`, `RuntimeDetectionPerformanceGateTest.Frame3072SquaredWithinMachineRatio`(이유 주석 필수).
+2. clang-tidy 기준선: `-D_CRT_USE_BUILTIN_OFFSETOF`, `CMAKE_EXPORT_COMPILE_COMMANDS=ON`(또는 `ninja -t compdb`), 점검 집합 결정, 내 두 모듈 59건 중 실제 결함 후보(narrowing·widening·EnumCastOutOfRange·unused-return-value) 확인과 처리. 측정 도구 스크립트는 세션 스크래치패드에 있었으나 사라질 수 있다 — `evidence/20_`, `21_` 의 점검별 수로 재현한다.
+3. cppcheck: 러너에서 `choco install cppcheck` 로 측정 전용 첫 실행 → 기준선. 이 기계에는 없다.
+4. 커버리지: `coverage_check` 타깃의 모듈별 출력 확인(xpe_common 85% 별도), main 푸시 트리거 패치 초안.
+상태: HEAD 는 이 메모 커밋. 푸시 안 함. 미푸시 커밋은 `git log origin/dev/preprocess..HEAD` 로 확인.
