@@ -149,6 +149,10 @@ public sealed class ImageBufferLifecycleTests : IDisposable
     {
         SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
+        // GUI-C-228: the requirement says "with no prior init". An earlier test of this process may have left the module initialised, so the precondition is MADE and checked, not assumed.
+        XpeCommonNative.xpe_shutdown();
+        Assert.Equal(XpeCommonNative.XpeErrorCode.NOT_INITIALIZED, XpeCommonNative.xpe_get_param_range("CHEST", "window_center", out _, out _, out _));
+
         var initResult = XpeCommonNative.xpe_init(null);
         Assert.Equal(XpeCommonNative.XpeErrorCode.OK, initResult);
 
