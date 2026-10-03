@@ -177,6 +177,75 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             .Select(p => p.Id)
             .ToHashSet();
 
+    private const string RefusalText = "the preprocess DLLs changed since they were checked, so nothing was run";
+
+    /// <summary>
+    /// GUI-C-226 (Codex #118, low): the real window, a real click, the real refusal. The app runs against a PRIVATE COPY of the native folder. Once the oracle has passed, a rebuild/redeploy is
+    /// imitated on the copy (the loaded DLL is renamed away and a file with other content takes its name), and the "Run Selected" button of the Calibration tab is pressed through its UIA
+    /// Invoke pattern (no key, no mouse). The window must say that the DLLs changed and that nothing was run, and the command's own text must stay as it was. The control is the same click
+    /// with the DLL untouched: the command is reached (its own text changes) and the refusal is absent, so the refusal is about the changed file and not about the button.
+    /// </summary>
+    [SkippableFact]
+    public void R05_APressedButton_IsRefusedOnScreen_WhenTheDllChangedAfterTheVerdict_AndNothingRuns()
+    {
+        var control = RunTheCommandAfter(changeDll: false);
+        output.WriteLine($"control: command text '{control.CommandBefore}' -> '{control.CommandAfter}'; preview text '{control.PreviewText}'");
+        Assert.NotEqual(control.CommandBefore, control.CommandAfter);                       // the click reached the command
+        Assert.DoesNotContain(RefusalText, control.PreviewText, StringComparison.Ordinal);   // and was not refused
+
+        var changed = RunTheCommandAfter(changeDll: true);
+        output.WriteLine($"changed: command text '{changed.CommandBefore}' -> '{changed.CommandAfter}'; preview text '{changed.PreviewText}'");
+        Assert.Contains(RefusalText, changed.PreviewText, StringComparison.Ordinal);         // the refusal is on screen
+        Assert.Equal(changed.CommandBefore, changed.CommandAfter);                          // and the command did not run
+    }
+
+    private sealed record ClickOutcome(string CommandBefore, string CommandAfter, string PreviewText);
+
+    private static ClickOutcome RunTheCommandAfter(bool changeDll)
+    {
+        var native = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
+        Skip.If(string.IsNullOrEmpty(native) || !File.Exists(Path.Combine(native, "xpe_preprocess.dll")), "XPE_NATIVE_DIR does not name a folder containing xpe_preprocess.dll.");
+        var copy = Path.Combine(Path.GetTempPath(), $"xpe_c226_native_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(copy);
+        try
+        {
+            foreach (var file in Directory.GetFiles(native!)) File.Copy(file, Path.Combine(copy, Path.GetFileName(file)));
+            using var app = LegacyApp.LaunchOrSkip(breakTemp: false, extraEnvironment: new Dictionary<string, string> { ["XPE_NATIVE_DIR"] = copy });
+            app.WaitForPreprocessVerdict();
+            var before = app.ReadText("Calibration", "AlgorithmValidationResultText");
+
+            if (changeDll) ReplaceLikeARedeploy(Path.Combine(copy, "xpe_preprocess.dll"));
+            app.ClickButtonById("Calibration", "RunSelectedAlgorithmButton");
+
+            // one of the two things happens within moments: the command's text changes (it ran as far as its own first check) or the refusal appears
+            var deadline = DateTime.UtcNow.AddSeconds(15);
+            string after = before, preview = string.Empty;
+            while (DateTime.UtcNow < deadline)
+            {
+                after = app.ReadText("Calibration", "AlgorithmValidationResultText");
+                preview = app.ReadText("Evaluation", "NativePreviewText");
+                if (after != before || preview.Contains(RefusalText, StringComparison.Ordinal)) break;
+                Thread.Sleep(300);
+            }
+
+            return new ClickOutcome(before, after, preview);
+        }
+        finally
+        {
+            try { Directory.Delete(copy, recursive: true); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* a DLL the app still holds: left to the temp folder's cleanup */ }
+        }
+    }
+
+    /// <summary>What a rebuild or redeploy does to a DLL that is in use: the loaded file is renamed out of the way (Windows allows that) and a file with other content is put under its name.</summary>
+    private static void ReplaceLikeARedeploy(string path)
+    {
+        var moved = path + ".replaced";
+        File.Move(path, moved);
+        File.Copy(moved, path);
+        using var stream = new FileStream(path, FileMode.Append, FileAccess.Write);
+        stream.WriteByte(0);   // the PE image is unchanged; the file is not the one that was judged
+    }
+
     private sealed record CheckingView(string Smoke, string Row, int BlockingFindings, string StageModes, bool OffsetSwitchEnabled, int CheckingFindings = 0)
     {
         public bool SmokeSaysChecking => Smoke.Contains("checking", StringComparison.OrdinalIgnoreCase) && !Smoke.Contains("pass=", StringComparison.Ordinal);
@@ -311,6 +380,27 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             var info = _window.FindFirstDescendant(cf => cf.ByAutomationId("StageModesInfoText"))?.Name ?? string.Empty;
             var offsetSwitch = _window.FindFirstDescendant(cf => cf.ByAutomationId("OffsetEnabledCheckBox"));
             return new CheckingView(smoke, row, blocking, info, offsetSwitch is not null && offsetSwitch.IsEnabled, checkingFindings);
+        }
+
+        /// <summary>Waits for the oracle's answer on the Diagnostics tab (the same wait <see cref="ReadPreprocessOnEveryTab"/> starts with).</summary>
+        public void WaitForPreprocessVerdict()
+        {
+            SelectTab("Diagnostics");
+            WaitForText("PreprocessSmokeText", t => t.Contains("pass=", StringComparison.Ordinal), TimeSpan.FromSeconds(60));
+        }
+
+        public string ReadText(string tab, string automationId)
+        {
+            SelectTab(tab);
+            return _window.FindFirstDescendant(cf => cf.ByAutomationId(automationId))?.Name ?? string.Empty;
+        }
+
+        public void ClickButtonById(string tab, string automationId)
+        {
+            SelectTab(tab);
+            var button = _window.FindFirstDescendant(cf => cf.ByAutomationId(automationId))?.AsButton();
+            Assert.True(button is not null, $"button '{automationId}' was not found");
+            button!.Invoke();   // UIA InvokePattern: no mouse
         }
 
         public void ClickButtonOnTab(string tab, string name)

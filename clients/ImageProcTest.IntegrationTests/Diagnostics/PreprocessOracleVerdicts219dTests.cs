@@ -155,6 +155,44 @@ public sealed class PreprocessOracleVerdicts219dTests : IDisposable
         Assert.Single(Regex.Matches(window, @"NativePreprocessPreviewService\.Run\("));
     }
 
+    // ---------------------------------------------------------------------------------------------------------------------------------- GUI-C-226: a dependency that vanishes during the copy
+
+    /// <summary>
+    /// GUI-C-226 (Codex #118, low): a DLL the preprocess DLL depends on is found, and is gone when the copy reaches it. The set that would be judged is then smaller than the set that is installed,
+    /// so the check fails closed: ONE failed verdict is stored (the oracle is never run on the smaller set), the processing check says no, and asking again does not start a refresh storm (the same
+    /// failure is announced once). The race is made to happen on EVERY pass (the file is put back before each ask and removed again at the moment of the copy), because a file that is gone for good
+    /// is a different, legitimate situation: the next check then judges what is installed now.
+    /// </summary>
+    [Fact]
+    public async Task ADependencyThatVanishesDuringTheCopy_IsOneStoredFailure_ProcessingStaysBlocked_AndThereIsNoRefreshStorm()
+    {
+        var dependency = Path.Combine(_directory, "fmt.dll");   // named for xpe_preprocess.dll by the application's own loader
+        File.WriteAllText(dependency, "d1");
+        var runnerCalls = 0;
+        PreprocessOracleVerdicts.Runner = _ => { Interlocked.Increment(ref runnerCalls); return Verdict("judged"); };
+        PreprocessOracleSnapshot.BeforeCopy = source => { if (string.Equals(Path.GetFileName(source), "fmt.dll", StringComparison.OrdinalIgnoreCase)) File.Delete(source); };
+        var announced = 0;
+        PreprocessOracleVerdicts.Completed += _ => Interlocked.Increment(ref announced);
+
+        var verdict = PreprocessOracleVerdicts.Wait(_dll);
+
+        Assert.Equal("Synthetic oracle setup failed", verdict.Status);
+        Assert.Contains("fmt.dll", verdict.Details, StringComparison.Ordinal);
+        Assert.Equal(0, Volatile.Read(ref runnerCalls));   // the smaller set was never judged
+        Assert.Equal(1, Volatile.Read(ref announced));
+
+        // the window asks again after every announcement; the same failure must not be announced again and again, and processing stays blocked
+        for (var i = 0; i < 5; i++)
+        {
+            File.WriteAllText(dependency, "d1");           // the file is there again; the race removes it again at the copy
+            Assert.False(await ProcessingContentGate.ConfirmAsync(_dll), "processing must stay blocked while the check keeps failing");
+            await Task.Delay(150);                           // the pass that this ask started
+        }
+
+        Assert.Equal(1, Volatile.Read(ref announced));
+        Assert.Equal(0, Volatile.Read(ref runnerCalls));
+    }
+
     // ---------------------------------------------------------------------------------------------------------------------------------- item 3: the end of the job
 
     /// <summary>Codex #116 finding 3: an ask that arrives just BEFORE the job decides it is over gets another pass.</summary>
