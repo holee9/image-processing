@@ -351,6 +351,17 @@ XPE_API XpeErrorCode xpe_dicom_write_j2k(const char* filePath,
  * SOPClassUID / SOPInstanceUID. Each failing condition adds one entry to
  * "errors" tagged with the group-0002 element it concerns.
  *
+ * Dataset attributes are judged by their Type in the DX IOD (QA-B-206). Type 1
+ * (Study, Series and SOP Instance UID, Modality, Rows, Columns, Bits Allocated,
+ * Bits Stored) must be present with a value; Patient's Name and Patient ID are
+ * Type 2: present, and an empty value is conformant. A missing attribute and an
+ * attribute with no value are separate entries. A UID that has a value must be
+ * in dotted-numeric form; a UID with no value is reported once, as having no
+ * value, and its format is not judged as well. Pixel Data is Type 1C: when it
+ * is absent and a Pixel Data Provider URL (0028,7FE0) with a value is present,
+ * the file is not reported invalid, and "warnings" gets one entry saying that
+ * pixel data by reference is not supported by this module.
+ *
  * @return XPE_OK on success (check "valid" field in report). XPE_OK means the
  *         report was produced, NOT that the file is conformant.
  * @return XPE_ERR_INVALID_INPUT if filePath or outReportJson is NULL, or if

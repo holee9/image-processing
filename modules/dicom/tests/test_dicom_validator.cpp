@@ -599,16 +599,12 @@ TEST_F(DicomValidatorTest, AMissingTagAndAnEmptyTagAreReportedWithDifferentMessa
                                        [](DcmDataset* d) { d->putAndInsertString(DCM_StudyInstanceUID, ""); }, &rc);
     ASSERT_EQ(1u, missing["errors"].size()) << missing.dump();
     EXPECT_NE(std::string::npos, missing["errors"][0]["message"].get<std::string>().find("Missing"));
-    // an empty UID is reported as "no value" and, because the empty string is not a UID either, also as an invalid format;
-    // what matters here is that the "no value" report is there and the "Missing" one is not
-    bool noValue = false, missingMsg = false;
-    for (const auto& e : empty["errors"]) {
-        const std::string m = e["message"].get<std::string>();
-        noValue = noValue || m.find("no value") != std::string::npos;
-        missingMsg = missingMsg || m.find("Missing") != std::string::npos;
-    }
-    EXPECT_TRUE(noValue) << empty.dump();
-    EXPECT_FALSE(missingMsg) << empty.dump();
+    // QA-B-206 M2c (Codex #113): an empty UID is ONE defect, reported once as "no value"; its format is not judged as well.
+    // M2b had loosened this assertion to allow the second, "Invalid UID format", report.
+    ASSERT_EQ(1u, empty["errors"].size()) << empty.dump();
+    EXPECT_EQ("0020,000D", empty["errors"][0]["tag"].get<std::string>());
+    EXPECT_NE(std::string::npos, empty["errors"][0]["message"].get<std::string>().find("no value")) << empty.dump();
+    EXPECT_EQ(std::string::npos, empty["errors"][0]["message"].get<std::string>().find("Missing")) << empty.dump();
 }
 
 // ---------------------------------------------------------------------------
@@ -693,15 +689,101 @@ TEST_F(DicomValidatorTest, EveryRequiredAttributeIsJudgedByTheTypeTheStandardGiv
         EXPECT_TRUE(HasErrorFor(absent, r.tag)) << r.name << ": an absent attribute is an error for both Types";
         const json empty = ValidateChanged(s_conformantDcm, s_tempDir / ("m2b_t_emp_" + std::to_string(n) + ".dcm"),
                                            [&](DcmDataset* d) { d->putAndInsertString(r.key, ""); }, &rc);
-        // judged by the "no value" message and not just by the tag: an empty UID is ALSO reported as an invalid UID format, so
-        // an error for the same tag would hide a Type 1 attribute that had been downgraded to Type 2
+        // judged by the "no value" message and not just by the tag, and by the NUMBER of reports for the tag: before M2c an empty
+        // UID was ALSO reported as an invalid UID format, so an error for the same tag would have hidden a Type 1 attribute
+        // downgraded to Type 2. Now an empty Type 1 value is exactly one report, "no value"; an empty Type 2 value is none.
         bool noValue = false;
+        int reports = 0;
         for (const auto& e : empty["errors"]) {
-            if (e["tag"].get<std::string>() == r.tag &&
-                e["message"].get<std::string>().find("no value") != std::string::npos) noValue = true;
+            if (e["tag"].get<std::string>() != r.tag) continue;
+            ++reports;
+            if (e["message"].get<std::string>().find("no value") != std::string::npos) noValue = true;
         }
         EXPECT_EQ(r.type1, noValue) << r.name << ": an empty value is an error only for Type 1: " << empty.dump();
+        EXPECT_EQ(r.type1 ? 1 : 0, reports) << r.name << ": " << empty.dump();
         if (!r.type1) EXPECT_TRUE(empty["errors"].empty()) << r.name << ": " << empty.dump();
+        ++n;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// QA-B-206 M2c (Codex #113): Pixel Data (7FE0,0010) is Type 1C in the Image Pixel module -- "required if Pixel Data Provider URL
+// (0028,7FE0) is not present". A file that gives its pixels by reference has no Pixel Data and is not wrong for that; this
+// module cannot read pixels by reference, so it says so once, as a warning that leaves `valid` alone. The URL has to carry a
+// value to count as a provider. Five cases, by what the file holds.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+int CountMessages(const json& list, const char* tag, const char* text) {
+    int n = 0;
+    for (const auto& e : list) {
+        if (e["tag"].get<std::string>() == tag && e["message"].get<std::string>().find(text) != std::string::npos) ++n;
+    }
+    return n;
+}
+
+}  // namespace
+
+TEST_F(DicomValidatorTest, PixelDataIsTypeOneCSoAFileWithOnlyAProviderUrlIsAWarningNotAnError) {
+    struct Case {
+        const char* what;
+        std::function<void(DcmDataset*)> change;
+        bool valid;
+        int missingErrors;      // "Missing required Type 1 tag" reports for Pixel Data
+        int referenceWarnings;  // "by reference" warnings
+    };
+    const Case cases[] = {
+        {"Pixel Data present", [](DcmDataset*) {}, true, 0, 0},
+        {"Provider URL only",
+         [](DcmDataset* d) {
+             d->findAndDeleteElement(DCM_PixelData);
+             d->putAndInsertString(DCM_PixelDataProviderURL, "http://example.invalid/jpip");
+         },
+         true, 0, 1},
+        {"neither", [](DcmDataset* d) { d->findAndDeleteElement(DCM_PixelData); }, false, 1, 0},
+        {"an EMPTY Provider URL is not a provider",
+         [](DcmDataset* d) {
+             d->findAndDeleteElement(DCM_PixelData);
+             d->putAndInsertString(DCM_PixelDataProviderURL, "");
+         },
+         false, 1, 0},
+        {"both present: the pixels are there, the URL is not what is used",
+         [](DcmDataset* d) { d->putAndInsertString(DCM_PixelDataProviderURL, "http://example.invalid/jpip"); }, true, 0, 0},
+    };
+    int n = 0;
+    for (const Case& c : cases) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        const json j = ValidateChanged(s_conformantDcm, s_tempDir / ("m2c_px_" + std::to_string(n++) + ".dcm"), c.change, &rc);
+        // a file that parses but does not conform is a report with valid:false and rc OK; DICOM_INVALID is for a file that
+        // cannot be parsed at all
+        EXPECT_EQ(XPE_OK, rc) << c.what << ": " << j.dump();
+        EXPECT_EQ(c.valid, j["valid"].get<bool>()) << c.what << ": " << j.dump();
+        EXPECT_EQ(c.missingErrors, CountMessages(j["errors"], "7FE0,0010", "Missing required Type 1 tag")) << c.what << ": " << j.dump();
+        EXPECT_EQ(c.referenceWarnings, CountMessages(j["warnings"], "7FE0,0010", "by reference")) << c.what << ": " << j.dump();
+        EXPECT_EQ(static_cast<size_t>(c.referenceWarnings), j["warnings"].size()) << c.what << ": no other warning: " << j.dump();
+        if (c.valid) EXPECT_TRUE(j["errors"].empty()) << c.what << ": " << j.dump();
+    }
+}
+
+TEST_F(DicomValidatorTest, ABlankUidIsReportedOnceAsNoValueAndItsFormatIsNotJudgedAsWell) {
+    const struct { const char* what; const char* tag; DcmTagKey key; } rows[] = {
+        {"Study", "0020,000D", DCM_StudyInstanceUID},
+        {"Series", "0020,000E", DCM_SeriesInstanceUID},
+        {"SOP Instance", "0008,0018", DCM_SOPInstanceUID},
+    };
+    int n = 0;
+    for (const auto& r : rows) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        const json empty = ValidateChanged(s_conformantDcm, s_tempDir / ("m2c_uid_e" + std::to_string(n) + ".dcm"),
+                                           [&](DcmDataset* d) { d->putAndInsertString(r.key, ""); }, &rc);
+        EXPECT_EQ(1, CountMessages(empty["errors"], r.tag, "no value")) << r.what << ": " << empty.dump();
+        EXPECT_EQ(0, CountMessages(empty["errors"], r.tag, "Invalid UID format")) << r.what << ": " << empty.dump();
+        // a UID that HAS a value is still judged for its format: the skip is for the blank one only
+        const json bad = ValidateChanged(s_conformantDcm, s_tempDir / ("m2c_uid_b" + std::to_string(n) + ".dcm"),
+                                         [&](DcmDataset* d) { d->putAndInsertString(r.key, "not.a.uid"); }, &rc);
+        EXPECT_EQ(1, CountMessages(bad["errors"], r.tag, "Invalid UID format")) << r.what << ": " << bad.dump();
+        EXPECT_EQ(0, CountMessages(bad["errors"], r.tag, "no value")) << r.what << ": " << bad.dump();
         ++n;
     }
 }

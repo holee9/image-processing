@@ -1,0 +1,104 @@
+"""QA-B-206 M2c falsification arms: Pixel Data as Type 1C (Provider URL) and the blank-UID double report.
+Break ONE defence, rebuild ci-dicom (test_dicom_validator), run it, expect the named tests red, restore byte-identical.
+Do not touch the source tree while this runs.
+Run: python build/g207_arms_m2c.py <out.txt>"""
+import hashlib
+import re
+import subprocess
+import sys
+
+OUT = sys.argv[1]
+ONLY = sys.argv[2] if len(sys.argv) > 2 else None   # run a single arm by name
+BUILD = r'D:\workspace-github\xpe-post\build\g206-build.bat test_dicom_validator'
+RUN = r'D:\workspace-github\xpe-post\build\g206-run.bat'
+VAL = 'modules/dicom/src/DicomValidator.cpp'
+NL = '\n'
+T_PIX = 'DicomValidatorTest.PixelDataIsTypeOneCSoAFileWithOnlyAProviderUrlIsAWarningNotAnError'
+T_UID = 'DicomValidatorTest.ABlankUidIsReportedOnceAsNoValueAndItsFormatIsNotJudgedAsWell'
+T_MISS = 'DicomValidatorTest.AMissingTagAndAnEmptyTagAreReportedWithDifferentMessages'
+T_TABLE = 'DicomValidatorTest.EveryRequiredAttributeIsJudgedByTheTypeTheStandardGivesIt'
+T_BAD = 'DicomValidatorTest.ValidateBadUID_IsAnErrorAndNotAlsoAWarning'
+
+COND = 'req.key == DCM_PixelData && elementHasValue(ds, DCM_PixelDataProviderURL)'
+PUSH = '                warnings.push_back(warnEntry);' + NL
+PUSH_CONT = PUSH + '                continue;' + NL
+SKIP_UID = '            if (isAllPadding(uidVal)) return;' + NL
+
+ARMS = [
+    ('url_exception_never_taken_pixel_data_always_required',
+     [(COND, 'req.key == DCM_PixelData && elementHasValue(ds, DCM_PixelDataProviderURL) && ds == nullptr')], [T_PIX]),
+    ('url_exception_inverted_warns_when_there_is_no_url',
+     [(COND, 'req.key == DCM_PixelData && !elementHasValue(ds, DCM_PixelDataProviderURL)')], [T_PIX]),
+    ('empty_url_counts_as_a_provider',
+     [('elementHasValue(ds, DCM_PixelDataProviderURL)',
+       '(ds->tagExists(DCM_PixelDataProviderURL) || elementHasValue(ds, DCM_PixelDataProviderURL))')], [T_PIX]),
+    ('reference_warning_also_makes_the_file_invalid', [(PUSH, PUSH + '                result.valid = false;' + NL)], [T_PIX]),
+    ('reference_case_reports_the_error_as_well_as_the_warning', [(PUSH_CONT, PUSH)], [T_PIX]),
+    ('reference_case_has_no_warning', [(PUSH, '                (void)warnEntry;' + NL)], [T_PIX]),
+    ('blank_uid_format_judged_again_double_report', [(SKIP_UID, '')], [T_UID, T_MISS, T_TABLE]),
+    ('every_uid_with_a_value_skips_the_format_check',
+     [(SKIP_UID, '            if (isAllPadding(uidVal) || !uidVal.empty()) return;' + NL)], [T_UID, T_BAD]),
+]
+
+
+def sha(p):
+    with open(p, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def sh(cmd):
+    r = subprocess.run(['cmd', '/c', cmd], capture_output=True, text=True, timeout=3000)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def failed(path):
+    with open(path, 'rb') as f:
+        raw = f.read()
+    try:
+        txt = raw.decode('utf-8')
+    except UnicodeDecodeError:
+        txt = raw.decode('cp949', errors='replace')
+    return set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M))
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+for name, edits, must in ARMS:
+    if ONLY and name != ONLY:
+        continue
+    with open(VAL, 'rb') as f:
+        saved = f.read()
+    before = sha(VAL)
+    log('=== ARM ' + name)
+    try:
+        txt = saved.decode('utf-8')
+        for old, new in edits:
+            n = txt.count(old)
+            assert n == 1, (name, old[:70], n)
+            txt = txt.replace(old, new)
+        with open(VAL, 'wb') as f:
+            f.write(txt.encode('utf-8'))
+        sh(BUILD)
+        with open('build/g206-build.txt', 'rb') as f:
+            built = b'FAILED:' not in f.read()
+        if not built:
+            log('RESULT: BUILD FAILED')
+        else:
+            sh('%s test_dicom_validator.exe * D:\\workspace-github\\xpe-post\\build\\g207-arm.txt' % RUN)
+            red = failed('build/g207-arm.txt')
+            log('red tests: ' + (', '.join(sorted(red)) if red else '(none)'))
+            hit = [m for m in must if m in red]
+            miss = [m for m in must if m not in hit]
+            log('RESULT: %s  (expected red: %d, red: %d, not red: %s)' % ('FIRED' if not miss else 'DID NOT FIRE', len(must), len(hit), miss))
+    finally:
+        with open(VAL, 'wb') as f:
+            f.write(saved)
+        log('restored byte-identical: %s' % (sha(VAL) == before))
+log('=== DONE')
+out.close()
