@@ -260,11 +260,23 @@ XPE_API void xpe_dicom_close(XpeDicomHandle* handle);
  *                  data pointer, is rejected (#142). A non-zero dataSize
  *                  smaller than width * height * bytes-per-pixel is rejected
  *                  (#123); dataSize == 0 means unspecified and is accepted.
+ *                  Whatever dataSize says, the file's PixelData holds exactly
+ *                  width * height * 2 bytes: dataSize == 0 writes the whole
+ *                  image, and bytes beyond the image in a larger buffer are
+ *                  not written (QA-B-206 C13).
+ *                  The descriptor must agree with the 16-bit words written:
+ *                  bitsAllocated 16 and bitsStored 1..16 (0 is not a default
+ *                  and is rejected). The image must be describable by a file:
+ *                  width and height at most 65535 (Rows and Columns are 16-bit
+ *                  attributes) and width * height * 2 at most 0xFFFFFFFE bytes
+ *                  (PixelData length). Anything else is rejected before a file
+ *                  is created (QA-B-206 M1b).
  * @param meta      Acquisition metadata to embed. Must not be NULL.
  * @return XPE_OK on success.
  * @return XPE_ERR_INVALID_INPUT if any pointer is NULL, the image is empty,
- *         img->format is not XPE_PIXEL_UINT16 (no file is created), or
- *         img->dataSize is inconsistent with its dimensions.
+ *         img->format is not XPE_PIXEL_UINT16, bitsAllocated is not 16 or
+ *         bitsStored is not 1..16, the size is not representable (no file is
+ *         created), or img->dataSize is inconsistent with its dimensions.
  * @return XPE_ERR_IO_FAILED if the file cannot be written.
  * @return XPE_ERR_PROCESSING_FAILED if the dataset cannot be assembled.
  *
@@ -290,17 +302,21 @@ XPE_API XpeErrorCode xpe_dicom_write(const char* filePath,
  * @param filePath  Destination file path. Must not be NULL.
  * @param img       Source pixel buffer (XPE_PIXEL_UINT16 only, as for
  *                  xpe_dicom_write()). Must not be NULL.
- *                  The same empty-image (#142), pixel-format (QA-B-201 M4) and
+ *                  The same empty-image (#142), pixel-format (QA-B-201 M4),
+ *                  descriptor and representable-size (QA-B-206 M1b) and
  *                  dataSize consistency (#123) rules as xpe_dicom_write() apply. An empty image is reported
  *                  as INVALID_INPUT here rather than surfacing as a compressor
  *                  PROCESSING_FAILED, which is what it used to do.
  * @param meta      Acquisition metadata to embed. Must not be NULL.
  * @return XPE_OK on success.
  * @return XPE_ERR_INVALID_INPUT if any pointer is NULL, the image is empty,
- *         img->format is not XPE_PIXEL_UINT16 (no file is created), or
- *         img->dataSize is inconsistent with its dimensions.
+ *         img->format is not XPE_PIXEL_UINT16, bitsAllocated is not 16 or
+ *         bitsStored is not 1..16, the size is not representable (no file is
+ *         created), or img->dataSize is inconsistent with its dimensions.
  * @return XPE_ERR_IO_FAILED if the file cannot be written.
- * @return XPE_ERR_PROCESSING_FAILED if J2K compression fails.
+ * @return XPE_ERR_PROCESSING_FAILED if J2K compression fails, or if the compressed
+ *         bitstream is longer than one fragment can describe (0xFFFFFFFE bytes; it is
+ *         refused, not split, and no file is created -- QA-B-206 M1c).
  *
  * @note REQ-DICOM-019..022
  */
@@ -364,7 +380,10 @@ XPE_API XpeErrorCode xpe_dicom_validate(const char* filePath,
  * @param port       Remote DICOM port (e.g. 104, 11112).
  * @param aet        Calling AE title. Must not be NULL.
  * @param filePath   Path to the DICOM file to send. Must not be NULL.
- * @param timeoutMs  Connection/operation timeout in milliseconds (0 = no timeout).
+ * @param timeoutMs  Connection/operation timeout in milliseconds. DCMTK takes whole seconds, so a value above 0 is
+ *                  rounded UP to whole seconds, at least 1 s (QA-B-206 C10): 300 ms waits 1 s, 1400 ms waits 2 s.
+ *                  0 keeps the DCMTK defaults: against a peer that accepts the connection and never answers the call
+ *                  gives up after about 30 s with XPE_ERR_NETWORK_FAILED. 0 is NOT "no timeout" (QA-B-206).
  * @return XPE_OK on C-STORE success (RSP status 0x0000).
  * @return XPE_ERR_INVALID_INPUT if host, aet, or filePath is NULL.
  * @return XPE_ERR_NETWORK_FAILED on connection failure, timeout, rejection, or
@@ -401,7 +420,8 @@ XPE_API XpeErrorCode xpe_dicom_cstore(const char* host,
  * @param queryJson  JSON object with DICOM tag key-value pairs. Must not be NULL.
  * @param outJson    Buffer to receive JSON array of results. Must not be NULL.
  * @param outBufLen  Size of outJson in bytes.
- * @param timeoutMs  Timeout in milliseconds (0 = no timeout).
+ * @param timeoutMs  Timeout in milliseconds; rounded up to whole seconds, at least 1 s (QA-B-206 C10). 0 keeps the DCMTK
+ *                  defaults (about 30 s against a silent peer), it is NOT "no timeout" (QA-B-206).
  * @return XPE_OK on success (empty result writes "[]").
  * @return XPE_ERR_INVALID_INPUT if host, aet, queryJson, or outJson is NULL, or
  *         if outBufLen is 0 (#142). Judged before the association, so a broken

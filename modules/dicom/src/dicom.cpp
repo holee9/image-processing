@@ -16,8 +16,10 @@
 #include "DicomWriter.h"
 #include "DicomValidator.h"
 #include "DicomNetworkSCU.h"
+#include "DicomImageLimits.h"
 
 #include <spdlog/spdlog.h>
+#include <memory>
 
 // @MX:ANCHOR: [AUTO] DLL ABI entry point — all exported functions guarded by catch(...)
 // @MX:REASON: REQ-DICOM-042: C++ exceptions must never cross the DLL ABI boundary
@@ -48,10 +50,14 @@ XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHa
     if (!filePath || !outHandle) return XPE_ERR_INVALID_INPUT;
     *outHandle = nullptr;
     try {
-        auto* h = new XpeDicomHandle(filePath);
+        // QA-B-206 C14: the handle is owned by a unique_ptr until it is handed out. `h` used to be a raw pointer declared
+        // inside the try, out of reach of the catch below: if reader.open() threw (std::bad_alloc from DCMTK, say), the
+        // XpeDicomHandle -- the reader and its DcmFileFormat -- was never freed. No input is known that makes open() throw
+        // (DCMTK reports its failures as an OFCondition), so this is closed by construction and proven with an injected throw.
+        auto h = std::make_unique<XpeDicomHandle>(filePath);
         XpeErrorCode rc = h->reader.open();
-        if (rc != XPE_OK) { delete h; return rc; }
-        *outHandle = h;
+        if (rc != XPE_OK) return rc;
+        *outHandle = h.release();
         return XPE_OK;
     } catch (...) {
         spdlog::error("[xpe_dicom] xpe_dicom_open: unexpected exception");
@@ -120,7 +126,20 @@ bool image_is_non_empty(const XpeImageBuffer* img) {
 // "wrong pixel format"; the caller that holds a float image owns the choice of how to turn it into 16-bit counts
 // (round, clamp, window), which a writer cannot know.
 bool pixel_format_is_writable(const XpeImageBuffer* img) {
-    return img != nullptr && img->format == XPE_PIXEL_UINT16;
+    return img != nullptr && xpe::dicom::image_format_is_writable(img->format);
+}
+
+// QA-B-206 M1b (Codex #108): the descriptor must agree with the 16-bit words the writer emits. `format == UINT16` with
+// bitsAllocated 8 used to be written as a file whose (0028,0100) says 8 over 16-bit pixel data, which this module's own
+// reader refuses. BitsAllocated is 16 and BitsStored 1..16; 0 is not a "default" anyone promised (header, api-spec).
+bool bits_are_writable(const XpeImageBuffer* img) {
+    return img != nullptr && xpe::dicom::image_bits_are_writable(img->bitsAllocated, img->bitsStored);
+}
+
+// QA-B-206 M1b (Codex #108): Rows/Columns are 16-bit attributes and PixelData an element of at most 0xFFFFFFFE bytes. A
+// size beyond either cannot be described by a file; it used to be truncated by a 32-bit product / a 16-bit cast.
+bool size_is_representable(const XpeImageBuffer* img) {
+    return img != nullptr && xpe::dicom::image_size_is_representable(img->width, img->height);
 }
 
 // Called after pixel_format_is_writable, so the image is UINT16: two bytes per pixel. (It used to size FLOAT32 too, and
@@ -141,6 +160,8 @@ XPE_API XpeErrorCode xpe_dicom_write(const char* filePath,
     if (!filePath || !img || !meta) return XPE_ERR_INVALID_INPUT;
     if (!image_is_non_empty(img)) return XPE_ERR_INVALID_INPUT;
     if (!pixel_format_is_writable(img)) return XPE_ERR_INVALID_INPUT;
+    if (!bits_are_writable(img)) return XPE_ERR_INVALID_INPUT;
+    if (!size_is_representable(img)) return XPE_ERR_INVALID_INPUT;
     if (!data_size_is_consistent(img)) return XPE_ERR_INVALID_INPUT;
     try {
         return xpe::dicom::DicomWriter::write(filePath, img, meta);
@@ -157,6 +178,8 @@ XPE_API XpeErrorCode xpe_dicom_write_j2k(const char* filePath,
     if (!filePath || !img || !meta) return XPE_ERR_INVALID_INPUT;
     if (!image_is_non_empty(img)) return XPE_ERR_INVALID_INPUT;
     if (!pixel_format_is_writable(img)) return XPE_ERR_INVALID_INPUT;
+    if (!bits_are_writable(img)) return XPE_ERR_INVALID_INPUT;
+    if (!size_is_representable(img)) return XPE_ERR_INVALID_INPUT;
     if (!data_size_is_consistent(img)) return XPE_ERR_INVALID_INPUT;
     try {
         return xpe::dicom::DicomWriter::writeJ2K(filePath, img, meta);

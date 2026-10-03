@@ -41,6 +41,7 @@
 #include <vector>
 #include <algorithm>
 #include <cstdint>
+#include <limits>
 
 namespace {
 
@@ -287,4 +288,80 @@ TEST(ExposureIndexContractTest, Stage2_EveryTableEntryReachesDi_154) {
     EXPECT_NEAR(10.0f * std::log10(2.0f), brighter.di - ref.di, 1e-4f)
         << "doubling the exposure no longer moves DI by 3.01 dB -- the dose "
            "axis is broken, whatever the body-part axis does";
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// QA-B-206 E4: a non-finite pixel gets ONE answer, whatever its sign (QA-B-204: +inf was XPE_OK with EI = DI = inf, while
+// -inf and NaN were XPE_ERR_PROCESSING_FAILED with EI = DI = 0).
+// ---------------------------------------------------------------------------------------------------------------------
+
+namespace {
+
+EiResult MeasureWithOnePixel(float value, uint32_t index) {
+    constexpr uint32_t kW = 64, kH = 64;
+    std::vector<float> pixels(static_cast<size_t>(kW) * kH, 800.0f);
+    pixels[index] = value;
+    XpeImageBuffer img{};
+    img.width = kW;
+    img.height = kH;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.bitsAllocated = 32;
+    img.bitsStored = 32;
+    img.data = pixels.data();
+    img.dataSize = static_cast<uint32_t>(pixels.size() * sizeof(float));
+    XpeImageMetadata meta{};
+    std::snprintf(meta.bodyPart, sizeof(meta.bodyPart), "%s", "CHEST");
+    EiResult r;
+    r.ei = 123.0f;   // a sentinel the call must overwrite
+    r.di = 123.0f;
+    r.rc = xpe_calc_exposure_index(&img, &meta, &r.ei, &r.di);
+    return r;
+}
+
+}  // namespace
+
+TEST(ExposureIndexNonFinite, EveryNonFinitePixelGivesTheSameAnswerAsNaNAndMinusInfinity) {
+    const EiResult control = MeasureWithOnePixel(800.0f, 100);
+    ASSERT_EQ(XPE_OK, control.rc);
+    ASSERT_NEAR(80.0f, control.ei, 0.01f) << "control: a finite image is measured";
+
+    const EiResult nan = MeasureWithOnePixel(std::numeric_limits<float>::quiet_NaN(), 100);
+    const EiResult neg = MeasureWithOnePixel(-std::numeric_limits<float>::infinity(), 100);
+    const EiResult pos = MeasureWithOnePixel(std::numeric_limits<float>::infinity(), 100);
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, nan.rc);
+    EXPECT_EQ(nan.rc, neg.rc);
+    EXPECT_EQ(nan.rc, pos.rc) << "was XPE_OK for +inf";
+    for (const EiResult* r : {&nan, &neg, &pos}) {
+        EXPECT_EQ(0.0f, r->ei);
+        EXPECT_EQ(0.0f, r->di);
+    }
+}
+
+TEST(ExposureIndexNonFinite, ThePositionOfTheNonFinitePixelDoesNotMatter) {
+    for (const uint32_t index : {0u, 1u, 63u, 2048u, 4095u}) {   // first, second, end of a row, middle, last
+        const EiResult pos = MeasureWithOnePixel(std::numeric_limits<float>::infinity(), index);
+        EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, pos.rc) << "+inf at " << index;
+        EXPECT_EQ(0.0f, pos.ei) << index;
+    }
+}
+
+TEST(ExposureIndexNonFinite, AnInfinityOfEachSignInOneImageIsStillRefused) {
+    // +inf + -inf is NaN in the sum: the case where the two signs cancel into a value that is not infinite.
+    constexpr uint32_t kW = 64, kH = 64;
+    std::vector<float> pixels(static_cast<size_t>(kW) * kH, 800.0f);
+    pixels[10] = std::numeric_limits<float>::infinity();
+    pixels[20] = -std::numeric_limits<float>::infinity();
+    XpeImageBuffer img{};
+    img.width = kW;
+    img.height = kH;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.bitsAllocated = 32;
+    img.bitsStored = 32;
+    img.data = pixels.data();
+    img.dataSize = static_cast<uint32_t>(pixels.size() * sizeof(float));
+    XpeImageMetadata meta{};
+    float ei = 5.0f, di = 5.0f;
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, xpe_calc_exposure_index(&img, &meta, &ei, &di));
+    EXPECT_EQ(0.0f, ei);
+    EXPECT_EQ(0.0f, di);
 }

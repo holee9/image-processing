@@ -259,8 +259,10 @@ XPE_API XpeErrorCode xpe_edge_enhance(XpeImageBuffer* img, const XpeUsmParams* p
  * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if any pointer is NULL, the
  *         image is zero-sized, or the buffer is invalid;
  *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32;
- *         XPE_ERR_PROCESSING_FAILED if the mean pixel value is <= 0, in which
- *         case *outEI and *outDI are set to 0.0. (REQ-ENH-030)
+ *         XPE_ERR_PROCESSING_FAILED if the mean pixel value is <= 0 or the
+ *         image holds a non-finite pixel (+inf, -inf, NaN: all three give the
+ *         same answer, QA-B-206), in which case *outEI and *outDI are set to
+ *         0.0. (REQ-ENH-030)
  */
 XPE_API XpeErrorCode xpe_calc_exposure_index(const XpeImageBuffer* img,
                                               const XpeImageMetadata* meta,

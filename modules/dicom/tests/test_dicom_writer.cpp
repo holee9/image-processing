@@ -510,3 +510,280 @@ TEST_F(DicomWriterTest, EmptyImageContract_ValidImageStillAccepted) {
             << w.name << " rejected a well-formed image";
     }
 }
+
+// ---------------------------------------------------------------------------
+// QA-B-206 C13: the PixelData length is what the dimensions say (api-spec "XpeImageBuffer.dataSize on input", #123).
+//
+// dataSize == 0 is "unspecified": the writer trusts width * height * bytes-per-pixel. It used to take the PixelData length
+// from dataSize itself, so dataSize == 0 produced a file with a zero-length PixelData and the call said XPE_OK (QA-B-204:
+// xpe_dicom_read_image then refused it with XPE_ERR_DICOM_INVALID), and a larger dataSize wrote the caller's surplus bytes
+// into PixelData. A dataSize SMALLER than the image is still refused (the DataSizeGuard tests above).
+// ---------------------------------------------------------------------------
+
+namespace {
+
+/** The value length of the (7FE0,0010) element of an Explicit VR Little Endian file; -1 when it cannot be found. */
+int64_t PixelDataLength(const std::filesystem::path& p) {
+    const std::string bytes = FileBytes(p);
+    const char tag[4] = {static_cast<char>(0xE0), static_cast<char>(0x7F), static_cast<char>(0x10), static_cast<char>(0x00)};
+    const size_t at = bytes.find(std::string(tag, 4));
+    if (at == std::string::npos || at + 12 > bytes.size()) return -1;
+    if (bytes[at + 4] != 'O' || (bytes[at + 5] != 'W' && bytes[at + 5] != 'B')) return -1;
+    uint32_t len = 0;
+    std::memcpy(&len, bytes.data() + at + 8, sizeof(len));
+    return static_cast<int64_t>(len);
+}
+
+}  // namespace
+
+TEST_F(DicomWriterTest, ZeroDataSizeWritesTheWholeImageAndTheFileReadsBackExactly) {
+    XpeImageBuffer img = m_img;
+    img.dataSize = 0;
+    const auto path = m_tempDir / "zero_full.dcm";
+    ASSERT_EQ(XPE_OK, xpe_dicom_write(path.string().c_str(), &img, &m_meta));
+    const int64_t expected = static_cast<int64_t>(m_img.width) * m_img.height * 2;
+    EXPECT_EQ(expected, PixelDataLength(path)) << "was 0: a file with no pixels, reported as success";
+
+    XpeDicomHandle* h = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &h));
+    XpeImageBuffer back{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_read_image(h, &back)) << "was XPE_ERR_DICOM_INVALID";
+    EXPECT_EQ(static_cast<size_t>(expected), back.dataSize);
+    EXPECT_EQ(0, std::memcmp(back.data, m_img.data, static_cast<size_t>(expected)));
+    xpe_free_image(&back);
+    xpe_dicom_close(h);
+}
+
+TEST_F(DicomWriterTest, ZeroDataSizeWritesTheWholeImageForTheJ2kWriterToo) {
+    XpeImageBuffer img = m_img;
+    img.dataSize = 0;
+    const auto path = m_tempDir / "zero_full_j2k.dcm";
+    ASSERT_EQ(XPE_OK, xpe_dicom_write_j2k(path.string().c_str(), &img, &m_meta));
+    XpeDicomHandle* h = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &h));
+    XpeImageBuffer back{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_read_image(h, &back));
+    EXPECT_EQ(0, std::memcmp(back.data, m_img.data, static_cast<size_t>(m_img.width) * m_img.height * 2));
+    xpe_free_image(&back);
+    xpe_dicom_close(h);
+}
+
+TEST_F(DicomWriterTest, ASurplusBeyondTheImageInALargerBufferIsNotWrittenIntoPixelData) {
+    const size_t imageBytes = static_cast<size_t>(m_img.width) * m_img.height * 2;
+    std::vector<uint8_t> big(imageBytes + 64, 0xEEu);   // 64 bytes of surplus the file must not contain
+    std::memcpy(big.data(), m_img.data, imageBytes);
+    XpeImageBuffer img = m_img;
+    img.data = big.data();
+    img.dataSize = big.size();
+    const auto path = m_tempDir / "surplus.dcm";
+    ASSERT_EQ(XPE_OK, xpe_dicom_write(path.string().c_str(), &img, &m_meta));
+    EXPECT_EQ(static_cast<int64_t>(imageBytes), PixelDataLength(path)) << "was imageBytes + 64: the surplus was written";
+
+    XpeDicomHandle* h = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &h));
+    XpeImageBuffer back{};
+    ASSERT_EQ(XPE_OK, xpe_dicom_read_image(h, &back));
+    EXPECT_EQ(imageBytes, back.dataSize);
+    EXPECT_EQ(0, std::memcmp(back.data, m_img.data, imageBytes));
+    xpe_free_image(&back);
+    xpe_dicom_close(h);
+}
+
+TEST_F(DicomWriterTest, ADataSizeOfOneByteLessThanTheImageIsStillRefusedAndNoFileIsMade) {
+    const size_t imageBytes = static_cast<size_t>(m_img.width) * m_img.height * 2;
+    for (const size_t declared : {static_cast<size_t>(1), imageBytes - 1}) {
+        XpeImageBuffer img = m_img;
+        img.dataSize = declared;
+        const auto path = m_tempDir / ("short_" + std::to_string(declared) + ".dcm");
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_write(path.string().c_str(), &img, &m_meta)) << declared;
+        EXPECT_FALSE(std::filesystem::exists(path)) << declared << ": the refusal comes before any file exists";
+    }
+}
+
+// ---------------------------------------------------------------------------
+// QA-B-206 M1b (Codex #108): what a file can describe is decided at the door of both public writers.
+//
+//  1. The PixelData length is width * height * 2 computed in 64 bits. The first version of the C13 fix multiplied
+//     `unsigned long`s (32 bits on Windows): 65535 x 32769 x 2 = 4,295,032,830 wrapped to 65,534. An image the file cannot
+//     describe -- Rows/Columns above 65535 (16-bit attributes) or PixelData above 0xFFFFFFFE bytes -- is refused with
+//     XPE_ERR_INVALID_INPUT before any file exists. The rejection cases pass a TINY buffer with dataSize 0 (unspecified):
+//     if the refusal were not first, the writer would read far past it.
+//  2. The descriptor has to agree with the 16-bit words the writer emits: BitsAllocated 16, BitsStored 1..16. 0 is refused
+//     (nothing promises it means "default"); bitsAllocated 8 over 16-bit pixels used to be written as a file that
+//     contradicts its own PixelData and that this module's reader refuses.
+// ---------------------------------------------------------------------------
+
+#include "DicomImageLimits.h"
+
+namespace {
+
+XpeImageBuffer TinyBufferClaiming(uint32_t width, uint32_t height, std::vector<uint16_t>* storage) {
+    storage->assign(16, 0x0123u);
+    XpeImageBuffer img{};
+    img.width = width;
+    img.height = height;
+    img.format = XPE_PIXEL_UINT16;
+    img.bitsAllocated = 16;
+    img.bitsStored = 16;
+    img.data = storage->data();
+    img.dataSize = 0;   // unspecified: the entry point trusts the dimensions -- which is why the size must be checked first
+    return img;
+}
+
+}  // namespace
+
+TEST(DicomImageLimits, TheLengthIsComputedIn64BitsAndTheBoundaryIsWhereTheElementEnds) {
+    using xpe::dicom::image_size_is_representable;
+    using xpe::dicom::pixel_data_bytes;
+    EXPECT_EQ(4295032830ull, pixel_data_bytes(65535u, 32769u)) << "the case of Codex #108: 32-bit arithmetic gave 65,534";
+    EXPECT_EQ(65534u, static_cast<uint32_t>(pixel_data_bytes(65535u, 32769u))) << "control: this is what the wrap looks like";
+
+    EXPECT_TRUE(image_size_is_representable(1u, 1u));
+    EXPECT_TRUE(image_size_is_representable(46340u, 46340u)) << "2,144,... pixels x 2 = 4,294,791,200 bytes: just below the limit";
+    EXPECT_FALSE(image_size_is_representable(46341u, 46341u)) << "x 2 = 4,294,... > 0xFFFFFFFE: just above";
+    EXPECT_TRUE(image_size_is_representable(65535u, 32768u)) << "4,294,901,760 bytes";
+    EXPECT_FALSE(image_size_is_representable(65535u, 32769u)) << "4,295,032,830 bytes";
+    EXPECT_FALSE(image_size_is_representable(65536u, 1u)) << "Columns is a 16-bit attribute";
+    EXPECT_FALSE(image_size_is_representable(1u, 65536u)) << "Rows is a 16-bit attribute";
+    EXPECT_FALSE(image_size_is_representable(0xFFFFFFFFu, 0xFFFFFFFFu)) << "the product of two full 32-bit values";
+    EXPECT_FALSE(image_size_is_representable(0u, 5u));
+    EXPECT_FALSE(image_size_is_representable(5u, 0u));
+    EXPECT_TRUE(xpe::dicom::kMaxPixelDataBytes % 2u == 0u) << "an OB/OW length is even";
+}
+
+TEST_F(DicomWriterTest, AnImageTheFileCannotDescribeIsRefusedBeforeAnyFileExistsByBothWriters) {
+    struct Size {
+        uint32_t w, h;
+        const char* why;
+    } sizes[] = {{65535u, 32769u, "Codex #108: width*height*2 = 4,295,032,830 wrapped to 65,534"},
+                 {46341u, 46341u, "just above the PixelData limit"},
+                 {65536u, 1u, "Columns above 65535"},
+                 {1u, 65536u, "Rows above 65535"},
+                 {0x7FFFFFFFu, 2u, "a dimension the module's other entry points accept as int"}};
+    int n = 0;
+    for (const Size& s : sizes) {
+        std::vector<uint16_t> storage;
+        const XpeImageBuffer img = TinyBufferClaiming(s.w, s.h, &storage);
+        const auto a = m_tempDir / ("huge_a" + std::to_string(n) + ".dcm");
+        const auto b = m_tempDir / ("huge_b" + std::to_string(n) + ".dcm");
+        ++n;
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_write(a.string().c_str(), &img, &m_meta)) << s.why;
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_write_j2k(b.string().c_str(), &img, &m_meta)) << s.why;
+        EXPECT_FALSE(std::filesystem::exists(a)) << s.why;
+        EXPECT_FALSE(std::filesystem::exists(b)) << s.why;
+    }
+}
+
+TEST_F(DicomWriterTest, ADescriptorThatContradictsTheSixteenBitWordsIsRefusedByBothWritersAndNoFileIsMade) {
+    struct Bits {
+        uint32_t allocated, stored;
+        const char* why;
+    } bad[] = {{8u, 8u, "Codex #108: BitsAllocated 8 over 16-bit words"},
+               {8u, 16u, "BitsAllocated 8, BitsStored 16"},
+               {32u, 16u, "BitsAllocated 32 over 16-bit words"},
+               {0u, 16u, "BitsAllocated 0: nothing promises it means default"},
+               {16u, 0u, "BitsStored 0"},
+               {16u, 17u, "BitsStored above BitsAllocated"},
+               {16u, 32u, "BitsStored 32"}};
+    int n = 0;
+    for (const Bits& c : bad) {
+        XpeImageBuffer img = m_img;
+        img.bitsAllocated = c.allocated;
+        img.bitsStored = c.stored;
+        const auto a = m_tempDir / ("bits_a" + std::to_string(n) + ".dcm");
+        const auto b = m_tempDir / ("bits_b" + std::to_string(n) + ".dcm");
+        ++n;
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_write(a.string().c_str(), &img, &m_meta)) << c.why;
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_write_j2k(b.string().c_str(), &img, &m_meta)) << c.why;
+        EXPECT_FALSE(std::filesystem::exists(a)) << c.why;
+        EXPECT_FALSE(std::filesystem::exists(b)) << c.why;
+    }
+}
+
+TEST_F(DicomWriterTest, EveryBitsStoredFromOneToSixteenIsWrittenAndReadsBack) {
+    // The control for the refusals above: the whole accepted range (BitsAllocated 16, BitsStored 1..16) still writes and the
+    // module's own reader reads the file. Pixel values stay below 2^BitsStored so the J2K precision and the check agree.
+    for (uint32_t stored = 1; stored <= 16; ++stored) {
+        XpeImageBuffer img = m_img;
+        img.bitsAllocated = 16;
+        img.bitsStored = stored;
+        const uint16_t mask = static_cast<uint16_t>(stored == 16 ? 0xFFFFu : ((1u << stored) - 1u));
+        std::vector<uint16_t> px(static_cast<size_t>(img.width) * img.height);
+        for (size_t i = 0; i < px.size(); ++i) px[i] = static_cast<uint16_t>(i & mask);
+        img.data = px.data();
+        const auto path = m_tempDir / ("bits_ok_" + std::to_string(stored) + ".dcm");
+        ASSERT_EQ(XPE_OK, xpe_dicom_write(path.string().c_str(), &img, &m_meta)) << "BitsStored " << stored;
+        XpeDicomHandle* h = nullptr;
+        ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &h)) << stored;
+        XpeImageBuffer back{};
+        ASSERT_EQ(XPE_OK, xpe_dicom_read_image(h, &back)) << stored;
+        EXPECT_EQ(0, std::memcmp(back.data, px.data(), px.size() * 2)) << "BitsStored " << stored;
+        xpe_free_image(&back);
+        xpe_dicom_close(h);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// QA-B-206 C14: xpe_dicom_open frees what it allocated whether or not it succeeds.
+//
+// The handle used to be a raw `new` outside the reach of the catch, so an exception from reader.open() leaked it. No input
+// makes open() throw in production (DCMTK reports failures as an OFCondition), so this test measures the CRT heap over open /
+// close cycles and the leak itself was proven with a throw injected into DicomReader::open (see the QA-B-206 report): with the
+// raw pointer the same loop grows by one handle per cycle, with the unique_ptr it does not.
+// ---------------------------------------------------------------------------
+TEST_F(DicomWriterTest, ThousandOpenCycles_CrtHeapDoesNotGrowWhetherOrNotOpenSucceeds) {
+#ifndef _WIN32
+    GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
+#endif
+    const auto good = m_tempDir / "open_cycles.dcm";
+    ASSERT_EQ(XPE_OK, xpe_dicom_write(good.string().c_str(), &m_img, &m_meta));
+    const auto missing = (m_tempDir / "does_not_exist.dcm").string();
+
+    auto one_cycle = [&](int i) {
+        XpeDicomHandle* h = nullptr;
+        if (xpe_dicom_open(good.string().c_str(), &h) == XPE_OK) xpe_dicom_close(h);   // success path
+        XpeDicomHandle* none = nullptr;
+        EXPECT_NE(XPE_OK, xpe_dicom_open(missing.c_str(), &none)) << "cycle " << i;     // failure path
+        EXPECT_EQ(nullptr, none);
+    };
+    const heap_growth::Growth g = heap_growth::Measure(one_cycle);
+    GTEST_LOG_(INFO) << heap_growth::Describe(g);
+    EXPECT_LT(g.heap.blocks, heap_growth::MaxBlocks(g.cycles)) << g.cycles << " open cycles left blocks allocated";
+    EXPECT_LT(g.heap.bytes, heap_growth::kMaxBytes) << g.cycles << " open cycles left bytes allocated";
+}
+
+// ---------------------------------------------------------------------------
+// QA-B-206 M1c (Codex #110): the length of a compressed J2K fragment is narrowed to 32 bits only through
+// narrow_fragment_length. The size of the bitstream is known only after compression and nothing bounds it by the raw size,
+// so the limit on the raw size does not cover it. Tested with large size_t values, without a compressor.
+// ---------------------------------------------------------------------------
+TEST(DicomImageLimits, AJ2kFragmentLengthIsNarrowedOnlyWhenItFitsAndNeverWraps) {
+    using xpe::dicom::narrow_fragment_length;
+    uint32_t out = 0xDEADBEEFu;
+    EXPECT_TRUE(narrow_fragment_length(0ull, &out));
+    EXPECT_EQ(0u, out);
+    EXPECT_TRUE(narrow_fragment_length(1ull, &out));
+    EXPECT_EQ(1u, out);
+    EXPECT_TRUE(narrow_fragment_length(0xFFFFFFFDull, &out)) << "odd, padded to the even 0xFFFFFFFE by the file";
+    EXPECT_EQ(0xFFFFFFFDu, out);
+    EXPECT_TRUE(narrow_fragment_length(0xFFFFFFFEull, &out)) << "the largest even length";
+    EXPECT_EQ(0xFFFFFFFEu, out);
+
+    out = 0xDEADBEEFu;
+    EXPECT_FALSE(narrow_fragment_length(0xFFFFFFFFull, &out)) << "0xFFFFFFFF is the undefined-length marker";
+    EXPECT_EQ(0xDEADBEEFu, out) << "a refused length leaves the output untouched";
+    EXPECT_FALSE(narrow_fragment_length(0x100000000ull, &out)) << "2^32: a plain cast to 32 bits gives 0";
+    EXPECT_FALSE(narrow_fragment_length(0x100000001ull, &out)) << "2^32 + 1: a plain cast gives 1";
+    EXPECT_FALSE(narrow_fragment_length(0x1FFFFFFFFull, &out));
+    EXPECT_FALSE(narrow_fragment_length(1ull << 40, &out));
+    EXPECT_FALSE(narrow_fragment_length(UINT64_MAX, &out));
+    EXPECT_EQ(0xDEADBEEFu, out);
+    EXPECT_TRUE(narrow_fragment_length(5ull, nullptr)) << "a NULL output only asks whether it fits";
+    EXPECT_FALSE(narrow_fragment_length(0x100000000ull, nullptr));
+}
+
+TEST(DicomImageLimits, TheWritableFormatIsUint16AndNothingElse) {
+    EXPECT_TRUE(xpe::dicom::image_format_is_writable(XPE_PIXEL_UINT16));
+    EXPECT_FALSE(xpe::dicom::image_format_is_writable(XPE_PIXEL_UINT8));
+    EXPECT_FALSE(xpe::dicom::image_format_is_writable(XPE_PIXEL_FLOAT32));
+}

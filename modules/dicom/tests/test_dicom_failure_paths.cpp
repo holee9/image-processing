@@ -32,13 +32,17 @@
 
 #include <algorithm>
 #include <chrono>
+#include <condition_variable>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
 
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #include <windows.h>
 
 namespace {
@@ -116,6 +120,95 @@ struct Peer {
     Peer(const Peer&) = delete;
     Peer& operator=(const Peer&) = delete;
 };
+
+/**
+ * @brief A peer that accepts the TCP connection and then says nothing at all (QA-B-206 C10).
+ *
+ * It never reads and never writes, so the SCU's association request is never answered: the only thing that ends the call is
+ * the SCU's own timeout. @ref DropConnections closes what it holds; the tests use it as a watchdog so that a timeout that
+ * does not work shows up as a failed test after a few seconds and not as a test that hangs.
+ */
+class StallingPeer {
+public:
+    StallingPeer() {
+        WSADATA wsa;
+        WSAStartup(MAKEWORD(2, 2), &wsa);
+        listener_ = ::socket(AF_INET, SOCK_STREAM, 0);
+        sockaddr_in addr{};
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        addr.sin_port = 0;
+        if (listener_ == INVALID_SOCKET || ::bind(listener_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0 ||
+            ::listen(listener_, 8) != 0) {
+            return;
+        }
+        int len = sizeof(addr);
+        ::getsockname(listener_, reinterpret_cast<sockaddr*>(&addr), &len);
+        port_ = ntohs(addr.sin_port);
+        acceptor_ = std::thread([this] {
+            for (;;) {
+                const SOCKET c = ::accept(listener_, nullptr, nullptr);
+                if (c == INVALID_SOCKET) return;
+                std::lock_guard<std::mutex> lock(mutex_);
+                held_.push_back(c);
+            }
+        });
+    }
+    ~StallingPeer() {
+        if (listener_ != INVALID_SOCKET) ::closesocket(listener_);
+        if (acceptor_.joinable()) acceptor_.join();
+        DropConnections();
+        WSACleanup();
+    }
+    StallingPeer(const StallingPeer&) = delete;
+    StallingPeer& operator=(const StallingPeer&) = delete;
+
+    uint16_t port() const { return port_; }
+    void DropConnections() {
+        std::lock_guard<std::mutex> lock(mutex_);
+        for (const SOCKET c : held_) ::closesocket(c);
+        held_.clear();
+    }
+
+private:
+    SOCKET listener_ = INVALID_SOCKET;
+    uint16_t port_ = 0;
+    std::thread acceptor_;
+    std::mutex mutex_;
+    std::vector<SOCKET> held_;
+};
+
+struct TimedResult {
+    XpeErrorCode rc = XPE_OK;
+    double seconds = 0.0;
+    bool watchdogFired = false;
+};
+
+/** Runs @p call against a stalling peer and measures it; the watchdog drops the connection after @p watchdogSeconds. */
+template <class F>
+TimedResult TimedAgainst(StallingPeer& peer, double watchdogSeconds, F&& call) {
+    TimedResult r;
+    std::mutex m;
+    std::condition_variable cv;
+    bool done = false;
+    std::thread watchdog([&] {
+        std::unique_lock<std::mutex> lock(m);
+        if (!cv.wait_for(lock, std::chrono::duration<double>(watchdogSeconds), [&] { return done; })) {
+            r.watchdogFired = true;
+            peer.DropConnections();
+        }
+    });
+    const auto t0 = std::chrono::steady_clock::now();
+    r.rc = call();
+    r.seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    {
+        std::lock_guard<std::mutex> lock(m);
+        done = true;
+    }
+    cv.notify_all();
+    watchdog.join();
+    return r;
+}
 
 }  // namespace
 
@@ -536,4 +629,76 @@ TEST(DicomFailurePaths, ACancelThatArrivesWhileNothingRunsIsForgottenByTheNextCa
     xpe_dicom_cancel();
     xpe_dicom_cancel();
     EXPECT_EQ(XPE_OK, xpe_dicom_cstore("localhost", peer.port, "TESTSCU", file.string().c_str(), 5000));
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// C10 -- timeoutMs below one second (QA-B-206 M1; found by QA-B-199, measured by QA-B-204)
+//
+// DCMTK takes its timeouts in whole seconds. The module passed `timeoutMs / 1000`, which is 0 for anything under 1000, and
+// 0 is not "short": the call against a peer that accepts and then stays silent returned only after about 100 seconds
+// (QA-B-204: 300 ms -> 100.02 s; 700 and 999 ms did not return in 40 s). The module now rounds UP to whole seconds, at
+// least 1: a timeout never fires before the caller asked for it, and a small one is not turned into a long one.
+// The watchdog (6 s) ends a call that is still waiting, so a broken timeout is a failed test and not a hung one.
+// ---------------------------------------------------------------------------------------------------------------------
+
+namespace {
+constexpr double kWatchdogSeconds = 6.0;
+constexpr double kSlackSeconds = 1.0;   // the call has to be set up, the association request sent, the exit logged
+
+/** The bounds of one case: never earlier than asked for, never later than the rounded-up whole seconds plus slack. */
+void ExpectTimedOutWithin(const TimedResult& r, uint32_t timeoutMs) {
+    const double ceilSeconds = static_cast<double>((timeoutMs + 999u) / 1000u);
+    EXPECT_FALSE(r.watchdogFired) << "timeoutMs " << timeoutMs << ": still waiting after " << kWatchdogSeconds
+                                  << " s, the watchdog had to close the connection (was ~100 s for timeoutMs < 1000)";
+    EXPECT_EQ(XPE_ERR_NETWORK_FAILED, r.rc) << "timeoutMs " << timeoutMs;
+    EXPECT_GE(r.seconds, timeoutMs / 1000.0) << "timeoutMs " << timeoutMs << ": the timeout fired before the time asked for";
+    EXPECT_LE(r.seconds, ceilSeconds + kSlackSeconds) << "timeoutMs " << timeoutMs << ": later than " << ceilSeconds
+                                                       << " s (rounded up) + slack";
+}
+}  // namespace
+
+TEST(DicomTimeout, ACStoreWithASubSecondTimeoutGivesUpAfterOneSecondAndNotAfterHundred) {
+    StallingPeer peer;
+    ASSERT_NE(0, peer.port());
+    const TempDir t("c10_store_small");
+    const fs::path file = t.path / "to_send.dcm";
+    ASSERT_TRUE(WriteWithTheModule(file, 100.0f));
+    for (const uint32_t ms : {300u, 999u}) {
+        xpe_clear_alerts();
+        const TimedResult r = TimedAgainst(peer, kWatchdogSeconds, [&] {
+            return xpe_dicom_cstore("127.0.0.1", peer.port(), "TESTSCU", file.string().c_str(), ms);
+        });
+        ExpectTimedOutWithin(r, ms);
+        peer.DropConnections();
+    }
+    xpe_clear_alerts();
+}
+
+TEST(DicomTimeout, ATimeoutIsRoundedUpToWholeSecondsAndNeverBelowTheRequest) {
+    StallingPeer peer;
+    ASSERT_NE(0, peer.port());
+    const TempDir t("c10_store_round");
+    const fs::path file = t.path / "to_send.dcm";
+    ASSERT_TRUE(WriteWithTheModule(file, 100.0f));
+    for (const uint32_t ms : {1000u, 1400u}) {   // 1000 is exact; 1400 was floored to 1 s, and rounding to nearest gives 1 s too: both shorter than asked
+        xpe_clear_alerts();
+        const TimedResult r = TimedAgainst(peer, kWatchdogSeconds, [&] {
+            return xpe_dicom_cstore("127.0.0.1", peer.port(), "TESTSCU", file.string().c_str(), ms);
+        });
+        ExpectTimedOutWithin(r, ms);
+        peer.DropConnections();
+    }
+    xpe_clear_alerts();
+}
+
+TEST(DicomTimeout, ACFindWithASubSecondTimeoutGivesUpAfterOneSecondAndNotAfterHundred) {
+    StallingPeer peer;
+    ASSERT_NE(0, peer.port());
+    char out[4096] = {};
+    xpe_clear_alerts();
+    const TimedResult r = TimedAgainst(peer, kWatchdogSeconds, [&] {
+        return xpe_dicom_cfind_mwl("127.0.0.1", peer.port(), "TESTSCU", R"({"Modality":"DX"})", out, sizeof(out), 300u);
+    });
+    ExpectTimedOutWithin(r, 300u);
+    xpe_clear_alerts();
 }

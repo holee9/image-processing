@@ -1,0 +1,96 @@
+"""QA-B-206 M2 D2 falsification arms: the Modality LUT table mapping. Break ONE defence, rebuild ci-post, run
+test_display_modality_lut, expect the named tests red, restore byte-identical.   Run: python build/g206_arms_d2.py <out.txt>"""
+import hashlib
+import re
+import subprocess
+import sys
+
+OUT = sys.argv[1]
+BUILD = r'D:\workspace-github\xpe-post\build\g200-post-full.bat'
+RUN = r'D:\workspace-github\xpe-post\build\g200-run2.bat'
+SRC = 'modules/display/src/modality_lut.cpp'
+NL = '\n'
+LOOP = ('        for (size_t i = 0; i < count; ++i) {' + NL +
+        '            const double d = std::round(static_cast<double>(px[i])) - static_cast<double>(firstMapped);' + NL +
+        '            const int32_t idx = d <= 0.0 ? 0 : (d >= last ? len - 1 : static_cast<int32_t>(d));' + NL)
+T_ABOVE = 'ModalityLutClamp.AnInputAtOrAboveTwoToThe31TakesTheLastEntryAndNotTheFirst'
+T_BELOW = 'ModalityLutClamp.AnInputAtOrBelowMinusTwoToThe31TakesTheFirstEntry'
+T_RANGE = 'ModalityLutClamp.TheInRangeMappingAndTheBoundariesAreUnchanged'
+T_FM = 'ModalityLutClamp.AFirstMappedNearTheEndsOfInt32DoesNotOverflowTheIndexArithmetic'
+ARMS = [
+    ('int_conversion_before_the_clamp_as_before_206',
+     [(LOOP, '        for (size_t i = 0; i < count; ++i) {' + NL +
+             '            int32_t idx = xpe_round_to_int(px[i]) - firstMapped;' + NL +
+             '            idx = xpe_clamp(idx, 0, len - 1);' + NL + '            (void)last;' + NL)], [T_ABOVE]),
+    ('above_the_table_takes_the_first_entry',
+     [(LOOP, LOOP.replace('d >= last ? len - 1 :', 'd >= last ? 0 :'))], [T_ABOVE, T_RANGE, T_FM]),
+    ('below_the_table_takes_the_last_entry',
+     [(LOOP, LOOP.replace('d <= 0.0 ? 0 :', 'd <= 0.0 ? len - 1 :'))], [T_BELOW, T_RANGE, T_FM]),
+    ('truncate_instead_of_round', [(LOOP, LOOP.replace('std::round(', 'std::trunc('))], [T_RANGE]),
+    ('floor_instead_of_round_half_away', [(LOOP, LOOP.replace('std::round(', 'std::floor('))], [T_RANGE]),
+    ('index_arithmetic_back_in_int32_after_the_clamp_of_the_value_only',
+     [(LOOP, '        for (size_t i = 0; i < count; ++i) {' + NL +
+             '            const double v = std::round(static_cast<double>(px[i]));' + NL +
+             '            const double vc = v < -4.0e9 ? -4.0e9 : (v > 4.0e9 ? 4.0e9 : v);' + NL +
+             '            const int64_t d64 = static_cast<int64_t>(vc) - static_cast<int64_t>(firstMapped);' + NL +
+             '            const int32_t idx = static_cast<int32_t>(d64 <= 0 ? 0 : (d64 >= len - 1 ? len - 1 : d64));' + NL + '            (void)last;' + NL)], None),
+]
+
+
+def sha(p):
+    with open(p, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def sh(cmd):
+    r = subprocess.run(['cmd', '/c', cmd], capture_output=True, text=True, timeout=3000)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def failed(path):
+    with open(path, encoding='utf-8', errors='replace') as f:
+        txt = f.read()
+    return set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M))
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+for name, edits, must in ARMS:
+    with open(SRC, 'rb') as f:
+        saved = f.read()
+    before = sha(SRC)
+    log('=== ARM ' + name)
+    try:
+        txt = saved.decode('utf-8')
+        for old, new in edits:
+            assert txt.count(old) == 1, (name, old[:60], txt.count(old))
+            txt = txt.replace(old, new)
+        with open(SRC, 'wb') as f:
+            f.write(txt.encode('utf-8'))
+        sh(BUILD)
+        with open('build/g200-b5.txt', encoding='utf-8', errors='replace') as f:
+            built = 'FAILED:' not in f.read()
+        if not built:
+            log('RESULT: BUILD FAILED')
+        else:
+            sh('%s ci-post test_display_modality_lut.exe D:\\workspace-github\\xpe-post\\build\\g206-arm.txt * display' % RUN)
+            red = failed('build/g206-arm.txt')
+            log('red tests: ' + (', '.join(sorted(red)) if red else '(none)'))
+            if must is None:
+                log('RESULT: observation only (no expectation set)')
+            else:
+                hit = [m for m in must if m in red]
+                miss = [m for m in must if m not in hit]
+                log('RESULT: %s  (expected red: %d, red: %d, not red: %s)' % ('FIRED' if not miss else 'DID NOT FIRE', len(must), len(hit), miss))
+    finally:
+        with open(SRC, 'wb') as f:
+            f.write(saved)
+        log('restored byte-identical: %s' % (sha(SRC) == before))
+log('=== DONE')
+out.close()
