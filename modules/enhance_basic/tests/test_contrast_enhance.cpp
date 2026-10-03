@@ -14,6 +14,8 @@
 #include <cstring>
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
+#include <vector>
 #include "perf_measure.h"
 
 namespace {
@@ -124,49 +126,273 @@ TEST(ContrastEnhance, ImageSmallerThanTileGrid_ReturnsInvalidInput) {
     free_img(img);
 }
 
-// AC-04: Low-contrast region contrast improves by >= 20%
+// ---------------------------------------------------------------------------
+// QA-B-207 M2 (E6): the standard CLAHE -- one intensity scale for the whole image, a clipped histogram table per tile, and a
+// bilinear blend of the tables of the four tiles around each pixel. The value tests below were rewritten for it; see
+// .moai/reports/lane-post/QA-B-207/report_m2_e6.md for what each one replaced and why.
+// ---------------------------------------------------------------------------
+
+// Deterministic noise in [-0.5, 0.5): a linear congruential generator, so a failure reproduces on every machine.
+static float lcg_noise(uint32_t& state) {
+    state = state * 1664525u + 1013904223u;
+    return static_cast<float>((state >> 8) & 0xFFFFu) / 65535.0f - 0.5f;
+}
+
+// The picture AC-04 talks about: a LOW-CONTRAST REGION inside an image that also has a wide value range. A wide gradient across
+// the whole image; noise of about +-60 on the left half; and on the right half a 192x192 region (it crosses the borders of the
+// 4x4 tile grid) flattened to one level with noise of only about +-6.
+struct LowContrastScene {
+    static constexpr int kSize = 512;
+    static constexpr int kRowBegin = 160, kRowEnd = 352, kColBegin = 288, kColEnd = 480;
+    std::vector<float> px;
+
+    LowContrastScene() : px(static_cast<size_t>(kSize) * kSize) {
+        uint32_t s1 = 1u, s2 = 2u;
+        for (int y = 0; y < kSize; ++y) {
+            for (int x = 0; x < kSize; ++x) {
+                float v = 200.0f + 3000.0f * static_cast<float>(x) / static_cast<float>(kSize - 1);
+                if (x < kSize / 2) v += 120.0f * lcg_noise(s1);
+                px[static_cast<size_t>(y) * kSize + x] = v;
+            }
+        }
+        for (int y = kRowBegin; y < kRowEnd; ++y)
+            for (int x = kColBegin; x < kColEnd; ++x)
+                px[static_cast<size_t>(y) * kSize + x] = 2200.0f + 12.0f * lcg_noise(s2);
+    }
+
+    // Standard deviation of the low-contrast region in @p data (an image of the same layout).
+    float region_stddev(const float* data) const {
+        std::vector<float> r;
+        for (int y = kRowBegin; y < kRowEnd; ++y)
+            for (int x = kColBegin; x < kColEnd; ++x) r.push_back(data[static_cast<size_t>(y) * kSize + x]);
+        return compute_stddev(r.data(), static_cast<int>(r.size()));
+    }
+
+    // Enhances a copy of the scene and returns the region's contrast gain (stddev after / stddev before).
+    float gain(float clip_limit, int tiles) const {
+        auto img = make_f32(kSize, kSize, 0.0f);
+        std::copy(px.begin(), px.end(), static_cast<float*>(img.data));
+        XpeClaheParams params{};
+        params.clip_limit = clip_limit;
+        params.tile_width = tiles;
+        params.tile_height = tiles;
+        const XpeErrorCode rc = xpe_contrast_enhance(&img, &params);
+        const float after = region_stddev(static_cast<const float*>(img.data));
+        free_img(img);
+        return rc == XPE_OK ? after / region_stddev(px.data()) : -1.0f;
+    }
+};
+
+// AC-04, as the criterion words it: "Local contrast ratio increases by >= 20% in low-contrast regions".
+// What this replaced: a whole-image ramp 495..505 whose centre stddev had to grow by 20%. That passed only because each tile
+// was stretched onto the full value range on its own. A ramp is already evenly spread over the image's range, so an equalization
+// that keeps the image's range has nothing to add to it (AlreadyEvenlySpreadImage_IsLeftNearlyAsItIs below states that); the
+// regions the criterion is about are low-contrast parts of an image whose range is set by other parts.
 TEST(ContrastEnhance, LowContrastRegion_ContrastImproves) {
+    LowContrastScene scene;
+    const float gain = scene.gain(3.0f, 4);
+    EXPECT_GE(gain, 1.2f) << "the region's stddev changed by x" << gain;
+}
+
+// The clip limit is what bounds the contrast a tile may add: a higher limit lets the region's contrast grow more, and with no
+// clipping at all it grows far beyond the default. (Measured at 512x512 / 4x4: x9.6, x18.3, x27.2, x68.7, x188.)
+TEST(ContrastEnhance, ClipLimit_BoundsTheContrastGain) {
+    LowContrastScene scene;
+    const float clips[] = {1.0f, 2.0f, 3.0f, 10.0f, 1.0e6f};
+    float gains[5];
+    for (int i = 0; i < 5; ++i) gains[i] = scene.gain(clips[i], 4);
+    for (int i = 1; i < 5; ++i)
+        EXPECT_GT(gains[i], gains[i - 1]) << "clip " << clips[i] << " gave x" << gains[i] << ", clip " << clips[i - 1] << " x" << gains[i - 1];
+    EXPECT_GT(gains[4], 3.0f * gains[2]) << "no clipping must give far more than the default limit";
+}
+
+// A smooth ramp must stay smooth. The step between two neighbouring pixels across a tile border has to be about the step
+// anywhere else. (The tile-by-tile code this replaced stepped by x1022 here: 1018 across the border against 1 elsewhere.)
+TEST(ContrastEnhance, SmoothRamp_HasNoStepAtTileBoundaries) {
+    const int W = 256, H = 256, T = 8, tile = W / T;
+    auto img = make_f32(W, H, 0.0f);
+    float* px = static_cast<float*>(img.data);
+    for (int y = 0; y < H; ++y)
+        for (int x = 0; x < W; ++x) px[y * W + x] = 100.0f + 4.0f * static_cast<float>(x);
+    XpeClaheParams params{};
+    params.clip_limit = 3.0f;
+    params.tile_width = T;
+    params.tile_height = T;
+    ASSERT_EQ(XPE_OK, xpe_contrast_enhance(&img, &params));
+
+    const float* row = px + 100 * W;
+    std::vector<float> inside, boundary;
+    for (int k = 0; k + 1 < W; ++k) {
+        const float step = std::fabs(row[k + 1] - row[k]);
+        ((k + 1) % tile == 0 ? boundary : inside).push_back(step);
+    }
+    std::vector<float> sorted = inside;
+    std::nth_element(sorted.begin(), sorted.begin() + sorted.size() / 2, sorted.end());
+    const float median = sorted[sorted.size() / 2];
+    ASSERT_GT(median, 0.0f);
+    float boundarySum = 0.0f, largest = 0.0f;
+    for (float b : boundary) { boundarySum += b; largest = std::max(largest, b); }
+    for (float v : inside) largest = std::max(largest, v);
+    EXPECT_LE(boundarySum / static_cast<float>(boundary.size()), 1.5f * median) << "median step " << median;
+    EXPECT_LE(largest, 2.0f * median) << "the largest step on the row, against a median of " << median;
+    free_img(img);
+}
+
+// The other half of the AC-04 replacement: an image that is already evenly spread over its range (the ramp 495..505 the old test
+// used) comes out about as it went in. Equalization redistributes values within the image's own range; it cannot widen it.
+TEST(ContrastEnhance, AlreadyEvenlySpreadImage_IsLeftNearlyAsItIs) {
     const uint32_t W = 256, H = 256;
     auto img = make_f32(W, H, 0.0f);
     float* px = static_cast<float*>(img.data);
-
-    // Fill with low-contrast values in center [495, 505]
-    for (uint32_t y = 0; y < H; y++) {
-        for (uint32_t x = 0; x < W; x++) {
-            float val = 495.0f + 10.0f * ((float)(x + y) / (float)(W + H));
-            px[y * W + x] = val;
-        }
-    }
-
-    // Measure stddev in center 128x128 region before
-    std::vector<float> center_before(128 * 128);
-    for (int y = 64; y < 192; y++) {
-        for (int x = 64; x < 192; x++) {
-            center_before[(y - 64) * 128 + (x - 64)] = px[y * W + x];
-        }
-    }
-    float stddev_before = compute_stddev(center_before.data(), 128 * 128);
-
+    for (uint32_t y = 0; y < H; y++)
+        for (uint32_t x = 0; x < W; x++) px[y * W + x] = 495.0f + 10.0f * ((float)(x + y) / (float)(W + H));
+    std::vector<float> before(128 * 128), after(128 * 128);
+    for (int y = 64; y < 192; y++)
+        for (int x = 64; x < 192; x++) before[(y - 64) * 128 + (x - 64)] = px[y * W + x];
     XpeClaheParams params{};
     params.clip_limit = 3.0f;
     params.tile_width = 8;
     params.tile_height = 8;
-
     ASSERT_EQ(XPE_OK, xpe_contrast_enhance(&img, &params));
+    for (int y = 64; y < 192; y++)
+        for (int x = 64; x < 192; x++) after[(y - 64) * 128 + (x - 64)] = px[y * W + x];
+    const float ratio = compute_stddev(after.data(), 128 * 128) / compute_stddev(before.data(), 128 * 128);
+    EXPECT_GT(ratio, 0.9f);
+    EXPECT_LT(ratio, 1.1f) << "measured x1.001";
+    free_img(img);
+}
 
-    // Measure stddev in center region after
-    std::vector<float> center_after(128 * 128);
-    for (int y = 64; y < 192; y++) {
-        for (int x = 64; x < 192; x++) {
-            center_after[(y - 64) * 128 + (x - 64)] = px[y * W + x];
+// An implementation of the definition (Zuiderveld, Graphics Gems IV), written separately from contrast_enhance.cpp and in double
+// precision: global scale, per-tile clipped histogram with the excess spread evenly (the part that does not divide evenly at a
+// fixed stride over the whole scale), cumulative distribution, bilinear blend of the four tiles whose CENTRES surround the pixel
+// (a border pixel sees two tiles, a corner one), mapped back onto [min, max]. Tiles with no pixel (ceil-division can leave one
+// past the edge) do not take part.
+static std::vector<double> ReferenceClahe(const std::vector<float>& in, int w, int h, float clip, int tw, int th) {
+    const int kBins = 4096;
+    const float vmin = *std::min_element(in.begin(), in.end());
+    const float vmax = *std::max_element(in.begin(), in.end());
+    const float range = vmax - vmin;
+    std::vector<double> out(in.begin(), in.end());
+    if (!(range > 0.0f)) return out;
+    const float scale = static_cast<float>(kBins - 1) / range;
+    std::vector<int> bin(in.size());
+    for (size_t i = 0; i < in.size(); ++i) {
+        const int b = static_cast<int>((in[i] - vmin) * scale);
+        bin[i] = std::min(std::max(b, 0), kBins - 1);
+    }
+    struct Span { int begin, end; double centre; };
+    auto spans = [](int size, int tile, int count) {
+        std::vector<Span> v;
+        for (int t = 0; t < count; ++t) {
+            const int b = std::min(t * tile, size), e = std::min(b + tile, size);
+            if (b < e) v.push_back({b, e, 0.5 * (b + e - 1)});
+        }
+        return v;
+    };
+    const std::vector<Span> xs = spans(w, (w + tw - 1) / tw, tw), ys = spans(h, (h + th - 1) / th, th);
+    std::vector<std::vector<double>> lut(xs.size() * ys.size(), std::vector<double>(kBins));
+    for (size_t j = 0; j < ys.size(); ++j) {
+        for (size_t i = 0; i < xs.size(); ++i) {
+            std::vector<long long> hist(kBins, 0);
+            for (int y = ys[j].begin; y < ys[j].end; ++y)
+                for (int x = xs[i].begin; x < xs[i].end; ++x) ++hist[bin[static_cast<size_t>(y) * w + x]];
+            const long long area = static_cast<long long>(xs[i].end - xs[i].begin) * (ys[j].end - ys[j].begin);
+            const double clipF = static_cast<double>(clip) * static_cast<double>(area) / kBins;
+            long long clipCount = clipF >= static_cast<double>(area) ? area : static_cast<long long>(clipF);
+            if (clipCount < 1) clipCount = 1;
+            long long excess = 0;
+            for (auto& c : hist) {
+                if (c > clipCount) { excess += c - clipCount; c = clipCount; }
+            }
+            const long long per = excess / kBins;
+            long long rem = excess % kBins;
+            for (auto& c : hist) c += per;
+            if (rem > 0) {
+                const int stride = static_cast<int>(std::max<long long>(kBins / rem, 1));
+                for (int b = 0; b < kBins && rem > 0; b += stride, --rem) ++hist[b];
+            }
+            long long cum = 0;
+            for (int b = 0; b < kBins; ++b) {
+                cum += hist[b];
+                lut[j * xs.size() + i][b] = static_cast<double>(cum) / static_cast<double>(area);
+            }
         }
     }
-    float stddev_after = compute_stddev(center_after.data(), 128 * 128);
+    auto locate = [](const std::vector<Span>& s, int p, size_t& lo, size_t& hi, double& wt) {
+        const double fp = p;
+        if (fp <= s.front().centre) { lo = hi = 0; wt = 0.0; return; }
+        if (fp >= s.back().centre) { lo = hi = s.size() - 1; wt = 0.0; return; }
+        size_t k = 0;
+        while (s[k + 1].centre <= fp) ++k;
+        lo = k;
+        hi = k + 1;
+        wt = (fp - s[k].centre) / (s[k + 1].centre - s[k].centre);
+    };
+    for (int y = 0; y < h; ++y) {
+        size_t j0, j1;
+        double wy;
+        locate(ys, y, j0, j1, wy);
+        for (int x = 0; x < w; ++x) {
+            size_t i0, i1;
+            double wx;
+            locate(xs, x, i0, i1, wx);
+            const int b = bin[static_cast<size_t>(y) * w + x];
+            const double top = lut[j0 * xs.size() + i0][b] * (1 - wx) + lut[j0 * xs.size() + i1][b] * wx;
+            const double bot = lut[j1 * xs.size() + i0][b] * (1 - wx) + lut[j1 * xs.size() + i1][b] * wx;
+            out[static_cast<size_t>(y) * w + x] = static_cast<double>(vmin) + (top * (1 - wy) + bot * wy) * static_cast<double>(range);
+        }
+    }
+    return out;
+}
 
-    // Contrast should improve by at least 20%
-    EXPECT_GE(stddev_after, stddev_before * 1.2f)
-        << "stddev_before: " << stddev_before << ", stddev_after: " << stddev_after;
-    free_img(img);
+// Every output pixel against the independent reference, on shapes that exercise the edges: sizes not divisible by the tile
+// counts, a tile past the edge (11x11 in 5x5), a window of two tiles, tiny and large clip limits. The pixels are integers and
+// the value range is 4095 (scale 1) or 8190 (scale 0.5), so the bin of a pixel is exact in any floating-point mode and the two
+// implementations cannot disagree on a bin edge. The minimum is not always 0 (positive and negative offsets): the output is
+// mapped back as min + fraction * range, and with a minimum of 0 the "+ min" would never be seen.
+TEST(ContrastEnhance, MatchesAnIndependentReference) {
+    struct Case { int w, h, tw, th; float clip; int mult; int offset; };   // offset: the image minimum (not always 0)
+    const Case cases[] = {
+        {101, 67, 8, 8, 3.0f, 1, 1000},   {64, 64, 4, 4, 3.0f, 1, -2000},   {17, 9, 2, 2, 3.0f, 2, 500},      {5, 8, 2, 4, 3.0f, 1, 0},
+        {11, 11, 5, 5, 3.0f, 1, 100},     {256, 256, 8, 8, 1.0f, 1, 3000},   {256, 256, 8, 8, 40.0f, 1, 0},   {200, 150, 3, 7, 2.0f, 2, -500},
+        {512, 512, 4, 4, 3.0f, 1, 0},
+    };
+    for (const Case& c : cases) {
+        std::vector<float> in(static_cast<size_t>(c.w) * c.h);
+        uint32_t seed = 7u;
+        for (int y = 0; y < c.h; ++y) {
+            for (int x = 0; x < c.w; ++x) {
+                double v = 2048.0 + 1400.0 * std::sin(x * 0.11) * std::cos(y * 0.09);
+                if (x > c.w / 4 && x < c.w / 2 && y > c.h / 4 && y < c.h / 2) v += 1500.0;                 // a bright block
+                if (y >= c.h / 2 && x < c.w / 3) v = 300.0;                                               // a flat dark region
+                int q = static_cast<int>(v) + static_cast<int>(lcg_noise(seed) * 48.0f);
+                in[static_cast<size_t>(y) * c.w + x] = static_cast<float>(std::min(std::max(q, 1), 4094) * c.mult + c.offset);
+            }
+        }
+        in[0] = static_cast<float>(c.offset);
+        in[1] = static_cast<float>(4095 * c.mult + c.offset);   // pin the range: min = offset, max = offset + 4095 (x mult)
+        const std::vector<double> ref = ReferenceClahe(in, c.w, c.h, c.clip, c.tw, c.th);
+
+        std::vector<float> got = in;
+        XpeImageBuffer img = make_f32(static_cast<uint32_t>(c.w), static_cast<uint32_t>(c.h), 0.0f);
+        std::copy(got.begin(), got.end(), static_cast<float*>(img.data));
+        XpeClaheParams params{};
+        params.clip_limit = c.clip;
+        params.tile_width = c.tw;
+        params.tile_height = c.th;
+        ASSERT_EQ(XPE_OK, xpe_contrast_enhance(&img, &params)) << c.w << "x" << c.h;
+        const float* o = static_cast<const float*>(img.data);
+        const double range = 4095.0 * c.mult;
+        double worst = 0.0;
+        size_t worstAt = 0;
+        for (size_t i = 0; i < in.size(); ++i) {
+            const double d = std::fabs(static_cast<double>(o[i]) - ref[i]);
+            if (d > worst) { worst = d; worstAt = i; }
+        }
+        EXPECT_LE(worst, 2.0e-4 * range) << c.w << "x" << c.h << " tiles " << c.tw << "x" << c.th << " clip " << c.clip
+                                         << ": worst difference " << worst << " at pixel " << worstAt;
+        free_img(img);
+    }
 }
 
 // Edge case: Flat image should produce no artifacts
@@ -191,7 +417,14 @@ TEST(ContrastEnhance, FlatImage_NoArtifacts) {
 
 // REQ-ENH-017: Performance <= 50ms for 3072x3072
 TEST(ContrastEnhance, Performance_3072x3072_Within50ms) {
-    auto img = make_f32(3072, 3072, 500.0f);
+    // QA-B-207 M2 (E6): this used to fill the image with ONE value, and a flat image returns before any tile work, so it
+    // timed nothing (9 ms). The data is the benchmark's: pseudo-random 1..4096, every tile fully populated.
+    auto img = make_f32(3072, 3072, 0.0f);
+    {
+        float* px = static_cast<float*>(img.data);
+        const size_t n = static_cast<size_t>(3072) * 3072;
+        for (size_t i = 0; i < n; ++i) px[i] = 1.0f + static_cast<float>((i * 2654435761u) % 4096u);
+    }
     XpeClaheParams params{};
     params.clip_limit = 3.0f;
     params.tile_width = 8;
