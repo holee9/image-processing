@@ -1,0 +1,8 @@
+@echo off
+call "D:\workspace-github\xpe-post\.moai\reports\lane-post\QA-B-120\_env.bat"
+cd /d D:\workspace-github\xpe-post\build\g198
+set INC=/I D:\workspace-github\xpe-post\modules\ai\src /I D:\workspace-github\xpe-post\modules\ai\include /I D:\workspace-github\xpe-post\modules\common\include /I D:\workspace-github\xpe-post\modules\ai\tests
+cl /nologo /EHsc /std:c++17 /W3 probe.cpp /Fe:probe.exe > probe_build.txt 2>&1
+echo probe=%errorlevel%
+cl /nologo /EHsc /std:c++17 /W3 /D_CRT_SECURE_NO_WARNINGS %INC% launch.cpp D:\workspace-github\xpe-post\modules\ai\src\ai_ipc_bridge.cpp /Fe:launch.exe > launch_build.txt 2>&1
+echo launch=%errorlevel%

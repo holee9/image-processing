@@ -1,0 +1,6 @@
+@echo off
+call "D:\workspace-github\xpe-post\.moai\reports\lane-post\QA-B-120\_env.bat"
+cd /d D:\workspace-github\xpe-post\build\g198
+cl /nologo /EHsc dllload.cpp /Fe:bin\dllload.exe > dllload_build.txt 2>&1
+dumpbin /dependents bin\xpe_ai_worker.exe > worker_deps.txt 2>&1
+dumpbin /dependents bin\onnxruntime.dll > ort_deps.txt 2>&1

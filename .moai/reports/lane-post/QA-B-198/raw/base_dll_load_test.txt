@@ -1,0 +1,17 @@
+launch.variant=base
+launch.target=probe.exe
+launch.console=DETACHED_PROCESS (no console)
+launch.create_process=OK pid 57548
+launch.assign_to_job=OK
+load.kernel32.dll=LOADED (error 0)
+load.advapi32.dll=LOADED (error 0)
+load.user32.dll=LOADED (error 0)
+load.gdi32.dll=LOADED (error 0)
+load.shell32.dll=LOADED (error 0)
+load.setupapi.dll=LOADED (error 0)
+load.dxgi.dll=LOADED (error 0)
+load.dbghelp.dll=LOADED (error 0)
+load.bcrypt.dll=LOADED (error 0)
+load.onnxruntime.dll=LOADED (error 0)
+probe.exit_code=0
+launcher.loopback_listener_got_a_connection=NO

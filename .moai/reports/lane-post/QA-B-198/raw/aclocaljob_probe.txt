@@ -1,0 +1,47 @@
+launch.variant=aclocaljob
+launch.target=probe.exe
+launch.sandbox=C:\Users\drake\AppData\Local\Temp\xpe_g198_sandbox_39172 (ACL grant to ALL APPLICATION PACKAGES: bin=ok models=ok)
+launch.appcontainer_sid=S-1-15-2-2257413127-389257795-1181514316-2262165041-2074359170-1561579582-1151829375
+launch.scratch_grant_to_appcontainer_sid=ok
+launch.create_process=OK pid 42004
+launch.assign_to_job=OK
+probe.pid=42004
+token.user=S-1-5-21-2988355520-1422662471-3066437815-1001
+token.elevated=0
+token.elevation_type(1=default,2=full,3=limited)=3
+token.is_appcontainer=1
+token.is_restricted=0
+token.integrity_rid(0x1000=low,0x2000=medium,0x3000=high)=0x1000
+token.privileges_present=2
+token.privileges_enabled=SeChangeNotifyPrivilege
+token.groups=16 (enabled 13, deny-only 2)
+token.administrators_group=present, disabled or deny-only
+token.restricting_sids=(none)
+token.sandbox_inert=0
+job.in_job=1
+job.limit_flags=0x00002408
+job.active_process_limit=1
+job.ui_restrictions=0x000000FF
+write.cwd=DENIED/FAILED error 5
+write.exe_dir=DENIED/FAILED error 5
+write.model_dir=DENIED/FAILED error 5
+write.scratch_dir=WRITTEN
+write.temp=WRITTEN
+write.user_profile=DENIED/FAILED error 5
+write.user_documents=DENIED/FAILED error 5
+write.programdata=DENIED/FAILED error 5
+write.windows_temp=DENIED/FAILED error 5
+write.system_drive_root=DENIED/FAILED error 5
+read.C:\Windows\win.ini=READ OK
+read.list_user_documents=DENIED/FAILED error 5
+write.registry_hkcu=DENIED/FAILED error 5
+net.wsastartup=0
+net.tcp_socket=CREATED
+net.udp_socket=CREATED
+net.tcp_connect_loopback=FAILED wsa error 10060
+net.bind_listen_loopback=OK
+spawn.child_process=FAILED error 1816
+pipe.create_default_security=FAILED error 5
+probe.exit_code=0
+launcher.loopback_listener_got_a_connection=NO
+exit=0

@@ -1,0 +1,5 @@
+@echo off
+set G198_DETACHED=1
+set G198_RSIDS=S-1-1-0
+D:\workspace-github\xpe-post\build\g198\launch.exe wr2 probe D:\workspace-github\xpe-post\build\g198\bin D:\workspace-github\xpe-post\modules\ai\tests\data\models_x2 > D:\workspace-github\xpe-post\build\g198\out_wr3_probe.txt 2>&1
+D:\workspace-github\xpe-post\build\g198\launch.exe wr2 worker D:\workspace-github\xpe-post\build\g198\bin D:\workspace-github\xpe-post\modules\ai\tests\data\models_x2 > D:\workspace-github\xpe-post\build\g198\out_wr3_worker.txt 2>&1
