@@ -224,13 +224,16 @@ XPE_API XpeErrorCode xpe_contrast_enhance(XpeImageBuffer* img, const XpeClahePar
  * If params is NULL, defaults are used (amount=0.5, radius=2.0, threshold=10.0). (REQ-ENH-019)
  *
  * @param img    Float32 image buffer (modified in-place). A zero-sized image is
- *               rejected (#142); amount == 0.0 is accepted and returns XPE_OK
- *               without modifying the buffer.
+ *               rejected (#142). amount == 0.0 builds no blur; a negative pixel
+ *               is returned as 0 and a non-finite pixel is refused, as for every
+ *               other amount (QA-B-205), and a finite image with no negative pixel
+ *               is returned unchanged.
  * @param params USM parameters, or NULL for defaults.
  * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if amount is outside
  *         [0.0, 5.0] or NaN, radius outside [0.5, 10.0] or NaN, threshold < 0.0 or NaN
  *         (QA-B-181d; +infinity is a valid threshold), or the image
- *         is invalid; XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32.
+ *         is invalid or holds a non-finite pixel (for every amount, 0 included);
+ *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32.
  *         (REQ-ENH-020)
  */
 XPE_API XpeErrorCode xpe_edge_enhance(XpeImageBuffer* img, const XpeUsmParams* params);

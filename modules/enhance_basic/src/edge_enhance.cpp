@@ -90,10 +90,23 @@ extern "C++" static XpeErrorCode xpe_edge_enhance_impl(XpeImageBuffer* img, cons
     int w = static_cast<int>(img->width);
     int h = static_cast<int>(img->height);
 
-    // amount == 0 means no sharpening (no-op)
-    if (p->amount == 0.0f) return XPE_OK;
-
     float* px = float_pixels(img);
+
+    // amount == 0 means no sharpening: no blur is built. The contract that holds for every other amount holds here too
+    // (QA-B-205, Codex #106): a non-finite pixel is refused with the same error, and no output pixel is below 0, so a
+    // negative input pixel comes back as 0. A finite input with no negative pixel is left untouched, as before (the scan
+    // reads every pixel anyway, and the buffer is written only if it has a negative one).
+    if (p->amount == 0.0f) {
+        const uint64_t count0 = static_cast<uint64_t>(w) * static_cast<uint64_t>(h);
+        float lo0, hi0;
+        if (!xpe_scan_finite(px, count0, &lo0, &hi0)) return XPE_ERR_INVALID_INPUT;
+        if (lo0 < 0.0f) {
+            for (uint64_t i = 0; i < count0; ++i) {
+                if (px[i] < 0.0f) px[i] = 0.0f;
+            }
+        }
+        return XPE_OK;
+    }
 
     // Build and normalize 1D Gaussian kernel.
     // krad = ceil(2σ): 2σ truncation retains 95.4% of Gaussian mass, sufficient

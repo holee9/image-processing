@@ -21,6 +21,8 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <limits>
 #include <vector>
 
 namespace {
@@ -286,4 +288,88 @@ TEST(EdgeEnhanceFloor, APositivePixelThatIsNotSharpenedIsStillReturnedAsItCame) 
     const size_t farBright = 32u * kW + 60u, farDark = 32u * kW + 3u;   // 28 and 29 columns from the edge: no difference there
     EXPECT_FLOAT_EQ(1000.0f, out[farBright]) << "a positive pixel that is not sharpened is untouched";
     EXPECT_FLOAT_EQ(0.0f, out[farDark]) << "the negative input far from the edge: 0";
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// QA-B-205 (Codex #106): amount == 0 builds no blur, but the contract is the one of every other amount.
+// ---------------------------------------------------------------------------------------------------------------------
+
+namespace {
+
+/** The module on @p in with the given amount, returning the code and the output; @p img is a copy, @p in is not touched. */
+XpeErrorCode RunUsm(const std::vector<float>& in, float amount, std::vector<float>* out) {
+    XpeImageBuffer img{};
+    img.width = kW;
+    img.height = kH;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.bitsAllocated = img.bitsStored = 32;
+    img.dataSize = in.size() * sizeof(float);
+    img.data = std::malloc(img.dataSize);
+    std::copy(in.begin(), in.end(), static_cast<float*>(img.data));
+    XpeUsmParams p{amount, 2.0f, 10.0f};
+    const XpeErrorCode rc = xpe_edge_enhance(&img, &p);
+    out->assign(static_cast<float*>(img.data), static_cast<float*>(img.data) + in.size());
+    std::free(img.data);
+    return rc;
+}
+
+}  // namespace
+
+TEST(EdgeEnhanceZeroAmount, ANegativePixelIsReturnedAsZeroAndTheRestIsUntouched) {
+    // amount 0, an image with negative pixels (a stage before this one may produce them): the floor holds, nothing else moves.
+    std::vector<float> in(static_cast<size_t>(kW) * kH);
+    for (size_t i = 0; i < in.size(); ++i) in[i] = (i % 7 == 0) ? -3.5f - static_cast<float>(i % 5) : 100.0f + static_cast<float>(i % 13);
+    std::vector<float> out;
+    ASSERT_EQ(XPE_OK, RunUsm(in, 0.0f, &out));
+    size_t negatives = 0, changedNonNegative = 0, floored = 0;
+    for (size_t i = 0; i < in.size(); ++i) {
+        if (out[i] < 0.0f) ++negatives;
+        if (in[i] >= 0.0f && out[i] != in[i]) ++changedNonNegative;
+        if (in[i] < 0.0f && out[i] == 0.0f) ++floored;
+    }
+    EXPECT_EQ(0u, negatives) << "the output has no negative pixel for amount 0 either (was: returned before the floor)";
+    EXPECT_EQ(0u, changedNonNegative) << "a non-negative pixel is returned as it came (no blur is built)";
+    size_t inputNegatives = 0;
+    for (float v : in) inputNegatives += v < 0.0f ? 1u : 0u;
+    EXPECT_EQ(inputNegatives, floored) << "every negative input pixel became 0";
+    ASSERT_GT(inputNegatives, 0u) << "precondition: the input has negative pixels";
+}
+
+TEST(EdgeEnhanceZeroAmount, ANonFinitePixelIsRefusedWithTheSameCodeAsForEveryOtherAmount) {
+    for (float bad : {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity(),
+                      -std::numeric_limits<float>::infinity()}) {
+        std::vector<float> in(static_cast<size_t>(kW) * kH, 100.0f);
+        in[500] = bad;
+        in[7] = -9.0f;   // a negative pixel too: a refused call must leave the whole buffer as it was
+        std::vector<float> out0, out5;
+        const XpeErrorCode rc0 = RunUsm(in, 0.0f, &out0);
+        const XpeErrorCode rc5 = RunUsm(in, 0.5f, &out5);
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, rc5) << "control: a non-finite pixel is refused for amount 0.5";
+        EXPECT_EQ(rc5, rc0) << "amount 0 gives the same code (was XPE_OK)";
+        EXPECT_FLOAT_EQ(-9.0f, out0[7]) << "refused: the buffer is not touched, the negative pixel is not floored";
+    }
+}
+
+TEST(EdgeEnhanceZeroAmount, AFiniteNonNegativeImageIsStillReturnedByteForByte) {
+    std::vector<float> in(static_cast<size_t>(kW) * kH);
+    for (size_t i = 0; i < in.size(); ++i) in[i] = static_cast<float>(i % 256) * 2.5f;
+    in[3] = -0.0f;   // negative zero is not below 0
+    std::vector<float> out;
+    ASSERT_EQ(XPE_OK, RunUsm(in, 0.0f, &out));
+    EXPECT_EQ(0, std::memcmp(in.data(), out.data(), in.size() * sizeof(float)));
+}
+
+TEST(EdgeEnhanceZeroAmount, ANonFloat32ImageIsRefusedWhateverTheAmount) {
+    std::vector<uint16_t> px(static_cast<size_t>(kW) * kH, 100u);
+    for (float amount : {0.0f, 0.5f}) {
+        XpeImageBuffer img{};
+        img.width = kW;
+        img.height = kH;
+        img.format = XPE_PIXEL_UINT16;
+        img.bitsAllocated = img.bitsStored = 16;
+        img.data = px.data();
+        img.dataSize = px.size() * sizeof(uint16_t);
+        XpeUsmParams p{amount, 2.0f, 10.0f};
+        EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, xpe_edge_enhance(&img, &p)) << "amount " << amount;
+    }
 }

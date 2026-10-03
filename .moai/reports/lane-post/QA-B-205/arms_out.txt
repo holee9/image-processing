@@ -1,0 +1,25 @@
+=== ARM early_return_back_in_front_of_the_floor_and_the_scan_as_before_205
+red tests: EdgeEnhanceZeroAmount.ANegativePixelIsReturnedAsZeroAndTheRestIsUntouched, EdgeEnhanceZeroAmount.ANonFinitePixelIsRefusedWithTheSameCodeAsForEveryOtherAmount
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM scan_result_ignored
+red tests: EdgeEnhanceZeroAmount.ANonFinitePixelIsRefusedWithTheSameCodeAsForEveryOtherAmount
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM floor_removed_for_amount_zero
+red tests: EdgeEnhanceZeroAmount.ANegativePixelIsReturnedAsZeroAndTheRestIsUntouched
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM floor_to_one_for_amount_zero
+red tests: EdgeEnhanceZeroAmount.ANegativePixelIsReturnedAsZeroAndTheRestIsUntouched
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM non_negative_pixels_touched
+red tests: EdgeEnhance.Performance_3072x3072_Within20ms, EdgeEnhanceZeroAmount.ANegativePixelIsReturnedAsZeroAndTheRestIsUntouched
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM floor_applied_even_without_a_negative_pixel_but_writes_everywhere
+red tests: EdgeEnhanceZeroAmount.AFiniteNonNegativeImageIsStillReturnedByteForByte, EdgeEnhanceZeroAmount.ANegativePixelIsReturnedAsZeroAndTheRestIsUntouched
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== DONE
