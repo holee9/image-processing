@@ -729,6 +729,10 @@ jobs:
       # nothing finishes instantly). Measured locally on the reference box: full 11.6 s, Smoke 19 tests 2 s, slowest test 2.7 s.
       - name: Assert the SPEC time gates (AC-12)
         shell: pwsh
+        # Enforced from 2026-10-03 after reading the first runner output (483e8fd2, run 37095895181 dotnet-tests):
+        # full run 14.2 s of 180, slowest test 2.68 s of 7.5, Smoke 19 tests 1.3 s of 45, Safety 10 tests 1.3 s of 135.
+        env:
+          AC12_ENFORCE: '1'
         run: |
           $ErrorActionPreference = 'Stop'
           $proj = 'clients/ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj'
