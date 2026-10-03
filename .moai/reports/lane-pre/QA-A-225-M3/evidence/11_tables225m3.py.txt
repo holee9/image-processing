@@ -1,0 +1,54 @@
+"""Builds the markdown tables of the QA-A-225 M3 report from evidence/01_derive_run.txt (no hand copying)."""
+import re
+E = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-225-M3/evidence/'
+src = open(E + '01_derive_run.txt', encoding='utf-8', errors='replace').read().splitlines()
+
+row = re.compile(r'\[ghost-oracle\] (T[12]) +(\d+)% +sigma=(\S+) +derived\[(cal=T[12]@27 band=[\d.]+)( in-sample)?\] tier(\d) +retention= *([\d.]+) \(raw ([\d.]+)\) \| k=1 raw ([\d.]+)% res ([\d.]+)% removal +(-?[\d.]+)% \| k=10 removal +(-?[\d.]+)% \| k=50 raw ([\d.]+)% res ([\d.]+)% removal +(-?[\d.]+)%')
+step = re.compile(r'\[ghost-oracle\] (T[12]) +step derived\[(cal=T[12]@27 band=[\d.]+)\] tier(\d) +k=1 +([+-][\d.]+)% -> +([+-][\d.]+)% \(removal +(-?[\d.]+)%\) \| k=50 +([+-][\d.]+)% -> +([+-][\d.]+)% \(removal +(-?[\d.]+)%\)')
+der = re.compile(r'\[ghost-oracle\] M3-b derived (cal=T[12]@27 band=[\d.]+) +alpha1 (\S+) tau1 (\S+) alpha2 (\S+) tau2 (\S+) \| S (\S+) \| calibration retention (\S+), mean \|blank\| (\S+) ADU')
+rows = [m for m in (row.match(l) for l in src) if m]
+steps = [m for m in (step.match(l) for l in src) if m]
+ders = [m for m in (der.match(l) for l in src) if m]
+print('derived', len(ders), 'exposure rows', len(rows), 'step rows', len(steps))
+assert len(ders) == 4 and len(rows) == 4 * 12 * 3 and len(steps) == 4 * 2 * 3, (len(ders), len(rows), len(steps))
+
+out = []
+out.append('| 교정 시퀀스·허용 대역 | alpha1 | tau1 | alpha2 | tau2 | S | 교정 구간 보존 | 교정 구간 빈 프레임 부호 있는 잔차 평균 |')
+out.append('|---|---|---|---|---|---|---|---|')
+for m in ders:
+    out.append('| %s%% | %s | %s | %s | %s | %s | %s | %s ADU |' % (m.group(1).replace('band=', '±'), m.group(2), m.group(3), m.group(4), m.group(5), m.group(6), m.group(7), m.group(8)))
+out.append('')
+
+for d in ders:
+    label = d.group(1)
+    out.append('\n**%s%% — 티어 1, 잡음 0 (진실 × 수준)**\n' % label.replace('band=', '±'))
+    out.append('| 진실 | 수준 | 신호 보존 | k=1 제거율 | k=10 | k=50 | 비고 |')
+    out.append('|---|---|---|---|---|---|---|')
+    for m in rows:
+        if m.group(4) == label and m.group(6) == '1' and m.group(3) == '0':
+            out.append('| %s | %s%% | %s | %s%% | %s%% | %s%% | %s |' % (m.group(1), m.group(2), m.group(7), m.group(11), m.group(12), m.group(15), '교정 구간(in-sample)' if m.group(5) else ''))
+    out.append('\n**%s%% — 계단 하강 27%% → 5%%** (새 수준 대비 부호 있는 잔차, 보정 전 → 보정 후)\n' % label.replace('band=', '±'))
+    out.append('| 진실 | 티어 | k=1 | k=50 |')
+    out.append('|---|---|---|---|')
+    for m in steps:
+        if m.group(2) == label:
+            out.append('| %s | %s | %s%% → %s%% | %s%% → %s%% |' % (m.group(1), m.group(3), m.group(4), m.group(5), m.group(7), m.group(8)))
+
+open(E + '10_tables.md', 'w', encoding='utf-8').write('\n'.join(out))
+
+# facts quoted in the report
+t1cal = [m for m in rows if m.group(4).startswith('cal=T1') and m.group(1) == 'T1' and m.group(3) == '0' and m.group(6) == '1']
+t2on_t1cal = [m for m in rows if m.group(4).startswith('cal=T1') and m.group(1) == 'T2' and m.group(3) == '0' and m.group(6) == '1']
+t1on_t2cal = [m for m in rows if m.group(4).startswith('cal=T2') and m.group(1) == 'T1' and m.group(3) == '0' and m.group(6) == '1']
+t2cal = [m for m in rows if m.group(4).startswith('cal=T2') and m.group(1) == 'T2' and m.group(3) == '0' and m.group(6) == '1']
+def rng(ms, g): v = [float(m.group(g)) for m in ms]; return '%.4f..%.4f' % (min(v), max(v))
+print('cal=T1 on T1 (same truth, other levels): retention', rng(t1cal, 7), '| removal k1', rng(t1cal, 11), 'k10', rng(t1cal, 12), 'k50', rng(t1cal, 15))
+print('cal=T1 on T2 (other truth): retention', rng(t2on_t1cal, 7), '| removal k1', rng(t2on_t1cal, 11), 'k50', rng(t2on_t1cal, 15))
+print('cal=T2 on T2 (same truth, other levels): retention', rng(t2cal, 7), '| removal k1', rng(t2cal, 11), 'k50', rng(t2cal, 15))
+print('cal=T2 on T1 (other truth): retention', rng(t1on_t2cal, 7), '| removal k1', rng(t1on_t2cal, 11), 'k50', rng(t1on_t2cal, 15))
+st = [m for m in steps if m.group(3) == '1']
+for tr, cal in (('T1', 'cal=T1'), ('T2', 'cal=T1'), ('T2', 'cal=T2'), ('T1', 'cal=T2')):
+    sel = [m for m in st if m.group(1) == tr and m.group(2).startswith(cal)]
+    print('step tier1 truth %s cal %s: k1 corrected residual %s | k50 %s' % (tr, cal, sorted({m.group(5) for m in sel}), sorted({m.group(8) for m in sel})))
+s5 = [m for m in rows if m.group(3) == '5']
+print('sigma 5 derived rows', len(s5), 'k50 removal negative', sum(1 for m in s5 if float(m.group(15)) < 0))

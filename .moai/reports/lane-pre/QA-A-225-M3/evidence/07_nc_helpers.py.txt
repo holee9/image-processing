@@ -1,0 +1,72 @@
+"""QA-A-225 M3-a (NOT product code): why is GhostRemovalPct at k=50 negative in 16 of 36 noisy (sigma 5 ADU) module rows?
+Hypotheses:
+  H1 (metric): the corrected DARK frames are clamp-rectified (c = max(raw, 0) while the history is 0: mean = sigma/sqrt(2*pi))
+      while the over-correcting module clamps the BLANK frames to exactly 0, so LagResidual = |0 - DarkRef_cor| = the rectification
+      bias, whatever the lag is. When LagRaw(k) is smaller than that bias, removal < 0.
+  H2 (corrector): the corrector amplifies the noise (so blank frames carry more noise than raw).
+Measured on the real xpe_preprocess.dll with per-pixel noise (16x16 frames)."""
+import ctypes, os, math, sys
+import numpy as np
+
+BIN = 'D:/workspace-github/xpe-pre/build/ci-preprocess/bin'
+os.add_dll_directory(BIN)
+dll = ctypes.CDLL(BIN + '/xpe_preprocess.dll')
+W = H = 16
+N = W * H
+SAT = 65535.0
+
+
+class Buf(ctypes.Structure):
+    _fields_ = [('width', ctypes.c_uint32), ('height', ctypes.c_uint32), ('bitsAllocated', ctypes.c_uint32),
+                ('bitsStored', ctypes.c_uint32), ('format', ctypes.c_int32), ('data', ctypes.c_void_p),
+                ('dataSize', ctypes.c_size_t)]
+
+
+dll.xpe_ghost_create.argtypes = [ctypes.c_uint32, ctypes.c_uint32, ctypes.c_char_p, ctypes.POINTER(ctypes.c_void_p)]
+dll.xpe_ghost_correct.argtypes = [ctypes.c_void_p, ctypes.POINTER(Buf), ctypes.c_void_p]
+
+A = np.array([2.5e-3, 2.1e-2, 1.6e-1, 7.6e-1])
+B = np.array([7.1e-6, 1.1e-4, 1.7e-3, 1.8e-2])
+B0 = 1.0 - B.sum()
+
+
+def lti(x):
+    y = np.zeros(len(x)); s = np.zeros(4)
+    for k in range(len(x)):
+        y[k] = x[k] * (B0 + B.sum()) + (B * s).sum()
+        s = np.exp(-A) * (s + x[k])
+    return y
+
+
+def trap(x, Q=(300.0, 400.0, 600.0, 800.0)):
+    q = np.zeros(4); Qv = np.array(Q); y = np.zeros(len(x))
+    for k, xk in enumerate(x):
+        rel = q * (1 - np.exp(-A)); q = q - rel
+        q = q + np.maximum(xk * B * (1 - q / Qv), 0.0)
+        y[k] = xk + rel.sum()
+    return y
+
+
+def frames_of(y, sigma, seed):
+    rng = np.random.default_rng(seed)
+    return [(np.full((H, W), v) + (rng.normal(0, sigma, (H, W)) if sigma > 0 else 0)).astype(np.float32) for v in y]
+
+
+def run(cfg, frames):
+    hnd = ctypes.c_void_p()
+    assert dll.xpe_ghost_create(W, H, cfg.encode() if cfg else None, ctypes.byref(hnd)) == 0
+    meta = ctypes.create_string_buffer(96)
+    out = []
+    for f in frames:
+        px = f.copy()
+        buf = Buf(W, H, 32, 32, 1, px.ctypes.data, px.nbytes)
+        assert dll.xpe_ghost_correct(hnd, ctypes.byref(buf), meta) == 0
+        out.append(px)
+    dll.xpe_ghost_destroy(hnd)
+    return out
+
+
+def cfg_of(tier, a1, t1, a2, t2):
+    return '{"tier":%d,"alpha1":%g,"tau1":%g,"alpha2":%g,"tau2":%g}' % (tier, a1, t1, a2, t2)
+
+

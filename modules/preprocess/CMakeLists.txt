@@ -439,6 +439,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_defect_input_finite.cpp
         tests/test_nonfinite_inputs.cpp
         tests/test_ghost_input_finite.cpp   # QA-A-217 (#233): ghost refuses non-finite input, a failed frame leaves its pixels
+        tests/test_ghost_oracle_derive.cpp   # QA-A-225 M3 (#241): cause of the negative noisy removal pinned; a lag set derived from a calibration sequence, judged on others
         tests/test_ghost_oracle.cpp   # QA-A-225 M1 (#241): independent lag generators (Starman LTI, finite trap), E2E ghost-removal metrics measured and printed (no thresholds), controls
         tests/test_ghost_lag_contract.cpp   # QA-A-226b (#241): a forward-unstable lag set (S >= 1) is refused; tau is in frames, acquisitionTime is not used
         tests/test_ghost_uncalibrated.cpp   # QA-A-226 (#241): a handle without calibrated lag parameters passes frames through, one Warning at creation

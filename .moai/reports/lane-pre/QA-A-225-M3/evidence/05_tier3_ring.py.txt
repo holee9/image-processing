@@ -1,0 +1,22 @@
+"""QA-A-225 M3-a follow-up (NOT product code): tier 3 corrected std 505..1136 on a sigma 5 frame. Hypothesis: tier 3 blends only the
+INTERIOR pixels with the 3x3 mean of the uncorrected frame, so interior pixels keep 30% of the lag the border pixels lose: a one-pixel
+ring. Measure border vs interior mean and the interior-only std, on noise-free AND noisy frames, tiers 1-3."""
+import sys
+sys.path.insert(0, 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5/scratchpad')
+from nc_helpers import *
+
+npre, nexp = 5, 200
+x = np.concatenate([np.zeros(npre), np.full(nexp, 0.27 * SAT), np.zeros(50)])
+y = lti(x)
+border = np.zeros((H, W), bool)
+border[0, :] = border[-1, :] = border[:, 0] = border[:, -1] = True
+print('16x16 frame: %d border pixels (%.1f%%), %d interior' % (border.sum(), 100 * border.mean(), (~border).sum()))
+for sigma in (0.0, 5.0):
+    fr = frames_of(y, sigma, 7)
+    i = npre + 150
+    print('\nsigma %.0f, frame 150 of T1 27%% (raw mean %.2f):' % (sigma, fr[i].mean()))
+    for sname, (a1, t1, a2, t2) in {'0.02/3/0.003/30': (0.02, 3.0, 0.003, 30.0), '0.1/1/0.01/20': (0.1, 1.0, 0.01, 20.0)}.items():
+        for tier in (1, 2, 3):
+            out = run(cfg_of(tier, a1, t1, a2, t2), fr)[i]
+            print('  %-16s tier %d: border mean %9.2f | interior mean %9.2f | step %9.2f | interior-only std %7.3f | raw interior std %.3f' % (
+                sname, tier, out[border].mean(), out[~border].mean(), out[~border].mean() - out[border].mean(), out[~border].std(), fr[i][~border].std()))
