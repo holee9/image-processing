@@ -89,8 +89,18 @@ XPE_API XpeErrorCode xpe_calc_exposure_index(const XpeImageBuffer* img,
     }
     float mean = static_cast<float>(sum / static_cast<double>(n));
 
-    // REQ-ENH-030: zero/negative mean indicates invalid detector data
-    if (mean <= 0.0f) {
+    // QA-B-206 E4: a non-finite pixel makes the sum non-finite (inf, -inf, or NaN for inf + -inf; the sum is a double and a
+    // finite float image cannot overflow it), and a non-finite mean is invalid detector data like a mean <= 0. Before this
+    // the answer depended on the sign and on the compiler: -inf and NaN fell into the `mean <= 0` branch below (under
+    // /fp:fast a comparison with NaN is not reliable, which is why this reads the bits), but +inf passed it and came back as
+    // XPE_OK with EI = DI = inf (QA-B-204). The test is on the exponent bits for the same reason xpe_scan_finite reads
+    // bits: /fp:fast may fold std::isfinite away.
+    uint64_t sumBits = 0;
+    std::memcpy(&sumBits, &sum, sizeof(sumBits));
+    const bool sumIsFinite = ((sumBits >> 52) & 0x7FFu) != 0x7FFu;
+
+    // REQ-ENH-030: zero/negative mean (or a non-finite one, QA-B-206 E4) indicates invalid detector data
+    if (!sumIsFinite || mean <= 0.0f) {
         *outEI = 0.0f;
         *outDI = 0.0f;
         return XPE_ERR_PROCESSING_FAILED;

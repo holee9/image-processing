@@ -1,0 +1,2 @@
+ci-post (AI tests skip without XPE_AI_EXPECT_ONNX): 100% tests passed, 0 tests failed out of 1377
+ci-dicom (after the final rebuild): 100% tests passed, 0 tests failed out of 337

@@ -157,14 +157,19 @@ TEST_F(DicomValidatorTest, NullOutBuf_ReturnsInvalidInput) {
 // ---------------------------------------------------------------------------
 // REQ-DICOM-024: UID format validation
 // ---------------------------------------------------------------------------
-TEST_F(DicomValidatorTest, ValidateBadUID_ReportsWarning) {
+// QA-B-206 C6 renamed this from ValidateBadUID_ReportsWarning: it asserted that a bad UID is a WARNING, but the same
+// problem was also pushed to errors, so one defect read as both a failure and a non-critical issue (REQ-DICOM-025).
+TEST_F(DicomValidatorTest, ValidateBadUID_IsAnErrorAndNotAlsoAWarning) {
     ASSERT_TRUE(fs::exists(s_badUidDcm)) << "bad-UID fixture was not written";
     char report[8192] = {};
     ASSERT_EQ(XPE_OK, xpe_dicom_validate(
         s_badUidDcm.string().c_str(), report, sizeof(report)));
     auto j = json::parse(report);
-    EXPECT_FALSE(j["warnings"].empty())
-        << "expected an Invalid UID format warning, report: " << report;
+    EXPECT_FALSE(j["valid"].get<bool>()) << report;
+    ASSERT_EQ(1u, j["errors"].size()) << "expected exactly the Invalid UID format error, report: " << report;
+    EXPECT_EQ("0008,0018", j["errors"][0]["tag"].get<std::string>()) << report;
+    EXPECT_NE(std::string::npos, j["errors"][0]["message"].get<std::string>().find("Invalid UID format")) << report;
+    EXPECT_TRUE(j["warnings"].empty()) << "was pushed to warnings too, report: " << report;
 }
 
 // ---------------------------------------------------------------------------
@@ -508,4 +513,95 @@ TEST_F(DicomValidatorTest, OutputBufferTooSmall_StillReportsRequiredSize) {
     uint32_t required = 0;
     std::memcpy(&required, buf, sizeof(required));
     EXPECT_GT(required, sizeof(buf)) << "required size must exceed the buffer given";
+}
+
+// ---------------------------------------------------------------------------
+// QA-B-206 C5: REQ-DICOM-024 "Required Type 1 tags ... present AND non-empty". Each case derives from the conformant file,
+// changing exactly one attribute, so the one tag under test is the only difference.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+/** Validates the conformant file with @p change applied to its dataset; returns the parsed report. */
+json ValidateChanged(const fs::path& conformant, const fs::path& out, const std::function<void(DcmDataset*)>& change,
+                     XpeErrorCode* rc) {
+    DcmFileFormat ff;
+    EXPECT_TRUE(ff.loadFile(conformant.string().c_str()).good());
+    change(ff.getDataset());
+    EXPECT_TRUE(ff.saveFile(out.string().c_str(), EXS_LittleEndianExplicit).good());
+    char report[8192] = {};
+    *rc = xpe_dicom_validate(out.string().c_str(), report, sizeof(report));
+    return json::parse(report);
+}
+
+bool HasErrorFor(const json& j, const char* tag) {
+    for (const auto& e : j["errors"]) {
+        if (e["tag"].get<std::string>() == tag) return true;
+    }
+    return false;
+}
+
+}  // namespace
+
+TEST_F(DicomValidatorTest, ARequiredTypeOneTagWithNoValueIsAnErrorWhateverTheKindOfTag) {
+    struct Case {
+        const char* what;
+        const char* tag;
+        std::function<void(DcmDataset*)> change;
+    } cases[] = {
+        {"PatientID empty string", "0010,0020", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientID, ""); }},
+        {"PatientID only spaces", "0010,0020", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientID, "    "); }},
+        {"PatientName empty string", "0010,0010", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientName, ""); }},
+        {"PatientName only spaces", "0010,0010", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientName, "  "); }},
+        {"Modality empty", "0008,0060", [](DcmDataset* d) { d->putAndInsertString(DCM_Modality, ""); }},
+        {"StudyInstanceUID empty", "0020,000D", [](DcmDataset* d) { d->putAndInsertString(DCM_StudyInstanceUID, ""); }},
+        {"Rows empty (US without a value)", "0028,0010", [](DcmDataset* d) { d->insertEmptyElement(DCM_Rows); }},
+        {"BitsStored empty (US without a value)", "0028,0101", [](DcmDataset* d) { d->insertEmptyElement(DCM_BitsStored); }},
+        {"PixelData zero length", "7FE0,0010", [](DcmDataset* d) {
+             // insertEmptyElement alone leaves DcmPixelData's existing representation (the full 32768 bytes) in place, so the
+             // element is removed first and a zero-length one is put in its place
+             d->findAndDeleteElement(DCM_PixelData);
+             d->putAndInsertUint8Array(DCM_PixelData, nullptr, 0);
+         }},
+    };
+    int n = 0;
+    for (const Case& c : cases) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        const json j = ValidateChanged(s_conformantDcm, s_tempDir / ("c5_" + std::to_string(n++) + ".dcm"), c.change, &rc);
+        EXPECT_EQ(XPE_OK, rc) << c.what;
+        EXPECT_FALSE(j["valid"].get<bool>()) << c.what << ": " << j.dump();
+        EXPECT_TRUE(HasErrorFor(j, c.tag)) << c.what << ": no error for " << c.tag << ": " << j.dump();
+    }
+}
+
+TEST_F(DicomValidatorTest, AValueThatIsPresentIsStillValidAndOnlyPaddingCountsAsEmpty) {
+    // Controls: a short value, a value with surrounding spaces, and a value of a single character are all non-empty.
+    struct Case {
+        const char* what;
+        std::function<void(DcmDataset*)> change;
+    } cases[] = {
+        {"PatientID one character", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientID, "X"); }},
+        {"PatientID with surrounding spaces", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientID, "  A1  "); }},
+        {"PatientName with component delimiters only is a value", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientName, "^"); }},
+    };
+    int n = 0;
+    for (const Case& c : cases) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        const json j = ValidateChanged(s_conformantDcm, s_tempDir / ("c5ok_" + std::to_string(n++) + ".dcm"), c.change, &rc);
+        EXPECT_EQ(XPE_OK, rc) << c.what;
+        EXPECT_TRUE(j["valid"].get<bool>()) << c.what << ": " << j.dump();
+        EXPECT_TRUE(j["errors"].empty()) << c.what << ": " << j.dump();
+    }
+}
+
+TEST_F(DicomValidatorTest, AMissingTagAndAnEmptyTagAreReportedWithDifferentMessages) {
+    XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+    const json missing = ValidateChanged(s_conformantDcm, s_tempDir / "c5_missing.dcm",
+                                         [](DcmDataset* d) { d->findAndDeleteElement(DCM_PatientID); }, &rc);
+    const json empty = ValidateChanged(s_conformantDcm, s_tempDir / "c5_empty.dcm",
+                                       [](DcmDataset* d) { d->putAndInsertString(DCM_PatientID, ""); }, &rc);
+    ASSERT_EQ(1u, missing["errors"].size()) << missing.dump();
+    ASSERT_EQ(1u, empty["errors"].size()) << empty.dump();
+    EXPECT_NE(std::string::npos, missing["errors"][0]["message"].get<std::string>().find("Missing"));
+    EXPECT_NE(std::string::npos, empty["errors"][0]["message"].get<std::string>().find("no value"));
 }

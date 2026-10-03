@@ -378,8 +378,10 @@ XPE_API XpeErrorCode xpe_dicom_validate(const char* filePath,
  * @param port       Remote DICOM port (e.g. 104, 11112).
  * @param aet        Calling AE title. Must not be NULL.
  * @param filePath   Path to the DICOM file to send. Must not be NULL.
- * @param timeoutMs  Connection/operation timeout in milliseconds (0 = no timeout). DCMTK takes whole seconds, so the
- *                  value is rounded UP to whole seconds, at least 1 s (QA-B-206 C10): 300 ms waits 1 s, 1400 ms waits 2 s.
+ * @param timeoutMs  Connection/operation timeout in milliseconds. DCMTK takes whole seconds, so a value above 0 is
+ *                  rounded UP to whole seconds, at least 1 s (QA-B-206 C10): 300 ms waits 1 s, 1400 ms waits 2 s.
+ *                  0 keeps the DCMTK defaults: against a peer that accepts the connection and never answers the call
+ *                  gives up after about 30 s with XPE_ERR_NETWORK_FAILED. 0 is NOT "no timeout" (QA-B-206).
  * @return XPE_OK on C-STORE success (RSP status 0x0000).
  * @return XPE_ERR_INVALID_INPUT if host, aet, or filePath is NULL.
  * @return XPE_ERR_NETWORK_FAILED on connection failure, timeout, rejection, or
@@ -416,7 +418,8 @@ XPE_API XpeErrorCode xpe_dicom_cstore(const char* host,
  * @param queryJson  JSON object with DICOM tag key-value pairs. Must not be NULL.
  * @param outJson    Buffer to receive JSON array of results. Must not be NULL.
  * @param outBufLen  Size of outJson in bytes.
- * @param timeoutMs  Timeout in milliseconds (0 = no timeout); rounded up to whole seconds, at least 1 s (QA-B-206 C10).
+ * @param timeoutMs  Timeout in milliseconds; rounded up to whole seconds, at least 1 s (QA-B-206 C10). 0 keeps the DCMTK
+ *                  defaults (about 30 s against a silent peer), it is NOT "no timeout" (QA-B-206).
  * @return XPE_OK on success (empty result writes "[]").
  * @return XPE_ERR_INVALID_INPUT if host, aet, queryJson, or outJson is NULL, or
  *         if outBufLen is 0 (#142). Judged before the association, so a broken

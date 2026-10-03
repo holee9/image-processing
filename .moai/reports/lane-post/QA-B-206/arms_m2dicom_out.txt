@@ -1,0 +1,33 @@
+=== ARM c5_empty_check_removed_entirely
+red tests: DicomValidatorTest.AMissingTagAndAnEmptyTagAreReportedWithDifferentMessages, DicomValidatorTest.ARequiredTypeOneTagWithNoValueIsAnErrorWhateverTheKindOfTag
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM c5_only_the_length_is_judged_padding_ignored
+red tests: (none)
+RESULT: DID NOT FIRE  (expected red: 1, red: 0, not red: ['DicomValidatorTest.ARequiredTypeOneTagWithNoValueIsAnErrorWhateverTheKindOfTag'])
+restored byte-identical: True
+=== ARM c5_only_the_padding_is_judged_length_ignored
+red tests: DicomValidatorTest.ARequiredTypeOneTagWithNoValueIsAnErrorWhateverTheKindOfTag
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM c5_caret_treated_as_padding_too
+red tests: DicomValidatorTest.AValueThatIsPresentIsStillValidAndOnlyPaddingCountsAsEmpty
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM c6_bad_uid_pushed_to_warnings_again
+red tests: DicomValidatorTest.ValidateBadUID_IsAnErrorAndNotAlsoAWarning
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM c6_bad_uid_does_not_clear_valid
+red tests: DicomValidatorTest.ValidateBadUID_IsAnErrorAndNotAlsoAWarning
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM c14_throw_injected_into_open_with_the_unique_ptr
+red tests: DicomWriterTest.ASurplusBeyondTheImageInALargerBufferIsNotWrittenIntoPixelData, DicomWriterTest.EveryBitsStoredFromOneToSixteenIsWrittenAndReadsBack, DicomWriterTest.EveryImageTheWriterAcceptsIsAnImageTheReaderReads, DicomWriterTest.WriteJ2KRoundTrip_PixelExact, DicomWriterTest.WriteMetadata_Preserved, DicomWriterTest.WriteRoundTrip_PixelExact, DicomWriterTest.ZeroDataSizeWritesTheWholeImageAndTheFileReadsBackExactly, DicomWriterTest.ZeroDataSizeWritesTheWholeImageForTheJ2kWriterToo
+RESULT: observation only (no expectation set)
+restored byte-identical: True
+=== ARM c14_throw_injected_into_open_and_the_raw_new_back
+red tests: DicomWriterTest.ASurplusBeyondTheImageInALargerBufferIsNotWrittenIntoPixelData, DicomWriterTest.EveryBitsStoredFromOneToSixteenIsWrittenAndReadsBack, DicomWriterTest.EveryImageTheWriterAcceptsIsAnImageTheReaderReads, DicomWriterTest.ThousandOpenCycles_CrtHeapDoesNotGrowWhetherOrNotOpenSucceeds, DicomWriterTest.WriteJ2KRoundTrip_PixelExact, DicomWriterTest.WriteMetadata_Preserved, DicomWriterTest.WriteRoundTrip_PixelExact, DicomWriterTest.ZeroDataSizeWritesTheWholeImageAndTheFileReadsBackExactly, DicomWriterTest.ZeroDataSizeWritesTheWholeImageForTheJ2kWriterToo
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== DONE

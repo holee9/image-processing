@@ -722,3 +722,32 @@ TEST_F(DicomWriterTest, EveryBitsStoredFromOneToSixteenIsWrittenAndReadsBack) {
         xpe_dicom_close(h);
     }
 }
+
+// ---------------------------------------------------------------------------
+// QA-B-206 C14: xpe_dicom_open frees what it allocated whether or not it succeeds.
+//
+// The handle used to be a raw `new` outside the reach of the catch, so an exception from reader.open() leaked it. No input
+// makes open() throw in production (DCMTK reports failures as an OFCondition), so this test measures the CRT heap over open /
+// close cycles and the leak itself was proven with a throw injected into DicomReader::open (see the QA-B-206 report): with the
+// raw pointer the same loop grows by one handle per cycle, with the unique_ptr it does not.
+// ---------------------------------------------------------------------------
+TEST_F(DicomWriterTest, ThousandOpenCycles_CrtHeapDoesNotGrowWhetherOrNotOpenSucceeds) {
+#ifndef _WIN32
+    GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
+#endif
+    const auto good = m_tempDir / "open_cycles.dcm";
+    ASSERT_EQ(XPE_OK, xpe_dicom_write(good.string().c_str(), &m_img, &m_meta));
+    const auto missing = (m_tempDir / "does_not_exist.dcm").string();
+
+    auto one_cycle = [&](int i) {
+        XpeDicomHandle* h = nullptr;
+        if (xpe_dicom_open(good.string().c_str(), &h) == XPE_OK) xpe_dicom_close(h);   // success path
+        XpeDicomHandle* none = nullptr;
+        EXPECT_NE(XPE_OK, xpe_dicom_open(missing.c_str(), &none)) << "cycle " << i;     // failure path
+        EXPECT_EQ(nullptr, none);
+    };
+    const heap_growth::Growth g = heap_growth::Measure(one_cycle);
+    GTEST_LOG_(INFO) << heap_growth::Describe(g);
+    EXPECT_LT(g.heap.blocks, heap_growth::MaxBlocks(g.cycles)) << g.cycles << " open cycles left blocks allocated";
+    EXPECT_LT(g.heap.bytes, heap_growth::kMaxBytes) << g.cycles << " open cycles left bytes allocated";
+}

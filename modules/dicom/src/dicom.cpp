@@ -19,6 +19,7 @@
 #include "DicomImageLimits.h"
 
 #include <spdlog/spdlog.h>
+#include <memory>
 
 // @MX:ANCHOR: [AUTO] DLL ABI entry point — all exported functions guarded by catch(...)
 // @MX:REASON: REQ-DICOM-042: C++ exceptions must never cross the DLL ABI boundary
@@ -49,10 +50,14 @@ XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHa
     if (!filePath || !outHandle) return XPE_ERR_INVALID_INPUT;
     *outHandle = nullptr;
     try {
-        auto* h = new XpeDicomHandle(filePath);
+        // QA-B-206 C14: the handle is owned by a unique_ptr until it is handed out. `h` used to be a raw pointer declared
+        // inside the try, out of reach of the catch below: if reader.open() threw (std::bad_alloc from DCMTK, say), the
+        // XpeDicomHandle -- the reader and its DcmFileFormat -- was never freed. No input is known that makes open() throw
+        // (DCMTK reports its failures as an OFCondition), so this is closed by construction and proven with an injected throw.
+        auto h = std::make_unique<XpeDicomHandle>(filePath);
         XpeErrorCode rc = h->reader.open();
-        if (rc != XPE_OK) { delete h; return rc; }
-        *outHandle = h;
+        if (rc != XPE_OK) return rc;
+        *outHandle = h.release();
         return XPE_OK;
     } catch (...) {
         spdlog::error("[xpe_dicom] xpe_dicom_open: unexpected exception");

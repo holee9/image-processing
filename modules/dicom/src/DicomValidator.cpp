@@ -207,6 +207,28 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
             errEntry["tag"] = tagPair.second;
             errEntry["message"] = std::string("Missing required Type 1 tag: ") + tagPair.second;
             errors.push_back(errEntry);
+            continue;
+        }
+        // QA-B-206 C5: REQ-DICOM-024 says Type 1 tags are "present AND non-empty". An element that is there with no value
+        // (zero length) or a string that is only padding (spaces / NULs) carries nothing, and a Type 1 attribute must have a
+        // value. Pixel Data and the numeric attributes are judged by their length; the strings also by their trimmed value.
+        bool hasValue = elem->getLength(ds->getOriginalXfer(), EET_ExplicitLength) != 0;
+        if (hasValue) {
+            OFString text;
+            if (elem->getOFString(text, 0).good()) {
+                bool allPadding = true;
+                for (size_t k = 0; k < text.length(); ++k) {
+                    if (text[k] != ' ' && text[k] != '\0') { allPadding = false; break; }
+                }
+                hasValue = !allPadding;
+            }
+        }
+        if (!hasValue) {
+            result.valid = false;
+            nlohmann::json errEntry;
+            errEntry["tag"] = tagPair.second;
+            errEntry["message"] = std::string("Required Type 1 tag has no value: ") + tagPair.second;
+            errors.push_back(errEntry);
         }
     }
 
@@ -215,12 +237,15 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
         OFString uidVal;
         if (ds->findAndGetOFString(key, uidVal).good()) {
             if (!isValidUID(std::string(uidVal.c_str()))) {
-                nlohmann::json warnEntry;
-                warnEntry["tag"] = tagStr;
-                warnEntry["message"] = std::string("Invalid UID format: ") + uidVal.c_str();
-                warnings.push_back(warnEntry);
+                // QA-B-206 C6: a UID that is not in the dot-separated numeric form is a FAILED check (REQ-DICOM-024 lists
+                // "UID format correct" among the conformance criteria), so it is an error and valid is false. It used to
+                // be pushed to BOTH arrays, so the same problem read as a failure and as a "non-critical issue"
+                // (REQ-DICOM-025 reserves warnings for those). Errors only.
+                nlohmann::json errEntry;
+                errEntry["tag"] = tagStr;
+                errEntry["message"] = std::string("Invalid UID format: ") + uidVal.c_str();
                 result.valid = false;
-                errors.push_back(warnEntry);
+                errors.push_back(errEntry);
             }
         }
     };
