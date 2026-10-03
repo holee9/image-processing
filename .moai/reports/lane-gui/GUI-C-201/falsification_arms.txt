@@ -1,0 +1,26 @@
+# GUI-C-201 falsification arms. Each arm restores byte-identical.
+
+## arm 1: -4 is classified as a generic failure again (approved item 1)
+build ok: True
+[functional] exit=1; red: 2
+   RED AiBoneSuppressionStageTests.TheReturnCode_IsClassified(code: -4, expected: "ModelUnavailable")
+   RED AiBoneSuppressionStageTests.AModelThatTheModuleWillNotUse_IsSaidSo_WithoutAClaimAboutTheWorkersFailureTotal
+restored byte-identical: True
+
+## arm 2: init is sent with the requested spelling again (approved item 2)
+build ok: True
+[functional] exit=1; red: 1
+   RED AiBoneSuppressionStageTests.TheSessionIsStarted_AndKept_UnderTheSpellingThatWasSent
+[e2e C10, Native with a module that exports xpe_ai_worker_state] exit=1; red: 1
+   RED ProcessingChainScenarios.C10_TheModelDirectoryTypedAgainInAnotherCase_IsSentToTheModuleWithTheFirstSpelling
+restored byte-identical: True
+
+## arm 3: the tracker returns the requested spelling whatever is running (approved item 2)
+build ok: True
+[functional] exit=1; red: 1
+   RED AiBoneSuppressionStageTests.AnInitForTheSameDirectory_GoesOutWithTheSpellingTheSessionStartedWith
+[e2e C10, Native with a module that exports xpe_ai_worker_state] exit=1; red: 1
+   RED ProcessingChainScenarios.C10_TheModelDirectoryTypedAgainInAnotherCase_IsSentToTheModuleWithTheFirstSpelling
+restored byte-identical: True
+
+final rebuild ok: True

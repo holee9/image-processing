@@ -99,7 +99,7 @@ public sealed class AiBoneSuppressionStageTests
     [InlineData(-6, "NotAttempted")]
     [InlineData(-7, "NotAttempted")]
     [InlineData(-3, "Failed")]
-    [InlineData(-4, "Failed")]
+    [InlineData(-4, "ModelUnavailable")]
     [InlineData(-9, "Failed")]
     public void TheReturnCode_IsClassified(int code, string expected) =>
         Assert.Equal(expected, AiBoneSuppressionStage.Classify(code).ToString());
@@ -559,5 +559,62 @@ public sealed class AiBoneSuppressionStageTests
 
         Assert.False(AiBoneSuppressionStage.ShowsMark(AiWorkerStatus.Unknown));   // the normal Unknown stays quiet
         Assert.False(AiBoneSuppressionStage.ShowsMark(new AiWorkerStatus(AiWorkerState.Active, 0, 3)));
+    }
+
+    // ---- GUI-C-201 (approved after GUI-C-200) ----------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// -4 is "the model is there and the module will not use it". The text keeps the failure prefix the E2E reads, says what it means for the model, and does NOT carry the
+    /// generic sentence that consecutive failures switch the worker off: the module decides whether this call counts, and the answer differs by cause.
+    /// </summary>
+    [Fact]
+    public void AModelThatTheModuleWillNotUse_IsSaidSo_WithoutAClaimAboutTheWorkersFailureTotal()
+    {
+        var answer = AiBoneSuppressionStage.Interpret(AiBoneSuppressionStage.ConfigInvalid, null);
+
+        Assert.False(answer.Ran);
+        Assert.Null(answer.Pixels);
+        Assert.Contains("AI bone suppression NOT applied (code -4)", answer.Message, StringComparison.Ordinal);
+        Assert.Contains("cannot be used by the module", answer.Message, StringComparison.Ordinal);
+        Assert.Contains("signature", answer.Message, StringComparison.Ordinal);
+        Assert.Contains("original image is shown", answer.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("consecutive failures switch", answer.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("not counted", answer.Message, StringComparison.OrdinalIgnoreCase);   // neither claim: the module decides, by cause
+        // What C-09 and C-08 assert is absent from the other texts too.
+        Assert.DoesNotContain("was not found", answer.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("no model at", answer.Message, StringComparison.Ordinal);
+
+        // The other failure codes keep the generic text.
+        var failed = AiBoneSuppressionStage.Interpret(AiBoneSuppressionStage.ProcessingFailed, null);
+        Assert.Contains("consecutive failures switch the AI worker off", failed.Message, StringComparison.Ordinal);
+    }
+
+    // ---- The init spelling (the module compares the directory text byte for byte) ----------------------------------------------------
+
+    [Fact]
+    public void AnInitForTheSameDirectory_GoesOutWithTheSpellingTheSessionStartedWith()
+    {
+        var tracker = new AiSessionTracker();
+        Assert.Equal(@"C:\Models\Bone", tracker.DirectoryToSend(@"C:\Models\Bone"));   // nothing running: as requested
+
+        tracker.InitSucceeded(@"C:\Models\Bone");
+        Assert.Equal(@"C:\Models\Bone", tracker.DirectoryToSend(@"c:\models\bone"));   // the same directory, spelled differently: the first spelling
+        Assert.Equal(@"C:\Models\Bone", tracker.DirectoryToSend(@"C:\MODELS\BONE"));
+        Assert.Equal(@"C:\Models\Bone", tracker.DirectoryToSend(@"C:\Models\Bone"));
+        Assert.Equal(@"C:\Models\Other", tracker.DirectoryToSend(@"C:\Models\Other")); // another directory: as requested (the caller ends the session first)
+
+        tracker.Stopped();
+        Assert.Equal(@"c:\models\bone", tracker.DirectoryToSend(@"c:\models\bone"));   // the session ended: a new one starts with what was asked
+    }
+
+    [Fact]
+    public void TheSessionIsStarted_AndKept_UnderTheSpellingThatWasSent()
+    {
+        var code = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/Services/Native/GuiAiRunner.cs")).Replace("\r\n", "\n");
+        var shutdown = code.IndexOf("if (Tracker.NeedsNewSession(directory))", StringComparison.Ordinal);
+        var pick = code.IndexOf("directory = Tracker.DirectoryToSend(directory);", StringComparison.Ordinal);
+        var init = code.IndexOf("XpeAiNative.xpe_ai_init(directory, config)", StringComparison.Ordinal);
+        Assert.True(shutdown >= 0 && pick > shutdown && init > pick, "the spelling is chosen after a different directory has ended the session and before the module is called");
+        Assert.Contains("Tracker.InitSucceeded(directory)", code, StringComparison.Ordinal);   // the tracker keeps what was SENT
     }
 }
