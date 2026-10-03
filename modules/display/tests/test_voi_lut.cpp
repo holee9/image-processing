@@ -396,3 +396,111 @@ TEST(VoiLut, BenchmarkFreeze_Performance_REQ_DISP_016_Linear3072) {
     }
     std::free(img.data);
 }
+
+// =============================================================================
+// QA-B-207 D3 + D8 (user decisions on #251). Quoted from DICOM PS3.3 C.11.2 (current edition):
+//   C.11.2.1.2, the default LINEAR function:      "Window Width (0028,1051) shall always be greater than or equal to 1."
+//     its examples: c=2048, w=1:  if (x <= 2047.5) then y = 0;  else if (x > 2047.5) then y = 255;  else /* not reached */
+//   C.11.2.1.3.2, LINEAR_EXACT:                    "Window Width (0028,1051) shall always be greater than 0."
+//   C.11.2.1.3.1, SIGMOID:                         "Window Width (0028,1051) shall always be greater than 0."
+// D3: LINEAR refuses a width below 1 (0 < w < 1 made `width - 1` negative and the function a step); w == 1 is legal and is
+//     the threshold at center - 0.5. D8: minOut must be below maxOut, for all three functions.
+// Every refusal leaves the image untouched.
+// =============================================================================
+
+namespace {
+
+struct VoiRun {
+    XpeErrorCode rc;
+    std::vector<float> out;
+};
+
+VoiRun RunVoi(XpeVoiLutMode mode, float center, float width, float minOut, float maxOut, const std::vector<float>& in) {
+    XpeImageBuffer img = make_float32_image(static_cast<uint32_t>(in.size()), 1, 0.0f);
+    for (size_t i = 0; i < in.size(); ++i) pixels(img)[i] = in[i];
+    XpeVoiLutParams p{};
+    p.mode = mode;
+    p.center = center;
+    p.width = width;
+    p.minOut = minOut;
+    p.maxOut = maxOut;
+    VoiRun r;
+    r.rc = xpe_apply_voi_lut(&img, &p);
+    r.out.assign(pixels(img), pixels(img) + in.size());
+    free_image(img);
+    return r;
+}
+
+}  // namespace
+
+TEST(VoiWindowLimits, LinearRefusesAWidthBelowOneAndLeavesTheImageUntouched) {
+    const std::vector<float> in = {99.0f, 99.5f, 99.9f, 100.0f, 100.1f, 100.5f, 101.0f};
+    for (const float w : {0.25f, 0.5f, 0.999f, 0.99999994f /* the float just below 1 */, 1e-6f}) {
+        const VoiRun r = RunVoi(XPE_VOI_LINEAR, 100.0f, w, 0.0f, 1.0f, in);
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, r.rc) << "width " << w;
+        EXPECT_EQ(in, r.out) << "width " << w << ": a refused call must not touch the image";
+    }
+}
+
+TEST(VoiWindowLimits, LinearAcceptsWidthOneAndGivesTheStandardsThresholdAtCenterMinusHalf) {
+    // C.11.2.1.2 example c=2048, w=1: x <= 2047.5 -> ymin, x > 2047.5 -> ymax (no division by zero, the ramp is never reached).
+    const VoiRun a = RunVoi(XPE_VOI_LINEAR, 2048.0f, 1.0f, 0.0f, 255.0f, {2047.0f, 2047.4f, 2047.5f, 2047.6f, 2048.0f, 5000.0f});
+    ASSERT_EQ(XPE_OK, a.rc);
+    EXPECT_EQ((std::vector<float>{0.0f, 0.0f, 0.0f, 255.0f, 255.0f, 255.0f}), a.out);
+    // and c=0, w=1: x <= -0.5 -> 0, x > -0.5 -> 255
+    const VoiRun b = RunVoi(XPE_VOI_LINEAR, 0.0f, 1.0f, 0.0f, 255.0f, {-3.0f, -0.5f, -0.4f, 0.0f, 3.0f});
+    ASSERT_EQ(XPE_OK, b.rc);
+    EXPECT_EQ((std::vector<float>{0.0f, 0.0f, 255.0f, 255.0f, 255.0f}), b.out);
+}
+
+TEST(VoiWindowLimits, LinearJustAboveOneIsTheRampOfTheStandard) {
+    // w = 2, c = 100: lower threshold c - 0.5 - 0.5 = 99, upper c - 0.5 + 0.5 = 100; between: ((x - 99.5) / 1 + 0.5) * range
+    const VoiRun r = RunVoi(XPE_VOI_LINEAR, 100.0f, 2.0f, 0.0f, 1.0f, {98.0f, 99.0f, 99.25f, 99.5f, 99.75f, 100.0f, 101.0f});
+    ASSERT_EQ(XPE_OK, r.rc);
+    const std::vector<float> expect = {0.0f, 0.0f, 0.25f, 0.5f, 0.75f, 1.0f, 1.0f};
+    ASSERT_EQ(expect.size(), r.out.size());
+    for (size_t i = 0; i < expect.size(); ++i) EXPECT_NEAR(expect[i], r.out[i], 1e-6f) << i;
+}
+
+TEST(VoiWindowLimits, LinearExactAndSigmoidStillAcceptAnyPositiveWidthBelowOne) {
+    // the other two functions are "greater than 0": the LINEAR-only limit must not leak into them
+    for (const XpeVoiLutMode mode : {XPE_VOI_LINEAR_EXACT, XPE_VOI_SIGMOID}) {
+        for (const float w : {0.25f, 0.5f, 0.999f}) {
+            const VoiRun r = RunVoi(mode, 100.0f, w, 0.0f, 1.0f, {99.0f, 100.0f, 101.0f});
+            EXPECT_EQ(XPE_OK, r.rc) << "mode " << mode << " width " << w;
+        }
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunVoi(mode, 100.0f, 0.0f, 0.0f, 1.0f, {1.0f}).rc) << "mode " << mode << " width 0";
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunVoi(mode, 100.0f, -1.0f, 0.0f, 1.0f, {1.0f}).rc) << "mode " << mode << " width -1";
+    }
+}
+
+TEST(VoiWindowLimits, AnOutputWindowThatIsNotAscendingIsRefusedByAllThreeFunctionsAndLeavesTheImageUntouched) {
+    const std::vector<float> in = {0.0f, 50.0f, 100.0f, 150.0f, 200.0f};
+    struct Window {
+        float lo, hi;
+        const char* what;
+    } bad[] = {{1.0f, 0.0f, "minOut 1, maxOut 0 (QA-B-204: LINEAR_EXACT gave 0,0,1,1,1, SIGMOID 1 everywhere)"},
+               {5.0f, 5.0f, "minOut == maxOut (was a special case that wrote minOut everywhere)"},
+               {255.0f, 0.0f, "255..0"},
+               {-1.0f, -2.0f, "both negative, descending"}};
+    for (const XpeVoiLutMode mode : {XPE_VOI_LINEAR, XPE_VOI_LINEAR_EXACT, XPE_VOI_SIGMOID}) {
+        for (const Window& w : bad) {
+            const VoiRun r = RunVoi(mode, 100.0f, 100.0f, w.lo, w.hi, in);
+            EXPECT_EQ(XPE_ERR_INVALID_INPUT, r.rc) << "mode " << mode << ": " << w.what;
+            EXPECT_EQ(in, r.out) << "mode " << mode << ": " << w.what << ": the image must not be touched";
+        }
+        // control: the ascending window of the same call is accepted
+        EXPECT_EQ(XPE_OK, RunVoi(mode, 100.0f, 100.0f, 0.0f, 255.0f, in).rc) << "mode " << mode;
+    }
+}
+
+TEST(VoiWindowLimits, ATinyButPositiveOutputRangeIsStillAWindow) {
+    for (const XpeVoiLutMode mode : {XPE_VOI_LINEAR, XPE_VOI_LINEAR_EXACT, XPE_VOI_SIGMOID}) {
+        const VoiRun r = RunVoi(mode, 100.0f, 100.0f, 0.0f, 1e-3f, {0.0f, 100.0f, 200.0f});
+        EXPECT_EQ(XPE_OK, r.rc) << mode;
+        for (const float v : r.out) {
+            EXPECT_GE(v, 0.0f);
+            EXPECT_LE(v, 1e-3f);
+        }
+    }
+}

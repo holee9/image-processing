@@ -543,3 +543,61 @@ TEST(PresentationLut, GsdfCalibrate_TwoPointCurveStillWorks_155) {
     EXPECT_EQ(1, p.gsdfEnabled);
     EXPECT_LT(p.lutData[0], p.lutData[1023]) << "the two-point curve produced a flat LUT";
 }
+
+// =============================================================================
+// QA-B-207 D1 (user decision on #251): the black level of a GSDF calibration must be at least 0.05 cd/m2, the lower end of
+// the range PS3.14 specifies the grayscale standard display function on (Equation 7-2: L = 0.05 .. 4000 cd/m2). Below it the
+// module used to compute a LUT that differed from the standard's by up to 1046 counts with rc = OK (QA-B-204: 0.01 cd/m2),
+// and zero or a negative level was silently replaced by 0.01. Refusals leave the output parameters untouched.
+// =============================================================================
+
+namespace {
+
+/** A gamma-2.2 characteristic curve of 64 samples from @p black to @p white cd/m2. */
+std::vector<float> GammaCurve(float black, float white) {
+    std::vector<float> v(64);
+    for (size_t i = 0; i < v.size(); ++i) {
+        const double t = static_cast<double>(i) / (v.size() - 1);
+        v[i] = static_cast<float>(black + (white - black) * std::pow(t, 2.2));
+    }
+    return v;
+}
+
+XpeErrorCode Calibrate(const std::vector<float>& lum, XpePresentationLutParams* p) {
+    return xpe_gsdf_calibrate(lum.data(), static_cast<uint32_t>(lum.size()), p);
+}
+
+}  // namespace
+
+TEST(GsdfBlackLevel, ABlackLevelBelowFiveHundredthsIsRefusedAndTheOutputIsUntouched) {
+    for (const float black : {0.0f, -1.0f, -0.001f, 0.001f, 0.01f, 0.03f, 0.049f, 0.04999999f /* just below 0.05 */}) {
+        XpePresentationLutParams p{};
+        for (int i = 0; i < 1024; ++i) p.lutData[i] = 0xABCDu;
+        p.gsdfEnabled = 7;
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, Calibrate(GammaCurve(black, 300.0f), &p)) << "black level " << black;
+        bool untouched = p.gsdfEnabled == 7;
+        for (int i = 0; i < 1024; ++i) untouched = untouched && p.lutData[i] == 0xABCDu;
+        EXPECT_TRUE(untouched) << "black level " << black << ": a refused calibration must not write the LUT";
+    }
+}
+
+TEST(GsdfBlackLevel, ABlackLevelOfExactlyFiveHundredthsAndAboveIsAccepted) {
+    for (const float black : {0.05f, 0.0500001f, 0.1f, 1.0f, 5.0f}) {
+        XpePresentationLutParams p{};
+        EXPECT_EQ(XPE_OK, Calibrate(GammaCurve(black, 300.0f), &p)) << "black level " << black;
+        EXPECT_EQ(1, p.gsdfEnabled) << black;
+    }
+}
+
+TEST(GsdfBlackLevel, OnlyTheFirstSampleIsTheBlackLevel) {
+    // an interior or last sample below 0.05 is not the black level; a curve that is not ascending is refused by the existing check
+    XpePresentationLutParams p{};
+    EXPECT_EQ(XPE_OK, Calibrate({0.05f, 0.05f, 0.2f, 1.0f, 100.0f}, &p)) << "a flat start at 0.05 is still non-decreasing";
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, Calibrate({0.04f, 0.05f, 0.2f, 1.0f, 100.0f}, &p));
+}
+
+TEST(GsdfBlackLevel, TheUpperEndIsNotEnforcedHere) {
+    // the standard's range ends at 4000 cd/m2; the module does not refuse above it (a recorded fact, not a requirement)
+    XpePresentationLutParams p{};
+    EXPECT_EQ(XPE_OK, Calibrate(GammaCurve(0.1f, 6000.0f), &p));
+}

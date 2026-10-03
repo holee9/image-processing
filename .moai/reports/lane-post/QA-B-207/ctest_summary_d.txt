@@ -1,0 +1,2 @@
+ci-post (schemas/ temporarily present, AI tests skip without XPE_AI_EXPECT_ONNX): 100% tests passed, 0 tests failed out of 1387
+ci-post (schemas/ temporarily present, AI tests skip without XPE_AI_EXPECT_ONNX): Total Test time (real) = 258.27 sec

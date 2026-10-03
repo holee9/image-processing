@@ -1,0 +1,93 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 26 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 20 tests from PresentationLut
+[ RUN      ] PresentationLut.DomainTransition_FormatBecomesUint16
+[       OK ] PresentationLut.DomainTransition_FormatBecomesUint16 (0 ms)
+[ RUN      ] PresentationLut.LutLookup_HalfValue
+[       OK ] PresentationLut.LutLookup_HalfValue (0 ms)
+[ RUN      ] PresentationLut.LutLookup_ZeroInput
+[       OK ] PresentationLut.LutLookup_ZeroInput (0 ms)
+[ RUN      ] PresentationLut.LutLookup_OneInput
+[       OK ] PresentationLut.LutLookup_OneInput (0 ms)
+[ RUN      ] PresentationLut.InputClamp_Negative
+[       OK ] PresentationLut.InputClamp_Negative (0 ms)
+[ RUN      ] PresentationLut.InputClamp_AboveOne
+[       OK ] PresentationLut.InputClamp_AboveOne (0 ms)
+[ RUN      ] PresentationLut.Error_NullImg
+[2026-10-03 20:19:54.940] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[       OK ] PresentationLut.Error_NullImg (0 ms)
+[ RUN      ] PresentationLut.Error_NullParams
+[2026-10-03 20:19:54.941] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[       OK ] PresentationLut.Error_NullParams (0 ms)
+[ RUN      ] PresentationLut.Error_WrongFormat
+[2026-10-03 20:19:54.941] [error] [xpe_display] xpe_apply_presentation_lut failed: code -7 (Unsupported pixel format)
+[       OK ] PresentationLut.Error_WrongFormat (0 ms)
+[ RUN      ] PresentationLut.GsdfCalibrate_BasicOutput
+[       OK ] PresentationLut.GsdfCalibrate_BasicOutput (0 ms)
+[ RUN      ] PresentationLut.GsdfCalibrate_MinCount2
+[       OK ] PresentationLut.GsdfCalibrate_MinCount2 (0 ms)
+[ RUN      ] PresentationLut.GsdfCalibrate_Error_NullLuminance
+[2026-10-03 20:19:54.941] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[       OK ] PresentationLut.GsdfCalibrate_Error_NullLuminance (0 ms)
+[ RUN      ] PresentationLut.GsdfCalibrate_Error_NullOut
+[2026-10-03 20:19:54.941] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[       OK ] PresentationLut.GsdfCalibrate_Error_NullOut (0 ms)
+[ RUN      ] PresentationLut.GsdfCalibrate_Error_CountLessThan2
+[2026-10-03 20:19:54.941] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[       OK ] PresentationLut.GsdfCalibrate_Error_CountLessThan2 (0 ms)
+[ RUN      ] PresentationLut.Performance_3072x3072
+[       OK ] PresentationLut.Performance_3072x3072 (30 ms)
+[ RUN      ] PresentationLut.BenchmarkFreeze_Performance_REQ_DISP_028_Lut3072
+PERFMEASURE REQ-DISP-028/xpe_apply_presentation_lut 3072x3072 min=23302 med=23738 max=25991 us (runs=7)
+[       OK ] PresentationLut.BenchmarkFreeze_Performance_REQ_DISP_028_Lut3072 (305 ms)
+[ RUN      ] PresentationLut.GsdfCalibrate_Error_NonDecreasingViolation_155
+[2026-10-03 20:19:55.277] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:55.277] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:55.277] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:55.277] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[       OK ] PresentationLut.GsdfCalibrate_Error_NonDecreasingViolation_155 (0 ms)
+[ RUN      ] PresentationLut.GsdfCalibrate_AscendingIsAccepted_155
+[       OK ] PresentationLut.GsdfCalibrate_AscendingIsAccepted_155 (0 ms)
+[ RUN      ] PresentationLut.GsdfCalibrate_EqualNeighboursAreAccepted_155
+
+[  INFO ] D:\workspace-github\xpe-post\modules\display\tests\test_presentation_lut.cpp(530)::   plateau DDL range [16384, 32768]: entries strictly inside = 0
+[       OK ] PresentationLut.GsdfCalibrate_EqualNeighboursAreAccepted_155 (0 ms)
+[ RUN      ] PresentationLut.GsdfCalibrate_TwoPointCurveStillWorks_155
+[       OK ] PresentationLut.GsdfCalibrate_TwoPointCurveStillWorks_155 (0 ms)
+[----------] 20 tests from PresentationLut (337 ms total)
+
+[----------] 2 tests from PresentationLutCrossDllTest
+[ RUN      ] PresentationLutCrossDllTest.CommonAllocatedBufferSurvivesDisplayConversion
+[       OK ] PresentationLutCrossDllTest.CommonAllocatedBufferSurvivesDisplayConversion (0 ms)
+[ RUN      ] PresentationLutCrossDllTest.BothModulesResolveTheHeapThroughTheSameCrt
+
+[  INFO ] D:\workspace-github\xpe-post\modules\display\tests\test_presentation_lut.cpp(398):: xpe_common heap providers:  api-ms-win-crt-heap-l1-1-0.dll
+
+[  INFO ] D:\workspace-github\xpe-post\modules\display\tests\test_presentation_lut.cpp(399):: xpe_display heap providers: api-ms-win-crt-heap-l1-1-0.dll
+[       OK ] PresentationLutCrossDllTest.BothModulesResolveTheHeapThroughTheSameCrt (0 ms)
+[----------] 2 tests from PresentationLutCrossDllTest (0 ms total)
+
+[----------] 4 tests from GsdfBlackLevel
+[ RUN      ] GsdfBlackLevel.ABlackLevelBelowFiveHundredthsIsRefusedAndTheOutputIsUntouched
+[2026-10-03 20:19:55.278] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:55.278] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:55.278] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:55.278] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:55.278] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:55.278] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:55.278] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:55.278] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[       OK ] GsdfBlackLevel.ABlackLevelBelowFiveHundredthsIsRefusedAndTheOutputIsUntouched (0 ms)
+[ RUN      ] GsdfBlackLevel.ABlackLevelOfExactlyFiveHundredthsAndAboveIsAccepted
+[       OK ] GsdfBlackLevel.ABlackLevelOfExactlyFiveHundredthsAndAboveIsAccepted (0 ms)
+[ RUN      ] GsdfBlackLevel.OnlyTheFirstSampleIsTheBlackLevel
+[2026-10-03 20:19:55.278] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[       OK ] GsdfBlackLevel.OnlyTheFirstSampleIsTheBlackLevel (0 ms)
+[ RUN      ] GsdfBlackLevel.TheUpperEndIsNotEnforcedHere
+[       OK ] GsdfBlackLevel.TheUpperEndIsNotEnforcedHere (0 ms)
+[----------] 4 tests from GsdfBlackLevel (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 26 tests from 3 test suites ran. (338 ms total)
+[  PASSED  ] 26 tests.
