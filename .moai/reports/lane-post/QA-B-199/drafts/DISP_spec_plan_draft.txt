@@ -1,0 +1,11 @@
+SPEC-XPE-P1B-DISP spec.md / plan.md 수정안 초안 (QA-B-199, 리더 소유 파일 - 초안만)
+
+1. spec.md 의 REQ-DISP-029 가 403줄과 439줄에 두 번 정의되어 있고 내용이 다르다.
+   403줄: 전체 파이프라인(시험이 단언함). 439줄: "All 5 exported functions" 류 ABI 요구(시험 없음).
+   제안: 439줄을 새 번호(예: REQ-DISP-036)로 바꾸고 plan.md 의 요구 열과 RTM 의 FR 매핑을 같이 갱신.
+2. 439줄의 "All 5 exported functions" 는 헤더 display_api.h:2 의 6함수(version, modality, voi, preset, presentation, gsdf)와 다르다. 6으로 고친다.
+3. REQ-DISP-010a 는 어떤 plan.md 작업 행에도 없고 시험 소스에도 id 가 없다. M2-/M3- 의 VOI 시험 행(요구 009~012 가 걸린 행)에 010a 를 추가한다.
+4. plan.md 57행·120행(M5-02)이 이름 붙인 test_display_boundary.cpp 는 없다. progress.md 가 말한 대로 경계 시험이 test_display_integration.cpp 에 합쳐졌다면 두 곳을 그 파일명으로 고친다.
+5. REQ-DISP-021(NaN/inf 는 거부)·REQ-DISP-026(NaN 휘도는 가드를 통과한다는 문장)은 QA-B-181d/f 이후 코드와 반대다. 문구 갱신이 필요하다.
+6. REQ-DISP-024 의 "WHEN gsdfEnabled is non-zero" 조건은 코드에 없다: 요구를 삭제하거나 코드를 구현하는 결정이 필요(결정은 리더).
+7. RTM-DISPLAY-001: TDS-001~TDS-403 은 정의 문서가 없다(docs/display 에 TDS 없음). TDS-DISPLAY-001 문서를 만들거나 시험 열을 실제 시험 이름(예: test_modality_lut.cpp 의 TEST 이름)으로 바꾼다. ✓ 69행 중 시험 id 없는 24행(PERF-TIME-10x, IF-GUI-30x, SAFE-DATA-10x 등)은 ✓ 를 시험이 아닌 증거(문서·검토)로 근거를 적거나 ✗/부분으로 낮춘다.
