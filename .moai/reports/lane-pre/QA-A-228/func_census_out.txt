@@ -1,0 +1,50 @@
+SRS definitions parsed: 38 ['001', '002', '003'] .. ['036', '037', '038'] | control FUNC-001 parsed = True | FUNC-999 = False
+RTM definition rows parsed: 29 | control FUNC-001 = True
+in SRS but no RTM definition row: ['018', '019', '020', '021', '034', '035', '036', '037', '038']
+in RTM definition table but not in SRS: []
+FUNC ids named on a tick/Updated/Added/Designed line (sections 4-5.1): ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010', '011', '012', '013', '014', '015', '016', '017', '019', '021', '022', '023', '024', '025', '026', '027', '034']
+RTM s4 claim: Functional Req 24 of 24 traced; definition-table rows = 29
+test files: 237
+UT/IT/ST ids appearing in any test source: 0
+--- per-FUNC: id | SRS line | in RTM table | on tick line | test files citing the id | RTM UT/IT/ST ids found in any test | APIs named in SRS row -> #test files calling it
+FUNC-001 | srs:32 | rtm-row:Y | tick:Y | id-cites:0  | rtm-test-ids:0/1 | apis: xpe_calib=1
+FUNC-002 | srs:33 | rtm-row:Y | tick:Y | id-cites:5 test_gain_correct_reciprocal_fma.cpp,test_gain_defect_classify.cpp,tes | rtm-test-ids:0/1 | apis: xpe_calib=1
+FUNC-003 | srs:34 | rtm-row:Y | tick:Y | id-cites:1 test_verify_metrics.cpp | rtm-test-ids:0/1 | apis: xpe_calib=1
+FUNC-004 | srs:53 | rtm-row:Y | tick:Y | id-cites:0  | rtm-test-ids:0/1 | apis:
+FUNC-005 | srs:54 | rtm-row:Y | tick:Y | id-cites:1 test_gain_poly_not_applied.cpp | rtm-test-ids:0/1 | apis:
+FUNC-006 | srs:55 | rtm-row:Y | tick:Y | id-cites:8 test_nonlin_lut_apply.cpp,test_nonlin_lut_generate.cpp,test_nonlin_noo | rtm-test-ids:0/1 | apis:
+FUNC-007 | srs:119 | rtm-row:Y | tick:Y | id-cites:0  | rtm-test-ids:0/1 | apis:
+FUNC-008 | srs:120 | rtm-row:Y | tick:Y | id-cites:0  | rtm-test-ids:0/1 | apis:
+FUNC-009 | srs:121 | rtm-row:Y | tick:Y | id-cites:0  | rtm-test-ids:0/1 | apis:
+FUNC-010 | srs:122 | rtm-row:Y | tick:Y | id-cites:0  | rtm-test-ids:0/1 | apis: xpe_defect_detect_runtime=16
+FUNC-011 | srs:128 | rtm-row:Y | tick:Y | id-cites:0  | rtm-test-ids:0/1 | apis: xpe_calib_session_create=0 xpe_ghost_reset=8
+FUNC-012 | srs:129 | rtm-row:Y | tick:Y | id-cites:0  | rtm-test-ids:0/1 | apis: xpe_binning_correct=4
+FUNC-013 | srs:135 | rtm-row:Y | tick:Y | id-cites:0  | rtm-test-ids:0/1 | apis:
+FUNC-014 | srs:136 | rtm-row:Y | tick:Y | id-cites:0  | rtm-test-ids:0/1 | apis: xpe_ghost_reset=8
+FUNC-015 | srs:146 | rtm-row:Y | tick:Y | id-cites:0  | rtm-test-ids:0/1 | apis:
+FUNC-016 | srs:147 | rtm-row:Y | tick:Y | id-cites:1 test_verify_metrics.cpp | rtm-test-ids:0/1 | apis:
+FUNC-017 | srs:148 | rtm-row:Y | tick:Y | id-cites:2 test_verify_gain_semantics.cpp,test_verify_metrics.cpp | rtm-test-ids:0/1 | apis:
+FUNC-018 | srs:149 | rtm-row:N | tick:N | id-cites:1 test_verify_gain_semantics.cpp | rtm-test-ids:0/0 | apis:
+FUNC-019 | srs:150 | rtm-row:N | tick:Y | id-cites:1 test_defect_oracle.cpp | rtm-test-ids:0/0 | apis:
+FUNC-020 | srs:151 | rtm-row:N | tick:N | id-cites:1 test_ghost_oracle.cpp | rtm-test-ids:0/0 | apis:
+FUNC-021 | srs:152 | rtm-row:N | tick:Y | id-cites:0  | rtm-test-ids:0/0 | apis:
+FUNC-022 | srs:162 | rtm-row:Y | tick:Y | id-cites:1 test_defect_gen.cpp | rtm-test-ids:0/3 | apis:
+FUNC-023 | srs:163 | rtm-row:Y | tick:Y | id-cites:1 test_defect_gen.cpp | rtm-test-ids:0/3 | apis:
+FUNC-024 | srs:164 | rtm-row:Y | tick:Y | id-cites:2 test_calib_generate_gain.cpp,test_defect_gen.cpp | rtm-test-ids:0/3 | apis:
+FUNC-025 | srs:165 | rtm-row:Y | tick:Y | id-cites:1 test_defect_gen.cpp | rtm-test-ids:0/3 | apis:
+FUNC-026 | srs:181 | rtm-row:Y | tick:Y | id-cites:2 test_calib_generate_gain.cpp,test_calib_mode_enforcement.cpp | rtm-test-ids:0/3 | apis: xpe_calib=1 xpe_calib_generate_gain=7 xpe_calib_load_gain=29
+FUNC-027 | srs:182 | rtm-row:Y | tick:Y | id-cites:4 test_calib_generate_gain.cpp,test_calib_mode_enforcement.cpp,test_gain | rtm-test-ids:0/3 | apis: xpe_calib=1 xpe_calib_generate_gain_polynomial=9
+FUNC-028 | srs:211 | rtm-row:Y | tick:N | id-cites:0  | rtm-test-ids:0/3 | apis: xpe_calib_field_generate=0 xpe_calib_generate_offset=11
+FUNC-029 | srs:212 | rtm-row:Y | tick:N | id-cites:0  | rtm-test-ids:0/3 | apis: xpe_calib_check_drift=0
+FUNC-030 | srs:213 | rtm-row:Y | tick:N | id-cites:0  | rtm-test-ids:0/3 | apis:
+FUNC-031 | srs:221 | rtm-row:Y | tick:N | id-cites:2 test_calib_mode.cpp,test_calib_mode_enforcement.cpp | rtm-test-ids:0/3 | apis: xpe_calib_generate_gain=7 xpe_calib_generate_gain_polynomial=9 xpe_calib_get_mode=3 xpe_calib_set_mode=4
+FUNC-032 | srs:239 | rtm-row:Y | tick:N | id-cites:1 test_calib_mode.cpp | rtm-test-ids:0/3 | apis:
+FUNC-033 | srs:240 | rtm-row:Y | tick:N | id-cites:6 test_calib_gain_poly_load.cpp,test_calib_mode.cpp,test_calib_overwrite | rtm-test-ids:0/3 | apis: xpe_alert_push=7 xpe_calib_mode=1 xpe_error=145
+FUNC-034 | srs:465 | rtm-row:N | tick:Y | id-cites:0  | rtm-test-ids:0/0 | apis:
+FUNC-035 | srs:466 | rtm-row:N | tick:N | id-cites:1 test_verify_metrics.cpp | rtm-test-ids:0/0 | apis:
+FUNC-036 | srs:467 | rtm-row:N | tick:N | id-cites:1 test_verify_metrics.cpp | rtm-test-ids:0/0 | apis: xpe_verify_=0 xpe_verify_gain=5 xpe_verify_offset=3
+FUNC-037 | srs:468 | rtm-row:N | tick:N | id-cites:1 test_verify_metrics.cpp | rtm-test-ids:0/0 | apis:
+FUNC-038 | srs:469 | rtm-row:N | tick:N | id-cites:0  | rtm-test-ids:0/0 | apis: xpe_calib_cache_clear=7 xpe_calib_cache_set_max_size=3 xpe_calib_get_max_points=1 xpe_calib_get_poly_degree=1 xpe_calib_get_quality_meta=10 xpe_calib_state_release=1 xpe_preprocess_init=69 xpe_preproc
+SRS FUNC ids cited by NO test file (name axis): 17 ['001', '004', '007', '008', '009', '010', '011', '012', '013', '014', '015', '021', '028', '029', '030', '034', '038']
+SRS FUNC rows whose named APIs are called by NO test (behaviour axis): ['029']
+SRS FUNC rows that name no xpe_ API (behaviour axis cannot be mechanised): ['004', '005', '006', '007', '008', '009', '013', '015', '016', '017', '018', '019', '020', '021', '022', '023', '024', '025', '030', '032', '034', '035', '037']
