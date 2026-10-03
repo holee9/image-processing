@@ -3,15 +3,17 @@ SPEC: SPEC-XPE-P0
 
 ## Task Summary
 
+> **Status update (2026-10-03, QA-A-231, #253)**: the Status column below was `pending` for all seven tasks while spec.md read "Completed" and progress.md "11/11". It now records the observed state. The per-task acceptance checkboxes further down are the original plan and are **not maintained**; they are left unticked as a historical record. For current acceptance status read this table and spec.md §3 / §3.5.
+
 | Task ID | Description | Requirement | Dependencies | Planned Files | Status |
 |---------|-------------|-------------|--------------|---------------|--------|
-| T-001 | Module directory scaffolding | REQ-P0-032, REQ-P0-033 | - | modules/enhance_advanced/CMakeLists.txt<br>modules/ai/CMakeLists.txt<br>modules/display/CMakeLists.txt<br>modules/dicom/CMakeLists.txt<br>gsvg/CMakeLists.txt | pending |
-| T-002 | Test infrastructure integration | REQ-P0-005, REQ-P0-006, REQ-P0-007 | - | tests/CMakeLists.txt<br>tests/common/CMakeLists.txt<br>tests/common/test_xpe_common.cpp<br>CMakePresets.json (coverage flags) | pending |
-| T-003 | C++ standard version unification | REQ-P0-001 | - | modules/common/CMakeLists.txt | pending |
-| T-004 | Export verification and cleanup | REQ-P0-008 | T-002 | modules/common/include/xpe_common_api.h<br>modules/common/src/xpe_common.cpp | pending |
-| T-005 | Pack=8 static_assert | REQ-P0-009 | - | modules/common/include/xpe_types.h | pending |
-| T-006 | C# WPF scaffolding | REQ-P0-029, REQ-P0-030, REQ-P0-031 | T-001, T-002, T-004 | clients/ImageProcTest/ImageProcTest.csproj<br>clients/ImageProcTest/PInvokeWrapper.cs<br>clients/ImageProcTest/MainWindow.xaml | pending |
-| T-007 | CI pipeline setup | REQ-P0-001 | T-001, T-002 | .github/workflows/ci.yml | pending |
+| T-001 | Module directory scaffolding | REQ-P0-032, REQ-P0-033 | - | modules/enhance_advanced/CMakeLists.txt<br>modules/ai/CMakeLists.txt<br>modules/display/CMakeLists.txt<br>modules/dicom/CMakeLists.txt<br>gsvg/CMakeLists.txt | completed except dicom version function (no `xpe_dicom_version`) |
+| T-002 | Test infrastructure integration | REQ-P0-005, REQ-P0-006, REQ-P0-007 | - | tests/CMakeLists.txt<br>tests/common/CMakeLists.txt<br>tests/common/test_xpe_common.cpp<br>CMakePresets.json (coverage flags) | completed, structure changed: `tests/common`·`tests/common_smoke` removed 2026-09-10 (`bf6348f7`); tests are in `modules/common/tests` (CI 81/81). Coverage gate manual only (REQ-P0-006) |
+| T-003 | C++ standard version unification | REQ-P0-001 | - | modules/common/CMakeLists.txt | completed |
+| T-004 | Export verification and cleanup | REQ-P0-008 | T-002 | modules/common/include/xpe_common_api.h<br>modules/common/src/xpe_common.cpp | completed — 16 exports = 16 declarations (count corrected from 18) |
+| T-005 | Pack=8 static_assert | REQ-P0-009 | - | modules/common/include/xpe_types.h | completed |
+| T-006 | C# WPF scaffolding | REQ-P0-029, REQ-P0-030, REQ-P0-031 | T-001, T-002, T-004 | clients/ImageProcTest/ImageProcTest.csproj<br>clients/ImageProcTest/PInvokeWrapper.cs<br>clients/ImageProcTest/MainWindow.xaml | partial — all 16 functions declared, `Pack = 8`; `dotnet-tests` job green but its log and the version display were not observed |
+| T-007 | CI pipeline setup | REQ-P0-001 | T-001, T-002 | .github/workflows/ci.yml | partial — configure/build/test on push and PR; coverage stage manual only (`workflow_dispatch`) |
 
 ## Detailed Task Specifications
 
@@ -106,14 +108,14 @@ SPEC: SPEC-XPE-P0
 **Requirements**: REQ-P0-008
 **Dependencies**: T-002 (build environment normalized)
 
-**Description**: Verify xpe_common.dll exports exactly 18 public API functions
+**Description**: Verify xpe_common.dll exports exactly 16 public API functions (corrected 2026-10-03 from 18, #253)
 
 **Planned Files**:
 - `modules/common/include/xpe_common_api.h`
 - `modules/common/src/xpe_common.cpp`
 
 **Acceptance Criteria**:
-- [ ] `dumpbin /exports xpe_common.dll` shows exactly 18 public API functions
+- [ ] `dumpbin /exports xpe_common.dll` shows exactly 16 public API functions
 - [ ] Internal test functions are either:
   - Option A: Exported with separate XPE_TEST_API macro and documented
   - Option B: Not exported (removed from XPE_API macro)
@@ -165,7 +167,7 @@ SPEC: SPEC-XPE-P0
 
 **Acceptance Criteria**:
 - [ ] `dotnet build` creates ImageProcTest.exe successfully
-- [ ] P/Invoke wrapper declares all 18 xpe_common.dll functions
+- [ ] P/Invoke wrapper declares all 16 xpe_common.dll functions
 - [ ] Struct layouts use [StructLayout(LayoutKind.Sequential, Pack=8)]
 - [ ] MainWindow.xaml displays version string from xpe_version()
 - [ ] xpe_init() called on startup, xpe_shutdown() on exit
@@ -227,7 +229,7 @@ All SPEC requirements are covered by at least one task:
 | REQ-P0-009 | T-005 |
 | REQ-P0-010 through REQ-P0-022 | T-004 (existing implementation) |
 | REQ-P0-023 through REQ-P0-025 | T-002 (existing implementation) |
-| REQ-P0-026 through REQ-P0-028a | T-002 (existing implementation) |
+| REQ-P0-026 through REQ-P0-028a | T-002 (existing implementation) — note 2026-10-03 (#253): these IDs have no requirement text in spec.md; see the note at the end of spec.md §2.5 |
 | REQ-P0-029 through REQ-P0-031 | T-006 |
 | REQ-P0-032 through REQ-P0-033 | T-001 |
 

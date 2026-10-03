@@ -1,9 +1,12 @@
 # SPEC-BENCH-PRE: Preprocessing Benchmark Freeze Specification (BP-01~05)
 
 **Document ID**: SPEC-BENCH-PRE
-**Version**: 1.0.0
-**Date**: 2026-04-22
+**Version**: 1.0.1
+**Date**: 2026-10-03
 **Status**: Active — Frozen
+
+> **상태 메모 (2026-10-03, QA-A-231, #252)**: 이 동결은 판정선 회귀를 막지 못한다. REQ-BPRE-002~005 의 판정선(잔류 dark ADU, R², heel RMSE, NMSE)과 BP-SIMD 1830건을 단언하는 시험은 `modules/preprocess` 에 없다. CI 가 돌리는 것은 `ci.yml` preprocess-tests 의 `PreprocessDegraded.*` 6개 스모크(교정 미적재 시 `XPE_ERR_NOT_INITIALIZED` 반환 등)뿐이며, 그 시험 이름의 BP 번호(BP03=결함, BP04=고스트, BP05=온도·비선형)는 이 SPEC·manifest 의 번호(BP-03 heel, BP-04 결함, BP-05 lag)와 대응하지 않는다. 벤치마크 워크플로 `benchmark-regression.yml` 은 `ci-post` 프리셋(`BUILD_PREPROCESS=OFF`)으로 BP-06~09 만 실행하므로 preprocess 를 빌드하지 않는다. manifest 가 적은 데이터셋·`manifest.json` 해시·러너 `tools/benchmark/run_bp0N.py`·`test_results.json` 은 저장소에 없다. 아래 동결 내용(요구 문구·표)은 바꾸지 않았고, 각 항목의 실태는 해당 위치의 "실태 메모"에 적었다. 동결 범위를 스모크로 선언할지, 게이트를 실제로 만들지는 #252 에서 결정한다.
+
 **Owner Lane**: Pre-A (`dev/preprocess`)
 **Parent SPEC**: SPEC-XPE-P1A v1.3.0
 **Companion Manifest**: `benchmark/BP-01-05-preprocess-manifest.md` v1.1.0
@@ -17,6 +20,7 @@
 | Version | Date       | Author       | Changes |
 |---------|------------|--------------|---------|
 | 1.0.0   | 2026-04-22 | manager-spec | 초기 작성 — BP-01~05 DegradedMode 6/6 PASS 기반 freeze SPEC |
+| 1.0.1   | 2026-10-03 | lead         | 상태 메모 추가 (QA-A-231, #252) — 판정선 시험 부재, 벤치마크 워크플로가 preprocess 를 빌드하지 않음. REQ-BPRE-001·007 아래와 §4 표 아래(002~006 해당)에 실태 메모. 동결 내용 자체는 바꾸지 않음 |
 
 ---
 
@@ -49,6 +53,7 @@ the frozen manifest at `benchmark/BP-01-05-preprocess-manifest.md` v1.1.0.
 
 - **Status**: ✅ 6/6 PASS (frozen 2026-04-22)
 - **Evidence**: `test_preprocess_degraded.cpp`, CI archive
+- **실태 메모 (2026-10-03, QA-A-231, #252)**: 통과하는 시험은 `PreprocessDegraded` 6개(BP01, BP02, BP03, BP04, BP05 ×2)다. BP05 가 둘이고 BP-SIMD 시험은 포함되지 않는다. 근거는 `modules/preprocess/tests/test_preprocess_degraded.cpp` 와 `ci.yml` preprocess-tests 의 ctest 로그이며, "CI archive"(`test_results.json`)는 저장소에 없다.
 
 ### REQ-BPRE-002: Temperature Sweep Residual Dark
 
@@ -101,6 +106,7 @@ against the scalar reference for all 1830 test cases in the parity harness.
 
 - **Status**: CI workflow exists (`benchmark-regression.yml`)
 - **Freeze Rule**: Content hashes locked; replacement requires version bump
+- **실태 메모 (2026-10-03, QA-A-231, #252)**: BP-01~05 에 대해서는 충족되지 않는다. `benchmark-regression.yml` 은 `ci-post`(`BUILD_PREPROCESS=OFF`)로 BP-06~09 만 실행한다. BP-01~05 중 CI 가 실행하는 것은 `ci.yml` preprocess-tests 의 `PreprocessDegraded.*` 6개 스모크뿐이고, 이 시험들은 판정선을 단언하지 않는다.
 
 ---
 
@@ -129,6 +135,8 @@ against the scalar reference for all 1830 test cases in the parity harness.
 | BP-05 | ✅ PASS (ref) | Out of Pre scope | — |
 | BP-SIMD | ✅ PASS | Pending (SPEC-SIMD-001) | 2026-04-22 (DM) |
 
+> **실태 메모 (2026-10-03, QA-A-231, #252)**: "DegradedMode ✅ PASS" 는 판정선과 무관한 스모크의 통과다 — DegradedMode 시험은 REQ-BPRE-002~005 의 판정선(ADU·R²·RMSE·NMSE)을 단언하지 않는다. 판정선 시험은 현재 없다. BP-01·BP-03 은 측정 대상 기능(온도 보간·PREP 시간 모델, kVp/SID 보간)이 구현에 없어 지금은 어떤 시험으로도 판정선을 만족시킬 수 없다(`preprocess_api.h` 가 NOT IMPLEMENTED 로 적음). BP-SIMD 의 `SimdParityTest`·`test_simd_parity.cpp` 는 없으며 `ctest -R Parity` 가 고르는 시험 40개에 1830 이라는 수는 나타나지 않는다. `PreprocessDegraded` 시험 이름에 붙은 BP 번호는 위 표의 BP 번호와 무관하다.
+
 ---
 
 ## 5. Traceability
@@ -149,4 +157,4 @@ against the scalar reference for all 1830 test cases in the parity harness.
 
 ---
 
-*Document End — SPEC-BENCH-PRE v1.0.0*
+*Document End — SPEC-BENCH-PRE v1.0.1*
