@@ -1,0 +1,6 @@
+0
+실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간
+   a failed launch left 1 app instance(s) running: 63604
+0
+실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간
+   Assert.Equal() Failure: Values differ

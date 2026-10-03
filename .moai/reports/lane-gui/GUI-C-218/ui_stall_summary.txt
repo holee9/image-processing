@@ -1,0 +1,5 @@
+Longest UI stall at startup (WM_NULL unanswered), launches alternated A/C/D, 5 rounds x 6 launches each
+variant                     n   median   p90    max   >1000ms  >2000ms
+A (in-process oracle)       30     224    245    327        0        0
+C (3 child oracles)         30     963   1781   2947       13        3
+D (cached, 1 child)         30     438   1036   2109        5        1

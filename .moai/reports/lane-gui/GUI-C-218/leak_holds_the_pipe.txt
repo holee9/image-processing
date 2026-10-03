@@ -1,0 +1,7 @@
+Experiment: a parent starts ImageProcTest.exe exactly as the legacy E2E fixture does (UseShellExecute=false, nothing redirected), then exits without closing it.
+The reader of the parent's output is Python (stdout=PIPE) in case 1 and a FILE in case 2.
+
+case 1 (stdout is a PIPE):  reader STILL BLOCKED after 20 s although the parent exited; app running=False  <- the app holds the parent's stdout pipe
+case 2 (stdout is a FILE):  returned after 0.5 s; app still running=True  <- no pipe to hold, nothing waits
+case 3: parent exited=True; killing the leaked app now ...
+        the reader returned 6.4 s after the start, immediately after the app was killed

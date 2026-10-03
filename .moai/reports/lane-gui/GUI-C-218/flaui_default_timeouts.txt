@@ -1,0 +1,2 @@
+ConnectionTimeout = 00:00:02
+TransactionTimeout = 00:00:20

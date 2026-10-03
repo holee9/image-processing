@@ -1,0 +1,136 @@
+## round 1 variant C (3 children)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     945                                      2246              1              1              2246
+  2                     471                                      1184              1              0              1184
+  3                     460                                       890              0              0               890
+  4                     436                                      1568              1              0              1568
+  5                     485                                       951              0              0               951
+  6                     508                                      1123              1              0              1123
+longest stall: median 1153 ms, max 2246 ms over 6 launches
+## round 1 variant D (cached, 1 child)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     467                                      1479              1              0              1479
+  2                     492                                       460              0              0               460
+  3                     476                                      1035              1              0              1035
+  4                     480                                      2109              1              1              2109
+  5                     481                                       776              0              0               776
+  6                     496                                       404              0              0               404
+longest stall: median 906 ms, max 2109 ms over 6 launches
+## round 1 variant A (in-process, 214)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     885                                       327              0              0               327
+  2                     488                                       226              0              0               226
+  3                     472                                       222              0              0               222
+  4                     476                                       228              0              0               228
+  5                     447                                       208              0              0               208
+  6                     513                                       263              0              0               263
+longest stall: median 227 ms, max 327 ms over 6 launches
+## round 2 variant C (3 children)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     491                                      1492              1              0              1492
+  2                     456                                       926              0              0               926
+  3                     480                                      1633              1              0              1633
+  4                     458                                       958              0              0               958
+  5                     472                                       906              0              0               906
+  6                     474                                       939              0              0               939
+longest stall: median 948 ms, max 1633 ms over 6 launches
+## round 2 variant D (cached, 1 child)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     472                                       423              0              0               423
+  2                     465                                       439              0              0               439
+  3                     455                                       419              0              0               419
+  4                     466                                       420              0              0               420
+  5                     486                                       413              0              0               413
+  6                     487                                       420              0              0               420
+longest stall: median 420 ms, max 439 ms over 6 launches
+## round 2 variant A (in-process, 214)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     494                                       256              0              0               256
+  2                     495                                       239              0              0               239
+  3                     469                                       224              0              0               224
+  4                     471                                       224              0              0               224
+  5                     489                                       223              0              0               223
+  6                     449                                       206              0              0               206
+longest stall: median 224 ms, max 256 ms over 6 launches
+## round 3 variant C (3 children)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     473                                       892              0              0               892
+  2                     483                                      2066              1              1              2066
+  3                     449                                       948              0              0               948
+  4                     458                                       910              0              0               910
+  5                     461                                      1596              1              0              1596
+  6                     470                                       906              0              0               906
+longest stall: median 929 ms, max 2066 ms over 6 launches
+## round 3 variant D (cached, 1 child)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     460                                      1036              1              0              1036
+  2                     444                                       404              0              0               404
+  3                     493                                       684              0              0               684
+  4                     466                                       480              0              0               480
+  5                     462                                       442              0              0               442
+  6                     472                                       409              0              0               409
+longest stall: median 461 ms, max 1036 ms over 6 launches
+## round 3 variant A (in-process, 214)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     471                                       233              0              0               233
+  2                     472                                       218              0              0               218
+  3                     454                                       223              0              0               223
+  4                     458                                       215              0              0               215
+  5                     469                                       233              0              0               233
+  6                     452                                       238              0              0               238
+longest stall: median 228 ms, max 238 ms over 6 launches
+## round 4 variant C (3 children)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     468                                       968              0              0               968
+  2                     460                                      1480              1              0              1480
+  3                     452                                       917              0              0               917
+  4                     462                                      1781              1              0              1781
+  5                     471                                      1194              1              0              1194
+  6                     482                                      2947              1              1              2947
+longest stall: median 1337 ms, max 2947 ms over 6 launches
+## round 4 variant D (cached, 1 child)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     478                                       449              0              0               449
+  2                     467                                       441              0              0               441
+  3                     474                                      1371              1              0              1371
+  4                     466                                       418              0              0               418
+  5                     465                                       428              0              0               428
+  6                     464                                       438              0              0               438
+longest stall: median 440 ms, max 1371 ms over 6 launches
+## round 4 variant A (in-process, 214)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     457                                       219              0              0               219
+  2                     463                                       230              0              0               230
+  3                     472                                       221              0              0               221
+  4                     468                                       226              0              0               226
+  5                     447                                       215              0              0               215
+  6                     450                                       223              0              0               223
+longest stall: median 222 ms, max 230 ms over 6 launches
+## round 5 variant C (3 children)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     458                                       906              0              0               906
+  2                     442                                       909              0              0               909
+  3                     468                                       955              0              0               955
+  4                     457                                       976              0              0               976
+  5                     447                                      1593              1              0              1593
+  6                     455                                       897              0              0               897
+longest stall: median 932 ms, max 1593 ms over 6 launches
+## round 5 variant D (cached, 1 child)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     478                                       403              0              0               403
+  2                     507                                       439              0              0               439
+  3                     447                                       397              0              0               397
+  4                     448                                       411              0              0               411
+  5                     438                                       402              0              0               402
+  6                     437                                       452              0              0               452
+longest stall: median 407 ms, max 452 ms over 6 launches
+## round 5 variant A (in-process, 214)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     471                                       212              0              0               212
+  2                     469                                       212              0              0               212
+  3                     474                                       245              0              0               245
+  4                     463                                       219              0              0               219
+  5                     465                                       226              0              0               226
+  6                     474                                       208              0              0               208
+longest stall: median 216 ms, max 245 ms over 6 launches
+# done
