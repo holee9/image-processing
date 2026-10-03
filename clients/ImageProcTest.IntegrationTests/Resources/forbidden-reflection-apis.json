@@ -1,0 +1,68 @@
+{
+  "_comment": "GUI-C-228d. Data for Safety/MockBlockingStaticTests.cs. It is not compiled, so it cannot hide executable code. patterns: dynamic-load and reflection-creation APIs forbidden in every .cs of the test project, whatever the arguments are. allowed: the exact lines that stay (file + whole trimmed line + why it loads no assembly and creates no app type). controls: one line each pattern must match. cases: synthetic sources run through the same scanner (expectHit says whether the scan must report something).",
+  "patterns": [
+    { "id": "load-by-context", "regex": "\\bAssemblyLoadContext\\b" },
+    { "id": "load-assembly", "regex": "\\bAssembly\\s*\\.\\s*(Load|LoadFrom|LoadFile|UnsafeLoadFrom|LoadWithPartialName|ReflectionOnlyLoad\\w*)\\b" },
+    { "id": "type-by-name-static", "regex": "\\bType\\s*\\.\\s*GetType\\b" },
+    { "id": "type-by-name-instance", "regex": "\\.GetType\\s*\\(\\s*[^)\\s]" },
+    { "id": "activator-class", "regex": "\\bActivator\\b" },
+    { "id": "create-instance-methods", "regex": "\\bCreateInstance\\w*\\b" },
+    { "id": "reflection-members", "regex": "\\b(ConstructorInfo|MethodInfo|MethodBase)\\b|\\.(GetConstructors?|GetMethods?|GetMembers?|InvokeMember|DynamicInvoke)\\s*\\(" },
+    { "id": "dynamic-code", "regex": "\\b(CreateDelegate|DynamicMethod|ILGenerator|GetUninitializedObject|MakeGenericType|MakeGenericMethod)\\b|\\bExpression\\s*\\.\\s*(Lambda|New|Call|Invoke)\\b" }
+  ],
+  "allowed": [
+    {
+      "file": "Functional/NativeCommonSingleInstanceTests.cs",
+      "line": "var method = type.GetMethod(loader, BindingFlags.NonPublic | BindingFlags.Static);",
+      "why": "type comes from NativeTestClasses, a fixed array of three test classes of this assembly; the method is the private loader of a native module. No assembly is loaded and no app type is created."
+    },
+    {
+      "file": "Functional/RunnerProcessTests.cs",
+      "line": ".GetMethod(nameof(ForEachCommand_ACouldNotStartIsWordedDifferentlyFromARunThatFailed))!",
+      "why": "reads this test class's own method to count its InlineData rows; the method is never invoked."
+    },
+    {
+      "file": "Functional/AlertDisplayFormatterTests.cs",
+      "line": ".GetMembers(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)",
+      "why": "lists the public static member names of AlertDisplayFormatter (a source file linked into this assembly) to assert none is a severity override; names only, nothing is invoked."
+    }
+  ],
+  "controls": [
+    { "id": "load-by-context", "line": "var asm = AssemblyLoadContext.Default.LoadFromAssemblyPath(path);" },
+    { "id": "load-assembly", "line": "var a = Assembly.LoadFrom(path);" },
+    { "id": "type-by-name-static", "line": "var t = Type.GetType(name);" },
+    { "id": "type-by-name-instance", "line": "var t = asm.GetType(typeName);" },
+    { "id": "type-by-name-instance", "line": "var t = asm.GetType(\"A.B\");" },
+    { "id": "activator-class", "line": "var o = Activator.CreateInstance(t);" },
+    { "id": "create-instance-methods", "line": "var o = AppDomain.CurrentDomain.CreateInstanceAndUnwrap(a, n);" },
+    { "id": "reflection-members", "line": "var ctor = t.GetConstructor(Type.EmptyTypes);" },
+    { "id": "reflection-members", "line": "ConstructorInfo c = null;" },
+    { "id": "reflection-members", "line": "var m = t.GetMethod(\"Make\");" },
+    { "id": "dynamic-code", "line": "var d = Delegate.CreateDelegate(typeof(Func<object>), m);" },
+    { "id": "dynamic-code", "line": "var f = Expression.Lambda<Func<object>>(Expression.New(t)).Compile();" }
+  ],
+  "cases": [
+    { "name": "a method that hides the call (the shape Codex #127 put in the old exempt region)", "expectHit": true,
+      "lines": [ "[Fact] public void Hidden() { var o = Activator.CreateInstance(t); }" ] },
+    { "name": "a line that is only a comment", "expectHit": false,
+      "lines": [ "    // Activator.CreateInstance is forbidden here" ] },
+    { "name": "a doc comment line", "expectHit": false,
+      "lines": [ "    /// <summary>Activator.CreateInstance is forbidden here.</summary>" ] },
+    { "name": "a block comment whose every line is comment", "expectHit": false,
+      "lines": [ "/*", " Activator.CreateInstance(t)", "*/", "var x = 1;" ] },
+    { "name": "a block comment on one line, nothing after it", "expectHit": false,
+      "lines": [ "/* Activator.CreateInstance(t) */" ] },
+    { "name": "code after a one-line block comment", "expectHit": true,
+      "lines": [ "/* x */ Activator.CreateInstance(t);" ] },
+    { "name": "code after the end of a multi-line block comment", "expectHit": true,
+      "lines": [ "/*", " x", "*/ Activator.CreateInstance(t);" ] },
+    { "name": "a string with two slashes, then code on the same line", "expectHit": true,
+      "lines": [ "var u = \"http://x\"; Activator.CreateInstance(t);" ] },
+    { "name": "code, then an end-of-line comment that names the API", "expectHit": true,
+      "lines": [ "var o = 1; // Activator.CreateInstance(t)" ] },
+    { "name": "a comment line that holds a quote is scanned (it could be the tail of a multi-line string)", "expectHit": true,
+      "lines": [ "var s = @\"", "// x\"; Activator.CreateInstance(t);" ] },
+    { "name": "ordinary code: a call without arguments and a delegate call", "expectHit": false,
+      "lines": [ "var t = value.GetType();", "callback?.Invoke(path);", "var p = typeof(Foo).Assembly.Location;" ] }
+  ]
+}

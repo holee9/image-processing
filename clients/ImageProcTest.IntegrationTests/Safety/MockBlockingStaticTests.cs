@@ -1,4 +1,4 @@
-// REQ-GUI-IT-007 (GUI-C-228b, 228c): "Mock fallback is a test failure", asserted from the test assembly's own metadata and from a conservative source scan, so the verdict does not depend on which test ran first.
+// REQ-GUI-IT-007 (GUI-C-228b, 228c, 228d): "Mock fallback is a test failure", asserted from the test assembly's own metadata and from a conservative source scan, so the verdict does not depend on which test ran first.
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
@@ -18,11 +18,12 @@ namespace ImageProcTest.IntegrationTests.Safety;
 /// files in, so a Mock reaches it as a TypeDef (source linked in) or as a TypeRef/AssemblyRef (a reference added). A generic argument is a type use like any other and carries its own row.</para>
 ///
 /// <para><b>2. Source scan (what is forbidden, not proven absent).</b> A type built at run time from a path or a name has no metadata row. Reflection escapes cannot be excluded by a static check
-/// in general, and chasing the shapes one at a time (Codex #126) leaves the next shape open. So the dynamic-load and reflection-creation APIs are forbidden outright in the test project's
-/// sources, whatever their arguments look like (<see cref="ForbiddenApis"/>), and the few legitimate uses are an exact allow-list (<see cref="Allowed"/>): file, the exact line, and why it does not
-/// load an assembly or create a type of the apps. A forbidden API is red until it is either removed or added to the list with that reason, so the review happens at the moment the API appears.
-/// What the scan does NOT see: a call that goes through another assembly (a helper library that loads by itself), generated code, an API missing from the table, and a native library loaded
-/// by path (a native module is not a managed type of the apps). None of those is claimed.</para>
+/// in general, and chasing the shapes one at a time (Codex #126, #127) leaves the next shape open. So the dynamic-load and reflection-creation APIs are forbidden outright in the test project's
+/// sources, whatever their arguments look like. The pattern table, the allow-list of the few legitimate uses (file, the exact line, why it loads no assembly and creates no app type) and the
+/// controls live in <c>Resources/forbidden-reflection-apis.json</c>, which is not compiled and so cannot hide code; this file names none of those APIs. EVERY .cs file is scanned, this one
+/// included, with no exempt region. Only a line that is wholly a comment is left out (<see cref="CodeLines"/>); strings and end-of-line comments are scanned, so a false alarm is possible and goes
+/// to the allow-list, while a hidden call is not. What the scan does NOT see: a call that goes through another assembly, generated code, an API missing from the table, a native library loaded
+/// by path, and a line of a multi-line string that looks like a comment and holds no quote.</para>
 /// </summary>
 [Trait("Category", "Safety")]
 public sealed class MockBlockingStaticTests
@@ -128,76 +129,114 @@ public sealed class MockBlockingStaticTests
     }
 
     // ---- the source scan -------------------------------------------------------------------------------------------------------------------------------------------------------
-    // The pattern table, the allow-list and the controls name the forbidden APIs on purpose. They sit between the two marker lines below, and ONLY that region of THIS file is left out of
-    // the scan (each marker must occur exactly once); every other line of this file is scanned like any other file.
 
-    // SCAN-EXEMPT-BEGIN
-    /// <summary>The dynamic-load and reflection-creation APIs, by id. Forbidden in the test project's sources whatever the arguments are.</summary>
-    internal static readonly (string Id, Regex Pattern)[] ForbiddenApis =
+    private sealed record Pattern(string Id, Regex Regex);
+
+    private sealed record AllowedLine(string File, string Line, string Why);
+
+    private sealed record ScanCase(string Name, string[] Lines, bool ExpectHit);
+
+    private sealed record ControlLine(string Id, string Line);
+
+    private sealed record ScanData(IReadOnlyList<Pattern> Patterns, IReadOnlyList<AllowedLine> Allowed, IReadOnlyList<ControlLine> Controls, IReadOnlyList<ScanCase> Cases);
+
+    /// <summary>The ids the data file must define. The ids are labels, not API names.</summary>
+    private static readonly string[] RequiredPatternIds =
     [
-        ("AssemblyLoadContext", new(@"\bAssemblyLoadContext\b", RegexOptions.Compiled)),
-        ("AssemblyLoad", new(@"\bAssembly\s*\.\s*(Load|LoadFrom|LoadFile|UnsafeLoadFrom|LoadWithPartialName|ReflectionOnlyLoad\w*)\b", RegexOptions.Compiled)),
-        ("TypeGetType", new(@"\bType\s*\.\s*GetType\b", RegexOptions.Compiled)),
-        ("GetTypeWithArgument", new(@"\.GetType\s*\(\s*[^)\s]", RegexOptions.Compiled)),
-        ("Activator", new(@"\bActivator\b", RegexOptions.Compiled)),
-        ("CreateInstance", new(@"\bCreateInstance\w*\b", RegexOptions.Compiled)),
-        ("ReflectionMember", new(@"\b(ConstructorInfo|MethodInfo|MethodBase)\b|\.(GetConstructors?|GetMethods?|GetMembers?|InvokeMember|DynamicInvoke)\s*\(", RegexOptions.Compiled)),
-        ("DynamicCode", new(@"\b(CreateDelegate|DynamicMethod|ILGenerator|GetUninitializedObject|MakeGenericType|MakeGenericMethod)\b|\bExpression\s*\.\s*(Lambda|New|Call|Invoke)\b", RegexOptions.Compiled)),
+        "load-by-context", "load-assembly", "type-by-name-static", "type-by-name-instance",
+        "activator-class", "create-instance-methods", "reflection-members", "dynamic-code",
     ];
 
-    /// <summary>
-    /// The exact uses that stay. A line is allowed only as a whole (trimmed text equal), in the named file. None of them loads an assembly, and none creates a type of the apps: each acts on a
-    /// type that is already compiled into this assembly.
-    /// </summary>
-    internal static readonly (string File, string Line, string Why)[] Allowed =
-    [
-        ("Functional/NativeCommonSingleInstanceTests.cs",
-            "var method = type.GetMethod(loader, BindingFlags.NonPublic | BindingFlags.Static);",
-            "type comes from NativeTestClasses, a fixed array of three test classes of this assembly; the method is the private loader of a native module. No assembly is loaded and no app type is created."),
-        ("Functional/RunnerProcessTests.cs",
-            ".GetMethod(nameof(ForEachCommand_ACouldNotStartIsWordedDifferentlyFromARunThatFailed))!",
-            "reads this test class's own method to count its InlineData rows; the method is never invoked."),
-        ("Functional/AlertDisplayFormatterTests.cs",
-            ".GetMembers(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)",
-            "lists the public static member names of AlertDisplayFormatter (a source file linked into this assembly) to assert none is a severity override; names only, nothing is invoked."),
-    ];
+    private static ScanData LoadScanData()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "Resources", "forbidden-reflection-apis.json");
+        Assert.True(File.Exists(path), "The pattern file is missing from the output folder: " + path);
 
-    /// <summary>One line of control input per pattern id, as it would appear in a test that tries to build a Mock without a metadata row (the shapes of Codex #125 and #126 among them).</summary>
-    internal static readonly (string Id, string Line)[] ControlLines =
-    [
-        ("AssemblyLoadContext", "var asm = AssemblyLoadContext.Default.LoadFromAssemblyPath(path);"),
-        ("AssemblyLoad", "var a = Assembly.LoadFrom(path);"),
-        ("TypeGetType", "var t = Type.GetType(name);"),
-        ("GetTypeWithArgument", "var t = asm.GetType(typeName);"),
-        ("GetTypeWithArgument", "var t = asm.GetType(\"A.B\");"),
-        ("Activator", "var o = Activator.CreateInstance(t);"),
-        ("CreateInstance", "var o = AppDomain.CurrentDomain.CreateInstanceAndUnwrap(a, n);"),
-        ("ReflectionMember", "var ctor = t.GetConstructor(Type.EmptyTypes);"),
-        ("ReflectionMember", "ConstructorInfo c = null;"),
-        ("ReflectionMember", "var m = t.GetMethod(\"Make\");"),
-        ("DynamicCode", "var d = Delegate.CreateDelegate(typeof(Func<object>), m);"),
-        ("DynamicCode", "var f = Expression.Lambda<Func<object>>(Expression.New(t)).Compile();"),
-    ];
-    // SCAN-EXEMPT-END
+        using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path));
+        var root = doc.RootElement;
+        var patterns = root.GetProperty("patterns").EnumerateArray().Select(e => new Pattern(e.GetProperty("id").GetString()!, new Regex(e.GetProperty("regex").GetString()!, RegexOptions.Compiled))).ToList();
+        var allowed = root.GetProperty("allowed").EnumerateArray().Select(e => new AllowedLine(e.GetProperty("file").GetString()!, e.GetProperty("line").GetString()!, e.GetProperty("why").GetString()!)).ToList();
+        var controls = root.GetProperty("controls").EnumerateArray().Select(e => new ControlLine(e.GetProperty("id").GetString()!, e.GetProperty("line").GetString()!)).ToList();
+        var cases = root.GetProperty("cases").EnumerateArray()
+            .Select(e => new ScanCase(e.GetProperty("name").GetString()!, e.GetProperty("lines").EnumerateArray().Select(l => l.GetString()!).ToArray(), e.GetProperty("expectHit").GetBoolean())).ToList();
 
-    private const string ExemptBegin = "// SCAN-EXEMPT-" + "BEGIN";
-    private const string ExemptEnd = "// SCAN-EXEMPT-" + "END";
+        // An empty or thinned table must not let the scan pass in silence.
+        foreach (var id in RequiredPatternIds)
+        {
+            Assert.True(patterns.Any(p => p.Id == id && p.Regex.ToString().Length > 3), $"The pattern file defines no usable pattern '{id}'.");
+        }
+
+        Assert.Equal(RequiredPatternIds.Length, patterns.Count);
+        Assert.NotEmpty(cases);
+        Assert.NotEmpty(controls);
+        Assert.True(allowed.All(a => a.Why.Length > 20), "Every allow-list entry needs its reason.");
+        return new ScanData(patterns, allowed, controls, cases);
+    }
 
     private static string ProjectDir => Path.GetDirectoryName(BenchmarkRunnerServiceTests.ResolveRepositoryFile("clients/ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj"))!;
 
-    /// <summary>This file without the marked region; the markers must be there exactly once each, in order.</summary>
-    internal static string WithoutExemptRegion(string text)
+    /// <summary>
+    /// The lines to scan, with their numbers. A line is left out only when it is wholly a comment: its trimmed text starts with two slashes, or it lies inside a block comment from its first
+    /// character to its last. A line that holds a quote is always scanned, and so is a line where code follows the end of a block comment. No attempt is made to understand strings or to
+    /// find a comment that starts after code, which is where a lexer mistake would hide a call.
+    /// </summary>
+    internal static IEnumerable<(int No, string Text)> CodeLines(string text)
     {
-        var begin = text.IndexOf(ExemptBegin, StringComparison.Ordinal);
-        var end = text.IndexOf(ExemptEnd, StringComparison.Ordinal);
-        Assert.True(begin >= 0 && end > begin, "the exempt markers are missing or out of order");
-        Assert.Equal(begin, text.LastIndexOf(ExemptBegin, StringComparison.Ordinal));
-        Assert.Equal(end, text.LastIndexOf(ExemptEnd, StringComparison.Ordinal));
-        return text[..begin] + text[(end + ExemptEnd.Length)..];
+        var lines = text.Replace("\r\n", "\n").Split('\n');
+        var inBlock = false;
+        for (var i = 0; i < lines.Length; i++)
+        {
+            var raw = lines[i];
+            var t = raw.Trim();
+            var hasQuote = t.Contains('"');
+            if (inBlock)
+            {
+                var close = t.IndexOf("*/", StringComparison.Ordinal);
+                if (close < 0)
+                {
+                    if (hasQuote) yield return (i + 1, raw);
+                    continue;
+                }
+
+                inBlock = false;
+                if (t[(close + 2)..].Trim().Length == 0 && !hasQuote) continue;
+                yield return (i + 1, raw);
+                continue;
+            }
+
+            if (t.StartsWith("//", StringComparison.Ordinal) && !hasQuote) continue;
+
+            if (t.StartsWith("/*", StringComparison.Ordinal))
+            {
+                var close = t.IndexOf("*/", 2, StringComparison.Ordinal);
+                if (close < 0)
+                {
+                    inBlock = true;
+                    if (hasQuote) yield return (i + 1, raw);
+                    continue;
+                }
+
+                if (t[(close + 2)..].Trim().Length == 0 && !hasQuote) continue;
+            }
+
+            yield return (i + 1, raw);
+        }
     }
 
-    /// <summary>Every line of every source of the project that matches a forbidden pattern, as (relative path, trimmed line, pattern id, line number).</summary>
-    internal static List<(string File, string Line, string Id, int No)> ForbiddenHits(out int filesScanned)
+    private static IEnumerable<(string Id, int No, string Line)> HitsIn(string text, IEnumerable<Pattern> patterns)
+    {
+        var all = patterns.ToList();
+        foreach (var (no, raw) in CodeLines(text))
+        {
+            foreach (var p in all)
+            {
+                if (p.Regex.IsMatch(raw)) yield return (p.Id, no, raw.Trim());
+            }
+        }
+    }
+
+    /// <summary>Every scanned hit in every .cs file of the project, with no file and no region left out.</summary>
+    private static List<(string File, string Line, string Id, int No)> ForbiddenHits(ScanData data, out int filesScanned)
     {
         var hits = new List<(string, string, string, int)>();
         filesScanned = 0;
@@ -206,77 +245,68 @@ public sealed class MockBlockingStaticTests
             var rel = file[ProjectDir.Length..].Replace('\\', '/').TrimStart('/');
             if (rel.StartsWith("obj/") || rel.StartsWith("bin/")) continue;
             filesScanned++;
-            var text = File.ReadAllText(file);
-            if (rel == "Safety/MockBlockingStaticTests.cs") text = WithoutExemptRegion(text);
-            hits.AddRange(HitsIn(text, rel));
+            hits.AddRange(HitsIn(File.ReadAllText(file), data.Patterns).Select(h => (rel, h.Line, h.Id, h.No)));
         }
 
         return hits;
     }
 
-    internal static IEnumerable<(string File, string Line, string Id, int No)> HitsIn(string text, string rel)
-    {
-        var lines = text.Replace("\r\n", "\n").Split('\n');
-        for (var i = 0; i < lines.Length; i++)
-        {
-            foreach (var (id, pattern) in ForbiddenApis)
-            {
-                if (pattern.IsMatch(lines[i])) yield return (rel, lines[i].Trim(), id, i + 1);
-            }
-        }
-    }
-
     /// <summary>
-    /// The scan. No dynamic-load or reflection-creation API appears in the project's sources except the exact allow-listed lines, and every allow-listed line is still there and still needed.
+    /// The scan. No dynamic-load or reflection-creation API appears in any .cs of the project except the exact allow-listed lines, and every allow-listed line is still there and still needed.
     /// </summary>
     [Fact]
-    public void TheTestProject_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList()
+    public void EveryCsFileOfTheTestProject_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList()
     {
-        var hits = ForbiddenHits(out var scanned);
+        var data = LoadScanData();
+        var hits = ForbiddenHits(data, out var scanned);
         Assert.True(scanned > 50, $"The scan read only {scanned} files; it is not looking at the project.");
 
-        var unallowed = hits.Where(h => !Allowed.Any(a => a.File == h.File && a.Line == h.Line)).Select(h => $"{h.File}:{h.No} [{h.Id}] {h.Line}").Distinct().ToList();
+        var unallowed = hits.Where(h => !data.Allowed.Any(a => a.File == h.File && a.Line == h.Line)).Select(h => $"{h.File}:{h.No} [{h.Id}] {h.Line}").Distinct().ToList();
         Assert.True(unallowed.Count == 0,
-            "A dynamic-load or reflection-creation API appears in the test project. Remove it, or add the exact line to Allowed with the reason it loads no assembly and creates no app type:\n" + string.Join("\n", unallowed));
+            "A dynamic-load or reflection-creation API appears in the test project. Remove it, or add the exact line to the allow-list in Resources/forbidden-reflection-apis.json with the reason it loads no assembly and creates no app type:\n" + string.Join("\n", unallowed));
 
-        var stale = Allowed.Where(a => !hits.Any(h => h.File == a.File && h.Line == a.Line)).Select(a => $"{a.File}: {a.Line}").ToList();
+        var stale = data.Allowed.Where(a => !hits.Any(h => h.File == a.File && h.Line == a.Line)).Select(a => $"{a.File}: {a.Line}").ToList();
         Assert.True(stale.Count == 0, "These allow-list entries no longer match a line (the line changed or the use is gone); update or remove them:\n" + string.Join("\n", stale));
     }
 
-    /// <summary>Control: each pattern id matches its own control line, so a pattern that was edited into matching nothing is red here.</summary>
+    /// <summary>Control: this file is among the scanned files and reaches the scan almost whole, so there is no region of it to put code in.</summary>
     [Fact]
-    public void EveryPattern_MatchesItsControlLines_AndEveryControlLineIsMatchedByItsPattern()
+    public void ThisFile_IsScanned_LikeEveryOtherCsFile()
     {
-        foreach (var (id, line) in ControlLines)
+        var data = LoadScanData();
+        var self = File.ReadAllText(Path.Combine(ProjectDir, "Safety", "MockBlockingStaticTests.cs"));
+
+        Assert.Empty(HitsIn(self, data.Patterns));
+        Assert.True(CodeLines(self).Count() > 100, "most of this file must reach the scan");
+        Assert.NotEmpty(HitsIn(self + "\n[Fact] public void Hidden() { var o = " + "Acti" + "vator.Create" + "Instance(t); }\n", data.Patterns));
+    }
+
+    /// <summary>Control: each pattern matches its own control lines, so a pattern edited into matching nothing is red here.</summary>
+    [Fact]
+    public void EveryPattern_MatchesItsControlLines()
+    {
+        var data = LoadScanData();
+        foreach (var c in data.Controls)
         {
-            var pattern = ForbiddenApis.Single(p => p.Id == id).Pattern;
-            Assert.True(pattern.IsMatch(line), $"pattern {id} does not match its control line: {line}");
+            var pattern = data.Patterns.Single(p => p.Id == c.Id);
+            Assert.True(pattern.Regex.IsMatch(c.Line), $"pattern {c.Id} does not match its control line: {c.Line}");
         }
 
-        foreach (var (id, _) in ForbiddenApis)
+        foreach (var p in data.Patterns)
         {
-            Assert.True(ControlLines.Any(c => c.Id == id), $"pattern {id} has no control line");
+            Assert.True(data.Controls.Any(c => c.Id == p.Id), $"pattern {p.Id} has no control line");
         }
     }
 
-    /// <summary>Control: ordinary code that must NOT be flagged is not (a zero-argument <c>GetType()</c>, the assembly of a type, a delegate invoke).</summary>
-    [Theory]
-    [InlineData("var t = value.GetType();")]
-    [InlineData("var path = typeof(Foo).Assembly.Location;")]
-    [InlineData("callback?.Invoke(path);")]
-    [InlineData("Assert.Equal(typeof(Foo), x.GetType());")]
-    public void TheScan_DoesNotFlagOrdinaryCode(string line) => Assert.Empty(HitsIn(line, "x.cs"));
-
-    /// <summary>
-    /// Control for the exemption itself: this file with its marked region left IN would be flagged (the table names the APIs), and with the region taken out it is clean. So the exemption covers
-    /// exactly the marked lines and nothing else of this file.
-    /// </summary>
+    /// <summary>Control: the comment rule. Each synthetic source from the data file is scanned; a whole-line comment is skipped, anything with code on the line is not.</summary>
     [Fact]
-    public void ThisFile_IsFlaggedWithItsExemptRegion_AndCleanWithoutIt()
+    public void TheCommentRule_SkipsOnlyWholeLineComments_AndNeverHidesACallOnTheSameLine()
     {
-        var text = File.ReadAllText(Path.Combine(ProjectDir, "Safety", "MockBlockingStaticTests.cs"));
-
-        Assert.NotEmpty(HitsIn(text, "Safety/MockBlockingStaticTests.cs"));
-        Assert.Empty(HitsIn(WithoutExemptRegion(text), "Safety/MockBlockingStaticTests.cs"));
+        var data = LoadScanData();
+        foreach (var c in data.Cases)
+        {
+            var hit = HitsIn(string.Join("\n", c.Lines), data.Patterns).Any();
+            Assert.True(hit == c.ExpectHit, $"case '{c.Name}': expected hit={c.ExpectHit}, got {hit}");
+        }
     }
 }
