@@ -124,17 +124,42 @@ inline bool SignDir(const std::filesystem::path& dir, const std::string& stem) {
     return static_cast<bool>(f);
 }
 
-/** Copy `<srcDir>/<stem>.onnx` and its `.sig` (a model with no sidecar of its own) into `dstDir`. */
+/**
+ * Copy `<srcDir>/<stem>.onnx`, its `.sig` and its sidecar `.json` (QA-B-197: every model has one now; the signature
+ * covers it) into `dstDir`.
+ */
 inline bool CopyModelWithSignature(const std::string& srcDir, const std::string& stem, const std::string& dstDir) {
-    return CopyFileA((srcDir + "/" + stem + ".onnx").c_str(), (dstDir + "/" + stem + ".onnx").c_str(), FALSE) != 0 &&
-           CopyFileA((srcDir + "/" + stem + ".sig").c_str(), (dstDir + "/" + stem + ".sig").c_str(), FALSE) != 0;
+    for (const char* ext : {".onnx", ".sig", ".json"}) {
+        const std::string from = srcDir + "/" + stem + ext;
+        if (GetFileAttributesA(from.c_str()) == INVALID_FILE_ATTRIBUTES) {
+            if (std::string(ext) == ".json") continue;   // a model without a sidecar: nothing to copy
+            return false;
+        }
+        if (CopyFileA(from.c_str(), (dstDir + "/" + stem + ext).c_str(), FALSE) == 0) return false;
+    }
+    return true;
 }
 
-/** Remove the model and its signature that CopyModelWithSignature put in `dir`, then the directory. */
+/** Remove the model, its signature and its sidecar that CopyModelWithSignature put in `dir`, then the directory. */
 inline void RemoveModelDir(const std::string& dir, const std::string& stem) {
     DeleteFileA((dir + "/" + stem + ".onnx").c_str());
     DeleteFileA((dir + "/" + stem + ".sig").c_str());
+    DeleteFileA((dir + "/" + stem + ".json").c_str());
     RemoveDirectoryA(dir.c_str());
+}
+
+/**
+ * A sidecar that says what REQ-AI-008 requires (QA-B-197) and ALSO carries the keys of @p objectText, a JSON object
+ * written as `{"labels": [...]}`: the five fields are put in front of its first key. For the tests that write their own
+ * body-part sidecar and renew the signature.
+ */
+inline std::string WithMetadata(const std::string& objectText) {
+    const size_t brace = objectText.find('{');
+    if (brace == std::string::npos) return objectText;
+    return objectText.substr(0, brace + 1) +
+           "\"model_id\":\"toy_model\",\"version\":\"0.0.1\",\"pccp_scope\":\"none\","
+           "\"training_data_hash\":\"none\",\"validation_metrics\":{\"m\":0}," +
+           objectText.substr(brace + 1);
 }
 
 }  // namespace xpe_test

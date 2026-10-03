@@ -6,9 +6,5 @@
   "validation_metrics": {
     "claims_accuracy": 0
   },
-  "note": "QA-B-191 toy model for wiring tests: not a classifier, says nothing about accuracy",
-  "labels": [
-    "CHEST",
-    "ABDOMEN"
-  ]
+  "note": "QA-B-191 toy model for wiring tests: not a classifier, says nothing about accuracy"
 }

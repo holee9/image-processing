@@ -47,6 +47,7 @@ enum class BodyPartLoadFailure {
     kInputShape,        ///< the graph's input is not a fixed single-channel image
     kOutputSize,        ///< the graph's fixed output length differs from the label count
     kNotTrusted,        ///< the model or its sidecar failed signature verification (QA-B-195): nothing was loaded
+    kSidecarInvalid,    ///< the signature verified but the sidecar does not say what REQ-AI-008 requires (QA-B-197)
     kOutOfMemory,       ///< a shortage of memory while creating the session (QA-B-194b): NOT "the model is unavailable"
 };
 
@@ -115,6 +116,10 @@ inline const char* LoadBodyPartModel(const std::string& modelDir, std::unique_pt
         if (created.code == OnnxErrorCode::kModelNotTrusted) {
             why_kind = BodyPartLoadFailure::kNotTrusted;
             return "the model files failed signature verification";
+        }
+        if (created.code == OnnxErrorCode::kSidecarInvalid) {
+            why_kind = BodyPartLoadFailure::kSidecarInvalid;
+            return "the model sidecar failed the metadata check";
         }
         if (created.code == OnnxErrorCode::kOutOfMemory) {
             why_kind = BodyPartLoadFailure::kOutOfMemory;

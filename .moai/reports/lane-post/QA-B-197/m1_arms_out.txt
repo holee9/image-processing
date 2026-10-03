@@ -1,0 +1,18 @@
+QA-B-197 M1 arms: from build/g197m1-arms-out.txt (H7 re-run in g197m1-arms-out-H7.txt after its first mutation did not compile); sources restored byte-identical after the last arm
+
+H1 Create does not judge the sidecar at all: build_error=False red(9)=['AModelReSignedWithoutOneRequiredFieldIsRefusedWithTheFieldNamed', 'AModelWithNoSidecarAtAllIsRefused', 'AnInvalidVersionOrInvalidJsonOrAWrongTypeIsRefusedAfterAValidSignature', 'ControlTheShippedTestModelLoadsWithItsSidecar', 'ARefusedBodyPartSidecarIsUnknownWithOneErrorAlertOnTheInProcessPath', 'ARefusedBoneSidecarIsMinusFourWithOneErrorAlertPerSessionAndTheReason', 'ARepairedSidecarIsSeenAtOnceInTheSameSession', 'ASecondRefusalOfTheSameRoleInTheSameSessionRaisesNoSecondAlert', 'ASidecarRefusalOfBoneSuppressionThroughTheWorkerIsNeverAWorkerFailure']
+H2 a missing pccp_scope is accepted: build_error=False red(4)=['AModelReSignedWithoutOneRequiredFieldIsRefusedWithTheFieldNamed', 'ARequiredFieldOfTheWrongTypeOrEmptyIsARefusalThatNamesTheField', 'EveryRequiredFieldMissingIsARefusalThatNamesTheField', 'ARefusedBoneSidecarIsMinusFourWithOneErrorAlertPerSessionAndTheReason']
+H3 the version is not checked as semver: build_error=False red(3)=['AnInvalidVersionOrInvalidJsonOrAWrongTypeIsRefusedAfterAValidSignature', 'ARequiredFieldOfTheWrongTypeOrEmptyIsARefusalThatNamesTheField', 'ASidecarRefusalOfBoneSuppressionThroughTheWorkerIsNeverAWorkerFailure']
+H4 a leading zero in the version core is accepted: build_error=False red(1)=['TheVersionMustBeASemanticVersion']
+H5 the calendar is not checked (any day 1-31): build_error=False red(2)=['AnInvalidVersionOrInvalidJsonOrAWrongTypeIsRefusedAfterAValidSignature', 'ThePublishedDateMustBeACalendarDate']
+H6 an empty validation_metrics object is accepted: build_error=False red(1)=['ARequiredFieldOfTheWrongTypeOrEmptyIsARefusalThatNamesTheField']
+H7 a sidecar with a wrongly typed optional field is accepted: build_error=False red(1)=['TheOptionalFieldsOfTheCardAreReadAndTheirTypesAreEnforced']
+H8 the in-process bone path does not name a sidecar refusal (generic -3): build_error=False red(3)=['ARefusedBoneSidecarIsMinusFourWithOneErrorAlertPerSessionAndTheReason', 'ARepairedSidecarIsSeenAtOnceInTheSameSession', 'ASecondRefusalOfTheSameRoleInTheSameSessionRaisesNoSecondAlert']
+H9 the worker does not flag a sidecar refusal as unavailable: build_error=False red(1)=['ASidecarRefusalOfBoneSuppressionThroughTheWorkerIsNeverAWorkerFailure']
+H10 the body-part loader reports a sidecar refusal as an unreadable model: build_error=False red(1)=['ARefusedBodyPartSidecarIsUnknownWithOneErrorAlertOnTheInProcessPath']
+H11 the sidecar alert is raised on every refused call: build_error=False red(1)=['ASecondRefusalOfTheSameRoleInTheSameSessionRaisesNoSecondAlert']
+H12 a duplicated top-level key is accepted: build_error=False red(1)=['ATopLevelKeyThatAppearsTwiceIsRefusedWhateverItsValue']
+H13 the comma between elements of a nested value is dropped: build_error=False red(1)=['ANestedObjectIsCarriedIntoTheCardAsItsCompactText']
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: red=[] ok=22
+DONE

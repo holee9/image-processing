@@ -472,6 +472,11 @@ private:
                         SendError(id, XPE_ERR_CONFIG_INVALID,
                                   "model not trusted: " + created.message, /*model_unavailable=*/true);
                         break;
+                    case xpe::ai::OnnxErrorCode::kSidecarInvalid:
+                        // QA-B-197: like a signature refusal -- unavailable, not a fault of the worker.
+                        SendError(id, XPE_ERR_CONFIG_INVALID,
+                                  "model sidecar invalid: " + created.message, /*model_unavailable=*/true);
+                        break;
                     default:
                         SendError(id, XPE_ERR_PROCESSING_FAILED,
                                   "session failed: " + created.message);

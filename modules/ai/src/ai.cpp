@@ -794,14 +794,16 @@ static std::string modelFilesStamp(const std::string& dir, const char* stem) {
     return stamp;
 }
 
-/** The reason class inside "model signature check failed (<reason>): <path>"; "unknown" when the text has another shape. */
-static std::string signatureReason(const std::string& message) {
-    const std::string open = "model signature check failed (";
-    size_t a = message.find(open);
+/**
+ * The reason inside "model signature check failed (<reason>): <path>" or "model sidecar check failed (<reason>): <path>":
+ * the text between the opening parenthesis and the first "): ". "unknown" when the text has another shape.
+ */
+static std::string refusalReason(const std::string& message) {
+    const size_t a = message.find("check failed (");
     if (a == std::string::npos) return "unknown";
-    a += open.size();
-    const size_t b = message.find(')', a);
-    return b == std::string::npos ? std::string("unknown") : message.substr(a, b - a);
+    const size_t from = a + std::string("check failed (").size();
+    const size_t b = message.find("): ", from);
+    return b == std::string::npos ? std::string("unknown") : message.substr(from, b - from);
 }
 
 /**
@@ -818,6 +820,37 @@ static void pushModelNotTrustedAlertOnce(bool* alerted, const char* role, const 
                   "AI %s is unavailable: its model failed signature verification (%s) and nothing was loaded "
                   "(REQ-AI-007, REQ-AI-091)",
                   role, reason.c_str());
+    xpe_alert_push(msg, XPE_ALERT_ERROR);
+}
+
+/**
+ * The model of a role passed its signature but its sidecar does not say what REQ-AI-008 requires (QA-B-197): ONE Error
+ * alert per session per role (the same once-flag as a signature refusal: one alert per role says "this role has no
+ * usable model", whichever check refused it). CROSS-LANE CONTRACT: clients may match this text.
+ */
+static void pushSidecarInvalidAlertOnce(bool* alerted, const char* role, const std::string& reason) {
+    if (*alerted) return;
+    *alerted = true;
+    char msg[384];
+    std::snprintf(msg, sizeof(msg),
+                  "AI %s is unavailable: its model sidecar failed the metadata check (%s) and nothing was loaded "
+                  "(REQ-AI-008)",
+                  role, reason.c_str());
+    xpe_alert_push(msg, XPE_ALERT_ERROR);
+}
+
+/**
+ * The worker refused the model of bone suppression (-4 with the unavailable flag): the frame does not say whether the
+ * signature or the sidecar check refused it, so the text names both (QA-B-197). CROSS-LANE CONTRACT.
+ */
+static void pushWorkerRefusedModelAlertOnce(bool* alerted, const char* role) {
+    if (*alerted) return;
+    *alerted = true;
+    char msg[384];
+    std::snprintf(msg, sizeof(msg),
+                  "AI %s is unavailable: the AI worker refused its model (the signature check or the sidecar check "
+                  "failed, see the worker log) and nothing was loaded (REQ-AI-007, REQ-AI-008, REQ-AI-091)",
+                  role);
     xpe_alert_push(msg, XPE_ALERT_ERROR);
 }
 
@@ -1237,7 +1270,11 @@ extern "C++" static XpeErrorCode xpe_bodypart_recognize_impl(const XpeImageBuffe
             if (kind == xpe::ai::BodyPartLoadFailure::kNotTrusted) {
                 state->bodyPartTrustFailStamp = stamp;
                 pushModelNotTrustedAlertOnce(&state->bodyPartTrustAlerted, "body-part recognition",
-                                             signatureReason(detail));
+                                             refusalReason(detail));
+            } else if (kind == xpe::ai::BodyPartLoadFailure::kSidecarInvalid) {
+                state->bodyPartTrustFailStamp = stamp;   // same memo: the files are unchanged, so is the refusal
+                pushSidecarInvalidAlertOnce(&state->bodyPartTrustAlerted, "body-part recognition",
+                                            refusalReason(detail));
             } else {
                 state->bodyPartTrustFailStamp.clear();
                 warnBodyPartUnavailableOnce(state, why);
@@ -1538,7 +1575,7 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
         }
         if (wrc == XPE_ERR_CONFIG_INVALID && state->workerSupervisor &&
             state->workerSupervisor->LastModelUnavailable()) {
-            // QA-B-195 D6: the worker answered and says its model was REFUSED for its signature (-4 with the
+            // QA-B-195 D6: the worker answered and says its model was REFUSED, for its signature or its sidecar (-4 with the
             // model_unavailable flag). A state of the installation, not a fault of the worker: the count is reset
             // like after any healthy exchange, so a refused model can never switch AI off by itself, and the
             // operator is told once. The output holds the input, as on every other failure of this path.
@@ -1546,8 +1583,7 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
             state->workerConsecutiveFailures = 0;
             AI_LOG_WARN("bone_suppress: the worker reports its model unavailable (%d), input returned unchanged "
                         "(not counted as a worker failure)", static_cast<int>(wrc));
-            pushModelNotTrustedAlertOnce(&state->boneTrustAlerted, "bone suppression",
-                                         "refused by the AI worker, see its log");
+            pushWorkerRefusedModelAlertOnce(&state->boneTrustAlerted, "bone suppression");
             publishWorkerState(state);
             return wrc;
         }
@@ -1622,7 +1658,16 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
                     AI_LOG_ERROR("bone_suppress: %s", created.message.c_str());
                     state->boneTrustFailStamp = stamp;
                     pushModelNotTrustedAlertOnce(&state->boneTrustAlerted, "bone suppression",
-                                                 signatureReason(created.message));
+                                                 refusalReason(created.message));
+                    return XPE_ERR_CONFIG_INVALID;
+                case xpe::ai::OnnxErrorCode::kSidecarInvalid:
+                    // QA-B-197 (REQ-AI-008): the signature verified, the sidecar does not say what the requirement
+                    // asks. Same treatment as a signature refusal: -4, nothing loaded, one Error alert per session,
+                    // remembered until a file changes.
+                    AI_LOG_ERROR("bone_suppress: %s", created.message.c_str());
+                    state->boneTrustFailStamp = stamp;
+                    pushSidecarInvalidAlertOnce(&state->boneTrustAlerted, "bone suppression",
+                                                refusalReason(created.message));
                     return XPE_ERR_CONFIG_INVALID;
                 default:
                     AI_LOG_ERROR("bone_suppress: session failed: %s", created.message.c_str());

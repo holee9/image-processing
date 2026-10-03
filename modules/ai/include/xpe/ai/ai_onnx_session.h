@@ -70,6 +70,7 @@ enum class OnnxErrorCode {
     kInvalidInput = 5,          ///< Invalid input data
     kOutOfMemory = 6,           ///< An allocation failed while creating the session (QA-B-194 M5): a shortage, not a bad model
     kModelNotTrusted = 7,       ///< The model or its sidecar failed signature verification (QA-B-195 M3): nothing was loaded
+    kSidecarInvalid = 8,        ///< The signature verified but the sidecar does not say what REQ-AI-008 requires (QA-B-197)
 };
 
 /**
@@ -108,6 +109,34 @@ struct OnnxSessionConfig {
      */
     std::string role = "bone_suppress";
 };
+
+/**
+ * @brief The files of one model as they were READ and VERIFIED (QA-B-195 / QA-B-197)
+ *
+ * Whoever uses the model uses these bytes and no others. A sidecar that does not exist leaves has_sidecar false.
+ */
+struct VerifiedModelFiles {
+    std::vector<uint8_t> model;     ///< the model file's bytes
+    std::string sidecar_text;       ///< the sidecar's bytes as text (meaningful only when has_sidecar)
+    bool has_sidecar = false;       ///< true when `<stem>.json` exists
+};
+
+/**
+ * @brief Read `<stem>.onnx`, `<stem>.json` and `<stem>.sig` ONCE and verify the signature for @p role.
+ *
+ * The one place the files of a model are read and checked, shared by OnnxSession::Create (which builds a session from
+ * the result) and the model card (which only reads the sidecar). Returns kOk, kInvalidModelPath (no model file),
+ * kModelLoadFailed (the model file cannot be read) or kModelNotTrusted; @p message carries the detail for a failure.
+ * Does NOT judge the sidecar's content (see ai_model_sidecar.h).
+ *
+ * @param model_path  Path of the model file `<stem>.onnx`; the sidecar and signature sit beside it.
+ * @param role        The job the model is loaded for ("bone_suppress" or "bodypart"); part of what the signature covers.
+ * @param out         Receives the verified bytes (meaningful only when the result is kOk).
+ * @param message     Receives the detail of a failure.
+ * @return kOk, or the code described above.
+ */
+OnnxErrorCode ReadVerifiedModelFiles(const std::string& model_path, const std::string& role,
+                                     VerifiedModelFiles* out, std::string* message);
 
 /**
  * @brief Result type for operations that can fail

@@ -472,7 +472,7 @@ TEST(WorkerBodyPartAgreement, ALabelOutsidePrintableAsciiOrWithAQuoteOrBackslash
     for (const char* sidecar : refused) {
         {
             std::ofstream j(tmp / "bodypart.json");
-            j << sidecar;
+            j << xpe_test::WithMetadata(sidecar);
         }
         xpe_test::SignDir(tmp, "bodypart");   // QA-B-195: the sidecar changed, so the signature is renewed
         EXPECT_EQ("unavailable", DescribeWorker(tmp.string(), image)) << sidecar;
@@ -481,7 +481,7 @@ TEST(WorkerBodyPartAgreement, ALabelOutsidePrintableAsciiOrWithAQuoteOrBackslash
     // The edges that ARE allowed: space (0x20) and tilde (0x7E).
     {
         std::ofstream j(tmp / "bodypart.json");
-        j << "{\"labels\": [\"UPPER ARM~\", \"ABDOMEN\", \"SPINE\"]}";
+        j << xpe_test::WithMetadata("{\"labels\": [\"UPPER ARM~\", \"ABDOMEN\", \"SPINE\"]}");
     }
     xpe_test::SignDir(tmp, "bodypart");   // QA-B-195: the sidecar changed, so the signature is renewed
     EXPECT_EQ("ok:UPPER ARM~:0.6", DescribeWorker(tmp.string(), image));
@@ -489,7 +489,7 @@ TEST(WorkerBodyPartAgreement, ALabelOutsidePrintableAsciiOrWithAQuoteOrBackslash
     // The control: the same model with a plain label is usable, so the character is what made the difference.
     {
         std::ofstream j(tmp / "bodypart.json");
-        j << "{\"labels\": [\"CHEST\", \"ABDOMEN\", \"SPINE\"]}";
+        j << xpe_test::WithMetadata("{\"labels\": [\"CHEST\", \"ABDOMEN\", \"SPINE\"]}");
     }
     xpe_test::SignDir(tmp, "bodypart");   // QA-B-195: the sidecar changed, so the signature is renewed
     EXPECT_EQ(0u, DescribeWorker(tmp.string(), image).rfind("ok:", 0));

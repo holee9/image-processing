@@ -24,6 +24,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import model_sidecar_fields as sidecars  # noqa: E402
 from make_min_models import (  # noqa: E402
     FLOAT, _varint, f_bytes, f_msg, f_str, f_varint, node, tensor_initializer,
 )
@@ -98,12 +99,10 @@ DEP_W = [[0.125 if i < 8 else 0.0, 0.125 if i >= 8 else 0.0, 0.0] for i in range
 
 
 def sidecar(labels) -> str:
-    return json.dumps({
-        "model_id": "bodypart_toy",
-        "version": "0.0.1",
-        "note": "QA-B-191 toy model for wiring tests: not a classifier, says nothing about accuracy",
-        "labels": labels,
-    }, indent=2) + "\n"
+    # QA-B-197: the five REQ-AI-008 fields plus `labels` (labels=None: a sidecar that has no labels key at all).
+    return sidecars.sidecar_text(
+        "bodypart_toy", labels=labels,
+        note="QA-B-191 toy model for wiring tests: not a classifier, says nothing about accuracy")
 
 
 def write_dir(here: Path, name: str, blob: bytes, labels=LABELS, with_sidecar=True) -> None:
@@ -141,7 +140,9 @@ def main() -> int:
     # Sidecar problems.
     write_dir(here, "models_bodypart_labels_mismatch", model_bytes(nchw, ZERO_W, [0.6, 0.3, 0.1]),
               labels=["CHEST", "ABDOMEN"])
-    write_dir(here, "models_bodypart_no_labels", model_bytes(nchw, ZERO_W, [0.6, 0.3, 0.1]), with_sidecar=False)
+    # QA-B-197: a sidecar that is valid (REQ-AI-008) but has no `labels` key; a model with no sidecar at all is now refused
+    # earlier, by the sidecar check, so this is the only way to reach the label check.
+    write_dir(here, "models_bodypart_no_labels", model_bytes(nchw, ZERO_W, [0.6, 0.3, 0.1]), labels=None)
     # A model that loads, has the right shapes and labels, and fails when it is RUN (QA-B-191 M4c).
     write_dir(here, "models_bodypart_runfail", model_bytes(nchw, ZERO_W, [0.6, 0.3, 0.1], fail_at_run=True))
     # A model file that is not a model.

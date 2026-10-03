@@ -506,7 +506,7 @@ TEST_F(BodyPartWorkerPath, ARefusedLabelIsOneWarningPerSessionOnBothPathsAndNeve
     for (const char* sidecar : refused) {
         {
             std::ofstream j(tmp / "bodypart.json");
-            j << sidecar;
+            j << xpe_test::WithMetadata(sidecar);
         }
         xpe_test::SignDir(tmp, "bodypart");   // QA-B-195: the sidecar changed, so the signature is renewed
         for (const bool worker : {false, true}) {
@@ -528,7 +528,7 @@ TEST_F(BodyPartWorkerPath, ARefusedLabelIsOneWarningPerSessionOnBothPathsAndNeve
     // The control: the same model with a plain label answers on both paths, so the label is what was refused.
     {
         std::ofstream j(tmp / "bodypart.json");
-        j << "{\"labels\": [\"CHEST\", \"ABDOMEN\", \"SPINE\"]}";
+        j << xpe_test::WithMetadata("{\"labels\": [\"CHEST\", \"ABDOMEN\", \"SPINE\"]}");
     }
     xpe_test::SignDir(tmp, "bodypart");   // QA-B-195: the sidecar changed, so the signature is renewed
     for (const bool worker : {false, true}) {

@@ -145,7 +145,13 @@ TEST(ModelLoadingTrust, TheTestSigningHelperWritesWhatTheVerifierAcceptsAndOnlyT
     ASSERT_TRUE(xpe_test::SignDir(t.path, "bodypart"));
     EXPECT_EQ(OnnxErrorCode::kOk, Load(t / "bodypart.onnx", "bodypart").code) << "freshly signed";
     auto side = xpe_test::ReadBytes(t / "bodypart.json");
-    side[side.size() / 2] ^= 0x01;
+    {
+        // one character changed, and the sidecar stays valid JSON with a valid version: 0.0.1 -> 0.0.2
+        const std::string text(side.begin(), side.end());
+        const size_t at = text.find("0.0.1");
+        ASSERT_NE(std::string::npos, at);
+        side[at + 4] = '2';
+    }
     Write(t / "bodypart.json", side);
     EXPECT_EQ(OnnxErrorCode::kModelNotTrusted, Load(t / "bodypart.onnx", "bodypart").code) << "a changed sidecar, same signature";
     ASSERT_TRUE(xpe_test::SignDir(t.path, "bodypart"));
@@ -245,7 +251,7 @@ TEST(ModelLoadingTrust, ASidecarThatWasAddedChangedOrRemovedIsNotTrusted) {
     t.CopyFrom("models_bodypart_a");
     ASSERT_EQ(OnnxErrorCode::kOk, Load(t / "bodypart.onnx", "bodypart").code) << "the control";
     const std::vector<uint8_t> side = xpe_test::ReadBytes(t / "bodypart.json");
-    const std::string hands = "{\"labels\": [\"HAND\", \"HAND\", \"HAND\"]}";
+    const std::string hands = xpe_test::WithMetadata("{\"labels\": [\"HAND\", \"HAND\", \"HAND\"]}");
     Write(t / "bodypart.json", std::vector<uint8_t>(hands.begin(), hands.end()));
     EXPECT_TRUE(Load(t / "bodypart.onnx", "bodypart").Names(SignatureStatus::kBadSignature)) << "the labels replaced";
     std::vector<uint8_t> crlf;
@@ -423,7 +429,7 @@ TEST(ModelLoadingTrust, ATamperedBodyPartSidecarIsUnavailableOnBothPathsAndNever
     if (IsStub()) GTEST_SKIP() << "stub build: xpe_bodypart_recognize answers before it looks for a model";
     const TempDir t("abi_part");
     t.CopyFrom("models_bodypart_a");
-    const std::string hands = "{\"labels\": [\"HAND\", \"HAND\", \"HAND\"]}";
+    const std::string hands = xpe_test::WithMetadata("{\"labels\": [\"HAND\", \"HAND\", \"HAND\"]}");
     Write(t / "bodypart.json", std::vector<uint8_t>(hands.begin(), hands.end()));   // the signature is now stale
 
     for (const bool worker : {false, true}) {
@@ -534,6 +540,7 @@ TEST(ModelLoadingTrust, ASidecarOrSignatureThatExistsButCannotBeReadIsRefusedNot
     }
     const TempDir t("unreadable_sidecar");
     t.CopyFrom("models_x2");
+    fs::remove(t / "bone_suppress.json");   // QA-B-197: the copied model brings its sidecar
     fs::create_directory(t / "bone_suppress.json");
     const Outcome o = Load(t / "bone_suppress.onnx");
     EXPECT_EQ(OnnxErrorCode::kModelNotTrusted, o.code);
@@ -643,7 +650,7 @@ TEST(ModelRefusalBehavior, ARefusedBodyPartModelRaisesOneAlertPerSessionOnBothPa
     if (IsStub()) GTEST_SKIP() << "stub build: xpe_bodypart_recognize answers before it looks for a model";
     const TempDir t("refuse_part");
     t.CopyFrom("models_bodypart_a");
-    const std::string hands = "{\"labels\": [\"HAND\", \"HAND\", \"HAND\"]}";
+    const std::string hands = xpe_test::WithMetadata("{\"labels\": [\"HAND\", \"HAND\", \"HAND\"]}");
     Write(t / "bodypart.json", std::vector<uint8_t>(hands.begin(), hands.end()));   // the signature is now stale
     for (const bool worker : {false, true}) {
         xpe_ai_shutdown();
@@ -719,7 +726,7 @@ TEST(ModelRefusalBehavior, ARefusedBodyPartModelIsCheckedAgainTheMomentItsFilesC
     if (IsStub()) GTEST_SKIP() << "stub build: xpe_bodypart_recognize answers before it looks for a model";
     const TempDir t("refuse_part_recheck");
     t.CopyFrom("models_bodypart_a");
-    const std::string hands = "{\"labels\": [\"HAND\", \"HAND\", \"HAND\"]}";
+    const std::string hands = xpe_test::WithMetadata("{\"labels\": [\"HAND\", \"HAND\", \"HAND\"]}");
     Write(t / "bodypart.json", std::vector<uint8_t>(hands.begin(), hands.end()));   // the signature is now stale
     xpe_ai_shutdown();
     xpe_clear_alerts();

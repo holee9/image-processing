@@ -96,6 +96,24 @@
  * worker's body-part answer cannot say WHY its model is unavailable, so that path raises its existing single "AI
  * body-part recognition is unavailable" Warning instead of the Error above.
  *
+ * MODEL SIDECAR (QA-B-197, REQ-AI-008). The sidecar `<name>.json` is part of what the signature covers, and a model is
+ * refused unless its sidecar -- read only AFTER the signature verified, from the verified bytes -- says what REQ-AI-008
+ * requires. Required: `model_id` (1 to 64 letters, digits, '.', '_', '-'), `version` (semantic version 2.0.0:
+ * MAJOR.MINOR.PATCH[-pre][+build]), `pccp_scope` (non-empty string), `training_data_hash` (non-empty string) and
+ * `validation_metrics` (a non-empty JSON object). Optional, and carried into the model card as they are (REQ-AI-010):
+ * `intended_use`, `training_data_summary`, `limitations` (strings), `demographic_performance` (a JSON object),
+ * `published_date` (a calendar date YYYY-MM-DD). A key of that list with the wrong type is a refusal. Other keys
+ * (`labels` of a body-part model, `note`) are not judged by this check. A model with no sidecar file at all is refused.
+ * A refusal behaves like a refused signature -- XPE_ERR_CONFIG_INVALID / UNKNOWN, nothing loaded, never a failure of the
+ * worker, remembered until a file changes -- and raises ONE XPE_ALERT_ERROR per role per session (the same once-flag as
+ * a signature refusal): "AI [bone suppression|body-part recognition] is unavailable: its model sidecar failed the
+ * metadata check ([reason]) and nothing was loaded (REQ-AI-008)", where [reason] names the field (for example "the
+ * required field pccp_scope is missing"). When the refusal came from a worker the module cannot tell which check
+ * refused, and the alert says so: "AI bone suppression is unavailable: the AI worker refused its model (the signature
+ * check or the sidecar check failed, see the worker log) and nothing was loaded (REQ-AI-007, REQ-AI-008, REQ-AI-091)".
+ * (Cross-lane contract: clients may match these texts.) Duplicate keys in the sidecar are not detected. The sidecar is at most
+ * 1 MiB (an implementation safety cap, not a requirement).
+ *
  * WHAT THIS DOES NOT GUARD AGAINST: the trusted public keys are inside xpe_ai.dll and xpe_ai_worker.exe, so an
  * attacker who can replace THOSE can replace the keys. The check shows that the model files were not changed; the
  * protection of the executables (Authenticode, the install directory's permissions) is outside this module. A

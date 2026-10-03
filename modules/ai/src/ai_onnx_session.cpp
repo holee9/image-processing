@@ -64,8 +64,7 @@
     #define LOG_ERROR(msg) ((void)0)
 #endif
 
-#include <nlohmann/json.hpp>   // a required dependency (QA-B-194b)
-using json = nlohmann::json;
+#include "ai_model_sidecar.h"   // what a usable sidecar is (QA-B-197)
 
 namespace fs = std::filesystem;
 
@@ -147,38 +146,6 @@ bool FileExists(const std::string& path) {
 }
 
 /**
- * @brief Parse JSON metadata from the sidecar's (verified) text
- */
-std::optional<ModelMetadata> LoadMetadataFromText(const std::string& sidecar_text) {
-    try {
-        json j = json::parse(sidecar_text);
-
-        ModelMetadata meta;
-        if (j.contains("model_id")) {
-            meta.model_id = j["model_id"].get<std::string>();
-        }
-        if (j.contains("version")) {
-            meta.version = j["version"].get<std::string>();
-        }
-        if (j.contains("pccp_scope")) {
-            meta.pccp_scope = j["pccp_scope"].get<std::string>();
-        }
-        if (j.contains("training_data_hash")) {
-            meta.training_data_hash = j["training_data_hash"].get<std::string>();
-        }
-        if (j.contains("validation_metrics")) {
-            meta.validation_metrics = j["validation_metrics"].dump();
-        }
-
-        return meta;
-    } catch (const std::exception& e) {
-        (void)e;   // the log macros are empty in a build without spdlog (the worker)
-        LOG_ERROR(std::string("Failed to load metadata: ") + e.what());
-        return std::nullopt;
-    }
-}
-
-/**
  * @brief Get EP name for logging
  */
 std::string EpToString(ExecutionProvider ep) {
@@ -244,70 +211,87 @@ void TestSetAfterVerifyHook(void (*hook)(const std::string& modelPath)) { g_afte
 void TestSetBeforeSessionHook(void (*hook)()) { g_beforeSessionHook = hook; }
 #endif
 
+OnnxErrorCode ReadVerifiedModelFiles(const std::string& model_path, const std::string& role,
+                                     VerifiedModelFiles* out, std::string* message) {
+    if (!FileExists(model_path)) {
+        *message = "Model file not found: " + model_path;
+        return OnnxErrorCode::kInvalidModelPath;
+    }
+    const fs::path model_fs_path(model_path);
+    fs::path sidecar_path = model_fs_path;
+    sidecar_path.replace_extension(".json");
+    fs::path sig_path = model_fs_path;
+    sig_path.replace_extension(".sig");
+
+    switch (ReadFileBounded(model_fs_path, &out->model)) {
+        case ReadResult::kOk: break;
+        case ReadResult::kTooLarge:
+            *message = std::string("model signature check failed (") + SignatureStatusText(SignatureStatus::kTooLarge) +
+                       "): " + model_path;
+            return OnnxErrorCode::kModelNotTrusted;
+        case ReadResult::kFailed:
+            *message = "Model file could not be read: " + model_path;
+            return OnnxErrorCode::kModelLoadFailed;
+    }
+    std::error_code fs_ec;
+    std::vector<uint8_t> sidecar_bytes;
+    out->has_sidecar = fs::exists(sidecar_path, fs_ec) && !fs_ec;
+    bool sidecar_ok = true;
+    if (out->has_sidecar) sidecar_ok = ReadFileBounded(sidecar_path, &sidecar_bytes) == ReadResult::kOk;
+    std::vector<uint8_t> sig_bytes;
+    const bool has_sig = fs::exists(sig_path, fs_ec) && !fs_ec;
+    bool sig_ok = true;
+    if (has_sig) sig_ok = ReadFileBounded(sig_path, &sig_bytes) == ReadResult::kOk;
+
+    static const uint8_t kZero = 0;   // a valid pointer for an empty (but present) file
+    const std::vector<TrustedKey> keys = TrustedModelKeys();
+    const Bytes model{out->model.empty() ? &kZero : out->model.data(), out->model.size()};
+    const Bytes side{sidecar_bytes.empty() ? &kZero : sidecar_bytes.data(), sidecar_bytes.size()};
+    SignatureStatus st;
+    if (!sidecar_ok || !sig_ok) {
+        st = SignatureStatus::kVerifierError;   // a sidecar or signature that exists but cannot be read: refuse
+    } else {
+        st = VerifyModelSignature(keys.data(), keys.size(), role, model, out->has_sidecar ? &side : nullptr,
+                                  has_sig ? (sig_bytes.empty() ? &kZero : sig_bytes.data()) : nullptr, sig_bytes.size());
+    }
+    if (st != SignatureStatus::kOk) {
+        *message = std::string("model signature check failed (") + SignatureStatusText(st) + "): " + model_path;
+        return OnnxErrorCode::kModelNotTrusted;
+    }
+    out->sidecar_text.assign(reinterpret_cast<const char*>(sidecar_bytes.data()), sidecar_bytes.size());
+    return OnnxErrorCode::kOk;
+}
+
 OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(
         const OnnxSessionConfig& config) {
 
     OnnxResult<std::unique_ptr<OnnxSession>> result;
     result.value = nullptr;
 
-    // Validate model path
-    if (!FileExists(config.model_path)) {
-        result.code = OnnxErrorCode::kInvalidModelPath;
-        result.message = "Model file not found: " + config.model_path;
-        LOG_ERROR(result.message);
-        return result;
-    }
-
     // QA-B-195 M3 (REQ-AI-007 / REQ-AI-091): the model, its sidecar and its signature are read ONCE, verified together,
     // and the session is built from THOSE bytes. Nothing is loaded from a model that does not verify, in a stub build
     // too (a stub loads nothing, but the refusal must not depend on the build). A build whose trust list is empty --
     // the production build until the production key exists (#243) -- refuses every model.
-    const fs::path model_fs_path(config.model_path);
-    fs::path sidecar_path = model_fs_path;
-    sidecar_path.replace_extension(".json");
-    fs::path sig_path = model_fs_path;
-    sig_path.replace_extension(".sig");
-
-    std::vector<uint8_t> model_bytes;
-    switch (ReadFileBounded(model_fs_path, &model_bytes)) {
-        case ReadResult::kOk: break;
-        case ReadResult::kTooLarge:
-            result.code = OnnxErrorCode::kModelNotTrusted;
-            result.message = std::string("model signature check failed (") +
-                             SignatureStatusText(SignatureStatus::kTooLarge) + "): " + config.model_path;
-            LOG_ERROR(result.message);
-            return result;
-        case ReadResult::kFailed:
-            result.code = OnnxErrorCode::kModelLoadFailed;
-            result.message = "Model file could not be read: " + config.model_path;
-            LOG_ERROR(result.message);
-            return result;
-    }
-    std::error_code fs_ec;
-    std::vector<uint8_t> sidecar_bytes;
-    const bool has_sidecar = fs::exists(sidecar_path, fs_ec) && !fs_ec;
-    bool sidecar_ok = true;
-    if (has_sidecar) sidecar_ok = ReadFileBounded(sidecar_path, &sidecar_bytes) == ReadResult::kOk;
-    std::vector<uint8_t> sig_bytes;
-    const bool has_sig = fs::exists(sig_path, fs_ec) && !fs_ec;
-    bool sig_ok = true;
-    if (has_sig) sig_ok = ReadFileBounded(sig_path, &sig_bytes) == ReadResult::kOk;
-
+    VerifiedModelFiles files;
     {
-        static const uint8_t kZero = 0;   // a valid pointer for an empty (but present) file
-        const std::vector<TrustedKey> keys = TrustedModelKeys();
-        const Bytes model{model_bytes.empty() ? &kZero : model_bytes.data(), model_bytes.size()};
-        const Bytes side{sidecar_bytes.empty() ? &kZero : sidecar_bytes.data(), sidecar_bytes.size()};
-        SignatureStatus st;
-        if (!sidecar_ok || !sig_ok) {
-            st = SignatureStatus::kVerifierError;   // a sidecar or signature that exists but cannot be read: refuse
-        } else {
-            st = VerifyModelSignature(keys.data(), keys.size(), config.role, model, has_sidecar ? &side : nullptr,
-                                      has_sig ? (sig_bytes.empty() ? &kZero : sig_bytes.data()) : nullptr, sig_bytes.size());
+        std::string message;
+        const OnnxErrorCode code = ReadVerifiedModelFiles(config.model_path, config.role, &files, &message);
+        if (code != OnnxErrorCode::kOk) {
+            result.code = code;
+            result.message = message;
+            LOG_ERROR(result.message);
+            return result;
         }
-        if (st != SignatureStatus::kOk) {
-            result.code = OnnxErrorCode::kModelNotTrusted;
-            result.message = std::string("model signature check failed (") + SignatureStatusText(st) + "): " + config.model_path;
+    }
+
+    // QA-B-197 M1 (REQ-AI-008): the signature verified, so the sidecar is the author's. It must also SAY what REQ-AI-008
+    // requires. Judged on the verified bytes, here, so every path that loads a model refuses one without its metadata.
+    ModelSidecar sidecar;
+    {
+        std::string why;
+        if (!ParseModelSidecar(files.has_sidecar ? &files.sidecar_text : nullptr, &sidecar, &why)) {
+            result.code = OnnxErrorCode::kSidecarInvalid;
+            result.message = "model sidecar check failed (" + why + "): " + config.model_path;
             LOG_ERROR(result.message);
             return result;
         }
@@ -340,19 +324,14 @@ OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(
     session->pimpl_->actual_ep = actual_ep;
 
     // Metadata comes from the sidecar bytes that were verified, never from a second read of the file.
-    std::optional<ModelMetadata> metadata_opt;
-    if (has_sidecar) {
-        session->pimpl_->sidecar_text.assign(reinterpret_cast<const char*>(sidecar_bytes.data()), sidecar_bytes.size());
-        session->pimpl_->has_sidecar = true;
-        metadata_opt = LoadMetadataFromText(session->pimpl_->sidecar_text);
-    }
-    if (metadata_opt.has_value()) {
-        session->pimpl_->metadata = std::move(metadata_opt.value());
-        LOG_INFO("Loaded model metadata: " + session->pimpl_->metadata.model_id);
-    } else {
-        // Use default empty metadata
-        session->pimpl_->metadata = ModelMetadata{};
-    }
+    session->pimpl_->sidecar_text = std::move(files.sidecar_text);
+    session->pimpl_->has_sidecar = files.has_sidecar;
+    session->pimpl_->metadata.model_id = sidecar.model_id;
+    session->pimpl_->metadata.version = sidecar.version;
+    session->pimpl_->metadata.pccp_scope = sidecar.pccp_scope;
+    session->pimpl_->metadata.training_data_hash = sidecar.training_data_hash;
+    session->pimpl_->metadata.validation_metrics = sidecar.validation_metrics_json;
+    LOG_INFO("Loaded model metadata: " + session->pimpl_->metadata.model_id);
 
 #if ONNX_RUNTIME_STUB_BUILD
     // Stub mode: Create session without actual ONNX Runtime
@@ -394,8 +373,8 @@ OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(
         // From the verified bytes in memory, not from the path: the file cannot change between the check and the load
         // (QA-B-195). The buffer is released as soon as the runtime has parsed it.
         session->pimpl_->session.reset(
-            new Ort::Session(*session->pimpl_->env, model_bytes.data(), model_bytes.size(), opts));
-        std::vector<uint8_t>().swap(model_bytes);
+            new Ort::Session(*session->pimpl_->env, files.model.data(), files.model.size(), opts));
+        std::vector<uint8_t>().swap(files.model);
 
         Ort::AllocatorWithDefaultOptions alloc;
         Ort::Session& s = *session->pimpl_->session;

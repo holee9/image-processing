@@ -439,6 +439,8 @@ if(_XPE_AI_BUILD_TESTS)
         # #130 (QA-B-195 M3): model loading verifies signatures: role, tamper matrix, trust list, verified bytes are the used bytes
         test_ai_model_loading_trust.cpp
         # #130 (QA-B-194b): a copy of xpe_ai.dll with no xpe_ai_worker.exe beside it -- is that failure counted?
+        # #130 (QA-B-197 M1): the model sidecar must say what REQ-AI-008 requires, or the model is refused
+        test_ai_model_sidecar.cpp
         test_ai_worker_exe_missing.cpp
         # #130 (QA-B-194b): a session that runs out of memory inside a REAL worker
         test_ai_oom_worker.cpp

@@ -1,0 +1,18 @@
+{
+  "model_id": "bone_card_full_toy",
+  "version": "1.2.3-rc.1+build.7",
+  "pccp_scope": "none: toy model for wiring tests",
+  "training_data_hash": "none: not trained",
+  "validation_metrics": {
+    "claims_accuracy": 0
+  },
+  "intended_use": "wiring test of the model card: not for any clinical use",
+  "training_data_summary": "none: the weights are a constant",
+  "demographic_performance": {
+    "overall": {
+      "n": 0
+    }
+  },
+  "limitations": "a toy model: it multiplies pixels by two",
+  "published_date": "2026-10-03"
+}

@@ -17,6 +17,9 @@ import struct
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import model_sidecar_fields as sidecars  # noqa: E402
+
 
 def _varint(n: int) -> bytes:
     out = bytearray()
@@ -169,9 +172,12 @@ def main() -> int:
     for scale, name in ((2.0, "min_scale2.onnx"), (3.0, "min_scale3.onnx")):
         blob = model(scale, length)
         (here / name).write_bytes(blob)
+        sidecars.write(here / name.replace(".onnx", ".json"), sidecars.sidecar_text("min_scale_toy_x%d" % int(scale)))
         print(f"{name}: {len(blob)} bytes, Y = X * {scale}, shape [{length}]")
     # A file that is NOT a model, for the load-failure path.
     (here / "not_a_model.onnx").write_bytes(b"this is not an onnx model\n")
+    # QA-B-197: a valid sidecar, so the file reaches the runtime and fails THERE (a model without one is refused earlier).
+    sidecars.write(here / "not_a_model.json", sidecars.sidecar_text("not_a_model_toy"))
     print("not_a_model.onnx: deliberate garbage for the kModelLoadFailed path")
 
     # QA-B-161: the C ABI feeds width*height floats, a length not known here,
@@ -184,6 +190,7 @@ def main() -> int:
         d.mkdir(exist_ok=True)
         blob = model_dynamic(scale)
         (d / "bone_suppress.onnx").write_bytes(blob)
+        sidecars.write(d / "bone_suppress.json", sidecars.sidecar_text("bone_toy_x%d" % int(scale)))
         print(f"{dirname}/bone_suppress.onnx: {len(blob)} bytes, Y = X * {scale}, shape [N]")
 
     # A directory whose model file is deliberately absent, so "no model there"
@@ -201,7 +208,24 @@ def main() -> int:
     bd = here / "models_broken"
     bd.mkdir(exist_ok=True)
     (bd / "bone_suppress.onnx").write_bytes(b"this is not an onnx model\n")
+    sidecars.write(bd / "bone_suppress.json", sidecars.sidecar_text("bone_broken_toy"))
     print("models_broken/bone_suppress.onnx: garbage, for the load-failure code")
+
+    # QA-B-197 M2: a model whose sidecar carries EVERY optional field of REQ-AI-010, for the model card tests.
+    cd = here / "models_card_full"
+    cd.mkdir(exist_ok=True)
+    (cd / "bone_suppress.onnx").write_bytes(model_dynamic(2.0))
+    sidecars.write(cd / "bone_suppress.json", sidecars.sidecar_text(
+        "bone_card_full_toy",
+        version="1.2.3-rc.1+build.7",
+        optional={
+            "intended_use": "wiring test of the model card: not for any clinical use",
+            "training_data_summary": "none: the weights are a constant",
+            "demographic_performance": {"overall": {"n": 0}},
+            "limitations": "a toy model: it multiplies pixels by two",
+            "published_date": "2026-10-03",
+        }))
+    print("models_card_full/: every optional sidecar field present")
     # QA-B-195: every model written here is signed with the TEST key, or the staleness test (ModelAssets.*) goes red.
     sys.path.insert(0, str(here.parents[3] / "tools" / "ai"))
     import xpe_model_signing  # noqa: E402
