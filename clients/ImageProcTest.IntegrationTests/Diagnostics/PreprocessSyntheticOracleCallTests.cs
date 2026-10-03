@@ -32,12 +32,9 @@ public sealed class PreprocessSyntheticOracleCallTests
         {
             Assert.Equal("OK", s.ErrorCode);
             Assert.True(s.Passed, $"stage {s.Stage}");
-            // The gain map of a uniform flat field is 1.0, so the gain stage's only visible effect is the UINT16 -> FLOAT32 conversion (value difference 0); its
-            // non-vacuity is the oracle's own check that its output is not all zero. Offset and defect must have changed their input.
-            if (s.Stage != "gain")
-            {
-                Assert.True(s.MaxAbsError > 0, $"stage {s.Stage} left its input unchanged (MaxAbsError {s.MaxAbsError}) — a stage that did nothing is not a pass");
-            }
+            // GUI-C-212b: the synthetic flat field varies per pixel, so the gain map is not all ones and the gain stage must change its input like the others (it used to pass on
+            // "output not all zero", which a stage that merely converted UINT16 to FLOAT32 satisfies).
+            Assert.True(s.MaxAbsError > 0, $"stage {s.Stage} left its input unchanged (MaxAbsError {s.MaxAbsError}) — a stage that did nothing is not a pass");
         });
         Assert.True(result.InputPreserved);
         Assert.Equal(result.RawSha256Before, result.RawSha256After);

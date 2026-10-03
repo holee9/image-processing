@@ -2313,7 +2313,7 @@ namespace ImageProcTest
                 $"rmse={metrics.Rmse:0.###}, " +
                 $"maxAbsDelta={metrics.MaxAbsoluteDelta:0.###}, " +
                 $"changed={metrics.ChangedPixels}/{metrics.PixelCount} ({metrics.ChangedPixelRatio:P2}), " +
-                $"outputIdenticalToInput={metrics.OutputIdenticalToInput}, nanInf={metrics.NaNInfCount}";
+                $"outputWithinHalfUnitOfInput(within 0.5 of input)={metrics.OutputWithinHalfUnitOfInput}, nanInf={metrics.NaNInfCount}";
         }
 
         private static string FormatNullable(float? value)

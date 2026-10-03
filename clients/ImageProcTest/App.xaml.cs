@@ -14,6 +14,13 @@ namespace ImageProcTest
                 return;
             }
 
+            var oracleMode = Array.FindIndex(e.Args, a => a.Equals(XpePreprocessOracleProcess.ModeArgument, StringComparison.OrdinalIgnoreCase));
+            if (oracleMode >= 0)
+            {
+                RunPreprocessOracleWorker(e.Args, oracleMode);
+                return;
+            }
+
             if (e.Args.Contains("--run-preprocess-fixture-e2e", StringComparer.OrdinalIgnoreCase))
             {
                 RunPreprocessFixtureE2e(e.Args);
@@ -51,6 +58,15 @@ namespace ImageProcTest
             {
                 backend.Shutdown();
             }
+        }
+
+        // GUI-C-212b: the synthetic oracle runs here, in a child process of the app, so that its module shutdown and synthetic calibration never touch the app's own module state.
+        private void RunPreprocessOracleWorker(string[] args, int modeIndex)
+        {
+            var dllPath = modeIndex + 1 < args.Length ? args[modeIndex + 1] : string.Empty;
+            XpePreprocessOracleProcess.RunWorker(dllPath, Console.Out);
+            Environment.ExitCode = 0;
+            Shutdown(0);
         }
 
         private void RunPreprocessFixtureE2e(string[] args)

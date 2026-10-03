@@ -23,8 +23,27 @@ namespace ImageProcTest
         double DeterminismRmse,
         double OutputMin,
         double OutputMax,
-        IReadOnlyList<PreprocessSyntheticStageResult> Stages)
+        IReadOnlyList<PreprocessSyntheticStageResult> Stages,
+        string? TempCleanupWarning = null)
     {
+        /// <summary>The run happened and failed (as opposed to <see cref="NotRun"/>, where it never started).</summary>
+        public static PreprocessSyntheticOracleResult Failed(string status, string details) =>
+            new(
+                Status: status,
+                Details: details,
+                Executed: true,
+                Passed: false,
+                TotalLatencyMs: 0,
+                InputPreserved: false,
+                RawSha256Before: "",
+                RawSha256After: "",
+                OutputSha256: "",
+                NaNInfCount: 0,
+                DeterminismRmse: double.NaN,
+                OutputMin: double.NaN,
+                OutputMax: double.NaN,
+                Stages: []);
+
         public static PreprocessSyntheticOracleResult NotRun(string details)
         {
             return new PreprocessSyntheticOracleResult(

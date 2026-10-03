@@ -413,7 +413,7 @@ namespace ImageProcTest
                 changed,
                 output.Length,
                 changed / (double)count,
-                OutputIdenticalToInput: changed == 0 && nanInf == 0,
+                OutputWithinHalfUnitOfInput: changed == 0 && nanInf == 0,
                 nanInf);
         }
 

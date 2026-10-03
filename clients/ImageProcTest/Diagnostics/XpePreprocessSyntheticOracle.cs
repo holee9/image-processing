@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 
 namespace ImageProcTest
 {
@@ -18,6 +19,11 @@ namespace ImageProcTest
     /// temporary folder and LOADED, a defect map (an XCal file, written here -- the module has no generator for one) is loaded, and each stage must return OK and must have an
     /// effect; the verdict requires non-zero output, so a chain that wrote nothing cannot pass.
     ///
+    /// GUI-C-212b (#249, Codex #96): this class runs in its OWN PROCESS (<see cref="XpePreprocessOracleProcess"/>). It calls xpe_preprocess_shutdown, loads synthetic maps into the module's
+    /// process-global calibration store and shuts down again, which in the app's process would erase whatever calibration the operator had loaded and let a concurrent call see the
+    /// synthetic maps. Restoring the state in-process was rejected: there is no way to guarantee a complete restore of global state. The worker owns its temporary folder: a deletion
+    /// failure is reported in <see cref="PreprocessSyntheticOracleResult.TempCleanupWarning"/>, and a start reclaims this class's own folders that are older than <see cref="DefaultStaleAge"/>.
+    ///
     /// Guarded by IntegrationTests (OracleCallTests): a diagnostic nobody tests rots, and this one did for months.
     /// </summary>
     internal static class XpePreprocessSyntheticOracle
@@ -27,6 +33,14 @@ namespace ImageProcTest
         private const int PixelCount = Width * Height;
         private const ushort HotValue = 60000;
         private const float HotEffect = 50000f;
+
+        /// <summary>A folder of this class older than this was left by a run that did not finish; a younger one may belong to a run still going and is never touched.</summary>
+        public static readonly TimeSpan DefaultStaleAge = TimeSpan.FromHours(1);
+
+        private static readonly Regex OwnFolder = new("^xpe_oracle_[0-9a-f]{32}$", RegexOptions.Compiled);
+
+        /// <summary>Test seams: where the temporary folders live, a hook called once the run's folder exists, and the age beyond which an old folder is reclaimed.</summary>
+        public sealed record OracleOptions(string? TempRoot = null, Action<string>? OnTempDirReady = null, TimeSpan? StaleAge = null);
 
         // Two isolated pixels the defect map marks; the input carries a hot value there, so a defect stage that does nothing is visible.
         private static readonly int[] DefectPixels = [5 * Width + 5, 12 * Width + 9];
@@ -75,7 +89,7 @@ namespace ImageProcTest
             LoadDelegate LoadGain,
             LoadDelegate LoadDefect);
 
-        public static PreprocessSyntheticOracleResult Run(string dllPath)
+        public static PreprocessSyntheticOracleResult Run(string dllPath, OracleOptions? options = null)
         {
             if (!File.Exists(dllPath))
             {
@@ -88,57 +102,23 @@ namespace ImageProcTest
                 return PreprocessSyntheticOracleResult.NotRun($"DLL load failed: {dllPath}");
             }
 
-            var tempDir = Path.Combine(Path.GetTempPath(), $"xpe_oracle_{Guid.NewGuid():N}");
+            var warnings = new List<string>();
+            string? tempDir = null;
             Exports? exports = null;
+            PreprocessSyntheticOracleResult result;
             try
             {
+                var root = options?.TempRoot ?? Path.GetTempPath();
+                ReclaimStaleFolders(root, options?.StaleAge ?? DefaultStaleAge, warnings);
+                tempDir = Path.Combine(root, $"xpe_oracle_{Guid.NewGuid():N}");
                 exports = Bind(handle);
-                if (exports is null)
-                {
-                    return PreprocessSyntheticOracleResult.NotRun("Mandatory correction or calibration exports are not available.");
-                }
-
-                exports.Shutdown();
-                var initResult = exports.Init(IntPtr.Zero);
-                if (initResult != XpeCommonApi.XpeErrorCode.OK)
-                {
-                    return Failed("Init failed", $"xpe_preprocess_init(NULL) returned {initResult}.");
-                }
-
-                Directory.CreateDirectory(tempDir);
-                var setup = LoadCalibration(exports, tempDir);
-                if (setup is not null)
-                {
-                    return Failed("Calibration setup failed", setup);
-                }
-
-                var first = RunChain(exports);
-                var second = RunChain(exports);
-                var determinismRmse = CalculateRmse(first.Output, second.Output);
-                var outputSha = ComputeSha256(first.Output);
-                var passed = first.Passed && second.Passed && determinismRmse == 0;
-
-                return new PreprocessSyntheticOracleResult(
-                    Status: passed ? "Synthetic oracle pass" : "Synthetic oracle fail",
-                    Details: passed
-                        ? "16x16 synthetic offset->gain->defect adapter chain passed with generated and loaded calibration."
-                        : "Synthetic adapter chain executed but one or more gates failed.",
-                    Executed: true,
-                    Passed: passed,
-                    TotalLatencyMs: first.TotalLatencyMs + second.TotalLatencyMs,
-                    InputPreserved: first.InputPreserved && second.InputPreserved,
-                    RawSha256Before: first.RawSha256Before,
-                    RawSha256After: first.RawSha256After,
-                    OutputSha256: outputSha,
-                    NaNInfCount: first.NaNInfCount + second.NaNInfCount,
-                    DeterminismRmse: determinismRmse,
-                    OutputMin: first.OutputMin,
-                    OutputMax: first.OutputMax,
-                    Stages: first.Stages);
+                result = exports is null
+                    ? PreprocessSyntheticOracleResult.NotRun("Mandatory correction or calibration exports are not available.")
+                    : RunWith(exports, tempDir, options);
             }
             catch (Exception ex)
             {
-                return Failed("Synthetic oracle exception", ex.Message);
+                result = Failed("Synthetic oracle exception", ex.Message);
             }
             finally
             {
@@ -152,39 +132,94 @@ namespace ImageProcTest
                 }
 
                 NativeLibrary.Free(handle);
-                try
+                if (tempDir is not null)
                 {
-                    if (Directory.Exists(tempDir))
+                    try
                     {
-                        Directory.Delete(tempDir, recursive: true);
+                        if (Directory.Exists(tempDir))
+                        {
+                            Directory.Delete(tempDir, recursive: true);
+                        }
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    {
+                        warnings.Add($"temporary folder {tempDir} was not deleted: {ex.Message}");
                     }
                 }
-                catch (IOException)
+            }
+
+            return warnings.Count == 0 ? result : result with { TempCleanupWarning = string.Join(" | ", warnings) };
+        }
+
+        /// <summary>Removes this class's own folders (exact name shape) under <paramref name="root"/> that are older than <paramref name="age"/>; whatever cannot be removed is reported.</summary>
+        private static void ReclaimStaleFolders(string root, TimeSpan age, List<string> warnings)
+        {
+            if (!Directory.Exists(root))
+            {
+                return;
+            }
+
+            foreach (var dir in Directory.EnumerateDirectories(root))
+            {
+                if (!OwnFolder.IsMatch(Path.GetFileName(dir)) || DateTime.UtcNow - Directory.GetLastWriteTimeUtc(dir) <= age)
                 {
-                    // Temporary folder under the user's temp path; best effort.
+                    continue;
                 }
-                catch (UnauthorizedAccessException)
+
+                try
                 {
+                    Directory.Delete(dir, recursive: true);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    warnings.Add($"stale folder {dir} was not reclaimed: {ex.Message}");
                 }
             }
         }
 
-        private static PreprocessSyntheticOracleResult Failed(string status, string details) =>
-            new(
-                Status: status,
-                Details: details,
+        private static PreprocessSyntheticOracleResult RunWith(Exports exports, string tempDir, OracleOptions? options)
+        {
+            exports.Shutdown();
+            var initResult = exports.Init(IntPtr.Zero);
+            if (initResult != XpeCommonApi.XpeErrorCode.OK)
+            {
+                return Failed("Init failed", $"xpe_preprocess_init(NULL) returned {initResult}.");
+            }
+
+            Directory.CreateDirectory(tempDir);
+            options?.OnTempDirReady?.Invoke(tempDir);
+            var setup = LoadCalibration(exports, tempDir);
+            if (setup is not null)
+            {
+                return Failed("Calibration setup failed", setup);
+            }
+
+            var first = RunChain(exports);
+            var second = RunChain(exports);
+            var determinismRmse = CalculateRmse(first.Output, second.Output);
+            var outputSha = ComputeSha256(first.Output);
+            var passed = first.Passed && second.Passed && determinismRmse == 0;
+
+            return new PreprocessSyntheticOracleResult(
+                Status: passed ? "Synthetic oracle pass" : "Synthetic oracle fail",
+                Details: passed
+                    ? "16x16 synthetic offset->gain->defect adapter chain passed with generated and loaded calibration."
+                    : "Synthetic adapter chain executed but one or more gates failed.",
                 Executed: true,
-                Passed: false,
-                TotalLatencyMs: 0,
-                InputPreserved: false,
-                RawSha256Before: "",
-                RawSha256After: "",
-                OutputSha256: "",
-                NaNInfCount: 0,
-                DeterminismRmse: double.NaN,
-                OutputMin: double.NaN,
-                OutputMax: double.NaN,
-                Stages: []);
+                Passed: passed,
+                TotalLatencyMs: first.TotalLatencyMs + second.TotalLatencyMs,
+                InputPreserved: first.InputPreserved && second.InputPreserved,
+                RawSha256Before: first.RawSha256Before,
+                RawSha256After: first.RawSha256After,
+                OutputSha256: outputSha,
+                NaNInfCount: first.NaNInfCount + second.NaNInfCount,
+                DeterminismRmse: determinismRmse,
+                OutputMin: first.OutputMin,
+                OutputMax: first.OutputMax,
+                Stages: first.Stages);
+        }
+
+        private static PreprocessSyntheticOracleResult Failed(string status, string details) => PreprocessSyntheticOracleResult.Failed(status, details);
 
         private static Exports? Bind(IntPtr handle)
         {
@@ -212,9 +247,10 @@ namespace ImageProcTest
             var gainPath = Path.Combine(tempDir, "gain.xcal");
             var defectPath = Path.Combine(tempDir, "defect.xcal");
 
-            // Dark frame: a flat low pedestal. Flat frame: a brighter uniform field.
+            // Dark frame: a flat low pedestal. Flat frame: a brighter field that VARIES per pixel -- a uniform flat gives a gain map of all ones, and a gain stage that did nothing
+            // would then be indistinguishable from one that worked.
             var dark = Enumerable.Repeat((ushort)100, PixelCount).ToArray();
-            var flat = Enumerable.Repeat((ushort)2000, PixelCount).ToArray();
+            var flat = FlatFrame();
             var darkPin = GCHandle.Alloc(dark, GCHandleType.Pinned);
             var flatPin = GCHandle.Alloc(flat, GCHandleType.Pinned);
             try
@@ -269,6 +305,25 @@ namespace ImageProcTest
             w.Write(mask);
         }
 
+        private static ushort[] FlatFrame() => Enumerable.Range(0, PixelCount).Select(i => (ushort)(2000 + i % 8 * 100)).ToArray();
+
+        /// <summary>The gain stage's expected output, computed here from the flat frame by arithmetic: input / (flat / mean(flat)), the module's definition of a flat-field gain.</summary>
+        private static bool GainStageMatchesExpected(ushort[] offsetOut, float[] gainOut)
+        {
+            var flat = FlatFrame();
+            var mean = flat.Average(v => (double)v);
+            for (var i = 0; i < gainOut.Length; i++)
+            {
+                var expected = offsetOut[i] * mean / flat[i];
+                if (Math.Abs(gainOut[i] - expected) > 1e-3 * Math.Max(1.0, Math.Abs(expected)))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         private static ushort[] ChainInput()
         {
             var raw = Enumerable.Range(0, PixelCount).Select(index => (ushort)(1000 + index)).ToArray();
@@ -292,7 +347,7 @@ namespace ImageProcTest
 
             var gain = Call("gain", e.Gain, offsetOut, gainOut, XpeCommonApi.XpePixelFormat.UInt16, XpeCommonApi.XpePixelFormat.Float32);
             var gainEffect = MaxAbsError(gainOut, offsetOut);
-            stages.Add(gain.ToStageResult(gainEffect, gain.ErrorCode == XpeCommonApi.XpeErrorCode.OK && gainOut.Any(v => v != 0f)));
+            stages.Add(gain.ToStageResult(gainEffect, gain.ErrorCode == XpeCommonApi.XpeErrorCode.OK && gainEffect > 0 && GainStageMatchesExpected(offsetOut, gainOut)));
 
             var defect = Call("defect", e.Defect, gainOut, defectOut, XpeCommonApi.XpePixelFormat.Float32, XpeCommonApi.XpePixelFormat.Float32);
             var defectEffect = MaxAbsError(defectOut, gainOut);

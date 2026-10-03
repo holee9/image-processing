@@ -81,6 +81,10 @@
     <Compile Include="..\ImageProcTest\Services\DefectMetricGates.cs" Link="LegacyPreview\Linked\DefectMetricGates.cs" />
     <Compile Include="..\ImageProcTest\Services\RawPreviewService.cs" Link="LegacyPreview\Linked\RawPreviewService.cs" />
     <Compile Include="..\ImageProcTest\DetectorDefaults.cs" Link="LegacyPreview\Linked\DetectorDefaults.cs" />
+    <!-- GUI-C-212b: the synthetic oracle and its child-process host, to run the oracle against a calibration this test process holds. -->
+    <Compile Include="..\ImageProcTest\Diagnostics\XpePreprocessSyntheticOracle.cs" Link="LegacyPreview\Linked\XpePreprocessSyntheticOracle.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\XpePreprocessOracleProcess.cs" Link="LegacyPreview\Linked\XpePreprocessOracleProcess.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\PreprocessSyntheticOracleResult.cs" Link="LegacyPreview\Linked\PreprocessSyntheticOracleResult.cs" />
   </ItemGroup>
 
 </Project>
