@@ -81,44 +81,67 @@ public sealed class NativeLibraryFixture : IDisposable
     /// <summary>GUI-C-209 (D9): what the fixture reports as the resolved path when the located DLL is not x64. Named so a test can hold the wording (it carries the path).</summary>
     internal static string ArchitectureMismatchDiagnostic(string path) => $"Architecture mismatch: {path} is not x64";
 
-    internal static (bool found, string path) TryLocateDll()
+    internal static (bool found, string path) TryLocateDll() =>
+        Locate(Environment.GetEnvironmentVariable("XPE_NATIVE_DIR"), AppContext.BaseDirectory);
+
+    /// <summary>
+    /// GUI-C-225 (REQ-GUI-IT-008, 020, 041): the folders the locator looks in, in the order it looks, as ONE list: <c>XPE_NATIVE_DIR</c> when set, the test output directory, and (when a repository
+    /// root is found above it) the known build folders. The locator searches exactly this list and REQ-GUI-IT-008's check reads exactly this list, so the two cannot drift apart.
+    /// </summary>
+    internal static IReadOnlyList<string> CandidateFolders(string? envDir, string baseDirectory, string? repoRoot)
     {
-        // Priority 1: Env var override
-        var envDir = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
-        if (!string.IsNullOrEmpty(envDir))
-        {
-            var envPath = Path.Combine(envDir, DllName);
-            if (File.Exists(envPath)) return (true, envPath);
-        }
-
-        // Priority 2: Test output directory (AppContext.BaseDirectory)
-        var baseDir = Path.Combine(AppContext.BaseDirectory, DllName);
-        if (File.Exists(baseDir)) return (true, baseDir);
-
-        // Priority 3: Scan up to find repo root, then check known build directories
-        var repoRoot = FindRepositoryRoot(AppContext.BaseDirectory);
+        var folders = new List<string>();
+        if (!string.IsNullOrEmpty(envDir)) folders.Add(envDir);
+        folders.Add(baseDirectory);
         if (repoRoot is not null)
         {
-            var candidates = new[]
-            {
-                Path.Combine(repoRoot, "build", "ci-common", "bin", "Debug", DllName),
-                Path.Combine(repoRoot, "build", "ci-common", "bin", DllName),
-                Path.Combine(repoRoot, "build", "default", "bin", "Debug", DllName),
-                Path.Combine(repoRoot, "build", "default", "bin", DllName),
-                Path.Combine(repoRoot, "modules", "common", "build_test", "Debug", DllName),
-                Path.Combine(repoRoot, "modules", "common", "build_test", "Release", DllName),
-                Path.Combine(repoRoot, "clients", "ImageProcTest", "bin", "Debug", "net8.0-windows", "x64", DllName),
-            };
-
-            foreach (var c in candidates)
-            {
-                if (File.Exists(c)) return (true, c);
-            }
-
-            return (false, $"Repo root found at {repoRoot} but no DLL in any build directory");
+            folders.Add(Path.Combine(repoRoot, "build", "ci-common", "bin", "Debug"));
+            folders.Add(Path.Combine(repoRoot, "build", "ci-common", "bin"));
+            folders.Add(Path.Combine(repoRoot, "build", "default", "bin", "Debug"));
+            folders.Add(Path.Combine(repoRoot, "build", "default", "bin"));
+            folders.Add(Path.Combine(repoRoot, "modules", "common", "build_test", "Debug"));
+            folders.Add(Path.Combine(repoRoot, "modules", "common", "build_test", "Release"));
+            folders.Add(Path.Combine(repoRoot, "clients", "ImageProcTest", "bin", "Debug", "net8.0-windows", "x64"));
         }
 
-        return (false, "Repository root could not be determined");
+        return folders;
+    }
+
+    /// <summary>The candidate folders for this process (the environment, the test output directory, the repository above it).</summary>
+    internal static IReadOnlyList<string> CurrentCandidateFolders() =>
+        CandidateFolders(Environment.GetEnvironmentVariable("XPE_NATIVE_DIR"), AppContext.BaseDirectory, FindRepositoryRoot(AppContext.BaseDirectory));
+
+    /// <summary>
+    /// The locator, with its inputs given: the first candidate folder that holds the DLL wins. When none does, the message names where it looked (REQ-GUI-IT-041: a missing DLL is reported
+    /// with the places that were searched, not just "not found").
+    /// </summary>
+    internal static (bool found, string path) Locate(string? envDir, string baseDirectory)
+    {
+        var repoRoot = FindRepositoryRoot(baseDirectory);
+        var folders = CandidateFolders(envDir, baseDirectory, repoRoot);
+        foreach (var folder in folders)
+        {
+            var candidate = Path.Combine(folder, DllName);
+            if (File.Exists(candidate)) return (true, candidate);
+        }
+
+        var searched = string.Join("; ", folders);
+        return repoRoot is not null
+            ? (false, $"Repo root found at {repoRoot} but no {DllName} in any candidate folder. Searched: {searched}")
+            : (false, $"Repository root could not be determined from {baseDirectory}, and no {DllName} in the folders that were searched: {searched}");
+    }
+
+    /// <summary>True when <paramref name="path"/> is a file under one of <paramref name="folders"/> (whole path segments: a sibling folder that only starts with the same text is not under it).</summary>
+    internal static bool IsUnderAnyFolder(string path, IEnumerable<string> folders)
+    {
+        var full = Path.GetFullPath(path);
+        foreach (var folder in folders)
+        {
+            var prefix = Path.GetFullPath(folder).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+            if (full.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+
+        return false;
     }
 
     private static string? FindRepositoryRoot(string start)

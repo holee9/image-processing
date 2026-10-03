@@ -31,6 +31,8 @@
     { "req": "REQ-GUI-IT-042", "test_class": "Smoke/DllLoadSmokeTests", "ac": "AC-3" },
     { "req": "REQ-GUI-IT-043", "test_class": "Diagnostics/PlatformDetectionTests", "ac": "AC-2" },
     { "req": "REQ-GUI-IT-050", "test_class": "ErrorMapping/NativeErrorTranslationTests", "ac": "AC-9" },
+    { "req": "REQ-GUI-IT-050", "test_class": "ErrorMapping/NegativeInputPathTests", "ac": "AC-9" },
+    { "req": "REQ-GUI-IT-050", "test_class": "Safety/BoundaryGuardTests", "ac": "AC-9" },
     { "req": "REQ-GUI-IT-051", "test_class": "Safety/LeakEnduranceTests", "ac": "AC-7" },
     { "req": "REQ-GUI-IT-052", "test_class": "ErrorMapping/NativeErrorTranslationTests", "ac": "AC-9" },
     { "req": "REQ-GUI-IT-053", "test_class": "Functional/ErrorCodeMappingTests", "ac": "AC-6" },

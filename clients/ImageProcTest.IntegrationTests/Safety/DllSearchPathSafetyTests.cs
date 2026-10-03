@@ -38,6 +38,79 @@ public sealed class DllSearchPathSafetyTests
 
         // Must be a real file
         Assert.True(File.Exists(path), $"Resolved path does not exist on disk: {path}");
+
+        // GUI-C-225 (REQ-GUI-IT-008, the wording decided 2026-10-03): under one of the locator's candidate folders. The list is the locator's own (NativeLibraryFixture.CandidateFolders),
+        // so a candidate added to or removed from the locator changes this check with it, and the next test holds that list to the folder classes the requirement names.
+        Assert.True(NativeLibraryFixture.IsUnderAnyFolder(path, NativeLibraryFixture.CurrentCandidateFolders()),
+            $"the resolved DLL {path} is not under any of the locator's candidate folders: {string.Join("; ", NativeLibraryFixture.CurrentCandidateFolders())}");
+    }
+
+    /// <summary>
+    /// REQ-GUI-IT-008, the three inputs the requirement says must FAIL: a decoy earlier on PATH, a system folder, and an arbitrary folder outside the candidates. The check is a function of its
+    /// inputs, so it is held against them directly (no native DLL needed); the positive control is a file under each kind of candidate.
+    /// </summary>
+    [Fact]
+    public void TheCandidateCheck_RejectsADecoyOnPath_ASystemFolder_AndAnArbitraryFolder_AndAcceptsACandidate()
+    {
+        var candidates = NativeLibraryFixture.CandidateFolders(@"C:\xpe\native", @"C:\xpe\out", @"C:\xpe\repo");
+
+        var decoyDir = Path.Combine(Path.GetTempPath(), $"xpe_decoy_{Guid.NewGuid():N}");
+        var pathWithDecoyFirst = decoyDir + ";" + Environment.GetEnvironmentVariable("PATH");
+        Assert.StartsWith(decoyDir, pathWithDecoyFirst, StringComparison.Ordinal);   // the decoy is "first on PATH"; being on PATH does not make a folder a candidate
+        Assert.False(NativeLibraryFixture.IsUnderAnyFolder(Path.Combine(decoyDir, "xpe_common.dll"), candidates), "a decoy folder first on PATH must not be accepted");
+        Assert.False(NativeLibraryFixture.IsUnderAnyFolder(Path.Combine(Environment.SystemDirectory, "xpe_common.dll"), candidates), "a system folder must not be accepted");
+        Assert.False(NativeLibraryFixture.IsUnderAnyFolder(@"C:\somewhere\else\xpe_common.dll", candidates), "an arbitrary folder outside the candidates must not be accepted");
+        Assert.False(NativeLibraryFixture.IsUnderAnyFolder(@"C:\xpe\repo\build-old\xpe_common.dll", candidates), "a sibling that only starts like a candidate is not under it");
+        Assert.False(NativeLibraryFixture.IsUnderAnyFolder(@"C:\xpe\repo\build\other\xpe_common.dll", candidates), "a folder next to the known build folders is not a candidate");
+
+        foreach (var accepted in new[]
+        {
+            @"C:\xpe\native\xpe_common.dll",
+            @"C:\xpe\out\xpe_common.dll",
+            @"C:\xpe\repo\build\ci-common\bin\Debug\xpe_common.dll",
+            @"C:\xpe\repo\modules\common\build_test\Release\xpe_common.dll",
+            @"C:\xpe\repo\clients\ImageProcTest\bin\Debug\net8.0-windows\x64\xpe_common.dll",
+        })
+        {
+            Assert.True(NativeLibraryFixture.IsUnderAnyFolder(accepted, candidates), $"{accepted} is in a candidate folder and must be accepted");
+        }
+    }
+
+    /// <summary>
+    /// REQ-GUI-IT-008: the locator's candidate list is the five kinds of folder the requirement names (XPE_NATIVE_DIR, repo build/, modules/common/build_test, the test output directory,
+    /// clients/ImageProcTest/bin) and nothing else. The kinds are written here from the requirement, not read from the locator: if the locator gains a folder the requirement does not name (or
+    /// loses one), this fails, and the requirement or the locator has to be changed on purpose.
+    /// </summary>
+    [Fact]
+    public void TheCandidateList_IsExactlyTheFiveKindsOfFolderTheRequirementNames()
+    {
+        const string env = @"C:\xpe\native";
+        const string output = @"C:\xpe\out";
+        const string repo = @"C:\xpe\repo";
+        var candidates = NativeLibraryFixture.CandidateFolders(env, output, repo);
+
+        var kinds = new (string Name, string Root)[]
+        {
+            ("XPE_NATIVE_DIR", env),
+            ("test output directory", output),
+            ("<repo>/build/", Path.Combine(repo, "build")),
+            ("modules/common/build_test", Path.Combine(repo, "modules", "common", "build_test")),
+            ("clients/ImageProcTest/bin", Path.Combine(repo, "clients", "ImageProcTest", "bin")),
+        };
+
+        foreach (var candidate in candidates)
+        {
+            Assert.True(kinds.Any(k => NativeLibraryFixture.IsUnderAnyFolder(Path.Combine(candidate, "x.dll"), [k.Root])),
+                $"the locator searches {candidate}, which is not one of the folder kinds REQ-GUI-IT-008 names");
+        }
+
+        foreach (var kind in kinds)
+        {
+            Assert.True(candidates.Any(c => NativeLibraryFixture.IsUnderAnyFolder(Path.Combine(c, "x.dll"), [kind.Root])),
+                $"the requirement names {kind.Name}, but the locator does not search it");
+        }
+
+        Assert.Empty(NativeLibraryFixture.CandidateFolders(null, output, null).Where(c => c != output));   // without an environment folder or a repository, only the output directory is left
     }
 
     /// <summary>

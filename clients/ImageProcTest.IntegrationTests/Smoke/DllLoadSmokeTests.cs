@@ -40,6 +40,79 @@ public sealed class DllLoadSmokeTests
         Assert.Matches(@"^\d+\.\d+\.\d+", version);
     }
 
+    /// <summary>The time REQ-GUI-IT-020 allows for locating the DLL and getting the first answer from it.</summary>
+    private static readonly TimeSpan LocateBudget = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// GUI-C-225 (REQ-GUI-IT-020): the resolver locates xpe_common.dll "within 5 seconds" and the call after it answers. The requirement has a number in it, so the number is asserted: the locator
+    /// and the first <c>xpe_version</c> call are timed together against <see cref="LocateBudget"/>. (The semver pattern itself is <see cref="XpeVersion_WhenDllLoaded_ReturnsSemverString"/>.)
+    /// </summary>
+    [SkippableFact]
+    public void TheDll_IsLocatedAndAnswersXpeVersion_WithinTheRequirementsFiveSeconds()
+    {
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var (found, path) = NativeLibraryFixture.TryLocateDll();
+        var version = Marshal.PtrToStringAnsi(XpeCommonNative.xpe_version());
+        watch.Stop();
+
+        Assert.True(found, $"the locator did not find the DLL the fixture loaded: {path}");
+        Assert.False(string.IsNullOrEmpty(version));
+        Assert.Matches(@"^\d+\.\d+\.\d+", version!);
+        Assert.True(watch.Elapsed <= LocateBudget, $"locating the DLL and the first xpe_version call took {watch.Elapsed.TotalMilliseconds:0.###} ms; REQ-GUI-IT-020 allows {LocateBudget.TotalSeconds:0.###} s");
+    }
+
+    /// <summary>
+    /// GUI-C-225 (REQ-GUI-IT-041, the locator half): with no search path that holds the DLL the locator says "not found" and says WHERE it looked, instead of returning a bare failure. The
+    /// search path is emptied by giving the locator an output directory with no DLL and no repository above it, and an environment folder that does not exist. The control is the same call
+    /// with the DLL present, so the "not found" is about the missing file and not about the inputs.
+    /// </summary>
+    [Fact]
+    public void TheLocator_WithNothingToFind_ReportsNotFound_AndNamesTheFoldersItSearched()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"xpe_c225_loc_{Guid.NewGuid():N}");
+        var empty = Path.Combine(root, "empty_output");
+        var withDll = Path.Combine(root, "with_dll");
+        var absentEnv = Path.Combine(root, "no_such_native_dir");
+        Directory.CreateDirectory(empty);
+        Directory.CreateDirectory(withDll);
+        File.WriteAllBytes(Path.Combine(withDll, "xpe_common.dll"), [0x4D, 0x5A]);
+        try
+        {
+            var (control, controlPath) = NativeLibraryFixture.Locate(absentEnv, withDll);
+            Assert.True(control, "the control (a folder that holds the file) must be found: " + controlPath);
+            Assert.Equal(Path.Combine(withDll, "xpe_common.dll"), controlPath, StringComparer.OrdinalIgnoreCase);
+
+            var (found, message) = NativeLibraryFixture.Locate(absentEnv, empty);
+
+            Assert.False(found);
+            Assert.Contains("xpe_common.dll", message, StringComparison.Ordinal);
+            Assert.Contains(empty, message, StringComparison.OrdinalIgnoreCase);     // the output directory that was searched
+            Assert.Contains(absentEnv, message, StringComparison.OrdinalIgnoreCase); // and the environment folder
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private const string AbsentLibraryName = "xpe_c225_no_such_library.dll";
+
+    /// <summary>
+    /// GUI-C-225 (REQ-GUI-IT-041, the loader half): asking the runtime to load a DLL that cannot be found raises <see cref="DllNotFoundException"/> that names the DLL, and the test host carries on
+    /// (this test is still running afterwards). The name in the message is what lets an operator see WHICH library is missing. It goes through <c>NativeLibrary.Load</c>, the call the fixture itself
+    /// makes, rather than a declared <c>[DllImport]</c>: the signature-parity test reads every declared extern and a made-up one would be a finding there.
+    /// </summary>
+    [Fact]
+    public void LoadingAMissingDll_RaisesDllNotFoundException_ThatNamesIt()
+    {
+        var thrown = Assert.Throws<DllNotFoundException>(() => NativeLibrary.Load(AbsentLibraryName));
+
+        Assert.Contains(AbsentLibraryName, thrown.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(8, IntPtr.Size);   // the host is alive and still running its own code
+    }
+
     /// <summary>
     /// REQ-GUI-IT-042: Resolved DLL is x64 architecture (verified in NativeLibraryFixture).
     /// If fixture reports arch mismatch, surface as test failure with resolved path.
@@ -65,11 +138,6 @@ public sealed class DllLoadSmokeTests
 
     // GUI-C-208 (D7): ProcessArchitecture_IsRecordedForDiagnostics lived here. It recorded nothing and failed any architecture but X64 or Arm64. REQ-GUI-IT-043 asks for a diagnostic
     // that RECORDS the architecture and does not fail other tests; that is PlatformDetectionTests.ProcessArchitecture_IsRecordedForDiagnostics now.
-    /// <summary>
-    /// REQ-GUI-IT-041: Missing DLL must raise DllNotFoundException deterministically (not crash).
-    /// Verified structurally: if DLL is absent, fixture.IsAvailable is false and SkipReason is set.
-    /// This test verifies that the fixture correctly diagnosed absence.
-    /// </summary>
     /// <summary>
     /// REQ-GUI-IT-042 (the half the fixture can check without a second DLL): the bootstrap's architecture guard accepts an x64 binary and rejects anything else instead of crashing.
     /// GUI-C-208 (D5) replaced <c>WhenDllAbsent_FixtureReportsUnavailable_NotCrash</c>, whose assertion <c>IsAvailable || SkipReason non-empty</c> was true in every state the fixture

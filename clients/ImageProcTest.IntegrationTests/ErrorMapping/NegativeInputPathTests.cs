@@ -174,14 +174,37 @@ public sealed class NegativeInputPathTests : IDisposable
         var row = Cases().Single(c => c.Id == id);
 
         XpeCommonNative.XpeErrorCode negative = default;
-        var thrown = Record.Exception(() => negative = row.Negative());
+        var thrown = Record.Exception(() => negative = BoundaryGuard.Invoke(row.Id + " (negative)", row.Negative));   // REQ-GUI-IT-050: a SEHException is recorded and fails the row
         Assert.True(thrown is null, $"{row.Id}: {row.Input} threw {thrown?.GetType().Name}: {thrown?.Message}");
         Assert.True(row.Expected == negative, $"{row.Id}: {row.Input} -> expected {row.Expected} ({(int)row.Expected}), got {negative} ({(int)negative}); check: {row.CheckText}");
 
         XpeCommonNative.XpeErrorCode control = default;
-        thrown = Record.Exception(() => control = row.Control());
+        thrown = Record.Exception(() => control = BoundaryGuard.Invoke(row.Id + " (control)", row.Control));
         Assert.True(thrown is null, $"{row.Id} control threw {thrown?.GetType().Name}: {thrown?.Message}");
         Assert.True(Ok == control, $"{row.Id} control (the same call with a valid value) returned {control}, so the rejection above may not be about {row.CheckText}");
+    }
+
+    /// <summary>
+    /// GUI-C-225 (REQ-GUI-IT-050): "every negative test shall run to completion with the host alive". All registered rows are run, one after another, through the boundary guard, and the number that
+    /// ran is compared with the number registered (the theory's ids, the table's rows): a row that is skipped, or a host that stopped half-way, cannot make the suite look complete. A
+    /// SEHException in any row fails here with the recorded line. (An access violation ends the host, which fails the whole run instead; .NET cannot catch it.)
+    /// </summary>
+    [SkippableFact]
+    public void EveryRegisteredNegativeRow_RunsToCompletion_ThroughTheBoundaryGuard_WithTheHostAlive()
+    {
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
+        var rows = Cases();
+        var registered = CaseIds().Count();
+        Assert.Equal(registered, rows.Count);   // what the theory enumerates is what the table holds
+
+        var executed = 0;
+        foreach (var row in rows)
+        {
+            BoundaryGuard.Invoke(row.Id + " (negative)", row.Negative);
+            executed++;
+        }
+
+        Assert.Equal(registered, executed);
     }
 
     /// <summary>
