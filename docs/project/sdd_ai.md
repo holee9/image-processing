@@ -318,7 +318,7 @@ Option                         Default    Effect
 ------------------------------- ---------- -----------------------------------
 XPE_AI_USE_ONNXRUNTIME         OFF        Enable ONNX Runtime linkage
 XPE_AI_USE_SPDLOG              AUTO       Use spdlog for logging
-XPE_AI_USE_NLOHMANN_JSON       AUTO       Use nlohmann/json for parsing
+(removed)                      --         nlohmann/json is REQUIRED (QA-B-194b): no option, configure fails without it
 
 Derived:
 XPE_AI_STUB_BUILD              1          Set when ONNX Runtime unavailable
@@ -371,7 +371,7 @@ Dependencies (xpe_ai.dll only):
   xpe_common.dll     -- Always
   onnxruntime         -- XPE_AI_USE_ONNXRUNTIME=ON
   spdlog              -- XPE_AI_USE_SPDLOG=1
-  nlohmann_json       -- XPE_AI_USE_NLOHMANN_JSON=1
+  nlohmann_json       -- Always (required; configure fails without it, QA-B-194b)
   fmt                 -- Always (via xpe_common)
 ```
 
