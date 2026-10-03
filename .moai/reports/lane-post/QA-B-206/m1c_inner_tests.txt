@@ -1,0 +1,17 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from DicomWriterInner
+[ RUN      ] DicomWriterInner.TheControlImageIsWrittenByBothInnerWriters
+[       OK ] DicomWriterInner.TheControlImageIsWrittenByBothInnerWriters (10 ms)
+[ RUN      ] DicomWriterInner.ADescriptorThatContradictsTheSixteenBitWordsIsRefusedWithoutTheDoor
+[       OK ] DicomWriterInner.ADescriptorThatContradictsTheSixteenBitWordsIsRefusedWithoutTheDoor (2 ms)
+[ RUN      ] DicomWriterInner.APixelFormatOtherThanUint16IsRefusedWithoutTheDoor
+[       OK ] DicomWriterInner.APixelFormatOtherThanUint16IsRefusedWithoutTheDoor (1 ms)
+[ RUN      ] DicomWriterInner.AnImageNoFileCanDescribeIsRefusedWithoutTheDoorAndTheTinyBufferIsNotRead
+[       OK ] DicomWriterInner.AnImageNoFileCanDescribeIsRefusedWithoutTheDoorAndTheTinyBufferIsNotRead (0 ms)
+[----------] 4 tests from DicomWriterInner (14 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (14 ms total)
+[  PASSED  ] 4 tests.

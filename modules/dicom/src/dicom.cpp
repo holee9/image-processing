@@ -126,7 +126,7 @@ bool image_is_non_empty(const XpeImageBuffer* img) {
 // "wrong pixel format"; the caller that holds a float image owns the choice of how to turn it into 16-bit counts
 // (round, clamp, window), which a writer cannot know.
 bool pixel_format_is_writable(const XpeImageBuffer* img) {
-    return img != nullptr && img->format == XPE_PIXEL_UINT16;
+    return img != nullptr && xpe::dicom::image_format_is_writable(img->format);
 }
 
 // QA-B-206 M1b (Codex #108): the descriptor must agree with the 16-bit words the writer emits. `format == UINT16` with

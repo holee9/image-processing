@@ -10,6 +10,8 @@
 
 #include <cstdint>
 
+#include "xpe/common/xpe_types.h"
+
 namespace xpe {
 namespace dicom {
 
@@ -43,6 +45,25 @@ inline bool image_size_is_representable(uint32_t width, uint32_t height) {
     if (width == 0u || height == 0u) return false;
     if (width > kMaxRowsOrColumns || height > kMaxRowsOrColumns) return false;
     return pixel_data_bytes(width, height) <= kMaxPixelDataBytes;
+}
+
+/** The only pixel format the writers take: XPE_PIXEL_UINT16 (QA-B-201 M4). */
+inline bool image_format_is_writable(XpePixelFormat format) {
+    return format == XPE_PIXEL_UINT16;
+}
+
+/**
+ * @brief The length of one encapsulated fragment as the 32-bit value a DICOM item carries (QA-B-206 M1c, Codex #110).
+ *
+ * The size of a JPEG 2000 bitstream is only known after compression, and nothing says it is smaller than the raw image, so the
+ * limit on the raw size (image_size_is_representable) does not bound it. A fragment is written whole, never split; one longer
+ * than the largest even length (0xFFFFFFFE; 0xFFFFFFFF is "undefined length") cannot be described and is refused. @p out is
+ * written only when the length fits.
+ */
+inline bool narrow_fragment_length(uint64_t bytes, uint32_t* out) {
+    if (bytes > kMaxPixelDataBytes) return false;
+    if (out != nullptr) *out = static_cast<uint32_t>(bytes);
+    return true;
 }
 
 /**

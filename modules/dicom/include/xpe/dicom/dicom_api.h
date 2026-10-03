@@ -314,7 +314,9 @@ XPE_API XpeErrorCode xpe_dicom_write(const char* filePath,
  *         bitsStored is not 1..16, the size is not representable (no file is
  *         created), or img->dataSize is inconsistent with its dimensions.
  * @return XPE_ERR_IO_FAILED if the file cannot be written.
- * @return XPE_ERR_PROCESSING_FAILED if J2K compression fails.
+ * @return XPE_ERR_PROCESSING_FAILED if J2K compression fails, or if the compressed
+ *         bitstream is longer than one fragment can describe (0xFFFFFFFE bytes; it is
+ *         refused, not split, and no file is created -- QA-B-206 M1c).
  *
  * @note REQ-DICOM-019..022
  */

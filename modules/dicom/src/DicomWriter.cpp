@@ -40,6 +40,11 @@ XpeErrorCode DicomWriter::write(const char* filePath,
                                  const XpeImageMetadata* meta) {
     spdlog::debug("[DicomWriter] write: {}", filePath ? filePath : "(null)");
     if (!filePath || !img || !meta) return XPE_ERR_INVALID_INPUT;
+    // QA-B-206 M1c (Codex #110): the inner writer applies the same format and descriptor predicates as the public door, so
+    // a caller that reaches it without the door cannot write a file whose descriptor contradicts its 16-bit words.
+    if (!image_format_is_writable(img->format) || !image_bits_are_writable(img->bitsAllocated, img->bitsStored)) {
+        return XPE_ERR_INVALID_INPUT;
+    }
 
     DcmFileFormat dcmff;
     DcmDataset* ds = dcmff.getDataset();
@@ -88,12 +93,22 @@ XpeErrorCode DicomWriter::writeJ2K(const char* filePath,
                                     const XpeImageMetadata* meta) {
     spdlog::debug("[DicomWriter] writeJ2K: {}", filePath ? filePath : "(null)");
     if (!filePath || !img || !meta) return XPE_ERR_INVALID_INPUT;
+    if (!image_format_is_writable(img->format) || !image_bits_are_writable(img->bitsAllocated, img->bitsStored)) {
+        return XPE_ERR_INVALID_INPUT;   // QA-B-206 M1c
+    }
     if (!image_size_is_representable(img->width, img->height)) return XPE_ERR_INVALID_INPUT;   // QA-B-206 M1b
 
     // Compress pixel data with OpenJPEG J2K Lossless
     std::vector<uint8_t> j2kData = compressJ2K(img);
     if (j2kData.empty()) {
         spdlog::warn("[DicomWriter] J2K compression failed");
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+    // QA-B-206 M1c (Codex #110): the compressed length is only known now, and nothing bounds it by the raw size. It is
+    // checked against the fragment limit before the dataset is built and before any file exists. The fault is in what the
+    // compressor produced, not in the caller's input, so the code is PROCESSING_FAILED, as for a compression failure.
+    if (!narrow_fragment_length(j2kData.size(), nullptr)) {
+        spdlog::warn("[DicomWriter] J2K bitstream of {} bytes does not fit one fragment", j2kData.size());
         return XPE_ERR_PROCESSING_FAILED;
     }
 
@@ -400,6 +415,11 @@ std::vector<uint8_t> DicomWriter::compressJ2K(const XpeImageBuffer* img) {
 XpeErrorCode DicomWriter::setJ2KPixelData(DcmDataset* ds, const std::vector<uint8_t>& j2kData) {
     if (!ds || j2kData.empty()) return XPE_ERR_INVALID_INPUT;
 
+    // QA-B-206 M1c (Codex #110): the length is narrowed to 32 bits ONLY through narrow_fragment_length, which refuses a
+    // bitstream longer than 0xFFFFFFFE. `static_cast<Uint32>(j2kData.size())` used to wrap silently.
+    uint32_t fragmentLength = 0;
+    if (!narrow_fragment_length(j2kData.size(), &fragmentLength)) return XPE_ERR_PROCESSING_FAILED;
+
     // Create a pixel sequence for encapsulated J2K data
     DcmPixelSequence* seq = new DcmPixelSequence(DcmTag(DCM_PixelData, EVR_OB));
 
@@ -411,7 +431,7 @@ XpeErrorCode DicomWriter::setJ2KPixelData(DcmDataset* ds, const std::vector<uint
     DcmPixelItem* fragment = new DcmPixelItem(DcmTag(DCM_Item, EVR_OB));
     OFCondition rc = fragment->putUint8Array(
         j2kData.data(),
-        static_cast<Uint32>(j2kData.size())
+        fragmentLength
     );
     if (rc.bad()) {
         delete fragment;

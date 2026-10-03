@@ -311,4 +311,39 @@ if(_XPE_BUILD_TESTS)
     gtest_discover_tests(test_dicom_failure_paths
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
+
+    # --- QA-B-206 M1c (Codex #110): the INNER writer (DicomWriter::write / writeJ2K) called directly, without the public door.
+    # DicomWriter is not exported from the DLL, so its source is compiled into this executable.
+    add_executable(test_dicom_writer_inner
+        tests/test_dicom_writer_inner.cpp
+        src/DicomWriter.cpp
+    )
+    target_include_directories(test_dicom_writer_inner PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
+    target_link_libraries(test_dicom_writer_inner PRIVATE
+        xpe_common
+        spdlog::spdlog
+        openjp2
+        GTest::gtest_main
+    )
+    if(dcmtk_FOUND)
+        target_link_libraries(test_dicom_writer_inner PRIVATE DCMTK::DCMTK)
+    else()
+        if(DCMTK_INCLUDE_DIRS)
+            target_include_directories(test_dicom_writer_inner PRIVATE ${DCMTK_INCLUDE_DIRS})
+        endif()
+        if(DCMTK_LIBRARIES)
+            target_link_libraries(test_dicom_writer_inner PRIVATE ${DCMTK_LIBRARIES})
+        endif()
+    endif()
+    target_compile_features(test_dicom_writer_inner PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_dicom_writer_inner PRIVATE /W4)
+    endif()
+    xpe_target_warnings_as_errors(test_dicom_writer_inner)
+    gtest_discover_tests(test_dicom_writer_inner
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
 endif()

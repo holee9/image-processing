@@ -751,3 +751,39 @@ TEST_F(DicomWriterTest, ThousandOpenCycles_CrtHeapDoesNotGrowWhetherOrNotOpenSuc
     EXPECT_LT(g.heap.blocks, heap_growth::MaxBlocks(g.cycles)) << g.cycles << " open cycles left blocks allocated";
     EXPECT_LT(g.heap.bytes, heap_growth::kMaxBytes) << g.cycles << " open cycles left bytes allocated";
 }
+
+// ---------------------------------------------------------------------------
+// QA-B-206 M1c (Codex #110): the length of a compressed J2K fragment is narrowed to 32 bits only through
+// narrow_fragment_length. The size of the bitstream is known only after compression and nothing bounds it by the raw size,
+// so the limit on the raw size does not cover it. Tested with large size_t values, without a compressor.
+// ---------------------------------------------------------------------------
+TEST(DicomImageLimits, AJ2kFragmentLengthIsNarrowedOnlyWhenItFitsAndNeverWraps) {
+    using xpe::dicom::narrow_fragment_length;
+    uint32_t out = 0xDEADBEEFu;
+    EXPECT_TRUE(narrow_fragment_length(0ull, &out));
+    EXPECT_EQ(0u, out);
+    EXPECT_TRUE(narrow_fragment_length(1ull, &out));
+    EXPECT_EQ(1u, out);
+    EXPECT_TRUE(narrow_fragment_length(0xFFFFFFFDull, &out)) << "odd, padded to the even 0xFFFFFFFE by the file";
+    EXPECT_EQ(0xFFFFFFFDu, out);
+    EXPECT_TRUE(narrow_fragment_length(0xFFFFFFFEull, &out)) << "the largest even length";
+    EXPECT_EQ(0xFFFFFFFEu, out);
+
+    out = 0xDEADBEEFu;
+    EXPECT_FALSE(narrow_fragment_length(0xFFFFFFFFull, &out)) << "0xFFFFFFFF is the undefined-length marker";
+    EXPECT_EQ(0xDEADBEEFu, out) << "a refused length leaves the output untouched";
+    EXPECT_FALSE(narrow_fragment_length(0x100000000ull, &out)) << "2^32: a plain cast to 32 bits gives 0";
+    EXPECT_FALSE(narrow_fragment_length(0x100000001ull, &out)) << "2^32 + 1: a plain cast gives 1";
+    EXPECT_FALSE(narrow_fragment_length(0x1FFFFFFFFull, &out));
+    EXPECT_FALSE(narrow_fragment_length(1ull << 40, &out));
+    EXPECT_FALSE(narrow_fragment_length(UINT64_MAX, &out));
+    EXPECT_EQ(0xDEADBEEFu, out);
+    EXPECT_TRUE(narrow_fragment_length(5ull, nullptr)) << "a NULL output only asks whether it fits";
+    EXPECT_FALSE(narrow_fragment_length(0x100000000ull, nullptr));
+}
+
+TEST(DicomImageLimits, TheWritableFormatIsUint16AndNothingElse) {
+    EXPECT_TRUE(xpe::dicom::image_format_is_writable(XPE_PIXEL_UINT16));
+    EXPECT_FALSE(xpe::dicom::image_format_is_writable(XPE_PIXEL_UINT8));
+    EXPECT_FALSE(xpe::dicom::image_format_is_writable(XPE_PIXEL_FLOAT32));
+}
