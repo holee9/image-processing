@@ -9460,7 +9460,8 @@ void DicomConformanceValidator::check_type1_attributes(
     // 정정 2026-10-03 (#251, Codex #111·#113, 사용자 결정 "표준대로"): PatientID·PatientName 은 Patient Module 의
     // Type 2 (PS3.3 Table C.7-1), StudyDate 는 General Study Module 의 Type 2 — 존재만 필수, 빈 값 적합이므로
     // 이 목록에서 뺐다. PixelData 는 Image Pixel Module 의 Type 1C 이고, 전송 구문에 따라 갈린다(PS3.5 §8.2·A.6):
-    // JPIP 참조 구문(.94/.95)에서는 PixelData 가 있으면 안 되고 값 있는 Provider URL (0028,7FE0) 로 참조한다
+    // JPIP 참조 구문(.94/.95, PS3.5 A.6 — 그리고 HTJ2K 참조 .204/.205, A.11/A.12)에서는 PixelData 가 있으면 안 되고
+    // 값 있는 Provider URL (0028,7FE0) 로 참조한다
     // (이 모듈은 참조 화소를 읽지 못하므로 경고), 그 밖의 구문에서는 PixelData 필수이고 URL 은 허용되지 않는다.
     // 둘이 함께 있으면 오류. 이 예제의 목록 루프는 그 조건을 표현하지 못하므로 PixelData 판정의 기준은
     // SPEC-XPE-P1B-DICOM REQ-DICOM-024 다(정정 2026-10-03, #251, Codex #113~#115).
@@ -9545,7 +9546,7 @@ int XpeDicomWriter::write(DcmDataset* dataset,
 
 | 상황 | 처리 |
 |------|------|
-| PixelData 누락 | Type 1C: JPIP 참조 전송 구문에서 Pixel Data Provider URL 만 있으면 오류 아님(이 모듈은 참조 화소를 읽지 못하므로 경고), 그 밖의 구문이거나 URL 도 없으면 오류. Pixel Data 와 URL 동시 존재도 오류 (정정 2026-10-03, #251, Codex #114) |
+| PixelData 누락 | Type 1C: JPIP 참조 전송 구문(.94/.95/.204/.205)에서 Pixel Data Provider URL 만 있으면 오류 아님(이 모듈은 참조 화소를 읽지 못하므로 경고), 그 밖의 구문이거나 URL 도 없으면 오류. Pixel Data 와 URL 동시 존재도 오류 (정정 2026-10-03, #251, Codex #114) |
 | BitsStored = 8 (비표준) | 오류 — DX IOD는 12/14/16 bit만 허용 |
 | WC/WW 범위 초과 | 경고 (severity=2); 파일 쓰기는 허용 |
 | DCMTK 미링크 | 컴파일 타임 오류 처리 |
