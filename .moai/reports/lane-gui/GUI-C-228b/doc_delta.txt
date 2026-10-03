@@ -1,0 +1,33 @@
+GUI-C-228b doc_delta -- ONLY what changes in the 007 and 008 rows of GUI-C-227's rtm_patch.txt / spec_patch.txt. Everything else in those files (and in the v1.3.4 draft the lead already applied) stays as it is.
+Totals are unchanged: 구현됨 25 / 구현됨(한계 있음) 8 / 부분 0 / 보류 3 = 36 (REQ-007 stays 구현됨(한계), the limit just changes). Verified by running ../GUI-C-228/check_totals.py.txt again (see check_totals_output.txt in this folder).
+
+== RTM-GUI-001 §? row for REQ-GUI-IT-007  (rtm_patch.txt line 58)
+
+BEFORE (the AFTER of 227):
+| REQ-GUI-IT-007 | Mock Backend Exclusion | SRS §4.5 | SDD §2.3 Test Isolation | test project config | `MockBlockingTests.*` (타입 부재 둘 + 참조 이름 + 통제 `TheTypeScan_FindsATypeThatIsLoaded`)<br>*한계: 요구의 "Mock 폴백은 시험 실패로 본다"를 직접 단언하는 시험은 없다(통합 시험은 P/Invoke 미러를 직접 부르므로 폴백 경로가 없다)* | — |
+
+AFTER:
+| REQ-GUI-IT-007 | Mock Backend Exclusion | SRS §4.5 | SDD §2.3 Test Isolation | test project config | `MockBlockingTests.*` (실행 시점에 로드된 타입 부재 둘 + 참조 이름 + 통제 `TheTypeScan_FindsATypeThatIsLoaded`)<br>`MockBlockingStaticTests.TheTestAssemblyMetadata_NamesNoMockBackendType_AndReferencesNoAppAssembly` (컴파일된 시험 어셈블리의 TypeDef·TypeRef·ExportedType·AssemblyRef 에 앱의 비실제 백엔드 타입이 0, 앱 어셈블리 참조 0 — 실행 순서와 무관)<br>통제: `TheDerivedBackendSet_ContainsTheAppsMockBackends_AndNoRealOne`, `TheMetadataReader_FindsDefinedReferencedAndGenericArgumentTypes`, `TheComparison_FlagsAnAssemblyThatReferencesAMemberOfTheSet`<br>`MockBlockingStaticTests.TheTestProject_HasNoRuntimeTypeFromStringPath`<br>*한계: 문자열로 만든 타입(`Type.GetType`·`Activator.CreateInstance`·`Assembly.Load`)은 메타데이터 행이 없어 정적 단언이 못 본다 — 시험 프로젝트에 그런 경로가 0건임을 위 마지막 시험이 단언하므로 새로 생기면 빨강이 된다. "Mock 폴백은 시험 실패로 본다"는 시험이 폴백 경로를 갖지 않음(통합 시험은 P/Invoke 미러를 직접 부름)으로 충족된다* | — |
+
+== RTM-GUI-001 row for REQ-GUI-IT-008  (rtm_patch.txt line 59)
+
+BEFORE (the AFTER of 227), only the limit sentence at the end of the Test column:
+*한계: 파일 심볼릭 링크 시험은 심볼릭 링크 권한이 있는 환경에서만 돈다(권한 없는 셸에서는 사유를 적고 건너뜀 — CI 러너에서 도는지는 병합 뒤 CI 로그로 확인). 디코이·시스템 폴더·후보 밖 거부는 순수 함수와 로케이터 재실행으로 보였고 실제 로더가 디코이를 피하는지를 직접 입증하지는 않는다. Codex #122 검토 반영 대기*
+
+AFTER (the limit sentence only; the list of cited tests already includes `TheLoadedModule_IsReallyUnderAnApprovedFolder_WhenItsLinksAreFollowed`):
+*한계: 링크 권한이 없는 셸에서는 파일 링크 시험이 사유를 적고 건너뛴다(CI 러너에서는 실제로 돌았다 — 병합 CI 863 통과·건너뜀 0). 실제로 로드된 모듈(`Process.Modules`)이 후보 폴더 아래인지는 `TheLoadedModule_…` 가 링크를 따라간 실제 경로로 단언한다. 실행하지 않은 변형: 로더가 디코이를 피하는 경로의 직접 입증, 파일 링크 이외 형식의 후보 밖 대상*
+
+== SPEC-XPE-GUI-IT §4.6 limit table (spec_patch.txt lines 35-36)
+
+BEFORE:
+| 007 | "Mock 폴백은 시험 실패로 본다"를 직접 단언하는 시험은 없다(통합 시험은 P/Invoke 미러를 직접 부르므로 폴백 경로가 없다) |
+| 008 | 파일 심볼릭 링크 시험은 링크 권한이 있는 환경에서만 돈다(권한 없으면 사유를 적고 건너뜀). 디코이·시스템 폴더·후보 밖 거부는 순수 함수와 로케이터 재실행으로 보이며 실제 로더가 디코이를 피하는지 직접 입증하지는 않는다 |
+
+AFTER:
+| 007 | 문자열로 만든 타입(`Type.GetType`·`Activator.CreateInstance`·`Assembly.Load`)은 정적 메타데이터 단언이 못 본다. 시험 프로젝트에 그런 경로가 0건임을 시험이 단언하므로(새로 생기면 빨강) 한계는 "그 경로가 추가될 때 검토를 요구한다"로 좁혀진다 |
+| 008 | 링크 권한이 없으면 파일 링크 시험이 건너뛴다(CI 러너에서는 돎). 실제 로드 모듈의 경로는 단언한다. 실행하지 않은 변형: 로더가 디코이를 피하는 경로의 직접 입증 |
+
+== AC-8 line in the AC traceability table (spec_patch.txt §5(b), the AC-8 row)
+
+BEFORE: | AC-8  | MockBlockingTests | ✓ (한계는 §4.6: REQ-007) |
+AFTER:  | AC-8  | MockBlockingTests, MockBlockingStaticTests | ✓ (한계는 §4.6: REQ-007) |
