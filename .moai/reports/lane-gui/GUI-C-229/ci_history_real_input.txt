@@ -42,7 +42,7 @@
     Passed ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R01_TheViewMenu_OpensWithARealMouseClick [1 s]
    R01: 1772 ms
 37107868648 b3458366 job=skipped:
-  
+
 37103781217 8ca77361 job=success:
     Passed ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02_RealKeystrokes_EditTheVoiBox_AndARealTabMovesOn [5 s]
    R02 after typing: box='4321' indicator='STALE — display parameters changed since this image was rendered. Apply the display pipeline to update it.'
