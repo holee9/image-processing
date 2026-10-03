@@ -111,6 +111,24 @@ public sealed class NativeModuleSignatureParityTests(ITestOutputHelper output)
         return new Scan(native, cs, sources, Headers.ToDictionary(h => h.Header, h => h.Dll));
     }
 
+    /// <summary>
+    /// The exported function names a header's text declares: for each export marker, the identifier just before the first opening parenthesis after it. Deliberately not the engine's code (its own
+    /// comment stripping and declaration pattern are what is being checked against).
+    /// </summary>
+    private static HashSet<string> ExportedNamesIn(string text)
+    {
+        var plain = System.Text.RegularExpressions.Regex.Replace(text, @"/\*[\s\S]*?\*/", " ");
+        plain = System.Text.RegularExpressions.Regex.Replace(plain, @"//[^\n]*", " ");
+        plain = System.Text.RegularExpressions.Regex.Replace(plain, @"^[ \t]*#[^\n]*(\\\r?\n[^\n]*)*", " ", System.Text.RegularExpressions.RegexOptions.Multiline);   // the marker's own macro definition (with its continuation lines) is not a declaration
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(plain, @"\bXPE_API\b[^;(]*?(\w+)\s*\("))
+        {
+            names.Add(m.Groups[1].Value);
+        }
+
+        return names;
+    }
+
     // ----------------------------------------------------------------------------------------------------------------------------- the tests
 
     [Fact]
@@ -121,15 +139,30 @@ public sealed class NativeModuleSignatureParityTests(ITestOutputHelper output)
         var perHeader = scan.Native.Functions.Values.GroupBy(f => f.Header).ToDictionary(g => g.Key, g => g.Count());
         foreach (var (header, count) in perHeader.OrderBy(p => p.Key)) output.WriteLine($"{count,3} functions  {header}");
 
-        // Pinned counts: a parser that silently found nothing would otherwise make every comparison below pass.
-        Assert.Equal(8 + 5 + 3, scan.Native.Functions.Values.Count(f => scan.DllOfHeader[f.Header] == "xpe_common.dll"));
-        Assert.Equal(48, perHeader["modules/preprocess/include/xpe/preprocess_api.h"]);
-        Assert.Equal(10, perHeader["modules/enhance_basic/include/xpe/enhance_basic/enhance_basic_api.h"]);
-        Assert.Equal(9, perHeader["modules/enhance_advanced/include/xpe/enhance_advanced/xpe_enhance_advanced_api.h"]);
-        Assert.Equal(6, perHeader["modules/display/include/xpe/display/display_api.h"]);
-        Assert.Equal(10, perHeader["modules/dicom/include/xpe/dicom/dicom_api.h"]);
-        Assert.Equal(8, perHeader["modules/gsvg/include/xpe/gsvg/gsvg_api.h"]);
-        Assert.Equal(11, perHeader["modules/ai/include/xpe/ai/ai_api.h"]);
+        // What this guards (GUI-C-223): that the parser READ each header, because "a parser that silently found nothing would otherwise make every comparison below pass". It used to pin the number of
+        // functions per header, which is a different thing: the number moves whenever a module's owner adds a declaration (xpe_dicom_version made dicom 11 and turned main red from another lane),
+        // and a number written next to the parser's own output is only as independent as the person who last copied it. The independent derivation is the header text itself: the names that follow
+        // each export marker, found with a regular expression that shares nothing with the parser's. The two must be the same set, header by header, and a difference names the functions.
+        foreach (var (header, _) in Headers)
+        {
+            var text = File.ReadAllText(Path.Combine(Root(), header));
+            var declared = ExportedNamesIn(text);
+            var parsed = scan.Native.Functions.Values.Where(f => f.Header == header).Select(f => f.Name).ToHashSet(StringComparer.Ordinal);
+            output.WriteLine($"{declared.Count,3} exported names in the text  {header}");
+            var unread = declared.Except(parsed).OrderBy(n => n, StringComparer.Ordinal).ToList();
+            var invented = parsed.Except(declared).OrderBy(n => n, StringComparer.Ordinal).ToList();
+            Assert.True(unread.Count == 0 && invented.Count == 0,
+                $"{header}: the text declares {declared.Count} exported function(s), the parser read {parsed.Count}. " +
+                $"Declared but NOT read: [{string.Join(", ", unread)}]. Read but not declared in the text: [{string.Join(", ", invented)}].");
+        }
+
+        // Controls: the independent derivation itself must see something, or "both empty" would be an agreement. These modules have always had exports.
+        foreach (var header in new[] { "modules/preprocess/include/xpe/preprocess_api.h", "modules/dicom/include/xpe/dicom/dicom_api.h", "modules/ai/include/xpe/ai/ai_api.h" })
+        {
+            Assert.True(perHeader.GetValueOrDefault(header) > 0, $"{header}: no function was read at all.");
+        }
+
+        Assert.NotEmpty(scan.Native.Functions.Values.Where(f => scan.DllOfHeader[f.Header] == "xpe_common.dll"));
         Assert.Contains("XpeCalibQualityMeta", scan.Native.Structs.Keys);   // control: a struct with arrays and pointers is read
         Assert.Contains("XpeGainSemantics", scan.Native.Enums.Keys);
         Assert.Contains("XpeDicomHandle", scan.Native.Handles);
