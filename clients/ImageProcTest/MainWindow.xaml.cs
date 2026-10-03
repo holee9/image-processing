@@ -292,23 +292,39 @@ namespace ImageProcTest
         {
             if (await ProcessingContentGate.ConfirmAsync(lastPreprocessHealth?.DllPath))
             {
-                processingRefusal = null;
+                SetProcessingNotice(null);   // the command goes ahead: whatever was said about the last refusal is over, and the text is drawn again now
                 return true;
             }
 
-            // GUI-C-226: kept in a field and shown by every later rewrite of the preview text. The refusal starts the verification again, whose announcements refresh this window within moments, and a
-            // plain assignment to the text box was overwritten by that refresh before anyone could read it (found by the R05 UI scenario).
-            processingRefusal = "Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They are checked again automatically; press the command again once module readiness says ready.";
-            ShowNativePreviewText(processingRefusal);
+            SetProcessingNotice(ProcessingRefusedText);
             SetStatus("Preprocess DLLs changed: checking again", Brushes.Goldenrod);
             return false;
         }
 
-        private string? processingRefusal;
+        // GUI-C-226b (Codex #122): the preview text has ONE writer, SetNativePreviewText. It keeps the latest ordinary message and, in front of it, the standing notice about the last refused command; every
+        // path that used to assign the text box (stage changes, bypass, run results, readiness refresh, failures) goes through it, so nothing can overwrite the notice and nothing can bring back an
+        // old one. A source scan (PreprocessOracleVerdicts219dTests) holds the number of direct assignments to the text box at exactly one, inside RenderNativePreviewText.
+        private const string ProcessingRefusedText = "the preprocess DLLs changed since they were checked, so nothing was run. They are checked again automatically; press the command again once module readiness says ready.";
+        private const string ProcessingReadyAgainText = "the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and are ready now; press the command again.";
 
-        /// <summary>The preview text, with the standing refusal (if the last processing command was refused) kept in front of whatever the readiness refresh has to say.</summary>
-        private void ShowNativePreviewText(string text) =>
-            NativePreviewText.Text = processingRefusal is null || ReferenceEquals(text, processingRefusal) ? text : processingRefusal + " " + text;
+        private string nativePreviewMessage = string.Empty;
+        private string? processingNotice;
+
+        /// <summary>The notice about the last refused processing command: null (none), the refusal, or the refusal after the DLLs were checked again and are ready. Setting it draws the text at once.</summary>
+        private void SetProcessingNotice(string? notice)
+        {
+            processingNotice = notice;
+            RenderNativePreviewText();
+        }
+
+        private void SetNativePreviewText(string text)
+        {
+            nativePreviewMessage = text;
+            RenderNativePreviewText();
+        }
+
+        private void RenderNativePreviewText() =>
+            NativePreviewText.Text = processingNotice is null ? nativePreviewMessage : "Native preview: " + processingNotice + " " + nativePreviewMessage;
 
         private async void WorkflowRunButton_Click(object sender, RoutedEventArgs e)
         {
@@ -1148,7 +1164,7 @@ namespace ImageProcTest
                 lastEnhanceBasicPreviewResult = null;
                 lastPresentationExportResult = null;
                 EvaluationViewer.ClearRawPreview($"Raw preview failed: {ex.Message}");
-                NativePreviewText.Text = "Native preview: unavailable";
+                SetNativePreviewText("Native preview: unavailable");
                 UpdateNativePreviewControls();
                 UpdateWorkflowRunState();
                 UpdateEvaluationDashboards();
@@ -1169,7 +1185,7 @@ namespace ImageProcTest
         {
             if (currentPreview is null)
             {
-                NativePreviewText.Text = "Native preview: load a raw file first.";
+                SetNativePreviewText("Native preview: load a raw file first.");
                 return;
             }
 
@@ -1184,19 +1200,19 @@ namespace ImageProcTest
 
             if (preprocessSelection.HasAnyStage && !IsNativePreviewReady())
             {
-                NativePreviewText.Text = "Native preview: xpe_preprocess.dll export readiness is not available.";
+                SetNativePreviewText("Native preview: xpe_preprocess.dll export readiness is not available.");
                 return;
             }
 
             if (enhanceSelection.HasAnyStage && !IsEnhanceBasicPreviewReady())
             {
-                NativePreviewText.Text = "Native preview: xpe_enhance_basic.dll ABI smoke readiness is not available.";
+                SetNativePreviewText("Native preview: xpe_enhance_basic.dll ABI smoke readiness is not available.");
                 return;
             }
 
             if (preprocessSelection.HasAnyStage && currentCalibrationContext is not FixtureCaseInfo)
             {
-                NativePreviewText.Text = "Native preview: select the acquired calibration folder before running preprocess stages.";
+                SetNativePreviewText("Native preview: select the acquired calibration folder before running preprocess stages.");
                 return;
             }
 
@@ -1213,7 +1229,7 @@ namespace ImageProcTest
                 lastEnhanceBasicPreviewResult = null;
                 lastPresentationExportResult = null;
                 EvaluationViewer.ClearNativePreview();
-                NativePreviewText.Text = $"Native preview failed: {ex.Message}";
+                SetNativePreviewText($"Native preview failed: {ex.Message}");
                 SetStatus("Native pre/post preview failed", Brushes.OrangeRed);
                 UpdateEvaluationDashboards();
             }
@@ -1236,7 +1252,7 @@ namespace ImageProcTest
             var enhanceSelection = GetEnhanceBasicSelection();
             if (preprocessSelection.HasAnyStage || enhanceSelection.HasAnyStage)
             {
-                NativePreviewText.Text = "Native preview: stage selection changed. Run Selected to apply the checked pre/post stages.";
+                SetNativePreviewText("Native preview: stage selection changed. Run Selected to apply the checked pre/post stages.");
                 WorkflowBeforeAfterText.Text = "Stage switches changed. Viewer is reset to bypass output until the selected stages are run.";
             }
             else
@@ -1257,7 +1273,7 @@ namespace ImageProcTest
                 lastEnhanceBasicPreviewResult = null;
                 lastPresentationExportResult = null;
                 EvaluationViewer.ClearNativePreview();
-                NativePreviewText.Text = $"Bypass preview: {reason} Load a target raw image to view the bypass output.";
+                SetNativePreviewText($"Bypass preview: {reason} Load a target raw image to view the bypass output.");
                 WorkflowBeforeAfterText.Text = "Bypass preview: no target raw image is loaded.";
                 return;
             }
@@ -1267,9 +1283,9 @@ namespace ImageProcTest
             lastEnhanceBasicPreviewResult = null;
             lastPresentationExportResult = null;
             EvaluationViewer.SetBypassPreview(bypass, reason);
-            NativePreviewText.Text =
+            SetNativePreviewText(
                 $"Bypass preview: {reason} output buffer is copied from input; changed={bypass.Metrics.ChangedPixels}/{bypass.Metrics.PixelCount}; " +
-                $"nanInf={bypass.Metrics.NaNInfCount}.";
+                $"nanInf={bypass.Metrics.NaNInfCount}.");
             WorkflowBeforeAfterText.Text =
                 "Stage switches: all Off. No correction stage executed; viewer shows Original vs bypass output.";
         }
@@ -1296,11 +1312,11 @@ namespace ImageProcTest
             lastEnhanceBasicPreviewResult = null;
             lastPresentationExportResult = null;
             EvaluationViewer.SetNativePreview(result, selectedCase.CalibrationDirectoryPath);
-            NativePreviewText.Text =
+            SetNativePreviewText(
                 $"Native preview: loads={FormatCalibrationSummary(result.CalibrationLoads)}; " +
                 $"stages={FormatStageSummary(result.Stages)}; " +
                 $"metrics={FormatMetricSummary(result.Metrics)}; " +
-                $"latency={result.TotalLatencyMs:0.###}ms; output={result.OutputMin:0.###}..{result.OutputMax:0.###}";
+                $"latency={result.TotalLatencyMs:0.###}ms; output={result.OutputMin:0.###}..{result.OutputMax:0.###}");
             SetStatus($"{statusLabel} complete", Brushes.ForestGreen);
             UpdateEvaluationDashboards();
             return result;
@@ -1443,8 +1459,8 @@ namespace ImageProcTest
                 AddReportArtifact("DICOM", result.DicomValidation.DicomPath);
             }
 
-            NativePreviewText.Text =
-                $"Native presentation/export: {result.Summary}; latency={result.TotalLatencyMs:0.###}ms; artifacts={result.ArtifactDirectory}";
+            SetNativePreviewText(
+                $"Native presentation/export: {result.Summary}; latency={result.TotalLatencyMs:0.###}ms; artifacts={result.ArtifactDirectory}");
             SetStatus("Presentation/export complete", Brushes.ForestGreen);
             UpdateEvaluationDashboards();
             return result;
@@ -1516,12 +1532,12 @@ namespace ImageProcTest
                 "Post after",
                 $"Post basic applied from {Path.GetFileName(result.DllPath)}; input={result.InputSource}; " +
                 $"latency={result.TotalLatencyMs:0.###}ms; EI={FormatNullable(result.ExposureIndex)}, DI={FormatNullable(result.DeviationIndex)}.");
-            NativePreviewText.Text =
+            SetNativePreviewText(
                 $"Native preview: post stages={FormatStageSummary(result.Stages)}; " +
                 $"metrics={FormatMetricSummary(result.Metrics)}; latency={result.TotalLatencyMs:0.###}ms; " +
                 $"output={result.OutputMin:0.###}..{result.OutputMax:0.###}; input={result.InputSource}; " +
                 $"EI={FormatNullable(result.ExposureIndex)}, DI={FormatNullable(result.DeviationIndex)}; " +
-                $"sigma={FormatNullable(result.SigmaBefore)}->{FormatNullable(result.SigmaAfter)}";
+                $"sigma={FormatNullable(result.SigmaBefore)}->{FormatNullable(result.SigmaAfter)}");
             SetStatus($"{statusLabel} complete", Brushes.ForestGreen);
             UpdateEvaluationDashboards();
             return result;
@@ -2221,10 +2237,15 @@ namespace ImageProcTest
                 StageModesInfoText.Text = lastPreprocessHealth?.IsSyntheticOracleChecking == true
                     ? "Native preprocess is being checked in the background, so algorithm execution switches stay disabled until it answers."
                     : "Native pre/post exports are not ready, so algorithm execution switches stay disabled.";
-                ShowNativePreviewText(lastPreprocessHealth is null
+                SetNativePreviewText(lastPreprocessHealth is null
                     ? "Native preview: readiness has not been checked."
                     : $"Native preview: unavailable (pre={lastPreprocessHealth.Status}; exportsReady={lastPreprocessHealth.IsExportReady}; synthetic={lastPreprocessHealth.SyntheticOracle.Status}).");
                 return;
+            }
+
+            if (preprocessReady && processingNotice == ProcessingRefusedText)
+            {
+                SetProcessingNotice(ProcessingReadyAgainText);   // the check the refusal started has succeeded: the notice stops telling the user to wait
             }
 
             StageModesInfoText.Text =
@@ -2232,7 +2253,7 @@ namespace ImageProcTest
                 "Checked stages execute in the selected order; unchecked stages bypass. Post uses preprocess output when available, otherwise raw-to-float input.";
             if (lastNativePreviewResult is null && lastEnhanceBasicPreviewResult is null)
             {
-                ShowNativePreviewText(currentPreview is null
+                SetNativePreviewText(currentPreview is null
                     ? "Native preview: load a target raw image to run pre/post algorithms."
                     : "Native preview: ready. Check pre/post stages to apply, or leave all unchecked for bypass output.");
             }
