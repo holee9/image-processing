@@ -1,0 +1,17 @@
+old dll vs old-algorithm reference: structured 101x67 8x8      max|diff|/range=1.09e-07  IS THE OLD CODE
+old dll vs old-algorithm reference: structured 256x256 4x4     max|diff|/range=4.10e-08  IS THE OLD CODE
+old dll vs old-algorithm reference: structured 11x11 5x5       max|diff|/range=2.75e-08  IS THE OLD CODE
+=== old dll identity: confirmed
+
+horizontal ramp 256x256 (x*4+100)      old: boundary step mean=1018.008  median step elsewhere=0.996  ratio=1022.0   largest step on row=1018.008
+horizontal ramp 256x256 (x*4+100)      new: boundary step mean=3.502  median step elsewhere=4.031  ratio=0.9   largest step on row=5.307
+diagonal ramp 256x256 ((x+y)*2+100)    old: boundary step mean=724.160  median step elsewhere=0.996  ratio=727.0   largest step on row=724.160
+diagonal ramp 256x256 ((x+y)*2+100)    new: boundary step mean=1.875  median step elsewhere=2.031  ratio=0.9   largest step on row=3.139
+
+AC-04 low-contrast region inside a wide-range image: old  stddev before=6.006 after=939.436 ratio=156.406
+AC-04 low-contrast region inside a wide-range image: new  stddev before=6.006 after=32.831 ratio=5.466
+AC-04 as the test is written today (whole image is the ramp 495..505): old  ratio=1.385
+AC-04 as the test is written today (whole image is the ramp 495..505): new  ratio=1.001
+
+3072x3072 pseudo-random 1..4096 (the benchmark fixture)  old: min 44.5 median 45.0 ms | new: min 36.5 median 39.1 ms   (6 alternating rounds; REQ-ENH-017 budget 50 ms)
+3072x3072 structured (blocks, gradients, noise)          old: min 45.3 median 47.8 ms | new: min 35.3 median 36.7 ms   (6 alternating rounds; REQ-ENH-017 budget 50 ms)
