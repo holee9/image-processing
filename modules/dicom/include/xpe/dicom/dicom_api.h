@@ -2,11 +2,12 @@
  * @file dicom_api.h
  * @brief DICOM I/O module public C API for xpe_dicom.dll.
  *
- * Exports exactly 10 C-linkage functions organized into 4 Software Units:
+ * Exports exactly 11 C-linkage functions: the version function and 10 organized into 4 Software Units:
  *   - SWU-4.1 DicomReader  : open / read_image / get_metadata / close
  *   - SWU-4.2 DicomWriter  : write / write_j2k
  *   - SWU-4.3 DicomValidator: validate
  *   - SWU-4.4 DicomNetworkSCU: cstore / cfind_mwl / cancel
+ *   - version              : xpe_dicom_version (REQ-P0-033)
  *
  * @note ABI contract: all parameters are blittable C types compatible with
  *       .NET P/Invoke marshalling. No C++ types cross the DLL boundary.
@@ -35,6 +36,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @brief Returns the xpe_dicom module version string (e.g. "1.0.0").
+ * @return Null-terminated version string. Lifetime: process. Never NULL.
+ */
+XPE_API const char* xpe_dicom_version(void);
 
 /**
  * @brief Opaque handle to an open DICOM reader session.

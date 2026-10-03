@@ -255,6 +255,112 @@ TEST(DicomExposureTag, ANonNumericOrNegativeAttributeIsSkippedAndTheNextOneIsUse
     }
 }
 
+/** A copy of a module-written file whose three exposure attributes are replaced: nullptr leaves the attribute out. */
+fs::path WithExposureAttributes(const TempDir& t, const char* name, const char* v1153, const char* v9332, const char* v1152) {
+    const fs::path mine = t.path / (std::string(name) + "_base.dcm");
+    EXPECT_TRUE(WriteWithTheModule(mine, 50.0f));
+    DcmFileFormat ff;
+    EXPECT_TRUE(ff.loadFile(mine.string().c_str()).good());
+    DcmDataset* ds = ff.getDataset();
+    ds->findAndDeleteElement(DCM_ExposureInuAs);
+    ds->findAndDeleteElement(DCM_ExposureInmAs);
+    ds->findAndDeleteElement(DCM_Exposure);
+    if (v1153) EXPECT_TRUE(ds->putAndInsertString(DCM_ExposureInuAs, v1153).good());
+    if (v9332) EXPECT_TRUE(ds->putAndInsertString(DCM_ExposureInmAs, v9332).good());
+    if (v1152) EXPECT_TRUE(ds->putAndInsertString(DCM_Exposure, v1152).good());
+    const fs::path out = t.path / (std::string(name) + ".dcm");
+    EXPECT_TRUE(ff.saveFile(out.string().c_str()).good());
+    return out;
+}
+
+std::vector<Alert> DisagreementAlerts() {
+    std::vector<Alert> found;
+    for (const Alert& a : Alerts())
+        if (a.text.find("exposure attributes disagree") != std::string::npos) found.push_back(a);
+    return found;
+}
+
+TEST(DicomExposureTag, AnIntegerStringMustMatchTheGrammarCompletelyAndNotJustByItsPrefix) {
+    // PS3.5 Table 6.2-1, IS: optional sign, decimal digits, leading/trailing spaces allowed, no embedded spaces,
+    // at most 12 bytes, -2^31..2^31-1. strtod accepted a prefix ("2500junk" as 2500) and decimals/hex/exponents.
+    const TempDir t("c1_is");
+    // (0018,1153) holds the junk, (0018,1152) holds 7: a junk 1153 is skipped and 1152 is used.
+    const char* junk[] = {"2500junk", "7.5", "0x10", "1e3", "12 34", "+", "-", "1234567890123", "0000000000007", "2147483648", "25\\00", "abc"};
+    for (const char* v : junk) {
+        const fs::path f = WithExposureAttributes(t, "junk1153", v, nullptr, "7");
+        EXPECT_NEAR(7.0f, ReadMas(f), 1e-4f) << "(0018,1153) '" << v << "' is not an IS: it must be skipped";
+    }
+    // the same junk in (0018,1152), nothing else in the file: no mAs
+    for (const char* v : junk) {
+        const fs::path f = WithExposureAttributes(t, "junk1152", nullptr, nullptr, v);
+        EXPECT_EQ(0.0f, ReadMas(f)) << "(0018,1152) '" << v << "' is not an IS: no value was accepted";
+    }
+    // valid spellings: padding and an explicit plus sign
+    struct Row {
+        const char* v1153;
+        float expect;
+    } valid[] = {{" 2500 ", 2.5f}, {"+2500", 2.5f}, {"2500", 2.5f}, {"0", 0.0f}, {"  100000", 100.0f}};
+    for (const Row& r : valid) {
+        const fs::path f = WithExposureAttributes(t, "valid1153", r.v1153, nullptr, nullptr);
+        EXPECT_NEAR(r.expect, ReadMas(f), 1e-4f) << "(0018,1153) '" << r.v1153 << "' is a valid IS";
+    }
+}
+
+TEST(DicomExposureTag, ThreeExposureAttributesThatAgreeWithinTheirRoundingPostNoAlertAndThatDisagreePostOne) {
+    const TempDir t("c1_alert");
+    xpe_clear_alerts();
+    // control: what the module writes for 2.5 mAs is "3" in (0018,1152) and "2500" in (0018,1153) -- they agree
+    const fs::path mine = t.path / "mine.dcm";
+    ASSERT_TRUE(WriteWithTheModule(mine, 2.5f));
+    EXPECT_NEAR(2.5f, ReadMas(mine), 1e-4f);
+    EXPECT_EQ(0u, DisagreementAlerts().size()) << "rounding alone is not a disagreement";
+    // agreement inside the tolerances: 9332 2.5 with 1152 "3" or "2" (rounded to 1 mAs: up to 0.5 apart)
+    for (const char* v1152 : {"3", "2"}) {
+        xpe_clear_alerts();
+        const fs::path f = WithExposureAttributes(t, "agree", "2500", "2.5000", v1152);
+        EXPECT_NEAR(2.5f, ReadMas(f), 1e-4f);
+        EXPECT_EQ(0u, DisagreementAlerts().size()) << "1152 '" << v1152 << "' is within 0.5 mAs of 2.5";
+    }
+
+    // conflict: (0018,1152) says 999 mAs while (0018,1153) says 2500 uAs = 2.5 mAs
+    xpe_clear_alerts();
+    const fs::path conflict = WithExposureAttributes(t, "conflict", "2500", "2.5000", "999");
+    EXPECT_NEAR(2.5f, ReadMas(conflict), 1e-4f) << "the priority is unchanged: (0018,1153) wins";
+    std::vector<Alert> alerts = DisagreementAlerts();
+    ASSERT_EQ(1u, alerts.size()) << "exactly one alert per read";
+    EXPECT_EQ(XPE_ALERT_WARNING, alerts[0].severity);
+    for (const char* part : {"(0018,1153) = 2500 uAs", "(0018,9332) = 2.5 mAs", "(0018,1152) = 999 mAs", "using (0018,1153) = 2.5000 mAs"})
+        EXPECT_NE(std::string::npos, alerts[0].text.find(part)) << part << " | " << alerts[0].text;
+
+    // conflict without (0018,1153): (0018,9332) against (0018,1152), 9332 wins
+    xpe_clear_alerts();
+    const fs::path conflict2 = WithExposureAttributes(t, "conflict2", nullptr, "12.5", "80");
+    EXPECT_NEAR(12.5f, ReadMas(conflict2), 1e-4f);
+    alerts = DisagreementAlerts();
+    ASSERT_EQ(1u, alerts.size());
+    EXPECT_NE(std::string::npos, alerts[0].text.find("using (0018,9332) = 12.5000 mAs")) << alerts[0].text;
+    EXPECT_EQ(std::string::npos, alerts[0].text.find("(0018,1153)")) << "an attribute the file does not have is not named";
+
+    // a single attribute can disagree with nothing; an invalid attribute is not a value to disagree with
+    xpe_clear_alerts();
+    EXPECT_NEAR(7.0f, ReadMas(WithExposureAttributes(t, "single", nullptr, nullptr, "7")), 1e-4f);
+    EXPECT_NEAR(7.0f, ReadMas(WithExposureAttributes(t, "invalid_other", "junk", nullptr, "7")), 1e-4f);
+    EXPECT_EQ(0u, DisagreementAlerts().size());
+    xpe_clear_alerts();
+}
+
+TEST(DicomModuleVersion, TheModuleExportsAVersionStringLikeTheOtherModules) {
+    // REQ-P0-033: every module exports a version function; xpe_display_version, xpe_enhance_basic_version and the
+    // others return a non-empty "major.minor.patch" string whose lifetime is the process.
+    const char* v = xpe_dicom_version();
+    ASSERT_NE(nullptr, v);
+    EXPECT_GT(std::strlen(v), 0u);
+    int major = -1, minor = -1, patch = -1;
+    char tail = 0;
+    EXPECT_EQ(3, std::sscanf(v, "%d.%d.%d%c", &major, &minor, &patch, &tail)) << "major.minor.patch and nothing after it: '" << v << "'";
+    EXPECT_EQ(v, xpe_dicom_version()) << "the same pointer each call: the lifetime is the process";
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 // C9 -- a C-FIND the server fails
 // ---------------------------------------------------------------------------------------------------------------------

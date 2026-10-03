@@ -42,3 +42,9 @@ NOT read (so not claimed in the report):
 5. (M2a2) PS3.3 Table C.8-33 X-Ray Acquisition Dose Module, attribute (0018,1153) Exposure in uAs
    Same page as item 4 (fetched 2026-10-03): row "(0018,1153) Exposure in µAs", Type Optional (3), VR Integer String.
    PS3.6 Table 6-1 (item 1): (0018,1153) Exposure in uAs, keyword ExposureInuAs, VR IS, VM 1.
+
+6. (M2a3) PS3.5 Table 6.2-1, VR IS (fetched 2026-10-03 from dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html)
+   "A string of characters representing an Integer in base-10 (decimal), shall contain only the characters 0 - 9, with an
+   optional leading "+" or "-". It may be padded with leading and/or trailing spaces. Embedded spaces are not allowed. The
+   integer, n, represented shall be in the range: -2^31 <= n <= (2^31 -1)."  Character repertoire: "0"-"9", "+", "-" and
+   the SPACE character of Default Character Repertoire. Length: 12 bytes maximum.
