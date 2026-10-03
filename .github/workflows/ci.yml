@@ -900,9 +900,12 @@ jobs:
     # so no native DLLs are needed; the Native variant follows GUI-C-26
     # (--automation-backend). A failure here is one red job, not a gate on
     # the native lanes.
+    # 15 -> 30 (2026-10-03): the Mock suite took 14m39s on dbade001 and was cut at 15m on e8db144c with tests
+    # still running (xUnit 12:56 elapsed, no hang - the last lines are ordinary skips). The suite grew, the
+    # limit did not; a cut is an absence of evidence, not a red.
     needs: [detect-lane]
     runs-on: windows-2025
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v6
