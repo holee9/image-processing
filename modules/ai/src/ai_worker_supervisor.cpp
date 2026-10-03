@@ -12,6 +12,20 @@
  * Win32 failures here cannot be injected from a test without a seam in product code, and none was
  * added: those paths are justified by reading, and the report says so.
  *
+ * LEAST PRIVILEGE (REQ-AI-093, QA-B-198 M2, #250). The worker no longer runs with the host's own token and an
+ * unlimited job:
+ *   - its token is the host's token lowered to LOW integrity, so it can write no file and no registry key that is not
+ *     itself labelled low (a medium-integrity object is "no write up"); the model, the sidecar and the signature are
+ *     only READ. No location is labelled low for it: the worker writes nothing, so there is no scratch directory;
+ *   - its job allows ONE process (the worker itself) and no UI access, so it cannot start a child process.
+ * NOT restricted: THE NETWORK. A low-integrity process can still open sockets (measured, QA-B-198 M1); REQ-AI-093's
+ * "no network" is met only by an AppContainer, which needs ACLs granted at install time and is tracked in #250 as
+ * deferred. So REQ-AI-093 is PARTIALLY met: file and registry writes and child processes, yes; network, no.
+ * Fail closed: when the restricted token cannot be built, no worker is started (it is never started unrestricted).
+ * In a test build only (XPE_AI_TEST_HOOKS) the environment variable XPE_AI_TEST_WORKER_UNRESTRICTED=1 starts it the
+ * old way -- for the tests whose harness cannot run low-integrity, and as the positive control of the tests that
+ * measure what the restriction takes away.
+ *
  * @ingroup xpe_ai
  */
 
@@ -77,6 +91,48 @@ std::string JsonEscape(const std::string& text) {
 
 std::atomic<uint32_t> g_request_id{1};
 std::atomic<uint32_t> g_pipe_serial{0};
+
+/**
+ * The host's own primary token, lowered to LOW integrity (S-1-16-4096): the token the worker is started with.
+ * Returns nullptr when it could not be built; the caller then starts nothing. Nothing is added to the token and no
+ * privilege is needed: a process may always lower the integrity level of a copy of its own token.
+ */
+HANDLE MakeLowIntegrityWorkerToken() {
+    HANDLE own = nullptr;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_DUPLICATE | TOKEN_QUERY, &own)) return nullptr;
+    HANDLE low = nullptr;
+    const BOOL duplicated = DuplicateTokenEx(own, MAXIMUM_ALLOWED, nullptr, SecurityImpersonation, TokenPrimary, &low);
+    CloseHandle(own);
+    if (!duplicated) return nullptr;
+
+    SID_IDENTIFIER_AUTHORITY label = SECURITY_MANDATORY_LABEL_AUTHORITY;
+    PSID lowSid = nullptr;
+    if (!AllocateAndInitializeSid(&label, 1, SECURITY_MANDATORY_LOW_RID, 0, 0, 0, 0, 0, 0, 0, &lowSid)) {
+        CloseHandle(low);
+        return nullptr;
+    }
+    TOKEN_MANDATORY_LABEL tml{};
+    tml.Label.Attributes = SE_GROUP_INTEGRITY;
+    tml.Label.Sid = lowSid;
+    const BOOL lowered = SetTokenInformation(low, TokenIntegrityLevel, &tml,
+                                             static_cast<DWORD>(sizeof(tml)) + GetLengthSid(lowSid));
+    FreeSid(lowSid);
+    if (!lowered) {
+        CloseHandle(low);
+        return nullptr;
+    }
+    return low;
+}
+
+/** True when this test build was told to start the worker the old, unrestricted way. Always false in a delivery build. */
+bool WorkerStartedUnrestrictedForTest() {
+#ifdef XPE_AI_TEST_HOOKS
+    char v[8] = {0};
+    return GetEnvironmentVariableA("XPE_AI_TEST_WORKER_UNRESTRICTED", v, sizeof(v)) > 0 && v[0] == '1';
+#else
+    return false;
+#endif
+}
 
 /**
  * End a child that was created suspended and never got to run: terminate it and CONFIRM it ended
@@ -202,12 +258,30 @@ XpeErrorCode WorkerSupervisor::StartLocked() {
         if (!job_) return XPE_ERR_PROCESSING_FAILED;
         JOBOBJECT_EXTENDED_LIMIT_INFORMATION info{};
         info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-        if (!SetInformationJobObject(H(job_), JobObjectExtendedLimitInformation, &info,
-                                     sizeof(info))) {
+        const bool restricted = !WorkerStartedUnrestrictedForTest();
+        if (restricted) {
+            // REQ-AI-093: the worker is the one process of the job; it cannot start another.
+            info.BasicLimitInformation.LimitFlags |= JOB_OBJECT_LIMIT_ACTIVE_PROCESS;
+            info.BasicLimitInformation.ActiveProcessLimit = 1;
+        }
+        JOBOBJECT_BASIC_UI_RESTRICTIONS ui{};
+        ui.UIRestrictionsClass = JOB_OBJECT_UILIMIT_DESKTOP | JOB_OBJECT_UILIMIT_DISPLAYSETTINGS |
+                                 JOB_OBJECT_UILIMIT_EXITWINDOWS | JOB_OBJECT_UILIMIT_GLOBALATOMS |
+                                 JOB_OBJECT_UILIMIT_HANDLES | JOB_OBJECT_UILIMIT_READCLIPBOARD |
+                                 JOB_OBJECT_UILIMIT_SYSTEMPARAMETERS | JOB_OBJECT_UILIMIT_WRITECLIPBOARD;
+        if (!SetInformationJobObject(H(job_), JobObjectExtendedLimitInformation, &info, sizeof(info)) ||
+            (restricted && !SetInformationJobObject(H(job_), JobObjectBasicUIRestrictions, &ui, sizeof(ui)))) {
             CloseHandle(H(job_));
             job_ = nullptr;
             return XPE_ERR_PROCESSING_FAILED;
         }
+    }
+
+    // Fail closed: no restricted token, no worker (it is never started with the host's full token instead).
+    HANDLE token = nullptr;
+    if (!WorkerStartedUnrestrictedForTest()) {
+        token = MakeLowIntegrityWorkerToken();
+        if (!token) return XPE_ERR_PROCESSING_FAILED;
     }
 
     char pipe[160];
@@ -219,8 +293,13 @@ XpeErrorCode WorkerSupervisor::StartLocked() {
     si.cb = sizeof(si);
     PROCESS_INFORMATION pi{};
     // Suspended, so it is inside the job before it runs a single instruction.
-    if (!CreateProcessA(nullptr, cmd.data(), nullptr, nullptr, FALSE,
-                        CREATE_NO_WINDOW | CREATE_SUSPENDED, nullptr, nullptr, &si, &pi)) {
+    const BOOL created =
+        token ? CreateProcessAsUserA(token, nullptr, cmd.data(), nullptr, nullptr, FALSE,
+                                     CREATE_NO_WINDOW | CREATE_SUSPENDED, nullptr, nullptr, &si, &pi)
+              : CreateProcessA(nullptr, cmd.data(), nullptr, nullptr, FALSE,
+                               CREATE_NO_WINDOW | CREATE_SUSPENDED, nullptr, nullptr, &si, &pi);
+    if (token) CloseHandle(token);
+    if (!created) {
         return XPE_ERR_IO_FAILED;
     }
     // Resume only when the process is inside the kill-on-close job. A worker that could outlive the

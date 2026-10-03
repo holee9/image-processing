@@ -70,6 +70,19 @@
  * the warnings promised above for broken config JSON and out-of-range values hold in every build. A configuration
  * without nlohmann_json stops at CMake configure.
  *
+ * WORKER PRIVILEGES (QA-B-198 M2, REQ-AI-093, #250). REQ-AI-093 says the inference process runs with minimum privilege
+ * -- no network, no file write except a sidecar scratch -- and it is PARTLY met:
+ *   - MET: the worker (`"use_worker": true`) is started with the host's token lowered to LOW integrity, so it cannot write a
+ *     file or a registry key, and in a job that allows it no child process. It writes nothing today, so there is no scratch
+ *     location: none is writable for it. The pipe it serves is open to the user that runs it and to SYSTEM, and to no one
+ *     else (it used to give Everyone and Anonymous read access).
+ *   - NOT MET: THE NETWORK. A low-integrity process can still open sockets; "no network" needs an AppContainer, which needs
+ *     access rights granted on the install folders by the installer, and is deferred (#250). Do not read this module as
+ *     network-isolated.
+ *   - If the restricted token cannot be built the worker is not started at all (never started with the full token); that is
+ *     a failure of the worker path like any other. A test build (XPE_AI_TEST_HOOKS) can start the worker unrestricted with
+ *     XPE_AI_TEST_WORKER_UNRESTRICTED=1; a delivery build has no such switch.
+ *
  * MODEL SIGNING (QA-B-195, REQ-AI-007 / REQ-AI-091). Every model the module loads is verified FIRST. For a model
  * `<dir>/<name>.onnx` (name = bone_suppress or bodypart) the loader reads the model, its sidecar `<name>.json` (when
  * there is one) and a detached signature `<name>.sig` ONCE, checks them together under a trusted key and the role the

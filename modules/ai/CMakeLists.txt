@@ -447,6 +447,8 @@ if(_XPE_AI_BUILD_TESTS)
         test_ai_oom_worker.cpp
         # #130 (QA-B-195b): a shortage of memory (or any exception) inside the worker is an answer, never a dead worker
         test_ai_worker_boundary.cpp
+        # #250 (QA-B-198 M2): REQ-AI-093 least privilege -- what the worker cannot do, measured from inside it; the pipe is the user's
+        test_ai_worker_sandbox.cpp
         # #130 (QA-B-168): SRS-ALERT-004 fires when DL was applied -- and, the
         # half that constrains the code, stays quiet on every path that
         # returned an image the model never touched

@@ -1,0 +1,6 @@
+CONTROL unmutated: build=OK passed=['8'] failed=0
+S1 the worker is started with the host's full token (no low integrity): build=OK passed=['5'] failed=3 WorkerSandbox.ARestrictedWorkerCannotWriteAFileOrARegistryKeyOrStartAProcess, WorkerSandbox.TheRealWorkerRecognisesABodyPartWhileRestricted, WorkerSandbox.TheRealWorkerRunsAtLowIntegrityAndStillAnswersItsRequests
+S2 the job allows more than one process (no active-process limit): build=OK passed=['7'] failed=1 WorkerSandbox.ARestrictedWorkerCannotWriteAFileOrARegistryKeyOrStartAProcess
+S3 the pipe is created with the default security again: build=OK passed=['6'] failed=2 WorkerPipeSecurity.AnAnonymousProcessCannotOpenTheWorkersPipe, WorkerPipeSecurity.TheHostThatStartedTheWorkerCanStillConnectAndTheDaclHoldsOnlyTheUserAndSystem
+S4 Everyone is added to the pipe DACL (read): build=OK passed=['7'] failed=1 WorkerPipeSecurity.TheHostThatStartedTheWorkerCanStillConnectAndTheDaclHoldsOnlyTheUserAndSystem
+sources restored byte-identical: True

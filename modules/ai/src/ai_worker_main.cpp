@@ -39,6 +39,7 @@
 // @MX:NOTE: Single-client design - only one pipe instance allowed per worker.
 
 #include <windows.h>
+#include <sddl.h>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -194,6 +195,44 @@ std::string JsonEscape(const std::string& text) {
 }  // namespace
 
 /**
+ * The security of the worker's pipe: full access for the user this process runs as, and for SYSTEM; nothing for anyone
+ * else (no Everyone, no Anonymous, no Authenticated Users, no Administrators). Built from the process token's own user
+ * SID, never from a name. The SID text and the descriptor live as long as this object.
+ */
+struct PipeSecurity {
+    SECURITY_ATTRIBUTES attributes{};
+    PSECURITY_DESCRIPTOR descriptor = nullptr;
+
+    bool Build() {
+        HANDLE token = nullptr;
+        if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) return false;
+        DWORD size = 0;
+        GetTokenInformation(token, TokenUser, nullptr, 0, &size);
+        std::vector<char> buf(size);
+        const BOOL got = GetTokenInformation(token, TokenUser, buf.data(), size, &size);
+        CloseHandle(token);
+        if (!got) return false;
+        LPSTR sidText = nullptr;
+        if (!ConvertSidToStringSidA(reinterpret_cast<TOKEN_USER*>(buf.data())->User.Sid, &sidText)) return false;
+        const std::string sddl = std::string("D:P(A;;GA;;;") + sidText + ")(A;;GA;;;SY)";
+        LocalFree(sidText);
+        if (!ConvertStringSecurityDescriptorToSecurityDescriptorA(sddl.c_str(), SDDL_REVISION_1, &descriptor, nullptr)) {
+            return false;
+        }
+        attributes.nLength = sizeof(attributes);
+        attributes.lpSecurityDescriptor = descriptor;
+        attributes.bInheritHandle = FALSE;
+        return true;
+    }
+    ~PipeSecurity() {
+        if (descriptor) LocalFree(descriptor);
+    }
+    PipeSecurity() = default;
+    PipeSecurity(const PipeSecurity&) = delete;
+    PipeSecurity& operator=(const PipeSecurity&) = delete;
+};
+
+/**
  * @class WorkerServer
  * @brief Named pipe server for worker process communication
  */
@@ -224,6 +263,15 @@ public:
      * @MX:REASON: Single client design - max_instances=1 prevents concurrent connections.
      */
     bool Start() {
+        // QA-B-198 M2 (REQ-AI-093, D5): the pipe is open to the user that runs this worker and to SYSTEM, and to no one
+        // else. The default security of a pipe grants read to Everyone and to Anonymous, and with ONE instance the first
+        // process to connect owns the conversation: it could be someone other than the host. No security descriptor, no
+        // pipe -- the worker does not fall back to the default.
+        PipeSecurity security;
+        if (!security.Build()) {
+            std::cerr << "Pipe security descriptor failed: " << GetLastError() << std::endl;
+            return false;
+        }
         // Create named pipe
         pipe_handle_ = CreateNamedPipeA(
             pipe_name_.c_str(),
@@ -233,7 +281,7 @@ public:
             PIPE_BUFFER_SIZE,           // Output buffer size
             PIPE_BUFFER_SIZE,           // Input buffer size
             PIPE_TIMEOUT_MS,            // Default timeout
-            nullptr                     // Default security
+            &security.attributes        // Current user + SYSTEM only
         );
 
         if (pipe_handle_ == INVALID_HANDLE_VALUE) {
