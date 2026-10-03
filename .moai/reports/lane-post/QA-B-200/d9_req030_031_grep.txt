@@ -1,0 +1,20 @@
+$ grep -nE "throw|new |new\[|std::vector|std::string|std::map|std::unique_ptr|std::make_|std::function|std::thread|std::stod|std::stoi|std::stof|\.at\(" modules/display/src/*.cpp modules/display/src/*.h
+modules/display/src/presentation_lut.cpp:34:    // REQ-DISP-024: allocate new uint16 buffer
+modules/display/src/presentation_lut.cpp:99:    // than inventing a new code.
+grep: modules/display/src/*.h: No such file or directory
+(the two matches above are the words 'new uint16 buffer' and 'new code' in comments; no throwing construct)
+
+$ grep -nE "malloc|free\(|calloc|realloc" modules/display/src/*.cpp
+modules/display/src/presentation_lut.cpp:36:    uint16_t* out_buf = static_cast<uint16_t*>(std::malloc(new_size));
+modules/display/src/presentation_lut.cpp:65:    std::free(img->data);
+
+$ grep -rnE "\bcatch\b|\btry\b" modules/display/src modules/display/include
+(no match: the module has no try/catch)
+
+$ grep -rn "xpe_log\|spdlog\|AI_LOG\|XPE_LOG" modules/display/src modules/display/include
+(no match: the module never calls a logger)
+
+$ grep -n "spdlog\|fmt" modules/display/CMakeLists.txt
+37:    PRIVATE spdlog::spdlog
+38:            fmt::fmt
+119:        spdlog::spdlog

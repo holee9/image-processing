@@ -117,6 +117,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_empty_image_contract.cpp  # #142 D1 empty-image contract (QA-B-40)
         tests/test_exception_guard.cpp  # QA-B-181: no exception leaves noise_reduce / contrast_enhance / edge_enhance
         tests/test_nonfinite_pixels.cpp # QA-B-181f: no non-finite pixel made from finite input, none accepted as success
+        tests/test_repro_qa_b_200.cpp   # QA-B-200 M1 (#251): reproductions of QA-B-199 candidates; every test is DISABLED_
     )
 
     add_executable(xpe_enhance_basic_tests

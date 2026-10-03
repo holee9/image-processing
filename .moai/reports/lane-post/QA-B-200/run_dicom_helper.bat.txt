@@ -1,0 +1,11 @@
+@echo off
+rem usage: g200-dicom-run.bat <exe name> <abs out> [gtest_filter]
+call "D:\workspace-github\xpe-post\.moai\reports\lane-post\QA-B-120\_env.bat"
+set "PATH=D:\workspace-github\image-processing\build\release\vcpkg_installed\x64-windows\bin;%PATH%"
+cd /d D:\workspace-github\xpe-post\modules\dicom
+if "%3"=="" (
+  D:\workspace-github\xpe-post\build\ci-dicom\bin\%1 --gtest_also_run_disabled_tests > %2 2>&1
+) else (
+  D:\workspace-github\xpe-post\build\ci-dicom\bin\%1 --gtest_also_run_disabled_tests --gtest_filter=%3 > %2 2>&1
+)
+echo ===RUN=%errorlevel%===

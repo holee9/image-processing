@@ -54,6 +54,14 @@ public:
     std::atomic<int> findRequests{0};
     std::atomic<int> storeRequests{0};
 
+    /// QA-B-200 M1: a non-zero DIMSE status the SCP answers the NEXT C-FIND / C-STORE with, instead of success. Zero (the
+    /// default) keeps the behaviour every earlier test relies on. Set and cleared by the test that wants a failing peer.
+    std::atomic<unsigned> forcedFindStatus{0};
+    std::atomic<unsigned> forcedStoreStatus{0};
+    /// QA-B-200 M1: milliseconds the SCP waits after an association is up and a C-STORE request arrived, before it reads the
+    /// data and answers -- a peer that is slow in the middle of a transfer, for a cancel test. Zero = no wait.
+    std::atomic<unsigned> storeDelayMs{0};
+
     /**
      * @brief Ask the listen loop to exit.
      *
@@ -119,6 +127,11 @@ protected:
                                        queryPatientId == "MOCK-0002" ||
                                        queryPatientId == "MOCK-0003");
 
+            if (forcedFindStatus.load() != 0) {
+                return sendFINDResponse(presID, req.MessageID, req.AffectedSOPClassUID, nullptr,
+                                        static_cast<Uint16>(forcedFindStatus.load()));
+            }
+
             if (!patientIdRequested || patientIdOnWorklist) {
                 static const char* const kIds[]   = {"MOCK-0001", "MOCK-0002", "MOCK-0003"};
                 static const char* const kNames[] = {"MOCK^WORKLIST", "MOCK^SECOND", "MOCK^THIRD"};
@@ -150,7 +163,15 @@ protected:
         if (incomingMsg != nullptr && incomingMsg->CommandField == DIMSE_C_STORE_RQ) {
             ++storeRequests;
             T_DIMSE_C_StoreRQ& req = incomingMsg->msg.CStoreRQ;
+            if (storeDelayMs.load() != 0) std::this_thread::sleep_for(std::chrono::milliseconds(storeDelayMs.load()));
             DcmDataset* received = nullptr;
+            if (forcedStoreStatus.load() != 0) {
+                const OFCondition got = receiveSTORERequest(req, presInfo.presentationContextID, received);
+                delete received;
+                if (got.bad()) return got;
+                return sendSTOREResponse(presInfo.presentationContextID, req,
+                                         static_cast<Uint16>(forcedStoreStatus.load()));
+            }
             const OFCondition rc =
                 handleSTORERequest(req, presInfo.presentationContextID, received);
             delete received;   // the object itself is not inspected by these tests

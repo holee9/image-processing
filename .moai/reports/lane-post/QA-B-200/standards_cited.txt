@@ -1,0 +1,34 @@
+QA-B-200 M1 -- what was read from the DICOM standard, and what was NOT read
+
+All text below was fetched on 2026-10-03 (the pages were indexed and searched; the lines are copied from the search output).
+
+1. PS3.6 Table 6-1 "Registry of DICOM Data Elements" (DICOM PS3.6 2026d)
+   https://dicom.nema.org/medical/dicom/current/output/chtml/part06/chapter_6.html
+   (0018,1150)  Exposure Time           ExposureTime       IS  1
+   (0018,1151)  X-Ray Tube Current      XRayTubeCurrent    IS  1
+   (0018,1152)  Exposure                Exposure           IS  1
+   (0018,9332)  Exposure in mAs         ExposureInmAs      FD  1
+
+2. Innolitics DICOM Standard Browser, Digital X-Ray Image CIOD, X-Ray Acquisition Dose module, attribute (0018,1152)
+   https://dicom.innolitics.com/ciods/digital-x-ray-image/x-ray-acquisition-dose/00181152
+   Tag (0018,1152); Type Optional (3); Keyword Exposure; VM 1; VR Integer String (IS).
+   Description: "The exposure expressed in mAs, for example calculated from Exposure Time and X-Ray Tube Current."
+   (A third-party rendering of PS3.3; the PS3.3 page itself was not fetched.)
+
+3. PS3.4 Table K.4-1 "C-FIND Response Status Values" (Basic Worklist Management Service Class, DICOM PS3.4 2026d)
+   https://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_K.4.html
+   Failure | Refused: Out of resources                 | A700
+   Failure | Error: Data Set does not match SOP Class  | A900
+   Failure | Failed: Unable to process                 | Cxxx
+   Cancel  | Matching terminated due to Cancel request | FE00
+   Success | Matching is complete - No final Identifier is supplied. | 0000
+   Pending | Matches are continuing ...                | FF00 / FF01
+   Note under the table: "An SCU implementation shall recognize any Failure Status Code within the value range specified in
+   Table K.4-1 as an indicator of the Failure Meaning stated in the table. There is no requirement for an SCU implementation
+   to differentiate between specific Status Codes within the valid range."
+
+NOT read (so not claimed in the report):
+   - Which IOD / module carries (0018,9332). The Innolitics page for the CT Image CIOD was requested and returned the site's
+     welcome page, not the attribute. Only the PS3.6 name, VR and VM of (0018,9332) are stated.
+   - The C-STORE response status table (PS3.4 Annex B Table B.2-1). The C-STORE failure reproduction (C7) uses status A700;
+     REQ-DICOM-032 itself says "remote rejection, DIMSE failure, or network error" without naming a code.
