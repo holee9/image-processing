@@ -76,6 +76,13 @@
  *     file or a registry key, and in a job that allows it no child process. It writes nothing today, so there is no scratch
  *     location: none is writable for it. The pipe it serves is open to the user that runs it and to SYSTEM, and to no one
  *     else (it used to give Everyone and Anonymous read access).
+ *   - THE PIPE'S OTHER END IS CHECKED (QA-B-198b). The pipe name carries 128 random bits and the worker creates it as the
+ *     FIRST instance of that name. The worker accepts only a client whose process id is the host's (given to it at start) and
+ *     the host accepts only a server whose process id is the worker it started, before it sends anything; the host connects
+ *     at the anonymous impersonation level, so a process that serves the pipe in the worker's place cannot act as the host.
+ *     A worker turns away at most 16 other clients, then exits.
+ *     NOT CLOSED: a process of the SAME user can still debug the host or the worker, and can make a start fail by
+ *     connecting to the worker's pipe before the host does more than 16 times (a denial of service, not a takeover).
  *   - NOT MET: THE NETWORK. A low-integrity process can still open sockets; "no network" needs an AppContainer, which needs
  *     access rights granted on the install folders by the installer, and is deferred (#250). Do not read this module as
  *     network-isolated.
@@ -120,7 +127,7 @@
  * `published_date` (a calendar date YYYY-MM-DD). A key of that list with the wrong type is a refusal. Other keys
  * (`labels` of a body-part model, `note`) are not judged by this check. A model with no sidecar file at all is refused.
  * A refusal behaves like a refused signature -- XPE_ERR_CONFIG_INVALID / UNKNOWN, nothing loaded, never a failure of the
- * worker, remembered until a file changes -- and raises ONE XPE_ALERT_ERROR per role per session (the same once-flag as
+ * worker, verified again on every call (nothing about a refusal is remembered) -- and raises ONE XPE_ALERT_ERROR per role per session (the same once-flag as
  * a signature refusal): "AI [bone suppression|body-part recognition] is unavailable: its model sidecar failed the
  * metadata check ([reason]) and nothing was loaded (REQ-AI-008)", where [reason] names the field (for example "the
  * required field pccp_scope is missing"). When the refusal came from a worker the module cannot tell which check

@@ -145,15 +145,10 @@ struct AiModuleState {
     bool boneTrustAlerted{false};
     bool bodyPartTrustAlerted{false};
 
-    /**
-     * What the model files of a role looked like (size and write time of the model, sidecar and signature) when the
-     * last load was refused for its signature; empty when the last load was not refused. A call that finds the same
-     * stamp again answers from this memo and does NOT read and hash the model once more: the refusal cannot have
-     * changed, and a large model costs a measurable time per call (design.md: 125 ms for 256 MiB). Any change to any
-     * of the three files changes the stamp, so the files are checked again at once.
-     */
-    std::string boneTrustFailStamp;
-    std::string bodyPartTrustFailStamp;
+    // QA-B-198b: there is NO memo of a refused load. A previous version remembered "refused" under a stamp of the model
+    // files' size and write time and answered from it; a file put back as it was, with its time restored, stayed refused for
+    // the whole session. A refused role is verified again on every call (the cost is in the QA-B-198b report); only the
+    // ALERT is once per session.
 
     /**
      * Opt-in (QA-B-171C): route xpe_bone_suppress through the worker process. Default OFF -- the
@@ -659,6 +654,14 @@ static std::atomic<void (*)(const char*)> g_testAfterVerifyHook{nullptr};
 static void afterVerifyTrampoline(const std::string& modelPath) {
     if (auto* hook = g_testAfterVerifyHook.load(std::memory_order_acquire)) hook(modelPath.c_str());
 }
+namespace xpe::ai {
+void TestSetBeforeFileReadHook(void (*hook)());
+}
+// TEST-ONLY (QA-B-198b): called before every model-file read of a load or a card lookup (ai_onnx_session.cpp). A test
+// counts the reads (a refusal is verified again every time) or makes them slow on one thread (a lookup does not hold the lock).
+extern "C" XPE_API void xpe_ai_test_set_before_file_read_hook(void (*hook)(void)) {
+    xpe::ai::TestSetBeforeFileReadHook(hook);
+}
 extern "C" XPE_API void xpe_ai_test_set_after_verify_hook(void (*hook)(const char* modelPath)) {
     g_testAfterVerifyHook.store(hook, std::memory_order_release);
     xpe::ai::TestSetAfterVerifyHook(hook ? &afterVerifyTrampoline : nullptr);
@@ -763,32 +766,6 @@ static void warnBodyPartUnavailableOnce(AiModuleState* state, const char* reason
 }
 
 /**
- * Size and write time of the three files of a role's model (`<stem>.onnx`, `.json`, `.sig`), as one string, from the
- * file system's own attribute call. The path is built the way the loaders build it, so both look at the same files.
- * (std::filesystem is not used here: under the allocation-failure sweep of xpe_ai_oom_tests it left allocations live
- * when an allocation failed inside it.)
- */
-static std::string modelFilesStamp(const std::string& dir, const char* stem) {
-    std::string stamp;
-    for (const char* ext : {".onnx", ".json", ".sig"}) {
-        std::string path = dir.empty() ? std::string() : dir + "/";
-        path += stem;
-        path += ext;
-        WIN32_FILE_ATTRIBUTE_DATA d{};
-        if (!GetFileAttributesExA(path.c_str(), GetFileExInfoStandard, &d)) {
-            stamp += "-;";
-            continue;
-        }
-        char buf[96];
-        std::snprintf(buf, sizeof(buf), "%lu.%lu@%lu.%lu;", static_cast<unsigned long>(d.nFileSizeHigh),
-                      static_cast<unsigned long>(d.nFileSizeLow), static_cast<unsigned long>(d.ftLastWriteTime.dwHighDateTime),
-                      static_cast<unsigned long>(d.ftLastWriteTime.dwLowDateTime));
-        stamp += buf;
-    }
-    return stamp;
-}
-
-/**
  * The reason inside "model signature check failed (<reason>): <path>" or "model sidecar check failed (<reason>): <path>":
  * the text between the opening parenthesis and the first "): ". "unknown" when the text has another shape.
  */
@@ -855,11 +832,14 @@ static void pushWorkerRefusedModelAlertOnce(bool* alerted, const char* role) {
  * card while the files kept their size and write time; a sidecar changed to another of the same size, its write time put
  * back, then kept a card for a file that no longer verified -- a fast path that gave a verdict the slow path would not.)
  * Returns true with the card in @p card; false when the model is not there, does not verify, has no valid sidecar, or is
- * another model. Changes no module state, so an allocation failure leaves nothing behind. Caller holds state->mtx.
+ * another model. Changes no module state, so an allocation failure leaves nothing behind.
+ * The caller holds NO lock (QA-B-198b): reading and hashing a large model takes a measurable time (768 MiB: 1.17 s) and
+ * the module mutex is the one inference takes. It passes a COPY of the model directory taken under the lock, and checks
+ * after the read that the directory is still the module's (xpe_ai_get_model_card_impl).
  */
-static bool cardOfRoleIfItIs(const AiModuleState* state, const char* stem, const char* role, const std::string& modelId,
+static bool cardOfRoleIfItIs(const std::string& modelDir, const char* stem, const char* role, const std::string& modelId,
                              std::string* card) {
-    const std::string base = state->modelDirPath.empty() ? std::string() : state->modelDirPath + "/";
+    const std::string base = modelDir.empty() ? std::string() : modelDir + "/";
     xpe::ai::VerifiedModelFiles files;
     std::string message;
     if (xpe::ai::ReadVerifiedModelFiles(base + stem + ".onnx", role, &files, &message) != xpe::ai::OnnxErrorCode::kOk) {
@@ -1266,12 +1246,6 @@ extern "C++" static XpeErrorCode xpe_bodypart_recognize_impl(const XpeImageBuffe
     // labels or has an input this module will not feed is NOT a call error: it is the documented fallback outcome,
     // with ONE Warning per session so the operator can find out.
     if (!state->bodyPart || state->bodyPartDir != state->modelDirPath) {
-        const std::string stamp = modelFilesStamp(state->modelDirPath, "bodypart");
-        if (!state->bodyPartTrustFailStamp.empty() && stamp == state->bodyPartTrustFailStamp) {
-            // Refused for its signature a moment ago and nothing changed since (QA-B-195 M4): no second hashing.
-            state->bodyPart.reset();
-            return bodyPartUnknown(bodyPartOut, bufLen);
-        }
         std::unique_ptr<BodyPartModel> built;
         xpe::ai::BodyPartLoadFailure kind = xpe::ai::BodyPartLoadFailure::kNone;
         std::string detail;
@@ -1279,26 +1253,21 @@ extern "C++" static XpeErrorCode xpe_bodypart_recognize_impl(const XpeImageBuffe
             state->bodyPart.reset();
             if (kind == xpe::ai::BodyPartLoadFailure::kOutOfMemory) {
                 // QA-B-194b: a shortage of memory is named as one, like the bone-suppression path and the other
-                // allocating entry points do. Not "the model is unavailable": no alert, no memo, and the next
-                // call tries again.
-                state->bodyPartTrustFailStamp.clear();
+                // allocating entry points do. Not "the model is unavailable": no alert, and the next call tries
+                // again.
                 return XPE_ERR_OUT_OF_MEMORY;
             }
             if (kind == xpe::ai::BodyPartLoadFailure::kNotTrusted) {
-                state->bodyPartTrustFailStamp = stamp;
                 pushModelNotTrustedAlertOnce(&state->bodyPartTrustAlerted, "body-part recognition",
                                              refusalReason(detail));
             } else if (kind == xpe::ai::BodyPartLoadFailure::kSidecarInvalid) {
-                state->bodyPartTrustFailStamp = stamp;   // same memo: the files are unchanged, so is the refusal
                 pushSidecarInvalidAlertOnce(&state->bodyPartTrustAlerted, "body-part recognition",
                                             refusalReason(detail));
             } else {
-                state->bodyPartTrustFailStamp.clear();
                 warnBodyPartUnavailableOnce(state, why);
             }
             return bodyPartUnknown(bodyPartOut, bufLen);
         }
-        state->bodyPartTrustFailStamp.clear();
         state->bodyPart = std::move(built);
         state->bodyPartDir = state->modelDirPath;
     }
@@ -1641,11 +1610,6 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
 
     // Lazy load, and reload when init pointed somewhere else.
     if (!state->boneSuppressSession || state->boneSuppressSessionDir != state->modelDirPath) {
-        const std::string stamp = modelFilesStamp(state->modelDirPath, "bone_suppress");
-        if (!state->boneTrustFailStamp.empty() && stamp == state->boneTrustFailStamp) {
-            // Refused for its signature a moment ago and nothing changed since (QA-B-195 M4): no second hashing.
-            return XPE_ERR_CONFIG_INVALID;
-        }
         xpe::ai::OnnxSessionConfig cfg;
         cfg.model_path = modelPath;
         cfg.role = "bone_suppress";   // part of what the signature covers (QA-B-195)
@@ -1670,19 +1634,16 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
                 case xpe::ai::OnnxErrorCode::kModelNotTrusted:
                     // QA-B-195: the model or its sidecar failed signature verification. Nothing was loaded. The
                     // same code as "model unreadable": the caller's answer is the same (no model to use). The
-                    // operator is told once per session, with the reason class; the refusal is remembered until a
-                    // file changes (modelFilesStamp), so the model is not hashed again on every call.
+                    // operator is told once per session, with the reason class. Nothing is remembered: the next call
+                    // verifies the files again (QA-B-198b).
                     AI_LOG_ERROR("bone_suppress: %s", created.message.c_str());
-                    state->boneTrustFailStamp = stamp;
                     pushModelNotTrustedAlertOnce(&state->boneTrustAlerted, "bone suppression",
                                                  refusalReason(created.message));
                     return XPE_ERR_CONFIG_INVALID;
                 case xpe::ai::OnnxErrorCode::kSidecarInvalid:
                     // QA-B-197 (REQ-AI-008): the signature verified, the sidecar does not say what the requirement
-                    // asks. Same treatment as a signature refusal: -4, nothing loaded, one Error alert per session,
-                    // remembered until a file changes.
+                    // asks. Same treatment as a signature refusal: -4, nothing loaded, one Error alert per session.
                     AI_LOG_ERROR("bone_suppress: %s", created.message.c_str());
-                    state->boneTrustFailStamp = stamp;
                     pushSidecarInvalidAlertOnce(&state->boneTrustAlerted, "bone suppression",
                                                 refusalReason(created.message));
                     return XPE_ERR_CONFIG_INVALID;
@@ -1691,7 +1652,6 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
                     return XPE_ERR_PROCESSING_FAILED;
             }
         }
-        state->boneTrustFailStamp.clear();
         state->boneSuppressSession = std::move(created.value);
         state->boneSuppressSessionDir = state->modelDirPath;
     }
@@ -1821,12 +1781,18 @@ extern "C++" static XpeErrorCode xpe_ai_get_model_card_impl(const char* modelId,
     // QA-B-194 M3 (D4): the identifier is echoed into JSON, so it must be one a JSON string can carry unescaped.
     if (!isValidModelId(modelId)) return XPE_ERR_INVALID_INPUT;
 
-    // Look up model in loaded models list
+    // QA-B-198b: under the lock only the model directory is COPIED; the read and the signature check run outside it, so
+    // an inference on another thread is not kept out for the length of a large model's read. After the read the lock is
+    // taken again to confirm the module still points at the directory that was read.
     auto* state = g_aiState;
-    std::lock_guard<std::mutex> lock(state->mtx);
+    std::string modelDir;
+    {
+        std::lock_guard<std::mutex> lock(state->mtx);
 #ifdef XPE_AI_TEST_HOOKS
-    if (auto* hook = g_testMutexHeldHook.load(std::memory_order_acquire)) hook();   // the mutex IS held here
+        if (auto* hook = g_testMutexHeldHook.load(std::memory_order_acquire)) hook();   // the mutex IS held here
 #endif
+        modelDir = state->modelDirPath;
+    }
 
     // REQ-AI-010 / 011 (QA-B-197 M2): the card of a model is made ONLY from the sidecar of a model that passed the same
     // checks a load applies (signature, then REQ-AI-008). No constant of this module is ever put into a card; a field the
@@ -1836,8 +1802,17 @@ extern "C++" static XpeErrorCode xpe_ai_get_model_card_impl(const char* modelId,
                                     ",\"error\":\"model_unavailable\",\"reason\":\"no verified model in the model "
                                     "directory has this model_id\"}";
     std::string made;
-    const bool found = cardOfRoleIfItIs(state, "bone_suppress", "bone_suppress", modelId, &made) ||
-                       cardOfRoleIfItIs(state, "bodypart", "bodypart", modelId, &made);
+    bool found = false;
+    for (int attempt = 0; attempt < 3; ++attempt) {
+        found = cardOfRoleIfItIs(modelDir, "bone_suppress", "bone_suppress", modelId, &made) ||
+                cardOfRoleIfItIs(modelDir, "bodypart", "bodypart", modelId, &made);
+        std::lock_guard<std::mutex> lock(state->mtx);
+        if (state->initialized.load(std::memory_order_acquire) && state->modelDirPath == modelDir) break;
+        // The module was pointed somewhere else while the files were being read: that card describes a model the module
+        // no longer uses. Read again from the current directory; after three tries there is no card.
+        modelDir = state->modelDirPath;
+        found = false;
+    }
     const std::string& cardJson = found ? made : unavailable;
 
     // Copy to caller buffer

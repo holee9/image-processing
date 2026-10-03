@@ -449,6 +449,10 @@ if(_XPE_AI_BUILD_TESTS)
         test_ai_worker_boundary.cpp
         # #250 (QA-B-198 M2): REQ-AI-093 least privilege -- what the worker cannot do, measured from inside it; the pipe is the user's
         test_ai_worker_sandbox.cpp
+        # #250 (QA-B-198b, Codex #95): who is on the other end of the worker's pipe -- both ends check the process id
+        test_ai_worker_pipe_peer.cpp
+        # #130 (QA-B-198b): a refused model is verified again on every call; a card lookup reads outside the module lock
+        test_ai_trust_recheck.cpp
         # #130 (QA-B-168): SRS-ALERT-004 fires when DL was applied -- and, the
         # half that constrains the code, stays quiet on every path that
         # returned an image the model never touched

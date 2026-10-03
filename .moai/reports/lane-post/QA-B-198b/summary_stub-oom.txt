@@ -1,0 +1,17 @@
+[  SKIPPED ] AiOom.BoneSuppressionFailsCleanlyAtEveryAllocation (0 ms)
+[  SKIPPED ] AiOom.BodyPartRecognitionFailsCleanlyAtEveryAllocation (0 ms)
+[  SKIPPED ] AiOom.ABodyPartSessionThatRunsOutOfMemoryIsOutOfMemoryNotAnUnavailableModel (0 ms)
+[  SKIPPED ] AiOom.AShortageOfMemoryWhileReadingTheBodyPartLabelsIsOutOfMemoryNotAnUnavailableModel (0 ms)
+[  SKIPPED ] AiOom.ABoneSessionThatRunsOutOfMemoryIsOutOfMemoryOnTheInProcessPath (0 ms)
+[  SKIPPED ] AiOom.AModelBufferThatCannotBeAllocatedIsOutOfMemoryOnTheInProcessBonePath (0 ms)
+[  SKIPPED ] AiOom.AModelBufferThatCannotBeAllocatedIsOutOfMemoryOnTheInProcessBodyPartPath (0 ms)
+[==========] 13 tests from 1 test suite ran. (71 ms total)
+[  PASSED  ] 6 tests.
+[  SKIPPED ] 7 tests, listed below:
+[  SKIPPED ] AiOom.BoneSuppressionFailsCleanlyAtEveryAllocation
+[  SKIPPED ] AiOom.BodyPartRecognitionFailsCleanlyAtEveryAllocation
+[  SKIPPED ] AiOom.ABodyPartSessionThatRunsOutOfMemoryIsOutOfMemoryNotAnUnavailableModel
+[  SKIPPED ] AiOom.AShortageOfMemoryWhileReadingTheBodyPartLabelsIsOutOfMemoryNotAnUnavailableModel
+[  SKIPPED ] AiOom.ABoneSessionThatRunsOutOfMemoryIsOutOfMemoryOnTheInProcessPath
+[  SKIPPED ] AiOom.AModelBufferThatCannotBeAllocatedIsOutOfMemoryOnTheInProcessBonePath
+[  SKIPPED ] AiOom.AModelBufferThatCannotBeAllocatedIsOutOfMemoryOnTheInProcessBodyPartPath

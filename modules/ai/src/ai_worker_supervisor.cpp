@@ -33,6 +33,8 @@
 
 #include "ai_ipc_bridge.h"
 
+#include <bcrypt.h>
+
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -52,7 +54,22 @@ XpeErrorCode    xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge, uint32_t
 void            xpe_ai_ipc_bridge_destroy(XpeAiIpcBridge* bridge);
 }
 
+#pragma comment(lib, "bcrypt.lib")
+
 namespace xpe::ai {
+
+std::string NewWorkerPipeName() {
+    // 128 random bits from the system generator: a process of the same user cannot guess the name and make its own
+    // server first. No random bytes, no name (the caller then starts no worker).
+    static std::atomic<uint32_t> serial{0};
+    unsigned char r[16];
+    if (BCryptGenRandom(nullptr, r, sizeof(r), BCRYPT_USE_SYSTEM_PREFERRED_RNG) != 0) return std::string();
+    char name[160];
+    int n = std::snprintf(name, sizeof(name), "\\\\.\\pipe\\xpe_ai_worker_%lu_%u_",
+                          static_cast<unsigned long>(GetCurrentProcessId()), serial.fetch_add(1));
+    for (unsigned char b : r) n += std::snprintf(name + n, sizeof(name) - static_cast<size_t>(n), "%02x", b);
+    return std::string(name, static_cast<size_t>(n));
+}
 
 namespace {
 
@@ -90,7 +107,6 @@ std::string JsonEscape(const std::string& text) {
 }
 
 std::atomic<uint32_t> g_request_id{1};
-std::atomic<uint32_t> g_pipe_serial{0};
 
 /**
  * The host's own primary token, lowered to LOW integrity (S-1-16-4096): the token the worker is started with.
@@ -284,11 +300,14 @@ XpeErrorCode WorkerSupervisor::StartLocked() {
         if (!token) return XPE_ERR_PROCESSING_FAILED;
     }
 
-    char pipe[160];
-    std::snprintf(pipe, sizeof(pipe), "\\\\.\\pipe\\xpe_ai_worker_%lu_%u",
-                  static_cast<unsigned long>(GetCurrentProcessId()), g_pipe_serial.fetch_add(1));
+    // QA-B-198b: the name cannot be guessed, and the worker is told whose pipe client it may accept.
+    const std::string pipe = NewWorkerPipeName();
+    if (pipe.empty()) {
+        if (token) CloseHandle(token);
+        return XPE_ERR_PROCESSING_FAILED;
+    }
 
-    std::string cmd = "\"" + config_.worker_exe + "\" " + pipe;
+    std::string cmd = "\"" + config_.worker_exe + "\" " + pipe + " " + std::to_string(GetCurrentProcessId());
     STARTUPINFOA si{};
     si.cb = sizeof(si);
     PROCESS_INFORMATION pi{};
@@ -321,7 +340,7 @@ XpeErrorCode WorkerSupervisor::StartLocked() {
     started_pids_.push_back(pid_);
     shutdown_requested_ = false;
 
-    bridge_ = xpe_ai_ipc_bridge_create(pipe, config_.timeout_ms);
+    bridge_ = xpe_ai_ipc_bridge_create(pipe.c_str(), config_.timeout_ms);
     if (!bridge_) {
         KillLocked();
         return XPE_ERR_OUT_OF_MEMORY;
@@ -341,6 +360,15 @@ XpeErrorCode WorkerSupervisor::StartLocked() {
     }
     if (!connected) {
         if (!ReapIfExitedLocked()) KillLocked();
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+
+    // QA-B-198b: the process on the far end of the pipe must be the child this supervisor started. A name nobody can
+    // guess is the first defence; this is the second: whatever answered is identified by its process id, and anything
+    // but the child fails the start before a single byte is sent to it.
+    ULONG server_pid = 0;
+    if (!GetNamedPipeServerProcessId(bridge_->pipe_handle, &server_pid) || server_pid != pid_) {
+        KillLocked();
         return XPE_ERR_PROCESSING_FAILED;
     }
 

@@ -43,6 +43,8 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <cerrno>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <memory>
@@ -110,6 +112,8 @@ inline void MaybeFailPayloadForTest(uint32_t) {}
 namespace {
     constexpr DWORD PIPE_BUFFER_SIZE = XPE_AI_PIPE_BUFFER_SIZE;
     constexpr DWORD PIPE_TIMEOUT_MS = 0;
+    /** QA-B-198b: pipe clients that are not the host a worker turns away before it gives up and exits. */
+    constexpr int kMaxForeignClients = 16;
     constexpr const char* XPE_AI_WORKER_PIPE_NAME = "\\\\.\\pipe\\xpe_ai_worker";
 
     // Reported in INIT_RESPONSE, so the string has to be true for THIS build.
@@ -242,8 +246,13 @@ public:
      * @brief Construct worker server
      * @param pipe_name Named pipe name
      */
-    explicit WorkerServer(const std::string& pipe_name)
+    /**
+     * @param host_pid  the one process whose pipe client this worker accepts (QA-B-198b); 0 = no check, for a worker
+     *                  started by hand without a host (diagnostics and the protocol tests). A supervisor always passes it.
+     */
+    explicit WorkerServer(const std::string& pipe_name, DWORD host_pid = 0)
         : pipe_name_(pipe_name)
+        , host_pid_(host_pid)
         , pipe_handle_(INVALID_HANDLE_VALUE)
         , running_(false)
     {
@@ -273,9 +282,11 @@ public:
             return false;
         }
         // Create named pipe
+        // QA-B-198b: FIRST_PIPE_INSTANCE -- if a process of the same user already serves this name, creation FAILS (the
+        // worker exits) instead of the worker quietly becoming a second server nobody connects to.
         pipe_handle_ = CreateNamedPipeA(
             pipe_name_.c_str(),
-            PIPE_ACCESS_DUPLEX,
+            PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE,
             PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
             1,                          // Max instances (single client)
             PIPE_BUFFER_SIZE,           // Output buffer size
@@ -306,20 +317,34 @@ public:
 
         std::cout << "[Worker] Waiting for client connection..." << std::endl;
 
-        BOOL result = ConnectNamedPipe(pipe_handle_, nullptr);
-        if (!result) {
-            DWORD error = GetLastError();
-            if (error == ERROR_PIPE_CONNECTED) {
-                // Client already connected - this is OK
-                std::cout << "[Worker] Client already connected" << std::endl;
+        // QA-B-198b: a client that is not the host is cut off and the worker waits for the next one, up to a bound. A
+        // process of the same user can still connect FIRST and be refused here, but it cannot hold the pipe: each refusal
+        // frees it for the host. Past the bound the worker exits -- an attack of this shape ends as a start failure
+        // (the host reports the worker as not started), never as a conversation with the wrong process.
+        for (int refused = 0; refused <= kMaxForeignClients; ++refused) {
+            BOOL result = ConnectNamedPipe(pipe_handle_, nullptr);
+            if (!result) {
+                DWORD error = GetLastError();
+                if (error != ERROR_PIPE_CONNECTED) {
+                    std::cerr << "[Worker] ConnectNamedPipe failed: " << error << std::endl;
+                    return false;
+                }
+                // Client already connected before this call - checked like any other
+            }
+            if (host_pid_ == 0) {
+                std::cout << "[Worker] Client connected" << std::endl;
                 return true;
             }
-            std::cerr << "[Worker] ConnectNamedPipe failed: " << error << std::endl;
-            return false;
+            ULONG client_pid = 0;
+            if (GetNamedPipeClientProcessId(pipe_handle_, &client_pid) && client_pid == host_pid_) {
+                std::cout << "[Worker] Client connected" << std::endl;
+                return true;
+            }
+            std::cerr << "[Worker] Refused a pipe client that is not the host (pid " << client_pid << ")" << std::endl;
+            DisconnectNamedPipe(pipe_handle_);
         }
-
-        std::cout << "[Worker] Client connected" << std::endl;
-        return true;
+        std::cerr << "[Worker] Too many foreign pipe clients; exiting" << std::endl;
+        return false;
     }
 
     /**
@@ -821,6 +846,7 @@ private:
     }
 
     std::string pipe_name_;
+    DWORD host_pid_;
     HANDLE pipe_handle_;
     bool running_;
 
@@ -892,8 +918,23 @@ int main(int argc, char* argv[]) {
 
     std::cout << "[Worker] Pipe: " << pipe_name << std::endl;
 
+    // QA-B-198b: argv[2] is the host's process id, the only process whose pipe client is accepted. A value that is
+    // present but not a plain positive number ends the worker (fail closed) rather than disabling the check.
+    DWORD host_pid = 0;
+    if (argc > 2) {
+        char* end = nullptr;
+        errno = 0;
+        const unsigned long v = std::strtoul(argv[2], &end, 10);
+        // strtoul accepts a leading '-' and wraps it ("-5" becomes a huge positive number), so the first character is checked
+        if (argv[2][0] < '0' || argv[2][0] > '9' || end == argv[2] || *end != '\0' || v == 0 || errno == ERANGE) {
+            std::cerr << "[Worker] Bad host process id argument" << std::endl;
+            return 1;
+        }
+        host_pid = static_cast<DWORD>(v);
+    }
+
     // Create and start server
-    WorkerServer server(pipe_name);
+    WorkerServer server(pipe_name, host_pid);
 
     if (!server.Start()) {
         std::cerr << "[Worker] Failed to start server" << std::endl;

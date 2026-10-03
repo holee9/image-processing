@@ -1,0 +1,207 @@
+"""QA-B-198b falsification arms: break ONE defence at a time, rebuild, run the tests that must notice, restore byte-identical.
+
+Run from the repository root:  python build/g198b_arms.py <out.txt> [arm names...]
+An arm FIRES when every test listed for it is red (and the build succeeded); an arm that does not fire is reported as such.
+Sources are not edited by anyone else while this runs.
+"""
+import hashlib, os, re, subprocess, sys
+
+ROOT = os.getcwd()
+OUT = sys.argv[1]
+ONLY = sys.argv[2:]
+BUILD = r'D:\workspace-github\xpe-post\build\g198b-build2.bat'
+RUN = r'D:\workspace-github\xpe-post\build\g198b-run.bat'
+AI = 'modules/ai/'
+
+STAMP_FN = '''/**
+ * Size and write time of the three files of a role's model (ARM ONLY: the memo that QA-B-198b removed).
+ */
+static std::string modelFilesStamp(const std::string& dir, const char* stem) {
+    std::string stamp;
+    for (const char* ext : {".onnx", ".json", ".sig"}) {
+        std::string path = dir.empty() ? std::string() : dir + "/";
+        path += stem;
+        path += ext;
+        WIN32_FILE_ATTRIBUTE_DATA d{};
+        if (!GetFileAttributesExA(path.c_str(), GetFileExInfoStandard, &d)) {
+            stamp += "-;";
+            continue;
+        }
+        char buf[96];
+        std::snprintf(buf, sizeof(buf), "%lu.%lu@%lu.%lu;", static_cast<unsigned long>(d.nFileSizeHigh),
+                      static_cast<unsigned long>(d.nFileSizeLow), static_cast<unsigned long>(d.ftLastWriteTime.dwHighDateTime),
+                      static_cast<unsigned long>(d.ftLastWriteTime.dwLowDateTime));
+        stamp += buf;
+    }
+    return stamp;
+}
+
+'''
+
+ARMS = [
+    # name, [(file, old, new)], gtest filter, tests that must be red (substring), build targets are fixed in the bat
+    ('host_server_pid_check_off',
+     [(AI + 'src/ai_worker_supervisor.cpp',
+       'if (!GetNamedPipeServerProcessId(bridge_->pipe_handle, &server_pid) || server_pid != pid_) {',
+       'if (server_pid == 0xFFFFFFFFu && (!GetNamedPipeServerProcessId(bridge_->pipe_handle, &server_pid) || server_pid != pid_)) {')],
+     'WorkerPipePeer.*',
+     ['TheSupervisorRefusesAPipeServedByAProcessItDidNotStart']),
+    ('worker_client_pid_check_off',
+     [(AI + 'src/ai_worker_main.cpp',
+       'if (GetNamedPipeClientProcessId(pipe_handle_, &client_pid) && client_pid == host_pid_) {',
+       'if (GetNamedPipeClientProcessId(pipe_handle_, &client_pid) || client_pid == host_pid_) {')],
+     'WorkerPipePeer.*',
+     ['TheWorkerCutsOffAClientThatIsNotTheHostAndKeepsWaiting']),
+    ('worker_first_pipe_instance_off',
+     [(AI + 'src/ai_worker_main.cpp',
+       'PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE,', 'PIPE_ACCESS_DUPLEX,')],
+     'WorkerPipePeer.*',
+     ['AWorkerCannotTakeANameThatIsAlreadyServed']),
+    ('pipe_name_random_part_zero',
+     [(AI + 'src/ai_worker_supervisor.cpp',
+       '    char name[160];\n    int n = std::snprintf(name, sizeof(name), ',
+       '    std::memset(r, 0, sizeof(r));\n    char name[160];\n    int n = std::snprintf(name, sizeof(name), ')],
+     'WorkerPipePeer.*',
+     ['EveryPipeNameCarries128FreshRandomBits']),
+    ('bridge_default_impersonation_level',
+     [(AI + 'src/ai_ipc_bridge.cpp',
+       'FILE_FLAG_OVERLAPPED | SECURITY_SQOS_PRESENT | SECURITY_ANONYMOUS,', 'FILE_FLAG_OVERLAPPED,')],
+     'WorkerPipePeer.*',
+     ['TheHostsBridgeConnectsAtTheAnonymousLevelSoAServerCannotActAsTheHost']),
+    ('worker_host_id_strtoul_wrap',
+     [(AI + 'src/ai_worker_main.cpp',
+       "argv[2][0] < '0' || argv[2][0] > '9' || ", '')],
+     'WorkerPipePeer.*',
+     ['ABadHostIdEndsTheWorkerInsteadOfSwitchingTheCheckOff']),
+    ('worker_foreign_client_bound_unlimited',
+     [(AI + 'src/ai_worker_main.cpp',
+       'constexpr int kMaxForeignClients = 16;', 'constexpr int kMaxForeignClients = 1000000;')],
+     'WorkerPipePeer.*',
+     ['AfterTooManyForeignClientsTheWorkerExitsInsteadOfServingThem']),
+    ('bone_refusal_memo_back',
+     [(AI + 'src/ai.cpp', 'static std::string refusalReason(const std::string& message) {',
+       None),  # placeholder, replaced below
+     ],
+     'TrustRecheck.*', []),
+]
+
+# the memo arms need several coordinated edits; build them explicitly
+ARMS = [a for a in ARMS if a[0] != 'bone_refusal_memo_back']
+
+SRC = open(AI + 'src/ai.cpp', encoding='utf-8').read()
+BONE_ANCHOR = '    // Lazy load, and reload when init pointed somewhere else.\n    if (!state->boneSuppressSession || state->boneSuppressSessionDir != state->modelDirPath) {\n'
+assert SRC.count(BONE_ANCHOR) == 1
+REFUSAL_ANCHOR = '/**\n * The reason inside "model signature check failed'
+assert SRC.count(REFUSAL_ANCHOR) == 1
+FIELD_ANCHOR = '    // QA-B-198b: there is NO memo of a refused load.'
+assert SRC.count(FIELD_ANCHOR) == 1
+
+BONE_REFUSE_A = '                    AI_LOG_ERROR("bone_suppress: %s", created.message.c_str());\n                    pushModelNotTrustedAlertOnce('
+assert SRC.count(BONE_REFUSE_A) == 1
+BONE_OK = '        state->boneSuppressSession = std::move(created.value);\n'
+assert SRC.count(BONE_OK) == 1
+
+ARMS.append((
+    'bone_refusal_memo_back',
+    [(AI + 'src/ai.cpp', REFUSAL_ANCHOR, STAMP_FN + REFUSAL_ANCHOR),
+     (AI + 'src/ai.cpp', FIELD_ANCHOR, '    std::string boneTrustFailStamp;\n' + FIELD_ANCHOR),
+     (AI + 'src/ai.cpp', BONE_ANCHOR,
+      BONE_ANCHOR + '        const std::string stamp = modelFilesStamp(state->modelDirPath, "bone_suppress");\n'
+      '        if (!state->boneTrustFailStamp.empty() && stamp == state->boneTrustFailStamp) return XPE_ERR_CONFIG_INVALID;\n'),
+     (AI + 'src/ai.cpp', BONE_REFUSE_A, '                    state->boneTrustFailStamp = stamp;\n' + BONE_REFUSE_A),
+     (AI + 'src/ai.cpp', BONE_OK, '        state->boneTrustFailStamp.clear();\n' + BONE_OK)],
+    'TrustRecheck.*',
+    ['ARefusedBoneModelIsReadAndVerifiedAgainOnEveryCall',
+     'ARepairedBoneModelWithTheSizeAndWriteTimeOfTheRefusedOneIsAcceptedAtOnce']))
+
+PART_ANCHOR = '    if (!state->bodyPart || state->bodyPartDir != state->modelDirPath) {\n'
+assert SRC.count(PART_ANCHOR) == 1
+PART_REFUSE = '            if (kind == xpe::ai::BodyPartLoadFailure::kNotTrusted) {\n'
+assert SRC.count(PART_REFUSE) == 1
+PART_OK = '        state->bodyPart = std::move(built);\n'
+assert SRC.count(PART_OK) == 1
+ARMS.append((
+    'bodypart_refusal_memo_back',
+    [(AI + 'src/ai.cpp', REFUSAL_ANCHOR, STAMP_FN + REFUSAL_ANCHOR),
+     (AI + 'src/ai.cpp', FIELD_ANCHOR, '    std::string bodyPartTrustFailStamp;\n' + FIELD_ANCHOR),
+     (AI + 'src/ai.cpp', PART_ANCHOR,
+      PART_ANCHOR + '        const std::string stamp = modelFilesStamp(state->modelDirPath, "bodypart");\n'
+      '        if (!state->bodyPartTrustFailStamp.empty() && stamp == state->bodyPartTrustFailStamp) {\n'
+      '            state->bodyPart.reset();\n            return bodyPartUnknown(bodyPartOut, bufLen);\n        }\n'),
+     (AI + 'src/ai.cpp', PART_REFUSE, PART_REFUSE + '                state->bodyPartTrustFailStamp = stamp;\n'),
+     (AI + 'src/ai.cpp', PART_OK, '        state->bodyPartTrustFailStamp.clear();\n' + PART_OK)],
+    'TrustRecheck.*',
+    ['ARepairedBodyPartSidecarWithTheSizeAndWriteTimeOfTheRefusedOneIsAcceptedAtOnce']))
+
+LOCK_A = '    std::string made;\n    bool found = false;\n    for (int attempt = 0; attempt < 3; ++attempt) {\n'
+assert SRC.count(LOCK_A) == 1
+LOCK_B = '        std::lock_guard<std::mutex> lock(state->mtx);\n        if (state->initialized.load(std::memory_order_acquire) && state->modelDirPath == modelDir) break;\n'
+assert SRC.count(LOCK_B) == 1
+ARMS.append((
+    'card_lookup_holds_the_module_lock',
+    [(AI + 'src/ai.cpp', LOCK_A, '    std::lock_guard<std::mutex> heldWhileReading(state->mtx);\n' + LOCK_A),
+     (AI + 'src/ai.cpp', LOCK_B, '        if (state->initialized.load(std::memory_order_acquire) && state->modelDirPath == modelDir) break;\n')],
+    'TrustRecheck.*',
+    ['ASlowCardLookupDoesNotKeepAnotherCardLookupWaiting', 'AnInferenceIsNotKeptOutByASlowCardLookup']))
+
+
+def sha(p):
+    return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+
+
+def sh(cmd, timeout=1500):
+    r = subprocess.run(['cmd', '/c', cmd], capture_output=True, text=True, timeout=timeout)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def parse(path):
+    txt = open(path, encoding='utf-8', errors='replace').read()
+    failed = set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M))
+    passed = set(re.findall(r'^\[       OK \] (\S+)', txt, re.M))
+    return passed, failed
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+for name, edits, flt, must in ARMS:
+    if ONLY and name not in ONLY:
+        continue
+    files = sorted({e[0] for e in edits})
+    saved = {f: open(f, 'rb').read() for f in files}
+    before = {f: sha(f) for f in files}
+    log('=== ARM %s' % name)
+    try:
+        for f in files:
+            txt = saved[f].decode('utf-8')
+            for (ff, old, new) in edits:
+                if ff != f:
+                    continue
+                assert txt.count(old) == 1, (name, old[:60], txt.count(old))
+                txt = txt.replace(old, new)
+            open(f, 'wb').write(txt.encode('utf-8'))
+        log('build: ' + sh('%s D:\\workspace-github\\xpe-post\\build\\g198b-arm-build.txt' % BUILD).strip().splitlines()[-1])
+        built = os.path.exists('build/g198b-arm-build.txt') and 'FAILED' not in open('build/g198b-arm-build.txt', encoding='utf-8', errors='replace').read()
+        if not built:
+            log('RESULT: BUILD FAILED')
+        else:
+            sh('%s D:\\workspace-github\\xpe-post\\build\\g198b-arm-run.txt %s' % (RUN, flt), 2400)
+            passed, failed = parse('build/g198b-arm-run.txt')
+            red = sorted(f for f in failed)
+            log('red tests: %s' % (', '.join(red) if red else '(none)'))
+            hit = [m for m in must if any(m in f for f in failed)]
+            miss = [m for m in must if m not in hit]
+            log('RESULT: %s  (expected red: %d, red: %d, not red: %s)' % ('FIRED' if not miss else 'DID NOT FIRE', len(must), len(hit), miss))
+            others = [f for f in red if not any(m in f for m in must)]
+            log('other red tests: %s' % (others if others else 'none'))
+    finally:
+        for f in files:
+            open(f, 'wb').write(saved[f])
+        log('restored byte-identical: %s' % all(sha(f) == before[f] for f in files))
+log('=== DONE')
+out.close()

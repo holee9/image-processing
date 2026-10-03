@@ -395,7 +395,9 @@ XpeErrorCode xpe_ai_ipc_bridge_connect(XpeAiIpcBridge* bridge) {
             0,                            // No sharing
             NULL,                         // Default security attributes
             OPEN_EXISTING,                // Opens existing pipe
-            FILE_FLAG_OVERLAPPED,         // Use overlapped I/O for async operations
+            // QA-B-198b: ANONYMOUS impersonation level -- a process that serves this pipe in place of the worker cannot
+            // act with the host's identity (the default level lets a pipe server impersonate its client).
+            FILE_FLAG_OVERLAPPED | SECURITY_SQOS_PRESENT | SECURITY_ANONYMOUS,
             NULL                          // Default template
         );
 

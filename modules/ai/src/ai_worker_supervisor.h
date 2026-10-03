@@ -62,6 +62,12 @@ struct WorkerExitInfo {
     uint32_t exit_code = 0;
 };
 
+/**
+ * A fresh pipe name for a worker: process id, a serial and 128 random bits (QA-B-198b). Empty when the system random
+ * generator failed, in which case no worker is started. Exposed so a test can check that two names never repeat.
+ */
+std::string NewWorkerPipeName();
+
 /** Exit code the supervisor gives a worker it terminates. */
 constexpr uint32_t kSupervisorKillExitCode = 0x4B494C4Cu;  // "KILL"
 

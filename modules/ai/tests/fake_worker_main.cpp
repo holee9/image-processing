@@ -20,6 +20,9 @@
  *   (the two raw ERROR modes also set the frame's header flags to XPE_FAKE_WORKER_FLAGS, a decimal number; QA-B-193b)
  *   "bone_error_raw"    answers a BONE_SUPPRESS request with an ERROR frame whose JSON is XPE_FAKE_WORKER_JSON,
  *                       verbatim (QA-B-193)
+ *   "spoof_server"  never serves the pipe ITSELF: it starts a second process (this program, mode ok) that serves it and
+ *                       sleeps -- a pipe whose server is not the process the supervisor started (QA-B-198b). Needs
+ *                       XPE_AI_TEST_WORKER_UNRESTRICTED=1, since the restricted job allows one process.
  *   "capability_probe_exit"  answers the session-start message, then TRIES five things and exits with the code
  *                       kProbeMarker | (one bit for each that WORKED) -- the way a restricted worker can report what it
  *                       can still do when it cannot write a file to say so (QA-B-198 M2, REQ-AI-093):
@@ -186,6 +189,19 @@ int main(int argc, char** argv) {
     const std::string mode = Mode();
     if (mode == "exit_on_start") return 7;
     if (mode == "no_pipe") Sleep(INFINITE);
+    if (mode == "spoof_server") {
+        char self[MAX_PATH] = {0};
+        GetModuleFileNameA(nullptr, self, MAX_PATH);
+        std::string cmd = std::string("\"") + self + "\" " + argv[1];
+        SetEnvironmentVariableA("XPE_FAKE_WORKER_MODE", "ok");   // the child serves honestly; it is the PROCESS that is wrong
+        STARTUPINFOA si{};
+        si.cb = sizeof(si);
+        PROCESS_INFORMATION pi{};
+        if (!CreateProcessA(nullptr, cmd.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi)) return 9;
+        CloseHandle(pi.hThread);
+        CloseHandle(pi.hProcess);
+        Sleep(INFINITE);
+    }
     g_pipe = CreateNamedPipeA(argv[1], PIPE_ACCESS_DUPLEX,
                               PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1,
                               XPE_AI_PIPE_BUFFER_SIZE, XPE_AI_PIPE_BUFFER_SIZE, 0, nullptr);
