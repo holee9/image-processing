@@ -289,7 +289,7 @@ public sealed class ImageComparisonViewport : FrameworkElement
     public double ZoomScale
     {
         get => (double)GetValue(ZoomScaleProperty);
-        set => SetValue(ZoomScaleProperty, Math.Clamp(value, 0.0, 16.0));
+        set => SetValue(ZoomScaleProperty, Math.Clamp(value, 0.0, ComparisonZoomLimits.Max));
     }
 
     public double PanX
@@ -457,7 +457,7 @@ public sealed class ImageComparisonViewport : FrameworkElement
     {
         var currentScale = GetEffectiveScale();
         var factor = e.Delta > 0 ? 1.20 : 1.0 / 1.20;
-        ZoomScale = Math.Clamp(currentScale * factor, 0.01, 16.0);
+        ZoomScale = Math.Clamp(currentScale * factor, 0.01, ComparisonZoomLimits.Max);
         e.Handled = true;
     }
 

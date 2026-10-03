@@ -12,6 +12,30 @@
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
+  <!--
+    GUI-C-206: which build is this? The About dialog shows the commit the build was made from and the build configuration, both stamped into
+    the assembly at build time: the commit as the source revision of the informational version ("1.0.0+<sha>"), the configuration as assembly
+    metadata. Where git is absent or the folder is not a repository the stamp is "unknown" and the build does NOT fail: Exec ignores a failing
+    git, and its output only counts when git exited 0 with a non-empty answer.
+  -->
+  <Target Name="XpeStampGitRevision" BeforeTargets="InitializeSourceControlInformation" Condition="'$(SourceRevisionId)' == ''">
+    <Exec Command="git rev-parse --short=10 HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low" StandardErrorImportance="low" IgnoreExitCode="true" ContinueOnError="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="XpeGitRevisionOutput" />
+      <Output TaskParameter="ExitCode" PropertyName="XpeGitRevisionExit" />
+    </Exec>
+    <PropertyGroup>
+      <SourceRevisionId Condition="'$(XpeGitRevisionExit)' == '0' and '$(XpeGitRevisionOutput)' != ''">$(XpeGitRevisionOutput.Trim())</SourceRevisionId>
+      <SourceRevisionId Condition="'$(SourceRevisionId)' == ''">unknown</SourceRevisionId>
+    </PropertyGroup>
+  </Target>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>BuildConfiguration</_Parameter1>
+      <_Parameter2>$(Configuration)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
   <!-- GUI-C-193: XPE_TEST_FAULTS (test fault switches) is defined for Debug only. -->
   <Import Project="..\XpeTestFaults.props" />
 

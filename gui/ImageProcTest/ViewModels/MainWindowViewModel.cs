@@ -2849,7 +2849,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private void ZoomIn()
     {
         var current = Settings.ComparisonZoomScale <= 0.0 ? 1.0 : Settings.ComparisonZoomScale;
-        Settings.ComparisonZoomScale = Math.Min(16.0, current * 1.25);
+        Settings.ComparisonZoomScale = Math.Min(ComparisonZoomLimits.Max, current * 1.25);
         RefreshComparisonStatus("Comparison viewport zoomed in.");
     }
 

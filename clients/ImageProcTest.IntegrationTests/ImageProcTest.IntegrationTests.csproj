@@ -77,6 +77,7 @@
       along. Without them the single-source claim would be tested against a copy.
     -->
     <Compile Include="..\..\gui\ImageProcTest\Models\ComparisonModes.cs" Link="Comparison\Linked\ComparisonModes.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BuildIdentity.cs" Link="Comparison\Linked\BuildIdentity.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Models\CalibrationStageMode.cs" Link="Comparison\Linked\CalibrationStageMode.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Models\AppSettings.cs" Link="Comparison\Linked\AppSettings.cs" />
     <Compile Include="..\..\gui\ImageProcTest\ViewModels\ObservableObject.cs" Link="Comparison\Linked\ObservableObject.cs" />

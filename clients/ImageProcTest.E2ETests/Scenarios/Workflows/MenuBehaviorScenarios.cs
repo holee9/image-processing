@@ -197,6 +197,8 @@ public sealed class MenuBehaviorScenarios(Wrist1024SliceApplicationFixture app, 
                     Assert.Contains("mock", version, StringComparison.OrdinalIgnoreCase);
                 }
 
+                AssertBuildLine(text);
+
                 // The first line is the window's own base title.
                 Assert.Contains("ImageProcTest GUI-S0", window.Title, StringComparison.Ordinal);
             }
@@ -208,6 +210,63 @@ public sealed class MenuBehaviorScenarios(Wrist1024SliceApplicationFixture app, 
 
             Assert.True(WaitForDialog(window, "About ImageProcTest", seconds: 1) is null, "The About dialog did not close after OK.");
         });
+    }
+
+    /// <summary>
+    /// GUI-C-206: the "Build: &lt;sha&gt; (&lt;configuration&gt;)" line is checked against things the About code did not compute: the product version stamped into the
+    /// executable FILE, the configuration folder the executable sits in, and git itself. A build is allowed to be OLDER than the checkout (a commit made after the build), so
+    /// the commit is asserted to be an ancestor of HEAD, and — where CI names the commit (GITHUB_SHA) — to be that commit.
+    /// </summary>
+    private void AssertBuildLine(string aboutText)
+    {
+        var line = Regex.Match(aboutText, @"Build: (?<sha>\S+) \((?<config>[^)]*)\)");
+        Assert.True(line.Success, $"The About text has no 'Build: <sha> (<configuration>)' line: '{aboutText.Replace('\n', '|')}'");
+        var sha = line.Groups["sha"].Value;
+        var config = line.Groups["config"].Value;
+
+        var exe = app.ExecutablePath!;
+        var productVersion = System.Diagnostics.FileVersionInfo.GetVersionInfo(exe).ProductVersion ?? string.Empty;
+        output.WriteLine($"A-01 build line: sha={sha} config={config}; exe ProductVersion='{productVersion}'");
+        Assert.EndsWith("+" + sha, productVersion, StringComparison.Ordinal);
+
+        var folder = Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(exe)!)!);
+        Assert.Equal(folder, config, ignoreCase: true);
+
+        var head = Git(Path.GetDirectoryName(exe)!, "rev-parse", "HEAD");
+        if (head is null)
+        {
+            output.WriteLine("A-01 git is not usable from here: the About revision was checked against the executable's product version only.");
+            return;
+        }
+
+        Assert.NotEqual("unknown", sha);
+        Assert.Matches("^[0-9a-f]{10}$", sha);
+        Assert.NotNull(Git(Path.GetDirectoryName(exe)!, "rev-parse", "--verify", "--quiet", sha + "^{commit}"));
+        Assert.NotNull(Git(Path.GetDirectoryName(exe)!, "merge-base", "--is-ancestor", sha, "HEAD"));
+        var ci = Environment.GetEnvironmentVariable("GITHUB_SHA");
+        if (!string.IsNullOrWhiteSpace(ci))
+        {
+            Assert.StartsWith(sha, ci, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    /// <summary>Runs git; the output when it exits 0, null when git is absent, the folder is no repository, or the command fails.</summary>
+    private static string? Git(string workingDirectory, params string[] arguments)
+    {
+        try
+        {
+            var info = new System.Diagnostics.ProcessStartInfo("git") { WorkingDirectory = workingDirectory, RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false, CreateNoWindow = true };
+            foreach (var argument in arguments) info.ArgumentList.Add(argument);
+            using var process = System.Diagnostics.Process.Start(info)!;
+            var text = process.StandardOutput.ReadToEnd().Trim();
+            process.StandardError.ReadToEnd();
+            process.WaitForExit(10000);
+            return process.ExitCode == 0 ? text : null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
     // ---------------------------------------------------------------- Help pages
