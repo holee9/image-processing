@@ -1,0 +1,4 @@
+[perf-gate-pipeline] one-time load (PERF-003 budget 200 ms for all three, not asserted): offset 75.9 ms, gain 85.5 ms, defect 12.7 ms, total 174.1 ms
+[perf-gate-pipeline] frame 0 (cold) total 135.8 ms (SRS-CALIB-PERF-001 limit 500 ms, asserted) | stage ms, SRS budget in brackets, not asserted: readout 8.0, temp 13.3, nonlinearity 0.0 [20], offset 4.2 [55], gain 33.2 [55], defect 7.9 [95], ghost 69.1 [140], binning 0.0 [10]
+[perf-gate-pipeline] frame 1 (warm) total 132.1 ms (SRS-CALIB-PERF-001 limit 500 ms, asserted) | stage ms, SRS budget in brackets, not asserted: readout 7.0, temp 12.8, nonlinearity 0.0 [20], offset 4.2 [55], gain 34.1 [55], defect 14.3 [95], ghost 59.7 [140], binning 0.0 [10]
+[perf-gate-pipeline] ghost changed 9437184 of 9437184 pixels of frame 1

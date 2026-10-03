@@ -1,0 +1,45 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-common\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 11 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 10 tests from LoggingContract
+[ RUN      ] LoggingContract.CaptureSeesALineWrittenToStderr
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] LoggingContract.CaptureSeesALineWrittenToStderr (1 ms)
+[ RUN      ] LoggingContract.AfterInitInfoReachesStderrButTraceAndDebugDoNot
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] LoggingContract.AfterInitInfoReachesStderrButTraceAndDebugDoNot (7 ms)
+[ RUN      ] LoggingContract.ANamedFileWithoutALevelRecordsFromInfoUp
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] LoggingContract.ANamedFileWithoutALevelRecordsFromInfoUp (5 ms)
+[ RUN      ] LoggingContract.ALevelChosenByTheCallerOpensTraceAgain
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] LoggingContract.ALevelChosenByTheCallerOpensTraceAgain (4 ms)
+[ RUN      ] LoggingContract.NullRevertsFromAFileToStderr
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] LoggingContract.NullRevertsFromAFileToStderr (4 ms)
+[ RUN      ] LoggingContract.NullKeepsTheChosenLevel
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] LoggingContract.NullKeepsTheChosenLevel (4 ms)
+[ RUN      ] LoggingContract.LevelFiveIsOffOnStderr
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] LoggingContract.LevelFiveIsOffOnStderr (0 ms)
+[ RUN      ] LoggingContract.LevelFiveIsOffInAFile
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] LoggingContract.LevelFiveIsOffInAFile (0 ms)
+[ RUN      ] LoggingContract.LevelFourStillRecordsErrorAndCritical
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] LoggingContract.LevelFourStillRecordsErrorAndCritical (4 ms)
+[ RUN      ] LoggingContract.ASecondInitRestoresTheStderrDefault
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] LoggingContract.ASecondInitRestoresTheStderrDefault (5 ms)
+[----------] 10 tests from LoggingContract (40 ms total)
+
+[----------] 1 test from LoggingContractFresh
+[ RUN      ] LoggingContractFresh.ALevelNeverChosenIsInfoEvenBeforeInit
+[       OK ] LoggingContractFresh.ALevelNeverChosenIsInfoEvenBeforeInit (4 ms)
+[----------] 1 test from LoggingContractFresh (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 2 test suites ran. (45 ms total)
+[  PASSED  ] 11 tests.

@@ -1,0 +1,15 @@
+build_exit=0 test_exit=1
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(208): error: Expected equality of these values:
+    Which is: -6
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(236): error: Expected equality of these values:
+    Which is: 0
+    Which is: 9437168
+frame 0: gain stage output differs from offset-corrected/1.25 at 9437168 pixels
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(243): error: Expected: (afterDefect[d]) >= (lo), actual: -1 vs 1439
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(243): error: Expected: (afterDefect[d]) >= (lo), actual: -1 vs 1439
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(243): error: Expected: (afterDefect[d]) >= (lo), actual: -1 vs 1439
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(243): error: Expected: (afterDefect[d]) >= (lo), actual: -1 vs 1439
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(243): error: Expected: (afterDefect[d]) >= (lo), actual: -1 vs 1439
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(243): error: Expected: (afterDefect[d]) >= (lo), actual: -1 vs 1439
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(243): error: Expected: (afterDefect[d]) >= (lo), actual: -1 vs 1439
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(243): error: Expected: (afterDefect[d]) >= (lo), actual: -1 vs 1439

@@ -10,6 +10,8 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/null_sink.h>
+#include <spdlog/sinks/base_sink.h>
+#include <cstdio>
 #include <filesystem>
 #include <memory>
 #include <new>
@@ -22,12 +24,15 @@
 
 static std::mutex g_logMutex;
 static std::shared_ptr<spdlog::logger> g_logger = nullptr;
-static int g_currentLevel = 0; // Default: TRACE (0)
+static int g_currentLevel = 2; // Default: INFO (2) -- REQ-P0-011, SRS-FUNC-040
 
 /**
  * Convert XPE log level (0-5) to spdlog level.
- * @param level XPE log level: 0=TRACE, 1=DEBUG, 2=INFO, 3=WARN, 4=ERROR, 5=CRITICAL
+ * @param level XPE log level: 0=TRACE, 1=DEBUG, 2=INFO, 3=WARN, 4=ERROR, 5=OFF
  * @return spdlog::level::level_enum
+ *
+ * 5 is OFF, as the header and SRS-FUNC-040 say: nothing is recorded, not even a critical line. (It used to
+ * map to critical, which left the one level a caller picks to silence the library recording its worst lines.)
  */
 static spdlog::level::level_enum to_spdlog_level(int level) {
     switch (level) {
@@ -36,9 +41,33 @@ static spdlog::level::level_enum to_spdlog_level(int level) {
         case 2: return spdlog::level::info;
         case 3: return spdlog::level::warn;
         case 4: return spdlog::level::err;
-        case 5: return spdlog::level::critical;
-        default: return spdlog::level::trace;
+        case 5: return spdlog::level::off;
+        default: return spdlog::level::info;
     }
+}
+
+// Writes each line through the C stream `stderr`, looked up at every write. spdlog's own stderr sink keeps the
+// operating-system handle it found when it was built; a host that redirects file descriptor 2 afterwards
+// (a test harness, a service wrapper) leaves that handle dead and the lines are lost with only a spdlog error
+// message. Going through the stream follows the redirection.
+class StderrStreamSink final : public spdlog::sinks::base_sink<std::mutex> {
+protected:
+    void sink_it_(const spdlog::details::log_msg& msg) override {
+        spdlog::memory_buf_t formatted;
+        formatter_->format(msg, formatted);
+        std::fwrite(formatted.data(), 1, formatted.size(), stderr);
+        std::fflush(stderr);
+    }
+    void flush_() override { std::fflush(stderr); }
+};
+
+// The logger that writes to stderr, at the level the caller has chosen (INFO until then).
+static std::shared_ptr<spdlog::logger> make_stderr_logger(int level) {
+    auto logger = std::make_shared<spdlog::logger>(
+        "xpe_stderr",
+        std::make_shared<StderrStreamSink>());
+    logger->set_level(to_spdlog_level(level));
+    return logger;
 }
 
 extern "C" {
@@ -99,14 +128,12 @@ XPE_API XpeErrorCode xpe_log_set_file(const char* filePath) {
 
         std::shared_ptr<spdlog::logger> fresh;
         if (filePath == nullptr) {
-            // A dedicated null-sink so the spdlog default is always valid. spdlog::set_default_logger(
-            // spdlog::default_logger()) would be a no-op when g_logger was already null, leaving the old
-            // (possibly freed) logger as default; a dedicated null-sink avoids the crash in xpe_log_flush()
-            // caused by a dangling default_logger_ pointer.
-            fresh = std::make_shared<spdlog::logger>(
-                "xpe_null_revert",
-                std::make_shared<spdlog::sinks::null_sink_mt>());
-            fresh->set_level(to_spdlog_level(g_currentLevel));
+            // NULL reverts to stderr (header, SRS-FUNC-041). A dedicated logger is installed rather than
+            // spdlog::set_default_logger(spdlog::default_logger()), which would be a no-op when g_logger was
+            // already null and leave the old (possibly freed) logger as default -- the dangling default_logger_
+            // pointer that crashed xpe_log_flush(). (QA-A-232: this branch used to install a null sink, so a
+            // caller who passed NULL to get stderr back lost every line instead.)
+            fresh = make_stderr_logger(g_currentLevel);
         } else {
             auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(filePath, /*truncate=*/false);
             fresh = std::make_shared<spdlog::logger>("xpe_file", file_sink);
@@ -141,12 +168,44 @@ XPE_API XpeErrorCode xpe_log_set_file(const char* filePath) {
     }
 }
 
+// Internal helper invoked by xpe_init: the default destination is stderr (REQ-P0-011). A file the caller
+// chose before xpe_init stays; so does a level the caller chose (the level is INFO from the start and again
+// after xpe_shutdown, so "INFO" needs no reset here). Failing to install the logger (allocation) leaves the
+// previous default in place; xpe_init has no error to report for it.
+void xpe_log_internal_init() {
+    std::lock_guard<std::mutex> lock(g_logMutex);
+    if (g_logger) return;
+    try {
+        auto fresh = make_stderr_logger(g_currentLevel);
+        auto previous = spdlog::default_logger();
+        spdlog::set_default_logger(fresh);
+        if (previous && previous->name() != fresh->name() && previous->name().rfind("xpe_", 0) == 0) {
+            spdlog::drop(previous->name());
+        }
+    } catch (...) {
+    }
+}
+
+// The library's own lines (xpe_init writes one) go through the spdlog default logger, as every other module's
+// lines do: the file the caller chose, or stderr, under the same level (5 = OFF writes nothing). (xpe_log_set_file
+// makes its logger the default, so there is no second destination to pick between.)
+void xpe_log_internal_write(int level, const char* msg) {
+    try {
+        std::lock_guard<std::mutex> lock(g_logMutex);
+        std::shared_ptr<spdlog::logger> target = spdlog::default_logger();
+        if (target) target->log(to_spdlog_level(level), msg);
+    } catch (...) {
+        // a log line must never turn into an error for the caller
+    }
+}
+
 // Internal helper invoked by xpe_shutdown to release the custom file sink so
 // that callers (tests, hosts) can delete/rotate the underlying log file.
 // After reset, spdlog::default_logger() points at a null-sink logger so that
 // xpe_log_flush() (and any other default-logger consumer) is safe to call.
 void xpe_log_internal_reset() {
     std::lock_guard<std::mutex> lock(g_logMutex);
+    g_currentLevel = 2;  // back to the default; a level chosen in one session does not outlive it
 
     // Install a null-sink default FIRST so that default_logger() never holds a
     // dangling pointer to the logger we are about to drop.

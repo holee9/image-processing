@@ -342,6 +342,12 @@ if(_XPE_BUILD_TESTS)
         # QA-A-27 (#112): ported from the deleted tests/preprocess_smoke orphan
         tests/test_param_range_names.cpp
         tests/test_xpe_calib_load.cpp
+        # QA-A-229 M4 (#245): session consistency between the loaded maps (SRS-CALIB-FUNC-011, S1)
+        tests/test_calib_session_consistency.cpp
+        # QA-A-229 M5 (#245, REQ-P1A-086): ghost handles are recognised by a registry, never by dereferencing
+        tests/test_ghost_handle_registry.cpp
+        # QA-A-230 M3 (#245): SRS-CALIB-PERF-001 on the real path (3072x3072, calibration loaded); replaces the disabled Integration test
+        tests/test_pipeline_performance_3072.cpp
         tests/test_xpe_calib_save.cpp
         # QA-A-29 (#132): xpe_calib_save 3-arg embedded expiry, api-spec 6.14
         tests/test_calib_save_expiry.cpp
@@ -419,6 +425,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_pipeline_stage_values.cpp
         # QA-A-105 (#187): current behaviour of a loaded gain polynomial
         tests/test_gain_poly_not_applied.cpp
+        # QA-A-232 M2 (#245): metadata content does not change defect_correct / detect_runtime / validate_readout / verify_*
+        tests/test_metadata_not_read.cpp
         # QA-A-123 (#194): the fitted dose range is recorded and enforced
         tests/test_gain_poly_dose_range.cpp
         tests/test_nonlin_no_mode_rejection.cpp

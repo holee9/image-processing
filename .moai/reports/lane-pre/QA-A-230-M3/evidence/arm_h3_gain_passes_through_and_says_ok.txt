@@ -1,0 +1,15 @@
+build_exit=0 test_exit=1
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(236): error: Expected equality of these values:
+    Which is: 0
+    Which is: 9437168
+frame 0: gain stage output differs from offset-corrected/1.25 at 9437168 pixels
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 1900 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 1840 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 1930 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 2020 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 1960 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 1900 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 1840 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 1930 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 2020 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 1960 vs 1681

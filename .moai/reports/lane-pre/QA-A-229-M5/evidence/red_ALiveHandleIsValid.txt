@@ -1,0 +1,20 @@
+Note: Google Test filter = GhostRegistry.ALiveHandleIsValid
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from GhostRegistry
+[ RUN      ] GhostRegistry.ALiveHandleIsValid
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_handle_registry.cpp(68): error: Expected equality of these values:
+  0
+  correctOne(h)
+    Which is: -1
+
+[  FAILED  ] GhostRegistry.ALiveHandleIsValid (0 ms)
+[----------] 1 test from GhostRegistry (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] GhostRegistry.ALiveHandleIsValid
+
+ 1 FAILED TEST

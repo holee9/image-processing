@@ -1,0 +1,4 @@
+build_exit=0 test_exit=1
+failed tests (2):
+SessionField.SixtyFourBytesWithoutATerminatorAreRefused
+SessionField.TwoSixtyFourByteIdsThatDifferOnlyInTheLastByteAreBothRefused

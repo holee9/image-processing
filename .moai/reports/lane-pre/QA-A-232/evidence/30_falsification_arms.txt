@@ -1,0 +1,6 @@
+A1 NULL -> null sink again | exit=1 | red: NullKeepsTheChosenLevel NullRevertsFromAFileToStderr
+A2 level 5 -> critical again | exit=1 | red: LevelFiveIsOffInAFile LevelFiveIsOffOnStderr
+A3 default level TRACE again | exit=0 | red:
+A4 xpe_init does not install stderr default | exit=1 | red: ALevelChosenByTheCallerOpensTraceAgain ASecondInitRestoresTheStderrDefault AfterInitInfoReachesStderrButTraceAndDebugDoNot LevelFourStillRecordsErrorAndCritical
+A5 init does not reset level to INFO | exit=1 | red: ASecondInitRestoresTheStderrDefault
+RESTORED | exit=0 | red: (none)

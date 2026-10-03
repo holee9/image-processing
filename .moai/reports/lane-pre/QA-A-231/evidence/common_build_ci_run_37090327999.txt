@@ -1,0 +1,18 @@
+ci.yml push run 37090327999 (main, head f1f3e54d9fd02331b6388bbd58b1dd1b65da3c51), job common-build id 111109146761, success
+  100% tests passed out of 81
+  Total Test time (real) =   1.57 sec
+  XpeCommonTest.* tests in that ctest run: 60
+  oom-sweep suites run (names matching Oom|OOM|Injection|Sweep): 12
+  names of those:
+    CommonOom.TheInjectionReachesAnAllocationMadeInsideTheLibrary
+    CommonOom.APushIntoAFullQueueAccountsForEveryAlert
+    CommonOom.APushIntoAQueueWithRoomAccountsForEveryAlert
+    CommonOom.APushIntoAQueueThatAlreadyHoldsALossAlertAccountsForEveryAlert
+    CommonOom.AnInitThatFailsLeavesTheLibraryUninitialized
+    CommonOom.ARe_initThatFailsLeavesTheQueuedAlertsAndTheInitializedStateAlone
+    CommonOom.AConfigureThatRunsOutOfMemoryIsNotReportedAsAnInvalidConfiguration
+    CommonOom.ALogFileThatRunsOutOfMemoryIsNotReportedAsAnIoFailure
+    CommonOom.ALogFileSwitchThatRunsOutOfMemoryKeepsWritingToThePreviousFile
+    CommonOom.AFlushThatFailsRefusesTheSwitchAndLeavesThePreviousLogger
+    CommonOom.ALogFileThatCannotBeOpenedLeavesThePreviousLogger
+    CommonOom.NamingTheSameLogFileAgainKeepsTheLinesAlreadyThere

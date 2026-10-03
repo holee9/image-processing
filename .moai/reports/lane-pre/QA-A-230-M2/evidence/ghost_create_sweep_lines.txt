@@ -1,0 +1,2 @@
+[sweep] xpe_ghost_create (default config)              7 allocation points covered
+[sweep] xpe_ghost_create (calibrated config)          19 allocation points covered

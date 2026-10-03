@@ -21,10 +21,64 @@
 #include <cstring>
 #include <cmath>
 #include <algorithm>
+#include <mutex>
+#include <unordered_set>
 
 // @MX:ANCHOR: [AUTO] xpe_ghost_create — resource allocation for ghost corrector
 // @MX:REASON: All ghost functions fan in; handle is the invariant contract point
 // @MX:SPEC: REQ-P1A-085
+// QA-A-229 M5 (#245, REQ-P1A-086): the registry of live handles. Heap-allocated and never freed on purpose: a
+// handle may be destroyed while the library is being torn down, after a function-local static would be gone.
+namespace {
+struct GhostHandleRegistry {
+    std::mutex m;
+    std::unordered_set<const void*> live;
+};
+
+GhostHandleRegistry& ghost_registry()
+{
+    static GhostHandleRegistry* r = new GhostHandleRegistry();
+    return *r;
+}
+
+/** false on allocation failure (nothing registered). */
+bool ghost_register(const void* h) noexcept
+{
+    try {
+        GhostHandleRegistry& r = ghost_registry();
+        std::lock_guard<std::mutex> lock(r.m);
+        r.live.insert(h);
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+/** true for exactly one caller per registered handle: the one that removed it. */
+bool ghost_unregister(const void* h) noexcept
+{
+    try {
+        GhostHandleRegistry& r = ghost_registry();
+        std::lock_guard<std::mutex> lock(r.m);
+        return r.live.erase(h) != 0;
+    } catch (...) {
+        return false;
+    }
+}
+}  // namespace
+
+bool GhostCorrectorHandle::isValid(const void* h) noexcept
+{
+    if (!h) return false;
+    try {
+        GhostHandleRegistry& r = ghost_registry();
+        std::lock_guard<std::mutex> lock(r.m);
+        return r.live.find(h) != r.live.end();
+    } catch (...) {
+        return false;
+    }
+}
+
 XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
                                const char* configJsonOrNull,
                                void** handleOut)
@@ -119,6 +173,8 @@ XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
                        XPE_ALERT_WARNING);
     }
 
+    // Registered last, once nothing else can fail: a failure here frees the handle through `owner`.
+    if (!ghost_register(owner.get())) return XPE_ERR_OUT_OF_MEMORY;
     *handleOut = owner.release();
     return XPE_OK;
 }
@@ -392,7 +448,10 @@ XpeErrorCode xpe_ghost_reset(void* handle)
 
 void xpe_ghost_destroy(void* handle)
 {
-    if (!GhostCorrectorHandle::isValid(handle)) return;
+    // The removal is the decision: only the caller that takes the handle out of the registry may free it, so a
+    // handle destroyed twice, or by several threads at once, is freed once; a pointer that was never handed out
+    // (or is not a handle at all) is left alone.
+    if (!ghost_unregister(handle)) return;
     auto* gh = static_cast<GhostCorrectorHandle*>(handle);
     gh->magic = 0; // invalidate before delete
     delete gh;

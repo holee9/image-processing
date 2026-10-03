@@ -1,0 +1,9 @@
+[       OK ] Integration.DISABLED_PipelinePerformance3072x3072 (67 ms)
+[  FAILED  ] 0 tests, listed below:
+ 0 FAILED TESTS
+[       OK ] Integration.DISABLED_PipelinePerformance3072x3072 (67 ms)
+[  FAILED  ] 0 tests, listed below:
+ 0 FAILED TESTS
+[       OK ] Integration.DISABLED_PipelinePerformance3072x3072 (66 ms)
+[  FAILED  ] 0 tests, listed below:
+ 0 FAILED TESTS

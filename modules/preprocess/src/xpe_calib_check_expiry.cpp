@@ -6,7 +6,7 @@
  * REQ-P1A-030: No C++ exceptions across C ABI boundary.
  *
  * Reads only the 152-byte XCal v1 header (no payload I/O).
- * Validates magic signature before inspecting expiry_epoch_ms.
+ * Validates magic, version and the session_id field before inspecting expiry_epoch_ms.
  * expiry_epoch_ms == 0 means never expires.
  *
  * @MX:ANCHOR: [AUTO] xpe_calib_check_expiry – XCal v1 header-only expiry check
@@ -18,6 +18,7 @@
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 #include "xpe/preprocess/xcal_format.h"
+#include "xcal_validator.hpp"
 
 #include <fstream>
 #include <cstring>
@@ -51,6 +52,14 @@ extern "C" XPE_API XpeErrorCode xpe_calib_check_expiry(const char* filepath,
 
         // Validate version
         if (hdr.version != XCAL_VERSION) {
+            return XPE_ERR_CONFIG_INVALID;
+        }
+
+        // The session field is judged as the loaders judge it (check 11): a file they refuse as CONFIG_INVALID
+        // is not reported as fine here. The other header checks (dimensions, payload length) stay with the
+        // loaders -- this call reads the header only, to answer one question about the expiry. (QA-A-229d:
+        // the 229b report said this check applied here; it did not, because this function never called it.)
+        if (validate_xcal_session_field(hdr) != XPE_OK) {
             return XPE_ERR_CONFIG_INVALID;
         }
 

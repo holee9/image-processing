@@ -1,0 +1,37 @@
+REQ-P0 id census (name axis). ids with a defined text in spec.md body: 30; ids appearing anywhere in spec.md or tasks.md: 32
+columns: id | text in spec.md body | named in a task row (Task Summary table) | named in task detail (AC/notes) | only in Coverage Verification table | cited in modules/common code/tests
+
+REQ-P0-001 | body:Y | task-row:Y | task-detail:Y | cover-table-only:n | code-cites:n
+REQ-P0-002 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:n
+REQ-P0-003 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:n
+REQ-P0-004 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:n
+REQ-P0-005 | body:Y | task-row:Y | task-detail:Y | cover-table-only:n | code-cites:n
+REQ-P0-006 | body:Y | task-row:Y | task-detail:Y | cover-table-only:n | code-cites:n
+REQ-P0-007 | body:Y | task-row:Y | task-detail:Y | cover-table-only:n | code-cites:n
+REQ-P0-008 | body:Y | task-row:Y | task-detail:Y | cover-table-only:n | code-cites:Y
+REQ-P0-009 | body:Y | task-row:Y | task-detail:Y | cover-table-only:n | code-cites:Y
+REQ-P0-010 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:n
+REQ-P0-011 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:Y
+REQ-P0-012 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:Y
+REQ-P0-013 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:Y
+REQ-P0-014 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:Y
+REQ-P0-015 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:Y
+REQ-P0-016 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:Y
+REQ-P0-017 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:Y
+REQ-P0-018 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:Y
+REQ-P0-019 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:Y
+REQ-P0-020 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:Y
+REQ-P0-021 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:Y
+REQ-P0-022 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:Y
+REQ-P0-023 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:Y
+REQ-P0-024 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:Y
+REQ-P0-025 | body:Y | task-row:n | task-detail:n | cover-table-only:Y | code-cites:Y
+REQ-P0-026 | body:NO TEXT | task-row:n | task-detail:n | cover-table-only:Y | code-cites:n
+REQ-P0-027 | body:NO TEXT | task-row:n | task-detail:n | cover-table-only:Y | code-cites:n
+REQ-P0-028 | body:NO TEXT | task-row:n | task-detail:n | cover-table-only:Y | code-cites:n
+REQ-P0-029 | body:Y | task-row:Y | task-detail:Y | cover-table-only:n | code-cites:n
+REQ-P0-030 | body:Y | task-row:Y | task-detail:Y | cover-table-only:n | code-cites:n
+REQ-P0-031 | body:Y | task-row:Y | task-detail:Y | cover-table-only:n | code-cites:Y
+REQ-P0-032 | body:Y | task-row:Y | task-detail:Y | cover-table-only:n | code-cites:n
+REQ-P0-033 | body:Y | task-row:Y | task-detail:Y | cover-table-only:n | code-cites:n
+REQ-P0-028a | body:NO TEXT | in tasks.md: Y

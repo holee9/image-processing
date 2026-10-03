@@ -1,0 +1,15 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = A229dInterleave.*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A229dInterleave
+[ RUN      ] A229dInterleave.Observe
+OBSERVE session field malformed: hook calls=1; file replaced after the header read -> cached hit=0, plain loader on the file now=-4
+OBSERVE expiry in the past: hook calls=1; file replaced after the header read -> cached hit=0, plain loader on the file now=-5
+[       OK ] A229dInterleave.Observe (22 ms)
+[----------] 1 test from A229dInterleave (22 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (22 ms total)
+[  PASSED  ] 1 test.
+exit=0

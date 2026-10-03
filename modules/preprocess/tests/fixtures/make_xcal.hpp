@@ -30,7 +30,8 @@
 inline XpeErrorCode MakeOffsetXCal(const char* path,
                                    uint32_t w, uint32_t h,
                                    float value = 1.0f,
-                                   int64_t expiry_ms = 0)
+                                   int64_t expiry_ms = 0,
+                                   const char* session_id = "fixture")
 {
     using namespace std::chrono;
     int64_t now_ms = duration_cast<milliseconds>(
@@ -41,6 +42,7 @@ inline XpeErrorCode MakeOffsetXCal(const char* path,
     XCalFileHeader hdr;
     std::memset(&hdr, 0, sizeof(hdr));
     std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    if (session_id) std::memcpy(hdr.session_id, session_id, std::strlen(session_id) < sizeof(hdr.session_id) ? std::strlen(session_id) : sizeof(hdr.session_id) - 1);  // QA-A-229 M4
     hdr.version          = XCAL_VERSION;
     hdr.type             = XCAL_TYPE_OFFSET;
     hdr.pixel_format     = XCAL_FMT_FLOAT32;
@@ -63,7 +65,8 @@ inline XpeErrorCode MakeOffsetXCal(const char* path,
 inline XpeErrorCode MakeGainXCal(const char* path,
                                  uint32_t w, uint32_t h,
                                  float value = 1.0f,
-                                 int64_t expiry_ms = 0)
+                                 int64_t expiry_ms = 0,
+                                 const char* session_id = "fixture")
 {
     using namespace std::chrono;
     int64_t now_ms = duration_cast<milliseconds>(
@@ -74,6 +77,7 @@ inline XpeErrorCode MakeGainXCal(const char* path,
     XCalFileHeader hdr;
     std::memset(&hdr, 0, sizeof(hdr));
     std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    if (session_id) std::memcpy(hdr.session_id, session_id, std::strlen(session_id) < sizeof(hdr.session_id) ? std::strlen(session_id) : sizeof(hdr.session_id) - 1);  // QA-A-229 M4
     hdr.version          = XCAL_VERSION;
     hdr.type             = XCAL_TYPE_GAIN;
     hdr.pixel_format     = XCAL_FMT_FLOAT32;
@@ -95,7 +99,8 @@ inline XpeErrorCode MakeGainXCal(const char* path,
  */
 inline XpeErrorCode MakeDefectXCal(const char* path,
                                    uint32_t w, uint32_t h,
-                                   uint8_t value = 0)
+                                   uint8_t value = 0,
+                                   const char* session_id = "fixture")
 {
     using namespace std::chrono;
     int64_t now_ms = duration_cast<milliseconds>(
@@ -106,6 +111,7 @@ inline XpeErrorCode MakeDefectXCal(const char* path,
     XCalFileHeader hdr;
     std::memset(&hdr, 0, sizeof(hdr));
     std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+    if (session_id) std::memcpy(hdr.session_id, session_id, std::strlen(session_id) < sizeof(hdr.session_id) ? std::strlen(session_id) : sizeof(hdr.session_id) - 1);  // QA-A-229 M4
     hdr.version          = XCAL_VERSION;
     hdr.type             = XCAL_TYPE_DEFECT;
     hdr.pixel_format     = XCAL_FMT_UINT8_MASK;

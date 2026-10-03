@@ -89,8 +89,15 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath) {
         }
 
         // Commit under mutex (read-then-commit; no TOCTOU exposure)
-        std::lock_guard<std::mutex> lock(g_calib_mutex);
-        xpe_calib_commit_offset_locked(staged);
+        bool warnSession = false;
+        {
+            std::lock_guard<std::mutex> lock(g_calib_mutex);
+            // QA-A-229 M4: refused BEFORE anything changes -- the loaded maps stay, this one is rejected.
+            const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Offset, staged.sessionId, &warnSession);
+            if (src != XPE_OK) return src;
+            xpe_calib_commit_offset_locked(staged);
+        }
+        xpe_calib_session_warn(warnSession);
         return XPE_OK;
 
     } catch (const std::bad_alloc&) {

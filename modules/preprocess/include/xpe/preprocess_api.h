@@ -125,7 +125,23 @@ XPE_API bool xpe_preprocess_is_initialized(void);
  * @brief Load offset calibration map from XCal file
  *
  * REQ-P1A-014: Load XCal format offset maps
- * AC-CAL-001: Validate SHA-256, check session matching, verify expiry
+ * AC-CAL-001: Validate SHA-256, check session consistency with the other loaded maps, verify expiry
+ *
+ * Session consistency (SRS-CALIB-FUNC-011, QA-A-229 M4): the offset, gain and defect maps in the store must come
+ * from the same session. Each file carries a session_id; of two maps that both carry one (non-empty, not the
+ * generator's literal "generated"), a different id is XPE_ERR_CONFIG_INVALID. The map that arrives second is the
+ * one refused: the loaded maps stay and nothing else changes (a cached loader's hit gives the same verdict). A map
+ * with no session id is left out of the comparison -- every generated file and every file written before this
+ * check is in that case -- and ONE warning "XPE_WARN_CALIB_SESSION_UNSPECIFIED: ..." (XPE_ALERT_WARNING) is
+ * raised per mixed state, not per load. What this does NOT do: compare against a session the caller names (no
+ * such call exists) -- two maps from the same wrong detector pass -- and xpe_calib_session_create (the other half
+ * of FUNC-011) is not implemented (#245). To switch to another session, clear the store first
+ * (xpe_preprocess_shutdown, then xpe_preprocess_init): loading a map of the new session while maps of the old one
+ * are loaded is refused.
+ * The session field of a file is validated when the file is read (QA-A-229b): UTF-8 text of at most 63 bytes,
+ * NUL-terminated and zero-padded to 64; any other content is XPE_ERR_CONFIG_INVALID, an empty field is allowed.
+ * The cached loaders read the file's header again at every hit and give the verdict the file as it now stands gives
+ * (its session, expiry, type), so a header edit that keeps the file size and write time is not served from the cache.
  *
  * @param filepath Path to XCal format offset file
  * @return XPE_OK on success
@@ -133,7 +149,8 @@ XPE_API bool xpe_preprocess_is_initialized(void);
  *          functions are what refuse an uninitialized module -- pinned by CalibLoadTest.LoadBeforeInit_AllThreeLoadersAcceptValidFiles)
  *         XPE_ERR_IO_FAILED on file read error
  *         XPE_ERR_CALIBRATION_EXPIRED if calibration expired
- *         XPE_ERR_CONFIG_INVALID if session mismatch
+ *         XPE_ERR_CONFIG_INVALID if the file's session id conflicts with a loaded gain or defect map
+ *                                (see "Session consistency" above)
  */
 XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
 
@@ -180,6 +197,9 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
  * xpe_gain_correct called on its own, they carry the uncorrected value (gain 1.0) and the frame says so
  * ("XPE_WARN_GAIN_PIXELS_UNCORRECTED: ..."); the pipeline refuses such a frame when binning is on.
  *
+ * Session consistency: as for xpe_calib_load_offset (a conflict with a loaded offset or defect map is
+ * XPE_ERR_CONFIG_INVALID, this map refused).
+ *
  * @param filepath Path to XCal format gain file
  * @return XPE_OK on success
  *         (never XPE_ERR_NOT_INITIALIZED: a map may be loaded before xpe_preprocess_init; the processing
@@ -198,11 +218,15 @@ XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath);
  * REQ-P1A-016: Load XCal format defect maps (BPM)
  * AC-CAL-003: Validate defect locations and integrity
  *
+ * Session consistency: as for xpe_calib_load_offset (a conflict with a loaded offset or gain map is
+ * XPE_ERR_CONFIG_INVALID, this map refused).
+ *
  * @param filepath Path to XCal format defect map file
  * @return XPE_OK on success
  *         (never XPE_ERR_NOT_INITIALIZED: a map may be loaded before xpe_preprocess_init; the processing
  *          functions are what refuse an uninitialized module -- pinned by CalibLoadTest.LoadBeforeInit_AllThreeLoadersAcceptValidFiles)
  *         XPE_ERR_IO_FAILED on file read error
+ *         XPE_ERR_CONFIG_INVALID if the file's session id conflicts with a loaded offset or gain map
  */
 XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath);
 
@@ -225,7 +249,8 @@ XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath);
  *
  * @param input Input image buffer (raw X-ray data, UINT16)
  * @param output Output image buffer (offset-corrected, UINT16)
- * @param metadata Image metadata including temperature and acquisition time
+ * @param metadata Image metadata; must be non-NULL (a null check is all it gets). Its fields do not change
+ *        the result -- see "What metadata does today" above
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
  *         XPE_ERR_INVALID_INPUT if NULL pointers, or if the loaded calibration
@@ -348,7 +373,8 @@ XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
  *
  * @param input Input image buffer (gain-corrected, FLOAT32)
  * @param output Output image buffer (defect-corrected, FLOAT32)
- * @param metadata Image metadata for dose-dependent threshold
+ * @param metadata Image metadata; must be non-NULL (a null check is all it gets). Its fields are not read:
+ *        there is no dose-dependent threshold (not implemented; the requirement is kept)
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if xpe_preprocess_init() has not been called
  *         XPE_ERR_CALIB_NOT_LOADED if initialized but no defect map is loaded
@@ -613,7 +639,10 @@ XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(const char** gain_file_p
  * @param remaining_days Output: Days until expiry (negative if expired)
  * @return XPE_OK on success
  *         XPE_ERR_IO_FAILED on file read error
- *         XPE_ERR_CONFIG_INVALID if file format invalid
+ *         XPE_ERR_CONFIG_INVALID if the header's magic or version is wrong, or its 64-byte session_id field is
+ *                                malformed (the loaders refuse such a file the same way). Only the header is
+ *                                read: dimensions, payload length and the checksum are checked by the loaders,
+ *                                not here.
  */
 XPE_API XpeErrorCode xpe_calib_check_expiry(const char* filepath,
                                             bool* is_expired,
@@ -652,11 +681,14 @@ XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
 /**
  * @brief Detect transient defects at runtime
  *
- * REQ-P1A-013: Runtime defect detection with dose-dependent threshold
+ * REQ-P1A-013: Runtime defect detection with dose-dependent threshold -- the dose-dependent part is NOT
+ * IMPLEMENTED (#245). The threshold is Hampel 5-sigma on the frame's own per-tile statistics; no metadata
+ * field is read (pinned by MetadataNotReadTest.DetectRuntimeMapIsTheSameForAnyMetadata).
  * AC-DEF-003: Merge with static BPM
  *
  * @param image Image buffer to analyze
- * @param metadata Image metadata for dose information
+ * @param metadata Image metadata; not read, and NULL is accepted. There is no dose information in the
+ *        decision (not implemented; the requirement is kept)
  * @param defect_map_output Output defect map (merged with static BPM)
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
@@ -807,10 +839,20 @@ XPE_API XpeErrorCode xpe_ghost_reset(void* handle);
 /**
  * @brief Free all resources associated with a ghost corrector handle
  *
- * After this call the handle is invalid (do not pass to any other function).
- * Must not run concurrently with any call on the same handle, whether that call is
- * already in progress or starts meanwhile: the handle's mutex is freed with it, so
- * the caller must stop all other threads using the handle first.
+ * After this call the handle is invalid (do not pass to any other function). A pointer that is not a live handle
+ * -- destroyed already, never returned by xpe_ghost_create, or not a handle at all -- is recognised from a
+ * registry of live handles, WITHOUT being read (REQ-P1A-086). What each function does with it:
+ *   - xpe_ghost_correct and xpe_ghost_reset return XPE_ERR_INVALID_INPUT;
+ *   - xpe_ghost_destroy does nothing (also for a second destroy, and when several threads destroy the same handle
+ *     at once: exactly one of them frees it);
+ *   - the module-internal xpe_ghost_is_calibrated (not exported) answers false.
+ * Limit (ABA): once a handle is destroyed its address may be returned by a later xpe_ghost_create, and a stale pointer
+ * to the old handle then reads as that new, live one -- do not keep the pointer after destroy.
+ * NOT SUPPORTED: a destroy that runs while another thread is inside, or entering, a call on the same handle.
+ * xpe_ghost_correct and xpe_ghost_reset look the handle up, release the registry, and only then lock the handle's own
+ * mutex and read its buffers; a destroy in between frees the handle under them (a freed mutex is locked, freed
+ * buffers are written), which can crash or corrupt memory. The registry does not make that race safe and no safe
+ * error return is promised for it. The caller must stop all other threads using the handle first.
  *
  * @param handle Ghost corrector handle to destroy (may be NULL, no-op)
  */
@@ -916,7 +958,8 @@ XPE_API XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
  * Call BEFORE any correction stage.
  *
  * @param image Raw uint16 image to validate
- * @param metadata Image metadata (acquisition context)
+ * @param metadata Image metadata; must be non-NULL (a null check is all it gets). Its fields are not read:
+ *        both checks look at the pixels alone
  * @param has_dropped_columns Output: true if any all-zero column detected
  * @param has_nonuniform_gain Output: true if any row mean > 0.9 * UINT16_MAX (a bright-row
  *        check; the name is historical -- it does not detect line noise, see #232)
@@ -1143,10 +1186,17 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_batch(
  *                  left as it was.
  *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
  *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
- *   file. The session check is not repeated on a hit.
+ *   file. The 152-byte header is read again on a hit and compared with the one the entry was made from
+ *   (the session field and the expiry live there, outside the SHA-256): if any byte differs, the hit is
+ *   cancelled and the call loads the file like a miss.
  * - Concurrent writers are not supported: do not write or replace the calibration file while a load
  *   of it is in progress. The attributes are looked at once, before the lookup; a second look just
  *   before the install would not close every such race, so none is made.
+ *   The guarantee above -- a hit reaches the verdict a plain load of the file would -- is given for a file
+ *   that is standing still. A file replaced between the header read and the install can be judged from the
+ *   old header: observed (QA-A-229d) with a session field or an expiry changed in that interval, the hit
+ *   accepted the file while the plain loader refused it. That is outside the supported use, and no test
+ *   promises either outcome.
  * - Miss: loads through xpe_calib_load_offset(), copies the map into the cache.
  * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
  *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()),
@@ -1198,10 +1248,17 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
  *                  left as it was.
  *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
  *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
- *   file. The session check is not repeated on a hit.
+ *   file. The 152-byte header is read again on a hit and compared with the one the entry was made from
+ *   (the session field and the expiry live there, outside the SHA-256): if any byte differs, the hit is
+ *   cancelled and the call loads the file like a miss.
  * - Concurrent writers are not supported: do not write or replace the calibration file while a load
  *   of it is in progress. The attributes are looked at once, before the lookup; a second look just
  *   before the install would not close every such race, so none is made.
+ *   The guarantee above -- a hit reaches the verdict a plain load of the file would -- is given for a file
+ *   that is standing still. A file replaced between the header read and the install can be judged from the
+ *   old header: observed (QA-A-229d) with a session field or an expiry changed in that interval, the hit
+ *   accepted the file while the plain loader refused it. That is outside the supported use, and no test
+ *   promises either outcome.
  * - Miss: loads through xpe_calib_load_gain(), copies the map into the cache.
  * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
  *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()),
@@ -1258,10 +1315,17 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
  *                  left as it was.
  *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
  *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
- *   file. The session check is not repeated on a hit.
+ *   file. The 152-byte header is read again on a hit and compared with the one the entry was made from
+ *   (the session field and the expiry live there, outside the SHA-256): if any byte differs, the hit is
+ *   cancelled and the call loads the file like a miss.
  * - Concurrent writers are not supported: do not write or replace the calibration file while a load
  *   of it is in progress. The attributes are looked at once, before the lookup; a second look just
  *   before the install would not close every such race, so none is made.
+ *   The guarantee above -- a hit reaches the verdict a plain load of the file would -- is given for a file
+ *   that is standing still. A file replaced between the header read and the install can be judged from the
+ *   old header: observed (QA-A-229d) with a session field or an expiry changed in that interval, the hit
+ *   accepted the file while the plain loader refused it. That is outside the supported use, and no test
+ *   promises either outcome.
  * - Miss: loads through xpe_calib_load_defect_map(), copies the map into the cache.
  * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
  *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()),
@@ -1482,7 +1546,7 @@ typedef enum {
  *
  * @param raw_image Original raw image (UINT16)
  * @param corrected_image Offset-corrected image (UINT16)
- * @param metadata Image metadata
+ * @param metadata Image metadata; not read, and NULL is accepted
  * @param metrics Output metrics (populated by this function)
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT on NULL pointers or dimension mismatch
@@ -1603,7 +1667,7 @@ XPE_API XpeErrorCode xpe_verify_defect(
  *
  * @param raw_image Original raw image (UINT16)
  * @param final_image Final processed image (FLOAT32)
- * @param metadata Image metadata
+ * @param metadata Image metadata; not read, and NULL is accepted
  * @param metrics Combined metrics (snr_improvement_db and overall_pass populated)
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT on NULL pointers or dimension mismatch
