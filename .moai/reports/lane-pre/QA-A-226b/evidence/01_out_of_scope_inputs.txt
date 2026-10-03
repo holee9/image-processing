@@ -1,6 +1,6 @@
 row                                        create rc  frames 1-3 (first pixel) / call rcs
 alpha1 negative (-0.1), tau1 1             0          ['1000.000', '1100.000', '1136.788'] / [0, 0, 0]
-alpha1 negative, tau1 1e20 (S = -inf)      -4        
+alpha1 negative, tau1 1e20 (S = -inf)      -4
 tau1 = 0                                   0          ['1000.000', '900.000', '900.000'] / [0, 0, 0]
 tau1 = -1                                  0          ['1000.000', '900.000', '628.172'] / [0, 0, 0]
 tau1 = -1, alpha1 = 0.01                   0          ['1000.000', '990.000', '962.817'] / [0, 0, 0]
