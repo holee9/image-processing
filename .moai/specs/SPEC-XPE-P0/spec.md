@@ -173,6 +173,7 @@ Phase 0 establishes the foundation for all subsequent phases:
 - [ ] Static analysis: cppcheck --std=c++17 reports 0 warnings (not yet run by any CI workflow; CI 도입 예정 — pre QA-A-234, 사용자 결정 2026-10-03)
 - [ ] clang-tidy: modernize-*, performance-*, bugprone-* reports 0 warnings (not yet run by any CI workflow; CI 도입 예정 — pre QA-A-234, 사용자 결정 2026-10-03)
 - [ ] MISRA C:2012 Advisory: Pass (where applicable) (not yet run by any CI workflow; CI 도입 예정 — pre QA-A-234, 사용자 결정 2026-10-03)
+  - Scope note (2026-10-03, lead): full MISRA C:2012 conformance checking requires a commercial checker, which the project does not have. QA-A-234 brings in cppcheck and clang-tidy only; any MISRA coverage is limited to what those free checkers report, and this item stays unchecked until a commercial checker is chosen.
 - [ ] CI pipeline: all checks green on main branch
 
 ### 3.5 Acceptance evidence (note 2026-10-03, QA-A-231, #253)
