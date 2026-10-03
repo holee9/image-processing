@@ -1,5 +1,6 @@
 // GUI-C-212c (#249, Codex #98): what the parent believes about the oracle's child, and what happens to the child when the parent lets go.
 using System.Diagnostics;
+using System.Text.Json.Nodes;
 
 namespace ImageProcTest.IntegrationTests.Diagnostics;
 
@@ -127,15 +128,20 @@ public sealed class PreprocessSyntheticOracleProtocolTests
             ("an output with no range", good with { OutputMin = 5.0, OutputMax = 5.0 }, "no finite range"),
             ("an infinite output maximum", good with { OutputMax = double.PositiveInfinity }, "no finite range"),
             ("a NaN stage measurement", good with { Stages = [good.Stages[0] with { MaxAbsError = double.NaN }, good.Stages[1], good.Stages[2]] }, "non-finite measurement"),
+            ("an offset stage with no effect", good with { Stages = [good.Stages[0] with { MaxAbsError = 0.0 }, good.Stages[1], good.Stages[2]] }, "stage offset had no effect"),
+            ("a gain stage with no effect", good with { Stages = [good.Stages[0], good.Stages[1] with { MaxAbsError = 0.0 }, good.Stages[2]] }, "stage gain had no effect"),
+            ("a defect stage with no effect", good with { Stages = [good.Stages[0], good.Stages[1], good.Stages[2] with { MaxAbsError = 0.0 }] }, "stage defect had no effect"),
+            ("a stage with a negative effect", good with { Stages = [good.Stages[0], good.Stages[1] with { MaxAbsError = -1.0 }, good.Stages[2]] }, "had no effect"),
+            ("a negative stage latency", good with { Stages = [good.Stages[0] with { LatencyMs = -1.0 }, good.Stages[1], good.Stages[2]] }, "non-finite measurement"),
         ];
     }
 
-    public static IEnumerable<object[]> BrokenInvariants() => Enumerable.Range(0, 17).Select(i => new object[] { i });
+    public static IEnumerable<object[]> BrokenInvariants() => Enumerable.Range(0, 22).Select(i => new object[] { i });
 
     [Fact]
     public void TheCaseTable_HasAsManyEntriesAsTheTheoryEnumerates()
     {
-        Assert.Equal(17, Cases.Length);
+        Assert.Equal(22, Cases.Length);
     }
 
     [Theory]
@@ -162,6 +168,57 @@ public sealed class PreprocessSyntheticOracleProtocolTests
 
         Assert.False(parsed.Passed);
         Assert.Equal("Calibration setup failed", parsed.Status);
+    }
+
+    /// <summary>GUI-C-212d (Codex #100): a stage record's own fields are required, not only the result's: a stage without <c>MaxAbsError</c> deserialised to 0 and slipped through as "no effect recorded".</summary>
+    [Theory]
+    [InlineData("Stages[0].MaxAbsError")]
+    [InlineData("Stages[1].LatencyMs")]
+    [InlineData("Stages[2].Stage")]
+    [InlineData("Stages[0].ErrorCode")]
+    [InlineData("Stages[1].Passed")]
+    public void AStageRecordMissingAField_IsInvalid(string path)
+    {
+        var parsed = XpePreprocessOracleProcess.ParseOutput(WithoutField(path) + "\n", 0, string.Empty);
+
+        Assert.False(parsed.Passed, $"{path}: accepted");
+        Assert.Equal("Oracle process result invalid", parsed.Status);
+        Assert.Contains($"{path}", parsed.Details);
+    }
+
+    [Fact]
+    public void AStageThatIsNotAnObject_OrStagesThatAreNotAnArray_IsInvalid()
+    {
+        var notObject = JsonNode.Parse(XpePreprocessOracleProcess.Serialize(Good()))!.AsObject();
+        notObject["Stages"]!.AsArray()[1] = JsonValue.Create("gain");
+        var a = XpePreprocessOracleProcess.ParseOutput(XpePreprocessOracleProcess.ResultPrefix + notObject.ToJsonString() + "\n", 0, string.Empty);
+        Assert.False(a.Passed);
+        Assert.Contains("Stages[1]", a.Details);
+
+        var notArray = JsonNode.Parse(XpePreprocessOracleProcess.Serialize(Good()))!.AsObject();
+        notArray["Stages"] = JsonValue.Create("offset,gain,defect");
+        var b = XpePreprocessOracleProcess.ParseOutput(XpePreprocessOracleProcess.ResultPrefix + notArray.ToJsonString() + "\n", 0, string.Empty);
+        Assert.False(b.Passed);
+        Assert.Contains("Stages(array)", b.Details);
+    }
+
+    /// <summary>The control: the same document with nothing removed is accepted, so the removals above are what is rejected.</summary>
+    [Fact]
+    public void Control_TheUnmodifiedDocument_IsAccepted()
+    {
+        Assert.True(XpePreprocessOracleProcess.ParseOutput(WithoutField(string.Empty) + "\n", 0, string.Empty).Passed);
+    }
+
+    private static string WithoutField(string path)
+    {
+        var root = JsonNode.Parse(XpePreprocessOracleProcess.Serialize(Good()))!.AsObject();
+        if (path.Length > 0)
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(path, @"^Stages\[(\d)\]\.(\w+)$");
+            root["Stages"]!.AsArray()[int.Parse(match.Groups[1].Value)]!.AsObject().Remove(match.Groups[2].Value);
+        }
+
+        return XpePreprocessOracleProcess.ResultPrefix + root.ToJsonString();
     }
 
     // ---- with a real child process
@@ -249,11 +306,11 @@ public sealed class PreprocessSyntheticOracleProtocolTests
         var pid = 0;
         var watch = Stopwatch.StartNew();
 
-        var result = XpePreprocessOracleProcess.Run(ping, ["-n", "60", "127.0.0.1"], TimeSpan.FromSeconds(60), (process, job) =>
+        var result = XpePreprocessOracleProcess.Run(ping, ["-n", "60", "127.0.0.1"], TimeSpan.FromSeconds(60), new HostSeams(AfterResume: (childPid, job) =>
         {
-            pid = process.Id;
+            pid = childPid;
             job.Dispose();   // the parent letting go
-        });
+        }));
 
         watch.Stop();
         Assert.False(result.Passed);
@@ -270,19 +327,21 @@ public sealed class PreprocessSyntheticOracleProtocolTests
         Assert.Equal("Oracle process timed out", result.Status);   // it was still running when the timeout came: the job closing is what ended it in the test above
     }
 
+    /// <summary>A failure while the child is being started ends the child (it is suspended or in the job by then) and says the start failed.</summary>
     [Fact]
-    public void AHookThatThrows_StillEndsTheChild_AndSaysSo()
+    public void AHookThatThrows_DuringTheStart_StillEndsTheChild_AndSaysTheStartFailed()
     {
         var pid = 0;
-        var result = XpePreprocessOracleProcess.Run(Path.Combine(Environment.SystemDirectory, "PING.EXE"), ["-n", "60", "127.0.0.1"], TimeSpan.FromSeconds(60), (process, _) =>
+        var result = XpePreprocessOracleProcess.Run(Path.Combine(Environment.SystemDirectory, "PING.EXE"), ["-n", "60", "127.0.0.1"], TimeSpan.FromSeconds(60), new HostSeams(AfterResume: (childPid, _) =>
         {
-            pid = process.Id;
+            pid = childPid;
             throw new InvalidOperationException("boom");
-        });
+        }));
 
         Assert.False(result.Passed);
-        Assert.Equal("Oracle process host failed", result.Status);
-        Assert.Contains("was killed", result.Details);
+        Assert.Equal("Oracle process did not start", result.Status);
+        Assert.Contains("boom", result.Details);
+        Assert.NotEqual(0, pid);
         Assert.Throws<ArgumentException>(() => Process.GetProcessById(pid));
     }
 }

@@ -1,0 +1,88 @@
+# GUI-C-212d falsification arms (each changes ONE thing, rebuilds, runs the tests that guard it, restores byte-identical)
+
+## arm 1a: a stage with no effect is accepted
+build ok: True
+exit=1; 4 red of 121
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 20)
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 17)
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 18)
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 19)
+restored byte-identical: True
+
+## arm 1b: a stage record's own missing fields are not checked
+build ok: True
+exit=1; 5 red of 121
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.AStageRecordMissingAField_IsInvalid(path: "Stages[2].Stage")
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.AStageRecordMissingAField_IsInvalid(path: "Stages[0].ErrorCode")
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.AStageRecordMissingAField_IsInvalid(path: "Stages[1].Passed")
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.AStageRecordMissingAField_IsInvalid(path: "Stages[1].LatencyMs")
+restored byte-identical: True
+
+## arm 2a: the child is not created suspended
+build ok: True
+exit=1; 1 red of 121
+   RED     Diagnostics.PreprocessSyntheticOracleHostTests.TheChild_IsSuspendedWhenItExists_AndRunningOnlyAfterTheResume
+restored byte-identical: True
+
+## arm 2b: the child is never assigned to the job
+build ok: True
+exit=1; 2 red of 121
+   RED     Diagnostics.PreprocessSyntheticOracleHostTests.AJobClosedBeforeTheResume_MeansTheChildNeverRan
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.TheHostsChild_IsInAKillOnCloseJob_SoClosingItEndsTheChildAtOnce
+restored byte-identical: True
+
+## arm 3a: the standard output total is not limited
+build ok: True
+exit=1; 2 red of 121
+   RED     Diagnostics.PreprocessSyntheticOracleHostTests.ALimitWithinWhichTheOutputFits_IsNotAFailure_AndTheSameOutputOverAnotherL
+   RED     Diagnostics.PreprocessSyntheticOracleHostTests.ALargeOutputWithoutNewlines_IsStoppedAtTheStdoutLimit_AndReportedAsTooLar
+restored byte-identical: True
+
+## arm 3b: a result line is not limited
+build ok: True
+exit=1; 2 red of 121
+   RED     Diagnostics.PreprocessSyntheticOracleHostTests.ALimitWithinWhichTheOutputFits_IsNotAFailure_AndTheSameOutputOverAnotherL
+   RED     Diagnostics.PreprocessSyntheticOracleHostTests.AResultLineThatNeverEnds_IsStoppedAtTheLineLimit_AndTheParentsMemoryStays
+restored byte-identical: True
+
+## arm 3c: standard error is not limited
+build ok: True
+exit=1; 1 red of 121
+   RED     Diagnostics.PreprocessSyntheticOracleHostTests.ALargeStandardError_IsStoppedAtTheStderrLimit
+restored byte-identical: True
+
+## arm 3d: exceeding a limit does not kill the child
+build ok: True
+exit=1; 2 red of 121
+   RED     Diagnostics.PreprocessSyntheticOracleHostTests.AResultLineThatNeverEnds_IsStoppedAtTheLineLimit_AndTheParentsMemoryStays
+   RED     Diagnostics.PreprocessSyntheticOracleHostTests.ALargeOutputWithoutNewlines_IsStoppedAtTheStdoutLimit_AndReportedAsTooLar
+restored byte-identical: True
+
+## arm 3e: the protocol line is decoded as Latin-1, not UTF-8
+build ok: True
+exit=1; 2 red of 121
+   RED     Diagnostics.PreprocessSyntheticOracleHostTests.AResultLineThatIsNotValidUtf8_IsAFailure_NotAGuess
+   RED     Diagnostics.PreprocessSyntheticOracleHostTests.AResultWithNonAsciiText_IsReadAsUtf8_WhateverTheConsoleCodePageIs
+restored byte-identical: True
+
+## arm 3f: undecodable bytes are accepted
+build ok: True
+exit=1; 1 red of 121
+   RED     Diagnostics.PreprocessSyntheticOracleHostTests.AResultLineThatIsNotValidUtf8_IsAFailure_NotAGuess
+restored byte-identical: True
+
+## arm 4a: a ByValTStr character is always one byte
+build ok: True
+exit=1; 2 red of 121
+   RED     Functional.ModuleSignatureParityControlTests.Control_AByValTStrInAStructWithAWideCharSet_IsReported_ForANativeCharArray(
+   RED     Functional.ModuleSignatureParityControlTests.Control_AByValTStrInAStructWithAWideCharSet_IsReported_ForANativeCharArray(
+restored byte-identical: True
+
+## arm 4b: the struct's CharSet is not read (always Ansi)
+build ok: True
+exit=1; 2 red of 121
+   RED     Functional.ModuleSignatureParityControlTests.Control_AByValTStrInAStructWithAWideCharSet_IsReported_ForANativeCharArray(
+   RED     Functional.ModuleSignatureParityControlTests.Control_AByValTStrInAStructWithAWideCharSet_IsReported_ForANativeCharArray(
+restored byte-identical: True
+
+final rebuilds done

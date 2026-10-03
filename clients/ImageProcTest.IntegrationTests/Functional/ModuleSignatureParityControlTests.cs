@@ -137,6 +137,32 @@ public sealed class ModuleSignatureParityControlTests
         Assert.True(problems.Any(p => p.Contains(expectedFragment, StringComparison.OrdinalIgnoreCase)), $"{what}: findings were [{string.Join(" | ", problems)}], none mentions '{expectedFragment}'");
     }
 
+    // GUI-C-212d (Codex #100): a ByValTStr character is 1 byte under CharSet.Ansi and 2 under Unicode and Auto, and the struct's own CharSet decides which.
+
+    [Theory]
+    [InlineData("Unicode")]
+    [InlineData("Auto")]
+    public void Control_AByValTStrInAStructWithAWideCharSet_IsReported_ForANativeCharArray(string charSet)
+    {
+        var wide = Mutate(Cs.Replace("\r\n", "\n", StringComparison.Ordinal), "[StructLayout(LayoutKind.Sequential, Pack = 8)]\nstruct XpeBlob", $"[StructLayout(LayoutKind.Sequential, Pack = 8, CharSet = CharSet.{charSet})]\nstruct XpeBlob");
+
+        var problems = Run(Header, wide);
+
+        Assert.Contains(problems, p => p.Contains($"CharSet.{charSet}", StringComparison.Ordinal) && p.Contains("2-byte", StringComparison.Ordinal) && p.Contains("CharSet.Ansi", StringComparison.Ordinal));
+        Assert.Contains(problems, p => p.Contains("byte(s) at offset", StringComparison.Ordinal) || p.Contains("size", StringComparison.Ordinal));   // and the layout itself no longer matches the header
+    }
+
+    /// <summary>The other side of the control: an explicit Ansi struct, and a struct with no CharSet at all (Ansi by default), both stay clean.</summary>
+    [Fact]
+    public void Control_AByValTStrInAnAnsiStruct_IsClean_WithOrWithoutTheExplicitCharSet()
+    {
+        var plain = Cs.Replace("\r\n", "\n", StringComparison.Ordinal);
+        var explicitAnsi = Mutate(plain, "[StructLayout(LayoutKind.Sequential, Pack = 8)]\nstruct XpeBlob", "[StructLayout(LayoutKind.Sequential, Pack = 8, CharSet = CharSet.Ansi)]\nstruct XpeBlob");
+
+        Assert.Empty(Run(Header, explicitAnsi));
+        Assert.Empty(Run(Header, plain));
+    }
+
     /// <summary>The checker must not flag a correct alternative: a native char array may be bound as a ByValArray of bytes.</summary>
     [Fact]
     public void Control_ACharArrayBoundAsAByteArray_IsStillClean()

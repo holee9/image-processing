@@ -64,7 +64,7 @@ namespace ImageProcTest
         private void RunPreprocessOracleWorker(string[] args, int modeIndex)
         {
             var dllPath = modeIndex + 1 < args.Length ? args[modeIndex + 1] : string.Empty;
-            XpePreprocessOracleProcess.RunWorker(dllPath, Console.Out);
+            XpePreprocessOracleProcess.RunWorker(dllPath, XpePreprocessOracleProcess.CreateWorkerWriter());
             Environment.ExitCode = 0;
             Shutdown(0);
         }

@@ -179,7 +179,7 @@ internal static class ModuleSignatureParity
     internal sealed record CsParam(string Modifier, string Type, string Name, string? MarshalAs);
     internal sealed record CsFunc(string Kind, string Name, string Ret, string Dll, string CallingConvention, string CharSet, List<CsParam> Params, string File);
     internal sealed record CsField(string Type, string Name, string? MarshalAs);
-    internal sealed record CsStruct(string Name, int Pack, string Layout, List<CsField> Fields, string File);
+    internal sealed record CsStruct(string Name, int Pack, string Layout, List<CsField> Fields, string File, string CharSet = "Ansi");
     internal sealed record CsEnum(string Name, string Underlying, List<long> Values, string File);
     internal sealed record Binding(string Export, string Delegate, string File);
 
@@ -312,6 +312,8 @@ internal static class ModuleSignatureParity
             var close = MatchingClose(source, open, '{', '}');
             var pack = Regex.Match(st.Groups["attr"].Value, @"Pack\s*=\s*(?<p>\d+)");
             var layout = Regex.Match(st.Groups["attr"].Value, @"LayoutKind\.(?<l>\w+)").Groups["l"].Value;
+            // GUI-C-212d: a struct without a CharSet marshals as Ansi (the StructLayoutAttribute default); ByValTStr's character width follows it
+            var structCharSet = Regex.Match(st.Groups["attr"].Value, @"CharSet\s*=\s*CharSet\.(?<c>\w+)").Groups["c"].Value is { Length: > 0 } csv ? csv : "Ansi";
             var fields = new List<CsField>();
             foreach (var stmt in TopLevelStatements(source[(open + 1)..close]))
             {
@@ -323,7 +325,7 @@ internal static class ModuleSignatureParity
                 fields.Add(new CsField(Last(tokens[0]), tokens[^1], marshal.Success ? marshal.Groups["v"].Value : null));
             }
 
-            AddTo(m.Structs, st.Groups["name"].Value, new CsStruct(st.Groups["name"].Value, pack.Success ? int.Parse(pack.Groups["p"].Value, CultureInfo.InvariantCulture) : 0, layout, fields, file));
+            AddTo(m.Structs, st.Groups["name"].Value, new CsStruct(st.Groups["name"].Value, pack.Success ? int.Parse(pack.Groups["p"].Value, CultureInfo.InvariantCulture) : 0, layout, fields, file, structCharSet));
         }
     }
 
@@ -593,7 +595,10 @@ internal static class ModuleSignatureParity
         return result;
     }
 
-    private static (int Size, int Align) CsFieldLayout(CsField f, CsModel cm, int pack, out List<string> problems)
+    /// <summary>The bytes of one character of a ByValTStr string: 1 under CharSet.Ansi, 2 under Unicode and Auto (Auto is UTF-16 on Windows).</summary>
+    private static int ByValCharWidth(string charSet) => charSet is "Unicode" or "Auto" ? 2 : 1;
+
+    private static (int Size, int Align) CsFieldLayout(CsField f, CsModel cm, int pack, out List<string> problems, string charSet = "Ansi")
     {
         problems = [];
         var type = f.Type;
@@ -611,7 +616,7 @@ internal static class ModuleSignatureParity
         var kind = CsKind(elementType, cm);
         (int size, int align) one;
         if (kind is null) { problems.Add($"field {f.Name}: unknown C# type '{type}'"); return (0, 1); }
-        if (type == "string" && m is not null && m.Contains("ByValTStr", StringComparison.Ordinal)) one = (1, 1);   // ANSI char array
+        if (type == "string" && m is not null && m.Contains("ByValTStr", StringComparison.Ordinal)) one = (ByValCharWidth(charSet), ByValCharWidth(charSet));   // 1 byte per character under Ansi, 2 under Unicode/Auto
         else if (kind.StartsWith("struct:", StringComparison.Ordinal)) one = CsStructLayout(cm.Structs[kind["struct:".Length..]][0], cm, pack, []);
         else if (kind.StartsWith("enum:", StringComparison.Ordinal)) one = (4, 4);
         else if (kind == "bool4") one = m is not null && m.Contains("U1", StringComparison.Ordinal) ? (1, 1) : (4, 4);
@@ -628,7 +633,7 @@ internal static class ModuleSignatureParity
         var maxAlign = 1;
         foreach (var f in s.Fields)
         {
-            var (size, align) = CsFieldLayout(f, cm, pack, out _);
+            var (size, align) = CsFieldLayout(f, cm, pack, out _, s.CharSet);
             align = Math.Min(align, pack);
             offset = (offset + align - 1) / align * align;
             offset += size;
@@ -670,7 +675,7 @@ internal static class ModuleSignatureParity
         {
             var nf = ns.Fields[i];
             var cf = cs.Fields[i];
-            var (size, align) = CsFieldLayout(cf, cm, pack, out var fieldProblems);
+            var (size, align) = CsFieldLayout(cf, cm, pack, out var fieldProblems, cs.CharSet);
             problems.AddRange(fieldProblems.Select(p => $"{prefix}: {p}"));
             align = Math.Min(align, pack);
             offset = (offset + align - 1) / align * align;
@@ -688,7 +693,7 @@ internal static class ModuleSignatureParity
 
         for (var i = 0; i < ns.Fields.Count; i++)
         {
-            problems.AddRange(ArrayFieldProblems(ns.Fields[i], cs.Fields[i], nm, cm).Select(p => $"{prefix}: {p}"));
+            problems.AddRange(ArrayFieldProblems(ns.Fields[i], cs.Fields[i], nm, cm, cs.CharSet).Select(p => $"{prefix}: {p}"));
         }
 
         var nativeTotal = NativeStructLayout(ns, nm).Size;
@@ -701,7 +706,7 @@ internal static class ModuleSignatureParity
     /// GUI-C-212c (Codex #98): a native fixed array was only compared by its total byte size, so <c>uint16_t[1024]</c> and a 2048-element <c>byte[]</c> were "the same". The three things that
     /// make a by-value array an ABI contract are compared one by one: the marshalling shape (ByValArray, or ByValTStr for a char array), the element kind, and the element count.
     /// </summary>
-    private static IEnumerable<string> ArrayFieldProblems(NField nf, CsField cf, NativeModel nm, CsModel cm)
+    private static IEnumerable<string> ArrayFieldProblems(NField nf, CsField cf, NativeModel nm, CsModel cm, string charSet = "Ansi")
     {
         if (nf.Array <= 0 || nf.Type.Ptr > 0) yield break;
         var m = cf.MarshalAs ?? string.Empty;
@@ -717,6 +722,7 @@ internal static class ModuleSignatureParity
         {
             if (!isChar) yield return $"field '{cf.Name}' is a ByValTStr string, the header's {declared} is not a char array";
             else if (cf.Type != "string") yield return $"field '{cf.Name}' is {cf.Type} with ByValTStr, which is for a string";
+            else if (ByValCharWidth(charSet) != 1) yield return $"field '{cf.Name}' is a ByValTStr marshalled with the struct's CharSet.{charSet} (2-byte characters), the header's {declared} holds 8-bit characters: the struct needs CharSet.Ansi";
         }
         else
         {
