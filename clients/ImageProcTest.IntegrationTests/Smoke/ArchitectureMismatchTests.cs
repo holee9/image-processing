@@ -49,6 +49,34 @@ public sealed class ArchitectureMismatchTests
     }
 
     /// <summary>
+    /// GUI-C-228 (REQ-GUI-IT-042, "the test shall surface this as a failure with the resolved path"): the REAL fixture, built over a native folder whose <c>xpe_common.dll</c> is an x86 image, reports
+    /// itself unavailable and its resolved path (what the smoke test prints when it fails) is the architecture diagnostic that names the file. The pieces (the guard, the diagnostic wording) are
+    /// held by the test above; this holds that the fixture puts them together. The control is the same construction over the unchanged x64 DLL, which is available.
+    /// </summary>
+    [SkippableFact]
+    public void TheFixtureBootstrap_WithAnX86XpeCommon_IsUnavailable_AndItsResolvedPathNamesTheFile()
+    {
+        var source = SystemDll();
+        Skip.If(source is null, "Needs an x64 Windows host with System32\\version.dll.");
+        var dir = TempDir();
+        try
+        {
+            var x86 = CopyWithMachine(source!, Path.Combine(dir, "xpe_common.dll"), MachineX86);
+
+            var fixture = new NativeLibraryFixture(dir, Path.Combine(dir, "no_output_folder"), registerResolver: false);
+
+            Assert.False(fixture.IsAvailable, "an x86 xpe_common.dll must not be reported as available to an x64 host");
+            Assert.Equal(NativeLibraryFixture.ArchitectureMismatchDiagnostic(x86), fixture.ResolvedPath);
+            Assert.Contains(x86, fixture.ResolvedPath, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(x86, fixture.SkipReason, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    /// <summary>
     /// The loader's verdict. Control: the unchanged copy of the x64 DLL loads. Test: the same bytes with Machine = i386 (and = ARM64) are refused with <see cref="BadImageFormatException"/> (HRESULT 0x8007000B,
     /// ERROR_BAD_EXE_FORMAT) — and the bootstrap's own guard (<see cref="NativeLibraryFixture.VerifyX64Pe"/>) agrees with the loader on all three files.
     /// </summary>

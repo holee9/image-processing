@@ -1,0 +1,32 @@
+# GUI-C-228: the totals in the three documentation proposals must agree with each other and with the census.
+import re, sys, io
+base = r"D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-C-227" + "\\"
+census = open(base + "status_census.txt", encoding="utf-8").read()
+spec = open(base + "spec_patch.txt", encoding="utf-8").read()
+rtm = open(base + "rtm_patch.txt", encoding="utf-8").read()
+sufficiency = open(base.replace("GUI-C-227", "GUI-C-228") + "sufficiency_table.txt", encoding="utf-8").read()
+
+# census: count statuses per requirement line
+st = re.findall(r"^REQ-GUI-IT-\d+  (.+)$", census, re.M)
+n = {k: st.count(k) for k in set(st)}
+implemented = sum(v for k, v in n.items() if k.startswith("구현됨"))
+limited = n.get("구현됨(한계)", 0)
+deferred = n.get("보류", 0)
+assert len(st) == 36, len(st)
+assert implemented == 33 and limited == 8 and deferred == 3, n
+
+# SPEC table: 25 + 8 + 0 + 3 = 36 ; 33 total implemented
+m = {k: int(v) for k, v in re.findall(r"^\| (구현됨|구현됨\(한계 있음\)|부분|보류) \| (\d+) \|", spec, re.M)}
+assert m == {"구현됨": 25, "구현됨(한계 있음)": 8, "부분": 0, "보류": 3}, m
+assert sum(m.values()) == 36
+assert m["구현됨"] + m["구현됨(한계 있음)"] == implemented
+assert m["구현됨(한계 있음)"] == limited and m["보류"] == deferred
+
+# RTM §2 total row
+t = re.search(r"\| \*\*Total\*\* \| \*\*36\*\* \| \*\*33\*\* \(한계 있는 것 8, 없는 것 25\) \| \*\*0\*\* \| \*\*3\*\* \|", rtm)
+assert t, "RTM total row"
+# the sufficiency table covers exactly the implemented requirements
+reqs = re.findall(r"^REQ-GUI-IT-(\d+) \|", sufficiency, re.M)
+assert len(reqs) == 33 == len(set(reqs)), len(reqs)
+assert all(r in re.findall(r"^REQ-GUI-IT-(\d+)  구현됨", census, re.M) for r in reqs)
+print("totals agree: census %s; SPEC table %s; RTM total row; sufficiency table covers %d requirements" % (n, m, len(reqs)))

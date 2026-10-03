@@ -1,0 +1,3 @@
+== arm F (Codex #126): path load + variable-name type lookup + constructor Invoke builds the Mock; no metadata reference to it exists
+[xUnit.net 00:00:00.36]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.EverySourceCompiledIntoTheTestAssembly_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList [FAIL]
+실패!  - 실패:     1, 통과:    13, 건너뜀:     0, 전체:    14, 기간: 449 ms - ImageProcTest.IntegrationTests.dll (net8.0)

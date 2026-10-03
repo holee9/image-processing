@@ -83,6 +83,23 @@ public sealed class AbiLayoutTests
         Assert.Equal(0, offset);
     }
 
+    /// <summary>
+    /// GUI-C-228 (REQ-GUI-IT-004, the declaration half): the requirement says BodyPart "is marshalled as <c>[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]</c> with <c>CharSet.Ansi</c>". The
+    /// round trip and the size test show that by effect; this reads the declaration itself, with the values written from the requirement.
+    /// </summary>
+    [Fact]
+    public void XpeImageMetadata_BodyPart_IsDeclaredAsByValTStr64_AndTheStructIsAnsi()
+    {
+        var type = typeof(XpeCommonNative.XpeImageMetadata);
+        var field = type.GetField(nameof(XpeCommonNative.XpeImageMetadata.BodyPart))!;
+        var marshal = (MarshalAsAttribute?)Attribute.GetCustomAttribute(field, typeof(MarshalAsAttribute));
+
+        Assert.NotNull(marshal);
+        Assert.Equal(UnmanagedType.ByValTStr, marshal!.Value);
+        Assert.Equal(64, marshal.SizeConst);
+        Assert.Equal(CharSet.Ansi, type.StructLayoutAttribute!.CharSet);
+    }
+
     /// <summary>IntPtr.Size must be 8 on x64 process.</summary>
     [Fact]
     public void IntPtrSize_IsEight_OnX64()

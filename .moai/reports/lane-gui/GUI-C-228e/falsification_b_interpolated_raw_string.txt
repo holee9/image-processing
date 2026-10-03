@@ -1,0 +1,3 @@
+== arm (b): Codex #128, a line starting with two slashes inside an interpolated raw string, holding an executed expression
+[xUnit.net 00:00:00.37]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.EverySourceCompiledIntoTheTestAssembly_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList [FAIL]
+실패!  - 실패:     1, 통과:    13, 건너뜀:     0, 전체:    14, 기간: 468 ms - ImageProcTest.IntegrationTests.dll (net8.0)

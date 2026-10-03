@@ -1,0 +1,2 @@
+== arm (c2): the same comment line, allow-listed as file + whole line (green is the intent)
+통과!  - 실패:     0, 통과:    14, 건너뜀:     0, 전체:    14, 기간: 458 ms - ImageProcTest.IntegrationTests.dll (net8.0)

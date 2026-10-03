@@ -1,0 +1,9 @@
+PDB documents (.cs): 167
+csproj explicit Compile Include items: 60
+documents outside the project folder (linked app sources): 60
+documents inside the project folder, hand-written: 103
+documents in obj/ (generated): 3
+  generated: clients/ImageProcTest.IntegrationTests/obj/Debug/net8.0/.NETCoreApp,Version=v8.0.AssemblyAttributes.cs
+  generated: clients/ImageProcTest.IntegrationTests/obj/Debug/net8.0/ImageProcTest.IntegrationTests.AssemblyInfo.cs
+  generated: clients/ImageProcTest.IntegrationTests/obj/Debug/net8.0/ImageProcTest.IntegrationTests.GlobalUsings.g.cs
+documents neither in the project folder nor linked from an app folder: C:/Users/drake/.nuget/packages/microsoft.net.test.sdk/17.11.0/build/netcoreapp3.1/Microsoft.NET.Test.Sdk.Program.cs

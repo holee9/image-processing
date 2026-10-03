@@ -1,0 +1,3 @@
+== arm (c1): a pure comment line naming an API, not allow-listed (red is the intent now)
+[xUnit.net 00:00:00.37]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.EverySourceCompiledIntoTheTestAssembly_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList [FAIL]
+실패!  - 실패:     1, 통과:    13, 건너뜀:     0, 전체:    14, 기간: 444 ms - ImageProcTest.IntegrationTests.dll (net8.0)

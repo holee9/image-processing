@@ -1,0 +1,4 @@
+== arm (d): the PDB next to the assembly is removed, run without rebuilding
+[xUnit.net 00:00:00.37]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.EverySourceCompiledIntoTheTestAssembly_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList [FAIL]
+[xUnit.net 00:00:00.50]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.TheCompiledSourceList_HoldsThisFile_ALinkedAppSource_AGeneratedSource_AndEveryCompileItem [FAIL]
+실패!  - 실패:     2, 통과:    13, 건너뜀:     0, 전체:    15, 기간: 399 ms - ImageProcTest.IntegrationTests.dll (net8.0)

@@ -1,5 +1,6 @@
 GUI-C-227 -- proposed edits to .moai/specs/SPEC-XPE-GUI-IT/spec.md and progress.md (the lead applies them; the gui lane does not edit docs/ or .moai/specs)
 Baseline: main, SPEC v1.3.3. Line numbers are main's. Status basis: status_census.txt (every cited test name found by script; 71 names, 0 missing).
+UPDATED by GUI-C-228 (assertion-sufficiency read of all 33): the totals are unchanged (33 / 0 / 3); three tests were added (REQ-004 declaration, REQ-021 precondition, REQ-042 fixture composition) and the two sections below were appended. See ../GUI-C-228/report.md and sufficiency_table.txt.
 Statuses for REQ-008, 020, 031, 041, 050 still wait for Codex #123 (the review of 225c/226b/226c) -- apply the numbers below, or hold them back, once that verdict is in.
 
 == 1. §4.6 (lines 311-319): replace the heading line, the paragraph and the table
@@ -62,3 +63,35 @@ AFTER:  - **실태 대조 정정**: 2026-10-03 — 정의된 REQ 36개 중 구�
 (e) lines 635-636 (Fixture list): `Fixtures/DllStagingFixture.cs (Locate + verify DLL on startup)` does not exist. The locator is `Fixtures/NativeLibraryFixture.cs`; there is also `Fixtures/BoundaryGuard.cs` (REQ-050).
 (f) line 652: "현재 프로젝트는 650 통과 / 1 건너뜀으로 돌며" -> "현재 프로젝트는 로컬(네이티브 DLL 있음)에서 862 통과 / 1 건너뜀(파일 심볼릭 링크 권한)으로 돌며(GUI-C-226b 시점)".
 (g) NOT touched, not re-verified: line 579 (a Category=Smoke CI step: "없음") and line 656 (the AC "✓" note). Re-check them before editing; this card only counted requirements.
+
+== 5. Lines 579 and 656 (checked by GUI-C-228; the card of 227 left them alone)
+
+(a) line 579 (AC-12 status note). STILL ACCURATE: ci.yml has no step that filters by Category=Smoke for the integration project (the only `Smoke` text in ci.yml is a comment about the Native E2E suite, line ~1144) and no time limit; "Run C# integration tests" (ci.yml:720) runs the whole project unfiltered. Add the measurement, so the note says what is known:
+    AFTER (append): "로컬 측정(GUI-C-226d·228, 네이티브 DLL 있음): 전체 863 시험이 22~25 초("Full < 2min" 은 로컬에서 충족, 게이트는 없음). 현재 상태: **없음**(CI 가 재지 않는다)."
+
+(b) line 656 (AC table with stale "✓" and class names that do not exist). The note on line 656 is right that the old marks are stale; the table itself still cites non-existent classes (DllResolutionTests, UninitializedGuardTests, EnumParityTests, MockExclusionTests, AlertTests, LoggingTests, PreprocessOptionalTests, NoManagedExceptionTests). Proposed replacement of the Implementation and Status columns (every class name exists; statuses follow §4.6 and the checks of GUI-C-228):
+| AC-1  | ImageProcTest.IntegrationTests.csproj (net8.0, x64, Nullable) | ✓ |
+| AC-2  | AbiLayoutTests | ✓ |
+| AC-3  | DllSearchPathSafetyTests, DllLoadSmokeTests, ArchitectureMismatchTests | ✓ (한계는 §4.6: REQ-008, 042) |
+| AC-4  | 16 P/Invoke symbols (the 15 of §5.1 + xpe_alert_push of the mirror), every one called by at least one test (script check, GUI-C-228): ImageBufferLifecycleTests, MetadataMarshallingTests, AlertCallbackTests, LoggingHandlerTests, DllLoadSmokeTests | ✓ |
+| AC-5  | NativeErrorTranslationTests.GetParamRange_BeforeInit_ReturnsNotInitialized | ✓ |
+| AC-6  | ErrorCodeMappingTests (every enum member, 18 codes; the text says "11 codes") + ErrorCodeHeaderParityTests | ✓ |
+| AC-7  | LeakEnduranceTests.InitShutdown_1000Cycles_NoLeak | ✓ |
+| AC-8  | MockBlockingTests | ✓ (한계는 §4.6: REQ-007) |
+| AC-9  | NegativeInputPathTests (18 distinct rejection paths) | ✓ |
+| AC-10 | AlertCallbackTests | ✓ |
+| AC-11 | LoggingHandlerTests | ✓ |
+| AC-12 | (no gate) | 없음 — see (a) |
+| AC-13 | PreprocessHandshakeTests, PreprocessCorrectionChainSmokeTests, CalibrationCheckExpirySmokeTests | runs: CI stages xpe_preprocess.dll (unchanged) |
+| AC-14 | Resources/requirement-matrix.json (exists; maps 33 requirements) + RTM-GUI-001 | ✓ (the "planned" text is stale) |
+| AC-15 | spec.md, progress.md exist; plan.md/acceptance.md/tasks.md never written, README section missing (line 599 note) | 부분 — not re-checked here |
+Not re-verified: AC-13's "9 cases" and AC-15 (only the existing note was read).
+
+== 6. Requirement WORDING versus what the code does (decisions for the lead/user -- not test defects; no test was changed for these)
+
+B1  REQ-025: "when dst dimensions mismatch, return BUFFER_TOO_SMALL or INVALID_INPUT". The native (xpe_memory.cpp, `dst->dataSize < src->dataSize`) returns OK when dst is LARGER than src. The test covers dst smaller. Decide: narrow the wording to "dst smaller than src", or change the module (a post/pre lane card).
+B2  REQ-051: the 20 MiB working-set threshold is fixed in the test; the env var XPE_GUI_IT_LEAK_LIMIT_MIB tunes the GC limit (default 5 MiB). Decide which the wording means (the test is stricter than the wording either way).
+B3  REQ-053: the wording names `tests/ImageProcTest.IntegrationTests/expected-versions.json`; the file is `clients/ImageProcTest.IntegrationTests/Resources/expected-versions.json`. Fix the path in the SPEC.
+B4  REQ-060: the wording's skip reason "Skipped: preprocess DLL not staged" differs from the code's "Skipped: xpe_preprocess.dll not staged — build P1A first or set XPE_NATIVE_DIR". Fix the wording (the code's text is the better one).
+B5  REQ-062: the wording shows `xpe_calib_load_offset(nonexistentPath, outBuffer)`; the export takes the path only. Fix the wording.
+B6  REQ-024: "without modifying buffer.Data" -- the test can only see Data == 0 afterwards (the parameter is `out`); the native does not touch `out` on this path (xpe_memory.cpp). No change needed; noted so nobody reads the test as stronger than it is.

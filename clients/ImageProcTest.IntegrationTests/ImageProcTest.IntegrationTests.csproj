@@ -37,6 +37,7 @@
     <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Resources\expected-versions.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Resources\requirement-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Resources\forbidden-reflection-apis.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!--

@@ -1,0 +1,3 @@
+== arm (c3): the allow-list entry is only a PREFIX of a line that also holds code (must stay red: whole-line match)
+[xUnit.net 00:00:00.37]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.EverySourceCompiledIntoTheTestAssembly_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList [FAIL]
+실패!  - 실패:     1, 통과:    13, 건너뜀:     0, 전체:    14, 기간: 452 ms - ImageProcTest.IntegrationTests.dll (net8.0)

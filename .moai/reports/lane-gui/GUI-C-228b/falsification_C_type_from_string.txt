@@ -1,0 +1,3 @@
+== arm C: Activator.CreateInstance(Type.GetType(...)) in a functional test
+[xUnit.net 00:00:00.46]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.TheTestProject_HasNoRuntimeTypeFromStringPath [FAIL]
+실패!  - 실패:     1, 통과:    12, 건너뜀:     0, 전체:    13, 기간: 263 ms - ImageProcTest.IntegrationTests.dll (net8.0)

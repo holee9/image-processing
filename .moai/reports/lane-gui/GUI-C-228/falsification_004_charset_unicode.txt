@@ -1,0 +1,4 @@
+== arm 004_charset_unicode: 0,/\[StructLayout(LayoutKind.Sequential, Pack = 8, CharSet = CharSet.Ansi)\]/s//[StructLayout(LayoutKind.Sequential, Pack = 8, CharSet = CharSet.Unicode)]/
+[xUnit.net 00:00:00.23]     ImageProcTest.IntegrationTests.Smoke.AbiLayoutTests.XpeImageMetadata_MarshalSize_Is96Bytes [FAIL]
+[xUnit.net 00:00:00.23]     ImageProcTest.IntegrationTests.Smoke.AbiLayoutTests.XpeImageMetadata_BodyPart_IsDeclaredAsByValTStr64_AndTheStructIsAnsi [FAIL]
+실패!  - 실패:     2, 통과:     5, 건너뜀:     0, 전체:     7, 기간: 31 ms - ImageProcTest.IntegrationTests.dll (net8.0)

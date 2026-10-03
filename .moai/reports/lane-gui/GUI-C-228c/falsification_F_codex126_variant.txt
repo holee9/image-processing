@@ -1,0 +1,3 @@
+== arm F (Codex #126 variant): AssemblyLoadContext.Default.LoadFromAssemblyPath + variable-name GetType + ConstructorInfo.Invoke builds MockXpeBackend; no TypeRef to it exists. Metadata test and the old MockBlockingTests in the same run
+[xUnit.net 00:00:00.40]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.TheTestProject_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList [FAIL]
+실패!  - 실패:     1, 통과:    14, 건너뜀:     0, 전체:    15, 기간: 306 ms - ImageProcTest.IntegrationTests.dll (net8.0)

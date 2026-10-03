@@ -1,0 +1,4 @@
+== arm (a) Codex #127 reproduction: [Fact] Hidden() with the call, inside the scan test file where the exempt region used to be
+[xUnit.net 00:00:00.29]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.ThisFile_IsScanned_LikeEveryOtherCsFile [FAIL]
+[xUnit.net 00:00:00.36]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.EveryCsFileOfTheTestProject_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList [FAIL]
+실패!  - 실패:     2, 통과:    11, 건너뜀:     0, 전체:    13, 기간: 357 ms - ImageProcTest.IntegrationTests.dll (net8.0)
