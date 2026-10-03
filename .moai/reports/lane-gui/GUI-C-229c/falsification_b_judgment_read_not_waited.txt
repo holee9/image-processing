@@ -1,0 +1,3 @@
+== arm (b): the judgment read no longer waits for the 600 ms (it reads at once)
+[xUnit.net 00:00:01.79]     ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02e_ADelayBeforeTheJudgmentRead_IsATimingFailure_NotAJudgedValue [FAIL]
+실패!  - 실패:     1, 통과:    23, 건너뜀:     0, 전체:    24, 기간: 773 ms - ImageProcTest.E2ETests.dll (net8.0)
