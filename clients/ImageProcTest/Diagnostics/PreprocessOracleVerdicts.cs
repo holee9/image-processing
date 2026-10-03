@@ -172,6 +172,7 @@ namespace ImageProcTest
 
             Runner = XpePreprocessOracleProcess.Run;
             AfterSnapshotCopy = null;
+            PreprocessOracleSnapshot.BeforeCopy = null;
             BeforeRerunDecision = null;
             AfterRerunDecision = null;
             Completed = null;

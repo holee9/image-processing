@@ -292,13 +292,23 @@ namespace ImageProcTest
         {
             if (await ProcessingContentGate.ConfirmAsync(lastPreprocessHealth?.DllPath))
             {
+                processingRefusal = null;
                 return true;
             }
 
-            NativePreviewText.Text = "Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They are being checked again; try again when module readiness says ready.";
+            // GUI-C-226: kept in a field and shown by every later rewrite of the preview text. The refusal starts the verification again, whose announcements refresh this window within moments, and a
+            // plain assignment to the text box was overwritten by that refresh before anyone could read it (found by the R05 UI scenario).
+            processingRefusal = "Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They are checked again automatically; press the command again once module readiness says ready.";
+            ShowNativePreviewText(processingRefusal);
             SetStatus("Preprocess DLLs changed: checking again", Brushes.Goldenrod);
             return false;
         }
+
+        private string? processingRefusal;
+
+        /// <summary>The preview text, with the standing refusal (if the last processing command was refused) kept in front of whatever the readiness refresh has to say.</summary>
+        private void ShowNativePreviewText(string text) =>
+            NativePreviewText.Text = processingRefusal is null || ReferenceEquals(text, processingRefusal) ? text : processingRefusal + " " + text;
 
         private async void WorkflowRunButton_Click(object sender, RoutedEventArgs e)
         {
@@ -2211,9 +2221,9 @@ namespace ImageProcTest
                 StageModesInfoText.Text = lastPreprocessHealth?.IsSyntheticOracleChecking == true
                     ? "Native preprocess is being checked in the background, so algorithm execution switches stay disabled until it answers."
                     : "Native pre/post exports are not ready, so algorithm execution switches stay disabled.";
-                NativePreviewText.Text = lastPreprocessHealth is null
+                ShowNativePreviewText(lastPreprocessHealth is null
                     ? "Native preview: readiness has not been checked."
-                    : $"Native preview: unavailable (pre={lastPreprocessHealth.Status}; exportsReady={lastPreprocessHealth.IsExportReady}; synthetic={lastPreprocessHealth.SyntheticOracle.Status}).";
+                    : $"Native preview: unavailable (pre={lastPreprocessHealth.Status}; exportsReady={lastPreprocessHealth.IsExportReady}; synthetic={lastPreprocessHealth.SyntheticOracle.Status}).");
                 return;
             }
 
@@ -2222,9 +2232,9 @@ namespace ImageProcTest
                 "Checked stages execute in the selected order; unchecked stages bypass. Post uses preprocess output when available, otherwise raw-to-float input.";
             if (lastNativePreviewResult is null && lastEnhanceBasicPreviewResult is null)
             {
-                NativePreviewText.Text = currentPreview is null
+                ShowNativePreviewText(currentPreview is null
                     ? "Native preview: load a target raw image to run pre/post algorithms."
-                    : "Native preview: ready. Check pre/post stages to apply, or leave all unchecked for bypass output.";
+                    : "Native preview: ready. Check pre/post stages to apply, or leave all unchecked for bypass output.");
             }
         }
 
