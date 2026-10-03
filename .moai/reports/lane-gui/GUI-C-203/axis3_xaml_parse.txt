@@ -1,0 +1,69 @@
+# axis 3: gui/ImageProcTest/MainWindow.xaml parsed with an XML parser (dev/gui = main at 52a2b2a5)
+# depth | header | AutomationId/x:Name | Command | IsEnabled | Click | IsCheckable | child MenuItems
+
+_File | FileMenu | - | - | - | - | 7
+  _Open Raw... | OpenRawMenuItem | LoadImageCommand | - | - | - | 0
+  Open _Recent | OpenRecentMenuItem | - | HasRecentRawFiles | - | - | 0
+  Open _DICOM... (Phase 1b) | OpenDicomMenuItem | - | False | - | - | 0
+  _Save Settings | SaveSettingsMenuItem | SaveSettingsCommand | - | - | - | 0
+  Export _Automation Report | ExportAutomationReportMenuItem | ExportAutomationReportCommand | - | - | - | 0
+  Export Evidence _Bundle | ExportEvidenceBundleMenuItem | ExportEvidenceBundleCommand | - | - | - | 0
+  E_xit | ExitMenuItem | - | - | ExitMenuItem_OnClick | - | 0
+_Backend | BackendMenu | - | - | - | - | 6
+  _Initialize Backend | InitializeBackendMenuItem | InitializeBackendCommand | - | - | - | 0
+  _Shutdown Backend | ShutdownBackendMenuItem | ShutdownBackendCommand | - | - | - | 0
+  Backend _Mode | BackendModeMenuItem | - | - | - | - | 2
+    _Mock | MockBackendModeMenuItem | SetBackendModeCommand | - | - | True | 0
+    _Native | NativeBackendModeMenuItem | SetBackendModeCommand | - | - | True | 0
+  Native DLL _Diagnostics | NativeDllDiagnosticsMenuItem | ShowNativeDiagnosticsCommand | - | - | - | 0
+  Export Runtime _Logs | OpenRuntimeLogsMenuItem | ExportRuntimeLogsCommand | - | - | - | 0
+  Run P/_Invoke Smoke Test | PInvokeSmokeTestMenuItem | RunPInvokeSmokeTestCommand | - | - | - | 0
+_View | ViewMenu | - | - | - | - | 13
+  Calibration Paths Panel | ShowCalibrationPanelMenuItem | - | - | - | True | 0
+  Display Settings Panel | ShowDisplaySettingsPanelMenuItem | - | - | - | True | 0
+  Logs Panel | ShowLogsPanelMenuItem | - | - | - | True | 0
+  Clear _Logs | ClearLogsMenuItem | ClearLogsCommand | - | - | - | 0
+  Clear _Alerts | ClearAlertsMenuItem | ClearAlertsCommand | - | - | - | 0
+  _Reset Layout | ResetLayoutMenuItem | ResetLayoutCommand | - | - | - | 0
+  Zoom _Fit | ZoomFitMenuItem | ZoomFitCommand | - | - | - | 0
+  Zoom _100% | ZoomActualMenuItem | ZoomActualCommand | - | - | - | 0
+  Zoom _In | ZoomInMenuItem | ZoomInCommand | - | - | - | 0
+  Zoom _Out | ZoomOutMenuItem | ZoomOutCommand | - | - | - | 0
+  _Compare Mode | CompareModeMenuItem | - | - | - | - | 6
+    _Swipe | CompareSwipeMenuItem | SetComparisonModeCommand | - | - | True | 0
+    Sp_lit | CompareSplitMenuItem | SetComparisonModeCommand | - | - | True | 0
+    _Overlay | CompareOverlayMenuItem | SetComparisonModeCommand | - | - | True | 0
+    _Difference | CompareDifferenceMenuItem | SetComparisonModeCommand | - | - | True | 0
+    Source O_nly | CompareSourceOnlyMenuItem | SetComparisonModeCommand | - | - | True | 0
+    _Processed Only | CompareProcessedOnlyMenuItem | SetComparisonModeCommand | - | - | True | 0
+  Reset Comparison _View | ResetComparisonViewMenuItem | ResetComparisonViewCommand | - | - | - | 0
+  _Detach Comparison Viewer | DetachComparisonViewerMenuItem | DetachComparisonViewerCommand | - | - | - | 0
+_Pipeline | PipelineMenu | - | - | - | - | 7
+  Apply _Display Pipeline | ApplyDisplayPipelineMenuItem | ApplyDisplayPipelineCommand | - | - | - | 0
+  Run _Preprocessing (Phase 1a) | RunPreprocessingMenuItem | RunPreprocessingCommand | CanRunPreprocessing | - | - | 0
+  Run _Deterministic Baseline (Phase 1b) | RunDeterministicBaselineMenuItem | RunDeterministicBaselineCommand | CanRunDeterministicBaseline | - | - | 0
+  Run _AI Bone Suppression | RunFullPipelineMenuItem | RunAiBoneSuppressionCommand | AiBoneSuppressionAvailability.CanRun, Mode=OneWay | - | - | 0
+  _Stop Processing | StopProcessingMenuItem | StopProcessingCommand | - | - | - | 0
+  Stage _Timing | StageTimingMenuItem | ShowStageTimingCommand | - | - | - | 0
+  Open Pipeline _Diagnostics | OpenPipelineDiagnosticsMenuItem | OpenPipelineDiagnosticsCommand | - | - | - | 0
+_Tools | ToolsMenu | - | - | - | - | 9
+  _Calibration Settings | CalibrationSettingsMenuItem | ShowCalibrationSettingsCommand | - | - | - | 0
+  _Fixture Manager | FixtureManagerMenuItem | ShowFixtureManagerCommand | - | - | - | 0
+  Export _Evidence Snapshot | ExportEvidenceSnapshotMenuItem | ExportAutomationReportCommand | - | - | - | 0
+  Open Evidence _Folder | OpenEvidenceFolderMenuItem | OpenEvidenceFolderCommand | - | - | - | 0
+  Run _Self-Check | RunSelfCheckMenuItem | RunSelfCheckCommand | - | - | - | 0
+  Run GUI _E2E | RunGuiE2EMenuItem | RunGuiE2ECommand | - | - | - | 0
+  _Benchmark Runner (Phase 1a+) | BenchmarkRunnerMenuItem | RunBenchmarkCommand | - | - | - | 0
+  _QA Constancy (Phase 1b+) | QaConstancyMenuItem | - | False | - | - | 0
+  _GSDF Calibrate... (Phase 1b+) | GsdfCalibrateMenuItem | - | False | - | - | 0
+_Help | HelpMenu | - | - | - | - | 7
+  _Help Home | OpenHelpIndexMenuItem | - | - | OpenHelpIndexMenuItem_OnClick | - | 0
+  _Quick Start | OpenQuickStartHelpMenuItem | - | - | OpenQuickStartHelpMenuItem_OnClick | - | 0
+  _Scope and Limitations | OpenScopeHelpMenuItem | - | - | OpenScopeHelpMenuItem_OnClick | - | 0
+  _Current Workflow Help | OpenCurrentWorkflowHelpMenuItem | - | - | OpenCurrentWorkflowHelpMenuItem_OnClick | - | 0
+  _API Reference (Doxygen) | OpenApiReferenceMenuItem | OpenApiReferenceCommand | - | - | - | 0
+  _Troubleshooting | OpenTroubleshootingMenuItem | OpenTroubleshootingCommand | - | - | - | 0
+  _About / Build Info | AboutBuildInfoMenuItem | - | - | AboutBuildInfoMenuItem_OnClick | - | 0
+
+menu items total: 63; containers: 8; leaves: 55
+statically IsEnabled="False": OpenDicomMenuItem, QaConstancyMenuItem, GsdfCalibrateMenuItem

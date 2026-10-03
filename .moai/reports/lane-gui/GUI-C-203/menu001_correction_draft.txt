@@ -1,0 +1,48 @@
+MENU-001 correction draft (GUI-C-203). Wording only: docs/ is leader-owned, nothing here is applied.
+Base: dev/gui = main 52a2b2a5. Section numbers are MENU-001's.
+
+[3] Table, Pipeline row, "GUI-S0 status" column
+  now:  future disabled shell
+  to:   active (Run Preprocessing and Run Deterministic Baseline need the native backend; Run AI Bone Suppression follows section 8)
+
+[4.1] File
+  - "Export Evidence Bundle (future)" -> drop "(future)": it is wired.
+  - Rule "Open DICOM shall remain disabled or absent until xpe_dicom.dll integration" ->
+    "Open DICOM stays disabled by user decision (#225 row 2, deferred). The module already exports xpe_dicom_open / xpe_dicom_read_image / xpe_dicom_get_metadata; the remaining work is the GUI read path."
+
+[4.2] Backend
+  - "Open Runtime Logs" -> "Export Runtime Logs" (the header; AutomationId stays OpenRuntimeLogsMenuItem).
+  - Rule "Native backend commands remain disabled until RealXpeBackend is implemented" ->
+    "RealXpeBackend is implemented; Backend Mode Mock/Native are commands that set BackendMode."
+
+[4.3] View
+  - Remove (not in the app): Show Runtime Panel, Show Raw Settings, Show Calibration Evaluation, Show Alerts, Pan.
+  - Add (in the app): Calibration Paths Panel, Display Settings Panel, Clear Logs, Clear Alerts, Reset Comparison View. Show Logs stays.
+
+[4.5] Tools
+  - "Calibration Evaluation" -> not a menu item; the app has "Calibration Settings".
+  - Add "Export Evidence Snapshot" (the same command as File > Export Automation Report).
+  - GSDF Calibrate and QA Constancy are listed in section 9.1 but not here; add both as "disabled: GSDF waits for measured luminance input (the module's xpe_gsdf_calibrate exists); QA Constancy waits for a requirement (reference images and criteria not defined)".
+
+[8] / [9.1] "Enabled When" column: the app's real rules
+  Run Preprocessing            backend supports it (native). Missing image or calibration paths is answered when clicked (status line), not by disabling.
+  Apply Display Pipeline       always enabled. With no frame it says so on the status line.
+  Stop Processing              always enabled. With nothing running it says so and discards nothing.
+  Stage Timing                 always enabled. It shows what the last render reported.
+  Open Pipeline Diagnostics    always enabled.
+  Run Self-Check, Run GUI E2E, Benchmark Runner, Export Automation Report   always enabled; conditions are answered when clicked.
+  Dll Diagnostics              lives under Backend, not Tools (header "Native DLL Diagnostics").
+  Fix the E2E column: Run Self-Check A-04/A-05, Run GUI E2E A-06, Benchmark Runner A-14, Open Evidence Folder A-09.
+
+[8] Rows with no menu item in the app
+  Apply Enhance (Basic), Apply Enhance (Advanced), Apply Grid Suppression, Apply AI Assist: no menu item exists. enhance_basic runs only inside the Baseline chain; GSVG is in the algorithm bar. Mark these rows "planned, no menu item" or remove them.
+
+[10.1] Shortcut matrix
+  Bound in the app today: F5, F6, F7, F8 (comparison modes; Window.InputBindings, menu InputGestureText). Everything else (Ctrl+O, Ctrl+S, Ctrl+Shift+E, Alt+F4 as a binding, Ctrl+B chords, Ctrl++/-/0/1, Ctrl+Shift+R, Ctrl+Tab, F9, F10, Esc, Shift+F10, Ctrl+T chords, F1, Shift+F1, Ctrl+F1) is NOT implemented.
+  Add a "status" column: bound / not implemented. "Run Full Pipeline F10" -> the item is now Run AI Bone Suppression.
+[10.2] The RoutedCommand/InputBinding rule and the duplicate-gesture pre-commit hook: not implemented; mark them as targets, not as fact.
+
+[11] Command Quality Contract
+  The app has no command-definition structure with Id / HeaderKey (RESX) / Owner / Phase / EnabledCondition / HelpTarget. AutomationIds are of the form RunPreprocessingMenuItem, not XPE_Menu_Pipeline_RunPreprocessing_MenuItem. Mark the section as a target contract, or write the real convention.
+
+[Header] Version/Date: the body changed after 1.1.0 / 2026-04-18 (GUI-C-170, 184, 196, 198) without a CHANGE HISTORY row. Add one.
