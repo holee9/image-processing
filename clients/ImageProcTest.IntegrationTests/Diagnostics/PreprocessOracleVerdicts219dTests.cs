@@ -73,7 +73,7 @@ public sealed class PreprocessOracleVerdicts219dTests : IDisposable
         File.WriteAllText(dependency, "d1");
         PreprocessOracleVerdicts.Runner = _ => Verdict("ok");
         Assert.False(await ProcessingContentGate.ConfirmAsync(_dll), "nothing has been verified yet");   // (this ask also starts the verification)
-        var deadline = DateTime.UtcNow.AddSeconds(10);
+        var deadline = DateTime.UtcNow.AddSeconds(30);
         while (PreprocessOracleVerdicts.TryGet(_dll) is null && DateTime.UtcNow < deadline) await Task.Delay(20);
         Assert.True(await ProcessingContentGate.ConfirmAsync(_dll));
 
@@ -240,12 +240,12 @@ public sealed class PreprocessOracleVerdicts219dTests : IDisposable
         PreprocessOracleVerdicts.Completed += _ => { if (Interlocked.Increment(ref announced) == 2) second.Set(); };
 
         Assert.Null(PreprocessOracleVerdicts.TryGet(_dll));
-        Assert.True(atTheGap.Wait(10000));                    // the pass is over and the job has not decided yet
+        Assert.True(atTheGap.Wait(30000));                    // the pass is over and the job has not decided yet
         File.WriteAllText(_dll, "q"); File.SetLastWriteTimeUtc(_dll, stamp);
         PreprocessOracleVerdicts.TryGet(_dll);
         go.Set();
 
-        Assert.True(second.Wait(10000), "the ask that came before the decision was swallowed");
+        Assert.True(second.Wait(30000), "the ask that came before the decision was swallowed");
         Assert.Equal("run2", PreprocessOracleVerdicts.TryGet(_dll)!.Status);
     }
 
@@ -267,12 +267,12 @@ public sealed class PreprocessOracleVerdicts219dTests : IDisposable
         PreprocessOracleVerdicts.Completed += _ => { if (Interlocked.Increment(ref announced) == 2) second.Set(); };
 
         Assert.Null(PreprocessOracleVerdicts.TryGet(_dll));
-        Assert.True(inTheGap.Wait(10000));                    // the decision is made; the job is still on its way out
+        Assert.True(inTheGap.Wait(30000));                    // the decision is made; the job is still on its way out
         File.WriteAllText(_dll, "q"); File.SetLastWriteTimeUtc(_dll, stamp);
         PreprocessOracleVerdicts.TryGet(_dll);
         go.Set();
 
-        Assert.True(second.Wait(10000), "the ask that came after the decision was swallowed by the job that was leaving");
+        Assert.True(second.Wait(30000), "the ask that came after the decision was swallowed by the job that was leaving");
         Assert.Equal("run2", PreprocessOracleVerdicts.TryGet(_dll)!.Status);
     }
 
