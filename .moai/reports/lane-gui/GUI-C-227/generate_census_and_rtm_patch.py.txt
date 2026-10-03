@@ -1,0 +1,151 @@
+import json, os, re, io
+EV = r"D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-C-227"
+os.makedirs(EV, exist_ok=True)
+RTM = r"D:\workspace-github\image-processing\docs\post-processing\xpe\RTM-GUI-001_Requirements_Traceability_Matrix.md"
+m = json.load(open(os.environ["TEMP"] + r"\req_map.json"))
+
+LIMIT = {
+ "007": "한계: 요구의 \"Mock 폴백은 시험 실패로 본다\"를 직접 단언하는 시험은 없다(통합 시험은 P/Invoke 미러를 직접 부르므로 폴백 경로가 없다)",
+ "008": "한계: 파일 심볼릭 링크 시험은 심볼릭 링크 권한이 있는 환경에서만 돈다(권한 없는 셸에서는 사유를 적고 건너뜀 — CI 러너에서 도는지는 병합 뒤 CI 로그로 확인). 디코이·시스템 폴더·후보 밖 거부는 순수 함수와 로케이터 재실행으로 보였고 실제 로더가 디코이를 피하는지를 직접 입증하지는 않는다. Codex #122 검토 반영 대기",
+ "010": "한계: 시작 시점 대비 상대 비교이고 xUnit 이 정한 시점에 돈다",
+ "020": "한계: 전용 프로세스에서 재지 않고 고정물의 첫 생성이 로케이터·첫 로드·첫 호출 시간을 스스로 기록한다(느린 러너의 경합이 섞일 수 있음)",
+ "042": "한계: 진짜 x86 빌드 DLL 로는 돌려 보지 못함(PE 헤더의 Machine 필드만 바꾼 x64 DLL 사본과 x86 xpe_common 이 있는 폴더로 시험)",
+ "043": "한계: ARM64 분기는 실행해 보지 못함",
+ "050": "한계: AccessViolation 은 .NET 이 잡지 못하고 호스트를 끝내므로 시험이 직접 단언할 수 없다(호스트 종료는 실행 실패로 드러난다는 요구 문구 그대로). SEHException 의 기록·실패와 부정 행 완주만 단언",
+ "052": "한계: MarshalDirective·InvalidCast·COM 예외를 실제로 일으키는 입력은 없다(공통 모듈의 공개 함수에서 만들어지지 않음). 부정 행마다 정확한 코드를 문서화",
+}
+STATUS = {r: "구현됨" for r in m}
+for r in ("063", "064", "065"):
+    STATUS[r] = "보류"
+STATUS["001"] = "구현됨(시험 아님)"
+for r in LIMIT:
+    STATUS[r] = "구현됨(한계)"
+
+def classes(rows):
+    out = []
+    for n, ok, loc in rows:
+        for l in loc:
+            cls = l.split("@")[-1].split(",")[0] if "@" in l else l
+            out.append((cls, n if not n.endswith("*") else n))
+    return out
+
+lines = ["GUI-C-227 -- per-requirement census of SPEC-XPE-GUI-IT (36 requirements), taken on dev/gui after GUI-C-225/225b/225c/226/226b.",
+         "Every test name below was found by script (map.py: `public void|Task <name>(` in clients/ImageProcTest.IntegrationTests); 71 names checked, 0 missing after 225c restored one.",
+         "Statuses use the SPEC §4.6 criterion: implemented = a test asserts the requirement text against an independently derived expectation. '보류' = decided not to implement (user decision, #249 GUI-C-224).",
+         "Statuses for 008, 020, 031, 041, 050 await Codex #123 (225/225b/225c/226b/226c review).", ""]
+counts = {}
+for r in sorted(m):
+    st = STATUS[r]
+    counts[st] = counts.get(st, 0) + 1
+    names = []
+    for n, ok, loc in m[r]:
+        where = ",".join(sorted({l.split("@")[-1].split(",")[0] if "@" in l else l for l in loc})) if loc else "?"
+        names.append(f"{where}.{n}")
+    lines.append(f"REQ-GUI-IT-{r}  {st}")
+    for n in names:
+        lines.append(f"    {n}")
+    if r in LIMIT:
+        lines.append(f"    {LIMIT[r]}")
+    lines.append("")
+lines.append("Totals: " + ", ".join(f"{k} {v}" for k, v in sorted(counts.items())) + f" (sum {sum(counts.values())})")
+strict = sum(1 for r in STATUS if STATUS[r].startswith("구현됨") and r not in LIMIT)
+lines.append(f"Implemented without a stated limitation: {strict} (001 counted: a build property, not a test).")
+open(EV + r"\status_census.txt", "w", encoding="utf-8").write("\n".join(lines) + "\n")
+print(counts, "strict", strict)
+
+# ---- RTM rows: rebuild the changed ones from main's current rows
+rtm = open(RTM, encoding="utf-8").read().replace("\r\n", "\n").split("\n")
+rows = {}
+for i, l in enumerate(rtm):
+    mm = re.match(r"\| (REQ-GUI-IT-0\d\d) \|", l)
+    if mm:
+        rows[mm.group(1)[-3:]] = (i + 1, l)
+
+def q(r):
+    """class-qualified names of the verified tests of a requirement, as markdown code spans"""
+    seen, out = set(), []
+    for n, ok, loc in m[r]:
+        for l in loc[:1] if not n.endswith("*") else loc[:1]:
+            cls = l.split("@")[-1].split(",")[0] if "@" in l else l
+            key = (cls, n)
+            if key not in seen:
+                seen.add(key)
+                out.append(f"`{cls}.{n}`")
+    return out
+
+NEW_TESTS = {
+ "004": q("004") + ["`NativeSignatureParityTests.EveryDeclaration_SaysWhatTheHeaderSays` (헤더와 미러의 선언을 기계로 대조 — `SizeConst`·`ByValTStr`·`CharSet` 변이 셋이 모두 빨강, GUI-C-224 `req004_mutation_experiment.txt`)"],
+ "005": q("005"),
+ "006": ["`NegativeInputPathTests.EachDistinctCheck_ReturnsItsExactCode_AndItsValidControlSucceeds` (서로 다른 거부 경로 18행, 행마다 정확한 코드와 통제)", "`NegativeInputPathTests.EveryRow_CitesACheckThatExistsInTheNativeSource_AndNoCheckIsCountedTwice`", "`NativeErrorTranslationTests.*`"],
+ "007": ["`MockBlockingTests.*` (타입 부재 둘 + 참조 이름 + 통제 `TheTypeScan_FindsATypeThatIsLoaded`)"],
+ "008": q("008"),
+ "010": q("010"),
+ "020": q("020"),
+ "031": q("031"),
+ "041": q("041"),
+ "042": q("042") + ["`DllLoadSmokeTests.ArchitectureGuard_RejectsABinaryThatIsNotX64_AndAcceptsOneThatIs`"],
+ "043": ["`PlatformDetectionTests.ProcessArchitecture_IsRecordedForDiagnostics`"],
+ "050": q("050") + ["`NegativeInputPathTests.EachDistinctCheck_ReturnsItsExactCode_AndItsValidControlSucceeds`", "`NativeErrorTranslationTests.*`"],
+ "052": ["`NegativeInputPathTests.EachDistinctCheck_ReturnsItsExactCode_AndItsValidControlSucceeds` (정확한 코드 문서화)"],
+ "061": q("061"),
+}
+CODEFILE = {"008": "`NativeLibraryFixture.cs` (`CandidateFolders`, `Locate`, `IsUnderAnyFolderResolved`, `FinalPathOf`)",
+            "041": "`NativeLibraryFixture.cs` (`Locate`, 부트스트랩의 건너뜀 사유)",
+            "042": "`NativeLibraryFixture.cs` (`VerifyX64Pe`)"}
+# the 008/020/041/050 wording for the changed requirements
+out = ["GUI-C-227 -- proposed edits to docs/post-processing/xpe/RTM-GUI-001_Requirements_Traceability_Matrix.md (the lead applies docs/ edits)",
+       "Baseline: main at the time of writing (RTM v1.1.0). Line numbers are main's. Every test name was checked by script (see status_census.txt).", ""]
+out.append("== §2 (lines 26-40): replace the note and the table")
+out.append("")
+out.append("> **2026-10-03 갱신 (GUI-C-227, #249).** 표는 GUI-C-207 의 첫 집계(구현됨 19 · 부분 14 · 없음 3)에서 GUI-C-208~210·225·225b·225c·226 이 닫은 것을 반영해 시험 소스를 다시 읽고 센 것이다(구현됨 = 독립된 기대값으로 단언 · 한계 = 구현됨이지만 아래 한계가 있음 · 보류 = 사용자 결정으로 구현하지 않음). 판정 기준은 SPEC-XPE-GUI-IT §4.6 과 같다. 008·020·031·041·050 의 판정은 Codex 검토(#123) 반영 대기다.")
+out.append("")
+out.append("| Category | Count | Implemented | Partial | Deferred (보류) |")
+out.append("|----------|:-----:|-------------|---------|------|")
+out.append("| Ubiquitous (001~010) | 10 | 10 (001 은 빌드 속성; 한계: 007, 008, 010) | 0 | 0 |")
+out.append("| Event-Driven (020~031) | 12 | 12 (한계: 020) | 0 | 0 |")
+out.append("| State-Driven (040~043) | 4 | 4 (한계: 042, 043) | 0 | 0 |")
+out.append("| Unwanted Behavior (050~053) | 4 | 4 (한계: 050, 052) | 0 | 0 |")
+out.append("| Optional (060~065) | 6 | 3 (060, 061, 062) | 0 | 3 (063, 064, 065) |")
+out.append("| **Total** | **36** | **33** (한계 있는 것 8, 없는 것 25) | **0** | **3** |")
+out.append("")
+out.append("*Note*: 060~062 는 CI 가 xpe_preprocess.dll 을 올려 실제로 돈다. 063~065 는 선택 요구(Optional) — 사용자 결정(2026-10-03, #249)으로 **보류**, 구현하지 않는다.")
+out.append("")
+out.append("== §3 rows that change (replace the whole row; columns not shown stay as on main)")
+out.append("")
+for r in ("004", "005", "006", "007", "008", "010", "020", "031", "041", "042", "043", "050", "052", "061"):
+    ln, old = rows[r]
+    cols = [c for c in old.strip().strip("|").split("|")]
+    cols = [c.strip() for c in cols]
+    # | REQ | Title | SRS | SDD | Code | Test | Hazard |
+    if r in CODEFILE:
+        cols[4] = CODEFILE[r]
+    tests = "<br>".join(NEW_TESTS[r]) if r in NEW_TESTS else cols[5]
+    if r in LIMIT:
+        tests += f"<br>*{LIMIT[r]}*"
+    cols[5] = tests
+    new = "| " + " | ".join(cols) + " |"
+    out.append(f"line {ln}  BEFORE: {old}")
+    out.append(f"line {ln}  AFTER:  {new}")
+    out.append("")
+out.append("Rows 063~065 (lines 112-114): replace 'Not implemented — 선택 요구(Optional), 미구현, 구현 계획 없음 (#249)' with 'Deferred — 선택 요구(Optional), 사용자 결정(2026-10-03)으로 보류, 구현하지 않음 (#249)'.")
+out.append("")
+out.append("Rows 032~034 (lines ~80-83) are unchanged (no SPEC definition).")
+out.append("")
+out.append("== §6 line 202 (IEC 62304 5.2.6): replace")
+out.append("BEFORE: | 5.2.6 Requirements verified | 33 of 36 have tests; 14 only in part; REQ-063..065 have none | This RTM §2, §3 | Partial (2026-10-03 정정, 원문 \"All REQ-GUI-IT-* have tests ✓\" — #249) |")
+out.append("AFTER:  | 5.2.6 Requirements verified | 33 of 36 verified by tests asserting the requirement text (8 with a stated limitation, see §2 and the §3 rows); REQ-063..065 deferred by user decision (optional requirements, not implemented) | This RTM §2, §3 | Partial → Verified for the 33 (2026-10-03 갱신, #249; 판정 일부는 Codex #123 대기) |")
+out.append("")
+out.append("== line 15: 'SPEC-XPE-GUI-IT v1.3.0' -> the current SPEC version (v1.3.3 per the lead's message)")
+out.append("")
+out.append("== changelog (after line 237): add")
+out.append("| 1.2.0 | 2026-10-03 | lead (GUI-C-227, #249) | §2 표를 구현됨 33 · 부분 0 · 보류 3 으로 갱신(한계 있는 것 8: 007·008·010·020·042·043·050·052), §3 시험 이름을 실재하는 이름으로 교체(004~008·010·020·031·041~043·050·052·061), 008·041·042 의 존재하지 않는 코드 파일 `DllStagingFixture.cs` 를 `NativeLibraryFixture.cs` 로, REQ-063~065 는 보류, §6 5.2.6 갱신. 근거: `xpe-gui` `.moai/reports/lane-gui/GUI-C-227/` |")
+out.append("")
+out.append("== Observation (not patched): other Code File cells name files that do not exist")
+for r, (ln, old) in sorted(rows.items()):
+    cols = [c.strip() for c in old.strip().strip("|").split("|")]
+    if "XpeCommonApi.cs" in cols[4]:
+        out.append(f"  line {ln} REQ-{r}: `{cols[4]}` -- XpeCommonApi is a class in clients/ImageProcTest/PInvokeWrapper.cs; there is no XpeCommonApi.cs")
+    if "planned" in cols[4]:
+        out.append(f"  line {ln} REQ-{r}: `{cols[4]}` -- 'planned' file")
+open(EV + r"\rtm_patch.txt", "w", encoding="utf-8").write("\n".join(out) + "\n")
+print("rtm patch lines", len(out))

@@ -1,0 +1,64 @@
+GUI-C-227 -- proposed edits to .moai/specs/SPEC-XPE-GUI-IT/spec.md and progress.md (the lead applies them; the gui lane does not edit docs/ or .moai/specs)
+Baseline: main, SPEC v1.3.3. Line numbers are main's. Status basis: status_census.txt (every cited test name found by script; 71 names, 0 missing).
+Statuses for REQ-008, 020, 031, 041, 050 still wait for Codex #123 (the review of 225c/226b/226c) -- apply the numbers below, or hold them back, once that verdict is in.
+
+== 1. §4.6 (lines 311-319): replace the heading line, the paragraph and the table
+
+BEFORE (line 311): ### 4.6 Implementation Status per Requirement (2026-10-03, GUI-C-207, #249)
+AFTER:             ### 4.6 Implementation Status per Requirement (2026-10-03, GUI-C-207 → GUI-C-227, #249)
+
+BEFORE (line 313, from the last sentence): ... **없음** = 단언하는 시험이 없다. 근거는 dev/gui `efbc74f8` 기준 GUI-C-207 보고서 §1.
+AFTER (replace from "**부분**" to the end of the paragraph):
+**부분** = 문구의 일부만 단언한다. **보류** = 사용자 결정으로 구현하지 않는다(선택 요구). **한계** = 구현됨이지만 시험이 못 보는 부분이 아래에 적혀 있다. 첫 집계는 dev/gui `efbc74f8` 기준 GUI-C-207 보고서 §1 이고(구현됨 19 · 부분 14 · 없음 3), 이 표는 GUI-C-208~210·225·225b·225c·226·226b 가 닫은 것을 시험 소스를 다시 읽어 센 것이다(근거: `xpe-gui` `.moai/reports/lane-gui/GUI-C-227/status_census.txt`, 요구마다 시험 이름을 스크립트로 존재 확인). 008·020·031·041·050 의 판정은 Codex #123 검토 반영 대기다.
+
+BEFORE (lines 315-319):
+| 상태 | 수 | REQ |
+|------|:--:|-----|
+| 구현됨 | 19 | 001(빌드 속성 — 시험이 아님), 002, 003, 005, 021~030, 040, 051, 053, 060, 062 |
+| 부분 | 14 | 004, 006, 007, 008, 009, 010, 020, 031, 041, 042, 043, 050, 052, 061 |
+| 없음 | 3 | 063, 064, 065 (선택 요구(Optional) — 미구현, 구현 계획 없음) |
+
+AFTER:
+| 상태 | 수 | REQ |
+|------|:--:|-----|
+| 구현됨 | 25 | 001(빌드 속성 — 시험이 아님), 002~006, 009, 021~031, 040, 041, 051, 053, 060~062 |
+| 구현됨(한계 있음) | 8 | 007, 008, 010, 020, 042, 043, 050, 052 (한계는 아래 표) |
+| 부분 | 0 | — |
+| 보류 | 3 | 063, 064, 065 (선택 요구(Optional) — 사용자 결정으로 보류, 구현하지 않음) |
+
+(25 + 8 + 0 + 3 = 36. 001 은 시험이 아니라 빌드 속성이고 25 에 센다. 구현됨 합계는 33.)
+
+한계 (신설 표, §4.6 표 아래):
+| REQ | 한계 |
+|-----|------|
+| 007 | "Mock 폴백은 시험 실패로 본다"를 직접 단언하는 시험은 없다(통합 시험은 P/Invoke 미러를 직접 부르므로 폴백 경로가 없다) |
+| 008 | 파일 심볼릭 링크 시험은 링크 권한이 있는 환경에서만 돈다(권한 없으면 사유를 적고 건너뜀). 디코이·시스템 폴더·후보 밖 거부는 순수 함수와 로케이터 재실행으로 보이며 실제 로더가 디코이를 피하는지 직접 입증하지는 않는다 |
+| 010 | 시작 시점 대비 상대 비교이고 xUnit 이 정한 시점에 돈다 |
+| 020 | 전용 프로세스에서 재지 않고 고정물의 첫 생성이 로케이터·첫 로드·첫 호출 시간을 스스로 기록한다 |
+| 042 | 진짜 x86 빌드 DLL 로는 돌려 보지 못했다(PE 헤더의 Machine 필드만 바꾼 x64 DLL 사본과 x86 xpe_common 이 있는 폴더로 시험) |
+| 043 | ARM64 분기는 실행해 보지 못했다 |
+| 050 | AccessViolation 은 .NET 이 잡지 못하고 호스트를 끝내므로 시험이 직접 단언할 수 없다(요구 문구가 그렇게 바뀌었다). SEHException 의 기록·실패와 부정 행 완주만 단언한다 |
+| 052 | MarshalDirective·InvalidCast·COM 예외를 실제로 일으키는 입력은 없다. 부정 행마다 정확한 코드를 문서화한다 |
+
+== 2. Changelog (insert above line 22): new row
+
+| 1.3.4   | 2026-10-03 | lead (GUI-C-227, #249) | §4.6 상태 표를 현재 시험 소스에 맞춤(구현됨 33 — 한계 있는 것 8 포함 · 부분 0 · 보류 3). 시험 이름 존재를 스크립트로 확인. §4.6 에 한계 표 신설, 낡은 상태 주석 정리(REQ-010·AC-9·shim 규칙·§11). 근거: `xpe-gui` `.moai/reports/lane-gui/GUI-C-227/` |
+
+== 3. progress.md line 10
+
+BEFORE: - **실태 대조 정정**: 2026-10-03 — 정의된 REQ 36개 중 구현됨 19 · 부분 14 · 없음 3 (spec.md §4.6, #249)
+AFTER:  - **실태 대조 정정**: 2026-10-03 — 정의된 REQ 36개 중 구현됨 33(한계 있는 것 8 포함) · 부분 0 · 보류 3 (spec.md §4.6 v1.3.4, GUI-C-227, #249)
+
+== 4. Other statements that are stale now (found while checking; not asked for)
+
+(a) line 177 (REQ-010 note): ends "현재 상태: **부분**(CI 러너에서 흔들림 여부 미확인)."
+    -> "현재 상태: **구현됨(한계: 시작 시점 대비 상대 비교, CI 러너에서 흔들림 여부 미확인)**."
+(b) line 491 (§9 shim 규칙 상태 주석): says the signature comparison test "GUI-C-208 M1 에서 추가 예정" and "함수 시그니처는 아직 대조하지 않는다".
+    -> append: "갱신 (GUI-C-208 M1): 함수 시그니처는 `Functional/NativeSignatureParityTests` 가 헤더와 대조한다(미러와 앱 사본 모두, 통제 시험 포함). 위 extern 개수(16/15)는 GUI-C-13 시점 수치이고 이번에 다시 세지 않았다."
+(c) line 558 (AC-9 note): says the scenarios are "부정 입력 3개 ... 초기화 전 무충돌 3개" and "현재 상태: **부분**".
+    -> "AC-9: 서로 다른 거부 경로 18개가 `ErrorMapping/NegativeInputPathTests` 에 있다(행마다 정확한 코드·통제·네이티브 소스의 검사 문장 인용, GUI-C-209 M2). REQ-006·050·052 의 근거다. 현재 상태: **구현됨(한계: REQ-050 의 AccessViolation 은 호스트 종료로 드러남, REQ-052 의 예외 유형은 일으키는 입력이 없음)**."
+(d) line 632 (§11 table): `| REQ-GUI-IT-063, 064, 065 | 없음 |`  ->  `| REQ-GUI-IT-063, 064, 065 | (보류 — 구현하지 않음) |`
+    and the rows above it: add `Smoke/ArchitectureMismatchTests` (042), `Smoke/VersionPinTests` (053), `Safety/BoundaryGuardTests`, `ErrorMapping/NegativeInputPathTests` (006, 050, 052) -- the same corrections were made in clients/ImageProcTest.IntegrationTests/Resources/requirement-matrix.json (GUI-C-227a commit).
+(e) lines 635-636 (Fixture list): `Fixtures/DllStagingFixture.cs (Locate + verify DLL on startup)` does not exist. The locator is `Fixtures/NativeLibraryFixture.cs`; there is also `Fixtures/BoundaryGuard.cs` (REQ-050).
+(f) line 652: "현재 프로젝트는 650 통과 / 1 건너뜀으로 돌며" -> "현재 프로젝트는 로컬(네이티브 DLL 있음)에서 862 통과 / 1 건너뜀(파일 심볼릭 링크 권한)으로 돌며(GUI-C-226b 시점)".
+(g) NOT touched, not re-verified: line 579 (a Category=Smoke CI step: "없음") and line 656 (the AC "✓" note). Re-check them before editing; this card only counted requirements.
