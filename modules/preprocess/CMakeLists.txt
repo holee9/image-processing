@@ -346,6 +346,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_session_consistency.cpp
         # QA-A-229 M5 (#245, REQ-P1A-086): ghost handles are recognised by a registry, never by dereferencing
         tests/test_ghost_handle_registry.cpp
+        # QA-A-230 M3 (#245): SRS-CALIB-PERF-001 on the real path (3072x3072, calibration loaded); replaces the disabled Integration test
+        tests/test_pipeline_performance_3072.cpp
         tests/test_xpe_calib_save.cpp
         # QA-A-29 (#132): xpe_calib_save 3-arg embedded expiry, api-spec 6.14
         tests/test_calib_save_expiry.cpp

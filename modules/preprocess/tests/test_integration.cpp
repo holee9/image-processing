@@ -157,28 +157,10 @@ TEST(Integration, UncalibratedPipelineComposes) {
     xpe_clear_alerts();
 }
 
-// Acceptance criterion: full pipeline <= 500ms for 3072x3072
-TEST(Integration, DISABLED_PipelinePerformance3072x3072) {
-    // NOTE: Disabled by default — enable when running performance benchmarks
-    PipelineBuffers buf(3072, 3072);
-    bool dropped = false, nonuniform = false;
-
-    auto start = std::chrono::high_resolution_clock::now();
-
-    xpe_validate_readout_artifact(&buf.rawBuf, &buf.meta, &dropped, &nonuniform);
-    xpe_temp_compensate(&buf.rawBuf, 25.0f, nullptr);
-    xpe_nonlinearity_correct(&buf.rawBuf, nullptr);
-    xpe_offset_correct(&buf.rawBuf, &buf.offsetBuf, &buf.meta);
-    xpe_gain_correct(&buf.rawBuf, &buf.gainBuf, &buf.meta);
-    xpe_defect_correct(&buf.gainBuf, &buf.gainBuf, &buf.meta);
-    xpe_ghost_create(buf.W, buf.H, nullptr, &buf.ghostHandle);
-    xpe_ghost_correct(buf.ghostHandle, &buf.rawBuf, &buf.meta);
-    xpe_binning_correct(&buf.rawBuf, 1, nullptr);
-
-    auto elapsed = std::chrono::high_resolution_clock::now() - start;
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
-
-    EXPECT_LE(ms, 500) << "Pipeline took " << ms << "ms (limit: 500ms)";
-}
+// QA-A-230 M3 (#245): the former DISABLED_PipelinePerformance3072x3072 lived here. It was off, and would not
+// have measured the requirement if it were on (no calibration loaded: offset, gain and defect refused at once,
+// ghost refused a UINT16 buffer, no return code read). SRS-CALIB-PERF-001's 500 ms is now asserted by
+// PipelinePerformance3072.TheWholeFrameWithCalibrationLoadedFitsSrsPerf001 (test_pipeline_performance_3072.cpp),
+// on a path with the maps loaded and every stage's effect checked.
 
 } // namespace

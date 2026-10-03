@@ -1,0 +1,7 @@
+build_exit=0 test_exit=1
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(149): error: Value of: warnedUncalibrated
+Expected: false
+the handle must be the calibrated kind, or the ghost stage only passes frames through
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(250): error: Expected: (changed) > (0u), actual: 0 vs 0
+the ghost stage changed no pixel of the second frame
+[  FAILED  ] PipelinePerformance3072.TheWholeFrameWithCalibrationLoadedFitsSrsPerf001 (456 ms)

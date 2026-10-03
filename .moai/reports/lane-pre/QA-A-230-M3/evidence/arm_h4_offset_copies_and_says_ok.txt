@@ -1,0 +1,15 @@
+build_exit=0 test_exit=1
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(224): error: Expected equality of these values:
+    Which is: 0
+    Which is: 9437184
+frame 0: offset stage output differs from max(in-200,0) at 9437184 pixels (a stage that refuses or passes through leaves the buffer wrong)
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 1704 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 1776 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 1728 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 1704 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 1776 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 1728 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 1704 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 1776 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 1728 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(224): error: Expected equality of these values:
