@@ -284,14 +284,10 @@ namespace ImageProcTest
             new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), 4096) { NewLine = "\n", AutoFlush = true };
 
         /// <summary>Run the oracle and write the one protocol line. Any exception becomes a failed result line, so the parent never has to guess.</summary>
-        /// <param name="dllPath">The (snapshot) preprocess DLL to judge.</param>
-        /// <param name="output">Where the protocol line is written.</param>
-        /// <param name="confineLoad">
-        /// GUI-C-219d: load the DLL with its dependencies searched in its own folder only and audit the loaded modules afterwards. True in the real worker, which is a process of its own with
-        /// nothing loaded before. A caller that runs the worker's logic INSIDE a process that already holds modules of the same names (a test host whose fixture loaded xpe_common.dll
-        /// from somewhere else) must pass false: the loader reuses a module that is already loaded by name, and the audit would then correctly report that module, whatever the oracle did.
-        /// </param>
-        public static void RunWorker(string dllPath, TextWriter output, bool confineLoad = true)
+        // GUI-C-219d / 225b: the DLL is loaded with its dependencies searched in its own folder only, and the loaded modules are audited afterwards. There is NO way to switch that off: a first
+        // version took an argument that turned it off, for a test that ran this method inside the test host, and Codex #121 pointed out that a public off-switch in the app's own code is a hole the next
+        // caller can use. That test now runs the worker as the separate, clean process it really is (LegacyOracleConfinementScenarios).
+        public static void RunWorker(string dllPath, TextWriter output)
         {
             PreprocessSyntheticOracleResult result;
             try
@@ -313,7 +309,7 @@ namespace ImageProcTest
                 }
 
                 // GUI-C-219d: the DLL is the snapshot copy; its dependencies are searched for in that folder and System32 only, and the loaded modules are audited against it afterwards.
-                result = XpePreprocessSyntheticOracle.Run(dllPath, new XpePreprocessSyntheticOracle.OracleOptions(ConfinedLoadFolder: confineLoad ? Path.GetDirectoryName(Path.GetFullPath(dllPath)) : null));
+                result = XpePreprocessSyntheticOracle.Run(dllPath, new XpePreprocessSyntheticOracle.OracleOptions(ConfinedLoadFolder: Path.GetDirectoryName(Path.GetFullPath(dllPath))));
             }
             catch (Exception ex)
             {
