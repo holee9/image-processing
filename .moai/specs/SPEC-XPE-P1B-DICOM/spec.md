@@ -1,7 +1,7 @@
 # SPEC-XPE-P1B-DICOM: DICOM I/O Module
 
 **Document ID**: SPEC-XPE-P1B-DICOM
-**Version**: 1.3.0
+**Version**: 1.3.1
 **Date**: 2026-10-03
 **Status**: Released
 **Parent**: SPEC-XPE-MASTER v2.0.0
@@ -226,7 +226,8 @@ xpe_dicom_close(handle) --> free all resources
 
 **REQ-DICOM-024**: The validation SHALL check the following conformance criteria:
 - DICOM Part 10 preamble and magic present
-- Required Type 1 tags for DX IOD present and non-empty (Patient Name, Patient ID, Study Instance UID, Series Instance UID, SOP Instance UID, Modality, Rows, Columns, Bits Allocated, Bits Stored, Pixel Data)
+- Required Type 1 tags for DX IOD present and non-empty (Study Instance UID, Series Instance UID, SOP Instance UID, Modality, Rows, Columns, Bits Allocated, Bits Stored, Pixel Data)
+- Required Type 2 tags present; an empty value is conformant (Patient Name, Patient ID — DICOM PS3.3 Table C.7-1 lists both as Type 2; moved out of the Type 1 list 2026-10-03, user decision "표준대로 허용", #251, Codex #111)
 - UID format correct (dot-separated numeric, max 64 characters)
 - Pixel representation consistent with declared format
 
@@ -404,6 +405,7 @@ XPE_API void        xpe_dicom_cancel(void);
 | 1.0.0 | 2026-04-16 | MoAI (manager-spec) | Initial EARS requirements (46 REQs) for Sprint S1-B DICOM module |
 | 1.1.0 | 2026-04-21 | MoAI (manager-spec) | **Released** — 46 EARS 요구사항 교차검증 완료. 10 C API 함수 전량 구현(dicom_api.h ↔ dicom.cpp), 35/35 Google Test 통과, TRUST 5 게이트 통과. Header EARS Count 40→46 정정 |
 | 1.2.0 | 2026-10-03 | lead (QA-B-199) | 결함 후보 C1~C16 상태 메모 추가, 요구 문구 불변 (#251) |
+| 1.3.1 | 2026-10-03 | lead | REQ-DICOM-024: Patient Name·Patient ID 를 Type 1 목록에서 Type 2(존재만 필수)로 — 표준 PS3.3 Table C.7-1, 사용자 결정, #251. 변경 기록 §7 |
 | 1.3.0 | 2026-10-03 | lead | REQ-DICOM-041 함수 수 11, Acquisition Time 단위를 초로(C2), REQ-DICOM-026 파싱 불가 보고를 실제 형식으로(C4) — 사용자 결정, #251. 변경 기록 §5·§6 |
 
 ---

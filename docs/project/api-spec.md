@@ -1517,7 +1517,7 @@ XPE_API XpeErrorCode xpe_dicom_cstore(const char* host,
                                        uint32_t timeoutMs);
 ```
 
-**Description**: Sends a DICOM file to a remote Storage SCP via C-STORE. `host` may be `"CALLED_AE@hostname"` to name the called AE title (default `ANY-SCP`); `aet` is the calling AE title; `timeoutMs` 0 means no timeout. If the file's meta group names no SOP Class UID the dataset's is used, then DX For Presentation. Returns `XPE_OK` only for RSP status 0x0000.  
+**Description**: Sends a DICOM file to a remote Storage SCP via C-STORE. `host` may be `"CALLED_AE@hostname"` to name the called AE title (default `ANY-SCP`); `aet` is the calling AE title; for `timeoutMs` see the timeout note below. Timeout (both network functions, QA-B-206 M1, 2026-10-03): DCMTK takes the connection/ACSE/DIMSE timeouts in whole seconds, so `timeoutMs` is rounded **up** to the next second with a minimum of 1 (300 ms waits about 1 s, 1400 ms about 2 s). `timeoutMs` 0 is **not** an unlimited wait: DCMTK's default applies (about 30 s), and `xpe_dicom_cancel` cannot interrupt a stalled exchange, so a finite timeout is the only defence against a silent peer. If the file's meta group names no SOP Class UID the dataset's is used, then DX For Presentation. Returns `XPE_OK` only for RSP status 0x0000.  
 **Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_NETWORK_FAILED` (connection failure, timeout, rejection, non-success status), `XPE_ERR_IO_FAILED`, `XPE_ERR_PROCESSING_FAILED` (a cancel is latched; see `xpe_dicom_cancel`)
 
 ---
@@ -1530,7 +1530,7 @@ XPE_API XpeErrorCode xpe_dicom_cfind_mwl(const char* host, uint16_t port, const 
                                           uint32_t outBufLen, uint32_t timeoutMs);
 ```
 
-**Description**: Queries a Modality Worklist SCP using C-FIND. `queryJson` encodes the query keys (Patient ID, Accession Number, etc.). Results are returned as a JSON array in `outJson` (`[]` when empty). Supported query keys: `PatientID`, `PatientName`, `Modality`, `AccessionNumber` (unknown keys are ignored — unfiltered worklist). Uses the negotiated presentation context (QA-B-32, #137).  
+**Description**: Queries a Modality Worklist SCP using C-FIND. `queryJson` encodes the query keys (Patient ID, Accession Number, etc.). Results are returned as a JSON array in `outJson` (`[]` when empty). Supported query keys: `PatientID`, `PatientName`, `Modality`, `AccessionNumber` (unknown keys are ignored — unfiltered worklist). Uses the negotiated presentation context (QA-B-32, #137). `timeoutMs` follows the same rule as `xpe_dicom_cstore` (rounded up to whole seconds, minimum 1; 0 = DCMTK default, about 30 s, not unlimited).  
 **SRS**: SRS-DICOM-031  
 **Thread safety**: Reentrant.  
 **Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_NETWORK_FAILED`, `XPE_ERR_PROCESSING_FAILED` (`queryJson` not parseable — judged after the association is negotiated), `XPE_ERR_BUFFER_TOO_SMALL` (nothing is written to `outJson`)

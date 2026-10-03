@@ -105,4 +105,14 @@
 
 ---
 
+## 7. 표준과 다른 요구 정정 — DICOM 검증의 환자 속성 (2026-10-03)
+
+근거: Codex #111(QA-B-206 M2 검토)이 찾음, 사용자 답변 "표준대로 허용"(리더 세션 AskUserQuestion), #251 코멘트 "사용자 결정 추가 — DICOM 검증의 Patient Name·Patient ID".
+
+| 요구 ID | 문서 | 옛 문구 → 새 문구 | 근거 |
+|---|---|---|---|
+| REQ-DICOM-024 | SPEC-XPE-P1B-DICOM v1.3.1 | Type 1 목록(값 필수)에 Patient Name·Patient ID 포함 → 두 항목을 "Type 2: 존재 필수, 빈 값 적합" 줄로 분리 | DICOM PS3.3 Table C.7-1 이 두 속성을 Type 2 로 규정. 옛 문구대로면 표준에 맞는 익명화 DX 파일이 `DICOM_INVALID`. 구현 post QA-B-206 M2b, 나머지 9개 항목의 표준 Type 대조표는 그 보고서 §1 |
+
+---
+
 *끝*
