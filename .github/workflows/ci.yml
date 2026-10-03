@@ -953,9 +953,16 @@ jobs:
     # 1.5x in a week. GUI-C-164 is dispatched to measure per-scenario duration
     # so the next budget number is derived rather than guessed.
     #
-    # 30 matches the peer jobs (preprocess-tests, ai-onnx, dotnet-tests) and
-    # restores roughly 50% headroom over the last observed 20 min.
-    timeout-minutes: 30
+    # 30 matched the peer jobs (preprocess-tests, ai-onnx, dotnet-tests) and
+    # restored roughly 50% headroom over the then-observed 20 min.
+    #
+    # Raised to 45 (2026-10-03): at 090532a6 the job took 24.7 min (headroom
+    # already down to ~18%); at e8e14166 the same 148 scenarios summed 1499 s
+    # against 1166 s (+29%) and the job was cancelled at 30 min with every
+    # finished scenario passing. The rise is spread across most scenarios (one
+    # outlier: A3 filtered-list 34 -> 125 s), which reads as runner variance
+    # plus content growth, not a hang. 45 restores ~80% headroom over 24.7 min.
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v6
