@@ -1,0 +1,30 @@
+== h1-h4:
+h1_removal_sign                            -> 2 red: GhostOracle.ASelfModelLagIsCorrectedToTheLetterWhichProvesNothing, GhostOracle.TheControlsGiveTheAnswersTheyMust
+h2_dark_ref_from_the_raw_path              -> 1 red: GhostOracle.TheControlsGiveTheAnswersTheyMust
+h3_exposure_signal_from_corrected          -> 1 red: GhostOracle.TheControlsGiveTheAnswersTheyMust
+h4_retention_window_starts_at_0            -> 1 red: GhostOracle.TheControlsGiveTheAnswersTheyMust
+
+== h5-h8 (h5 and h8 first attempts failed to BUILD under /WX; rerun below in h5 h8 h9 h10 h11 batch):
+h5_lti_h0_not_one BUILD FAILED
+ninja: build stopped: subcommand failed.
+BUILD_EXIT=1
+
+h6_trap_never_saturates                    -> 2 red: GhostOracle.TheControlsGiveTheAnswersTheyMust, GhostOracle.TheTrapTruthLagShrinksRelativelyAsTheExposureGrows
+h7_step_residual_of_corrected_reads_raw    -> 1 red: GhostOracle.TheStepMeasurementSeesWhatTheClampHides
+h8_self_model_has_no_lag BUILD FAILED
+ninja: build stopped: subcommand failed.
+BUILD_EXIT=1
+
+
+== h5 h8 h9 h10(failed build) h11:
+h5_lti_h0_not_one                          -> 2 red: GhostOracle.TheLtiTruthSatisfiesItsDefinition, GhostOracle.TheStepMeasurementSeesWhatTheClampHides
+h8_self_model_has_no_lag                   -> 1 red: GhostOracle.ASelfModelLagIsCorrectedToTheLetterWhichProvesNothing
+h9_other_config_is_the_same_config         -> 1 red: GhostOracle.ASelfModelLagIsCorrectedToTheLetterWhichProvesNothing
+h10_noise_not_seeded BUILD FAILED
+ninja: build stopped: subcommand failed.
+BUILD_EXIT=1
+
+h11_uncalibrated_handle_corrects           -> 2 red: GhostOracle.MeasuresTheFallingStepWhereTheClampCannotHide, GhostOracle.MeasuresTheModuleAgainstTheIndependentTruths
+
+== h10 rerun:
+h10_noise_not_seeded                       -> 1 red: GhostOracle.TheHarnessIsDeterministic
