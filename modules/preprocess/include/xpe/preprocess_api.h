@@ -833,13 +833,18 @@ XPE_API XpeErrorCode xpe_ghost_reset(void* handle);
  *
  * After this call the handle is invalid (do not pass to any other function). A pointer that is not a live handle
  * -- destroyed already, never returned by xpe_ghost_create, or not a handle at all -- is recognised from a
- * registry of live handles, WITHOUT being read (REQ-P1A-086): every ghost function refuses it
- * (XPE_ERR_INVALID_INPUT) and a second destroy returns without effect, also when several threads destroy the same
- * handle at once. Limit (ABA): once a handle is destroyed its address may be returned by a later xpe_ghost_create,
- * and a stale pointer to the old handle then reads as that new, live one -- do not keep the pointer after destroy.
- * Must not run concurrently with any call on the same handle, whether that call is
- * already in progress or starts meanwhile: the handle's mutex is freed with it, so
- * the caller must stop all other threads using the handle first.
+ * registry of live handles, WITHOUT being read (REQ-P1A-086). What each function does with it:
+ *   - xpe_ghost_correct and xpe_ghost_reset return XPE_ERR_INVALID_INPUT;
+ *   - xpe_ghost_destroy does nothing (also for a second destroy, and when several threads destroy the same handle
+ *     at once: exactly one of them frees it);
+ *   - the module-internal xpe_ghost_is_calibrated (not exported) answers false.
+ * Limit (ABA): once a handle is destroyed its address may be returned by a later xpe_ghost_create, and a stale pointer
+ * to the old handle then reads as that new, live one -- do not keep the pointer after destroy.
+ * NOT SUPPORTED: a destroy that runs while another thread is inside, or entering, a call on the same handle.
+ * xpe_ghost_correct and xpe_ghost_reset look the handle up, release the registry, and only then lock the handle's own
+ * mutex and read its buffers; a destroy in between frees the handle under them (a freed mutex is locked, freed
+ * buffers are written), which can crash or corrupt memory. The registry does not make that race safe and no safe
+ * error return is promised for it. The caller must stop all other threads using the handle first.
  *
  * @param handle Ghost corrector handle to destroy (may be NULL, no-op)
  */

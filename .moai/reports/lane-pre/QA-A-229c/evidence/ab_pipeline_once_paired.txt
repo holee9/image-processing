@@ -1,0 +1,11 @@
+round 0 (order old,new): median old 125.49 new 121.06  new-old -4.44
+round 1 (order new,old): median old 121.31 new 120.99  new-old -0.32
+round 2 (order old,new): median old 121.44 new 122.75  new-old +1.31
+round 3 (order new,old): median old 129.00 new 135.15  new-old +6.15
+round 4 (order old,new): median old 138.75 new 120.84  new-old -17.91
+round 5 (order new,old): median old 122.34 new 121.69  new-old -0.65
+round 6 (order old,new): median old 121.07 new 121.37  new-old +0.29
+round 7 (order new,old): median old 119.91 new 123.60  new-old +3.69
+round 8 (order old,new): median old 120.50 new 124.44  new-old +3.94
+round 9 (order new,old): median old 121.75 new 124.69  new-old +2.94
+paired per-round median differences new-old: min -17.91 median +0.80 max +6.15 mean -0.50; rounds with new slower: 6 of 10

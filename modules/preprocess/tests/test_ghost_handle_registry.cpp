@@ -12,6 +12,18 @@
  * by a later xpe_ghost_create, and a stale pointer to it then reads as valid (ABA) -- telling the two apart needs a
  * token handle. And a destroy that runs while another thread is inside a call on the SAME handle is still the
  * caller's to prevent.
+ *
+ * THE BOUNDARY OF WHAT IS SUPPORTED, AND WHAT THESE CASES PIN (QA-A-229c, Codex #94):
+ *   supported -- a call that has returned, then destroy; destroy, then any call (serial: the call is refused);
+ *                destroying the same handle twice or from several threads at once (exactly one frees it);
+ *                create / use / destroy of DIFFERENT handles from many threads.
+ *   NOT supported -- a destroy racing a call on the SAME handle. xpe_ghost_correct and xpe_ghost_reset look the handle
+ *                up in the registry, release the registry lock, and only then lock the handle's own mutex and read
+ *                its buffers (ghost_correct.cpp: the isValid test, then `std::lock_guard<std::mutex> lock(gh->mtx)`);
+ *                a destroy in between frees the handle under them: a freed mutex is locked, freed buffers are written.
+ *                No case here asserts a safe error return for that race, because none is promised. The
+ *                DISABLED_UnsupportedUseRacingDestroyCanCrash probe at the end only OBSERVES it (run it in its own
+ *                process, repeatedly); its result is evidence for the report, not a pass/fail gate.
  */
 
 #include <gtest/gtest.h>
@@ -19,11 +31,14 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
 #include <thread>
 #include <vector>
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_error.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
+#include "fixtures/make_xcal.hpp"
+#include "ghost_stable_lag.h"
 #ifdef _WIN32
 #  define WIN32_LEAN_AND_MEAN
 #  include <windows.h>
@@ -190,4 +205,80 @@ TEST_F(GhostRegistry, MeasureTheCostOfTheValidityCheck) {
     xpe_ghost_destroy(big);
     xpe_ghost_destroy(h);
     SUCCEED();
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// OBSERVATION PROBES (DISABLED on purpose: they measure, they do not gate; run each in its own process).
+// ---------------------------------------------------------------------------------------------------------
+
+// What the A/B measurement of QA-A-229c runs: one full xpe_preprocess_pipeline_ex frame at 3072 x 3072 with the
+// calibration loaded and a ghost handle that corrects, K times, every call required to return XPE_OK. It prints one
+// line per call ("[ghost-ab] ms=...") and nothing else decides anything: a script runs this executable with the
+// old and the new xpe_preprocess.dll alternately.
+TEST_F(GhostRegistry, DISABLED_PipelineOnceForAB) {
+    constexpr uint32_t PW = 3072, PH = 3072;
+    constexpr size_t PN = static_cast<size_t>(PW) * PH;
+    const std::filesystem::path dir = std::filesystem::temp_directory_path() / "qa_a_229c_ab";
+    std::filesystem::remove_all(dir);
+    std::filesystem::create_directories(dir);
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    ASSERT_EQ(XPE_OK, MakeOffsetXCal((dir / "offset.xcal").string().c_str(), PW, PH, 200.0f));
+    ASSERT_EQ(XPE_OK, MakeGainXCal((dir / "gain.xcal").string().c_str(), PW, PH, 1.25f));
+    ASSERT_EQ(XPE_OK, MakeDefectXCal((dir / "defect.xcal").string().c_str(), PW, PH, 0));
+    XpeCalibrationState state = {};
+    ASSERT_EQ(XPE_OK, xpe_calib_state_load(&state, dir.string().c_str()));
+    void* ghost = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(PW, PH, withStableLag().c_str(), &ghost));
+    xpe_clear_alerts();
+
+    std::vector<uint16_t> buf(2 * PN);
+    XpeImageMetadata meta{};
+    meta.pixelPitch_mm = 0.14f;
+    constexpr int kCalls = 8;
+    for (int i = 0; i < kCalls + 1; ++i) {            // the first call is a warm-up and is not reported
+        for (size_t k = 0; k < PN; ++k) buf[k] = static_cast<uint16_t>(2000 + (k * 37u) % 300u + 40u * (i & 1));
+        XpeImageBuffer img{};
+        img.data = buf.data();
+        img.width = PW; img.height = PH;
+        img.bitsAllocated = 16; img.bitsStored = 16;
+        img.format = XPE_PIXEL_UINT16;
+        img.dataSize = PN * sizeof(float);
+        const auto t0 = std::chrono::steady_clock::now();
+        const XpeErrorCode rc = xpe_preprocess_pipeline_ex(&img, &meta, &state, ghost, nullptr);
+        const auto t1 = std::chrono::steady_clock::now();
+        ASSERT_EQ(XPE_OK, rc) << "call " << i;
+        if (i > 0) std::printf("[ghost-ab] ms=%.3f\n", std::chrono::duration<double, std::milli>(t1 - t0).count());
+        xpe_clear_alerts();
+    }
+    xpe_ghost_destroy(ghost);
+    xpe_calib_state_release(&state);
+    xpe_preprocess_shutdown();
+    std::error_code ec;
+    std::filesystem::remove_all(dir, ec);
+}
+
+// Observes (does not gate) the race the header says the caller must prevent: threads call xpe_ghost_reset on a
+// handle while the main thread destroys it. Run it in a fresh process, many times; a crash is a legitimate
+// outcome of an unsupported use, and the exit codes are the evidence.
+TEST_F(GhostRegistry, DISABLED_UnsupportedUseRacingDestroyCanCrash) {
+    constexpr int kRounds = 3000, kThreads = 4;
+    for (int r = 0; r < kRounds; ++r) {
+        void* h = nullptr;
+        ASSERT_EQ(XPE_OK, xpe_ghost_create(64, 64, nullptr, &h));
+        std::atomic<bool> stop{false};
+        std::atomic<int> started{0};
+        std::vector<std::thread> ts;
+        for (int t = 0; t < kThreads; ++t) {
+            ts.emplace_back([&] {
+                started.fetch_add(1);
+                while (!stop.load()) (void)xpe_ghost_reset(h);
+            });
+        }
+        while (started.load() < kThreads) std::this_thread::yield();
+        std::this_thread::sleep_for(std::chrono::microseconds(200));
+        xpe_ghost_destroy(h);          // while the threads are inside / entering xpe_ghost_reset(h)
+        stop.store(true);
+        for (auto& t : ts) t.join();
+    }
+    std::printf("[ghost-race] survived %d rounds\n", kRounds);
 }
