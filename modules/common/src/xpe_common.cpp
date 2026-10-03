@@ -31,6 +31,7 @@
  * extern "C" matches its definition, which sits inside the extern "C" block
  * of xpe_logging.cpp (lines 43-158). */
 extern "C" void xpe_log_internal_reset();
+extern "C" void xpe_log_internal_init();
 
 /* ============================================================================
  * Internal types
@@ -252,6 +253,9 @@ XPE_API XpeErrorCode xpe_init(const char* configJsonOrNull)
                 g_configJson.swap(staged);
             }
         }
+
+        // The default logging destination: stderr at INFO (REQ-P0-011). Takes the logging mutex, not g_mutex.
+        xpe_log_internal_init();
 
         // internal_log acquires g_mutex; must be called after releasing it. The library IS initialized by
         // now, so a failure to write this line must not turn into an error return.

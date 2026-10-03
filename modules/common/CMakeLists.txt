@@ -176,6 +176,37 @@ if(_XPE_BUILD_TESTS)
     gtest_discover_tests(xpe_common_oom_tests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
+
+    # --- xpe_common_logging_tests (QA-A-232 M1, #253): the logging API against its header --------------
+    # Compiles the library sources into the executable (like the oom target) so the spdlog default logger the
+    # tests write through is the one the library configures. No XPE_COMMON_TEST_HOOKS: this is the shipped code.
+    add_executable(xpe_common_logging_tests
+        tests/test_common_logging_contract.cpp
+        src/xpe_common.cpp
+        src/xpe_memory.cpp
+        src/xpe_logging.cpp
+    )
+    target_compile_definitions(xpe_common_logging_tests PRIVATE XPE_DLL_EXPORT)
+    target_include_directories(xpe_common_logging_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(xpe_common_logging_tests PRIVATE
+        spdlog::spdlog
+        nlohmann_json::nlohmann_json
+        fmt::fmt
+        GTest::gtest_main
+    )
+    target_compile_features(xpe_common_logging_tests PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(xpe_common_logging_tests PRIVATE /W4)
+    else()
+        target_compile_options(xpe_common_logging_tests PRIVATE -Wall -Wextra)
+    endif()
+    xpe_target_warnings_as_errors(xpe_common_logging_tests)
+
+    gtest_discover_tests(xpe_common_logging_tests
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
 endif()
 
 # Installation

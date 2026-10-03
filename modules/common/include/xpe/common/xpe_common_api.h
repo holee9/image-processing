@@ -122,7 +122,9 @@ XPE_API XpeErrorCode xpe_get_param_range(const char* bodyPart, const char* param
  * @brief Sets the minimum log severity level.
  *
  * Level mapping: 0=TRACE, 1=DEBUG, 2=INFO, 3=WARN, 4=ERROR, 5=OFF.
- * Messages below this threshold are silently discarded.
+ * Messages below this threshold are silently discarded; 5 discards every message.
+ * The level is INFO until a caller sets another: xpe_shutdown puts it back to INFO, and so does
+ * xpe_init unless a log file is already in use; xpe_init points the log output at stderr (REQ-P0-011).
  *
  * @param level  Log level integer in range [0, 5].
  * @return XPE_OK, XPE_ERR_INVALID_INPUT (level out of range).

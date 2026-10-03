@@ -1,0 +1,92 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-common\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 12 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 12 tests from CommonOom
+[ RUN      ] CommonOom.TheInjectionReachesAnAllocationMadeInsideTheLibrary
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] CommonOom.TheInjectionReachesAnAllocationMadeInsideTheLibrary (0 ms)
+[ RUN      ] CommonOom.APushIntoAFullQueueAccountsForEveryAlert
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[sweep] xpe_alert_push (full queue)                    4 allocation points covered
+[       OK ] CommonOom.APushIntoAFullQueueAccountsForEveryAlert (0 ms)
+[ RUN      ] CommonOom.APushIntoAQueueWithRoomAccountsForEveryAlert
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[sweep] xpe_alert_push (room in the queue)             2 allocation points covered
+[       OK ] CommonOom.APushIntoAQueueWithRoomAccountsForEveryAlert (0 ms)
+[ RUN      ] CommonOom.APushIntoAQueueThatAlreadyHoldsALossAlertAccountsForEveryAlert
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[sweep] xpe_alert_push (loss alert present)            2 allocation points covered
+[       OK ] CommonOom.APushIntoAQueueThatAlreadyHoldsALossAlertAccountsForEveryAlert (0 ms)
+[ RUN      ] CommonOom.AnInitThatFailsLeavesTheLibraryUninitialized
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[sweep] xpe_init (first init)                          3 allocation points covered
+[       OK ] CommonOom.AnInitThatFailsLeavesTheLibraryUninitialized (0 ms)
+[ RUN      ] CommonOom.ARe_initThatFailsLeavesTheQueuedAlertsAndTheInitializedStateAlone
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[sweep] xpe_init (re-init)                             3 allocation points covered
+[       OK ] CommonOom.ARe_initThatFailsLeavesTheQueuedAlertsAndTheInitializedStateAlone (0 ms)
+[ RUN      ] CommonOom.AConfigureThatRunsOutOfMemoryIsNotReportedAsAnInvalidConfiguration
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[sweep] xpe_configure                                 21 allocation points covered
+[       OK ] CommonOom.AConfigureThatRunsOutOfMemoryIsNotReportedAsAnInvalidConfiguration (0 ms)
+[ RUN      ] CommonOom.ALogFileThatRunsOutOfMemoryIsNotReportedAsAnIoFailure
+[XPE][INFO ] xpe_init: library initialised
+[sweep] xpe_log_set_file                               4 allocation points covered
+[       OK ] CommonOom.ALogFileThatRunsOutOfMemoryIsNotReportedAsAnIoFailure (0 ms)
+[ RUN      ] CommonOom.ALogFileSwitchThatRunsOutOfMemoryKeepsWritingToThePreviousFile
+[XPE][INFO ] xpe_init: library initialised
+[sweep] xpe_log_set_file (A to B)                      4 allocation points covered
+[       OK ] CommonOom.ALogFileSwitchThatRunsOutOfMemoryKeepsWritingToThePreviousFile (35 ms)
+[ RUN      ] CommonOom.AFlushThatFailsRefusesTheSwitchAndLeavesThePreviousLogger
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] CommonOom.AFlushThatFailsRefusesTheSwitchAndLeavesThePreviousLogger (6 ms)
+[ RUN      ] CommonOom.ALogFileThatCannotBeOpenedLeavesThePreviousLogger
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] CommonOom.ALogFileThatCannotBeOpenedLeavesThePreviousLogger (85 ms)
+[ RUN      ] CommonOom.NamingTheSameLogFileAgainKeepsTheLinesAlreadyThere
+[XPE][INFO ] xpe_init: library initialised
+[sweep] xpe_log_set_file (same path again)             4 allocation points covered
+[       OK ] CommonOom.NamingTheSameLogFileAgainKeepsTheLinesAlreadyThere (30 ms)
+[----------] 12 tests from CommonOom (160 ms total)
+
+[----------] Global test environment tear-down
+[==========] 12 tests from 1 test suite ran. (160 ms total)
+[  PASSED  ] 12 tests.

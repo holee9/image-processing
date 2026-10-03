@@ -1,0 +1,38 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-common\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = LoggingContractFresh.*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from LoggingContractFresh
+[ RUN      ] LoggingContractFresh.ALevelNeverChosenIsInfoEvenBeforeInit
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_logging_contract.cpp(226): error: Value of: has(got, "MARK_TRACE")
+  Actual: true
+Expected: false
+[2026-10-03 14:06:59.833] [xpe_file] [trace] MARK_TRACE
+[2026-10-03 14:06:59.834] [xpe_file] [debug] MARK_DEBUG
+[2026-10-03 14:06:59.834] [xpe_file] [info] MARK_INFO
+[2026-10-03 14:06:59.834] [xpe_file] [warning] MARK_WARN
+[2026-10-03 14:06:59.834] [xpe_file] [error] MARK_ERROR
+[2026-10-03 14:06:59.834] [xpe_file] [critical] MARK_CRITICAL
+
+
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_logging_contract.cpp(227): error: Value of: has(got, "MARK_DEBUG")
+  Actual: true
+Expected: false
+[2026-10-03 14:06:59.833] [xpe_file] [trace] MARK_TRACE
+[2026-10-03 14:06:59.834] [xpe_file] [debug] MARK_DEBUG
+[2026-10-03 14:06:59.834] [xpe_file] [info] MARK_INFO
+[2026-10-03 14:06:59.834] [xpe_file] [warning] MARK_WARN
+[2026-10-03 14:06:59.834] [xpe_file] [error] MARK_ERROR
+[2026-10-03 14:06:59.834] [xpe_file] [critical] MARK_CRITICAL
+
+
+[  FAILED  ] LoggingContractFresh.ALevelNeverChosenIsInfoEvenBeforeInit (6 ms)
+[----------] 1 test from LoggingContractFresh (6 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (6 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] LoggingContractFresh.ALevelNeverChosenIsInfoEvenBeforeInit
+
+ 1 FAILED TEST
