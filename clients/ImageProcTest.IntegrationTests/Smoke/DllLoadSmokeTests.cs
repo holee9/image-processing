@@ -101,6 +101,40 @@ public sealed class DllLoadSmokeTests
         }
     }
 
+    /// <summary>
+    /// GUI-C-225 (REQ-GUI-IT-041, the locator half): with no search path that holds the DLL the locator says "not found" and says WHERE it looked, instead of returning a bare failure. The
+    /// search path is emptied by giving the locator an output directory with no DLL and no repository above it, and an environment folder that does not exist. The control is the same call
+    /// with the DLL present, so the "not found" is about the missing file and not about the inputs.
+    /// </summary>
+    [Fact]
+    public void TheLocator_WithNothingToFind_ReportsNotFound_AndNamesTheFoldersItSearched()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"xpe_c225_loc_{Guid.NewGuid():N}");
+        var empty = Path.Combine(root, "empty_output");
+        var withDll = Path.Combine(root, "with_dll");
+        var absentEnv = Path.Combine(root, "no_such_native_dir");
+        Directory.CreateDirectory(empty);
+        Directory.CreateDirectory(withDll);
+        File.WriteAllBytes(Path.Combine(withDll, "xpe_common.dll"), [0x4D, 0x5A]);
+        try
+        {
+            var (control, controlPath) = NativeLibraryFixture.Locate(absentEnv, withDll);
+            Assert.True(control, "the control (a folder that holds the file) must be found: " + controlPath);
+            Assert.Equal(Path.Combine(withDll, "xpe_common.dll"), controlPath, StringComparer.OrdinalIgnoreCase);
+
+            var (found, message) = NativeLibraryFixture.Locate(absentEnv, empty);
+
+            Assert.False(found);
+            Assert.Contains("xpe_common.dll", message, StringComparison.Ordinal);
+            Assert.Contains(empty, message, StringComparison.OrdinalIgnoreCase);     // the output directory that was searched
+            Assert.Contains(absentEnv, message, StringComparison.OrdinalIgnoreCase); // and the environment folder
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private const string AbsentLibraryName = "xpe_c225_no_such_library.dll";
 
     /// <summary>
