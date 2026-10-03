@@ -117,4 +117,16 @@
 
 ---
 
+## 8. SPEC-XPE-GUI-IT 실태 보고에 대한 사용자 결정 (2026-10-03)
+
+근거: gui `GUI-C-224` 보고서(dev/gui `940ff212`, `.moai/reports/lane-gui/GUI-C-224/report.md`), 사용자 답변(리더 세션 AskUserQuestion), #249 코멘트.
+
+| 요구 ID | 문서 | 옛 문구 → 새 문구 | 사용자 선택 |
+|---|---|---|---|
+| REQ-GUI-IT-008 | SPEC-XPE-GUI-IT v1.3.2 | 허용 폴더 `<repo>/build/`·시험 출력 → 로케이터 후보 다섯(`XPE_NATIVE_DIR`·`build/**`·`modules/common/build_test`·시험 출력·`clients/ImageProcTest/bin`) | 요구를 코드 후보에 맞춤 |
+| REQ-GUI-IT-050 | SPEC-XPE-GUI-IT v1.3.2 | AV·SEH 를 관측해 기록 → 모든 시험이 호스트 생존 상태로 끝까지 돌고, SEHException 은 기록·실패. AV 는 .NET 이 잡지 못해 호스트 종료 = 실행 실패로 검출 | 문구를 가능한 형태로 |
+| REQ-GUI-IT-063·064·065 | SPEC-XPE-GUI-IT v1.3.2 | 문구 불변, 상태를 "미구현, 계획 없음" → "보류(소비자·러너 없음, 생기면 재개)" | 보류로 표시 |
+
+---
+
 *끝*

@@ -2,7 +2,7 @@
 
 ---
 id: SPEC-XPE-GUI-IT
-version: 1.3.1
+version: 1.3.2
 status: Implemented
 created: 2026-04-18
 updated: 2026-10-03
@@ -19,6 +19,7 @@ dependency: SPEC-XPE-P0 (Completed), SPEC-XPE-P1A (in progress for advanced suit
 
 | Version | Date       | Author       | Changes                                             |
 |---------|------------|--------------|-----------------------------------------------------|
+| 1.3.2   | 2026-10-03 | lead | 사용자 결정(#249, GUI-C-224 보고 기반): REQ-008 허용 폴더를 로케이터 후보 다섯과 같게, REQ-050 을 "호스트 생존 + SEHException 은 기록·실패" 로, REQ-063~065 를 보류로 표시. 변경 기록 §8 |
 | 1.3.1   | 2026-10-03 | lead | 사용자 결정(#245 코멘트 묶음 ④ "문서를 실제에 맞게", #249): AC-9 의 "> 20개 negative 시나리오" 를 "서로 다른 거부 경로 18개(GUI-C-209 M2)" 로, §11 표의 AC-9 행도 같이. 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md` |
 | 1.3.0   | 2026-10-03 | lead (GUI-C-207, #249) | 실태 대조 정정(문서만, 코드·요구 삭제 없음). 정의된 REQ 수를 36개로 바로잡음(RTM 의 53/39 표기, 유령 REQ-032~034). §4.6 요구별 구현 상태 표 신설(구현됨 19 · 부분 14 · 없음 3). AC-4·5·6 사실 오류 정정, AC-9·12·15 와 REQ-010·043 에 상태 주석. §9 [HARD] shim 금지 규칙에 우회 상태 주석. §11 클래스 표를 `requirement-matrix.json` 의 실제 매핑으로 교체. REQ-063~065 는 상태 주석만(선택 요구 — 미구현, 구현 계획 없음). 근거: `xpe-gui` `.moai/reports/lane-gui/GUI-C-207/report.md` (dev/gui `efbc74f8`). |
 | 1.2.0   | 2026-04-18 | manager-spec (GUI Lane) | GUI document upgrade package: 5 new companion docs (XAML/MVVM Arch, FlaUI E2E Plan, Accessibility, Localization, IEC 62304 GUI SHA/RTM), 2 upgraded (DISP-INT v2.0, MENU v1.1). Added §13 Phase 1b GUI Integration Readiness section. Referenced Documents table extended. Test implementation unchanged (78/78 tests stable). |
@@ -158,7 +159,9 @@ The test collection **shall not** use `MockXpeBackend` or `CompositeXpeBackend`.
 
 #### REQ-GUI-IT-008: Resolved DLL Path Within Build Tree
 
-The test suite **shall** assert that `XpeCommonApi.ResolvedDllPath` points to a file under `<repo>/build/` (any preset) or the test output directory. Any other path (system-wide load, stale binary) **shall** fail the test.
+The test suite **shall** assert that `XpeCommonApi.ResolvedDllPath` points to a file under one of the locator's candidate folders: the folder named by `XPE_NATIVE_DIR` when set, `<repo>/build/` (any preset), `modules/common/build_test`, the test output directory, or `clients/ImageProcTest/bin`. Any other path (system-wide load, a decoy earlier on `PATH`, a stale binary outside these folders) **shall** fail the test.
+
+> **개정 (2026-10-03, 사용자 결정 "요구를 코드 후보에 맞춤", #249 GUI-C-224):** 옛 문구의 허용 폴더는 `<repo>/build/` 와 시험 출력 폴더뿐이었으나, 로케이터(`NativeLibraryFixture.TryLocateDll`)는 위 다섯 후보를 탐색한다. 요구를 로케이터 후보와 같게 맞췄다.
 
 #### REQ-GUI-IT-009: Error Code Enum Parity
 
@@ -248,7 +251,9 @@ After executing the full test collection, the test host process **shall not** ho
 
 #### REQ-GUI-IT-050: No AccessViolation Across Boundary
 
-The test suite **shall not** observe `System.AccessViolationException` or `System.Runtime.InteropServices.SEHException` during any nominal or negative test. Such an occurrence **shall** be logged and **shall** fail the containing test.
+Every nominal and negative test **shall** run to completion with the test host alive, and a `System.Runtime.InteropServices.SEHException` caught at the boundary **shall** be logged and **shall** fail the containing test. An access violation cannot be caught in .NET — it terminates the host — so it is detected as a host crash that fails the test run rather than as a logged exception.
+
+> **개정 (2026-10-03, 사용자 결정 "문구를 가능한 형태로", #249 GUI-C-224):** 옛 문구는 `System.AccessViolationException` 을 관측해 기록하라고 했으나 .NET(코어)은 그 예외를 잡지 못하고 프로세스를 끝낸다. 원리적으로 단언할 수 없는 부분을 "호스트가 살아서 끝까지 돈다" 로 바꿨다.
 
 - IEC 62304 Class B: uncontrolled native fault propagating into managed host is a Class B hazard
 
@@ -286,19 +291,19 @@ The test suite **shall not** pass when `xpe_version()` returns a string not matc
 
 **Where** environment variable `XPE_GUI_IT_ETW=1` is set, the test suite **shall** emit `EventSource` events at test boundaries (`test_start`, `pinvoke_call`, `test_end`) to aid diagnostic capture without altering functional behaviour.
 
-> **상태 (2026-10-03):** 선택 요구(Optional) — 미구현, 구현 계획 없음 (#249)
+> **상태 (2026-10-03):** 선택 요구(Optional) — **보류**(사용자 결정, #249 GUI-C-224). 소비자·러너가 없어 지금 구현하지 않는다. 요구는 지우지 않으며, 소비자나 러너가 생기면 재개한다.
 
 #### REQ-GUI-IT-064: Optional .NET 9 Target Verification
 
 **Where** the CI runs on `dotnet --list-sdks` including 9.0.x, a secondary test pass **shall** execute against `net9.0` target to detect forward-compat regressions. Default target remains `net8.0`.
 
-> **상태 (2026-10-03):** 선택 요구(Optional) — 미구현, 구현 계획 없음 (#249)
+> **상태 (2026-10-03):** 선택 요구(Optional) — **보류**(사용자 결정, #249 GUI-C-224). 소비자·러너가 없어 지금 구현하지 않는다. 요구는 지우지 않으며, 소비자나 러너가 생기면 재개한다.
 
 #### REQ-GUI-IT-065: Optional ARM64 Diagnostic
 
 **Where** `RuntimeInformation.ProcessArchitecture == Architecture.Arm64`, the test suite **shall** attempt to locate an arm64 variant of `xpe_common.dll` and record the result without failing the x64 baseline tests.
 
-> **상태 (2026-10-03):** 선택 요구(Optional) — 미구현, 구현 계획 없음 (#249)
+> **상태 (2026-10-03):** 선택 요구(Optional) — **보류**(사용자 결정, #249 GUI-C-224). 소비자·러너가 없어 지금 구현하지 않는다. 요구는 지우지 않으며, 소비자나 러너가 생기면 재개한다.
 
 ### 4.6 Implementation Status per Requirement (2026-10-03, GUI-C-207, #249)
 
