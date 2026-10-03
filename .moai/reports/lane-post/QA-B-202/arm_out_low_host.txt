@@ -1,0 +1,26 @@
+=== ARM: the OLD test file (fixed 0x2000), host at LOW integrity (0x1000), not at 0x2000
+build ok: True
+  D:\workspace-github\xpe-post\modules\ai\tests\test_ai_worker_sandbox.cpp(209): error: Expected equality of these values:
+  Which is: 8192
+  Which is: 4096
+  [  FAILED  ] WorkerSandbox.TheRealWorkerRunsAtLowIntegrityAndStillAnswersItsRequests (708 ms)
+  D:\workspace-github\xpe-post\modules\ai\tests\test_ai_worker_sandbox.cpp(240): error: Expected equality of these values:
+  Which is: 8192
+  Which is: 4096
+  [  FAILED  ] WorkerSandbox.ControlWithTheRestrictionSwitchedOffTheRealWorkerRunsAtMediumIntegrity (31 ms)
+  [  PASSED  ] 0 tests.
+  [  FAILED  ] 2 tests, listed below:
+  [  FAILED  ] WorkerSandbox.TheRealWorkerRunsAtLowIntegrityAndStillAnswersItsRequests
+  [  FAILED  ] WorkerSandbox.ControlWithTheRestrictionSwitchedOffTheRealWorkerRunsAtMediumIntegrity
+  2 FAILED TESTS
+restored byte-identical: True
+=== rebuild with the new test file, same low host
+build ok: True
+  [ HOST     ] this test process runs at integrity level 0x1000
+  [  SKIPPED ] WorkerSandbox.TheRealWorkerRunsAtLowIntegrityAndStillAnswersItsRequests (0 ms)
+  [ HOST     ] this test process runs at integrity level 0x1000
+  [       OK ] WorkerSandbox.ControlWithTheRestrictionSwitchedOffTheRealWorkerRunsAtTheHostsIntegrity (37 ms)
+  [  PASSED  ] 1 test.
+  [  SKIPPED ] 1 test, listed below:
+  [  SKIPPED ] WorkerSandbox.TheRealWorkerRunsAtLowIntegrityAndStillAnswersItsRequests
+=== DONE

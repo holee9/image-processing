@@ -1,0 +1,61 @@
+"""QA-B-202 arm: the OLD test file (HEAD's, with the fixed 0x2000 assumptions) must go red in a host that is not at 0x2000.
+Run from the repository root. Restores the new test file byte-identical."""
+import hashlib, os, subprocess, sys
+
+P = 'modules/ai/tests/test_ai_worker_sandbox.cpp'
+LL = os.path.join(os.environ['USERPROFILE'], 'AppData', 'LocalLow', 'xpe_g202')
+EXE = r'D:\workspace-github\xpe-post\build\ci-post\bin\xpe_ai_tests.exe'
+FLT = 'WorkerSandbox.TheRealWorkerRunsAtLowIntegrityAndStillAnswersItsRequests:WorkerSandbox.ControlWithTheRestrictionSwitchedOff*'
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def build():
+    subprocess.run(['cmd', '/c', r'D:\workspace-github\xpe-post\build\g202-build.bat'], capture_output=True, text=True, timeout=3000)
+    return 'FAILED:' not in open('build/g202-b.txt', encoding='utf-8', errors='replace').read()
+
+
+def low_run(tag):
+    out = os.path.join(LL, tag + '.txt')
+    env = dict(os.environ, TEMP=LL, TMP=LL)
+    r = subprocess.run([sys.executable, os.path.abspath('build/g202_low_host.py'), EXE, FLT, out], capture_output=True, text=True, env=env,
+                       cwd=os.path.abspath('modules/ai'), timeout=900)
+    txt = open(out, encoding='utf-8', errors='replace').read()
+    return txt
+
+
+new = open(P, 'rb').read()
+old = subprocess.run(['git', 'show', 'HEAD:' + P], capture_output=True).stdout
+log = open('build/g202-arm-out.txt', 'w', encoding='utf-8', newline='\n')
+
+
+def w(s):
+    log.write(s + '\n')
+    log.flush()
+
+
+try:
+    w('=== ARM: the OLD test file (fixed 0x2000), host at LOW integrity (0x1000), not at 0x2000')
+    open(P, 'wb').write(old)
+    ok = build()
+    w('build ok: %s' % ok)
+    if ok:
+        txt = low_run('old')
+        for line in txt.splitlines():
+            if ('FAILED' in line or 'OK ]' in line or 'SKIPPED' in line or 'PASSED' in line or 'Expected' in line
+                    or 'Which is' in line or 'error:' in line or 'evaluates' in line):
+                w('  ' + line.strip()[:200])
+finally:
+    open(P, 'wb').write(new)
+    w('restored byte-identical: %s' % (sha(open(P, 'rb').read()) == sha(new)))
+w('=== rebuild with the new test file, same low host')
+ok = build()
+w('build ok: %s' % ok)
+txt = low_run('new')
+for line in txt.splitlines():
+    if 'HOST' in line or 'FAILED  ]' in line or 'OK ]' in line or 'SKIPPED' in line or 'PASSED' in line:
+        w('  ' + line.strip()[:200])
+w('=== DONE')
+log.close()
