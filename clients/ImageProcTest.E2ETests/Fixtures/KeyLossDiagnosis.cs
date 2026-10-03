@@ -1,4 +1,4 @@
-// GUI-C-229, 229b, 229c: what a failed real-keystroke scenario can say about WHERE keys went, from observations taken before the input and AFTER the judgment read. Pure code, no input and no application.
+// GUI-C-229, 229b, 229c, 229d: what a failed real-keystroke scenario can say about WHERE keys went, from observations taken before the input and AFTER the judgment read. Pure code, no input and no application.
 using System.Text;
 
 namespace ImageProcTest.E2ETests.Fixtures;
@@ -38,16 +38,6 @@ internal static class KeyLossDiagnosis
     /// <summary>The wait between the last key and the judgment read, as the scenario has always had it.</summary>
     internal const int JudgmentWaitMs = 600;
 
-    /// <summary>
-    /// How late the judgment read may be before the scenario fails as a TIMING failure instead of judging a late value. 400 ms: Windows timer granularity makes a sleep overshoot by tens of milliseconds, and
-    /// one UI Automation read adds tens more, so a read inside 600..1000 ms is the same condition as before; one beyond that is a different condition (the keys had 1.67x as long to be taken in), and a late
-    /// value could turn the original failure into a pass. The number is a chosen margin, not a measured one.
-    /// </summary>
-    internal const int JudgmentSlackMs = 400;
-
-    /// <summary>The earliest the judgment read may be: a sleep can return a few milliseconds early.</summary>
-    internal const int JudgmentEarlyToleranceMs = 10;
-
     internal enum Cause
     {
         None,
@@ -66,13 +56,12 @@ internal static class KeyLossDiagnosis
             : "The application was not the window in front just before the keys, so NO key was sent (a key goes to whichever window is in front, GUI-C-171). " + whatIsInFront;
 
     /// <summary>
-    /// The timing-failure message when the judgment read was not taken about 600 ms after the last key, or null when it was. The value read that late is not used to pass or to fail.
+    /// The record of the judgment read, in milliseconds after the last key: when the read began and when it completed. Written on every run, passing or failing, and nothing is decided from it: the
+    /// verdict is the original one (600 ms, read Center, is it "4321"). A read that began or completed late could hide a loss (a late value is not the value at 600 ms); that limit is the original
+    /// scenario's too, and a run that completed late can be told apart afterwards from this line.
     /// </summary>
-    internal static string? JudgeTiming(long readAtMsAfterLastKey) =>
-        readAtMsAfterLastKey >= JudgmentWaitMs - JudgmentEarlyToleranceMs && readAtMsAfterLastKey <= JudgmentWaitMs + JudgmentSlackMs
-            ? null
-            : $"Timing failure: the judgment read of the center box was taken {readAtMsAfterLastKey} ms after the last key, outside the {JudgmentWaitMs - JudgmentEarlyToleranceMs}..{JudgmentWaitMs + JudgmentSlackMs} ms window " +
-              $"the scenario judges in. A value read that late says nothing about the box at {JudgmentWaitMs} ms (the keys had longer to be taken in), so it is not used to pass the scenario.";
+    internal static string JudgmentLine(long startedAtMs, long completedAtMs) =>
+        $"judgment read: started +{startedAtMs} ms, completed +{completedAtMs} ms after the last key (nominal wait {JudgmentWaitMs} ms; the verdict does not depend on these times)";
 
     /// <param name="typed">The text sent.</param>
     /// <param name="before">Read just before the keys.</param>
@@ -162,10 +151,10 @@ internal static class KeyLossDiagnosis
     }
 
     /// <summary>The observations, in order, for the failure message and for the log of a passing run.</summary>
-    internal static string Facts(Observation before, Observation at600, long readAtMs, Observation? later) =>
+    internal static string Facts(Observation before, Observation at600, long readStartedAtMs, long readCompletedAtMs, Observation? later) =>
         new StringBuilder()
             .Append("before the keys: ").Append(before)
-            .Append($"; 600 ms after (judgment read at +{readAtMs} ms): ").Append(at600)
+            .Append($"; 600 ms after (judgment read +{readStartedAtMs}..+{readCompletedAtMs} ms): ").Append(at600)
             .Append("; 1.5 s later: ").Append(later is { } l ? l.ToString() : "(not read)")
             .ToString();
 }

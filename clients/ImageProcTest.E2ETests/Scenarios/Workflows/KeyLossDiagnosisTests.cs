@@ -1,4 +1,4 @@
-// GUI-C-229, 229b, 229c: the reading aid of a failed real-keystroke scenario, tested on its own. No input is sent and no application is started.
+// GUI-C-229, 229b, 229c, 229d: the reading aid of a failed real-keystroke scenario, tested on its own. No input is sent and no application is started.
 using ImageProcTest.E2ETests.Fixtures;
 using Xunit;
 using static ImageProcTest.E2ETests.Fixtures.KeyLossDiagnosis;
@@ -40,27 +40,25 @@ public sealed class KeyLossDiagnosisTests
         Assert.Null(RefuseIfNotInFront(appInFront: true, whatIsInFront: string.Empty));
     }
 
-    // ---- Codex #132 (1): a judgment read that is late is a timing failure --------------------------------------------------------------------------------------------------
+    // ---- GUI-C-229d: the times of the judgment read are a record, not a gate ------------------------------------------------------------------------------------------------
 
-    [Theory]
-    [InlineData(590, false)]
-    [InlineData(600, false)]
-    [InlineData(640, false)]
-    [InlineData(1000, false)]
-    [InlineData(589, true)]
-    [InlineData(1001, true)]
-    [InlineData(1400, true)]
-    public void TheJudgmentRead_IsOnTimeOnlyInsideTheWindow(long readAtMs, bool timingFailure)
+    [Fact]
+    public void TheJudgmentLine_CarriesTheStartAndTheCompletion_AndSaysTheVerdictDoesNotDependOnThem()
     {
-        var message = JudgeTiming(readAtMs);
+        var line = JudgmentLine(startedAtMs: 604, completedAtMs: 1104);
 
-        Assert.Equal(timingFailure, message is not null);
-        if (message is not null)
-        {
-            Assert.StartsWith("Timing failure:", message);
-            Assert.Contains($"{readAtMs} ms after the last key", message);
-            Assert.Contains("not used to pass", message);
-        }
+        Assert.Contains("started +604 ms", line);
+        Assert.Contains("completed +1104 ms", line);
+        Assert.Contains("the verdict does not depend on these times", line);
+    }
+
+    [Fact]
+    public void TheClassWorksWithNoTimingGate()
+    {
+        // 229d: the verdict is the original one. There is no member that turns a time into a pass or a fail.
+        var members = typeof(KeyLossDiagnosis).GetMembers(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public).Select(m => m.Name).ToList();
+
+        Assert.DoesNotContain(members, n => n.Contains("JudgeTiming", StringComparison.Ordinal) || n.Contains("JudgmentSlack", StringComparison.Ordinal) || n.Contains("EarlyTolerance", StringComparison.Ordinal));
     }
 
     // ---- Codex #132 (2): the foreground is a fact, not a destination ------------------------------------------------------------------------------------------------------
@@ -147,12 +145,12 @@ public sealed class KeyLossDiagnosisTests
     {
         Assert.All(Enum.GetValues<Cause>(), c => Assert.False(string.IsNullOrWhiteSpace(Explain(c))));
 
-        var facts = Facts(Obs("300"), Obs("43"), 612, Obs(Typed));
+        var facts = Facts(Obs("300"), Obs("43"), 604, 612, Obs(Typed));
 
         Assert.Contains("before the keys: center '300'", facts);
-        Assert.Contains("600 ms after (judgment read at +612 ms): center '43'", facts);
+        Assert.Contains("600 ms after (judgment read +604..+612 ms): center '43'", facts);
         Assert.Contains("1.5 s later: center '4321'", facts);
-        Assert.Contains("(not read)", Facts(Obs("300"), Obs("43"), 612, null));
+        Assert.Contains("(not read)", Facts(Obs("300"), Obs("43"), 604, 612, null));
         Assert.DoesNotContain(Enum.GetNames<Cause>(), name => name.Contains("DuringTyping", StringComparison.Ordinal));
     }
 }
