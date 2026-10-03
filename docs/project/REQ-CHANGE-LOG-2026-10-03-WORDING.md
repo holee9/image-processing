@@ -125,6 +125,7 @@
 |---|---|---|---|
 | REQ-GUI-IT-008 | SPEC-XPE-GUI-IT v1.3.2 | 허용 폴더 `<repo>/build/`·시험 출력 → 로케이터 후보 다섯(`XPE_NATIVE_DIR`·`build/**`·`modules/common/build_test`·시험 출력·`clients/ImageProcTest/bin`) | 요구를 코드 후보에 맞춤 |
 | REQ-GUI-IT-050 | SPEC-XPE-GUI-IT v1.3.2 | AV·SEH 를 관측해 기록 → 모든 시험이 호스트 생존 상태로 끝까지 돌고, SEHException 은 기록·실패. AV 는 .NET 이 잡지 못해 호스트 종료 = 실행 실패로 검출 | 문구를 가능한 형태로 |
+| REQ-GUI-IT-041 | SPEC-XPE-GUI-IT v1.3.3 | 고정물 부트스트랩이 `DllNotFoundException` 을 던짐 → 고정물은 던지지 않고 찾은 폴더를 모두 말하는 건너뜀 사유, DLL 을 직접 로드하는 호출은 이름을 담은 `DllNotFoundException` | 건너뜀 정책으로 문구 변경(Codex #121) |
 | REQ-GUI-IT-063·064·065 | SPEC-XPE-GUI-IT v1.3.2 | 문구 불변, 상태를 "미구현, 계획 없음" → "보류(소비자·러너 없음, 생기면 재개)" | 보류로 표시 |
 
 ---
