@@ -1,0 +1,8 @@
+== arm: the processing check always says yes (the app is rebuilt with it)
+[xUnit.net 00:00:12.46]       Assert.Contains() Failure: Sub-string not found
+[xUnit.net 00:00:12.46]         control: command text 'Algorithm validation: 33 SWUs across 7 modules; runnable=12.' -> 'Calibration validation: select a calibration SWU row first.'; preview text 'Native preview: load a target raw image to run pre/post algorithms.'
+[xUnit.net 00:00:12.46]         changed: command text 'Algorithm validation: 33 SWUs across 7 modules; runnable=12.' -> 'Calibration validation: select a calibration SWU row first.'; preview text 'Native preview: load a target raw image to run pre/post algorithms.'
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R05_APressedButton_IsRefusedOnScreen_WhenTheDllChangedAfterTheVerdict_AndNothingRuns [12 s]
+   Assert.Contains() Failure: Sub-string not found
+ control: command text 'Algorithm validation: 33 SWUs across 7 modules; runnable=12.' -> 'Calibration validation: select a calibration SWU row first.'; preview text 'Native preview: load a target raw image to run pre/post algorithms.'
+ changed: command text 'Algorithm validation: 33 SWUs across 7 modules; runnable=12.' -> 'Calibration validation: select a calibration SWU row first.'; preview text 'Native preview: load a target raw image to run pre/post algorithms.'

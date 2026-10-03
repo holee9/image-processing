@@ -1,0 +1,3 @@
+== arm 041b_wrong_name (Smoke/DllLoadSmokeTests.cs): s/Assert.Contains(AbsentLibraryName, thrown.Message, StringComparison.OrdinalIgnoreCase);/Assert.Contains("xpe_a_different_name.dll", thrown.Message, StringComparison.OrdinalIgnoreCase);/
+[xUnit.net 00:00:00.22]     ImageProcTest.IntegrationTests.Smoke.DllLoadSmokeTests.LoadingAMissingDll_RaisesDllNotFoundException_ThatNamesIt [FAIL]
+실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 19 ms - ImageProcTest.IntegrationTests.dll (net8.0)

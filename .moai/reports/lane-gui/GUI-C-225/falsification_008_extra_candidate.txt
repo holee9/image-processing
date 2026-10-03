@@ -1,0 +1,4 @@
+== arm 008_extra_candidate (Fixtures/NativeLibraryFixture.cs): s/        folders.Add(baseDirectory);/        folders.Add(baseDirectory); folders.Add(Environment.SystemDirectory);/
+[xUnit.net 00:00:00.25]     ImageProcTest.IntegrationTests.Safety.DllSearchPathSafetyTests.TheCandidateList_IsExactlyTheFiveKindsOfFolderTheRequirementNames [FAIL]
+[xUnit.net 00:00:00.26]     ImageProcTest.IntegrationTests.Safety.DllSearchPathSafetyTests.TheCandidateCheck_RejectsADecoyOnPath_ASystemFolder_AndAnArbitraryFolder_AndAcceptsACandidate [FAIL]
+실패!  - 실패:     2, 통과:     3, 건너뜀:     0, 전체:     5, 기간: 50 ms - ImageProcTest.IntegrationTests.dll (net8.0)

@@ -172,10 +172,26 @@ namespace ImageProcTest
 
             Runner = XpePreprocessOracleProcess.Run;
             AfterSnapshotCopy = null;
+            PreprocessOracleSnapshot.BeforeCopy = null;
             BeforeRerunDecision = null;
             AfterRerunDecision = null;
             Completed = null;
             Changed = null;
+        }
+
+        /// <summary>For tests (GUI-C-226d): what the holder is doing for this DLL, for the message of a wait that timed out.</summary>
+        internal static string DescribeState(string dllPath)
+        {
+            lock (Gate)
+            {
+                if (!States.TryGetValue(dllPath, out var state))
+                {
+                    return "holder: no state for this DLL";
+                }
+
+                var identity = state.Identity is { Length: > 24 } id ? id[..24] + "..." : state.Identity ?? "none";
+                return $"holder: JobQueued={state.JobQueued}, SnapshotTaken={state.SnapshotTaken}, Rerun={state.Rerun}, stored result={(state.Result is null ? "none" : state.Result.Status)}, stored identity={identity}, generation={System.Threading.Volatile.Read(ref generation)}";
+            }
         }
 
         /// <summary>For tests: the identity (names with SHA-256) the stored verdict for this DLL was made for, or null.</summary>

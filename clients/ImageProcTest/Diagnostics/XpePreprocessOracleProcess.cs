@@ -284,6 +284,9 @@ namespace ImageProcTest
             new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), 4096) { NewLine = "\n", AutoFlush = true };
 
         /// <summary>Run the oracle and write the one protocol line. Any exception becomes a failed result line, so the parent never has to guess.</summary>
+        // GUI-C-219d / 225b: the DLL is loaded with its dependencies searched in its own folder only, and the loaded modules are audited afterwards. There is NO way to switch that off: a first
+        // version took an argument that turned it off, for a test that ran this method inside the test host, and Codex #121 pointed out that a public off-switch in the app's own code is a hole the next
+        // caller can use. That test now runs the worker as the separate, clean process it really is (LegacyOracleConfinementScenarios).
         public static void RunWorker(string dllPath, TextWriter output)
         {
             PreprocessSyntheticOracleResult result;

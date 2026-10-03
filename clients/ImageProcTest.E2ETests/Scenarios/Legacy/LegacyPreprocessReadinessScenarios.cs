@@ -177,6 +177,243 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             .Select(p => p.Id)
             .ToHashSet();
 
+    private const string RefusalText = "the preprocess DLLs changed since they were checked, so nothing was run";
+
+    /// <summary>
+    /// GUI-C-226 (Codex #118, low): the real window, a real click, the real refusal. The app runs against a PRIVATE COPY of the native folder. Once the oracle has passed, a rebuild/redeploy is
+    /// imitated on the copy (the loaded DLL is renamed away and a file with other content takes its name), and the "Run Selected" button of the Calibration tab is pressed through its UIA
+    /// Invoke pattern (no key, no mouse). The window must say that the DLLs changed and that nothing was run, and the command's own text must stay as it was. The control is the same click
+    /// with the DLL untouched: the command is reached (its own text changes) and the refusal is absent, so the refusal is about the changed file and not about the button.
+    /// </summary>
+    [SkippableFact]
+    public void R05_APressedButton_IsRefusedOnScreen_WhenTheDllChangedAfterTheVerdict_AndNothingRuns()
+    {
+        var control = RunTheCommandAfter(changeDll: false);
+        output.WriteLine($"control: command text '{control.CommandBefore}' -> '{control.CommandAfter}'; preview text '{control.PreviewText}'");
+        Assert.NotEqual(control.CommandBefore, control.CommandAfter);                       // the click reached the command
+        Assert.DoesNotContain(RefusalText, control.PreviewText, StringComparison.Ordinal);   // and was not refused
+
+        var changed = RunTheCommandAfter(changeDll: true);
+        output.WriteLine($"changed: command text '{changed.CommandBefore}' -> '{changed.CommandAfter}'; preview text '{changed.PreviewText}'");
+        Assert.Contains(RefusalText, changed.PreviewText, StringComparison.Ordinal);         // the refusal is on screen
+        Assert.Equal(changed.CommandBefore, changed.CommandAfter);                          // and the command did not run
+    }
+
+    private const string ReadyAgainText = "They were checked again and are ready now";
+    private const string StillWaitingText = "They are checked again automatically";
+
+    /// <summary>
+    /// GUI-C-226b (Codex #122): the life of the refusal text. After a refusal (1) the notice stays on screen when other things happen to the preview text, and never comes back in its old form;
+    /// (2) when the check the refusal started has succeeded the notice says so instead of telling the user to wait; (3) a command that goes ahead removes the notice AT ONCE, even when that
+    /// command writes nothing else to the preview text. UIA patterns only (tab select, Invoke, Toggle, reading names): no key, no mouse.
+    /// </summary>
+    [SkippableFact]
+    public void R06_TheRefusalText_SurvivesOtherWrites_SaysWhenTheCheckHasSucceeded_AndGoesWhenACommandRuns()
+    {
+        var native = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
+        Skip.If(string.IsNullOrEmpty(native) || !File.Exists(Path.Combine(native, "xpe_preprocess.dll")), "XPE_NATIVE_DIR does not name a folder containing xpe_preprocess.dll.");
+        var copy = Path.Combine(Path.GetTempPath(), $"xpe_c226b_native_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(copy);
+        try
+        {
+            foreach (var file in Directory.GetFiles(native!)) File.Copy(file, Path.Combine(copy, Path.GetFileName(file)));
+            using var app = LegacyApp.LaunchOrSkip(breakTemp: false, extraEnvironment: new Dictionary<string, string> { ["XPE_NATIVE_DIR"] = copy });
+            app.WaitForPreprocessVerdict();
+            var before = app.ReadText("Calibration", "AlgorithmValidationResultText");
+
+            // the refusal, as in R05
+            ReplaceLikeARedeploy(Path.Combine(copy, "xpe_preprocess.dll"));
+            app.ClickButtonById("Calibration", "RunSelectedAlgorithmButton");
+            var refused = app.WaitForTextOnTab("Evaluation", "NativePreviewText", t => t.Contains(RefusalText, StringComparison.Ordinal), TimeSpan.FromSeconds(15));
+            output.WriteLine("refused:      " + refused);
+
+            // (2) the check the refusal started succeeds: the notice stops telling the user to wait
+            app.WaitForTextOnTab("Evaluation", "StageModesInfoText", t => t.StartsWith("Preprocess=ready", StringComparison.Ordinal), TimeSpan.FromSeconds(60));
+            var ready = app.WaitForTextOnTab("Evaluation", "NativePreviewText", t => t.Contains(ReadyAgainText, StringComparison.Ordinal), TimeSpan.FromSeconds(15));
+            output.WriteLine("ready again:  " + ready);
+            Assert.DoesNotContain(StillWaitingText, ready, StringComparison.Ordinal);
+
+            // (1) another write to the preview text (a stage switch) does not remove the notice, and a refresh does not bring back the old wording
+            app.ToggleCheckBox("Evaluation", "OffsetEnabledCheckBox");
+            var afterToggle = app.WaitForTextOnTab("Evaluation", "NativePreviewText", t => t.Contains("stage selection changed", StringComparison.Ordinal), TimeSpan.FromSeconds(15));
+            output.WriteLine("after toggle: " + afterToggle);
+            Assert.Contains(RefusalText, afterToggle, StringComparison.Ordinal);
+            Assert.DoesNotContain(StillWaitingText, afterToggle, StringComparison.Ordinal);
+            app.ClickButtonOnTab("Diagnostics", "Refresh Modules");
+            app.WaitForTextOnTab("Evaluation", "StageModesInfoText", t => t.StartsWith("Preprocess=ready", StringComparison.Ordinal), TimeSpan.FromSeconds(60));
+            var afterRefresh = app.ReadText("Evaluation", "NativePreviewText");
+            output.WriteLine("after refresh:" + afterRefresh);
+            Assert.DoesNotContain(StillWaitingText, afterRefresh, StringComparison.Ordinal);
+
+            // (3) a command that goes ahead: the notice is gone at once (this command only writes its own text box, not the preview text)
+            app.ClickButtonById("Calibration", "RunSelectedAlgorithmButton");
+            app.WaitForTextOnTab("Calibration", "AlgorithmValidationResultText", t => t != before, TimeSpan.FromSeconds(15));
+            var afterRun = app.ReadText("Evaluation", "NativePreviewText");
+            output.WriteLine("after run:    " + afterRun);
+            Assert.DoesNotContain(RefusalText, afterRun, StringComparison.Ordinal);
+        }
+        finally
+        {
+            try { Directory.Delete(copy, recursive: true); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* a DLL the app still holds */ }
+        }
+    }
+
+    private const string FinishedWithoutPassingText = "FINISHED without passing";
+
+    /// <summary>A rebuild that leaves a file that is not a DLL at all: the check of that file cannot pass.</summary>
+    private static void ReplaceWithGarbage(string path)
+    {
+        File.Move(path, path + ".garbled" + Guid.NewGuid().ToString("N")[..6]);
+        File.WriteAllBytes(path, [0x4D, 0x5A, 0x00, 0x01, 0x02, 0x03]);
+    }
+
+    /// <summary>
+    /// GUI-C-226d (Codex #123): the notice follows the CURRENT state of the check, in every direction, not only towards "ready". The worker is held by a gate file (present = it runs at once, absent =
+    /// it waits), so each state can be read while it lasts. Sequence: refused while the re-check runs (checking) → the re-check passes (ready now) → the DLL changes again and Refresh Modules is
+    /// pressed (back to checking: "ready now" must NOT survive) → that check finishes without passing (says so). UIA patterns only.
+    /// </summary>
+    [SkippableFact]
+    public void R07_TheRefusalNotice_FollowsTheCheck_PassThenChangedAgainThenFailed()
+    {
+        var gate = Path.Combine(Path.GetTempPath(), $"xpe_c226d_gate_{Guid.NewGuid():N}.txt");
+        File.WriteAllText(gate, "go");
+        var native = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
+        Skip.If(string.IsNullOrEmpty(native) || !File.Exists(Path.Combine(native, "xpe_preprocess.dll")), "XPE_NATIVE_DIR does not name a folder containing xpe_preprocess.dll.");
+        var copy = Path.Combine(Path.GetTempPath(), $"xpe_c226d_native_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(copy);
+        try
+        {
+            foreach (var file in Directory.GetFiles(native!)) File.Copy(file, Path.Combine(copy, Path.GetFileName(file)));
+            var env = new Dictionary<string, string> { ["XPE_NATIVE_DIR"] = copy, ["XPE_ORACLE_TEST_GATE"] = gate };
+            using var app = LegacyApp.LaunchOrSkip(breakTemp: false, extraEnvironment: env);
+            app.WaitForPreprocessVerdict();
+
+            // 1. refused while the re-check is held: the notice says it is being checked
+            File.Delete(gate);
+            ReplaceLikeARedeploy(Path.Combine(copy, "xpe_preprocess.dll"));
+            app.ClickButtonById("Calibration", "RunSelectedAlgorithmButton");
+            var checking = app.WaitForTextOnTab("Evaluation", "NativePreviewText", t => t.Contains(RefusalText, StringComparison.Ordinal), TimeSpan.FromSeconds(15));
+            output.WriteLine("1 refused, check held: " + checking);
+            Assert.Contains(StillWaitingText, checking, StringComparison.Ordinal);
+            Assert.DoesNotContain(ReadyAgainText, checking, StringComparison.Ordinal);
+
+            // 2. the re-check passes
+            File.WriteAllText(gate, "go");
+            var ready = app.WaitForTextOnTab("Evaluation", "NativePreviewText", t => t.Contains(ReadyAgainText, StringComparison.Ordinal), TimeSpan.FromSeconds(60));
+            output.WriteLine("2 re-check passed:        " + ready);
+
+            // 3. the DLL is redeployed AGAIN and the user refreshes: the check runs again, and "ready now" must not stay on screen while it does
+            File.Delete(gate);
+            ReplaceLikeARedeploy(Path.Combine(copy, "xpe_preprocess.dll"), "second");
+            app.ClickButtonOnTab("Diagnostics", "Refresh Modules");
+            var again = app.WaitForTextOnTab("Evaluation", "NativePreviewText", t => !t.Contains(ReadyAgainText, StringComparison.Ordinal), TimeSpan.FromSeconds(30));
+            output.WriteLine("3 redeployed again, refresh, check held: " + again);
+            Assert.Contains(RefusalText, again, StringComparison.Ordinal);
+            Assert.Contains(StillWaitingText, again, StringComparison.Ordinal);
+
+            // 4. that check passes too
+            File.WriteAllText(gate, "go");
+            var readyTwice = app.WaitForTextOnTab("Evaluation", "NativePreviewText", t => t.Contains(ReadyAgainText, StringComparison.Ordinal), TimeSpan.FromSeconds(60));
+            output.WriteLine("4 passed again:                          " + readyTwice);
+
+            // 5. the DLL is broken after "ready now" and the user refreshes (Codex's reproduction): the block shows, and the notice must say the check FAILED, not "ready now"
+            ReplaceWithGarbage(Path.Combine(copy, "xpe_preprocess.dll"));
+            app.ClickButtonOnTab("Diagnostics", "Refresh Modules");
+            var failed = app.WaitForTextOnTab("Evaluation", "NativePreviewText", t => t.Contains(FinishedWithoutPassingText, StringComparison.Ordinal), TimeSpan.FromSeconds(60));
+            output.WriteLine("5 broken, refresh:                       " + failed);
+            Assert.DoesNotContain(ReadyAgainText, failed, StringComparison.Ordinal);
+            Assert.DoesNotContain(StillWaitingText, failed, StringComparison.Ordinal);
+        }
+        finally
+        {
+            try { File.Delete(gate); } catch (IOException) { }
+            try { Directory.Delete(copy, recursive: true); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* a DLL the app still holds */ }
+        }
+    }
+
+    /// <summary>GUI-C-226d: the first re-check after a refusal fails at once (the rebuild left a file that is not a DLL): checking, then "finished without passing", never "ready now".</summary>
+    [SkippableFact]
+    public void R08_TheRefusalNotice_SaysSo_WhenTheFirstRecheckFails()
+    {
+        var gate = Path.Combine(Path.GetTempPath(), $"xpe_c226d_gate_{Guid.NewGuid():N}.txt");
+        File.WriteAllText(gate, "go");
+        var native = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
+        Skip.If(string.IsNullOrEmpty(native) || !File.Exists(Path.Combine(native, "xpe_preprocess.dll")), "XPE_NATIVE_DIR does not name a folder containing xpe_preprocess.dll.");
+        var copy = Path.Combine(Path.GetTempPath(), $"xpe_c226d_native_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(copy);
+        try
+        {
+            foreach (var file in Directory.GetFiles(native!)) File.Copy(file, Path.Combine(copy, Path.GetFileName(file)));
+            var env = new Dictionary<string, string> { ["XPE_NATIVE_DIR"] = copy, ["XPE_ORACLE_TEST_GATE"] = gate };
+            using var app = LegacyApp.LaunchOrSkip(breakTemp: false, extraEnvironment: env);
+            app.WaitForPreprocessVerdict();
+
+            File.Delete(gate);
+            ReplaceWithGarbage(Path.Combine(copy, "xpe_preprocess.dll"));
+            app.ClickButtonById("Calibration", "RunSelectedAlgorithmButton");
+            var checking = app.WaitForTextOnTab("Evaluation", "NativePreviewText", t => t.Contains(RefusalText, StringComparison.Ordinal), TimeSpan.FromSeconds(15));
+            output.WriteLine("1 refused, check held: " + checking);
+            Assert.DoesNotContain(ReadyAgainText, checking, StringComparison.Ordinal);
+
+            File.WriteAllText(gate, "go");
+            var failed = app.WaitForTextOnTab("Evaluation", "NativePreviewText", t => t.Contains(FinishedWithoutPassingText, StringComparison.Ordinal), TimeSpan.FromSeconds(60));
+            output.WriteLine("2 re-check failed:        " + failed);
+            Assert.DoesNotContain(ReadyAgainText, failed, StringComparison.Ordinal);
+        }
+        finally
+        {
+            try { File.Delete(gate); } catch (IOException) { }
+            try { Directory.Delete(copy, recursive: true); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* a DLL the app still holds */ }
+        }
+    }
+
+    private sealed record ClickOutcome(string CommandBefore, string CommandAfter, string PreviewText);
+
+    private static ClickOutcome RunTheCommandAfter(bool changeDll)
+    {
+        var native = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
+        Skip.If(string.IsNullOrEmpty(native) || !File.Exists(Path.Combine(native, "xpe_preprocess.dll")), "XPE_NATIVE_DIR does not name a folder containing xpe_preprocess.dll.");
+        var copy = Path.Combine(Path.GetTempPath(), $"xpe_c226_native_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(copy);
+        try
+        {
+            foreach (var file in Directory.GetFiles(native!)) File.Copy(file, Path.Combine(copy, Path.GetFileName(file)));
+            using var app = LegacyApp.LaunchOrSkip(breakTemp: false, extraEnvironment: new Dictionary<string, string> { ["XPE_NATIVE_DIR"] = copy });
+            app.WaitForPreprocessVerdict();
+            var before = app.ReadText("Calibration", "AlgorithmValidationResultText");
+
+            if (changeDll) ReplaceLikeARedeploy(Path.Combine(copy, "xpe_preprocess.dll"));
+            app.ClickButtonById("Calibration", "RunSelectedAlgorithmButton");
+
+            // one of the two things happens within moments: the command's text changes (it ran as far as its own first check) or the refusal appears
+            var deadline = DateTime.UtcNow.AddSeconds(15);
+            string after = before, preview = string.Empty;
+            while (DateTime.UtcNow < deadline)
+            {
+                after = app.ReadText("Calibration", "AlgorithmValidationResultText");
+                preview = app.ReadText("Evaluation", "NativePreviewText");
+                if (after != before || preview.Contains(RefusalText, StringComparison.Ordinal)) break;
+                Thread.Sleep(300);
+            }
+
+            return new ClickOutcome(before, after, preview);
+        }
+        finally
+        {
+            try { Directory.Delete(copy, recursive: true); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* a DLL the app still holds: left to the temp folder's cleanup */ }
+        }
+    }
+
+    /// <summary>What a rebuild or redeploy does to a DLL that is in use: the loaded file is renamed out of the way (Windows allows that) and a file with other content is put under its name.</summary>
+    private static void ReplaceLikeARedeploy(string path, string generation = "first")
+    {
+        var moved = path + "." + generation + ".replaced";
+        File.Move(path, moved);
+        File.Copy(moved, path);
+        using var stream = new FileStream(path, FileMode.Append, FileAccess.Write);
+        stream.WriteByte(0);   // the PE image is unchanged; the file is not the one that was judged
+    }
+
     private sealed record CheckingView(string Smoke, string Row, int BlockingFindings, string StageModes, bool OffsetSwitchEnabled, int CheckingFindings = 0)
     {
         public bool SmokeSaysChecking => Smoke.Contains("checking", StringComparison.OrdinalIgnoreCase) && !Smoke.Contains("pass=", StringComparison.Ordinal);
@@ -311,6 +548,41 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             var info = _window.FindFirstDescendant(cf => cf.ByAutomationId("StageModesInfoText"))?.Name ?? string.Empty;
             var offsetSwitch = _window.FindFirstDescendant(cf => cf.ByAutomationId("OffsetEnabledCheckBox"));
             return new CheckingView(smoke, row, blocking, info, offsetSwitch is not null && offsetSwitch.IsEnabled, checkingFindings);
+        }
+
+        /// <summary>Waits for the oracle's answer on the Diagnostics tab (the same wait <see cref="ReadPreprocessOnEveryTab"/> starts with).</summary>
+        public void WaitForPreprocessVerdict()
+        {
+            SelectTab("Diagnostics");
+            WaitForText("PreprocessSmokeText", t => t.Contains("pass=", StringComparison.Ordinal), TimeSpan.FromSeconds(60));
+        }
+
+        public string WaitForTextOnTab(string tab, string automationId, Func<string, bool> done, TimeSpan timeout)
+        {
+            SelectTab(tab);
+            return WaitForText(automationId, done, timeout);
+        }
+
+        public void ToggleCheckBox(string tab, string automationId)
+        {
+            SelectTab(tab);
+            var box = _window.FindFirstDescendant(cf => cf.ByAutomationId(automationId))?.AsCheckBox();
+            Assert.True(box is not null && box.IsEnabled, $"check box '{automationId}' was not found or is not enabled");
+            box!.Toggle();   // UIA TogglePattern: no mouse
+        }
+
+        public string ReadText(string tab, string automationId)
+        {
+            SelectTab(tab);
+            return _window.FindFirstDescendant(cf => cf.ByAutomationId(automationId))?.Name ?? string.Empty;
+        }
+
+        public void ClickButtonById(string tab, string automationId)
+        {
+            SelectTab(tab);
+            var button = _window.FindFirstDescendant(cf => cf.ByAutomationId(automationId))?.AsButton();
+            Assert.True(button is not null, $"button '{automationId}' was not found");
+            button!.Invoke();   // UIA InvokePattern: no mouse
         }
 
         public void ClickButtonOnTab(string tab, string name)

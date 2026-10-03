@@ -55,13 +55,13 @@ public sealed class PreprocessOracleVerdicts219dTests : IDisposable
         PreprocessOracleVerdicts.Completed += _ => settled.Release();
 
         Assert.Equal("run1", PreprocessOracleVerdicts.Wait(_dll).Status);
-        settled.Wait(5000);   // the announcement of run 1
+        Assert.True(settled.Wait(VerdictTestWaits.OuterWait), "the announcement of run 1 never came: " + PreprocessOracleVerdicts.DescribeState(_dll));
         Assert.True(await ProcessingContentGate.ConfirmAsync(_dll), "the files are the ones the verdict was made for: the command may run");
 
         ReplaceKeepingTheTimestamp(_dll, "y");
 
         Assert.False(await ProcessingContentGate.ConfirmAsync(_dll), "the original changed after the verdict: the command must not run");
-        Assert.True(await settled.WaitAsync(10000), "the new content was never verified");
+        Assert.True(await settled.WaitAsync(VerdictTestWaits.OuterWait), $"the new content was never verified (runs={Volatile.Read(ref runs)}); {PreprocessOracleVerdicts.DescribeState(_dll)}");
         Assert.Equal("run2", PreprocessOracleVerdicts.TryGet(_dll)!.Status);
         Assert.True(await ProcessingContentGate.ConfirmAsync(_dll), "the new content has its own verdict now");
     }
@@ -73,8 +73,7 @@ public sealed class PreprocessOracleVerdicts219dTests : IDisposable
         File.WriteAllText(dependency, "d1");
         PreprocessOracleVerdicts.Runner = _ => Verdict("ok");
         Assert.False(await ProcessingContentGate.ConfirmAsync(_dll), "nothing has been verified yet");   // (this ask also starts the verification)
-        var deadline = DateTime.UtcNow.AddSeconds(10);
-        while (PreprocessOracleVerdicts.TryGet(_dll) is null && DateTime.UtcNow < deadline) await Task.Delay(20);
+        await VerdictTestWaits.PollAsync(() => PreprocessOracleVerdicts.TryGet(_dll), "the first verdict exists", () => PreprocessOracleVerdicts.DescribeState(_dll));
         Assert.True(await ProcessingContentGate.ConfirmAsync(_dll));
 
         ReplaceKeepingTheTimestamp(dependency, "d2");
@@ -155,6 +154,74 @@ public sealed class PreprocessOracleVerdicts219dTests : IDisposable
         Assert.Single(Regex.Matches(window, @"NativePreprocessPreviewService\.Run\("));
     }
 
+    // ---------------------------------------------------------------------------------------------------------------------------------- GUI-C-226: a dependency that vanishes during the copy
+
+    /// <summary>
+    /// GUI-C-226 (Codex #118, low): a DLL the preprocess DLL depends on is found, and is gone when the copy reaches it. The set that would be judged is then smaller than the set that is installed,
+    /// so the check fails closed: ONE failed verdict is stored (the oracle is never run on the smaller set), the processing check says no, and asking again does not start a refresh storm (the same
+    /// failure is announced once). The race is made to happen on EVERY pass (the file is put back before each ask and removed again at the moment of the copy), because a file that is gone for good
+    /// is a different, legitimate situation: the next check then judges what is installed now.
+    /// </summary>
+    [Fact]
+    public async Task ADependencyThatVanishesDuringTheCopy_IsOneStoredFailure_ProcessingStaysBlocked_AndThereIsNoRefreshStorm()
+    {
+        var dependency = Path.Combine(_directory, "fmt.dll");   // named for xpe_preprocess.dll by the application's own loader
+        File.WriteAllText(dependency, "d1");
+        var runnerCalls = 0;
+        PreprocessOracleVerdicts.Runner = _ => { Interlocked.Increment(ref runnerCalls); return Verdict("judged"); };
+        PreprocessOracleSnapshot.BeforeCopy = source => { if (string.Equals(Path.GetFileName(source), "fmt.dll", StringComparison.OrdinalIgnoreCase)) File.Delete(source); };
+        var announced = 0;
+        PreprocessOracleVerdicts.Completed += _ => Interlocked.Increment(ref announced);
+
+        var verdict = PreprocessOracleVerdicts.Wait(_dll);
+
+        Assert.Equal("Synthetic oracle setup failed", verdict.Status);
+        Assert.Contains("fmt.dll", verdict.Details, StringComparison.Ordinal);
+        Assert.Equal(0, Volatile.Read(ref runnerCalls));   // the smaller set was never judged
+        Assert.Equal(1, Volatile.Read(ref announced));
+
+        // the window asks again after every announcement; the same failure must not be announced again and again, and processing stays blocked
+        for (var i = 0; i < 5; i++)
+        {
+            File.WriteAllText(dependency, "d1");           // the file is there again; the race removes it again at the copy
+            Assert.False(await ProcessingContentGate.ConfirmAsync(_dll), "processing must stay blocked while the check keeps failing");
+            await Task.Delay(150);                           // the pass that this ask started
+        }
+
+        Assert.Equal(1, Volatile.Read(ref announced));
+        Assert.Equal(0, Volatile.Read(ref runnerCalls));
+    }
+
+    // ---------------------------------------------------------------------------------------------------------------------------------- GUI-C-226b: one writer for the preview text
+
+    /// <summary>
+    /// Codex #122: the refusal notice is kept in front of the preview text only if every write to that text goes through one function. A direct assignment anywhere else would overwrite the notice
+    /// (and a later refresh would bring the stale one back). The number of assignments to the text box in the app's sources is held at exactly one, inside <c>RenderNativePreviewText</c>; the
+    /// text box is named nowhere else in code.
+    /// </summary>
+    [Fact]
+    public void TheNativePreviewText_HasExactlyOneWriter_AndNothingElseNamesTheTextBox()
+    {
+        var appDir = FindAppDir();
+        var assignments = new List<string>();
+        foreach (var file in Directory.EnumerateFiles(appDir, "*.cs", SearchOption.AllDirectories).Where(f => !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar, StringComparison.Ordinal)))
+        {
+            var text = File.ReadAllText(file);
+            foreach (Match m in Regex.Matches(text, @"NativePreviewText\s*\.\s*Text\s*\+?=(?!=)"))
+            {
+                assignments.Add(Path.GetFileName(file) + " @ " + text[Math.Max(0, m.Index - 160)..m.Index].Replace("\r", " ").Replace("\n", " "));
+            }
+
+            if (Path.GetFileName(file) != "MainWindow.xaml.cs" && Path.GetFileName(file) != "MainWindow.g.cs")
+            {
+                Assert.DoesNotContain("NativePreviewText", text, StringComparison.Ordinal);
+            }
+        }
+
+        Assert.True(assignments.Count == 1, "the native preview text must be written in exactly one place; found: " + string.Join(" || ", assignments));
+        Assert.Contains("RenderNativePreviewText()", assignments[0], StringComparison.Ordinal);
+    }
+
     // ---------------------------------------------------------------------------------------------------------------------------------- item 3: the end of the job
 
     /// <summary>Codex #116 finding 3: an ask that arrives just BEFORE the job decides it is over gets another pass.</summary>
@@ -164,21 +231,21 @@ public sealed class PreprocessOracleVerdicts219dTests : IDisposable
         var stamp = File.GetLastWriteTimeUtc(_dll);
         var runs = 0;
         PreprocessOracleVerdicts.Runner = _ => Verdict($"run{Interlocked.Increment(ref runs)}");
-        using var atTheGap = new ManualResetEventSlim();
-        using var go = new ManualResetEventSlim();
-        PreprocessOracleVerdicts.BeforeRerunDecision = _ => { if (!atTheGap.IsSet) { atTheGap.Set(); go.Wait(15000); } };
+        using var gap = new VerdictTestWaits.Gap();
+        PreprocessOracleVerdicts.BeforeRerunDecision = _ => gap.Hit();
         using var second = new ManualResetEventSlim();
         var announced = 0;
         PreprocessOracleVerdicts.Completed += _ => { if (Interlocked.Increment(ref announced) == 2) second.Set(); };
 
         Assert.Null(PreprocessOracleVerdicts.TryGet(_dll));
-        Assert.True(atTheGap.Wait(10000));                    // the pass is over and the job has not decided yet
+        VerdictTestWaits.Expect(gap.Reached, "the first pass is over and the job has not decided yet", () => $"runs={Volatile.Read(ref runs)}, announced={Volatile.Read(ref announced)}; {PreprocessOracleVerdicts.DescribeState(_dll)}");
         File.WriteAllText(_dll, "q"); File.SetLastWriteTimeUtc(_dll, stamp);
         PreprocessOracleVerdicts.TryGet(_dll);
-        go.Set();
+        gap.Release();
 
-        Assert.True(second.Wait(10000), "the ask that came before the decision was swallowed");
+        VerdictTestWaits.Expect(second, "the ask that came before the decision gets its own pass", () => $"runs={Volatile.Read(ref runs)}, announced={Volatile.Read(ref announced)}; {PreprocessOracleVerdicts.DescribeState(_dll)}");
         Assert.Equal("run2", PreprocessOracleVerdicts.TryGet(_dll)!.Status);
+        gap.AssertHeldUntilReleased("before the rerun decision");
     }
 
     /// <summary>
@@ -191,21 +258,21 @@ public sealed class PreprocessOracleVerdicts219dTests : IDisposable
         var stamp = File.GetLastWriteTimeUtc(_dll);
         var runs = 0;
         PreprocessOracleVerdicts.Runner = _ => Verdict($"run{Interlocked.Increment(ref runs)}");
-        using var inTheGap = new ManualResetEventSlim();
-        using var go = new ManualResetEventSlim();
-        PreprocessOracleVerdicts.AfterRerunDecision = _ => { if (!inTheGap.IsSet) { inTheGap.Set(); go.Wait(15000); } };
+        using var gap = new VerdictTestWaits.Gap();
+        PreprocessOracleVerdicts.AfterRerunDecision = _ => gap.Hit();
         using var second = new ManualResetEventSlim();
         var announced = 0;
         PreprocessOracleVerdicts.Completed += _ => { if (Interlocked.Increment(ref announced) == 2) second.Set(); };
 
         Assert.Null(PreprocessOracleVerdicts.TryGet(_dll));
-        Assert.True(inTheGap.Wait(10000));                    // the decision is made; the job is still on its way out
+        VerdictTestWaits.Expect(gap.Reached, "the decision is made and the job is still on its way out", () => $"runs={Volatile.Read(ref runs)}, announced={Volatile.Read(ref announced)}; {PreprocessOracleVerdicts.DescribeState(_dll)}");
         File.WriteAllText(_dll, "q"); File.SetLastWriteTimeUtc(_dll, stamp);
         PreprocessOracleVerdicts.TryGet(_dll);
-        go.Set();
+        gap.Release();
 
-        Assert.True(second.Wait(10000), "the ask that came after the decision was swallowed by the job that was leaving");
+        VerdictTestWaits.Expect(second, "the ask that came after the decision starts a job of its own (it was swallowed by the job that was leaving)", () => $"runs={Volatile.Read(ref runs)}, announced={Volatile.Read(ref announced)}; {PreprocessOracleVerdicts.DescribeState(_dll)}");
         Assert.Equal("run2", PreprocessOracleVerdicts.TryGet(_dll)!.Status);
+        gap.AssertHeldUntilReleased("after the rerun decision");
     }
 
     // ---------------------------------------------------------------------------------------------------------------------------------- item 4: the guard without a window
@@ -271,6 +338,11 @@ public sealed class PreprocessOracleVerdicts219dTests : IDisposable
     {
         var worker = File.ReadAllText(Path.Combine(FindAppDir(), "Diagnostics", "XpePreprocessOracleProcess.cs"));
         Assert.Contains("ConfinedLoadFolder: Path.GetDirectoryName(Path.GetFullPath(dllPath))", worker, StringComparison.Ordinal);
+        // GUI-C-225b: there is no switch to turn the confinement off, in the worker or anywhere else in the app's sources
+        foreach (var file in Directory.EnumerateFiles(FindAppDir(), "*.cs", SearchOption.AllDirectories).Where(f => !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar, StringComparison.Ordinal)))
+        {
+            Assert.DoesNotContain("confineLoad", File.ReadAllText(file), StringComparison.OrdinalIgnoreCase);
+        }
         var oracle = File.ReadAllText(Path.Combine(FindAppDir(), "Diagnostics", "XpePreprocessSyntheticOracle.cs"));
         Assert.Contains("OracleModuleConfinement.TryLoad(", oracle, StringComparison.Ordinal);
         Assert.Contains("OracleModuleConfinement.AuditProcess(", oracle, StringComparison.Ordinal);

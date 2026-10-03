@@ -189,19 +189,6 @@ public sealed class PreprocessSyntheticOracleProcessTests
         throw new DirectoryNotFoundException("clients/ImageProcTest was not found above the test output.");
     }
 
-    [SkippableFact]
-    public void TheWorker_WritesExactlyOneParsableResultLine()
-    {
-        Skip.If(DllPath is null, "Skipped: xpe_preprocess.dll not staged");
-        var writer = new StringWriter();
-
-        XpePreprocessOracleProcess.RunWorker(DllPath!, writer);
-
-        var lines = writer.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        Assert.Single(lines);
-        Assert.StartsWith(XpePreprocessOracleProcess.ResultPrefix, lines[0], StringComparison.Ordinal);
-        // through the parent's own reading, with exit code 0: the line must be complete and consistent, not merely parsable
-        var parsed = XpePreprocessOracleProcess.ParseOutput(writer.ToString(), 0, string.Empty);
-        Assert.True(parsed.Passed, $"{parsed.Status}: {parsed.Details}");
-    }
+    // GUI-C-225b: TheWorker_WritesExactlyOneParsableResultLine lived here and called RunWorker inside the test host. It moved to LegacyOracleConfinementScenarios, which runs the worker as the clean
+    // separate process it is in the app (the worker's load is confined and audited, and a host that already holds modules of the same names would be reported by that audit).
 }

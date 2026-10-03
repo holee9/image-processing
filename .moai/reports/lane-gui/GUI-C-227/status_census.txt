@@ -1,0 +1,158 @@
+GUI-C-227 -- per-requirement census of SPEC-XPE-GUI-IT (36 requirements), taken on dev/gui after GUI-C-225/225b/225c/226/226b.
+Every test name below was found by script (map.py: `public void|Task <name>(` in clients/ImageProcTest.IntegrationTests); 71 names checked, 0 missing after 225c restored one.
+Statuses use the SPEC §4.6 criterion: implemented = a test asserts the requirement text against an independently derived expectation. '보류' = decided not to implement (user decision, #249 GUI-C-224).
+Statuses for 008, 020, 031, 041, 050 await Codex #123 (225/225b/225c/226b/226c review).
+
+REQ-GUI-IT-001  구현됨(시험 아님)
+
+REQ-GUI-IT-002  구현됨
+    AbiLayoutTests.XpeImageBuffer_MarshalSize_Is40Bytes
+    AbiLayoutTests.XpeImageMetadata_MarshalSize_Is96Bytes
+
+REQ-GUI-IT-003  구현됨
+    AbiLayoutTests.XpeImageBuffer_FieldOffsets_MatchNativeLayout
+
+REQ-GUI-IT-004  구현됨
+    AbiLayoutTests.XpeImageMetadata_BodyPart_63CharAscii_RoundTrips
+    AbiLayoutTests.XpeImageMetadata_BodyPart_FieldOffset_IsZero
+
+REQ-GUI-IT-005  구현됨
+    DllLoadSmokeTests.XpeVersion_CalledTwice_ReturnsSamePointer
+    ErrorCodeMappingTests.ErrorString_CalledTwice_ReturnsSamePointer
+
+REQ-GUI-IT-006  구현됨
+    NegativeInputPathTests.EachDistinctCheck_ReturnsItsExactCode_AndItsValidControlSucceeds
+    NegativeInputPathTests.EveryRow_CitesACheckThatExistsInTheNativeSource_AndNoCheckIsCountedTwice
+
+REQ-GUI-IT-007  구현됨(한계)
+    MockBlockingTests.MockXpeBackend_TypeNotLoadedInTestAssemblies
+    MockBlockingTests.CompositeXpeBackend_TypeNotLoadedInTestAssemblies
+    MockBlockingTests.TestAssembly_HasNoMockBackendReference
+    MockBlockingTests.TheTypeScan_FindsATypeThatIsLoaded
+    한계: 요구의 "Mock 폴백은 시험 실패로 본다"를 직접 단언하는 시험은 없다(통합 시험은 P/Invoke 미러를 직접 부르므로 폴백 경로가 없다)
+
+REQ-GUI-IT-008  구현됨(한계)
+    DllSearchPathSafetyTests.ResolvedDllPath_IsUnderBuildTreeOrTestOutput
+    DllSearchPathSafetyTests.TheCandidateCheck_RejectsADecoyOnPath_ASystemFolder_AndAnArbitraryFolder_AndAcceptsACandidate
+    DllSearchPathSafetyTests.TheCandidateList_IsExactlyTheFiveKindsOfFolderTheRequirementNames
+    DllSearchPathSafetyTests.TheCandidateList_IsExactlyTheseFolders_InThisOrder
+    DllSearchPathSafetyTests.AJunctionInsideAnApprovedFolder_ThatPointsOutside_IsRejected_AndOneThatStaysInsideIsAccepted
+    DllSearchPathSafetyTests.AFileLinkInsideAnApprovedFolder_ThatPointsOutside_IsRejected
+    DllSearchPathSafetyTests.TheLoadedModule_IsReallyUnderAnApprovedFolder_WhenItsLinksAreFollowed
+    DllSearchPathSafetyTests.ADecoyEarlierOnPath_IsNotWhatTheLocatorReturns_WhenItIsPlacedBeforeTheLocatorRuns
+    한계: 파일 심볼릭 링크 시험은 심볼릭 링크 권한이 있는 환경에서만 돈다(권한 없는 셸에서는 사유를 적고 건너뜀 — CI 러너에서 도는지는 병합 뒤 CI 로그로 확인). 디코이·시스템 폴더·후보 밖 거부는 순수 함수와 로케이터 재실행으로 보였고 실제 로더가 디코이를 피하는지를 직접 입증하지는 않는다. Codex #122 검토 반영 대기
+
+REQ-GUI-IT-009  구현됨
+    ErrorCodeMappingTests.ErrorString_ForAllDefinedCodes_*
+    ErrorCodeMappingTests.ErrorString_ForUnknownCode_*
+
+REQ-GUI-IT-010  구현됨(한계)
+    LeakEnduranceTests.PinnedObjects_AtThisPoint_AreNoMoreThanWhenTheFixtureWasCreated
+    LeakEnduranceTests.TheInstrument_CountsAPinnedHandle_AndStopsCountingItOnceFreed
+    한계: 시작 시점 대비 상대 비교이고 xUnit 이 정한 시점에 돈다
+
+REQ-GUI-IT-020  구현됨(한계)
+    DllLoadSmokeTests.XpeVersion_WhenDllLoaded_ReturnsSemverString
+    DllLoadSmokeTests.TheFirstFixtureCreation_LocatesTheDllWithinFiveSeconds_AndRecordedTheFirstLoadAndCall
+    한계: 전용 프로세스에서 재지 않고 고정물의 첫 생성이 로케이터·첫 로드·첫 호출 시간을 스스로 기록한다(느린 러너의 경합이 섞일 수 있음)
+
+REQ-GUI-IT-021  구현됨
+    ImageBufferLifecycleTests.Init_Success_AlertCountIsNonNegative
+
+REQ-GUI-IT-022  구현됨
+    MetadataMarshallingTests.Configure_ValidJson_ReturnsOk
+    MetadataMarshallingTests.Configure_MalformedJson_ReturnsConfigInvalid
+
+REQ-GUI-IT-023  구현됨
+    ImageBufferLifecycleTests.AllocImage_ValidDimensions_*
+    ImageBufferLifecycleTests.FreeImage_AfterAlloc_ReturnsOkAndZeroesData
+
+REQ-GUI-IT-024  구현됨
+    ImageBufferLifecycleTests.AllocImage_ZeroDimensions_ReturnsInvalidInput
+
+REQ-GUI-IT-025  구현됨
+    ImageBufferLifecycleTests.CopyImage_MatchingDimensions_ReturnsOk
+    ImageBufferLifecycleTests.CopyImage_MismatchedDimensions_ReturnsError
+
+REQ-GUI-IT-026  구현됨
+    MetadataMarshallingTests.GetParamRange_ChestWindowCenter_ReturnsValidRange
+
+REQ-GUI-IT-027  구현됨
+    AlertCallbackTests.AlertQueue_Empty_CountIsZeroAndFetchReturnsInvalidInput
+
+REQ-GUI-IT-028  구현됨
+    AlertCallbackTests.ClearAlerts_CalledRepeatedly_DoesNotThrow
+
+REQ-GUI-IT-029  구현됨
+    LoggingHandlerTests.LogSetLevel_ValidLevels_ReturnsOk
+    LoggingHandlerTests.LogSetLevel_NegativeOne_ReturnsInvalidInput
+    LoggingHandlerTests.LogSetLevel_Six_ReturnsInvalidInput
+
+REQ-GUI-IT-030  구현됨
+    LoggingHandlerTests.LogSetFile_WritableTempPath_ReturnsOk
+    LoggingHandlerTests.LogSetFile_NonExistentDirectory_ReturnsIoFailed
+
+REQ-GUI-IT-031  구현됨
+    LoggingHandlerTests.LogFlush_PreInit_DoesNotThrow
+    LoggingHandlerTests.LogFlush_PostInit_DoesNotThrow
+    LoggingHandlerTests.LogFlush_PostShutdown_DoesNotThrow
+
+REQ-GUI-IT-040  구현됨
+    NativeErrorTranslationTests.GetParamRange_BeforeInit_ReturnsNotInitialized
+
+REQ-GUI-IT-041  구현됨
+    DllLoadSmokeTests.TheFixtureBootstrap_WithNoDllInAnyCandidate_DoesNotThrow_IsUnavailable_AndTheSkipReasonNamesEveryFolderSearched
+    DllLoadSmokeTests.TheLocator_WithNothingToFind_ReportsNotFound_AndNamesTheFoldersItSearched
+    DllLoadSmokeTests.LoadingAMissingDll_RaisesDllNotFoundException_ThatNamesIt
+
+REQ-GUI-IT-042  구현됨(한계)
+    ArchitectureMismatchTests.AnImageOfAnotherArchitecture_IsRefusedByTheLoader_WithBadImageFormatException_WhileTheSameBytesAsX64Load
+    ArchitectureMismatchTests.TheFirstPInvokeCallIntoAnX86Image_RaisesBadImageFormatException
+    ArchitectureMismatchTests.AnX86XpeCommonInTheNativeDirectory_IsLocated_RejectedByTheGuard_AndNamedInTheDiagnostic
+    한계: 진짜 x86 빌드 DLL 로는 돌려 보지 못함(PE 헤더의 Machine 필드만 바꾼 x64 DLL 사본과 x86 xpe_common 이 있는 폴더로 시험)
+
+REQ-GUI-IT-043  구현됨(한계)
+    PlatformDetectionTests.ProcessArchitecture_IsRecordedForDiagnostics
+    한계: ARM64 분기는 실행해 보지 못함
+
+REQ-GUI-IT-050  구현됨(한계)
+    BoundaryGuardTests.ASehExceptionAtTheBoundary_FailsTheTest_AndLeavesARecordedLineNamingWhereItHappened
+    BoundaryGuardTests.ACallThatReturns_IsPassedThrough_AndAnotherExceptionIsNotTouched
+    NegativeInputPathTests.EveryRegisteredNegativeRow_RunsToCompletion_ThroughTheBoundaryGuard_WithTheHostAlive
+    한계: AccessViolation 은 .NET 이 잡지 못하고 호스트를 끝내므로 시험이 직접 단언할 수 없다(호스트 종료는 실행 실패로 드러난다는 요구 문구 그대로). SEHException 의 기록·실패와 부정 행 완주만 단언
+
+REQ-GUI-IT-051  구현됨
+    LeakEnduranceTests.InitShutdown_1000Cycles_NoLeak
+
+REQ-GUI-IT-052  구현됨(한계)
+    NegativeInputPathTests.EachDistinctCheck_ReturnsItsExactCode_AndItsValidControlSucceeds
+    한계: MarshalDirective·InvalidCast·COM 예외를 실제로 일으키는 입력은 없다(공통 모듈의 공개 함수에서 만들어지지 않음). 부정 행마다 정확한 코드를 문서화
+
+REQ-GUI-IT-053  구현됨
+    VersionPinTests.XpeVersion_MajorMatchesPinnedVersion
+
+REQ-GUI-IT-060  구현됨
+    PreprocessHandshakeTests.PreprocessVersion_WhenDllStaged_*
+    PreprocessHandshakeTests.PreprocessInitShutdown_*
+    PreprocessHandshakeTests.PreprocessDll_WhenStaged_HasAllRequiredExports
+
+REQ-GUI-IT-061  구현됨
+    PreprocessCorrectionChainSmokeTests.CorrectionChain_RunTwice_DeterministicRmseIsZero
+    PreprocessCorrectionChainSmokeTests.CorrectionChain_Output_HasNoNanOrInf
+    PreprocessCorrectionChainSmokeTests.CorrectionChain_DefectStage_CorrectsExactlyTheMarkedPixels_AndLeavesTheRestBitIdentical
+    PreprocessCorrectionChainSmokeTests.CorrectionChain_InputBuffer_Sha256IsPreserved
+    PreprocessCorrectionChainSmokeTests.Control_Sha256Hex_SeesAOneByteChange
+
+REQ-GUI-IT-062  구현됨
+    CalibrationCheckExpirySmokeTests.CalibLoadOffset_*
+    CalibrationCheckExpirySmokeTests.CalibLoadGain_*
+    CalibrationCheckExpirySmokeTests.CalibLoadDefectMap_*
+
+REQ-GUI-IT-063  보류
+
+REQ-GUI-IT-064  보류
+
+REQ-GUI-IT-065  보류
+
+Totals: 구현됨 24, 구현됨(시험 아님) 1, 구현됨(한계) 8, 보류 3 (sum 36)
+Implemented without a stated limitation: 25 (001 counted: a build property, not a test).

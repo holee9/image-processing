@@ -1,4 +1,5 @@
 // GUI-C-219d (#249, Codex #116 finding 1): the oracle worker loads the DLLs the preprocess DLL imports from the SNAPSHOT folder, not from the folder of the executable.
+using System.Diagnostics;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -16,6 +17,53 @@ namespace ImageProcTest.E2ETests.Scenarios.Legacy;
 [Trait("Category", "LegacyE2E")]
 public sealed class LegacyOracleConfinementScenarios(ITestOutputHelper output)
 {
+    /// <summary>
+    /// GUI-C-225b (Codex #121, low): the protocol test of the worker, as the separate clean process the worker is. The line is read from the real process's standard output: exactly one line, with the
+    /// result prefix, and complete and consistent through the parent's own reading with the real exit code. The host of this test first loads xpe_common.dll from ANOTHER folder (a copy), which is
+    /// what used to make the in-host version of this test depend on the order the tests ran in: here it cannot matter, because the worker is a process of its own.
+    /// </summary>
+    [SkippableFact]
+    public void TheWorker_WritesExactlyOneParsableResultLine_AsARealProcess_WhateverTheHostHasLoaded()
+    {
+        var dll = LegacyOracleIsolationScenarios.Dll();
+        Skip.If(dll is null, "XPE_NATIVE_DIR does not name a folder containing xpe_preprocess.dll.");
+        var exe = LegacyOracleIsolationScenarios.FindExecutable();
+        Skip.If(exe is null, "clients/ImageProcTest/bin/Debug/net8.0-windows/ImageProcTest.exe was not found: build clients/ImageProcTest first.");
+        LegacyOracleIsolationScenarios.AssertFresh(exe!);
+
+        var hostCopy = Path.Combine(Path.GetTempPath(), $"xpe-c225b-host-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(hostCopy);
+        try
+        {
+            foreach (var native in Directory.GetFiles(Path.GetDirectoryName(dll!)!, "*.dll")) File.Copy(native, Path.Combine(hostCopy, Path.GetFileName(native)));
+            // the host now holds xpe_common.dll from a folder that is not the oracle's (when the host already holds one from somewhere else, the loader hands that one back: the point stands either way)
+            System.Runtime.InteropServices.NativeLibrary.Load(Path.Combine(hostCopy, "xpe_common.dll"));
+
+            var info = new ProcessStartInfo(exe!, [XpePreprocessOracleProcess.ModeArgument, dll!])
+            {
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                WorkingDirectory = Path.GetDirectoryName(exe)!,
+            };
+            using var process = Process.Start(info)!;
+            var stdout = process.StandardOutput.ReadToEndAsync();
+            var stderr = process.StandardError.ReadToEndAsync();
+            Assert.True(process.WaitForExit(90000), "the worker did not finish in 90 s");
+            var stdoutText = stdout.GetAwaiter().GetResult();
+
+            var lines = stdoutText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            Assert.Single(lines);
+            Assert.StartsWith(XpePreprocessOracleProcess.ResultPrefix, lines[0], StringComparison.Ordinal);
+            var parsed = XpePreprocessOracleProcess.ParseOutput(stdoutText, process.ExitCode, stderr.GetAwaiter().GetResult());
+            Assert.True(parsed.Passed, $"{parsed.Status}: {parsed.Details}");
+        }
+        finally
+        {
+            try { Directory.Delete(hostCopy, recursive: true); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* the host still holds the module */ }
+        }
+    }
+
     [SkippableFact]
     public void TheWorker_LoadsItsDependenciesFromTheSnapshotFolder_NotFromTheFolderOfItsExecutable()
     {

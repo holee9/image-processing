@@ -20,6 +20,9 @@ namespace ImageProcTest
         private const int MaxFiles = 64;
         private const string DirectoryPrefix = "xpe-oracle-snap-";
 
+        /// <summary>Test seam (GUI-C-226): called with the source path of each file just before it is copied, so a test can make a dependency vanish at exactly that moment.</summary>
+        internal static Action<string>? BeforeCopy { get; set; }
+
         private PreprocessOracleSnapshot(string? folder, string dllPath, string identity, IReadOnlyList<string> files)
         {
             Folder = folder;
@@ -59,6 +62,7 @@ namespace ImageProcTest
                 var mainFileName = Path.GetFileName(dllPath);
                 foreach (var (name, source) in Closure(dllPath))
                 {
+                    BeforeCopy?.Invoke(source);
                     if (CopyShared(source, Path.Combine(directory, name)))
                     {
                         copied.Add(name);

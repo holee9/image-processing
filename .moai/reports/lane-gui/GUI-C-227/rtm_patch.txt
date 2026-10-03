@@ -1,0 +1,81 @@
+GUI-C-227 -- proposed edits to docs/post-processing/xpe/RTM-GUI-001_Requirements_Traceability_Matrix.md (the lead applies docs/ edits)
+Baseline: main at the time of writing (RTM v1.1.0). Line numbers are main's. Every test name was checked by script (see status_census.txt).
+
+== §2 (lines 26-40): replace the note and the table
+
+> **2026-10-03 갱신 (GUI-C-227, #249).** 표는 GUI-C-207 의 첫 집계(구현됨 19 · 부분 14 · 없음 3)에서 GUI-C-208~210·225·225b·225c·226 이 닫은 것을 반영해 시험 소스를 다시 읽고 센 것이다(구현됨 = 독립된 기대값으로 단언 · 한계 = 구현됨이지만 아래 한계가 있음 · 보류 = 사용자 결정으로 구현하지 않음). 판정 기준은 SPEC-XPE-GUI-IT §4.6 과 같다. 008·020·031·041·050 의 판정은 Codex 검토(#123) 반영 대기다.
+
+| Category | Count | Implemented | Partial | Deferred (보류) |
+|----------|:-----:|-------------|---------|------|
+| Ubiquitous (001~010) | 10 | 10 (001 은 빌드 속성; 한계: 007, 008, 010) | 0 | 0 |
+| Event-Driven (020~031) | 12 | 12 (한계: 020) | 0 | 0 |
+| State-Driven (040~043) | 4 | 4 (한계: 042, 043) | 0 | 0 |
+| Unwanted Behavior (050~053) | 4 | 4 (한계: 050, 052) | 0 | 0 |
+| Optional (060~065) | 6 | 3 (060, 061, 062) | 0 | 3 (063, 064, 065) |
+| **Total** | **36** | **33** (한계 있는 것 8, 없는 것 25) | **0** | **3** |
+
+*Note*: 060~062 는 CI 가 xpe_preprocess.dll 을 올려 실제로 돈다. 063~065 는 선택 요구(Optional) — 사용자 결정(2026-10-03, #249)으로 **보류**, 구현하지 않는다.
+
+== §3 rows that change (replace the whole row; columns not shown stay as on main)
+
+line 55  BEFORE: | REQ-GUI-IT-004 | ANSI BodyPart Fixed Buffer | SRS §4.2 | SDD §3.1 | `PInvoke/XpeCommonNative.cs` | `AbiLayoutTests.XpeImageMetadata_BodyPart_63CharAscii_RoundTrips` | HAZ-GUI-002 |
+line 55  AFTER:  | REQ-GUI-IT-004 | ANSI BodyPart Fixed Buffer | SRS §4.2 | SDD §3.1 | `PInvoke/XpeCommonNative.cs` | `AbiLayoutTests.XpeImageMetadata_BodyPart_63CharAscii_RoundTrips`<br>`AbiLayoutTests.XpeImageMetadata_BodyPart_FieldOffset_IsZero`<br>`NativeSignatureParityTests.EveryDeclaration_SaysWhatTheHeaderSays` (헤더와 미러의 선언을 기계로 대조 — `SizeConst`·`ByValTStr`·`CharSet` 변이 셋이 모두 빨강, GUI-C-224 `req004_mutation_experiment.txt`) | HAZ-GUI-002 |
+
+line 56  BEFORE: | REQ-GUI-IT-005 | IntPtr Lifetime Contract | SRS §4.3 | SDD §3.2 | `XpeCommonApi.cs` | `DllLoadSmokeTests.XpeVersion_CalledTwice_ReturnsSamePointer` | HAZ-GUI-001 |
+line 56  AFTER:  | REQ-GUI-IT-005 | IntPtr Lifetime Contract | SRS §4.3 | SDD §3.2 | `XpeCommonApi.cs` | `DllLoadSmokeTests.XpeVersion_CalledTwice_ReturnsSamePointer`<br>`ErrorCodeMappingTests.ErrorString_CalledTwice_ReturnsSamePointer` | HAZ-GUI-001 |
+
+line 57  BEFORE: | REQ-GUI-IT-006 | No Managed Exception on Error | SRS §4.4 | SDD §3.2 Exception Boundary | `XpeCommonApi.cs`, test fixtures | `NativeErrorTranslationTests.*` | HAZ-GUI-001 |
+line 57  AFTER:  | REQ-GUI-IT-006 | No Managed Exception on Error | SRS §4.4 | SDD §3.2 Exception Boundary | `XpeCommonApi.cs`, test fixtures | `NegativeInputPathTests.EachDistinctCheck_ReturnsItsExactCode_AndItsValidControlSucceeds` (서로 다른 거부 경로 18행, 행마다 정확한 코드와 통제)<br>`NegativeInputPathTests.EveryRow_CitesACheckThatExistsInTheNativeSource_AndNoCheckIsCountedTwice`<br>`NativeErrorTranslationTests.*` | HAZ-GUI-001 |
+
+line 58  BEFORE: | REQ-GUI-IT-007 | Mock Backend Exclusion | SRS §4.5 | SDD §2.3 Test Isolation | test project config | `MockBlockingTests.*` | — |
+line 58  AFTER:  | REQ-GUI-IT-007 | Mock Backend Exclusion | SRS §4.5 | SDD §2.3 Test Isolation | test project config | `MockBlockingTests.*` (타입 부재 둘 + 참조 이름 + 통제 `TheTypeScan_FindsATypeThatIsLoaded`)<br>*한계: 요구의 "Mock 폴백은 시험 실패로 본다"를 직접 단언하는 시험은 없다(통합 시험은 P/Invoke 미러를 직접 부르므로 폴백 경로가 없다)* | — |
+
+line 59  BEFORE: | REQ-GUI-IT-008 | Resolved DLL Path in Build Tree | SRS §4.6 | SDD §3.3 DLL Resolution | `DllStagingFixture.cs` | `DllSearchPathSafetyTests.*` | HAZ-GUI-006 |
+line 59  AFTER:  | REQ-GUI-IT-008 | Resolved DLL Path in Build Tree | SRS §4.6 | SDD §3.3 DLL Resolution | `NativeLibraryFixture.cs` (`CandidateFolders`, `Locate`, `IsUnderAnyFolderResolved`, `FinalPathOf`) | `DllSearchPathSafetyTests.ResolvedDllPath_IsUnderBuildTreeOrTestOutput`<br>`DllSearchPathSafetyTests.TheCandidateCheck_RejectsADecoyOnPath_ASystemFolder_AndAnArbitraryFolder_AndAcceptsACandidate`<br>`DllSearchPathSafetyTests.TheCandidateList_IsExactlyTheFiveKindsOfFolderTheRequirementNames`<br>`DllSearchPathSafetyTests.TheCandidateList_IsExactlyTheseFolders_InThisOrder`<br>`DllSearchPathSafetyTests.AJunctionInsideAnApprovedFolder_ThatPointsOutside_IsRejected_AndOneThatStaysInsideIsAccepted`<br>`DllSearchPathSafetyTests.AFileLinkInsideAnApprovedFolder_ThatPointsOutside_IsRejected`<br>`DllSearchPathSafetyTests.TheLoadedModule_IsReallyUnderAnApprovedFolder_WhenItsLinksAreFollowed`<br>`DllSearchPathSafetyTests.ADecoyEarlierOnPath_IsNotWhatTheLocatorReturns_WhenItIsPlacedBeforeTheLocatorRuns`<br>*한계: 파일 심볼릭 링크 시험은 심볼릭 링크 권한이 있는 환경에서만 돈다(권한 없는 셸에서는 사유를 적고 건너뜀 — CI 러너에서 도는지는 병합 뒤 CI 로그로 확인). 디코이·시스템 폴더·후보 밖 거부는 순수 함수와 로케이터 재실행으로 보였고 실제 로더가 디코이를 피하는지를 직접 입증하지는 않는다. Codex #122 검토 반영 대기* | HAZ-GUI-006 |
+
+line 61  BEFORE: | REQ-GUI-IT-010 | No Handle Leak After Test Run | SRS §4.8 | SDD §3.5 Resource Management | test infrastructure | `LeakEnduranceTests.AfterTests_NoOutstandingPinnedHandles` (핸들을 세지 않음 — 부분, #249) | HAZ-GUI-008 |
+line 61  AFTER:  | REQ-GUI-IT-010 | No Handle Leak After Test Run | SRS §4.8 | SDD §3.5 Resource Management | test infrastructure | `LeakEnduranceTests.PinnedObjects_AtThisPoint_AreNoMoreThanWhenTheFixtureWasCreated`<br>`LeakEnduranceTests.TheInstrument_CountsAPinnedHandle_AndStopsCountingItOnceFreed`<br>*한계: 시작 시점 대비 상대 비교이고 xUnit 이 정한 시점에 돈다* | HAZ-GUI-008 |
+
+line 67  BEFORE: | REQ-GUI-IT-020 | Library Load Success | SRS §5.1 | SDD §3.3 | `NativeLibraryFixture.cs` | `DllLoadSmokeTests.XpeVersion_WhenDllLoaded_ReturnsSemverString` | HAZ-GUI-006 |
+line 67  AFTER:  | REQ-GUI-IT-020 | Library Load Success | SRS §5.1 | SDD §3.3 | `NativeLibraryFixture.cs` | `DllLoadSmokeTests.XpeVersion_WhenDllLoaded_ReturnsSemverString`<br>`DllLoadSmokeTests.TheFirstFixtureCreation_LocatesTheDllWithinFiveSeconds_AndRecordedTheFirstLoadAndCall`<br>*한계: 전용 프로세스에서 재지 않고 고정물의 첫 생성이 로케이터·첫 로드·첫 호출 시간을 스스로 기록한다(느린 러너의 경합이 섞일 수 있음)* | HAZ-GUI-006 |
+
+line 78  BEFORE: | REQ-GUI-IT-031 | Log Flush No-Throw | SRS §5.7 | SDD §4.6 | `XpeCommonApi.LogFlush` | `LoggingHandlerTests.*` | HAZ-GUI-001 |
+line 78  AFTER:  | REQ-GUI-IT-031 | Log Flush No-Throw | SRS §5.7 | SDD §4.6 | `XpeCommonApi.LogFlush` | `LoggingHandlerTests.LogFlush_PreInit_DoesNotThrow`<br>`LoggingHandlerTests.LogFlush_PostInit_DoesNotThrow`<br>`LoggingHandlerTests.LogFlush_PostShutdown_DoesNotThrow` | HAZ-GUI-001 |
+
+line 92  BEFORE: | REQ-GUI-IT-041 | Missing DLL Fails Deterministically | SRS §6.2 | SDD §3.3 DLL Resolution | `DllStagingFixture.cs` | `DllLoadSmokeTests.*` | HAZ-GUI-005, HAZ-GUI-006 |
+line 92  AFTER:  | REQ-GUI-IT-041 | Missing DLL Fails Deterministically | SRS §6.2 | SDD §3.3 DLL Resolution | `NativeLibraryFixture.cs` (`Locate`, 부트스트랩의 건너뜀 사유) | `DllLoadSmokeTests.TheFixtureBootstrap_WithNoDllInAnyCandidate_DoesNotThrow_IsUnavailable_AndTheSkipReasonNamesEveryFolderSearched`<br>`DllLoadSmokeTests.TheLocator_WithNothingToFind_ReportsNotFound_AndNamesTheFoldersItSearched`<br>`DllLoadSmokeTests.LoadingAMissingDll_RaisesDllNotFoundException_ThatNamesIt` | HAZ-GUI-005, HAZ-GUI-006 |
+
+line 93  BEFORE: | REQ-GUI-IT-042 | Architecture Mismatch Detection | SRS §6.3 | SDD §3.3 | `DllStagingFixture.cs` | `DllLoadSmokeTests.*` (`BadImageFormatException` 을 일으키는 시험 없음 — 부분, #249) | HAZ-GUI-006 |
+line 93  AFTER:  | REQ-GUI-IT-042 | Architecture Mismatch Detection | SRS §6.3 | SDD §3.3 | `NativeLibraryFixture.cs` (`VerifyX64Pe`) | `ArchitectureMismatchTests.AnImageOfAnotherArchitecture_IsRefusedByTheLoader_WithBadImageFormatException_WhileTheSameBytesAsX64Load`<br>`ArchitectureMismatchTests.TheFirstPInvokeCallIntoAnX86Image_RaisesBadImageFormatException`<br>`ArchitectureMismatchTests.AnX86XpeCommonInTheNativeDirectory_IsLocated_RejectedByTheGuard_AndNamedInTheDiagnostic`<br>`DllLoadSmokeTests.ArchitectureGuard_RejectsABinaryThatIsNotX64_AndAcceptsOneThatIs`<br>*한계: 진짜 x86 빌드 DLL 로는 돌려 보지 못함(PE 헤더의 Machine 필드만 바꾼 x64 DLL 사본과 x86 xpe_common 이 있는 폴더로 시험)* | HAZ-GUI-006 |
+
+line 94  BEFORE: | REQ-GUI-IT-043 | Platform Mismatch Diagnostic | SRS §6.4 | SDD §3.3 | (platform probe) | `PlatformDetectionTests.*` | — |
+line 94  AFTER:  | REQ-GUI-IT-043 | Platform Mismatch Diagnostic | SRS §6.4 | SDD §3.3 | (platform probe) | `PlatformDetectionTests.ProcessArchitecture_IsRecordedForDiagnostics`<br>*한계: ARM64 분기는 실행해 보지 못함* | — |
+
+line 100  BEFORE: | REQ-GUI-IT-050 | No AccessViolation Across Boundary | SRS §7.1 | SDD §3.2 Exception Boundary | `XpeCommonApi.cs` (exception-safe) | `NativeErrorTranslationTests.*` (부정 입력 3 + 초기화 전 3, 원문 "20+ scenarios" — #249) | **HAZ-GUI-001** |
+line 100  AFTER:  | REQ-GUI-IT-050 | No AccessViolation Across Boundary | SRS §7.1 | SDD §3.2 Exception Boundary | `XpeCommonApi.cs` (exception-safe) | `BoundaryGuardTests.ASehExceptionAtTheBoundary_FailsTheTest_AndLeavesARecordedLineNamingWhereItHappened`<br>`BoundaryGuardTests.ACallThatReturns_IsPassedThrough_AndAnotherExceptionIsNotTouched`<br>`NegativeInputPathTests.EveryRegisteredNegativeRow_RunsToCompletion_ThroughTheBoundaryGuard_WithTheHostAlive`<br>`NegativeInputPathTests.EachDistinctCheck_ReturnsItsExactCode_AndItsValidControlSucceeds`<br>`NativeErrorTranslationTests.*`<br>*한계: AccessViolation 은 .NET 이 잡지 못하고 호스트를 끝내므로 시험이 직접 단언할 수 없다(호스트 종료는 실행 실패로 드러난다는 요구 문구 그대로). SEHException 의 기록·실패와 부정 행 완주만 단언* | **HAZ-GUI-001** |
+
+line 102  BEFORE: | REQ-GUI-IT-052 | No Marshalling Exception Without Translation | SRS §7.3 | SDD §3.2 Marshaling | `XpeCommonApi.cs` | `NativeErrorTranslationTests.*` | HAZ-GUI-002 |
+line 102  AFTER:  | REQ-GUI-IT-052 | No Marshalling Exception Without Translation | SRS §7.3 | SDD §3.2 Marshaling | `XpeCommonApi.cs` | `NegativeInputPathTests.EachDistinctCheck_ReturnsItsExactCode_AndItsValidControlSucceeds` (정확한 코드 문서화)<br>*한계: MarshalDirective·InvalidCast·COM 예외를 실제로 일으키는 입력은 없다(공통 모듈의 공개 함수에서 만들어지지 않음). 부정 행마다 정확한 코드를 문서화* | HAZ-GUI-002 |
+
+line 110  BEFORE: | REQ-GUI-IT-061 | Optional Synthetic Adapter Chain | SRS §8.2 | SDD §5.2 (P1A) | `XpePreprocessSyntheticOracle.cs` | `PreprocessCorrectionChainSmokeTests.*` | CI 에서 실행 |
+line 110  AFTER:  | REQ-GUI-IT-061 | Optional Synthetic Adapter Chain | SRS §8.2 | SDD §5.2 (P1A) | `XpePreprocessSyntheticOracle.cs` | `PreprocessCorrectionChainSmokeTests.CorrectionChain_RunTwice_DeterministicRmseIsZero`<br>`PreprocessCorrectionChainSmokeTests.CorrectionChain_Output_HasNoNanOrInf`<br>`PreprocessCorrectionChainSmokeTests.CorrectionChain_DefectStage_CorrectsExactlyTheMarkedPixels_AndLeavesTheRestBitIdentical`<br>`PreprocessCorrectionChainSmokeTests.CorrectionChain_InputBuffer_Sha256IsPreserved`<br>`PreprocessCorrectionChainSmokeTests.Control_Sha256Hex_SeesAOneByteChange` | CI 에서 실행 |
+
+Rows 063~065 (lines 112-114): replace 'Not implemented — 선택 요구(Optional), 미구현, 구현 계획 없음 (#249)' with 'Deferred — 선택 요구(Optional), 사용자 결정(2026-10-03)으로 보류, 구현하지 않음 (#249)'.
+
+Rows 032~034 (lines ~80-83) are unchanged (no SPEC definition).
+
+== §6 line 202 (IEC 62304 5.2.6): replace
+BEFORE: | 5.2.6 Requirements verified | 33 of 36 have tests; 14 only in part; REQ-063..065 have none | This RTM §2, §3 | Partial (2026-10-03 정정, 원문 "All REQ-GUI-IT-* have tests ✓" — #249) |
+AFTER:  | 5.2.6 Requirements verified | 33 of 36 verified by tests asserting the requirement text (8 with a stated limitation, see §2 and the §3 rows); REQ-063..065 deferred by user decision (optional requirements, not implemented) | This RTM §2, §3 | Partial → Verified for the 33 (2026-10-03 갱신, #249; 판정 일부는 Codex #123 대기) |
+
+== line 15: 'SPEC-XPE-GUI-IT v1.3.0' -> the current SPEC version (v1.3.3 per the lead's message)
+
+== changelog (after line 237): add
+| 1.2.0 | 2026-10-03 | lead (GUI-C-227, #249) | §2 표를 구현됨 33 · 부분 0 · 보류 3 으로 갱신(한계 있는 것 8: 007·008·010·020·042·043·050·052), §3 시험 이름을 실재하는 이름으로 교체(004~008·010·020·031·041~043·050·052·061), 008·041·042 의 존재하지 않는 코드 파일 `DllStagingFixture.cs` 를 `NativeLibraryFixture.cs` 로, REQ-063~065 는 보류, §6 5.2.6 갱신. 근거: `xpe-gui` `.moai/reports/lane-gui/GUI-C-227/` |
+
+== Observation (not patched): other Code File cells name files that do not exist
+  line 56 REQ-005: ``XpeCommonApi.cs`` -- XpeCommonApi is a class in clients/ImageProcTest/PInvokeWrapper.cs; there is no XpeCommonApi.cs
+  line 57 REQ-006: ``XpeCommonApi.cs`, test fixtures` -- XpeCommonApi is a class in clients/ImageProcTest/PInvokeWrapper.cs; there is no XpeCommonApi.cs
+  line 100 REQ-050: ``XpeCommonApi.cs` (exception-safe)` -- XpeCommonApi is a class in clients/ImageProcTest/PInvokeWrapper.cs; there is no XpeCommonApi.cs
+  line 102 REQ-052: ``XpeCommonApi.cs`` -- XpeCommonApi is a class in clients/ImageProcTest/PInvokeWrapper.cs; there is no XpeCommonApi.cs
+  line 109 REQ-060: ``XpePreprocessNative.cs` (planned)` -- 'planned' file

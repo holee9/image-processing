@@ -1,0 +1,3 @@
+== arm 020_budget_1ms (Smoke/DllLoadSmokeTests.cs): s/TimeSpan.FromSeconds(5);/TimeSpan.FromMilliseconds(0.001);/
+[xUnit.net 00:00:00.23]     ImageProcTest.IntegrationTests.Smoke.DllLoadSmokeTests.TheDll_IsLocatedAndAnswersXpeVersion_WithinTheRequirementsFiveSeconds [FAIL]
+실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 17 ms - ImageProcTest.IntegrationTests.dll (net8.0)

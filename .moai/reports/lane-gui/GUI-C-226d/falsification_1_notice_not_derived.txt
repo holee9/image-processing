@@ -1,0 +1,10 @@
+== arm 1: the notice does not follow the state (always 'ready now' once the check is not running)
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R07_TheRefusalNotice_FollowsTheCheck_PassThenChangedAgainThenFailed [1 m 9 s]
+ 1 refused, check held: Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They are checked again automatically; press the command again once module readiness says ready. Native preview: load a target raw image to run pre/post algorithms.
+ 2 re-check passed:        Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and are ready now; press the command again. Native preview: load a target raw image to run pre/post algorithms.
+ 3 redeployed again, refresh, check held: Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They are checked again automatically; press the command again once module readiness says ready. Native preview: load a target raw image to run pre/post algorithms.
+ 4 passed again:                          Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and are ready now; press the command again. Native preview: load a target raw image to run pre/post algorithms.
+[xUnit.net 00:01:13.27]       Assert.DoesNotContain() Failure: Sub-string found
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R08_TheRefusalNotice_SaysSo_WhenTheFirstRecheckFails [3 s]
+   Assert.DoesNotContain() Failure: Sub-string found
+ 1 refused, check held: Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and are ready now; press the command again. Native preview: load a target raw image to run pre/post algorithms.

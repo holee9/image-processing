@@ -1,0 +1,3 @@
+== arm 041_bootstrap_throws: 0,/            IsAvailable = false;\r\?$/s//            IsAvailable = false; throw new DllNotFoundException("xpe_common.dll");/
+[xUnit.net 00:00:00.23]     ImageProcTest.IntegrationTests.Smoke.DllLoadSmokeTests.TheFixtureBootstrap_WithNoDllInAnyCandidate_DoesNotThrow_IsUnavailable_AndTheSkipReasonNamesEveryFolderSearched [FAIL]
+실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 24 ms - ImageProcTest.IntegrationTests.dll (net8.0)
