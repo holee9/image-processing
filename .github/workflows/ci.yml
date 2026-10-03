@@ -744,6 +744,8 @@ jobs:
           $testLimit   = Limit 'AC12_TEST_LIMIT_S'   5
           $safetyLimit = Limit 'AC12_SAFETY_LIMIT_S' 90
           $minSmoke    = if ($env:AC12_MIN_SMOKE) { [int]$env:AC12_MIN_SMOKE } else { 10 }
+          # GUI-C-216: a run that selected only one of the ten Safety tests used to pass this gate (minimum was 1).
+          $minSafety   = if ($env:AC12_MIN_SAFETY) { [int]$env:AC12_MIN_SAFETY } else { 10 }
           $bad = @()
 
           # Full Functional: the whole run just made by the previous step (trx start..finish), and the slowest single test.
@@ -759,7 +761,7 @@ jobs:
 
           # Smoke and Safety are the categories the SPEC bounds; the trx carries no categories, so each is run on its own, wall-clock
           # from process start (what the SPEC says it measures), and a run that selected too few tests is a failure, not a fast pass.
-          foreach ($c in @(@{ Cat = 'Smoke'; Limit = $smokeLimit; Min = $minSmoke }, @{ Cat = 'Safety'; Limit = $safetyLimit; Min = 1 })) {
+          foreach ($c in @(@{ Cat = 'Smoke'; Limit = $smokeLimit; Min = $minSmoke }, @{ Cat = 'Safety'; Limit = $safetyLimit; Min = $minSafety })) {
             $sw = [System.Diagnostics.Stopwatch]::StartNew()
             $ErrorActionPreference = 'Continue'   # a native command's stderr must not become a terminating error
             $out = dotnet test $proj -c Debug --no-build --filter "Category=$($c.Cat)" 2>&1 | Out-String
