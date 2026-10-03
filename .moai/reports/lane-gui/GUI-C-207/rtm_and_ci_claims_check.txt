@@ -1,0 +1,29 @@
+# RTM-GUI-001 verification claims vs what exists (dev/gui = efbc74f8)
+
+## E2E scenario ids the RTM names (control: S02 exists, W04 is searched the same way)
+S02: S02_MenuBar_HasSixGroups
+S04: S04_HelpMenu_OffersOfflineHelpHome
+S05: S05_RuntimePanel_ShowsBackendVersion
+W04: NONE
+W06: NONE
+W07: W07_SelectingBodyPart_AppliesThatPresetToTheVoiWindow
+A01: A01_NativeRequested_FallsBackToMock_IsNotAPass A01_About_ShowsTheBackendVersionTheStatusBarShows
+A02: A02_MockRequested_IsStillAPass
+A03: A03_TheWiredCommands_ReportWhatTheyDid
+E01a: E01a_Fallback_StatusBarNamesTheActualBackend
+W20: W20_MainViewport_ReceivesTheLoadedImage
+W26: W26_FailedRender_IsMarkedInTheDetachedViewer
+
+## things the RTM says are verified by CI or a suite, searched in code and ci.yml
+MOAI_XPE_BACKEND_MODE in code/ci: 0 file(s) (docs only: 3); the env var the E2E suite reads is XPE_E2E_BACKEND: 4 file(s)
+pseudo-localization in ci.yml: 0
+*.resx files under gui/ clients/: 0
+Category=Smoke filter in .github: 0
+tests asserting every interactive XAML element carries an AutomationId (search 'every' + AutomationId in IntegrationTests): 3 file(s) mention AutomationProperties (ComparisonModeSingleSourceTests, AiDiagnosticsTests, AiWorkerPanelLayoutTests: they pin specific controls, not a census)
+
+## CI: which job runs which test project, with what filter
+dotnet-tests (ci.yml:636, runs when main or lane gui): clients/ImageProcTest.IntegrationTests, no --filter, trx; only BaselineDicomNativeTests/EnhanceBasicNativeTests/BaselineDisplayNativeTests are held by a skip-fails gate; 'Verify native binaries present' step requires xpe_common/xpe_preprocess/xpe_enhance_basic/xpe_display/xpe_dicom + dcmdata/openjp2
+gui-automation (ci.yml:832): clients/ImageProcTest.E2ETests, no --filter, Mock backend, XPE_E2E_ALLOW_GLOBAL_INPUT=1, a gate only for input-gated skips
+gui-e2e-native (ci.yml:934): same project, no --filter, XPE_E2E_BACKEND=Native, unexplained-skip gate
+gui-shell-runners (ci.yml:774): gui/ImageProcTest.SelfCheck and gui/ImageProcTest.E2E via dotnet run
+csproj exclusions in the IntegrationTests project: 0; fixed Skip= attributes: 0; the one skipped row of the last run: ErrorCodeMappingTests.ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback(code: NOT_IMPLEMENTED)
