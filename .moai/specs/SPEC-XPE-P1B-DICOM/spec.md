@@ -158,10 +158,7 @@ xpe_dicom_close(handle) --> free all resources
 **REQ-DICOM-008**: IF the DICOM file contains JPEG 2000 or JPEG Lossless compressed pixel data, THEN the system SHALL decompress the data to raw uint16 before populating `outImg`.
 
 **REQ-DICOM-009**: WHEN `xpe_dicom_get_metadata` is called with a valid handle, the system SHALL extract the following DICOM tags and populate the `XpeImageMetadata` struct:
-- (0010,0020) Patient ID --> stored internally (not in XpeImageMetadata; available via handle)
-- (0020,000D) Study Instance UID --> stored internally
-- (0020,000E) Series Instance UID --> stored internally
-- (0008,0060) Modality --> stored internally
+- (0010,0020) Patient ID, (0020,000D) Study Instance UID, (0020,000E) Series Instance UID, (0008,0060) Modality --> **not extracted**: they are not fields of `XpeImageMetadata` and the public API has no accessor for them (문구 정정 2026-10-03, 사용자 결정 "요구 문구를 실제에 맞춤", #251 C15 — 옛 문구 "stored internally … available via handle" 는 구현에 없는 기능이었다. clients·gui 에 이 값을 쓰는 코드 0건)
 - (0018,0015) Body Part Examined --> `outMeta->bodyPart`
 - (0018,0060) KVP --> `outMeta->kVp`
 - (0018,1152) Exposure (mAs) --> `outMeta->mAs`

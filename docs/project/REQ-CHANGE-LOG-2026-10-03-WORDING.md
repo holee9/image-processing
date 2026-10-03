@@ -129,4 +129,16 @@
 
 ---
 
+## 9. QA-B-208 결과에 대한 사용자 결정 (2026-10-03)
+
+근거: post `QA-B-208` 보고서(dev/postprocess `aa789e06`), 사용자 답변(리더 세션 AskUserQuestion), #251 코멘트.
+
+| 항목 | 사용자 선택 | 반영 |
+|---|---|---|
+| C11 (C-STORE 전송 구문 제안) | 파일 구문만 제안 | 코드 post `QA-B-210`, 요구 문구(REQ-DICOM-029 "negotiate the appropriate Transfer Syntax" 를 "파일의 전송 구문 하나만 제안, 거절되면 `NETWORK_FAILED`")는 그 병합 때 |
+| C15 (환자 ID·UID·Modality 접근자) | 요구 문구를 실제에 맞춤 | REQ-DICOM-009 의 네 줄을 "추출하지 않음, 공개 접근자 없음" 으로(이번 편집) |
+| E7 (양방향 필터 σ 포화) | σ 상한을 정해 초과 거부 | 코드 post `QA-B-210`, 요구 문구(REQ-ENH-007/020 에 `sigma_space` 상한)는 그 병합 때 |
+
+---
+
 *끝*
