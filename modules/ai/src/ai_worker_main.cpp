@@ -453,6 +453,8 @@ private:
                 // Three causes, three codes -- the same three ai.cpp separates.
                 switch (created.code) {
                     case xpe::ai::OnnxErrorCode::kInvalidModelPath:
+                        // Still counted by the host (user-approved policy 2026-10-01, REQ-CHANGE-LOG-P3-AI.md row 3):
+                        // QA-B-195 D6 changes only the signature refusal below.
                         SendError(id, XPE_ERR_IO_FAILED, "no model at " + model_path);
                         break;
                     case xpe::ai::OnnxErrorCode::kModelLoadFailed:
@@ -460,9 +462,10 @@ private:
                                   "model unreadable: " + created.message);
                         break;
                     case xpe::ai::OnnxErrorCode::kModelNotTrusted:
-                        // QA-B-195 M3. M4 decides how the parent counts and reports it.
+                        // QA-B-195 D6: a model that fails signature verification is unavailable, like a missing
+                        // one: the worker is healthy, so the host must not count it toward switching the worker off.
                         SendError(id, XPE_ERR_CONFIG_INVALID,
-                                  "model not trusted: " + created.message);
+                                  "model not trusted: " + created.message, /*model_unavailable=*/true);
                         break;
                     default:
                         SendError(id, XPE_ERR_PROCESSING_FAILED,

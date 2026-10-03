@@ -140,6 +140,23 @@ struct AiModuleState {
     bool bodyPartUnavailableWarned{false};
 
     /**
+     * QA-B-195 M4: the signature-refusal Error alert is raised ONCE per session per role (a refused model repeats on
+     * every call, so a per-call alert would fill the queue).
+     */
+    bool boneTrustAlerted{false};
+    bool bodyPartTrustAlerted{false};
+
+    /**
+     * What the model files of a role looked like (size and write time of the model, sidecar and signature) when the
+     * last load was refused for its signature; empty when the last load was not refused. A call that finds the same
+     * stamp again answers from this memo and does NOT read and hash the model once more: the refusal cannot have
+     * changed, and a large model costs a measurable time per call (design.md: 125 ms for 256 MiB). Any change to any
+     * of the three files changes the stamp, so the files are checked again at once.
+     */
+    std::string boneTrustFailStamp;
+    std::string bodyPartTrustFailStamp;
+
+    /**
      * Opt-in (QA-B-171C): route xpe_bone_suppress through the worker process. Default OFF -- the
      * in-process path is the behaviour every caller had before and stays the default.
      */
@@ -740,10 +757,10 @@ static XpeErrorCode bodyPartUnknown(char* bodyPartOut, size_t bufLen) {
 }
 
 /** Build the model for this session's model directory; the loading rules are shared with the worker (ai_bodypart_model.h). */
-static const char* loadBodyPartModel(AiModuleState* state, std::unique_ptr<BodyPartModel>* out) {
-    std::string detail;
-    const char* why = xpe::ai::LoadBodyPartModel(state->modelDirPath, out, nullptr, &detail);
-    if (why && !detail.empty()) AI_LOG_ERROR("bodypart: %s", detail.c_str());
+static const char* loadBodyPartModel(AiModuleState* state, std::unique_ptr<BodyPartModel>* out,
+                                     xpe::ai::BodyPartLoadFailure* kind, std::string* detail) {
+    const char* why = xpe::ai::LoadBodyPartModel(state->modelDirPath, out, kind, detail);
+    if (why && !detail->empty()) AI_LOG_ERROR("bodypart: %s", detail->c_str());
     return why;
 }
 
@@ -775,6 +792,59 @@ static void warnBodyPartUnavailableOnce(AiModuleState* state, const char* reason
                   "AI body-part recognition is unavailable (%s): UNKNOWN is returned; use the deterministic body-part "
                   "lookup (REQ-AI-002)", reason);
     xpe_alert_push(msg, XPE_ALERT_WARNING);
+}
+
+/**
+ * Size and write time of the three files of a role's model (`<stem>.onnx`, `.json`, `.sig`), as one string, from the
+ * file system's own attribute call. The path is built the way the loaders build it, so both look at the same files.
+ * (std::filesystem is not used here: under the allocation-failure sweep of xpe_ai_oom_tests it left allocations live
+ * when an allocation failed inside it.)
+ */
+static std::string modelFilesStamp(const std::string& dir, const char* stem) {
+    std::string stamp;
+    for (const char* ext : {".onnx", ".json", ".sig"}) {
+        std::string path = dir.empty() ? std::string() : dir + "/";
+        path += stem;
+        path += ext;
+        WIN32_FILE_ATTRIBUTE_DATA d{};
+        if (!GetFileAttributesExA(path.c_str(), GetFileExInfoStandard, &d)) {
+            stamp += "-;";
+            continue;
+        }
+        char buf[96];
+        std::snprintf(buf, sizeof(buf), "%lu.%lu@%lu.%lu;", static_cast<unsigned long>(d.nFileSizeHigh),
+                      static_cast<unsigned long>(d.nFileSizeLow), static_cast<unsigned long>(d.ftLastWriteTime.dwHighDateTime),
+                      static_cast<unsigned long>(d.ftLastWriteTime.dwLowDateTime));
+        stamp += buf;
+    }
+    return stamp;
+}
+
+/** The reason class inside "model signature check failed (<reason>): <path>"; "unknown" when the text has another shape. */
+static std::string signatureReason(const std::string& message) {
+    const std::string open = "model signature check failed (";
+    size_t a = message.find(open);
+    if (a == std::string::npos) return "unknown";
+    a += open.size();
+    const size_t b = message.find(')', a);
+    return b == std::string::npos ? std::string("unknown") : message.substr(a, b - a);
+}
+
+/**
+ * The model of a role failed signature verification (QA-B-195, REQ-AI-007 / REQ-AI-091): ONE Error alert per session
+ * per role, naming the role and the reason class. Error and not Warning because a model that does not verify is a
+ * possible tampering, not a missing installation. @p role is "bone suppression" or "body-part recognition".
+ * CROSS-LANE CONTRACT (QA-B-195 M4): clients may match this text.
+ */
+static void pushModelNotTrustedAlertOnce(bool* alerted, const char* role, const std::string& reason) {
+    if (*alerted) return;
+    *alerted = true;
+    char msg[320];
+    std::snprintf(msg, sizeof(msg),
+                  "AI %s is unavailable: its model failed signature verification (%s) and nothing was loaded "
+                  "(REQ-AI-007, REQ-AI-091)",
+                  role, reason.c_str());
+    xpe_alert_push(msg, XPE_ALERT_ERROR);
 }
 
 /**
@@ -1172,12 +1242,28 @@ extern "C++" static XpeErrorCode xpe_bodypart_recognize_impl(const XpeImageBuffe
     // labels or has an input this module will not feed is NOT a call error: it is the documented fallback outcome,
     // with ONE Warning per session so the operator can find out.
     if (!state->bodyPart || state->bodyPartDir != state->modelDirPath) {
-        std::unique_ptr<BodyPartModel> built;
-        if (const char* why = loadBodyPartModel(state, &built)) {
+        const std::string stamp = modelFilesStamp(state->modelDirPath, "bodypart");
+        if (!state->bodyPartTrustFailStamp.empty() && stamp == state->bodyPartTrustFailStamp) {
+            // Refused for its signature a moment ago and nothing changed since (QA-B-195 M4): no second hashing.
             state->bodyPart.reset();
-            warnBodyPartUnavailableOnce(state, why);
             return bodyPartUnknown(bodyPartOut, bufLen);
         }
+        std::unique_ptr<BodyPartModel> built;
+        xpe::ai::BodyPartLoadFailure kind = xpe::ai::BodyPartLoadFailure::kNone;
+        std::string detail;
+        if (const char* why = loadBodyPartModel(state, &built, &kind, &detail)) {
+            state->bodyPart.reset();
+            if (kind == xpe::ai::BodyPartLoadFailure::kNotTrusted) {
+                state->bodyPartTrustFailStamp = stamp;
+                pushModelNotTrustedAlertOnce(&state->bodyPartTrustAlerted, "body-part recognition",
+                                             signatureReason(detail));
+            } else {
+                state->bodyPartTrustFailStamp.clear();
+                warnBodyPartUnavailableOnce(state, why);
+            }
+            return bodyPartUnknown(bodyPartOut, bufLen);
+        }
+        state->bodyPartTrustFailStamp.clear();
         state->bodyPart = std::move(built);
         state->bodyPartDir = state->modelDirPath;
     }
@@ -1469,6 +1555,21 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
             publishWorkerState(state);
             return XPE_ERR_PROCESSING_FAILED;
         }
+        if (wrc == XPE_ERR_CONFIG_INVALID && state->workerSupervisor &&
+            state->workerSupervisor->LastModelUnavailable()) {
+            // QA-B-195 D6: the worker answered and says its model was REFUSED for its signature (-4 with the
+            // model_unavailable flag). A state of the installation, not a fault of the worker: the count is reset
+            // like after any healthy exchange, so a refused model can never switch AI off by itself, and the
+            // operator is told once. The output holds the input, as on every other failure of this path.
+            std::memmove(softTissueOut->data, img->data, bytes);
+            state->workerConsecutiveFailures = 0;
+            AI_LOG_WARN("bone_suppress: the worker reports its model unavailable (%d), input returned unchanged "
+                        "(not counted as a worker failure)", static_cast<int>(wrc));
+            pushModelNotTrustedAlertOnce(&state->boneTrustAlerted, "bone suppression",
+                                         "refused by the AI worker, see its log");
+            publishWorkerState(state);
+            return wrc;
+        }
         if (wrc == XPE_OK) {
             state->workerConsecutiveFailures = 0;
             pushAiProcessedAlert();
@@ -1506,6 +1607,11 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
 
     // Lazy load, and reload when init pointed somewhere else.
     if (!state->boneSuppressSession || state->boneSuppressSessionDir != state->modelDirPath) {
+        const std::string stamp = modelFilesStamp(state->modelDirPath, "bone_suppress");
+        if (!state->boneTrustFailStamp.empty() && stamp == state->boneTrustFailStamp) {
+            // Refused for its signature a moment ago and nothing changed since (QA-B-195 M4): no second hashing.
+            return XPE_ERR_CONFIG_INVALID;
+        }
         xpe::ai::OnnxSessionConfig cfg;
         cfg.model_path = modelPath;
         cfg.role = "bone_suppress";   // part of what the signature covers (QA-B-195)
@@ -1528,16 +1634,21 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
                     // QA-B-194 M5: a shortage of memory is named as one, not as a failed inference.
                     return XPE_ERR_OUT_OF_MEMORY;
                 case xpe::ai::OnnxErrorCode::kModelNotTrusted:
-                    // QA-B-195 M3: the model or its sidecar failed signature verification. Nothing was loaded. The
-                    // same code as "model unreadable": the caller's answer is the same (no model to use). M4 makes
-                    // the reason visible to the operator.
+                    // QA-B-195: the model or its sidecar failed signature verification. Nothing was loaded. The
+                    // same code as "model unreadable": the caller's answer is the same (no model to use). The
+                    // operator is told once per session, with the reason class; the refusal is remembered until a
+                    // file changes (modelFilesStamp), so the model is not hashed again on every call.
                     AI_LOG_ERROR("bone_suppress: %s", created.message.c_str());
+                    state->boneTrustFailStamp = stamp;
+                    pushModelNotTrustedAlertOnce(&state->boneTrustAlerted, "bone suppression",
+                                                 signatureReason(created.message));
                     return XPE_ERR_CONFIG_INVALID;
                 default:
                     AI_LOG_ERROR("bone_suppress: session failed: %s", created.message.c_str());
                     return XPE_ERR_PROCESSING_FAILED;
             }
         }
+        state->boneTrustFailStamp.clear();
         state->boneSuppressSession = std::move(created.value);
         state->boneSuppressSessionDir = state->modelDirPath;
     }

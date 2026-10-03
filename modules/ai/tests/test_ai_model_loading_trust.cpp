@@ -28,6 +28,7 @@
 #include <windows.h>
 
 #include <cstdint>
+#include <chrono>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -537,4 +538,201 @@ TEST(ModelLoadingTrust, ASidecarOrSignatureThatExistsButCannotBeReadIsRefusedNot
     const Outcome o = Load(t / "bone_suppress.onnx");
     EXPECT_EQ(OnnxErrorCode::kModelNotTrusted, o.code);
     EXPECT_TRUE(o.Names(SignatureStatus::kVerifierError)) << o.message;
+}
+
+// ===== QA-B-195 M4: how a refusal behaves ===================================================================
+
+namespace {
+struct AlertText {
+    std::string text;
+    int32_t severity;
+};
+std::vector<AlertText> PendingAlerts() {
+    std::vector<AlertText> out;
+    const int32_t n = xpe_get_pending_alert_count();
+    for (int32_t i = 0; i < n; ++i) {
+        char msg[512] = {0};
+        int32_t sev = -1;
+        if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) == XPE_OK) out.push_back({msg, sev});
+    }
+    return out;
+}
+
+/** One xpe_bone_suppress call on a 3x3 frame of ones; the output starts as -777. Returns the code. */
+XpeErrorCode BoneCall(std::vector<float>* out) {
+    std::vector<float> in(9, 1.0f);
+    out->assign(9, -777.0f);
+    XpeImageBuffer ib{}, ob{};
+    ib.width = ib.height = ob.width = ob.height = 3;
+    ib.bitsAllocated = ib.bitsStored = ob.bitsAllocated = ob.bitsStored = 32;
+    ib.format = ob.format = XPE_PIXEL_FLOAT32;
+    ib.data = in.data();
+    ob.data = out->data();
+    ib.dataSize = ob.dataSize = in.size() * sizeof(float);
+    return xpe_bone_suppress(&ib, &ob, nullptr);
+}
+
+/** A copy of models_x2 whose model has one byte changed: its signature no longer matches. */
+void TamperBoneModel(const TempDir& t) {
+    t.CopyFrom("models_x2");
+    std::vector<uint8_t> m = xpe_test::ReadBytes(t / "bone_suppress.onnx");
+    m[m.size() / 2] ^= 0x01;
+    Write(t / "bone_suppress.onnx", m);
+}
+}  // namespace
+
+TEST(ModelRefusalBehavior, ARefusedBoneModelRaisesOneErrorAlertPerSessionWithTheReasonAndNothingElse) {
+    if (IsStub()) GTEST_SKIP() << "stub build: xpe_bone_suppress answers before it looks for a model";
+    const TempDir t("refuse_bone");
+    TamperBoneModel(t);
+    for (int session = 0; session < 2; ++session) {
+        xpe_ai_shutdown();
+        xpe_clear_alerts();
+        ASSERT_EQ(XPE_OK, xpe_ai_init(t.path.string().c_str(), "{}"));
+        for (int i = 0; i < 4; ++i) {
+            std::vector<float> out;
+            EXPECT_EQ(XPE_ERR_CONFIG_INVALID, BoneCall(&out)) << "session " << session << " call " << i;
+            for (const float v : out) EXPECT_EQ(-777.0f, v) << "the output is untouched";
+        }
+        const std::vector<AlertText> a = PendingAlerts();
+        ASSERT_EQ(1u, a.size()) << "session " << session << ": one alert for four refused calls, nothing else";
+        EXPECT_EQ(XPE_ALERT_ERROR, a[0].severity) << "Error, not Warning: a model that does not verify may be tampered with";
+        EXPECT_NE(std::string::npos, a[0].text.find("bone suppression")) << a[0].text;
+        EXPECT_NE(std::string::npos, a[0].text.find(SignatureStatusText(SignatureStatus::kBadSignature))) << a[0].text;
+        EXPECT_NE(std::string::npos, a[0].text.find("REQ-AI-007")) << a[0].text;
+    }
+    xpe_ai_shutdown();
+    xpe_clear_alerts();
+}
+
+TEST(ModelRefusalBehavior, TheAlertNamesTheReasonThatIsTrueForEachWayToBeRefused) {
+    if (IsStub()) GTEST_SKIP() << "stub build: xpe_bone_suppress answers before it looks for a model";
+    struct Way {
+        const char* name;
+        SignatureStatus reason;
+    };
+    for (const Way w : {Way{"missing signature", SignatureStatus::kNoSignatureFile},
+                        Way{"damaged signature", SignatureStatus::kMalformedSignature},
+                        Way{"unknown key", SignatureStatus::kUnknownKey}}) {
+        const TempDir t("refuse_reason");
+        t.CopyFrom("models_x2");
+        std::vector<uint8_t> sig = xpe_test::ReadBytes(t / "bone_suppress.sig");
+        if (w.reason == SignatureStatus::kNoSignatureFile) {
+            fs::remove(t / "bone_suppress.sig");
+        } else if (w.reason == SignatureStatus::kMalformedSignature) {
+            sig.pop_back();
+            Write(t / "bone_suppress.sig", sig);
+        } else {
+            sig[6] ^= 0xff;   // the key id
+            Write(t / "bone_suppress.sig", sig);
+        }
+        xpe_ai_shutdown();
+        xpe_clear_alerts();
+        ASSERT_EQ(XPE_OK, xpe_ai_init(t.path.string().c_str(), "{}"));
+        std::vector<float> out;
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, BoneCall(&out)) << w.name;
+        const std::vector<AlertText> a = PendingAlerts();
+        ASSERT_EQ(1u, a.size()) << w.name;
+        EXPECT_NE(std::string::npos, a[0].text.find(SignatureStatusText(w.reason))) << w.name << ": " << a[0].text;
+    }
+    xpe_ai_shutdown();
+    xpe_clear_alerts();
+}
+
+TEST(ModelRefusalBehavior, ARefusedBodyPartModelRaisesOneAlertPerSessionOnBothPaths) {
+    if (IsStub()) GTEST_SKIP() << "stub build: xpe_bodypart_recognize answers before it looks for a model";
+    const TempDir t("refuse_part");
+    t.CopyFrom("models_bodypart_a");
+    const std::string hands = "{\"labels\": [\"HAND\", \"HAND\", \"HAND\"]}";
+    Write(t / "bodypart.json", std::vector<uint8_t>(hands.begin(), hands.end()));   // the signature is now stale
+    for (const bool worker : {false, true}) {
+        xpe_ai_shutdown();
+        xpe_clear_alerts();
+        ASSERT_EQ(XPE_OK, xpe_ai_init(t.path.string().c_str(), worker ? "{\"use_worker\": true}" : "{}"));
+        for (int i = 0; i < 4; ++i) EXPECT_EQ("UNKNOWN", Recognize().label) << "worker=" << worker;
+        const std::vector<AlertText> a = PendingAlerts();
+        // Either way ONE alert for four refused calls. The in-process path names the reason and raises an Error. The
+        // worker path CANNOT: a body-part ERROR frame carries a code (-4) and the unavailable flag, and a refused
+        // signature, an unreadable model and bad labels all look the same on the wire, so the host keeps its existing
+        // single "unavailable" Warning for this role. KNOWN LIMIT (m4_report.md): no Error-with-reason on this path.
+        ASSERT_EQ(1u, a.size()) << "worker=" << worker;
+        if (!worker) {
+            EXPECT_EQ(XPE_ALERT_ERROR, a[0].severity);
+            EXPECT_NE(std::string::npos, a[0].text.find("body-part recognition")) << a[0].text;
+            EXPECT_NE(std::string::npos, a[0].text.find(SignatureStatusText(SignatureStatus::kBadSignature))) << a[0].text;
+        } else {
+            EXPECT_EQ(XPE_ALERT_WARNING, a[0].severity);
+            EXPECT_NE(std::string::npos, a[0].text.find("unavailable")) << a[0].text;
+        }
+    }
+    xpe_ai_shutdown();
+    xpe_clear_alerts();
+}
+
+TEST(ModelRefusalBehavior, ARefusalIsCheckedAgainTheMomentAnyOfTheThreeFilesChanges) {
+    if (IsStub()) GTEST_SKIP() << "stub build: xpe_bone_suppress answers before it looks for a model";
+    const TempDir t("refuse_recheck");
+    TamperBoneModel(t);
+    xpe_ai_shutdown();
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, xpe_ai_init(t.path.string().c_str(), "{}"));
+    std::vector<float> out;
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, BoneCall(&out));
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, BoneCall(&out)) << "the second call answers from the memo, same code";
+
+    // Repair: a valid signature for the file as it is now. The signature file keeps its SIZE (78 bytes) and its write
+    // time is put one hour AHEAD of the old one, so the test does not depend on the file system's timestamp resolution.
+    const auto before = fs::last_write_time(t / "bone_suppress.sig");
+    ASSERT_TRUE(xpe_test::SignDir(t.path, "bone_suppress"));
+    fs::last_write_time(t / "bone_suppress.sig", before + std::chrono::hours(1));
+    EXPECT_NE(XPE_ERR_CONFIG_INVALID, BoneCall(&out)) << "a repaired signature must be seen at once, not after a restart";
+    xpe_ai_shutdown();
+    xpe_clear_alerts();
+}
+
+TEST(ModelRefusalBehavior, AWorkerSignatureRefusalOfBoneSuppressionIsNotAWorkerFailureAndNeverSwitchesTheWorkerOff) {
+    if (IsStub()) GTEST_SKIP() << "stub build: no worker runs a model";
+    const TempDir t("refuse_worker_bone");
+    TamperBoneModel(t);
+    xpe_ai_shutdown();
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, xpe_ai_init(t.path.string().c_str(), "{\"use_worker\": true}"));
+    for (int i = 0; i < 5; ++i) {   // past the ceiling of 3
+        std::vector<float> out;
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, BoneCall(&out)) << "call " << i;
+        for (const float v : out) EXPECT_EQ(1.0f, v) << "call " << i << ": the worker path returns the input unchanged";
+        int32_t state = -1;
+        uint32_t failures = 777;
+        ASSERT_EQ(XPE_OK, xpe_ai_worker_state(&state, &failures, nullptr));
+        EXPECT_EQ(XPE_AI_WORKER_ACTIVE, state) << "call " << i;
+        EXPECT_EQ(0u, failures) << "call " << i << ": a refusal for its signature is 'unavailable', not a failure";
+    }
+    const std::vector<AlertText> a = PendingAlerts();
+    ASSERT_EQ(1u, a.size()) << "one Error alert, and no 'AI worker failed' Warnings";
+    EXPECT_EQ(XPE_ALERT_ERROR, a[0].severity);
+    EXPECT_NE(std::string::npos, a[0].text.find("bone suppression")) << a[0].text;
+    xpe_ai_shutdown();
+    xpe_clear_alerts();
+}
+
+TEST(ModelRefusalBehavior, ARefusedBodyPartModelIsCheckedAgainTheMomentItsFilesChange) {
+    if (IsStub()) GTEST_SKIP() << "stub build: xpe_bodypart_recognize answers before it looks for a model";
+    const TempDir t("refuse_part_recheck");
+    t.CopyFrom("models_bodypart_a");
+    const std::string hands = "{\"labels\": [\"HAND\", \"HAND\", \"HAND\"]}";
+    Write(t / "bodypart.json", std::vector<uint8_t>(hands.begin(), hands.end()));   // the signature is now stale
+    xpe_ai_shutdown();
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, xpe_ai_init(t.path.string().c_str(), "{}"));
+    EXPECT_EQ("UNKNOWN", Recognize().label);
+    EXPECT_EQ("UNKNOWN", Recognize().label) << "the second call answers from the memo";
+
+    const auto before = fs::last_write_time(t / "bodypart.sig");
+    ASSERT_TRUE(xpe_test::SignDir(t.path, "bodypart"));
+    fs::last_write_time(t / "bodypart.sig", before + std::chrono::hours(1));
+    const PartResult r = Recognize();
+    EXPECT_EQ(XPE_OK, r.rc) << "a repaired signature must be seen at once, in the same session";
+    EXPECT_EQ("HAND", r.label);
+    xpe_ai_shutdown();
+    xpe_clear_alerts();
 }

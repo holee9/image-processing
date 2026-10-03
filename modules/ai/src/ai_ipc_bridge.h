@@ -36,7 +36,7 @@ struct XpeAiIpcBridge {
     /** Set by xpe_ai_ipc_bridge_bone_suppress: the LAST call was refused because the worker's reply was well formed
      *  but held a non-finite pixel (QA-B-181i). Reset at the start of every call. Not a transport fault. */
     bool last_result_nonfinite = false;
-    /** Set by xpe_ai_ipc_bridge_bodypart: the LAST call got a worker ERROR frame that says the MODEL cannot be used
+    /** Set by xpe_ai_ipc_bridge_bodypart and (QA-B-195 D6) xpe_ai_ipc_bridge_bone_suppress: the LAST call got a worker ERROR frame that says the MODEL cannot be used
      *  (QA-B-191 M4b): a state of the installation, not a fault of the worker or the transport. Reset every call. */
     bool last_model_unavailable = false;
 

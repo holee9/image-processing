@@ -71,9 +71,18 @@
  * the keys named by the environment variable XPE_AI_TEST_TRUSTED_KEYS (test keys, never a production key); a delivery
  * build (-DXPE_AI_TEST_HOOKS=OFF) contains no such code.
  *
- * A refusal behaves like any other "no usable model": xpe_bone_suppress returns XPE_ERR_CONFIG_INVALID,
- * xpe_bodypart_recognize writes UNKNOWN, raises the one "unavailable" Warning of the session and returns
- * XPE_ERR_PROCESSING_FAILED, and neither counts against the worker. Only the log carries the reason so far.
+ * A refusal behaves like any other "no usable model": xpe_bone_suppress returns XPE_ERR_CONFIG_INVALID (the output is
+ * not written), xpe_bodypart_recognize writes UNKNOWN and returns XPE_ERR_PROCESSING_FAILED. In addition the session
+ * raises ONE XPE_ALERT_ERROR per role, the first time that role's model is refused:
+ * "AI [bone suppression|body-part recognition] is unavailable: its model failed signature verification ([reason]) and
+ * nothing was loaded (REQ-AI-007, REQ-AI-091)", where [reason] is one of: no signature file, the signature file is
+ * malformed, the signature format is not supported, the signing key is not trusted, the signature does not match the
+ * model files, a model file is too large to verify, the verifier could not run. (Cross-lane contract: clients may match
+ * this text.) A refused model is not retried while its files are unchanged, and is checked again as soon as the model,
+ * its sidecar or its signature file changes. A refusal never counts as a failure of the worker process
+ * (xpe_ai_worker_state is unaffected, and a refused model cannot switch the worker off). One path differs: the
+ * worker's body-part answer cannot say WHY its model is unavailable, so that path raises its existing single "AI
+ * body-part recognition is unavailable" Warning instead of the Error above.
  *
  * WHAT THIS DOES NOT GUARD AGAINST: the trusted public keys are inside xpe_ai.dll and xpe_ai_worker.exe, so an
  * attacker who can replace THOSE can replace the keys. The check shows that the model files were not changed; the

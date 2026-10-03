@@ -514,7 +514,7 @@ BoneOutcome AskFakeBone(const std::string& json, uint32_t flags = 0) {
     BoneOutcome o{};
     o.rc = sup.BoneSuppress(3, 3, in, out);
     o.workerKept = sup.WorkerPid() != 0;
-    o.unavailableFlagSeen = sup.LastModelUnavailable();   // the supervisor's last BODY-PART flag: must stay false
+    o.unavailableFlagSeen = sup.LastModelUnavailable();   // the supervisor's last flag for this call (QA-B-195 D6: bone too)
     for (float v : out) EXPECT_EQ(-777.0f, v) << json << ": a failed call leaves the output untouched";
     return o;
 }
@@ -528,21 +528,32 @@ TEST(WorkerBoneErrorFrame, EveryFrameTheProtocolForbidsEverywhereIsAFaultForBone
     }
 }
 
-TEST(WorkerBoneErrorFrame, TheBodyPartFieldIsAFaultInAnyFormBecauseBoneSuppressionHasNoSuchNotion) {
-    // "model_unavailable" belongs to body-part requests. In a bone suppression ERROR frame the worker is saying
-    // something this request has no word for, so nothing in the frame is trusted -- even a value the body-part
-    // parser would accept (true with IO_FAILED, false).
-    const std::vector<std::pair<const char*, std::string>> cases = {
-        {"true with IO_FAILED", R"({"error_code":-9,"model_unavailable":true,"error_message":"x"})"},
-        {"true with CONFIG_INVALID", R"({"error_code":-4,"model_unavailable":true})"},
-        {"false", R"({"error_code":-9,"model_unavailable":false})"},
-        {"a string", R"({"error_code":-9,"model_unavailable":"x"})"},
+// QA-B-195 D6: THE RULE THIS TEST USED TO GUARD CHANGED, because its ground changed. QA-B-193 held that bone suppression
+// has no notion of "the model cannot be used", so "model_unavailable" in its ERROR frame was a protocol fault in any
+// form. Signature verification gave bone suppression that notion (a model refused for its signature is unavailable,
+// and must not count toward switching the worker off), so the flag is now believed for bone suppression under the SAME
+// condition as for body-part requests. What the old test protected -- that a frame which contradicts itself or is
+// malformed is never believed -- is still protected, for bone suppression too:
+//   * a flag with any code other than -4 / -9, a non-boolean flag, a repeated flag: ForbiddenEverywhere() above runs on
+//     bone suppression (EveryFrameTheProtocolForbidsEverywhereIsAFaultForBoneSuppressionToo) and must stay green;
+//   * a flag that is a string: the third case below, a fault with the worker dropped.
+TEST(WorkerBoneErrorFrame, TheUnavailableFlagIsBelievedForBoneSuppressUnderTheBodyPartRuleAndNothingElseChanged) {
+    struct Case { const char* name; std::string json; XpeErrorCode rc; bool flag; };
+    const std::vector<Case> believed = {
+        {"true with IO_FAILED", R"({"error_code":-9,"model_unavailable":true,"error_message":"x"})", XPE_ERR_IO_FAILED, true},
+        {"true with CONFIG_INVALID", R"({"error_code":-4,"model_unavailable":true})", XPE_ERR_CONFIG_INVALID, true},
+        {"false", R"({"error_code":-9,"model_unavailable":false})", XPE_ERR_IO_FAILED, false},
     };
-    for (const auto& c : cases) {
-        const BoneOutcome o = AskFakeBone(c.second);
-        EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, o.rc) << c.first << ": " << c.second;
-        EXPECT_FALSE(o.workerKept) << c.first;
+    for (const Case& c : believed) {
+        const BoneOutcome o = AskFakeBone(c.json);
+        EXPECT_EQ(c.rc, o.rc) << c.name << ": " << c.json;
+        EXPECT_TRUE(o.workerKept) << c.name << ": a valid ERROR frame leaves the worker in place";
+        EXPECT_EQ(c.flag, o.unavailableFlagSeen) << c.name;
     }
+    const BoneOutcome bad = AskFakeBone(R"({"error_code":-9,"model_unavailable":"x"})");
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, bad.rc) << "a string flag is a fault";
+    EXPECT_FALSE(bad.workerKept);
+    EXPECT_FALSE(bad.unavailableFlagSeen) << "a flag from a frame that is a fault is never believed";
 }
 
 TEST(WorkerBoneErrorFrame, EveryFrameTheProtocolAllowsIsPassedThroughAndKeepsTheWorker) {

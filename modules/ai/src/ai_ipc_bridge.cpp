@@ -260,11 +260,11 @@ bool ParseFlatObject(const char* json, size_t n, bool allow_real, bool allow_esc
  *     margin keeps a future code from being taken for garbage); "-0", a leading zero, a decimal and an exponent
  *     are not integers here;
  *   - "error_message", if present, is a string;
- *   - "model_unavailable" is a field of BODY-PART requests only. @p allow_model_unavailable says whether this
- *     request type has it: where it does, it is true or false, and true is believed ONLY with
+ *   - "model_unavailable" is a field of requests that load a model (body-part and, since QA-B-195 D6, bone
+ *     suppression). @p allow_model_unavailable says whether this request type has it: where it does, it is true or false, and true is believed ONLY with
  *     XPE_ERR_IO_FAILED (no model file) or XPE_ERR_CONFIG_INVALID (the rest of the ways a model cannot be
- *     loaded or configured). Where it does not (bone suppression has no such notion), its presence in any form is
- *     a fault: the frame says something this request has no word for, so nothing in it can be trusted.
+ *     loaded or configured). Where it does not (no caller passes false today), its presence in any form is a
+ *     fault: the frame says something this request has no word for, so nothing in it can be trusted.
  * Keys it does not know are ignored, as in a success reply.
  * Both request types call it with the frame's HEADER too: the one place that decides whether an ERROR frame is
  * acceptable also decides the binary-payload bit (QA-B-193b), so neither request can skip it.
@@ -591,6 +591,7 @@ XpeErrorCode xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge,
         return XPE_ERR_INVALID_INPUT;
     }
     bridge->last_result_nonfinite = false;
+    bridge->last_model_unavailable = false;
     const uint64_t count = static_cast<uint64_t>(width) * height;
     // 4 (length prefix) + metadata + pixels must fit one protocol payload.
     if (count > (XPE_AI_MAX_PAYLOAD_SIZE - 512u) / sizeof(float)) {
@@ -656,15 +657,18 @@ XpeErrorCode xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge,
         // The worker's own code, verbatim -- but only from an ERROR frame that parses as the protocol says
         // (ParseWorkerErrorFrame). A frame that deviates is a worker speaking garbage: the answer is a failure of
         // unknown kind (never a success) and the connection is dropped, because nothing else this worker says
-        // can be trusted either (Codex audit #11). Bone suppression has no "model_unavailable" notion, so that
-        // field in its ERROR frame is a fault too (QA-B-193).
+        // can be trusted either (Codex audit #11). QA-B-195 D6 changed the rule QA-B-193 set here: bone suppression
+        // now has "the model cannot be used" too (signature refused, no model file), so "model_unavailable" is
+        // accepted in its ERROR frame under the SAME condition as for body-part requests (true only with -4 or -9;
+        // a contradiction or another code is still a protocol fault, decided in ParseWorkerErrorFrame).
         int code = 0;
         bool unavailable = false;
         if (!ParseWorkerErrorFrame(rh, reinterpret_cast<const char*>(reply.data()), rh.payloadSize,
-                                   /*allow_model_unavailable=*/false, &code, &unavailable)) {
+                                   /*allow_model_unavailable=*/true, &code, &unavailable)) {
             DropConnection(bridge);
             return XPE_ERR_PROCESSING_FAILED;
         }
+        bridge->last_model_unavailable = unavailable;
         return static_cast<XpeErrorCode>(code);
     }
 

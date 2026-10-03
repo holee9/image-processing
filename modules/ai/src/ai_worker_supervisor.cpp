@@ -329,10 +329,12 @@ XpeErrorCode WorkerSupervisor::BoneSuppress(uint32_t width, uint32_t height,
                                             const float* pixels_in, float* pixels_out) {
     std::lock_guard<std::mutex> lock(mtx_);
     last_result_nonfinite_ = false;
+    last_model_unavailable_ = false;
     XpeErrorCode rc = EnsureRunningLocked();
     if (rc != XPE_OK) return rc;
     rc = xpe_ai_ipc_bridge_bone_suppress(bridge_, width, height, pixels_in, pixels_out);
     last_result_nonfinite_ = bridge_ != nullptr && bridge_->last_result_nonfinite;
+    last_model_unavailable_ = bridge_ != nullptr && bridge_->last_model_unavailable;
     // A worker's error frame leaves the bridge connected and the worker in place; a transport
     // fault or a frame the bridge could not trust takes the bridge down and the worker with it.
     DropIfBridgeDownLocked();
