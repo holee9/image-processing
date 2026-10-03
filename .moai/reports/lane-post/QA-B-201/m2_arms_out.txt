@@ -1,0 +1,14 @@
+=== CONTROL: the root files as they are
+red tests: (none)
+=== ARM root model-card.schema.json removed
+red tests: ['AiModelCardTest.EveryCardAndEveryUnavailableAnswerConformsToTheSchema', 'ModelCardSchema.ControlTheSchemaRefusesWhatItShould']
+messages: ['schemas/model-card.schema.json not found under D:/workspace-github/xpe-post/schemas', 'schemas/model-card.schema.json not found under D:/workspace-github/xpe-post/schemas']
+=== ARM root model-sidecar.schema.json removed
+red tests: ['ModelSidecarSchema.EveryShippedFixtureSidecarConformsAndTheSchemaRefusesWhatTheModuleRefuses']
+messages: ['schemas/model-sidecar.schema.json not found under D:/workspace-github/xpe-post/schemas']
+=== ARM root model-card.schema.json replaced by a schema that accepts any object
+red tests: ['ModelCardSchema.ControlTheSchemaRefusesWhatItShould']
+=== ARM root model-sidecar.schema.json replaced by a schema that accepts any object
+red tests: ['ModelSidecarSchema.EveryShippedFixtureSidecarConformsAndTheSchemaRefusesWhatTheModuleRefuses']
+restored byte-identical: True
+=== DONE

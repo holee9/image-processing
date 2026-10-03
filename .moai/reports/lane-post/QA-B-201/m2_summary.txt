@@ -1,0 +1,3 @@
+root schemas/ present (byte-identical to main's FETCH_HEAD:schemas/*): cmp OK for both files
+ci-post ctest (CI filter):
+100% tests passed, 0 tests failed out of 1360

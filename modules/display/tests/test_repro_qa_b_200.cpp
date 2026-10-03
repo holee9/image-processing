@@ -1,22 +1,19 @@
 /**
  * @file test_repro_qa_b_200.cpp
- * @brief QA-B-200 M1: the two display candidates of QA-B-199 (D5, D9).
+ * @brief QA-B-200 M1: display candidate D5 of QA-B-199 (not a defect), kept as an ACTIVE record of the behaviour.
  *
- * D5 is NOT a defect (the user decided the documents follow the code: gsdfEnabled is an annotation) and is an ACTIVE test
- * that records the behaviour. D9 reproduces a defect that is not fixed yet and stays DISABLED_: built, never run by ctest;
- * run by hand with --gtest_also_run_disabled_tests, and its OUTPUT is the evidence (.moai/reports/lane-post/QA-B-200/).
- * A test that FAILS reproduces a defect; one that passes shows the candidate was not one. The tests of a candidate that is
+ * D5 is an active test: the user decided the documents follow the code (gsdfEnabled is an annotation), and a test executable
+ * in which every test is DISABLED_ runs nothing, which CI's single-process step refuses ("a run that executes nothing is
+ * not a pass", QA-B-203, main b3458366). A reproduction of an unfixed defect would be DISABLED_ and run by hand
+ * (--gtest_also_run_disabled_tests) and its OUTPUT is the evidence (.moai/reports/lane-post/QA-B-200/). A test that
+ * FAILS reproduces a defect; one that passes shows the candidate was not one. The tests of a candidate that is
  * confirmed are enabled by the M2 that fixes it.
- *
- * A test executable in which every test is DISABLED_ runs nothing, and CI's single-process step refuses "a run that
- * executes nothing" (QA-B-203, main b3458366): that is why D5 is active.
  *
  * D5  REQ-DISP-024: "WHEN gsdfEnabled is non-zero in the params, the system SHALL apply the GSDF-calibrated LUT entries".
  *     The candidate: xpe_apply_presentation_lut never reads gsdfEnabled. What is measured here: whether the flag changes
  *     anything the function does, and whether the entries are applied either way.
- * D9  REQ-DISP-031: "Each display function SHALL log entry/exit at DEBUG level and error conditions at ERROR level via
- *     the logging subsystem (xpe_common.dll)." The candidate: the module logs nothing. Measured through xpe_common's own
- *     log file, with a control line that proves the file receives what the logger gets.
+ * D9  REQ-DISP-031 (the module logged nothing) was CONFIRMED by the M1 run and FIXED in M2a: its tests are now
+ *     test_display_logging.cpp and are enabled. REQ-DISP-030 was not a defect (the module has no throwing construct).
  */
 
 #include <gtest/gtest.h>
@@ -91,73 +88,4 @@ TEST(ReproQaB200Display, D5_GsdfEnabledDoesNotChangeWhatThePresentationLutDoes) 
     EXPECT_TRUE(same) << "gsdfEnabled is an annotation: the same entries are applied with the flag 0 and 1";
     std::free(a.data);
     std::free(b.data);
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-// D9
-// ---------------------------------------------------------------------------------------------------------------------
-
-namespace {
-
-std::string ReadAll(const std::string& path) {
-    std::ifstream f(path, std::ios::binary);
-    return std::string((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-}
-
-int CountLines(const std::string& text, const char* needle) {
-    int n = 0;
-    size_t at = 0;
-    while ((at = text.find(needle, at)) != std::string::npos) {
-        ++n;
-        at += std::strlen(needle);
-    }
-    return n;
-}
-
-}  // namespace
-
-TEST(ReproQaB200Display, DISABLED_D9_TheModuleLogsEntryExitAndErrorsThroughTheCommonLogger) {
-    char tmp[MAX_PATH] = {0};
-    GetTempPathA(MAX_PATH, tmp);
-    const std::string logPath = std::string(tmp) + "xpe_display_repro_d9_" + std::to_string(GetCurrentProcessId()) + ".log";
-    std::remove(logPath.c_str());
-    ASSERT_EQ(XPE_OK, xpe_log_set_level(1)) << "level 1 = DEBUG, the level REQ-DISP-031 names (see xpe_common_api.h)";
-    ASSERT_EQ(XPE_OK, xpe_log_set_file(logPath.c_str()));
-
-    // control: a line written through the same default logger reaches the file, so an empty result means "not logged"
-    spdlog::default_logger()->error("D9-CONTROL-LINE");
-
-    // one successful call and one error call of every function that has an entry point
-    XpeModalityLutParams mp{};
-    mp.mode = XPE_MODALITY_LUT_LINEAR;
-    mp.rescaleSlope = 1.0f;
-    mp.rescaleIntercept = 0.0f;
-    std::vector<float> px(16, 100.0f);
-    XpeImageBuffer img = MakeFloatImage(4, 4, px);
-    (void)xpe_apply_modality_lut(&img, &mp);                 // success
-    (void)xpe_apply_modality_lut(nullptr, &mp);              // error: NULL image
-    XpeVoiLutParams vp{};
-    vp.mode = XPE_VOI_LINEAR;
-    vp.center = 50.0f;
-    vp.width = 100.0f;
-    vp.minOut = 0.0f;
-    vp.maxOut = 1.0f;
-    (void)xpe_apply_voi_lut(&img, &vp);                      // success or refusal, either is a call
-    (void)xpe_apply_voi_lut(nullptr, &vp);                   // error
-    (void)xpe_apply_presentation_lut(nullptr, nullptr);      // error
-    xpe_log_flush();
-    std::free(img.data);
-
-    const std::string text = ReadAll(logPath);
-    const int control = CountLines(text, "D9-CONTROL-LINE");
-    const int fromDisplay = CountLines(text, "xpe_apply_") + CountLines(text, "modality") + CountLines(text, "voi_lut") +
-                            CountLines(text, "presentation") + CountLines(text, "gsdf");
-    std::printf("D9 OBSERVED: log file has %zu bytes; the control line appears %d time(s); lines that name a display "
-                "function: %d\n",
-                text.size(), control, fromDisplay);
-    std::printf("D9 LOG FILE CONTENT BEGIN\n%s\nD9 LOG FILE CONTENT END\n", text.c_str());
-    ASSERT_EQ(1, control) << "the control: the log file receives what the logger gets";
-    EXPECT_GT(fromDisplay, 0) << "REQ-DISP-031: the display functions log entry/exit at DEBUG and errors at ERROR";
-    xpe_log_set_file(nullptr);
-    std::remove(logPath.c_str());
 }

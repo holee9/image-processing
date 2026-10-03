@@ -1,0 +1,22 @@
+"""Alternating timing of the 3072x3072 xpe_edge_enhance test between two prebuilt binary directories build/ab_<X>, build/ab_<Y>.
+python build/g201_ab_measure2.py <X> <Y> <label X> <label Y> <out>"""
+import re
+import subprocess
+import sys
+
+X, Y, LX, LY, OUT = sys.argv[1:6]
+RUNS = 40
+BAT = r'D:\workspace-github\xpe-post\build\g201-abrun.bat'
+log = open(OUT, 'w', encoding='utf-8', newline='\n')
+res = {X: [], Y: []}
+for i in range(RUNS):
+    for tag in ((X, Y) if i % 2 == 0 else (Y, X)):
+        r = subprocess.run(['cmd', '/c', BAT, tag], capture_output=True, text=True, timeout=600)
+        m = re.search(r'took (\d+)ms', r.stdout)
+        res[tag].append(('[  PASSED  ]' in r.stdout, int(m.group(1)) if m else None))
+for tag, label in ((X, LX), (Y, LY)):
+    ok = sum(1 for p, _ in res[tag] if p)
+    fails = sorted(ms for p, ms in res[tag] if not p and ms is not None)
+    log.write('%s: passed %d of %d; the failing runs took %s ms\n' % (label, ok, RUNS, fails))
+log.write('=== DONE\n')
+log.close()

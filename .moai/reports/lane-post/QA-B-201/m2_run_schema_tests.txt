@@ -1,0 +1,113 @@
+Note: Google Test filter = AiModelCardTest.*:ModelCardSchema.*:ModelSidecarSchema.*
+[==========] Running 23 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 21 tests from AiModelCardTest
+[ RUN      ] AiModelCardTest.TheCardOfAVerifiedModelCarriesWhatItsSidecarSaysAndNothingElse
+[2026-10-03 16:38:27.703] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_card_full, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.705] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.TheCardOfAVerifiedModelCarriesWhatItsSidecarSaysAndNothingElse (2 ms)
+[ RUN      ] AiModelCardTest.AFieldTheSidecarDoesNotCarryIsNullAndIsNeverInvented
+[2026-10-03 16:38:27.714] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.714] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.AFieldTheSidecarDoesNotCarryIsNullAndIsNeverInvented (0 ms)
+[ RUN      ] AiModelCardTest.ThePccpStatusSaysThatTheModuleDidNotEvaluateTheScope
+[2026-10-03 16:38:27.714] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_card_full, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.715] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.ThePccpStatusSaysThatTheModuleDidNotEvaluateTheScope (0 ms)
+[ RUN      ] AiModelCardTest.TheCardOfABodyPartModelComesFromItsSidecarToo
+[2026-10-03 16:38:27.715] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_bodypart_a, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.715] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.TheCardOfABodyPartModelComesFromItsSidecarToo (0 ms)
+[ RUN      ] AiModelCardTest.NoConstantOfTheOldStubCardRemainsInAnyCard
+[2026-10-03 16:38:27.715] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.716] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-03 16:38:27.716] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_card_full, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.716] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-03 16:38:27.716] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_bodypart_a, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.717] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.NoConstantOfTheOldStubCardRemainsInAnyCard (1 ms)
+[ RUN      ] AiModelCardTest.ACardIsTheSameOnEveryCall
+[2026-10-03 16:38:27.717] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_card_full, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.718] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.ACardIsTheSameOnEveryCall (1 ms)
+[ RUN      ] AiModelCardTest.AModelIdThatNoVerifiedModelHasIsUnavailableAndTheAnswerSaysNothingElse
+[2026-10-03 16:38:27.718] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.719] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.AModelIdThatNoVerifiedModelHasIsUnavailableAndTheAnswerSaysNothingElse (0 ms)
+[ RUN      ] AiModelCardTest.TheFourIdsTheOldStubCardAnsweredToAreUnavailableNow
+[2026-10-03 16:38:27.719] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.720] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.TheFourIdsTheOldStubCardAnsweredToAreUnavailableNow (1 ms)
+[ RUN      ] AiModelCardTest.WithNoModelDirectoryThereIsNoCardAtAll
+[2026-10-03 16:38:27.720] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.720] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.WithNoModelDirectoryThereIsNoCardAtAll (0 ms)
+[ RUN      ] AiModelCardTest.AModelThatDoesNotVerifyHasNoCard
+[2026-10-03 16:38:27.723] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe_card_tampered_59468, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.762] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.AModelThatDoesNotVerifyHasNoCard (42 ms)
+[ RUN      ] AiModelCardTest.AModelWhoseSidecarIsInvalidHasNoCard
+[2026-10-03 16:38:27.771] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe_card_invalid_sidecar_59468, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.777] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.AModelWhoseSidecarIsInvalidHasNoCard (14 ms)
+[ RUN      ] AiModelCardTest.ACardFollowsTheFilesWhenTheyChangeInTheSameSession
+[2026-10-03 16:38:27.779] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe_card_follows_59468, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.796] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.ACardFollowsTheFilesWhenTheyChangeInTheSameSession (18 ms)
+[ RUN      ] AiModelCardTest.ASidecarChangedToTheSameSizeWithItsWriteTimePutBackIsRefusedNotServedFromMemory
+[2026-10-03 16:38:27.798] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe_card_same_size_tamper_59468, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.807] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.ASidecarChangedToTheSameSizeWithItsWriteTimePutBackIsRefusedNotServedFromMemory (11 ms)
+[ RUN      ] AiModelCardTest.AValidSidecarAndSignatureOfTheSameSizeAndTimeAreSeenAtOnce
+[2026-10-03 16:38:27.809] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe_card_same_size_valid_59468, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.823] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.AValidSidecarAndSignatureOfTheSameSizeAndTimeAreSeenAtOnce (15 ms)
+[ RUN      ] AiModelCardTest.ATextWithQuotesBackslashesControlCharactersAndNonAsciiSurvivesIntoValidJson
+[2026-10-03 16:38:27.831] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe_card_escapes_59468, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.835] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.ATextWithQuotesBackslashesControlCharactersAndNonAsciiSurvivesIntoValidJson (11 ms)
+[ RUN      ] AiModelCardTest.EveryCardAndEveryUnavailableAnswerConformsToTheSchema
+[2026-10-03 16:38:27.835] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_card_full, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.836] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-03 16:38:27.836] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.836] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-03 16:38:27.836] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_bodypart_a, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.837] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-03 16:38:27.837] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.837] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.EveryCardAndEveryUnavailableAnswerConformsToTheSchema (2 ms)
+[ RUN      ] AiModelCardTest.GetModelCardNullModelIdReturnsInvalid
+[2026-10-03 16:38:27.837] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.837] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.GetModelCardNullModelIdReturnsInvalid (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardNullBufReturnsInvalid
+[2026-10-03 16:38:27.837] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.837] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.GetModelCardNullBufReturnsInvalid (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardZeroBufSizeReturnsInvalidInput
+[2026-10-03 16:38:27.837] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.837] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.GetModelCardZeroBufSizeReturnsInvalidInput (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardSmallBufferReturnsTooSmallAndStillHoldsTruncatedJson
+[2026-10-03 16:38:27.837] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.838] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.GetModelCardSmallBufferReturnsTooSmallAndStillHoldsTruncatedJson (0 ms)
+[ RUN      ] AiModelCardTest.GetModelCardExactSizeBufferSucceedsAndOneLessDoesNot
+[2026-10-03 16:38:27.838] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-03 16:38:27.839] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiModelCardTest.GetModelCardExactSizeBufferSucceedsAndOneLessDoesNot (0 ms)
+[----------] 21 tests from AiModelCardTest (135 ms total)
+
+[----------] 1 test from ModelCardSchema
+[ RUN      ] ModelCardSchema.ControlTheSchemaRefusesWhatItShould
+[       OK ] ModelCardSchema.ControlTheSchemaRefusesWhatItShould (1 ms)
+[----------] 1 test from ModelCardSchema (1 ms total)
+
+[----------] 1 test from ModelSidecarSchema
+[ RUN      ] ModelSidecarSchema.EveryShippedFixtureSidecarConformsAndTheSchemaRefusesWhatTheModuleRefuses
+[       OK ] ModelSidecarSchema.EveryShippedFixtureSidecarConformsAndTheSchemaRefusesWhatTheModuleRefuses (4 ms)
+[----------] 1 test from ModelSidecarSchema (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 23 tests from 3 test suites ran. (141 ms total)
+[  PASSED  ] 23 tests.

@@ -1,0 +1,20 @@
+Running main() from D:\workspace-github\xpe-post-203\build\ci-dicom\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-0c449efaff.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = -*Performance*:*Within*ms*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ReproQaB200Dicom
+[ RUN      ] ReproQaB200Dicom.ControlTheModuleReadsBackWhatItWrote
+[2026-10-03 17:43:29.675] [warning] [DicomReader] loadFile failed: No such file or directory
+[       OK ] ReproQaB200Dicom.ControlTheModuleReadsBackWhatItWrote (18 ms)
+[ DISABLED ] ReproQaB200Dicom.DISABLED_C1_AFileFromAnotherSystemWithExposure1152ReadsAsMas100
+[ DISABLED ] ReproQaB200Dicom.DISABLED_C1_AFileTheModuleWritesCarriesExposure1152
+[ DISABLED ] ReproQaB200Dicom.DISABLED_C9_ACFindThatTheServerAnswersWithAFailureStatusIsNetworkFailed
+[ DISABLED ] ReproQaB200Dicom.DISABLED_C7_AFailedCStoreIsNetworkFailedAndPostsAWarningWithTheReason
+[ DISABLED ] ReproQaB200Dicom.DISABLED_C7_ACancelledCStoreIsProcessingFailedWithACancelIndicatorInTheAlert
+[----------] 1 test from ReproQaB200Dicom (27 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (27 ms total)
+[  PASSED  ] 1 test.
+
+  YOU HAVE 5 DISABLED TESTS

@@ -1,0 +1,4 @@
+cases 96; cases where the 16-bit results differ: 0; pixels that differ after the 16-bit conversion, in total: 0
+cases with negative floats without the floor: 78; with the floor: 0 (lowest float with the floor: 0.000)
+float pixels changed by the floor, in total: 216576
+first rows (case | negatives no floor | negatives floor | float px changed | 16-bit px changed):

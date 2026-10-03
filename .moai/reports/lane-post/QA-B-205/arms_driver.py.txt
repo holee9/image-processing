@@ -1,0 +1,92 @@
+"""QA-B-201 M3b falsification arms: the output floor of xpe_edge_enhance. Break ONE defence, rebuild ci-post, run the
+enhance_basic tests, expect the named tests red, restore byte-identical. Run: python build/g201_arms_m3b.py <out.txt>"""
+import hashlib, re, subprocess, sys
+
+OUT = sys.argv[1]
+BUILD = r'D:\workspace-github\xpe-post\build\g200-post-full.bat'
+RUN = r'D:\workspace-github\xpe-post\build\g200-run2.bat'
+ED = 'modules/enhance_basic/src/edge_enhance.cpp'
+NL = '\n'
+RES = '            const float result = (abs_diff >= threshold) ? sharpened : orig;' + NL
+FLOOR = '            row[x] = result < 0.0f ? 0.0f : result;' + NL
+BLOCK = (
+    '    if (p->amount == 0.0f) {' + NL +
+    '        const uint64_t count0 = static_cast<uint64_t>(w) * static_cast<uint64_t>(h);' + NL +
+    '        float lo0, hi0;' + NL +
+    '        if (!xpe_scan_finite(px, count0, &lo0, &hi0)) return XPE_ERR_INVALID_INPUT;' + NL +
+    '        if (lo0 < 0.0f) {' + NL +
+    '            for (uint64_t i = 0; i < count0; ++i) {' + NL +
+    '                if (px[i] < 0.0f) px[i] = 0.0f;' + NL +
+    '            }' + NL +
+    '        }' + NL +
+    '        return XPE_OK;' + NL +
+    '    }' + NL)
+SCAN = '        if (!xpe_scan_finite(px, count0, &lo0, &hi0)) return XPE_ERR_INVALID_INPUT;' + NL
+FLOORLINE = '                if (px[i] < 0.0f) px[i] = 0.0f;' + NL
+T_NEG = 'EdgeEnhanceZeroAmount.ANegativePixelIsReturnedAsZeroAndTheRestIsUntouched'
+T_BAD = 'EdgeEnhanceZeroAmount.ANonFinitePixelIsRefusedWithTheSameCodeAsForEveryOtherAmount'
+T_SAME = 'EdgeEnhanceZeroAmount.AFiniteNonNegativeImageIsStillReturnedByteForByte'
+
+ARMS = [
+    ('early_return_back_in_front_of_the_floor_and_the_scan_as_before_205',
+     [(ED, BLOCK, '    if (p->amount == 0.0f) return XPE_OK;' + NL)], [T_NEG, T_BAD]),
+    ('scan_result_ignored', [(ED, SCAN, '        xpe_scan_finite(px, count0, &lo0, &hi0);' + NL)], [T_BAD]),
+    ('floor_removed_for_amount_zero', [(ED, FLOORLINE, '                (void)px[i];' + NL)], [T_NEG]),
+    ('floor_to_one_for_amount_zero', [(ED, FLOORLINE, '                if (px[i] < 0.0f) px[i] = 1.0f;' + NL)], [T_NEG]),
+    ('non_negative_pixels_touched', [(ED, FLOORLINE, '                px[i] = px[i] < 0.0f ? 0.0f : px[i] + 1.0f;' + NL)], [T_NEG]),
+    ('floor_applied_even_without_a_negative_pixel_but_writes_everywhere',
+     [(ED, '        if (lo0 < 0.0f) {' + NL, '        if (lo0 < 1.0e30f) {' + NL), (ED, FLOORLINE, '                px[i] = px[i] < 0.0f ? 0.0f : px[i] * 1.0000001f;' + NL)], [T_SAME]),
+]
+
+
+def sha(p):
+    return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+
+
+def sh(cmd):
+    r = subprocess.run(['cmd', '/c', cmd], capture_output=True, text=True, timeout=3000)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def failed(path):
+    txt = open(path, encoding='utf-8', errors='replace').read()
+    return set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M))
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+for name, edits, must in ARMS:
+    files = sorted({e[0] for e in edits})
+    saved = {f: open(f, 'rb').read() for f in files}
+    before = {f: sha(f) for f in files}
+    log('=== ARM ' + name)
+    try:
+        for f in files:
+            txt = saved[f].decode('utf-8')
+            for ff, old, new in edits:
+                if ff == f:
+                    assert txt.count(old) == 1, (name, old[:60], txt.count(old))
+                    txt = txt.replace(old, new)
+            open(f, 'wb').write(txt.encode('utf-8'))
+        sh(BUILD)
+        if 'FAILED:' in open('build/g200-b5.txt', encoding='utf-8', errors='replace').read():
+            log('RESULT: BUILD FAILED')
+        else:
+            sh('%s ci-post xpe_enhance_basic_tests.exe D:\\workspace-github\\xpe-post\\build\\g205-arm.txt * enhance_basic' % RUN)
+            red = failed('build/g205-arm.txt')
+            hit = [m for m in must if m in red]
+            miss = [m for m in must if m not in hit]
+            log('red tests: ' + (', '.join(sorted(red)) if red else '(none)'))
+            log('RESULT: %s  (expected red: %d, red: %d, not red: %s)' % ('FIRED' if not miss else 'DID NOT FIRE', len(must), len(hit), miss))
+    finally:
+        for f in files:
+            open(f, 'wb').write(saved[f])
+        log('restored byte-identical: %s' % all(sha(f) == before[f] for f in files))
+log('=== DONE')
+out.close()

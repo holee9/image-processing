@@ -8,7 +8,31 @@
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
 
+#include <spdlog/spdlog.h>
+
 extern "C" {
+
+// REQ-DISP-031 (QA-B-200 M2a). The messages go to spdlog's default logger, which is the one xpe_common's
+// xpe_log_set_level / xpe_log_set_file configure, so the module follows the project's logging switches. spdlog can
+// throw (allocation); a log line must never change what the function returns, nor let an exception cross the ABI.
+void xpe_display_log_enter(const char* fn) {
+    try {
+        spdlog::debug("[xpe_display] {}: enter", fn);
+    } catch (...) {
+    }
+}
+
+XpeErrorCode xpe_display_log_exit(const char* fn, XpeErrorCode rc) {
+    try {
+        if (rc == XPE_OK) {
+            spdlog::debug("[xpe_display] {}: exit OK", fn);
+        } else {
+            spdlog::error("[xpe_display] {} failed: code {} ({})", fn, static_cast<int>(rc), xpe_error_string(rc));
+        }
+    } catch (...) {
+    }
+    return rc;
+}
 
 XpeErrorCode xpe_validate_float32(const XpeImageBuffer* img) {
     if (!img || !img->data) {

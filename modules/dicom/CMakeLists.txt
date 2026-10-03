@@ -277,37 +277,37 @@ if(_XPE_BUILD_TESTS)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
-    # --- QA-B-200 M1 (#251): reproductions of the QA-B-199 candidates; every test is DISABLED_ (built, never run by ctest) ---
-    add_executable(test_dicom_repro_qa_b_200
-        tests/test_repro_qa_b_200.cpp
+    # --- QA-B-200 M2a (#251): the SCU failure and cancel paths and the mAs tag (found by QA-B-199) ---
+    add_executable(test_dicom_failure_paths
+        tests/test_dicom_failure_paths.cpp
         tests/mock_scp.cpp
     )
-    target_include_directories(test_dicom_repro_qa_b_200 PRIVATE
+    target_include_directories(test_dicom_failure_paths PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
     )
-    target_link_libraries(test_dicom_repro_qa_b_200 PRIVATE
+    target_link_libraries(test_dicom_failure_paths PRIVATE
         xpe_dicom
         GTest::gtest_main
     )
     if(dcmtk_FOUND)
-        target_link_libraries(test_dicom_repro_qa_b_200 PRIVATE DCMTK::DCMTK)
+        target_link_libraries(test_dicom_failure_paths PRIVATE DCMTK::DCMTK)
     else()
         if(DCMTK_INCLUDE_DIRS)
-            target_include_directories(test_dicom_repro_qa_b_200 PRIVATE ${DCMTK_INCLUDE_DIRS})
+            target_include_directories(test_dicom_failure_paths PRIVATE ${DCMTK_INCLUDE_DIRS})
         endif()
         if(DCMTK_LIBRARIES)
-            target_link_libraries(test_dicom_repro_qa_b_200 PRIVATE ${DCMTK_LIBRARIES})
+            target_link_libraries(test_dicom_failure_paths PRIVATE ${DCMTK_LIBRARIES})
         endif()
     endif()
     if(WIN32)
-        target_link_libraries(test_dicom_repro_qa_b_200 PRIVATE ws2_32)
+        target_link_libraries(test_dicom_failure_paths PRIVATE ws2_32)
     endif()
-    target_compile_features(test_dicom_repro_qa_b_200 PRIVATE cxx_std_17)
+    target_compile_features(test_dicom_failure_paths PRIVATE cxx_std_17)
     if(MSVC)
-        target_compile_options(test_dicom_repro_qa_b_200 PRIVATE /W4)
+        target_compile_options(test_dicom_failure_paths PRIVATE /W4)
     endif()
-    xpe_target_warnings_as_errors(test_dicom_repro_qa_b_200)
-    gtest_discover_tests(test_dicom_repro_qa_b_200
+    xpe_target_warnings_as_errors(test_dicom_failure_paths)
+    gtest_discover_tests(test_dicom_failure_paths
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 endif()

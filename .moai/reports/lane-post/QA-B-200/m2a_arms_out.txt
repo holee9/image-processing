@@ -1,0 +1,56 @@
+=== ARM cfind_final_status_ignored
+red tests: DicomFailurePaths.ACFindAnsweredWithAFailureStatusIsNetworkFailedForEveryStatusOfTheFailureRange
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM cstore_rejection_without_alert
+red tests: DicomFailurePaths.AFailedCStoreIsNetworkFailedAndPostsAWarningWithTheReason
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM cstore_cancel_during_transfer_not_checked
+red tests: DicomFailurePaths.ACancelDuringATransferIsReportedAsACancelAndNeverAsSuccess, DicomNetworkTest.CancelCStore_TerminatesOperation
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM cfind_cancel_during_query_not_checked
+red tests: DicomFailurePaths.ACancelDuringAQueryIsReportedAsACancel
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM reader_does_not_fall_back_to_1152
+red tests: DicomExposureTag.AFileFromAnotherSystemWithOnlyExposure1152ReadsAsThatValue
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM writer_omits_1152
+red tests: DicomExposureTag.TheModuleWritesBothAttributesWithTheValuesTheRulesGive
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM writer_truncates_instead_of_rounding
+red tests: DicomExposureTag.TheModuleWritesBothAttributesWithTheValuesTheRulesGive
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM writer_omits_9332
+red tests: DicomExposureTag.TheModuleWritesBothAttributesWithTheValuesTheRulesGive, DicomExposureTag.WhenBothAreInTheFileTheExactValueOf9332IsUsed
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: ['DicomExposureTag.WhenBothAreInTheFileTheExactValueOf9332IsUsed']
+restored byte-identical: True
+=== ARM log_error_written_at_debug
+red tests: DisplayLogging.AtDebugLevelEveryFunctionLogsItsEntryItsExitAndItsErrors, DisplayLogging.AtErrorLevelOnlyTheErrorsAreWritten, DisplayLogging.AtTheDefaultLevelAnErrorIsVisibleAndASuccessIsSilent
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+other red tests: ['DisplayLogging.AtDebugLevelEveryFunctionLogsItsEntryItsExitAndItsErrors']
+restored byte-identical: True
+=== ARM log_entry_missing_in_one_function
+red tests: DisplayLogging.AtDebugLevelEveryFunctionLogsItsEntryItsExitAndItsErrors
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM log_exit_changes_the_return_code
+red tests: DisplayLogging.LoggingNeverChangesWhatAFunctionReturns
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== DONE

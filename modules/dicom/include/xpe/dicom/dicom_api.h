@@ -2,11 +2,12 @@
  * @file dicom_api.h
  * @brief DICOM I/O module public C API for xpe_dicom.dll.
  *
- * Exports exactly 10 C-linkage functions organized into 4 Software Units:
+ * Exports exactly 11 C-linkage functions: the version function and 10 organized into 4 Software Units:
  *   - SWU-4.1 DicomReader  : open / read_image / get_metadata / close
  *   - SWU-4.2 DicomWriter  : write / write_j2k
  *   - SWU-4.3 DicomValidator: validate
  *   - SWU-4.4 DicomNetworkSCU: cstore / cfind_mwl / cancel
+ *   - version              : xpe_dicom_version (REQ-P0-033)
  *
  * @note ABI contract: all parameters are blittable C types compatible with
  *       .NET P/Invoke marshalling. No C++ types cross the DLL boundary.
@@ -35,6 +36,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @brief Returns the xpe_dicom module version string (e.g. "1.0.0").
+ * @return Null-terminated version string. Lifetime: process. Never NULL.
+ */
+XPE_API const char* xpe_dicom_version(void);
 
 /**
  * @brief Opaque handle to an open DICOM reader session.
@@ -246,14 +253,17 @@ XPE_API void xpe_dicom_close(XpeDicomHandle* handle);
  * SOP Class: Digital X-Ray Image Storage - For Presentation (1.2.840.10008.5.1.4.1.1.1.1).
  *
  * @param filePath  Destination file path. Must not be NULL.
- * @param img       Source pixel buffer (XPE_PIXEL_UINT16). Must not be NULL,
+ * @param img       Source pixel buffer (XPE_PIXEL_UINT16 only: any other
+ *                  format, FLOAT32 and UINT8 included, is rejected, QA-B-201 M4).
+ *                  Must not be NULL,
  *                  and must not be empty: a zero width or height, or a NULL
  *                  data pointer, is rejected (#142). A non-zero dataSize
  *                  smaller than width * height * bytes-per-pixel is rejected
  *                  (#123); dataSize == 0 means unspecified and is accepted.
  * @param meta      Acquisition metadata to embed. Must not be NULL.
  * @return XPE_OK on success.
- * @return XPE_ERR_INVALID_INPUT if any pointer is NULL, the image is empty, or
+ * @return XPE_ERR_INVALID_INPUT if any pointer is NULL, the image is empty,
+ *         img->format is not XPE_PIXEL_UINT16 (no file is created), or
  *         img->dataSize is inconsistent with its dimensions.
  * @return XPE_ERR_IO_FAILED if the file cannot be written.
  * @return XPE_ERR_PROCESSING_FAILED if the dataset cannot be assembled.
@@ -278,14 +288,16 @@ XPE_API XpeErrorCode xpe_dicom_write(const char* filePath,
  * Bit-exact round-trip is guaranteed.
  *
  * @param filePath  Destination file path. Must not be NULL.
- * @param img       Source pixel buffer (XPE_PIXEL_UINT16). Must not be NULL.
- *                  The same empty-image (#142) and dataSize consistency (#123)
- *                  rules as xpe_dicom_write() apply. An empty image is reported
+ * @param img       Source pixel buffer (XPE_PIXEL_UINT16 only, as for
+ *                  xpe_dicom_write()). Must not be NULL.
+ *                  The same empty-image (#142), pixel-format (QA-B-201 M4) and
+ *                  dataSize consistency (#123) rules as xpe_dicom_write() apply. An empty image is reported
  *                  as INVALID_INPUT here rather than surfacing as a compressor
  *                  PROCESSING_FAILED, which is what it used to do.
  * @param meta      Acquisition metadata to embed. Must not be NULL.
  * @return XPE_OK on success.
- * @return XPE_ERR_INVALID_INPUT if any pointer is NULL, the image is empty, or
+ * @return XPE_ERR_INVALID_INPUT if any pointer is NULL, the image is empty,
+ *         img->format is not XPE_PIXEL_UINT16 (no file is created), or
  *         img->dataSize is inconsistent with its dimensions.
  * @return XPE_ERR_IO_FAILED if the file cannot be written.
  * @return XPE_ERR_PROCESSING_FAILED if J2K compression fails.

@@ -542,6 +542,14 @@ if(_XPE_AI_BUILD_TESTS)
         target_compile_definitions(xpe_ai_tests PRIVATE
             XPE_AI_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
 
+        # QA-B-201 M2: the JSON Schemas are repository documents -- REQ-AI-011 names `schemas/model-card.schema.json` -- and
+        # live in the `schemas/` directory at the repository root. The model-card tests read them from there instead of
+        # from a copy under tests/data, so there is one file for the SPEC, the module and the tests to agree on. Baked in
+        # at compile time for the same reason as the data directory (no cwd to get wrong).
+        get_filename_component(XPE_REPO_SCHEMAS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../schemas" ABSOLUTE)
+        target_compile_definitions(xpe_ai_tests PRIVATE
+            XPE_REPO_SCHEMAS_DIR="${XPE_REPO_SCHEMAS_DIR}")
+
         # QA-B-169: test_worker_protocol_conformance.cpp launches the real
         # worker. The path is the TARGET's output, resolved at generate time,
         # so it cannot drift from what the build actually produced; the source
@@ -607,7 +615,7 @@ if(_XPE_AI_BUILD_TESTS)
         )
 
         # QA-B-197 M2: the model-card tests read the sidecar files and the card with an independent parser, and check the
-        # card against tests/data/schemas/model-card.schema.json (json_schema_mini.h). nlohmann is the module's own
+        # card against the repository-root schemas/model-card.schema.json (json_schema_mini.h). nlohmann is the module's own
         # required dependency, so this adds nothing new to the build.
         target_link_libraries(xpe_ai_tests PRIVATE nlohmann_json::nlohmann_json)
 

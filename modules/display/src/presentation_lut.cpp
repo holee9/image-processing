@@ -17,8 +17,8 @@
 // @MX:ANCHOR: [AUTO] Public API boundary — P/Invoke entry point from C# host
 // @MX:REASON: All callers (xpe_display.dll consumers) depend on this ABI contract; domain transition float32->uint16
 // @MX:SPEC: SPEC-XPE-P1B-DISP
-extern "C" XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*                 img,
-                                                     const XpePresentationLutParams* params) {
+static XpeErrorCode apply_presentation_lut_impl(XpeImageBuffer*                 img,
+                                                const XpePresentationLutParams* params) {
     if (!img)    return XPE_ERR_INVALID_INPUT;
     if (!params) return XPE_ERR_INVALID_INPUT;
 
@@ -78,9 +78,9 @@ extern "C" XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*              
 // @MX:NOTE: [AUTO] DICOM PS3.14 GSDF — Eq 7-2 (j from L) and Eq 7-1 (L from j)
 // @MX:WARN: [AUTO] Numerical precision sensitive — validate with DICOM PS3.14 test vectors
 // @MX:REASON: Coefficients are transcribed from the standard and checked against Table B-1
-extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceValues,
-                                             uint32_t                  count,
-                                             XpePresentationLutParams* outParams) {
+static XpeErrorCode gsdf_calibrate_impl(const float*              luminanceValues,
+                                        uint32_t                  count,
+                                        XpePresentationLutParams* outParams) {
     if (!luminanceValues) return XPE_ERR_INVALID_INPUT;
     if (!outParams)       return XPE_ERR_INVALID_INPUT;
     if (count < 2)        return XPE_ERR_INVALID_INPUT;
@@ -283,4 +283,18 @@ extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceVa
     outParams->gsdfEnabled = 1;
 
     return XPE_OK;
+}
+
+// REQ-DISP-031 (QA-B-200 M2a): entry, outcome and error conditions are logged around the functions above.
+extern "C" XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*                 img,
+                                                     const XpePresentationLutParams* params) {
+    xpe_display_log_enter("xpe_apply_presentation_lut");
+    return xpe_display_log_exit("xpe_apply_presentation_lut", apply_presentation_lut_impl(img, params));
+}
+
+extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceValues,
+                                             uint32_t                  count,
+                                             XpePresentationLutParams* outParams) {
+    xpe_display_log_enter("xpe_gsdf_calibrate");
+    return xpe_display_log_exit("xpe_gsdf_calibrate", gsdf_calibrate_impl(luminanceValues, count, outParams));
 }

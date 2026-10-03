@@ -475,6 +475,117 @@ static void finishRead(XpeImageBuffer* img, bool mono1, const RescaleNote& resca
     }
 }
 
+// IS (Integer String), PS3.5 Table 6.2-1: "a string of characters representing an Integer in base-10 (decimal), shall contain
+// only the characters 0 - 9, with an optional leading "+" or "-". It may be padded with leading and/or trailing spaces.
+// Embedded spaces are not allowed. The integer, n, represented shall be in the range: -2^31 <= n <= (2^31 - 1)"; 12 bytes
+// maximum. The WHOLE value must match -- a prefix that parses ("2500junk", "7.5", "0x10") is not an IS (QA-B-200 M2a3).
+static bool parseIntegerString(const OFString& raw, int64_t* out) {
+    if (raw.size() > 12) return false;
+    size_t b = 0, e = raw.size();
+    while (b < e && raw[b] == ' ') ++b;
+    while (e > b && raw[e - 1] == ' ') --e;
+    if (b == e) return false;
+    bool negative = false;
+    if (raw[b] == '+' || raw[b] == '-') {
+        negative = raw[b] == '-';
+        ++b;
+    }
+    if (b == e) return false;
+    int64_t v = 0;   // at most 12 digits: cannot overflow
+    for (; b < e; ++b) {
+        if (raw[b] < '0' || raw[b] > '9') return false;
+        v = v * 10 + (raw[b] - '0');
+    }
+    if (negative) v = -v;
+    if (v < -2147483648LL || v > 2147483647LL) return false;
+    *out = v;
+    return true;
+}
+
+// mAs (QA-B-200 M2a/M2a2/M2a3, C1). A file can carry the exposure in three attributes; the order of trust, most precise
+// first, and the tolerance within which two of them still agree (a rounded IS cannot be exact):
+//   (0018,1153) Exposure in uAs   IS, microampere-seconds, /1000 -> mAs   rounded to 1 uAs: +-0.0005 mAs
+//   (0018,9332) Exposure in mAs   FD, the exact value                     written with 4 decimals: +-0.0001 mAs
+//   (0018,1152) Exposure          IS, whole mAs                           rounded to 1 mAs: +-0.5 mAs
+// An attribute that is absent, not a valid IS (or an FD that is not finite), or negative is skipped. The first valid one
+// is the mAs. When any two valid ones differ by more than their two tolerances together, the file contradicts itself:
+// the choice is still the first, and ONE WARNING alert names every value as the file spells it and the one used.
+static void readExposure(DcmDataset* ds, XpeImageMetadata* outMeta) {
+    struct Candidate {
+        const char* tag;
+        const char* unit;
+        double mAs;
+        double tolerance;
+        std::string spelled;
+        bool valid;
+    };
+    Candidate c[3] = {{"(0018,1153)", "uAs", 0.0, 0.0005, "", false},
+                      {"(0018,9332)", "mAs", 0.0, 0.0001, "", false},
+                      {"(0018,1152)", "mAs", 0.0, 0.5, "", false}};
+    // All three attributes have VM 1 (PS3.6): DCMTK would hand back the first value of "25\00" as 25, so a value count
+    // other than one is refused here, as an invalid value is. The element's own length (the bytes in the file, padding
+    // included) is checked too, because OFString values come back with their padding already stripped: an IS of 12
+    // spaces and a "1" is 13 bytes (14 padded) and not an IS, but reads as "1" (QA-B-200 M2a4, Codex #105).
+    auto single = [ds](const DcmTagKey& key, Uint32 maxBytes) {
+        DcmElement* e = nullptr;
+        return ds->findAndGetElement(key, e).good() && e && e->getVM() == 1 && e->getLength() <= maxBytes;
+    };
+    OFString text;
+    int64_t whole = 0;
+    if (single(DCM_ExposureInuAs, 12) && ds->findAndGetOFString(DCM_ExposureInuAs, text).good() &&
+        parseIntegerString(text, &whole) && whole >= 0) {
+        c[0].valid = true;
+        c[0].mAs = static_cast<double>(whole) / 1000.0;
+        c[0].spelled = std::to_string(whole);
+    }
+    Float64 exact = 0.0;
+    if (single(DCM_ExposureInmAs, 8) && ds->findAndGetFloat64(DCM_ExposureInmAs, exact).good() && std::isfinite(exact) &&
+        exact >= 0.0) {
+        c[1].valid = true;
+        c[1].mAs = exact;
+        char buf[40];
+        std::snprintf(buf, sizeof(buf), "%.6g", exact);
+        c[1].spelled = buf;
+    }
+    if (single(DCM_Exposure, 12) && ds->findAndGetOFString(DCM_Exposure, text).good() && parseIntegerString(text, &whole) &&
+        whole >= 0) {
+        c[2].valid = true;
+        c[2].mAs = static_cast<double>(whole);
+        c[2].spelled = std::to_string(whole);
+    }
+
+    const Candidate* chosen = nullptr;
+    for (const Candidate& k : c) {
+        if (k.valid) {
+            chosen = &k;
+            break;
+        }
+    }
+    if (!chosen) return;
+    outMeta->mAs = static_cast<float>(chosen->mAs);
+
+    // EVERY pair of valid values is compared, not only each against the chosen one: two values can each be within their
+    // tolerance of the chosen one and still contradict each other (1153 = 2500 uAs, 9332 = 2.4994, 1152 = 3: the chosen 2.5
+    // agrees with both, yet 9332 and 1152 are 0.5006 apart and the two tolerances allow 0.5001; QA-B-200 M2a4).
+    bool disagree = false;
+    for (int i = 0; i < 3; ++i) {
+        for (int j = i + 1; j < 3; ++j) {
+            if (c[i].valid && c[j].valid && std::fabs(c[i].mAs - c[j].mAs) > c[i].tolerance + c[j].tolerance + 1e-9) disagree = true;
+        }
+    }
+    if (!disagree) return;
+    // CROSS-LANE CONTRACT (QA-B-200 M2a3): the whole text.
+    std::string msg = "DICOM exposure attributes disagree:";
+    for (const Candidate& k : c) {
+        if (k.valid) msg += std::string(" ") + k.tag + " = " + k.spelled + " " + k.unit + ";";
+    }
+    char tail[80];
+    std::snprintf(tail, sizeof(tail), " using %s = %.4f mAs", chosen->tag, chosen->mAs);
+    msg += tail;
+    spdlog::warn("[DicomReader] {}", msg);
+    xpe_alert_push(msg.c_str(), XPE_ALERT_WARNING);
+}
+
 static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, bool isJ2K, bool isJpegLL) {
     Uint16 samples = 0, pixelRepresentation = 0, bitsAlloc = 0, bitsStored = 0, highBit = 0;
     struct Required { const char* name; DcmTagKey key; Uint16* value; };
@@ -770,13 +881,7 @@ XpeErrorCode DicomReader::getMetadata(XpeImageMetadata* outMeta) {
         }
     }
 
-    // mAs — ExposureInmAs (0018,9332) DS VR
-    {
-        Float64 mAs = 0.0;
-        if (ds->findAndGetFloat64(DCM_ExposureInmAs, mAs).good()) {
-            outMeta->mAs = static_cast<float>(mAs);
-        }
-    }
+    readExposure(ds, outMeta);
 
     // SID — DistanceSourceToDetector (0018,1110) in mm
     {

@@ -14,8 +14,8 @@
 // @MX:ANCHOR: [AUTO] Public API boundary — P/Invoke entry point from C# host
 // @MX:REASON: All callers (xpe_display.dll consumers) depend on this ABI contract
 // @MX:SPEC: SPEC-XPE-P1B-DISP
-extern "C" XpeErrorCode xpe_apply_voi_lut(XpeImageBuffer*        img,
-                                            const XpeVoiLutParams* params) {
+static XpeErrorCode apply_voi_lut_impl(XpeImageBuffer*        img,
+                                       const XpeVoiLutParams* params) {
     if (!img)    return XPE_ERR_INVALID_INPUT;
     if (!params) return XPE_ERR_INVALID_INPUT;
 
@@ -132,8 +132,8 @@ extern "C" XpeErrorCode xpe_apply_voi_lut(XpeImageBuffer*        img,
 // @MX:ANCHOR: [AUTO] Public API boundary — P/Invoke entry point from C# host
 // @MX:REASON: All callers (xpe_display.dll consumers) depend on this ABI contract
 // @MX:SPEC: SPEC-XPE-P1B-DISP
-extern "C" XpeErrorCode xpe_voi_preset_create(XpeVoiLutParams* params,
-                                                XpeBodyPart      bodyPart) {
+static XpeErrorCode voi_preset_create_impl(XpeVoiLutParams* params,
+                                           XpeBodyPart      bodyPart) {
     if (!params) return XPE_ERR_INVALID_INPUT;
 
     // REQ-DISP-017 (revised 2026-09-17, #177): the presets act on detector DN,
@@ -159,4 +159,17 @@ extern "C" XpeErrorCode xpe_voi_preset_create(XpeVoiLutParams* params,
     }
 
     return XPE_OK;
+}
+
+// REQ-DISP-031 (QA-B-200 M2a): entry, outcome and error conditions are logged around the functions above.
+extern "C" XpeErrorCode xpe_apply_voi_lut(XpeImageBuffer*        img,
+                                            const XpeVoiLutParams* params) {
+    xpe_display_log_enter("xpe_apply_voi_lut");
+    return xpe_display_log_exit("xpe_apply_voi_lut", apply_voi_lut_impl(img, params));
+}
+
+extern "C" XpeErrorCode xpe_voi_preset_create(XpeVoiLutParams* params,
+                                                XpeBodyPart      bodyPart) {
+    xpe_display_log_enter("xpe_voi_preset_create");
+    return xpe_display_log_exit("xpe_voi_preset_create", voi_preset_create_impl(params, bodyPart));
 }

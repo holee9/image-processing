@@ -32,3 +32,19 @@ NOT read (so not claimed in the report):
      welcome page, not the attribute. Only the PS3.6 name, VR and VM of (0018,9332) are stated.
    - The C-STORE response status table (PS3.4 Annex B Table B.2-1). The C-STORE failure reproduction (C7) uses status A700;
      REQ-DICOM-032 itself says "remote rejection, DIMSE failure, or network error" without naming a code.
+
+4. (M2a) PS3.3 Table C.8-33 "X-Ray Acquisition Dose Module" of the Digital X-Ray Image IOD (Usage: U)
+   https://dicom.innolitics.com/ciods/digital-x-ray-image/x-ray-acquisition-dose  (fetched 2026-10-03)
+   The module's attribute list contains (0018,1150) Exposure Time (3, IS), (0018,1151) X-Ray Tube Current (3, IS),
+   (0018,1152) Exposure (3, IS), (0018,1153) Exposure in uAs (3, IS) and others. A search of the same page for
+   "00189332" / "Exposure in mAs" found no (0018,9332) row. NOT checked: the other modules of the DX image IOD.
+
+5. (M2a2) PS3.3 Table C.8-33 X-Ray Acquisition Dose Module, attribute (0018,1153) Exposure in uAs
+   Same page as item 4 (fetched 2026-10-03): row "(0018,1153) Exposure in µAs", Type Optional (3), VR Integer String.
+   PS3.6 Table 6-1 (item 1): (0018,1153) Exposure in uAs, keyword ExposureInuAs, VR IS, VM 1.
+
+6. (M2a3) PS3.5 Table 6.2-1, VR IS (fetched 2026-10-03 from dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html)
+   "A string of characters representing an Integer in base-10 (decimal), shall contain only the characters 0 - 9, with an
+   optional leading "+" or "-". It may be padded with leading and/or trailing spaces. Embedded spaces are not allowed. The
+   integer, n, represented shall be in the range: -2^31 <= n <= (2^31 -1)."  Character repertoire: "0"-"9", "+", "-" and
+   the SPACE character of Default Character Repertoire. Length: 12 bytes maximum.

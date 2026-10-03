@@ -128,6 +128,27 @@ if(_XPE_BUILD_TESTS)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
+    # --- QA-B-200 M2a (#251): REQ-DISP-031 logging through xpe_common's logger ---
+    add_executable(test_display_logging
+        tests/test_display_logging.cpp
+    )
+    target_include_directories(test_display_logging PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(test_display_logging PRIVATE
+        xpe_display
+        spdlog::spdlog
+        GTest::gtest_main
+    )
+    target_compile_features(test_display_logging PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_display_logging PRIVATE /W4)
+    endif()
+    xpe_target_warnings_as_errors(test_display_logging)
+    gtest_discover_tests(test_display_logging
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
     # --- test_voi_lut (SWU-3.2: REQ-DISP-009..018) ---
     add_executable(test_display_voi_lut
         tests/test_voi_lut.cpp
@@ -256,7 +277,7 @@ if(_XPE_BUILD_TESTS)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
-    # --- test_display_integration (REQ-DISP-029..035) ---
+    # --- test_display_integration (REQ-DISP-030..036) ---
     add_executable(test_display_integration
         tests/test_display_integration.cpp
     )

@@ -90,10 +90,23 @@ extern "C++" static XpeErrorCode xpe_edge_enhance_impl(XpeImageBuffer* img, cons
     int w = static_cast<int>(img->width);
     int h = static_cast<int>(img->height);
 
-    // amount == 0 means no sharpening (no-op)
-    if (p->amount == 0.0f) return XPE_OK;
-
     float* px = float_pixels(img);
+
+    // amount == 0 means no sharpening: no blur is built. The contract that holds for every other amount holds here too
+    // (QA-B-205, Codex #106): a non-finite pixel is refused with the same error, and no output pixel is below 0, so a
+    // negative input pixel comes back as 0. A finite input with no negative pixel is left untouched, as before (the scan
+    // reads every pixel anyway, and the buffer is written only if it has a negative one).
+    if (p->amount == 0.0f) {
+        const uint64_t count0 = static_cast<uint64_t>(w) * static_cast<uint64_t>(h);
+        float lo0, hi0;
+        if (!xpe_scan_finite(px, count0, &lo0, &hi0)) return XPE_ERR_INVALID_INPUT;
+        if (lo0 < 0.0f) {
+            for (uint64_t i = 0; i < count0; ++i) {
+                if (px[i] < 0.0f) px[i] = 0.0f;
+            }
+        }
+        return XPE_OK;
+    }
 
     // Build and normalize 1D Gaussian kernel.
     // krad = ceil(2σ): 2σ truncation retains 95.4% of Gaussian mass, sufficient
@@ -208,11 +221,19 @@ extern "C++" static XpeErrorCode xpe_edge_enhance_impl(XpeImageBuffer* img, cons
             float diff      = orig - br[x];
             float abs_diff  = std::fabs(diff);
             float sharpened = orig + amount * diff;
-            float hi = orig + max_add;
-            float lo = orig - max_add;
+            // REQ-ENH-021 (QA-B-200 M2b, E1): the overshoot bound is max(orig * 2, orig + amount * threshold), an UPPER
+            // bound. Until M2b this clamped to orig +- amount * threshold on both sides, so every sharpened pixel moved by
+            // exactly amount * threshold whatever the edge and threshold 0 moved nothing. The SPEC states no lower bound.
+            const float hi = std::max(orig * 2.0f, orig + max_add);
             if (sharpened > hi) sharpened = hi;
-            if (sharpened < lo) sharpened = lo;
-            row[x] = (abs_diff >= threshold) ? sharpened : orig;
+            // QA-B-201 M3/M3b (user decision, #251): the module returns no value below 0. The SPEC bounds only the overshoot,
+            // and the undershoot beside a dark region (a collimated strip of 0 counts, air) went far below 0 (-1363 on a
+            // synthetic collimated scene at the default amount). Every consumer already cut it at 0 (QA-B-201 M1), so the
+            // 16-bit output is the same. The floor is on the OUTPUT, sharpened or not: a pixel that is not sharpened is
+            // returned as it came, except that a negative input comes back as 0 (a negative input is outside what the
+            // pipelines produce -- the log stage cuts it, REQ-ENH-002 -- but this stage's output has no negative either).
+            const float result = (abs_diff >= threshold) ? sharpened : orig;
+            row[x] = result < 0.0f ? 0.0f : result;
         }
 
         // Advance ring: h-blur the next needed source row into the evicted slot.

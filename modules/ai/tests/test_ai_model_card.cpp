@@ -4,7 +4,7 @@
  *
  * REQ-AI-010: xpe_ai_get_model_card returns JSON with intended_use, training_data_summary, demographic_performance,
  *             limitations, model_version, pccp_status, published_date.
- * REQ-AI-011: the JSON conforms to a schema (tests/data/schemas/model-card.schema.json).
+ * REQ-AI-011: the JSON conforms to a schema (the repository-root schemas/model-card.schema.json).
  * REQ-AI-008: model_id, version, pccp_scope, training_data_hash, validation_metrics.
  *
  * WHAT CHANGED, AND WHY THESE TESTS CHANGED WITH IT (QA-B-197). Until now the card was a table of constants: four
@@ -49,6 +49,8 @@ namespace fs = std::filesystem;
 using nlohmann::json;
 
 const std::string kData = XPE_AI_TEST_DATA_DIR;
+// The two JSON Schemas live at the repository root (QA-B-201 M2): the files REQ-AI-011 names, not a copy under tests/data.
+const std::string kSchemas = XPE_REPO_SCHEMAS_DIR;
 
 std::string ReadText(const fs::path& p) {
     std::ifstream f(p, std::ios::binary);
@@ -344,8 +346,8 @@ TEST_F(AiModelCardTest, ATextWithQuotesBackslashesControlCharactersAndNonAsciiSu
  * ============================================================================ */
 
 TEST_F(AiModelCardTest, EveryCardAndEveryUnavailableAnswerConformsToTheSchema) {
-    const std::string schema = ReadText(fs::path(kData) / "schemas" / "model-card.schema.json");
-    ASSERT_FALSE(schema.empty());
+    const std::string schema = ReadText(fs::path(kSchemas) / "model-card.schema.json");
+    ASSERT_FALSE(schema.empty()) << "schemas/model-card.schema.json not found under " << kSchemas;
     struct Case { const char* dir; const char* id; XpeErrorCode rc; };
     for (const Case& c : {Case{"models_card_full", "bone_card_full_toy", XPE_OK}, Case{"models_x2", "bone_toy_x2", XPE_OK},
                           Case{"models_bodypart_a", "bodypart_toy", XPE_OK},
@@ -362,7 +364,8 @@ TEST_F(AiModelCardTest, EveryCardAndEveryUnavailableAnswerConformsToTheSchema) {
 
 TEST(ModelCardSchema, ControlTheSchemaRefusesWhatItShould) {
     // Without these the schema test above could pass for a schema that accepts anything.
-    const std::string schema = ReadText(fs::path(kData) / "schemas" / "model-card.schema.json");
+    const std::string schema = ReadText(fs::path(kSchemas) / "model-card.schema.json");
+    ASSERT_FALSE(schema.empty()) << "schemas/model-card.schema.json not found under " << kSchemas;
     const std::string good =
         "{\"model_id\":\"a\",\"model_version\":\"1.0.0\",\"intended_use\":null,\"training_data_summary\":null,"
         "\"demographic_performance\":null,\"limitations\":null,\"pccp_status\":\"not_evaluated\",\"published_date\":null,"
@@ -396,13 +399,13 @@ TEST(ModelCardSchema, ControlTheSchemaRefusesWhatItShould) {
 }
 
 TEST(ModelSidecarSchema, EveryShippedFixtureSidecarConformsAndTheSchemaRefusesWhatTheModuleRefuses) {
-    const std::string schema = ReadText(fs::path(kData) / "schemas" / "model-sidecar.schema.json");
-    ASSERT_FALSE(schema.empty());
+    const std::string schema = ReadText(fs::path(kSchemas) / "model-sidecar.schema.json");
+    ASSERT_FALSE(schema.empty()) << "schemas/model-sidecar.schema.json not found under " << kSchemas;
     size_t checked = 0;
     for (const auto& e : fs::recursive_directory_iterator(fs::path(kData))) {
         if (!e.is_regular_file() || e.path().extension() != ".json") continue;
         const std::string parent = e.path().parent_path().filename().string();
-        if (parent == "signing" || parent == "schemas") continue;
+        if (parent == "signing") continue;
         const std::vector<std::string> errors = xpe_test::SchemaErrors(schema, ReadText(e.path()));
         for (const std::string& m : errors) ADD_FAILURE() << e.path().string() << ": " << m;
         ++checked;
