@@ -251,28 +251,34 @@ namespace {
 
             float corrected = raw - a1 * h1[i] - a2 * h2[i];
 
-            // Spatial context: blend with local neighborhood mean (3x3)
+            // Spatial context: blend with local neighborhood mean (3x3). QA-A-227 (#244): EVERY pixel is blended, the mean taken over
+            // the neighbours that exist in the frame (nine inside, six on an edge, four in a corner -- the module's "valid
+            // neighbours" convention, as in the defect stage). The blend used to be applied only where all eight neighbours exist
+            // (the index arithmetic wrapped to the next row at x = 0; nothing in the commit, the SRS or the guide gives a design
+            // reason), which left the one-pixel border without it: on a uniform frame the interior sat above the border by
+            // mixLocal * (raw - corrected value), a ring. A frame below 3x3 has no spatial context and is not blended.
             if (W >= 3u && H >= 3u) {
-                const uint32_t x = static_cast<uint32_t>(i % W);
-                const uint32_t y = static_cast<uint32_t>(i / W);
-
-                if (x > 0u && x < W - 1u && y > 0u && y < H - 1u) {
-                    float localMean = 0.0f;
-                    int count = 0;
-                    for (int dy = -1; dy <= 1; ++dy) {
-                        for (int dx = -1; dx <= 1; ++dx) {
-                            const size_t ni = static_cast<size_t>(static_cast<int>(y) + dy) * static_cast<size_t>(W) + static_cast<size_t>(static_cast<int>(x) + dx);
-                            if (ni < n && std::isfinite(src[ni])) {
-                                localMean += src[ni];
-                                ++count;
-                            }
+                const int x = static_cast<int>(i % W);
+                const int y = static_cast<int>(i / W);
+                float localMean = 0.0f;
+                int count = 0;
+                for (int dy = -1; dy <= 1; ++dy) {
+                    const int yy = y + dy;
+                    if (yy < 0 || yy >= static_cast<int>(H)) continue;
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        const int xx = x + dx;
+                        if (xx < 0 || xx >= static_cast<int>(W)) continue;
+                        const float v = src[static_cast<size_t>(yy) * W + static_cast<size_t>(xx)];
+                        if (std::isfinite(v)) {
+                            localMean += v;
+                            ++count;
                         }
                     }
-                    if (count > 0) {
-                        localMean /= static_cast<float>(count);
-                        // Blend corrected with local mean (0.7 : 0.3)
-                        corrected = mixKeep * corrected + mixLocal * localMean;
-                    }
+                }
+                if (count > 0) {
+                    localMean /= static_cast<float>(count);
+                    // Blend corrected with local mean (0.7 : 0.3)
+                    corrected = mixKeep * corrected + mixLocal * localMean;
                 }
             }
 

@@ -1,0 +1,20 @@
+Note: Google Test filter = GhostOracle.PrintsTheTierThreeDigest*:GhostTier3Border.PrintsTheTierDigests*
+[==========] Running 2 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from GhostOracle
+[ RUN      ] GhostOracle.PrintsTheTierThreeDigestForTheSeamComparison
+[ghost-oracle] tier3-digest 0x7b90345cb57971c3
+[       OK ] GhostOracle.PrintsTheTierThreeDigestForTheSeamComparison (2 ms)
+[----------] 1 test from GhostOracle (2 ms total)
+
+[----------] 1 test from GhostTier3Border
+[ RUN      ] GhostTier3Border.PrintsTheTierDigestsForTheBeforeAfterComparison
+[ghost-oracle] tier1-digest 0x1558dd0b4bbc9f28
+[ghost-oracle] tier2-digest 0xf43a98bc527d9a42
+[ghost-oracle] tier3-digest 0x7b90345cb57971c3
+[       OK ] GhostTier3Border.PrintsTheTierDigestsForTheBeforeAfterComparison (3 ms)
+[----------] 1 test from GhostTier3Border (11 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 2 test suites ran. (14 ms total)
+[  PASSED  ] 2 tests.

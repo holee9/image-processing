@@ -180,25 +180,25 @@ TEST(GhostMixCompare, TheAnalyticValuesOfThePreregistrationHold) {
     }
 }
 
-TEST(GhostMixCompare, TheRingStepIsTheMixTimesTheRemovedLag) {
-    // uniform frame (T1 27 %, no noise): interior = keep*border + local*raw  =>  step = local*(raw - border)
+TEST(GhostMixCompare, TheBlendLeavesNoRingAndIsTheMixOfTheUnblendedFrameAndTheRaw) {
+    // QA-A-227 (#244): before it, the blend reached only the interior and a uniform frame came out with a ring of
+    // step = local*(raw - border) (the M4 run recorded 0.6 % to 8.4 %). Now every pixel is blended, so a uniform frame stays uniform
+    // and, the unblended correction being the same in both runs, blend = keep*unblended + local*raw (both uniform).
     const Seq s = exposureSeq(0.27);
-    const auto yv = truthLti(s.x);
-    const auto y = makeFrames(yv, 0.0, 0);
+    const auto y = makeFrames(truthLti(s.x), 0.0, 0);
     const size_t i = s.nPre + 150;
     for (const auto& c : configs()) {
-        for (const bool blend : {true, false}) {
-            Mix m(blend);
-            const Frames out = runTier(3, c.lag, y);
-            const Ring r = ringOf(out[i]);
-            const double raw = meanOf(y[i]);
-            const double predicted = (blend ? 0.7 : 1.0) * r.border + (blend ? 0.3 : 0.0) * raw;
-            std::printf("[ghost-oracle-m4] ring %-24s blend=%d: border %.2f interior %.2f step %+.2f ADU (%+.3f%% of the border) | predicted interior %.2f\n",
-                        c.name.c_str(), blend ? 1 : 0, r.border, r.interior, r.interior - r.border,
-                        100.0 * (r.interior - r.border) / r.border, predicted);
-            EXPECT_NEAR(predicted, r.interior, 0.05) << c.name;
-            if (!blend) EXPECT_NEAR(r.border, r.interior, 0.05) << c.name << ": no blend, no ring";
-        }
+        Frames off, on;
+        { Mix m(false); off = runTier(3, c.lag, y); }
+        { Mix m(true); on = runTier(3, c.lag, y); }
+        const Ring ro = ringOf(off[i]), rb = ringOf(on[i]);
+        const double raw = meanOf(y[i]);
+        std::printf("[ghost-oracle-m4] ring %-24s no blend: border %.2f interior %.2f | blend: border %.2f interior %.2f step %+.3f ADU (%+.4f%% of the border) | predicted %.2f\n",
+                    c.name.c_str(), ro.border, ro.interior, rb.border, rb.interior, rb.interior - rb.border,
+                    100.0 * (rb.interior - rb.border) / rb.border, 0.7 * ro.border + 0.3 * raw);
+        EXPECT_NEAR(ro.border, ro.interior, 0.05) << c.name << ": no blend, no ring";
+        EXPECT_NEAR(rb.border, rb.interior, 0.05) << c.name << ": blend, no ring";
+        EXPECT_NEAR(0.7 * ro.border + 0.3 * raw, rb.interior, 0.05) << c.name;
     }
 }
 

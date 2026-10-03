@@ -443,6 +443,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_ghost_oracle.cpp   # QA-A-225 M1 (#241): independent lag generators (Starman LTI, finite trap), E2E ghost-removal metrics measured and printed (no thresholds), controls
         tests/test_ghost_lag_contract.cpp   # QA-A-226b (#241): a forward-unstable lag set (S >= 1) is refused; tau is in frames, acquisitionTime is not used
         tests/test_ghost_uncalibrated.cpp   # QA-A-226 (#241): a handle without calibrated lag parameters passes frames through, one Warning at creation
+        tests/test_ghost_tier3_border.cpp   # QA-A-227 (#244): tier 3 blends the border pixels too (mean over the neighbours that exist); a uniform frame stays uniform
         tests/test_ghost_tier3_orientation.cpp   # QA-A-218b (#233): tier 3 3x3 mean reads the incoming frame; scan-direction independent
         tests/test_xcal_replace_retry.cpp
         # QA-A-140 (#196): the no-op report reaches a null-config caller

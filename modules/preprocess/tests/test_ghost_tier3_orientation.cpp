@@ -101,11 +101,19 @@ Grid refTier3OriginalNeighbours(uint32_t S, const Grid& f1, const Grid& f2) {
             const double raw = f2[i];
             const double sd = 1.0 + beta * (raw / 32768.0);
             double c = raw - a1b * ew * sd * h[i] - a2b * ew * sd * h[i];
-            if (x > 0 && x < S - 1 && y > 0 && y < S - 1) {
+            // QA-A-227 (#244): every pixel is blended with the mean of the neighbours that exist in the frame (nine inside, six on an
+            // edge, four in a corner). Until QA-A-227 the border pixels were not blended at all, which left a one-pixel ring.
+            {
                 double lm = 0.0;
+                int cnt = 0;
                 for (int dy = -1; dy <= 1; ++dy)
-                    for (int dx = -1; dx <= 1; ++dx) lm += f2[(y + dy) * S + (x + dx)];
-                c = 0.7 * c + 0.3 * (lm / 9.0);
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        const int yy = static_cast<int>(y) + dy, xx = static_cast<int>(x) + dx;
+                        if (yy < 0 || xx < 0 || yy >= static_cast<int>(S) || xx >= static_cast<int>(S)) continue;
+                        lm += f2[static_cast<size_t>(yy) * S + static_cast<size_t>(xx)];
+                        ++cnt;
+                    }
+                c = 0.7 * c + 0.3 * (lm / cnt);
             }
             out[i] = static_cast<float>(c > 0 ? c : 0.0);
         }
