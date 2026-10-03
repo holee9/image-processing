@@ -168,13 +168,13 @@ XPE_API XpeErrorCode xpe_log_set_file(const char* filePath) {
     }
 }
 
-// Internal helper invoked by xpe_init: the default is stderr at INFO (REQ-P0-011). A file the caller chose
-// before xpe_init stays as it is, level included. Failing to install it (allocation) leaves the previous
-// default in place; xpe_init has no error to report for it.
+// Internal helper invoked by xpe_init: the default destination is stderr (REQ-P0-011). A file the caller
+// chose before xpe_init stays; so does a level the caller chose (the level is INFO from the start and again
+// after xpe_shutdown, so "INFO" needs no reset here). Failing to install the logger (allocation) leaves the
+// previous default in place; xpe_init has no error to report for it.
 void xpe_log_internal_init() {
     std::lock_guard<std::mutex> lock(g_logMutex);
     if (g_logger) return;
-    g_currentLevel = 2;
     try {
         auto fresh = make_stderr_logger(g_currentLevel);
         auto previous = spdlog::default_logger();
@@ -183,6 +183,19 @@ void xpe_log_internal_init() {
             spdlog::drop(previous->name());
         }
     } catch (...) {
+    }
+}
+
+// The library's own lines (xpe_init writes one) go through the spdlog default logger, as every other module's
+// lines do: the file the caller chose, or stderr, under the same level (5 = OFF writes nothing). (xpe_log_set_file
+// makes its logger the default, so there is no second destination to pick between.)
+void xpe_log_internal_write(int level, const char* msg) {
+    try {
+        std::lock_guard<std::mutex> lock(g_logMutex);
+        std::shared_ptr<spdlog::logger> target = spdlog::default_logger();
+        if (target) target->log(to_spdlog_level(level), msg);
+    } catch (...) {
+        // a log line must never turn into an error for the caller
     }
 }
 

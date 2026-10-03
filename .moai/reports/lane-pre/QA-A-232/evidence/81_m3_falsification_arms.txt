@@ -1,0 +1,5 @@
+M3a internal_log back to its own stderr write (the legacy behaviour) | exit=1 | red: ALevelAboveInfoSilencesTheInitLine OffMeansNoBytesEvenFromTheLibrarysOwnInitLine TheInitLineGoesToTheLogFileTheCallerChose
+M3c xpe_init does not install the stderr default | exit=1 | red: ALevelChosenByTheCallerOpensTraceAgain ASecondInitRestoresTheStderrDefault AfterInitInfoReachesStderrButTraceAndDebugDoNot LevelFourStillRecordsErrorAndCritical TheInitLineIsWrittenAtInfoToStderr
+M3d shutdown does not put the level back to INFO | exit=1 | red: ALevelNeverChosenIsInfoEvenBeforeInit ASecondInitRestoresTheStderrDefault TheInitLineGoesToTheLogFileTheCallerChose TheInitLineIsWrittenAtInfoToStderr
+M3e init resets a level chosen before it | exit=1 | red: ALevelAboveInfoSilencesTheInitLine
+RESTORED | exit=0 | red: (none)

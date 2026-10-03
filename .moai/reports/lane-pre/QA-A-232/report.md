@@ -185,3 +185,63 @@ D2·V2 는 첫 실행에서 `BUILD-FAILED` 였다. NULL 검사를 지우면 `met
 - `xpe_gain_correct`·`xpe_offset_correct` 의 metadata 시험은 229 가 이미 고정했고 이번에 다시 돌리지 않았다(전체 1007 에는 포함되어 통과).
 - `xpe_ghost_correct` 와 파이프라인은 `meta->flags` 를 쓰므로(읽지 않고 씀) 이번 시험의 대상이 아니다.
 - 이 시험은 "읽지 않는다"의 현재를 고정한다. 선량 의존 임계가 구현되면 일부러 빨개지게 만든 것이고, 그때 헤더 문장도 함께 바뀌어야 한다.
+
+## M3. 레거시 `internal_log` 를 같은 수준·같은 목적지 밑으로 (리더 결정, M1 §8 의 잔여 위험 해소)
+
+### 1. 확인한 사실 (소스를 열어 읽은 것)
+
+`xpe_common.cpp` 의 `internal_log` 는 자체 `g_logLevel`(INFO)과 자체 `g_logFile` 을 가졌다.
+`g_logFile` 을 여는 코드는 어디에도 없다(공개 파일 경로는 xpe_logging.cpp 로 옮겨졌고, 여기엔 닫는 코드만 남아 있었다). 즉 파일 갈래는 죽은 코드였고,
+`internal_log` 는 언제나 stderr 로 썼다. 호출은 `xpe_init` 의 한 줄(`library initialised`) 하나뿐이다. 이 줄은 `xpe_log_set_level` 의 지배를 받지 않아서
+레벨을 OFF 로 해도 나왔고, `xpe_log_set_file` 로 고른 파일에는 안 들어갔다.
+
+### 2. 수정
+
+- `xpe_logging.cpp` 에 `xpe_log_internal_write(level, msg)`: spdlog 기본 로거로 쓴다. 다른 모듈의 줄과 같은 로거이므로 수준·목적지가 하나다
+  (`xpe_log_set_file` 이 자기 로거를 기본으로 설치하므로, 파일을 고르면 그 파일이 기본이다 — 둘 중 고를 것이 없다).
+- `xpe_common.cpp`: `internal_log` 는 그 함수에 넘기기만 한다. `g_logLevel`, `g_logFilePath`, `g_logFile` 과 shutdown 의 닫기 블록을 지웠다
+  (죽은 상태라 지우는 것이 단순화다).
+- 출력 형식이 `[XPE][INFO ] msg` 에서 spdlog 기본 형식으로 바뀐다. 이 문자열을 읽는 코드·시험은 grep 에 없었다(modules·clients).
+- 같이 바로잡은 M1 의 결정: `xpe_init` 이 수준을 INFO 로 되돌리던 것을 없앴다. 수준은 처음에도, `xpe_shutdown` 뒤에도 INFO 이고, init 앞에서
+  호스트가 고른 수준은 init 이 덮어쓰지 않는다. (M1 에서는 init 이 덮어썼고, 그러면 "init 앞에서 OFF 를 고르는" 호스트가 init 한 줄을 막지 못한다.
+  이 시험이 그 결정을 드러냈다.) 헤더 문장도 맞췄다.
+
+### 3. 시험과 반증 (`modules/common/tests/test_common_logging_contract.cpp` 에 4 케이스 추가, 총 15)
+
+- `OffMeansNoBytesEvenFromTheLibrarysOwnInitLine`: 레벨 5 → init 중 stderr 0바이트.
+- `TheInitLineIsWrittenAtInfoToStderr`(대조군), `TheInitLineGoesToTheLogFileTheCallerChose`(파일에 들어가고 stderr 엔 없음),
+  `ALevelAboveInfoSilencesTheInitLine`(레벨 3 이면 나오지 않음).
+
+고치는 순서: 시험을 쓰고 코드를 고친 뒤에 돌려서 "고치기 전 빨강" 실행 기록은 따로 없다. 그 대신 옛 동작(자체 stderr 쓰기)으로 되돌린 팔 M3a 가 같은 효과를 낸다: 세 케이스 빨강.
+
+`evidence/81_m3_falsification_arms.txt`
+
+| 팔 | 되돌린 것 | 빨개진 시험 |
+|---|---|---|
+| M3a | `internal_log` 를 자체 stderr 쓰기로(옛 동작) | ALevelAboveInfoSilencesTheInitLine, OffMeansNoBytes…, TheInitLineGoesToTheLogFile… |
+| M3c | `xpe_init` 이 stderr 기본을 설치하지 않음 | 5개 |
+| M3d | shutdown 이 수준을 INFO 로 되돌리지 않음 | 4개 (프로세스 안의 앞선 시험이 남긴 수준이 뒤 시험에 새는 것까지 잡는다) |
+| M3e | init 이 앞서 고른 수준을 덮어씀 | ALevelAboveInfoSilencesTheInitLine |
+| 복원 | — | 없음 (exit 0) |
+
+M3a 의 첫 시도는 반증 스크립트 문자열의 이스케이프 실수로 `BUILD-FAILED`, 둘째 시도는 `(void)` 식이 `/WX` 에 걸려 `BUILD-FAILED` 였다. 빌드 실패를 "시험이 잡았다"로 읽지 않고 팔을 고쳐 다시 돌렸다.
+처음 계획에 있던 "own lines 가 선택한 파일 대신 기본 로거로 간다" 팔은 버렸다: 파일을 고르면 그 로거가 곧 기본 로거라 두 갈래가 같은 값이고, 반증이 터질 수 없는 팔이다(터지지 않는 반증을 "중복 방어"의 증거로 읽지 않았다 — 대상이 애초에 두 갈래가 아니다).
+M1 의 팔 A5(init 이 수준을 INFO 로 되돌림)는 위 결정으로 의미가 바뀌어 M3e 로 대체됐다.
+
+### 4. 검증 (이번 트리, 이번 실행의 출력)
+
+| 항목 | 관측 |
+|---|---|
+| 새 시험 | `xpe_common_logging_tests` PASSED 15 tests, exit 0 (`evidence/82_m3_final_*.txt`) |
+| 기존 공용 시험 | `test_xpe_common` PASSED 69 tests, exit 0 |
+| 할당 실패 훑기 | `xpe_common_oom_tests` PASSED 12 tests, exit 0 |
+| preprocess 전체 | `xpe_preprocess_tests` PASSED 1008 tests, exit 0 (`evidence/83_m3_preprocess_tests.txt`) |
+| 헤더 문서 | `check_header_docs.py` exit 0, doxygen 1.12.0 exit 0 |
+
+### 5. Gaps / Residual-risk (M3)
+
+- 출력 형식 변경: 줄 앞 `[XPE][INFO ]` 가 사라진다. modules·clients 의 문자열 grep 으로는 읽는 곳이 없었다. 외부 호스트가 이 접두를 파싱하는지는 모른다.
+- `xpe_log_internal_write` 는 `g_logMutex` 를 잡은 채 spdlog 를 부른다. 같은 뮤텍스를 잡는 공개 함수(set_file 등)와 순서가 맞물려 교착하지는 않지만(둘 다 단일 뮤텍스),
+  동시 호출 시험은 만들지 않았다.
+- dicom/ai 등 다른 모듈의 시험은 이 트리에서 돌리지 못했다(M1 과 동일).
+

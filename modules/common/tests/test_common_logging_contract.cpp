@@ -77,7 +77,9 @@ public:
     std::string stop() {
         xpe_log_flush();
         restore();
-        return readAll(kCapture);
+        const std::string got = readAll(kCapture);
+        std::remove(kCapture);
+        return got;
     }
 
 private:
@@ -225,6 +227,53 @@ TEST(LoggingContractFresh, ALevelNeverChosenIsInfoEvenBeforeInit) {
     EXPECT_TRUE(has(got, "MARK_INFO")) << got;
     EXPECT_FALSE(has(got, "MARK_TRACE")) << got;
     EXPECT_FALSE(has(got, "MARK_DEBUG")) << got;
+}
+
+// QA-A-232 M3: the library's own lines (xpe_init writes one) follow the same level and destination as every
+// other line. The old internal_log kept a level and a file of its own, so with the level set to OFF the line
+// still reached stderr, and a log file chosen with xpe_log_set_file did not get it.
+TEST(LoggingContractInit, OffMeansNoBytesEvenFromTheLibrarysOwnInitLine) {
+    xpe_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_log_set_level(5));
+    StderrCapture cap;
+    ASSERT_EQ(XPE_OK, xpe_init(nullptr));
+    const std::string got = cap.stop();
+    xpe_shutdown();
+    EXPECT_TRUE(got.empty()) << got;
+}
+
+TEST(LoggingContractInit, TheInitLineIsWrittenAtInfoToStderr) {
+    xpe_shutdown();
+    StderrCapture cap;
+    ASSERT_EQ(XPE_OK, xpe_init(nullptr));
+    const std::string got = cap.stop();
+    xpe_shutdown();
+    EXPECT_TRUE(has(got, "library initialised")) << got;
+}
+
+TEST(LoggingContractInit, TheInitLineGoesToTheLogFileTheCallerChose) {
+    std::remove(kLogFile);
+    xpe_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_log_set_file(kLogFile));
+    StderrCapture cap;
+    ASSERT_EQ(XPE_OK, xpe_init(nullptr));
+    const std::string onStderr = cap.stop();
+    xpe_log_flush();
+    const std::string inFile = readAll(kLogFile);
+    xpe_shutdown();
+    std::remove(kLogFile);
+    EXPECT_TRUE(has(inFile, "library initialised")) << inFile;
+    EXPECT_FALSE(has(onStderr, "library initialised")) << onStderr;
+}
+
+TEST(LoggingContractInit, ALevelAboveInfoSilencesTheInitLine) {
+    xpe_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_log_set_level(3));
+    StderrCapture cap;
+    ASSERT_EQ(XPE_OK, xpe_init(nullptr));
+    const std::string got = cap.stop();
+    xpe_shutdown();
+    EXPECT_FALSE(has(got, "library initialised")) << got;
 }
 
 // A new init after a shutdown brings the default back (shutdown parks logging on a null sink).

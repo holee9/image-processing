@@ -32,6 +32,7 @@
  * of xpe_logging.cpp (lines 43-158). */
 extern "C" void xpe_log_internal_reset();
 extern "C" void xpe_log_internal_init();
+extern "C" void xpe_log_internal_write(int level, const char* msg);
 
 /* ============================================================================
  * Internal types
@@ -63,11 +64,6 @@ static std::deque<AlertEntry> g_alertQueue;
 // Cumulative evictions since the last xpe_clear_alerts. Drives the loss alert.
 static uint64_t g_alertsDropped{0};
 
-// Logging
-static int32_t           g_logLevel{2};      // default INFO
-static std::string       g_logFilePath;
-static std::ofstream     g_logFile;
-
 /* Version string -- semantic versioning */
 static const char* kVersionString = "0.1.0";
 
@@ -75,23 +71,12 @@ static const char* kVersionString = "0.1.0";
  * Internal helpers
  * ============================================================================ */
 
-/** Simple log sink -- writes to g_logFile if open, else stderr. */
+/** The library's own log lines: same level, same destination as every other line (see xpe_logging.cpp).
+ *  QA-A-232 M3: this used to keep a level and a file of its own, so xpe_log_set_level(OFF) did not silence it
+ *  and xpe_log_set_file did not receive it. */
 static void internal_log(int32_t level, const char* msg)
 {
-    if (level < g_logLevel) return;
-
-    const char* levelStr[] = {"TRACE", "DEBUG", "INFO ", "WARN ", "ERROR", "OFF  "};
-    const char* tag = (level >= 0 && level <= 5) ? levelStr[level] : "?????";
-
-    char buf[512];
-    std::snprintf(buf, sizeof(buf), "[XPE][%s] %s\n", tag, msg);
-
-    std::lock_guard<std::mutex> lk(g_mutex);
-    if (g_logFile.is_open()) {
-        g_logFile << buf;
-    } else {
-        std::fputs(buf, stderr);
-    }
+    xpe_log_internal_write(level, msg);
 }
 
 /* Alert queue overflow policy -- api-spec.md 5.17 (SRS-ALERT-007, HAZ-006).
@@ -245,7 +230,6 @@ XPE_API XpeErrorCode xpe_init(const char* configJsonOrNull)
 
             // From here nothing throws: flags, clear() and swap() only.
             g_initialized   = true;
-            g_logLevel      = 2;  // INFO
             g_alertQueue.clear();
             g_alertsDropped = 0;
 
@@ -282,12 +266,6 @@ XPE_API void xpe_shutdown(void)
             g_alertQueue.clear();
             g_alertsDropped = 0;
             g_configJson.clear();
-
-            // Flush and close log file
-            if (g_logFile.is_open()) {
-                g_logFile.flush();
-                g_logFile.close();
-            }
         }
 
         // Release the spdlog file sink installed by xpe_log_set_file(), so the
@@ -464,9 +442,9 @@ XPE_API void xpe_clear_alerts(void)
  * NOTE: The public logging API (xpe_log_set_level, xpe_log_set_file,
  * xpe_log_flush) is now implemented in xpe_logging.cpp using spdlog.
  * Duplicate definitions were removed here to fix LNK2005 multi-definition
- * errors at link time. The internal globals (g_logLevel, g_logFilePath,
- * g_logFile) remain in this translation unit because internal_log() and
- * xpe_shutdown() still reference them for lifecycle + alert-queue diagnostics.
+ * errors at link time. internal_log() above hands the library's own lines to
+ * xpe_log_internal_write() in that file, so there is one level and one
+ * destination (QA-A-232 M3; the globals it used to keep here are gone).
  * ============================================================================ */
 
 // Logging functions implemented in xpe_logging.cpp using spdlog
