@@ -1,0 +1,3 @@
+== arm H: the GetTypeWithArgument pattern is weakened to require a string literal (the shape the 228b scan had)
+[xUnit.net 00:00:00.33]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.EveryPattern_MatchesItsControlLines_AndEveryControlLineIsMatchedByItsPattern [FAIL]
+실패!  - 실패:     1, 통과:    10, 건너뜀:     0, 전체:    11, 기간: 221 ms - ImageProcTest.IntegrationTests.dll (net8.0)
