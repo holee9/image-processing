@@ -1,0 +1,227 @@
+"""QA-B-204 DISP: reproduction probes for the QA-B-199 candidates D1..D4, D6..D8, through the built DLL (build/ci-post/bin).
+No source is changed. Run from the repository root: python build/g204_disp.py"""
+import ctypes as C
+import math
+import os
+
+import numpy as np
+
+BIN = os.path.abspath('build/ci-post/bin')
+os.add_dll_directory(BIN)
+COMMON = C.CDLL(os.path.join(BIN, 'xpe_common.dll'))
+D = C.CDLL(os.path.join(BIN, 'xpe_display.dll'))
+for f in ('xpe_apply_modality_lut', 'xpe_apply_voi_lut', 'xpe_apply_presentation_lut', 'xpe_gsdf_calibrate'):
+    getattr(D, f).restype = C.c_int32
+
+
+class Img(C.Structure):
+    _fields_ = [('width', C.c_uint32), ('height', C.c_uint32), ('bitsAllocated', C.c_uint32), ('bitsStored', C.c_uint32),
+                ('format', C.c_int32), ('data', C.c_void_p), ('dataSize', C.c_size_t)]
+
+
+class ModLut(C.Structure):
+    _fields_ = [('mode', C.c_int32), ('rescaleSlope', C.c_float), ('rescaleIntercept', C.c_float), ('lutData', C.c_void_p),
+                ('lutLength', C.c_uint32), ('lutFirstMapped', C.c_int32), ('lutBitsStored', C.c_uint32)]
+
+
+class VoiLut(C.Structure):
+    _fields_ = [('mode', C.c_int32), ('center', C.c_float), ('width', C.c_float), ('minOut', C.c_float), ('maxOut', C.c_float)]
+
+
+class PresLut(C.Structure):
+    _fields_ = [('lutData', C.c_uint16 * 1024), ('gsdfEnabled', C.c_int32)]
+
+
+RC = {0: 'OK', -1: 'INVALID_INPUT', -3: 'PROCESSING_FAILED', -7: 'UNSUPPORTED_FORMAT'}
+
+
+def rcn(rc):
+    return '%d (%s)' % (rc, RC.get(rc, '?'))
+
+
+def fbuf(a):
+    h, w = a.shape
+    return Img(w, h, 32, 32, 1, a.ctypes.data, a.nbytes)
+
+
+def section(t):
+    print()
+    print('== ' + t)
+
+
+# ---------------------------------------------------------------------------------------------------------------- D1
+section('D1 REQ-DISP-025/026: xpe_gsdf_calibrate with a black level below 0.05 cd/m2 (the standard\'s validity range starts at 0.05)')
+A, B, Cc, Dd, Ee, Ff, Gg, Hh, Ii = (71.498068, 94.593053, 41.912053, 9.8247004, 0.28175407, -1.1878455, -0.18014349,
+                                    0.14710899, -0.017046845)
+
+
+def jnd(L):
+    """PS3.14 Eq 7-2, j(L), the standard's own polynomial; outside 0.05..4000 it is an extrapolation."""
+    x = math.log10(L)
+    return Ii * x ** 8 + Hh * x ** 7 + Gg * x ** 6 + Ff * x ** 5 + Ee * x ** 4 + Dd * x ** 3 + Cc * x ** 2 + B * x + A
+
+
+def lum_for_jnd(j, lo=1e-4, hi=1e4):
+    """Invert jnd() by bisection on log10 L (the polynomial is increasing on this range -- checked below)."""
+    a, b = math.log10(lo), math.log10(hi)
+    for _ in range(80):
+        m = 0.5 * (a + b)
+        if jnd(10 ** m) < j:
+            a = m
+        else:
+            b = m
+    return 10 ** (0.5 * (a + b))
+
+
+grid = [jnd(10 ** y) for y in np.linspace(-4, 4, 4001)]
+print('  j(L) is strictly increasing on L = 1e-4..1e4 (log grid, 4001 points): %s; j(0.01) = %.2f, j(0.05) = %.2f, j(4000) = %.2f'
+      % (all(grid[i] < grid[i + 1] for i in range(len(grid) - 1)), jnd(0.01), jnd(0.05), jnd(4000)))
+
+
+def reference_lut(measured, lum_min, lum_max):
+    j0, j1 = jnd(lum_min), jnd(lum_max)
+    n = len(measured)
+    out = []
+    for i in range(1024):
+        target = lum_for_jnd(j0 + (i / 1023.0) * (j1 - j0))
+        target = min(max(target, lum_min), lum_max)
+        if target <= measured[0]:
+            ddl = 0.0
+        elif target >= measured[-1]:
+            ddl = 65535.0
+        else:
+            k = int(np.searchsorted(measured, target, side='right') - 1)
+            lo, hi = measured[k], measured[k + 1]
+            frac = (target - lo) / (hi - lo) if hi > lo else 0.0
+            ddl = (k + frac) / (n - 1) * 65535.0
+        out.append(ddl)
+    return np.array(out)
+
+
+N = 256
+print('  gamma 2.2 curve, %d samples, Lmax 300; the reference LUT is derived here from the standard (inverse polynomial by bisection)' % N)
+print('  %-34s %8s %10s %12s %s' % ('black level of the measured curve', 'rc', 'max|diff|', 'entries >300', 'first LUT entries (module)  |  reference'))
+for black in (0.0, 0.01, 0.03, 0.05, 0.2, 1.0):
+    meas = (black + (300.0 - black) * (np.arange(N) / (N - 1)) ** 2.2).astype(np.float32)
+    lut = PresLut()
+    rc = D.xpe_gsdf_calibrate(meas.ctypes.data_as(C.POINTER(C.c_float)), C.c_uint32(N), C.byref(lut))
+    mod = np.array(list(lut.lutData), dtype=np.float64)
+    lum_min = 0.01 if black <= 0 else black
+    ref = reference_lut(meas.astype(np.float64), lum_min, 300.0)
+    diff = np.abs(mod - ref)
+    print('  %-34s %8s %10.0f %12d %s  |  %s' % ('%.2f cd/m2' % black, rcn(rc), diff.max(), int((diff > 300).sum()),
+                                               [int(v) for v in mod[:4]] + ['...'] + [int(v) for v in mod[40:43]],
+                                               [int(v) for v in ref[:4]] + ['...'] + [int(v) for v in ref[40:43]]))
+# where do the zeros end, for black level 0.01
+meas = (0.01 + 299.99 * (np.arange(N) / (N - 1)) ** 2.2).astype(np.float32)
+lut = PresLut()
+D.xpe_gsdf_calibrate(meas.ctypes.data_as(C.POINTER(C.c_float)), C.c_uint32(N), C.byref(lut))
+mod = np.array(list(lut.lutData), dtype=np.int64)
+j0 = jnd(0.01)
+j1 = jnd(300.0)
+first_nonzero = int(np.argmax(mod > 0))
+print('  black 0.01: the module LUT is 0 for the first %d entries (entry %d is the first above 0); j_min = %.2f, so the entries with'
+      ' target j <= 0 are %d' % (first_nonzero, first_nonzero, j0, int(math.floor(-j0 / ((j1 - j0) / 1023.0)) + 1)))
+
+# ---------------------------------------------------------------------------------------------------------------- D2
+section('D2 REQ-DISP-002: Modality LUT TABLE mode with pixels far outside int32 ("clamp to the nearest boundary entry")')
+lut16 = (C.c_uint16 * 16)(*[(i + 1) * 1000 for i in range(16)])
+px = np.array([[-3.4e38, -1e12, -3e9, -2147483904.0], [-2147483648.0, -100.0, 0.0, 7.0],
+               [15.0, 16.0, 100.0, 2147483648.0], [2147483904.0, 3e9, 1e12, 3.4e38]], dtype=np.float32)
+a = px.copy()
+params = ModLut(1, 1.0, 0.0, C.cast(lut16, C.c_void_p), 16, 0, 16)
+rc = D.xpe_apply_modality_lut(C.byref(fbuf(a)), C.byref(params))
+print('  rc = %s; table entries 1000..16000 at indexes 0..15 (first mapped 0)' % rcn(rc))
+print('  %-14s -> %-8s expected' % ('input', 'output'))
+bad = 0
+for v, o in zip(px.flat, a.flat):
+    exp = 1000.0 if v <= 0 else (16000.0 if v >= 15 else (round(float(v)) + 1) * 1000.0)
+    flag = '' if abs(o - exp) < 0.5 else '   <-- WRONG'
+    bad += 1 if flag else 0
+    print('  %-14.6g -> %-8.0f %-8.0f%s' % (v, o, exp, flag))
+print('  pixels mapped to an entry other than the nearest boundary: %d of %d' % (bad, px.size))
+
+# ---------------------------------------------------------------------------------------------------------------- D3
+section('D3 REQ-DISP-009/015: VOI LINEAR with 0 < width < 1 (width - 1 is negative); LINEAR_EXACT as the control')
+xs = np.array([99.0, 99.5, 99.9, 100.0, 100.1, 100.5, 101.0], dtype=np.float32)
+
+
+def formula(mode, x, c, w, lo, hi):
+    if mode == 'LINEAR':
+        denom, centre = (w - 1.0), (c - 0.5)
+    else:
+        denom, centre = w, c
+    if denom == 0:
+        return None
+    return min(max(((x - centre) / denom + 0.5) * (hi - lo) + lo, lo), hi)
+
+
+print('  center 100, output 0..1; each cell: module output | the SPEC formula (None = division by zero)')
+for w in (0.25, 0.5, 0.999, 1.0, 1.5, 2.0):
+    for mode, mid in (('LINEAR', 0), ('LINEAR_EXACT', 1)):
+        a = np.tile(xs, (2, 1)).copy()
+        rc = D.xpe_apply_voi_lut(C.byref(fbuf(a)), C.byref(VoiLut(mid, 100.0, w, 0.0, 1.0)))
+        cells = []
+        for x, o in zip(xs, a[0]):
+            f = formula(mode, float(x), 100.0, w, 0.0, 1.0)
+            cells.append('%.3f|%s' % (o, 'None' if f is None else '%.3f' % f))
+        print('  width %-6g %-13s rc %-18s %s' % (w, mode, rcn(rc), '  '.join(cells)))
+
+# ---------------------------------------------------------------------------------------------------------------- D4
+section('D4 REQ-DISP-021: xpe_apply_presentation_lut: values outside [0,1] are clamped, non-finite values are refused')
+pres = PresLut()
+for i in range(1024):
+    pres.lutData[i] = (i * 65535) // 1023
+
+
+def run_pres(values):
+    b = Img()
+    assert COMMON.xpe_alloc_image(C.c_uint32(4), C.c_uint32(4), C.c_int32(1), C.byref(b)) == 0
+    arr = np.full(16, 0.5, np.float32)
+    arr[:len(values)] = values
+    C.memmove(b.data, arr.ctypes.data, 64)
+    rc = D.xpe_apply_presentation_lut(C.byref(b), C.byref(pres))
+    out = None
+    if rc == 0 and b.format == 0:
+        out = np.ctypeslib.as_array(C.cast(b.data, C.POINTER(C.c_uint16)), shape=(16,)).copy()
+    fmt = b.format
+    COMMON.xpe_free_image(C.byref(b))
+    return rc, fmt, out
+
+
+rc, fmt, out = run_pres([-1.0, 0.0, 0.5, 1.0, 2.0, 1e30])
+print('  finite out-of-range inputs [-1, 0, 0.5, 1, 2, 1e30] -> rc %s, outputs %s (LUT[0]=0, LUT[1023]=65535: clamped)' % (rcn(rc), out[:6].tolist() if out is not None else None))
+for label, v in (('+inf', float('inf')), ('-inf', float('-inf')), ('NaN', float('nan'))):
+    rc, fmt, out = run_pres([v])
+    print('  one %-5s pixel -> rc %s (format of the buffer afterwards: %d, 1 = still float, the call was refused)' % (label, rcn(rc), fmt))
+
+# ---------------------------------------------------------------------------------------------------------------- D6
+section('D6 REQ-DISP-026: xpe_gsdf_calibrate with non-finite or unordered luminance (the buffer is pre-filled with 0xABCD)')
+cases = [
+    ('NaN as the first element', [float('nan'), 1.0, 2.0, 3.0]),
+    ('NaN in the middle', [1.0, float('nan'), 2.0, 3.0]),
+    ('NaN as the last element', [1.0, 2.0, 3.0, float('nan')]),
+    ('+inf as the last element', [1.0, 2.0, 3.0, float('inf')]),
+    ('-inf as the first element', [float('-inf'), 1.0, 2.0]),
+    ('descending [5, 1, 3]', [5.0, 1.0, 3.0]),
+    ('control: ascending [1, 50, 100]', [1.0, 50.0, 100.0]),
+]
+for label, vals in cases:
+    arr = np.array(vals, np.float32)
+    lut = PresLut()
+    for i in range(1024):
+        lut.lutData[i] = 0xABCD
+    lut.gsdfEnabled = 7
+    rc = D.xpe_gsdf_calibrate(arr.ctypes.data_as(C.POINTER(C.c_float)), C.c_uint32(len(vals)), C.byref(lut))
+    untouched = all(lut.lutData[i] == 0xABCD for i in range(1024)) and lut.gsdfEnabled == 7
+    print('  %-34s rc %-18s output params untouched: %s' % (label, rcn(rc), untouched))
+
+# ---------------------------------------------------------------------------------------------------------------- D8
+section('D8 REQ-DISP-009..012: VOI with minOut > maxOut')
+xs2 = np.array([0.0, 50.0, 100.0, 150.0, 200.0], dtype=np.float32)
+for name, mid in (('LINEAR', 0), ('LINEAR_EXACT', 1), ('SIGMOID', 2)):
+    for (lo, hi) in ((0.0, 1.0), (1.0, 0.0)):
+        a = np.tile(xs2, (2, 1)).copy()
+        rc = D.xpe_apply_voi_lut(C.byref(fbuf(a)), C.byref(VoiLut(mid, 100.0, 100.0, lo, hi)))
+        print('  %-13s minOut %.0f maxOut %.0f -> rc %-18s outputs for inputs 0,50,100,150,200: %s'
+              % (name, lo, hi, rcn(rc), [round(float(v), 3) for v in a[0]]))
