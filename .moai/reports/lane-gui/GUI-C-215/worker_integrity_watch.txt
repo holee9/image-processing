@@ -1,0 +1,7 @@
+﻿watch started 2026-10-03T14:10:39.1933984+09:00
+control (this powershell, pid=9444): integrityRid=0x2000 inJob=False
+2026-10-03T14:12:26.5206306+09:00 worker pid=1620 path=C:\Users\drake\AppData\Local\Temp\c215_native\xpe_ai_worker.exe integrityRid=0x1000 inJob=True children=1
+2026-10-03T14:12:44.3134790+09:00 worker pid=37796 path=C:\Users\drake\AppData\Local\Temp\c215_native\xpe_ai_worker.exe integrityRid=0x1000 inJob=True children=1
+2026-10-03T14:13:12.6360585+09:00 worker pid=28620 path=C:\Users\drake\AppData\Local\Temp\c215_native\xpe_ai_worker.exe integrityRid=0x1000 inJob=True children=1
+watch ended; workers seen: 3
+test runner user: DEV-WORK\drake
