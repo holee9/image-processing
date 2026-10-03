@@ -150,6 +150,8 @@ The test collection **shall not** use `MockXpeBackend` or `CompositeXpeBackend`.
 
 > **실측 주석 (2026-09-17).** `CompositeXpeBackend` 는 **코드 어디에도 없습니다**(범위: `gui/`·`clients/`·`modules/` 의 `*.cs`; 대조군 — 같은 검색이 `MockXpeBackend`·`RealXpeBackend`·`XpeBackendFactory` 를 찾음). Real → Mock 폴백은 현재 `gui/ImageProcTest/Services/XpeBackendFactory.cs` 가 합니다.
 > 따라서 이 요구의 `CompositeXpeBackend` 절반, 그리고 아래 수용 기준의 `typeof(CompositeXpeBackend)` 리플렉션 단언은 **존재하지 않는 타입의 부재를 확인하므로 언제나 통과합니다** — 아무것도 지키지 않습니다. 지켜야 할 대상은 `XpeBackendFactory` 의 폴백입니다.
+>
+> **정정 (2026-10-03, GUI-C-208).** 위 2026-09-17 주석은 틀렸다. `CompositeXpeBackend` 는 `clients/ImageProcTest/Backends/CompositeXpeBackend.cs` 에 있다(2026-04-17 `3cadf4ac` 에서 추가, 레거시 `clients/` 앱 5곳이 사용). 그때 검색이 이 파일을 놓쳤다. 따라서 수용 기준의 `typeof(CompositeXpeBackend)` 리플렉션 단언은 실재하는 타입이 시험 어셈블리에 참조되지 않음을 지키는 의미 있는 단언이다. GUI-C-208 은 그 스캔이 실제로 타입을 보는지 붙잡는 대조 시험을 더했다(#249).
 
 - Rationale: Mock 경로는 GUI scaffold 전용, 통합 테스트 통과를 허용하면 regression 은폐됨 (research.md R-12)
 
