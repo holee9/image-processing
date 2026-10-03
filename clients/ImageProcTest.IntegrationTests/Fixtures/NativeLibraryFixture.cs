@@ -61,7 +61,7 @@ public sealed class NativeLibraryFixture : IDisposable
         if (!VerifyX64Pe(path))
         {
             IsAvailable = false;
-            ResolvedPath = $"Architecture mismatch: {path} is not x64";
+            ResolvedPath = ArchitectureMismatchDiagnostic(path);
             return;
         }
 
@@ -77,6 +77,9 @@ public sealed class NativeLibraryFixture : IDisposable
             LoadError = ex.Message;
         }
     }
+
+    /// <summary>GUI-C-209 (D9): what the fixture reports as the resolved path when the located DLL is not x64. Named so a test can hold the wording (it carries the path).</summary>
+    internal static string ArchitectureMismatchDiagnostic(string path) => $"Architecture mismatch: {path} is not x64";
 
     internal static (bool found, string path) TryLocateDll()
     {
