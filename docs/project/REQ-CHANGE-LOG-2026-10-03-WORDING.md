@@ -79,4 +79,14 @@
 
 ---
 
+## 5. 그 뒤 반영 — 결정의 후속 (2026-10-03, post 병합 `79c83e20`)
+
+| 요구 ID | 문서 | 옛 문구 → 새 문구 | 근거 |
+|---|---|---|---|
+| REQ-ENH-021 (USM 오버슈트) | SPEC-XPE-P1B-ENH v1.3.1 | 상한 `max(original*2.0, original+amount*threshold)` 만 → 같은 상한 + "No output pixel SHALL be below 0, whether or not the pixel was sharpened and including `amount = 0`" | 2026-10-03 사용자 답변 "0에서 자르기 (권장)"(리더 세션 AskUserQuestion, #251). 구현 QA-B-201 M3·M3b·QA-B-205 |
+| REQ-DICOM-041 (ABI) | SPEC-XPE-P1B-DICOM | "All 10 exported functions" → "All 11 exported functions" | 결정 7 의 결과(`xpe_dicom_version` 추가, QA-B-200 M2a). api-spec §11 인벤토리 10 → 11, §11.11 추가 |
+| (문구 아님) api-spec §11.5·11.6 | api-spec | DICOM 쓰기는 `XPE_PIXEL_UINT16` 만 받고 다른 형식은 입구에서 `XPE_ERR_INVALID_INPUT` | 구현 사실 기록(QA-B-201 M4, Codex #107). 리더 결정: 변환하지 않고 거부 |
+
+---
+
 *끝*

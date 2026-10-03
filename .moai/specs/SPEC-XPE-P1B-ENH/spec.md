@@ -1,7 +1,7 @@
 # SPEC-XPE-P1B-ENH: Phase 1b Basic Enhancement + EI Baseline
 
 **Document ID**: SPEC-XPE-P1B-ENH
-**Version**: 1.3.0
+**Version**: 1.3.1
 **Date**: 2026-10-03
 **Status**: Implemented
 **Parent**: SPEC-XPE-MASTER v2.0.0
@@ -20,6 +20,7 @@
 | 1.0.0 | 2026-04-16 | MoAI (manager-spec) | Initial EARS requirements from SPEC-XPE-MASTER v2.0.0 and ALG-SPEC-001 v3.0.0-ds2 |
 | 1.1.0 | 2026-04-16 | MoAI (sync) | Implementation complete — 67/67 tests passing, all 5 SWUs delivered |
 | 1.2.0 | 2026-10-03 | lead (QA-B-199) | 요구 실태 대조 반영(#251): 결함 후보 E1~E9 해당 요구에 상태 메모 추가(요구 문구는 바꾸지 않음), CC-001 의 API 수 불일치 메모, tasks.md 상태 열 정정 |
+| 1.3.1 | 2026-10-03 | lead | REQ-ENH-021 에 출력 하한 0 추가(사용자 결정 "0에서 자르기", #251). 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md` §5 |
 | 1.3.0 | 2026-10-03 | lead | 사용자 결정(#245 코멘트 묶음 ④ "문서를 실제에 맞게", #251): REQ-ENH-CC-001 과 머리말 API Count 를 7 → 10 으로(헤더 `enhance_basic_api.h` 의 `XPE_API` 10개). §2.2 의 7개 목록은 처리 함수 목록으로 둔다. 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md` |
 
 ---
@@ -320,9 +321,9 @@ target_compile_definitions(xpe_enhance_basic PRIVATE XPE_DLL_EXPORT)
 
 **REQ-ENH-020**: IF `amount` is outside [0.0, 5.0] or `radius` is outside [0.5, 10.0] or `threshold` is negative, THEN the system SHALL return `XPE_ERR_INVALID_INPUT`.
 
-**REQ-ENH-021**: The system SHALL NOT introduce clinically misleading halo or ringing artifacts. Pixel overshoot SHALL be clamped to `max(original * 2.0, original + amount * threshold)`.
+**REQ-ENH-021**: The system SHALL NOT introduce clinically misleading halo or ringing artifacts. Pixel overshoot SHALL be clamped to `max(original * 2.0, original + amount * threshold)`. No output pixel SHALL be below 0, whether or not the pixel was sharpened and including `amount = 0` (lower bound added 2026-10-03, user decision, #251).
 
-> **상태 메모 (2026-10-03, QA-B-199, 후보 E1)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 구현의 클램프는 위 상한이 아니라 `orig ± amount*threshold`(양쪽)이다. 시험은 이 상한보다 느슨한 위쪽 경계만 단언한다.
+> **상태 메모 (2026-10-03, QA-B-199, 후보 E1)**: 처음 메모 — 구현의 클램프가 위 상한이 아니라 `orig ± amount*threshold`(양쪽)였다. **갱신 (2026-10-03, 리더)**: 상한은 QA-B-200 이 위 식으로 고쳤고, 하한 0 은 QA-B-201 M3·M3b 와 QA-B-205(`amount = 0` 경로)가 넣었다(Codex #106·#107 검토, main 병합 `79c83e20`). 16비트 소비자 출력은 180가지 경우에서 화소 차이 0(QA-B-205 보고서).
 
 **REQ-ENH-022**: WHILE processing a 3072x3072 float32 image, the system SHALL complete `xpe_edge_enhance` within 20 milliseconds.
 

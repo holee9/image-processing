@@ -25,7 +25,7 @@
 
 ## 1. Scope
 
-Phase 1b DICOM I/O implements the complete DICOM file and network communication layer as `xpe_dicom.dll`. This module exports exactly 10 C API functions organized into 4 Software Units (SWUs).
+Phase 1b DICOM I/O implements the complete DICOM file and network communication layer as `xpe_dicom.dll`. This module exports exactly 11 C API functions: 10 organized into 4 Software Units (SWUs), plus `xpe_dicom_version` (REQ-P0-033, added 2026-10-03, QA-B-200 M2a).
 
 ### 1.1 In Scope
 
@@ -292,7 +292,7 @@ xpe_dicom_close(handle) --> free all resources
 
 ### 3.5 Cross-Cutting Requirements
 
-**REQ-DICOM-041**: All 10 exported functions SHALL use C linkage (`extern "C"`), `__cdecl` calling convention, and blittable types only. All pointer parameters SHALL use basic C types compatible with .NET P/Invoke marshalling.
+**REQ-DICOM-041**: All 11 exported functions (10 until 2026-10-03; `xpe_dicom_version` added per REQ-P0-033, user decision 7, `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md`) SHALL use C linkage (`extern "C"`), `__cdecl` calling convention, and blittable types only. All pointer parameters SHALL use basic C types compatible with .NET P/Invoke marshalling.
 
 **REQ-DICOM-042**: The system SHALL NOT throw C++ exceptions across the DLL ABI boundary. All exceptions from DCMTK or OpenJPEG SHALL be caught internally and converted to `XpeErrorCode` return values.
 

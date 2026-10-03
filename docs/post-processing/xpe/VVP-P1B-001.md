@@ -219,7 +219,7 @@ P/Invoke wrapper layer.
 |--------|----------------------|------------------|----------------|
 | xpe_enhance_basic | all 7 exported functions | `int[]`, `float[]`, struct-by-ref | Managed call result identical to the direct C++ call |
 | xpe_display | all 5 exported functions | `byte[]`, `int[]`, struct-by-ref | Managed call result identical to the direct C++ call |
-| xpe_dicom | all 10 exported functions | `string`, `int[]`, `byte[]` | Managed call result identical to the direct C++ call |
+| xpe_dicom | all 11 exported functions (`xpe_dicom_version` added 2026-10-03) | `string`, `int[]`, `byte[]` | Managed call result identical to the direct C++ call |
 
 Procedure: (1) invoke each function 100 times from the managed host; (2) compare input/output value
 integrity against the native reference; (3) exercise the DLL-absent path; (4) exercise concurrent
