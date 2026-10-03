@@ -357,3 +357,38 @@ TEST_F(GainPolyNotAppliedTest, TheModelLoadedLastIsTheOneApplied) {
     ASSERT_EQ(XPE_OK, correct());
     EXPECT_NEAR(500.0f, out[0], 1e-3f) << "the scalar map should apply";
 }
+
+/** QA-A-229 (#245, REQ-P1A-015): the header says kVp and SID are NOT used to choose a gain map -- there is
+ *  one map and no interpolation across kVp or SID. This pins that statement: the same frame corrected
+ *  under very different kVp / SID metadata yields the same pixels. If kVp-specific gain is ever
+ *  implemented, this fails and the header sentence must change with it. */
+TEST_F(GainPolyNotAppliedTest, KvpAndSidDoNotChangeTheCorrection) {
+    const std::string sc = p("gain_kvp.xcal");
+    ASSERT_EQ(XPE_OK, MakeGainXCal(sc.c_str(), W, H, 2.0f));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(sc.c_str()));
+    for (size_t i = 0; i < N; ++i) in[i] = static_cast<uint16_t>(500 + (i * 37u) % 3000u);
+
+    const float kvp[] = {80.0f, 40.0f, 150.0f, 0.0f};
+    const float sid[] = {1000.0f, 1800.0f, 600.0f, 0.0f};
+    std::vector<float> first;
+    for (size_t c = 0; c < 4; ++c) {
+        XpeImageBuffer ib{};
+        ib.width = W; ib.height = H; ib.format = XPE_PIXEL_UINT16;
+        ib.bitsAllocated = 16; ib.bitsStored = 16;
+        ib.data = in.data(); ib.dataSize = N * sizeof(uint16_t);
+        XpeImageBuffer ob{};
+        ob.width = W; ob.height = H; ob.format = XPE_PIXEL_FLOAT32;
+        ob.bitsAllocated = 32; ob.bitsStored = 32;
+        std::fill(out.begin(), out.end(), -1.0f);
+        ob.data = out.data(); ob.dataSize = N * sizeof(float);
+        XpeImageMetadata meta{};
+        meta.kVp = kvp[c];
+        meta.SID_mm = sid[c];
+        meta.pixelPitch_mm = 0.14f;
+        ASSERT_EQ(XPE_OK, xpe_gain_correct(&ib, &ob, &meta)) << "case " << c;
+        for (size_t i = 0; i < N; ++i)
+            ASSERT_FLOAT_EQ(static_cast<float>(in[i]) / 2.0f, out[i]) << "case " << c << " pixel " << i;
+        if (c == 0) first = out;
+        else EXPECT_EQ(0, std::memcmp(first.data(), out.data(), N * sizeof(float))) << "case " << c;
+    }
+}

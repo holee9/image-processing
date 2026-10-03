@@ -10,6 +10,9 @@
 #include <cstring>
 #include <cmath>
 #include <limits>
+#include <vector>
+#include <string>
+#include <filesystem>
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_error.h"
 
@@ -235,11 +238,15 @@ TEST_F(PreprocessCorrectionTest, OffsetCorrect_FormatMismatch) {
     XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
+    const uint8_t* ip = static_cast<const uint8_t*>(input->data);
+    const std::vector<uint8_t> before(ip, ip + input->dataSize);
     XpeErrorCode result = xpe_offset_correct(input, output, metadata);
 
-    EXPECT_TRUE(result == XPE_ERR_UNSUPPORTED_FORMAT ||
-                result == XPE_ERR_NOT_INITIALIZED ||
-                result == XPE_ERR_CALIB_NOT_LOADED);
+    // QA-A-229 (#245): was a three-code OR. xpe_offset_correct_in checks input->format
+    // BEFORE the initialized / map-loaded states, so a FLOAT32 input yields exactly
+    // XPE_ERR_UNSUPPORTED_FORMAT whatever is loaded, and leaves the input alone.
+    EXPECT_EQ(result, XPE_ERR_UNSUPPORTED_FORMAT);
+    EXPECT_EQ(0, std::memcmp(before.data(), input->data, before.size()));
 
     FreeTestImage(input);
     FreeTestImage(output);
@@ -331,11 +338,15 @@ TEST_F(PreprocessCorrectionTest, GainCorrect_FormatMismatch) {
     XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
+    const uint8_t* ip = static_cast<const uint8_t*>(input->data);
+    const std::vector<uint8_t> before(ip, ip + input->dataSize);
     XpeErrorCode result = xpe_gain_correct(input, output, metadata);
 
-    EXPECT_TRUE(result == XPE_ERR_UNSUPPORTED_FORMAT ||
-                result == XPE_ERR_NOT_INITIALIZED ||
-                result == XPE_ERR_CALIB_NOT_LOADED);
+    // QA-A-229 (#245): was a three-code OR. xpe_gain_correct_in checks input->format
+    // BEFORE the initialized / map-loaded states, so a FLOAT32 input yields exactly
+    // XPE_ERR_UNSUPPORTED_FORMAT whatever is loaded, and leaves the input alone.
+    EXPECT_EQ(result, XPE_ERR_UNSUPPORTED_FORMAT);
+    EXPECT_EQ(0, std::memcmp(before.data(), input->data, before.size()));
 
     FreeTestImage(input);
     FreeTestImage(output);
@@ -350,22 +361,57 @@ TEST_F(PreprocessCorrectionTest, GainCorrect_FormatMismatch) {
  * Then output contains no NaN or Inf values
  */
 TEST_F(PreprocessCorrectionTest, GainCorrect_NoNaNInfInOutput) {
-    XpeImageBuffer* input = CreateTestImage(1024, 1024, XPE_PIXEL_UINT16);
-    XpeImageBuffer* output = CreateTestImage(1024, 1024, XPE_PIXEL_FLOAT32);
+    // QA-A-229 (#245): this used to run xpe_gain_correct with NO gain map loaded, so the
+    // result was always XPE_ERR_CALIB_NOT_LOADED, the `if (result == XPE_OK)` body never
+    // ran, and the isfinite loop examined 0 pixels. Now a gain map is generated from a
+    // flat field that contains a zero-valued pixel (the 1/G input that would make a naive
+    // reciprocal infinite), loaded, and the test counts how many output pixels it checked.
+    constexpr uint32_t W = 8, H = 8;
+    constexpr size_t N = static_cast<size_t>(W) * H;
+    // The dead flat-field pixel raises an alert; drain it on every exit path (global-state hygiene guard).
+    struct AlertDrain { ~AlertDrain() { xpe_clear_alerts(); } } alert_drain;
+    std::vector<std::vector<uint16_t>> flats(3, std::vector<uint16_t>(N));
+    std::vector<XpeImageBuffer> flat_bufs(3);
+    for (size_t f = 0; f < 3; ++f) {
+        for (size_t i = 0; i < N; ++i) flats[f][i] = static_cast<uint16_t>(5000 + (i % 7) * 100);
+        flats[f][5] = 0;  // dead pixel in the flat field: gain undefined there
+        std::memset(&flat_bufs[f], 0, sizeof(XpeImageBuffer));
+        flat_bufs[f].width = W; flat_bufs[f].height = H; flat_bufs[f].format = XPE_PIXEL_UINT16;
+        flat_bufs[f].bitsAllocated = 16; flat_bufs[f].bitsStored = 16;
+        flat_bufs[f].data = flats[f].data(); flat_bufs[f].dataSize = N * sizeof(uint16_t);
+    }
+    const std::string gain_path =
+        (std::filesystem::temp_directory_path() / "qa_a_229_nonan_gain.xcal").string();
+    std::filesystem::remove(gain_path);
+    ASSERT_EQ(xpe_calib_generate_gain(flat_bufs.data(), 3, nullptr, gain_path.c_str(), nullptr), XPE_OK);
+    ASSERT_EQ(xpe_calib_load_gain(gain_path.c_str()), XPE_OK);
+
+    // Input covers the extremes: 0, 1, mid-range, 65535, and the flat field's dead pixel position.
+    std::vector<uint16_t> in(N);
+    for (size_t i = 0; i < N; ++i) in[i] = static_cast<uint16_t>((i * 1021u) % 65536u);
+    in[0] = 0; in[1] = 1; in[5] = 0; in[N - 1] = 65535;
+    std::vector<float> out(N, -12345.0f);
+    XpeImageBuffer ib{}, ob{};
+    ib.width = ob.width = W; ib.height = ob.height = H;
+    ib.format = XPE_PIXEL_UINT16; ob.format = XPE_PIXEL_FLOAT32;
+    ib.bitsAllocated = ib.bitsStored = 16; ob.bitsAllocated = ob.bitsStored = 32;
+    ib.data = in.data(); ib.dataSize = N * sizeof(uint16_t);
+    ob.data = out.data(); ob.dataSize = N * sizeof(float);
     XpeImageMetadata* metadata = CreateTestMetadata();
 
-    XpeErrorCode result = xpe_gain_correct(input, output, metadata);
+    ASSERT_EQ(xpe_gain_correct(&ib, &ob, metadata), XPE_OK);
 
-    if (result == XPE_OK) {
-        float* data = reinterpret_cast<float*>(output->data);
-        for (size_t i = 0; i < 100; ++i) {
-            EXPECT_TRUE(std::isfinite(data[i]));
-        }
+    size_t examined = 0, nonfinite = 0;
+    for (size_t i = 0; i < N; ++i) {
+        ++examined;
+        if (!std::isfinite(out[i])) ++nonfinite;
     }
+    EXPECT_EQ(examined, N) << "the loop must look at every output pixel";
+    EXPECT_EQ(nonfinite, 0u) << "a dead flat-field pixel must not leak NaN/Inf into the output";
+    for (size_t i = 0; i < N; ++i) EXPECT_NE(out[i], -12345.0f) << "pixel " << i << " was never written";
 
-    FreeTestImage(input);
-    FreeTestImage(output);
     delete metadata;
+    std::filesystem::remove(gain_path);
 }
 
 // =============================================================================

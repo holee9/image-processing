@@ -133,11 +133,13 @@ TEST(PreprocessDegraded, BP01_OffsetNullCalibrationReturnsNotInitialized) {
     // Timing budget for 64x64 image.
     EXPECT_LT(ms, kDegradedBudgetMs);
 
-    // Pixel statistics sanity check: output still within uint16 range.
-    // (Trivially true but explicit — any wild write would be caught here.)
-    const uint16_t min_px = *std::min_element(output_data.begin(), output_data.end());
-    const uint16_t max_px = *std::max_element(output_data.begin(), output_data.end());
-    EXPECT_LE(min_px, max_px);
+    // QA-A-229 (#245): this used to compare min <= max of a uint16 range, which is true for
+    // every possible buffer (and was labelled "trivially true"). The contract in the header
+    // comment is that an error return leaves the output at its sentinel: count the pixels
+    // that still hold it, so a wild write, a partial write, or a zero-fill all show up.
+    const size_t untouched = static_cast<size_t>(
+        std::count(output_data.begin(), output_data.end(), kSentinel));
+    EXPECT_EQ(untouched, output_data.size()) << "an error return must not write the output";
 }
 
 /* ==========================================================================
