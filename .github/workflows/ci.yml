@@ -1239,6 +1239,7 @@ jobs:
           # deliberate act that shows up in the run summary.
           $allowed = @{
             '170' = 'window re-acquisition PropertyNotSupportedException, ~7% per launch (UIA code 30011, not an issue number)'
+            '254' = 'C11: xpe_ai reports a refusal on a not-a-model directory as model-unavailable (-4) and does not count it (QA-B-195), so the app cannot create the worker-off mark C11 restores (GUI-C-220)'
           }
           $trx = Get-ChildItem build/e2e-native-results -Filter *.trx -Recurse | Select-Object -First 1
           if (-not $trx) { Write-Error 'no trx produced'; exit 1 }
