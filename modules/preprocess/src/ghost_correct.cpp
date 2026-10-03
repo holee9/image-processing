@@ -258,17 +258,18 @@ namespace {
             // reason), which left the one-pixel border without it: on a uniform frame the interior sat above the border by
             // mixLocal * (raw - corrected value), a ring. A frame below 3x3 has no spatial context and is not blended.
             if (W >= 3u && H >= 3u) {
-                const int x = static_cast<int>(i % W);
-                const int y = static_cast<int>(i / W);
+                // QA-A-227b: unsigned coordinates and bounds (see xpe_ghost_neighbour_span) -- a frame axis above INT_MAX
+                // used to turn negative in an int cast and put every neighbour outside the frame.
+                const size_t x = i % W;
+                const size_t y = i / W;
+                size_t x0, x1, y0, y1;
+                xpe_ghost_neighbour_span(x, W, &x0, &x1);
+                xpe_ghost_neighbour_span(y, H, &y0, &y1);
                 float localMean = 0.0f;
                 int count = 0;
-                for (int dy = -1; dy <= 1; ++dy) {
-                    const int yy = y + dy;
-                    if (yy < 0 || yy >= static_cast<int>(H)) continue;
-                    for (int dx = -1; dx <= 1; ++dx) {
-                        const int xx = x + dx;
-                        if (xx < 0 || xx >= static_cast<int>(W)) continue;
-                        const float v = src[static_cast<size_t>(yy) * W + static_cast<size_t>(xx)];
+                for (size_t yy = y0; yy <= y1; ++yy) {
+                    for (size_t xx = x0; xx <= x1; ++xx) {
+                        const float v = src[yy * W + xx];
                         if (std::isfinite(v)) {
                             localMean += v;
                             ++count;
