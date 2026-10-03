@@ -201,7 +201,7 @@ TEST(EdgeEnhanceFormula, E1_ADarkPixelMayOvershootByAmountTimesThresholdWhenThat
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// QA-B-201 M3: a sharpened pixel is never below 0 (user decision, #251). The upper bound is unchanged.
+// QA-B-201 M3/M3b: the output is never below 0 (user decision, #251). The upper bound is unchanged.
 // ---------------------------------------------------------------------------------------------------------------------
 
 TEST(EdgeEnhanceFloor, ASharpenedPixelBesideADarkRegionIsNeverBelowZero) {
@@ -262,14 +262,28 @@ TEST(EdgeEnhanceFloor, TheUpperBoundIsUnchangedByTheFloor) {
     }
 }
 
-TEST(EdgeEnhanceFloor, APixelThatIsNotSharpenedKeepsItsInputValueEvenWhenItIsNegative) {
-    // The floor belongs to the sharpened value. A flat image has no difference to the blur, so nothing is sharpened and
-    // every pixel is returned as it came, a negative one included -- a negative INPUT is outside what the pipelines
-    // produce (the log stage cuts it, REQ-ENH-002) and is not this stage's to rewrite.
-    const std::vector<float> in(static_cast<size_t>(kW) * kH, -5.0f);
+TEST(EdgeEnhanceFloor, TheOutputHasNoNegativeEvenForANegativeInputThatIsNotSharpened) {
+    // The floor is on the OUTPUT (QA-B-201 M3b), sharpened or not. A flat image has no difference to the blur, so nothing
+    // is sharpened; a negative input pixel in it still comes back as 0. A negative input is outside what the pipelines
+    // produce (the log stage cuts it, REQ-ENH-002): this is the module not handing one on, not a case it is meant to see.
+    const std::vector<float> flat(static_cast<size_t>(kW) * kH, -5.0f);
     XpeErrorCode rc;
-    const std::vector<float> out = ModuleUsm(in, 5.0f, 2.0f, 10.0f, &rc);
+    const std::vector<float> out = ModuleUsm(flat, 5.0f, 2.0f, 10.0f, &rc);
     ASSERT_EQ(XPE_OK, rc);
-    EXPECT_EQ(0.0f, MaxChange(in, out));
-    EXPECT_FLOAT_EQ(-5.0f, out[100]);
+    for (size_t i = 0; i < out.size(); ++i) ASSERT_EQ(0.0f, out[i]) << "pixel " << i << " (input -5)";
+}
+
+TEST(EdgeEnhanceFloor, APositivePixelThatIsNotSharpenedIsStillReturnedAsItCame) {
+    // The control for the test above: the output floor does not touch a positive pixel that is not sharpened. Half the
+    // image is -50 (returned as 0 away from the edge), half is 1000 (unchanged away from the edge).
+    const std::vector<float> in = StepImage(-50.0f, 1050.0f);
+    XpeErrorCode rc;
+    const std::vector<float> out = ModuleUsm(in, 1.0f, 2.0f, 10.0f, &rc);
+    ASSERT_EQ(XPE_OK, rc);
+    float minOut = out[0];
+    for (float v : out) minOut = std::min(minOut, v);
+    EXPECT_EQ(0.0f, minOut) << "no negative in the output";
+    const size_t farBright = 32u * kW + 60u, farDark = 32u * kW + 3u;   // 28 and 29 columns from the edge: no difference there
+    EXPECT_FLOAT_EQ(1000.0f, out[farBright]) << "a positive pixel that is not sharpened is untouched";
+    EXPECT_FLOAT_EQ(0.0f, out[farDark]) << "the negative input far from the edge: 0";
 }

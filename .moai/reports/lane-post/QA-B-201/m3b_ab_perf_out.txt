@@ -1,0 +1,3 @@
+M3 (floor on the sharpened value): passed 40 of 40; the failing runs took [] ms
+M3b (floor on the output): passed 40 of 40; the failing runs took [] ms
+=== DONE

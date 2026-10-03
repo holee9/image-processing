@@ -213,13 +213,14 @@ extern "C++" static XpeErrorCode xpe_edge_enhance_impl(XpeImageBuffer* img, cons
             // exactly amount * threshold whatever the edge and threshold 0 moved nothing. The SPEC states no lower bound.
             const float hi = std::max(orig * 2.0f, orig + max_add);
             if (sharpened > hi) sharpened = hi;
-            // QA-B-201 M3 (user decision, #251): a sharpened pixel is never below 0. The SPEC bounds only the overshoot, and
-            // the undershoot beside a dark region (a collimated strip of 0 counts, air) went far below 0 (-1363 on a
+            // QA-B-201 M3/M3b (user decision, #251): the module returns no value below 0. The SPEC bounds only the overshoot,
+            // and the undershoot beside a dark region (a collimated strip of 0 counts, air) went far below 0 (-1363 on a
             // synthetic collimated scene at the default amount). Every consumer already cut it at 0 (QA-B-201 M1), so the
-            // 16-bit output is the same; the float no longer carries a value no consumer can use. A pixel that is NOT
-            // sharpened keeps its input value, whatever it is.
-            if (sharpened < 0.0f) sharpened = 0.0f;
-            row[x] = (abs_diff >= threshold) ? sharpened : orig;
+            // 16-bit output is the same. The floor is on the OUTPUT, sharpened or not: a pixel that is not sharpened is
+            // returned as it came, except that a negative input comes back as 0 (a negative input is outside what the
+            // pipelines produce -- the log stage cuts it, REQ-ENH-002 -- but this stage's output has no negative either).
+            const float result = (abs_diff >= threshold) ? sharpened : orig;
+            row[x] = result < 0.0f ? 0.0f : result;
         }
 
         // Advance ring: h-blur the next needed source row into the evicted slot.

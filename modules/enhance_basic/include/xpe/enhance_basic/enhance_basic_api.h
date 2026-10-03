@@ -219,8 +219,8 @@ XPE_API XpeErrorCode xpe_contrast_enhance(XpeImageBuffer* img, const XpeClahePar
  *
  * output[i] = input[i] + amount * (input[i] - blur[i]) where |diff| >= threshold.
  * Overshoot is clamped per REQ-ENH-021 to max(original * 2, original + amount * threshold),
- * and a sharpened pixel is never below 0 (QA-B-201 M3): the undershoot beside a dark region is cut at 0.
- * A pixel that is not sharpened keeps its input value.
+ * and no output pixel is below 0 (QA-B-201 M3/M3b): the undershoot beside a dark region is cut at 0.
+ * A pixel that is not sharpened keeps its input value, except that a negative input is returned as 0.
  * If params is NULL, defaults are used (amount=0.5, radius=2.0, threshold=10.0). (REQ-ENH-019)
  *
  * @param img    Float32 image buffer (modified in-place). A zero-sized image is
