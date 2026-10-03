@@ -29,8 +29,9 @@ namespace dicom {
 // anonymized file that keeps both elements with no value is conformant. Every other entry is Type 1 in its module: Study
 // Instance UID (C.7.2.1), Series Instance UID (C.7.3.1), SOP Instance UID (C.12.1), Modality (DX Series, C.8.11.1), and Rows,
 // Columns, Bits Allocated, Bits Stored (the Image Pixel Description Macro, Table C.7-11c). Pixel Data is Type 1C in the
-// Image Pixel module ("Required if Pixel Data Provider URL (0028,7FE0) is not present"): it is required unless the file gives a
-// URL with a value, and then it is a warning (QA-B-206 M2c). The table with the clauses is in the QA-B-206 M2b report.
+// Image Pixel module ("Required if Pixel Data Provider URL (0028,7FE0) is not present"): it is required unless the file's
+// transfer syntax is JPIP Referenced and it gives a URL with a value, and then it is a warning; Pixel Data and the URL together
+// are an error (QA-B-206 M2c, M2d). The table with the clauses is in the QA-B-206 M2b report.
 struct RequiredTag {
     DcmTagKey   key;
     const char* tag;
@@ -231,15 +232,27 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
         }
     }
 
+    // QA-B-206 M2d (Codex #114): the Pixel Data Provider URL belongs to the JPIP Referenced transfer syntaxes alone (.94 and
+    // .95, PS3.5 8.2), so what a URL means depends on the transfer syntax the file declares in its meta group. Empty when the
+    // meta group or the element is missing -- that is reported above, and "no JPIP syntax" is the safe reading.
+    std::string transferSyntax;
+    {
+        OFString value;
+        if (meta->findAndGetOFString(DCM_TransferSyntaxUID, value).good()) transferSyntax = value.c_str();
+    }
+    const bool jpipReferenced = transferSyntax == "1.2.840.10008.1.2.4.94" || transferSyntax == "1.2.840.10008.1.2.4.95";
+
     for (const auto& req : s_requiredTags) {
         DcmElement* elem = nullptr;
         OFCondition findStatus = ds->findAndGetElement(req.key, elem);
         if (findStatus.bad() || !elem) {
-            // QA-B-206 M2c (Codex #113): Pixel Data is Type 1C -- "required if Pixel Data Provider URL (0028,7FE0) is not
-            // present". A file that gives its pixels by reference has no Pixel Data and is not wrong for it; this module
-            // cannot read pixels by reference, so it says that once, as a warning that leaves `valid` alone. The URL has
-            // to carry a value to count: an empty one is not a provider, and the file keeps the missing-Pixel-Data error.
-            if (req.key == DCM_PixelData && elementHasValue(ds, DCM_PixelDataProviderURL)) {
+            // QA-B-206 M2c/M2d (Codex #113, #114): Pixel Data is Type 1C -- required unless the pixels are given by reference.
+            // Only under a JPIP Referenced transfer syntax does a Provider URL stand in for it: such a file has no Pixel
+            // Data and is not wrong for that; this module cannot read pixels by reference, so it says so once, as a warning
+            // that leaves `valid` alone. The URL has to carry a value to count (an empty one is not a provider). Under any
+            // other transfer syntax a URL replaces nothing and the missing Pixel Data is reported as such.
+            const bool urlGiven = req.key == DCM_PixelData && elementHasValue(ds, DCM_PixelDataProviderURL);
+            if (urlGiven && jpipReferenced) {
                 nlohmann::json warnEntry;
                 warnEntry["tag"] = req.tag;
                 warnEntry["message"] = "Pixel data by reference (Pixel Data Provider URL) is not supported by this module";
@@ -249,9 +262,15 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
             result.valid = false;
             nlohmann::json errEntry;
             errEntry["tag"] = req.tag;
-            errEntry["message"] = std::string(req.needsValue ? "Missing required Type 1 tag: " : "Missing required Type 2 tag: ") + req.tag;
+            errEntry["message"] = std::string(req.needsValue ? "Missing required Type 1 tag: " : "Missing required Type 2 tag: ") + req.tag +
+                                  (urlGiven ? " (a Pixel Data Provider URL stands in for it only under a JPIP Referenced transfer syntax)" : "");
             errors.push_back(errEntry);
             continue;
+        }
+        // QA-B-206 M2d: Pixel Data and the Provider URL are mutually exclusive (PS3.5 8.2) whatever the transfer syntax. Judged
+        // by the element being there, as the standard words it; the value check below still applies to Pixel Data itself.
+        if (req.key == DCM_PixelData && ds->tagExists(DCM_PixelDataProviderURL)) {
+            addError("0028,7FE0", "Pixel Data and Pixel Data Provider URL are mutually exclusive (PS3.5 8.2): both are present");
         }
         // QA-B-206 M2b (Codex #111): a Type 2 attribute only has to be there. C5 below judged every required attribute
         // by its value, which made an anonymized file with an empty Patient Name / Patient ID DICOM_INVALID.
