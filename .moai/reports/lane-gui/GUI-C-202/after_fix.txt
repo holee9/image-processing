@@ -1,0 +1,15 @@
+# GUI-C-202 final tree
+## whole IntegrationTests, default env
+  (first run, before the pins were repointed) FAIL AiDiagnosticsTests.C09_StillAssertsTheMarkTheCountsAndTheRestart_AndNoAssertionReadsTheDiagnostics [1 ms]
+  (first run, before the pins were repointed) FAIL AiWorkerPanelLayoutTests.C09_RunsAtTheMinimumWidth_WaitsForTheBannerAsAnEvent_AndItsFailureSaysWhatWasRead [< 1 ms]
+FAIL!  - FAIL:     2, PASS:   638, SKIP:     1, total:   641, 기간: 12 s - ImageProcTest.IntegrationTests.dll (net8.0)
+## E2E Mock: AutomationReport + ProcessingChain + AiMenu* + AiWorker*
+PASS!  - FAIL:     0, PASS:    28, SKIP:    12, total:    40, 기간: 10 m 34 s - ImageProcTest.E2ETests.dll (net8.0)
+## whole IntegrationTests, default env, after repointing the two C-09 source pins (AiDiagnosticsTests, AiWorkerPanelLayoutTests)
+PASS!  - FAIL:     0, PASS:   640, SKIP:     1, total:   641, 기간: 12 s - ImageProcTest.IntegrationTests.dll (net8.0)
+## E2E Native, module built from main's source (stub AI build, no signature check): C08 C09(worker-less copy) C09b C10 AiMenu*
+PASS!  - FAIL:     0, PASS:     8, SKIP:     0, total:     8, 기간: 1 m 15 s - ImageProcTest.E2ETests.dll (net8.0)
+## E2E Native, module built from QA-B-195 M4 (xpe-post 77c7f868): same set
+PASS!  - FAIL:     0, PASS:     8, SKIP:     0, total:     8, 기간: 1 m 18 s - ImageProcTest.E2ETests.dll (net8.0)
+## shell E2E runner
+GUI-S0 E2E passed.

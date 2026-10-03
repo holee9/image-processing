@@ -396,19 +396,92 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
     }
 
     /// <summary>
-    /// C-09 (#225 row 10, GUI-C-185): the module IS asked (a file named bone_suppress.onnx exists, though it is not a model),
-    /// the worker keeps failing, and the persistent mark appears when the module reports the worker switched off
-    /// (<c>xpe_ai_worker_state</c>, not an alert); the Restart AI button then starts a new session and the mark goes.
-    /// Each failed call must carry a return code that came from the module, so a job that did not stage xpe_ai.dll cannot
-    /// pass. The numbers in the mark are the module's: the test requires them equal (the ceiling was reached) and does
-    /// not write a 3. Native only: the Mock has no AI session. Not run on a developer machine (the native E2E job's).
+    /// C-09b (GUI-C-202): a file named bone_suppress.onnx that is not a model. It used to be what made the worker fail repeatedly (C-09). It is not any more: a module that verifies
+    /// model signatures (QA-B-195) refuses it as "a model it will not use" (return code -4) and does NOT count the refusal, so no mark appears. Measured on two modules built
+    /// here (.moai/reports/lane-gui/GUI-C-202/): one from main's source (a stub build, no signature check) answers -3 and counts every call; one from QA-B-195 M4 answers -4 on every
+    /// attempt, and the failure count stays 0. So this scenario asserts what holds for both: the code is -3 or -4, and a -4 is said in the app's own words (GUI-C-201: the model
+    /// cannot be used, not the generic failure text). When every attempt answered -4 the mark must not appear (a refusal is not a worker failure); with -3 the module counts and
+    /// the mark may appear, which is not asserted.
     /// </summary>
     [SkippableFact]
-    public void C09_AWorkerSwitchedOffByRepeatedFailures_ShowsAMark_ThatRestartRemoves()
+    public void C09b_ANonModelFile_IsReportedAsAModelTheModuleWillNotUse()
     {
         Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
         Skip.If(app.BackendMode != "Native", "The AI session exists only on the native backend.");
         var window = app.MainWindow!;
+        CloseDetached(window);
+
+        var directory = Path.Combine(Path.GetTempPath(), $"xpe-ai-nomodel-file-{Environment.ProcessId}-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "bone_suppress.onnx"), "not a model");
+        try
+        {
+            SetText(window, "AiModelDirectoryInput", directory);
+            SetAiStage(window, false);
+            ApplyDisplayPipeline(window);
+
+            var markAppeared = false;
+            var codes = new List<string>();
+            for (var attempt = 1; attempt <= 4; attempt++)
+            {
+                InvokeAiMenuItem(window, requireEnabled: true);
+                var status = WaitForChain(window, "ai_bone_suppress=RequestedNotApplied");
+                markAppeared |= PollFor(() => AiBanner(window) is not null, TimeSpan.FromMilliseconds(1500));
+                output.WriteLine($"C09b attempt {attempt}: chain='{status}'; summary='{AiStatusSummary(window)}'; mark shown so far={markAppeared}");
+
+                var code = Regex.Match(status, @"AI bone suppression NOT applied \(code (-[34])\)");
+                Assert.True(code.Success, $"the call was not answered with -3 or -4 as a failure: '{status}'");
+                codes.Add(code.Groups[1].Value);
+                Assert.DoesNotContain("no model at", status, StringComparison.Ordinal);
+                Assert.DoesNotContain("was not found", status, StringComparison.Ordinal);
+                if (code.Groups[1].Value == "-4")
+                {
+                    Assert.Contains("cannot be used by the module", status, StringComparison.Ordinal);
+                    Assert.DoesNotContain("consecutive failures switch", status, StringComparison.Ordinal);
+                }
+            }
+
+            if (codes.All(c => c == "-4"))
+            {
+                Assert.False(markAppeared, "every call was refused with -4 (a model the module will not use), which is not a worker failure, yet the worker-off mark appeared");
+            }
+
+            output.WriteLine($"C09b after 4 attempts: mark shown={markAppeared}; state='{AiStatusSummary(window)}'");
+        }
+        finally
+        {
+            try
+            {
+                if (window.FindFirstDescendant(cf => cf.ByAutomationId("AiRestartButton")) is { } leftover)
+                {
+                    leftover.AsButton().Invoke();
+                    Thread.Sleep(600);
+                }
+            }
+            catch (Exception ex)
+            {
+                output.WriteLine($"C09b clean-up: the Restart AI press failed: {ex.GetType().Name}: {ex.Message}");
+            }
+
+            SetAiStage(window, false);
+            SetText(window, "AiModelDirectoryInput", string.Empty);
+            ApplyDisplayPipeline(window);
+            try { Directory.Delete(directory, recursive: true); } catch (IOException) { }
+        }
+    }
+
+    /// <summary>
+    /// C-09's scenario (#225 row 10, GUI-C-185; moved by GUI-C-202): the module IS asked (a file named bone_suppress.onnx exists, its content does not matter), the worker keeps
+    /// failing, and the persistent mark appears when the module reports the worker switched off (<c>xpe_ai_worker_state</c>, not an alert); the Restart AI button then starts a
+    /// new session and the mark goes. Each failed call must carry a return code that came from the module, so a job that did not stage xpe_ai.dll cannot pass. The numbers in the
+    /// mark are the module's: the test requires them equal (the ceiling was reached) and does not write a 3.
+    ///
+    /// <para>The failure is made by the app running against a directory WITHOUT xpe_ai_worker.exe (<see cref="AiWorkerAbsentScenarios"/>): the module cannot start its worker and counts
+    /// that. It does not depend on what the model file is; the first version used a file that is not a model, which a module that verifies model signatures (QA-B-195) refuses as
+    /// "model unavailable", a refusal it does not count.</para>
+    /// </summary>
+    internal static void RunWorkerSwitchedOffScenario(Window window, ITestOutputHelper output)
+    {
         CloseDetached(window);
 
         var directory = Path.Combine(Path.GetTempPath(), $"xpe-ai-e2e-{Environment.ProcessId}-{Guid.NewGuid():N}");
