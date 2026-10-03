@@ -1,0 +1,3 @@
+== arm 008_candidate_removed: /folders.Add(Path.Combine(repoRoot, "build", "default", "bin", "Debug"));/d
+[xUnit.net 00:00:00.24]     ImageProcTest.IntegrationTests.Safety.DllSearchPathSafetyTests.TheCandidateList_IsExactlyTheseFolders_InThisOrder [FAIL]
+실패!  - 실패:     1, 통과:     7, 건너뜀:     1, 전체:     9, 기간: 147 ms - ImageProcTest.IntegrationTests.dll (net8.0)

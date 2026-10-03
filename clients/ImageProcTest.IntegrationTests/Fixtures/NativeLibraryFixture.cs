@@ -44,11 +44,34 @@ public sealed class NativeLibraryFixture : IDisposable
     /// </summary>
     public long PinnedObjectsAtStart { get; } = PinnedObjects.AfterFullCollection();
 
-    public NativeLibraryFixture()
-    {
-        NativeLibrary.SetDllImportResolver(typeof(NativeLibraryFixture).Assembly, Resolver);
+    /// <summary>GUI-C-225b (REQ-GUI-IT-020): how long the locator took in the FIRST fixture creation of this process, which is what "when the test assembly is loaded" means. Recorded here, once, not re-measured by a test later.</summary>
+    public TimeSpan LocateDuration { get; }
 
-        var (found, path) = TryLocateDll();
+    /// <summary>GUI-C-225b: how long <c>NativeLibrary.Load</c> of the located DLL took in that first creation (null when it was not loaded).</summary>
+    public TimeSpan? LoadDuration { get; }
+
+    /// <summary>GUI-C-225b: how long the very first <c>xpe_version</c> call took, made by the first creation itself right after the load (null when there was no load or this instance does not own the resolver).</summary>
+    public TimeSpan? FirstCallDuration { get; }
+
+    public NativeLibraryFixture()
+        : this(Environment.GetEnvironmentVariable("XPE_NATIVE_DIR"), AppContext.BaseDirectory, registerResolver: true)
+    {
+    }
+
+    /// <summary>
+    /// The fixture with its inputs given. <paramref name="registerResolver"/> is false for a fixture a test builds to see what the bootstrap does with no DLL (REQ-GUI-IT-041): the resolver of an
+    /// assembly can be set once per process, and it belongs to the real, first fixture.
+    /// </summary>
+    internal NativeLibraryFixture(string? envDir, string baseDirectory, bool registerResolver)
+    {
+        if (registerResolver)
+        {
+            NativeLibrary.SetDllImportResolver(typeof(NativeLibraryFixture).Assembly, Resolver);
+        }
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var (found, path) = Locate(envDir, baseDirectory);
+        LocateDuration = watch.Elapsed;
         ResolvedPath = path;
 
         if (!found)
@@ -68,13 +91,23 @@ public sealed class NativeLibraryFixture : IDisposable
         // Existence and architecture are necessary but not sufficient — load it.
         try
         {
+            watch.Restart();
             _handle = NativeLibrary.Load(path);
+            LoadDuration = watch.Elapsed;
             IsAvailable = true;
         }
         catch (Exception ex)
         {
             IsAvailable = false;
             LoadError = ex.Message;
+            return;
+        }
+
+        if (registerResolver)
+        {
+            watch.Restart();
+            _ = ImageProcTest.IntegrationTests.PInvoke.XpeCommonNative.xpe_version();
+            FirstCallDuration = watch.Elapsed;
         }
     }
 
@@ -130,6 +163,41 @@ public sealed class NativeLibraryFixture : IDisposable
             ? (false, $"Repo root found at {repoRoot} but no {DllName} in any candidate folder. Searched: {searched}")
             : (false, $"Repository root could not be determined from {baseDirectory}, and no {DllName} in the folders that were searched: {searched}");
     }
+
+    /// <summary>
+    /// GUI-C-225b (REQ-GUI-IT-008, Codex #121): where a path REALLY is. Every segment of the path that is a symbolic link or a junction is replaced by what it points to (and that target is resolved
+    /// the same way), so a file link inside an approved folder, or an approved-looking folder that is a junction to somewhere else, shows its true place. The text comparison in
+    /// <see cref="IsUnderAnyFolder"/> alone cannot see that.
+    /// </summary>
+    internal static string FinalPathOf(string path) => FinalPathOf(path, 0);
+
+    private static string FinalPathOf(string path, int depth)
+    {
+        var full = Path.GetFullPath(path);
+        if (depth > 32) return full;   // a link cycle: stop where we are rather than loop
+        var root = Path.GetPathRoot(full) ?? string.Empty;
+        var current = root;
+        foreach (var segment in full[root.Length..].Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries))
+        {
+            var next = Path.Combine(current, segment);
+            FileSystemInfo info = Directory.Exists(next) ? new DirectoryInfo(next) : new FileInfo(next);
+            if (info.LinkTarget is not null && info.ResolveLinkTarget(returnFinalTarget: true) is { } target)
+            {
+                next = FinalPathOf(target.FullName, depth + 1);
+            }
+
+            current = next;
+        }
+
+        return current;
+    }
+
+    /// <summary>
+    /// The check REQ-GUI-IT-008 makes: the file's REAL place (links and junctions followed) is under the REAL place of one of the approved folders. A candidate folder that does not exist cannot hold
+    /// the file and is skipped.
+    /// </summary>
+    internal static bool IsUnderAnyFolderResolved(string path, IEnumerable<string> folders) =>
+        IsUnderAnyFolder(FinalPathOf(path), folders.Where(Directory.Exists).Select(f => FinalPathOf(f)));
 
     /// <summary>True when <paramref name="path"/> is a file under one of <paramref name="folders"/> (whole path segments: a sibling folder that only starts with the same text is not under it).</summary>
     internal static bool IsUnderAnyFolder(string path, IEnumerable<string> folders)

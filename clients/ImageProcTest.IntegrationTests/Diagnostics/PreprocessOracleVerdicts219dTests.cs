@@ -308,9 +308,12 @@ public sealed class PreprocessOracleVerdicts219dTests : IDisposable
     public void TheWorkerLoadsTheDllConfined_AndAuditsTheModulesItLoaded()
     {
         var worker = File.ReadAllText(Path.Combine(FindAppDir(), "Diagnostics", "XpePreprocessOracleProcess.cs"));
-        Assert.Contains("ConfinedLoadFolder: confineLoad ? Path.GetDirectoryName(Path.GetFullPath(dllPath)) : null", worker, StringComparison.Ordinal);
-        Assert.Contains("bool confineLoad = true", worker, StringComparison.Ordinal);   // the default is the real worker's behaviour
-        Assert.DoesNotContain("confineLoad: false", File.ReadAllText(Path.Combine(FindAppDir(), "App.xaml.cs")), StringComparison.Ordinal);
+        Assert.Contains("ConfinedLoadFolder: Path.GetDirectoryName(Path.GetFullPath(dllPath))", worker, StringComparison.Ordinal);
+        // GUI-C-225b: there is no switch to turn the confinement off, in the worker or anywhere else in the app's sources
+        foreach (var file in Directory.EnumerateFiles(FindAppDir(), "*.cs", SearchOption.AllDirectories).Where(f => !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar, StringComparison.Ordinal)))
+        {
+            Assert.DoesNotContain("confineLoad", File.ReadAllText(file), StringComparison.OrdinalIgnoreCase);
+        }
         var oracle = File.ReadAllText(Path.Combine(FindAppDir(), "Diagnostics", "XpePreprocessSyntheticOracle.cs"));
         Assert.Contains("OracleModuleConfinement.TryLoad(", oracle, StringComparison.Ordinal);
         Assert.Contains("OracleModuleConfinement.AuditProcess(", oracle, StringComparison.Ordinal);

@@ -1,0 +1,4 @@
+[xUnit.net 00:00:11.50]     ImageProcTest.IntegrationTests.Functional.NativeCommonSingleInstanceTests.AfterEveryNativeTestClassHasLoadedItsModules_TheProcessHoldsOneXpeCommon [FAIL]
+실패!  - 실패:     1, 통과:   859, 건너뜀:     1, 전체:   861, 기간: 23 s - ImageProcTest.IntegrationTests.dll (net8.0)
+통과!  - 실패:     0, 통과:   860, 건너뜀:     1, 전체:   861, 기간: 23 s - ImageProcTest.IntegrationTests.dll (net8.0)
+통과!  - 실패:     0, 통과:   860, 건너뜀:     1, 전체:   861, 기간: 24 s - ImageProcTest.IntegrationTests.dll (net8.0)

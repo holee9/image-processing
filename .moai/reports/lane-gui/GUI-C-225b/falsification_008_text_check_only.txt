@@ -1,0 +1,3 @@
+== arm 008_text_check_only: s|        IsUnderAnyFolder(FinalPathOf(path), folders.Where(Directory.Exists).Select(f => FinalPathOf(f)));|        IsUnderAnyFolder(path, folders);|
+[xUnit.net 00:00:00.34]     ImageProcTest.IntegrationTests.Safety.DllSearchPathSafetyTests.AJunctionInsideAnApprovedFolder_ThatPointsOutside_IsRejected_AndOneThatStaysInsideIsAccepted [FAIL]
+실패!  - 실패:     1, 통과:     7, 건너뜀:     1, 전체:     9, 기간: 150 ms - ImageProcTest.IntegrationTests.dll (net8.0)
