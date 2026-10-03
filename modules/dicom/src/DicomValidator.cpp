@@ -240,6 +240,9 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
         OFString value;
         if (meta->findAndGetOFString(DCM_TransferSyntaxUID, value).good()) transferSyntax = value.c_str();
     }
+    // .95 is recognised exactly like .94, but nothing here has ever judged a file under it: the DCMTK this module builds against
+    // cannot read one (KnownDivergence_JpipReferencedDeflateCannotBeParsedByThisDcmtkBuild), so conformance under .95 is
+    // unsupported and unverified, and such a file is reported as unparseable before it reaches this check.
     const bool jpipReferenced = transferSyntax == "1.2.840.10008.1.2.4.94" || transferSyntax == "1.2.840.10008.1.2.4.95";
 
     for (const auto& req : s_requiredTags) {
@@ -271,6 +274,12 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
         // by the element being there, as the standard words it; the value check below still applies to Pixel Data itself.
         if (req.key == DCM_PixelData && ds->tagExists(DCM_PixelDataProviderURL)) {
             addError("0028,7FE0", "Pixel Data and Pixel Data Provider URL are mutually exclusive (PS3.5 8.2): both are present");
+        }
+        // QA-B-206 M2e (Codex #115): under a JPIP Referenced transfer syntax the pixels live elsewhere and Pixel Data must not be
+        // in the file at all (PS3.5 A.6). A different rule from the exclusion above, so a file that breaks both gets both
+        // entries: removing the URL must not make a new error appear on the next validation.
+        if (req.key == DCM_PixelData && jpipReferenced) {
+            addError("7FE0,0010", "Pixel Data shall not be present under a JPIP Referenced transfer syntax (PS3.5 A.6)");
         }
         // QA-B-206 M2b (Codex #111): a Type 2 attribute only has to be there. C5 below judged every required attribute
         // by its value, which made an anonymized file with an empty Patient Name / Patient ID DICOM_INVALID.

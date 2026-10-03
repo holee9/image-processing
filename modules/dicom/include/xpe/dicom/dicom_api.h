@@ -360,7 +360,12 @@ XPE_API XpeErrorCode xpe_dicom_write_j2k(const char* filePath,
  * invalid, and "warnings" gets one entry saying that pixel data by reference is
  * not supported by this module. Under any other transfer syntax a URL replaces
  * nothing, and missing Pixel Data is an error. Pixel Data and the URL together
- * are an error under every syntax (mutually exclusive, PS3.5 8.2).
+ * are an error under every syntax (mutually exclusive, PS3.5 8.2), and under a
+ * JPIP Referenced syntax Pixel Data must not be in the file at all (PS3.5 A.6):
+ * its presence is an error, with or without a URL. Only .94 is exercised:
+ * the DCMTK this module builds against cannot read a file under .95, so
+ * conformance under .95 is NOT supported and NOT verified -- such a file is
+ * reported as unparseable (XPE_ERR_DICOM_INVALID).
  *
  * @return XPE_OK on success (check "valid" field in report). XPE_OK means the
  *         report was produced, NOT that the file is conformant.
