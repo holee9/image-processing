@@ -1,4 +1,4 @@
-// REQ-GUI-IT-007 (GUI-C-228b, c, d, e): "Mock fallback is a test failure", asserted from the test assembly's own metadata and from a conservative source scan, so the verdict does not depend on which test ran first.
+// REQ-GUI-IT-007 (GUI-C-228b, c, d, e, f): "Mock fallback is a test failure", asserted from the test assembly's own metadata and from a conservative source scan, so the verdict does not depend on which test ran first.
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
@@ -21,7 +21,7 @@ namespace ImageProcTest.IntegrationTests.Safety;
 /// in general, and chasing the shapes one at a time (Codex #126, #127, #128) leaves the next shape open, so no rule here guesses at C# syntax. The dynamic-load and reflection-creation APIs
 /// are forbidden outright in the sources compiled into this assembly, whatever their arguments look like. The pattern table, the allow-list and the controls live in
 /// <c>Resources/forbidden-reflection-apis.json</c>, which is not compiled and so cannot hide code; this file names none of those APIs. The files scanned are not found by walking a folder: they are
-/// the Document table of the assembly's own PDB, so the sources linked in from outside the project folder and the generated sources are in it, this file included. EVERY line of every one of them is
+/// the Document table of the assembly's own PDB, so the sources linked in from outside the project folder and the generated sources are in it, this file included. Each document's hash from the PDB is compared with the bytes of the file taken for it, and the scan reads those very bytes, so a source changed after the build is refused, not scanned in its place. EVERY line of every one of them is
 /// scanned, comments and strings too; nothing is classified or skipped. A line that names an API in prose is a hit like any other and is allow-listed as the whole line, in the named file, with its
 /// reason; an allow-list entry whose line changed or vanished is red. What the scan does NOT see: an API missing from the table, a call that goes through another assembly, code generated while the
 /// tests run, and a native library loaded by path (a native module is not a managed type of the apps).</para>
@@ -141,8 +141,13 @@ public sealed class MockBlockingStaticTests
 
     private sealed record ScanData(IReadOnlyList<Pattern> Patterns, IReadOnlyList<AllowedLine> Allowed, IReadOnlyList<ControlLine> Controls, IReadOnlyList<ScanCase> Cases);
 
-    /// <summary>A source file the compiler read, as the PDB names it, and where it is in this checkout.</summary>
-    internal sealed record CompiledSource(string PdbPath, string Key, string FullPath);
+    /// <summary>A source file the compiler read, as the PDB names it, where it is in this checkout, and the text of exactly the bytes whose hash matched the PDB's.</summary>
+    internal sealed record CompiledSource(string PdbPath, string Key, string FullPath, string Text);
+
+    // The hash algorithms a portable PDB names for a document (the compiler offers these two). Any other id is refused.
+    private static readonly Guid Sha256Id = new("8829d00f-11b8-4213-878b-770e8597ac16");
+
+    private static readonly Guid Sha1Id = new("ff1816ec-aa5e-4d10-87f7-6f4963833460");
 
     /// <summary>The ids the data file must define. The ids are labels, not API names.</summary>
     private static readonly string[] RequiredPatternIds =
@@ -184,8 +189,9 @@ public sealed class MockBlockingStaticTests
 
     /// <summary>
     /// The source files the compiler actually read for the test assembly, from the Document table of its portable PDB (a separate file next to the assembly, or embedded in it). That list holds
-    /// the project's own files, the files linked in from outside the project folder, and generated files. Nothing is excluded here. A document that cannot be found in this checkout is an
-    /// error, not a skip: the path in the PDB is where the build machine had the file, so when it is not there, the same path is looked for under the repository root by its longest existing tail.
+    /// the project's own files, the files linked in from outside the project folder, and generated files. Nothing is excluded here. Each document carries the hash of the bytes the compiler read;
+    /// the file taken for it must have exactly that hash (<see cref="ResolveByHash"/>), so a source changed after the build cannot be scanned in its place. Every problem is collected and
+    /// reported together; any problem fails.
     /// </summary>
     internal static List<CompiledSource> CompiledSources(string? assemblyPath = null, string? repoRoot = null)
     {
@@ -199,34 +205,70 @@ public sealed class MockBlockingStaticTests
         {
             var md = provider!.GetMetadataReader();
             var list = new List<CompiledSource>();
-            var unresolved = new List<string>();
+            var problems = new List<string>();
             foreach (var h in md.Documents)
             {
-                var name = md.GetString(md.GetDocument(h).Name);
+                var doc = md.GetDocument(h);
+                var name = md.GetString(doc.Name);
                 if (!name.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)) continue;
-                var full = ResolveDocument(name, repoRoot);
-                if (full is null) { unresolved.Add(name); continue; }
-                list.Add(new CompiledSource(name, KeyOf(full, repoRoot), full));
+                var alg = doc.HashAlgorithm.IsNil ? Guid.Empty : md.GetGuid(doc.HashAlgorithm);
+                var hash = doc.Hash.IsNil ? [] : md.GetBlobBytes(doc.Hash);
+                var (path, bytes, error) = ResolveByHash(name, alg, hash, repoRoot);
+                if (error is not null) { problems.Add(name + ": " + error); continue; }
+                list.Add(new CompiledSource(name, KeyOf(path!, repoRoot), path!, DecodeText(bytes!)));
             }
 
             Assert.True(md.Documents.Count > 0, "The PDB " + pdbPath + " lists no documents.");
-            Assert.True(unresolved.Count == 0, "These compiled sources named by the PDB cannot be found in this checkout:\n" + string.Join("\n", unresolved));
+            Assert.True(problems.Count == 0, "These compiled sources named by the PDB cannot be matched to a file in this checkout whose hash equals the PDB's (the source changed after the build, or this is not the checkout/machine that built the assembly):\n" + string.Join("\n", problems));
             Assert.True(list.Count > 100, $"Only {list.Count} compiled sources found in the PDB; the project has far more.");
             return list;
         }
     }
 
-    private static string? ResolveDocument(string name, string repoRoot)
+    /// <summary>
+    /// The one file for a PDB document: the path the PDB names, or the same path under the repository root by any of its tails, whose bytes hash to the PDB's hash. More than one existing file for the document is refused whatever their content; no hash, an algorithm that is not one of the two the compiler offers, no file with that hash, and more than one existing file for the document are all errors. The bytes returned
+    /// are the bytes that were hashed.
+    /// </summary>
+    internal static (string? Path, byte[]? Bytes, string? Error) ResolveByHash(string name, Guid algorithm, byte[] hash, string repoRoot)
     {
-        if (File.Exists(name)) return Path.GetFullPath(name);
-        var parts = name.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-        for (var k = 1; k < parts.Length; k++)
-        {
-            var candidate = Path.Combine(new[] { repoRoot }.Concat(parts[k..]).ToArray());
-            if (File.Exists(candidate)) return candidate;
-        }
+        if (hash.Length == 0) return (null, null, "the PDB holds no hash for this document");
+        System.Security.Cryptography.HashAlgorithm? hasher =
+            algorithm == Sha256Id ? System.Security.Cryptography.SHA256.Create()
+            : algorithm == Sha1Id ? System.Security.Cryptography.SHA1.Create()
+            : null;
+        if (hasher is null) return (null, null, "the PDB names a hash algorithm this check does not support: " + algorithm);
 
-        return null;
+        using (hasher)
+        {
+            var candidates = new List<string>();
+            if (File.Exists(name)) candidates.Add(Path.GetFullPath(name));
+            var parts = name.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+            for (var k = 1; k < parts.Length; k++)
+            {
+                var candidate = Path.Combine(new[] { repoRoot }.Concat(parts[k..]).ToArray());
+                if (File.Exists(candidate)) candidates.Add(Path.GetFullPath(candidate));
+            }
+
+            var distinct = candidates.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            if (distinct.Count > 1) return (null, null, "more than one file could be the document (whatever their content), so it is ambiguous: " + string.Join(", ", distinct));
+            var matching = new List<(string Path, byte[] Bytes)>();
+            foreach (var c in distinct)
+            {
+                var bytes = File.ReadAllBytes(c);
+                if (hasher.ComputeHash(bytes).SequenceEqual(hash)) matching.Add((c, bytes));
+            }
+
+            if (matching.Count == 1) return (matching[0].Path, matching[0].Bytes, null);
+            return (null, null, distinct.Count == 0
+                ? "no file exists under that path or any tail of it"
+                : "no candidate has the PDB's hash; changed since the build: " + string.Join(", ", distinct));
+        }
+    }
+
+    private static string DecodeText(byte[] bytes)
+    {
+        using var reader = new StreamReader(new MemoryStream(bytes), System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        return reader.ReadToEnd();
     }
 
     /// <summary>The repository-relative path with forward slashes, or the full path for a file outside the repository.</summary>
@@ -260,7 +302,7 @@ public sealed class MockBlockingStaticTests
         var hits = new List<(string, string, string, int)>();
         foreach (var s in sources)
         {
-            hits.AddRange(HitsIn(File.ReadAllText(s.FullPath), data.Patterns).Select(h => (s.Key, h.Line, h.Id, h.No)));
+            hits.AddRange(HitsIn(s.Text, data.Patterns).Select(h => (s.Key, h.Line, h.Id, h.No)));
         }
 
         return hits;
@@ -303,6 +345,70 @@ public sealed class MockBlockingStaticTests
         Assert.NotEmpty(items);
         var missing = items.Where(i => !keys.Contains(KeyOf(Path.GetFullPath(Path.Combine(ProjectDir, i)), RepoRoot))).ToList();
         Assert.True(missing.Count == 0, "These explicit compile items are not in the compiled-source list read from the PDB:\n" + string.Join("\n", missing));
+    }
+
+    /// <summary>
+    /// Control for the hash check, on small files in a temporary repository root: a file with the PDB's hash is accepted; a changed file, a missing hash, an unknown algorithm, no file at all and
+    /// a second file for the same document under the root by a shorter tail, whether or not it has the hash are each refused; a path outside the root is accepted only when the hash matches.
+    /// </summary>
+    [Fact]
+    public void TheHashCheck_AcceptsOnlyAFileWithThePdbHash_AndRefusesEveryOtherCase()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "mbs_hash_" + Guid.NewGuid().ToString("N"));
+        var outside = Path.Combine(Path.GetTempPath(), "mbs_hash_out_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(root, "src", "dir"));
+            Directory.CreateDirectory(outside);
+            var content = System.Text.Encoding.UTF8.GetBytes("class A { }\r\n");
+            var hash = System.Security.Cryptography.SHA256.HashData(content);
+            var inRoot = Path.Combine(root, "src", "dir", "A.cs");
+            File.WriteAllBytes(inRoot, content);
+            var buildMachineName = @"Z:\build\src\dir\A.cs";   // the path the PDB names does not exist here; the tail "src/dir/A.cs" does, under the root
+
+            var ok = ResolveByHash(buildMachineName, Sha256Id, hash, root);
+            Assert.True(ok.Error is null && string.Equals(ok.Path, inRoot, StringComparison.OrdinalIgnoreCase), "a tail with the PDB's hash must be accepted: " + ok.Error);
+            Assert.Equal(content, ok.Bytes);
+
+            Assert.Equal(inRoot, ResolveByHash(inRoot, Sha256Id, hash, root).Path);
+            Assert.Equal(inRoot, ResolveByHash(inRoot, Sha1Id, System.Security.Cryptography.SHA1.HashData(content), root).Path);
+
+            Assert.NotNull(ResolveByHash(buildMachineName, Sha256Id, hash, Path.Combine(root, "nowhere")).Error);
+            Assert.NotNull(ResolveByHash(buildMachineName, Sha256Id, [], root).Error);
+            Assert.NotNull(ResolveByHash(buildMachineName, new Guid("00000000-0000-0000-0000-000000000001"), hash, root).Error);
+            Assert.NotNull(ResolveByHash(buildMachineName, Sha256Id, System.Security.Cryptography.SHA256.HashData([1, 2, 3]), root).Error);
+
+            var changed = System.Text.Encoding.UTF8.GetBytes("class A { /* edited after the build */ }\r\n");
+            File.WriteAllBytes(inRoot, changed);
+            var afterChange = ResolveByHash(buildMachineName, Sha256Id, hash, root);
+            Assert.NotNull(afterChange.Error);
+            Assert.Contains("changed since the build", afterChange.Error);
+            File.WriteAllBytes(inRoot, content);
+
+            File.WriteAllBytes(Path.Combine(root, "A.cs"), content);
+            Directory.CreateDirectory(Path.Combine(root, "dir"));
+            File.WriteAllBytes(Path.Combine(root, "dir", "A.cs"), content);
+            var twice = ResolveByHash(buildMachineName, Sha256Id, hash, root);
+            Assert.NotNull(twice.Error);
+            Assert.Contains("ambiguous", twice.Error);
+
+            File.WriteAllBytes(Path.Combine(root, "A.cs"), changed);   // a second file with the same tail whose content is NOT the hashed one: still refused
+            File.Delete(Path.Combine(root, "dir", "A.cs"));
+            var decoy = ResolveByHash(buildMachineName, Sha256Id, hash, root);
+            Assert.NotNull(decoy.Error);
+            Assert.Contains("ambiguous", decoy.Error);
+
+            var far = Path.Combine(outside, "Far.cs");
+            File.WriteAllBytes(far, content);
+            Assert.Equal(far, ResolveByHash(far, Sha256Id, hash, root).Path);
+            File.WriteAllBytes(far, changed);
+            Assert.NotNull(ResolveByHash(far, Sha256Id, hash, root).Error);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+            Directory.Delete(outside, recursive: true);
+        }
     }
 
     /// <summary>Control: the PDB reader is strict. A copy of the assembly with no PDB next to it is an error, not an empty list.</summary>
