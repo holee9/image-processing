@@ -288,7 +288,7 @@ namespace ImageProcTest
                 builder.AppendLine($"- RMSE: `{nativePreview.Metrics.Rmse:0.###}`");
                 builder.AppendLine($"- Max absolute delta: `{nativePreview.Metrics.MaxAbsoluteDelta:0.###}`");
                 builder.AppendLine($"- Changed pixels: `{nativePreview.Metrics.ChangedPixels}/{nativePreview.Metrics.PixelCount}` (`{nativePreview.Metrics.ChangedPixelRatio:P2}`)");
-                builder.AppendLine($"- Input preserved: `{nativePreview.Metrics.InputPreserved}`");
+                builder.AppendLine($"- Output identical to input: `{nativePreview.Metrics.OutputIdenticalToInput}`");
                 builder.AppendLine($"- NaN/Inf count: `{nativePreview.Metrics.NaNInfCount}`");
                 AppendDetectorMetrics(builder, nativePreview.DetectorMetrics);
                 foreach (var load in nativePreview.CalibrationLoads)

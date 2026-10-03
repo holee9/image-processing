@@ -61,7 +61,10 @@ namespace ImageProcTest
         int ChangedPixels,
         int PixelCount,
         double ChangedPixelRatio,
-        bool InputPreserved,
+        // GUI-C-212: this was named InputPreserved, which the evaluation protocol defines as sha256(raw_before) == sha256(raw_after). It never measured that: it is
+        // "no pixel moved by more than 0.5 and nothing is non-finite", i.e. the OUTPUT equals the input. A working correction (offset subtracts the dark level) is
+        // supposed to move pixels, so the old name displayed "Input preserved: False" for a correct run.
+        bool OutputIdenticalToInput,
         int NaNInfCount);
 
     internal sealed record NativePreprocessPreviewResult(
@@ -1073,7 +1076,7 @@ namespace ImageProcTest
                 changed,
                 output.Length,
                 changed / (double)count,
-                InputPreserved: changed == 0 && nanInf == 0,
+                OutputIdenticalToInput: changed == 0 && nanInf == 0,
                 nanInf);
         }
 

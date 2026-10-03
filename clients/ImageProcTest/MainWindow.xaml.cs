@@ -2154,14 +2154,12 @@ namespace ImageProcTest
 
         private bool IsNativePreviewReady()
         {
-            return lastPreprocessHealth?.IsExportReady == true;
+            return ModuleReadinessGrading.IsProcessingEnabled(currentModuleReadiness, "xpe_preprocess");
         }
 
         private bool IsEnhanceBasicPreviewReady()
         {
-            return currentModuleReadiness.Any(module =>
-                string.Equals(module.ModuleName, "xpe_enhance_basic", StringComparison.OrdinalIgnoreCase) &&
-                module.ProcessingEnabled);
+            return ModuleReadinessGrading.IsProcessingEnabled(currentModuleReadiness, "xpe_enhance_basic");
         }
 
         private bool IsModuleReadinessAtLeast(string moduleName, int requiredRank)
@@ -2315,7 +2313,7 @@ namespace ImageProcTest
                 $"rmse={metrics.Rmse:0.###}, " +
                 $"maxAbsDelta={metrics.MaxAbsoluteDelta:0.###}, " +
                 $"changed={metrics.ChangedPixels}/{metrics.PixelCount} ({metrics.ChangedPixelRatio:P2}), " +
-                $"inputPreserved={metrics.InputPreserved}, nanInf={metrics.NaNInfCount}";
+                $"outputIdenticalToInput={metrics.OutputIdenticalToInput}, nanInf={metrics.NaNInfCount}";
         }
 
         private static string FormatNullable(float? value)

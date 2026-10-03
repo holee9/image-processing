@@ -118,6 +118,15 @@
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpePreprocessInterop.cs" Link="Chain\Linked\XpePreprocessInterop.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeEnhanceBasicInterop.cs" Link="Chain\Linked\XpeEnhanceBasicInterop.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiEnhanceNative.cs" Link="Chain\Linked\GuiEnhanceNative.cs" />
+    <!--
+      GUI-C-212 (#249): the legacy app's runtime smoke of xpe_preprocess.dll, called by a test. It went stale for months because nothing ran it. The records are in their own file
+      (they were inside NativeReadinessProbe.cs, which drags in every other probe); PInvokeWrapper.cs is linked for the buffer/metadata types and enums only: the oracle calls the DLL
+      through delegates, so XpeCommonApi's static constructor (which installs a second DllImport resolver) is never run in this assembly.
+    -->
+    <Compile Include="..\ImageProcTest\PInvokeWrapper.cs" Link="OracleCall\Linked\PInvokeWrapper.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\NativeDependencyLoader.cs" Link="OracleCall\Linked\NativeDependencyLoader.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\PreprocessSyntheticOracleResult.cs" Link="OracleCall\Linked\PreprocessSyntheticOracleResult.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\XpePreprocessSyntheticOracle.cs" Link="OracleCall\Linked\XpePreprocessSyntheticOracle.cs" />
   </ItemGroup>
 
   <!--
