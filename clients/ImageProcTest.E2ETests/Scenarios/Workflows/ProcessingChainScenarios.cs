@@ -436,7 +436,8 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
                 Assert.DoesNotContain("was not found", status, StringComparison.Ordinal);
                 if (code.Groups[1].Value == "-4")
                 {
-                    Assert.Contains("cannot be used by the module", status, StringComparison.Ordinal);
+                    Assert.Contains("the module cannot use the model", status, StringComparison.Ordinal);
+                    Assert.Contains("another call may still be loading and verifying the model", status, StringComparison.Ordinal);   // GUI-C-217: -4 does not say the model is bad
                     Assert.DoesNotContain("consecutive failures switch", status, StringComparison.Ordinal);
                 }
             }

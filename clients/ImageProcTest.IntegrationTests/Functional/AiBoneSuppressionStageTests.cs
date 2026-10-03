@@ -564,8 +564,9 @@ public sealed class AiBoneSuppressionStageTests
     // ---- GUI-C-201 (approved after GUI-C-200) ----------------------------------------------------------------------------------------
 
     /// <summary>
-    /// -4 is "the model is there and the module will not use it". The text keeps the failure prefix the E2E reads, says what it means for the model, and does NOT carry the
-    /// generic sentence that consecutive failures switch the worker off: the module decides whether this call counts, and the answer differs by cause.
+    /// -4 is "the module will not use the model now". The text keeps the failure prefix the E2E reads, names the causes the code can have (GUI-C-217: a load in progress in another call
+    /// answers -4 too) without asserting any one of them, and does NOT carry the generic sentence that consecutive failures switch the worker off: the module decides whether this call
+    /// counts, and the answer differs by cause.
     /// </summary>
     [Fact]
     public void AModelThatTheModuleWillNotUse_IsSaidSo_WithoutAClaimAboutTheWorkersFailureTotal()
@@ -575,8 +576,14 @@ public sealed class AiBoneSuppressionStageTests
         Assert.False(answer.Ran);
         Assert.Null(answer.Pixels);
         Assert.Contains("AI bone suppression NOT applied (code -4)", answer.Message, StringComparison.Ordinal);
-        Assert.Contains("cannot be used by the module", answer.Message, StringComparison.Ordinal);
-        Assert.Contains("signature", answer.Message, StringComparison.Ordinal);
+        Assert.Contains("the module cannot use the model", answer.Message, StringComparison.Ordinal);
+        // all three causes are named, each as a possibility ("may"), and none is asserted
+        Assert.Contains("may be damaged or not a model", answer.Message, StringComparison.Ordinal);
+        Assert.Contains("signature may not have verified", answer.Message, StringComparison.Ordinal);
+        Assert.Contains("another call may still be loading and verifying the model", answer.Message, StringComparison.Ordinal);
+        Assert.Contains("try again in a moment", answer.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("is damaged", answer.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("did not verify", answer.Message, StringComparison.Ordinal);
         Assert.Contains("original image is shown", answer.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("consecutive failures switch", answer.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("not counted", answer.Message, StringComparison.OrdinalIgnoreCase);   // neither claim: the module decides, by cause
