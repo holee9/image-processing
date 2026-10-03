@@ -84,15 +84,15 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath) 
         }
 
         // Commit under mutex
-        bool mixed = false;
+        bool warnSession = false;
         {
             std::lock_guard<std::mutex> lock(g_calib_mutex);
             // QA-A-229 M4: refused BEFORE anything changes -- the loaded maps stay, this one is rejected.
-            const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Defect, staged.sessionId, &mixed);
+            const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Defect, staged.sessionId, &warnSession);
             if (src != XPE_OK) return src;
             xpe_calib_commit_defect_locked(staged);
         }
-        xpe_calib_session_warn(mixed);
+        xpe_calib_session_warn(warnSession);
         return XPE_OK;
 
     } catch (const std::bad_alloc&) {

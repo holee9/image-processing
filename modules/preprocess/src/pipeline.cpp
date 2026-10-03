@@ -484,8 +484,10 @@ static XpeErrorCode load_calibration_set(const char* calibPath, CalibSnapshot* s
     rc = xpe_calib_session_check_set(offset.sessionId, gain.sessionId, defect.sessionId, &sessionMixed);
     if (rc != XPE_OK) return rc;
 
+    bool warnSession = false;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
+        warnSession = xpe_calib_session_transition_locked(sessionMixed);   // decided in the commit's own critical section
         xpe_calib_commit_offset_locked(offset);
         xpe_calib_commit_gain_locked(gain);
         xpe_calib_commit_defect_locked(defect);
@@ -497,7 +499,7 @@ static XpeErrorCode load_calibration_set(const char* calibPath, CalibSnapshot* s
 #ifdef XPE_CACHE_TEST_HOOKS
     if (xpe_calib_after_set_commit_hook) xpe_calib_after_set_commit_hook();
 #endif
-    xpe_calib_session_warn(sessionMixed);
+    xpe_calib_session_warn(warnSession);
     xpe_calib_after_gain_commit(gain);
     return XPE_OK;
 }

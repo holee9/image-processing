@@ -276,23 +276,53 @@ TEST_F(CacheSameVerdict, AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
 }
 
 // (4) the documented limit ------------------------------------------------------------------------
-TEST_F(CacheSameVerdict, AChangeThatKeepsBothSizeAndWriteTimeIsNotNoticedUntilCacheClear) {
+// QA-A-229b (Codex #93): the hit now re-reads the file's 152-byte header and compares it with the entry's. A file
+// REWRITTEN with new content carries a new SHA-256 in that header, so a rewrite that keeps both the size and the
+// write time IS noticed now (this case used to pin that it was not). What is still not noticed is an edit that
+// leaves the header alone: a payload byte flipped in place.
+TEST_F(CacheSameVerdict, ARewriteThatKeepsBothSizeAndWriteTimeIsNoticedThroughTheHeader) {
     writeOffset("csv_a.xcal", 100.0f);
     const auto original = fs::last_write_time("csv_a.xcal");
     XpeImageBuffer v{};
     ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached("csv_a.xcal", &v));
 
-    writeOffset("csv_a.xcal", 300.0f);                 // same size
+    writeOffset("csv_a.xcal", 300.0f);                 // same size, new content (and so a new SHA-256 in the header)
     fs::last_write_time("csv_a.xcal", original);       // and the very same write time
+    XpeImageBuffer after{};
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached("csv_a.xcal", &after));
+    EXPECT_FLOAT_EQ(300.0f, static_cast<const float*>(after.data)[0])
+        << "the header differs, so the hit is cancelled and the file is read again (100 = stale hit)";
+}
+
+TEST_F(CacheSameVerdict, APayloadEditThatLeavesTheHeaderAloneIsNotNoticedUntilCacheClear) {
+    writeOffset("csv_a.xcal", 100.0f);
+    const auto original = fs::last_write_time("csv_a.xcal");
+    XpeImageBuffer v{};
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached("csv_a.xcal", &v));
+
+    {   // flip one payload byte in place: size, header and (restored) write time are untouched
+        std::fstream f("csv_a.xcal", std::ios::in | std::ios::out | std::ios::binary);
+        ASSERT_TRUE(f.good());
+        f.seekp(static_cast<std::streamoff>(sizeof(XCalFileHeader)));
+        char byte = 0;
+        f.read(&byte, 1);
+        f.seekp(static_cast<std::streamoff>(sizeof(XCalFileHeader)));
+        byte = static_cast<char>(byte ^ 0xFF);
+        f.write(&byte, 1);
+        ASSERT_TRUE(f.good());
+    }
+    fs::last_write_time("csv_a.xcal", original);
     XpeImageBuffer stale{};
     ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached("csv_a.xcal", &stale));
     EXPECT_FLOAT_EQ(100.0f, static_cast<const float*>(stale.data)[0])
-        << "a hit does not re-hash the file: same size and same write time = not noticed";
+        << "a hit does not re-hash the payload: same size, same header, same write time = not noticed";
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_calib_load_offset("csv_a.xcal"))
+        << "the plain loader refuses the edited file (SHA-256 mismatch): the documented divergence";
 
     xpe_calib_cache_clear();
     XpeImageBuffer fresh{};
-    ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached("csv_a.xcal", &fresh));
-    EXPECT_FLOAT_EQ(300.0f, static_cast<const float*>(fresh.data)[0]);
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_calib_load_offset_cached("csv_a.xcal", &fresh))
+        << "after the cache is cleared the same call reaches the plain loader's verdict";
 }
 
 // (5) gain quality metadata ----------------------------------------------------------------------

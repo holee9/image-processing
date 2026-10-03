@@ -30,6 +30,44 @@ size_t xcal_bytes_per_pixel(uint32_t fmt) {
     }
 }
 
+/**
+ * The 64-byte session_id field (QA-A-229b, Codex #93 finding 3): UTF-8 text, NUL-terminated and zero-padded.
+ * That is: there is a NUL somewhere in the field (so a text of up to 63 bytes, never 64 unterminated ones),
+ * every byte after the first NUL is 0, and the bytes before it are well-formed UTF-8 (no overlong form, no
+ * surrogate, nothing above U+10FFFF). An empty field is valid. Before this nothing checked the field, and the
+ * loaders copied only 63 of its 64 bytes, so two ids that differ in the last byte compared equal.
+ */
+static bool session_field_valid(const char (&field)[64]) {
+    size_t n = 0;
+    while (n < sizeof(field) && field[n] != 0) ++n;
+    if (n == sizeof(field)) return false;                       // no terminator
+    for (size_t i = n; i < sizeof(field); ++i) {
+        if (field[i] != 0) return false;                        // not zero-padded
+    }
+    const unsigned char* s = reinterpret_cast<const unsigned char*>(field);
+    size_t i = 0;
+    while (i < n) {
+        const unsigned char c = s[i];
+        if (c < 0x80) { ++i; continue; }
+        size_t len = 0;
+        uint32_t cp = 0;
+        if (c >= 0xC2 && c <= 0xDF) { len = 2; cp = c & 0x1Fu; }
+        else if (c >= 0xE0 && c <= 0xEF) { len = 3; cp = c & 0x0Fu; }
+        else if (c >= 0xF0 && c <= 0xF4) { len = 4; cp = c & 0x07u; }
+        else return false;                                      // stray continuation byte, C0/C1, F5..FF
+        if (i + len > n) return false;                          // truncated sequence
+        for (size_t k = 1; k < len; ++k) {
+            if ((s[i + k] & 0xC0u) != 0x80u) return false;
+            cp = (cp << 6) | (s[i + k] & 0x3Fu);
+        }
+        if (len == 3 && cp < 0x800u) return false;              // overlong
+        if (len == 4 && (cp < 0x10000u || cp > 0x10FFFFu)) return false;
+        if (cp >= 0xD800u && cp <= 0xDFFFu) return false;       // surrogate
+        i += len;
+    }
+    return true;
+}
+
 // ---------------------------------------------------------------------------
 // validate_xcal_header
 // ---------------------------------------------------------------------------
@@ -48,6 +86,7 @@ size_t xcal_bytes_per_pixel(uint32_t fmt) {
  *  8. payload_len == width * height * bpp (exact match)
  *  9. config_json_len <= XCAL_MAX_CONFIG_JSON_LEN
  * 10. expected_type match (when expected_type >= 0)
+ * 11. session_id field is well-formed (QA-A-229b): terminated, zero-padded, UTF-8
  */
 XpeErrorCode validate_xcal_header(const XCalFileHeader& header,
                                    int expected_type) {
@@ -134,6 +173,11 @@ XpeErrorCode validate_xcal_header(const XCalFileHeader& header,
 
     // Check 10: expected_type match (caller-specified)
     if (expected_type >= 0 && header.type != static_cast<uint32_t>(expected_type)) {
+        return XPE_ERR_CONFIG_INVALID;
+    }
+
+    // Check 11: the session field's format (QA-A-229b)
+    if (!session_field_valid(header.session_id)) {
         return XPE_ERR_CONFIG_INVALID;
     }
 

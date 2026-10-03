@@ -659,23 +659,33 @@ enum class CalibMapKind { Offset, Gain, Defect };
 /**
  * Before committing a map of `kind` whose file carries `incoming64`: compare it with the OTHER maps
  * currently in the store. XPE_ERR_CONFIG_INVALID when it conflicts with any of them (nothing is changed:
- * the incoming map is the one refused, the loaded ones stay). The caller holds g_calib_mutex.
- * `*unspecifiedMixed` is set when, once this map is in, two or more maps are loaded and at least one of
- * them has an unspecified session id; pass it to xpe_calib_session_warn after releasing the lock.
+ * the incoming map is the one refused, the loaded ones stay). The caller holds g_calib_mutex and commits the
+ * map in the SAME critical section.
+ *
+ * On XPE_OK this also settles the warning state (QA-A-229b, Codex #93 finding 2): whether, once this map is
+ * in, two or more maps are loaded and at least one has an unspecified session id (the state is "mixed") and
+ * whether the warning for it was already raised are decided HERE, under the lock, in the order the commits
+ * happen. `*shouldWarn` is true when this commit enters a mixed state that has not been reported; pass it to
+ * xpe_calib_session_warn after releasing the lock. (The flag used to be set after the lock was released, from
+ * a `mixed` that another commit could have made stale.)
  */
-XpeErrorCode xpe_calib_session_check_locked(CalibMapKind kind, const char* incoming64, bool* unspecifiedMixed) noexcept;
+XpeErrorCode xpe_calib_session_check_locked(CalibMapKind kind, const char* incoming64, bool* shouldWarn) noexcept;
 
-/** The same rule for a set that replaces all three maps at once (the pipeline's calibration set). */
+/** The conflict rule for a set that replaces all three maps at once (the pipeline's calibration set): pure. */
 XpeErrorCode xpe_calib_session_check_set(const char* offset64, const char* gain64, const char* defect64,
                                          bool* unspecifiedMixed) noexcept;
 
+/** The warning-state step for a committed set: the caller holds g_calib_mutex; true when to warn. */
+bool xpe_calib_session_transition_locked(bool mixed) noexcept;
+
 /**
- * Pushes the warning when `mixed`, ONCE per mixed state: the pipeline re-reads its three files on every call
- * (and the Endurance loops load thousands of times), so a warning per load would fill the 64-entry alert
- * queue with one repeated sentence. The state ends when a load leaves no unspecified map in play, or at
- * shutdown; the next mix warns again. Takes g_calib_mutex itself, so call it with the lock RELEASED. Never throws.
+ * Pushes the warning when `shouldWarn` (the value xpe_calib_session_check_locked or _transition_locked gave).
+ * ONCE per mixed state: the pipeline re-reads its three files on every call (and the Endurance loops load
+ * thousands of times), so a warning per load would fill the 64-entry alert queue with one repeated sentence.
+ * The state ends when a load leaves no unspecified map in play, or at shutdown; the next mix warns again.
+ * Takes no lock and decides nothing: the decision was made under g_calib_mutex. Never throws.
  */
-void xpe_calib_session_warn(bool mixed) noexcept;
+void xpe_calib_session_warn(bool shouldWarn) noexcept;
 
 /** Move a staged object into g_calib. The caller holds g_calib_mutex. Cannot fail. */
 void xpe_calib_commit_offset_locked(StagedOffset& staged) noexcept;
@@ -697,6 +707,8 @@ void xpe_calib_after_gain_commit(const StagedGain& staged) noexcept;
 bool xpe_calib_cache_is_consistent();
 
 #ifdef XPE_CACHE_TEST_HOOKS
+/** Runs at the top of xpe_calib_session_warn: after a commit, before its warning is pushed (test-only; QA-A-229b). */
+extern void (*xpe_session_after_commit_hook)();
 /**
  * Test-only: called by a cached loader's hit lookup right after it has opened the file and before the
  * expiry is judged, so a test can make that step take as long as a slow (network) path would. Only the

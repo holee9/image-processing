@@ -138,6 +138,10 @@ XPE_API bool xpe_preprocess_is_initialized(void);
  * of FUNC-011) is not implemented (#245). To switch to another session, clear the store first
  * (xpe_preprocess_shutdown, then xpe_preprocess_init): loading a map of the new session while maps of the old one
  * are loaded is refused.
+ * The session field of a file is validated when the file is read (QA-A-229b): UTF-8 text of at most 63 bytes,
+ * NUL-terminated and zero-padded to 64; any other content is XPE_ERR_CONFIG_INVALID, an empty field is allowed.
+ * The cached loaders read the file's header again at every hit and give the verdict the file as it now stands gives
+ * (its session, expiry, type), so a header edit that keeps the file size and write time is not served from the cache.
  *
  * @param filepath Path to XCal format offset file
  * @return XPE_OK on success

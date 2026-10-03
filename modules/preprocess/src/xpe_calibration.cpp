@@ -30,24 +30,32 @@ std::mutex g_calib_mutex;
 namespace {
 struct SessionSlot { const char* id; bool loaded; };
 
-XpeErrorCode session_check(const SessionSlot (&others)[2], const char* incoming64, bool* mixed) noexcept
+XpeErrorCode session_check(const SessionSlot (&others)[2], const char* incoming64, bool* shouldWarn) noexcept
 {
     for (const SessionSlot& o : others) {
         if (o.loaded && xpe_session_conflict(incoming64, o.id)) return XPE_ERR_CONFIG_INVALID;
     }
-    if (mixed) {
-        int loadedCount = 1;
-        bool anyUnspecified = !xpe_session_specified(incoming64);
-        for (const SessionSlot& o : others) {
-            if (!o.loaded) continue;
-            ++loadedCount;
-            if (!xpe_session_specified(o.id)) anyUnspecified = true;
-        }
-        *mixed = (loadedCount >= 2) && anyUnspecified;
+    int loadedCount = 1;
+    bool anyUnspecified = !xpe_session_specified(incoming64);
+    for (const SessionSlot& o : others) {
+        if (!o.loaded) continue;
+        ++loadedCount;
+        if (!xpe_session_specified(o.id)) anyUnspecified = true;
     }
+    // The state AFTER this commit, and the transition of the warning flag, under the caller's lock.
+    const bool shouldPush = xpe_calib_session_transition_locked((loadedCount >= 2) && anyUnspecified);
+    if (shouldWarn) *shouldWarn = shouldPush;
     return XPE_OK;
 }
 } // namespace
+
+bool xpe_calib_session_transition_locked(bool mixed) noexcept
+{
+    if (!mixed) { g_calib.session_warned = false; return false; }
+    if (g_calib.session_warned) return false;
+    g_calib.session_warned = true;
+    return true;
+}
 
 XpeErrorCode xpe_calib_session_check_locked(CalibMapKind kind, const char* incoming64, bool* unspecifiedMixed) noexcept
 {
@@ -76,14 +84,16 @@ XpeErrorCode xpe_calib_session_check_set(const char* offset64, const char* gain6
     return XPE_OK;
 }
 
-void xpe_calib_session_warn(bool mixed) noexcept
+#ifdef XPE_CACHE_TEST_HOOKS
+void (*xpe_session_after_commit_hook)() = nullptr;
+#endif
+
+void xpe_calib_session_warn(bool shouldWarn) noexcept
 {
-    {
-        std::lock_guard<std::mutex> lock(g_calib_mutex);
-        if (!mixed) { g_calib.session_warned = false; return; }
-        if (g_calib.session_warned) return;
-        g_calib.session_warned = true;
-    }
+#ifdef XPE_CACHE_TEST_HOOKS
+    if (xpe_session_after_commit_hook) xpe_session_after_commit_hook();
+#endif
+    if (!shouldWarn) return;
     try {
         xpe_alert_push("XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries "
                        "no session id (empty or generated); session consistency is checked only between maps "

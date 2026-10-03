@@ -33,9 +33,11 @@
 #include "xcal_writer.hpp"
 #include "xcal_reader.hpp"
 #include "rle_codec.hpp"
+#include "fixtures/make_xcal.hpp"
 
 #include <algorithm>
 #include <atomic>
+#include <condition_variable>
 #include <chrono>
 #include <thread>
 #include <cstddef>
@@ -672,6 +674,89 @@ TEST_F(OomInjection, ADefectCorrectionDoesNotCopyTheMap) {
 // The plain reader opens and reads the file and only then looks at the clock. A hit that took the time
 // before it opened the file would let an entry that expired while the open was slow (a network path)
 // through and install it. The test makes the open check take longer than the entry has left.
+// QA-A-229b (Codex #93 finding 2): the warning flag is settled in the same critical section as the commit.
+// Thread A commits a gain map that makes the store "mixed" (an unspecified session beside a specified one) and
+// stops BEFORE its warning is pushed; meanwhile B replaces that gain with a specified one (the store is no longer
+// mixed). When A resumes, the flag must describe the store as it is now. Before, A set the flag after the lock was
+// released, from the `mixed` it had computed earlier, so it came back true over a store that was not mixed, and
+// the next real mix raised no warning at all.
+namespace sessionwarn {
+std::mutex m;
+std::condition_variable cv;
+bool paused = false, resume = false, armed = false;
+std::thread::id pausedThread;
+
+void hook() {
+    std::unique_lock<std::mutex> lock(m);
+    if (!armed || std::this_thread::get_id() != pausedThread) return;
+    armed = false;
+    paused = true;
+    cv.notify_all();
+    cv.wait(lock, [] { return resume; });
+}
+
+int warnings() {
+    int n = 0;
+    char msg[512];
+    int32_t sev = -1;
+    const int32_t count = xpe_get_pending_alert_count();
+    for (int32_t i = 0; i < count; ++i) {
+        if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) != XPE_OK) continue;
+        if (std::string(msg).find("XPE_WARN_CALIB_SESSION_UNSPECIFIED") != std::string::npos) ++n;
+    }
+    return n;
+}
+}  // namespace sessionwarn
+
+TEST_F(OomInjection, TheSessionWarningStateIsSettledInTheCommitsOwnCriticalSection) {
+    namespace sw = sessionwarn;
+    ASSERT_EQ(XPE_OK, MakeOffsetXCal("sw_offset.xcal", W, H, 1.0f, 0, "S1"));
+    ASSERT_EQ(XPE_OK, MakeGainXCal("sw_gain_none.xcal", W, H, 2.0f, 0, ""));
+    ASSERT_EQ(XPE_OK, MakeGainXCal("sw_gain_s1.xcal", W, H, 2.0f, 0, "S1"));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset("sw_offset.xcal"));
+    xpe_clear_alerts();
+
+    sw::paused = sw::resume = false;
+    sw::armed = true;
+    xpe_session_after_commit_hook = sw::hook;
+    XpeErrorCode rcA = XPE_OK;
+    std::thread a([&] {
+        {
+            std::lock_guard<std::mutex> lock(sw::m);
+            sw::pausedThread = std::this_thread::get_id();
+        }
+        rcA = xpe_calib_load_gain("sw_gain_none.xcal");        // commits "mixed", then stops in the hook
+    });
+    {
+        std::unique_lock<std::mutex> lock(sw::m);
+        sw::cv.wait(lock, [] { return sw::paused; });
+    }
+    // A has committed and not yet pushed. B replaces the gain with a specified one: the store is not mixed.
+    xpe_session_after_commit_hook = nullptr;
+    const XpeErrorCode rcB = xpe_calib_load_gain("sw_gain_s1.xcal");
+    {
+        std::lock_guard<std::mutex> lock(sw::m);
+        sw::resume = true;
+    }
+    sw::cv.notify_all();
+    a.join();
+    const int afterBoth = sw::warnings();
+
+    // Now a real mix: the flag must be down, so this load warns.
+    const XpeErrorCode rcC = xpe_calib_load_gain("sw_gain_none.xcal");
+    const int afterMix = sw::warnings();
+
+    xpe_session_after_commit_hook = nullptr;
+    xpe_clear_alerts();
+    for (const char* f : {"sw_offset.xcal", "sw_gain_none.xcal", "sw_gain_s1.xcal"}) std::remove(f);
+
+    EXPECT_EQ(XPE_OK, rcA);
+    EXPECT_EQ(XPE_OK, rcB);
+    EXPECT_EQ(XPE_OK, rcC);
+    EXPECT_EQ(1, afterBoth) << "A's commit entered a mixed state: one warning for it";
+    EXPECT_EQ(2, afterMix) << "the later real mix must warn again; 1 = the flag was left up by A's stale write";
+}
+
 TEST_F(OomInjection, AHitJudgesTheExpiryAfterTheOpenCheckNotBefore) {
     struct Case { const char* name; std::function<void(int64_t)> write; std::function<XpeErrorCode()> cached; };
     const Case cases[] = {
