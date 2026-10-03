@@ -732,6 +732,8 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             ApplyDisplayPipeline(window);
             InvokeAiMenuItem(window, requireEnabled: true);
             WaitForChain(window, "ai_bone_suppress=RequestedNotApplied");
+            // GUI-C-206: the count after each call, so a runner that counts more per call than this machine does (CI showed 3 after two calls, here 2) can be told apart from one that makes more calls.
+            output.WriteLine($"C10 after call 1: summary='{AiStatusSummary(window)}'; diagnostics='{AiDiagnostics(window)}'");
             var first = InitDirectoryOf(AiDiagnostics(window));
             var firstCount = InitCountOf(AiDiagnostics(window));
 
@@ -740,6 +742,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             Assert.True(PollFor(() => InitCountOf(AiDiagnostics(window)) > firstCount, TimeSpan.FromSeconds(10)),
                 $"the second AI run never called xpe_ai_init (diagnostics: '{AiDiagnostics(window)}')");
             var second = InitDirectoryOf(AiDiagnostics(window));
+            output.WriteLine($"C10 after call 2: summary='{AiStatusSummary(window)}'");
             output.WriteLine($"C10 first init dir='{first}'; after the case change dir='{second}'; diagnostics='{AiDiagnostics(window)}'");
 
             Assert.Equal(directory, first, ignoreCase: true);

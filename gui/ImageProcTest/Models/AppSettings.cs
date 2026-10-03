@@ -391,7 +391,7 @@ public sealed class AppSettings : ObservableObject
     public double ComparisonZoomScale
     {
         get => _comparisonZoomScale;
-        set => SetProperty(ref _comparisonZoomScale, Math.Clamp(value, 0.0, 16.0));
+        set => SetProperty(ref _comparisonZoomScale, Math.Clamp(value, 0.0, ComparisonZoomLimits.Max));
     }
 
     /// <summary>

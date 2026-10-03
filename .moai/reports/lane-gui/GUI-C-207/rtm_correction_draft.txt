@@ -1,0 +1,54 @@
+RTM-GUI-001 correction draft (GUI-C-207). Wording only: docs/ is leader-owned, nothing here is applied.
+Base: dev/gui efbc74f8. Evidence: report.md sections 1, 4 and rtm_and_ci_claims_check.txt.
+
+[1 Purpose]  "53 GUI requirements (REQ-GUI-IT-001~065)" -> "36 GUI requirements (REQ-GUI-IT-001~010, 020~031, 040~043, 050~053, 060~065)".
+
+[2 Coverage Summary]  Replace the table (Event-Driven 15, Total 39, Verified 37, 95%) with what is asserted (verified by script, verified_claims_out.txt):
+    Category                  Count   implemented                partial                              none
+    Ubiquitous (001~010)       10     4 (001 is a build property, 002, 003, 005)   6 (004, 006, 007, 008, 009, 010)   0
+    Event-Driven (020~031)     12     10 (021~030)               2 (020, 031)                          0
+    State-Driven (040~043)      4     1 (040)                    3 (041, 042, 043)                     0
+    Unwanted (050~053)         4     2 (051, 053)               2 (050, 052)                          0
+    Optional (060~065)          6     2 (060, 062)               1 (061)                               3 (063, 064, 065)
+    Total                      36     19                         14                                    3
+    Do not call the "partial" ones "Verified".
+
+[3.2]  Delete the rows REQ-GUI-IT-032, 033, 034 (no definition in the SPEC) or move them to a non-SPEC table; "Event-Driven" is 020~031.
+
+[3 Test Class column, every row]  Replace the names that do not exist with the real ones (requirement-matrix.json). Only AbiLayoutTests and LeakEnduranceTests exist under the RTM's current names:
+    001 (build gate, ImageProcTest.IntegrationTests.csproj)  002 AbiLayoutTests.XpeImageBuffer_MarshalSize_Is40Bytes / XpeImageMetadata_MarshalSize_Is96Bytes
+    003 AbiLayoutTests.XpeImageBuffer_FieldOffsets_MatchNativeLayout   004 AbiLayoutTests.XpeImageMetadata_BodyPart_63CharAscii_RoundTrips
+    005 DllLoadSmokeTests.XpeVersion_CalledTwice_ReturnsSamePointer    006 NativeErrorTranslationTests.*
+    007 MockBlockingTests.*   008 DllSearchPathSafetyTests.*   009 ErrorCodeMappingTests.*   010 LeakEnduranceTests.AfterTests_NoOutstandingPinnedHandles
+    020 DllLoadSmokeTests.XpeVersion_WhenDllLoaded_ReturnsSemverString   021 ImageBufferLifecycleTests.Init_Success_AlertCountIsNonNegative
+    022 MetadataMarshallingTests.Configure_*   023..025 ImageBufferLifecycleTests.AllocImage_*/FreeImage_*/CopyImage_*   026 MetadataMarshallingTests.GetParamRange_*
+    027, 028 AlertCallbackTests.*   029..031 LoggingHandlerTests.*
+    040 NativeErrorTranslationTests.GetParamRange_BeforeInit_ReturnsNotInitialized   041, 042 DllLoadSmokeTests.*   043 PlatformDetectionTests.*
+    050, 052 NativeErrorTranslationTests.*   051 LeakEnduranceTests.InitShutdown_1000Cycles_NoLeak   053 VersionPinTests.XpeVersion_MajorMatchesPinnedVersion
+    060 PreprocessHandshakeTests.*   061 PreprocessCorrectionChainSmokeTests.*   062 CalibrationCheckExpirySmokeTests.*
+    063, 064, 065 none - mark "Not implemented".
+
+[3.5, 7.1]  "Optional tests (060-063): skipped, xpe_preprocess.dll not staged" -> 060~062 run in CI (9 cases); 063 has no code.
+
+[4.1..4.6 "Verification" column]
+    ARCH-001 "Async P/Invoke ... XPE-GUI-E2E-001 W-04"      -> W-04 does not exist; no E2E asserts UI responsiveness during a native call.
+    DISP-INT-001 "RealXpeBackend DisplayPipeline ... W-06"  -> W-06 does not exist (HAZ-GUI-004 already says so); name the real scenarios (W01b, W02, W20..W28).
+    DISP-INT-001 "GSDF toggle ... W-06"                     -> same.
+    ACCESS-001 "AutomationProperties ... E2E A-01"          -> A01 is now the About test; no test counts interactive XAML elements without an AutomationId.
+    E2E-001 "Mock-mode CI ... ENV MOAI_XPE_BACKEND_MODE=Mock" -> the variable is XPE_E2E_BACKEND (the other name exists only in docs).
+    E2E-001 "Smoke suite < 30s ... Category=Smoke ... CI timing" -> no CI step filters by Category; the whole project runs unfiltered in gui-automation and gui-e2e-native.
+    L10N-001 "Strings.resx + Strings.ko-KR.resx"            -> no .resx file exists.
+    MENU-001 "Pipeline menu activation timing ... Code review" -> now asserted by E2E (AiMenuAvailabilityScenarios, DeterministicBaselineScenarios, ProcessingChainScenarios); see XPE-GUI-MENU-001 draft from GUI-C-203.
+
+[5 Hazard table]
+    HAZ-GUI-003 (UI freeze)        "ARCH-001 4.2 ... E2E W-04"  -> no verification exists.
+    HAZ-GUI-007, 008               remove REQ-033 and REQ-034 (undefined); HAZ-GUI-008's "AlertTests" -> AlertCallbackTests.
+    HAZ-GUI-001, 002, 006          test names -> the real ones above (NoManagedExceptionTests, UninitializedGuardTests, EnumParityTests, DllResolutionTests do not exist).
+    HAZ-GUI-009                    "E2E A-01~A-03 Accessibility suite" -> no accessibility suite exists.
+    HAZ-GUI-010                    "CI pseudo-localization" -> no such CI step; no .resx.
+
+[6 Class B compliance table]
+    5.2.6 "All REQ-GUI-IT-* have tests"  -> "33 of 36 have tests; 14 only in part; REQ-063..065 have none".
+    5.7   "78/78 xUnit pass (2026-04-18)" -> "IntegrationTests 650 passed / 1 skipped (2026-10-03); E2E suites run in CI (gui-automation, gui-e2e-native)".
+
+[8 Change History]  Add a row for these corrections.
