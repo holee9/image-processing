@@ -2,9 +2,14 @@
  * @file test_repro_qa_b_200.cpp
  * @brief QA-B-200 M1: reproductions of the DICOM candidates of QA-B-199 (C1, C7, C9). NOT part of the suite.
  *
- * Every test is DISABLED_: built, never run by ctest. Run by hand with --gtest_also_run_disabled_tests; the OUTPUT is the
- * evidence (.moai/reports/lane-post/QA-B-200/). A test that FAILS reproduces a defect; one that passes shows the
- * candidate was not one. The tests of a confirmed candidate are enabled by the M2 that fixes it.
+ * The reproductions are DISABLED_: built, never run by ctest. Run by hand with --gtest_also_run_disabled_tests; the
+ * OUTPUT is the evidence (.moai/reports/lane-post/QA-B-200/). A test that FAILS reproduces a defect; one that passes shows
+ * the candidate was not one. The tests of a confirmed candidate are enabled by the M2 that fixes it.
+ *
+ * One test is ACTIVE, the control ControlTheModuleReadsBackWhatItWrote: a test executable in which every test is
+ * DISABLED_ runs nothing, and CI's single-process step refuses "a run that executes nothing" (QA-B-203). The control is
+ * the precondition the reproductions share: without it a reproduction that fails could be a harness that cannot see the
+ * module.
  *
  * C1  REQ-DICOM-009: "(0018,1152) Exposure (mAs) --> outMeta->mAs". The module writes and reads (0018,9332) instead.
  *     Measured with a file made by DCMTK directly (not by the module), so the writer and the reader cannot agree with each
@@ -95,6 +100,18 @@ std::string AlertsText() {
 }
 
 }  // namespace
+
+// ---------------------------------------------------------------------------------------------------------------------
+// The active control
+// ---------------------------------------------------------------------------------------------------------------------
+
+TEST(ReproQaB200Dicom, ControlTheModuleReadsBackWhatItWrote) {
+    const TempDir t("control");
+    const fs::path f = t.path / "module_written.dcm";
+    ASSERT_TRUE(WriteWithTheModule(f, 50.0f));
+    EXPECT_NEAR(50.0f, ReadMas(f), 0.01f) << "the round trip every existing test runs: the harness can see the module";
+    EXPECT_EQ(-1.0f, ReadMas(t.path / "no_such_file.dcm")) << "and a file that is not there is reported as not read (-1)";
+}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // C1
