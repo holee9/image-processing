@@ -40,7 +40,14 @@ namespace ImageProcTest
         private static readonly Regex OwnFolder = new("^xpe_oracle_[0-9a-f]{32}$", RegexOptions.Compiled);
 
         /// <summary>Test seams: where the temporary folders live, a hook called once the run's folder exists, and the age beyond which an old folder is reclaimed.</summary>
-        public sealed record OracleOptions(string? TempRoot = null, Action<string>? OnTempDirReady = null, TimeSpan? StaleAge = null);
+        /// <param name="TempRoot">Where the oracle's own temporary calibration folder goes.</param>
+        /// <param name="OnTempDirReady">Test hook.</param>
+        /// <param name="StaleAge">Age after which the oracle's own old folders are reclaimed.</param>
+        /// <param name="ConfinedLoadFolder">
+        /// GUI-C-219d: the folder of the SNAPSHOT the DLL is loaded from. When set, the DLL is loaded so that the DLLs it imports are searched for in that folder and System32 only
+        /// (<see cref="OracleModuleConfinement"/>), and after the run every loaded module that shares a name with a file of that folder must be that file, or the verdict is a failure.
+        /// </param>
+        public sealed record OracleOptions(string? TempRoot = null, Action<string>? OnTempDirReady = null, TimeSpan? StaleAge = null, string? ConfinedLoadFolder = null);
 
         // Two isolated pixels the defect map marks; the input carries a hot value there, so a defect stage that does nothing is visible.
         private static readonly int[] DefectPixels = [5 * Width + 5, 12 * Width + 9];
@@ -97,7 +104,15 @@ namespace ImageProcTest
             }
 
             NativeDependencyLoader.TryLoadFor(dllPath);
-            if (!NativeLibrary.TryLoad(dllPath, out var handle))
+            IntPtr handle;
+            if (options?.ConfinedLoadFolder is { Length: > 0 })
+            {
+                if (!OracleModuleConfinement.TryLoad(dllPath, out handle, out var loadError))
+                {
+                    return PreprocessSyntheticOracleResult.NotRun($"DLL load failed: {dllPath} ({loadError})");
+                }
+            }
+            else if (!NativeLibrary.TryLoad(dllPath, out handle))
             {
                 return PreprocessSyntheticOracleResult.NotRun($"DLL load failed: {dllPath}");
             }
@@ -115,6 +130,16 @@ namespace ImageProcTest
                 result = exports is null
                     ? PreprocessSyntheticOracleResult.NotRun("Mandatory correction or calibration exports are not available.")
                     : RunWith(exports, tempDir, options);
+
+                // GUI-C-219d: the claim "the bytes that were hashed are the bytes that were judged" holds only if no module of the snapshot's names came from anywhere else.
+                if (options?.ConfinedLoadFolder is { Length: > 0 } folder)
+                {
+                    var offenders = OracleModuleConfinement.AuditProcess(folder);
+                    if (offenders.Count > 0)
+                    {
+                        result = Failed("Synthetic oracle module audit failed", "Loaded from outside the snapshot: " + string.Join("; ", offenders));
+                    }
+                }
             }
             catch (Exception ex)
             {

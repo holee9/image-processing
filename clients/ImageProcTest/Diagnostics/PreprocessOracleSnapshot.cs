@@ -56,11 +56,18 @@ namespace ImageProcTest
             var copied = new List<string>();
             try
             {
+                var mainFileName = Path.GetFileName(dllPath);
                 foreach (var (name, source) in Closure(dllPath))
                 {
                     if (CopyShared(source, Path.Combine(directory, name)))
                     {
                         copied.Add(name);
+                    }
+                    else if (!string.Equals(name, mainFileName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // GUI-C-219d (Codex #116): a dependency that was found and then could not be copied (removed in between) means the set that would be judged is not the set
+                        // that is installed; the check fails closed (a setup failure, which is a verdict) instead of judging a smaller set.
+                        throw new FileNotFoundException("A DLL the preprocess DLL depends on disappeared while it was being copied: " + name, source);
                     }
                 }
 
@@ -84,6 +91,22 @@ namespace ImageProcTest
                 Discard(directory);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// GUI-C-219d: the identity (the same format as <see cref="Identity"/>) of the files as they are on disk NOW, hashed in place, with no copy. It is what the processing commands compare with the
+        /// identity a verdict was made for just before they run. "missing" when the preprocess DLL does not exist. Throws when a file in the set cannot be read (the caller treats that as "not the same").
+        /// </summary>
+        public static string IdentityOfOriginals(string dllPath)
+        {
+            if (!File.Exists(dllPath))
+            {
+                return "missing";
+            }
+
+            return string.Join(";", Closure(dllPath)
+                .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(f => f.Name + "=" + Sha256Of(f.Source)));
         }
 
         public void Dispose()

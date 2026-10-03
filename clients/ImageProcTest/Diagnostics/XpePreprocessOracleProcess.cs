@@ -305,7 +305,8 @@ namespace ImageProcTest
                     }
                 }
 
-                result = XpePreprocessSyntheticOracle.Run(dllPath);
+                // GUI-C-219d: the DLL is the snapshot copy; its dependencies are searched for in that folder and System32 only, and the loaded modules are audited against it afterwards.
+                result = XpePreprocessSyntheticOracle.Run(dllPath, new XpePreprocessSyntheticOracle.OracleOptions(ConfinedLoadFolder: Path.GetDirectoryName(Path.GetFullPath(dllPath))));
             }
             catch (Exception ex)
             {

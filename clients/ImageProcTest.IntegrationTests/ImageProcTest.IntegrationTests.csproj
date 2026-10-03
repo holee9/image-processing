@@ -133,6 +133,8 @@
     <Compile Include="..\ImageProcTest\Diagnostics\PreprocessOracleVerdicts.cs" Link="OracleCall\Linked\PreprocessOracleVerdicts.cs" />
     <Compile Include="..\ImageProcTest\Diagnostics\PreprocessOracleSnapshot.cs" Link="OracleCall\Linked\PreprocessOracleSnapshot.cs" />
     <Compile Include="..\ImageProcTest\Diagnostics\OracleThreadGuard.cs" Link="OracleCall\Linked\OracleThreadGuard.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\OracleModuleConfinement.cs" Link="OracleCall\Linked\OracleModuleConfinement.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\ProcessingContentGate.cs" Link="OracleCall\Linked\ProcessingContentGate.cs" />
   </ItemGroup>
 
   <!--

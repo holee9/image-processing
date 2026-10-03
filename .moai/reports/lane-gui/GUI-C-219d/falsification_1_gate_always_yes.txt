@@ -1,0 +1,3 @@
+[xUnit.net 00:00:00.24]     ImageProcTest.IntegrationTests.Diagnostics.PreprocessOracleVerdicts219dTests.TheCheck_SaysNo_ForADependencyThatChanged_ADllThatIsGone_AndWhenNothingWasVerified [FAIL]
+[xUnit.net 00:00:00.30]     ImageProcTest.IntegrationTests.Diagnostics.PreprocessOracleVerdicts219dTests.AProcessingCommand_DoesNotRun_WhenTheOriginalChangedAfterTheVerdict_AndRunsAgainOnceTheNewContentIsJudged [FAIL]
+실패!  - 실패:     2, 통과:    28, 건너뜀:     0, 전체:    30, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)

@@ -85,6 +85,7 @@
     <Compile Include="..\ImageProcTest\Diagnostics\XpePreprocessSyntheticOracle.cs" Link="LegacyPreview\Linked\XpePreprocessSyntheticOracle.cs" />
     <Compile Include="..\ImageProcTest\Diagnostics\XpePreprocessOracleProcess.cs" Link="LegacyPreview\Linked\XpePreprocessOracleProcess.cs" />
     <Compile Include="..\ImageProcTest\Diagnostics\OracleThreadGuard.cs" Link="LegacyPreview\Linked\OracleThreadGuard.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\OracleModuleConfinement.cs" Link="LegacyPreview\Linked\OracleModuleConfinement.cs" />
     <Compile Include="..\ImageProcTest\Diagnostics\PreprocessSyntheticOracleResult.cs" Link="LegacyPreview\Linked\PreprocessSyntheticOracleResult.cs" />
   </ItemGroup>
 

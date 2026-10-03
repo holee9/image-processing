@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace ImageProcTest
@@ -48,6 +49,12 @@ namespace ImageProcTest
 
         /// <summary>Test seam: called on the worker thread once the snapshot's files are copied and before they are hashed (a slow disk, or a file changing at the worst moment).</summary>
         internal static Action<string>? AfterSnapshotCopy { get; set; }
+
+        /// <summary>Test seam (GUI-C-219d): called on the worker thread after a pass, before it decides whether another pass is wanted. An ask that arrives here must get a pass of its own.</summary>
+        internal static Action<string>? BeforeRerunDecision { get; set; }
+
+        /// <summary>Test seam (GUI-C-219d): called on the worker thread right after the decision that ended the job. An ask that arrives here finds no job and must start one of its own.</summary>
+        internal static Action<string>? AfterRerunDecision { get; set; }
 
         /// <summary>Raised on the thread that produced a verdict, after it is stored; the argument is the DLL path. A UI marshals to its own thread.</summary>
         internal static event Action<string>? Completed;
@@ -98,6 +105,46 @@ namespace ImageProcTest
             }
         }
 
+        /// <summary>
+        /// GUI-C-219d (Codex #116, high): the ONLY thing that may enable a processing command. The stored verdict that <see cref="TryGet"/> hands out can be stale for the few milliseconds a background
+        /// verification takes; this is asked just before a command runs, hashes the files as they are NOW (on a pool thread: a caller on the UI thread awaits it and stays responsive) and says whether
+        /// they are the files the stored verdict was made for. When they are not, or when no verdict exists, it returns false and starts the verification, so the UI goes to "checking".
+        ///
+        /// Limit (decided with the card): this closes ACCIDENTAL change (a rebuild or redeploy while the app runs). Between this answer and the command opening the DLL there is still a gap of
+        /// milliseconds; a deliberate replacement aimed at it is out of scope, because whoever can write the application folder can do much more than that and this application is not a security
+        /// boundary against such a user.
+        /// </summary>
+        public static Task<bool> ConfirmContentAsync(string dllPath) => Task.Run(() => IsCurrent(dllPath));
+
+        /// <summary>The synchronous form of <see cref="ConfirmContentAsync"/>, for callers that are not on a UI thread (the headless fixture services).</summary>
+        public static bool IsCurrent(string dllPath)
+        {
+            OracleThreadGuard.AssertNotUiThread(nameof(PreprocessOracleVerdicts) + "." + nameof(IsCurrent));
+            string? storedIdentity;
+            lock (Gate)
+            {
+                storedIdentity = States.TryGetValue(dllPath, out var state) && state.Result is not null ? state.Identity : null;
+            }
+
+            if (storedIdentity is not null)
+            {
+                try
+                {
+                    if (string.Equals(PreprocessOracleSnapshot.IdentityOfOriginals(dllPath), storedIdentity, StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    // a file of the set cannot be read now: it is not the content that was judged
+                }
+            }
+
+            TryGet(dllPath);   // not the verified content (or nothing verified yet): check again; the result reaches the UI through Completed / Changed
+            return false;
+        }
+
         /// <summary>The user's refresh: finished verdicts are discarded so the next ask runs the oracle again even on the same bytes. A check in progress is left alone.</summary>
         public static void Invalidate()
         {
@@ -125,6 +172,8 @@ namespace ImageProcTest
 
             Runner = XpePreprocessOracleProcess.Run;
             AfterSnapshotCopy = null;
+            BeforeRerunDecision = null;
+            AfterRerunDecision = null;
             Completed = null;
             Changed = null;
         }
@@ -151,6 +200,7 @@ namespace ImageProcTest
 
         private static void RunJob(string dllPath, State state, int born)
         {
+            var released = false;   // true once the decision under Gate has ended the job: after that the flags belong to whichever ask starts the next one
             try
             {
                 lock (state.Work)
@@ -158,7 +208,7 @@ namespace ImageProcTest
                     try
                     {
                         // one pass per distinct ask: an ask that arrives after a pass has copied the files sets Rerun and gets a pass of its own, which finds the same bytes (and says nothing) unless they changed
-                        do
+                        while (true)
                         {
                             lock (Gate)
                             {
@@ -167,8 +217,28 @@ namespace ImageProcTest
                             }
 
                             Verify(dllPath, state, born);
+                            BeforeRerunDecision?.Invoke(dllPath);
+
+                            // GUI-C-219d (Codex #116): "is another pass wanted?" and "this job is over" are ONE decision under ONE lock. An ask that comes before it sets Rerun and is run again here;
+                            // one that comes after finds JobQueued false and starts a job of its own. There is no moment in which an ask is neither.
+                            bool another;
+                            lock (Gate)
+                            {
+                                another = state.Rerun;
+                                if (!another)
+                                {
+                                    state.JobQueued = false;
+                                    state.SnapshotTaken = false;
+                                    released = true;
+                                }
+                            }
+
+                            if (!another)
+                            {
+                                AfterRerunDecision?.Invoke(dllPath);
+                                break;
+                            }
                         }
-                        while (RerunRequested(state));
                     }
                     catch (Exception ex)
                     {
@@ -179,20 +249,15 @@ namespace ImageProcTest
             }
             finally
             {
-                lock (Gate)
+                if (!released)
                 {
-                    state.JobQueued = false;
-                    state.SnapshotTaken = false;
-                    state.Rerun = false;
+                    lock (Gate)
+                    {
+                        state.JobQueued = false;
+                        state.SnapshotTaken = false;
+                        state.Rerun = false;
+                    }
                 }
-            }
-        }
-
-        private static bool RerunRequested(State state)
-        {
-            lock (Gate)
-            {
-                return state.Rerun;
             }
         }
 

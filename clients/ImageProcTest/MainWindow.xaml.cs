@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -60,7 +61,6 @@ namespace ImageProcTest
             // GUI-C-219: the synthetic oracle runs off this thread; when its verdict arrives the window refreshes once, here.
             PreprocessOracleVerdicts.Completed += OnPreprocessOracleVerdict;
             PreprocessOracleVerdicts.Changed += OnPreprocessOracleVerdict;   // a stored verdict was found to be for other bytes: show "checking" again, then the new answer arrives as Completed
-            OracleThreadGuard.OnUiThread = () => Dispatcher.CheckAccess();   // GUI-C-219c: the blocking oracle entry points throw if they are ever reached from this thread
         }
 
         private void OnPreprocessOracleVerdict(string dllPath)
@@ -284,7 +284,33 @@ namespace ImageProcTest
             }
         }
 
-        private void WorkflowRunButton_Click(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// GUI-C-219d: every command that can run the native preprocess DLL asks this first (the three click handlers below). The screen's "ready" is display only; this is the check against the files as
+        /// they are now. When it says no, nothing runs and the verification has already been started again, so the window moves to "checking" by itself.
+        /// </summary>
+        private async Task<bool> ConfirmProcessingContentAsync()
+        {
+            if (await ProcessingContentGate.ConfirmAsync(lastPreprocessHealth?.DllPath))
+            {
+                return true;
+            }
+
+            NativePreviewText.Text = "Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They are being checked again; try again when module readiness says ready.";
+            SetStatus("Preprocess DLLs changed: checking again", Brushes.Goldenrod);
+            return false;
+        }
+
+        private async void WorkflowRunButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!await ConfirmProcessingContentAsync())
+            {
+                return;
+            }
+
+            RunWorkflow();
+        }
+
+        private void RunWorkflow()
         {
             if (currentAlgorithmChainPlan.Steps.Count == 0)
             {
@@ -424,7 +450,17 @@ namespace ImageProcTest
                 $"Selected {item.SwuId} {item.AlgorithmName}; status={item.Status}; run={item.CanRun}; next={item.NextAction}";
         }
 
-        private void RunSelectedAlgorithmValidationButton_Click(object sender, RoutedEventArgs e)
+        private async void RunSelectedAlgorithmValidationButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!await ConfirmProcessingContentAsync())
+            {
+                return;
+            }
+
+            RunSelectedAlgorithmValidation();
+        }
+
+        private void RunSelectedAlgorithmValidation()
         {
             if (AlgorithmValidationGrid.SelectedItem is not AlgorithmValidationItem item)
             {
@@ -1048,7 +1084,6 @@ namespace ImageProcTest
             isClosingWindow = true;
             PreprocessOracleVerdicts.Completed -= OnPreprocessOracleVerdict;
             PreprocessOracleVerdicts.Changed -= OnPreprocessOracleVerdict;
-            OracleThreadGuard.OnUiThread = null;
             backend.Shutdown();
         }
 
@@ -1110,7 +1145,17 @@ namespace ImageProcTest
             }
         }
 
-        private void ApplyNativePreviewButton_Click(object sender, RoutedEventArgs e)
+        private async void ApplyNativePreviewButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!await ConfirmProcessingContentAsync())
+            {
+                return;
+            }
+
+            ApplyNativePreview();
+        }
+
+        private void ApplyNativePreview()
         {
             if (currentPreview is null)
             {

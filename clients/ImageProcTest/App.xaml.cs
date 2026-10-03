@@ -33,6 +33,10 @@ namespace ImageProcTest
                 return;
             }
 
+            // GUI-C-219d (Codex #116): the interactive path is the only one with a UI thread to protect (the headless modes above run their work on this same thread on purpose). The guard belongs to the
+            // application, not to a window: it is in place before any window exists and stays after the last one closes, so code that runs on the dispatcher thread with no window is covered too.
+            OracleThreadGuard.OnUiThread = () => Dispatcher.CheckAccess();
+
             var window = new MainWindow();
             MainWindow = window;
             window.Show();

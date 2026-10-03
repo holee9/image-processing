@@ -1,0 +1,16 @@
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleConfinementScenarios.TheWorker_LoadsItsDependenciesFromTheSnapshotFolder_NotFromTheFolderOfItsExecutable [433 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.ALaunchThatFailsAfterTheAppStarted_LeavesNoAppAndNoFaultFileBehind [836 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R03_WhileTheOracleRuns_EveryTabSaysChecking_AndTheWindowAnswers_ThenEveryTabSaysReady_FromOneRun [9 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R02_AllThreeTabsBlockPreprocess_WhenTheOracleCannotRun_NotJustTwoOfThem [4 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R04_RefreshModules_MakesAllThreeTabsSayChecking_ThenAllThreeSayReady [11 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R01_AllThreeTabsEnablePreprocess_WhenTheOraclePasses [4 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P02_OffsetThenGain_PassesTheOffsetOutputToTheGainStage [176 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P05_TheCalibrationIsLoadedIntoTheModule_NotJustWrittenToDisk [20 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P04_TheInputIsNotModified_NeitherTheFileNorThePreviewPixels [16 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P03_AllThreeStages_ChainToTheExpectedImage_AndOnlyTheMarkedPixelDiffersFromTheGainOutput [18 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P01_OffsetOnly_SubtractsTheDarkFrame_PixelByPixel [11 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleIsolationScenarios.Control_TheOracleInTheSameProcess_ErasesTheOperatorsCalibration_AndTheScenarioSeesIt [70 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleIsolationScenarios.TheOracleInItsOwnProcess_LeavesTheOperatorsCalibration_ByteForByte [253 ms]
+총 테스트 수: 13
+     통과: 13
