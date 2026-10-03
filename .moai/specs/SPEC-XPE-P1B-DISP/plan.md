@@ -120,10 +120,12 @@ Rationale: Pipeline stages are sequential (Modality -> VOI -> Presentation). Imp
 |------|-------------|-----------|
 | M5-01 | Write `test_display_integration.cpp` -- full Modality->VOI->Presentation pipeline | REQ-DISP-030..033, REQ-DISP-036 |
 | M5-02 | Write 1x1 and 4096x4096 edge cases (계획한 `test_display_boundary.cpp` 대신 `test_display_integration.cpp` 에 합침) | REQ-DISP-034..035 |
-| M5-03 | Verify `dumpbin /exports xpe_display.dll` lists exactly 5 functions | REQ-DISP-036 |
+| M5-03 | Verify `dumpbin /exports xpe_display.dll` lists exactly 6 functions | REQ-DISP-036 |
 | M5-04 | P/Invoke round-trip test (C# struct layout compatibility) | REQ-DISP-036 |
 
 > 메모 (2026-10-03, QA-B-199, #251): `REQ-DISP-010a` 는 어느 작업 행에도 없어 M3-01·M3-02·M3-06 에 넣었다. M5-01·M5-03·M5-04 의 `REQ-DISP-029` 는 §3.4 ABI 요구를 가리켰으므로 재번호된 `REQ-DISP-036` 으로 고쳤다. M5-03 의 "exactly 5 functions" 와 헤더의 6함수 불일치는 SPEC `REQ-DISP-036` 의 상태 메모(후보 D7)에 적었고 문구는 바꾸지 않았다.
+>
+> 정정 (2026-10-03, 사용자 결정 #245 코멘트 묶음 ④ "문서를 실제에 맞게"): M5-03 의 개수를 5 → 6 으로 고쳤다. SPEC `REQ-DISP-036`·§2.3 도 6 이다.
 | M5-05 | Memory leak check (ASan, 1000-frame cycle) | REQ-DISP-033 |
 | M5-06 | Performance benchmark: all 3 stages within budget | REQ-DISP-008,016,028 |
 | M5-07 | Static analysis: cppcheck + clang-tidy 0 warnings | TRUST 5 |

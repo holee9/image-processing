@@ -517,11 +517,11 @@ score      = clamp((sat_frac + noise_frac) × 50, 0, 100)
 | SRS-CALIB-FUNC-008 | 온도 보상 | `test_golden_reference.cpp` | `GoldenTempTest::*` | ✅ |
 | SRS-CALIB-FUNC-009 | 만료 검사 | `test_calibration_manager.cpp` | `ExpiryCheck*` | ✅ |
 | SRS-CALIB-FUNC-010 | 런타임 결함 검출 | `test_xpe_preprocess_calibration.cpp` | `RuntimeDefect*` | ✅ |
-| SRS-CALIB-FUNC-011 | 세션 관리 | — | — | ❌ 미구현 |
+| SRS-CALIB-FUNC-011 | 세션 관리 | — | — | ❌ 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
 | SRS-CALIB-FUNC-012 | 빈닝 보정 | `test_golden_reference.cpp` | `GoldenBinningTest::*` | ✅ |
 | SRS-CALIB-FUNC-013 | Ghost 3-Tier | `test_golden_reference.cpp` | `GoldenGhostTest::*` | ✅ |
-| SRS-CALIB-FUNC-014 | 프레임 히스토리 | `test_ghost_correct.cpp` | `FrameHistory*` | ✅ |
-| SRS-CALIB-FUNC-015~021 | E2E 지표 보고서 | E2E fixture 테스트 | PRE-E2E-* | ⚠️ 부분 |
+| SRS-CALIB-FUNC-014 | 프레임 히스토리 | — (정정 2026-10-03: `FrameHistory*` 시험은 `modules/preprocess/tests` 에 0건) | — | ❌ 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 (8~16 프레임 링 버퍼 없음, 고스트는 화소별 누산기) |
+| SRS-CALIB-FUNC-015~021 | E2E 지표 보고서 | E2E fixture 테스트 | PRE-E2E-* | ⚠️ 부분 — 그중 FUNC-015(보고서 스키마)·FUNC-021(CES)은 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
 | SRS-CALIB-SAFE-001 | 필수 보정 강제 | `test_boundary.cpp` | `MandatoryStage*` | ✅ |
 | SRS-CALIB-SAFE-002 | 만료 하드블록 | `test_calibration_manager.cpp` | `ExpiryHardBlock` | ✅ |
 | SRS-CALIB-SAFE-003 | **SHA-256** 무결성 (`#203` 정정) | `test_calibration_manager.cpp` | `CRC_Validation*` ← 시험 **이름만** 옛 것 | ✅ |
@@ -530,6 +530,8 @@ score      = clamp((sat_frac + noise_frac) × 50, 0, 100)
 | SRS-CALIB-PERF-001 | 500ms 성능 예산 | 벤치마크 (`perf_benchmark.cpp`) | `PipelineLatency` | ⚠️ 수동 |
 | SRS-CALIB-NFR-003 | 스레드 안전성 | — | — | ❌ 미검증 |
 | SRS-CALIB-NFR-004 | 결정론 (재현성) | `test_integration.cpp` | `Determinism*` | ✅ |
+
+> **정정 메모 (2026-10-03, `QA-A-233` 결정 11·14, #245 코멘트)**: 위 표의 FUNC-008 "✅ 온도 보상"은 `xpe_temp_compensate`(시험 `GoldenTempTest`)에 대해서는 사실이지만, PRD REQ-OFF-003~005(온도별 오프셋 맵·PREP 모델)에 대해서는 사실이 아니다 — 그 둘은 미구현(요구 유지)이다. 현재 SRS 의 FUNC-028·029·030 도 미구현(요구 유지)이다(`RTM-CALIB-001` v1.5).
 
 ### 6.2 Golden Reference 테스트 26개 목록
 

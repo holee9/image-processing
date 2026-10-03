@@ -1,7 +1,7 @@
 # SPEC-XPE-P1B-ENH: Phase 1b Basic Enhancement + EI Baseline
 
 **Document ID**: SPEC-XPE-P1B-ENH
-**Version**: 1.2.0
+**Version**: 1.3.0
 **Date**: 2026-10-03
 **Status**: Implemented
 **Parent**: SPEC-XPE-MASTER v2.0.0
@@ -9,7 +9,7 @@
 **Sprint**: S1-B (xpe_enhance_basic.dll)
 **EARS Requirement Count**: 30
 **SWU Count**: 5
-**API Count**: 7
+**API Count**: 10 (정정 2026-10-03: 옛 값 7 — 처리 함수 7개 + 버전·스레드 함수 3개, 헤더 `XPE_API` 10개. REQ-ENH-CC-001 참조)
 
 ---
 
@@ -20,6 +20,7 @@
 | 1.0.0 | 2026-04-16 | MoAI (manager-spec) | Initial EARS requirements from SPEC-XPE-MASTER v2.0.0 and ALG-SPEC-001 v3.0.0-ds2 |
 | 1.1.0 | 2026-04-16 | MoAI (sync) | Implementation complete — 67/67 tests passing, all 5 SWUs delivered |
 | 1.2.0 | 2026-10-03 | lead (QA-B-199) | 요구 실태 대조 반영(#251): 결함 후보 E1~E9 해당 요구에 상태 메모 추가(요구 문구는 바꾸지 않음), CC-001 의 API 수 불일치 메모, tasks.md 상태 열 정정 |
+| 1.3.0 | 2026-10-03 | lead | 사용자 결정(#245 코멘트 묶음 ④ "문서를 실제에 맞게", #251): REQ-ENH-CC-001 과 머리말 API Count 를 7 → 10 으로(헤더 `enhance_basic_api.h` 의 `XPE_API` 10개). §2.2 의 7개 목록은 처리 함수 목록으로 둔다. 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md` |
 
 ---
 
@@ -91,6 +92,8 @@ modules/enhance_basic/
 ### 2.2 DLL Exports
 
 7 extern "C" functions with `XPE_API` macro, `__cdecl` calling convention, blittable types for P/Invoke:
+
+> 메모 (2026-10-03, 사용자 결정 #245 코멘트, #251): 아래는 처리 함수 7개다. 헤더는 여기에 `xpe_enhance_basic_version`, `xpe_enhance_basic_set_max_threads`, `xpe_enhance_basic_get_max_threads` 3개를 더해 `XPE_API` 10개를 수출한다(REQ-ENH-CC-001).
 
 ```c
 XPE_API XpeErrorCode xpe_log_transform(XpeImageBuffer* img, float normFactor);
@@ -361,9 +364,11 @@ target_compile_definitions(xpe_enhance_basic PRIVATE XPE_DLL_EXPORT)
 
 ### 4.6 Cross-Cutting Requirements
 
-**REQ-ENH-CC-001**: The system SHALL export all 7 API functions with C linkage (`extern "C"`), `__cdecl` calling convention, and blittable parameter types for .NET P/Invoke compatibility.
+**REQ-ENH-CC-001**: The system SHALL export all 10 API functions with C linkage (`extern "C"`), `__cdecl` calling convention, and blittable parameter types for .NET P/Invoke compatibility.
 
-> **상태 메모 (2026-10-03, QA-B-199)**: API 수 불일치 — 이 요구는 7개, 헤더 머리말은 8개, 헤더가 선언한 `XPE_API` 는 10개다. 요구를 10으로 고칠지 헤더를 7로 줄일지는 정리 결정 대기(#251). `__cdecl` 과 blittable 조건을 단언하는 시험은 없다.
+> **상태 메모 (2026-10-03, QA-B-199)**: API 수 불일치 — 이 요구는 7개, 헤더 머리말은 8개, 헤더가 선언한 `XPE_API` 는 10개였다. `__cdecl` 과 blittable 조건을 단언하는 시험은 없다.
+>
+> **정정 (2026-10-03, 사용자 결정 #245 코멘트 묶음 ④ "문서를 실제에 맞게", #251).** 옛 문구 "all 7 API functions" 를 헤더에 맞춰 10 으로 고쳤다. 근거: 이 체크아웃의 `modules/enhance_basic/include/xpe/enhance_basic/enhance_basic_api.h` 의 `XPE_API` 선언 10개 — §2.2 의 7개(`xpe_log_transform`, `xpe_log_inverse`, `xpe_noise_reduce`, `xpe_noise_estimate_sigma`, `xpe_contrast_enhance`, `xpe_edge_enhance`, `xpe_calc_exposure_index`)에 `xpe_enhance_basic_version`, `xpe_enhance_basic_set_max_threads`, `xpe_enhance_basic_get_max_threads` 를 더한 수. 헤더 머리말의 "8" 은 헤더(레인 소유)의 문제로 남는다. 새로 만든 DLL 의 수출 표는 이번에 세지 않았다(헤더 기준).
 
 **REQ-ENH-CC-002**: IF any API function receives a NULL `img` pointer or an image with `format != XPE_PIXEL_FLOAT32`, THEN the system SHALL return `XPE_ERR_INVALID_INPUT`.
 

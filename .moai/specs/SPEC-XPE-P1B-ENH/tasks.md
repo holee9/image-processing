@@ -33,5 +33,5 @@ SPEC: SPEC-XPE-P1B-ENH
 | T-013 | CC-001=partial, CC-002=partial, CC-003=partial, CC-004=partial, CC-005=partial |
 
 - `REQ-ENH-023a` 는 어떤 작업의 요구 열에도 없었다. T-003·T-012 에 넣었다.
-- T-001 설명의 "7 API decls" 와 헤더가 선언한 `XPE_API` 10개가 다르다. SPEC `REQ-ENH-CC-001` 을 10으로 고칠지 헤더를 7로 줄일지는 결정 대기다(#251). 설명 문구는 그대로 둔다.
+- T-001 설명의 "7 API decls" 와 헤더가 선언한 `XPE_API` 10개가 다르다. SPEC `REQ-ENH-CC-001` 을 10으로 고칠지 헤더를 7로 줄일지는 결정 대기다(#251). 설명 문구는 그대로 둔다. → 결정 (2026-10-03, 사용자 #245 코멘트 묶음 ④ "문서를 실제에 맞게"): SPEC `REQ-ENH-CC-001` 을 10 으로 고쳤다(SPEC v1.3.0). T-001 설명의 "7 API decls" 는 당시 작업 기록이라 그대로 둔다.
 - `enhance_basic_api.h` 의 EI 식(243행)과 함수 수(8행) 문구는 코드 쪽 문서라 post 레인 카드로 처리한다.

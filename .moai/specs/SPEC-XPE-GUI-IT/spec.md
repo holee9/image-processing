@@ -2,7 +2,7 @@
 
 ---
 id: SPEC-XPE-GUI-IT
-version: 1.3.0
+version: 1.3.1
 status: Implemented
 created: 2026-04-18
 updated: 2026-10-03
@@ -19,6 +19,7 @@ dependency: SPEC-XPE-P0 (Completed), SPEC-XPE-P1A (in progress for advanced suit
 
 | Version | Date       | Author       | Changes                                             |
 |---------|------------|--------------|-----------------------------------------------------|
+| 1.3.1   | 2026-10-03 | lead | 사용자 결정(#245 코멘트 묶음 ④ "문서를 실제에 맞게", #249): AC-9 의 "> 20개 negative 시나리오" 를 "서로 다른 거부 경로 18개(GUI-C-209 M2)" 로, §11 표의 AC-9 행도 같이. 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md` |
 | 1.3.0   | 2026-10-03 | lead (GUI-C-207, #249) | 실태 대조 정정(문서만, 코드·요구 삭제 없음). 정의된 REQ 수를 36개로 바로잡음(RTM 의 53/39 표기, 유령 REQ-032~034). §4.6 요구별 구현 상태 표 신설(구현됨 19 · 부분 14 · 없음 3). AC-4·5·6 사실 오류 정정, AC-9·12·15 와 REQ-010·043 에 상태 주석. §9 [HARD] shim 금지 규칙에 우회 상태 주석. §11 클래스 표를 `requirement-matrix.json` 의 실제 매핑으로 교체. REQ-063~065 는 상태 주석만(선택 요구 — 미구현, 구현 계획 없음). 근거: `xpe-gui` `.moai/reports/lane-gui/GUI-C-207/report.md` (dev/gui `efbc74f8`). |
 | 1.2.0   | 2026-04-18 | manager-spec (GUI Lane) | GUI document upgrade package: 5 new companion docs (XAML/MVVM Arch, FlaUI E2E Plan, Accessibility, Localization, IEC 62304 GUI SHA/RTM), 2 upgraded (DISP-INT v2.0, MENU v1.1). Added §13 Phase 1b GUI Integration Readiness section. Referenced Documents table extended. Test implementation unchanged (78/78 tests stable). |
 | 1.1.0   | 2026-04-18 | manager-docs | Implementation complete: ImageProcTest.IntegrationTests xUnit project with 78/78 tests passing. All 15 AC listed; see section 11 for what each one actually asserts *(2026-10-03 정정: 원문 "All 16 AC done" — AC 는 15개, #249)*. xpe_common.dll-gated tests use early-return pass pattern (xUnit v2 limitation). |
@@ -541,10 +542,14 @@ Section 5.1 표의 15개 심볼 각각에 대해 최소 하나의 `[Fact]` 또�
 ### AC-9: No Managed Exception from ABI Boundary on Negative Inputs (REQ-GUI-IT-050, 052, 006)
 
 `NoManagedExceptionTests`:
-- 의도적인 nefarious JSON, oversized buffer, null string 등 > 20개 negative 시나리오에서 managed exception 없음
+- 의도적인 nefarious JSON, oversized buffer, null string 등 서로 다른 거부 경로 18개(GUI-C-209 M2) 각각에서 managed exception 없음
 - 모든 실패는 `XpeErrorCode` 리턴값으로 기대치 매칭
 
+> **정정 (2026-10-03, 사용자 결정 #245 코멘트 묶음 ④ "문서를 실제에 맞게", #249).** 옛 문구: *"> 20개 negative 시나리오"*. `GUI-C-209` 보고서의 결론은 xpe_common 의 서로 다른 거부 경로가 18개이고 "20+" 는 한 검사를 두 번 세어야 채워진다는 것이다. 그래서 개수를 시나리오 수가 아니라 거부 경로 수(18)로 적었다. 경로별 시험은 `GUI-C-209` 의 `NegativeInputPathTests` 다. 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md`.
+
 > **상태 주석 (2026-10-03, #249).** 현재 시나리오는 "20개 넘게"가 아니라 부정 입력 3개(Configure 64 KB 깨진 JSON, 1바이트 알림 버퍼, 거대한 Alloc 치수)와 초기화 전 무충돌 3개다. `NoManagedExceptionTests` 클래스는 없고 시험은 `ErrorMapping/NativeErrorTranslationTests` 에 있다. 기준을 실제 수로 고칠지, 빠진 시나리오를 추가할지(보고서 D11)는 결정 대기다. 현재 상태: **부분**.
+>
+> **갱신 (2026-10-03).** 결정: 기준을 실제 수로 고친다(사용자 #245 코멘트 묶음 ④). 그 뒤 `GUI-C-209` M2(main `b39b34a9`)가 `ErrorMapping/NegativeInputPathTests` 로 서로 다른 거부 경로 18개를 정확한 오류 코드로 시험한다. 이 갱신에서 CI 결과는 읽지 않았으므로 상태 열은 여기서 바꾸지 않는다.
 
 ### AC-10: Alert Queue Never Crashes on Empty (REQ-GUI-IT-027, 028)
 
@@ -652,7 +657,7 @@ CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 
 | AC-6 | Error code enum parity (11 codes) | EnumParityTests.ErrorStringParity | ✓ PASS |
 | AC-7 | 1000-cycle leak test | LeakEnduranceTests.InitShutdown_1000Cycles_NoLeak | ✓ PASS |
 | AC-8 | Mock backend exclusion | MockExclusionTests (reflection check) | ✓ PASS |
-| AC-9 | No managed exception on negative inputs | NoManagedExceptionTests (20+ negative scenarios) | ✓ PASS |
+| AC-9 | No managed exception on negative inputs | 서로 다른 거부 경로 18개(GUI-C-209 M2) *(2026-10-03 정정, 원문 "NoManagedExceptionTests (20+ negative scenarios)", #249)* | ✓ PASS |
 | AC-10 | Alert queue edge cases | AlertTests (empty queue, clear_alerts idempotent) | ✓ PASS |
 | AC-11 | Log subsystem bounds | LoggingTests (level ∈ [0,5], file I/O) | ✓ PASS |
 | AC-12 | Performance gates | Smoke < 30s, Full < 2min | ✓ PASS |
@@ -739,4 +744,4 @@ CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 
 
 ---
 
-*Document End — SPEC-XPE-GUI-IT v1.3.0*
+*Document End — SPEC-XPE-GUI-IT v1.3.1*

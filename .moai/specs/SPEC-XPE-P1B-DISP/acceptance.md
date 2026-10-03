@@ -203,7 +203,7 @@
 
 - [ ] All 35 EARS requirements (REQ-DISP-001 through REQ-DISP-035) have corresponding test cases
 - [ ] All tests pass (>= 38 test cases across 5 test files)
-- [ ] `dumpbin /exports xpe_display.dll` lists exactly 5 functions
+- [ ] `dumpbin /exports xpe_display.dll` lists exactly 6 functions (정정 2026-10-03: 옛 값 5, `xpe_display_version` 포함 헤더 `XPE_API` 6개에 맞춤 — 사용자 결정 #245 코멘트, #251)
 - [ ] P/Invoke round-trip test passes (C# struct layout compatibility)
 - [ ] Statement coverage >= 90%, branch coverage >= 80%
 - [ ] cppcheck --std=c++17 reports 0 warnings

@@ -1,10 +1,11 @@
 # Requirements Traceability Matrix - Calibration Module
 
-**Document ID:** RTM-CALIB-001 v1.4  
+**Document ID:** RTM-CALIB-001 v1.5  
 **IEC 62304 Clause:** 5.1.1c (backward traceability), 5.3.6 (design completeness), 7.3.3 (hazard control traceability)  
 **Safety Classification:** Class B  
 **Date:** 2026-10-03 (v1.3: 2026-04-24)  
 **Revision v1.4 (2026-10-03, `#245` / `QA-A-228`):** §3 시험 사례 ID 가 시험 소스에 없다는 주석, §4 추적 집계를 "문서상 사례"와 "실제 시험"으로 분리, 구현 없이 추적 완료로 집계되던 FUNC 7개(011·014·015·021·028·029·030)의 실제 상태 표 추가, §5.1 FUNC-034 근거 시험 보강  
+**Revision v1.5 (2026-10-03, #245 사용자 결정 / `QA-A-233` 결정 12·14):** 구현 없는 FUNC 7개 표의 비고를 "미구현(요구 유지) — 사용자 결정 2026-10-03, #245" 로 통일, FUNC-014 를 △ → ✗(링 버퍼 없음)  
 
 **Trace Source:** XPE-SRS-001, XPE-SAD-001 (Architecture), SHA-CALIB-001 (Hazards)  
 **Test Input Source:** TDS-CALIB-001 (테스트 데이터셋 명세서) — 모든 테스트 케이스의 입력 데이터 규격 정의  
@@ -212,13 +213,15 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 >
 > | FUNC (현재 SRS) | SRS 내용 | 이 문서의 옛 표시 | 실제 상태 | 비고 |
 > |:---|:---|:---|:---|:---|
-> | FUNC-011 | `xpe_calib_session_create()` 세션 관리(UUID v4) | 정의 행 + 추적 완료 | ✗ **구현 없음** — src·include·tests 0건 | #245 (세션 일치는 QA-A-229 M3 예정) |
-> | FUNC-014 | 노출 이력 링 버퍼(≥8 프레임, 최대 16) | 정의 행 + 추적 완료 | △ **부분** — 고스트는 화소별 누산기 둘이고 프레임 링 버퍼가 없다. 8~16 프레임 단언 0 | #245, SRS 문구 개정 검토 |
-> | FUNC-015 | `xpe-pre-e2e-report-v1` 스키마 보고서 | 정의 행 + 추적 완료 | ✗ **구현 없음** — 스키마 문자열이 코드에 0건(문서 제외) | #245 |
-> | FUNC-021 | Calibration Effect Score (CES) | §5.1 "Updated" | ✗ **구현 없음** — `CES` 는 `xpe_verify_metrics.cpp` 의 주석 한 줄. §5.1 의 매핑은 2026-10-03(`QA-A-223`)에 이미 "옛 매핑"으로 정정됐다 | #245 |
-> | FUNC-028 | `xpe_calib_field_generate()` | 정의 행 (100% 집계에 섞였을 수 있음) | ✗ **구현 없음** — 0건. §5b 의 FUNC-017 폐기 근거("FUNC-028 과 중복")가 이 상태를 가린다 | #245 |
-> | FUNC-029 | `xpe_calib_check_drift()` | 정의 행 (100% 집계에 섞였을 수 있음) | ✗ **구현 없음** — 0건 | #245 |
-> | FUNC-030 | 실시간 오프셋 적응(`calibration.realtime_offset_adapt`) | 정의 행 (100% 집계에 섞였을 수 있음) | ✗ **구현 없음** — 0건 | #245 |
+> | FUNC-011 | `xpe_calib_session_create()` 세션 관리(UUID v4) | 정의 행 + 추적 완료 | ✗ **구현 없음** — src·include·tests 0건. 파일 간 `session_id` 일치 검사는 `QA-A-229` M4 로 구현됐으나 이 요구(세션 생성·UUID)와는 다르다 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
+> | FUNC-014 | 노출 이력 링 버퍼(≥8 프레임, 최대 16) | 정의 행 + 추적 완료 | ✗ **구현 없음** — 고스트는 화소별 누산기 둘이고 프레임 링 버퍼가 없다. 8~16 프레임 단언 0 (2026-10-03 △ → ✗: 요구 대상인 링 버퍼가 없으므로) | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
+> | FUNC-015 | `xpe-pre-e2e-report-v1` 스키마 보고서 | 정의 행 + 추적 완료 | ✗ **구현 없음** — 스키마 문자열이 코드에 0건(문서 제외) | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
+> | FUNC-021 | Calibration Effect Score (CES) | §5.1 "Updated" | ✗ **구현 없음** — `CES` 는 `xpe_verify_metrics.cpp` 의 주석 한 줄. §5.1 의 매핑은 2026-10-03(`QA-A-223`)에 이미 "옛 매핑"으로 정정됐다 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
+> | FUNC-028 | `xpe_calib_field_generate()` | 정의 행 (100% 집계에 섞였을 수 있음) | ✗ **구현 없음** — 0건. §5b 의 FUNC-017 폐기 근거("FUNC-028 과 중복")가 이 상태를 가린다 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
+> | FUNC-029 | `xpe_calib_check_drift()` | 정의 행 (100% 집계에 섞였을 수 있음) | ✗ **구현 없음** — 0건 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
+> | FUNC-030 | 실시간 오프셋 적응(`calibration.realtime_offset_adapt`) | 정의 행 (100% 집계에 섞였을 수 있음) | ✗ **구현 없음** — 0건 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
+>
+> 위 7개는 2026-10-03 사용자 결정(`QA-A-233` 결정 12·14, #245 코멘트)으로 SRS 에서 지우지 않고 "미구현(요구 유지)" 로 표시했다(`SRS-CALIB-001` v1.3). 구현 여부는 기능별로 따로 정한다.
 >
 > 아래 옛 표는 기록으로 남깁니다.
 

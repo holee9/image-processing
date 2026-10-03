@@ -1,16 +1,17 @@
 # SPEC-XPE-P0: Phase 0 Foundation
 
 **Document ID**: SPEC-XPE-P0
-**Version**: 1.3.0
+**Version**: 1.3.1
 **Date**: 2026-10-03
 **Status**: Completed -- All deliverables implemented
 
-> **Status note (2026-10-03, QA-A-231, #253)**: implementation and tests are ahead of this document. `xpe_common.dll` exports 16 functions (fresh DLL export table 16 = header `XPE_API` 16) and the 81 tests in `modules/common/tests` pass in CI common-build. v1.3.0 aligns the export count (formerly written as 15/18/20 across documents), the REQ wording that named non-existent error codes or described behaviour the code does not have, and the logging behaviour changed by QA-A-232. Items not yet settled are marked in place: REQ-P0-023 level-5 wording (user decision pending), REQ-P0-033 dicom version function, REQ-P0-026~028a missing bodies, and the §3 acceptance items with no CI evidence.
+> **Status note (2026-10-03, QA-A-231, #253)**: implementation and tests are ahead of this document. `xpe_common.dll` exports 16 functions (fresh DLL export table 16 = header `XPE_API` 16) and the 81 tests in `modules/common/tests` pass in CI common-build. v1.3.0 aligns the export count (formerly written as 15/18/20 across documents), the REQ wording that named non-existent error codes or described behaviour the code does not have, and the logging behaviour changed by QA-A-232. Items not yet settled are marked in place (v1.3.1: REQ-P0-023 level 5 settled as OFF, user decision 2026-10-03): REQ-P0-033 dicom version function (to be added, post QA-B-200 M2a), coverage/static analysis/ASan (to be introduced into CI, pre QA-A-234), REQ-P0-026~028a missing bodies, and the §3 acceptance items with no CI evidence.
 
 **Changelog**:
 - v1.0.0 -> v1.1.0: REQ-P0-009 corrected. REQ-P0-026~028 corrected to match api-spec.md v1.2.0 normative signatures. REQ-P0-028a added (XPE_STATUS_NO_EVENT). Per Cross-Validation Report v5.0 Round 8 findings R8-01, R8-02.
 - v1.1.0 -> v1.2.0: All deliverables completed (11/11; originally written as 12/12, but §7 lists 11 deliverables — corrected 2026-10-03). Implementation summary added. Status changed to Completed.
 - v1.2.0 -> v1.3.0 (2026-10-03, QA-A-231 / #253): export count unified to 16; REQ-P0-003/009/011/012/014/016/019/020/022/024/030/032 wording aligned to the code; notes added to REQ-P0-006/023/033, §2.5 (REQ-P0-026~028a bodies missing), §3, §8. Logging defaults aligned to QA-A-232 (default INFO, stderr logger installed by `xpe_init`, level 5 = OFF in code; QA-A-232 is on `dev/preprocess`, pending merge to main).
+- v1.3.0 -> v1.3.1 (2026-10-03, QA-A-233 / #245 user decisions): REQ-P0-023 level 5 corrected CRITICAL -> OFF (decision 1); REQ-P0-006 and §3.2/§3.4/§3.5 notes now read "CI 도입 예정 — pre QA-A-234" (decision 6); REQ-P0-033 note records the decision to add `xpe_dicom_version` (post QA-B-200 M2a, decision 7). Change log: `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md`.
 **Parent**: SPEC-XPE-MASTER v2.0.0
 **Classification**: IEC 62304 Class B
 **Sprint**: S0-A, S0-B, S0-C (parallel where possible)
@@ -54,6 +55,8 @@ Phase 0 establishes the foundation for all subsequent phases:
 > **Coverage threshold per DLL (decision 2026-09-11, #120)** — `xpe_common.dll` and `xpe_preprocess.dll` (preset `coverage`) and the post-processing DLLs (preset `coverage-post`) are gated at **0.85**. `xpe_dicom.dll` (preset `coverage-dicom`) is gated at **0.80**: of its 229 uncovered instrumented lines at the 7th measurement (0.804), 75 are `catch(...)` handlers in `DicomValidator.cpp`/`dicom.cpp` proven unreachable through the public API (QA-B-34), 21 in `DicomNetworkSCU.cpp` are cancel-race or negotiation-impossible paths (QA-B-34 §6; the 19 dead `responseToJson` lines counted there were deleted by QA-B-35, which lowers the denominator rather than raising coverage), and most of the rest are openjpeg failure callbacks reachable only by fault injection. The requirement text itself binds only `xpe_common.dll`; the per-DLL gates above are the project policy. Revisit when fault injection is introduced.
 
 > **Execution note (2026-10-03, QA-A-231, #253)** — the coverage gate is **manual only**: the `coverage` job in `ci.yml` runs on `workflow_dispatch`, not on push or pull request. The tool is OpenCppCoverage (Cobertura output), not gcov/lcov. The last manual run (2026-09-12, run 34662146043) measured line-rate 0.886 for the `coverage` preset, which aggregates every DLL in that preset; an `xpe_common.dll`-only figure has not been measured.
+
+> **Status note (2026-10-03, QA-A-233 decision 6)** — CI 도입 예정 — pre QA-A-234, 사용자 결정 2026-10-03 (#245 코멘트). The user chose to bring coverage (on push/PR), cppcheck, clang-tidy, MISRA checks and ASan into CI rather than lower this text; the requirement text is unchanged. Until QA-A-234 lands, the execution note above describes the current state.
 
 **REQ-P0-007**: Each API function SHALL have at minimum: (a) a happy-path test, (b) a null/invalid parameter test, and (c) a boundary condition test.
 
@@ -107,9 +110,9 @@ Phase 0 establishes the foundation for all subsequent phases:
 
 ### 2.5 Logging Subsystem (3 new functions)
 
-**REQ-P0-023**: `xpe_log_set_level` SHALL set the minimum log level (TRACE=0, DEBUG=1, INFO=2, WARN=3, ERROR=4, CRITICAL=5). Messages below the threshold SHALL be silently discarded.
+**REQ-P0-023**: `xpe_log_set_level` SHALL set the minimum log level (TRACE=0, DEBUG=1, INFO=2, WARN=3, ERROR=4, OFF=5). Messages below the threshold SHALL be silently discarded; level 5 (OFF) discards every message.
 
-> 상태 메모 (2026-10-03): 문구 결정 대기(사용자 확인) — SRS-FUNC-040·헤더·api-spec 은 OFF, 코드는 OFF, #253
+> Corrected 2026-10-03 (QA-A-233 decision 1, user approval #245 comment). Previous wording ended the scale with "CRITICAL=5"; SRS-FUNC-040, the header `xpe_common_api.h` (`5=OFF`), `api-spec.md` and the code (QA-A-232 M1) all define level 5 as OFF. Recorded in `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md`.
 
 **REQ-P0-024**: `xpe_log_set_file` SHALL redirect log output to the specified file path. If the file cannot be opened, the function SHALL return XPE_ERR_IO_FAILED and retain the previous output destination.
 
@@ -135,7 +138,9 @@ Phase 0 establishes the foundation for all subsequent phases:
 
 **REQ-P0-033**: Each scaffolded module SHALL export a placeholder version function (e.g., xpe_preprocess_version) to verify DLL load.
 
-> Status note (2026-10-03, QA-A-231, #253): not met for modules/dicom — no `xpe_dicom_version` exists (the other six modules have their version function). Whether to add the function (a modules/dicom card) or to exclude dicom from this requirement is an open decision; the requirement text is unchanged.
+> Status note (2026-10-03, QA-A-231, #253): not met for modules/dicom — no `xpe_dicom_version` exists (the other six modules have their version function). The requirement text is unchanged.
+>
+> 상태 메모 (2026-10-03, QA-A-233 결정 7): dicom 버전 함수 추가 예정 — post QA-B-200 M2a, 사용자 결정 2026-10-03 (#245 코멘트). 요구는 그대로 두고 코드를 요구에 맞춘다.
 
 ---
 
@@ -153,7 +158,7 @@ Phase 0 establishes the foundation for all subsequent phases:
 - [x] `dumpbin /exports xpe_common.dll` lists exactly 16 functions
 - [ ] All 16 functions have unit tests with >= 85% statement coverage
 - [ ] Logging: file output + level filtering verified via test
-- [ ] No memory leaks in 1000-cycle init/shutdown test (ASan clean)
+- [ ] No memory leaks in 1000-cycle init/shutdown test (ASan clean) (CI 도입 예정 — pre QA-A-234, 사용자 결정 2026-10-03)
 - [x] All structs verified Pack=8 via static_assert(sizeof == expected)
 
 ### 3.3 C# Integration Acceptance
@@ -165,9 +170,9 @@ Phase 0 establishes the foundation for all subsequent phases:
 
 ### 3.4 Quality Gate Acceptance
 
-- [ ] Static analysis: cppcheck --std=c++17 reports 0 warnings (planned — not run by any CI workflow)
-- [ ] clang-tidy: modernize-*, performance-*, bugprone-* reports 0 warnings (planned — not run by any CI workflow)
-- [ ] MISRA C:2012 Advisory: Pass (where applicable) (planned — not run by any CI workflow)
+- [ ] Static analysis: cppcheck --std=c++17 reports 0 warnings (not yet run by any CI workflow; CI 도입 예정 — pre QA-A-234, 사용자 결정 2026-10-03)
+- [ ] clang-tidy: modernize-*, performance-*, bugprone-* reports 0 warnings (not yet run by any CI workflow; CI 도입 예정 — pre QA-A-234, 사용자 결정 2026-10-03)
+- [ ] MISRA C:2012 Advisory: Pass (where applicable) (not yet run by any CI workflow; CI 도입 예정 — pre QA-A-234, 사용자 결정 2026-10-03)
 - [ ] CI pipeline: all checks green on main branch
 
 ### 3.5 Acceptance evidence (note 2026-10-03, QA-A-231, #253)
@@ -182,9 +187,9 @@ Unchecked items, with the reason:
 - Coverage report: the coverage job is manual (`workflow_dispatch`) and uses OpenCppCoverage, not lcov; see REQ-P0-006.
 - ≥ 85% per function set: only an aggregated preset figure exists (0.886, 2026-09-12); an `xpe_common.dll`-only figure has not been measured.
 - Logging file output + level filtering: no test on main reads log content after filtering. QA-A-232 adds `xpe_common_logging_tests` (stderr/file capture), merged to main on 2026-10-03; check this item once a CI run on main shows it passing.
-- ASan: `MemoryLeakTestThousandCycles` runs under ctest, but no preset or CI job enables a sanitizer.
+- ASan: `MemoryLeakTestThousandCycles` runs under ctest, but no preset or CI job enables a sanitizer yet (CI 도입 예정 — pre QA-A-234, 사용자 결정 2026-10-03).
 - §3.3 C# items: the `dotnet-tests` job succeeded (run 37090327999) but its log was not read; display of the version string was not observed.
-- §3.4 static analysis: cppcheck, clang-tidy and MISRA appear in no workflow, preset or `tools/ci` script; these are planned, not implemented.
+- §3.4 static analysis: cppcheck, clang-tidy and MISRA appear in no workflow, preset or `tools/ci` script yet. The user decided on 2026-10-03 (#245 comment) to introduce them into CI rather than lower the text: CI 도입 예정 — pre QA-A-234, 사용자 결정 2026-10-03.
 
 ---
 
@@ -356,7 +361,8 @@ Phase 0 foundation is complete. Recommended next phases:
 | 1.0.0 | 2026-04-14 | MoAI | Initial Phase 0 Sub-SPEC from cross-validated master plan |
 | 1.1.0 | 2026-04-16 | MoAI | All deliverables completed (11/11). Implementation summary added. Status changed to Completed. |
 | 1.3.0 | 2026-10-03 | lead | QA-A-231 / #253: export count unified to 16; REQ-P0-003/009/011/012/014/016/019/020/022/024/030/032 aligned to the code; status notes on REQ-P0-006/023/033 and the missing REQ-P0-026~028a bodies; §3 checked where evidence exists (§3.5); §8 corrected. Logging defaults aligned to QA-A-232. Version labels unified (header previously 1.2.0, this table and the footer 1.1.0; the 1.1.0 row above describes the change the header changelog calls v1.2.0). |
+| 1.3.1 | 2026-10-03 | lead | QA-A-233 / #245 user decisions: REQ-P0-023 level 5 = OFF (decision 1); coverage/cppcheck/clang-tidy/MISRA/ASan notes changed from "planned" to "CI 도입 예정 — pre QA-A-234" (decision 6); REQ-P0-033 dicom version function to be added (post QA-B-200 M2a, decision 7). |
 
 ---
 
-*Document End -- SPEC-XPE-P0 v1.3.0*
+*Document End -- SPEC-XPE-P0 v1.3.1*

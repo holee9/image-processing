@@ -9,7 +9,7 @@
 
 ---
 id: SPEC-XPE-P1A
-version: 1.3.5
+version: 1.3.6
 status: M2 Complete (SUP-01 + M2 algorithms implemented)
 created: 2026-04-16
 updated: 2026-10-03
@@ -24,6 +24,7 @@ development_mode: TDD
 
 | Version | Date       | Author  | Changes                  |
 |---------|------------|---------|--------------------------|
+| 1.3.6   | 2026-10-03 | xpe-leader | #245 사용자 결정(코멘트, 근거 표 `QA-A-233`) 반영: REQ-P1A-018·013 에 시그니처를 코드에 맞춘 정정의 승인 기록과 실제 선언 인용(결정 8·9). REQ-P1A-015 kVp 보간 표(결정 10), PRE-02 의 온도별 오프셋 맵·PREP 모델(결정 11), REQ-P1A-042 부위별 한계(결정 13)에 "미구현(요구 유지) — 사용자 결정 2026-10-03, #245" 표시. 온도 보상 자체(`xpe_temp_compensate`, REQ-P1A-080)는 구현됨을 구분해 적음. 요구 삭제 없음. 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md`. |
 | 1.3.5   | 2026-10-03 | xpe-leader | #245: QA-A-228 정합 대조(`dev/preprocess` `f5b314ea`) 반영. 문구가 시험으로 고정된 코드와 어긋난 요구를 코드에 맞춰 고침 — REQ-P1A-003·004·005·010·011·013·016a·018·019·087·088·091·096·100·103, §4.6 표의 결함 보간 AVX2 행. §8 구현 상태 표 교체(010~013 은 2026-04-19 구현, "대기" 삭제) 및 작업에 걸리지 않던 REQ 18개 행 추가. 코드 결정이 남은 항목은 요구를 그대로 두고 상태 주석만 달았다 — REQ-P1A-014 세션 일치(QA-A-229 M3), 015 kVp 보간, 020 대상 범위, 041/042, 086 `isValid`. 요구 삭제 없음. |
 | 1.3.4   | 2026-10-03 | xpe-leader | #216: REQ-P1A-107~111 added from QA-A-223 drafts D1~D4 — `xpe_nonlinearity_correct` (107), `xpe_calib_generate_nonlin_lut` (108), `xpe_calib_load_nonlin_lut` (109), `xpe_calib_unload_nonlin_lut` (110, derived from code — no SRS text), `xpe_bpm_generate` (111). Leader decision: nonlinearity public functions are in this SPEC's scope; §1.3 PRE-08 annotated. Only behaviour the SRS describes or the header states was transcribed; every error condition was checked against `modules/preprocess/src` (D1 no-op condition and D4 merge rule corrected to the code). |
 | 1.3.3   | 2026-10-02 | xpe-leader | #233: gain-out-of-range classification added to REQ-P1A-011/015 (QA-A-211·211b), defect-stage union mask, cluster fill rule and non-finite entry rejection added to REQ-P1A-012 (QA-A-211b·214b), non-finite entry rejection added to REQ-P1A-013 (QA-A-215) and REQ-P1A-087 (QA-A-217), REQ-P1A-091 last sentence revised to the QA-A-216 §5 text, ghost failure behaviour recorded under REQ-P1A-032 (QA-A-217), XCal replace retry recorded under REQ-P1A-019 (QA-A-212b·212c). No new requirement number. Pre chain merge `3a991d7c`. |
@@ -47,6 +48,7 @@ xpe_preprocess.dll의 핵심 전처리 알고리즘 3종(SWU-1.1 Offset Correcti
 ### 1.2 In Scope
 
 - **PRE-02**: Offset/Dark Correction (SWU-1.1) -- 온도 보간, PREP-time 모델, saturating subtraction
+  - **상태: 온도별 오프셋 맵 선택·보간과 PREP-time dark map 모델 — 미구현(요구 유지) — 사용자 결정 2026-10-03, #245** (`QA-A-233` 결정 11). 오프셋 보정은 맵 한 장만 쓰고 `XpeImageMetadata` 에 온도 필드가 없다. 구분: **온도 보상 자체는 구현됐다** — `xpe_temp_compensate`(REQ-P1A-080, `GoldenTempTest`)가 암전류 지수 모형으로 값을 보정한다. 미구현은 온도로 색인한 오프셋 맵(PRD REQ-OFF-003~005)과 PREP 모델뿐이다.
 - **PRE-03**: Gain/Flat-Field Correction (SWU-1.2) -- UINT16/FLOAT32 포맷 변환, reciprocal gain map, NaN/Inf validation
 - **PRE-06**: Defective Pixel Correction (SWU-1.3 baseline) -- Edge-aware bilinear interpolation, static BPM + runtime detection
 - **SUP-01**: Calibration Parameter Management -- XCal 포맷 로딩, SHA-256 무결성 검증, session matching, 만료 확인
@@ -288,6 +290,7 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 **When** `xpe_defect_detect_runtime(image, metadata, defect_map_output)` is called, the module **shall** analyze the input image to identify transient defect pixels and write a boolean defect map to `defect_map_output`.
 
 - **정정 2026-10-03** (`#245` / `QA-A-228` C-15): 옛 시그니처 `(img, defectMapOut, configJsonOrNull)` 은 헤더(`preprocess_api.h` 의 `xpe_defect_detect_runtime`)와 달랐다. 이 진입점은 설정 JSON 을 받지 않으므로 아래 Algorithm 의 `hampel_threshold` 단계를 삭제했다. 아래 본문의 `defectMapOut` 은 `defect_map_output` 으로 읽는다.
+- **승인 기록 (2026-10-03, `QA-A-233` 결정 9, 사용자 결정 #245 코멘트)**: 문구를 코드 시그니처에 맞추는 쪽(b)으로 확정. 실제 선언(`modules/preprocess/include/xpe/preprocess_api.h`): `XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* image, const XpeImageMetadata* metadata, XpeImageBuffer* defect_map_output);` — 설정 인자는 없고 임계는 프레임 통계(Hampel 5-sigma)에서 나오며 `metadata` 는 읽지 않는다(QA-A-232 M2 시험). 변경 기록: `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md`.
 
 - **SRS**: SRS-CALIB-005
 - **Traceability**: PRE-06, SWU-1.3
@@ -606,7 +609,7 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
   - 상한 초과 알림(오류): `XPE_WARN_GAIN_PIXELS_OVER_LIMIT:` 로 시작하고 "the calibration was not loaded" 로 끝난다. 이때 저장소는 바뀌지 않는다.
   - 분류 목록은 맵과 함께 저장소에 들어가고 맵과 함께 교체된다. 캐시 적중(`REQ-P1A-103`)은 항목에 보관한 같은 목록을 설치한다.
   - **변화**: 이전에 범위 밖 화소 때문에 `XPE_ERR_INVALID_CALIB_DATA` 를 돌려주던 파일이, 범위 밖 비율이 5% 이하이면 이제 적재된다.
-- **상태 (2026-10-03, `#245` / `QA-A-228` D4·C-7): kVp 보간 표 — 미구현 (#245).** 요구 문장은 그대로 둔다. 코드에 kVp 보간 표가 없고(검색 0건), 헤더(`preprocess_api.h`)의 "multi-SID interpolation" 문구도 같은 상태다. 구현할지 문구에서 지울지는 #245 에서 정한다.
+- **상태 (2026-10-03, `#245` / `QA-A-228` D4·C-7): kVp 보간 표 — 미구현(요구 유지) — 사용자 결정 2026-10-03, #245** (`QA-A-233` 결정 10). 요구 문장은 그대로 둔다. 코드에 kVp 보간 표가 없고(검색 0건), 헤더(`preprocess_api.h`)의 "multi-SID interpolation" 문구도 같은 상태다. 구현 여부는 보간 표를 담을 XCal 형식이 정해진 뒤 기능별로 따로 정한다.
 - **SRS**: SRS-CALIB-011
 - **Traceability**: SUP-01
 
@@ -637,6 +640,7 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 **When** `xpe_calib_check_expiry(filepath, is_expired, remaining_days)` is called, the module **shall** read the embedded expiry timestamp, report through `is_expired` and `remaining_days` (an expiry equal to now counts as expired), and return `XPE_OK`. `XPE_ERR_CALIBRATION_EXPIRED` is returned by the loaders, not by this function.
 
 - **정정 2026-10-03** (`#245` / `QA-A-228` C-4·D2): 옛 문장은 시그니처 `(filePath, expiryEpochMsOut)` 과 *"return `XPE_ERR_CALIBRATION_EXPIRED` if the timestamp is in the past"* 였다. 코드(`xpe_calib_check_expiry.cpp`)는 `(filepath, bool*, int32_t*)` 이고 만료 시에도 `XPE_OK` 이며, 시험 `CheckExpiryTest.*` 가 `is_expired`·`remaining_days` 를 단언해 그 동작을 고정한다.
+- **승인 기록 (2026-10-03, `QA-A-233` 결정 8, 사용자 결정 #245 코멘트)**: 문구를 코드에 맞추는 쪽(b)으로 확정. 실제 선언(`modules/preprocess/include/xpe/preprocess_api.h`): `XPE_API XpeErrorCode xpe_calib_check_expiry(const char* filepath, bool* is_expired, int32_t* remaining_days);` — 만료돼도 `XPE_OK` 를 돌려주고 `*is_expired = true` 로 알린다. C# 호출처 세 곳(`XpePreprocessReadinessProbe.cs`, `NativePreprocessPreviewService.cs`, `XpePreprocessNative.cs`)이 이 모양에 의존한다. 변경 기록: `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md`.
 - **주의**: 만료 경계가 함수마다 다르다 — `check_expiry` 는 `remaining_ms <= 0` 을 만료로, XCal 읽기(`xcal_reader`)는 `now > expiry` 를 만료로 본다. 경계 시각에서 두 판정이 갈린다.
 - **SRS**: SRS-CALIB-030, SRS-SAFE-010
 - **Traceability**: SUP-01
@@ -1079,7 +1083,7 @@ The module **shall** use AVX2 intrinsics for performance-critical operations (of
 
 **Where** the caller requests valid parameter ranges, the module **shall** return body-part-specific parameter limits via `xpe_preprocess_get_param_range()`.
 
-- **상태 (2026-10-03, `#245` / `QA-A-228` D9·C-20): 부위별 한계 — 미구현 (#245).** 요구 문장은 그대로 둔다. 현재 함수는 `(param_name, min, max)` 형태의 고정 6개 표이고 부위 인자가 없다(`preprocess.cpp`). 시험은 범위의 순서만 확인하고 한계 값은 단언하지 않는다. 부위별로 만들지 문구에서 지울지는 #245 에서 정한다.
+- **상태 (2026-10-03, `#245` / `QA-A-228` D9·C-20): 부위별 한계 — 미구현(요구 유지) — 사용자 결정 2026-10-03, #245** (`QA-A-233` 결정 13). 요구 문장은 그대로 둔다. 현재 선언은 `XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name, float* min_value, float* max_value);` 로 부위 인자가 없고, 부위와 무관한 고정 6개 표다(`preprocess.cpp`). 시험은 범위의 순서만 확인하고 한계 값은 단언하지 않는다. 부위별 한계 값의 출처(어느 문서가 값을 정하는가)와 공용 `xpe_get_param_range(bodyPart, paramName, …)` 와의 관계가 정해진 뒤 구현 여부를 따로 정한다.
 - **SRS**: SRS-SAFE-002, SRS-SAFE-005
 - **Traceability**: SUP-01
 
@@ -1254,10 +1258,10 @@ Verification:
 | Requirement | Status | Implementation Files |
 |-------------|--------|----------------------|
 | REQ-P1A-014 | Implemented, session matching NOT implemented (구현 예정 — QA-A-229 M3, #245); mutex 하 커밋 단언 없음 | modules/preprocess/src/xpe_calib_load_offset.cpp |
-| REQ-P1A-015 | Implemented, kVp interpolation table NOT implemented (#245); mutex 하 커밋 단언 없음 | modules/preprocess/src/xpe_calib_load_gain.cpp |
+| REQ-P1A-015 | Implemented, kVp interpolation table 미구현(요구 유지) — 사용자 결정 2026-10-03, #245; mutex 하 커밋 단언 없음 | modules/preprocess/src/xpe_calib_load_gain.cpp |
 | REQ-P1A-016 | Implemented — mutex 하 커밋 단언 없음 | modules/preprocess/src/xpe_calib_load_defect_map.cpp |
 | REQ-P1A-017 | Implemented — winsor 등은 내부 shim 으로만 단언 | modules/preprocess/src/xpe_calib_generate_offset.cpp |
-| REQ-P1A-018 | Implemented — REQ 문구를 코드에 맞춰 정정(2026-10-03) | modules/preprocess/src/xpe_calib_check_expiry.cpp |
+| REQ-P1A-018 | Implemented — REQ 문구를 코드에 맞춰 정정(2026-10-03, 사용자 승인 #245 — QA-A-233 결정 8) | modules/preprocess/src/xpe_calib_check_expiry.cpp |
 | REQ-P1A-019 | Implemented — 오류 코드 문구를 코드에 맞춰 정정(2026-10-03); 해당 시험 `GTEST_SKIP` | modules/preprocess/src/xpe_calib_save.cpp |
 | REQ-P1A-102 | Implemented (partial verification) — LRU 순서·기본 용량·엔트리 삭제 등 단언 약함 | modules/preprocess/src/calibration_cache.cpp |
 | REQ-P1A-103 | Implemented (partial verification) — 다항식 경로 단언 약함 | modules/preprocess/src/calibration_cache.cpp, modules/preprocess/src/xpe_calib_load_gain.cpp |
@@ -1312,7 +1316,7 @@ Verification:
 | REQ-P1A-013 | Implemented (partial verification) | 줄무늬 프레임 TPR 0.9865(미달 고정), 성능 1.3배 |
 | REQ-P1A-040 | Partially implemented | AVX2 는 offset·gain·검출만. 결함 보간 AVX2 없음 |
 | REQ-P1A-041 | Partially implemented | 선 잡음 없음(#232) |
-| REQ-P1A-042 | Partially implemented | 부위별 한계 없음(#245) |
+| REQ-P1A-042 | Partially implemented | 부위별 한계 — 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
 
 ### Requirements Previously Unlisted in This Section (추가 2026-10-03, `#245` / `QA-A-228` A-3)
 
@@ -1352,4 +1356,4 @@ Manifest BP-01 through BP-05 must be frozen (SHA-256 dataset hashes, tolerance v
 
 ---
 
-*Document End - SPEC-XPE-P1A v1.3.5*
+*Document End - SPEC-XPE-P1A v1.3.6*
