@@ -481,8 +481,10 @@ internal static class ModuleSignatureParity
             {
                 if (kind != "string" && kind != "ptr" && kind != "array:u8") yield return $"is {c.Type}, the header has const char* (string, IntPtr or byte[])";
                 if (kind == "string" && c.MarshalAs is not null && !c.MarshalAs.Contains("LPStr", StringComparison.Ordinal) && !c.MarshalAs.Contains("LPUTF8Str", StringComparison.Ordinal)) yield return $"marshals as {c.MarshalAs}, the header's const char* is an 8-bit string (LPStr or LPUTF8Str)";
-                if (kind == "string" && c.MarshalAs is null && owner.CharSet is not ("Ansi" or "Auto" or "Unicode") ) yield return "is a string without [MarshalAs] and the binding has no CharSet";
+                if (kind == "string" && c.MarshalAs is null && owner.CharSet is not ("Ansi" or "Auto" or "Unicode")) yield return "is a string without [MarshalAs] and the binding has no CharSet";
                 if (kind == "string" && c.MarshalAs is null && owner.CharSet == "Unicode") yield return "is a string marshalled as UTF-16 (CharSet.Unicode), the header's const char* is 8-bit";
+                // GUI-C-212c (Codex #98): CharSet.Auto is not "either": on Windows it is UTF-16, so it is no more an 8-bit marshal than Unicode is.
+                if (kind == "string" && c.MarshalAs is null && owner.CharSet == "Auto") yield return "is a string marshalled with CharSet.Auto (UTF-16 on Windows), the header's const char* is 8-bit";
                 if (c.Modifier.Length > 0 && kind == "string") yield return $"has the modifier '{c.Modifier}', the header passes a const char*";
             }
             else if (kind is not ("stringbuilder" or "ptr" or "array:u8" or "array:i8")) yield return $"is {c.Type}, the header has a writable char* buffer (StringBuilder, byte[] or IntPtr)";
@@ -684,10 +686,51 @@ internal static class ModuleSignatureParity
             else if (nk is not ("ptr" or "enum") && !nk.StartsWith("struct:", StringComparison.Ordinal) && nf.Array == 0 && !ValueMatches(nk, ck)) problems.Add($"{prefix}: field '{cf.Name}' is {cf.Type} ({ck}), the header's is {nf.Type} ({nk})");
         }
 
+        for (var i = 0; i < ns.Fields.Count; i++)
+        {
+            problems.AddRange(ArrayFieldProblems(ns.Fields[i], cs.Fields[i], nm, cm).Select(p => $"{prefix}: {p}"));
+        }
+
         var nativeTotal = NativeStructLayout(ns, nm).Size;
         var csTotal = CsStructLayout(cs, cm, 8, []).Size;
         if (nativeTotal != csTotal) problems.Add($"{prefix}: size {csTotal} byte(s), the header's is {nativeTotal} byte(s)");
         return problems;
+    }
+
+    /// <summary>
+    /// GUI-C-212c (Codex #98): a native fixed array was only compared by its total byte size, so <c>uint16_t[1024]</c> and a 2048-element <c>byte[]</c> were "the same". The three things that
+    /// make a by-value array an ABI contract are compared one by one: the marshalling shape (ByValArray, or ByValTStr for a char array), the element kind, and the element count.
+    /// </summary>
+    private static IEnumerable<string> ArrayFieldProblems(NField nf, CsField cf, NativeModel nm, CsModel cm)
+    {
+        if (nf.Array <= 0 || nf.Type.Ptr > 0) yield break;
+        var m = cf.MarshalAs ?? string.Empty;
+        var byValArray = m.Contains("ByValArray", StringComparison.Ordinal);
+        var byValString = m.Contains("ByValTStr", StringComparison.Ordinal);
+        var isChar = nf.Type.Base == "char";
+        var nk = NativeKind(nf.Type.Base, nm) ?? "?";
+        var declared = $"{nf.Type.Base}[{nf.Array}]";
+
+        if (!byValArray && !byValString) { yield return $"field '{cf.Name}' is {cf.Type} without [MarshalAs(ByValArray or ByValTStr, SizeConst)]; the header's is the by-value array {declared}"; yield break; }
+
+        if (byValString)
+        {
+            if (!isChar) yield return $"field '{cf.Name}' is a ByValTStr string, the header's {declared} is not a char array";
+            else if (cf.Type != "string") yield return $"field '{cf.Name}' is {cf.Type} with ByValTStr, which is for a string";
+        }
+        else
+        {
+            if (!cf.Type.EndsWith("[]", StringComparison.Ordinal)) { yield return $"field '{cf.Name}' is {cf.Type} with ByValArray, which is for an array"; yield break; }
+            var ck = CsKind(cf.Type[..^2], cm) ?? "?";
+            var kindOk = nk.StartsWith("struct:", StringComparison.Ordinal)
+                ? ck.StartsWith("struct:", StringComparison.Ordinal)
+                : isChar ? ck is "i8" or "u8" : ValueMatches(nk, ck);
+            if (!kindOk) yield return $"field '{cf.Name}' is an array of {cf.Type[..^2]} ({ck}), the header's {declared} has elements of {nk}";
+        }
+
+        var sizeConst = Regex.Match(m, @"SizeConst\s*=\s*(?<n>\d+)");
+        if (!sizeConst.Success) yield return $"field '{cf.Name}' has no SizeConst; the header's {declared} has {nf.Array} element(s)";
+        else if (int.Parse(sizeConst.Groups["n"].Value, CultureInfo.InvariantCulture) != nf.Array) yield return $"field '{cf.Name}' has SizeConst {sizeConst.Groups["n"].Value}, the header's {declared} has {nf.Array} element(s)";
     }
 
     // ------------------------------------------------------------------------------------------------------------------------------ whole-model checks (used by the real tests and by the controls)

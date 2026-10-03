@@ -197,8 +197,9 @@ public sealed class PreprocessSyntheticOracleProcessTests
 
         var lines = writer.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Single(lines);
-        var parsed = XpePreprocessOracleProcess.TryParse(lines[0]);
-        Assert.NotNull(parsed);
-        Assert.True(parsed!.Passed, parsed.Details);
+        Assert.StartsWith(XpePreprocessOracleProcess.ResultPrefix, lines[0], StringComparison.Ordinal);
+        // through the parent's own reading, with exit code 0: the line must be complete and consistent, not merely parsable
+        var parsed = XpePreprocessOracleProcess.ParseOutput(writer.ToString(), 0, string.Empty);
+        Assert.True(parsed.Passed, $"{parsed.Status}: {parsed.Details}");
     }
 }

@@ -107,6 +107,44 @@ public sealed class ModuleSignatureParityControlTests
         Assert.True(problems.Any(p => p.Contains(expectedFragment, StringComparison.OrdinalIgnoreCase)), $"{what}: findings were [{string.Join(" | ", problems)}], none mentions '{expectedFragment}'");
     }
 
+    // GUI-C-212c (Codex #98): the two ABI differences the checker used to let through.
+
+    /// <summary>CharSet.Auto is UTF-16 on Windows. An 8-bit <c>const char*</c> bound as a string with no [MarshalAs] and CharSet.Auto marshals the wrong width; it used to be accepted.</summary>
+    [Fact]
+    public void Control_AConstCharPointerBoundWithCharSetAuto_IsReported_ButAnsiWithoutMarshalAsIsNot()
+    {
+        var plain = Cs.Replace("\r\n", "\n", StringComparison.Ordinal);
+        var auto = Mutate(plain, "CharSet = CharSet.Ansi)] public static extern int xpe_t_str([MarshalAs(UnmanagedType.LPStr)] string src", "CharSet = CharSet.Auto)] public static extern int xpe_t_str(string src");
+        Assert.Contains(Run(Header, auto), p => p.Contains("CharSet.Auto", StringComparison.Ordinal) && p.Contains("UTF-16", StringComparison.Ordinal));
+
+        // the other side of the control: the same binding with Ansi and no [MarshalAs] is a valid 8-bit marshal and must stay clean
+        var ansi = Mutate(plain, "CharSet = CharSet.Ansi)] public static extern int xpe_t_str([MarshalAs(UnmanagedType.LPStr)] string src", "CharSet = CharSet.Ansi)] public static extern int xpe_t_str(string src");
+        Assert.Empty(Run(Header, ansi));
+    }
+
+    [Theory]
+    [InlineData("a uint16_t[4] bound as an 8-element byte[] (same 8 bytes)", "[MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)] public ushort[] Table;", "[MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)] public byte[] Table;", "elements of")]
+    [InlineData("a uint16_t[4] bound as a 4-element short[] (same size, other signedness)", "public ushort[] Table;", "public short[] Table;", "elements of")]
+    [InlineData("an array bound with another element count", "SizeConst = 4)] public ushort[] Table;", "SizeConst = 8)] public ushort[] Table;", "SizeConst 8")]
+    [InlineData("an array bound with no marshalling attribute", "[MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)] public ushort[] Table;", "public ushort[] Table;", "without [MarshalAs")]
+    [InlineData("an array bound as a ByValTStr string", "[MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)] public ushort[] Table;", "[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 4)] public string Table;", "ByValTStr")]
+    [InlineData("a char[16] bound with ByValArray on a non-array", "[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 16)] public string Name;", "[MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)] public string Name;", "which is for an array")]
+    [InlineData("a char[16] bound as a ByValTStr of another length", "ByValTStr, SizeConst = 16", "ByValTStr, SizeConst = 32", "SizeConst 32")]
+    public void Control_AByValueArray_IsComparedByShapeElementKindAndCount_NotByTotalSizeAlone(string what, string from, string to, string expectedFragment)
+    {
+        var problems = Run(Header, Mutate(Cs.Replace("\r\n", "\n", StringComparison.Ordinal), from, to));
+        Assert.True(problems.Count > 0, $"{what}: the checker found nothing");
+        Assert.True(problems.Any(p => p.Contains(expectedFragment, StringComparison.OrdinalIgnoreCase)), $"{what}: findings were [{string.Join(" | ", problems)}], none mentions '{expectedFragment}'");
+    }
+
+    /// <summary>The checker must not flag a correct alternative: a native char array may be bound as a ByValArray of bytes.</summary>
+    [Fact]
+    public void Control_ACharArrayBoundAsAByteArray_IsStillClean()
+    {
+        var bytes = Mutate(Cs.Replace("\r\n", "\n", StringComparison.Ordinal), "[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 16)] public string Name;", "[MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)] public byte[] Name;");
+        Assert.Empty(Run(Header, bytes));
+    }
+
     [Fact]
     public void Control_ACallingConventionThatIsNotCdecl_IsReported_ForExternsAndDelegates()
     {
