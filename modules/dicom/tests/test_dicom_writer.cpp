@@ -7,6 +7,10 @@
 #include "xpe/dicom/dicom_api.h"
 #include "xpe/common/xpe_memory.h"
 #include <filesystem>
+#include <fstream>
+#include <iterator>
+#include <string>
+#include <vector>
 #include <cstdio>
 #include <cstring>
 #include <cstdint>
@@ -326,14 +330,16 @@ TEST_F(DicomWriterTest, WriteJ2KNullPixelData_ReturnsInvalidInput) {
 }
 
 // ---------------------------------------------------------------------------
-// #120 (QA-B-29): the size guard's "unknown bits-per-pixel" branch
-// (dicom.cpp:100-104). UINT8 is a declared XpePixelFormat that the dicom
-// size check has no bytes-per-pixel entry for, so it returns "consistent"
-// without comparing anything and the call proceeds to the writer. The guard
-// must not reject on a format it cannot size -- that is the format check's job.
+// #120 (QA-B-29) asked what the size guard does with UINT8, a declared XpePixelFormat it has no bytes-per-pixel entry for,
+// and answered "it must not reject on a format it cannot size -- that is the format check's job". There was no format
+// check then: the call went on to the writer, and a UINT8 buffer was written with its bytes read as 16-bit words.
+// QA-B-201 M4 added the format check, so a UINT8 image is now refused at the door as INVALID_INPUT, before any file is
+// made; the size guard sees only UINT16.
 // ---------------------------------------------------------------------------
-TEST_F(DicomWriterTest, WriteUint8Format_NotRejectedBySizeGuard) {
-    std::vector<uint8_t> pixels(64 * 64, 0u);
+TEST_F(DicomWriterTest, WriteUint8Format_IsRefusedAtTheDoorByTheFormatCheck) {
+    // two bytes per pixel in the buffer, so that the size guard (width * height * 2) is satisfied and ONLY the format
+    // check can refuse this image
+    std::vector<uint8_t> pixels(64 * 64 * 2, 0u);
     XpeImageBuffer img{};
     img.width         = 64;
     img.height        = 64;
@@ -341,14 +347,102 @@ TEST_F(DicomWriterTest, WriteUint8Format_NotRejectedBySizeGuard) {
     img.bitsStored    = 8;
     img.format        = XPE_PIXEL_UINT8;
     img.data          = pixels.data();
-    img.dataSize      = pixels.size();   // non-zero, so the guard does run
+    img.dataSize      = pixels.size();
 
     auto path = m_tempDir / "uint8.dcm";
-    // Whatever the writer decides, it must not be the size guard's
-    // XPE_ERR_INVALID_INPUT: reaching the writer at all is the point.
-    const XpeErrorCode rc = xpe_dicom_write(path.string().c_str(), &img, &m_meta);
-    EXPECT_NE(XPE_ERR_INVALID_INPUT, rc)
-        << "size guard rejected a format it cannot size; rc=" << rc;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_write(path.string().c_str(), &img, &m_meta));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_write_j2k(path.string().c_str(), &img, &m_meta));
+    EXPECT_FALSE(std::filesystem::exists(path)) << "refused before any file is made";
+}
+
+// ---------------------------------------------------------------------------
+// QA-B-201 M4: the writers take UINT16 only. A FLOAT32 image used to be written as a 32-bit file (BitsAllocated 32) that
+// this module's own reader refuses, with an XPE_OK.
+// ---------------------------------------------------------------------------
+namespace {
+
+std::vector<float> RampWithNegatives(uint32_t w, uint32_t h) {
+    std::vector<float> px(static_cast<size_t>(w) * h);
+    for (size_t i = 0; i < px.size(); ++i) px[i] = -500.0f + 4500.0f * static_cast<float>(i) / static_cast<float>(px.size() - 1);
+    return px;
+}
+
+std::string FileBytes(const std::filesystem::path& p) {
+    std::ifstream f(p, std::ios::binary);
+    return std::string((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+}
+
+}  // namespace
+
+TEST_F(DicomWriterTest, AFloat32ImageIsRefusedByBothWritersAndNoFileIsMade) {
+    std::vector<float> px = RampWithNegatives(64, 64);
+    XpeImageBuffer img{};
+    img.width = 64;
+    img.height = 64;
+    img.bitsAllocated = 32;
+    img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.data = px.data();
+    img.dataSize = px.size() * sizeof(float);
+
+    const auto plain = m_tempDir / "float.dcm";
+    const auto j2k = m_tempDir / "float_j2k.dcm";
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_write(plain.string().c_str(), &img, &m_meta)) << "was XPE_OK";
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_write_j2k(j2k.string().c_str(), &img, &m_meta));
+    EXPECT_FALSE(std::filesystem::exists(plain)) << "refused before any file is made";
+    EXPECT_FALSE(std::filesystem::exists(j2k));
+}
+
+TEST_F(DicomWriterTest, ARefusedFormatLeavesAnExistingDestinationFileUntouched) {
+    const auto path = m_tempDir / "keep.dcm";
+    {
+        std::ofstream f(path, std::ios::binary);
+        f << "KEEP-THESE-BYTES";
+    }
+    std::vector<float> px = RampWithNegatives(8, 8);
+    XpeImageBuffer img{};
+    img.width = 8;
+    img.height = 8;
+    img.bitsAllocated = 32;
+    img.bitsStored = 32;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.data = px.data();
+    img.dataSize = px.size() * sizeof(float);
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_write(path.string().c_str(), &img, &m_meta));
+    EXPECT_EQ("KEEP-THESE-BYTES", FileBytes(path)) << "the refusal comes before the destination is opened";
+}
+
+TEST_F(DicomWriterTest, EveryImageTheWriterAcceptsIsAnImageTheReaderReads) {
+    // The coupling the defect broke: the writer said OK for a file the reader refused. For each pixel format, a write that
+    // succeeds must produce a file that opens and reads back. The UINT16 row is the control: it succeeds and reads.
+    struct Row {
+        XpePixelFormat format;
+        uint32_t bits;
+        size_t bytesPerPixel;   // bytes per pixel in the BUFFER (not necessarily the format's own size)
+        const char* name;
+    } rows[] = {{XPE_PIXEL_UINT16, 16, 2, "UINT16"}, {XPE_PIXEL_FLOAT32, 32, 4, "FLOAT32"}, {XPE_PIXEL_UINT8, 8, 2, "UINT8"}};   // UINT8 with two bytes per pixel in the buffer: the size guard passes
+    for (const Row& r : rows) {
+        std::vector<uint8_t> bytes(static_cast<size_t>(32) * 32 * r.bytesPerPixel, 0x11u);
+        XpeImageBuffer img{};
+        img.width = 32;
+        img.height = 32;
+        img.bitsAllocated = r.bits;
+        img.bitsStored = r.bits;
+        img.format = r.format;
+        img.data = bytes.data();
+        img.dataSize = bytes.size();
+        const auto path = m_tempDir / (std::string("fmt_") + r.name + ".dcm");
+        const XpeErrorCode wrote = xpe_dicom_write(path.string().c_str(), &img, &m_meta);
+        if (r.format == XPE_PIXEL_UINT16) ASSERT_EQ(XPE_OK, wrote) << "control: the supported format is written";
+        if (wrote != XPE_OK) continue;
+        XpeDicomHandle* h = nullptr;
+        ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &h)) << r.name;
+        XpeImageBuffer back{};
+        const XpeErrorCode read = xpe_dicom_read_image(h, &back);
+        EXPECT_EQ(XPE_OK, read) << r.name << ": the writer said OK, so the reader must read the file";
+        if (read == XPE_OK) xpe_free_image(&back);
+        xpe_dicom_close(h);
+    }
 }
 
 // ---------------------------------------------------------------------------

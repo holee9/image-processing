@@ -113,15 +113,23 @@ bool image_is_non_empty(const XpeImageBuffer* img) {
            img->width != 0u && img->height != 0u;
 }
 
+// QA-B-201 M4: the writers take XPE_PIXEL_UINT16 and nothing else. Until now a FLOAT32 image was written as a 32-bit
+// file (BitsAllocated 32) that this module's own reader refuses (REQ-DICOM-006: the reader returns UINT16), and a UINT8
+// image was written with its bytes read as 16-bit words. A format the writer does not support is refused at the door,
+// before any dataset is built and before any file exists. XPE_ERR_INVALID_INPUT is the code xpe_error.h defines for
+// "wrong pixel format"; the caller that holds a float image owns the choice of how to turn it into 16-bit counts
+// (round, clamp, window), which a writer cannot know.
+bool pixel_format_is_writable(const XpeImageBuffer* img) {
+    return img != nullptr && img->format == XPE_PIXEL_UINT16;
+}
+
+// Called after pixel_format_is_writable, so the image is UINT16: two bytes per pixel. (It used to size FLOAT32 too, and
+// returned "consistent" for a format it could not size; no format other than UINT16 reaches it any more, QA-B-201 M4.)
 bool data_size_is_consistent(const XpeImageBuffer* img) {
     if (img == nullptr || img->dataSize == 0) return true;
-    uint32_t bpp = 0u;
-    if (img->format == XPE_PIXEL_UINT16)       bpp = 2u;
-    else if (img->format == XPE_PIXEL_FLOAT32) bpp = 4u;
-    if (bpp == 0u) return true;
     const uint64_t required = static_cast<uint64_t>(img->width) *
                               static_cast<uint64_t>(img->height) *
-                              static_cast<uint64_t>(bpp);
+                              static_cast<uint64_t>(sizeof(uint16_t));
     return static_cast<uint64_t>(img->dataSize) >= required;
 }
 } // namespace
@@ -132,6 +140,7 @@ XPE_API XpeErrorCode xpe_dicom_write(const char* filePath,
     spdlog::debug("[xpe_dicom] xpe_dicom_write({})", filePath ? filePath : "(null)");
     if (!filePath || !img || !meta) return XPE_ERR_INVALID_INPUT;
     if (!image_is_non_empty(img)) return XPE_ERR_INVALID_INPUT;
+    if (!pixel_format_is_writable(img)) return XPE_ERR_INVALID_INPUT;
     if (!data_size_is_consistent(img)) return XPE_ERR_INVALID_INPUT;
     try {
         return xpe::dicom::DicomWriter::write(filePath, img, meta);
@@ -147,6 +156,7 @@ XPE_API XpeErrorCode xpe_dicom_write_j2k(const char* filePath,
     spdlog::debug("[xpe_dicom] xpe_dicom_write_j2k({})", filePath ? filePath : "(null)");
     if (!filePath || !img || !meta) return XPE_ERR_INVALID_INPUT;
     if (!image_is_non_empty(img)) return XPE_ERR_INVALID_INPUT;
+    if (!pixel_format_is_writable(img)) return XPE_ERR_INVALID_INPUT;
     if (!data_size_is_consistent(img)) return XPE_ERR_INVALID_INPUT;
     try {
         return xpe::dicom::DicomWriter::writeJ2K(filePath, img, meta);
