@@ -2,7 +2,7 @@
  * @file json_schema_mini.h
  * @brief A small JSON Schema checker for the tests of the model card and the model sidecar (QA-B-197).
  *
- * The schemas under tests/data/schemas are JSON Schema documents; this checks an instance against them without a
+ * The schemas under the repository-root schemas/ directory are JSON Schema documents; this checks an instance against them without a
  * schema library (a dependency for a dozen fields was judged not worth its supply-chain cost). It supports exactly the
  * keywords those schemas use, and it REFUSES a schema that uses any other keyword, so a keyword it does not know can
  * never be silently ignored (which would make a schema look stricter than what is checked):
