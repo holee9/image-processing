@@ -1,8 +1,10 @@
 /**
  * @file test_repro_qa_b_200.cpp
- * @brief QA-B-200 M1: reproduction of display candidate D5 of QA-B-199 (not a defect; kept as a record). NOT part of the suite.
+ * @brief QA-B-200 M1: display candidate D5 of QA-B-199 (not a defect), kept as an ACTIVE record of the behaviour.
  *
- * Every test here is DISABLED_: it is built, never run by ctest. A reproduction is run by hand
+ * D5 is an active test: the user decided the documents follow the code (gsdfEnabled is an annotation), and a test executable
+ * in which every test is DISABLED_ runs nothing, which CI's single-process step refuses ("a run that executes nothing is
+ * not a pass", QA-B-203, main b3458366). A reproduction of an unfixed defect would be DISABLED_ and run by hand
  * (--gtest_also_run_disabled_tests) and its OUTPUT is the evidence (.moai/reports/lane-post/QA-B-200/). A test that
  * FAILS reproduces a defect; one that passes shows the candidate was not one. The tests of a candidate that is
  * confirmed are enabled by the M2 that fixes it.
@@ -54,7 +56,7 @@ XpeImageBuffer MakeFloatImage(uint32_t w, uint32_t h, const std::vector<float>& 
 // D5
 // ---------------------------------------------------------------------------------------------------------------------
 
-TEST(ReproQaB200Display, DISABLED_D5_GsdfEnabledZeroAndOneApplyTheSameEntries) {
+TEST(ReproQaB200Display, D5_GsdfEnabledDoesNotChangeWhatThePresentationLutDoes) {
     float lum[10];
     for (int i = 0; i < 10; ++i) lum[i] = 1.0f + static_cast<float>(i) * 10.0f;   // 1..91 cd/m^2
     XpePresentationLutParams on{};
@@ -81,8 +83,9 @@ TEST(ReproQaB200Display, DISABLED_D5_GsdfEnabledZeroAndOneApplyTheSameEntries) {
     // Is the LUT applied at all? A pixel at 1.0 must come out as lutData[1023], and at 0.0 as lutData[0].
     EXPECT_EQ(on.lutData[1023], pa[63]) << "the entries ARE applied (control)";
     EXPECT_EQ(on.lutData[0], pa[0]);
-    // The candidate: REQ-DISP-024 ties a behaviour to the flag, and nothing the flag does can be observed.
-    EXPECT_FALSE(same) << "gsdfEnabled has no effect on xpe_apply_presentation_lut";
+    // The behaviour, as decided: REQ-DISP-024's flag is an annotation (it says the entries are GSDF-calibrated); the
+    // function applies the entries it is given either way. Recorded here so a change of that behaviour is noticed.
+    EXPECT_TRUE(same) << "gsdfEnabled is an annotation: the same entries are applied with the flag 0 and 1";
     std::free(a.data);
     std::free(b.data);
 }
