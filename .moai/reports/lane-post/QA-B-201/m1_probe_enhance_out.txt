@@ -1,0 +1,50 @@
+== 1. Which domain does xpe_edge_enhance run in, and does it make negative pixels there?
+   (stage order of the shipped pipelines: log -> noise -> CLAHE -> USM; see the report for the code citations)
+ scene anatomy    raw counts 737..11281
+  log domain, amount 0.5            raw[737..11281 neg0]  log[2868..4052 neg0]  noise[2903..4049 neg0]  clahe[2912..4049 neg0]  usm a=0.5[2480..4281 neg0]
+  log domain, amount 1              raw[737..11281 neg0]  log[2868..4052 neg0]  noise[2903..4049 neg0]  clahe[2912..4049 neg0]  usm a=1[2049..4526 neg0]
+  log domain, amount 2              raw[737..11281 neg0]  log[2868..4052 neg0]  noise[2903..4049 neg0]  clahe[2912..4049 neg0]  usm a=2[1186..5061 neg0]
+  log domain, amount 5              raw[737..11281 neg0]  log[2868..4052 neg0]  noise[2903..4049 neg0]  clahe[2912..4049 neg0]  usm a=5[-1404..6665 neg15]
+  LINEAR domain (no log), amount 0.5raw[737..11281 neg0]  noise[779..11235 neg0]  clahe[861..11235 neg0]  usm a=0.5[-2625..13547 neg746]
+  LINEAR domain (no log), amount 5  raw[737..11281 neg0]  noise[779..11235 neg0]  clahe[861..11235 neg0]  usm a=5[-33995..22470 neg2755]
+ scene collimator raw counts 0..11637
+  log domain, amount 0.5            raw[0..11637 neg0]  log[0..4066 neg0]  noise[0..4062 neg0]  clahe[32..4062 neg0]  usm a=0.5[-1363..5522 neg3304]
+  log domain, amount 1              raw[0..11637 neg0]  log[0..4066 neg0]  noise[0..4062 neg0]  clahe[32..4062 neg0]  usm a=1[-2757..6997 neg3764]
+  log domain, amount 2              raw[0..11637 neg0]  log[0..4066 neg0]  noise[0..4062 neg0]  clahe[32..4062 neg0]  usm a=2[-5546..8124 neg3986]
+  log domain, amount 5              raw[0..11637 neg0]  log[0..4066 neg0]  noise[0..4062 neg0]  clahe[32..4062 neg0]  usm a=5[-13914..8124 neg4529]
+  LINEAR domain (no log), amount 0.5raw[0..11637 neg0]  noise[5..11565 neg0]  clahe[95..11565 neg0]  usm a=0.5[-3604..14615 neg1319]
+  LINEAR domain (no log), amount 5  raw[0..11637 neg0]  noise[5..11565 neg0]  clahe[95..11565 neg0]  usm a=5[-36892..23130 neg4433]
+ scene skinline   raw counts 1368..60113
+  log domain, amount 0.5            raw[1368..60113 neg0]  log[3136..4779 neg0]  noise[3173..4778 neg0]  clahe[3185..4778 neg0]  usm a=0.5[2654..5022 neg0]
+  log domain, amount 1              raw[1368..60113 neg0]  log[3136..4779 neg0]  noise[3173..4778 neg0]  clahe[3185..4778 neg0]  usm a=1[2122..5334 neg0]
+  log domain, amount 2              raw[1368..60113 neg0]  log[3136..4779 neg0]  noise[3173..4778 neg0]  clahe[3185..4778 neg0]  usm a=2[1059..5959 neg0]
+  log domain, amount 5              raw[1368..60113 neg0]  log[3136..4779 neg0]  noise[3173..4778 neg0]  clahe[3185..4778 neg0]  usm a=5[-2130..7834 neg51]
+  LINEAR domain (no log), amount 0.5raw[1368..60113 neg0]  noise[1407..60026 neg0]  clahe[1865..60026 neg0]  usm a=0.5[-17988..79966 neg863]
+  LINEAR domain (no log), amount 5  raw[1368..60113 neg0]  noise[1407..60026 neg0]  clahe[1865..60026 neg0]  usm a=5[-196660..120053 neg5835]
+
+== 5. The options for a lower bound, measured on the own output of the module (log domain, threshold 10)
+   (a) none = the module output as it is; (b) clamp at 0; (c) lower bound min(orig/2, orig - amount*threshold),
+   the mirror of the SPEC upper bound; (d) leave it and clamp downstream = what gui EnhanceBasicStage does, equal to (b) in 16 bits
+   anatomy    amount 0.5  (a) min    2480.5 neg     0 | (b) changes     0 px, max      0.0 | (c) min    2480.5 neg     0, changes     0 px, max      0.0| 16-bit differences (a)->(c):     0 px, (a)->(b): 0 px
+   anatomy    amount 5  (a) min   -1403.6 neg    15 | (b) changes    15 px, max   1403.6 | (c) min    1456.0 neg     0, changes   847 px, max   2859.6| 16-bit differences (a)->(c):   846 px, (a)->(b): 0 px
+   collimator amount 0.5  (a) min   -1362.8 neg  3304 | (b) changes  3304 px, max   1362.8 | (c) min      15.9 neg     0, changes  3764 px, max   1378.7| 16-bit differences (a)->(c):  3762 px, (a)->(b): 0 px
+   collimator amount 5  (a) min  -13913.8 neg  4529 | (b) changes  4529 px, max  13913.8 | (c) min     -18.3 neg  2716, changes  4830 px, max  13895.6| 16-bit differences (a)->(c):  2114 px, (a)->(b): 0 px
+   skinline   amount 0.5  (a) min    2653.6 neg     0 | (b) changes     0 px, max      0.0 | (c) min    2653.6 neg     0, changes     0 px, max      0.0| 16-bit differences (a)->(c):     0 px, (a)->(b): 0 px
+   skinline   amount 5  (a) min   -2129.9 neg    51 | (b) changes    51 px, max   2129.9 | (c) min    1592.5 neg     0, changes   221 px, max   3722.4| 16-bit differences (a)->(c):   221 px, (a)->(b): 0 px
+
+== 2. What do the other basic stages do with a negative pixel on the way IN?
+   input min    -683.15  max     788.99  negatives   2115 (51.64%)
+   xpe_log_transform(1000)        rc=0  min       0.00  max    2897.62  negatives      0 (0.00%)  nan=0 inf=0
+   xpe_noise_reduce bilateral     rc=0  min    -683.15  max     788.99  negatives   2099 (51.25%)  nan=0 inf=0
+   xpe_contrast_enhance CLAHE     rc=0  min    -660.15  max     788.99  negatives   1829 (44.65%)  nan=0 inf=0
+   xpe_edge_enhance 0.5/2/10      rc=0  min   -1001.88  max    1156.96  negatives   2115 (51.64%)  nan=0 inf=0
+   (xpe_log_transform on x <= -1: rc above; first values in -> out)
+    [(-7.8, 0.0), (-110.1, 0.0), (-156.6, 0.0), (25.5, 1423.2)]
+
+== 3. What does the display chain do with negative float pixels? (each stage on a fresh copy)
+   input min    -500.00  max    4000.00  negatives    455 (11.11%)
+   modality LINEAR slope 1 intercept 0   rc=0  min    -500.00  max    4000.00  negatives    455 (11.11%)
+   VOI LINEAR c1500 w4500 out 0..1       rc=0  min       0.06  max       1.00  negatives      0 (0.00%)   [value where input -500: 0.0556]
+   VOI LINEAR c1500 w4500 out 0..65535   rc=0  min    3641.64  max   65535.00  negatives      0 (0.00%)   [value where input -500: 3641.6416]
+   VOI LINEAR c1500 w4500 on -5000       rc=0  output 0.0000 (minOut 0, maxOut 1)
+   presentation LUT on -0.5..1.5         rc=0  format=0 (0 = UINT16)  out min 0 max 65535  out at input<0: [0]  at input>1: [65535]
