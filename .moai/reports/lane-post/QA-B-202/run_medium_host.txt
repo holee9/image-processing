@@ -1,0 +1,35 @@
+Note: Google Test filter = WorkerSandbox.*:WorkerPipeSecurity.*
+[==========] Running 8 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 6 tests from WorkerSandbox
+[ RUN      ] WorkerSandbox.ControlTheProbeSeesEveryCapabilityWhenTheRestrictionIsSwitchedOff
+[       OK ] WorkerSandbox.ControlTheProbeSeesEveryCapabilityWhenTheRestrictionIsSwitchedOff (79 ms)
+[ RUN      ] WorkerSandbox.ARestrictedWorkerCannotWriteAFileOrARegistryKeyOrStartAProcess
+[       OK ] WorkerSandbox.ARestrictedWorkerCannotWriteAFileOrARegistryKeyOrStartAProcess (48 ms)
+[ RUN      ] WorkerSandbox.KnownDivergence_TheRestrictedWorkerCanStillOpenAConnection
+[       OK ] WorkerSandbox.KnownDivergence_TheRestrictedWorkerCanStillOpenAConnection (77 ms)
+[ RUN      ] WorkerSandbox.TheRealWorkerRunsAtLowIntegrityAndStillAnswersItsRequests
+[ HOST     ] this test process runs at integrity level 0x2000
+[       OK ] WorkerSandbox.TheRealWorkerRunsAtLowIntegrityAndStillAnswersItsRequests (59 ms)
+[ RUN      ] WorkerSandbox.TheRealWorkerRecognisesABodyPartWhileRestricted
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_worker_sandbox.cpp(240): Skipped
+stub build: no worker runs a model
+
+[  SKIPPED ] WorkerSandbox.TheRealWorkerRecognisesABodyPartWhileRestricted (0 ms)
+[ RUN      ] WorkerSandbox.ControlWithTheRestrictionSwitchedOffTheRealWorkerRunsAtTheHostsIntegrity
+[ HOST     ] this test process runs at integrity level 0x2000
+[       OK ] WorkerSandbox.ControlWithTheRestrictionSwitchedOffTheRealWorkerRunsAtTheHostsIntegrity (762 ms)
+[----------] 6 tests from WorkerSandbox (1036 ms total)
+
+[----------] 2 tests from WorkerPipeSecurity
+[ RUN      ] WorkerPipeSecurity.AnAnonymousProcessCannotOpenTheWorkersPipe
+[       OK ] WorkerPipeSecurity.AnAnonymousProcessCannotOpenTheWorkersPipe (45 ms)
+[ RUN      ] WorkerPipeSecurity.TheHostThatStartedTheWorkerCanStillConnectAndTheDaclHoldsOnlyTheUserAndSystem
+[       OK ] WorkerPipeSecurity.TheHostThatStartedTheWorkerCanStillConnectAndTheDaclHoldsOnlyTheUserAndSystem (47 ms)
+[----------] 2 tests from WorkerPipeSecurity (92 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 2 test suites ran. (1129 ms total)
+[  PASSED  ] 7 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] WorkerSandbox.TheRealWorkerRecognisesABodyPartWhileRestricted

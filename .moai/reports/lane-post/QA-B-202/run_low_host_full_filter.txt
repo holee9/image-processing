@@ -1,0 +1,58 @@
+Note: Google Test filter = WorkerSandbox.*:WorkerPipeSecurity.*
+[==========] Running 8 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 6 tests from WorkerSandbox
+[ RUN      ] WorkerSandbox.ControlTheProbeSeesEveryCapabilityWhenTheRestrictionIsSwitchedOff
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_worker_sandbox.cpp(185): error: Expected equality of these values:
+  kProbeMarker | kBitTemp | kBitCwd | kBitRegistry | kBitChild | kBitNetwork
+    Which is: 287
+  code
+    Which is: 281
+unrestricted, the worker can: write-temp child-process network
+
+[  FAILED  ] WorkerSandbox.ControlTheProbeSeesEveryCapabilityWhenTheRestrictionIsSwitchedOff (96 ms)
+[ RUN      ] WorkerSandbox.ARestrictedWorkerCannotWriteAFileOrARegistryKeyOrStartAProcess
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_worker_sandbox.cpp(193): error: Expected equality of these values:
+  0u
+    Which is: 0
+  code & kBitTemp
+    Which is: 1
+a file in %TEMP%
+
+[  FAILED  ] WorkerSandbox.ARestrictedWorkerCannotWriteAFileOrARegistryKeyOrStartAProcess (47 ms)
+[ RUN      ] WorkerSandbox.KnownDivergence_TheRestrictedWorkerCanStillOpenAConnection
+[       OK ] WorkerSandbox.KnownDivergence_TheRestrictedWorkerCanStillOpenAConnection (46 ms)
+[ RUN      ] WorkerSandbox.TheRealWorkerRunsAtLowIntegrityAndStillAnswersItsRequests
+[ HOST     ] this test process runs at integrity level 0x1000
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_worker_sandbox.cpp(215): Skipped
+the test process itself runs at low integrity (0x1000): a low-integrity worker would not be a restriction relative to it
+
+[  SKIPPED ] WorkerSandbox.TheRealWorkerRunsAtLowIntegrityAndStillAnswersItsRequests (0 ms)
+[ RUN      ] WorkerSandbox.TheRealWorkerRecognisesABodyPartWhileRestricted
+D:\workspace-github\xpe-post\modules\ai\tests\test_ai_worker_sandbox.cpp(240): Skipped
+stub build: no worker runs a model
+
+[  SKIPPED ] WorkerSandbox.TheRealWorkerRecognisesABodyPartWhileRestricted (0 ms)
+[ RUN      ] WorkerSandbox.ControlWithTheRestrictionSwitchedOffTheRealWorkerRunsAtTheHostsIntegrity
+[ HOST     ] this test process runs at integrity level 0x1000
+[       OK ] WorkerSandbox.ControlWithTheRestrictionSwitchedOffTheRealWorkerRunsAtTheHostsIntegrity (37 ms)
+[----------] 6 tests from WorkerSandbox (228 ms total)
+
+[----------] 2 tests from WorkerPipeSecurity
+[ RUN      ] WorkerPipeSecurity.AnAnonymousProcessCannotOpenTheWorkersPipe
+[       OK ] WorkerPipeSecurity.AnAnonymousProcessCannotOpenTheWorkersPipe (46 ms)
+[ RUN      ] WorkerPipeSecurity.TheHostThatStartedTheWorkerCanStillConnectAndTheDaclHoldsOnlyTheUserAndSystem
+[       OK ] WorkerPipeSecurity.TheHostThatStartedTheWorkerCanStillConnectAndTheDaclHoldsOnlyTheUserAndSystem (47 ms)
+[----------] 2 tests from WorkerPipeSecurity (94 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 2 test suites ran. (322 ms total)
+[  PASSED  ] 4 tests.
+[  SKIPPED ] 2 tests, listed below:
+[  SKIPPED ] WorkerSandbox.TheRealWorkerRunsAtLowIntegrityAndStillAnswersItsRequests
+[  SKIPPED ] WorkerSandbox.TheRealWorkerRecognisesABodyPartWhileRestricted
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] WorkerSandbox.ControlTheProbeSeesEveryCapabilityWhenTheRestrictionIsSwitchedOff
+[  FAILED  ] WorkerSandbox.ARestrictedWorkerCannotWriteAFileOrARegistryKeyOrStartAProcess
+
+ 2 FAILED TESTS

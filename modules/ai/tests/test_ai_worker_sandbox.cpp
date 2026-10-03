@@ -31,6 +31,7 @@
 #include "xpe/common/xpe_error.h"
 
 #include <cstdint>
+#include <cstdio>
 #include <set>
 #include <string>
 #include <thread>
@@ -138,7 +139,7 @@ std::string TokenUserSid(HANDLE token) {
     return out;
 }
 
-/** The integrity level RID of a running process (0x1000 low, 0x2000 medium), 0 when it could not be read. */
+/** The integrity level RID of a running process (0x1000 low, 0x2000 medium, 0x3000 high), 0 when it could not be read. */
 DWORD IntegrityRidOfProcess(DWORD pid) {
     HANDLE p = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
     if (!p) return 0;
@@ -155,6 +156,18 @@ DWORD IntegrityRidOfProcess(DWORD pid) {
         CloseHandle(t);
     }
     CloseHandle(p);
+    return rid;
+}
+
+/**
+ * The integrity level RID of THIS process. It is read, never assumed: a developer's shell runs at medium (0x2000), but the
+ * CI runner is an administrator and its processes run at high (0x3000) -- the test used to fix 0x2000 and failed there
+ * (QA-B-202, #250). The restriction under test is relative to the host: the worker is made LOW whatever the host is, and
+ * with the restriction switched off the worker is the HOST's own level.
+ */
+DWORD HostIntegrityRid() {
+    const DWORD rid = IntegrityRidOfProcess(GetCurrentProcessId());
+    std::printf("[ HOST     ] this test process runs at integrity level 0x%lX\n", static_cast<unsigned long>(rid));
     return rid;
 }
 
@@ -196,6 +209,12 @@ TEST(WorkerSandbox, KnownDivergence_TheRestrictedWorkerCanStillOpenAConnection) 
  * ========================================================================= */
 
 TEST(WorkerSandbox, TheRealWorkerRunsAtLowIntegrityAndStillAnswersItsRequests) {
+    const DWORD host = HostIntegrityRid();
+    ASSERT_NE(0u, host) << "the integrity level of the test process was read";
+    if (host <= 0x1000u) {
+        GTEST_SKIP() << "the test process itself runs at low integrity (0x" << std::hex << host
+                     << "): a low-integrity worker would not be a restriction relative to it";
+    }
     WorkerSupervisorConfig cfg;
     cfg.worker_exe = XPE_AI_WORKER_EXE;
     cfg.model_dir = kData + "/models_x2";
@@ -204,9 +223,11 @@ TEST(WorkerSandbox, TheRealWorkerRunsAtLowIntegrityAndStillAnswersItsRequests) {
     ASSERT_EQ(XPE_OK, sup.Ping());
     const DWORD pid = sup.WorkerPid();
     ASSERT_NE(0u, pid);
-    EXPECT_EQ(0x1000u, IntegrityRidOfProcess(pid)) << "the worker's own token, read from outside: low integrity";
-    // this process, for comparison: the restriction is the worker's, not the test's
-    EXPECT_EQ(0x2000u, IntegrityRidOfProcess(GetCurrentProcessId()));
+    const DWORD worker = IntegrityRidOfProcess(pid);
+    EXPECT_EQ(0x1000u, worker) << "the worker's own token, read from outside: low integrity";
+    // this process, for comparison: the restriction is the worker's, not the test's -- whatever the host's level is
+    EXPECT_LT(worker, host) << "the worker (0x" << std::hex << worker << ") runs below the test process (0x" << host << ")";
+    EXPECT_EQ(host, IntegrityRidOfProcess(GetCurrentProcessId())) << "and the test process itself was not lowered";
     if (!OnnxSession::IsStubBuild()) {
         const std::vector<float> in(9, 1.0f);
         std::vector<float> out(9, -777.0f);
@@ -229,7 +250,11 @@ TEST(WorkerSandbox, TheRealWorkerRecognisesABodyPartWhileRestricted) {
     EXPECT_EQ(0x1000u, IntegrityRidOfProcess(sup.WorkerPid()));
 }
 
-TEST(WorkerSandbox, ControlWithTheRestrictionSwitchedOffTheRealWorkerRunsAtMediumIntegrity) {
+TEST(WorkerSandbox, ControlWithTheRestrictionSwitchedOffTheRealWorkerRunsAtTheHostsIntegrity) {
+    // Was "...AtMediumIntegrity" with 0x2000 fixed: the unrestricted worker is the host's own level, and the host is
+    // medium in a developer shell but high on an administrator CI runner (QA-B-202).
+    const DWORD host = HostIntegrityRid();
+    ASSERT_NE(0u, host) << "the integrity level of the test process was read";
     const EnvScope off("XPE_AI_TEST_WORKER_UNRESTRICTED", "1");
     WorkerSupervisorConfig cfg;
     cfg.worker_exe = XPE_AI_WORKER_EXE;
@@ -237,7 +262,8 @@ TEST(WorkerSandbox, ControlWithTheRestrictionSwitchedOffTheRealWorkerRunsAtMediu
     cfg.timeout_ms = kBudgetMs;
     WorkerSupervisor sup(cfg);
     ASSERT_EQ(XPE_OK, sup.Ping());
-    EXPECT_EQ(0x2000u, IntegrityRidOfProcess(sup.WorkerPid())) << "the control: the same read sees a medium-integrity worker";
+    EXPECT_EQ(host, IntegrityRidOfProcess(sup.WorkerPid()))
+        << "the control: the same read sees a worker at the host's level (0x" << std::hex << host << ")";
 }
 
 /* =========================================================================
