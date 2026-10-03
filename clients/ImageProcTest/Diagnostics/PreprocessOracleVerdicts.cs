@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Security.Cryptography;
 using System.Threading.Tasks;
 
 namespace ImageProcTest
@@ -11,183 +9,312 @@ namespace ImageProcTest
     ///
     /// 212b moved the oracle into a child process and left three callers asking for it synchronously on the UI thread at startup (the diagnostics report, the module readiness
     /// evaluation, and a second readiness refresh), so the window stopped answering for a median of 963 ms and up to 4.4 s (GUI-C-218). Here the verdict is produced on a thread-pool
-    /// thread, kept per DLL, and shared by every caller: <see cref="TryGet"/> never waits on the oracle (it starts the run the first time, and answers null until it has
-    /// finished); <see cref="Wait"/> is for the headless paths that have no window to keep responsive. A UI that gets null shows "checking" and is told when the answer is in
-    /// (<see cref="Completed"/>). Asking again does not run it again: only <see cref="Invalidate"/> (the user's refresh) discards a finished verdict.
+    /// thread, kept per DLL, and shared by every caller. A UI that gets null shows "checking" and is told when the answer is in (<see cref="Completed"/>) or when the answer it had was
+    /// dropped (<see cref="Changed"/>).
     ///
-    /// GUI-C-219b (Codex #109): WHICH DLL a verdict belongs to is decided by the SHA-256 of its CONTENT, read on every ask. It used to be the path plus the last-write time, so a different DLL
-    /// copied to the same path with its time preserved was handed the old "passed" verdict and became "ready" without ever being checked (the sixth stamp-instead-of-content shortcut in this
-    /// repository: a fast path that answers differently from the slow one). A file's size and time are not consulted at all: hashing the file is what the slow path IS, and it costs about a
-    /// millisecond for this DLL (measured in the GUI-C-219b report), so there is no cheaper path to keep honest. A file that changes WHILE the oracle runs is checked again: the
-    /// result of that run belongs to neither the old content nor the new, and is stored under neither.
+    /// GUI-C-219b/219c (Codex #109, #112): WHICH bytes a verdict belongs to is not decided by a path or a time stamp. Every check starts by taking a private SNAPSHOT of the preprocess DLL and the
+    /// DLLs it loads (<see cref="PreprocessOracleSnapshot"/>), hashes the COPIES, and hands the copy to the worker: what was hashed is what was judged, whatever happens to the original while the
+    /// oracle runs, and the verdict is stored under that identity. Because of that there is no "hash again afterwards and run again" and no retry budget: nothing can change under a run.
+    /// The copy and the hashing happen on the worker thread, never on the caller's: <see cref="TryGet"/> only takes a lock for a moment.
+    ///
+    /// The price of keeping the UI thread free is that <see cref="TryGet"/> answers with the stored verdict at once and verifies it in the background (one snapshot, a few milliseconds): if the
+    /// DLL turns out to be different, the stored verdict is dropped, <see cref="Changed"/> is raised (the UI shows "checking" again) and the new content is judged. The stale answer therefore
+    /// lives for the duration of one copy-and-hash, not for a refresh interval, and it is never a verdict for content that is not on disk any more once that verification has run.
     /// </summary>
     internal static class PreprocessOracleVerdicts
     {
-        /// <summary>How many times a verdict is produced again because the file changed under the run, before the check gives up and says so.</summary>
-        internal const int MaxRunsPerAsk = 3;
-
-        private sealed class Entry
+        private sealed class State
         {
+            /// <summary>One verification or run at a time for this DLL; the background job and <see cref="Wait"/> take turns on it.</summary>
+            public readonly object Work = new();
+
+            public string? Identity;
             public PreprocessSyntheticOracleResult? Result;
-            public Task? Run;
-            public bool Superseded;
+            public bool JobQueued;
+
+            /// <summary>The running job has taken its snapshot: an ask that comes after that is not covered by it (the file may have changed since) and has to be verified by one more pass.</summary>
+            public bool SnapshotTaken;
+
+            public bool Rerun;
         }
 
         private static readonly object Gate = new();
-        private static readonly Dictionary<string, Entry> Entries = [];
+        private static readonly Dictionary<string, State> States = new(StringComparer.OrdinalIgnoreCase);
+        private static int reclaimed;
+        private static int generation;   // bumped by ResetForTests: a job that started before it must not store, announce or run anything after it
 
-        /// <summary>How a verdict is produced: the child-process oracle. A test replaces it to observe the threading and the sharing.</summary>
+        /// <summary>How a verdict is produced from the path of the SNAPSHOT of the DLL: the child-process oracle. A test replaces it to observe the threading, the sharing and what the worker is given.</summary>
         internal static Func<string, PreprocessSyntheticOracleResult> Runner { get; set; } = XpePreprocessOracleProcess.Run;
 
-        /// <summary>Raised on the thread that produced the verdict, after it is stored; the argument is the DLL path. A UI marshals to its own thread.</summary>
+        /// <summary>Test seam: called on the worker thread once the snapshot's files are copied and before they are hashed (a slow disk, or a file changing at the worst moment).</summary>
+        internal static Action<string>? AfterSnapshotCopy { get; set; }
+
+        /// <summary>Raised on the thread that produced a verdict, after it is stored; the argument is the DLL path. A UI marshals to its own thread.</summary>
         internal static event Action<string>? Completed;
 
-        /// <summary>The finished verdict for this DLL's current content, or null while it is still being produced (the first call starts the run). Never waits on the oracle.</summary>
+        /// <summary>Raised when a background verification found that the DLL is no longer the content a stored verdict was made for: that verdict has been dropped. A UI refreshes and shows "checking".</summary>
+        internal static event Action<string>? Changed;
+
+        /// <summary>The stored verdict for this DLL, or null while there is none (the first call starts the check). Never reads the file, never waits: a verification of the stored verdict against the DLL as it is now runs in the background.</summary>
         public static PreprocessSyntheticOracleResult? TryGet(string dllPath)
         {
-            var key = KeyOf(dllPath);
+            State state;
+            PreprocessSyntheticOracleResult? stored;
+            bool start;
             lock (Gate)
             {
-                return EntryFor(dllPath, key).Result;
+                state = StateOf(dllPath);
+                stored = state.Result;
+                start = !state.JobQueued;
+                state.JobQueued = true;
+                if (!start && state.SnapshotTaken)
+                {
+                    state.Rerun = true;   // the running job's copy predates this ask
+                }
             }
+
+            if (start)
+            {
+                var born = System.Threading.Volatile.Read(ref generation);
+                Task.Run(() => RunJob(dllPath, state, born));
+            }
+
+            return stored;
         }
 
-        /// <summary>The verdict for this DLL's current content; blocks until it exists. For callers with no window to keep responsive (the headless probe and the fixture E2E services).</summary>
+        /// <summary>The verdict for this DLL as it is on disk now; blocks until it exists. For callers with no window to keep responsive (the headless probe and the fixture E2E services): called on the UI thread it throws.</summary>
         public static PreprocessSyntheticOracleResult Wait(string dllPath)
         {
-            for (var round = 0; round < MaxRunsPerAsk; round++)
+            OracleThreadGuard.AssertNotUiThread(nameof(PreprocessOracleVerdicts) + "." + nameof(Wait));
+            State state;
+            lock (Gate)
             {
-                var key = KeyOf(dllPath);
-                Entry entry;
-                lock (Gate)
-                {
-                    entry = EntryFor(dllPath, key);
-                }
-
-                entry.Run!.Wait();
-                lock (Gate)
-                {
-                    if (!entry.Superseded)
-                    {
-                        return entry.Result!;
-                    }
-                }
+                state = StateOf(dllPath);
             }
 
-            return PreprocessSyntheticOracleResult.Failed("Synthetic oracle unstable", "The preprocess DLL changed while the oracle ran, every time it was asked.");
+            lock (state.Work)
+            {
+                return Verify(dllPath, state, System.Threading.Volatile.Read(ref generation));
+            }
         }
 
-        /// <summary>The user's refresh: finished verdicts are discarded so the next ask runs the oracle again. A run in progress is left alone (its answer is still the answer for the DLL).</summary>
+        /// <summary>The user's refresh: finished verdicts are discarded so the next ask runs the oracle again even on the same bytes. A check in progress is left alone.</summary>
         public static void Invalidate()
         {
             lock (Gate)
             {
-                foreach (var key in new List<string>(Entries.Keys))
+                foreach (var state in States.Values)
                 {
-                    if (Entries[key].Result is not null)
+                    if (state.Result is not null)
                     {
-                        Entries.Remove(key);
+                        state.Result = null;
+                        state.Identity = null;
                     }
                 }
             }
         }
 
-        /// <summary>For tests: forget everything, including runs in progress, and restore the default runner.</summary>
+        /// <summary>For tests: forget everything and restore the defaults.</summary>
         internal static void ResetForTests()
         {
             lock (Gate)
             {
-                Entries.Clear();
+                System.Threading.Interlocked.Increment(ref generation);
+                States.Clear();
             }
 
             Runner = XpePreprocessOracleProcess.Run;
+            AfterSnapshotCopy = null;
             Completed = null;
+            Changed = null;
         }
 
-        /// <summary>The SHA-256 of the file's content, or a marker that names why there is none (so that "missing" and "unreadable" are subjects of their own, never a hash of nothing).</summary>
-        internal static string ContentIdentity(string dllPath)
+        /// <summary>For tests: the identity (names with SHA-256) the stored verdict for this DLL was made for, or null.</summary>
+        internal static string? StoredIdentityOf(string dllPath)
+        {
+            lock (Gate)
+            {
+                return States.TryGetValue(dllPath, out var state) ? state.Identity : null;
+            }
+        }
+
+        // Caller holds Gate.
+        private static State StateOf(string dllPath)
+        {
+            if (!States.TryGetValue(dllPath, out var state))
+            {
+                States[dllPath] = state = new State();
+            }
+
+            return state;
+        }
+
+        private static void RunJob(string dllPath, State state, int born)
         {
             try
             {
-                using var stream = new FileStream(dllPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-                return Convert.ToHexString(SHA256.HashData(stream));
+                lock (state.Work)
+                {
+                    try
+                    {
+                        // one pass per distinct ask: an ask that arrives after a pass has copied the files sets Rerun and gets a pass of its own, which finds the same bytes (and says nothing) unless they changed
+                        do
+                        {
+                            lock (Gate)
+                            {
+                                state.Rerun = false;
+                                state.SnapshotTaken = false;
+                            }
+
+                            Verify(dllPath, state, born);
+                        }
+                        while (RerunRequested(state));
+                    }
+                    catch (Exception ex)
+                    {
+                        // nothing may escape a pool thread, and a failed check is a verdict: the caller sees it as one
+                        StoreFailureOnce(dllPath, state, born, "error:" + ex.GetType().Name + ":" + ex.Message, PreprocessSyntheticOracleResult.Failed("Synthetic oracle exception", ex.Message));
+                    }
+                }
             }
-            catch (FileNotFoundException)
+            finally
             {
-                return "missing";
-            }
-            catch (DirectoryNotFoundException)
-            {
-                return "missing";
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                return "unreadable:" + ex.GetType().Name;
+                lock (Gate)
+                {
+                    state.JobQueued = false;
+                    state.SnapshotTaken = false;
+                    state.Rerun = false;
+                }
             }
         }
 
-        private static string KeyOf(string dllPath) => dllPath + "|" + ContentIdentity(dllPath);
-
-        // Caller holds Gate.
-        private static Entry EntryFor(string dllPath, string key)
+        private static bool RerunRequested(State state)
         {
-            if (Entries.TryGetValue(key, out var existing))
+            lock (Gate)
             {
-                return existing;
+                return state.Rerun;
             }
-
-            var entry = new Entry();
-            Entries[key] = entry;
-            entry.Run = Task.Run(() => Produce(dllPath, key, entry));
-            return entry;
         }
 
-        private static void Produce(string dllPath, string key, Entry entry)
+        // Caller holds state.Work. Snapshot, identity, and then either the stored verdict (same identity) or a new run on the snapshot.
+        private static PreprocessSyntheticOracleResult Verify(string dllPath, State state, int born)
         {
+            if (System.Threading.Interlocked.Exchange(ref reclaimed, 1) == 0)
+            {
+                PreprocessOracleSnapshot.ReclaimOldFolders();
+            }
+
+            PreprocessOracleSnapshot snapshot;
+            try
+            {
+                snapshot = PreprocessOracleSnapshot.Create(dllPath, AfterSnapshotCopy);
+            }
+            catch (Exception ex)
+            {
+                // The private copy could not be made (the temp folder is unusable, the disk is full): the DLL cannot be judged, which is a verdict. It is stored under an identity of its own, and a
+                // pass that finds the same failure says nothing, or every refresh the window makes in answer to it would start another pass (a refresh storm).
+                return StoreFailureOnce(dllPath, state, born, "setup:" + ex.GetType().Name + ":" + ex.Message,
+                    PreprocessSyntheticOracleResult.Failed("Synthetic oracle setup failed", "A private copy of the preprocess DLLs could not be made, so the DLL was not judged: " + ex.Message));
+            }
+
+            using var ownedSnapshot = snapshot;
+            lock (Gate)
+            {
+                state.SnapshotTaken = true;
+            }
+
+            PreprocessSyntheticOracleResult? stored;
+            string? storedIdentity;
+            lock (Gate)
+            {
+                stored = state.Result;
+                storedIdentity = state.Identity;
+            }
+
+            if (stored is not null && string.Equals(storedIdentity, snapshot.Identity, StringComparison.Ordinal))
+            {
+                return stored;   // the same bytes: the same answer, and nothing to announce
+            }
+
+            if (born != System.Threading.Volatile.Read(ref generation))
+            {
+                return PreprocessSyntheticOracleResult.NotRun("The verdict holder was reset while this check was starting.");   // only a test can reset it
+            }
+
+            if (stored is not null)
+            {
+                lock (Gate)
+                {
+                    state.Result = null;
+                    state.Identity = null;
+                }
+
+                RaiseChanged(dllPath);
+            }
+
             PreprocessSyntheticOracleResult result;
             try
             {
-                result = Runner(dllPath);
+                result = Runner(snapshot.DllPath);
             }
             catch (Exception ex)
             {
                 result = PreprocessSyntheticOracleResult.Failed("Synthetic oracle exception", ex.Message);
             }
 
-            // The file the verdict was asked for is the file the oracle ran on only if its content is the same after the run. Otherwise this result belongs to neither content: it is stored
-            // under nothing, and the NEW content is asked for at once (so a window that is waiting for the answer is still told when one exists).
-            var after = KeyOf(dllPath);
-            if (!string.Equals(after, key, StringComparison.Ordinal))
+            if (born == System.Threading.Volatile.Read(ref generation))
             {
-                bool alreadyKnown;
-                lock (Gate)
-                {
-                    entry.Superseded = true;
-                    if (Entries.TryGetValue(key, out var mapped) && ReferenceEquals(mapped, entry))
-                    {
-                        Entries.Remove(key);
-                    }
-
-                    // starts the run for what is on disk now (its completion raises Completed); the content may also be one that was already judged (a file put back), which raises nothing by itself
-                    alreadyKnown = EntryFor(dllPath, after).Result is not null;
-                }
-
-                if (alreadyKnown)
-                {
-                    try { Completed?.Invoke(dllPath); } catch (Exception) { /* a listener's failure is not the verdict's */ }
-                }
-
-                return;
+                Store(dllPath, state, snapshot.Identity, result, raise: true);
             }
 
+            return result;
+        }
+
+        // A failure verdict whose identity equals the stored one is the same answer again: no announcement.
+        private static PreprocessSyntheticOracleResult StoreFailureOnce(string dllPath, State state, int born, string identity, PreprocessSyntheticOracleResult failure)
+        {
             lock (Gate)
             {
-                entry.Result = result;
+                if (state.Result is not null && string.Equals(state.Identity, identity, StringComparison.Ordinal))
+                {
+                    return state.Result;
+                }
             }
 
+            if (born == System.Threading.Volatile.Read(ref generation))
+            {
+                Store(dllPath, state, identity, failure, raise: true);
+            }
+
+            return failure;
+        }
+
+        private static void Store(string dllPath, State state, string identity, PreprocessSyntheticOracleResult result, bool raise)
+        {
+            lock (Gate)
+            {
+                state.Identity = identity;
+                state.Result = result;
+            }
+
+            if (raise)
+            {
+                try
+                {
+                    Completed?.Invoke(dllPath);
+                }
+                catch (Exception)
+                {
+                    // a listener's failure is not the verdict's
+                }
+            }
+        }
+
+        private static void RaiseChanged(string dllPath)
+        {
             try
             {
-                Completed?.Invoke(dllPath);
+                Changed?.Invoke(dllPath);
             }
             catch (Exception)
             {

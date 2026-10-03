@@ -59,6 +59,8 @@ namespace ImageProcTest
             ModuleReadinessGrid.ItemsSource = moduleReadinessViewModel.Modules;
             // GUI-C-219: the synthetic oracle runs off this thread; when its verdict arrives the window refreshes once, here.
             PreprocessOracleVerdicts.Completed += OnPreprocessOracleVerdict;
+            PreprocessOracleVerdicts.Changed += OnPreprocessOracleVerdict;   // a stored verdict was found to be for other bytes: show "checking" again, then the new answer arrives as Completed
+            OracleThreadGuard.OnUiThread = () => Dispatcher.CheckAccess();   // GUI-C-219c: the blocking oracle entry points throw if they are ever reached from this thread
         }
 
         private void OnPreprocessOracleVerdict(string dllPath)
@@ -1045,6 +1047,8 @@ namespace ImageProcTest
         {
             isClosingWindow = true;
             PreprocessOracleVerdicts.Completed -= OnPreprocessOracleVerdict;
+            PreprocessOracleVerdicts.Changed -= OnPreprocessOracleVerdict;
+            OracleThreadGuard.OnUiThread = null;
             backend.Shutdown();
         }
 

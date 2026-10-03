@@ -59,6 +59,8 @@ namespace ImageProcTest
         /// </summary>
         public static PreprocessSyntheticOracleResult Run(string? exePath, IReadOnlyList<string> arguments, TimeSpan timeout, HostSeams? seams = null, OutputLimits? limits = null)
         {
+            // GUI-C-219c: starting the child and reading its answer takes hundreds of milliseconds; the UI thread must never be the caller (the window installs the guard)
+            OracleThreadGuard.AssertNotUiThread(nameof(XpePreprocessOracleProcess) + "." + nameof(Run));
             limits ??= OutputLimits.Default;
             if (string.IsNullOrEmpty(exePath) || !File.Exists(exePath))
             {

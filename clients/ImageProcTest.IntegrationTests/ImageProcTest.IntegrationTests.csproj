@@ -131,6 +131,8 @@
     <Compile Include="..\ImageProcTest\Diagnostics\XpePreprocessOracleProcess.cs" Link="OracleCall\Linked\XpePreprocessOracleProcess.cs" />
     <!-- GUI-C-219: the shared, background-produced verdict the window asks for instead of running the oracle itself. -->
     <Compile Include="..\ImageProcTest\Diagnostics\PreprocessOracleVerdicts.cs" Link="OracleCall\Linked\PreprocessOracleVerdicts.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\PreprocessOracleSnapshot.cs" Link="OracleCall\Linked\PreprocessOracleSnapshot.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\OracleThreadGuard.cs" Link="OracleCall\Linked\OracleThreadGuard.cs" />
   </ItemGroup>
 
   <!--

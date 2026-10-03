@@ -1,0 +1,15 @@
+import ctypes, ctypes.wintypes as w, subprocess, os, time, sys
+u = ctypes.windll.user32
+WNDENUMPROC = ctypes.WINFUNCTYPE(w.BOOL, w.HWND, w.LPARAM)
+u.GetWindowThreadProcessId.argtypes = [w.HWND, ctypes.POINTER(w.DWORD)]
+exe, nd = sys.argv[1], sys.argv[2]
+p = subprocess.Popen([exe], env=dict(os.environ, XPE_NATIVE_DIR=nd), stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+time.sleep(1.0)
+def cb(h, _):
+    pid = w.DWORD(); tid = u.GetWindowThreadProcessId(h, ctypes.byref(pid))
+    if pid.value == p.pid:
+        buf = ctypes.create_unicode_buffer(80); u.GetClassNameW(h, buf, 80)
+        print(hex(h), "tid", tid, "visible", bool(u.IsWindowVisible(h)), "textlen", u.GetWindowTextLengthW(h), "class", buf.value)
+    return True
+u.EnumWindows(WNDENUMPROC(cb), 0)
+p.kill(); p.wait()
