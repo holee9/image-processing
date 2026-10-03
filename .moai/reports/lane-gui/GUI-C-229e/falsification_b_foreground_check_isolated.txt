@@ -1,0 +1,3 @@
+== arm (b): an exception in the foreground check is treated as 'in front' (the safety isolated like a diagnostic)
+[xUnit.net 00:00:00.20]     ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.D_AForegroundCheckThatThrows_SendsNoKey_AndFails [FAIL]
+실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 35 ms - ImageProcTest.E2ETests.dll (net8.0)

@@ -1,0 +1,12 @@
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02e_ALateJudgmentRead_DoesNotChangeTheVerdict_ButTheRecordShowsTheLateCompletion [3 s]
+ R02e no delay:        judgment read: started +600 ms, completed +603 ms after the last key (nominal wait 600 ms; the verdict does not depend on these times)
+ R02e delay before:    judgment read: started +1405 ms, completed +1406 ms after the last key (nominal wait 600 ms; the verdict does not depend on these times)
+ R02e delay inside:    judgment read: started +614 ms, completed +1122 ms after the last key (nominal wait 600 ms; the verdict does not depend on these times)
+ R02e: 3822 ms
+[xUnit.net 00:00:04.90]     ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02_RealKeystrokes_EditTheVoiBox_AndARealTabMovesOn [SKIP]
+[xUnit.net 00:00:04.90]       R02 (real key presses into a text box, then a real Tab) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02_RealKeystrokes_EditTheVoiBox_AndARealTabMovesOn [< 1 ms]
+   R02 (real key presses into a text box, then a real Tab) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02d_TheLostKeysMessage_IsBuiltFromTheRealWindow_WithoutSendingAKey [3 s]
+ R02d message: Real key presses typed '4321' but the center box held '32768' 600 ms after the last key (application pid 10416). judgment read: started +605 ms, completed +606 ms after the last key (nominal wait 600 ms; the verdict does not depend on these times). FACTS (observed): before the keys: center '32768', width '65535', keyboard focus 'Popup Window' (pid 47456), foreground pid 47456; 600 ms after (judgment read +605..+606 ms): center '32768', width '65535', keyboard focus 'Popup Window' (pid 47456), foreground pid 47456; 1.5 s later: center '32768', width '65535', keyboard focus 'Popup Window' (pid 47456), foreground pid 47456. At the 600 ms reading the foreground was process 47456, 
+ R02d: 3085 ms
