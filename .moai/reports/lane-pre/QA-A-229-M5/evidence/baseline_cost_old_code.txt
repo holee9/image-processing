@@ -1,0 +1,3 @@
+[ghost-handle-check] 24.1 ns per xpe_ghost_reset on an 8x8 handle (2000000 calls); one 1024x1024 frame (rc -1): 500 ns; reset/frame = 4.821890%
+[ghost-handle-check] 23.0 ns per xpe_ghost_reset on an 8x8 handle (2000000 calls); one 1024x1024 frame (rc -1): 700 ns; reset/frame = 3.279179%
+[ghost-handle-check] 23.0 ns per xpe_ghost_reset on an 8x8 handle (2000000 calls); one 1024x1024 frame (rc -1): 500 ns; reset/frame = 4.607370%

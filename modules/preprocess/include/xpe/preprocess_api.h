@@ -827,7 +827,12 @@ XPE_API XpeErrorCode xpe_ghost_reset(void* handle);
 /**
  * @brief Free all resources associated with a ghost corrector handle
  *
- * After this call the handle is invalid (do not pass to any other function).
+ * After this call the handle is invalid (do not pass to any other function). A pointer that is not a live handle
+ * -- destroyed already, never returned by xpe_ghost_create, or not a handle at all -- is recognised from a
+ * registry of live handles, WITHOUT being read (REQ-P1A-086): every ghost function refuses it
+ * (XPE_ERR_INVALID_INPUT) and a second destroy returns without effect, also when several threads destroy the same
+ * handle at once. Limit (ABA): once a handle is destroyed its address may be returned by a later xpe_ghost_create,
+ * and a stale pointer to the old handle then reads as that new, live one -- do not keep the pointer after destroy.
  * Must not run concurrently with any call on the same handle, whether that call is
  * already in progress or starts meanwhile: the handle's mutex is freed with it, so
  * the caller must stop all other threads using the handle first.

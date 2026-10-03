@@ -85,12 +85,18 @@ struct GhostCorrectorHandle {
     // still not run concurrently with a call on the same handle.
     std::mutex mtx;
 
-    // Validate that a void* is a live handle
-    static bool isValid(const void* h) noexcept {
-        if (!h) return false;
-        const auto* gh = static_cast<const GhostCorrectorHandle*>(h);
-        return gh->magic == kMagic;
-    }
+    /**
+     * Whether `h` is a handle xpe_ghost_create handed out and xpe_ghost_destroy has not taken back (QA-A-229 M5,
+     * REQ-P1A-086). Answered from a registry of live handles (defined in ghost_correct.cpp), WITHOUT reading the
+     * memory `h` points at: the old test, `gh->magic == kMagic`, read freed memory for a destroyed handle, and
+     * accepted any object that began with the sentinel.
+     *
+     * Limits: a destroyed handle's address can be returned again by a later xpe_ghost_create, and a stale pointer
+     * to it then reads as valid (ABA) -- separating the two needs a token handle. And a destroy racing a call on
+     * the SAME handle is still the caller's to prevent; the registry decides who is the one destroyer (a second,
+     * concurrent destroy of the same handle returns without touching it), not whether a call is still inside.
+     */
+    static bool isValid(const void* h) noexcept;
 };
 
 /**

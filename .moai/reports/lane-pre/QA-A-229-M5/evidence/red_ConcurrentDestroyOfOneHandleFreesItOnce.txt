@@ -1,0 +1,5 @@
+Note: Google Test filter = GhostRegistry.ConcurrentDestroyOfOneHandleFreesItOnce
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from GhostRegistry
+[ RUN      ] GhostRegistry.ConcurrentDestroyOfOneHandleFreesItOnce
