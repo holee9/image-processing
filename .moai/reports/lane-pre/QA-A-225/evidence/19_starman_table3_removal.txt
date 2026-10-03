@@ -1,0 +1,11 @@
+removal = 100*(|uncorrected| - |residual|)/|uncorrected|  (E2E protocol 5.6 applied to the paper's own numbers; over-correction counts as residual)
+level algorithm                 1st frame     50th frame
+2%    LTI                           62.2%          50.0%
+2%    Intensity weighted            91.1%          89.6%
+2%    NLCSC                         93.2%          99.7%
+27%   LTI                           91.1%          99.2%
+27%   Intensity weighted            89.3%          88.7%
+27%   NLCSC                         89.6%          98.8%
+92%   LTI                           99.8%          42.9%
+92%   Intensity weighted            93.8%          98.9%
+92%   NLCSC                         93.3%          98.8%

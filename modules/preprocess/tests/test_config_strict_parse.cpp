@@ -223,7 +223,7 @@ TEST_F(ConfigStrictParse, GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
 
 TEST_F(ConfigStrictParse, GhostCreateAcceptsOrdinaryNumbers) {
     const char* good =
-        "{\"tier\":\"2\",\"alpha1\":\"0.5\",\"tau1\":1.5,\"alpha2\":\"0.25\",\"tau2\":\"10\","
+        "{\"tier\":\"2\",\"alpha1\":\"0.05\",\"tau1\":1.5,\"alpha2\":\"0.01\",\"tau2\":\"10\","
         "\"tier2Threshold\":\"3000\",\"nlcscBeta\":\"0.1\"}";
     void* handle = nullptr;
     bool threw = false;
@@ -1284,6 +1284,7 @@ TEST_F(ConfigStrictParse, ANullConfigPointerStillMeansTheDefaults) {
     void* handle = nullptr;
     EXPECT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
     ASSERT_NE(nullptr, handle);
+    xpe_clear_alerts();   // QA-A-226: the creation warning (uncalibrated handle) is not what this test is about
     xpe_ghost_destroy(handle);
     std::vector<uint16_t> pixels(N, 1000);
     XpeImageBuffer img = buf(pixels.data(), XPE_PIXEL_UINT16, 16);

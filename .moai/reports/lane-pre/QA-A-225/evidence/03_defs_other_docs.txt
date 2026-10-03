@@ -1,0 +1,18 @@
+##### docs/project/Algorithm-Evaluation-Protocol.md
+40:| lag residual | temporal artifact removal |
+72:| `LagResidualPct` | `100 * abs(mean(Y_blank_k) - DarkRef) / ExposureSignal` | lag/ghost residual |
+##### docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md
+420:| **lag_tier2_exposure_weighted** | 27%, 50%, 75% mixed | 100 frames | E-weighted coefficients | Residual lag < 10% after Tier 1 |
+421:| **lag_tier3_nlcsc_9levels** | 2%, 5%, 10%, 20%, 30%, 50%, 70%, 80%, 92% | 각 40 frames | Signal-dependent coefficients | NLCSC 90% 제거율 달성 |
+453:- NLCSC 90% 제거율 (Tier 3)
+615:| 단색 X-ray flat-field (7-10 노출 수준) | 70프레임 | 5%-90% saturation |
+1218:- `LagResidualPct`, `GhostRemovalPct`
+##### docs/calibration/SRS-CALIB-001_Software_Requirements_Specification.md
+135:| **SRS-CALIB-FUNC-013** | System shall support three-tier ghost/lag correction with auto-escalation: (1) Tier 1: Multi-exponential LTI deconvolution (N=4 exponentials, model: `Lag(t) = Σ(α_i × exp(-t/τ_i))`); (2) Tier 2: Exposure-weighted LTI (accounts for variable exposure); (3) Tier 3: NL
+151:| **SRS-CALIB-FUNC-020** | System shall compute lag/ghost metrics: `LagResidualPct`, `GhostRemovalPct`, history length, tier selection, and bypass reason. Benchmark sequences with measurable lag shall require at least 90% ghost removal. | Lag and ghost correction is stateful; tier and bypass tra
+##### docs/ghost-correction/IAP-GHOST-001_Image_Acquisition_Protocol.md
+344:  I(n) = I_target - Σ( lag_residual × decay^n )
+##### docs/ghost-correction/TDS-GHOST-001_Test_Dataset_Specification.md
+##### docs/ghost-correction/srs_ghost_correction.md
+##### docs/ghost-correction/stp_stc_ghost_correction.md
+##### docs/ghost-correction/sdd_ghost_correction.md

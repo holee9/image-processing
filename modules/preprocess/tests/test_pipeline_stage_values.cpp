@@ -14,6 +14,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "ghost_stable_lag.h"
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
@@ -145,7 +146,7 @@ TEST_F(PipelineStageValueTest, BypassingNonlinearityGivesTheSameFrame) {
 // same values (and must not be replaced by an empty buffer).
 TEST_F(PipelineStageValueTest, GhostStageReturnsTheFrameItCorrected) {
     void* gh = nullptr;
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &gh));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withStableLag().c_str(), &gh));
     const std::string cfg =
         "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassBinning\":true,"
         "\"bypassDefect\":true,\"bypassNonlinearity\":true}";
@@ -158,6 +159,29 @@ TEST_F(PipelineStageValueTest, GhostStageReturnsTheFrameItCorrected) {
     const float expected = (kRaw - kOffset) / kGain;
     for (size_t i = 0; i < N; ++i) {
         ASSERT_NEAR(expected, storage[i], 1e-3f) << "pixel " << i;
+    }
+}
+
+// QA-A-226 (#241): a ghost handle without calibrated lag parameters passes the frame through, so the pipeline must
+// not flag it as ghost-corrected -- while the output stays float32 and keeps the values of the stages before it.
+TEST_F(PipelineStageValueTest, AnUncalibratedGhostHandleLeavesTheFlagUnsetAndTheValuesAsTheyWere) {
+    void* gh = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &gh));
+    xpe_clear_alerts();   // the creation warning (XPE_WARN_GHOST_NOT_CALIBRATED) is not what this test is about
+    const std::string cfg =
+        "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassBinning\":true,"
+        "\"bypassDefect\":true,\"bypassNonlinearity\":true}";
+    meta.acquisitionTime = 1700000000;
+    const XpeErrorCode rc =
+        xpe_preprocess_pipeline(&img, &meta, calib().c_str(), gh, cfg.c_str());
+    xpe_ghost_destroy(gh);
+    ASSERT_EQ(XPE_OK, rc);
+    EXPECT_FALSE(meta.flags & XPE_FLAG_GHOST_CORRECTED);
+    EXPECT_TRUE(meta.flags & XPE_FLAG_GAIN_CORRECTED);
+    ASSERT_EQ(XPE_PIXEL_FLOAT32, img.format);
+    const float expected = (kRaw - kOffset) / kGain;
+    for (size_t i = 0; i < N; ++i) {
+        ASSERT_FLOAT_EQ(expected, storage[i]) << "pixel " << i;
     }
 }
 
@@ -231,7 +255,7 @@ TEST_P(PipelineComboTest, OutputMatchesTheFormula) {
                                           nullptr, 0, mask.data(), N));
     }
     void* gh = nullptr;
-    if (c.ghost) ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &gh));
+    if (c.ghost) ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withStableLag().c_str(), &gh));
     std::string cfg = "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassBinning\":true";
     if (!c.nonlin) cfg += ",\"bypassNonlinearity\":true";
     cfg += "}";
@@ -272,8 +296,8 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_F(PipelineStageValueTest, GhostCorrectionOfTheSecondFrameReachesTheOutput) {
     void* gh = nullptr;
     void* ref = nullptr;
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &gh));
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &ref));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withStableLag().c_str(), &gh));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withStableLag().c_str(), &ref));
     const std::string cfg =
         "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassBinning\":true,"
         "\"bypassDefect\":true,\"bypassNonlinearity\":true}";

@@ -1,0 +1,12 @@
+--- level 2% (self-model truth: tier 1 with the same alpha/tau inverts it exactly) ---
+tier 1 (beta 0)                          retention   1.000 | k=1 removal 100.00% (res 0.0000%) | k=50 removal 100.00% (res 0.0000%)
+tier 2 (beta 0)                          retention   0.996 | k=1 removal 100.00% (res 0.0000%) | k=50 removal 100.00% (res 0.0000%)
+tier 3 (beta 0)                          retention   1.050 | k=1 removal  72.10% (res 4.5158%) | k=50 removal  71.88% (res 0.6473%)
+--- level 27% (self-model truth: tier 1 with the same alpha/tau inverts it exactly) ---
+tier 1 (beta 0)                          retention   1.000 | k=1 removal 100.00% (res 0.0000%) | k=50 removal 100.00% (res 0.0000%)
+tier 2 (beta 0)                          retention   0.940 | k=1 removal 100.00% (res 0.0000%) | k=50 removal 100.00% (res 0.0000%)
+tier 3 (beta 0)                          retention   1.010 | k=1 removal  75.27% (res 4.0025%) | k=50 removal  72.33% (res 0.6369%)
+--- level 92% (self-model truth: tier 1 with the same alpha/tau inverts it exactly) ---
+tier 1 (beta 0)                          retention   1.000 | k=1 removal 100.00% (res 0.0000%) | k=50 removal 100.00% (res 0.0000%)
+tier 2 (beta 0)                          retention   0.795 | k=1 removal 100.00% (res 0.0000%) | k=50 removal 100.00% (res 0.0000%)
+tier 3 (beta 0)                          retention   0.906 | k=1 removal  83.52% (res 2.6679%) | k=50 removal  73.51% (res 0.6099%)

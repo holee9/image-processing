@@ -1,0 +1,13 @@
+Red-first run of GhostLagContract.* on the product code before the 226c range checks (3 new tests: 2 red, 1 control already green; the old -inf line of ANonFiniteGainIsRefused was moved into ANegativeAlphaIsRefused):
+[       OK ] GhostLagContract.AForwardUnstableSetIsRefusedInEveryTier
+[       OK ] GhostLagContract.ANonFiniteGainIsRefused
+[       OK ] GhostLagContract.AResetStartsTheSequenceOver
+[       OK ] GhostLagContract.ASetThatIsNotCalibratedIsNotJudged
+[       OK ] GhostLagContract.AStableSetIsAcceptedInEveryTierAndRaisesNoWarning
+[       OK ] GhostLagContract.AZeroAlphaContributesNothingWhateverItsTauIs
+[       OK ] GhostLagContract.EachCallIsOneFrameStep
+[       OK ] GhostLagContract.TheBoundaryIsSEqualsOne
+[       OK ] GhostLagContract.TheOutputDoesNotDependOnTheTimes
+[       OK ] GhostLagContract.TheRangeBoundariesAreInclusiveWhereTheyShouldBe
+[  FAILED  ] GhostLagContract.ANegativeAlphaIsRefused
+[  FAILED  ] GhostLagContract.TauMustBeAFinitePositiveNumber

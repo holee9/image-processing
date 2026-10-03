@@ -308,7 +308,7 @@ TEST_F(GoldenGainTest, ZeroGainIsRefusedAtLoad) {
 
 // ==========================================================================
 // SWU-1.4: Ghost Correction Tier 1 — dual-exponential LTI deconvolution
-// Default: alpha1=0.9, tau1=1.0, alpha2=0.05, tau2=20.0
+// QA-A-226b: the lag set is given by configuration (kAlpha1..kTau2 below, S = 0.363 < 1); the corrector has no built-in set
 //
 // corrected[n,i] = raw[n,i] - alpha1*hist1[i] - alpha2*hist2[i]
 // hist1[i]        = decay1*hist1[i] + raw[n,i]   decay1 = exp(-1/tau1)
@@ -321,9 +321,9 @@ protected:
     static constexpr uint32_t W = 4, H = 4, N = W * H;
 
     // Default LTI parameters (from GhostCorrectorHandle)
-    static constexpr double kAlpha1 = 0.9;
+    static constexpr double kAlpha1 = 0.1;
     static constexpr double kTau1   = 1.0;
-    static constexpr double kAlpha2 = 0.05;
+    static constexpr double kAlpha2 = 0.01;
     static constexpr double kTau2   = 20.0;
 
     void* handle{nullptr};
@@ -341,6 +341,13 @@ protected:
         if (handle) { xpe_ghost_destroy(handle); handle = nullptr; }
     }
 
+    // The configuration the reference formula below is written for: the test's own constants, not a shared helper.
+    static std::string lagConfig() {
+        char buf[128];
+        std::snprintf(buf, sizeof(buf), "{\"alpha1\":%g,\"tau1\":%g,\"alpha2\":%g,\"tau2\":%g}", kAlpha1, kTau1, kAlpha2, kTau2);
+        return buf;
+    }
+
     // Reference Tier-1 formula applied to a uniform-valued image
     // Returns expected corrected value given previous h1, h2 and current raw
     static double tier1Expected(double rawVal, double h1, double h2) {
@@ -352,7 +359,7 @@ protected:
 TEST_F(GoldenGhostTest, Frame0PassesThroughExactly) {
     const float V = 1024.0f;
     std::fill(pixels.begin(), pixels.end(), V);
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, lagConfig().c_str(), &handle));
 
     meta.acquisitionTime = 1;
     ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &img, &meta));
@@ -366,7 +373,7 @@ TEST_F(GoldenGhostTest, Frame0PassesThroughExactly) {
 // REQ-P1A-087: Frame 1 with constant input matches dual-exponential formula
 TEST_F(GoldenGhostTest, Frame1MatchesDualExponentialFormula) {
     const float V = 2000.0f;
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, lagConfig().c_str(), &handle));
 
     // Frame 0: sets h1=V, h2=V (corrected passes through = V)
     std::fill(pixels.begin(), pixels.end(), V);
@@ -389,7 +396,7 @@ TEST_F(GoldenGhostTest, Frame1MatchesDualExponentialFormula) {
 // REQ-P1A-088: After reset(), next frame uses zero history (passthrough again)
 TEST_F(GoldenGhostTest, AfterResetHistoryIsZero) {
     const float V = 500.0f;
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, lagConfig().c_str(), &handle));
 
     // Build up history with 5 frames
     for (int f = 1; f <= 5; ++f) {
@@ -411,11 +418,10 @@ TEST_F(GoldenGhostTest, AfterResetHistoryIsZero) {
 }
 
 // After frame 1, ghost is subtracted → corrected < original input
-// Note: with default alpha1=0.9+alpha2=0.05, combined ghost fraction=0.95
-// so corrected[1] = V*(1-0.95) = V*0.05 — aggressive correction is expected
+// Note: with alpha1=0.1 + alpha2=0.01 the second frame is V*(1-0.11) = 0.89*V
 TEST_F(GoldenGhostTest, GhostSubtractedAfterFirstFrame) {
     const float V = 4096.0f;
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, lagConfig().c_str(), &handle));
 
     // Frame 0: passthrough (verified by Frame0PassesThroughExactly)
     std::fill(pixels.begin(), pixels.end(), V);

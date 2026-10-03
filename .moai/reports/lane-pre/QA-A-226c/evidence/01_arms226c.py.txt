@@ -1,0 +1,81 @@
+"""QA-A-226c: re-check that the tests moved to the stable lag set (alpha 0.1/0.01 instead of 0.9/0.05) still catch the defect
+they guard. One damage at a time, full build, run the ghost-related suites, restore + cmp."""
+import subprocess, sys, shutil, os, re
+R = 'D:/workspace-github/xpe-pre/'
+S = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5/scratchpad/'
+GC = R + 'modules/preprocess/src/ghost_correct.cpp'
+PL = R + 'modules/preprocess/src/pipeline.cpp'
+for f in (GC, PL):
+    k = S + 'keep226c_' + os.path.basename(f)
+    if not os.path.exists(k):
+        shutil.copy(f, k)
+
+T1 = 'float corrected = raw - a1 * h1[i] - a2 * h2[i];'
+# (file, old, new, nth occurrence (1-based) of old to replace)
+ARMS = {
+    'c1_tier1_alpha2_ignored': (GC, T1, 'float corrected = raw - a1 * h1[i] - 0.0f * a2 * h2[i];', 1),
+    'c2_tier1_alpha1_sign_flipped': (GC, T1, 'float corrected = raw + a1 * h1[i] - a2 * h2[i];', 1),
+    'c3_tier3_reads_corrected_pixels': (GC, 'const float* const src = gh->backup.data();', 'const float* const src = px;', 1),
+    'c4_no_lock_in_correct': (GC, """    std::lock_guard<std::mutex> lock(gh->mtx);
+
+    auto* px""", """    auto* px""", 1),
+    'c5_history_not_committed': (GC, '    gh->hist1.swap(gh->next1);\n', '', 1),
+    'c6_tier2_weight_ignored': (GC, """        const float a1 = a1_base * exposureWeight;
+        const float a2 = a2_base * exposureWeight;""", """        const float a1 = a1_base;
+        const float a2 = a2_base;""", 1),
+    'c7_tier3_beta_ignored': (GC, 'const float signalDependence = 1.0f + beta * (raw / 32768.0f);', 'const float signalDependence = 1.0f + 0.0f * beta * (raw / 32768.0f);', 1),
+    'c8_alpha1_hard_coded': (GC, 'const float a1_base = static_cast<float>(gh->alpha1);', 'const float a1_base = 0.1f;', 1),
+    'c9_failed_pixels_not_restored': (GC, '        std::memcpy(px, gh->backup.data(), n * sizeof(float));\n', '', 1),
+    'c10_pipeline_discards_ghost_output': (PL, """            result = xpe_ghost_correct(ghostHandle, &stage7, meta);
+            if (result != XPE_OK) return result;
+""", """            result = xpe_ghost_correct(ghostHandle, &stage7, meta);
+            if (result != XPE_OK) return result;
+            std::memcpy(stage7Data.data(), stage6.data, pixelCount * sizeof(float));
+""", 1),
+    'c11_ordinary_number_refused': (GC, """                if (doc.getString(r.key, &v) && !v.empty() && !xpe_strict::parse_double(v, r.dst))
+                    return XPE_ERR_CONFIG_INVALID;""", """                if (doc.getString(r.key, &v) && !v.empty() && (!xpe_strict::parse_double(v, r.dst) || v.find('.') != std::string::npos))
+                    return XPE_ERR_CONFIG_INVALID;""", 1),
+    'c13_no_history_at_all': (GC, """    gh->hist1.swap(gh->next1);
+    gh->hist2.swap(gh->next2);
+""", '', 1),
+    'c12_failed_frame_commits_history': (GC, '    if (result != XPE_OK) {\n        // the history, the time', '    gh->hist1.swap(gh->next1);\n    if (result != XPE_OK) {\n        // the history, the time', 1),
+}
+
+FILTER = ('Ghost*:GoldenGhostTest.*:PipelineStageValueTest.*:PipelineComboTest.*:ConfigStrictParse.*:P1A066.*:OomPipeline.*')
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', S + 'buildall.bat'], capture_output=True, text=True)
+    return 'BUILD_EXIT=0' in r.stdout, r.stdout
+
+
+def tests():
+    r = subprocess.run([R + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe', '--gtest_filter=' + FILTER],
+                       cwd=R + 'modules/preprocess', capture_output=True, text=True)
+    failed = sorted(set(re.findall(r'^\[  FAILED  \] ([A-Za-z]\S+)', r.stdout, re.M)))
+    return failed, r.returncode
+
+
+for name in sys.argv[1:]:
+    f, old, new, nth = ARMS[name]
+    keep = S + 'keep226c_' + os.path.basename(f)
+    shutil.copy(keep, f)
+    src = open(f, 'rb').read().decode('utf-8')
+    crlf = '\r\n' in src
+    s = src.replace('\r\n', '\n')
+    assert s.count(old) >= nth, (name, s.count(old))
+    idx = -1
+    for _ in range(nth):
+        idx = s.index(old, idx + 1)
+    s = s[:idx] + new + s[idx + len(old):]
+    open(f, 'wb').write((s.replace('\n', '\r\n') if crlf else s).encode('utf-8'))
+    ok, out = build()
+    if not ok:
+        print(name, 'BUILD FAILED'); print(out[-1200:])
+    else:
+        failed, rc = tests()
+        # a process that dies (a race corrupting the heap) leaves no FAILED line: the exit code is the detection
+        crashed = rc not in (0, 1) or (rc != 0 and not failed)
+        tag = (' [PROCESS DIED, exit %d]' % rc) if crashed else ''
+        print('%-36s -> %d red%s: %s' % (name, len(failed), tag, ', '.join(failed) if failed else ('NONE (arm did not fire)' if not crashed else 'no FAILED line')))
+    shutil.copy(keep, f)

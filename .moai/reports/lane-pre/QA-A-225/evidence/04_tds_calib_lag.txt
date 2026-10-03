@@ -1,0 +1,80 @@
+== TDS-CALIB lag datasets 405-460
+- 자동 계층화 메커니즘 (Tier 1→2→3)
+- 노출 이력 링 버퍼 관리 (8-16 프레임)
+
+#### 4.4.2 합성 데이터 명세
+
+**Dataset**: `synthetic/lag/`
+
+**FSRF (Forward Step Response Function)**: 노출 프레임 시퀀스 → 어두운 프레임 시퀀스
+
+**RSRF (Reverse Step Response Function)**: 어두운 프레임 시퀀스 → 노출 프레임 시퀀스
+
+| 테스트 케이스 | 노출 수준 | 프레임 수 | LTI 모델 | Ground Truth |
+|-------------|---------|---------|---------|-------------|
+| **lag_tier1_lti_fsrf** | 27% saturation | 200 | Varex 4030CB 기준 파라미터 | 1st frame lag < 0.3% |
+| **lag_tier1_lti_rsrf** | 27% saturation | 200 | 역 함수 (RSRF) | 50th frame lag < 0.01% |
+| **lag_tier2_exposure_weighted** | 27%, 50%, 75% mixed | 100 frames | E-weighted coefficients | Residual lag < 10% after Tier 1 |
+| **lag_tier3_nlcsc_9levels** | 2%, 5%, 10%, 20%, 30%, 50%, 70%, 80%, 92% | 각 40 frames | Signal-dependent coefficients | NLCSC 90% 제거율 달성 |
+| **lag_auto_escalation** | 시작 Tier 1 | 100 frames | Auto-detect residual | Tier escalation 조건 검증 |
+| **lag_history_ring_buffer** | 8-frame 윈도우 | 200 frames | FIFO ring buffer | 메모리 누수 없음, 정확한 상태 |
+
+**파일 형식** (FSRF 예시):
+
+```
+synthetic/lag/FSRF_SAT27_001.raw        (uint16, 3072×3072, exposure frame)
+synthetic/lag/FSRF_SAT27_002.raw        (uint16, 3072×3072, exposure frame)
+...
+synthetic/lag/FSRF_SAT27_dark_001.raw   (uint16, 3072×3072, dark follow-up)
+synthetic/lag/FSRF_SAT27_dark_002.raw   (uint16, 3072×3072, dark follow-up)
+...
+synthetic/lag/metadata_FSRF_SAT27.json
+  {
+    "sequence_type": "FSRF",
+    "exposure_frames": 200,
+    "dark_frames": 200,
+    "saturation_percent": 27,
+    "lti_parameters": {
+      "_note": "a_n은 감쇠 속도 [프레임^-1], b_n은 래그 계수 (무단위). PRD REQ-LAG-001 기준.",
+      "a_n_per_frame": [2.5e-3, 2.1e-2, 1.6e-1, 7.6e-1],
+      "b_n_fraction":  [7.1e-6, 1.1e-4, 1.7e-3, 1.8e-2],
+      "_example_tau1_frames": "1/a_1 = 400 프레임 (15fps → 26.7초)",
+      "detector_model": "Varex 4030CB, 15fps, 27% saturation"
+    }
+  }
+```
+
+**합격 기준**:
+- 1st frame lag < 0.3% (Tier 1)
+- 50th frame lag < 0.01% (Tier 1+)
+- NLCSC 90% 제거율 (Tier 3)
+- 메모리 누수 0 바이트 (200프레임 배치)
+
+#### 4.4.3 실제 영상 데이터 명세
+
+**출처**: IAP-CALIB-001 **섹션 6.5** (Lag/Ghost 측정용 영상)
+
+> **[교차검증 수정 1]** 포화도 수준: PRD 기준 9개 수준은 2%, 5%, 10%, 20%, 30%, 50%, 70%, 80%, 92% (REQ-LAG-005)
+
+== TDS-CALIB 1205-1225
+|---|---|---|
+| `PRE-E2E-0` | all local cases | file size, SHA-256, inferred dimensions, Git ignore proof |
+| `PRE-E2E-1` | generated synthetic cases | exact oracle output for offset/gain/nonlinearity/defect/lag |
+| `PRE-E2E-2` | local real cases | detector-domain calibration-effect metrics |
+| `PRE-E2E-3` | cases with known outputs such as `*_oc.raw` | RMSE/PSNR reference comparison after semantics confirmation |
+| `PRE-E2E-4` | Test GUI or backend driver | same report schema as native E2E run |
+| `PRE-E2E-5` | intentionally mismatched image/calibration cases | hard failure or visible warning; no silent correction |
+
+Minimum report metrics:
+
+- `DarkBias`, `DSNU_ADU`, `DarkReduction_dB`, `ClampRate`
+- `PRNU_CV`, `FlatResidualPct`, `FPN_Reduction_dB`, `LineArtifactScore`
+- `DefectRecall`, `DefectFPR`, `DefectResidualADU`, `GoodPixelDeltaP99`
+- `LagResidualPct`, `GhostRemovalPct`
+- `InputPreserved`, `NaNInfCount`, `PipelineTimeMs`, `PeakMemoryMB`
+- `Calibration Effect Score`
+
+Raw payload policy:
+
+- `.raw` and `.dcm` payloads under `tests/test_data` remain local-only.
+- Git may track fixture README, `.gitignore`, manifests, report schemas, and expected-output hashes.

@@ -1,0 +1,44 @@
+== calibration_cases tree (dirs + file counts)
+aed_shock_had1717mc: 45 files
+auradr_release_line_trg: 14 files
+corner_blemish_16j20b3: 13 files
+corner_blemish_17a06b1: 14 files
+
+== names in each case's non-calibration part (first 8)
+-- aed_shock_had1717mc
+images/230811_img-img_dark.raw
+images/230811_img.raw
+images/230811_img10_averMaster_bpm_oc.raw
+images/230811_img11_averMaster_bpm_oc.raw
+images/230811_img12_averMaster_bpm_oc.raw
+images/230811_img13_shock.raw
+images/230811_img1_dark.raw
+images/230811_img1_oc.raw
+-- auradr_release_line_trg
+images/21412.raw
+images/Specify Name.raw
+images/Specify.raw
+-- corner_blemish_16j20b3
+images/Bad_1.raw
+images/Bad_2.raw
+images/Bad_3.raw
+images/Good_1.raw
+images/Good_2.raw
+images/Good_3.raw
+images/Normal_1.raw
+images/Normal_2.raw
+-- corner_blemish_17a06b1
+images/Bad_1.raw
+images/Bad_2.raw
+images/Bad_3.raw
+images/Good_1.raw
+images/Good_2.raw
+images/Good_3.raw
+images/Normal_1.raw
+images/Normal_2.raw
+
+== README text mentioning lag/ghost/sequence/dark follow
+tests/test_data/cyan_test/README.md:278:Step 6: 고스트/Lag 보정 (선택사항)
+tests/test_data/cyan_test/README.md:279:  └─ I_ghost_corr = deconvolve_lag(I_temp_corr, history_buffer)
+tests/test_data/CalData_6/README.md:146:예: 254개 연속된 0 → (count=254, value=0)
+(none above = none)

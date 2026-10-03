@@ -24,6 +24,7 @@
 #endif
 
 #include <gtest/gtest.h>
+#include "ghost_stable_lag.h"
 
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_error.h"
@@ -730,7 +731,7 @@ void setup() {
     xpe_calib_load_defect_map("oom_pipe_calib/defect.xcal");
     if (g_ghost) xpe_ghost_destroy(g_ghost);
     g_ghost = nullptr;
-    xpe_ghost_create(W, H, nullptr, &g_ghost);
+    xpe_ghost_create(W, H, withStableLag().c_str(), &g_ghost);   // QA-A-226: a handle that corrects (the control below checks the ghost stage ran)
     for (int f = 0; f < kFrames; ++f) {
         g_bytes[f].assign(N * sizeof(float), 0);
         auto* px = reinterpret_cast<uint16_t*>(g_bytes[f].data());

@@ -9,7 +9,7 @@
  * interleaving of whole calls ends in the same history as a serial replay of all calls. With
  * tau1 = tau2 = 1e12 frames the decay rounds to exactly 1.0f, the history never forgets, and
  * hist1[i] is the number of updates applied to element i: a lost update stays visible forever
- * (with the default time constants the history contracts and hides it).
+ * (with ordinary time constants the history contracts and hides it).
  *
  * Controls, each compared with the same serial replay:
  *   - ExternalMutex : one shared handle serialised from outside -- proves the method can pass
@@ -17,6 +17,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "ghost_stable_lag.h"
 
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
@@ -37,7 +38,9 @@ constexpr uint32_t kSide = 16;
 constexpr int kCallsPerThread = 2000;
 constexpr int kRuns = 20;
 constexpr uint64_t kAcqTime = 10u;
-const char* const kNoForgetting = R"({"tau1":"1e12","tau2":"1e12"})";
+// alpha 1e-13 keeps the steady-state gain S = alpha*tau at 0.2 (< 1, QA-A-226b); the test reads the HISTORY, which does
+// not depend on alpha, so the lost-update count is as visible as before.
+const char* const kNoForgetting = R"({"alpha1":"1e-13","tau1":"1e12","alpha2":"1e-13","tau2":"1e12"})";
 
 XpeImageBuffer f32(std::vector<float>& px) {
     XpeImageBuffer b{};
@@ -239,7 +242,7 @@ TEST_F(GhostThreadSafety, FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle) 
     std::string firstWhy;
     for (int run = 0; run < kRuns; ++run) {
         void* h = nullptr;
-        ASSERT_EQ(XPE_OK, xpe_ghost_create(kSide, kSide, "{\"tier\":\"1\"}", &h));
+        ASSERT_EQ(XPE_OK, xpe_ghost_create(kSide, kSide, withStableLag("{\"tier\":\"1\"}").c_str(), &h));
         XpeImageMetadata meta{};
         meta.acquisitionTime = kAcqTime;
         {
