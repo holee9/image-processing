@@ -1,0 +1,4 @@
+== arm (a): the record line is erased (JudgmentLine returns nothing)
+[xUnit.net 00:00:00.21]     ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.TheJudgmentLine_CarriesTheStartAndTheCompletion_AndSaysTheVerdictDoesNotDependOnThem [FAIL]
+[xUnit.net 00:00:04.91]     ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02e_ALateJudgmentRead_DoesNotChangeTheVerdict_ButTheRecordShowsTheLateCompletion [FAIL]
+실패!  - 실패:     2, 통과:    18, 건너뜀:     0, 전체:    20, 기간: 7 s - ImageProcTest.E2ETests.dll (net8.0)
