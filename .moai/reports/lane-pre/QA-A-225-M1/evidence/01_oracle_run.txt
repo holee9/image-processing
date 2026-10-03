@@ -1,0 +1,174 @@
+Note: Google Test filter = GhostOracle.*
+[==========] Running 8 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 8 tests from GhostOracle
+[ RUN      ] GhostOracle.TheLtiTruthSatisfiesItsDefinition
+[       OK ] GhostOracle.TheLtiTruthSatisfiesItsDefinition (0 ms)
+[ RUN      ] GhostOracle.TheTrapTruthLagShrinksRelativelyAsTheExposureGrows
+[ghost-oracle] T2 raw first blank frame lag at  2%: 1.8953% of the exposure signal
+[ghost-oracle] T2 raw first blank frame lag at 27%: 1.4532% of the exposure signal
+[ghost-oracle] T2 raw first blank frame lag at 92%: 0.9051% of the exposure signal
+[ghost-oracle] T1 raw first blank frame lag: 3.0851% at 2%, 3.0851% at 92% (level-independent)
+[       OK ] GhostOracle.TheTrapTruthLagShrinksRelativelyAsTheExposureGrows (0 ms)
+[ RUN      ] GhostOracle.TheControlsGiveTheAnswersTheyMust
+[       OK ] GhostOracle.TheControlsGiveTheAnswersTheyMust (4 ms)
+[ RUN      ] GhostOracle.TheStepMeasurementSeesWhatTheClampHides
+[       OK ] GhostOracle.TheStepMeasurementSeesWhatTheClampHides (0 ms)
+[ RUN      ] GhostOracle.ASelfModelLagIsCorrectedToTheLetterWhichProvesNothing
+[ghost-oracle] self 27%     sigma=0   control:self-model, same config    retention=  1.0000 (raw 1.1873) | k=1 raw 16.1855% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 2.3019% res 0.0000% removal  100.00%
+[ghost-oracle] self 27%     sigma=0   control:self-model, other config   retention=  1.0271 (raw 1.1873) | k=1 raw 16.1855% res 1.8664% removal   88.47% | k=10 removal  100.00% | k=50 raw 2.3019% res 0.0000% removal  100.00%
+[       OK ] GhostOracle.ASelfModelLagIsCorrectedToTheLetterWhichProvesNothing (0 ms)
+[ RUN      ] GhostOracle.MeasuresTheModuleAgainstTheIndependentTruths
+[ghost-oracle] columns: truth T1 = Starman LTI, T2 = finite trap | level of saturation | sigma ADU | corrector | retention = corrected exposure mean (frames 50..200) / true exposure | LagRaw/LagResidual/GhostRemoval per blank frame k
+[ghost-oracle] T1   2%      sigma=0   control:none                       retention=  1.0310 (raw 1.0310) | k=1 raw 3.0851% res 3.0851% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.2729% res 0.2729% removal    0.00%
+[ghost-oracle] T1   2%      sigma=0   control:oracle(true x)             retention=  1.0000 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   2%      sigma=0   control:zeros                      retention=  0.0000 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   2%      sigma=0   module:uncalibrated(no config)     retention=  1.0310 (raw 1.0310) | k=1 raw 3.0851% res 3.0851% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.2729% res 0.2729% removal    0.00%
+[ghost-oracle] T1   2%      sigma=0   module:tier1 0.02/3/0.003/30       retention=  0.8677 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   2%      sigma=0   module:tier2 0.02/3/0.003/30       retention=  0.8643 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   2%      sigma=0   module:tier3 0.02/3/0.003/30       retention=  0.9020 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   2%      sigma=0   module:tier1 0.1/1/0.01/20         retention=  0.6591 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   2%      sigma=0   module:tier2 0.1/1/0.01/20         retention=  0.6514 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   2%      sigma=0   module:tier3 0.1/1/0.01/20         retention=  0.7374 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   2%      sigma=5   control:none                       retention=  1.0310 (raw 1.0310) | k=1 raw 3.0712% res 3.0712% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.3020% res 0.3020% removal    0.00%
+[ghost-oracle] T1   2%      sigma=5   control:oracle(true x)             retention=  1.0000 (raw 1.0310) | k=1 raw 3.0712% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.3020% res 0.0000% removal  100.00%
+[ghost-oracle] T1   2%      sigma=5   control:zeros                      retention=  0.0000 (raw 1.0310) | k=1 raw 3.0712% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.3020% res 0.0000% removal  100.00%
+[ghost-oracle] T1   2%      sigma=5   module:uncalibrated(no config)     retention=  1.0310 (raw 1.0310) | k=1 raw 3.0712% res 3.0712% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.3020% res 0.3020% removal    0.00%
+[ghost-oracle] T1   2%      sigma=5   module:tier1 0.02/3/0.003/30       retention=  0.8677 (raw 1.0310) | k=1 raw 3.0712% res 0.1449% removal   95.28% | k=10 removal   80.00% | k=50 raw 0.3020% res 0.1449% removal   52.01%
+[ghost-oracle] T1   2%      sigma=5   module:tier2 0.02/3/0.003/30       retention=  0.8643 (raw 1.0310) | k=1 raw 3.0712% res 0.1449% removal   95.28% | k=10 removal   80.00% | k=50 raw 0.3020% res 0.1449% removal   52.01%
+[ghost-oracle] T1   2%      sigma=5   module:tier3 0.02/3/0.003/30       retention=  0.9020 (raw 1.0310) | k=1 raw 3.0712% res 0.1146% removal   96.27% | k=10 removal   84.18% | k=50 raw 0.3020% res 0.1146% removal   62.03%
+[ghost-oracle] T1   2%      sigma=5   module:tier1 0.1/1/0.01/20         retention=  0.6591 (raw 1.0310) | k=1 raw 3.0712% res 0.1456% removal   95.26% | k=10 removal   79.91% | k=50 raw 0.3020% res 0.1456% removal   51.79%
+[ghost-oracle] T1   2%      sigma=5   module:tier2 0.1/1/0.01/20         retention=  0.6514 (raw 1.0310) | k=1 raw 3.0712% res 0.1456% removal   95.26% | k=10 removal   79.91% | k=50 raw 0.3020% res 0.1456% removal   51.79%
+[ghost-oracle] T1   2%      sigma=5   module:tier3 0.1/1/0.01/20         retention=  0.7374 (raw 1.0310) | k=1 raw 3.0712% res 0.1151% removal   96.25% | k=10 removal   84.12% | k=50 raw 0.3020% res 0.1151% removal   61.90%
+[ghost-oracle] T1   27%     sigma=0   control:none                       retention=  1.0310 (raw 1.0310) | k=1 raw 3.0851% res 3.0851% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.2729% res 0.2729% removal    0.00%
+[ghost-oracle] T1   27%     sigma=0   control:oracle(true x)             retention=  1.0000 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   27%     sigma=0   control:zeros                      retention=  0.0000 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   27%     sigma=0   module:uncalibrated(no config)     retention=  1.0310 (raw 1.0310) | k=1 raw 3.0851% res 3.0851% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.2729% res 0.2729% removal    0.00%
+[ghost-oracle] T1   27%     sigma=0   module:tier1 0.02/3/0.003/30       retention=  0.8677 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   27%     sigma=0   module:tier2 0.02/3/0.003/30       retention=  0.8222 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   27%     sigma=0   module:tier3 0.02/3/0.003/30       retention=  0.8612 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   27%     sigma=0   module:tier1 0.1/1/0.01/20         retention=  0.6591 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   27%     sigma=0   module:tier2 0.1/1/0.01/20         retention=  0.5555 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   27%     sigma=0   module:tier3 0.1/1/0.01/20         retention=  0.6444 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   27%     sigma=5   control:none                       retention=  1.0310 (raw 1.0310) | k=1 raw 3.0841% res 3.0841% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.2750% res 0.2750% removal    0.00%
+[ghost-oracle] T1   27%     sigma=5   control:oracle(true x)             retention=  1.0000 (raw 1.0310) | k=1 raw 3.0841% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2750% res 0.0000% removal  100.00%
+[ghost-oracle] T1   27%     sigma=5   control:zeros                      retention=  0.0000 (raw 1.0310) | k=1 raw 3.0841% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2750% res 0.0000% removal  100.00%
+[ghost-oracle] T1   27%     sigma=5   module:uncalibrated(no config)     retention=  1.0310 (raw 1.0310) | k=1 raw 3.0841% res 3.0841% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.2750% res 0.2750% removal    0.00%
+[ghost-oracle] T1   27%     sigma=5   module:tier1 0.02/3/0.003/30       retention=  0.8677 (raw 1.0310) | k=1 raw 3.0841% res 0.0107% removal   99.65% | k=10 removal   98.55% | k=50 raw 0.2750% res 0.0107% removal   96.10%
+[ghost-oracle] T1   27%     sigma=5   module:tier2 0.02/3/0.003/30       retention=  0.8222 (raw 1.0310) | k=1 raw 3.0841% res 0.0107% removal   99.65% | k=10 removal   98.55% | k=50 raw 0.2750% res 0.0107% removal   96.10%
+[ghost-oracle] T1   27%     sigma=5   module:tier3 0.02/3/0.003/30       retention=  0.8612 (raw 1.0310) | k=1 raw 3.0841% res 0.0085% removal   99.72% | k=10 removal   98.85% | k=50 raw 0.2750% res 0.0085% removal   96.91%
+[ghost-oracle] T1   27%     sigma=5   module:tier1 0.1/1/0.01/20         retention=  0.6591 (raw 1.0310) | k=1 raw 3.0841% res 0.0108% removal   99.65% | k=10 removal   98.54% | k=50 raw 0.2750% res 0.0108% removal   96.08%
+[ghost-oracle] T1   27%     sigma=5   module:tier2 0.1/1/0.01/20         retention=  0.5555 (raw 1.0310) | k=1 raw 3.0841% res 0.0108% removal   99.65% | k=10 removal   98.54% | k=50 raw 0.2750% res 0.0108% removal   96.08%
+[ghost-oracle] T1   27%     sigma=5   module:tier3 0.1/1/0.01/20         retention=  0.6444 (raw 1.0310) | k=1 raw 3.0841% res 0.0085% removal   99.72% | k=10 removal   98.85% | k=50 raw 0.2750% res 0.0085% removal   96.90%
+[ghost-oracle] T1   92%     sigma=0   control:none                       retention=  1.0310 (raw 1.0310) | k=1 raw 3.0851% res 3.0851% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.2729% res 0.2729% removal    0.00%
+[ghost-oracle] T1   92%     sigma=0   control:oracle(true x)             retention=  1.0000 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   92%     sigma=0   control:zeros                      retention=  0.0000 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   92%     sigma=0   module:uncalibrated(no config)     retention=  1.0310 (raw 1.0310) | k=1 raw 3.0851% res 3.0851% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.2729% res 0.2729% removal    0.00%
+[ghost-oracle] T1   92%     sigma=0   module:tier1 0.02/3/0.003/30       retention=  0.8677 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   92%     sigma=0   module:tier2 0.02/3/0.003/30       retention=  0.7128 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   92%     sigma=0   module:tier3 0.02/3/0.003/30       retention=  0.7393 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   92%     sigma=0   module:tier1 0.1/1/0.01/20         retention=  0.6591 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   92%     sigma=0   module:tier2 0.1/1/0.01/20         retention=  0.3063 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   92%     sigma=0   module:tier3 0.1/1/0.01/20         retention=  0.3669 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   92%     sigma=5   control:none                       retention=  1.0310 (raw 1.0310) | k=1 raw 3.0848% res 3.0848% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.2735% res 0.2735% removal    0.00%
+[ghost-oracle] T1   92%     sigma=5   control:oracle(true x)             retention=  1.0000 (raw 1.0310) | k=1 raw 3.0848% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2735% res 0.0000% removal  100.00%
+[ghost-oracle] T1   92%     sigma=5   control:zeros                      retention=  0.0000 (raw 1.0310) | k=1 raw 3.0848% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2735% res 0.0000% removal  100.00%
+[ghost-oracle] T1   92%     sigma=5   module:uncalibrated(no config)     retention=  1.0310 (raw 1.0310) | k=1 raw 3.0848% res 3.0848% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.2735% res 0.2735% removal    0.00%
+[ghost-oracle] T1   92%     sigma=5   module:tier1 0.02/3/0.003/30       retention=  0.8677 (raw 1.0310) | k=1 raw 3.0848% res 0.0031% removal   99.90% | k=10 removal   99.58% | k=50 raw 0.2735% res 0.0031% removal   98.85%
+[ghost-oracle] T1   92%     sigma=5   module:tier2 0.02/3/0.003/30       retention=  0.7128 (raw 1.0310) | k=1 raw 3.0848% res 0.0031% removal   99.90% | k=10 removal   99.58% | k=50 raw 0.2735% res 0.0031% removal   98.85%
+[ghost-oracle] T1   92%     sigma=5   module:tier3 0.02/3/0.003/30       retention=  0.7393 (raw 1.0310) | k=1 raw 3.0848% res 0.0025% removal   99.92% | k=10 removal   99.66% | k=50 raw 0.2735% res 0.0025% removal   99.09%
+[ghost-oracle] T1   92%     sigma=5   module:tier1 0.1/1/0.01/20         retention=  0.6591 (raw 1.0310) | k=1 raw 3.0848% res 0.0032% removal   99.90% | k=10 removal   99.57% | k=50 raw 0.2735% res 0.0032% removal   98.84%
+[ghost-oracle] T1   92%     sigma=5   module:tier2 0.1/1/0.01/20         retention=  0.3063 (raw 1.0310) | k=1 raw 3.0848% res 0.0032% removal   99.90% | k=10 removal   99.57% | k=50 raw 0.2735% res 0.0032% removal   98.84%
+[ghost-oracle] T1   92%     sigma=5   module:tier3 0.1/1/0.01/20         retention=  0.3669 (raw 1.0310) | k=1 raw 3.0848% res 0.0025% removal   99.92% | k=10 removal   99.66% | k=50 raw 0.2735% res 0.0025% removal   99.09%
+[ghost-oracle] T2   2%      sigma=0   control:none                       retention=  1.0193 (raw 1.0193) | k=1 raw 1.8953% res 1.8953% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.0040% res 0.0040% removal    0.00%
+[ghost-oracle] T2   2%      sigma=0   control:oracle(true x)             retention=  1.0000 (raw 1.0193) | k=1 raw 1.8953% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0040% res 0.0000% removal  100.00%
+[ghost-oracle] T2   2%      sigma=0   control:zeros                      retention=  0.0000 (raw 1.0193) | k=1 raw 1.8953% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0040% res 0.0000% removal  100.00%
+[ghost-oracle] T2   2%      sigma=0   module:uncalibrated(no config)     retention=  1.0193 (raw 1.0193) | k=1 raw 1.8953% res 1.8953% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.0040% res 0.0040% removal    0.00%
+[ghost-oracle] T2   2%      sigma=0   module:tier1 0.02/3/0.003/30       retention=  0.8578 (raw 1.0193) | k=1 raw 1.8953% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0040% res 0.0000% removal  100.00%
+[ghost-oracle] T2   2%      sigma=0   module:tier2 0.02/3/0.003/30       retention=  0.8545 (raw 1.0193) | k=1 raw 1.8953% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0040% res 0.0000% removal  100.00%
+[ghost-oracle] T2   2%      sigma=0   module:tier3 0.02/3/0.003/30       retention=  0.8918 (raw 1.0193) | k=1 raw 1.8953% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0040% res 0.0000% removal  100.00%
+[ghost-oracle] T2   2%      sigma=0   module:tier1 0.1/1/0.01/20         retention=  0.6515 (raw 1.0193) | k=1 raw 1.8953% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0040% res 0.0000% removal  100.00%
+[ghost-oracle] T2   2%      sigma=0   module:tier2 0.1/1/0.01/20         retention=  0.6440 (raw 1.0193) | k=1 raw 1.8953% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0040% res 0.0000% removal  100.00%
+[ghost-oracle] T2   2%      sigma=0   module:tier3 0.1/1/0.01/20         retention=  0.7290 (raw 1.0193) | k=1 raw 1.8953% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0040% res 0.0000% removal  100.00%
+[ghost-oracle] T2   2%      sigma=5   control:none                       retention=  1.0193 (raw 1.0193) | k=1 raw 1.8811% res 1.8811% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.0334% res 0.0334% removal    0.00%
+[ghost-oracle] T2   2%      sigma=5   control:oracle(true x)             retention=  1.0000 (raw 1.0193) | k=1 raw 1.8811% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0334% res 0.0000% removal  100.00%
+[ghost-oracle] T2   2%      sigma=5   control:zeros                      retention=  0.0000 (raw 1.0193) | k=1 raw 1.8811% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0334% res 0.0000% removal  100.00%
+[ghost-oracle] T2   2%      sigma=5   module:uncalibrated(no config)     retention=  1.0193 (raw 1.0193) | k=1 raw 1.8811% res 1.8811% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.0334% res 0.0334% removal    0.00%
+[ghost-oracle] T2   2%      sigma=5   module:tier1 0.02/3/0.003/30       retention=  0.8578 (raw 1.0193) | k=1 raw 1.8811% res 0.1467% removal   92.20% | k=10 removal -362.12% | k=50 raw 0.0334% res 0.1467% removal -338.73%
+[ghost-oracle] T2   2%      sigma=5   module:tier2 0.02/3/0.003/30       retention=  0.8545 (raw 1.0193) | k=1 raw 1.8811% res 0.1467% removal   92.20% | k=10 removal -362.12% | k=50 raw 0.0334% res 0.1467% removal -338.73%
+[ghost-oracle] T2   2%      sigma=5   module:tier3 0.02/3/0.003/30       retention=  0.8918 (raw 1.0193) | k=1 raw 1.8811% res 0.1161% removal   93.83% | k=10 removal -265.62% | k=50 raw 0.0334% res 0.1161% removal -247.11%
+[ghost-oracle] T2   2%      sigma=5   module:tier1 0.1/1/0.01/20         retention=  0.6515 (raw 1.0193) | k=1 raw 1.8811% res 0.1474% removal   92.17% | k=10 removal -364.24% | k=50 raw 0.0334% res 0.1474% removal -340.73%
+[ghost-oracle] T2   2%      sigma=5   module:tier2 0.1/1/0.01/20         retention=  0.6440 (raw 1.0193) | k=1 raw 1.8811% res 0.1474% removal   92.17% | k=10 removal -364.24% | k=50 raw 0.0334% res 0.1474% removal -340.73%
+[ghost-oracle] T2   2%      sigma=5   module:tier3 0.1/1/0.01/20         retention=  0.7290 (raw 1.0193) | k=1 raw 1.8811% res 0.1165% removal   93.81% | k=10 removal -266.91% | k=50 raw 0.0334% res 0.1165% removal -248.34%
+[ghost-oracle] T2   27%     sigma=0   control:none                       retention=  1.0147 (raw 1.0147) | k=1 raw 1.4532% res 1.4532% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.0034% res 0.0034% removal    0.00%
+[ghost-oracle] T2   27%     sigma=0   control:oracle(true x)             retention=  1.0000 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0000% removal  100.00%
+[ghost-oracle] T2   27%     sigma=0   control:zeros                      retention=  0.0000 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0000% removal  100.00%
+[ghost-oracle] T2   27%     sigma=0   module:uncalibrated(no config)     retention=  1.0147 (raw 1.0147) | k=1 raw 1.4532% res 1.4532% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.0034% res 0.0034% removal    0.00%
+[ghost-oracle] T2   27%     sigma=0   module:tier1 0.02/3/0.003/30       retention=  0.8539 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0000% removal  100.00%
+[ghost-oracle] T2   27%     sigma=0   module:tier2 0.02/3/0.003/30       retention=  0.8099 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0000% removal  100.00%
+[ghost-oracle] T2   27%     sigma=0   module:tier3 0.02/3/0.003/30       retention=  0.8483 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0000% removal  100.00%
+[ghost-oracle] T2   27%     sigma=0   module:tier1 0.1/1/0.01/20         retention=  0.6486 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0000% removal  100.00%
+[ghost-oracle] T2   27%     sigma=0   module:tier2 0.1/1/0.01/20         retention=  0.5483 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0000% removal  100.00%
+[ghost-oracle] T2   27%     sigma=0   module:tier3 0.1/1/0.01/20         retention=  0.6357 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0000% removal  100.00%
+[ghost-oracle] T2   27%     sigma=5   control:none                       retention=  1.0147 (raw 1.0147) | k=1 raw 1.4521% res 1.4521% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.0056% res 0.0056% removal    0.00%
+[ghost-oracle] T2   27%     sigma=5   control:oracle(true x)             retention=  1.0000 (raw 1.0147) | k=1 raw 1.4521% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0056% res 0.0000% removal  100.00%
+[ghost-oracle] T2   27%     sigma=5   control:zeros                      retention=  0.0000 (raw 1.0147) | k=1 raw 1.4521% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0056% res 0.0000% removal  100.00%
+[ghost-oracle] T2   27%     sigma=5   module:uncalibrated(no config)     retention=  1.0147 (raw 1.0147) | k=1 raw 1.4521% res 1.4521% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.0056% res 0.0056% removal    0.00%
+[ghost-oracle] T2   27%     sigma=5   module:tier1 0.02/3/0.003/30       retention=  0.8539 (raw 1.0147) | k=1 raw 1.4521% res 0.0109% removal   99.25% | k=10 removal   71.58% | k=50 raw 0.0056% res 0.0109% removal  -94.68%
+[ghost-oracle] T2   27%     sigma=5   module:tier2 0.02/3/0.003/30       retention=  0.8099 (raw 1.0147) | k=1 raw 1.4521% res 0.0109% removal   99.25% | k=10 removal   71.58% | k=50 raw 0.0056% res 0.0109% removal  -94.68%
+[ghost-oracle] T2   27%     sigma=5   module:tier3 0.02/3/0.003/30       retention=  0.8483 (raw 1.0147) | k=1 raw 1.4521% res 0.0086% removal   99.41% | k=10 removal   77.52% | k=50 raw 0.0056% res 0.0086% removal  -54.03%
+[ghost-oracle] T2   27%     sigma=5   module:tier1 0.1/1/0.01/20         retention=  0.6486 (raw 1.0147) | k=1 raw 1.4521% res 0.0110% removal   99.25% | k=10 removal   71.45% | k=50 raw 0.0056% res 0.0110% removal  -95.57%
+[ghost-oracle] T2   27%     sigma=5   module:tier2 0.1/1/0.01/20         retention=  0.5483 (raw 1.0147) | k=1 raw 1.4521% res 0.0110% removal   99.25% | k=10 removal   71.45% | k=50 raw 0.0056% res 0.0110% removal  -95.57%
+[ghost-oracle] T2   27%     sigma=5   module:tier3 0.1/1/0.01/20         retention=  0.6357 (raw 1.0147) | k=1 raw 1.4521% res 0.0087% removal   99.40% | k=10 removal   77.44% | k=50 raw 0.0056% res 0.0087% removal  -54.57%
+[ghost-oracle] T2   92%     sigma=0   control:none                       retention=  1.0091 (raw 1.0091) | k=1 raw 0.9051% res 0.9051% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.0024% res 0.0024% removal    0.00%
+[ghost-oracle] T2   92%     sigma=0   control:oracle(true x)             retention=  1.0000 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0000% removal  100.00%
+[ghost-oracle] T2   92%     sigma=0   control:zeros                      retention=  0.0000 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0000% removal  100.00%
+[ghost-oracle] T2   92%     sigma=0   module:uncalibrated(no config)     retention=  1.0091 (raw 1.0091) | k=1 raw 0.9051% res 0.9051% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.0024% res 0.0024% removal    0.00%
+[ghost-oracle] T2   92%     sigma=0   module:tier1 0.02/3/0.003/30       retention=  0.8492 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0000% removal  100.00%
+[ghost-oracle] T2   92%     sigma=0   module:tier2 0.02/3/0.003/30       retention=  0.7007 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0000% removal  100.00%
+[ghost-oracle] T2   92%     sigma=0   module:tier3 0.02/3/0.003/30       retention=  0.7275 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0000% removal  100.00%
+[ghost-oracle] T2   92%     sigma=0   module:tier1 0.1/1/0.01/20         retention=  0.6450 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0000% removal  100.00%
+[ghost-oracle] T2   92%     sigma=0   module:tier2 0.1/1/0.01/20         retention=  0.3069 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0000% removal  100.00%
+[ghost-oracle] T2   92%     sigma=0   module:tier3 0.1/1/0.01/20         retention=  0.3678 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0000% removal  100.00%
+[ghost-oracle] T2   92%     sigma=5   control:none                       retention=  1.0091 (raw 1.0091) | k=1 raw 0.9047% res 0.9047% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.0031% res 0.0031% removal    0.00%
+[ghost-oracle] T2   92%     sigma=5   control:oracle(true x)             retention=  1.0000 (raw 1.0091) | k=1 raw 0.9047% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0031% res 0.0000% removal  100.00%
+[ghost-oracle] T2   92%     sigma=5   control:zeros                      retention=  0.0000 (raw 1.0091) | k=1 raw 0.9047% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0031% res 0.0000% removal  100.00%
+[ghost-oracle] T2   92%     sigma=5   module:uncalibrated(no config)     retention=  1.0091 (raw 1.0091) | k=1 raw 0.9047% res 0.9047% removal    0.00% | k=10 removal    0.00% | k=50 raw 0.0031% res 0.0031% removal    0.00%
+[ghost-oracle] T2   92%     sigma=5   module:tier1 0.02/3/0.003/30       retention=  0.8492 (raw 1.0091) | k=1 raw 0.9047% res 0.0032% removal   99.64% | k=10 removal   87.56% | k=50 raw 0.0031% res 0.0032% removal   -4.56%
+[ghost-oracle] T2   92%     sigma=5   module:tier2 0.02/3/0.003/30       retention=  0.7007 (raw 1.0091) | k=1 raw 0.9047% res 0.0032% removal   99.64% | k=10 removal   87.56% | k=50 raw 0.0031% res 0.0032% removal   -4.56%
+[ghost-oracle] T2   92%     sigma=5   module:tier3 0.02/3/0.003/30       retention=  0.7275 (raw 1.0091) | k=1 raw 0.9047% res 0.0025% removal   99.72% | k=10 removal   90.16% | k=50 raw 0.0031% res 0.0025% removal   17.27%
+[ghost-oracle] T2   92%     sigma=5   module:tier1 0.1/1/0.01/20         retention=  0.6450 (raw 1.0091) | k=1 raw 0.9047% res 0.0032% removal   99.64% | k=10 removal   87.51% | k=50 raw 0.0031% res 0.0032% removal   -5.04%
+[ghost-oracle] T2   92%     sigma=5   module:tier2 0.1/1/0.01/20         retention=  0.3069 (raw 1.0091) | k=1 raw 0.9047% res 0.0032% removal   99.64% | k=10 removal   87.51% | k=50 raw 0.0031% res 0.0032% removal   -5.04%
+[ghost-oracle] T2   92%     sigma=5   module:tier3 0.1/1/0.01/20         retention=  0.3678 (raw 1.0091) | k=1 raw 0.9047% res 0.0026% removal   99.72% | k=10 removal   90.13% | k=50 raw 0.0031% res 0.0026% removal   16.98%
+[ghost-oracle] 120 exposure rows
+[       OK ] GhostOracle.MeasuresTheModuleAgainstTheIndependentTruths (57 ms)
+[ RUN      ] GhostOracle.MeasuresTheFallingStepWhereTheClampCannotHide
+[ghost-oracle] falling step 27% -> 5% (200 + 100 frames): signed residual in % of the NEW level, raw -> corrected, at the 1st and the 50th frame after the step
+[ghost-oracle] T1   step control:none                       k=1  +17.1896% ->  +17.1896% (removal    0.00%) | k=50   +4.4470% ->   +4.4470% (removal    0.00%)
+[ghost-oracle] T1   step control:oracle(true x)             k=1  +17.1896% ->   +0.0000% (removal  100.00%) | k=50   +4.4470% ->   +0.0000% (removal  100.00%)
+[ghost-oracle] T1   step control:zeros                      k=1  +17.1896% -> -100.0000% (removal -481.75%) | k=50   +4.4470% -> -100.0000% (removal -2148.68%)
+[ghost-oracle] T1   step module:uncalibrated(no config)     k=1  +17.1896% ->  +17.1896% (removal    0.00%) | k=50   +4.4470% ->   +4.4470% (removal    0.00%)
+[ghost-oracle] T1   step module:tier1 0.02/3/0.003/30       k=1  +17.1896% ->  -73.0314% (removal -324.86%) | k=50   +4.4470% ->  -20.6225% (removal -363.74%)
+[ghost-oracle] T1   step module:tier2 0.02/3/0.003/30       k=1  +17.1896% ->  -78.3178% (removal -355.61%) | k=50   +4.4470% ->  -21.9317% (removal -393.18%)
+[ghost-oracle] T1   step module:tier3 0.02/3/0.003/30       k=1  +17.1896% ->  -57.2431% (removal -233.01%) | k=50   +4.4470% ->  -16.0851% (removal -261.70%)
+[ghost-oracle] T1   step module:tier1 0.1/1/0.01/20         k=1  +17.1896% -> -100.0000% (removal -481.75%) | k=50   +4.4470% ->  -41.6242% (removal -836.00%)
+[ghost-oracle] T1   step module:tier2 0.1/1/0.01/20         k=1  +17.1896% -> -100.0000% (removal -481.75%) | k=50   +4.4470% ->  -44.0302% (removal -890.10%)
+[ghost-oracle] T1   step module:tier3 0.1/1/0.01/20         k=1  +17.1896% -> -100.0000% (removal -481.75%) | k=50   +4.4470% ->  -33.2856% (removal -648.49%)
+[ghost-oracle] T2   step control:none                       k=1   +7.9630% ->   +7.9630% (removal    0.00%) | k=50   +1.8767% ->   +1.8767% (removal    0.00%)
+[ghost-oracle] T2   step control:oracle(true x)             k=1   +7.9630% ->   +0.0000% (removal  100.00%) | k=50   +1.8767% ->   +0.0000% (removal  100.00%)
+[ghost-oracle] T2   step control:zeros                      k=1   +7.9630% -> -100.0000% (removal -1155.81%) | k=50   +1.8767% -> -100.0000% (removal -5228.39%)
+[ghost-oracle] T2   step module:uncalibrated(no config)     k=1   +7.9630% ->   +7.9630% (removal    0.00%) | k=50   +1.8767% ->   +1.8767% (removal    0.00%)
+[ghost-oracle] T2   step module:tier1 0.02/3/0.003/30       k=1   +7.9630% ->  -80.7775% (removal -914.41%) | k=50   +1.8767% ->  -22.6018% (removal -1104.31%)
+[ghost-oracle] T2   step module:tier2 0.02/3/0.003/30       k=1   +7.9630% ->  -85.5678% (removal -974.57%) | k=50   +1.8767% ->  -23.8487% (removal -1170.75%)
+[ghost-oracle] T2   step module:tier3 0.02/3/0.003/30       k=1   +7.9630% ->  -64.8628% (removal -714.55%) | k=50   +1.8767% ->  -18.1418% (removal -866.66%)
+[ghost-oracle] T2   step module:tier1 0.1/1/0.01/20         k=1   +7.9630% -> -100.0000% (removal -1155.81%) | k=50   +1.8767% ->  -43.0362% (removal -2193.14%)
+[ghost-oracle] T2   step module:tier2 0.1/1/0.01/20         k=1   +7.9630% -> -100.0000% (removal -1155.81%) | k=50   +1.8767% ->  -45.3240% (removal -2315.04%)
+[ghost-oracle] T2   step module:tier3 0.1/1/0.01/20         k=1   +7.9630% -> -100.0000% (removal -1155.81%) | k=50   +1.8767% ->  -34.8530% (removal -1757.10%)
+[       OK ] GhostOracle.MeasuresTheFallingStepWhereTheClampCannotHide (8 ms)
+[ RUN      ] GhostOracle.TheHarnessIsDeterministic
+[       OK ] GhostOracle.TheHarnessIsDeterministic (3 ms)
+[----------] 8 tests from GhostOracle (75 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 1 test suite ran. (75 ms total)
+[  PASSED  ] 8 tests.

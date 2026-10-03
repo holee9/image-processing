@@ -1,0 +1,55 @@
+"""Builds the markdown tables of the QA-A-225 M4 report from evidence/02_m4_run.txt (no hand copying)."""
+import re
+E = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-225-M4/evidence/'
+src = open(E + '02_m4_run.txt', encoding='utf-8', errors='replace').read().splitlines()
+
+k1 = re.compile(r'\[ghost-oracle-m4\] K1 (\S.*?) +(T[12]) k=(\d+) +residual blend +([+-][\d.]+)% \| no blend +([+-][\d.]+)% \| delta +([+-][\d.]+) pt -> (.*)')
+ring = re.compile(r'\[ghost-oracle-m4\] K2 (\S.*?) +ring step blend +([+-][\d.]+)% \| no blend +([+-][\d.]+)% -> (.*)')
+ringadu = re.compile(r'\[ghost-oracle-m4\] ring (\S.*?) +blend=1: border ([\d.]+) interior ([\d.]+) step ([+-][\d.]+) ADU')
+rows = re.compile(r'\[ghost-oracle\] (T[12]) +(\d+)% +sigma=(\S+) +m4 tier3 (blend|no-blend) +(\S.*?) +retention= *([\d.]+) \(raw ([\d.]+)\) \| k=1 raw ([\d.]+)% res ([\d.]+)% removal +(-?[\d.]+)% \| k=10 removal +(-?[\d.]+)% \| k=50 raw ([\d.]+)% res ([\d.]+)% removal +(-?[\d.]+)%')
+
+K1 = [m for m in map(k1.match, src) if m]
+RING = [m for m in map(ring.match, src) if m]
+RINGADU = {m.group(1): m for m in map(ringadu.match, src) if m}
+ROWS = [m for m in map(rows.match, src) if m]
+assert len(K1) == 12 and len(RING) == 3 and len(ROWS) == 3 * 2 * 3 * 2 * 2, (len(K1), len(RING), len(ROWS))
+
+out = []
+out.append('| 설정 | 진실 | k | 잔차(혼합) | 잔차(혼합 없음) | Δ(포인트) | 읽기 |')
+out.append('|---|---|---|---|---|---|---|')
+for m in K1:
+    out.append('| %s | %s | %s | %s%% | %s%% | %s | %s |' % (m.group(1), m.group(2), m.group(3), m.group(4), m.group(5), m.group(6), m.group(7)))
+open(E + '07_tables_k1.md', 'w', encoding='utf-8').write('\n'.join(out))
+
+out = ['| 설정 | 테두리 평균 | 내부 평균 | 단차(혼합) | 단차(혼합 없음) | 읽기 |', '|---|---|---|---|---|---|']
+for m in RING:
+    a = RINGADU[m.group(1)]
+    out.append('| %s | %s | %s | %s ADU (%s%%) | 0 (%s%%) | %s |' % (m.group(1), a.group(2), a.group(3), a.group(4), m.group(2), m.group(3), m.group(4)))
+open(E + '08_tables_k2.md', 'w', encoding='utf-8').write('\n'.join(out))
+
+# M-blank / M-ret (reported, not judged): blend vs no-blend over the 36 (config, truth, level, sigma) pairs
+pairs = {}
+for m in ROWS:
+    key = (m.group(5), m.group(1), m.group(2), m.group(3))
+    pairs.setdefault(key, {})[m.group(4)] = m
+assert len(pairs) == 36
+ret_hi = sum(1 for v in pairs.values() if float(v['blend'].group(6)) > float(v['no-blend'].group(6)))
+ret_lo = sum(1 for v in pairs.values() if float(v['blend'].group(6)) < float(v['no-blend'].group(6)))
+rem1_hi = sum(1 for v in pairs.values() if float(v['blend'].group(10)) > float(v['no-blend'].group(10)) + 1.0)
+rem1_lo = sum(1 for v in pairs.values() if float(v['blend'].group(10)) < float(v['no-blend'].group(10)) - 1.0)
+rem50_hi = sum(1 for v in pairs.values() if float(v['blend'].group(14)) > float(v['no-blend'].group(14)) + 1.0)
+rem50_lo = sum(1 for v in pairs.values() if float(v['blend'].group(14)) < float(v['no-blend'].group(14)) - 1.0)
+print('pairs', len(pairs))
+print('retention: blend higher in %d, lower in %d, equal in %d of 36' % (ret_hi, ret_lo, 36 - ret_hi - ret_lo))
+print('k=1 removal: blend higher by >1pt in %d, lower by >1pt in %d' % (rem1_hi, rem1_lo))
+print('k=50 removal: blend higher by >1pt in %d, lower by >1pt in %d' % (rem50_hi, rem50_lo))
+out = ['| 设定 | 진실 | 수준 | 잡음 | 보존(혼합) | 보존(혼합 없음) | k=1 제거율(혼합) | (혼합 없음) | k=50(혼합) | (혼합 없음) |'.replace('设定', '설정'), '|---|---|---|---|---|---|---|---|---|---|']
+for key in sorted(pairs):
+    v = pairs[key]
+    if key[3] == '0':
+        b, n = v['blend'], v['no-blend']
+        out.append('| %s | %s | %s%% | %s | %s | %s | %s%% | %s%% | %s%% | %s%% |' % (key[0], key[1], key[2], key[3], b.group(6), n.group(6), b.group(10), n.group(10), b.group(14), n.group(14)))
+open(E + '09_tables_blank_retention_sigma0.md', 'w', encoding='utf-8').write('\n'.join(out))
+for l in src:
+    if 'K3 Nyquist' in l or 'K4 interior' in l or 'K1 rows' in l or 'K2 =>' in l or 'LABEL' in l:
+        print(l.replace('[ghost-oracle-m4] ', '')[:330])

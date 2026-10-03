@@ -133,6 +133,11 @@ bool xpe_ghost_is_calibrated(const void* handle) noexcept
 // @MX:REASON: Main correction entry point; all correction logic fans in here
 // @MX:SPEC: REQ-P1A-032, REQ-P1A-033 (Tier 1/2/3)
 
+#ifdef XPE_CACHE_TEST_HOOKS
+// Test-only (QA-A-225 M4, #238), see xpe_preprocess_internal.h.
+XpeGhostTier3Mix xpe_ghost_tier3_mix = {0.7f, 0.3f};
+#endif
+
 namespace {
     // Helper: compute mean signal level for exposure estimation
     float compute_frame_mean(const float* px, size_t n) noexcept {
@@ -226,6 +231,14 @@ namespace {
         // keeps a copy of the incoming frame in gh->backup for the whole call (QA-A-217), which is exactly that.
         const float* const src = gh->backup.data();
 
+        // The blend weights of the interior pixels. A constant in the shipped library; the test seam reads them from a variable
+        // (QA-A-225 M4), with the shipped values as defaults.
+#ifdef XPE_CACHE_TEST_HOOKS
+        const float mixKeep = xpe_ghost_tier3_mix.keep, mixLocal = xpe_ghost_tier3_mix.local;
+#else
+        constexpr float mixKeep = 0.7f, mixLocal = 0.3f;
+#endif
+
         // Apply NLCSC with signal-dependent coefficients
         for (size_t i = 0; i < n; ++i) {
             const float raw = px[i];
@@ -238,28 +251,34 @@ namespace {
 
             float corrected = raw - a1 * h1[i] - a2 * h2[i];
 
-            // Spatial context: blend with local neighborhood mean (3x3)
+            // Spatial context: blend with local neighborhood mean (3x3). QA-A-227 (#244): EVERY pixel is blended, the mean taken over
+            // the neighbours that exist in the frame (nine inside, six on an edge, four in a corner -- the module's "valid
+            // neighbours" convention, as in the defect stage). The blend used to be applied only where all eight neighbours exist
+            // (the index arithmetic wrapped to the next row at x = 0; nothing in the commit, the SRS or the guide gives a design
+            // reason), which left the one-pixel border without it: on a uniform frame the interior sat above the border by
+            // mixLocal * (raw - corrected value), a ring. A frame below 3x3 has no spatial context and is not blended.
             if (W >= 3u && H >= 3u) {
-                const uint32_t x = static_cast<uint32_t>(i % W);
-                const uint32_t y = static_cast<uint32_t>(i / W);
-
-                if (x > 0u && x < W - 1u && y > 0u && y < H - 1u) {
-                    float localMean = 0.0f;
-                    int count = 0;
-                    for (int dy = -1; dy <= 1; ++dy) {
-                        for (int dx = -1; dx <= 1; ++dx) {
-                            const size_t ni = static_cast<size_t>(static_cast<int>(y) + dy) * static_cast<size_t>(W) + static_cast<size_t>(static_cast<int>(x) + dx);
-                            if (ni < n && std::isfinite(src[ni])) {
-                                localMean += src[ni];
-                                ++count;
-                            }
+                const int x = static_cast<int>(i % W);
+                const int y = static_cast<int>(i / W);
+                float localMean = 0.0f;
+                int count = 0;
+                for (int dy = -1; dy <= 1; ++dy) {
+                    const int yy = y + dy;
+                    if (yy < 0 || yy >= static_cast<int>(H)) continue;
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        const int xx = x + dx;
+                        if (xx < 0 || xx >= static_cast<int>(W)) continue;
+                        const float v = src[static_cast<size_t>(yy) * W + static_cast<size_t>(xx)];
+                        if (std::isfinite(v)) {
+                            localMean += v;
+                            ++count;
                         }
                     }
-                    if (count > 0) {
-                        localMean /= static_cast<float>(count);
-                        // Blend corrected with local mean (0.7 : 0.3)
-                        corrected = 0.7f * corrected + 0.3f * localMean;
-                    }
+                }
+                if (count > 0) {
+                    localMean /= static_cast<float>(count);
+                    // Blend corrected with local mean (0.7 : 0.3)
+                    corrected = mixKeep * corrected + mixLocal * localMean;
                 }
             }
 

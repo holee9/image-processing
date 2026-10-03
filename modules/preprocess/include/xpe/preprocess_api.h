@@ -760,6 +760,11 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
  *         XPE_ERR_PROCESSING_FAILED when a corrected value or the new history overflows float (finite input
  *         at the extremes of the range)
  *
+ * @note Tier 3 blends the corrected value of EVERY pixel with the mean of its 3x3 neighbourhood in the incoming frame
+ *       (0.7 corrected + 0.3 mean). The mean is taken over the neighbours that exist: nine inside the frame, six on an edge,
+ *       four in a corner (QA-A-227: the border pixels used to be left out, so a uniform frame came out with a one-pixel ring
+ *       0.6 % to 8.4 % off). A frame smaller than 3x3 has no spatial context and is not blended. Tiers 1 and 2 read no neighbour.
+ *
  * @note A handle without calibrated lag parameters (see xpe_ghost_create) does not correct: after the checks above
  *       the call returns XPE_OK with the image and the history untouched, and no
  *       alert (the one warning was raised at creation). The entrance checks -- handle, size, float32, non-finite

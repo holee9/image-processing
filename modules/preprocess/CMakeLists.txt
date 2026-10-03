@@ -439,8 +439,12 @@ if(_XPE_BUILD_TESTS)
         tests/test_defect_input_finite.cpp
         tests/test_nonfinite_inputs.cpp
         tests/test_ghost_input_finite.cpp   # QA-A-217 (#233): ghost refuses non-finite input, a failed frame leaves its pixels
+        tests/test_ghost_oracle_pedestal.cpp   # QA-A-225 M6 (#241): blank frames that stay above 0 (sustained pedestal); controls say what the metric can and cannot separate
+        tests/test_ghost_oracle_derive.cpp   # QA-A-225 M3 (#241): cause of the negative noisy removal pinned; a lag set derived from a calibration sequence, judged on others
+        tests/test_ghost_oracle.cpp   # QA-A-225 M1 (#241): independent lag generators (Starman LTI, finite trap), E2E ghost-removal metrics measured and printed (no thresholds), controls
         tests/test_ghost_lag_contract.cpp   # QA-A-226b (#241): a forward-unstable lag set (S >= 1) is refused; tau is in frames, acquisitionTime is not used
         tests/test_ghost_uncalibrated.cpp   # QA-A-226 (#241): a handle without calibrated lag parameters passes frames through, one Warning at creation
+        tests/test_ghost_tier3_border.cpp   # QA-A-227 (#244): tier 3 blends the border pixels too (mean over the neighbours that exist); a uniform frame stays uniform
         tests/test_ghost_tier3_orientation.cpp   # QA-A-218b (#233): tier 3 3x3 mean reads the incoming frame; scan-direction independent
         tests/test_xcal_replace_retry.cpp
         # QA-A-140 (#196): the no-op report reaches a null-config caller
@@ -549,6 +553,7 @@ if(_XPE_BUILD_TESTS)
     # sources into itself instead of linking the DLL.
     add_executable(xpe_preprocess_oom_tests
         tests/test_oom_injection.cpp
+        tests/test_ghost_mix_compare.cpp   # QA-A-225 M4 (#238): tier-3 blend kept vs removed through the test-only seam, preregistered rules
         ${XPE_PREPROCESS_SOURCES}
     )
     target_include_directories(xpe_preprocess_oom_tests

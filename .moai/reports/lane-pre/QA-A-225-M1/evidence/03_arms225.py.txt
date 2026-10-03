@@ -1,0 +1,64 @@
+"""QA-A-225 M1: does the harness notice damage to its own measuring code and generators, and to the product behaviour it
+relies on? One damage at a time, full build, run GhostOracle.*, restore + cmp. The exit code is recorded (a died process
+leaves no FAILED line)."""
+import subprocess, sys, shutil, os, re
+R = 'D:/workspace-github/xpe-pre/'
+S = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5/scratchpad/'
+TF = R + 'modules/preprocess/tests/test_ghost_oracle.cpp'
+GC = R + 'modules/preprocess/src/ghost_correct.cpp'
+for f in (TF, GC):
+    k = S + 'keep225_' + os.path.basename(f)
+    if not os.path.exists(k):
+        shutil.copy(f, k)
+
+ARMS = {
+    'h1_removal_sign': (TF, 'b.removal = 100.0 * (b.raw - b.res) / std::max(b.raw, kEps);',
+                        'b.removal = 100.0 * (b.res - b.raw) / std::max(b.raw, kEps);'),
+    'h2_dark_ref_from_the_raw_path': (TF, '{ darkRaw += meanOf(y[i]); darkCor += meanOf(c[i]); }',
+                                      '{ darkRaw += meanOf(y[i]); darkCor += meanOf(y[i]); }'),
+    'h3_exposure_signal_from_corrected': (TF, 'const double exposureSignal = meanOf(y[s.nPre + s.nExp - 1]);',
+                                          'const double exposureSignal = meanOf(c[s.nPre + s.nExp - 1]);'),
+    'h4_retention_window_starts_at_0': (TF, 'for (size_t i = s.nPre + 49; i < s.nPre + s.nExp; ++i, ++cnt) { sc += meanOf(c[i]); sr += meanOf(y[i]); }',
+                                        'for (size_t i = s.nPre; i < s.nPre + s.nExp; ++i, ++cnt) { sc += meanOf(c[i]); sr += meanOf(y[i]); }'),
+    'h5_lti_h0_not_one': (TF, 'double v = x[k] * (b0 + sumB());', 'double v = x[k] * (sumB() + 0.0 * b0);'),
+    'h6_trap_never_saturates': (TF, 'const double fill = std::max(x[k] * kB[n] * (1.0 - q[n] / kQ[n]), 0.0);',
+                                'const double fill = std::max(x[k] * kB[n], 0.0);'),
+    'h7_step_residual_of_corrected_reads_raw': (TF, 'st.corRes1 = res(c, 1);', 'st.corRes1 = res(y, 1);'),
+    'h8_self_model_has_no_lag': (TF, 'y[k] = x[k] + a1 * h1 + a2 * h2;', 'y[k] = x[k] + 0.0 * (a1 * h1 + a2 * h2);'),
+    'h9_other_config_is_the_same_config': (TF, 'lagCfg(1, 0.01, 8.0, 0.001, 60.0)', 'lagCfg(1, 0.02, 3.0, 0.003, 30.0)'),
+    'h10_noise_not_seeded': (TF, 'std::mt19937 g(seed);', 'std::mt19937 g(std::random_device{}() + 0u * seed);'),
+    'h11_uncalibrated_handle_corrects': (GC, 'handle->calibrated = all;', 'handle->calibrated = all || handle->width != 0;'),
+}
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', S + 'buildall.bat'], capture_output=True, text=True)
+    return 'BUILD_EXIT=0' in r.stdout, r.stdout
+
+
+def tests():
+    r = subprocess.run([R + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe', '--gtest_filter=GhostOracle.*'],
+                       cwd=R + 'modules/preprocess', capture_output=True, text=True)
+    failed = sorted(set(re.findall(r'^\[  FAILED  \] ([A-Za-z]\S+)', r.stdout, re.M)))
+    return failed, r.returncode
+
+
+for name in sys.argv[1:]:
+    f, old, new = ARMS[name]
+    keep = S + 'keep225_' + os.path.basename(f)
+    shutil.copy(keep, f)
+    src = open(f, 'rb').read().decode('utf-8')
+    crlf = '\r\n' in src
+    s = src.replace('\r\n', '\n')
+    assert s.count(old) == 1, (name, s.count(old))
+    s = s.replace(old, new)
+    open(f, 'wb').write((s.replace('\n', '\r\n') if crlf else s).encode('utf-8'))
+    ok, out = build()
+    if not ok:
+        print(name, 'BUILD FAILED'); print(out[-1200:])
+    else:
+        failed, rc = tests()
+        crashed = rc not in (0, 1) or (rc != 0 and not failed)
+        tag = (' [PROCESS DIED, exit %d]' % rc) if crashed else ''
+        print('%-42s -> %d red%s: %s' % (name, len(failed), tag, ', '.join(failed) if failed else ('NONE (arm did not fire)' if not crashed else 'no FAILED line')))
+    shutil.copy(keep, f)

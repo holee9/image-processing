@@ -1,0 +1,3 @@
+[ghost-oracle] tier1-digest 0x1558dd0b4bbc9f28
+[ghost-oracle] tier2-digest 0xf43a98bc527d9a42
+[ghost-oracle] tier3-digest 0xf7c4e2c895d7a90b

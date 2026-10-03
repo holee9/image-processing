@@ -1,0 +1,49 @@
+"""Builds the markdown tables of the QA-A-225 M1 report from the harness output (no hand copying)."""
+import re, sys
+src = open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-225-M1/evidence/01_oracle_run.txt', encoding='utf-8', errors='replace').read().splitlines()
+
+row = re.compile(r'\[ghost-oracle\] (T[12]) +(\d+)% +sigma=(\S+) +(\S.*?) +retention= *([\d.]+) \(raw ([\d.]+)\) \| k=1 raw ([\d.]+)% res ([\d.]+)% removal +(-?[\d.]+)% \| k=10 removal +(-?[\d.]+)% \| k=50 raw ([\d.]+)% res ([\d.]+)% removal +(-?[\d.]+)%')
+step = re.compile(r'\[ghost-oracle\] (T[12]) +step (\S.*?) +k=1 +([+-][\d.]+)% -> +([+-][\d.]+)% \(removal +(-?[\d.]+)%\) \| k=50 +([+-][\d.]+)% -> +([+-][\d.]+)% \(removal +(-?[\d.]+)%\)')
+rows = [row.match(l) for l in src if row.match(l)]
+steps = [step.match(l) for l in src if step.match(l)]
+print('exposure rows', len(rows), 'step rows', len(steps))
+assert len(rows) == 120 and len(steps) == 20, (len(rows), len(steps))
+
+out = []
+
+
+def exposure_table(truth, level, sigma):
+    out.append('| 보정기 | 신호 보존 | k=1 제거율 | k=10 | k=50 |')
+    out.append('|---|---|---|---|---|')
+    for m in rows:
+        if m.group(1) == truth and m.group(2) == level and m.group(3) == sigma:
+            out.append('| %s | %s | %s%% | %s%% | %s%% |' % (m.group(4), m.group(5), m.group(9), m.group(10), m.group(13)))
+
+
+for truth, level, sigma, title in (('T1', '27', '0', 'T1(Starman LTI), 27%, 잡음 0'), ('T1', '92', '0', 'T1, 92%, 잡음 0'),
+                                   ('T2', '27', '0', 'T2(유한 트랩), 27%, 잡음 0'), ('T1', '27', '5', 'T1, 27%, 잡음 σ = 5 ADU'),
+                                   ('T2', '27', '5', 'T2, 27%, 잡음 σ = 5 ADU')):
+    out.append('\n**%s**\n' % title)
+    exposure_table(truth, level, sigma)
+
+for truth in ('T1', 'T2'):
+    out.append('\n**계단 하강 27%% → 5%%, %s** (새 수준 대비 부호 있는 잔차, 보정 전 → 보정 후)\n' % truth)
+    out.append('| 보정기 | k=1 | k=50 |')
+    out.append('|---|---|---|')
+    for m in steps:
+        if m.group(1) == truth:
+            out.append('| %s | %s%% → %s%% | %s%% → %s%% |' % (m.group(2), m.group(3), m.group(4), m.group(6), m.group(7)))
+
+open('C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5/scratchpad/tables225.md', 'w', encoding='utf-8').write('\n'.join(out))
+
+# aggregate facts quoted in the report, computed here
+mods = [m for m in rows if m.group(4).startswith('module:tier')]
+ret = [float(m.group(5)) for m in mods]
+print('calibrated-module rows', len(mods), 'retention min %.4f max %.4f' % (min(ret), max(ret)))
+sig0 = [m for m in mods if m.group(3) == '0']
+print('sigma 0: rows', len(sig0), 'all k1/k10/k50 removal == 100.00:', all(m.group(9) == m.group(10) == m.group(13) == '100.00' for m in sig0))
+print('retention >= 0.995 rows:', sum(1 for m in mods if float(m.group(5)) >= 0.995))
+sig5 = [m for m in mods if m.group(3) == '5']
+print('sigma 5: k50 removal min %.2f max %.2f; negative k50 rows %d of %d' % (min(float(m.group(13)) for m in sig5), max(float(m.group(13)) for m in sig5), sum(1 for m in sig5 if float(m.group(13)) < 0), len(sig5)))
+sm = [m for m in steps if m.group(2).startswith('module:tier')]
+print('step module rows', len(sm), 'k1 corrected residual range: %s..%s' % (min(float(m.group(4)) for m in sm), max(float(m.group(4)) for m in sm)))
