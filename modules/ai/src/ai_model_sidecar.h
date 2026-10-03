@@ -40,6 +40,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <nlohmann/json.hpp>
@@ -215,10 +216,12 @@ public:
     bool end_array() override { return close(']'); }
     bool key(string_t& k) override {
         if (depth_ == 1) {
-            for (const std::string& seen : keys_) {
-                if (seen == k && duplicate.empty()) duplicate = k;
+            // QA-B-195c: a set, not a scan of the keys so far (a sidecar of 100000 distinct keys was ~5 * 10^9
+            // comparisons), and the parse STOPS at the first repeated key: nothing after it can change the verdict.
+            if (!keys_.insert(k).second) {
+                duplicate = k;
+                return false;
             }
-            keys_.push_back(k);
             cur_ = lookup(k);
             if (cur_ != nullptr) {
                 *cur_ = Entry();
@@ -243,7 +246,7 @@ private:
     Entry* cur_ = nullptr;             ///< the entry the current top-level member belongs to (null: a key not named here)
     std::vector<bool> comma_;          ///< per open container of the current member: has an element been written?
     bool afterKey_ = false;
-    std::vector<std::string> keys_;    ///< the top-level keys seen, to find a duplicate
+    std::unordered_set<std::string> keys_;   ///< the top-level keys seen, to find a duplicate
 
     Entry* lookup(const std::string& k) {
         if (k == "model_id") return &model_id;
@@ -340,16 +343,16 @@ inline bool ParseModelSidecar(const std::string* text, ModelSidecar* out, std::s
     }
     detail::SidecarSax h;
     const bool parsed = nlohmann::json::sax_parse(*text, &h);
+    if (!h.duplicate.empty()) {   // QA-B-195c: the parse stopped at it, so this is judged before "not valid JSON"
+        *reason = "the key " + h.duplicate + " appears more than once";
+        return false;
+    }
     if (!parsed) {
         *reason = (h.rootChecked && !h.rootIsObject) ? "the sidecar is not a JSON object" : "the sidecar is not valid JSON";
         return false;
     }
     if (!h.rootIsObject) {
         *reason = "the sidecar is not a JSON object";
-        return false;
-    }
-    if (!h.duplicate.empty()) {
-        *reason = "the key " + h.duplicate + " appears more than once";
         return false;
     }
     ModelSidecar sc;

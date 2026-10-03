@@ -107,6 +107,7 @@ namespace {
 void (*g_afterVerifyHook)(const std::string& modelPath) = nullptr;
 void (*g_beforeSessionHook)() = nullptr;
 void (*g_beforeFileReadHook)() = nullptr;
+void (*g_beforeLabelParseHook)() = nullptr;
 #endif
 
 enum class ReadResult { kOk, kFailed, kTooLarge };
@@ -220,6 +221,15 @@ void TestSetBeforeSessionHook(void (*hook)()) { g_beforeSessionHook = hook; }
  * then its sidecar, then its signature). A hook that throws std::bad_alloc is the shortage of memory there. nullptr clears it.
  */
 void TestSetBeforeFileReadHook(void (*hook)()) { g_beforeFileReadHook = hook; }
+/**
+ * TEST-ONLY (QA-B-195c): the callback the body-part label reader (ai_bodypart_model.h) makes before it parses the sidecar
+ * and again right before it stores each label. A hook that throws std::bad_alloc is the shortage of memory at the
+ * parse or at one push_back. nullptr clears it.
+ */
+void TestSetBeforeLabelParseHook(void (*hook)()) { g_beforeLabelParseHook = hook; }
+void CallBeforeLabelParseHook() {
+    if (g_beforeLabelParseHook) g_beforeLabelParseHook();
+}
 #endif
 
 OnnxErrorCode ReadVerifiedModelFiles(const std::string& model_path, const std::string& role,

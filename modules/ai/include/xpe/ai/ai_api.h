@@ -52,8 +52,9 @@
  * xpe_bone_suppress and xpe_bodypart_recognize on a loaded model. THREE THINGS ARE NOT COVERED, and the first is
  * not coverable from inside the module: (1) the JSON library (nlohmann 3.11.3) frees a non-empty parsed document
  * with an allocation inside a noexcept destructor, so if memory runs out at that instant the process terminates --
- * in xpe_ai_init given a config that has keys and in loading the body-part label file (first body-part call);
- * a model's sidecar is read with an event parser that builds no document (QA-B-197 M1), so it is not one of them;
+ * in xpe_ai_init given a config that has keys; a model's sidecar and the body-part label file are read with an
+ * event parser that builds no document (QA-B-197 M1, QA-B-195c), so they are not among them, and a shortage of memory
+ * while the labels are read is XPE_ERR_OUT_OF_MEMORY like any other load, never "the model is unavailable";
  * (2) allocations made by ONNX Runtime's own allocator and (3) by xpe_common (the
  * alert queue) are not failed by the sweeps.
  * A shortage of memory while the ONNX Runtime session of a model is created (QA-B-194b) is XPE_ERR_OUT_OF_MEMORY

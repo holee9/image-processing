@@ -67,13 +67,20 @@
 #ifdef XPE_AI_TEST_HOOKS
 namespace xpe::ai {
 void TestSetBeforeFileReadHook(void (*hook)());   // ai_onnx_session.cpp, test builds only
+void TestSetBeforeLabelParseHook(void (*hook)()); // ai_onnx_session.cpp, test builds only (QA-B-195c)
 }
 namespace {
 // TEST-ONLY (QA-B-195b). Environment variables of the worker's process, read in main() of a test build only:
 //   XPE_AI_TEST_FAIL_MODEL_READ=<n>      the first n file reads of model loading fail like a shortage of memory
+//   XPE_AI_TEST_FAIL_LABELS=<k>          the k-th call of the label reader's hook fails with std::bad_alloc (QA-B-195c):
+//                                        k=1 is the start of the parse, k=2 the first label stored, and so on
 //   XPE_AI_TEST_FAIL_WORKER_REQUEST=oom|std|payload   ONE request fails at the request boundary: with std::bad_alloc
 //                                        inside the handler, with another exception type, or at the allocation of its payload
 std::atomic<int> g_failFileReads{0};
+std::atomic<int> g_labelCallsUntilFailure{0};
+void FailLabelParseForTest() {
+    if (g_labelCallsUntilFailure.fetch_sub(1) == 1) throw std::bad_alloc();
+}
 std::atomic<int> g_requestFault{0};   // 0 none, 1 oom, 2 other exception, 3 payload allocation
 void FailFileReadForTest() {
     if (g_failFileReads.fetch_sub(1) > 0) throw std::bad_alloc();
@@ -804,6 +811,11 @@ int main(int argc, char* argv[]) {
         if (GetEnvironmentVariableA("XPE_AI_TEST_FAIL_MODEL_READ", n, sizeof(n)) > 0) {
             g_failFileReads = std::atoi(n);
             xpe::ai::TestSetBeforeFileReadHook(&FailFileReadForTest);
+        }
+        char lb[16] = {0};
+        if (GetEnvironmentVariableA("XPE_AI_TEST_FAIL_LABELS", lb, sizeof(lb)) > 0) {
+            g_labelCallsUntilFailure = std::atoi(lb);
+            xpe::ai::TestSetBeforeLabelParseHook(&FailLabelParseForTest);
         }
         char f[16] = {0};
         if (GetEnvironmentVariableA("XPE_AI_TEST_FAIL_WORKER_REQUEST", f, sizeof(f)) > 0) {

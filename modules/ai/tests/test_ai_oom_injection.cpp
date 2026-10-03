@@ -437,6 +437,51 @@ TEST_F(AiOom, ABodyPartSessionThatRunsOutOfMemoryIsOutOfMemoryNotAnUnavailableMo
     EXPECT_STREQ("CHEST", label);
 }
 
+// QA-B-195c (Codex #90): the same shortage, but while the body-part LABELS are read, which used to be reported as a
+// sidecar that is "not valid JSON" -- the model unavailable -- instead of out of memory.
+namespace xpe::ai {
+void TestSetBeforeLabelParseHook(void (*hook)());   // ai_onnx_session.cpp, test builds only
+}
+
+namespace {
+int g_labelCallsUntilFailure = 0;
+void FailTheKthLabelCall() {
+    if (--g_labelCallsUntilFailure == 0) throw std::bad_alloc();
+}
+struct LabelOomScope {
+    explicit LabelOomScope(int k) {
+        g_labelCallsUntilFailure = k;
+        xpe::ai::TestSetBeforeLabelParseHook(&FailTheKthLabelCall);
+    }
+    ~LabelOomScope() { xpe::ai::TestSetBeforeLabelParseHook(nullptr); }
+    LabelOomScope(const LabelOomScope&) = delete;
+    LabelOomScope& operator=(const LabelOomScope&) = delete;
+};
+}  // namespace
+
+TEST_F(AiOom, AShortageOfMemoryWhileReadingTheBodyPartLabelsIsOutOfMemoryNotAnUnavailableModel) {
+    if (IsStubBuild()) GTEST_SKIP() << "stub build: no session is built";
+    Img in(4, 4, 0.0f);
+    char label[64];
+    float confidence = -1.0f;
+    // models_bodypart_a has three labels: the hook is reached for the start of the parse and once per label
+    for (int k = 1; k <= 4; ++k) {
+        xpe_ai_shutdown();
+        xpe_clear_alerts();
+        ASSERT_EQ(XPE_OK, xpe_ai_init(kBodyPartA.c_str(), nullptr));
+        XpeErrorCode rc;
+        {
+            const LabelOomScope oom(k);
+            rc = xpe_bodypart_recognize(&in.buf, label, sizeof(label), &confidence);
+        }
+        EXPECT_EQ(XPE_ERR_OUT_OF_MEMORY, rc) << "call " << k << ": was UNKNOWN + PROCESSING_FAILED (the model 'unavailable')";
+        EXPECT_EQ(0, xpe_get_pending_alert_count()) << "call " << k << ": a shortage of memory raises no 'unavailable' alert";
+        // not remembered: the next call, with memory, loads the model and answers
+        EXPECT_EQ(XPE_OK, xpe_bodypart_recognize(&in.buf, label, sizeof(label), &confidence)) << "call " << k;
+        EXPECT_STREQ("CHEST", label);
+    }
+}
+
 TEST_F(AiOom, ABoneSessionThatRunsOutOfMemoryIsOutOfMemoryOnTheInProcessPath) {
     if (IsStubBuild()) GTEST_SKIP() << "stub build: no session is built";
     Img in(3, 3, 1.0f);

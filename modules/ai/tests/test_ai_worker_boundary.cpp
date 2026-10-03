@@ -250,3 +250,53 @@ TEST(WorkerBoundary, ThroughTheCAbiTheShortageIsCountedAsAWorkerFailureAndTheNex
     xpe_ai_shutdown();
     xpe_clear_alerts();
 }
+
+/* =========================================================================
+ * QA-B-195c (Codex #90): a shortage of memory while the body-part LABELS are read
+ *
+ * It used to be swallowed by the label reader's catch for every std::exception and read as "label sidecar is not valid
+ * JSON": the worker answered -4 with model_unavailable. Now it is -2 like every other shortage on the load path, the
+ * model is NOT reported unavailable, and the same worker serves the next request.
+ *   XPE_AI_TEST_FAIL_LABELS=<k>   the k-th call of the label reader's hook fails (1 = the start of the parse,
+ *                                 2.. = each label stored; models_bodypart_a has three labels)
+ * ========================================================================= */
+
+TEST(WorkerBoundary, AShortageOfMemoryWhileReadingTheLabelsIsAnErrorFrameNotAnUnavailableModelAndTheWorkerSurvives) {
+    if (IsStub()) GTEST_SKIP() << "stub build: no worker runs a model";
+    for (const char* k : {"1", "2", "3", "4"}) {
+        ExpectPartSurvives("XPE_AI_TEST_FAIL_LABELS", k, XPE_ERR_OUT_OF_MEMORY);
+    }
+}
+
+TEST(WorkerBoundary, ThroughTheCAbiAShortageWhileReadingTheLabelsIsCountedOnceAndTheNextSuccessResetsIt) {
+    if (IsStub()) GTEST_SKIP() << "stub build: no worker runs a model";
+    const std::string dir = kData + "/models_bodypart_a";
+    xpe_ai_shutdown();
+    xpe_clear_alerts();
+    {
+        const EnvScope env("XPE_AI_TEST_FAIL_LABELS", "2");
+        ASSERT_EQ(XPE_OK, xpe_ai_init(dir.c_str(), "{\"use_worker\": true}"));
+        std::vector<float> px(16, 0.0f);
+        XpeImageBuffer ib{};
+        ib.width = ib.height = 4;
+        ib.bitsAllocated = ib.bitsStored = 32;
+        ib.format = XPE_PIXEL_FLOAT32;
+        ib.data = px.data();
+        ib.dataSize = px.size() * sizeof(float);
+        char label[64] = {};
+        float conf = -1.0f;
+        (void)xpe_bodypart_recognize(&ib, label, sizeof(label), &conf);
+        int32_t state = -1;
+        uint32_t failures = 0;
+        ASSERT_EQ(XPE_OK, xpe_ai_worker_state(&state, &failures, nullptr));
+        EXPECT_EQ(1u, failures) << "counted as a failure of the worker path";
+        EXPECT_EQ(XPE_AI_WORKER_ACTIVE, state) << "and the worker is still serving";
+        std::fill(label, label + sizeof(label), '\0');
+        EXPECT_EQ(XPE_OK, xpe_bodypart_recognize(&ib, label, sizeof(label), &conf)) << "the same worker answers the next call";
+        EXPECT_STREQ("CHEST", label);
+        ASSERT_EQ(XPE_OK, xpe_ai_worker_state(&state, &failures, nullptr));
+        EXPECT_EQ(0u, failures) << "a success resets the count";
+    }
+    xpe_ai_shutdown();
+    xpe_clear_alerts();
+}
