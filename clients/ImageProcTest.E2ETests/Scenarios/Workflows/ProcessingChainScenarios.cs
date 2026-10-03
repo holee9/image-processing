@@ -632,6 +632,68 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
         window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"))?.Name ?? string.Empty;
 
     /// <summary>
+    /// C-10 (GUI-C-201, approved after GUI-C-200): the model directory typed again with only its CASE changed is the same directory, so the session is kept; the module compares the
+    /// directory text byte for byte and warns when a repeated <c>xpe_ai_init</c> names a "different" one. The app therefore hands the module the spelling the session was
+    /// STARTED with. Observed through the init diagnostics the app publishes (<c>init#N dir='...'</c>): the second call is made (the counter goes up, so the equality is not
+    /// vacuous) and carries the first spelling. Native only, and only where the menu entry is enabled (xpe_ai.dll present): the module's own warning exists only in a build with
+    /// QA-B-194 M4, which is why the diagnostics, not the alert list, are what is read.
+    /// </summary>
+    [SkippableFact]
+    public void C10_TheModelDirectoryTypedAgainInAnotherCase_IsSentToTheModuleWithTheFirstSpelling()
+    {
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+        Skip.If(app.BackendMode != "Native", "The AI session exists only on the native backend.");
+        var window = app.MainWindow!;
+        CloseDetached(window);
+
+        var directory = Path.Combine(Path.GetTempPath(), $"xpe-ai-spell-{Environment.ProcessId}-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "bone_suppress.onnx"), "not a model");
+        // Only the letters of the (hexadecimal, lowercase) directory name change case: the same directory on a case-insensitive file system.
+        var swapped = Path.Combine(Path.GetDirectoryName(directory)!, Path.GetFileName(directory).ToUpperInvariant());
+        Assert.NotEqual(directory, swapped);
+        try
+        {
+            SetText(window, "AiModelDirectoryInput", directory);
+            SetAiStage(window, false);
+            ApplyDisplayPipeline(window);
+            InvokeAiMenuItem(window, requireEnabled: true);
+            WaitForChain(window, "ai_bone_suppress=RequestedNotApplied");
+            var first = InitDirectoryOf(AiDiagnostics(window));
+            var firstCount = InitCountOf(AiDiagnostics(window));
+
+            SetText(window, "AiModelDirectoryInput", swapped);
+            InvokeAiMenuItem(window, requireEnabled: true);
+            Assert.True(PollFor(() => InitCountOf(AiDiagnostics(window)) > firstCount, TimeSpan.FromSeconds(10)),
+                $"the second AI run never called xpe_ai_init (diagnostics: '{AiDiagnostics(window)}')");
+            var second = InitDirectoryOf(AiDiagnostics(window));
+            output.WriteLine($"C10 first init dir='{first}'; after the case change dir='{second}'; diagnostics='{AiDiagnostics(window)}'");
+
+            Assert.Equal(directory, first, ignoreCase: true);
+            Assert.Equal(first, second);   // exact: the spelling the session started with, not the swapped one
+        }
+        finally
+        {
+            SetAiStage(window, false);
+            SetText(window, "AiModelDirectoryInput", string.Empty);
+            ApplyDisplayPipeline(window);
+            try { Directory.Delete(directory, recursive: true); } catch (IOException) { }
+        }
+    }
+
+    private static string InitDirectoryOf(string diagnostics)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(diagnostics, @"init#\d+ dir='([^']*)'");
+        return match.Success ? match.Groups[1].Value : string.Empty;
+    }
+
+    private static int InitCountOf(string diagnostics)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(diagnostics, @"init#(\d+) ");
+        return match.Success ? int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) : 0;
+    }
+
+    /// <summary>
     /// GUI-C-198: asks for the AI stage the way a user does, through the menu entry. Where the entry is disabled (the Mock backend, or a native run without xpe_ai.dll; the
     /// rule is E-01's) the same request is made through the "AI bone suppression in chain" setting, which reaches the same stage and the same refusal.
     /// </summary>
