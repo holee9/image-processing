@@ -41,9 +41,12 @@ class EnduranceTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
         // Create fixture files once for all tests in this suite
-        ASSERT_EQ(MakeOffsetXCal(OFF_PATH,  W, H, 1.0f), XPE_OK);
-        ASSERT_EQ(MakeGainXCal(GAIN_PATH,   W, H, 0.5f), XPE_OK);
-        ASSERT_EQ(MakeDefectXCal(DEF_PATH,  W, H, 0),    XPE_OK);
+        // QA-A-229 M4: the three files carry ONE session id. Files with no id would make every cycle's load
+        // "mixed" and leave the unspecified-session warning in the alert queue (global-state hygiene guard),
+        // and a shared id puts the comparison itself inside the loop.
+        ASSERT_EQ(MakeOffsetXCal(OFF_PATH,  W, H, 1.0f, 0, "endurance"), XPE_OK);
+        ASSERT_EQ(MakeGainXCal(GAIN_PATH,   W, H, 0.5f, 0, "endurance"), XPE_OK);
+        ASSERT_EQ(MakeDefectXCal(DEF_PATH,  W, H, 0, "endurance"),       XPE_OK);
     }
 
     static void TearDownTestSuite() {

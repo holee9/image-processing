@@ -1,0 +1,5 @@
+build_exit=0 test_exit=1
+[  FAILED  ] SessionConsistency.ConflictingOffsetIsRefusedAndTheGainStays (13 ms)
+[  FAILED  ] SessionConsistency.DefectMapSessionIsComparedAgainstOffsetAndGain (17 ms)
+[  FAILED  ] SessionConsistency.SwitchingSessionNeedsTheStoreToBeCleared (23 ms)
+[  FAILED  ] SessionConsistency.CachedLoaderHitRefusesLikeTheMiss (9 ms)

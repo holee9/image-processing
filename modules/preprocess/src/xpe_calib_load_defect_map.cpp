@@ -53,6 +53,9 @@ XpeErrorCode xpe_calib_stage_defect(const char* filepath, StagedDefect* out) noe
         staged.width    = hdr.width;
         staged.height   = hdr.height;
         staged.expiryMs = hdr.expiry_epoch_ms;
+        std::memcpy(staged.sessionId, hdr.session_id,
+                    sizeof(hdr.session_id) < sizeof(staged.sessionId) ? sizeof(hdr.session_id)
+                                                                      : sizeof(staged.sessionId) - 1);
 
         *out = std::move(staged);
         return XPE_OK;
@@ -69,6 +72,7 @@ void xpe_calib_commit_defect_locked(StagedDefect& staged) noexcept {
     g_calib.defect_width     = staged.width;
     g_calib.defect_height    = staged.height;
     g_calib.defect_expiry_ms = staged.expiryMs;
+    std::memcpy(g_calib.defect_session_id, staged.sessionId, sizeof(g_calib.defect_session_id));
 }
 
 extern "C" XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath) {
@@ -80,8 +84,15 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath) 
         }
 
         // Commit under mutex
-        std::lock_guard<std::mutex> lock(g_calib_mutex);
-        xpe_calib_commit_defect_locked(staged);
+        bool mixed = false;
+        {
+            std::lock_guard<std::mutex> lock(g_calib_mutex);
+            // QA-A-229 M4: refused BEFORE anything changes -- the loaded maps stay, this one is rejected.
+            const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Defect, staged.sessionId, &mixed);
+            if (src != XPE_OK) return src;
+            xpe_calib_commit_defect_locked(staged);
+        }
+        xpe_calib_session_warn(mixed);
         return XPE_OK;
 
     } catch (const std::bad_alloc&) {

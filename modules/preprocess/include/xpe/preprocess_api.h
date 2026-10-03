@@ -125,7 +125,19 @@ XPE_API bool xpe_preprocess_is_initialized(void);
  * @brief Load offset calibration map from XCal file
  *
  * REQ-P1A-014: Load XCal format offset maps
- * AC-CAL-001: Validate SHA-256, check session matching, verify expiry
+ * AC-CAL-001: Validate SHA-256, check session consistency with the other loaded maps, verify expiry
+ *
+ * Session consistency (SRS-CALIB-FUNC-011, QA-A-229 M4): the offset, gain and defect maps in the store must come
+ * from the same session. Each file carries a session_id; of two maps that both carry one (non-empty, not the
+ * generator's literal "generated"), a different id is XPE_ERR_CONFIG_INVALID. The map that arrives second is the
+ * one refused: the loaded maps stay and nothing else changes (a cached loader's hit gives the same verdict). A map
+ * with no session id is left out of the comparison -- every generated file and every file written before this
+ * check is in that case -- and ONE warning "XPE_WARN_CALIB_SESSION_UNSPECIFIED: ..." (XPE_ALERT_WARNING) is
+ * raised per mixed state, not per load. What this does NOT do: compare against a session the caller names (no
+ * such call exists) -- two maps from the same wrong detector pass -- and xpe_calib_session_create (the other half
+ * of FUNC-011) is not implemented (#245). To switch to another session, clear the store first
+ * (xpe_preprocess_shutdown, then xpe_preprocess_init): loading a map of the new session while maps of the old one
+ * are loaded is refused.
  *
  * @param filepath Path to XCal format offset file
  * @return XPE_OK on success
@@ -133,7 +145,8 @@ XPE_API bool xpe_preprocess_is_initialized(void);
  *          functions are what refuse an uninitialized module -- pinned by CalibLoadTest.LoadBeforeInit_AllThreeLoadersAcceptValidFiles)
  *         XPE_ERR_IO_FAILED on file read error
  *         XPE_ERR_CALIBRATION_EXPIRED if calibration expired
- *         XPE_ERR_CONFIG_INVALID if session mismatch
+ *         XPE_ERR_CONFIG_INVALID if the file's session id conflicts with a loaded gain or defect map
+ *                                (see "Session consistency" above)
  */
 XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
 
@@ -180,6 +193,9 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
  * xpe_gain_correct called on its own, they carry the uncorrected value (gain 1.0) and the frame says so
  * ("XPE_WARN_GAIN_PIXELS_UNCORRECTED: ..."); the pipeline refuses such a frame when binning is on.
  *
+ * Session consistency: as for xpe_calib_load_offset (a conflict with a loaded offset or defect map is
+ * XPE_ERR_CONFIG_INVALID, this map refused).
+ *
  * @param filepath Path to XCal format gain file
  * @return XPE_OK on success
  *         (never XPE_ERR_NOT_INITIALIZED: a map may be loaded before xpe_preprocess_init; the processing
@@ -198,11 +214,15 @@ XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath);
  * REQ-P1A-016: Load XCal format defect maps (BPM)
  * AC-CAL-003: Validate defect locations and integrity
  *
+ * Session consistency: as for xpe_calib_load_offset (a conflict with a loaded offset or gain map is
+ * XPE_ERR_CONFIG_INVALID, this map refused).
+ *
  * @param filepath Path to XCal format defect map file
  * @return XPE_OK on success
  *         (never XPE_ERR_NOT_INITIALIZED: a map may be loaded before xpe_preprocess_init; the processing
  *          functions are what refuse an uninitialized module -- pinned by CalibLoadTest.LoadBeforeInit_AllThreeLoadersAcceptValidFiles)
  *         XPE_ERR_IO_FAILED on file read error
+ *         XPE_ERR_CONFIG_INVALID if the file's session id conflicts with a loaded offset or gain map
  */
 XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath);
 

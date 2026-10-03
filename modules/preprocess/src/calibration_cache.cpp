@@ -120,7 +120,8 @@ int64_t now_epoch_ms() noexcept
 /**
  * What the plain loader and the file record next to the pixels. Kept in the entry so that a hit
  * can put the global store back exactly as the loader did and judge the file as the read would.
- * timestamp / sessionId are zero for a defect map; the quality metadata is kept for gain only.
+ * timestamp is zero for a defect map (QA-A-229 M4: its sessionId is kept, the consistency check needs it);
+ * the quality metadata is kept for gain only.
  * `kind` records the map kind the plain loader validated (QA-A-197): the key is the path alone, and a
  * file holds one kind of map, so a hit from a loader of another kind must be refused as a miss would.
  */
@@ -490,25 +491,39 @@ void copy_session(char* dst64, const char* src64) noexcept
     std::memcpy(dst64, src64, 63);
 }
 
-void install_offset(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
-                    int64_t timestamp, const char* sessionId64)
+// QA-A-229 M4 (#245): a hit must give the verdict a miss would, and a miss runs the plain loader's session
+// check against the maps loaded NOW -- so a hit runs the same check (under the same lock, before anything is
+// installed). A refused hit leaves the store as it was and returns XPE_ERR_CONFIG_INVALID.
+XpeErrorCode install_offset(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
+                            int64_t timestamp, const char* sessionId64)
 {
-    std::lock_guard<std::mutex> lock(g_calib_mutex);
-    g_calib.offset_map       = std::move(map);
-    g_calib.offset_width     = d.width;
-    g_calib.offset_height    = d.height;
-    g_calib.offset_timestamp = timestamp;
-    copy_session(g_calib.offset_session_id, sessionId64);
+    bool mixed = false;
+    {
+        std::lock_guard<std::mutex> lock(g_calib_mutex);
+        const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Offset, sessionId64, &mixed);
+        if (src != XPE_OK) return src;
+        g_calib.offset_map       = std::move(map);
+        g_calib.offset_width     = d.width;
+        g_calib.offset_height    = d.height;
+        g_calib.offset_timestamp = timestamp;
+        copy_session(g_calib.offset_session_id, sessionId64);
+    }
+    xpe_calib_session_warn(mixed);
+    return XPE_OK;
 }
 
-void install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
-                  int64_t timestamp, const char* sessionId64, const XpeCalibQualityMeta* quality,
-                  std::shared_ptr<uint32_t[]> defects, uint32_t defectCount)
+XpeErrorCode install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
+                          int64_t timestamp, const char* sessionId64, const XpeCalibQualityMeta* quality,
+                          std::shared_ptr<uint32_t[]> defects, uint32_t defectCount)
 {
     // The store holds the map as a shared_ptr; the control block is allocated here, before the lock, so a
     // failure to allocate it leaves the store untouched.
     std::shared_ptr<float[]> shared(std::move(map));
+    bool mixed = false;
+    {
     std::lock_guard<std::mutex> lock(g_calib_mutex);
+    const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Gain, sessionId64, &mixed);
+    if (src != XPE_OK) return src;
     g_calib.gain_map = std::move(shared);
     g_calib.gain_defect_idx   = std::move(defects);   // a hit installs the classification the load made (QA-A-211)
     g_calib.gain_defect_count = defectCount;
@@ -531,14 +546,25 @@ void install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
     } else {
         xpe_calib_commit_no_quality_locked();
     }
+    }
+    xpe_calib_session_warn(mixed);
+    return XPE_OK;
 }
 
-void install_defect(std::unique_ptr<uint8_t[]> map, const XpeImageBuffer& d)
+XpeErrorCode install_defect(std::unique_ptr<uint8_t[]> map, const XpeImageBuffer& d, const char* sessionId64)
 {
-    std::lock_guard<std::mutex> lock(g_calib_mutex);
-    g_calib.defect_map    = std::move(map);
-    g_calib.defect_width  = d.width;
-    g_calib.defect_height = d.height;
+    bool mixed = false;
+    {
+        std::lock_guard<std::mutex> lock(g_calib_mutex);
+        const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Defect, sessionId64, &mixed);
+        if (src != XPE_OK) return src;
+        g_calib.defect_map    = std::move(map);
+        g_calib.defect_width  = d.width;
+        g_calib.defect_height = d.height;
+        copy_session(g_calib.defect_session_id, sessionId64);
+    }
+    xpe_calib_session_warn(mixed);
+    return XPE_OK;
 }
 
 } // anonymous namespace
@@ -578,7 +604,8 @@ try
         if (state == HitState::Unreadable) return XPE_ERR_IO_FAILED;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
         if (state == HitState::Hit) {
-            install_offset(std::move(pixels), view, meta.timestamp, meta.sessionId);
+            const XpeErrorCode irc = install_offset(std::move(pixels), view, meta.timestamp, meta.sessionId);
+            if (irc != XPE_OK) return irc;
             std::memcpy(offsetMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;
         }
@@ -648,8 +675,9 @@ try
         if (state == HitState::Unreadable) return XPE_ERR_IO_FAILED;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
         if (state == HitState::Hit) {
-            install_gain(std::move(pixels), view, meta.timestamp, meta.sessionId,
+            const XpeErrorCode irc = install_gain(std::move(pixels), view, meta.timestamp, meta.sessionId,
                          meta.hasQuality ? &meta.quality : nullptr, meta.gainDefects, meta.gainDefectCount);
+            if (irc != XPE_OK) return irc;
             std::memcpy(gainMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;
         }
@@ -737,7 +765,8 @@ try
         if (state == HitState::Unreadable) return XPE_ERR_IO_FAILED;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
         if (state == HitState::Hit) {
-            install_defect(std::move(pixels), view);
+            const XpeErrorCode irc = install_defect(std::move(pixels), view, meta.sessionId);
+            if (irc != XPE_OK) return irc;
             std::memcpy(defectMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;
         }
@@ -769,6 +798,7 @@ try
         staging.resize(static_cast<size_t>(desc.dataSize));
         std::memcpy(staging.data(), g_calib.defect_map.get(), staging.size());
         meta.expiryMs = g_calib.defect_expiry_ms;
+        std::memcpy(meta.sessionId, g_calib.defect_session_id, sizeof(meta.sessionId));
     }
 
     return publish_and_view(std::string(filePath), desc, staging.data(), defectMapOut, meta);

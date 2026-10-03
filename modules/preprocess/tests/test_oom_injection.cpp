@@ -1328,6 +1328,7 @@ uint64_t fullDigest() {
         mix(&g_calib.gain_timestamp, sizeof g_calib.gain_timestamp);
         mix(&g_calib.gain_expiry_ms, sizeof g_calib.gain_expiry_ms);
         mix(g_calib.gain_session_id, sizeof g_calib.gain_session_id);
+        mix(g_calib.defect_session_id, sizeof g_calib.defect_session_id);   // QA-A-229 M4
         mix(&g_calib.gain_has_quality, sizeof g_calib.gain_has_quality);
         mix(&g_calib.gain_quality.r_squared, sizeof g_calib.gain_quality.r_squared);
         mix(&g_calib.gain_poly_num_coeffs, sizeof g_calib.gain_poly_num_coeffs);

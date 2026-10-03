@@ -479,6 +479,11 @@ static XpeErrorCode load_calibration_set(const char* calibPath, CalibSnapshot* s
     rc = xpe_calib_stage_defect(defectPath, &defect);
     if (rc != XPE_OK) return rc;
 
+    // QA-A-229 M4: the set replaces all three maps, so only the three files are compared with each other.
+    bool sessionMixed = false;
+    rc = xpe_calib_session_check_set(offset.sessionId, gain.sessionId, defect.sessionId, &sessionMixed);
+    if (rc != XPE_OK) return rc;
+
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
         xpe_calib_commit_offset_locked(offset);
@@ -492,6 +497,7 @@ static XpeErrorCode load_calibration_set(const char* calibPath, CalibSnapshot* s
 #ifdef XPE_CACHE_TEST_HOOKS
     if (xpe_calib_after_set_commit_hook) xpe_calib_after_set_commit_hook();
 #endif
+    xpe_calib_session_warn(sessionMixed);
     xpe_calib_after_gain_commit(gain);
     return XPE_OK;
 }

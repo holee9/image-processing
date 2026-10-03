@@ -1,0 +1,11 @@
+build_exit=0 test_exit=1
+[  FAILED  ] SessionConsistency.ConflictingGainIsRefusedAndTheOffsetStays (11 ms)
+[  FAILED  ] SessionConsistency.ConflictingOffsetIsRefusedAndTheGainStays (13 ms)
+[  FAILED  ] SessionConsistency.ConflictingDefectMapIsRefused (18 ms)
+[  FAILED  ] SessionConsistency.DefectMapSessionIsComparedAgainstOffsetAndGain (18 ms)
+[  FAILED  ] SessionConsistency.SwitchingSessionNeedsTheStoreToBeCleared (37 ms)
+[  FAILED  ] SessionConsistency.UnspecifiedDoesNotHideAConflictBetweenTheSpecifiedOnes (18 ms)
+[  FAILED  ] SessionConsistency.CachedOffsetHitRefusesLikeTheMiss (18 ms)
+[  FAILED  ] SessionConsistency.CachedGainHitRefusesLikeTheMiss (15 ms)
+[  FAILED  ] SessionConsistency.CachedDefectHitRefusesLikeTheMiss (14 ms)
+[  FAILED  ] SessionConsistency.PipelineSetWithConflictingSessionsIsRefused (8 ms)

@@ -375,10 +375,15 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {
             return rc;
         }
 
+        bool mixed = false;
         {
             std::lock_guard<std::mutex> lock(g_calib_mutex);
+            // QA-A-229 M4: refused BEFORE anything changes -- the loaded maps stay, this one is rejected.
+            const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Gain, staged.sessionId, &mixed);
+            if (src != XPE_OK) return src;
             xpe_calib_commit_gain_locked(staged);
         }
+        xpe_calib_session_warn(mixed);
         xpe_calib_after_gain_commit(staged);
         return XPE_OK;
 

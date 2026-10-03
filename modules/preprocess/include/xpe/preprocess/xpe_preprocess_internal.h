@@ -487,6 +487,8 @@ struct CalibrationData {
     uint32_t defect_width{0};
     uint32_t defect_height{0};
     int64_t  defect_expiry_ms{0};
+    char     defect_session_id[64]{};   // QA-A-229 M4: the defect file's session_id, for the consistency check
+    bool     session_warned{false};     // QA-A-229 M4: the "unspecified session" warning was raised for the current mixed state
 
     // QA-A-111 (#186): SRS-CALIB-FUNC-006-EXT 6a nonlinearity LUT, a flat table
     // indexed by raw ADU. `nonlin_extension_start` is the first index the
@@ -617,12 +619,57 @@ struct StagedDefect {
     uint32_t width{0};
     uint32_t height{0};
     int64_t  expiryMs{0};
+    char     sessionId[64]{};   ///< the file's session_id (QA-A-229 M4); was read by nobody before
 };
 
 /** Read, validate and allocate; changes no global. Never throws. */
 XpeErrorCode xpe_calib_stage_offset(const char* filepath, StagedOffset* out) noexcept;
 XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcept;
 XpeErrorCode xpe_calib_stage_defect(const char* filepath, StagedDefect* out) noexcept;
+
+/* -------------------------------------------------------------------------
+ * Session consistency between the loaded maps (QA-A-229 M4, #245, SRS-CALIB-FUNC-011 S1).
+ *
+ * A map file carries a session_id (XCalFileHeader). Maps loaded together must come from the same
+ * session. "Specified" means non-empty and not the literal "generated" (what xpe_calib_generate_* writes);
+ * an unspecified id is left out of the comparison (files from before this check, and every generated
+ * file, would otherwise be refused) and the module says so with ONE warning per load.
+ *
+ * xpe_session_conflict is the ONE comparator: both ids specified and different. A future "expected
+ * session" (S2) calls the same function.
+ * ------------------------------------------------------------------------- */
+inline bool xpe_session_specified(const char* id64) noexcept
+{
+    return id64 != nullptr && id64[0] != 0 && std::strncmp(id64, "generated", 64) != 0;
+}
+
+inline bool xpe_session_conflict(const char* a64, const char* b64) noexcept
+{
+    return xpe_session_specified(a64) && xpe_session_specified(b64) && std::strncmp(a64, b64, 64) != 0;
+}
+
+enum class CalibMapKind { Offset, Gain, Defect };
+
+/**
+ * Before committing a map of `kind` whose file carries `incoming64`: compare it with the OTHER maps
+ * currently in the store. XPE_ERR_CONFIG_INVALID when it conflicts with any of them (nothing is changed:
+ * the incoming map is the one refused, the loaded ones stay). The caller holds g_calib_mutex.
+ * `*unspecifiedMixed` is set when, once this map is in, two or more maps are loaded and at least one of
+ * them has an unspecified session id; pass it to xpe_calib_session_warn after releasing the lock.
+ */
+XpeErrorCode xpe_calib_session_check_locked(CalibMapKind kind, const char* incoming64, bool* unspecifiedMixed) noexcept;
+
+/** The same rule for a set that replaces all three maps at once (the pipeline's calibration set). */
+XpeErrorCode xpe_calib_session_check_set(const char* offset64, const char* gain64, const char* defect64,
+                                         bool* unspecifiedMixed) noexcept;
+
+/**
+ * Pushes the warning when `mixed`, ONCE per mixed state: the pipeline re-reads its three files on every call
+ * (and the Endurance loops load thousands of times), so a warning per load would fill the 64-entry alert
+ * queue with one repeated sentence. The state ends when a load leaves no unspecified map in play, or at
+ * shutdown; the next mix warns again. Takes g_calib_mutex itself, so call it with the lock RELEASED. Never throws.
+ */
+void xpe_calib_session_warn(bool mixed) noexcept;
 
 /** Move a staged object into g_calib. The caller holds g_calib_mutex. Cannot fail. */
 void xpe_calib_commit_offset_locked(StagedOffset& staged) noexcept;

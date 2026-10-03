@@ -1,0 +1,4 @@
+build_exit=0 test_exit=1
+[  FAILED  ] SessionConsistency.ConflictingDefectMapIsRefused (19 ms)
+[  FAILED  ] SessionConsistency.UnspecifiedDoesNotHideAConflictBetweenTheSpecifiedOnes (19 ms)
+[  FAILED  ] SessionConsistency.CachedDefectAndGainHitsRefuseToo (12 ms)

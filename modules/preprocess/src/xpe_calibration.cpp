@@ -26,6 +26,74 @@
 CalibrationData g_calib;
 std::mutex g_calib_mutex;
 
+// QA-A-229 M4 (#245): session consistency between the loaded maps -- see xpe_preprocess_internal.h.
+namespace {
+struct SessionSlot { const char* id; bool loaded; };
+
+XpeErrorCode session_check(const SessionSlot (&others)[2], const char* incoming64, bool* mixed) noexcept
+{
+    for (const SessionSlot& o : others) {
+        if (o.loaded && xpe_session_conflict(incoming64, o.id)) return XPE_ERR_CONFIG_INVALID;
+    }
+    if (mixed) {
+        int loadedCount = 1;
+        bool anyUnspecified = !xpe_session_specified(incoming64);
+        for (const SessionSlot& o : others) {
+            if (!o.loaded) continue;
+            ++loadedCount;
+            if (!xpe_session_specified(o.id)) anyUnspecified = true;
+        }
+        *mixed = (loadedCount >= 2) && anyUnspecified;
+    }
+    return XPE_OK;
+}
+} // namespace
+
+XpeErrorCode xpe_calib_session_check_locked(CalibMapKind kind, const char* incoming64, bool* unspecifiedMixed) noexcept
+{
+    const SessionSlot off{g_calib.offset_session_id, g_calib.offset_map != nullptr};
+    const SessionSlot gain{g_calib.gain_session_id, g_calib.gain_map != nullptr || g_calib.gain_poly_coeffs != nullptr};
+    const SessionSlot def{g_calib.defect_session_id, g_calib.defect_map != nullptr};
+    switch (kind) {
+        case CalibMapKind::Offset: { const SessionSlot o[2] = {gain, def}; return session_check(o, incoming64, unspecifiedMixed); }
+        case CalibMapKind::Gain:   { const SessionSlot o[2] = {off, def};  return session_check(o, incoming64, unspecifiedMixed); }
+        case CalibMapKind::Defect: { const SessionSlot o[2] = {off, gain}; return session_check(o, incoming64, unspecifiedMixed); }
+    }
+    return XPE_ERR_INVALID_INPUT;
+}
+
+XpeErrorCode xpe_calib_session_check_set(const char* offset64, const char* gain64, const char* defect64,
+                                         bool* unspecifiedMixed) noexcept
+{
+    if (xpe_session_conflict(offset64, gain64) || xpe_session_conflict(offset64, defect64) ||
+        xpe_session_conflict(gain64, defect64)) {
+        return XPE_ERR_CONFIG_INVALID;
+    }
+    if (unspecifiedMixed) {
+        *unspecifiedMixed = !xpe_session_specified(offset64) || !xpe_session_specified(gain64) ||
+                            !xpe_session_specified(defect64);
+    }
+    return XPE_OK;
+}
+
+void xpe_calib_session_warn(bool mixed) noexcept
+{
+    {
+        std::lock_guard<std::mutex> lock(g_calib_mutex);
+        if (!mixed) { g_calib.session_warned = false; return; }
+        if (g_calib.session_warned) return;
+        g_calib.session_warned = true;
+    }
+    try {
+        xpe_alert_push("XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries "
+                       "no session id (empty or generated); session consistency is checked only between maps "
+                       "that carry one",
+                       XPE_ALERT_WARNING);
+    } catch (...) {
+        // advisory: lost under memory pressure
+    }
+}
+
 CalibSnapshot xpe_calib_snapshot_locked() noexcept
 {
     CalibSnapshot s;
