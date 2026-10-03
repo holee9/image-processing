@@ -1,0 +1,3 @@
+== arm H: the instance type-by-name pattern is weakened to a literal-only shape (the 228b shape) and a variable-argument call is added elsewhere
+[xUnit.net 00:00:00.43]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.EveryPattern_MatchesItsControlLines [FAIL]
+실패!  - 실패:     1, 통과:    11, 건너뜀:     0, 전체:    12, 기간: 357 ms - ImageProcTest.IntegrationTests.dll (net8.0)

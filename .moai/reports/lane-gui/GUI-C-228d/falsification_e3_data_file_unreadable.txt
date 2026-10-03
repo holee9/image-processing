@@ -1,0 +1,6 @@
+== arm (e3) the data file turned into invalid JSON
+[xUnit.net 00:00:00.28]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.ThisFile_IsScanned_LikeEveryOtherCsFile [FAIL]
+[xUnit.net 00:00:00.29]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.EveryCsFileOfTheTestProject_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList [FAIL]
+[xUnit.net 00:00:00.29]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.TheCommentRule_SkipsOnlyWholeLineComments_AndNeverHidesACallOnTheSameLine [FAIL]
+[xUnit.net 00:00:00.35]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.EveryPattern_MatchesItsControlLines [FAIL]
+실패!  - 실패:     4, 통과:     8, 건너뜀:     0, 전체:    12, 기간: 267 ms - ImageProcTest.IntegrationTests.dll (net8.0)
