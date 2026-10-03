@@ -345,29 +345,12 @@ if(_XPE_BUILD_TESTS)
         tests/test_xpe_calib_save.cpp
         # QA-A-29 (#132): xpe_calib_save 3-arg embedded expiry, api-spec 6.14
         tests/test_calib_save_expiry.cpp
-        # QA-A-21 (#120) judgement. The "legacy 3-arg API" half of the previous
-        # note was stale: the shipped API *is* 3-arg and this file has zero
-        # 2-argument correction calls. Registering it produces 14 errors, all
-        # struct fields, but they are not a rename job:
-        #   XpeImageBuffer::stride  -> removed (2 uses, derivable from width)
-        #   kvp -> kVp, sid_mm -> SID_mm                    (rename)
-        #   ma -> mAs                 (mA vs mA*s -- different quantity)
-        #   acquisition_time_s -> acquisitionTime  (seconds vs epoch ms)
-        #   temperature_c, integration_time_ms -> no field exists
-        # The last three change what the affected cases assert, so registering
-        # needs a contract decision, not an edit. Details in
-        # .moai/reports/lane-pre/QA-A-21/.
-        # QA-A-229 (#245): the real reason it is off, and why it stays off. It was
-        # disabled by e9b8ed46 (2026-04-20) when this monolith was split into
-        # _init/_calibration/_correction: 20 of its 51 cases kept the same
-        # Suite.Name as their split copies (LNK2005) and it has its own main().
-        # With those removed and the fields above fixed it links, but of the 31
-        # remaining cases 13 fail (legacy XCAL layout is rejected, codes moved)
-        # and ~24 assert only "result is one of several codes", so they pass
-        # whatever the code does. The behaviours they name are covered by the
-        # split files and test_xpe_calib_*/test_readout_validate/
-        # test_runtime_detection_*. Triage: .moai/reports/lane-pre/QA-A-229-M1/.
-        # tests/test_xpe_preprocess.cpp
+        # QA-A-229 M2b (#245): tests/test_xpe_preprocess.cpp (the pre-split monolith, disabled by
+        # e9b8ed46 on 2026-04-20) is DELETED. Its 31 cases not duplicated by the split files were
+        # compared with the live tests; the ones still true are ported with exact assertions
+        # (test_xpe_calib_load / test_param_range_names / test_xpe_preprocess_correction), the rest
+        # are covered by live tests or named features that do not exist. Table:
+        # .moai/reports/lane-pre/QA-A-229-M2b/report.md. Earlier note: QA-A-21 (#120).
         tests/test_xpe_preprocess_calibration.cpp
         tests/test_xpe_preprocess_correction.cpp
         tests/test_xpe_preprocess_init.cpp

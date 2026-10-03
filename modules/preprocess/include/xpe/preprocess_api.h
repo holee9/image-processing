@@ -129,7 +129,8 @@ XPE_API bool xpe_preprocess_is_initialized(void);
  *
  * @param filepath Path to XCal format offset file
  * @return XPE_OK on success
- *         XPE_ERR_NOT_INITIALIZED if module not initialized
+ *         (never XPE_ERR_NOT_INITIALIZED: a map may be loaded before xpe_preprocess_init; the processing
+ *          functions are what refuse an uninitialized module -- pinned by CalibLoadTest.LoadBeforeInit_AllThreeLoadersAcceptValidFiles)
  *         XPE_ERR_IO_FAILED on file read error
  *         XPE_ERR_CALIBRATION_EXPIRED if calibration expired
  *         XPE_ERR_CONFIG_INVALID if session mismatch
@@ -181,7 +182,8 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
  *
  * @param filepath Path to XCal format gain file
  * @return XPE_OK on success
- *         XPE_ERR_NOT_INITIALIZED if module not initialized
+ *         (never XPE_ERR_NOT_INITIALIZED: a map may be loaded before xpe_preprocess_init; the processing
+ *          functions are what refuse an uninitialized module -- pinned by CalibLoadTest.LoadBeforeInit_AllThreeLoadersAcceptValidFiles)
  *         XPE_ERR_IO_FAILED on file read error
  *         XPE_ERR_CALIBRATION_EXPIRED if calibration expired
  *         XPE_ERR_CONFIG_INVALID if the config block is not one valid JSON object, or a present quality field is
@@ -198,7 +200,8 @@ XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath);
  *
  * @param filepath Path to XCal format defect map file
  * @return XPE_OK on success
- *         XPE_ERR_NOT_INITIALIZED if module not initialized
+ *         (never XPE_ERR_NOT_INITIALIZED: a map may be loaded before xpe_preprocess_init; the processing
+ *          functions are what refuse an uninitialized module -- pinned by CalibLoadTest.LoadBeforeInit_AllThreeLoadersAcceptValidFiles)
  *         XPE_ERR_IO_FAILED on file read error
  */
 XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath);
@@ -210,10 +213,13 @@ XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath);
 /**
  * @brief Execute offset correction: I_offset = max(I_raw - I_dark, 0)
  *
- * REQ-P1A-010: Offset correction with temperature interpolation
+ * REQ-P1A-010: Offset correction (one offset map; temperature interpolation is NOT IMPLEMENTED -- #245)
  * AC-OFF-001: Basic offset correction with floor-at-zero
- * AC-OFF-002: Temperature interpolation between two offset maps
- * AC-OFF-003: PREP-time exponential decay model
+ * AC-OFF-002: Temperature interpolation between two offset maps -- NOT IMPLEMENTED (#245); XpeImageMetadata has
+ *             no temperature field and one offset map is applied
+ * AC-OFF-003: PREP-time exponential decay model -- NOT IMPLEMENTED (#245); acquisitionTime is not read
+ * What metadata does today: nothing. kVp, SID_mm and acquisitionTime do not change the result (pinned by
+ * PreprocessCorrectionTest.OffsetCorrect_MetadataDoesNotChangeTheCorrection).
  * REQ-P1A-020: Return XPE_ERR_NOT_INITIALIZED if not initialized
  * REQ-P1A-021: Validate dimension mismatch
  *

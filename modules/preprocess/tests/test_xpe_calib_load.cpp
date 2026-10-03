@@ -124,6 +124,22 @@ TEST_F(CalibLoadTest, LoadOffset_HappyPath_ReturnsOk) {
     EXPECT_EQ(rc, XPE_OK);
 }
 
+// QA-A-229 M2b (#245): ported from the retired legacy LoadOffset_NotInitialized, which expected
+// XPE_ERR_NOT_INITIALIZED. That was never true of the shipped loaders: a calibration map may be
+// loaded BEFORE xpe_preprocess_init (test_xpe_preprocess_init.cpp pins it for offset; the
+// processing functions are what refuse an uninitialized module). All three loaders, exact result.
+TEST_F(CalibLoadTest, LoadBeforeInit_AllThreeLoadersAcceptValidFiles) {
+    xpe_preprocess_shutdown();
+    ASSERT_FALSE(xpe_preprocess_is_initialized());
+    ASSERT_EQ(MakeOffsetXCal(offset_path, W, H, OVAL), XPE_OK);
+    ASSERT_EQ(MakeGainXCal(gain_path, W, H, GVAL), XPE_OK);
+    ASSERT_EQ(MakeDefectXCal(defect_path, W, H, DVAL), XPE_OK);
+    EXPECT_EQ(XPE_OK, xpe_calib_load_offset(offset_path));
+    EXPECT_EQ(XPE_OK, xpe_calib_load_gain(gain_path));
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_map(defect_path));
+    EXPECT_FALSE(xpe_preprocess_is_initialized()) << "loading must not initialize the module";
+}
+
 // Test 2: Null path -> INVALID_INPUT
 TEST_F(CalibLoadTest, LoadOffset_NullPath_ReturnsInvalidInput) {
     EXPECT_EQ(xpe_calib_load_offset(nullptr), XPE_ERR_INVALID_INPUT);

@@ -1,0 +1,9 @@
+build_exit=0 test_exit=1
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_correction.cpp(295): error: Expected equality of these values:
+    Which is: 94
+    Which is: 0
+[  FAILED  ] PreprocessCorrectionTest.OffsetCorrect_MetadataDoesNotChangeTheCorrection (5 ms)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] PreprocessCorrectionTest.OffsetCorrect_MetadataDoesNotChangeTheCorrection
+ 1 FAILED TEST

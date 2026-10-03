@@ -52,4 +52,16 @@ TEST_F(ParamRangeNamesTest, UnknownParameterIsRejected) {
               xpe_preprocess_get_param_range("unknown_param", &minValue, &maxValue));
 }
 
+// QA-A-229 M2b (#245): ported from the retired legacy GetParamRange_InvalidParams (its null-output half;
+// the unknown-name half is the case above). Each of the three null shapes, exact code, and the
+// outputs of a rejected call are left alone.
+TEST_F(ParamRangeNamesTest, NullOutputPointersAreRejected) {
+    float v = 123.0f;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_preprocess_get_param_range("kVp", nullptr, &v));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_preprocess_get_param_range("kVp", &v, nullptr));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_preprocess_get_param_range("kVp", nullptr, nullptr));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_preprocess_get_param_range(nullptr, &v, &v));
+    EXPECT_EQ(123.0f, v) << "a rejected call must not write the outputs";
+}
+
 } // namespace
