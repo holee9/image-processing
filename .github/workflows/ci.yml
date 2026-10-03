@@ -1039,6 +1039,13 @@ jobs:
         shell: pwsh
         run: dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug
 
+      # GUI-C-212 (#249): LegacyPreprocessReadinessScenarios launch the legacy diagnostic app (clients/ImageProcTest) and read its Diagnostics, Calibration and
+      # Evaluation tabs through UIA. This job built only the gui app, so those scenarios would SKIP here ("ImageProcTest.exe was not found") and the unexplained-skip
+      # gate below would fail the job - which is the intended answer to a staging fault, so the app is built here rather than the skip being allow-listed.
+      - name: Build the legacy diagnostic app
+        shell: pwsh
+        run: dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug
+
       # A04/A05/A06 drive the two console runners THROUGH the app and assert it
       # reports their verdict. This job built only the app, so all three landed
       # as NotExecuted on every run -- and the skip guard then failed the job
