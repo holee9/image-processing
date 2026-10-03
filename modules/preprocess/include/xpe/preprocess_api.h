@@ -139,8 +139,12 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
 /**
  * @brief Load gain calibration map from XCal file
  *
- * REQ-P1A-015: Load XCal format gain maps with multi-SID interpolation
- * AC-CAL-002: Load with interpolation table for kVp-specific gain
+ * REQ-P1A-015: kVp-/SID-specific gain with interpolation -- NOT IMPLEMENTED (REQ-015, #245). The loader
+ *              reads ONE gain map (or one gain polynomial in dose); there is no table indexed by kVp or SID.
+ * AC-CAL-002: not implemented, same reason.
+ * What kVp does today: nothing. metadata.kVp and metadata.SID_mm are not read when a gain map is chosen or
+ * applied, so the same frame under different kVp/SID gives identical pixels (pinned by
+ * GainPolyNotAppliedTest.KvpAndSidDoNotChangeTheCorrection).
  *
  * Quality metadata (FUNC-033). The file's config block is read as ONE valid JSON object, to its stored length
  * (a NUL byte, a byte-order mark that is not complete, malformed UTF-8, text after the object, a key given twice at
@@ -237,14 +241,14 @@ XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
  *
  * REQ-P1A-011: Gain correction with format conversion
  * AC-GAIN-001: UINT16 to FLOAT32 conversion, divide by gain map
- * AC-GAIN-002: Multi-SID gain interpolation
+ * AC-GAIN-002: Multi-SID gain interpolation -- NOT IMPLEMENTED (REQ-015, #245); metadata kVp / SID_mm are not used
  * AC-GAIN-003: Validate NaN/Inf values
  * REQ-P1A-021: Validate dimension mismatch
  * REQ-P1A-022: Validate format mismatch
  *
  * @param input Input image buffer (offset-corrected, UINT16)
  * @param output Output image buffer (gain-corrected, FLOAT32)
- * @param metadata Image metadata including kVp and SID
+ * @param metadata Image metadata; must be non-NULL, its kVp and SID_mm do not change the result (see above)
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
  *         XPE_ERR_INVALID_INPUT if NULL pointers, or if the loaded calibration
