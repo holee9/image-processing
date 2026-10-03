@@ -1,0 +1,8 @@
+build_exit=0 test_exit=1
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_calib_load.cpp(137): error: Expected equality of these values:
+    Which is: -6
+[  FAILED  ] CalibLoadTest.LoadBeforeInit_AllThreeLoadersAcceptValidFiles (10 ms)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] CalibLoadTest.LoadBeforeInit_AllThreeLoadersAcceptValidFiles
+ 1 FAILED TEST

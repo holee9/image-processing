@@ -15,6 +15,7 @@
 #include <filesystem>
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_error.h"
+#include "fixtures/make_xcal.hpp"
 
 // =============================================================================
 // Test Data Generation Helpers
@@ -251,6 +252,52 @@ TEST_F(PreprocessCorrectionTest, OffsetCorrect_FormatMismatch) {
     FreeTestImage(input);
     FreeTestImage(output);
     delete metadata;
+}
+
+/**
+ * @test OffsetCorrect_MetadataDoesNotChangeTheCorrection
+ *
+ * QA-A-229 M2b (#245). Replaces the retired legacy OffsetCorrect_TemperatureInterpolation and
+ * OffsetCorrect_PREPTimeModel, which named features the shipped code does not have (and asserted
+ * only "result is one of several codes"). What is true today: ONE offset map is applied
+ * (out = max(in - offset, 0)); XpeImageMetadata has no temperature, and kVp / SID_mm /
+ * acquisitionTime are not read by the correction. If temperature interpolation or a PREP-time
+ * decay model is ever implemented this fails, and the header sentences must change with it.
+ */
+TEST_F(PreprocessCorrectionTest, OffsetCorrect_MetadataDoesNotChangeTheCorrection) {
+    constexpr uint32_t W = 16, H = 8;
+    constexpr size_t N = static_cast<size_t>(W) * H;
+    const std::string path =
+        (std::filesystem::temp_directory_path() / "qa_a_229_meta_offset.xcal").string();
+    std::filesystem::remove(path);
+    ASSERT_EQ(MakeOffsetXCal(path.c_str(), W, H, 100.0f), XPE_OK);
+    ASSERT_EQ(xpe_calib_load_offset(path.c_str()), XPE_OK);
+
+    std::vector<uint16_t> in(N);
+    for (size_t i = 0; i < N; ++i) in[i] = static_cast<uint16_t>((i * 97u) % 400u);  // some below, some above 100
+    const float kvp[] = {120.0f, 40.0f, 150.0f, 0.0f};
+    const float sid[] = {1200.0f, 600.0f, 1800.0f, 0.0f};
+    const uint64_t when[] = {0u, 1u, 1700000000u, 99999999999999ull};
+    std::vector<uint16_t> first;
+    for (size_t c = 0; c < 4; ++c) {
+        XpeImageBuffer ib{}, ob{};
+        std::vector<uint16_t> out(N, 0xBEEF);
+        ib.width = ob.width = W; ib.height = ob.height = H;
+        ib.format = ob.format = XPE_PIXEL_UINT16;
+        ib.bitsAllocated = ib.bitsStored = ob.bitsAllocated = ob.bitsStored = 16;
+        ib.data = in.data(); ib.dataSize = N * sizeof(uint16_t);
+        ob.data = out.data(); ob.dataSize = N * sizeof(uint16_t);
+        XpeImageMetadata meta{};
+        meta.kVp = kvp[c]; meta.SID_mm = sid[c]; meta.acquisitionTime = when[c];
+        meta.pixelPitch_mm = 0.14f;
+        ASSERT_EQ(xpe_offset_correct(&ib, &ob, &meta), XPE_OK) << "case " << c;
+        for (size_t i = 0; i < N; ++i)
+            ASSERT_EQ(static_cast<uint16_t>(in[i] > 100 ? in[i] - 100 : 0), out[i])
+                << "case " << c << " pixel " << i;
+        if (c == 0) first = out;
+        else EXPECT_EQ(first, out) << "case " << c;
+    }
+    std::filesystem::remove(path);
 }
 
 // =============================================================================
