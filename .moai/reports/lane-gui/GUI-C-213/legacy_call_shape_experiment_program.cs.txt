@@ -1,0 +1,60 @@
+using System.Runtime.InteropServices;
+[StructLayout(LayoutKind.Sequential, Pack = 8)] struct Buf { public uint W, H, BitsA, BitsS; public uint Fmt; public IntPtr Data; public nuint Size; }
+[StructLayout(LayoutKind.Sequential, Pack = 8, CharSet = CharSet.Ansi)] struct Meta { [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)] public string Body; public float KVp, MAs, Sid, Pitch; public ulong Time; public uint Flags; }
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)] delegate int Init(IntPtr c);
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)] delegate void Shut();
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)] delegate int Correct3(ref Buf i, ref Buf o, ref Meta m);
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)] delegate int Correct2(ref Buf i, ref Buf o);
+[UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)] delegate int GenOff([In] Buf[] f, int n, float ms, float t, [MarshalAs(UnmanagedType.LPStr)] string path, [MarshalAs(UnmanagedType.LPStr)] string? cfg);
+[UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)] delegate int GenGain([In] Buf[] f, int n, IntPtr dark, [MarshalAs(UnmanagedType.LPStr)] string path, [MarshalAs(UnmanagedType.LPStr)] string? meta);
+[UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)] delegate int Load([MarshalAs(UnmanagedType.LPStr)] string path);
+static class P {
+  static T D<T>(IntPtr h, string n) where T : Delegate => Marshal.GetDelegateForFunctionPointer<T>(NativeLibrary.GetExport(h, n));
+  static Buf B(uint fmt, IntPtr d, int bytes) => new() { W = 16, H = 16, BitsA = fmt == 0 ? 16u : 32u, BitsS = fmt == 0 ? 16u : 32u, Fmt = fmt, Data = d, Size = (nuint)bytes };
+  static int Main(string[] a) {
+    var dir = Path.GetDirectoryName(a[0])!; NativeLibrary.SetDllImportResolver(typeof(P).Assembly, (n, asm, sp) => File.Exists(Path.Combine(dir, n)) ? NativeLibrary.Load(Path.Combine(dir, n)) : IntPtr.Zero);
+    Directory.SetCurrentDirectory(dir); var h = NativeLibrary.Load(a[0]);
+    var init = D<Init>(h, "xpe_preprocess_init"); var shut = D<Shut>(h, "xpe_preprocess_shutdown");
+    shut(); Console.WriteLine("init=" + init(IntPtr.Zero));
+    var tmp = Path.Combine(Path.GetTempPath(), "legacy213_" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(tmp);
+    var dark = Enumerable.Repeat((ushort)100, 256).ToArray(); var flat = Enumerable.Repeat((ushort)2000, 256).ToArray();
+    var dp = GCHandle.Alloc(dark, GCHandleType.Pinned); var fp = GCHandle.Alloc(flat, GCHandleType.Pinned);
+    var op = Path.Combine(tmp, "o.xcal"); var gp = Path.Combine(tmp, "g.xcal");
+    Console.WriteLine("genoff=" + D<GenOff>(h, "xpe_calib_generate_offset")(new[] { B(0, dp.AddrOfPinnedObject(), 512) }, 1, 100f, 25f, op, null) + " loadoff=" + D<Load>(h, "xpe_calib_load_offset")(op));
+    Console.WriteLine("gengain=" + D<GenGain>(h, "xpe_calib_generate_gain")(new[] { B(0, fp.AddrOfPinnedObject(), 512) }, 1, IntPtr.Zero, gp, null) + " loadgain=" + D<Load>(h, "xpe_calib_load_gain")(gp));
+    var meta = new Meta { Body = "CHEST", KVp = 70, MAs = 2, Sid = 1000, Pitch = 0.14f };
+
+    // A) the legacy call shape: (ref image, ref offsetMap), exactly as NativePreprocessPreviewService.CallOffset passes them
+    var image = Enumerable.Range(0, 256).Select(i => (ushort)(1000 + i)).ToArray(); var offsetMap = new ushort[256];
+    var ip = GCHandle.Alloc(image, GCHandleType.Pinned); var mp = GCHandle.Alloc(offsetMap, GCHandleType.Pinned);
+    var ib = B(0, ip.AddrOfPinnedObject(), 512); var mb = B(0, mp.AddrOfPinnedObject(), 512);
+    var rcA = D<Correct2>(h, "xpe_offset_correct")(ref ib, ref mb);
+    Console.WriteLine($"A legacy 2-arg offset: rc={rcA}; image[0..3]={string.Join(",", image.Take(4))} (input 1000..); offsetMap[0..3]={string.Join(",", offsetMap.Take(4))} (was zeros)");
+    ip.Free(); mp.Free();
+
+    // B) the header's shape
+    var image2 = Enumerable.Range(0, 256).Select(i => (ushort)(1000 + i)).ToArray(); var out2 = new ushort[256];
+    ip = GCHandle.Alloc(image2, GCHandleType.Pinned); mp = GCHandle.Alloc(out2, GCHandleType.Pinned);
+    ib = B(0, ip.AddrOfPinnedObject(), 512); mb = B(0, mp.AddrOfPinnedObject(), 512);
+    var rcB = D<Correct3>(h, "xpe_offset_correct")(ref ib, ref mb, ref meta);
+    Console.WriteLine($"B header 3-arg offset: rc={rcB}; image[0..3]={string.Join(",", image2.Take(4))}; output[0..3]={string.Join(",", out2.Take(4))}");
+    ip.Free(); mp.Free();
+
+    // A2) legacy gain: (ref imageU16, ref gainMapF32) as CallGain passes them, then what CallGain does afterwards
+    var imgG = Enumerable.Range(0, 256).Select(i => (ushort)(1000 + i)).ToArray(); var gainMap = new float[256];
+    ip = GCHandle.Alloc(imgG, GCHandleType.Pinned); mp = GCHandle.Alloc(gainMap, GCHandleType.Pinned);
+    ib = B(0, ip.AddrOfPinnedObject(), 512); mb = B(1, mp.AddrOfPinnedObject(), 1024);
+    var rcG = D<Correct2>(h, "xpe_gain_correct")(ref ib, ref mb);
+    Console.WriteLine($"A2 legacy 2-arg gain: rc={rcG}; image[0..3]={string.Join(",", imgG.Take(4))}; gainMap[0..3]={string.Join(",", gainMap.Take(4))} (a float32 map array, was zeros) ; CallGain then Marshal.Copy's {256 * 4} bytes from the image buffer, which holds {256 * 2}");
+    ip.Free(); mp.Free();
+
+    // A3) legacy defect: (ref imageF32, ref defectMapU8 (format UInt8, 256 bytes), IntPtr.Zero)
+    var imgD = Enumerable.Range(0, 256).Select(i => 1000f + i).ToArray(); var defMap = new byte[256];
+    ip = GCHandle.Alloc(imgD, GCHandleType.Pinned); mp = GCHandle.Alloc(defMap, GCHandleType.Pinned);
+    ib = B(1, ip.AddrOfPinnedObject(), 1024); mb = new Buf { W = 16, H = 16, BitsA = 8, BitsS = 8, Fmt = 2, Data = mp.AddrOfPinnedObject(), Size = 256 };
+    var rcD = D<Correct3>(h, "xpe_defect_correct")(ref ib, ref mb, ref meta);
+    Console.WriteLine($"A3 legacy defect (output = the UInt8 map buffer): rc={rcD} (OK=0, -7=UNSUPPORTED_FORMAT, -8=BUFFER_TOO_SMALL, -16=CALIB_NOT_LOADED)");
+    ip.Free(); mp.Free(); shut();
+    return 0;
+  }
+}

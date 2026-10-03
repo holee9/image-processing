@@ -146,7 +146,9 @@ public sealed class NegativeInputPathTests : IDisposable
 
     // ---- NULL out/ref arguments: the marshaller never produces them, so call the export through a function pointer. ----
 
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate int AllocFn(uint width, uint height, int format, IntPtr outBuffer);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate int FreeFn(IntPtr buffer);
 
     private T Export<T>(string name) where T : Delegate =>
