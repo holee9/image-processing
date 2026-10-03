@@ -149,9 +149,11 @@ inline bool sameBytes(const Frames& a, const Frames& b) {
 
 struct Blank {
     double raw{0}, res{0}, removal{0};
-    // QA-A-225 M3-a: the same removal with the dark reference taken from the UNCORRECTED pre-exposure frames, and the share of
-    // the corrected blank frame's pixels that are exactly 0 (the module clamps its output at 0).
-    double resRawDark{0}, removalRawDark{0}, clampedShare{0};
+    // QA-A-225 M5 (option (i), leader decision 2026-10-03): res/removal take the dark reference from the UNCORRECTED pre-exposure
+    // frames. resCorDark/removalCorDark keep the M1 definition (reference = the corrected pre-exposure frames) as a column: the
+    // module clamps its output at 0, so a corrected dark frame is rectified (M3-a) and that reference measures the rectifier.
+    // clampedShare = the share of the corrected blank frame's pixels that are exactly 0 (which row touched the clamp).
+    double resCorDark{0}, removalCorDark{0}, clampedShare{0};
 };
 struct Metrics {
     Blank k1, k10, k50;
@@ -162,7 +164,8 @@ struct Metrics {
 
 /** LagResidualPct(k) = 100*|mean(Y_blank_k) - mean(DarkRef)| / max(mean(ExposureSignal), eps);
  *  GhostRemovalPct(k) = 100*(LagRawPct - LagResidualPct)/max(LagRawPct, eps).
- *  DarkRef = the pre-exposure frames of the SAME path; ExposureSignal = the last exposure frame before correction. */
+ *  DarkRef = the UNCORRECTED pre-exposure frames (M5; the corrected ones are rectified by the module's clamp at 0, see M3-a);
+ *  ExposureSignal = the last exposure frame before correction. */
 inline Metrics measure(const Seq& s, const Frames& y, const Frames& c) {
     Metrics m;
     double darkRaw = 0.0, darkCor = 0.0;
@@ -173,10 +176,10 @@ inline Metrics measure(const Seq& s, const Frames& y, const Frames& c) {
         const size_t i = s.nPre + s.nExp + k - 1;
         Blank b;
         b.raw = 100.0 * std::fabs(meanOf(y[i]) - darkRaw) / std::max(exposureSignal, kEps);
-        b.res = 100.0 * std::fabs(meanOf(c[i]) - darkCor) / std::max(exposureSignal, kEps);
+        b.res = 100.0 * std::fabs(meanOf(c[i]) - darkRaw) / std::max(exposureSignal, kEps);
         b.removal = 100.0 * (b.raw - b.res) / std::max(b.raw, kEps);
-        b.resRawDark = 100.0 * std::fabs(meanOf(c[i]) - darkRaw) / std::max(exposureSignal, kEps);
-        b.removalRawDark = 100.0 * (b.raw - b.resRawDark) / std::max(b.raw, kEps);
+        b.resCorDark = 100.0 * std::fabs(meanOf(c[i]) - darkCor) / std::max(exposureSignal, kEps);
+        b.removalCorDark = 100.0 * (b.raw - b.resCorDark) / std::max(b.raw, kEps);
         size_t zeros = 0;
         for (float v : c[i]) if (v == 0.0f) ++zeros;
         b.clampedShare = static_cast<double>(zeros) / static_cast<double>(c[i].size());
@@ -259,9 +262,11 @@ inline std::vector<Named> correctors(const Seq& s, Failures* fail) {
 
 inline void printRow(const char* truth, const char* what, double sigma, const std::string& corrector, const Metrics& m) {
     std::printf("[ghost-oracle] %-4s %-7s sigma=%-3g %-34s retention=%8.4f (raw %.4f) | k=1 raw %.4f%% res %.4f%% removal %7.2f%% | "
-                "k=10 removal %7.2f%% | k=50 raw %.4f%% res %.4f%% removal %7.2f%%\n",
+                "k=10 removal %7.2f%% | k=50 raw %.4f%% res %.4f%% removal %7.2f%% | removal with corrected DarkRef (M1) k1 %7.2f%% k50 %7.2f%% | "
+                "blank pixels at 0: k1 %.3f k50 %.3f\n",
                 truth, what, sigma, corrector.c_str(), m.retention, m.rawRetention, m.k1.raw, m.k1.res, m.k1.removal,
-                m.k10.removal, m.k50.raw, m.k50.res, m.k50.removal);
+                m.k10.removal, m.k50.raw, m.k50.res, m.k50.removal, m.k1.removalCorDark, m.k50.removalCorDark,
+                m.k1.clampedShare, m.k50.clampedShare);
 }
 
 // ---- QA-A-225 M3: deriving a lag configuration from a CALIBRATION sequence (test side) ------------------------------

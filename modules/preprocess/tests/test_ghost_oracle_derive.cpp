@@ -65,23 +65,24 @@ TEST_F(GhostOracleDerive, ANegativeNoisyRemovalIsTheRectifiedDarkReferenceNotThe
                 ASSERT_TRUE(allNonNegative(out)) << c.name << ": the module clamps at 0, no pixel is negative";
                 const Metrics m = measure(s, y, out);
                 ++rows;
-                if (m.k50.removal < 0.0) ++negative;
-                if (m.k50.removalRawDark < 0.0) ++negativeRawDark;
-                std::printf("[ghost-oracle] %-3s %2.0f%% %-30s k50 LagRaw %.4f%% | removal %8.2f%% | removal(DarkRef raw) %8.2f%% | "
+                if (m.k50.removalCorDark < 0.0) ++negative;
+                if (m.k50.removal < 0.0) ++negativeRawDark;
+                std::printf("[ghost-oracle] %-3s %2.0f%% %-30s k50 LagRaw %.4f%% | removal(DarkRef corrected, M1) %8.2f%% | removal(DarkRef uncorrected, M5) %8.2f%% | "
                             "blank pixels at 0: %.3f | dark_raw %7.4f dark_cor %7.4f\n",
-                            trap ? "T2" : "T1", level * 100.0, c.name.c_str(), m.k50.raw, m.k50.removal, m.k50.removalRawDark,
+                            trap ? "T2" : "T1", level * 100.0, c.name.c_str(), m.k50.raw, m.k50.removalCorDark, m.k50.removal,
                             m.k50.clampedShare, m.darkRaw, m.darkCor);
-                // the mechanism, pinned: a negative removal means a fully clamped corrected blank frame ...
-                if (m.k50.removal < 0.0) EXPECT_EQ(1.0, m.k50.clampedShare) << c.name;
+                // the mechanism, pinned: a negative removal under the M1 definition (corrected dark reference) means a fully
+                // clamped corrected blank frame ...
+                if (m.k50.removalCorDark < 0.0) EXPECT_EQ(1.0, m.k50.clampedShare) << c.name;
                 // ... whose residual is then exactly the rectified dark reference, whatever the lag was
                 if (m.k50.clampedShare == 1.0) {
-                    EXPECT_NEAR(100.0 * std::fabs(m.darkCor) / exposure, m.k50.res, 1e-9) << c.name;
+                    EXPECT_NEAR(100.0 * std::fabs(m.darkCor) / exposure, m.k50.resCorDark, 1e-9) << c.name;
                 }
                 // the corrected dark frames are rectified: their mean is above the (about 0) mean of the raw ones
                 EXPECT_GT(m.darkCor, m.darkRaw) << c.name;
             }
         }
-    std::printf("[ghost-oracle] M3-a: %d noisy calibrated-module rows, %d with a negative k=50 removal (E2E definition), %d with DarkRef = uncorrected dark\n",
+    std::printf("[ghost-oracle] M3-a: %d noisy calibrated-module rows, %d with a negative k=50 removal (M1 definition, DarkRef = corrected dark), %d with the M5 definition (DarkRef = uncorrected dark)\n",
                 rows, negative, negativeRawDark);
     EXPECT_EQ(0, fail.n);
     EXPECT_GT(rows, 0);

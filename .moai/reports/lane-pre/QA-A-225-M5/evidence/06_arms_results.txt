@@ -1,0 +1,5 @@
+m1_res_back_to_corrected_dark                exit=1 -> 1 red: GhostOracle.TheControlsGiveTheAnswersTheyMust
+m2_corrected_column_uses_uncorrected_dark    exit=1 -> 2 red: GhostOracle.TheControlsGiveTheAnswersTheyMust, GhostOracleDerive.ANegativeNoisyRemovalIsTheRectifiedDarkReferenceNotTheLag
+m3_clamped_share_always_zero                 exit=1 -> 1 red: GhostOracleDerive.ANegativeNoisyRemovalIsTheRectifiedDarkReferenceNotTheLag
+m4_dark_raw_taken_from_corrected             exit=1 -> 2 red: GhostOracle.TheControlsGiveTheAnswersTheyMust, GhostOracleDerive.ANegativeNoisyRemovalIsTheRectifiedDarkReferenceNotTheLag
+m5_removal_not_normalised_by_raw             exit=1 -> 2 red: GhostOracle.ASelfModelLagIsCorrectedToTheLetterWhichProvesNothing, GhostOracle.TheControlsGiveTheAnswersTheyMust

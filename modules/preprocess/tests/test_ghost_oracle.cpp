@@ -123,13 +123,26 @@ TEST_F(GhostOracle, TheControlsGiveTheAnswersTheyMust) {
             EXPECT_NEAR(100.0, oracle.k50.removal, 1e-6);
             EXPECT_NEAR(1.0, oracle.retention, 1e-6) << "and keeps the signal";
 
-            // an offset added to every frame cancels against the dark reference of the SAME path: nothing removed, and the
-            // retention moves by exactly the offset (this is the control that exercises DarkRef)
+            // an offset added to every frame (QA-A-225 M5): the dark reference is the UNCORRECTED pre-exposure frames, so the offset
+            // no longer cancels -- it is a bias the metric must show: residual = 100*|lag + offset|/exposure, so the removal falls
+            // BELOW 0 where the offset exceeds twice the lag, computed here from the generator, not from the metric code.
             Frames shifted = y;
             for (auto& frame : shifted) for (auto& px : frame) px += 100.0f;
             const Metrics off = measure(s, y, shifted);
-            EXPECT_NEAR(0.0, off.k1.removal, 5e-3) << "level " << level;
-            EXPECT_NEAR(0.0, off.k50.removal, 5e-3) << "level " << level;
+            const double exposureSignal = meanOf(y[s.nPre + s.nExp - 1]);
+            for (const size_t k : {size_t{1}, size_t{50}}) {
+                const double dark = (s.nPre > 0) ? [&] { double d = 0; for (size_t i = 0; i < s.nPre; ++i) d += meanOf(y[i]); return d / static_cast<double>(s.nPre); }() : 0.0;
+                const double lag = meanOf(y[s.nPre + s.nExp + k - 1]) - dark;
+                const double wantRes = 100.0 * std::fabs(lag + 100.0) / exposureSignal;
+                const double wantRemoval = 100.0 * (100.0 * std::fabs(lag) / exposureSignal - wantRes) / (100.0 * std::fabs(lag) / exposureSignal);
+                const Blank& b = (k == 1) ? off.k1 : off.k50;
+                EXPECT_NEAR(wantRes, b.res, 1e-6) << "k=" << k << " level " << level;
+                // relative tolerance: the shifted frames are float32, and the removal reaches -2709 % where the offset dwarfs the lag
+                EXPECT_NEAR(wantRemoval, b.removal, 1e-6 * std::max(1.0, std::fabs(wantRemoval))) << "k=" << k << " level " << level;
+                // the M1 definition (reference = the corrected frames of the same path) still cancels the offset: that is what the
+                // column kept for comparison does, and its own control
+                EXPECT_NEAR(0.0, b.removalCorDark, 5e-3) << "k=" << k << " level " << level;
+            }
             EXPECT_NEAR(none.retention + 100.0 / (level * kSat), off.retention, 1e-6);
 
             // LagRaw against the direct expression, with the exposure signal of the UNCORRECTED last exposure frame
