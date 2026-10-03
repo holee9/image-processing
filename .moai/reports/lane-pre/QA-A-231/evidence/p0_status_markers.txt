@@ -1,0 +1,5 @@
+tasks.md: Status column "pending" rows: 7 of 7;  acceptance checkboxes ticked: 0, unticked: 30
+spec.md: Status line: **Status**: Completed -- All deliverables implemented
+spec.md section 3 acceptance checkboxes ticked: 0, unticked: 17
+progress.md final line: ### 최종 완료도: 11/11 (100%)
+export-verification.md last status line: ## Status: PENDING VERIFICATION

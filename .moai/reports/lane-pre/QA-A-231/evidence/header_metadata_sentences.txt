@@ -1,0 +1,21 @@
+Leader question (GUI-C-213): offset/gain/defect read metadata only for a NULL check. Header @param lines that still describe metadata content.
+
+preprocess_api.h:252: * @param metadata Image metadata including temperature and acquisition time
+preprocess_api.h:281: * @param metadata Image metadata; must be non-NULL, its kVp and SID_mm do not change the result (see above)
+preprocess_api.h:375: * @param metadata Image metadata for dose-dependent threshold
+preprocess_api.h:683: * @param metadata Image metadata for dose information
+preprocess_api.h:788: * @param meta Image metadata; must not be NULL. Its acquisitionTime is NOT used (tau is in frames, one step per
+preprocess_api.h:953: * @param metadata Image metadata (acquisition context)
+preprocess_api.h:1016: * @param meta [in/out] Image metadata (updated with processing flags)
+preprocess_api.h:1095: * @param meta [in/out] Image metadata
+preprocess_api.h:1519: * @param metadata Image metadata
+preprocess_api.h:1640: * @param metadata Image metadata
+preprocess_api.h:1912: * @param meta Output: Quality metadata (caller-owned)
+
+src: metadata->/meta-> reads (excluding flag writes in pipeline.cpp):
+reads of kVp/SID_mm/acquisitionTime/pixelPitch_mm/mAs/bodyPart through metadata/meta: 0
+control (same search, a field that IS touched): 8 lines touch meta->flags (e.g. modules/preprocess/src/pipeline.cpp:182 modules/preprocess/src/pipeline.cpp:202 modules/preprocess/src/pipeline.cpp:218)
+null checks:
+  offset_correct.cpp:153: if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;
+  gain_correct.cpp:247: if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;
+  defect_correct.cpp:223: if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;

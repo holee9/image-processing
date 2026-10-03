@@ -1,0 +1,35 @@
+Every line that states how many functions xpe_common.dll exports (pattern: a number 15/16/18/20 near function/API/export)
+
+.moai/specs/SPEC-XPE-P0/spec.md:21: 2. Full xpe_common.dll implementation (15 API functions)
+.moai/specs/SPEC-XPE-P0/spec.md:54: **REQ-P0-008**: xpe_common.dll SHALL export exactly 16 functions with C linkage (extern "C") and __declspec(dllexport) using the XPE_API macro.
+.moai/specs/SPEC-XPE-P0/spec.md:98: **REQ-P0-030**: The P/Invoke wrapper class SHALL declare all 15 xpe_common.dll functions with matching signatures. Struct layouts SHALL use [StructLayout(LayoutKind.Seque
+.moai/specs/SPEC-XPE-P0/spec.md:121: - [ ] `dumpbin /exports xpe_common.dll` lists exactly 15 functions
+.moai/specs/SPEC-XPE-P0/spec.md:122: - [ ] All 15 functions have unit tests with >= 85% statement coverage
+.moai/specs/SPEC-XPE-P0/spec.md:150: - Section 5.13-5.15: Logging function signatures and behavior (already exists)
+.moai/specs/SPEC-XPE-P0/spec.md:151: - Section 4: Updated function count (xpe_common = 15)
+.moai/specs/SPEC-XPE-P0/spec.md:169: - S0B-01: Complete xpe_common_api.h (15 declarations)
+.moai/specs/SPEC-XPE-P0/spec.md:171: - S0B-07: Full unit tests for all 15 APIs
+.moai/specs/SPEC-XPE-P0/spec.md:193: | P/Invoke round-trip | C# calls all 15 functions, verifies return values |
+.moai/specs/SPEC-XPE-P0/spec.md:203: | Export verification | dumpbin output matches expected 15-function list |
+.moai/specs/SPEC-XPE-P0/spec.md:227: | P0-05 | xpe_common.dll 16 API | REQ-P0-008 to 028 | S0-B | ✅ DONE |
+.moai/specs/SPEC-XPE-P0/spec.md:250: - xpe_common.dll with 15 exported API functions (C linkage, Pack=8 structs)
+.moai/specs/SPEC-XPE-P0/spec.md:264: - All 15 functions declared with correct signatures
+.moai/specs/SPEC-XPE-P0/spec.md:288: - **API Count**: 16 functions (exactly as specified in REQ-P0-008; 15 public API + `xpe_alert_push` (renamed from `xpe_test_inject_alert`, #111), a test-support export ca
+.moai/specs/SPEC-XPE-P0/spec.md:290: - **Export Verification**: dumpbin confirms 15 public API exports
+.moai/specs/SPEC-XPE-P0/tasks.md:109: **Description**: Verify xpe_common.dll exports exactly 18 public API functions
+.moai/specs/SPEC-XPE-P0/tasks.md:116: - [ ] `dumpbin /exports xpe_common.dll` shows exactly 18 public API functions
+.moai/specs/SPEC-XPE-P0/tasks.md:168: - [ ] P/Invoke wrapper declares all 18 xpe_common.dll functions
+.moai/specs/SPEC-XPE-P0/progress.md:80: | P0-05 | xpe_common.dll 18 API | **DONE** | 18개 API 구현 완료, export 검증 가이드 작성 |
+.moai/specs/SPEC-XPE-P0/export-verification.md:4: Verify that xpe_common.dll exports exactly 15 public API functions as required by SPEC-XPE-P0.
+.moai/specs/SPEC-XPE-P0/export-verification.md:21: ### 3. Expected Output (15 public APIs)
+.moai/specs/SPEC-XPE-P0/export-verification.md:62: - [x] dumpbin shows exactly 16 exported functions (15 public API + xpe_alert_push; #111 rename complete, measured 16 in QA-A-19) — Lane A QA-A-01/03, #111
+.moai/specs/SPEC-XPE-P0/export-verification.md:63: - [x] All 16 function names match SPEC-XPE-P0 REQ-P0-008 (as revised 2026-09-09)
+modules/common/docs/EXPORT_POLICY.md:6: xpe_common.dll exports exactly **20 symbols**:
+modules/common/docs/EXPORT_POLICY.md:7: - **18 public API functions** (documented, stable ABI)
+modules/common/docs/EXPORT_POLICY.md:25: ## Public API Functions (18)
+modules/common/include/xpe/common/xpe_common_api.h:29: * REQ-P0-008: xpe_common.dll SHALL export exactly 15 functions with C linkage.
+modules/common/include/xpe/common/xpe_common_api.h:31: * NOTE: the actual export count is 16, not the 15 stated above. The alert
+modules/common/include/xpe/common/xpe_common_api.h:37: * "18-function total" mentions below and in xpe_memory.h, which match neither
+modules/common/include/xpe/common/xpe_common_api.h:40: * Exported function list (16 total):
+modules/common/include/xpe/common/xpe_common_api.h:172: *       All are counted toward the 18-function total. */
+modules/common/include/xpe/common/xpe_memory.h:6: * 18-function export contract. All returned buffers must be released via

@@ -1,0 +1,20 @@
+ 1/20 Test   #96: LogTransform.BenchmarkFreeze_Performance_REQ_ENH_006_LogTransform3072  ..   Passed    0.15 sec
+ 2/20 Test   #97: LogTransform.BenchmarkFreeze_Performance_REQ_ENH_006_LogInverse3072  ..   Passed    0.12 sec
+ 3/20 Test  #111: NoiseReduce.BenchmarkFreeze_Performance_REQ_ENH_012_Bilateral3072  ..   Passed    1.06 sec
+ 4/20 Test  #124: ContrastEnhance.BenchmarkFreeze_Performance_REQ_ENH_017_Clahe3072  ..   Passed    0.45 sec
+ 5/20 Test  #136: EdgeEnhance.BenchmarkFreeze_Performance_REQ_ENH_022_Usm3072  ..   Passed    0.25 sec
+ 6/20 Test  #150: ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline  ..   Passed    0.01 sec
+ 7/20 Test  #151: ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline  ..   Passed    0.01 sec
+ 8/20 Test  #277: CollimationDetectTest.BenchmarkFreeze_BP07_CollimationDetectionBaseline  ..   Passed    0.07 sec
+ 9/20 Test  #278: CollimationDetectTest.BenchmarkFreeze_Performance_PERF_ADV_003_Collimation3072  ..   Passed    3.11 sec
+10/20 Test  #290: EdgeEnhancementTest.BenchmarkFreeze_ADV061_FractionalPerformanceRegressionGate3072  ..   Passed    3.60 sec
+11/20 Test  #291: EdgeEnhancementTest.BenchmarkFreeze_Performance_PERF_ADV_002_Fractional3072_Order1  ..   Passed    3.33 sec
+12/20 Test  #292: EdgeEnhancementTest.BenchmarkFreeze_Performance_T308_Fractional1024  ..   Passed    0.41 sec
+13/20 Test  #304: ExposureIndexTest.BenchmarkFreeze_Performance_PERF_ADV_004_ExposureIndex3072  ..   Passed    0.09 sec
+14/20 Test  #943: ModalityLut.BenchmarkFreeze_Performance_REQ_DISP_008_Linear3072  ..   Passed    0.08 sec
+15/20 Test  #963: VoiLut.BenchmarkFreeze_Performance_REQ_DISP_016_Linear3072  ..   Passed    0.17 sec
+16/20 Test  #979: PresentationLut.BenchmarkFreeze_Performance_REQ_DISP_028_Lut3072  ..   Passed    0.39 sec
+17/20 Test #1042: BenchmarkFreeze.BP06_GsvgVersionProbeBaseline  ..   Passed    0.01 sec
+18/20 Test #1134: GsvgGridSuppression.BenchmarkFreeze_Performance_REQ_GSVG_019_GridDwt3072  ..   Passed    6.25 sec
+19/20 Test #1165: GsvgVirtualGridBench.BenchmarkFreeze_Performance_REQ_GSVG_019_VirtualGrid3072  ..   Passed    4.57 sec
+20/20 Test #1226: FullPipelineE2E.PostProcess_3072x3072_Within3000ms  ..   Passed    0.28 sec

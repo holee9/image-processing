@@ -1,0 +1,5 @@
+ci.yml run 34662146043 (workflow_dispatch, 2026-09-12, head 7cda02675fa8387d7c30e3c7a3143b90c81cad70), job 'coverage (coverage)' id 103466712275, conclusion success
+ci.yml coverage job trigger: if: github.event_name == 'workflow_dispatch' (ci.yml: job 'coverage', matrix preset [coverage, coverage-post, coverage-dicom])
+lines from the job log:
+  [2/2] Coverage: checking line-rate >= 0.85
+  -- Coverage check PASSED: line-rate 0.8861908265881776 >= 0.85

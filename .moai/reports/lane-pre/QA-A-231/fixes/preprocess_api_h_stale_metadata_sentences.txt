@@ -1,0 +1,17 @@
+preprocess_api.h 의 낡은 metadata 문장 정정 목록 (QA-A-231 §4, GUI-C-213 질문에 대한 답)
+헤더는 내 소유이므로 이 목록은 다음 카드가 한 번에 고칠 수 있다. 줄 번호는 편집에 밀리므로 함수 이름과 현재 문장으로 찾는다.
+근거: src 에서 metadata/meta 를 통해 kVp, SID_mm, acquisitionTime, pixelPitch_mm, mAs, bodyPart 를 읽는 줄 0건 (대조군: meta->flags 를 건드리는 줄 8개).
+      offset/gain/defect 의 metadata 인자는 널 검사만 한다 (offset_correct.cpp, gain_correct.cpp, defect_correct.cpp 의 `!metadata`).
+
+함수                          현재 @param 문장                                          제안
+xpe_offset_correct            "Image metadata including temperature and acquisition time"  "Image metadata; must be non-NULL. Its fields do not change the result (see above)"
+xpe_defect_correct            "Image metadata for dose-dependent threshold"                "Image metadata; must be non-NULL. Its fields do not change the result; there is no dose-dependent threshold"
+xpe_defect_detect_runtime     "Image metadata for dose information"                        "Image metadata; must be non-NULL. Its fields are not read" (실제 널 허용 여부는 소스에서 확인 후)
+xpe_validate_readout_artifact "Image metadata (acquisition context)"                       "Image metadata; its fields are not read"
+xpe_verify_offset             "Image metadata"                                             (주장은 없음. 읽지 않으면 그 사실을 한 줄)
+xpe_verify_pipeline           "Image metadata"                                             (동일)
+
+이미 정정된 곳 (229 M2/M2b): xpe_gain_correct 의 @param, xpe_ghost_correct 의 @param, 그리고 offset·gain 서술 블록
+(kVp/SID/temperature/PREP 보간 NOT IMPLEMENTED).
+
+고칠 때의 주의: 이 파일의 문장을 바꾸면 tools/docs/check_header_docs.py 와 doxygen(WARN_AS_ERROR) 이 같이 돈다. 커밋 전에 build/tools/doxygen 으로 로컬 실행.
