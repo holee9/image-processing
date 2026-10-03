@@ -45,8 +45,21 @@ public sealed class DllSearchPathSafetyTests
     /// that is on the PATH, the fixture's resolver must still win (env var or AppContext takes priority).
     /// This test creates a temp decoy, adds it to PATH, and verifies our DLL path is unchanged.
     /// </summary>
+    /// <summary>The DLL that is actually in the process is the resolved file, and the decoy never was one.</summary>
     [SkippableFact]
-    public void DllImportResolver_WinsOverSystemPath_WhenEnvVarOrAppContextHasDll()
+    public void TheLoadedModule_IsTheResolvedFile()
+    {
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
+        var loaded = System.Diagnostics.Process.GetCurrentProcess().Modules.Cast<System.Diagnostics.ProcessModule>()
+            .Where(m => string.Equals(m.ModuleName, "xpe_common.dll", StringComparison.OrdinalIgnoreCase))
+            .Select(m => m.FileName)
+            .ToList();
+        Assert.Contains(loaded, f => string.Equals(f, _fixture.ResolvedPath, StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(loaded, f => f.Contains("xpe_decoy_", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [SkippableFact]
+    public void ADecoyEarlierOnPath_IsNotWhatTheLocatorReturns_WhenItIsPlacedBeforeTheLocatorRuns()
     {
         SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
@@ -64,10 +77,12 @@ public sealed class DllSearchPathSafetyTests
             Environment.SetEnvironmentVariable("PATH", tempDir + ";" + originalPath);
             try
             {
-                // The fixture-resolved path must NOT be the decoy
-                Assert.NotEqual(
-                    decoyPath.ToLowerInvariant(),
-                    _fixture.ResolvedPath.ToLowerInvariant());
+                // GUI-C-208 (D3): the old version compared the fixture's path to the decoy AFTER the fixture had resolved (once, at session start), so the decoy could not have
+                // influenced it. Here the locator runs again with the decoy already first on PATH.
+                var (found, located) = NativeLibraryFixture.TryLocateDll();
+                Assert.True(found, $"the locator found nothing with a decoy on PATH: {located}");
+                Assert.NotEqual(decoyPath, located, StringComparer.OrdinalIgnoreCase);
+                Assert.Equal(_fixture.ResolvedPath, located, StringComparer.OrdinalIgnoreCase);
             }
             finally
             {

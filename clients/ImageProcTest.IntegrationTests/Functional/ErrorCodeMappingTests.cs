@@ -39,11 +39,13 @@ public sealed class ErrorCodeMappingTests
     {
         SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
-        // XPE_ERR_NOT_IMPLEMENTED (-15) has no case in the native switch yet, so it returns the
-        // fallback. #126 / QA-A-23 adds the string; remove this skip when that lands.
-        SkipHelper.SkipIf(
-            code == XpeCommonNative.XpeErrorCode.NOT_IMPLEMENTED,
-            "Skipped: xpe_error_string has no mapping for XPE_ERR_NOT_IMPLEMENTED (-15) yet — #126 / QA-A-23");
+        // GUI-C-208 (D1): the NOT_IMPLEMENTED row used to be skipped ("no mapping yet, #126 / QA-A-23"). The native maps it now
+        // (xpe_common.cpp: "Function not implemented in this version"), and no gate noticed that the one skipped row had started to pass.
+        //
+        // The fallback is read from the DLL — what an unmapped code returns — rather than written here as a literal: a reworded native fallback
+        // would otherwise leave "not the fallback" true for every code.
+        var fallback = Marshal.PtrToStringAnsi(XpeCommonNative.xpe_error_string((XpeCommonNative.XpeErrorCode)(-999)));
+        Assert.False(string.IsNullOrEmpty(fallback), "the native fallback text must exist for the comparison below to mean anything");
 
         var ptr = XpeCommonNative.xpe_error_string(code);
         Assert.NotEqual(IntPtr.Zero, ptr);
@@ -51,7 +53,7 @@ public sealed class ErrorCodeMappingTests
         var text = Marshal.PtrToStringAnsi(ptr);
         Assert.NotNull(text);
         Assert.NotEmpty(text);
-        Assert.NotEqual("Unknown error", text);
+        Assert.NotEqual(fallback, text);
     }
 
     /// <summary>REQ-GUI-IT-009: Unknown code (-999) returns non-NULL fallback string.</summary>
