@@ -362,4 +362,30 @@ inline std::vector<Named> derivedCorrectors(const std::string& label, const Lag&
     return v;
 }
 
+// ---- QA-A-225 M4: a digest of a fixed tier-3 run, to show the test seam is inert at its defaults -------------------------
+
+/** FNV-1a over the bytes of every pixel of every frame. */
+inline uint64_t digestOf(const Frames& fs) {
+    uint64_t h = 1469598103934665603ull;
+    for (const auto& f : fs) {
+        unsigned char b[sizeof(float)];
+        for (float v : f) {
+            std::memcpy(b, &v, sizeof(float));
+            for (unsigned char c : b) { h ^= c; h *= 1099511628211ull; }
+        }
+    }
+    return h;
+}
+
+/** The digest of tier 3 (0.02/3/0.003/30) on the noisy T1 27 % exposure sequence (sigma 5, seed 7). The same call in the library
+ *  executable and in the allocation-failure executable (seam at its defaults) must print the same value. */
+inline uint64_t tierThreeDigest() {
+    const Seq s = exposureSeq(0.27);
+    const auto y = makeFrames(truthLti(s.x), 5.0, 7);
+    int failures = 0;
+    const std::string cfg = lagCfg(3, 0.02, 3.0, 0.003, 30.0);
+    const Frames out = runModule(cfg.c_str(), y, &failures);
+    return failures == 0 ? digestOf(out) : 0ull;
+}
+
 }  // namespace ghost_oracle

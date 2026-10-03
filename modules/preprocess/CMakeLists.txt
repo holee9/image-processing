@@ -551,6 +551,7 @@ if(_XPE_BUILD_TESTS)
     # sources into itself instead of linking the DLL.
     add_executable(xpe_preprocess_oom_tests
         tests/test_oom_injection.cpp
+        tests/test_ghost_mix_compare.cpp   # QA-A-225 M4 (#238): tier-3 blend kept vs removed through the test-only seam, preregistered rules
         ${XPE_PREPROCESS_SOURCES}
     )
     target_include_directories(xpe_preprocess_oom_tests

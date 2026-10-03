@@ -133,6 +133,11 @@ bool xpe_ghost_is_calibrated(const void* handle) noexcept
 // @MX:REASON: Main correction entry point; all correction logic fans in here
 // @MX:SPEC: REQ-P1A-032, REQ-P1A-033 (Tier 1/2/3)
 
+#ifdef XPE_CACHE_TEST_HOOKS
+// Test-only (QA-A-225 M4, #238), see xpe_preprocess_internal.h.
+XpeGhostTier3Mix xpe_ghost_tier3_mix = {0.7f, 0.3f};
+#endif
+
 namespace {
     // Helper: compute mean signal level for exposure estimation
     float compute_frame_mean(const float* px, size_t n) noexcept {
@@ -226,6 +231,14 @@ namespace {
         // keeps a copy of the incoming frame in gh->backup for the whole call (QA-A-217), which is exactly that.
         const float* const src = gh->backup.data();
 
+        // The blend weights of the interior pixels. A constant in the shipped library; the test seam reads them from a variable
+        // (QA-A-225 M4), with the shipped values as defaults.
+#ifdef XPE_CACHE_TEST_HOOKS
+        const float mixKeep = xpe_ghost_tier3_mix.keep, mixLocal = xpe_ghost_tier3_mix.local;
+#else
+        constexpr float mixKeep = 0.7f, mixLocal = 0.3f;
+#endif
+
         // Apply NLCSC with signal-dependent coefficients
         for (size_t i = 0; i < n; ++i) {
             const float raw = px[i];
@@ -258,7 +271,7 @@ namespace {
                     if (count > 0) {
                         localMean /= static_cast<float>(count);
                         // Blend corrected with local mean (0.7 : 0.3)
-                        corrected = 0.7f * corrected + 0.3f * localMean;
+                        corrected = mixKeep * corrected + mixLocal * localMean;
                     }
                 }
             }

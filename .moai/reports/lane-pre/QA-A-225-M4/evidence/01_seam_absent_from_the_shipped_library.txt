@@ -1,0 +1,7 @@
+Source: `ninja -C build/ci-preprocess -t commands <target>` (the compile commands the build system runs), filtered. Control: the test executable's own compile commands DO carry the macro.
+
+target xpe_preprocess             compile commands  46 | with -DXPE_CACHE_TEST_HOOKS   0 | ghost_correct.cpp compile commands 1, of them with the macro 0
+target xpe_preprocess_oom_tests   compile commands  50 | with -DXPE_CACHE_TEST_HOOKS  35 | ghost_correct.cpp compile commands 1, of them with the macro 1
+
+Second piece of evidence: using the seam in ghost_correct.cpp WITHOUT the #ifdef guard fails to compile in the shipped-library target:
+  error C2065: 'xpe_ghost_tier3_mix': undeclared identifier   (ghost_correct.cpp, target xpe_preprocess.dir; see 05_arms_results.txt, arm e3 first attempt)

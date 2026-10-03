@@ -228,6 +228,12 @@ XpeErrorCode xpe_config_parse_block(const char* text, size_t len, XpeConfigDoc* 
 #ifdef XPE_CACHE_TEST_HOOKS
 /** Test-only (QA-A-209c): how many configuration texts have been parsed. Compiled into the allocation-failure executable only. */
 extern unsigned long xpe_config_parse_calls;
+
+/** Test-only (QA-A-225 M4, #238): the weights tier 3 gives the corrected value (`keep`) and the 3x3 mean of the incoming frame
+ *  (`local`). The defaults are the shipped constants 0.7f / 0.3f. Only the allocation-failure executable defines
+ *  XPE_CACHE_TEST_HOOKS; the shipped library has neither this declaration nor a use of it (the constants stay constants). */
+struct XpeGhostTier3Mix { float keep; float local; };
+extern XpeGhostTier3Mix xpe_ghost_tier3_mix;
 #endif
 
 /**

@@ -1,0 +1,12 @@
+Note: Google Test filter = GhostOracle.PrintsTheTierThreeDigest*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from GhostOracle
+[ RUN      ] GhostOracle.PrintsTheTierThreeDigestForTheSeamComparison
+[ghost-oracle] tier3-digest 0xf7c4e2c895d7a90b
+[       OK ] GhostOracle.PrintsTheTierThreeDigestForTheSeamComparison (2 ms)
+[----------] 1 test from GhostOracle (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.

@@ -263,3 +263,10 @@ TEST_F(GhostOracle, TheHarnessIsDeterministic) {
     EXPECT_EQ(a.retention, b.retention);
     EXPECT_TRUE(sameBytes(makeFrames(truthLti(s.x), 5.0, 7), y)) << "the noise is seeded";
 }
+
+// QA-A-225 M4: the digest the allocation-failure executable must reproduce with its test seam at the defaults (the seam is inert).
+TEST_F(GhostOracle, PrintsTheTierThreeDigestForTheSeamComparison) {
+    const uint64_t d = tierThreeDigest();
+    EXPECT_NE(0ull, d) << "every call succeeded";
+    std::printf("[ghost-oracle] tier3-digest 0x%016llx\n", static_cast<unsigned long long>(d));
+}
