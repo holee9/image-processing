@@ -9542,7 +9542,7 @@ int XpeDicomWriter::write(DcmDataset* dataset,
 
 | 상황 | 처리 |
 |------|------|
-| PixelData 누락 | Pixel Data Provider URL 이 없으면 오류(Type 1C), URL 이 있으면 오류 아님 — 이 모듈은 참조 화소를 읽지 못하므로 경고 (정정 2026-10-03, #251) |
+| PixelData 누락 | Type 1C: JPIP 참조 전송 구문에서 Pixel Data Provider URL 만 있으면 오류 아님(이 모듈은 참조 화소를 읽지 못하므로 경고), 그 밖의 구문이거나 URL 도 없으면 오류. Pixel Data 와 URL 동시 존재도 오류 (정정 2026-10-03, #251, Codex #114) |
 | BitsStored = 8 (비표준) | 오류 — DX IOD는 12/14/16 bit만 허용 |
 | WC/WW 범위 초과 | 경고 (severity=2); 파일 쓰기는 허용 |
 | DCMTK 미링크 | 컴파일 타임 오류 처리 |
