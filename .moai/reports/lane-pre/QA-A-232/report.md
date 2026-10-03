@@ -116,6 +116,72 @@ init 이전 호출을 보는 시험(`LoggingContractFresh`, 픽스처 없음)을
 - xpe_init 이 INFO 로 올리는 것은 "파일이 이미 쓰이고 있지 않을 때" 만이다. init 전에 파일을 고르고 수준을 5 로 정한 호스트의 선택은 그대로 둔다(의도).
 - `xpe_log_set_level` 은 파일 로거가 없을 때 `spdlog::set_level`(레지스트리 전체)을 부른다 — 다른 모듈이 만든 로거의 수준도 같이 움직인다. 기존 동작이고 이번 카드는 바꾸지 않았다.
 
-## M2
+## M2. preprocess_api.h 의 metadata 문장 — 약속을 걷고 현재 동작을 시험으로 고정 (#245)
 
-(M2 커밋에서 이어서 적는다.)
+### 1. 확인한 사실 (소스를 열어 읽은 것)
+
+| 함수 | metadata 로 하는 일 (소스) | 헤더가 말하던 것 |
+|---|---|---|
+| `xpe_offset_correct` | NULL 검사만 (offset_correct.cpp) | "temperature and acquisition time" |
+| `xpe_defect_correct` | NULL 검사만 (defect_correct.cpp) | "dose-dependent threshold" |
+| `xpe_defect_detect_runtime` | 아무것도 안 함. `(void)metadata;` 이고 NULL 검사조차 없음 | "dose information" |
+| `xpe_validate_readout_artifact` | NULL 검사만 (readout_validate.cpp) | "acquisition context" |
+| `xpe_verify_offset`, `xpe_verify_pipeline` | 아무것도 안 함. `(void)metadata;`, NULL 허용 | (주장 없음, 그냥 "Image metadata") |
+
+231 의 목록에는 `xpe_defect_detect_runtime` 의 NULL 허용 여부가 "소스에서 확인 후"로 비어 있었다. 확인 결과 허용이다.
+검출기 임계는 프레임 자신의 통계(Hampel 5-sigma, 타일별 sigma — runtime_detection.cpp 머리 주석과 QA-A-164)에서 오고,
+메타데이터의 선량은 어디에도 들어가지 않는다. REQ-P1A-013 의 "dose-dependent" 부분은 미구현이다.
+
+### 2. 수정 (헤더만, 코드는 그대로)
+
+`modules/preprocess/include/xpe/preprocess_api.h` 의 `@param metadata` 6곳과 REQ-P1A-013 줄 하나. 각각 위 표대로
+"null check만 함 / 읽지 않음 / NULL 허용", "미구현(요구 유지)"을 적었다. 요구를 코드에 맞추지 않았다: REQ-P1A-013 의 이름은 그대로 두고
+"dose-dependent 부분 NOT IMPLEMENTED (#245)" 를 덧붙였다.
+
+### 3. 시험 (현재 동작 고정) — `modules/preprocess/tests/test_metadata_not_read.cpp`, 5 케이스
+
+네 가지 서로 매우 다른 metadata(bodyPart·kVp·mAs·SID·pixelPitch·acquisitionTime 모두 다름)로 같은 입력을 돌려 출력이 같음을 단언한다.
+각 케이스에 대조군이 있다: 결함 보정 → 결함 화소가 실제로 고쳐졌다 / 런타임 검출 → 심은 이상치 3개 이상 찾고 프레임 전체는 아님 /
+읽기 검증 → 두 아티팩트가 모두 true / verify 둘 → `measured_mask != 0`. 포인터 처리도 같이 고정했다
+(defect_correct·validate_readout 은 NULL → `XPE_ERR_INVALID_INPUT`, detect_runtime·verify 둘은 NULL 허용).
+
+시험을 처음 돌렸을 때 `ValidateReadoutFlagsAreTheSameForAnyMetadata` 의 대조군("dropped 가 true")이 빨갰다. 내 픽스처의 밝은 행이
+떨어진 열을 가로질러 열이 "전부 0"이 아니게 만든 탓이었다 (시험 오류). 대조군이 없었다면 두 플래그가 모두 false 인 채로
+"같다"고 통과했을 자리다. 픽스처를 고쳐 통과시켰다.
+
+### 4. 검증
+
+| 항목 | 관측 |
+|---|---|
+| 새 시험 | `MetadataNotReadTest.*` 5/5 통과 |
+| preprocess 전체 | `xpe_preprocess_tests` PASSED 1007 tests (M1 후 1002 + 5), exit 0 — `evidence/72_preprocess_tests_m2.txt` |
+| `check_header_docs.py` | `20 headers, 0 declarations skipped as unparseable, 0 findings`, exit 0 |
+| doxygen 1.12.0 (WARN_AS_ERROR) | exit 0 (`evidence/61_doxygen_m2.txt`) |
+
+### 5. 반증 (읽는 코드를 한 번에 하나씩 심고 전체 빌드, 복원 뒤 재확인)
+
+`evidence/70_falsification_arms_m2.txt`, `71_falsification_arms_m2_nullcheck.txt`
+
+| 팔 | 심은 것 | 빨개진 시험 |
+|---|---|---|
+| D1 | defect_correct 가 kVp > 100 이면 실패 | DefectCorrectOutputIsTheSameForAnyMetadata |
+| D2 | defect_correct 의 NULL 검사 제거 | DefectCorrectOutputIsTheSameForAnyMetadata |
+| R1 | detect_runtime 이 kVp 를 읽음 | DetectRuntimeMapIsTheSameForAnyMetadata |
+| R2 | detect_runtime 이 NULL 을 거절 | DetectRuntimeMapIsTheSameForAnyMetadata |
+| V1 | validate_readout 이 acquisitionTime == 0 이면 실패 | ValidateReadoutFlagsAreTheSameForAnyMetadata |
+| V2 | validate_readout 의 NULL 검사 제거 | ValidateReadoutFlagsAreTheSameForAnyMetadata |
+| F1 | verify_offset 이 kVp 를 읽음 | VerifyOffsetMetricsAreTheSameForAnyMetadata |
+| F2 | verify_pipeline 이 kVp 를 읽음 | VerifyPipelineMetricsAreTheSameForAnyMetadata |
+| 복원 | — | 없음 (exit 0) |
+
+D2·V2 는 첫 실행에서 `BUILD-FAILED` 였다. NULL 검사를 지우면 `metadata` 가 미사용 매개변수가 되어 `/WX` 가 빌드를 막았기 때문이다
+(70 번 파일에 그대로 남아 있다). 미사용을 `(void)metadata;` 로 처리한 팔로 다시 돌려 71 번 파일에 기록했다.
+빌드 실패를 "시험이 잡았다"로 읽지 않았다.
+
+### 6. Gaps / Residual-risk (M2)
+
+- 팔 F1·F2·R1·D1 은 `kVp` 읽기만 심었다. 다른 필드(bodyPart, mAs, SID, pixelPitch)를 읽는 구현은 네 변형이 모든 필드를 바꾸므로 잡히지만,
+  그 필드별 팔은 돌리지 않았다. V1 만 acquisitionTime 이다.
+- `xpe_gain_correct`·`xpe_offset_correct` 의 metadata 시험은 229 가 이미 고정했고 이번에 다시 돌리지 않았다(전체 1007 에는 포함되어 통과).
+- `xpe_ghost_correct` 와 파이프라인은 `meta->flags` 를 쓰므로(읽지 않고 씀) 이번 시험의 대상이 아니다.
+- 이 시험은 "읽지 않는다"의 현재를 고정한다. 선량 의존 임계가 구현되면 일부러 빨개지게 만든 것이고, 그때 헤더 문장도 함께 바뀌어야 한다.

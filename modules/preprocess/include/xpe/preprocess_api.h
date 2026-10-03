@@ -249,7 +249,8 @@ XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath);
  *
  * @param input Input image buffer (raw X-ray data, UINT16)
  * @param output Output image buffer (offset-corrected, UINT16)
- * @param metadata Image metadata including temperature and acquisition time
+ * @param metadata Image metadata; must be non-NULL (a null check is all it gets). Its fields do not change
+ *        the result -- see "What metadata does today" above
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
  *         XPE_ERR_INVALID_INPUT if NULL pointers, or if the loaded calibration
@@ -372,7 +373,8 @@ XPE_API XpeErrorCode xpe_gain_correct(const XpeImageBuffer* input,
  *
  * @param input Input image buffer (gain-corrected, FLOAT32)
  * @param output Output image buffer (defect-corrected, FLOAT32)
- * @param metadata Image metadata for dose-dependent threshold
+ * @param metadata Image metadata; must be non-NULL (a null check is all it gets). Its fields are not read:
+ *        there is no dose-dependent threshold (not implemented; the requirement is kept)
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if xpe_preprocess_init() has not been called
  *         XPE_ERR_CALIB_NOT_LOADED if initialized but no defect map is loaded
@@ -676,11 +678,14 @@ XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
 /**
  * @brief Detect transient defects at runtime
  *
- * REQ-P1A-013: Runtime defect detection with dose-dependent threshold
+ * REQ-P1A-013: Runtime defect detection with dose-dependent threshold -- the dose-dependent part is NOT
+ * IMPLEMENTED (#245). The threshold is Hampel 5-sigma on the frame's own per-tile statistics; no metadata
+ * field is read (pinned by MetadataNotReadTest.DetectRuntimeMapIsTheSameForAnyMetadata).
  * AC-DEF-003: Merge with static BPM
  *
  * @param image Image buffer to analyze
- * @param metadata Image metadata for dose information
+ * @param metadata Image metadata; not read, and NULL is accepted. There is no dose information in the
+ *        decision (not implemented; the requirement is kept)
  * @param defect_map_output Output defect map (merged with static BPM)
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
@@ -950,7 +955,8 @@ XPE_API XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
  * Call BEFORE any correction stage.
  *
  * @param image Raw uint16 image to validate
- * @param metadata Image metadata (acquisition context)
+ * @param metadata Image metadata; must be non-NULL (a null check is all it gets). Its fields are not read:
+ *        both checks look at the pixels alone
  * @param has_dropped_columns Output: true if any all-zero column detected
  * @param has_nonuniform_gain Output: true if any row mean > 0.9 * UINT16_MAX (a bright-row
  *        check; the name is historical -- it does not detect line noise, see #232)
@@ -1516,7 +1522,7 @@ typedef enum {
  *
  * @param raw_image Original raw image (UINT16)
  * @param corrected_image Offset-corrected image (UINT16)
- * @param metadata Image metadata
+ * @param metadata Image metadata; not read, and NULL is accepted
  * @param metrics Output metrics (populated by this function)
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT on NULL pointers or dimension mismatch
@@ -1637,7 +1643,7 @@ XPE_API XpeErrorCode xpe_verify_defect(
  *
  * @param raw_image Original raw image (UINT16)
  * @param final_image Final processed image (FLOAT32)
- * @param metadata Image metadata
+ * @param metadata Image metadata; not read, and NULL is accepted
  * @param metrics Combined metrics (snr_improvement_db and overall_pass populated)
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT on NULL pointers or dimension mismatch

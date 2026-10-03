@@ -1,0 +1,3 @@
+D2 defect_correct stops checking NULL | exit=1 | red: DefectCorrectOutputIsTheSameForAnyMetadata
+V2 validate_readout stops checking NULL | exit=1 | red: ValidateReadoutFlagsAreTheSameForAnyMetadata
+RESTORED | exit=0 | red: (none)
