@@ -226,12 +226,13 @@ xpe_dicom_close(handle) --> free all resources
 
 **REQ-DICOM-024**: The validation SHALL check the following conformance criteria:
 - DICOM Part 10 preamble and magic present
-- Required Type 1 tags for DX IOD present and non-empty (Study Instance UID, Series Instance UID, SOP Instance UID, Modality, Rows, Columns, Bits Allocated, Bits Stored, Pixel Data)
+- Required Type 1 tags for DX IOD present and non-empty (Study Instance UID, Series Instance UID, SOP Instance UID, Modality, Rows, Columns, Bits Allocated, Bits Stored)
+- Pixel Data present unless Pixel Data Provider URL (0028,7FE0) is present (Type 1C, Image Pixel Module). When only the URL is present the file is not reported invalid for missing Pixel Data; because this module cannot read referenced pixel data, the report carries a non-fatal warning (2026-10-03, same standard-alignment decision, #251, Codex #113)
 - Required Type 2 tags present; an empty value is conformant (Patient Name, Patient ID — DICOM PS3.3 Table C.7-1 lists both as Type 2; moved out of the Type 1 list 2026-10-03, user decision "표준대로 허용", #251, Codex #111)
 - UID format correct (dot-separated numeric, max 64 characters)
 - Pixel representation consistent with declared format
 
-> **상태 메모 (2026-10-03, QA-B-199, 후보 C5)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. Type 1 태그는 "present and non-empty" 중 존재만 검사해 빈 값이 통과한다. 화소 표현과 선언 형식의 일관성 검사 코드가 없고, 서문·매직은 직접 검사하지 않는다(`DicomValidator.cpp`).
+> **상태 메모 (2026-10-03, QA-B-199, 후보 C5)**: 처음 메모 — Type 1 태그의 빈 값이 통과했다. **갱신 (2026-10-03, 리더)**: Type 1 의 빈 값 거부는 QA-B-206 M2, Patient Name·ID 의 Type 2 처리는 M2b, Pixel Data 1C 와 빈 UID 중복 보고는 M2c 가 맡는다(Codex #111·#113). 서문·매직 검사는 QA-B-207 의 C3. 화소 표현과 선언 형식의 일관성 검사는 아직 없다.
 
 **REQ-DICOM-025**: The JSON report SHALL contain:
 - `"valid"`: boolean (true if all checks pass)
