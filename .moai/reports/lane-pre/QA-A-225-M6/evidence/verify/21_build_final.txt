@@ -1,0 +1,10 @@
+'vswhere.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+배치 파일이 아닙니다.
+[1/7] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_ghost_tier3_border.cpp.obj
+[2/7] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_ghost_oracle_pedestal.cpp.obj
+[3/7] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\tests\test_ghost_mix_compare.cpp.obj
+[4/7] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_ghost_oracle_derive.cpp.obj
+[5/7] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_ghost_oracle.cpp.obj
+[6/7] Linking CXX executable bin\xpe_preprocess_oom_tests.exe
+[7/7] Linking CXX executable bin\xpe_preprocess_tests.exe
+BUILD_EXIT=0

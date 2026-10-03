@@ -1,0 +1,4 @@
+EXCLUDED (touches the clamp) T1 50% sigma 0 module:tier2 0.1/1/0.01/20: blank at 0 1.000 0.000 0.000, dark at 0 0
+EXCLUDED (touches the clamp) T2 50% sigma 0 module:tier2 0.1/1/0.01/20: blank at 0 1.000 0.000 0.000, dark at 0 0
+EXCLUDED (touches the clamp) T1 50% sigma 5 module:tier2 0.1/1/0.01/20: blank at 0 1.000 0.000 0.000, dark at 0 0
+EXCLUDED (touches the clamp) T2 50% sigma 5 module:tier2 0.1/1/0.01/20: blank at 0 1.000 0.000 0.000, dark at 0 0

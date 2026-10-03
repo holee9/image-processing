@@ -1,0 +1,7 @@
+p1_corrected_dark_taken_from_raw         exit=1 -> 3 red: GhostOracle.TheControlsGiveTheAnswersTheyMust, GhostOracleDerive.ANegativeNoisyRemovalIsTheRectifiedDarkReferenceNotTheLag, GhostOraclePedestal.TheControlsSayWhatTheMetricCanAndCannotSeparate
+p2_clamped_share_always_zero             exit=1 -> 2 red: GhostOracleDerive.ANegativeNoisyRemovalIsTheRectifiedDarkReferenceNotTheLag, GhostOraclePedestal.TheModuleRowsThatNeverTouchTheClamp
+p3_signed_residual_unsigned              exit=1 -> 1 red: GhostOraclePedestal.TheControlsSayWhatTheMetricCanAndCannotSeparate
+p4_control_removes_lag_of_wrong_frame    exit=1 -> 1 red: GhostOraclePedestal.TheControlsSayWhatTheMetricCanAndCannotSeparate
+p5_pedestal_not_in_the_blank_frames      exit=1 -> 1 red: GhostOraclePedestal.TheControlsSayWhatTheMetricCanAndCannotSeparate
+p6_raw_dark_back_to_corrected            exit=1 -> 2 red: GhostOracle.TheControlsGiveTheAnswersTheyMust, GhostOraclePedestal.TheControlsSayWhatTheMetricCanAndCannotSeparate
+p7_removal_normalised_wrongly            exit=1 -> 1 red: GhostOraclePedestal.TheControlsSayWhatTheMetricCanAndCannotSeparate
