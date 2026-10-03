@@ -1,8 +1,8 @@
 # GUI Menu and Command Strategy
 
 **Document ID**: XPE-GUI-MENU-001
-**Version**: 1.1.0
-**Date**: 2026-04-18
+**Version**: 1.2.0
+**Date**: 2026-10-03
 **Status**: Controlled Draft
 **Canonical Scope**: `docs/project/`
 **Cross-References**: XPE-GUI-ARCH-001 §3.2 (Commanding), XPE-GUI-ACCESS-001 §5 (Keyboard Navigation), XPE-GUI-DISP-INT-001 v2.0 §4.2, XPE-GUI-E2E-001 §4 (Scenarios)
@@ -13,6 +13,7 @@
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
+| 1.2.0 | 2026-10-03 | leader (GUI Lane draft GUI-C-203) | Records body changes made after 1.1.0 without a history row (GUI-C-170 §9.2 panels, GUI-C-184 Run AI Bone Suppression rename, GUI-C-196 Run Deterministic Baseline rules, GUI-C-198 AI availability). Corrects wording to match the app (GUI-C-203, Refs #225): §3 Pipeline active; §4.1 Export Evidence Bundle wired, Open DICOM deferred by user decision; §4.2 Export Runtime Logs, RealXpeBackend implemented; §4.3 View items aligned with the app; §4.5 Tools items aligned, GSDF Calibrate / QA Constancy listed as disabled; §8/§9.1 Enabled When and E2E columns aligned with the app, rows with no menu item marked "planned, no menu item"; §10.1 status column (bound / not implemented); §10.2 and §11 marked as target contracts |
 | 1.1.0 | 2026-04-18 | manager-spec (GUI Lane) | Pipeline menu Phase 1a/1b/2/3 activation timing table (§8), Diagnostic menu/tools completion (§9), Keyboard shortcut master matrix (§10), command quality rules exact schema (§6 extended) |
 | 1.0.0 | 2026-04-16 | (author) | Initial menu taxonomy |
 
@@ -60,7 +61,7 @@ Research basis:
 | `File` | input/output, recent files, settings persistence, exit | planned shell |
 | `Backend` | mock/native backend lifecycle, DLL diagnostics, P/Invoke smoke checks | planned shell |
 | `View` | panel visibility, image zoom, comparison modes, layout reset, theme/display aids | planned shell |
-| `Pipeline` | staged processing commands from Phase 1a onward | future disabled shell |
+| `Pipeline` | staged processing commands from Phase 1a onward | active (`Run Preprocessing` and `Run Deterministic Baseline` need the native backend; `Run AI Bone Suppression` follows section 8) |
 | `Tools` | calibration, fixture, benchmark, QA, and evidence tools | planned shell |
 | `Help` | offline help, quick start, workflow help, API reference, about/build info | active from GUI-S0 |
 
@@ -78,12 +79,12 @@ Initial and planned commands:
 - `Open Recent`
 - `Save Settings`
 - `Export Automation Report`
-- `Export Evidence Bundle` (future)
+- `Export Evidence Bundle`
 - `Exit`
 
 Rules:
 
-- `Open DICOM...` shall remain disabled or absent until `xpe_dicom.dll` integration.
+- `Open DICOM...` stays disabled by user decision (#225 row 2, deferred). The module already exports `xpe_dicom_open` / `xpe_dicom_read_image` / `xpe_dicom_get_metadata`; the remaining work is the GUI read path.
 - GUI-S0 must not implement C# DICOM parsing.
 
 ### 4.2 Backend
@@ -95,28 +96,28 @@ Initial and planned commands:
 - `Backend Mode`
 - `Native DLL Diagnostics`
 - `Run P/Invoke Smoke Test` (Phase 0 integration)
-- `Open Runtime Logs`
+- `Export Runtime Logs` (AutomationId stays `OpenRuntimeLogsMenuItem`)
 
 Rules:
 
 - Mock backend commands must remain usable without native DLLs.
-- Native backend commands remain disabled until `RealXpeBackend` is implemented.
+- `RealXpeBackend` is implemented; `Backend Mode` Mock/Native are commands that set `BackendMode`.
 
 ### 4.3 View
 
 Initial and planned commands:
 
-- `Show Runtime Panel`
-- `Show Raw Settings`
-- `Show Calibration Evaluation`
 - `Show Logs`
-- `Show Alerts`
+- `Calibration Paths Panel`
+- `Display Settings Panel`
+- `Clear Logs`
+- `Clear Alerts`
+- `Reset Comparison View`
 - `Reset Layout`
 - `Zoom Fit`
 - `Zoom 100%`
 - `Zoom In`
 - `Zoom Out`
-- `Pan`
 - `Compare Mode: Swipe / Split / Overlay / Difference / Source Only / Processed Only`
 - `Detach Viewer`
 
@@ -139,7 +140,7 @@ Initial and planned commands:
 
 Rules:
 
-- Pipeline commands remain disabled until their owner DLL and API are present.
+- Pipeline commands whose owner DLL and API are absent stay disabled (today: none of the static items; Run Preprocessing and Run Deterministic Baseline are disabled only on the Mock backend, Run AI Bone Suppression follows section 8). Commands whose inputs are missing stay enabled and answer on the status line when clicked (GUI-C-203).
 - Disabled pipeline commands shall expose a clear status reason and relevant Help link.
 
 ### 4.5 Tools
@@ -147,13 +148,16 @@ Rules:
 Initial and planned commands:
 
 - `Calibration Settings`
-- `Calibration Evaluation`
 - `Fixture Manager`
 - `Run Self-Check`
 - `Run GUI E2E`
 - `Benchmark Runner`
-- `QA Constancy`
+- `Export Evidence Snapshot` (the same command as `File > Export Automation Report`)
+- `QA Constancy` (disabled: waits for a requirement — reference images and criteria are not defined)
+- `GSDF Calibrate...` (disabled: waits for measured luminance input; the module's `xpe_gsdf_calibrate` exists)
 - `Open Evidence Folder`
+
+`Calibration Evaluation` is not a menu item; the app has `Calibration Settings` only.
 
 Rules:
 
@@ -225,19 +229,21 @@ Toolbar buttons are shortcuts for high-frequency menu commands, not separate beh
 
 각 Pipeline 명령의 활성화 조건과 구현 시점을 정의한다. 명령은 owner module DLL이 존재하고 상태가 `IsNativeReady`일 때만 enabled.
 
+> **정정 2026-10-03 (GUI-C-203, #225)** — 아래 "Enabled When" 열은 앱의 실제 규칙으로 고쳤습니다. 위 일반 규칙과 달리 대부분의 명령은 항상 enabled 이고, 조건이 맞지 않으면 클릭했을 때 상태 줄로 답합니다. 앱에 메뉴 항목이 없는 행은 지우지 않고 "계획됨, 메뉴 항목 없음" 으로 표시했습니다.
+
 | Command | Owner DLL | Phase | Enabled When |
 |---------|-----------|:-----:|--------------|
-| `Run Preprocessing` | xpe_preprocess.dll | **1a** | P1A DLL present + image loaded + calibration paths valid |
+| `Run Preprocessing` | xpe_preprocess.dll | **1a** | 백엔드가 지원할 때(Native) enabled. 영상이나 교정 경로가 없으면 비활성화하지 않고, 클릭했을 때 상태 줄에 안내 (GUI-C-203) |
 | `Run Deterministic Baseline` | xpe_preprocess.dll, xpe_enhance_basic.dll, xpe_display.dll, xpe_dicom.dll | **1b** | **예외 (아래 "Run Deterministic Baseline" 참조)** — 백엔드가 Native 이면 enabled. DLL 존재는 활성 시점에 확인하지 않음. 실행 시 raw 영상과 교정 셋이 필요 |
-| `Apply Display Pipeline` | xpe_display.dll | **1b** | P1B DLL present + image loaded + VOI params set |
+| `Apply Display Pipeline` | xpe_display.dll | **1b** | 항상 enabled. 프레임이 없으면 상태 줄에 그렇게 안내 (GUI-C-203) |
 | `Run AI Bone Suppression` (옛 이름 `Run Full Pipeline`; AutomationId `RunFullPipelineMenuItem` 은 유지, GUI-C-184) | xpe_ai.dll | 3 | 위 일반 규칙대로 AI 세션이 있는 백엔드·초기화됨·전환 중 아님·xpe_ai.dll 이 보일 때만 enabled(`AiBoneSuppressionAvailability`, 메뉴를 열 때 다시 평가; 꺼졌을 때 툴팁에 이유 — GUI-C-198). 영상이 없으면 상태 줄에 안내하고 실행하지 않음. 실행 시 Native 백엔드와 모델이 든 xpe_ai.dll 이 필요하고, 모듈이 실패하면 원본 영상을 보이고 상태 줄에 알림 |
-| `Stop Processing` | N/A | 1a+ | IsProcessing == true |
-| `Stage Timing` | N/A | 1a+ | Last pipeline execution completed |
-| `Open Pipeline Diagnostics` | N/A | 1a+ | Always enabled after first pipeline run |
-| `Apply Enhance (Basic)` | xpe_enhance_basic.dll | **2** | Basic enhance ready |
-| `Apply Enhance (Advanced)` | xpe_enhance_advanced.dll | **2** | Advanced enhance ready (premium tier) |
-| `Apply Grid Suppression` | gsvg.dll | 2 | GSVG DLL ready |
-| `Apply AI Assist` | xpe_ai.dll | **3** | AI module ready + safety gate passed |
+| `Stop Processing` | N/A | 1a+ | 항상 enabled. 실행 중인 것이 없으면 상태 줄에 그렇게 안내하고 아무것도 버리지 않음 (GUI-C-203) |
+| `Stage Timing` | N/A | 1a+ | 항상 enabled. 마지막 렌더가 보고한 값을 보여 줌 (GUI-C-203) |
+| `Open Pipeline Diagnostics` | N/A | 1a+ | 항상 enabled (GUI-C-203) |
+| `Apply Enhance (Basic)` | xpe_enhance_basic.dll | **2** | **계획됨, 메뉴 항목 없음** — enhance_basic 은 현재 `Run Deterministic Baseline` 체인 안에서만 실행됨 (GUI-C-203) |
+| `Apply Enhance (Advanced)` | xpe_enhance_advanced.dll | **2** | **계획됨, 메뉴 항목 없음** (GUI-C-203) |
+| `Apply Grid Suppression` | gsvg.dll | 2 | **계획됨, 메뉴 항목 없음** — GSVG 는 메뉴가 아니라 알고리즘 바에 있음 (GUI-C-203) |
+| `Apply AI Assist` | xpe_ai.dll | **3** | **계획됨, 메뉴 항목 없음** (GUI-C-203) |
 
 Rules:
 
@@ -269,16 +275,16 @@ Rules:
 | Command | Phase | Enabled When | Owner | E2E |
 |---------|:-----:|--------------|-------|-----|
 | `Calibration Settings` | S0 | Always | AppSettings | W-10 |
-| `Calibration Evaluation` | 1a | Image + calibration loaded | Preprocess | (planned) |
+| `Calibration Evaluation` | 1a | **메뉴 항목 없음** — 앱에는 `Calibration Settings` 만 있음 (GUI-C-203) | Preprocess | (planned) |
 | `Fixture Manager` | S0 | Always | Static | W-10 |
-| `Run Self-Check` | 0 | Backend initialized | Backend | S-03 |
-| `Run GUI E2E` | S0 | Always (headless mode) | E2E runner | — |
-| `Benchmark Runner` | 1a+ | At least one pipeline ready | Benchmarks | — |
-| `QA Constancy` | 2+ | Post-production ready | QA | — |
-| `Open Evidence Folder` | S0 | Always | OS explorer | — |
-| `Export Automation Report` | S0 | Any E2E run completed | E2E runner | W-09 |
-| `GSDF Calibrate...` | **1b** | xpe_display.dll ready | Display | (planned) |
-| `Dll Diagnostics` | 0 | Always | Backend | S-05 |
+| `Run Self-Check` | 0 | 항상 enabled. 조건은 클릭했을 때 답함 (GUI-C-203) | Backend | A-04/A-05 |
+| `Run GUI E2E` | S0 | 항상 enabled. 조건은 클릭했을 때 답함 (GUI-C-203) | E2E runner | A-06 |
+| `Benchmark Runner` | 1a+ | 항상 enabled. 조건은 클릭했을 때 답함 (GUI-C-203) | Benchmarks | A-14 |
+| `QA Constancy` | 2+ | **disabled** — 요구가 정해지지 않음(기준 영상·판정 기준 미정) (GUI-C-203) | QA | — |
+| `Open Evidence Folder` | S0 | Always | OS explorer | A-09 |
+| `Export Automation Report` | S0 | 항상 enabled. 조건은 클릭했을 때 답함 (GUI-C-203) | E2E runner | W-09 |
+| `GSDF Calibrate...` | **1b** | **disabled** — 측정된 휘도 입력을 기다림(모듈의 `xpe_gsdf_calibrate` 는 있음) (GUI-C-203) | Display | (planned) |
+| `Dll Diagnostics` | 0 | Always. **Tools 가 아니라 Backend 메뉴에 있음**(헤더 `Native DLL Diagnostics`) (GUI-C-203) | Backend | S-05 |
 
 ### 9.2 View Menu — Panel Visibility
 
@@ -424,37 +430,41 @@ XPE-GUI-ACCESS-001 §5.2 Keyboard Navigation과 단일 source-of-truth. 모든 s
 
 ### 10.1 Global Shortcuts
 
-| Category | Command | Shortcut | Phase |
-|----------|---------|----------|:-----:|
-| **File** | Open Raw | `Ctrl+O` | S0 |
-| | Save Settings | `Ctrl+S` | S0 |
-| | Export Automation Report | `Ctrl+Shift+E` | S0 |
-| | Exit | `Alt+F4` | S0 |
-| **Backend** | Initialize Backend | `Ctrl+B, I` (chord) | 0 |
-| | Shutdown Backend | `Ctrl+B, S` | 0 |
-| | Toggle Backend Mode | `Ctrl+B, M` | 0 |
-| **View** | Zoom In | `Ctrl++` | S0 |
-| | Zoom Out | `Ctrl+-` | S0 |
-| | Zoom Fit | `Ctrl+0` | S0 |
-| | Zoom 100% | `Ctrl+1` | S0 |
-| | Reset Layout | `Ctrl+Shift+R` | S0 |
-| | Toggle Panel | `Ctrl+Tab` | S0 |
-| **Compare** | Swipe Mode | `F5` | S0 |
-| | Split Mode | `F6` | S0 |
-| | Overlay Mode | `F7` | S0 |
-| | Difference Mode | `F8` | S0 |
-| **Pipeline** | Run Preprocessing | `F9` | 1a |
-| | Run Full Pipeline | `F10` | 1b |
-| | Stop Processing | `Esc` | 1a+ |
-| | Apply Display Pipeline | `Shift+F10` | 1b |
-| **Tools** | Run Self-Check | `Ctrl+T, S` | 0 |
-| | Fixture Manager | `Ctrl+T, F` | S0 |
-| | GUI E2E | `Ctrl+T, E` | S0 |
-| **Help** | Help Home | `F1` | S0 |
-| | Context Help | `Shift+F1` | S0 |
-| | About | `Ctrl+F1` | S0 |
+> **정정 2026-10-03 (GUI-C-203, #225)** — "상태" 열을 추가했습니다. 지금 앱에 바인딩된 단축키는 `F5`·`F6`·`F7`·`F8`(비교 모드; `Window.InputBindings`, 메뉴 `InputGestureText`) 넷뿐이고, 나머지는 **미구현**입니다(`Alt+F4` 는 Windows 기본 동작이며 앱의 바인딩이 아님). 미구현 행은 목표로 남겨 둡니다.
+
+| Category | Command | Shortcut | Phase | 상태 |
+|----------|---------|----------|:-----:|------|
+| **File** | Open Raw | `Ctrl+O` | S0 | 미구현 |
+| | Save Settings | `Ctrl+S` | S0 | 미구현 |
+| | Export Automation Report | `Ctrl+Shift+E` | S0 | 미구현 |
+| | Exit | `Alt+F4` | S0 | 미구현 (앱 바인딩 아님) |
+| **Backend** | Initialize Backend | `Ctrl+B, I` (chord) | 0 | 미구현 |
+| | Shutdown Backend | `Ctrl+B, S` | 0 | 미구현 |
+| | Toggle Backend Mode | `Ctrl+B, M` | 0 | 미구현 |
+| **View** | Zoom In | `Ctrl++` | S0 | 미구현 |
+| | Zoom Out | `Ctrl+-` | S0 | 미구현 |
+| | Zoom Fit | `Ctrl+0` | S0 | 미구현 |
+| | Zoom 100% | `Ctrl+1` | S0 | 미구현 |
+| | Reset Layout | `Ctrl+Shift+R` | S0 | 미구현 |
+| | Toggle Panel | `Ctrl+Tab` | S0 | 미구현 |
+| **Compare** | Swipe Mode | `F5` | S0 | 바인딩됨 |
+| | Split Mode | `F6` | S0 | 바인딩됨 |
+| | Overlay Mode | `F7` | S0 | 바인딩됨 |
+| | Difference Mode | `F8` | S0 | 바인딩됨 |
+| **Pipeline** | Run Preprocessing | `F9` | 1a | 미구현 |
+| | Run AI Bone Suppression (옛 이름 `Run Full Pipeline`) | `F10` | 1b | 미구현 |
+| | Stop Processing | `Esc` | 1a+ | 미구현 |
+| | Apply Display Pipeline | `Shift+F10` | 1b | 미구현 |
+| **Tools** | Run Self-Check | `Ctrl+T, S` | 0 | 미구현 |
+| | Fixture Manager | `Ctrl+T, F` | S0 | 미구현 |
+| | GUI E2E | `Ctrl+T, E` | S0 | 미구현 |
+| **Help** | Help Home | `F1` | S0 | 미구현 |
+| | Context Help | `Shift+F1` | S0 | 미구현 |
+| | About | `Ctrl+F1` | S0 | 미구현 |
 
 ### 10.2 Rules
+
+> **목표 규칙이며 현재 사실이 아닙니다 (GUI-C-203, #225).** `RoutedCommand`/`InputBinding` 일괄 구현 규칙과 중복 gesture 를 잡는 pre-commit hook 은 아직 구현되지 않았습니다. 지금 바인딩된 것은 §10.1 의 `F5`~`F8` 뿐입니다.
 
 - [HARD] 모든 shortcut은 `RoutedCommand` + `InputBinding` + `KeyBinding`으로 구현 (ARCH-001 §3.2)
 - [HARD] Chord shortcut (`Ctrl+B, I`)은 WPF `InputGestureCollection`으로 구현 — 복잡도 감안 Phase 2 이상 배정
@@ -465,6 +475,8 @@ XPE-GUI-ACCESS-001 §5.2 Keyboard Navigation과 단일 source-of-truth. 모든 s
 ---
 
 ## 11. Command Quality Contract (v1.1 Extended)
+
+> **목표 계약이며 현재 사실이 아닙니다 (GUI-C-203, #225).** 지금 앱에는 `Id` / `HeaderKey`(RESX) / `Owner` / `Phase` / `EnabledCondition` / `HelpTarget` 을 담는 명령 정의 구조가 없고, `Commands/CommandSpecification.cs` 레지스트리도 없습니다. 실제 AutomationId 규약은 `RunPreprocessingMenuItem` 형태이며 아래 예시의 `XPE_Menu_Pipeline_RunPreprocessing_MenuItem` 형태가 아닙니다.
 
 §6 Command Quality Rules 확장. 모든 메뉴 명령은 다음 필드를 가진 **CommandSpecification** 기록 보유:
 
@@ -485,4 +497,4 @@ XPE-GUI-ACCESS-001 §5.2 Keyboard Navigation과 단일 source-of-truth. 모든 s
 
 ---
 
-*Document End — XPE-GUI-MENU-001 v1.1.0*
+*Document End — XPE-GUI-MENU-001 v1.2.0*
