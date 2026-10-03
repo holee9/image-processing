@@ -1,0 +1,120 @@
+Note: Google Test filter = SessionField.*:*CheckExpiry*:*Expiry*
+[==========] Running 33 tests from 10 test suites.
+[----------] Global test environment set-up.
+[----------] 2 tests from CalibManagerTest
+[ RUN      ] CalibManagerTest.CheckExpiryNullPathReturnsError
+[       OK ] CalibManagerTest.CheckExpiryNullPathReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.CheckExpiryNonExistentFileReturnsError
+[       OK ] CalibManagerTest.CheckExpiryNonExistentFileReturnsError (0 ms)
+[----------] 2 tests from CalibManagerTest (0 ms total)
+
+[----------] 1 test from XCalReaderTest
+[ RUN      ] XCalReaderTest.NeverExpires_WithCheckExpiry_ReturnsOk
+[       OK ] XCalReaderTest.NeverExpires_WithCheckExpiry_ReturnsOk (11 ms)
+[----------] 1 test from XCalReaderTest (11 ms total)
+
+[----------] 8 tests from CheckExpiryTest
+[ RUN      ] CheckExpiryTest.NeverExpires_IsExpiredFalse_RemainingMax
+[       OK ] CheckExpiryTest.NeverExpires_IsExpiredFalse_RemainingMax (4 ms)
+[ RUN      ] CheckExpiryTest.FutureExpiry_IsExpiredFalse
+[       OK ] CheckExpiryTest.FutureExpiry_IsExpiredFalse (7 ms)
+[ RUN      ] CheckExpiryTest.PastExpiry_IsExpiredTrue
+[       OK ] CheckExpiryTest.PastExpiry_IsExpiredTrue (5 ms)
+[ RUN      ] CheckExpiryTest.NullFilepath_ReturnsInvalidInput
+[       OK ] CheckExpiryTest.NullFilepath_ReturnsInvalidInput (0 ms)
+[ RUN      ] CheckExpiryTest.NullIsExpired_ReturnsInvalidInput
+[       OK ] CheckExpiryTest.NullIsExpired_ReturnsInvalidInput (0 ms)
+[ RUN      ] CheckExpiryTest.NullRemainingDays_ReturnsInvalidInput
+[       OK ] CheckExpiryTest.NullRemainingDays_ReturnsInvalidInput (0 ms)
+[ RUN      ] CheckExpiryTest.NonExistentFile_ReturnsIoFailed
+[       OK ] CheckExpiryTest.NonExistentFile_ReturnsIoFailed (0 ms)
+[ RUN      ] CheckExpiryTest.BadMagic_ReturnsError
+[       OK ] CheckExpiryTest.BadMagic_ReturnsError (1 ms)
+[----------] 8 tests from CheckExpiryTest (20 ms total)
+
+[----------] 1 test from SaveLoadRoundtripTest
+[ RUN      ] SaveLoadRoundtripTest.ExpiredCalibrationReturnsExpiryError
+[       OK ] SaveLoadRoundtripTest.ExpiredCalibrationReturnsExpiryError (5 ms)
+[----------] 1 test from SaveLoadRoundtripTest (5 ms total)
+
+[----------] 2 tests from ExpiryRoundtripTest
+[ RUN      ] ExpiryRoundtripTest.ExpiryTimestampPreservedRoundtrip
+[       OK ] ExpiryRoundtripTest.ExpiryTimestampPreservedRoundtrip (4 ms)
+[ RUN      ] ExpiryRoundtripTest.ExpiryClassificationIsCorrect
+[       OK ] ExpiryRoundtripTest.ExpiryClassificationIsCorrect (7 ms)
+[----------] 2 tests from ExpiryRoundtripTest (11 ms total)
+
+[----------] 1 test from HeaderOnHit
+[ RUN      ] HeaderOnHit.ACachedHitJudgesTheExpiryOfTheFileAsItStands
+[       OK ] HeaderOnHit.ACachedHitJudgesTheExpiryOfTheFileAsItStands (26 ms)
+[----------] 1 test from HeaderOnHit (26 ms total)
+
+[----------] 8 tests from SessionField
+[ RUN      ] SessionField.SixtyFourBytesWithoutATerminatorAreRefused
+[       OK ] SessionField.SixtyFourBytesWithoutATerminatorAreRefused (44 ms)
+[ RUN      ] SessionField.TwoSixtyFourByteIdsThatDifferOnlyInTheLastByteAreBothRefused
+[       OK ] SessionField.TwoSixtyFourByteIdsThatDifferOnlyInTheLastByteAreBothRefused (50 ms)
+[ RUN      ] SessionField.TwoSixtyThreeByteIdsThatDifferOnlyInTheLastCharacterAreDifferent
+[       OK ] SessionField.TwoSixtyThreeByteIdsThatDifferOnlyInTheLastCharacterAreDifferent (75 ms)
+[ RUN      ] SessionField.BytesAfterTheTerminatorAreRefused
+[       OK ] SessionField.BytesAfterTheTerminatorAreRefused (24 ms)
+[ RUN      ] SessionField.TextThatIsNotWellFormedUtf8IsRefused
+[       OK ] SessionField.TextThatIsNotWellFormedUtf8IsRefused (148 ms)
+[ RUN      ] SessionField.WellFormedUtf8IsAcceptedAndCompared
+[       OK ] SessionField.WellFormedUtf8IsAcceptedAndCompared (83 ms)
+[ RUN      ] SessionField.AnEmptyFieldAndTheGeneratorsLiteralStillLoad
+[       OK ] SessionField.AnEmptyFieldAndTheGeneratorsLiteralStillLoad (48 ms)
+[ RUN      ] SessionField.CheckExpiryJudgesTheSessionFieldLikeTheLoaders
+[       OK ] SessionField.CheckExpiryJudgesTheSessionFieldLikeTheLoaders (147 ms)
+[----------] 8 tests from SessionField (623 ms total)
+
+[----------] 5 tests from CalibSaveExpiryTest
+[ RUN      ] CalibSaveExpiryTest.FutureExpiryIsRecordedAndReadsAsNotExpired
+[       OK ] CalibSaveExpiryTest.FutureExpiryIsRecordedAndReadsAsNotExpired (17 ms)
+[ RUN      ] CalibSaveExpiryTest.PastExpiryReadsAsExpired
+[       OK ] CalibSaveExpiryTest.PastExpiryReadsAsExpired (9 ms)
+[ RUN      ] CalibSaveExpiryTest.ExpiredFileIsRefusedByLoader
+[       OK ] CalibSaveExpiryTest.ExpiredFileIsRefusedByLoader (11 ms)
+[ RUN      ] CalibSaveExpiryTest.ZeroMeansNeverExpires
+[       OK ] CalibSaveExpiryTest.ZeroMeansNeverExpires (6 ms)
+[ RUN      ] CalibSaveExpiryTest.InvalidTypeStillRejectedWithExpiryArgument
+[       OK ] CalibSaveExpiryTest.InvalidTypeStillRejectedWithExpiryArgument (5 ms)
+[----------] 5 tests from CalibSaveExpiryTest (49 ms total)
+
+[----------] 4 tests from PreprocessCalibrationTest
+[ RUN      ] PreprocessCalibrationTest.CheckExpiry_ValidCalibration
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_calibration.cpp(391): Skipped
+XCal fixture not yet implemented (T-005)
+
+[  SKIPPED ] PreprocessCalibrationTest.CheckExpiry_ValidCalibration (0 ms)
+[ RUN      ] PreprocessCalibrationTest.CheckExpiry_ExpiredCalibration
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_calibration.cpp(418): Skipped
+Requires XCal v1 writer fixture from T-005
+
+[  SKIPPED ] PreprocessCalibrationTest.CheckExpiry_ExpiredCalibration (0 ms)
+[ RUN      ] PreprocessCalibrationTest.CheckExpiry_NullFilePath
+[       OK ] PreprocessCalibrationTest.CheckExpiry_NullFilePath (0 ms)
+[ RUN      ] PreprocessCalibrationTest.CheckExpiry_NullOutputPointers
+[       OK ] PreprocessCalibrationTest.CheckExpiry_NullOutputPointers (0 ms)
+[----------] 4 tests from PreprocessCalibrationTest (1 ms total)
+
+[----------] 1 test from CalibFixtureGenTest
+[ RUN      ] CalibFixtureGenTest.ExpiryTimestampRoundTrips
+offset.xcal  0601266cd8c3bb50a7f779a58b444879f6e30988caac68f8a5879387de46e715
+gain.xcal    c8af3e71aba95327220e03028b78fbbefc5ce310e370cece4c956801b7a3048b
+defect.xcal  b800e45b551349748232058bd6af29e24e1ac8d792488d18b615e95b02117be1  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1791005356547_ExpiryTimestampRoundTrips\expired\manifest.json
+offset.xcal  504168edee7f0071b716de6aeb4a6772d05cbadd8dee811454e77e20fee6d57d
+gain.xcal    5b16c2c743156c2e5ce4543f8d9983462ac694fe3b1cc62a175abb943fa68a37
+defect.xcal  d52c64033fa4b0d44f65fef7326db678e0d4379532a6875971447b904338c839  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1791005356547_ExpiryTimestampRoundTrips\valid\manifest.json
+[       OK ] CalibFixtureGenTest.ExpiryTimestampRoundTrips (5483 ms)
+[----------] 1 test from CalibFixtureGenTest (5483 ms total)
+
+[----------] Global test environment tear-down
+[==========] 33 tests from 10 test suites ran. (6235 ms total)
+[  PASSED  ] 31 tests.
+[  SKIPPED ] 2 tests, listed below:
+[  SKIPPED ] PreprocessCalibrationTest.CheckExpiry_ValidCalibration
+[  SKIPPED ] PreprocessCalibrationTest.CheckExpiry_ExpiredCalibration
+exit=0

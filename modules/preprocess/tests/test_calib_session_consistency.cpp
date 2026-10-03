@@ -544,3 +544,47 @@ TEST_F(SessionField, AnEmptyFieldAndTheGeneratorsLiteralStillLoad) {
         EXPECT_EQ(XPE_OK, loadWithField(k, generated, false));
     }
 }
+
+// ---- QA-A-229d (Codex #97, high): xpe_calib_check_expiry judges the session field like the loaders ---------
+//
+// 229b's report said check 11 applied to xpe_calib_check_expiry as well. It did not: that function reads the
+// header itself and looked at magic and version only, so a file the three loaders refuse as CONFIG_INVALID got
+// XPE_OK from it. This case puts the SAME patched file in front of the loader of its kind and in front of
+// xpe_calib_check_expiry and requires the same verdict, for field values both refused and accepted (the
+// accepted ones are the control: a check_expiry that refused everything would otherwise pass).
+TEST_F(SessionField, CheckExpiryJudgesTheSessionFieldLikeTheLoaders) {
+    struct Case { const char* name; char field[64]; bool valid; };
+    Case cases[6] = {};
+    cases[0].name = "no terminator";
+    std::memset(cases[0].field, 'A', 64);
+    cases[1].name = "bytes after the terminator";
+    std::memcpy(cases[1].field, "A1", 2);
+    cases[1].field[10] = 'z';
+    cases[2].name = "stray continuation byte";
+    cases[2].field[0] = static_cast<char>(0x80);
+    cases[3].name = "overlong two-byte form";
+    cases[3].field[0] = static_cast<char>(0xC0);
+    cases[3].field[1] = static_cast<char>(0x80);
+    cases[4].name = "well-formed UTF-8";
+    std::memcpy(cases[4].field, "\xEC\x84\xB8\xEC\x85\x98-1", 9);
+    cases[4].valid = true;
+    cases[5].name = "empty";
+    cases[5].valid = true;
+    for (const Case& c : cases) {
+        for (int k = 0; k < 3; ++k) {
+            SCOPED_TRACE(std::string(kindName(k)) + " / " + c.name);
+            xpe_preprocess_shutdown();
+            ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+            xpe_calib_cache_clear();
+            const std::string f = make(k, "A1", "expiry_field.xcal");
+            patchSession(f, c.field);
+            const XpeErrorCode loader = plainLoad(k, f);
+            bool expired = true;
+            int32_t days = -1;
+            const XpeErrorCode expiry = xpe_calib_check_expiry(f.c_str(), &expired, &days);
+            xpe_clear_alerts();
+            EXPECT_EQ(c.valid ? XPE_OK : XPE_ERR_CONFIG_INVALID, loader);  // the premise: what the loader says
+            EXPECT_EQ(loader, expiry);                                      // the claim: check_expiry says the same
+        }
+    }
+}

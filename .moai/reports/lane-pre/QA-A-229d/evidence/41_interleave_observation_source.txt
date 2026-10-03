@@ -1,0 +1,63 @@
+// QA-A-229d observation only (NOT committed to CMake): a file replaced between the cache's header read and
+// its install. Prints what the cached loader answers and what the plain loader answers for the same file afterwards.
+#include <gtest/gtest.h>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <string>
+#include "xpe/preprocess_api.h"
+#include "xpe/preprocess/xcal_format.h"
+#include "xpe/preprocess/xpe_preprocess_internal.h"
+#include "fixtures/make_xcal.hpp"
+
+namespace {
+namespace fs = std::filesystem;
+std::string g_path;
+int g_what = 0;
+int g_hookCalls = 0;  // 0 = session field, 1 = expiry in the past
+void patch() {
+    ++g_hookCalls;
+    const auto t = fs::last_write_time(g_path);
+    {
+        std::fstream f(g_path, std::ios::in | std::ios::out | std::ios::binary);
+        if (g_what == 0) {
+            char field[64];
+            std::memset(field, 'A', sizeof(field));   // no terminator
+            f.seekp(static_cast<std::streamoff>(offsetof(XCalFileHeader, session_id)));
+            f.write(field, 64);
+        } else {
+            const uint64_t past = 1000;               // 1970
+            f.seekp(static_cast<std::streamoff>(offsetof(XCalFileHeader, expiry_epoch_ms)));
+            f.write(reinterpret_cast<const char*>(&past), sizeof(past));
+        }
+    }
+    fs::last_write_time(g_path, t);
+}
+}  // namespace
+
+TEST(A229dInterleave, Observe) {
+    for (int what = 0; what < 2; ++what) {
+        g_what = what;
+        xpe_preprocess_shutdown();
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+        xpe_calib_cache_clear();
+        g_path = (fs::temp_directory_path() / "a229d_interleave.xcal").string();
+        fs::remove(g_path);
+        ASSERT_EQ(XPE_OK, MakeOffsetXCal(g_path.c_str(), 8, 8, 100.0f, 0, "A1"));
+        XpeImageBuffer v{};
+        ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached(g_path.c_str(), &v));   // populate the cache
+        g_hookCalls = 0;
+        xpe_cache_after_open_check_hook = &patch;
+        const XpeErrorCode cached = xpe_calib_load_offset_cached(g_path.c_str(), &v);
+        xpe_cache_after_open_check_hook = nullptr;
+        xpe_preprocess_shutdown();
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+        const XpeErrorCode plainAfter = xpe_calib_load_offset(g_path.c_str());
+        std::printf("OBSERVE %s: hook calls=%d; file replaced after the header read -> cached hit=%d, plain loader on the file now=%d\n",
+                    what == 0 ? "session field malformed" : "expiry in the past", g_hookCalls, static_cast<int>(cached),
+                    static_cast<int>(plainAfter));
+        fs::remove(g_path);
+    }
+}

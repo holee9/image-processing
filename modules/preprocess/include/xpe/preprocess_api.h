@@ -639,7 +639,10 @@ XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(const char** gain_file_p
  * @param remaining_days Output: Days until expiry (negative if expired)
  * @return XPE_OK on success
  *         XPE_ERR_IO_FAILED on file read error
- *         XPE_ERR_CONFIG_INVALID if file format invalid
+ *         XPE_ERR_CONFIG_INVALID if the header's magic or version is wrong, or its 64-byte session_id field is
+ *                                malformed (the loaders refuse such a file the same way). Only the header is
+ *                                read: dimensions, payload length and the checksum are checked by the loaders,
+ *                                not here.
  */
 XPE_API XpeErrorCode xpe_calib_check_expiry(const char* filepath,
                                             bool* is_expired,
@@ -1183,10 +1186,17 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_batch(
  *                  left as it was.
  *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
  *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
- *   file. The session check is not repeated on a hit.
+ *   file. The 152-byte header is read again on a hit and compared with the one the entry was made from
+ *   (the session field and the expiry live there, outside the SHA-256): if any byte differs, the hit is
+ *   cancelled and the call loads the file like a miss.
  * - Concurrent writers are not supported: do not write or replace the calibration file while a load
  *   of it is in progress. The attributes are looked at once, before the lookup; a second look just
  *   before the install would not close every such race, so none is made.
+ *   The guarantee above -- a hit reaches the verdict a plain load of the file would -- is given for a file
+ *   that is standing still. A file replaced between the header read and the install can be judged from the
+ *   old header: observed (QA-A-229d) with a session field or an expiry changed in that interval, the hit
+ *   accepted the file while the plain loader refused it. That is outside the supported use, and no test
+ *   promises either outcome.
  * - Miss: loads through xpe_calib_load_offset(), copies the map into the cache.
  * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
  *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()),
@@ -1238,10 +1248,17 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
  *                  left as it was.
  *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
  *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
- *   file. The session check is not repeated on a hit.
+ *   file. The 152-byte header is read again on a hit and compared with the one the entry was made from
+ *   (the session field and the expiry live there, outside the SHA-256): if any byte differs, the hit is
+ *   cancelled and the call loads the file like a miss.
  * - Concurrent writers are not supported: do not write or replace the calibration file while a load
  *   of it is in progress. The attributes are looked at once, before the lookup; a second look just
  *   before the install would not close every such race, so none is made.
+ *   The guarantee above -- a hit reaches the verdict a plain load of the file would -- is given for a file
+ *   that is standing still. A file replaced between the header read and the install can be judged from the
+ *   old header: observed (QA-A-229d) with a session field or an expiry changed in that interval, the hit
+ *   accepted the file while the plain loader refused it. That is outside the supported use, and no test
+ *   promises either outcome.
  * - Miss: loads through xpe_calib_load_gain(), copies the map into the cache.
  * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
  *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()),
@@ -1298,10 +1315,17 @@ XPE_API XpeErrorCode xpe_calib_load_gain_cached(const char* filePath,
  *                  left as it was.
  *   A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is not
  *   noticed. Call xpe_calib_cache_clear() (or shut the module down) to force the next call to read the
- *   file. The session check is not repeated on a hit.
+ *   file. The 152-byte header is read again on a hit and compared with the one the entry was made from
+ *   (the session field and the expiry live there, outside the SHA-256): if any byte differs, the hit is
+ *   cancelled and the call loads the file like a miss.
  * - Concurrent writers are not supported: do not write or replace the calibration file while a load
  *   of it is in progress. The attributes are looked at once, before the lookup; a second look just
  *   before the install would not close every such race, so none is made.
+ *   The guarantee above -- a hit reaches the verdict a plain load of the file would -- is given for a file
+ *   that is standing still. A file replaced between the header read and the install can be judged from the
+ *   old header: observed (QA-A-229d) with a session field or an expiry changed in that interval, the hit
+ *   accepted the file while the plain loader refused it. That is outside the supported use, and no test
+ *   promises either outcome.
  * - Miss: loads through xpe_calib_load_defect_map(), copies the map into the cache.
  * - Ownership: the data pointer belongs to the cache on hit and miss. Do NOT free it. It stays valid
  *   until xpe_calib_cache_clear(), eviction (a full cache, or xpe_calib_cache_set_max_size()),

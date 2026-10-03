@@ -5,7 +5,8 @@
  * REQ-P1A-014, REQ-P1A-015, REQ-P1A-016, REQ-P1A-030
  *
  * @MX:ANCHOR: High fan_in — used by xpe_calib_load_offset, xpe_calib_load_gain,
- *            xpe_calib_load_defect_map, xpe_calib_check_expiry, and all 6 SUP-01 functions.
+ *            xpe_calib_load_defect_map, and all 6 SUP-01 functions. xpe_calib_check_expiry reads the
+ *            header itself and calls only validate_xcal_session_field (check 11) from here (QA-A-229d).
  * @MX:REASON: Invariant contract — all calibration loaders call validate_xcal_header()
  *             before data access. Breaking this function breaks the entire XCal ecosystem.
  */
@@ -177,9 +178,9 @@ XpeErrorCode validate_xcal_header(const XCalFileHeader& header,
     }
 
     // Check 11: the session field's format (QA-A-229b)
-    if (!session_field_valid(header.session_id)) {
-        return XPE_ERR_CONFIG_INVALID;
-    }
+    return validate_xcal_session_field(header);
+}
 
-    return XPE_OK;
+XpeErrorCode validate_xcal_session_field(const XCalFileHeader& header) {
+    return session_field_valid(header.session_id) ? XPE_OK : XPE_ERR_CONFIG_INVALID;
 }

@@ -1,0 +1,112 @@
+Note: Google Test filter = SessionField.CheckExpiry*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from SessionField
+[ RUN      ] SessionField.CheckExpiryJudgesTheSessionFieldLikeTheLoaders
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(587): error: Expected equality of these values:
+  loader
+    Which is: -4
+  expiry
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(575): offset / no terminator
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(587): error: Expected equality of these values:
+  loader
+    Which is: -4
+  expiry
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(575): gain / no terminator
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(587): error: Expected equality of these values:
+  loader
+    Which is: -4
+  expiry
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(575): defect / no terminator
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(587): error: Expected equality of these values:
+  loader
+    Which is: -4
+  expiry
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(575): offset / bytes after the terminator
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(587): error: Expected equality of these values:
+  loader
+    Which is: -4
+  expiry
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(575): gain / bytes after the terminator
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(587): error: Expected equality of these values:
+  loader
+    Which is: -4
+  expiry
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(575): defect / bytes after the terminator
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(587): error: Expected equality of these values:
+  loader
+    Which is: -4
+  expiry
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(575): offset / stray continuation byte
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(587): error: Expected equality of these values:
+  loader
+    Which is: -4
+  expiry
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(575): gain / stray continuation byte
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(587): error: Expected equality of these values:
+  loader
+    Which is: -4
+  expiry
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(575): defect / stray continuation byte
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(587): error: Expected equality of these values:
+  loader
+    Which is: -4
+  expiry
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(575): offset / overlong two-byte form
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(587): error: Expected equality of these values:
+  loader
+    Which is: -4
+  expiry
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(575): gain / overlong two-byte form
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(587): error: Expected equality of these values:
+  loader
+    Which is: -4
+  expiry
+    Which is: 0
+Google Test trace:
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_calib_session_consistency.cpp(575): defect / overlong two-byte form
+
+[  FAILED  ] SessionField.CheckExpiryJudgesTheSessionFieldLikeTheLoaders (175 ms)
+[----------] 1 test from SessionField (175 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (176 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] SessionField.CheckExpiryJudgesTheSessionFieldLikeTheLoaders
+
+ 1 FAILED TEST
+exit=1
