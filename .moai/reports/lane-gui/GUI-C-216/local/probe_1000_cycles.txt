@@ -1,0 +1,2 @@
+1000 cycles: 1.2 ms (1.214 ms total, 1.2 us/cycle); init codes: 0x1000
+100000 cycles: 94 ms

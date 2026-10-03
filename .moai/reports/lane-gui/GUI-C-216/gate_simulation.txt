@@ -1,0 +1,21 @@
+/usr/bin/bash: line 23: pwsh.exe: command not found
+REAL (this machine, Korean): Safety with native DLLs absent -> 5 skipped
+    -> finding: Category=Safety: 0 failed, 5 skipped
+REAL (this machine, Korean): Safety with native DLLs present
+    -> NO FINDING (gate passes)
+SYNTHETIC English: all tests skipped
+    -> finding: Category=Safety: 0 failed, 10 skipped
+SYNTHETIC English: one skipped
+    -> finding: Category=Safety: 0 failed, 1 skipped
+SYNTHETIC English: one failed
+    -> finding: Category=Safety: 1 failed, 0 skipped
+SYNTHETIC English: clean pass
+    -> NO FINDING (gate passes)
+SYNTHETIC: filter matched nothing (no summary line)
+    -> finding: Category=Safety: no test summary line
+SYNTHETIC: only ONE Safety test selected (Min = 1)
+    -> NO FINDING (gate passes)
+SYNTHETIC: newer test runner summary format
+    -> finding: Category=Safety: no test summary line
+
+Enforcement: a finding becomes a job failure only when AC12_ENFORCE=1 (job env); otherwise '::warning::' only. In the CI job env block of run 37095895181 only DOTNET_ROOT is set.

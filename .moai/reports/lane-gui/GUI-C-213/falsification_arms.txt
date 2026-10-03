@@ -1,0 +1,109 @@
+# GUI-C-213 falsification arms (each edits ONE declaration, rebuilds, runs the two real-source parity tests, restores byte-identical)
+
+## arm xpe_common / static extern (clients app wrapper): xpe_log_set_level's int becomes long
+build ok: True
+exit=1; 1 red of 2
+   RED     EveryStaticExtern_SaysWhatItsModulesHeaderSays
+   finding: [xUnit.net 00:00:01.19]       static [DllImport] externs differ from the native headers (1):
+restored byte-identical: True
+
+## arm xpe_common / enum: XpePixelFormat.Float32 = 3 instead of 1
+build ok: True
+exit=1; 2 red of 2
+   RED     EveryDelegateBoundToAnExport_SaysWhatThatExportsHeaderSays
+   RED     EveryStaticExtern_SaysWhatItsModulesHeaderSays
+   finding: [xUnit.net 00:00:01.03]       delegates bound to exports differ from the native headers (119):
+restored byte-identical: True
+
+## arm xpe_common / delegate (test-local AllocFn): height uint becomes int
+build ok: True
+exit=1; 1 red of 2
+   RED     EveryDelegateBoundToAnExport_SaysWhatThatExportsHeaderSays
+   finding: [xUnit.net 00:00:01.11]       delegates bound to exports differ from the native headers (1):
+restored byte-identical: True
+
+## arm xpe_preprocess / static extern (gui): xpe_preprocess_shutdown declared StdCall
+build ok: True
+exit=1; 1 red of 2
+   RED     EveryStaticExtern_SaysWhatItsModulesHeaderSays
+   finding: [xUnit.net 00:00:01.13]       static [DllImport] externs differ from the native headers (1):
+restored byte-identical: True
+
+## arm xpe_preprocess / delegate (test mirror): xpe_calib_generate_offset's numFrames int becomes long
+build ok: True
+exit=1; 1 red of 2
+   RED     EveryDelegateBoundToAnExport_SaysWhatThatExportsHeaderSays
+   finding: [xUnit.net 00:00:00.97]       delegates bound to exports differ from the native headers (1):
+restored byte-identical: True
+
+## arm xpe_preprocess / delegate binding: the oracle binds an export the header does not have
+build ok: True
+exit=1; 1 red of 2
+   RED     EveryDelegateBoundToAnExport_SaysWhatThatExportsHeaderSays
+   finding: [xUnit.net 00:00:00.99]       delegates bound to exports differ from the native headers (1):
+restored byte-identical: True
+
+## arm xpe_preprocess / the GUI-C-212 finding: the legacy preview's correction delegates back in the pre-#117 shape (the file as committed at 0b8785e0)
+build ok: True
+exit=1; 1 red of 2
+   RED     EveryDelegateBoundToAnExport_SaysWhatThatExportsHeaderSays
+   finding: [xUnit.net 00:00:01.17]       delegates bound to exports differ from the native headers (2):
+restored byte-identical: True
+
+## arm xpe_enhance_basic / static extern (gui): xpe_log_transform's normFactor float becomes double
+build ok: True
+exit=1; 1 red of 2
+   RED     EveryStaticExtern_SaysWhatItsModulesHeaderSays
+   finding: [xUnit.net 00:00:01.08]       static [DllImport] externs differ from the native headers (1):
+restored byte-identical: True
+
+## arm xpe_enhance_basic / struct (clients wrapper): XpeNoiseReduceParams.SigmaSpace float becomes double
+build ok: True
+exit=1; 1 red of 2
+   RED     EveryDelegateBoundToAnExport_SaysWhatThatExportsHeaderSays
+   finding: [xUnit.net 00:00:01.00]       delegates bound to exports differ from the native headers (14):
+restored byte-identical: True
+
+## arm xpe_display / struct (gui): XpeVoiLutParamsNative.Center float becomes double
+build ok: True
+exit=1; 1 red of 2
+   RED     EveryStaticExtern_SaysWhatItsModulesHeaderSays
+   finding: [xUnit.net 00:00:01.01]       static [DllImport] externs differ from the native headers (12):
+restored byte-identical: True
+
+## arm xpe_display / enum (clients wrapper): XpeVoiLutMode.Sigmoid = 3 instead of 2
+build ok: True
+exit=1; 1 red of 2
+   RED     EveryDelegateBoundToAnExport_SaysWhatThatExportsHeaderSays
+   finding: [xUnit.net 00:00:01.08]       delegates bound to exports differ from the native headers (2):
+restored byte-identical: True
+
+## arm xpe_dicom / static extern (gui): xpe_dicom_validate's reportBufLen uint becomes ulong
+build ok: True
+exit=1; 1 red of 2
+   RED     EveryStaticExtern_SaysWhatItsModulesHeaderSays
+   finding: [xUnit.net 00:00:00.98]       static [DllImport] externs differ from the native headers (1):
+restored byte-identical: True
+
+## arm xpe_dicom / delegate (clients wrapper): ValidateDelegate's reportBufferLength uint becomes ulong
+build ok: True
+exit=1; 1 red of 2
+   RED     EveryDelegateBoundToAnExport_SaysWhatThatExportsHeaderSays
+   finding: [xUnit.net 00:00:01.04]       delegates bound to exports differ from the native headers (2):
+restored byte-identical: True
+
+## arm gsvg / static extern (gui): xpe_gsvg_init's configJson string becomes int
+build ok: True
+exit=1; 1 red of 2
+   RED     EveryStaticExtern_SaysWhatItsModulesHeaderSays
+   finding: [xUnit.net 00:00:00.98]       static [DllImport] externs differ from the native headers (1):
+restored byte-identical: True
+
+## arm xpe_ai / static extern (gui): xpe_ai_worker_state's consecutiveFailures uint becomes int
+build ok: True
+exit=1; 1 red of 2
+   RED     EveryStaticExtern_SaysWhatItsModulesHeaderSays
+   finding: [xUnit.net 00:00:01.15]       static [DllImport] externs differ from the native headers (1):
+restored byte-identical: True
+
+final rebuild done

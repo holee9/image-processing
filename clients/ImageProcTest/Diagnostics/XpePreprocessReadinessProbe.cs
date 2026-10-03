@@ -97,7 +97,7 @@ namespace ImageProcTest
                         continue;
                     }
 
-                    var synthetic = XpePreprocessSyntheticOracle.Run(candidate);
+                    var synthetic = XpePreprocessOracleProcess.Run(candidate);
                     var result = new PreprocessHealthResult(
                         Status: synthetic.Passed ? "Synthetic oracle ready" : "Export checklist ready",
                         Version: version,

@@ -1,0 +1,50 @@
+# GUI-C-215 falsification arms (each changes ONE thing, rebuilds, runs the tests that guard it, restores byte-identical)
+
+## arm a: the gain verdict is the pre-212b condition again (OK and some output non-zero)
+build ok: True
+exit=1; 4 red of 19
+   RED     Diagnostics.PreprocessSyntheticOracleVerdictTests.OneBadPixel_IsRejected
+   RED     Diagnostics.PreprocessSyntheticOracleVerdictTests.AStageWithTheWrongScale_IsRejected_ThoughItHadAnEffect
+   RED     Diagnostics.PreprocessSyntheticOracleVerdictTests.WithinTheTolerance_Passes_AndJustBeyondIt_IsRejected
+   RED     Diagnostics.PreprocessSyntheticOracleVerdictTests.AStageThatCopiesItsInput_IsRejected_ThoughTheOldConditionAcceptedIt
+restored byte-identical: True
+
+## arm b: the verdict drops the expected-value comparison
+build ok: True
+exit=1; 4 red of 19
+   RED     Diagnostics.PreprocessSyntheticOracleVerdictTests.AnAllZeroOutput_IsRejected
+   RED     Diagnostics.PreprocessSyntheticOracleVerdictTests.OneBadPixel_IsRejected
+   RED     Diagnostics.PreprocessSyntheticOracleVerdictTests.AStageWithTheWrongScale_IsRejected_ThoughItHadAnEffect
+   RED     Diagnostics.PreprocessSyntheticOracleVerdictTests.WithinTheTolerance_Passes_AndJustBeyondIt_IsRejected
+restored byte-identical: True
+
+## arm c: the verdict drops the effect requirement
+build ok: True
+exit=0; 0 red of 19
+restored byte-identical: True
+
+## arm d: the verdict ignores the error code
+build ok: True
+exit=1; 1 red of 19
+   RED     Diagnostics.PreprocessSyntheticOracleVerdictTests.ARightOutputWithAnErrorCode_IsRejected
+restored byte-identical: True
+
+## arm e: the comparison tolerance is 100 times looser
+build ok: True
+exit=1; 2 red of 19
+   RED     Diagnostics.PreprocessSyntheticOracleVerdictTests.OneBadPixel_IsRejected
+   RED     Diagnostics.PreprocessSyntheticOracleVerdictTests.WithinTheTolerance_Passes_AndJustBeyondIt_IsRejected
+restored byte-identical: True
+
+## arm f: the comparison tolerance is 100 times tighter (rejects the right output's float rounding)
+build ok: True
+exit=1; 7 red of 19
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.ADeletionFailure_IsReportedInTheResult_NotHidden
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.ACleanRun_HasNoCleanupWarning_AndLeavesNothing
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.AStart_ReclaimsItsOwnOldFolders_AndOnlyThose
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.TheWorker_WritesExactlyOneParsableResultLine
+   RED     Diagnostics.PreprocessSyntheticOracleVerdictTests.TheRightOutput_Passes
+   RED     Diagnostics.PreprocessSyntheticOracleVerdictTests.WithinTheTolerance_Passes_AndJustBeyondIt_IsRejected
+restored byte-identical: True
+
+final rebuilds done
