@@ -84,7 +84,7 @@ public sealed class AiDiagnosticsTests
     public void C09_StillAssertsTheMarkTheCountsAndTheRestart_AndNoAssertionReadsTheDiagnostics()
     {
         var source = Source("clients/ImageProcTest.E2ETests/Scenarios/Workflows/ProcessingChainScenarios.cs");
-        var start = source.IndexOf("public void C09_AWorkerSwitchedOffByRepeatedFailures_ShowsAMark_ThatRestartRemoves()", StringComparison.Ordinal);
+        var start = source.IndexOf("internal static void RunWorkerSwitchedOffScenario(Window window, ITestOutputHelper output)", StringComparison.Ordinal);
         var end = source.IndexOf("private static FlaUI.Core.AutomationElements.AutomationElement? AiBanner(", start, StringComparison.Ordinal);
         Assert.True(start >= 0 && end > start, "C-09 was not found.");
         var c09 = source[start..end];
@@ -93,7 +93,10 @@ public sealed class AiDiagnosticsTests
         Assert.Contains("Assert.Equal(numbers.Groups[2].Value, numbers.Groups[1].Value);", c09, StringComparison.Ordinal);
         Assert.Contains("Assert.Matches(@\"worker=Disabled; failures=(\\d+); ceiling=\\1$\", before);", c09, StringComparison.Ordinal);
         Assert.Contains("Assert.Matches(@\"^worker=Active; failures=0; ceiling=\\d+$\", after);", c09, StringComparison.Ordinal);
-        Assert.Contains("Skip.If(app.BackendMode != \"Native\"", c09, StringComparison.Ordinal);   // the one skip is the Mock's, as before
+        // GUI-C-202: C-09 runs on an app whose native directory has no worker (AiWorkerAbsentScenarios); its skips are the Mock's (no native directory with the module and its worker).
+        var absent = Source("clients/ImageProcTest.E2ETests/Scenarios/Workflows/AiWorkerAbsentScenarios.cs");
+        Assert.Contains("Skip.If(!app.Prepared, app.PrepareNote);", absent, StringComparison.Ordinal);
+        Assert.Contains("ProcessingChainScenarios.RunWorkerSwitchedOffScenario(window, output);", absent, StringComparison.Ordinal);
 
         // The diagnostics are read into variables and printed; no Assert line mentions them.
         var assertLines = c09.Split('\n').Where(line => line.Contains("Assert.", StringComparison.Ordinal)).ToList();

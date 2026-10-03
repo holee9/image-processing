@@ -60,7 +60,7 @@ public sealed class AiWorkerPanelLayoutTests
     public void C09_RunsAtTheMinimumWidth_WaitsForTheBannerAsAnEvent_AndItsFailureSaysWhatWasRead()
     {
         var source = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("clients/ImageProcTest.E2ETests/Scenarios/Workflows/ProcessingChainScenarios.cs"));
-        var start = source.IndexOf("public void C09_AWorkerSwitchedOffByRepeatedFailures_ShowsAMark_ThatRestartRemoves()", StringComparison.Ordinal);
+        var start = source.IndexOf("internal static void RunWorkerSwitchedOffScenario(Window window, ITestOutputHelper output)", StringComparison.Ordinal);
         var end = source.IndexOf("private static bool PollFor(", start, StringComparison.Ordinal);
         Assert.True(start >= 0 && end > start, "C-09 was not found.");
         var c09 = source[start..end];
