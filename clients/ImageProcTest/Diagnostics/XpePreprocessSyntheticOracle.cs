@@ -305,10 +305,18 @@ namespace ImageProcTest
             w.Write(mask);
         }
 
-        private static ushort[] FlatFrame() => Enumerable.Range(0, PixelCount).Select(i => (ushort)(2000 + i % 8 * 100)).ToArray();
+        internal static ushort[] FlatFrame() => Enumerable.Range(0, PixelCount).Select(i => (ushort)(2000 + i % 8 * 100)).ToArray();
+
+        /// <summary>
+        /// The gain stage's verdict (GUI-C-212b, held by a unit test in GUI-C-215): the call returned OK, the stage CHANGED its input, and its output equals the expected one. The
+        /// pre-212b condition was "OK and some output is non-zero", which a stage that copies its input satisfies; 212b's falsification arm 2b weakened the condition back to that and no
+        /// test noticed, because the real module's gain is right and passes either condition. Pulled out so a test can hand it the outputs a wrong gain would produce.
+        /// </summary>
+        internal static bool GainStagePassed(XpeCommonApi.XpeErrorCode code, double gainEffect, ushort[] offsetOut, float[] gainOut) =>
+            code == XpeCommonApi.XpeErrorCode.OK && gainEffect > 0 && GainStageMatchesExpected(offsetOut, gainOut);
 
         /// <summary>The gain stage's expected output, computed here from the flat frame by arithmetic: input / (flat / mean(flat)), the module's definition of a flat-field gain.</summary>
-        private static bool GainStageMatchesExpected(ushort[] offsetOut, float[] gainOut)
+        internal static bool GainStageMatchesExpected(ushort[] offsetOut, float[] gainOut)
         {
             var flat = FlatFrame();
             var mean = flat.Average(v => (double)v);
@@ -324,7 +332,7 @@ namespace ImageProcTest
             return true;
         }
 
-        private static ushort[] ChainInput()
+        internal static ushort[] ChainInput()
         {
             var raw = Enumerable.Range(0, PixelCount).Select(index => (ushort)(1000 + index)).ToArray();
             foreach (var i in DefectPixels) raw[i] = HotValue;
@@ -347,7 +355,7 @@ namespace ImageProcTest
 
             var gain = Call("gain", e.Gain, offsetOut, gainOut, XpeCommonApi.XpePixelFormat.UInt16, XpeCommonApi.XpePixelFormat.Float32);
             var gainEffect = MaxAbsError(gainOut, offsetOut);
-            stages.Add(gain.ToStageResult(gainEffect, gain.ErrorCode == XpeCommonApi.XpeErrorCode.OK && gainEffect > 0 && GainStageMatchesExpected(offsetOut, gainOut)));
+            stages.Add(gain.ToStageResult(gainEffect, GainStagePassed(gain.ErrorCode, gainEffect, offsetOut, gainOut)));
 
             var defect = Call("defect", e.Defect, gainOut, defectOut, XpeCommonApi.XpePixelFormat.Float32, XpeCommonApi.XpePixelFormat.Float32);
             var defectEffect = MaxAbsError(defectOut, gainOut);
@@ -472,7 +480,7 @@ namespace ImageProcTest
             return max;
         }
 
-        private static double MaxAbsError(float[] actual, ushort[] expected)
+        internal static double MaxAbsError(float[] actual, ushort[] expected)
         {
             var max = 0.0;
             for (var i = 0; i < actual.Length; i++)
