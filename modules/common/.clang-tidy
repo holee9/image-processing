@@ -1,0 +1,8 @@
+# QA-A-234 (#253): clang-tidy configuration for modules/common. Findings are counted per file by CI against a baseline.
+Checks: '-*,bugprone-*,clang-analyzer-*,performance-*,-bugprone-easily-swappable-parameters'
+# easily-swappable-parameters is off: the public C ABI fixes parameter order such as (width, height); it cannot be reordered.
+CheckOptions:
+  # A catch (...) that swallows an exception carries a comment with this marker and the reason.
+  - key: bugprone-empty-catch.IgnoreCatchWithKeywords
+    value: '@TODO;@FIXME;[no-throw-boundary]'
+HeaderFilterRegex: 'modules[/\\](common|preprocess)[/\\]'

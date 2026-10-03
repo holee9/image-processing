@@ -149,6 +149,7 @@ static void report_replace_failure(const char* path, const std::string& tmp, con
         }
         xpe_alert_push(msg.c_str(), XPE_ALERT_ERROR);
     } catch (...) {
+        // [no-throw-boundary] the alert is advisory; losing it (allocation failure) must not change the result of the call that raised it
     }
 #else
     (void)path; (void)tmp; (void)o; (void)cleanup;
@@ -242,6 +243,7 @@ static void report_temp_open_failure(const char* path, const std::string& tmp, c
         msg += "). Nothing was written and the previous file, if any, is unchanged";
         xpe_alert_push(msg.c_str(), XPE_ALERT_ERROR);
     } catch (...) {
+        // [no-throw-boundary] the alert is advisory; losing it (allocation failure) must not change the result of the call that raised it
     }
 }
 
@@ -268,6 +270,7 @@ static void report_temp_write_failure(const char* path, const std::string& tmp, 
         }
         xpe_alert_push(msg.c_str(), XPE_ALERT_ERROR);
     } catch (...) {
+        // [no-throw-boundary] the alert is advisory; losing it (allocation failure) must not change the result of the call that raised it
     }
 }
 

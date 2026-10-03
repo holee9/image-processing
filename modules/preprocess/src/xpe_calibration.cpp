@@ -100,7 +100,7 @@ void xpe_calib_session_warn(bool shouldWarn) noexcept
                        "that carry one",
                        XPE_ALERT_WARNING);
     } catch (...) {
-        // advisory: lost under memory pressure
+        // [no-throw-boundary] advisory: lost under memory pressure
     }
 }
 

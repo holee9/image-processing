@@ -56,7 +56,7 @@ void xpe_gain_alert_classified(const XpeGainScan& scan) noexcept {
         msg[sizeof(msg) - 1] = '\0';
         xpe_alert_push(msg, XPE_ALERT_WARNING);
     } catch (...) {
-        // advisory: lost under memory pressure
+        // [no-throw-boundary] advisory: lost under memory pressure
     }
 }
 
@@ -73,6 +73,7 @@ void xpe_gain_alert_over_limit(const XpeGainScan& scan, const char* verb) noexce
         msg[sizeof(msg) - 1] = '\0';
         xpe_alert_push(msg, XPE_ALERT_ERROR);
     } catch (...) {
+        // [no-throw-boundary] the alert is advisory; losing it (allocation failure) must not change the result of the call that raised it
     }
 }
 
@@ -362,7 +363,7 @@ void xpe_calib_after_gain_commit(const StagedGain& staged) noexcept {
                 }
             }
         } catch (...) {
-            // The warning is lost under memory pressure; the calibration itself is loaded.
+            // [no-throw-boundary] The warning is lost under memory pressure; the calibration itself is loaded.
         }
 
 }

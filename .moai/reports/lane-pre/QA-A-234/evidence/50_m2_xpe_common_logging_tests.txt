@@ -1,0 +1,56 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-common\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 15 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 10 tests from LoggingContract
+[ RUN      ] LoggingContract.CaptureSeesALineWrittenToStderr
+[2026-10-04 08:18:20.480] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] LoggingContract.CaptureSeesALineWrittenToStderr (15 ms)
+[ RUN      ] LoggingContract.AfterInitInfoReachesStderrButTraceAndDebugDoNot
+[2026-10-04 08:18:20.496] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] LoggingContract.AfterInitInfoReachesStderrButTraceAndDebugDoNot (6 ms)
+[ RUN      ] LoggingContract.ANamedFileWithoutALevelRecordsFromInfoUp
+[2026-10-04 08:18:20.502] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] LoggingContract.ANamedFileWithoutALevelRecordsFromInfoUp (6 ms)
+[ RUN      ] LoggingContract.ALevelChosenByTheCallerOpensTraceAgain
+[2026-10-04 08:18:20.509] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] LoggingContract.ALevelChosenByTheCallerOpensTraceAgain (6 ms)
+[ RUN      ] LoggingContract.NullRevertsFromAFileToStderr
+[2026-10-04 08:18:20.515] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] LoggingContract.NullRevertsFromAFileToStderr (7 ms)
+[ RUN      ] LoggingContract.NullKeepsTheChosenLevel
+[2026-10-04 08:18:20.522] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] LoggingContract.NullKeepsTheChosenLevel (4 ms)
+[ RUN      ] LoggingContract.LevelFiveIsOffOnStderr
+[2026-10-04 08:18:20.527] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] LoggingContract.LevelFiveIsOffOnStderr (0 ms)
+[ RUN      ] LoggingContract.LevelFiveIsOffInAFile
+[2026-10-04 08:18:20.527] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] LoggingContract.LevelFiveIsOffInAFile (0 ms)
+[ RUN      ] LoggingContract.LevelFourStillRecordsErrorAndCritical
+[2026-10-04 08:18:20.528] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] LoggingContract.LevelFourStillRecordsErrorAndCritical (6 ms)
+[ RUN      ] LoggingContract.ASecondInitRestoresTheStderrDefault
+[2026-10-04 08:18:20.534] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-04 08:18:20.534] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] LoggingContract.ASecondInitRestoresTheStderrDefault (5 ms)
+[----------] 10 tests from LoggingContract (59 ms total)
+
+[----------] 1 test from LoggingContractFresh
+[ RUN      ] LoggingContractFresh.ALevelNeverChosenIsInfoEvenBeforeInit
+[       OK ] LoggingContractFresh.ALevelNeverChosenIsInfoEvenBeforeInit (4 ms)
+[----------] 1 test from LoggingContractFresh (4 ms total)
+
+[----------] 4 tests from LoggingContractInit
+[ RUN      ] LoggingContractInit.OffMeansNoBytesEvenFromTheLibrarysOwnInitLine
+[       OK ] LoggingContractInit.OffMeansNoBytesEvenFromTheLibrarysOwnInitLine (0 ms)
+[ RUN      ] LoggingContractInit.TheInitLineIsWrittenAtInfoToStderr
+[       OK ] LoggingContractInit.TheInitLineIsWrittenAtInfoToStderr (4 ms)
+[ RUN      ] LoggingContractInit.TheInitLineGoesToTheLogFileTheCallerChose
+[       OK ] LoggingContractInit.TheInitLineGoesToTheLogFileTheCallerChose (5 ms)
+[ RUN      ] LoggingContractInit.ALevelAboveInfoSilencesTheInitLine
+[       OK ] LoggingContractInit.ALevelAboveInfoSilencesTheInitLine (0 ms)
+[----------] 4 tests from LoggingContractInit (10 ms total)
+
+[----------] Global test environment tear-down
+[==========] 15 tests from 3 test suites ran. (74 ms total)
+[  PASSED  ] 15 tests.

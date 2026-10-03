@@ -1,0 +1,23 @@
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\xfilesystem_abi.h:132:1: warning: The value '33' provided to the cast expression is not in the valid range of values for '__std_fs_stats_flags' [clang-analyzer-optin.core.EnumCastOutOfRange]
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\xfilesystem_abi.h:132:1: warning: The value '9' provided to the cast expression is not in the valid range of values for '__std_fs_stats_flags' [clang-analyzer-optin.core.EnumCastOutOfRange]
+bugprone-empty-catch helpers.cpp:50
+bugprone-empty-catch preprocess.cpp:88
+bugprone-empty-catch xcal_writer.cpp:151
+bugprone-empty-catch xcal_writer.cpp:244
+bugprone-empty-catch xcal_writer.cpp:270
+bugprone-empty-catch xpe_calib_load_gain.cpp:364
+bugprone-empty-catch xpe_calib_load_gain.cpp:58
+bugprone-empty-catch xpe_calib_load_gain.cpp:75
+bugprone-empty-catch xpe_calibration.cpp:102
+bugprone-implicit-widening-of-multiplication-result gain_correct.cpp:198
+bugprone-implicit-widening-of-multiplication-result xcal_reader.cpp:244
+bugprone-implicit-widening-of-multiplication-result xcal_validator.cpp:171
+bugprone-incorrect-roundings nonlinearity_correct.cpp:130
+bugprone-misplaced-widening-cast xpe_calib_generate_gain.cpp:72
+bugprone-narrowing-conversions xpe_verify_metrics.cpp:239
+bugprone-narrowing-conversions xpe_verify_metrics.cpp:402
+bugprone-narrowing-conversions xpe_verify_metrics.cpp:617
+bugprone-narrowing-conversions xpe_verify_metrics.cpp:757
+bugprone-unused-return-value calibration_cache.cpp:509
+performance-enum-size calibration_cache.cpp:153
+performance-enum-size calibration_cache.cpp:169

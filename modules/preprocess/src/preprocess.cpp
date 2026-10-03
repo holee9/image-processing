@@ -86,6 +86,7 @@ extern "C" XPE_API void xpe_preprocess_shutdown(void)
         // of three made the function's name describe less than it did.
         xpe_calib_mode_reset_globals();
     } catch (...) {
+        // [no-throw-boundary] shutdown cannot report; resetting the remaining globals must not throw out of a void function
     }
 }
 

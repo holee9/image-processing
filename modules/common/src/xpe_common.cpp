@@ -152,6 +152,7 @@ static void sync_loss_alert_best_effort_locked() noexcept
     try {
         sync_loss_alert_locked();
     } catch (...) {
+        // [no-throw-boundary] a failed loss-alert build must not stop the alert that is being queued; the loss is counted anyway
     }
 }
 
@@ -190,6 +191,7 @@ static void enqueue_alert(const char* msg, int32_t severity) noexcept
         e.severity = severity;
         built = true;
     } catch (...) {
+        // [no-throw-boundary] the message could not be built: the alert is queued without text rather than not at all
     }
 
     try {
@@ -201,6 +203,7 @@ static void enqueue_alert(const char* msg, int32_t severity) noexcept
         }
         enqueue_locked(std::move(e));
     } catch (...) {
+        // [no-throw-boundary] the lock could not be taken: nothing was changed, nothing to account for
         // The lock itself could not be taken: nothing was changed, nothing to account for.
     }
 }
@@ -246,6 +249,7 @@ XPE_API XpeErrorCode xpe_init(const char* configJsonOrNull)
         try {
             internal_log(2, "xpe_init: library initialised");
         } catch (...) {
+            // [no-throw-boundary] the library is initialized by now; failing to write the init line is not an error to return
         }
         return XPE_OK;
     } catch (const std::bad_alloc&) {
@@ -274,6 +278,7 @@ XPE_API void xpe_shutdown(void)
         // the two are never held together.
         xpe_log_internal_reset();
     } catch (...) {
+        // [no-throw-boundary] shutdown is void and must not throw; there is no caller to report to
         /* no-op -- shutdown must not throw */
     }
 }
