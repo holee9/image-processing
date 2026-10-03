@@ -751,7 +751,111 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             SetText(window, "AiModelDirectoryInput", string.Empty);
             ApplyDisplayPipeline(window);
             try { Directory.Delete(directory, recursive: true); } catch (IOException) { }
+
+            // GUI-C-205: this scenario's module calls fail (the file is not a model), and a module that counts them (-3) switches the worker off after three. On the CI runner it did
+            // (state=2 failures=3), and the mark stayed on the shared app's screen for the next scenario, whose first assertion is that no mark is shown. The scenario that made
+            // the state puts it back, whatever the count turned out to be.
+            RestoreAiSession(window, "C10");
         }
+    }
+
+    /// <summary>
+    /// GUI-C-205: leaves the shared app's AI session as a scenario that never called the module would. A mark on screen (the worker was switched off) is removed with its own Restart AI button;
+    /// failures that were counted without reaching the ceiling are put back to 0 by shutting the backend down and initializing it again. Reads and reports what it found (output) and
+    /// throws when the state it was asked to restore is still there, so a clean-up that did nothing is a failure of the scenario that called it, not of a later one.
+    /// </summary>
+    private void RestoreAiSession(Window window, string who)
+    {
+        var banner = AiBanner(window) is not null;
+        var before = AiStatusSummary(window);
+        var counted = Regex.Match(before, @"failures=(\d+)") is { Success: true } m && int.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) > 0;
+        output.WriteLine($"{who} AI session before clean-up: banner={(banner ? AiBanner(window)!.Name : "none")}; summary='{before}'");
+
+        if (banner)
+        {
+            var restart = window.FindFirstDescendant(cf => cf.ByAutomationId("AiRestartButton"));
+            Assert.True(restart is not null, $"{who} left the worker-off mark on screen but the Restart AI button is not there to remove it.");
+            restart!.AsButton().Invoke();
+            Assert.True(PollFor(() => AiBanner(window) is null, TimeSpan.FromSeconds(10)), $"{who}: the worker-off mark is still shown 10 s after Restart AI.");
+        }
+        else if (counted)
+        {
+            PressBackendMenu(window, "ShutdownBackendMenuItem");
+            Assert.True(PollFor(() => !AiMenuItemIsEnabled(window), TimeSpan.FromSeconds(10)), $"{who}: the backend did not shut down.");
+            PressBackendMenu(window, "InitializeBackendMenuItem");
+            Assert.True(PollFor(() => AiMenuItemIsEnabled(window), TimeSpan.FromSeconds(15)), $"{who}: the backend did not come back after Initialize.");
+        }
+
+        var after = AiStatusSummary(window);
+        output.WriteLine($"{who} AI session after clean-up: banner={(AiBanner(window) is null ? "none" : "STILL SHOWN")}; summary='{after}'");
+        Assert.Null(AiBanner(window));
+        var left = Regex.Match(after, @"failures=(\d+)");
+        Assert.False(left.Success && left.Groups[1].Value != "0", $"{who}: the counted failures are still there after the clean-up: '{after}'");
+    }
+
+    private static void PressBackendMenu(Window window, string itemId)
+    {
+        UiaMenu.Open(window, "BackendMenu");
+        try
+        {
+            AutomationElement? item = null;
+            for (var attempt = 0; attempt < 20 && item is null; attempt++)
+            {
+                item = window.FindFirstDescendant(cf => cf.ByAutomationId(itemId));
+                if (item is null) Thread.Sleep(100);
+            }
+
+            Assert.True(item is not null, $"{itemId} did not appear under BackendMenu.");
+            item!.AsMenuItem().Invoke();
+        }
+        finally
+        {
+            UiaMenu.Close();
+        }
+    }
+
+    /// <summary>
+    /// C-11 (GUI-C-205): the clean-up C-10 ends with, held on its own. A module that counts a refused call (-3) switches the worker off after three of them; the app then shows the mark, and a
+    /// scenario that made that happen has to take it away again, because the next scenario on the shared app starts by asserting that no mark is shown (this is what failed main 18edffa6:
+    /// the runner's C-10 ended with state=2 failures=3 and the old C-09 found the mark at its start). The state is made here the way C-09b makes it (a file that is not a model, repeated
+    /// until the mark appears); where the module refuses every such call without counting it (QA-B-195, -4) no mark can be made and the scenario skips with that reason.
+    /// </summary>
+    [SkippableFact]
+    public void C11_RestoringTheAiSession_RemovesTheMarkAndTheCount_ThatAScenarioLeftOnTheSharedApp()
+    {
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+        Skip.If(app.BackendMode != "Native", "The AI session exists only on the native backend.");
+        var window = app.MainWindow!;
+        CloseDetached(window);
+
+        var directory = Path.Combine(Path.GetTempPath(), $"xpe-ai-restore-{Environment.ProcessId}-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "bone_suppress.onnx"), "not a model");
+        try
+        {
+            SetText(window, "AiModelDirectoryInput", directory);
+            SetAiStage(window, false);
+            ApplyDisplayPipeline(window);
+            for (var attempt = 0; attempt < 4 && AiBanner(window) is null; attempt++)
+            {
+                InvokeAiMenuItem(window, requireEnabled: true);
+                WaitForChain(window, "ai_bone_suppress=RequestedNotApplied");
+                PollFor(() => AiBanner(window) is not null, TimeSpan.FromMilliseconds(1500));
+            }
+
+            Skip.If(AiBanner(window) is null, $"The module did not count the refused calls, so no worker-off mark can be made here (state '{AiStatusSummary(window)}').");
+            output.WriteLine($"C11 mark made: {AiBanner(window)!.Name}");
+        }
+        finally
+        {
+            SetAiStage(window, false);
+            SetText(window, "AiModelDirectoryInput", string.Empty);
+            ApplyDisplayPipeline(window);
+            try { Directory.Delete(directory, recursive: true); } catch (IOException) { }
+        }
+
+        RestoreAiSession(window, "C11");
+        Assert.Null(AiBanner(window));
     }
 
     private static string InitDirectoryOf(string diagnostics)

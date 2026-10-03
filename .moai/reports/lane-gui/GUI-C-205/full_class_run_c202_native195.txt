@@ -1,0 +1,22 @@
+# GUI-C-205: ProcessingChainScenarios + AiMenuAvailabilityScenarios in one process, module dir c202_native195
+  통과 ProcessingChainScenarios.C01_PreprocessStage_ReachesTheDrawnPixelsOrSaysWhyNot [11 s]
+  통과 ProcessingChainScenarios.C07_AGridRatioOutsideTheTable_IsRefused [11 s]
+ C07 chain='chain: preprocess=NotRequested, gsvg=RequestedNotApplied, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=1 ms, ai_bone_suppress=0 ms; display input=raw — gsvg: The virtual-grid table was not found: C:\Users\drake\AppData\Local\Temp\c
+  건너뜀 ProcessingChainScenarios.C11_RestoringTheAiSession_RemovesTheMarkAndTheCount_ThatAScenarioLeftOnTheSharedApp [17 s]
+  통과 ProcessingChainScenarios.C10_TheModelDirectoryTypedAgainInAnotherCase_IsSentToTheModuleWithTheFirstSpelling [16 s]
+ C10 AI session before clean-up: banner=none; summary='worker=Active; failures=0; ceiling=3'
+ C10 AI session after clean-up: banner=none; summary='worker=Active; failures=0; ceiling=3'
+  통과 ProcessingChainScenarios.C04_MissingVirtualGridTable_IsRefusedAndTheImageIsUnchanged [11 s]
+ C04 chain='chain: preprocess=NotRequested, gsvg=RequestedNotApplied, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw — gsvg: The virtual-grid table was not found: D:\no\such\table.csv' hash=9e58cd60
+  통과 ProcessingChainScenarios.C09b_ANonModelFile_IsReportedAsAModelTheModuleWillNotUse [20 s]
+  통과 ProcessingChainScenarios.C02_ChangingTheExposureKvp_DoesNotChangeTheDrawnPixelsToday [11 s]
+  통과 ProcessingChainScenarios.C05_GridCorrectionChoices_AreExclusive [10 s]
+  통과 ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeGridSuppression", mode: "GridSuppression") [8 s]
+  통과 ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeVirtualGrid", mode: "VirtualGrid") [8 s]
+ C03 VirtualGrid native: chain='chain: preprocess=NotRequested, gsvg=RequestedNotApplied, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw — gsvg: The virtual-grid table was not found: C:\Users\drake\
+  통과 ProcessingChainScenarios.C08_AiBoneSuppression_WhereTheModuleCannotSucceed_IsRefusedAndTheImageIsTheOriginal [9 s]
+[xUnit.net 00:03:16.13]       The virtual grid did not apply at ratio 10: chain: preprocess=NotRequested, gsvg=RequestedNotApplied, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw — gsvg: The virtual
+  실패 ProcessingChainScenarios.C06_ChangingTheGridRatio_ChangesTheDrawnPixels [8 s]
+   The virtual grid did not apply at ratio 10: chain: preprocess=NotRequested, gsvg=RequestedNotApplied, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw — gsvg: The virtual-grid table was not found:
+  통과 AiMenuAvailabilityScenarios.E01_TheEntry_IsEnabledExactlyWhereTheAiModuleCanBeReached [408 ms]
+  통과 AiMenuAvailabilityScenarios.E02_AfterShutdown_TheEntryIsDisabled_AndFollowsTheBackendBackUp [1 s]
