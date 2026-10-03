@@ -208,10 +208,11 @@ extern "C++" static XpeErrorCode xpe_edge_enhance_impl(XpeImageBuffer* img, cons
             float diff      = orig - br[x];
             float abs_diff  = std::fabs(diff);
             float sharpened = orig + amount * diff;
-            float hi = orig + max_add;
-            float lo = orig - max_add;
+            // REQ-ENH-021 (QA-B-200 M2b, E1): the overshoot bound is max(orig * 2, orig + amount * threshold), an UPPER
+            // bound. Until M2b this clamped to orig +- amount * threshold on both sides, so every sharpened pixel moved by
+            // exactly amount * threshold whatever the edge and threshold 0 moved nothing. The SPEC states no lower bound.
+            const float hi = std::max(orig * 2.0f, orig + max_add);
             if (sharpened > hi) sharpened = hi;
-            if (sharpened < lo) sharpened = lo;
             row[x] = (abs_diff >= threshold) ? sharpened : orig;
         }
 

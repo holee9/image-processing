@@ -1,18 +1,14 @@
 /**
- * @file test_repro_qa_b_200.cpp
- * @brief QA-B-200 M1: reproduction of candidate E1 of QA-B-199 (unsharp masking). NOT part of the suite.
+ * @file test_edge_enhance_formula.cpp
+ * @brief QA-B-200 M2b (E1): xpe_edge_enhance follows REQ-ENH-018 and REQ-ENH-021 as written.
  *
- * Every test is DISABLED_: built, never run by ctest. Run by hand with --gtest_also_run_disabled_tests; the OUTPUT is
- * the evidence (.moai/reports/lane-post/QA-B-200/). A test that FAILS reproduces a defect. The tests of a confirmed
- * candidate are enabled by the M2 that fixes it.
- *
- * E1  REQ-ENH-018: output[i] = input[i] + amount * (input[i] - blur(input)[i]) "only where abs(input[i] - blur(input)[i])
- *     >= threshold". REQ-ENH-021: "Pixel overshoot SHALL be clamped to max(original * 2.0, original + amount * threshold)".
- *     The candidate: the code clamps to original +- amount*threshold on BOTH sides, so every sharpened pixel moves by exactly
- *     amount*threshold whatever the edge, and threshold 0 changes nothing.
- *     The expected values below do not come from the module: a blur written here (separable Gaussian, sigma = radius,
- *     clamped borders) and the SPEC formulas. The module's own blur is not exposed, so a small difference between the two
- *     blurs is allowed for; the candidate's size is orders of magnitude larger.
+ * REQ-ENH-018: output[i] = input[i] + amount * (input[i] - blur(input)[i]) "only where abs(input[i] - blur(input)[i])
+ * >= threshold". REQ-ENH-021: "Pixel overshoot SHALL be clamped to max(original * 2.0, original + amount * threshold)".
+ * Until M2b the code clamped to original +- amount*threshold on BOTH sides, so every sharpened pixel moved by exactly
+ * amount*threshold whatever the edge, and threshold 0 changed nothing (QA-B-199 candidate E1, reproduced by QA-B-200 M1).
+ * The expected values do not come from the module: a blur written here (separable Gaussian, sigma = radius, clamped
+ * borders) and the SPEC formulas. The module's own blur is not exposed, so a small difference between the two blurs is
+ * allowed for; the defect was orders of magnitude larger.
  */
 
 #include <gtest/gtest.h>
@@ -108,7 +104,7 @@ float MaxChange(const std::vector<float>& a, const std::vector<float>& b) {
 
 }  // namespace
 
-TEST(ReproQaB200Enhance, DISABLED_E1_ControlTheDefaultThresholdSharpensAnEdge) {
+TEST(EdgeEnhanceFormula, E1_ControlTheDefaultThresholdSharpensAnEdge) {
     // The control: the harness can see sharpening at all, and the module does something at an edge.
     const std::vector<float> in = StepImage(1000.0f, 1000.0f);
     XpeErrorCode rc;
@@ -119,7 +115,7 @@ TEST(ReproQaB200Enhance, DISABLED_E1_ControlTheDefaultThresholdSharpensAnEdge) {
     EXPECT_GT(change, 0.0f);
 }
 
-TEST(ReproQaB200Enhance, DISABLED_E1_ThresholdZeroSharpensAnEdge) {
+TEST(EdgeEnhanceFormula, E1_ThresholdZeroSharpensAnEdge) {
     // REQ-ENH-020 allows threshold 0 (only a negative one is refused); REQ-ENH-018 then sharpens every pixel.
     const std::vector<float> in = StepImage(1000.0f, 1000.0f);
     XpeErrorCode rc;
@@ -132,7 +128,7 @@ TEST(ReproQaB200Enhance, DISABLED_E1_ThresholdZeroSharpensAnEdge) {
     EXPECT_GT(moduleChange, 0.1f * specChange) << "was: the module changed nothing at threshold 0";
 }
 
-TEST(ReproQaB200Enhance, DISABLED_E1_TheSharpeningFollowsTheEdgeContrastAsTheFormulaSays) {
+TEST(EdgeEnhanceFormula, E1_TheSharpeningFollowsTheEdgeContrastAsTheFormulaSays) {
     // amount 0.5, radius 2, threshold 10, a step edge of contrast C on a base of 1000: at the edge pixel the SPEC adds
     // amount * (input - blur) -- proportional to C. The module adds amount*threshold = 5 whatever C is.
     struct Row {
@@ -156,4 +152,50 @@ TEST(ReproQaB200Enhance, DISABLED_E1_TheSharpeningFollowsTheEdgeContrastAsTheFor
                 rows[1].spec / rows[0].spec, rows[1].module / rows[0].module);
     EXPECT_NEAR(rows[0].module, rows[0].spec, 0.15f * std::fabs(rows[0].spec)) << "contrast 100";
     EXPECT_NEAR(rows[1].module, rows[1].spec, 0.15f * std::fabs(rows[1].spec)) << "contrast 1000";
+}
+
+TEST(EdgeEnhanceFormula, E1_TheOvershootIsBoundedByTwiceTheOriginalAndNotByAmountTimesThreshold) {
+    // A dark base (10) next to a very bright side (10010), amount 5: the sharpened value on the bright side is far above
+    // 2 * original, so REQ-ENH-021's bound max(original * 2, original + amount * threshold) = 2 * original is what limits it.
+    const std::vector<float> in = StepImage(10.0f, 10000.0f);
+    XpeErrorCode rc;
+    const std::vector<float> out = ModuleUsm(in, 5.0f, 2.0f, 10.0f, &rc);
+    ASSERT_EQ(XPE_OK, rc);
+    const std::vector<float> spec = SpecUsm(in, 5.0f, 2.0f, 10.0f);
+    const size_t bright = 32u * kW + 32u;
+    std::printf("E1 BOUND: bright-side edge pixel original %.1f, SPEC %.1f, module %.1f, 2*original %.1f, original+amount*threshold %.1f\n",
+                in[bright], spec[bright], out[bright], 2.0f * in[bright], in[bright] + 5.0f * 10.0f);
+    ASSERT_FLOAT_EQ(2.0f * in[bright], spec[bright]) << "precondition: the reference hits the 2*original bound here";
+    EXPECT_FLOAT_EQ(2.0f * in[bright], out[bright]) << "was original + amount*threshold = " << in[bright] + 50.0f;
+    for (size_t i = 0; i < in.size(); ++i) {
+        const float bound = std::max(in[i] * 2.0f, in[i] + 5.0f * 10.0f);
+        EXPECT_LE(out[i], bound * (1.0f + 1e-6f)) << "pixel " << i << " overshoots the REQ-ENH-021 bound";
+    }
+}
+
+TEST(EdgeEnhanceFormula, E1_APixelWhoseDifferenceIsBelowTheThresholdIsLeftAlone) {
+    // A step of 8 with threshold 10: the largest |input - blur| is about 4, below the threshold, so nothing changes.
+    // The control above (step 1000) shows the same call does change pixels once the difference reaches the threshold.
+    const std::vector<float> in = StepImage(1000.0f, 8.0f);
+    XpeErrorCode rc;
+    const std::vector<float> out = ModuleUsm(in, 1.0f, 2.0f, 10.0f, &rc);
+    ASSERT_EQ(XPE_OK, rc);
+    EXPECT_EQ(0.0f, MaxChange(in, out));
+    const std::vector<float> spec = SpecUsm(in, 1.0f, 2.0f, 10.0f);
+    EXPECT_EQ(0.0f, MaxChange(in, spec)) << "precondition: the reference agrees that nothing reaches the threshold";
+}
+
+TEST(EdgeEnhanceFormula, E1_ADarkPixelMayOvershootByAmountTimesThresholdWhenThatIsAboveTwiceItsValue) {
+    // One pixel of 30 on a base of 0, amount 5, threshold 10: sharpened = 30 + 5 * (30 - blur) is about 170, and the bound is
+    // max(2 * 30, 30 + 5 * 10) = max(60, 80) = 80. The second term is the larger one here; without it the pixel stops at 60.
+    std::vector<float> in(static_cast<size_t>(kW) * kH, 0.0f);
+    const size_t dot = 32u * kW + 32u;
+    in[dot] = 30.0f;
+    XpeErrorCode rc;
+    const std::vector<float> out = ModuleUsm(in, 5.0f, 2.0f, 10.0f, &rc);
+    ASSERT_EQ(XPE_OK, rc);
+    const std::vector<float> spec = SpecUsm(in, 5.0f, 2.0f, 10.0f);
+    std::printf("E1 DARK DOT: original %.1f, SPEC %.1f, module %.1f (2*original 60, original+amount*threshold 80)\n", in[dot], spec[dot], out[dot]);
+    ASSERT_FLOAT_EQ(80.0f, spec[dot]) << "precondition: the reference is held by the amount*threshold term here";
+    EXPECT_FLOAT_EQ(80.0f, out[dot]);
 }

@@ -1,0 +1,4 @@
+ci-post ctest (CI filter):
+100% tests passed, 0 tests failed out of 1360
+xpe_enhance_basic_tests.exe without perf filter:
+[  PASSED  ] 156 tests.
