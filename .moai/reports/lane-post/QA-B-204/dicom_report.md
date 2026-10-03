@@ -99,6 +99,7 @@ A-ASSOCIATE-RQ(270 바이트)를 소켓으로 받아 UID 를 순서대로 읽었
 ## 9. 이번 카드 밖에서 이미 닫힌 것
 - C12(FLOAT32·UINT8 버퍼를 uint16 단어로 씀): QA-B-201 M4 에서 `xpe_dicom_write`·`write_j2k` 가 UINT16 이 아니면 입구에서 거부(commit decdd092).
 - C1(mAs 태그): QA-B-200 M2a 계열에서 1152+1153 쓰기·읽기로 처리.
+- 내부 `DicomWriter::write` / `writeJ2K` 자체에는 화소 형식 검사가 없다(Codex #107 기록). 지금 호출자는 공개 함수 `xpe_dicom_write`·`xpe_dicom_write_j2k` 둘뿐이고 둘 다 입구에서 UINT16 이 아니면 거부하므로 도달 경로가 없다. 새 호출자가 생기면 내부 함수에도 검사가 필요하다(코드 변경 아님, 기록만).
 
 ## 10. 처리 우선순위 제안(DICOM)
 

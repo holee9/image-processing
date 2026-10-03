@@ -112,8 +112,10 @@ TEST(EdgeEnhance, NegativeThreshold_ReturnsInvalidInput) {
     free_img(img);
 }
 
-// REQ-ENH-018: amount=0 means no sharpening, output equals input
-TEST(EdgeEnhance, ZeroAmount_ImageUnchanged) {
+// REQ-ENH-018: amount=0 means no sharpening, so a FINITE, NON-NEGATIVE image comes back byte for byte. The contract for
+// the other inputs is the one of every amount (QA-B-205): a negative pixel becomes 0 and a non-finite pixel is refused --
+// see EdgeEnhanceZeroAmount.* in test_edge_enhance_formula.cpp.
+TEST(EdgeEnhance, ZeroAmount_FiniteNonNegativeImageIsUnchanged) {
     const uint32_t W = 64, H = 64;
     auto img = make_f32(W, H, 0.0f);
     float* px = static_cast<float*>(img.data);
