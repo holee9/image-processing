@@ -171,6 +171,7 @@ set(XPE_AI_SOURCES
     src/ai_ipc_bridge.cpp  # T-001: Named pipe IPC bridge
     src/ai_worker_supervisor.cpp  # QA-B-171B: owns the worker process (launch, kill on fault, restart)
     src/ai_onnx_session.cpp  # T-003: ONNX Runtime session manager
+    src/ai_model_signer.cpp  # QA-B-195 M1: model signature verification (REQ-AI-007/091); connected to loading in M3
 )
 
 add_library(${MODULE_NAME} SHARED
@@ -198,16 +199,18 @@ else()
     message(STATUS "xpe_ai: FULL build with ONNX Runtime")
 endif()
 
-# Soft dependencies: spdlog and nlohmann_json (optional but recommended)
-# These are detected at configure time; the source code uses #ifdef guards.
+# Required dependency: nlohmann_json (QA-B-194b). The config parser -- and with it the warnings the public header
+# promises for broken JSON and out-of-range values -- and the sidecar readers must behave the same in every build, so
+# there is no second parser to fall back to: a configuration without nlohmann_json stops here.
+if(NOT TARGET nlohmann_json::nlohmann_json)
+    message(FATAL_ERROR "xpe_ai: nlohmann_json::nlohmann_json is required (the root CMakeLists.txt finds it or fetches it)")
+endif()
+target_link_libraries(${MODULE_NAME} PRIVATE nlohmann_json::nlohmann_json)
+
+# Soft dependency: spdlog (optional but recommended). Detected at configure time; the source code uses #ifdef guards.
 if(TARGET spdlog::spdlog)
     target_link_libraries(${MODULE_NAME} PRIVATE spdlog::spdlog)
     target_compile_definitions(${MODULE_NAME} PRIVATE XPE_AI_USE_SPDLOG=1)
-endif()
-
-if(TARGET nlohmann_json::nlohmann_json)
-    target_link_libraries(${MODULE_NAME} PRIVATE nlohmann_json::nlohmann_json)
-    target_compile_definitions(${MODULE_NAME} PRIVATE XPE_AI_USE_NLOHMANN_JSON=1)
 endif()
 
 # Mandatory dependency: xpe_common (Layer 1 -- REQ-AI-001)
@@ -270,6 +273,8 @@ add_executable(${WORKER_NAME}
     # itself for the same reason xpe_ai_tests does -- OnnxSession is a C++ class
     # and xpe_ai.dll exports a C ABI only.
     src/ai_onnx_session.cpp
+    # QA-B-195 M3: OnnxSession::Create verifies model signatures, so the worker compiles the verifier too
+    src/ai_model_signer.cpp
 )
 
 target_include_directories(${WORKER_NAME}
@@ -317,12 +322,7 @@ endif()
 # QA-B-191 M4b (D9): the worker reads the body-part label sidecar with the same nlohmann the DLL uses
 # (ai_bodypart_model.h is shared). A hand-written parser for a file the worker does not control would be new
 # code on a trust boundary; the header-only library is already a dependency of this module.
-# The define is XPE_AI_BODYPART_NLOHMANN, not XPE_AI_USE_NLOHMANN_JSON: the latter also switches on the model-card
-# JSON code in ai_onnx_session.cpp, which the worker has never compiled and does not use.
-if(TARGET nlohmann_json::nlohmann_json)
-    target_link_libraries(${WORKER_NAME} PRIVATE nlohmann_json::nlohmann_json)
-    target_compile_definitions(${WORKER_NAME} PRIVATE XPE_AI_BODYPART_NLOHMANN=1)
-endif()
+target_link_libraries(${WORKER_NAME} PRIVATE nlohmann_json::nlohmann_json)
 
 if(MSVC)
     # #226 (QA-B-164): /wd4150 removed here too -- 0 occurrences, measured.
@@ -381,6 +381,11 @@ endif()
 option(XPE_AI_TEST_HOOKS "Compile the test-only hooks into xpe_ai.dll; OFF for a delivery build" ${_XPE_AI_BUILD_TESTS})
 if(XPE_AI_TEST_HOOKS)
     target_compile_definitions(xpe_ai PRIVATE XPE_AI_TEST_HOOKS=1)
+    # QA-B-195 M3 (design decision D4): the worker verifies model signatures with the same code, so a test build must
+    # let it trust the TEST signing key named by XPE_AI_TEST_TRUSTED_KEYS, an environment variable it inherits from
+    # the test process. A delivery build (-DXPE_AI_TEST_HOOKS=OFF) contains no such code and trusts only the
+    # production list, which is EMPTY until the production key exists (#243): it refuses every model.
+    target_compile_definitions(xpe_ai_worker PRIVATE XPE_AI_TEST_HOOKS=1)
     # QA-B-177: also let a test attach a sink to the DLL's own spdlog, to read the log text as emitted.
     if(TARGET spdlog::spdlog)
         target_compile_definitions(xpe_ai PRIVATE XPE_AI_TEST_LOG_CAPTURE=1)
@@ -425,6 +430,29 @@ if(_XPE_AI_BUILD_TESTS)
         test_worker_bodypart.cpp
         test_bodypart_worker_path.cpp
         test_ai_input_validation.cpp
+        # #130 (QA-B-195 M1): the model signature verifier, against signatures made by an independent implementation
+        test_ai_model_signer.cpp
+        # #130 (QA-B-195 M2): every AI test model has a current signature (renew with tools/ai/xpe_model_signing.py)
+        test_ai_model_assets_signed.cpp
+        # #130 (QA-B-195 M3): trusts the TEST signing key for the whole test process (the production list is empty)
+        test_trust_setup.cpp
+        # #130 (QA-B-195 M3): model loading verifies signatures: role, tamper matrix, trust list, verified bytes are the used bytes
+        test_ai_model_loading_trust.cpp
+        # #130 (QA-B-194b): a copy of xpe_ai.dll with no xpe_ai_worker.exe beside it -- is that failure counted?
+        # #130 (QA-B-197 M1): the model sidecar must say what REQ-AI-008 requires, or the model is refused
+        test_ai_model_sidecar.cpp
+        test_ai_label_sidecar.cpp
+        test_ai_worker_exe_missing.cpp
+        # #130 (QA-B-194b): a session that runs out of memory inside a REAL worker
+        test_ai_oom_worker.cpp
+        # #130 (QA-B-195b): a shortage of memory (or any exception) inside the worker is an answer, never a dead worker
+        test_ai_worker_boundary.cpp
+        # #250 (QA-B-198 M2): REQ-AI-093 least privilege -- what the worker cannot do, measured from inside it; the pipe is the user's
+        test_ai_worker_sandbox.cpp
+        # #250 (QA-B-198b, Codex #95): who is on the other end of the worker's pipe -- both ends check the process id
+        test_ai_worker_pipe_peer.cpp
+        # #130 (QA-B-198b): a refused model is verified again on every call; a card lookup reads outside the module lock
+        test_ai_trust_recheck.cpp
         # #130 (QA-B-168): SRS-ALERT-004 fires when DL was applied -- and, the
         # half that constrains the code, stays quiet on every path that
         # returned an image the model never touched
@@ -494,6 +522,8 @@ if(_XPE_AI_BUILD_TESTS)
             # would put std::vector and std::string in the module's public
             # contract, which the C ABI exists to keep out.
             ${CMAKE_CURRENT_SOURCE_DIR}/src/ai_onnx_session.cpp
+            # QA-B-195: internal like the bridge, so compiled in rather than exported
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/ai_model_signer.cpp
         )
 
         # #130 (QA-B-162): the test data directory is baked in at COMPILE time.
@@ -521,6 +551,7 @@ if(_XPE_AI_BUILD_TESTS)
         # test that cannot launch it would fail for the wrong reason.
         target_compile_definitions(xpe_ai_tests PRIVATE
             XPE_AI_WORKER_EXE="$<TARGET_FILE:xpe_ai_worker>"
+            XPE_AI_DLL_PATH="$<TARGET_FILE:xpe_ai>"
             XPE_AI_WORKER_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}/src/ai_worker_main.cpp")
         add_dependencies(xpe_ai_tests xpe_ai_worker)
 
@@ -575,6 +606,11 @@ if(_XPE_AI_BUILD_TESTS)
                     GTest::gtest_main
         )
 
+        # QA-B-197 M2: the model-card tests read the sidecar files and the card with an independent parser, and check the
+        # card against tests/data/schemas/model-card.schema.json (json_schema_mini.h). nlohmann is the module's own
+        # required dependency, so this adds nothing new to the build.
+        target_link_libraries(xpe_ai_tests PRIVATE nlohmann_json::nlohmann_json)
+
         # Windows: psapi.lib is required for GetProcessMemoryInfo
         # (heap-growth endurance measurement, #105 G3)
         if(WIN32)
@@ -612,6 +648,64 @@ if(_XPE_AI_BUILD_TESTS)
                 # built, so the defect had never surfaced.
                 LABELS "unit\;ai\;SPEC-XPE-P3-AI"
                 TIMEOUT 30
+        )
+
+        # QA-B-194 M5 (#130): allocation-failure sweeps. A replaced operator new in an executable does not reach
+        # code in another module, and xpe_ai.dll binds to its own runtime's allocator -- so this target compiles the
+        # module's sources into itself instead of linking the DLL (the method of xpe_preprocess_oom_tests and
+        # xpe_common_oom_tests). It must build the sources EXACTLY as the DLL does: the same definitions (stub or
+        # ONNX, spdlog, nlohmann), the same include directories. It links xpe_common (the alert queue lives there,
+        # and its allocations are NOT swept) and NOT xpe_ai, whose exports it provides itself.
+        add_executable(xpe_ai_oom_tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_ai_oom_injection.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_trust_setup.cpp
+            ${XPE_AI_SOURCES}
+        )
+        target_include_directories(xpe_ai_oom_tests
+            PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+                    ${CMAKE_CURRENT_SOURCE_DIR}/src
+        )
+        target_compile_definitions(xpe_ai_oom_tests PRIVATE
+            XPE_DLL_EXPORT
+            XPE_AI_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
+        if(XPE_AI_TEST_HOOKS)
+            # the sources are compiled exactly as the DLL builds them, and a test build's DLL trusts the TEST signing key
+            target_compile_definitions(xpe_ai_oom_tests PRIVATE XPE_AI_TEST_HOOKS=1)
+        endif()
+        if(XPE_AI_STUB_BUILD OR NOT XPE_AI_USE_ONNXRUNTIME)
+            target_compile_definitions(xpe_ai_oom_tests PRIVATE XPE_AI_STUB_BUILD=1)
+        else()
+            target_compile_definitions(xpe_ai_oom_tests PRIVATE XPE_AI_USE_ONNXRUNTIME=1)
+            target_link_libraries(xpe_ai_oom_tests PRIVATE onnxruntime)
+        endif()
+        if(TARGET spdlog::spdlog)
+            target_link_libraries(xpe_ai_oom_tests PRIVATE spdlog::spdlog)
+            target_compile_definitions(xpe_ai_oom_tests PRIVATE XPE_AI_USE_SPDLOG=1)
+        endif()
+        target_link_libraries(xpe_ai_oom_tests PRIVATE nlohmann_json::nlohmann_json)
+        target_link_libraries(xpe_ai_oom_tests PRIVATE xpe_common GTest::gtest_main)
+        if(WIN32)
+            target_link_libraries(xpe_ai_oom_tests PRIVATE psapi)
+        endif()
+        if(WIN32 AND XPE_AI_USE_ONNXRUNTIME AND NOT XPE_AI_STUB_BUILD AND DEFINED ONNXRUNTIME_ROOT)
+            add_custom_command(TARGET xpe_ai_oom_tests POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${ONNXRUNTIME_ROOT}/lib/onnxruntime.dll"
+                        "$<TARGET_FILE_DIR:xpe_ai_oom_tests>"
+                COMMENT "xpe_ai_oom_tests: staging onnxruntime.dll next to the test exe")
+        endif()
+        target_compile_features(xpe_ai_oom_tests PRIVATE cxx_std_17)
+        if(MSVC)
+            target_compile_options(xpe_ai_oom_tests PRIVATE /W4 /wd4996)
+        else()
+            target_compile_options(xpe_ai_oom_tests PRIVATE -Wall -Wextra -Wpedantic)
+        endif()
+        xpe_target_warnings_as_errors(xpe_ai_oom_tests)
+        gtest_discover_tests(xpe_ai_oom_tests
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            PROPERTIES
+                LABELS "unit\;ai\;SPEC-XPE-P3-AI"
+                TIMEOUT 120
         )
 
         message(STATUS "xpe_ai tests configured")

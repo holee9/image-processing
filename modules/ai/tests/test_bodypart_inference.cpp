@@ -133,8 +133,13 @@ TEST_F(BodyPart, ModelDirectoriesArePresent) {
         EXPECT_TRUE(m.good()) << d << " has no model; run tests/data/make_bodypart_models.py";
         EXPECT_TRUE(j.good()) << d << " has no label sidecar";
     }
-    std::ifstream none(Dir("models_bodypart_no_labels") + "/bodypart.json");
-    EXPECT_FALSE(none.good()) << "models_bodypart_no_labels must NOT have a sidecar -- it pins that failure";
+    // QA-B-197: a model with no sidecar at all is refused by the sidecar check (REQ-AI-008), before the labels are looked
+    // at, so this fixture HAS a valid sidecar and lacks only the `labels` key -- the only way left to pin the label failure.
+    std::ifstream noLabels(Dir("models_bodypart_no_labels") + "/bodypart.json");
+    ASSERT_TRUE(noLabels.good()) << "models_bodypart_no_labels has a sidecar, without labels";
+    const std::string noLabelsText((std::istreambuf_iterator<char>(noLabels)), std::istreambuf_iterator<char>());
+    EXPECT_EQ(std::string::npos, noLabelsText.find("labels")) << "models_bodypart_no_labels must NOT have a labels key";
+    EXPECT_NE(std::string::npos, noLabelsText.find("model_id")) << "...but the REQ-AI-008 fields are there";
     std::ifstream missing(Dir("models_missing") + "/bodypart.onnx", std::ios::binary);
     EXPECT_FALSE(missing.good()) << "models_missing must NOT hold a body-part model";
 }
@@ -271,7 +276,8 @@ TEST_F(BodyPart, ABrokenModelFileIsTheStubsOutcomeWithOneWarning) {
 }
 TEST_F(BodyPart, MissingLabelsAreTheStubsOutcomeWithOneWarning) {
     REQUIRE_ONNX();
-    ExpectUnavailable(Dir("models_bodypart_no_labels"), "not found");
+    // QA-B-197: the sidecar exists now (REQ-AI-008 makes it mandatory) and lacks the labels key.
+    ExpectUnavailable(Dir("models_bodypart_no_labels"), "no non-empty labels array");
 }
 TEST_F(BodyPart, MoreOutputsThanLabelsAreTheStubsOutcomeWithOneWarning) {
     REQUIRE_ONNX();

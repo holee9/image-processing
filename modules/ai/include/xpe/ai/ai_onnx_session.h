@@ -68,6 +68,9 @@ enum class OnnxErrorCode {
     kEpNotAvailable = 3,        ///< Requested EP not available
     kSessionCreationFailed = 4, ///< Failed to create session
     kInvalidInput = 5,          ///< Invalid input data
+    kOutOfMemory = 6,           ///< An allocation failed while creating the session (QA-B-194 M5): a shortage, not a bad model
+    kModelNotTrusted = 7,       ///< The model or its sidecar failed signature verification (QA-B-195 M3): nothing was loaded
+    kSidecarInvalid = 8,        ///< The signature verified but the sidecar does not say what REQ-AI-008 requires (QA-B-197)
 };
 
 /**
@@ -99,7 +102,41 @@ struct OnnxSessionConfig {
     int num_threads = 1;                                           ///< Intra-op thread count; a value below 1 is treated as 1
     LogLevel log_level = LogLevel::kWarning;                       ///< Session logging verbosity
     bool enable_profiling = false;                                 ///< Accepted and ignored: no profile is written (logs a warning)
+    /**
+     * The job this model is loaded for ("bone_suppress" or "bodypart"). It is part of what the signature covers
+     * (QA-B-195), so a model signed for one job is refused for another. A fixture that is named for no job is
+     * signed as "bone_suppress", which is also the default here.
+     */
+    std::string role = "bone_suppress";
 };
+
+/**
+ * @brief The files of one model as they were READ and VERIFIED (QA-B-195 / QA-B-197)
+ *
+ * Whoever uses the model uses these bytes and no others. A sidecar that does not exist leaves has_sidecar false.
+ */
+struct VerifiedModelFiles {
+    std::vector<uint8_t> model;     ///< the model file's bytes
+    std::string sidecar_text;       ///< the sidecar's bytes as text (meaningful only when has_sidecar)
+    bool has_sidecar = false;       ///< true when `<stem>.json` exists
+};
+
+/**
+ * @brief Read `<stem>.onnx`, `<stem>.json` and `<stem>.sig` ONCE and verify the signature for @p role.
+ *
+ * The one place the files of a model are read and checked, shared by OnnxSession::Create (which builds a session from
+ * the result) and the model card (which only reads the sidecar). Returns kOk, kInvalidModelPath (no model file),
+ * kModelLoadFailed (the model file cannot be read) or kModelNotTrusted; @p message carries the detail for a failure.
+ * Does NOT judge the sidecar's content (see ai_model_sidecar.h).
+ *
+ * @param model_path  Path of the model file `<stem>.onnx`; the sidecar and signature sit beside it.
+ * @param role        The job the model is loaded for ("bone_suppress" or "bodypart"); part of what the signature covers.
+ * @param out         Receives the verified bytes (meaningful only when the result is kOk).
+ * @param message     Receives the detail of a failure.
+ * @return kOk, or the code described above.
+ */
+OnnxErrorCode ReadVerifiedModelFiles(const std::string& model_path, const std::string& role,
+                                     VerifiedModelFiles* out, std::string* message);
 
 /**
  * @brief Result type for operations that can fail
@@ -194,6 +231,17 @@ public:
     const ModelMetadata& GetModelMetadata() const;
 
     /**
+     * @brief The sidecar `<model stem>.json` exactly as it was verified, or nullptr when the model has none.
+     *
+     * Create() reads the model, the sidecar and the signature ONCE, verifies them together and builds the session from
+     * those bytes (QA-B-195, REQ-AI-007 / REQ-AI-091). A caller that needs the sidecar's content (the body-part
+     * labels) takes it from here and never opens the file again: what was verified is what is used, with no window
+     * between the check and the use in which the file could be swapped.
+     * @return Pointer valid for the lifetime of the session.
+     */
+    const std::string* VerifiedSidecar() const;
+
+    /**
      * @brief Get input tensor metadata
      * @return One entry per model input, in graph order
      */
@@ -240,6 +288,9 @@ public:
 private:
     // Private constructor (use Create factory)
     OnnxSession();
+
+    // Create() minus the guard against a shortage of memory (QA-B-195b); Create() is the only caller.
+    static OnnxResult<std::unique_ptr<OnnxSession>> CreateUnguarded(const OnnxSessionConfig& config);
 
     // PIMPL implementation
     struct Impl;

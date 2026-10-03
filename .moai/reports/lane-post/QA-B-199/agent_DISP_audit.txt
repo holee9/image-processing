@@ -1,0 +1,1060 @@
+{
+ "spec": "DISP",
+ "reqs": [
+  {
+   "id": "REQ-DISP-001",
+   "verdict": "asserted",
+   "impl": "modules/display/src/modality_lut.cpp:56",
+   "independence": "hand-computed literals (1000*1-1024=-24; 500*0.5+100=350)",
+   "unasserted": "per-pixel on a non-uniform image: both tests use uniform fills and read only element [0]",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 58,
+     "name": "LinearRescale_BasicValues",
+     "quote": "EXPECT_FLOAT_EQ(pixels(img)[0], -24.0f);"
+    },
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 73,
+     "name": "LinearRescale_SlopeAndIntercept",
+     "quote": "EXPECT_FLOAT_EQ(pixels(img)[0], 350.0f);"
+    },
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 259,
+     "name": "EdgeCase_1x1Image",
+     "quote": "EXPECT_FLOAT_EQ(pixels(img)[0], 84.0f);"
+    },
+    {
+     "file": "modules/display/tests/test_parameter_dependency.cpp",
+     "line": 93,
+     "name": "ModalityLut_SlopeAndInterceptBothReachTheOutput",
+     "quote": "EXPECT_GT(MaxDiff(base, slope), 0.0)"
+    }
+   ],
+   "note": "Formula pinned by two independent literals; the 'in-place' part is implicit. Extra finite/overflow refusal (modality_lut.cpp:48-55) is outside the wording and covered only by test_nonfinite_pixels.cpp."
+  },
+  {
+   "id": "REQ-DISP-002",
+   "verdict": "asserted",
+   "impl": "modules/display/src/modality_lut.cpp:77-81",
+   "independence": "hand-written 5/3-entry LUT literals and index arithmetic done by hand",
+   "unasserted": "rounding of non-integer inputs; inputs beyond int32 range (see defect candidate)",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 99,
+     "name": "TableMode_BasicLookup",
+     "quote": "EXPECT_FLOAT_EQ(px[1], 300.0f);"
+    },
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 119,
+     "name": "TableMode_LutFirstMappedOffset",
+     "quote": "EXPECT_FLOAT_EQ(px[0], 20.0f);"
+    },
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 139,
+     "name": "TableMode_ClampingBounds",
+     "quote": "EXPECT_FLOAT_EQ(px[0], 10.0f);"
+    },
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 140,
+     "name": "TableMode_ClampingBounds",
+     "quote": "EXPECT_FLOAT_EQ(px[1], 30.0f);"
+    }
+   ],
+   "note": "Base offset and both clamp ends asserted with literals; all inputs are integral and within +-999, so the round() and wide-range behaviour are unverified."
+  },
+  {
+   "id": "REQ-DISP-003",
+   "verdict": "partial",
+   "impl": "modules/display/src/modality_lut.cpp:21-26",
+   "independence": "return code constant from SPEC",
+   "unasserted": "'without modifying any state' for the NULL-params case (image content never compared; NULL img has no state)",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 154,
+     "name": "Error_NullImg",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT);"
+    },
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 161,
+     "name": "Error_NullParams",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT);"
+    }
+   ],
+   "note": "Return code asserted for both NULLs. No check that the image is unchanged after NULL params."
+  },
+  {
+   "id": "REQ-DISP-004",
+   "verdict": "partial",
+   "impl": "modules/display/src/display_helpers.cpp:114-116",
+   "independence": "return code constant from SPEC",
+   "unasserted": "'without modifying the image': the only unchanged-check is buf[0]==0 on an all-zero buffer with slope 1/intercept 0, which could not reveal a write",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 179,
+     "name": "Error_WrongFormat",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_UNSUPPORTED_FORMAT);"
+    },
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 181,
+     "name": "Error_WrongFormat",
+     "quote": "EXPECT_EQ(buf[0], 0);"
+    }
+   ],
+   "note": "rc asserted. The no-modification oracle is blind (zero buffer, identity-ish params). Format test sits after the width/height==0 test (display_helpers.cpp:111), documented in the header."
+  },
+  {
+   "id": "REQ-DISP-005",
+   "verdict": "asserted",
+   "impl": "modules/display/src/modality_lut.cpp:61-63",
+   "independence": "return code constant from SPEC",
+   "unasserted": "",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 192,
+     "name": "Error_TableNullLutData",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT);"
+    }
+   ],
+   "note": "Direct and sufficient."
+  },
+  {
+   "id": "REQ-DISP-006",
+   "verdict": "asserted",
+   "impl": "modules/display/src/modality_lut.cpp:65-67",
+   "independence": "return code constant from SPEC",
+   "unasserted": "",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 205,
+     "name": "Error_TableZeroLength",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT);"
+    }
+   ],
+   "note": "Direct and sufficient."
+  },
+  {
+   "id": "REQ-DISP-007",
+   "verdict": "asserted",
+   "impl": "modules/display/src/modality_lut.cpp:38-40",
+   "independence": "return code constant from SPEC",
+   "unasserted": "",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 217,
+     "name": "Error_LinearZeroSlope",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT);"
+    },
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 219,
+     "name": "Error_LinearZeroSlope",
+     "quote": "EXPECT_FLOAT_EQ(pixels(img)[0], 100.0f);"
+    }
+   ],
+   "note": "rc plus image-unchanged asserted."
+  },
+  {
+   "id": "REQ-DISP-008",
+   "verdict": "partial",
+   "impl": "modules/display/src/modality_lut.cpp:48-58",
+   "independence": "numeric budget from SPEC (20 ms)",
+   "unasserted": "enforcement in CI: ci.yml ctest uses -E \"Performance|Within[0-9]+ms|...\" so the assertion never runs there; measure-only BenchmarkFreeze test asserts no time",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 241,
+     "name": "Performance_3072x3072_Linear",
+     "quote": "EXPECT_LE(ms, 20)"
+    },
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 268,
+     "name": "BenchmarkFreeze_Performance_REQ_DISP_008_Linear3072",
+     "quote": "TEST(ModalityLut, BenchmarkFreeze_Performance_REQ_DISP_008_Linear3072) {"
+    }
+   ],
+   "note": "A 20 ms assertion exists and runs in a plain local ctest (no env flag), uniform 1000.0 fill, integer-millisecond truncation (20.9 ms passes). .github/workflows/ci.yml:318 excludes every 'Performance' test; benchmark variant only prints."
+  },
+  {
+   "id": "REQ-DISP-009",
+   "verdict": "asserted",
+   "impl": "modules/display/src/voi_lut.cpp:229-243",
+   "independence": "DICOM PS3.3 C.11.2.1.2.1 worked-example window boundaries (c=2048 w=4096 -> 0/4095; c=0 w=100 -> -50/49) plus hand arithmetic (0.5/999+0.5)*255 and 0.5/199+0.5",
+   "unasserted": "interior (non-center, non-edge) pixels of the window; only the centre value and the 4 boundary points are probed",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_parameter_dependency.cpp",
+     "line": 268,
+     "name": "VoiLinearMatchesTheStandardsWorkedExamples_156",
+     "quote": "EXPECT_NEAR(0.0f, atLo, 1e-6f)"
+    },
+    {
+     "file": "modules/display/tests/test_parameter_dependency.cpp",
+     "line": 269,
+     "name": "VoiLinearMatchesTheStandardsWorkedExamples_156",
+     "quote": "EXPECT_NEAR(1.0f, atHi, 1e-6f)"
+    },
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 76,
+     "name": "Linear_CenterWindow",
+     "quote": "EXPECT_NEAR(pixels(img)[0], 127.6276f, 0.001f);"
+    },
+    {
+     "file": "modules/display/tests/test_display_integration.cpp",
+     "line": 84,
+     "name": "FullPipeline_LinearModality_LinearVoi_PresLut",
+     "quote": "EXPECT_NEAR(float_pixels(img)[0], 0.5025126f, 1e-5f);"
+    }
+   ],
+   "note": "Strongest requirement in the module: expected values come from the standard and hand arithmetic, and they discriminate LINEAR from LINEAR_EXACT. The width==1 branch is only checked for finiteness/ends."
+  },
+  {
+   "id": "REQ-DISP-010",
+   "verdict": "partial",
+   "impl": "modules/display/src/voi_lut.cpp:245-253",
+   "independence": "midpoint identity at x==center (127.5 = (0+255)/2)",
+   "unasserted": "the window slope/extent (width) and the edges of LINEAR_EXACT: at x==center the width term cancels, so a wrong divisor passes; no off-centre literal",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 133,
+     "name": "LinearExact_CenterValue",
+     "quote": "EXPECT_NEAR(pixels(img)[0], 127.5f, 0.05f);"
+    },
+    {
+     "file": "modules/display/tests/test_parameter_dependency.cpp",
+     "line": 186,
+     "name": "Fixed156_VoiLinearExactDiffersFromVoiLinear",
+     "quote": "EXPECT_GT(diff, 1e-4)"
+    }
+   ],
+   "note": "Only the centre point is asserted independently; the other check is 'differs from LINEAR'. Nothing asserts that EXACT maps center-width/2 to minOut and center+width/2 to maxOut, which is the requirement's substance."
+  },
+  {
+   "id": "REQ-DISP-010a",
+   "verdict": "partial",
+   "impl": "modules/display/src/voi_lut.cpp:196-243",
+   "independence": "PS3.3 window-boundary examples for the LINEAR half; midpoint for the EXACT half",
+   "unasserted": "'LINEAR_EXACT uses center and width unadjusted' beyond the centre value; the statement about '+0.5 present in both' is only implicit",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_parameter_dependency.cpp",
+     "line": 268,
+     "name": "VoiLinearMatchesTheStandardsWorkedExamples_156",
+     "quote": "EXPECT_NEAR(0.0f, atLo, 1e-6f)"
+    },
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 133,
+     "name": "LinearExact_CenterValue",
+     "quote": "EXPECT_NEAR(pixels(img)[0], 127.5f, 0.05f);"
+    }
+   ],
+   "note": "Vocabulary note, not behaviour; its LINEAR half (-0.5 / -1) is asserted via REQ-009 vectors, the EXACT half only at the centre. display_api.h:84 still says 'half-value offset' without naming a mode."
+  },
+  {
+   "id": "REQ-DISP-011",
+   "verdict": "partial",
+   "impl": "modules/display/src/voi_lut.cpp:254-261",
+   "independence": "sigmoid(0)=0.5 identity at x==center",
+   "unasserted": "the -4 steepness factor and the width scaling (only x==center probed, tolerance +-1.0 on 255 and +-0.01 on 1); no off-centre literal",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 155,
+     "name": "Sigmoid_CenterValue",
+     "quote": "EXPECT_NEAR(pixels(img)[0], 127.5f, 1.0f);"
+    },
+    {
+     "file": "modules/display/tests/test_display_integration.cpp",
+     "line": 124,
+     "name": "FullPipeline_TableModality_SigmoidVoi",
+     "quote": "EXPECT_NEAR(float_pixels(img)[0], 0.5f, 0.01f);"
+    },
+    {
+     "file": "modules/display/tests/test_parameter_dependency.cpp",
+     "line": 133,
+     "name": "VoiLut_EveryParameterReachesTheOutput",
+     "quote": "\"XPE_VOI_SIGMOID matches LINEAR\""
+    }
+   ],
+   "note": "Only the centre value is asserted; a sigmoid with any slope constant passes. The dependency test only says sigmoid differs from LINEAR."
+  },
+  {
+   "id": "REQ-DISP-012",
+   "verdict": "partial",
+   "impl": "modules/display/src/voi_lut.cpp:235-240,250,258",
+   "independence": "literal clamp ends 0 / 255 for LINEAR; range inequality for SIGMOID",
+   "unasserted": "clamping of LINEAR_EXACT with a literal; SIGMOID only a range property (implementation-guaranteed)",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 92,
+     "name": "Linear_ClampMin",
+     "quote": "EXPECT_FLOAT_EQ(pixels(img)[0], 0.0f);"
+    },
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 108,
+     "name": "Linear_ClampMax",
+     "quote": "EXPECT_FLOAT_EQ(pixels(img)[0], 255.0f);"
+    },
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 172,
+     "name": "Sigmoid_OutputClampedToRange",
+     "quote": "EXPECT_LE(pixels(img)[0], 255.0f);"
+    },
+    {
+     "file": "modules/display/tests/test_nonfinite_pixels.cpp",
+     "line": 264,
+     "name": "VoiLutNeverMakesANonFinitePixelFromFiniteInput",
+     "quote": "ASSERT_TRUE(o >= r[0] && o <= r[1])"
+    }
+   ],
+   "note": "LINEAR clamp asserted with literals; EXACT clamp never asserted with a literal; the non-finite test checks range only and silently skips on refusal (continue at :261)."
+  },
+  {
+   "id": "REQ-DISP-013",
+   "verdict": "partial",
+   "impl": "modules/display/src/voi_lut.cpp:156-157",
+   "independence": "return code constant from SPEC",
+   "unasserted": "'without modifying any state' (image unchanged after NULL params is never checked)",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 187,
+     "name": "Error_NullImg",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT);"
+    },
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 194,
+     "name": "Error_NullParams",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT);"
+    }
+   ],
+   "note": "Same shape as REQ-DISP-003."
+  },
+  {
+   "id": "REQ-DISP-014",
+   "verdict": "asserted",
+   "impl": "modules/display/src/display_helpers.cpp:114-116",
+   "independence": "return code constant from SPEC; buffer initial values are hand-written",
+   "unasserted": "",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 212,
+     "name": "Error_WrongFormat",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_UNSUPPORTED_FORMAT);"
+    },
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 213,
+     "name": "Error_WrongFormat",
+     "quote": "EXPECT_EQ(buf[0], 100); // unchanged"
+    }
+   ],
+   "note": "rc plus non-zero unchanged check."
+  },
+  {
+   "id": "REQ-DISP-015",
+   "verdict": "asserted",
+   "impl": "modules/display/src/voi_lut.cpp:171",
+   "independence": "return code constant from SPEC",
+   "unasserted": "",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 225,
+     "name": "Error_ZeroWidth",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT);"
+    },
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 226,
+     "name": "Error_ZeroWidth",
+     "quote": "EXPECT_FLOAT_EQ(pixels(img)[0], 42.0f); // must not be modified"
+    },
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 237,
+     "name": "Error_NegativeWidth",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT);"
+    }
+   ],
+   "note": "Zero and negative width asserted; widths in (0,1) are accepted (defect candidate for LINEAR)."
+  },
+  {
+   "id": "REQ-DISP-016",
+   "verdict": "partial",
+   "impl": "modules/display/src/voi_lut.cpp:226-243",
+   "independence": "numeric budget from SPEC (16 ms)",
+   "unasserted": "enforcement in CI (ci.yml:318 excludes 'Performance*'); measure-only BenchmarkFreeze asserts no time",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 370,
+     "name": "Performance_3072x3072",
+     "quote": "EXPECT_LE(ms, 16)"
+    },
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 379,
+     "name": "BenchmarkFreeze_Performance_REQ_DISP_016_Linear3072",
+     "quote": "TEST(VoiLut, BenchmarkFreeze_Performance_REQ_DISP_016_Linear3072) {"
+    }
+   ],
+   "note": "Same situation as REQ-DISP-008: assertion exists locally, uniform 500.0 fill, integer-ms truncation, excluded from CI by name."
+  },
+  {
+   "id": "REQ-DISP-017",
+   "verdict": "asserted",
+   "impl": "modules/display/src/voi_lut.cpp:282-292",
+   "independence": "literal 32768 / 65535 stated in the requirement itself; distinct-level count on a DN ramp as behavioural control",
+   "unasserted": "the 'modality LUT identity' semantic beyond the numbers; minOut/maxOut (0/255) not in the requirement and never asserted",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 251,
+     "name": "Preset_Bone",
+     "quote": "EXPECT_FLOAT_EQ(params.center, 32768.0f);"
+    },
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 252,
+     "name": "Preset_Bone",
+     "quote": "EXPECT_FLOAT_EQ(params.width, 65535.0f);"
+    },
+    {
+     "file": "modules/display/tests/test_parameter_dependency.cpp",
+     "line": 323,
+     "name": "VoiPresetDoesNotCrushRawDetectorDn_177",
+     "quote": "EXPECT_GT(levels.size(), 64u)"
+    },
+    {
+     "file": "modules/display/tests/test_parameter_dependency.cpp",
+     "line": 353,
+     "name": "KnownDivergence_VoiPresetIgnoresBodyPartUntil151",
+     "quote": "EXPECT_TRUE(bone.center == lung.center && bone.width == lung.width)"
+    }
+   ],
+   "note": "All four parts asserted against the SPEC constants (Lung/Abdomen/Head at lines 261-282). Constant-vs-constant, but the constant is the requirement."
+  },
+  {
+   "id": "REQ-DISP-018",
+   "verdict": "asserted",
+   "impl": "modules/display/src/voi_lut.cpp:274,293-295",
+   "independence": "return code constant from SPEC",
+   "unasserted": "params left untouched on invalid body part (header promise, not in the requirement)",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 289,
+     "name": "Preset_InvalidBodyPart",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT);"
+    },
+    {
+     "file": "modules/display/tests/test_voi_lut.cpp",
+     "line": 295,
+     "name": "Preset_NullParams",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT);"
+    }
+   ],
+   "note": "Both triggers asserted."
+  },
+  {
+   "id": "REQ-DISP-019",
+   "verdict": "asserted",
+   "impl": "modules/display/src/presentation_lut.cpp:46-53",
+   "independence": "hand-computed: round(0.5*1023)=512, round(0.5025126*1023)=514 (x1024 would give 515), identity/sentinel LUT literals at 0 and 1",
+   "unasserted": "per-pixel mapping over a ramp (all probes are single pixels or uniform images)",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_display_integration.cpp",
+     "line": 93,
+     "name": "FullPipeline_LinearModality_LinearVoi_PresLut",
+     "quote": "EXPECT_EQ(uint16_pixels(img)[0], 514u);"
+    },
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 93,
+     "name": "LutLookup_HalfValue",
+     "quote": "EXPECT_EQ(out[0], 512u);"
+    },
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 107,
+     "name": "LutLookup_ZeroInput",
+     "quote": "EXPECT_EQ(static_cast<uint16_t*>(img.data)[0], 999u);"
+    },
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 120,
+     "name": "LutLookup_OneInput",
+     "quote": "EXPECT_EQ(static_cast<uint16_t*>(img.data)[0], 65535u);"
+    }
+   ],
+   "note": "The 514 probe is what pins the x1023 factor (0.5 alone cannot separate 1023 from 1024). Rounding mode and the interior of the LUT are probed at only three/four points."
+  },
+  {
+   "id": "REQ-DISP-020",
+   "verdict": "asserted",
+   "impl": "modules/display/src/presentation_lut.cpp:65-70",
+   "independence": "literals: UINT16, 16, 16, 2*2*2 bytes",
+   "unasserted": "",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 72,
+     "name": "DomainTransition_FormatBecomesUint16",
+     "quote": "EXPECT_EQ(img.format, XPE_PIXEL_UINT16);"
+    },
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 73,
+     "name": "DomainTransition_FormatBecomesUint16",
+     "quote": "EXPECT_EQ(img.bitsAllocated, 16u);"
+    },
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 75,
+     "name": "DomainTransition_FormatBecomesUint16",
+     "quote": "EXPECT_EQ(img.dataSize, (size_t)(2 * 2 * 2)); // 4 pixels * 2 bytes"
+    }
+   ],
+   "note": "All three updated fields asserted with independent literals."
+  },
+  {
+   "id": "REQ-DISP-021",
+   "verdict": "partial",
+   "impl": "modules/display/src/presentation_lut.cpp:32,47-49",
+   "independence": "literal LUT results (index 0 and 1023 of the identity LUT) for -5.0 and 2.5",
+   "unasserted": "infinite and NaN pixels: the wording 'outside [0,1] -> clamp' includes +-inf, but the code refuses them with INVALID_INPUT (presentation_lut.cpp:32) and the tests pin the refusal, not a clamp",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 136,
+     "name": "InputClamp_Negative",
+     "quote": "EXPECT_EQ(static_cast<uint16_t*>(img.data)[0], 0u);"
+    },
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 148,
+     "name": "InputClamp_AboveOne",
+     "quote": "EXPECT_EQ(static_cast<uint16_t*>(img.data)[0], 1023u);"
+    },
+    {
+     "file": "modules/display/tests/test_nonfinite_pixels.cpp",
+     "line": 168,
+     "name": "PresentationLutRefusesANonFinitePixelAndLeavesTheImageAlone",
+     "quote": "EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_apply_presentation_lut(&img.b, &p))"
+    }
+   ],
+   "note": "Finite out-of-range clamp asserted; the spec-vs-code divergence for infinities is a leader decision recorded only in test comments, SPEC text unchanged."
+  },
+  {
+   "id": "REQ-DISP-022",
+   "verdict": "partial",
+   "impl": "modules/display/src/presentation_lut.cpp:22-23",
+   "independence": "return code constant from SPEC",
+   "unasserted": "'without modifying any state' (image intact after NULL params not checked)",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 160,
+     "name": "Error_NullImg",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT);"
+    },
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 167,
+     "name": "Error_NullParams",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT);"
+    }
+   ],
+   "note": "Same shape as REQ-DISP-003."
+  },
+  {
+   "id": "REQ-DISP-023",
+   "verdict": "asserted",
+   "impl": "modules/display/src/display_helpers.cpp:114-116",
+   "independence": "return code constant from SPEC",
+   "unasserted": "",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 183,
+     "name": "Error_WrongFormat",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_UNSUPPORTED_FORMAT);"
+    }
+   ],
+   "note": "Requirement has no no-modification clause; rc asserted."
+  },
+  {
+   "id": "REQ-DISP-024",
+   "verdict": "constant_only",
+   "impl": "modules/display/src/presentation_lut.cpp:20-73 (no read of gsdfEnabled; it is only written at :283)",
+   "independence": "none: no test asserts output values produced from a GSDF-calibrated LUT",
+   "unasserted": "everything: that gsdfEnabled!=0 selects/applies the calibrated entries; no code branch or test depends on the flag",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_display_integration.cpp",
+     "line": 286,
+     "name": "GsdfPipeline_CalibrateThenApply",
+     "quote": "EXPECT_EQ(img.format, XPE_PIXEL_UINT16);"
+    },
+    {
+     "file": "modules/display/tests/test_parameter_dependency.cpp",
+     "line": 390,
+     "name": "PresentationLut_LutContentsReachTheOutput",
+     "quote": "p.gsdfEnabled = 0;"
+    }
+   ],
+   "note": "xpe_apply_presentation_lut applies lutData whatever gsdfEnabled says, so the 'WHEN gsdfEnabled non-zero' condition is not implemented as a condition. The only calibrate-then-apply test checks the output format; the test's VOI step makes the pixel 0.5/1 anyway and the value is never read."
+  },
+  {
+   "id": "REQ-DISP-025",
+   "verdict": "asserted",
+   "impl": "modules/display/src/presentation_lut.cpp:190-280",
+   "independence": "closed-form inverse of a synthetic gamma display (2.2 and 1.8, 257 samples, 0.5..500 cd/m2) computed with the test's own transcription of PS3.14 Eq 7-1/7-2, itself checked against 10 published Table B-1 points, a round trip and L(1023)~4000",
+   "unasserted": "tight accuracy: tolerance is 100 of 65535 counts (measured residual 72/48); luminance range beyond 0.5..500; module's own Eq 7-2 coefficients are never compared with Table B-1 directly (the test holds a separate copy)",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_gsdf_characterization.cpp",
+     "line": 821,
+     "name": "Stage2_ReproducesTheAnalyticLutForSyntheticGammaDisplays_155",
+     "quote": "EXPECT_LE(d.maxAbs, 100)"
+    },
+    {
+     "file": "modules/display/tests/test_gsdf_characterization.cpp",
+     "line": 845,
+     "name": "Stage2_ReproducesTheAnalyticLutForSyntheticGammaDisplays_155",
+     "quote": "EXPECT_GT(between, 1000)"
+    },
+    {
+     "file": "modules/display/tests/test_gsdf_characterization.cpp",
+     "line": 465,
+     "name": "StandardEquationsMatchTableB1_155",
+     "quote": "EXPECT_NEAR(std::round(v * 10000.0) / 10000.0, t.lum, 1e-9)"
+    },
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 532,
+     "name": "GsdfCalibrate_EqualNeighboursAreAccepted_155",
+     "quote": "EXPECT_EQ(0, inside)"
+    }
+   ],
+   "note": "test_gsdf_characterization.cpp characterizes the old straight-ramp defect (stage 1) and, after stage 2, asserts the fix against an independent analytic oracle. The oracle is independent of the module's algorithm but shares its source of coefficients; the Table B-1 check covers only j<=70 (L<=0.964), the rest of the scale only by round trip."
+  },
+  {
+   "id": "REQ-DISP-026",
+   "verdict": "asserted",
+   "impl": "modules/display/src/presentation_lut.cpp:84-117",
+   "independence": "return code constant from SPEC; sentinel-filled output (0xBEEF) as untouched oracle",
+   "unasserted": "",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 220,
+     "name": "GsdfCalibrate_Error_NullLuminance",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT);"
+    },
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 227,
+     "name": "GsdfCalibrate_Error_NullOut",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT);"
+    },
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 235,
+     "name": "GsdfCalibrate_Error_CountLessThan2",
+     "quote": "EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT);"
+    },
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 487,
+     "name": "GsdfCalibrate_Error_NonDecreasingViolation_155",
+     "quote": "EXPECT_EQ(0, p.gsdfEnabled)"
+    }
+   ],
+   "note": "All four triggers asserted, non-decreasing with four failure shapes and untouched-outParams check; NaN/inf also rejected (presentation_lut.cpp:90-92, test_gsdf_characterization.cpp:863) although spec.md:431 still says NaN passes."
+  },
+  {
+   "id": "REQ-DISP-027",
+   "verdict": "asserted",
+   "impl": "modules/display/src/presentation_lut.cpp:283",
+   "independence": "constant 1 from SPEC; 0 preserved on rejected calls",
+   "unasserted": "",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 198,
+     "name": "GsdfCalibrate_BasicOutput",
+     "quote": "EXPECT_EQ(out.gsdfEnabled, 1);"
+    },
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 487,
+     "name": "GsdfCalibrate_Error_NonDecreasingViolation_155",
+     "quote": "EXPECT_EQ(0, p.gsdfEnabled)"
+    }
+   ],
+   "note": "Asserted in about six tests; trivial constant."
+  },
+  {
+   "id": "REQ-DISP-028",
+   "verdict": "partial",
+   "impl": "modules/display/src/presentation_lut.cpp:28-70",
+   "independence": "numeric budget -- but the test uses 30 ms, not the requirement's 25 ms",
+   "unasserted": "the 25 ms budget itself (test limit is 30); CI enforcement (ci.yml:318 excludes 'Performance*'); measure-only benchmark asserts no time",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 254,
+     "name": "Performance_3072x3072",
+     "quote": "EXPECT_LE(ms, 30)"
+    },
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 425,
+     "name": "BenchmarkFreeze_Performance_REQ_DISP_028_Lut3072",
+     "quote": "TEST(PresentationLut, BenchmarkFreeze_Performance_REQ_DISP_028_Lut3072) {"
+    }
+   ],
+   "note": "The only time assertion allows 30 ms and uses a uniform 0.5 image; its own message says 'Release target 25ms'."
+  },
+  {
+   "id": "REQ-DISP-029@403",
+   "verdict": "asserted",
+   "impl": "modules/display/src/presentation_lut.cpp:113-117,145-149,255-271",
+   "independence": "reject: constant rc + sentinel; use of interior: analytic gamma LUT built from closed form at DDL_i=i/(count-1)*65535; plateau rule: DDL values computed by hand (lround(1/4*65535)=16384)",
+   "unasserted": "that a log-spaced (non-equally-spaced) ascending array yields XPE_OK AND a wrong LUT (the 'SHALL NOT detect' half) -- only 'ascending is accepted' is asserted, not 'and wrong'",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 479,
+     "name": "GsdfCalibrate_Error_NonDecreasingViolation_155",
+     "quote": "EXPECT_EQ(XPE_ERR_INVALID_INPUT,"
+    },
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 500,
+     "name": "GsdfCalibrate_AscendingIsAccepted_155",
+     "quote": "EXPECT_EQ(XPE_OK, xpe_gsdf_calibrate(lum, 5, &p));"
+    },
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 532,
+     "name": "GsdfCalibrate_EqualNeighboursAreAccepted_155",
+     "quote": "EXPECT_EQ(0, inside)"
+    },
+    {
+     "file": "modules/display/tests/test_gsdf_characterization.cpp",
+     "line": 700,
+     "name": "Stage2_TheInteriorOfTheCurveReachesTheOutput_155",
+     "quote": "EXPECT_GT(worst, 0)"
+    }
+   ],
+   "note": "Order contract, boundary (equal neighbours), plateau rule and 'all elements used' are asserted; the deliberately undetected half is documented, not tested."
+  },
+  {
+   "id": "REQ-DISP-029@439",
+   "verdict": "no_test",
+   "impl": "modules/display/include/xpe/display/display_api.h:33-35,160-348; modules/common/include/xpe/common/xpe_types.h:27 (XPE_API = dllexport, no explicit __cdecl)",
+   "independence": "none (only implicit: test exe links against the C header)",
+   "unasserted": "extern C linkage, __cdecl, blittable-only types, 'all 5 exported functions' (header declares 6 incl. xpe_display_version)",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_display_integration.cpp",
+     "line": 296,
+     "name": "VersionString_NotNull",
+     "quote": "const char* ver = xpe_display_version();"
+    }
+   ],
+   "note": "No export-table, calling-convention or P/Invoke signature test exists. A link success is the only indirect evidence. SPEC says 5 functions; header says 6 (display_api.h:2) and exports 6."
+  },
+  {
+   "id": "REQ-DISP-030",
+   "verdict": "no_test",
+   "impl": "none (no try/catch in modules/display/src; code uses malloc, no new/vector/throwing calls)",
+   "independence": "none",
+   "unasserted": "that exceptions never cross the ABI; 'All exceptions SHALL be caught internally' (nothing is caught)",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_display_integration.cpp",
+     "line": 102,
+     "name": "FullPipeline_TableModality_SigmoidVoi",
+     "quote": "// REQ-DISP-030: TABLE modality + SIGMOID VOI + PresLUT"
+    }
+   ],
+   "note": "Satisfied (if at all) by construction, not by a catch. No test injects a failure; the only 'REQ-DISP-030' mention is a mis-numbered comment on a pipeline test."
+  },
+  {
+   "id": "REQ-DISP-031",
+   "verdict": "no_code",
+   "impl": "none: grep for spdlog/xpe_log/log in modules/display/src returns no logging call (CMakeLists.txt links spdlog PRIVATE but unused)",
+   "independence": "none",
+   "unasserted": "all of it: entry/exit DEBUG logs and ERROR logs",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_display_integration.cpp",
+     "line": 139,
+     "name": "PresetDrivenPipeline_BonePreset",
+     "quote": "// REQ-DISP-031: Use BONE preset through VOI then PresentationLUT"
+    }
+   ],
+   "note": "Behaviour absent; the single 'REQ-DISP-031' mention is a mis-numbered comment on a preset pipeline test."
+  },
+  {
+   "id": "REQ-DISP-032",
+   "verdict": "no_test",
+   "impl": "no global/static mutable state in modules/display/src (reentrant by construction)",
+   "independence": "none",
+   "unasserted": "any concurrent execution: no test starts a second thread",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_display_integration.cpp",
+     "line": 235,
+     "name": "IndependentBuffers_NoInterference",
+     "quote": "EXPECT_FLOAT_EQ(float_pixels(img1)[0], 100.0f);"
+    }
+   ],
+   "note": "The test's own comment says 'Single-threaded verification'. Two sequential calls on two buffers do not exercise reentrancy."
+  },
+  {
+   "id": "REQ-DISP-033",
+   "verdict": "partial",
+   "impl": "modules/display/src/presentation_lut.cpp:36-65 (malloc, free of old buffer); other functions allocate nothing",
+   "independence": "CRT heap walk before/after 1000 cycles with a positive control (64 B/cycle leak must be seen)",
+   "unasserted": "error paths (the cycle runs only successful calls); the bound tolerates up to cycles/10 leaked blocks and 16 KB; no-leak is Windows-only (GTEST_SKIP elsewhere)",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_display_integration.cpp",
+     "line": 464,
+     "name": "ThousandCycles_CrtHeapDoesNotGrow",
+     "quote": "EXPECT_LT(g.heap.blocks, heap_growth::MaxBlocks(g.cycles))"
+    },
+    {
+     "file": "modules/display/tests/test_display_integration.cpp",
+     "line": 480,
+     "name": "ThousandCycles_ControlLeakIsCaught",
+     "quote": "EXPECT_GE(g.heap.blocks, g.cycles * 9 / 10);"
+    },
+    {
+     "file": "modules/display/tests/test_display_integration.cpp",
+     "line": 257,
+     "name": "NoLeak_PresLutReplacesBuffer",
+     "quote": "EXPECT_NE(img.data, old_ptr);"
+    }
+   ],
+   "note": "A real, controlled measurement, but loose (100 leaked blocks per 1000 cycles would pass) and success-path only."
+  },
+  {
+   "id": "REQ-DISP-034",
+   "verdict": "asserted",
+   "impl": "modules/display/src/voi_lut.cpp:156-243; modality_lut.cpp:56-58; presentation_lut.cpp:46-53 (no size-dependent branch)",
+   "independence": "hand-computed literals on 1x1 images (42*2=84; boundary points of the PS3.3 windows; LUT entries 999/65535)",
+   "unasserted": "xpe_voi_preset_create/xpe_gsdf_calibrate are not image functions; EdgeCase_1x1FullPipeline itself asserts no values (only format/width/height)",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_modality_lut.cpp",
+     "line": 259,
+     "name": "EdgeCase_1x1Image",
+     "quote": "EXPECT_FLOAT_EQ(pixels(img)[0], 84.0f);"
+    },
+    {
+     "file": "modules/display/tests/test_parameter_dependency.cpp",
+     "line": 277,
+     "name": "VoiLinearMatchesTheStandardsWorkedExamples_156",
+     "quote": "EXPECT_FLOAT_EQ(0.0f, at(0.0f, 10.0f, 1.0f)) << \"width==1, below centre\";"
+    },
+    {
+     "file": "modules/display/tests/test_presentation_lut.cpp",
+     "line": 107,
+     "name": "LutLookup_ZeroInput",
+     "quote": "EXPECT_EQ(static_cast<uint16_t*>(img.data)[0], 999u);"
+    },
+    {
+     "file": "modules/display/tests/test_display_integration.cpp",
+     "line": 193,
+     "name": "EdgeCase_1x1FullPipeline",
+     "quote": "EXPECT_EQ(img.format, XPE_PIXEL_UINT16);"
+    }
+   ],
+   "note": "Satisfied through incidental 1x1 probes in other tests, not through the test named for it."
+  },
+  {
+   "id": "REQ-DISP-035",
+   "verdict": "constant_only",
+   "impl": "no size-dependent code; memory only in presentation_lut.cpp:36",
+   "independence": "none",
+   "unasserted": "VOI and presentation at 4096x4096; the 'allocated memory budget' (never defined or measured); output values",
+   "tests": [
+    {
+     "file": "modules/display/tests/test_display_integration.cpp",
+     "line": 213,
+     "name": "EdgeCase_4096x4096NocrashModalityLut",
+     "quote": "EXPECT_EQ(rc, XPE_OK);"
+    }
+   ],
+   "note": "Only modality LINEAR on a uniform 100.0 image is run at 4096x4096 and only rc is checked."
+  }
+ ],
+ "header_promises": [
+  {
+   "where": "modules/display/include/xpe/display/display_api.h:111-113",
+   "sentence": "output[i] = clamp((input[i] - (center - width/2)) / width * (maxOut - minOut) + minOut,",
+   "actual": "voi_lut.cpp:229-241 implements the PS3.3 C.11.2.1.2.1 form (centre-0.5, width-1, three branches); the documented formula is the pre-#156 expression that voi_lut.cpp:203-209 says is identical to LINEAR_EXACT."
+  },
+  {
+   "where": "modules/display/include/xpe/display/display_api.h:84",
+   "sentence": "XPE_VOI_LINEAR       = 0, /**< Standard linear windowing with half-value offset */",
+   "actual": "REQ-DISP-010a (spec.md ~line 322) requires any 'half-value offset' wording to name which function it means; LINEAR shifts centre by -0.5 and width by -1 (voi_lut.cpp:229-230), both modes keep the +0.5 term (:240, :249)."
+  },
+  {
+   "where": "modules/display/include/xpe/display/display_api.h:187-188",
+   "sentence": "Mode-specific validation happens AFTER the image is accepted, so an invalid slope or LUT is reported even for a zero-pixel image.",
+   "actual": "A zero-pixel image (width or height 0) is rejected earlier by xpe_validate_float32 (display_helpers.cpp:111-113), so the stated scenario cannot occur; rc is INVALID_INPUT either way."
+  },
+  {
+   "where": "modules/display/include/xpe/display/display_api.h:218-219",
+   "sentence": "An unknown mode is detected inside the per-pixel dispatch, so pixels are not modified before the error is returned.",
+   "actual": "The unknown mode is caught by the switch default (voi_lut.cpp:262-263) before any pixel loop runs; behaviour (no write) holds but the dispatch is not per pixel."
+  },
+  {
+   "where": "modules/display/include/xpe/display/display_api.h:142",
+   "sentence": "gsdfEnabled: non-zero if the LUT was generated by xpe_gsdf_calibrate().",
+   "actual": "xpe_apply_presentation_lut never reads gsdfEnabled (presentation_lut.cpp:20-73); SPEC REQ-DISP-024 makes the flag a condition, in the code it is write-only (presentation_lut.cpp:283)."
+  },
+  {
+   "where": "modules/display/include/xpe/display/display_api.h:63",
+   "sentence": "Input pixel value is rounded, shifted by lutFirstMapped, and clamped to [0, lutLength-1].",
+   "actual": "modality_lut.cpp:78 rounds via a float->int32 cast and subtracts lutFirstMapped in int32; a finite pixel beyond int32 range or an overflowing difference is undefined before the clamp (candidate, see defect_candidates)."
+  }
+ ],
+ "defect_candidates": [
+  {
+   "note": "CANDIDATE found by reading, NOT verified by execution",
+   "spec_id": "REQ-DISP-025 / REQ-DISP-026",
+   "where": "modules/display/src/presentation_lut.cpp:152,190-224,233-239,255-274",
+   "why": "The 'non-positive minimum -> 0.01' coercion (line 152) and any minimum below 0.05 cd/m2 give jnd_min outside the standard's 1..1023 domain (my arithmetic with the module's Eq 7-2 coefficients: j(0.01) = -20.8, j(0.001) = -353.8). Target JND values <= 0 then reach std::log(j) in luminance_from_jnd (line 211), giving NaN; target_lum comparisons (238-239) are false for NaN, the interpolation branch yields NaN ddl_f, and std::lround(NaN) cast to int32 (line 274) is undefined. The stage-2 test case '0.01..10000' (test_gsdf_characterization.cpp:613) only asserts deviation from a ramp > 1, so it would not notice. Same for lum_max > 4000 (j(10000)=1160 > 1023: Eq 7-1 is outside its domain, though clamped afterwards)."
+  },
+  {
+   "note": "CANDIDATE found by reading, NOT verified by execution",
+   "spec_id": "REQ-DISP-002",
+   "where": "modules/display/src/modality_lut.cpp:78; modules/display/include/xpe/display/display_internal.h:409-411",
+   "why": "A finite pixel with |value| > 2^31 (e.g. 3e9) is cast float->int32 in xpe_round_to_int: undefined; the usual x64 result INT_MIN would clamp to index 0 instead of the last entry the requirement ('clamping to the nearest boundary entry') asks for. idx = round - firstMapped can also overflow int32. Only +-999 are tested (test_modality_lut.cpp:128-129); the non-finite guard (:75) does not cover this."
+  },
+  {
+   "note": "CANDIDATE found by reading, NOT verified by execution",
+   "spec_id": "REQ-DISP-015 / REQ-DISP-009",
+   "where": "modules/display/src/voi_lut.cpp:171,229-241",
+   "why": "REQ-DISP-015 admits any width > 0, but for XPE_VOI_LINEAR a width in (0,1) makes w = width-1 negative; lo > hi and the three-branch test (v <= lo -> minOut, v > hi -> maxOut) degenerates into a single step at lo (width 0.5, center 10: x <= 9.75 -> minOut, otherwise maxOut). PS3.3 requires width >= 1 for LINEAR; neither SPEC nor code rejects or documents it."
+  },
+  {
+   "note": "CANDIDATE found by reading, NOT verified by execution",
+   "spec_id": "REQ-DISP-021",
+   "where": "modules/display/src/presentation_lut.cpp:32",
+   "why": "SPEC: pixels outside [0,1] SHALL be clamped. Code: +-inf and NaN are refused with XPE_ERR_INVALID_INPUT before clamping; test_nonfinite_pixels.cpp:168 pins the refusal. Intentional (QA-B-181f) but spec.md REQ-DISP-021 text was not amended."
+  },
+  {
+   "note": "CANDIDATE found by reading, NOT verified by execution",
+   "spec_id": "REQ-DISP-024",
+   "where": "modules/display/src/presentation_lut.cpp:20-73",
+   "why": "gsdfEnabled is never read; the 'WHEN gsdfEnabled is non-zero ... apply the GSDF-calibrated entries' condition has no code counterpart (the LUT is applied identically for 0 and 1)."
+  },
+  {
+   "note": "CANDIDATE found by reading, NOT verified by execution",
+   "spec_id": "REQ-DISP-026 / REQ-DISP-029@403 (SPEC text)",
+   "where": ".moai/specs/SPEC-XPE-P1B-DISP/spec.md:431 vs modules/display/src/presentation_lut.cpp:88-92",
+   "why": "spec.md says a NaN luminance is not detected and 'passes this guard'; since QA-B-181d the code rejects any non-finite element (test_gsdf_characterization.cpp:854). SPEC is stale."
+  },
+  {
+   "note": "CANDIDATE found by reading, NOT verified by execution",
+   "spec_id": "REQ-DISP-029@439",
+   "where": "spec.md ~line 439 vs modules/display/include/xpe/display/display_api.h:2",
+   "why": "SPEC says 'All 5 exported functions'; the header is titled '6 exported functions' and declares 6 XPE_API functions (version, modality, voi, preset, presentation, gsdf)."
+  },
+  {
+   "note": "CANDIDATE found by reading, NOT verified by execution",
+   "spec_id": "REQ-DISP-009..012",
+   "where": "modules/display/src/voi_lut.cpp:176-179,240,250,258",
+   "why": "minOut > maxOut is not rejected. For the EXACT/SIGMOID modes xpe_clamp(val, minOut, maxOut) with lo > hi returns minOut or maxOut by comparison order, giving a two-valued image instead of an inverted ramp; REQ-DISP-012 'in the range [minOut, maxOut]' has no meaning for an empty interval. Low severity."
+  },
+  {
+   "note": "CANDIDATE found by reading, NOT verified by execution",
+   "spec_id": "REQ-DISP-030 / REQ-DISP-031",
+   "where": "modules/display/src (whole)",
+   "why": "REQ-DISP-030 says exceptions 'SHALL be caught internally' and REQ-DISP-031 requires DEBUG/ERROR logging through xpe_common; the sources contain no try/catch and no logging call (grep). CMake links spdlog and fmt PRIVATE although nothing uses them."
+  }
+ ],
+ "orphan_tests": [
+  {
+   "file": "modules/display/tests/test_nonfinite_pixels.cpp",
+   "what": "QA-B-181f/#233: NaN/inf pixels, parameters and overflowing results are refused and the image left untouched in all three LUT functions; no REQ id in the SPEC covers it (mentions=[])."
+  },
+  {
+   "file": "modules/display/tests/test_datasize_overread.cpp",
+   "what": "#123/#142 dataSize-consistency guard with a guard-page buffer (Windows only) and a rc-only presentation case; cites REQ-DISP-019 only in a comment, the rule comes from the api-spec, not a REQ."
+  },
+  {
+   "file": "modules/display/tests/test_display_integration.cpp (DisplayDataSizeGuard*, DisplayEmptyImageContract)",
+   "what": "#123/#142 dataSize and empty-image (width/height 0, NULL data) contracts across the three entry points; no REQ."
+  },
+  {
+   "file": "modules/display/tests/test_presentation_lut.cpp (PresentationLutCrossDllTest)",
+   "what": "cross-DLL malloc/free round trip and PE import-table comparison proving both DLLs use the same UCRT heap; supports REQ-DISP-020 buffer replacement but no REQ states it."
+  },
+  {
+   "file": "modules/display/tests/test_parameter_dependency.cpp",
+   "what": "'does each parameter move the output' dependency controls (modality slope/intercept, VOI center/width/range/sigmoid, preset equality pinned until #151, presentation LUT contents, GSDF wide vs narrow luminance); property-style, no independent value except the two named tests (PS3.3 examples, DN-ramp)."
+  },
+  {
+   "file": "modules/display/tests/test_gsdf_characterization.cpp (KnownDivergence_ModuleCubicIsEq72Reversed_155)",
+   "what": "Compares literals inside the test file with each other (kA72 vs 71.498 etc.) and logs a test-local 'module cubic' that no longer exists in the module; exercises no module code."
+  },
+  {
+   "file": "modules/display/tests/test_gsdf_characterization.cpp (KnownDivergence_WhatTheCancelledModelWouldHaveCost_155, Stage2_ShippedLutAgainstTwoAssumedDisplayCharacteristics_155)",
+   "what": "Compare the shipped LUT with a LUT built from the OLD reversed cubic / two assumed display characteristics and assert a distance > 100 counts; they characterize a retired defect, not a requirement."
+  },
+  {
+   "file": "modules/display/tests/test_gsdf_characterization.cpp (Stage2_LutIsNoLongerALinearRamp_155, Stage2_StepSizeVariesAcrossTheCurve_155, Stage2_MeasurementsMoveTheCurve_155, Stage2_LuminanceSweepMovesTheCurve_155, Stage2_LutIsNoLongerTheStraightRamp_155)",
+   "what": "Regression guards asserting the LUT is NOT a straight ramp / varies with inputs (thresholds > 1 count); property assertions with no expected values."
+  },
+  {
+   "file": "modules/display/tests/heap_growth.h, perf_measure.h",
+   "what": "helpers (CRT heap walk; measure-only timing). perf_measure asserts only XPE_OK."
+  }
+ ],
+ "notes": [
+  "Performance requirements 008/016/028: the only time assertions are Performance_3072x3072_Linear (EXPECT_LE(ms, 20)), VoiLut Performance_3072x3072 (EXPECT_LE(ms, 16)) and PresentationLut Performance_3072x3072 (EXPECT_LE(ms, 30) - not 25). They run in a plain local ctest with no environment flag, but .github/workflows/ci.yml:318 passes -E \"Performance|Within[0-9]+ms|PerformanceBudget|LargeImagePerformance\" and :380 uses --gtest_filter=-*Performance*, so CI never runs them. The BenchmarkFreeze_* variants (perf_measure.h) measure and print only.",
+  "Timing fixtures are uniform images (1000.0, 500.0, 0.5) timed with std::chrono::milliseconds truncation; a 20.9 ms run passes a 20 ms limit.",
+  "Pack 'mentions' overstate coverage: test_display_integration.cpp cites REQ-DISP-029..035 but its comments are mis-numbered (e.g. line 55 REQ-029 = 'Full Pipeline', 98 REQ-030 = TABLE+SIGMOID pipeline, 135 REQ-031 = preset pipeline, 263 REQ-028 = GSDF pipeline). Likewise test_presentation_lut.cpp comments label GSDF error cases REQ-027 and the performance case REQ-025. display_api.h:191,222,286 cite REQ-033 for thread-safety (REQ-032), :285 cites REQ-025 for the 25 ms budget (REQ-028), :338 cites REQ-027 for count>=2 (REQ-026); presentation_lut.cpp:34,44,55,282 are likewise shifted.",
+  "Many value tests use 1x1 or uniform images and read only element [0] (modality, VOI centre, presentation LUT); an off-by-one in the loop bound or a stride bug would not show.",
+  "Tolerances: sigmoid centre +-1.0 on a 0..255 range (test_voi_lut.cpp:155) and +-0.01 on 0..1 (integration :124); gamma-display GSDF LUT tolerance 100/65535 counts; VOI preset test only requires > 64 distinct levels.",
+  "GSDF oracle: the test holds its own copy of the PS3.14 Eq 7-1/7-2 coefficients (test_gsdf_characterization.cpp:366-374), identical in value to the module's (presentation_lut.cpp:192-217). Table B-1 is checked for 10 points with j<=70 only (L<=0.964 cd/m2); the rest of the scale is checked by round trip and L(1023)=4000+-40. The module's own copy is validated only indirectly by agreement within 100 counts.",
+  "test_gsdf_characterization.cpp header (lines 1-51) and lines 654-664 still describe the pre-stage-2 state ('THE LUT IS A LINEAR RAMP', 'interior discarded'); the executable assertions are inverted but the prose is stale.",
+  "test_nonfinite_pixels.cpp:261 'if (rc != XPE_OK) continue;' makes VoiLutNeverMakesANonFinitePixelFromFiniteInput pass vacuously if every case were refused; it checks only the range property.",
+  "Self-skipping: DisplayEndurance cases GTEST_SKIP off Windows (test_display_integration.cpp:460,475); the guard-page probe (test_datasize_overread.cpp) is compiled only under _WIN32; test_presentation_lut.cpp:324 includes <windows.h> unconditionally, so the file is Windows-only. The presentation dataSize probe is rc-only (over-read not measured).",
+  "KnownDivergence_VoiPresetIgnoresBodyPartUntil151 asserts equality of the four presets so it turns red when #151 lands; it constrains nothing about correctness of the numbers.",
+  "REQ-DISP-017 revision: the DN-ramp test (test_parameter_dependency.cpp:304) asserts > 64 distinct levels, a behavioural check independent of the constants."
+ ]
+}

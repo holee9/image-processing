@@ -101,7 +101,7 @@ struct Worker {
     std::thread watchdog;
 
     Worker() : pipe(UniquePipeName()) {
-        std::string cmd = std::string("\"") + XPE_AI_WORKER_EXE + "\" " + pipe;
+        std::string cmd = std::string("\"") + XPE_AI_WORKER_EXE + "\" --diagnostic " + pipe;
         STARTUPINFOA si{};
         si.cb = sizeof(si);
         launched = CreateProcessA(nullptr, cmd.data(), nullptr, nullptr, FALSE,

@@ -24,6 +24,7 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include "test_signing_helper.h"
 
 #ifndef XPE_AI_TEST_DATA_DIR
 #error "XPE_AI_TEST_DATA_DIR must be defined by the build (modules/ai/CMakeLists.txt)"
@@ -320,7 +321,7 @@ TEST_F(BoneSuppressNonFinite, AValidNonFiniteResponseEndsARunOfWorkerFaultsAndNe
     EXPECT_NE(XPE_OK, CallWith(Ordinary()));                       // fault 1: no model
     EXPECT_NE(XPE_OK, CallWith(Ordinary()));                       // fault 2
     EXPECT_EQ(2u, QueryState().failures);
-    ASSERT_TRUE(CopyFileA((kDirX2 + "/bone_suppress.onnx").c_str(), model.c_str(), FALSE) != 0);
+    ASSERT_TRUE(xpe_test::CopyModelWithSignature(kDirX2, "bone_suppress", dir));
     EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, CallWith(ExtremeInputs()[0].in));   // valid response, non-finite result
     EXPECT_EQ(0u, QueryState().failures) << "a valid response must end the run of worker faults";
     EXPECT_EQ(XPE_AI_WORKER_ACTIVE, QueryState().state);
@@ -339,6 +340,5 @@ TEST_F(BoneSuppressNonFinite, AValidNonFiniteResponseEndsARunOfWorkerFaultsAndNe
     EXPECT_EQ(0, CountAlerts("disabled"));
 
     xpe_ai_shutdown();
-    DeleteFileA(model.c_str());
-    RemoveDirectoryA(dir.c_str());
+    xpe_test::RemoveModelDir(dir, "bone_suppress");
 }

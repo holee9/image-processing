@@ -1,0 +1,17 @@
+QA-B-194 M3 arms: every arm built (build_ok=True), ai.cpp restored byte-identical after the last one; from the per-arm gtest outputs build/g194m3-arm_<tag>.txt
+
+L1 the dose and geometry are not judged at all: red(2)=['AiInputValidation.ADoseOrGeometryThatIsNotAFiniteNonNegativeNumberIsRefusedAndTheFrameIsLeftAlone', 'AiInputValidation.TheMetadataIsJudgedBeforeThePixelsAreScanned']
+L2 a negative value is accepted: red(1)=['AiInputValidation.ADoseOrGeometryThatIsNotAFiniteNonNegativeNumberIsRefusedAndTheFrameIsLeftAlone']
+L3 NaN is accepted (only negatives and infinities refused): red(3)=['AiInputValidation.ADoseOrGeometryThatIsNotAFiniteNonNegativeNumberIsRefusedAndTheFrameIsLeftAlone', 'AiInputValidation.ControlMetadataThatIsMerelyUnusualIsNotRefused', 'AiInputValidation.TheMetadataIsJudgedBeforeThePixelsAreScanned']
+L4 zero is refused (it means unknown): red(4)=['AiFallbackTest.DataSizeGuard_DlDenoise_ZeroAccepted', 'AiFallbackTest.DlDenoiseStubReturnsProcessingFailed', 'AiFallbackTest.EmptyImageContract_ValidImageStillAccepted', 'AiInputValidation.ControlMetadataThatIsMerelyUnusualIsNotRefused']
+L5 the body part terminator is not checked: red(1)=['AiInputValidation.ABodyPartThatIsNotATerminatedStringIsRefused']
+L6 a range is invented (kVp above 150 refused): red(1)=['AiInputValidation.ControlMetadataThatIsMerelyUnusualIsNotRefused']
+L7 the metadata is judged after the pixel scan: red(1)=['AiInputValidation.TheMetadataIsJudgedBeforeThePixelsAreScanned']
+M1 the identifier is not judged at all: red(1)=['AiInputValidation.AModelIdentifierIsOneToSixtyFourOfLettersDigitsDotUnderscoreHyphen']
+M2 the length limit is 63: red(1)=['AiInputValidation.AModelIdentifierIsOneToSixtyFourOfLettersDigitsDotUnderscoreHyphen']
+M3 the empty identifier is accepted: red(1)=['AiInputValidation.AModelIdentifierIsOneToSixtyFourOfLettersDigitsDotUnderscoreHyphen']
+M4 a quote is accepted: red(1)=['AiInputValidation.AModelIdentifierIsOneToSixtyFourOfLettersDigitsDotUnderscoreHyphen']
+M5 a space is accepted: red(1)=['AiInputValidation.AModelIdentifierIsOneToSixtyFourOfLettersDigitsDotUnderscoreHyphen']
+M6 a byte above 127 is accepted: red(1)=['AiInputValidation.AModelIdentifierIsOneToSixtyFourOfLettersDigitsDotUnderscoreHyphen']
+
+CONTROL (file restored): passed=119 red=[]

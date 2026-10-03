@@ -1,0 +1,68 @@
+=== ARM host_server_pid_check_off
+build: ===BUILD=0===
+red tests: WorkerPipePeer.TheSupervisorRefusesAPipeServedByAProcessItDidNotStart
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM worker_client_pid_check_off
+build: ===BUILD=0===
+red tests: WorkerPipePeer.AfterTooManyForeignClientsTheWorkerExitsInsteadOfServingThem, WorkerPipePeer.TheWorkerCutsOffAClientThatIsNotTheHostAndKeepsWaiting
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: ['WorkerPipePeer.AfterTooManyForeignClientsTheWorkerExitsInsteadOfServingThem']
+restored byte-identical: True
+=== ARM worker_first_pipe_instance_off
+build: ===BUILD=0===
+red tests: (none)
+RESULT: DID NOT FIRE  (expected red: 1, red: 0, not red: ['AWorkerCannotTakeANameThatIsAlreadyServed'])
+other red tests: none
+restored byte-identical: True
+=== ARM pipe_name_random_part_zero
+build: ===BUILD=0===
+red tests: WorkerPipePeer.EveryPipeNameCarries128FreshRandomBits
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM bridge_default_impersonation_level
+build: ===BUILD=0===
+red tests: WorkerPipePeer.TheHostsBridgeConnectsAtTheAnonymousLevelSoAServerCannotActAsTheHost
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM worker_host_id_strtoul_wrap
+build: ===BUILD=0===
+red tests: WorkerPipePeer.ABadHostIdEndsTheWorkerInsteadOfSwitchingTheCheckOff
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM worker_foreign_client_bound_unlimited
+build: ===BUILD=0===
+red tests: WorkerPipePeer.AfterTooManyForeignClientsTheWorkerExitsInsteadOfServingThem
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM bone_refusal_memo_back
+build: ===BUILD=0===
+red tests: TrustRecheck.ARefusedBoneModelIsReadAndVerifiedAgainOnEveryCall, TrustRecheck.ARepairedBoneModelWithTheSizeAndWriteTimeOfTheRefusedOneIsAcceptedAtOnce
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM bodypart_refusal_memo_back
+build: ===BUILD=0===
+red tests: TrustRecheck.ARepairedBodyPartSidecarWithTheSizeAndWriteTimeOfTheRefusedOneIsAcceptedAtOnce
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM card_lookup_holds_the_module_lock
+build: ===BUILD=0===
+red tests: TrustRecheck.ASlowCardLookupDoesNotKeepAnotherCardLookupWaiting, TrustRecheck.AnInferenceIsNotKeptOutByASlowCardLookup
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+other red tests: none
+restored byte-identical: True
+=== DONE
+=== ARM worker_first_pipe_instance_off
+build: ===BUILD=0===
+red tests: WorkerPipePeer.AWorkerCannotTakeANameThatIsAlreadyServed
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== DONE

@@ -1,0 +1,131 @@
+"""QA-B-199 mechanical extraction for SPEC-XPE-P1B-ENH / DISP / DICOM (name axis).
+
+Run from the repository root:  python .moai/reports/lane-post/QA-B-199/extract_script.txt <outdir>
+It writes <outdir>/pack_<spec>.json (the data the audit reads) and prints the name-axis counts.
+Controls (printed): a REQ that IS in a task row is found in it; the id-range expander is checked on a known range.
+"""
+import json, os, re, sys
+
+OUT = sys.argv[1] if len(sys.argv) > 1 else 'build/g199'
+os.makedirs(OUT, exist_ok=True)
+SPECS = {
+    'ENH':   dict(prefix='ENH',   module='enhance_basic', dir='.moai/specs/SPEC-XPE-P1B-ENH'),
+    'DISP':  dict(prefix='DISP',  module='display',       dir='.moai/specs/SPEC-XPE-P1B-DISP'),
+    'DICOM': dict(prefix='DICOM', module='dicom',         dir='.moai/specs/SPEC-XPE-P1B-DICOM'),
+}
+
+
+def expand(prefix, text):
+    """Every REQ-<prefix>-... id named in @text, ranges (001..006) and comma lists (001, 002) expanded."""
+    ids = set()
+    # forms: REQ-ENH-001..006 | REQ-ENH-CC-001..005 | REQ-ENH-001, 002, 003 | REQ-ENH-023a
+    for m in re.finditer(r'REQ-%s-((?:CC-)?)(\d+)([a-z]?)(?:\.\.(\d+))?((?:\s*,\s*\d+[a-z]?)*)' % prefix, text):
+        cc, a, suf, b, more = m.groups()
+        if b:
+            for n in range(int(a), int(b) + 1):
+                ids.add('REQ-%s-%s%03d' % (prefix, cc, n))
+        else:
+            ids.add('REQ-%s-%s%03d%s' % (prefix, cc, int(a), suf))
+        for x in re.findall(r'\d+[a-z]?', more):
+            n = re.match(r'\d+', x).group(0)
+            s = x[len(n):]
+            ids.add('REQ-%s-%s%03d%s' % (prefix, cc, int(n), s))
+    # form: REQ-DICOM-001 through REQ-DICOM-012
+    for m in re.finditer(r'REQ-%s-(\d+) (?:through|to) REQ-%s-(\d+)' % (prefix, prefix), text):
+        for n in range(int(m.group(1)), int(m.group(2)) + 1):
+            ids.add('REQ-%s-%03d' % (prefix, n))
+    return ids
+
+
+# control for the expander
+assert expand('ENH', 'REQ-ENH-001..006') == {'REQ-ENH-%03d' % i for i in range(1, 7)}
+assert expand('ENH', 'REQ-ENH-CC-001..005, AC-01') == {'REQ-ENH-CC-%03d' % i for i in range(1, 6)}
+assert expand('DICOM', 'REQ-DICOM-001, 002, 009') == {'REQ-DICOM-001', 'REQ-DICOM-002', 'REQ-DICOM-009'}
+assert expand('DICOM', 'REQ-DICOM-001 through REQ-DICOM-003') >= {'REQ-DICOM-001', 'REQ-DICOM-002', 'REQ-DICOM-003'}
+
+summary = {}
+for key, cfg in SPECS.items():
+    pre = cfg['prefix']
+    spec = open(cfg['dir'] + '/spec.md', encoding='utf-8').read().split('\n')
+    # ---- defined requirements: a line that starts with **REQ-<pre>-...**
+    reqs, seen = [], {}
+    for i, line in enumerate(spec, 1):
+        m = re.match(r'^\*\*(REQ-%s-(?:CC-)?\d+[a-z]?)\*\*' % pre, line)
+        if not m:
+            continue
+        rid = m.group(1)
+        # the text: this line plus the following non-blank lines up to the next bold REQ or heading
+        text = [line]
+        j = i
+        while j < len(spec) and spec[j].strip() and not re.match(r'^(\*\*REQ-|#)', spec[j]):
+            text.append(spec[j]); j += 1
+        reqs.append(dict(id=rid, line=i, text='\n'.join(text)[:1500]))
+        seen.setdefault(rid, []).append(i)
+    dups = {k: v for k, v in seen.items() if len(v) > 1}
+
+    # ---- task rows
+    tasks = []
+    if key == 'ENH':
+        for l in open(cfg['dir'] + '/tasks.md', encoding='utf-8').read().split('\n'):
+            if l.startswith('| T-'):
+                c = [x.strip() for x in l.split('|')]
+                tasks.append(dict(id=c[1], desc=c[2], req=c[3], files=c[5], status=c[6], reqs=sorted(expand(pre, c[3]))))
+    elif key == 'DISP':
+        for l in open(cfg['dir'] + '/plan.md', encoding='utf-8').read().split('\n'):
+            m = re.match(r'^\| (M\d-\d+) \| (.*?) \|(?: (.*?) \|)?\s*$', l)
+            if m:
+                tasks.append(dict(id=m.group(1), desc=m.group(2), req=m.group(3) or '', status='(no status column)',
+                                  reqs=sorted(expand(pre, m.group(3) or ''))))
+    else:
+        plan = open(cfg['dir'] + '/plan.md', encoding='utf-8').read()
+        # The plan maps requirements per MILESTONE ("**REQ Coverage**: REQ-DICOM-001 through REQ-DICOM-012"), and Task D-12
+        # has no such line: each task inherits the coverage line of the section it sits in.
+        for sec in re.split(r'\n(?=## )', plan):
+            cov = expand(pre, ' '.join(re.findall(r'\*\*REQ Coverage\*\*:[^\n]*', sec)))
+            for p in re.split(r'\n(?=### Task D-)', sec)[1:]:
+                head = p.split('\n', 1)[0]
+                m = re.match(r'### Task (D-\d+): (.*)', head)
+                body = p.split('\n### ', 1)[0].split('\n## ', 1)[0]
+                tasks.append(dict(id=m.group(1), desc=m.group(2), req='(milestone coverage)', status='(no status column)',
+                                  reqs=sorted(cov | expand(pre, body))))
+
+    # ---- acceptance criteria
+    acc = open(cfg['dir'] + '/acceptance.md', encoding='utf-8').read()
+    acs = re.findall(r'^(?:#+\s*|\|\s*|\*\*)(AC-\d+[^\n|*]{0,100})', acc, re.M)
+
+    # ---- tests of the module: name, file, line; and the REQ/AC/TST ids each file mentions
+    tests, mentions = [], {}
+    tdir = 'modules/%s/tests' % cfg['module']
+    for fn in sorted(os.listdir(tdir)):
+        if not fn.endswith(('.cpp', '.hpp', '.h')):
+            continue
+        txt = open(os.path.join(tdir, fn), encoding='utf-8', errors='replace').read().split('\n')
+        for i, l in enumerate(txt, 1):
+            m = re.match(r'\s*(TEST|TEST_F|TEST_P)\(\s*(\w+)\s*,\s*(\w+)', l)
+            if m:
+                tests.append(dict(file=fn, line=i, suite=m.group(2), name=m.group(3)))
+        ids = sorted(set(re.findall(r'(?:REQ-%s-(?:CC-)?\d+[a-z]?|AC-\d+|TST-\d+-\d+|TC-[A-Z0-9-]+)' % pre, '\n'.join(txt))))
+        mentions[fn] = ids
+
+    # ---- name axis
+    defined = [r['id'] for r in reqs]
+    in_task = set()
+    for t in tasks:
+        in_task |= set(t['reqs'])
+    in_test_text = set()
+    for ids in mentions.values():
+        in_test_text |= {x for x in ids if x.startswith('REQ-')}
+    summary[key] = dict(defined=len(set(defined)), defined_lines=len(defined), duplicates=dups, tasks=len(tasks),
+                        in_no_task=sorted(set(defined) - in_task), tasks_named_but_undefined=sorted(in_task - set(defined)),
+                        in_no_test_text=sorted(set(defined) - in_test_text), tests=len(tests))
+    json.dump(dict(spec=key, reqs=reqs, duplicates=dups, tasks=tasks, acs=acs, tests=tests, mentions=mentions),
+              open('%s/pack_%s.json' % (OUT, key), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+
+# ---- controls
+if summary['ENH']['tasks']:
+    t1 = [t for t in json.load(open('%s/pack_ENH.json' % OUT, encoding='utf-8'))['tasks'] if t['id'] == 'T-004'][0]
+    print('control: T-004 names', t1['reqs'])
+for key, s in summary.items():
+    print('==', key)
+    for k, v in s.items():
+        print('  %-28s %s' % (k, v))

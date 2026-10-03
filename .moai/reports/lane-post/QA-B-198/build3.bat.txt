@@ -1,0 +1,11 @@
+@echo off
+call "D:\workspace-github\xpe-post\.moai\reports\lane-post\QA-B-120\_env.bat"
+cd /d D:\workspace-github\xpe-post\build\g198
+if not exist bin_dll mkdir bin_dll
+copy /y bin\onnxruntime.dll bin_dll\ >nul
+copy /y bin\spdlog.dll bin_dll\ >nul
+copy /y bin\fmt.dll bin_dll\ >nul
+cl /nologo /EHsc dllload.cpp /Fe:bin_dll\probe.exe > dllload_build.txt 2>&1
+set G198_DETACHED=1
+D:\workspace-github\xpe-post\build\g198\launch.exe wr2 probe D:\workspace-github\xpe-post\build\g198\bin_dll D:\workspace-github\xpe-post\modules\ai\tests\data\models_x2 > out_wr2_dllload.txt 2>&1
+D:\workspace-github\xpe-post\build\g198\launch.exe base probe D:\workspace-github\xpe-post\build\g198\bin_dll D:\workspace-github\xpe-post\modules\ai\tests\data\models_x2 > out_base_dllload.txt 2>&1

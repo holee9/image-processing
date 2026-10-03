@@ -1,0 +1,60 @@
+"""QA-B-199 item 3: RTM rows marked checked (the check mark) whose test id appears in NO test source.
+
+Run from the repository root:  python .moai/reports/lane-post/QA-B-199/rtm_script.txt
+A test id "appears" when it is found as text in a test source of the module (modules/<m>/tests) -- as TC-101, Tc101_,
+TDS-001, Tds001_ ... A hit is only a CITATION (name axis); whether the test asserts anything is the behaviour axis, judged
+separately. The control line shows the matcher finds an id that does appear.
+"""
+import os, re, sys
+
+CHECK = '✓'
+RTMS = {
+    'ENH':   ('docs/enhance-basic/RTM-ENHANCE-BASIC-001_Requirements_Traceability_Matrix.md', 'modules/enhance_basic/tests', r'TST-\d+-\d+'),
+    'DISP':  ('docs/display/RTM-DISPLAY-001_Requirements_Traceability_Matrix.md',              'modules/display/tests',        r'TDS-\d+'),
+    'DICOM': ('docs/dicom/RTM-DICOM-001_Requirements_Traceability_Matrix.md',                  'modules/dicom/tests',          r'(?:S?TC)-\d+'),
+}
+
+
+def sources(d):
+    out = ''
+    for fn in sorted(os.listdir(d)):
+        if fn.endswith(('.cpp', '.h', '.hpp')):
+            out += open(os.path.join(d, fn), encoding='utf-8', errors='replace').read() + '\n'
+    return out
+
+
+def variants(tid):
+    """TC-101 -> TC-101, TC101, Tc101_ (case-insensitive search on the first two forms)."""
+    m = re.match(r'([A-Z]+)-?(\d+)(?:-(\d+))?$', tid)
+    pre, a, b = m.group(1), m.group(2), m.group(3)
+    if b:
+        return [tid, '%s%s_%s' % (pre, a, b), '%s_%s_%s' % (pre, a, b)]
+    return [tid, pre + a]
+
+
+total = 0
+for key, (rtm, tdir, idre) in RTMS.items():
+    src = sources(tdir).lower()
+    rows = [l for l in open(rtm, encoding='utf-8').read().split('\n') if l.startswith('|') and CHECK in l]
+    seen, miss, nohit_rows = {}, [], []
+    for r in rows:
+        cells = [c.strip() for c in r.split('|')]
+        ids = re.findall(idre, r)
+        if not ids:
+            nohit_rows.append(cells[1])
+            continue
+        for tid in ids:
+            hit = any(v.lower() in src for v in variants(tid))
+            seen.setdefault(tid, hit)
+            if not hit:
+                miss.append((cells[1], tid))
+    print('== %s: %d checked rows; %d with a test id; %d distinct ids; ids found in tests %d; rows whose id is in NO test: %d'
+          % (key, len(rows), len(rows) - len(nohit_rows), len(seen), sum(1 for v in seen.values() if v), len(miss)))
+    if nohit_rows:
+        print('   checked rows with NO test id at all (%d): %s' % (len(nohit_rows), ', '.join(nohit_rows[:40])))
+    for srs, tid in miss[:60]:
+        print('   no test source contains %-10s (row %s)' % (tid, srs))
+    total += len(miss)
+    # control: the first id that IS found
+    ok = [t for t, h in seen.items() if h][:1]
+    print('   control: %s found in the tests: %s' % (ok, bool(ok)))

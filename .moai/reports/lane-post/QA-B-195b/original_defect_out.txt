@@ -1,0 +1,26 @@
+QA-B-195b: the ORIGINAL defect, reproduced by turning off both layers at once: Create does not map bad_alloc (K1) and the
+worker request boundary catches neither bad_alloc (K2) nor other exceptions (K3).
+Test: WorkerBoundary.AShortageOfMemoryWhileReadingTheModelIsAnErrorFrameAndTheWorkerSurvives (XPE_AI_TEST_FAIL_MODEL_READ=1).
+Excerpt of the run output (first assertions of the bone half; the body-part half fails the same way):
+
+modules\ai\tests\test_ai_worker_boundary.cpp(105): error: Expected equality of these values:
+  expected
+    Which is: -2
+  failed.rc
+    Which is: -3
+XPE_AI_TEST_FAIL_MODEL_READ=1: the worker's own answer
+modules\ai\tests\test_ai_worker_boundary.cpp(108): error: Expected: (0u) != (pid), actual: 0 vs 0
+the worker is still there
+modules\ai\tests\test_ai_worker_boundary.cpp(110): error: Expected equality of these values:
+  0
+  next.rc
+    Which is: -3
+the next request to the same worker succeeds
+modules\ai\tests\test_ai_worker_boundary.cpp(113): error: Expected equality of these values:
+  1u
+    Which is: 1
+  sup.StartCount()
+    Which is: 2
+the worker was started once and never restarted
+[  FAILED  ] WorkerBoundary.AShortageOfMemoryWhileReadingTheModelIsAnErrorFrameAndTheWorkerSurvives (1420 ms)
+[  FAILED  ] WorkerBoundary.AShortageOfMemoryWhileReadingTheModelIsAnErrorFrameAndTheWorkerSurvives

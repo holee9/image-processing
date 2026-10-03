@@ -1,0 +1,3 @@
+@echo off
+set G198_OP=bodypart
+D:\workspace-github\xpe-post\build\g198\launch.exe %1 worker D:\workspace-github\xpe-post\build\g198\bin D:\workspace-github\xpe-post\modules\ai\tests\data\models_bodypart_a > D:\workspace-github\xpe-post\build\g198\out_%1_bodypart.txt 2>&1

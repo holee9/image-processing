@@ -1,0 +1,12 @@
+QA-B-194 M5 arms: every arm built (build_ok=True), the sources restored byte-identical after the last one; from the per-arm gtest outputs build/g194m5-arm_<tag>.txt
+Run on xpe_ai_oom_tests (ci-ai), BEFORE the strict "tried == worked" assertion was added to ARefusedInitIsUsableAfterwards
+
+S1 init maps an allocation failure to the wrong code: red(2)=['AiOom.InitWithAnEmptyConfigObjectFailsCleanlyAtEveryAllocation', 'AiOom.InitWithoutAConfigFailsCleanlyAtEveryAllocation']
+S2 init has no try/catch at all: red(3)=['AiOom.ARefusedInitIsUsableAfterwards', 'AiOom.InitWithAnEmptyConfigObjectFailsCleanlyAtEveryAllocation', 'AiOom.InitWithoutAConfigFailsCleanlyAtEveryAllocation']
+S3 init does not own its state until the last step (the pre-M4 leak): red(3)=['AiOom.ARefusedInitIsUsableAfterwards', 'AiOom.InitWithAnEmptyConfigObjectFailsCleanlyAtEveryAllocation', 'AiOom.InitWithoutAConfigFailsCleanlyAtEveryAllocation']
+S4 the model card maps an allocation failure to the wrong code: red(2)=['AiOom.ModelCardOfALoadedModelFailsCleanlyAtEveryAllocation', 'AiOom.ModelCardOfAnUnknownModelFailsCleanlyAtEveryAllocation']
+S5 body-part recognition maps an allocation failure to the wrong code: red(1)=['AiOom.BodyPartRecognitionFailsCleanlyAtEveryAllocation']
+S6 session creation reports an allocation failure as a failed session (the finding): red(1)=['AiOom.BoneSuppressionFailsCleanlyAtEveryAllocation']
+S7 the bone path does not map the out-of-memory session code: red(1)=['AiOom.BoneSuppressionFailsCleanlyAtEveryAllocation']
+
+CONTROL (files restored): passed=8 red=[]

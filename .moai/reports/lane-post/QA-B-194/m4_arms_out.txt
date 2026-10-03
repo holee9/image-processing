@@ -1,0 +1,17 @@
+QA-B-194 M4 arms: every arm built (build_ok=True), ai.cpp restored byte-identical after the last one; from the per-arm gtest outputs build/g194m4-arm_<tag>.txt
+P7 and P8 were re-run after their first form turned out to be equivalent mutants (see m4_report.md); the first run is m4_arms_out_first_run.txt
+
+P1 the empty directory is accepted: red(2)=['AiInitHardening.AnEmptyModelDirectoryIsAMissingArgumentAndLeavesTheModuleUntouched', 'AiInitHardening.AnEmptyModelDirectoryIsRefusedWhetherOrNotTheModuleIsAlreadyInitialised']
+P2 the empty directory is judged only for a fresh init: red(1)=['AiInitHardening.AnEmptyModelDirectoryIsRefusedWhetherOrNotTheModuleIsAlreadyInitialised']
+P3 a config that is not valid JSON is not announced: red(1)=['AiInitHardening.AConfigThatCannotBeUsedSaysSoAndTheCallStillSucceeds']
+P4 a config that is not an object is not announced: red(1)=['AiInitHardening.AConfigThatCannotBeUsedSaysSoAndTheCallStillSucceeds']
+P5 a signed (negative) timeout is not range-checked: red(1)=['AiInitHardening.ATimeoutOutsideZeroToTwoToTheThirtyOneIsIgnoredWithAnAlert']
+P6 an unsigned timeout is not range-checked: red(1)=['AiInitHardening.ATimeoutOutsideZeroToTwoToTheThirtyOneIsIgnoredWithAnAlert']
+P7 the upper bound is off by one (2147483647 refused): red(1)=['AiInitHardening.TheTimeoutBoundsThemselvesAreAcceptedSilently']
+P8 zero is refused (it means the default): red(1)=['AiInitHardening.TheTimeoutBoundsThemselvesAreAcceptedSilently']
+P9 a second init never says anything: red(1)=['AiInitHardening.ASecondInitIsIgnoredAndSaysSoOnlyWhenItAskedForSomethingDifferent']
+Q1 a second init always says something: red(1)=['AiInitHardening.ASecondInitIsIgnoredAndSaysSoOnlyWhenItAskedForSomethingDifferent']
+Q2 a second init compares only the directory: red(1)=['AiInitHardening.ASecondInitIsIgnoredAndSaysSoOnlyWhenItAskedForSomethingDifferent']
+Q3 a second init compares only the config: red(1)=['AiInitHardening.ASecondInitIsIgnoredAndSaysSoOnlyWhenItAskedForSomethingDifferent']
+
+CONTROL (file restored): passed=112 red=[]

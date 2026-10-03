@@ -107,6 +107,27 @@ if(_XPE_BUILD_TESTS)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
+    # --- QA-B-200 M1 (#251): reproductions of the QA-B-199 candidates; every test is DISABLED_ (built, never run by ctest) ---
+    add_executable(test_display_repro_qa_b_200
+        tests/test_repro_qa_b_200.cpp
+    )
+    target_include_directories(test_display_repro_qa_b_200 PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(test_display_repro_qa_b_200 PRIVATE
+        xpe_display
+        spdlog::spdlog
+        GTest::gtest_main
+    )
+    target_compile_features(test_display_repro_qa_b_200 PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_display_repro_qa_b_200 PRIVATE /W4)
+    endif()
+    xpe_target_warnings_as_errors(test_display_repro_qa_b_200)
+    gtest_discover_tests(test_display_repro_qa_b_200
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
     # --- test_voi_lut (SWU-3.2: REQ-DISP-009..018) ---
     add_executable(test_display_voi_lut
         tests/test_voi_lut.cpp

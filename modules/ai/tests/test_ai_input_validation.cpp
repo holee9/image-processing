@@ -544,3 +544,315 @@ TEST_F(AiInputValidation, NoSizeRuleBetweenPartsIsInventedBecauseTheAlgorithmDoe
     EXPECT_GT(w, 0u);
     EXPECT_GT(h, 0u);
 }
+
+// ===== M3: the denoise metadata and the model identifier ====================================================
+
+namespace {
+
+/** xpe_dl_denoise on a clean 8 x 8 frame with @p meta; also reports whether the frame's bytes were left alone. */
+XpeErrorCode DenoiseWith(const XpeImageMetadata& meta, bool* frameUntouched = nullptr) {
+    Img img(8, 8);
+    const std::vector<float> before = img.v;
+    XpeImageBuffer b = img.Buffer();
+    const XpeErrorCode rc = xpe_dl_denoise(&b, &meta, nullptr);
+    if (frameUntouched) *frameUntouched = std::memcmp(before.data(), img.v.data(), before.size() * sizeof(float)) == 0;
+    return rc;
+}
+
+}  // namespace
+
+TEST_F(AiInputValidation, ControlMetadataThatIsMerelyUnusualIsNotRefused) {
+    // Without these, every refusal below could be "denoise refuses all metadata". They also pin what is NOT judged:
+    // zero (= unknown, as everywhere in the metadata), an empty body part, an extreme but finite dose, any time and
+    // any flag bits. No clinical range is invented.
+    XpeImageMetadata m = Meta();
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, DenoiseWith(m)) << "the ordinary case";
+
+    XpeImageMetadata zeros{};
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, DenoiseWith(zeros)) << "all zero = all unknown";
+
+    m = Meta();
+    m.bodyPart[0] = '\0';
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, DenoiseWith(m)) << "an empty body part is a string";
+
+    m = Meta();
+    m.kVp = FLT_MAX;
+    m.mAs = FLT_MAX;
+    m.SID_mm = FLT_MAX;
+    m.pixelPitch_mm = FLT_MAX;
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, DenoiseWith(m)) << "huge is not invalid: no range is invented";
+
+    m = Meta();
+    m.acquisitionTime = 0xFFFFFFFFFFFFFFFFull;
+    m.flags = 0xFFFFFFFFu;
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, DenoiseWith(m)) << "time and flags are not judged";
+
+    m = Meta();
+    std::memset(m.bodyPart, 'A', sizeof(m.bodyPart) - 1);   // 63 characters + the terminator already there
+    m.bodyPart[sizeof(m.bodyPart) - 1] = '\0';
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, DenoiseWith(m)) << "63 characters and a terminator fit";
+}
+
+TEST_F(AiInputValidation, ADoseOrGeometryThatIsNotAFiniteNonNegativeNumberIsRefusedAndTheFrameIsLeftAlone) {
+    struct Field { const char* name; float XpeImageMetadata::*member; };
+    const Field fields[] = {
+        {"kVp", &XpeImageMetadata::kVp},
+        {"mAs", &XpeImageMetadata::mAs},
+        {"SID_mm", &XpeImageMetadata::SID_mm},
+        {"pixelPitch_mm", &XpeImageMetadata::pixelPitch_mm},
+    };
+    for (const Field& f : fields) {
+        for (const float bad : {kNaN, kInf, -kInf, -1.0f, -0.0001f, -FLT_MAX}) {
+            XpeImageMetadata m = Meta();
+            m.*(f.member) = bad;
+            xpe_clear_alerts();
+            bool untouched = false;
+            EXPECT_EQ(XPE_ERR_INVALID_INPUT, DenoiseWith(m, &untouched)) << f.name << " = " << bad;
+            EXPECT_TRUE(untouched) << f.name << " = " << bad << ": a refused call writes nothing";
+            EXPECT_TRUE(Alerts().empty()) << f.name << " = " << bad << ": a plain INVALID_INPUT, like the size checks";
+        }
+    }
+}
+
+TEST_F(AiInputValidation, ABodyPartThatIsNotATerminatedStringIsRefused) {
+    // 64 bytes of 'A' and no NUL: the field would be read past its end as a C string.
+    XpeImageMetadata m = Meta();
+    std::memset(m.bodyPart, 'A', sizeof(m.bodyPart));
+    bool untouched = false;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, DenoiseWith(m, &untouched));
+    EXPECT_TRUE(untouched);
+}
+
+TEST_F(AiInputValidation, TheMetadataIsJudgedBeforeThePixelsAreScanned) {
+    // Both are wrong: the cheap metadata check answers first, and no NaN alert is raised for a frame that was never
+    // looked at. (Pinned so the order is a decision: the scan is the expensive one.)
+    Img img(8, 8);
+    img.v[3] = kNaN;
+    XpeImageMetadata m = Meta();
+    m.mAs = kNaN;
+    XpeImageBuffer b = img.Buffer();
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dl_denoise(&b, &m, nullptr));
+    EXPECT_TRUE(Alerts().empty());
+}
+
+namespace {
+
+struct Card {
+    XpeErrorCode rc;
+    std::string text;
+    bool bufferUntouched;
+};
+
+Card CardFor(const std::string& id) {
+    char buf[1024];
+    std::memset(buf, 'x', sizeof(buf));
+    Card c;
+    c.rc = xpe_ai_get_model_card(id.c_str(), buf, sizeof(buf));
+    c.bufferUntouched = true;
+    for (char ch : buf) c.bufferUntouched = c.bufferUntouched && ch == 'x';
+    c.text = std::string(buf, strnlen(buf, sizeof(buf)));
+    return c;
+}
+
+}  // namespace
+
+TEST_F(AiInputValidation, AModelIdentifierIsOneToSixtyFourOfLettersDigitsDotUnderscoreHyphen) {
+    // Controls first: the identifiers the product uses, the shortest and the longest legal one.
+    EXPECT_EQ(XPE_OK, CardFor("bone_toy_x2").rc);   // the model of this fixture (QA-B-197: the card comes from its sidecar)
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, CardFor("a").rc);
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, CardFor(std::string(64, 'm')).rc);
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, CardFor("Model-1.2_final").rc);
+
+    const std::string refused[] = {
+        "",
+        std::string(65, 'm'),
+        std::string("a\"b"),           // a quote: made the card invalid JSON (measured)
+        std::string("a\\b"),           // a backslash
+        std::string("a b"),            // a space
+        std::string("a/b"),
+        std::string("a\nb"),
+        std::string("a\tb"),
+        std::string("a\x01" "b"),
+        std::string("caf\xC3\xA9"),    // not ASCII
+        std::string("a{b}"),
+        std::string("a,b"),
+        std::string("a:b"),
+    };
+    for (const std::string& id : refused) {
+        const Card c = CardFor(id);
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, c.rc) << "id of " << id.size() << " bytes, first '" << (id.empty() ? '?' : id[0]) << "'";
+        EXPECT_TRUE(c.bufferUntouched) << "a refused identifier writes nothing to the caller's buffer";
+    }
+}
+
+TEST_F(AiInputValidation, AWellFormedButUnknownIdentifierStillGetsAWellFormedUnavailableCard) {
+    // The grammar must not turn "unavailable" into "invalid": an unknown identifier that is legal is a model no verified
+    // model has (QA-B-197: -4 "unavailable", it was IO_FAILED "not loaded"), with an answer that says so -- and the
+    // answer is JSON a parser accepts, which is what the quote in the identifier used to break.
+    const Card c = CardFor("no_such_model.v2-x");
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, c.rc);
+    EXPECT_NE(std::string::npos, c.text.find("\"model_id\":\"no_such_model.v2-x\""));
+    EXPECT_NE(std::string::npos, c.text.find("\"error\":\"model_unavailable\""));
+    EXPECT_EQ('{', c.text.front());
+    EXPECT_EQ('}', c.text.back());
+    EXPECT_EQ(std::string::npos, c.text.find('\\')) << "nothing in the card needs escaping";
+}
+
+// ===== M4: init and config ====================================================================================
+//
+// These tests own the module's lifecycle (no fixture: each one shuts down first and last), because what they
+// measure is what xpe_ai_init does when called -- the first time, with a bad argument, with a bad config, a second time.
+// The rollback after an allocation failure is NOT here: it cannot be provoked from outside, and M5's allocation
+// sweep (xpe_ai_oom_tests) is the proof of it.
+
+namespace {
+
+struct InitResult {
+    XpeErrorCode rc;
+    std::vector<std::string> alerts;
+    std::vector<int32_t> severities;
+};
+
+InitResult InitWith(const char* dir, const char* config) {
+    xpe_clear_alerts();
+    InitResult r;
+    r.rc = xpe_ai_init(dir, config);
+    r.alerts = Alerts(&r.severities);
+    return r;
+}
+
+bool IsInitialised() {
+    int32_t state = -1;
+    return xpe_ai_worker_state(&state, nullptr, nullptr) != XPE_ERR_NOT_INITIALIZED;
+}
+
+struct Pristine {
+    Pristine() { xpe_ai_shutdown(); xpe_clear_alerts(); }
+    ~Pristine() { xpe_ai_shutdown(); xpe_clear_alerts(); }
+};
+
+const std::string kDir = kData + "/models_x2";
+
+}  // namespace
+
+TEST(AiInitHardening, AnEmptyModelDirectoryIsAMissingArgumentAndLeavesTheModuleUntouched) {
+    const Pristine p;
+    const InitResult r = InitWith("", nullptr);
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, r.rc);
+    EXPECT_FALSE(IsInitialised()) << "a refused init initialises nothing";
+    EXPECT_TRUE(r.alerts.empty()) << "a plain INVALID_INPUT, like a NULL directory";
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_ai_init(nullptr, nullptr)) << "the NULL control is unchanged";
+
+    // the control that makes the refusal mean something: a real directory initialises
+    EXPECT_EQ(XPE_OK, xpe_ai_init(kDir.c_str(), nullptr));
+    EXPECT_TRUE(IsInitialised());
+}
+
+TEST(AiInitHardening, AnEmptyModelDirectoryIsRefusedWhetherOrNotTheModuleIsAlreadyInitialised) {
+    // An argument is wrong whatever the module's state is: the check sits before the "already initialised, ignore"
+    // short-circuit. Without that, init("") on a live module returned OK and looked like a success.
+    const Pristine p;
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDir.c_str(), nullptr));
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_ai_init("", nullptr));
+    EXPECT_TRUE(IsInitialised()) << "the live session is not touched by the refused call";
+    EXPECT_TRUE(Alerts().empty());
+}
+
+TEST(AiInitHardening, AConfigThatCannotBeUsedSaysSoAndTheCallStillSucceeds) {
+    struct Case { const char* config; const char* mention; };
+    const Case cases[] = {
+        {"{bad", "not valid JSON"},
+        {"", "not valid JSON"},               // an empty text is not JSON either
+        {"[]", "not an object"},
+        {"[1,2]", "not an object"},
+        {"5", "not an object"},
+        {"\"x\"", "not an object"},
+        {"null", "not an object"},
+        {"true", "not an object"},
+    };
+    for (const Case& c : cases) {
+        const Pristine p;
+        const InitResult r = InitWith(kDir.c_str(), c.config);
+        EXPECT_EQ(XPE_OK, r.rc) << "config '" << c.config << "': the return code is the #145 line, unchanged";
+        EXPECT_TRUE(IsInitialised()) << c.config;
+        ASSERT_EQ(1u, r.alerts.size()) << "config '" << c.config << "': exactly one alert";
+        EXPECT_EQ(XPE_ALERT_WARNING, r.severities[0]) << c.config;
+        EXPECT_NE(std::string::npos, r.alerts[0].find(c.mention)) << "config '" << c.config << "': " << r.alerts[0];
+        EXPECT_NE(std::string::npos, r.alerts[0].find("every setting uses its default")) << r.alerts[0];
+    }
+}
+
+TEST(AiInitHardening, ATimeoutOutsideZeroToTwoToTheThirtyOneIsIgnoredWithAnAlert) {
+    struct Case { const char* config; const char* value; };
+    const Case cases[] = {
+        {"{\"timeout_ms\": -1}", "-1"},
+        {"{\"timeout_ms\": -2147483648}", "-2147483648"},
+        {"{\"timeout_ms\": 2147483648}", "2147483648"},
+        {"{\"timeout_ms\": 10000000000}", "10000000000"},
+        {"{\"timeout_ms\": 18446744073709551615}", "18446744073709551615"},   // above int64: the unsigned branch
+    };
+    for (const Case& c : cases) {
+        const Pristine p;
+        const InitResult r = InitWith(kDir.c_str(), c.config);
+        EXPECT_EQ(XPE_OK, r.rc) << c.config;
+        ASSERT_EQ(1u, r.alerts.size()) << c.config << ": one alert -- not also an 'unexpected type'";
+        EXPECT_EQ(XPE_ALERT_WARNING, r.severities[0]) << c.config;
+        EXPECT_NE(std::string::npos, r.alerts[0].find("ai config key 'timeout_ms' is out of range (0 to 2147483647 ms)")) << r.alerts[0];
+        EXPECT_NE(std::string::npos, r.alerts[0].find(std::string("(value: ") + c.value + ")")) << r.alerts[0];
+    }
+}
+
+TEST(AiInitHardening, TheTimeoutBoundsThemselvesAreAcceptedSilently) {
+    // The controls: the edges of the legal range, and a floating value that keeps its own, older alert.
+    for (const char* config : {"{\"timeout_ms\": 0}", "{\"timeout_ms\": 1}", "{\"timeout_ms\": 5000}",
+                               "{\"timeout_ms\": 2147483647}"}) {
+        const Pristine p;
+        const InitResult r = InitWith(kDir.c_str(), config);
+        EXPECT_EQ(XPE_OK, r.rc) << config;
+        EXPECT_TRUE(r.alerts.empty()) << config << ": " << (r.alerts.empty() ? "" : r.alerts[0]);
+    }
+    const Pristine p;
+    const InitResult r = InitWith(kDir.c_str(), "{\"timeout_ms\": 1.5}");
+    EXPECT_EQ(XPE_OK, r.rc);
+    ASSERT_EQ(1u, r.alerts.size()) << "a non-integer is the #145 'unexpected type' alert, and only that one";
+    EXPECT_NE(std::string::npos, r.alerts[0].find("has an unexpected type")) << r.alerts[0];
+}
+
+TEST(AiInitHardening, ASecondInitIsIgnoredAndSaysSoOnlyWhenItAskedForSomethingDifferent) {
+    const Pristine p;
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDir.c_str(), "{\"use_worker\": true}"));
+    int32_t state = -1;
+    ASSERT_EQ(XPE_OK, xpe_ai_worker_state(&state, nullptr, nullptr));
+    ASSERT_EQ(XPE_AI_WORKER_ACTIVE, state);
+
+    // identical: silent, still OK
+    InitResult r = InitWith(kDir.c_str(), "{\"use_worker\": true}");
+    EXPECT_EQ(XPE_OK, r.rc);
+    EXPECT_TRUE(r.alerts.empty()) << "the same call again is not news";
+
+    // a different config: OK, ignored, one Warning
+    r = InitWith(kDir.c_str(), "{}");
+    EXPECT_EQ(XPE_OK, r.rc) << "a client test holds 'second init is OK and ignored' as the contract";
+    ASSERT_EQ(1u, r.alerts.size());
+    EXPECT_EQ(XPE_ALERT_WARNING, r.severities[0]);
+    EXPECT_NE(std::string::npos, r.alerts[0].find("different model directory or config")) << r.alerts[0];
+    EXPECT_NE(std::string::npos, r.alerts[0].find("call xpe_ai_shutdown first")) << r.alerts[0];
+    ASSERT_EQ(XPE_OK, xpe_ai_worker_state(&state, nullptr, nullptr));
+    EXPECT_EQ(XPE_AI_WORKER_ACTIVE, state) << "ignored means the FIRST settings stay in effect";
+
+    // a different directory: the same
+    r = InitWith((kData + "/some_other_models").c_str(), "{\"use_worker\": true}");
+    EXPECT_EQ(XPE_OK, r.rc);
+    ASSERT_EQ(1u, r.alerts.size());
+    EXPECT_NE(std::string::npos, r.alerts[0].find("different model directory or config")) << r.alerts[0];
+
+    // NULL config and an empty config text are the same request (both mean "defaults"): shutdown, then check
+    xpe_ai_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_ai_init(kDir.c_str(), nullptr));
+    r = InitWith(kDir.c_str(), "");
+    EXPECT_EQ(XPE_OK, r.rc);
+    // "" is not valid JSON and a first init with it would warn, but as a SECOND init it is judged as 'the same'
+    EXPECT_TRUE(r.alerts.empty()) << (r.alerts.empty() ? "" : r.alerts[0]);
+}

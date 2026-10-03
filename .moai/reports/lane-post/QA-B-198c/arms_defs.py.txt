@@ -1,0 +1,59 @@
+BONE_BLOCK = """        state->boneLoading = true;
+        auto created = [&] {
+            lock.unlock();
+            try {
+                auto r = xpe::ai::OnnxSession::Create(cfg);
+                lock.lock();
+                state->boneLoading = false;
+                return r;
+            } catch (...) {
+                lock.lock();
+                state->boneLoading = false;
+                throw;
+            }
+        }();
+"""
+BONE_HELD = """        state->boneLoading = true;
+        auto created = xpe::ai::OnnxSession::Create(cfg);
+        state->boneLoading = false;
+"""
+PART_BLOCK = """        state->bodyPartLoading = true;
+        lock.unlock();
+        try {
+            why = loadBodyPartModel(dir, &built, &kind, &detail);
+        } catch (...) {
+            lock.lock();
+            state->bodyPartLoading = false;
+            throw;
+        }
+        lock.lock();
+        state->bodyPartLoading = false;
+"""
+PART_HELD = """        state->bodyPartLoading = true;
+        why = loadBodyPartModel(dir, &built, &kind, &detail);
+        state->bodyPartLoading = false;
+"""
+ARGS_OLD = "if (diagnostic ? argc > 3 : argc != 3) {"
+
+ARMS = [
+    ('bone_verification_back_inside_the_lock',
+     [(AI + 'src/ai.cpp', BONE_BLOCK, BONE_HELD)],
+     'TrustRecheck.*',
+     ['AnotherThreadIsNotKeptWaitingWhileARefusedModelIsVerifiedAgain', 'ASecondCallForTheSameRoleDuringItsFirstLoad']),
+    ('bodypart_verification_back_inside_the_lock',
+     [(AI + 'src/ai.cpp', PART_BLOCK, PART_HELD)],
+     'TrustRecheck.*',
+     ['AnotherThreadIsNotKeptWaitingWhileARefusedBodyPartModelIsVerifiedAgain']),
+    ('bone_second_call_does_not_answer_at_once',
+     [(AI + 'src/ai.cpp', "        if (state->boneLoading) return XPE_ERR_CONFIG_INVALID;\n", "")],
+     'TrustRecheck.*',
+     ['ASecondCallForTheSameRoleDuringItsFirstLoad']),
+    ('worker_accepts_an_extra_supervised_argument',
+     [(AI + 'src/ai_worker_main.cpp', ARGS_OLD, "if (diagnostic ? argc > 3 : argc < 3) {")],
+     'WorkerPipePeer.*',
+     ['AnExtraArgumentEndsTheWorkerInBothForms']),
+    ('worker_accepts_an_extra_diagnostic_argument',
+     [(AI + 'src/ai_worker_main.cpp', ARGS_OLD, "if (diagnostic ? argc > 9 : argc != 3) {")],
+     'WorkerPipePeer.*',
+     ['AnExtraArgumentEndsTheWorkerInBothForms']),
+]

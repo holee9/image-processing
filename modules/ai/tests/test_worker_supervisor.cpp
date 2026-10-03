@@ -350,7 +350,7 @@ TEST(WorkerSupervisor, BaselineWithoutASupervisorAStalledWorkerStaysAliveAndTheB
     char pipe[128];
     std::snprintf(pipe, sizeof(pipe), "\\\\.\\pipe\\xpe_ai_sup_base_%lu",
                   static_cast<unsigned long>(GetCurrentProcessId()));
-    std::string cmd = std::string("\"") + XPE_AI_WORKER_EXE + "\" " + pipe;
+    std::string cmd = std::string("\"") + XPE_AI_WORKER_EXE + "\" --diagnostic " + pipe;
     STARTUPINFOA si{};
     si.cb = sizeof(si);
     PROCESS_INFORMATION pi{};

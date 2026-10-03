@@ -31,6 +31,7 @@
 #include "ai_bodypart.h"
 #include "ai_bodypart_decision.h"
 #include "ai_bodypart_model.h"
+#include "ai_model_sidecar.h"
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -41,6 +42,7 @@
 #include <windows.h>
 
 #include <cstdint>
+#include <cmath>
 #include <cstring>
 #include <atomic>
 #include <charconv>
@@ -54,11 +56,9 @@
 #include <string>
 #include <vector>
 
-// @MX:NOTE: [AUTO] nlohmann/json included for config parsing;
-//           conditional compilation avoids hard dependency.
-#ifdef XPE_AI_USE_NLOHMANN_JSON
+// nlohmann/json is a REQUIRED dependency (QA-B-194b): the config parser, and with it the warnings the public header promises
+// for broken JSON and out-of-range values, must not depend on how the build was configured.
 #include <nlohmann/json.hpp>
-#endif
 
 #include "ai_log.h"   // AI_LOG_* (spdlog when XPE_AI_USE_SPDLOG, else printf)
 #ifdef XPE_AI_TEST_LOG_CAPTURE
@@ -89,6 +89,9 @@ struct AiModuleState {
 
     /** Path to the model directory (set by xpe_ai_init). */
     std::string modelDirPath;
+
+    /** The configuration text the session was started with ("" for NULL): what a second xpe_ai_init is compared to (D8). */
+    std::string configJson;
 
     /** Selected execution provider. */
     XpeAiExecutionProvider executionProvider{XPE_AI_EP_CPU};
@@ -136,6 +139,26 @@ struct AiModuleState {
     bool bodyPartUnavailableWarned{false};
 
     /**
+     * QA-B-195 M4: the signature-refusal Error alert is raised ONCE per session per role (a refused model repeats on
+     * every call, so a per-call alert would fill the queue).
+     */
+    bool boneTrustAlerted{false};
+    bool bodyPartTrustAlerted{false};
+
+    /**
+     * QA-B-198c: a model of this role is being read and verified by some thread RIGHT NOW (set under mtx before the lock
+     * is released for the read, cleared under mtx after it is taken again). A second call for the same role does not wait
+     * for it: it answers "model unavailable" at once.
+     */
+    bool boneLoading{false};
+    bool bodyPartLoading{false};
+
+    // QA-B-198b: there is NO memo of a refused load. A previous version remembered "refused" under a stamp of the model
+    // files' size and write time and answered from it; a file put back as it was, with its time restored, stayed refused for
+    // the whole session. A refused role is verified again on every call (the cost is in the QA-B-198b report); only the
+    // ALERT is once per session.
+
+    /**
      * Opt-in (QA-B-171C): route xpe_bone_suppress through the worker process. Default OFF -- the
      * in-process path is the behaviour every caller had before and stays the default.
      */
@@ -176,10 +199,6 @@ struct AiModuleState {
 
     /** Handle to the named pipe (platform-specific). */
     void* pipeHandle{nullptr};
-
-    // --- Model registry ---
-    /** List of loaded model IDs. */
-    std::vector<std::string> loadedModels;
 
     AiModuleState() = default;
 
@@ -266,6 +285,47 @@ static XpeErrorCode validateImageBuffer(const XpeImageBuffer* img) {
 }
 
 /**
+ * @brief Judge the acquisition metadata a caller hands to xpe_dl_denoise (QA-B-194 M3, REQ-AI-090, design D3).
+ *
+ * The metadata chooses the model variant and scales the noise estimate ("mAs"), so a NaN or a negative dose is not
+ * a harmless label: it would pick a variant, or scale a model, by garbage. What is checked, and no more:
+ *   - bodyPart is a NUL-terminated C string within its 64 bytes (the fixed-size field is read as a string);
+ *   - kVp, mAs, SID_mm and pixelPitch_mm are finite and not negative. Zero means "unknown", as everywhere else in
+ *     the metadata (xpe_types.h), so zero is accepted.
+ * acquisitionTime and flags are not judged: any 64-bit time and any bit pattern is a value they can hold (0 means
+ * unknown for the time), and the flags are written by the stages, not read as input here.
+ * No range is invented either (a "plausible kVp" is clinical knowledge nobody gave): finite and non-negative is the
+ * whole contract.
+ */
+static XpeErrorCode validateDenoiseMetadata(const XpeImageMetadata* meta) {
+    if (std::memchr(meta->bodyPart, '\0', sizeof(meta->bodyPart)) == nullptr) return XPE_ERR_INVALID_INPUT;
+    const float physical[] = {meta->kVp, meta->mAs, meta->SID_mm, meta->pixelPitch_mm};
+    for (const float v : physical) {
+        if (!std::isfinite(v) || v < 0.0f) return XPE_ERR_INVALID_INPUT;
+    }
+    return XPE_OK;
+}
+
+/**
+ * @brief Is @p id a model identifier: 1 to 64 characters of [A-Za-z0-9._-] (QA-B-194 M3, design D4).
+ *
+ * The identifier is copied verbatim into the JSON the model card returns (both the real card and the "model not
+ * loaded" card), so a quote or a backslash in it made the card invalid JSON (measured). The grammar is the file
+ * names the model directory holds, and it is judged before the identifier is used for anything. The scan stops at
+ * the 65th byte, so it never reads further into a caller's string than a legal identifier plus its terminator.
+ */
+static bool isValidModelId(const char* id) {
+    size_t n = 0;
+    for (; n <= 64 && id[n] != '\0'; ++n) {
+        const char ch = id[n];
+        const bool ok = (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') ||
+                        ch == '.' || ch == '_' || ch == '-';
+        if (!ok) return false;
+    }
+    return n >= 1 && n <= 64;
+}
+
+/**
  * @brief Validate the parts of one stitch call: each is a valid image, and they are all the SAME pixel format.
  *
  * QA-B-194 M2 (REQ-AI-090, design D6). The parts of one stitch are one kind of image; a UINT16 part among float
@@ -329,16 +389,25 @@ static XpeErrorCode checkImageFinite(const XpeImageBuffer* img, const char* pref
 /**
  * @brief Parse config JSON and update module state.
  *
- * Uses nlohmann/json when available; otherwise falls back to simple
- * string scanning for key parameters.
+ * Uses nlohmann/json (a required dependency since QA-B-194b: there is no second parser).
  */
 static void parseConfig(AiModuleState* state, const char* configJsonOrNull) {
     if (!configJsonOrNull) return;
 
-#ifdef XPE_AI_USE_NLOHMANN_JSON
     auto cfg = nlohmann::json::parse(configJsonOrNull, nullptr, false);
     if (cfg.is_discarded()) {
         AI_LOG_WARN("AI config JSON parse failed, using defaults");
+        // QA-B-194 M4 (D7): the log line alone is silence to the caller; the alert is what a client can show.
+        // RETURN CODE UNCHANGED (the #145 line: a config that cannot be used is a warning, not an error).
+        xpe_alert_push("ai config is not valid JSON and was ignored: every setting uses its default",
+                       XPE_ALERT_WARNING);
+        return;
+    }
+    if (!cfg.is_object()) {
+        // Valid JSON that is not an object ([], 5, "x", null, true): there is no key to read, and before M4 it was
+        // accepted without a word.
+        xpe_alert_push("ai config is valid JSON but not an object and was ignored: every setting uses its default",
+                       XPE_ALERT_WARNING);
         return;
     }
 
@@ -352,7 +421,32 @@ static void parseConfig(AiModuleState* state, const char* configJsonOrNull) {
     }
 
     if (cfg.contains("timeout_ms") && cfg["timeout_ms"].is_number_integer()) {
-        state->timeoutMs = static_cast<uint32_t>(cfg["timeout_ms"].get<int>());
+        // QA-B-194 M4 (D7): the value is a number of milliseconds that becomes a uint32_t deadline. The old
+        // get<int>() + static_cast turned -1 into 4294967295 ms (about 49 days) and silently truncated anything
+        // above int range. Accepted: 0 (= the default, as everywhere timeoutMs is used) up to 2^31 - 1; anything
+        // else is ignored with an alert and the default stays.
+        const nlohmann::json& t = cfg["timeout_ms"];
+        constexpr int64_t kMaxTimeoutMs = 2147483647;
+        bool inRange = false;
+        int64_t value = 0;
+        if (t.is_number_unsigned()) {
+            const uint64_t u = t.get<uint64_t>();
+            inRange = u <= static_cast<uint64_t>(kMaxTimeoutMs);
+            value = static_cast<int64_t>(u);
+        } else {
+            value = t.get<int64_t>();
+            inRange = value >= 0 && value <= kMaxTimeoutMs;
+        }
+        if (inRange) {
+            state->timeoutMs = static_cast<uint32_t>(value);
+        } else {
+            char msg[192];
+            std::snprintf(msg, sizeof(msg),
+                          "ai config key 'timeout_ms' is out of range (0 to 2147483647 ms) and was ignored: "
+                          "the default is used (value: %s)",
+                          t.dump().c_str());
+            xpe_alert_push(msg, XPE_ALERT_WARNING);
+        }
     }
 
     if (cfg.contains("confidence_threshold") && cfg["confidence_threshold"].is_number()) {
@@ -410,50 +504,6 @@ static void parseConfig(AiModuleState* state, const char* configJsonOrNull) {
             }
         }
     }
-#else
-    // Minimal config parsing without nlohmann/json.
-    // Only parse "timeout_ms" for basic functionality.
-    const char* timeoutKey = std::strstr(configJsonOrNull, "\"timeout_ms\"");
-    if (timeoutKey) {
-        const char* colon = std::strchr(timeoutKey, ':');
-        if (colon) {
-            int val = std::atoi(colon + 1);
-            if (val > 0) state->timeoutMs = static_cast<uint32_t>(val);
-        }
-    }
-    const char* workerKey = std::strstr(configJsonOrNull, "\"use_worker\"");
-    if (workerKey) {
-        const char* colon = std::strchr(workerKey, ':');
-        if (colon) {
-            ++colon;
-            while (*colon == ' ') ++colon;
-            state->useWorker = std::strncmp(colon, "true", 4) == 0;
-        }
-    }
-    AI_LOG_INFO("Config parsed (minimal parser, nlohmann/json not linked)");
-#endif
-}
-
-/**
- * @brief Build a model card JSON string for a given model ID.
- *
- * Returns a stub model card when the model is recognized but full
- * metadata is not yet loaded from disk.
- */
-static std::string buildStubModelCard(const std::string& modelId) {
-    return std::string("{"
-        "\"model_id\":\"") + modelId + "\","
-        "\"model_version\":\"0.1.0-stub\","
-        "\"intended_use\":\"XPE AI inference (stub -- ONNX Runtime not linked)\","
-        "\"training_data_summary\":\"N/A (stub)\","
-        "\"demographic_performance\":{},"
-        "\"limitations\":\"This is a stub build. ONNX Runtime is not linked. "
-                         "No actual inference is performed.\","
-        "\"pccp_status\":\"not_applicable\","
-        "\"published_date\":\"2026-04-22\","
-        "\"training_data_hash\":\"N/A\","
-        "\"validation_metrics\":{\"psnr\":0.0,\"ssim\":0.0}"
-    "}";
 }
 
 /**
@@ -464,6 +514,19 @@ static std::string buildStubModelCard(const std::string& modelId) {
  * if this module's own path cannot be read the answer is "none" and the worker path fails (reported,
  * and replaced by the in-process result) instead of searching.
  */
+#ifdef XPE_AI_TEST_HOOKS
+// TEST-ONLY (QA-B-195d). Called on the calling thread at the start of the try block that starts and asks the worker
+// (xpe_bone_suppress and xpe_bodypart_recognize with "use_worker"); a hook that throws puts an exception of the test's
+// choosing exactly there, so the classification of what the block catches can be tested: std::bad_alloc is
+// XPE_ERR_OUT_OF_MEMORY, anything else is XPE_ERR_PROCESSING_FAILED. A delivery build (XPE_AI_TEST_HOOKS OFF) has neither
+// this variable, nor the calls, nor the setter.
+static std::atomic<void (*)(void)> g_testWorkerPathHook{nullptr};
+
+extern "C" XPE_API void xpe_ai_test_set_worker_path_hook(void (*hook)(void)) {
+    g_testWorkerPathHook.store(hook, std::memory_order_release);
+}
+#endif
+
 static std::string workerExePath() {
     HMODULE self = nullptr;
     if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
@@ -498,6 +561,9 @@ static XpeErrorCode boneSuppressViaWorker(AiModuleState* state, const XpeImageBu
                                           XpeImageBuffer* out, bool* nonFiniteResult) {
     *nonFiniteResult = false;
     try {
+#ifdef XPE_AI_TEST_HOOKS
+        if (auto* hook = g_testWorkerPathHook.load(std::memory_order_acquire)) hook();
+#endif
         if (!state->workerSupervisor) {
             xpe::ai::WorkerSupervisorConfig cfg;
             cfg.worker_exe = workerExePath();
@@ -512,8 +578,11 @@ static XpeErrorCode boneSuppressViaWorker(AiModuleState* state, const XpeImageBu
             in->width, in->height, static_cast<const float*>(in->data), static_cast<float*>(out->data));
         *nonFiniteResult = rc != XPE_OK && state->workerSupervisor->LastResultWasNonFinite();
         return rc;
-    } catch (...) {
+    } catch (const std::bad_alloc&) {
         return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        // QA-B-195d (Codex #92): an exception that is not a shortage of memory is not reported as one.
+        return XPE_ERR_PROCESSING_FAILED;
     }
 }
 
@@ -581,6 +650,30 @@ static std::atomic<void (*)(int)> g_testBeforeStateDeleteHook{nullptr};
 extern "C" XPE_API void xpe_ai_test_set_before_state_delete_hook(void (*hook)(int mutexStillHeld)) {
     g_testBeforeStateDeleteHook.store(hook, std::memory_order_release);
 }
+
+// TEST-ONLY (QA-B-195 M3). The model loader calls this after it has verified a model's signature and before it builds
+// the session from the verified bytes (OnnxSession::TestSetAfterVerifyHook, ai_onnx_session.cpp). A test registers a
+// callback that changes the files on disk at exactly that point, to show end to end that what was verified is what is
+// used -- the model AND the sidecar the body-part labels come from. Same XPE_AI_TEST_HOOKS option as the hooks above.
+namespace xpe::ai {
+void TestSetAfterVerifyHook(void (*hook)(const std::string& modelPath));
+}
+static std::atomic<void (*)(const char*)> g_testAfterVerifyHook{nullptr};
+static void afterVerifyTrampoline(const std::string& modelPath) {
+    if (auto* hook = g_testAfterVerifyHook.load(std::memory_order_acquire)) hook(modelPath.c_str());
+}
+namespace xpe::ai {
+void TestSetBeforeFileReadHook(void (*hook)());
+}
+// TEST-ONLY (QA-B-198b): called before every model-file read of a load or a card lookup (ai_onnx_session.cpp). A test
+// counts the reads (a refusal is verified again every time) or makes them slow on one thread (a lookup does not hold the lock).
+extern "C" XPE_API void xpe_ai_test_set_before_file_read_hook(void (*hook)(void)) {
+    xpe::ai::TestSetBeforeFileReadHook(hook);
+}
+extern "C" XPE_API void xpe_ai_test_set_after_verify_hook(void (*hook)(const char* modelPath)) {
+    g_testAfterVerifyHook.store(hook, std::memory_order_release);
+    xpe::ai::TestSetAfterVerifyHook(hook ? &afterVerifyTrampoline : nullptr);
+}
 #endif
 
 /** Bit 31 of AiModuleState::workerPublished: the worker is switched off for the session. */
@@ -643,10 +736,10 @@ static XpeErrorCode bodyPartUnknown(char* bodyPartOut, size_t bufLen) {
 }
 
 /** Build the model for this session's model directory; the loading rules are shared with the worker (ai_bodypart_model.h). */
-static const char* loadBodyPartModel(AiModuleState* state, std::unique_ptr<BodyPartModel>* out) {
-    std::string detail;
-    const char* why = xpe::ai::LoadBodyPartModel(state->modelDirPath, out, nullptr, &detail);
-    if (why && !detail.empty()) AI_LOG_ERROR("bodypart: %s", detail.c_str());
+static const char* loadBodyPartModel(const std::string& modelDir, std::unique_ptr<BodyPartModel>* out,
+                                     xpe::ai::BodyPartLoadFailure* kind, std::string* detail) {
+    const char* why = xpe::ai::LoadBodyPartModel(modelDir, out, kind, detail);
+    if (why && !detail->empty()) AI_LOG_ERROR("bodypart: %s", detail->c_str());
     return why;
 }
 
@@ -678,6 +771,94 @@ static void warnBodyPartUnavailableOnce(AiModuleState* state, const char* reason
                   "AI body-part recognition is unavailable (%s): UNKNOWN is returned; use the deterministic body-part "
                   "lookup (REQ-AI-002)", reason);
     xpe_alert_push(msg, XPE_ALERT_WARNING);
+}
+
+/**
+ * The reason inside "model signature check failed (<reason>): <path>" or "model sidecar check failed (<reason>): <path>":
+ * the text between the opening parenthesis and the first "): ". "unknown" when the text has another shape.
+ */
+static std::string refusalReason(const std::string& message) {
+    const size_t a = message.find("check failed (");
+    if (a == std::string::npos) return "unknown";
+    const size_t from = a + std::string("check failed (").size();
+    const size_t b = message.find("): ", from);
+    return b == std::string::npos ? std::string("unknown") : message.substr(from, b - from);
+}
+
+/**
+ * The model of a role failed signature verification (QA-B-195, REQ-AI-007 / REQ-AI-091): ONE Error alert per session
+ * per role, naming the role and the reason class. Error and not Warning because a model that does not verify is a
+ * possible tampering, not a missing installation. @p role is "bone suppression" or "body-part recognition".
+ * CROSS-LANE CONTRACT (QA-B-195 M4): clients may match this text.
+ */
+static void pushModelNotTrustedAlertOnce(bool* alerted, const char* role, const std::string& reason) {
+    if (*alerted) return;
+    *alerted = true;
+    char msg[320];
+    std::snprintf(msg, sizeof(msg),
+                  "AI %s is unavailable: its model failed signature verification (%s) and nothing was loaded "
+                  "(REQ-AI-007, REQ-AI-091)",
+                  role, reason.c_str());
+    xpe_alert_push(msg, XPE_ALERT_ERROR);
+}
+
+/**
+ * The model of a role passed its signature but its sidecar does not say what REQ-AI-008 requires (QA-B-197): ONE Error
+ * alert per session per role (the same once-flag as a signature refusal: one alert per role says "this role has no
+ * usable model", whichever check refused it). CROSS-LANE CONTRACT: clients may match this text.
+ */
+static void pushSidecarInvalidAlertOnce(bool* alerted, const char* role, const std::string& reason) {
+    if (*alerted) return;
+    *alerted = true;
+    char msg[384];
+    std::snprintf(msg, sizeof(msg),
+                  "AI %s is unavailable: its model sidecar failed the metadata check (%s) and nothing was loaded "
+                  "(REQ-AI-008)",
+                  role, reason.c_str());
+    xpe_alert_push(msg, XPE_ALERT_ERROR);
+}
+
+/**
+ * The worker refused the model of bone suppression (-4 with the unavailable flag): the frame does not say whether the
+ * signature or the sidecar check refused it, so the text names both (QA-B-197). CROSS-LANE CONTRACT.
+ */
+static void pushWorkerRefusedModelAlertOnce(bool* alerted, const char* role) {
+    if (*alerted) return;
+    *alerted = true;
+    char msg[384];
+    std::snprintf(msg, sizeof(msg),
+                  "AI %s is unavailable: the AI worker refused its model (the signature check or the sidecar check "
+                  "failed, see the worker log) and nothing was loaded (REQ-AI-007, REQ-AI-008, REQ-AI-091)",
+                  role);
+    xpe_alert_push(msg, XPE_ALERT_ERROR);
+}
+
+/**
+ * The card of the model of one role, when that model is the one called @p modelId (QA-B-197 M2, QA-B-195d). The model is
+ * read and its signature verified through the SAME function a load uses (xpe::ai::ReadVerifiedModelFiles) and the sidecar is
+ * judged by the SAME rule (ParseModelSidecar), EVERY time: nothing is remembered between calls. (A first version kept the
+ * card while the files kept their size and write time; a sidecar changed to another of the same size, its write time put
+ * back, then kept a card for a file that no longer verified -- a fast path that gave a verdict the slow path would not.)
+ * Returns true with the card in @p card; false when the model is not there, does not verify, has no valid sidecar, or is
+ * another model. Changes no module state, so an allocation failure leaves nothing behind.
+ * The caller holds NO lock (QA-B-198b): reading and hashing a large model takes a measurable time (768 MiB: 1.17 s) and
+ * the module mutex is the one inference takes. It passes a COPY of the model directory taken under the lock, and checks
+ * after the read that the directory is still the module's (xpe_ai_get_model_card_impl).
+ */
+static bool cardOfRoleIfItIs(const std::string& modelDir, const char* stem, const char* role, const std::string& modelId,
+                             std::string* card) {
+    const std::string base = modelDir.empty() ? std::string() : modelDir + "/";
+    xpe::ai::VerifiedModelFiles files;
+    std::string message;
+    if (xpe::ai::ReadVerifiedModelFiles(base + stem + ".onnx", role, &files, &message) != xpe::ai::OnnxErrorCode::kOk) {
+        return false;
+    }
+    xpe::ai::ModelSidecar sidecar;
+    std::string why;
+    if (!xpe::ai::ParseModelSidecar(files.has_sidecar ? &files.sidecar_text : nullptr, &sidecar, &why)) return false;
+    if (sidecar.model_id != modelId) return false;
+    *card = xpe::ai::BuildModelCardJson(sidecar);
+    return true;
 }
 
 /**
@@ -744,6 +925,9 @@ static XpeErrorCode bodyPartViaWorker(AiModuleState* state, const XpeImageBuffer
     XpeErrorCode rc = XPE_ERR_PROCESSING_FAILED;
     bool unavailable = false;
     try {
+#ifdef XPE_AI_TEST_HOOKS
+        if (auto* hook = g_testWorkerPathHook.load(std::memory_order_acquire)) hook();
+#endif
         if (!state->workerSupervisor) {
             xpe::ai::WorkerSupervisorConfig cfg;
             cfg.worker_exe = workerExePath();
@@ -760,8 +944,10 @@ static XpeErrorCode bodyPartViaWorker(AiModuleState* state, const XpeImageBuffer
                                                             static_cast<const float*>(img->data), &reply);
             unavailable = rc != XPE_OK && state->workerSupervisor->LastModelUnavailable();
         }
-    } catch (...) {
+    } catch (const std::bad_alloc&) {
         rc = XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        rc = XPE_ERR_PROCESSING_FAILED;   // QA-B-195d (Codex #92): not a shortage of memory, so not reported as one
     }
 
     if (rc == XPE_OK) {
@@ -835,6 +1021,7 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
                                                          XpeImageBuffer* softTissueOut,
                                                          const char* configJsonOrNull);
 extern "C++" static XpeErrorCode xpe_ai_get_model_card_impl(const char* modelId, char* buf, size_t bufSize);
+extern "C++" static XpeErrorCode xpe_ai_init_impl(const char* modelDirPath, const char* configJsonOrNull);
 extern "C++" static XpeErrorCode xpe_bodypart_recognize_impl(const XpeImageBuffer* img, char* bodyPartOut,
                                                               size_t bufLen, float* confidenceOut);
 
@@ -846,24 +1033,57 @@ XPE_API const char* xpe_ai_version(void)
 XPE_API XpeErrorCode xpe_ai_init(const char* modelDirPath,
                                   const char* configJsonOrNull)
 {
+    // QA-B-194 M4: no exception crosses the C ABI. The body is an ordinary C++ function (see the note above the
+    // xpe_*_impl prototypes) and this is only the try/catch around it.
+    try {
+        return xpe_ai_init_impl(modelDirPath, configJsonOrNull);
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+}
+
+extern "C++" static XpeErrorCode xpe_ai_init_impl(const char* modelDirPath,
+                                                  const char* configJsonOrNull)
+{
     // Validate required parameter
     if (!modelDirPath) return XPE_ERR_INVALID_INPUT;
+
+    // QA-B-194 M4 (D1): an empty directory is a missing argument, like a zero-length buffer (#142). It used to be
+    // accepted, and the model was then looked up relative to the working directory -- the opposite of the worker's
+    // "next to the DLL, never the working directory" rule. Judged before the already-initialised short-circuit
+    // below: an argument is wrong whatever the module's state is.
+    if (modelDirPath[0] == '\0') return XPE_ERR_INVALID_INPUT;
 
     // If already initialized, return success (idempotent)
     if (g_aiState && g_aiState->initialized.load(std::memory_order_acquire)) {
         AI_LOG_WARN("xpe_ai_init called while already initialized -- ignoring");
+        // QA-B-194 M4 (D8): the call stays OK and ignored (a client test holds "ignored" as the contract), but when
+        // it asked for something DIFFERENT the silence hid that the new settings did not take effect. Different means
+        // not byte-identical: the directory text or the config text.
+        const std::string newConfig = configJsonOrNull ? configJsonOrNull : "";
+        if (g_aiState->modelDirPath != modelDirPath || g_aiState->configJson != newConfig) {
+            xpe_alert_push("xpe_ai_init was called again with a different model directory or config while the module "
+                           "is already initialised: the call was ignored and the first settings stay in effect "
+                           "(call xpe_ai_shutdown first to change them)",
+                           XPE_ALERT_WARNING);
+        }
         return XPE_OK;
     }
 
-    // Allocate module state
-    auto* state = new (std::nothrow) AiModuleState();
+    // Allocate module state. QA-B-194 M4: owned by a unique_ptr until the very last step, so an allocation failure
+    // or an exception in parseConfig / the string copies frees it and leaves g_aiState exactly as it was (before,
+    // such an exception both leaked the state and left the caller with an exception through a C ABI).
+    std::unique_ptr<AiModuleState> state(new (std::nothrow) AiModuleState());
     if (!state) return XPE_ERR_OUT_OF_MEMORY;
 
-    // Store model directory
+    // Store model directory and the config the session starts with
     state->modelDirPath = modelDirPath;
+    state->configJson = configJsonOrNull ? configJsonOrNull : "";
 
     // Parse optional configuration
-    parseConfig(state, configJsonOrNull);
+    parseConfig(state.get(), configJsonOrNull);
 
     // --- Worker process launch ---
     // Stub: In the full implementation, this would:
@@ -872,23 +1092,18 @@ XPE_API XpeErrorCode xpe_ai_init(const char* modelDirPath,
     //   3. Wait for INIT_RESPONSE with timeout
     //   4. Verify protocol version match
     //
-    // For now, we register known model IDs without actual loading.
-    state->loadedModels = {
-        "bodypart_cnn_v1",
-        "stitch_feature_match_v1",
-        "bone_suppress_unet_v1",
-        "dl_denoise_ssl_v1"
-    };
+    // Nothing is loaded here. A model card is made on request from the model directory (QA-B-197 M2).
 
     // Mark as initialized
     state->initialized.store(true, std::memory_order_release);
-    g_aiState = state;
 
     AI_LOG_INFO("xpe_ai initialized: model_dir=%s, ep=%d, timeout=%u ms",
                 modelDirPath,
                 static_cast<int>(state->executionProvider),
                 state->timeoutMs);
 
+    // The one step that cannot throw, and the last: from here the module is initialised.
+    g_aiState = state.release();
     return XPE_OK;
 }
 
@@ -949,7 +1164,6 @@ XPE_API void xpe_ai_shutdown(void)
     // QA-B-171C: ends the worker (graceful, then terminate): nothing outlives the module.
     state->workerSupervisor.reset();
 
-    state->loadedModels.clear();
     state->modelDirPath.clear();
     state->pipeHandle = nullptr;
     state->workerPid = 0;
@@ -1029,7 +1243,7 @@ extern "C++" static XpeErrorCode xpe_bodypart_recognize_impl(const XpeImageBuffe
     if (xpe::ai::OnnxSession::IsStubBuild()) return bodyPartUnknown(bodyPartOut, bufLen);
 
     AiModuleState* state = g_aiState;
-    std::lock_guard<std::mutex> lock(state->mtx);
+    std::unique_lock<std::mutex> lock(state->mtx);
 
     // use_worker (opt-in): the model runs in the worker process; this process keeps the decision.
     if (state->useWorker) {
@@ -1040,10 +1254,49 @@ extern "C++" static XpeErrorCode xpe_bodypart_recognize_impl(const XpeImageBuffe
     // labels or has an input this module will not feed is NOT a call error: it is the documented fallback outcome,
     // with ONE Warning per session so the operator can find out.
     if (!state->bodyPart || state->bodyPartDir != state->modelDirPath) {
+        // QA-B-198c: the model is read and verified WITHOUT the module lock (a large model takes hundreds of
+        // milliseconds, and a refused one takes them on every call). Under the lock only the directory is copied and the
+        // "loading" mark set; after the read the lock is taken again and the result is used only if the module still
+        // points at the directory that was read. A second call for this role while a load is in flight does not wait: it
+        // answers UNKNOWN at once (see AiModuleState::bodyPartLoading).
+        if (state->bodyPartLoading) return bodyPartUnknown(bodyPartOut, bufLen);
+        const std::string dir = state->modelDirPath;
         std::unique_ptr<BodyPartModel> built;
-        if (const char* why = loadBodyPartModel(state, &built)) {
+        xpe::ai::BodyPartLoadFailure kind = xpe::ai::BodyPartLoadFailure::kNone;
+        std::string detail;
+        const char* why = nullptr;
+        state->bodyPartLoading = true;
+        lock.unlock();
+        try {
+            why = loadBodyPartModel(dir, &built, &kind, &detail);
+        } catch (...) {
+            lock.lock();
+            state->bodyPartLoading = false;
+            throw;
+        }
+        lock.lock();
+        state->bodyPartLoading = false;
+        if (!state->initialized.load(std::memory_order_acquire) || state->modelDirPath != dir) {
+            // The module was pointed somewhere else while the files were being read: nothing of this result is used.
+            return bodyPartUnknown(bodyPartOut, bufLen);
+        }
+        if (why) {
             state->bodyPart.reset();
-            warnBodyPartUnavailableOnce(state, why);
+            if (kind == xpe::ai::BodyPartLoadFailure::kOutOfMemory) {
+                // QA-B-194b: a shortage of memory is named as one, like the bone-suppression path and the other
+                // allocating entry points do. Not "the model is unavailable": no alert, and the next call tries
+                // again.
+                return XPE_ERR_OUT_OF_MEMORY;
+            }
+            if (kind == xpe::ai::BodyPartLoadFailure::kNotTrusted) {
+                pushModelNotTrustedAlertOnce(&state->bodyPartTrustAlerted, "body-part recognition",
+                                             refusalReason(detail));
+            } else if (kind == xpe::ai::BodyPartLoadFailure::kSidecarInvalid) {
+                pushSidecarInvalidAlertOnce(&state->bodyPartTrustAlerted, "body-part recognition",
+                                            refusalReason(detail));
+            } else {
+                warnBodyPartUnavailableOnce(state, why);
+            }
             return bodyPartUnknown(bodyPartOut, bufLen);
         }
         state->bodyPart = std::move(built);
@@ -1274,7 +1527,7 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
                           "the image was not processed and the output buffer was not changed");
     if (ec != XPE_OK) return ec;
 
-    std::lock_guard<std::mutex> lock(state->mtx);
+    std::unique_lock<std::mutex> lock(state->mtx);
 #ifdef XPE_AI_TEST_HOOKS
     if (auto* hook = g_testMutexHeldHook.load(std::memory_order_acquire)) hook();   // the mutex IS held here
 #endif
@@ -1337,6 +1590,20 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
             publishWorkerState(state);
             return XPE_ERR_PROCESSING_FAILED;
         }
+        if (wrc == XPE_ERR_CONFIG_INVALID && state->workerSupervisor &&
+            state->workerSupervisor->LastModelUnavailable()) {
+            // QA-B-195 D6: the worker answered and says its model was REFUSED, for its signature or its sidecar (-4 with the
+            // model_unavailable flag). A state of the installation, not a fault of the worker: the count is reset
+            // like after any healthy exchange, so a refused model can never switch AI off by itself, and the
+            // operator is told once. The output holds the input, as on every other failure of this path.
+            std::memmove(softTissueOut->data, img->data, bytes);
+            state->workerConsecutiveFailures = 0;
+            AI_LOG_WARN("bone_suppress: the worker reports its model unavailable (%d), input returned unchanged "
+                        "(not counted as a worker failure)", static_cast<int>(wrc));
+            pushWorkerRefusedModelAlertOnce(&state->boneTrustAlerted, "bone suppression");
+            publishWorkerState(state);
+            return wrc;
+        }
         if (wrc == XPE_OK) {
             state->workerConsecutiveFailures = 0;
             pushAiProcessedAlert();
@@ -1374,12 +1641,36 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
 
     // Lazy load, and reload when init pointed somewhere else.
     if (!state->boneSuppressSession || state->boneSuppressSessionDir != state->modelDirPath) {
+        // QA-B-198c: the model is read and verified WITHOUT the module lock (a refused model costs that on every call:
+        // 343 ms for 256 MiB). Under the lock only the path is copied and the "loading" mark set; after the read the lock
+        // is taken again and the result is used only if the module still points at the directory that was read. A second
+        // call for this role while a load is in flight does not wait: it answers "model unavailable" at once.
+        if (state->boneLoading) return XPE_ERR_CONFIG_INVALID;
+        const std::string dir = state->modelDirPath;
         xpe::ai::OnnxSessionConfig cfg;
         cfg.model_path = modelPath;
+        cfg.role = "bone_suppress";   // part of what the signature covers (QA-B-195)
         cfg.execution_provider = xpe::ai::ExecutionProvider::kCpu;
         cfg.num_threads = 1;
 
-        auto created = xpe::ai::OnnxSession::Create(cfg);
+        state->boneLoading = true;
+        auto created = [&] {
+            lock.unlock();
+            try {
+                auto r = xpe::ai::OnnxSession::Create(cfg);
+                lock.lock();
+                state->boneLoading = false;
+                return r;
+            } catch (...) {
+                lock.lock();
+                state->boneLoading = false;
+                throw;
+            }
+        }();
+        if (!state->initialized.load(std::memory_order_acquire) || state->modelDirPath != dir) {
+            // The module was pointed somewhere else while the files were being read: nothing of this result is used.
+            return XPE_ERR_CONFIG_INVALID;
+        }
         if (!created.has_value()) {
             // Three causes, three codes -- a caller that gets one code for all
             // of them cannot tell "install the model" from "the model is
@@ -1390,6 +1681,25 @@ extern "C++" static XpeErrorCode xpe_bone_suppress_impl(const XpeImageBuffer* im
                     return XPE_ERR_IO_FAILED;
                 case xpe::ai::OnnxErrorCode::kModelLoadFailed:
                     AI_LOG_ERROR("bone_suppress: model unreadable: %s", created.message.c_str());
+                    return XPE_ERR_CONFIG_INVALID;
+                case xpe::ai::OnnxErrorCode::kOutOfMemory:
+                    // QA-B-194 M5: a shortage of memory is named as one, not as a failed inference.
+                    return XPE_ERR_OUT_OF_MEMORY;
+                case xpe::ai::OnnxErrorCode::kModelNotTrusted:
+                    // QA-B-195: the model or its sidecar failed signature verification. Nothing was loaded. The
+                    // same code as "model unreadable": the caller's answer is the same (no model to use). The
+                    // operator is told once per session, with the reason class. Nothing is remembered: the next call
+                    // verifies the files again (QA-B-198b).
+                    AI_LOG_ERROR("bone_suppress: %s", created.message.c_str());
+                    pushModelNotTrustedAlertOnce(&state->boneTrustAlerted, "bone suppression",
+                                                 refusalReason(created.message));
+                    return XPE_ERR_CONFIG_INVALID;
+                case xpe::ai::OnnxErrorCode::kSidecarInvalid:
+                    // QA-B-197 (REQ-AI-008): the signature verified, the sidecar does not say what the requirement
+                    // asks. Same treatment as a signature refusal: -4, nothing loaded, one Error alert per session.
+                    AI_LOG_ERROR("bone_suppress: %s", created.message.c_str());
+                    pushSidecarInvalidAlertOnce(&state->boneTrustAlerted, "bone suppression",
+                                                refusalReason(created.message));
                     return XPE_ERR_CONFIG_INVALID;
                 default:
                     AI_LOG_ERROR("bone_suppress: session failed: %s", created.message.c_str());
@@ -1475,6 +1785,10 @@ XPE_API XpeErrorCode xpe_dl_denoise(XpeImageBuffer* img,
     ec = validateImageBuffer(img);
     if (ec != XPE_OK) return ec;
 
+    // QA-B-194 M3 (D3): the metadata is input too -- judged before the pixels are scanned, and before anything runs.
+    ec = validateDenoiseMetadata(meta);
+    if (ec != XPE_OK) return ec;
+
     // QA-B-194 M1: the frame is denoised IN PLACE, so refusing it before anything is read is what keeps it intact.
     ec = checkImageFinite(img, "XPE_WARN_DL_DENOISE_INPUT_NOT_FINITE:", "the input frame",
                           "the image was not denoised and the buffer was not changed");
@@ -1518,36 +1832,42 @@ extern "C++" static XpeErrorCode xpe_ai_get_model_card_impl(const char* modelId,
     // #142 (QA-B-42): zero-length output buffer is a missing argument.
     if (bufSize == 0) return XPE_ERR_INVALID_INPUT;
 
-    // Look up model in loaded models list
+    // QA-B-194 M3 (D4): the identifier is echoed into JSON, so it must be one a JSON string can carry unescaped.
+    if (!isValidModelId(modelId)) return XPE_ERR_INVALID_INPUT;
+
+    // QA-B-198b: under the lock only the model directory is COPIED; the read and the signature check run outside it, so
+    // an inference on another thread is not kept out for the length of a large model's read. After the read the lock is
+    // taken again to confirm the module still points at the directory that was read.
     auto* state = g_aiState;
-    std::lock_guard<std::mutex> lock(state->mtx);
+    std::string modelDir;
+    {
+        std::lock_guard<std::mutex> lock(state->mtx);
 #ifdef XPE_AI_TEST_HOOKS
-    if (auto* hook = g_testMutexHeldHook.load(std::memory_order_acquire)) hook();   // the mutex IS held here
+        if (auto* hook = g_testMutexHeldHook.load(std::memory_order_acquire)) hook();   // the mutex IS held here
 #endif
+        modelDir = state->modelDirPath;
+    }
 
+    // REQ-AI-010 / 011 (QA-B-197 M2): the card of a model is made ONLY from the sidecar of a model that passed the same
+    // checks a load applies (signature, then REQ-AI-008). No constant of this module is ever put into a card; a field the
+    // sidecar does not carry is null. A model that is not there, does not verify, or has no valid sidecar has no card.
+    // The answer for "no such model" is built first; nothing below changes module state.
+    const std::string unavailable = "{\"model_id\":" + xpe::ai::JsonQuote(modelId) +
+                                    ",\"error\":\"model_unavailable\",\"reason\":\"no verified model in the model "
+                                    "directory has this model_id\"}";
+    std::string made;
     bool found = false;
-    for (const auto& id : state->loadedModels) {
-        if (id == modelId) {
-            found = true;
-            break;
-        }
+    for (int attempt = 0; attempt < 3; ++attempt) {
+        found = cardOfRoleIfItIs(modelDir, "bone_suppress", "bone_suppress", modelId, &made) ||
+                cardOfRoleIfItIs(modelDir, "bodypart", "bodypart", modelId, &made);
+        std::lock_guard<std::mutex> lock(state->mtx);
+        if (state->initialized.load(std::memory_order_acquire) && state->modelDirPath == modelDir) break;
+        // The module was pointed somewhere else while the files were being read: that card describes a model the module
+        // no longer uses. Read again from the current directory; after three tries there is no card.
+        modelDir = state->modelDirPath;
+        found = false;
     }
-
-    // Build model card JSON
-    // REQ-AI-010: Return model card with all required fields.
-    // REQ-AI-011: JSON conforms to schemas/model-card.schema.json.
-    std::string cardJson;
-    if (found) {
-        cardJson = buildStubModelCard(modelId);
-    } else {
-        // Model not loaded -- return minimal card indicating unavailable
-        cardJson = std::string("{"
-            "\"model_id\":\"") + modelId + "\","
-            "\"error\":\"model_not_loaded\","
-            "\"model_version\":\"N/A\","
-            "\"limitations\":\"Model not found or not loaded in this session.\""
-        "}";
-    }
+    const std::string& cardJson = found ? made : unavailable;
 
     // Copy to caller buffer
     size_t copyLen = (cardJson.size() < bufSize - 1)
@@ -1559,7 +1879,7 @@ extern "C++" static XpeErrorCode xpe_ai_get_model_card_impl(const char* modelId,
         return XPE_ERR_BUFFER_TOO_SMALL;
     }
 
-    return found ? XPE_OK : XPE_ERR_IO_FAILED;
+    return found ? XPE_OK : XPE_ERR_CONFIG_INVALID;
 }
 
 XPE_API XpeErrorCode xpe_ai_set_fallback_mode(int32_t enable)

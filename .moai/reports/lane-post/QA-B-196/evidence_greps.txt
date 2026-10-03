@@ -1,0 +1,128 @@
+# QA-B-196 evidence: commands and their literal output (tree: 7304a6f0)
+
+$ grep -c 'GetModelMetadata' modules/ai/src/ai.cpp modules/ai/src/ai_worker_main.cpp modules/ai/src/ai_bodypart_model.h
+modules/ai/src/ai.cpp:0
+modules/ai/src/ai_worker_main.cpp:0
+modules/ai/src/ai_bodypart_model.h:0
+[exit 1]
+
+$ grep -rn 'GetModelMetadata' modules/ai/src modules/ai/tests modules/ai/include
+modules/ai/src/ai_onnx_session.cpp:550:const ModelMetadata& OnnxSession::GetModelMetadata() const {
+modules/ai/include/xpe/ai/ai_onnx_session.h:202:    const ModelMetadata& GetModelMetadata() const;
+[exit 0]
+
+$ grep -rn 'loadedModels = ' -A5 modules/ai/src/ai.cpp
+1051:    state->loadedModels = {
+1052-        "bodypart_cnn_v1",
+1053-        "stitch_feature_match_v1",
+1054-        "bone_suppress_unet_v1",
+1055-        "dl_denoise_ssl_v1"
+1056-    };
+[exit 0]
+
+$ grep -n 'published_date\|training_data_summary\|stub -- ONNX' modules/ai/src/ai.cpp
+519:        "\"intended_use\":\"XPE AI inference (stub -- ONNX Runtime not linked)\","
+520:        "\"training_data_summary\":\"N/A (stub)\","
+525:        "\"published_date\":\"2026-04-22\","
+[exit 0]
+
+$ grep -rn 'GetModelMetadata\|LoadMetadataFromText' modules/ai/tests | wc -l
+0
+[exit 0]
+
+$ find . -name 'model-card*' -not -path './build/*'; ls schemas docs/schemas 2>&1
+ls: cannot access 'schemas': No such file or directory
+ls: cannot access 'docs/schemas': No such file or directory
+[exit 2]
+
+$ grep -rn 'XPE_ERR_PCCP' modules --include=*.h --include=*.cpp
+[exit 1]
+
+$ grep -rn 'pccp' -i modules/ai/src modules/ai/include
+modules/ai/src/ai.cpp:524:        "\"pccp_status\":\"not_applicable\","
+modules/ai/src/ai_onnx_session.cpp:163:        if (j.contains("pccp_scope")) {
+modules/ai/src/ai_onnx_session.cpp:164:            meta.pccp_scope = j["pccp_scope"].get<std::string>();
+modules/ai/include/xpe/ai/ai_api.h:620: * model_version, pccp_status, published_date.
+modules/ai/include/xpe/ai/ai_api.h:624: * REQ-AI-008: Model metadata (model_id, version, pccp_scope, etc.).
+modules/ai/include/xpe/ai/ai_onnx_session.h:81:    std::string pccp_scope;         ///< PCCP boundary scope
+modules/ai/include/xpe/ai/ai_worker_protocol.h:293: *   "pccp_status": "within_boundary",
+[exit 0]
+
+$ grep -rn -i -w -e xai -e shap -e gradcam -e grad-cam -e saliency -e conformal -e fingerprint -e drift_flagged modules/ai/src modules/ai/include
+[exit 1]
+
+$ grep -rn -i -w -e conformal -e saliency -e drift_flagged -e fingerprint modules/ai/tests modules/ai/CMakeLists.txt
+[exit 1]
+
+# control for the two absence searches above: the same grep form (-r -n -i -w -e) finds a word that IS there
+
+$ grep -rn -i -w -e pccp_scope -e labels modules/ai/src/ai_onnx_session.cpp modules/ai/src/ai_bodypart_model.h | sed -n 1,4p
+modules/ai/src/ai_onnx_session.cpp:163:        if (j.contains("pccp_scope")) {
+modules/ai/src/ai_onnx_session.cpp:164:            meta.pccp_scope = j["pccp_scope"].get<std::string>();
+modules/ai/src/ai_bodypart_model.h:6: * a usable model is: which files, which labels, which input shape. This is that one definition. A model that is
+modules/ai/src/ai_bodypart_model.h:31: * The model behind xpe_bodypart_recognize and what was read next to it: the session, the class labels from the
+[exit 0]
+
+$ grep -n 'return XPE_ERR_PROCESSING_FAILED' modules/ai/src/ai.cpp | sed -n 1,3p
+730:    return XPE_ERR_PROCESSING_FAILED;
+998:        return XPE_ERR_PROCESSING_FAILED;
+1162:        return XPE_ERR_PROCESSING_FAILED;
+[exit 0]
+
+$ grep -n 'Stub implementation' modules/ai/src/ai.cpp
+1333:    // --- Stub implementation ---
+1721:    // --- Stub implementation ---
+[exit 0]
+
+$ grep -n 'XPE_ERR_' modules/common/include/xpe/common/xpe_error.h | tail -3
+119: *                 XPE_ERR_BUFFER_TOO_SMALL and nothing is written.
+127: * @return XPE_ERR_INVALID_INPUT if @p msg or @p severity is NULL, @p msgLen is
+129: * @return XPE_ERR_BUFFER_TOO_SMALL if @p msgLen cannot hold the message and its
+[exit 0]
+
+$ grep -n '^TEST.*Provider' modules/ai/tests/test_onnx_session.cpp
+254:TEST(OnnxSessionProviders, CpuIsReportedAndTheListComesFromTheRuntime) {
+[exit 0]
+
+$ grep -n 'Only the CPU EP' modules/ai/src/ai_onnx_session.cpp
+18: *   - Only the CPU EP is registered on the session. GetAvailableExecutionProviders()
+391:        // Only the CPU EP is registered. GetAvailableExecutionProviders()
+[exit 0]
+
+$ grep -n 'REQ-AI-00[4678]\|REQ-AI-01[01]\|REQ-AI-090\|REQ-AI-10[01]\|REQ-AI-11[012]' .moai/specs/SPEC-XPE-P3-AI/spec.md | sed -n 1,30p
+24:  - REQ-AI-010~011 (Model Card) — FDA Transparency 대응 (정정 2026-10-02 `#210`: 예전 표기 `010~012` 의 `REQ-AI-012` 는 모델 카드가 아니라 저신뢰 이벤트 요구입니다)
+27:  - REQ-AI-110~112 (PCCP Boundary) — FDA PCCP 대응
+172:| **`REQ-AI-006`** ONNX 1.20+ · multi-EP 선택 가능 | EP 목록이 **하드코딩**입니다 — 조회가 아닙니다. **그 기계에 없는 EP 를 있다고 답할 수 있습니다.** 그리고 런�
+233:**REQ-AI-004** (Ubiquitous): AI metadata SHALL be delivered via sidecar (not mutating XpeImageMetadata) per SPEC-XPE-MASTER v3.0 Sidecar Contract.
+237:**REQ-AI-006** (Ubiquitous): ONNX Runtime 1.20+ SHALL be the model runtime. Execution Provider selection shall be configurable: CPU (always), CUDA (x86 GPU), TensorRT (NVIDIA), DirectML (Windows GPU).
+239:**REQ-AI-007** (Ubiquitous): Model files (.onnx) SHALL be signed (Ed25519 or ECDSA P-256) and verified at load time.
+241:**REQ-AI-008** (Ubiquitous): Model versioning shall follow semver; model metadata shall include: model_id, version, pccp_scope, training_data_hash, validation_metrics.
+245:**REQ-AI-010** (Ubiquitous): For each AI model, `xpe_ai_get_model_card(model_id, buf, buf_size)` shall return JSON with: intended_use, training_data_summary, demographic_performance, limitations, model_vers
+247:**REQ-AI-011** (Ubiquitous): Model card JSON shall conform to schema `schemas/model-card.schema.json`.
+319:**REQ-AI-090** (Ubiquitous): AI input validation shall include: image dimension bounds, pixel value bounds, DICOM metadata schema check.
+321:**REQ-AI-091** (Ubiquitous): AI model loading shall verify Ed25519/ECDSA signature (REQ-AI-007).
+329:**REQ-AI-100** (Ubiquitous): AI modules shall emit input fingerprints per REQ-OPS-020.
+331:**REQ-AI-101** (Event-driven): When drift alert triggers per REQ-OPS-022, AI modules shall tag subsequent inferences with `drift_flagged: true` in sidecar.
+335:**REQ-AI-110** (Ubiquitous): At model load time, PCCP metadata shall be verified against deployed AI-DSF module's authorized PCCP.
+337:**REQ-AI-111** (Event-driven): If a model's PCCP scope exceeds the authorized one, the model shall fail to load with error `XPE_ERR_PCCP_EXCEEDED`.
+339:**REQ-AI-112** (Ubiquitous): Model audit event (per REQ-REG-007) shall be emitted at each model load/unload.
+[exit 0]
+
+$ grep -n 'REQ-OPS-020\|REQ-OPS-022' .moai/specs/SPEC-XPE-OPS/spec.md
+143:**REQ-OPS-020** (Ubiquitous): AI modules (PRE-06 ML, POST-02 DL, POST-07 AI, POST-09 Bone Suppression) SHALL emit input-distribution fingerprints at inference time for drift analysis.
+147:**REQ-OPS-022** (Event-driven): When drift metric exceeds site-configured threshold, the system shall emit a drift alert in telemetry stream and optionally trigger PCCP-authorized retraining per SPEC-XPE-RE
+[exit 0]
+
+$ sed -n 296,306p docs/project/xpe-algorithm-spec-deepsync.md
+### 8.2 Sidecar contract guidance
+
+Sidecar objects carry outputs that must not mutate `XpeImageMetadata`:
+
+| Sidecar | Minimum fields | Created by | Consumed by |
+|---|---|---|---|
+| Collimation ROI sidecar | `roi_x`, `roi_y`, `roi_w`, `roi_h`, `confidence`, `method_id` | Phase 2 collimation | Phase 2 EI refinement, GSVG |
+| Quality state vector | `calib_freshness`, `defect_burden_class`, `lag_tier`, `gsvg_state`, `ei_refinement_used`, `ai_worker_status` | Phase 1b/2 pipeline | diagnostic log, IPC to C# |
+| AI confidence sidecar | `model_id`, `model_version`, `confidence`, `failure_code`, `fallback_used` | Phase 3 AI worker | orchestrator, DICOM tag insertion |
+
+These fields are informational only in this specification. Concrete C struct definitions shall be in `xpe-implementation-reference.md`.
+[exit 0]

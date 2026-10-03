@@ -1,0 +1,57 @@
+"""QA-B-199: per-task and per-requirement tables from the extraction pack and the (verified) audit result.
+
+Run from the repository root:  python .moai/reports/lane-post/QA-B-199/tables_script.txt <SPEC> <outfile.md>
+Reads build/g199/pack_<SPEC>.json and build/g199/agent_<SPEC>.json. The audit's implementation line numbers are NOT printed
+(they were not reliable for DISP); test file:line and the test name are, and each was machine-checked by verify_script.txt.
+A task row's "actual" is derived by rule from its requirements' verdicts:
+  all asserted                         -> implemented (asserted against an independent value)
+  some asserted/partial, none missing  -> partial
+  every requirement constant_only / no_test / no_code -> none
+"""
+import json, re, sys
+from collections import Counter
+
+spec, out = sys.argv[1], sys.argv[2]
+pack = json.load(open('build/g199/pack_%s.json' % spec, encoding='utf-8'))
+agent = json.load(open('build/g199/agent_%s.json' % spec, encoding='utf-8'))
+V = {r['id']: r for r in agent['reqs']}
+GOOD, MID, BAD = {'asserted'}, {'partial', 'self_referential'}, {'constant_only', 'no_test', 'no_code'}
+
+
+def lookup(rid):
+    return V.get(rid) or V.get(rid + '@') or next((v for k, v in V.items() if k.startswith(rid)), None)
+
+
+lines = []
+w = lines.append
+w('| 요구 | 판정 | 독립 기대값의 출처 | 시험이 단언하지 않는 문구 | 근거 시험 |')
+w('|---|---|---|---|---|')
+for r in agent['reqs']:
+    tests = '; '.join('`%s:%s` %s' % (t['file'].split('/')[-1], t['line'], t['name']) for t in r.get('tests', [])[:3])
+    w('| %s | %s | %s | %s | %s |' % (r['id'], r['verdict'], (r.get('independence') or '')[:110].replace('|', '/'),
+                                      (r.get('unasserted') or '')[:150].replace('|', '/'), tests.replace('|', '/')))
+req_table = '\n'.join(lines)
+
+lines = []
+w = lines.append
+w('| 작업 | 표 상태 | 작업 내용 | 요구 | 실제 | 판정별 개수 |')
+w('|---|---|---|---|---|---|')
+for t in pack['tasks']:
+    vs = [lookup(x)['verdict'] for x in t['reqs'] if lookup(x)]
+    c = Counter(vs)
+    if not vs:
+        actual = '(요구 없음)'
+    elif all(v in GOOD for v in vs):
+        actual = '구현됨'
+    elif all(v in BAD for v in vs):
+        actual = '없음'
+    else:
+        actual = '부분'
+    names = ', '.join(x.replace('REQ-%s-' % spec, '') for x in t['reqs'])
+    w('| %s | %s | %s | %s | **%s** | %s |' % (t['id'], t['status'], t['desc'][:70].replace('|', '/'),
+                                           (names[:60] + ('...' if len(names) > 60 else '')), actual,
+                                           ', '.join('%s %d' % (k, v) for k, v in sorted(c.items()))))
+task_table = '\n'.join(lines)
+open(out, 'w', encoding='utf-8', newline='\n').write('## 작업 행\n\n' + task_table + '\n\n## 요구별 판정\n\n' + req_table + '\n')
+print(Counter(r['verdict'] for r in agent['reqs']))
+print('tasks', len(pack['tasks']))

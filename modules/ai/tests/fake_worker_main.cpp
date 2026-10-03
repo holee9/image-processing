@@ -20,11 +20,24 @@
  *   (the two raw ERROR modes also set the frame's header flags to XPE_FAKE_WORKER_FLAGS, a decimal number; QA-B-193b)
  *   "bone_error_raw"    answers a BONE_SUPPRESS request with an ERROR frame whose JSON is XPE_FAKE_WORKER_JSON,
  *                       verbatim (QA-B-193)
+ *   "spoof_server"  never serves the pipe ITSELF: it starts a second process (this program, mode ok) that serves it and
+ *                       sleeps -- a pipe whose server is not the process the supervisor started (QA-B-198b). Needs
+ *                       XPE_AI_TEST_WORKER_UNRESTRICTED=1, since the restricted job allows one process.
+ *   "capability_probe_exit"  answers the session-start message, then TRIES five things and exits with the code
+ *                       kProbeMarker | (one bit for each that WORKED) -- the way a restricted worker can report what it
+ *                       can still do when it cannot write a file to say so (QA-B-198 M2, REQ-AI-093):
+ *                         bit 0 (1)  create a file in %TEMP%
+ *                         bit 1 (2)  create a file in the current directory
+ *                         bit 2 (4)  create a registry key under HKCU\Software
+ *                         bit 3 (8)  start a child process (cmd.exe /c exit 0)
+ *                         bit 4 (16) connect to 127.0.0.1:XPE_FAKE_WORKER_PORT (the NETWORK)
  *
  * It answers the session-start message correctly in every mode, so the supervisor reaches the heartbeat.
  * It exits 0 on a shutdown request, like the real worker.
  */
 
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #include <windows.h>
 
 #include <chrono>
@@ -37,7 +50,69 @@
 
 #include "xpe/ai/ai_worker_protocol.h"
 
+#pragma comment(lib, "ws2_32.lib")
+
 namespace {
+
+constexpr DWORD kProbeMarker = 0x100;   // so that "no capability left" is not the exit code 0 of a clean shutdown
+
+/** True when a file can be created (and is deleted again) in @p dir. */
+bool CanCreateFileIn(const std::string& dir) {
+    if (dir.empty()) return false;
+    const std::string p = dir + "\\xpe_fake_probe_" + std::to_string(GetCurrentProcessId()) + ".tmp";
+    HANDLE h = CreateFileA(p.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW,
+                           FILE_ATTRIBUTE_NORMAL | FILE_FLAG_DELETE_ON_CLOSE, nullptr);
+    if (h == INVALID_HANDLE_VALUE) return false;
+    CloseHandle(h);
+    return true;
+}
+
+/** The exit code of capability_probe_exit: kProbeMarker | a bit for each thing that worked (see the file header). */
+DWORD ProbeCapabilities() {
+    DWORD bits = 0;
+    char temp[MAX_PATH] = {0};
+    if (GetTempPathA(MAX_PATH, temp) > 0) {
+        std::string t = temp;
+        while (!t.empty() && (t.back() == '\\' || t.back() == '/')) t.pop_back();
+        if (CanCreateFileIn(t)) bits |= 1;
+    }
+    char cwd[MAX_PATH] = {0};
+    if (GetCurrentDirectoryA(MAX_PATH, cwd) > 0 && CanCreateFileIn(cwd)) bits |= 2;
+    HKEY key = nullptr;
+    if (RegCreateKeyExA(HKEY_CURRENT_USER, "Software\\xpe_fake_probe", 0, nullptr, 0, KEY_WRITE, nullptr, &key, nullptr) ==
+        ERROR_SUCCESS) {
+        bits |= 4;
+        RegCloseKey(key);
+        RegDeleteKeyA(HKEY_CURRENT_USER, "Software\\xpe_fake_probe");
+    }
+    STARTUPINFOA si{};
+    si.cb = sizeof(si);
+    PROCESS_INFORMATION pi{};
+    char cmd[] = "C:\\Windows\\System32\\cmd.exe /c exit 0";
+    if (CreateProcessA(nullptr, cmd, nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi)) {
+        bits |= 8;
+        WaitForSingleObject(pi.hProcess, 5000);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+    }
+    char port[16] = {0};
+    if (GetEnvironmentVariableA("XPE_FAKE_WORKER_PORT", port, sizeof(port)) > 0) {
+        WSADATA wd;
+        if (WSAStartup(MAKEWORD(2, 2), &wd) == 0) {
+            SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+            if (s != INVALID_SOCKET) {
+                sockaddr_in a{};
+                a.sin_family = AF_INET;
+                a.sin_port = htons(static_cast<u_short>(std::atoi(port)));
+                inet_pton(AF_INET, "127.0.0.1", &a.sin_addr);
+                if (connect(s, reinterpret_cast<sockaddr*>(&a), sizeof(a)) == 0) bits |= 16;
+                closesocket(s);
+            }
+            WSACleanup();
+        }
+    }
+    return kProbeMarker | bits;
+}
 
 HANDLE g_pipe = INVALID_HANDLE_VALUE;
 
@@ -114,6 +189,19 @@ int main(int argc, char** argv) {
     const std::string mode = Mode();
     if (mode == "exit_on_start") return 7;
     if (mode == "no_pipe") Sleep(INFINITE);
+    if (mode == "spoof_server") {
+        char self[MAX_PATH] = {0};
+        GetModuleFileNameA(nullptr, self, MAX_PATH);
+        std::string cmd = std::string("\"") + self + "\" " + argv[1];
+        SetEnvironmentVariableA("XPE_FAKE_WORKER_MODE", "ok");   // the child serves honestly; it is the PROCESS that is wrong
+        STARTUPINFOA si{};
+        si.cb = sizeof(si);
+        PROCESS_INFORMATION pi{};
+        if (!CreateProcessA(nullptr, cmd.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi)) return 9;
+        CloseHandle(pi.hThread);
+        CloseHandle(pi.hProcess);
+        Sleep(INFINITE);
+    }
     g_pipe = CreateNamedPipeA(argv[1], PIPE_ACCESS_DUPLEX,
                               PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1,
                               XPE_AI_PIPE_BUFFER_SIZE, XPE_AI_PIPE_BUFFER_SIZE, 0, nullptr);
@@ -133,6 +221,7 @@ int main(int argc, char** argv) {
         switch (h.messageType) {
             case XPE_AI_MSG_INIT:
                 Reply(XPE_AI_MSG_INIT_RESPONSE, h.requestId, "{\"success\":true}");
+                if (mode == "capability_probe_exit") ExitProcess(ProbeCapabilities());
                 break;
             case XPE_AI_MSG_HEARTBEAT:
                 if (mode == "wrong_type") {

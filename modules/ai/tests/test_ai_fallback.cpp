@@ -788,8 +788,13 @@ TEST_F(AiFallbackTest, OutputBufferContract_AdequateBuffersStillAccepted) {
     EXPECT_NE(XPE_ERR_INVALID_INPUT, labelRc);
     EXPECT_NE(XPE_ERR_BUFFER_TOO_SMALL, labelRc);
 
+    // QA-B-197: this fixture has no model directory, so the card is the "unavailable" answer (-4) -- but a big enough
+    // buffer is still accepted: neither a missing-argument nor a too-small refusal, and the answer is complete JSON.
     char card[4096] = {};
-    EXPECT_EQ(XPE_OK, xpe_ai_get_model_card("bodypart_cnn_v1", card, sizeof(card)));
+    const XpeErrorCode cardRc = xpe_ai_get_model_card("bodypart_cnn_v1", card, sizeof(card));
+    EXPECT_NE(XPE_ERR_INVALID_INPUT, cardRc);
+    EXPECT_NE(XPE_ERR_BUFFER_TOO_SMALL, cardRc);
+    EXPECT_EQ('{', card[0]);
 
     std::vector<uint16_t> a;
     std::vector<uint16_t> b;

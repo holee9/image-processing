@@ -1,0 +1,10 @@
+launch.variant=wr2
+launch.target=real xpe_ai_worker.exe
+launch.scratch_grant_to_RESTRICTED_sid=ok
+launch.console=DETACHED_PROCESS (no console)
+launch.create_process=OK pid 43924
+launch.assign_to_job=OK
+worker.pipe_path_that_connected=\\.\pipe\xpe_ai_worker_g198_37392
+worker.pipe_connect=OK
+worker.init=OK
+worker.bone_suppress=OK (every pixel doubled by the toy model) rc=0 in 40 ms

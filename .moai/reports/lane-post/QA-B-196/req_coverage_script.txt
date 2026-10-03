@@ -1,0 +1,24 @@
+"""Which REQ-AI-* defined in spec.md appear in no task row of tasks.md (QA-B-196).
+
+Run from the repository root:  python .moai/reports/lane-post/QA-B-196/req_coverage_script.txt
+The control line shows the parser finds a REQ that IS in a task row (T-012 -> 090).
+"""
+import re
+
+spec = open('.moai/specs/SPEC-XPE-P3-AI/spec.md', encoding='utf-8').read()
+defined = re.findall(r'^\*\*REQ-AI-(\d+)\*\*', spec, re.M)
+tasks = open('.moai/specs/SPEC-XPE-P3-AI/tasks.md', encoding='utf-8').read()
+rows = [l for l in tasks.splitlines() if l.startswith('| T-')]
+cov = {}
+for r in rows:
+    cells = [c.strip() for c in r.split('|')]
+    task, req = cells[1], cells[3]
+    for m in re.finditer(r'REQ-AI-(\d+)((?:,\d+)*)', req):
+        ids = [m.group(1)] + [x.zfill(3) for x in m.group(2).split(',') if x]
+        for i in ids:
+            cov.setdefault(i, []).append(task)
+print('defined REQ-AI ids:', len(defined))
+print('task rows parsed  :', len(rows))
+print('control: REQ-AI-090 is in', cov.get('090'))
+print('covered by a task :', len(set(defined) & set(cov)))
+print('in NO task        :', sorted(set(defined) - set(cov)))

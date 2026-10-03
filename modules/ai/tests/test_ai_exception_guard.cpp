@@ -33,10 +33,12 @@
 
 #include "xpe/ai/ai_api.h"
 #include "xpe/ai/ai_onnx_session.h"
+#include "xpe/common/xpe_error.h"
 #include "xpe/common/xpe_types.h"
 
 #ifdef XPE_AI_TEST_HOOKS
 extern "C" __declspec(dllimport) void xpe_ai_test_set_mutex_held_hook(void (*hook)(void));
+extern "C" __declspec(dllimport) void xpe_ai_test_set_worker_path_hook(void (*hook)(void));   // QA-B-195d
 
 namespace {
 
@@ -178,7 +180,9 @@ TEST_F(GuardFixture, TheModuleStaysUsableAfterAFailedCall) {
     Escaped([&] { return xpe_bone_suppress(&f.a, &f.b, nullptr); }, &rc);
     g_throwMode = 0;
     char buf[4096];
-    EXPECT_EQ(XPE_OK, xpe_ai_get_model_card("bone_suppress_unet_v1", buf, sizeof(buf)));
+    // QA-B-197: the probe directory has no model, so a card is "unavailable" (-4); what matters here is that the call
+    // answers normally again (it used to answer OK from a constant table).
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_ai_get_model_card("bone_suppress_unet_v1", buf, sizeof(buf)));
     EXPECT_NE(std::string::npos, std::string(buf).find("bone_suppress_unet_v1"));
     EXPECT_EQ(XPE_ERR_IO_FAILED, xpe_bone_suppress(&f.a, &f.b, nullptr)) << "no model on disk: the normal -9";
 }
@@ -226,16 +230,19 @@ TEST(AiExceptionGuard, SkippedWithoutTestHooks) {
 
 #endif
 
-// ---- QA-B-181d (Codex #48 census): the stitch size estimate is limited before it becomes a uint32 --------------
-// The estimate is a float, max(width) * (1 + 0.7 * (parts - 1)). It was converted to uint32_t first and clamped to
-// 4096 afterwards, so an estimate above UINT32_MAX was an out-of-range conversion. On x86-64 it wraps: 2526451329
-// wide parts (two of them, a format whose size the validator did not bound) estimate 4294967808, which wrapped
+// ---- QA-B-181d (Codex #48 census), narrowed in QA-B-194 (Codex #83, low) ------------------------------------
+// HISTORY. The estimate is a float, max(width) * (1 + 0.7 * (parts - 1)). It was converted to uint32_t first and
+// clamped to 4096 afterwards, so an estimate above UINT32_MAX was an out-of-range conversion; on x86-64 it wraps:
+// two 2526451329-wide parts (a format whose size the validator did not bound) estimated 4294967808, which wrapped
 // to 512 and was reported as 512 instead of the 4096 limit.
 //
-// QA-B-194 M1: the validator now bounds EVERY format's size (UINT8 included), so the 2526451329-wide parts that
-// reached the conversion are refused at the entrance -- the first assertion below. The clamp itself stays, and is
-// still held to its job at the widest image the validator accepts (a UINT8 image may hold 64 MB of pixels).
-TEST(AiExceptionGuard, StitchEstimateOfAHugeWidthIsTheLimitNotAWrappedValue) {
+// WHAT THIS TEST CAN STILL CATCH. Since QA-B-194 M1 the validator bounds EVERY format's size (UINT8 included: at
+// most 64 MB, so at most 67108864 UINT8 pixels of width), and the largest estimate a validated input can reach is
+// about 114 million -- far below UINT32_MAX. The over-range conversion above is therefore NOT reachable through
+// this function any more, and this test no longer detects its return (clamping after the cast would pass it).
+// It holds the two things that are still observable: an oversized input is refused with nothing written, and a
+// valid input whose estimate exceeds 4096 is reported as 4096, not as the raw estimate.
+TEST(AiExceptionGuard, StitchEstimateRefusesAnOversizedPartAndLimitsAValidOneTo4096) {
     uint8_t one = 0;
     XpeImageBuffer parts[2] = {};
     for (auto& p : parts) {
@@ -258,3 +265,82 @@ TEST(AiExceptionGuard, StitchEstimateOfAHugeWidthIsTheLimitNotAWrappedValue) {
     ASSERT_EQ(XPE_OK, xpe_stitch_estimate_size(parts, 2, &w, &h));
     EXPECT_EQ(1700u, w);
 }
+
+/* =========================================================================
+ * QA-B-195d (Codex #92): the worker path reports a shortage of memory as one, and nothing else as one
+ * =========================================================================
+ * xpe_bone_suppress and xpe_bodypart_recognize with "use_worker" start and ask the worker inside a try block that used to
+ * answer ANY exception with XPE_ERR_OUT_OF_MEMORY. A hook inside that block (xpe_ai_test_set_worker_path_hook) throws what the
+ * test chooses: std::bad_alloc is -2 (unchanged), any other exception is -3. The body-part function returns UNKNOWN with
+ * XPE_ERR_PROCESSING_FAILED either way and names the worker's code in its Warning, so that is where its code is read.
+ */
+
+#ifdef XPE_AI_TEST_HOOKS
+namespace {
+
+std::atomic<int> g_workerThrow{0};   // 0 none, 1 std::bad_alloc, 2 std::runtime_error
+
+void WorkerPathHook() {
+    const int m = g_workerThrow.load();
+    if (m == 1) throw std::bad_alloc();
+    if (m == 2) throw std::runtime_error("injected where the worker is started and asked");
+}
+
+struct WorkerPathClassification : public ::testing::Test {
+    void SetUp() override {
+        if (xpe::ai::OnnxSession::IsStubBuild()) GTEST_SKIP() << "stub build: the worker path is not taken";
+        g_workerThrow = 0;
+        xpe_ai_shutdown();
+        xpe_clear_alerts();
+        const std::string dir = std::string(XPE_AI_TEST_DATA_DIR) + "/models_x2";
+        ASSERT_EQ(XPE_OK, xpe_ai_init(dir.c_str(), "{\"use_worker\": true}"));
+        xpe_ai_test_set_worker_path_hook(&WorkerPathHook);
+    }
+    void TearDown() override {
+        g_workerThrow = 0;
+        xpe_ai_test_set_worker_path_hook(nullptr);
+        xpe_ai_shutdown();
+        xpe_clear_alerts();
+    }
+
+    /** The text of every pending alert, joined. */
+    static std::string AlertText() {
+        std::string all;
+        const int32_t n = xpe_get_pending_alert_count();
+        for (int32_t i = 0; i < n; ++i) {
+            char msg[512] = {0};
+            int32_t sev = -1;
+            if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) == XPE_OK) all += std::string(msg) + "\n";
+        }
+        return all;
+    }
+};
+
+}  // namespace
+
+TEST_F(WorkerPathClassification, BoneSuppressMapsABadAllocToOutOfMemoryAndAnyOtherExceptionToProcessingFailed) {
+    Frame f;
+    g_workerThrow = 1;
+    EXPECT_EQ(XPE_ERR_OUT_OF_MEMORY, xpe_bone_suppress(&f.a, &f.b, nullptr)) << "unchanged: a shortage of memory is -2";
+    g_workerThrow = 2;
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, xpe_bone_suppress(&f.a, &f.b, nullptr))
+        << "was XPE_ERR_OUT_OF_MEMORY: an exception that is not a shortage of memory is not reported as one";
+}
+
+TEST_F(WorkerPathClassification, BodyPartRecognizeNamesAShortageOfMemoryAsCodeMinusTwoAndAnyOtherExceptionAsCodeMinusThree) {
+    Frame f;
+    char label[64] = {0};
+    float confidence = -1.0f;
+    g_workerThrow = 1;
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, xpe_bodypart_recognize(&f.a, label, sizeof(label), &confidence));
+    EXPECT_STREQ("UNKNOWN", label);
+    const std::string oom = AlertText();
+    EXPECT_NE(std::string::npos, oom.find("(code -2,")) << oom;
+    xpe_clear_alerts();
+    g_workerThrow = 2;
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, xpe_bodypart_recognize(&f.a, label, sizeof(label), &confidence));
+    const std::string other = AlertText();
+    EXPECT_NE(std::string::npos, other.find("(code -3,")) << "was code -2: " << other;
+    EXPECT_EQ(std::string::npos, other.find("(code -2,")) << other;
+}
+#endif  // XPE_AI_TEST_HOOKS

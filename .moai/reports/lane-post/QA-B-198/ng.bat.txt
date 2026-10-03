@@ -1,0 +1,3 @@
+@echo off
+set G198_NOGRANT=%1
+D:\workspace-github\xpe-post\build\g198\launch.exe aclocal worker D:\workspace-github\xpe-post\build\g198\bin D:\workspace-github\xpe-post\modules\ai\tests\data\models_x2 > D:\workspace-github\xpe-post\build\g198\out_ac_nogrant_%1.txt 2>&1

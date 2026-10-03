@@ -39,12 +39,16 @@
 // @MX:NOTE: Single-client design - only one pipe instance allowed per worker.
 
 #include <windows.h>
+#include <sddl.h>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <cerrno>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <new>
 #include <string>
 #include <vector>
 
@@ -59,9 +63,57 @@
 #include "ai_bodypart_decision.h"
 #include "ai_bodypart_model.h"
 
+#include <atomic>
+#include <new>
+#include <stdexcept>
+
+#ifdef XPE_AI_TEST_HOOKS
+namespace xpe::ai {
+void TestSetBeforeFileReadHook(void (*hook)());   // ai_onnx_session.cpp, test builds only
+void TestSetBeforeLabelParseHook(void (*hook)()); // ai_onnx_session.cpp, test builds only (QA-B-195c)
+}
+namespace {
+// TEST-ONLY (QA-B-195b). Environment variables of the worker's process, read in main() of a test build only:
+//   XPE_AI_TEST_FAIL_MODEL_READ=<n>      the first n file reads of model loading fail like a shortage of memory
+//   XPE_AI_TEST_FAIL_LABELS=<k>          the k-th call of the label reader's hook fails with std::bad_alloc (QA-B-195c):
+//                                        k=1 is the start of the parse, k=2 the first label stored, and so on
+//   XPE_AI_TEST_FAIL_WORKER_REQUEST=oom|std|payload   ONE request fails at the request boundary: with std::bad_alloc
+//                                        inside the handler, with another exception type, or at the allocation of its payload
+std::atomic<int> g_failFileReads{0};
+std::atomic<int> g_labelCallsUntilFailure{0};
+void FailLabelParseForTest() {
+    if (g_labelCallsUntilFailure.fetch_sub(1) == 1) throw std::bad_alloc();
+}
+std::atomic<int> g_requestFault{0};   // 0 none, 1 oom, 2 other exception, 3 payload allocation
+void FailFileReadForTest() {
+    if (g_failFileReads.fetch_sub(1) > 0) throw std::bad_alloc();
+}
+bool ConsumeFault(int kind) {
+    int expected = kind;
+    return g_requestFault.compare_exchange_strong(expected, 0);
+}
+void MaybeFailRequestForTest() {
+    if (ConsumeFault(1)) throw std::bad_alloc();
+    if (ConsumeFault(2)) throw std::runtime_error("injected exception");
+}
+/** Only a request that carries an image can fail here: the heartbeat that starts every worker must not use the fault up. */
+void MaybeFailPayloadForTest(uint32_t messageType) {
+    if (messageType != XPE_AI_MSG_BONE_SUPPRESS && messageType != XPE_AI_MSG_BODYPART_RECOGNIZE) return;
+    if (ConsumeFault(3)) throw std::bad_alloc();
+}
+}  // namespace
+#else
+namespace {
+inline void MaybeFailRequestForTest() {}
+inline void MaybeFailPayloadForTest(uint32_t) {}
+}  // namespace
+#endif
+
 namespace {
     constexpr DWORD PIPE_BUFFER_SIZE = XPE_AI_PIPE_BUFFER_SIZE;
     constexpr DWORD PIPE_TIMEOUT_MS = 0;
+    /** QA-B-198b: pipe clients that are not the host a worker turns away before it gives up and exits. */
+    constexpr int kMaxForeignClients = 16;
     constexpr const char* XPE_AI_WORKER_PIPE_NAME = "\\\\.\\pipe\\xpe_ai_worker";
 
     // Reported in INIT_RESPONSE, so the string has to be true for THIS build.
@@ -147,6 +199,44 @@ std::string JsonEscape(const std::string& text) {
 }  // namespace
 
 /**
+ * The security of the worker's pipe: full access for the user this process runs as, and for SYSTEM; nothing for anyone
+ * else (no Everyone, no Anonymous, no Authenticated Users, no Administrators). Built from the process token's own user
+ * SID, never from a name. The SID text and the descriptor live as long as this object.
+ */
+struct PipeSecurity {
+    SECURITY_ATTRIBUTES attributes{};
+    PSECURITY_DESCRIPTOR descriptor = nullptr;
+
+    bool Build() {
+        HANDLE token = nullptr;
+        if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) return false;
+        DWORD size = 0;
+        GetTokenInformation(token, TokenUser, nullptr, 0, &size);
+        std::vector<char> buf(size);
+        const BOOL got = GetTokenInformation(token, TokenUser, buf.data(), size, &size);
+        CloseHandle(token);
+        if (!got) return false;
+        LPSTR sidText = nullptr;
+        if (!ConvertSidToStringSidA(reinterpret_cast<TOKEN_USER*>(buf.data())->User.Sid, &sidText)) return false;
+        const std::string sddl = std::string("D:P(A;;GA;;;") + sidText + ")(A;;GA;;;SY)";
+        LocalFree(sidText);
+        if (!ConvertStringSecurityDescriptorToSecurityDescriptorA(sddl.c_str(), SDDL_REVISION_1, &descriptor, nullptr)) {
+            return false;
+        }
+        attributes.nLength = sizeof(attributes);
+        attributes.lpSecurityDescriptor = descriptor;
+        attributes.bInheritHandle = FALSE;
+        return true;
+    }
+    ~PipeSecurity() {
+        if (descriptor) LocalFree(descriptor);
+    }
+    PipeSecurity() = default;
+    PipeSecurity(const PipeSecurity&) = delete;
+    PipeSecurity& operator=(const PipeSecurity&) = delete;
+};
+
+/**
  * @class WorkerServer
  * @brief Named pipe server for worker process communication
  */
@@ -156,8 +246,13 @@ public:
      * @brief Construct worker server
      * @param pipe_name Named pipe name
      */
-    explicit WorkerServer(const std::string& pipe_name)
+    /**
+     * @param host_pid  the one process whose pipe client this worker accepts (QA-B-198b); 0 = no check, for a worker
+     *                  started by hand without a host (diagnostics and the protocol tests). A supervisor always passes it.
+     */
+    explicit WorkerServer(const std::string& pipe_name, DWORD host_pid = 0)
         : pipe_name_(pipe_name)
+        , host_pid_(host_pid)
         , pipe_handle_(INVALID_HANDLE_VALUE)
         , running_(false)
     {
@@ -177,16 +272,27 @@ public:
      * @MX:REASON: Single client design - max_instances=1 prevents concurrent connections.
      */
     bool Start() {
+        // QA-B-198 M2 (REQ-AI-093, D5): the pipe is open to the user that runs this worker and to SYSTEM, and to no one
+        // else. The default security of a pipe grants read to Everyone and to Anonymous, and with ONE instance the first
+        // process to connect owns the conversation: it could be someone other than the host. No security descriptor, no
+        // pipe -- the worker does not fall back to the default.
+        PipeSecurity security;
+        if (!security.Build()) {
+            std::cerr << "Pipe security descriptor failed: " << GetLastError() << std::endl;
+            return false;
+        }
         // Create named pipe
+        // QA-B-198b: FIRST_PIPE_INSTANCE -- if a process of the same user already serves this name, creation FAILS (the
+        // worker exits) instead of the worker quietly becoming a second server nobody connects to.
         pipe_handle_ = CreateNamedPipeA(
             pipe_name_.c_str(),
-            PIPE_ACCESS_DUPLEX,
+            PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE,
             PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
             1,                          // Max instances (single client)
             PIPE_BUFFER_SIZE,           // Output buffer size
             PIPE_BUFFER_SIZE,           // Input buffer size
             PIPE_TIMEOUT_MS,            // Default timeout
-            nullptr                     // Default security
+            &security.attributes        // Current user + SYSTEM only
         );
 
         if (pipe_handle_ == INVALID_HANDLE_VALUE) {
@@ -211,20 +317,34 @@ public:
 
         std::cout << "[Worker] Waiting for client connection..." << std::endl;
 
-        BOOL result = ConnectNamedPipe(pipe_handle_, nullptr);
-        if (!result) {
-            DWORD error = GetLastError();
-            if (error == ERROR_PIPE_CONNECTED) {
-                // Client already connected - this is OK
-                std::cout << "[Worker] Client already connected" << std::endl;
+        // QA-B-198b: a client that is not the host is cut off and the worker waits for the next one, up to a bound. A
+        // process of the same user can still connect FIRST and be refused here, but it cannot hold the pipe: each refusal
+        // frees it for the host. Past the bound the worker exits -- an attack of this shape ends as a start failure
+        // (the host reports the worker as not started), never as a conversation with the wrong process.
+        for (int refused = 0; refused <= kMaxForeignClients; ++refused) {
+            BOOL result = ConnectNamedPipe(pipe_handle_, nullptr);
+            if (!result) {
+                DWORD error = GetLastError();
+                if (error != ERROR_PIPE_CONNECTED) {
+                    std::cerr << "[Worker] ConnectNamedPipe failed: " << error << std::endl;
+                    return false;
+                }
+                // Client already connected before this call - checked like any other
+            }
+            if (host_pid_ == 0) {
+                std::cout << "[Worker] Client connected" << std::endl;
                 return true;
             }
-            std::cerr << "[Worker] ConnectNamedPipe failed: " << error << std::endl;
-            return false;
+            ULONG client_pid = 0;
+            if (GetNamedPipeClientProcessId(pipe_handle_, &client_pid) && client_pid == host_pid_) {
+                std::cout << "[Worker] Client connected" << std::endl;
+                return true;
+            }
+            std::cerr << "[Worker] Refused a pipe client that is not the host (pid " << client_pid << ")" << std::endl;
+            DisconnectNamedPipe(pipe_handle_);
         }
-
-        std::cout << "[Worker] Client connected" << std::endl;
-        return true;
+        std::cerr << "[Worker] Too many foreign pipe clients; exiting" << std::endl;
+        return false;
     }
 
     /**
@@ -261,13 +381,35 @@ public:
                 break;
             }
 
-            std::vector<char> payload(header.payloadSize);
+            // QA-B-195b: nothing a request does may take the worker down with an uncaught exception. A shortage of memory
+            // is answered with XPE_ERR_OUT_OF_MEMORY and any other exception with XPE_ERR_PROCESSING_FAILED, and the loop
+            // goes on: the host sees the worker's own answer instead of a dead pipe. If even the answer cannot be sent
+            // the loop ends, so the host finds out at once instead of at the end of its time budget.
+            std::vector<char> payload;
+            try {
+                MaybeFailPayloadForTest(header.messageType);
+                payload.resize(header.payloadSize);
+            } catch (const std::bad_alloc&) {
+                // The payload's bytes are still in the pipe: they are read and thrown away, or the next frame would be
+                // decoded from the middle of this one.
+                if ((header.payloadSize > 0 && !DiscardPayload(header.payloadSize)) ||
+                    !SendErrorSafe(header.requestId, XPE_ERR_OUT_OF_MEMORY, "out of memory")) {
+                    break;
+                }
+                continue;
+            }
             if (header.payloadSize > 0 && !ReadPayload(payload)) {
                 std::cerr << "[Worker] Payload read failed" << std::endl;
                 break;
             }
 
-            HandleMessage(header, payload);
+            try {
+                HandleMessage(header, payload);
+            } catch (const std::bad_alloc&) {
+                if (!SendErrorSafe(header.requestId, XPE_ERR_OUT_OF_MEMORY, "out of memory")) break;
+            } catch (...) {
+                if (!SendErrorSafe(header.requestId, XPE_ERR_PROCESSING_FAILED, "unexpected exception in the worker")) break;
+            }
         }
     }
 
@@ -288,6 +430,29 @@ public:
     }
 
 private:
+    /** SendError that cannot throw; false when the answer could not be built or sent. */
+    bool SendErrorSafe(uint32_t request_id, int code, const char* message) noexcept {
+        try {
+            SendError(request_id, code, message);
+            return true;
+        } catch (...) {
+            return false;
+        }
+    }
+
+    /** Read and throw away the rest of one message of @p remaining bytes (the pipe is in message mode). */
+    bool DiscardPayload(uint32_t remaining) {
+        char buf[4096];
+        for (;;) {
+            DWORD got = 0;
+            const BOOL ok = ReadFile(pipe_handle_, buf, sizeof(buf), &got, nullptr);
+            if (!ok && GetLastError() != ERROR_MORE_DATA) return false;
+            if (got > remaining) return false;   // more than the header promised
+            remaining -= got;
+            if (ok) return remaining == 0;       // the message ended
+        }
+    }
+
     bool ReadHeader(XpeAiMessageHeader& header) {
         DWORD bytes_read = 0;
         const BOOL ok = ReadFile(pipe_handle_, &header, sizeof(header), &bytes_read, nullptr);
@@ -433,6 +598,7 @@ private:
         uint32_t width = 0, height = 0;
         size_t pixel_offset = 0;
         if (!ParseImageRequest(header, payload, "bone suppress", width, height, pixel_offset)) return;
+        MaybeFailRequestForTest();
         const size_t pixel_bytes = payload.size() - pixel_offset;
         const uint64_t count = static_cast<uint64_t>(width) * height;
 
@@ -444,6 +610,7 @@ private:
         if (!session_ || session_dir_ != model_dir_) {
             xpe::ai::OnnxSessionConfig cfg;
             cfg.model_path = model_path;
+            cfg.role = "bone_suppress";   // part of what the signature covers (QA-B-195)
             cfg.execution_provider = xpe::ai::ExecutionProvider::kCpu;
             cfg.num_threads = 1;
 
@@ -452,11 +619,28 @@ private:
                 // Three causes, three codes -- the same three ai.cpp separates.
                 switch (created.code) {
                     case xpe::ai::OnnxErrorCode::kInvalidModelPath:
+                        // Still counted by the host (user-approved policy 2026-10-01, REQ-CHANGE-LOG-P3-AI.md row 3):
+                        // QA-B-195 D6 changes only the signature refusal below.
                         SendError(id, XPE_ERR_IO_FAILED, "no model at " + model_path);
                         break;
                     case xpe::ai::OnnxErrorCode::kModelLoadFailed:
                         SendError(id, XPE_ERR_CONFIG_INVALID,
                                   "model unreadable: " + created.message);
+                        break;
+                    case xpe::ai::OnnxErrorCode::kOutOfMemory:
+                        // QA-B-194b: named as a shortage of memory, never as a failed or unusable model.
+                        SendError(id, XPE_ERR_OUT_OF_MEMORY, "out of memory while loading the model");
+                        break;
+                    case xpe::ai::OnnxErrorCode::kModelNotTrusted:
+                        // QA-B-195 D6: a model that fails signature verification is unavailable, like a missing
+                        // one: the worker is healthy, so the host must not count it toward switching the worker off.
+                        SendError(id, XPE_ERR_CONFIG_INVALID,
+                                  "model not trusted: " + created.message, /*model_unavailable=*/true);
+                        break;
+                    case xpe::ai::OnnxErrorCode::kSidecarInvalid:
+                        // QA-B-197: like a signature refusal -- unavailable, not a fault of the worker.
+                        SendError(id, XPE_ERR_CONFIG_INVALID,
+                                  "model sidecar invalid: " + created.message, /*model_unavailable=*/true);
                         break;
                     default:
                         SendError(id, XPE_ERR_PROCESSING_FAILED,
@@ -558,6 +742,7 @@ private:
         uint32_t width = 0, height = 0;
         size_t pixel_offset = 0;
         if (!ParseImageRequest(header, payload, "body-part recognition", width, height, pixel_offset)) return;
+        MaybeFailRequestForTest();
         const uint64_t count = static_cast<uint64_t>(width) * height;
 
         if (!bodypart_ || bodypart_dir_ != model_dir_) {
@@ -567,6 +752,10 @@ private:
             if (const char* why = xpe::ai::LoadBodyPartModel(model_dir_, &built, &kind, &detail)) {
                 bodypart_.reset();
                 if (!detail.empty()) std::cerr << "[Worker] bodypart: " << detail << std::endl;
+                if (kind == xpe::ai::BodyPartLoadFailure::kOutOfMemory) {
+                    SendError(id, XPE_ERR_OUT_OF_MEMORY, why);   // QA-B-194b: not "unavailable"
+                    return;
+                }
                 SendError(id, kind == xpe::ai::BodyPartLoadFailure::kNoModelFile ? XPE_ERR_IO_FAILED
                                                                                  : XPE_ERR_CONFIG_INVALID,
                           why, /*model_unavailable=*/true);
@@ -657,6 +846,7 @@ private:
     }
 
     std::string pipe_name_;
+    DWORD host_pid_;
     HANDLE pipe_handle_;
     bool running_;
 
@@ -674,7 +864,41 @@ private:
 /**
  * @brief Main entry point for worker process
  */
+#ifdef XPE_AI_TEST_HOOKS
+namespace xpe::ai {
+void TestSetBeforeSessionHook(void (*hook)());   // ai_onnx_session.cpp, test builds only
+}
+// TEST-ONLY (QA-B-194b): with XPE_AI_TEST_FAIL_SESSION_CREATE=oom in the environment the worker fails every session
+// creation the way a shortage of memory does, so the host's handling of that answer can be tested through a REAL
+// worker. Not compiled into a delivery build.
+static void ThrowOutOfMemory() { throw std::bad_alloc(); }
+#endif
+
 int main(int argc, char* argv[]) {
+#ifdef XPE_AI_TEST_HOOKS
+    {
+        char v[8] = {0};
+        if (GetEnvironmentVariableA("XPE_AI_TEST_FAIL_SESSION_CREATE", v, sizeof(v)) > 0 && std::strcmp(v, "oom") == 0) {
+            xpe::ai::TestSetBeforeSessionHook(&ThrowOutOfMemory);
+        }
+        char n[16] = {0};
+        if (GetEnvironmentVariableA("XPE_AI_TEST_FAIL_MODEL_READ", n, sizeof(n)) > 0) {
+            g_failFileReads = std::atoi(n);
+            xpe::ai::TestSetBeforeFileReadHook(&FailFileReadForTest);
+        }
+        char lb[16] = {0};
+        if (GetEnvironmentVariableA("XPE_AI_TEST_FAIL_LABELS", lb, sizeof(lb)) > 0) {
+            g_labelCallsUntilFailure = std::atoi(lb);
+            xpe::ai::TestSetBeforeLabelParseHook(&FailLabelParseForTest);
+        }
+        char f[16] = {0};
+        if (GetEnvironmentVariableA("XPE_AI_TEST_FAIL_WORKER_REQUEST", f, sizeof(f)) > 0) {
+            if (std::strcmp(f, "oom") == 0) g_requestFault = 1;
+            else if (std::strcmp(f, "std") == 0) g_requestFault = 2;
+            else if (std::strcmp(f, "payload") == 0) g_requestFault = 3;
+        }
+    }
+#endif
     std::cout << "[Worker] XPE AI Worker Process v" << WORKER_VERSION_STRING << std::endl;
     std::cout << "[Worker] Built: " << __DATE__ << " " << __TIME__ << std::endl;
 
@@ -684,18 +908,42 @@ int main(int argc, char* argv[]) {
     std::cout << "[Worker] Mode: FULL (with ONNX Runtime)" << std::endl;
 #endif
 
-    // Use default pipe name
+    // QA-B-198c: exactly two forms are accepted, and anything else ends the worker (exit code 2) -- an extra argument is
+    // never ignored:
+    //   supervised  xpe_ai_worker <pipe> <host-pid>       the way a supervisor starts it; the only form that has a host
+    //   diagnostic  xpe_ai_worker --diagnostic [<pipe>]   a worker started by hand (diagnostics, protocol tests): no host
+    //                                                     check, the default pipe when none is named
     std::string pipe_name = XPE_AI_WORKER_PIPE_NAME;
-
-    // Allow override via command line
-    if (argc > 1) {
+    const bool diagnostic = argc >= 2 && std::strcmp(argv[1], "--diagnostic") == 0;
+    if (diagnostic ? argc > 3 : argc != 3) {
+        std::cerr << "usage: xpe_ai_worker <pipe> <host-pid>   |   xpe_ai_worker --diagnostic [<pipe>]" << std::endl;
+        return 2;
+    }
+    if (diagnostic) {
+        if (argc == 3) pipe_name = argv[2];
+    } else {
         pipe_name = argv[1];
     }
 
     std::cout << "[Worker] Pipe: " << pipe_name << std::endl;
 
+    // QA-B-198b: argv[2] of the supervised form is the host's process id, the only process whose pipe client is accepted.
+    // A value that is not a plain positive number ends the worker (fail closed) rather than disabling the check.
+    DWORD host_pid = 0;
+    if (!diagnostic) {
+        char* end = nullptr;
+        errno = 0;
+        const unsigned long v = std::strtoul(argv[2], &end, 10);
+        // strtoul accepts a leading '-' and wraps it ("-5" becomes a huge positive number), so the first character is checked
+        if (argv[2][0] < '0' || argv[2][0] > '9' || end == argv[2] || *end != '\0' || v == 0 || errno == ERANGE) {
+            std::cerr << "[Worker] Bad host process id argument" << std::endl;
+            return 1;
+        }
+        host_pid = static_cast<DWORD>(v);
+    }
+
     // Create and start server
-    WorkerServer server(pipe_name);
+    WorkerServer server(pipe_name, host_pid);
 
     if (!server.Start()) {
         std::cerr << "[Worker] Failed to start server" << std::endl;

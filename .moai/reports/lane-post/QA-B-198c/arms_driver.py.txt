@@ -1,0 +1,78 @@
+"""QA-B-198b falsification arms: break ONE defence at a time, rebuild, run the tests that must notice, restore byte-identical.
+
+Run from the repository root:  python build/g198b_arms.py <out.txt> [arm names...]
+An arm FIRES when every test listed for it is red (and the build succeeded); an arm that does not fire is reported as such.
+Sources are not edited by anyone else while this runs.
+"""
+import hashlib, os, re, subprocess, sys
+
+ROOT = os.getcwd()
+OUT = sys.argv[1]
+ONLY = sys.argv[2:]
+BUILD = r'D:\workspace-github\xpe-post\build\g198b-build2.bat'
+RUN = r'D:\workspace-github\xpe-post\build\g198b-run.bat'
+AI = 'modules/ai/'
+
+exec(open('build/arms_198c_defs.py', encoding='utf-8').read())
+
+
+def sha(p):
+    return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+
+
+def sh(cmd, timeout=1500):
+    r = subprocess.run(['cmd', '/c', cmd], capture_output=True, text=True, timeout=timeout)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def parse(path):
+    txt = open(path, encoding='utf-8', errors='replace').read()
+    failed = set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M))
+    passed = set(re.findall(r'^\[       OK \] (\S+)', txt, re.M))
+    return passed, failed
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+for name, edits, flt, must in ARMS:
+    if ONLY and name not in ONLY:
+        continue
+    files = sorted({e[0] for e in edits})
+    saved = {f: open(f, 'rb').read() for f in files}
+    before = {f: sha(f) for f in files}
+    log('=== ARM %s' % name)
+    try:
+        for f in files:
+            txt = saved[f].decode('utf-8')
+            for (ff, old, new) in edits:
+                if ff != f:
+                    continue
+                assert txt.count(old) == 1, (name, old[:60], txt.count(old))
+                txt = txt.replace(old, new)
+            open(f, 'wb').write(txt.encode('utf-8'))
+        log('build: ' + sh('%s D:\\workspace-github\\xpe-post\\build\\g198b-arm-build.txt' % BUILD).strip().splitlines()[-1])
+        built = os.path.exists('build/g198b-arm-build.txt') and 'FAILED' not in open('build/g198b-arm-build.txt', encoding='utf-8', errors='replace').read()
+        if not built:
+            log('RESULT: BUILD FAILED')
+        else:
+            sh('%s D:\\workspace-github\\xpe-post\\build\\g198b-arm-run.txt %s' % (RUN, flt), 2400)
+            passed, failed = parse('build/g198b-arm-run.txt')
+            red = sorted(f for f in failed)
+            log('red tests: %s' % (', '.join(red) if red else '(none)'))
+            hit = [m for m in must if any(m in f for f in failed)]
+            miss = [m for m in must if m not in hit]
+            log('RESULT: %s  (expected red: %d, red: %d, not red: %s)' % ('FIRED' if not miss else 'DID NOT FIRE', len(must), len(hit), miss))
+            others = [f for f in red if not any(m in f for m in must)]
+            log('other red tests: %s' % (others if others else 'none'))
+    finally:
+        for f in files:
+            open(f, 'wb').write(saved[f])
+        log('restored byte-identical: %s' % all(sha(f) == before[f] for f in files))
+log('=== DONE')
+out.close()

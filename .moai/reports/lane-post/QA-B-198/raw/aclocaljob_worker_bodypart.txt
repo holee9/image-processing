@@ -1,0 +1,11 @@
+launch.variant=aclocaljob
+launch.target=real xpe_ai_worker.exe
+launch.sandbox=C:\Users\drake\AppData\Local\Temp\xpe_g198_sandbox_62904 (ACL grant to ALL APPLICATION PACKAGES: bin=ok models=ok)
+launch.appcontainer_sid=S-1-15-2-2257413127-389257795-1181514316-2262165041-2074359170-1561579582-1151829375
+launch.scratch_grant_to_appcontainer_sid=ok
+launch.create_process=OK pid 44620
+launch.assign_to_job=OK
+worker.pipe_path_that_connected=\\.\pipe\Sessions\1\AppContainerNamedObjects\S-1-15-2-2257413127-389257795-1181514316-2262165041-2074359170-1561579582-1151829375\xpe_ai_worker_g198_62904
+worker.pipe_connect=OK
+worker.init=OK
+worker.bodypart=OK label=CHEST

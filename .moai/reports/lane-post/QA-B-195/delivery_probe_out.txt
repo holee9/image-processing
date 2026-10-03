@@ -1,0 +1,5 @@
+compiled with cl /W4 /EHsc /std:c++17, 0 warnings each (g195-probe-*-build.txt)
+build: XPE_AI_TEST_HOOKS NOT defined (a delivery build)
+TrustedModelKeys().size() with XPE_AI_TEST_TRUSTED_KEYS set to a well-formed 128-hex entry: 0
+build: XPE_AI_TEST_HOOKS defined
+TrustedModelKeys().size() with XPE_AI_TEST_TRUSTED_KEYS set to a well-formed 128-hex entry: 1
