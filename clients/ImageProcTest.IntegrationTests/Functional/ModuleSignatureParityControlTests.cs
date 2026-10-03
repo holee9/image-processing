@@ -62,10 +62,36 @@ public sealed class ModuleSignatureParityControlTests
         return problems;
     }
 
+    /// <summary>
+    /// GUI-C-220: the sources below are raw string literals, so they carry whatever line ending THIS file was checked out with (CI checks <c>.cs</c> out as CRLF; a local worktree is LF), while
+    /// the <c>from</c> text of a mutation names a line break as a backslash-n. The source is normalized to LF before the target is looked for, so the controls behave the same on both checkouts.
+    /// Whether the ENGINE reads CRLF input correctly is a separate question, asked directly by <see cref="TheEngine_ReadsCrlfSourcesLikeLfOnes"/>.
+    /// </summary>
     private static string Mutate(string source, string from, string to)
     {
+        source = source.Replace("\r\n", "\n", StringComparison.Ordinal);
         Assert.Contains(from, source, StringComparison.Ordinal);   // the control itself must hit its target, or it proves nothing
         return source.Replace(from, to, StringComparison.Ordinal);
+    }
+
+    private static string Crlf(string text) => text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace("\n", "\r\n", StringComparison.Ordinal);
+
+    /// <summary>
+    /// The checkout the engine reads on CI has CRLF in every header and every C# file. A clean pair must stay clean, and a broken pair must report exactly what it reports with LF: an engine that
+    /// read nothing from a CRLF file would pass the first and fail the second, which is why both are asked.
+    /// </summary>
+    [Fact]
+    public void TheEngine_ReadsCrlfSourcesLikeLfOnes()
+    {
+        var plainHeader = Header.Replace("\r\n", "\n", StringComparison.Ordinal);
+        var plainCs = Cs.Replace("\r\n", "\n", StringComparison.Ordinal);
+        Assert.Empty(Run(Crlf(plainHeader), Crlf(plainCs)));
+
+        var broken = Mutate(plainCs, "public static extern int xpe_t_add", "public static extern uint xpe_t_add");
+        var lf = Run(plainHeader, broken);
+        var crlf = Run(Crlf(plainHeader), Crlf(broken));
+        Assert.NotEmpty(lf);
+        Assert.Equal(lf, crlf);
     }
 
     [Fact]
