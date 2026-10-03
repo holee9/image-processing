@@ -24,16 +24,16 @@ namespace ImageProcTest.IntegrationTests.P1AReady;
 [Trait("Category", "P1AReady")]
 public sealed class PreprocessCorrectionChainSmokeTests
 {
-    private const int Width = 16;
-    private const int Height = 16;
-    private const int PixelCount = Width * Height;
+    internal const int Width = 16;
+    internal const int Height = 16;
+    internal const int PixelCount = Width * Height;
 
     /// <summary>
     /// Pixels the chain's defect map marks (GUI-C-210, REQ-GUI-IT-061). Two isolated pixels well apart: each has eight unmarked neighbours, so the correction's
     /// fill is a plain neighbour statistic. The synthetic input carries a hot value there (<see cref="HotValue"/>), so a defect stage that does nothing leaves a value
     /// 59,000 ADU away from its neighbours — a correction cannot go unnoticed.
     /// </summary>
-    private static readonly int[] DefectPixels = [5 * Width + 5, 12 * Width + 9];
+    internal static readonly int[] DefectPixels = [5 * Width + 5, 12 * Width + 9];
 
     private const ushort HotValue = 60000;
 
@@ -227,7 +227,7 @@ public sealed class PreprocessCorrectionChainSmokeTests
 
     // ---------- helpers ----------
 
-    private static IntPtr LoadDll()
+    internal static IntPtr LoadDll()
     {
         SkipHelper.SkipIf(DllPath is null, SkipReason);
         SkipHelper.SkipIf(
@@ -250,7 +250,7 @@ public sealed class PreprocessCorrectionChainSmokeTests
     private sealed record ChainRun(ushort[] Input, string InputSha256Before, string InputSha256After, float[] GainOutput, float[] DefectOutput);
 
     /// <summary>The input of the chain: a ramp, with a hot value at every pixel the defect map marks.</summary>
-    private static ushort[] ChainInput()
+    internal static ushort[] ChainInput()
     {
         var raw = SyntheticUInt16();
         foreach (var i in DefectPixels) raw[i] = HotValue;
@@ -341,7 +341,7 @@ public sealed class PreprocessCorrectionChainSmokeTests
     }
 
     /// <summary>Generates offset and gain maps from synthetic frames and loads them into the global store.</summary>
-    private static void GenerateAndLoadCalibration(IntPtr handle, string tempDir)
+    internal static void GenerateAndLoadCalibration(IntPtr handle, string tempDir)
     {
         var generateOffset = GetDelegate<XpePreprocessNative.CalibGenerateOffsetDelegate>(handle, "xpe_calib_generate_offset");
         var generateGain = GetDelegate<XpePreprocessNative.CalibGenerateGainDelegate>(handle, "xpe_calib_generate_gain");
@@ -421,7 +421,7 @@ public sealed class PreprocessCorrectionChainSmokeTests
         return Math.Sqrt(sumSq / a.Length);
     }
 
-    private static XpeCommonNative.XpeImageBuffer MakeBuffer(
+    internal static XpeCommonNative.XpeImageBuffer MakeBuffer(
         XpeCommonNative.XpePixelFormat format, uint bits, int dataSize) =>
         new()
         {
@@ -433,7 +433,7 @@ public sealed class PreprocessCorrectionChainSmokeTests
             DataSize = (nuint)dataSize,
         };
 
-    private static XpeCommonNative.XpeImageMetadata CreateMetadata() =>
+    internal static XpeCommonNative.XpeImageMetadata CreateMetadata() =>
         new()
         {
             BodyPart = "CHEST",
@@ -445,7 +445,7 @@ public sealed class PreprocessCorrectionChainSmokeTests
             Flags = 0,
         };
 
-    private static TDelegate GetDelegate<TDelegate>(IntPtr handle, string exportName)
+    internal static TDelegate GetDelegate<TDelegate>(IntPtr handle, string exportName)
         where TDelegate : Delegate
     {
         Assert.True(NativeLibrary.TryGetExport(handle, exportName, out var symbol), $"Export '{exportName}' not found.");

@@ -1,0 +1,72 @@
+# GUI-C-214 falsification arms (each changes ONE thing, rebuilds, runs the scenarios that guard it, restores byte-identical)
+
+## arm the service as GUI-C-213 left it (call shape fixed, calibration never loaded, files in the old XPEC format)
+build ok: True
+exit=1; 5 red of 5
+   RED     실패 ImageProcTest.E2ETests.P02_OffsetThenGain_PassesTheOffsetOutputToTheGain
+   RED     실패 ImageProcTest.E2ETests.P05_TheCalibrationIsLoadedIntoTheModule_NotJustWr
+   RED     실패 ImageProcTest.E2ETests.P04_TheInputIsNotModified_NeitherTheFileNorThePre
+   RED     실패 ImageProcTest.E2ETests.P03_AllThreeStages_ChainToTheExpectedImage_AndOnl
+   RED     실패 ImageProcTest.E2ETests.P01_OffsetOnly_SubtractsTheDarkFrame_PixelByPixel
+restored byte-identical: True
+
+## arm the service as it was before GUI-C-213 (the (image, map) call shape)
+build ok: True
+exit=1; 5 red of 5
+   RED     실패 ImageProcTest.E2ETests.P02_OffsetThenGain_PassesTheOffsetOutputToTheGain
+   RED     실패 ImageProcTest.E2ETests.P05_TheCalibrationIsLoadedIntoTheModule_NotJustWr
+   RED     실패 ImageProcTest.E2ETests.P04_TheInputIsNotModified_NeitherTheFileNorThePre
+   RED     실패 ImageProcTest.E2ETests.P03_AllThreeStages_ChainToTheExpectedImage_AndOnl
+   RED     실패 ImageProcTest.E2ETests.P01_OffsetOnly_SubtractsTheDarkFrame_PixelByPixel
+restored byte-identical: True
+
+## arm the defect map is not loaded into the module
+build ok: True
+exit=1; 3 red of 5
+   RED     실패 ImageProcTest.E2ETests.P05_TheCalibrationIsLoadedIntoTheModule_NotJustWr
+   RED     실패 ImageProcTest.E2ETests.P04_TheInputIsNotModified_NeitherTheFileNorThePre
+   RED     실패 ImageProcTest.E2ETests.P03_AllThreeStages_ChainToTheExpectedImage_AndOnl
+restored byte-identical: True
+
+## arm the gain file is generated without the dark reference
+build ok: True
+exit=1; 2 red of 5
+   RED     실패 ImageProcTest.E2ETests.P02_OffsetThenGain_PassesTheOffsetOutputToTheGain
+   RED     실패 ImageProcTest.E2ETests.P03_AllThreeStages_ChainToTheExpectedImage_AndOnl
+restored byte-identical: True
+
+## arm the offset file is generated from the dark frame plus one
+build ok: True
+exit=1; 3 red of 5
+   RED     실패 ImageProcTest.E2ETests.P02_OffsetThenGain_PassesTheOffsetOutputToTheGain
+   RED     실패 ImageProcTest.E2ETests.P03_AllThreeStages_ChainToTheExpectedImage_AndOnl
+   RED     실패 ImageProcTest.E2ETests.P01_OffsetOnly_SubtractsTheDarkFrame_PixelByPixel
+restored byte-identical: True
+
+## arm the gain stage is given the original frame instead of the offset stage's output
+build ok: True
+exit=1; 2 red of 5
+   RED     실패 ImageProcTest.E2ETests.P02_OffsetThenGain_PassesTheOffsetOutputToTheGain
+   RED     실패 ImageProcTest.E2ETests.P03_AllThreeStages_ChainToTheExpectedImage_AndOnl
+restored byte-identical: True
+
+## arm the gain output buffer is the input buffer (the result lands on the input)
+build ok: True
+exit=1; 0 red of 0
+restored byte-identical: True
+
+## arm the defect map marks no pixel
+build ok: True
+exit=1; 1 red of 5
+   RED     실패 ImageProcTest.E2ETests.P03_AllThreeStages_ChainToTheExpectedImage_AndOnl
+restored byte-identical: True
+
+## arm the native call is handed an output buffer one element early (writes land in the margin)
+build ok: True
+exit=1; 3 red of 5
+   RED     Defect_WritesOnlyItsOutputBuffer_AndLeavesItsInputAlone
+   RED     Offset_WritesOnlyItsOutputBuffer_AndLeavesItsInputAlone
+   RED     Gain_WritesOnlyItsOutputBuffer_AndLeavesItsInputAlone
+restored byte-identical: True
+
+final rebuilds done

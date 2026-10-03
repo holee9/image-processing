@@ -61,4 +61,26 @@
              Link="Rendering\Linked\ComparisonModes.cs" />
   </ItemGroup>
 
+  <!--
+    GUI-C-214 (#249): the legacy diagnostic app's native preprocess preview (NativePreprocessPreviewService) run end to end against the real xpe_preprocess.dll. It builds a WPF bitmap
+    (that is why it lives in this net8.0-windows project and not in IntegrationTests) and is linked together with the small closure it needs. Linked source, not a reference to the
+    app, for the same MSB3027 reason as above.
+  -->
+  <ItemGroup>
+    <Compile Include="..\ImageProcTest\Services\NativePreprocessPreviewService.cs" Link="LegacyPreview\Linked\NativePreprocessPreviewService.cs" />
+    <Compile Include="..\ImageProcTest\PInvokeWrapper.cs" Link="LegacyPreview\Linked\PInvokeWrapper.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\NativeDependencyLoader.cs" Link="LegacyPreview\Linked\NativeDependencyLoader.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\XpeCommonLibraryLocator.cs" Link="LegacyPreview\Linked\XpeCommonLibraryLocator.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\NativeSearchPolicy.cs" Link="LegacyPreview\Linked\NativeSearchPolicy.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\XpePreprocessLibraryLocator.cs" Link="LegacyPreview\Linked\XpePreprocessLibraryLocator.cs" />
+    <Compile Include="..\ImageProcTest\Models\FixtureCaseInfo.cs" Link="LegacyPreview\Linked\FixtureCaseInfo.cs" />
+    <Compile Include="..\ImageProcTest\Models\RawPreviewResult.cs" Link="LegacyPreview\Linked\RawPreviewResult.cs" />
+    <Compile Include="..\ImageProcTest\Models\RawFileDescriptor.cs" Link="LegacyPreview\Linked\RawFileDescriptor.cs" />
+    <Compile Include="..\ImageProcTest\Services\MetricsComputationService.cs" Link="LegacyPreview\Linked\MetricsComputationService.cs" />
+    <Compile Include="..\ImageProcTest\Services\DefectMetricRows.cs" Link="LegacyPreview\Linked\DefectMetricRows.cs" />
+    <Compile Include="..\ImageProcTest\Services\DefectMetricGates.cs" Link="LegacyPreview\Linked\DefectMetricGates.cs" />
+    <Compile Include="..\ImageProcTest\Services\RawPreviewService.cs" Link="LegacyPreview\Linked\RawPreviewService.cs" />
+    <Compile Include="..\ImageProcTest\DetectorDefaults.cs" Link="LegacyPreview\Linked\DetectorDefaults.cs" />
+  </ItemGroup>
+
 </Project>

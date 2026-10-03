@@ -82,8 +82,6 @@ namespace ImageProcTest
 
     internal static class NativePreprocessPreviewService
     {
-        private const uint XCalVersion = 1;
-
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate XpeCommonApi.XpeErrorCode InitDelegate(IntPtr config);
 
@@ -117,22 +115,56 @@ namespace ImageProcTest
             ref XpeCommonApi.XpeImageBuffer output,
             ref XpeCommonApi.XpeImageMetadata metadata);
 
+        // GUI-C-214 (#249): the module generates the offset and gain files itself (xpe_calib_generate_*) and loads all three (xpe_calib_load_*) into its calibration store, which is where the
+        // corrections read their maps (#117). This service used to write files in a format of its own ("XPEC", CRC-32) that the module cannot read, and never loaded anything: every
+        // correction answered CALIB_NOT_LOADED. A request therefore carries the PIXELS the module generates from; the defect map is the one file written here (the module has no generator for it).
         private sealed record CalibrationRequest(
             string Stage,
             CalibrationRole Role,
             CalibrationFileDescriptor Source,
             string XCalPath,
             string Details,
-            ushort[]? OffsetMap,
-            float[]? GainMap,
-            byte[]? DefectMap);
+            ushort[]? DarkPixels,
+            ushort[]? FlatPixels,
+            ushort[]? FlatDarkReference,
+            byte[]? DefectMap,
+            int Width,
+            int Height);
 
         private sealed record GeneratedCalibration(
             string XCalPath,
             string Details,
-            ushort[]? OffsetMap = null,
-            float[]? GainMap = null,
+            ushort[]? DarkPixels = null,
+            ushort[]? FlatPixels = null,
+            ushort[]? FlatDarkReference = null,
             byte[]? DefectMap = null);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        private delegate XpeCommonApi.XpeErrorCode GenerateOffsetDelegate(
+            [In] XpeCommonApi.XpeImageBuffer[] darkFrames,
+            int numFrames,
+            float integrationTimeMs,
+            float temperatureC,
+            [MarshalAs(UnmanagedType.LPStr)] string outputPath,
+            [MarshalAs(UnmanagedType.LPStr)] string? configJsonOrNull);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        private delegate XpeCommonApi.XpeErrorCode GenerateGainDelegate(
+            [In] XpeCommonApi.XpeImageBuffer[] flatFrames,
+            int numFrames,
+            IntPtr darkReferenceOrNull,
+            [MarshalAs(UnmanagedType.LPStr)] string outputPath,
+            [MarshalAs(UnmanagedType.LPStr)] string? metadataJsonOrNull);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        private delegate XpeCommonApi.XpeErrorCode LoadCalibrationDelegate([MarshalAs(UnmanagedType.LPStr)] string path);
+
+        private sealed record ModuleCalibration(
+            GenerateOffsetDelegate GenerateOffset,
+            GenerateGainDelegate GenerateGain,
+            LoadCalibrationDelegate LoadOffset,
+            LoadCalibrationDelegate LoadGain,
+            LoadCalibrationDelegate LoadDefect);
 
         private sealed record PreparedCalibration(
             IReadOnlyList<CalibrationRequest> Requests,
@@ -173,6 +205,12 @@ namespace ImageProcTest
                 var offsetCorrect = GetRequiredDelegate<OffsetCorrectionDelegate>(handle, "xpe_offset_correct");
                 var gainCorrect = GetRequiredDelegate<GainCorrectionDelegate>(handle, "xpe_gain_correct");
                 var defectCorrect = GetRequiredDelegate<DefectCorrectionDelegate>(handle, "xpe_defect_correct");
+                var module = new ModuleCalibration(
+                    GetRequiredDelegate<GenerateOffsetDelegate>(handle, "xpe_calib_generate_offset"),
+                    GetRequiredDelegate<GenerateGainDelegate>(handle, "xpe_calib_generate_gain"),
+                    GetRequiredDelegate<LoadCalibrationDelegate>(handle, "xpe_calib_load_offset"),
+                    GetRequiredDelegate<LoadCalibrationDelegate>(handle, "xpe_calib_load_gain"),
+                    GetRequiredDelegate<LoadCalibrationDelegate>(handle, "xpe_calib_load_defect_map"));
 
                 shutdown();
                 var initResult = init(IntPtr.Zero);
@@ -185,7 +223,8 @@ namespace ImageProcTest
                 {
                     var loadResults = LoadCalibrationFiles(
                         preparedCalibration,
-                        checkExpiry);
+                        checkExpiry,
+                        module);
 
                     return RunChain(
                         preview,
@@ -336,7 +375,7 @@ namespace ImageProcTest
             }
 
             var generated = generate(source);
-            if (!File.Exists(generated.XCalPath))
+            if (generated.DefectMap is not null && !File.Exists(generated.XCalPath))
             {
                 throw new FileNotFoundException($"Generated {stage} XCal file was not found.", generated.XCalPath);
             }
@@ -347,26 +386,30 @@ namespace ImageProcTest
                 source,
                 generated.XCalPath,
                 generated.Details,
-                generated.OffsetMap,
-                generated.GainMap,
-                generated.DefectMap));
+                generated.DarkPixels,
+                generated.FlatPixels,
+                generated.FlatDarkReference,
+                generated.DefectMap,
+                preview.PreviewWidth,
+                preview.PreviewHeight));
         }
 
         private static IReadOnlyList<NativePreviewCalibrationResult> LoadCalibrationFiles(
             PreparedCalibration prepared,
-            CalibrationExpiryDelegate checkExpiry)
+            CalibrationExpiryDelegate checkExpiry,
+            ModuleCalibration module)
         {
             var results = new List<NativePreviewCalibrationResult>(prepared.MissingLoads);
 
             foreach (var request in prepared.Requests)
             {
-                var expiry = CheckCalibrationExpiry(checkExpiry, request.XCalPath);
                 var stopwatch = Stopwatch.StartNew();
-                var result = File.Exists(request.XCalPath)
-                    ? XpeCommonApi.XpeErrorCode.OK
-                    : XpeCommonApi.XpeErrorCode.IO_FAILED;
+                var result = GenerateAndLoad(request, module);
                 stopwatch.Stop();
 
+                var expiry = File.Exists(request.XCalPath)
+                    ? CheckCalibrationExpiry(checkExpiry, request.XCalPath)
+                    : null;
                 var loadResult = new NativePreviewCalibrationResult(
                     request.Stage,
                     result.ToString(),
@@ -386,6 +429,74 @@ namespace ImageProcTest
             }
 
             return results;
+        }
+
+        /// <summary>Generates the offset/gain file with the module (the defect file is already written) and loads it into the module's calibration store.</summary>
+        private static XpeCommonApi.XpeErrorCode GenerateAndLoad(CalibrationRequest request, ModuleCalibration module)
+        {
+            const float IntegrationTimeMs = 100.0f;   // inside the header's 1..10000 ms; the synthetic and fixture frames carry no exposure record
+            const float TemperatureC = 25.0f;         // inside the header's -20..60 C
+
+            switch (request.Stage)
+            {
+                case "offset":
+                {
+                    var code = WithFrame(request.DarkPixels!, request.Width, request.Height, frame =>
+                        module.GenerateOffset([frame], 1, IntegrationTimeMs, TemperatureC, request.XCalPath, null));
+                    return code == XpeCommonApi.XpeErrorCode.OK ? module.LoadOffset(request.XCalPath) : code;
+                }
+
+                case "gain":
+                {
+                    var code = WithFrame(request.FlatPixels!, request.Width, request.Height, flat =>
+                    {
+                        if (request.FlatDarkReference is null)
+                        {
+                            return module.GenerateGain([flat], 1, IntPtr.Zero, request.XCalPath, null);
+                        }
+
+                        return WithFrame(request.FlatDarkReference, request.Width, request.Height, dark =>
+                        {
+                            var darkPointer = Marshal.AllocHGlobal(Marshal.SizeOf<XpeCommonApi.XpeImageBuffer>());
+                            try
+                            {
+                                Marshal.StructureToPtr(dark, darkPointer, fDeleteOld: false);
+                                return module.GenerateGain([flat], 1, darkPointer, request.XCalPath, null);
+                            }
+                            finally
+                            {
+                                Marshal.FreeHGlobal(darkPointer);
+                            }
+                        });
+                    });
+                    return code == XpeCommonApi.XpeErrorCode.OK ? module.LoadGain(request.XCalPath) : code;
+                }
+
+                case "defect":
+                    return module.LoadDefect(request.XCalPath);
+
+                default:
+                    throw new InvalidOperationException($"Unknown calibration stage '{request.Stage}'.");
+            }
+        }
+
+        private static XpeCommonApi.XpeErrorCode WithFrame(
+            ushort[] pixels,
+            int width,
+            int height,
+            Func<XpeCommonApi.XpeImageBuffer, XpeCommonApi.XpeErrorCode> use)
+        {
+            var handle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
+            try
+            {
+                var frame = CreateBuffer(width, height, XpeCommonApi.XpePixelFormat.UInt16, pixels.Length * sizeof(ushort));
+                frame.Data = handle.AddrOfPinnedObject();
+                return use(frame);
+            }
+            finally
+            {
+                handle.Free();
+            }
         }
 
         private static NativePreprocessPreviewResult RunChain(
@@ -421,7 +532,7 @@ namespace ImageProcTest
 
                         if (selection.Offset != PreprocessStageMode.Off && IsLoaded(calibrationLoads, "offset"))
                         {
-                            _ = GetRequiredCalibration(calibrationRequests, "offset").OffsetMap ??
+                            _ = GetRequiredCalibration(calibrationRequests, "offset").DarkPixels ??
                                 throw new InvalidOperationException("Offset calibration map was not prepared.");
                             stages.Add(CallStage(
                                 "offset",
@@ -437,7 +548,7 @@ namespace ImageProcTest
                     case "gain":
                         if (selection.Gain != PreprocessStageMode.Off && IsLoaded(calibrationLoads, "gain"))
                         {
-                            _ = GetRequiredCalibration(calibrationRequests, "gain").GainMap ??
+                            _ = GetRequiredCalibration(calibrationRequests, "gain").FlatPixels ??
                                 throw new InvalidOperationException("Gain calibration map was not prepared.");
                             stages.Add(CallStage(
                                 "gain",
@@ -586,11 +697,10 @@ namespace ImageProcTest
             var offsetPreview = LoadMatchingCalibrationPreview(source, targetPreview);
             var values = offsetPreview.SampledPixels.ToArray();
 
-            WriteXCalUInt16(xcalPath, targetPreview.PreviewWidth, targetPreview.PreviewHeight, values);
             return new GeneratedCalibration(
                 xcalPath,
-                $"Offset calibration generated from {source.Name}; raw range={offsetPreview.MinValue}..{offsetPreview.MaxValue}.",
-                OffsetMap: values);
+                $"Offset calibration generated by the module from {source.Name}; raw range={offsetPreview.MinValue}..{offsetPreview.MaxValue}.",
+                DarkPixels: values);
         }
 
         private static GeneratedCalibration GenerateGainXCal(
@@ -603,32 +713,15 @@ namespace ImageProcTest
             ushort[]? offsetPixels = null;
             if (offsetSource is not null)
             {
-                offsetPixels = LoadMatchingCalibrationPreview(offsetSource, targetPreview).SampledPixels;
+                offsetPixels = LoadMatchingCalibrationPreview(offsetSource, targetPreview).SampledPixels.ToArray();
             }
 
-            var flat = new float[gainPreview.SampledPixels.Length];
-            var sum = 0.0;
-            for (var i = 0; i < flat.Length; i++)
-            {
-                var dark = offsetPixels is null ? 0.0f : offsetPixels[i];
-                var value = Math.Max(1.0f, gainPreview.SampledPixels[i] - dark);
-                flat[i] = value;
-                sum += value;
-            }
-
-            var mean = Math.Max(1.0, sum / Math.Max(1, flat.Length));
-            var gainMap = new float[flat.Length];
-            for (var i = 0; i < gainMap.Length; i++)
-            {
-                gainMap[i] = Math.Clamp((float)(flat[i] / mean), 0.001f, 1000.0f);
-            }
-
-            WriteXCalFloat32(xcalPath, targetPreview.PreviewWidth, targetPreview.PreviewHeight, gainMap);
             var offsetNote = offsetSource is null ? "without dark subtraction" : $"dark-subtracted with {offsetSource.Name}";
             return new GeneratedCalibration(
                 xcalPath,
-                $"Gain calibration generated from {source.Name}; {offsetNote}; normalized mean={mean:0.###}.",
-                GainMap: gainMap);
+                $"Gain calibration generated by the module from {source.Name}; {offsetNote}.",
+                FlatPixels: gainPreview.SampledPixels.ToArray(),
+                FlatDarkReference: offsetPixels);
         }
 
         private static GeneratedCalibration GenerateDefectXCal(
@@ -655,7 +748,7 @@ namespace ImageProcTest
                 }
             }
 
-            WriteXCalMask(xcalPath, targetPreview.PreviewWidth, targetPreview.PreviewHeight, mask);
+            WriteDefectXCal(xcalPath, targetPreview.PreviewWidth, targetPreview.PreviewHeight, mask);
             return new GeneratedCalibration(
                 xcalPath,
                 $"Defect calibration generated from {source.Name}; defect pixels={defectCount}/{mask.Length}; nonZeroRatio={nonZeroRatio:0.###}; inverted={invertMask}.",
@@ -828,79 +921,28 @@ namespace ImageProcTest
             }
         }
 
-        private static void WriteXCalUInt16(
-            string path,
-            int width,
-            int height,
-            ReadOnlySpan<ushort> values)
-        {
-            var payload = new byte[checked(values.Length * sizeof(ushort))];
-            MemoryMarshal.AsBytes(values).CopyTo(payload);
-            WriteXCal(path, XpeCommonApi.XpePixelFormat.UInt16, width, height, payload);
-        }
-
-        private static void WriteXCalFloat32(
-            string path,
-            int width,
-            int height,
-            ReadOnlySpan<float> values)
-        {
-            var payload = new byte[checked(values.Length * sizeof(float))];
-            MemoryMarshal.AsBytes(values).CopyTo(payload);
-            WriteXCal(path, XpeCommonApi.XpePixelFormat.Float32, width, height, payload);
-        }
-
-        private static void WriteXCalMask(
-            string path,
-            int width,
-            int height,
-            byte[] mask)
-        {
-            WriteXCal(path, XpeCommonApi.XpePixelFormat.UInt8, width, height, mask);
-        }
-
-        private static void WriteXCal(
-            string path,
-            XpeCommonApi.XpePixelFormat pixelFormat,
-            int width,
-            int height,
-            byte[] payload)
+        /// <summary>
+        /// A DEFECT XCal v1 file (modules/preprocess/include/xpe/preprocess/xcal_format.h): the 152-byte header (magic "XCAL", version 1, type DEFECT, UINT8_MASK, size, created, expiry, an EMPTY
+        /// session id, no config, payload length, SHA-256 of config||payload) followed by the mask. The module has no generator for defect maps.
+        /// </summary>
+        private static void WriteDefectXCal(string path, int width, int height, byte[] mask)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path) ?? AppContext.BaseDirectory);
-            var expiryMs = DateTimeOffset.UtcNow.AddDays(365).ToUnixTimeMilliseconds();
-            var crc32 = ComputeCrc32(payload);
-
             using var stream = File.Create(path);
-            using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: false);
-            writer.Write(Encoding.ASCII.GetBytes("XPEC"));
-            writer.Write(XCalVersion);
+            using var writer = new BinaryWriter(stream);
+            writer.Write(Encoding.ASCII.GetBytes("XCAL"));
+            writer.Write(1u);                                  // version
+            writer.Write(2u);                                  // type: DEFECT
+            writer.Write(2u);                                  // pixel format: UINT8_MASK
             writer.Write(checked((uint)width));
             writer.Write(checked((uint)height));
-            writer.Write((uint)pixelFormat);
-            writer.Write((ulong)expiryMs);
-            writer.Write(crc32);
-            for (var i = 0; i < 7; i++)
-            {
-                writer.Write(0u);
-            }
-            writer.Write(payload);
-        }
-
-        private static uint ComputeCrc32(byte[] payload)
-        {
-            uint crc = 0xFFFFFFFFu;
-            foreach (var value in payload)
-            {
-                crc ^= value;
-                for (var bit = 0; bit < 8; bit++)
-                {
-                    crc = (crc & 1u) != 0
-                        ? 0xEDB88320u ^ (crc >> 1)
-                        : crc >> 1;
-                }
-            }
-
-            return crc ^ 0xFFFFFFFFu;
+            writer.Write(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            writer.Write(DateTimeOffset.UtcNow.AddDays(365).ToUnixTimeMilliseconds());
+            writer.Write(new byte[64]);                        // session id (empty)
+            writer.Write(0UL);                                 // config length
+            writer.Write((ulong)mask.Length);                  // payload length
+            writer.Write(SHA256.HashData(mask));               // SHA-256 of (config || payload)
+            writer.Write(mask);
         }
 
         private static CalibrationRequest GetRequiredCalibration(
