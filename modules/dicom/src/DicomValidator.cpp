@@ -20,19 +20,34 @@ namespace dicom {
 // @MX:REASON: Called by xpe_dicom_validate; stateless; results written to caller buffer
 // @MX:SPEC: SPEC-XPE-P1B-DICOM SWU-4.3
 
-// Required Type 1 tags for DX IOD (tag, keyword)
-static const std::pair<DcmTagKey, const char*> s_requiredTags[] = {
-    { DCM_PatientName,      "0010,0010" },
-    { DCM_PatientID,        "0010,0020" },
-    { DCM_StudyInstanceUID, "0020,000D" },
-    { DCM_SeriesInstanceUID,"0020,000E" },
-    { DCM_SOPInstanceUID,   "0008,0018" },
-    { DCM_Modality,         "0008,0060" },
-    { DCM_Rows,             "0028,0010" },
-    { DCM_Columns,          "0028,0011" },
-    { DCM_BitsAllocated,    "0028,0100" },
-    { DCM_BitsStored,       "0028,0101" },
-    { DCM_PixelData,        "7FE0,0010" },
+// Attributes the DX IOD requires, with the Type the standard gives them (QA-B-206 M2b, Codex #111).
+//
+//   Type 1  the attribute must be present AND carry a value (a zero-length or all-padding value is an error);
+//   Type 2  the attribute must be present, and an empty value is allowed (PS3.5: "zero length if unknown").
+//
+// Patient's Name and Patient ID are Type 2 (PS3.3 Table C.7-1, Patient Module, included in the DX IOD by A.26.3), so an
+// anonymized file that keeps both elements with no value is conformant. Every other entry is Type 1 in its module: Study
+// Instance UID (C.7.2.1), Series Instance UID (C.7.3.1), SOP Instance UID (C.12.1), Modality (DX Series, C.8.11.1), and Rows,
+// Columns, Bits Allocated, Bits Stored (the Image Pixel Description Macro, Table C.7-11c). Pixel Data is Type 1C in the
+// Image Pixel module ("Required if Pixel Data Provider URL (0028,7FE0) is not present"); this validator has no URL case, so
+// it is required. The table with the clauses is in the QA-B-206 M2b report.
+struct RequiredTag {
+    DcmTagKey   key;
+    const char* tag;
+    bool        needsValue;   // true: Type 1 (and Type 1C where required), false: Type 2
+};
+static const RequiredTag s_requiredTags[] = {
+    { DCM_PatientName,      "0010,0010", false },   // Type 2
+    { DCM_PatientID,        "0010,0020", false },   // Type 2
+    { DCM_StudyInstanceUID, "0020,000D", true  },
+    { DCM_SeriesInstanceUID,"0020,000E", true  },
+    { DCM_SOPInstanceUID,   "0008,0018", true  },
+    { DCM_Modality,         "0008,0060", true  },
+    { DCM_Rows,             "0028,0010", true  },
+    { DCM_Columns,          "0028,0011", true  },
+    { DCM_BitsAllocated,    "0028,0100", true  },
+    { DCM_BitsStored,       "0028,0101", true  },
+    { DCM_PixelData,        "7FE0,0010", true  },   // Type 1C: required when there is no Pixel Data Provider URL
 };
 
 // #142 (QA-B-42): report the required size through the caller's buffer, but
@@ -198,17 +213,20 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
         }
     }
 
-    for (const auto& tagPair : s_requiredTags) {
+    for (const auto& req : s_requiredTags) {
         DcmElement* elem = nullptr;
-        OFCondition findStatus = ds->findAndGetElement(tagPair.first, elem);
+        OFCondition findStatus = ds->findAndGetElement(req.key, elem);
         if (findStatus.bad() || !elem) {
             result.valid = false;
             nlohmann::json errEntry;
-            errEntry["tag"] = tagPair.second;
-            errEntry["message"] = std::string("Missing required Type 1 tag: ") + tagPair.second;
+            errEntry["tag"] = req.tag;
+            errEntry["message"] = std::string(req.needsValue ? "Missing required Type 1 tag: " : "Missing required Type 2 tag: ") + req.tag;
             errors.push_back(errEntry);
             continue;
         }
+        // QA-B-206 M2b (Codex #111): a Type 2 attribute only has to be there. C5 below judged every required attribute
+        // by its value, which made an anonymized file with an empty Patient Name / Patient ID DICOM_INVALID.
+        if (!req.needsValue) continue;
         // QA-B-206 C5: REQ-DICOM-024 says Type 1 tags are "present AND non-empty". An element that is there with no value
         // (zero length) or a string that is only padding (spaces / NULs) carries nothing, and a Type 1 attribute must have a
         // value. Pixel Data and the numeric attributes are judged by their length; the strings also by their trimmed value.
@@ -226,8 +244,8 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
         if (!hasValue) {
             result.valid = false;
             nlohmann::json errEntry;
-            errEntry["tag"] = tagPair.second;
-            errEntry["message"] = std::string("Required Type 1 tag has no value: ") + tagPair.second;
+            errEntry["tag"] = req.tag;
+            errEntry["message"] = std::string("Required Type 1 tag has no value: ") + req.tag;
             errors.push_back(errEntry);
         }
     }

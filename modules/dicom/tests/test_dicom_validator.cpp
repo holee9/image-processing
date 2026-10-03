@@ -549,10 +549,7 @@ TEST_F(DicomValidatorTest, ARequiredTypeOneTagWithNoValueIsAnErrorWhateverTheKin
         const char* tag;
         std::function<void(DcmDataset*)> change;
     } cases[] = {
-        {"PatientID empty string", "0010,0020", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientID, ""); }},
-        {"PatientID only spaces", "0010,0020", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientID, "    "); }},
-        {"PatientName empty string", "0010,0010", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientName, ""); }},
-        {"PatientName only spaces", "0010,0010", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientName, "  "); }},
+        // Patient's Name and Patient ID are NOT in this list: they are Type 2 (QA-B-206 M2b), see below
         {"Modality empty", "0008,0060", [](DcmDataset* d) { d->putAndInsertString(DCM_Modality, ""); }},
         {"StudyInstanceUID empty", "0020,000D", [](DcmDataset* d) { d->putAndInsertString(DCM_StudyInstanceUID, ""); }},
         {"Rows empty (US without a value)", "0028,0010", [](DcmDataset* d) { d->insertEmptyElement(DCM_Rows); }},
@@ -597,11 +594,114 @@ TEST_F(DicomValidatorTest, AValueThatIsPresentIsStillValidAndOnlyPaddingCountsAs
 TEST_F(DicomValidatorTest, AMissingTagAndAnEmptyTagAreReportedWithDifferentMessages) {
     XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
     const json missing = ValidateChanged(s_conformantDcm, s_tempDir / "c5_missing.dcm",
-                                         [](DcmDataset* d) { d->findAndDeleteElement(DCM_PatientID); }, &rc);
+                                         [](DcmDataset* d) { d->findAndDeleteElement(DCM_StudyInstanceUID); }, &rc);
     const json empty = ValidateChanged(s_conformantDcm, s_tempDir / "c5_empty.dcm",
-                                       [](DcmDataset* d) { d->putAndInsertString(DCM_PatientID, ""); }, &rc);
+                                       [](DcmDataset* d) { d->putAndInsertString(DCM_StudyInstanceUID, ""); }, &rc);
     ASSERT_EQ(1u, missing["errors"].size()) << missing.dump();
-    ASSERT_EQ(1u, empty["errors"].size()) << empty.dump();
     EXPECT_NE(std::string::npos, missing["errors"][0]["message"].get<std::string>().find("Missing"));
-    EXPECT_NE(std::string::npos, empty["errors"][0]["message"].get<std::string>().find("no value"));
+    // an empty UID is reported as "no value" and, because the empty string is not a UID either, also as an invalid format;
+    // what matters here is that the "no value" report is there and the "Missing" one is not
+    bool noValue = false, missingMsg = false;
+    for (const auto& e : empty["errors"]) {
+        const std::string m = e["message"].get<std::string>();
+        noValue = noValue || m.find("no value") != std::string::npos;
+        missingMsg = missingMsg || m.find("Missing") != std::string::npos;
+    }
+    EXPECT_TRUE(noValue) << empty.dump();
+    EXPECT_FALSE(missingMsg) << empty.dump();
+}
+
+// ---------------------------------------------------------------------------
+// QA-B-206 M2b (Codex #111): Patient's Name (0010,0010) and Patient ID (0010,0020) are Type 2 in the DX IOD (PS3.3 Table C.7-1,
+// included by A.26.3): the attribute must be present, an empty value is allowed. QA-B-206 M2 judged them as Type 1 (REQ-DICOM-024
+// listed them there) and so refused an anonymized file that keeps both elements with no value. Presence is still required.
+// ---------------------------------------------------------------------------
+
+TEST_F(DicomValidatorTest, PatientNameAndPatientIdWithNoValueAreConformantTypeTwoAttributes) {
+    struct Case {
+        const char* what;
+        std::function<void(DcmDataset*)> change;
+    } cases[] = {
+        {"PatientID empty", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientID, ""); }},
+        {"PatientName empty", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientName, ""); }},
+        {"PatientID only spaces", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientID, "    "); }},
+        {"PatientName only spaces", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientName, "  "); }},
+        {"both empty (an anonymized file)", [](DcmDataset* d) {
+             d->putAndInsertString(DCM_PatientID, "");
+             d->putAndInsertString(DCM_PatientName, "");
+         }},
+    };
+    int n = 0;
+    for (const Case& c : cases) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        const json j = ValidateChanged(s_conformantDcm, s_tempDir / ("m2b_empty_" + std::to_string(n++) + ".dcm"), c.change, &rc);
+        EXPECT_EQ(XPE_OK, rc) << c.what;
+        EXPECT_TRUE(j["valid"].get<bool>()) << c.what << ": " << j.dump();
+        EXPECT_TRUE(j["errors"].empty()) << c.what << ": " << j.dump();
+    }
+}
+
+TEST_F(DicomValidatorTest, PatientNameAndPatientIdThatAreAbsentAreStillAnErrorBecauseTypeTwoNeedsPresence) {
+    struct Case {
+        const char* what;
+        const char* tag;
+        std::function<void(DcmDataset*)> change;
+    } cases[] = {
+        {"PatientID absent", "0010,0020", [](DcmDataset* d) { d->findAndDeleteElement(DCM_PatientID); }},
+        {"PatientName absent", "0010,0010", [](DcmDataset* d) { d->findAndDeleteElement(DCM_PatientName); }},
+    };
+    int n = 0;
+    for (const Case& c : cases) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        const json j = ValidateChanged(s_conformantDcm, s_tempDir / ("m2b_absent_" + std::to_string(n++) + ".dcm"), c.change, &rc);
+        EXPECT_EQ(XPE_OK, rc) << c.what;
+        EXPECT_FALSE(j["valid"].get<bool>()) << c.what << ": " << j.dump();
+        ASSERT_TRUE(HasErrorFor(j, c.tag)) << c.what << ": " << j.dump();
+    }
+    // both at once: two errors, one per attribute, and the message names the Type
+    XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+    const json both = ValidateChanged(s_conformantDcm, s_tempDir / "m2b_absent_both.dcm", [](DcmDataset* d) {
+        d->findAndDeleteElement(DCM_PatientID);
+        d->findAndDeleteElement(DCM_PatientName);
+    }, &rc);
+    ASSERT_EQ(2u, both["errors"].size()) << both.dump();
+    for (const auto& e : both["errors"]) {
+        EXPECT_NE(std::string::npos, e["message"].get<std::string>().find("Type 2")) << both.dump();
+    }
+}
+
+// The whole required list, by Type, in one table: what must be present with a value (Type 1), what only present (Type 2).
+TEST_F(DicomValidatorTest, EveryRequiredAttributeIsJudgedByTheTypeTheStandardGivesIt) {
+    struct Row {
+        const char* name;
+        const char* tag;
+        DcmTagKey key;
+        bool type1;   // false: Type 2
+    } rows[] = {
+        {"Patient's Name", "0010,0010", DCM_PatientName, false},
+        {"Patient ID", "0010,0020", DCM_PatientID, false},
+        {"Study Instance UID", "0020,000D", DCM_StudyInstanceUID, true},
+        {"Series Instance UID", "0020,000E", DCM_SeriesInstanceUID, true},
+        {"SOP Instance UID", "0008,0018", DCM_SOPInstanceUID, true},
+        {"Modality", "0008,0060", DCM_Modality, true},
+    };
+    int n = 0;
+    for (const Row& r : rows) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        const json absent = ValidateChanged(s_conformantDcm, s_tempDir / ("m2b_t_abs_" + std::to_string(n) + ".dcm"),
+                                            [&](DcmDataset* d) { d->findAndDeleteElement(r.key); }, &rc);
+        EXPECT_TRUE(HasErrorFor(absent, r.tag)) << r.name << ": an absent attribute is an error for both Types";
+        const json empty = ValidateChanged(s_conformantDcm, s_tempDir / ("m2b_t_emp_" + std::to_string(n) + ".dcm"),
+                                           [&](DcmDataset* d) { d->putAndInsertString(r.key, ""); }, &rc);
+        // judged by the "no value" message and not just by the tag: an empty UID is ALSO reported as an invalid UID format, so
+        // an error for the same tag would hide a Type 1 attribute that had been downgraded to Type 2
+        bool noValue = false;
+        for (const auto& e : empty["errors"]) {
+            if (e["tag"].get<std::string>() == r.tag &&
+                e["message"].get<std::string>().find("no value") != std::string::npos) noValue = true;
+        }
+        EXPECT_EQ(r.type1, noValue) << r.name << ": an empty value is an error only for Type 1: " << empty.dump();
+        if (!r.type1) EXPECT_TRUE(empty["errors"].empty()) << r.name << ": " << empty.dump();
+        ++n;
+    }
 }

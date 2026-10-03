@@ -1,0 +1,29 @@
+=== ARM type2_skip_removed_patient_name_and_id_judged_by_value_again
+red tests: DicomValidatorTest.EveryRequiredAttributeIsJudgedByTheTypeTheStandardGivesIt, DicomValidatorTest.PatientNameAndPatientIdWithNoValueAreConformantTypeTwoAttributes
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM patient_name_judged_as_type1_again
+red tests: DicomValidatorTest.EveryRequiredAttributeIsJudgedByTheTypeTheStandardGivesIt, DicomValidatorTest.PatientNameAndPatientIdThatAreAbsentAreStillAnErrorBecauseTypeTwoNeedsPresence, DicomValidatorTest.PatientNameAndPatientIdWithNoValueAreConformantTypeTwoAttributes
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM patient_id_judged_as_type1_again
+red tests: DicomValidatorTest.EveryRequiredAttributeIsJudgedByTheTypeTheStandardGivesIt, DicomValidatorTest.PatientNameAndPatientIdThatAreAbsentAreStillAnErrorBecauseTypeTwoNeedsPresence, DicomValidatorTest.PatientNameAndPatientIdWithNoValueAreConformantTypeTwoAttributes
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM study_uid_judged_as_type2_by_mistake
+red tests: DicomValidatorTest.AMissingTagAndAnEmptyTagAreReportedWithDifferentMessages, DicomValidatorTest.EveryRequiredAttributeIsJudgedByTheTypeTheStandardGivesIt
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM modality_judged_as_type2_by_mistake
+red tests: DicomValidatorTest.ARequiredTypeOneTagWithNoValueIsAnErrorWhateverTheKindOfTag, DicomValidatorTest.EveryRequiredAttributeIsJudgedByTheTypeTheStandardGivesIt
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM type2_presence_not_required_the_absent_element_passes
+red tests: DicomValidatorTest.EveryRequiredAttributeIsJudgedByTheTypeTheStandardGivesIt, DicomValidatorTest.PatientNameAndPatientIdThatAreAbsentAreStillAnErrorBecauseTypeTwoNeedsPresence, DicomValidatorTest.ValidateMissingPatientID_ReportsError, DicomValidatorTest.ValidateStrippedTags_ReportsAllMissing
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM type2_missing_message_says_type_1
+red tests: DicomValidatorTest.PatientNameAndPatientIdThatAreAbsentAreStillAnErrorBecauseTypeTwoNeedsPresence
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== DONE

@@ -1,0 +1,43 @@
+Patient's Name                           (0010,0010)  sect_C.7.html          | tribute Description Patient's Name (0010,0010) 2 Patient's full name. Patient ID (0010,0020) 2 Primary identifier for the Patient.
+Patient ID                               (0010,0020)  sect_C.7.html          |  2 Patient's full name. Patient ID (0010,0020) 2 Primary identifier for the Patient. Note In the case of imaging a group of small
+Study Instance UID                       (0020,000D)  sect_C.7.2.html        | ute Description Study Instance UID (0020,000D) 1 Unique identifier for the Study. Study Date (0008,0020) 2 Date the Study started.
+Series Instance UID (General Series)     (0020,000E)  sect_C.7.3.html        | Defined Terms. Series Instance UID (0020,000E) 1 Unique identifier of the Series. Series Number (0020,0011) 2 A number that identi
+Modality (DX Series)                     (0008,0060)  sect_C.8.11.html       | ype Attribute Description Modality (0008,0060) 1 Type of device, process or method that originally acquired the data used to creat
+SOP Instance UID                         (0008,0018)  sect_C.12.html         |  See also PS3.4 . SOP Instance UID (0008,0018) 1 Uniquely identifies the SOP Instance. See Section C.12.1.1.1 for further explanat
+Rows                                     sect_C.7.6.3.html: no typed row for (0028,0010)
+Columns                                  sect_C.7.6.3.html: no typed row for (0028,0011)
+Bits Allocated                           sect_C.7.6.3.html: no typed row for (0028,0100)
+Bits Stored                              sect_C.7.6.3.html: no typed row for (0028,0101)
+Pixel Data                               (7FE0,0010)  sect_C.7.6.3.html      |  compressed bit stream. Pixel Data (7FE0,0010) 1C A data stream of the pixel samples that comprise the Image. See Section C.7.6.3.
+(0028,0010) | ge planes shall have the same number of Rows (0028,0010), Columns (0028,0011), Bits Allocated (0028,0100), Bits Stored (0028,0101), High Bit (0028,0102), P
+(0028,0010) | ur luminance samples. For YBR_FULL_422, Rows (0028,0010) and Columns (0028,0011) describe the size of the luminance plane, not the downsampled chrominance
+(0028,0010) | Traceback (most recent call last):
+  File "<stdin>", line 11, in <module>
+UnicodeEncodeError: 'cp949' codec can't encode character '\u230a' in position 145: illegal multibyte sequence
+sect_C.7.6.3.html | Table C\.7-11c | butes Attribute Name Tag Type Attribute Description Include Table C.7-11c “Image Pixel Description Macro Attributes” Required if the IOD is not being transferred in a STOW-RS Request and is not encoded as metadata and co
+sect_C.7.6.3.1.html FAIL HTTP Error 404: Not Found
+chapter C text chars: 3446
+page chars 26279
+Samples per Pixel 18
+    bute Descriptions C.7.6.3.1.1 Samples per Pixel Samples per Pixel (0028,0002) is the number of separate planes in this image. One and three image planes are defined. Other numbers of image p
+    C.7.6.3.1.1 Samples per Pixel Samples per Pixel (0028,0002) is the number of separate planes in this image. One and three image planes are defined. Other numbers of image planes are allowed,
+     YBR_FULL_422. In such cases, Samples per Pixel (0028,0002) describes the nominal number of channels (i.e., 3), and does not reflect that two chrominance samples are shared between four lumi
+Photometric Interpretation (0028,0004) 2
+    e a special case, e.g., for a Photometric Interpretation (0028,0004) of YBR_FULL_422. In such cases, Samples per Pixel (0028,0002) describes the nominal number of channels (i.e., 3), and doe
+    c Interpretation The Value of Photometric Interpretation (0028,0004) specifies the intended interpretation of the image pixel data. See PS3.5 for additional restrictions imposed by compresse
+Image Pixel Description Macro 1
+    iption Include Table C.7-11c “Image Pixel Description Macro Attributes” Required if the IOD is not being transferred in a STOW-RS Request and is not encoded as metadata and compressed bulk p
+LINK sect_C.7.6.3.3.html#table_C.7-11c
+Rows            (0028,0010)  sect_C.7.6.3.3.html | for further explanation. Rows (0028,0010) 1 Number of rows in the image. Shall be an exact multiple of the vertical downsampling f
+Columns         (0028,0011)  sect_C.7.6.3.3.html | 004) of YBR_FULL_422. Columns (0028,0011) 1 Number of columns in the image. Shall be an exact multiple of the horizontal downsampl
+Bits Allocated  (0028,0100)  sect_C.7.6.3.3.html |  YBR_FULL_422. Bits Allocated (0028,0100) 1 Number of bits allocated for each pixel sample. Each sample shall have the same number
+Bits Stored     (0028,0101)  sect_C.7.6.3.3.html | ther explanation. Bits Stored (0028,0101) 1 Number of bits stored for each pixel sample. Each sample shall have the same number of
+A.26.3: . Digital X-Ray Image IOD Modules IE Module Reference Usage Patient Patient C.7.1.1 M Clinical Trial Subject C.7.1.3 U Study General Study C.7.2.1 M Patient Study C.7.2.2 U Clinica
+  A.26.3 module Patient -> Patient Patient C.7.1.1 M Clinical Trial Subject C.7.1.3 U Study General Study C
+  A.26.3 module General Study -> General Study C.7.2.1 M Patient Study C.7.2.2 U Clinical Trial Study C.7.2.3 U S
+  A.26.3 module General Series -> General Series C.7.3.1 M Clinical Trial Series C.7.3.2 U DX Series C.8.11.1 M Fr
+  A.26.3 module DX Series -> DX Series C.8.11.1 M Frame of Reference Frame of Reference C.7.4.1 U Equipment G
+  A.26.3 module General Image -> General Image C.7.6.1 M General Reference C.12.4 U Image Pixel C.7.6.3 M Contras
+  A.26.3 module Image Pixel -> Image Pixel C.7.6.3 M Contrast/Bolus C.7.6.4 U Display Shutter C.7.6.11 U Device
+  A.26.3 module DX Image -> DX Image C.8.11.3 M DX Detector C.8.11.4 M X-Ray Collimator C.8.7.3 U DX Positio
+  A.26.3 module SOP Common -> SOP Common C.12.1 M Common Instance Reference C.12.2 U Note The Overlay Plane re
