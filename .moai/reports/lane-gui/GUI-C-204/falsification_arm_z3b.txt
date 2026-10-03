@@ -1,0 +1,10 @@
+## arm Z3b: BOTH upper clamps (MainWindowViewModel.ZoomIn 16.0 and AppSettings.ComparisonZoomScale Math.Clamp 16.0) become 160.0
+build ok: True
+exit=1
+   [xUnit.net 00:00:25.82]       Expected: "1600%"
+   [xUnit.net 00:00:25.82]       Actual:   "1819%"
+   RED  s.MenuBehaviorScenarios.Z01_ZoomIn_And_ZoomOut_MoveTheScaleBy125Percent_AndStopAtTheBounds
+   Expected: "1600%"
+   Actual:   "1819%"
+restored byte-identical: True
+final rebuild ok: True

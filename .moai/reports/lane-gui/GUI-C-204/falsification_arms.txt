@@ -1,0 +1,75 @@
+# GUI-C-204 falsification arms (Mock backend). Each arm edits one handler in the app, rebuilds, runs the named scenario(s), and restores byte-identical.
+
+## arm Z1: Zoom In keeps its log line but no longer changes the scale
+build ok: True
+exit=1
+   RED   MenuBehaviorScenarios.Z01_ZoomIn_And_ZoomOut_MoveTheScaleBy125Percent_AndStopAtTheBounds
+restored byte-identical: True
+
+## arm Z2: Zoom Out keeps its log line but no longer changes the scale
+build ok: True
+exit=1
+   RED   MenuBehaviorScenarios.Z01_ZoomIn_And_ZoomOut_MoveTheScaleBy125Percent_AndStopAtTheBounds
+restored byte-identical: True
+
+## arm Z3: the upper bound 16.0 becomes 160.0
+build ok: True
+exit=0
+   green MenuBehaviorScenarios.Z01_ZoomIn_And_ZoomOut_MoveTheScaleBy125Percent_AndStopAtTheBounds
+restored byte-identical: True
+
+## arm Z4: the lower bound 0.05 becomes 0.005
+build ok: True
+exit=1
+   RED   MenuBehaviorScenarios.Z01_ZoomIn_And_ZoomOut_MoveTheScaleBy125Percent_AndStopAtTheBounds
+restored byte-identical: True
+
+## arm D1: Native DLL Diagnostics does nothing
+build ok: True
+exit=1
+   RED   MenuBehaviorScenarios.D01_NativeDllDiagnostics_NamesTheDisplayLibraryTheDiskHolds_AndTheBackendThatIsRunning
+restored byte-identical: True
+
+## arm D2: the diagnostics line names the wrong backend field (backend= is written from the version)
+build ok: True
+exit=1
+   RED   MenuBehaviorScenarios.D01_NativeDllDiagnostics_NamesTheDisplayLibraryTheDiskHolds_AndTheBackendThatIsRunning
+restored byte-identical: True
+
+## arm A1: About shows no dialog
+build ok: True
+exit=1
+   RED   MenuBehaviorScenarios.A01_About_ShowsTheBackendVersionTheStatusBarShows
+   green E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A01_NativeRequested_FallsBackToMock_IsNotAPass
+restored byte-identical: True
+
+## arm A2: About names no backend version ('unknown' in its place)
+build ok: True
+exit=1
+   RED   MenuBehaviorScenarios.A01_About_ShowsTheBackendVersionTheStatusBarShows
+   green E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A01_NativeRequested_FallsBackToMock_IsNotAPass
+restored byte-identical: True
+
+## arm H1: every help item opens nothing (OpenHelpPage returns first)
+build ok: True
+exit=1
+   RED   MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenScopeHelpMenuItem", expectedTitle: "ImageProcTest Help - Sc
+   RED   MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenQuickStartHelpMenuItem", expectedTitle: "ImageProcTest Help
+   RED   MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenCurrentWorkflowHelpMenuItem", expectedTitle: "ImageProcTest
+restored byte-identical: True
+
+## arm H2: Scope and Limitations opens the Quick Start page
+build ok: True
+exit=1
+   RED   MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenScopeHelpMenuItem", expectedTitle: "ImageProcTest Help - Sc
+   green MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenQuickStartHelpMenuItem", expectedTitle: "ImageProcTest Help
+   green MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenCurrentWorkflowHelpMenuItem", expectedTitle: "ImageProcTest
+restored byte-identical: True
+
+## arm X1: Exit does not close
+build ok: True
+exit=1
+   RED   MenuExitScenarios.X01_FileExit_EndsTheProcessWithExitCodeZero_EvenWithAnUnsavedChange
+restored byte-identical: True
+
+final rebuild ok: True

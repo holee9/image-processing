@@ -1,0 +1,60 @@
+MENUWALK backend=Mock runtime='mode=Mock  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display'
+MENU|0|FileMenu|OpenRawMenuItem|Open Raw...|enabled=True|children=0|toggle=-
+MENU|0|FileMenu|OpenRecentMenuItem|Open Recent|enabled=True|children=2|toggle=-
+MENU|1|FileMenu/OpenRecentMenuItem|RecentRawFileMenuItem|D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\fixtures\gui-s0\raw\synthetic1024x1024.raw|enabled=True|children=0|toggle=-
+MENU|1|FileMenu/OpenRecentMenuItem|RecentRawFileMenuItem|D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\fixtures\gui-s0\raw\wristlat_3072x3072.raw|enabled=True|children=0|toggle=-
+MENU|0|FileMenu|OpenDicomMenuItem|Open DICOM... (Phase 1b)|enabled=False|children=0|toggle=-
+MENU|0|FileMenu|SaveSettingsMenuItem|Save Settings|enabled=True|children=0|toggle=-
+MENU|0|FileMenu|ExportAutomationReportMenuItem|Export Automation Report|enabled=True|children=0|toggle=-
+MENU|0|FileMenu|ExportEvidenceBundleMenuItem|Export Evidence Bundle|enabled=True|children=0|toggle=-
+MENU|0|FileMenu|ExitMenuItem|Exit|enabled=True|children=0|toggle=-
+MENU|0|BackendMenu|InitializeBackendMenuItem|Initialize Backend|enabled=True|children=0|toggle=-
+MENU|0|BackendMenu|ShutdownBackendMenuItem|Shutdown Backend|enabled=True|children=0|toggle=-
+MENU|0|BackendMenu|BackendModeMenuItem|Backend Mode|enabled=True|children=2|toggle=-
+MENU|1|BackendMenu/BackendModeMenuItem|MockBackendModeMenuItem|Mock|enabled=True|children=0|toggle=On
+MENU|1|BackendMenu/BackendModeMenuItem|NativeBackendModeMenuItem|Native|enabled=True|children=0|toggle=Off
+MENU|0|BackendMenu|NativeDllDiagnosticsMenuItem|Native DLL Diagnostics|enabled=True|children=0|toggle=-
+MENU|0|BackendMenu|OpenRuntimeLogsMenuItem|Export Runtime Logs|enabled=True|children=0|toggle=-
+MENU|0|BackendMenu|PInvokeSmokeTestMenuItem|Run P/Invoke Smoke Test|enabled=True|children=0|toggle=-
+MENU|0|ViewMenu|ShowCalibrationPanelMenuItem|Calibration Paths Panel|enabled=True|children=0|toggle=Off
+MENU|0|ViewMenu|ShowDisplaySettingsPanelMenuItem|Display Settings Panel|enabled=True|children=0|toggle=Off
+MENU|0|ViewMenu|ShowLogsPanelMenuItem|Logs Panel|enabled=True|children=0|toggle=Off
+MENU|0|ViewMenu|ClearLogsMenuItem|Clear Logs|enabled=True|children=0|toggle=-
+MENU|0|ViewMenu|ClearAlertsMenuItem|Clear Alerts|enabled=True|children=0|toggle=-
+MENU|0|ViewMenu|ResetLayoutMenuItem|Reset Layout|enabled=True|children=0|toggle=-
+MENU|0|ViewMenu|ZoomFitMenuItem|Zoom Fit|enabled=True|children=0|toggle=-
+MENU|0|ViewMenu|ZoomActualMenuItem|Zoom 100%|enabled=True|children=0|toggle=-
+MENU|0|ViewMenu|ZoomInMenuItem|Zoom In|enabled=True|children=0|toggle=-
+MENU|0|ViewMenu|ZoomOutMenuItem|Zoom Out|enabled=True|children=0|toggle=-
+MENU|0|ViewMenu|CompareModeMenuItem|Compare Mode|enabled=True|children=6|toggle=-
+MENU|1|ViewMenu/CompareModeMenuItem|CompareSwipeMenuItem|Swipe|enabled=True|children=0|toggle=On
+MENU|1|ViewMenu/CompareModeMenuItem|CompareSplitMenuItem|Split|enabled=True|children=0|toggle=Off
+MENU|1|ViewMenu/CompareModeMenuItem|CompareOverlayMenuItem|Overlay|enabled=True|children=0|toggle=Off
+MENU|1|ViewMenu/CompareModeMenuItem|CompareDifferenceMenuItem|Difference|enabled=True|children=0|toggle=Off
+MENU|1|ViewMenu/CompareModeMenuItem|CompareSourceOnlyMenuItem|Source Only|enabled=True|children=0|toggle=Off
+MENU|1|ViewMenu/CompareModeMenuItem|CompareProcessedOnlyMenuItem|Processed Only|enabled=True|children=0|toggle=Off
+MENU|0|ViewMenu|ResetComparisonViewMenuItem|Reset Comparison View|enabled=True|children=0|toggle=-
+MENU|0|ViewMenu|DetachComparisonViewerMenuItem|Detach Comparison Viewer|enabled=True|children=0|toggle=-
+MENU|0|PipelineMenu|ApplyDisplayPipelineMenuItem|Apply Display Pipeline|enabled=True|children=0|toggle=-
+MENU|0|PipelineMenu|RunPreprocessingMenuItem|Run Preprocessing (Phase 1a)|enabled=False|children=0|toggle=-
+MENU|0|PipelineMenu|RunDeterministicBaselineMenuItem|Run Deterministic Baseline (Phase 1b)|enabled=False|children=0|toggle=-
+MENU|0|PipelineMenu|RunFullPipelineMenuItem|Run AI Bone Suppression|enabled=False|children=0|toggle=-
+MENU|0|PipelineMenu|StopProcessingMenuItem|Stop Processing|enabled=True|children=0|toggle=-
+MENU|0|PipelineMenu|StageTimingMenuItem|Stage Timing|enabled=True|children=0|toggle=-
+MENU|0|PipelineMenu|OpenPipelineDiagnosticsMenuItem|Open Pipeline Diagnostics|enabled=True|children=0|toggle=-
+MENU|0|ToolsMenu|CalibrationSettingsMenuItem|Calibration Settings|enabled=True|children=0|toggle=-
+MENU|0|ToolsMenu|FixtureManagerMenuItem|Fixture Manager|enabled=True|children=0|toggle=-
+MENU|0|ToolsMenu|ExportEvidenceSnapshotMenuItem|Export Evidence Snapshot|enabled=True|children=0|toggle=-
+MENU|0|ToolsMenu|OpenEvidenceFolderMenuItem|Open Evidence Folder|enabled=True|children=0|toggle=-
+MENU|0|ToolsMenu|RunSelfCheckMenuItem|Run Self-Check|enabled=True|children=0|toggle=-
+MENU|0|ToolsMenu|RunGuiE2EMenuItem|Run GUI E2E|enabled=True|children=0|toggle=-
+MENU|0|ToolsMenu|BenchmarkRunnerMenuItem|Benchmark Runner (Phase 1a+)|enabled=True|children=0|toggle=-
+MENU|0|ToolsMenu|QaConstancyMenuItem|QA Constancy (Phase 1b+)|enabled=False|children=0|toggle=-
+MENU|0|ToolsMenu|GsdfCalibrateMenuItem|GSDF Calibrate... (Phase 1b+)|enabled=False|children=0|toggle=-
+MENU|0|HelpMenu|OpenHelpIndexMenuItem|Help Home|enabled=True|children=0|toggle=-
+MENU|0|HelpMenu|OpenQuickStartHelpMenuItem|Quick Start|enabled=True|children=0|toggle=-
+MENU|0|HelpMenu|OpenScopeHelpMenuItem|Scope and Limitations|enabled=True|children=0|toggle=-
+MENU|0|HelpMenu|OpenCurrentWorkflowHelpMenuItem|Current Workflow Help|enabled=True|children=0|toggle=-
+MENU|0|HelpMenu|OpenApiReferenceMenuItem|API Reference (Doxygen)|enabled=True|children=0|toggle=-
+MENU|0|HelpMenu|OpenTroubleshootingMenuItem|Troubleshooting|enabled=True|children=0|toggle=-
+MENU|0|HelpMenu|AboutBuildInfoMenuItem|About / Build Info|enabled=True|children=0|toggle=-

@@ -426,10 +426,57 @@ public class ApplicationFixture : IDisposable
         }
         finally
         {
+            _watched?.Dispose();
             _application?.Dispose();
             Automation.Dispose();
         }
     }
+
+    private Microsoft.Win32.SafeHandles.SafeProcessHandle? _watched;
+
+    /// <summary>
+    /// GUI-C-204: opens a handle on the app's process while it is still running. The app can end within a second of File > Exit, and an exit code can
+    /// only be read through a handle opened BEFORE it ended; FlaUI's Application.ExitCode and Process.ExitCode both refuse ("Process was not started by this
+    /// object" / "the process has exited").
+    /// </summary>
+    public void WatchForExit()
+    {
+        const uint QueryLimitedInformationAndSynchronize = 0x1000 | 0x00100000;
+        if (_watched is not null) return;
+        var handle = OpenProcess(QueryLimitedInformationAndSynchronize, false, (uint)_application!.ProcessId);
+        if (handle == IntPtr.Zero)
+        {
+            throw new InvalidOperationException($"OpenProcess failed (win32 error {System.Runtime.InteropServices.Marshal.GetLastWin32Error()}).");
+        }
+
+        _watched = new Microsoft.Win32.SafeHandles.SafeProcessHandle(handle, ownsHandle: true);
+    }
+
+    /// <summary>
+    /// GUI-C-204: waits for the watched app process to end on its own and returns the exit code the operating system recorded, or null when
+    /// it was still running at the deadline. The fixture never asks the app to stop here — the caller did that through the menu — so the
+    /// code is the app's own. <see cref="WatchForExit"/> must have been called before the menu item was invoked.
+    /// </summary>
+    public int? WaitForExitCode(TimeSpan timeout)
+    {
+        if (_watched is null) throw new InvalidOperationException("WatchForExit() was not called while the app was running.");
+        const uint WaitObject0 = 0;
+        if (WaitForSingleObject(_watched, (uint)timeout.TotalMilliseconds) != WaitObject0) return null;
+
+        return GetExitCodeProcess(_watched, out var code)
+            ? unchecked((int)code)
+            : throw new InvalidOperationException($"GetExitCodeProcess failed (win32 error {System.Runtime.InteropServices.Marshal.GetLastWin32Error()}).");
+    }
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr OpenProcess(uint desiredAccess, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)] bool inheritHandle, uint processId);
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+    private static extern uint WaitForSingleObject(Microsoft.Win32.SafeHandles.SafeProcessHandle handle, uint milliseconds);
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static extern bool GetExitCodeProcess(Microsoft.Win32.SafeHandles.SafeProcessHandle handle, out uint exitCode);
 
     /// <summary>
     /// Produces an XCal set for this run with <c>xpe_calib_fixture_gen</c> (QA-A-36).
