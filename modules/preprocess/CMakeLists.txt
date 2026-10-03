@@ -357,6 +357,16 @@ if(_XPE_BUILD_TESTS)
         # The last three change what the affected cases assert, so registering
         # needs a contract decision, not an edit. Details in
         # .moai/reports/lane-pre/QA-A-21/.
+        # QA-A-229 (#245): the real reason it is off, and why it stays off. It was
+        # disabled by e9b8ed46 (2026-04-20) when this monolith was split into
+        # _init/_calibration/_correction: 20 of its 51 cases kept the same
+        # Suite.Name as their split copies (LNK2005) and it has its own main().
+        # With those removed and the fields above fixed it links, but of the 31
+        # remaining cases 13 fail (legacy XCAL layout is rejected, codes moved)
+        # and ~24 assert only "result is one of several codes", so they pass
+        # whatever the code does. The behaviours they name are covered by the
+        # split files and test_xpe_calib_*/test_readout_validate/
+        # test_runtime_detection_*. Triage: .moai/reports/lane-pre/QA-A-229-M1/.
         # tests/test_xpe_preprocess.cpp
         tests/test_xpe_preprocess_calibration.cpp
         tests/test_xpe_preprocess_correction.cpp
