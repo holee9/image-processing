@@ -20,6 +20,7 @@
 #include "ghost_stable_lag.h"
 #include "ghost_oracle_harness.h"
 
+#include "xpe/preprocess/xpe_preprocess_internal.h"
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_error.h"
 #include "xpe/common/xpe_types.h"
@@ -170,5 +171,66 @@ TEST_F(GhostTier3Border, PrintsTheTierDigestsForTheBeforeAfterComparison) {
         const Frames out = runModule(lagCfg(tier, 0.02, 3.0, 0.003, 30.0).c_str(), y, &failures);
         EXPECT_EQ(0, failures);
         std::printf("[ghost-oracle] tier%d-digest 0x%016llx\n", tier, static_cast<unsigned long long>(digestOf(out)));
+    }
+}
+
+// ---- QA-A-227b (#244, Codex #89): the neighbour span in unsigned arithmetic, tested at axis lengths above INT_MAX ------------
+//
+// The first border blend cast the pixel coordinate and the frame width/height to int. A handle may have an axis above INT_MAX
+// (xpe_ghost_create does not cap it), where static_cast<int>(W) is negative and every neighbour counted as outside the frame. A
+// frame that size cannot be allocated in a test, so the bound computation is a function of two numbers
+// (xpe_ghost_neighbour_span) and is tested on the numbers.
+
+namespace {
+
+/** The span the way the first version computed it: signed int, as a count of in-frame neighbours along one axis. */
+int firstVersionNeighbourCount(size_t coord, size_t extent) {
+    const int c = static_cast<int>(coord), e = static_cast<int>(extent);
+    int n = 0;
+    for (int d = -1; d <= 1; ++d) {
+        const int v = c + d;
+        if (v < 0 || v >= e) continue;
+        ++n;
+    }
+    return n;
+}
+
+const uint64_t kExtents[] = {1, 2, 3, 4, 5, 1000, 0x7FFFFFFEull, 0x7FFFFFFFull, 0x80000000ull, 0x80000001ull, 0xFFFFFFFEull, 0xFFFFFFFFull};
+
+}  // namespace
+
+TEST(GhostTier3NeighbourSpan, MatchesAnIndependentWideSignedComputationAtEveryAxisLength) {
+    for (const uint64_t ext : kExtents) {
+        const uint64_t coords[] = {0, 1, 2, ext / 2, ext >= 3 ? ext - 3 : 0, ext >= 2 ? ext - 2 : 0, ext - 1};
+        for (const uint64_t c : coords) {
+            if (c >= ext) continue;
+            size_t lo = 99, hi = 99;
+            xpe_ghost_neighbour_span(static_cast<size_t>(c), static_cast<size_t>(ext), &lo, &hi);
+            // the expectation: 64-bit signed arithmetic, written from the definition "the cells c-1..c+1 that exist"
+            const int64_t wantLo = std::max<int64_t>(static_cast<int64_t>(c) - 1, 0);
+            const int64_t wantHi = std::min<int64_t>(static_cast<int64_t>(c) + 1, static_cast<int64_t>(ext) - 1);
+            EXPECT_EQ(static_cast<uint64_t>(wantLo), static_cast<uint64_t>(lo)) << "extent " << ext << " coord " << c;
+            EXPECT_EQ(static_cast<uint64_t>(wantHi), static_cast<uint64_t>(hi)) << "extent " << ext << " coord " << c;
+            // and the count the blend divides by: 3 inside, 2 on an edge of a longer axis, 1 when the axis is one cell
+            const uint64_t count = static_cast<uint64_t>(hi) - static_cast<uint64_t>(lo) + 1;
+            const bool edge = (c == 0 || c == ext - 1);
+            const uint64_t wantCount = ext == 1 ? 1 : (edge ? 2 : 3);
+            EXPECT_EQ(wantCount, count) << "extent " << ext << " coord " << c;
+        }
+    }
+}
+
+TEST(GhostTier3NeighbourSpan, TheFirstVersionLostEveryNeighbourAboveIntMaxAndTheSpanDoesNot) {
+    // the control that makes the test above able to see the defect: at extent 0x80000000 the int cast is INT_MIN, so the first
+    // version found 0 neighbours for an interior coordinate where the span finds 3
+    const size_t ext = 0x80000000u, c = 1000;
+    EXPECT_EQ(0, firstVersionNeighbourCount(c, ext)) << "the defect, reproduced on the numbers";
+    size_t lo = 0, hi = 0;
+    xpe_ghost_neighbour_span(c, ext, &lo, &hi);
+    EXPECT_EQ(3u, hi - lo + 1);
+    // and the same two functions agree where the first version was right (an ordinary axis)
+    for (size_t coord = 0; coord < 7; ++coord) {
+        xpe_ghost_neighbour_span(coord, 7, &lo, &hi);
+        EXPECT_EQ(static_cast<size_t>(firstVersionNeighbourCount(coord, 7)), hi - lo + 1) << "coord " << coord;
     }
 }

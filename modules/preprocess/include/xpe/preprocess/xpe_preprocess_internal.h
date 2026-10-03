@@ -93,6 +93,22 @@ struct GhostCorrectorHandle {
     }
 };
 
+/**
+ * QA-A-227b (#244): the in-frame span [lo, hi] of a 3x3 neighbourhood along ONE axis, for the tier-3 blend.
+ *
+ * Unsigned throughout. The first version of the border blend converted the pixel coordinate and the frame width/height to
+ * `int` and tested `x + dx < static_cast<int>(W)`; a handle may have an axis above INT_MAX (nothing in xpe_ghost_create caps
+ * it, and other paths accept such sizes), where the cast is negative and every neighbour counts as outside the frame. Here
+ * the lower bound tests `coord > 0` BEFORE subtracting (no wrap to SIZE_MAX), and `coord + 1` cannot overflow in any
+ * size_t width because `coord + 1 <= extent <= UINT32_MAX`.
+ *
+ * Precondition: extent >= 1 and coord < extent. The span has 2 cells on an edge and 3 inside (1 if extent == 1).
+ */
+inline void xpe_ghost_neighbour_span(size_t coord, size_t extent, size_t* lo, size_t* hi) noexcept {
+    *lo = (coord > 0u) ? coord - 1u : 0u;
+    *hi = (coord + 1u < extent) ? coord + 1u : extent - 1u;
+}
+
 /* =========================================================================
  * Calibration file I/O helpers
  * ========================================================================= */

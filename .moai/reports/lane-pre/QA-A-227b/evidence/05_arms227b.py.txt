@@ -1,0 +1,35 @@
+import subprocess, sys, shutil, os, re
+R='D:/workspace-github/xpe-pre/'
+S='C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5/scratchpad/'
+H=R+'modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h'
+G=R+'modules/preprocess/src/ghost_correct.cpp'
+ARMS={
+ 'h1_int_cast_in_helper':(H,'*hi = (coord + 1u < extent) ? coord + 1u : extent - 1u;','*hi = (static_cast<int>(coord) + 1 < static_cast<int>(extent)) ? coord + 1u : extent - 1u;'),
+ 'h2_no_zero_check_before_subtract':(H,'*lo = (coord > 0u) ? coord - 1u : 0u;','*lo = coord - 1u;'),
+ 'h3_hi_uses_extent':(H,'*hi = (coord + 1u < extent) ? coord + 1u : extent - 1u;','*hi = (coord + 1u < extent) ? coord + 1u : extent;'),
+ 'h4_hi_off_by_one_compare':(H,'*hi = (coord + 1u < extent) ? coord + 1u : extent - 1u;','*hi = (coord + 1u <= extent) ? coord + 1u : extent - 1u;'),
+ 'g1_loop_swaps_axes':(G,'xpe_ghost_neighbour_span(x, W, &x0, &x1);','xpe_ghost_neighbour_span(x, H, &x0, &x1);'),
+ 'g2_loop_back_to_signed_int':(G,'const size_t x = i % W;\n                const size_t y = i / W;\n                size_t x0, x1, y0, y1;\n                xpe_ghost_neighbour_span(x, W, &x0, &x1);\n                xpe_ghost_neighbour_span(y, H, &y0, &y1);',
+   'const int xi = static_cast<int>(i % W), yi = static_cast<int>(i / W);\n                size_t x0 = (xi > 0) ? xi - 1 : 0, x1 = (xi + 1 < static_cast<int>(W)) ? xi + 1 : W - 1, y0 = (yi > 0) ? yi - 1 : 0, y1 = (yi + 1 < static_cast<int>(H)) ? yi + 1 : H - 1;'),
+}
+keep={f:S+'keep227b_'+os.path.basename(f) for f in (H,G)}
+for f,k in keep.items():
+    if not os.path.exists(k): shutil.copy(f,k)
+def build():
+    r=subprocess.run(['cmd.exe','/c',S+'buildall.bat'],capture_output=True,text=True); return 'BUILD_EXIT=0' in r.stdout, r.stdout
+def tests():
+    r=subprocess.run([R+'build/ci-preprocess/bin/xpe_preprocess_tests.exe','--gtest_filter=GhostTier3*:GhostOracle*'],cwd=R+'modules/preprocess',capture_output=True,text=True)
+    return sorted(set(re.findall(r'^\[  FAILED  \] ([A-Za-z]\S+)',r.stdout,re.M))),r.returncode
+for name in sys.argv[1:]:
+    f,old,new=ARMS[name]
+    for g,k in keep.items(): shutil.copy(k,g)
+    src=open(f,'rb').read().decode('utf-8'); crlf='\r\n' in src; s=src.replace('\r\n','\n')
+    if s.count(old)!=1: print(name,'NOT FOUND',s.count(old)); continue
+    s=s.replace(old,new)
+    open(f,'wb').write((s.replace('\n','\r\n') if crlf else s).encode('utf-8'))
+    ok,out=build()
+    if not ok: print(name,'BUILD FAILED'); print(out[-500:])
+    else:
+        failed,rc=tests(); died=rc not in (0,1) or (rc!=0 and not failed)
+        print('%-36s exit=%d -> %d red%s: %s'%(name,rc,len(failed),' [PROCESS DIED]' if died else '',', '.join(failed) if failed else 'NONE (arm did not fire)'))
+    for g,k in keep.items(): shutil.copy(k,g)

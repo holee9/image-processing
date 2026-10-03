@@ -1,0 +1,21 @@
+Note: Google Test filter = GhostTier3Border.PrintsTheTierDigests*:GhostTier3NeighbourSpan*
+[==========] Running 3 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from GhostTier3Border
+[ RUN      ] GhostTier3Border.PrintsTheTierDigestsForTheBeforeAfterComparison
+[ghost-oracle] tier1-digest 0x1558dd0b4bbc9f28
+[ghost-oracle] tier2-digest 0xf43a98bc527d9a42
+[ghost-oracle] tier3-digest 0x7b90345cb57971c3
+[       OK ] GhostTier3Border.PrintsTheTierDigestsForTheBeforeAfterComparison (4 ms)
+[----------] 1 test from GhostTier3Border (4 ms total)
+
+[----------] 2 tests from GhostTier3NeighbourSpan
+[ RUN      ] GhostTier3NeighbourSpan.MatchesAnIndependentWideSignedComputationAtEveryAxisLength
+[       OK ] GhostTier3NeighbourSpan.MatchesAnIndependentWideSignedComputationAtEveryAxisLength (0 ms)
+[ RUN      ] GhostTier3NeighbourSpan.TheFirstVersionLostEveryNeighbourAboveIntMaxAndTheSpanDoesNot
+[       OK ] GhostTier3NeighbourSpan.TheFirstVersionLostEveryNeighbourAboveIntMaxAndTheSpanDoesNot (0 ms)
+[----------] 2 tests from GhostTier3NeighbourSpan (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 2 test suites ran. (4 ms total)
+[  PASSED  ] 3 tests.
