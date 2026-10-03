@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <fstream>
 #include <string>
 #include <mutex>
 #include <vector>
@@ -131,6 +132,24 @@ DicomReader::~DicomReader() = default;
 XpeErrorCode DicomReader::open() {
     ensure_jpeg_codecs_registered();
     spdlog::debug("[DicomReader] open: {}", m_filePath);
+
+    // QA-B-207 C3 (REQ-DICOM-003, user decision on #251): a DICOM Part 10 file has a 128-byte preamble followed by "DICM".
+    // DCMTK's EXS_Unknown load below also accepts a bare dataset with neither, and this reader used to open such a file as
+    // Explicit VR Little Endian. REQ-DICOM-003 says missing preamble or invalid magic is XPE_ERR_DICOM_INVALID, so the
+    // magic is checked here, before DCMTK is asked. A file that cannot be opened at all is not judged here: it falls
+    // through to the load below so a missing file keeps its XPE_ERR_IO_FAILED mapping.
+    {
+        std::ifstream probe(m_filePath, std::ios::binary);
+        if (probe) {
+            char head[132] = {};
+            probe.read(head, sizeof(head));
+            if (probe.gcount() < static_cast<std::streamsize>(sizeof(head)) || std::memcmp(head + 128, "DICM", 4) != 0) {
+                spdlog::warn("[DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by \"DICM\" ({} bytes read)",
+                             static_cast<long long>(probe.gcount()));
+                return XPE_ERR_DICOM_INVALID;
+            }
+        }
+    }
 
     // Load the DICOM file with unknown transfer syntax (auto-detect)
     OFCondition status = m_dcmFile->loadFile(

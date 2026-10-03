@@ -82,10 +82,14 @@ typedef struct XpeDicomHandle XpeDicomHandle;
  * @return XPE_ERR_DICOM_INVALID if the file is not a valid DICOM Part 10 file.
  * @return XPE_ERR_UNSUPPORTED_FORMAT if the Transfer Syntax is not supported.
  *
- * @note A file with no Part 10 meta header still opens: DCMTK accepts a bare
- *       dataset and the reader treats a missing Transfer Syntax UID as
- *       Explicit VR Little Endian. Use xpe_dicom_validate() to judge Part 10
- *       conformance -- xpe_dicom_open() judges only readability.
+ * @note A file must be DICOM Part 10: a 128-byte preamble followed by "DICM"
+ *       (REQ-DICOM-003). A bare dataset with no preamble and magic, a file
+ *       shorter than 132 bytes and a file with another magic are
+ *       XPE_ERR_DICOM_INVALID (QA-B-207 C3; they used to open, read as Explicit
+ *       VR Little Endian). The preamble's own bytes are not judged (any 128
+ *       bytes are allowed). A Part 10 file whose meta header lacks a Transfer
+ *       Syntax UID still opens, its syntax detected from the dataset (#167).
+ *       xpe_dicom_validate() reports the rest of the Part 10 conformance.
  * @note REQ-DICOM-001..005
  */
 XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHandle);
