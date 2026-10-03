@@ -1172,6 +1172,19 @@ jobs:
           --logger "console;verbosity=detailed"
           --results-directory build/e2e-native-results
 
+      # GUI-C-218: a test that failed while launching an app could leave that app running, and an app started with
+      # UseShellExecute=false inherits this step's output pipe - dotnet test then waits on the pipe until the job limit.
+      # The test-side leak is fixed (LaunchOrSkip is exception-safe); this step is the job-side backstop, and it
+      # reports what it had to kill so a leak is visible rather than silently cleaned up.
+      - name: Kill leftover app processes (backstop, reports what it found)
+        if: always()
+        shell: pwsh
+        run: |
+          $left = @(Get-Process -Name 'ImageProcTest*', 'xpe_ai_worker' -ErrorAction SilentlyContinue)
+          if ($left.Count -eq 0) { Write-Host 'no leftover app processes'; exit 0 }
+          foreach ($p in $left) { Write-Host ("::warning::leftover process {0} (pid {1}) after the E2E step - a test did not close it" -f $p.ProcessName, $p.Id) }
+          $left | Stop-Process -Force -ErrorAction SilentlyContinue
+
       # GUI-C-37: when the XCal generator is absent the Native W-02 scenario SKIPs rather
       # than failing (so an unmeasured run is not reported as "measured fine"). The
       # generator is part of xpe-ci-preprocess-binaries staged above, so here a skip is
