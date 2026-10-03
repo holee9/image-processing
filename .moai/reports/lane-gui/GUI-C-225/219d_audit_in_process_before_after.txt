@@ -1,0 +1,18 @@
+== WITHOUT the fix (RunWorker called with the default confinement inside the test host; env = c215_native, a folder other than the staged bin)
+     실패: 1
+     통과: 856
+  실패 ImageProcTest.IntegrationTests.Functional.NativeCommonSingleInstanceTests.AfterEveryNativeTestClassHasLoadedItsModules_TheProcessHoldsOneXpeCommon [18 ms]
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+총 테스트 수: 857
+== WITH the fix (confineLoad: false in the test), same environment
+     통과: 857
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+총 테스트 수: 857
+
+== Note (read this before the numbers above)
+The failure is ORDER-DEPENDENT: it needs a fixture of the same test host to have loaded xpe_common.dll / spdlog.dll from a folder other than the one the oracle's DLL is in, BEFORE
+TheWorker_WritesExactlyOneParsableResultLine runs. Observed message in two earlier runs of this session (env = c215_native):
+  Synthetic oracle module audit failed: Loaded from outside the snapshot: ...\c215_native\xpe_common.dll; ...\c215_native\spdlog.dll
+In the run recorded above (without the fix) the test happened to run before those loads and passed; the single failure there is NativeCommonSingleInstanceTests, which fails whenever the
+env folder differs from the staged bin folder (two xpe_common.dll paths) and is unrelated to this change. With env = the staged bin folder (consistent configuration) all 857 pass with or
+without the fix. The fix does not depend on the order: the in-process call no longer runs the audit at all.

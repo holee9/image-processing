@@ -270,7 +270,9 @@ public sealed class PreprocessOracleVerdicts219dTests : IDisposable
     public void TheWorkerLoadsTheDllConfined_AndAuditsTheModulesItLoaded()
     {
         var worker = File.ReadAllText(Path.Combine(FindAppDir(), "Diagnostics", "XpePreprocessOracleProcess.cs"));
-        Assert.Contains("ConfinedLoadFolder: Path.GetDirectoryName(Path.GetFullPath(dllPath))", worker, StringComparison.Ordinal);
+        Assert.Contains("ConfinedLoadFolder: confineLoad ? Path.GetDirectoryName(Path.GetFullPath(dllPath)) : null", worker, StringComparison.Ordinal);
+        Assert.Contains("bool confineLoad = true", worker, StringComparison.Ordinal);   // the default is the real worker's behaviour
+        Assert.DoesNotContain("confineLoad: false", File.ReadAllText(Path.Combine(FindAppDir(), "App.xaml.cs")), StringComparison.Ordinal);
         var oracle = File.ReadAllText(Path.Combine(FindAppDir(), "Diagnostics", "XpePreprocessSyntheticOracle.cs"));
         Assert.Contains("OracleModuleConfinement.TryLoad(", oracle, StringComparison.Ordinal);
         Assert.Contains("OracleModuleConfinement.AuditProcess(", oracle, StringComparison.Ordinal);

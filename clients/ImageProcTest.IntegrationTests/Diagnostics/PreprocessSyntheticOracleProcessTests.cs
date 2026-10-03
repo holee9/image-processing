@@ -195,7 +195,9 @@ public sealed class PreprocessSyntheticOracleProcessTests
         Skip.If(DllPath is null, "Skipped: xpe_preprocess.dll not staged");
         var writer = new StringWriter();
 
-        XpePreprocessOracleProcess.RunWorker(DllPath!, writer);
+        // Run in this process, where the fixtures may already have loaded xpe_common.dll and spdlog.dll from another folder: the confined load and its module audit are for the real worker (a process of
+        // its own; LegacyOracleConfinementScenarios runs that one), so they are off here. This test is about the protocol line.
+        XpePreprocessOracleProcess.RunWorker(DllPath!, writer, confineLoad: false);
 
         var lines = writer.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Single(lines);
