@@ -148,8 +148,17 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
                 Assert.NotEqual(typed, input.Text);
 
                 GlobalInput.SelectAll();
-                GlobalInput.Type(typed);
+                var steps = TypeKeyByKey(window, typed);
                 Thread.Sleep(600);
+
+                // The assertion is the same strict one as ever: all four characters, 600 ms after the last key. When it
+                // fails, the message says where the keys went (GUI-C-229, the first red run: typed 4321, the box held 43).
+                var seen = input.Text;
+                output.WriteLine("R02 key trace: " + KeyLossDiagnosis.Trace(steps));
+                if (seen != typed)
+                {
+                    Assert.Fail(DescribeLostKeys(window, input, typed, steps, seen));
+                }
 
                 Assert.Equal(typed, input.Text);
                 var stale = StaleIndicator(window);
@@ -200,6 +209,95 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
 
     private const string CenterBox = "VoiWindowCenterInput";
     private const string NextBoxInTabOrder = "VoiWindowWidthInput";
+
+    /// <summary>
+    /// R02d (GUI-C-229): the lost-keys message that R02 builds when it fails can be built from the real window, with no key sent. R02 itself needs real input and runs only where that is allowed, so this
+    /// is where the code that reads the boxes, the focus and the foreground for the message is shown to work: it is handed a made-up trace in which the third key was refused, and the message must
+    /// carry every reading and name the foreground explanation.
+    /// </summary>
+    [SkippableFact]
+    public void R02d_TheLostKeysMessage_IsBuiltFromTheRealWindow_WithoutSendingAKey()
+    {
+        Measure("R02d", window =>
+        {
+            OpenParameters(window);
+            var input = window.FindFirstDescendant(cf => cf.ByAutomationId(CenterBox))!.AsTextBox();
+            var seen = input.Text;
+            Assert.NotEqual("4321", seen);   // the made-up trace below only reads as a failure if the box does not hold the text
+
+            var steps = new List<KeyStep>
+            {
+                new(0, '4', 0, AppInFrontBefore: true, Sent: true),
+                new(1, '3', 8, AppInFrontBefore: true, Sent: true),
+                new(2, '2', 16, AppInFrontBefore: false, Sent: false),
+                new(3, '1', 16, AppInFrontBefore: false, Sent: false),
+            };
+
+            var message = DescribeLostKeys(window, input, "4321", steps, seen);
+            output.WriteLine("R02d message: " + message);
+
+            Assert.Contains($"center box held '{seen}' 600 ms after the last key and '{seen}' 1.5 s later", message, StringComparison.Ordinal);
+            Assert.Contains("the Width box holds '", message, StringComparison.Ordinal);
+            Assert.Contains("Keyboard focus now:", message, StringComparison.Ordinal);
+            Assert.Contains("key 2 '2' at +16 ms, app in front before it: NO, NOT sent", message, StringComparison.Ordinal);
+            Assert.Contains("Reading: (a) the application was not in front before a key", message, StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>
+    /// Types the text one real key at a time, and before each key checks that the application is the window in front. If it is not, that key and every later one are NOT sent (they would go to
+    /// whatever is in front, GUI-C-171) and the trace says so. Nothing in the application is read between keys, so the timing of the keys is that of one burst.
+    /// </summary>
+    private static List<KeyStep> TypeKeyByKey(Window window, string text)
+    {
+        var steps = new List<KeyStep>();
+        var clock = Stopwatch.StartNew();
+        var refused = false;
+        for (var i = 0; i < text.Length; i++)
+        {
+            var inFront = AppIsForeground(window);
+            var send = inFront && !refused;
+            steps.Add(new KeyStep(i, text[i], clock.ElapsedMilliseconds, inFront, send));
+            if (!send)
+            {
+                refused = true;
+                continue;
+            }
+
+            GlobalInput.Type(text[i].ToString());
+        }
+
+        return steps;
+    }
+
+    /// <summary>
+    /// The failure message for lost keys: what the box held when read and 1.5 s later, what the Width box holds (the next control in tab order), who holds the keyboard focus now, what is in front, the
+    /// per-key trace, and which explanation fits (<see cref="KeyLossDiagnosis"/>). It only describes; the scenario has already failed.
+    /// </summary>
+    private static string DescribeLostKeys(Window window, TextBox input, string typed, IReadOnlyList<KeyStep> steps, string seen)
+    {
+        Thread.Sleep(1500);
+        var seenLater = SafeText(input);
+        var width = SafeText(window.FindFirstDescendant(cf => cf.ByAutomationId(NextBoxInTabOrder))?.AsTextBox());
+        var focused = FocusedInfo(window);
+        var cause = KeyLossDiagnosis.Classify(steps, typed, seen, seenLater, width, focused is { AutomationId: CenterBox });
+        return
+            $"Real key presses typed '{typed}' but the center box held '{seen}' 600 ms after the last key and '{seenLater}' 1.5 s later; the Width box holds '{width}'. " +
+            $"Keyboard focus now: {Describe(focused)}. {PanelToggleScenarios.DescribeWhatIsInFront(window)} " +
+            $"Key trace: {KeyLossDiagnosis.Trace(steps)}. Reading: {KeyLossDiagnosis.Explain(cause)}";
+    }
+
+    private static string SafeText(TextBox? box)
+    {
+        try
+        {
+            return box?.Text ?? "(no box)";
+        }
+        catch (Exception ex)
+        {
+            return "(unreadable: " + ex.GetType().Name + ")";
+        }
+    }
 
     /// <summary>Who holds the keyboard focus right now, as UI Automation reports it — in any process.</summary>
     private readonly record struct FocusInfo(string AutomationId, int ProcessId, string Name);
