@@ -243,7 +243,10 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
     // .95 is recognised exactly like .94, but nothing here has ever judged a file under it: the DCMTK this module builds against
     // cannot read one (KnownDivergence_JpipReferencedDeflateCannotBeParsedByThisDcmtkBuild), so conformance under .95 is
     // unsupported and unverified, and such a file is reported as unparseable before it reaches this check.
-    const bool jpipReferenced = transferSyntax == "1.2.840.10008.1.2.4.94" || transferSyntax == "1.2.840.10008.1.2.4.95";
+    // The JPIP referenced syntaxes: .94/.95 (PS3.3 C.7.6.3 lists only these) and the HTJ2K ones .204/.205 (PS3.5 A.11, A.12 give
+    // them the same rule). This module follows PS3.5 (QA-B-206 M2f).
+    const bool jpipReferenced = transferSyntax == "1.2.840.10008.1.2.4.94"  || transferSyntax == "1.2.840.10008.1.2.4.95" ||
+                                transferSyntax == "1.2.840.10008.1.2.4.204" || transferSyntax == "1.2.840.10008.1.2.4.205";
 
     for (const auto& req : s_requiredTags) {
         DcmElement* elem = nullptr;

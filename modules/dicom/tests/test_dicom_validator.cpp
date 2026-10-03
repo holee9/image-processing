@@ -767,6 +767,9 @@ TEST_F(DicomValidatorTest, PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExc
     const Case cases[] = {
         {"ordinary file: Pixel Data, no URL", EXS_LittleEndianExplicit, true, nullptr, true, 0, 0, 0, 0},
         {"JPIP Referenced (.94): URL only", EXS_JPIPReferenced, false, kUrl, true, 0, 0, 0, 1},
+        {"JPIP HTJ2K Referenced (.204): URL only", EXS_JPIPHTJ2KReferenced, false, kUrl, true, 0, 0, 0, 1},
+        {"JPIP HTJ2K Referenced (.204): Pixel Data, no URL (PS3.5 A.11)", EXS_JPIPHTJ2KReferenced, true, nullptr, false, 0, 0, 1, 0},
+        {"JPIP HTJ2K Referenced (.204): neither", EXS_JPIPHTJ2KReferenced, false, nullptr, false, 1, 0, 0, 0},
         {"JPIP Referenced: Pixel Data and URL breaks both rules", EXS_JPIPReferenced, true, kUrl, false, 0, 1, 1, 0},
         {"JPIP Referenced: Pixel Data, no URL (PS3.5 A.6)", EXS_JPIPReferenced, true, nullptr, false, 0, 0, 1, 0},
         {"other syntax: URL only, it replaces nothing", EXS_LittleEndianExplicit, false, kUrl, false, 1, 0, 0, 0},
@@ -801,24 +804,29 @@ TEST_F(DicomValidatorTest, PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExc
     }
 }
 
-// .95 (JPIP Referenced Deflate) belongs in the table above exactly like .94, but this DCMTK build cannot read a file under it at
-// all: the validator gets "Unsupported compression or encryption" from loadFile and reports the file as unparseable, so nothing
-// about Pixel Data or the URL is ever judged. Recorded as what is observed, not as what is wanted: when the dependency gains
-// deflate support this goes red, and the .95 case is added to the table (the code already treats .95 like .94).
-TEST_F(DicomValidatorTest, KnownDivergence_JpipReferencedDeflateCannotBeParsedByThisDcmtkBuild) {
-    XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
-    bool saved = false;
-    const json j = ValidateChangedUnder(
-        EXS_JPIPReferencedDeflate, s_conformantDcm, s_tempDir / "m2d_px_deflate.dcm",
-        [](DcmDataset* d) {
-            d->findAndDeleteElement(DCM_PixelData);
-            d->putAndInsertString(DCM_PixelDataProviderURL, "http://example.invalid/jpip");
-        },
-        &rc, &saved);
-    if (!saved) return;
-    EXPECT_EQ(XPE_ERR_DICOM_INVALID, rc) << j.dump();
-    EXPECT_FALSE(j["valid"].get<bool>()) << j.dump();
-    EXPECT_EQ(1, CountMessages(j["errors"], "0008,0000", "cannot be parsed")) << j.dump();
+// .95 (JPIP Referenced Deflate) and .205 (JPIP HTJ2K Referenced Deflate) belong in the table above exactly like .94 and .204, but
+// this DCMTK build cannot read a file under either: the validator gets "Unsupported compression or encryption" from loadFile and
+// reports the file as unparseable, so nothing about Pixel Data or the URL is ever judged. Recorded as what is observed, not as
+// what is wanted: when the dependency gains deflate support this goes red, and the cases are added to the table (the code
+// already treats .95 and .205 like .94 and .204).
+TEST_F(DicomValidatorTest, KnownDivergence_JpipReferencedDeflateSyntaxesCannotBeParsedByThisDcmtkBuild) {
+    const E_TransferSyntax xfers[] = {EXS_JPIPReferencedDeflate, EXS_JPIPHTJ2KReferencedDeflate};
+    int n = 0;
+    for (E_TransferSyntax x : xfers) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        bool saved = false;
+        const json j = ValidateChangedUnder(
+            x, s_conformantDcm, s_tempDir / ("m2d_px_deflate_" + std::to_string(n++) + ".dcm"),
+            [](DcmDataset* d) {
+                d->findAndDeleteElement(DCM_PixelData);
+                d->putAndInsertString(DCM_PixelDataProviderURL, "http://example.invalid/jpip");
+            },
+            &rc, &saved);
+        if (!saved) continue;
+        EXPECT_EQ(XPE_ERR_DICOM_INVALID, rc) << j.dump();
+        EXPECT_FALSE(j["valid"].get<bool>()) << j.dump();
+        EXPECT_EQ(1, CountMessages(j["errors"], "0008,0000", "cannot be parsed")) << j.dump();
+    }
 }
 
 TEST_F(DicomValidatorTest, ABlankUidIsReportedOnceAsNoValueAndItsFormatIsNotJudgedAsWell) {
