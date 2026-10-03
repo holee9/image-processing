@@ -13,6 +13,7 @@ REQ-GUI-IT-003  구현됨
     AbiLayoutTests.XpeImageBuffer_FieldOffsets_MatchNativeLayout
 
 REQ-GUI-IT-004  구현됨
+    AbiLayoutTests.XpeImageMetadata_BodyPart_IsDeclaredAsByValTStr64_AndTheStructIsAnsi
     AbiLayoutTests.XpeImageMetadata_BodyPart_63CharAscii_RoundTrips
     AbiLayoutTests.XpeImageMetadata_BodyPart_FieldOffset_IsZero
 
@@ -109,6 +110,7 @@ REQ-GUI-IT-042  구현됨(한계)
     ArchitectureMismatchTests.AnImageOfAnotherArchitecture_IsRefusedByTheLoader_WithBadImageFormatException_WhileTheSameBytesAsX64Load
     ArchitectureMismatchTests.TheFirstPInvokeCallIntoAnX86Image_RaisesBadImageFormatException
     ArchitectureMismatchTests.AnX86XpeCommonInTheNativeDirectory_IsLocated_RejectedByTheGuard_AndNamedInTheDiagnostic
+    ArchitectureMismatchTests.TheFixtureBootstrap_WithAnX86XpeCommon_IsUnavailable_AndItsResolvedPathNamesTheFile
     한계: 진짜 x86 빌드 DLL 로는 돌려 보지 못함(PE 헤더의 Machine 필드만 바꾼 x64 DLL 사본과 x86 xpe_common 이 있는 폴더로 시험)
 
 REQ-GUI-IT-043  구현됨(한계)

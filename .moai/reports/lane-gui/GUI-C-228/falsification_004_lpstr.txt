@@ -1,0 +1,4 @@
+== arm 004_lpstr: s/\[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)\]/[MarshalAs(UnmanagedType.LPStr)]/
+[xUnit.net 00:00:00.22]     ImageProcTest.IntegrationTests.Smoke.AbiLayoutTests.XpeImageMetadata_MarshalSize_Is96Bytes [FAIL]
+[xUnit.net 00:00:00.23]     ImageProcTest.IntegrationTests.Smoke.AbiLayoutTests.XpeImageMetadata_BodyPart_IsDeclaredAsByValTStr64_AndTheStructIsAnsi [FAIL]
+실패!  - 실패:     2, 통과:     5, 건너뜀:     0, 전체:     7, 기간: 36 ms - ImageProcTest.IntegrationTests.dll (net8.0)
