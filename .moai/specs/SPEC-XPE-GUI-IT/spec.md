@@ -2,10 +2,10 @@
 
 ---
 id: SPEC-XPE-GUI-IT
-version: 1.2.0
+version: 1.3.1
 status: Implemented
 created: 2026-04-18
-updated: 2026-04-18
+updated: 2026-10-03
 author: manager-spec (MoAI)
 priority: High
 issue_number: null
@@ -19,8 +19,10 @@ dependency: SPEC-XPE-P0 (Completed), SPEC-XPE-P1A (in progress for advanced suit
 
 | Version | Date       | Author       | Changes                                             |
 |---------|------------|--------------|-----------------------------------------------------|
+| 1.3.1   | 2026-10-03 | lead | 사용자 결정(#245 코멘트 묶음 ④ "문서를 실제에 맞게", #249): AC-9 의 "> 20개 negative 시나리오" 를 "서로 다른 거부 경로 18개(GUI-C-209 M2)" 로, §11 표의 AC-9 행도 같이. 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md` |
+| 1.3.0   | 2026-10-03 | lead (GUI-C-207, #249) | 실태 대조 정정(문서만, 코드·요구 삭제 없음). 정의된 REQ 수를 36개로 바로잡음(RTM 의 53/39 표기, 유령 REQ-032~034). §4.6 요구별 구현 상태 표 신설(구현됨 19 · 부분 14 · 없음 3). AC-4·5·6 사실 오류 정정, AC-9·12·15 와 REQ-010·043 에 상태 주석. §9 [HARD] shim 금지 규칙에 우회 상태 주석. §11 클래스 표를 `requirement-matrix.json` 의 실제 매핑으로 교체. REQ-063~065 는 상태 주석만(선택 요구 — 미구현, 구현 계획 없음). 근거: `xpe-gui` `.moai/reports/lane-gui/GUI-C-207/report.md` (dev/gui `efbc74f8`). |
 | 1.2.0   | 2026-04-18 | manager-spec (GUI Lane) | GUI document upgrade package: 5 new companion docs (XAML/MVVM Arch, FlaUI E2E Plan, Accessibility, Localization, IEC 62304 GUI SHA/RTM), 2 upgraded (DISP-INT v2.0, MENU v1.1). Added §13 Phase 1b GUI Integration Readiness section. Referenced Documents table extended. Test implementation unchanged (78/78 tests stable). |
-| 1.1.0   | 2026-04-18 | manager-docs | Implementation complete: ImageProcTest.IntegrationTests xUnit project with 78/78 tests passing. All 16 AC done. xpe_common.dll-gated tests use early-return pass pattern (xUnit v2 limitation). |
+| 1.1.0   | 2026-04-18 | manager-docs | Implementation complete: ImageProcTest.IntegrationTests xUnit project with 78/78 tests passing. All 15 AC listed; see section 11 for what each one actually asserts *(2026-10-03 정정: 원문 "All 16 AC done" — AC 는 15개, #249)*. xpe_common.dll-gated tests use early-return pass pattern (xUnit v2 limitation). |
 | 1.0.0   | 2026-04-18 | manager-spec | Initial creation of cross-language GUI IT SPEC     |
 
 ---
@@ -86,7 +88,7 @@ ImageProcTest C# WPF 클라이언트가 P/Invoke로 호출하는 XPE 네이티�
 | **XPE-GUI-DISP-INT-001**   | **Display Integration Guide**      | **2.0.0** | **P1B 통합 계약 (v2 upgrade)** |
 | **XPE-GUI-MENU-001**       | **Menu & Command Strategy**        | **1.1.0** | **Pipeline 활성화 타이밍 + shortcut** |
 | **SHA-GUI-001**            | **Software Hazard Analysis (GUI)** | **1.0.0** | **GUI-specific hazards (10)** |
-| **RTM-GUI-001**            | **Requirements Traceability (GUI)**| **1.0.0** | **53 REQ → IEC 62304 trace** |
+| **RTM-GUI-001**            | **Requirements Traceability (GUI)**| **1.0.0** | **36 REQ → IEC 62304 trace** (REQ-GUI-IT-032~034 는 본 SPEC 에 정의 없음, #249) |
 
 ---
 
@@ -149,6 +151,8 @@ The test collection **shall not** use `MockXpeBackend` or `CompositeXpeBackend`.
 
 > **실측 주석 (2026-09-17).** `CompositeXpeBackend` 는 **코드 어디에도 없습니다**(범위: `gui/`·`clients/`·`modules/` 의 `*.cs`; 대조군 — 같은 검색이 `MockXpeBackend`·`RealXpeBackend`·`XpeBackendFactory` 를 찾음). Real → Mock 폴백은 현재 `gui/ImageProcTest/Services/XpeBackendFactory.cs` 가 합니다.
 > 따라서 이 요구의 `CompositeXpeBackend` 절반, 그리고 아래 수용 기준의 `typeof(CompositeXpeBackend)` 리플렉션 단언은 **존재하지 않는 타입의 부재를 확인하므로 언제나 통과합니다** — 아무것도 지키지 않습니다. 지켜야 할 대상은 `XpeBackendFactory` 의 폴백입니다.
+>
+> **정정 (2026-10-03, GUI-C-208).** 위 2026-09-17 주석은 틀렸다. `CompositeXpeBackend` 는 `clients/ImageProcTest/Backends/CompositeXpeBackend.cs` 에 있다(2026-04-17 `3cadf4ac` 에서 추가, 레거시 `clients/` 앱 5곳이 사용). 그때 검색이 이 파일을 놓쳤다. 따라서 수용 기준의 `typeof(CompositeXpeBackend)` 리플렉션 단언은 실재하는 타입이 시험 어셈블리에 참조되지 않음을 지키는 의미 있는 단언이다. GUI-C-208 은 그 스캔이 실제로 타입을 보는지 붙잡는 대조 시험을 더했다(#249).
 
 - Rationale: Mock 경로는 GUI scaffold 전용, 통합 테스트 통과를 허용하면 regression 은폐됨 (research.md R-12)
 
@@ -165,6 +169,8 @@ For each `XpeErrorCode` value in the C# enum (`OK`=0, `INVALID_INPUT`=-1, ..., `
 #### REQ-GUI-IT-010: No Handle Leak After Test Run
 
 After executing the full test collection, the test host process **shall not** hold any outstanding `GCHandle.Alloc(Pinned)` handle. (Verification: `GC.Collect(); GC.WaitForPendingFinalizers()` followed by `GC.GetTotalMemory` delta sanity check within `[Trait("Category","Lifecycle")]`)
+
+> **상태 주석 (2026-10-03, #249).** 요구 문구는 남은 `GCHandle.Alloc(Pinned)` 핸들의 부재를 요구하지만, 검증 방법은 "GetTotalMemory 상식 점검"으로 정의되어 있어 둘이 다르다. 당시 시험(`AfterTests_NoOutstandingPinnedHandles`)은 핸들을 세지 않고 관리 힙 < 200 MiB(절대값)만 단언했다. **갱신 (GUI-C-208 M2)**: 그 시험은 고정 핸들 수를 실제로 세는 `LeakEnduranceTests.PinnedObjects_AtThisPoint_AreNoMoreThanWhenTheFixtureWasCreated` 와 계측 자체를 단언하는 `LeakEnduranceTests.TheInstrument_CountsAPinnedHandle_AndStopsCountingItOnceFreed` 로 바뀌었다. 현재 상태: **부분**(CI 러너에서 흔들림 여부 미확인).
 
 ### 4.2 Event-Driven Requirements (이벤트 구동)
 
@@ -236,6 +242,8 @@ After executing the full test collection, the test host process **shall not** ho
 
 **While** `RuntimeInformation.ProcessArchitecture != Architecture.X64`, a diagnostic test **shall** run and record the architecture without failing other tests. (For ARM64 future support.)
 
+> **상태 주석 (2026-10-03, #249).** 당시 시험(`ProcessArchitecture_IsX64`)은 ARM64 에서 **실패**하므로 "다른 시험을 실패시키지 않고 기록"과 모순됐다. **갱신 (GUI-C-208 M2)**: 요구 문구대로 기록 전용인 `PlatformDetectionTests.ProcessArchitecture_IsRecordedForDiagnostics` 로 바뀌었다(ARM64 분기는 실행해 보지 않음). 현재 상태: **부분**.
+
 ### 4.4 Unwanted Behavior Requirements (금지 동작)
 
 #### REQ-GUI-IT-050: No AccessViolation Across Boundary
@@ -278,13 +286,29 @@ The test suite **shall not** pass when `xpe_version()` returns a string not matc
 
 **Where** environment variable `XPE_GUI_IT_ETW=1` is set, the test suite **shall** emit `EventSource` events at test boundaries (`test_start`, `pinvoke_call`, `test_end`) to aid diagnostic capture without altering functional behaviour.
 
+> **상태 (2026-10-03):** 선택 요구(Optional) — 미구현, 구현 계획 없음 (#249)
+
 #### REQ-GUI-IT-064: Optional .NET 9 Target Verification
 
 **Where** the CI runs on `dotnet --list-sdks` including 9.0.x, a secondary test pass **shall** execute against `net9.0` target to detect forward-compat regressions. Default target remains `net8.0`.
 
+> **상태 (2026-10-03):** 선택 요구(Optional) — 미구현, 구현 계획 없음 (#249)
+
 #### REQ-GUI-IT-065: Optional ARM64 Diagnostic
 
 **Where** `RuntimeInformation.ProcessArchitecture == Architecture.Arm64`, the test suite **shall** attempt to locate an arm64 variant of `xpe_common.dll` and record the result without failing the x64 baseline tests.
+
+> **상태 (2026-10-03):** 선택 요구(Optional) — 미구현, 구현 계획 없음 (#249)
+
+### 4.6 Implementation Status per Requirement (2026-10-03, GUI-C-207, #249)
+
+정의된 요구는 **36개**다(001~010, 020~031, 040~043, 050~053, 060~065). 판정 기준: **구현됨** = 시험이 요구 문구를 독립된 기대값으로 단언한다. **부분** = 문구의 일부만 단언한다. **없음** = 단언하는 시험이 없다. 근거는 dev/gui `efbc74f8` 기준 GUI-C-207 보고서 §1.
+
+| 상태 | 수 | REQ |
+|------|:--:|-----|
+| 구현됨 | 19 | 001(빌드 속성 — 시험이 아님), 002, 003, 005, 021~030, 040, 051, 053, 060, 062 |
+| 부분 | 14 | 004, 006, 007, 008, 009, 010, 020, 031, 041, 042, 043, 050, 052, 061 |
+| 없음 | 3 | 063, 064, 065 (선택 요구(Optional) — 미구현, 구현 계획 없음) |
 
 ---
 
@@ -436,7 +460,7 @@ clients/
 | Attribute | Target |
 |-----------|--------|
 | Development Method | TDD (RED → GREEN → REFACTOR, per quality.yaml) |
-| P/Invoke Surface Coverage | 15/15 functions in `PInvokeWrapper.cs` have ≥ 1 Functional test = 100% surface coverage |
+| P/Invoke Surface Coverage | 15/15 functions in `PInvokeWrapper.cs` have ≥ 1 Functional test = 100% surface coverage (호출 수 기준으로 참: 모든 심볼을 시험이 호출한다. `xpe_shutdown`·`xpe_clear_alerts`·`xpe_log_flush` 는 `void` 를 반환하므로 그 효과는 반환값이 아니라 REQ-040·REQ-028 시험으로 단언된다 — 2026-10-03, #249) |
 | Requirement Coverage | Each REQ-GUI-IT-* cluster maps to ≥ 1 Acceptance Criterion (Section 10) |
 | Determinism | All tests use fixed seed (seed=0). Synthetic image pattern: `(ushort)(1000 + (index % 97))` per research.md §7.4 |
 | IEC 62304 Class | B (medical device, failure may harm) |
@@ -456,6 +480,7 @@ clients/
 - [HARD] `xpe_common.dll` 심볼 확장/추가 시 본 SPEC의 Functional 테스트를 **반드시** 동시 갱신
 - [HARD] Mock fallback을 테스트 통과 경로로 사용할 수 없음 (REQ-GUI-IT-007)
 - [HARD] 테스트는 실제 `XpeCommonApi`의 `[DllImport]` 선언을 직접 호출한다 — P/Invoke shim을 재작성하지 않음 (drift 방지)
+  - **상태 주석 (2026-10-03):** 현재 거울 P/Invoke 로 우회됨, 시그니처 대조 시험은 GUI-C-208 M1 에서 추가 예정, #249. 시험 프로젝트는 `PInvoke/XpeCommonNative.cs` 거울 선언(extern 16개, 앱 래퍼 `PInvokeWrapper.cs` 는 15개 — 거울에만 `xpe_alert_push`)을 쓴다(GUI-C-13: 한 어셈블리에 DllImport 해석기 둘을 둘 수 없음). DLL 이름(`DllNameParityTests`)과 오류 코드 열거(`ErrorCodeHeaderParityTests`)는 소스로 대조하지만 함수 시그니처는 아직 대조하지 않는다.
 
 ---
 
@@ -480,20 +505,26 @@ clients/
 - DLL 부재 시 명시적 `DllNotFoundException` with path hint
 - 아키텍처 mismatch 시 `BadImageFormatException`이 test failure로 surface
 
-### AC-4: All 18 PInvoke Symbols Have a Functional Test (REQ-GUI-IT-020~034)
+### AC-4: All 15 PInvoke Symbols Have a Functional Test (REQ-GUI-IT-020~031)
 
-Section 5.1 표의 18개 심볼 각각에 대해 최소 하나의 `[Fact]` 또는 `[Theory]` 테스트가 존재하고 pass. xUnit 실행 결과 `passed == 18+ (per-symbol)`.
+Section 5.1 표의 15개 심볼 각각에 대해 최소 하나의 `[Fact]` 또는 `[Theory]` 테스트가 존재하고 pass. xUnit 실행 결과 `passed == 15+ (per-symbol)`.
+
+> 2026-10-03 정정(#249): 원문 "18개 심볼 (REQ-GUI-IT-020~034)". §5.1 표는 15개이고 REQ-GUI-IT-032~034 는 본 SPEC 에 정의가 없다.
 
 ### AC-5: Uninitialized Guard Covers Init-Dependent APIs (REQ-GUI-IT-040)
 
-`UninitializedGuardTests`:
+`NativeErrorTranslationTests` 의 `GetParamRange_BeforeInit_ReturnsNotInitialized`, `Version_BeforeInit_DoesNotCrash`, `ErrorString_BeforeInit_DoesNotCrash`, `LogFlush_BeforeInit_DoesNotCrash`:
 - pre-init `xpe_version()`, `xpe_error_string()`, `xpe_log_flush()` 는 crash하지 않음
 
-### AC-6: Enum Parity for All 11 Error Codes (REQ-GUI-IT-009, 053)
+> 2026-10-03 정정(#249): 원문의 `UninitializedGuardTests` 클래스는 존재하지 않는다. 시험은 위 4개 메서드로 `NativeErrorTranslationTests` 안에 있다.
 
-`EnumParityTests`:
-- 11개 enum 값 (`OK` 포함) 각각에 대해 `xpe_error_string(code)` non-NULL + non-empty
+### AC-6: Enum Parity for All 18 Error Codes the C# Enum Declares (REQ-GUI-IT-009, 053)
+
+`ErrorCodeMappingTests` (+ `VersionPinTests`):
+- C# 열거가 선언한 18개 값 (`OK`=0 .. `INVALID_CALIB_DATA`=-17) 각각에 대해 `xpe_error_string(code)` non-NULL + non-empty
 - 알려지지 않은 code (e.g. -999)는 `"Unknown error"` 또는 non-NULL fallback
+
+> 2026-10-03 정정(#249): 원문 "11개 오류 코드". 열거는 18개다. 알 수 없는 코드 케이스는 비지 않은 문자열만 단언한다. `EnumParityTests` 클래스는 존재하지 않으며 실제 시험은 `Functional/ErrorCodeMappingTests`(REQ-009)·`Smoke/VersionPinTests`(REQ-053)다.
 
 ### AC-7: 1000-Cycle Init/Shutdown Has No Leak (REQ-GUI-IT-051)
 
@@ -511,8 +542,14 @@ Section 5.1 표의 18개 심볼 각각에 대해 최소 하나의 `[Fact]` 또�
 ### AC-9: No Managed Exception from ABI Boundary on Negative Inputs (REQ-GUI-IT-050, 052, 006)
 
 `NoManagedExceptionTests`:
-- 의도적인 nefarious JSON, oversized buffer, null string 등 > 20개 negative 시나리오에서 managed exception 없음
+- 의도적인 nefarious JSON, oversized buffer, null string 등 서로 다른 거부 경로 18개(GUI-C-209 M2) 각각에서 managed exception 없음
 - 모든 실패는 `XpeErrorCode` 리턴값으로 기대치 매칭
+
+> **정정 (2026-10-03, 사용자 결정 #245 코멘트 묶음 ④ "문서를 실제에 맞게", #249).** 옛 문구: *"> 20개 negative 시나리오"*. `GUI-C-209` 보고서의 결론은 xpe_common 의 서로 다른 거부 경로가 18개이고 "20+" 는 한 검사를 두 번 세어야 채워진다는 것이다. 그래서 개수를 시나리오 수가 아니라 거부 경로 수(18)로 적었다. 경로별 시험은 `GUI-C-209` 의 `NegativeInputPathTests` 다. 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md`.
+
+> **상태 주석 (2026-10-03, #249).** 현재 시나리오는 "20개 넘게"가 아니라 부정 입력 3개(Configure 64 KB 깨진 JSON, 1바이트 알림 버퍼, 거대한 Alloc 치수)와 초기화 전 무충돌 3개다. `NoManagedExceptionTests` 클래스는 없고 시험은 `ErrorMapping/NativeErrorTranslationTests` 에 있다. 기준을 실제 수로 고칠지, 빠진 시나리오를 추가할지(보고서 D11)는 결정 대기다. 현재 상태: **부분**.
+>
+> **갱신 (2026-10-03).** 결정: 기준을 실제 수로 고친다(사용자 #245 코멘트 묶음 ④). 그 뒤 `GUI-C-209` M2(main `b39b34a9`)가 `ErrorMapping/NegativeInputPathTests` 로 서로 다른 거부 경로 18개를 정확한 오류 코드로 시험한다. 이 갱신에서 CI 결과는 읽지 않았으므로 상태 열은 여기서 바꾸지 않는다.
 
 ### AC-10: Alert Queue Never Crashes on Empty (REQ-GUI-IT-027, 028)
 
@@ -530,6 +567,8 @@ Section 5.1 표의 18개 심볼 각각에 대해 최소 하나의 `[Fact]` 또�
 ### AC-12: Smoke Gate < 30s, Full Functional < 2min (Section 7)
 
 CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 이내.
+
+> **상태 주석 (2026-10-03, #249).** `Category=Smoke` 로 거르는 CI 단계가 없고(`.github` 0건) 시험별 5초 상한도 걸려 있지 않다 — **CI 가 재지 않는다**. 단계를 추가할지는 결정 대기다. 현재 상태: **없음**.
 
 ### AC-13: Optional P1A Tests Skip Cleanly When Preprocess Absent (REQ-GUI-IT-060~062)
 
@@ -549,6 +588,8 @@ CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 
 - MX 태그 추가 (@MX:ANCHOR on `NativeLibraryFixture`, @MX:NOTE on 각 `[DllImport]` usage)
 - README.md에 "How to run integration tests" 섹션 추가
 
+> **상태 주석 (2026-10-03, #249).** `plan.md`·`acceptance.md`·`tasks.md` 는 작성된 적이 없다(디렉터리에는 `spec.md`·`progress.md`·`research.md` 뿐). README 의 "How to run integration tests" 섹션도 없다(`clients/README.md` 에는 §"Native DLL search" 하나). MX 태그는 `[DllImport]` 마다가 아니라 2개(`@MX:ANCHOR` NativeLibraryFixture, 거울의 `@MX:NOTE`)다. 이 항목들을 이행할지 DoD 에서 뺄지는 결정 대기다. 현재 상태: **부분/없음**.
+
 ---
 
 ## 11. Implementation Status (2026-04-18)
@@ -559,19 +600,28 @@ CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 
 - `clients/ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj` (C# xUnit project, net8.0, x64)
 - `clients/ImageProcTest.slnx` (Modern solution format)
 
-#### Test Classes (10 classes, 78 test cases)
+#### Test Classes — REQ ↔ 실제 시험 클래스 매핑 (2026-10-03 교체, #249)
 
-| Folder | Class | Count | Purpose |
-|--------|-------|-------|---------|
-| Smoke/ | AbiLayoutTests.cs | 12 | REQ-GUI-IT-002, 003, 004: Pack=8 ABI parity |
-| Smoke/ | DllResolutionTests.cs | 8 | REQ-GUI-IT-008, 041, 042: DLL path validation |
-| Functional/ | LifecycleTests.cs | 9 | REQ-GUI-IT-021: Init/shutdown success path |
-| Functional/ | ConfigureTests.cs | 6 | REQ-GUI-IT-022: JSON config roundtrip |
-| Functional/ | MemoryTests.cs | 12 | REQ-GUI-IT-023~025: Alloc/free/copy |
-| Functional/ | AlertTests.cs | 8 | REQ-GUI-IT-027, 028: Empty queue handling |
-| Functional/ | LoggingTests.cs | 6 | REQ-GUI-IT-029, 030, 031: Log subsystem |
-| Safety/ | LeakEnduranceTests.cs | 1 | REQ-GUI-IT-051: 1000-cycle no-leak |
-| ErrorMapping/ | EnumParityTests.cs | 7 | REQ-GUI-IT-009, 053: Error code mapping |
+> 2026-04-18 원본 표(10 classes, 78 test cases)는 `DllResolutionTests`·`LifecycleTests`·`ConfigureTests`·`MemoryTests`·`AlertTests`·`LoggingTests`·`EnumParityTests` 7개 클래스를 적었으나 이들은 코드에 존재하지 않는다. 아래는 `Resources/requirement-matrix.json` 의 실제 매핑이다(dev/gui `efbc74f8`).
+
+| REQ | Test Class (실제) |
+|-----|-------------------|
+| REQ-GUI-IT-001 | `ImageProcTest.IntegrationTests.csproj` (빌드 속성) |
+| REQ-GUI-IT-002~004 | `Smoke/AbiLayoutTests` |
+| REQ-GUI-IT-005, 020, 041, 042 | `Smoke/DllLoadSmokeTests` |
+| REQ-GUI-IT-053 | `Smoke/VersionPinTests` (+ `Functional/ErrorCodeMappingTests`) |
+| REQ-GUI-IT-006, 040, 050, 052 | `ErrorMapping/NativeErrorTranslationTests` |
+| REQ-GUI-IT-007 | `Safety/MockBlockingTests` |
+| REQ-GUI-IT-008 | `Safety/DllSearchPathSafetyTests` |
+| REQ-GUI-IT-009 | `Functional/ErrorCodeMappingTests` |
+| REQ-GUI-IT-010, 051 | `Safety/LeakEnduranceTests` |
+| REQ-GUI-IT-021, 023~025 | `Functional/ImageBufferLifecycleTests` |
+| REQ-GUI-IT-022, 026 | `Functional/MetadataMarshallingTests` |
+| REQ-GUI-IT-027, 028 | `Lifecycle/AlertCallbackTests` |
+| REQ-GUI-IT-029~031 | `Lifecycle/LoggingHandlerTests` |
+| REQ-GUI-IT-043 | `Diagnostics/PlatformDetectionTests` |
+| REQ-GUI-IT-060, 061, 062 | `P1AReady/PreprocessHandshakeTests`, `PreprocessCorrectionChainSmokeTests`, `CalibrationCheckExpirySmokeTests` |
+| REQ-GUI-IT-063, 064, 065 | 없음 |
 
 #### Fixture & Utility Classes
 - `Fixtures/NativeLibraryFixture.cs` (IClassFixture, DLL discovery, per-test init)
@@ -591,7 +641,11 @@ CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 
 | Safety (leak, uninit, negative) | 8 | PASS (< 180s) |
 | **Total** | **78/78** | **GREEN** |
 
+> 2026-10-03 주석(#249): "78/78" 은 2026-04-18 수치다. 현재 프로젝트는 650 통과 / 1 건너뜀으로 돌며, 대부분은 다른 SPEC 의 시험이다.
+
 ### Acceptance Criteria Traceability
+
+> 2026-10-03 주석(#249): 아래 표의 "✓" 는 2026-04-18 기록이다. AC 별 실제 상태는 §10 의 상태 주석과 §4.6 을 따른다(AC-2/3/6/8/9/11/12/14/15 는 부분 또는 없음).
 
 | AC # | Title | Implementation | Status |
 |------|-------|-----------------|--------|
@@ -603,11 +657,11 @@ CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 
 | AC-6 | Error code enum parity (11 codes) | EnumParityTests.ErrorStringParity | ✓ PASS |
 | AC-7 | 1000-cycle leak test | LeakEnduranceTests.InitShutdown_1000Cycles_NoLeak | ✓ PASS |
 | AC-8 | Mock backend exclusion | MockExclusionTests (reflection check) | ✓ PASS |
-| AC-9 | No managed exception on negative inputs | NoManagedExceptionTests (20+ negative scenarios) | ✓ PASS |
+| AC-9 | No managed exception on negative inputs | 서로 다른 거부 경로 18개(GUI-C-209 M2) *(2026-10-03 정정, 원문 "NoManagedExceptionTests (20+ negative scenarios)", #249)* | ✓ PASS |
 | AC-10 | Alert queue edge cases | AlertTests (empty queue, clear_alerts idempotent) | ✓ PASS |
 | AC-11 | Log subsystem bounds | LoggingTests (level ∈ [0,5], file I/O) | ✓ PASS |
 | AC-12 | Performance gates | Smoke < 30s, Full < 2min | ✓ PASS |
-| AC-13 | Optional P1A tests skip cleanly | PreprocessOptionalTests (Skip when DLL absent) | ✓ READY (P1A pending) |
+| AC-13 | Optional P1A tests skip cleanly | PreprocessOptionalTests (Skip when DLL absent) | runs: CI stages xpe_preprocess.dll, 9 cases *(2026-10-03 정정, 원문 "✓ READY (P1A pending)", #249)* |
 | AC-14 | IEC 62304 Class B trace | Resources/requirement-matrix.json (planned) | ✓ READY |
 | AC-15 | DoD: all artifacts + MX tags | spec.md, progress.md, README section | ✓ READY |
 
@@ -640,7 +694,7 @@ CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 
 | XPE-GUI-DISP-INT-001 v2.0 | ✓ Upgraded | DisplayNativeWrapper 구현 | Post Lane SPEC-XPE-P1B-DISP 완료 후 implement |
 | XPE-GUI-MENU-001 v1.1 | ✓ Upgraded | Pipeline command 활성화 | Phase별 `EnabledCondition` 코드 반영 필요 |
 | SHA-GUI-001 v1.0 | ✓ Authored | 10 GUI hazards 추적 | HAZ-GUI-* control 구현 검증 필요 |
-| RTM-GUI-001 v1.0 | ✓ Authored | 53 REQ trace | optional REQ-060~065 activation 대기 |
+| RTM-GUI-001 v1.0 | ✓ Authored | 36 REQ trace (2026-10-03 정정, 원문 "53", #249) | optional REQ-060~065 activation 대기 |
 
 ### 13.2 Phase 1b 진입 Blockers
 
@@ -659,7 +713,7 @@ CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 
 
 ### 13.4 Cross-Document Sync Check (2026-04-18)
 
-- SPEC-XPE-GUI-IT §4 Requirements (REQ-GUI-IT-*) ↔ RTM-GUI-001 §3: ✓ 39 traced
+- SPEC-XPE-GUI-IT §4 Requirements (REQ-GUI-IT-*) ↔ RTM-GUI-001 §3: 36 defined; RTM rows 032..034 have no definition here (2026-10-03 정정, 원문 "✓ 39 traced", #249)
 - SPEC-XPE-GUI-IT §10 AC ↔ SHA-GUI-001 §5.1: ✓ HAZ-GUI-001/002/006/008 mapped
 - ARCH-001 §10 File Organization ↔ `clients/ImageProcTest/`: ✓ 기존 구조와 일치
 - MENU-001 §8 Activation Matrix ↔ DISP-INT-001 v2.0 §4.2: ✓ Phase 1b Pipeline commands 일치
@@ -690,4 +744,4 @@ CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 
 
 ---
 
-*Document End — SPEC-XPE-GUI-IT v1.2.0*
+*Document End — SPEC-XPE-GUI-IT v1.3.1*

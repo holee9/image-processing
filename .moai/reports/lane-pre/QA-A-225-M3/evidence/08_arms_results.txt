@@ -1,0 +1,8 @@
+d1_cost_reads_the_clamped_replica      -> 1 red: GhostOracleDerive.TheDerivationIsDeterministicValidAndMeetsItsOwnConstraint
+d2_replica_does_not_clamp              -> 1 red: GhostOracleDerive.TheReplicaOfTierOneMatchesTheRealModule
+d3_derivation_not_seeded               -> 1 red: GhostOracleDerive.TheDerivationIsDeterministicValidAndMeetsItsOwnConstraint
+d4_no_retention_penalty                -> 1 red: GhostOracleDerive.TheDerivationIsDeterministicValidAndMeetsItsOwnConstraint
+d5_clamped_share_counts_ones           -> 1 red: GhostOracleDerive.ANegativeNoisyRemovalIsTheRectifiedDarkReferenceNotTheLag
+d6_dark_cor_is_dark_raw                -> 1 red: GhostOracleDerive.ANegativeNoisyRemovalIsTheRectifiedDarkReferenceNotTheLag
+d7_residual_uses_the_raw_dark          -> 2 red: GhostOracle.TheControlsGiveTheAnswersTheyMust, GhostOracleDerive.ANegativeNoisyRemovalIsTheRectifiedDarkReferenceNotTheLag
+p1_module_tier1_stops_clamping         -> 2 red: GhostOracleDerive.ANegativeNoisyRemovalIsTheRectifiedDarkReferenceNotTheLag, GhostOracleDerive.TheReplicaOfTierOneMatchesTheRealModule

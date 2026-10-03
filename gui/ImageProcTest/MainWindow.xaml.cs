@@ -866,7 +866,7 @@ public partial class MainWindow : System.Windows.Window
     private void AboutBuildInfoMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
         System.Windows.MessageBox.Show(
-            $"ImageProcTest GUI-S0{Environment.NewLine}Backend: {(DataContext as MainWindowViewModel)?.RuntimeInfo.Version ?? "unknown"}{Environment.NewLine}Help bundle: packaged offline HTML",
+            $"ImageProcTest GUI-S0{Environment.NewLine}{Services.BuildIdentity.Current.Describe()}{Environment.NewLine}Backend: {(DataContext as MainWindowViewModel)?.RuntimeInfo.Version ?? "unknown"}{Environment.NewLine}Help bundle: packaged offline HTML",
             "About ImageProcTest",
             System.Windows.MessageBoxButton.OK,
             System.Windows.MessageBoxImage.Information);

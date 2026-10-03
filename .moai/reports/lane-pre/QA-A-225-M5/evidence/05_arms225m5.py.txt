@@ -1,0 +1,45 @@
+"""QA-A-225 M5: damage the metric one way at a time (harness header), run GhostOracle*, record exit code and red tests."""
+import subprocess, sys, shutil, os, re
+R = 'D:/workspace-github/xpe-pre/'
+S = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5/scratchpad/'
+H = R + 'modules/preprocess/tests/ghost_oracle_harness.h'
+keep = S + 'keep225m5_harness.h'
+if not os.path.exists(keep):
+    shutil.copy(H, keep)
+
+ARMS = {
+    'm1_res_back_to_corrected_dark': ('b.res = 100.0 * std::fabs(meanOf(c[i]) - darkRaw)', 'b.res = 100.0 * std::fabs(meanOf(c[i]) - darkCor)'),
+    'm2_corrected_column_uses_uncorrected_dark': ('b.resCorDark = 100.0 * std::fabs(meanOf(c[i]) - darkCor)', 'b.resCorDark = 100.0 * std::fabs(meanOf(c[i]) - darkRaw)'),
+    'm3_clamped_share_always_zero': ('if (v == 0.0f) ++zeros;', 'if (v == 12345.0f) ++zeros;'),
+    'm4_dark_raw_taken_from_corrected': ('darkRaw += meanOf(y[i]); darkCor += meanOf(c[i]);', 'darkRaw += meanOf(c[i]); darkCor += meanOf(c[i]);'),
+    'm5_removal_not_normalised_by_raw': ('b.removal = 100.0 * (b.raw - b.res) / std::max(b.raw, kEps);', 'b.removal = 100.0 * (b.raw - b.res);'),
+}
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', S + 'buildall.bat'], capture_output=True, text=True)
+    return 'BUILD_EXIT=0' in r.stdout, r.stdout
+
+
+def tests():
+    r = subprocess.run([R + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe', '--gtest_filter=GhostOracle*'], cwd=R + 'modules/preprocess', capture_output=True, text=True)
+    return sorted(set(re.findall(r'^\[  FAILED  \] ([A-Za-z]\S+)', r.stdout, re.M))), r.returncode
+
+
+for name in sys.argv[1:]:
+    old, new = ARMS[name]
+    shutil.copy(keep, H)
+    src = open(H, 'rb').read().decode('utf-8')
+    crlf = '\r\n' in src
+    s = src.replace('\r\n', '\n')
+    if s.count(old) != 1:
+        print(name, 'NOT FOUND / not unique', s.count(old)); continue
+    open(H, 'wb').write((s.replace(old, new).replace('\n', '\r\n') if crlf else s.replace(old, new)).encode('utf-8'))
+    ok, out = build()
+    if not ok:
+        print(name, 'BUILD FAILED'); print(out[-700:])
+    else:
+        failed, rc = tests()
+        died = rc not in (0, 1) or (rc != 0 and not failed)
+        print('%-44s exit=%d -> %d red%s: %s' % (name, rc, len(failed), ' [PROCESS DIED]' if died else '', ', '.join(failed) if failed else 'NONE (arm did not fire)'))
+    shutil.copy(keep, H)

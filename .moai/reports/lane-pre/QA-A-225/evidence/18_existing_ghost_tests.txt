@@ -1,0 +1,51 @@
+== ghost test names
+test_ghost_tiers.cpp:60:TEST_F ( Tier2FirstFrameIsUnchanged) {
+test_ghost_tiers.cpp:72:TEST_F ( Tier2SecondFrameIsReducedByHistory) {
+test_ghost_tiers.cpp:90:TEST_F ( Tier2ExposureWeightScalesWithSignal) {
+test_ghost_tiers.cpp:117:TEST_F ( Tier3RunsWithSpatialContext) {
+test_ghost_tiers.cpp:137:TEST_F ( Tier3SkipsSpatialContextOnTinyImage) {
+test_ghost_tiers.cpp:148:TEST_F ( Tier3BetaStrengthensSignalDependence) {
+test_ghost_tiers.cpp:174:TEST_F ( EachTierRejectsNonFiniteInput) {
+test_ghost_tiers.cpp:193:TEST_F ( OutOfRangeTierFallsBackToTierOne) {
+test_ghost_tiers.cpp:210:TEST_F ( NonIncreasingTimestampUsesGuardedDelta) {
+test_ghost_tiers.cpp:226:TEST_F ( Alpha1OverrideChangesTheCorrection) {
+test_ghost_correct.cpp:47:TEST_F ( CreateSucceeds) {
+test_ghost_correct.cpp:53:TEST_F ( ZeroWidthReturnsError) {
+test_ghost_correct.cpp:57:TEST_F ( ZeroHeightReturnsError) {
+test_ghost_correct.cpp:61:TEST_F ( NullHandleOutReturnsError) {
+test_ghost_correct.cpp:66:TEST_F ( ResetSucceeds) {
+test_ghost_correct.cpp:71:TEST_F ( ResetNullHandleReturnsError) {
+test_ghost_correct.cpp:76:TEST_F ( DestroyNullIsNoOp) {
+test_ghost_correct.cpp:81:TEST_F ( CorrectSucceedsOnValidHandle) {
+test_ghost_correct.cpp:87:TEST_F ( CorrectNullHandleReturnsError) {
+test_ghost_correct.cpp:92:TEST_F ( CorrectDimensionMismatchReturnsError) {
+test_ghost_correct.cpp:100:TEST_F ( RepeatedFramesApplyHistoryCorrection) {
+test_ghost_tier3_orientation.cpp:123:TEST_F ( AFrameFlippedProcessedAndFlippedBackComesOutAsTheUnflippedOne) {
+test_ghost_tier3_orientation.cpp:138:TEST_F ( TheOutputIsTheTierThreeFormulaWithTheNeighboursReadFromTheIncomingFrame) {
+test_ghost_tier3_orientation.cpp:148:TEST_F ( TiersOneAndTwoWereAlwaysDirectionIndependentAndStillAre) {
+
+== how do they judge correctness? (assertion shapes in test_ghost_tiers.cpp)
+39:        ASSERT_EQ(XPE_OK, xpe_ghost_create(w, h, config, &handle));
+40:        ASSERT_NE(nullptr, handle);
+65:    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &f.buf, &meta));
+67:        EXPECT_FLOAT_EQ(1000.0f, v) << "no history yet, so nothing to subtract";
+77:    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &first.buf, &meta));
+81:    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &second.buf, &meta));
+83:    EXPECT_LT(second.pixels[0], 1000.0f)
+85:    EXPECT_GE(second.pixels[0], 0.0f) << "output is clamped at zero";
+95:        EXPECT_EQ(XPE_OK, xpe_ghost_create(8, 8, "{\"tier\":2}", &h));
+98:        EXPECT_EQ(XPE_OK, xpe_ghost_correct(h, &a.buf, &m));
+101:        EXPECT_EQ(XPE_OK, xpe_ghost_correct(h, &b.buf, &m));
+110:    EXPECT_GT(brightSubtraction / 20000.0f, dimSubtraction / 1000.0f)
+122:    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &first.buf, &meta));
+126:    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &second.buf, &meta));
+129:        EXPECT_TRUE(std::isfinite(v));
+130:        EXPECT_GE(v, 0.0f);
+131:        EXPECT_LE(v, 1000.0f);
+142:    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &f.buf, &meta));
+143:    for (float v : f.pixels) EXPECT_FLOAT_EQ(500.0f, v);
+154:        EXPECT_EQ(XPE_OK, xpe_ghost_create(8, 8, config, &h));
+157:        EXPECT_EQ(XPE_OK, xpe_ghost_correct(h, &a.buf, &m));
+160:        EXPECT_EQ(XPE_OK, xpe_ghost_correct(h, &b.buf, &m));
+168:    ASSERT_GT(small, 0.0f) << "guard: comparing corrections, not two zero clamps";
+169:    EXPECT_LT(large, small) << "a larger nlcscBeta subtracts more";

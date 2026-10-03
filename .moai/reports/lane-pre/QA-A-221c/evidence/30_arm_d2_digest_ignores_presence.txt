@@ -1,0 +1,6 @@
+ARM d2_digest_ignores_presence
+file tests/test_oom_injection.cpp
+built=True
+[  PASSED  ] 2 tests.
+which cases:
+

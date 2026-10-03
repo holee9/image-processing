@@ -722,6 +722,69 @@ jobs:
           --logger "trx;LogFileName=integration-tests.trx"
           --results-directory build/dotnet-test-results
 
+      # GUI-C-209 M3 (#249, AC-12). SPEC-XPE-GUI-IT section 7 bounds three things in time: Category=Smoke < 30 s, the full run < 2 min,
+      # a single test < 5 s (and the 1000-cycle leak test, Category=Safety, < 90 s). Nothing measured any of them: the step above runs the whole
+      # suite with no filter, so Smoke was never selected on its own and no duration was ever compared with a limit. The SPEC recommends x1.5
+      # headroom on CI, applied here. A run that selects fewer tests than expected is a failure, not a fast pass (a filter that matches
+      # nothing finishes instantly). Measured locally on the reference box: full 11.6 s, Smoke 19 tests 2 s, slowest test 2.7 s.
+      - name: Assert the SPEC time gates (AC-12)
+        shell: pwsh
+        # Enforced from 2026-10-03 after reading the first runner output (483e8fd2, run 37095895181 dotnet-tests):
+        # full run 14.2 s of 180, slowest test 2.68 s of 7.5, Smoke 19 tests 1.3 s of 45, Safety 10 tests 1.3 s of 135.
+        env:
+          AC12_ENFORCE: '1'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $proj = 'clients/ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj'
+          $trxPath = if ($env:AC12_TRX) { $env:AC12_TRX } else { 'build/dotnet-test-results/integration-tests.trx' }
+          # SPEC-XPE-GUI-IT section 7 limits x1.5 (the SPEC recommends x1.5 headroom on CI).
+          function Limit($name, $spec) { $v = [Environment]::GetEnvironmentVariable($name); if ($v) { [double]$v } else { $spec * 1.5 } }
+          $smokeLimit  = Limit 'AC12_SMOKE_LIMIT_S'  30
+          $fullLimit   = Limit 'AC12_FULL_LIMIT_S'   120
+          $testLimit   = Limit 'AC12_TEST_LIMIT_S'   5
+          $safetyLimit = Limit 'AC12_SAFETY_LIMIT_S' 90
+          $minSmoke    = if ($env:AC12_MIN_SMOKE) { [int]$env:AC12_MIN_SMOKE } else { 10 }
+          # GUI-C-216: a run that selected only one of the ten Safety tests used to pass this gate (minimum was 1).
+          $minSafety   = if ($env:AC12_MIN_SAFETY) { [int]$env:AC12_MIN_SAFETY } else { 10 }
+          $bad = @()
+
+          # Full Functional: the whole run just made by the previous step (trx start..finish), and the slowest single test.
+          [xml]$doc = Get-Content -LiteralPath $trxPath -Raw
+          $times = $doc.TestRun.Times
+          $full = ([datetime]$times.finish - [datetime]$times.start).TotalSeconds
+          $results = @($doc.TestRun.Results.UnitTestResult)
+          $slow = $results | ForEach-Object { [pscustomobject]@{ Name = $_.testName; Seconds = [timespan]::Parse($_.duration).TotalSeconds } } | Sort-Object Seconds -Descending | Select-Object -First 1
+          Write-Host ("full run: {0:N1} s over {1} result(s) (limit {2:N0} s); slowest test {3:N2} s: {4}" -f $full, $results.Count, $fullLimit, $slow.Seconds, $slow.Name)
+          if ($results.Count -eq 0) { $bad += 'the trx holds no results' }
+          if ($full -gt $fullLimit) { $bad += ("full run {0:N1} s > {1:N0} s" -f $full, $fullLimit) }
+          if ($slow.Seconds -gt $testLimit) { $bad += ("slowest test {0:N2} s > {1:N1} s: {2}" -f $slow.Seconds, $testLimit, $slow.Name) }
+
+          # Smoke and Safety are the categories the SPEC bounds; the trx carries no categories, so each is run on its own, wall-clock
+          # from process start (what the SPEC says it measures), and a run that selected too few tests is a failure, not a fast pass.
+          foreach ($c in @(@{ Cat = 'Smoke'; Limit = $smokeLimit; Min = $minSmoke }, @{ Cat = 'Safety'; Limit = $safetyLimit; Min = $minSafety })) {
+            $sw = [System.Diagnostics.Stopwatch]::StartNew()
+            $ErrorActionPreference = 'Continue'   # a native command's stderr must not become a terminating error
+            $out = dotnet test $proj -c Debug --no-build --filter "Category=$($c.Cat)" 2>&1 | Out-String
+            $sw.Stop()
+            $ErrorActionPreference = 'Stop'
+            # The summary line is 'Passed!  - Failed: 0, Passed: N, Skipped: 0, Total: N, ...' in every locale but with translated words; the four counts are positional (failed, passed, skipped, total).
+            $m = [regex]::Match($out, '(?m)^\S+!\s+-\s+\S+:\s+(\d+),\s+\S+:\s+(\d+),\s+\S+:\s+(\d+),\s+\S+:\s+(\d+)')
+            if (-not $m.Success) { $bad += ("Category={0}: no test summary line:`n{1}" -f $c.Cat, $out); continue }
+            if ([int]$m.Groups[1].Value -ne 0 -or [int]$m.Groups[3].Value -ne 0) { $bad += ("Category={0}: {1} failed, {2} skipped" -f $c.Cat, $m.Groups[1].Value, $m.Groups[3].Value) }
+            $total = [int]$m.Groups[4].Value
+            Write-Host ("Category={0}: {1} test(s), {2:N1} s wall-clock (limit {3:N0} s, at least {4} test(s))" -f $c.Cat, $total, $sw.Elapsed.TotalSeconds, $c.Limit, $c.Min)
+            if ($total -lt $c.Min) { $bad += ("Category={0} selected {1} test(s), expected at least {2}" -f $c.Cat, $total, $c.Min) }
+            if ($sw.Elapsed.TotalSeconds -gt $c.Limit) { $bad += ("Category={0} {1:N1} s > {2:N0} s" -f $c.Cat, $sw.Elapsed.TotalSeconds, $c.Limit) }
+          }
+
+          # Measure-first (lead, 2026-10-03): the limits above were derived on a local box; the runner's times are not yet known.
+          # Until the first CI runs have been read and the limits confirmed, an exceeded limit is reported as a warning.
+          # Set AC12_ENFORCE=1 (job env) to make it fail the job.
+          if ($bad.Count -gt 0) {
+            $msg = "AC-12 time gates exceeded:`n" + ($bad -join "`n")
+            if ($env:AC12_ENFORCE -eq '1') { Write-Error $msg; exit 1 } else { Write-Host "::warning::$($msg -replace "`n", ' | ')" }
+          }
+
       # GUI-C-196 M3b. These tests are [SkippableFact]: without their DLLs they
       # end NotExecuted and the run is still green. Here a skip is a failure,
       # and so is finding fewer results than expected (zero rows would otherwise
@@ -837,9 +900,12 @@ jobs:
     # so no native DLLs are needed; the Native variant follows GUI-C-26
     # (--automation-backend). A failure here is one red job, not a gate on
     # the native lanes.
+    # 15 -> 30 (2026-10-03): the Mock suite took 14m39s on dbade001 and was cut at 15m on e8db144c with tests
+    # still running (xUnit 12:56 elapsed, no hang - the last lines are ordinary skips). The suite grew, the
+    # limit did not; a cut is an absence of evidence, not a red.
     needs: [detect-lane]
     runs-on: windows-2025
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -953,9 +1019,16 @@ jobs:
     # 1.5x in a week. GUI-C-164 is dispatched to measure per-scenario duration
     # so the next budget number is derived rather than guessed.
     #
-    # 30 matches the peer jobs (preprocess-tests, ai-onnx, dotnet-tests) and
-    # restores roughly 50% headroom over the last observed 20 min.
-    timeout-minutes: 30
+    # 30 matched the peer jobs (preprocess-tests, ai-onnx, dotnet-tests) and
+    # restored roughly 50% headroom over the then-observed 20 min.
+    #
+    # Raised to 45 (2026-10-03): at 090532a6 the job took 24.7 min (headroom
+    # already down to ~18%); at e8e14166 the same 148 scenarios summed 1499 s
+    # against 1166 s (+29%) and the job was cancelled at 30 min with every
+    # finished scenario passing. The rise is spread across most scenarios (one
+    # outlier: A3 filtered-list 34 -> 125 s), which reads as runner variance
+    # plus content growth, not a hang. 45 restores ~80% headroom over 24.7 min.
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -968,6 +1041,13 @@ jobs:
       - name: Build gui app
         shell: pwsh
         run: dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug
+
+      # GUI-C-212 (#249): LegacyPreprocessReadinessScenarios launch the legacy diagnostic app (clients/ImageProcTest) and read its Diagnostics, Calibration and
+      # Evaluation tabs through UIA. This job built only the gui app, so those scenarios would SKIP here ("ImageProcTest.exe was not found") and the unexplained-skip
+      # gate below would fail the job - which is the intended answer to a staging fault, so the app is built here rather than the skip being allow-listed.
+      - name: Build the legacy diagnostic app
+        shell: pwsh
+        run: dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug
 
       # A04/A05/A06 drive the two console runners THROUGH the app and assert it
       # reports their verdict. This job built only the app, so all three landed
@@ -1095,6 +1175,19 @@ jobs:
           --logger "console;verbosity=detailed"
           --results-directory build/e2e-native-results
 
+      # GUI-C-218: a test that failed while launching an app could leave that app running, and an app started with
+      # UseShellExecute=false inherits this step's output pipe - dotnet test then waits on the pipe until the job limit.
+      # The test-side leak is fixed (LaunchOrSkip is exception-safe); this step is the job-side backstop, and it
+      # reports what it had to kill so a leak is visible rather than silently cleaned up.
+      - name: Kill leftover app processes (backstop, reports what it found)
+        if: always()
+        shell: pwsh
+        run: |
+          $left = @(Get-Process -Name 'ImageProcTest*', 'xpe_ai_worker' -ErrorAction SilentlyContinue)
+          if ($left.Count -eq 0) { Write-Host 'no leftover app processes'; exit 0 }
+          foreach ($p in $left) { Write-Host ("::warning::leftover process {0} (pid {1}) after the E2E step - a test did not close it" -f $p.ProcessName, $p.Id) }
+          $left | Stop-Process -Force -ErrorAction SilentlyContinue
+
       # GUI-C-37: when the XCal generator is absent the Native W-02 scenario SKIPs rather
       # than failing (so an unmeasured run is not reported as "measured fine"). The
       # generator is part of xpe-ci-preprocess-binaries staged above, so here a skip is
@@ -1148,8 +1241,7 @@ jobs:
           # Each entry: issue number -> why this skip is understood. Adding a row is a
           # deliberate act that shows up in the run summary.
           $allowed = @{
-            '170' = 'window re-acquisition PropertyNotSupportedException, ~7% per launch (UIA code 30011, not an issue number)'
-          }
+            '170' = 'window re-acquisition PropertyNotSupportedException, ~7% per launch (UIA code 30011, not an issue number)'          }
           $trx = Get-ChildItem build/e2e-native-results -Filter *.trx -Recurse | Select-Object -First 1
           if (-not $trx) { Write-Error 'no trx produced'; exit 1 }
           [xml]$x = Get-Content $trx.FullName

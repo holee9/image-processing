@@ -1,0 +1,62 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 9f9e6052..12ae48a5 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -722,6 +722,57 @@ jobs:
+           --logger "trx;LogFileName=integration-tests.trx"
+           --results-directory build/dotnet-test-results
+
++      # GUI-C-209 M3 (#249, AC-12). SPEC-XPE-GUI-IT section 7 bounds three things in time: Category=Smoke < 30 s, the full run < 2 min,
++      # a single test < 5 s (and the 1000-cycle leak test, Category=Safety, < 90 s). Nothing measured any of them: the step above runs the whole
++      # suite with no filter, so Smoke was never selected on its own and no duration was ever compared with a limit. The SPEC recommends x1.5
++      # headroom on CI, applied here. A run that selects fewer tests than expected is a failure, not a fast pass (a filter that matches
++      # nothing finishes instantly). Measured locally on the reference box: full 11.6 s, Smoke 19 tests 2 s, slowest test 2.7 s.
++      - name: Assert the SPEC time gates (AC-12)
++        shell: pwsh
++        run: |
++          $ErrorActionPreference = 'Stop'
++          $proj = 'clients/ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj'
++          $trxPath = if ($env:AC12_TRX) { $env:AC12_TRX } else { 'build/dotnet-test-results/integration-tests.trx' }
++          # SPEC-XPE-GUI-IT section 7 limits x1.5 (the SPEC recommends x1.5 headroom on CI).
++          function Limit($name, $spec) { $v = [Environment]::GetEnvironmentVariable($name); if ($v) { [double]$v } else { $spec * 1.5 } }
++          $smokeLimit  = Limit 'AC12_SMOKE_LIMIT_S'  30
++          $fullLimit   = Limit 'AC12_FULL_LIMIT_S'   120
++          $testLimit   = Limit 'AC12_TEST_LIMIT_S'   5
++          $safetyLimit = Limit 'AC12_SAFETY_LIMIT_S' 90
++          $minSmoke    = if ($env:AC12_MIN_SMOKE) { [int]$env:AC12_MIN_SMOKE } else { 10 }
++          $bad = @()
++
++          # Full Functional: the whole run just made by the previous step (trx start..finish), and the slowest single test.
++          [xml]$doc = Get-Content -LiteralPath $trxPath -Raw
++          $times = $doc.TestRun.Times
++          $full = ([datetime]$times.finish - [datetime]$times.start).TotalSeconds
++          $results = @($doc.TestRun.Results.UnitTestResult)
++          $slow = $results | ForEach-Object { [pscustomobject]@{ Name = $_.testName; Seconds = [timespan]::Parse($_.duration).TotalSeconds } } | Sort-Object Seconds -Descending | Select-Object -First 1
++          Write-Host ("full run: {0:N1} s over {1} result(s) (limit {2:N0} s); slowest test {3:N2} s: {4}" -f $full, $results.Count, $fullLimit, $slow.Seconds, $slow.Name)
++          if ($results.Count -eq 0) { $bad += 'the trx holds no results' }
++          if ($full -gt $fullLimit) { $bad += ("full run {0:N1} s > {1:N0} s" -f $full, $fullLimit) }
++          if ($slow.Seconds -gt $testLimit) { $bad += ("slowest test {0:N2} s > {1:N1} s: {2}" -f $slow.Seconds, $testLimit, $slow.Name) }
++
++          # Smoke and Safety are the categories the SPEC bounds; the trx carries no categories, so each is run on its own, wall-clock
++          # from process start (what the SPEC says it measures), and a run that selected too few tests is a failure, not a fast pass.
++          foreach ($c in @(@{ Cat = 'Smoke'; Limit = $smokeLimit; Min = $minSmoke }, @{ Cat = 'Safety'; Limit = $safetyLimit; Min = 1 })) {
++            $sw = [System.Diagnostics.Stopwatch]::StartNew()
++            $ErrorActionPreference = 'Continue'   # a native command's stderr must not become a terminating error
++            $out = dotnet test $proj -c Debug --no-build --filter "Category=$($c.Cat)" 2>&1 | Out-String
++            $sw.Stop()
++            $ErrorActionPreference = 'Stop'
++            # The summary line is 'Passed!  - Failed: 0, Passed: N, Skipped: 0, Total: N, ...' in every locale but with translated words; the four counts are positional (failed, passed, skipped, total).
++            $m = [regex]::Match($out, '(?m)^\S+!\s+-\s+\S+:\s+(\d+),\s+\S+:\s+(\d+),\s+\S+:\s+(\d+),\s+\S+:\s+(\d+)')
++            if (-not $m.Success) { $bad += ("Category={0}: no test summary line:`n{1}" -f $c.Cat, $out); continue }
++            if ([int]$m.Groups[1].Value -ne 0 -or [int]$m.Groups[3].Value -ne 0) { $bad += ("Category={0}: {1} failed, {2} skipped" -f $c.Cat, $m.Groups[1].Value, $m.Groups[3].Value) }
++            $total = [int]$m.Groups[4].Value
++            Write-Host ("Category={0}: {1} test(s), {2:N1} s wall-clock (limit {3:N0} s, at least {4} test(s))" -f $c.Cat, $total, $sw.Elapsed.TotalSeconds, $c.Limit, $c.Min)
++            if ($total -lt $c.Min) { $bad += ("Category={0} selected {1} test(s), expected at least {2}" -f $c.Cat, $total, $c.Min) }
++            if ($sw.Elapsed.TotalSeconds -gt $c.Limit) { $bad += ("Category={0} {1:N1} s > {2:N0} s" -f $c.Cat, $sw.Elapsed.TotalSeconds, $c.Limit) }
++          }
++
++          if ($bad.Count -gt 0) { Write-Error ("AC-12 time gates failed:`n" + ($bad -join "`n")); exit 1 }
++
+       # GUI-C-196 M3b. These tests are [SkippableFact]: without their DLLs they
+       # end NotExecuted and the run is still green. Here a skip is a failure,
+       # and so is finding fewer results than expected (zero rows would otherwise

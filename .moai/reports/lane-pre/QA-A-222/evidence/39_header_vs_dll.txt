@@ -1,0 +1,4 @@
+main header XPE_API decl names (all modules' preprocess header): 48 | DLL C exports: 48
+in DLL not in main header: []
+in main header not in DLL: []
+control: xpe_defect_correct in both: True

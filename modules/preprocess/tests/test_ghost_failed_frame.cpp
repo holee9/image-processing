@@ -14,6 +14,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "ghost_stable_lag.h"
 
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
@@ -44,16 +45,15 @@ XpeImageBuffer floatBuf(float* d) {
 
 struct GhostState {
     std::vector<float> h1, h2;
-    double lastAcq{0.0};
     double lastMean{0.0};
     double weight{0.0};
     bool operator==(const GhostState& o) const {
-        return h1 == o.h1 && h2 == o.h2 && lastAcq == o.lastAcq && lastMean == o.lastMean && weight == o.weight;
+        return h1 == o.h1 && h2 == o.h2 && lastMean == o.lastMean && weight == o.weight;
     }
 };
 GhostState stateOf(void* handle) {
     auto* gh = static_cast<GhostCorrectorHandle*>(handle);
-    return GhostState{gh->hist1, gh->hist2, gh->lastAcqTimeSec, gh->lastFrameMean, gh->exposureWeight};
+    return GhostState{gh->hist1, gh->hist2, gh->lastFrameMean, gh->exposureWeight};
 }
 
 class GhostFailedFrame : public ::testing::Test {
@@ -68,7 +68,7 @@ protected:
     void newGhost() {
         if (ghost_) xpe_ghost_destroy(ghost_);
         ghost_ = nullptr;
-        ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, kGhostConfig, &ghost_));
+        ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withStableLag(kGhostConfig).c_str(), &ghost_));
     }
     void* ghost_{nullptr};
 };

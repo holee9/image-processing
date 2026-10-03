@@ -1,0 +1,15 @@
+build_exit=0 test_exit=1
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(242): error: Expected: (static_cast<float>(hotGain)) != (afterDefect[d]), actual: 47840 vs 47840
+frame 0: defect pixel 460900 was not corrected
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 47840 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(242): error: Expected: (static_cast<float>(hotGain)) != (afterDefect[d]), actual: 47840 vs 47840
+frame 0: defect pixel 983320 was not corrected
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 47840 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(242): error: Expected: (static_cast<float>(hotGain)) != (afterDefect[d]), actual: 47840 vs 47840
+frame 0: defect pixel 1505740 was not corrected
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 47840 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(242): error: Expected: (static_cast<float>(hotGain)) != (afterDefect[d]), actual: 47840 vs 47840
+frame 0: defect pixel 2028160 was not corrected
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(244): error: Expected: (afterDefect[d]) <= (hi), actual: 47840 vs 1681
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(242): error: Expected: (static_cast<float>(hotGain)) != (afterDefect[d]), actual: 47840 vs 47840
+frame 0: defect pixel 2550580 was not corrected

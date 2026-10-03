@@ -1,0 +1,63 @@
+Note: Google Test filter = VerifyMetricsTest.VerifyGain_*:VerifyMetricsTest.VerifyPipeline_*
+[==========] Running 12 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 12 tests from VerifyMetricsTest
+[ RUN      ] VerifyMetricsTest.VerifyGain_PerfectFlatField
+[       OK ] VerifyMetricsTest.VerifyGain_PerfectFlatField (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_DetectsBadGain
+[       OK ] VerifyMetricsTest.VerifyGain_DetectsBadGain (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_FlatResidualUsesTheArithmeticMean
+[       OK ] VerifyMetricsTest.VerifyGain_FlatResidualUsesTheArithmeticMean (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_ImprovedButStillAboveOnePercentFails
+[       OK ] VerifyMetricsTest.VerifyGain_ImprovedButStillAboveOnePercentFails (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_PerfectCorrectionPasses
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(753): error: Expected: (m.snr_improvement_db) >= (3.0), actual: 0 vs 3
+an infinite improvement is at least the 3 dB line
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(754): error: Value of: m.overall_pass
+  Actual: false
+Expected: true
+a perfectly corrected panel must pass; reported improvement 0 dB
+
+[  FAILED  ] VerifyMetricsTest.VerifyGain_PerfectCorrectionPasses (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_TinyResidualNoiseStillPasses
+[       OK ] VerifyMetricsTest.VerifyGain_TinyResidualNoiseStillPasses (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_NoImprovementStillFails
+[       OK ] VerifyMetricsTest.VerifyGain_NoImprovementStillFails (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyPipeline_PerfectFinalPassesWithAFiniteField
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(779): error: Value of: std::isfinite(m.snr_improvement_db)
+  Actual: false
+Expected: true
+got inf
+
+[  FAILED  ] VerifyMetricsTest.VerifyPipeline_PerfectFinalPassesWithAFiniteField (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyPipeline_TwoFlatFramesReportAFiniteValueAndDoNotPass
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(790): error: Value of: std::isfinite(m.snr_improvement_db)
+  Actual: false
+Expected: true
+got -nan(ind)
+
+[  FAILED  ] VerifyMetricsTest.VerifyPipeline_TwoFlatFramesReportAFiniteValueAndDoNotPass (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyPipeline_FlatRawMadeNoisyReportsAFiniteValueAndFails
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_verify_metrics.cpp(798): error: Value of: std::isfinite(m.snr_improvement_db)
+  Actual: false
+Expected: true
+got -inf
+
+[  FAILED  ] VerifyMetricsTest.VerifyPipeline_FlatRawMadeNoisyReportsAFiniteValueAndFails (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyPipeline_NoImprovementStillFails
+[       OK ] VerifyMetricsTest.VerifyPipeline_NoImprovementStillFails (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyPipeline_SNRImprovement
+[       OK ] VerifyMetricsTest.VerifyPipeline_SNRImprovement (0 ms)
+[----------] 12 tests from VerifyMetricsTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 12 tests from 1 test suite ran. (2 ms total)
+[  PASSED  ] 8 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] VerifyMetricsTest.VerifyGain_PerfectCorrectionPasses
+[  FAILED  ] VerifyMetricsTest.VerifyPipeline_PerfectFinalPassesWithAFiniteField
+[  FAILED  ] VerifyMetricsTest.VerifyPipeline_TwoFlatFramesReportAFiniteValueAndDoNotPass
+[  FAILED  ] VerifyMetricsTest.VerifyPipeline_FlatRawMadeNoisyReportsAFiniteValueAndFails
+
+ 4 FAILED TESTS

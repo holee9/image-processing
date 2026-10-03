@@ -1,8 +1,8 @@
 # SPEC-XPE-P1B-DICOM: DICOM I/O Module
 
 **Document ID**: SPEC-XPE-P1B-DICOM
-**Version**: 1.1.0
-**Date**: 2026-04-21
+**Version**: 1.3.1
+**Date**: 2026-10-03
 **Status**: Released
 **Parent**: SPEC-XPE-MASTER v2.0.0
 **Classification**: IEC 62304 Class B
@@ -19,12 +19,13 @@
 |---------|------|--------|-------------|
 | 1.0.0 | 2026-04-16 | MoAI (manager-spec) | Initial EARS requirements from SPEC-XPE-MASTER v2.0.0 SWI-4 |
 | 1.1.0 | 2026-04-21 | MoAI (manager-spec) | Released — 46 EARS 요구사항 교차검증 완료 (API 10/10 구현, 테스트 35/35 통과). EARS Count 40→46 정정 |
+| 1.2.0 | 2026-10-03 | lead (QA-B-199) | 요구 실태 대조 반영(#251): 결함 후보 C1~C16 해당 요구에 상태 메모 추가(요구 문구는 바꾸지 않음). Exposure 태그·acquisitionTime 단위는 SPEC/코드 중 어느 쪽을 고칠지 결정 대기 |
 
 ---
 
 ## 1. Scope
 
-Phase 1b DICOM I/O implements the complete DICOM file and network communication layer as `xpe_dicom.dll`. This module exports exactly 10 C API functions organized into 4 Software Units (SWUs).
+Phase 1b DICOM I/O implements the complete DICOM file and network communication layer as `xpe_dicom.dll`. This module exports exactly 11 C API functions: 10 organized into 4 Software Units (SWUs), plus `xpe_dicom_version` (REQ-P0-033, added 2026-10-03, QA-B-200 M2a).
 
 ### 1.1 In Scope
 
@@ -123,6 +124,8 @@ xpe_dicom_close(handle) --> free all resources
 
 **REQ-DICOM-003**: IF the file is not a valid DICOM Part 10 file (missing preamble, invalid magic bytes, or corrupted meta-information), THEN the system SHALL return `XPE_ERR_DICOM_INVALID` and set `*outHandle` to NULL.
 
+> **상태 메모 (2026-10-03, QA-B-199, 후보 C3)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 128바이트 서문·`DICM` 매직·meta header 가 모두 없는 데이터셋이 `XPE_OK` 로 열린다. 이 동작을 고정하는 시험이 있고, 헤더 `dicom_api.h` 의 @note 도 스스로 밝힌다.
+
 **REQ-DICOM-004**: The system SHALL support the following Transfer Syntaxes for reading:
 - 1.2.840.10008.1.2.1 (Explicit VR Little Endian)
 - 1.2.840.10008.1.2.4.90 (JPEG 2000 Image Compression Lossless Only)
@@ -164,7 +167,13 @@ xpe_dicom_close(handle) --> free all resources
 - (0018,1152) Exposure (mAs) --> `outMeta->mAs`
 - (0018,1110) Distance Source to Detector (SID) --> `outMeta->SID_mm`
 - (0028,0030) Pixel Spacing --> `outMeta->pixelPitch_mm` (first value)
-- (0008,0032) Acquisition Time --> `outMeta->acquisitionTime` (epoch ms)
+- (0008,0032) Acquisition Time --> `outMeta->acquisitionTime` (seconds since Unix epoch, UTC; 0 = unknown — 단위 정정 2026-10-03 사용자 결정 "문서를 실제에 맞게", #251, QA-B-204 재현, `xpe_types.h` 와 일치)
+
+> **상태 메모 (2026-10-03, QA-B-199, 후보 C1·C2·C15)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251.
+> - C1: 구현은 mAs 를 (0018,1152) Exposure 가 아니라 (0018,9332) ExposureInmAs 로 읽고 쓴다(`DicomReader.cpp`·`DicomWriter.cpp` 의 `DCM_ExposureInmAs`, 2026-10-03 grep 으로 확인). 왕복 시험은 같은 선택을 공유해 통과하지만, 다른 시스템이 만든 (0018,1152) 파일은 mAs 0 으로 읽힌다.
+> - C2: 이 요구는 `acquisitionTime` 을 epoch ms 로 적었지만, 타입 헤더 `xpe_types.h` 와 두 코드 경로는 epoch 초를 쓴다. **해결 (2026-10-03)**: 문구를 초로 정정(사용자 결정). 밀리초 값을 넘기면 오류 없이 날짜가 사라지는(읽으면 0) 위험은 남는다 — 범위 검사는 정하지 않았다.
+> - C15: Patient ID·Study/Series Instance UID·Modality 를 "핸들로 얻을 수 있다" 고 했으나 `getMetadata` 는 이 태그들을 읽지 않고 접근자도 없다.
+> - C1·C2 는 SPEC 을 따라 코드를 고칠지, SPEC 을 코드에 맞출지 결정이 필요하다(#251). 요구 문구는 바꾸지 않았다.
 
 **REQ-DICOM-010**: IF a DICOM tag listed in REQ-DICOM-009 is absent from the dataset, THEN the system SHALL populate the corresponding field with a default value (empty string for char arrays, 0.0f for floats, 0 for integers) and SHALL NOT return an error.
 
@@ -180,6 +189,8 @@ xpe_dicom_close(handle) --> free all resources
 - Pixel data from `img` (XpeImageBuffer)
 - Metadata from `meta` (XpeImageMetadata)
 
+> **상태 메모 (2026-10-03, QA-B-199, 후보 C12·C13)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. C12: Rows/Columns 를 범위 검사 없이 `Uint16` 으로 변환하고 화소 형식을 검증하지 않아, FLOAT32·UINT8 버퍼가 uint16 워드로 쓰인다(REQ-DICOM-016 과 함께). C13: `dataSize == 0` 을 받아들인 뒤 길이 0 인 PixelData 로 써서 `XPE_OK` 를 내고, 읽기는 그 파일을 거부한다.
+
 **REQ-DICOM-014**: The system SHALL generate unique SOP Instance UID and Series Instance UID for each written file using a DICOM-compliant UID generation scheme.
 
 **REQ-DICOM-015**: The system SHALL embed the following DICOM tags from `XpeImageMetadata`:
@@ -189,6 +200,8 @@ xpe_dicom_close(handle) --> free all resources
 - (0018,1110) Distance Source to Detector <-- `meta->SID_mm`
 - (0028,0030) Pixel Spacing <-- `meta->pixelPitch_mm`
 - (0008,0032) Acquisition Time <-- `meta->acquisitionTime`
+
+> **상태 메모 (2026-10-03, QA-B-199, 후보 C1·C2)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 쓰기도 mAs 를 (0018,9332) ExposureInmAs 로 기록하고, Acquisition Time 은 epoch 초로 해석한다(REQ-DICOM-009 의 메모 참조). 어느 쪽을 고칠지는 결정 대기다.
 
 **REQ-DICOM-016**: The system SHALL set Pixel Data attributes (Rows, Columns, Bits Allocated, Bits Stored, High Bit, Pixel Representation, Samples Per Pixel, Photometric Interpretation) correctly based on `img` properties.
 
@@ -213,16 +226,24 @@ xpe_dicom_close(handle) --> free all resources
 
 **REQ-DICOM-024**: The validation SHALL check the following conformance criteria:
 - DICOM Part 10 preamble and magic present
-- Required Type 1 tags for DX IOD present and non-empty (Patient Name, Patient ID, Study Instance UID, Series Instance UID, SOP Instance UID, Modality, Rows, Columns, Bits Allocated, Bits Stored, Pixel Data)
+- Required Type 1 tags for DX IOD present and non-empty (Study Instance UID, Series Instance UID, SOP Instance UID, Modality, Rows, Columns, Bits Allocated, Bits Stored)
+- Pixel Data present unless Pixel Data Provider URL (0028,7FE0) is present (Type 1C, Image Pixel Module). When only the URL is present the file is not reported invalid for missing Pixel Data; because this module cannot read referenced pixel data, the report carries a non-fatal warning (2026-10-03, same standard-alignment decision, #251, Codex #113)
+- Required Type 2 tags present; an empty value is conformant (Patient Name, Patient ID — DICOM PS3.3 Table C.7-1 lists both as Type 2; moved out of the Type 1 list 2026-10-03, user decision "표준대로 허용", #251, Codex #111)
 - UID format correct (dot-separated numeric, max 64 characters)
 - Pixel representation consistent with declared format
+
+> **상태 메모 (2026-10-03, QA-B-199, 후보 C5)**: 처음 메모 — Type 1 태그의 빈 값이 통과했다. **갱신 (2026-10-03, 리더)**: Type 1 의 빈 값 거부는 QA-B-206 M2, Patient Name·ID 의 Type 2 처리는 M2b, Pixel Data 1C 와 빈 UID 중복 보고는 M2c 가 맡는다(Codex #111·#113). 서문·매직 검사는 QA-B-207 의 C3. 화소 표현과 선언 형식의 일관성 검사는 아직 없다.
 
 **REQ-DICOM-025**: The JSON report SHALL contain:
 - `"valid"`: boolean (true if all checks pass)
 - `"errors"`: array of `{"tag": "GGGG,EEEE", "message": "description"}` for failed checks
 - `"warnings"`: array of `{"tag": "GGGG,EEEE", "message": "description"}` for non-critical issues
 
-**REQ-DICOM-026**: IF the file is not a valid DICOM file (cannot be parsed at all), THEN the system SHALL return `XPE_ERR_DICOM_INVALID` and write `{"valid":false,"errors":[{"tag":"","message":"Not a valid DICOM file"}],"warnings":[]}` to the report buffer.
+> **상태 메모 (2026-10-03, QA-B-199, 후보 C6)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 잘못된 UID 가 `warnings` 와 `errors` 양쪽에 들어가고 `valid=false` 가 된다 — 비치명 문제가 치명 오류로 올라간다(`DicomValidator.cpp`).
+
+**REQ-DICOM-026**: IF the file is not a valid DICOM file (cannot be parsed at all), THEN the system SHALL return `XPE_ERR_DICOM_INVALID` and write a report with `"valid":false`, an empty `warnings` array, and one `errors` entry whose `tag` is `"0008,0000"` and whose `message` begins with `"File cannot be parsed as DICOM: "` followed by the parser's status text (문구 정정: 2026-10-03 사용자 결정 "문서를 실제에 맞게", #251, QA-B-204 재현 — 뒤의 상태 문구는 DCMTK 버전에 따라 바뀔 수 있으므로 접두만 계약이다).
+
+> **상태 메모 (2026-10-03, QA-B-199, 후보 C4)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 구현은 이 보고 대신 `tag "0008,0000"`, `"File cannot be parsed as DICOM: …"` 를 낸다(`DicomValidator.cpp`). 시험은 `errors` 가 비어 있지 않음만 확인한다.
 
 **REQ-DICOM-027**: IF `reportBufLen` is insufficient to hold the complete JSON report, THEN the system SHALL return `XPE_ERR_BUFFER_TOO_SMALL` and write the required buffer size to the first 4 bytes of `outReportJson` (as uint32_t).
 
@@ -232,11 +253,17 @@ xpe_dicom_close(handle) --> free all resources
 
 **REQ-DICOM-029**: WHEN `xpe_dicom_cstore` is called, the system SHALL establish a DICOM ACSE association with the remote AE at `host:port`, negotiate the appropriate Transfer Syntax, and send the DICOM file at `filePath` via C-STORE DIMSE message.
 
+> **상태 메모 (2026-10-03, QA-B-199, 후보 C11)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 전송 구문을 파일의 구문과 무관하게 고정 제안한다(Explicit LE, J2K Lossless, Implicit LE). JPEG Lossless 파일은 트랜스코딩 없이 보내진다(`DicomNetworkSCU.cpp`). 모의 SCP 는 받은 데이터셋을 보지 않고 버린다.
+
 **REQ-DICOM-030**: The system SHALL use the calling AE title `aet` for association negotiation. The called AE title SHALL default to "ANY-SCP" unless embedded in the host string (format: "CALLED_AE@host").
 
 **REQ-DICOM-031**: IF the association cannot be established within `timeoutMs` milliseconds, THEN the system SHALL return `XPE_ERR_NETWORK_FAILED`.
 
+> **상태 메모 (2026-10-03, QA-B-199, 후보 C10)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 구현은 `timeoutMs / 1000` 으로 초를 만들어 1000 ms 미만이 0 초가 되고, `timeoutMs == 0` 이면 DCMTK 기본값이 남는다. "Timeout" 시험은 리스너 없는 포트의 연결 거부를 보는 것이라 실제 타임아웃이 아니다.
+
 **REQ-DICOM-032**: IF the C-STORE operation fails (remote rejection, DIMSE failure, or network error), THEN the system SHALL return `XPE_ERR_NETWORK_FAILED` and post a WARNING alert with the failure reason string.
+
+> **상태 메모 (2026-10-03, QA-B-199, 후보 C7)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. SCU 는 실패 시 `spdlog::warn` 만 하고 `xpe_alert_push` 를 한 번도 호출하지 않는다(`DicomNetworkSCU.cpp` 에 호출 0건, 2026-10-03 grep; 같은 검색이 `DicomReader.cpp` 의 호출은 찾아냈다). 모의 SCP 가 실패를 만들 수 없어 이 경로를 지나는 시험도 없다.
 
 **REQ-DICOM-033**: WHEN `xpe_dicom_cstore` completes successfully (C-STORE RSP status 0x0000 = Success), the system SHALL return `XPE_OK`.
 
@@ -249,25 +276,35 @@ xpe_dicom_close(handle) --> free all resources
 - `"Modality"` (0008,0060)
 - `"ScheduledProcedureStepStartDate"` (0040,0002)
 
+> **상태 메모 (2026-10-03, QA-B-199, 후보 C8)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. `ScheduledStationAETitle`·`ScheduledProcedureStepStartDate` 키가 무시되고(헤더 `dicom_api.h` 도 밝힘), Modality 가 Scheduled Procedure Step Sequence (0040,0100) 안이 아니라 최상위에 들어간다. 표준 MWL 질의가 아니다(REQ-DICOM-034 와 함께). 모의 SCP 는 PatientID 로만 맞춘다.
+
 **REQ-DICOM-036**: The system SHALL write C-FIND results as a JSON array to `outJson`, where each element is a JSON object containing the matched DICOM tags as key-value pairs.
 
 **REQ-DICOM-037**: IF no matching worklist entries are found, THEN the system SHALL write `[]` (empty JSON array) to `outJson` and return `XPE_OK`.
 
 **REQ-DICOM-038**: IF the C-FIND operation fails or times out, THEN the system SHALL return `XPE_ERR_NETWORK_FAILED`.
 
+> **상태 메모 (2026-10-03, QA-B-199, 후보 C9)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. `sendFINDRequest` 의 조건값만 보고 최종 C-FIND-RSP 상태(0xA700 같은 실패)를 읽지 않아, 실패한 질의가 `[]` 와 `XPE_OK` 로 돌아온다(`DicomNetworkSCU.cpp`).
+
 **REQ-DICOM-039**: WHEN `xpe_dicom_cancel` is called, the system SHALL signal cancellation to any in-progress C-STORE or C-FIND operation. The cancelled operation SHALL return `XPE_ERR_PROCESSING_FAILED` with a cancel indicator in the alert message.
+
+> **상태 메모 (2026-10-03, QA-B-199, 후보 C7)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 취소 표시를 담을 알림이 코드에 없다(`xpe_alert_push` 호출 0건). 전송 중·C-FIND 교환 중 도착한 취소는 보이지 않고(헤더가 스스로 밝힘), 플래그는 모든 호출 입구에서 지워진다. 진행 중 취소 시험은 무조건 `GTEST_SKIP` 한다.
 
 **REQ-DICOM-040**: The cancellation mechanism SHALL be thread-safe. `xpe_dicom_cancel` MAY be called from a different thread than the one executing the network operation.
 
 ### 3.5 Cross-Cutting Requirements
 
-**REQ-DICOM-041**: All 10 exported functions SHALL use C linkage (`extern "C"`), `__cdecl` calling convention, and blittable types only. All pointer parameters SHALL use basic C types compatible with .NET P/Invoke marshalling.
+**REQ-DICOM-041**: All 11 exported functions (10 until 2026-10-03; `xpe_dicom_version` added per REQ-P0-033, user decision 7, `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md`) SHALL use C linkage (`extern "C"`), `__cdecl` calling convention, and blittable types only. All pointer parameters SHALL use basic C types compatible with .NET P/Invoke marshalling.
 
 **REQ-DICOM-042**: The system SHALL NOT throw C++ exceptions across the DLL ABI boundary. All exceptions from DCMTK or OpenJPEG SHALL be caught internally and converted to `XpeErrorCode` return values.
 
 **REQ-DICOM-043**: Each function SHALL log entry/exit at DEBUG level and error conditions at ERROR level via the logging subsystem in xpe_common.dll.
 
+> **상태 메모 (2026-10-03, QA-B-199, 후보 C16)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 진입만 DEBUG 로 기록하고 종료는 기록하지 않는다. 실패는 대개 `spdlog::warn`(ERROR 아님)이고, 로깅이 xpe_common API 가 아니라 모듈 자체 spdlog 다(`dicom.cpp`).
+
 **REQ-DICOM-044**: The system SHALL NOT leak memory on any code path. DICOM dataset objects, network association objects, and compressed data buffers SHALL be freed on both success and error paths.
+
+> **상태 메모 (2026-10-03, QA-B-199, 후보 C14)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. `reader.open()` 이 예외를 던지면 `new XpeDicomHandle` 로 만든 핸들이 해제되지 않는다(핸들 변수가 catch 범위 밖, `dicom.cpp`). 누수 시험은 실패 경로 일부와 쓰기만 덮는다.
 
 **REQ-DICOM-045**: DicomReader functions (`xpe_dicom_read_image`, `xpe_dicom_get_metadata`) SHALL be reentrant when called with independent handles. Two threads MAY read different DICOM files concurrently.
 
@@ -368,6 +405,9 @@ XPE_API void        xpe_dicom_cancel(void);
 |---------|------|--------|-------------|
 | 1.0.0 | 2026-04-16 | MoAI (manager-spec) | Initial EARS requirements (46 REQs) for Sprint S1-B DICOM module |
 | 1.1.0 | 2026-04-21 | MoAI (manager-spec) | **Released** — 46 EARS 요구사항 교차검증 완료. 10 C API 함수 전량 구현(dicom_api.h ↔ dicom.cpp), 35/35 Google Test 통과, TRUST 5 게이트 통과. Header EARS Count 40→46 정정 |
+| 1.2.0 | 2026-10-03 | lead (QA-B-199) | 결함 후보 C1~C16 상태 메모 추가, 요구 문구 불변 (#251) |
+| 1.3.1 | 2026-10-03 | lead | REQ-DICOM-024: Patient Name·Patient ID 를 Type 1 목록에서 Type 2(존재만 필수)로 — 표준 PS3.3 Table C.7-1, 사용자 결정, #251. 변경 기록 §7 |
+| 1.3.0 | 2026-10-03 | lead | REQ-DICOM-041 함수 수 11, Acquisition Time 단위를 초로(C2), REQ-DICOM-026 파싱 불가 보고를 실제 형식으로(C4) — 사용자 결정, #251. 변경 기록 §5·§6 |
 
 ---
 

@@ -534,7 +534,7 @@ AI inference **shall** enforce a configurable time budget (default 5 s). Exceedi
 |------------|-----------|---------|
 | ONNX Runtime 1.20+ | `XPE_AI_USE_ONNXRUNTIME=ON` | Model inference |
 | spdlog | `XPE_AI_USE_SPDLOG=1` | Structured logging |
-| nlohmann/json | `XPE_AI_USE_NLOHMANN_JSON=1` | Config parsing |
+| nlohmann/json | Always — required (configure fails without it, QA-B-194b) | Config parsing |
 
 ---
 

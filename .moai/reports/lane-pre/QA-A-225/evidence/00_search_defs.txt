@@ -1,0 +1,11 @@
+origin/main f9803071
+== control: DarkBias (expect hits)
+7
+== definitions: GhostRemovalPct / LagResidualPct / GhostResidual (files)
+[GhostRemovalPct] docs/calibration/SRS-CALIB-001_Software_Requirements_Specification.md docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md
+[LagResidualPct] docs/calibration/SRS-CALIB-001_Software_Requirements_Specification.md docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md docs/project/Algorithm-Evaluation-Protocol.md docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md
+[lag residual] .moai/specs/xpe-algorithm-spec-deepsync.md docs/calibration/SAD-CALIB-001_Software_Architecture_Document.md docs/calibration/SRS-CALIB-001_Software_Requirements_Specification.md docs/post-processing/xpe/README.md docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md docs/project/Algorithm-Evaluation-Protocol.md docs/project/XPE-Brainstorming-DeepSync-Execution.md docs/project/XPE-PreProcess-DeepResearch.json docs/project/sprint-plan.md
+[ghost removal] .moai/project/codemaps/data-flow.md docs/calibration/SRS-CALIB-001_Software_Requirements_Specification.md docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md docs/post-processing/xpe/XPE-SRS-001_Software_Requirements_Specification.md docs/post-processing/xpe/xray-postprocessing-prd.md docs/project/xpe-algorithm-spec-deepsync.md
+[GhostResidual]
+[ghost_residual]
+[lag_residual] docs/ghost-correction/IAP-GHOST-001_Image_Acquisition_Protocol.md docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md

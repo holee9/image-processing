@@ -1,15 +1,15 @@
 # SPEC-XPE-P1B-ENH: Phase 1b Basic Enhancement + EI Baseline
 
 **Document ID**: SPEC-XPE-P1B-ENH
-**Version**: 1.0.0
-**Date**: 2026-04-16
+**Version**: 1.3.2
+**Date**: 2026-10-03
 **Status**: Implemented
 **Parent**: SPEC-XPE-MASTER v2.0.0
 **Classification**: IEC 62304 Class B
 **Sprint**: S1-B (xpe_enhance_basic.dll)
 **EARS Requirement Count**: 30
 **SWU Count**: 5
-**API Count**: 7
+**API Count**: 10 (정정 2026-10-03: 옛 값 7 — 처리 함수 7개 + 버전·스레드 함수 3개, 헤더 `XPE_API` 10개. REQ-ENH-CC-001 참조)
 
 ---
 
@@ -19,6 +19,10 @@
 |---------|------|--------|-------------|
 | 1.0.0 | 2026-04-16 | MoAI (manager-spec) | Initial EARS requirements from SPEC-XPE-MASTER v2.0.0 and ALG-SPEC-001 v3.0.0-ds2 |
 | 1.1.0 | 2026-04-16 | MoAI (sync) | Implementation complete — 67/67 tests passing, all 5 SWUs delivered |
+| 1.2.0 | 2026-10-03 | lead (QA-B-199) | 요구 실태 대조 반영(#251): 결함 후보 E1~E9 해당 요구에 상태 메모 추가(요구 문구는 바꾸지 않음), CC-001 의 API 수 불일치 메모, tasks.md 상태 열 정정 |
+| 1.3.2 | 2026-10-03 | lead | REQ-ENH-CC-002 의 비 FLOAT32 반환 코드를 `XPE_ERR_UNSUPPORTED_FORMAT` 으로(코드·헤더에 맞춤, 사용자 결정, #251). 변경 기록 §6 |
+| 1.3.1 | 2026-10-03 | lead | REQ-ENH-021 에 출력 하한 0 추가(사용자 결정 "0에서 자르기", #251). 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md` §5 |
+| 1.3.0 | 2026-10-03 | lead | 사용자 결정(#245 코멘트 묶음 ④ "문서를 실제에 맞게", #251): REQ-ENH-CC-001 과 머리말 API Count 를 7 → 10 으로(헤더 `enhance_basic_api.h` 의 `XPE_API` 10개). §2.2 의 7개 목록은 처리 함수 목록으로 둔다. 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md` |
 
 ---
 
@@ -90,6 +94,8 @@ modules/enhance_basic/
 ### 2.2 DLL Exports
 
 7 extern "C" functions with `XPE_API` macro, `__cdecl` calling convention, blittable types for P/Invoke:
+
+> 메모 (2026-10-03, 사용자 결정 #245 코멘트, #251): 아래는 처리 함수 7개다. 헤더는 여기에 `xpe_enhance_basic_version`, `xpe_enhance_basic_set_max_threads`, `xpe_enhance_basic_get_max_threads` 3개를 더해 `XPE_API` 10개를 수출한다(REQ-ENH-CC-001).
 
 ```c
 XPE_API XpeErrorCode xpe_log_transform(XpeImageBuffer* img, float normFactor);
@@ -267,6 +273,8 @@ target_compile_definitions(xpe_enhance_basic PRIVATE XPE_DLL_EXPORT)
 
 **REQ-ENH-007**: WHEN `xpe_noise_reduce` is called with `params->mode == XPE_NOISE_BILATERAL`, the system SHALL apply bilateral filtering with the specified `sigma_space` and `sigma_range` parameters in-place.
 
+> **상태 메모 (2026-10-03, QA-B-199, 후보 E7)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 구현은 분리형 근사에 반경 상한 15 를 두어, `sigma_space` 가 약 7.5 를 넘으면 지정값이 그대로 반영되지 않는다(`noise_reduce.cpp`, 읽기로 찾은 후보).
+
 **REQ-ENH-008**: WHEN `xpe_noise_reduce` is called with `params->mode == XPE_NOISE_NLM`, the system SHALL apply Non-Local Means denoising with the specified `search_window`, `patch_size`, and `h_param` parameters in-place.
 
 **REQ-ENH-009**: IF `params` is NULL, THEN the system SHALL return `XPE_ERR_INVALID_INPUT` without modifying the image.
@@ -274,6 +282,8 @@ target_compile_definitions(xpe_enhance_basic PRIVATE XPE_DLL_EXPORT)
 **REQ-ENH-010**: IF `sigma_space` or `sigma_range` is non-positive (bilateral mode), THEN the system SHALL return `XPE_ERR_INVALID_INPUT`.
 
 **REQ-ENH-011**: WHEN `xpe_noise_estimate_sigma` is called with a valid float32 image, the system SHALL compute the noise standard deviation via `sigma = 1.4826 * MAD(pixel_values)` and write the result to `outSigma`.
+
+> **상태 메모 (2026-10-03, QA-B-199, 후보 E8)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 구현은 영상 전체가 아니라 중앙 10% ROI 의 MAD 로 추정한다. 해부학 구조가 든 ROI 는 균일하지 않아 과대 추정될 수 있다(SPEC 은 ROI 를 정의하지 않음).
 
 **REQ-ENH-012**: WHILE processing a 3072x3072 float32 image, the system SHALL complete `xpe_noise_reduce` within 100 milliseconds.
 
@@ -288,7 +298,11 @@ target_compile_definitions(xpe_enhance_basic PRIVATE XPE_DLL_EXPORT)
 
 **REQ-ENH-013**: WHEN `xpe_contrast_enhance` is called with valid parameters, the system SHALL apply CLAHE with the specified `clip_limit`, `tile_width`, and `tile_height` in-place.
 
+> **상태 메모 (2026-10-03, QA-B-199, 후보 E6)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 구현은 타일 사이를 보간하지 않고 최근접 타일의 매핑을 쓴다(코드 주석에 의도로 적혀 있음). 평탄 타일은 전역 범위의 0.5 로 매핑된다.
+
 **REQ-ENH-014**: IF `params` is NULL, THEN the system SHALL use default parameters (clip_limit=3.0, tile_width=8, tile_height=8).
+
+> **상태 메모 (2026-10-03, QA-B-199, 후보 E9)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 기본값(8×8)으로는 폭 16 미만 영상이 `XPE_ERR_INVALID_INPUT` 으로 거부된다. 이 요구는 NULL 이면 기본값을 쓴다고만 말한다(REQ-ENH-016 과 함께 볼 것). 기본값 자체를 단언하는 시험도 없다(NULL 호출은 평탄 영상뿐).
 
 **REQ-ENH-015**: IF `clip_limit` is less than 1.0, THEN the system SHALL return `XPE_ERR_INVALID_INPUT`.
 
@@ -296,15 +310,21 @@ target_compile_definitions(xpe_enhance_basic PRIVATE XPE_DLL_EXPORT)
 
 **REQ-ENH-017**: WHILE processing a 3072x3072 float32 image, the system SHALL complete `xpe_contrast_enhance` within 50 milliseconds.
 
+> **상태 메모 (2026-10-03, QA-B-199, 후보 E2)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 예산 시험이 평탄한 500.0 영상을 써서 CLAHE 가 조기 반환(`val_range <= 0`)한다. 실제 작업에서의 50 ms 는 단언된 적이 없다. CI `post-build` 잡은 시간 단언 시험을 필터로 뺀다.
+
 ### 4.4 Edge Enhancement (SWU-2.4 / POST-04)
 
 **REQ-ENH-018**: WHEN `xpe_edge_enhance` is called with valid parameters, the system SHALL apply Unsharp Masking: `output[i] = input[i] + amount * (input[i] - blur(input)[i])` only where `abs(input[i] - blur(input)[i]) >= threshold`.
+
+> **상태 메모 (2026-10-03, QA-B-199, 후보 E1)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 구현은 `|diff| >= threshold` 인 화소에서 결과를 항상 `orig ± amount*threshold` 로 자른다. 그래서 변화량이 diff 에 비례하지 않고 상수가 되며, `threshold = 0` 이면 아무 일도 하지 않는다(`edge_enhance.cpp`, 읽기로 찾은 후보).
 
 **REQ-ENH-019**: IF `params` is NULL, THEN the system SHALL use default parameters (amount=0.5, radius=2.0, threshold=10.0).
 
 **REQ-ENH-020**: IF `amount` is outside [0.0, 5.0] or `radius` is outside [0.5, 10.0] or `threshold` is negative, THEN the system SHALL return `XPE_ERR_INVALID_INPUT`.
 
-**REQ-ENH-021**: The system SHALL NOT introduce clinically misleading halo or ringing artifacts. Pixel overshoot SHALL be clamped to `max(original * 2.0, original + amount * threshold)`.
+**REQ-ENH-021**: The system SHALL NOT introduce clinically misleading halo or ringing artifacts. Pixel overshoot SHALL be clamped to `max(original * 2.0, original + amount * threshold)`. No output pixel SHALL be below 0, whether or not the pixel was sharpened and including `amount = 0` (lower bound added 2026-10-03, user decision, #251).
+
+> **상태 메모 (2026-10-03, QA-B-199, 후보 E1)**: 처음 메모 — 구현의 클램프가 위 상한이 아니라 `orig ± amount*threshold`(양쪽)였다. **갱신 (2026-10-03, 리더)**: 상한은 QA-B-200 이 위 식으로 고쳤고, 하한 0 은 QA-B-201 M3·M3b 와 QA-B-205(`amount = 0` 경로)가 넣었다(Codex #106·#107 검토, main 병합 `79c83e20`). 16비트 소비자 출력은 180가지 경우에서 화소 차이 0(QA-B-205 보고서).
 
 **REQ-ENH-022**: WHILE processing a 3072x3072 float32 image, the system SHALL complete `xpe_edge_enhance` within 20 milliseconds.
 
@@ -342,15 +362,25 @@ target_compile_definitions(xpe_enhance_basic PRIVATE XPE_DLL_EXPORT)
 
 **REQ-ENH-030**: IF `mean_pixel_value` is zero or negative (indicating invalid detector data), THEN the system SHALL return `XPE_ERR_PROCESSING_FAILED` and set `*outEI = 0.0f` and `*outDI = 0.0f`.
 
+> **상태 메모 (2026-10-03, QA-B-199, 후보 E4)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 비유한 화소 검사가 없다. NaN 화소가 있으면 평균이 NaN 이 되고 `mean <= 0` 이 거짓이라, EI/DI 가 NaN 인 채로 `XPE_OK` 가 반환된다(REQ-ENH-023 과 함께 볼 것). 음수 평균 경우를 단언하는 시험도 없다.
+
 ### 4.6 Cross-Cutting Requirements
 
-**REQ-ENH-CC-001**: The system SHALL export all 7 API functions with C linkage (`extern "C"`), `__cdecl` calling convention, and blittable parameter types for .NET P/Invoke compatibility.
+**REQ-ENH-CC-001**: The system SHALL export all 10 API functions with C linkage (`extern "C"`), `__cdecl` calling convention, and blittable parameter types for .NET P/Invoke compatibility.
 
-**REQ-ENH-CC-002**: IF any API function receives a NULL `img` pointer or an image with `format != XPE_PIXEL_FLOAT32`, THEN the system SHALL return `XPE_ERR_INVALID_INPUT`.
+> **상태 메모 (2026-10-03, QA-B-199)**: API 수 불일치 — 이 요구는 7개, 헤더 머리말은 8개, 헤더가 선언한 `XPE_API` 는 10개였다. `__cdecl` 과 blittable 조건을 단언하는 시험은 없다.
+>
+> **정정 (2026-10-03, 사용자 결정 #245 코멘트 묶음 ④ "문서를 실제에 맞게", #251).** 옛 문구 "all 7 API functions" 를 헤더에 맞춰 10 으로 고쳤다. 근거: 이 체크아웃의 `modules/enhance_basic/include/xpe/enhance_basic/enhance_basic_api.h` 의 `XPE_API` 선언 10개 — §2.2 의 7개(`xpe_log_transform`, `xpe_log_inverse`, `xpe_noise_reduce`, `xpe_noise_estimate_sigma`, `xpe_contrast_enhance`, `xpe_edge_enhance`, `xpe_calc_exposure_index`)에 `xpe_enhance_basic_version`, `xpe_enhance_basic_set_max_threads`, `xpe_enhance_basic_get_max_threads` 를 더한 수. 헤더 머리말의 "8" 은 헤더(레인 소유)의 문제로 남는다. 새로 만든 DLL 의 수출 표는 이번에 세지 않았다(헤더 기준).
+
+**REQ-ENH-CC-002**: IF any API function receives a NULL `img` pointer, THEN the system SHALL return `XPE_ERR_INVALID_INPUT`. IF it receives an image with `format != XPE_PIXEL_FLOAT32`, THEN the system SHALL return `XPE_ERR_UNSUPPORTED_FORMAT` (문구 정정: 2026-10-03 사용자 결정 "문서를 실제에 맞게", #251, QA-B-204 재현 — 7개 처리 함수 모두 UINT16 에 −7, 공개 헤더와 일치).
+
+> **상태 메모 (2026-10-03, QA-B-199, 후보 E3)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. FLOAT32 가 아닌 영상에 구현은 `XPE_ERR_UNSUPPORTED_FORMAT` 을 반환한다(`enhance_basic_internal.h`). 이 분기를 지나는 시험이 없다.
 
 **REQ-ENH-CC-003**: The system SHALL NOT allocate heap memory that outlives a single function call. All processing uses the caller-provided buffer (in-place modification).
 
 **REQ-ENH-CC-004**: The system SHALL be thread-safe for concurrent calls on independent image buffers. No global mutable state is permitted.
+
+> **상태 메모 (2026-10-03, QA-B-199, 후보 E5)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 구현에 전역 가변 상태 `std::atomic<int> g_maxThreads` 와 공개 setter 가 있다(`enhance_basic.cpp`). 동시성 시험은 바이래터럴 하나만 두 스레드로 돌린다.
 
 **REQ-ENH-CC-005**: WHILE the enhance_basic pipeline processes a 3072x3072 float32 image through all 5 stages (log + noise + contrast + edge + EI), the total elapsed time SHALL be <= 200ms.
 

@@ -1,0 +1,8 @@
+build_exit=0
+ALiveHandleIsValid exits=[0]
+UseAfterDestroyIsRefused exits=[0]
+AForgedHandleCarryingTheMagicIsRefused exits=[1]
+AnUnreadableAddressIsRefusedNotDereferenced exits=[1]
+DestroyingTwiceIsHarmless exits=[0]
+ConcurrentDestroyOfOneHandleFreesItOnce exits=[0, 0, 0, 0, 0]
+CreateUseDestroyFromManyThreadsKeepsTheRegistryIntact exits=[0]

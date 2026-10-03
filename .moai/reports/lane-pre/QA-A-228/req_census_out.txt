@@ -1,0 +1,59 @@
+PARSER: heading definitions = 48 | control REQ-P1A-010 parsed = True | control (id that does not exist) REQ-P1A-999 parsed = False
+plan.md task rows: 38 | control: M2-1 present = True
+REQ ids named inside a plan.md task row: []
+in plan.md task rows: 0 | in spec s8: 21 | in progress.md: 13 | anywhere in plan.md: 11
+s8 range statements: [('001', '009'), ('020', '022'), ('030', '033')]
+NOT in any plan.md task row (strict): 48 of 48
+NOT in plan task rows, spec s8 (named or by range), or progress.md (loose): 18 ['REQ-P1A-016a', 'REQ-P1A-020a', 'REQ-P1A-080', 'REQ-P1A-081', 'REQ-P1A-082', 'REQ-P1A-085', 'REQ-P1A-086', 'REQ-P1A-087', 'REQ-P1A-088', 'REQ-P1A-090', 'REQ-P1A-091', 'REQ-P1A-095', 'REQ-P1A-096', 'REQ-P1A-097', 'REQ-P1A-098', 'REQ-P1A-099', 'REQ-P1A-100', 'REQ-P1A-101']
+test sources scanned (modules tests): 237 | C# files scanned: 185
+control: REQ-P1A-010 cited by tests = 4 ; nonexistent REQ-P1A-999 = 0
+REQ with ZERO test-file citations (name census): 17 ['REQ-P1A-016a', 'REQ-P1A-020a', 'REQ-P1A-022', 'REQ-P1A-086', 'REQ-P1A-095', 'REQ-P1A-096', 'REQ-P1A-097', 'REQ-P1A-098', 'REQ-P1A-099', 'REQ-P1A-100', 'REQ-P1A-101', 'REQ-P1A-102', 'REQ-P1A-103', 'REQ-P1A-104', 'REQ-P1A-105', 'REQ-P1A-030', 'REQ-P1A-042']
+--- per-REQ table: id | title | in-plan-task-row | s8/progress/range | #test files citing | files
+REQ-P1A-001 | Module Initialization | s8 | 3 | test_readout_validate.cpp,test_xpe_preprocess.cpp,test_xpe_preprocess_init.cpp
+REQ-P1A-002 | P/Invoke ABI Compliance | s8-range | 2 | test_xpe_preprocess.cpp,test_xpe_preprocess_init.cpp
+REQ-P1A-003 | Thread Safety | s8-range | 4 | test_runtime_detection_thread_parity.cpp,test_xpe_calib_endurance.cpp,test_xpe_preprocess.cpp,test_xpe_preprocess_init.cpp
+REQ-P1A-004 | Error Code Consistency | s8-range | 1 | test_readout_validate.cpp
+REQ-P1A-005 | Input Validation | s8-range | 2 | test_defect_correct.cpp,test_verify_gain_semantics.cpp
+REQ-P1A-010 | Offset Correction Execution | s8;progress | 4 | test_golden_reference.cpp,test_offset_correct.cpp,test_offset_correct_avx2_parity.cpp,test_xpe_preprocess_correction.cpp
+REQ-P1A-011 | Gain Correction Execution | s8;progress | 3 | test_gain_correct_reciprocal_fma.cpp,test_golden_reference.cpp,test_xpe_preprocess_correction.cpp
+REQ-P1A-012 | Defect Correction Execution | s8;progress | 6 | test_defect_correct.cpp,test_integration.cpp,test_nonlin_noop_report.cpp,test_temp_nonlinearity_binning.cpp,test_xpe_preprocess_correction.cpp,test_zz
+REQ-P1A-013 | Runtime Defect Detection | s8;progress | 13 | test_defect_correct.cpp,test_nonlin_noop_report.cpp,test_preprocess_degraded.cpp,test_runtime_detection_avx2_parity.cpp,test_runtime_detection_functio
+REQ-P1A-014 | Calibration File Loading (Offset) | s8;progress | 9 | test_calibration_manager.cpp,test_calibration_roundtrip.cpp,test_nonlin_no_mode_rejection.cpp,test_temp_nonlinearity_binning.cpp,test_xcal_reader.cpp,
+REQ-P1A-015 | Calibration File Loading (Gain) | s8;progress | 2 | test_xcal_validator.cpp,test_xpe_calib_load.cpp
+REQ-P1A-016 | Calibration File Loading (Defect Map) | s8;progress | 4 | test_calibration_roundtrip.cpp,test_gain_correct.cpp,test_xcal_validator.cpp,test_xpe_calib_load.cpp
+REQ-P1A-016a | Calibration State Load Contract | - | 0 |
+REQ-P1A-017 | Calibration Offset Generation | s8;progress | 4 | test_calibration_manager.cpp,test_gain_correct.cpp,test_xcal_writer.cpp,test_xpe_calib_generate_offset.cpp
+REQ-P1A-018 | Calibration Expiry Check | s8;progress | 5 | test_calib_save_expiry.cpp,test_calibration_manager.cpp,test_calibration_roundtrip.cpp,test_xcal_reader.cpp,test_xpe_calib_check_expiry.cpp
+REQ-P1A-019 | Calibration Save | s8;progress | 6 | test_calib_save_expiry.cpp,test_calibration_roundtrip.cpp,test_gain_correct.cpp,test_xcal_writer.cpp,test_xpe_calib_save.cpp,test_xpe_preprocess_calib
+REQ-P1A-020 | Not-Initialized Guard | s8 | 3 | test_offset_correct.cpp,test_xpe_preprocess.cpp,test_xpe_preprocess_init.cpp
+REQ-P1A-020a | Calibration-Not-Loaded Guard | - | 0 |
+REQ-P1A-021 | Dimension Mismatch Guard | s8-range | 2 | test_calib_dim_mismatch.cpp,test_offset_correct.cpp
+REQ-P1A-022 | Format Mismatch Guard | s8-range | 0 |
+REQ-P1A-080 | Temperature Compensation Execution | - | 3 | test_golden_reference.cpp,test_preprocess_degraded.cpp,test_temp_nonlinearity_binning.cpp
+REQ-P1A-081 | Temperature Input Guard | - | 2 | test_golden_reference.cpp,test_temp_nonlinearity_binning.cpp
+REQ-P1A-082 | Temperature Compensation Flag | - | 1 | test_temp_nonlinearity_binning.cpp
+REQ-P1A-085 | Ghost Corrector Handle Lifecycle | - | 1 | test_ghost_correct.cpp
+REQ-P1A-086 | Ghost Handle Validity Guard | - | 0 |
+REQ-P1A-087 | Ghost Correction Execution | - | 2 | test_ghost_correct.cpp,test_golden_reference.cpp
+REQ-P1A-088 | Ghost Corrector Reset | - | 2 | test_ghost_correct.cpp,test_golden_reference.cpp
+REQ-P1A-090 | Binning Correction Execution | - | 2 | test_golden_reference.cpp,test_temp_nonlinearity_binning.cpp
+REQ-P1A-091 | Binning Mode Guard | - | 2 | test_golden_reference.cpp,test_temp_nonlinearity_binning.cpp
+REQ-P1A-095 | Pipeline Stage Order | - | 0 |
+REQ-P1A-096 | Pipeline Stage Flags | - | 0 |
+REQ-P1A-097 | Per-Stage Bypass Configuration | - | 0 |
+REQ-P1A-098 | Ghost Stage Handle Dependency | - | 0 |
+REQ-P1A-099 | Ghost Stage Buffer Isolation | - | 0 |
+REQ-P1A-100 | Pipeline Data Domain Transition | - | 0 |
+REQ-P1A-101 | Defect Stage Calibration Availability | - | 0 |
+REQ-P1A-102 | Cached Offset Map Loader | s8 | 0 |
+REQ-P1A-103 | Cached Gain Map Loader | s8 | 0 |
+REQ-P1A-104 | Cached Defect Map Loader | s8 | 0 |
+REQ-P1A-105 | Pipeline Execution on the Loaded Calibration | s8 | 0 |
+REQ-P1A-106 | Version String | s8 | 1 | test_preprocess_version.cpp
+REQ-P1A-030 | No Exceptions Across C ABI | s8 | 0 |
+REQ-P1A-031 | No Memory Leak | s8-range | 4 | test_ghost_correct.cpp,test_xpe_calib_endurance.cpp,test_xpe_preprocess_init.cpp,test_xpe_preprocess_memleak.cpp
+REQ-P1A-032 | No Uninitialized Output | s8-range | 3 | test_ghost_correct.cpp,test_ghost_input_finite.cpp,test_ghost_tiers.cpp
+REQ-P1A-033 | No NaN/Inf in Output | s8-range | 1 | test_xpe_calib_generate_offset.cpp
+REQ-P1A-040 | SIMD Optimization | s8;progress | 1 | test_calibration_roundtrip.cpp
+REQ-P1A-041 | Readout Artifact Validation | s8;progress | 2 | test_golden_reference.cpp,test_zz_a184_probes.cpp
+REQ-P1A-042 | Parameter Range Query | s8;progress | 0 |

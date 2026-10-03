@@ -1,0 +1,39 @@
+tree origin/main f9803071
+== concept search (files with matches; control = DarkBias)
+[DarkBias] files: 7
+[snr[_ ]improvement|SNR improvement|improvement.{0,12}SNR] files: 11
+[PRNU[_ ]?(improve|reduc)|improve.{0,12}PRNU] files: 0
+[gain[_ ]coverage|valid gain|gain.{0,20}coverage] files: 8
+[FlatResidualPct] files: 7
+
+== SNR-improvement / gain-coverage concept lines (excluding archive/, DeepResearch json)
+.moai/specs/SPEC-XPE-P1A/spec-compact.md:177:And error message specifies invalid gain location
+.moai/specs/SPEC-XPE-P1B-ENH/acceptance.md:161:- [x] SNR improvement >= 3 dB (bilateral)
+.moai/specs/SPEC-XPE-P1B-ENH/plan.md:66:- RED: Write tests for SNR improvement, edge preservation, sigma estimation accuracy
+.moai/specs/SPEC-XPE-P1B-ENH/spec.md:395:| AC-02 | Bilateral filter noise reduction | SNR improvement >= 3 dB on synthetic noisy image |
+.moai/specs/xpe-algorithm-spec-deepsync.md:95:| Gain/offset calibration SNR | Ranger et al., J Digit Imaging 2014, [PMC3965338](https://pmc.ncbi.nlm.nih.gov/articles/PMC3965338/) | Gain/offset calibra
+docs/calibration/RTM-CALIB-001_Requirements_Traceability_Matrix.md:155:| **UT-1.5-002** | SRS-CALIB-FUNC-002 | Load valid gain map | gain.calib file | XPE_OK, buffer loaded | Map loaded correctly |
+docs/calibration/SAD-CALIB-001_Software_Architecture_Document.md:123:- Error handling: Zero/invalid gain values → `XPE_ERR_INVALID_CALIB_DATA`
+docs/enhance-advanced/SRS-ENHANCE-ADV-001_Software_Requirements_Specification.md:333:| **FR-1900.1** | System shall compute PSNR (Peak Signal-to-Noise Ratio) before and after noise reduction: `PSNR =
+docs/enhance-advanced/SRS-ENHANCE-ADV-001_Software_Requirements_Specification.md:335:| **FR-1900.3** | Quality gate thresholds for denoising acceptance (logged as warning if violated): (1) PSNR improv
+docs/enhance-advanced/TDS-ENHANCE-ADV-001_Test_Dataset_Specification.md:63:- Metric: SNR improvement ≥ 40% (SNR_out ≥ 28 dB)
+docs/enhance-advanced/TDS-ENHANCE-ADV-001_Test_Dataset_Specification.md:390:| Gaussian (Tier 1) | SNR improvement ≥ 20%, MTF loss ≤ 8% |
+docs/post-processing/xpe/XPE-VVP-001_Verification_Validation_Plan.md:146:| SRS-FUNC-011 | ST-011 | Noise reduction SNR improvement | SNR gain ≥ 3dB |
+docs/post-processing/xpe/xray-postprocessing-prd.md:411:| 품질 | PSNR improvement ≥ 5 dB over input |
+docs/project/sprint-plan.md:808:3. Bilateral noise reduction on noisy image: output SNR improvement > 6dB
+docs/project/sprint-plan.md:1323:2. DL denoise quality: PSNR improvement >= 3dB over classical bilateral
+docs/project/sprint-plan.md:1330:1. DL denoise on noisy chest image -> PSNR improvement >= 3dB vs `xpe_noise_reduce`
+docs/project/vvp_adv.md:236:| TC-MFP-ALG-003 | Noise suppression balance | SNR measurement on synthetic noisy image | SNR improvement >= 5 dB without over-smoothing |
+docs/project/vvp_adv.md:257:| BP-06-MFP-noisy | Synthetic noisy image | Noise resilience | SNR improvement verified |
+
+== external standards the repo cites near PRNU/SNR/gain
+[IEC ?62220] files: 36
+[IEC ?62304] files: 187
+[AAPM] files: 36
+[EMVA ?1288] files: 8
+.moai/specs/SPEC-XPE-MASTER/cross-verification-report.md:45:| Basic model | I_corr = (I_raw - I_dark) / G(x,y) | Standard (IEC 62220, Wikipedia flat-field) | MATCH |
+.moai/specs/xpe-algorithm-spec-deepsync.md:124:| (2) | Gain correction | float32 | xpe_preprocess.dll | Phase 1 | Hard fail if gain map absent | IEC 62220-1-1: Flat-field normalization required |
+.moai/specs/xpe-algorithm-spec-deepsync.md:228:| **Research Basis** | IEC 62220-1-1:2015 (DQE), PMC3965338 (SNR optimization), Wang 2013 (Duo-SID), Kwan 2006 (multi-point correction) |
+.moai/specs/xpe-algorithm-spec-deepsync.md:498:| Calibration QC metrics | DQE/MTF/NPS per IEC 62220 | Real-time flat-field residual monitoring, SNR confidence intervals | **Gap**: No runtime QC metric computation specifi
+docs/README.md:325:| [01_Noise_...pplx.md](quality-eval/01_Noise_평가_방법론_종합보고서.pplx.md) | WHY | 2,056 | IEC 62220-1 노이즈 평가, 12개 메트릭(DQE/MTF/NPS/NEQ/SNR) |
+docs/calibration/IAP-CALIB-001_Image_Acquisition_Protocol.md:1075:| IEC 62220-1-1:2015 | Flat-field, Dark frame 사양 |

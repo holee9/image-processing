@@ -1,0 +1,15 @@
+Red-first run of GhostLagContract.* on the product code before the 226b change: 8 tests existed then (5 red, 3 controls green); AZeroAlphaContributesNothingWhateverItsTauIs (and the -inf line in ANonFiniteGainIsRefused) were added afterwards, so there are 9 now.
+[  FAILED  ] GhostLagContract.AForwardUnstableSetIsRefusedInEveryTier (0 ms)
+[  FAILED  ] GhostLagContract.TheBoundaryIsSEqualsOne (0 ms)
+[       OK ] GhostLagContract.AStableSetIsAcceptedInEveryTierAndRaisesNoWarning (0 ms)
+[  FAILED  ] GhostLagContract.ANonFiniteGainIsRefused (0 ms)
+[       OK ] GhostLagContract.ASetThatIsNotCalibratedIsNotJudged (0 ms)
+[  FAILED  ] GhostLagContract.TheOutputDoesNotDependOnTheTimes (0 ms)
+[  FAILED  ] GhostLagContract.EachCallIsOneFrameStep (0 ms)
+[       OK ] GhostLagContract.AResetStartsTheSequenceOver (0 ms)
+[  PASSED  ] 3 tests.
+[  FAILED  ] GhostLagContract.AForwardUnstableSetIsRefusedInEveryTier
+[  FAILED  ] GhostLagContract.TheBoundaryIsSEqualsOne
+[  FAILED  ] GhostLagContract.ANonFiniteGainIsRefused
+[  FAILED  ] GhostLagContract.TheOutputDoesNotDependOnTheTimes
+[  FAILED  ] GhostLagContract.EachCallIsOneFrameStep

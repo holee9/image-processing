@@ -1,0 +1,27 @@
+RTM-COMMON-001 수정안 초안 (QA-A-231, docs/ 는 리더 소유)
+근거: report.md §2.4, evidence/rtm_common_001_name_census.txt (52행 전부 ✓, 인용 시험 52개 중 존재 0개)
+
+1. 사실
+   - 이 RTM 은 SRS-COMMON-001 의 FR-CMN-100~702, SAF-CMN-100~160, PERF-CMN-100~150 (52행) 을 SWU 5.1~5.7 과 시험 이름에 잇는다.
+   - 인용한 구현(MemoryPool, JsonConfig, EventSystem, ErrorHandler, ParameterValidator::validate_image_params …)은 modules/common 소스에 없다.
+     (ParameterValidator 는 xpe_common.cpp 의 TODO 주석 한 줄에만 나온다.)
+   - 인용한 시험(test_mempool_alloc_free …)은 modules/common/tests 의 gtest 이름 81개에 하나도 없다.
+   - 구현된 공용 모듈은 xpe_alloc_image / xpe_free_image / xpe_copy_image, 알림 큐, xpe_configure, xpe_get_param_range, 로깅이다.
+
+2. 두 가지 길
+   A) 상태 칸을 사실대로: 52행의 "✓ TRACED / ✓ CONTROLLED / ✓" 를 "NOT TRACED (시험 없음)" 로 바꾸고 문서 머리에 한 문단:
+      "본 RTM 은 SRS-COMMON-001 이 상정한 설계를 기준으로 작성되었으며 현재 구현(modules/common)과 대응하지 않는다."
+   B) 다시 잇기: 구현된 기능별로 행을 새로 쓴다. 후보 매핑 (이름은 gtest 의 실제 이름):
+      - 메모리: xpe_alloc_image / xpe_free_image / xpe_copy_image -> XpeCommonTest.AllocImageSucceedsForValidInput,
+        AllocImageZeroInitializesMemory, FreeImageReleasesMemory, CopyImageReproducesEveryByte, CopyImageWithSmallBufferReturnsBufferTooSmall,
+        MemoryLeakTestThousandCycles
+      - 오류 문자열: XpeCommonTest.ErrorStringReturnsNonNullForAllCodes, ErrorStringForInvalidInputHasExactText, ErrorStringForUnknownErrorCode
+      - 알림 큐: AlertQueueOverflowTest.* (6), XpeCommonTest.AlertQueueFifoOrder, ConcurrentAlertQueueAccess, CommonOom.APushInto* (3)
+      - 설정: XpeCommonTest.ConfigureWith* , CommonOom.AConfigureThatRunsOutOfMemoryIsNotReportedAsAnInvalidConfiguration
+      - 로깅: XpeCommonTest.LogSetFileReopensSink, ShutdownReleasesLogFileSink, CommonOom.ALogFile*
+      - ABI: XpeCommonTest.HeaderDeclaresSixteenExportedFunctions, C# 측 StructLayoutParityTests / AbiLayoutTests
+   각 행은 "시험이 단언하는 것" 한 줄을 함께 적는다 (이름만으로 ✓ 를 주지 않는다 — 이번 조사에서 이름이 단언과 어긋난 사례: ShutdownReturnsNotInitializedWhenNotInit).
+
+3. 재발 방지 (선택)
+   check_spec_test_refs.py 는 .moai/specs/*/*.md 만 검사한다. docs/**/RTM-*.md 의 test_ 접두 이름 인용도 같은 방법으로 검사하면 이번 같은 ✓ 가 CI 에서 걸린다.
+   (이 검사기를 넓히는 일은 tools/ 소유이므로 리더 카드.)

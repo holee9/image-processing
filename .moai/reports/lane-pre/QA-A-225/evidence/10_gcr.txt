@@ -1,0 +1,46 @@
+##### GCR definitions
+-- srs_ghost_correction
+107:| FR-702 | Auto tier escalation이 활성화된 경우, Tier 1 후 GCR이 임계값을 초과하면 Tier 2로 승격해야 한다 | 권장 | Integration test |
+108:| FR-703 | Tier 2 후에도 GCR 임계값을 초과하고 NLCSC가 활성화된 경우 Tier 3으로 승격해야 한다 | 선택 | Integration test |
+109:| FR-704 | correction_process() 호출 시 CorrectionResult에 사용된 tier, GCR, 처리 시간을 기록해야 한다 | 필수 | Integration test |
+129:| NFR-201 | GCR (FB 적용 + Tier 1+2) | ≤ 0.1% | Step-wedge phantom |
+130:| NFR-202 | GCR (FB 미적용 + Tier 2+3) | ≤ 0.3% | Step-wedge phantom |
+177:| IR-204 | Diagnostics | Overflow count, GCR, processing time | Monitoring system |
+248:### 6.3 GCR 추정 수식 (FR-702)
+251:GCR = σ_block / μ_global
+-- sw_lag_correction_prd_v2
+31:| GCR (1st frame, FB 적용 후) | ≤ 0.1% |
+253:    q1616_t  gcr_threshold;         // GCR threshold for tier escalation (default: 0.001 = 0.1%)
+320:    float    gcr_before;        // GCR before correction
+321:    float    gcr_after;         // GCR after correction
+772:| T1-06 | Synthetic ghost pattern (ROI_A=1000+50, ROI_B=1000), dark=1000 | ROI_A=50, ROI_B=0, GCR=0 | 0 |
+782:| T2-05 | Full saturation exposure | 보정 후 GCR < 0.1% | 측정 |
+800:| P-03 | Step-wedge phantom, FB applied | GCR ≤ 0.1% |
+802:| P-05 | FB not applied, high dose | GCR ≤ 0.3% (Tier 2+3) |
+-- TDS-GHOST-001_Test_Dataset_Specification
+433:  평균 GCR (Ghost Coefficient Ratio) = 0.33% (미보정)
+436:  GCR = 0.33% (Tier 1은 offset만, lag 보정 아님)
+447:  GCR = 0.25% (기준문헌 Starman et al.)
+449:기대: GCR < 0.25% (검증 성공)
+458:  1st frame GCR = < 0.29% (Starman et al. Table 1)
+459:  50th frame GCR = < 0.0052% (극도로 작음)
+470:Tier 2: GCR < 0.25%
+-- IAP-GHOST-001_Image_Acquisition_Protocol
+
+##### SRS-ghost NFR-200 block
+### NFR-200: Accuracy
+
+| ID | 요구사항 | 목표값 | 검증 방법 |
+|---|---|---|---|
+| NFR-201 | GCR (FB 적용 + Tier 1+2) | ≤ 0.1% | Step-wedge phantom |
+| NFR-202 | GCR (FB 미적용 + Tier 2+3) | ≤ 0.3% | Step-wedge phantom |
+| NFR-203 | Fixed-point 정밀도 손실 | ≤ 0.5 LSB RMS | Float vs fixed 비교 |
+| NFR-204 | PSNR (보정 전후) | ≥ 45 dB | 시뮬레이션 |
+| NFR-205 | SSIM (보정 전후) | ≥ 0.998 | 시뮬레이션 |
+| NFR-206 | MTF preservation | ≥ 0.98 @Nyquist | Edge response |
+
+### NFR-300: Reliability
+
+| ID | 요구사항 | 검증 방법 |
+|---|---|---|
+| NFR-301 | 1000 frame 연속 처리 시 crash, memory leak, 결과 열화 없음 | Stress test |

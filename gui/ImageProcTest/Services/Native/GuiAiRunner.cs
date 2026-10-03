@@ -114,6 +114,9 @@ internal static class GuiAiSession
                     probe = $"before-init worker_state probe threw {probeError.GetType().Name}";
                 }
 
+                // GUI-C-201: the spelling the running session was started with, when this is the same directory (see AiSessionTracker.DirectoryToSend).
+                // Taken after the shutdown above, so a different directory has already ended the session and is sent as requested.
+                directory = Tracker.DirectoryToSend(directory);
                 code = XpeAiNative.xpe_ai_init(directory, config);
                 _initDiagnostics = $"init#{++_initCount} dir='{directory}' config={config} {probe} -> code={code}";
             }

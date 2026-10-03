@@ -1,0 +1,18 @@
+== docs touched by b6c19b8a
+(none above = none)
+
+== whole diff of b6c19b8a: lines with 3 dB / 99% / 2 dB / PRNU improve outside the .cpp
+880:+    double prnu_before;         ///< Photo Response Non-Uniformity before gain [%]
+881:+    double prnu_after;          ///< PRNU after gain correction [%]
+922:+ * Computes PRNU before/after, flatness, gain coverage, and SNR improvement.
+923:+ * PRNU (Photo Response Non-Uniformity) measures pixel-to-pixel gain variation.
+2006:index 00000000..3e3db6a1
+(none above = none)
+
+== pickaxe in all docs history for the original comment wording
+'should improve PRNU': 1 commits in docs/.moai ; 3 anywhere
+'99% of gain values': 0 commits in docs/.moai ; 2 anywhere
+'minimum SNR improvement': 1 commits in docs/.moai ; 3 anywhere
+
+== same-day neighbours of b6c19b8a (2026-04-26) touching docs/calibration
+a9b26c7f 2026-04-26 docs(readme): 세션 8차 — Calibration Single/Multi-Point 모드 선택 설계 (FUNC-031~033)

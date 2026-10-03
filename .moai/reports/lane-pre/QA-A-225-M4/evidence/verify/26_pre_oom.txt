@@ -1,0 +1,293 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 70 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 35 tests from OomInjection
+[ RUN      ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader
+[       OK ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader (1 ms)
+[ RUN      ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain                           35 allocation points covered
+[       OK ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched (15 ms)
+[ RUN      ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_offset                         10 allocation points covered
+[       OK ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched (3 ms)
+[ RUN      ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_defect_map                     10 allocation points covered
+[       OK ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched (8 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, range)       34 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched (6 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, no range)    34 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched (11 ms)
+[ RUN      ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_gain_cached (miss)             45 allocation points covered
+[       OK ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping (8 ms)
+[ RUN      ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_gain_cached (polynomial)       36 allocation points covered
+[       OK ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping (7 ms)
+[ RUN      ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_offset_cached (miss)           20 allocation points covered
+[       OK ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping (4 ms)
+[ RUN      ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_defect_cached (miss)           20 allocation points covered
+[       OK ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping (4 ms)
+[ RUN      ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain_cached (hit)               4 allocation points covered
+[       OK ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched (3 ms)
+[ RUN      ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_offset_cached (hit)             4 allocation points covered
+[       OK ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_defect_cached (hit)             4 allocation points covered
+[       OK ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.AnOffsetCorrectionAllocatesNothing
+[       OK ] OomInjection.AnOffsetCorrectionAllocatesNothing (0 ms)
+[ RUN      ] OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree
+[sweep] xpe_defect_correct                             7 allocation points covered
+[       OK ] OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree (4 ms)
+[ RUN      ] OomInjection.AGhostCreationThatIsRefusedLeavesNoBlocksBehind
+[       OK ] OomInjection.AGhostCreationThatIsRefusedLeavesNoBlocksBehind (0 ms)
+[ RUN      ] OomInjection.ADefectCorrectionDoesNotCopyTheMap
+[       OK ] OomInjection.ADefectCorrectionDoesNotCopyTheMap (0 ms)
+[ RUN      ] OomInjection.AHitJudgesTheExpiryAfterTheOpenCheckNotBefore
+[       OK ] OomInjection.AHitJudgesTheExpiryAfterTheOpenCheckNotBefore (2752 ms)
+[ RUN      ] OomInjection.AWriteFailureIsReportedWithItsOwnCauseNotWhatAnEarlierStepLeftBehind
+[       OK ] OomInjection.AWriteFailureIsReportedWithItsOwnCauseNotWhatAnEarlierStepLeftBehind (10 ms)
+[ RUN      ] OomInjection.APreprocessInitThatRunsOutOfMemoryReportsItAsSuchAndLeavesTheModuleUninitialized
+[sweep] xpe_preprocess_init                           20 allocation points covered
+[       OK ] OomInjection.APreprocessInitThatRunsOutOfMemoryReportsItAsSuchAndLeavesTheModuleUninitialized (0 ms)
+[ RUN      ] OomInjection.ANonlinearityCorrectionThatFailsLeavesTheFrameUntouchedAndNoExceptionEscapes
+[sweep] xpe_nonlinearity_correct                      23 allocation points covered
+[       OK ] OomInjection.ANonlinearityCorrectionThatFailsLeavesTheFrameUntouchedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.ANonlinearityCorrectionWithTheLutPathThatFailsLeavesTheFrameUntouched
+[sweep] xpe_nonlinearity_correct (table)              16 allocation points covered
+[       OK ] OomInjection.ANonlinearityCorrectionWithTheLutPathThatFailsLeavesTheFrameUntouched (6 ms)
+[ RUN      ] OomInjection.AVerifyOffsetThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+[sweep] xpe_verify_offset                              3 allocation points covered
+[       OK ] OomInjection.AVerifyOffsetThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.AVerifyGainThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+[sweep] xpe_verify_gain                                3 allocation points covered
+[       OK ] OomInjection.AVerifyGainThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.AVerifyPipelineThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+[sweep] xpe_verify_pipeline                            4 allocation points covered
+[       OK ] OomInjection.AVerifyPipelineThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.AVerifyDefectAllocatesNothingSoThereIsNothingToGuard
+[       OK ] OomInjection.AVerifyDefectAllocatesNothingSoThereIsNothingToGuard (0 ms)
+[ RUN      ] OomInjection.ABpmGenerationThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes
+[sweep] xpe_bpm_generate                              24 allocation points covered
+[       OK ] OomInjection.ABpmGenerationThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes (5 ms)
+[ RUN      ] OomInjection.ARuntimeDetectionThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes
+[sweep] xpe_defect_detect_runtime                      8 allocation points covered
+[       OK ] OomInjection.ARuntimeDetectionThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.ANonlinearityLutGenerationThatFailsWritesNoFileAndNoExceptionEscapes
+[sweep] xpe_calib_generate_nonlin_lut                 11 allocation points covered
+[       OK ] OomInjection.ANonlinearityLutGenerationThatFailsWritesNoFileAndNoExceptionEscapes (3 ms)
+[ RUN      ] OomInjection.EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce
+[       OK ] OomInjection.EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce (9 ms)
+[ RUN      ] OomInjection.ALegacyFileThatFailsToBuildItsWarningLeavesEveryOutputArgumentUntouched
+[       OK ] OomInjection.ALegacyFileThatFailsToBuildItsWarningLeavesEveryOutputArgumentUntouched (7 ms)
+[ RUN      ] OomInjection.AScalarGainLoadThatClassifiesPixelsAndFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (classified pixels)       17 allocation points covered
+[       OK ] OomInjection.AScalarGainLoadThatClassifiesPixelsAndFailsLeavesTheStoreUntouched (8 ms)
+[ RUN      ] OomInjection.ACachedScalarGainHitThatClassifiesPixelsAndFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain_cached (hit, classified)   4 allocation points covered
+[       OK ] OomInjection.ACachedScalarGainHitThatClassifiesPixelsAndFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.ADefectCorrectionThatUnitesTheGainClassificationAndFailsLeavesTheStoreUntouched
+[sweep] xpe_defect_correct (gain-classified pixels)   12 allocation points covered
+[       OK ] OomInjection.ADefectCorrectionThatUnitesTheGainClassificationAndFailsLeavesTheStoreUntouched (7 ms)
+[ RUN      ] OomInjection.APolynomialGainApplicationThatClassifiesPixelsAndFailsReportsOutOfMemory
+[sweep] xpe_gain_correct (polynomial, classified pixels)   3 allocation points covered
+[       OK ] OomInjection.APolynomialGainApplicationThatClassifiesPixelsAndFailsReportsOutOfMemory (4 ms)
+[----------] 35 tests from OomInjection (2909 ms total)
+
+[----------] 30 tests from OomPipeline
+[ RUN      ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas
+[sweep] xpe_preprocess_pipeline_ex                    41 allocation points covered
+[       OK ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas (19 ms)
+[ RUN      ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas
+[sweep] xpe_preprocess_pipeline                       74 allocation points covered
+[       OK ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas (28 ms)
+[ RUN      ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched
+[sweep] xpe_preprocess_pipeline_batch                 89 allocation points covered
+[       OK ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched (33 ms)
+[ RUN      ] OomPipeline.TheStoreDigestTellsStoresApartByPresenceAndByEveryDimension
+[       OK ] OomPipeline.TheStoreDigestTellsStoresApartByPresenceAndByEveryDimension (2 ms)
+[ RUN      ] OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet
+[sweep] xpe_preprocess_pipeline (empty store)         73 allocation points covered
+[       OK ] OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet (28 ms)
+[ RUN      ] OomPipeline.AFailedCachedOffsetLoadThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeMap
+[sweep] xpe_calib_load_offset_cached (empty store)    20 allocation points covered
+[       OK ] OomPipeline.AFailedCachedOffsetLoadThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeMap (10 ms)
+[ RUN      ] OomPipeline.TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims
+[       OK ] OomPipeline.TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims (4 ms)
+[ RUN      ] OomPipeline.AClaimSmallerThanTheFrameIsRefusedBeforeAnythingIsDone
+[       OK ] OomPipeline.AClaimSmallerThanTheFrameIsRefusedBeforeAnythingIsDone (13 ms)
+[ RUN      ] OomPipeline.TheOutputCapacityMustHoldTheWholeFinalFrame
+[       OK ] OomPipeline.TheOutputCapacityMustHoldTheWholeFinalFrame (19 ms)
+[ RUN      ] OomPipeline.ABatchChecksTheRoomOfEachFrameAndCarriesOnPastARefusal
+[       OK ] OomPipeline.ABatchChecksTheRoomOfEachFrameAndCarriesOnPastARefusal (5 ms)
+[ RUN      ] OomPipeline.AFrameWhoseByteCountDoesNotFitInSizeTIsRefusedBeforeItIsRead
+[       OK ] OomPipeline.AFrameWhoseByteCountDoesNotFitInSizeTIsRefusedBeforeItIsRead (11 ms)
+[ RUN      ] OomPipeline.SetsAAndBDifferInEverythingTheDigestLooksAt
+[       OK ] OomPipeline.SetsAAndBDifferInEverythingTheDigestLooksAt (5 ms)
+[ RUN      ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+[       OK ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas (47 ms)
+[ RUN      ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+[sweep] xpe_preprocess_pipeline                       82 allocation points covered
+[sweep] xpe_preprocess_pipeline_batch                 82 allocation points covered
+[       OK ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas (77 ms)
+[ RUN      ] OomPipeline.TheQualityMetadataIsCurrentTheMomentTheMapsAre
+[       OK ] OomPipeline.TheQualityMetadataIsCurrentTheMomentTheMapsAre (4 ms)
+[ RUN      ] OomPipeline.AQualityReadWhileTheStoreIsBeingReplacedSeesOneFilesFields
+[       OK ] OomPipeline.AQualityReadWhileTheStoreIsBeingReplacedSeesOneFilesFields (22 ms)
+[ RUN      ] OomPipeline.AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedMidFrame
+[       OK ] OomPipeline.AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedMidFrame (7 ms)
+[ RUN      ] OomPipeline.AQualityReadStartedInsideTheCommitWaitsForItAndSeesTheNewSet
+[       OK ] OomPipeline.AQualityReadStartedInsideTheCommitWaitsForItAndSeesTheNewSet (1013 ms)
+[ RUN      ] OomPipeline.AGainBypassFollowedByBinningDoesNotReadPastTheStageBuffer
+[       OK ] OomPipeline.AGainBypassFollowedByBinningDoesNotReadPastTheStageBuffer (13 ms)
+[ RUN      ] OomPipeline.EveryConfigurationReadsOnlyWhatItOwnsAndEndsInTheFormatItIsPredictedToEndIn
+[combo] 96 configurations; 88 end in float32, 8 in uint16; 40 compared with a gain map of ones
+[       OK ] OomPipeline.EveryConfigurationReadsOnlyWhatItOwnsAndEndsInTheFormatItIsPredictedToEndIn (95 ms)
+[ RUN      ] OomPipeline.ALoadOfAGainWithoutQualityLeavesNoPreviousFilesQualityBehind
+[       OK ] OomPipeline.ALoadOfAGainWithoutQualityLeavesNoPreviousFilesQualityBehind (30 ms)
+[ RUN      ] OomPipeline.ALoadOfAGainWithDifferentQualityReplacesTheRecordOnEveryPath
+[       OK ] OomPipeline.ALoadOfAGainWithDifferentQualityReplacesTheRecordOnEveryPath (32 ms)
+[ RUN      ] OomPipeline.AFileWithoutQualityThenOneWithQualityKeepsTheHistoryAcrossTheGap
+[       OK ] OomPipeline.AFileWithoutQualityThenOneWithQualityKeepsTheHistoryAcrossTheGap (28 ms)
+[ RUN      ] OomPipeline.ACacheHitInstallsTheFilesQualityCopyBesideTheMap
+[       OK ] OomPipeline.ACacheHitInstallsTheFilesQualityCopyBesideTheMap (26 ms)
+[ RUN      ] OomPipeline.APartialQualityRecordDoesNotInterruptTheR2History_AThenPartialThenC
+[       OK ] OomPipeline.APartialQualityRecordDoesNotInterruptTheR2History_AThenPartialThenC (39 ms)
+[ RUN      ] OomPipeline.ARecordWithNoQualityAfterAPartialOneKeepsTheR2History_AThenPartialThenNoneThenC
+[       OK ] OomPipeline.ARecordWithNoQualityAfterAPartialOneKeepsTheR2History_AThenPartialThenNoneThenC (43 ms)
+[ RUN      ] OomPipeline.AGeneratedRecordFollowsTheSameRule_AThenPartialThenGeneratedThenPartialThenC
+[       OK ] OomPipeline.AGeneratedRecordFollowsTheSameRule_AThenPartialThenGeneratedThenPartialThenC (22 ms)
+[ RUN      ] OomPipeline.ANegativeGeneratedR2IsKnownAndBecomesTheHistory
+[       OK ] OomPipeline.ANegativeGeneratedR2IsKnownAndBecomesTheHistory (24 ms)
+[ RUN      ] OomPipeline.AnR2OfExactlyMinusOneIsARealValueAndChainsAsOne
+[       OK ] OomPipeline.AnR2OfExactlyMinusOneIsARealValueAndChainsAsOne (28 ms)
+[ RUN      ] OomPipeline.WithNoEarlierR2TheHistoryIsFlaggedAsNoneEvenWhenTheFirstRecordIsMinusOne
+[       OK ] OomPipeline.WithNoEarlierR2TheHistoryIsFlaggedAsNoneEvenWhenTheFirstRecordIsMinusOne (19 ms)
+[----------] 30 tests from OomPipeline (1763 ms total)
+
+[----------] 5 tests from GhostMixCompare
+[ RUN      ] GhostMixCompare.TheSeamDefaultsAreTheShippedConstantsAndTouchOnlyTierThree
+[ghost-oracle] tier3-digest 0xf7c4e2c895d7a90b
+[       OK ] GhostMixCompare.TheSeamDefaultsAreTheShippedConstantsAndTouchOnlyTierThree (6 ms)
+[ RUN      ] GhostMixCompare.TheAnalyticValuesOfThePreregistrationHold
+[ghost-oracle-m4] analytic check blend=1: stripes 0.60000 (predicted 0.6000) checkerboard 0.73333 (predicted 0.7333) noise ratio 0.7394 (predicted 0.7394)
+[ghost-oracle-m4] analytic check blend=0: stripes 1.00000 (predicted 1.0000) checkerboard 1.00000 (predicted 1.0000) noise ratio 1.0000 (predicted 1.0000)
+[       OK ] GhostMixCompare.TheAnalyticValuesOfThePreregistrationHold (2 ms)
+[ RUN      ] GhostMixCompare.TheRingStepIsTheMixTimesTheRemovedLag
+[ghost-oracle-m4] ring A 0.02/3/0.003/30        blend=1: border 14275.21 interior 15467.97 step +1192.77 ADU (+8.356% of the border) | predicted interior 15467.97
+[ghost-oracle-m4] ring A 0.02/3/0.003/30        blend=0: border 14275.21 interior 14275.21 step +0.00 ADU (+0.000% of the border) | predicted interior 14275.21
+[ghost-oracle-m4] ring B derived T1@27 +-0.1    blend=1: border 17507.22 interior 17730.39 step +223.16 ADU (+1.275% of the border) | predicted interior 17730.39
+[ghost-oracle-m4] ring B derived T1@27 +-0.1    blend=0: border 17507.22 interior 17507.22 step +0.00 ADU (+0.000% of the border) | predicted interior 17507.22
+[ghost-oracle-m4] ring C derived T2@27 +-0.1    blend=1: border 17893.17 interior 18000.55 step +107.38 ADU (+0.600% of the border) | predicted interior 18000.55
+[ghost-oracle-m4] ring C derived T2@27 +-0.1    blend=0: border 17893.17 interior 17893.17 step +0.00 ADU (+0.000% of the border) | predicted interior 17893.17
+[       OK ] GhostMixCompare.TheRingStepIsTheMixTimesTheRemovedLag (62 ms)
+[ RUN      ] GhostMixCompare.ThePreregisteredRulesGiveTheirVerdictsOnSyntheticInputs
+[       OK ] GhostMixCompare.ThePreregisteredRulesGiveTheirVerdictsOnSyntheticInputs (0 ms)
+[ RUN      ] GhostMixCompare.ComparesTheBlendKeptAndRemovedAsPreregistered
+[ghost-oracle-m4] config A 0.02/3/0.003/30        alpha1 0.02 tau1 3 alpha2 0.003 tau2 30 S 0.1621
+[ghost-oracle-m4] config B derived T1@27 +-0.1    alpha1 0.00791192 tau1 2.34662 alpha2 0.000177389 tau2 42.4811 S 0.0304
+[ghost-oracle-m4] config C derived T2@27 +-0.1    alpha1 0.00716059 tau1 1.32126 alpha2 0.000110889 tau2 8.88601 S 0.0145
+[ghost-oracle-m4] K1 A 0.02/3/0.003/30        T1 k=1  residual blend  -57.243% | no blend  -79.437% | delta -22.194 pt -> blend better
+[ghost-oracle-m4] K1 A 0.02/3/0.003/30        T1 k=50 residual blend  -16.085% | no blend  -22.207% | delta  -6.122 pt -> blend better
+[ghost-oracle-m4] K1 A 0.02/3/0.003/30        T2 k=1  residual blend  -64.863% | no blend  -86.578% | delta -21.715 pt -> blend better
+[ghost-oracle-m4] K1 A 0.02/3/0.003/30        T2 k=50 residual blend  -18.142% | no blend  -24.111% | delta  -5.969 pt -> blend better
+[ghost-oracle-m4] K1 B derived T1@27 +-0.1    T1 k=1  residual blend   +3.236% | no blend   -0.925% | delta  +2.312 pt -> blend worse
+[ghost-oracle-m4] K1 B derived T1@27 +-0.1    T1 k=50 residual blend   +0.957% | no blend   -0.083% | delta  +0.874 pt -> no difference
+[ghost-oracle-m4] K1 B derived T1@27 +-0.1    T2 k=1  residual blend   -5.689% | no blend   -9.759% | delta  -4.071 pt -> blend better
+[ghost-oracle-m4] K1 B derived T1@27 +-0.1    T2 k=50 residual blend   -1.527% | no blend   -2.542% | delta  -1.015 pt -> blend better
+[ghost-oracle-m4] K1 C derived T2@27 +-0.1    T1 k=1  residual blend  +10.510% | no blend   +8.519% | delta  +1.992 pt -> blend worse
+[ghost-oracle-m4] K1 C derived T2@27 +-0.1    T1 k=50 residual blend   +3.202% | no blend   +2.831% | delta  +0.371 pt -> no difference
+[ghost-oracle-m4] K1 C derived T2@27 +-0.1    T2 k=1  residual blend   +1.429% | no blend   -0.520% | delta  +0.909 pt -> no difference
+[ghost-oracle-m4] K1 C derived T2@27 +-0.1    T2 k=50 residual blend   +0.665% | no blend   +0.303% | delta  +0.361 pt -> no difference
+[ghost-oracle-m4] K2 A 0.02/3/0.003/30        ring step blend   +8.356% | no blend   +0.000% -> blend worse
+[ghost-oracle-m4] K2 B derived T1@27 +-0.1    ring step blend   +1.275% | no blend   +0.000% -> blend worse
+[ghost-oracle-m4] K2 C derived T2@27 +-0.1    ring step blend   +0.600% | no blend   +0.000% -> blend worse
+[ghost-oracle-m4] K3 Nyquist response: stripes blend 0.6000 | no blend 1.0000 ; checkerboard blend 0.7333 | no blend 1.0000 ; reference 0.98 (NFR-206, requirement status unverified): blend below, no blend meets
+[ghost-oracle-m4] K4 interior noise ratio output/input (seed-7 frame, as preregistered): blend 0.7438 | no blend 1.0000 -> blend better ; pooled over 100 frames: blend 0.7394 | no blend 1.0000
+[ghost-oracle] T1   2%      sigma=0   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.9020 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   2%      sigma=0   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.8636 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   2%      sigma=5   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.9020 (raw 1.0310) | k=1 raw 3.0712% res 0.1146% removal   96.27% | k=10 removal   84.18% | k=50 raw 0.3020% res 0.1146% removal   62.03%
+[ghost-oracle] T1   2%      sigma=5   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.8636 (raw 1.0310) | k=1 raw 3.0712% res 0.1449% removal   95.28% | k=10 removal   80.00% | k=50 raw 0.3020% res 0.1449% removal   52.01%
+[ghost-oracle] T1   27%     sigma=0   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.8612 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   27%     sigma=0   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.8106 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   27%     sigma=5   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.8612 (raw 1.0310) | k=1 raw 3.0841% res 0.0085% removal   99.72% | k=10 removal   98.85% | k=50 raw 0.2750% res 0.0085% removal   96.91%
+[ghost-oracle] T1   27%     sigma=5   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.8106 (raw 1.0310) | k=1 raw 3.0841% res 0.0107% removal   99.65% | k=10 removal   98.55% | k=50 raw 0.2750% res 0.0107% removal   96.10%
+[ghost-oracle] T1   92%     sigma=0   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.7393 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   92%     sigma=0   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.6524 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00%
+[ghost-oracle] T1   92%     sigma=5   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.7393 (raw 1.0310) | k=1 raw 3.0848% res 0.0025% removal   99.92% | k=10 removal   99.66% | k=50 raw 0.2735% res 0.0025% removal   99.09%
+[ghost-oracle] T1   92%     sigma=5   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.6524 (raw 1.0310) | k=1 raw 3.0848% res 0.0031% removal   99.90% | k=10 removal   99.58% | k=50 raw 0.2735% res 0.0031% removal   98.85%
+[ghost-oracle] T2   2%      sigma=0   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.8918 (raw 1.0193) | k=1 raw 1.8953% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0040% res 0.0000% removal  100.00%
+[ghost-oracle] T2   2%      sigma=0   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.8538 (raw 1.0193) | k=1 raw 1.8953% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0040% res 0.0000% removal  100.00%
+[ghost-oracle] T2   2%      sigma=5   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.8918 (raw 1.0193) | k=1 raw 1.8811% res 0.1161% removal   93.83% | k=10 removal -265.62% | k=50 raw 0.0334% res 0.1161% removal -247.11%
+[ghost-oracle] T2   2%      sigma=5   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.8538 (raw 1.0193) | k=1 raw 1.8811% res 0.1467% removal   92.20% | k=10 removal -362.12% | k=50 raw 0.0334% res 0.1467% removal -338.73%
+[ghost-oracle] T2   27%     sigma=0   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.8483 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0000% removal  100.00%
+[ghost-oracle] T2   27%     sigma=0   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.7986 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0000% removal  100.00%
+[ghost-oracle] T2   27%     sigma=5   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.8483 (raw 1.0147) | k=1 raw 1.4521% res 0.0086% removal   99.41% | k=10 removal   77.52% | k=50 raw 0.0056% res 0.0086% removal  -54.03%
+[ghost-oracle] T2   27%     sigma=5   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.7986 (raw 1.0147) | k=1 raw 1.4521% res 0.0109% removal   99.25% | k=10 removal   71.58% | k=50 raw 0.0056% res 0.0109% removal  -94.68%
+[ghost-oracle] T2   92%     sigma=0   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.7275 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0000% removal  100.00%
+[ghost-oracle] T2   92%     sigma=0   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.6435 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0000% removal  100.00%
+[ghost-oracle] T2   92%     sigma=5   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.7275 (raw 1.0091) | k=1 raw 0.9047% res 0.0025% removal   99.72% | k=10 removal   90.16% | k=50 raw 0.0031% res 0.0025% removal   17.27%
+[ghost-oracle] T2   92%     sigma=5   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.6435 (raw 1.0091) | k=1 raw 0.9047% res 0.0032% removal   99.64% | k=10 removal   87.56% | k=50 raw 0.0031% res 0.0032% removal   -4.56%
+[ghost-oracle] T1   2%      sigma=0   m4 tier3 blend    B derived T1@27 +-0.1 retention=  1.0068 (raw 1.0310) | k=1 raw 3.0851% res 0.7450% removal   75.85% | k=10 removal   71.01% | k=50 raw 0.2729% res 0.0823% removal   69.85%
+[ghost-oracle] T1   2%      sigma=0   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9995 (raw 1.0310) | k=1 raw 3.0851% res 0.0473% removal   98.47% | k=10 removal   92.19% | k=50 raw 0.2729% res 0.0255% removal   90.67%
+[ghost-oracle] T1   2%      sigma=5   m4 tier3 blend    B derived T1@27 +-0.1 retention=  1.0068 (raw 1.0310) | k=1 raw 3.0712% res 0.6479% removal   78.91% | k=10 removal   80.84% | k=50 raw 0.3020% res 0.0747% removal   75.27%
+[ghost-oracle] T1   2%      sigma=5   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9995 (raw 1.0310) | k=1 raw 3.0712% res 0.0229% removal   99.25% | k=10 removal   96.57% | k=50 raw 0.3020% res 0.0350% removal   88.40%
+[ghost-oracle] T1   27%     sigma=0   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9991 (raw 1.0310) | k=1 raw 3.0851% res 0.7227% removal   76.58% | k=10 removal   71.17% | k=50 raw 0.2729% res 0.0821% removal   69.91%
+[ghost-oracle] T1   27%     sigma=0   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9896 (raw 1.0310) | k=1 raw 3.0851% res 0.0182% removal   99.41% | k=10 removal   92.40% | k=50 raw 0.2729% res 0.0252% removal   90.75%
+[ghost-oracle] T1   27%     sigma=5   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9991 (raw 1.0310) | k=1 raw 3.0841% res 0.7141% removal   76.85% | k=10 removal   72.45% | k=50 raw 0.2750% res 0.0763% removal   72.26%
+[ghost-oracle] T1   27%     sigma=5   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9896 (raw 1.0310) | k=1 raw 3.0841% res 0.0110% removal   99.64% | k=10 removal   93.98% | k=50 raw 0.2750% res 0.0192% removal   93.01%
+[ghost-oracle] T1   92%     sigma=0   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9762 (raw 1.0310) | k=1 raw 3.0851% res 0.6777% removal   78.03% | k=10 removal   71.60% | k=50 raw 0.2729% res 0.0817% removal   70.06%
+[ghost-oracle] T1   92%     sigma=0   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9599 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal   92.95% | k=50 raw 0.2729% res 0.0247% removal   90.95%
+[ghost-oracle] T1   92%     sigma=5   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9762 (raw 1.0310) | k=1 raw 3.0848% res 0.6751% removal   78.11% | k=10 removal   71.98% | k=50 raw 0.2735% res 0.0798% removal   70.81%
+[ghost-oracle] T1   92%     sigma=5   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9599 (raw 1.0310) | k=1 raw 3.0848% res 0.0032% removal   99.90% | k=10 removal   93.42% | k=50 raw 0.2735% res 0.0222% removal   91.90%
+[ghost-oracle] T2   2%      sigma=0   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9954 (raw 1.0193) | k=1 raw 1.8953% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0040% res 0.0000% removal  100.00%
+[ghost-oracle] T2   2%      sigma=0   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9882 (raw 1.0193) | k=1 raw 1.8953% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0040% res 0.0000% removal  100.00%
+[ghost-oracle] T2   2%      sigma=5   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9954 (raw 1.0193) | k=1 raw 1.8811% res 0.0916% removal   95.13% | k=10 removal -254.28% | k=50 raw 0.0334% res 0.0537% removal  -60.52%
+[ghost-oracle] T2   2%      sigma=5   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9882 (raw 1.0193) | k=1 raw 1.8811% res 0.1467% removal   92.20% | k=10 removal -349.70% | k=50 raw 0.0334% res 0.0757% removal -126.27%
+[ghost-oracle] T2   27%     sigma=0   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9835 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0000% removal  100.00%
+[ghost-oracle] T2   27%     sigma=0   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9742 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0000% removal  100.00%
+[ghost-oracle] T2   27%     sigma=5   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9835 (raw 1.0147) | k=1 raw 1.4521% res 0.0086% removal   99.41% | k=10 removal   77.51% | k=50 raw 0.0056% res 0.0086% removal  -54.08%
+[ghost-oracle] T2   27%     sigma=5   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9742 (raw 1.0147) | k=1 raw 1.4521% res 0.0109% removal   99.25% | k=10 removal   71.57% | k=50 raw 0.0056% res 0.0109% removal  -94.76%
+[ghost-oracle] T2   92%     sigma=0   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9562 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0000% removal  100.00%
+[ghost-oracle] T2   92%     sigma=0   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9405 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0000% removal  100.00%
+[ghost-oracle] T2   92%     sigma=5   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9562 (raw 1.0091) | k=1 raw 0.9047% res 0.0025% removal   99.72% | k=10 removal   90.16% | k=50 raw 0.0031% res 0.0025% removal   17.25%
+[ghost-oracle] T2   92%     sigma=5   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9405 (raw 1.0091) | k=1 raw 0.9047% res 0.0032% removal   99.64% | k=10 removal   87.56% | k=50 raw 0.0031% res 0.0032% removal   -4.60%
+[ghost-oracle] T1   2%      sigma=0   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0191 (raw 1.0310) | k=1 raw 3.0851% res 1.9649% removal   36.31% | k=10 removal    5.37% | k=50 raw 0.2729% res 0.2694% removal    1.28%
+[ghost-oracle] T1   2%      sigma=0   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  1.0156 (raw 1.0310) | k=1 raw 3.0851% res 1.6309% removal   47.13% | k=10 removal    6.98% | k=50 raw 0.2729% res 0.2683% removal    1.67%
+[ghost-oracle] T1   2%      sigma=5   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0192 (raw 1.0310) | k=1 raw 3.0712% res 1.8350% removal   40.25% | k=10 removal   21.39% | k=50 raw 0.3020% res 0.2132% removal   29.40%
+[ghost-oracle] T1   2%      sigma=5   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  1.0156 (raw 1.0310) | k=1 raw 3.0712% res 1.4717% removal   52.08% | k=10 removal   26.39% | k=50 raw 0.3020% res 0.2008% removal   33.50%
+[ghost-oracle] T1   27%     sigma=0   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0154 (raw 1.0310) | k=1 raw 3.0851% res 1.9542% removal   36.66% | k=10 removal    5.39% | k=50 raw 0.2729% res 0.2694% removal    1.28%
+[ghost-oracle] T1   27%     sigma=0   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  1.0108 (raw 1.0310) | k=1 raw 3.0851% res 1.6170% removal   47.59% | k=10 removal    6.99% | k=50 raw 0.2729% res 0.2683% removal    1.67%
+[ghost-oracle] T1   27%     sigma=5   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0154 (raw 1.0310) | k=1 raw 3.0841% res 1.9446% removal   36.95% | k=10 removal    6.56% | k=50 raw 0.2750% res 0.2631% removal    4.36%
+[ghost-oracle] T1   27%     sigma=5   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  1.0108 (raw 1.0310) | k=1 raw 3.0841% res 1.6052% removal   47.95% | k=10 removal    8.46% | k=50 raw 0.2750% res 0.2597% removal    5.57%
+[ghost-oracle] T1   92%     sigma=0   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0042 (raw 1.0310) | k=1 raw 3.0851% res 1.9263% removal   37.56% | k=10 removal    5.42% | k=50 raw 0.2729% res 0.2694% removal    1.29%
+[ghost-oracle] T1   92%     sigma=0   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  0.9962 (raw 1.0310) | k=1 raw 3.0851% res 1.5807% removal   48.76% | k=10 removal    7.03% | k=50 raw 0.2729% res 0.2683% removal    1.67%
+[ghost-oracle] T1   92%     sigma=5   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0042 (raw 1.0310) | k=1 raw 3.0848% res 1.9234% removal   37.65% | k=10 removal    5.76% | k=50 raw 0.2735% res 0.2675% removal    2.19%
+[ghost-oracle] T1   92%     sigma=5   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  0.9962 (raw 1.0310) | k=1 raw 3.0848% res 1.5773% removal   48.87% | k=10 removal    7.46% | k=50 raw 0.2735% res 0.2658% removal    2.82%
+[ghost-oracle] T2   2%      sigma=0   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0076 (raw 1.0193) | k=1 raw 1.8953% res 0.7755% removal   59.08% | k=10 removal   63.31% | k=50 raw 0.0040% res 0.0037% removal    9.24%
+[ghost-oracle] T2   2%      sigma=0   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  1.0041 (raw 1.0193) | k=1 raw 1.8953% res 0.4416% removal   76.70% | k=10 removal   82.19% | k=50 raw 0.0040% res 0.0036% removal   11.99%
+[ghost-oracle] T2   2%      sigma=5   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0076 (raw 1.0193) | k=1 raw 1.8811% res 0.6487% removal   65.52% | k=10 removal   87.70% | k=50 raw 0.0334% res 0.0254% removal   23.92%
+[ghost-oracle] T2   2%      sigma=5   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  1.0041 (raw 1.0193) | k=1 raw 1.8811% res 0.3043% removal   83.83% | k=10 removal   96.27% | k=50 raw 0.0334% res 0.0235% removal   29.85%
+[ghost-oracle] T2   27%     sigma=0   m4 tier3 blend    C derived T2@27 +-0.1 retention=  0.9995 (raw 1.0147) | k=1 raw 1.4532% res 0.3301% removal   77.28% | k=10 removal   77.92% | k=50 raw 0.0034% res 0.0031% removal   10.70%
+[ghost-oracle] T2   27%     sigma=0   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  0.9949 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0029% removal   13.89%
+[ghost-oracle] T2   27%     sigma=5   m4 tier3 blend    C derived T2@27 +-0.1 retention=  0.9995 (raw 1.0147) | k=1 raw 1.4521% res 0.3226% removal   77.79% | k=10 removal   87.00% | k=50 raw 0.0056% res 0.0035% removal   37.74%
+[ghost-oracle] T2   27%     sigma=5   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  0.9949 (raw 1.0147) | k=1 raw 1.4521% res 0.0031% removal   99.79% | k=10 removal   98.09% | k=50 raw 0.0056% res 0.0032% removal   42.36%
+[ghost-oracle] T2   92%     sigma=0   m4 tier3 blend    C derived T2@27 +-0.1 retention=  0.9833 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0021% removal   14.51%
+[ghost-oracle] T2   92%     sigma=0   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  0.9756 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0020% removal   18.84%
+[ghost-oracle] T2   92%     sigma=5   m4 tier3 blend    C derived T2@27 +-0.1 retention=  0.9833 (raw 1.0091) | k=1 raw 0.9047% res 0.0025% removal   99.72% | k=10 removal   95.02% | k=50 raw 0.0031% res 0.0018% removal   42.19%
+[ghost-oracle] T2   92%     sigma=5   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  0.9756 (raw 1.0091) | k=1 raw 0.9047% res 0.0032% removal   99.64% | k=10 removal   87.87% | k=50 raw 0.0031% res 0.0016% removal   47.33%
+[ghost-oracle-m4] K1 rows: blend better 6, blend worse 2, no difference 4 (of 12) => mixed or no difference
+[ghost-oracle-m4] K2 => blend worse | K3 => blend worse | K4 => blend better
+[ghost-oracle-m4] LABEL A (preregistration section 4; measurement summary of these inputs, not a decision on #238)
+[       OK ] GhostMixCompare.ComparesTheBlendKeptAndRemovedAsPreregistered (227 ms)
+[----------] 5 tests from GhostMixCompare (298 ms total)
+
+[----------] Global test environment tear-down
+[==========] 70 tests from 3 test suites ran. (4971 ms total)
+[  PASSED  ] 70 tests.

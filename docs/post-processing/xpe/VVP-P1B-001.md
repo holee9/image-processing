@@ -1,8 +1,8 @@
 # VVP Addendum: P1B Post-Processing Modules (ENH/DISP/DICOM) Verification & Validation Plan
 
 **Document ID**: VVP-P1B-001
-**Version**: 1.1.0
-**Date**: 2026-09-10
+**Version**: 1.1.1
+**Date**: 2026-10-03
 **Parent**: XPE-VVP-001 v1.1 (docs/post-processing/xpe/)
 **Grandparent**: XPE-SVVP-001 v1.4.0 (docs/project/)
 **Scope**: P1B Post-Processing modules — xpe_enhance_basic, xpe_display, xpe_dicom
@@ -20,6 +20,7 @@
 |---------|------|--------|---------|
 | 1.0.0 | 2026-04-22 | main | Initial P1B VVP addendum covering ENH (67/67), DISP (48/48), DICOM (35/35) modules. |
 | 1.1.0 | 2026-09-10 | xpe-docs (issue #59) | Test counts and filenames corrected against the source tree (ENH 92 / DISP 63 / DICOM 47 = 202 cases; `test_dicom_network_scu.cpp` replaces the non-existent `test_dicom_network.cpp` / `test_dicom_integration.cpp`). Added §2.1 IEC 62304 §5.5/5.6/5.7 clause mapping, §5.4 DLL-loading / P-Invoke boundary matrix and §8.2 completion criteria (both absorbed from the now-superseded Korean addendum), §8.3 RTM cross-reference, §6.5 measured coverage and leak-gate state. |
+| 1.1.1 | 2026-10-03 | lead (QA-B-199, #251) | `REQ-DISP-029` was defined twice in SPEC-XPE-P1B-DISP; its second definition (ABI / P-Invoke) was renumbered `REQ-DISP-036`. Display ranges updated to `019~029` (SWU-3.3) and `030~036` (cross-cutting), and the three display P-Invoke rows now trace to `REQ-DISP-036`. Test counts were not re-measured. |
 
 ---
 
@@ -83,8 +84,8 @@ the CI test report, not here.
 |--------|-------------|:-------:|:--------------:|:---------:|:----------:|
 | REQ-DISP-001~008 | Modality LUT (SWU-3.1) | ✓ | ✓ | ✓ | |
 | REQ-DISP-009~018 | VOI LUT + Presets (SWU-3.2) | ✓ | ✓ | ✓ | ✓ (BP-08) |
-| REQ-DISP-019~028 | Presentation LUT + GSDF (SWU-3.3) | ✓ | ✓ | ✓ | ✓ (BP-08) |
-| REQ-DISP-029~035 | Cross-Cutting (ABI, threads, perf) | ✓ | ✓ | ✓ | |
+| REQ-DISP-019~029 | Presentation LUT + GSDF (SWU-3.3) | ✓ | ✓ | ✓ | ✓ (BP-08) |
+| REQ-DISP-030~036 | Cross-Cutting (ABI, threads, perf) | ✓ | ✓ | ✓ | |
 
 ### 3.3 xpe_dicom (SPEC-XPE-P1B-DICOM)
 
@@ -123,8 +124,8 @@ the CI test report, not here.
 |--------|-----------|:------------------:|
 | REQ-DISP-001~008 | test_modality_lut.cpp | 13 |
 | REQ-DISP-009~018 | test_voi_lut.cpp | 18 |
-| REQ-DISP-019~028 | test_presentation_lut.cpp | 15 |
-| REQ-DISP-029~035 | test_display_integration.cpp | 17 |
+| REQ-DISP-019~029 | test_presentation_lut.cpp | 15 |
+| REQ-DISP-030~036 | test_display_integration.cpp | 17 |
 | **Total** | **4 files** | **63** |
 
 #### xpe_dicom (modules/dicom/tests/)
@@ -181,9 +182,9 @@ Location: `clients/ImageProcTest/` (C# test project).
 | xpe_contrast_enhance via P/Invoke | enhance_basic | REQ-ENH-CC-001 | Same output as direct C++ call |
 | xpe_edge_enhance via P/Invoke | enhance_basic | REQ-ENH-CC-001 | Same output as direct C++ call |
 | xpe_calc_exposure_index via P/Invoke | enhance_basic | REQ-ENH-CC-001 | EI/DI values within tolerance |
-| xpe_apply_modality_lut via P/Invoke | display | REQ-DISP-029 | Same output as direct C++ call |
-| xpe_apply_voi_lut via P/Invoke | display | REQ-DISP-029 | Same output as direct C++ call |
-| xpe_apply_presentation_lut via P/Invoke | display | REQ-DISP-029 | Same output as direct C++ call |
+| xpe_apply_modality_lut via P/Invoke | display | REQ-DISP-036 | Same output as direct C++ call |
+| xpe_apply_voi_lut via P/Invoke | display | REQ-DISP-036 | Same output as direct C++ call |
+| xpe_apply_presentation_lut via P/Invoke | display | REQ-DISP-036 | Same output as direct C++ call |
 | xpe_dicom_read_image via P/Invoke | dicom | REQ-DICOM-041 | Pixel-exact extraction |
 | xpe_dicom_write via P/Invoke | dicom | REQ-DICOM-041 | DICOM conformance validation |
 
@@ -218,7 +219,7 @@ P/Invoke wrapper layer.
 |--------|----------------------|------------------|----------------|
 | xpe_enhance_basic | all 7 exported functions | `int[]`, `float[]`, struct-by-ref | Managed call result identical to the direct C++ call |
 | xpe_display | all 5 exported functions | `byte[]`, `int[]`, struct-by-ref | Managed call result identical to the direct C++ call |
-| xpe_dicom | all 10 exported functions | `string`, `int[]`, `byte[]` | Managed call result identical to the direct C++ call |
+| xpe_dicom | all 11 exported functions (`xpe_dicom_version` added 2026-10-03) | `string`, `int[]`, `byte[]` | Managed call result identical to the direct C++ call |
 
 Procedure: (1) invoke each function 100 times from the managed host; (2) compare input/output value
 integrity against the native reference; (3) exercise the DLL-absent path; (4) exercise concurrent

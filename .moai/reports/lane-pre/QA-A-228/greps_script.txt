@@ -1,0 +1,76 @@
+"""QA-A-228 evidence greps with controls. Writes evidence_greps.txt (ASCII-safe command text + counts)."""
+import re, glob, os
+R = 'D:/workspace-github/xpe-pre/'
+OUT = []
+def p(*a): OUT.append(' '.join(str(x) for x in a))
+
+def read(f):
+    return open(f, encoding='utf-8', errors='replace').read()
+
+src = [f for f in glob.glob(R + 'modules/preprocess/src/*') if os.path.isfile(f)]
+tst = [f for f in glob.glob(R + 'modules/preprocess/tests/*') if os.path.isfile(f)]
+inc = [f for f in glob.glob(R + 'modules/preprocess/include/**/*', recursive=True) if os.path.isfile(f)]
+
+def count(files, pat, flags=0):
+    n = 0; fs = []
+    for f in files:
+        c = len(re.findall(pat, read(f), flags))
+        if c: n += c; fs.append(os.path.basename(f))
+    return n, fs
+
+# G1: M3-9 session matching
+p('G1  M3-9 session matching (plan: "offset/gain/BPM same session_id verification")')
+n, fs = count(src, r'(strcmp|memcmp|strncmp)\s*\([^;]*session', re.I)
+p('    compare session ids with strcmp/memcmp in src/*:', n, fs)
+n, fs = count(src, r'(strcmp|memcmp|strncmp)\s*\(')
+p('    CONTROL same pattern without the session filter in src/*:', n, fs[:6])
+n, fs = count(src, r'session_id|sessionId', re.I)
+p('    session id mentioned in src/*:', n, fs)
+n, fs = count(src, r'XPE_ERR_[A-Z_]*SESSION[A-Z_]*|session[_ ]mismatch', re.I)
+p('    a session-mismatch error code/word in src/*:', n, fs)
+n, fs = count(inc, r'session[_ ]mismatch|SESSION_MISMATCH', re.I)
+p('    in include/*:', n, fs)
+
+# G2: dangling REQ citations
+p('G2  REQ-P1A ids cited in code/tests that spec.md does not define')
+spec = read(R + '.moai/specs/SPEC-XPE-P1A/spec.md')
+defined = set(re.findall(r'^#{2,6}\s+(REQ-P1A-\d+[a-z]?)', spec, re.M))
+allf = src + tst + inc
+cited = {}
+for f in allf:
+    for r in set(re.findall(r'REQ-P1A-\d+[a-z]?', read(f))):
+        cited.setdefault(r, []).append(os.path.basename(f))
+und = {k: v for k, v in cited.items() if k not in defined}
+p('    defined:', len(defined), '| cited in code:', len(cited), '| cited but not defined:', len(und))
+for k in sorted(und): p('      %s <- %s' % (k, ','.join(sorted(set(und[k])))[:150]))
+
+# G3: M1/M2/M4 file names named in plan.md
+p('G3  plan.md file names -> exist?')
+plan = read(R + '.moai/specs/SPEC-XPE-P1A/plan.md')
+names = sorted(set(re.findall(r'`?((?:xpe_[a-z0-9_]+|test_[a-z0-9_]+|xcal_parser|interpolation)\.(?:cpp|h|hpp))`?', plan)))
+base = {os.path.basename(f) for f in glob.glob(R + 'modules/preprocess/**/*', recursive=True) if os.path.isfile(f)}
+for nme in names:
+    p('    %-34s %s' % (nme, 'EXISTS' if nme in base else 'missing'))
+p('    CONTROL: offset_correct.cpp exists =', 'offset_correct.cpp' in base)
+
+# G4: disabled / skipped tests tied to plan tasks
+p('G4  DISABLED_ tests in modules/preprocess/tests')
+n, fs = count(tst, r'DISABLED_\w+')
+p('    ', n, fs)
+for f in tst:
+    for m in re.finditer(r'DISABLED_\w+', read(f)):
+        p('      ', os.path.basename(f), m.group(0))
+
+# G5: cited-name vs wording : spec cites tests by name; do those names exist?
+p('G5  test names the SPEC text cites -> exist?')
+cited_t = sorted(set(re.findall(r'`((?:[A-Z][A-Za-z0-9]+)\.(?:[A-Z][A-Za-z0-9_]+))`', spec)))
+alltxt = '\n'.join(read(f) for f in tst)
+bad = []
+for t in cited_t:
+    suite, name = t.split('.')
+    if not re.search(r'TEST(?:_F|_P)?\s*\(\s*%s\s*,\s*%s\s*\)' % (suite, name), alltxt):
+        bad.append(t)
+p('    cited:', len(cited_t), '| not found as TEST(...):', len(bad), bad)
+p('    CONTROL: DefectCorrectTest.InPlaceMatchesOutOfPlace found =', bool(re.search(r'TEST(?:_F)?\s*\(\s*DefectCorrectTest\s*,\s*InPlaceMatchesOutOfPlace\s*\)', alltxt)))
+open(R + '.moai/reports/lane-pre/QA-A-228/evidence_greps.txt', 'w', encoding='utf-8', newline='\n').write('\n'.join(OUT) + '\n')
+print('\n'.join(OUT).encode('ascii', 'replace').decode())

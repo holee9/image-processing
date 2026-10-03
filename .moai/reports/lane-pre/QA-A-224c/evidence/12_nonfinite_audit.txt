@@ -1,0 +1,15 @@
+defect:ctl:none            exit=0                 rc=0 pass=True defects=3 density=0.293 corr_err=0 prnu_after=0 snr=0 coverage=0 invalid_gain=0 mask=16
+defect:atdefect:nan        exit=0                 rc=0 pass=True defects=3 density=0.293 corr_err=nan prnu_after=0 snr=0 coverage=0 invalid_gain=0 mask=16
+defect:atgood:nan          exit=0                 rc=0 pass=True defects=3 density=0.293 corr_err=0 prnu_after=0 snr=0 coverage=0 invalid_gain=0 mask=16
+defect:atgood:pinf         exit=0                 rc=0 pass=True defects=3 density=0.293 corr_err=0 prnu_after=0 snr=0 coverage=0 invalid_gain=0 mask=16
+defect:atgood:ninf         exit=0                 rc=0 pass=True defects=3 density=0.293 corr_err=0 prnu_after=0 snr=0 coverage=0 invalid_gain=0 mask=16
+defect:all:nan             exit=0                 rc=0 pass=True defects=3 density=0.293 corr_err=0 prnu_after=0 snr=0 coverage=0 invalid_gain=0 mask=16
+gain:gainmap:nan           exit=0                 rc=0 pass=True defects=0 density=0 corr_err=0 prnu_after=0 snr=200 coverage=0.999 invalid_gain=1 mask=44
+gain:gainmap:pinf          exit=0                 rc=0 pass=True defects=0 density=0 corr_err=0 prnu_after=0 snr=200 coverage=0.999 invalid_gain=1 mask=44
+gain:after:pinf            exit=0                 rc=0 pass=False defects=0 density=0 corr_err=0 prnu_after=nan snr=0 coverage=1 invalid_gain=0 mask=8
+gain:after:ninf            exit=0                 rc=0 pass=False defects=0 density=0 corr_err=0 prnu_after=0 snr=0 coverage=1 invalid_gain=0 mask=8
+gain:after:nan             exit=0                 rc=0 pass=False defects=0 density=0 corr_err=0 prnu_after=0 snr=0 coverage=1 invalid_gain=0 mask=8
+pipeline:final:nan         exit=0                 rc=0 pass=False defects=0 density=0 corr_err=0 prnu_after=0 snr=nan coverage=0 invalid_gain=0 mask=32
+pipeline:final:pinf        exit=0                 rc=0 pass=False defects=0 density=0 corr_err=0 prnu_after=0 snr=-inf coverage=0 invalid_gain=0 mask=32
+pipeline:final:ninf        exit=0                 rc=0 pass=False defects=0 density=0 corr_err=0 prnu_after=0 snr=-inf coverage=0 invalid_gain=0 mask=32
+offset:ctl:none            exit=0                 rc=0 pass=False defects=0 density=0 corr_err=0 prnu_after=0 snr=0 coverage=0 invalid_gain=0 mask=3

@@ -1,0 +1,7 @@
+tokens, whole-word where short (control: xpe_verify_pipeline in modules)
+control xpe_verify_pipeline: modules 7 files
+\bCES\b: modules 1  clients/gui/tools 0
+modules/preprocess/src/xpe_verify_metrics.cpp
+xpe-pre-e2e-report-v1: anywhere(tracked-ish dirs) 3
+LineArtifactScore: modules/clients/gui/tools 1
+DefectResidualADU: modules/clients/gui/tools 5

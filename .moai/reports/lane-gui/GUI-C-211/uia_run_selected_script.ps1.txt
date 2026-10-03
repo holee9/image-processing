@@ -1,0 +1,58 @@
+param([string]$Exe, [string]$NativeDir, [string]$Out, [string]$Shot)
+Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Drawing, System.Windows.Forms
+$ErrorActionPreference = 'Continue'
+$sb = New-Object System.Text.StringBuilder
+function Say($s) { [void]$sb.AppendLine($s); $sb.ToString() | Set-Content -LiteralPath $Out -Encoding UTF8 }
+
+$psi = New-Object System.Diagnostics.ProcessStartInfo
+$psi.FileName = $Exe
+$psi.WorkingDirectory = Split-Path $Exe
+$psi.UseShellExecute = $false
+if ($NativeDir) { $psi.EnvironmentVariables['XPE_NATIVE_DIR'] = $NativeDir }
+$proc = [System.Diagnostics.Process]::Start($psi)
+Say ("started pid={0} XPE_NATIVE_DIR={1}" -f $proc.Id, $NativeDir)
+try {
+  $root = [System.Windows.Automation.AutomationElement]::RootElement
+  $win = $null
+  for ($i = 0; $i -lt 60 -and -not $win; $i++) {
+    Start-Sleep -Milliseconds 500
+    $cond = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty, $proc.Id)
+    $win = $root.FindFirst([System.Windows.Automation.TreeScope]::Children, $cond)
+  }
+  if (-not $win) { Say 'NO WINDOW'; return }
+  Say ("window: '{0}'" -f $win.Current.Name)
+  Start-Sleep -Seconds 6   # let the startup readiness evaluation finish
+
+  function Tabs() { $win.FindAll([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::TabItem))) }
+  function SelectTab($name) {
+    foreach ($t in Tabs) { if ($t.Current.Name -eq $name) { $p = $t.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern); $p.Select(); Start-Sleep -Milliseconds 800; return $true } }
+    return $false
+  }
+  function Texts() {
+    foreach ($e in $win.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)) {
+      $n = $e.Current.Name; $id = $e.Current.AutomationId; $ct = $e.Current.ControlType.ProgrammaticName
+      if ($ct -in 'ControlType.Text','ControlType.DataItem','ControlType.CheckBox','ControlType.Button') { if ($n -or $id) { Say ("  [{0}] id='{1}' name='{2}' enabled={3}" -f $ct.Replace('ControlType.',''), $id, ($n -replace "[\r\n]+",' | '), $e.Current.IsEnabled) } }
+    }
+  }
+  Say ("=== tab Calibration: selected={0}" -f (SelectTab 'Calibration'))
+  $rows = $win.FindAll([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::DataItem)))
+  $target = $null
+  foreach ($r in $rows) { if ($r.Current.Name -like '*SwuId = SWU-1.1,*') { $target = $r; break } }
+  Say ("row found: {0}" -f ($target -ne $null))
+  if ($target) {
+    Say ("row: " + ($target.Current.Name.Substring(0, [Math]::Min(300, $target.Current.Name.Length))))
+    $target.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select(); Start-Sleep -Milliseconds 500
+    $btn = $win.FindFirst([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::AutomationIdProperty, 'RunSelectedAlgorithmButton')))
+    Say ("button enabled: {0}" -f $btn.Current.IsEnabled)
+    $btn.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke(); Start-Sleep -Seconds 2
+    $res = $win.FindFirst([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::AutomationIdProperty, 'AlgorithmValidationResultText')))
+    Say ("AlgorithmValidationResultText: " + $res.Current.Name)
+  }
+  foreach ($e in $win.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)) {
+    if ($e.Current.AutomationId -in 'AlgorithmValidationResultText','AlgorithmChainStatusText','WorkflowStatusText') { Say ("  id={0}: {1}" -f $e.Current.AutomationId, $e.Current.Name) }
+  }
+}
+finally {
+  if (-not $proc.HasExited) { $proc.CloseMainWindow() | Out-Null; Start-Sleep -Seconds 2; if (-not $proc.HasExited) { $proc.Kill() } }
+  Say 'closed'
+}

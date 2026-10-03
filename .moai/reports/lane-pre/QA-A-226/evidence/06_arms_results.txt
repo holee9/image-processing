@@ -1,0 +1,34 @@
+a1_calibrated_always_true              -> 10 red: 9, GhostUncalibrated.ConstantExposureKeepsItsSignal, GhostUncalibrated.DefaultHandlePassesEveryFrameThroughBitForBit, GhostUncalibrated.EmptyValuesCountAsNotGiven, GhostUncalibrated.OneWarningAtCreationAndNoneAfterwards, GhostUncalibrated.PassThroughLeavesTheHandleStateUntouched, GhostUncalibrated.ThreeOfFourParametersIsStillUncalibrated, GhostUncalibrated.TierAndOtherKeysAloneDoNotCalibrate, GhostUncalibrated.TwoHandlesWarnOnceEach, PipelineStageValueTest.AnUncalibratedGhostHandleLeavesTheFlagUnsetAndTheValuesAsTheyWere
+a2_no_warning BUILD FAILED
+x64\x64\cl.exe  /nologo /TP -DFMT_SHARED -DSPDLOG_COMPILED_LIB -DSPDLOG_SHARED_LIB -DXPE_CACHE_TEST_HOOKS -DXPE_DLL_EXPORT -ID:\workspace-github\xpe-pre\modules\preprocess\include -ID:\workspace-github\xpe-pre\modules\preprocess\src -ID:\workspace-github\xpe-pre\modules\preprocess\..\..\third_party -ID:\workspace-github\xpe-pre\modules\common\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\spdlog-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\nlohmann_json-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\fmt-src\include -external:ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include -external:ID:\works
+D:\workspace-github\xpe-pre\modules\preprocess\src\ghost_correct.cpp(92): error C2220: 다음 경고는 오류로 처리됩니다.
+D:\workspace-github\xpe-pre\modules\preprocess\src\ghost_correct.cpp(92): warning C4127: 조건식이 상수입니다.
+D:\workspace-github\xpe-pre\modules\preprocess\src\ghost_correct.cpp(92): note: 'if constexpr' 문을 대신 사용해 보세요.
+ninja: build stopped: subcommand failed.
+BUILD_EXIT=1
+
+a3_any_instead_of_all                  -> 2 red: 1, GhostUncalibrated.ThreeOfFourParametersIsStillUncalibrated
+a4_pipeline_flag_unconditional         -> 2 red: 1, PipelineStageValueTest.AnUncalibratedGhostHandleLeavesTheFlagUnsetAndTheValuesAsTheyWere
+a2_no_warning BUILD FAILED
+e-pre\modules\preprocess\src -ID:\workspace-github\xpe-pre\modules\preprocess\..\..\third_party -ID:\workspace-github\xpe-pre\modules\common\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\spdlog-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\nlohmann_json-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\fmt-src\include -external:ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include -external:ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest -external:W0 /DWIN32 /D_WINDOWS /EHsc /Zi /O2 /Ob1 /DNDEBUG -std:c++17 -MD /arch:AVX2 /W4 /utf-8 /WX /wd4251 /wd4275 /showIncludes /
+D:\workspace-github\xpe-pre\modules\preprocess\src\ghost_correct.cpp(92): error C2220: 다음 경고는 오류로 처리됩니다.
+D:\workspace-github\xpe-pre\modules\preprocess\src\ghost_correct.cpp(92): warning C4127: 조건식이 상수입니다.
+D:\workspace-github\xpe-pre\modules\preprocess\src\ghost_correct.cpp(92): note: 'if constexpr' 문을 대신 사용해 보세요.
+[3/11] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\pipeline.cpp.obj
+[4/11] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\pipeline.cpp.obj
+ninja: build stopped: subcommand failed.
+BUILD_EXIT=1
+
+a5_passthrough_before_entry_checks     -> 2 red: 1, GhostUncalibrated.PassThroughStillRefusesWhatTheCorrectingPathRefuses
+a6_empty_value_counts                  -> 2 red: 1, GhostUncalibrated.EmptyValuesCountAsNotGiven
+a2_no_warning BUILD FAILED
+x64\x64\cl.exe  /nologo /TP -DFMT_SHARED -DSPDLOG_COMPILED_LIB -DSPDLOG_SHARED_LIB -DXPE_CACHE_TEST_HOOKS -DXPE_DLL_EXPORT -ID:\workspace-github\xpe-pre\modules\preprocess\include -ID:\workspace-github\xpe-pre\modules\preprocess\src -ID:\workspace-github\xpe-pre\modules\preprocess\..\..\third_party -ID:\workspace-github\xpe-pre\modules\common\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\spdlog-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\nlohmann_json-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\fmt-src\include -external:ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\include -external:ID:\works
+D:\workspace-github\xpe-pre\modules\preprocess\src\ghost_correct.cpp(92): error C2220: 다음 경고는 오류로 처리됩니다.
+D:\workspace-github\xpe-pre\modules\preprocess\src\ghost_correct.cpp(92): warning C4127: 조건식이 상수입니다.
+D:\workspace-github\xpe-pre\modules\preprocess\src\ghost_correct.cpp(92): note: 'if constexpr' 문을 대신 사용해 보세요.
+ninja: build stopped: subcommand failed.
+BUILD_EXIT=1
+
+a7_passthrough_removed                 -> 4 red: GhostUncalibrated.ConstantExposureKeepsItsSignal, GhostUncalibrated.DefaultHandlePassesEveryFrameThroughBitForBit, GhostUncalibrated.PassThroughLeavesTheHandleStateUntouched, GhostUncalibrated.ThreeOfFourParametersIsStillUncalibrated
+a8_warning_every_frame                 -> 1 red: GhostUncalibrated.OneWarningAtCreationAndNoneAfterwards
+a2_no_warning                          -> 5 red: GhostUncalibrated.EmptyValuesCountAsNotGiven, GhostUncalibrated.OneWarningAtCreationAndNoneAfterwards, GhostUncalibrated.ThreeOfFourParametersIsStillUncalibrated, GhostUncalibrated.TierAndOtherKeysAloneDoNotCalibrate, GhostUncalibrated.TwoHandlesWarnOnceEach

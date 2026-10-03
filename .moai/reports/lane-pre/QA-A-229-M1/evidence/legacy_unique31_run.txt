@@ -1,0 +1,152 @@
+Note: Google Test filter = Legacy*
+[==========] Running 31 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 6 tests from LegacyPreprocessCalibrationTest
+[ RUN      ] LegacyPreprocessCalibrationTest.LoadOffset_CorruptedFileWrongMagic
+[       OK ] LegacyPreprocessCalibrationTest.LoadOffset_CorruptedFileWrongMagic (0 ms)
+[ RUN      ] LegacyPreprocessCalibrationTest.LoadOffset_SHAMismatch
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess.cpp(254): error: Value of: result == 0 || result == -4
+  Actual: false
+Expected: true
+
+[  FAILED  ] LegacyPreprocessCalibrationTest.LoadOffset_SHAMismatch (8 ms)
+[ RUN      ] LegacyPreprocessCalibrationTest.LoadOffset_SessionMismatch
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess.cpp(275): error: Value of: result == 0 || result == -4
+  Actual: false
+Expected: true
+
+[  FAILED  ] LegacyPreprocessCalibrationTest.LoadOffset_SessionMismatch (6 ms)
+[ RUN      ] LegacyPreprocessCalibrationTest.LoadOffset_ExpiredCalibration
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess.cpp(320): error: Expected equality of these values:
+  result
+    Which is: -2
+  -5
+
+[  FAILED  ] LegacyPreprocessCalibrationTest.LoadOffset_ExpiredCalibration (9 ms)
+[ RUN      ] LegacyPreprocessCalibrationTest.LoadOffset_DimensionMismatch
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess.cpp(341): error: Value of: result == 0 || result == -4
+  Actual: false
+Expected: true
+
+[  FAILED  ] LegacyPreprocessCalibrationTest.LoadOffset_DimensionMismatch (5 ms)
+[ RUN      ] LegacyPreprocessCalibrationTest.LoadOffset_NotInitialized
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess.cpp(362): error: Expected equality of these values:
+  result
+    Which is: -9
+  -6
+
+[  FAILED  ] LegacyPreprocessCalibrationTest.LoadOffset_NotInitialized (0 ms)
+[----------] 6 tests from LegacyPreprocessCalibrationTest (31 ms total)
+
+[----------] 10 tests from LegacyPreprocessCorrectionTest
+[ RUN      ] LegacyPreprocessCorrectionTest.OffsetCorrect_TemperatureInterpolation
+[       OK ] LegacyPreprocessCorrectionTest.OffsetCorrect_TemperatureInterpolation (13 ms)
+[ RUN      ] LegacyPreprocessCorrectionTest.OffsetCorrect_PREPTimeModel
+[       OK ] LegacyPreprocessCorrectionTest.OffsetCorrect_PREPTimeModel (13 ms)
+[ RUN      ] LegacyPreprocessCorrectionTest.GainCorrect_GainMapDivision
+[       OK ] LegacyPreprocessCorrectionTest.GainCorrect_GainMapDivision (12 ms)
+[ RUN      ] LegacyPreprocessCorrectionTest.GainCorrect_MultiSIDInterpolation
+[       OK ] LegacyPreprocessCorrectionTest.GainCorrect_MultiSIDInterpolation (14 ms)
+[ RUN      ] LegacyPreprocessCorrectionTest.GainCorrect_NaNInfValidation
+[       OK ] LegacyPreprocessCorrectionTest.GainCorrect_NaNInfValidation (15 ms)
+[ RUN      ] LegacyPreprocessCorrectionTest.DefectCorrect_EdgeAwareInterpolation
+[       OK ] LegacyPreprocessCorrectionTest.DefectCorrect_EdgeAwareInterpolation (13 ms)
+[ RUN      ] LegacyPreprocessCorrectionTest.DefectCorrect_StaticBPMPriority
+[       OK ] LegacyPreprocessCorrectionTest.DefectCorrect_StaticBPMPriority (12 ms)
+[ RUN      ] LegacyPreprocessCorrectionTest.DefectCorrect_TransientDefectDetection
+[       OK ] LegacyPreprocessCorrectionTest.DefectCorrect_TransientDefectDetection (12 ms)
+[ RUN      ] LegacyPreprocessCorrectionTest.DefectCorrect_ClusterDefect
+[       OK ] LegacyPreprocessCorrectionTest.DefectCorrect_ClusterDefect (13 ms)
+[ RUN      ] LegacyPreprocessCorrectionTest.DefectCorrect_EmptyBPM
+[       OK ] LegacyPreprocessCorrectionTest.DefectCorrect_EmptyBPM (12 ms)
+[----------] 10 tests from LegacyPreprocessCorrectionTest (134 ms total)
+
+[----------] 10 tests from LegacyPreprocessCalibrationManagementTest
+[ RUN      ] LegacyPreprocessCalibrationManagementTest.GenerateOffset_DarkFrameAveraging
+[       OK ] LegacyPreprocessCalibrationManagementTest.GenerateOffset_DarkFrameAveraging (21 ms)
+[ RUN      ] LegacyPreprocessCalibrationManagementTest.GenerateOffset_SingleFrame
+[       OK ] LegacyPreprocessCalibrationManagementTest.GenerateOffset_SingleFrame (10 ms)
+[ RUN      ] LegacyPreprocessCalibrationManagementTest.GenerateOffset_NullFrames
+[       OK ] LegacyPreprocessCalibrationManagementTest.GenerateOffset_NullFrames (0 ms)
+[ RUN      ] LegacyPreprocessCalibrationManagementTest.CheckExpiry_ValidCalibration
+[       OK ] LegacyPreprocessCalibrationManagementTest.CheckExpiry_ValidCalibration (6 ms)
+[ RUN      ] LegacyPreprocessCalibrationManagementTest.CheckExpiry_ExpiredCalibration
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess.cpp(869): error: Value of: is_expired
+  Actual: false
+Expected: true
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess.cpp(870): error: Expected: (remaining_days) < (0), actual: 2147483647 vs 0
+
+[  FAILED  ] LegacyPreprocessCalibrationManagementTest.CheckExpiry_ExpiredCalibration (8 ms)
+[ RUN      ] LegacyPreprocessCalibrationManagementTest.CheckExpiry_NullFilePath
+[       OK ] LegacyPreprocessCalibrationManagementTest.CheckExpiry_NullFilePath (0 ms)
+[ RUN      ] LegacyPreprocessCalibrationManagementTest.Save_XCalFormatWrite
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess.cpp(910): error: Value of: result == 0 || result == -15 || result == -6 || result == -16
+  Actual: false
+Expected: true
+
+[  FAILED  ] LegacyPreprocessCalibrationManagementTest.Save_XCalFormatWrite (0 ms)
+[ RUN      ] LegacyPreprocessCalibrationManagementTest.Save_FileCreationSuccess
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess.cpp(939): error: Value of: result == 0 || result == -15 || result == -6 || result == -16
+  Actual: false
+Expected: true
+
+[  FAILED  ] LegacyPreprocessCalibrationManagementTest.Save_FileCreationSuccess (0 ms)
+[ RUN      ] LegacyPreprocessCalibrationManagementTest.ValidateReadout_DroppedColumnDetection
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess.cpp(973): error: Value of: result == 0 || result == -15
+  Actual: false
+Expected: true
+
+[  FAILED  ] LegacyPreprocessCalibrationManagementTest.ValidateReadout_DroppedColumnDetection (1 ms)
+[ RUN      ] LegacyPreprocessCalibrationManagementTest.ValidateReadout_GainNonUniformity
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess.cpp(1013): error: Value of: result == 0 || result == -15
+  Actual: false
+Expected: true
+
+[  FAILED  ] LegacyPreprocessCalibrationManagementTest.ValidateReadout_GainNonUniformity (1 ms)
+[----------] 10 tests from LegacyPreprocessCalibrationManagementTest (50 ms total)
+
+[----------] 5 tests from LegacyPreprocessUtilityTest
+[ RUN      ] LegacyPreprocessUtilityTest.DefectDetectRuntime_StatisticalOutlierDetection
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess.cpp(1061): error: Value of: result == 0 || result == -15 || result == -6 || result == -16
+  Actual: false
+Expected: true
+
+[  FAILED  ] LegacyPreprocessUtilityTest.DefectDetectRuntime_StatisticalOutlierDetection (2 ms)
+[ RUN      ] LegacyPreprocessUtilityTest.DefectDetectRuntime_HotPixelDetection
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess.cpp(1096): error: Value of: result == 0 || result == -15 || result == -6 || result == -16
+  Actual: false
+Expected: true
+
+[  FAILED  ] LegacyPreprocessUtilityTest.DefectDetectRuntime_HotPixelDetection (2 ms)
+[ RUN      ] LegacyPreprocessUtilityTest.DefectDetectRuntime_StuckPixelDetection
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess.cpp(1130): error: Value of: result == 0 || result == -15 || result == -6 || result == -16
+  Actual: false
+Expected: true
+
+[  FAILED  ] LegacyPreprocessUtilityTest.DefectDetectRuntime_StuckPixelDetection (2 ms)
+[ RUN      ] LegacyPreprocessUtilityTest.GetParamRange_ValidLookup
+[       OK ] LegacyPreprocessUtilityTest.GetParamRange_ValidLookup (0 ms)
+[ RUN      ] LegacyPreprocessUtilityTest.GetParamRange_InvalidParams
+[       OK ] LegacyPreprocessUtilityTest.GetParamRange_InvalidParams (0 ms)
+[----------] 5 tests from LegacyPreprocessUtilityTest (7 ms total)
+
+[----------] Global test environment tear-down
+[==========] 31 tests from 4 test suites ran. (223 ms total)
+[  PASSED  ] 18 tests.
+[  FAILED  ] 13 tests, listed below:
+[  FAILED  ] LegacyPreprocessCalibrationTest.LoadOffset_SHAMismatch
+[  FAILED  ] LegacyPreprocessCalibrationTest.LoadOffset_SessionMismatch
+[  FAILED  ] LegacyPreprocessCalibrationTest.LoadOffset_ExpiredCalibration
+[  FAILED  ] LegacyPreprocessCalibrationTest.LoadOffset_DimensionMismatch
+[  FAILED  ] LegacyPreprocessCalibrationTest.LoadOffset_NotInitialized
+[  FAILED  ] LegacyPreprocessCalibrationManagementTest.CheckExpiry_ExpiredCalibration
+[  FAILED  ] LegacyPreprocessCalibrationManagementTest.Save_XCalFormatWrite
+[  FAILED  ] LegacyPreprocessCalibrationManagementTest.Save_FileCreationSuccess
+[  FAILED  ] LegacyPreprocessCalibrationManagementTest.ValidateReadout_DroppedColumnDetection
+[  FAILED  ] LegacyPreprocessCalibrationManagementTest.ValidateReadout_GainNonUniformity
+[  FAILED  ] LegacyPreprocessUtilityTest.DefectDetectRuntime_StatisticalOutlierDetection
+[  FAILED  ] LegacyPreprocessUtilityTest.DefectDetectRuntime_HotPixelDetection
+[  FAILED  ] LegacyPreprocessUtilityTest.DefectDetectRuntime_StuckPixelDetection
+
+13 FAILED TESTS

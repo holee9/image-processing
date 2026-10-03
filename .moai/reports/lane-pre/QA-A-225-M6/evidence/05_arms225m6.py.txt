@@ -1,0 +1,41 @@
+"""QA-A-225 M6 arms: damage the metric or the controls one way at a time; run GhostOraclePedestal*; record exit and red tests."""
+import subprocess, sys, shutil, os, re
+R = 'D:/workspace-github/xpe-pre/'
+S = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5/scratchpad/'
+T = R + 'modules/preprocess/tests/'
+H = T + 'ghost_oracle_harness.h'
+P = T + 'test_ghost_oracle_pedestal.cpp'
+ARMS = {
+    'p1_corrected_dark_taken_from_raw': (H, 'b.resCorDark = 100.0 * std::fabs(meanOf(c[i]) - darkCor)', 'b.resCorDark = 100.0 * std::fabs(meanOf(c[i]) - darkRaw)'),
+    'p2_clamped_share_always_zero': (H, 'if (v == 0.0f) ++zeros;', 'if (v == 12345.0f) ++zeros;'),
+    'p3_signed_residual_unsigned': (P, 'return 100.0 * (meanOf(c[s.nPre + s.nExp + k - 1]) - darkCor) / amp;', 'return 100.0 * std::fabs(meanOf(c[s.nPre + s.nExp + k - 1]) - darkCor) / amp;'),
+    'p4_control_removes_lag_of_wrong_frame': (P, 'px = static_cast<float>(px - f * (truth[i] - s.x[i]));', 'px = static_cast<float>(px - f * (truth[(i + 1) % truth.size()] - s.x[(i + 1) % truth.size()]));'),
+    'p5_pedestal_not_in_the_blank_frames': (P, 's.x.insert(s.x.end(), s.nBlank, p);', 's.x.insert(s.x.end(), s.nBlank, 0.0);'),
+    'p6_raw_dark_back_to_corrected': (H, 'b.res = 100.0 * std::fabs(meanOf(c[i]) - darkRaw)', 'b.res = 100.0 * std::fabs(meanOf(c[i]) - darkCor)'),
+    'p7_removal_normalised_wrongly': (H, 'b.removalCorDark = 100.0 * (b.raw - b.resCorDark) / std::max(b.raw, kEps);', 'b.removalCorDark = 100.0 * (b.raw - b.resCorDark) / std::max(b.resCorDark, kEps);'),
+}
+def build():
+    r = subprocess.run(['cmd.exe', '/c', S + 'buildall.bat'], capture_output=True, text=True)
+    return 'BUILD_EXIT=0' in r.stdout, r.stdout
+def tests():
+    r = subprocess.run([R + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe', '--gtest_filter=GhostOracle*'], cwd=R + 'modules/preprocess', capture_output=True, text=True)
+    return sorted(set(re.findall(r'^\[  FAILED  \] ([A-Za-z]\S+)', r.stdout, re.M))), r.returncode
+keeps = {}
+for f in (H, P):
+    keeps[f] = S + 'keep225m6_' + os.path.basename(f)
+    if not os.path.exists(keeps[f]): shutil.copy(f, keeps[f])
+for name in sys.argv[1:]:
+    f, old, new = ARMS[name]
+    for g in (H, P): shutil.copy(keeps[g], g)
+    src = open(f, 'rb').read().decode('utf-8'); crlf = '\r\n' in src; s = src.replace('\r\n', '\n')
+    if s.count(old) != 1:
+        print(name, 'NOT FOUND / not unique', s.count(old)); continue
+    s = s.replace(old, new)
+    open(f, 'wb').write((s.replace('\n', '\r\n') if crlf else s).encode('utf-8'))
+    ok, out = build()
+    if not ok: print(name, 'BUILD FAILED'); print(out[-600:])
+    else:
+        failed, rc = tests()
+        died = rc not in (0, 1) or (rc != 0 and not failed)
+        print('%-40s exit=%d -> %d red%s: %s' % (name, rc, len(failed), ' [PROCESS DIED]' if died else '', ', '.join(failed) if failed else 'NONE (arm did not fire)'))
+    for g in (H, P): shutil.copy(keeps[g], g)

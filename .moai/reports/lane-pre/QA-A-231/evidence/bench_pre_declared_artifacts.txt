@@ -1,0 +1,18 @@
+paths named by SPEC-BENCH-PRE / BP-01-05 manifest, checked on disk at HEAD
+
+benchmark/datasets                                                     MISSING
+tools/benchmark                                                        MISSING
+benchmark/datasets/BP-01-temp-sweep                                    MISSING
+tools/benchmark/run_bp01.py                                            MISSING
+.moai/specs/SPEC-XPE-P1A/simd-parity-harness.md                        EXISTS
+modules/preprocess/tests/test_simd_parity.cpp                          MISSING
+docs/project/Algorithm-Benchmark-Pack-Spec.md                          EXISTS
+docs/project/XPE-SVVP-001_System_Verification_Validation_Plan.md       EXISTS
+
+test_results.json anywhere outside build/ and .git: none
+
+files under modules/preprocess (src+tests+include) matching /heel|Heel|Duo-?SID/: 0
+files under modules/preprocess (src+tests+include) matching /NMSE/: 0
+files under modules/preprocess (src+tests+include) matching /cluster.*NMSE/: 0
+files under modules/preprocess (src+tests+include) matching /SimdParityTest/: 0
+control: files matching /xpe_defect_correct/ with the same function: 23

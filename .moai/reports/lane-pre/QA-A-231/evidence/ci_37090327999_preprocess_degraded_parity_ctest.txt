@@ -1,0 +1,46 @@
+ 539/1160 Test  #539: PreprocessDegraded.BP01_OffsetNullCalibrationReturnsNotInitialized  ..   Passed    0.01 sec
+ 540/1160 Test  #540: PreprocessDegraded.BP02_GainIdentityPreservesInputStatistics  ..   Passed    0.01 sec
+ 541/1160 Test  #541: PreprocessDegraded.BP03_DefectEmptyListIsNoOp  ..   Passed    0.01 sec
+ 542/1160 Test  #542: PreprocessDegraded.BP04_GhostZeroLagCoefficientIsIdentity  ..   Passed    0.01 sec
+ 543/1160 Test  #543: PreprocessDegraded.BP05_TempCompensateReferenceIsIdentity  ..   Passed    0.01 sec
+ 544/1160 Test  #544: PreprocessDegraded.BP05_NonlinearityNullConfigIsIdentity  ..   Passed    0.01 sec
+ 545/1160 Test  #545: OffsetCorrectAVX2ParityTest.ShippedPathMatchesTheScalarReference  ..   Passed    0.03 sec
+ 546/1160 Test  #546: OffsetCorrectAVX2ParityTest.MultipleCallsAreBitIdentical  ..   Passed    0.13 sec
+ 547/1160 Test  #547: OffsetCorrectAVX2ParityTest.ParityWithNonMultipleStride  ..   Passed    0.02 sec
+ 548/1160 Test  #548: GainCorrectAVX2ParityTest.ShippedPathMatchesTheScalarReference  ..   Passed    0.03 sec
+ 549/1160 Test  #549: GainCorrectAVX2ParityTest.MultipleCallsAreBitIdentical  ..   Passed    0.03 sec
+ 550/1160 Test  #550: GainCorrectAVX2ParityTest.ParityWithNonMultipleStride  ..   Passed    0.02 sec
+ 555/1160 Test  #555: RuntimeDetectDeterminismTest.RepeatedCallParity_5x  ..   Passed    0.14 sec
+ 557/1160 Test  #557: Avx2ParityTest.NamedSelectionsMatchTheirScalarTernaries  ..   Passed    0.01 sec
+ 558/1160 Test  #558: Avx2ParityTest.SignedZeroOrderingMatchesTheScalarNetwork  ..   Passed    0.01 sec
+ 559/1160 Test  #559: Avx2ParityTest.PerLaneInputsAgreeBitForBit  ..   Passed    0.01 sec
+ 560/1160 Test  #560: Avx2ParityTest.FrameMapsAreIdenticalPixelForPixel  ..   Passed    0.05 sec
+ 561/1160 Test  #561: Avx2ParityTest.LastRunStartLandsExactlyOnTheFinalInteriorColumn  ..   Passed    0.01 sec
+ 562/1160 Test  #562: Avx2ParityTest.JudgingAColumnTwiceStoresTheSameByte  ..   Passed    0.01 sec
+ 563/1160 Test  #563: Avx2ParityTest.OverlapBoundaryWidthsStillMatchTheScalarRule  ..   Passed    0.01 sec
+ 564/1160 Test  #564: Avx2ParityTest.VectorRunsNeverReadPastTheFrame  ..   Passed    0.01 sec
+ 565/1160 Test  #565: Avx2ParityTest.TheComparedMapsAreNotTriviallyEmpty  ..   Passed    0.04 sec
+ 566/1160 Test  #566: Avx2ParityTest.ShippedEntryPointAgreesWithTheScalarRule  ..   Passed    0.02 sec
+ 567/1160 Test  #567: DetectBuildParityTest.RowRangeMatchesTheScalarRuleAtRealFrameSize  ..   Passed    1.05 sec
+1040/1160 Test #1040: BufferReuseParityTest.IdenticalOnAGaussianFrame  ..   Passed    0.04 sec
+1041/1160 Test #1041: BufferReuseParityTest.IdenticalWithInjectedTransients  ..   Passed    0.14 sec
+1042/1160 Test #1042: BufferReuseParityTest.IdenticalOnAFlatFieldWithBorders  ..   Passed    0.01 sec
+1043/1160 Test #1043: BufferReuseParityTest.IdenticalOnANarrowFrame  ..   Passed    0.01 sec
+1044/1160 Test #1044: Median8ParityTest.FastPathMatchesGenericBitForBit  ..   Passed    0.16 sec
+1045/1160 Test #1045: Median8ParityTest.ZeroSignDifferenceCannotChangeADecision  ..   Passed    0.01 sec
+1046/1160 Test #1046: Median8ParityTest.MadMatchesGenericBitForBit  ..   Passed    0.02 sec
+1047/1160 Test #1047: Median8ParityTest.DetectionMapIsIdenticalPixelForPixel  ..   Passed    0.03 sec
+1048/1160 Test #1048: RadixSelectParityTest.BranchlessSortKeyEqualsTheTernaryItReplaced  ..   Passed    0.01 sec
+1049/1160 Test #1049: RadixSelectParityTest.SortKeyIsOrderPreservingAndInvertible  ..   Passed    0.01 sec
+1050/1160 Test #1050: RadixSelectParityTest.MatchesNthElementBitForBit  ..   Passed    0.12 sec
+1051/1160 Test #1051: RadixSelectParityTest.ZeroSignChoiceCannotChangeTheSigma  ..   Passed    0.01 sec
+1052/1160 Test #1052: RadixSelectParityTest.GlobalSigmaMatchesThePreviousImplementation  ..   Passed    0.07 sec
+1055/1160 Test #1055: SigmaBufferParityTest.NonSquareFramesMatchThePushBackImplementation  ..   Passed    0.13 sec
+1056/1160 Test #1056: SigmaBufferParityTest.DegenerateDimensionsMatchThePushBackImplementation  ..   Passed    0.01 sec
+1057/1160 Test #1057: SigmaBufferParityTest.BufferReuseDoesNotLeakBetweenDirections  ..   Passed    0.01 sec
+1058/1160 Test #1058: ThreadParityTest.RealFrameSizeIsIdenticalAtEveryThreadCount  ..   Passed    0.60 sec
+1059/1160 Test #1059: ThreadParityTest.DetectFrameClearsTheMapItself  ..   Passed    0.19 sec
+1060/1160 Test #1060: ThreadParityTest.GlobalSigmaIsIdenticalAtEveryThreadCount  ..   Passed    0.46 sec
+1061/1160 Test #1061: ThreadParityTest.DefectMapIsIdenticalPixelForPixelAtEveryThreadCount  ..   Passed    0.15 sec
+1062/1160 Test #1062: ThreadParityTest.ConcurrentCallsWithDifferentThreadCountsAreIndependent  ..   Passed    0.15 sec
+1063/1160 Test #1063: ThreadParityTest.RepeatedThreadedRunsAreDeterministic  ..   Passed    0.17 sec

@@ -1,0 +1,10 @@
+Note: Google Test filter = GhostRegistry.AForgedHandleCarryingTheMagicIsRefused
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from GhostRegistry
+[ RUN      ] GhostRegistry.AForgedHandleCarryingTheMagicIsRefused
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_handle_registry.cpp(85): error: Expected equality of these values:
+  -1
+  xpe_ghost_reset(&forged)
+    Which is: 0
+

@@ -9457,11 +9457,13 @@ void DicomConformanceValidator::check_type1_attributes(
     DcmDataset* ds, XpeConformanceReport& report) const
 {
     // Type 1: 존재 + 비어있지 않아야 함
+    // 정정 2026-10-03 (#251, Codex #111·#113, 사용자 결정 "표준대로"): PatientID·PatientName 은 Patient Module 의
+    // Type 2 (PS3.3 Table C.7-1), StudyDate 는 General Study Module 의 Type 2 — 존재만 필수, 빈 값 적합이므로
+    // 이 목록에서 뺐다. PixelData 는 Image Pixel Module 의 Type 1C(Pixel Data Provider URL (0028,7FE0) 이
+    // 없을 때 필수)이므로 URL 이 있으면 누락을 오류로 보지 않는다. 구현 기준은 SPEC-XPE-P1B-DICOM REQ-DICOM-024.
     const std::vector<std::pair<DcmTagKey, std::string>> type1_tags = {
         {DCM_SOPClassUID,                 "SOPClassUID"},
         {DCM_SOPInstanceUID,              "SOPInstanceUID"},
-        {DCM_StudyDate,                   "StudyDate"},
-        {DCM_PatientID,                   "PatientID"},
         {DCM_Rows,                        "Rows"},
         {DCM_Columns,                     "Columns"},
         {DCM_PixelData,                   "PixelData"},
@@ -9540,7 +9542,7 @@ int XpeDicomWriter::write(DcmDataset* dataset,
 
 | 상황 | 처리 |
 |------|------|
-| PixelData 누락 | Type 1 오류, 즉시 반환 |
+| PixelData 누락 | Pixel Data Provider URL 이 없으면 오류(Type 1C), URL 이 있으면 오류 아님 — 이 모듈은 참조 화소를 읽지 못하므로 경고 (정정 2026-10-03, #251) |
 | BitsStored = 8 (비표준) | 오류 — DX IOD는 12/14/16 bit만 허용 |
 | WC/WW 범위 초과 | 경고 (severity=2); 파일 쓰기는 허용 |
 | DCMTK 미링크 | 컴파일 타임 오류 처리 |

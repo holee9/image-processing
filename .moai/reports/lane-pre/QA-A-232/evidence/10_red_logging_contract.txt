@@ -1,0 +1,122 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-common\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from LoggingContract
+[ RUN      ] LoggingContract.CaptureSeesALineWrittenToStderr
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] LoggingContract.CaptureSeesALineWrittenToStderr (16 ms)
+[ RUN      ] LoggingContract.AfterInitInfoReachesStderrButTraceAndDebugDoNot
+[XPE][INFO ] xpe_init: library initialised
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_logging_contract.cpp(134): error: Value of: has(got, "MARK_INFO")
+  Actual: false
+Expected: true
+
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_logging_contract.cpp(135): error: Value of: has(got, "MARK_WARN")
+  Actual: false
+Expected: true
+
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_logging_contract.cpp(136): error: Value of: has(got, "MARK_ERROR")
+  Actual: false
+Expected: true
+
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_logging_contract.cpp(137): error: Value of: has(got, "MARK_CRITICAL")
+  Actual: false
+Expected: true
+
+[  FAILED  ] LoggingContract.AfterInitInfoReachesStderrButTraceAndDebugDoNot (1 ms)
+[ RUN      ] LoggingContract.ANamedFileWithoutALevelRecordsFromInfoUp
+[XPE][INFO ] xpe_init: library initialised
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_logging_contract.cpp(149): error: Value of: has(got, "MARK_TRACE")
+  Actual: true
+Expected: false
+[2026-10-03 13:58:37.338] [xpe_file] [trace] MARK_TRACE
+[2026-10-03 13:58:37.339] [xpe_file] [debug] MARK_DEBUG
+[2026-10-03 13:58:37.339] [xpe_file] [info] MARK_INFO
+[2026-10-03 13:58:37.339] [xpe_file] [warning] MARK_WARN
+[2026-10-03 13:58:37.339] [xpe_file] [error] MARK_ERROR
+[2026-10-03 13:58:37.339] [xpe_file] [critical] MARK_CRITICAL
+
+
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_logging_contract.cpp(150): error: Value of: has(got, "MARK_DEBUG")
+  Actual: true
+Expected: false
+[2026-10-03 13:58:37.338] [xpe_file] [trace] MARK_TRACE
+[2026-10-03 13:58:37.339] [xpe_file] [debug] MARK_DEBUG
+[2026-10-03 13:58:37.339] [xpe_file] [info] MARK_INFO
+[2026-10-03 13:58:37.339] [xpe_file] [warning] MARK_WARN
+[2026-10-03 13:58:37.339] [xpe_file] [error] MARK_ERROR
+[2026-10-03 13:58:37.339] [xpe_file] [critical] MARK_CRITICAL
+
+
+[  FAILED  ] LoggingContract.ANamedFileWithoutALevelRecordsFromInfoUp (7 ms)
+[ RUN      ] LoggingContract.ALevelChosenByTheCallerOpensTraceAgain
+[XPE][INFO ] xpe_init: library initialised
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_logging_contract.cpp(159): error: Value of: has(got, "MARK_TRACE")
+  Actual: false
+Expected: true
+
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_logging_contract.cpp(160): error: Value of: has(got, "MARK_DEBUG")
+  Actual: false
+Expected: true
+
+[  FAILED  ] LoggingContract.ALevelChosenByTheCallerOpensTraceAgain (0 ms)
+[ RUN      ] LoggingContract.NullRevertsFromAFileToStderr
+[XPE][INFO ] xpe_init: library initialised
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_logging_contract.cpp(170): error: Value of: has(onStderr, "MARK_AFTER_NULL")
+  Actual: false
+Expected: true
+
+[  FAILED  ] LoggingContract.NullRevertsFromAFileToStderr (0 ms)
+[ RUN      ] LoggingContract.NullKeepsTheChosenLevel
+[XPE][INFO ] xpe_init: library initialised
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_logging_contract.cpp(182): error: Value of: has(got, "MARK_WARN")
+  Actual: false
+Expected: true
+
+[  FAILED  ] LoggingContract.NullKeepsTheChosenLevel (0 ms)
+[ RUN      ] LoggingContract.LevelFiveIsOffOnStderr
+[XPE][INFO ] xpe_init: library initialised
+[       OK ] LoggingContract.LevelFiveIsOffOnStderr (0 ms)
+[ RUN      ] LoggingContract.LevelFiveIsOffInAFile
+[XPE][INFO ] xpe_init: library initialised
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_logging_contract.cpp(200): error: Value of: has(readAll(kLogFile), "MARK_CRITICAL")
+  Actual: true
+Expected: false
+
+[  FAILED  ] LoggingContract.LevelFiveIsOffInAFile (5 ms)
+[ RUN      ] LoggingContract.LevelFourStillRecordsErrorAndCritical
+[XPE][INFO ] xpe_init: library initialised
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_logging_contract.cpp(209): error: Value of: has(got, "MARK_ERROR")
+  Actual: false
+Expected: true
+
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_logging_contract.cpp(210): error: Value of: has(got, "MARK_CRITICAL")
+  Actual: false
+Expected: true
+
+[  FAILED  ] LoggingContract.LevelFourStillRecordsErrorAndCritical (0 ms)
+[ RUN      ] LoggingContract.ASecondInitRestoresTheStderrDefault
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+D:\workspace-github\xpe-pre\modules\common\tests\test_common_logging_contract.cpp(221): error: Value of: has(got, "MARK_INFO")
+  Actual: false
+Expected: true
+
+[  FAILED  ] LoggingContract.ASecondInitRestoresTheStderrDefault (0 ms)
+[----------] 10 tests from LoggingContract (35 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (35 ms total)
+[  PASSED  ] 2 tests.
+[  FAILED  ] 8 tests, listed below:
+[  FAILED  ] LoggingContract.AfterInitInfoReachesStderrButTraceAndDebugDoNot
+[  FAILED  ] LoggingContract.ANamedFileWithoutALevelRecordsFromInfoUp
+[  FAILED  ] LoggingContract.ALevelChosenByTheCallerOpensTraceAgain
+[  FAILED  ] LoggingContract.NullRevertsFromAFileToStderr
+[  FAILED  ] LoggingContract.NullKeepsTheChosenLevel
+[  FAILED  ] LoggingContract.LevelFiveIsOffInAFile
+[  FAILED  ] LoggingContract.LevelFourStillRecordsErrorAndCritical
+[  FAILED  ] LoggingContract.ASecondInitRestoresTheStderrDefault
+
+ 8 FAILED TESTS
+exit=1

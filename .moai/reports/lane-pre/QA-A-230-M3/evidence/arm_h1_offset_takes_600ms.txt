@@ -1,0 +1,6 @@
+build_exit=0 test_exit=1
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(257): error: Expected: (frameMs[0]) <= (kSrsPerf001Ms), actual: 683.62090000000001 vs 500
+first (cold) frame took 683.62090000000001 ms; SRS-CALIB-PERF-001 allows 500
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_performance_3072.cpp(258): error: Expected: (frameMs[1]) <= (kSrsPerf001Ms), actual: 683.78759999999988 vs 500
+second (warm) frame took 683.78759999999988 ms; SRS-CALIB-PERF-001 allows 500
+[  FAILED  ] PipelinePerformance3072.TheWholeFrameWithCalibrationLoadedFitsSrsPerf001 (1728 ms)

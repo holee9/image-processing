@@ -34,6 +34,17 @@ XPE_API XpeErrorCode validate_xcal_header(const XCalFileHeader& header,
                                            int expected_type = -1);
 
 /**
+ * @brief Validate the 64-byte session_id field of an XCal header (check 11 of validate_xcal_header).
+ *
+ * The field is UTF-8 text, NUL-terminated and zero-padded. Kept as its own function because
+ * xpe_calib_check_expiry reads the header itself and does not run the full validation, but must judge
+ * this field the way the loaders do (QA-A-229d, Codex #97).
+ *
+ * @return XPE_OK if the field is well-formed (an empty field is), XPE_ERR_CONFIG_INVALID otherwise.
+ */
+XPE_API XpeErrorCode validate_xcal_session_field(const XCalFileHeader& header);
+
+/**
  * @brief Return the expected bytes-per-pixel for a given XCalPixelFormat.
  *
  * @param fmt  XCalPixelFormat value.

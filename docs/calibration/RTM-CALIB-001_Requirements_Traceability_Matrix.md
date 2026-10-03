@@ -1,9 +1,12 @@
 # Requirements Traceability Matrix - Calibration Module
 
-**Document ID:** RTM-CALIB-001 v1.3  
+**Document ID:** RTM-CALIB-001 v1.5  
 **IEC 62304 Clause:** 5.1.1c (backward traceability), 5.3.6 (design completeness), 7.3.3 (hazard control traceability)  
 **Safety Classification:** Class B  
-**Date:** 2026-04-24  
+**Date:** 2026-10-03 (v1.3: 2026-04-24)  
+**Revision v1.4 (2026-10-03, `#245` / `QA-A-228`):** §3 시험 사례 ID 가 시험 소스에 없다는 주석, §4 추적 집계를 "문서상 사례"와 "실제 시험"으로 분리, 구현 없이 추적 완료로 집계되던 FUNC 7개(011·014·015·021·028·029·030)의 실제 상태 표 추가, §5.1 FUNC-034 근거 시험 보강  
+**Revision v1.5 (2026-10-03, #245 사용자 결정 / `QA-A-233` 결정 12·14):** 구현 없는 FUNC 7개 표의 비고를 "미구현(요구 유지) — 사용자 결정 2026-10-03, #245" 로 통일, FUNC-014 를 △ → ✗(링 버퍼 없음)  
+
 **Trace Source:** XPE-SRS-001, XPE-SAD-001 (Architecture), SHA-CALIB-001 (Hazards)  
 **Test Input Source:** TDS-CALIB-001 (테스트 데이터셋 명세서) — 모든 테스트 케이스의 입력 데이터 규격 정의  
 **Acquisition Reference:** IAP-CALIB-001 (영상 취득 프로토콜) — 실제 영상 기반 테스트의 취득 조건 명세  
@@ -123,9 +126,9 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 | **SRS-CALIB-SAFE-003** | Alert operator if calibration corrupted (**SHA-256** mismatch — 본문 정정 `#203`, 2026-09-28; 구현은 CRC-32 가 아닙니다) | SWU-1.5 | SAD §3.1.5 | UT-1.5-010 | IT-CALIB-001 | ST-SAFE-003 | HAZ-CALIB-001 | Alert + fail |
 | **SRS-CALIB-SAFE-004** | Alert operator if calibration expired | SWU-1.5 | SAD §3.1.5 | UT-1.5-012 | IT-CALIB-002 | ST-SAFE-004 | HAZ-CALIB-003 | Expiry alert |
 | **SRS-CALIB-SAFE-005** | Log all calibration load/unload events (audit trail) | SWU-1.5 | SAD §3.1.5 | UT-1.5-018 | IT-CALIB-004 | ST-SAFE-005 | -- | Audit log |
-| **SRS-CALIB-PERF-001** | Load all calibration maps within 200 ms (startup) | SWU-1.5 | SAD §3.1.5 | ST-PERF-001 | IT-CALIB-006 | ST-PERF-001 | -- | Perf budget |
-| **SRS-CALIB-PERF-002** | Support 3072 x 3072 detector resolution | SWU-1.5 | SAD §3.1.5 | UT-1.5-008 | IT-CALIB-001 | ST-PERF-002 | -- | Size support |
-| **SRS-CALIB-PERF-003** | Support 4096 x 4096 detector (max) | SWU-1.5 | SAD §3.1.5 | UT-1.5-008 | IT-CALIB-001 | ST-PERF-003 | -- | Max size |
+| **SRS-CALIB-PERF-001** | Total preprocessing ≤ 500 ms per 3072×3072 frame (per-phase budgets in SRS §4.1) — 행 문장 정정 2026-10-03 `QA-A-230`(이전 문장은 PERF-003 의 200 ms 적재를 적고 있었음) | SWU-1.5 | SAD §3.1.5 | `PipelinePerformance3072.TheWholeFrameWithCalibrationLoadedFitsSrsPerf001` (총합 500 ms 단언, 단계별 예산은 출력만) | -- | CI `preprocess-tests` 관측(main `b3458366`): 프레임 108.6~120.0 ms | -- | 대체됨: `DISABLED_PipelinePerformance3072x3072` 삭제(#245). Ghost 티어 2·3 의 +130 ms 는 단언 없음 |
+| **SRS-CALIB-PERF-002** | Peak memory ≤ 200 MB per frame pipeline; no leak over 100 frames — 행 문장 정정 2026-10-03(이전 문장 "3072×3072 지원"은 SRS 와 다름) | SWU-1.5 | SAD §3.1.5 | -- | -- | -- | -- | **미검증**: 200 MB 상한을 단언하는 시험 없음. `PipelinePerformance3072` 는 약 400 MB 를 쓰며 이 요구를 보증하지 않는다(`QA-A-230-M3` §6) |
+| **SRS-CALIB-PERF-003** | Calibration file load (offset+gain+BPM) ≤ 200 ms on SSD — 행 문장 정정 2026-10-03(이전 문장 "4096×4096 최대"는 SRS 와 다름) | SWU-1.5 | SAD §3.1.5 | -- (적재 시간은 `PipelinePerformance3072` 가 출력만, 단언 없음) | -- | CI 관측(main `b3458366`, 같은 잡 두 실행): 합계 214.6 ms·320.7 ms — **예산 초과**, 러너 디스크가 SRS 의 "SSD" 조건인지 미확인 | -- | **미충족 관측, 단언 없음**(#245) |
 | **SRS-CALIB-FUNC-022** | BPM dark detection: min 32×32 adaptive window (replaces MC 256×7) | SWU-1.10 | SAD §3.4 | UT-BPM-001 | IT-BPM-001 | ST-BPM-001 | -- | Grid_abnormal |
 | **SRS-CALIB-FUNC-023** | BPM bright detection: 128×128 window, tolerance 5~9% (replaces MC 60×60, 15%) | SWU-1.10 | SAD §3.4 | UT-BPM-002 | IT-BPM-001 | ST-BPM-002 | -- | CalData_6 |
 | **SRS-CALIB-FUNC-024** | Multi-gain frame count: min 5~10, recommended 15~20 per dose level | SWU-1.10 | SAD §3.4 | UT-BPM-003 | IT-BPM-002 | ST-BPM-003 | -- | CalData_6 |
@@ -146,6 +149,12 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 > **Test Input Data**: All test cases requiring calibration map files (`.calib`, `.raw`) must use datasets prepared according to **TDS-CALIB-001**. Synthetic datasets are defined in TDS §4–§5; real image datasets in TDS §6. Golden reference comparison uses TDS §7 criteria (SSIM > 0.999).
 >
 > **Real Image Acquisition**: Real-image test inputs (`real/` datasets) must be acquired following **IAP-CALIB-001** §6 protocols. See IAP §6.1 (Dark), §6.2 (Flat-field), §6.3 (BPM), §6.4 (Nonlinearity), §6.5 (Lag/Ghost).
+
+> **[주석 2026-10-03, `#245` / `QA-A-228` — 이 절의 ID 는 문서상의 사례이며 시험 이름이 아닙니다]**
+>
+> 아래 `UT-1.5-001~018`, `IT-CALIB-001~005`, `UT-BPM-*`, `UT-MODE-*` 등의 ID 는 **어떤 시험 소스에도 나오지 않습니다**(0건 — `QA-A-228` 의 `func_census_out.txt`, "UT/IT/ST ids appearing in any test source: 0"). 따라서 §2 와 §4 의 "traced" 는 **이 문서가 정의한 사례 ID 까지의 추적**이지 실제 시험까지의 추적이 아닙니다. 실제 시험(`Suite.Name`)과의 대응은 §4 의 "SRS → 실제 시험" 행과 `SPEC-XPE-P1A` `spec.md` §8 을 보십시오.
+>
+> 미적용: 이 표에 "코드 시험(Suite.Name)" 열을 더하는 일은 아직 하지 않았습니다. 이 표는 옛 SRS 판본 번호(`#195`)를 따르므로, 현재 SRS 번호로 판정한 `QA-A-228` 의 시험 이름을 행에 그대로 옮기면 번호가 어긋납니다. `#195` 재번호와 함께 다룹니다.
 
 ### Unit Tests (UT-1.5-001 through UT-1.5-018)
 
@@ -188,16 +197,46 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 
 ### Forward Traceability (SRS → Test)
 
+> **[정정 2026-10-03, `#245` / `QA-A-228` §6 — 아래 옛 표의 "24 / 24 traced ✓" 는 추적성 근거가 아닙니다]**
+>
+> - **분모가 맞지 않습니다.** 이 문서 §2 의 FUNC 정의 행은 29개이고, 현재 `SRS-CALIB-001` 의 FUNC 는 38개입니다. 24 가 무엇을 센 것인지 문서에 적혀 있지 않습니다. SRS 에 있고 §2 정의 행에 없는 FUNC: `018 019 020 021 034 035 036 037 038`.
+> - **"traced" 는 문서상 사례 ID 까지입니다.** §3 주석대로 UT/IT/ST ID 는 시험 소스에 0건입니다.
+>
+> 집계를 두 줄로 나눕니다. 번호는 **현재 `SRS-CALIB-001` 의 FUNC 번호** 기준입니다(§2 표의 옛 번호가 아님, `#195`).
+>
+> | Coverage Dimension | Total | Traced | Status |
+> |:---|:---:|:---:|:---|
+> | SRS-CALIB-FUNC → 시험 사례 ID (문서, §3) | 38 | 29 정의 행 (옛 판본 번호) | 사례 ID 는 시험 소스에 0건 — 실제 시험 추적이 아님 |
+> | **SRS-CALIB-FUNC → 실제 시험 이름 (코드)** | **38** | **21 (이름 축)** | FUNC ID 를 인용하는 시험이 없는 것 17개: `001 004 007 008 009 010 011 012 013 014 015 021 028 029 030 034 038`. 행위로 다시 세면 그중 `001 004 007 008 009 010 012 013 034` 는 시험이 있고 ID 만 안 달렸다. 아래 7개는 **구현이 없다** |
+>
+> **구현 없이 추적 완료로 집계되던 FUNC (현재 SRS 번호, `QA-A-228` §6.2 직접 확인)**
+>
+> | FUNC (현재 SRS) | SRS 내용 | 이 문서의 옛 표시 | 실제 상태 | 비고 |
+> |:---|:---|:---|:---|:---|
+> | FUNC-011 | `xpe_calib_session_create()` 세션 관리(UUID v4) | 정의 행 + 추적 완료 | ✗ **구현 없음** — src·include·tests 0건. 파일 간 `session_id` 일치 검사는 `QA-A-229` M4 로 구현됐으나 이 요구(세션 생성·UUID)와는 다르다 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
+> | FUNC-014 | 노출 이력 링 버퍼(≥8 프레임, 최대 16) | 정의 행 + 추적 완료 | ✗ **구현 없음** — 고스트는 화소별 누산기 둘이고 프레임 링 버퍼가 없다. 8~16 프레임 단언 0 (2026-10-03 △ → ✗: 요구 대상인 링 버퍼가 없으므로) | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
+> | FUNC-015 | `xpe-pre-e2e-report-v1` 스키마 보고서 | 정의 행 + 추적 완료 | ✗ **구현 없음** — 스키마 문자열이 코드에 0건(문서 제외) | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
+> | FUNC-021 | Calibration Effect Score (CES) | §5.1 "Updated" | ✗ **구현 없음** — `CES` 는 `xpe_verify_metrics.cpp` 의 주석 한 줄. §5.1 의 매핑은 2026-10-03(`QA-A-223`)에 이미 "옛 매핑"으로 정정됐다 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
+> | FUNC-028 | `xpe_calib_field_generate()` | 정의 행 (100% 집계에 섞였을 수 있음) | ✗ **구현 없음** — 0건. §5b 의 FUNC-017 폐기 근거("FUNC-028 과 중복")가 이 상태를 가린다 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
+> | FUNC-029 | `xpe_calib_check_drift()` | 정의 행 (100% 집계에 섞였을 수 있음) | ✗ **구현 없음** — 0건 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
+> | FUNC-030 | 실시간 오프셋 적응(`calibration.realtime_offset_adapt`) | 정의 행 (100% 집계에 섞였을 수 있음) | ✗ **구현 없음** — 0건 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
+>
+> 위 7개는 2026-10-03 사용자 결정(`QA-A-233` 결정 12·14, #245 코멘트)으로 SRS 에서 지우지 않고 "미구현(요구 유지)" 로 표시했다(`SRS-CALIB-001` v1.3). 구현 여부는 기능별로 따로 정한다.
+>
+> 아래 옛 표는 기록으로 남깁니다.
+
 | Coverage Dimension | Total | Traced | % | Status |
 |:---|:---:|:---:|:---:|:---|
-| **Functional Req (SRS-CALIB-FUNC)** | 24 | 24 | **100%** | ✓ All traced |
+| **Functional Req (SRS-CALIB-FUNC)** | 24 | 24 | **100%** | ~~✓ All traced~~ — 정정 2026-10-03 위 주석 참조 (#245) |
 | **Safety Req (SRS-CALIB-SAFE)** | 5 | 5 | **100%** | ✓ All traced |
 | **Performance Req (SRS-CALIB-PERF)** | 3 | 3 | **100%** | ✓ All traced |
-| **Total SRS Reqs** | **32** | **32** | **100%** | ✓ Complete |
+| **Total SRS Reqs** | **32** | **32** | **100%** | ~~✓ Complete~~ — 정정 2026-10-03: FUNC 행이 위 주석대로 근거가 아니므로 합계도 근거가 아님. SAFE·PERF 행은 확인하지 않았다(#203) |
 
 ### Backward Traceability (Test → SRS)
 
 All test cases (23 UT + 4 UT-BPM + 9 UT-MODE/PERF-MP/META + 5 IT + 2 IT-BPM + 3 IT-MODE) reference at least one SRS requirement. No orphaned tests.
+
+> **[주석 2026-10-03, `#245` / `QA-A-228`]** 위 문장의 "test cases" 는 §3 의 문서상 사례이며 시험 소스에 0건입니다. 실제 시험 소스에서 SRS 로 거꾸로 가는 추적은 이 문서가 다루지 않았습니다.
 
 ### Risk Control Traceability
 
@@ -233,6 +272,8 @@ Does every SRS requirement have a corresponding design section?
 
 Scope: `feat/preprocessing`, Issues #68, #69, #70.
 
+> **[주석 2026-10-03, `#245` / `QA-A-228`]** 아래 `SRS-CALIB-FUNC-016 / REQ-P1A-010` 처럼 FUNC 번호와 REQ 번호를 섞어 적은 줄은 현재 SRS 와 맞지 않을 수 있습니다 — 현재 SRS 에서 FUNC-016 은 "dark/offset 지표"이고 `REQ-P1A-010` 은 offset 보정입니다. 의도가 FUNC-004(offset 보정)였는지는 확인하지 못했습니다. 줄마다 SRS 원문과 대조해 바로잡는 일은 `#195` 와 함께 합니다.
+
 Placeholder review: no `REQ-P1A-XXX` placeholder remains in the active preprocessing API and verification metric declarations after this update. The original RTM file itself did not contain `REQ-P1A-XXX` placeholders.
 
 | Trace ID | Implementation Evidence | Verification Evidence | Status |
@@ -243,7 +284,7 @@ Placeholder review: no `REQ-P1A-XXX` placeholder remains in the active preproces
 | SRS 서술 없음 — #216 | `xpe_verify_defect` | 하는 일: FLOAT32 보정 영상과 UINT8 결함 맵에서 결함 화소 수, 결함 밀도(%), 결함 화소와 이웃 평균의 평균 절대 오차를 계산하고, 결함 밀도 < 5% 이면 `overall_pass` 를 참으로 둔다 (`xpe_verify_metrics.cpp` `xpe_verify_defect`). 옛 매핑 FUNC-019 는 이 함수가 하지 않는 일(DefectRecall·DefectFPR 등 오라클 지표)을 서술한다. 5% 는 SRS-CALIB-FUNC-003 의 BPM 적재 허용치 구절에서 온 값이고(코드 주석), 측정 가능 여부 구분은 SRS-CALIB-FUNC-036 이 모든 `xpe_verify_*` 에 요구한다 — 둘 다 이 함수 자체를 서술하는 요구는 아니다 (`QA-A-223`) | Corrected 2026-10-03 |
 | SRS 서술 없음 — #216 | `xpe_verify_pipeline` | 하는 일: UINT16 원시 영상과 FLOAT32 최종 영상에서 각각 중앙값 중심·RMS 퍼짐으로 SNR(`20·log10(mean/std)`)을 구해 그 차이를 `snr_improvement_db` 에 담고, ≥ 2.0 dB 이면 `overall_pass` 를 참으로 둔다 (`xpe_verify_metrics.cpp` `verify_pipeline_impl`). 옛 매핑 FUNC-015(E2E 보고서 스키마 `xpe-pre-e2e-report-v1` 발행)와 FUNC-021(보정 효과 점수 CES)은 이 함수가 하지 않는 일이다 — 스키마 이름은 `modules/`·`clients/`·`gui/`·`tools/` 에 0건, `CES` 는 `modules/` 의 주석 한 줄뿐이다(대조: 같은 검색이 SRS 원문에서 둘 다 찾음). 옛 `REQ-P1A-041..047` 은 개번호 전 파이프라인 단계 요구로 지금의 `REQ-P1A-095..101` 이며, 이 함수를 서술하지 않는다. 2.0 dB 문턱도 근거 없음(#218·#242) (`QA-A-223`) | Corrected 2026-10-03 |
 | SRS-CALIB-FUNC-022..025 | `xpe_bpm_generate` | BPM generation tests; ctest 341/341 passed | Updated |
-| SRS-CALIB-FUNC-034 | `xpe_calib_generate_offset` file-writing path plus shared multi-method generation helper | `test_calib_generate_offset_multi.cpp`; ctest 341/341 passed | Added |
+| SRS-CALIB-FUNC-034 | `xpe_calib_generate_offset` file-writing path plus shared multi-method generation helper | `test_calib_generate_offset_multi.cpp`(내부 shim 호출); 공개 API 경유 단언은 `test_calib_generate_offset_config.cpp` (보강 2026-10-03, `#245` / `QA-A-228`); ctest 341/341 passed | Added |
 | SRS-CALIB-FUNC-006 / FUNC-006-EXT | `xpe_nonlinearity_correct`, `xpe_calib_generate_nonlin_lut`, `xpe_calib_load_nonlin_lut`, `xpe_calib_unload_nonlin_lut` | 매핑 추가 `#216`, 2026-09-29 — **요구는 있었고 이름이 안 달려 있었습니다.** `api_requirement_census.py` 가 이 넷을 "요구 없음" 으로 세던 이유입니다(도구는 `REQ-P1A` 만 스캔하고, `SRS-CALIB-001` 은 능력으로 기술해 함수명을 쓰지 않습니다). `SRS-CALIB-001:376` 의 언급은 요구 문단이 아니라 §5.3 C ABI 서명 목록입니다 | Added |
 | SRS-CALIB-NFR-003-CACHE | `CalibrationLRUCache` mutex-protected list/index access | Code review plus preprocessing ctest 341/341 passed | Added |
 

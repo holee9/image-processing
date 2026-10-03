@@ -1,0 +1,11 @@
+ARM r2_pipeline_zero_spread_rule_removed
+file src/xpe_verify_metrics.cpp
+built=True
+[  FAILED  ] VerifyMetricsTest.VerifyPipeline_PerfectFinalPassesWithAFiniteField (0 ms)
+[  FAILED  ] VerifyMetricsTest.VerifyPipeline_TwoFlatFramesReportAFiniteValueAndDoNotPass (0 ms)
+[  FAILED  ] VerifyMetricsTest.VerifyPipeline_FlatRawMadeNoisyReportsAFiniteValueAndFails (0 ms)
+[  PASSED  ] 37 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] VerifyMetricsTest.VerifyPipeline_PerfectFinalPassesWithAFiniteField
+[  FAILED  ] VerifyMetricsTest.VerifyPipeline_TwoFlatFramesReportAFiniteValueAndDoNotPass
+[  FAILED  ] VerifyMetricsTest.VerifyPipeline_FlatRawMadeNoisyReportsAFiniteValueAndFails

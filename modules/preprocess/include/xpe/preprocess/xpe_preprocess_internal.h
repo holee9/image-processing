@@ -43,6 +43,11 @@ struct GhostCorrectorHandle {
     int tier{1};
 
     // Dual-exponential IRF coefficients (PMC3465354)
+    // QA-A-226 (#241): true only when the configuration gave all four of alpha1, tau1, alpha2 and tau2 (non-empty).
+    // The defaults below are NOT a calibration -- the forward system they imply has a gain of about 2.45 and
+    // "corrects" a constant exposure to nothing -- so a handle without its own lag parameters passes frames through.
+    bool calibrated{false};
+
     double alpha1{0.9};    // fast component amplitude
     double tau1{1.0};      // fast component time constant (frames)
     double alpha2{0.05};   // slow component amplitude
@@ -71,23 +76,44 @@ struct GhostCorrectorHandle {
     // unmodified). Allocated once with the handle; a fifth float plane.
     std::vector<float> backup;
 
-    double lastAcqTimeSec{0.0};
     double lastFrameMean{0.0}; // mean signal level for exposure weighting
 
-    // SRS-CALIB-NFR-003: guards hist1/hist2 and the three fields above. Held for the whole of
+    // SRS-CALIB-NFR-003: guards hist1/hist2 and lastFrameMean/exposureWeight. Held for the whole of
     // xpe_ghost_correct() and xpe_ghost_reset(), so threads sharing one handle are serialised
     // call by call and no history update is lost. width/height/tier/IRF are set once in
     // xpe_ghost_create() and never change, so they need no lock. xpe_ghost_destroy() must
     // still not run concurrently with a call on the same handle.
     std::mutex mtx;
 
-    // Validate that a void* is a live handle
-    static bool isValid(const void* h) noexcept {
-        if (!h) return false;
-        const auto* gh = static_cast<const GhostCorrectorHandle*>(h);
-        return gh->magic == kMagic;
-    }
+    /**
+     * Whether `h` is a handle xpe_ghost_create handed out and xpe_ghost_destroy has not taken back (QA-A-229 M5,
+     * REQ-P1A-086). Answered from a registry of live handles (defined in ghost_correct.cpp), WITHOUT reading the
+     * memory `h` points at: the old test, `gh->magic == kMagic`, read freed memory for a destroyed handle, and
+     * accepted any object that began with the sentinel.
+     *
+     * Limits: a destroyed handle's address can be returned again by a later xpe_ghost_create, and a stale pointer
+     * to it then reads as valid (ABA) -- separating the two needs a token handle. And a destroy racing a call on
+     * the SAME handle is still the caller's to prevent; the registry decides who is the one destroyer (a second,
+     * concurrent destroy of the same handle returns without touching it), not whether a call is still inside.
+     */
+    static bool isValid(const void* h) noexcept;
 };
+
+/**
+ * QA-A-227b (#244): the in-frame span [lo, hi] of a 3x3 neighbourhood along ONE axis, for the tier-3 blend.
+ *
+ * Unsigned throughout. The first version of the border blend converted the pixel coordinate and the frame width/height to
+ * `int` and tested `x + dx < static_cast<int>(W)`; a handle may have an axis above INT_MAX (nothing in xpe_ghost_create caps
+ * it, and other paths accept such sizes), where the cast is negative and every neighbour counts as outside the frame. Here
+ * the lower bound tests `coord > 0` BEFORE subtracting (no wrap to SIZE_MAX), and `coord + 1` cannot overflow in any
+ * size_t width because `coord + 1 <= extent <= UINT32_MAX`.
+ *
+ * Precondition: extent >= 1 and coord < extent. The span has 2 cells on an edge and 3 inside (1 if extent == 1).
+ */
+inline void xpe_ghost_neighbour_span(size_t coord, size_t extent, size_t* lo, size_t* hi) noexcept {
+    *lo = (coord > 0u) ? coord - 1u : 0u;
+    *hi = (coord + 1u < extent) ? coord + 1u : extent - 1u;
+}
 
 /* =========================================================================
  * Calibration file I/O helpers
@@ -121,6 +147,11 @@ bool xpe_find_nonfinite(const float* values, size_t n, size_t* count, size_t* fi
 
 /** Push the XPE_ALERT_ERROR of a refused non-finite frame: "<prefix> <count> pixel(s) ... (first: index I, x=X, y=Y); <tail>". Never throws. */
 void xpe_alert_nonfinite(const char* prefix, size_t count, size_t first, uint32_t width, const char* tail) noexcept;
+
+/** QA-A-226 (#241): whether a ghost handle corrects (its lag parameters were configured) or passes frames through.
+ *  false for a null or invalid handle. Not exported; the pipeline asks it so it does not flag an unchanged frame
+ *  as ghost-corrected. */
+bool xpe_ghost_is_calibrated(const void* handle) noexcept;
 
 float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
                              uint32_t x, uint32_t y,
@@ -219,6 +250,12 @@ XpeErrorCode xpe_config_parse_block(const char* text, size_t len, XpeConfigDoc* 
 #ifdef XPE_CACHE_TEST_HOOKS
 /** Test-only (QA-A-209c): how many configuration texts have been parsed. Compiled into the allocation-failure executable only. */
 extern unsigned long xpe_config_parse_calls;
+
+/** Test-only (QA-A-225 M4, #238): the weights tier 3 gives the corrected value (`keep`) and the 3x3 mean of the incoming frame
+ *  (`local`). The defaults are the shipped constants 0.7f / 0.3f. Only the allocation-failure executable defines
+ *  XPE_CACHE_TEST_HOOKS; the shipped library has neither this declaration nor a use of it (the constants stay constants). */
+struct XpeGhostTier3Mix { float keep; float local; };
+extern XpeGhostTier3Mix xpe_ghost_tier3_mix;
 #endif
 
 /**
@@ -456,6 +493,8 @@ struct CalibrationData {
     uint32_t defect_width{0};
     uint32_t defect_height{0};
     int64_t  defect_expiry_ms{0};
+    char     defect_session_id[64]{};   // QA-A-229 M4: the defect file's session_id, for the consistency check
+    bool     session_warned{false};     // QA-A-229 M4: the "unspecified session" warning was raised for the current mixed state
 
     // QA-A-111 (#186): SRS-CALIB-FUNC-006-EXT 6a nonlinearity LUT, a flat table
     // indexed by raw ADU. `nonlin_extension_start` is the first index the
@@ -586,12 +625,67 @@ struct StagedDefect {
     uint32_t width{0};
     uint32_t height{0};
     int64_t  expiryMs{0};
+    char     sessionId[64]{};   ///< the file's session_id (QA-A-229 M4); was read by nobody before
 };
 
 /** Read, validate and allocate; changes no global. Never throws. */
 XpeErrorCode xpe_calib_stage_offset(const char* filepath, StagedOffset* out) noexcept;
 XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcept;
 XpeErrorCode xpe_calib_stage_defect(const char* filepath, StagedDefect* out) noexcept;
+
+/* -------------------------------------------------------------------------
+ * Session consistency between the loaded maps (QA-A-229 M4, #245, SRS-CALIB-FUNC-011 S1).
+ *
+ * A map file carries a session_id (XCalFileHeader). Maps loaded together must come from the same
+ * session. "Specified" means non-empty and not the literal "generated" (what xpe_calib_generate_* writes);
+ * an unspecified id is left out of the comparison (files from before this check, and every generated
+ * file, would otherwise be refused) and the module says so with ONE warning per load.
+ *
+ * xpe_session_conflict is the ONE comparator: both ids specified and different. A future "expected
+ * session" (S2) calls the same function.
+ * ------------------------------------------------------------------------- */
+inline bool xpe_session_specified(const char* id64) noexcept
+{
+    return id64 != nullptr && id64[0] != 0 && std::strncmp(id64, "generated", 64) != 0;
+}
+
+inline bool xpe_session_conflict(const char* a64, const char* b64) noexcept
+{
+    return xpe_session_specified(a64) && xpe_session_specified(b64) && std::strncmp(a64, b64, 64) != 0;
+}
+
+enum class CalibMapKind { Offset, Gain, Defect };
+
+/**
+ * Before committing a map of `kind` whose file carries `incoming64`: compare it with the OTHER maps
+ * currently in the store. XPE_ERR_CONFIG_INVALID when it conflicts with any of them (nothing is changed:
+ * the incoming map is the one refused, the loaded ones stay). The caller holds g_calib_mutex and commits the
+ * map in the SAME critical section.
+ *
+ * On XPE_OK this also settles the warning state (QA-A-229b, Codex #93 finding 2): whether, once this map is
+ * in, two or more maps are loaded and at least one has an unspecified session id (the state is "mixed") and
+ * whether the warning for it was already raised are decided HERE, under the lock, in the order the commits
+ * happen. `*shouldWarn` is true when this commit enters a mixed state that has not been reported; pass it to
+ * xpe_calib_session_warn after releasing the lock. (The flag used to be set after the lock was released, from
+ * a `mixed` that another commit could have made stale.)
+ */
+XpeErrorCode xpe_calib_session_check_locked(CalibMapKind kind, const char* incoming64, bool* shouldWarn) noexcept;
+
+/** The conflict rule for a set that replaces all three maps at once (the pipeline's calibration set): pure. */
+XpeErrorCode xpe_calib_session_check_set(const char* offset64, const char* gain64, const char* defect64,
+                                         bool* unspecifiedMixed) noexcept;
+
+/** The warning-state step for a committed set: the caller holds g_calib_mutex; true when to warn. */
+bool xpe_calib_session_transition_locked(bool mixed) noexcept;
+
+/**
+ * Pushes the warning when `shouldWarn` (the value xpe_calib_session_check_locked or _transition_locked gave).
+ * ONCE per mixed state: the pipeline re-reads its three files on every call (and the Endurance loops load
+ * thousands of times), so a warning per load would fill the 64-entry alert queue with one repeated sentence.
+ * The state ends when a load leaves no unspecified map in play, or at shutdown; the next mix warns again.
+ * Takes no lock and decides nothing: the decision was made under g_calib_mutex. Never throws.
+ */
+void xpe_calib_session_warn(bool shouldWarn) noexcept;
 
 /** Move a staged object into g_calib. The caller holds g_calib_mutex. Cannot fail. */
 void xpe_calib_commit_offset_locked(StagedOffset& staged) noexcept;
@@ -613,6 +707,8 @@ void xpe_calib_after_gain_commit(const StagedGain& staged) noexcept;
 bool xpe_calib_cache_is_consistent();
 
 #ifdef XPE_CACHE_TEST_HOOKS
+/** Runs at the top of xpe_calib_session_warn: after a commit, before its warning is pushed (test-only; QA-A-229b). */
+extern void (*xpe_session_after_commit_hook)();
 /**
  * Test-only: called by a cached loader's hit lookup right after it has opened the file and before the
  * expiry is judged, so a test can make that step take as long as a slow (network) path would. Only the

@@ -1,0 +1,84 @@
+G1  M3-9 session matching (plan: "offset/gain/BPM same session_id verification")
+    compare session ids with strcmp/memcmp in src/*: 0 []
+    CONTROL same pattern without the session filter in src/*: 8 ['preprocess.cpp', 'xcal_reader.cpp', 'xcal_validator.cpp', 'xpe_calib_check_expiry.cpp', 'xpe_calib_save.cpp']
+    session id mentioned in src/*: 46 ['calibration_cache.cpp', 'xpe_calib_generate_gain.cpp', 'xpe_calib_generate_offset.cpp', 'xpe_calib_load_gain.cpp', 'xpe_calib_load_offset.cpp', 'xpe_calib_save.cpp']
+    a session-mismatch error code/word in src/*: 0 []
+    in include/*: 1 ['preprocess_api.h']
+G2  REQ-P1A ids cited in code/tests that spec.md does not define
+    defined: 48 | cited in code: 39 | cited but not defined: 1
+      REQ-P1A-066 <- test_req_p1a_066.cpp
+G3  plan.md file names -> exist?
+    interpolation.cpp                  missing
+    interpolation.h                    missing
+    test_calibration.cpp               missing
+    test_defect_correction.cpp         missing
+    test_gain_correction.cpp           missing
+    test_offset_correction.cpp         missing
+    test_preprocess_integration.cpp    missing
+    test_readout_validation.cpp        missing
+    test_simd_parity.cpp               missing
+    xcal_parser.cpp                    missing
+    xcal_parser.h                      missing
+    xpe_calibration.cpp                EXISTS
+    xpe_common.cpp                     missing
+    xpe_defect_avx2.cpp                missing
+    xpe_defect_correction.cpp          missing
+    xpe_gain_avx2.cpp                  missing
+    xpe_gain_correction.cpp            missing
+    xpe_offset_avx2.cpp                missing
+    xpe_offset_correction.cpp          missing
+    xpe_preprocess.cpp                 missing
+    xpe_preprocess_api.h               missing
+    xpe_readout_validation.cpp         missing
+    xpe_simd_dispatch.cpp              missing
+    xpe_types.h                        missing
+    CONTROL: offset_correct.cpp exists = True
+G4  DISABLED_ tests in modules/preprocess/tests
+     44 ['gain_poly_policy_golden.inc', 'test_gain_poly_policy.cpp', 'test_integration.cpp', 'test_zz_a161_probe.cpp', 'test_zz_a166_bounds.cpp', 'test_zz_a172_path.cpp', 'test_zz_a173_gate.cpp', 'test_zz_a174_floor.cpp', 'test_zz_a184_probes.cpp', 'test_zz_a186_probe.cpp', 'test_zz_a187_probe.cpp']
+       gain_poly_policy_golden.inc DISABLED_PrintGolden
+       test_gain_poly_policy.cpp DISABLED_PrintGolden
+       test_gain_poly_policy.cpp DISABLED_PrintGolden
+       test_integration.cpp DISABLED_PipelinePerformance3072x3072
+       test_zz_a161_probe.cpp DISABLED_ControlLocalLoopMatchesShipped
+       test_zz_a161_probe.cpp DISABLED_PremiseStructuredFrameTprToday
+       test_zz_a161_probe.cpp DISABLED_CandidateTableAt10Sigma
+       test_zz_a161_probe.cpp DISABLED_CandidateTable
+       test_zz_a161_probe.cpp DISABLED_FprAcrossSeeds
+       test_zz_a161_probe.cpp DISABLED_AmplitudeSweepOfSurvivors
+       test_zz_a161_probe.cpp DISABLED_StructuredFrameFprOfTheChosenCandidate
+       test_zz_a161_probe.cpp DISABLED_WhyEdgeBreaks
+       test_zz_a161_probe.cpp DISABLED_EdgeFalsePositivesBySide
+       test_zz_a161_probe.cpp DISABLED_TileSigmaOnCleanStructuredFrames
+       test_zz_a161_probe.cpp DISABLED_TileBlendCombination
+       test_zz_a161_probe.cpp DISABLED_ShippedTimingAtSpecFrameSize
+       test_zz_a161_probe.cpp DISABLED_ShippedPathAfter6dLanded
+       test_zz_a161_probe.cpp DISABLED_WhereTheShippedTimeGoes
+       test_zz_a161_probe.cpp DISABLED_OrthogonalityFalsification
+       test_zz_a161_probe.cpp DISABLED_WhatRemainsInTileSigmas
+       test_zz_a161_probe.cpp DISABLED_SelectionFixedCostPerCall
+       test_zz_a166_bounds.cpp DISABLED_MachineReferenceKernels
+       test_zz_a166_bounds.cpp DISABLED_DetectionNetworkBound
+       test_zz_a166_bounds.cpp DISABLED_SigmaStageBounds
+       test_zz_a166_bounds.cpp DISABLED_MemoryBound
+       test_zz_a166_bounds.cpp DISABLED_SelectionLowerBound
+       test_zz_a166_bounds.cpp DISABLED_A167_WhyTheSelectionMeasurementsDiffer
+       test_zz_a166_bounds.cpp DISABLED_Avx2PathExists
+       test_zz_a166_bounds.cpp DISABLED_LowerBoundByDensity
+       test_zz_a166_bounds.cpp DISABLED_StageBreakdown
+       test_zz_a172_path.cpp DISABLED_StageSumVsWhole
+       test_zz_a172_path.cpp DISABLED_StraddleFallbackCost
+       test_zz_a172_path.cpp DISABLED_PerLaneEquivalenceAndTime
+       test_zz_a172_path.cpp DISABLED_WholePathWithPerLane
+       test_zz_a172_path.cpp DISABLED_InterpolateKernelIsolated
+       test_zz_a173_gate.cpp DISABLED_DumpCorpus
+       test_zz_a173_gate.cpp DISABLED_DumpCorpus
+       test_zz_a173_gate.cpp DISABLED_ShippedWhole
+       test_zz_a173_gate.cpp DISABLED_SigmaExpressionExposure
+       test_zz_a174_floor.cpp DISABLED_SameSessionFloor
+       test_zz_a184_probes.cpp DISABLED_LineNoiseVersusTheReadoutCheck
+       test_zz_a184_probes.cpp DISABLED_GhostSingleThreadTime
+       test_zz_a186_probe.cpp DISABLED_MeanVersusMedianFlatResidual
+       test_zz_a187_probe.cpp DISABLED_PipelineSnrMedianVersusMean
+G5  test names the SPEC text cites -> exist?
+    cited: 1 | not found as TEST(...): 0 []
+    CONTROL: DefectCorrectTest.InPlaceMatchesOutOfPlace found = True

@@ -1,0 +1,84 @@
+Note: Google Test filter = GhostTier3Border.*:GhostTier3Orientation.*
+[==========] Running 6 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from GhostTier3Border
+[ RUN      ] GhostTier3Border.AUniformFrameComesOutUniformAtEverySize
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_border.cpp(128): error: Expected: (static_cast<double>(*mm.second) - static_cast<double>(*mm.first)) < (1e-2), actual: 508.9130859375 vs 0.01
+3x3: min 13303.62109375 max 13812.5341796875
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_border.cpp(128): error: Expected: (static_cast<double>(*mm.second) - static_cast<double>(*mm.first)) < (1e-2), actual: 508.9130859375 vs 0.01
+4x4: min 13303.62109375 max 13812.5341796875
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_border.cpp(128): error: Expected: (static_cast<double>(*mm.second) - static_cast<double>(*mm.first)) < (1e-2), actual: 508.9130859375 vs 0.01
+5x7: min 13303.62109375 max 13812.5341796875
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_border.cpp(128): error: Expected: (static_cast<double>(*mm.second) - static_cast<double>(*mm.first)) < (1e-2), actual: 508.9130859375 vs 0.01
+7x5: min 13303.62109375 max 13812.5341796875
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_border.cpp(128): error: Expected: (static_cast<double>(*mm.second) - static_cast<double>(*mm.first)) < (1e-2), actual: 508.9130859375 vs 0.01
+9x9: min 13303.62109375 max 13812.5341796875
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_border.cpp(128): error: Expected: (static_cast<double>(*mm.second) - static_cast<double>(*mm.first)) < (1e-2), actual: 508.9130859375 vs 0.01
+16x16: min 13303.62109375 max 13812.5341796875
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_border.cpp(128): error: Expected: (static_cast<double>(*mm.second) - static_cast<double>(*mm.first)) < (1e-2), actual: 508.9130859375 vs 0.01
+3x16: min 13303.62109375 max 13812.5341796875
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_border.cpp(128): error: Expected: (static_cast<double>(*mm.second) - static_cast<double>(*mm.first)) < (1e-2), actual: 508.9130859375 vs 0.01
+16x3: min 13303.62109375 max 13812.5341796875
+
+[  FAILED  ] GhostTier3Border.AUniformFrameComesOutUniformAtEverySize (0 ms)
+[ RUN      ] GhostTier3Border.EveryPixelFollowsTheBlendOverTheNeighboursThatExist
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_border.cpp(138): error: Expected: (maxAbsDiff(got, want)) < (0.05), actual: 2642.3568115234375 vs 0.05
+3x3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_border.cpp(138): error: Expected: (maxAbsDiff(got, want)) < (0.05), actual: 3014.80908203125 vs 0.05
+4x4
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_border.cpp(138): error: Expected: (maxAbsDiff(got, want)) < (0.05), actual: 2573.1839599609375 vs 0.05
+5x7
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_border.cpp(138): error: Expected: (maxAbsDiff(got, want)) < (0.05), actual: 2344.3636474609375 vs 0.05
+7x5
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_border.cpp(138): error: Expected: (maxAbsDiff(got, want)) < (0.05), actual: 2393.0126953125 vs 0.05
+9x9
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_border.cpp(138): error: Expected: (maxAbsDiff(got, want)) < (0.05), actual: 3259.60498046875 vs 0.05
+16x16
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_border.cpp(138): error: Expected: (maxAbsDiff(got, want)) < (0.05), actual: 2635.9840087890625 vs 0.05
+3x16
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_border.cpp(138): error: Expected: (maxAbsDiff(got, want)) < (0.05), actual: 2609.0751953125 vs 0.05
+16x3
+
+[  FAILED  ] GhostTier3Border.EveryPixelFollowsTheBlendOverTheNeighboursThatExist (0 ms)
+[ RUN      ] GhostTier3Border.ATierOneOrTwoFrameIsNotBlendedAnywhere
+[       OK ] GhostTier3Border.ATierOneOrTwoFrameIsNotBlendedAnywhere (0 ms)
+[----------] 3 tests from GhostTier3Border (1 ms total)
+
+[----------] 3 tests from GhostTier3Orientation
+[ RUN      ] GhostTier3Orientation.AFrameFlippedProcessedAndFlippedBackComesOutAsTheUnflippedOne
+[       OK ] GhostTier3Orientation.AFrameFlippedProcessedAndFlippedBackComesOutAsTheUnflippedOne (0 ms)
+[ RUN      ] GhostTier3Orientation.TheOutputIsTheTierThreeFormulaWithTheNeighboursReadFromTheIncomingFrame
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_orientation.cpp(154): error: Expected: (maxAbsDiff(got, want)) < (0.1), actual: 638.6416015625 vs 0.1
+16x16
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_ghost_tier3_orientation.cpp(154): error: Expected: (maxAbsDiff(got, want)) < (0.1), actual: 622.0986328125 vs 0.1
+24x24
+
+[  FAILED  ] GhostTier3Orientation.TheOutputIsTheTierThreeFormulaWithTheNeighboursReadFromTheIncomingFrame (0 ms)
+[ RUN      ] GhostTier3Orientation.TiersOneAndTwoWereAlwaysDirectionIndependentAndStillAre
+[       OK ] GhostTier3Orientation.TiersOneAndTwoWereAlwaysDirectionIndependentAndStillAre (0 ms)
+[----------] 3 tests from GhostTier3Orientation (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 2 test suites ran. (2 ms total)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] GhostTier3Border.AUniformFrameComesOutUniformAtEverySize
+[  FAILED  ] GhostTier3Border.EveryPixelFollowsTheBlendOverTheNeighboursThatExist
+[  FAILED  ] GhostTier3Orientation.TheOutputIsTheTierThreeFormulaWithTheNeighboursReadFromTheIncomingFrame
+
+ 3 FAILED TESTS

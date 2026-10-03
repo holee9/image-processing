@@ -1,0 +1,9 @@
+D1 defect_correct reads kVp | exit=1 | red: DefectCorrectOutputIsTheSameForAnyMetadata
+D2 defect_correct stops checking NULL | BUILD-FAILED | red:
+R1 detect_runtime reads kVp | exit=1 | red: DetectRuntimeMapIsTheSameForAnyMetadata
+R2 detect_runtime rejects NULL | exit=1 | red: DetectRuntimeMapIsTheSameForAnyMetadata
+V1 validate_readout reads acquisitionTime==0 | exit=1 | red: ValidateReadoutFlagsAreTheSameForAnyMetadata
+V2 validate_readout stops checking NULL | BUILD-FAILED | red:
+F1 verify_offset reads kVp | exit=1 | red: VerifyOffsetMetricsAreTheSameForAnyMetadata
+F2 verify_pipeline reads kVp | exit=1 | red: VerifyPipelineMetricsAreTheSameForAnyMetadata
+RESTORED | exit=0 | red: (none)

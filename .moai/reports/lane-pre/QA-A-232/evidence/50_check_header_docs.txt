@@ -1,0 +1,2 @@
+-- 20 headers, 0 declarations skipped as unparseable, 0 findings
+check_header_docs exit=0

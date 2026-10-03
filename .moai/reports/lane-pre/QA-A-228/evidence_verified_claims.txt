@@ -1,0 +1,55 @@
+QA-A-228 -- claims of the three read-only agents that the lane re-checked by hand (command -> what it printed)
+Each grep has a control: the same tool in the same session finds a known string (last block).
+
+[REQ-018] sed -n 25,30p modules/preprocess/src/xpe_calib_check_expiry.cpp
+  xpe_calib_check_expiry(const char* filepath, bool* is_expired, int32_t* remaining_days)
+  grep -n "return XPE_" -> 32 INVALID_INPUT, 38 IO_FAILED, 44 IO_FAILED, 49 CONFIG_INVALID, 54 CONFIG_INVALID, 62 OK, 81 OK, 84 PROCESSING_FAILED
+  (no XPE_ERR_CALIBRATION_EXPIRED in this file; the spec says it returns that code and takes (filePath, expiryEpochMsOut))
+
+[REQ-019] grep -n "return XPE_ERR" modules/preprocess/src/xpe_calib_save.cpp
+  lines 44, 64, 84 (map not loaded, offset / gain / defect) -> XPE_ERR_INVALID_INPUT (the spec says XPE_ERR_CALIB_NOT_LOADED)
+
+[REQ-016a / REQ-105] grep -n calibState modules/preprocess/src/pipeline.cpp
+  612: "calibState is accepted for source compatibility but carries no maps"   615: (void)calibState;
+  (REQ-016a says pipeline_ex consults calibState for a defect map; REQ-105 says it does not read calibState)
+
+[REQ-103] modules/preprocess/src/xpe_calib_load_gain.cpp lines 130-147: a gain outside [0.1, 10.0] is classified defective and kept (gain 1.0);
+  only a map with more than XPE_GAIN_DEFECT_MAX_FRACTION of such pixels is refused (XPE_ERR_INVALID_CALIB_DATA)
+
+[REQ-014 / M3-9] session ids are copied (calibration_cache.cpp:501,523, xpe_calib_load_offset.cpp:80, xpe_calib_load_gain.cpp:245) and written back
+  (xpe_calib_save.cpp:59,79); grep for strcmp/memcmp/strncmp near "session" in src/* -> 0; the same pattern without the session filter -> 8 hits (control).
+  include/xpe/preprocess_api.h:135 "XPE_ERR_CONFIG_INVALID if session mismatch"; :130 "AC-CAL-001: Validate SHA-256, check session matching, verify expiry"
+
+[REQ-091] modules/preprocess/src/binning_correct.cpp:44-50: non-finite input -> xpe_alert_nonfinite(...); return XPE_ERR_INVALID_INPUT (the spec says PROCESSING_FAILED)
+
+[REQ-088] grep -rn lastAcqTimeSec modules .moai/specs/SPEC-XPE-P1A/spec.md -> only spec.md:706 ("lastAcqTimeSec = 0.0"); 0 hits in modules (field removed by QA-A-226b)
+
+[REQ-086] xpe_preprocess_internal.h:89-92 isValid(): if (!h) return false; return gh->magic == kMagic;  -> a non-NULL destroyed/garbage pointer is dereferenced
+
+[REQ-042] preprocess_api.h:674 / preprocess.cpp:92: xpe_preprocess_get_param_range(param_name, min, max) -- no body-part parameter
+
+[REQ-041] readout_validate.cpp:4 "REQ-P1A-041 (partly implemented: no line-noise check, see #232)"; :42-45 comment says it looks at row mean only
+
+[REQ-096] pipeline.cpp:425 if (meta && xpe_ghost_is_calibrated(ghostHandle)) meta->flags |= XPE_FLAG_GHOST_CORRECTED;
+
+[REQ-013] preprocess_api.h:659 xpe_defect_detect_runtime(const XpeImageBuffer* image, const XpeImageMetadata* metadata, XpeImageBuffer* defect_map_output)
+  (spec: (img, defectMapOut, configJsonOrNull)); grep -rn hampel_threshold modules -> 0
+
+[REQ-010] offset_correct.cpp:90-92 uses _mm256_cvtepi32_ps / _mm256_sub_ps (the spec names _mm256_subs_epu16)
+
+[REQ-004] xpe_error.h:57 NETWORK_FAILED -10, :63 CALIB_NOT_LOADED -16, :64 INVALID_CALIB_DATA -17
+
+[REQ-020] grep -c xpe_preprocess_init modules/preprocess/tests/test_temp_nonlinearity_binning.cpp -> 0 (the temperature tests expect XPE_OK without init)
+
+[REQ-005] test_runtime_detection_errors.cpp:151-156 NullMetadataIsAccepted: EXPECT_EQ(XPE_OK, xpe_defect_detect_runtime(&img, nullptr, &out))
+
+[FUNC-015 / FUNC-021] grep -rIl "xpe-pre-e2e-report-v1" (py cs cpp h ps1 json yml; docs and .moai excluded) -> 0
+  grep -rIlw CES (same file types) -> modules/preprocess/src/xpe_verify_metrics.cpp only (a comment at :881 "a CES score, not this gate")
+[FUNC-011 / 028 / 029 / 030] xpe_calib_session_create, xpe_calib_field_generate, xpe_calib_check_drift, realtime_offset(_adapt): src 0, include 0, tests 0
+
+[M4-9] .moai/reports/lane-pre/QA-A-08/gate.md:169 "coverage / coverage_summary -> no target. ENABLE_COVERAGE=ON has no effect"; grep -rIl coverage .moai/reports/lane-pre
+  finds 5 files, none stating a measured percentage for the preprocess module (search limited to the word "coverage")
+
+[plan.md file names] 24 distinct file names in plan.md -> only xpe_calibration.cpp exists (control: offset_correct.cpp exists). Full list in evidence_greps.txt G3.
+
+[controls] grep -c XPE_ERR_CALIBRATION_EXPIRED src/xcal_reader.cpp -> 1; grep -c XPE_ERR_CALIB_NOT_LOADED src/offset_correct.cpp -> 2; xpe_calib_generate_gain found in gain_correct.cpp, xpe_calib_generate_gain.cpp

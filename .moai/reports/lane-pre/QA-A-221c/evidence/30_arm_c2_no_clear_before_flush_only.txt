@@ -1,0 +1,9 @@
+ARM c2_no_clear_before_flush_only
+file src/xcal_writer.cpp
+built=True
+[  FAILED  ] OomInjection.AWriteFailureIsReportedWithItsOwnCauseNotWhatAnEarlierStepLeftBehind (13 ms)
+[  PASSED  ] 1 test.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OomInjection.AWriteFailureIsReportedWithItsOwnCauseNotWhatAnEarlierStepLeftBehind
+which cases:
+step 4 leaked

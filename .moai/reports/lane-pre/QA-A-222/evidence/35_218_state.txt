@@ -1,0 +1,39 @@
+NOTE (QA-A-222 correction): the "QA-A-188 / 187 / ..." hash lines below came from `git log --grep` and several point at MERGE commits or other commits. The authoritative hashes are in evidence/11_ancestry_by_subject.txt.
+
+== controls on the preprocess export table
+xpe_preprocess_init rows: 1
+xpe_defect_correct rows: 1
+xpe_crc32 rows: 0
+
+== QA-A-188 / 187 / 192 / 153 / 158 / 159 commits: in origin/main?
+QA-A-188: origin/main=ef98cd67 HEAD=ef98cd67
+QA-A-187: origin/main=74d6a70d HEAD=74d6a70d
+QA-A-192: origin/main=af21f669 HEAD=af21f669
+QA-A-153: origin/main=83a56595 HEAD=83a56595
+QA-A-158: origin/main=a5193828 HEAD=a5193828
+QA-A-159: origin/main=e8a2569d HEAD=e8a2569d
+
+== oracle test registered in the build?
+modules/preprocess/CMakeLists.txt:467:        tests/test_defect_oracle.cpp         # QA-A-188 (#218) SRS-CALIB-FUNC-019 synthetic BPM oracle: recall, FPR, GoodPixelDeltaP99
+
+== oracle tests (names)
+210:TEST_F(DefectOracle, RecallFprAndGoodPixelDeltaMeetTheCanonicalLines) {
+228:TEST_F(DefectOracle, ControlOneMissedDefectBreaksRecall) {
+241:TEST_F(DefectOracle, ControlOneFalseAlarmShowsInFpr) {
+255:TEST_F(DefectOracle, ControlFlaggingManyGoodPixelsBreaksGoodPixelDelta) {
+
+== run them
+[       OK ] VerifyMetricsTest.VerifyGain_PerfectFlatField (0 ms)
+[       OK ] VerifyMetricsTest.VerifyGain_DetectsBadGain (0 ms)
+[       OK ] VerifyMetricsTest.VerifyGain_FlatResidualUsesTheArithmeticMean (0 ms)
+[       OK ] VerifyMetricsTest.VerifyGain_ImprovedButStillAboveOnePercentFails (0 ms)
+[       OK ] VerifyMetricsEdgeTest.VerifyGainHandlesPerfectlyUniformOutput (0 ms)
+[       OK ] VerifyMetricsEdgeTest.VerifyGainComputesFlatnessOverVariedOutput (0 ms)
+[       OK ] VerifyMetricsEdgeTest.VerifyGainRejectsWrongGainMapFormat (0 ms)
+[       OK ] GainPolyPolicyTest.TheOracleItselfSeesATurnBetweenTwoSamples (0 ms)
+[       OK ] DefectOracle.RecallFprAndGoodPixelDeltaMeetTheCanonicalLines (9174 ms)
+[       OK ] DefectOracle.ControlOneMissedDefectBreaksRecall (27 ms)
+[       OK ] DefectOracle.ControlOneFalseAlarmShowsInFpr (34 ms)
+[       OK ] DefectOracle.ControlFlaggingManyGoodPixelsBreaksGoodPixelDelta (35 ms)
+[       OK ] GainSemantics.FlatResidualLineIsHalfAPercentWhenKnownAndOnePercentWhenUnknown (2 ms)
+[  PASSED  ] 13 tests.

@@ -1,0 +1,23 @@
+**SRS-CALIB-FUNC-006-EXT: Nonlinearity Correction Algorithm Extension**
+
+**6a. LUT Method (preferred for production)**
+
+The nonlinearity LUT maps raw ADU values to linearized ADU values:
+
+- LUT size: 4096 entries (covers 12-bit ADC range) or 65536 entries (16-bit full range)
+- LUT data type: uint16 (output values in ADU)
+- Lookup: `I_lin = LUT[I_raw]` (direct index, O(1))
+- LUT generation (factory calibration procedure):
+  1. Acquire flat-field images at N ≥ 10 dose levels spanning 5% to 95% ADC full scale
+  2. For each dose level, record mean signal `S_meas` and reference dose `D_ref`
+  3. Fit ideal linear response: `S_ideal(D) = G_nominal × D` where `G_nominal` is mean gain
+  4. Compute correction: `LUT[S_meas] = S_ideal`
+  5. Interpolate LUT entries between measured points using monotone cubic spline (Fritsch-Carlson 1980)
+  6. Boundary conditions: `LUT[0] = 0`, `LUT[ADC_max] = ADC_max` (identity at extremes)
+- Maximum interpolation error requirement: ≤ 0.3% of ADC full scale at any input value
+- Monotonicity check: `LUT[i] ≤ LUT[i+1]` for all i (enforced; non-monotone LUT = `XPE_ERR_INVALID_CALIB_DATA`)
+
+> **모순 정정 (2026-09-18, #186 — QA-A-110 이 측정으로 보임)**
+>
+> 위 6단계의 `LUT[ADC_max] = ADC_max`(양 끝 항등)와 3단계의 선형 적합은 동시에 만족할 수 없습니다. 감마 1.35·12단계 모사에서 적합은 full scale 을 3697 로 보는데 6단계는 4095 를 고정하라고 하므로, 전체 눈금의 약 10% 차이를 측정 상한 위의 좁은 구간이 흡수해야 합니다. 그 결과 마지막 매듭의 접선이 끌려 바로 아래 구간까지 오염됩니다(최상단 구간 오차 1.186%, 단계를 40으로 늘려도 0.361%). 측정점 사이는 0.046–0.200% 로 요구를 만족합니다. 즉 보간 품질이 아니라 요구끼리의 모순입니다.
+>

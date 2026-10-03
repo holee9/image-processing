@@ -1,0 +1,16 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from AuditProbe
+[ RUN      ] AuditProbe.Sweep
+[audit-start] 2	xpe_init (with config)
+[audit-progress] xpe_init (with config)
+[XPE][INFO ] xpe_init: library initialised
+[XPE][INFO ] xpe_init: library initialised
+[audit] xpe_init (with config)                         points=1 failed=1 escaped=0 lockleak=0 partial=0 growth=0 growthAfterReset=1 rc={-2x1}
+[       OK ] AuditProbe.Sweep (7 ms)
+[----------] 1 test from AuditProbe (7 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (7 ms total)
+[  PASSED  ] 1 test.

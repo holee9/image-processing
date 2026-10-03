@@ -1,0 +1,60 @@
+"""QA-A-225 M3: damage the derivation, the cause-pinning measurements and the clamp contract one at a time; run GhostOracleDerive.* and
+GhostOracle.*; record the exit code too (a died process leaves no FAILED line); restore + cmp."""
+import subprocess, sys, shutil, os, re
+R = 'D:/workspace-github/xpe-pre/'
+S = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5/scratchpad/'
+HH = R + 'modules/preprocess/tests/ghost_oracle_harness.h'
+GC = R + 'modules/preprocess/src/ghost_correct.cpp'
+for f in (HH, GC):
+    k = S + 'keep225m3_' + os.path.basename(f)
+    if not os.path.exists(k):
+        shutil.copy(f, k)
+
+ARMS = {
+    'd1_cost_reads_the_clamped_replica': (HH, 'const std::vector<double> c = replicaTier1(yMeans, l, /*clamp=*/false);\n    double sc = 0.0, sx = 0.0;\n    for (size_t i = s.nPre + 49; i < s.nPre + s.nExp; ++i) { sc += c[i]; sx += s.x[i]; }\n    const double r = sc / sx;\n    const double pen',
+                                          'const std::vector<double> c = replicaTier1(yMeans, l, /*clamp=*/true);\n    double sc = 0.0, sx = 0.0;\n    for (size_t i = s.nPre + 49; i < s.nPre + s.nExp; ++i) { sc += c[i]; sx += s.x[i]; }\n    const double r = sc / sx;\n    const double pen'),
+    'd2_replica_does_not_clamp': (HH, 'out[k] = (clamp && c < 0.0) ? 0.0 : c;', 'out[k] = (clamp && c < -1e30) ? 0.0 : c;'),
+    'd3_derivation_not_seeded': (HH, 'std::mt19937 g(seed);\n    std::normal_distribution<double> nd(0.0, 1.0);\n    Lag best', 'std::mt19937 g(std::random_device{}() + 0u * seed);\n    std::normal_distribution<double> nd(0.0, 1.0);\n    Lag best'),
+    'd4_no_retention_penalty': (HH, 'const double pen = (r >= band.lo && r <= band.hi) ? 0.0 : 1e6 * std::fabs(r - 1.0);',
+                                'const double pen = 0.0 * std::fabs(r - band.lo - band.hi);'),
+    'd5_clamped_share_counts_ones': (HH, 'if (v == 0.0f) ++zeros;', 'if (v == 1.0f) ++zeros;'),
+    'd6_dark_cor_is_dark_raw': (HH, 'm.darkRaw = darkRaw; m.darkCor = darkCor;', 'm.darkRaw = darkRaw; m.darkCor = darkRaw;'),
+    'd7_residual_uses_the_raw_dark': (HH, 'b.res = 100.0 * std::fabs(meanOf(c[i]) - darkCor) / std::max(exposureSignal, kEps);',
+                                      'b.res = 100.0 * std::fabs(meanOf(c[i]) - darkRaw) / std::max(exposureSignal, kEps);'),
+    'p1_module_tier1_stops_clamping': (GC, 'px[i] = (corrected > 0.0f) ? corrected : 0.0f;', 'px[i] = corrected;'),
+}
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', S + 'buildall.bat'], capture_output=True, text=True)
+    return 'BUILD_EXIT=0' in r.stdout, r.stdout
+
+
+def tests():
+    r = subprocess.run([R + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe', '--gtest_filter=GhostOracleDerive.*:GhostOracle.*'],
+                       cwd=R + 'modules/preprocess', capture_output=True, text=True)
+    failed = sorted(set(re.findall(r'^\[  FAILED  \] ([A-Za-z]\S+)', r.stdout, re.M)))
+    return failed, r.returncode
+
+
+for name in sys.argv[1:]:
+    f, old, new = ARMS[name]
+    keep = S + 'keep225m3_' + os.path.basename(f)
+    shutil.copy(keep, f)
+    src = open(f, 'rb').read().decode('utf-8')
+    crlf = '\r\n' in src
+    s = src.replace('\r\n', '\n')
+    if s.count(old) < 1:
+        print(name, 'NOT FOUND'); continue
+    idx = s.index(old)
+    s = s[:idx] + new + s[idx + len(old):]
+    open(f, 'wb').write((s.replace('\n', '\r\n') if crlf else s).encode('utf-8'))
+    ok, out = build()
+    if not ok:
+        print(name, 'BUILD FAILED'); print(out[-1000:])
+    else:
+        failed, rc = tests()
+        crashed = rc not in (0, 1) or (rc != 0 and not failed)
+        tag = (' [PROCESS DIED, exit %d]' % rc) if crashed else ''
+        print('%-38s -> %d red%s: %s' % (name, len(failed), tag, ', '.join(failed) if failed else ('NONE (arm did not fire)' if not crashed else 'no FAILED line')))
+    shutil.copy(keep, f)

@@ -1,0 +1,36 @@
+## C round 1 (HEAD + test fix, 3 children at startup)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     604                                      1853              1              0              1853
+  2                     460                                       951              0              0               951
+  3                     459                                      3757              1              1              3757
+  4                     447                                      1595              1              0              1595
+  5                     457                                       889              0              0               889
+  6                     507                                      1537              1              0              1537
+longest stall: median 1566 ms, max 3757 ms over 6 launches
+## D round 1 (experiment: verdict cached, 1 child at startup)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     477                                       432              0              0               432
+  2                     472                                       697              0              0               697
+  3                     469                                       452              0              0               452
+  4                     471                                       682              0              0               682
+  5                     457                                       406              0              0               406
+  6                     483                                       407              0              0               407
+longest stall: median 442 ms, max 697 ms over 6 launches
+## C round 2 (HEAD + test fix, 3 children at startup)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     504                                       943              0              0               943
+  2                     465                                       903              0              0               903
+  3                     791                                      1753              1              0              1753
+  4                     449                                       950              0              0               950
+  5                     462                                       905              0              0               905
+  6                     453                                      1638              1              0              1638
+longest stall: median 946 ms, max 1753 ms over 6 launches
+## D round 2 (experiment: verdict cached, 1 child at startup)
+run  window_first_visible_ms  longest_UI_stall_ms (WM_NULL not answered)  stalls>1000ms  stalls>2000ms  total_stalled_ms
+  1                     441                                      1155              1              0              1155
+  2                     453                                       709              0              0               709
+  3                     485                                      2147              1              1              2147
+  4                     451                                      1402              1              0              1402
+  5                     458                                      2032              1              1              2032
+  6                     463                                      2149              1              1              2149
+longest stall: median 1717 ms, max 2149 ms over 6 launches

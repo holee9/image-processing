@@ -1,8 +1,8 @@
 # SPEC-XPE-P1B-DISP: Acceptance Criteria
 
 **SPEC ID**: SPEC-XPE-P1B-DISP
-**Version**: 1.0.0
-**Date**: 2026-04-16
+**Version**: 1.0.1
+**Date**: 2026-10-03
 
 ---
 
@@ -190,9 +190,9 @@
 | Static analysis (cppcheck) | 0 warnings | TRUST 5 - Unified |
 | Static analysis (clang-tidy) | 0 warnings | TRUST 5 - Unified |
 | Memory leak (ASan, 1000 frames) | 0 leaks | REQ-DISP-033 |
-| DLL export count | Exactly 5 | REQ-DISP-029 |
+| DLL export count | Exactly 5 | REQ-DISP-036 |
 | | **Measured 2026-09-12 (QA-B-57): 6.** `xpe_apply_modality_lut`, `xpe_apply_presentation_lut`, `xpe_apply_voi_lut`, `xpe_display_version`, `xpe_gsdf_calibrate`, `xpe_voi_preset_create`. The sixth is `xpe_display_version`, whose basis is `REQ-P0-033` (scaffolding placeholder to verify DLL load), not a display requirement — which is why the display count was written as 5 and nobody counted. | — |
-| P/Invoke compatibility | Round-trip pass | REQ-DISP-029 |
+| P/Invoke compatibility | Round-trip pass | REQ-DISP-036 |
 | Performance: Modality LUT | <= 20ms | REQ-DISP-008 |
 | Performance: VOI LUT | <= 16ms | REQ-DISP-016 |
 | Performance: Presentation LUT | <= 25ms | REQ-DISP-028 |
@@ -203,7 +203,7 @@
 
 - [ ] All 35 EARS requirements (REQ-DISP-001 through REQ-DISP-035) have corresponding test cases
 - [ ] All tests pass (>= 38 test cases across 5 test files)
-- [ ] `dumpbin /exports xpe_display.dll` lists exactly 5 functions
+- [ ] `dumpbin /exports xpe_display.dll` lists exactly 6 functions (정정 2026-10-03: 옛 값 5, `xpe_display_version` 포함 헤더 `XPE_API` 6개에 맞춤 — 사용자 결정 #245 코멘트, #251)
 - [ ] P/Invoke round-trip test passes (C# struct layout compatibility)
 - [ ] Statement coverage >= 90%, branch coverage >= 80%
 - [ ] cppcheck --std=c++17 reports 0 warnings
@@ -221,7 +221,8 @@
 | Version | Date | Author | Description |
 |---------|------|--------|-------------|
 | 1.0.0 | 2026-04-16 | MoAI (manager-spec) | Initial acceptance criteria (10 scenarios + quality gates) |
+| 1.0.1 | 2026-10-03 | lead (QA-B-199) | ABI 요구 재번호 반영: DLL export count·P/Invoke 게이트의 추적을 `REQ-DISP-029` → `REQ-DISP-036` 으로 (#251) |
 
 ---
 
-*Document End -- SPEC-XPE-P1B-DISP acceptance.md v1.0.0*
+*Document End -- SPEC-XPE-P1B-DISP acceptance.md v1.0.1*

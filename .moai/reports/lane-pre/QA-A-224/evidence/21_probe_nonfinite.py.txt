@@ -1,0 +1,12 @@
+import sys
+sys.argv=['x','nonfinite']
+exec(open('C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5/scratchpad/probe_verify_224.py').read().split("print('probe'")[0])
+import numpy as np
+rng=np.random.default_rng(7)
+noisy=2000.0*(1.0+rng.normal(0,0.05,(H,W)))
+for name,val in (('+inf',np.inf),('NaN',np.nan),('-inf',-np.inf)):
+    fin=np.full((H,W),2000.0); fin[0,0]=val
+    pipe('final has one %s pixel (raw noisy)'%name, noisy, fin)
+for name,val in (('+inf',np.inf),('NaN',np.nan)):
+    fin=2000.0*(1.0+np.random.default_rng(3).normal(0,0.005,(H,W))); fin[5,5]=val
+    pipe('final 0.5%% noise + one %s pixel'%name, noisy, fin)

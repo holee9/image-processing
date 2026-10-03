@@ -342,22 +342,21 @@ if(_XPE_BUILD_TESTS)
         # QA-A-27 (#112): ported from the deleted tests/preprocess_smoke orphan
         tests/test_param_range_names.cpp
         tests/test_xpe_calib_load.cpp
+        # QA-A-229 M4 (#245): session consistency between the loaded maps (SRS-CALIB-FUNC-011, S1)
+        tests/test_calib_session_consistency.cpp
+        # QA-A-229 M5 (#245, REQ-P1A-086): ghost handles are recognised by a registry, never by dereferencing
+        tests/test_ghost_handle_registry.cpp
+        # QA-A-230 M3 (#245): SRS-CALIB-PERF-001 on the real path (3072x3072, calibration loaded); replaces the disabled Integration test
+        tests/test_pipeline_performance_3072.cpp
         tests/test_xpe_calib_save.cpp
         # QA-A-29 (#132): xpe_calib_save 3-arg embedded expiry, api-spec 6.14
         tests/test_calib_save_expiry.cpp
-        # QA-A-21 (#120) judgement. The "legacy 3-arg API" half of the previous
-        # note was stale: the shipped API *is* 3-arg and this file has zero
-        # 2-argument correction calls. Registering it produces 14 errors, all
-        # struct fields, but they are not a rename job:
-        #   XpeImageBuffer::stride  -> removed (2 uses, derivable from width)
-        #   kvp -> kVp, sid_mm -> SID_mm                    (rename)
-        #   ma -> mAs                 (mA vs mA*s -- different quantity)
-        #   acquisition_time_s -> acquisitionTime  (seconds vs epoch ms)
-        #   temperature_c, integration_time_ms -> no field exists
-        # The last three change what the affected cases assert, so registering
-        # needs a contract decision, not an edit. Details in
-        # .moai/reports/lane-pre/QA-A-21/.
-        # tests/test_xpe_preprocess.cpp
+        # QA-A-229 M2b (#245): tests/test_xpe_preprocess.cpp (the pre-split monolith, disabled by
+        # e9b8ed46 on 2026-04-20) is DELETED. Its 31 cases not duplicated by the split files were
+        # compared with the live tests; the ones still true are ported with exact assertions
+        # (test_xpe_calib_load / test_param_range_names / test_xpe_preprocess_correction), the rest
+        # are covered by live tests or named features that do not exist. Table:
+        # .moai/reports/lane-pre/QA-A-229-M2b/report.md. Earlier note: QA-A-21 (#120).
         tests/test_xpe_preprocess_calibration.cpp
         tests/test_xpe_preprocess_correction.cpp
         tests/test_xpe_preprocess_init.cpp
@@ -426,6 +425,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_pipeline_stage_values.cpp
         # QA-A-105 (#187): current behaviour of a loaded gain polynomial
         tests/test_gain_poly_not_applied.cpp
+        # QA-A-232 M2 (#245): metadata content does not change defect_correct / detect_runtime / validate_readout / verify_*
+        tests/test_metadata_not_read.cpp
         # QA-A-123 (#194): the fitted dose range is recorded and enforced
         tests/test_gain_poly_dose_range.cpp
         tests/test_nonlin_no_mode_rejection.cpp
@@ -439,6 +440,12 @@ if(_XPE_BUILD_TESTS)
         tests/test_defect_input_finite.cpp
         tests/test_nonfinite_inputs.cpp
         tests/test_ghost_input_finite.cpp   # QA-A-217 (#233): ghost refuses non-finite input, a failed frame leaves its pixels
+        tests/test_ghost_oracle_pedestal.cpp   # QA-A-225 M6 (#241): blank frames that stay above 0 (sustained pedestal); controls say what the metric can and cannot separate
+        tests/test_ghost_oracle_derive.cpp   # QA-A-225 M3 (#241): cause of the negative noisy removal pinned; a lag set derived from a calibration sequence, judged on others
+        tests/test_ghost_oracle.cpp   # QA-A-225 M1 (#241): independent lag generators (Starman LTI, finite trap), E2E ghost-removal metrics measured and printed (no thresholds), controls
+        tests/test_ghost_lag_contract.cpp   # QA-A-226b (#241): a forward-unstable lag set (S >= 1) is refused; tau is in frames, acquisitionTime is not used
+        tests/test_ghost_uncalibrated.cpp   # QA-A-226 (#241): a handle without calibrated lag parameters passes frames through, one Warning at creation
+        tests/test_ghost_tier3_border.cpp   # QA-A-227 (#244): tier 3 blends the border pixels too (mean over the neighbours that exist); a uniform frame stays uniform
         tests/test_ghost_tier3_orientation.cpp   # QA-A-218b (#233): tier 3 3x3 mean reads the incoming frame; scan-direction independent
         tests/test_xcal_replace_retry.cpp
         # QA-A-140 (#196): the no-op report reaches a null-config caller
@@ -547,6 +554,7 @@ if(_XPE_BUILD_TESTS)
     # sources into itself instead of linking the DLL.
     add_executable(xpe_preprocess_oom_tests
         tests/test_oom_injection.cpp
+        tests/test_ghost_mix_compare.cpp   # QA-A-225 M4 (#238): tier-3 blend kept vs removed through the test-only seam, preregistered rules
         ${XPE_PREPROCESS_SOURCES}
     )
     target_include_directories(xpe_preprocess_oom_tests

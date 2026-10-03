@@ -10,11 +10,18 @@
  *  - the file's size and last-write time are compared with what the entry recorded, and a
  *    difference (or a file that cannot be examined) cancels the hit so the miss path reloads
  *    and re-hashes it;
- *  - the file is opened for reading once (opening only): a file whose attributes are visible but
- *    whose content cannot be opened is refused with IO_FAILED, as a miss would;
+ *  - the file is opened for reading once: a file whose attributes are visible but whose content
+ *    cannot be opened is refused with IO_FAILED, as a miss would;
+ *  - the file's 152-byte header is read again at that open and compared with the header the entry was
+ *    published with (QA-A-229b, Codex #93): everything a verdict takes from the header -- type, format,
+ *    dimensions, creation time, expiry, session id -- is judged from the CURRENT file, because the header
+ *    is outside the SHA-256 (config || payload), so a header edit that keeps size and write time was
+ *    invisible to the stamp. A header that differs cancels the hit like a changed stamp does;
  *  - the gain quality metadata of the file, kept parsed in the entry, is made current again.
- * A hit does NOT re-hash the file: a change that keeps both the size and the last-write time is
- * not noticed until xpe_calib_cache_clear() (or module shutdown, which empties the cache).
+ * A hit does NOT re-hash the file: an edit of the payload (or config) that keeps the size, the last-write
+ * time AND the header is not noticed until xpe_calib_cache_clear() (or module shutdown, which empties the
+ * cache). A file REWRITTEN with new content carries a new SHA-256 in its header, so the header comparison
+ * above does notice it (QA-A-229b).
  * Concurrent writers are not supported: the file must not be written while a calibration load is in
  * progress (a second look at the attributes just before the install would not close every such race,
  * so none is made -- QA-A-200).
@@ -26,6 +33,7 @@
 
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
+#include "xpe/preprocess/xcal_format.h"
 
 #include <chrono>
 #include <cstdlib>
@@ -97,18 +105,35 @@ struct CacheBufferFree {
 using CacheBufferPtr = std::unique_ptr<void, CacheBufferFree>;
 
 /**
- * Whether the file can be opened for reading, the way the XCal reader opens it. Reading the size and
- * the write time succeeding does not imply this (a file can show its attributes and refuse its
- * content), and a miss would report IO_FAILED, so a hit has to try the open too (QA-A-200).
+ * Whether the file can be opened for reading, the way the XCal reader opens it, and its header bytes.
+ * Reading the size and the write time succeeding does not imply the open (a file can show its attributes and
+ * refuse its content), and a miss would report IO_FAILED, so a hit has to try the open too (QA-A-200).
+ * The header is read at the same open (QA-A-229b): `header.ok` is false when the file is shorter than a header.
  */
-bool can_open_for_read(const char* path) noexcept
+struct HeaderSnap {
+    bool          ok{false};
+    unsigned char bytes[sizeof(XCalFileHeader)]{};
+};
+struct OpenCheck {
+    bool       openable{false};
+    HeaderSnap header;
+};
+
+OpenCheck open_check(const char* path) noexcept
 {
+    OpenCheck oc;
     try {
         std::ifstream f(path, std::ios::binary);
-        return f.is_open();
+        oc.openable = f.is_open();
+        if (oc.openable) {
+            f.read(reinterpret_cast<char*>(oc.header.bytes), static_cast<std::streamsize>(sizeof(oc.header.bytes)));
+            oc.header.ok = (f.gcount() == static_cast<std::streamsize>(sizeof(oc.header.bytes)));
+        }
     } catch (...) {
-        return false;
+        oc.openable = false;
+        oc.header.ok = false;
     }
+    return oc;
 }
 
 int64_t now_epoch_ms() noexcept
@@ -120,7 +145,8 @@ int64_t now_epoch_ms() noexcept
 /**
  * What the plain loader and the file record next to the pixels. Kept in the entry so that a hit
  * can put the global store back exactly as the loader did and judge the file as the read would.
- * timestamp / sessionId are zero for a defect map; the quality metadata is kept for gain only.
+ * timestamp is zero for a defect map (QA-A-229 M4: its sessionId is kept, the consistency check needs it);
+ * the quality metadata is kept for gain only.
  * `kind` records the map kind the plain loader validated (QA-A-197): the key is the path alone, and a
  * file holds one kind of map, so a hit from a loader of another kind must be refused as a miss would.
  */
@@ -132,6 +158,7 @@ struct EntryMeta {
     char        sessionId[64]{};
     int64_t     expiryMs{0};   ///< file's expiry_epoch_ms, 0 = never expires
     FileStamp   stamp;         ///< size and last-write time taken before the file was read
+    HeaderSnap  header;        ///< the file's header, read before the file was loaded (QA-A-229b); a hit re-reads and compares
     XpeCalibQualityMeta quality{};   ///< gain only: the parsed FUNC-033 metadata of the file
     bool        hasQuality{false};
     std::shared_ptr<uint32_t[]> gainDefects;   ///< gain only: the pixels classified defective at load (QA-A-211), shared and immutable
@@ -213,7 +240,7 @@ public:
      */
     template <typename T>
     XpeErrorCode get_copy(const std::string& path, MapKind kind, const FileStamp& now,
-                          const bool* openable, XpeImageBuffer* view, std::unique_ptr<T[]>* pixels,
+                          const OpenCheck* check, XpeImageBuffer* view, std::unique_ptr<T[]>* pixels,
                           EntryMeta* meta, HitState* state) {
         std::lock_guard<std::mutex> lock(mutex_);
         *state = HitState::Miss;
@@ -228,8 +255,17 @@ public:
         // loader of the asking kind would refuse that file (wrong XCal type), so this is a miss for it.
         // The entry is left alone -- its own loader still hits it.
         if (it->second->meta.kind != kind) return XPE_OK;
-        if (!openable) { *state = HitState::NeedOpenCheck; return XPE_OK; }
-        if (!*openable) { *state = HitState::Unreadable; return XPE_OK; }
+        if (!check) { *state = HitState::NeedOpenCheck; return XPE_OK; }
+        if (!check->openable) { *state = HitState::Unreadable; return XPE_OK; }
+        // QA-A-229b (Codex #93): the header is outside the SHA-256, so a file whose header was edited without
+        // changing its size or write time still matches the stamp. The header the entry was published with must
+        // equal the header read just now; if it does not (or either could not be read) the entry is dropped and
+        // the call is a miss -- the plain loader then reads and judges the file as it stands.
+        if (!check->header.ok || !it->second->meta.header.ok ||
+            std::memcmp(check->header.bytes, it->second->meta.header.bytes, sizeof(check->header.bytes)) != 0) {
+            erase_locked(it);
+            return XPE_OK;
+        }
         // The clock is read HERE -- after the open check, at the moment of judging -- as the plain reader reads
         // it after it has opened and read the file (QA-A-203b, Codex #22). A time taken before the open would
         // let an entry that expired while a slow open was in progress through.
@@ -426,11 +462,11 @@ XpeErrorCode lookup_hit(const char* filePath, MapKind kind, const FileStamp& sta
     const std::string key(filePath);
     XpeErrorCode rc = g_calibCache.get_copy<T>(key, kind, stamp, nullptr, view, pixels, meta, state);
     if (rc != XPE_OK || *state != HitState::NeedOpenCheck) return rc;
-    const bool openable = can_open_for_read(filePath);   // file I/O, outside the cache lock
+    const OpenCheck oc = open_check(filePath);   // file I/O, outside the cache lock
 #ifdef XPE_CACHE_TEST_HOOKS
     if (xpe_cache_after_open_check_hook) xpe_cache_after_open_check_hook();
 #endif
-    return g_calibCache.get_copy<T>(key, kind, stamp, &openable, view, pixels, meta, state);
+    return g_calibCache.get_copy<T>(key, kind, stamp, &oc, view, pixels, meta, state);
 }
 
 /**
@@ -490,25 +526,39 @@ void copy_session(char* dst64, const char* src64) noexcept
     std::memcpy(dst64, src64, 63);
 }
 
-void install_offset(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
-                    int64_t timestamp, const char* sessionId64)
+// QA-A-229 M4 (#245): a hit must give the verdict a miss would, and a miss runs the plain loader's session
+// check against the maps loaded NOW -- so a hit runs the same check (under the same lock, before anything is
+// installed). A refused hit leaves the store as it was and returns XPE_ERR_CONFIG_INVALID.
+XpeErrorCode install_offset(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
+                            int64_t timestamp, const char* sessionId64)
 {
-    std::lock_guard<std::mutex> lock(g_calib_mutex);
-    g_calib.offset_map       = std::move(map);
-    g_calib.offset_width     = d.width;
-    g_calib.offset_height    = d.height;
-    g_calib.offset_timestamp = timestamp;
-    copy_session(g_calib.offset_session_id, sessionId64);
+    bool warnSession = false;
+    {
+        std::lock_guard<std::mutex> lock(g_calib_mutex);
+        const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Offset, sessionId64, &warnSession);
+        if (src != XPE_OK) return src;
+        g_calib.offset_map       = std::move(map);
+        g_calib.offset_width     = d.width;
+        g_calib.offset_height    = d.height;
+        g_calib.offset_timestamp = timestamp;
+        copy_session(g_calib.offset_session_id, sessionId64);
+    }
+    xpe_calib_session_warn(warnSession);
+    return XPE_OK;
 }
 
-void install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
-                  int64_t timestamp, const char* sessionId64, const XpeCalibQualityMeta* quality,
-                  std::shared_ptr<uint32_t[]> defects, uint32_t defectCount)
+XpeErrorCode install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
+                          int64_t timestamp, const char* sessionId64, const XpeCalibQualityMeta* quality,
+                          std::shared_ptr<uint32_t[]> defects, uint32_t defectCount)
 {
     // The store holds the map as a shared_ptr; the control block is allocated here, before the lock, so a
     // failure to allocate it leaves the store untouched.
     std::shared_ptr<float[]> shared(std::move(map));
+    bool warnSession = false;
+    {
     std::lock_guard<std::mutex> lock(g_calib_mutex);
+    const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Gain, sessionId64, &warnSession);
+    if (src != XPE_OK) return src;
     g_calib.gain_map = std::move(shared);
     g_calib.gain_defect_idx   = std::move(defects);   // a hit installs the classification the load made (QA-A-211)
     g_calib.gain_defect_count = defectCount;
@@ -531,14 +581,25 @@ void install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
     } else {
         xpe_calib_commit_no_quality_locked();
     }
+    }
+    xpe_calib_session_warn(warnSession);
+    return XPE_OK;
 }
 
-void install_defect(std::unique_ptr<uint8_t[]> map, const XpeImageBuffer& d)
+XpeErrorCode install_defect(std::unique_ptr<uint8_t[]> map, const XpeImageBuffer& d, const char* sessionId64)
 {
-    std::lock_guard<std::mutex> lock(g_calib_mutex);
-    g_calib.defect_map    = std::move(map);
-    g_calib.defect_width  = d.width;
-    g_calib.defect_height = d.height;
+    bool warnSession = false;
+    {
+        std::lock_guard<std::mutex> lock(g_calib_mutex);
+        const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Defect, sessionId64, &warnSession);
+        if (src != XPE_OK) return src;
+        g_calib.defect_map    = std::move(map);
+        g_calib.defect_width  = d.width;
+        g_calib.defect_height = d.height;
+        copy_session(g_calib.defect_session_id, sessionId64);
+    }
+    xpe_calib_session_warn(warnSession);
+    return XPE_OK;
 }
 
 } // anonymous namespace
@@ -578,13 +639,17 @@ try
         if (state == HitState::Unreadable) return XPE_ERR_IO_FAILED;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
         if (state == HitState::Hit) {
-            install_offset(std::move(pixels), view, meta.timestamp, meta.sessionId);
+            const XpeErrorCode irc = install_offset(std::move(pixels), view, meta.timestamp, meta.sessionId);
+            if (irc != XPE_OK) return irc;
             std::memcpy(offsetMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;
         }
     }
 
     // Cache miss: load from file via 1-arg API (populates g_calib)
+    // The header is read BEFORE the load, like the stamp: if the file changes meanwhile, the entry keeps the
+    // older header and the next hit sees the difference (QA-A-229b).
+    const HeaderSnap hdrBefore = open_check(filePath).header;
     XpeErrorCode rc = xpe_calib_load_offset(filePath);
     if (rc != XPE_OK) return rc;
 
@@ -595,6 +660,7 @@ try
     EntryMeta meta;
     meta.kind = MapKind::Offset;
     meta.stamp = stamp;
+    meta.header = hdrBefore;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
         if (!g_calib.offset_map || g_calib.offset_width == 0) return XPE_ERR_NOT_INITIALIZED;
@@ -648,14 +714,18 @@ try
         if (state == HitState::Unreadable) return XPE_ERR_IO_FAILED;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
         if (state == HitState::Hit) {
-            install_gain(std::move(pixels), view, meta.timestamp, meta.sessionId,
+            const XpeErrorCode irc = install_gain(std::move(pixels), view, meta.timestamp, meta.sessionId,
                          meta.hasQuality ? &meta.quality : nullptr, meta.gainDefects, meta.gainDefectCount);
+            if (irc != XPE_OK) return irc;
             std::memcpy(gainMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;
         }
     }
 
     // Cache miss: load from file via 1-arg API (populates g_calib)
+    // The header is read BEFORE the load, like the stamp: if the file changes meanwhile, the entry keeps the
+    // older header and the next hit sees the difference (QA-A-229b).
+    const HeaderSnap hdrBefore = open_check(filePath).header;
     XpeErrorCode rc = xpe_calib_load_gain(filePath);
     if (rc != XPE_OK) return rc;
 
@@ -666,6 +736,7 @@ try
     EntryMeta meta;
     meta.kind = MapKind::Gain;
     meta.stamp = stamp;
+    meta.header = hdrBefore;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
         // A gain POLYNOMIAL file loaded: the store holds it and xpe_gain_correct() uses it, but there
@@ -737,13 +808,17 @@ try
         if (state == HitState::Unreadable) return XPE_ERR_IO_FAILED;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
         if (state == HitState::Hit) {
-            install_defect(std::move(pixels), view);
+            const XpeErrorCode irc = install_defect(std::move(pixels), view, meta.sessionId);
+            if (irc != XPE_OK) return irc;
             std::memcpy(defectMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;
         }
     }
 
     // Cache miss: load from file via 1-arg API (populates g_calib)
+    // The header is read BEFORE the load, like the stamp: if the file changes meanwhile, the entry keeps the
+    // older header and the next hit sees the difference (QA-A-229b).
+    const HeaderSnap hdrBefore = open_check(filePath).header;
     XpeErrorCode rc = xpe_calib_load_defect_map(filePath);
     if (rc != XPE_OK) return rc;
 
@@ -754,6 +829,7 @@ try
     EntryMeta meta;
     meta.kind = MapKind::Defect;
     meta.stamp = stamp;
+    meta.header = hdrBefore;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
         if (!g_calib.defect_map || g_calib.defect_width == 0) return XPE_ERR_NOT_INITIALIZED;
@@ -769,6 +845,7 @@ try
         staging.resize(static_cast<size_t>(desc.dataSize));
         std::memcpy(staging.data(), g_calib.defect_map.get(), staging.size());
         meta.expiryMs = g_calib.defect_expiry_ms;
+        std::memcpy(meta.sessionId, g_calib.defect_session_id, sizeof(meta.sessionId));
     }
 
     return publish_and_view(std::string(filePath), desc, staging.data(), defectMapOut, meta);

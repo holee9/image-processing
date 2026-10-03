@@ -1,0 +1,16 @@
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:00.20]     ImageProcTest.IntegrationTests.Safety.DllSearchPathSafetyTests.ResolvedDllPath_IsUnderBuildTreeOrTestOutput [SKIP]
+[xUnit.net 00:00:00.21]     ImageProcTest.IntegrationTests.Safety.DllSearchPathSafetyTests.ADecoyEarlierOnPath_IsNotWhatTheLocatorReturns_WhenItIsPlacedBeforeTheLocatorRuns [SKIP]
+[xUnit.net 00:00:00.21]     ImageProcTest.IntegrationTests.Safety.DllSearchPathSafetyTests.TheLoadedModule_IsTheResolvedFile [SKIP]
+[xUnit.net 00:00:00.23]     ImageProcTest.IntegrationTests.Safety.LeakEnduranceTests.InitShutdown_1000Cycles_NoLeak [SKIP]
+[xUnit.net 00:00:00.23]     ImageProcTest.IntegrationTests.Safety.LeakEnduranceTests.PinnedObjects_AtThisPoint_AreNoMoreThanWhenTheFixtureWasCreated [SKIP]
+  건너뜀 ImageProcTest.IntegrationTests.Safety.DllSearchPathSafetyTests.ResolvedDllPath_IsUnderBuildTreeOrTestOutput [2 ms]
+  건너뜀 ImageProcTest.IntegrationTests.Safety.DllSearchPathSafetyTests.ADecoyEarlierOnPath_IsNotWhatTheLocatorReturns_WhenItIsPlacedBeforeTheLocatorRuns [< 1 ms]
+  건너뜀 ImageProcTest.IntegrationTests.Safety.DllSearchPathSafetyTests.TheLoadedModule_IsTheResolvedFile [< 1 ms]
+  건너뜀 ImageProcTest.IntegrationTests.Safety.LeakEnduranceTests.InitShutdown_1000Cycles_NoLeak [< 1 ms]
+  건너뜀 ImageProcTest.IntegrationTests.Safety.LeakEnduranceTests.PinnedObjects_AtThisPoint_AreNoMoreThanWhenTheFixtureWasCreated [< 1 ms]
+
+통과!  - 실패:     0, 통과:     5, 건너뜀:     5, 전체:    10, 기간: 138 ms - ImageProcTest.IntegrationTests.dll (net8.0)

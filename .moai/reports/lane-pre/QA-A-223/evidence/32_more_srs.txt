@@ -1,0 +1,26 @@
+== 006-EXT remainder (6b/6c...)
+1:> **정정**
+2:> - `LUT[0] = 0` 은 유지합니다(어두운 쪽 원점은 오프셋 보정 뒤의 물리적 기준입니다).
+3:> - **`LUT[ADC_max] = ADC_max` 항등 고정은 폐기합니다.** 가장 높은 측정점 위 구간은 적합 직선을 그대로 연장합니다. 검출기의 full scale 이 이상 직선과 같아야 할 물리적 이유가 없습니다.
+4:> - 7단계의 **≤ 0.3% 요구는 측정 구간(최저~최고 측정 선량) 안에서** 판정합니다. 측정 구간 밖(연장 구간)은 연장했다는 사실을 교정 파일에 기록하고, 정확도를 주장하지 않습니다.
+5:> - 단조성 검사는 그대로입니다.
+7:> **교정 절차에 미치는 영향**: 측정 사다리의 최고 선량이 임상에서 쓰는 상한을 덮어야 합니다. 곡률이 큰 검출기(감마 1.60 급)는 12단계로 측정점 사이 오차가 0.422% 라 0.3% 를 만족하지 못합니다
+9:**6b. Polynomial Method (for embedded/FPGA use)**
+30:**6c. Precision Comparison (LUT vs Polynomial)**
+
+== FUNC-003
+34:| **SRS-CALIB-FUNC-003** | System shall load bad pixel map (BPM) from .xpe_calib file (uint8, 1 byte per pixel). BPM format: pixel value 0=good, 1-255=defect type (1=dead, 2=hot, 3=stuck, 4=noisy). Sparse map optimization supported via run-length encoding (RLE). Maximum 5% defect density tolerance. | BPM enables targeted defect correction without full-image filtering. RLE compression reduces memory footprint (typical 9.4MB to <500KB). Defect type field supports algorithmic selection. | Test: BPM parsing, RLE decompression |
+
+== FUNC-036
+| **SRS-CALIB-FUNC-036** | **Verification metrics shall distinguish "failed" from "could not be measured."** Every `xpe_verify_*` function shall report, separately from its pass/fail result, whether each metric was actually measured. A metric that could not be measured shall never be reported as a measured value, and shall not on its own produce a pass. Until a dedicated status field exists, an unmeasurable metric shall set `overall_pass = false` on every verification path. | A single boolean cannot carry three states (passed / failed / unmeasurable), and collapsing the third into "passed" lets an unverified frame through. Observed 2026-09-28 (`#219`): `xpe_verify_offset` reported `overall_pass = true` for a uniform frame while `xpe_verify_gain` reported `false` for the same situation, and a test named for correction quality never exercised it. | Test: unit — each verification path on an unmeasurable input yields `overall_pass = false`; control — the same path on a measurable input yields a measured value |
+
+== FUNC-038
+| **SRS-CALIB-FUNC-038** | **Management-surface APIs shall carry a lifetime and error contract, traced as one requirement rather than one each.** The exported functions that administer state rather than deliver a calibration capability — cache control (`xpe_calib_cache_clear`, `xpe_calib_cache_set_max_size`), configuration getters (`xpe_calib_get_max_points`, `xpe_calib_get_poly_degree`, `xpe_calib_get_quality_meta`), lifetime (`xpe_calib_state_release`), initialization query (`xpe_preprocess_is_initialized`), and batch dispatch (`xpe_preprocess_pipeline_batch`) — shall each state, in the header at the declaration: who owns any returned memory, whether the call is valid before `xpe_preprocess_init`, and which `XpeErrorCode` values it can return. A getter shall not report a value it did not read. | Writing one requirement per management function makes the requirement set a copy of the API listing, which adds traceability rows without adding a testable claim. What these functions actually share is a contract about state and ownership, and that contract is what a caller gets wrong. Recorded 2026-09-29 (`#216`): eight exported functions were named by no requirement, and all eight are of this kind. | Test: header review — each named function declares ownership, pre-init validity, and error codes; unit — calling each before `xpe_preprocess_init` returns the declared code rather than undefined behaviour |
+
+== code tokens (control: prnu_after has files)
+xpe-pre-e2e-report-v1: modules 0 files
+LineArtifactScore: modules 0 files
+CES: modules 96 files
+prnu_after: modules 6 files
+DefectResidualADU: modules 0 files
+GoodPixelDeltaP99: modules 2 files

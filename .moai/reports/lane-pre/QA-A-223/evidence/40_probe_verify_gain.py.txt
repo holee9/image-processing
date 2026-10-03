@@ -1,0 +1,65 @@
+"""QA-A-223 probe: does xpe_verify_gain fail a PERFECTLY corrected panel (prnu_after == 0)?
+Calls the real xpe_preprocess.dll through ctypes; nothing in the tree is modified."""
+import ctypes, os, sys
+import numpy as np
+
+BIN = 'D:/workspace-github/xpe-pre/build/ci-preprocess/bin'
+os.add_dll_directory(BIN)
+dll = ctypes.CDLL(BIN + '/xpe_preprocess.dll')
+
+
+class Buf(ctypes.Structure):
+    _fields_ = [('width', ctypes.c_uint32), ('height', ctypes.c_uint32), ('bitsAllocated', ctypes.c_uint32),
+                ('bitsStored', ctypes.c_uint32), ('format', ctypes.c_int32), ('data', ctypes.c_void_p),
+                ('dataSize', ctypes.c_size_t)]
+
+
+class Metrics(ctypes.Structure):
+    _fields_ = [('dark_bias', ctypes.c_double), ('dsnu', ctypes.c_double), ('residual_noise', ctypes.c_double),
+                ('prnu_before', ctypes.c_double), ('prnu_after', ctypes.c_double), ('flatness_pct', ctypes.c_double),
+                ('gain_coverage', ctypes.c_double), ('invalid_gain_count', ctypes.c_uint32),
+                ('defect_count', ctypes.c_uint32), ('defect_density', ctypes.c_double),
+                ('correction_error', ctypes.c_double), ('snr_improvement_db', ctypes.c_double),
+                ('overall_pass', ctypes.c_bool), ('dark_reduction_db', ctypes.c_double),
+                ('dsnu_adu', ctypes.c_double), ('measured_mask', ctypes.c_uint32)]
+
+
+# the header's ABI lock (static_assert offsets) -- if ctypes disagrees the probe layout is wrong
+assert Metrics.gain_coverage.offset == 48 and Metrics.invalid_gain_count.offset == 56, 'layout'
+assert Metrics.snr_improvement_db.offset == 80 and Metrics.overall_pass.offset == 88, 'layout'
+
+W = H = 64
+keep = []
+
+
+def buf(arr, fmt):
+    keep.append(arr)
+    bits = 16 if fmt == 0 else 32
+    return Buf(W, H, bits, bits, fmt, arr.ctypes.data, arr.nbytes)
+
+
+dll.xpe_verify_gain.argtypes = [ctypes.POINTER(Buf), ctypes.POINTER(Buf), ctypes.POINTER(Buf), ctypes.c_int, ctypes.POINTER(Metrics)]
+dll.xpe_verify_gain.restype = ctypes.c_int
+
+
+def run(label, before_f, after_f, sem=0):
+    before = np.ascontiguousarray(before_f.astype(np.uint16))
+    after = np.ascontiguousarray(after_f.astype(np.float32))
+    gain = np.ones((H, W), np.float32)
+    b, a, g = buf(before, 0), buf(after, 1), buf(gain, 1)
+    m = Metrics()
+    rc = dll.xpe_verify_gain(ctypes.byref(b), ctypes.byref(a), ctypes.byref(g), sem, ctypes.byref(m))
+    line = ('%-46s rc=%d prnu_before=%.4f%% prnu_after=%.6f%% snr_improvement_db=%.4f coverage=%.3f overall_pass=%s'
+            % (label, rc, m.prnu_before, m.prnu_after, m.snr_improvement_db, m.gain_coverage, m.overall_pass))
+    print(line)
+    return rc, m
+
+
+rng = np.random.default_rng(7)
+noisy = 2000.0 * (1.0 + rng.normal(0, 0.05, (H, W)))
+print('probe: xpe_verify_gain on the real DLL, semantics UNKNOWN (flat residual line 1.0%), 64x64, gain map all 1.0')
+run('A  noisy 5%% -> PERFECTLY flat (after const)', noisy, np.full((H, W), 2000.0))
+run('B  noisy 5%% -> 0.5%% noise (20 dB better)', noisy, 2000.0 * (1.0 + rng.normal(0, 0.005, (H, W))))
+run('C  noisy 5%% -> 0.0001%% noise (tiny, nonzero)', noisy, 2000.0 * (1.0 + rng.normal(0, 1e-6, (H, W))))
+run('D  noisy 5%% -> 3.5%% noise (3.1 dB, above 1%% line)', noisy, 2000.0 * (1.0 + rng.normal(0, 0.035, (H, W))))
+run('E  control uniform -> uniform (both flat)', np.full((H, W), 2000.0), np.full((H, W), 2000.0))

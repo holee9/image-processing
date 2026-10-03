@@ -1,0 +1,23 @@
+xpe_common.dll export table (PE export directory parsed directly; no dumpbin on this machine)
+file: build/ci-preprocess/bin/xpe_common.dll   mtime: 2026-10-03 08:09
+exports found: 16
+functions declared with XPE_API in modules/common/include: 16
+exported but not declared in the common headers: none
+declared but not exported: none
+
+xpe_alert_push
+xpe_alloc_image
+xpe_clear_alerts
+xpe_configure
+xpe_copy_image
+xpe_error_string
+xpe_free_image
+xpe_get_param_range
+xpe_get_pending_alert
+xpe_get_pending_alert_count
+xpe_init
+xpe_log_flush
+xpe_log_set_file
+xpe_log_set_level
+xpe_shutdown
+xpe_version

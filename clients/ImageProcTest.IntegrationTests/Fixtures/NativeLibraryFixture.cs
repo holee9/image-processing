@@ -38,6 +38,12 @@ public sealed class NativeLibraryFixture : IDisposable
     /// <summary>Process-wide handle of the loaded DLL, reused by <see cref="Resolver"/>.</summary>
     private readonly IntPtr _handle;
 
+    /// <summary>
+    /// GUI-C-208 (D2): pinned objects the runtime saw in a full blocking collection when this fixture was created, i.e. before any test of the collection ran. A test that
+    /// asks "is anything pinned that was not pinned then" compares against this.
+    /// </summary>
+    public long PinnedObjectsAtStart { get; } = PinnedObjects.AfterFullCollection();
+
     public NativeLibraryFixture()
     {
         NativeLibrary.SetDllImportResolver(typeof(NativeLibraryFixture).Assembly, Resolver);
@@ -55,7 +61,7 @@ public sealed class NativeLibraryFixture : IDisposable
         if (!VerifyX64Pe(path))
         {
             IsAvailable = false;
-            ResolvedPath = $"Architecture mismatch: {path} is not x64";
+            ResolvedPath = ArchitectureMismatchDiagnostic(path);
             return;
         }
 
@@ -72,7 +78,10 @@ public sealed class NativeLibraryFixture : IDisposable
         }
     }
 
-    private static (bool found, string path) TryLocateDll()
+    /// <summary>GUI-C-209 (D9): what the fixture reports as the resolved path when the located DLL is not x64. Named so a test can hold the wording (it carries the path).</summary>
+    internal static string ArchitectureMismatchDiagnostic(string path) => $"Architecture mismatch: {path} is not x64";
+
+    internal static (bool found, string path) TryLocateDll()
     {
         // Priority 1: Env var override
         var envDir = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
@@ -127,7 +136,7 @@ public sealed class NativeLibraryFixture : IDisposable
         return null;
     }
 
-    private static bool VerifyX64Pe(string path)
+    internal static bool VerifyX64Pe(string path)
     {
         try
         {

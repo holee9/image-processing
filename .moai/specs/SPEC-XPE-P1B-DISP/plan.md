@@ -1,8 +1,8 @@
 # SPEC-XPE-P1B-DISP: Implementation Plan
 
 **SPEC ID**: SPEC-XPE-P1B-DISP
-**Version**: 1.0.0
-**Date**: 2026-04-16
+**Version**: 1.0.1
+**Date**: 2026-10-03
 **Methodology**: TDD (RED-GREEN-REFACTOR)
 
 ---
@@ -53,8 +53,10 @@ Rationale: Pipeline stages are sequential (Modality -> VOI -> Presentation). Imp
 | `modules/display/tests/test_modality_lut.cpp` | SWU-3.1 | >= 8 | REQ-DISP-001..008 |
 | `modules/display/tests/test_voi_lut.cpp` | SWU-3.2 | >= 10 | REQ-DISP-009..018 |
 | `modules/display/tests/test_presentation_lut.cpp` | SWU-3.3 | >= 10 | REQ-DISP-019..028 |
-| `modules/display/tests/test_display_integration.cpp` | All | >= 6 | REQ-DISP-029..035 |
-| `modules/display/tests/test_display_boundary.cpp` | All | >= 4 | REQ-DISP-034..035 |
+| `modules/display/tests/test_display_integration.cpp` | All | >= 6 | REQ-DISP-030..036 |
+| `modules/display/tests/test_display_integration.cpp` (경계 시험 포함) | All | >= 4 | REQ-DISP-034..035 |
+
+> 정정 (2026-10-03, QA-B-199, #251): 계획한 `test_display_boundary.cpp` 는 만들어지지 않았고, progress.md 기록대로 경계 시험(1x1, 4096x4096)은 `test_display_integration.cpp` 에 합쳐졌다. 1x1 경우는 `test_modality_lut.cpp` 에도 있다. 중복 정의였던 ABI 요구가 `REQ-DISP-036` 으로 재번호되어 통합 시험의 범위를 `029..035` 에서 `030..036` 으로 고쳤다.
 
 ### 2.4 Build
 
@@ -90,12 +92,12 @@ Rationale: Pipeline stages are sequential (Modality -> VOI -> Presentation). Imp
 
 | Task | Description | REQ Trace |
 |------|-------------|-----------|
-| M3-01 | RED: Write `test_voi_lut.cpp` -- LINEAR mode windowing tests | REQ-DISP-009 |
-| M3-02 | RED: Write LINEAR_EXACT mode tests | REQ-DISP-010 |
+| M3-01 | RED: Write `test_voi_lut.cpp` -- LINEAR mode windowing tests | REQ-DISP-009, REQ-DISP-010a |
+| M3-02 | RED: Write LINEAR_EXACT mode tests | REQ-DISP-010, REQ-DISP-010a |
 | M3-03 | RED: Write SIGMOID mode tests | REQ-DISP-011 |
 | M3-04 | RED: Write output clamping and error handling tests | REQ-DISP-012..015 |
 | M3-05 | RED: Write `xpe_voi_preset_create` tests (all 4 body parts + invalid) | REQ-DISP-017..018 |
-| M3-06 | GREEN: Implement `xpe_apply_voi_lut` in `voi_lut.cpp` | REQ-DISP-009..016 |
+| M3-06 | GREEN: Implement `xpe_apply_voi_lut` in `voi_lut.cpp` | REQ-DISP-009..016, REQ-DISP-010a |
 | M3-07 | GREEN: Implement `xpe_voi_preset_create` in `voi_lut.cpp` | REQ-DISP-017..018 |
 | M3-08 | REFACTOR: Verify <= 16ms interactive latency budget | REQ-DISP-016 |
 
@@ -116,10 +118,14 @@ Rationale: Pipeline stages are sequential (Modality -> VOI -> Presentation). Imp
 
 | Task | Description | REQ Trace |
 |------|-------------|-----------|
-| M5-01 | Write `test_display_integration.cpp` -- full Modality->VOI->Presentation pipeline | REQ-DISP-029..033 |
-| M5-02 | Write `test_display_boundary.cpp` -- 1x1 and 4096x4096 edge cases | REQ-DISP-034..035 |
-| M5-03 | Verify `dumpbin /exports xpe_display.dll` lists exactly 5 functions | REQ-DISP-029 |
-| M5-04 | P/Invoke round-trip test (C# struct layout compatibility) | REQ-DISP-029 |
+| M5-01 | Write `test_display_integration.cpp` -- full Modality->VOI->Presentation pipeline | REQ-DISP-030..033, REQ-DISP-036 |
+| M5-02 | Write 1x1 and 4096x4096 edge cases (계획한 `test_display_boundary.cpp` 대신 `test_display_integration.cpp` 에 합침) | REQ-DISP-034..035 |
+| M5-03 | Verify `dumpbin /exports xpe_display.dll` lists exactly 6 functions | REQ-DISP-036 |
+| M5-04 | P/Invoke round-trip test (C# struct layout compatibility) | REQ-DISP-036 |
+
+> 메모 (2026-10-03, QA-B-199, #251): `REQ-DISP-010a` 는 어느 작업 행에도 없어 M3-01·M3-02·M3-06 에 넣었다. M5-01·M5-03·M5-04 의 `REQ-DISP-029` 는 §3.4 ABI 요구를 가리켰으므로 재번호된 `REQ-DISP-036` 으로 고쳤다. M5-03 의 "exactly 5 functions" 와 헤더의 6함수 불일치는 SPEC `REQ-DISP-036` 의 상태 메모(후보 D7)에 적었고 문구는 바꾸지 않았다.
+>
+> 정정 (2026-10-03, 사용자 결정 #245 코멘트 묶음 ④ "문서를 실제에 맞게"): M5-03 의 개수를 5 → 6 으로 고쳤다. SPEC `REQ-DISP-036`·§2.3 도 6 이다.
 | M5-05 | Memory leak check (ASan, 1000-frame cycle) | REQ-DISP-033 |
 | M5-06 | Performance benchmark: all 3 stages within budget | REQ-DISP-008,016,028 |
 | M5-07 | Static analysis: cppcheck + clang-tidy 0 warnings | TRUST 5 |
@@ -180,7 +186,8 @@ The Presentation LUT stage converts float32 (4 bytes/pixel) to uint16 (2 bytes/p
 | Version | Date | Author | Description |
 |---------|------|--------|-------------|
 | 1.0.0 | 2026-04-16 | MoAI (manager-spec) | Initial implementation plan |
+| 1.0.1 | 2026-10-03 | lead (QA-B-199) | 없는 `test_display_boundary.cpp` 를 실제 파일(`test_display_integration.cpp`)로 정정, `REQ-DISP-010a` 를 VOI 작업 행에 연결, ABI 요구 재번호(`REQ-DISP-029` → `REQ-DISP-036`) 반영 (#251) |
 
 ---
 
-*Document End -- SPEC-XPE-P1B-DISP plan.md v1.0.0*
+*Document End -- SPEC-XPE-P1B-DISP plan.md v1.0.1*

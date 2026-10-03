@@ -1,0 +1,32 @@
+PARSER: defined REQ = 36 | control 029 present: True
+AC headings: 15 | control AC-7 heading parsed: True
+REQ ids named on an AC heading (incl. ranges, ranges clipped to defined ids): 30 of 36
+DEFINED REQ with NO AC heading naming it: ['005', '010', '043', '063', '064', '065']
+ids an AC heading names that are NOT defined (phantom, from ranges): ['032', '033', '034']
+hung on AC : 30 of 36
+hung on s5.2 : 3 of 36
+hung on s5.3 : 11 of 36
+hung on s11 : 30 of 36
+hung on progress.md : 3 of 36
+DEFINED REQ on NO row anywhere (AC, s5.2, s5.3, s11, progress.md): ['063', '064', '065']
+DEFINED REQ not on any AC and not on s5.2/s5.3/s11 (progress.md alone does not count): ['063', '064', '065']
+PARSER: planned test class names found: 16 | control: LeakEnduranceTests among them: True | control: LeakEnduranceTests declared: True
+planned classes that EXIST: ['AbiLayoutTests', 'LeakEnduranceTests']
+planned classes that do NOT exist: ['AlertTests', 'CalibLoadOptionalTests', 'ConfigureTests', 'DllResolutionTests', 'EnumParityTests', 'ErrorMappingTests', 'LifecycleTests', 'LoggingTests', 'MemoryTests', 'MockExclusionTests', 'ParamRangeTests', 'PreprocessOptionalTests', 'SyntheticAdapterChainTests', 'VersionTests']
+
+== s5.1 symbols: files that call XpeCommonNative.<sym>( ; and call sites whose RETURN is used in an assert/assigned (var x = ... / Assert...(sym) )
+xpe_init                       calls in  7 file(s);  17 total; return consumed at  3 site(s); asserting files: ['AlertCallbackTests', 'AlertQueueJunctionTests', 'ImageBufferLifecycleTests', 'LeakEnduranceTests']
+xpe_shutdown                   calls in  6 file(s);  12 total; return consumed at  0 site(s); asserting files: ['AlertCallbackTests', 'ImageBufferLifecycleTests', 'LeakEnduranceTests', 'LoggingHandlerTests']
+xpe_version                    calls in  3 file(s);   5 total; return consumed at  5 site(s); asserting files: ['DllLoadSmokeTests', 'NativeErrorTranslationTests', 'VersionPinTests']
+xpe_configure                  calls in  2 file(s);   3 total; return consumed at  3 site(s); asserting files: ['MetadataMarshallingTests', 'NativeErrorTranslationTests']
+xpe_get_param_range            calls in  2 file(s);   3 total; return consumed at  3 site(s); asserting files: ['MetadataMarshallingTests', 'NativeErrorTranslationTests']
+xpe_error_string               calls in  2 file(s);   5 total; return consumed at  5 site(s); asserting files: ['ErrorCodeMappingTests', 'NativeErrorTranslationTests']
+xpe_get_pending_alert_count    calls in  3 file(s);   5 total; return consumed at  5 site(s); asserting files: ['AlertCallbackTests', 'AlertQueueJunctionTests', 'ImageBufferLifecycleTests']
+xpe_get_pending_alert          calls in  3 file(s);   7 total; return consumed at  7 site(s); asserting files: ['AlertCallbackTests', 'AlertQueueJunctionTests', 'NativeErrorTranslationTests']
+xpe_clear_alerts               calls in  2 file(s);  11 total; return consumed at  0 site(s); asserting files: ['AlertCallbackTests', 'AlertQueueJunctionTests']
+xpe_alloc_image                calls in  3 file(s);   9 total; return consumed at  9 site(s); asserting files: ['BaselineDisplayNativeTests', 'ImageBufferLifecycleTests', 'NativeErrorTranslationTests']
+xpe_free_image                 calls in  2 file(s);   7 total; return consumed at  1 site(s); asserting files: ['BaselineDisplayNativeTests', 'ImageBufferLifecycleTests']
+xpe_copy_image                 calls in  1 file(s);   2 total; return consumed at  2 site(s); asserting files: ['ImageBufferLifecycleTests']
+xpe_log_set_level              calls in  1 file(s);   3 total; return consumed at  3 site(s); asserting files: ['LoggingHandlerTests']
+xpe_log_set_file               calls in  1 file(s);   2 total; return consumed at  2 site(s); asserting files: ['LoggingHandlerTests']
+xpe_log_flush                  calls in  2 file(s);   3 total; return consumed at  0 site(s); asserting files: ['LoggingHandlerTests', 'NativeErrorTranslationTests']

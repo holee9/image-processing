@@ -1,0 +1,12 @@
+ARM c1_no_clear_before_config_payload_flush_close
+file src/xcal_writer.cpp
+built=True
+[  FAILED  ] OomInjection.AWriteFailureIsReportedWithItsOwnCauseNotWhatAnEarlierStepLeftBehind (13 ms)
+[  PASSED  ] 1 test.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OomInjection.AWriteFailureIsReportedWithItsOwnCauseNotWhatAnEarlierStepLeftBehind
+which cases:
+step 2 leaked
+step 3 leaked
+step 4 leaked
+step 5 leaked

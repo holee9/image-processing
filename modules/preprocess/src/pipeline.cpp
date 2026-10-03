@@ -418,7 +418,11 @@ namespace {
             result = xpe_ghost_correct(ghostHandle, &stage7, meta);
             if (result != XPE_OK) return result;
 
-            if (meta) meta->flags |= XPE_FLAG_GHOST_CORRECTED;
+            // QA-A-226 (#241): a handle without calibrated lag parameters passes the frame through unchanged, so the
+            // frame is not flagged as ghost-corrected. The output stays float32 either way (final_result_is_float
+            // depends on the handle being present, not on whether it corrected), so the format does not change
+            // with the configuration.
+            if (meta && xpe_ghost_is_calibrated(ghostHandle)) meta->flags |= XPE_FLAG_GHOST_CORRECTED;
         }
 
         // Copy the final frame back to the original img buffer: all of it -- outputBytes, which the room check
@@ -475,8 +479,15 @@ static XpeErrorCode load_calibration_set(const char* calibPath, CalibSnapshot* s
     rc = xpe_calib_stage_defect(defectPath, &defect);
     if (rc != XPE_OK) return rc;
 
+    // QA-A-229 M4: the set replaces all three maps, so only the three files are compared with each other.
+    bool sessionMixed = false;
+    rc = xpe_calib_session_check_set(offset.sessionId, gain.sessionId, defect.sessionId, &sessionMixed);
+    if (rc != XPE_OK) return rc;
+
+    bool warnSession = false;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
+        warnSession = xpe_calib_session_transition_locked(sessionMixed);   // decided in the commit's own critical section
         xpe_calib_commit_offset_locked(offset);
         xpe_calib_commit_gain_locked(gain);
         xpe_calib_commit_defect_locked(defect);
@@ -488,6 +499,7 @@ static XpeErrorCode load_calibration_set(const char* calibPath, CalibSnapshot* s
 #ifdef XPE_CACHE_TEST_HOOKS
     if (xpe_calib_after_set_commit_hook) xpe_calib_after_set_commit_hook();
 #endif
+    xpe_calib_session_warn(warnSession);
     xpe_calib_after_gain_commit(gain);
     return XPE_OK;
 }

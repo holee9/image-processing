@@ -1,0 +1,274 @@
+[==========] Running 69 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 60 tests from XpeCommonTest
+[ RUN      ] XpeCommonTest.InitReturnsOk
+[2026-10-03 14:49:14.591] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.591] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.InitReturnsOk (0 ms)
+[ RUN      ] XpeCommonTest.InitWithEmptyConfigReturnsInvalid
+[2026-10-03 14:49:14.591] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.InitWithEmptyConfigReturnsInvalid (0 ms)
+[ RUN      ] XpeCommonTest.ShutdownWithoutInitIsNoOp
+[2026-10-03 14:49:14.591] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ShutdownWithoutInitIsNoOp (0 ms)
+[ RUN      ] XpeCommonTest.VersionReturnsValidString
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.VersionReturnsValidString (0 ms)
+[ RUN      ] XpeCommonTest.ConfigureWithNullReturnsInvalid
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ConfigureWithNullReturnsInvalid (0 ms)
+[ RUN      ] XpeCommonTest.ConfigureWithInvalidJsonReturnsInvalid
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ConfigureWithInvalidJsonReturnsInvalid (0 ms)
+[ RUN      ] XpeCommonTest.ConfigureWithValidJsonSucceeds
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ConfigureWithValidJsonSucceeds (0 ms)
+[ RUN      ] XpeCommonTest.GetParamRangeWithNullPtrReturnsInvalid
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.GetParamRangeWithNullPtrReturnsInvalid (0 ms)
+[ RUN      ] XpeCommonTest.GetParamRangeReturnsValidValues
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.GetParamRangeReturnsValidValues (0 ms)
+[ RUN      ] XpeCommonTest.GetParamRangeForUnknownParamReturnsDefaults
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.GetParamRangeForUnknownParamReturnsDefaults (0 ms)
+[ RUN      ] XpeCommonTest.ErrorStringReturnsNonNullForAllCodes
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ErrorStringReturnsNonNullForAllCodes (0 ms)
+[ RUN      ] XpeCommonTest.GetPendingAlertCountInitiallyZero
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.GetPendingAlertCountInitiallyZero (0 ms)
+[ RUN      ] XpeCommonTest.InjectedAlertAppearsInQueue
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.InjectedAlertAppearsInQueue (0 ms)
+[ RUN      ] XpeCommonTest.GetPendingAlertRetrievesMessage
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.GetPendingAlertRetrievesMessage (0 ms)
+[ RUN      ] XpeCommonTest.GetPendingAlertWithNullPtrReturnsInvalid
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.GetPendingAlertWithNullPtrReturnsInvalid (0 ms)
+[ RUN      ] XpeCommonTest.GetPendingAlertWithSmallBufferReturnsBufferTooSmall
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.GetPendingAlertWithSmallBufferReturnsBufferTooSmall (0 ms)
+[ RUN      ] XpeCommonTest.ClearAlertsEmptiesQueue
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ClearAlertsEmptiesQueue (0 ms)
+[ RUN      ] XpeCommonTest.LogSetLevelWithInvalidValueReturnsInvalid
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.LogSetLevelWithInvalidValueReturnsInvalid (0 ms)
+[ RUN      ] XpeCommonTest.LogSetLevelAcceptsValidRange
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.LogSetLevelAcceptsValidRange (0 ms)
+[ RUN      ] XpeCommonTest.LogSetFileReopensSink
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.LogSetFileReopensSink (0 ms)
+[ RUN      ] XpeCommonTest.ShutdownReleasesLogFileSink
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ShutdownReleasesLogFileSink (0 ms)
+[ RUN      ] XpeCommonTest.LogFlushAfterShutdownDoesNotCrash
+[2026-10-03 14:49:14.592] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.LogFlushAfterShutdownDoesNotCrash (0 ms)
+[ RUN      ] XpeCommonTest.AllocImageWithNullPtrReturnsInvalid
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.AllocImageWithNullPtrReturnsInvalid (0 ms)
+[ RUN      ] XpeCommonTest.AllocImageWithZeroDimensionsReturnsInvalid
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.AllocImageWithZeroDimensionsReturnsInvalid (0 ms)
+[ RUN      ] XpeCommonTest.AllocImageWithLargeDimensionsReturnsInvalid
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.AllocImageWithLargeDimensionsReturnsInvalid (0 ms)
+[ RUN      ] XpeCommonTest.AllocImageSucceedsForValidInput
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.AllocImageSucceedsForValidInput (0 ms)
+[ RUN      ] XpeCommonTest.AllocImageForFloat32Format
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.AllocImageForFloat32Format (0 ms)
+[ RUN      ] XpeCommonTest.AllocImageForUint8Format
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.AllocImageForUint8Format (0 ms)
+[ RUN      ] XpeCommonTest.FreeImageWithNullPtrReturnsInvalid
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.FreeImageWithNullPtrReturnsInvalid (0 ms)
+[ RUN      ] XpeCommonTest.FreeImageReleasesMemory
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.FreeImageReleasesMemory (0 ms)
+[ RUN      ] XpeCommonTest.CopyImageWithNullPtrReturnsInvalid
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.CopyImageWithNullPtrReturnsInvalid (0 ms)
+[ RUN      ] XpeCommonTest.CopyImageSucceeds
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.CopyImageSucceeds (0 ms)
+[ RUN      ] XpeCommonTest.CopyImageWithSmallBufferReturnsBufferTooSmall
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.CopyImageWithSmallBufferReturnsBufferTooSmall (0 ms)
+[ RUN      ] XpeCommonTest.InitDoubleInitReturnsOk
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.InitDoubleInitReturnsOk (0 ms)
+[ RUN      ] XpeCommonTest.ShutdownReturnsNotInitializedWhenNotInit
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ShutdownReturnsNotInitializedWhenNotInit (0 ms)
+[ RUN      ] XpeCommonTest.InitShutdownCycleRepeated
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.InitShutdownCycleRepeated (0 ms)
+[ RUN      ] XpeCommonTest.ConfigureWithEmptyStringReturnsInvalid
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ConfigureWithEmptyStringReturnsInvalid (0 ms)
+[ RUN      ] XpeCommonTest.ConfigureWithPartialJsonReturnsOk
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ConfigureWithPartialJsonReturnsOk (0 ms)
+[ RUN      ] XpeCommonTest.ConfigureAfterReinitSucceeds
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ConfigureAfterReinitSucceeds (0 ms)
+[ RUN      ] XpeCommonTest.ConfigureWithMalformedJsonBodyReturnsInvalid
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ConfigureWithMalformedJsonBodyReturnsInvalid (0 ms)
+[ RUN      ] XpeCommonTest.ConfigureWithVeryLongMalformedJsonReturnsNegative
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ConfigureWithVeryLongMalformedJsonReturnsNegative (0 ms)
+[ RUN      ] XpeCommonTest.VersionFormatSemanticVersioning
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.VersionFormatSemanticVersioning (0 ms)
+[ RUN      ] XpeCommonTest.LogSetLevelEachLevel
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.LogSetLevelEachLevel (0 ms)
+[ RUN      ] XpeCommonTest.LogSetFileWithInvalidPathReturnsError
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.LogSetFileWithInvalidPathReturnsError (0 ms)
+[ RUN      ] XpeCommonTest.LogFlushDoesNotCrash
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.LogFlushDoesNotCrash (0 ms)
+[ RUN      ] XpeCommonTest.AllocImageZeroInitializesMemory
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.AllocImageZeroInitializesMemory (0 ms)
+[ RUN      ] XpeCommonTest.AllocImageUint16Format
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.AllocImageUint16Format (0 ms)
+[ RUN      ] XpeCommonTest.FreeImageNullDataDoesNotCrash
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.FreeImageNullDataDoesNotCrash (0 ms)
+[ RUN      ] XpeCommonTest.CopyImageWithNullDataReturnsInvalid
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.CopyImageWithNullDataReturnsInvalid (0 ms)
+[ RUN      ] XpeCommonTest.GetParamRangeForDifferentBodyParts
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.GetParamRangeForDifferentBodyParts (0 ms)
+[ RUN      ] XpeCommonTest.ErrorStringForUnknownErrorCode
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ErrorStringForUnknownErrorCode (0 ms)
+[ RUN      ] XpeCommonTest.GetPendingAlertWithIndexOutOfBounds
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.GetPendingAlertWithIndexOutOfBounds (0 ms)
+[ RUN      ] XpeCommonTest.ClearAlertsWhenEmptyDoesNotCrash
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ClearAlertsWhenEmptyDoesNotCrash (0 ms)
+[ RUN      ] XpeCommonTest.AlertQueueFifoOrder
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.AlertQueueFifoOrder (0 ms)
+[ RUN      ] XpeCommonTest.ConcurrentInitShutdownDoesNotCrash
+[2026-10-03 14:49:14.593] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.594] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.594] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.610] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.610] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.625] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.625] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.642] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.642] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.657] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.657] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.673] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.673] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.687] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.688] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.703] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.703] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.720] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.720] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.735] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.735] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ConcurrentInitShutdownDoesNotCrash (157 ms)
+[ RUN      ] XpeCommonTest.ConcurrentAlertQueueAccess
+[2026-10-03 14:49:14.751] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ConcurrentAlertQueueAccess (0 ms)
+[ RUN      ] XpeCommonTest.MemoryLeakTestThousandCycles
+[2026-10-03 14:49:14.751] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.MemoryLeakTestThousandCycles (0 ms)
+[ RUN      ] XpeCommonTest.HeaderDeclaresSixteenExportedFunctions
+[2026-10-03 14:49:14.751] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.HeaderDeclaresSixteenExportedFunctions (0 ms)
+[ RUN      ] XpeCommonTest.ErrorStringForInvalidInputHasExactText
+[2026-10-03 14:49:14.751] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.ErrorStringForInvalidInputHasExactText (0 ms)
+[ RUN      ] XpeCommonTest.CopyImageReproducesEveryByte
+[2026-10-03 14:49:14.751] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] XpeCommonTest.CopyImageReproducesEveryByte (0 ms)
+[----------] 60 tests from XpeCommonTest (160 ms total)
+
+[----------] 6 tests from AlertQueueOverflowTest
+[ RUN      ] AlertQueueOverflowTest.WarningEvictsOldestInfoNotItself
+[       OK ] AlertQueueOverflowTest.WarningEvictsOldestInfoNotItself (0 ms)
+[ RUN      ] AlertQueueOverflowTest.WithoutInfoEvictsOldestWarningAndKeepsError
+[       OK ] AlertQueueOverflowTest.WithoutInfoEvictsOldestWarningAndKeepsError (0 ms)
+[ RUN      ] AlertQueueOverflowTest.LossAlertIsSingleAndUpdatedInPlace
+[       OK ] AlertQueueOverflowTest.LossAlertIsSingleAndUpdatedInPlace (0 ms)
+[ RUN      ] AlertQueueOverflowTest.LossAlertIsNeverEvicted
+[       OK ] AlertQueueOverflowTest.LossAlertIsNeverEvicted (0 ms)
+[ RUN      ] AlertQueueOverflowTest.ClearAlertsResetsTheDropCounter
+[       OK ] AlertQueueOverflowTest.ClearAlertsResetsTheDropCounter (0 ms)
+[ RUN      ] AlertQueueOverflowTest.NoLossAlertWithoutOverflow
+[       OK ] AlertQueueOverflowTest.NoLossAlertWithoutOverflow (0 ms)
+[----------] 6 tests from AlertQueueOverflowTest (0 ms total)
+
+[----------] 2 tests from XpeErrorSafetyViolationTest
+[ RUN      ] XpeErrorSafetyViolationTest.SafetyViolationErrorCodeExists
+[       OK ] XpeErrorSafetyViolationTest.SafetyViolationErrorCodeExists (0 ms)
+[ RUN      ] XpeErrorSafetyViolationTest.SafetyViolationErrorStringMapped
+[       OK ] XpeErrorSafetyViolationTest.SafetyViolationErrorStringMapped (0 ms)
+[----------] 2 tests from XpeErrorSafetyViolationTest (0 ms total)
+
+[----------] 1 test from CommonErrorPrecedenceTest
+[ RUN      ] CommonErrorPrecedenceTest.NullRequiredPointerWinsOverInitializationState
+[2026-10-03 14:49:14.751] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.751] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.751] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.751] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.751] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.751] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.751] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.751] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.751] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-03 14:49:14.751] [xpe_stderr] [info] xpe_init: library initialised
+
+entry point              NULL argument  uninitialized  initialized
+xpe_configure            jsonConfig     -1             -1
+xpe_get_param_range      bodyPart       -1             -1
+xpe_get_param_range      paramName      -1             -1
+xpe_get_param_range      minValue       -1             -1
+xpe_get_pending_alert    message        -1             -1
+xpe_get_pending_alert    severity       -1             -1
+xpe_alloc_image          out            -1             -1
+xpe_free_image           buffer         -1             -1
+xpe_copy_image           source         -1             -1
+xpe_copy_image           target         -1             -1
+(XPE_ERR_INVALID_INPUT = -1, XPE_ERR_NOT_INITIALIZED = -6)
+
+[       OK ] CommonErrorPrecedenceTest.NullRequiredPointerWinsOverInitializationState (0 ms)
+[----------] 1 test from CommonErrorPrecedenceTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 69 tests from 4 test suites ran. (160 ms total)
+[  PASSED  ] 69 tests.

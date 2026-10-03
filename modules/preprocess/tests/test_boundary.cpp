@@ -96,10 +96,12 @@ TEST(Boundary, OffsetCorrectMaxUint16NoCrash) {
 TEST(Boundary, GhostUseAfterDestroyReturnsError) {
     void* h = nullptr;
     ASSERT_EQ(XPE_OK, xpe_ghost_create(8, 8, nullptr, &h));
+    xpe_clear_alerts();   // QA-A-226: the creation warning (uncalibrated handle) is not what this test is about
     xpe_ghost_destroy(h);
-    // h is now a dangling pointer — using it should return error, not crash
-    // We cannot safely call xpe_ghost_correct with a destroyed handle in this test,
-    // but we verify xpe_ghost_reset on null/invalid returns error.
+    // QA-A-229 M5 (#245): this case used to call only xpe_ghost_reset(nullptr) -- "we cannot safely call ... with a
+    // destroyed handle" -- so the behaviour in its name was never exercised. Handles are now recognised from a
+    // registry of live ones without being read (REQ-P1A-086), so the call is safe and refused.
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_ghost_reset(h));
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_ghost_reset(nullptr));
 }
 

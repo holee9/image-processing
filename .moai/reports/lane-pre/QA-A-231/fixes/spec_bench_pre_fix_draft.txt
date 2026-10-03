@@ -1,0 +1,41 @@
+SPEC-BENCH-PRE / benchmark/BP-01-05-preprocess-manifest.md 수정안 초안 (QA-A-231, 리더 소유 문서용)
+근거: report.md §1. 아래는 문서를 사실에 맞추는 문구이며, 두 갈래 중 하나를 리더가 고른다.
+
+== 공통 (어느 쪽을 골라도 고친다) ==
+
+1. spec.md REQ-BPRE-001
+   현재: "Status: 6/6 PASS (frozen 2026-04-22)  Evidence: test_preprocess_degraded.cpp, CI archive"
+   제안: "Status: PreprocessDegraded 시험 6개 통과 (BP01, BP02, BP03, BP04, BP05 x2). BP-SIMD 시험은 포함하지 않는다.
+          Evidence: modules/preprocess/tests/test_preprocess_degraded.cpp, ci.yml preprocess-tests 의 ctest 로그.
+          'CI archive'(test_results.json) 는 저장소에 없다."
+
+2. spec.md REQ-BPRE-007
+   현재: "When a PR targets dev/preprocess or main, the CI pipeline shall run all BP-01~05 benchmark tests and block merge on any regression.
+          Status: CI workflow exists (benchmark-regression.yml)"
+   제안: "Status: NOT MET for BP-01~05. benchmark-regression.yml 은 ci-post(BUILD_PREPROCESS=OFF) 로 BP-06~09 만 실행한다.
+          BP-01~05 중 CI 가 실행하는 것은 ci.yml preprocess-tests 의 PreprocessDegraded.* 6개(스모크)뿐이다."
+
+3. spec.md §4 동결 표 / manifest §9 표
+   "DegradedMode PASS" 열 옆에 "판정선 시험: 없음" 열을 추가하거나, 표 아래에 한 줄:
+   "DegradedMode 시험은 판정선(REQ-BPRE-002~005 의 ADU·R²·RMSE·NMSE)을 단언하지 않는다."
+
+4. 시험 이름 대응표 (manifest §2~§6 와 test_preprocess_degraded.cpp 머리 주석)
+   현재 어긋남: DEG BP-03=결함, BP-04=고스트, BP-05=온도·비선형 / manifest BP-03=heel, BP-04=결함, BP-05=lag.
+   제안: manifest 에 "스모크 시험 이름의 BP 번호는 manifest 번호와 무관하다" 를 적거나 시험 이름을 DEG-OFFSET 식의 기능 이름으로 바꾼다.
+   (이름을 바꾸면 SPEC 의 인용과 check_spec_test_refs.py 가 걸리므로 SPEC 과 같은 커밋으로.)
+
+5. manifest §8 동결 체크리스트 6항목 (전부 미체크)
+   제안: 체크하지 않은 채 "DegradedMode Freeze (2026-04-22)" 문단 앞에 "아래 6항목은 모두 미완료다" 한 줄.
+
+== 갈래 A: 동결의 범위를 스모크로 선언한다 (문서만) ==
+
+- 제목/상태: "Active — Frozen" 을 "Active — DegradedMode smoke frozen; benchmark gates not implemented" 로.
+- REQ-BPRE-002~005 상태: "NOT IMPLEMENTED (measurement code absent: heel, NMSE, temperature sweep, linearity R2)".
+- BP-01·BP-03 은 측정 대상 기능이 없음을 명시: preprocess_api.h 가 온도 보간·PREP 시간 모델·kVp/SID 보간을 NOT IMPLEMENTED 로 적는다 (QA-A-229 M2b).
+
+== 갈래 B: 게이트를 실제로 만든다 (새 카드 필요) ==
+
+- 먼저 정할 것: BP-01·BP-03 의 대상 기능이 없으므로 (a) 기능을 구현할지 (b) 해당 BP 를 manifest 에서 철회할지.
+- 만들 것: ci.yml preprocess-tests 에 판정선을 단언하는 시험을 추가(또는 benchmark-regression.yml 에 BUILD_PREPROCESS=ON 인 잡),
+  결과 수를 로그에 에코(ctest --output-on-failure 는 통과 시험의 출력을 버린다), 데이터셋 대신 합성 프레임이면 그 사실을 manifest 에 적는다.
+- 증거 요건: 도입 후 CI 로그에서 그 시험의 측정 줄을 직접 읽는다 (이 보고서 §1.2 와 같은 방법).

@@ -166,6 +166,17 @@ internal sealed class AiSessionTracker
         return state.Started && AiBoneSuppressionStage.NeedsNewSession(state.Directory, directory);
     }
 
+    /// <summary>
+    /// GUI-C-201 (approved after GUI-C-200): the directory text to hand to <c>xpe_ai_init</c>. When a session is running for the SAME directory (the comparison ignores case, as
+    /// <see cref="NeedsNewSession"/> does) it is the spelling the session was started with: the module compares the text byte for byte and warns when a repeated init
+    /// names a "different" directory, and a path that differs only in case is the same directory here. Otherwise it is the requested one.
+    /// </summary>
+    public string DirectoryToSend(string requested)
+    {
+        var state = _state;
+        return state.Started && state.Directory is not null && !AiBoneSuppressionStage.NeedsNewSession(state.Directory, requested) ? state.Directory : requested;
+    }
+
     public void InitSucceeded(string directory)
     {
         var state = _state;
@@ -529,6 +540,16 @@ internal enum AiCallClass
     NotAttempted,
 
     /// <summary>
+    /// GUI-C-201 (approved after GUI-C-200): return code -4 (<c>XPE_ERR_CONFIG_INVALID</c>) is "the module will not use the model now". GUI-C-217 (Codex #102): that is NOT only "the model file is
+    /// there and is bad". It is also what a call receives while ANOTHER call is loading and verifying the model of the same role (QA-B-198c: the overlapping call is refused at once, not
+    /// made to wait) -- which also happens on the first concurrent call with a good model, and on a retry of a missing or signature-refused one. So the text names the possible causes
+    /// (a damaged or non-model file, a signature that did not verify, a load in progress elsewhere) and asserts none of them. Whether such a call counts toward the worker's failure total
+    /// depends on the cause (an unreadable model is counted, a refused signature is not), so this class does not carry the generic failure text that says consecutive failures switch the worker
+    /// off. The output is the input, as for a failure. A separate code for "temporarily unavailable" would be a change to the module's contract: not made here.
+    /// </summary>
+    ModelUnavailable,
+
+    /// <summary>
     /// The call was made and did not succeed (return code -3 and the like). On the worker path the module then copies the
     /// INPUT into the output and returns non-zero (ai_api.h, xpe_bone_suppress).
     /// </summary>
@@ -557,6 +578,7 @@ internal static class AiBoneSuppressionStage
     public const int Ok = 0;
     public const int InvalidInput = -1;
     public const int ProcessingFailed = -3;
+    public const int ConfigInvalid = -4;
     public const int NotInitialized = -6;
     public const int UnsupportedFormat = -7;
 
@@ -666,6 +688,7 @@ internal static class AiBoneSuppressionStage
     public static AiCallClass Classify(int code) =>
         code == Ok ? AiCallClass.Succeeded
         : code is InvalidInput or NotInitialized or UnsupportedFormat ? AiCallClass.NotAttempted
+        : code == ConfigInvalid ? AiCallClass.ModelUnavailable
         : AiCallClass.Failed;
 
     public static float[] ToFloat(ushort[] pixels)
@@ -714,6 +737,15 @@ internal static class AiBoneSuppressionStage
             case AiCallClass.NotAttempted:
                 return new StageExecution(false, null,
                     $"AI bone suppression not attempted (code {code}): {RefusalMeaning(code)} The module refused the input before trying; the original image is shown.");
+
+            case AiCallClass.ModelUnavailable:
+                // "NOT applied (code -4)" keeps the prefix the failure text has, which the E2E reads. Names the causes the code can have -- it does not tell them apart -- and says nothing about
+                // the worker's failure total: that depends on the cause and is the module's (its mark shows when the worker is off).
+                return new StageExecution(false, null,
+                    $"AI bone suppression NOT applied (code {code}): the module cannot use the model in the model directory right now. The file may be damaged or not a model, " +
+                    "its signature may not have verified, or another call may still be loading and verifying the model (try again in a moment); " +
+                    "the alert list names the cause when the module raised one. The original image is shown. " +
+                    "Whether this call counts toward the AI worker's failure total is the module's decision; the AI worker mark shows when it has switched off.");
 
             default:
                 return new StageExecution(false, null,

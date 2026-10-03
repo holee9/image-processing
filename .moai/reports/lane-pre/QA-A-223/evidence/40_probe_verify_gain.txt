@@ -1,0 +1,6 @@
+probe: xpe_verify_gain on the real DLL, semantics UNKNOWN (flat residual line 1.0%), 64x64, gain map all 1.0
+A  noisy 5%% -> PERFECTLY flat (after const)   rc=0 prnu_before=4.9564% prnu_after=0.000000% snr_improvement_db=0.0000 coverage=1.000 overall_pass=False
+B  noisy 5%% -> 0.5%% noise (20 dB better)     rc=0 prnu_before=4.9564% prnu_after=0.491873% snr_improvement_db=20.0663 coverage=1.000 overall_pass=True
+C  noisy 5%% -> 0.0001%% noise (tiny, nonzero) rc=0 prnu_before=4.9564% prnu_after=0.000102% snr_improvement_db=93.7164 coverage=1.000 overall_pass=True
+D  noisy 5%% -> 3.5%% noise (3.1 dB, above 1%% line) rc=0 prnu_before=4.9564% prnu_after=3.458453% snr_improvement_db=3.1257 coverage=1.000 overall_pass=False
+E  control uniform -> uniform (both flat)      rc=0 prnu_before=0.0000% prnu_after=0.000000% snr_improvement_db=0.0000 coverage=1.000 overall_pass=True

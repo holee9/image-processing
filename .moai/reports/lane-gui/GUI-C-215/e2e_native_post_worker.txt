@@ -1,0 +1,197 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.08]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.16]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.18]   Starting:    ImageProcTest.E2ETests
+XPE-C56-PROBE hwnd=0x16CD1C04 pid=20952 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C01_PreprocessStage_ReachesTheDrawnPixelsOrSaysWhyNot [11 s]
+  표준 출력 메시지:
+ C01 off: chain='chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw' hash=1be85fcc6e823d6e
+ C01 native on: chain='chain: preprocess=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=45 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain' hash=e53a1f7f66a4c0c1
+ C01 native off again: hash=1be85fcc6e823d6e
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C07_AGridRatioOutsideTheTable_IsRefused [11 s]
+  표준 출력 메시지:
+ C07 chain='chain: preprocess=NotRequested, gsvg=RequestedNotApplied, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=1 ms, ai_bone_suppress=0 ms; display input=raw — gsvg: The virtual-grid table was not found: C:\Users\drake\AppData\Local\Temp\c215_native\vg_table_water_csi600_victre.csv' hash=1be85fcc6e823d6e
+
+
+[2026-10-03 14:06:35.190] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-restore-33180-c4d06b45d25646fb9de544a6d72275f5, ep=0, timeout=5000 ms
+[2026-10-03 14:06:35.924] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+[2026-10-03 14:06:38.128] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-03 14:06:38.133] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+[2026-10-03 14:06:40.419] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-03 14:06:40.423] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+[2026-10-03 14:06:42.739] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-03 14:06:42.743] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+[xUnit.net 00:01:35.10]     ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C11_RestoringTheAiSession_RemovesTheMarkAndTheCount_ThatAScenarioLeftOnTheSharedApp [SKIP]
+[xUnit.net 00:01:35.10]       The module did not count the refused calls, so no worker-off mark can be made here (state 'worker=Active; failures=0; ceiling=3').
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C11_RestoringTheAiSession_RemovesTheMarkAndTheCount_ThatAScenarioLeftOnTheSharedApp [18 s]
+  오류 메시지:
+   The module did not count the refused calls, so no worker-off mark can be made here (state 'worker=Active; failures=0; ceiling=3').
+
+[2026-10-03 14:06:53.787] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-03 14:06:53.788] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-spell-33180-b6716753e9d64d18b03a271639534758, ep=0, timeout=5000 ms
+[2026-10-03 14:06:54.133] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+[2026-10-03 14:06:58.193] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-03 14:06:58.197] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C10_TheModelDirectoryTypedAgainInAnotherCase_IsSentToTheModuleWithTheFirstSpelling [17 s]
+  표준 출력 메시지:
+ C10 after call 1: summary='worker=Active; failures=0; ceiling=3'; diagnostics='init#5 dir='C:\Users\drake\AppData\Local\Temp\xpe-ai-spell-33180-b6716753e9d64d18b03a271639534758' config={"use_worker":true} before-init worker_state code=-6 state=0 failures=0 ceiling=0 -> code=0; read#14 worker_state code=0 state=1 failures=0 ceiling=3 | refresher: reads=33 maxReadMs=46 maxAnswerGapMs=5499 boundMs=15000 rereads=0 failedReads=0 retries=0 sessionWithdrawals=1 maxUiGapMs=1374 noticesWithdrawn=0 noticesNeverConfirmed=0'
+ C10 after call 2: summary='worker=Active; failures=0; ceiling=3'
+ C10 first init dir='C:\Users\drake\AppData\Local\Temp\xpe-ai-spell-33180-b6716753e9d64d18b03a271639534758'; after the case change dir='C:\Users\drake\AppData\Local\Temp\xpe-ai-spell-33180-b6716753e9d64d18b03a271639534758'; diagnostics='init#6 dir='C:\Users\drake\AppData\Local\Temp\xpe-ai-spell-33180-b6716753e9d64d18b03a271639534758' config={"use_worker":true} before-init worker_state code=0 state=1 failures=0 ceiling=3 -> code=0; read#16 worker_state code=0 state=1 failures=0 ceiling=3 | refresher: reads=35 maxReadMs=46 maxAnswerGapMs=5499 boundMs=15000 rereads=0 failedReads=0 retries=0 sessionWithdrawals=1 maxUiGapMs=1374 noticesWithdrawn=0 noticesNeverConfirmed=0'
+ C10 AI session before clean-up: banner=none; summary='worker=Active; failures=0; ceiling=3'
+ C10 AI session after clean-up: banner=none; summary='worker=Active; failures=0; ceiling=3'
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C04_MissingVirtualGridTable_IsRefusedAndTheImageIsUnchanged [11 s]
+  표준 출력 메시지:
+ C04 chain='chain: preprocess=NotRequested, gsvg=RequestedNotApplied, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw — gsvg: The virtual-grid table was not found: D:\no\such\table.csv' hash=1be85fcc6e823d6e
+
+
+[2026-10-03 14:07:22.770] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-03 14:07:22.771] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-nomodel-file-33180-a54dfdabad3c45f892078b5791814de7, ep=0, timeout=5000 ms
+[2026-10-03 14:07:24.796] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+[2026-10-03 14:07:27.354] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-03 14:07:27.357] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+[2026-10-03 14:07:30.458] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-03 14:07:30.462] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+[2026-10-03 14:07:33.330] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-03 14:07:33.334] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C09b_ANonModelFile_IsReportedAsAModelTheModuleWillNotUse [22 s]
+  표준 출력 메시지:
+ C09b attempt 1: chain='chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=RequestedNotApplied; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=2031 ms; display input=raw — ai_bone_suppress: AI bone suppression NOT applied (code -4): the model in the model directory cannot be used by the module (the file is damaged or is not a model, or its signature did not verify; the alert list names the cause when the module raised one); the original image is shown. Whether this call counts toward the AI worker's failure total is the module's decision; the AI worker mark shows when it has switched off.'; summary='worker=Active; failures=0; ceiling=3'; mark shown so far=False
+ C09b attempt 2: chain='chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=RequestedNotApplied; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=17 ms; display input=raw — ai_bone_suppress: AI bone suppression NOT applied (code -4): the model in the model directory cannot be used by the module (the file is damaged or is not a model, or its signature did not verify; the alert list names the cause when the module raised one); the original image is shown. Whether this call counts toward the AI worker's failure total is the module's decision; the AI worker mark shows when it has switched off.'; summary='worker=Active; failures=0; ceiling=3'; mark shown so far=False
+ C09b attempt 3: chain='chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=RequestedNotApplied; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=8 ms; display input=raw — ai_bone_suppress: AI bone suppression NOT applied (code -4): the model in the model directory cannot be used by the module (the file is damaged or is not a model, or its signature did not verify; the alert list names the cause when the module raised one); the original image is shown. Whether this call counts toward the AI worker's failure total is the module's decision; the AI worker mark shows when it has switched off.'; summary='worker=Active; failures=0; ceiling=3'; mark shown so far=False
+ C09b attempt 4: chain='chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=RequestedNotApplied; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=8 ms; display input=raw — ai_bone_suppress: AI bone suppression NOT applied (code -4): the model in the model directory cannot be used by the module (the file is damaged or is not a model, or its signature did not verify; the alert list names the cause when the module raised one); the original image is shown. Whether this call counts toward the AI worker's failure total is the module's decision; the AI worker mark shows when it has switched off.'; summary='worker=Active; failures=0; ceiling=3'; mark shown so far=False
+ C09b after 4 attempts: mark shown=False; state='worker=Active; failures=0; ceiling=3'
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C02_ChangingTheExposureKvp_DoesNotChangeTheDrawnPixelsToday [11 s]
+  표준 출력 메시지:
+ C02 after typing 120: stale='STALE — display parameters changed since this image was rendered. Apply the display pipeline to update it.' text='120'
+ C02 kVp 70 -> e53a1f7f66a4c0c1, kVp 120 -> e53a1f7f66a4c0c1
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C05_GridCorrectionChoices_AreExclusive [10 s]
+  표준 출력 메시지:
+ C05 after GsvgModeGridSuppression: GsvgModeNone=False, GsvgModeGridSuppression=True, GsvgModeVirtualGrid=False
+ C05 after GsvgModeVirtualGrid: GsvgModeNone=False, GsvgModeGridSuppression=False, GsvgModeVirtualGrid=True
+ C05 after GsvgModeNone: GsvgModeNone=True, GsvgModeGridSuppression=False, GsvgModeVirtualGrid=False
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeGridSuppression", mode: "GridSuppression") [8 s]
+  표준 출력 메시지:
+ C03 GridSuppression off: chain='chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw' hash=1be85fcc6e823d6e
+ C03 GridSuppression native: chain='chain: preprocess=NotRequested, gsvg=AppliedNoChange, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=16 ms, ai_bone_suppress=0 ms; display input=chain' hash=1be85fcc6e823d6e
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeVirtualGrid", mode: "VirtualGrid") [8 s]
+  표준 출력 메시지:
+ C03 VirtualGrid off: chain='chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw' hash=1be85fcc6e823d6e
+ C03 VirtualGrid native: chain='chain: preprocess=NotRequested, gsvg=RequestedNotApplied, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw — gsvg: The virtual-grid table was not found: C:\Users\drake\AppData\Local\Temp\c215_native\vg_table_water_csi600_victre.csv' hash=1be85fcc6e823d6e
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C08_AiBoneSuppression_WhereTheModuleCannotSucceed_IsRefusedAndTheImageIsTheOriginal [9 s]
+  표준 출력 메시지:
+ C08 before: chain='chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw' hash=1be85fcc6e823d6e
+ C08 after (backend Native): chain='chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=RequestedNotApplied; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=4 ms; display input=raw — ai_bone_suppress: AI bone suppression not attempted: no model at C:\Users\drake\AppData\Local\Temp\xpe-ai-nomodel-33180-4b818e39a44f4044ac4a0a9761b98559\bone_suppress.onnx. The AI worker was not started and no failure was counted; the original image is shown.' hash=1be85fcc6e823d6e
+
+
+[xUnit.net 00:03:22.32]     ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C06_ChangingTheGridRatio_ChangesTheDrawnPixels [FAIL]
+[xUnit.net 00:03:22.32]       The virtual grid did not apply at ratio 10: chain: preprocess=NotRequested, gsvg=RequestedNotApplied, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw — gsvg: The virtual-grid table was not found: C:\Users\drake\AppData\Local\Temp\c215_native\vg_table_water_csi600_victre.csv
+[xUnit.net 00:03:22.32]       Stack Trace:
+[xUnit.net 00:03:22.32]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\ProcessingChainScenarios.cs(250,0): at ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C06_ChangingTheGridRatio_ChangesTheDrawnPixels()
+[xUnit.net 00:03:22.32]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:03:22.32]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C06_ChangingTheGridRatio_ChangesTheDrawnPixels [8 s]
+  오류 메시지:
+   The virtual grid did not apply at ratio 10: chain: preprocess=NotRequested, gsvg=RequestedNotApplied, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw — gsvg: The virtual-grid table was not found: C:\Users\drake\AppData\Local\Temp\c215_native\vg_table_water_csi600_victre.csv
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C06_ChangingTheGridRatio_ChangesTheDrawnPixels() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\ProcessingChainScenarios.cs:line 250
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[2026-10-03 14:08:37.358] [info] xpe_ai shutdown: worker_pid=0
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiMenuAvailabilityScenarios.E01_TheEntry_IsEnabledExactlyWhereTheAiModuleCanBeReached [338 ms]
+  표준 출력 메시지:
+ E01 (backend Native): runtime='mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=c215_native' expected enabled=True (native backend=True, xpe_ai.dll in 'C:\Users\drake\AppData\Local\Temp\c215_native'=True, initialized=True); actual enabled=True; tooltip='Runs AI bone suppression (xpe_bone_suppress, worker process) on the loaded frame after the other stages. Needs the native backend and xpe_ai.dll with a model in the AI model directory. If the module fails, the original image is shown and the status line says so; a build without an inference runtime always fails. Other AI and premium modules are not wired to this item.'
+
+
+XPE-C56-PROBE hwnd=0x121E13F2 pid=66008 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiMenuAvailabilityScenarios.E02_AfterShutdown_TheEntryIsDisabled_AndFollowsTheBackendBackUp [1 s]
+  표준 출력 메시지:
+ E02 after shutdown: enabled=False; tooltip='Runs AI bone suppression (xpe_bone_suppress, worker process) on the loaded frame after the other stages. Needs the native backend and xpe_ai.dll with a model in the AI model directory. If the module fails, the original image is shown and the status line says so; a build without an inference runtime always fails. Other AI and premium modules are not wired to this item. Disabled now: The backend is not initialized (Backend menu, Initialize).'
+ E02 after initialize: expected enabled=True; actual enabled=True; tooltip='Runs AI bone suppression (xpe_bone_suppress, worker process) on the loaded frame after the other stages. Needs the native backend and xpe_ai.dll with a model in the AI model directory. If the module fails, the original image is shown and the status line says so; a build without an inference runtime always fails. Other AI and premium modules are not wired to this item.'
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerUnconfirmedAtMinimumWidthScenarios.M02_TheUnconfirmedNotice_IsAbsentWhileTheWorkerIsActive_ThenAppears_AndIsInTheTreeAtTheMinimumWidth [16 s]
+  표준 출력 메시지:
+ M02 no notice 5.4 s after launch
+ M02 notice after 14.8 s: 'AI worker status check delayed: the last answer is over 15 s old. The AI may be busy; AI results may not be applied. Use Restart AI if this stays.'
+ M02 minimum width: MinWidth 1280 DIP at 96 dpi = 1280 px expected; the window shrank to 1280 px; width after the check 1280 px; CanResize=True
+ M02 diagnostics line: 'refresher: reads=2 maxReadMs=2 maxAnswerGapMs=10 boundMs=15000 rereads=0 failedReads=0 retries=0 sessionWithdrawals=0 maxUiGapMs=1015 noticesWithdrawn=1 noticesNeverConfirmed=0'
+
+
+XPE-C56-PROBE hwnd=0x11971C30 pid=21564 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+XPE-C56-PROBE hwnd=0xFEF1010 pid=45252 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerNeverConfirmedAtMinimumWidthScenarios.M03_TheNeverConfirmedNotice_IsAbsentAtStart_ThenAppears_AndIsInTheTreeAtTheMinimumWidth [15 s]
+  표준 출력 메시지:
+ M03 no notice 5.4 s after launch
+ M03 notice after 14.6 s: 'AI worker status check delayed: no answer since the AI session started or was restarted (over 15 s). The AI may be busy; AI results may not be applied. Use Restart AI if this stays.'
+ M03 minimum width: MinWidth 1280 DIP at 96 dpi = 1280 px expected; the window shrank to 1280 px; width after the check 1280 px; CanResize=True
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerMarkAtMinimumWidthScenarios.M01_TheMark_IsInTheAutomationTree_AtTheLaunchWidth_AndAtTheMinimumWidth [830 ms]
+  표준 출력 메시지:
+ M01 launch width 1560: banner 'AI worker switched off for this session after 3 of 3 failures in a row: images are returned unchanged until it is restarted.'
+ M01 minimum width: MinWidth 1280 DIP at 96 dpi = 1280 px expected; the window shrank to 1280 px; width after the check 1280 px; CanResize=True
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiMenuWrappedBackendScenarios.L01_TheEntry_FollowsTheWrappedBackend_NotTheWrappersInterface [663 ms]
+  표준 출력 메시지:
+ L01 (backend Native, wrapped by the fault seam): runtime='mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=c215_native' expected enabled=True; actual enabled=True; title='ImageProcTest GUI-S0 — FAULT INJECTION ARMED'
+
+
+XPE-C56-PROBE hwnd=0x16561C58 pid=51492 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+[2026-10-03 14:09:20.758] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-e2e-33180-11431523a7654fae8aad27449bd5af3c, ep=0, timeout=5000 ms
+[2026-10-03 14:09:20.760] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-03 14:09:25.041] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-03 14:09:25.042] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-03 14:09:29.357] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-03 14:09:29.358] [warning] bone_suppress: worker path failed (-9), input returned unchanged (3 of 3 consecutive failures)
+[2026-10-03 14:09:32.273] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-03 14:09:32.273] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-e2e-33180-11431523a7654fae8aad27449bd5af3c, ep=0, timeout=5000 ms
+XPE-C56-PROBE hwnd=0x1BC9097E pid=23200 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerAbsentScenarios.C09_AWorkerThatCannotBeStarted_IsSwitchedOffByRepeatedFailures_ShowsAMark_ThatRestartRemoves [22 s]
+  표준 출력 메시지:
+ C09 setup: private copy of 'C:\Users\drake\AppData\Local\Temp\c215_native' without xpe_ai_worker.exe in C:\Users\drake\AppData\Local\Temp\xpe-c202-noworker-40f42b638615493f98da1c70388404b2; runtime='mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=xpe-c202-noworker-40f42b638615493f98da1c70388404b2'
+ C09 window width before: 1560; at the minimum: MinWidth 1280 DIP at 96 dpi = 1280 px expected; the window shrank to 1280 px; width after the check 1280 px; CanResize=True
+ C09 attempt 1: chain='chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=RequestedNotApplied; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=27 ms; display input=raw — ai_bone_suppress: AI bone suppression NOT applied (code -9): the original image is shown. A failed call returns the input unchanged; consecutive failures switch the AI worker off for this session (the AI worker mark shows when that has happened). The code is the module's and is not read further here: the same code can have more than one cause.'
+ C09 attempt 1: banner=absent (after the chain text: not within 2523 ms); summary='worker=Active; failures=1; ceiling=3'; diagnostics='init#1 dir='C:\Users\drake\AppData\Local\Temp\xpe-ai-e2e-33180-11431523a7654fae8aad27449bd5af3c' config={"use_worker":true} before-init worker_state code=-6 state=0 failures=0 ceiling=0 -> code=0; read#2 worker_state code=0 state=1 failures=1 ceiling=3 | refresher: reads=7 maxReadMs=35 maxAnswerGapMs=4049 boundMs=15000 rereads=0 failedReads=0 retries=0 sessionWithdrawals=0 maxUiGapMs=1287 noticesWithdrawn=0 noticesNeverConfirmed=0'
+ C09 attempt 2: chain='chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=RequestedNotApplied; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=5 ms; display input=raw — ai_bone_suppress: AI bone suppression NOT applied (code -9): the original image is shown. A failed call returns the input unchanged; consecutive failures switch the AI worker off for this session (the AI worker mark shows when that has happened). The code is the module's and is not read further here: the same code can have more than one cause.'
+ C09 attempt 2: banner=absent (after the chain text: not within 2538 ms); summary='worker=Active; failures=2; ceiling=3'; diagnostics='init#2 dir='C:\Users\drake\AppData\Local\Temp\xpe-ai-e2e-33180-11431523a7654fae8aad27449bd5af3c' config={"use_worker":true} before-init worker_state code=0 state=1 failures=1 ceiling=3 -> code=0; read#4 worker_state code=0 state=1 failures=2 ceiling=3 | refresher: reads=9 maxReadMs=35 maxAnswerGapMs=4153 boundMs=15000 rereads=0 failedReads=0 retries=0 sessionWithdrawals=0 maxUiGapMs=1287 noticesWithdrawn=0 noticesNeverConfirmed=0'
+ C09 attempt 3: chain='chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=RequestedNotApplied; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=5 ms; display input=raw — ai_bone_suppress: AI bone suppression NOT applied (code -9): the original image is shown. A failed call returns the input unchanged; consecutive failures switch the AI worker off for this session (the AI worker mark shows when that has happened). The code is the module's and is not read further here: the same code can have more than one cause.'
+ C09 attempt 3: banner=shown (after the chain text: 45 ms); summary='worker=Disabled; failures=3; ceiling=3'; diagnostics='init#3 dir='C:\Users\drake\AppData\Local\Temp\xpe-ai-e2e-33180-11431523a7654fae8aad27449bd5af3c' config={"use_worker":true} before-init worker_state code=0 state=1 failures=2 ceiling=3 -> code=0; read#6 worker_state code=0 state=2 failures=3 ceiling=3 | refresher: reads=11 maxReadMs=41 maxAnswerGapMs=4281 boundMs=15000 rereads=0 failedReads=0 retries=0 sessionWithdrawals=0 maxUiGapMs=1287 noticesWithdrawn=0 noticesNeverConfirmed=0'
+ C09 mark: 'AI worker switched off for this session after 3 of 3 failures in a row: images are returned unchanged until it is restarted.'
+ C09 state before restart: 'worker=Disabled; failures=3; ceiling=3'
+ C09 after restart: status bar='AI session restarted: a new session with a clean failure count.'; state='worker=Active; failures=0; ceiling=3'
+ C09 status-refresher measurements: refresher: reads=12 maxReadMs=41 maxAnswerGapMs=4281 boundMs=15000 rereads=0 failedReads=0 retries=0 sessionWithdrawals=0 maxUiGapMs=1287 noticesWithdrawn=0 noticesNeverConfirmed=0
+
+
+[xUnit.net 00:04:26.36]   Finished:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiMenuLateDllScenarios.L02_ADllThatAppearsOrVanishesWhileTheAppRuns_IsSeenAtTheNextMenuOpening [1 s]
+  표준 출력 메시지:
+ L02: enabled before the DLL exists=False; after it was copied in=True; after it was deleted=False; tooltip='Runs AI bone suppression (xpe_bone_suppress, worker process) on the loaded frame after the other stages. Needs the native backend and xpe_ai.dll with a model in the AI model directory. If the module fails, the original image is shown and the status line says so; a build without an inference runtime always fails. Other AI and premium modules are not wired to this item. Disabled now: xpe_ai.dll was not found beside the other native modules.'
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 20
+     통과: 18
+     실패: 1
+    건너뜀: 1
+ 총 시간: 4.4666 분
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

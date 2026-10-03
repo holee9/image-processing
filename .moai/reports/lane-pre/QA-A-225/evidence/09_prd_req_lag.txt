@@ -1,0 +1,102 @@
+##### srs_ghost_correction headings + requirement ids
+1:# SRS: Software Requirements Specification
+11:## 1. Purpose & Scope
+15:### 1.1 시스템 컨텍스트
+45:## 2. Functional Requirements
+47:### FR-100: Offset Correction (Tier 1)
+51:| FR-101 | 시스템은 X-ray raw frame에서 pre-exposure dark frame을 pixel별로 차감하여 offset을 보정해야 한다 | **필수** | Unit test T1-01~06 |
+52:| FR-102 | 차감 결과가 음수인 pixel은 0으로 clamp해야 한다 | 필수 | Unit test T1-02 |
+53:| FR-103 | 차감 결과가 65535를 초과하는 pixel은 65535로 clamp해야 한다 | 필수 | Unit test T1-03 |
+54:| FR-104 | Overflow/underflow 발생 pixel 수를 CorrectionResult에 기록해야 한다 | 필수 | Unit test |
+55:| FR-105 | Dark frame이 NULL인 경우 CORR_ERR_NULL_PTR을 반환해야 한다 | 필수 | Unit test |
+57:### FR-200: Lag Correction (Tier 2)
+61:| FR-201 | 시스템은 post-exposure dark frame과 pre-exposure dark frame의 차분으로 잔류 lag signal을 추정해야 한다 | 필수 | Unit test T2-01~05 |
+62:| FR-202 | Lag signal이 음수인 pixel은 0으로 clamp하여 noise에 의한 역전을 방지해야 한다 | 필수 | Unit test T2-03 |
+63:| FR-203 | Exposure-dependent α(E) coefficient를 교정 LUT에서 조회하여 적용해야 한다 | 필수 | Unit test |
+64:| FR-204 | Post-exposure dark frame이 NULL인 경우 Tier 2를 건너뛰고 Tier 1 결과를 출력해야 한다 | 필수 | Unit test |
+65:| FR-205 | 촬영 이력(ExposureRecord)을 최대 16개까지 유지하고, 시간 간격에 따른 감쇠를 적용해야 한다 | 권장 | Unit test |
+67:### FR-300: NLCSC Correction (Tier 3)
+71:| FR-301 | 시스템은 N=4 multi-exponential 모델의 NLCSC 알고리즘을 구현해야 한다 | 선택 | Unit test |
+72:| FR-302 | State variable Sₙ을 frame 간에 유지하고, 시간 간격에 따른 지수적 감쇠를 적용해야 한다 | 선택 | Unit test |
+73:| FR-303 | Exposure-dependent bₙ(E)와 aₙ(E)를 교정 데이터에서 조회해야 한다 | 선택 | Unit test |
+74:| FR-304 | exp(-a) 연산은 256-entry LUT + 선형 보간으로 구현해야 한다 | 선택 | Fixed-point test |
+75:| FR-305 | NLCSC는 config에서 명시적으로 활성화된 경우에만 실행해야 한다 | 선택 | Integration test |
+77:### FR-400: Gain Correction
+81:| FR-401 | 시스템은 factory calibration gain map을 사용하여 pixel별 감도 보정을 수행해야 한다 | 필수 | Unit test G-01~05 |
+82:| FR-402 | Gain map의 값이 0인 pixel(dead pixel)은 보정을 건너뛰고 원본 값을 유지해야 한다 | 필수 | Unit test G-05 |
+83:| FR-403 | Gain 보정 결과는 uint16 범위로 clamp해야 한다 | 필수 | Unit test G-04 |
+85:### FR-500: Ghost (Gain Ghosting) Correction
+89:| FR-501 | 시스템은 exposure history 기반 ΔG 추정을 구현해야 한다 | 선택 | Unit test |
+90:| FR-502 | Ghost correction은 config에서 명시적으로 활성화된 경우에만 실행해야 한다. 기본값은 비활성이다 | 필수 | Integration test |
+91:| FR-503 | ΔG 추정에 사용되는 τ_ghost와 γ coefficient는 교정 데이터에서 로드해야 한다 | 선택 | Unit test |
+93:### FR-600: Defect Correction
+97:| FR-601 | 시스템은 defect map에 표시된 pixel을 주변 정상 pixel로 보간해야 한다 | 필수 | Unit test |
+98:| FR-602 | 보간 방법은 neighbor average, bilinear, median 중 config에서 선택 가능해야 한다 | 필수 | Unit test |
+99:| FR-603 | Defect pixel이 cluster인 경우(3×3 내 복수 defect) 정상 neighbor만 사용해야 한다 | 필수 | Unit test |
+100:| FR-604 | 정상 neighbor가 없는 경우 원본 값을 유지하고 경고를 기록해야 한다 | 필수 | Unit test |
+102:### FR-700: Pipeline Orchestration
+106:| FR-701 | 보정 파이프라인은 Offset → Lag → Ghost → Gain → Defect 순서로 실행해야 한다 | 필수 | Integration test P-01~08 |
+107:| FR-702 | Auto tier escalation이 활성화된 경우, Tier 1 후 GCR이 임계값을 초과하면 Tier 2로 승격해야 한다 | 권장 | Integration test |
+108:| FR-703 | Tier 2 후에도 GCR 임계값을 초과하고 NLCSC가 활성화된 경우 Tier 3으로 승격해야 한다 | 선택 | Integration test |
+109:| FR-704 | correction_process() 호출 시 CorrectionResult에 사용된 tier, GCR, 처리 시간을 기록해야 한다 | 필수 | Integration test |
+113:## 3. Non-Functional Requirements
+115:### NFR-100: Performance
+119:| NFR-101 | Tier 1+2 처리 시간 | < 70ms | Timer 측정 |
+120:| NFR-102 | Tier 1+2+Gain+Defect 전체 처리 시간 | < 200ms | Timer 측정 |
+121:| NFR-103 | Tier 3 포함 전체 처리 시간 | < 500ms | Timer 측정 |
+122:| NFR-104 | Memory 사용량 (Tier 1+2) | < 100 MB | Runtime 측정 |
+123:| NFR-105 | Memory 사용량 (Tier 3 포함) | < 200 MB | Runtime 측정 |
+125:### NFR-200: Accuracy
+129:| NFR-201 | GCR (FB 적용 + Tier 1+2) | ≤ 0.1% | Step-wedge phantom |
+130:| NFR-202 | GCR (FB 미적용 + Tier 2+3) | ≤ 0.3% | Step-wedge phantom |
+
+##### PRD headings
+1:# PRD v2.0: Lag/Ghost SW Correction Algorithm — Implementation Specification
+13:## 1. Scope & Goals
+15:### 1.1 이 문서가 추가하는 것 (v1.0 대비)
+27:### 1.2 성능 목표 (변경 없음)
+38:## 2. Software Architecture
+40:### 2.1 모듈 구조
+92:### 2.2 파일 레이아웃
+144:## 3. Data Types & Structures
+146:### 3.1 기본 타입
+151:#define IMG_WIDTH   3072
+152:#define IMG_HEIGHT  3072
+153:#define IMG_PIXELS  (IMG_WIDTH * IMG_HEIGHT)  // 9,437,184
+154:#define N_EXP_TERMS 4    // Multi-exponential 항 수
+155:#define N_CALIB_LEVELS 9 // 교정 exposure 수준 수
+180:#define MAX_EXPOSURE_HISTORY 16
+183:### 3.2 교정 데이터 구조
+244:### 3.3 Configuration
+300:## 4. API Specification
+302:### 4.1 Pipeline API
+358:### 4.2 Individual Tier APIs
+417:## 5. Algorithm Pseudocode
+419:### 5.1 Tier 1: Offset Correction
+440:### 5.2 Tier 2: AR(1) Residual Lag Correction
+477:### 5.3 Tier 3: NLCSC Correction
+522:### 5.4 Gain Correction
+548:### 5.5 Defect Correction
+582:### 5.6 Pipeline Orchestration
+645:## 6. Edge Cases & Error Handling
+647:### 6.1 Overflow/Underflow
+666:### 6.2 Null/Missing Data
+684:### 6.3 Saturation Pixels
+695:### 6.4 Temperature Out of Range
+707:### 6.5 Fixed-Point Precision
+733:## 7. Calibration File Format (.gcal)
+761:## 8. Test Cases
+763:### 8.1 Unit Test: Tier 1
+774:### 8.2 Unit Test: Tier 2
+784:### 8.3 Unit Test: Gain Correction
+794:### 8.4 Integration Test: Pipeline
+807:### 8.5 Fixed-Point Precision Test
+818:## 9. Code Quality Standards
+820:### 9.1 IEC 62304 Class B 준수
+833:### 9.2 코딩 규약
+857:### 9.3 성능 최적화 규칙
+880:## 10. Diagnostics & Logging
+882:### 10.1 CorrectionResult 활용
+898:### 10.2 Log Level
+909:## 11. Migration from v1.0
+911:### v1.0 → v2.0 변경 추적

@@ -33,6 +33,7 @@ static void writeXCalFixture(const std::string& path, XCalType type,
                              const void* payload, uint64_t payloadLen,
                              uint64_t expiryMs) {
     XCalFileHeader hdr{};
+    std::memcpy(hdr.session_id, "fixture", 8);   // QA-A-229 M4: one session for the three maps (an unspecified id raises a warning)
     std::memcpy(hdr.magic, XCAL_MAGIC, 4);
     hdr.version          = XCAL_VERSION;
     hdr.type             = static_cast<uint32_t>(type);

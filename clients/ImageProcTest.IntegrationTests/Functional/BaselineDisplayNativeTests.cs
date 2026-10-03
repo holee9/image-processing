@@ -45,7 +45,7 @@ public sealed class BaselineDisplayNativeTests(ITestOutputHelper output)
 
         try
         {
-            NativeLibrary.Load(Path.Combine(NativeDirectory!, "xpe_common.dll"));
+            ImageProcTest.IntegrationTests.Fixtures.SharedCommonModule.Load(NativeDirectory!);   // GUI-C-199: never a second copy of xpe_common.dll
             NativeLibrary.Load(Path.Combine(NativeDirectory!, "xpe_display.dll"));
             _loaded = true;
         }

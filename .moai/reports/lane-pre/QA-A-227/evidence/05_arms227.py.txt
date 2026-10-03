@@ -1,0 +1,51 @@
+"""QA-A-227: damage the border fix one way at a time; run GhostTier3*:GhostOracle.* in the library executable; record exit codes."""
+import subprocess, sys, shutil, os, re
+R = 'D:/workspace-github/xpe-pre/'
+S = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5/scratchpad/'
+GC = R + 'modules/preprocess/src/ghost_correct.cpp'
+keep = S + 'keep227_ghost_correct.cpp'
+if not os.path.exists(keep):
+    shutil.copy(GC, keep)
+
+ARMS = {
+    'f1_interior_only_guard_back': ('if (count > 0) {\n                    localMean /= static_cast<float>(count);',
+                                    'if (count > 0 && x > 0 && x < static_cast<int>(W) - 1 && y > 0 && y < static_cast<int>(H) - 1) {\n                    localMean /= static_cast<float>(count);'),
+    'f2_always_divide_by_nine': ('localMean /= static_cast<float>(count);', 'localMean /= 9.0f;'),
+    'f3_replicate_the_border_instead': ('const int xx = x + dx;\n                        if (xx < 0 || xx >= static_cast<int>(W)) continue;',
+                                        'const int xx = std::min(std::max(x + dx, 0), static_cast<int>(W) - 1);'),
+    'f4_small_frames_blended_too': ('if (W >= 3u && H >= 3u) {\n                const int x', 'if (W >= 1u && H >= 1u) {\n                const int x'),
+    'f5_vertical_border_skipped': ('const int yy = y + dy;\n                    if (yy < 0 || yy >= static_cast<int>(H)) continue;',
+                                   'const int yy = y + dy;\n                    if (yy < 0 || yy >= static_cast<int>(H)) { count = -1000; continue; }'),
+}
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', S + 'buildall.bat'], capture_output=True, text=True)
+    return 'BUILD_EXIT=0' in r.stdout, r.stdout
+
+
+def tests():
+    r = subprocess.run([R + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe', '--gtest_filter=GhostTier3*:GhostOracle.*'], cwd=R + 'modules/preprocess', capture_output=True, text=True)
+    failed = sorted(set(re.findall(r'^\[  FAILED  \] ([A-Za-z]\S+)', r.stdout, re.M)))
+    return failed, r.returncode
+
+
+for name in sys.argv[1:]:
+    old, new = ARMS[name]
+    shutil.copy(keep, GC)
+    src = open(GC, 'rb').read().decode('utf-8')
+    crlf = '\r\n' in src
+    s = src.replace('\r\n', '\n')
+    if s.count(old) != 1:
+        print(name, 'NOT FOUND / not unique', s.count(old)); continue
+    s = s.replace(old, new)
+    open(GC, 'wb').write((s.replace('\n', '\r\n') if crlf else s).encode('utf-8'))
+    ok, out = build()
+    if not ok:
+        print(name, 'BUILD FAILED'); print(out[-900:])
+    else:
+        failed, rc = tests()
+        crashed = rc not in (0, 1) or (rc != 0 and not failed)
+        tag = (' [PROCESS DIED, exit %d]' % rc) if crashed else ''
+        print('%-36s -> %d red%s: %s' % (name, len(failed), tag, ', '.join(failed) if failed else ('NONE (arm did not fire)' if not crashed else 'no FAILED line')))
+    shutil.copy(keep, GC)

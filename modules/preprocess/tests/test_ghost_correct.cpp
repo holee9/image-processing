@@ -5,6 +5,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "ghost_stable_lag.h"
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
@@ -47,6 +48,7 @@ protected:
 TEST_F(GhostCorrectTest, CreateSucceeds) {
     EXPECT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
     EXPECT_NE(nullptr, handle);
+    xpe_clear_alerts();   // QA-A-226: the creation warning (uncalibrated handle); test_ghost_uncalibrated.cpp pins it
 }
 
 // REQ-P1A-031: zero dimensions return error
@@ -64,7 +66,7 @@ TEST_F(GhostCorrectTest, NullHandleOutReturnsError) {
 
 // REQ-P1A-088: xpe_ghost_reset clears history
 TEST_F(GhostCorrectTest, ResetSucceeds) {
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withStableLag().c_str(), &handle));
     EXPECT_EQ(XPE_OK, xpe_ghost_reset(handle));
 }
 
@@ -79,7 +81,7 @@ TEST_F(GhostCorrectTest, DestroyNullIsNoOp) {
 
 // REQ-P1A-032: xpe_ghost_correct succeeds on valid inputs
 TEST_F(GhostCorrectTest, CorrectSucceedsOnValidHandle) {
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withStableLag().c_str(), &handle));
     EXPECT_EQ(XPE_OK, xpe_ghost_correct(handle, &img, &meta));
 }
 
@@ -90,7 +92,7 @@ TEST_F(GhostCorrectTest, CorrectNullHandleReturnsError) {
 
 // Dimension mismatch between handle and image returns error
 TEST_F(GhostCorrectTest, CorrectDimensionMismatchReturnsError) {
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withStableLag().c_str(), &handle));
     XpeImageBuffer wrongImg = img;
     wrongImg.width = W + 4;
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_ghost_correct(handle, &wrongImg, &meta));
@@ -98,7 +100,7 @@ TEST_F(GhostCorrectTest, CorrectDimensionMismatchReturnsError) {
 
 // Repeated frames reduce the visible residual after the first history update.
 TEST_F(GhostCorrectTest, RepeatedFramesApplyHistoryCorrection) {
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, nullptr, &handle));
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withStableLag().c_str(), &handle));
     std::vector<float> first(W * H, 500.0f);
     XpeImageBuffer f1 = img;
     f1.data = first.data();

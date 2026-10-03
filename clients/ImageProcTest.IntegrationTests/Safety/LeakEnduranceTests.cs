@@ -45,6 +45,7 @@ public sealed class LeakEnduranceTests
         GC.WaitForPendingFinalizers();
         GC.Collect();
 
+        var pinnedBefore = PinnedObjects.AfterFullCollection();
         var gcBefore = GC.GetTotalMemory(forceFullCollection: true);
         var wsBefore = System.Diagnostics.Process.GetCurrentProcess().WorkingSet64;
 
@@ -67,6 +68,9 @@ public sealed class LeakEnduranceTests
         var gcAfter = GC.GetTotalMemory(forceFullCollection: true);
         var wsAfter = System.Diagnostics.Process.GetCurrentProcess().WorkingSet64;
 
+        var pinnedAfter = PinnedObjects.AfterFullCollection();
+        Assert.True(pinnedAfter <= pinnedBefore, $"the 1000 init/shutdown cycles left pinned objects behind: {pinnedBefore} before, {pinnedAfter} after a full collection");
+
         var gcDelta = gcAfter - gcBefore;
         var wsDelta = wsAfter - wsBefore;
 
@@ -77,23 +81,39 @@ public sealed class LeakEnduranceTests
     }
 
     /// <summary>
-    /// REQ-GUI-IT-010: No outstanding GCHandle.Alloc(Pinned) after test run.
-    /// Verified by confirming GC can collect freely.
+    /// REQ-GUI-IT-010: no pinned handle is left outstanding. GUI-C-208 (D2): this used to be named for that and asserted only that the managed heap was under 200 MiB, which no
+    /// pinned handle changes. It now reads the runtime's own pinned-object count after a full blocking collection and compares it with the count taken when the fixture was created.
+    /// It runs at whatever point xUnit schedules it, so it sees what EARLIER tests left; the 1000-cycle test above checks its own loop directly. The instrument is held by
+    /// <see cref="TheInstrument_CountsAPinnedHandle_AndStopsCountingItOnceFreed"/>.
     /// </summary>
     [SkippableFact]
-    public void AfterTests_NoOutstandingPinnedHandles()
+    public void PinnedObjects_AtThisPoint_AreNoMoreThanWhenTheFixtureWasCreated()
     {
         SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
-        // Force a full GC — if there were outstanding pinned handles from test code,
-        // the GC would report them via diagnostics. We verify no exception is thrown.
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        GC.Collect();
+        var now = PinnedObjects.AfterFullCollection();
+        Assert.True(now <= _fixture.PinnedObjectsAtStart,
+            $"{now} objects are pinned after a full collection, {_fixture.PinnedObjectsAtStart} were when the fixture was created: an earlier test left a GCHandle.Alloc(Pinned) outstanding");
+    }
 
-        var mem = GC.GetTotalMemory(forceFullCollection: true);
-        // Sanity: total managed memory must be less than 200 MiB for a test process.
-        Assert.True(mem < 200L * 1024 * 1024,
-            $"Managed memory after GC ({mem / 1024 / 1024.0:F0} MiB) exceeds sanity limit.");
+    /// <summary>The control for the test above: a pinned handle raises the count and freeing it brings it back, so "no more than at the start" can fail.</summary>
+    [Fact]
+    public void TheInstrument_CountsAPinnedHandle_AndStopsCountingItOnceFreed()
+    {
+        var baseline = PinnedObjects.AfterFullCollection();
+        var handle = System.Runtime.InteropServices.GCHandle.Alloc(new byte[64], System.Runtime.InteropServices.GCHandleType.Pinned);
+        long whilePinned;
+        try
+        {
+            whilePinned = PinnedObjects.AfterFullCollection();
+        }
+        finally
+        {
+            handle.Free();
+        }
+
+        var afterFree = PinnedObjects.AfterFullCollection();
+        Assert.True(whilePinned > baseline, $"a pinned GCHandle did not raise the count: {baseline} -> {whilePinned}");
+        Assert.True(afterFree <= baseline, $"freeing the handle did not bring the count back: {baseline} -> {afterFree}");
     }
 }

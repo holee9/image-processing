@@ -1,0 +1,60 @@
+"""QA-A-225 M4: damage the seam, the analytic checks, the measuring code and the preregistered rule functions one at a time; run
+GhostMixCompare.* in the allocation-failure executable (and GhostOracle.* in the library one for the digest); record the exit code."""
+import subprocess, sys, shutil, os, re
+R = 'D:/workspace-github/xpe-pre/'
+S = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5/scratchpad/'
+GC = R + 'modules/preprocess/src/ghost_correct.cpp'
+TF = R + 'modules/preprocess/tests/test_ghost_mix_compare.cpp'
+for f in (GC, TF):
+    k = S + 'keep225m4_' + os.path.basename(f)
+    if not os.path.exists(k):
+        shutil.copy(f, k)
+
+ARMS = {
+    'e1_seam_default_changed': (GC, 'XpeGhostTier3Mix xpe_ghost_tier3_mix = {0.7f, 0.3f};', 'XpeGhostTier3Mix xpe_ghost_tier3_mix = {0.7f, 0.31f};'),
+    'e2_tier3_ignores_the_seam': (GC, 'const float mixKeep = xpe_ghost_tier3_mix.keep, mixLocal = xpe_ghost_tier3_mix.local;',
+                                  'const float mixKeep = 0.7f + 0.0f * xpe_ghost_tier3_mix.keep, mixLocal = 0.3f + 0.0f * xpe_ghost_tier3_mix.local;'),
+    'e3_seam_also_scales_tier2': (GC, '        // Exposure-weighted coefficients based on frame mean\n', '#ifdef XPE_CACHE_TEST_HOOKS\n        a1_base *= xpe_ghost_tier3_mix.keep;\n#endif\n        // Exposure-weighted coefficients based on frame mean\n'),
+    'e4_blend_weights_swapped': (GC, 'corrected = mixKeep * corrected + mixLocal * localMean;', 'corrected = mixLocal * corrected + mixKeep * localMean;'),
+    'e5_nyquist_checker_uses_stripes': (TF, 'const int sign = checker ? (((x + y) & 1u) ? -1 : 1) : ((x & 1u) ? -1 : 1);\n            f[y * W + x]', 'const int sign = ((x & 1u) ? -1 : 1);\n            f[y * W + x]'),
+    'e6_k1_threshold_1p0_to_2p0': (TF, 'return d >= 1.0 ? 1 : (d <= -1.0 ? -1 : 0);', 'return d >= 2.0 ? 1 : (d <= -2.0 ? -1 : 0);'),
+    'e7_k1_needs_5_rows': (TF, 'bool k1BlendWorse(int better, int worse) { return better == 0 && worse >= 6; }', 'bool k1BlendWorse(int better, int worse) { return better == 0 && worse >= 5; }'),
+    'e8_label_a_ignores_k3': (TF, "return (!k1Better && k2Worse && k3Worse) ? 'A'", "return (!k1Better && k2Worse && (k3Worse || !k3Worse)) ? 'A'"),
+    'e9_noise_pool_not_independent': (TF, 'const Frames in = makeFrames({level}, 5.0, seed);', 'const Frames in = makeFrames({level}, 5.0, 1u);'),
+}
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', S + 'buildall.bat'], capture_output=True, text=True)
+    return 'BUILD_EXIT=0' in r.stdout, r.stdout
+
+
+def run_tests():
+    r = subprocess.run([R + 'build/ci-preprocess/bin/xpe_preprocess_oom_tests.exe', '--gtest_filter=GhostMixCompare.*'], cwd=R + 'modules/preprocess', capture_output=True, text=True)
+    failed = sorted(set(re.findall(r'^\[  FAILED  \] ([A-Za-z]\S+)', r.stdout, re.M)))
+    digest = re.findall(r'tier3-digest (0x[0-9a-f]+)', r.stdout)
+    return failed, r.returncode, digest, r.stdout
+
+
+for name in sys.argv[1:]:
+    f, old, new = ARMS[name]
+    keep = S + 'keep225m4_' + os.path.basename(f)
+    shutil.copy(keep, f)
+    src = open(f, 'rb').read().decode('utf-8')
+    crlf = '\r\n' in src
+    s = src.replace('\r\n', '\n')
+    if s.count(old) < 1:
+        print(name, 'NOT FOUND'); continue
+    idx = s.index(old)
+    s = s[:idx] + new + s[idx + len(old):]
+    open(f, 'wb').write((s.replace('\n', '\r\n') if crlf else s).encode('utf-8'))
+    ok, out = build()
+    if not ok:
+        print(name, 'BUILD FAILED'); print(out[-900:])
+    else:
+        failed, rc, digest, so = run_tests()
+        crashed = rc not in (0, 1) or (rc != 0 and not failed)
+        tag = (' [PROCESS DIED, exit %d]' % rc) if crashed else ''
+        lab = re.findall(r'LABEL (\w)', so)
+        print('%-36s -> %d red%s: %s | digest %s | label %s' % (name, len(failed), tag, ', '.join(failed) if failed else ('NONE (arm did not fire)' if not crashed else 'no FAILED line'), digest, lab))
+    shutil.copy(keep, f)

@@ -1,0 +1,515 @@
+# [spec] preprocess 수출 API 48개 중 21개가 REQ-P1A 요구에 이름이 없다 — xpe_verify_* 4종 포함 (상한, SRS-CALIB 대조 필요)
+
+## 무엇
+
+`#211` 에서 만든 census 로 잰 것입니다. **`modules/preprocess` 수출 API 48개 중 21개가 어떤 `REQ-P1A` 요구에도 이름이 없습니다.**
+
+`#211` 은 *"커밋 `bc22093` 이 요구 46개를 지웠다"* 였고 그건 해소됐습니다. **이 21개는 그 커밋과 무관한, 더 넓은 상태입니다.**
+
+## 측정 (2026-09-28, `tools/docs/api_requirement_census.py`)
+
+```
+CONTROL positive xpe_defect_correct -> ['REQ-P1A-012', 'REQ-P1A-020a']
+CONTROL negative fabricated name    -> NONE (correct)
+requirement blocks parsed: 43 | exported APIs: 48
+
+고유 요구 25 / 범용만 2 / 없음 21
+```
+
+**`#211` 에서 요구 13건(`080`~`091`·`095`~`101`)을 신설했는데 이 수가 줄지 않았습니다.** 신설분이 덮은 함수들(고스트·온도·비닝·파이프라인)은 census 기준으로는 이미 덮여 있었고 — `REQ-P1A-042` 같은 범용 요구가 이름을 부르고 있었기 때문입니다. **요구를 세운 것은 옳았지만, 이 21개는 건드리지 않았습니다.**
+
+## 21개
+
+| 묶음 | 함수 | 비고 |
+|---|---|---|
+| **검증 4종** | `xpe_verify_offset` · `_gain` · `_defect` · `_pipeline` | 이름이 강한 약속을 합니다 — 무엇을 보증하는지 불명 |
+| **캘리브 캐시** 3 | `calib_cache_clear` · `cache_set_max_size` · `calib_state_release` | |
+| **캘리브 모드·조회** 5 | `calib_get_mode` · `set_mode` · `get_max_points` · `get_poly_degree` · `get_quality_meta` | `get_quality_meta` → **`SRS-CALIB-FUNC-033`**(`#140`, 처분됨) |
+| **비선형 LUT** 4 | `calib_generate_nonlin_lut` · `load_nonlin_lut` · `unload_nonlin_lut` · `nonlinearity_correct` | → **`SRS-CALIB-FUNC-006`/`-006-EXT`**(`#186`) |
+| **생성** 2 | `bpm_generate` · `calib_generate_gain_polynomial` | |
+| **기타** 3 | `crc32` · `preprocess_is_initialized` · `preprocess_pipeline_batch` | |
+
+## ⚠️ 이 수치의 범위 한계 — 반드시 함께 읽으십시오
+
+census 는 **`SPEC-XPE-P1A` 만** 훑습니다. 다른 계열에 요구가 있는 함수를 *"요구 없음"* 으로 보고합니다. **이미 두 번 물렸습니다:**
+
+- `xpe_calib_get_quality_meta` → `SRS-CALIB-FUNC-033` (**있음**, `#140` 에서 처분 완료)
+- `xpe_nonlinearity_correct` → `SRS-CALIB-FUNC-006` + `-006-EXT` (**있음**, `#186`)
+
+**따라서 21 은 상한입니다.** 실제로 요구가 없는 것은 그보다 적습니다. 도구 docstring 맨 앞에 이 한계를 박아 뒀습니다.
+
+**첫 할 일은 21개를 `SRS-CALIB-001` 에 대조하는 것**입니다. 그 뒤에 남는 수가 이 이슈의 진짜 크기입니다.
+
+## 왜 중요한가 — IEC 62304 Class B
+
+수출된 기능은 요구를 가져야 합니다. 요구 없는 수출 함수는 **무엇을 보증하는지 문서가 답하지 못하는** 상태이고, 변경 영향 분석의 근거가 없습니다.
+
+`xpe_verify_*` 4종이 특히 그렇습니다 — 이름이 *"검증한다"* 고 약속하는데 무엇을 어떤 기준으로 검증하는지 요구가 없습니다. `#207`(없는 AVX2 를 보증한 AC)·`#212`(아무것도 안 보던 단언)와 같은 자리일 수 있습니다.
+
+## 할 것
+
+1. **21개를 `SRS-CALIB-001` 에 대조** — 다른 계열에 요구가 있는 것을 걸러냅니다. 남는 수가 진짜 크기
+2. 남은 것을 **셋으로 분류**: 요구를 세울 것 / 내부 전용이라 수출을 거둘 것 / 이미 다른 이슈가 추적 중
+3. `xpe_verify_*` **우선** — 이름의 약속이 가장 큽니다
+
+## 범위
+
+`.moai/specs/`·`docs/` (lead) + `modules/preprocess` (pre).
+
+관련: `#211`(이 census 를 만든 이슈 — 원 범위는 해소), `#140`·`#186`(개별 사례), `#207`·`#212`(이름이 약속한 것과 실재가 다른 형태)
+
+🗿 MoAI
+
+
+--- COMMENTS ---
+[holee9 2026-09-28T05:34:37Z]
+## QA-A-151 — 실측: **21 이 아니라 5(+1)** 입니다. `48a1b07` (미푸시)
+
+| 분류 | 수 |
+|---|---|
+| 다른 계열에 요구 있음 | **11** |
+| 값은 정의하나 그 함수를 부르지 않음 (경계) | **4** |
+| **정말 없음** | **5** |
+| **수출을 거두는 것이 답** | **1** |
+| 합계 | 21 ✓ |
+
+**진짜 크기는 5** 입니다. 경계 4를 포함해도 9로 상한의 절반 이하입니다.
+
+### 0. 대조군 양성 **하나가 실패**했고, 그것이 방법을 바로잡았습니다
+
+| 대조군 | 심볼 grep | 기대 |
+|---|---|---|
+| `xpe_calib_get_quality_meta` | **0건** | 있어야 함 (`FUNC-033`, `#140`) |
+| `xpe_nonlinearity_correct` | 1건 | 있어야 함 |
+| 지어낸 이름 | 0건 | 0 |
+
+문서가 요구를 **C 심볼이 아니라 능력으로** 서술하기 때문입니다 — `FUNC-033`(`SRS-CALIB-001:240`)은 *"Calibration Quality Metadata Recording"* 이라 적고 본문에 그 함수 이름을 **한 번도 쓰지 않습니다.**
+
+→ **능력 대조 + RTM 역참조**로 바꿨고, 바꾼 뒤 양성 둘 다 "있음", 음성은 0.
+
+> **이것이 census 가 `21` 을 만든 것과 같은 원인입니다.** 상한이 상한인 이유가 **범위뿐 아니라 대조 방식**에도 있었습니다.
+
+### 1. 분류
+
+**(A) 요구 있음 — 11**
+
+`xpe_verify_offset`→`FUNC-016` · `_gain`→`017` · `_defect`→`019` · `_pipeline`→`015`+`021` (모두 `RTM:240-243`) · `xpe_calib_get_mode`/`set_mode`→`FUNC-031`(본문이 **이름을 직접 부름**) · `generate_gain_polynomial`→`FUNC-027`(동일) · `nonlinearity_correct`→`FUNC-006`/`-006-EXT` · `generate_nonlin_lut`→`FUNC-006-EXT 6a` · `bpm_generate`→`FUNC-022~025`(`RTM:244`) · `get_quality_meta`→`FUNC-033`
+
+**(B) 값은 정의하나 함수 미지정 — 4** (3분류에 안 들어가 갈라 적습니다)
+
+`get_max_points`·`get_poly_degree`(`FUNC-031` 이 값은 정의, 조회 함수는 안 부름) · `load_nonlin_lut`(적재를 **함의**만) · `unload_nonlin_lut`(**함의조차 없음**)
+
+**(C) 정말 없음 — 5**
+
+`calib_cache_clear` · `cache_set_max_size` · `calib_state_release` · `preprocess_is_initialized` · `preprocess_pipeline_batch`
+(`FUNC-032` 는 **다항 적합의 메모리 최적화**이지 파일 캐시가 아닙니다. `api-spec.md` 는 API 표면 설명이지 요구가 아닙니다.)
+
+**(D) 수출 철회 — 1: `xpe_crc32`**
+
+- **호출자 0건** — 선언(`preprocess_api.h:1006`)·정의(`calibration_manager.cpp:29`) 둘뿐
+- 무결성이 **CRC-32 → SHA-256 으로 대체**(`SRS-CALIB-001:43-44`)
+- 대조군: `sha256` 은 `src/` **6파일**에서 잡힘
+
+→ 요구를 세우면 **폐기된 방식에 계약을 다는 일**입니다. (제품 판단이라 실행 안 함)
+
+### 2. `xpe_verify_*` — 요구는 있고, **이름이 요구보다 강합니다**
+
+| | 이름의 약속 | 요구의 내용 |
+|---|---|---|
+| `verify_offset` | 검증(합격/불합격) | `FUNC-016`: `DarkBias`·`DSNU_ADU` **계산** |
+| `verify_gain` | 검증 | `FUNC-017`: `PRNU_CV`·`FlatResidualPct` **계산** |
+| `verify_defect` | 검증 | `FUNC-019`: `DefectRecall`·`DefectFPR` **계산** |
+| `verify_pipeline` | 검증 | `FUNC-015` 보고서 발행 / `FUNC-021` CES **점수** |
+
+**어느 요구에도 합격 기준(임계값)이 없습니다** — `FUNC-021` 의 CES 도 점수를 정의할 뿐 통과선이 없습니다.
+
+`#207` 과 **같은 자리는 아닙니다**(거기는 없는 것을 보증, 여기는 이름이 요구보다 강함). 조치는 ① 이름을 실재에 맞춤 ② 요구에 합격 기준 추가 — **리더 판단**. 수출 API 이름 변경은 ABI 파급이 있어 손대지 않았습니다.
+
+### 3. `test_req_p1a_066.cpp` — `T1` 은 (C)와 같은 종류
+
+`T1`(곱셈 오버플로 가드)에 가장 가까운 `SRS-CALIB-NFR-002` 는 *"buffer array accesses … bounds-checked … return `XPE_ERR_INVALID_PARAM`"* 인데, `T1` 이 보는 것은 **배열 접근이 아니라 크기 계산의 오버플로**이고 반환도 다릅니다. **인접하나 다릅니다.**
+`T2`·`T3`→`REQ-P1A-014` 오류 경로, `T4`→`REQ-P1A-003`. 파일명·인용 정리는 `T1` 의 요구가 정해진 뒤(카드 §3).
+
+### 4. 옛 성능 예산 6건 — 계승처 (유도는 안 함)
+
+| 옛 | 예산 | 계승처 |
+|---|---|---|
+| `050` 파이프라인 | 500 ms | **없음** (숫자는 `DISABLED_` 시험 안에만) |
+| `051` 고스트 | 150 ms | **없음** |
+| `052` 오프셋 | 30 ms | `REQ-P1A-010` `< 55ms` — 계승, **느슨해짐**(근거 미기재) |
+| `053` 게인 | 50 ms | `REQ-P1A-011` `< 55ms` — 계승 |
+| `054` 결함 | 80 ms | **`REQ-P1A-012` `< 45 ms`** — 계승, **조여짐**(`#204` 실측 유도) |
+| `055` 캘리브 적재 | 200 ms | **없음** |
+
+계승 3 / 미계승 3. **`054`→`012` 확인됐습니다** — 유일하게 측정에서 유도된 항목. `052` 의 30→55 완화는 근거가 없고, `spec.md:3` 이 이미 *"유도 근거를 찾지 못한 성능 목표 7줄"*(QA-A-85)이라 경고한 자리입니다.
+
+### 5. `QA-A-150` (d) 는 해소
+
+옛 `043`·`046` 미계승 보고 → 현재 `spec.md:601`·`:610` 이 두 옛 번호와의 차이를 본문에 적고 있습니다. **닫힌 항목으로 봅니다.**
+
+### 미검증
+
+- **(A) 11건 중 6건이 `RTM` 매핑 의존**입니다. RTM 행은 요구 본문이 아니라 매핑이라, 완전하려면 본문까지 읽어야 합니다 — `verify_*` 넷은 읽었고 **`bpm_generate`(`FUNC-022~025`)는 RTM 매핑만** 확인했습니다
+- **(C) 5건은 "찾지 못했다"** 입니다. 검색 범위: `modules/preprocess` 전체 + `docs/`(`SRS-CALIB-001`·`RTM-CALIB-001`) + `SPEC-XPE-P1A`. `docs/` 밖의 다른 SRS 계열은 보지 않았습니다
+- `xpe_crc32` 철회는 **제안**(ABI 변경) / `verify_*` 두 선택지 미결 / 성능 예산은 **계승처만**
+
+코드 변경 없음 — 이 카드는 대조·분류입니다. 보고서: `.moai/reports/lane-pre/QA-A-151/verdict.md`
+
+🗿 MoAI
+
+
+=====
+[holee9 2026-09-28T05:37:29Z]
+## 리더 판정 — 실측 **21 → 5**. 그리고 `xpe_verify_*` 는 이름 문제가 아니었습니다
+
+`QA-A-151`(`48a1b07`) 결과입니다.
+
+### 상한 21 이 실측 5 로
+
+| 분류 | 수 |
+|---|---|
+| **다른 계열에 요구 있음** | **11** |
+| 값은 정의하나 함수 미지정 (경계) | 4 |
+| **정말 없음** | **5** |
+| 수출 철회가 답 | 1 |
+
+**진짜 크기는 5**, 경계 4 를 포함해도 9 — 상한의 절반 이하입니다.
+
+### 제가 지정한 대조군이 실패했습니다
+
+카드에 *"`xpe_calib_get_quality_meta` 가 '요구 있음' 으로 나와야 합니다. 안 나오면 검색이 눈먼 것"* 이라고 썼습니다. **안 나왔습니다** — 심볼 `grep` 으로는 `SRS-CALIB-001` 에서 **0건**입니다.
+
+**검색이 눈먼 것이 맞았고, 원인이 제 예상과 달랐습니다.** 그 문서는 요구를 **C 심볼이 아니라 능력으로** 서술합니다 — `FUNC-033` 은 *"Calibration Quality Metadata Recording"* 이라 적고 함수 이름을 **한 번도 쓰지 않습니다.**
+
+레인이 **능력 대조 + RTM 역참조**로 방식을 바꿨고, 바꾼 뒤 양성 둘 다 "있음" 으로 나옵니다(음성은 0 유지).
+
+**이것이 census 가 21 을 만든 진짜 원인입니다.** 저는 상한의 이유를 *"범위(P1A 만 봄)"* 로만 적었는데, **대조 방식(심볼 매칭)** 도 같은 크기로 기여하고 있었습니다. 범위를 넓혀도 심볼 매칭인 한 같은 과대 계상이 납니다.
+
+### `xpe_verify_*` — 이름이 과한 게 아니라 **문턱이 코드에만** 있습니다
+
+제가 *"이름이 '검증한다' 고 약속하는데 요구가 없다"* 로 걱정했고, 레인이 *"요구는 있는데 전부 '지표를 계산한다' 이고 합격 기준이 없다"* 로 좁혔습니다. **한 겹 더 있습니다:**
+
+`XpeCalibrationMetrics` 에 **`bool overall_pass`** 가 있습니다 — 주석이 *"Overall pass/fail **based on thresholds**"*. 그리고 그 문턱은 실재합니다:
+
+```cpp
+// xpe_verify_metrics.cpp:27-35
+constexpr double DARK_BIAS_MAX      = 5.0;    // ADU
+constexpr double DSNU_MAX_PCT       = 1.0;    // %
+constexpr double DEFECT_DENSITY_MAX = 0.05;   // 5%
+```
+
+**셋 다 코드에만 있고 SRS 에 없습니다.** 즉:
+
+| | |
+|---|---|
+| 이름 | 합격/불합격을 약속 |
+| 구현 | **합격/불합격을 실제로 냅니다** (`overall_pass`) |
+| 요구 | 지표 계산만 |
+| **문턱** | **코드 상수. 출처 없음** |
+
+**이름은 정직합니다.** 함수는 정말 합격 판정을 냅니다. **문제는 그 판정 기준이 요구가 아니라 상수라는 것**입니다 — `#203` 의 `FUNC-009`(데드존 5% 출처 없음), `#140` 의 `gain_uncertainty`(σ_e 없음)와 같은 자리입니다.
+
+**판정: 이름을 바꾸지 않습니다.** ABI 파급이 있고, 무엇보다 **이름이 실재와 맞습니다.** 할 일은 **문턱 셋의 출처를 찾아 요구로 올리는 것**이고, 출처가 없으면 `#203` 처럼 **폐기 판단**입니다 — 근거 없는 상수로 합격을 판정하는 것이 Class B 에서 가장 나쁩니다.
+
+### `xpe_crc32` — 수출 철회
+
+호출자 **0건**(선언·정의뿐). 무결성이 `SRS-CALIB-001:43-44` 에서 **CRC-32 → SHA-256** 으로 대체됐고 대조군 `sha256` 은 `src/` **6파일**에서 잡힙니다.
+
+> 요구를 세우면 **폐기된 방식에 계약을 다는 일**이 됩니다.
+
+동의합니다. 요구가 아니라 수출 철회입니다.
+
+### 성능 예산 — 계승 3 / 미계승 3
+
+`054 → 012` 확인됐고 **그것만 측정에서 유도**됐습니다(`#204`).
+
+- **`052` 가 30 → 55 로 느슨해졌는데 근거가 없습니다.** `spec.md:3` 머리말이 이미 경고한 자리(`QA-A-85`)
+- `050`·`051`·`055` 는 계승처 없음. 특히 **`050` 의 500ms 는 `DISABLED_` 시험 안에만** 살아 있습니다(`#212` 에서 확인한 그 시험)
+
+→ `#204` 로 넘깁니다.
+
+### 남은 미검증
+
+**(A) 11건 중 6건이 RTM 매핑 의존입니다.** RTM 행은 요구 본문이 아니라 매핑이라 완전하려면 본문까지 읽어야 하는데, `verify_*` 넷은 읽었고 **`bpm_generate`(`FUNC-022~025`)는 RTM 만 확인**했습니다. **그 한 건은 아직 상한 쪽입니다.**
+
+### 이 이슈의 남은 범위
+
+1. `xpe_verify_*` **문턱 셋의 출처** — 찾거나, 없으면 폐기 판단
+2. **정말 없음 5건** + 경계 4건
+3. `xpe_crc32` 수출 철회
+4. `bpm_generate` 본문 확인 (상한 1건)
+
+🗿 MoAI
+
+
+=====
+[holee9 2026-09-28T05:56:59Z]
+## 정정 — `xpe_verify_*` 문턱에 **출처가 있습니다.** 제 "출처 없음" 이 틀렸습니다
+
+바로 위에서 *"문턱 셋이 코드에만 있고 SRS 에 없습니다"* 라고 썼습니다. **`DarkBias` 는 있습니다.**
+
+`SRS-CALIB-001:147` — **`SRS-CALIB-FUNC-016`**:
+
+> System shall compute detector-domain dark/offset metrics: `DarkBias`, `DSNU_ADU`, `DarkReduction_dB`, and `ClampRate`. **Phase 1 acceptance shall require `abs(DarkBias) <= 5 ADU`** or `DarkReduction_dB >= 10 dB` on applicable fixtures.
+
+코드의 `DARK_BIAS_MAX = 5.0` 과 **정확히 같습니다.** `PRIOR-ART-BPM-ALGORITHM.md:382` 도 `|offset| ≤ 5 ADU` 로 같은 값을 적습니다.
+
+### 제가 왜 틀렸나
+
+**문턱 상수 이름(`DARK_BIAS_MAX`)으로 검색하고 값으로 검색하지 않았습니다.** SRS 는 `abs(DarkBias) <= 5 ADU` 라고 적지 `DARK_BIAS_MAX` 라고 적지 않습니다.
+
+**이 카드가 방금 밝혀낸 것과 같은 함정입니다** — `SRS-CALIB-001` 은 요구를 **코드 식별자가 아니라 사람 언어로** 씁니다. 레인이 census 에서 그걸 찾아 능력 대조로 바꿨는데, **저는 30분 뒤 같은 문서에서 같은 실수를 했습니다.**
+
+`.moai/project/lane-sessions.md §3.6` 에 방금 박은 규약("부재 주장에 검색 범위를 같은 문장에")을 제가 어겼습니다. *"SRS 에 없습니다"* 가 아니라 *"`DARK_BIAS_MAX` 라는 식별자로는 SRS 에서 0건"* 이라고 썼어야 합니다.
+
+### 셋 중 나머지 둘 — 아직 미확인
+
+| 상수 | 값 | 출처 |
+|---|---|---|
+| `DARK_BIAS_MAX` | 5.0 ADU | **`SRS-CALIB-FUNC-016`** ✔ |
+| `DSNU_MAX_PCT` | 1.0 % | `FUNC-016` 이 `DSNU_ADU` 를 **지표로 열거**하지만 문턱은 안 적습니다. `docs/quality-eval/01_Noise_…md:1185` 에 *"DSNU RMS < 1% of full scale"* 이 있으나 **그 문서가 SRS 인지 조사 자료인지 확인 안 함** |
+| `DEFECT_DENSITY_MAX` | 5 % | `FUNC-003` 에 *"defect density tolerance"* 문구가 있으나 **값 확인 안 함** |
+
+**둘 다 "없다" 가 아니라 "아직 안 찾았다" 입니다.** 이번에는 그렇게 적습니다.
+
+### 그래서 `#216` 의 남은 1번이 바뀝니다
+
+*"문턱 셋의 출처를 찾거나, 없으면 폐기"* → **"나머지 둘의 출처를 값과 개념으로 찾고, 찾으면 요구 인용을 코드 주석에 달고, 못 찾으면 그때 폐기 판단"**.
+
+`DarkBias` 는 이미 답이 나왔으므로 **그 한 줄은 지금 할 수 있습니다** — 코드 주석에 `SRS-CALIB-FUNC-016` 인용을 답니다. `modules/preprocess` 소유라 레인 카드로 냅니다.
+
+🗿 MoAI
+
+
+=====
+[holee9 2026-09-28T10:37:26Z]
+## QA-A-152 — 문턱은 **셋이 아니라 여섯**, 둘은 출처 있음, **하나는 단위가 100배 어긋남**. `4bcad45` (미푸시)
+
+동작 변경 없음 — 인용 이관과 주석뿐이고 **문턱 값은 하나도 바꾸지 않았습니다.**
+
+### 0. 대조군
+
+양성 `DARK_BIAS_MAX`→`FUNC-016`(`:147`) **나옴** ✔ · 음성 지어낸 상수 0건 ✔ · `clients`+`gui` 검색 확인용 `xpe_preprocess_init` **19건** ✔ · 도구 `PYTHONIOENCODING` 없이 `EXIT=0` ✔
+
+### 1. `overall_pass` 를 먹이는 문턱 — 여섯
+
+검색 범위: `docs/`(`SRS-CALIB-001`·`RTM-CALIB-001`) + `.moai/specs/SPEC-XPE-P1A/spec.md`. **값과 개념 양쪽**으로 (`3 dB`·`0.99`·`99%`·`2 dB` / `PRNU`·`coverage`·`SNR improvement`·`DSNU`·`non-uniformity`·`defect density`).
+
+| 상수 | 값 | 출처 |
+|---|---|---|
+| `DARK_BIAS_MAX` | 5.0 ADU | **`FUNC-016`** ✔ |
+| `DEFECT_DENSITY_MAX` | 0.05 | **`FUNC-003`** ✔ — **단위 어긋남(§2)** |
+| `DSNU_MAX_PCT` | 1.0 % | **없음**(§3) |
+| `PRNU_IMPROVE_MIN_DB` | 3.0 dB | **없음** + 이름 오용(§4) |
+| `GAIN_COVERAGE_MIN` | 0.99 | **없음** |
+| `SNR_IMPROVE_MIN_DB` | 2.0 dB | **없음** |
+
+카드가 셋으로 본 건 `#216` 코멘트가 셋만 열거했기 때문입니다. 상수 블록은 여섯이고 **여섯 다** `overall_pass` 에 직접 들어갑니다(`:240`·`:351`·`:436`·`:525`).
+
+### 2. `DEFECT_DENSITY_MAX` — 출처는 찾았는데 **100배 어긋납니다**
+
+`FUNC-003`: *"Maximum **5%** defect density tolerance."*
+
+```cpp
+constexpr double DEFECT_DENSITY_MAX = 0.05;                                   // 주석: "5% max"
+metrics->defect_density = (double(defect_count) / pixel_count) * 100.0;       // :430 ← 퍼센트
+metrics->overall_pass   = (metrics->defect_density < DEFECT_DENSITY_MAX);     // :436
+```
+
+`defect_density` 는 **퍼센트**입니다 — `test_verify_metrics.cpp:330` 이 `(num/(W*H))*100.0` 으로 고정합니다. 상수는 **분수**라 실제 게이트가 **0.05 %** — **결함 밀도 1 % 인 정상 패널이 불합격**합니다.
+
+주석이 의도를 적고 값이 그 의도를 배반한 형태입니다. **합격선 이동은 제품 판단**이라 고치지 않고 상수 옆에 요구 ID·불일치·근거(시험 줄 번호까지)를 적었습니다.
+
+### 3. `DSNU_MAX_PCT` — 닮은 숫자가 있으나 **채택 불가** (이유 둘, 각각 독립적으로 충분)
+
+`quality-eval/01_Noise_…:1185` 의 *"DSNU RMS < 1% of full scale"*.
+
+**(a) 요구 출처가 아닙니다.** 그 `README` 가 스스로: *"**모듈**: Python 기반 FPD 측정 알고리즘 라이브러리 / **안전 등급**: 해당 없음 (생산 라인 QA 도구, **진단 소프트웨어 아님**)"* — 다른 모듈의, 안전 등급 해당 없는 QA 도구 문서입니다.
+
+**(b) 분모가 다릅니다.** 코드는 `stddev/mean*100`(`:236`, **다크 영역 평균 대비 변동계수**), 문서는 **full scale 대비**. 오프셋 보정 후 다크 평균은 0 근처라 두 값은 전혀 다릅니다. **자릿수가 맞는 우연**이 채택을 부를 뻔했습니다(`#155` 와 같은 형태).
+
+### 4. `PRNU_IMPROVE_MIN_DB` 는 PRNU 에 쓰이지 않습니다
+
+```cpp
+// :348
+bool snr_improved = (metrics->snr_improvement_db >= PRNU_IMPROVE_MIN_DB) || ...
+```
+
+**SNR 을 PRNU 이름의 상수와 비교**합니다. 진짜 `SNR_IMPROVE_MIN_DB`(2.0)는 `:525` 에서 쓰여, 같은 파일에 SNR 합격선이 **3.0 과 2.0 둘**이고 둘 다 요구가 없습니다.
+
+### 5. **SRS 의 합격 기준과 코드가 재는 지표가 다릅니다** — `#216` 보다 넓은 자리
+
+| SRS | 기준 | 코드 |
+|---|---|---|
+| `:148` `FUNC-017` | `FlatResidualPct <= 1.0%` | **그 지표를 계산하지 않음**(전수 0건). PRNU·coverage·SNR 을 봄 |
+| `:150` `FUNC-019` | **100% defect recall**, FPR `< 0.001%` | **recall·FPR 계산 안 함**(전수 0건). density 를 봄 |
+| `:151` | ghost removal `>= 90%` | 해당 함수 없음 |
+
+*"문턱에 출처가 없다"* 보다 한 겹 깊습니다 — **출처가 있는 기준 쪽이 구현되지 않았습니다.** 별도 이슈 후보로 올립니다.
+
+### 6. `:199` — **잴 수 없는 것을 "합격" 으로 보고합니다**
+
+균일 영상(`raw_range/raw_mean <= 0.01`)이면 지표를 0 으로 두고 `overall_pass = true` 로 반환합니다. **같은 파일의 게인 경로는 반대** — 유효 화소 없으면 `false`(`:315`).
+
+호출자가 *"통과"* 와 *"잴 수 없었음"* 을 구분할 수 없고, **균일 합성 프레임이 정확히 이 분기**에 들어옵니다(`#148` 과 같은 자리). 어느 쪽으로 보고할지는 제품 판단이라 주석만 남겼습니다.
+
+### 7. 카드 §3·§4·§5 — 전부 해소
+
+- **`xpe_crc32` 호출자 0건 확정.** 범위 `clients/`·`gui/`·`modules/`·`tools/`·`tests/`(빌드 산출 제외); `modules` 2건은 선언·정의. **ABI 변경이라 미실행**
+- **`bpm_generate` (A) 확정** — `FUNC-022~025` 본문이 *"FUNC-022~023은 BPM **생성**의 알고리즘 상세를 명시합니다"*. `QA-A-151` 상한 1건 해소
+- **`REQ-P1A-034` → `088` 4곳 이관.** `088` 이 *"clear the accumulated frame history and the exposure state"* 로 그 4곳 서술과 정확히 일치. `034` 인용 **0건**
+
+### 검증
+
+`BUILD_EXIT=0` · 전체 ctest **757/757** · orphan **3→2 ID, 14→10 인용**
+
+### 리더 판단 필요 (넷)
+
+1. `DEFECT_DENSITY_MAX` 단위 — `5.0` 으로 고칠지, 지표를 분수로 바꿀지
+2. 출처 없는 문턱 넷 — 요구를 세울지 폐기할지 (`DSNU_MAX_PCT` 는 채택 가능한 숫자가 없음)
+3. `:199` 무조건 합격 — 잴 수 없을 때 어느 쪽으로 (게인 경로와 불일치)
+4. `xpe_crc32` 철회 — 호출자 0건 확인됨, ABI 변경
+
+### 미검증
+
+- 출처 없음의 검색 범위는 위에 적은 대로이고 `docs/` 밖 다른 SRS 계열은 보지 않았습니다
+- `quality-eval` 제외 근거는 **그 README 의 자기 기술**이지 소유자 확인이 아닙니다
+- `FUNC-017`·`FUNC-019` 기준이 **다른 곳에서** 구현됐을 가능성은 보지 않았습니다
+- `:199` 의 균일 판정 문턱(`0.01`) 자체도 출처를 찾지 않았습니다
+
+보고서: `.moai/reports/lane-pre/QA-A-152/verdict.md`
+
+🗿 MoAI
+
+
+=====
+[holee9 2026-09-28T10:44:53Z]
+## `xpe_crc32` 수출 철회 — `498fc3c` (미푸시, **단독 커밋**)
+
+리더 승인(2026-09-28) 항목 (4). ABI 변경이라 지시대로 **다른 변경과 섞지 않고** 2파일만 건드렸습니다.
+
+### 근거 (철회 직전 재확인)
+
+| 범위 | 건수 |
+|---|---|
+| `clients/` · `gui/` · `tools/` · `tests/` | **0** |
+| `modules/` | **2** — 자기 선언 + 정의 |
+
+대조군: 같은 검색이 `xpe_preprocess_init` 를 `clients`+`gui` 에서 **19건** 잡습니다 — 눈멀지 않았습니다. (빌드 산출 제외)
+
+능력은 대체됐습니다 — `SRS-CALIB-001:43-44` 가 무결성 값을 *"CRC-32 4바이트(0x04C11DB7)"* → *"**SHA-256 32바이트**"* 로 옮긴 것을 기록하고, 검증도 읽는 중 스트리밍 SHA-256(QA-A-105) + Windows CNG(QA-A-106)입니다. **요구를 세웠다면 폐기된 방식에 계약을 다는 일**이었습니다.
+
+테이블과 초기화 함수도 함께 거뒀습니다 — 소비자가 이 함수뿐이라 남기면 `/WX` 에서 미참조 정적 함수로 빌드가 깨집니다.
+
+### 반증 — DLL 수출 표를 직접 봤습니다
+
+```
+$ dumpbin /exports xpe_preprocess.dll | findstr /I "crc32 sha256 preprocess_init"
+         41   28 00001104 xpe_preprocess_init = @ILT+255(xpe_preprocess_init)
+```
+
+`xpe_crc32` **없음**, 대조군 `xpe_preprocess_init` **있음**(서수 41). 관측 없이 "거뒀다" 를 적지 않기 위해서입니다.
+
+### ABI 주의
+
+수출 제거는 **DLL 표면 변경**입니다. 저장소 안에는 호출자가 없어 깨지는 것이 없지만, **옛 헤더로 빌드해 이 심볼을 해석하던 바이너리는 깨집니다.** 헤더의 그 자리에 사실을 남겨 두었습니다(빈 자리로 두지 않음).
+
+### 검증
+
+`BUILD_EXIT=0` · 전체 ctest **757/757** (`CTEST_EXIT=0`)
+
+🗿 MoAI
+
+
+=====
+[holee9 2026-09-29T05:34:54Z]
+## `SRS-CALIB` 대조 완료 — **21 은 상한이었고, 실제는 12 입니다**
+
+제목이 *"상한, `SRS-CALIB` 대조 필요"* 라고 적어 둔 그 대조를 했습니다.
+
+### 왜 상한이었나
+
+`tools/docs/api_requirement_census.py` 는 **`REQ-P1A` 만** 스캔합니다(도구 docstring). `SRS-CALIB-001` 은 요구를 **능력으로** 기술하고 함수 이름을 거의 쓰지 않으므로, 이 저장소에서 심볼 매칭은 그 문서에 **구조적으로 눈멉니다.** 범위를 넓히는 것만으로는 안 되고 매칭 방식도 다릅니다 — 도구가 그렇게 적고 있습니다.
+
+### 측정 (2026-09-29, 검색 범위 `docs/calibration/`)
+
+현재 census: **`NAMED BY NO REQUIREMENT: 20`**. 각 이름을 `docs/calibration/` 에서 찾아 같은 줄의 `SRS-CALIB-*` ID 를 뽑았습니다:
+
+| 함수 | 대응 요구 |
+|---|---|
+| `xpe_verify_offset` | `SRS-CALIB-FUNC-016`, `FUNC-036` |
+| `xpe_verify_gain` | `SRS-CALIB-FUNC-017`, `FUNC-036` |
+| `xpe_verify_defect` | `SRS-CALIB-FUNC-019` |
+| `xpe_verify_pipeline` | `SRS-CALIB-FUNC-015`, `FUNC-021` |
+| `xpe_bpm_generate` | `SRS-CALIB-FUNC-022` |
+| `xpe_calib_generate_gain_polynomial` | `SRS-CALIB-FUNC-027`, `FUNC-031` |
+| `xpe_calib_get_mode` | `SRS-CALIB-FUNC-031` |
+| `xpe_calib_set_mode` | `SRS-CALIB-FUNC-031` |
+
+**8건은 요구가 있습니다.** `RTM-CALIB-001:240-243` 이 네 `xpe_verify_*` 를 이미 이름으로 매핑하고 있었습니다.
+
+### 남는 12건 — **이것이 실제 수치입니다**
+
+| 함수 | `docs/` 언급 |
+|---|---|
+| `xpe_nonlinearity_correct` | **7개 문서** (`SRS-CALIB-001` 포함) — 그러나 **같은 줄에 요구 ID 가 없습니다.** 언급은 많고 추적은 없습니다 |
+| `xpe_calib_generate_nonlin_lut` | 0 |
+| `xpe_calib_load_nonlin_lut` | 0 |
+| `xpe_calib_unload_nonlin_lut` | 0 |
+| `xpe_preprocess_is_initialized` | 0 |
+| `xpe_calib_cache_clear` | 1 |
+| `xpe_calib_cache_set_max_size` | 1 |
+| `xpe_calib_get_max_points` | 1 |
+| `xpe_calib_get_poly_degree` | 1 |
+| `xpe_calib_get_quality_meta` | 1 |
+| `xpe_calib_state_release` | 1 |
+| `xpe_preprocess_pipeline_batch` | 1 |
+
+### 갈래가 둘로 보입니다
+
+**(A) 비선형 보정 4종** — `xpe_nonlinearity_correct` + LUT 3종. `xpe_nonlinearity_correct` 가 7개 문서에 나오는데 요구 ID 가 안 붙었다는 것은 **누락이지 부재가 아닐 가능성**이 큽니다. `SRS-CALIB-001` 안의 그 언급이 어느 요구 문단에 있는지 읽으면 답이 나옵니다.
+
+**(B) 경계·수명 API 8종** — 캐시 제어, 게터, 상태 해제, 초기화 질의, 배치. 이들은 **능력이 아니라 관리 표면**이라, 개별 요구보다 *"공개 API 는 수명·오류 계약을 갖는다"* 류의 한 요구로 묶는 편이 맞을 수 있습니다. 함수마다 요구를 세우면 요구가 API 목록의 복사본이 됩니다.
+
+### 미검증
+
+- **(A)의 판단은 `docs/` 언급 수만 본 것**입니다. `SRS-CALIB-001` 안의 그 문단을 **읽지 않았습니다** — 읽어야 "누락" 인지 "의도적 비추적" 인지 갈립니다
+- 같은 줄 ID 추출이라 **문단 단위로 요구에 속한 경우를 놓칩니다.** 8건은 하한, 12건은 상한입니다
+- `docs/archive/superseded/` 가 언급 수에 포함돼 있습니다 — `xpe_nonlinearity_correct` 의 7 중 1건이 그것입니다
+
+### 다음
+
+(A) 4종을 먼저 봅니다 — 문단을 읽으면 요구를 세울지 매핑만 고칠지 갈립니다. (B) 8종은 묶는 요구를 세울지가 결정이고, 그건 (A) 뒤입니다.
+
+🗿 MoAI
+
+
+=====
+[holee9 2026-10-01T11:44:59Z]
+## 오늘 상태 (QA-A-189, 2026-10-01)
+
+수출 C ABI 48개(dumpbin 전체 53 − C++ 맹글 5)를 SPEC-XPE-P1A 요구 **본문** 43개와 대조했습니다.
+
+| 분류 | 개수 | 예 |
+|---|---|---|
+| 이름 일치 | 22 | |
+| 동작만 일치 | 1 | `xpe_nonlinearity_correct` (REQ-095·096 의 파이프라인 단계로만 서술) |
+| SRS 에만 있음 | 20 | SPEC 공백이지만 SRS 가 이미 요구(14개 이름 직접, 6개 능력 + RTM 매핑) |
+| 요구 없음 | 5 | `*_cached` 3개, `xpe_preprocess_pipeline_ex`, `xpe_preprocess_version` |
+
+이름으로 센 결과(27/21)와 행위로 센 결과(23/25)가 달랐고, 차이 6개는 "이름은 나오지만 지나가는 언급"(5) 과 "이름 없이 동작만 서술"(1) 로 설명됩니다. 그래서 제목의 "21개가 이름이 없다" 는 이름 축의 수이고, 실제로 요구가 전혀 없는 함수는 5개입니다.
+
+**제품이 부르는 함수 중**: `xpe_nonlinearity_correct`(GUI `GuiPreprocessRunner.cs:143`, 동작만 일치), `xpe_preprocess_version`(clients 준비 상태 프로브, 요구 없음). 제품 호출자가 없는 함수 19개는 시험에서만 쓰입니다.
+
+**주석 오인용 1건**: `xpe_verify_offset/_gain/_defect` 헤더(`preprocess_api.h:1021·1044·1066`)가 보정 **실행** 요구(REQ-P1A-010/011/012)를 "verification" 으로 인용 — 주석만 고칩니다(pre 레인).
+
+### 열린 결정
+
+1. 요구 없음 5개 — SPEC 요구로 세울지, 묶음 요구로 덮을지, 수출을 철회할지
+2. `xpe_nonlinearity_correct` 의 공개 계약을 SPEC 에 세울지(제품 경로에 있음)
+3. SRS 에만 있는 20개를 SPEC 범위로 볼지
+
+요구 신설·범위 결정이라 사용자 판단으로 남깁니다.
+
+🗿 MoAI
+

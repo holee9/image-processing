@@ -77,6 +77,7 @@
       along. Without them the single-source claim would be tested against a copy.
     -->
     <Compile Include="..\..\gui\ImageProcTest\Models\ComparisonModes.cs" Link="Comparison\Linked\ComparisonModes.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BuildIdentity.cs" Link="Comparison\Linked\BuildIdentity.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Models\CalibrationStageMode.cs" Link="Comparison\Linked\CalibrationStageMode.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Models\AppSettings.cs" Link="Comparison\Linked\AppSettings.cs" />
     <Compile Include="..\..\gui\ImageProcTest\ViewModels\ObservableObject.cs" Link="Comparison\Linked\ObservableObject.cs" />
@@ -117,6 +118,17 @@
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpePreprocessInterop.cs" Link="Chain\Linked\XpePreprocessInterop.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeEnhanceBasicInterop.cs" Link="Chain\Linked\XpeEnhanceBasicInterop.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiEnhanceNative.cs" Link="Chain\Linked\GuiEnhanceNative.cs" />
+    <!--
+      GUI-C-212 (#249): the legacy app's runtime smoke of xpe_preprocess.dll, called by a test. It went stale for months because nothing ran it. The records are in their own file
+      (they were inside NativeReadinessProbe.cs, which drags in every other probe); PInvokeWrapper.cs is linked for the buffer/metadata types and enums only: the oracle calls the DLL
+      through delegates, so XpeCommonApi's static constructor (which installs a second DllImport resolver) is never run in this assembly.
+    -->
+    <Compile Include="..\ImageProcTest\PInvokeWrapper.cs" Link="OracleCall\Linked\PInvokeWrapper.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\NativeDependencyLoader.cs" Link="OracleCall\Linked\NativeDependencyLoader.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\PreprocessSyntheticOracleResult.cs" Link="OracleCall\Linked\PreprocessSyntheticOracleResult.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\XpePreprocessSyntheticOracle.cs" Link="OracleCall\Linked\XpePreprocessSyntheticOracle.cs" />
+    <!-- GUI-C-212b: the child-process host of the oracle (timeout, kill, one JSON result line). It touches no WPF type. -->
+    <Compile Include="..\ImageProcTest\Diagnostics\XpePreprocessOracleProcess.cs" Link="OracleCall\Linked\XpePreprocessOracleProcess.cs" />
   </ItemGroup>
 
   <!--

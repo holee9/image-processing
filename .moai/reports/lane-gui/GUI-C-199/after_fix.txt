@@ -1,0 +1,5 @@
+# GUI-C-199 final tree, whole IntegrationTests assembly (all categories)
+## default env (no XPE_NATIVE_DIR), CI-like layout: build/ci-dicom/bin has its own xpe_common.dll
+PASS!  - FAIL:     0, PASS:   637, SKIP:     1, total:   638, 기간: 9 s - ImageProcTest.IntegrationTests.dll (net8.0)
+## XPE_NATIVE_DIR = assembled dir with xpe_dicom.dll
+PASS!  - FAIL:     0, PASS:   637, SKIP:     1, total:   638, 기간: 10 s - ImageProcTest.IntegrationTests.dll (net8.0)

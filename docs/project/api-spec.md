@@ -33,7 +33,7 @@ because a sweep is how the previous errors were introduced.
 | `xpe_enhance_advanced` | 7 | `xpe_adv_calc_exposure_index`, `xpe_detect_collimation`, `xpe_enhance_advanced_init`, `xpe_enhance_advanced_shutdown`, `xpe_enhance_advanced_version`, `xpe_fractional_process`, `xpe_multiscale_process` |
 | `xpe_display` | 6 | `xpe_apply_modality_lut`, `xpe_apply_presentation_lut`, `xpe_apply_voi_lut`, `xpe_display_version`, `xpe_gsdf_calibrate`, `xpe_voi_preset_create` |
 | `xpe_ai` | 11 | `xpe_ai_get_model_card`, `xpe_ai_init`, `xpe_ai_set_fallback_mode`, `xpe_ai_shutdown`, `xpe_ai_version`, `xpe_ai_worker_state`, `xpe_bodypart_recognize`, `xpe_bone_suppress`, `xpe_dl_denoise`, `xpe_stitch_estimate_size`, `xpe_stitch_images` |
-| `xpe_dicom` | 10 | `xpe_dicom_cancel`, `xpe_dicom_cfind_mwl`, `xpe_dicom_close`, `xpe_dicom_cstore`, `xpe_dicom_get_metadata`, `xpe_dicom_open`, `xpe_dicom_read_image`, `xpe_dicom_validate`, `xpe_dicom_write`, `xpe_dicom_write_j2k` |
+| `xpe_dicom` | 11 | `xpe_dicom_cancel`, `xpe_dicom_cfind_mwl`, `xpe_dicom_close`, `xpe_dicom_cstore`, `xpe_dicom_get_metadata`, `xpe_dicom_open`, `xpe_dicom_read_image`, `xpe_dicom_validate`, `xpe_dicom_version`, `xpe_dicom_write`, `xpe_dicom_write_j2k` |
 | `xpe_gsvg` | 4 | `xpe_gsvg_init`, `xpe_gsvg_process`, `xpe_gsvg_shutdown`, `xpe_gsvg_version` |
 
 **Cross-module duplicate exports: 0** (re-measured 2026-09-12 after QA-B-55). Every one of the 106 names above belongs to exactly one module. The one collision that existed — `xpe_calc_exposure_index` in both `xpe_enhance_basic` (REQ-ENH-030) and `xpe_enhance_advanced` (REQ-ADV-013), identical signatures, values 500x apart — was resolved by renaming the advanced export to `xpe_adv_calc_exposure_index` (#153).
@@ -1400,7 +1400,7 @@ XPE_API XpeErrorCode xpe_lut_auto_select(const XpeImageMetadata* meta,
 
 ## 11. xpe_dicom.dll
 
-DICOM Part 10 file reading, writing, validation, and the network services C-STORE / C-FIND MWL. The DLL exports exactly 10 functions: `xpe_dicom_open`, `xpe_dicom_read_image`, `xpe_dicom_get_metadata`, `xpe_dicom_close`, `xpe_dicom_write`, `xpe_dicom_write_j2k`, `xpe_dicom_validate`, `xpe_dicom_cstore`, `xpe_dicom_cfind_mwl`, `xpe_dicom_cancel`. Reading is a session: open a handle, read the image and the metadata from it, close it. There is no one-shot read, no tag-string accessor and no GSPS function.
+DICOM Part 10 file reading, writing, validation, and the network services C-STORE / C-FIND MWL. The DLL exports exactly 11 functions (10 until 2026-10-03, when `xpe_dicom_version` was added for REQ-P0-033, QA-B-200 M2a): `xpe_dicom_version`, `xpe_dicom_open`, `xpe_dicom_read_image`, `xpe_dicom_get_metadata`, `xpe_dicom_close`, `xpe_dicom_write`, `xpe_dicom_write_j2k`, `xpe_dicom_validate`, `xpe_dicom_cstore`, `xpe_dicom_cfind_mwl`, `xpe_dicom_cancel`. Reading is a session: open a handle, read the image and the metadata from it, close it. There is no one-shot read, no tag-string accessor and no GSPS function.
 
 Dependencies: xpe_common.dll.
 
@@ -1469,8 +1469,8 @@ XPE_API XpeErrorCode xpe_dicom_write(const char* filePath,
                                       const XpeImageMetadata* meta);
 ```
 
-**Description**: Encodes `img` and `meta` into a DICOM Part 10 file (Explicit VR Little Endian) with a generated SOP Instance UID and a meta group regenerated from the dataset, so the output satisfies `xpe_dicom_validate`. The dataset is built from `img` and `meta` only: nothing is copied from the file the pixels were read from. Photometric Interpretation is always MONOCHROME2, Presentation LUT Shape IDENTITY, Rescale Slope / Intercept 1 / 0, and no Window Center / Width is written. A pixel value outside the declared BitsStored range is a write failure.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (NULL pointer, empty image, or `dataSize` inconsistent with the dimensions), `XPE_ERR_IO_FAILED`, `XPE_ERR_PROCESSING_FAILED`
+**Description**: Encodes `img` and `meta` into a DICOM Part 10 file (Explicit VR Little Endian) with a generated SOP Instance UID and a meta group regenerated from the dataset, so the output satisfies `xpe_dicom_validate`. The dataset is built from `img` and `meta` only: nothing is copied from the file the pixels were read from. Photometric Interpretation is always MONOCHROME2, Presentation LUT Shape IDENTITY, Rescale Slope / Intercept 1 / 0, and no Window Center / Width is written. A pixel value outside the declared BitsStored range is a write failure. Only `XPE_PIXEL_UINT16` images are accepted; any other format is refused at entry, before a dataset is built or the file is opened, so nothing is written and no conversion is attempted (QA-B-201 M4, 2026-10-03).  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (NULL pointer, empty image, a format other than `XPE_PIXEL_UINT16`, or `dataSize` inconsistent with the dimensions), `XPE_ERR_IO_FAILED`, `XPE_ERR_PROCESSING_FAILED`
 
 ---
 
@@ -1482,8 +1482,8 @@ XPE_API XpeErrorCode xpe_dicom_write_j2k(const char* filePath,
                                            const XpeImageMetadata* meta);
 ```
 
-**Description**: Like `xpe_dicom_write`, with Transfer Syntax JPEG 2000 Lossless Only (1.2.840.10008.1.2.4.90); the round trip is bit-exact. The codestream is encoded at the declared BitsStored precision. There is no compression-ratio parameter and no lossy mode.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_IO_FAILED`, `XPE_ERR_PROCESSING_FAILED` (J2K compression failed, or a pixel value above the declared range)
+**Description**: Like `xpe_dicom_write`, with Transfer Syntax JPEG 2000 Lossless Only (1.2.840.10008.1.2.4.90); the round trip is bit-exact. The codestream is encoded at the declared BitsStored precision. There is no compression-ratio parameter and no lossy mode. Like `xpe_dicom_write`, only `XPE_PIXEL_UINT16` is accepted and any other format is refused at entry with nothing written.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (as for `xpe_dicom_write`), `XPE_ERR_IO_FAILED`, `XPE_ERR_PROCESSING_FAILED` (J2K compression failed, or a pixel value above the declared range)
 
 ---
 
@@ -1517,7 +1517,7 @@ XPE_API XpeErrorCode xpe_dicom_cstore(const char* host,
                                        uint32_t timeoutMs);
 ```
 
-**Description**: Sends a DICOM file to a remote Storage SCP via C-STORE. `host` may be `"CALLED_AE@hostname"` to name the called AE title (default `ANY-SCP`); `aet` is the calling AE title; `timeoutMs` 0 means no timeout. If the file's meta group names no SOP Class UID the dataset's is used, then DX For Presentation. Returns `XPE_OK` only for RSP status 0x0000.  
+**Description**: Sends a DICOM file to a remote Storage SCP via C-STORE. `host` may be `"CALLED_AE@hostname"` to name the called AE title (default `ANY-SCP`); `aet` is the calling AE title; for `timeoutMs` see the timeout note below. Timeout (both network functions, QA-B-206 M1, 2026-10-03): DCMTK takes the connection/ACSE/DIMSE timeouts in whole seconds, so `timeoutMs` is rounded **up** to the next second with a minimum of 1 (300 ms waits about 1 s, 1400 ms about 2 s). `timeoutMs` 0 is **not** an unlimited wait: DCMTK's default applies (about 30 s), and `xpe_dicom_cancel` cannot interrupt a stalled exchange, so a finite timeout is the only defence against a silent peer. If the file's meta group names no SOP Class UID the dataset's is used, then DX For Presentation. Returns `XPE_OK` only for RSP status 0x0000.  
 **Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_NETWORK_FAILED` (connection failure, timeout, rejection, non-success status), `XPE_ERR_IO_FAILED`, `XPE_ERR_PROCESSING_FAILED` (a cancel is latched; see `xpe_dicom_cancel`)
 
 ---
@@ -1530,7 +1530,7 @@ XPE_API XpeErrorCode xpe_dicom_cfind_mwl(const char* host, uint16_t port, const 
                                           uint32_t outBufLen, uint32_t timeoutMs);
 ```
 
-**Description**: Queries a Modality Worklist SCP using C-FIND. `queryJson` encodes the query keys (Patient ID, Accession Number, etc.). Results are returned as a JSON array in `outJson` (`[]` when empty). Supported query keys: `PatientID`, `PatientName`, `Modality`, `AccessionNumber` (unknown keys are ignored — unfiltered worklist). Uses the negotiated presentation context (QA-B-32, #137).  
+**Description**: Queries a Modality Worklist SCP using C-FIND. `queryJson` encodes the query keys (Patient ID, Accession Number, etc.). Results are returned as a JSON array in `outJson` (`[]` when empty). Supported query keys: `PatientID`, `PatientName`, `Modality`, `AccessionNumber` (unknown keys are ignored — unfiltered worklist). Uses the negotiated presentation context (QA-B-32, #137). `timeoutMs` follows the same rule as `xpe_dicom_cstore` (rounded up to whole seconds, minimum 1; 0 = DCMTK default, about 30 s, not unlimited).  
 **SRS**: SRS-DICOM-031  
 **Thread safety**: Reentrant.  
 **Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_NETWORK_FAILED`, `XPE_ERR_PROCESSING_FAILED` (`queryJson` not parseable — judged after the association is negotiated), `XPE_ERR_BUFFER_TOO_SMALL` (nothing is written to `outJson`)
@@ -1544,6 +1544,14 @@ XPE_API void xpe_dicom_cancel(void);
 ```
 
 **Description**: Signals cancellation to an in-progress C-STORE or C-FIND. Thread-safe, callable from any thread, a no-op if nothing is running. The cancel flag is cleared on entry to `xpe_dicom_cstore` and `xpe_dicom_cfind_mwl`, so calling it before an operation does not pre-cancel it; it takes effect only when set during a running operation, and is observed before connecting and just after the association is established. A cancelled operation returns `XPE_ERR_PROCESSING_FAILED`.
+
+### 11.11 xpe_dicom_version
+
+```c
+XPE_API const char* xpe_dicom_version(void);
+```
+
+**Description**: Returns the module version as a null-terminated string with process lifetime; never NULL (REQ-P0-033, added 2026-10-03).
 
 ---
 

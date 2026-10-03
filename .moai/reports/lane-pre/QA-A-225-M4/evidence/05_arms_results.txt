@@ -1,0 +1,30 @@
+== e1-e4 (first pass; e3 FAILED TO COMPILE in the shipped-library target because the seam was used without its #ifdef guard: the evidence that the shipped library has no declaration):
+e1_seam_default_changed              -> 1 red: GhostMixCompare.TheSeamDefaultsAreTheShippedConstantsAndTouchOnlyTierThree | digest ['0x9b3fc56daed736f3'] | label ['A']
+e2_tier3_ignores_the_seam            -> 3 red: GhostMixCompare.TheAnalyticValuesOfThePreregistrationHold, GhostMixCompare.TheRingStepIsTheMixTimesTheRemovedLag, GhostMixCompare.TheSeamDefaultsAreTheShippedConstantsAndTouchOnlyTierThree | digest ['0xf7c4e2c895d7a90b'] | label ['C']
+e3_seam_also_scales_tier2 BUILD FAILED
+ -ID:\workspace-github\xpe-pre\modules\common\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\spdlog-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\nlohmann_json-src\include -ID:\workspace-github\xpe-pre\build\ci-preprocess\_deps\fmt-src\include /DWIN32 /D_WINDOWS /EHsc /Zi /O2 /Ob1 /DNDEBUG -std:c++17 -MD /arch:AVX2 /W4 /utf-8 /WX /wd4251 /wd4275 /showIncludes
+D:\workspace-github\xpe-pre\modules\preprocess\src\ghost_correct.cpp(184): error C2065: 'xpe_ghost_tier3_mix': 선언되지 않은 식별자입니다.
+[2/9] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\ghost_correct.cpp.obj
+ninja: build stopped: subcommand failed.
+BUILD_EXIT=1
+
+e4_blend_weights_swapped             -> 2 red: GhostMixCompare.TheAnalyticValuesOfThePreregistrationHold, GhostMixCompare.TheRingStepIsTheMixTimesTheRemovedLag | digest ['0x6589b300626e6f0f'] | label ['C']
+
+== e3 (guarded), e5, e6, e7 (first listing: the e3 line there is the unguarded attempt that failed to compile and its patch assertion error):
+e3_seam_also_scales_tier2 BUILD FAILED
+D:\workspace-github\xpe-pre\modules\preprocess\src\ghost_correct.cpp(184): error C2065: 'xpe_ghost_tier3_mix': 선언되지 않은 식별자입니다.
+BUILD_EXIT=1
+
+e5_nyquist_checker_uses_stripes      -> 1 red: GhostMixCompare.TheAnalyticValuesOfThePreregistrationHold | digest ['0xf7c4e2c895d7a90b'] | label ['C']
+e6_k1_threshold_1p0_to_2p0           -> 1 red: GhostMixCompare.ThePreregisteredRulesGiveTheirVerdictsOnSyntheticInputs | digest ['0xf7c4e2c895d7a90b'] | label ['A']
+e7_k1_needs_5_rows                   -> 1 red: GhostMixCompare.ThePreregisteredRulesGiveTheirVerdictsOnSyntheticInputs | digest ['0xf7c4e2c895d7a90b'] | label ['A']
+
+== e3 guarded, e8 (first attempt failed to BUILD under /WX), e9:
+e3_seam_also_scales_tier2            -> 1 red: GhostMixCompare.TheSeamDefaultsAreTheShippedConstantsAndTouchOnlyTierThree | digest ['0xf7c4e2c895d7a90b'] | label ['A']
+e8_label_a_ignores_k3 BUILD FAILED
+BUILD_EXIT=1
+
+e9_noise_pool_not_independent        -> 0 red: NONE (arm did not fire) | digest ['0xf7c4e2c895d7a90b'] | label ['A']
+
+== e8 rerun:
+e8_label_a_ignores_k3                -> 1 red: GhostMixCompare.ThePreregisteredRulesGiveTheirVerdictsOnSyntheticInputs | digest ['0xf7c4e2c895d7a90b'] | label ['A']

@@ -1,0 +1,103 @@
+"""QA-A-224c / 225 input: how do the xpe_verify_* functions behave on non-finite input? MEASUREMENT ONLY.
+Every case runs in its own process so an access violation is an observation, not the end of the audit.
+usage: audit_nonfinite.py            -> driver (runs all cases, prints a table)
+       audit_nonfinite.py <case-id>  -> one case"""
+import ctypes, os, sys, math, subprocess
+import numpy as np
+
+BIN = 'D:/workspace-github/xpe-pre/build/ci-preprocess/bin'
+W = H = 32
+
+
+def load():
+    os.add_dll_directory(BIN)
+    dll = ctypes.CDLL(BIN + '/xpe_preprocess.dll')
+
+    class Buf(ctypes.Structure):
+        _fields_ = [('width', ctypes.c_uint32), ('height', ctypes.c_uint32), ('bitsAllocated', ctypes.c_uint32),
+                    ('bitsStored', ctypes.c_uint32), ('format', ctypes.c_int32), ('data', ctypes.c_void_p),
+                    ('dataSize', ctypes.c_size_t)]
+
+    class Metrics(ctypes.Structure):
+        _fields_ = [('dark_bias', ctypes.c_double), ('dsnu', ctypes.c_double), ('residual_noise', ctypes.c_double),
+                    ('prnu_before', ctypes.c_double), ('prnu_after', ctypes.c_double), ('flatness_pct', ctypes.c_double),
+                    ('gain_coverage', ctypes.c_double), ('invalid_gain_count', ctypes.c_uint32),
+                    ('defect_count', ctypes.c_uint32), ('defect_density', ctypes.c_double),
+                    ('correction_error', ctypes.c_double), ('snr_improvement_db', ctypes.c_double),
+                    ('overall_pass', ctypes.c_bool), ('dark_reduction_db', ctypes.c_double),
+                    ('dsnu_adu', ctypes.c_double), ('measured_mask', ctypes.c_uint32)]
+    return dll, Buf, Metrics
+
+
+def fmt(x):
+    return 'inf' if math.isinf(x) and x > 0 else '-inf' if math.isinf(x) else 'nan' if math.isnan(x) else '%.4g' % x
+
+
+def run_case(cid):
+    dll, Buf, Metrics = load()
+    keep = []
+
+    def buf(a, f):
+        keep.append(a)
+        bits = {0: 16, 1: 32, 2: 8}[f]
+        return Buf(W, H, bits, bits, {0: 0, 1: 1, 2: 2}[f] if f != 2 else 3, a.ctypes.data, a.nbytes)
+    # pixel format enum values: UINT16=0, FLOAT32=1; the defect map format is UINT8 -- find its value from the header at run time
+    import re
+    hdr = open('D:/workspace-github/xpe-pre/modules/common/include/xpe/common/xpe_types.h', encoding='utf-8').read()
+    u8 = int(re.search(r'XPE_PIXEL_UINT8\s*=\s*(\d+)', hdr).group(1))
+
+    def b16(a): keep.append(a); return Buf(W, H, 16, 16, 0, a.ctypes.data, a.nbytes)
+    def b32(a): keep.append(a); return Buf(W, H, 32, 32, 1, a.ctypes.data, a.nbytes)
+    def b8(a): keep.append(a); return Buf(W, H, 8, 8, u8, a.ctypes.data, a.nbytes)
+    m = Metrics()
+    flat = np.full((H, W), 1000.0, np.float32)
+    rng = np.random.default_rng(7)
+    noisy16 = np.ascontiguousarray((1000.0 * (1 + rng.normal(0, 0.05, (H, W)))).astype(np.uint16))
+    one = np.ones((H, W), np.float32)
+    fn, kind, val = cid.split(':')
+    v = {'nan': np.nan, 'pinf': np.inf, 'ninf': -np.inf, 'none': None}[val]
+
+    def corrupt(a, at):
+        a = a.copy()
+        if v is not None:
+            if at == 'all': a[:] = v
+            else: a[at] = v
+        return np.ascontiguousarray(a)
+
+    if fn == 'defect':
+        dm = np.zeros((H, W), np.uint8); dm[3, 3] = 1; dm[10, 10] = 1; dm[20, 5] = 1
+        at = {'atdefect': (3, 3), 'atgood': (0, 0), 'all': 'all', 'ctl': (0, 0)}[kind]
+        corr = corrupt(flat, at)
+        rc = dll.xpe_verify_defect(ctypes.byref(b32(corr)), ctypes.byref(b8(np.ascontiguousarray(dm))), ctypes.byref(m))
+    elif fn == 'gain':
+        if kind in ('gainmap',):
+            g = corrupt(one, (5, 5))
+            rc = dll.xpe_verify_gain(ctypes.byref(b16(noisy16)), ctypes.byref(b32(flat)), ctypes.byref(b32(g)), 0, ctypes.byref(m))
+        else:
+            a = corrupt(flat, (0, 0))
+            rc = dll.xpe_verify_gain(ctypes.byref(b16(noisy16)), ctypes.byref(b32(a)), ctypes.byref(b32(one)), 0, ctypes.byref(m))
+    elif fn == 'pipeline':
+        a = corrupt(flat, (0, 0))
+        rc = dll.xpe_verify_pipeline(ctypes.byref(b16(noisy16)), ctypes.byref(b32(a)), None, ctypes.byref(m))
+    elif fn == 'offset':
+        rc = dll.xpe_verify_offset(ctypes.byref(b16(noisy16)), ctypes.byref(b16(noisy16)), None, ctypes.byref(m))
+    print('rc=%d pass=%s defects=%d density=%s corr_err=%s prnu_after=%s snr=%s coverage=%s invalid_gain=%d mask=%d'
+          % (rc, m.overall_pass, m.defect_count, fmt(m.defect_density), fmt(m.correction_error), fmt(m.prnu_after),
+             fmt(m.snr_improvement_db), fmt(m.gain_coverage), m.invalid_gain_count, m.measured_mask))
+
+
+CASES = [
+ 'defect:ctl:none', 'defect:atdefect:nan', 'defect:atgood:nan', 'defect:atgood:pinf', 'defect:atgood:ninf', 'defect:all:nan',
+ 'gain:gainmap:nan', 'gain:gainmap:pinf', 'gain:after:pinf', 'gain:after:ninf', 'gain:after:nan',
+ 'pipeline:final:nan', 'pipeline:final:pinf', 'pipeline:final:ninf',
+ 'offset:ctl:none',
+]
+if len(sys.argv) > 1:
+    run_case(sys.argv[1])
+else:
+    for c in CASES:
+        r = subprocess.run([sys.executable, __file__, c], capture_output=True, text=True, env=dict(os.environ, PYTHONIOENCODING='utf-8'))
+        out = (r.stdout.strip().splitlines() or ['(no output)'])[-1]
+        status = 'exit=%d' % r.returncode
+        if r.returncode in (3221225477, -1073741819): status += ' ACCESS VIOLATION'
+        print('%-26s %-22s %s' % (c, status, out if r.returncode == 0 else ((r.stderr.strip().splitlines() or [''])[-1][:100])))

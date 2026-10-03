@@ -1,0 +1,74 @@
+"""QA-A-226 measurement (NOT product code): explicit lag parameters whose forward system is unstable (S >= 1).
+S = a1/(1-exp(-1/tau1)) + a2/(1-exp(-1/tau2))  (steady-state gain of the history the module subtracts, dt = 1 frame).
+The module outputs raw*(1-S) clamped at 0 for a constant input; a real lag y = x + lag is invertible only for S < 1
+(y_ss = x/(1-S))."""
+import ctypes, os, math
+import numpy as np
+
+BIN = 'D:/workspace-github/xpe-pre/build/ci-preprocess/bin'
+os.add_dll_directory(BIN)
+dll = ctypes.CDLL(BIN + '/xpe_preprocess.dll')
+W = H = 8
+
+
+class Buf(ctypes.Structure):
+    _fields_ = [('width', ctypes.c_uint32), ('height', ctypes.c_uint32), ('bitsAllocated', ctypes.c_uint32),
+                ('bitsStored', ctypes.c_uint32), ('format', ctypes.c_int32), ('data', ctypes.c_void_p),
+                ('dataSize', ctypes.c_size_t)]
+
+
+dll.xpe_ghost_create.argtypes = [ctypes.c_uint32, ctypes.c_uint32, ctypes.c_char_p, ctypes.POINTER(ctypes.c_void_p)]
+dll.xpe_ghost_correct.argtypes = [ctypes.c_void_p, ctypes.POINTER(Buf), ctypes.c_void_p]
+
+
+def S_of(a1, t1, a2, t2):
+    return a1 / (1 - math.exp(-1 / t1)) + a2 / (1 - math.exp(-1 / t2))
+
+
+def last_of_constant(cfg, level=5000.0, n=200):
+    hnd = ctypes.c_void_p()
+    rc = dll.xpe_ghost_create(W, H, cfg.encode(), ctypes.byref(hnd))
+    if rc != 0:
+        return 'create rc=%d' % rc
+    meta = ctypes.create_string_buffer(96)
+    out = None
+    for k in range(n):
+        px = np.full((H, W), level, np.float32)
+        buf = Buf(W, H, 32, 32, 1, px.ctypes.data, px.nbytes)
+        ctypes.c_uint64.from_buffer(meta, 80).value = 1000 + k
+        rc = dll.xpe_ghost_correct(hnd, ctypes.byref(buf), meta)
+        if rc != 0:
+            dll.xpe_ghost_destroy(hnd)
+            return 'correct rc=%d at frame %d' % (rc, k)
+        out = float(px[0, 0])
+    dll.xpe_ghost_destroy(hnd)
+    return out
+
+
+rows = [
+    ('stable (225 self-model)', 0.02, 3.0, 0.003, 30.0),
+    ('stable, stronger', 0.2, 3.0, 0.02, 30.0),
+    ('S just under 1', 0.2, 3.0, 0.0, 30.0),
+    ('old built-in defaults', 0.9, 1.0, 0.05, 20.0),
+    ('S just over 1', 0.3, 3.0, 0.0, 30.0),
+    ('alpha1 = 1 (tau 1)', 1.0, 1.0, 0.001, 30.0),
+]
+print('%-26s %-7s %-6s %-7s %-6s | %-8s | %-30s | %-30s | %-30s' % (
+    'row', 'alpha1', 'tau1', 'alpha2', 'tau2', 'S', 'tier 1: last / 5000', 'tier 2: last / 5000', 'tier 3: last / 5000'))
+for name, a1, t1, a2, t2 in rows:
+    s = S_of(a1, t1, a2, t2)
+    cells = []
+    for tier in (1, 2, 3):
+        cfg = '{"tier":%d,"alpha1":%g,"tau1":%g,"alpha2":%g,"tau2":%g}' % (tier, a1, t1, a2, t2)
+        r = last_of_constant(cfg)
+        cells.append(r if isinstance(r, str) else '%.3f (%.4f)' % (r, r / 5000.0))
+    print('%-26s %-7g %-6g %-7g %-6g | %-8.4f | %-30s | %-30s | %-30s' % (name, a1, t1, a2, t2, s, *cells))
+
+print('\nTier 2/3 scale alpha by w = 1 + 0.5*mean/32768; the effective S is S*w. Constant level 5000 -> w = %.4f; level 30000 -> w = %.4f' % (
+    1 + 0.5 * 5000 / 32768, 1 + 0.5 * 30000 / 32768))
+print('S*w crosses 1 for a configuration that is S < 1 at tier 1: e.g. S = 0.7 at level 30000 gives S*w = %.3f' % (0.7 * (1 + 0.5 * 30000 / 32768)))
+print('\nstable config, level 30000 (tier 1 / tier 2):')
+for tier in (1, 2):
+    cfg = '{"tier":%d,"alpha1":0.2,"tau1":3,"alpha2":0.0,"tau2":30}' % tier
+    r = last_of_constant(cfg, level=30000.0)
+    print('  tier %d: %s' % (tier, r if isinstance(r, str) else '%.3f (%.4f of 30000)' % (r, r / 30000.0)))

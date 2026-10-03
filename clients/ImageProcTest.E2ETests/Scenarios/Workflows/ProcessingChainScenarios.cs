@@ -396,19 +396,93 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
     }
 
     /// <summary>
-    /// C-09 (#225 row 10, GUI-C-185): the module IS asked (a file named bone_suppress.onnx exists, though it is not a model),
-    /// the worker keeps failing, and the persistent mark appears when the module reports the worker switched off
-    /// (<c>xpe_ai_worker_state</c>, not an alert); the Restart AI button then starts a new session and the mark goes.
-    /// Each failed call must carry a return code that came from the module, so a job that did not stage xpe_ai.dll cannot
-    /// pass. The numbers in the mark are the module's: the test requires them equal (the ceiling was reached) and does
-    /// not write a 3. Native only: the Mock has no AI session. Not run on a developer machine (the native E2E job's).
+    /// C-09b (GUI-C-202): a file named bone_suppress.onnx that is not a model. It used to be what made the worker fail repeatedly (C-09). It is not any more: a module that verifies
+    /// model signatures (QA-B-195) refuses it as "a model it will not use" (return code -4) and does NOT count the refusal, so no mark appears. Measured on two modules built
+    /// here (.moai/reports/lane-gui/GUI-C-202/): one from main's source (a stub build, no signature check) answers -3 and counts every call; one from QA-B-195 M4 answers -4 on every
+    /// attempt, and the failure count stays 0. So this scenario asserts what holds for both: the code is -3 or -4, and a -4 is said in the app's own words (GUI-C-201: the model
+    /// cannot be used, not the generic failure text). When every attempt answered -4 the mark must not appear (a refusal is not a worker failure); with -3 the module counts and
+    /// the mark may appear, which is not asserted.
     /// </summary>
     [SkippableFact]
-    public void C09_AWorkerSwitchedOffByRepeatedFailures_ShowsAMark_ThatRestartRemoves()
+    public void C09b_ANonModelFile_IsReportedAsAModelTheModuleWillNotUse()
     {
         Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
         Skip.If(app.BackendMode != "Native", "The AI session exists only on the native backend.");
         var window = app.MainWindow!;
+        CloseDetached(window);
+
+        var directory = Path.Combine(Path.GetTempPath(), $"xpe-ai-nomodel-file-{Environment.ProcessId}-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "bone_suppress.onnx"), "not a model");
+        try
+        {
+            SetText(window, "AiModelDirectoryInput", directory);
+            SetAiStage(window, false);
+            ApplyDisplayPipeline(window);
+
+            var markAppeared = false;
+            var codes = new List<string>();
+            for (var attempt = 1; attempt <= 4; attempt++)
+            {
+                InvokeAiMenuItem(window, requireEnabled: true);
+                var status = WaitForChain(window, "ai_bone_suppress=RequestedNotApplied");
+                markAppeared |= PollFor(() => AiBanner(window) is not null, TimeSpan.FromMilliseconds(1500));
+                output.WriteLine($"C09b attempt {attempt}: chain='{status}'; summary='{AiStatusSummary(window)}'; mark shown so far={markAppeared}");
+
+                var code = Regex.Match(status, @"AI bone suppression NOT applied \(code (-[34])\)");
+                Assert.True(code.Success, $"the call was not answered with -3 or -4 as a failure: '{status}'");
+                codes.Add(code.Groups[1].Value);
+                Assert.DoesNotContain("no model at", status, StringComparison.Ordinal);
+                Assert.DoesNotContain("was not found", status, StringComparison.Ordinal);
+                if (code.Groups[1].Value == "-4")
+                {
+                    Assert.Contains("the module cannot use the model", status, StringComparison.Ordinal);
+                    Assert.Contains("another call may still be loading and verifying the model", status, StringComparison.Ordinal);   // GUI-C-217: -4 does not say the model is bad
+                    Assert.DoesNotContain("consecutive failures switch", status, StringComparison.Ordinal);
+                }
+            }
+
+            if (codes.All(c => c == "-4"))
+            {
+                Assert.False(markAppeared, "every call was refused with -4 (a model the module will not use), which is not a worker failure, yet the worker-off mark appeared");
+            }
+
+            output.WriteLine($"C09b after 4 attempts: mark shown={markAppeared}; state='{AiStatusSummary(window)}'");
+        }
+        finally
+        {
+            try
+            {
+                if (window.FindFirstDescendant(cf => cf.ByAutomationId("AiRestartButton")) is { } leftover)
+                {
+                    leftover.AsButton().Invoke();
+                    Thread.Sleep(600);
+                }
+            }
+            catch (Exception ex)
+            {
+                output.WriteLine($"C09b clean-up: the Restart AI press failed: {ex.GetType().Name}: {ex.Message}");
+            }
+
+            SetAiStage(window, false);
+            SetText(window, "AiModelDirectoryInput", string.Empty);
+            ApplyDisplayPipeline(window);
+            try { Directory.Delete(directory, recursive: true); } catch (IOException) { }
+        }
+    }
+
+    /// <summary>
+    /// C-09's scenario (#225 row 10, GUI-C-185; moved by GUI-C-202): the module IS asked (a file named bone_suppress.onnx exists, its content does not matter), the worker keeps
+    /// failing, and the persistent mark appears when the module reports the worker switched off (<c>xpe_ai_worker_state</c>, not an alert); the Restart AI button then starts a
+    /// new session and the mark goes. Each failed call must carry a return code that came from the module, so a job that did not stage xpe_ai.dll cannot pass. The numbers in the
+    /// mark are the module's: the test requires them equal (the ceiling was reached) and does not write a 3.
+    ///
+    /// <para>The failure is made by the app running against a directory WITHOUT xpe_ai_worker.exe (<see cref="AiWorkerAbsentScenarios"/>): the module cannot start its worker and counts
+    /// that. It does not depend on what the model file is; the first version used a file that is not a model, which a module that verifies model signatures (QA-B-195) refuses as
+    /// "model unavailable", a refusal it does not count.</para>
+    /// </summary>
+    internal static void RunWorkerSwitchedOffScenario(Window window, ITestOutputHelper output)
+    {
         CloseDetached(window);
 
         var directory = Path.Combine(Path.GetTempPath(), $"xpe-ai-e2e-{Environment.ProcessId}-{Guid.NewGuid():N}");
@@ -630,6 +704,303 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
 
     private static string StatusText(Window window) =>
         window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"))?.Name ?? string.Empty;
+
+    /// <summary>
+    /// C-10 (GUI-C-201, approved after GUI-C-200): the model directory typed again with only its CASE changed is the same directory, so the session is kept; the module compares the
+    /// directory text byte for byte and warns when a repeated <c>xpe_ai_init</c> names a "different" one. The app therefore hands the module the spelling the session was
+    /// STARTED with. Observed through the init diagnostics the app publishes (<c>init#N dir='...'</c>): the second call is made (the counter goes up, so the equality is not
+    /// vacuous) and carries the first spelling. Native only, and only where the menu entry is enabled (xpe_ai.dll present): the module's own warning exists only in a build with
+    /// QA-B-194 M4, which is why the diagnostics, not the alert list, are what is read.
+    /// </summary>
+    [SkippableFact]
+    public void C10_TheModelDirectoryTypedAgainInAnotherCase_IsSentToTheModuleWithTheFirstSpelling()
+    {
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+        Skip.If(app.BackendMode != "Native", "The AI session exists only on the native backend.");
+        var window = app.MainWindow!;
+        CloseDetached(window);
+        // GUI-C-222: a native run whose directory has no xpe_ai.dll has the AI menu entry disabled, so the module is never asked and this scenario has nothing to observe. That is a skip with its
+        // reason (it used to fail inside InvokeAiMenuItem). The CI Native job must never take this skip: a skip without the allowed-skip token is "NOT RUN (unexplained)" to its skip gate, which
+        // fails the job, and C-09 (which needs xpe_ai.dll in the same directory) has to run there for the gate to pass.
+        Skip.IfNot(AiMenuItemIsEnabled(window), "The AI menu entry is disabled (no xpe_ai.dll in the pinned native directory), so the module is never asked.");
+
+        var directory = Path.Combine(Path.GetTempPath(), $"xpe-ai-spell-{Environment.ProcessId}-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "bone_suppress.onnx"), "not a model");
+        // Only the letters of the (hexadecimal, lowercase) directory name change case: the same directory on a case-insensitive file system.
+        var swapped = Path.Combine(Path.GetDirectoryName(directory)!, Path.GetFileName(directory).ToUpperInvariant());
+        Assert.NotEqual(directory, swapped);
+        try
+        {
+            SetText(window, "AiModelDirectoryInput", directory);
+            SetAiStage(window, false);
+            ApplyDisplayPipeline(window);
+            InvokeAiMenuItem(window, requireEnabled: true);
+            WaitForChain(window, "ai_bone_suppress=RequestedNotApplied");
+            // GUI-C-206: the count after each call, so a runner that counts more per call than this machine does (CI showed 3 after two calls, here 2) can be told apart from one that makes more calls.
+            output.WriteLine($"C10 after call 1: summary='{AiStatusSummary(window)}'; diagnostics='{AiDiagnostics(window)}'");
+            var first = InitDirectoryOf(AiDiagnostics(window));
+            var firstCount = InitCountOf(AiDiagnostics(window));
+
+            SetText(window, "AiModelDirectoryInput", swapped);
+            InvokeAiMenuItem(window, requireEnabled: true);
+            Assert.True(PollFor(() => InitCountOf(AiDiagnostics(window)) > firstCount, TimeSpan.FromSeconds(10)),
+                $"the second AI run never called xpe_ai_init (diagnostics: '{AiDiagnostics(window)}')");
+            var second = InitDirectoryOf(AiDiagnostics(window));
+            output.WriteLine($"C10 after call 2: summary='{AiStatusSummary(window)}'");
+            output.WriteLine($"C10 first init dir='{first}'; after the case change dir='{second}'; diagnostics='{AiDiagnostics(window)}'");
+
+            Assert.Equal(directory, first, ignoreCase: true);
+            Assert.Equal(first, second);   // exact: the spelling the session started with, not the swapped one
+        }
+        finally
+        {
+            SetAiStage(window, false);
+            SetText(window, "AiModelDirectoryInput", string.Empty);
+            ApplyDisplayPipeline(window);
+            try { Directory.Delete(directory, recursive: true); } catch (IOException) { }
+
+            // GUI-C-205: this scenario's module calls fail (the file is not a model), and a module that counts them (-3) switches the worker off after three. On the CI runner it did
+            // (state=2 failures=3), and the mark stayed on the shared app's screen for the next scenario, whose first assertion is that no mark is shown. The scenario that made
+            // the state puts it back, whatever the count turned out to be.
+            RestoreAiSession(window, "C10", output);
+        }
+    }
+
+    /// <summary>
+    /// GUI-C-205: leaves the shared app's AI session as a scenario that never called the module would. A mark on screen (the worker was switched off) is removed with its own Restart AI button;
+    /// failures that were counted without reaching the ceiling are put back to 0 by shutting the backend down and initializing it again. Reads and reports what it found (output) and
+    /// throws when the state it was asked to restore is still there, so a clean-up that did nothing is a failure of the scenario that called it, not of a later one.
+    /// </summary>
+    internal static void RestoreAiSession(Window window, string who, ITestOutputHelper output)
+    {
+        var banner = AiBanner(window) is not null;
+        var before = AiStatusSummary(window);
+        var counted = Regex.Match(before, @"failures=(\d+)") is { Success: true } m && int.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) > 0;
+        output.WriteLine($"{who} AI session before clean-up: banner={(banner ? AiBanner(window)!.Name : "none")}; summary='{before}'");
+
+        if (banner)
+        {
+            var restart = window.FindFirstDescendant(cf => cf.ByAutomationId("AiRestartButton"));
+            Assert.True(restart is not null, $"{who} left the worker-off mark on screen but the Restart AI button is not there to remove it.");
+            restart!.AsButton().Invoke();
+            Assert.True(PollFor(() => AiBanner(window) is null, TimeSpan.FromSeconds(10)), $"{who}: the worker-off mark is still shown 10 s after Restart AI.");
+        }
+        else if (counted)
+        {
+            PressBackendMenu(window, "ShutdownBackendMenuItem");
+            Assert.True(PollFor(() => !AiMenuItemIsEnabled(window), TimeSpan.FromSeconds(10)), $"{who}: the backend did not shut down.");
+            PressBackendMenu(window, "InitializeBackendMenuItem");
+            Assert.True(PollFor(() => AiMenuItemIsEnabled(window), TimeSpan.FromSeconds(15)), $"{who}: the backend did not come back after Initialize.");
+        }
+
+        var after = AiStatusSummary(window);
+        output.WriteLine($"{who} AI session after clean-up: banner={(AiBanner(window) is null ? "none" : "STILL SHOWN")}; summary='{after}'");
+        Assert.Null(AiBanner(window));
+        var left = Regex.Match(after, @"failures=(\d+)");
+        Assert.False(left.Success && left.Groups[1].Value != "0", $"{who}: the counted failures are still there after the clean-up: '{after}'");
+    }
+
+    private static void PressBackendMenu(Window window, string itemId)
+    {
+        UiaMenu.Open(window, "BackendMenu");
+        try
+        {
+            AutomationElement? item = null;
+            for (var attempt = 0; attempt < 20 && item is null; attempt++)
+            {
+                item = window.FindFirstDescendant(cf => cf.ByAutomationId(itemId));
+                if (item is null) Thread.Sleep(100);
+            }
+
+            Assert.True(item is not null, $"{itemId} did not appear under BackendMenu.");
+            item!.AsMenuItem().Invoke();
+        }
+        finally
+        {
+            UiaMenu.Close();
+        }
+    }
+
+    // C-11 (GUI-C-205) moved to AiWorkerAbsentScenarios by GUI-C-222: on this shared app the module no longer counts the refusal C-10 and C-11 used to make (QA-B-195, -4), so no mark can be made
+    // here. The clean-up helper above is exercised, with its premises asserted, where failures DO count: the app whose worker cannot be started.
+
+    // ------------------------------------------------------------------------------------------------------------------------------------------------------
+    // GUI-C-222 (#254): the clean-up helper's two branches, run for real on the app whose worker cannot be started (every call fails and the module counts it, no model and no hook involved).
+    // Each scenario ASSERTS its premise before the helper runs: on this app the premise holds in principle, so "no mark" or "no counted failure" is a failure here, never a skip.
+    // Each also makes its own start state (the app is shared with C-09 and with the other scenario, in any order) and leaves the app as it found it.
+    // ------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    /// <summary>The state the app publishes after a call: the module's own counts, read until it says <paramref name="expected"/> (the refresher publishes after the call finishes).</summary>
+    /// <summary>
+    /// A session with no mark and no counted failure. A session that was just begun again has not been asked anything yet and reads <c>worker=Unknown</c> (the status refresher publishes the module's
+    /// counts after a call), so "clean" is not "Active with 0": it is not switched off and no failure is counted.
+    /// </summary>
+    private static bool IsCleanAiSession(Window window, out string summary)
+    {
+        summary = AiStatusSummary(window);
+        return AiBanner(window) is null
+            && !summary.Contains("worker=Disabled", StringComparison.Ordinal)
+            && !Regex.IsMatch(summary, @"failures=[1-9]");
+    }
+
+    private static string WaitForAiSummary(Window window, Func<string, bool> expected, TimeSpan limit)
+    {
+        var last = AiStatusSummary(window);
+        PollFor(() => expected(last = AiStatusSummary(window)), limit);
+        return last;
+    }
+
+    /// <summary>
+    /// A clean start whatever ran before: the module's session is begun again (shut down, initialized) and the result is asserted. This is deliberately NOT the helper under test: it is the
+    /// plain backend menu, and the premise checks that follow read the state itself.
+    /// </summary>
+    private static void BeginFromACleanAiSession(Window window, string who, ITestOutputHelper output)
+    {
+        var before = AiStatusSummary(window);
+        output.WriteLine($"{who} start state: banner={(AiBanner(window) is null ? "none" : "SHOWN")}; summary='{before}'");
+        if (!IsCleanAiSession(window, out _))
+        {
+            PressBackendMenu(window, "ShutdownBackendMenuItem");
+            Assert.True(PollFor(() => !AiMenuItemIsEnabled(window), TimeSpan.FromSeconds(10)), $"{who}: the backend did not shut down.");
+            PressBackendMenu(window, "InitializeBackendMenuItem");
+            Assert.True(PollFor(() => AiMenuItemIsEnabled(window), TimeSpan.FromSeconds(15)), $"{who}: the backend did not come back after Initialize.");
+        }
+
+        Assert.True(PollFor(() => IsCleanAiSession(window, out _), TimeSpan.FromSeconds(10)), $"{who}: the session is not clean at the start even after it was begun again (summary '{AiStatusSummary(window)}').");
+    }
+
+    private static string SetUpAiRefusals(Window window, string who, out string directory)
+    {
+        CloseDetached(window);
+        directory = Path.Combine(Path.GetTempPath(), $"xpe-ai-restore-{Environment.ProcessId}-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "bone_suppress.onnx"), "not a model");
+        SetText(window, "AiModelDirectoryInput", directory);
+        SetAiStage(window, false);
+        ApplyDisplayPipeline(window);
+        return directory;
+    }
+
+    private static void CallTheAiModuleOnce(Window window, string who, int number, ITestOutputHelper output)
+    {
+        InvokeAiMenuItem(window, requireEnabled: true);
+        var chain = WaitForChain(window, "ai_bone_suppress=RequestedNotApplied");
+        output.WriteLine($"{who} call {number}: chain='{chain}'");
+    }
+
+    private static void LeaveTheAiAppAsFound(Window window, string who, string directory, ITestOutputHelper output)
+    {
+        // Best effort and silent about its own failures (the scenario's verdict is not replaced by a clean-up one), but it leaves no mark and no count for the next scenario, which may be C-09
+        // (it starts by asserting that no mark is shown).
+        void Guard(string step, Action action)
+        {
+            try { action(); } catch (Exception ex) { output.WriteLine($"{who} clean-up step '{step}' failed: {ex.GetType().Name}: {ex.Message}"); }
+        }
+
+        Guard("switch the AI stage off", () => SetAiStage(window, false));
+        Guard("clear the AI model directory", () => SetText(window, "AiModelDirectoryInput", string.Empty));
+        Guard("apply the display pipeline", () => ApplyDisplayPipeline(window));
+        Guard("begin the AI session again", () =>
+        {
+            if (!IsCleanAiSession(window, out _))
+            {
+                PressBackendMenu(window, "ShutdownBackendMenuItem");
+                PollFor(() => !AiMenuItemIsEnabled(window), TimeSpan.FromSeconds(10));
+                PressBackendMenu(window, "InitializeBackendMenuItem");
+                PollFor(() => AiMenuItemIsEnabled(window), TimeSpan.FromSeconds(15));
+            }
+        });
+        Guard("delete the temporary model directory", () => Directory.Delete(directory, recursive: true));
+    }
+
+    /// <summary>
+    /// C-11a: a scenario left the worker switched off (the mark is on screen, three failures counted). The helper must take the mark away through Restart AI and leave a session with no count.
+    /// </summary>
+    internal static void RunRestoreAfterTheMark(Window window, ITestOutputHelper output)
+    {
+        BeginFromACleanAiSession(window, "C11a", output);
+        SetUpAiRefusals(window, "C11a", out var directory);
+        try
+        {
+            for (var attempt = 1; attempt <= 6 && AiBanner(window) is null; attempt++)
+            {
+                CallTheAiModuleOnce(window, "C11a", attempt, output);
+                PollFor(() => AiBanner(window) is not null, TimeSpan.FromMilliseconds(2500));
+            }
+
+            // the premise, asserted: on this app the mark CAN be made, so not having it is a failure of the setup, not a reason to skip
+            var mark = AiBanner(window);
+            Assert.True(mark is not null, $"C11a: six failing calls on an app with no worker did not switch the worker off (summary '{AiStatusSummary(window)}').");
+            var before = AiStatusSummary(window);
+            output.WriteLine($"C11a premise: mark='{mark!.Name}'; summary='{before}'");
+            Assert.Matches(@"^worker=Disabled; failures=(\d+); ceiling=\1$", before);
+
+            RestoreAiSession(window, "C11a", output);
+
+            Assert.Null(AiBanner(window));
+            Assert.True(PollFor(() => IsCleanAiSession(window, out _), TimeSpan.FromSeconds(10)), $"C11a: the session still has a mark or a counted failure after the clean-up (summary '{AiStatusSummary(window)}').");
+        }
+        finally
+        {
+            LeaveTheAiAppAsFound(window, "C11a", directory, output);
+        }
+    }
+
+    /// <summary>
+    /// C-11b: failures are counted but the ceiling is not reached, so there is no mark to press anything on. The helper must still put the count back to zero (shut down and initialize again).
+    /// Run for one and for two counted failures: it also settles that the module counts exactly one per call here.
+    /// </summary>
+    internal static void RunRestoreAfterACountWithoutTheMark(Window window, ITestOutputHelper output)
+    {
+        BeginFromACleanAiSession(window, "C11b", output);
+        SetUpAiRefusals(window, "C11b", out var directory);
+        try
+        {
+            for (var counted = 1; counted <= 2; counted++)
+            {
+                BeginFromACleanAiSession(window, $"C11b({counted})", output);
+                for (var call = 1; call <= counted; call++)
+                {
+                    CallTheAiModuleOnce(window, $"C11b({counted})", call, output);
+                }
+
+                // the premise, asserted: exactly this many counted, and the ceiling not reached, so no mark
+                var before = WaitForAiSummary(window, t => t.Contains($"failures={counted};", StringComparison.Ordinal), TimeSpan.FromSeconds(10));
+                output.WriteLine($"C11b({counted}) premise: summary='{before}'; banner={(AiBanner(window) is null ? "none" : "SHOWN")}");
+                Assert.Matches($@"^worker=Active; failures={counted}; ceiling=\d+$", before);
+                Assert.Null(AiBanner(window));
+
+                RestoreAiSession(window, $"C11b({counted})", output);
+
+                Assert.True(PollFor(() => IsCleanAiSession(window, out _), TimeSpan.FromSeconds(10)), $"C11b({counted}): a counted failure is still there after the clean-up (summary '{AiStatusSummary(window)}').");
+
+                // "the count is gone" proven by what happens next, not only by what is read: one more refused call counts as the FIRST failure of a new session. A count that survived would make
+                // this the third (the mark) after two, or the second after one.
+                CallTheAiModuleOnce(window, $"C11b({counted}) after", 1, output);
+                var again = WaitForAiSummary(window, t => t.Contains("failures=", StringComparison.Ordinal), TimeSpan.FromSeconds(10));
+                output.WriteLine($"C11b({counted}) one call after the clean-up: summary='{again}'; banner={(AiBanner(window) is null ? "none" : "SHOWN")}");
+                Assert.Matches(@"^worker=Active; failures=1; ceiling=\d+$", again);
+                Assert.Null(AiBanner(window));
+            }
+        }
+        finally
+        {
+            LeaveTheAiAppAsFound(window, "C11b", directory, output);
+        }
+    }
+
+    private static string InitDirectoryOf(string diagnostics)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(diagnostics, @"init#\d+ dir='([^']*)'");
+        return match.Success ? match.Groups[1].Value : string.Empty;
+    }
+
+    private static int InitCountOf(string diagnostics)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(diagnostics, @"init#(\d+) ");
+        return match.Success ? int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) : 0;
+    }
 
     /// <summary>
     /// GUI-C-198: asks for the AI stage the way a user does, through the menu entry. Where the entry is disabled (the Mock backend, or a native run without xpe_ai.dll; the

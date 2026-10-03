@@ -1,0 +1,7 @@
+Digest (FNV-1a over every pixel of every frame) of tier 3, config 0.02/3/0.003/30, noisy T1 27 % exposure sequence (sigma 5, seed 7):
+
+  library executable BEFORE the seam existed (HEAD 735e963c sources, built and run once for this comparison) : 0xf7c4e2c895d7a90b
+  library executable AFTER the seam (shipped code path, constants)                                          : 0xf7c4e2c895d7a90b   (03_library_digest.txt)
+  allocation-failure executable, seam at its defaults (0.7f / 0.3f)                                         : 0xf7c4e2c895d7a90b   (02_m4_run.txt)
+
+The three runs are bit-identical: the seam changes nothing at its defaults and the shipped tier-3 arithmetic did not change.

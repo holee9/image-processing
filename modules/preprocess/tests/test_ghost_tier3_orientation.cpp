@@ -15,6 +15,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "ghost_stable_lag.h"
 
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_error.h"
@@ -65,7 +66,7 @@ Grid smoothGrid(uint32_t S, unsigned seed) {   // neighbours alike: a small corr
 Grid run(int tier, uint32_t S, const Grid& f1, const Grid& f2) {
     void* h = nullptr;
     const std::string cfg = "{\"tier\":\"" + std::to_string(tier) + "\"}";
-    EXPECT_EQ(XPE_OK, xpe_ghost_create(S, S, cfg.c_str(), &h));
+    EXPECT_EQ(XPE_OK, xpe_ghost_create(S, S, withStableLag(cfg.c_str()).c_str(), &h));
     Grid out;
     uint64_t t = 1;
     for (const Grid* src : {&f1, &f2}) {
@@ -85,7 +86,8 @@ Grid run(int tier, uint32_t S, const Grid& f1, const Grid& f2) {
 // frame is decay*0 + raw (both planes), the second frame is one time unit later.
 Grid refTier3OriginalNeighbours(uint32_t S, const Grid& f1, const Grid& f2) {
     const size_t n = f2.size();
-    const double a1b = 0.9, a2b = 0.05, tau1 = 1.0, tau2 = 20.0, beta = 0.1;
+    // the lag set is the one ghost_stable_lag.h gives run() (QA-A-226b: the old 0.9 / 0.05 is forward-unstable and refused)
+    const double a1b = 0.1, a2b = 0.01, tau1 = 1.0, tau2 = 20.0, beta = 0.1;
     (void)f1; (void)tau1; (void)tau2;
     const std::vector<float>& h = f1;                       // history planes after frame 1 (zero history, decay * 0 + raw)
     double sum = 0.0;
@@ -99,11 +101,19 @@ Grid refTier3OriginalNeighbours(uint32_t S, const Grid& f1, const Grid& f2) {
             const double raw = f2[i];
             const double sd = 1.0 + beta * (raw / 32768.0);
             double c = raw - a1b * ew * sd * h[i] - a2b * ew * sd * h[i];
-            if (x > 0 && x < S - 1 && y > 0 && y < S - 1) {
+            // QA-A-227 (#244): every pixel is blended with the mean of the neighbours that exist in the frame (nine inside, six on an
+            // edge, four in a corner). Until QA-A-227 the border pixels were not blended at all, which left a one-pixel ring.
+            {
                 double lm = 0.0;
+                int cnt = 0;
                 for (int dy = -1; dy <= 1; ++dy)
-                    for (int dx = -1; dx <= 1; ++dx) lm += f2[(y + dy) * S + (x + dx)];
-                c = 0.7 * c + 0.3 * (lm / 9.0);
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        const int yy = static_cast<int>(y) + dy, xx = static_cast<int>(x) + dx;
+                        if (yy < 0 || xx < 0 || yy >= static_cast<int>(S) || xx >= static_cast<int>(S)) continue;
+                        lm += f2[static_cast<size_t>(yy) * S + static_cast<size_t>(xx)];
+                        ++cnt;
+                    }
+                c = 0.7 * c + 0.3 * (lm / cnt);
             }
             out[i] = static_cast<float>(c > 0 ? c : 0.0);
         }

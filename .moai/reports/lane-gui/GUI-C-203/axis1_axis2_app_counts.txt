@@ -1,0 +1,13 @@
+# The app's own two counts, read from the automation report of a real run (ImageProcTest.exe --automation-report, three configurations, dev/gui = main 52a2b2a5)
+# axis 1 = DisabledFutureCommandCount  (the app's hand-written list of 13 command names, counted when !IsEnabled)
+# axis 2 = UnimplementedMenuLeafCount  (the app's walk of its own menu tree: leaf, no ItemsSource, !IsEnabled, Command == null)
+Mock                                    BackendMode=Mock   ActualBackendMode=Mock    DisabledFutureCommandCount=3  UnimplementedMenuLeafCount=3  Passed=True
+Native, module dir with xpe_ai.dll      BackendMode=Native ActualBackendMode=Native  DisabledFutureCommandCount=3  UnimplementedMenuLeafCount=3  Passed=True
+Native, module dir without xpe_ai.dll   BackendMode=Native ActualBackendMode=Native  DisabledFutureCommandCount=3  UnimplementedMenuLeafCount=3  Passed=True
+# axis 3 = MainWindow.xaml: MenuItem elements with IsEnabled="False": 3 (OpenDicomMenuItem, QaConstancyMenuItem, GsdfCalibrateMenuItem), see axis3_xaml_parse.txt
+# AutomationReportBackendTests.A11 asserts listed == walked == declared in the CI Mock run.
+# A fourth reading, the UIA walk of the running window (uia_walk_*.txt), counts items that are DISABLED AT THAT MOMENT, which is a different question (it includes the conditional ones):
+#   Mock: GsdfCalibrate, OpenDicom, QaConstancy, RunDeterministicBaseline, RunFullPipeline (AI), RunPreprocessing  -> 6
+#   Native with xpe_ai.dll: GsdfCalibrate, OpenDicom, QaConstancy -> 3
+#   Native without xpe_ai.dll: GsdfCalibrate, OpenDicom, QaConstancy, RunFullPipeline (AI) -> 4
+# UIA walk vs XAML: 58 items found under the six menus = 57 XAML items below the top level + 1 dynamic item (RecentRawFileMenuItem, built from the recent-file history). The six top-level menus are the containers the walk opens.

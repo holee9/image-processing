@@ -1,0 +1,42 @@
+SPEC-XPE-P0 수정안 초안 (QA-A-231, 리더 소유 문서용)
+근거: report.md §2. 코드는 바꾸지 않는다. 문서가 코드와 시험을 따라가게 하는 문구다.
+
+== 1. 내보내기 개수를 16 으로 통일 ==
+고칠 위치 (evidence/p0_export_count_statements.txt 의 줄 번호는 편집에 밀리므로 문구로 찾는다):
+- spec.md: "Full xpe_common.dll implementation (15 API functions)" -> 16 ; REQ-P0-030 "all 15" -> 16 ; §3.2 "lists exactly 15 functions" / "All 15 functions" -> 16 ;
+  §4.1·§4.3·§5.2·§5.3 의 "15" -> 16 ; §8.1 "15 exported API functions", "All 15 functions declared" -> 16 ; §8.3 "dumpbin confirms 15 public API exports" -> 16
+- tasks.md: T-004 "exactly 18" 와 AC, T-006 "all 18" -> 16
+- progress.md: "xpe_common.dll 18 API" / "18개" -> 16
+- export-verification.md: 본문 "15 public API functions" 와 "Expected Output (15 public APIs)" -> 16 (xpe_alert_push 를 Error/Alert 에 포함), 끝줄 "Status: PENDING VERIFICATION" -> 측정값과 날짜로 교체
+- modules/common/docs/EXPORT_POLICY.md: "20 symbols = 18 public + 2 test" -> "16 symbols" 와 함수 목록 (xpe_alert_push 는 test 전용이 아니라 다른 모듈이 부르는 생산 ABI)
+- modules/common/include (내 소유): xpe_common_api.h 머리 주석 "REQ-P0-008 ... exactly 15" 와 "18-function total" 문구, xpe_memory.h 머리 "18-function export contract"
+
+== 2. REQ 문구 정정표 (코드 이름·시그니처·동작에 맞춘다) ==
+- REQ-P0-011: "return XPE_ERR_OK" -> "XPE_OK". "set default logging to stderr at INFO level" -> 현재 구현과 맞는 문장으로 (기본 기록 수준 TRACE, 출력 목적지는 spdlog 기본) 또는 구현을 고치는 별도 카드. 어느 쪽인지 리더 결정.
+- REQ-P0-012: "xpe_shutdown ... return XPE_ERR_OK ... NOT_INITIALIZED" -> "xpe_shutdown 은 void 이며 init 없이 호출해도 안전하다". 시험 ShutdownReturnsNotInitializedWhenNotInit 이름도 같은 카드에서.
+- REQ-P0-014: "XPE_ERR_INVALID_PARAM" -> "XPE_ERR_CONFIG_INVALID"
+- REQ-P0-016: "Double-free SHALL return XPE_ERR_INVALID_PARAM" -> 현재 동작 "이미 해제된 버퍼(data==NULL)에 대한 재호출은 XPE_OK" (또는 의도가 INVALID_PARAM 이면 구현 변경 카드)
+- REQ-P0-019: "number of unread alerts" -> "큐에 있는 알림 수 (읽어도 줄지 않는다)"
+- REQ-P0-020: "copy the oldest unread alert ... and remove it" -> "인덱스로 알림 하나를 복사한다. 큐는 바뀌지 않으며 xpe_clear_alerts 로 비운다"
+- REQ-P0-022: "for the specified parameter ID" -> "(bodyPart, paramName) 으로 범위와 기본값을 돌려준다"
+- REQ-P0-023: "CRITICAL=5" 와 헤더 "5=OFF" 중 어느 쪽이 맞는지 결정 후 한 곳으로 (구현은 5 -> critical)
+- REQ-P0-024: "XPE_ERR_FILE_IO" -> "XPE_ERR_IO_FAILED"
+- REQ-P0-009: "Enum types: ... XpeErrorCode" -> "XpeErrorCode 는 int32_t 별칭이며 값은 XPE_OK, XPE_ERR_* 상수"
+- REQ-P0-032: "Each of the 8 module directories (…7개 나열…)" -> 8개를 모두 나열하거나 "7개"로.
+- REQ-P0-033: dicom 에 버전 함수가 없다. 함수를 추가하는 카드(내 소유 아님: modules/dicom)가 필요하거나 REQ 에서 dicom 을 제외.
+- REQ-P0-003: 최소 의존성 목록에서 opencv4·eigen3 를 현실에 맞게 (vcpkg.json 은 spdlog, nlohmann-json, fmt, gtest, dcmtk, openjpeg. Eigen 은 FetchContent 대체, OpenCV 는 미사용)
+
+== 3. REQ-P0-026~028, 028a 본문 ==
+- 현재 spec.md 에 본문이 없다 (§2.5 에서 2.6 으로 건너뛰고 2.7 절 자체가 없다). 이력은 "026~028 교정, 028a 추가" 라고 적는다.
+- 제안: docs/project/api-spec.md v1.2.0 의 해당 함수 서술을 근거로 본문을 복원하거나, 이력 문장을 "삭제됨" 으로 고치고 tasks.md 표에서 id 를 제거.
+  (내 조사로는 이 id 의 정의를 가진 문서가 없다: .moai/specs 안에서는 SPEC-XPE-MASTER cross-validation-report-v5 와 sprint roadmap 의 "교정" 한 줄뿐이다.)
+
+== 4. tasks.md / progress.md / spec.md 상태 ==
+- tasks.md: 7개 작업 상태를 실제에 맞게 (T-001 dicom 버전 제외 완료, T-002 구조 변경 이력 bf6348f7, T-003·T-005 완료, T-004 수 정정 후 완료, T-006·T-007 부분: 커버리지 단계는 수동 실행 전용).
+  수락 기준 체크박스 30개를 갱신하거나 "이 문서는 폐기, spec.md §7 이 정본" 으로 표시.
+- spec.md 머리 버전(1.2.0) / 이력표(1.1.0) / 끝줄(1.1.0) 통일, "12/12" -> "11/11" 또는 표를 12행으로.
+- §3 수락 기준 17개 체크박스가 전부 비어 있다: 체크하거나 근거와 함께 닫는다.
+
+== 5. §3.2·§3.4 의 CI 부재 ==
+- cppcheck / clang-tidy / MISRA / ASan: 현재 어디서도 돌지 않는다. "계획" 으로 낮추거나 도입 카드를 만든다.
+- REQ-P0-006 커버리지 85 %: 푸시에서 돌지 않는다. 문구에 "수동 실행(workflow_dispatch)" 을 적는다.

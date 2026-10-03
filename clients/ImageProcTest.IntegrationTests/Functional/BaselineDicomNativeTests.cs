@@ -60,7 +60,7 @@ public sealed class BaselineDicomNativeTests(ITestOutputHelper output) : IDispos
 
         try
         {
-            NativeLibrary.Load(Path.Combine(NativeDirectory!, "xpe_common.dll"));
+            ImageProcTest.IntegrationTests.Fixtures.SharedCommonModule.Load(NativeDirectory!);   // GUI-C-199: never a second copy of xpe_common.dll
             NativeLibrary.Load(Path.Combine(NativeDirectory!, "xpe_dicom.dll"));
             _loaded = true;
         }

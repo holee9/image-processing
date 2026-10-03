@@ -1,0 +1,17 @@
+HEAD=ed16b134 origin/main=f9803071
+rule: commits whose SUBJECT names the card (not merges); ancestor check against origin/main
+QA-A-154 fa3da63b main=yes  feat(preprocess): FUNC-017 의 FlatResidualPct 게이트를 단다 (QA-A-154)
+QA-A-156 edc53cbc main=yes  fix(preprocess): verify 지표를 정본의 산술평균으로 맞춘다 (QA-A-156)
+QA-A-192 28650606 main=yes  feat(preprocess): xpe_verify_gain 에 게인 의미 인자 — 알려지면 FlatResidualPct
+QA-A-188 bc51ab45 main=yes  test(preprocess): FUNC-019 합성 BPM 오라클 시험 상시화 + pipeline SNR 판정 근�
+QA-A-187 986bbce8 main=yes  test(preprocess): #218 오늘 상태 확인 — FUNC-017 해소 확인, FUNC-019 지표 대�
+QA-A-153 0814afbb main=yes  fix(preprocess): 결함 밀도 게이트의 단위 오류를 고친다 (QA-A-153)
+QA-A-158 a98e6287 main=yes  fix(preprocess): 오프셋 게이트를 FUNC-016 요구대로, 어두운 ROI 대체를 없�
+QA-A-157 12d49ed1 main=yes  fix(preprocess): 측정 불가 프레임을 합격으로 읽지 않는다 (QA-A-157)
+GUI-C-182 efc18f82 main=yes  docs(calibration): DefectResidualADU 의 이웃 모델 정의를 기록 (GUI-C-182)
+GUI-C-182 22a486df main=yes  fix(gui): 결함 지표를 정본 정의로 — 이웃모형 잔여(판정 없음), 결함 �
+GUI-C-182 97cc5661 main=yes  docs(calibration): GUI 검증 명세의 결함 지표 공식·합격선을 정본 §5.5 에
+QA-A-151 48a1b07a main=yes  docs(report): #216 상한 21 을 실측 5(+1) 로 바꾼다 (QA-A-151)
+QA-A-152 498fc3ce main=yes  refactor(preprocess)!: xpe_crc32 수출을 거둔다 (QA-A-152)
+QA-A-152 4bcad451 main=yes  docs(preprocess): verify 문턱 출처를 기록하고 034 인용을 088 로 옮긴다 (QA-A
+control (not-an-ancestor expected): HEAD main=no

@@ -1,0 +1,6 @@
+CI run 36987723461 (ci.yml, main d43e80c2, 2026-10-02): preprocess-tests job
+899/1080 Test  #899: DefectOracle.RecallFprAndGoodPixelDeltaMeetTheCanonicalLines .......................................................   Passed   12.74 sec
+900/1080 Test  #900: DefectOracle.ControlOneMissedDefectBreaksRecall ....................................................................   Passed    0.06 sec
+901/1080 Test  #901: DefectOracle.ControlOneFalseAlarmShowsInFpr ........................................................................   Passed    0.07 sec
+902/1080 Test  #902: DefectOracle.ControlFlaggingManyGoodPixelsBreaksGoodPixelDelta .....................................................   Passed    0.07 sec
+100% tests passed out of 1039

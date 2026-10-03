@@ -54,6 +54,23 @@ public sealed class MockBlockingTests
         Assert.False(hasMockRef, "Test assembly must not reference any Mock assembly.");
     }
 
+    /// <summary>
+    /// GUI-C-208 (D4): the control for the two scans above. <see cref="SafeGetTypes"/> swallows a <see cref="ReflectionTypeLoadException"/> and returns nothing, so a scan that silently saw
+    /// nothing would make <c>Assert.Null</c> true for any type name. This one asks the same scan for a type that IS loaded.
+    /// (D4 as first reported said CompositeXpeBackend exists nowhere and its test could never fail. That was repeated from SPEC §4's 2026-09-17 note without a search: the type
+    /// exists, as clients/ImageProcTest/Backends/CompositeXpeBackend.cs, used by the legacy clients app. The test is a real guard and stays.)
+    /// </summary>
+    [Fact]
+    public void TheTypeScan_FindsATypeThatIsLoaded()
+    {
+        var found = AppDomain.CurrentDomain
+            .GetAssemblies()
+            .SelectMany(SafeGetTypes)
+            .FirstOrDefault(t => t.Name == nameof(MockBlockingTests));
+
+        Assert.NotNull(found);
+    }
+
     private static IEnumerable<Type> SafeGetTypes(Assembly asm)
     {
         try { return asm.GetTypes(); }

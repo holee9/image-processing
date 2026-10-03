@@ -1,0 +1,12 @@
+ARM a4_codex82_original_a1_and_a2_together
+built=True
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AllNegativeCorrectedFrameDoesNotPass (0 ms)
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AllZeroCorrectedFrameDoesNotPass (0 ms)
+[  FAILED  ] VerifyMetricsTest.VerifyGain_ANanPixelInTheCorrectedFrameDoesNotPass (0 ms)
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AnAlreadyFlatPanelWithAnUnmeasurableCorrectedFrameDoesNotPass (0 ms)
+[  PASSED  ] 41 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AllNegativeCorrectedFrameDoesNotPass
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AllZeroCorrectedFrameDoesNotPass
+[  FAILED  ] VerifyMetricsTest.VerifyGain_ANanPixelInTheCorrectedFrameDoesNotPass
+[  FAILED  ] VerifyMetricsTest.VerifyGain_AnAlreadyFlatPanelWithAnUnmeasurableCorrectedFrameDoesNotPass

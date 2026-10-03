@@ -1,0 +1,30 @@
+T1  2% pedestal 40% | dark_raw 27070.18 dark_cor(oracle) 26214.00 | none: removal(M5) 0.00% removal(M1) 0.00% | oracle: removal(M5) -1195.58% removal(M1) 100.00% | blank pixels at 0 (oracle k1) 0.000
+T1  2% control under 0.5x k1: removal(M1)   50.00% (expected   50.00%) signed   +2.400% | blank pixels at 0 0.000
+T1  2% control over 1.5x  k1: removal(M1)   50.00% (expected   50.00%) signed   -2.400% | blank pixels at 0 0.000
+T1  2% control over 2x    k1: removal(M1)    0.00% (expected    0.00%) signed   -4.800% | blank pixels at 0 0.000
+T1  2% control over 3x    k1: removal(M1) -100.00% (expected -100.00%) signed   -9.600% | blank pixels at 0 0.000
+T1 27% pedestal 40% | dark_raw 27070.18 dark_cor(oracle) 26214.00 | none: removal(M5) 0.00% removal(M1) 0.00% | oracle: removal(M5) -45.70% removal(M1) 100.00% | blank pixels at 0 (oracle k1) 0.000
+T1 27% control under 0.5x k1: removal(M1)   50.00% (expected   50.00%) signed   +1.607% | blank pixels at 0 0.000
+T1 27% control over 1.5x  k1: removal(M1)   50.00% (expected   50.00%) signed   -1.607% | blank pixels at 0 0.000
+T1 27% control over 2x    k1: removal(M1)    0.00% (expected    0.00%) signed   -3.214% | blank pixels at 0 0.000
+T1 27% control over 3x    k1: removal(M1) -100.00% (expected -100.00%) signed   -6.428% | blank pixels at 0 0.000
+T1 50% pedestal 40% | dark_raw 27070.18 dark_cor(oracle) 26214.00 | none: removal(M5) 0.00% removal(M1) 0.00% | oracle: removal(M5) 19.79% removal(M1) 100.00% | blank pixels at 0 (oracle k1) 0.000
+T1 50% control under 0.5x k1: removal(M1)   50.00% (expected   50.00%) signed   +1.577% | blank pixels at 0 0.000
+T1 50% control over 1.5x  k1: removal(M1)   50.00% (expected   50.00%) signed   -1.577% | blank pixels at 0 0.000
+T1 50% control over 2x    k1: removal(M1)    0.00% (expected    0.00%) signed   -3.155% | blank pixels at 0 0.000
+T1 50% control over 3x    k1: removal(M1) -100.00% (expected -100.00%) signed   -6.310% | blank pixels at 0 0.000
+T2  2% pedestal 40% | dark_raw 26557.87 dark_cor(oracle) 26214.00 | none: removal(M5) 0.00% removal(M1) 0.00% | oracle: removal(M5) -2849.24% removal(M1) 100.00% | blank pixels at 0 (oracle k1) 0.000
+T2  2% control under 0.5x k1: removal(M1)   50.01% (expected   50.00%) signed   +0.441% | blank pixels at 0 0.000
+T2  2% control over 1.5x  k1: removal(M1)   49.99% (expected   50.00%) signed   -0.441% | blank pixels at 0 0.000
+T2  2% control over 2x    k1: removal(M1)   -0.00% (expected    0.00%) signed   -0.882% | blank pixels at 0 0.000
+T2  2% control over 3x    k1: removal(M1) -100.00% (expected -100.00%) signed   -1.763% | blank pixels at 0 0.000
+T2 27% pedestal 40% | dark_raw 26557.87 dark_cor(oracle) 26214.00 | none: removal(M5) 0.00% removal(M1) 0.00% | oracle: removal(M5) -172.96% removal(M1) 100.00% | blank pixels at 0 (oracle k1) 0.000
+T2 27% control under 0.5x k1: removal(M1)   50.00% (expected   50.00%) signed   +0.353% | blank pixels at 0 0.000
+T2 27% control over 1.5x  k1: removal(M1)   50.00% (expected   50.00%) signed   -0.353% | blank pixels at 0 0.000
+T2 27% control over 2x    k1: removal(M1)    0.00% (expected    0.00%) signed   -0.707% | blank pixels at 0 0.000
+T2 27% control over 3x    k1: removal(M1) -100.00% (expected -100.00%) signed   -1.414% | blank pixels at 0 0.000
+T2 50% pedestal 40% | dark_raw 26557.87 dark_cor(oracle) 26214.00 | none: removal(M5) 0.00% removal(M1) 0.00% | oracle: removal(M5) -70.85% removal(M1) 100.00% | blank pixels at 0 (oracle k1) 0.000
+T2 50% control under 0.5x k1: removal(M1)   50.00% (expected   50.00%) signed   +0.305% | blank pixels at 0 0.000
+T2 50% control over 1.5x  k1: removal(M1)   50.00% (expected   50.00%) signed   -0.305% | blank pixels at 0 0.000
+T2 50% control over 2x    k1: removal(M1)    0.00% (expected    0.00%) signed   -0.610% | blank pixels at 0 0.000
+T2 50% control over 3x    k1: removal(M1) -100.00% (expected -100.00%) signed   -1.221% | blank pixels at 0 0.000

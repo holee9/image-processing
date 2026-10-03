@@ -1,0 +1,11 @@
+Note: Google Test filter = GhostRegistry.UseAfterDestroyIsRefused
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from GhostRegistry
+[ RUN      ] GhostRegistry.UseAfterDestroyIsRefused
+[       OK ] GhostRegistry.UseAfterDestroyIsRefused (0 ms)
+[----------] 1 test from GhostRegistry (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.

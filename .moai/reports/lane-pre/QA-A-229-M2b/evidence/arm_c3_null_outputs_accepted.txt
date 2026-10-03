@@ -1,0 +1,12 @@
+build_exit=0 test_exit=1
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_param_range_names.cpp(60): error: Expected equality of these values:
+    Which is: 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_param_range_names.cpp(61): error: Expected equality of these values:
+    Which is: 0
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_param_range_names.cpp(62): error: Expected equality of these values:
+    Which is: 0
+[  FAILED  ] ParamRangeNamesTest.NullOutputPointersAreRejected (0 ms)
+[  PASSED  ] 1 test.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ParamRangeNamesTest.NullOutputPointersAreRejected
+ 1 FAILED TEST
