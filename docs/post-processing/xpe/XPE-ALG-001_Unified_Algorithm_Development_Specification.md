@@ -9459,8 +9459,11 @@ void DicomConformanceValidator::check_type1_attributes(
     // Type 1: 존재 + 비어있지 않아야 함
     // 정정 2026-10-03 (#251, Codex #111·#113, 사용자 결정 "표준대로"): PatientID·PatientName 은 Patient Module 의
     // Type 2 (PS3.3 Table C.7-1), StudyDate 는 General Study Module 의 Type 2 — 존재만 필수, 빈 값 적합이므로
-    // 이 목록에서 뺐다. PixelData 는 Image Pixel Module 의 Type 1C(Pixel Data Provider URL (0028,7FE0) 이
-    // 없을 때 필수)이므로 URL 이 있으면 누락을 오류로 보지 않는다. 구현 기준은 SPEC-XPE-P1B-DICOM REQ-DICOM-024.
+    // 이 목록에서 뺐다. PixelData 는 Image Pixel Module 의 Type 1C 이고, 전송 구문에 따라 갈린다(PS3.5 §8.2·A.6):
+    // JPIP 참조 구문(.94/.95)에서는 PixelData 가 있으면 안 되고 값 있는 Provider URL (0028,7FE0) 로 참조한다
+    // (이 모듈은 참조 화소를 읽지 못하므로 경고), 그 밖의 구문에서는 PixelData 필수이고 URL 은 허용되지 않는다.
+    // 둘이 함께 있으면 오류. 이 예제의 목록 루프는 그 조건을 표현하지 못하므로 PixelData 판정의 기준은
+    // SPEC-XPE-P1B-DICOM REQ-DICOM-024 다(정정 2026-10-03, #251, Codex #113~#115).
     const std::vector<std::pair<DcmTagKey, std::string>> type1_tags = {
         {DCM_SOPClassUID,                 "SOPClassUID"},
         {DCM_SOPInstanceUID,              "SOPInstanceUID"},

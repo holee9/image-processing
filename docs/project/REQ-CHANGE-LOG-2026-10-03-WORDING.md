@@ -112,7 +112,7 @@
 | 요구 ID | 문서 | 옛 문구 → 새 문구 | 근거 |
 |---|---|---|---|
 | REQ-DICOM-024 | SPEC-XPE-P1B-DICOM v1.3.1 | Type 1 목록(값 필수)에 Patient Name·Patient ID 포함 → 두 항목을 "Type 2: 존재 필수, 빈 값 적합" 줄로 분리 | DICOM PS3.3 Table C.7-1 이 두 속성을 Type 2 로 규정. 옛 문구대로면 표준에 맞는 익명화 DX 파일이 `DICOM_INVALID`. 구현 post QA-B-206 M2b, 나머지 9개 항목의 표준 Type 대조표는 그 보고서 §1 |
-| REQ-DICOM-024 (Pixel Data) | SPEC-XPE-P1B-DICOM v1.3.1 | Type 1 목록의 Pixel Data → "Provider URL 이 없을 때 필수(Type 1C)". URL 은 JPIP 참조 전송 구문에서만 화소를 대신하고(그때 비치명 경고), 다른 구문의 URL 이나 Pixel Data·URL 동시 존재는 오류(PS3.5 §8.2, Codex #114 로 정정) | Image Pixel Module 의 Type 1C. Codex #113 이 찾음. 같은 요구 줄의 표준 정렬이라 위 사용자 결정("표준대로 허용")을 적용 — 리더 판단, 사용자가 다르게 원하면 되돌린다. 구현 QA-B-206 M2c |
+| REQ-DICOM-024 (Pixel Data) | SPEC-XPE-P1B-DICOM v1.3.1 | Type 1 목록의 Pixel Data → "Provider URL 이 없을 때 필수(Type 1C)". URL 은 JPIP 참조 전송 구문에서만 화소를 대신하고(그때 비치명 경고), 다른 구문의 URL, JPIP 구문의 Pixel Data, Pixel Data·URL 동시 존재는 오류(PS3.5 §8.2·A.6, Codex #114·#115 로 정정). `.95`(Deflate)는 이 빌드에서 읽지 못해 미검증 | Image Pixel Module 의 Type 1C. Codex #113 이 찾음. 같은 요구 줄의 표준 정렬이라 위 사용자 결정("표준대로 허용")을 적용 — 리더 판단, 사용자가 다르게 원하면 되돌린다. 구현 QA-B-206 M2c |
 | (설계 예제) XPE-ALG-001 §17.3.1 | XPE-ALG-001 | Type 1 목록에서 PatientID·StudyDate 제거(둘 다 Type 2), PixelData 를 1C 로 | 같은 근거. Codex #113 발견 2 |
 
 ---
