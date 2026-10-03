@@ -169,7 +169,7 @@ For each `XpeErrorCode` value in the C# enum (`OK`=0, `INVALID_INPUT`=-1, ..., `
 
 After executing the full test collection, the test host process **shall not** hold any outstanding `GCHandle.Alloc(Pinned)` handle. (Verification: `GC.Collect(); GC.WaitForPendingFinalizers()` followed by `GC.GetTotalMemory` delta sanity check within `[Trait("Category","Lifecycle")]`)
 
-> **상태 주석 (2026-10-03, #249).** 요구 문구는 남은 `GCHandle.Alloc(Pinned)` 핸들의 부재를 요구하지만, 검증 방법은 "GetTotalMemory 상식 점검"으로 정의되어 있어 둘이 다르다. 현재 시험(`LeakEnduranceTests.AfterTests_NoOutstandingPinnedHandles`)은 핸들을 세지 않고 관리 힙 < 200 MiB(절대값)만 단언하며, 트레이트는 `Safety`다. 요구를 상식 점검 수준으로 낮출지, 핸들 집계를 정의할지는 결정 대기다. 현재 상태: **부분**.
+> **상태 주석 (2026-10-03, #249).** 요구 문구는 남은 `GCHandle.Alloc(Pinned)` 핸들의 부재를 요구하지만, 검증 방법은 "GetTotalMemory 상식 점검"으로 정의되어 있어 둘이 다르다. 당시 시험(`AfterTests_NoOutstandingPinnedHandles`)은 핸들을 세지 않고 관리 힙 < 200 MiB(절대값)만 단언했다. **갱신 (GUI-C-208 M2)**: 그 시험은 고정 핸들 수를 실제로 세는 `LeakEnduranceTests.PinnedObjects_AtThisPoint_AreNoMoreThanWhenTheFixtureWasCreated` 와 계측 자체를 단언하는 `LeakEnduranceTests.TheInstrument_CountsAPinnedHandle_AndStopsCountingItOnceFreed` 로 바뀌었다. 현재 상태: **부분**(CI 러너에서 흔들림 여부 미확인).
 
 ### 4.2 Event-Driven Requirements (이벤트 구동)
 
@@ -241,7 +241,7 @@ After executing the full test collection, the test host process **shall not** ho
 
 **While** `RuntimeInformation.ProcessArchitecture != Architecture.X64`, a diagnostic test **shall** run and record the architecture without failing other tests. (For ARM64 future support.)
 
-> **상태 주석 (2026-10-03, #249).** 기존 `PlatformDetectionTests.ProcessArchitecture_IsX64` 는 ARM64 에서 **실패**하므로 "다른 시험을 실패시키지 않고 기록"과 모순되며, 아키텍처를 실제로 기록(출력·추적)하는 시험도 없다. 해당 시험을 완화할지, 본 요구를 "기록 전용"으로 명시할지는 결정 대기다. 현재 상태: **부분**.
+> **상태 주석 (2026-10-03, #249).** 당시 시험(`ProcessArchitecture_IsX64`)은 ARM64 에서 **실패**하므로 "다른 시험을 실패시키지 않고 기록"과 모순됐다. **갱신 (GUI-C-208 M2)**: 요구 문구대로 기록 전용인 `PlatformDetectionTests.ProcessArchitecture_IsRecordedForDiagnostics` 로 바뀌었다(ARM64 분기는 실행해 보지 않음). 현재 상태: **부분**.
 
 ### 4.4 Unwanted Behavior Requirements (금지 동작)
 
