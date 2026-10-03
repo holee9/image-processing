@@ -73,6 +73,7 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             Assert.False(checking.EvaluationReady, $"Evaluation: '{checking.StageModes}'; Offset switch enabled={checking.OffsetSwitchEnabled}");
             Assert.False(checking.OffsetSwitchEnabled, "the Offset switch must stay disabled while the oracle has not answered");
             Assert.Equal(0, checking.BlockingFindings);   // "checking" is not reported as a failure on the Calibration tab
+            Assert.True(checking.CheckingFindings > 0, "the Calibration tab has no NATIVE-CHECKING finding: nothing says that the preprocess stages are blocked WHILE the oracle runs");   // GUI-C-219b
 
             File.WriteAllText(gate, "go");   // now the worker may run the oracle
 
@@ -86,6 +87,50 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             app.ClickButtonOnTab("Diagnostics", "Refresh");   // the user's refresh asks again
             var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(60);
             while (DateTime.UtcNow < deadline && File.ReadAllLines(log).Length < 2) Thread.Sleep(300);
+            Assert.Equal(2, File.ReadAllLines(log).Length);
+        }
+        finally
+        {
+            try { File.Delete(log); } catch (IOException) { }
+            try { File.Delete(gate); } catch (IOException) { }
+        }
+    }
+
+    /// <summary>
+    /// GUI-C-219b (Codex #109): after the user presses "Refresh Modules" the three screens say the same thing. That button used to refresh only the module matrix (which read "checking") while the
+    /// Diagnostics smoke line kept the previous "pass=True" and the Calibration tab turned to "not ready". Here the oracle has passed and every tab says so; the worker is then held at its gate,
+    /// the button is pressed, and all three tabs must say "checking" (no stale pass, no "not ready"); when the gate opens, all three say "ready" again, from a second run.
+    /// </summary>
+    [SkippableFact]
+    public void R04_RefreshModules_MakesAllThreeTabsSayChecking_ThenAllThreeSayReady()
+    {
+        var log = Path.Combine(Path.GetTempPath(), $"xpe_oracle_log_{Guid.NewGuid():N}.txt");
+        var gate = Path.Combine(Path.GetTempPath(), $"xpe_oracle_gate_{Guid.NewGuid():N}.txt");
+        try
+        {
+            File.WriteAllText(gate, "go");   // the first run is not held
+            var env = new Dictionary<string, string> { ["XPE_ORACLE_TEST_GATE"] = gate, ["XPE_ORACLE_TEST_LOG"] = log };
+            using var app = LegacyApp.LaunchOrSkip(breakTemp: false, extraEnvironment: env);
+
+            var first = app.ReadPreprocessOnEveryTab();
+            output.WriteLine("before the refresh: " + first.Describe());
+            Assert.True(first.Diagnostics && first.Calibration && first.Evaluation, "the start state is not 'ready' on all three tabs: " + first.Describe());
+
+            File.Delete(gate);                                       // the next worker waits at its gate
+            app.ClickButtonOnTab("Diagnostics", "Refresh Modules");
+            var checking = app.ReadPreprocessWhileChecking();
+            output.WriteLine("after the refresh, oracle held: " + checking);
+            Assert.True(checking.SmokeSaysChecking, $"Diagnostics smoke line after Refresh Modules: '{checking.Smoke}' (a stale pass shows here)");
+            Assert.True(checking.MatrixSaysChecking, $"matrix row after Refresh Modules: '{checking.Row}'");
+            Assert.Equal(0, checking.BlockingFindings);                       // not "not ready"
+            Assert.True(checking.CheckingFindings > 0, "the Calibration tab shows no NATIVE-CHECKING finding after Refresh Modules");
+            Assert.False(checking.EvaluationReady, $"Evaluation after Refresh Modules: '{checking.StageModes}'");
+            Assert.False(checking.OffsetSwitchEnabled, "the Offset switch is enabled while the oracle has not answered");
+
+            File.WriteAllText(gate, "go");
+            var second = app.ReadPreprocessOnEveryTab();
+            output.WriteLine("after the answer: " + second.Describe());
+            Assert.True(second.Diagnostics && second.Calibration && second.Evaluation, "the three tabs do not agree on 'ready' after the second run: " + second.Describe());
             Assert.Equal(2, File.ReadAllLines(log).Length);
         }
         finally
@@ -132,12 +177,12 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             .Select(p => p.Id)
             .ToHashSet();
 
-    private sealed record CheckingView(string Smoke, string Row, int BlockingFindings, string StageModes, bool OffsetSwitchEnabled)
+    private sealed record CheckingView(string Smoke, string Row, int BlockingFindings, string StageModes, bool OffsetSwitchEnabled, int CheckingFindings = 0)
     {
         public bool SmokeSaysChecking => Smoke.Contains("checking", StringComparison.OrdinalIgnoreCase) && !Smoke.Contains("pass=", StringComparison.Ordinal);
         public bool MatrixSaysChecking => Row.Contains("Synthetic oracle checking", StringComparison.Ordinal);
         public bool EvaluationReady => StageModes.StartsWith("Preprocess=ready", StringComparison.Ordinal);
-        public override string ToString() => $"smoke='{Smoke}' | row has checking={MatrixSaysChecking} | NATIVE-NOT-READY={BlockingFindings} | stage modes='{StageModes.Split('.')[0]}' | Offset enabled={OffsetSwitchEnabled}";
+        public override string ToString() => $"smoke='{Smoke}' | row has checking={MatrixSaysChecking} | NATIVE-NOT-READY={BlockingFindings} | NATIVE-CHECKING={CheckingFindings} | stage modes='{StageModes.Split('.')[0]}' | Offset enabled={OffsetSwitchEnabled}";
     }
 
     private sealed record TabView(bool Diagnostics, string DiagnosticsEvidence, bool Calibration, string CalibrationEvidence, bool Evaluation, string EvaluationEvidence)
@@ -261,10 +306,11 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             var row = DataItems().FirstOrDefault(n => n.Contains("ModuleReadinessSnapshot { ModuleName = xpe_preprocess,", StringComparison.Ordinal)) ?? "(no xpe_preprocess row)";
             SelectTab("Calibration");
             var blocking = DataItems().Count(n => n.Contains("RuleId = NATIVE-NOT-READY", StringComparison.Ordinal) && n.Contains("native preprocess adapter is not ready", StringComparison.Ordinal));
+            var checkingFindings = DataItems().Count(n => n.Contains("RuleId = NATIVE-CHECKING", StringComparison.Ordinal));
             SelectTab("Evaluation");
             var info = _window.FindFirstDescendant(cf => cf.ByAutomationId("StageModesInfoText"))?.Name ?? string.Empty;
             var offsetSwitch = _window.FindFirstDescendant(cf => cf.ByAutomationId("OffsetEnabledCheckBox"));
-            return new CheckingView(smoke, row, blocking, info, offsetSwitch is not null && offsetSwitch.IsEnabled);
+            return new CheckingView(smoke, row, blocking, info, offsetSwitch is not null && offsetSwitch.IsEnabled, checkingFindings);
         }
 
         public void ClickButtonOnTab(string tab, string name)

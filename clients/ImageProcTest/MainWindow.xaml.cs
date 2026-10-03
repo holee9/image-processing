@@ -329,9 +329,9 @@ namespace ImageProcTest
 
         private void RefreshModulesButton_Click(object sender, RoutedEventArgs e)
         {
-            // the user's refresh: the synthetic oracle is asked again (every other refresh reuses its verdict)
-            PreprocessOracleVerdicts.Invalidate();
-            RefreshModuleReadiness();
+            // the user's refresh: the synthetic oracle is asked again (every other refresh reuses its verdict). Through the FULL refresh (GUI-C-219b, Codex #109): this used to refresh only the module
+            // matrix, so the Diagnostics smoke line and the Calibration findings kept reading the previous health (the old "pass=True") while the matrix said "checking".
+            RefreshNativeHealth(recheckOracle: true);
         }
 
         private void RefreshAlgorithmsButton_Click(object sender, RoutedEventArgs e)

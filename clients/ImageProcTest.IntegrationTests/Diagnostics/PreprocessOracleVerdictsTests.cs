@@ -138,9 +138,9 @@ public sealed class PreprocessOracleVerdictsTests : IDisposable
         Assert.Equal(1, runs);
     }
 
-    /// <summary>A DLL that changed on disk is another subject: its verdict is asked for again.</summary>
+    /// <summary>GUI-C-219b: a verdict belongs to a file's CONTENT. Touching the file (a new write time, the same bytes) is not a new subject.</summary>
     [Fact]
-    public void ADllRewritten_IsANewSubject()
+    public void ATimestampChangeAlone_IsNotANewSubject()
     {
         var runs = 0;
         PreprocessOracleVerdicts.Runner = _ => { Interlocked.Increment(ref runs); return Verdict("v"); };
@@ -149,6 +149,89 @@ public sealed class PreprocessOracleVerdictsTests : IDisposable
         File.SetLastWriteTimeUtc(_dll, DateTime.UtcNow.AddMinutes(5));
         PreprocessOracleVerdicts.Wait(_dll);
 
+        Assert.Equal(1, runs);
+    }
+
+    /// <summary>
+    /// GUI-C-219b (Codex #109, high): a DIFFERENT file of the same size and the same write time is another subject. The key used to be the path and the write time, so this was handed the old
+    /// verdict, and a binary that had never been checked became "ready".
+    /// </summary>
+    [Fact]
+    public void ADifferentFileWithTheSameSizeAndTimestamp_IsANewSubject()
+    {
+        var runs = 0;
+        PreprocessOracleVerdicts.Runner = _ => { Interlocked.Increment(ref runs); return Verdict($"run{runs}"); };
+        Assert.Equal("run1", PreprocessOracleVerdicts.Wait(_dll).Status);
+        var stamp = File.GetLastWriteTimeUtc(_dll);
+        var size = new FileInfo(_dll).Length;
+
+        File.WriteAllText(_dll, "y");              // the same length (1 byte), other bytes
+        File.SetLastWriteTimeUtc(_dll, stamp);     // the time put back
+        Assert.Equal(size, new FileInfo(_dll).Length);
+        Assert.Equal(stamp, File.GetLastWriteTimeUtc(_dll));
+
+        Assert.Equal("run2", PreprocessOracleVerdicts.Wait(_dll).Status);
+        Assert.Equal(2, runs);
+    }
+
+    /// <summary>GUI-C-219b: a file that changes while the oracle runs on it. The result of that run belongs to neither content: it is not stored under the old one, and the new one is checked.</summary>
+    [Fact]
+    public void AFileThatChangesWhileTheOracleRuns_IsNotJudgedByTheRunThatStartedBeforeTheChange()
+    {
+        var runs = 0;
+        using var firstStarted = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        using var completed = new ManualResetEventSlim();
+        var announced = 0;
+        PreprocessOracleVerdicts.Completed += _ => { Interlocked.Increment(ref announced); completed.Set(); };
+        PreprocessOracleVerdicts.Runner = _ =>
+        {
+            var number = Interlocked.Increment(ref runs);
+            if (number == 1) { firstStarted.Set(); release.Wait(); }
+            return Verdict($"run{number}");
+        };
+
+        Assert.Null(PreprocessOracleVerdicts.TryGet(_dll));
+        Assert.True(firstStarted.Wait(5000));
+        var stamp = File.GetLastWriteTimeUtc(_dll);
+        File.WriteAllText(_dll, "z");              // the file changes under the run (same length, time put back: only the content tells)
+        File.SetLastWriteTimeUtc(_dll, stamp);
+        release.Set();
+
+        Assert.True(completed.Wait(10000), "the new content was never checked");
+        Assert.Equal("run2", PreprocessOracleVerdicts.TryGet(_dll)!.Status);   // the answer for what is on disk now, not run 1's
+        Assert.Equal(2, runs);
+        Thread.Sleep(200);
+        Assert.Equal(1, announced);                                           // the stale run announced nothing
+    }
+
+    /// <summary>GUI-C-219b: the file is put back to content that already has a verdict while a run for other content is in progress: the window still hears the answer.</summary>
+    [Fact]
+    public void AFilePutBackDuringARun_StillAnnouncesTheKnownAnswer()
+    {
+        var runs = 0;
+        using var secondStarted = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        using var completed = new ManualResetEventSlim();
+        PreprocessOracleVerdicts.Runner = _ =>
+        {
+            var number = Interlocked.Increment(ref runs);
+            if (number == 2) { secondStarted.Set(); release.Wait(); }
+            return Verdict($"run{number}");
+        };
+        Assert.Equal("run1", PreprocessOracleVerdicts.Wait(_dll).Status);       // content "x"
+        var original = File.ReadAllBytes(_dll);
+        var stamp = File.GetLastWriteTimeUtc(_dll);
+        File.WriteAllText(_dll, "w");
+        PreprocessOracleVerdicts.Completed += _ => completed.Set();
+        Assert.Null(PreprocessOracleVerdicts.TryGet(_dll));                      // run 2 starts, for content "w"
+        Assert.True(secondStarted.Wait(5000));
+        File.WriteAllBytes(_dll, original);                                      // back to "x" while run 2 is in progress
+        File.SetLastWriteTimeUtc(_dll, stamp);
+        release.Set();
+
+        Assert.True(completed.Wait(10000), "the window was never told");
+        Assert.Equal("run1", PreprocessOracleVerdicts.TryGet(_dll)!.Status);     // the earlier answer for the content that is back
         Assert.Equal(2, runs);
     }
 
@@ -185,6 +268,78 @@ public sealed class PreprocessOracleVerdictsTests : IDisposable
         var only = Assert.Single(seen);
         Assert.Equal(_dll, only.Path);
         Assert.Equal("told", only.Status);
+    }
+
+    /// <summary>
+    /// GUI-C-219b (Codex #109, low): the guard against bringing the synchronous oracle back is a CALL-BOUNDARY check on the UI entry points (the window and its view models), not the presence of a
+    /// word. A source scan for "PreprocessOracleVerdicts." passes with a direct <c>XpePreprocessOracleProcess.Run(</c> added next to it. Here: no UI entry point calls the oracle or the blocking
+    /// <c>Wait</c>, and every call into the readiness chain says whether it may wait, with the answer "no" (the default is "yes", which is for the headless callers). Source text, named as such.
+    /// </summary>
+    [Fact]
+    public void TheWindowAndItsViewModels_NeverCallTheOracleOrWaitForIt()
+    {
+        var appDir = FindAppDir();
+        var uiFiles = new[] { Path.Combine(appDir, "MainWindow.xaml.cs") }
+            .Concat(Directory.EnumerateFiles(Path.Combine(appDir, "ViewModels"), "*.cs", SearchOption.AllDirectories))
+            .ToList();
+        var forbidden = new[] { "XpePreprocessOracleProcess.Run(", "XpePreprocessSyntheticOracle.Run(", "PreprocessOracleVerdicts.Wait(" };
+        // each entry point into the readiness chain, and what its call must carry
+        var mustSayNo = new[] { "NativeReadinessProbe.WriteReport(", "XpePreprocessReadinessProbe.Check(", "ModuleReadinessService.Evaluate(", "moduleReadinessViewModel.Refresh(" };
+        var seen = 0;
+        foreach (var file in uiFiles)
+        {
+            var text = File.ReadAllText(file);
+            foreach (var call in forbidden)
+            {
+                Assert.True(!text.Contains(call, StringComparison.Ordinal), $"{Path.GetFileName(file)} calls {call}: the oracle would run on, or be waited for by, the UI thread.");
+            }
+
+            foreach (var call in mustSayNo)
+            {
+                foreach (var args in ArgumentsOfEveryCall(text, call))
+                {
+                    seen++;
+                    var isViewModelForwarding = Path.GetFileName(file) == "ModuleReadinessViewModel.cs";
+                    var ok = isViewModelForwarding
+                        ? args.Contains("waitForOracle", StringComparison.Ordinal)                       // the view model passes its caller's answer on; its callers are checked here too
+                        : System.Text.RegularExpressions.Regex.IsMatch(args, @"waitForOracle\s*:\s*false");
+                    Assert.True(ok, $"{Path.GetFileName(file)}: {call}{args}) does not say waitForOracle: false, so the default (wait) applies.");
+                }
+            }
+        }
+
+        // control: the scan saw the calls that must exist, or "found none" would be a pass
+        Assert.True(seen >= 3, $"the scan found only {seen} calls into the readiness chain in the window and its view models.");
+    }
+
+    private static IEnumerable<string> ArgumentsOfEveryCall(string text, string call)
+    {
+        var from = 0;
+        while ((from = text.IndexOf(call, from, StringComparison.Ordinal)) >= 0)
+        {
+            var open = from + call.Length;
+            var depth = 1;
+            var i = open;
+            for (; i < text.Length && depth > 0; i++)
+            {
+                if (text[i] == '(') depth++;
+                else if (text[i] == ')') depth--;
+            }
+
+            yield return text[open..Math.Max(open, i - 1)];
+            from = i;
+        }
+    }
+
+    private static string FindAppDir()
+    {
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        {
+            var candidate = Path.Combine(dir.FullName, "clients", "ImageProcTest");
+            if (File.Exists(Path.Combine(candidate, "App.xaml.cs"))) return candidate;
+        }
+
+        throw new DirectoryNotFoundException("clients/ImageProcTest was not found above the test output.");
     }
 
     [Fact]
