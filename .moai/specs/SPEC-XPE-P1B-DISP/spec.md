@@ -1,8 +1,8 @@
 # SPEC-XPE-P1B-DISP: Phase 1b Display Processing
 
 **Document ID**: SPEC-XPE-P1B-DISP
-**Version**: 1.0.0
-**Date**: 2026-04-16
+**Version**: 1.1.0
+**Date**: 2026-10-03
 **Status**: Completed
 **Parent**: SPEC-XPE-MASTER v2.0.0
 **Classification**: IEC 62304 Class B
@@ -21,6 +21,7 @@
 |---------|------|--------|-------------|
 | 1.0.0 | 2026-04-16 | MoAI (manager-spec) | Initial EARS requirements for Display Processing (SWU-3.1/3.2/3.3), 28 REQs |
 | 1.0.0-impl | 2026-04-16 | Agent Teams (xpe-orchestrator + teammates) | Complete implementation of all 3 SWUs (5 C API functions), 48 test cases, TRUST 5 quality gates passed, GUI integration completed |
+| 1.1.0 | 2026-10-03 | lead (QA-B-199) | 요구 실태 대조 반영(#251): §3.4 의 중복 정의 `REQ-DISP-029`(ABI 요구)를 `REQ-DISP-036` 으로 재번호(두 문구 모두 유지), 결함 후보 D1~D9 해당 요구에 상태 메모 추가(요구 문구는 바꾸지 않음), §6 추적 범위 갱신 |
 
 ---
 
@@ -290,6 +291,8 @@ XPE_API xpe_error_t xpe_gsdf_calibrate(
 
 **REQ-DISP-002**: WHEN `xpe_apply_modality_lut` is called with `mode == XPE_MODALITY_LUT_TABLE`, the system SHALL map each input pixel value to the corresponding entry in the DICOM Modality LUT Sequence, using `lutFirstMapped` as the base index offset and clamping out-of-range inputs to the nearest boundary entry.
 
+> **상태 메모 (2026-10-03, QA-B-199, 후보 D2)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 절댓값이 2³¹ 을 넘는 유한 화소는 float→int32 변환이 미정의다. x64 에서 INT_MIN 이 되면 마지막 항목이 아니라 인덱스 0 으로 잘린다(`modality_lut.cpp`, `display_internal.h`, 읽기로 찾은 후보).
+
 **REQ-DISP-003**: IF `img` is NULL or `params` is NULL, THEN the system SHALL return `XPE_ERR_INVALID_INPUT` without modifying any state.
 
 **REQ-DISP-004**: IF `img->format` is not `XPE_PIXEL_FLOAT32`, THEN the system SHALL return `XPE_ERR_UNSUPPORTED_FORMAT` without modifying the image.
@@ -310,6 +313,8 @@ XPE_API xpe_error_t xpe_gsdf_calibrate(
 output[i] = clamp( ((input[i] - (center - 0.5)) / (width - 1) + 0.5) * (maxOut - minOut) + minOut,
                    minOut, maxOut )
 ```
+
+> **상태 메모 (2026-10-03, QA-B-199, 후보 D3)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. `width` 가 (0, 1) 이면 `width - 1` 이 음수가 되어 하한이 상한보다 커지고, 세 분기 판정이 한 점 계단으로 퇴화한다. REQ-DISP-015 는 `width > 0` 이면 모두 받아들인다.
 
 **REQ-DISP-010**: WHEN `xpe_apply_voi_lut` is called with `mode == XPE_VOI_LINEAR_EXACT`, the system SHALL apply the DICOM PS3.3 C.11.2.1.3.2 *LINEAR_EXACT* function, which windows about `center` over a width of `width`:
 
@@ -344,6 +349,8 @@ output[i] = clamp( ((input[i] - center) / width + 0.5) * (maxOut - minOut) + min
 
 **REQ-DISP-012**: The VOI LUT output SHALL be in the range `[minOut, maxOut]` for all input values. Pixel values SHALL be clamped to this range after windowing.
 
+> **상태 메모 (2026-10-03, QA-B-199, 후보 D8)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. `minOut > maxOut` 을 거부하지 않는다. 뒤집힌 램프 대신 두 값만 나오는 영상이 된다(REQ-DISP-009~012 공통, `voi_lut.cpp`).
+
 **REQ-DISP-013**: IF `img` is NULL or `params` is NULL, THEN the system SHALL return `XPE_ERR_INVALID_INPUT` without modifying any state.
 
 **REQ-DISP-014**: IF `img->format` is not `XPE_PIXEL_FLOAT32`, THEN the system SHALL return `XPE_ERR_UNSUPPORTED_FORMAT`.
@@ -365,7 +372,7 @@ output[i] = clamp( ((input[i] - center) / width + 0.5) * (maxOut - minOut) + min
 
 **REQ-DISP-018**: IF `params` is NULL or `bodyPart` is not a recognized `XpeBodyPart` enum value, THEN `xpe_voi_preset_create` SHALL return `XPE_ERR_INVALID_INPUT`.
 
-### 3.3 Presentation LUT + GSDF (SWU-3.3 / POST-12c) -- REQ-DISP-019..028
+### 3.3 Presentation LUT + GSDF (SWU-3.3 / POST-12c) -- REQ-DISP-019..029
 
 **REQ-DISP-019**: WHEN `xpe_apply_presentation_lut` is called, the system SHALL map each float32 pixel value from the [0,1] range to a uint16 output value using the 1024-entry Presentation LUT: `index = clamp(round(input[i] * 1023), 0, 1023); output[i] = lutData[index]`.
 
@@ -373,11 +380,15 @@ output[i] = clamp( ((input[i] - center) / width + 0.5) * (maxOut - minOut) + min
 
 **REQ-DISP-021**: IF the input pixel values are outside [0.0, 1.0] range, THEN the system SHALL clamp them to [0.0, 1.0] before LUT lookup.
 
+> **상태 메모 (2026-10-03, QA-B-199, 후보 D4)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. QA-B-181f 이후 구현은 ±inf·NaN 화소를 클램프하기 전에 `XPE_ERR_INVALID_INPUT` 으로 거부한다. 이 요구의 "[0,1] 밖은 클램프" 는 비유한 값까지 포함하는 문구라 코드와 반대다. 문구 갱신 여부는 결정 대기(#251) — 요구 문구는 바꾸지 않았다.
+
 **REQ-DISP-022**: IF `img` is NULL or `params` is NULL, THEN the system SHALL return `XPE_ERR_INVALID_INPUT` without modifying any state.
 
 **REQ-DISP-023**: IF `img->format` is not `XPE_PIXEL_FLOAT32`, THEN the system SHALL return `XPE_ERR_UNSUPPORTED_FORMAT`.
 
 **REQ-DISP-024**: WHEN `gsdfEnabled` is non-zero in the params, the system SHALL apply the GSDF-calibrated LUT entries (previously computed by `xpe_gsdf_calibrate`) to ensure perceptually linear luminance output per DICOM PS3.14.
+
+> **상태 메모 (2026-10-03, QA-B-199, 후보 D5)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. `gsdfEnabled` 는 `xpe_gsdf_calibrate` 가 쓰기만 하고(`presentation_lut.cpp`) `xpe_apply_presentation_lut` 은 읽지 않는다. "WHEN gsdfEnabled is non-zero" 조건이 코드에 없어 값이 0 이든 1 이든 같은 적용을 한다. 요구를 지울지 구현할지는 결정 대기(#251).
 
 **REQ-DISP-025**: WHEN `xpe_gsdf_calibrate` is called with the display's measured characteristic curve, the system SHALL compute a DICOM PS3.14 GSDF-compliant Presentation LUT whose 1024 entries are spaced equally in JND index across the measured luminance range, each entry holding the digital driving level whose **measured** luminance satisfies the GSDF at that P-Value, and populate `outParams->lutData[0..1023]` with the resulting uint16 values.
 
@@ -393,6 +404,8 @@ output[i] = clamp( ((input[i] - center) / width + 0.5) * (maxOut - minOut) + min
 > 검증은 **정답을 아는 입력**으로 했습니다 — 감마 2.2·1.8 합성 특성 곡선을 넣고
 > 표준에서 **해석적으로 유도한** LUT 과 대조(잔차 72·48 / 65535, 평균 0.7). 두 감마의
 > LUT 이 **4830** 만큼 다른 것이 반증입니다 — 곡선을 무시하면 둘이 같아집니다.
+
+> **상태 메모 (2026-10-03, QA-B-199, 후보 D1)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 최소 휘도가 0 이하이면 구현이 0.01 로 대체하는데, 0.05 cd/m² 미만에서는 JND 지수가 표준 영역(1..1023) 밖으로 나간다(에이전트 산술 j(0.01) ≈ -20.8, 검산 전). 영역 밖 JND 지수가 그대로 쓰인다(`presentation_lut.cpp`). REQ-DISP-026 과 함께 볼 것.
 
 **REQ-DISP-026**: IF `luminanceValues` is NULL, `count < 2`, `outParams` is NULL, or `luminanceValues` is not non-decreasing (REQ-DISP-029), THEN `xpe_gsdf_calibrate` SHALL return `XPE_ERR_INVALID_INPUT`.
 
@@ -430,17 +443,27 @@ output[i] = clamp( ((input[i] - center) / width + 0.5) * (maxOut - minOut) + min
 >
 > **미검출로 남는 것**: 등간격 위반(구조적), 그리고 **NaN 광도** — 비교가 전부 거짓이라
 > 이 가드를 통과합니다. 후속 후보입니다.
+>
+> **상태 메모 (2026-10-03, QA-B-199, 후보 D6)**: 위 "NaN 광도는 가드를 통과한다" 는 서술은 QA-B-181d 이후 코드와 반대일 수 있다 — 지금 구현은 비유한 원소를 모두 거부한다(`presentation_lut.cpp`, 읽기로 찾은 후보). 재현 확인 중(QA-B-200), #251. 서술은 그대로 두었다.
 
 > **`count == 2`** 는 "구동 준위 0 과 최대에서만 쟀다" 이고, 곧 **선형 디스플레이를
 > 가정한다**는 뜻입니다 — 측정이 없을 때의 정직한 표현이며 옛 동작과 같은 가정입니다.
 
 ### 3.4 Cross-Cutting Requirements
 
-**REQ-DISP-029**: All 5 exported functions SHALL use C linkage (`extern "C"`), `__cdecl` calling convention, and blittable types only. All pointer parameters SHALL use basic C types compatible with .NET P/Invoke marshalling.
+**REQ-DISP-036** (구 `REQ-DISP-029` 의 두 번째 정의): All 5 exported functions SHALL use C linkage (`extern "C"`), `__cdecl` calling convention, and blittable types only. All pointer parameters SHALL use basic C types compatible with .NET P/Invoke marshalling.
+
+> **재번호 (2026-10-03, QA-B-199, #251).** 이 요구는 §3.3 의 광도 배열 계약과 같은 번호 `REQ-DISP-029` 로 두 번 정의되어 있었고 내용이 달랐다. 문구는 그대로 두고 이 정의만 `REQ-DISP-036` 으로 옮겼다. `REQ-DISP-029` 는 이제 §3.3 의 광도 배열 계약만 가리킨다. 코드·시험 주석(`modules/display/**`, 레인 소유)에는 옛 번호로 이 요구를 가리키는 곳이 남아 있다.
+>
+> **상태 메모 (2026-10-03, QA-B-199, 후보 D7)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. 이 요구는 수출 함수 5개를 말하지만, 헤더 `display_api.h` 는 `xpe_display_version` 을 포함해 6개를 선언한다. C 연결·`__cdecl`·blittable 조건을 단언하는 시험은 없다.
 
 **REQ-DISP-030**: The system SHALL NOT throw C++ exceptions across the DLL ABI boundary. All exceptions SHALL be caught internally and converted to `XpeErrorCode` return values.
 
+> **상태 메모 (2026-10-03, QA-B-199, 후보 D9)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. `modules/display/src` 전체에 예외를 내부에서 잡는 `try/catch` 가 없다(grep 으로 확인). 예외 주입 시험도 없다.
+
 **REQ-DISP-031**: Each display function SHALL log entry/exit at DEBUG level and error conditions at ERROR level via the logging subsystem (xpe_common.dll).
+
+> **상태 메모 (2026-10-03, QA-B-199, 후보 D9)**: 미충족 후보 — 재현 확인 중(QA-B-200), #251. `modules/display/src` 에 로깅 호출이 없다. CMake 는 spdlog·fmt 를 PRIVATE 로 링크하지만 쓰이지 않는다.
 
 **REQ-DISP-032**: All display functions SHALL be reentrant when called with independent caller-supplied buffers. Two threads MAY process different images concurrently.
 
@@ -481,8 +504,10 @@ output[i] = clamp( ((input[i] - center) / width + 0.5) * (maxOut - minOut) + min
 |-----|------------|-----------|:--------------:|-----------|
 | SWU-3.1 ModalityLUT | SWI-3, P1b-05 | SRS-DISP-001 | POST-12a (stage 14) | REQ-DISP-001..008 |
 | SWU-3.2 VOILUT | SWI-3, P1b-06 | SRS-DISP-002 | POST-12b (stage 15) | REQ-DISP-009..018 |
-| SWU-3.3 PresentationLUT | SWI-3, P1b-07 | SRS-DISP-003 | POST-12c (stage 16) | REQ-DISP-019..028 |
-| Cross-cutting | -- | -- | -- | REQ-DISP-029..035 |
+| SWU-3.3 PresentationLUT | SWI-3, P1b-07 | SRS-DISP-003 | POST-12c (stage 16) | REQ-DISP-019..029 |
+| Cross-cutting | -- | -- | -- | REQ-DISP-030..036 |
+
+> 범위 갱신 (2026-10-03, QA-B-199, #251): `REQ-DISP-029` 는 §3.3 의 광도 배열 계약 하나만 가리키고, §3.4 의 ABI 요구는 `REQ-DISP-036` 이 되었다. 옛 범위는 `019..028` / `029..035` 였다.
 
 ---
 
@@ -491,7 +516,8 @@ output[i] = clamp( ((input[i] - center) / width + 0.5) * (maxOut - minOut) + min
 | Version | Date | Author | Description |
 |---------|------|--------|-------------|
 | 1.0.0 | 2026-04-16 | MoAI (manager-spec) | Initial EARS requirements (35 REQs) for Sprint S1-B Display |
+| 1.1.0 | 2026-10-03 | lead (QA-B-199) | 중복 정의 `REQ-DISP-029`(§3.4 ABI 요구) → `REQ-DISP-036` 재번호, 결함 후보 D1~D9 상태 메모, §6 범위 갱신 (#251) |
 
 ---
 
-*Document End -- SPEC-XPE-P1B-DISP v1.0.0*
+*Document End -- SPEC-XPE-P1B-DISP v1.1.0*

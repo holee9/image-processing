@@ -1,8 +1,8 @@
 # DICOM I/O 모듈 — 요구사항 추적성 행렬 (RTM)
 
 **문서 ID**: RTM-DICOM-001  
-**버전**: 1.0.0  
-**날짜**: 2026-04-14  
+**버전**: 1.1.0  
+**날짜**: 2026-10-03  
 **IEC 62304 절**: 5.1.1c — Traceability  
 **안전 등급**: Class B  
 
@@ -198,65 +198,69 @@ SRS (Software Requirements Specification)
 
 | SRS ID | 요구사항 | Test Case ID | 테스트 시나리오 | 상태 |
 |--------|---------|-------------|--------------|------|
-| FR-DCM-101 | Implicit VR LE 지원 | TC-101 | DICOM Implicit VR LE 파일 읽기 | ✓ |
-| FR-DCM-102 | Explicit VR LE 지원 | TC-102 | DICOM Explicit VR LE 파일 읽기 | ✓ |
-| FR-DCM-103 | J2K Lossless 읽기 | TC-103 | JPEG 2000 Lossless 파일 읽기 | ✓ |
-| FR-DCM-104 | JPEG Baseline 읽기 | TC-104 | JPEG Baseline 파일 읽기 (legacy) | ✓ |
-| FR-DCM-105 | DX IOD 파싱 | TC-105 | DX SOP Class 검증 | ✓ |
-| FR-DCM-106 | CR IOD 파싱 | TC-106 | CR SOP Class 검증 | ✓ |
-| FR-DCM-107 | GSPS IOD 읽기 | TC-107 | GSPS SOP Class 검증 + Referenced Series | ✓ |
-| FR-DCM-108 | Rows/Columns 추출 | TC-108 | 이미지 크기 추출 및 범위 검증 | ✓ |
+| FR-DCM-101 | Implicit VR LE 지원 | TC-101 | DICOM Implicit VR LE 파일 읽기 | △ |
+| FR-DCM-102 | Explicit VR LE 지원 | TC-102 | DICOM Explicit VR LE 파일 읽기 | △ |
+| FR-DCM-103 | J2K Lossless 읽기 | TC-103 | JPEG 2000 Lossless 파일 읽기 | △ |
+| FR-DCM-104 | JPEG Baseline 읽기 | TC-104 | JPEG Baseline 파일 읽기 (legacy) | △ |
+| FR-DCM-105 | DX IOD 파싱 | TC-105 | DX SOP Class 검증 | △ |
+| FR-DCM-106 | CR IOD 파싱 | TC-106 | CR SOP Class 검증 | △ |
+| FR-DCM-107 | GSPS IOD 읽기 | TC-107 | GSPS SOP Class 검증 + Referenced Series | △ |
+| FR-DCM-108 | Rows/Columns 추출 | TC-108 | 이미지 크기 추출 및 범위 검증 | △ |
 | FR-DCM-109 | 포토메트릭 처리 | TC-109 | MONOCHROME1 반전, MONOCHROME2 유지. 시험: `Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEveryPath`, `Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInverting`, `Tc109_Monochrome1_ReadingTwiceOnOneHandleGivesTheSameWords`, `Tc109_Monochrome1WithSignedPixelsIsRefusedLikeEverySignedImage`, `Tc109_Monochrome1PlusInverse_RoundTripKeepsThePolarity` (왕복은 극성만 보존). 현재 동작 기록(요구 아님): `Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrPresentationShapeFromTheSourceFile`, `Tc235_Monochrome1_{Native,JpegLl,J2k}_InvertedWithInfoAlert`, `Tc235_BitsAboveBitsStored_{Native,JpegLl}_MaskedWithInfoAlert`, `Tc235_BitsAboveBitsStored_Native_NothingToMaskPostsNothing`, `Issue235Decided_BitsAboveBitsStoredAreMaskedForMonochrome2Too` | ✓ |
-| FR-DCM-110 | 픽셀 간격 읽기 | TC-110 | Pixel spacing 범위 검증 | ✓ |
-| FR-DCM-111 | Window/Level 읽기 | TC-111 | VOI LUT 프리셋 추출 | ✓ |
-| FR-DCM-112 | 환자 정보 추출 | TC-112 | Patient ID, Name, DOB 추출 | ✓ |
-| FR-DCM-113 | 촬영 정보 추출 | TC-113 | Study Date, Series Date 추출 | ✓ |
-| FR-DCM-114 | 검출기 정보 추출 | TC-114 | Manufacturer, Serial Number 추출 | ✓ |
-| FR-DCM-115 | 신체 부위 추출 | TC-115 | Body Part Examined 추출 | ✓ |
-| FR-DCM-116 | XPE private block 읽기 | TC-116 | Private Creator, Flags, Version 읽기 | ✓ |
-| FR-DCM-117 | 파일 존재 검증 | TC-117 | FILE_NOT_FOUND, FILE_READ_FAILED 에러 | ✓ |
-| FR-DCM-118 | DICOM 형식 검증 | TC-118 | DICM preamble 검증, 손상 감지 | ✓ |
-| FR-DCM-119 | Unsupported TS 감지 | TC-119 | MPEG-2, RLE 등 미지원 TS 거부 | ✓ |
-| FR-DCM-120 | 메모리 효율 (읽기) | TC-120 | 3072×3072 읽기 메모리 ≤ 150 MB | ✓ |
+| FR-DCM-110 | 픽셀 간격 읽기 | TC-110 | Pixel spacing 범위 검증 | △ |
+| FR-DCM-111 | Window/Level 읽기 | TC-111 | VOI LUT 프리셋 추출 | △ |
+| FR-DCM-112 | 환자 정보 추출 | TC-112 | Patient ID, Name, DOB 추출 | △ |
+| FR-DCM-113 | 촬영 정보 추출 | TC-113 | Study Date, Series Date 추출 | △ |
+| FR-DCM-114 | 검출기 정보 추출 | TC-114 | Manufacturer, Serial Number 추출 | △ |
+| FR-DCM-115 | 신체 부위 추출 | TC-115 | Body Part Examined 추출 | △ |
+| FR-DCM-116 | XPE private block 읽기 | TC-116 | Private Creator, Flags, Version 읽기 | △ |
+| FR-DCM-117 | 파일 존재 검증 | TC-117 | FILE_NOT_FOUND, FILE_READ_FAILED 에러 | △ |
+| FR-DCM-118 | DICOM 형식 검증 | TC-118 | DICM preamble 검증, 손상 감지 | △ |
+| FR-DCM-119 | Unsupported TS 감지 | TC-119 | MPEG-2, RLE 등 미지원 TS 거부 | △ |
+| FR-DCM-120 | 메모리 효율 (읽기) | TC-120 | 3072×3072 읽기 메모리 ≤ 150 MB | △ |
 | FR-DCM-121 | 리스케일 처리 (읽기) | TC-121 | 저장값 반환, 비항등이면 Warning, 읽을 수 없는 값·기울기 0·한쪽만 있는 쌍은 거부, Modality LUT Sequence 는 Warning. 시험: `Tc235_RescaleNonIdentity_{Native,JpegLl,J2k}_StoredValuesWithWarning`, `Tc235_RescaleIdentityExplicit_*`, `Tc235_RescaleSlopeZero_*`, `Tc235_RescaleSlopeNotANumber_*`, `Tc235_RescaleInterceptNotANumber_*`, `Tc235_RescaleSlopeEmpty_*`, `Tc235_RescaleSlopeNotFinite_*`, `Tc235_RescaleSlopeTwoValues_*`, `Issue235Decided_RescaleIsNotAppliedButWarned`, `Tc235_RescaleSlopeOnly_*`, `Tc235_RescaleInterceptOnly_*`, `Tc235_RescaleInterceptTwoValues_Native_RefusedInvalid`, `Tc235_RescaleBothAbsent_*`, `Tc235_ModalityLutSequence_*`, `Tc235_RescaleDs{Exponent,PlusSign,Padded}_Native_Accepted`, `Tc235_RescaleDsDecimal_Native_AcceptedWithWarning` | ✓ |
-| FR-DCM-201 | DX IOD 생성 | TC-201 | DX SOP Class UID 설정 | ✓ |
-| FR-DCM-202 | Explicit VR LE 쓰기 | TC-202 | Explicit VR LE 파일 쓰기 | ✓ |
-| FR-DCM-203 | J2K Lossless 쓰기 | TC-203 | JPEG 2000 Lossless 인코딩 | ✓ |
-| FR-DCM-204 | uint16 픽셀 쓰기 | TC-204 | BitsAllocated=16, BitsStored=14 | ✓ |
-| FR-DCM-205 | 포토메트릭 고정 | TC-205 | MONOCHROME2 고정 | ✓ |
-| FR-DCM-206 | 필수 Type 1 태그 | TC-206 | SOP UID, Study UID, Series UID 생성 | ✓ |
-| FR-DCM-207 | 환자 정보 쓰기 | TC-207 | Patient ID, Name, DOB 인코딩 | ✓ |
-| FR-DCM-208 | 촬영 정보 쓰기 | TC-208 | Study Date, Series Date, Modality=DX | ✓ |
-| FR-DCM-209 | 검출기 정보 쓰기 | TC-209 | Manufacturer, Serial Number 인코딩 | ✓ |
-| FR-DCM-210 | Window/Level 저장 | TC-210 | 3개 프리셋 저장 (Soft/Bone/Lung) | ✓ |
-| FR-DCM-211 | XPE private block 쓰기 | TC-211 | Private Creator, Flags, Version 쓰기 | ✓ |
-| **FR-DCM-212** | **Lossy 압축 금지 (CRITICAL)** | **TC-212** | **J2K Irreversible 거부 (에러)** | **✓ CRITICAL** |
-| FR-DCM-213 | UID 생성 (고유성) | TC-213 | SOPInstanceUID 고유성 검증 | ✓ |
-| FR-DCM-214 | 메타데이터 검증 | TC-214 | 필수 태그 누락 시 에러 | ✓ |
-| FR-DCM-215 | 파일 쓰기 실패 처리 | TC-215 | DISK_FULL, PERMISSION_DENIED 에러 | ✓ |
-| FR-DCM-216 | 성능 (비압축) | TC-216 | 3072×3072 쓰기 ≤ 2초 | ✓ |
-| FR-DCM-217 | 성능 (J2K) | TC-217 | 3072×3072 J2K ≤ 5초 | ✓ |
+| FR-DCM-201 | DX IOD 생성 | TC-201 | DX SOP Class UID 설정 | △ |
+| FR-DCM-202 | Explicit VR LE 쓰기 | TC-202 | Explicit VR LE 파일 쓰기 | △ |
+| FR-DCM-203 | J2K Lossless 쓰기 | TC-203 | JPEG 2000 Lossless 인코딩 | △ |
+| FR-DCM-204 | uint16 픽셀 쓰기 | TC-204 | BitsAllocated=16, BitsStored=14 | △ |
+| FR-DCM-205 | 포토메트릭 고정 | TC-205 | MONOCHROME2 고정 | △ |
+| FR-DCM-206 | 필수 Type 1 태그 | TC-206 | SOP UID, Study UID, Series UID 생성 | △ |
+| FR-DCM-207 | 환자 정보 쓰기 | TC-207 | Patient ID, Name, DOB 인코딩 | △ |
+| FR-DCM-208 | 촬영 정보 쓰기 | TC-208 | Study Date, Series Date, Modality=DX | △ |
+| FR-DCM-209 | 검출기 정보 쓰기 | TC-209 | Manufacturer, Serial Number 인코딩 | △ |
+| FR-DCM-210 | Window/Level 저장 | TC-210 | 3개 프리셋 저장 (Soft/Bone/Lung) | △ |
+| FR-DCM-211 | XPE private block 쓰기 | TC-211 | Private Creator, Flags, Version 쓰기 | △ |
+| **FR-DCM-212** | **Lossy 압축 금지 (CRITICAL)** | **TC-212** | **J2K Irreversible 거부 (에러)** | **△ CRITICAL** |
+| FR-DCM-213 | UID 생성 (고유성) | TC-213 | SOPInstanceUID 고유성 검증 | △ |
+| FR-DCM-214 | 메타데이터 검증 | TC-214 | 필수 태그 누락 시 에러 | △ |
+| FR-DCM-215 | 파일 쓰기 실패 처리 | TC-215 | DISK_FULL, PERMISSION_DENIED 에러 | △ |
+| FR-DCM-216 | 성능 (비압축) | TC-216 | 3072×3072 쓰기 ≤ 2초 | △ |
+| FR-DCM-217 | 성능 (J2K) | TC-217 | 3072×3072 J2K ≤ 5초 | △ |
 | FR-DCM-301 | GSPS IOD 생성 | TC-301 | GSPS SOP Class UID 설정 | ✗ 구현·시험 없음 (QA-B-189, 2026-10-02) — 구현 여부 결정 대기 |
 | FR-DCM-302 | Referenced Series | TC-302 | Referenced Series Sequence 검증 | ✗ 구현·시험 없음 (QA-B-189, 2026-10-02) — 구현 여부 결정 대기 |
 | FR-DCM-303 | Graphic Annotation | TC-303 | Collimation ROI 저장 (선택) | ✗ 구현·시험 없음 (QA-B-189, 2026-10-02) — 구현 여부 결정 대기 |
 | FR-DCM-304 | Display Shutter | TC-304 | 회전/반전 저장 (선택) | ✗ 구현·시험 없음 (QA-B-189, 2026-10-02) — 구현 여부 결정 대기 |
 | FR-DCM-305 | Window/Level 프리셋 | TC-305 | 3개 프리셋 저장 | ✗ 구현·시험 없음 (QA-B-189, 2026-10-02) — 구현 여부 결정 대기 |
 | FR-DCM-306 | GSPS 적용 | TC-306 | Window/Level 오버레이 적용 | ✗ 구현·시험 없음 (QA-B-189, 2026-10-02) — 구현 여부 결정 대기 |
-| FR-DCM-401 | C-STORE SCU | TC-401 | DICOM Association + 이미지 전송 | ✓ |
-| FR-DCM-402 | AE Title 구성 | TC-402 | 로컬/원격 AE Title 설정 | ✓ |
-| FR-DCM-403 | 호스트명/포트 | TC-403 | 호스트명/IP, 포트 검증 | ✓ |
-| FR-DCM-404 | Association Timeout | TC-404 | 30초 timeout 검증 | ✓ |
-| FR-DCM-405 | Transfer Syntax 협상 | TC-405 | Implicit/Explicit VR LE 협상 | ✓ |
-| FR-DCM-406 | 전송 실패 처리 | TC-406 | 재시도 3회, exponential backoff | ✓ |
-| FR-DCM-407 | C-STORE Status | TC-407 | Status code (0x0000, 0x0122, 0x0124) 반환 | ✓ |
-| FR-DCM-408 | TLS 1.2+ | TC-408 | TLS 상호 인증 (선택) | ✓ |
-| FR-DCM-409 | C-STORE 성능 | TC-409 | 3072×3072 전송 ≤ 10초 (1Gbps) | ✓ |
-| FR-DCM-410 | C-FIND SCU | TC-410 | MWL 쿼리 (RIS 시뮬레이션) | ✓ |
-| FR-DCM-411 | MWL 쿼리 키 | TC-411 | Patient ID, Accession, Modality 쿼리 | ✓ |
-| FR-DCM-412 | MWL 반환 정보 | TC-412 | Patient Name, DOB, ProtocolCode 반환 | ✓ |
-| FR-DCM-413 | C-FIND Status | TC-413 | Status code 반환 | ✓ |
+| FR-DCM-401 | C-STORE SCU | TC-401 | DICOM Association + 이미지 전송 | △ |
+| FR-DCM-402 | AE Title 구성 | TC-402 | 로컬/원격 AE Title 설정 | △ |
+| FR-DCM-403 | 호스트명/포트 | TC-403 | 호스트명/IP, 포트 검증 | △ |
+| FR-DCM-404 | Association Timeout | TC-404 | 30초 timeout 검증 | △ |
+| FR-DCM-405 | Transfer Syntax 협상 | TC-405 | Implicit/Explicit VR LE 협상 | △ |
+| FR-DCM-406 | 전송 실패 처리 | TC-406 | 재시도 3회, exponential backoff | △ |
+| FR-DCM-407 | C-STORE Status | TC-407 | Status code (0x0000, 0x0122, 0x0124) 반환 | △ |
+| FR-DCM-408 | TLS 1.2+ | TC-408 | TLS 상호 인증 (선택) | △ |
+| FR-DCM-409 | C-STORE 성능 | TC-409 | 3072×3072 전송 ≤ 10초 (1Gbps) | △ |
+| FR-DCM-410 | C-FIND SCU | TC-410 | MWL 쿼리 (RIS 시뮬레이션) | △ |
+| FR-DCM-411 | MWL 쿼리 키 | TC-411 | Patient ID, Accession, Modality 쿼리 | △ |
+| FR-DCM-412 | MWL 반환 정보 | TC-412 | Patient Name, DOB, ProtocolCode 반환 | △ |
+| FR-DCM-413 | C-FIND Status | TC-413 | Status code 반환 | △ |
 
-**커버리지**: 51/57 (89.5%) — 표 57행(고유 FR ID 57) 중 ✓ 51, ✗ 6(FR-DCM-301~306). 옛 표기 `59/59` 는 행 수와 맞지 않았다(QA-B-189 재계산, 2026-10-02).
+**커버리지**: 시험 이름으로 추적되는 행 2/57 (FR-DCM-109, FR-DCM-121) — △ 49, ✗ 6(FR-DCM-301~306). 이전 값 `51/57` 은 ✓ 표시를 센 것이다(QA-B-189). 아래 정정 참조.
+
+> **표시 정정 (2026-10-03, QA-B-199, #251).** 위 표에서 FR-DCM-109·FR-DCM-121 을 뺀 `✓` 49행은 Test Case ID(`TC-101`~`TC-413`)만 인용하는데, 이 ID 는 정의 문서가 없고(`docs/dicom/` 에 TDS 없음, `TC-101` 은 이 RTM 에만 나옴) 시험 소스(`modules/dicom/tests`)에도 문자열로 나오지 않는다. 시험 소스에 나오는 TC 계열은 `TC-109`(`Tc109_*` 시험)뿐이다(QA-B-199 `dicom_report.md` §3, `rtm_out.txt`; 검색기는 합성 대조 `Tc101_Foo` 에서 TC-101 을 찾아냈다). FR-DCM-121 은 `TC-121` 이 시험 소스에 없지만 시나리오 열이 실재하는 시험 이름(`Tc235_Rescale*`, `test_dicom_reader.cpp`)을 적고 있어 `✓` 를 유지했다(#235 처분 행, 2026-10-03 grep 으로 시험 이름 확인).
+>
+> 그래서 표시를 `△` 로 바꾸었다. **`△` = 인용한 시험 ID 로는 시험 소스까지 추적이 이어지지 않음.** 요구를 실제로 단언하는 시험이 있는지(행위 축)는 아직 가르지 않았으므로 `✗`(시험 없음)로 단정하지 않는다. QA-B-189 가 재계산한 FR-DCM-301~306 `✗` 는 그대로 둔다. 시험 열을 실제 시험 이름으로 바꿀지, TC ID 를 시험 이름 접두사로 채택하는 규칙(`Tc109_` 처럼)을 세울지는 결정 대기다(#251).
 
 ---
 
@@ -264,20 +268,22 @@ SRS (Software Requirements Specification)
 
 | SRS ID (Safety) | 안전 요구사항 | Test Case ID | 테스트 시나리오 | 상태 |
 |-----------------|------------|-------------|--------------|------|
-| SR-DCM-001 | Lossy 압축 금지 | STC-001 | J2K Irreversible 거부 + CRITICAL 로그 | ✓ |
-| SR-DCM-002 | 환자 ID 검증 | STC-002 | ID 불일치 감지 + alert | ✓ |
+| SR-DCM-001 | Lossy 압축 금지 | STC-001 | J2K Irreversible 거부 + CRITICAL 로그 | △ |
+| SR-DCM-002 | 환자 ID 검증 | STC-002 | ID 불일치 감지 + alert | △ |
 | SR-DCM-003 | 파일 무결성 | STC-003 | 손상 파일 거부 + 부분 데이터 금지 | ✓ |
-| SR-DCM-004 | 네트워크 안전 | STC-004 | PACS 실패 시 로컬 파일 보호 | ✓ |
-| SR-DCM-005 | MWL 환자 검증 | STC-005 | MWL 결과 Patient ID 검증 + alert | ✓ |
-| SR-DCM-006 | GSPS 참조 | STC-006 | Referenced UID 검증 | ✓ |
-| SR-DCM-007 | Unsupported TS | STC-007 | 미지원 TS 거부 | ✓ |
-| SR-DCM-008 | 감시 로깅 | STC-008 | DICOM I/O 로그 기록 검증 | ✓ |
+| SR-DCM-004 | 네트워크 안전 | STC-004 | PACS 실패 시 로컬 파일 보호 | △ |
+| SR-DCM-005 | MWL 환자 검증 | STC-005 | MWL 결과 Patient ID 검증 + alert | △ |
+| SR-DCM-006 | GSPS 참조 | STC-006 | Referenced UID 검증 | △ |
+| SR-DCM-007 | Unsupported TS | STC-007 | 미지원 TS 거부 | △ |
+| SR-DCM-008 | 감시 로깅 | STC-008 | DICOM I/O 로그 기록 검증 | △ |
 
 > **Record correction (2026-09-12, leader — QA-B-49).** The SR-DCM-003 `✓` above covered the uncompressed read path without evidence. `DicomReader.cpp:204-208` copied whatever PixelData was present, zero-padded the remainder, and returned `XPE_OK` — the opposite of "부분 데이터 금지". The mark became grounded only with QA-B-49 (`6c9356b`), which returns `XPE_ERR_DICOM_INVALID` and logs both the declared and the actual byte count. Retained because it is now accurate; this note records that it once preceded its evidence (second such case after `SPEC-XPE-P1B-DICOM/acceptance.md` AC-04). **Scope:** the guard covers the native-pixel path only; short pixel data inside a compressed stream (J2K / JPEG-LL) does not pass through it and is untested (#150).
 
 > 표 정리 (QA-B-189, 2026-10-02): 위 인용문이 원래 SR-DCM-003 과 SR-DCM-004 사이에 있어 표가 두 동강 났고, SR-DCM-004~008 행은 헤더 없이 본문 줄로 렌더링되었다. 인용문을 표 아래로 옮겼다. 행 내용은 바꾸지 않았다.
 
-**커버리지**: 8/8 (100%)
+> 표시 정정 (2026-10-03, QA-B-199, #251): `STC-001`·`002`·`004`~`008` 은 시험 소스에 문자열로 나오지 않아 `△` 로 바꾸었다(§5.1 정정과 같은 기준). `STC-003` 은 `test_dicom_reader.cpp` 의 주석에 인용되어 있어 `✓` 를 유지했다. SR-DCM-006 은 GSPS 구현이 없으므로(FR-DCM-301~306 `✗`, QA-B-189) 행위 축 대조 시 `✗` 가 될 수 있다.
+
+**커버리지**: 시험 ID 로 추적되는 행 1/8 (SR-DCM-003) — △ 7. 이전 값 `8/8 (100%)`.
 
 ---
 
@@ -290,10 +296,12 @@ SRS (Software Requirements Specification)
 | **PRD → SRS** | 57 | 51 | **89.5%** |
 | **SRS → SAD** | 57 | 57 | **100%** |
 | **SRS → SHA** | 8 | 7 | **87.5%** |
-| **SRS → Test** | 65 | 59 | **90.8%** |
+| **SRS → Test** | 65 | 3 (△ 56) | **4.6%** (시험 이름 추적 기준, QA-B-199) |
 | **전체** | - | - | **미달** |
 
 > 재계산 (QA-B-189, 2026-10-02). 요구사항 수는 §2 표 네 개의 고유 FR ID(21 + 17 + 6 + 13 = 57)와 §4.1·§5.2 의 SR ID(8)를 행으로 센 값이다. PRD → SRS 와 SRS → Test 의 추적된 수는 ✓ 행 수이며, FR-DCM-301~306 6건(✗ 구현·시험 없음)이 빠진다. SRS → Test 는 §5.1 FR 57 + §5.2 SR 8 = 65 중 ✓ 59. SRS → SHA 는 SR-DCM-005 추적 행이 없어 7/8(§4.1). SRS → SAD 는 §3.1 범위 행 네 개가 FR 57개를 덮는다(설계 문서 추적이며 구현 여부와 별개라 GSPS 행을 바꾸지 않았다). 옛 값 `56`·`67` 은 FR-DCM-121 추가(`52e8a29a`) 뒤 요약이 갱신되지 않은 것이다.
+>
+> 재계산 (QA-B-199, 2026-10-03, #251): SRS → Test 의 추적된 수를 ✓ 표시 수(59)에서 **시험 소스까지 이름으로 이어지는 행 수**(3: FR-DCM-109, FR-DCM-121, SR-DCM-003)로 바꾸었다. 나머지 56행은 `△`(인용한 TC/STC ID 가 시험 소스에 없음, 행위 축 미확인)이고 6행은 `✗` 다. 3 + 56 + 6 = 65. PRD → SRS·SRS → SAD·SRS → SHA 는 시험 ID 를 인용하지 않아 이번에 바꾸지 않았다.
 
 ### 6.2 SWU별 커버리지
 
@@ -311,9 +319,12 @@ SRS (Software Requirements Specification)
 
 | 상태 | 개수 | 비율 |
 |------|:---:|-----:|
-| ✓ Traced | 59 | **90.8%** |
+| ✓ Traced | 3 | **4.6%** |
+| △ 시험 ID 추적 불가 (행위 축 미확인) | 56 | 86.2% |
 | ✗ Not Traced | 6 | 9.2% |
 | ⚠ Partial | 0 | 0% |
+
+> 재계산 (QA-B-199, 2026-10-03, #251): `✓` 59 가 `✓` 3 + `△` 56 으로 갈렸다(§5.1·§5.2 정정). 모수 65 는 그대로다.
 
 > 재계산 (QA-B-189, 2026-10-02). 모수는 고유 요구사항 ID 65개(FR 57 + SR 8)이고, 상태는 §5 시험 매핑의 행 상태를 센 값이다. ✗ 6건은 FR-DCM-301~306(구현·시험 없음, 구현 여부 결정 대기). 옛 모수 `72` 는 §6.2 의 안전 요구 열 16 에서 나왔고 재현할 수 없다.
 
@@ -324,7 +335,7 @@ SRS (Software Requirements Specification)
 | **Lossy 압축 금지** | FR-DCM-212 | §2.2, §8.1 | HAZ-001 | TC-212, STC-001 |
 | **Patient ID 검증** | SR-DCM-002 | §8.2 | HAZ-003, HAZ-005 | STC-002, STC-005 |
 
-**상태**: 모두 ✓ 완전 추적, 설계, 테스트 완료
+**상태**: ~~모두 ✓ 완전 추적, 설계, 테스트 완료~~ — 2026-10-03 정정(QA-B-199, #251): `TC-212`·`STC-001`·`STC-002`·`STC-005` 는 모두 시험 소스에 없어 시험 쪽 추적이 끊겼다(`△`). 설계·SHA 추적은 바꾸지 않았다.
 
 ---
 
@@ -344,6 +355,8 @@ PRD 요구사항 → SRS 요구사항 (명세)
 
 **검증 결과**: ✓ 모든 PRD 요구사항이 SRS → SAD → Test로 추적됨
 
+> 정정 (2026-10-03, QA-B-199, #251): Test 단계는 성립하지 않는다 — §6.1 재계산대로 시험 이름으로 이어지는 행은 65행 중 3행이다. 위 결과는 기록으로 남긴다.
+
 ### 7.2 Backward Traceability (역방향)
 
 ```
@@ -358,6 +371,8 @@ Test Case → SRS 요구사항 (검증 대상)
 
 **검증 결과**: ✓ 모든 Test Case가 SRS → SAD → PRD로 역추적됨
 
+> 정정 (2026-10-03, QA-B-199, #251): 역추적의 출발점인 Test Case(`TC-*`, `STC-*`)가 대부분 정의도 시험 소스도 없어, 이 결과는 근거가 없다(§5.1 정정).
+
 ### 7.3 양방향 매핑 완전성
 
 | 항목 | 상태 | 비고 |
@@ -366,7 +381,7 @@ Test Case → SRS 요구사항 (검증 대상)
 | SRS 완전성 | ✓ | PRD와 1:1 매핑 |
 | SAD 완전성 | ✓ | 모든 SRS 요구사항 설계 포함 |
 | SHA 완전성 | ✓ | 모든 안전 요구사항 위험 분석 포함 |
-| Test 완전성 | ✓ | 모든 SRS 요구사항 테스트 케이스 정의 |
+| Test 완전성 | △ | 2026-10-03 정정(QA-B-199, #251): 테스트 케이스 ID 의 정의 문서가 없고 시험 소스로 이어지는 행은 65행 중 3행 |
 
 ---
 
@@ -381,6 +396,7 @@ Test Case → SRS 요구사항 (검증 대상)
 | SAD | 1.0.0 | 2026-04-14 | 초기 버전 |
 | SHA | 1.0.0 | 2026-04-14 | 초기 버전 |
 | RTM | 1.0.0 | 2026-04-14 | 초기 버전 |
+| RTM | 1.1.0 | 2026-10-03 | 시험 ID 가 시험 소스에 없는 `✓` 56행(§5.1 49, §5.2 7)을 `△` 로 정정, §6·§7 요약 재계산 (QA-B-199, #251) |
 
 ### 8.2 변경 영향 분석 규칙
 
@@ -402,4 +418,4 @@ Test Case → SRS 요구사항 (검증 대상)
 
 ---
 
-**문서 끝: RTM-DICOM-001 v1.0.0**
+**문서 끝: RTM-DICOM-001 v1.1.0**
