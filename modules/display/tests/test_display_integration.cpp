@@ -2,7 +2,7 @@
  * @file test_display_integration.cpp
  * @brief Integration tests for full display pipeline and boundary cases.
  * SPEC: SPEC-XPE-P1B-DISP
- * REQ-DISP-029 to REQ-DISP-035
+ * REQ-DISP-030 to REQ-DISP-036
  */
 
 #include <gtest/gtest.h>
@@ -52,12 +52,12 @@ static void make_identity_plut(XpePresentationLutParams& p) {
 }
 
 // =============================================================================
-// REQ-DISP-029: Full Pipeline Test
+// REQ-DISP-036: Full Pipeline Test (the exported functions work together; was numbered REQ-DISP-029)
 // ModalityLUT(LINEAR) -> VOI(LINEAR) -> PresentationLUT
 // =============================================================================
 
 TEST(DisplayIntegration, FullPipeline_LinearModality_LinearVoi_PresLut) {
-    // REQ-DISP-029: Full pipeline produces valid uint16 output
+    // REQ-DISP-036: Full pipeline produces valid uint16 output
     XpeImageBuffer img = make_float32_image(4, 4, 1000.0f);
 
     // Stage 1: Modality LUT LINEAR
@@ -288,11 +288,11 @@ TEST(DisplayIntegration, GsdfPipeline_CalibrateThenApply) {
 }
 
 // =============================================================================
-// REQ-DISP-029: Version API
+// REQ-DISP-036: Version API (an exported function; was numbered REQ-DISP-029)
 // =============================================================================
 
 TEST(DisplayIntegration, VersionString_NotNull) {
-    // REQ-DISP-029: xpe_display_version() returns non-NULL, non-empty string
+    // REQ-DISP-036: xpe_display_version() returns non-NULL, non-empty string
     const char* ver = xpe_display_version();
     ASSERT_NE(ver, nullptr);
     EXPECT_GT(strlen(ver), 0u);

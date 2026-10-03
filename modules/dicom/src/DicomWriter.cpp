@@ -177,19 +177,27 @@ XpeErrorCode DicomWriter::populateDataset(void* dcmDataset,
     }
 
     if (meta->mAs > 0.0f) {
+        // QA-B-200 M2a/M2a2 (C1): REQ-DICOM-009/015 name (0018,1152) Exposure for mAs, the attribute another system writes
+        // and reads for it. Two attributes of the DX image IOD's X-Ray Acquisition Dose module (PS3.3 Table C.8-33, both
+        // Type 3, both VR IS) are written:
+        //   (0018,1152) Exposure         "The exposure expressed in mAs": an integer, so ROUNDED to the nearest mAs, halves
+        //                                up (2.5 -> 3, 0.4 -> 0); left out above 2^31 - 1
+        //   (0018,1153) Exposure in uAs  the same value in microampere-seconds, an integer: mAs * 1000 rounded the same way
+        //                                (2.5 mAs -> 2500), so it keeps three decimals of the mAs; left out above 2^31 - 1
+        // (0018,9332) Exposure in mAs (FD) is NOT written: the module lists no such attribute, so a strict IOD check would
+        // flag it (QA-B-200 M2a2). The ranges: (0018,1153) holds up to about 2.1 million mAs, (0018,1152) up to 2^31 - 1 mAs;
+        // a mAs beyond that is not a detector exposure, and when neither fits the file carries no mAs.
+        const double mAs = static_cast<double>(meta->mAs);
         char buf[32];
-        std::snprintf(buf, sizeof(buf), "%.4f", static_cast<double>(meta->mAs));
-        ds->putAndInsertString(DCM_ExposureInmAs, buf);  // (0018,9332) Exposure in mAs, VR FD: the exact value
-
-        // QA-B-200 M2a (C1): REQ-DICOM-009/015 name (0018,1152) Exposure for mAs, and that is the attribute another system
-        // writes and reads for it (PS3.6: VR IS; PS3.3 X-Ray Acquisition Dose module, Type 3: "The exposure expressed in
-        // mAs"). Both are written: (0018,9332) keeps the exact value, (0018,1152) carries it as an integer string because IS
-        // cannot hold a fraction. ROUNDING RULE: to the nearest integer, halves up (2.5 -> 3, 0.4 -> 0). A value that does
-        // not fit IS (above 2^31 - 1) is left out of (0018,1152); (0018,9332) still has it.
-        const double rounded = std::floor(static_cast<double>(meta->mAs) + 0.5);
-        if (rounded <= 2147483647.0) {
-            std::snprintf(buf, sizeof(buf), "%.0f", rounded);
+        const double wholeMas = std::floor(mAs + 0.5);
+        if (wholeMas <= 2147483647.0) {
+            std::snprintf(buf, sizeof(buf), "%.0f", wholeMas);
             ds->putAndInsertString(DCM_Exposure, buf);
+        }
+        const double microAs = std::floor(mAs * 1000.0 + 0.5);
+        if (microAs <= 2147483647.0) {
+            std::snprintf(buf, sizeof(buf), "%.0f", microAs);
+            ds->putAndInsertString(DCM_ExposureInuAs, buf);
         }
     }
 

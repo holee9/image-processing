@@ -1,0 +1,7 @@
+ci-dicom:
+100% tests passed, 0 tests failed out of 314
+ci-post:
+100% tests passed, 0 tests failed out of 1354
+check_req_citations.py with main's SPEC-XPE-P1B-DISP/spec.md in place (REQ-DISP-036 defined there):
+[check_req_citations] no new orphans (1 known orphan ids, 6 citations)
+check_req_citations.py with this branch's own spec (no REQ-DISP-036 yet): REQ-DISP-036 is cited at modules/display/tests/test_display_integration.cpp:5 but no SPEC defines it -- resolved when the branch carries main's spec

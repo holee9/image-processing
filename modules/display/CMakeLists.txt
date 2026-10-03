@@ -277,7 +277,7 @@ if(_XPE_BUILD_TESTS)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
-    # --- test_display_integration (REQ-DISP-029..035) ---
+    # --- test_display_integration (REQ-DISP-030..036) ---
     add_executable(test_display_integration
         tests/test_display_integration.cpp
     )

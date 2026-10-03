@@ -11,9 +11,10 @@
  *     so a cancel that arrives during a transfer is reported when the transfer returns; the test pins that, and NOT a
  *     promptness the module cannot give.
  * C1  REQ-DICOM-009/015: (0018,1152) Exposure is the attribute another system writes for mAs. The module writes it (an
- *     integer string, rounded half up) beside (0018,9332) (FD, the exact value) and reads (0018,9332) when present, else
- *     (0018,1152). The files used to prove the read are made by DCMTK directly, not by the module, so a writer and a
- *     reader that share a mistake cannot agree with each other.
+ *     integer string, rounded half up) beside (0018,1153) Exposure in uAs (an integer string, mAs * 1000 rounded half up,
+ *     which keeps three decimals) -- both Type 3 attributes of the DX X-Ray Acquisition Dose module -- and NOT (0018,9332),
+ *     which that module does not list. It reads (0018,1153), else (0018,9332), else (0018,1152). The files used to prove the
+ *     read are made by DCMTK directly, not by the module, so a writer and a reader that share a mistake cannot agree.
  *
  * The mock peer (mock_scp.hpp) answers with a failure status or waits when a test asks it to.
  */
@@ -128,10 +129,11 @@ TEST(DicomExposureTag, AFileFromAnotherSystemWithOnlyExposure1152ReadsAsThatValu
     ASSERT_TRUE(WriteWithTheModule(mine, 50.0f));
     ASSERT_NEAR(50.0f, ReadMas(mine), 0.01f) << "control: the module reads back what it wrote";
 
-    // The file another system would have written: (0018,9332) gone, (0018,1152) IS = "100".
+    // The file another system would have written: only (0018,1152) Exposure, IS = "100".
     DcmFileFormat ff;
     ASSERT_TRUE(ff.loadFile(mine.string().c_str()).good());
     DcmDataset* ds = ff.getDataset();
+    ds->findAndDeleteElement(DCM_ExposureInuAs);
     ds->findAndDeleteElement(DCM_ExposureInmAs);
     ASSERT_TRUE(ds->putAndInsertString(DCM_Exposure, "100").good());
     const fs::path theirs = t.path / "other_system.dcm";
@@ -140,25 +142,63 @@ TEST(DicomExposureTag, AFileFromAnotherSystemWithOnlyExposure1152ReadsAsThatValu
     EXPECT_NEAR(100.0f, ReadMas(theirs), 0.01f) << "was 0: only (0018,9332) was read";
 }
 
-TEST(DicomExposureTag, WhenBothAreInTheFileTheExactValueOf9332IsUsed) {
-    const TempDir t("c1_both");
+TEST(DicomExposureTag, TheReadOrderIs1153Then9332Then1152) {
+    const TempDir t("c1_order");
     const fs::path mine = t.path / "module_written.dcm";
-    ASSERT_TRUE(WriteWithTheModule(mine, 2.5f));
+    ASSERT_TRUE(WriteWithTheModule(mine, 2.5f));   // (0018,1152) "3" and (0018,1153) "2500"
     DcmFileFormat ff;
     ASSERT_TRUE(ff.loadFile(mine.string().c_str()).good());
     DcmDataset* ds = ff.getDataset();
-    ASSERT_TRUE(ds->putAndInsertString(DCM_Exposure, "999").good()) << "a disagreeing (0018,1152)";
-    const fs::path both = t.path / "both.dcm";
-    ASSERT_TRUE(ff.saveFile(both.string().c_str()).good());
-    EXPECT_NEAR(2.5f, ReadMas(both), 0.001f) << "(0018,9332) is the exact value and takes precedence";
+    OFString v1152, v1153;
+    ASSERT_TRUE(ds->findAndGetOFString(DCM_Exposure, v1152).good());
+    ASSERT_TRUE(ds->findAndGetOFString(DCM_ExposureInuAs, v1153).good());
+    ASSERT_STREQ("3", v1152.c_str());
+    ASSERT_STREQ("2500", v1153.c_str());
+
+    auto save = [&](const char* name) {
+        const fs::path f = t.path / name;
+        EXPECT_TRUE(ff.saveFile(f.string().c_str()).good());
+        return f;
+    };
+    // all three present and disagreeing: (0018,1153) wins
+    ASSERT_TRUE(ds->putAndInsertString(DCM_Exposure, "999").good());
+    ASSERT_TRUE(ds->putAndInsertString(DCM_ExposureInmAs, "888").good());
+    EXPECT_NEAR(2.5f, ReadMas(save("all_three.dcm")), 1e-4f) << "(0018,1153) uAs is the most precise: it wins";
+    // (0018,1153) gone: (0018,9332) wins over (0018,1152)
+    ds->findAndDeleteElement(DCM_ExposureInuAs);
+    EXPECT_NEAR(888.0f, ReadMas(save("no_1153.dcm")), 1e-3f) << "then (0018,9332) Exposure in mAs";
+    // only (0018,1152) left
+    ds->findAndDeleteElement(DCM_ExposureInmAs);
+    EXPECT_NEAR(999.0f, ReadMas(save("only_1152.dcm")), 1e-3f) << "then (0018,1152) Exposure";
 }
 
-TEST(DicomExposureTag, TheModuleWritesBothAttributesWithTheValuesTheRulesGive) {
+TEST(DicomExposureTag, AFileThatOnlyHas9332StillReadsAsThatValue) {
+    // The files this module wrote before M2a2 carry (0018,9332) and, since M2a, (0018,1152); older ones only (0018,9332).
+    const TempDir t("c1_old");
+    const fs::path mine = t.path / "module_written.dcm";
+    ASSERT_TRUE(WriteWithTheModule(mine, 50.0f));
+    DcmFileFormat ff;
+    ASSERT_TRUE(ff.loadFile(mine.string().c_str()).good());
+    DcmDataset* ds = ff.getDataset();
+    ds->findAndDeleteElement(DCM_Exposure);
+    ds->findAndDeleteElement(DCM_ExposureInuAs);
+    ASSERT_TRUE(ds->putAndInsertString(DCM_ExposureInmAs, "12.5000").good());
+    const fs::path f = t.path / "old.dcm";
+    ASSERT_TRUE(ff.saveFile(f.string().c_str()).good());
+    EXPECT_NEAR(12.5f, ReadMas(f), 1e-4f);
+}
+
+TEST(DicomExposureTag, TheModuleWritesExposure1152AndExposureInMicroAsAndNot9332) {
     struct Row {
         float mAs;
-        const char* expect1152;   // IS, rounded half up; nullptr = the attribute is not written
+        const char* expect1152;   // IS, mAs rounded half up; nullptr = the attribute is not written
+        const char* expect1153;   // IS, mAs * 1000 rounded half up; nullptr = not written
+        float readBack;           // what the module reads back from its own file
     };
-    const Row rows[] = {{100.0f, "100"}, {2.5f, "3"}, {2.4f, "2"}, {0.4f, "0"}, {0.5f, "1"}, {3.0e9f, nullptr}};
+    const Row rows[] = {{100.0f, "100", "100000", 100.0f}, {2.5f, "3", "2500", 2.5f},      {2.4f, "2", "2400", 2.4f},
+                        {0.4f, "0", "400", 0.4f},          {0.5f, "1", "500", 0.5f},        {0.0004f, "0", "0", 0.0f},
+                        {3000.0f, "3000", "3000000", 3000.0f},
+                        {3.0e6f, "3000000", nullptr, 3.0e6f}, {3.0e9f, nullptr, nullptr, 0.0f}};
     for (const Row& r : rows) {
         const TempDir t("c1_write");
         const fs::path f = t.path / "w.dcm";
@@ -166,38 +206,52 @@ TEST(DicomExposureTag, TheModuleWritesBothAttributesWithTheValuesTheRulesGive) {
         DcmFileFormat ff;
         ASSERT_TRUE(ff.loadFile(f.string().c_str()).good());
         DcmDataset* ds = ff.getDataset();
-        OFString v1152;
-        const bool has1152 = ds->findAndGetOFString(DCM_Exposure, v1152).good();
-        Float64 v9332 = -1;
-        ASSERT_TRUE(ds->findAndGetFloat64(DCM_ExposureInmAs, v9332).good()) << "(0018,9332) keeps the exact value, mAs " << r.mAs;
-        EXPECT_NEAR(static_cast<double>(r.mAs), v9332, 1e-3 * (std::max)(1.0, static_cast<double>(r.mAs))) << "mAs " << r.mAs;
-        if (r.expect1152 == nullptr) {
-            EXPECT_FALSE(has1152) << "mAs " << r.mAs << " does not fit an IS (above 2^31-1): (0018,1152) is left out";
-        } else {
-            ASSERT_TRUE(has1152) << "mAs " << r.mAs << ": REQ-DICOM-015 embeds (0018,1152) Exposure";
-            EXPECT_STREQ(r.expect1152, v1152.c_str()) << "mAs " << r.mAs;
+        EXPECT_FALSE(ds->tagExists(DCM_ExposureInmAs)) << "(0018,9332) is not in the DX X-Ray Acquisition Dose module: mAs " << r.mAs;
+        struct Want {
+            DcmTagKey key;
+            const char* expect;
+            const char* name;
+        } wants[] = {{DCM_Exposure, r.expect1152, "(0018,1152)"}, {DCM_ExposureInuAs, r.expect1153, "(0018,1153)"}};
+        for (const Want& w : wants) {
+            OFString v;
+            const bool has = ds->findAndGetOFString(w.key, v).good();
+            if (w.expect == nullptr) {
+                EXPECT_FALSE(has) << w.name << " does not fit an IS and is left out: mAs " << r.mAs;
+            } else {
+                ASSERT_TRUE(has) << w.name << ": mAs " << r.mAs;
+                EXPECT_STREQ(w.expect, v.c_str()) << w.name << ": mAs " << r.mAs;
+                DcmElement* e = nullptr;
+                ASSERT_TRUE(ds->findAndGetElement(w.key, e).good());
+                EXPECT_STREQ("IS", DcmVR(e->getVR()).getValidVRName()) << w.name << " is an Integer String";
+            }
         }
-        DcmElement* e = nullptr;
-        ASSERT_TRUE(ds->findAndGetElement(DCM_Exposure, e).good() == has1152);
-        if (has1152) EXPECT_STREQ("IS", DcmVR(e->getVR()).getValidVRName()) << "(0018,1152) is an Integer String";
-        // the module's own round trip still gives the exact value back
-        EXPECT_NEAR(r.mAs, ReadMas(f), 1e-3 * (std::max)(1.0f, r.mAs)) << "mAs " << r.mAs;
+        EXPECT_NEAR(r.readBack, ReadMas(f), 5e-4f) << "mAs " << r.mAs << ": the module's own round trip";
     }
 }
 
-TEST(DicomExposureTag, ANonNumericOrNegative1152IsNotAMasValue) {
+TEST(DicomExposureTag, ANonNumericOrNegativeAttributeIsSkippedAndTheNextOneIsUsed) {
     const TempDir t("c1_garbage");
     const fs::path mine = t.path / "module_written.dcm";
     ASSERT_TRUE(WriteWithTheModule(mine, 50.0f));
-    for (const char* bad : {"abc", "-7", ""}) {
+    struct Case {
+        const char* v1153;   // nullptr = absent
+        const char* v1152;
+        float expect;
+    };
+    const Case cases[] = {{nullptr, "abc", 0.0f}, {nullptr, "-7", 0.0f}, {nullptr, "", 0.0f},
+                          {"abc", "7", 7.0f},     {"-7000", "7", 7.0f},  {"", "7", 7.0f}};
+    for (const Case& c : cases) {
         DcmFileFormat ff;
         ASSERT_TRUE(ff.loadFile(mine.string().c_str()).good());
         DcmDataset* ds = ff.getDataset();
         ds->findAndDeleteElement(DCM_ExposureInmAs);
-        ds->putAndInsertString(DCM_Exposure, bad);
+        ds->findAndDeleteElement(DCM_ExposureInuAs);
+        ds->putAndInsertString(DCM_Exposure, c.v1152);
+        if (c.v1153) ds->putAndInsertString(DCM_ExposureInuAs, c.v1153);
         const fs::path f = t.path / "bad.dcm";
         ASSERT_TRUE(ff.saveFile(f.string().c_str()).good());
-        EXPECT_FLOAT_EQ(0.0f, ReadMas(f)) << "(0018,1152) = '" << bad << "': mAs stays at its default 0";
+        EXPECT_NEAR(c.expect, ReadMas(f), 1e-4f) << "(0018,1153) '" << (c.v1153 ? c.v1153 : "(absent)") << "', (0018,1152) '"
+                                                  << c.v1152 << "'";
     }
 }
 

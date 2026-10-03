@@ -770,20 +770,37 @@ XpeErrorCode DicomReader::getMetadata(XpeImageMetadata* outMeta) {
         }
     }
 
-    // mAs (QA-B-200 M2a, C1): (0018,9332) Exposure in mAs (VR FD, the exact value) when the file has it, otherwise
-    // (0018,1152) Exposure (VR IS, an integer string) -- the attribute REQ-DICOM-009 names and the one another system
-    // writes. Before this the reader looked at (0018,9332) only, so a file with just (0018,1152) read as mAs 0.
+    // mAs (QA-B-200 M2a/M2a2, C1). Before this the reader looked at (0018,9332) only, so a file written by another system
+    // with (0018,1152) read as mAs 0. The order, most precise first; an attribute that is absent, empty, not a number or
+    // negative is skipped and the next one is tried:
+    //   (0018,1153) Exposure in uAs   IS, microampere-seconds: divided by 1000 (the module writes this one with 1152)
+    //   (0018,9332) Exposure in mAs   FD: the exact value (files this module wrote before M2a2 carry only this one)
+    //   (0018,1152) Exposure          IS, whole mAs: the attribute REQ-DICOM-009 names and another system writes
     {
-        Float64 mAs = 0.0;
-        if (ds->findAndGetFloat64(DCM_ExposureInmAs, mAs).good()) {
-            outMeta->mAs = static_cast<float>(mAs);
-        } else {
-            OFString exposure;
-            if (ds->findAndGetOFString(DCM_Exposure, exposure).good() && !exposure.empty()) {
-                char* end = nullptr;
-                const double v = std::strtod(exposure.c_str(), &end);
-                if (end != exposure.c_str() && std::isfinite(v) && v >= 0.0) outMeta->mAs = static_cast<float>(v);
+        auto parseNonNegative = [](const OFString& text, double* out) {
+            if (text.empty()) return false;
+            char* end = nullptr;
+            const double v = std::strtod(text.c_str(), &end);
+            if (end == text.c_str() || !std::isfinite(v) || v < 0.0) return false;
+            *out = v;
+            return true;
+        };
+        double value = 0.0;
+        OFString text;
+        bool found = false;
+        if (ds->findAndGetOFString(DCM_ExposureInuAs, text).good() && parseNonNegative(text, &value)) {
+            outMeta->mAs = static_cast<float>(value / 1000.0);
+            found = true;
+        }
+        if (!found) {
+            Float64 mAs = 0.0;
+            if (ds->findAndGetFloat64(DCM_ExposureInmAs, mAs).good() && std::isfinite(mAs) && mAs >= 0.0) {
+                outMeta->mAs = static_cast<float>(mAs);
+                found = true;
             }
+        }
+        if (!found && ds->findAndGetOFString(DCM_Exposure, text).good() && parseNonNegative(text, &value)) {
+            outMeta->mAs = static_cast<float>(value);
         }
     }
 

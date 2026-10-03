@@ -1,0 +1,41 @@
+=== ARM reader_does_not_fall_back_to_1152
+red tests: DicomExposureTag.AFileFromAnotherSystemWithOnlyExposure1152ReadsAsThatValue, DicomExposureTag.ANonNumericOrNegativeAttributeIsSkippedAndTheNextOneIsUsed, DicomExposureTag.TheModuleWritesExposure1152AndExposureInMicroAsAndNot9332, DicomExposureTag.TheReadOrderIs1153Then9332Then1152
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: ['DicomExposureTag.ANonNumericOrNegativeAttributeIsSkippedAndTheNextOneIsUsed', 'DicomExposureTag.TheModuleWritesExposure1152AndExposureInMicroAsAndNot9332', 'DicomExposureTag.TheReadOrderIs1153Then9332Then1152']
+restored byte-identical: True
+=== ARM reader_ignores_1153
+red tests: DicomExposureTag.TheModuleWritesExposure1152AndExposureInMicroAsAndNot9332, DicomExposureTag.TheReadOrderIs1153Then9332Then1152
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: ['DicomExposureTag.TheModuleWritesExposure1152AndExposureInMicroAsAndNot9332']
+restored byte-identical: True
+=== ARM reader_accepts_a_negative_value
+red tests: DicomExposureTag.ANonNumericOrNegativeAttributeIsSkippedAndTheNextOneIsUsed
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM reader_ignores_9332
+red tests: DicomExposureTag.AFileThatOnlyHas9332StillReadsAsThatValue, DicomExposureTag.TheReadOrderIs1153Then9332Then1152
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+other red tests: none
+restored byte-identical: True
+=== ARM writer_omits_1152
+red tests: DicomExposureTag.TheModuleWritesExposure1152AndExposureInMicroAsAndNot9332, DicomExposureTag.TheReadOrderIs1153Then9332Then1152
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: ['DicomExposureTag.TheReadOrderIs1153Then9332Then1152']
+restored byte-identical: True
+=== ARM writer_omits_1153
+red tests: DicomExposureTag.TheModuleWritesExposure1152AndExposureInMicroAsAndNot9332, DicomExposureTag.TheReadOrderIs1153Then9332Then1152
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: ['DicomExposureTag.TheReadOrderIs1153Then9332Then1152']
+restored byte-identical: True
+=== ARM writer_truncates_instead_of_rounding
+red tests: DicomExposureTag.TheModuleWritesExposure1152AndExposureInMicroAsAndNot9332, DicomExposureTag.TheReadOrderIs1153Then9332Then1152
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: ['DicomExposureTag.TheReadOrderIs1153Then9332Then1152']
+restored byte-identical: True
+=== ARM writer_writes_9332_again
+red tests: DicomExposureTag.TheModuleWritesExposure1152AndExposureInMicroAsAndNot9332
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+other red tests: none
+restored byte-identical: True
+=== DONE
