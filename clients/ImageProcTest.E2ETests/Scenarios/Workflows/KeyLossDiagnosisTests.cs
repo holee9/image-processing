@@ -1,4 +1,4 @@
-// GUI-C-229, 229b: the reading aid of a failed real-keystroke scenario, tested on its own. No input is sent and no application is started.
+// GUI-C-229, 229b, 229c: the reading aid of a failed real-keystroke scenario, tested on its own. No input is sent and no application is started.
 using ImageProcTest.E2ETests.Fixtures;
 using Xunit;
 using static ImageProcTest.E2ETests.Fixtures.KeyLossDiagnosis;
@@ -40,11 +40,65 @@ public sealed class KeyLossDiagnosisTests
         Assert.Null(RefuseIfNotInFront(appInFront: true, whatIsInFront: string.Empty));
     }
 
-    // ---- the explanations ---------------------------------------------------------------------------------------------------------------------------------------------------------
+    // ---- Codex #132 (1): a judgment read that is late is a timing failure --------------------------------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData(590, false)]
+    [InlineData(600, false)]
+    [InlineData(640, false)]
+    [InlineData(1000, false)]
+    [InlineData(589, true)]
+    [InlineData(1001, true)]
+    [InlineData(1400, true)]
+    public void TheJudgmentRead_IsOnTimeOnlyInsideTheWindow(long readAtMs, bool timingFailure)
+    {
+        var message = JudgeTiming(readAtMs);
+
+        Assert.Equal(timingFailure, message is not null);
+        if (message is not null)
+        {
+            Assert.StartsWith("Timing failure:", message);
+            Assert.Contains($"{readAtMs} ms after the last key", message);
+            Assert.Contains("not used to pass", message);
+        }
+    }
+
+    // ---- Codex #132 (2): the foreground is a fact, not a destination ------------------------------------------------------------------------------------------------------
 
     [Fact]
-    public void AnotherProcessInFrontAfterTheKeysBegan_IsTheForegroundLeaving() =>
-        Assert.Equal("ForegroundLeftDuringTyping", ClassifyName(Obs("300"), Obs("43", foreground: Other, focusPid: Other, focus: "Popup"), Obs("43", foreground: Other, focusPid: Other, focus: "Popup")));
+    public void AnotherProcessInFrontAtTheJudgment_IsUnclassified_NotTheKeysGoingThere() =>
+        // the application held the foreground before the keys; at the 600 ms reading another process does. When that changed is not observed (it may be after the last key).
+        Assert.Equal("Unclassified", ClassifyName(Obs("300"), Obs("43", foreground: Other, focusPid: Other, focus: "Popup"), Obs("43", foreground: Other, focusPid: Other, focus: "Popup")));
+
+    [Fact]
+    public void AnotherProcessInFrontOnlyAtTheReRead_IsUnclassified_EvenThoughTheRestWouldFitAnExplanation() =>
+        // without the foreground fact these readings are KeysNotInBoxFocusStayed
+        Assert.Equal("Unclassified", ClassifyName(Obs("300"), Obs("43"), Obs("43", foreground: Other)));
+
+    [Fact]
+    public void AForegroundThatChangedAfterTheInputEnded_IsNotReadAsALossDuringTyping()
+    {
+        // Codex #132 (2) reproduction: the application was in front before the keys, the keys all arrived (the box is complete at the re-read), and a popup took the foreground later.
+        var cause = Classify(Typed, Obs("300"), Obs("43", foreground: Other), Obs(Typed, foreground: Other), App, keysSent: true);
+
+        Assert.Equal(Cause.Unclassified, cause);
+        Assert.DoesNotContain("while typing", Explain(cause));
+        Assert.DoesNotContain("went to that window", Explain(cause));
+    }
+
+    [Fact]
+    public void ForegroundFacts_StateTheProcessesAndClaimNoDestination()
+    {
+        var facts = ForegroundFacts(Obs("43", foreground: Other), Obs("43", foreground: 300), App);
+
+        Assert.Contains("At the 600 ms reading the foreground was process 200, not the application (pid 100).", facts);
+        Assert.Contains("At the 1.5 s re-read the foreground was process 300, not the application (pid 100).", facts);
+        Assert.Contains("is not observed, so where the keys went is not either", facts);
+        Assert.Equal(string.Empty, ForegroundFacts(Obs("43"), Obs("43"), App));
+        Assert.DoesNotContain("went to", ForegroundFacts(Obs("43", foreground: Other), null, App).Replace("where the keys went is not either", string.Empty));
+    }
+
+    // ---- the explanations ---------------------------------------------------------------------------------------------------------------------------------------------------------
 
     [Fact]
     public void AFullBoxALaterRead_IsAReadThatCameTooEarly() =>
@@ -81,11 +135,6 @@ public sealed class KeyLossDiagnosisTests
     // ---- more than one explanation, or none ---------------------------------------------------------------------------------------------------------------------------------
 
     [Fact]
-    public void ObservationsThatFitTwoExplanations_AreUnclassified() =>
-        // another process in front AND the box complete a moment later: the foreground reading and the late-read reading both fit
-        Assert.Equal("Unclassified", ClassifyName(Obs("300"), Obs("43", foreground: Other), Obs(Typed, foreground: Other)));
-
-    [Fact]
     public void ABoxThatIsNotAPrefixOfTheText_AndNothingElseFits_IsUnclassified() =>
         Assert.Equal("Unclassified", ClassifyName(Obs("300"), Obs("4231"), Obs("4231")));
 
@@ -98,12 +147,12 @@ public sealed class KeyLossDiagnosisTests
     {
         Assert.All(Enum.GetValues<Cause>(), c => Assert.False(string.IsNullOrWhiteSpace(Explain(c))));
 
-        var facts = Facts(Obs("300"), Obs("4"), Obs("43"), Obs(Typed));
+        var facts = Facts(Obs("300"), Obs("43"), 612, Obs(Typed));
 
         Assert.Contains("before the keys: center '300'", facts);
-        Assert.Contains("right after the keys: center '4'", facts);
-        Assert.Contains("600 ms after: center '43'", facts);
+        Assert.Contains("600 ms after (judgment read at +612 ms): center '43'", facts);
         Assert.Contains("1.5 s later: center '4321'", facts);
-        Assert.Contains("(not read)", Facts(Obs("300"), Obs("4"), Obs("43"), null));
+        Assert.Contains("(not read)", Facts(Obs("300"), Obs("43"), 612, null));
+        Assert.DoesNotContain(Enum.GetNames<Cause>(), name => name.Contains("DuringTyping", StringComparison.Ordinal));
     }
 }

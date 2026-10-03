@@ -147,8 +147,9 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
                 const string typed = "4321";
                 Assert.NotEqual(typed, input.Text);
 
-                // Read BEFORE the keys, then ONE check just before the first key: if the application is not in front, nothing is sent and the scenario fails here, not skipped
-                // (a key goes to whichever window is in front, GUI-C-171). The check is the last thing before the keys; it is skipped over nothing and adds nothing between them.
+                // The order is the original one: ONE check just before the first key (read before it), Ctrl+A, ONE call that types the four characters, 600 ms, the judgment read. If the application is not in
+                // front, nothing is sent and the scenario fails here, not skipped (a key goes to whichever window is in front, GUI-C-171). Nothing is read between the keys or between the last key and the
+                // judgment read: what is read for the failure message is read AFTER the judgment (GUI-C-229c).
                 var appPid = window.Properties.ProcessId.ValueOrDefault;
                 var before = Observe(window, input);
                 var inFront = AppIsForeground(window);
@@ -158,23 +159,28 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
                     Assert.Fail(refusal + " Read before the keys: " + before);
                 }
 
-                // The input is what it always was: Ctrl+A, then ONE call that types the four characters. Nothing is read between the keys (GUI-C-229b: the spacing of the keys is the
-                // condition under which the failure was seen).
                 GlobalInput.SelectAll();
                 GlobalInput.Type(typed);
                 var sinceTyped = Stopwatch.StartNew();
-                var after = Observe(window, input);
-                Thread.Sleep((int)Math.Max(0, 600 - sinceTyped.ElapsedMilliseconds));   // the reading below is still taken 600 ms after the last key
 
-                // The assertion is the strict one it always was: all four characters, 600 ms after the last key. When it fails, the message says what was read around the input.
-                var at600 = Observe(window, input);
-                output.WriteLine("R02 observations: " + KeyLossDiagnosis.Facts(before, after, at600, null));
-                if (at600.Center != typed)
+                var (center, readAtMs) = TakeJudgment(sinceTyped, input);
+                var at600 = ObserveAfterJudgment(window, center);
+                output.WriteLine("R02 observations: " + KeyLossDiagnosis.Facts(before, at600, readAtMs, null));
+
+                // A read that is not about 600 ms after the last key is a timing failure whatever it read: a late value could turn the original failure into a pass.
+                var timing = KeyLossDiagnosis.JudgeTiming(readAtMs);
+                if (timing is not null)
                 {
-                    Assert.Fail(DescribeLostKeys(window, input, typed, before, after, at600, appPid));
+                    Assert.Fail(timing + $" Value read: '{center}'. " + KeyLossDiagnosis.Facts(before, at600, readAtMs, null));
                 }
 
-                Assert.Equal(typed, input.Text);
+                // The assertion is the strict one it always was: all four characters, 600 ms after the last key. When it fails, the message says what was read around the input.
+                if (center != typed)
+                {
+                    Assert.Fail(DescribeLostKeys(window, input, typed, before, at600, readAtMs, appPid));
+                }
+
+                Assert.Equal(typed, center);
                 var stale = StaleIndicator(window);
                 output.WriteLine($"R02 after typing: box='{input.Text}' indicator='{stale}'");
                 Assert.True(
@@ -225,9 +231,9 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
     private const string NextBoxInTabOrder = "VoiWindowWidthInput";
 
     /// <summary>
-    /// R02d (GUI-C-229b): the failure message that R02 builds when it fails can be built from the real window, with no key sent. R02 itself needs real input and runs only where that is allowed, so
-    /// this is where the code that reads the boxes, the focus and the foreground for the message is shown to work. The three readings are taken from the real window with nothing typed, so the
-    /// box does not hold the text and the message is built as for a failure; the message must carry every section.
+    /// R02d (GUI-C-229b, 229c): the failure message that R02 builds when it fails can be built from the real window, with no key sent. R02 itself needs real input and runs only where that is allowed, so
+    /// this is where the code that reads the boxes, the focus and the foreground for the message is shown to work. The readings are taken from the real window with nothing typed, so the box does not
+    /// hold the text and the message is built as for a failure; the message must carry every section.
     /// </summary>
     [SkippableFact]
     public void R02d_TheLostKeysMessage_IsBuiltFromTheRealWindow_WithoutSendingAKey()
@@ -240,16 +246,17 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
 
             var appPid = window.Properties.ProcessId.ValueOrDefault;
             var before = Observe(window, input);
-            var after = Observe(window, input);
-            var at600 = Observe(window, input);
-            var message = DescribeLostKeys(window, input, "4321", before, after, at600, appPid);
+            var sinceTyped = Stopwatch.StartNew();
+            var (center, readAtMs) = TakeJudgment(sinceTyped, input);
+            var at600 = ObserveAfterJudgment(window, center);
+            var message = DescribeLostKeys(window, input, "4321", before, at600, readAtMs, appPid);
             output.WriteLine("R02d message: " + message);
 
+            Assert.Null(KeyLossDiagnosis.JudgeTiming(readAtMs));   // the read taken here is on time: the control for R02e
             Assert.Contains("typed '4321' but the center box held '" + at600.Center + "'", message, StringComparison.Ordinal);
             Assert.Contains("FACTS (observed):", message, StringComparison.Ordinal);
             Assert.Contains("before the keys: center '", message, StringComparison.Ordinal);
-            Assert.Contains("right after the keys: center '", message, StringComparison.Ordinal);
-            Assert.Contains("600 ms after: center '", message, StringComparison.Ordinal);
+            Assert.Contains("600 ms after (judgment read at +", message, StringComparison.Ordinal);
             Assert.Contains("1.5 s later: center '", message, StringComparison.Ordinal);
             Assert.Contains("keyboard focus '", message, StringComparison.Ordinal);
             Assert.Contains($"foreground pid {at600.ForegroundProcessId}", message, StringComparison.Ordinal);
@@ -257,27 +264,71 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
         });
     }
 
-    /// <summary>What can be read right now: both text boxes, the keyboard focus (any process) and the process that holds the system foreground. UI Automation reads, so never taken between keys.</summary>
-    private static Observation Observe(Window window, TextBox input)
+    /// <summary>
+    /// R02e (GUI-C-229c): a delay put in front of the judgment read makes the scenario fail as a TIMING failure. The delay is injected into the same <see cref="TakeJudgment"/> that R02 uses, with no key
+    /// sent: a read 800 ms later than it should be lands outside the window, whatever it reads, while the same call without the delay lands inside it (the control).
+    /// </summary>
+    [SkippableFact]
+    public void R02e_ADelayBeforeTheJudgmentRead_IsATimingFailure_NotAJudgedValue()
     {
-        var center = SafeText(input);
+        Measure("R02e", window =>
+        {
+            OpenParameters(window);
+            var input = window.FindFirstDescendant(cf => cf.ByAutomationId(CenterBox))!.AsTextBox();
+
+            var onTime = TakeJudgment(Stopwatch.StartNew(), input);
+            Assert.Null(KeyLossDiagnosis.JudgeTiming(onTime.ReadAtMs));
+
+            var delayed = TakeJudgment(Stopwatch.StartNew(), input, injectBeforeRead: () => Thread.Sleep(800));
+            var timing = KeyLossDiagnosis.JudgeTiming(delayed.ReadAtMs);
+            output.WriteLine($"R02e on time: read at +{onTime.ReadAtMs} ms; delayed: read at +{delayed.ReadAtMs} ms -> {timing}");
+
+            Assert.True(delayed.ReadAtMs >= KeyLossDiagnosis.JudgmentWaitMs + 800 - 50, $"The injected delay did not take effect (read at +{delayed.ReadAtMs} ms).");
+            Assert.NotNull(timing);
+            Assert.StartsWith("Timing failure:", timing, StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>
+    /// Waits until 600 ms have passed since the last key and reads Center, and nothing else: this read is the judgment. <paramref name="injectBeforeRead"/> exists for R02e only. Returns the value and how
+    /// many ms after the last key the read began.
+    /// </summary>
+    private static (string Center, long ReadAtMs) TakeJudgment(Stopwatch sinceLastKey, TextBox input, Action? injectBeforeRead = null)
+    {
+        var remaining = KeyLossDiagnosis.JudgmentWaitMs - (int)sinceLastKey.ElapsedMilliseconds;
+        if (remaining > 0)
+        {
+            Thread.Sleep(remaining);
+        }
+
+        injectBeforeRead?.Invoke();
+        var readAt = sinceLastKey.ElapsedMilliseconds;
+        return (SafeText(input), readAt);
+    }
+
+    /// <summary>What can be read right now: both text boxes, the keyboard focus (any process) and the process that holds the system foreground. UI Automation reads: never taken between keys.</summary>
+    private static Observation Observe(Window window, TextBox input) => ObserveAfterJudgment(window, SafeText(input));
+
+    /// <summary>The Width box, the keyboard focus and the foreground, read AFTER the judgment read of Center (<paramref name="center"/>), which is taken first and alone.</summary>
+    private static Observation ObserveAfterJudgment(Window window, string center)
+    {
         var width = SafeText(window.FindFirstDescendant(cf => cf.ByAutomationId(NextBoxInTabOrder))?.AsTextBox());
         var focused = FocusedInfo(window);
         return new Observation(center, width, focused?.AutomationId ?? "(none)", focused?.ProcessId ?? 0, ForegroundProcessId());
     }
 
     /// <summary>
-    /// The failure message for lost keys. It reads once more, 1.5 s after the 600 ms reading, and then lists the observations (facts) and, separately, which explanation they fit (an inference, and
-    /// <c>Unclassified</c> when more than one or none fits: <see cref="KeyLossDiagnosis"/>). It only describes; the scenario has already failed.
+    /// The failure message for lost keys. It re-reads once, 1.5 s after the judgment, and then lists the observations (facts, including a foreground that was another process, with no destination claimed)
+    /// and, separately, which explanation they fit (an inference, and <c>Unclassified</c> when more than one or none fits: <see cref="KeyLossDiagnosis"/>). It only describes; the scenario has already failed.
     /// </summary>
-    private static string DescribeLostKeys(Window window, TextBox input, string typed, Observation before, Observation after, Observation at600, int appPid)
+    private static string DescribeLostKeys(Window window, TextBox input, string typed, Observation before, Observation at600, long readAtMs, int appPid)
     {
         Thread.Sleep(1500);
         var later = Observe(window, input);
         var cause = KeyLossDiagnosis.Classify(typed, before, at600, later, appPid, keysSent: true);
         return
             $"Real key presses typed '{typed}' but the center box held '{at600.Center}' 600 ms after the last key (application pid {appPid}). " +
-            $"FACTS (observed): {KeyLossDiagnosis.Facts(before, after, at600, later)}. {PanelToggleScenarios.DescribeWhatIsInFront(window)} " +
+            $"FACTS (observed): {KeyLossDiagnosis.Facts(before, at600, readAtMs, later)}. {KeyLossDiagnosis.ForegroundFacts(at600, later, appPid)} {PanelToggleScenarios.DescribeWhatIsInFront(window)} " +
             $"READING (an inference from the facts above, not an observation): {cause} - {KeyLossDiagnosis.Explain(cause)}";
     }
 
