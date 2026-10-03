@@ -851,7 +851,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             // current tree, four calls on a directory whose file is not a model leave 'worker=Active; failures=0' every time, locally and on the runner, because the module reports that refusal as
             // "model unavailable" and does not count it (QA-B-195, -4); only worker faults count, and nothing this app can do to a text file makes the worker fault. The scenario runs, and
             // proves the clean-up, on a module that counts that refusal. The assertion is not loosened: with no mark there is nothing to restore, and the scenario says so by skipping.
-            Skip.If(AiBanner(window) is null, $"The module did not count the refused calls, so no worker-off mark can be made here (state '{AiStatusSummary(window)}'). XPE-SKIP-ALLOWED:249");
+            Skip.If(AiBanner(window) is null, $"The module did not count the refused calls, so no worker-off mark can be made here (state '{AiStatusSummary(window)}'). XPE-SKIP-ALLOWED:254");
             output.WriteLine($"C11 mark made: {AiBanner(window)!.Name}");
         }
         finally

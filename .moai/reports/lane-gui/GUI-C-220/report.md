@@ -41,14 +41,14 @@ CRLF 만으로 갈리는 시험은 위 1건뿐이다(클론 전체에서 줄바�
 모듈은 모델 폴더의 파일이 모델이 아닐 때의 거부를 "모델을 쓸 수 없음"(-4)으로 보고하고 세지 않는다(QA-B-195). 세는 것은 워커/전송 결함뿐이고(`modules/ai/src/ai.cpp` 의 "WHAT COUNTS" 주석), 이 앱이 텍스트 파일로 워커를 결함 상태로 만들 방법은 없다. 그래서 이 모듈에서는 C11 의 전제(꺼진 워커 표시)가 원리적으로 성립하지 않는다.
 
 ### 처분: (b) 허용 건너뜀
-단정을 느슨하게 하지 않았다. 전제가 없으면 건너뛰는 기존 동작을 유지하고 이유 문장 끝에 CI 건너뜀 게이트가 읽는 토큰 `XPE-SKIP-ALLOWED:249` 를 붙였다. 앱의 거부를 세는 모듈에서는 시험이 다시 실행되어 정리(RestoreAiSession)를 검증한다.
-검증: 위 명령에 `--logger trx` 를 붙여 trx 를 읽었다 — `outcome="NotExecuted"`, 메시지에 `XPE-SKIP-ALLOWED:249` 포함(CI 게이트가 읽는 형태).
+단정을 느슨하게 하지 않았다. 전제가 없으면 건너뛰는 기존 동작을 유지하고 이유 문장 끝에 CI 건너뜀 게이트가 읽는 토큰을 붙였다. 앱의 거부를 세는 모듈에서는 시험이 다시 실행되어 정리(RestoreAiSession)를 검증한다.
+검증: 위 명령에 `--logger trx` 를 붙여 trx 를 읽었다 — `outcome="NotExecuted"`, 메시지에 `XPE-SKIP-ALLOWED:249` 포함(CI 게이트가 읽는 형태). GUI-C-220b 에서 토큰을 전용 이슈 #254 의 `XPE-SKIP-ALLOWED:254` 로 교체했다(이 trx 확인은 249 시점의 것이고 254 로는 다시 돌리지 않았다 — 문자열만 바뀐 것을 grep 으로 확인).
 
 ### 리더 몫: ci.yml 허용 목록 행 (`$allowed` 해시테이블)
 ```
-'249' = 'GUI-C-220 C11: the AI module reports a refusal on a not-a-model directory as model-unavailable (-4) and does not count it, so no worker-off mark can be made (QA-B-195)'
+'254' = 'GUI-C-220 C11: the AI module reports a refusal on a not-a-model directory as model-unavailable (-4) and does not count it, so no worker-off mark can be made (QA-B-195)'
 ```
-키 249 는 이슈 번호다(#249). 같은 키를 다른 건너뜀이 쓰면 함께 면제되므로, 별도 이슈를 만들 수 있으면 그 번호로 바꾸는 편이 좋다.
+키 254 는 이 건너뜀 전용 이슈다(리더 지정). 처음 커밋(4a686189)은 묶음 이슈 249 였다.
 
 ### 관찰 (이번 카드 범위 밖, 수정하지 않음)
 `xpe_ai.dll` 이 없는 Native 구성(로컬 스테이징 디렉터리)에서는 C11 이 건너뛰지 않고 실패했다(메뉴 항목이 비활성이라 `requireEnabled` 단정). C10 도 같은 호출을 쓴다. CI 에는 `xpe_ai` 가 있어 영향이 없으나, 그 구성에서 건너뛰는 것이 맞는지는 별도 판단이다.
