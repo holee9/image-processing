@@ -142,4 +142,19 @@
 
 ---
 
+## 10. SPEC-XPE-GUI-IT 단언 재독(GUI-C-228)에 대한 사용자 결정 (2026-10-04)
+
+근거: gui `GUI-C-227`·`GUI-C-228` 보고서(dev/gui `554cb53d`·`cebc9566`, `.moai/reports/lane-gui/GUI-C-227/spec_patch.txt` §6), 사용자 답변(리더 세션 AskUserQuestion), #249. 문구가 코드와 갈린 6건(B1~B6) 중 5건을 정정, B6 은 변경 불필요(기록만).
+
+| REQ | 사용자 선택 | 바뀐 문구 (SPEC-XPE-GUI-IT v1.3.4) |
+|---|---|---|
+| REQ-GUI-IT-025 (B1) | 문구를 코드에 맞춤 | "dst 치수가 다르면 BUFFER_TOO_SMALL 또는 INVALID_INPUT" → "dst 용량(`dataSize`)이 src 보다 작으면 BUFFER_TOO_SMALL, 크거나 같으면 OK 이고 dst 는 src 의 치수·비트·형식·`dataSize` 를 받는다" (`xpe_copy_image` 의 실제 동작, 넘침 없음) |
+| REQ-GUI-IT-051 (B2) | 문구를 코드에 맞춤 | "한도를 환경 변수로 조정" → "20 MiB 작업 집합 한도는 고정, `XPE_GUI_IT_LEAK_LIMIT_MIB` 는 별도의 관리 힙 한도(기본 5 MiB)를 조정" |
+| REQ-GUI-IT-053 (B3) | 문서를 실제에 맞춤 | 경로 `tests/ImageProcTest.IntegrationTests/expected-versions.json` → `clients/ImageProcTest.IntegrationTests/Resources/expected-versions.json` |
+| REQ-GUI-IT-060 (B4) | 문서를 실제에 맞춤 | 건너뜀 사유 "Skipped: preprocess DLL not staged" → 코드의 "Skipped: xpe_preprocess.dll not staged — build P1A first or set XPE_NATIVE_DIR" (§10 AC-13 의 같은 문구 포함) |
+| REQ-GUI-IT-062 (B5) | 문서를 실제에 맞춤 | `xpe_calib_load_offset(nonexistentPath, outBuffer)` → `xpe_calib_load_offset(nonexistentPath)` (`preprocess_api.h` 선언) |
+| REQ-GUI-IT-024 (B6) | — | 문구 불변. 시험은 `out` 매개변수가 호출 뒤 0 인 것만 볼 수 있다는 점을 §4.6 에 기록 |
+
+---
+
 *끝*

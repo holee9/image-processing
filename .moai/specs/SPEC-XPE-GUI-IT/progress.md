@@ -7,7 +7,7 @@
 - **SPEC Created**: 2026-04-18
 - **Implementation Started**: 2026-04-18
 - **Implementation Complete**: 2026-04-18 — All AC done, 78/78 tests passing (all 15 AC listed; per-AC status in spec.md section 10 / GUI-C-207 report)
-- **실태 대조 정정**: 2026-10-03 — 정의된 REQ 36개 중 구현됨 19 · 부분 14 · 없음 3 (spec.md §4.6, #249)
+- **실태 대조 정정**: 2026-10-04 — 정의된 REQ 36개 중 구현됨 33(한계 있는 것 8 포함) · 부분 0 · 보류 3 (spec.md §4.6 v1.3.4, GUI-C-227·228, #249). 첫 집계(2026-10-03, GUI-C-207)는 구현됨 19 · 부분 14 · 없음 3
 
 ## Phase 1 Deliverables
 

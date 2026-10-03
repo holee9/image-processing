@@ -2,7 +2,7 @@
 
 ---
 id: SPEC-XPE-GUI-IT
-version: 1.3.3
+version: 1.3.4
 status: Implemented
 created: 2026-04-18
 updated: 2026-10-03
@@ -19,6 +19,7 @@ dependency: SPEC-XPE-P0 (Completed), SPEC-XPE-P1A (in progress for advanced suit
 
 | Version | Date       | Author       | Changes                                             |
 |---------|------------|--------------|-----------------------------------------------------|
+| 1.3.4   | 2026-10-04 | lead (GUI-C-227·228, #249) | §4.6 상태 표를 현재 시험 소스에 맞춤(구현됨 33 — 한계 있는 것 8 포함 · 부분 0 · 보류 3, 요구마다 시험 이름을 스크립트로 존재 확인하고 GUI-C-228 이 33개 단언을 모두 읽음). §4.6 한계 표 신설, 낡은 상태 주석·§11 표·픽스처 목록·AC 표 정리. 사용자 결정 "문구를 코드에 맞춤": REQ-025(dst 용량이 작을 때만 거부), REQ-051(20 MiB 고정, 환경 변수는 관리 힙 한도). 사용자 결정 "문서를 실제에 맞춤": REQ-053 경로, REQ-060 건너뜀 사유, REQ-062 시그니처. 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md` §10 |
 | 1.3.3   | 2026-10-03 | lead | REQ-041 을 고정물 건너뜀 정책으로(사용자 결정, Codex #121 이 옛 문구와 동작 불일치를 찾음). 변경 기록 §8 |
 | 1.3.2   | 2026-10-03 | lead | 사용자 결정(#249, GUI-C-224 보고 기반): REQ-008 허용 폴더를 로케이터 후보 다섯과 같게, REQ-050 을 "호스트 생존 + SEHException 은 기록·실패" 로, REQ-063~065 를 보류로 표시. 변경 기록 §8 |
 | 1.3.1   | 2026-10-03 | lead | 사용자 결정(#245 코멘트 묶음 ④ "문서를 실제에 맞게", #249): AC-9 의 "> 20개 negative 시나리오" 를 "서로 다른 거부 경로 18개(GUI-C-209 M2)" 로, §11 표의 AC-9 행도 같이. 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md` |
@@ -174,7 +175,7 @@ For each `XpeErrorCode` value in the C# enum (`OK`=0, `INVALID_INPUT`=-1, ..., `
 
 After executing the full test collection, the test host process **shall not** hold any outstanding `GCHandle.Alloc(Pinned)` handle. (Verification: `GC.Collect(); GC.WaitForPendingFinalizers()` followed by `GC.GetTotalMemory` delta sanity check within `[Trait("Category","Lifecycle")]`)
 
-> **상태 주석 (2026-10-03, #249).** 요구 문구는 남은 `GCHandle.Alloc(Pinned)` 핸들의 부재를 요구하지만, 검증 방법은 "GetTotalMemory 상식 점검"으로 정의되어 있어 둘이 다르다. 당시 시험(`AfterTests_NoOutstandingPinnedHandles`)은 핸들을 세지 않고 관리 힙 < 200 MiB(절대값)만 단언했다. **갱신 (GUI-C-208 M2)**: 그 시험은 고정 핸들 수를 실제로 세는 `LeakEnduranceTests.PinnedObjects_AtThisPoint_AreNoMoreThanWhenTheFixtureWasCreated` 와 계측 자체를 단언하는 `LeakEnduranceTests.TheInstrument_CountsAPinnedHandle_AndStopsCountingItOnceFreed` 로 바뀌었다. 현재 상태: **부분**(CI 러너에서 흔들림 여부 미확인).
+> **상태 주석 (2026-10-03, #249).** 요구 문구는 남은 `GCHandle.Alloc(Pinned)` 핸들의 부재를 요구하지만, 검증 방법은 "GetTotalMemory 상식 점검"으로 정의되어 있어 둘이 다르다. 당시 시험(`AfterTests_NoOutstandingPinnedHandles`)은 핸들을 세지 않고 관리 힙 < 200 MiB(절대값)만 단언했다. **갱신 (GUI-C-208 M2)**: 그 시험은 고정 핸들 수를 실제로 세는 `LeakEnduranceTests.PinnedObjects_AtThisPoint_AreNoMoreThanWhenTheFixtureWasCreated` 와 계측 자체를 단언하는 `LeakEnduranceTests.TheInstrument_CountsAPinnedHandle_AndStopsCountingItOnceFreed` 로 바뀌었다. 현재 상태: **구현됨(한계: 시작 시점 대비 상대 비교, CI 러너에서 흔들림 여부 미확인)**.
 
 ### 4.2 Event-Driven Requirements (이벤트 구동)
 
@@ -200,7 +201,7 @@ After executing the full test collection, the test host process **shall not** ho
 
 #### REQ-GUI-IT-025: Copy Image
 
-**When** `xpe_copy_image(ref src, ref dst)` is called with pre-allocated buffers of identical dimensions, the function **shall** return `XPE_OK`. **When** dst dimensions mismatch, the function **shall** return `XPE_ERR_BUFFER_TOO_SMALL` or `XPE_ERR_INVALID_INPUT`.
+**When** `xpe_copy_image(ref src, ref dst)` is called with pre-allocated buffers of identical dimensions, the function **shall** return `XPE_OK`. **When** the capacity of dst (`dataSize`) is smaller than that of src, the function **shall** return `XPE_ERR_BUFFER_TOO_SMALL`. **When** dst is at least as large, the function **shall** return `XPE_OK` and dst **shall** take the dimensions, bit depth, format and `dataSize` of src. *(2026-10-04 정정, 사용자 결정 "문구를 코드에 맞춤", GUI-C-228 B1. 원문: "When dst dimensions mismatch, the function shall return XPE_ERR_BUFFER_TOO_SMALL or XPE_ERR_INVALID_INPUT" — 코드 `xpe_copy_image` 는 크기가 더 큰 dst 를 받아들이고 src 의 크기 정보로 덮어쓴다.)*
 
 #### REQ-GUI-IT-026: Param Range Query
 
@@ -262,7 +263,7 @@ Every nominal and negative test **shall** run to completion with the test host a
 
 #### REQ-GUI-IT-051: No Memory Leak After 1000 Init/Shutdown Cycles
 
-The test suite **shall not** observe a process working-set increase greater than 20 MiB after 1000 consecutive `xpe_init(null)` / `xpe_shutdown()` cycles. (Gate threshold is tunable via env var `XPE_GUI_IT_LEAK_LIMIT_MIB`.)
+The test suite **shall not** observe a process working-set increase greater than 20 MiB after 1000 consecutive `xpe_init(null)` / `xpe_shutdown()` cycles. The 20 MiB working-set threshold is fixed. A second, stricter gate bounds the managed-heap growth to 5 MiB by default; that limit is tunable via env var `XPE_GUI_IT_LEAK_LIMIT_MIB`. *(2026-10-04 정정, 사용자 결정 "문구를 코드에 맞춤", GUI-C-228 B2. 원문: "Gate threshold is tunable via env var XPE_GUI_IT_LEAK_LIMIT_MIB" — 실제 환경 변수는 20 MiB 가 아니라 관리 힙 한도를 조정한다.)*
 
 - Source: SPEC-XPE-P0 acceptance 3.2 (C++ side). This requirement verifies the same invariant from managed side.
 
@@ -272,13 +273,13 @@ The test suite **shall not** allow any `MarshalDirectiveException`, `InvalidCast
 
 #### REQ-GUI-IT-053: No Silent Version-Skew
 
-The test suite **shall not** pass when `xpe_version()` returns a string not matching `^[0-9]+\.[0-9]+\.[0-9]+` or when the major version does not match the pinned value in `tests/ImageProcTest.IntegrationTests/expected-versions.json` (file created under this SPEC).
+The test suite **shall not** pass when `xpe_version()` returns a string not matching `^[0-9]+\.[0-9]+\.[0-9]+` or when the major version does not match the pinned value in `clients/ImageProcTest.IntegrationTests/Resources/expected-versions.json` (file created under this SPEC). *(2026-10-04 경로 정정, GUI-C-228 B3)*
 
 ### 4.5 Optional Requirements (선택 사항 — P1A ready / platform)
 
 #### REQ-GUI-IT-060: Optional xpe_preprocess Lifecycle
 
-**Where** `xpe_preprocess.dll` is discoverable under `<repo>/build/**/bin/**`, the test suite **shall** execute lifecycle tests for `xpe_preprocess_init` / `xpe_preprocess_shutdown` / `xpe_preprocess_version` via dynamic `NativeLibrary.GetExport` (no static `[DllImport]`). Absence of the DLL **shall** skip the test with a "Skipped: preprocess DLL not staged" reason.
+**Where** `xpe_preprocess.dll` is discoverable under `<repo>/build/**/bin/**`, the test suite **shall** execute lifecycle tests for `xpe_preprocess_init` / `xpe_preprocess_shutdown` / `xpe_preprocess_version` via dynamic `NativeLibrary.GetExport` (no static `[DllImport]`). Absence of the DLL **shall** skip the test with the reason "Skipped: xpe_preprocess.dll not staged — build P1A first or set XPE_NATIVE_DIR". *(2026-10-04 문구 정정, GUI-C-228 B4. 원문: "Skipped: preprocess DLL not staged")*
 
 #### REQ-GUI-IT-061: Optional Synthetic Adapter Chain
 
@@ -288,7 +289,7 @@ The test suite **shall not** pass when `xpe_version()` returns a string not matc
 
 #### REQ-GUI-IT-062: Optional Calibration Loader Contract
 
-**Where** `xpe_preprocess.dll` is available, the test suite **shall** call `xpe_calib_load_offset(nonexistentPath, outBuffer)` and assert return code is `XPE_ERR_IO_FAILED` (not crash, not success).
+**Where** `xpe_preprocess.dll` is available, the test suite **shall** call `xpe_calib_load_offset(nonexistentPath)` *(2026-10-04 시그니처 정정, GUI-C-228 B5 — 함수는 경로 하나만 받는다, `preprocess_api.h`)* and assert return code is `XPE_ERR_IO_FAILED` (not crash, not success).
 
 #### REQ-GUI-IT-063: Optional ETW/Diagnostic Enabled Run
 
@@ -308,15 +309,30 @@ The test suite **shall not** pass when `xpe_version()` returns a string not matc
 
 > **상태 (2026-10-03):** 선택 요구(Optional) — **보류**(사용자 결정, #249 GUI-C-224). 소비자·러너가 없어 지금 구현하지 않는다. 요구는 지우지 않으며, 소비자나 러너가 생기면 재개한다.
 
-### 4.6 Implementation Status per Requirement (2026-10-03, GUI-C-207, #249)
+### 4.6 Implementation Status per Requirement (2026-10-04, GUI-C-207 → GUI-C-228, #249)
 
-정의된 요구는 **36개**다(001~010, 020~031, 040~043, 050~053, 060~065). 판정 기준: **구현됨** = 시험이 요구 문구를 독립된 기대값으로 단언한다. **부분** = 문구의 일부만 단언한다. **없음** = 단언하는 시험이 없다. 근거는 dev/gui `efbc74f8` 기준 GUI-C-207 보고서 §1.
+정의된 요구는 **36개**다(001~010, 020~031, 040~043, 050~053, 060~065). 판정 기준: **구현됨** = 시험이 요구 문구를 독립된 기대값으로 단언한다. **부분** = 문구의 일부만 단언한다. **보류** = 사용자 결정으로 구현하지 않는다(선택 요구). **한계** = 구현됨이지만 시험이 못 보는 부분이 아래 표에 적혀 있다. 첫 집계는 dev/gui `efbc74f8` 기준 GUI-C-207 보고서 §1 이고(구현됨 19 · 부분 14 · 없음 3), 이 표는 GUI-C-208~210·225·225b·225c·226·226b·226d 가 닫은 것을 시험 소스를 다시 읽어 센 것이다(근거: GUI-C-227 `status_census.txt` — 요구마다 시험 이름을 스크립트로 존재 확인, GUI-C-228 `sufficiency_table.txt` — 33개 단언을 모두 읽고 약한 3곳을 시험으로 보강).
 
 | 상태 | 수 | REQ |
 |------|:--:|-----|
-| 구현됨 | 19 | 001(빌드 속성 — 시험이 아님), 002, 003, 005, 021~030, 040, 051, 053, 060, 062 |
-| 부분 | 14 | 004, 006, 007, 008, 009, 010, 020, 031, 041, 042, 043, 050, 052, 061 |
-| 없음 | 3 | 063, 064, 065 (선택 요구(Optional) — 미구현, 구현 계획 없음) |
+| 구현됨 | 25 | 001(빌드 속성 — 시험이 아님), 002~006, 009, 021~031, 040, 041, 051, 053, 060~062 |
+| 구현됨(한계 있음) | 8 | 007, 008, 010, 020, 042, 043, 050, 052 (한계는 아래 표) |
+| 부분 | 0 | — |
+| 보류 | 3 | 063, 064, 065 (선택 요구(Optional) — 사용자 결정으로 보류, 구현하지 않음) |
+
+(25 + 8 + 0 + 3 = 36. 001 은 시험이 아니라 빌드 속성이고 25 에 센다. 구현됨 합계는 33.)
+
+| REQ | 한계 |
+|-----|------|
+| 007 | 메타데이터 참조 0 은 실행 순서와 무관하게 단언한다. 동적 로드·리플렉션 생성 API 의 사용은(`MockBlockingStaticTests`, 패턴은 `Resources/forbidden-reflection-apis.json`, GUI-C-228b~228f) 시험 어셈블리에 실제로 컴파일된 모든 소스(PDB 의 Document 목록, 링크·생성 소스 포함)의 모든 줄을 스캔해 금지한다(줄 제외 없음, 오탐은 허용 목록 4줄). 스캔 대상은 PDB 의 해시와 일치하는 파일뿐이라(불일치·후보 복수는 실패) 빌드한 소스와 다른 소스로는 통과할 수 없다. 스캔이 못 보는 형태(표에 없는 API, 다른 어셈블리를 거친 호출, 실행 중 코드 생성, 경로로 올리는 네이티브 라이브러리)는 증명하지 않는다. 가용성 한계: 다른 체크아웃·기계에서 돌릴 때 PDB 가 가리키는 소스 파일을 유일하게 찾지 못하거나 바이트가 달라지면 실패한다 |
+| 008 | 링크 권한이 없으면 파일 링크 시험이 건너뛴다(CI 러너에서는 돎 — main `fbb6edc0` 에서 863 통과·건너뜀 0). 실제 로드 모듈의 경로는 `TheLoadedModule_IsReallyUnderAnApprovedFolder_WhenItsLinksAreFollowed` 가 단언한다. 실행하지 않은 변형: 로더가 디코이를 피하는 경로의 직접 입증 |
+| 010 | 시작 시점 대비 상대 비교이고 xUnit 이 정한 시점에 돈다 |
+| 020 | 전용 프로세스에서 재지 않고 고정물의 첫 생성이 로케이터·첫 로드·첫 호출 시간을 스스로 기록한다 |
+| 042 | 진짜 x86 빌드 DLL 로는 돌려 보지 못했다(PE 헤더의 Machine 필드만 바꾼 x64 DLL 사본과 x86 xpe_common 이 있는 폴더로 시험) |
+| 043 | ARM64 분기는 실행해 보지 못했다 |
+| 050 | AccessViolation 은 .NET 이 잡지 못하고 호스트를 끝내므로 시험이 직접 단언할 수 없다(요구 문구가 그렇게 바뀌었다). SEHException 의 기록·실패와 부정 행 완주만 단언한다 |
+| 052 | MarshalDirective·InvalidCast·COM 예외를 실제로 일으키는 입력은 없다. 부정 행마다 정확한 코드를 문서화한다 |
+| 024 | (한계 표시는 아니나 기록) "buffer.Data 를 바꾸지 않는다" 는 `out` 매개변수라 시험은 호출 뒤 0 인 것만 본다. 네이티브는 그 경로에서 `out` 을 건드리지 않는다(`xpe_memory.cpp`) — GUI-C-228 B6 |
 
 ---
 
@@ -488,7 +504,7 @@ clients/
 - [HARD] `xpe_common.dll` 심볼 확장/추가 시 본 SPEC의 Functional 테스트를 **반드시** 동시 갱신
 - [HARD] Mock fallback을 테스트 통과 경로로 사용할 수 없음 (REQ-GUI-IT-007)
 - [HARD] 테스트는 실제 `XpeCommonApi`의 `[DllImport]` 선언을 직접 호출한다 — P/Invoke shim을 재작성하지 않음 (drift 방지)
-  - **상태 주석 (2026-10-03):** 현재 거울 P/Invoke 로 우회됨, 시그니처 대조 시험은 GUI-C-208 M1 에서 추가 예정, #249. 시험 프로젝트는 `PInvoke/XpeCommonNative.cs` 거울 선언(extern 16개, 앱 래퍼 `PInvokeWrapper.cs` 는 15개 — 거울에만 `xpe_alert_push`)을 쓴다(GUI-C-13: 한 어셈블리에 DllImport 해석기 둘을 둘 수 없음). DLL 이름(`DllNameParityTests`)과 오류 코드 열거(`ErrorCodeHeaderParityTests`)는 소스로 대조하지만 함수 시그니처는 아직 대조하지 않는다.
+  - **상태 주석 (2026-10-03):** 현재 거울 P/Invoke 로 우회됨, 시그니처 대조 시험은 GUI-C-208 M1 에서 추가 예정, #249. 시험 프로젝트는 `PInvoke/XpeCommonNative.cs` 거울 선언(extern 16개, 앱 래퍼 `PInvokeWrapper.cs` 는 15개 — 거울에만 `xpe_alert_push`)을 쓴다(GUI-C-13: 한 어셈블리에 DllImport 해석기 둘을 둘 수 없음). DLL 이름(`DllNameParityTests`)과 오류 코드 열거(`ErrorCodeHeaderParityTests`)는 소스로 대조하지만 함수 시그니처는 아직 대조하지 않는다. **갱신 (GUI-C-208 M1)**: 함수 시그니처는 `Functional/NativeSignatureParityTests` 가 헤더와 대조한다(미러와 앱 사본 모두, 통제 시험 포함). 위 extern 개수(16/15)는 GUI-C-13 시점 수치이고 이번에 다시 세지 않았다.
 
 ---
 
@@ -555,7 +571,7 @@ Section 5.1 표의 15개 심볼 각각에 대해 최소 하나의 `[Fact]` 또�
 
 > **정정 (2026-10-03, 사용자 결정 #245 코멘트 묶음 ④ "문서를 실제에 맞게", #249).** 옛 문구: *"> 20개 negative 시나리오"*. `GUI-C-209` 보고서의 결론은 xpe_common 의 서로 다른 거부 경로가 18개이고 "20+" 는 한 검사를 두 번 세어야 채워진다는 것이다. 그래서 개수를 시나리오 수가 아니라 거부 경로 수(18)로 적었다. 경로별 시험은 `GUI-C-209` 의 `NegativeInputPathTests` 다. 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md`.
 
-> **상태 주석 (2026-10-03, #249).** 현재 시나리오는 "20개 넘게"가 아니라 부정 입력 3개(Configure 64 KB 깨진 JSON, 1바이트 알림 버퍼, 거대한 Alloc 치수)와 초기화 전 무충돌 3개다. `NoManagedExceptionTests` 클래스는 없고 시험은 `ErrorMapping/NativeErrorTranslationTests` 에 있다. 기준을 실제 수로 고칠지, 빠진 시나리오를 추가할지(보고서 D11)는 결정 대기다. 현재 상태: **부분**.
+> **상태 주석 (2026-10-04, #249, GUI-C-227).** 서로 다른 거부 경로 18개가 `ErrorMapping/NegativeInputPathTests` 에 있다(행마다 정확한 코드·통제·네이티브 소스의 검사 문장 인용, GUI-C-209 M2). REQ-006·050·052 의 근거다. 현재 상태: **구현됨(한계: REQ-050 의 AccessViolation 은 호스트 종료로 드러남, REQ-052 의 예외 유형은 일으키는 입력이 없음)**. (옛 주석: 부정 입력 3개와 초기화 전 무충돌 3개, 상태 부분)
 >
 > **갱신 (2026-10-03).** 결정: 기준을 실제 수로 고친다(사용자 #245 코멘트 묶음 ④). 그 뒤 `GUI-C-209` M2(main `b39b34a9`)가 `ErrorMapping/NegativeInputPathTests` 로 서로 다른 거부 경로 18개를 정확한 오류 코드로 시험한다. 이 갱신에서 CI 결과는 읽지 않았으므로 상태 열은 여기서 바꾸지 않는다.
 
@@ -576,12 +592,12 @@ Section 5.1 표의 15개 심볼 각각에 대해 최소 하나의 `[Fact]` 또�
 
 CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 이내.
 
-> **상태 주석 (2026-10-03, #249).** `Category=Smoke` 로 거르는 CI 단계가 없고(`.github` 0건) 시험별 5초 상한도 걸려 있지 않다 — **CI 가 재지 않는다**. 단계를 추가할지는 결정 대기다. 현재 상태: **없음**.
+> **상태 주석 (2026-10-03, #249).** `Category=Smoke` 로 거르는 CI 단계가 없고(`.github` 0건) 시험별 5초 상한도 걸려 있지 않다 — **CI 가 재지 않는다**. 단계를 추가할지는 결정 대기다. 로컬 측정(GUI-C-226d·228, 네이티브 DLL 있음): 전체 863 시험이 22~25 초("Full < 2min" 은 로컬에서 충족, 게이트는 없음). CI `dotnet-tests` 잡의 같은 실행은 26 초(main `fbb6edc0`). 현재 상태: **없음**(CI 가 상한을 걸지 않는다).
 
 ### AC-13: Optional P1A Tests Skip Cleanly When Preprocess Absent (REQ-GUI-IT-060~062)
 
 `PreprocessOptionalTests`, `SyntheticAdapterChainTests`, `CalibLoadOptionalTests`:
-- `xpe_preprocess.dll` 부재 시 테스트가 `Skip("preprocess DLL not staged")`으로 표시
+- `xpe_preprocess.dll` 부재 시 테스트가 `Skip("Skipped: xpe_preprocess.dll not staged — build P1A first or set XPE_NATIVE_DIR")`으로 표시
 - DLL 있으면 실행 + pass
 
 ### AC-14: IEC 62304 Class B Documentation Trace
@@ -617,7 +633,12 @@ CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 
 | REQ-GUI-IT-001 | `ImageProcTest.IntegrationTests.csproj` (빌드 속성) |
 | REQ-GUI-IT-002~004 | `Smoke/AbiLayoutTests` |
 | REQ-GUI-IT-005, 020, 041, 042 | `Smoke/DllLoadSmokeTests` |
-| REQ-GUI-IT-053 | `Smoke/VersionPinTests` (+ `Functional/ErrorCodeMappingTests`) |
+| REQ-GUI-IT-053 | `Smoke/VersionPinTests` |
+| REQ-GUI-IT-005 | (+ `Functional/ErrorCodeMappingTests`) |
+| REQ-GUI-IT-042 | (+ `Smoke/ArchitectureMismatchTests`) |
+| REQ-GUI-IT-006, 050, 052 | (+ `ErrorMapping/NegativeInputPathTests`) |
+| REQ-GUI-IT-050 | (+ `Safety/BoundaryGuardTests`) |
+| REQ-GUI-IT-061 | (+ `P1AReady/PreprocessCorrectionChainSmokeTests`) |
 | REQ-GUI-IT-006, 040, 050, 052 | `ErrorMapping/NativeErrorTranslationTests` |
 | REQ-GUI-IT-007 | `Safety/MockBlockingTests` |
 | REQ-GUI-IT-008 | `Safety/DllSearchPathSafetyTests` |
@@ -629,11 +650,11 @@ CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 
 | REQ-GUI-IT-029~031 | `Lifecycle/LoggingHandlerTests` |
 | REQ-GUI-IT-043 | `Diagnostics/PlatformDetectionTests` |
 | REQ-GUI-IT-060, 061, 062 | `P1AReady/PreprocessHandshakeTests`, `PreprocessCorrectionChainSmokeTests`, `CalibrationCheckExpirySmokeTests` |
-| REQ-GUI-IT-063, 064, 065 | 없음 |
+| REQ-GUI-IT-063, 064, 065 | (보류 — 구현하지 않음) |
 
 #### Fixture & Utility Classes
 - `Fixtures/NativeLibraryFixture.cs` (IClassFixture, DLL discovery, per-test init)
-- `Fixtures/DllStagingFixture.cs` (Locate + verify DLL on startup)
+- `Fixtures/BoundaryGuard.cs` (REQ-GUI-IT-050 boundary guard) *(2026-10-04: 옛 목록의 `Fixtures/DllStagingFixture.cs` 는 저장소에 없다 — 로케이터는 `NativeLibraryFixture.cs` 에 있다, GUI-C-227)*
 - `PInvoke/XpeCommonNative.cs` (P/Invoke wrapper mirror of native signatures)
 
 #### Configuration & Resources
@@ -649,29 +670,29 @@ CI logs 또는 local `dotnet test --filter Category=Smoke` wall-clock이 상한 
 | Safety (leak, uninit, negative) | 8 | PASS (< 180s) |
 | **Total** | **78/78** | **GREEN** |
 
-> 2026-10-03 주석(#249): "78/78" 은 2026-04-18 수치다. 현재 프로젝트는 650 통과 / 1 건너뜀으로 돌며, 대부분은 다른 SPEC 의 시험이다.
+> 2026-10-03 주석(#249): "78/78" 은 2026-04-18 수치다. 현재 프로젝트는 CI(main `fbb6edc0`)에서 863 통과 / 0 건너뜀, 로컬(비관리자)에서는 파일 심볼릭 링크 시험 1건이 건너뜀으로 돌며, 대부분은 다른 SPEC 의 시험이다.
 
 ### Acceptance Criteria Traceability
 
-> 2026-10-03 주석(#249): 아래 표의 "✓" 는 2026-04-18 기록이다. AC 별 실제 상태는 §10 의 상태 주석과 §4.6 을 따른다(AC-2/3/6/8/9/11/12/14/15 는 부분 또는 없음).
+> 2026-10-04 갱신(#249, GUI-C-228): 표의 구현 열은 실재하는 시험 클래스로, 상태 열은 §4.6 에 맞췄다(옛 표는 2026-04-18 기록이었고 없는 클래스 8개를 가리켰다). AC-13 의 "9 cases" 와 AC-15 는 다시 세지 않았다.
 
 | AC # | Title | Implementation | Status |
 |------|-------|-----------------|--------|
-| AC-1 | Test project builds (net8.0, x64) | ImageProcTest.IntegrationTests.csproj | ✓ PASS |
-| AC-2 | ABI size parity | AbiLayoutTests (Marshal.SizeOf assertions) | ✓ PASS |
-| AC-3 | DLL resolution | DllResolutionTests (ResolvedDllPath validation) | ✓ PASS |
-| AC-4 | 15/15 PInvoke symbols functional | 15 test methods across LifecycleTests, ConfigureTests, etc. | ✓ PASS |
-| AC-5 | Uninitialized guard | UninitializedGuardTests (pre-init NOT_INITIALIZED) | ✓ PASS |
-| AC-6 | Error code enum parity (11 codes) | EnumParityTests.ErrorStringParity | ✓ PASS |
-| AC-7 | 1000-cycle leak test | LeakEnduranceTests.InitShutdown_1000Cycles_NoLeak | ✓ PASS |
-| AC-8 | Mock backend exclusion | MockExclusionTests (reflection check) | ✓ PASS |
-| AC-9 | No managed exception on negative inputs | 서로 다른 거부 경로 18개(GUI-C-209 M2) *(2026-10-03 정정, 원문 "NoManagedExceptionTests (20+ negative scenarios)", #249)* | ✓ PASS |
-| AC-10 | Alert queue edge cases | AlertTests (empty queue, clear_alerts idempotent) | ✓ PASS |
-| AC-11 | Log subsystem bounds | LoggingTests (level ∈ [0,5], file I/O) | ✓ PASS |
-| AC-12 | Performance gates | Smoke < 30s, Full < 2min | ✓ PASS |
-| AC-13 | Optional P1A tests skip cleanly | PreprocessOptionalTests (Skip when DLL absent) | runs: CI stages xpe_preprocess.dll, 9 cases *(2026-10-03 정정, 원문 "✓ READY (P1A pending)", #249)* |
-| AC-14 | IEC 62304 Class B trace | Resources/requirement-matrix.json (planned) | ✓ READY |
-| AC-15 | DoD: all artifacts + MX tags | spec.md, progress.md, README section | ✓ READY |
+| AC-1 | Test project builds (net8.0, x64) | ImageProcTest.IntegrationTests.csproj (net8.0, x64, Nullable) | ✓ |
+| AC-2 | ABI size parity | AbiLayoutTests | ✓ |
+| AC-3 | DLL resolution | DllSearchPathSafetyTests, DllLoadSmokeTests, ArchitectureMismatchTests | ✓ (한계는 §4.6: REQ-008, 042) |
+| AC-4 | 15/15 PInvoke symbols functional | 미러의 16개 심볼(§5.1 의 15개 + 미러의 xpe_alert_push) 모두 시험 하나 이상이 호출(스크립트 확인, GUI-C-228): ImageBufferLifecycleTests, MetadataMarshallingTests, AlertCallbackTests, LoggingHandlerTests, DllLoadSmokeTests | ✓ |
+| AC-5 | Uninitialized guard | NativeErrorTranslationTests.GetParamRange_BeforeInit_ReturnsNotInitialized | ✓ |
+| AC-6 | Error code enum parity (11 codes) | ErrorCodeMappingTests(열거 멤버 전부, 18개 코드 — 제목의 "11 codes" 는 옛 수치) + ErrorCodeHeaderParityTests | ✓ |
+| AC-7 | 1000-cycle leak test | LeakEnduranceTests.InitShutdown_1000Cycles_NoLeak | ✓ |
+| AC-8 | Mock backend exclusion | MockBlockingTests, MockBlockingStaticTests | ✓ (한계는 §4.6: REQ-007) |
+| AC-9 | No managed exception on negative inputs | 서로 다른 거부 경로 18개(GUI-C-209 M2) `NegativeInputPathTests` *(2026-10-03 정정, 원문 "NoManagedExceptionTests (20+ negative scenarios)", #249)* | ✓ |
+| AC-10 | Alert queue edge cases | AlertCallbackTests | ✓ |
+| AC-11 | Log subsystem bounds | LoggingHandlerTests | ✓ |
+| AC-12 | Performance gates | (게이트 없음) | 없음 — §10 AC-12 상태 주석 |
+| AC-13 | Optional P1A tests skip cleanly | PreprocessHandshakeTests, PreprocessCorrectionChainSmokeTests, CalibrationCheckExpirySmokeTests | runs: CI stages xpe_preprocess.dll, 9 cases *(2026-10-03 정정, 원문 "✓ READY (P1A pending)", #249)* |
+| AC-14 | IEC 62304 Class B trace | Resources/requirement-matrix.json(요구 33개 매핑, GUI-C-227a) + RTM-GUI-001 | ✓ |
+| AC-15 | DoD: all artifacts + MX tags | spec.md, progress.md 있음. plan.md·acceptance.md·tasks.md 와 README 절은 없음 | 부분 (다시 세지 않음) |
 
 ### Known Limitations
 
