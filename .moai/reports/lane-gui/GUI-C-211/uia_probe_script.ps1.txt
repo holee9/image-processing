@@ -1,0 +1,52 @@
+param([string]$Exe, [string]$NativeDir, [string]$Out, [string]$Shot)
+Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Drawing, System.Windows.Forms
+$ErrorActionPreference = 'Continue'
+$sb = New-Object System.Text.StringBuilder
+function Say($s) { [void]$sb.AppendLine($s); $sb.ToString() | Set-Content -LiteralPath $Out -Encoding UTF8 }
+
+$psi = New-Object System.Diagnostics.ProcessStartInfo
+$psi.FileName = $Exe
+$psi.WorkingDirectory = Split-Path $Exe
+$psi.UseShellExecute = $false
+if ($NativeDir) { $psi.EnvironmentVariables['XPE_NATIVE_DIR'] = $NativeDir }
+$proc = [System.Diagnostics.Process]::Start($psi)
+Say ("started pid={0} XPE_NATIVE_DIR={1}" -f $proc.Id, $NativeDir)
+try {
+  $root = [System.Windows.Automation.AutomationElement]::RootElement
+  $win = $null
+  for ($i = 0; $i -lt 60 -and -not $win; $i++) {
+    Start-Sleep -Milliseconds 500
+    $cond = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty, $proc.Id)
+    $win = $root.FindFirst([System.Windows.Automation.TreeScope]::Children, $cond)
+  }
+  if (-not $win) { Say 'NO WINDOW'; return }
+  Say ("window: '{0}'" -f $win.Current.Name)
+  Start-Sleep -Seconds 6   # let the startup readiness evaluation finish
+
+  function Tabs() { $win.FindAll([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::TabItem))) }
+  function SelectTab($name) {
+    foreach ($t in Tabs) { if ($t.Current.Name -eq $name) { $p = $t.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern); $p.Select(); Start-Sleep -Milliseconds 800; return $true } }
+    return $false
+  }
+  function Texts() {
+    foreach ($e in $win.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)) {
+      $n = $e.Current.Name; $id = $e.Current.AutomationId; $ct = $e.Current.ControlType.ProgrammaticName
+      if ($ct -in 'ControlType.Text','ControlType.DataItem','ControlType.CheckBox','ControlType.Button') { if ($n -or $id) { Say ("  [{0}] id='{1}' name='{2}' enabled={3}" -f $ct.Replace('ControlType.',''), $id, ($n -replace "[\r\n]+",' | '), $e.Current.IsEnabled) } }
+    }
+  }
+  Say ('tabs: ' + ((Tabs | ForEach-Object { $_.Current.Name }) -join ', '))
+  foreach ($tab in @('Diagnostics', 'Evaluation', 'Calibration')) {
+    Say ("=== tab {0}: selected={1}" -f $tab, (SelectTab $tab))
+    Texts
+    if ($tab -eq 'Diagnostics' -and $Shot) {
+      $r = $win.Current.BoundingRectangle
+      $bmp = New-Object System.Drawing.Bitmap([int]$r.Width, [int]$r.Height)
+      $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen([int]$r.X, [int]$r.Y, 0, 0, $bmp.Size); $bmp.Save($Shot, [System.Drawing.Imaging.ImageFormat]::Png); $g.Dispose(); $bmp.Dispose()
+      Say ("screenshot: {0}" -f $Shot)
+    }
+  }
+}
+finally {
+  if (-not $proc.HasExited) { $proc.CloseMainWindow() | Out-Null; Start-Sleep -Seconds 2; if (-not $proc.HasExited) { $proc.Kill() } }
+  Say 'closed'
+}
