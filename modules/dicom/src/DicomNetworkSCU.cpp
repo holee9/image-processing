@@ -12,10 +12,31 @@
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
+#include <cstdio>
 #include <cstring>
+#include <string>
 
 namespace xpe {
 namespace dicom {
+
+namespace {
+
+/**
+ * QA-B-200 M2a: the operator is told, through the alert queue, why a network operation failed or was cancelled
+ * (REQ-DICOM-032, REQ-DICOM-039). The texts name the operation and the reason; "cancelled" appears in every cancel text
+ * and in no failure text, so a caller (or a log reader) can tell the two apart. No client matches these texts today.
+ */
+void alertWarning(const std::string& text) {
+    xpe_alert_push(text.c_str(), XPE_ALERT_WARNING);
+}
+
+std::string statusText(Uint16 status) {
+    char buf[16];
+    std::snprintf(buf, sizeof(buf), "0x%04X", static_cast<unsigned>(status));
+    return buf;
+}
+
+}  // namespace
 
 // @MX:WARN: [AUTO] Global cancellation flag accessed from multiple threads
 // @MX:REASON: xpe_dicom_cancel() is called from a different thread than the network operation (REQ-DICOM-040)
@@ -99,6 +120,7 @@ XpeErrorCode DicomNetworkSCU::cstore(const char* host,
 
     // Check for cancel before attempting connection
     if (s_cancelRequested.load()) {
+        alertWarning("DICOM C-STORE cancelled by the caller before it connected; nothing was sent");
         return XPE_ERR_PROCESSING_FAILED;
     }
 
@@ -106,18 +128,21 @@ XpeErrorCode DicomNetworkSCU::cstore(const char* host,
     OFCondition cond = scu.initNetwork();
     if (cond.bad()) {
         spdlog::warn("[DicomNetworkSCU] initNetwork failed: {}", cond.text());
+        alertWarning(std::string("DICOM C-STORE failed: the network could not be started (") + cond.text() + ")");
         return XPE_ERR_NETWORK_FAILED;
     }
 
     cond = scu.negotiateAssociation();
     if (cond.bad()) {
         spdlog::warn("[DicomNetworkSCU] negotiateAssociation failed: {}", cond.text());
+        alertWarning(std::string("DICOM C-STORE failed: no association with the peer (") + cond.text() + ")");
         return XPE_ERR_NETWORK_FAILED;
     }
 
     // Check for cancel after association
     if (s_cancelRequested.load()) {
         scu.releaseAssociation();
+        alertWarning("DICOM C-STORE cancelled by the caller before the transfer started; nothing was sent");
         return XPE_ERR_PROCESSING_FAILED;
     }
 
@@ -133,14 +158,26 @@ XpeErrorCode DicomNetworkSCU::cstore(const char* host,
 
     scu.releaseAssociation();
 
+    // QA-B-200 M2a (REQ-DICOM-039): a cancel that arrived while the transfer was running. DCMTK's send is one blocking
+    // call that cannot be interrupted from another thread, so the transfer has run to its end; the call reports that the
+    // CALLER cancelled it -- not success, not a network failure -- and says so in the alert, including that the peer may
+    // already hold the data.
+    if (s_cancelRequested.load()) {
+        alertWarning("DICOM C-STORE cancelled by the caller during the transfer; the transfer could not be interrupted, "
+                     "so the peer may have received the data");
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+
     if (cond.bad()) {
         spdlog::warn("[DicomNetworkSCU] sendSTORERequest failed: {}", cond.text());
+        alertWarning(std::string("DICOM C-STORE failed: the transfer did not complete (") + cond.text() + ")");
         return XPE_ERR_NETWORK_FAILED;
     }
 
     // Check C-STORE response status (0x0000 = Success)
     if (rspStatus != STATUS_Success) {
         spdlog::warn("[DicomNetworkSCU] C-STORE response status: 0x{:04X}", rspStatus);
+        alertWarning("DICOM C-STORE failed: the peer rejected the data set with status " + statusText(rspStatus));
         return XPE_ERR_NETWORK_FAILED;
     }
 
@@ -195,6 +232,7 @@ XpeErrorCode DicomNetworkSCU::cfindMwl(const char* host,
 
     // Check for cancel before attempting connection
     if (s_cancelRequested.load()) {
+        alertWarning("DICOM C-FIND cancelled by the caller before it connected; nothing was sent");
         return XPE_ERR_PROCESSING_FAILED;
     }
 
@@ -221,6 +259,7 @@ XpeErrorCode DicomNetworkSCU::cfindMwl(const char* host,
     // Check for cancel after association
     if (s_cancelRequested.load()) {
         scu.releaseAssociation();
+        alertWarning("DICOM C-FIND cancelled by the caller before the query was sent");
         return XPE_ERR_PROCESSING_FAILED;
     }
 
@@ -247,11 +286,36 @@ XpeErrorCode DicomNetworkSCU::cfindMwl(const char* host,
     cond = scu.sendFINDRequest(findPresID, &requestDS, &responses);
     scu.releaseAssociation();
 
+    // QA-B-200 M2a (REQ-DICOM-039): a cancel that arrived while the query was running. Like the C-STORE send, the DCMTK
+    // call cannot be interrupted, so the exchange has run to its end; the call still reports the cancel.
+    if (s_cancelRequested.load()) {
+        for (auto* r : responses) delete r;
+        alertWarning("DICOM C-FIND cancelled by the caller during the query; the query could not be interrupted");
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+
     if (cond.bad()) {
         spdlog::warn("[DicomNetworkSCU] sendFINDRequest failed: {}", cond.text());
         // Clean up responses
         for (auto* r : responses) delete r;
         return XPE_ERR_NETWORK_FAILED;
+    }
+
+    // QA-B-200 M2a (REQ-DICOM-038): the FINAL response carries the outcome of the query. Anything but Success (0x0000) in
+    // it -- a failure such as 0xA700 "Refused: out of resources", 0xA900, 0xCxxx, or a cancel 0xFE00 that the peer sent on
+    // its own -- means the query did not complete, and an empty list must not be taken for "no worklist entries" (PS3.4
+    // Table K.4-1: an SCU shall recognise any status in the failure range as a failure). Without a final response nothing
+    // says the query completed, so that is a failure too.
+    {
+        const Uint16 finalStatus = responses.empty() ? static_cast<Uint16>(0xFFFF) : responses.back()->m_status;
+        if (finalStatus != 0x0000) {
+            const std::string why = responses.empty() ? std::string("the peer sent no final response")
+                                                       : "the peer ended the query with status " + statusText(finalStatus);
+            spdlog::warn("[DicomNetworkSCU] cfindMwl: query did not complete: {}", why);
+            for (auto* r : responses) delete r;
+            alertWarning("DICOM C-FIND failed: " + why);
+            return XPE_ERR_NETWORK_FAILED;
+        }
     }
 
     // Serialize responses to JSON

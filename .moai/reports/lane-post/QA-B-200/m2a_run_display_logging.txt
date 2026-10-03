@@ -1,0 +1,17 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from DisplayLogging
+[ RUN      ] DisplayLogging.AtDebugLevelEveryFunctionLogsItsEntryItsExitAndItsErrors
+[       OK ] DisplayLogging.AtDebugLevelEveryFunctionLogsItsEntryItsExitAndItsErrors (5 ms)
+[ RUN      ] DisplayLogging.AtTheDefaultLevelAnErrorIsVisibleAndASuccessIsSilent
+[       OK ] DisplayLogging.AtTheDefaultLevelAnErrorIsVisibleAndASuccessIsSilent (5 ms)
+[ RUN      ] DisplayLogging.AtErrorLevelOnlyTheErrorsAreWritten
+[       OK ] DisplayLogging.AtErrorLevelOnlyTheErrorsAreWritten (4 ms)
+[ RUN      ] DisplayLogging.LoggingNeverChangesWhatAFunctionReturns
+[       OK ] DisplayLogging.LoggingNeverChangesWhatAFunctionReturns (1 ms)
+[----------] 4 tests from DisplayLogging (25 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (25 ms total)
+[  PASSED  ] 4 tests.

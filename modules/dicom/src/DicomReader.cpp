@@ -770,11 +770,20 @@ XpeErrorCode DicomReader::getMetadata(XpeImageMetadata* outMeta) {
         }
     }
 
-    // mAs — ExposureInmAs (0018,9332) DS VR
+    // mAs (QA-B-200 M2a, C1): (0018,9332) Exposure in mAs (VR FD, the exact value) when the file has it, otherwise
+    // (0018,1152) Exposure (VR IS, an integer string) -- the attribute REQ-DICOM-009 names and the one another system
+    // writes. Before this the reader looked at (0018,9332) only, so a file with just (0018,1152) read as mAs 0.
     {
         Float64 mAs = 0.0;
         if (ds->findAndGetFloat64(DCM_ExposureInmAs, mAs).good()) {
             outMeta->mAs = static_cast<float>(mAs);
+        } else {
+            OFString exposure;
+            if (ds->findAndGetOFString(DCM_Exposure, exposure).good() && !exposure.empty()) {
+                char* end = nullptr;
+                const double v = std::strtod(exposure.c_str(), &end);
+                if (end != exposure.c_str() && std::isfinite(v) && v >= 0.0) outMeta->mAs = static_cast<float>(v);
+            }
         }
     }
 

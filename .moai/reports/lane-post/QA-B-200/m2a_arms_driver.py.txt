@@ -1,0 +1,122 @@
+"""QA-B-200 M2a falsification arms: break ONE defence at a time, rebuild, run the tests that must notice, restore byte-identical.
+
+Run from the repository root:  python build/g200_arms.py <out.txt> [arm names...]
+An arm FIRES when every listed test is red and the build succeeded. Sources are not edited by anyone else while this runs.
+"""
+import hashlib, os, re, subprocess, sys
+
+OUT = sys.argv[1]
+ONLY = sys.argv[2:]
+BUILD_DICOM = r'D:\workspace-github\xpe-post\build\g200-dicom-full.bat'
+BUILD_POST = r'D:\workspace-github\xpe-post\build\g200-post-full.bat'
+RUN = r'D:\workspace-github\xpe-post\build\g200-run2.bat'
+SCU = 'modules/dicom/src/DicomNetworkSCU.cpp'
+RDR = 'modules/dicom/src/DicomReader.cpp'
+WTR = 'modules/dicom/src/DicomWriter.cpp'
+DHELP = 'modules/display/src/display_helpers.cpp'
+DMOD = 'modules/display/src/modality_lut.cpp'
+
+DICOM_RUNS = [('ci-dicom', 'test_dicom_failure_paths.exe', 'dicom'), ('ci-dicom', 'test_dicom_network_scu.exe', 'dicom')]
+DISPLAY_RUNS = [('ci-post', 'test_display_logging.exe', 'display')]
+
+ARMS = [
+    ('cfind_final_status_ignored', BUILD_DICOM, DICOM_RUNS,
+     [(SCU, '        if (finalStatus != 0x0000) {', '        if (finalStatus != 0x0000 && responses.size() == 0xFFFFFFu) {')],
+     ['ACFindAnsweredWithAFailureStatusIsNetworkFailedForEveryStatusOfTheFailureRange']),
+    ('cstore_rejection_without_alert', BUILD_DICOM, DICOM_RUNS,
+     [(SCU, '        alertWarning("DICOM C-STORE failed: the peer rejected the data set with status " + statusText(rspStatus));\n', '')],
+     ['AFailedCStoreIsNetworkFailedAndPostsAWarningWithTheReason']),
+    ('cstore_cancel_during_transfer_not_checked', BUILD_DICOM, DICOM_RUNS,
+     [(SCU, '    if (s_cancelRequested.load()) {\n        alertWarning("DICOM C-STORE cancelled by the caller during the transfer;',
+       '    if (s_cancelRequested.load() && rspStatus == 0xFFFF) {\n        alertWarning("DICOM C-STORE cancelled by the caller during the transfer;')],
+     ['ACancelDuringATransferIsReportedAsACancelAndNeverAsSuccess', 'CancelCStore_TerminatesOperation']),
+    ('cfind_cancel_during_query_not_checked', BUILD_DICOM, DICOM_RUNS,
+     [(SCU, '    if (s_cancelRequested.load()) {\n        for (auto* r : responses) delete r;',
+       '    if (s_cancelRequested.load() && responses.size() == 0xFFFFFFu) {\n        for (auto* r : responses) delete r;')],
+     ['ACancelDuringAQueryIsReportedAsACancel']),
+    ('reader_does_not_fall_back_to_1152', BUILD_DICOM, DICOM_RUNS,
+     [(RDR, 'if (ds->findAndGetOFString(DCM_Exposure, exposure).good() && !exposure.empty()) {',
+       'if (ds->findAndGetOFString(DCM_Exposure, exposure).good() && !exposure.empty() && exposure.size() > 99999) {')],
+     ['AFileFromAnotherSystemWithOnlyExposure1152ReadsAsThatValue']),
+    ('writer_omits_1152', BUILD_DICOM, DICOM_RUNS,
+     [(WTR, '            ds->putAndInsertString(DCM_Exposure, buf);\n', '            (void)buf;\n')],
+     ['TheModuleWritesBothAttributesWithTheValuesTheRulesGive']),
+    ('writer_truncates_instead_of_rounding', BUILD_DICOM, DICOM_RUNS,
+     [(WTR, 'std::floor(static_cast<double>(meta->mAs) + 0.5)', 'std::floor(static_cast<double>(meta->mAs))')],
+     ['TheModuleWritesBothAttributesWithTheValuesTheRulesGive']),
+    ('writer_omits_9332', BUILD_DICOM, DICOM_RUNS,
+     [(WTR, '        ds->putAndInsertString(DCM_ExposureInmAs, buf);  // (0018,9332) Exposure in mAs, VR FD: the exact value\n', '')],
+     ['TheModuleWritesBothAttributesWithTheValuesTheRulesGive']),
+    ('log_error_written_at_debug', BUILD_POST, DISPLAY_RUNS,
+     [(DHELP, 'spdlog::error("[xpe_display] {} failed: code {} ({})"', 'spdlog::debug("[xpe_display] {} failed: code {} ({})"')],
+     ['AtTheDefaultLevelAnErrorIsVisibleAndASuccessIsSilent', 'AtErrorLevelOnlyTheErrorsAreWritten']),
+    ('log_entry_missing_in_one_function', BUILD_POST, DISPLAY_RUNS,
+     [(DMOD, '    xpe_display_log_enter("xpe_apply_modality_lut");\n', '')],
+     ['AtDebugLevelEveryFunctionLogsItsEntryItsExitAndItsErrors']),
+    ('log_exit_changes_the_return_code', BUILD_POST, DISPLAY_RUNS,
+     [(DHELP, '    } catch (...) {\n    }\n    return rc;\n}', '    } catch (...) {\n    }\n    return XPE_OK;\n}')],
+     ['LoggingNeverChangesWhatAFunctionReturns']),
+]
+
+
+def sha(p):
+    return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+
+
+def sh(cmd, timeout=3000):
+    r = subprocess.run(['cmd', '/c', cmd], capture_output=True, text=True, timeout=timeout)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def failed_tests(path):
+    txt = open(path, encoding='utf-8', errors='replace').read()
+    return set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M))
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+for name, build, runs, edits, must in ARMS:
+    if ONLY and name not in ONLY:
+        continue
+    files = sorted({e[0] for e in edits})
+    saved = {f: open(f, 'rb').read() for f in files}
+    before = {f: sha(f) for f in files}
+    log('=== ARM %s' % name)
+    try:
+        for f in files:
+            txt = saved[f].decode('utf-8')
+            for (ff, old, new) in edits:
+                if ff != f:
+                    continue
+                assert txt.count(old) == 1, (name, old[:60], txt.count(old))
+                txt = txt.replace(old, new)
+            open(f, 'wb').write(txt.encode('utf-8'))
+        sh(build)
+        blog = 'build/g200-b4.txt' if build == BUILD_DICOM else 'build/g200-b5.txt'
+        built = 'FAILED:' not in open(blog, encoding='utf-8', errors='replace').read()
+        if not built:
+            log('RESULT: BUILD FAILED')
+        else:
+            red = set()
+            for i, (preset, exe, mod) in enumerate(runs):
+                o = 'build/g200-arm-run-%d.txt' % i
+                sh('%s %s %s D:\\workspace-github\\xpe-post\\%s * %s' % (RUN, preset, exe, o.replace('/', '\\'), mod))
+                red |= failed_tests(o)
+            hit = [m for m in must if any(m in f for f in red)]
+            miss = [m for m in must if m not in hit]
+            log('red tests: %s' % (', '.join(sorted(red)) if red else '(none)'))
+            log('RESULT: %s  (expected red: %d, red: %d, not red: %s)' % ('FIRED' if not miss else 'DID NOT FIRE', len(must), len(hit), miss))
+            others = sorted(f for f in red if not any(m in f for m in must))
+            log('other red tests: %s' % (others if others else 'none'))
+    finally:
+        for f in files:
+            open(f, 'wb').write(saved[f])
+        log('restored byte-identical: %s' % all(sha(f) == before[f] for f in files))
+log('=== DONE')
+out.close()

@@ -35,6 +35,18 @@ extern "C" {
 XpeErrorCode xpe_validate_float32(const XpeImageBuffer* img);
 
 /**
+ * @brief REQ-DISP-031: log the entry of a public display function at DEBUG level (xpe_common's logger).
+ * Never throws; a logging failure changes nothing about the call.
+ */
+void xpe_display_log_enter(const char* fn);
+
+/**
+ * @brief REQ-DISP-031: log the outcome of a public display function and hand @p rc back unchanged: exit at DEBUG level
+ * when it is XPE_OK, an error condition at ERROR level otherwise. Never throws.
+ */
+XpeErrorCode xpe_display_log_exit(const char* fn, XpeErrorCode rc);
+
+/**
  * @brief Return the number of pixels in an image (width * height).
  * @pre img is non-NULL.
  */

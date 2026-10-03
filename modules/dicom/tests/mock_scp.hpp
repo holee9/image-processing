@@ -61,6 +61,8 @@ public:
     /// QA-B-200 M1: milliseconds the SCP waits after an association is up and a C-STORE request arrived, before it reads the
     /// data and answers -- a peer that is slow in the middle of a transfer, for a cancel test. Zero = no wait.
     std::atomic<unsigned> storeDelayMs{0};
+    /// QA-B-200 M2a: the same wait before a C-FIND is answered (a query that is slow, for a cancel test).
+    std::atomic<unsigned> findDelayMs{0};
 
     /**
      * @brief Ask the listen loop to exit.
@@ -100,6 +102,7 @@ protected:
         if (incomingMsg != nullptr && incomingMsg->CommandField == DIMSE_C_FIND_RQ) {
             ++findRequests;
             T_DIMSE_C_FindRQ& req = incomingMsg->msg.CFindRQ;
+            if (findDelayMs.load() != 0) std::this_thread::sleep_for(std::chrono::milliseconds(findDelayMs.load()));
 
             // Drain the query identifiers; the SCU always sends one.
             // receiveDIMSEDataset wants a mutable context id, so copy it out.

@@ -14,6 +14,7 @@
 
 #include <spdlog/spdlog.h>
 #include <vector>
+#include <cmath>
 #include <cstring>
 #include <ctime>
 #include <filesystem>
@@ -178,7 +179,18 @@ XpeErrorCode DicomWriter::populateDataset(void* dcmDataset,
     if (meta->mAs > 0.0f) {
         char buf[32];
         std::snprintf(buf, sizeof(buf), "%.4f", static_cast<double>(meta->mAs));
-        ds->putAndInsertString(DCM_ExposureInmAs, buf);  // DS VR, stores decimal mAs
+        ds->putAndInsertString(DCM_ExposureInmAs, buf);  // (0018,9332) Exposure in mAs, VR FD: the exact value
+
+        // QA-B-200 M2a (C1): REQ-DICOM-009/015 name (0018,1152) Exposure for mAs, and that is the attribute another system
+        // writes and reads for it (PS3.6: VR IS; PS3.3 X-Ray Acquisition Dose module, Type 3: "The exposure expressed in
+        // mAs"). Both are written: (0018,9332) keeps the exact value, (0018,1152) carries it as an integer string because IS
+        // cannot hold a fraction. ROUNDING RULE: to the nearest integer, halves up (2.5 -> 3, 0.4 -> 0). A value that does
+        // not fit IS (above 2^31 - 1) is left out of (0018,1152); (0018,9332) still has it.
+        const double rounded = std::floor(static_cast<double>(meta->mAs) + 0.5);
+        if (rounded <= 2147483647.0) {
+            std::snprintf(buf, sizeof(buf), "%.0f", rounded);
+            ds->putAndInsertString(DCM_Exposure, buf);
+        }
     }
 
     if (meta->SID_mm > 0.0f) {

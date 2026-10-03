@@ -9,6 +9,7 @@
  */
 #include <gtest/gtest.h>
 #include "xpe/dicom/dicom_api.h"
+#include "xpe/common/xpe_error.h"
 #include "xpe/common/xpe_memory.h"
 #include <filesystem>
 #include <thread>
@@ -58,14 +59,12 @@ xpe_test::MockScpRunner DicomNetworkTest::s_scp;
 //    it. C-STORE over the same listener negotiates and completes, so the
 //    listener itself works -- the gap is specific to MWL negotiation.
 //
-//  * Cancel: the case assumes a transfer slow enough for a cancel issued 100 ms
-//    later to interrupt it. Against this loopback SCP the C-STORE finishes in
-//    about a millisecond, so the cancel always arrives after completion and the
-//    call returns XPE_OK. Asserting PROCESSING_FAILED here would be asserting a
-//    race, not a behaviour.
-static const char* const kCancelRaceUnobservable =
-    "C-STORE against the in-process SCP completes in ~1 ms, so a cancel issued "
-    "afterwards cannot interrupt it -- see QA-B-29 report";
+//  * Cancel (QA-B-200 M2a): against this loopback SCP a C-STORE finishes in about
+//    a millisecond, so a cancel issued 100 ms later always arrives after
+//    completion. The mock peer can now be told to wait (MockScp::storeDelayMs),
+//    which makes the transfer slow enough for the cancel to arrive during it --
+//    CancelCStore_TerminatesOperation uses that, and test_dicom_failure_paths.cpp
+//    holds the alert text and the cancel of a query.
 
 void DicomNetworkTest::SetUpTestSuite() {
     s_tempDir = fs::temp_directory_path() / "xpe_dicom_network_test";
@@ -176,11 +175,10 @@ TEST_F(DicomNetworkTest, CFindTimeout_ReturnsNetworkFailed) {
 // ---------------------------------------------------------------------------
 TEST_F(DicomNetworkTest, CancelCStore_TerminatesOperation) {
     if (!s_serverAvailable) GTEST_SKIP() << "mock SCP unavailable: " << s_scpStartError;
-    GTEST_SKIP() << kCancelRaceUnobservable;
 
+    s_scp.scp().storeDelayMs = 1500;   // a peer that is slow in the middle of the transfer
     XpeErrorCode result = XPE_OK;
     std::thread storeThread([&]() {
-        // Send a large file to a slow server
         result = xpe_dicom_cstore("localhost", s_storePort, "TESTSCU",
                                    s_testDcm.string().c_str(), 10000);
     });
@@ -188,6 +186,8 @@ TEST_F(DicomNetworkTest, CancelCStore_TerminatesOperation) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     xpe_dicom_cancel();
     storeThread.join();
+    s_scp.scp().storeDelayMs = 0;
+    xpe_clear_alerts();
 
     EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, result)
         << "Cancelled C-STORE must return PROCESSING_FAILED";
