@@ -29,8 +29,8 @@ namespace dicom {
 // anonymized file that keeps both elements with no value is conformant. Every other entry is Type 1 in its module: Study
 // Instance UID (C.7.2.1), Series Instance UID (C.7.3.1), SOP Instance UID (C.12.1), Modality (DX Series, C.8.11.1), and Rows,
 // Columns, Bits Allocated, Bits Stored (the Image Pixel Description Macro, Table C.7-11c). Pixel Data is Type 1C in the
-// Image Pixel module ("Required if Pixel Data Provider URL (0028,7FE0) is not present"); this validator has no URL case, so
-// it is required. The table with the clauses is in the QA-B-206 M2b report.
+// Image Pixel module ("Required if Pixel Data Provider URL (0028,7FE0) is not present"): it is required unless the file gives a
+// URL with a value, and then it is a warning (QA-B-206 M2c). The table with the clauses is in the QA-B-206 M2b report.
 struct RequiredTag {
     DcmTagKey   key;
     const char* tag;
@@ -49,6 +49,24 @@ static const RequiredTag s_requiredTags[] = {
     { DCM_BitsStored,       "0028,0101", true  },
     { DCM_PixelData,        "7FE0,0010", true  },   // Type 1C: required when there is no Pixel Data Provider URL
 };
+
+// A string with nothing in it but the padding DICOM adds to reach even length.
+static bool isAllPadding(const OFString& text) {
+    for (size_t k = 0; k < text.length(); ++k) {
+        if (text[k] != ' ' && text[k] != '\0') return false;
+    }
+    return true;
+}
+
+// The element is there and carries a value (not zero length, not only padding).
+static bool elementHasValue(DcmDataset* ds, const DcmTagKey& key) {
+    DcmElement* e = nullptr;
+    if (ds->findAndGetElement(key, e).bad() || !e) return false;
+    if (e->getLength(ds->getOriginalXfer(), EET_ExplicitLength) == 0) return false;
+    OFString text;
+    if (e->getOFString(text, 0).good()) return !isAllPadding(text);
+    return true;
+}
 
 // #142 (QA-B-42): report the required size through the caller's buffer, but
 // only when it can actually hold the 4-byte value. The unguarded memcpy this
@@ -217,6 +235,17 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
         DcmElement* elem = nullptr;
         OFCondition findStatus = ds->findAndGetElement(req.key, elem);
         if (findStatus.bad() || !elem) {
+            // QA-B-206 M2c (Codex #113): Pixel Data is Type 1C -- "required if Pixel Data Provider URL (0028,7FE0) is not
+            // present". A file that gives its pixels by reference has no Pixel Data and is not wrong for it; this module
+            // cannot read pixels by reference, so it says that once, as a warning that leaves `valid` alone. The URL has
+            // to carry a value to count: an empty one is not a provider, and the file keeps the missing-Pixel-Data error.
+            if (req.key == DCM_PixelData && elementHasValue(ds, DCM_PixelDataProviderURL)) {
+                nlohmann::json warnEntry;
+                warnEntry["tag"] = req.tag;
+                warnEntry["message"] = "Pixel data by reference (Pixel Data Provider URL) is not supported by this module";
+                warnings.push_back(warnEntry);
+                continue;
+            }
             result.valid = false;
             nlohmann::json errEntry;
             errEntry["tag"] = req.tag;
@@ -254,6 +283,10 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
     auto checkUID = [&](DcmTagKey key, const char* tagStr) {
         OFString uidVal;
         if (ds->findAndGetOFString(key, uidVal).good()) {
+            // QA-B-206 M2c (Codex #113): a UID with no value was already reported by the required-attribute loop as "has no
+            // value"; the empty string is not a UID either, so judging its format as well put one defect in the report twice.
+            // Only a UID that has a value is judged for format.
+            if (isAllPadding(uidVal)) return;
             if (!isValidUID(std::string(uidVal.c_str()))) {
                 // QA-B-206 C6: a UID that is not in the dot-separated numeric form is a FAILED check (REQ-DICOM-024 lists
                 // "UID format correct" among the conformance criteria), so it is an error and valid is false. It used to

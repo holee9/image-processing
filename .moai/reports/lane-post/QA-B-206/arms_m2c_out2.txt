@@ -1,0 +1,5 @@
+=== ARM url_exception_never_taken_pixel_data_always_required
+red tests: DicomValidatorTest.PixelDataIsTypeOneCSoAFileWithOnlyAProviderUrlIsAWarningNotAnError
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== DONE

@@ -1,0 +1,32 @@
+=== ARM url_exception_never_taken_pixel_data_always_required
+RESULT: BUILD FAILED
+restored byte-identical: True
+=== ARM url_exception_inverted_warns_when_there_is_no_url
+red tests: DicomValidatorTest.PixelDataIsTypeOneCSoAFileWithOnlyAProviderUrlIsAWarningNotAnError
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM empty_url_counts_as_a_provider
+red tests: DicomValidatorTest.PixelDataIsTypeOneCSoAFileWithOnlyAProviderUrlIsAWarningNotAnError
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM reference_warning_also_makes_the_file_invalid
+red tests: DicomValidatorTest.PixelDataIsTypeOneCSoAFileWithOnlyAProviderUrlIsAWarningNotAnError
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM reference_case_reports_the_error_as_well_as_the_warning
+red tests: DicomValidatorTest.PixelDataIsTypeOneCSoAFileWithOnlyAProviderUrlIsAWarningNotAnError
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM reference_case_has_no_warning
+red tests: DicomValidatorTest.PixelDataIsTypeOneCSoAFileWithOnlyAProviderUrlIsAWarningNotAnError
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM blank_uid_format_judged_again_double_report
+red tests: DicomValidatorTest.ABlankUidIsReportedOnceAsNoValueAndItsFormatIsNotJudgedAsWell, DicomValidatorTest.AMissingTagAndAnEmptyTagAreReportedWithDifferentMessages, DicomValidatorTest.EveryRequiredAttributeIsJudgedByTheTypeTheStandardGivesIt
+RESULT: FIRED  (expected red: 3, red: 3, not red: [])
+restored byte-identical: True
+=== ARM every_uid_with_a_value_skips_the_format_check
+red tests: DicomValidatorTest.ABlankUidIsReportedOnceAsNoValueAndItsFormatIsNotJudgedAsWell, DicomValidatorTest.ValidateBadUID_IsAnErrorAndNotAlsoAWarning
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== DONE
