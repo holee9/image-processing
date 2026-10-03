@@ -1,0 +1,7 @@
+level=0 set_file rc=0 set_level rc=0 dicom_open rc=-13 | log file lines: 3, lines mentioning Dicom: 2
+    [2026-10-03 22:18:22.989] [xpe_file] [debug] [DicomReader] open: C:\Users\drake\AppData\Local\Temp\c16_not_a_dicom.txt
+    [2026-10-03 22:18:22.990] [xpe_file] [warning] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (132 bytes read)
+level=3 set_file rc=0 set_level rc=0 dicom_open rc=-13 | log file lines: 1, lines mentioning Dicom: 1
+    [2026-10-03 22:18:22.996] [xpe_file] [warning] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (132 bytes read)
+level=6 set_file rc=0 set_level rc=-1 dicom_open rc=-13 | log file lines: 1, lines mentioning Dicom: 1
+    [2026-10-03 22:18:23.003] [xpe_file] [warning] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (132 bytes read)
