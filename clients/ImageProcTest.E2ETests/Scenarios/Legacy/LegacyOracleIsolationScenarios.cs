@@ -36,7 +36,7 @@ public sealed class LegacyOracleIsolationScenarios(ITestOutputHelper output)
 
     private sealed record Operator(IntPtr Handle, CorrectionDelegate Offset, ushort[] Raw, ushort[] Expected, string Dir);
 
-    private static string? Dll() => Environment.GetEnvironmentVariable("XPE_NATIVE_DIR") is { Length: > 0 } d && File.Exists(Path.Combine(d, "xpe_preprocess.dll")) ? Path.Combine(d, "xpe_preprocess.dll") : null;
+    internal static string? Dll() => Environment.GetEnvironmentVariable("XPE_NATIVE_DIR") is { Length: > 0 } d && File.Exists(Path.Combine(d, "xpe_preprocess.dll")) ? Path.Combine(d, "xpe_preprocess.dll") : null;
 
     private static T Bind<T>(IntPtr handle, string name) where T : Delegate => Marshal.GetDelegateForFunctionPointer<T>(NativeLibrary.GetExport(handle, name));
 
@@ -96,7 +96,7 @@ public sealed class LegacyOracleIsolationScenarios(ITestOutputHelper output)
         try { Directory.Delete(op.Dir, recursive: true); } catch (IOException) { /* temp folder */ }
     }
 
-    private static string? FindExecutable()
+    internal static string? FindExecutable()
     {
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
         {
@@ -108,7 +108,7 @@ public sealed class LegacyOracleIsolationScenarios(ITestOutputHelper output)
     }
 
     /// <summary>A stale binary reports a green for code that never ran: the legacy ImageProcTest.dll must be newer than every source it was built from.</summary>
-    private static void AssertFresh(string exe)
+    internal static void AssertFresh(string exe)
     {
         var projectDir = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(exe)!, "..", "..", ".."));
         var built = File.GetLastWriteTimeUtc(Path.ChangeExtension(exe, ".dll"));

@@ -161,7 +161,9 @@ namespace ImageProcTest
                 .ToArray();
         }
 
-        public static AlgorithmChainPlan BuildPlan(IReadOnlyList<AlgorithmNode> selectedNodes)
+        /// <param name="selectedNodes">The chain.</param>
+        /// <param name="preprocessChecking">GUI-C-219: the preprocess synthetic oracle has not answered yet. The preprocess stages stay blocked, and say "still being checked" instead of "not ready".</param>
+        public static AlgorithmChainPlan BuildPlan(IReadOnlyList<AlgorithmNode> selectedNodes, bool preprocessChecking = false)
         {
             var steps = selectedNodes
                 .Select((node, index) => new AlgorithmChainStep(index + 1, node))
@@ -175,7 +177,7 @@ namespace ImageProcTest
             }
 
             AddDuplicateFindings(steps, findings);
-            AddAdapterFindings(steps, findings);
+            AddAdapterFindings(steps, findings, preprocessChecking);
             AddFolderFindings(steps, findings);
             AddSequenceFindings(steps, findings);
             AddOrderFindings(steps, findings);
@@ -264,7 +266,8 @@ namespace ImageProcTest
 
         private static void AddAdapterFindings(
             IReadOnlyList<AlgorithmChainStep> steps,
-            List<AlgorithmDependencyFinding> findings)
+            List<AlgorithmDependencyFinding> findings,
+            bool preprocessChecking)
         {
             foreach (var step in steps)
             {
@@ -277,10 +280,16 @@ namespace ImageProcTest
                 {
                     if (!step.Node.CanRun)
                     {
-                        findings.Add(Hard(
-                            "NATIVE-NOT-READY",
-                            $"{step.Node.Label} {step.Node.AlgorithmName} is selected but the native preprocess adapter is not ready.",
-                            step.Node.NextAction));
+                        // still blocked (a Hard finding), but not described as a failure while the oracle's answer is simply not in yet
+                        findings.Add(preprocessChecking
+                            ? Hard(
+                                "NATIVE-CHECKING",
+                                $"{step.Node.Label} {step.Node.AlgorithmName} is selected; the native preprocess adapter is still being checked in the background and stays blocked until it answers.",
+                                "Wait for the synthetic oracle's answer.")
+                            : Hard(
+                                "NATIVE-NOT-READY",
+                                $"{step.Node.Label} {step.Node.AlgorithmName} is selected but the native preprocess adapter is not ready.",
+                                step.Node.NextAction));
                     }
 
                     continue;

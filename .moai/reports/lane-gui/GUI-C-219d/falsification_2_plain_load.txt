@@ -1,0 +1,9 @@
+[xUnit.net 00:00:00.60]       String: "Synthetic oracle module audit failed"
+[xUnit.net 00:00:00.60]       Found:  "module audit"
+[xUnit.net 00:00:00.60]         verdict Synthetic oracle module audit failed: Loaded from outside the snapshot: C:\Users\drake\AppData\Local\Temp\xpe-c219d-confine-0a34805134484e30b29967cc43ed9334\app\xpe_common.dll
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleConfinementScenarios.TheWorker_LoadsItsDependenciesFromTheSnapshotFolder_NotFromTheFolderOfItsExecutable [419 ms]
+String: "Synthetic oracle module audit failed"
+Found:  "module audit"
+ verdict Synthetic oracle module audit failed: Loaded from outside the snapshot: C:\Users\drake\AppData\Local\Temp\xpe-c219d-confine-0a34805134484e30b29967cc43ed9334\app\xpe_common.dll
+테스트 실행이 실패했습니다.
+     실패: 1

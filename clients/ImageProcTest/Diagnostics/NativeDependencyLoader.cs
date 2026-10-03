@@ -30,10 +30,14 @@ namespace ImageProcTest
 
         private static readonly string[] BaselineDependencies = ["fmt.dll", "spdlog.dll"];
 
+        /// <summary>The dependency DLLs this loader names for a module (the common baseline for a module it does not list).</summary>
+        internal static IReadOnlyList<string> DependenciesOf(string dllName) =>
+            ModuleDependencies.TryGetValue(dllName, out var d) ? d : BaselineDependencies;
+
         public static void TryLoadFor(string nativeDllPath)
         {
             var dllName = Path.GetFileName(nativeDllPath);
-            var deps = ModuleDependencies.TryGetValue(dllName, out var d) ? d : BaselineDependencies;
+            var deps = DependenciesOf(dllName);
 
             foreach (var directory in GetDependencyDirectories(nativeDllPath))
             {
@@ -43,6 +47,9 @@ namespace ImageProcTest
                 }
             }
         }
+
+        /// <summary>The folders this loader looks for a module's dependencies in, in order (GUI-C-219c: the oracle snapshot copies from exactly these places).</summary>
+        internal static IEnumerable<string> DependencyDirectoriesOf(string nativeDllPath) => GetDependencyDirectories(nativeDllPath);
 
         private static IEnumerable<string> GetDependencyDirectories(string nativeDllPath)
         {

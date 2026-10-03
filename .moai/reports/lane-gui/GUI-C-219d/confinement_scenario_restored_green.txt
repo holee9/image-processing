@@ -1,0 +1,3 @@
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleConfinementScenarios.TheWorker_LoadsItsDependenciesFromTheSnapshotFolder_NotFromTheFolderOfItsExecutable [457 ms]
+ verdict Synthetic oracle pass: 16x16 synthetic offset->gain->defect adapter chain passed with generated and loaded calibration.
+     통과: 1

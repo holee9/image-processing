@@ -29,6 +29,12 @@ namespace ImageProcTest
     {
         public const string ModeArgument = "--run-preprocess-oracle";
 
+        /// <summary>Test hook: a file the worker waits for (at most 120 s) before running the oracle, so a test holds the "checking" state open for exactly as long as it needs (see <see cref="RunWorker"/>).</summary>
+        public const string TestGateVariable = "XPE_ORACLE_TEST_GATE";
+
+        /// <summary>Test hook: a file to which each worker appends one line when it starts (see <see cref="RunWorker"/>).</summary>
+        public const string TestLogVariable = "XPE_ORACLE_TEST_LOG";
+
         /// <summary>The marker that tells the protocol line from anything else on standard output (the native DLLs log there too).</summary>
         public const string ResultPrefix = "XPE-ORACLE-RESULT: ";
 
@@ -53,6 +59,8 @@ namespace ImageProcTest
         /// </summary>
         public static PreprocessSyntheticOracleResult Run(string? exePath, IReadOnlyList<string> arguments, TimeSpan timeout, HostSeams? seams = null, OutputLimits? limits = null)
         {
+            // GUI-C-219c: starting the child and reading its answer takes hundreds of milliseconds; the UI thread must never be the caller (the window installs the guard)
+            OracleThreadGuard.AssertNotUiThread(nameof(XpePreprocessOracleProcess) + "." + nameof(Run));
             limits ??= OutputLimits.Default;
             if (string.IsNullOrEmpty(exePath) || !File.Exists(exePath))
             {
@@ -281,7 +289,24 @@ namespace ImageProcTest
             PreprocessSyntheticOracleResult result;
             try
             {
-                result = XpePreprocessSyntheticOracle.Run(dllPath);
+                // Diagnostic hooks for the E2E suite (GUI-C-219), both unset in normal use: a line appended to a log file each time a worker runs (so the number of oracle runs a startup
+                // causes can be counted from outside), and a gate file the worker waits for before running the oracle (so the "checking" state lasts exactly as long as the test needs).
+                if (Environment.GetEnvironmentVariable(TestLogVariable) is { Length: > 0 } logPath)
+                {
+                    try { File.AppendAllText(logPath, $"worker started pid={Environment.ProcessId}{Environment.NewLine}"); } catch (IOException) { }
+                }
+
+                if (Environment.GetEnvironmentVariable(TestGateVariable) is { Length: > 0 } gatePath)
+                {
+                    var giveUp = DateTime.UtcNow.AddSeconds(120);
+                    while (!File.Exists(gatePath) && DateTime.UtcNow < giveUp)
+                    {
+                        System.Threading.Thread.Sleep(50);
+                    }
+                }
+
+                // GUI-C-219d: the DLL is the snapshot copy; its dependencies are searched for in that folder and System32 only, and the loaded modules are audited against it afterwards.
+                result = XpePreprocessSyntheticOracle.Run(dllPath, new XpePreprocessSyntheticOracle.OracleOptions(ConfinedLoadFolder: Path.GetDirectoryName(Path.GetFullPath(dllPath))));
             }
             catch (Exception ex)
             {

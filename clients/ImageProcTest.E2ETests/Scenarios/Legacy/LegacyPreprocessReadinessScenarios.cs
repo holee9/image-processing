@@ -48,6 +48,99 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// GUI-C-219 (#249): while the oracle is still running in the background, the window says "checking" on every tab (neither ready nor failed), keeps preprocess blocked, and answers UIA
+    /// calls promptly; when the verdict arrives it says "ready" on every tab. The oracle worker is delayed by <c>XPE_ORACLE_TEST_DELAY_MS</c> so the state is long enough to observe. The three tabs
+    /// share ONE verdict: the worker log (<c>XPE_ORACLE_TEST_LOG</c>) has exactly one line after startup, and a second line only after the user's refresh.
+    /// </summary>
+    [SkippableFact]
+    public void R03_WhileTheOracleRuns_EveryTabSaysChecking_AndTheWindowAnswers_ThenEveryTabSaysReady_FromOneRun()
+    {
+        var log = Path.Combine(Path.GetTempPath(), $"xpe_oracle_log_{Guid.NewGuid():N}.txt");
+        var gate = Path.Combine(Path.GetTempPath(), $"xpe_oracle_gate_{Guid.NewGuid():N}.txt");
+        try
+        {
+            // the worker waits for the gate file, so the "checking" state lasts until the test has read it (a fixed delay raced the slow UIA reads: 8 of 23 runs ended it too early)
+            var env = new Dictionary<string, string> { ["XPE_ORACLE_TEST_GATE"] = gate, ["XPE_ORACLE_TEST_LOG"] = log };
+            using var app = LegacyApp.LaunchOrSkip(breakTemp: false, extraEnvironment: env);
+
+            // while the worker sleeps: "checking" everywhere, preprocess blocked, and the window is answering (this very read is the proof)
+            var watch = Stopwatch.StartNew();
+            var checking = app.ReadPreprocessWhileChecking();
+            watch.Stop();
+            output.WriteLine($"while checking ({watch.ElapsedMilliseconds} ms to read all three tabs): {checking}");
+            Assert.True(checking.SmokeSaysChecking, $"Diagnostics smoke line: '{checking.Smoke}'");
+            Assert.True(checking.MatrixSaysChecking, $"matrix row: '{checking.Row}'");
+            Assert.False(checking.EvaluationReady, $"Evaluation: '{checking.StageModes}'; Offset switch enabled={checking.OffsetSwitchEnabled}");
+            Assert.False(checking.OffsetSwitchEnabled, "the Offset switch must stay disabled while the oracle has not answered");
+            Assert.Equal(0, checking.BlockingFindings);   // "checking" is not reported as a failure on the Calibration tab
+            Assert.True(checking.CheckingFindings > 0, "the Calibration tab has no NATIVE-CHECKING finding: nothing says that the preprocess stages are blocked WHILE the oracle runs");   // GUI-C-219b
+
+            File.WriteAllText(gate, "go");   // now the worker may run the oracle
+
+            var view = app.ReadPreprocessOnEveryTab();
+            output.WriteLine(view.Describe());
+            Assert.True(view.Diagnostics, $"Diagnostics tab: {view.DiagnosticsEvidence}");
+            Assert.True(view.Calibration, $"Calibration tab: {view.CalibrationEvidence}");
+            Assert.True(view.Evaluation, $"Evaluation tab: {view.EvaluationEvidence}");
+
+            Assert.Equal(1, File.ReadAllLines(log).Length);   // one oracle run served the startup, the diagnostics report and all three tabs
+            app.ClickButtonOnTab("Diagnostics", "Refresh");   // the user's refresh asks again
+            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(60);
+            while (DateTime.UtcNow < deadline && File.ReadAllLines(log).Length < 2) Thread.Sleep(300);
+            Assert.Equal(2, File.ReadAllLines(log).Length);
+        }
+        finally
+        {
+            try { File.Delete(log); } catch (IOException) { }
+            try { File.Delete(gate); } catch (IOException) { }
+        }
+    }
+
+    /// <summary>
+    /// GUI-C-219b (Codex #109): after the user presses "Refresh Modules" the three screens say the same thing. That button used to refresh only the module matrix (which read "checking") while the
+    /// Diagnostics smoke line kept the previous "pass=True" and the Calibration tab turned to "not ready". Here the oracle has passed and every tab says so; the worker is then held at its gate,
+    /// the button is pressed, and all three tabs must say "checking" (no stale pass, no "not ready"); when the gate opens, all three say "ready" again, from a second run.
+    /// </summary>
+    [SkippableFact]
+    public void R04_RefreshModules_MakesAllThreeTabsSayChecking_ThenAllThreeSayReady()
+    {
+        var log = Path.Combine(Path.GetTempPath(), $"xpe_oracle_log_{Guid.NewGuid():N}.txt");
+        var gate = Path.Combine(Path.GetTempPath(), $"xpe_oracle_gate_{Guid.NewGuid():N}.txt");
+        try
+        {
+            File.WriteAllText(gate, "go");   // the first run is not held
+            var env = new Dictionary<string, string> { ["XPE_ORACLE_TEST_GATE"] = gate, ["XPE_ORACLE_TEST_LOG"] = log };
+            using var app = LegacyApp.LaunchOrSkip(breakTemp: false, extraEnvironment: env);
+
+            var first = app.ReadPreprocessOnEveryTab();
+            output.WriteLine("before the refresh: " + first.Describe());
+            Assert.True(first.Diagnostics && first.Calibration && first.Evaluation, "the start state is not 'ready' on all three tabs: " + first.Describe());
+
+            File.Delete(gate);                                       // the next worker waits at its gate
+            app.ClickButtonOnTab("Diagnostics", "Refresh Modules");
+            var checking = app.ReadPreprocessWhileChecking();
+            output.WriteLine("after the refresh, oracle held: " + checking);
+            Assert.True(checking.SmokeSaysChecking, $"Diagnostics smoke line after Refresh Modules: '{checking.Smoke}' (a stale pass shows here)");
+            Assert.True(checking.MatrixSaysChecking, $"matrix row after Refresh Modules: '{checking.Row}'");
+            Assert.Equal(0, checking.BlockingFindings);                       // not "not ready"
+            Assert.True(checking.CheckingFindings > 0, "the Calibration tab shows no NATIVE-CHECKING finding after Refresh Modules");
+            Assert.False(checking.EvaluationReady, $"Evaluation after Refresh Modules: '{checking.StageModes}'");
+            Assert.False(checking.OffsetSwitchEnabled, "the Offset switch is enabled while the oracle has not answered");
+
+            File.WriteAllText(gate, "go");
+            var second = app.ReadPreprocessOnEveryTab();
+            output.WriteLine("after the answer: " + second.Describe());
+            Assert.True(second.Diagnostics && second.Calibration && second.Evaluation, "the three tabs do not agree on 'ready' after the second run: " + second.Describe());
+            Assert.Equal(2, File.ReadAllLines(log).Length);
+        }
+        finally
+        {
+            try { File.Delete(log); } catch (IOException) { }
+            try { File.Delete(gate); } catch (IOException) { }
+        }
+    }
+
+    /// <summary>
     /// GUI-C-218: a launch that fails after the app has started leaves no app, no fault file and no automation object behind. The failure is made certain by giving the window a 1 ms budget
     /// (the app needs about half a second to show one); the check is on the system, not on the fixture's own bookkeeping.
     /// </summary>
@@ -84,6 +177,14 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             .Select(p => p.Id)
             .ToHashSet();
 
+    private sealed record CheckingView(string Smoke, string Row, int BlockingFindings, string StageModes, bool OffsetSwitchEnabled, int CheckingFindings = 0)
+    {
+        public bool SmokeSaysChecking => Smoke.Contains("checking", StringComparison.OrdinalIgnoreCase) && !Smoke.Contains("pass=", StringComparison.Ordinal);
+        public bool MatrixSaysChecking => Row.Contains("Synthetic oracle checking", StringComparison.Ordinal);
+        public bool EvaluationReady => StageModes.StartsWith("Preprocess=ready", StringComparison.Ordinal);
+        public override string ToString() => $"smoke='{Smoke}' | row has checking={MatrixSaysChecking} | NATIVE-NOT-READY={BlockingFindings} | NATIVE-CHECKING={CheckingFindings} | stage modes='{StageModes.Split('.')[0]}' | Offset enabled={OffsetSwitchEnabled}";
+    }
+
     private sealed record TabView(bool Diagnostics, string DiagnosticsEvidence, bool Calibration, string CalibrationEvidence, bool Evaluation, string EvaluationEvidence)
     {
         public string Describe() => $"diagnostics={Diagnostics} [{DiagnosticsEvidence}] | calibration={Calibration} [{CalibrationEvidence}] | evaluation={Evaluation} [{EvaluationEvidence}]";
@@ -110,7 +211,7 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
         /// existed. The test's <c>using var app</c> then had nothing to dispose: the app, the automation object and the fault file leaked, and the leaked app (started with
         /// <c>UseShellExecute=false</c>, so it inherits this process's standard handles) kept the test host's output pipe open, which is what made <c>dotnet test</c> look hung.
         /// </summary>
-        public static LegacyApp LaunchOrSkip(bool breakTemp, TimeSpan? windowTimeout = null)
+        public static LegacyApp LaunchOrSkip(bool breakTemp, TimeSpan? windowTimeout = null, IReadOnlyDictionary<string, string>? extraEnvironment = null)
         {
             var exe = FindExecutable();
             Skip.If(exe is null, "clients/ImageProcTest/bin/Debug/net8.0-windows/ImageProcTest.exe was not found: build clients/ImageProcTest first.");
@@ -121,6 +222,7 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
 
             var info = new ProcessStartInfo(exe!) { WorkingDirectory = Path.GetDirectoryName(exe)!, UseShellExecute = false };
             info.Environment["XPE_NATIVE_DIR"] = nativeDir;
+            foreach (var (name, value) in extraEnvironment ?? new Dictionary<string, string>()) info.Environment[name] = value;
             string? faultFile = null;
             if (breakTemp)
             {
@@ -170,8 +272,9 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
         {
             // Diagnostics: the smoke line, the matrix row and the summary of what is executable.
             SelectTab("Diagnostics");
-            var summary = WaitForText("ModuleReadinessSummaryText", t => t.StartsWith("Executable modules=", StringComparison.Ordinal), TimeSpan.FromSeconds(60));
-            var smoke = WaitForText("PreprocessSmokeText", t => t.Contains("pass=", StringComparison.Ordinal), TimeSpan.FromSeconds(30));
+            // GUI-C-219: the oracle answers in the background, so the smoke line is "checking" first; the answer is waited for FIRST and everything derived from it is read after it.
+            var smoke = WaitForText("PreprocessSmokeText", t => t.Contains("pass=", StringComparison.Ordinal), TimeSpan.FromSeconds(60));
+            var summary = WaitForText("ModuleReadinessSummaryText", t => t.StartsWith("Executable modules=", StringComparison.Ordinal), TimeSpan.FromSeconds(30));
             var row = DataItems().FirstOrDefault(n => n.Contains("ModuleReadinessSnapshot { ModuleName = xpe_preprocess,", StringComparison.Ordinal)) ?? "(no xpe_preprocess row)";
             var level = row.Contains("ModuleName = xpe_preprocess, Level = R3,", StringComparison.Ordinal) ? "R3" : "below R3";
             var diagnostics = smoke.Contains("pass=True", StringComparison.Ordinal) && level == "R3" && !summary.Contains("xpe_preprocess:R", StringComparison.Ordinal);
@@ -193,6 +296,34 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             var evaluationEvidence = $"'{info.Split('.')[0]}'; Offset switch enabled={switchEnabled}";
 
             return new TabView(diagnostics, diagnosticsEvidence, calibration, calibrationEvidence, evaluation, evaluationEvidence);
+        }
+
+        /// <summary>What the three tabs say right after launch, while the oracle worker is still sleeping. UIA patterns only.</summary>
+        public CheckingView ReadPreprocessWhileChecking()
+        {
+            SelectTab("Diagnostics");
+            var smoke = _window.FindFirstDescendant(cf => cf.ByAutomationId("PreprocessSmokeText"))?.Name ?? string.Empty;
+            var row = DataItems().FirstOrDefault(n => n.Contains("ModuleReadinessSnapshot { ModuleName = xpe_preprocess,", StringComparison.Ordinal)) ?? "(no xpe_preprocess row)";
+            SelectTab("Calibration");
+            var blocking = DataItems().Count(n => n.Contains("RuleId = NATIVE-NOT-READY", StringComparison.Ordinal) && n.Contains("native preprocess adapter is not ready", StringComparison.Ordinal));
+            var checkingFindings = DataItems().Count(n => n.Contains("RuleId = NATIVE-CHECKING", StringComparison.Ordinal));
+            SelectTab("Evaluation");
+            var info = _window.FindFirstDescendant(cf => cf.ByAutomationId("StageModesInfoText"))?.Name ?? string.Empty;
+            var offsetSwitch = _window.FindFirstDescendant(cf => cf.ByAutomationId("OffsetEnabledCheckBox"));
+            return new CheckingView(smoke, row, blocking, info, offsetSwitch is not null && offsetSwitch.IsEnabled, checkingFindings);
+        }
+
+        public void ClickButtonOnTab(string tab, string name)
+        {
+            SelectTab(tab);
+            ClickButton(name);
+        }
+
+        public void ClickButton(string name)
+        {
+            var button = _window.FindAllDescendants(cf => cf.ByControlType(ControlType.Button)).FirstOrDefault(e => e.Name == name)?.AsButton();
+            Assert.True(button is not null, $"button '{name}' was not found");
+            button!.Invoke();   // UIA InvokePattern: no mouse
         }
 
         private void SelectTab(string header)

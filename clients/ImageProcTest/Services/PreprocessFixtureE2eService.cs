@@ -225,6 +225,12 @@ namespace ImageProcTest
                 return BlockedRun(fixtureCase, image, "NoCalibration", "Selected case has no calibration raw files.");
             }
 
+            if (preprocessHealth.DllPath is { Length: > 0 } checkedDll && !PreprocessOracleVerdicts.IsCurrent(checkedDll))
+            {
+                // GUI-C-219d: the files are not the ones the verdict was made for; nothing runs on them (the verification has been started again)
+                return BlockedRun(fixtureCase, image, "ContentChanged", "The preprocess DLLs changed after the oracle verdict was made; they are being checked again.");
+            }
+
             try
             {
                 var preview = RawPreviewService.LoadUInt16Preview(image.Path);
