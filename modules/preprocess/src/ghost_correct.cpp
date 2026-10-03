@@ -68,6 +68,37 @@ XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
                 if (doc.getString(r.key, &v) && !v.empty() && !xpe_strict::parse_double(v, r.dst))
                     return XPE_ERR_CONFIG_INVALID;
             }
+
+            // QA-A-226 (#241): "calibrated" is a fact about the configuration -- all four lag parameters were given
+            // (non-empty; an empty value keeps the default above, so it does not count). Not about their values.
+            const char* const lagKeys[] = {"alpha1", "tau1", "alpha2", "tau2"};
+            bool all = true;
+            for (const char* k : lagKeys) all = all && doc.getString(k, &v) && !v.empty();
+            handle->calibrated = all;
+
+            // QA-A-226b/226c (#241): a calibrated set must be a forward system that can exist.
+            //  - each alpha is >= 0 (a negative one ADDS signal: 1000 -> 1100 -> 1137, QA-A-226b) and each tau is > 0
+            //    (zero or negative makes the decay factor exp(-1/tau) 0 or above 1, so the history grows). tau is
+            //    finite by the notation rules ("inf" and "nan" are refused when the number is read).
+            //  - the history the corrector subtracts has the steady-state gain
+            //    S = alpha1/(1-exp(-1/tau1)) + alpha2/(1-exp(-1/tau2)) (one frame per step); a constant input comes out
+            //    as input*(1-S) clamped at 0, and a real lag y = x/(1-S) exists only for S < 1, so S >= 1 is refused.
+            //    Each term is alpha/(1-exp(-1/tau)) >= alpha, so alpha < 1 follows from S < 1 and needs no check of
+            //    its own. With the ranges above no term is negative and none is NaN (an alpha of 0 is taken as 0
+            //    whatever its tau: a tau so large that exp(-1/tau) is 1.0 makes the denominator 0, and 0/0 would be
+            //    NaN); a positive alpha over a zero denominator is +inf, which S >= 1 refuses. So S is never NaN or
+            //    -inf here and "S is not finite" needs no check either.
+            //  Only this weight-free S is checked: the tier 2/3 exposure weight has no grounded ceiling (QA-A-226
+            //  option (c), not taken).
+            if (all) {
+                if (!(handle->alpha1 >= 0.0) || !(handle->alpha2 >= 0.0) || !(handle->tau1 > 0.0) || !(handle->tau2 > 0.0))
+                    return XPE_ERR_CONFIG_INVALID;
+                const auto term = [](double alpha, double tau) {
+                    return alpha == 0.0 ? 0.0 : alpha / (1.0 - std::exp(-1.0 / tau));
+                };
+                const double s = term(handle->alpha1, handle->tau1) + term(handle->alpha2, handle->tau2);
+                if (s >= 1.0) return XPE_ERR_CONFIG_INVALID;
+            }
         }
 
         handle->hist1.assign(pixelCount, 0.0f);
@@ -81,8 +112,21 @@ XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
         return XPE_ERR_PROCESSING_FAILED;
     }
 
+    // QA-A-226 (#241): one Warning per handle, at creation (not per frame). The sentence is a cross-lane contract.
+    if (!handle->calibrated) {
+        xpe_alert_push("XPE_WARN_GHOST_NOT_CALIBRATED: ghost correction is not calibrated: the handle passes frames "
+                       "through unchanged until lag parameters are configured (alpha1, tau1, alpha2, tau2)",
+                       XPE_ALERT_WARNING);
+    }
+
     *handleOut = owner.release();
     return XPE_OK;
+}
+
+bool xpe_ghost_is_calibrated(const void* handle) noexcept
+{
+    if (!GhostCorrectorHandle::isValid(const_cast<void*>(handle))) return false;
+    return static_cast<const GhostCorrectorHandle*>(handle)->calibrated;
 }
 
 // @MX:ANCHOR: [AUTO] xpe_ghost_correct — multi-tier ghost correction with auto-escalation
@@ -241,7 +285,7 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
     size_t n = 0;
     if (!xpe_buffer_has_format(img, XPE_PIXEL_FLOAT32, &n)) return XPE_ERR_INVALID_INPUT;
 
-    // SRS-CALIB-NFR-003: one call at a time per handle (history and lastAcqTimeSec are updated in place)
+    // SRS-CALIB-NFR-003: one call at a time per handle (the history is updated in place)
     std::lock_guard<std::mutex> lock(gh->mtx);
 
     auto* px = static_cast<float*>(img->data);
@@ -261,16 +305,17 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
         }
     }
 
-    // REQ-P1A-033: compute time delta in units of frames (1.0 for first frame)
-    const double acquisitionTimeSec = static_cast<double>(meta->acquisitionTime);
-    double dt = (gh->lastAcqTimeSec > 0.0)
-                ? (acquisitionTimeSec - gh->lastAcqTimeSec)
-                : 1.0;
-    if (dt <= 0.0) dt = 1.0; // guard against zero/negative dt
-    // gh->lastAcqTimeSec is set below, with the history, once the frame has succeeded (QA-A-202c).
+    // QA-A-226 (#241): a handle without calibrated lag parameters does not correct. It is after the entrance checks
+    // (so a bad frame is refused exactly as before) and before anything is written: the pixels, the history and the
+    // time of the last frame stay as they are.
+    if (!gh->calibrated) return XPE_OK;
 
-    const float decay1 = static_cast<float>(std::exp(-dt / gh->tau1));
-    const float decay2 = static_cast<float>(std::exp(-dt / gh->tau2));
+    // REQ-P1A-033, QA-A-226b (#241): tau is in FRAMES. Every successful call is one step (dt = 1); acquisitionTime is
+    // not used. Before this the step was the difference of the integer-second times when both were given and 1
+    // otherwise, so the same tau was seconds or frames depending on the input, and the gap between two frames was
+    // applied one frame late. A break in the sequence is the caller's xpe_ghost_reset().
+    const float decay1 = static_cast<float>(std::exp(-1.0 / gh->tau1));
+    const float decay2 = static_cast<float>(std::exp(-1.0 / gh->tau2));
     const float a1_base = static_cast<float>(gh->alpha1);
     const float a2_base = static_cast<float>(gh->alpha2);
 
@@ -305,7 +350,6 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
     // The whole frame succeeded: its history, its time and its exposure estimate become the handle's.
     gh->hist1.swap(gh->next1);
     gh->hist2.swap(gh->next2);
-    gh->lastAcqTimeSec = acquisitionTimeSec;
     if (stats.set) {
         gh->lastFrameMean = stats.meanSignal;
         gh->exposureWeight = stats.exposureWeight;
@@ -321,7 +365,6 @@ XpeErrorCode xpe_ghost_reset(void* handle)
     // REQ-P1A-088: clear accumulated frame history
     std::fill(gh->hist1.begin(), gh->hist1.end(), 0.0f);
     std::fill(gh->hist2.begin(), gh->hist2.end(), 0.0f);
-    gh->lastAcqTimeSec = 0.0;
     gh->lastFrameMean = 0.0f;
     gh->exposureWeight = 1.0;
     return XPE_OK;

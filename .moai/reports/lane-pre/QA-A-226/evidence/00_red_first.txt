@@ -1,0 +1,13 @@
+Red-first run of GhostUncalibrated.* on the unmodified product code (transcribed from the session console, xpe_preprocess_tests.exe --gtest_filter='GhostUncalibrated.*'):
+[  FAILED  ] GhostUncalibrated.DefaultHandlePassesEveryFrameThroughBitForBit
+[  FAILED  ] GhostUncalibrated.ConstantExposureKeepsItsSignal
+[  FAILED  ] GhostUncalibrated.OneWarningAtCreationAndNoneAfterwards
+[  FAILED  ] GhostUncalibrated.TwoHandlesWarnOnceEach
+[  FAILED  ] GhostUncalibrated.PassThroughLeavesTheHandleStateUntouched
+[  FAILED  ] GhostUncalibrated.ThreeOfFourParametersIsStillUncalibrated
+[  FAILED  ] GhostUncalibrated.TierAndOtherKeysAloneDoNotCalibrate
+[  FAILED  ] GhostUncalibrated.EmptyValuesCountAsNotGiven
+[       OK ] RefusedCreationRaisesNoWarning, PassThroughStillRefusesWhatTheCorrectingPathRefuses, ResetStaysValid,
+              ExplicitConfigurationRaisesNoWarningAndStillCorrects, ExplicitConfigurationInEveryTierRaisesNoWarning,
+              ExplicitConfigurationDiffersFromPassThroughOnASecondFrame   (the controls: behaviour that must not change)
+8 failed, 6 passed.

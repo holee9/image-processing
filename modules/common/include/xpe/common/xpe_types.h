@@ -153,7 +153,7 @@ static_assert(offsetof(XpeImageMetadata, acquisitionTime) == 80u, "XpeImageMetad
  *  Flags are additive: a stage sets its bit but must not clear others.
  *  @{
  */
-#define XPE_FLAG_GHOST_CORRECTED         0x00000001u  /**< Ghost/lag correction applied (xpe_preprocess) */
+#define XPE_FLAG_GHOST_CORRECTED         0x00000001u  /**< Ghost/lag correction applied (xpe_preprocess); not set when the ghost handle has no calibrated lag parameters and passed the frame through (QA-A-226) */
 #define XPE_FLAG_AI_PROCESSED            0x00000002u  /**< AI module processed (xpe_ai) */
 #define XPE_FLAG_DEFECT_CORRECTED        0x00000004u  /**< Bad-pixel / defect map correction applied */
 #define XPE_FLAG_GAIN_CORRECTED          0x00000008u  /**< Flat-field gain correction applied */

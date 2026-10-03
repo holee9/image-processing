@@ -1,0 +1,44 @@
+"""QA-A-226b observation (NOT product code): lag sets outside the S >= 1 decision -- what does xpe_ghost_create do with them?
+Each row: create rc, then (if created) the 3rd frame of 3 constant frames of 1000 and the rc of the calls."""
+import ctypes, os, math
+import numpy as np
+
+BIN = 'D:/workspace-github/xpe-pre/build/ci-preprocess/bin'
+os.add_dll_directory(BIN)
+dll = ctypes.CDLL(BIN + '/xpe_preprocess.dll')
+W = H = 8
+
+
+class Buf(ctypes.Structure):
+    _fields_ = [('width', ctypes.c_uint32), ('height', ctypes.c_uint32), ('bitsAllocated', ctypes.c_uint32),
+                ('bitsStored', ctypes.c_uint32), ('format', ctypes.c_int32), ('data', ctypes.c_void_p),
+                ('dataSize', ctypes.c_size_t)]
+
+
+dll.xpe_ghost_create.argtypes = [ctypes.c_uint32, ctypes.c_uint32, ctypes.c_char_p, ctypes.POINTER(ctypes.c_void_p)]
+dll.xpe_ghost_correct.argtypes = [ctypes.c_void_p, ctypes.POINTER(Buf), ctypes.c_void_p]
+
+rows = [
+    ('alpha1 negative (-0.1), tau1 1', -0.1, 1.0, 0.0, 20.0),
+    ('alpha1 negative, tau1 1e20 (S = -inf)', -0.1, 1e20, 0.0, 20.0),
+    ('tau1 = 0', 0.1, 0.0, 0.0, 20.0),
+    ('tau1 = -1', 0.1, -1.0, 0.0, 20.0),
+    ('tau1 = -1, alpha1 = 0.01', 0.01, -1.0, 0.0, 20.0),
+    ('stable control', 0.1, 1.0, 0.01, 20.0),
+]
+print('%-42s %-10s %s' % ('row', 'create rc', 'frames 1-3 (first pixel) / call rcs'))
+for name, a1, t1, a2, t2 in rows:
+    cfg = ('{"alpha1":%.17g,"tau1":%.17g,"alpha2":%.17g,"tau2":%.17g}' % (a1, t1, a2, t2)).encode()
+    hnd = ctypes.c_void_p()
+    rc = dll.xpe_ghost_create(W, H, cfg, ctypes.byref(hnd))
+    if rc != 0:
+        print('%-42s %-10d' % (name, rc)); continue
+    meta = ctypes.create_string_buffer(96)
+    vals, rcs = [], []
+    for k in range(3):
+        px = np.full((H, W), 1000.0, np.float32)
+        buf = Buf(W, H, 32, 32, 1, px.ctypes.data, px.nbytes)
+        r = dll.xpe_ghost_correct(hnd, ctypes.byref(buf), meta)
+        rcs.append(r); vals.append(float(px[0, 0]))
+    dll.xpe_ghost_destroy(hnd)
+    print('%-42s %-10d %s / %s' % (name, rc, ['%.3f' % v for v in vals], rcs))

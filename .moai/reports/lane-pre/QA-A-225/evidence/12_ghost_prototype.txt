@@ -1,0 +1,25 @@
+truth: Starman 2012 eq.(1) LTI, a_n=[0.0025 0.021  0.16   0.76  ] b_n=[7.1e-06 1.1e-04 1.7e-03 1.8e-02] b0=0.980183
+  level  2%: raw 1st blank lag = 3.085% of exposure signal (Starman Table 3 uncorrected: 2%->3.7, 27%->2.8, 92%->2.4)
+  level 27%: raw 1st blank lag = 3.085% of exposure signal (Starman Table 3 uncorrected: 2%->3.7, 27%->2.8, 92%->2.4)
+  level 92%: raw 1st blank lag = 3.085% of exposure signal (Starman Table 3 uncorrected: 2%->3.7, 27%->2.8, 92%->2.4)
+
+replica vs DLL (tier 1, default config): max abs diff = 1.437e-03 ADU
+
+-- 27% saturation, defaults of the module --
+DLL default tier 1                             k=1  raw 3.0851% res 0.0000% removal 100.00% | k=50 raw 0.2729% res 0.0000% removal 100.00%
+DLL default tier 2                             k=1  raw 3.0851% res 0.0000% removal 100.00% | k=50 raw 0.2729% res 0.0000% removal 100.00%
+DLL default tier 3                             k=1  raw 3.0851% res 0.0000% removal 100.00% | k=50 raw 0.2729% res 0.0000% removal 100.00%
+no correction (control: must be 0%)            k=1  raw 3.0851% res 3.0851% removal   0.00% | k=50 raw 0.2729% res 0.2729% removal   0.00%
+
+best 2-term tier-1 config found (search on the replica, mean |blank| over 50 frames): {"tier":1,"alpha1":0.9,"tau1":1,"alpha2":0.05,"tau2":20}
+DLL tier 1 with that config (27%)              k=1  raw 3.0851% res 0.0000% removal 100.00% | k=50 raw 0.2729% res 0.0000% removal 100.00%
+
+-- same config on the OTHER exposure levels (held out: the config was fitted on 27% only) --
+level 2%, fitted-on-27% config                 k=1  raw 3.0851% res 0.0000% removal 100.00% | k=50 raw 0.2729% res 0.0000% removal 100.00%
+level 2%, module default tier 1                k=1  raw 3.0851% res 0.0000% removal 100.00% | k=50 raw 0.2729% res 0.0000% removal 100.00%
+level 92%, fitted-on-27% config                k=1  raw 3.0851% res 0.0000% removal 100.00% | k=50 raw 0.2729% res 0.0000% removal 100.00%
+level 92%, module default tier 1               k=1  raw 3.0851% res 0.0000% removal 100.00% | k=50 raw 0.2729% res 0.0000% removal 100.00%
+
+-- noise floor: sigma = 5 ADU on every frame (clamp at 0 rectifies the dark frames) --
+no correction, noisy                           k=1  raw 3.0790% res 3.0790% removal   0.00% | k=50 raw 0.2855% res 0.2855% removal   0.00%
+DLL tier 1 fitted config, noisy                k=1  raw 3.0790% res 0.0147% removal  99.52% | k=50 raw 0.2855% res 0.0147% removal  94.84%

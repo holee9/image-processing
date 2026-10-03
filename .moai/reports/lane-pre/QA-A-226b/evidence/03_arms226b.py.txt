@@ -1,0 +1,58 @@
+import subprocess, sys, shutil, os, re
+R = 'D:/workspace-github/xpe-pre/'
+S = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/68fc65a2-03aa-4eda-a5f4-cfdd0accbdc5/scratchpad/'
+GC = R + 'modules/preprocess/src/ghost_correct.cpp'
+PL = R + 'modules/preprocess/src/pipeline.cpp'
+for f in (GC, PL):
+    if not os.path.exists(S + 'keep226b_' + os.path.basename(f)):
+        shutil.copy(f, S + 'keep226b_' + os.path.basename(f))
+
+ARMS = {
+    'b1_no_stability_check': (GC, 'if (!std::isfinite(s) || s >= 1.0) return XPE_ERR_CONFIG_INVALID;', 'if (handle->width == 0 && (!std::isfinite(s) || s >= 1.0)) return XPE_ERR_CONFIG_INVALID;'),
+    'b2_threshold_1p5': (GC, 's >= 1.0) return XPE_ERR_CONFIG_INVALID;', 's >= 1.5) return XPE_ERR_CONFIG_INVALID;'),
+    'b3_zero_alpha_not_special': (GC, 'return alpha == 0.0 ? 0.0 : alpha / (1.0 - std::exp(-1.0 / tau));', 'return alpha / (1.0 - std::exp(-1.0 / tau));'),
+    'b4_time_dependent_step': (GC, """const float decay1 = static_cast<float>(std::exp(-1.0 / gh->tau1));
+    const float decay2 = static_cast<float>(std::exp(-1.0 / gh->tau2));""",
+                               """const double dtArm = 1.0 + static_cast<double>(meta->acquisitionTime % 3);
+    const float decay1 = static_cast<float>(std::exp(-dtArm / gh->tau1));
+    const float decay2 = static_cast<float>(std::exp(-dtArm / gh->tau2));"""),
+    'b5_tier1_only': (GC, """            if (all) {
+                const auto term""", """            if (all && handle->tier == 1) {
+                const auto term"""),
+    'b6_judges_uncalibrated': (GC, """            if (all) {
+                const auto term""", """            if (handle->width != 0 || all) {
+                const auto term"""),
+    'b7_step_is_two_frames': (GC, 'std::exp(-1.0 / gh->tau1));', 'std::exp(-2.0 / gh->tau1));'),
+    'b8_isfinite_dropped': (GC, 'if (!std::isfinite(s) || s >= 1.0)', 'if (s >= 1.0)'),
+}
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', S + 'buildall.bat'], capture_output=True, text=True)
+    return 'BUILD_EXIT=0' in r.stdout, r.stdout
+
+
+def tests():
+    r = subprocess.run([R + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe', '--gtest_filter=GhostLagContract.*:GhostUncalibrated.*:GoldenGhostTest.*:GhostTierTest.*'],
+                       cwd=R + 'modules/preprocess', capture_output=True, text=True)
+    failed = sorted(set(re.findall(r'^\[  FAILED  \] ([A-Za-z]\S+)', r.stdout, re.M)))
+    return failed, r.stdout
+
+
+for name in sys.argv[1:]:
+    f, old, new = ARMS[name]
+    keep = S + 'keep226b_' + os.path.basename(f)
+    shutil.copy(keep, f)
+    src = open(f, 'rb').read().decode('utf-8')
+    crlf = '\r\n' in src
+    s = src.replace('\r\n', '\n')
+    assert s.count(old) == 1, (name, s.count(old))
+    s = s.replace(old, new)
+    open(f, 'wb').write((s.replace('\n', '\r\n') if crlf else s).encode('utf-8'))
+    ok, out = build()
+    if not ok:
+        print(name, 'BUILD FAILED'); print(out[-1500:])
+    else:
+        failed, _ = tests()
+        print('%-38s -> %d red: %s' % (name, len(failed), ', '.join(failed) if failed else 'NONE (arm did not fire)'))
+    shutil.copy(keep, f)

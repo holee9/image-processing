@@ -1,0 +1,83 @@
+== E2E protocol 4.6 (171-200) ==
+- line defect: directional interpolation orthogonal to the defect line;
+- cluster defect: bounded median or plane-fit interpolation with max cluster size cap;
+- research-gated path: FixPix-lite or CNN-assisted correction only when deterministic fallback and benchmark evidence exist.
+
+The defect correction gate is based on residual error at defect locations and false modification of known-good pixels, not on visual review alone.
+
+### 4.6 Lag and ghost correction model
+
+Lag and ghost correction shall remain one preprocessing stage with internal tier escalation:
+
+```text
+Tier 1: multi-exponential LTI correction
+Tier 2: exposure-weighted LTI correction
+Tier 3: NLCSC for signal-dependent residuals
+```
+
+The stage shall emit tier, residual percentage, history length, and bypass reason. Empty history, first-frame operation, or single-shot mode shall be deterministic bypasses.
+
+---
+
+## 5. Automatic Evaluation Formula Pack
+
+All metrics shall be computed on detector-domain images before presentation LUT, enhancement, or AI processing.
+
+### 5.1 Pixel error metrics
+
+```text
+MAE(A,B)  = mean(abs(A - B))
+RMSE(A,B) = sqrt(mean((A - B)^2))
+PSNR(A,B) = 20 * log10(65535 / max(RMSE(A,B), epsilon))
+MaxAbs(A,B) = max(abs(A - B))
+```
+
+Use `A=Y` and `B=Y_ref` when a golden output exists. Use synthetic oracle references for bit-exact unit/integration gates.
+
+### 5.2 Dark and offset metrics
+
+== 5.6 (262-285) ==
+- synthetic BPM oracle: `DefectRecall = 100%`;
+- synthetic false-positive rate: `DefectFPR < 0.001%`;
+- good-pixel alteration is bounded by `GoodPixelDeltaP99 <= 1 ADU` unless a later stage intentionally changes all pixels.
+
+### 5.6 Lag and ghost metrics
+
+```text
+LagResidualPct(k) = 100 * abs(mean(Y_blank_k) - mean(DarkRef)) / max(mean(ExposureSignal), epsilon)
+GhostRemovalPct = 100 * (LagRawPct - LagResidualPct) / max(LagRawPct, epsilon)
+HistoryContamination = similarity(previous_patient_history, current_first_frame)
+```
+
+Acceptance defaults:
+
+- `GhostRemovalPct >= 90%` for benchmark sequences where lag is present;
+- first frame after reset reports `ghost_bypassed=true`;
+- no cross-patient history reuse is allowed.
+
+### 5.7 Input preservation and determinism metrics
+
+```text
+InputPreserved = sha256(raw_before) == sha256(raw_after)
+DeterminismRMSE = RMSE(Y_run_1, Y_run_2)
+NaNInfCount = count(isnan(Y) or isinf(Y))
+
+== lag mentions elsewhere in the protocol ==
+34:- Starman et al. lag correction and NLCSC basis: https://pmc.ncbi.nlm.nih.gov/articles/PMC3465354/
+35:- Pang et al. lag/ghosting physics and distinction: https://pmc.ncbi.nlm.nih.gov/articles/PMC5722609/
+57:| `H_k(x,y)` | Previous-frame history for lag/ghost correction | float32 |
+101:10. lag/ghost correction with deterministic tier escalation;
+171:### 4.6 Lag and ghost correction model
+173:Lag and ghost correction shall remain one preprocessing stage with internal tier escalation:
+181:The stage shall emit tier, residual percentage, history length, and bypass reason. Empty history, first-frame operation, or single-shot mode shall be deterministic bypasses.
+266:### 5.6 Lag and ghost metrics
+269:LagResidualPct(k) = 100 * abs(mean(Y_blank_k) - mean(DarkRef)) / max(mean(ExposureSignal), epsilon)
+270:GhostRemovalPct = 100 * (LagRawPct - LagResidualPct) / max(LagRawPct, epsilon)
+271:HistoryContamination = similarity(previous_patient_history, current_first_frame)
+276:- `GhostRemovalPct >= 90%` for benchmark sequences where lag is present;
+277:- first frame after reset reports `ghost_bypassed=true`;
+278:- no cross-patient history reuse is allowed.
+307:- memory follows SRS-CALIB-PERF-002 unless the test explicitly enables a larger research-only history buffer.
+321:  0.12 * LagGhostScore +
+346:| `PRE-E2E-1` | Synthetic oracle | Prove exact arithmetic for offset, gain, defect, nonlinearity, binning, and lag micro-cases | Yes |
+402:| `PRE-E2E-BL-002` | Add synthetic oracle generator for offset/gain/nonlinearity/defect/lag | deterministic raw + expected output |

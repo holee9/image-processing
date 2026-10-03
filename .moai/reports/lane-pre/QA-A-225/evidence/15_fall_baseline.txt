@@ -1,0 +1,6 @@
+no correction, falling step 27% -> 5% (clamp-free signed residual, % of the new level):
+  k=1  raw signed residual +17.1896%
+  k=50 raw signed residual +4.4470%
+removal by |signed residual| (over-correction counts as residual):
+  tight    k=1 98.5% | k=50 76.5%
+  0.5pct   k=1 83.3% | k=50 44.3%

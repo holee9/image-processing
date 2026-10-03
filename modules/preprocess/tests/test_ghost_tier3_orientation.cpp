@@ -15,6 +15,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "ghost_stable_lag.h"
 
 #include "xpe/preprocess_api.h"
 #include "xpe/common/xpe_error.h"
@@ -65,7 +66,7 @@ Grid smoothGrid(uint32_t S, unsigned seed) {   // neighbours alike: a small corr
 Grid run(int tier, uint32_t S, const Grid& f1, const Grid& f2) {
     void* h = nullptr;
     const std::string cfg = "{\"tier\":\"" + std::to_string(tier) + "\"}";
-    EXPECT_EQ(XPE_OK, xpe_ghost_create(S, S, cfg.c_str(), &h));
+    EXPECT_EQ(XPE_OK, xpe_ghost_create(S, S, withStableLag(cfg.c_str()).c_str(), &h));
     Grid out;
     uint64_t t = 1;
     for (const Grid* src : {&f1, &f2}) {
@@ -85,7 +86,8 @@ Grid run(int tier, uint32_t S, const Grid& f1, const Grid& f2) {
 // frame is decay*0 + raw (both planes), the second frame is one time unit later.
 Grid refTier3OriginalNeighbours(uint32_t S, const Grid& f1, const Grid& f2) {
     const size_t n = f2.size();
-    const double a1b = 0.9, a2b = 0.05, tau1 = 1.0, tau2 = 20.0, beta = 0.1;
+    // the lag set is the one ghost_stable_lag.h gives run() (QA-A-226b: the old 0.9 / 0.05 is forward-unstable and refused)
+    const double a1b = 0.1, a2b = 0.01, tau1 = 1.0, tau2 = 20.0, beta = 0.1;
     (void)f1; (void)tau1; (void)tau2;
     const std::vector<float>& h = f1;                       // history planes after frame 1 (zero history, decay * 0 + raw)
     double sum = 0.0;
