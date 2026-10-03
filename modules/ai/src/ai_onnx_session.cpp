@@ -106,6 +106,7 @@ namespace {
 #ifdef XPE_AI_TEST_HOOKS
 void (*g_afterVerifyHook)(const std::string& modelPath) = nullptr;
 void (*g_beforeSessionHook)() = nullptr;
+void (*g_beforeFileReadHook)() = nullptr;
 #endif
 
 enum class ReadResult { kOk, kFailed, kTooLarge };
@@ -120,6 +121,11 @@ ReadResult ReadFileBounded(const fs::path& p, std::vector<uint8_t>* out) {
     const std::streamoff size = f.tellg();
     if (size < 0) return ReadResult::kFailed;
     if (static_cast<unsigned long long>(size) > xpe::ai::kMaxSignedFileBytes) return ReadResult::kTooLarge;
+#ifdef XPE_AI_TEST_HOOKS
+    // TEST-ONLY (QA-B-195b): a hook that throws std::bad_alloc is the shortage of memory at the allocation that holds a
+    // whole model (the largest one this module makes), at exactly the place where a real one happens.
+    if (g_beforeFileReadHook) g_beforeFileReadHook();
+#endif
     out->assign(static_cast<size_t>(size), 0);
     f.seekg(0);
     if (size > 0 && !f.read(reinterpret_cast<char*>(out->data()), size)) return ReadResult::kFailed;
@@ -209,6 +215,11 @@ void TestSetAfterVerifyHook(void (*hook)(const std::string& modelPath)) { g_afte
  * see test_ai_oom_injection.cpp on nlohmann::json). Full builds only; nullptr clears it.
  */
 void TestSetBeforeSessionHook(void (*hook)()) { g_beforeSessionHook = hook; }
+/**
+ * TEST-ONLY (QA-B-195b): the callback ReadFileBounded makes right before it allocates the buffer for a file (the model,
+ * then its sidecar, then its signature). A hook that throws std::bad_alloc is the shortage of memory there. nullptr clears it.
+ */
+void TestSetBeforeFileReadHook(void (*hook)()) { g_beforeFileReadHook = hook; }
 #endif
 
 OnnxErrorCode ReadVerifiedModelFiles(const std::string& model_path, const std::string& role,
@@ -262,7 +273,23 @@ OnnxErrorCode ReadVerifiedModelFiles(const std::string& model_path, const std::s
     return OnnxErrorCode::kOk;
 }
 
-OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(
+OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(const OnnxSessionConfig& config) {
+    // QA-B-195b: a shortage of memory ANYWHERE in loading -- the buffer that holds the model, the sidecar, the signature,
+    // the trusted keys, the session -- is kOutOfMemory, never an exception: the worker has no outer catch of its own
+    // beyond the request boundary, and a caller that gets an exception where it expects a code is the bug Codex #88 found.
+    // The message is shorter than the small-string buffer, so setting it does not allocate.
+    try {
+        return CreateUnguarded(config);
+    } catch (const std::bad_alloc&) {
+        OnnxResult<std::unique_ptr<OnnxSession>> r;
+        r.value = nullptr;
+        r.code = OnnxErrorCode::kOutOfMemory;
+        r.message = "out of memory";
+        return r;
+    }
+}
+
+OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::CreateUnguarded(
         const OnnxSessionConfig& config) {
 
     OnnxResult<std::unique_ptr<OnnxSession>> result;

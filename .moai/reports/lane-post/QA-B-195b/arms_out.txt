@@ -1,0 +1,10 @@
+QA-B-195b arms: from build/g195b-arms-out.txt; the two sources restored byte-identical after the last arm; each arm runs ModelReadOom* and WorkerBoundary* (8 tests)
+
+K1 Create does not map a bad_alloc to kOutOfMemory: red(1)=['ModelReadOom.ABadAllocAtAnyOfTheThreeFileReadsIsOutOfMemoryAndNeverAnException']
+K2 the request boundary does not catch a bad_alloc as one: red(1)=['WorkerBoundary.ABadAllocInsideARequestHandlerIsAnErrorFrameAndTheWorkerSurvives']
+K3 the request boundary has no catch for other exceptions: red(1)=['WorkerBoundary.AnyOtherExceptionInsideARequestHandlerIsAProcessingFailureAndTheWorkerSurvives']
+K4 the unread payload is not thrown away after an allocation failure: red(1)=['WorkerBoundary.AShortageOfMemoryAtThePayloadAllocationIsAnsweredAndTheNextFrameIsStillInStep']
+K5 the payload allocation is not guarded: red(1)=['WorkerBoundary.AShortageOfMemoryAtThePayloadAllocationIsAnsweredAndTheNextFrameIsStillInStep']
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: red=[] ok=8
+DONE

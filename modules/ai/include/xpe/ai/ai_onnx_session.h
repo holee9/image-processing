@@ -289,6 +289,9 @@ private:
     // Private constructor (use Create factory)
     OnnxSession();
 
+    // Create() minus the guard against a shortage of memory (QA-B-195b); Create() is the only caller.
+    static OnnxResult<std::unique_ptr<OnnxSession>> CreateUnguarded(const OnnxSessionConfig& config);
+
     // PIMPL implementation
     struct Impl;
     Impl* pimpl_;

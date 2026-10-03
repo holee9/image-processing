@@ -60,6 +60,45 @@
 #include "ai_bodypart_decision.h"
 #include "ai_bodypart_model.h"
 
+#include <atomic>
+#include <new>
+#include <stdexcept>
+
+#ifdef XPE_AI_TEST_HOOKS
+namespace xpe::ai {
+void TestSetBeforeFileReadHook(void (*hook)());   // ai_onnx_session.cpp, test builds only
+}
+namespace {
+// TEST-ONLY (QA-B-195b). Environment variables of the worker's process, read in main() of a test build only:
+//   XPE_AI_TEST_FAIL_MODEL_READ=<n>      the first n file reads of model loading fail like a shortage of memory
+//   XPE_AI_TEST_FAIL_WORKER_REQUEST=oom|std|payload   ONE request fails at the request boundary: with std::bad_alloc
+//                                        inside the handler, with another exception type, or at the allocation of its payload
+std::atomic<int> g_failFileReads{0};
+std::atomic<int> g_requestFault{0};   // 0 none, 1 oom, 2 other exception, 3 payload allocation
+void FailFileReadForTest() {
+    if (g_failFileReads.fetch_sub(1) > 0) throw std::bad_alloc();
+}
+bool ConsumeFault(int kind) {
+    int expected = kind;
+    return g_requestFault.compare_exchange_strong(expected, 0);
+}
+void MaybeFailRequestForTest() {
+    if (ConsumeFault(1)) throw std::bad_alloc();
+    if (ConsumeFault(2)) throw std::runtime_error("injected exception");
+}
+/** Only a request that carries an image can fail here: the heartbeat that starts every worker must not use the fault up. */
+void MaybeFailPayloadForTest(uint32_t messageType) {
+    if (messageType != XPE_AI_MSG_BONE_SUPPRESS && messageType != XPE_AI_MSG_BODYPART_RECOGNIZE) return;
+    if (ConsumeFault(3)) throw std::bad_alloc();
+}
+}  // namespace
+#else
+namespace {
+inline void MaybeFailRequestForTest() {}
+inline void MaybeFailPayloadForTest(uint32_t) {}
+}  // namespace
+#endif
+
 namespace {
     constexpr DWORD PIPE_BUFFER_SIZE = XPE_AI_PIPE_BUFFER_SIZE;
     constexpr DWORD PIPE_TIMEOUT_MS = 0;
@@ -262,13 +301,35 @@ public:
                 break;
             }
 
-            std::vector<char> payload(header.payloadSize);
+            // QA-B-195b: nothing a request does may take the worker down with an uncaught exception. A shortage of memory
+            // is answered with XPE_ERR_OUT_OF_MEMORY and any other exception with XPE_ERR_PROCESSING_FAILED, and the loop
+            // goes on: the host sees the worker's own answer instead of a dead pipe. If even the answer cannot be sent
+            // the loop ends, so the host finds out at once instead of at the end of its time budget.
+            std::vector<char> payload;
+            try {
+                MaybeFailPayloadForTest(header.messageType);
+                payload.resize(header.payloadSize);
+            } catch (const std::bad_alloc&) {
+                // The payload's bytes are still in the pipe: they are read and thrown away, or the next frame would be
+                // decoded from the middle of this one.
+                if ((header.payloadSize > 0 && !DiscardPayload(header.payloadSize)) ||
+                    !SendErrorSafe(header.requestId, XPE_ERR_OUT_OF_MEMORY, "out of memory")) {
+                    break;
+                }
+                continue;
+            }
             if (header.payloadSize > 0 && !ReadPayload(payload)) {
                 std::cerr << "[Worker] Payload read failed" << std::endl;
                 break;
             }
 
-            HandleMessage(header, payload);
+            try {
+                HandleMessage(header, payload);
+            } catch (const std::bad_alloc&) {
+                if (!SendErrorSafe(header.requestId, XPE_ERR_OUT_OF_MEMORY, "out of memory")) break;
+            } catch (...) {
+                if (!SendErrorSafe(header.requestId, XPE_ERR_PROCESSING_FAILED, "unexpected exception in the worker")) break;
+            }
         }
     }
 
@@ -289,6 +350,29 @@ public:
     }
 
 private:
+    /** SendError that cannot throw; false when the answer could not be built or sent. */
+    bool SendErrorSafe(uint32_t request_id, int code, const char* message) noexcept {
+        try {
+            SendError(request_id, code, message);
+            return true;
+        } catch (...) {
+            return false;
+        }
+    }
+
+    /** Read and throw away the rest of one message of @p remaining bytes (the pipe is in message mode). */
+    bool DiscardPayload(uint32_t remaining) {
+        char buf[4096];
+        for (;;) {
+            DWORD got = 0;
+            const BOOL ok = ReadFile(pipe_handle_, buf, sizeof(buf), &got, nullptr);
+            if (!ok && GetLastError() != ERROR_MORE_DATA) return false;
+            if (got > remaining) return false;   // more than the header promised
+            remaining -= got;
+            if (ok) return remaining == 0;       // the message ended
+        }
+    }
+
     bool ReadHeader(XpeAiMessageHeader& header) {
         DWORD bytes_read = 0;
         const BOOL ok = ReadFile(pipe_handle_, &header, sizeof(header), &bytes_read, nullptr);
@@ -434,6 +518,7 @@ private:
         uint32_t width = 0, height = 0;
         size_t pixel_offset = 0;
         if (!ParseImageRequest(header, payload, "bone suppress", width, height, pixel_offset)) return;
+        MaybeFailRequestForTest();
         const size_t pixel_bytes = payload.size() - pixel_offset;
         const uint64_t count = static_cast<uint64_t>(width) * height;
 
@@ -577,6 +662,7 @@ private:
         uint32_t width = 0, height = 0;
         size_t pixel_offset = 0;
         if (!ParseImageRequest(header, payload, "body-part recognition", width, height, pixel_offset)) return;
+        MaybeFailRequestForTest();
         const uint64_t count = static_cast<uint64_t>(width) * height;
 
         if (!bodypart_ || bodypart_dir_ != model_dir_) {
@@ -713,6 +799,17 @@ int main(int argc, char* argv[]) {
         char v[8] = {0};
         if (GetEnvironmentVariableA("XPE_AI_TEST_FAIL_SESSION_CREATE", v, sizeof(v)) > 0 && std::strcmp(v, "oom") == 0) {
             xpe::ai::TestSetBeforeSessionHook(&ThrowOutOfMemory);
+        }
+        char n[16] = {0};
+        if (GetEnvironmentVariableA("XPE_AI_TEST_FAIL_MODEL_READ", n, sizeof(n)) > 0) {
+            g_failFileReads = std::atoi(n);
+            xpe::ai::TestSetBeforeFileReadHook(&FailFileReadForTest);
+        }
+        char f[16] = {0};
+        if (GetEnvironmentVariableA("XPE_AI_TEST_FAIL_WORKER_REQUEST", f, sizeof(f)) > 0) {
+            if (std::strcmp(f, "oom") == 0) g_requestFault = 1;
+            else if (std::strcmp(f, "std") == 0) g_requestFault = 2;
+            else if (std::strcmp(f, "payload") == 0) g_requestFault = 3;
         }
     }
 #endif

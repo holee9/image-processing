@@ -450,3 +450,73 @@ TEST_F(AiOom, ABoneSessionThatRunsOutOfMemoryIsOutOfMemoryOnTheInProcessPath) {
     for (const float v : out.px) EXPECT_EQ(-777.0f, v) << "the output is untouched";
     EXPECT_EQ(XPE_OK, xpe_bone_suppress(&in.buf, &out.buf, nullptr)) << "usable afterwards";
 }
+
+/* =========================================================================
+ * The buffer that holds a whole model cannot be allocated (QA-B-195b, Codex #88)
+ *
+ * Loading reads the model into ONE buffer the size of the file, then the sidecar and the signature the same way. That
+ * allocation sat before the catch that maps a shortage of memory, which the C ABI's outer catch hid on this path (the
+ * worker had no such catch: see test_ai_worker_boundary.cpp). A hook that throws std::bad_alloc where the buffer is
+ * allocated is that shortage at that place; the first read of the load is the model's.
+ * ========================================================================= */
+
+namespace xpe::ai {
+void TestSetBeforeFileReadHook(void (*hook)());   // ai_onnx_session.cpp, test builds only
+}
+
+namespace {
+int g_readsUntilFailure = 0;
+void FailTheKthRead() {
+    if (--g_readsUntilFailure == 0) throw std::bad_alloc();
+}
+struct ReadOomScope {
+    explicit ReadOomScope(int k) {
+        g_readsUntilFailure = k;
+        xpe::ai::TestSetBeforeFileReadHook(&FailTheKthRead);
+    }
+    ~ReadOomScope() { xpe::ai::TestSetBeforeFileReadHook(nullptr); }
+    ReadOomScope(const ReadOomScope&) = delete;
+    ReadOomScope& operator=(const ReadOomScope&) = delete;
+};
+}  // namespace
+
+TEST_F(AiOom, AModelBufferThatCannotBeAllocatedIsOutOfMemoryOnTheInProcessBonePath) {
+    if (IsStubBuild()) GTEST_SKIP() << "stub build: no model is loaded";
+    for (int k = 1; k <= 3; ++k) {   // the model, its sidecar, its signature
+        Reset();
+        Img in(3, 3, 1.0f);
+        Img out(3, 3, 0.0f);
+        ASSERT_EQ(XPE_OK, xpe_ai_init(kModelsX2.c_str(), nullptr));
+        std::fill(out.px.begin(), out.px.end(), -777.0f);
+        XpeErrorCode rc;
+        {
+            const ReadOomScope oom(k);
+            rc = xpe_bone_suppress(&in.buf, &out.buf, nullptr);
+        }
+        EXPECT_EQ(XPE_ERR_OUT_OF_MEMORY, rc) << "read " << k;
+        EXPECT_EQ(0, xpe_get_pending_alert_count()) << "read " << k << ": a shortage of memory raises no 'unavailable' alert";
+        for (const float v : out.px) EXPECT_EQ(-777.0f, v) << "read " << k << ": the output is untouched";
+        EXPECT_EQ(XPE_OK, xpe_bone_suppress(&in.buf, &out.buf, nullptr)) << "read " << k << ": usable afterwards";
+        for (size_t i = 0; i < in.px.size(); ++i) EXPECT_EQ(in.px[i] * 2.0f, out.px[i]) << "read " << k << " pixel " << i;
+    }
+}
+
+TEST_F(AiOom, AModelBufferThatCannotBeAllocatedIsOutOfMemoryOnTheInProcessBodyPartPath) {
+    if (IsStubBuild()) GTEST_SKIP() << "stub build: no model is loaded";
+    for (int k = 1; k <= 3; ++k) {
+        Reset();
+        Img in(4, 4, 0.0f);
+        char label[64];
+        float confidence = -1.0f;
+        ASSERT_EQ(XPE_OK, xpe_ai_init(kBodyPartA.c_str(), nullptr));
+        XpeErrorCode rc;
+        {
+            const ReadOomScope oom(k);
+            rc = xpe_bodypart_recognize(&in.buf, label, sizeof(label), &confidence);
+        }
+        EXPECT_EQ(XPE_ERR_OUT_OF_MEMORY, rc) << "read " << k;
+        EXPECT_EQ(0, xpe_get_pending_alert_count()) << "read " << k;
+        EXPECT_EQ(XPE_OK, xpe_bodypart_recognize(&in.buf, label, sizeof(label), &confidence)) << "read " << k << ": usable afterwards";
+        EXPECT_STREQ("CHEST", label);
+    }
+}
