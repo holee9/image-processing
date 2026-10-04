@@ -17,6 +17,7 @@
 // fails to survive says nothing about the field.
 
 #include <gtest/gtest.h>
+#include "test_pid.h"
 
 #include "xpe/dicom/dicom_api.h"
 #include "xpe/common/xpe_types.h"
@@ -80,7 +81,7 @@ RoundTrip WriteThenRead(const fs::path& path, uint16_t fill,
 }
 
 fs::path TempDir() {
-    const auto d = fs::temp_directory_path() / "xpe_dicom_param_dependency";
+    const auto d = fs::temp_directory_path() / ("xpe_dicom_param_dependency" + xpe_test::pid_suffix());
     fs::create_directories(d);
     return d;
 }
