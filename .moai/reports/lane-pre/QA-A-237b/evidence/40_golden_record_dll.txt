@@ -1,0 +1,113 @@
+Note: Google Test filter = OutputUnchanged237b.*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+[a237b-golden] {"pipeline/default/203x157/tier1", 0x5937a758a6ed1341ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/default/203x157/tier1 (computed 5937a758a6ed1341)
+
+[a237b-golden] {"pipeline/default/203x157/tier2", 0x1e76a035b3cedc88ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/default/203x157/tier2 (computed 1e76a035b3cedc88)
+
+[a237b-golden] {"pipeline/default/203x157/tier3", 0xf224ca30501e998eull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/default/203x157/tier3 (computed f224ca30501e998e)
+
+[a237b-golden] {"pipeline/default/256x192/tier1", 0xa75c9d9e8247a047ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/default/256x192/tier1 (computed a75c9d9e8247a047)
+
+[a237b-golden] {"pipeline/default/256x192/tier2", 0x77cb58f9c64c6a7aull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/default/256x192/tier2 (computed 77cb58f9c64c6a7a)
+
+[a237b-golden] {"pipeline/default/256x192/tier3", 0x9dafa625dc1ba994ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/default/256x192/tier3 (computed 9dafa625dc1ba994)
+
+[  FAILED  ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize (87 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryBypassCombinations
+[a237b-golden] {"pipeline/combo/temp_off", 0x3230d95ce318e312ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/combo/temp_off (computed 3230d95ce318e312)
+
+[a237b-golden] {"pipeline/combo/offset_off", 0x621b0af5f9adfa6aull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/combo/offset_off (computed 621b0af5f9adfa6a)
+
+[a237b-golden] {"pipeline/combo/nonlin_off", 0xb3aca48d1b76d872ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/combo/nonlin_off (computed b3aca48d1b76d872)
+
+[a237b-golden] {"pipeline/combo/temp_offset_nonlin_off", 0x0680df6cecb33d0aull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/combo/temp_offset_nonlin_off (computed 680df6cecb33d0a)
+
+[a237b-golden] {"pipeline/combo/gain_off", 0x60ecccedf9d6ab47ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/combo/gain_off (computed 60ecccedf9d6ab47)
+
+[a237b-golden] {"pipeline/combo/defect_off", 0xeaefd9693cc887f4ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/combo/defect_off (computed eaefd9693cc887f4)
+
+[a237b-golden] {"pipeline/combo/ghost_off", 0x88767eb8bc7d8abeull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/combo/ghost_off (computed 88767eb8bc7d8abe)
+
+[a237b-golden] {"pipeline/combo/binning2", 0x74ec0d485930158eull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/combo/binning2 (computed 74ec0d485930158e)
+
+[a237b-golden] {"pipeline/combo/gain_defect_off", 0x799fdd09f465b68dull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/combo/gain_defect_off (computed 799fdd09f465b68d)
+
+[a237b-golden] {"pipeline/combo/uint16_out", 0xf593cb0e7bd53415ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/combo/uint16_out (computed f593cb0e7bd53415)
+
+[a237b-golden] {"pipeline/combo/gain_binning_ghost_off", 0xd2c7c13340283354ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/combo/gain_binning_ghost_off (computed d2c7c13340283354)
+
+[  FAILED  ] OutputUnchanged237b.PipelineEntryBypassCombinations (118 ms)
+[ RUN      ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes
+[a237b-golden] {"ghost/sequence/203x157/tier1", 0x222704c1a48b7a57ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for ghost/sequence/203x157/tier1 (computed 222704c1a48b7a57)
+
+[a237b-golden] {"ghost/sequence/203x157/tier2", 0x0e4cb5cc730a8a29ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for ghost/sequence/203x157/tier2 (computed e4cb5cc730a8a29)
+
+[a237b-golden] {"ghost/sequence/203x157/tier3", 0xe302b3e9913a9f6eull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for ghost/sequence/203x157/tier3 (computed e302b3e9913a9f6e)
+
+[a237b-golden] {"ghost/sequence/256x192/tier1", 0xdfa89cd32f1f043bull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for ghost/sequence/256x192/tier1 (computed dfa89cd32f1f043b)
+
+[a237b-golden] {"ghost/sequence/256x192/tier2", 0x758ce723ee750df3ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for ghost/sequence/256x192/tier2 (computed 758ce723ee750df3)
+
+[a237b-golden] {"ghost/sequence/256x192/tier3", 0xf16481ebea1ad8f0ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for ghost/sequence/256x192/tier3 (computed f16481ebea1ad8f0)
+
+[  FAILED  ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes (91 ms)
+[----------] 3 tests from OutputUnchanged237b (297 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (297 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+[  FAILED  ] OutputUnchanged237b.PipelineEntryBypassCombinations
+[  FAILED  ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes
+
+ 3 FAILED TESTS

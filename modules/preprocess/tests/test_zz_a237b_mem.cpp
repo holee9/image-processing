@@ -11,7 +11,8 @@
  *
  * Run (one fresh process per measurement, the peak counter cannot be reset):
  *   xpe_preprocess_tests --gtest_also_run_disabled_tests --gtest_filter=A237bMem.DISABLED_ShippedPath
- * Environment: XPE_A237B_TIER (ghost tier 1..3, default 1), XPE_A237B_FRAMES (default 3).
+ * Environment: XPE_A237B_TIER (ghost tier 1..3, default 1), XPE_A237B_FRAMES (default 3),
+ * XPE_A237B_RAW_DIR (a directory with bright01..06.raw: real frames instead of the synthetic ones).
  * Output lines start with "[a237b]". Every number carries its unit; MiB = 2^20 bytes.
  */
 
@@ -88,6 +89,27 @@ int envInt(const char* name, int fallback) {
     return out;
 }
 
+std::string envStr(const char* name) {
+    char* v = nullptr;
+    size_t len = 0;
+    std::string out;
+    if (_dupenv_s(&v, &len, name) == 0 && v != nullptr) {
+        out = v;
+        std::free(v);
+    }
+    return out;
+}
+
+// A raw 3072x3072 uint16 frame without a header (the CalData_6 files); empty on any problem.
+std::vector<uint16_t> readRaw(const std::filesystem::path& file) {
+    std::vector<uint16_t> v(N);
+    FILE* f = nullptr;
+    if (fopen_s(&f, file.string().c_str(), "rb") != 0 || f == nullptr) return {};
+    const size_t got = std::fread(v.data(), sizeof(uint16_t), N, f);
+    std::fclose(f);
+    return got == N ? v : std::vector<uint16_t>{};
+}
+
 #ifdef XPE_CACHE_TEST_HOOKS
 int g_frame = 0;
 void onStage(int stage) {
@@ -114,7 +136,11 @@ TEST(A237bMem, DISABLED_ShippedPath) {
 
     xpe_preprocess_shutdown();
     ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
-    ASSERT_EQ(XPE_OK, MakeOffsetXCal(offPath.c_str(), W, H, 200.0f));
+    // XPE_A237B_RAW_DIR: real frames (CalData_6 layout: bright01..06.raw). Those exposures are already offset-corrected
+    // (the dataset README), so the offset map is a small constant with a fractional part and the real structure survives
+    // the subtraction; the gain and defect maps stay synthetic. Without the variable everything is synthetic.
+    const std::string rawDir = envStr("XPE_A237B_RAW_DIR");
+    ASSERT_EQ(XPE_OK, MakeOffsetXCal(offPath.c_str(), W, H, rawDir.empty() ? 200.0f : 0.3f));
     ASSERT_EQ(XPE_OK, MakeGainXCal(gainPath.c_str(), W, H, 1.25f));
     {
         std::vector<uint8_t> payload(N, 0);
@@ -167,9 +193,17 @@ TEST(A237bMem, DISABLED_ShippedPath) {
         g_frame = f;
 #endif
         uint16_t* raw = reinterpret_cast<uint16_t*>(frame.data());
-        const uint16_t base = static_cast<uint16_t>(2000 + 600 * (f % 2));
-        for (size_t i = 0; i < N; ++i) raw[i] = static_cast<uint16_t>(base + (i * 37u) % 300u);
-        for (uint32_t k = 0; k < 16; ++k) raw[static_cast<size_t>(150 + 170 * k) * W + (100 + 180 * k)] = 60000;
+        if (!rawDir.empty()) {
+            char name[24];
+            std::snprintf(name, sizeof(name), "bright%02d.raw", 1 + (f % 6));
+            const std::vector<uint16_t> real = readRaw(std::filesystem::path(rawDir) / name);
+            ASSERT_FALSE(real.empty()) << "cannot read " << name;
+            std::memcpy(raw, real.data(), N * sizeof(uint16_t));
+        } else {
+            const uint16_t base = static_cast<uint16_t>(2000 + 600 * (f % 2));
+            for (size_t i = 0; i < N; ++i) raw[i] = static_cast<uint16_t>(base + (i * 37u) % 300u);
+            for (uint32_t k = 0; k < 16; ++k) raw[static_cast<size_t>(150 + 170 * k) * W + (100 + 180 * k)] = 60000;
+        }
         img.format = XPE_PIXEL_UINT16;
         img.bitsAllocated = img.bitsStored = 16;
 
