@@ -8,6 +8,7 @@
  *   to avoid dependency on external test assets.
  */
 #include <gtest/gtest.h>
+#include "test_pid.h"
 #include "xpe/dicom/dicom_api.h"
 
 // #124 (QA-B-25): the Implicit VR LE fixture is derived from the written
@@ -67,7 +68,7 @@ fs::path DicomReaderTest::s_implicitLEDcm;
 fs::path DicomReaderTest::s_tempDir;
 
 void DicomReaderTest::SetUpTestSuite() {
-    s_tempDir = fs::temp_directory_path() / "xpe_dicom_reader_test";
+    s_tempDir = fs::temp_directory_path() / ("xpe_dicom_reader_test" + xpe_test::pid_suffix());
     fs::create_directories(s_tempDir);
 
     // Create a minimal uint16 image

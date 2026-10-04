@@ -8,6 +8,7 @@
  *   to avoid port conflicts in CI environments.
  */
 #include <gtest/gtest.h>
+#include "test_pid.h"
 #include "xpe/dicom/dicom_api.h"
 #include "xpe/common/xpe_error.h"
 #include "xpe/common/xpe_memory.h"
@@ -68,7 +69,7 @@ xpe_test::MockScpRunner DicomNetworkTest::s_scp;
 //    holds the alert text and the cancel of a query.
 
 void DicomNetworkTest::SetUpTestSuite() {
-    s_tempDir = fs::temp_directory_path() / "xpe_dicom_network_test";
+    s_tempDir = fs::temp_directory_path() / ("xpe_dicom_network_test" + xpe_test::pid_suffix());
     fs::create_directories(s_tempDir);
 
     // Create test DICOM file

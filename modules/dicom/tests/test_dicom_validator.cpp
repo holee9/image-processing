@@ -4,6 +4,7 @@
  * SPEC: SPEC-XPE-P1B-DICOM REQ-DICOM-023..028, AC-05, AC-10, AC-11
  */
 #include <gtest/gtest.h>
+#include "test_pid.h"
 #include "xpe/dicom/dicom_api.h"
 
 // #124 (QA-B-25): the negative-path fixtures below are derived from the
@@ -42,7 +43,7 @@ fs::path DicomValidatorTest::s_notDicom;
 fs::path DicomValidatorTest::s_tempDir;
 
 void DicomValidatorTest::SetUpTestSuite() {
-    s_tempDir = fs::temp_directory_path() / "xpe_dicom_validator_test";
+    s_tempDir = fs::temp_directory_path() / ("xpe_dicom_validator_test" + xpe_test::pid_suffix());
     fs::create_directories(s_tempDir);
 
     XpeImageBuffer img{};

@@ -4,6 +4,7 @@
  * SPEC: SPEC-XPE-P1B-DICOM REQ-DICOM-013..022, AC-01, AC-02, AC-03
  */
 #include <gtest/gtest.h>
+#include "test_pid.h"
 #include "xpe/dicom/dicom_api.h"
 #include "xpe/common/xpe_memory.h"
 #include <filesystem>
@@ -20,7 +21,7 @@ namespace fs = std::filesystem;
 class DicomWriterTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        m_tempDir = fs::temp_directory_path() / "xpe_dicom_writer_test";
+        m_tempDir = fs::temp_directory_path() / ("xpe_dicom_writer_test" + xpe_test::pid_suffix());
         fs::create_directories(m_tempDir);
 
         xpe_alloc_image(256, 256, XPE_PIXEL_UINT16, &m_img);

@@ -7,6 +7,7 @@
  * cannot write BitsAllocated 8 over 16-bit pixel data, a FLOAT32 buffer as words, or an image no file can describe.
  */
 #include <gtest/gtest.h>
+#include "test_pid.h"
 
 #include "DicomImageLimits.h"
 #include "DicomWriter.h"
@@ -25,7 +26,7 @@ using xpe::dicom::DicomWriter;
 namespace {
 
 struct Fixture {
-    fs::path dir = fs::temp_directory_path() / "xpe_dicom_writer_inner_test";
+    fs::path dir = fs::temp_directory_path() / ("xpe_dicom_writer_inner_test" + xpe_test::pid_suffix());
     std::vector<uint16_t> px = std::vector<uint16_t>(64, 0x0102u);
     XpeImageBuffer img{};
     XpeImageMetadata meta{};
