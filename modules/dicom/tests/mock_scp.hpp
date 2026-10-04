@@ -28,6 +28,7 @@
 
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <chrono>
 #include <string>
 #include <thread>
@@ -63,6 +64,14 @@ public:
     std::atomic<unsigned> storeDelayMs{0};
     /// QA-B-200 M2a: the same wait before a C-FIND is answered (a query that is slow, for a cancel test).
     std::atomic<unsigned> findDelayMs{0};
+
+    /// QA-B-209 C8: a copy of the identifier (query dataset) of the LAST C-FIND this SCP received, so a test can assert the
+    /// SHAPE of the query the SCU built (the reply is canned and does not depend on it). Written by the listener thread
+    /// before it answers, so a test that has seen the SCU's call return may read it.
+    DcmDataset lastFindQuery() {
+        const std::lock_guard<std::mutex> lock(m_queryMutex);
+        return m_lastFindQuery;
+    }
 
     /**
      * @brief Ask the listen loop to exit.
@@ -111,6 +120,10 @@ protected:
             OFCondition rc = receiveDIMSEDataset(&presID, &query);
             const std::unique_ptr<DcmDataset> queryOwned(query);
             DcmDataset* const queryCopy = queryOwned.get();
+            if (queryCopy != nullptr) {
+                const std::lock_guard<std::mutex> lock(m_queryMutex);
+                m_lastFindQuery = *queryCopy;
+            }
             if (rc.bad()) {
                 return rc;
             }
@@ -193,6 +206,8 @@ private:
     }
 
     std::atomic<bool> m_stopRequested{false};
+    std::mutex        m_queryMutex;
+    DcmDataset        m_lastFindQuery;
 };
 
 /**

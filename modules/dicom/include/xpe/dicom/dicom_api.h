@@ -434,12 +434,17 @@ XPE_API XpeErrorCode xpe_dicom_cstore(const char* host,
 /**
  * @brief Query a Modality Worklist SCP via C-FIND.
  *
- * queryJson keys honoured by the current implementation: "PatientID",
- * "PatientName", "Modality", "AccessionNumber". Any other key -- including
- * "ScheduledStationAETitle" and "ScheduledProcedureStepStartDate", which an
- * earlier version of this comment listed -- is accepted without error and has
- * no effect on the query. All four supported keys are also sent as universal
- * (empty) match keys when absent.
+ * queryJson keys honoured (QA-B-209 C8): "PatientID", "PatientName", "AccessionNumber",
+ * "Modality", "ScheduledStationAETitle", "ScheduledProcedureStepStartDate". Any other
+ * key is accepted without error and has no effect on the query. The query has the
+ * shape of the Modality Worklist Information Model (PS3.4 K.6.1): Modality,
+ * Scheduled Station AE Title and Scheduled Procedure Step Start Date are sent inside
+ * ONE item of the Scheduled Procedure Step Sequence (0040,0100); the patient keys
+ * and AccessionNumber are top-level keys. AccessionNumber is kept although the
+ * requirement does not list it (it is a standard matching key; removing it would
+ * change the behaviour of existing callers). The start date is a single date
+ * (YYYYMMDD) or a DICOM range (YYYYMMDD-YYYYMMDD) and is passed on as given. A key
+ * the caller does not give is sent as a universal-match (empty) key.
  *
  * @param host       Remote host address. Must not be NULL.
  * @param port       Remote DICOM port.

@@ -318,6 +318,58 @@ TEST_F(DicomNetworkTest, CFindQueryWithNameAndAccession_ReturnsJsonArray) {
     EXPECT_EQ(3u, j.size());
 }
 
+// QA-B-209 C8 (#251): the SHAPE of the query. PS3.4 K.6.1 (Modality Worklist Information Model): the scheduling keys --
+// Modality (0008,0060), Scheduled Station AE Title (0040,0001), Scheduled Procedure Step Start Date (0040,0002) -- live
+// INSIDE the Scheduled Procedure Step Sequence (0040,0100), one item; the patient keys and Accession Number are top level.
+// The mock answers with a canned worklist whatever it is asked, so the captured identifier is what proves the shape.
+TEST_F(DicomNetworkTest, CFindQueryShape_SchedulingKeysAreInsideTheScheduledProcedureStepSequence) {
+    if (!s_serverAvailable) GTEST_SKIP() << "mock SCP unavailable: " << s_scpStartError;
+    char outJson[4096] = {};
+    ASSERT_EQ(XPE_OK, xpe_dicom_cfind_mwl(
+        "localhost", s_findPort, "TESTSCU",
+        R"({"PatientID":"MOCK-0001","AccessionNumber":"ACC-0001","Modality":"DX","ScheduledStationAETitle":"STATION1","ScheduledProcedureStepStartDate":"20260101-20261231"})",
+        outJson, sizeof(outJson), 5000));
+    DcmDataset q = s_scp.scp().lastFindQuery();
+
+    OFString v;
+    EXPECT_TRUE(q.findAndGetOFString(DCM_PatientID, v).good());
+    EXPECT_EQ("MOCK-0001", std::string(v.c_str()));
+    EXPECT_TRUE(q.findAndGetOFString(DCM_AccessionNumber, v).good());
+    EXPECT_EQ("ACC-0001", std::string(v.c_str())) << "AccessionNumber stays a top-level key (leader decision on #251)";
+    EXPECT_FALSE(q.tagExists(DCM_Modality)) << "Modality is a Scheduled Procedure Step attribute: not a top-level key";
+
+    DcmItem* sps = nullptr;
+    ASSERT_TRUE(q.findAndGetSequenceItem(DCM_ScheduledProcedureStepSequence, sps, 0).good())
+        << "no Scheduled Procedure Step Sequence (0040,0100) in the C-FIND identifier";
+    ASSERT_NE(nullptr, sps);
+    DcmSequenceOfItems* seq = nullptr;
+    ASSERT_TRUE(q.findAndGetElement(DCM_ScheduledProcedureStepSequence, reinterpret_cast<DcmElement*&>(seq)).good());
+    EXPECT_EQ(1u, seq->card()) << "exactly one sequence item";
+    EXPECT_TRUE(sps->findAndGetOFString(DCM_Modality, v).good());
+    EXPECT_EQ("DX", std::string(v.c_str()));
+    EXPECT_TRUE(sps->findAndGetOFString(DCM_ScheduledStationAETitle, v).good());
+    EXPECT_EQ("STATION1", std::string(v.c_str()));
+    EXPECT_TRUE(sps->findAndGetOFString(DCM_ScheduledProcedureStepStartDate, v).good());
+    EXPECT_EQ("20260101-20261231", std::string(v.c_str())) << "a DICOM date RANGE is passed as given";
+}
+
+// Keys the caller does not give are universal-match (empty) keys, inside the sequence item for the scheduling ones.
+TEST_F(DicomNetworkTest, CFindQueryShape_AbsentSchedulingKeysAreUniversalMatchInsideTheItem) {
+    if (!s_serverAvailable) GTEST_SKIP() << "mock SCP unavailable: " << s_scpStartError;
+    char outJson[4096] = {};
+    ASSERT_EQ(XPE_OK, xpe_dicom_cfind_mwl("localhost", s_findPort, "TESTSCU", "{}", outJson, sizeof(outJson), 5000));
+    DcmDataset q = s_scp.scp().lastFindQuery();
+    EXPECT_FALSE(q.tagExists(DCM_Modality));
+    DcmItem* sps = nullptr;
+    ASSERT_TRUE(q.findAndGetSequenceItem(DCM_ScheduledProcedureStepSequence, sps, 0).good());
+    ASSERT_NE(nullptr, sps);
+    OFString v;
+    EXPECT_TRUE(sps->tagExists(DCM_Modality));
+    EXPECT_TRUE(sps->tagExists(DCM_ScheduledStationAETitle));
+    EXPECT_TRUE(sps->tagExists(DCM_ScheduledProcedureStepStartDate));
+    EXPECT_TRUE(sps->findAndGetOFString(DCM_Modality, v).good() ? v.empty() : true);
+}
+
 // The serialized worklist does not fit the caller's buffer
 // (DicomNetworkSCU.cpp:281). Three DX entries are far larger than 8 bytes.
 TEST_F(DicomNetworkTest, CFindOutBufferTooSmall_ReturnsBufferTooSmall) {

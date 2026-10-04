@@ -392,13 +392,19 @@ bool DicomNetworkSCU::buildFindRequest(const std::string& queryJson, void* outDa
     DcmDataset* ds = static_cast<DcmDataset*>(outDataset);
     if (!ds) return false;
 
-    // Add Scheduled Procedure Step Sequence as required by MWL
-    // Start with universal match (empty) keys for all standard fields
+    // QA-B-209 C8 (#251): the query has the shape of the Modality Worklist Information Model (PS3.4 K.6.1). The scheduling
+    // keys -- Modality (0008,0060), Scheduled Station AE Title (0040,0001), Scheduled Procedure Step Start Date
+    // (0040,0002) -- are attributes of the Scheduled Procedure Step Sequence (0040,0100) and go in ONE item of it; before this
+    // they were sent flat, and Modality at the top level, which a conforming worklist SCP does not match on. Patient ID,
+    // Patient's Name, Study Instance UID and Accession Number stay top-level keys (AccessionNumber is a standard matching
+    // key outside the sequence; it is kept although the requirement does not list it, so existing callers are unchanged).
+    // Every key starts as a universal-match (empty) key and the JSON overrides it.
+    std::string modality, stationAet, startDate;
+
     ds->putAndInsertString(DCM_PatientID, "");
     ds->putAndInsertString(DCM_PatientName, "");
     ds->putAndInsertString(DCM_StudyInstanceUID, "");
     ds->putAndInsertString(DCM_AccessionNumber, "");
-    ds->putAndInsertString(DCM_Modality, "");
 
     // Parse the JSON query and override defaults
     try {
@@ -410,14 +416,32 @@ bool DicomNetworkSCU::buildFindRequest(const std::string& queryJson, void* outDa
         if (j.contains("PatientName")) {
             ds->putAndInsertString(DCM_PatientName, j["PatientName"].get<std::string>().c_str());
         }
-        if (j.contains("Modality")) {
-            ds->putAndInsertString(DCM_Modality, j["Modality"].get<std::string>().c_str());
-        }
         if (j.contains("AccessionNumber")) {
             ds->putAndInsertString(DCM_AccessionNumber, j["AccessionNumber"].get<std::string>().c_str());
         }
+        if (j.contains("Modality")) {
+            modality = j["Modality"].get<std::string>();
+        }
+        if (j.contains("ScheduledStationAETitle")) {
+            stationAet = j["ScheduledStationAETitle"].get<std::string>();
+        }
+        if (j.contains("ScheduledProcedureStepStartDate")) {
+            // A single date (YYYYMMDD) or a DICOM range (YYYYMMDD-YYYYMMDD, PS3.4 C.2.2.2.5); passed on as given, the SCP
+            // does the matching.
+            startDate = j["ScheduledProcedureStepStartDate"].get<std::string>();
+        }
     } catch (const std::exception& e) {
         spdlog::warn("[DicomNetworkSCU] buildFindRequest: JSON parse error: {}", e.what());
+        return false;
+    }
+
+    auto* item = new DcmItem();
+    item->putAndInsertString(DCM_Modality, modality.c_str());
+    item->putAndInsertString(DCM_ScheduledStationAETitle, stationAet.c_str());
+    item->putAndInsertString(DCM_ScheduledProcedureStepStartDate, startDate.c_str());
+    if (ds->insertSequenceItem(DCM_ScheduledProcedureStepSequence, item).bad()) {
+        delete item;
+        spdlog::warn("[DicomNetworkSCU] buildFindRequest: could not build the Scheduled Procedure Step Sequence");
         return false;
     }
 
