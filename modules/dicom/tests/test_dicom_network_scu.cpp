@@ -19,6 +19,7 @@
 #include <cstring>
 #include <fstream>
 #include <string>
+#include <vector>
 #include "mock_scp.hpp"
 
 namespace fs = std::filesystem;
@@ -245,6 +246,74 @@ TEST_F(DicomNetworkTest, CStoreMissingFile_ReturnsIoFailed) {
 // classification of the rest -- dead code, cancel races, fault-injection-only
 // handlers -- is in .moai/reports/lane-post/QA-B-34/_scu_classification.txt.
 // ---------------------------------------------------------------------------
+
+// QA-B-210 C11 (#251, user decision): C-STORE proposes ONE transfer syntax -- the one in the file's meta header (0002,0010) --
+// and does not convert. It used to offer Explicit LE, JPEG 2000 Lossless and Implicit LE whatever the file held, so a peer could
+// accept a syntax the file is not in. The proposal is read from the association request the mock peer received.
+TEST_F(DicomNetworkTest, CStoreProposesOnlyTheTransferSyntaxOfAnExplicitLittleEndianFile) {
+    if (!s_serverAvailable) GTEST_SKIP() << "mock SCP unavailable: " << s_scpStartError;
+    DcmFileFormat ff;
+    ASSERT_TRUE(ff.loadFile(s_testDcm.string().c_str()).good());
+    OFString fileTs;
+    ASSERT_TRUE(ff.getMetaInfo()->findAndGetOFString(DCM_TransferSyntaxUID, fileTs).good());
+    ASSERT_EQ(std::string(UID_LittleEndianExplicitTransferSyntax), std::string(fileTs.c_str())) << "precondition: the fixture is Explicit LE";
+
+    const int before = s_scp.scp().associationRequests.load();
+    ASSERT_EQ(XPE_OK, xpe_dicom_cstore("localhost", s_storePort, "TESTSCU", s_testDcm.string().c_str(), 5000));
+    ASSERT_EQ(before + 1, s_scp.scp().associationRequests.load());
+    const auto proposed = s_scp.scp().lastProposals();
+    ASSERT_EQ(1u, proposed.size()) << "one presentation context";
+    ASSERT_EQ(1u, proposed[0].transferSyntaxes.size()) << "one transfer syntax in it";
+    EXPECT_EQ(std::string(UID_LittleEndianExplicitTransferSyntax), proposed[0].transferSyntaxes[0]);
+}
+
+TEST_F(DicomNetworkTest, CStoreProposesOnlyJpeg2000LosslessForAJpeg2000File) {
+    if (!s_serverAvailable) GTEST_SKIP() << "mock SCP unavailable: " << s_scpStartError;
+    XpeImageBuffer img{};
+    ASSERT_EQ(XPE_OK, xpe_alloc_image(64, 64, XPE_PIXEL_UINT16, &img));
+    XpeImageMetadata meta{};
+    const auto j2k = s_tempDir / "test_cstore_j2k.dcm";
+    const int wrc = xpe_dicom_write_j2k(j2k.string().c_str(), &img, &meta);
+    xpe_free_image(&img);
+    ASSERT_EQ(XPE_OK, wrc);
+
+    const int before = s_scp.scp().associationRequests.load();
+    ASSERT_EQ(XPE_OK, xpe_dicom_cstore("localhost", s_storePort, "TESTSCU", j2k.string().c_str(), 5000));
+    ASSERT_EQ(before + 1, s_scp.scp().associationRequests.load());
+    const auto proposed = s_scp.scp().lastProposals();
+    ASSERT_EQ(1u, proposed.size());
+    ASSERT_EQ(1u, proposed[0].transferSyntaxes.size()) << "the J2K file does not also offer Explicit / Implicit LE";
+    EXPECT_EQ(std::string(UID_JPEG2000LosslessOnlyTransferSyntax), proposed[0].transferSyntaxes[0]);
+}
+
+// The peer does not support the file's syntax (the mock accepts Explicit LE, Implicit LE and JPEG 2000 Lossless; the file here is a
+// real Explicit VR BIG Endian file, so DCMTK loads it): the context is refused, the call is NETWORK_FAILED, no C-STORE is attempted
+// -- and nothing is converted to a syntax the peer would take.
+TEST_F(DicomNetworkTest, CStoreOfAFileInASyntaxThePeerRefusesIsNetworkFailedAndNothingIsSent) {
+    if (!s_serverAvailable) GTEST_SKIP() << "mock SCP unavailable: " << s_scpStartError;
+    const auto odd = s_tempDir / "test_cstore_big_endian.dcm";
+    {
+        DcmFileFormat ff;
+        ASSERT_TRUE(ff.loadFile(s_testDcm.string().c_str()).good());
+        ASSERT_TRUE(ff.saveFile(odd.string().c_str(), EXS_BigEndianExplicit).good());   // meta (0002,0010) becomes .2
+    }
+    {
+        DcmFileFormat chk;
+        ASSERT_TRUE(chk.loadFile(odd.string().c_str()).good());
+        OFString ts;
+        ASSERT_TRUE(chk.getMetaInfo()->findAndGetOFString(DCM_TransferSyntaxUID, ts).good());
+        ASSERT_EQ(std::string(UID_BigEndianExplicitTransferSyntax), std::string(ts.c_str())) << "precondition: the fixture is Explicit VR Big Endian";
+    }
+    const int storesBefore = s_scp.scp().storeRequests.load();
+    const int assocBefore = s_scp.scp().associationRequests.load();
+    EXPECT_EQ(XPE_ERR_NETWORK_FAILED, xpe_dicom_cstore("localhost", s_storePort, "TESTSCU", odd.string().c_str(), 5000));
+    EXPECT_EQ(assocBefore + 1, s_scp.scp().associationRequests.load()) << "the association was requested";
+    const auto proposed = s_scp.scp().lastProposals();
+    ASSERT_EQ(1u, proposed.size());
+    ASSERT_EQ(1u, proposed[0].transferSyntaxes.size());
+    EXPECT_EQ(std::string(UID_BigEndianExplicitTransferSyntax), proposed[0].transferSyntaxes[0]);
+    EXPECT_EQ(storesBefore, s_scp.scp().storeRequests.load()) << "no C-STORE was attempted";
+}
 
 // A file with no Part 10 meta header and no SOPClassUID/SOPInstanceUID in the
 // dataset drives all three UID fallbacks in cstore (DicomNetworkSCU.cpp:69, 72,
