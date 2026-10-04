@@ -55,6 +55,7 @@ void xpe_alert_nonfinite(const char* prefix, size_t count, size_t first, uint32_
 // The signature is the one declared in xpe_preprocess_internal.h and called by the tests with these six arguments; the four
 // uint32_t are a position and a size, in that order, as everywhere in this module.
 float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
+                             // Public ABI signature (declared in the internal header, called by the tests): the order cannot change.
                              // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                              uint32_t x, uint32_t y,
                              uint32_t width, uint32_t height) noexcept
