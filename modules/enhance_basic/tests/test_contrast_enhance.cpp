@@ -606,5 +606,35 @@ TEST(ContrastEnhance, BenchmarkFreeze_Performance_REQ_ENH_017_Clahe3072) {
     for (size_t i = 0; i < n; ++i) {
         if (!std::isfinite(px[i])) { ADD_FAILURE() << "non-finite output at " << i; break; }
     }
+
+    // QA-B-207f (Codex #147): the cases the bin computation takes different paths for, measured only (no assertion; the lead
+    // reads the CI numbers after the merge). The size string names the image so the PERFMEASURE lines tell them apart.
+    //   (b) integer HU -1024..3071: range 4095, t is an integer for every pixel (image-level proof, tier 1)
+    //   (c) decimals 0.0123..4000: a small positive minimum, S = 42 (per-pixel filter, tier 2)
+    //   (d) (b) plus ONE pixel of 0.001: S = 46, every pixel on a boundary (filter + 64-bit integer resolution, tiers 2 and 3a)
+    struct Worst { const char* name; float lo, hi; bool integers; bool one_tiny; };
+    const Worst worst[] = {
+        {"3072x3072 integer HU -1024..3071", -1024.0f, 3071.0f, true, false},
+        {"3072x3072 decimals 0.0123..4000", 0.0123f, 4000.0f, false, false},
+        {"3072x3072 integer HU -1024..3071 + one pixel 0.001", -1024.0f, 3071.0f, true, true},
+    };
+    for (const Worst& wst : worst) {
+        uint32_t seed = 12345u;
+        for (size_t i = 0; i < n; ++i) {
+            seed = seed * 1664525u + 1013904223u;
+            const double u = (seed >> 8) * (1.0 / 16777216.0);
+            float v = static_cast<float>(wst.lo + u * (wst.hi - wst.lo));
+            if (wst.integers) v = std::floor(v);
+            pristine[i] = v;
+        }
+        pristine[2] = wst.lo;
+        pristine[3] = wst.hi;
+        if (wst.one_tiny) pristine[100] = 0.001f;
+        perf_measure::Measure("REQ-ENH-017/xpe_contrast_enhance", wst.name, reset,
+                              [&] { return xpe_contrast_enhance(&img, &params); });
+        for (size_t i = 0; i < n; ++i) {
+            if (!std::isfinite(px[i])) { ADD_FAILURE() << wst.name << ": non-finite output at " << i; break; }
+        }
+    }
     free_img(img);
 }
