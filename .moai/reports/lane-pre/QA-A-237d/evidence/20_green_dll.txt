@@ -1,0 +1,21 @@
+Note: Google Test filter = OutputUnchanged237b.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+[       OK ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize (76 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryBypassCombinations
+[       OK ] OutputUnchanged237b.PipelineEntryBypassCombinations (117 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+[       OK ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer (34 ms)
+[ RUN      ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes
+[       OK ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes (93 ms)
+[ RUN      ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere
+[       OK ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere (25 ms)
+[ RUN      ] OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory
+[       OK ] OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory (0 ms)
+[----------] 6 tests from OutputUnchanged237b (348 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (348 ms total)
+[  PASSED  ] 6 tests.

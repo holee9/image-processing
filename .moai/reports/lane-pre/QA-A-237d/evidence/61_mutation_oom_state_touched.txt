@@ -1,0 +1,106 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomInjection.AGhostFrameOnTheScratchRoute*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from OomInjection
+[ RUN      ] OomInjection.AGhostFrameOnTheScratchRouteWhoseAllocationFailsChangesNothing
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 1
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 1
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 1
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 1
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 1
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 1
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(700): error: Value of: mean == g->lastFrameMean && weight == g->exposureWeight
+  Actual: false
+Expected: true
+statistics changed, failing allocation 3
+
+[  FAILED  ] OomInjection.AGhostFrameOnTheScratchRouteWhoseAllocationFailsChangesNothing (9 ms)
+[----------] 1 test from OomInjection (9 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OomInjection.AGhostFrameOnTheScratchRouteWhoseAllocationFailsChangesNothing
+
+ 1 FAILED TEST

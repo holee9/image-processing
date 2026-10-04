@@ -430,30 +430,53 @@ namespace {
         return XPE_OK;
     }
 
-    // QA-A-237b (#245): whether the frame's arithmetic provably stays inside the float range, so that no pixel can fail and
-    // an in-place update has nothing to undo. Every intermediate value of the three tiers is bounded in double precision
-    // from: M = the frame's largest |value|; the bounds of |hist1| and |hist2| (the recurrence kept on the handle); the
-    // coefficients; and, for tier 3, the 3x3 blend. The bound must be at most kLimit (1e37, a thirty-fourth of FLT_MAX): the
-    // slack covers the float rounding of every operation. NaN or an overflowing bound answers false.
-    bool frame_cannot_leave_float_range(const GhostCorrectorHandle& gh, double M, const TierCoeffs& k,
+    // QA-A-237b (#245), QA-A-237d (Codex #142): whether the frame's arithmetic provably stays inside the float range, so that no
+    // pixel can fail and an in-place update has nothing to undo. The check EVALUATES THE TIERS' OWN EXPRESSIONS, in float and in
+    // the tiers' own order, at the worst case of every input: M (the frame's largest |value|) stands for the pixel and, since
+    // |mean| <= M, for the mean; the handle's bounds stand for the history planes; coefficients enter as magnitudes. An
+    // expression of the tier that can overflow in float is evaluated the same way here and tested for finiteness -- the
+    // coefficient a1 = a1_base * exposureWeight * signalDependence among them, which overflows to +Inf long before a1 * h1 does
+    // (the first version bounded the product a1 * h1 in double and missed it: a small history, then a large frame).
+    // Every value must be finite and at most kLimit (1e37, a thirty-fourth of FLT_MAX), which covers the rounding of the real run.
+    // NaN and Inf answer false. The correspondence (any change to a tier expression changes its row here):
+    //
+    //   tier code                                                  evaluated here
+    //   exposureWeight = 1 + (mean / 32768) * 0.5     (tiers 2,3)  ew   = 1 + (M / 32768) * 0.5
+    //   signalDependence = 1 + beta * (raw / 32768)   (tier 3)     sd   = 1 + |beta| * (M / 32768)
+    //   a1 = a1_base * exposureWeight * signalDependence           a1w  = |a1_base| * ew * sd      (same order)
+    //   a2 = a2_base * exposureWeight * signalDependence           a2w  = |a2_base| * ew * sd
+    //   corrected = raw - a1 * h1 - a2 * h2                        corr = M + a1w * H1 + a2w * H2   (and each product)
+    //   localMean: running sum of up to 9 neighbours  (tier 3)     sum9 = 9 * M
+    //   corrected = keep * corrected + local * localMean (tier 3)  blend = |keep| * corr + |local| * M
+    //   n1 = decay1 * h1 + raw ; n2 = decay2 * h2 + raw            n1w  = decay1 * H1 + M ; n2w = decay2 * H2 + M
+    bool frame_cannot_leave_float_range(const GhostCorrectorHandle& gh, float M, const TierCoeffs& k,
                                         const Tier3Mix& mix) noexcept {
-        const float decay1 = k.decay1, decay2 = k.decay2, a1_base = k.a1, a2_base = k.a2;
-        const float mixKeep = mix.keep, mixLocal = mix.local;
-        constexpr double kLimit = 1.0e37;
-        double weight = 1.0;       // tier 2 and 3: exposure weight 1 + (mean / 32768) * 0.5, |mean| <= M
-        double dependence = 1.0;   // tier 3: signal dependence 1 + beta * (raw / 32768)
-        if (gh.tier == 2 || gh.tier == 3) weight = 1.0 + 0.5 * M / 32768.0;
-        if (gh.tier == 3) dependence = 1.0 + std::fabs(static_cast<double>(static_cast<float>(gh.nlcscBeta))) * M / 32768.0;
-        const double c1 = std::fabs(static_cast<double>(a1_base)) * weight * dependence;
-        const double c2 = std::fabs(static_cast<double>(a2_base)) * weight * dependence;
-        const double h1 = gh.histBound1, h2 = gh.histBound2;
-        double worst = M + c1 * h1 + c2 * h2;   // the corrected value
+        constexpr double kLimitD = 1.0e37;
+        constexpr float kLimit = 1.0e37f;
+        // The history bounds are doubles kept by the handle; past the limit already answers "no" (and keeps the float cast defined).
+        if (!(gh.histBound1 <= kLimitD) || !(gh.histBound2 <= kLimitD)) return false;
+        const float H1 = static_cast<float>(gh.histBound1);
+        const float H2 = static_cast<float>(gh.histBound2);
+        const auto fits = [kLimit](float v) { return std::isfinite(v) && std::fabs(v) <= kLimit; };
+        if (!fits(M)) return false;
+
+        float ew = 1.0f, sd = 1.0f;
+        if (gh.tier == 2 || gh.tier == 3) ew = 1.0f + (M / 32768.0f) * 0.5f;
+        if (gh.tier == 3) sd = 1.0f + std::fabs(static_cast<float>(gh.nlcscBeta)) * (M / 32768.0f);
+        const float a1w = std::fabs(k.a1) * ew * sd;
+        const float a2w = std::fabs(k.a2) * ew * sd;
+        const float t1 = a1w * H1;
+        const float t2 = a2w * H2;
+        const float corr = M + t1 + t2;
+        const float n1w = k.decay1 * H1 + M;
+        const float n2w = k.decay2 * H2 + M;
+        if (!(fits(ew) && fits(sd) && fits(a1w) && fits(a2w) && fits(t1) && fits(t2) && fits(corr) && fits(n1w) && fits(n2w))) return false;
         if (gh.tier == 3) {
-            const double blended = std::fabs(static_cast<double>(mixKeep)) * worst + std::fabs(static_cast<double>(mixLocal)) * M;
-            worst = std::fmax(blended, std::fmax(worst, 9.0 * M));   // 9 M: the running sum of the nine neighbours
+            const float sum9 = 9.0f * M;
+            const float blend = std::fabs(mix.keep) * corr + std::fabs(mix.local) * M;
+            if (!(fits(sum9) && fits(blend))) return false;
         }
-        worst = std::fmax(worst, std::fmax(static_cast<double>(decay1) * h1 + M, static_cast<double>(decay2) * h2 + M));
-        return worst <= kLimit;   // false for NaN
+        return true;
     }
 } // anonymous namespace
 
@@ -516,7 +539,7 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
     constexpr float mixKeep = 0.7f, mixLocal = 0.3f;
 #endif
     const TierCoeffs coeffs{decay1, decay2, a1_base, a2_base};
-    bool inPlace = frame_cannot_leave_float_range(*gh, static_cast<double>(maxAbs), coeffs, Tier3Mix{mixKeep, mixLocal});
+    bool inPlace = frame_cannot_leave_float_range(*gh, maxAbs, coeffs, Tier3Mix{mixKeep, mixLocal});
 #ifdef XPE_CACHE_TEST_HOOKS
     if (xpe_ghost_force_slow_path) inPlace = false;
 #endif

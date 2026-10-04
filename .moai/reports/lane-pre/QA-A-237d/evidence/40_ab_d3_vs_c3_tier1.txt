@@ -1,0 +1,26 @@
+pair 0 A: ok=True steady 153.3 MiB peak 207.5 MiB times ['99.0', '97.3', '99.1'] ms
+pair 0 B: ok=True steady 153.3 MiB peak 207.5 MiB times ['102.0', '105.0', '102.8'] ms
+pair 1 B: ok=True steady 153.3 MiB peak 207.5 MiB times ['99.1', '113.3', '99.9'] ms
+pair 1 A: ok=True steady 153.3 MiB peak 207.5 MiB times ['96.9', '98.8', '106.3'] ms
+pair 2 A: ok=True steady 153.3 MiB peak 207.5 MiB times ['102.8', '98.8', '101.5'] ms
+pair 2 B: ok=True steady 153.3 MiB peak 207.5 MiB times ['103.4', '103.8', '100.9'] ms
+pair 3 B: ok=True steady 153.3 MiB peak 207.5 MiB times ['106.8', '105.3', '99.6'] ms
+pair 3 A: ok=True steady 153.3 MiB peak 207.5 MiB times ['106.9', '99.7', '100.1'] ms
+pair 4 A: ok=True steady 153.3 MiB peak 207.5 MiB times ['100.9', '97.1', '101.0'] ms
+pair 4 B: ok=True steady 153.3 MiB peak 207.5 MiB times ['99.0', '100.1', '99.0'] ms
+pair 5 B: ok=True steady 153.3 MiB peak 207.5 MiB times ['101.8', '102.6', '100.6'] ms
+pair 5 A: ok=True steady 153.3 MiB peak 207.5 MiB times ['97.7', '97.5', '99.9'] ms
+pair 6 A: ok=True steady 153.3 MiB peak 207.5 MiB times ['96.8', '96.0', '99.0'] ms
+pair 6 B: ok=True steady 153.3 MiB peak 207.5 MiB times ['99.3', '98.4', '100.1'] ms
+pair 7 B: ok=True steady 153.3 MiB peak 207.5 MiB times ['98.8', '105.3', '98.9'] ms
+pair 7 A: ok=True steady 153.3 MiB peak 207.5 MiB times ['99.5', '104.8', '99.5'] ms
+pair 8 A: ok=True steady 153.3 MiB peak 207.5 MiB times ['114.0', '99.6', '100.2'] ms
+pair 8 B: ok=True steady 153.3 MiB peak 207.5 MiB times ['97.5', '97.8', '98.2'] ms
+pair 9 B: ok=True steady 153.3 MiB peak 207.5 MiB times ['98.0', '106.6', '97.9'] ms
+pair 9 A: ok=True steady 153.3 MiB peak 207.5 MiB times ['99.8', '112.9', '107.3'] ms
+
+config: tier 1, frames 3, raw_dir synthetic, pairs 10, exe xpe_preprocess_tests.exe
+A: memory steady [153.3] MiB, peak [207.5] MiB (module, over runs); frame time min 96.0 ms, median of 20 warm frames 99.7 ms; all runs ok=True
+B: memory steady [153.3] MiB, peak [207.5] MiB (module, over runs); frame time min 97.5 ms, median of 20 warm frames 100.3 ms; all runs ok=True
+output digests identical across ALL runs of both builds: True  (3 frames per run)
+B/A: peak 1.000, time min 1.016, time median 1.007

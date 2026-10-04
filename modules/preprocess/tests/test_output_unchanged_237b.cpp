@@ -406,6 +406,176 @@ TEST(OutputUnchanged237b, GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere)
     for (int tier = 1; tier <= 3; ++tier) expectDigest("ghost/overflow/tier" + std::to_string(tier), ghostOverflow(tier));
 }
 
+// ---------------------------------------------------------------- Codex #142: a coefficient that overflows makes a FAILED frame, not an erased history
+namespace {
+
+struct KeptState { XpeErrorCode rc; bool pixelsKept; bool historyKept; bool statsKept; };
+
+// Frame 1 (every pixel `first`) is taken; frame 2 (every pixel `second`) is fed. If frame 2 fails it must leave its pixels, the
+// history and the statistics exactly as they were (REQ-P1A-032); the verdict of the in-place safety check must agree with the
+// arithmetic of the tier, including its float intermediate coefficients (a1 = a1_base * exposureWeight * signalDependence can
+// overflow to +Inf long before a1 * history does).
+KeptState secondFrame(const char* cfgJson, Size sz, float first, float second) {
+    void* ghost = nullptr;
+    EXPECT_EQ(XPE_OK, xpe_ghost_create(sz.w, sz.h, cfgJson, &ghost));
+    GhostCorrectorHandle* gh = static_cast<GhostCorrectorHandle*>(ghost);
+    const size_t n = static_cast<size_t>(sz.w) * sz.h;
+    std::vector<float> buf(n, first);
+    XpeImageMetadata meta{};
+    XpeImageBuffer img{};
+    img.width = sz.w;
+    img.height = sz.h;
+    img.format = XPE_PIXEL_FLOAT32;
+    img.bitsAllocated = img.bitsStored = 32;
+    img.data = buf.data();
+    img.dataSize = n * sizeof(float);
+    EXPECT_EQ(XPE_OK, xpe_ghost_correct(ghost, &img, &meta)) << "the first frame is taken";
+    std::fill(buf.begin(), buf.end(), second);
+    const std::vector<float> given = buf, hist1 = gh->hist1, hist2 = gh->hist2;
+    const double mean = gh->lastFrameMean, weight = gh->exposureWeight;
+    KeptState k{};
+    k.rc = xpe_ghost_correct(ghost, &img, &meta);
+    k.pixelsKept = (std::memcmp(given.data(), buf.data(), n * sizeof(float)) == 0);
+    k.historyKept = (hist1 == gh->hist1 && hist2 == gh->hist2);
+    k.statsKept = (mean == gh->lastFrameMean && weight == gh->exposureWeight);
+    xpe_ghost_destroy(ghost);
+    xpe_clear_alerts();
+    return k;
+}
+
+}  // namespace
+
+TEST(OutputUnchanged237b, GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory) {
+    // The reproduction Codex sent (#142): 3x3, tier 3, a small non-zero history, then a frame whose a1 is +Inf in float.
+    const char* codex = "{\"tier\":\"3\",\"alpha1\":0.1,\"tau1\":1,\"alpha2\":0,\"tau2\":1,\"nlcscBeta\":1}";
+    const KeptState r = secondFrame(codex, Size{3, 3}, 1e-15f, 1e25f);
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, r.rc) << "the frame cannot be taken: a1 is +Inf";
+    EXPECT_TRUE(r.pixelsKept) << "pixels changed on a failed frame";
+    EXPECT_TRUE(r.historyKept) << "the history of the earlier frame was erased or changed by a failed frame";
+    EXPECT_TRUE(r.statsKept);
+
+    // The same shape on other sizes, first values and second values, and with a signal-dependence beta that makes it fail earlier.
+    const struct { const char* cfg; Size sz; float first, second; } cases[] = {
+        {codex, {40, 30}, 1e-30f, 1e20f},
+        {codex, {40, 30}, 1e-30f, 1e30f},
+        {codex, {37, 29}, 1e-5f, 5e24f},
+        {"{\"tier\":\"3\",\"alpha1\":0.1,\"tau1\":1,\"alpha2\":0.01,\"tau2\":20,\"nlcscBeta\":1000}", {40, 30}, 1e-10f, 1e24f},
+        {"{\"tier\":\"3\",\"alpha1\":0.1,\"tau1\":1,\"alpha2\":0.01,\"tau2\":20,\"nlcscBeta\":0.1}", {40, 30}, 1e-20f, 1e27f},
+        {"{\"tier\":\"2\",\"alpha1\":0.1,\"tau1\":1,\"alpha2\":0.01,\"tau2\":20}", {40, 30}, 1e-20f, 3e37f},
+    };
+    for (const auto& c : cases) {
+        const KeptState k = secondFrame(c.cfg, c.sz, c.first, c.second);
+        if (k.rc != XPE_OK) {   // a frame that fails must leave everything as it was; one that is taken is not this test's business
+            EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, k.rc) << c.cfg << " " << c.first << " -> " << c.second;
+            EXPECT_TRUE(k.pixelsKept && k.historyKept && k.statsKept)
+                << c.cfg << " " << c.sz.w << "x" << c.sz.h << " " << c.first << " -> " << c.second << ": state not preserved on a failed frame";
+        }
+    }
+}
+
+// ---------------------------------------------------------------- Codex #142 boundary samples
+// NaN and Inf in a frame are refused at the entrance, before anything is written, whatever the history holds.
+TEST(OutputUnchanged237b, GhostNonFiniteFramesAreRefusedAndChangeNothing) {
+    const Size sz = kSizes[0];
+    const size_t n = static_cast<size_t>(sz.w) * sz.h;
+    const float bad[] = {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()};
+    for (int tier = 1; tier <= 3; ++tier) {
+        for (const bool withHistory : {false, true}) {
+            for (const float v : bad) {
+                void* ghost = nullptr;
+                const std::string cfg = withStableLag(("{\"tier\":" + std::to_string(tier) + "}").c_str());
+                ASSERT_EQ(XPE_OK, xpe_ghost_create(sz.w, sz.h, cfg.c_str(), &ghost));
+                GhostCorrectorHandle* gh = static_cast<GhostCorrectorHandle*>(ghost);
+                std::vector<float> buf(n, 1000.0f);
+                XpeImageMetadata meta{};
+                XpeImageBuffer img{};
+                img.width = sz.w;
+                img.height = sz.h;
+                img.format = XPE_PIXEL_FLOAT32;
+                img.bitsAllocated = img.bitsStored = 32;
+                img.data = buf.data();
+                img.dataSize = n * sizeof(float);
+                if (withHistory) ASSERT_EQ(XPE_OK, xpe_ghost_correct(ghost, &img, &meta));
+                std::fill(buf.begin(), buf.end(), 2000.0f);
+                buf[n / 2] = v;
+                const std::vector<float> given = buf, hist1 = gh->hist1, hist2 = gh->hist2;
+                const double mean = gh->lastFrameMean, weight = gh->exposureWeight;
+                EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_ghost_correct(ghost, &img, &meta)) << "tier " << tier << " history " << withHistory;
+                EXPECT_EQ(0, std::memcmp(given.data(), buf.data(), n * sizeof(float))) << "pixels changed";
+                EXPECT_TRUE(hist1 == gh->hist1 && hist2 == gh->hist2) << "history changed";
+                EXPECT_TRUE(mean == gh->lastFrameMean && weight == gh->exposureWeight) << "state changed";
+                xpe_ghost_destroy(ghost);
+                xpe_clear_alerts();
+            }
+        }
+    }
+}
+
+#ifdef XPE_CACHE_TEST_HOOKS
+// Around the point where a1 = a1_base * exposureWeight * signalDependence leaves the float range: signal-dependence betas in steps
+// of 1.25 and second-frame magnitudes in steps of about 3, after a first frame that leaves a small, a unit and a large non-zero
+// history. The in-place route must never be taken for a frame the scratch route fails, and where both succeed they must agree.
+TEST(OutputUnchanged237b, GhostInPlaceVerdictAroundTheCoefficientOverflow) {
+    const Size sz{9, 7};
+    const size_t n = static_cast<size_t>(sz.w) * sz.h;
+    const float firsts[] = {0.0f, 1e-30f, 1e-15f, 1.0f, 1e6f};
+    unsigned long inPlaceFrames = 0, failedFrames = 0, comparisons = 0;
+    for (int tier = 1; tier <= 3; ++tier) {
+        for (double beta = 1e-3; beta < 1e6; beta *= 1.25) {
+            for (const float first : firsts) {
+                for (float second = 1e18f; second < 3.4e38f; second *= 3.0f) {
+                    char cfg[200];
+                    std::snprintf(cfg, sizeof(cfg), "{\"tier\":%d,\"alpha1\":0.1,\"tau1\":1,\"alpha2\":0.01,\"tau2\":20,\"nlcscBeta\":%.17g}", tier, beta);
+                    void* a = nullptr;
+                    void* b = nullptr;
+                    ASSERT_EQ(XPE_OK, xpe_ghost_create(sz.w, sz.h, cfg, &a));
+                    ASSERT_EQ(XPE_OK, xpe_ghost_create(sz.w, sz.h, cfg, &b));
+                    GhostCorrectorHandle* ga = static_cast<GhostCorrectorHandle*>(a);
+                    GhostCorrectorHandle* gb = static_cast<GhostCorrectorHandle*>(b);
+                    std::vector<float> fa(n), fb(n);
+                    XpeImageMetadata meta{};
+                    XpeImageBuffer ia{};
+                    ia.width = sz.w;
+                    ia.height = sz.h;
+                    ia.format = XPE_PIXEL_FLOAT32;
+                    ia.bitsAllocated = ia.bitsStored = 32;
+                    ia.dataSize = n * sizeof(float);
+                    XpeImageBuffer ib = ia;
+                    ia.data = fa.data();
+                    ib.data = fb.data();
+                    for (int f = 0; f < 2; ++f) {
+                        std::fill(fa.begin(), fa.end(), f == 0 ? first : second);
+                        fb = fa;
+                        const unsigned long before = xpe_ghost_in_place_frames;
+                        const XpeErrorCode rcA = xpe_ghost_correct(a, &ia, &meta);
+                        const bool wentInPlace = (xpe_ghost_in_place_frames != before);
+                        xpe_ghost_force_slow_path = true;
+                        const XpeErrorCode rcB = xpe_ghost_correct(b, &ib, &meta);
+                        xpe_ghost_force_slow_path = false;
+                        ++comparisons;
+                        if (wentInPlace) ++inPlaceFrames;
+                        if (rcB != XPE_OK) ++failedFrames;
+                        const std::string where = std::string("tier ") + std::to_string(tier) + " beta " + std::to_string(beta) + " " + std::to_string(first) + " -> " + std::to_string(second) + " frame " + std::to_string(f);
+                        ASSERT_EQ(rcB, rcA) << where;
+                        if (rcB != XPE_OK) ASSERT_FALSE(wentInPlace) << where << ": the in-place route was taken for a frame the scratch route fails";
+                        ASSERT_EQ(0, std::memcmp(fa.data(), fb.data(), n * sizeof(float))) << where << ": pixels differ";
+                        ASSERT_TRUE(ga->hist1 == gb->hist1 && ga->hist2 == gb->hist2) << where << ": history differs";
+                        ASSERT_EQ(gb->lastFrameMean, ga->lastFrameMean) << where;
+                        ASSERT_EQ(gb->exposureWeight, ga->exposureWeight) << where;
+                    }
+                    xpe_ghost_destroy(a);
+                    xpe_ghost_destroy(b);
+                }
+            }
+        }
+    }
+    xpe_clear_alerts();
+    std::printf("[a237b] ghost coefficient-overflow boundary: %lu frames, %lu in place, %lu failed on the scratch route\n", comparisons, inPlaceFrames, failedFrames);
+    EXPECT_GT(inPlaceFrames, comparisons / 20u);
+    EXPECT_GT(failedFrames, comparisons / 20u);
+}
+#endif  // XPE_CACHE_TEST_HOOKS
+
 // ---------------------------------------------------------------- the gain stage on a hand-built snapshot (hook build)
 #ifdef XPE_CACHE_TEST_HOOKS
 namespace {
@@ -566,9 +736,12 @@ TEST(OutputUnchanged237b, GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteF
         {"stable_lag", ""},
         {"large_alpha", "{\"alpha1\":0.4,\"tau1\":1,\"alpha2\":0.01,\"tau2\":20}"},
         {"huge_beta", "{\"nlcscBeta\":1e10}"},
+        {"beta_one", "{\"nlcscBeta\":1}"},
+        {"beta_thousand", "{\"nlcscBeta\":1000}"},
         {"slow_tau", "{\"alpha1\":0.1,\"tau1\":1,\"alpha2\":0.002,\"tau2\":400}"},
     };
-    const float magnitudes[] = {1.0f, 1e3f, 6e4f, 1e8f, 1e15f, 1e25f, 1e30f, 1e33f, 1e35f, 3e35f, 1e36f, 3e36f, 1e37f, 3e37f, 1e38f, 2e38f, 3e38f};
+    const float magnitudes[] = {1e-30f, 1e-15f, 1e-5f, 1.0f, 1e3f, 6e4f, 1e8f, 1e15f, 1e20f, 1e22f, 1e24f, 1e25f, 1e26f, 1e28f, 1e30f, 1e33f, 1e35f, 3e35f,
+                               1e36f, 3e36f, 1e37f, 3e37f, 1e38f, 2e38f, 3e38f};
     const Size sizes[] = {{40, 30}, {37, 29}, {2, 5}};   // the last is below 3x3: no spatial blend
     unsigned long inPlaceFrames = 0, failedFrames = 0, frames = 0;
     for (const Config& c : configs) {

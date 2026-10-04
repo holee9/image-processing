@@ -633,6 +633,83 @@ TEST_F(OomInjection, ACalibratedGhostCreationWhoseAllocationFailsHandsBackNothin
           ghostcreate::verdict);
 }
 
+// QA-A-237d (Codex #142, finding 2): a frame of xpe_ghost_correct that cannot be proven safe takes the scratch route, which makes
+// three allocations of one plane each (the new history, twice, and the copy of the incoming frame). Making each of them fail in
+// turn: the call must return XPE_ERR_OUT_OF_MEMORY with the pixels, the history and the statistics exactly as the caller gave
+// them, leak nothing, and the first K that does not fail must produce what the same frame produces without any injection.
+// (Before QA-A-237b these planes were allocated with the handle; nothing swept them since, and the other ghost tests feed
+// ordinary frames, which now take the in-place route and allocate nothing.)
+TEST_F(OomInjection, AGhostFrameOnTheScratchRouteWhoseAllocationFailsChangesNothing) {
+    constexpr uint32_t w = 40, h = 30;
+    constexpr size_t n = static_cast<size_t>(w) * h;
+    for (int tier = 1; tier <= 3; ++tier) {
+        for (const bool nonZeroHistory : {false, true}) {
+            ghostcreate::warm();   // the registry singleton and its bucket array, so they are not counted below
+            const std::string cfg = withStableLag(("{\"tier\":" + std::to_string(tier) + "}").c_str());
+            void* handle = nullptr;
+            void* twin = nullptr;
+            ASSERT_EQ(XPE_OK, xpe_ghost_create(w, h, cfg.c_str(), &handle));
+            ASSERT_EQ(XPE_OK, xpe_ghost_create(w, h, cfg.c_str(), &twin));
+            GhostCorrectorHandle* g = static_cast<GhostCorrectorHandle*>(handle);
+            GhostCorrectorHandle* t = static_cast<GhostCorrectorHandle*>(twin);
+            std::vector<float> px(n), ref(n);
+            XpeImageMetadata meta{};
+            XpeImageBuffer ib{};
+            ib.width = w;
+            ib.height = h;
+            ib.format = XPE_PIXEL_FLOAT32;
+            ib.bitsAllocated = ib.bitsStored = 32;
+            ib.data = px.data();
+            ib.dataSize = n * sizeof(float);
+            XpeImageBuffer rb = ib;
+            rb.data = ref.data();
+            if (nonZeroHistory) {   // one earlier frame on both handles (ordinary: in place)
+                for (size_t i = 0; i < n; ++i) px[i] = 800.0f + static_cast<float>(i % 23);
+                ref = px;
+                ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &ib, &meta));
+                ASSERT_EQ(XPE_OK, xpe_ghost_correct(twin, &rb, &meta));
+            }
+            for (size_t i = 0; i < n; ++i) px[i] = 1500.0f + static_cast<float>(i % 17);
+            const std::vector<float> given = px, hist1 = g->hist1, hist2 = g->hist2;
+            const double mean = g->lastFrameMean, weight = g->exposureWeight;
+            ref = given;
+            xpe_ghost_force_slow_path = true;
+            ASSERT_EQ(XPE_OK, xpe_ghost_correct(twin, &rb, &meta)) << "the reference: the same frame on the scratch route, no injection";
+            xpe_ghost_force_slow_path = false;
+
+            long allocationsOfASuccessfulCall = -1;
+            for (long k = 1; k <= 8; ++k) {
+                px = given;
+                const long liveBefore = g_live.load();
+                xpe_ghost_force_slow_path = true;
+                arm(k);
+                XpeErrorCode rc = XPE_OK;
+                try { rc = xpe_ghost_correct(handle, &ib, &meta); } catch (...) { rc = XPE_ERR_INTERNAL; }
+                const bool injected = disarm();
+                xpe_ghost_force_slow_path = false;
+                const long count = g_count.load();
+                const long liveAfter = g_live.load();
+                if (!injected) {
+                    allocationsOfASuccessfulCall = count;
+                    ASSERT_EQ(XPE_OK, rc);
+                    break;
+                }
+                EXPECT_EQ(XPE_ERR_OUT_OF_MEMORY, rc) << "tier " << tier << " history " << nonZeroHistory << " failing allocation " << k;
+                EXPECT_EQ(0, std::memcmp(given.data(), px.data(), n * sizeof(float))) << "pixels changed, failing allocation " << k;
+                EXPECT_TRUE(hist1 == g->hist1 && hist2 == g->hist2) << "history changed, failing allocation " << k;
+                EXPECT_TRUE(mean == g->lastFrameMean && weight == g->exposureWeight) << "statistics changed, failing allocation " << k;
+                EXPECT_EQ(liveBefore, liveAfter) << "a block leaked, failing allocation " << k;
+            }
+            EXPECT_EQ(3, allocationsOfASuccessfulCall) << "the scratch route makes exactly the three plane allocations";
+            EXPECT_EQ(0, std::memcmp(ref.data(), px.data(), n * sizeof(float))) << "the first call that was not made to fail gives the reference pixels";
+            EXPECT_TRUE(t->hist1 == g->hist1 && t->hist2 == g->hist2) << "... and the reference history";
+            xpe_ghost_destroy(handle);
+            xpe_ghost_destroy(twin);
+            xpe_clear_alerts();
+        }
+    }
+}
+
 // The defect correction takes shared ownership of the map and reads it in place: no request in a frame is as
 // large as the map (it used to copy the whole map, under the lock). The frame is 256x256, so a copy of the
 // map is a 65536-byte request, while the clustering bit-sets are 8 KiB.
