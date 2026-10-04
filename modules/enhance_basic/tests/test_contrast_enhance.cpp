@@ -462,6 +462,82 @@ TEST(ContrastEnhance, NarrowFiniteRange_MatchesTheReferenceAndIsNotTreatedAsBrok
     }
 }
 
+// QA-B-207c (Codex #141): the bin must be floor((v - vmin) * 4095 / range) EXACTLY. Multiplying by a precomputed
+// 4095 / range rounds the reciprocal: for 0..123, v = 41 is bin 1365 (41 * 4095 / 123 = 1365 exactly) but 41 * (4095 / 123)
+// evaluates to 1364.9999999999998 and truncates to 1364. A bin one off moves the output only through the clipped-excess
+// spread (every bin gets its share), so these inputs clip hard (clip_limit 1) and the comparison is tight (1e-5 of range).
+static void RunClahe(const std::vector<float>& in, int w, int h, float clip, int tw, int th, std::vector<float>& out) {
+    XpeImageBuffer img = make_f32(static_cast<uint32_t>(w), static_cast<uint32_t>(h), 0.0f);
+    std::copy(in.begin(), in.end(), static_cast<float*>(img.data));
+    XpeClaheParams params{};
+    params.clip_limit = clip;
+    params.tile_width = tw;
+    params.tile_height = th;
+    ASSERT_EQ(XPE_OK, xpe_contrast_enhance(&img, &params));
+    const float* o = static_cast<const float*>(img.data);
+    out.assign(o, o + in.size());
+    free_img(img);
+}
+
+// Codex's case: the 4x4 block [0,123,41,41, 41,41,1,2, 3,4,5,6, 7,8,9,10] four times (8x8, 2x2 tiles, clip 3). The value 41
+// comes out 107.625 with the exact bin (1365) and 99.9375 with the rounded one (1364).
+TEST(ContrastEnhance, BinOnAnExactBoundary_CodexCase_41In0To123) {
+    const float block[16] = {0, 123, 41, 41, 41, 41, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    std::vector<float> in(64);
+    for (int y = 0; y < 8; ++y)
+        for (int x = 0; x < 8; ++x) in[static_cast<size_t>(y) * 8 + x] = block[(y % 4) * 4 + (x % 4)];
+    const std::vector<double> ref = ReferenceClahe(in, 8, 8, 3.0f, 2, 2);
+    std::vector<float> got;
+    RunClahe(in, 8, 8, 3.0f, 2, 2, got);
+    // 107.625 is the exact-rational value (Python fractions, clahe_ref_exact.py case "codex 41 in 0..123"), taken from
+    // Codex's independent calculation as well; the reference function must reproduce it before it is used as a judge.
+    EXPECT_NEAR(107.625, ref[2], 1e-9) << "ReferenceClahe disagrees with the exact-rational value";
+    for (size_t i = 0; i < in.size(); ++i)
+        EXPECT_NEAR(ref[i], got[i], 1e-5 * 123.0) << "pixel " << i << " value " << in[i];
+}
+
+// Every bin boundary: for k = 0..4095 the smallest value of bin k, v = ceil(k * range / 4095), and the value just below it,
+// for several ranges. Integer ranges are exact in float; the narrow float ranges put v on the float grid, where the
+// neighbours are one ulp apart. All of them against ReferenceClahe (exact floor of the multiply-first quotient).
+TEST(ContrastEnhance, BinOnEveryBoundary_MatchesTheExactQuotient) {
+    struct Case { const char* what; double range; };
+    const Case cases[] = {
+        {"range 123", 123.0}, {"range 4095", 4095.0}, {"range 65535", 65535.0}, {"range 1000", 1000.0},
+        {"range 1e-37", 1e-37}, {"range 1.21e-35", 1.21e-35}, {"range 7.3", 7.3},
+    };
+    for (const Case& c : cases) {
+        const float hi = static_cast<float>(c.range);
+        std::vector<float> in;
+        in.push_back(0.0f);
+        in.push_back(hi);
+        const bool integral = (c.range == std::floor(c.range));
+        for (int k = 1; k < 4095; ++k) {
+            // the real boundary k * range / 4095 rounded to float, and its two float neighbours
+            const float b = static_cast<float>(static_cast<double>(k) * static_cast<double>(hi) / 4095.0);
+            in.push_back(std::nextafter(b, 0.0f));
+            in.push_back(b);
+            in.push_back(std::nextafter(b, hi * 2.0f));
+            if (integral) {   // the first integer of bin k and the last one of bin k-1
+                const float first = std::ceil(b);
+                in.push_back(first);
+                in.push_back(first - 1.0f);
+            }
+        }
+        while (in.size() % 128) in.push_back(hi * 0.5f);
+        const int w = 128, h = static_cast<int>(in.size()) / 128;
+        const std::vector<double> ref = ReferenceClahe(in, w, h, 1.0f, 2, 2);
+        std::vector<float> got;
+        RunClahe(in, w, h, 1.0f, 2, 2, got);
+        double worst = 0.0;
+        size_t at = 0;
+        for (size_t i = 0; i < in.size(); ++i) {
+            const double d = std::fabs(static_cast<double>(got[i]) - ref[i]) / static_cast<double>(hi);
+            if (d > worst) { worst = d; at = i; }
+        }
+        EXPECT_LE(worst, 1e-5) << c.what << ": worst " << worst << " of the range at pixel " << at << " (value " << in[at] << ")";
+    }
+}
+
 // Edge case: Flat image should produce no artifacts
 TEST(ContrastEnhance, FlatImage_NoArtifacts) {
     const uint32_t W = 64, H = 64;
