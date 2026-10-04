@@ -1,0 +1,14 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = A237gMaps.DISABLED_GenerateRealMaps
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A237gMaps
+[ RUN      ] A237gMaps.DISABLED_GenerateRealMaps
+[a237g] wrote D:/workspace-github/xpe-pre/build/a237g/maps\offset.xcal and D:/workspace-github/xpe-pre/build/a237g/maps\gain.xcal
+[a237g] wrote D:/workspace-github/xpe-pre/build/a237g/maps_poly\gain.xcal
+[       OK ] A237gMaps.DISABLED_GenerateRealMaps (12115 ms)
+[----------] 1 test from A237gMaps (12115 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (12115 ms total)
+[  PASSED  ] 1 test.

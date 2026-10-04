@@ -26,6 +26,7 @@
 #endif
 #include <windows.h>
 #include <psapi.h>
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -142,8 +143,18 @@ TEST(A237bMem, DISABLED_ShippedPath) {
     // (the dataset README), so the offset map is a small constant with a fractional part and the real structure survives
     // the subtraction; the gain and defect maps stay synthetic. Without the variable everything is synthetic.
     const std::string rawDir = envStr("XPE_A237B_RAW_DIR");
-    ASSERT_EQ(XPE_OK, MakeOffsetXCal(offPath.c_str(), W, H, rawDir.empty() ? 200.0f : 0.3f));
-    ASSERT_EQ(XPE_OK, MakeGainXCal(gainPath.c_str(), W, H, 1.25f));
+    // XPE_A237G_MAPS (QA-A-237g): a directory holding offset.xcal and gain.xcal made by A237gMaps from the CalData_6 files (the
+    // product's own generators run on the real dark and flat frames), so that all three maps -- these two and BPMap.map -- are real.
+    // The frames are then dark + bright (the bright files are already offset-corrected, see the dataset README).
+    const std::string realMaps = envStr("XPE_A237G_MAPS");
+    std::string offUse = offPath, gainUse = gainPath;
+    if (!realMaps.empty()) {
+        offUse = (std::filesystem::path(realMaps) / "offset.xcal").string();
+        gainUse = (std::filesystem::path(realMaps) / "gain.xcal").string();
+    } else {
+        ASSERT_EQ(XPE_OK, MakeOffsetXCal(offPath.c_str(), W, H, rawDir.empty() ? 200.0f : 0.3f));
+        ASSERT_EQ(XPE_OK, MakeGainXCal(gainPath.c_str(), W, H, 1.25f));
+    }
     {
         std::vector<uint8_t> payload(N, 0);
         for (uint32_t k = 0; k < 16; ++k) payload[static_cast<size_t>(150 + 170 * k) * W + (100 + 180 * k)] = 1;
@@ -189,10 +200,20 @@ TEST(A237bMem, DISABLED_ShippedPath) {
 
     checkpoint("A harness (frame buffer, fixtures written)");
 
-    ASSERT_EQ(XPE_OK, xpe_calib_load_offset(offPath.c_str()));
-    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(gainPath.c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset(offUse.c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(gainUse.c_str()));
     ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(defPath.c_str()));
     checkpoint("B maps loaded");
+#ifdef XPE_CACHE_TEST_HOOKS
+    {
+        const CalibSnapshot snap = xpe_calib_snapshot();
+        size_t masked = 0;
+        if (snap.defect_map) for (size_t i = 0; i < N; ++i) masked += (snap.defect_map[i] != 0);
+        std::printf("[a237g] loaded maps: gain_map %s, gain_poly %s, gain-classified pixels %u, defect-map pixels %zu -> union_mask path %s\n",
+                    snap.gain_map ? "yes" : "no", snap.gain_poly_coeffs ? "yes" : "no", static_cast<unsigned>(snap.gain_defect_count), masked,
+                    snap.gain_defect_count > 0 ? "TAKEN" : "not taken");
+    }
+#endif
 
     void* ghost = nullptr;
     // XPE_A237C_BETA (QA-A-237c): a signal-dependence beta so large that the ghost stage cannot prove its frames stay inside the float
@@ -212,7 +233,27 @@ TEST(A237bMem, DISABLED_ShippedPath) {
         g_frame = f;
 #endif
         uint16_t* raw = reinterpret_cast<uint16_t*>(frame.data());
-        if (!rawDir.empty()) {
+        if (!realMaps.empty()) {
+            // dark + bright, streamed in 64 KiB pieces: two whole frames read at once would raise the process's peak commit above the
+            // pipeline's own and hide it (the peak is a watermark for the whole process).
+            char name[24];
+            std::snprintf(name, sizeof(name), "bright%02d.raw", 1 + (f % 6));
+            std::FILE* fd = nullptr;
+            std::FILE* fb = nullptr;
+            const std::string darkPath = (std::filesystem::path(rawDir) / "dark.raw").string();
+            const std::string brightPath = (std::filesystem::path(rawDir) / name).string();
+            ASSERT_EQ(0, fopen_s(&fd, darkPath.c_str(), "rb"));
+            ASSERT_EQ(0, fopen_s(&fb, brightPath.c_str(), "rb"));
+            uint16_t pd[32768], pb[32768];
+            for (size_t at = 0; at < N; at += 32768) {
+                const size_t len = std::min<size_t>(32768, N - at);
+                ASSERT_EQ(len, std::fread(pd, sizeof(uint16_t), len, fd));
+                ASSERT_EQ(len, std::fread(pb, sizeof(uint16_t), len, fb));
+                for (size_t i = 0; i < len; ++i) raw[at + i] = static_cast<uint16_t>(std::min<uint32_t>(65535u, static_cast<uint32_t>(pd[i]) + pb[i]));
+            }
+            std::fclose(fd);
+            std::fclose(fb);
+        } else if (!rawDir.empty()) {
             char name[24];
             std::snprintf(name, sizeof(name), "bright%02d.raw", 1 + (f % 6));
             const std::vector<uint16_t> real = readRaw(std::filesystem::path(rawDir) / name);
@@ -259,6 +300,68 @@ TEST(A237bMem, DISABLED_ShippedPath) {
     xpe_preprocess_shutdown();
     std::error_code ec;
     std::filesystem::remove_all(dir, ec);
+}
+
+// QA-A-237g: writes offset.xcal and gain.xcal into $XPE_A237G_OUT from the CalData_6 files in $XPE_A237B_RAW_DIR with the product's own
+// generators (dark.raw: one dark frame; bright01..06.raw: the six flat frames, no dark reference because they are already offset
+// corrected). A process of its own, so that the generators' transient memory is not in the peak of a measurement run.
+TEST(A237gMaps, DISABLED_GenerateRealMaps) {
+    const std::string outDir = envStr("XPE_A237G_OUT");
+    const std::string rawDir = envStr("XPE_A237B_RAW_DIR");
+    ASSERT_FALSE(outDir.empty());
+    ASSERT_FALSE(rawDir.empty());
+    std::filesystem::create_directories(outDir);
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    const auto frameOf = [](std::vector<uint16_t>& v) {
+        XpeImageBuffer b{};
+        b.data = v.data();
+        b.width = W;
+        b.height = H;
+        b.bitsAllocated = b.bitsStored = 16;
+        b.format = XPE_PIXEL_UINT16;
+        b.dataSize = static_cast<uint32_t>(N * sizeof(uint16_t));
+        return b;
+    };
+    std::vector<uint16_t> dark = readRaw(std::filesystem::path(rawDir) / "dark.raw");
+    ASSERT_FALSE(dark.empty());
+    XpeImageBuffer d = frameOf(dark);
+    const std::string offPath = (std::filesystem::path(outDir) / "offset.xcal").string();
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(&d, 1, 100.0f, 25.0f, offPath.c_str(), nullptr));
+    std::vector<std::vector<uint16_t>> flats;
+    std::vector<XpeImageBuffer> buffers;
+    for (int k = 1; k <= 6; ++k) {
+        char name[24];
+        std::snprintf(name, sizeof(name), "bright%02d.raw", k);
+        flats.push_back(readRaw(std::filesystem::path(rawDir) / name));
+        ASSERT_FALSE(flats.back().empty()) << name;
+    }
+    for (auto& v : flats) buffers.push_back(frameOf(v));
+    const std::string gainPath = (std::filesystem::path(outDir) / "gain.xcal").string();
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_gain(buffers.data(), 6, nullptr, gainPath.c_str(), nullptr));
+    std::printf("[a237g] wrote %s and %s\n", offPath.c_str(), gainPath.c_str());
+    // XPE_A237G_POLY_OUT: a polynomial gain (degree 2) fitted over the six flat levels, one gain map made of each level on its own
+    // (the doses are not in the dataset, the README says so: they are 1000..6000 here, which fixes the fit, not the memory it takes).
+    const std::string polyDir = envStr("XPE_A237G_POLY_OUT");
+    if (!polyDir.empty()) {
+        std::filesystem::create_directories(polyDir);
+        std::vector<std::string> levelPaths;
+        std::vector<double> doses;
+        for (int k = 0; k < 6; ++k) {
+            const std::string lp = (std::filesystem::path(polyDir) / ("level" + std::to_string(k + 1) + ".xcal")).string();
+            ASSERT_EQ(XPE_OK, xpe_calib_generate_gain(&buffers[static_cast<size_t>(k)], 1, nullptr, lp.c_str(), nullptr)) << lp;
+            levelPaths.push_back(lp);
+            doses.push_back(1000.0 * (k + 1));
+        }
+        std::vector<const char*> pointers;
+        for (const std::string& lp : levelPaths) pointers.push_back(lp.c_str());
+        const std::string polyPath = (std::filesystem::path(polyDir) / "gain.xcal").string();
+        ASSERT_EQ(XPE_OK, xpe_calib_generate_gain_polynomial(pointers.data(), doses.data(), 6, 2, polyPath.c_str()));
+        std::filesystem::copy_file(offPath, std::filesystem::path(polyDir) / "offset.xcal", std::filesystem::copy_options::overwrite_existing);
+        std::printf("[a237g] wrote %s\n", polyPath.c_str());
+    }
+    xpe_clear_alerts();
+    xpe_preprocess_shutdown();
 }
 
 #ifdef XPE_CACHE_TEST_HOOKS
