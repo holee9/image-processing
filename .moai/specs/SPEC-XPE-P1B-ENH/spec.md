@@ -279,7 +279,9 @@ target_compile_definitions(xpe_enhance_basic PRIVATE XPE_DLL_EXPORT)
 
 **REQ-ENH-009**: IF `params` is NULL, THEN the system SHALL return `XPE_ERR_INVALID_INPUT` without modifying the image.
 
-**REQ-ENH-010**: IF `sigma_space` or `sigma_range` is non-positive (bilateral mode), THEN the system SHALL return `XPE_ERR_INVALID_INPUT`.
+**REQ-ENH-010**: IF `sigma_space` or `sigma_range` is non-positive, or `sigma_space` is greater than 7.5 (bilateral mode), THEN the system SHALL return `XPE_ERR_INVALID_INPUT`.
+
+> **상한 7.5 의 근거 (2026-10-04, 사용자 결정, 변경 기록 §11·§12)**: 구현의 필터 반경 상한이 15 이고, 7.5 는 2σ 범위가 반경 15 안에 온전히 들어가는 최대값이다. 7.5 초과는 가중치는 σ 를 따르지만 반경이 2σ 보다 짧게 잘려 요구한 가우시안 모양이 아니므로 거부한다. 구현 post `QA-B-210` E7·E7b, 앱 한도 gui `GUI-C-230`·`230b`.
 
 **REQ-ENH-011**: WHEN `xpe_noise_estimate_sigma` is called with a valid float32 image, the system SHALL compute the noise standard deviation via `sigma = 1.4826 * MAD(pixel_values)` and write the result to `outSigma`.
 
