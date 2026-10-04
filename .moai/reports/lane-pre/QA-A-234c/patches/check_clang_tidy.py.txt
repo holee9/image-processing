@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+"""clang-tidy baseline gate (QA-A-234, QA-A-234c, #253). Draft for tools/ci/check_clang_tidy.py.
+
+Runs clang-tidy over modules/<module>/src/*.cpp with the module's own .clang-tidy and compares the findings with a
+baseline file. A finding is identified by (check, file, normalized message, text of the flagged source line) -- not by
+line number, which moves with every edit, and not by a per-file count, which cannot tell "one fixed, another made
+elsewhere" from "nothing changed". Each identity is counted (the same line text can occur more than once in a file).
+An identity above its baseline count fails the run; one below it is reported so the baseline can be tightened.
+
+A tool that did not really run is never a pass (QA-A-234c):
+  * a non-zero exit of any clang-tidy run fails (warnings alone exit 0; a parse or crash does not),
+  * "error:" or "Error while processing" in its stdout or stderr fails,
+  * an empty compile database, or a source file with no command in it, fails,
+  * no sources, or a clang-tidy that cannot be found, fails.
+
+usage: check_clang_tidy.py <module> <build-dir> <baseline-file> [--write-baseline]
+The build dir must be configured with Ninja; the compile database is taken from `ninja -t compdb`.
+"""
+import collections
+import glob
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+
+EXTRA = ['--extra-arg=-D_CRT_USE_BUILTIN_OFFSETOF']  # MSVC offsetof is not a constant expression for clang
+PAT = re.compile(r'^(?P<path>.+?):(?P<line>\d+):\d+: warning: (?P<msg>.*?) \[(?P<check>[\w\-.]+)\]\s*$', re.M)
+FAILED = re.compile(r'(: error: |Error while processing)')
+
+
+def fail(msg):
+    sys.exit('check_clang_tidy: ' + msg)
+
+
+def find_tidy():
+    for cand in (os.environ.get('CLANG_TIDY'), 'clang-tidy'):
+        if not cand:
+            continue
+        try:
+            if subprocess.run([cand, '--version'], capture_output=True).returncode == 0:
+                return cand
+        except (FileNotFoundError, OSError):
+            pass
+    vs = os.environ.get('VCINSTALLDIR', '')
+    cand = os.path.join(vs, 'Tools', 'Llvm', 'x64', 'bin', 'clang-tidy.exe')
+    if vs and os.path.exists(cand):
+        return cand
+    fail('clang-tidy was not found (not on PATH, CLANG_TIDY unset, none under VCINSTALLDIR\\Tools\\Llvm): '
+         'this runner image has no clang-tidy')
+
+
+def positive_control(tidy):
+    """A tool that exits 0 and prints nothing would pass a module whose baseline is empty. So the tool is first run on a
+    small file with a finding that is certain (an empty catch), and must report it."""
+    d = tempfile.mkdtemp()
+    src = os.path.join(d, 'control.cpp')
+    with open(src, 'w', encoding='utf-8') as f:
+        f.write('int control() {\n    try {\n        return 1;\n    } catch (...) {\n    }\n    return 0;\n}\n')
+    p = subprocess.run([tidy, '--quiet', '--checks=-*,bugprone-empty-catch', src, '--', '-std=c++17'],
+                       capture_output=True, text=True, encoding='utf-8', errors='replace')
+    if 'bugprone-empty-catch' not in p.stdout:
+        fail('the positive control failed: clang-tidy did not report the empty catch planted in a scratch file, '
+             'so its silence on the modules would mean nothing\n' + (p.stdout + p.stderr)[:1000])
+
+
+def norm(text):
+    return re.sub(r'\s+', ' ', text).strip().replace('\t', ' ')
+
+
+def source_line(path, line):
+    try:
+        with open(path, encoding='utf-8', errors='replace') as f:
+            return norm(f.read().split('\n')[line - 1])
+    except (OSError, IndexError):
+        return '?'
+
+
+def main():
+    module, build, baseline_path = sys.argv[1:4]
+    write = '--write-baseline' in sys.argv
+    tidy = find_tidy()
+    positive_control(tidy)
+    db = tempfile.mkdtemp()
+    dbfile = os.path.join(db, 'compile_commands.json')
+    with open(dbfile, 'w', encoding='utf-8') as f:
+        if subprocess.run(['ninja', '-C', build, '-t', 'compdb'], stdout=f).returncode != 0:
+            fail('ninja -t compdb failed: the build directory is not a configured Ninja build')
+    with open(dbfile, encoding='utf-8') as f:
+        entries = json.load(f)
+    if not entries:
+        fail('the compile database is empty: nothing would be analyzed')
+    known = {os.path.normpath(e['file'] if os.path.isabs(e['file']) else os.path.join(e['directory'], e['file'])).lower()
+             for e in entries}
+    files = sorted(glob.glob(f'modules/{module}/src/*.cpp'))
+    if not files:
+        fail(f'no sources under modules/{module}/src: a run over nothing is not a pass')
+    seen = collections.Counter()
+    for src in files:
+        if os.path.normpath(os.path.abspath(src)).lower() not in known:
+            fail(f'{src} has no command in the compile database: it would not be analyzed')
+        p = subprocess.run([tidy, '-p', db, '--quiet', *EXTRA, src], capture_output=True, text=True,
+                           encoding='utf-8', errors='replace')
+        out = p.stdout + p.stderr
+        if p.returncode != 0:
+            fail(f'clang-tidy exited {p.returncode} on {src}: the findings would not be complete\n' + out[:2000])
+        if FAILED.search(out):
+            fail(f'clang-tidy reported an error while analyzing {src}: the findings would not be complete\n' + out[:2000])
+        for m in PAT.finditer(p.stdout):
+            if '/modules/' not in m['path'].replace(chr(92), '/').lower():
+                continue  # a finding inside a toolchain or third-party header is not this module's
+            key = (m['check'], os.path.basename(m['path']).lower(), norm(m['msg']), source_line(m['path'], int(m['line'])))
+            seen[key] += 1
+    lines = sorted('\t'.join((*k, str(n))) for k, n in seen.items())
+    if write:
+        with open(baseline_path, 'w', encoding='utf-8', newline='\n') as f:
+            f.write('\n'.join(lines) + ('\n' if lines else ''))
+        print(f'wrote {len(lines)} baseline lines, {sum(seen.values())} findings over {len(files)} files')
+        return
+    base = {}
+    with open(baseline_path, encoding='utf-8') as f:
+        for ln in f.read().split('\n'):
+            if ln.strip():
+                *k, n = ln.split('\t')
+                base[tuple(k)] = int(n)
+    bad = [(k, n, base.get(k, 0)) for k, n in sorted(seen.items()) if n > base.get(k, 0)]
+    better = [(k, base[k], seen.get(k, 0)) for k in sorted(base) if seen.get(k, 0) < base[k]]
+    print(f'{sum(seen.values())} findings over {len(files)} files; baseline {sum(base.values())}')
+    for k, was, now in better:
+        print(f'  below baseline (tighten it): {k[0]} {k[1]} | {k[3][:60]} | {was} -> {now}')
+    for k, n, b in bad:
+        print(f'  NEW: {k[0]} {k[1]} | {k[2][:70]} | {k[3][:60]} | {n} (baseline {b})')
+    sys.exit(1 if bad else 0)
+
+
+if __name__ == '__main__':
+    main()

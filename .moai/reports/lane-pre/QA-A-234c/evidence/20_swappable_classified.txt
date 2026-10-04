@@ -1,0 +1,28 @@
+kind | file | function | count | message
+internal | calibration_cache.cpp | ? | 1 | 2 adjacent parameters of 'put_and_get' of similar type ('XpeImageBuffer *') are easily swa
+internal | defect_correct.cpp | analyzeCluster | 1 | 2 adjacent parameters of 'analyzeCluster' of similar type ('uint32_t') are easily swapped
+internal | ghost_correct.cpp | ? | 1 | 2 adjacent parameters of 'ghost_tier3' of convertible types are easily swapped by mistake
+internal | ghost_correct.cpp | xpe_ghost_is_calibrated | 1 | 2 adjacent parameters of 'ghost_tier1' of convertible types are easily swapped by mistake
+internal | ghost_correct.cpp | xpe_ghost_is_calibrated | 1 | 2 adjacent parameters of 'ghost_tier1' of similar type ('float') are easily swapped by mis
+internal | ghost_correct.cpp | xpe_ghost_is_calibrated | 1 | 2 adjacent parameters of 'ghost_tier2' of convertible types are easily swapped by mistake
+internal | ghost_correct.cpp | xpe_ghost_is_calibrated | 1 | 3 adjacent parameters of 'ghost_tier2' of similar type ('float') are easily swapped by mis
+internal | ghost_correct.cpp | xpe_ghost_is_calibrated | 1 | 3 adjacent parameters of 'ghost_tier3' of similar type ('float') are easily swapped by mis
+internal | pipeline.cpp | ? | 1 | 2 adjacent parameters of 'frame_bytes' of convertible types are easily swapped by mistake
+internal | pipeline.cpp | pipeline_ex_impl | 1 | 2 adjacent parameters of 'pipeline_ex_impl' of convertible types are easily swapped by mis
+internal | rle_codec.cpp | rle_decode | 1 | 2 adjacent parameters of 'rle_decode' of similar type ('size_t') are easily swapped by mis
+internal | xcal_reader.cpp | read_compression_meta | 1 | 3 adjacent parameters of 'read_compression_meta' of convertible types are easily swapped b
+internal | xcal_reader.cpp | read_xcal_file | 1 | 2 adjacent parameters of 'read_xcal_file' of similar type ('std::vector<uint8_t> &') are e
+internal | xpe_calib_generate_gain.cpp | fit_polynomial_ls | 1 | 2 adjacent parameters of 'fit_polynomial_ls' of similar type ('const double *') are easily
+internal | xpe_calib_generate_gain.cpp | fit_polynomial_ls | 1 | 2 adjacent parameters of 'validate_monotonicity' of convertible types are easily swapped b
+internal | xpe_calib_generate_nonlin_lut.cpp | generate_nonlin_lut_impl | 1 | 2 adjacent parameters of 'generate_nonlin_lut_impl' of similar type ('const char *') are e
+internal | xpe_calib_generate_offset_methods.cpp | percentile_index | 1 | 2 adjacent parameters of 'percentile_index' of convertible types are easily swapped by mis
+internal | xpe_defect_gen.cpp | compute_frame_mean | 1 | 2 adjacent parameters of 'compute_frame_mean' of similar type ('uint32_t') are easily swap
+internal | xpe_defect_gen.cpp | extract_window_reflect | 1 | 2 adjacent parameters of 'extract_window_reflect' of similar type ('uint32_t') are easily
+internal | xpe_defect_gen.cpp | extract_window_reflect | 1 | 2 adjacent parameters of 'extract_window_reflect' of similar type ('uint32_t') are easily
+internal | xpe_defect_gen.cpp | merge_bpm | 1 | 2 adjacent parameters of 'merge_bpm' of similar type ('const std::vector<uint8_t> &') are
+internal | xpe_verify_metrics.cpp | ? | 1 | 3 adjacent parameters of 'compute_neighbor_mean' of similar type ('uint32_t') are easily s
+public C ABI | xpe_calib_generate_gain.cpp | xpe_calib_generate_gain | 1 | 2 adjacent parameters of 'xpe_calib_generate_gain' of similar type ('const char *') are ea
+public C ABI | xpe_calib_generate_offset.cpp | xpe_calib_generate_offset | 1 | 2 adjacent parameters of 'xpe_calib_generate_offset' of convertible types are easily swapp
+public C ABI | xpe_calib_generate_offset.cpp | xpe_calib_generate_offset | 1 | 2 adjacent parameters of 'xpe_calib_generate_offset' of similar type ('const char *') are
+
+swappable total 25: public C ABI 3, internal 22

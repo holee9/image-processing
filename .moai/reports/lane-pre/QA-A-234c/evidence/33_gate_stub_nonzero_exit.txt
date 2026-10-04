@@ -1,0 +1,6 @@
+'vswhere.exe'��(��) ���� �Ǵ� �ܺ� ����, ������ �� �ִ� ���α׷�, �Ǵ�
+��ġ ������ �ƴմϴ�.
+check_clang_tidy: the positive control failed: clang-tidy did not report the empty catch planted in a scratch file, so its silence on the modules would mean nothing
+clang-tidy: internal error while analyzing
+
+GATE_EXIT=1

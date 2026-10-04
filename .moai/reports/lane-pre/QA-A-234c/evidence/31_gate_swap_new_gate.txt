@@ -1,0 +1,6 @@
+'vswhere.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+배치 파일이 아닙니다.
+35 findings over 33 files; baseline 35
+  below baseline (tighten it): bugprone-narrowing-conversions xpe_verify_metrics.cpp | double p = static_cast<double>(count) / total; | 1 -> 0
+  NEW: bugprone-narrowing-conversions xpe_verify_metrics.cpp | narrowing conversion from 'size_t' (aka 'unsigned long long') to 'doub | static double a234c_probe(size_t n) { double d = n; return d | 1 (baseline 0)
+GATE_EXIT=1

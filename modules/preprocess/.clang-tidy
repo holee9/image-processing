@@ -1,6 +1,7 @@
-# QA-A-234 (#253): clang-tidy configuration for modules/preprocess. Findings are counted per file by CI against a baseline.
-Checks: '-*,bugprone-*,clang-analyzer-*,performance-*,-bugprone-easily-swappable-parameters'
-# easily-swappable-parameters is off: the public C ABI fixes parameter order such as (width, height); it cannot be reordered.
+# QA-A-234 (#253): clang-tidy configuration for modules/preprocess. CI compares the findings with a baseline of (check, file, message, flagged line) and fails on a new one.
+Checks: '-*,bugprone-*,clang-analyzer-*,performance-*'
+# bugprone-easily-swappable-parameters stays ON (QA-A-234c): switching it off hid every future argument-order slip in
+# internal functions. The findings that exist today are in the CI baseline; a new one fails the gate.
 CheckOptions:
   # A catch (...) that swallows an exception carries a comment with this marker and the reason.
   - key: bugprone-empty-catch.IgnoreCatchWithKeywords
