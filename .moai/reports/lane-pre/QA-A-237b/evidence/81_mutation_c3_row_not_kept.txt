@@ -1,0 +1,68 @@
+Note: Google Test filter = OutputUnchanged237b.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 17448293165191567758
+  value
+    Which is: 4616257164088587139
+pipeline/default/203x157/tier3: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 11362483066415851924
+  value
+    Which is: 8559417080988147918
+pipeline/default/256x192/tier3: the output changed
+
+[  FAILED  ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize (70 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryBypassCombinations
+[       OK ] OutputUnchanged237b.PipelineEntryBypassCombinations (101 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 1026814860673634867
+  value
+    Which is: 2930704688646296840
+pipeline/float_input/tier3: the output changed
+
+[  FAILED  ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer (30 ms)
+[ RUN      ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 16357834612308352878
+  value
+    Which is: 13588606591399409758
+ghost/sequence/203x157/tier3: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 17394170511056623856
+  value
+    Which is: 13543608921030336843
+ghost/sequence/256x192/tier3: the output changed
+
+[  FAILED  ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes (93 ms)
+[ RUN      ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 15189306735584224356
+  value
+    Which is: 7463525952749198397
+ghost/overflow/tier3: the output changed
+
+[  FAILED  ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere (25 ms)
+[----------] 5 tests from OutputUnchanged237b (321 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (321 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+[  FAILED  ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+[  FAILED  ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes
+[  FAILED  ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere
+
+ 4 FAILED TESTS

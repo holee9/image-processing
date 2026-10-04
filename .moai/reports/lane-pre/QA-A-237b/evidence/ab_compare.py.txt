@@ -1,0 +1,55 @@
+# QA-A-237b: A/B comparison of two builds of the shipped path, ALTERNATING runs (AB, BA, AB, ...), each in a fresh process.
+# usage: python ab_compare.py <dirA> <dirB> <pairs> [tier=1] [frames=3] [raw_dir] [exe=xpe_preprocess_tests.exe]
+# For every run it reads the probe's output (test_zz_a237b_mem.cpp): module memory (private after the ghost handle exists,
+# peak commit) relative to the harness baseline A, the per-frame times and the per-frame output digests.
+# Summary: memory of both builds, whether all digests are identical between builds, and the frame time as the minimum and the
+# median over warm frames (frame >= 1) of all runs of a build. Times are this machine in this session only.
+import os, re, statistics, subprocess, sys
+
+dirA, dirB, pairs = sys.argv[1], sys.argv[2], int(sys.argv[3])
+tier = sys.argv[4] if len(sys.argv) > 4 else "1"
+frames = sys.argv[5] if len(sys.argv) > 5 else "3"
+raw = sys.argv[6] if len(sys.argv) > 6 and sys.argv[6] != "-" else ""
+exe = sys.argv[7] if len(sys.argv) > 7 else "xpe_preprocess_tests.exe"
+
+def run(d):
+    env = dict(os.environ, XPE_A237B_TIER=tier, XPE_A237B_FRAMES=frames)
+    if raw: env["XPE_A237B_RAW_DIR"] = raw
+    p = subprocess.run([os.path.join(d, exe), "--gtest_also_run_disabled_tests", "--gtest_filter=A237bMem.DISABLED_ShippedPath"],
+                       capture_output=True, env=env, text=True, errors="replace")
+    out = p.stdout
+    chk = {}
+    peak = 0.0
+    for m in re.finditer(r"\[a237b\] chk (.+?)\s+private\s+([\d.]+) MiB\s+peakCommit\s+([\d.]+) MiB", out):
+        chk[m.group(1).strip()] = float(m.group(2))
+        peak = max(peak, float(m.group(3)))
+    base = chk["A harness (frame buffer, fixtures written)"]
+    steady = chk["C ghost handle created"] - base
+    times = [float(m.group(2)) for m in re.finditer(r"\[a237b\] frame (\d+) total ([\d.]+) ms", out)]
+    digests = re.findall(r"output digest (\w+)", out)
+    ok = ("[  PASSED  ] 1 test" in out) and p.returncode == 0
+    return dict(ok=ok, steady=steady, peak=peak - base, times=times, digests=digests)
+
+res = {"A": [], "B": []}
+for i in range(pairs):
+    order = [("A", dirA), ("B", dirB)] if i % 2 == 0 else [("B", dirB), ("A", dirA)]
+    for tag, d in order:
+        r = run(d)
+        res[tag].append(r)
+        print(f"pair {i} {tag}: ok={r['ok']} steady {r['steady']:.1f} MiB peak {r['peak']:.1f} MiB times {['%.1f' % t for t in r['times']]} ms")
+
+def summary(tag):
+    rs = res[tag]
+    warm = [t for r in rs for t in r["times"][1:]]
+    allt = [t for r in rs for t in r["times"]]
+    return dict(steady=sorted({round(r["steady"], 1) for r in rs}), peak=sorted({round(r["peak"], 1) for r in rs}),
+                tmin=min(allt), tmed=statistics.median(warm), n=len(warm), allok=all(r["ok"] for r in rs))
+
+sa, sb = summary("A"), summary("B")
+print(f"\nconfig: tier {tier}, frames {frames}, raw_dir {raw or 'synthetic'}, pairs {pairs}, exe {exe}")
+for name, s in (("A", sa), ("B", sb)):
+    print(f"{name}: memory steady {s['steady']} MiB, peak {s['peak']} MiB (module, over runs); frame time min {s['tmin']:.1f} ms, "
+          f"median of {s['n']} warm frames {s['tmed']:.1f} ms; all runs ok={s['allok']}")
+dig_equal = all(ra["digests"] == res["A"][0]["digests"] for ra in res["A"] + res["B"])
+print(f"output digests identical across ALL runs of both builds: {dig_equal}  ({len(res['A'][0]['digests'])} frames per run)")
+print(f"B/A: peak {sb['peak'][-1] / sa['peak'][-1]:.3f}, time min {sb['tmin'] / sa['tmin']:.3f}, time median {sb['tmed'] / sa['tmed']:.3f}")

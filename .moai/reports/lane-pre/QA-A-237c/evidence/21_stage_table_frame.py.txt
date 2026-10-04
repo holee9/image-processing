@@ -1,0 +1,25 @@
+# QA-A-237c M1: the per-stage table of one frame of the hook run (QA-A-237b's script, with the frame number as an argument).
+# usage: python 21_stage_table_frame.py <probe output> <frame>
+# "private" is what the module holds after the stage, "peak" the highest commit reached up to and including the stage (both minus the
+# harness baseline A), MiB; "peak raised by" is the increase of the peak over the previous checkpoint.
+import re, sys
+f, frame = sys.argv[1], sys.argv[2]
+rows = []
+base = None
+for l in open(f, encoding='utf-8', errors='replace'):
+    m = re.match(r"\[a237b\] chk (frame %s .+?)\s+private\s+([\d.]+) MiB\s+peakCommit\s+([\d.]+) MiB" % frame, l)
+    if m: rows.append((m.group(1).strip(), float(m.group(2)), float(m.group(3))))
+    m = re.match(r"\[a237b\] chk (A harness.*?)\s+private\s+([\d.]+) MiB", l)
+    if m: base = float(m.group(2))
+print(f"harness baseline A = {base:.1f} MiB; module = private - A; frame {frame}")
+print(f"{'checkpoint':34s} {'module private':>14s} {'peak commit - A':>15s} {'peak raised by':>14s}")
+prev_peak = None
+for name, priv, peak in rows:
+    if name.endswith("before"):
+        prev_peak = peak
+        print(f"{name:34s} {priv-base:14.1f} {peak-base:15.1f} {'':>14s}")
+        continue
+    if name.endswith(" after"):
+        continue
+    print(f"{name:34s} {priv-base:14.1f} {peak-base:15.1f} {peak-prev_peak:14.1f}")
+    prev_peak = peak

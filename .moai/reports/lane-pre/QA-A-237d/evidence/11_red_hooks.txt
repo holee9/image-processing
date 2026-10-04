@@ -1,0 +1,54 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OutputUnchanged237b.Ghost*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes
+[       OK ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes (96 ms)
+[ RUN      ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere
+[       OK ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere (25 ms)
+[ RUN      ] OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(454): error: Value of: r.historyKept
+  Actual: false
+Expected: true
+the history of the earlier frame was erased or changed by a failed frame
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(470): error: Value of: k.pixelsKept && k.historyKept && k.statsKept
+  Actual: false
+Expected: true
+{"tier":"3","alpha1":0.1,"tau1":1,"alpha2":0,"tau2":1,"nlcscBeta":1} 40x30 1.0000000031710769e-30 -> 1.0000000150474662e+30: state not preserved on a failed frame
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(470): error: Value of: k.pixelsKept && k.historyKept && k.statsKept
+  Actual: false
+Expected: true
+{"tier":"3","alpha1":0.1,"tau1":1,"alpha2":0,"tau2":1,"nlcscBeta":1} 37x29 9.9999997473787516e-06 -> 4.9999997810117631e+24: state not preserved on a failed frame
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(470): error: Value of: k.pixelsKept && k.historyKept && k.statsKept
+  Actual: false
+Expected: true
+{"tier":"3","alpha1":0.1,"tau1":1,"alpha2":0.01,"tau2":20,"nlcscBeta":1000} 40x30 1.000000013351432e-10 -> 1.0000000138484279e+24: state not preserved on a failed frame
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(470): error: Value of: k.pixelsKept && k.historyKept && k.statsKept
+  Actual: false
+Expected: true
+{"tier":"3","alpha1":0.1,"tau1":1,"alpha2":0.01,"tau2":20,"nlcscBeta":0.1} 40x30 9.9999996826552254e-21 -> 9.9999998848415475e+26: state not preserved on a failed frame
+
+[  FAILED  ] OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory (0 ms)
+[ RUN      ] OutputUnchanged237b.GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteFails
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(695): error: Expected equality of these values:
+  0
+  std::memcmp(fa.data(), fb.data(), n * sizeof(float))
+    Which is: -1
+huge_beta tier 3 2x5 frame 1: pixels differ
+
+[  FAILED  ] OutputUnchanged237b.GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteFails (24 ms)
+[----------] 4 tests from OutputUnchanged237b (146 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (147 ms total)
+[  PASSED  ] 2 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory
+[  FAILED  ] OutputUnchanged237b.GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteFails
+
+ 2 FAILED TESTS

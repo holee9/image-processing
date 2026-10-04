@@ -1,0 +1,111 @@
+Note: Google Test filter = OutputUnchanged237b.*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 6428790992294187841
+  value
+    Which is: 10669050617592283231
+pipeline/default/203x157/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 2195118020900084872
+  value
+    Which is: 7088872440569725501
+pipeline/default/203x157/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 17448293165191567758
+  value
+    Which is: 15450636588687183571
+pipeline/default/203x157/tier3: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 12059687206307471431
+  value
+    Which is: 13071382959427491747
+pipeline/default/256x192/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 8632090940582685306
+  value
+    Which is: 18242855836505624589
+pipeline/default/256x192/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 11362483066415851924
+  value
+    Which is: 13033998009161053471
+pipeline/default/256x192/tier3: the output changed
+
+[  FAILED  ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize (77 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryBypassCombinations
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 3616629493748785938
+  value
+    Which is: 2881341802661587833
+pipeline/combo/temp_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 7069256091660319338
+  value
+    Which is: 13405431326483321797
+pipeline/combo/offset_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 12946903954741450866
+  value
+    Which is: 17263492952275699033
+pipeline/combo/nonlin_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 468620020167163146
+  value
+    Which is: 11156009968910103973
+pipeline/combo/temp_offset_nonlin_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 16928988570323552244
+  value
+    Which is: 18153565279853199311
+pipeline/combo/defect_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 9833186168311483070
+  value
+    Which is: 11687146781377586535
+pipeline/combo/ghost_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 8425123607288485262
+  value
+    Which is: 11394863718903832688
+pipeline/combo/binning2: the output changed
+
+[  FAILED  ] OutputUnchanged237b.PipelineEntryBypassCombinations (117 ms)
+[ RUN      ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes
+[       OK ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes (89 ms)
+[----------] 3 tests from OutputUnchanged237b (283 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (284 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+[  FAILED  ] OutputUnchanged237b.PipelineEntryBypassCombinations
+
+ 2 FAILED TESTS

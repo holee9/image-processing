@@ -1,0 +1,14 @@
+# QA-A-237b M2: the per-stage tables of the four builds side by side. For every stage boundary of frame 0: "private" is what the
+# module holds after the stage, "peak" is the highest commit reached up to and including the stage (both minus the harness baseline), MiB.
+import re
+builds = [("before", "63_stage_table_before.txt"), ("c1 reciprocal", "63_stage_table_c1.txt"),
+          ("c2 stage buffers", "70_stage_table_c2.txt"), ("c3 ghost planes", "85_stage_table_c3.txt")]
+rows = {}
+for name, f in builds:
+    for l in open(f, encoding="utf-8"):
+        m = re.match(r"frame 0 after (\S+(?: copy)?)\s+([\d.]+)\s+([\d.-]+)\s+([\d.]+)\s+([\d.-]+)", l)
+        if m: rows.setdefault(m.group(1), {})[name] = (float(m.group(2)), float(m.group(4)))
+print(f"{'after stage':14s}" + "".join(f"| {n:^21s}" for n, _ in builds))
+print(f"{'':14s}" + "".join(f"| {'private':>9s} {'peak':>10s}" for _ in builds))
+for stage in ["readout", "temp", "offset", "nonlinearity", "gain", "binning", "defect", "ghost", "final copy"]:
+    print(f"{stage:14s}" + "".join(f"| {rows[stage][n][0]:9.1f} {rows[stage][n][1]:10.1f}" for n, _ in builds))

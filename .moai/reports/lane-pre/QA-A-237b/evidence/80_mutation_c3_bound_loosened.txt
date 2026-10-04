@@ -1,0 +1,54 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OutputUnchanged237b.*
+[==========] Running 8 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 8 tests from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+[       OK ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize (81 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryBypassCombinations
+[       OK ] OutputUnchanged237b.PipelineEntryBypassCombinations (98 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+[       OK ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer (31 ms)
+[ RUN      ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes
+[       OK ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes (91 ms)
+[ RUN      ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(387): error: Value of: hist1 == gh->hist1 && hist2 == gh->hist2
+  Actual: false
+Expected: true
+tier 1 frame 2: history changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(387): error: Value of: hist1 == gh->hist1 && hist2 == gh->hist2
+  Actual: false
+Expected: true
+tier 1 frame 5: history changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 15997994958433552412
+  value
+    Which is: 10494808201995779409
+ghost/overflow/tier1: the output changed
+
+[  FAILED  ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere (27 ms)
+[ RUN      ] OutputUnchanged237b.GainScalarMapOutputAndRefusedMaps
+[       OK ] OutputUnchanged237b.GainScalarMapOutputAndRefusedMaps (2 ms)
+[ RUN      ] OutputUnchanged237b.GainPolynomialMapOutputAndClassifiedPixels
+[       OK ] OutputUnchanged237b.GainPolynomialMapOutputAndClassifiedPixels (0 ms)
+[ RUN      ] OutputUnchanged237b.GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteFails
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(625): error: Expected equality of these values:
+  0
+  std::memcmp(fa.data(), fb.data(), n * sizeof(float))
+    Which is: -1
+stable_lag tier 1 40x30 frame 55: pixels differ
+
+[  FAILED  ] OutputUnchanged237b.GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteFails (1 ms)
+[----------] 8 tests from OutputUnchanged237b (342 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 1 test suite ran. (342 ms total)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere
+[  FAILED  ] OutputUnchanged237b.GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteFails
+
+ 2 FAILED TESTS

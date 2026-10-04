@@ -64,17 +64,25 @@ struct GhostCorrectorHandle {
     std::vector<float> hist1; // fast IRF accumulator
     std::vector<float> hist2; // slow IRF accumulator
 
-    // QA-A-202c (#233): where a frame's NEW history is written. A frame reads hist1/hist2 and writes next1/next2;
-    // only when the whole frame succeeded are the two pairs swapped, so a frame that fails half way leaves the
-    // history the next frame sees exactly as it was. Allocated once with the handle (not per frame); it
-    // doubles the handle's memory (4 float planes instead of 2).
-    std::vector<float> next1;
-    std::vector<float> next2;
+    // QA-A-237b (#245, SRS-CALIB-PERF-002): the handle keeps only the two history planes (72.0 MiB at 3072x3072).
+    // It used to keep three more float planes for the whole life of the handle -- next1/next2 (QA-A-202c: where a
+    // frame's NEW history was written, swapped in only when the whole frame succeeded) and backup (QA-A-217: the frame
+    // as it came in, so a frame that failed half way could put its pixels back) -- which were read and written only
+    // inside one xpe_ghost_correct call. What they guaranteed -- a frame that fails leaves the pixels, the history and
+    // the state as they were -- still holds:
+    //   * a frame whose arithmetic provably cannot leave the float range (an upper bound on every intermediate value,
+    //     computed from the frame's largest value, the bounds below and the coefficients) is processed IN PLACE: it
+    //     cannot fail, so there is nothing to undo;
+    //   * any other frame takes the old route with scratch planes allocated for that call alone.
+    // histBound1/2: upper bounds of |hist1| and |hist2|, kept as the recurrence bound' = (decay * bound + max|frame|),
+    // never read from the planes; 0 for an empty history (create, reset).
+    double histBound1{0.0};
+    double histBound2{0.0};
 
-    // QA-A-217 (#233): the frame as it came in, kept for the duration of one xpe_ghost_correct call so that a frame
-    // that fails after pixels were already corrected can put them back (REQ-P1A-032: on failure the output is left
-    // unmodified). Allocated once with the handle; a fifth float plane.
-    std::vector<float> backup;
+    // Tier 3 only: the incoming frame's rows y-1 and y, saved before an in-place frame overwrites them (the 3x3 mean
+    // reads the frame as it came in, QA-A-218b). Two rows, allocated with the handle.
+    std::vector<float> rowA;
+    std::vector<float> rowB;
 
     double lastFrameMean{0.0}; // mean signal level for exposure weighting
 
@@ -256,6 +264,13 @@ extern unsigned long xpe_config_parse_calls;
  *  XPE_CACHE_TEST_HOOKS; the shipped library has neither this declaration nor a use of it (the constants stay constants). */
 struct XpeGhostTier3Mix { float keep; float local; };
 extern XpeGhostTier3Mix xpe_ghost_tier3_mix;
+
+/** Test-only (QA-A-237b, #245): `xpe_ghost_force_slow_path` makes every frame take the route with scratch planes (the
+ *  route a frame takes when its arithmetic cannot be proven to stay in the float range); `xpe_ghost_in_place_frames`
+ *  counts the frames that were processed in place. Together they let a test run the same frames both ways and check
+ *  that the in-place route is never taken for a frame the other route fails. */
+extern bool xpe_ghost_force_slow_path;
+extern unsigned long xpe_ghost_in_place_frames;
 #endif
 
 /**

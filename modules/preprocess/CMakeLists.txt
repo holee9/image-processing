@@ -483,6 +483,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_ghost_failed_frame.cpp # QA-A-202c (#233) a failed ghost frame changes nothing the next frame can see
         tests/test_zz_a186_probe.cpp         # QA-A-186 (#220) probe: FlatResidualPct mean vs median (DISABLED_)
         tests/test_zz_a187_probe.cpp         # QA-A-187 (#218) probe: xpe_verify_pipeline SNR median vs mean (DISABLED_)
+        tests/test_zz_a237b_mem.cpp          # QA-A-237b (#245) probe: memory/time/digest of the shipped pipeline_ex path (DISABLED_)
+        tests/test_output_unchanged_237b.cpp  # QA-A-237b (#245): the memory reductions change no output byte (digests recorded before them)
         tests/test_runtime_detection_rates.cpp
         # QA-A-42 (#144): buffer-reuse parity for the detection loop
         tests/test_runtime_detection_buffer_reuse.cpp
@@ -557,6 +559,8 @@ if(_XPE_BUILD_TESTS)
     add_executable(xpe_preprocess_oom_tests
         tests/test_oom_injection.cpp
         tests/test_ghost_mix_compare.cpp   # QA-A-225 M4 (#238): tier-3 blend kept vs removed through the test-only seam, preregistered rules
+        tests/test_zz_a237b_mem.cpp   # QA-A-237b (#245): the memory probe reads the per-stage boundaries through the stage hook
+        tests/test_output_unchanged_237b.cpp   # QA-A-237b (#245): the same digests, plus the gain stage on hand-built snapshots (needs the product sources)
         ${XPE_PREPROCESS_SOURCES}
     )
     target_include_directories(xpe_preprocess_oom_tests
@@ -572,7 +576,7 @@ if(_XPE_BUILD_TESTS)
                 GTest::gtest_main
     )
     if(WIN32)
-        target_link_libraries(xpe_preprocess_oom_tests PRIVATE bcrypt)
+        target_link_libraries(xpe_preprocess_oom_tests PRIVATE bcrypt psapi)   # psapi: the QA-A-237b probe reads GetProcessMemoryInfo
     endif()
     target_compile_features(xpe_preprocess_oom_tests PRIVATE cxx_std_17)
     if(MSVC)

@@ -1,0 +1,21 @@
+# QA-A-237b M1: per-stage table from the hook run (frame 0). MiB. "stage rise" = private after - private before the stage;
+# "stage peak above" = peakCommit after this stage minus the private level at the stage's start (what the stage needed at once).
+import re, sys
+f = sys.argv[1]
+rows = []
+for l in open(f, encoding='utf-8', errors='replace'):
+    m = re.match(r"\[a237b\] chk (frame 0 .+?)\s+private\s+([\d.]+) MiB\s+peakCommit\s+([\d.]+) MiB", l)
+    if m: rows.append((m.group(1).strip(), float(m.group(2)), float(m.group(3))))
+    m = re.match(r"\[a237b\] chk (A harness.*?)\s+private\s+([\d.]+) MiB", l)
+    if m: base = float(m.group(2))
+prev_priv = None; prev_peak = None
+print(f"harness baseline A = {base:.1f} MiB; module = private - A")
+print(f"{'checkpoint':34s} {'module private':>14s} {'stage rise':>10s} {'peak commit - A':>15s} {'peak raised by':>14s}")
+for name, priv, peak in rows:
+    if name in ("frame 0 before", "frame 0 after"):
+        if name == "frame 0 before": prev_priv, prev_peak = priv, peak
+        continue
+    rise = priv - prev_priv
+    raised = peak - prev_peak
+    print(f"{name:34s} {priv-base:14.1f} {rise:10.1f} {peak-base:15.1f} {raised:14.1f}")
+    prev_priv, prev_peak = priv, peak

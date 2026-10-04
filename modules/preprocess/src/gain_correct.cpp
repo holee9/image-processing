@@ -460,15 +460,25 @@ XpeErrorCode xpe_gain_correct_in(
             }
         }
 
-        // Validate gain map and precompute reciprocals
-        std::vector<float> reciprocal(n);
+        // Validate the whole gain map BEFORE anything is written: a refused map must leave `dst` exactly as the caller
+        // gave it (the pass only reads).
         for (size_t i = 0; i < n; ++i) {
             if (!is_valid_gain(gainmap[i])) return XPE_ERR_CONFIG_INVALID;
-            reciprocal[i] = 1.0f / gainmap[i];
         }
 
+        // QA-A-237b (#245, SRS-CALIB-PERF-002): the reciprocals are computed a block at a time into a small buffer and
+        // applied at once, not into a plane of n floats (36.0 MiB at 3072x3072) that lived for the whole call. The value
+        // of each reciprocal (`1.0f / gain`) and of each product (`pixel * reciprocal`) is the same as before, so the
+        // output is byte for byte what the plane version wrote. The block is a multiple of 8, so the vector loop of
+        // apply_gain_avx2 covers each block exactly and only the last block has a scalar tail.
         // Apply. One path: see the QA-A-72 note where the runtime probe used to be.
-        apply_gain_avx2(src, reciprocal.data(), dst, input->width, input->height);
+        constexpr size_t kBlock = 8192;   // pixels: 32 KiB of reciprocals, still in cache when the block is applied
+        float reciprocal[kBlock];
+        for (size_t start = 0; start < n; start += kBlock) {
+            const size_t len = (n - start < kBlock) ? (n - start) : kBlock;
+            for (size_t j = 0; j < len; ++j) reciprocal[j] = 1.0f / gainmap[start + j];
+            apply_gain_avx2(src + start, reciprocal, dst + start, static_cast<uint32_t>(len), 1u);
+        }
 
         output->format        = XPE_PIXEL_FLOAT32;
         output->bitsAllocated = 32u;

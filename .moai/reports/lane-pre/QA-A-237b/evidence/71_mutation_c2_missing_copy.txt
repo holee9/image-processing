@@ -1,0 +1,43 @@
+Note: Google Test filter = OutputUnchanged237b.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+[       OK ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize (85 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryBypassCombinations
+[       OK ] OutputUnchanged237b.PipelineEntryBypassCombinations (120 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(269): error: Expected equality of these values:
+  f == 3 ? -3 : 0
+    Which is: -3
+  rc
+    Which is: 0
+frame 3
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(270): error: Expected equality of these values:
+  0
+  std::memcmp(before.data(), buf.data(), n * sizeof(float))
+    Which is: 1
+the caller's buffer changed on a failed frame
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 7476309020186394476
+  value
+    Which is: 8647192320947946755
+pipeline/float_input/failed_frame/tier2: the output changed
+
+[  FAILED  ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer (33 ms)
+[ RUN      ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes
+[       OK ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes (87 ms)
+[ RUN      ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere
+[       OK ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere (23 ms)
+[----------] 5 tests from OutputUnchanged237b (351 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (351 ms total)
+[  PASSED  ] 4 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+
+ 1 FAILED TEST
