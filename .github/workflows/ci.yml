@@ -1414,16 +1414,14 @@ jobs:
           name: clang-tidy-observed-baselines
           path: build/clang-tidy-observed/
 
-      # TEMPORARY (one commit): continue-on-error until the baselines are regenerated from the artifact above, so the
-      # tool-version mismatch does not turn the whole pipeline red. The next commit that lands the regenerated
-      # baselines removes both continue-on-error lines (#256). The comparison still runs and still prints NEW lines.
+      # The baselines are the ones this runner's clang-tidy wrote (artifact above, run at main ac6d0be4), so a NEW
+      # line here is a real new finding, not tool-version skew. When the runner's LLVM changes, regenerate from the
+      # artifact rather than from a local clang-tidy (#256).
       - name: clang-tidy modules/common against its baseline
-        continue-on-error: true
         shell: pwsh
         run: python tools/ci/check_clang_tidy.py common build/ci-preprocess tools/ci/clang_tidy_baseline_common.txt
 
       - name: clang-tidy modules/preprocess against its baseline
-        continue-on-error: true
         shell: pwsh
         run: python tools/ci/check_clang_tidy.py preprocess build/ci-preprocess tools/ci/clang_tidy_baseline_preprocess.txt
 
