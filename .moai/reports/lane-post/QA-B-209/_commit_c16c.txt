@@ -1,0 +1,13 @@
+fix(dicom): QA-B-209c Codex #152 — DEBUG 종료 줄은 항상, 실패면 ERROR 결과 줄을 따로; 함수 줄은 정확한 형식으로 단언
+
+REQ-DICOM-043 은 진입/종료는 DEBUG, 오류는 ERROR 이며 둘 다다. 209b 가 실패 시 DEBUG 종료 줄을 ERROR 줄로 대체해 요구의 절반을 지웠다.
+
+- 모든 공개 함수: `<fn> entry [details]` (DEBUG), `<fn> exit rc=<N>` (DEBUG, rc 와 무관하게 항상; void 는 `exit`), rc != OK 이면 별도의 `[error] <fn> exit rc=<N> (<에러 문자열>)`. 성공은 DEBUG 줄만.
+- 시험: 줄 전체를 함수명 뒤 구분자까지 정규식으로 단언해 write 가 write_j2k 줄을 대신하지 못함. 11개 함수 각각 진입 1·DEBUG 종료 1·(실패 시) ERROR 1줄.
+- 반증: 209b 코드에서 5/7 빨강, write_j2k 진입 줄만 지우면 빨강(write 는 여전히 1줄).
+- ctest -j 8 -R DicomLogging x5 통과, ci-dicom 직렬 380/380.
+
+Card: QA-B-209c
+Refs #251
+
+🗿 MoAI

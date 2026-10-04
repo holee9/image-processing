@@ -1,0 +1,65 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from DicomLogging
+[ RUN      ] DicomLogging.EveryPublicFunctionLogsEntryDebugExitAndAnErrorLineWhenItFails
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(151): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Entries(c.fn)
+    Which is: 0
+xpe_dicom_write_j2k: exactly one DEBUG entry line
+[2026-10-04 13:52:46.064] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open entry path=(null)
+[2026-10-04 13:52:46.064] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open exit rc=-1
+[2026-10-04 13:52:46.064] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:52:46.064] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image entry
+[2026-10-04 13:52:46.064] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image exit rc=-1
+[2026-10-04 13:52:46.065] [xpe_file] [error] [xpe_dicom] xpe_dicom_read_image exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata entry
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1
+[2026-10-04 13:52:46.065] [xpe_file] [error] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write entry path=(null)
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write exit rc=-1
+[2026-10-04 13:52:46.065] [xpe_file] [error] [xpe_dicom] xpe_dicom_write exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1
+[2026-10-04 13:52:46.065] [xpe_file] [error] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate entry path=(null)
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate exit rc=-1
+[2026-10-04 13:52:46.065] [xpe_file] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore entry host=(null):0 file=(null)
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore exit rc=-1
+[2026-10-04 13:52:46.065] [xpe_file] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl entry host=(null):0
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1
+[2026-10-04 13:52:46.065] [xpe_file] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close entry
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel entry
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version entry
+[2026-10-04 13:52:46.065] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version exit
+
+
+[  FAILED  ] DicomLogging.EveryPublicFunctionLogsEntryDebugExitAndAnErrorLineWhenItFails (9 ms)
+[ RUN      ] DicomLogging.AnEarlyRefusalLogsDebugEntryDebugExitAndOneErrorResult
+[       OK ] DicomLogging.AnEarlyRefusalLogsDebugEntryDebugExitAndOneErrorResult (7 ms)
+[ RUN      ] DicomLogging.AnInternalFailureLogsTheCauseTheDebugExitAndTheErrorResult
+[       OK ] DicomLogging.AnInternalFailureLogsTheCauseTheDebugExitAndTheErrorResult (6 ms)
+[ RUN      ] DicomLogging.ASuccessLogsDebugLinesOnly
+[       OK ] DicomLogging.ASuccessLogsDebugLinesOnly (18 ms)
+[ RUN      ] DicomLogging.TheDebugExitFollowsTheEntryAndIsWrittenOncePerCall
+[       OK ] DicomLogging.TheDebugExitFollowsTheEntryAndIsWrittenOncePerCall (4 ms)
+[ RUN      ] DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel
+[       OK ] DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel (4 ms)
+[ RUN      ] DicomLogging.AFailedSaveIsLoggedAtErrorLevel
+[       OK ] DicomLogging.AFailedSaveIsLoggedAtErrorLevel (5 ms)
+[----------] 7 tests from DicomLogging (55 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (55 ms total)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomLogging.EveryPublicFunctionLogsEntryDebugExitAndAnErrorLineWhenItFails
+
+ 1 FAILED TEST
