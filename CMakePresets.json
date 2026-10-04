@@ -120,6 +120,27 @@
             }
         },
         {
+            "name": "ci-asan",
+            "displayName": "CI AddressSanitizer (common + preprocess)",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_CXX_FLAGS": "/DWIN32 /D_WINDOWS /EHsc /GR /fsanitize=address /Zi",
+                "BUILD_SHARED_LIBS": "ON",
+                "BUILD_TESTS": "ON",
+                "BUILD_GSVG": "OFF",
+                "BUILD_PREPROCESS": "ON",
+                "BUILD_ENHANCE_BASIC": "OFF",
+                "BUILD_ENHANCE_ADVANCED": "OFF",
+                "BUILD_AI": "OFF",
+                "BUILD_DISPLAY": "OFF",
+                "BUILD_DICOM": "OFF",
+                "XPE_WARNINGS_AS_ERRORS": "ON",
+                "VCPKG_MANIFEST_DIR": "${sourceDir}/third_party/common"
+            }
+        },
+        {
             "name": "coverage",
             "displayName": "Coverage Analysis",
             "generator": "Ninja",
@@ -252,6 +273,10 @@
         {
             "name": "ci-preprocess",
             "configurePreset": "ci-preprocess"
+        },
+        {
+            "name": "ci-asan",
+            "configurePreset": "ci-asan"
         },
         {
             "name": "coverage",
