@@ -147,11 +147,40 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
                 const string typed = "4321";
                 Assert.NotEqual(typed, input.Text);
 
-                GlobalInput.SelectAll();
-                GlobalInput.Type(typed);
-                Thread.Sleep(600);
+                // The step is KeystrokeStep.Run (GUI-C-229e). Its order is the original one: ONE check just before the first key, Ctrl+A, ONE call that types the four characters, 600 ms, the judgment read.
+                // If the application is not in front, or that cannot be told, nothing is sent and the scenario fails here, not skipped (a key goes to whichever window is in front, GUI-C-171). Nothing
+                // is read between the keys or between the last key and the judgment read. The record of the judgment read is written and the value kept BEFORE anything diagnostic is read, and every
+                // diagnostic read is guarded: one that throws is named in the message and changes neither the verdict nor the record.
+                var appPid = window.Properties.ProcessId.ValueOrDefault;
+                var run = KeystrokeStep.Run(
+                    typed,
+                    new KeystrokeStep.Seams(
+                        AppInFront: () => AppIsForeground(window),
+                        DescribeFront: () => PanelToggleScenarios.DescribeWhatIsInFront(window),
+                        ObserveBefore: () => Observe(window, input),
+                        SendKeys: () =>
+                        {
+                            GlobalInput.SelectAll();
+                            GlobalInput.Type(typed);
+                        },
+                        TakeJudgment: sinceLastKey => TakeJudgment(sinceLastKey, input),
+                        ObserveAfterJudgment: center => ObserveAfterJudgment(window, center),
+                        ObserveLater: () =>
+                        {
+                            Thread.Sleep(1500);
+                            return Observe(window, input);
+                        },
+                        AppProcessId: appPid),
+                    line => output.WriteLine(line));
 
-                Assert.Equal(typed, input.Text);
+                // The verdict is the original one and does not look at the times: all four characters, read 600 ms after the last key. A read that began or finished late could hide a loss (the box may
+                // have taken the keys in by then); that limit is the original scenario's too, and the record line tells a late run apart afterwards (GUI-C-229d).
+                if (run.Failure is not null)
+                {
+                    Assert.Fail(run.Failure);
+                }
+
+                Assert.Equal(typed, run.Center);
                 var stale = StaleIndicator(window);
                 output.WriteLine($"R02 after typing: box='{input.Text}' indicator='{stale}'");
                 Assert.True(
@@ -165,7 +194,7 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
                 var beforeTab = FocusedInfo(window);
                 Assert.True(
                     input.Properties.HasKeyboardFocus.ValueOrDefault
-                    && beforeTab is { AutomationId: CenterBox } && beforeTab.Value.ProcessId == appProcess,
+                    && beforeTab is { AutomationId: CenterBox } && ProcessIdentity.SameKnownProcess(beforeTab.Value.ProcessId, appProcess),
                     $"Just before the Tab the keyboard focus was not in the center box of this app (focused: {Describe(beforeTab)}), " +
                     "so the Tab would not have been addressed to it. " + PanelToggleScenarios.DescribeWhatIsInFront(window));
 
@@ -176,7 +205,7 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
                 // went to a different window (the GUI-C-171 failure shape) — a box that merely lost the focus
                 // would have passed an assertion on the box alone.
                 Assert.True(
-                    afterTab is not null && afterTab.Value.ProcessId == appProcess,
+                    afterTab is not null && ProcessIdentity.SameKnownProcess(afterTab.Value.ProcessId, appProcess),
                     $"After the Tab the keyboard focus is not inside the app (focused: {Describe(afterTab)}; app pid {appProcess}): " +
                     "the Tab went to a different window. " + PanelToggleScenarios.DescribeWhatIsInFront(window));
                 Assert.True(
@@ -200,6 +229,155 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
 
     private const string CenterBox = "VoiWindowCenterInput";
     private const string NextBoxInTabOrder = "VoiWindowWidthInput";
+
+    /// <summary>
+    /// R02d (GUI-C-229b, 229d): the failure message that R02 builds when it fails can be built from the real window, with no key sent. R02 itself needs real input and runs only where that is allowed, so
+    /// this is where the code that reads the boxes, the focus and the foreground for the message is shown to work. The readings are taken from the real window with nothing typed, so the box does not
+    /// hold the text and the message is built as for a failure; the message must carry every section.
+    /// </summary>
+    [SkippableFact]
+    public void R02d_TheLostKeysMessage_IsBuiltFromTheRealWindow_WithoutSendingAKey()
+    {
+        Measure("R02d", window =>
+        {
+            OpenParameters(window);
+            var input = window.FindFirstDescendant(cf => cf.ByAutomationId(CenterBox))!.AsTextBox();
+            Assert.NotEqual("4321", input.Text);   // read as a failure only if the box does not hold the text
+
+            var appPid = window.Properties.ProcessId.ValueOrDefault;
+            var lines = new List<string>();
+            var run = KeystrokeStep.Run(
+                "4321",
+                new KeystrokeStep.Seams(
+                    AppInFront: () => true,                       // stands in for the check; no key is sent below, so nothing can go to another window
+                    DescribeFront: () => PanelToggleScenarios.DescribeWhatIsInFront(window),
+                    ObserveBefore: () => Observe(window, input),
+                    SendKeys: () => { },                          // NO key
+                    TakeJudgment: sinceLastKey => TakeJudgment(sinceLastKey, input),
+                    ObserveAfterJudgment: center => ObserveAfterJudgment(window, center),
+                    ObserveLater: () =>
+                    {
+                        Thread.Sleep(1500);
+                        return Observe(window, input);
+                    },
+                    AppProcessId: appPid),
+                lines.Add);
+            var message = run.Failure ?? string.Empty;
+            var at600 = run.At600.Value!.Value;
+            output.WriteLine("R02d message: " + message);
+            Assert.StartsWith("R02 judgment read:", lines[0], StringComparison.Ordinal);   // the record comes first
+            var startedAt = run.StartedAtMs;
+            var completedAt = run.CompletedAtMs;
+
+            Assert.Contains("typed '4321' but the center box held '" + at600.Center + "'", message, StringComparison.Ordinal);
+            Assert.Contains("FACTS (observed):", message, StringComparison.Ordinal);
+            Assert.Contains("before the keys: center '", message, StringComparison.Ordinal);
+            Assert.Contains($"600 ms after (judgment read +{startedAt}..+{completedAt} ms): center '", message, StringComparison.Ordinal);
+            Assert.Contains("1.5 s later: center '", message, StringComparison.Ordinal);
+            Assert.Contains("keyboard focus '", message, StringComparison.Ordinal);
+            Assert.Contains($"foreground pid {at600.ForegroundProcessId}", message, StringComparison.Ordinal);
+            Assert.Contains("READING (an inference from the facts above, not an observation):", message, StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>
+    /// R02e (GUI-C-229d): a delay before the judgment read, and a delay inside the read itself, do NOT change the verdict and DO show in the record. The delays are injected into the same
+    /// <see cref="TakeJudgment"/> that R02 uses, with no key sent. The box holds the same text each time, so the value read is the same whatever the timing; the record line must carry the late start
+    /// and the late completion. The control is the same call with no delay: a start and a completion near 600 ms.
+    /// </summary>
+    [SkippableFact]
+    public void R02e_ALateJudgmentRead_DoesNotChangeTheVerdict_ButTheRecordShowsTheLateCompletion()
+    {
+        Measure("R02e", window =>
+        {
+            OpenParameters(window);
+            var input = window.FindFirstDescendant(cf => cf.ByAutomationId(CenterBox))!.AsTextBox();
+
+            var onTime = TakeJudgment(Stopwatch.StartNew(), input);
+            var delayedStart = TakeJudgment(Stopwatch.StartNew(), input, injectBeforeRead: () => Thread.Sleep(800));
+            var slowRead = TakeJudgment(Stopwatch.StartNew(), input, injectIntoRead: () => Thread.Sleep(500));
+            output.WriteLine("R02e no delay:        " + KeyLossDiagnosis.JudgmentLine(onTime.StartedAtMs, onTime.CompletedAtMs));
+            output.WriteLine("R02e delay before:    " + KeyLossDiagnosis.JudgmentLine(delayedStart.StartedAtMs, delayedStart.CompletedAtMs));
+            output.WriteLine("R02e delay inside:    " + KeyLossDiagnosis.JudgmentLine(slowRead.StartedAtMs, slowRead.CompletedAtMs));
+
+            // the verdict: the same text is read whatever the timing, so "== 4321" cannot differ between the three
+            Assert.Equal(onTime.Center, delayedStart.Center);
+            Assert.Equal(onTime.Center, slowRead.Center);
+
+            // the record: the late start and the late completion are in the line that is written
+            Assert.True(delayedStart.StartedAtMs >= KeyLossDiagnosis.JudgmentWaitMs + 800 - 50, $"the delay before the read did not take effect (started +{delayedStart.StartedAtMs} ms)");
+            Assert.True(slowRead.CompletedAtMs - slowRead.StartedAtMs >= 500 - 50, $"the delay inside the read did not take effect (+{slowRead.StartedAtMs}..+{slowRead.CompletedAtMs} ms)");
+            Assert.Contains($"started +{delayedStart.StartedAtMs} ms, completed +{delayedStart.CompletedAtMs} ms", KeyLossDiagnosis.JudgmentLine(delayedStart.StartedAtMs, delayedStart.CompletedAtMs), StringComparison.Ordinal);
+            Assert.Contains($"completed +{slowRead.CompletedAtMs} ms", KeyLossDiagnosis.JudgmentLine(slowRead.StartedAtMs, slowRead.CompletedAtMs), StringComparison.Ordinal);
+
+            // the control: with no delay the read starts near the nominal wait and completes soon after
+            Assert.True(onTime.StartedAtMs < 600 + 200 && onTime.CompletedAtMs < 600 + 400, $"the control read was late on its own (+{onTime.StartedAtMs}..+{onTime.CompletedAtMs} ms); the comparison above means nothing");
+            Assert.True(delayedStart.CompletedAtMs > onTime.CompletedAtMs + 500, "the record does not show the delayed completion later than the control's");
+        });
+    }
+
+    /// <summary>
+    /// R02f (GUI-C-229f): the foreground check that guards the keys agrees, on the real window, with an independent read of the foreground process id: it says "in front" exactly when the process
+    /// that holds the foreground is this application's, and never when either id is unknown. No key is sent.
+    /// </summary>
+    [SkippableFact]
+    public void R02f_TheForegroundCheck_AgreesWithAnIndependentReadOfTheForegroundProcess()
+    {
+        Measure("R02f", window =>
+        {
+            var appPid = window.Properties.ProcessId.ValueOrDefault;
+            Assert.True(appPid > 0, "the application's process id could not be read, so no foreground check can be trusted");
+
+            var inFront = AppIsForeground(window);
+            var foregroundPid = ForegroundProcessId();
+            output.WriteLine($"R02f: app pid {appPid}, foreground pid {foregroundPid}, AppIsForeground={inFront}");
+
+            Assert.Equal(foregroundPid > 0 && foregroundPid == appPid, inFront);
+        });
+    }
+
+    /// <summary>
+    /// Waits until 600 ms have passed since the last key and reads Center, and nothing else: this read is the judgment. The two injection parameters exist for R02e only. Returns the value, when the read
+    /// began and when it completed, in ms after the last key. The times are a record: nothing is decided from them.
+    /// </summary>
+    private static (string Center, long StartedAtMs, long CompletedAtMs) TakeJudgment(Stopwatch sinceLastKey, TextBox input, Action? injectBeforeRead = null, Action? injectIntoRead = null)
+    {
+        var remaining = KeyLossDiagnosis.JudgmentWaitMs - (int)sinceLastKey.ElapsedMilliseconds;
+        if (remaining > 0)
+        {
+            Thread.Sleep(remaining);
+        }
+
+        injectBeforeRead?.Invoke();
+        var startedAt = sinceLastKey.ElapsedMilliseconds;
+        injectIntoRead?.Invoke();
+        var center = SafeText(input);
+        var completedAt = sinceLastKey.ElapsedMilliseconds;
+        return (center, startedAt, completedAt);
+    }
+
+    /// <summary>What can be read right now: both text boxes, the keyboard focus (any process) and the process that holds the system foreground. UI Automation reads: never taken between keys.</summary>
+    private static Observation Observe(Window window, TextBox input) => ObserveAfterJudgment(window, SafeText(input));
+
+    /// <summary>The Width box, the keyboard focus and the foreground, read AFTER the judgment read of Center (<paramref name="center"/>), which is taken first and alone.</summary>
+    private static Observation ObserveAfterJudgment(Window window, string center)
+    {
+        var width = SafeText(window.FindFirstDescendant(cf => cf.ByAutomationId(NextBoxInTabOrder))?.AsTextBox());
+        var focused = FocusedInfo(window);
+        return new Observation(center, width, focused?.AutomationId ?? "(none)", focused?.ProcessId ?? 0, ForegroundProcessId());
+    }
+
+    private static string SafeText(TextBox? box)
+    {
+        try
+        {
+            return box?.Text ?? "(no box)";
+        }
+        catch (Exception ex)
+        {
+            return "(unreadable: " + ex.GetType().Name + ")";
+        }
+    }
 
     /// <summary>Who holds the keyboard focus right now, as UI Automation reports it — in any process.</summary>
     private readonly record struct FocusInfo(string AutomationId, int ProcessId, string Name);
@@ -244,17 +422,32 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern uint GetWindowThreadProcessId(IntPtr handle, out uint processId);
 
-    /// <summary>True when the window that holds the system foreground belongs to the app under test.</summary>
-    private static bool AppIsForeground(Window window)
+    /// <summary>The process that holds the system foreground right now, or 0.</summary>
+    private static int ForegroundProcessId()
     {
         var foreground = GetForegroundWindow();
         if (foreground == IntPtr.Zero)
         {
-            return false;
+            return 0;
         }
 
         GetWindowThreadProcessId(foreground, out var processId);
-        return processId == (uint)window.Properties.ProcessId.ValueOrDefault;
+        return (int)processId;
+    }
+
+    /// <summary>True when the window that holds the system foreground belongs to the app under test.</summary>
+    private static bool AppIsForeground(Window window)
+    {
+        // The decision is ProcessIdentity's: a handle, a thread id and a process id that are all known, and the application's id known too (a pair of unknowns must not read as a match, GUI-C-229f).
+        var foreground = GetForegroundWindow();
+        uint threadId = 0;
+        uint processId = 0;
+        if (foreground != IntPtr.Zero)
+        {
+            threadId = GetWindowThreadProcessId(foreground, out processId);
+        }
+
+        return ProcessIdentity.ForegroundIsTheApplication((long)foreground, threadId, processId, window.Properties.ProcessId.ValueOrDefault);
     }
 
     /// <summary>

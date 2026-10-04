@@ -1,0 +1,5 @@
+== arm (e): SameKnownProcess back to a plain comparison (used for the focus checks around the Tab and in the readings)
+[xUnit.net 00:00:00.21]     ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.AnUnknownForegroundPid_IsNotTakenForTheApplication_InTheReadingsOfAFailedRun [FAIL]
+[xUnit.net 00:00:00.21]     ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TwoProcessIds_AreTheSameKnownProcess_OnlyWhenBothAreKnownAndEqual(processId: -1, appPid: -1, expected: False) [FAIL]
+[xUnit.net 00:00:00.21]     ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TwoProcessIds_AreTheSameKnownProcess_OnlyWhenBothAreKnownAndEqual(processId: 0, appPid: 0, expected: False) [FAIL]
+실패!  - 실패:     3, 통과:    16, 건너뜀:     0, 전체:    19, 기간: 941 ms - ImageProcTest.E2ETests.dll (net8.0)

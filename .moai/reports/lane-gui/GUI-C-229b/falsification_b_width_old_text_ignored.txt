@@ -1,0 +1,4 @@
+== arm (b): Width's old text no longer taken into account (the Codex #131 (3) reproduction must go red)
+[xUnit.net 00:00:00.18]     ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AWidthThatEndedInTheTailBeforeTheKeys_IsNotTakenForTheKeysGoingThere [FAIL]
+[xUnit.net 00:00:00.20]     ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AWidthThatAlreadyEndedInTheTailBeforeTheKeys_SaysNothing_SoTheAnswerIsUnclassified [FAIL]
+실패!  - 실패:     2, 통과:    12, 건너뜀:     0, 전체:    14, 기간: 37 ms - ImageProcTest.E2ETests.dll (net8.0)

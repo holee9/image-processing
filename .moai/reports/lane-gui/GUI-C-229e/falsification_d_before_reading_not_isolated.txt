@@ -1,0 +1,3 @@
+== arm (d): the reading before the keys is not isolated (its exception stops the keys)
+[xUnit.net 00:00:00.20]     ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.C_ADiagnosticReadBeforeTheKeysThatThrows_DoesNotStopTheKeys [FAIL]
+실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 36 ms - ImageProcTest.E2ETests.dll (net8.0)
