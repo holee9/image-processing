@@ -158,6 +158,12 @@ TEST(XpePreprocessEndurance, ControlLeakIsCaught) {
 #ifndef _WIN32
     GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
 #endif
+#if defined(__SANITIZE_ADDRESS__)
+    // QA-A-238 (#256): the measurement walks the CRT heap, and under AddressSanitizer malloc is AddressSanitizer's allocator, so the
+    // walk sees no blocks at all: this control reads "heap growth 0 bytes / 0 blocks over 1000 cycles" and fails for that reason
+    // (measured 2026-10-04), not because a leak went unnoticed. The leak tests themselves are not run under it either.
+    GTEST_SKIP() << "the CRT heap walk cannot see AddressSanitizer's heap";
+#endif
     ClearModule();
     FrameFixture f;
     const heap_growth::Growth g = heap_growth::Measure([&](int) { f.Run(); }, 64);

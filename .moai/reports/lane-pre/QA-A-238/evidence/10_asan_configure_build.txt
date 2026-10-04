@@ -1,0 +1,63 @@
+C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64\clang_rt.asan_dynamic-x86_64.dll
+-- The C compiler identification is MSVC 19.44.35228.0
+-- The CXX compiler identification is MSVC 19.44.35228.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: C:/Program Files/Microsoft Visual Studio/2022/Professional/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/2022/Professional/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test COMPILER_SUPPORTS_AVX2
+-- Performing Test COMPILER_SUPPORTS_AVX2 - Failed
+-- Platform: x86-64, AVX2 enabled
+-- Build spdlog: 1.14.1
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Failed
+-- Looking for pthread_create in pthreads
+-- Looking for pthread_create in pthreads - not found
+-- Looking for pthread_create in pthread
+-- Looking for pthread_create in pthread - not found
+-- Found Threads: TRUE
+-- Build type: RelWithDebInfo
+-- Using the multi-header code from D:/workspace-github/xpe-pre/build/a238-asan/_deps/nlohmann_json-src/include/
+-- {fmt} version: 11.0.2
+-- Build type: RelWithDebInfo
+-- Could NOT find GTest (missing: GTest_DIR)
+-- Orphan-source check: 0 unlisted sources under modules/*/src/
+-- Found Python3: C:/Users/drake/AppData/Local/Programs/Python/Python312/python.exe (found version "3.12.10") found components: Interpreter
+-- Configuring done (61.0s)
+-- Generating done (0.1s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    VCPKG_MANIFEST_DIR
+
+
+-- Build files have been written to: D:/workspace-github/xpe-pre/build/a238-asan
+CONFIGURE_EXIT=0
+[1/251] Building RC object _deps\spdlog-build\CMakeFiles\spdlog.dir\version.rc.res
+[2/251] Building CXX object modules\common\CMakeFiles\xpe_common.dir\src\xpe_memory.cpp.obj
+[3/251] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\offset_correct.cpp.obj
+[4/251] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\binning_correct.cpp.obj
+[5/251] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\readout_validate.cpp.obj
+[6/251] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\temp_compensate.cpp.obj
+[7/251] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\nonlinearity_correct.cpp.obj
+[8/251] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\gain_correct.cpp.obj
+[9/251] Building CXX object _deps\spdlog-build\CMakeFiles\spdlog.dir\src\file_sinks.cpp.obj
+[10/251] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\defect_correct.cpp.obj
+[11/251] Building CXX object _deps\spdlog-build\CMakeFiles\spdlog.dir\src\cfg.cpp.obj
+[12/251] Building CXX object _deps\fmt-build\CMakeFiles\fmt.dir\src\os.cc.obj
+[13/251] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\calibration_manager.cpp.obj
+[14/251] Building CXX object _deps\spdlog-build\CMakeFiles\spdlog.dir\src\async.cpp.obj
+[15/251] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\ghost_correct.cpp.obj
+[16/251] Building CXX object _deps\spdlog-build\CMakeFiles\spdlog.dir\src\bundled_fmtlib_format.cpp.obj
+[17/251] Building CXX object modules\common\CMakeFiles\xpe_common.dir\src\xpe_logging.cpp.obj
+[18/251] Building CXX object _deps\spdlog-build\CMakeFiles\spdlog.dir\src\color_sinks.cpp.obj
+[19/251] Building CXX object _deps\spdlog-build\CMakeFiles\spdlog.dir\src\stdout_sinks.cpp.obj
+[20/251] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\preprocess.cpp.obj
+[21/251] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\rle_codec.cpp.obj
+[22/251] Building CXX object _deps\fmt-build\CMakeFiles\fmt.dir\src\format.cc.obj

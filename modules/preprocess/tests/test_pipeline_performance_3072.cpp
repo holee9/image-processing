@@ -117,6 +117,12 @@ protected:
 }  // namespace
 
 TEST_F(PipelinePerformance3072, TheWholeFrameWithCalibrationLoadedFitsSrsPerf001) {
+#if defined(__SANITIZE_ADDRESS__)
+    // QA-A-238 (#256): the 500 ms gate is a time budget, and AddressSanitizer's instrumentation puts the frame right at it: the cold
+    // frame took 451 ms when this test ran alone and 522 ms when it ran inside the whole suite (measured 2026-10-04, same build),
+    // so under it the verdict flips from run to run and says nothing about the code.
+    GTEST_SKIP() << "a time budget means nothing under AddressSanitizer instrumentation";
+#endif
     // ---- calibration, loaded for real (one-time startup: printed against PERF-003, not part of the frame) ----
     const std::string offPath = (dir / "offset.xcal").string();
     const std::string gainPath = (dir / "gain.xcal").string();

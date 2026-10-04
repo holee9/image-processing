@@ -1,0 +1,22 @@
+Note: Google Test filter = XpePreprocessEndurance.ControlLeakIsCaught
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from XpePreprocessEndurance
+[ RUN      ] XpePreprocessEndurance.ControlLeakIsCaught
+
+[  INFO ] D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_memleak.cpp(164):: control 64 B/cycle: heap growth 0 bytes / 0 blocks over 1000 cycles, working set 135168 bytes (not asserted)
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_memleak.cpp(165): error: Expected: (g.heap.blocks) >= (g.cycles * 9 / 10), actual: 0 vs 900
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_memleak.cpp(166): error: Expected: (g.heap.bytes) >= (64LL * g.cycles * 9 / 10), actual: 0 vs 57600
+
+[  FAILED  ] XpePreprocessEndurance.ControlLeakIsCaught (408 ms)
+[----------] 1 test from XpePreprocessEndurance (408 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (408 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] XpePreprocessEndurance.ControlLeakIsCaught
+
+ 1 FAILED TEST
+RUN_EXIT=1

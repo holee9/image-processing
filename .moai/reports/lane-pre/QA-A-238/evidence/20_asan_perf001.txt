@@ -1,0 +1,16 @@
+Note: Google Test filter = PipelinePerformance3072.*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from PipelinePerformance3072
+[ RUN      ] PipelinePerformance3072.TheWholeFrameWithCalibrationLoadedFitsSrsPerf001
+[perf-gate-pipeline] one-time load (PERF-003 budget 200 ms for all three, not asserted): offset 70.1 ms, gain 94.3 ms, defect 19.3 ms, total 183.7 ms
+[perf-gate-pipeline] frame 0 (cold) total 451.0 ms (SRS-CALIB-PERF-001 limit 500 ms, asserted) | stage ms, SRS budget in brackets, not asserted: readout 4.3, temp 7.6, nonlinearity 0.1 [20], offset 17.2 [55], gain 74.3 [55], defect 150.2 [95], ghost 197.3 [140], binning 0.0 [10]
+[perf-gate-pipeline] frame 1 (warm) total 441.3 ms (SRS-CALIB-PERF-001 limit 500 ms, asserted) | stage ms, SRS budget in brackets, not asserted: readout 4.2, temp 7.5, nonlinearity 0.1 [20], offset 16.9 [55], gain 73.8 [55], defect 150.1 [95], ghost 188.8 [140], binning 0.0 [10]
+[perf-gate-pipeline] ghost changed 9437184 of 9437184 pixels of frame 1
+[       OK ] PipelinePerformance3072.TheWholeFrameWithCalibrationLoadedFitsSrsPerf001 (1487 ms)
+[----------] 1 test from PipelinePerformance3072 (1495 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1495 ms total)
+[  PASSED  ] 1 test.
+RUN_EXIT=0
