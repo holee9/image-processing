@@ -1,0 +1,12 @@
+harness baseline A = 37.2 MiB; module = private - A; frame 1
+checkpoint                         module private peak commit - A peak raised by
+frame 1 before                              153.3           191.7
+frame 1 after readout                       153.3           191.7            0.0
+frame 1 after temp                          189.4           191.7            0.0
+frame 1 after offset                        189.4           191.7            0.0
+frame 1 after nonlinearity                  189.4           191.7            0.0
+frame 1 after gain                          189.4           191.7            0.0
+frame 1 after binning                       189.4           191.7            0.0
+frame 1 after defect                        189.4           191.7            0.0
+frame 1 after ghost                         189.4           297.7          106.0
+frame 1 after final copy                    189.4           297.7            0.0

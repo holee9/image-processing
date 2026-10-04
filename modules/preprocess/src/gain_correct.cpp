@@ -222,6 +222,41 @@ static void apply_gain_avx2(
 }
 
 /**
+ * @brief The same arithmetic as apply_gain_avx2, from the last pixel to the first -- for an output that aliases its input
+ *
+ * QA-A-237c (#245): the float frame may be written over the uint16 frame it is computed from (the same storage, `output`
+ * and `input` the same address). Float pixel i occupies bytes [4i, 4i + 4), which are the uint16 pixels 2i and 2i + 1; those
+ * are read for the output pixels 2i and 2i + 1, which are not below i. Going from the end, they have already been written
+ * when pixel i is, and pixel i's own input is read before its output is stored (a group of 8 loads before it stores). The
+ * values are the ones the ascending kernel computes: `float(pixel) * reciprocal`.
+ *
+ * @param input uint16 frame (a block of it)
+ * @param reciprocal_gain 1/G for the same pixels
+ * @param output float32 frame (the same block; may start at the input's address)
+ * @param count pixels in the block
+ */
+static void apply_gain_avx2_descending(
+    const uint16_t* input,
+    const float* reciprocal_gain,
+    float* output,
+    size_t count) noexcept
+{
+    const size_t vec_end = count & ~size_t{7};   // the pixels from vec_end up are the scalar tail
+    for (size_t i = count; i > vec_end; --i) {
+        uint16_t pixel;
+        std::memcpy(&pixel, input + (i - 1), sizeof(pixel));   // read as bytes: the storage also holds the floats written above
+        output[i - 1] = xpe_gain_apply_scalar_pixel(pixel, reciprocal_gain[i - 1]);
+    }
+    for (size_t i = vec_end; i >= 8; i -= 8) {
+        const size_t g = i - 8;
+        const __m128i u16_data = _mm_loadu_si128(reinterpret_cast<const __m128i*>(input + g));
+        const __m256 gain_vec = _mm256_loadu_ps(reciprocal_gain + g);
+        const __m256 input_vec = _mm256_cvtepi32_ps(_mm256_cvtepu16_epi32(u16_data));
+        _mm256_storeu_ps(output + g, _mm256_mul_ps(input_vec, gain_vec));
+    }
+}
+
+/**
  * @brief Apply gain correction using scalar path (fallback)
  *
  * AC-GAIN-002: Scalar path for non-AVX2 systems or remainder pixels
@@ -474,10 +509,24 @@ XpeErrorCode xpe_gain_correct_in(
         // Apply. One path: see the QA-A-72 note where the runtime probe used to be.
         constexpr size_t kBlock = 8192;   // pixels: 32 KiB of reciprocals, still in cache when the block is applied
         float reciprocal[kBlock];
-        for (size_t start = 0; start < n; start += kBlock) {
-            const size_t len = (n - start < kBlock) ? (n - start) : kBlock;
-            for (size_t j = 0; j < len; ++j) reciprocal[j] = 1.0f / gainmap[start + j];
-            apply_gain_avx2(src + start, reciprocal, dst + start, static_cast<uint32_t>(len), 1u);
+        if (static_cast<const void*>(src) != static_cast<const void*>(dst)) {
+            for (size_t start = 0; start < n; start += kBlock) {
+                const size_t len = (n - start < kBlock) ? (n - start) : kBlock;
+                for (size_t j = 0; j < len; ++j) reciprocal[j] = 1.0f / gainmap[start + j];
+                apply_gain_avx2(src + start, reciprocal, dst + start, static_cast<uint32_t>(len), 1u);
+            }
+        } else {
+            // QA-A-237c (#245): the output float frame is written over the input uint16 frame (the pipeline's working buffer).
+            // Blocks from the end, and the pixels of a block from the end: see apply_gain_avx2_descending for why no input
+            // pixel is overwritten before it is read. Block b writes only bytes that belong to input blocks above b, except
+            // the first block, which overlaps itself and relies on the order inside the block.
+            const size_t blocks = (n + kBlock - 1) / kBlock;
+            for (size_t b = blocks; b-- > 0;) {
+                const size_t start = b * kBlock;
+                const size_t len = (n - start < kBlock) ? (n - start) : kBlock;
+                for (size_t j = 0; j < len; ++j) reciprocal[j] = 1.0f / gainmap[start + j];
+                apply_gain_avx2_descending(src + start, reciprocal, dst + start, len);
+            }
         }
 
         output->format        = XPE_PIXEL_FLOAT32;

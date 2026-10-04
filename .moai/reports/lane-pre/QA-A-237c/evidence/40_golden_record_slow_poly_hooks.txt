@@ -1,0 +1,32 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OutputUnchanged237b.PipelineEntryPoly*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+[a237b-golden] {"pipeline/poly_gain/tier2", 0x794cad8c2ee0dc20ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/poly_gain/tier2 (computed 794cad8c2ee0dc20)
+
+[a237b-golden] {"pipeline/slow_route_ok/203x157/tier3_beta1e33", 0xdf9b1db6da540934ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/slow_route_ok/203x157/tier3_beta1e33 (computed df9b1db6da540934)
+
+[a237b-golden] {"pipeline/slow_route_ok/256x192/tier3_beta1e33", 0xeec4a5ac55567cceull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/slow_route_ok/256x192/tier3_beta1e33 (computed eec4a5ac55567cce)
+
+[a237b-golden] {"pipeline/slow_route_failing/203x157/tier3_beta1e36", 0xf9189e72c1ffbc18ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/slow_route_failing/203x157/tier3_beta1e36 (computed f9189e72c1ffbc18)
+
+[  FAILED  ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute (135 ms)
+[----------] 1 test from OutputUnchanged237b (135 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (135 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+
+ 1 FAILED TEST

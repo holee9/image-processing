@@ -198,19 +198,43 @@ namespace {
         }
         XPE_STAGE_HOOK(0);
 
+        // QA-A-237c (#245, SRS-CALIB-PERF-002): ONE working buffer of the float frame's size for the whole chain from the
+        // temperature stage to the gain stage. The uint16 frame the point-wise stages (temperature, offset, nonlinearity) work on
+        // sits in its first half and each of them works on it in place (offset and nonlinearity read and write a pixel at the
+        // same index); the gain stage then writes the float frame OVER it, from the last pixel to the first, so that no float
+        // pixel is written before the uint16 pixels it overlaps have been read (xpe_gain_correct_in, output aliasing input).
+        // Before, each of those stages had a frame of its own: at the gain stage a uint16 frame and the float frame were alive
+        // together (18.0 + 36.0 MiB at 3072x3072), now one buffer of 36.0 MiB is. Used only where the gain stage runs on a scalar
+        // map and the frame is uint16 (a polynomial gain reads the whole frame before it writes and keeps the old buffers).
+        // The buffer is the caller's frame copied first, so a stage that fails leaves the caller's buffer as it was.
+        const bool widen = !cfg.bypassGain && calib.gain_map && img->format == XPE_PIXEL_UINT16;
+        std::unique_ptr<unsigned char[]> work;
+        if (widen) {
+            work.reset(new unsigned char[floatBytes]);   // every byte is written before it is read: the frame first, the float frame later
+            std::memcpy(work.get(), img->data, inputBytes);
+        }
+        uint16_t* const work16 = reinterpret_cast<uint16_t*>(work.get());
+        float* const workF = reinterpret_cast<float*>(work.get());
+
         // Stage 1: Temperature Compensation (PRE-07)
         XpeImageBuffer stage1 = *img; // Start with input
         std::vector<uint16_t> stage1Data;
+        if (widen) {
+            stage1.data = work16;
+            stage1.dataSize = inputBytes;
+        }
 
         if (!cfg.bypassTemp) {
-            stage1Data.resize(pixelCount);
-            // The work buffer holds exactly inputBytes. This copied img->dataSize bytes, and a dataSize larger
-            // than the frame -- the size a caller must give for the float result of the gain stage to be
-            // written back -- overran it (#234).
-            std::memcpy(stage1Data.data(), img->data, inputBytes);
+            if (!widen) {
+                stage1Data.resize(pixelCount);
+                // The work buffer holds exactly inputBytes. This copied img->dataSize bytes, and a dataSize larger
+                // than the frame -- the size a caller must give for the float result of the gain stage to be
+                // written back -- overran it (#234).
+                std::memcpy(stage1Data.data(), img->data, inputBytes);
 
-            stage1.data = stage1Data.data();
-            stage1.dataSize = stage1Data.size() * sizeof(uint16_t);
+                stage1.data = stage1Data.data();
+                stage1.dataSize = stage1Data.size() * sizeof(uint16_t);
+            }
 
             result = xpe_temp_compensate(&stage1, cfg.detectorTempC, nullptr);
             if (result != XPE_OK) return result;
@@ -224,9 +248,11 @@ namespace {
         std::vector<uint16_t> stage2Data;
 
         if (!cfg.bypassOffset) {
-            stage2Data.resize(pixelCount);
-            stage2.data = stage2Data.data();
-            stage2.dataSize = stage2Data.size() * sizeof(uint16_t);
+            if (!widen) {   // (widening: stage 2 is stage 1's buffer, the offset kernel works in place)
+                stage2Data.resize(pixelCount);
+                stage2.data = stage2Data.data();
+                stage2.dataSize = stage2Data.size() * sizeof(uint16_t);
+            }
 
             // Use new 3-arg API: xpe_offset_correct(input, output, metadata)
             result = xpe_offset_correct_in(calib, &stage1, &stage2, meta);
@@ -244,17 +270,18 @@ namespace {
         std::vector<uint16_t> stage3Data;
 
         if (!cfg.bypassNonlinearity) {
-            stage3Data.resize(pixelCount);
-            stage3.data = stage3Data.data();
-            stage3.dataSize = stage3Data.size() * sizeof(uint16_t);
-
-            // The stage works in place on its own copy of the stage-2 frame.
+            // The stage works in place on its own copy of the stage-2 frame (widening: the working buffer IS that copy).
             // QA-A-104 (#184): the copy used to run only when stage 2 had no
             // buffer of its own, so with offset enabled (the default) the gain
             // stage received an all-zero frame.
-            std::memcpy(stage3Data.data(), stage2.data, pixelCount * sizeof(uint16_t));
-            release_buffer(stage1Data);   // stage 3 holds its own copy: the frames it was made from are not read again
-            release_buffer(stage2Data);
+            if (!widen) {
+                stage3Data.resize(pixelCount);
+                stage3.data = stage3Data.data();
+                stage3.dataSize = stage3Data.size() * sizeof(uint16_t);
+                std::memcpy(stage3Data.data(), stage2.data, pixelCount * sizeof(uint16_t));
+                release_buffer(stage1Data);   // stage 3 holds its own copy: the frames it was made from are not read again
+                release_buffer(stage2Data);
+            }
 
             bool applied = false;
             // QA-A-111 (#186): the stage now reads the config -- `panel.linear`
@@ -276,14 +303,14 @@ namespace {
         std::vector<uint32_t> frameGainDefects;
 
         if (!cfg.bypassGain) {
-            stage4Data.resize(pixelCount);
+            if (!widen) stage4Data.resize(pixelCount);
             stage4.width = img->width;
             stage4.height = img->height;
             stage4.bitsAllocated = 32u;
             stage4.bitsStored = 32u;
             stage4.format = XPE_PIXEL_FLOAT32;
-            stage4.data = stage4Data.data();
-            stage4.dataSize = stage4Data.size() * sizeof(float);
+            stage4.data = widen ? static_cast<void*>(workF) : static_cast<void*>(stage4Data.data());   // widening: over the uint16 frame
+            stage4.dataSize = pixelCount * sizeof(float);
 
             // Use new 3-arg API: xpe_gain_correct(input, output, metadata)
             // This performs UINT16 → FLOAT32 domain transition
@@ -380,6 +407,7 @@ namespace {
             if (!stage_input_is(stage4, XPE_PIXEL_FLOAT32, floatBytes)) return XPE_ERR_PROCESSING_FAILED;
             std::memcpy(stage5Data.data(), stage4.data, pixelCount * sizeof(float));
             release_buffer(stage4Data);   // stage 5 holds its own copy
+            work.reset();
             result = xpe_binning_correct(&stage5, cfg.binningMode, nullptr);
             if (result != XPE_OK) return result;
 
@@ -409,7 +437,8 @@ namespace {
         // buffer and the buffers of earlier stages that were handed back are not). A stage may work in place on such a
         // buffer; on the caller's buffer it may not, because a stage that fails half way would leave it changed.
         const auto owns_float = [&](const void* p) noexcept {
-            return p != nullptr && ((!stage4Data.empty() && p == stage4Data.data()) ||
+            return p != nullptr && ((workF != nullptr && p == workF) ||
+                                    (!stage4Data.empty() && p == stage4Data.data()) ||
                                     (!stage5Data.empty() && p == stage5Data.data()) ||
                                     (!stage6Data.empty() && p == stage6Data.data()));
         };
@@ -440,6 +469,7 @@ namespace {
                 if (result != XPE_OK) return result;
                 release_buffer(stage4Data);   // stage 6 holds its own frame
                 release_buffer(stage5Data);
+                work.reset();
             }
 
             if (meta) meta->flags |= XPE_FLAG_DEFECT_CORRECTED;

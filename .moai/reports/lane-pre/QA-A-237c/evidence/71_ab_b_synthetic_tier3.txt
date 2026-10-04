@@ -1,0 +1,18 @@
+pair 0 A: ok=True steady 153.4 MiB peak 207.5 MiB times ['289.7', '298.3', '296.7'] ms
+pair 0 B: ok=True steady 153.4 MiB peak 191.8 MiB times ['291.6', '297.3', '279.2'] ms
+pair 1 B: ok=True steady 153.4 MiB peak 191.8 MiB times ['281.9', '279.5', '284.4'] ms
+pair 1 A: ok=True steady 153.4 MiB peak 207.5 MiB times ['290.9', '288.1', '292.0'] ms
+pair 2 A: ok=True steady 153.4 MiB peak 207.5 MiB times ['302.1', '299.2', '305.8'] ms
+pair 2 B: ok=True steady 153.4 MiB peak 191.8 MiB times ['276.2', '271.8', '283.5'] ms
+pair 3 B: ok=True steady 153.3 MiB peak 191.8 MiB times ['279.6', '288.7', '289.7'] ms
+pair 3 A: ok=True steady 153.4 MiB peak 207.5 MiB times ['300.0', '310.6', '302.2'] ms
+pair 4 A: ok=True steady 153.4 MiB peak 207.5 MiB times ['299.8', '298.1', '308.6'] ms
+pair 4 B: ok=True steady 153.4 MiB peak 191.8 MiB times ['276.4', '282.7', '281.7'] ms
+pair 5 B: ok=True steady 153.3 MiB peak 191.7 MiB times ['278.1', '275.2', '290.2'] ms
+pair 5 A: ok=True steady 153.4 MiB peak 207.5 MiB times ['293.9', '298.8', '298.2'] ms
+
+config: tier 3, frames 3, raw_dir synthetic, pairs 6, exe xpe_preprocess_tests.exe
+A: memory steady [153.4] MiB, peak [207.5] MiB (module, over runs); frame time min 288.1 ms, median of 12 warm frames 298.6 ms; all runs ok=True
+B: memory steady [153.3, 153.4] MiB, peak [191.7, 191.8] MiB (module, over runs); frame time min 271.8 ms, median of 12 warm frames 283.1 ms; all runs ok=True
+output digests identical across ALL runs of both builds: True  (3 frames per run)
+B/A: peak 0.924, time min 0.943, time median 0.948
