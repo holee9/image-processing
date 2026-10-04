@@ -1,0 +1,19 @@
+Note: Google Test filter = LoadFailureKeepsStore.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from LoadFailureKeepsStore
+[ RUN      ] LoadFailureKeepsStore.AFlippedPayloadByteIsRefusedAndTheStoreKeepsItsMap
+[       OK ] LoadFailureKeepsStore.AFlippedPayloadByteIsRefusedAndTheStoreKeepsItsMap (96 ms)
+[ RUN      ] LoadFailureKeepsStore.ATruncatedFileIsRefusedAndTheStoreKeepsItsMap
+[       OK ] LoadFailureKeepsStore.ATruncatedFileIsRefusedAndTheStoreKeepsItsMap (47 ms)
+[ RUN      ] LoadFailureKeepsStore.AHeaderThatDeclaresTheWrongPayloadLengthIsRefused
+[       OK ] LoadFailureKeepsStore.AHeaderThatDeclaresTheWrongPayloadLengthIsRefused (51 ms)
+[ RUN      ] LoadFailureKeepsStore.AFileOfAnotherTypeIsRefusedAndTheStoreKeepsItsMap
+[       OK ] LoadFailureKeepsStore.AFileOfAnotherTypeIsRefusedAndTheStoreKeepsItsMap (17 ms)
+[ RUN      ] LoadFailureKeepsStore.TheLoadedMapIsTheFilesPayload
+[       OK ] LoadFailureKeepsStore.TheLoadedMapIsTheFilesPayload (13 ms)
+[----------] 5 tests from LoadFailureKeepsStore (225 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (225 ms total)
+[  PASSED  ] 5 tests.

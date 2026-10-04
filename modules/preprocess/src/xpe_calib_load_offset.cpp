@@ -30,26 +30,38 @@ XpeErrorCode xpe_calib_stage_offset(const char* filepath, StagedOffset* out) noe
         std::vector<uint8_t> config_json;
         std::vector<uint8_t> payload;
 
+        // QA-A-235b: the payload is read straight into the staged map (no zero-filled vector, no second copy).
+        // The staged map is local until the whole file has been accepted, so a refused file leaves the module-global
+        // store as it was, as before. new[] rather than make_unique: the bytes are overwritten by the read.
+        StagedOffset staged;
+        XCalPayloadSink sink;
+        sink.ctx = &staged;
+        sink.acquire = [](void* ctx, const XCalFileHeader& h, uint64_t len) -> uint8_t* {
+            const size_t pixels = static_cast<size_t>(h.width) * h.height;
+            if (len != static_cast<uint64_t>(pixels) * sizeof(float)) return nullptr;
+            auto* st = static_cast<StagedOffset*>(ctx);
+            st->map.reset(new float[pixels]);
+            return reinterpret_cast<uint8_t*>(st->map.get());
+        };
+
         XpeErrorCode rc = read_xcal_file(
             filepath, hdr, config_json, payload,
             /*check_expiry=*/true,
-            /*expected_type=*/XCAL_TYPE_OFFSET);
+            /*expected_type=*/XCAL_TYPE_OFFSET,
+            /*out_config_doc=*/nullptr, &sink);
         if (rc != XPE_OK) {
             return rc;
         }
 
-        // Verify payload size matches declared dimensions
-        size_t expected = static_cast<size_t>(hdr.width) * hdr.height * sizeof(float);
-        if (payload.size() != expected) {
-            return XPE_ERR_CONFIG_INVALID;
+        if (!sink.filled) {
+            // A compressed file: the decompressed bytes are in `payload`, copied into the map as before.
+            size_t expected = static_cast<size_t>(hdr.width) * hdr.height * sizeof(float);
+            if (payload.size() != expected) {
+                return XPE_ERR_CONFIG_INVALID;
+            }
+            staged.map.reset(new float[static_cast<size_t>(hdr.width) * hdr.height]);
+            std::memcpy(staged.map.get(), payload.data(), payload.size());
         }
-
-        // Allocate and copy pixel data
-        // new[] rather than make_unique: the buffer is overwritten by the
-        // memcpy below, so value-initialising it first is wasted work (QA-A-105).
-        StagedOffset staged;
-        staged.map.reset(new float[static_cast<size_t>(hdr.width) * hdr.height]);
-        std::memcpy(staged.map.get(), payload.data(), payload.size());
         staged.width     = hdr.width;
         staged.height    = hdr.height;
         staged.timestamp = hdr.created_epoch_ms;

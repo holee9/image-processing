@@ -1,0 +1,3 @@
+S1 sink always declined (= the old vector path) | exit=0 | red: (none)
+S2 hash comparison skipped | exit=1 | red: AFlippedPayloadByteIsRefusedAndTheStoreKeepsItsMap
+RESTORED | exit=0 | red: (none)

@@ -96,11 +96,27 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
         // a mismatch is the one the reader would have returned,
         // XPE_ERR_CONFIG_INVALID, so the existing contract is unchanged.
         XpeConfigDoc config;   // the reader parses the config block once and hands the document over (QA-A-209c)
+        // QA-A-235b: an uncompressed scalar or polynomial gain payload is read straight into the map this function
+        // keeps (no zero-filled vector, no second copy). The map is local until the commit below, so a refused file
+        // leaves the module-global store as it was. Anything the sink does not take (another type, a ragged length,
+        // a compressed file) is declined and goes the old way.
+        std::shared_ptr<float[]> map;
+        XCalPayloadSink sink;
+        sink.ctx = &map;
+        sink.acquire = [](void* ctx, const XCalFileHeader& h, uint64_t len) -> uint8_t* {
+            const bool poly = (h.type == static_cast<uint32_t>(XCAL_TYPE_GAIN_POLY));
+            if (!poly && h.type != static_cast<uint32_t>(XCAL_TYPE_GAIN)) return nullptr;
+            const uint64_t plane = static_cast<uint64_t>(h.width) * h.height * sizeof(float);
+            if (plane == 0 || len == 0 || len % plane != 0 || (!poly && len != plane)) return nullptr;
+            auto* m = static_cast<std::shared_ptr<float[]>*>(ctx);
+            m->reset(new float[static_cast<size_t>(len / sizeof(float))]);
+            return reinterpret_cast<uint8_t*>(m->get());
+        };
         XpeErrorCode rc = read_xcal_file(
             filepath, hdr, config_json, payload,
             /*check_expiry=*/true,
             /*expected_type=*/-1,
-            &config);
+            &config, &sink);
         if (rc != XPE_OK) {
             return rc;
         }
@@ -113,20 +129,22 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
         // Verify payload size matches declared dimensions. A polynomial file
         // holds a whole number of planes; validate_xcal_header already refused
         // a ragged or empty payload, so the division here is exact.
+        // (the payload is in `map` when the sink took it, otherwise in `payload`)
+        const size_t payload_size = sink.filled ? static_cast<size_t>(hdr.payload_len) : payload.size();
         const size_t plane = static_cast<size_t>(hdr.width) * hdr.height * sizeof(float);
         if (plane == 0) {
             return XPE_ERR_CONFIG_INVALID;
         }
         if (is_poly) {
-            if (payload.size() == 0 || payload.size() % plane != 0) {
+            if (payload_size == 0 || payload_size % plane != 0) {
                 return XPE_ERR_CONFIG_INVALID;
             }
-        } else if (payload.size() != plane) {
+        } else if (payload_size != plane) {
             return XPE_ERR_CONFIG_INVALID;
         }
 
-        const size_t num_coeffs = is_poly ? (payload.size() / plane) : 1;
-        const size_t n_floats   = payload.size() / sizeof(float);
+        const size_t num_coeffs = is_poly ? (payload_size / plane) : 1;
+        const size_t n_floats   = payload_size / sizeof(float);
 
         // SRS-CALIB-FUNC-002 (QA-A-211, #233): "Values shall be in range [0.1, 10.0]". A pixel outside it -- a failed
         // pixel, or the low-sensitivity edge band some detectors have (CalData_6: 99.9% of 39-44 thousand such pixels lie
@@ -136,8 +154,10 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
         // (XPE_ERR_INVALID_CALIB_DATA). Scalar maps only: a coefficient of G(x,y,E) is not a gain value.
         // Everything that allocates is done here, before the commit.
         // Overwritten by the memcpy below; no value-initialisation (QA-A-105).
-        std::shared_ptr<float[]> map(new float[n_floats]);
-        std::memcpy(map.get(), payload.data(), payload.size());
+        if (!sink.filled) {
+            map.reset(new float[n_floats]);
+            std::memcpy(map.get(), payload.data(), payload.size());
+        }
         std::shared_ptr<uint32_t[]> defect_idx;
         XpeGainScan scan;
         if (!is_poly) {
