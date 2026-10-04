@@ -1,0 +1,25 @@
+limit: 200 MB = 190.7 MiB
+
+== A. hand-chained stage calls (what QA-A-236 measured). Baseline: maps 81.2 + ghost 180.4 measured; transient 36.1 measured
+baseline                                     steady  261.6 MiB ( 274.3 MB)  peak  297.7 MiB ( 312.2 MB)   156% of 200 MB  OVER
+R                                            steady  261.6 MiB ( 274.3 MB)  peak  261.6 MiB ( 274.3 MB)   137% of 200 MB  OVER
+O                                            steady  243.6 MiB ( 255.4 MB)  peak  279.7 MiB ( 293.3 MB)   147% of 200 MB  OVER
+B+N                                          steady  153.6 MiB ( 161.1 MB)  peak  189.7 MiB ( 198.9 MB)    99% of 200 MB  OK
+R+O                                          steady  243.6 MiB ( 255.4 MB)  peak  243.6 MiB ( 255.4 MB)   128% of 200 MB  OVER
+R+B                                          steady  225.6 MiB ( 236.6 MB)  peak  225.6 MiB ( 236.6 MB)   118% of 200 MB  OVER
+R+O+B                                        steady  207.6 MiB ( 217.7 MB)  peak  207.6 MiB ( 217.7 MB)   109% of 200 MB  OVER
+R+B+N                                        steady  153.6 MiB ( 161.1 MB)  peak  153.6 MiB ( 161.1 MB)    81% of 200 MB  OK
+R+O+B+N                                      steady  135.6 MiB ( 142.2 MB)  peak  135.6 MiB ( 142.2 MB)    71% of 200 MB  OK
+O+B+N                                        steady  135.6 MiB ( 142.2 MB)  peak  171.7 MiB ( 180.0 MB)    90% of 200 MB  OK
+
+== B. through xpe_preprocess_pipeline_ex / pipeline_core: module-owned stage vectors (COMPUTED FROM CODE, NOT MEASURED)
+P0 as shipped (all stage vectors live to return) steady  423.6 MiB ( 444.2 MB)  peak  423.6 MiB ( 444.2 MB)   222% of 200 MB  OVER
+P1 release-after-last-use + ghost in place on stage6 steady  351.6 MiB ( 368.7 MB)  peak  351.6 MiB ( 368.7 MB)   184% of 200 MB  OVER
+P2 = P1 + R                                  steady  336.0 MiB ( 352.3 MB)  peak  336.0 MiB ( 352.3 MB)   176% of 200 MB  OVER
+P3 = P2 + defect in place on stage4          steady  315.6 MiB ( 330.9 MB)  peak  315.6 MiB ( 330.9 MB)   165% of 200 MB  OVER
+P3 + G2 (ghost 72.4)                         steady  207.6 MiB ( 217.7 MB)  peak  207.6 MiB ( 217.7 MB)   109% of 200 MB  OVER
+P3 + G2 + O                                  steady  189.6 MiB ( 198.8 MB)  peak  189.6 MiB ( 198.8 MB)    99% of 200 MB  OK
+
+== C. origin of the frame-1 transient: gain_correct.cpp `std::vector<float> reciprocal(n)` = one f32 plane per gain call
+frame 0 gain-stage peak predicted = C2 + plane          = 371.6 MiB   (QA-A-236 D PeakPagefile 371.7~371.8)
+frame 1 gain-stage peak predicted = C2 + beforeGhost + plane = 407.7 MiB   (QA-A-236 E PeakPagefile 407.8)

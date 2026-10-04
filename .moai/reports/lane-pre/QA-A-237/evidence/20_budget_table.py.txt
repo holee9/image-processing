@@ -1,0 +1,37 @@
+# QA-A-237: per-candidate memory arithmetic. Units: MiB (1 MiB = 1.048576 MB). 3072x3072 plane: f32 36.0, u16 18.0, u8 9.0 MiB.
+MB = 1.048576
+LIMIT = 200 / MB                      # 200 MB in MiB
+def row(name, steady, peak):
+    ok = "OK " if peak <= LIMIT else "OVER"
+    print(f"{name:44s} steady {steady:6.1f} MiB ({steady*MB:6.1f} MB)  peak {peak:6.1f} MiB ({peak*MB:6.1f} MB)  {peak/LIMIT*100:4.0f}% of 200 MB  {ok}")
+print(f"limit: 200 MB = {LIMIT:.1f} MiB\n")
+print("== A. hand-chained stage calls (what QA-A-236 measured). Baseline: maps 81.2 + ghost 180.4 measured; transient 36.1 measured")
+S0, T0 = 81.2 + 180.4, 36.1
+SAV = {"R": 0.0, "O": 18.0, "B": 36.0, "N": 72.0}   # R (reciprocal) only removes the transient; O/B/N shrink steady state
+def combo(keys):
+    steady = S0 - sum(SAV[k] for k in keys)
+    peak = steady + (0.0 if "R" in keys else T0)
+    return steady, peak
+for keys in [(), ("R",), ("O",), ("B","N"), ("R","O"), ("R","B"), ("R","O","B"), ("R","B","N"), ("R","O","B","N"), ("O","B","N")]:
+    s, p = combo(keys)
+    row("baseline" if not keys else "+".join(keys), s, p)
+print("\n== B. through xpe_preprocess_pipeline_ex / pipeline_core: module-owned stage vectors (COMPUTED FROM CODE, NOT MEASURED)")
+maps, ghost, ghostG2 = 81.2, 180.4, 72.4
+u16, f32, hb = 18.0, 36.0, 2.4        # std::vector<bool> processed+visited in defect stage = 2 x 1.2 MiB
+W = {"P0 as shipped (all stage vectors live to return)": u16*3 + f32*3,
+     "P1 release-after-last-use + ghost in place on stage6": max(u16 + f32 + f32, f32 + f32 + hb, f32),
+     "P2 = P1 + R": max(u16 + f32, f32 + f32 + hb, f32),
+     "P3 = P2 + defect in place on stage4": max(u16 + f32, f32 + hb, f32)}
+for k, w in W.items():
+    t = maps + ghost + w
+    row(k, t, t)
+w3 = W["P3 = P2 + defect in place on stage4"]
+for name, g, o in [("P3 + G2 (ghost 72.4)", ghostG2, 0.0), ("P3 + G2 + O", ghostG2, 18.0)]:
+    t = maps - o + g + w3
+    row(name, t, t)
+
+print("\n== C. origin of the frame-1 transient: gain_correct.cpp `std::vector<float> reciprocal(n)` = one f32 plane per gain call")
+C2, plane = 335.6, 36.0                      # QA-A-236 checkpoint C2 (PrivateUsage after harness vectors), f32 plane
+beforeGhostAlloc = 36.1                      # QA-A-236 D-C2: harness `beforeGhost = gainOut` allocates on frame 0 only (frame 1 reuses capacity)
+print(f"frame 0 gain-stage peak predicted = C2 + plane          = {C2+plane:.1f} MiB   (QA-A-236 D PeakPagefile 371.7~371.8)")
+print(f"frame 1 gain-stage peak predicted = C2 + beforeGhost + plane = {C2+beforeGhostAlloc+plane:.1f} MiB   (QA-A-236 E PeakPagefile 407.8)")
