@@ -343,7 +343,9 @@ jobs:
           #       allocator-interposition conflict, NOT confirmed: #256 asks the pre lane to reproduce under ASan
           #       locally and show the crashes are the guard reading a block it did not allocate, not a real overrun.
           # Every other test runs. The names are one regular expression for ctest -E.
-          $exclude = 'ControlLeakIsCaught|Frame3072SquaredWithinMachineRatio|OomPipeline\.'
+          #   PipelinePerformance3072.TheWholeFrameWithCalibrationLoadedFitsSrsPerf001  (2nd CI run, d13b30d3)
+          #       the SRS-CALIB-PERF-001 500 ms frame gate; same reason as Frame3072SquaredWithinMachineRatio
+          $exclude = 'ControlLeakIsCaught|Frame3072SquaredWithinMachineRatio|OomPipeline\.|PipelinePerformance3072\.TheWholeFrameWithCalibrationLoadedFitsSrsPerf001'
           ctest --test-dir build/ci-asan --build-config RelWithDebInfo --output-on-failure -E $exclude
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -1459,16 +1461,16 @@ jobs:
       - name: Install cppcheck
         shell: pwsh
         run: |
-          # The runner image may already carry cppcheck somewhere other than C:\Program Files\Cppcheck (the first run
-          # found it on PATH, skipped the install, then failed on the hard-coded path). Resolve the executable once and
-          # hand its path to the next step.
-          $cpp = (Get-Command cppcheck -ErrorAction SilentlyContinue).Source
-          if (-not $cpp) {
-            choco install cppcheck -y --no-progress
-            $cpp = 'C:\Program Files\Cppcheck\cppcheck.exe'
-          }
+          # Always the official package at a known path. The runner image carries another cppcheck on PATH (a winlibs
+          # build, 2nd CI run d13b30d3) whose library files are missing: it printed "Failed to load std.cfg ... Your
+          # Cppcheck installation is broken" and the count step still printed "0 finding(s)" -- a broken tool posing as
+          # a clean result. Use the package's own executable and prove its std.cfg is present before any count.
+          choco install cppcheck -y --no-progress
+          $cpp = 'C:\Program Files\Cppcheck\cppcheck.exe'
           if (-not (Test-Path $cpp)) { throw "cppcheck not found after install: $cpp" }
+          if (-not (Test-Path 'C:\Program Files\Cppcheck\cfg\std.cfg')) { throw "cppcheck std.cfg is missing next to $cpp: the installation cannot analyze" }
           & $cpp --version
+          if ($LASTEXITCODE -ne 0) { throw "cppcheck --version failed ($LASTEXITCODE)" }
           Add-Content -Path $env:GITHUB_ENV -Value "CPPCHECK_EXE=$cpp"
 
       - name: Run cppcheck (measurement only)
@@ -1479,7 +1481,14 @@ jobs:
             & $env:CPPCHECK_EXE --enable=warning,performance,portability --std=c++17 `
               --inline-suppr --suppress=missingIncludeSystem --error-exitcode=0 --xml `
               -I modules/common/include -I modules/preprocess/include -I modules/preprocess/src `
-              "modules/$m/src" 2> "build/cppcheck/$m.xml"
+              "modules/$m/src" 2> "build/cppcheck/$m.xml" | Tee-Object -FilePath "build/cppcheck/$m.stdout.txt"
+            $code = $LASTEXITCODE
+            # A count is only a count when the tool ran: non-zero exit, a "broken installation" message, or an XML
+            # file without its <results> root means the analysis did not happen, and 0 would be a lie.
+            $text = (Get-Content -Raw "build/cppcheck/$m.xml") + (Get-Content -Raw "build/cppcheck/$m.stdout.txt")
+            if ($code -ne 0) { throw "cppcheck exited $code on modules/$m" }
+            if ($text -match 'installation is broken|Failed to load') { throw "cppcheck could not load its configuration on modules/$m" }
+            if (-not (Select-String -Path "build/cppcheck/$m.xml" -Pattern '<results' -Quiet)) { throw "cppcheck wrote no <results> for modules/$m" }
             $n = (Select-String -Path "build/cppcheck/$m.xml" -Pattern '<error ' -AllMatches).Matches.Count
             Write-Host ("cppcheck modules/{0}: {1} finding(s)" -f $m, $n)
           }
