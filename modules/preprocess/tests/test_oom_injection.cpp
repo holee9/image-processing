@@ -24,6 +24,9 @@
 #endif
 
 #include <gtest/gtest.h>
+#if defined(__SANITIZE_ADDRESS__)
+#include <sanitizer/asan_interface.h>
+#endif
 #include "ghost_stable_lag.h"
 
 #include "xpe/preprocess_api.h"
@@ -85,6 +88,13 @@ void check(void* p) {
     for (size_t probes = 0; probes < kSlots && g_slots[i].p; ++probes, i = (i + 1) % kSlots) {
         if (g_slots[i].p != p) continue;
         const auto* tail = static_cast<const unsigned char*>(p) + g_slots[i].n;
+#if defined(__SANITIZE_ADDRESS__)
+        // The canary bytes are this guard's own: the block was made kCanary bytes longer for them. AddressSanitizer can still hold
+        // the granule behind the block's requested size as unaddressable (the STL annotates a std::vector's buffer, and a
+        // one-byte buffer ends inside a granule), and reading it here stopped the process with "unknown-crash" at this line
+        // (QA-A-238). The bytes are inside the allocation; make them readable. The block is freed right after.
+        __asan_unpoison_memory_region(tail, kCanary);
+#endif
         for (size_t k = 0; k < kCanary; ++k) {
             if (tail[k] != kFill) { g_overruns.fetch_add(1); break; }
         }
@@ -182,7 +192,11 @@ void* operator new(std::size_t n) {
     }
     const bool guarded = guard::g_on.load(std::memory_order_relaxed);
     const size_t want = n ? n : 1;
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__SANITIZE_ADDRESS__)
+    // QA-A-238 (#256): not under AddressSanitizer. These blocks come from VirtualAlloc, which AddressSanitizer does not track: the
+    // shadow left behind by earlier heap blocks at those addresses makes valid accesses look poisoned ("unknown-crash" at an address
+    // whose own bytes are in bounds). AddressSanitizer checks the exact bounds of every malloc'd block itself, and a read or write
+    // past one stops the process -- the question the page-guard tests ask of the pipeline (they only assert that nothing faulted).
     if (pageguard::g_on.load(std::memory_order_relaxed) && want >= pageguard::kMinBytes) {
         if (void* pg = pageguard::allocate(want)) { g_live.fetch_add(1); return pg; }
     }

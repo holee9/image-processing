@@ -1,0 +1,79 @@
+Running main() from D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomPipeline.*
+[==========] Running 30 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 30 tests from OomPipeline
+[ RUN      ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas
+[sweep] xpe_preprocess_pipeline_ex                    38 allocation points covered
+[       OK ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas (68 ms)
+[ RUN      ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas
+[sweep] xpe_preprocess_pipeline                       68 allocation points covered
+[       OK ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas (97 ms)
+[ RUN      ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched
+[sweep] xpe_preprocess_pipeline_batch                 82 allocation points covered
+[       OK ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched (116 ms)
+[ RUN      ] OomPipeline.TheStoreDigestTellsStoresApartByPresenceAndByEveryDimension
+[       OK ] OomPipeline.TheStoreDigestTellsStoresApartByPresenceAndByEveryDimension (5 ms)
+[ RUN      ] OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet
+[sweep] xpe_preprocess_pipeline (empty store)         68 allocation points covered
+[       OK ] OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet (97 ms)
+[ RUN      ] OomPipeline.AFailedCachedOffsetLoadThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeMap
+[sweep] xpe_calib_load_offset_cached (empty store)    19 allocation points covered
+[       OK ] OomPipeline.AFailedCachedOffsetLoadThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeMap (28 ms)
+[ RUN      ] OomPipeline.TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims
+[       OK ] OomPipeline.TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims (8 ms)
+[ RUN      ] OomPipeline.AClaimSmallerThanTheFrameIsRefusedBeforeAnythingIsDone
+[       OK ] OomPipeline.AClaimSmallerThanTheFrameIsRefusedBeforeAnythingIsDone (18 ms)
+[ RUN      ] OomPipeline.TheOutputCapacityMustHoldTheWholeFinalFrame
+[       OK ] OomPipeline.TheOutputCapacityMustHoldTheWholeFinalFrame (51 ms)
+[ RUN      ] OomPipeline.ABatchChecksTheRoomOfEachFrameAndCarriesOnPastARefusal
+[       OK ] OomPipeline.ABatchChecksTheRoomOfEachFrameAndCarriesOnPastARefusal (5 ms)
+[ RUN      ] OomPipeline.AFrameWhoseByteCountDoesNotFitInSizeTIsRefusedBeforeItIsRead
+[       OK ] OomPipeline.AFrameWhoseByteCountDoesNotFitInSizeTIsRefusedBeforeItIsRead (39 ms)
+[ RUN      ] OomPipeline.SetsAAndBDifferInEverythingTheDigestLooksAt
+[       OK ] OomPipeline.SetsAAndBDifferInEverythingTheDigestLooksAt (6 ms)
+[ RUN      ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+[       OK ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas (66 ms)
+[ RUN      ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+[sweep] xpe_preprocess_pipeline                       76 allocation points covered
+[sweep] xpe_preprocess_pipeline_batch                 76 allocation points covered
+[       OK ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas (210 ms)
+[ RUN      ] OomPipeline.TheQualityMetadataIsCurrentTheMomentTheMapsAre
+[       OK ] OomPipeline.TheQualityMetadataIsCurrentTheMomentTheMapsAre (7 ms)
+[ RUN      ] OomPipeline.AQualityReadWhileTheStoreIsBeingReplacedSeesOneFilesFields
+[       OK ] OomPipeline.AQualityReadWhileTheStoreIsBeingReplacedSeesOneFilesFields (59 ms)
+[ RUN      ] OomPipeline.AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedMidFrame
+[       OK ] OomPipeline.AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedMidFrame (16 ms)
+[ RUN      ] OomPipeline.AQualityReadStartedInsideTheCommitWaitsForItAndSeesTheNewSet
+[       OK ] OomPipeline.AQualityReadStartedInsideTheCommitWaitsForItAndSeesTheNewSet (1014 ms)
+[ RUN      ] OomPipeline.AGainBypassFollowedByBinningDoesNotReadPastTheStageBuffer
+[       OK ] OomPipeline.AGainBypassFollowedByBinningDoesNotReadPastTheStageBuffer (11 ms)
+[ RUN      ] OomPipeline.EveryConfigurationReadsOnlyWhatItOwnsAndEndsInTheFormatItIsPredictedToEndIn
+[combo] 96 configurations; 88 end in float32, 8 in uint16; 40 compared with a gain map of ones
+[       OK ] OomPipeline.EveryConfigurationReadsOnlyWhatItOwnsAndEndsInTheFormatItIsPredictedToEndIn (125 ms)
+[ RUN      ] OomPipeline.ALoadOfAGainWithoutQualityLeavesNoPreviousFilesQualityBehind
+[       OK ] OomPipeline.ALoadOfAGainWithoutQualityLeavesNoPreviousFilesQualityBehind (27 ms)
+[ RUN      ] OomPipeline.ALoadOfAGainWithDifferentQualityReplacesTheRecordOnEveryPath
+[       OK ] OomPipeline.ALoadOfAGainWithDifferentQualityReplacesTheRecordOnEveryPath (25 ms)
+[ RUN      ] OomPipeline.AFileWithoutQualityThenOneWithQualityKeepsTheHistoryAcrossTheGap
+[       OK ] OomPipeline.AFileWithoutQualityThenOneWithQualityKeepsTheHistoryAcrossTheGap (18 ms)
+[ RUN      ] OomPipeline.ACacheHitInstallsTheFilesQualityCopyBesideTheMap
+[       OK ] OomPipeline.ACacheHitInstallsTheFilesQualityCopyBesideTheMap (23 ms)
+[ RUN      ] OomPipeline.APartialQualityRecordDoesNotInterruptTheR2History_AThenPartialThenC
+[       OK ] OomPipeline.APartialQualityRecordDoesNotInterruptTheR2History_AThenPartialThenC (28 ms)
+[ RUN      ] OomPipeline.ARecordWithNoQualityAfterAPartialOneKeepsTheR2History_AThenPartialThenNoneThenC
+[       OK ] OomPipeline.ARecordWithNoQualityAfterAPartialOneKeepsTheR2History_AThenPartialThenNoneThenC (33 ms)
+[ RUN      ] OomPipeline.AGeneratedRecordFollowsTheSameRule_AThenPartialThenGeneratedThenPartialThenC
+[       OK ] OomPipeline.AGeneratedRecordFollowsTheSameRule_AThenPartialThenGeneratedThenPartialThenC (17 ms)
+[ RUN      ] OomPipeline.ANegativeGeneratedR2IsKnownAndBecomesTheHistory
+[       OK ] OomPipeline.ANegativeGeneratedR2IsKnownAndBecomesTheHistory (18 ms)
+[ RUN      ] OomPipeline.AnR2OfExactlyMinusOneIsARealValueAndChainsAsOne
+[       OK ] OomPipeline.AnR2OfExactlyMinusOneIsARealValueAndChainsAsOne (36 ms)
+[ RUN      ] OomPipeline.WithNoEarlierR2TheHistoryIsFlaggedAsNoneEvenWhenTheFirstRecordIsMinusOne
+[       OK ] OomPipeline.WithNoEarlierR2TheHistoryIsFlaggedAsNoneEvenWhenTheFirstRecordIsMinusOne (19 ms)
+[----------] 30 tests from OomPipeline (2308 ms total)
+
+[----------] Global test environment tear-down
+[==========] 30 tests from 1 test suite ran. (2308 ms total)
+[  PASSED  ] 30 tests.
+RUN_EXIT=0

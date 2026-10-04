@@ -512,6 +512,12 @@ std::string Explain(const char* label, const Timing& t, double reference,
 constexpr int kGateRounds = 3;
 
 TEST(RuntimeDetectionPerformanceGateTest, Frame3072SquaredWithinMachineRatio) {
+#if defined(__SANITIZE_ADDRESS__)
+    // QA-A-238 (#256): a ratio of the product kernel to an in-test reference kernel. AddressSanitizer instruments the product's
+    // memory accesses and slows it to 13.8 x the reference (limit 1.45, measured 2026-10-04, 52 s for the test), so the budget
+    // measures the instrumentation, not the code.
+    GTEST_SKIP() << "a time budget means nothing under AddressSanitizer instrumentation";
+#endif
     PrintMachineProfile();
 
     double ratios[kGateRounds] = {0.0, 0.0, 0.0};

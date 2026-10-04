@@ -1,0 +1,116 @@
+Running main() from D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomPipeline.*
+[==========] Running 30 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 30 tests from OomPipeline
+[ RUN      ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas
+[sweep] xpe_preprocess_pipeline_ex                    38 allocation points covered
+[       OK ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas (58 ms)
+[ RUN      ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas
+[sweep] xpe_preprocess_pipeline                       68 allocation points covered
+[       OK ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas (98 ms)
+[ RUN      ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched
+[sweep] xpe_preprocess_pipeline_batch                 82 allocation points covered
+[       OK ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched (115 ms)
+[ RUN      ] OomPipeline.TheStoreDigestTellsStoresApartByPresenceAndByEveryDimension
+[       OK ] OomPipeline.TheStoreDigestTellsStoresApartByPresenceAndByEveryDimension (3 ms)
+[ RUN      ] OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet
+[sweep] xpe_preprocess_pipeline (empty store)         68 allocation points covered
+[       OK ] OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet (93 ms)
+[ RUN      ] OomPipeline.AFailedCachedOffsetLoadThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeMap
+[sweep] xpe_calib_load_offset_cached (empty store)    19 allocation points covered
+[       OK ] OomPipeline.AFailedCachedOffsetLoadThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeMap (30 ms)
+[ RUN      ] OomPipeline.TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims
+[       OK ] OomPipeline.TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims (13 ms)
+[ RUN      ] OomPipeline.AClaimSmallerThanTheFrameIsRefusedBeforeAnythingIsDone
+[       OK ] OomPipeline.AClaimSmallerThanTheFrameIsRefusedBeforeAnythingIsDone (20 ms)
+[ RUN      ] OomPipeline.TheOutputCapacityMustHoldTheWholeFinalFrame
+[       OK ] OomPipeline.TheOutputCapacityMustHoldTheWholeFinalFrame (63 ms)
+[ RUN      ] OomPipeline.ABatchChecksTheRoomOfEachFrameAndCarriesOnPastARefusal
+[       OK ] OomPipeline.ABatchChecksTheRoomOfEachFrameAndCarriesOnPastARefusal (5 ms)
+[ RUN      ] OomPipeline.AFrameWhoseByteCountDoesNotFitInSizeTIsRefusedBeforeItIsRead
+[       OK ] OomPipeline.AFrameWhoseByteCountDoesNotFitInSizeTIsRefusedBeforeItIsRead (34 ms)
+[ RUN      ] OomPipeline.SetsAAndBDifferInEverythingTheDigestLooksAt
+[       OK ] OomPipeline.SetsAAndBDifferInEverythingTheDigestLooksAt (10 ms)
+[ RUN      ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+[       OK ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas (76 ms)
+[ RUN      ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+[sweep] xpe_preprocess_pipeline                       76 allocation points covered
+[sweep] xpe_preprocess_pipeline_batch                 76 allocation points covered
+[       OK ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas (207 ms)
+[ RUN      ] OomPipeline.TheQualityMetadataIsCurrentTheMomentTheMapsAre
+[       OK ] OomPipeline.TheQualityMetadataIsCurrentTheMomentTheMapsAre (8 ms)
+[ RUN      ] OomPipeline.AQualityReadWhileTheStoreIsBeingReplacedSeesOneFilesFields
+[       OK ] OomPipeline.AQualityReadWhileTheStoreIsBeingReplacedSeesOneFilesFields (72 ms)
+[ RUN      ] OomPipeline.AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedMidFrame
+[       OK ] OomPipeline.AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedMidFrame (16 ms)
+[ RUN      ] OomPipeline.AQualityReadStartedInsideTheCommitWaitsForItAndSeesTheNewSet
+[       OK ] OomPipeline.AQualityReadStartedInsideTheCommitWaitsForItAndSeesTheNewSet (1007 ms)
+[ RUN      ] OomPipeline.AGainBypassFollowedByBinningDoesNotReadPastTheStageBuffer
+=================================================================
+==61040==ERROR: AddressSanitizer: unknown-crash on address 0x02c5815c0ffc at pc 0x7ffc8c736971 bp 0x00d8839fe1b0 sp 0x00d8839fd950
+WRITE of size 32 at 0x02c5815c0ffc thread T0
+    #0 0x7ffc8c736970 in __asan_memset D:\a\_work\1\s\src\vctools\asan\llvm\compiler-rt\lib\asan\asan_interceptors_memintrinsics.cpp:68
+    #1 0x7ff7a2aaa2eb in std::_Zero_range<unsigned short *>(unsigned short *const, unsigned short *const) C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\xmemory:2072
+    #2 0x7ff7a2c04398 in std::_Uninitialized_value_construct_n C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\xmemory:2087
+    #3 0x7ff7a2c04398 in std::vector<unsigned short, class std::allocator<unsigned short>>::_Resize_reallocate<struct std::_Value_init_tag>(unsigned __int64, struct std::_Value_init_tag const &) C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\vector:1575
+    #4 0x7ff7a2c041b7 in std::vector<unsigned short, class std::allocator<unsigned short>>::_Resize<struct std::_Value_init_tag>(unsigned __int64, struct std::_Value_init_tag const &) C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\vector:1608
+    #5 0x7ff7a2c08de4 in std::vector<unsigned short, class std::allocator<unsigned short>>::resize(unsigned __int64) C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\vector:1630
+    #6 0x7ff7a2c0763c in `anonymous namespace'::pipeline_core D:\workspace-github\xpe-pre\modules\preprocess\src\pipeline.cpp:252
+    #7 0x7ff7a2c08aeb in pipeline_ex_impl D:\workspace-github\xpe-pre\modules\preprocess\src\pipeline.cpp:711
+    #8 0x7ff7a2c09614 in xpe_preprocess_pipeline_ex D:\workspace-github\xpe-pre\modules\preprocess\src\pipeline.cpp:818
+    #9 0x7ff7a2b39403 in combo::runOne(void *) D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp:1963
+    #10 0x7ff7a2b2dc88 in combo::callCatching(void (__cdecl *)(void *), void *) D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp:1968
+    #11 0x7ff7a2b39234 in combo::runGuarded(struct dsz::Frame &, struct combo::Config const &, int *) D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp:1981
+    #12 0x7ff7a2afa4d7 in OomPipeline_AGainBypassFollowedByBinningDoesNotReadPastTheStageBuffer_Test::TestBody(void) D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp:2000
+    #13 0x7ffca4211b56 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2605
+    #14 0x7ffca421165b in testing::internal::HandleExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2648
+    #15 0x7ffca42921df in testing::Test::Run(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2687
+    #16 0x7ffca4292432 in testing::TestInfo::Run(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2836
+    #17 0x7ffca42927cd in testing::TestSuite::Run(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:3015
+    #18 0x7ffca4293146 in testing::internal::UnitTestImpl::RunAllTests(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:5920
+    #19 0x7ffca4211bb6 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2605
+    #20 0x7ffca4211a99 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2648
+    #21 0x7ffca4292b6e in testing::UnitTest::Run(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:5484
+    #22 0x7ffcd09abaf8 in RUN_ALL_TESTS D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\include\gtest\gtest.h:2317
+    #23 0x7ffcd09abaf8 in main D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest_main.cc:64
+    #24 0x7ff7a2c5f243 in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+    #25 0x7ff7a2c5f243 in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+    #26 0x7ffd438fccb6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002ccb6)
+    #27 0x7ffd446aad6b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x1800aad6b)
+
+Address 0x02c5815c0ffc is a wild pointer inside of access range of size 0x000000000020.
+SUMMARY: AddressSanitizer: unknown-crash C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\xmemory:2072 in std::_Zero_range<unsigned short *>(unsigned short *const, unsigned short *const)
+Shadow bytes around the buggy address:
+  0x02c5815c0d00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x02c5815c0d80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x02c5815c0e00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x02c5815c0e80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x02c5815c0f00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x02c5815c0f80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00[04]
+  0x02c5815c1000: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x02c5815c1080: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x02c5815c1100: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x02c5815c1180: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x02c5815c1200: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==61040==ABORTING
+RUN_EXIT=1

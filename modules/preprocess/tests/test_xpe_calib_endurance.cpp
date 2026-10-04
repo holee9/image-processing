@@ -117,6 +117,12 @@ TEST_F(EnduranceTest, LoadCycles_ControlLeakIsCaught) {
 #ifndef _WIN32
     GTEST_SKIP() << "CRT heap walk is Windows-only in this build";
 #endif
+#if defined(__SANITIZE_ADDRESS__)
+    // QA-A-238 (#256): the measurement walks the CRT heap, and under AddressSanitizer malloc is AddressSanitizer's allocator, so the
+    // walk sees no blocks at all: this control reads "heap growth 0 bytes / 0 blocks over 1000 cycles" and fails for that reason
+    // (measured 2026-10-04), not because a leak went unnoticed. The leak tests themselves are not run under it either.
+    GTEST_SKIP() << "the CRT heap walk cannot see AddressSanitizer's heap";
+#endif
     const heap_growth::Growth g = heap_growth::Measure(LoadAllThree, 64);
     GTEST_LOG_(INFO) << "control 64 B/cycle: " << heap_growth::Describe(g);
     EXPECT_GE(g.heap.blocks, g.cycles * 9 / 10);

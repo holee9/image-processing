@@ -1,0 +1,141 @@
+Running main() from D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomPipeline.*
+[==========] Running 30 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 30 tests from OomPipeline
+[ RUN      ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas
+[sweep] xpe_preprocess_pipeline_ex                    38 allocation points covered
+[       OK ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas (57 ms)
+[ RUN      ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas
+[sweep] xpe_preprocess_pipeline                       68 allocation points covered
+[       OK ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas (98 ms)
+[ RUN      ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched
+[sweep] xpe_preprocess_pipeline_batch                 82 allocation points covered
+[       OK ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched (118 ms)
+[ RUN      ] OomPipeline.TheStoreDigestTellsStoresApartByPresenceAndByEveryDimension
+[       OK ] OomPipeline.TheStoreDigestTellsStoresApartByPresenceAndByEveryDimension (3 ms)
+[ RUN      ] OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet
+[sweep] xpe_preprocess_pipeline (empty store)         68 allocation points covered
+[       OK ] OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet (94 ms)
+[ RUN      ] OomPipeline.AFailedCachedOffsetLoadThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeMap
+[sweep] xpe_calib_load_offset_cached (empty store)    19 allocation points covered
+[       OK ] OomPipeline.AFailedCachedOffsetLoadThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeMap (27 ms)
+[ RUN      ] OomPipeline.TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims
+=================================================================
+==64676==ERROR: AddressSanitizer: unknown-crash on address 0x1276dfd0ea41 at pc 0x7ff7bce3efe5 bp 0x00c697efcb10 sp 0x00c697efcb18
+READ of size 1 at 0x1276dfd0ea41 thread T0
+    #0 0x7ff7bce3efe4 in guard::check(void *) D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp:89
+    #1 0x7ff7bcdd2938 in operator delete(void *) D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp:206
+    #2 0x7ff7bcdd2998 in operator delete(void *, unsigned __int64) D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp:212
+    #3 0x7ff7bcdaca74 in std::_Deallocate<16>(void *, unsigned __int64) C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\xmemory:289
+    #4 0x7ff7bcef7e4a in std::allocator<char>::deallocate C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\xmemory:985
+    #5 0x7ff7bcef7e4a in std::vector<char, class std::allocator<char>>::_Change_array(char *const, unsigned __int64, unsigned __int64) C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\vector:2072
+    #6 0x7ff7bcee5cc7 in std::vector<char, class std::allocator<char>>::_Emplace_reallocate<char>(char *const, char &&) C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\vector:916
+    #7 0x7ff7bcee59d7 in std::vector<char, class std::allocator<char>>::_Emplace_one_at_back<char>(char &&) C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\vector:848
+    #8 0x7ff7bcf10595 in nlohmann::json_abi_v3_11_3::detail::lexer<class nlohmann::json_abi_v3_11_3::basic_json<class std::map, class std::vector, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, bool, __int64, unsigned __int64, double, class std::allocator, struct nlohmann::json_abi_v3_11_3::adl_serializer, class std::vector<unsigned char, class std::allocator<unsigned char>>, void>, class nlohmann::json_abi_v3_11_3::detail::iterator_input_adapter<char const *>>::skip_whitespace(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\nlohmann_json-src\include\nlohmann\detail\input\lexer.hpp:1505
+    #9 0x7ff7bcf0c520 in nlohmann::json_abi_v3_11_3::detail::lexer<class nlohmann::json_abi_v3_11_3::basic_json<class std::map, class std::vector, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, bool, __int64, unsigned __int64, double, class std::allocator, struct nlohmann::json_abi_v3_11_3::adl_serializer, class std::vector<unsigned char, class std::allocator<unsigned char>>, void>, class nlohmann::json_abi_v3_11_3::detail::iterator_input_adapter<char const *>>::scan(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\nlohmann_json-src\include\nlohmann\detail\input\lexer.hpp:1520
+    #10 0x7ff7bceff071 in nlohmann::json_abi_v3_11_3::detail::parser<class nlohmann::json_abi_v3_11_3::basic_json<class std::map, class std::vector, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, bool, __int64, unsigned __int64, double, class std::allocator, struct nlohmann::json_abi_v3_11_3::adl_serializer, class std::vector<unsigned char, class std::allocator<unsigned char>>, void>, class nlohmann::json_abi_v3_11_3::detail::iterator_input_adapter<char const *>>::get_token(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\nlohmann_json-src\include\nlohmann\detail\input\parser.hpp:475
+    #11 0x7ff7bcef293d in nlohmann::json_abi_v3_11_3::detail::parser<nlohmann::json_abi_v3_11_3::basic_json<std::map,std::vector,std::basic_string<char,std::char_traits<char>,std::allocator<char> >,bool,__int64,unsigned __int64,double,std::allocator,nlohmann::json_abi_v3_11_3::adl_serializer,std::vector<unsigned char,std::allocator<unsigned char> >,void>,nlohmann::json_abi_v3_11_3::detail::iterator_input_adapter<char const *> >::sax_parse_internal<`anonymous namespace'::DocBuilder> D:\workspace-github\xpe-pre\build\a238-asan\_deps\nlohmann_json-src\include\nlohmann\detail\input\parser.hpp:203
+    #12 0x7ff7bcef202e in nlohmann::json_abi_v3_11_3::detail::parser<nlohmann::json_abi_v3_11_3::basic_json<std::map,std::vector,std::basic_string<char,std::char_traits<char>,std::allocator<char> >,bool,__int64,unsigned __int64,double,std::allocator,nlohmann::json_abi_v3_11_3::adl_serializer,std::vector<unsigned char,std::allocator<unsigned char> >,void>,nlohmann::json_abi_v3_11_3::detail::iterator_input_adapter<char const *> >::sax_parse<`anonymous namespace'::DocBuilder> D:\workspace-github\xpe-pre\build\a238-asan\_deps\nlohmann_json-src\include\nlohmann\detail\input\parser.hpp:164
+    #13 0x7ff7bcef1e7b in nlohmann::json_abi_v3_11_3::basic_json<std::map,std::vector,std::basic_string<char,std::char_traits<char>,std::allocator<char> >,bool,__int64,unsigned __int64,double,std::allocator,nlohmann::json_abi_v3_11_3::adl_serializer,std::vector<unsigned char,std::allocator<unsigned char> >,void>::sax_parse<char const *,`anonymous namespace'::DocBuilder> D:\workspace-github\xpe-pre\build\a238-asan\_deps\nlohmann_json-src\include\nlohmann\json.hpp:4103
+    #14 0x7ff7bcf0b2ed in `anonymous namespace'::parse_text D:\workspace-github\xpe-pre\modules\preprocess\src\helpers.cpp:166
+    #15 0x7ff7bcf118ef in xpe_config_parse(char const *, struct XpeConfigDoc *) D:\workspace-github\xpe-pre\modules\preprocess\src\helpers.cpp:221
+    #16 0x7ff7bcf161a1 in `anonymous namespace'::PipelineConfig::fromJson D:\workspace-github\xpe-pre\modules\preprocess\src\pipeline.cpp:72
+    #17 0x7ff7bcf18a96 in pipeline_ex_impl D:\workspace-github\xpe-pre\modules\preprocess\src\pipeline.cpp:702
+    #18 0x7ff7bcf19604 in xpe_preprocess_pipeline_ex D:\workspace-github\xpe-pre\modules\preprocess\src\pipeline.cpp:818
+    #19 0x7ff7bce2bc03 in dsz::entries::__l2::<lambda_58c65a45f3f97bba19d539994af1f343>::operator() D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp:1108
+    #20 0x7ff7bce2bc03 in std::invoke C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\type_traits:1680
+    #21 0x7ff7bce2bc03 in std::_Func_impl_no_alloc<<lambda_58c65a45f3f97bba19d539994af1f343>,int,dsz::Frame &,char const *>::_Do_call C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\functional:882
+    #22 0x7ff7bcde1ba9 in std::_Func_class<int, struct dsz::Frame &, char const *>::operator()(struct dsz::Frame &, char const *) const C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\functional:926
+    #23 0x7ff7bce48ffa in dsz::run(class std::function<(struct dsz::Frame &, char const *)> const &, struct dsz::Frame &, long *, char const *) D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp:1123
+    #24 0x7ff7bce1a25e in OomPipeline_TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims_Test::TestBody(void) D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp:1298
+    #25 0x7ffd09301b56 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2605
+    #26 0x7ffd0930165b in testing::internal::HandleExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2648
+    #27 0x7ffd093821df in testing::Test::Run(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2687
+    #28 0x7ffd09382432 in testing::TestInfo::Run(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2836
+    #29 0x7ffd093827cd in testing::TestSuite::Run(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:3015
+    #30 0x7ffd09383146 in testing::internal::UnitTestImpl::RunAllTests(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:5920
+    #31 0x7ffd09301bb6 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2605
+    #32 0x7ffd09301a99 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2648
+    #33 0x7ffd09382b6e in testing::UnitTest::Run(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:5484
+    #34 0x7ffd234dbaf8 in RUN_ALL_TESTS D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\include\gtest\gtest.h:2317
+    #35 0x7ffd234dbaf8 in main D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest_main.cc:64
+    #36 0x7ff7bcf6f223 in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+    #37 0x7ff7bcf6f223 in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+    #38 0x7ffd438fccb6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002ccb6)
+    #39 0x7ffd446aad6b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x1800aad6b)
+
+0x1276dfd0ea41 is located 1 bytes inside of 257-byte region [0x1276dfd0ea40,0x1276dfd0eb41)
+allocated by thread T0 here:
+    #0 0x7ffcb2efd638 in malloc D:\a\_work\1\s\src\vctools\asan\llvm\compiler-rt\lib\asan\asan_malloc_win.cpp:134
+    #1 0x7ff7bcdd2751 in operator new(unsigned __int64) D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp:190
+    #2 0x7ff7bcee5bbf in std::_Default_allocate_traits::_Allocate C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\xmemory:136
+    #3 0x7ff7bcee5bbf in std::_Allocate C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\xmemory:256
+    #4 0x7ff7bcee5bbf in std::allocator<char>::allocate C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\xmemory:990
+    #5 0x7ff7bcee5bbf in std::_Allocate_at_least_helper C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\xmemory:2303
+    #6 0x7ff7bcee5bbf in std::vector<char, class std::allocator<char>>::_Emplace_reallocate<char>(char *const, char &&) C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\vector:894
+    #7 0x7ff7bcee59d7 in std::vector<char, class std::allocator<char>>::_Emplace_one_at_back<char>(char &&) C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\vector:848
+    #8 0x7ff7bcefb394 in std::vector<char,std::allocator<char> >::push_back C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\vector:938
+    #9 0x7ff7bcefb394 in nlohmann::json_abi_v3_11_3::detail::lexer<class nlohmann::json_abi_v3_11_3::basic_json<class std::map, class std::vector, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, bool, __int64, unsigned __int64, double, class std::allocator, struct nlohmann::json_abi_v3_11_3::adl_serializer, class std::vector<unsigned char, class std::allocator<unsigned char>>, void>, class nlohmann::json_abi_v3_11_3::detail::iterator_input_adapter<char const *>>::get(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\nlohmann_json-src\include\nlohmann\detail\input\lexer.hpp:1355
+    #10 0x7ff7bcf0c497 in nlohmann::json_abi_v3_11_3::detail::lexer<class nlohmann::json_abi_v3_11_3::basic_json<class std::map, class std::vector, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, bool, __int64, unsigned __int64, double, class std::allocator, struct nlohmann::json_abi_v3_11_3::adl_serializer, class std::vector<unsigned char, class std::allocator<unsigned char>>, void>, class nlohmann::json_abi_v3_11_3::detail::iterator_input_adapter<char const *>>::scan(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\nlohmann_json-src\include\nlohmann\detail\input\lexer.hpp:1513
+    #11 0x7ff7bceff071 in nlohmann::json_abi_v3_11_3::detail::parser<class nlohmann::json_abi_v3_11_3::basic_json<class std::map, class std::vector, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, bool, __int64, unsigned __int64, double, class std::allocator, struct nlohmann::json_abi_v3_11_3::adl_serializer, class std::vector<unsigned char, class std::allocator<unsigned char>>, void>, class nlohmann::json_abi_v3_11_3::detail::iterator_input_adapter<char const *>>::get_token(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\nlohmann_json-src\include\nlohmann\detail\input\parser.hpp:475
+    #12 0x7ff7bcef1c3b in nlohmann::json_abi_v3_11_3::detail::parser<nlohmann::json_abi_v3_11_3::basic_json<std::map,std::vector,std::basic_string<char,std::char_traits<char>,std::allocator<char> >,bool,__int64,unsigned __int64,double,std::allocator,nlohmann::json_abi_v3_11_3::adl_serializer,std::vector<unsigned char,std::allocator<unsigned char> >,void>,nlohmann::json_abi_v3_11_3::detail::iterator_input_adapter<char const *> >::{ctor} D:\workspace-github\xpe-pre\build\a238-asan\_deps\nlohmann_json-src\include\nlohmann\detail\input\parser.hpp:77
+    #13 0x7ff7bcef1c3b in nlohmann::json_abi_v3_11_3::basic_json<class std::map, class std::vector, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, bool, __int64, unsigned __int64, double, class std::allocator, struct nlohmann::json_abi_v3_11_3::adl_serializer, class std::vector<unsigned char, class std::allocator<unsigned char>>, void>::parser<class nlohmann::json_abi_v3_11_3::detail::iterator_input_adapter<char const *>>(class nlohmann::json_abi_v3_11_3::detail::iterator_input_adapter<char const *>, class std::function<(int, enum nlohmann::json_abi_v3_11_3::detail::parse_event_t, class nlohmann::json_abi_v3_11_3::basic_json<class std::map, class std::vector, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, bool, __int64, unsigned __int64, double, class std::allocator, struct nlohmann::json_abi_v3_11_3::adl_serializer, class std::vector<unsigned char, class std::allocator<unsigned char>>, void> &)>, bool, bool) D:\workspace-github\xpe-pre\build\a238-asan\_deps\nlohmann_json-src\include\nlohmann\json.hpp:139
+    #14 0x7ff7bcef1e5c in nlohmann::json_abi_v3_11_3::basic_json<std::map,std::vector,std::basic_string<char,std::char_traits<char>,std::allocator<char> >,bool,__int64,unsigned __int64,double,std::allocator,nlohmann::json_abi_v3_11_3::adl_serializer,std::vector<unsigned char,std::allocator<unsigned char> >,void>::sax_parse<char const *,`anonymous namespace'::DocBuilder> D:\workspace-github\xpe-pre\build\a238-asan\_deps\nlohmann_json-src\include\nlohmann\json.hpp:4103
+    #15 0x7ff7bcf0b2ed in `anonymous namespace'::parse_text D:\workspace-github\xpe-pre\modules\preprocess\src\helpers.cpp:166
+    #16 0x7ff7bcf118ef in xpe_config_parse(char const *, struct XpeConfigDoc *) D:\workspace-github\xpe-pre\modules\preprocess\src\helpers.cpp:221
+    #17 0x7ff7bcf161a1 in `anonymous namespace'::PipelineConfig::fromJson D:\workspace-github\xpe-pre\modules\preprocess\src\pipeline.cpp:72
+    #18 0x7ff7bcf18a96 in pipeline_ex_impl D:\workspace-github\xpe-pre\modules\preprocess\src\pipeline.cpp:702
+    #19 0x7ff7bcf19604 in xpe_preprocess_pipeline_ex D:\workspace-github\xpe-pre\modules\preprocess\src\pipeline.cpp:818
+    #20 0x7ff7bce2bc03 in dsz::entries::__l2::<lambda_58c65a45f3f97bba19d539994af1f343>::operator() D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp:1108
+    #21 0x7ff7bce2bc03 in std::invoke C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\type_traits:1680
+    #22 0x7ff7bce2bc03 in std::_Func_impl_no_alloc<<lambda_58c65a45f3f97bba19d539994af1f343>,int,dsz::Frame &,char const *>::_Do_call C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\functional:882
+    #23 0x7ff7bcde1ba9 in std::_Func_class<int, struct dsz::Frame &, char const *>::operator()(struct dsz::Frame &, char const *) const C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\functional:926
+    #24 0x7ff7bce48ffa in dsz::run(class std::function<(struct dsz::Frame &, char const *)> const &, struct dsz::Frame &, long *, char const *) D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp:1123
+    #25 0x7ff7bce1a25e in OomPipeline_TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims_Test::TestBody(void) D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp:1298
+    #26 0x7ffd09301b56 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2605
+    #27 0x7ffd0930165b in testing::internal::HandleExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2648
+    #28 0x7ffd093821df in testing::Test::Run(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2687
+    #29 0x7ffd09382432 in testing::TestInfo::Run(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2836
+    #30 0x7ffd093827cd in testing::TestSuite::Run(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:3015
+    #31 0x7ffd09383146 in testing::internal::UnitTestImpl::RunAllTests(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:5920
+    #32 0x7ffd09301bb6 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2605
+    #33 0x7ffd09301a99 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:2648
+    #34 0x7ffd09382b6e in testing::UnitTest::Run(void) D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest.cc:5484
+    #35 0x7ffd234dbaf8 in RUN_ALL_TESTS D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\include\gtest\gtest.h:2317
+    #36 0x7ffd234dbaf8 in main D:\workspace-github\xpe-pre\build\a238-asan\_deps\googletest-src\googletest\src\gtest_main.cc:64
+
+SUMMARY: AddressSanitizer: unknown-crash D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp:89 in guard::check(void *)
+Shadow bytes around the buggy address:
+  0x1276dfd0e780: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x1276dfd0e800: 00 00 00 00 00 00 00 00 00 00 00 fa fa fa fa fa
+  0x1276dfd0e880: fa fa fa fa fa fa fa fa fd fd fd fd fd fd fd fd
+  0x1276dfd0e900: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x1276dfd0e980: fd fd fd fd fd fd fd fd fd fd fd fd fa fa fa fa
+=>0x1276dfd0ea00: fa fa fa fa fa fa fa fa[01]00 00 00 00 00 00 00
+  0x1276dfd0ea80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x1276dfd0eb00: 00 00 00 00 00 00 00 00 01 fa fa fa fa fa fa fa
+  0x1276dfd0eb80: fa fa fa fa fa fa fa fa 00 00 00 00 00 00 00 00
+  0x1276dfd0ec00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x1276dfd0ec80: 00 00 00 00 00 00 00 00 02 fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==64676==ABORTING
+RUN_EXIT=1
