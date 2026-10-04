@@ -327,26 +327,13 @@ jobs:
       - name: Run tests under AddressSanitizer
         shell: pwsh
         run: |
-          # Three tests are EXCLUDED, each for a stated reason (QA-A-234 M1, measured locally 2026-10-03: they fail
-          # under AddressSanitizer with no AddressSanitizer report -- the instrumentation changes what they measure):
-          #   EnduranceTest.LoadCycles_ControlLeakIsCaught
-          #   XpePreprocessEndurance.ControlLeakIsCaught
-          #       controls that prove a leak detector works by measuring heap growth; the sanitizer's allocator
-          #       changes the heap numbers, so the control does not fire
-          #   RuntimeDetectionPerformanceGateTest.Frame3072SquaredWithinMachineRatio
-          #       a timing gate (54,969 ms under ASan); a time budget means nothing under instrumentation
-          #   OomPipeline.*  (added after the first CI run, main 225a0e44, run 37170199042)
-          #       tests/test_oom_injection.cpp replaces the global operator new/delete with a canary guard; ASan
-          #       interposes the same functions. 7 of the 30 OomPipeline tests stopped with "AddressSanitizer:
-          #       unknown-crash" READ inside the test's own guard::check (test_oom_injection.cpp:89, called from its
-          #       operator delete) or in std::_Zero_range. The 38 OomInjection tests in the same file passed. Read as an
-          #       allocator-interposition conflict, NOT confirmed: #256 asks the pre lane to reproduce under ASan
-          #       locally and show the crashes are the guard reading a block it did not allocate, not a real overrun.
-          # Every other test runs. The names are one regular expression for ctest -E.
-          #   PipelinePerformance3072.TheWholeFrameWithCalibrationLoadedFitsSrsPerf001  (2nd CI run, d13b30d3)
-          #       the SRS-CALIB-PERF-001 500 ms frame gate; same reason as Frame3072SquaredWithinMachineRatio
-          $exclude = 'ControlLeakIsCaught|Frame3072SquaredWithinMachineRatio|OomPipeline\.|PipelinePerformance3072\.TheWholeFrameWithCalibrationLoadedFitsSrsPerf001'
-          ctest --test-dir build/ci-asan --build-config RelWithDebInfo --output-on-failure -E $exclude
+          # No test is excluded by name. Until QA-A-238 this step excluded four groups (ControlLeakIsCaught,
+          # Frame3072SquaredWithinMachineRatio, OomPipeline.*, PipelinePerformance3072...Perf001) on an UNCONFIRMED
+          # reading. QA-A-238 (Codex #156) reproduced each under ASan locally: none is a real memory defect. The
+          # OomPipeline guard and page-guard code now adapt under ASan, and the heap-walk controls and the timing
+          # gates skip with a stated reason when __SANITIZE_ADDRESS__ is defined. A test that fails here now fails
+          # the job -- add an exclusion only with a measured reason, never an inferred one.
+          ctest --test-dir build/ci-asan --build-config RelWithDebInfo --output-on-failure
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload ASan test results
