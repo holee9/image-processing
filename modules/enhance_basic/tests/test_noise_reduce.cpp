@@ -162,9 +162,10 @@ TEST(NoiseReduce, BilateralFilter_ZeroSigmaSpace_ReturnsInvalidInput) {
     free_img(img);
 }
 
-// QA-B-210 E7 (#251, user decision): the spatial kernel is cut at a radius of 15 (2 sigma truncation), so a sigma_space above
-// 15 / 2 = 7.5 cannot be honoured -- ceil(2 * sigma) would exceed the radius cap and the specified value would silently stop
-// mattering. Above the cap the call is refused and the buffer is left untouched; the cap itself is accepted.
+// QA-B-210 E7 / E7b (#251, user decision): the spatial kernel covers 2 sigma with its radius capped at 15, so 15 / 2 = 7.5 is the
+// largest sigma_space whose 2-sigma extent fits. Above it the radius is clamped below 2 sigma (the weights still follow the requested
+// sigma, but the kernel is cut off before 2 sigma -- not the shape the parameter asks for). Above the cap the call is refused and the
+// buffer is left untouched; the cap itself is accepted.
 TEST(NoiseReduce, BilateralFilter_SigmaSpaceAboveTheCap_ReturnsInvalidInputAndLeavesTheBufferUntouched) {
     const float cap = 7.5f;   // header: 0 < sigma_space <= 7.5 (= radius cap 15 / 2)
     for (float sigma : {std::nextafter(cap, 100.0f), 8.0f, 100.0f, 1e6f, (std::numeric_limits<float>::max)()}) {

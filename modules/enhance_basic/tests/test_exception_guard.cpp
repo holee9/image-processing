@@ -544,7 +544,7 @@ TEST(ExceptionGuard, BilateralRefusesANaNRangeSigma) {
 }
 
 // QA-B-210 E7: large FINITE values were legal ("the radius is limited to the image-dependent maximum"); the user decided they are
-// refused above 7.5, the largest sigma_space the radius cap of 15 reflects. FLT_MAX stays the sharp one: 2 * sigma overflows float
+// refused above 7.5, the largest sigma_space whose 2-sigma extent fits the radius cap of 15. FLT_MAX stays the sharp one: 2 * sigma overflows float
 // to infinity before any conversion, so the comparison with the cap must come first -- and it does (INVALID_INPUT, image untouched).
 TEST(ExceptionGuard, BilateralAcceptsSpatialSigmasUpToTheCapAndRefusesLargerFiniteOnes) {
     for (float s : {0.5f, 3.0f, 7.5f}) {

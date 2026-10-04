@@ -168,9 +168,9 @@ XPE_API XpeErrorCode xpe_log_inverse(XpeImageBuffer* img, float normFactor);
  * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if params is NULL, the image
  *         is invalid, mode is neither BILATERAL nor NLM, or the mode's own
  *         parameters are out of range (bilateral: sigma_space/sigma_range <= 0, NaN or
- *         infinite -- QA-B-181d; sigma_space above 7.5 -- QA-B-210: the kernel is
- *         truncated at 2 sigma with a radius cap of 15, so 7.5 is the largest value
- *         that cap reflects;
+ *         infinite -- QA-B-181d; sigma_space above 7.5 -- QA-B-210: 7.5 is the
+ *         largest value whose 2-sigma extent fits the kernel radius cap of 15;
+ *         a larger one would be cut off before 2 sigma, so it is refused;
  *         NLM: search_window/patch_size not odd-positive, h_param <= 0);
  *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32. (REQ-ENH-010)
  */
