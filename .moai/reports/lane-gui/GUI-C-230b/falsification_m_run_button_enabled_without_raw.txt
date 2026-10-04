@@ -1,0 +1,4 @@
+== arm (m): Run Selected is enabled even with no raw image (typing a value could then start a run)
+app rebuilt: True
+[xUnit.net 00:00:04.75]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L01_ASigmaSpaceAboveTheLimit_IsKeptInTheBox_AndTheAppSaysNothing_WhileTyping [FAIL]
+실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 4 s - ImageProcTest.E2ETests.dll (net8.0)

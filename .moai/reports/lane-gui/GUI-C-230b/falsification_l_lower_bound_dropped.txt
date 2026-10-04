@@ -1,0 +1,5 @@
+== arm (l): the lower bound is no longer an error (a value below the minimum is cut silently)
+[xUnit.net 00:00:00.25]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.OutsideTheLimits_ThereIsAMessage_ThatNamesTheValueAndTheBounds(text: "-3") [FAIL]
+[xUnit.net 00:00:00.25]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.OutsideTheLimits_ThereIsAMessage_ThatNamesTheValueAndTheBounds(text: "0") [FAIL]
+[xUnit.net 00:00:00.26]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.OutsideTheLimits_ThereIsAMessage_ThatNamesTheValueAndTheBounds(text: "0.05") [FAIL]
+실패!  - 실패:     3, 통과:    49, 건너뜀:     0, 전체:    52, 기간: 73 ms - ImageProcTest.IntegrationTests.dll (net8.0)

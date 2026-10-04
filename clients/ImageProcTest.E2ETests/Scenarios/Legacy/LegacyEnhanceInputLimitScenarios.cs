@@ -5,16 +5,20 @@ using Xunit.Abstractions;
 namespace ImageProcTest.E2ETests.Scenarios.Legacy;
 
 /// <summary>
-/// The box <c>NoiseSigmaSpaceTextBox</c> (Evaluation tab, "Noise s/r") is read when the stage RUNS, through <c>ReadFloat(…, min, max)</c>, which cuts a number to its limits and replaces a non-number with the default
-/// (<c>EnhanceBasicInputLimits.ParseClamped</c>, tested in the integration project). Nothing is read, cut or reported while the user types. So, for a value above the limit, what a user SEES at input time is:
-/// the box keeps exactly what was typed, the status lines do not change, no dialog appears, and the control carries no hint about its range. These scenarios pin that, by UI Automation, in the real app.
+/// The box <c>NoiseSigmaSpaceTextBox</c> (Evaluation tab, "Noise s/r") is checked when a run is STARTED (<c>ApplyNativePreview</c>): a value outside 0.1..7.5 is refused with a message in the preview text and a
+/// red status line, before anything runs (GUI-C-230b, Codex #153, user decision 2026-10-04: tell the user and do not run; the first version of GUI-C-230 cut such a value to 7.5 silently and ran).
+/// While the user TYPES nothing is checked, so these scenarios pin what is visible at that time, by UI Automation, in the real app: the box keeps exactly what was typed (it is never cut or rewritten,
+/// which is part of the decision), no message appears, no dialog appears, and the run button stays disabled because no raw image is loaded.
 ///
-/// <para><b>What this does not show.</b> The run itself. Running the stage needs a target raw image, and the app loads one only through its Calibration Setup dialog (file and folder pickers), which UI Automation
-/// patterns cannot drive. The value the stage then uses (the typed number cut to 7.5) is shown by the integration tests on the same parser; where it appears on screen after a run (the stage's detail line
-/// <c>sigmaSpace=…</c>, from the value that was passed on) is read from the service's code, not observed here.</para>
+/// <para><b>Why L01 changed (GUI-C-230b).</b> Its assertions about the box (kept as typed, nothing said while typing) are still true and still wanted: they are what lets the refusal message name the value
+/// the user typed. What changed is the meaning: before, "nothing is said" was the whole behaviour, because the value was cut silently at run time; now the refusal at run time is the behaviour and the silence
+/// while typing is only the absence of a premature message. The refusal itself is NOT driven here.</para>
 ///
-/// <para><b>If a hint is added later</b> (a range in the tool-tip, the box rewritten to the cut value, a message), the assertions here that say "nothing" fail on purpose: they record today's behaviour so a change is a
-/// decision, not an accident.</para>
+/// <para><b>What this does not show, and why (measured, GUI-C-230b).</b> The refusal (value 8, press Run Selected) and the run (value 7.5) need a loaded raw image, and the app loads one only through the "Load Raw..." common
+/// file dialog. That dialog opens and its file-name edit accepts the path through UI Automation (read back equal), but its Open button does nothing when invoked by UI Automation (tried: InvokePattern, LegacyIAccessible
+/// DoDefaultAction, focusing the edit first, bringing the dialog to the foreground; the dialog stayed open each time, and the app then reported "failed to exit"). Pressing Enter would work but is a key press that goes to
+/// whichever window is in front, which this lane does not do on a shared desktop. So the refusal is covered where it can be: the decision function and its wiring are tested in the integration project, and the run
+/// button's disabled state without a raw image is asserted here.</para>
 /// </summary>
 public sealed class LegacyEnhanceInputLimitScenarios(ITestOutputHelper output)
 {
@@ -36,6 +40,7 @@ public sealed class LegacyEnhanceInputLimitScenarios(ITestOutputHelper output)
         Assert.Equal("3.0", start);
         Assert.Contains("help=''", control);
         Assert.Contains("status=''", control);
+        Assert.Contains("enabled=False", app.DescribeControl(Tab, "ApplyNativePreviewButton"));   // no raw image loaded: Run Selected cannot start a run at all, whatever the box says
 
         // below the limit, at it, above it (the old limit was 100), far above it, and not a number
         foreach (var typed in new[] { "7.4", "7.5", "7.6", "50", "100", "1e6", "abc" })
@@ -50,6 +55,7 @@ public sealed class LegacyEnhanceInputLimitScenarios(ITestOutputHelper output)
             Assert.Equal(modes, app.ReadText(Tab, "StageModesInfoText"));
             Assert.Equal(control, app.DescribeControl(Tab, Box));                             // the control itself says nothing about a range or an error
             Assert.Equal(windows, app.TopLevelWindowCount());                                 // no dialog, no message box
+            Assert.Contains("enabled=False", app.DescribeControl(Tab, "ApplyNativePreviewButton"));   // typing a value does not enable or trigger a run
         }
     }
 }

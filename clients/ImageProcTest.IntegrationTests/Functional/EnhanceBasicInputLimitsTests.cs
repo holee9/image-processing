@@ -56,6 +56,105 @@ public sealed class EnhanceBasicInputLimitsTests
         Assert.Contains("EnhanceBasicInputLimits.ParseClamped(textBox.Text, fallback, min, max)", readFloat);   // ReadFloat is the shared parser, so the tests below are about the window's behaviour
     }
 
+    // ---- GUI-C-230b (Codex #153): a value outside the limits is refused with a message, not cut and run ------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("0.1")]
+    [InlineData("3.0")]
+    [InlineData("7.4")]
+    [InlineData("7.5")]
+    [InlineData(" 7.5 ")]
+    [InlineData("abc")]    // not a number: the default is used, as before; not an error of this check
+    [InlineData("")]
+    [InlineData(null)]
+    public void InsideTheLimits_ThereIsNoError(string? text) =>
+        Assert.Null(EnhanceBasicInputLimits.SigmaSpaceError(text));
+
+    [Theory]
+    [InlineData("7.6")]
+    [InlineData("8")]
+    [InlineData("50")]
+    [InlineData("100")]
+    [InlineData("1e6")]
+    [InlineData("0.05")]
+    [InlineData("0")]
+    [InlineData("-3")]
+    [InlineData("NaN")]
+    [InlineData("Infinity")]
+    public void OutsideTheLimits_ThereIsAMessage_ThatNamesTheValueAndTheBounds(string text)
+    {
+        var message = EnhanceBasicInputLimits.SigmaSpaceError(text);
+
+        Assert.NotNull(message);
+        Assert.Contains(text, message);
+        Assert.Contains("0.1", message);
+        Assert.Contains("7.5", message);
+        Assert.Contains("Nothing was run", message);
+    }
+
+    [Fact]
+    public void TheWindow_ChecksTheBox_BeforeAnythingRuns_AndStopsThere()
+    {
+        var source = Read(MainWindowPath);
+        var start = source.IndexOf("private void ApplyNativePreview()", StringComparison.Ordinal);
+        var end = source.IndexOf("private void StageSelection_Changed", StringComparison.Ordinal);
+        Assert.True(start > 0 && end > start, "ApplyNativePreview was not found");
+        var body = source[start..end];
+
+        var check = body.IndexOf("GetEnhanceBasicInputError(enhanceSelection)", StringComparison.Ordinal);
+        Assert.True(check > 0, "ApplyNativePreview does not check the sigma_space box");
+
+        // everything that can change a result comes after the check
+        foreach (var later in new[] { "ApplyBypassPreview(", "RunSelectedNativePreview(" })
+        {
+            Assert.True(body.IndexOf(later, StringComparison.Ordinal) > check, $"'{later}' comes before the check");
+        }
+
+        // the refusal shows the message and a red status, then returns: no result is touched
+        var afterRefusal = body.IndexOf("if (!preprocessSelection.HasAnyStage && !enhanceSelection.HasAnyStage)", StringComparison.Ordinal);
+        Assert.True(afterRefusal > check, "the refusal block was not found");
+        var refusal = body[check..afterRefusal];
+        Assert.Contains("SetNativePreviewText(\"Native preview: \" + inputError)", refusal);
+        Assert.Contains("SetStatus(\"Input out of range\", Brushes.OrangeRed)", refusal);
+        Assert.Contains("return;", refusal);
+        foreach (var touched in new[] { "lastNativePreviewResult", "lastEnhanceBasicPreviewResult", "lastPresentationExportResult", "ClearNativePreview" })
+        {
+            Assert.DoesNotContain(touched, refusal);
+        }
+    }
+
+    [Fact]
+    public void TheCheck_AppliesToTheNoiseStageOnly_AndReadsTheBox_AndTheOtherRunPathsRefuseToo()
+    {
+        var source = Read(MainWindowPath);
+
+        Assert.Contains("selection.Noise ? EnhanceBasicInputLimits.SigmaSpaceError(NoiseSigmaSpaceTextBox?.Text) : null", source);
+
+        // backstop: the algorithm-validation and chain paths call RunNativeEnhanceBasicPreview directly
+        var start = source.IndexOf("private NativeEnhanceBasicPreviewResult RunNativeEnhanceBasicPreview(", StringComparison.Ordinal);
+        Assert.True(start > 0, "RunNativeEnhanceBasicPreview was not found");
+        var head = source.Substring(start, 900);
+        Assert.Contains("if (GetEnhanceBasicInputError(selection) is { } inputError)", head);   // not "if (false && ...)": the whole condition is pinned
+        Assert.Contains("throw new InvalidOperationException(inputError)", head);
+    }
+
+    [Fact]
+    public void TheComment_SaysWhatAValueAboveTheLimitReallyDid_WithTheWeightsItNames()
+    {
+        // the weights the comment quotes, computed: exp(-0.5 d^2 / sigma^2) at distance 10
+        static double Weight(double sigma) => Math.Exp(-0.5 * 100.0 / (sigma * sigma));
+        Assert.Equal("0.411", Weight(7.5).ToString("0.000", CultureInfo.InvariantCulture));
+        Assert.Equal("0.458", Weight(8.0).ToString("0.000", CultureInfo.InvariantCulture));
+
+        var comment = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("clients/ImageProcTest/Services/EnhanceBasicInputLimits.cs"));
+        Assert.Contains("0.411", comment);
+        Assert.Contains("0.458", comment);
+        Assert.Contains("exp(-0.5 d^2 / sigma^2)", comment);
+        Assert.DoesNotContain("behave like 7.5", comment);
+        Assert.DoesNotContain("keeps what such an input did", comment);
+        Assert.DoesNotContain("the same effect", comment);
+    }
+
     // ---- the module's statement of the bound -------------------------------------------------------------------------------------------------------------------------------
 
     [Fact]

@@ -1211,6 +1211,15 @@ namespace ImageProcTest
 
             var preprocessSelection = GetPreprocessSelection();
             var enhanceSelection = GetEnhanceBasicSelection();
+            var inputError = GetEnhanceBasicInputError(enhanceSelection);
+            if (inputError is not null)
+            {
+                // GUI-C-230b: refuse before anything runs, so the image and the results stay exactly as they were.
+                SetNativePreviewText("Native preview: " + inputError);
+                SetStatus("Input out of range", Brushes.OrangeRed);
+                return;
+            }
+
             if (!preprocessSelection.HasAnyStage && !enhanceSelection.HasAnyStage)
             {
                 ApplyBypassPreview("All pre/post stages are unchecked.");
@@ -1534,6 +1543,11 @@ namespace ImageProcTest
             if (currentPreview is null)
             {
                 throw new InvalidOperationException("Load a raw preview before running native post-processing.");
+            }
+
+            if (GetEnhanceBasicInputError(selection) is { } inputError)
+            {
+                throw new InvalidOperationException(inputError);   // backstop for the callers that do not check first (algorithm validation, chain)
             }
 
             SetStatus($"Running {statusLabel} post stages...", Brushes.Goldenrod);
@@ -2318,6 +2332,9 @@ namespace ImageProcTest
                 ContrastEnabledCheckBox?.IsChecked == true,
                 EdgeEnabledCheckBox?.IsChecked == true);
         }
+
+        private string? GetEnhanceBasicInputError(EnhanceBasicStageSelection selection) =>
+            selection.Noise ? EnhanceBasicInputLimits.SigmaSpaceError(NoiseSigmaSpaceTextBox?.Text) : null;
 
         private EnhanceBasicStageParameters GetEnhanceBasicParameters()
         {
