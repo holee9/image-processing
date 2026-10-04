@@ -147,6 +147,19 @@ TEST(A237bMem, DISABLED_ShippedPath) {
     {
         std::vector<uint8_t> payload(N, 0);
         for (uint32_t k = 0; k < 16; ++k) payload[static_cast<size_t>(150 + 170 * k) * W + (100 + 180 * k)] = 1;
+        // XPE_A237F_BPMAP (QA-A-237f): a real defect map (CalData_6 BPMap.map, uint8 W*H, 0 = good) in place of the 16 isolated
+        // fixture pixels -- those never reach the defect stage's fill-distance table (a masked pixel with no valid pixel in
+        // its 3x3), which a real map does.
+        const std::string bpmap = envStr("XPE_A237F_BPMAP");
+        if (!bpmap.empty()) {
+            std::FILE* f = nullptr;
+            ASSERT_EQ(0, fopen_s(&f, bpmap.c_str(), "rb"));
+            ASSERT_EQ(payload.size(), std::fread(payload.data(), 1, payload.size(), f));
+            std::fclose(f);
+            size_t masked = 0;
+            for (uint8_t& v : payload) { if (v != 0) { v = 1; ++masked; } }
+            std::printf("[a237f] defect map %s: %zu masked pixels (%.3f %%)\n", bpmap.c_str(), masked, 100.0 * masked / payload.size());
+        }
         XCalFileHeader hdr;
         std::memset(&hdr, 0, sizeof(hdr));
         std::memcpy(hdr.magic, XCAL_MAGIC, 4);

@@ -1,0 +1,12 @@
+pair 0 A: ok=True steady 153.4 MiB peak 199.9 MiB times ['315.8', '281.7', '292.4', '306.5', '289.7', '308.9'] ms
+pair 0 B: ok=True steady 153.3 MiB peak 189.9 MiB times ['330.8', '308.5', '312.2', '317.1', '318.2', '324.3'] ms
+pair 1 B: ok=True steady 153.4 MiB peak 189.8 MiB times ['298.1', '302.6', '298.1', '307.4', '296.1', '302.7'] ms
+pair 1 A: ok=True steady 153.3 MiB peak 199.9 MiB times ['294.6', '288.7', '290.5', '286.9', '291.1', '289.5'] ms
+pair 2 A: ok=True steady 153.4 MiB peak 199.9 MiB times ['290.4', '292.7', '289.2', '286.3', '292.1', '284.4'] ms
+pair 2 B: ok=True steady 153.4 MiB peak 189.8 MiB times ['298.4', '301.8', '299.5', '297.5', '298.2', '300.7'] ms
+
+config: tier 3, frames 6, raw_dir D:/workspace-github/image-processing/tests/test_data/CalData_6, pairs 3, exe xpe_preprocess_tests.exe
+A: memory steady [153.3, 153.4] MiB, peak [199.9] MiB (module, over runs); frame time min 281.7 ms, median of 15 warm frames 289.7 ms; all runs ok=True
+B: memory steady [153.3, 153.4] MiB, peak [189.8, 189.9] MiB (module, over runs); frame time min 296.1 ms, median of 15 warm frames 302.6 ms; all runs ok=True
+output digests identical across ALL runs of both builds: True  (6 frames per run)
+B/A: peak 0.950, time min 1.051, time median 1.045

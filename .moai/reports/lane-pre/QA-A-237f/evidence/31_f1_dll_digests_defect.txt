@@ -1,0 +1,393 @@
+Note: Google Test filter = OutputUnchanged237b.*:*Defect*
+[==========] Running 130 tests from 38 test suites.
+[----------] Global test environment set-up.
+[----------] 15 tests from DefectCorrectTest
+[ RUN      ] DefectCorrectTest.InPlaceMatchesOutOfPlace
+[       OK ] DefectCorrectTest.InPlaceMatchesOutOfPlace (13 ms)
+[ RUN      ] DefectCorrectTest.OutOfPlaceStillCorrectsWithoutTheSnapshot
+[       OK ] DefectCorrectTest.OutOfPlaceStillCorrectsWithoutTheSnapshot (5 ms)
+[ RUN      ] DefectCorrectTest.PartiallyOverlappingBuffersAreRefused
+[       OK ] DefectCorrectTest.PartiallyOverlappingBuffersAreRefused (3 ms)
+[ RUN      ] DefectCorrectTest.NoDefectsLeavesImageUnchanged
+[       OK ] DefectCorrectTest.NoDefectsLeavesImageUnchanged (3 ms)
+[ RUN      ] DefectCorrectTest.SingleDefectPixelIsReplaced
+[       OK ] DefectCorrectTest.SingleDefectPixelIsReplaced (3 ms)
+[ RUN      ] DefectCorrectTest.NullInputReturnsError
+[       OK ] DefectCorrectTest.NullInputReturnsError (1 ms)
+[ RUN      ] DefectCorrectTest.NullOutputReturnsError
+[       OK ] DefectCorrectTest.NullOutputReturnsError (0 ms)
+[ RUN      ] DefectCorrectTest.DimensionMismatchReturnsError
+[       OK ] DefectCorrectTest.DimensionMismatchReturnsError (0 ms)
+[ RUN      ] DefectCorrectTest.DefectMapNotLoadedReturnsCalibNotLoaded
+[       OK ] DefectCorrectTest.DefectMapNotLoadedReturnsCalibNotLoaded (1 ms)
+[ RUN      ] DefectCorrectTest.DefectClusterUsesMedianFilter
+[       OK ] DefectCorrectTest.DefectClusterUsesMedianFilter (2 ms)
+[ RUN      ] DefectCorrectTest.EdgeDefectUsesInBoundsNeighbors
+[       OK ] DefectCorrectTest.EdgeDefectUsesInBoundsNeighbors (4 ms)
+[ RUN      ] DefectCorrectTest.CorrectionRecallOnSyntheticDefects
+[       OK ] DefectCorrectTest.CorrectionRecallOnSyntheticDefects (2 ms)
+[ RUN      ] DefectCorrectTest.DetectRuntimeNullImgReturnsError
+[       OK ] DefectCorrectTest.DetectRuntimeNullImgReturnsError (1 ms)
+[ RUN      ] DefectCorrectTest.DetectRuntimeNullOutReturnsError
+[       OK ] DefectCorrectTest.DetectRuntimeNullOutReturnsError (0 ms)
+[ RUN      ] DefectCorrectTest.DetectRuntimeCleanImageYieldsZeroDefects
+[       OK ] DefectCorrectTest.DetectRuntimeCleanImageYieldsZeroDefects (0 ms)
+[----------] 15 tests from DefectCorrectTest (46 ms total)
+
+[----------] 2 tests from CalibManagerTest
+[ RUN      ] CalibManagerTest.LoadDefectMapNullPathReturnsError
+[       OK ] CalibManagerTest.LoadDefectMapNullPathReturnsError (0 ms)
+[ RUN      ] CalibManagerTest.LoadDefectMapNonExistentFileReturnsIoError
+[       OK ] CalibManagerTest.LoadDefectMapNonExistentFileReturnsIoError (0 ms)
+[----------] 2 tests from CalibManagerTest (0 ms total)
+
+[----------] 1 test from Boundary
+[ RUN      ] Boundary.DefectCorrect1x1NoDefect
+[       OK ] Boundary.DefectCorrect1x1NoDefect (0 ms)
+[----------] 1 test from Boundary (0 ms total)
+
+[----------] 1 test from XCalWriterTest
+[ RUN      ] XCalWriterTest.DefectUint8Mask_ExactFileSize
+[       OK ] XCalWriterTest.DefectUint8Mask_ExactFileSize (9 ms)
+[----------] 1 test from XCalWriterTest (9 ms total)
+
+[----------] 1 test from XCalValidatorTest
+[ RUN      ] XCalValidatorTest.ValidDefectHeader_ReturnsOk
+[       OK ] XCalValidatorTest.ValidDefectHeader_ReturnsOk (0 ms)
+[----------] 1 test from XCalValidatorTest (0 ms total)
+
+[----------] 1 test from RleCodecTest
+[ RUN      ] RleCodecTest.RoundTrip_SparseDefect
+[       OK ] RleCodecTest.RoundTrip_SparseDefect (1 ms)
+[----------] 1 test from RleCodecTest (1 ms total)
+
+[----------] 1 test from XCalCompressionTest
+[ RUN      ] XCalCompressionTest.UncompressedDefect_StillReadsCorrectly
+[       OK ] XCalCompressionTest.UncompressedDefect_StillReadsCorrectly (8 ms)
+[----------] 1 test from XCalCompressionTest (8 ms total)
+
+[----------] 1 test from XCalCompressionMetaTest
+[ RUN      ] XCalCompressionMetaTest.TheOldWritersShapesAreOnlyRepairedForAnRleCompressedDefectFile
+[       OK ] XCalCompressionMetaTest.TheOldWritersShapesAreOnlyRepairedForAnRleCompressedDefectFile (21 ms)
+[----------] 1 test from XCalCompressionMetaTest (21 ms total)
+
+[----------] 2 tests from PipelineStageTest
+[ RUN      ] PipelineStageTest.DefectStageFailsWhenItsMapIsNotLoaded
+[       OK ] PipelineStageTest.DefectStageFailsWhenItsMapIsNotLoaded (0 ms)
+[ RUN      ] PipelineStageTest.BypassDefectStillSkipsTheStageCleanly
+[       OK ] PipelineStageTest.BypassDefectStillSkipsTheStageCleanly (0 ms)
+[----------] 2 tests from PipelineStageTest (1 ms total)
+
+[----------] 1 test from CalibrationCacheTest
+[ RUN      ] CalibrationCacheTest.DefectCacheMissAndHit
+[       OK ] CalibrationCacheTest.DefectCacheMissAndHit (8 ms)
+[----------] 1 test from CalibrationCacheTest (8 ms total)
+
+[----------] 6 tests from CalibLoadTest
+[ RUN      ] CalibLoadTest.LoadDefect_HappyPath_ReturnsOk
+[       OK ] CalibLoadTest.LoadDefect_HappyPath_ReturnsOk (8 ms)
+[ RUN      ] CalibLoadTest.LoadDefect_NullPath_ReturnsInvalidInput
+[       OK ] CalibLoadTest.LoadDefect_NullPath_ReturnsInvalidInput (1 ms)
+[ RUN      ] CalibLoadTest.LoadDefect_NonExistentFile_ReturnsIoFailed
+[       OK ] CalibLoadTest.LoadDefect_NonExistentFile_ReturnsIoFailed (3 ms)
+[ RUN      ] CalibLoadTest.LoadDefect_WrongType_ReturnsConfigInvalid
+[       OK ] CalibLoadTest.LoadDefect_WrongType_ReturnsConfigInvalid (7 ms)
+[ RUN      ] CalibLoadTest.LoadDefect_TamperedPayload_ReturnsConfigInvalid
+[       OK ] CalibLoadTest.LoadDefect_TamperedPayload_ReturnsConfigInvalid (12 ms)
+[ RUN      ] CalibLoadTest.LoadDefect_ExpiredTimestamp_ReturnsCalibrationExpired
+[       OK ] CalibLoadTest.LoadDefect_ExpiredTimestamp_ReturnsCalibrationExpired (11 ms)
+[----------] 6 tests from CalibLoadTest (44 ms total)
+
+[----------] 3 tests from SessionConsistency
+[ RUN      ] SessionConsistency.ConflictingDefectMapIsRefused
+[       OK ] SessionConsistency.ConflictingDefectMapIsRefused (13 ms)
+[ RUN      ] SessionConsistency.DefectMapSessionIsComparedAgainstOffsetAndGain
+[       OK ] SessionConsistency.DefectMapSessionIsComparedAgainstOffsetAndGain (14 ms)
+[ RUN      ] SessionConsistency.CachedDefectHitRefusesLikeTheMiss
+[       OK ] SessionConsistency.CachedDefectHitRefusesLikeTheMiss (13 ms)
+[----------] 3 tests from SessionConsistency (41 ms total)
+
+[----------] 1 test from CalibSaveTest
+[ RUN      ] CalibSaveTest.RoundTrip_Defect_BitIdentical
+[       OK ] CalibSaveTest.RoundTrip_Defect_BitIdentical (9 ms)
+[----------] 1 test from CalibSaveTest (9 ms total)
+
+[----------] 2 tests from PreprocessCalibrationTest
+[ RUN      ] PreprocessCalibrationTest.LoadDefectMap_ValidXCalFile
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_xpe_preprocess_calibration.cpp(219): Skipped
+XCal fixture not yet implemented (T-005)
+
+[  SKIPPED ] PreprocessCalibrationTest.LoadDefectMap_ValidXCalFile (1 ms)
+[ RUN      ] PreprocessCalibrationTest.LoadDefectMap_InvalidFilePath
+[       OK ] PreprocessCalibrationTest.LoadDefectMap_InvalidFilePath (3 ms)
+[----------] 2 tests from PreprocessCalibrationTest (5 ms total)
+
+[----------] 6 tests from PreprocessCorrectionTest
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_BasicInterpolation
+[       OK ] PreprocessCorrectionTest.DefectCorrect_BasicInterpolation (3 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_DimensionMismatch
+[       OK ] PreprocessCorrectionTest.DefectCorrect_DimensionMismatch (2 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_NullBuffers
+[       OK ] PreprocessCorrectionTest.DefectCorrect_NullBuffers (0 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_FormatMismatch
+[       OK ] PreprocessCorrectionTest.DefectCorrect_FormatMismatch (2 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_ClusterDefectHandling
+[       OK ] PreprocessCorrectionTest.DefectCorrect_ClusterDefectHandling (3 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_EdgeDefectHandling
+[       OK ] PreprocessCorrectionTest.DefectCorrect_EdgeDefectHandling (3 ms)
+[----------] 6 tests from PreprocessCorrectionTest (15 ms total)
+
+[----------] 1 test from PreprocessDegraded
+[ RUN      ] PreprocessDegraded.BP03_DefectEmptyListIsNoOp
+[       OK ] PreprocessDegraded.BP03_DefectEmptyListIsNoOp (0 ms)
+[----------] 1 test from PreprocessDegraded (0 ms total)
+
+[----------] 2 tests from DefectCorrectDeterminismTest
+[ RUN      ] DefectCorrectDeterminismTest.MultipleCallsAreBitIdentical
+[       OK ] DefectCorrectDeterminismTest.MultipleCallsAreBitIdentical (11 ms)
+[ RUN      ] DefectCorrectDeterminismTest.DeterministicOnANonMultipleStride
+[       OK ] DefectCorrectDeterminismTest.DeterministicOnANonMultipleStride (15 ms)
+[----------] 2 tests from DefectCorrectDeterminismTest (26 ms total)
+
+[----------] 1 test from RuntimeDetectDeterminismTest
+[ RUN      ] RuntimeDetectDeterminismTest.DefectMapBitIdentical
+[       OK ] RuntimeDetectDeterminismTest.DefectMapBitIdentical (6 ms)
+[----------] 1 test from RuntimeDetectDeterminismTest (6 ms total)
+
+[----------] 3 tests from RuntimeDetectionFunctionalTest
+[ RUN      ] RuntimeDetectionFunctionalTest.SparseDefectsInLowNoiseField
+[       OK ] RuntimeDetectionFunctionalTest.SparseDefectsInLowNoiseField (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.DefectSurvivesHighNoise
+[       OK ] RuntimeDetectionFunctionalTest.DefectSurvivesHighNoise (0 ms)
+[ RUN      ] RuntimeDetectionFunctionalTest.LargeImageDetectsItsInjectedDefect
+[       OK ] RuntimeDetectionFunctionalTest.LargeImageDetectsItsInjectedDefect (18 ms)
+[----------] 3 tests from RuntimeDetectionFunctionalTest (19 ms total)
+
+[----------] 2 tests from RuntimeDetectionErrorTest
+[ RUN      ] RuntimeDetectionErrorTest.NonUint8DefectMapIsRejected
+[       OK ] RuntimeDetectionErrorTest.NonUint8DefectMapIsRejected (0 ms)
+[ RUN      ] RuntimeDetectionErrorTest.UndersizedDefectMapReportsBufferTooSmall
+[       OK ] RuntimeDetectionErrorTest.UndersizedDefectMapReportsBufferTooSmall (0 ms)
+[----------] 2 tests from RuntimeDetectionErrorTest (0 ms total)
+
+[----------] 2 tests from VerifyMetricsTest
+[ RUN      ] VerifyMetricsTest.VerifyDefect_CountsDefects
+[       OK ] VerifyMetricsTest.VerifyDefect_CountsDefects (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyDefect_GateMatchesTheFivePercentRequirement
+[       OK ] VerifyMetricsTest.VerifyDefect_GateMatchesTheFivePercentRequirement (0 ms)
+[----------] 2 tests from VerifyMetricsTest (0 ms total)
+
+[----------] 3 tests from VerifyMetricsEdgeTest
+[ RUN      ] VerifyMetricsEdgeTest.VerifyDefectRejectsWrongMaskFormat
+[       OK ] VerifyMetricsEdgeTest.VerifyDefectRejectsWrongMaskFormat (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyDefectHandlesMaskWithNoDefects
+[       OK ] VerifyMetricsEdgeTest.VerifyDefectHandlesMaskWithNoDefects (0 ms)
+[ RUN      ] VerifyMetricsEdgeTest.VerifyDefectHandlesFullyDefectiveMask
+[       OK ] VerifyMetricsEdgeTest.VerifyDefectHandlesFullyDefectiveMask (0 ms)
+[----------] 3 tests from VerifyMetricsEdgeTest (0 ms total)
+
+[----------] 1 test from GainPolyNotAppliedTest
+[ RUN      ] GainPolyNotAppliedTest.ASingleOutOfRangePixelIsClassifiedDefectiveNotRejected
+[       OK ] GainPolyNotAppliedTest.ASingleOutOfRangePixelIsClassifiedDefectiveNotRejected (2 ms)
+[----------] 1 test from GainPolyNotAppliedTest (2 ms total)
+
+[----------] 1 test from MetadataNotReadTest
+[ RUN      ] MetadataNotReadTest.DefectCorrectOutputIsTheSameForAnyMetadata
+[       OK ] MetadataNotReadTest.DefectCorrectOutputIsTheSameForAnyMetadata (5 ms)
+[----------] 1 test from MetadataNotReadTest (5 ms total)
+
+[----------] 13 tests from GainDefectClassifyTest
+[ RUN      ] GainDefectClassifyTest.AMapWithAFewBadPixelsLoadsAndTheCountIsReported
+[       OK ] GainDefectClassifyTest.AMapWithAFewBadPixelsLoadsAndTheCountIsReported (5 ms)
+[ RUN      ] GainDefectClassifyTest.ANonFiniteGainIsClassifiedToo
+[       OK ] GainDefectClassifyTest.ANonFiniteGainIsClassifiedToo (1 ms)
+[ RUN      ] GainDefectClassifyTest.AMapWithNoBadPixelRaisesNoAlertAndTheBoundsAreInclusive
+[       OK ] GainDefectClassifyTest.AMapWithNoBadPixelRaisesNoAlertAndTheBoundsAreInclusive (1 ms)
+[ RUN      ] GainDefectClassifyTest.ExactlyFivePercentLoadsOneMoreIsRefusedAndTheLoadedMapStays
+[       OK ] GainDefectClassifyTest.ExactlyFivePercentLoadsOneMoreIsRefusedAndTheLoadedMapStays (3 ms)
+[ RUN      ] GainDefectClassifyTest.AWholeMapOutOfRangeIsStillRefused
+[       OK ] GainDefectClassifyTest.AWholeMapOutOfRangeIsStillRefused (5 ms)
+[ RUN      ] GainDefectClassifyTest.TheClassifiedPixelsAreFilledFromTheirNeighboursByTheDefectStage
+[       OK ] GainDefectClassifyTest.TheClassifiedPixelsAreFilledFromTheirNeighboursByTheDefectStage (2 ms)
+[ RUN      ] GainDefectClassifyTest.TheDefectMapAndTheClassificationAreBothCorrected
+[       OK ] GainDefectClassifyTest.TheDefectMapAndTheClassificationAreBothCorrected (2 ms)
+[ RUN      ] GainDefectClassifyTest.WithTheDefectStageBypassedTheClassifiedPixelsPassAtGainOneAndTheFrameSaysSo
+[       OK ] GainDefectClassifyTest.WithTheDefectStageBypassedTheClassifiedPixelsPassAtGainOneAndTheFrameSaysSo (1 ms)
+[ RUN      ] GainDefectClassifyTest.ClassifiedPixelsWithBinningAreRefusedBecauseBinningWouldSpreadTheUncorrectedValue
+[       OK ] GainDefectClassifyTest.ClassifiedPixelsWithBinningAreRefusedBecauseBinningWouldSpreadTheUncorrectedValue (2 ms)
+[ RUN      ] GainDefectClassifyTest.WithNothingClassifiedBinningIsNotRefusedByThisRule
+[       OK ] GainDefectClassifyTest.WithNothingClassifiedBinningIsNotRefusedByThisRule (2 ms)
+[ RUN      ] GainDefectClassifyTest.AUnionAboveFivePercentWarnsOncePerFrameAndStillCorrects
+[       OK ] GainDefectClassifyTest.AUnionAboveFivePercentWarnsOncePerFrameAndStillCorrects (2 ms)
+[ RUN      ] GainDefectClassifyTest.ACleanMapTakesThePathItAlwaysTookAndRaisesNothing
+[       OK ] GainDefectClassifyTest.ACleanMapTakesThePathItAlwaysTookAndRaisesNothing (2 ms)
+[ RUN      ] GainDefectClassifyTest.ACacheHitInstallsTheSameClassificationAsTheMiss
+[       OK ] GainDefectClassifyTest.ACacheHitInstallsTheSameClassificationAsTheMiss (3 ms)
+[----------] 13 tests from GainDefectClassifyTest (37 ms total)
+
+[----------] 1 test from GainPolyClassifyTest
+[ RUN      ] GainPolyClassifyTest.CalledOnItsOwnTheGainStageKeepsGainOneAndSaysNoDefectStageFollows
+[       OK ] GainPolyClassifyTest.CalledOnItsOwnTheGainStageKeepsGainOneAndSaysNoDefectStageFollows (7 ms)
+[----------] 1 test from GainPolyClassifyTest (7 ms total)
+
+[----------] 11 tests from DefectFillTest
+[ RUN      ] DefectFillTest.ACentre3x3ClassifiedByTheGainMapIsFilledFromTheRingNotWithZero
+[       OK ] DefectFillTest.ACentre3x3ClassifiedByTheGainMapIsFilledFromTheRingNotWithZero (6 ms)
+[ RUN      ] DefectFillTest.AClusterOfTheDefectMapItselfIsFilledTheSameWay
+[       OK ] DefectFillTest.AClusterOfTheDefectMapItselfIsFilledTheSameWay (2 ms)
+[ RUN      ] DefectFillTest.TheNearestRingDecidesNotAWiderOne
+[       OK ] DefectFillTest.TheNearestRingDecidesNotAWiderOne (2 ms)
+[ RUN      ] DefectFillTest.InPlaceAndOutOfPlaceAgreeOnTheRingPathAndNeitherIsZero
+[       OK ] DefectFillTest.InPlaceAndOutOfPlaceAgreeOnTheRingPathAndNeitherIsZero (1 ms)
+[ RUN      ] DefectFillTest.APixelWithNoValidPixelWithinTheSearchRadiusKeepsItsValueAndTheFrameSaysSo
+[       OK ] DefectFillTest.APixelWithNoValidPixelWithinTheSearchRadiusKeepsItsValueAndTheFrameSaysSo (1 ms)
+[ RUN      ] DefectFillTest.AFrameWhoseMaskedPixelsAllHaveAValidNeighbourRaisesNothing
+[       OK ] DefectFillTest.AFrameWhoseMaskedPixelsAllHaveAValidNeighbourRaisesNothing (1 ms)
+[ RUN      ] DefectFillTest.ABypassedGainStageDoesNotLetBinningMixInAStoredClassification
+[       OK ] DefectFillTest.ABypassedGainStageDoesNotLetBinningMixInAStoredClassification (2 ms)
+[ RUN      ] DefectFillTest.WithNothingClassifiedTheSameConfigIsNotRefusedByThisRule
+[       OK ] DefectFillTest.WithNothingClassifiedTheSameConfigIsNotRefusedByThisRule (2 ms)
+[ RUN      ] DefectFillTest.WithTheDefectStageBypassedTooTheStoredListIsNotDeliveredAndBinningIsLeftAlone
+[       OK ] DefectFillTest.WithTheDefectStageBypassedTooTheStoredListIsNotDeliveredAndBinningIsLeftAlone (1 ms)
+[ RUN      ] DefectFillTest.TheLoadAlertSaysMarkedAndListedNotFilled
+[       OK ] DefectFillTest.TheLoadAlertSaysMarkedAndListedNotFilled (1 ms)
+[ RUN      ] DefectFillTest.TheApplicationAlertOfAPolynomialSaysMarkedAndListedNotFilled
+[       OK ] DefectFillTest.TheApplicationAlertOfAPolynomialSaysMarkedAndListedNotFilled (2 ms)
+[----------] 11 tests from DefectFillTest (26 ms total)
+
+[----------] 10 tests from DefectFillEquivalenceTest
+[ RUN      ] DefectFillEquivalenceTest.OneBigBlockWhoseDeepInteriorIsBeyondTheSearchRadius
+[       OK ] DefectFillEquivalenceTest.OneBigBlockWhoseDeepInteriorIsBeyondTheSearchRadius (49 ms)
+[ RUN      ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorIsWithinTenPixels
+[       OK ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorIsWithinTenPixels (22 ms)
+[ RUN      ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorReachesTwentyPixels
+[       OK ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorReachesTwentyPixels (33 ms)
+[ RUN      ] DefectFillEquivalenceTest.ASparseRealisticMaskOfLonePixelsAndSmallClusters
+[       OK ] DefectFillEquivalenceTest.ASparseRealisticMaskOfLonePixelsAndSmallClusters (8 ms)
+[ RUN      ] DefectFillEquivalenceTest.BlocksTouchingTheFrameEdgesAndCorners
+[       OK ] DefectFillEquivalenceTest.BlocksTouchingTheFrameEdgesAndCorners (2 ms)
+[ RUN      ] DefectFillEquivalenceTest.AFrameWhollyMasked
+[       OK ] DefectFillEquivalenceTest.AFrameWhollyMasked (8 ms)
+[ RUN      ] DefectFillEquivalenceTest.ThinLinesAndDiagonals
+[       OK ] DefectFillEquivalenceTest.ThinLinesAndDiagonals (1 ms)
+[ RUN      ] DefectFillEquivalenceTest.WhenTheRingMixesNegativeAndPositiveZeroTheFilledValueIsTheReferenceValue
+[       OK ] DefectFillEquivalenceTest.WhenTheRingMixesNegativeAndPositiveZeroTheFilledValueIsTheReferenceValue (427 ms)
+[ RUN      ] DefectFillEquivalenceTest.ThroughThePipelineTheDefectStageIsOnlyEverGivenFiniteValues
+[       OK ] DefectFillEquivalenceTest.ThroughThePipelineTheDefectStageIsOnlyEverGivenFiniteValues (6 ms)
+[ RUN      ] DefectFillEquivalenceTest.ThreeHundredRandomMasks
+[       OK ] DefectFillEquivalenceTest.ThreeHundredRandomMasks (714 ms)
+[----------] 10 tests from DefectFillEquivalenceTest (1275 ms total)
+
+[----------] 5 tests from DefectInputFiniteTest
+[ RUN      ] DefectInputFiniteTest.ANonFiniteFrameIsRefusedWithInvalidInputAndTheOutputBufferIsLeftAlone
+[       OK ] DefectInputFiniteTest.ANonFiniteFrameIsRefusedWithInvalidInputAndTheOutputBufferIsLeftAlone (1 ms)
+[ RUN      ] DefectInputFiniteTest.CalledInPlaceARefusedFrameLeavesTheInputBytesAsTheyWere
+[       OK ] DefectInputFiniteTest.CalledInPlaceARefusedFrameLeavesTheInputBytesAsTheyWere (1 ms)
+[ RUN      ] DefectInputFiniteTest.TheAlertNamesTheCountAndTheFirstPixel
+[       OK ] DefectInputFiniteTest.TheAlertNamesTheCountAndTheFirstPixel (1 ms)
+[ RUN      ] DefectInputFiniteTest.AFiniteFrameIsCorrectedExactlyAsBeforeAndRaisesNothing
+[       OK ] DefectInputFiniteTest.AFiniteFrameIsCorrectedExactlyAsBeforeAndRaisesNothing (1 ms)
+[ RUN      ] DefectInputFiniteTest.ThePrecedenceOfTheOlderErrorsIsKept
+[       OK ] DefectInputFiniteTest.ThePrecedenceOfTheOlderErrorsIsKept (1 ms)
+[----------] 5 tests from DefectInputFiniteTest (7 ms total)
+
+[----------] 2 tests from SigmaClipNMinTest
+[ RUN      ] SigmaClipNMinTest.PixelBelowTheFloorIsMarkedDefective
+[       OK ] SigmaClipNMinTest.PixelBelowTheFloorIsMarkedDefective (0 ms)
+[ RUN      ] SigmaClipNMinTest.PublicEntryPointCreatesNoDefectMap
+[       OK ] SigmaClipNMinTest.PublicEntryPointCreatesNoDefectMap (1 ms)
+[----------] 2 tests from SigmaClipNMinTest (1 ms total)
+
+[----------] 4 tests from GenerateOffsetConfigTest
+[ RUN      ] GenerateOffsetConfigTest.NMinMarksLandInTheGlobalDefectMap
+[xpe] sigma-clip N_min: 4 pixel(s) below the floor, 4 newly marked in the defect map (XPE-ALG-001 9.8.2.1)
+[       OK ] GenerateOffsetConfigTest.NMinMarksLandInTheGlobalDefectMap (5 ms)
+[ RUN      ] GenerateOffsetConfigTest.RunsThatMarkNothingCreateNoDefectMap
+[       OK ] GenerateOffsetConfigTest.RunsThatMarkNothingCreateNoDefectMap (1 ms)
+[ RUN      ] GenerateOffsetConfigTest.MarksAgainstADifferentSizedDefectMapAreRefused
+[       OK ] GenerateOffsetConfigTest.MarksAgainstADifferentSizedDefectMapAreRefused (7 ms)
+[ RUN      ] GenerateOffsetConfigTest.MarksAgainstASameSizedDefectMapAreMerged
+[xpe] sigma-clip N_min: 4 pixel(s) below the floor, 4 newly marked in the defect map (XPE-ALG-001 9.8.2.1)
+[       OK ] GenerateOffsetConfigTest.MarksAgainstASameSizedDefectMapAreMerged (6 ms)
+[----------] 4 tests from GenerateOffsetConfigTest (21 ms total)
+
+[----------] 1 test from CalibDimMismatch
+[ RUN      ] CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput
+[       OK ] CalibDimMismatch.DefectMapDifferentFromInputReturnsInvalidInput (10 ms)
+[----------] 1 test from CalibDimMismatch (10 ms total)
+
+[----------] 4 tests from DefectOracle
+[ RUN      ] DefectOracle.RecallFprAndGoodPixelDeltaMeetTheCanonicalLines
+[oracle] seed=1 truth=130 (isolated 59, cluster 45, line 16, edge 10) TP=130 FN=0 FP=0 recall=100.0000% FPR=0.000000% GoodPixelDeltaP99=0.0000 ADU
+[oracle] seed=2 truth=130 (isolated 59, cluster 45, line 16, edge 10) TP=130 FN=0 FP=0 recall=100.0000% FPR=0.000000% GoodPixelDeltaP99=0.0000 ADU
+[oracle] seed=3 truth=130 (isolated 59, cluster 45, line 16, edge 10) TP=130 FN=0 FP=0 recall=100.0000% FPR=0.000000% GoodPixelDeltaP99=0.0000 ADU
+[       OK ] DefectOracle.RecallFprAndGoodPixelDeltaMeetTheCanonicalLines (9971 ms)
+[ RUN      ] DefectOracle.ControlOneMissedDefectBreaksRecall
+[       OK ] DefectOracle.ControlOneMissedDefectBreaksRecall (50 ms)
+[ RUN      ] DefectOracle.ControlOneFalseAlarmShowsInFpr
+[       OK ] DefectOracle.ControlOneFalseAlarmShowsInFpr (54 ms)
+[ RUN      ] DefectOracle.ControlFlaggingManyGoodPixelsBreaksGoodPixelDelta
+[       OK ] DefectOracle.ControlFlaggingManyGoodPixelsBreaksGoodPixelDelta (61 ms)
+[----------] 4 tests from DefectOracle (10138 ms total)
+
+[----------] 1 test from CacheGlobalStore
+[ RUN      ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore
+[       OK ] CacheGlobalStore.DefectCacheHitLeavesThatMapInTheGlobalStore (9 ms)
+[----------] 1 test from CacheGlobalStore (9 ms total)
+
+[----------] 1 test from CorrectMapSharing
+[ RUN      ] CorrectMapSharing.DefectCorrectionDuringAReloadIsWhollyOneMapOrTheOther
+[       OK ] CorrectMapSharing.DefectCorrectionDuringAReloadIsWhollyOneMapOrTheOther (1563 ms)
+[----------] 1 test from CorrectMapSharing (1563 ms total)
+
+[----------] 8 tests from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+[       OK ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize (514 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryBypassCombinations
+[       OK ] OutputUnchanged237b.PipelineEntryBypassCombinations (379 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+[       OK ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer (40 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+[       OK ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute (136 ms)
+[ RUN      ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes
+[       OK ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes (114 ms)
+[ RUN      ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere
+[       OK ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere (26 ms)
+[ RUN      ] OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory
+[       OK ] OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory (0 ms)
+[ RUN      ] OutputUnchanged237b.GhostNonFiniteFramesAreRefusedAndChangeNothing
+[       OK ] OutputUnchanged237b.GhostNonFiniteFramesAreRefusedAndChangeNothing (8 ms)
+[----------] 8 tests from OutputUnchanged237b (1220 ms total)
+
+[----------] 1 test from ThreadParityTest
+[ RUN      ] ThreadParityTest.DefectMapIsIdenticalPixelForPixelAtEveryThreadCount
+[       OK ] ThreadParityTest.DefectMapIsIdenticalPixelForPixelAtEveryThreadCount (215 ms)
+[----------] 1 test from ThreadParityTest (215 ms total)
+
+[----------] 8 tests from AllCombinations/PipelineComboTest
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_NoDefect (9 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_OneDefect (7 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_NoDefect (6 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_OneDefect (7 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_NoDefect (6 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_OneDefect (7 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_NoDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_NoDefect (6 ms)
+[ RUN      ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_OneDefect
+[       OK ] AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_OneDefect (7 ms)
+[----------] 8 tests from AllCombinations/PipelineComboTest (59 ms total)
+
+[----------] Global test environment tear-down
+[==========] 130 tests from 38 test suites ran. (14871 ms total)
+[  PASSED  ] 129 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] PreprocessCalibrationTest.LoadDefectMap_ValidXCalFile
+
+  YOU HAVE 3 DISABLED TESTS
+

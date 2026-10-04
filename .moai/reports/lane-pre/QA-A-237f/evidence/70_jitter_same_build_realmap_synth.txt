@@ -1,0 +1,30 @@
+pair 0 A: ok=True steady 153.3 MiB peak 189.9 MiB times ['90.5', '93.1', '94.1'] ms
+pair 0 B: ok=True steady 153.3 MiB peak 189.9 MiB times ['101.3', '92.8', '89.5'] ms
+pair 1 B: ok=True steady 153.3 MiB peak 189.9 MiB times ['96.0', '97.7', '93.5'] ms
+pair 1 A: ok=True steady 153.3 MiB peak 189.8 MiB times ['94.7', '92.4', '92.7'] ms
+pair 2 A: ok=True steady 153.3 MiB peak 189.9 MiB times ['93.1', '95.7', '91.5'] ms
+pair 2 B: ok=True steady 153.3 MiB peak 189.9 MiB times ['91.8', '89.4', '89.9'] ms
+pair 3 B: ok=True steady 153.3 MiB peak 189.9 MiB times ['96.0', '96.2', '92.3'] ms
+pair 3 A: ok=True steady 153.3 MiB peak 189.9 MiB times ['92.5', '97.5', '90.4'] ms
+pair 4 A: ok=True steady 153.3 MiB peak 189.9 MiB times ['93.5', '92.7', '90.2'] ms
+pair 4 B: ok=True steady 153.3 MiB peak 189.9 MiB times ['94.6', '94.1', '90.0'] ms
+pair 5 B: ok=True steady 153.3 MiB peak 189.9 MiB times ['92.8', '98.0', '95.9'] ms
+pair 5 A: ok=True steady 153.3 MiB peak 189.9 MiB times ['93.5', '91.9', '102.1'] ms
+pair 6 A: ok=True steady 153.3 MiB peak 189.9 MiB times ['89.4', '97.5', '99.2'] ms
+pair 6 B: ok=True steady 153.3 MiB peak 189.9 MiB times ['91.5', '91.5', '106.3'] ms
+pair 7 B: ok=True steady 153.3 MiB peak 189.9 MiB times ['89.4', '91.2', '91.6'] ms
+pair 7 A: ok=True steady 153.3 MiB peak 189.9 MiB times ['92.3', '96.3', '98.0'] ms
+pair 8 A: ok=True steady 153.3 MiB peak 189.9 MiB times ['95.0', '97.3', '95.1'] ms
+pair 8 B: ok=True steady 153.3 MiB peak 189.9 MiB times ['92.5', '92.1', '101.1'] ms
+pair 9 B: ok=True steady 153.3 MiB peak 189.9 MiB times ['101.5', '101.6', '96.6'] ms
+pair 9 A: ok=True steady 153.3 MiB peak 189.9 MiB times ['95.9', '100.4', '94.9'] ms
+pair 10 A: ok=True steady 153.3 MiB peak 189.9 MiB times ['98.2', '98.5', '100.6'] ms
+pair 10 B: ok=True steady 153.3 MiB peak 189.9 MiB times ['97.5', '96.5', '94.9'] ms
+pair 11 B: ok=True steady 153.3 MiB peak 189.9 MiB times ['97.2', '94.7', '94.4'] ms
+pair 11 A: ok=True steady 153.3 MiB peak 189.9 MiB times ['95.1', '95.3', '104.1'] ms
+
+config: tier 1, frames 3, raw_dir synthetic, pairs 12, exe xpe_preprocess_tests.exe
+A: memory steady [153.3] MiB, peak [189.8, 189.9] MiB (module, over runs); frame time min 89.4 ms, median of 24 warm frames 95.5 ms; all runs ok=True
+B: memory steady [153.3] MiB, peak [189.9] MiB (module, over runs); frame time min 89.4 ms, median of 24 warm frames 94.2 ms; all runs ok=True
+output digests identical across ALL runs of both builds: True  (3 frames per run)
+B/A: peak 1.000, time min 1.000, time median 0.987
