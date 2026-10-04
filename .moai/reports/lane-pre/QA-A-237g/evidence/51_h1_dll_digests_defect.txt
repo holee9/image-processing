@@ -390,4 +390,3 @@ XCal fixture not yet implemented (T-005)
 [  SKIPPED ] PreprocessCalibrationTest.LoadDefectMap_ValidXCalFile
 
   YOU HAVE 3 DISABLED TESTS
-
