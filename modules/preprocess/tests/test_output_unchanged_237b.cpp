@@ -755,7 +755,7 @@ TEST(OutputUnchanged237b, DefectStageOutputForEveryMaskShape) {
     const Size sizes[] = {{1, 1}, {3, 3}, {17, 5}, {64, 64}, {203, 157}, {256, 192}};
     for (const Size sz : sizes) {
         const size_t n = static_cast<size_t>(sz.w) * sz.h;
-        for (int shape = 0; shape < 7; ++shape) {
+        for (int shape = 0; shape < 8; ++shape) {
             std::shared_ptr<uint8_t[]> mask(new uint8_t[n]());
             Rng rng(7000u + shape * 131u + sz.w);
             auto at = [&](uint32_t x, uint32_t y) -> uint8_t& { return mask[static_cast<size_t>(y) * sz.w + x]; };
@@ -785,6 +785,14 @@ TEST(OutputUnchanged237b, DefectStageOutputForEveryMaskShape) {
                     break;
                 case 5:   // every pixel
                     for (size_t i = 0; i < n; ++i) mask[i] = 1;
+                    break;
+                case 7:   // solid blocks of 3x3 up to 33x33 (radius >= 2 fills, some deeper than the fill radius) among isolated pixels
+                    for (size_t i = 0; i < n; ++i) mask[i] = (rng.next() % 173u == 0u) ? 1 : 0;
+                    for (const uint32_t side : {3u, 4u, 5u, 7u, 9u, 12u, 17u, 25u, 33u}) {
+                        const uint32_t x0 = rng.next() % sz.w, y0 = rng.next() % sz.h;
+                        for (uint32_t dy = 0; dy < side && y0 + dy < sz.h; ++dy)
+                            for (uint32_t dx = 0; dx < side && x0 + dx < sz.w; ++dx) at(x0 + dx, y0 + dy) = 1;
+                    }
                     break;
                 default:  // isolated pixels, completed by a per-frame list of classified pixels (below)
                     for (size_t i = 0; i < n; ++i) mask[i] = (rng.next() % 151u == 0u) ? 1 : 0;
@@ -970,6 +978,13 @@ std::map<std::string, uint64_t>& golden() {
         {"defect/shape6/256x192", 0x4081d7b130ad384aull},
         {"defect/shape6/3x3", 0xdce840b004d75517ull},
         {"defect/shape6/64x64", 0x5296484dad498ed3ull},
+        // recorded on 760772e9 (before the defect stage's tables were indexed by masked pixel, QA-A-237f): shape 7, blocks of 3x3 up to 33x33
+        {"defect/shape7/17x5", 0xf75209774d0b4ec7ull},
+        {"defect/shape7/1x1", 0x870a8bd15bf84728ull},
+        {"defect/shape7/203x157", 0xd3215e1ca8146c16ull},
+        {"defect/shape7/256x192", 0x7312ef67845290f4ull},
+        {"defect/shape7/3x3", 0x7f006fe5d0de67dbull},
+        {"defect/shape7/64x64", 0x0d185c4806cca3dcull},
     };
     return g;
 }

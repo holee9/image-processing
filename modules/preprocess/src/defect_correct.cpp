@@ -16,6 +16,7 @@
 #include <limits>
 #include <vector>
 #include <algorithm>
+#include <emmintrin.h>
 #include <queue>
 
 namespace {
@@ -27,7 +28,66 @@ struct ClusterInfo {
     bool isCluster; // true if 2+ adjacent defects
 };
 
-// `visited` is W*H and all-false on entry; the pixels of the cluster found here are LEFT marked on return.
+// QA-A-237f (#245, SRS-CALIB-PERF-002): where the per-pixel tables of this stage live. The cluster search's `visited` marks
+// (1 bit a pixel) and the fill-distance table (1 byte a pixel, 9 MiB at 3072x3072) are only ever read or written for MASKED
+// pixels, and a frame has few of them (a real defect map of 23,505 pixels is 0.25 % of the frame). So both are indexed by
+// the rank of the pixel among the masked ones -- a sorted list of their indices, 4 bytes each -- instead of by the pixel's
+// own index; a table of where each 512-pixel block's masked pixels start in that list (73 KB at 3072x3072) keeps a lookup
+// to a few comparisons. Above the density where the list costs more than the planes it replaces (5 bytes a masked pixel against
+// 1.125 bytes a pixel) the list is not built and the tables are indexed by pixel index, as they were: the values stored
+// and read are the same in both modes.
+struct MaskIndex {
+    bool dense = true;                 // true: slot(idx) == idx
+    std::vector<uint32_t> masked;      // sparse mode: the indices of the masked pixels, ascending
+    std::vector<uint32_t> blockStart;  // sparse mode: blockStart[b] = how many masked pixels have an index below b * kBlock
+    static constexpr size_t kBlock = 512;
+    size_t slots = 0;                  // the number of entries each table needs
+
+    void build(const uint8_t* mask, size_t n) {
+        const auto forEachMasked = [&](auto&& fn) {
+            // Most of a frame is valid: 64 bytes are tested at a time (four 16-byte loads ORed), the masked ones are found
+            // byte by byte only in a block that is not all zero. Ascending order either way.
+            const __m128i zero = _mm_setzero_si128();
+            size_t i = 0;
+            for (; i + 64 <= n; i += 64) {
+                const __m128i* block = reinterpret_cast<const __m128i*>(mask + i);
+                const __m128i any = _mm_or_si128(_mm_or_si128(_mm_loadu_si128(block), _mm_loadu_si128(block + 1)),
+                                                 _mm_or_si128(_mm_loadu_si128(block + 2), _mm_loadu_si128(block + 3)));
+                if (_mm_movemask_epi8(_mm_cmpeq_epi8(any, zero)) == 0xFFFF) continue;
+                for (size_t k = i; k < i + 64; ++k) {
+                    if (mask[k] != 0) fn(k);
+                }
+            }
+            for (; i < n; ++i) {
+                if (mask[i] != 0) fn(i);
+            }
+        };
+        size_t count = 0;
+        forEachMasked([&](size_t) { ++count; });
+        dense = (count * 5u > n);
+        if (dense) {
+            slots = n;
+            return;
+        }
+        masked.reserve(count);
+        forEachMasked([&](size_t i) { masked.push_back(static_cast<uint32_t>(i)); });
+        blockStart.assign(n / kBlock + 2, 0);
+        for (const uint32_t idx : masked) ++blockStart[idx / kBlock + 1];
+        for (size_t b = 1; b < blockStart.size(); ++b) blockStart[b] += blockStart[b - 1];
+        slots = count;
+    }
+    // Only for a masked pixel.
+    size_t slot(size_t idx) const {
+        if (dense) return idx;
+        const size_t b = idx / kBlock;
+        const uint32_t lo = blockStart[b], hi = blockStart[b + 1];
+        if (hi - lo == 1u) return lo;   // the one masked pixel of the block: most blocks of a sparse map
+        const auto first = masked.begin() + lo;
+        return static_cast<size_t>(std::lower_bound(first, masked.begin() + hi, static_cast<uint32_t>(idx)) - masked.begin());
+    }
+};
+
+// `visited` is indexed by MaskIndex::slot and all-false on entry; the pixels of the cluster found here are LEFT marked on return.
 // QA-A-103 (#179): it used to be allocated (W*H) per defect pixel, which made
 // the correction O(defects x W*H) -- 2.97 s for 0.1 % defects at 3072x3072.
 // QA-A-237e (#245): the marks used to be cleared again on return, and the caller kept a second plane (`processed`)
@@ -36,14 +96,14 @@ struct ClusterInfo {
 // plane (1.125 MiB at 3072x3072) serves both.
 ClusterInfo analyzeCluster(const uint8_t* defectMask, uint32_t width, uint32_t height,
                            uint32_t startX, uint32_t startY,
-                           std::vector<bool>& visited)
+                           const MaskIndex& mi, std::vector<bool>& visited)
 {
     ClusterInfo info;
     std::queue<uint32_t> q;
 
     uint32_t startIdx = startY * width + startX;
     q.push(startIdx);
-    visited[startIdx] = true;
+    visited[mi.slot(startIdx)] = true;
 
     const int dx[] = {-1, 1, 0, 0};
     const int dy[] = {0, 0, -1, 1};
@@ -64,9 +124,12 @@ ClusterInfo analyzeCluster(const uint8_t* defectMask, uint32_t width, uint32_t h
                 static_cast<uint32_t>(nx) < width &&
                 static_cast<uint32_t>(ny) < height) {
                 uint32_t nidx = static_cast<uint32_t>(ny) * width + static_cast<uint32_t>(nx);
-                if (!visited[nidx] && defectMask[nidx] != 0) {
-                    visited[nidx] = true;
-                    q.push(nidx);
+                if (defectMask[nidx] != 0) {
+                    const size_t slot = mi.slot(nidx);   // once: the lookup is the cost of this loop
+                    if (!visited[slot]) {
+                        visited[slot] = true;
+                        q.push(nidx);
+                    }
                 }
             }
         }
@@ -96,9 +159,10 @@ struct FillDistance {
     std::vector<uint8_t> dist;
     bool ready = false;
 
-    void build(const uint8_t* mask, uint32_t width, uint32_t height) {
+    // `dist` has one entry a MaskIndex slot (QA-A-237f); it is read and written only for masked pixels.
+    void build(const uint8_t* mask, uint32_t width, uint32_t height, const MaskIndex& mi) {
         const size_t n = static_cast<size_t>(width) * height;
-        dist.assign(n, 0);
+        dist.assign(mi.slots, 0);
         std::vector<uint32_t> frontier, next;
         auto touchesValid = [&](uint32_t x, uint32_t y) {
             for (int dy = -1; dy <= 1; ++dy) {
@@ -121,7 +185,7 @@ struct FillDistance {
                 if (word == 0) { idx += 7; continue; }
             }
             if (mask[idx] != 0 && touchesValid(static_cast<uint32_t>(idx % width), static_cast<uint32_t>(idx / width))) {
-                dist[idx] = 1;
+                dist[mi.slot(idx)] = 1;
                 frontier.push_back(static_cast<uint32_t>(idx));
             }
         }
@@ -137,7 +201,9 @@ struct FillDistance {
                         const int nx = static_cast<int>(x) + dx;
                         if (nx < 0 || static_cast<uint32_t>(nx) >= width) continue;
                         const size_t nidx = static_cast<size_t>(ny) * width + static_cast<uint32_t>(nx);
-                        if (mask[nidx] != 0 && dist[nidx] == 0) { dist[nidx] = static_cast<uint8_t>(layer + 1); next.push_back(static_cast<uint32_t>(nidx)); }
+                        if (mask[nidx] == 0) continue;
+                        const size_t slot = mi.slot(nidx);
+                        if (dist[slot] == 0) { dist[slot] = static_cast<uint8_t>(layer + 1); next.push_back(static_cast<uint32_t>(nidx)); }
                     }
                 }
             }
@@ -156,7 +222,7 @@ struct FillDistance {
 // Only unmasked pixels are read, whatever the radius: the in-place guarantee of xpe_defect_correct_in holds.
 float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
                              uint32_t x, uint32_t y,
-                             uint32_t width, uint32_t height, FillDistance& fd, std::vector<float>& values, bool* found)
+                             uint32_t width, uint32_t height, const MaskIndex& mi, FillDistance& fd, std::vector<float>& values, bool* found)
 {
     values.clear();   // a scratch buffer the caller reuses: no allocation per pixel (QA-A-213)
     *found = true;
@@ -180,8 +246,8 @@ float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
     }
 
     if (values.empty()) {
-        if (!fd.ready) fd.build(defectMask, width, height);
-        const int radius = fd.dist[static_cast<size_t>(y) * width + x];   // 0: none within kFillMaxRadius
+        if (!fd.ready) fd.build(defectMask, width, height, mi);
+        const int radius = fd.dist[mi.slot(static_cast<size_t>(y) * width + x)];   // 0: none within kFillMaxRadius
         if (radius >= 2) {
             for (int dy = -radius; dy <= radius; ++dy) {
                 const int ny = static_cast<int>(y) + dy;
@@ -418,7 +484,9 @@ XpeErrorCode xpe_defect_correct_in(
     const float* const source = src;
 
     // REQ-P1A-012: cluster-aware defect correction
-    std::vector<bool> visited(n, false);   // the pixels of every cluster found so far, corrected or being corrected
+    MaskIndex maskIndex;                   // QA-A-237f: the tables below are indexed by masked pixel, not by pixel
+    maskIndex.build(dm, n);
+    std::vector<bool> visited(maskIndex.slots, false);   // the pixels of every cluster found so far, corrected or being corrected
     size_t unfilled = 0;                   // masked pixels with no valid pixel within kFillMaxRadius (QA-A-211b)
     FillDistance fillDistance;             // built on the first cluster pixel whose 3x3 holds no valid pixel (QA-A-213)
     std::vector<float> fillValues;         // scratch for median_filter_cluster
@@ -426,14 +494,14 @@ XpeErrorCode xpe_defect_correct_in(
     for (uint32_t y = 0; y < H; ++y) {
         for (uint32_t x = 0; x < W; ++x) {
             uint32_t idx = y * W + x;
-            if (dm[idx] != 0 && !visited[idx]) {
-                ClusterInfo cluster = analyzeCluster(dm, W, H, x, y, visited);
+            if (dm[idx] != 0 && !visited[maskIndex.slot(idx)]) {
+                ClusterInfo cluster = analyzeCluster(dm, W, H, x, y, maskIndex, visited);
                 if (cluster.isCluster) {
                     for (uint32_t cidx : cluster.positions) {
                         uint32_t cx = cidx % W;
                         uint32_t cy = cidx / W;
                         bool found = true;
-                        dst[cidx] = median_filter_cluster(source, dm, cx, cy, W, H, fillDistance, fillValues, &found);
+                        dst[cidx] = median_filter_cluster(source, dm, cx, cy, W, H, maskIndex, fillDistance, fillValues, &found);
                         if (!found) ++unfilled;
                     }
                 } else {

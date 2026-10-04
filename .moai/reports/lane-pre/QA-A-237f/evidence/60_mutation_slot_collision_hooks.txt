@@ -1,0 +1,93 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OutputUnchanged237b.DefectStage*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.DefectStageOutputForEveryMaskShape
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 14097633929221859575
+  value
+    Which is: 12085385508015414206
+defect/shape0/203x157: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 5734179777187107537
+  value
+    Which is: 7751669113511310483
+defect/shape1/203x157: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 15318491218510228947
+  value
+    Which is: 1379647717768037738
+defect/shape2/203x157: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 16975607798623272910
+  value
+    Which is: 6325981624700636305
+defect/shape3/203x157: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 10446003285837543812
+  value
+    Which is: 17312032876648595389
+defect/shape6/203x157: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 15213544493406252054
+  value
+    Which is: 9764962351638129231
+defect/shape7/203x157: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 7592368952422806021
+  value
+    Which is: 9582833453193750043
+defect/shape0/256x192: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 62495373729858028
+  value
+    Which is: 3654057662323662241
+defect/shape1/256x192: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 412525130992221442
+  value
+    Which is: 1059107861060572175
+defect/shape3/256x192: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 4648233446448904266
+  value
+    Which is: 13154821963711265119
+defect/shape6/256x192: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 8291953091823177972
+  value
+    Which is: 11222732597572218887
+defect/shape7/256x192: the output changed
+
+[  FAILED  ] OutputUnchanged237b.DefectStageOutputForEveryMaskShape (39 ms)
+[----------] 1 test from OutputUnchanged237b (39 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (40 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OutputUnchanged237b.DefectStageOutputForEveryMaskShape
+
+ 1 FAILED TEST
