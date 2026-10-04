@@ -1,0 +1,3 @@
+clients/ImageProcTest.E2ETests/Fixtures/ProcessIdentity.cs:24:        && foregroundProcessId == (uint)applicationProcessId;
+clients/ImageProcTest.E2ETests/Fixtures/ProcessIdentity.cs:28:        processId > 0 && applicationProcessId > 0 && processId == applicationProcessId;
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/MenuBehaviorScenarios.cs:408:                .Where(e => e.Properties.ProcessId.ValueOrDefault == pid)

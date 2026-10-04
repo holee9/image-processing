@@ -1,0 +1,2 @@
+== arm (d): the condition 'the foreground's id is known (> 0)' is removed (implied by the application's id > 0 plus the equality: expected to stay green)
+통과!  - 실패:     0, 통과:    19, 건너뜀:     0, 전체:    19, 기간: 933 ms - ImageProcTest.E2ETests.dll (net8.0)
