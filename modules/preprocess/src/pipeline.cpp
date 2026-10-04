@@ -128,6 +128,13 @@ namespace {
      * check that turns a future slip in the stage chain into an error instead of a read past a buffer
      * (QA-A-208, Codex #34).
      */
+    /**
+     * QA-A-237b (#245, SRS-CALIB-PERF-002): hands a stage buffer back as soon as nothing reads it any more. The
+     * per-frame buffers used to live until pipeline_core returned, which put six of them (162.0 MiB at 3072x3072) on
+     * top of the calibration maps and the ghost history at the last stage.
+     */
+    template <class V> void release_buffer(V& v) noexcept { V().swap(v); }
+
     bool stage_input_is(const XpeImageBuffer& b, decltype(XpeImageBuffer::format) format, size_t bytes) {
         return b.data != nullptr && b.format == format && b.dataSize >= bytes;
     }
@@ -226,6 +233,7 @@ namespace {
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_OFFSET_CORRECTED;
+            release_buffer(stage1Data);   // stage 2 holds its own frame; nothing reads stage 1 again
         }
 #ifdef XPE_CACHE_TEST_HOOKS
         if (xpe_pipeline_after_stage_hook) xpe_pipeline_after_stage_hook(2);
@@ -245,6 +253,8 @@ namespace {
             // buffer of its own, so with offset enabled (the default) the gain
             // stage received an all-zero frame.
             std::memcpy(stage3Data.data(), stage2.data, pixelCount * sizeof(uint16_t));
+            release_buffer(stage1Data);   // stage 3 holds its own copy: the frames it was made from are not read again
+            release_buffer(stage2Data);
 
             bool applied = false;
             // QA-A-111 (#186): the stage now reads the config -- `panel.linear`
@@ -281,6 +291,9 @@ namespace {
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_GAIN_CORRECTED;
+            release_buffer(stage1Data);   // stage 4 holds its own float frame; the uint16 frames are not read again
+            release_buffer(stage2Data);
+            release_buffer(stage3Data);
 
             // QA-A-211 (#233): pixels the gain calibration classified defective carry the uncorrected value (gain 1.0)
             // until the defect stage fills them from their neighbours.
@@ -324,6 +337,9 @@ namespace {
 
             const uint16_t* in16 = static_cast<const uint16_t*>(stage3.data);
             for (size_t i = 0; i < pixelCount; ++i) stage4Data[i] = static_cast<float>(in16[i]);
+            release_buffer(stage1Data);   // the converted frame is its own; the uint16 frames are not read again
+            release_buffer(stage2Data);
+            release_buffer(stage3Data);
         } else {
             // No gain correction and no float stage after it: stage4 = stage3 (uint16)
             stage4 = stage3;
@@ -363,6 +379,7 @@ namespace {
             // defect stage, so a binned frame came out as zeros.
             if (!stage_input_is(stage4, XPE_PIXEL_FLOAT32, floatBytes)) return XPE_ERR_PROCESSING_FAILED;
             std::memcpy(stage5Data.data(), stage4.data, pixelCount * sizeof(float));
+            release_buffer(stage4Data);   // stage 5 holds its own copy
             result = xpe_binning_correct(&stage5, cfg.binningMode, nullptr);
             if (result != XPE_OK) return result;
 
@@ -388,23 +405,42 @@ namespace {
             if (!calib.defect_map) return XPE_ERR_CALIB_NOT_LOADED;
         }
 
-        if (!cfg.bypassDefect) {
-            stage6Data.resize(pixelCount);
-            stage6.width = img->width;
-            stage6.height = img->height;
-            stage6.bitsAllocated = 32u;
-            stage6.bitsStored = 32u;
-            stage6.format = XPE_PIXEL_FLOAT32;
-            stage6.data = stage6Data.data();
-            stage6.dataSize = stage6Data.size() * sizeof(float);
+        // QA-A-237b (#245): whether `p` is the frame of one of the float buffers this call made itself (the caller's
+        // buffer and the buffers of earlier stages that were handed back are not). A stage may work in place on such a
+        // buffer; on the caller's buffer it may not, because a stage that fails half way would leave it changed.
+        const auto owns_float = [&](const void* p) noexcept {
+            return p != nullptr && ((!stage4Data.empty() && p == stage4Data.data()) ||
+                                    (!stage5Data.empty() && p == stage5Data.data()) ||
+                                    (!stage6Data.empty() && p == stage6Data.data()));
+        };
 
+        if (!cfg.bypassDefect) {
             // Defect correction: stage5(input) → stage6(output), defectMap for BPM lookup
             // meta, not nullptr: xpe_defect_correct rejects a null metadata
             // pointer. This stage never ran before the gate was fixed above, so
             // the malformed call had never been reached.
             if (!stage_input_is(stage5, XPE_PIXEL_FLOAT32, floatBytes)) return XPE_ERR_PROCESSING_FAILED;
-            result = xpe_defect_correct_in(calib, &stage5, &stage6, meta, &frameGainDefects);
-            if (result != XPE_OK) return result;
+            if (owns_float(stage5.data)) {
+                // In place (QA-A-146: the stage reads only pixels it does not write, so one buffer serves as input and
+                // output; the call shape is documented and pinned by DefectCorrectTest.InPlaceMatchesOutOfPlace). No
+                // third float frame, and the copy of input to output is skipped inside the stage.
+                result = xpe_defect_correct_in(calib, &stage5, &stage5, meta, &frameGainDefects);
+                if (result != XPE_OK) return result;
+                stage6 = stage5;
+            } else {
+                stage6Data.resize(pixelCount);
+                stage6.width = img->width;
+                stage6.height = img->height;
+                stage6.bitsAllocated = 32u;
+                stage6.bitsStored = 32u;
+                stage6.format = XPE_PIXEL_FLOAT32;
+                stage6.data = stage6Data.data();
+                stage6.dataSize = stage6Data.size() * sizeof(float);
+                result = xpe_defect_correct_in(calib, &stage5, &stage6, meta, &frameGainDefects);
+                if (result != XPE_OK) return result;
+                release_buffer(stage4Data);   // stage 6 holds its own frame
+                release_buffer(stage5Data);
+            }
 
             if (meta) meta->flags |= XPE_FLAG_DEFECT_CORRECTED;
         }
@@ -415,20 +451,23 @@ namespace {
         std::vector<float> stage7Data;
 
         if (!cfg.bypassGhost && ghostHandle) {
-            stage7Data.resize(pixelCount);
-            stage7.width = img->width;
-            stage7.height = img->height;
-            stage7.bitsAllocated = 32u;
-            stage7.bitsStored = 32u;
-            stage7.format = XPE_PIXEL_FLOAT32;
-            stage7.data = stage7Data.data();
-            stage7.dataSize = stage7Data.size() * sizeof(float);
-
-            // Ghost correction works in place; give it its own copy of the
-            // stage-6 frame. QA-A-104: it used to correct stage6 while the
-            // (empty) stage7 buffer was copied back, so the output was zeros.
             if (!stage_input_is(stage6, XPE_PIXEL_FLOAT32, floatBytes)) return XPE_ERR_PROCESSING_FAILED;
-            std::memcpy(stage7Data.data(), stage6.data, pixelCount * sizeof(float));
+            // Ghost correction works in place. On a frame this call made itself that is the frame it is given
+            // (QA-A-237b: no fourth float copy; a frame that fails is put back by the stage itself and the call returns
+            // the error without writing the caller's buffer). On the caller's own buffer it gets a copy of the stage-6
+            // frame, as before. QA-A-104: it used to correct stage6 while the (empty) stage7 buffer was copied back,
+            // so the output was zeros.
+            if (!owns_float(stage6.data)) {
+                stage7Data.resize(pixelCount);
+                stage7.width = img->width;
+                stage7.height = img->height;
+                stage7.bitsAllocated = 32u;
+                stage7.bitsStored = 32u;
+                stage7.format = XPE_PIXEL_FLOAT32;
+                stage7.data = stage7Data.data();
+                stage7.dataSize = stage7Data.size() * sizeof(float);
+                std::memcpy(stage7Data.data(), stage6.data, pixelCount * sizeof(float));
+            }
             result = xpe_ghost_correct(ghostHandle, &stage7, meta);
             if (result != XPE_OK) return result;
 
