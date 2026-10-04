@@ -149,7 +149,7 @@ struct PipelineRun { uint64_t digest = kSeed; XpeErrorCode rc = XPE_OK; };
 // ghostExtra: members added to the ghost configuration (for example `"nlcscBeta":1e36`); polyGain: the gain map is a polynomial
 // (generated from four flat levels) instead of a scalar map.
 PipelineRun runPipeline(Size sz, int tier, const char* cfg, int frames, bool ghostGiven, const char* ghostExtra = nullptr,
-                        bool polyGain = false) {
+                        bool polyGain = false, bool classifiedGain = false) {
     const std::filesystem::path dir = std::filesystem::temp_directory_path() / "qa_a_237b_digest";
     std::filesystem::remove_all(dir);
     std::filesystem::create_directories(dir);
@@ -157,6 +157,24 @@ PipelineRun runPipeline(Size sz, int tier, const char* cfg, int frames, bool gho
     PipelineRun out;
     if (xpe_preprocess_init(nullptr) != XPE_OK) { out.rc = XPE_ERR_PROCESSING_FAILED; return out; }
     loadMaps(dir, sz);
+    if (classifiedGain) {
+        // QA-A-237g: a scalar gain map with pixels outside [0.1, 10.0] -- classified defective at load, so the defect stage masks them
+        // together with the defect map. Some sit beside the map's own pixels (the 3x3 cluster, the corners).
+        const size_t np = static_cast<size_t>(sz.w) * sz.h;
+        std::vector<float> gain(np);
+        for (uint32_t y = 0; y < sz.h; ++y)
+            for (uint32_t x = 0; x < sz.w; ++x)
+                gain[static_cast<size_t>(y) * sz.w + x] = 0.85f + 0.0003f * static_cast<float>(x % 97) + 0.0002f * static_cast<float>(y % 101);
+        const uint32_t odd[][2] = {{0, 0}, {1, 0}, {53, 62}, {54, 62}, {49, 60}, {sz.w - 2, 0}, {100, 100}, {101, 100}, {102, 100}, {20, 21}, {sz.w - 1, 1}, {7, 7}};
+        float bad = 0.05f;
+        for (const auto& o : odd) {
+            gain[static_cast<size_t>(o[1]) * sz.w + o[0]] = bad;
+            bad = (bad == 0.05f) ? 20.0f : ((bad == 20.0f) ? 0.0f : 0.05f);
+        }
+        writeMap((dir / "gain.xcal").string(), XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, sz.w, sz.h, gain.data(), np * sizeof(float));
+        EXPECT_EQ(XPE_OK, xpe_calib_load_gain((dir / "gain.xcal").string().c_str()));
+        xpe_clear_alerts();
+    }
     if (polyGain) {
         const size_t np = static_cast<size_t>(sz.w) * sz.h;
         const double doses[] = {1000.0, 2000.0, 3000.0, 4000.0};
@@ -321,6 +339,15 @@ TEST(OutputUnchanged237b, PipelineEntryPolynomialGainAndTheGhostScratchRoute) {
     const PipelineRun poly = runPipeline(kSizes[0], 2, nullptr, 3, true, nullptr, true);
     EXPECT_EQ(XPE_OK, poly.rc);
     expectDigest("pipeline/poly_gain/tier2", poly.digest);
+
+    // QA-A-237g: the classified gain pixels reach the defect stage as the pixels added to the map (every tier).
+    for (const Size sz : kSizes) {
+        for (int tier = 1; tier <= 3; ++tier) {
+            const PipelineRun cl = runPipeline(sz, tier, nullptr, 2, true, nullptr, false, true);
+            EXPECT_EQ(XPE_OK, cl.rc);
+            expectDigest("pipeline/gain_classified/" + std::to_string(sz.w) + "x" + std::to_string(sz.h) + "/tier" + std::to_string(tier), cl.digest);
+        }
+    }
 
 #ifdef XPE_CACHE_TEST_HOOKS
     xpe_ghost_in_place_frames = 0;
@@ -750,12 +777,14 @@ TEST(OutputUnchanged237b, GainWrittenOverItsOwnInputEqualsSeparateBuffers) {
 // QA-A-237e: the defect stage keeps no frame-sized "already corrected" plane of its own any more (it reuses the cluster search's
 // visited plane). Its output is recorded before that change for every mask shape the two planes told apart: isolated pixels,
 // 2x2 blocks, lines along the frame border, a blob wider than the fill radius, a dense random mask, an all-masked frame, and the
-// union with a per-frame list of classified pixels; each in place and out of place (the two must agree).
+// union with a per-frame list of classified pixels (shape 6), and (QA-A-237g) shapes 8-11: the scalar map's list of classified pixels
+// -- overlapping the map, next to it, alone on an empty map, on a dense map, with duplicates between the two lists and indices past
+// the frame; each in place and out of place (the two must agree).
 TEST(OutputUnchanged237b, DefectStageOutputForEveryMaskShape) {
     const Size sizes[] = {{1, 1}, {3, 3}, {17, 5}, {64, 64}, {203, 157}, {256, 192}};
     for (const Size sz : sizes) {
         const size_t n = static_cast<size_t>(sz.w) * sz.h;
-        for (int shape = 0; shape < 8; ++shape) {
+        for (int shape = 0; shape < 12; ++shape) {
             std::shared_ptr<uint8_t[]> mask(new uint8_t[n]());
             Rng rng(7000u + shape * 131u + sz.w);
             auto at = [&](uint32_t x, uint32_t y) -> uint8_t& { return mask[static_cast<size_t>(y) * sz.w + x]; };
@@ -794,6 +823,21 @@ TEST(OutputUnchanged237b, DefectStageOutputForEveryMaskShape) {
                             for (uint32_t dx = 0; dx < side && x0 + dx < sz.w; ++dx) at(x0 + dx, y0 + dy) = 1;
                     }
                     break;
+                case 8:   // isolated pixels; the scalar map's list overlaps some and sits next to others (below)
+                    for (size_t i = 0; i < n; ++i) mask[i] = (rng.next() % 151u == 0u) ? 1 : 0;
+                    break;
+                case 9:   // an empty map: only the lists mask pixels
+                    break;
+                case 10:  // a dense map (above the density where the mask is kept as a plane) with the list added
+                    for (size_t i = 0; i < n; ++i) mask[i] = (rng.next() % 10u < 3u) ? 1 : 0;
+                    break;
+                case 11:  // 2x2 blocks; the lists extend them into larger clusters and repeat each other (below)
+                    for (uint32_t k = 0; k < 10; ++k) {
+                        const uint32_t x = rng.next() % sz.w, y = rng.next() % sz.h;
+                        for (uint32_t dy = 0; dy < 2 && y + dy < sz.h; ++dy)
+                            for (uint32_t dx = 0; dx < 2 && x + dx < sz.w; ++dx) at(x + dx, y + dy) = 1;
+                    }
+                    break;
                 default:  // isolated pixels, completed by a per-frame list of classified pixels (below)
                     for (size_t i = 0; i < n; ++i) mask[i] = (rng.next() % 151u == 0u) ? 1 : 0;
                     break;
@@ -807,6 +851,31 @@ TEST(OutputUnchanged237b, DefectStageOutputForEveryMaskShape) {
             if (shape == 6) {
                 for (uint32_t k = 0; k < 40; ++k) classified.push_back(rng.next() % static_cast<uint32_t>(n));
                 classified.push_back(0);
+            }
+            if (shape >= 8) {
+                // The scalar map's list: ascending, without duplicates. Picks at random, plus the neighbours (right, below) of masked
+                // pixels so that some join the map's pixels into clusters, plus pixels the map already masks.
+                std::vector<uint32_t> scalar;
+                const uint32_t picks = (shape == 10) ? 300u : 60u;
+                for (uint32_t k = 0; k < picks; ++k) scalar.push_back(rng.next() % static_cast<uint32_t>(n));
+                for (size_t i = 0; i + sz.w + 1 < n && scalar.size() < picks + 120u; i += 97) {
+                    if (mask[i] != 0) { scalar.push_back(static_cast<uint32_t>(i + 1)); scalar.push_back(static_cast<uint32_t>(i + sz.w)); scalar.push_back(static_cast<uint32_t>(i)); }
+                }
+                scalar.push_back(0);
+                scalar.push_back(static_cast<uint32_t>(n - 1));
+                std::sort(scalar.begin(), scalar.end());
+                scalar.erase(std::unique(scalar.begin(), scalar.end()), scalar.end());
+                snap.gain_defect_idx.reset(new uint32_t[scalar.size()]);
+                std::copy(scalar.begin(), scalar.end(), snap.gain_defect_idx.get());
+                snap.gain_defect_count = static_cast<uint32_t>(scalar.size());
+                if (shape == 9 || shape == 11) {
+                    // This frame's list too: repeats of the scalar list, a few new pixels and indices past the frame (ignored).
+                    for (size_t k = 0; k < scalar.size(); k += 3) classified.push_back(scalar[k]);
+                    for (uint32_t k = 0; k < 8; ++k) classified.push_back(rng.next() % static_cast<uint32_t>(n));
+                    classified.push_back(static_cast<uint32_t>(n));
+                    classified.push_back(static_cast<uint32_t>(n) + 17u);
+                    classified.push_back(0xFFFFFFFFu);
+                }
             }
             std::vector<float> in(n);
             Rng vals(0xD0D0u + shape + sz.h);
@@ -985,6 +1054,37 @@ std::map<std::string, uint64_t>& golden() {
         {"defect/shape7/256x192", 0x7312ef67845290f4ull},
         {"defect/shape7/3x3", 0x7f006fe5d0de67dbull},
         {"defect/shape7/64x64", 0x0d185c4806cca3dcull},
+        // recorded on 458025a8 (before the defect stage's union_mask copy was replaced by a MaskSet, QA-A-237g): shapes 8-11 (the gain's classified pixels added to the map), gain-classified pipeline runs
+        {"defect/shape10/17x5", 0x980e3c5f5f2a75aaull},
+        {"defect/shape10/1x1", 0xb99900857e7830a9ull},
+        {"defect/shape10/203x157", 0xc5ff2f627aa9160dull},
+        {"defect/shape10/256x192", 0x20fc9c7dcd0453faull},
+        {"defect/shape10/3x3", 0xf75941ba98471872ull},
+        {"defect/shape10/64x64", 0x72d044447806655eull},
+        {"defect/shape11/17x5", 0xf905624833f8ee0dull},
+        {"defect/shape11/1x1", 0x42c9559388a58b0aull},
+        {"defect/shape11/203x157", 0x3bd021a286cd80cbull},
+        {"defect/shape11/256x192", 0x2f25116436e58085ull},
+        {"defect/shape11/3x3", 0xe1cff404b1e57b23ull},
+        {"defect/shape11/64x64", 0xcc6649df2fee7585ull},
+        {"defect/shape8/17x5", 0x028ce60fd1f44475ull},
+        {"defect/shape8/1x1", 0x6cff6465ed14b9f7ull},
+        {"defect/shape8/203x157", 0xf20c3b2283598f79ull},
+        {"defect/shape8/256x192", 0x4c1fb4700e70c24full},
+        {"defect/shape8/3x3", 0x0823bde10d0eb45cull},
+        {"defect/shape8/64x64", 0x46d18c7a35398aa1ull},
+        {"defect/shape9/17x5", 0xa1af933eceda5439ull},
+        {"defect/shape9/1x1", 0x486d55f00e6c9964ull},
+        {"defect/shape9/203x157", 0x33e8a51cac8a22a3ull},
+        {"defect/shape9/256x192", 0xea94eae748182770ull},
+        {"defect/shape9/3x3", 0x8879d764ccb53a13ull},
+        {"defect/shape9/64x64", 0x29b7a724d852a053ull},
+        {"pipeline/gain_classified/203x157/tier1", 0x72a6fbded50cba3full},
+        {"pipeline/gain_classified/203x157/tier2", 0x2746313d7704b09cull},
+        {"pipeline/gain_classified/203x157/tier3", 0x987573b6753f85c1ull},
+        {"pipeline/gain_classified/256x192/tier1", 0xca2d33d0452a704full},
+        {"pipeline/gain_classified/256x192/tier2", 0x923805cfeb68e1e2ull},
+        {"pipeline/gain_classified/256x192/tier3", 0xfd97f0b84a7b7e4dull},
     };
     return g;
 }

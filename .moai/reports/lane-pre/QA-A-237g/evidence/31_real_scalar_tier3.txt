@@ -1,0 +1,62 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = A237bMem.DISABLED_ShippedPath
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A237bMem
+[ RUN      ] A237bMem.DISABLED_ShippedPath
+[a237f] defect map D:/workspace-github/image-processing/tests/test_data/CalData_6/BPMap.map: 23505 masked pixels (0.249 %)
+[a237b] chk A harness (frame buffer, fixtures written) private    37.3 MiB  peakCommit    37.3 MiB  peakWs    42.2 MiB
+[a237b] chk B maps loaded                      private   118.9 MiB  peakCommit   118.9 MiB  peakWs   123.8 MiB
+[a237g] loaded maps: gain_map yes, gain_poly no, gain-classified pixels 42026, defect-map pixels 23505 -> union_mask path TAKEN
+[a237b] chk C ghost handle created             private   191.0 MiB  peakCommit   191.1 MiB  peakWs   195.9 MiB
+[a237b] config tier 3, frames 3, N 9437184 pixels
+[a237b] chk frame 0 before                     private   191.0 MiB  peakCommit   191.1 MiB  peakWs   195.9 MiB
+[a237b] chk frame 0 after readout              private   191.0 MiB  peakCommit   191.1 MiB  peakWs   195.9 MiB
+[a237b] chk frame 0 after temp                 private   227.1 MiB  peakCommit   227.1 MiB  peakWs   213.9 MiB
+[a237b] chk frame 0 after offset               private   227.1 MiB  peakCommit   227.1 MiB  peakWs   213.9 MiB
+[a237b] chk frame 0 after nonlinearity         private   227.1 MiB  peakCommit   227.1 MiB  peakWs   213.9 MiB
+[a237b] chk frame 0 after gain                 private   227.1 MiB  peakCommit   227.2 MiB  peakWs   231.9 MiB
+[a237b] chk frame 0 after binning              private   227.1 MiB  peakCommit   227.2 MiB  peakWs   231.9 MiB
+[a237b] chk frame 0 after defect               private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.4 MiB
+[a237b] chk frame 0 after ghost                private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.4 MiB
+[a237b] chk frame 0 after final copy           private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.4 MiB
+[a237b] chk frame 0 after                      private   191.1 MiB  peakCommit   236.7 MiB  peakWs   241.4 MiB
+[a237b] frame 0 total 312.1 ms, output digest b050c7d61c066a2f
+[a237b] chk frame 1 before                     private   191.1 MiB  peakCommit   236.7 MiB  peakWs   241.4 MiB
+[a237b] chk frame 1 after readout              private   191.1 MiB  peakCommit   236.7 MiB  peakWs   241.4 MiB
+[a237b] chk frame 1 after temp                 private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.4 MiB
+[a237b] chk frame 1 after offset               private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.4 MiB
+[a237b] chk frame 1 after nonlinearity         private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.4 MiB
+[a237b] chk frame 1 after gain                 private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.4 MiB
+[a237b] chk frame 1 after binning              private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.4 MiB
+[a237b] chk frame 1 after defect               private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.5 MiB
+[a237b] chk frame 1 after ghost                private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.5 MiB
+[a237b] chk frame 1 after final copy           private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.5 MiB
+[a237b] chk frame 1 after                      private   191.1 MiB  peakCommit   236.7 MiB  peakWs   241.5 MiB
+[a237b] frame 1 total 307.1 ms, output digest 8daab508f558690c
+[a237b] chk frame 2 before                     private   191.1 MiB  peakCommit   236.7 MiB  peakWs   241.5 MiB
+[a237b] chk frame 2 after readout              private   191.1 MiB  peakCommit   236.7 MiB  peakWs   241.5 MiB
+[a237b] chk frame 2 after temp                 private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.5 MiB
+[a237b] chk frame 2 after offset               private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.5 MiB
+[a237b] chk frame 2 after nonlinearity         private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.5 MiB
+[a237b] chk frame 2 after gain                 private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.5 MiB
+[a237b] chk frame 2 after binning              private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.5 MiB
+[a237b] chk frame 2 after defect               private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.5 MiB
+[a237b] chk frame 2 after ghost                private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.5 MiB
+[a237b] chk frame 2 after final copy           private   227.1 MiB  peakCommit   236.7 MiB  peakWs   241.5 MiB
+[a237b] chk frame 2 after                      private   191.1 MiB  peakCommit   236.7 MiB  peakWs   241.5 MiB
+[a237b] frame 2 total 306.5 ms, output digest 349c24321228b861
+[a237b] ghost frames processed in place: 3 of 3
+[a237b] alerts pending after 3 frame(s): 5
+[a237b]   alert 0 (severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is che
+[a237b]   alert 1 (severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they a
+[a237b]   alert 2 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 3 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 4 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b] chk Z ghost destroyed                  private   119.0 MiB  peakCommit   236.7 MiB  peakWs   241.5 MiB
+[       OK ] A237bMem.DISABLED_ShippedPath (1172 ms)
+[----------] 1 test from A237bMem (1172 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1173 ms total)
+[  PASSED  ] 1 test.

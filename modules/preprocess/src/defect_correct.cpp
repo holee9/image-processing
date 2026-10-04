@@ -18,8 +18,17 @@
 #include <algorithm>
 #include <emmintrin.h>
 #include <queue>
+#include <emmintrin.h>
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
 
 namespace {
+
+// The frame's size and a pixel's position as one value each: two adjacent uint32_t parameters of the same kind are easy to swap
+// (bugprone-easily-swappable-parameters), and the search below takes both a size and a position.
+struct Grid { uint32_t width; uint32_t height; };
+struct PixelXY { uint32_t x; uint32_t y; };
 
 // @MX:NOTE: [AUTO] Connected component analysis for defect cluster detection
 // Uses BFS to find adjacent defective pixels (4-connectivity)
@@ -28,82 +37,193 @@ struct ClusterInfo {
     bool isCluster; // true if 2+ adjacent defects
 };
 
-// QA-A-237f (#245, SRS-CALIB-PERF-002): where the per-pixel tables of this stage live. The cluster search's `visited` marks
-// (1 bit a pixel) and the fill-distance table (1 byte a pixel, 9 MiB at 3072x3072) are only ever read or written for MASKED
-// pixels, and a frame has few of them (a real defect map of 23,505 pixels is 0.25 % of the frame). So both are indexed by
-// the rank of the pixel among the masked ones -- a sorted list of their indices, 4 bytes each -- instead of by the pixel's
-// own index; a table of where each 512-pixel block's masked pixels start in that list (73 KB at 3072x3072) keeps a lookup
-// to a few comparisons. Above the density where the list costs more than the planes it replaces (5 bytes a masked pixel against
-// 1.125 bytes a pixel) the list is not built and the tables are indexed by pixel index, as they were: the values stored
-// and read are the same in both modes.
-struct MaskIndex {
-    bool dense = true;                 // true: slot(idx) == idx
-    std::vector<uint32_t> masked;      // sparse mode: the indices of the masked pixels, ascending
-    std::vector<uint32_t> blockStart;  // sparse mode: blockStart[b] = how many masked pixels have an index below b * kBlock
-    static constexpr size_t kBlock = 512;
-    size_t slots = 0;                  // the number of entries each table needs
+// QA-A-237g (#245, SRS-CALIB-PERF-002): the masked pixels of a frame -- the loaded defect map together with the pixels the gain
+// calibration classified defective (a scalar map's list in the snapshot, a polynomial map's list for this frame) -- as one set that
+// answers "is this pixel masked" and "which masked pixel is this" without a frame-sized copy. The union used to be built as a plane
+// of n bytes (9 MiB at 3072x3072) whenever the gain classified a single pixel; on the real CalData_6 maps (42,026 classified pixels,
+// 23,505 in the defect map) that copy made the stage's peak.
+//
+// A frame has few masked pixels (0.25 % in the real defect map), so the set is a two-level bitmap over 64-pixel blocks: one bit a
+// block says whether it holds any masked pixel (18 KB at 3072x3072), and only the non-empty blocks keep their 64 bits, with the
+// number of masked pixels before them (12 bytes a non-empty block). Both questions are a few bit operations. The rank of a masked
+// pixel (`slot`) is its position in raster order, which is what the cluster search's `visited` marks (QA-A-237e) and the fill-distance
+// table (QA-A-213) are indexed by -- they used to be indexed by the pixel (1 bit and 1 byte a pixel; 237f first indexed them by a
+// sorted list). Above the density where the bitmap costs more than the planes (12 bytes a masked pixel against the 9 MiB plane) the
+// set is a plane of n bytes -- the loaded map itself when nothing is added to it, a union copy otherwise -- and `slot` is the pixel
+// index, as before 237f. The pixels in the set, and every value stored and read through it, are the same in both modes.
+#if defined(_MSC_VER)
+inline int popcount64(uint64_t v) noexcept { return static_cast<int>(__popcnt64(v)); }
+inline int countTrailingZeros64(uint64_t v) noexcept { unsigned long i = 0; _BitScanForward64(&i, v); return static_cast<int>(i); }
+#else
+inline int popcount64(uint64_t v) noexcept { return __builtin_popcountll(v); }
+inline int countTrailingZeros64(uint64_t v) noexcept { return __builtin_ctzll(v); }
+#endif
 
-    void build(const uint8_t* mask, size_t n) {
-        const auto forEachMasked = [&](auto&& fn) {
-            // Most of a frame is valid: 64 bytes are tested at a time (four 16-byte loads ORed), the masked ones are found
-            // byte by byte only in a block that is not all zero. Ascending order either way.
-            const __m128i zero = _mm_setzero_si128();
-            size_t i = 0;
-            for (; i + 64 <= n; i += 64) {
-                const __m128i* block = reinterpret_cast<const __m128i*>(mask + i);
-                const __m128i any = _mm_or_si128(_mm_or_si128(_mm_loadu_si128(block), _mm_loadu_si128(block + 1)),
-                                                 _mm_or_si128(_mm_loadu_si128(block + 2), _mm_loadu_si128(block + 3)));
-                if (_mm_movemask_epi8(_mm_cmpeq_epi8(any, zero)) == 0xFFFF) continue;
-                for (size_t k = i; k < i + 64; ++k) {
-                    if (mask[k] != 0) fn(k);
-                }
+// Calls fn(index) for every non-zero byte of `mask`, ascending. Most of a frame is valid: 64 bytes are tested at a time (four
+// 16-byte loads ORed) and the masked ones are found byte by byte only in a block that is not all zero.
+template <class Fn>
+void forEachNonZero(const uint8_t* mask, size_t n, Fn&& fn)
+{
+    const __m128i zero = _mm_setzero_si128();
+    size_t i = 0;
+    for (; i + 64 <= n; i += 64) {
+        const __m128i* block = reinterpret_cast<const __m128i*>(mask + i);
+        const __m128i any = _mm_or_si128(_mm_or_si128(_mm_loadu_si128(block), _mm_loadu_si128(block + 1)),
+                                         _mm_or_si128(_mm_loadu_si128(block + 2), _mm_loadu_si128(block + 3)));
+        if (_mm_movemask_epi8(_mm_cmpeq_epi8(any, zero)) == 0xFFFF) continue;
+        for (size_t k = i; k < i + 64; ++k) {
+            if (mask[k] != 0) fn(k);
+        }
+    }
+    for (; i < n; ++i) {
+        if (mask[i] != 0) fn(i);
+    }
+}
+
+class MaskSet {
+public:
+    // `base`: the loaded map (n bytes, non-zero = masked). `extra`, `extraCount`: further masked pixels, ascending and without
+    // duplicates, every index below n; read, not copied. Allocates before anything is written by the caller; may throw std::bad_alloc.
+    void build(const uint8_t* base, size_t n, const uint32_t* extra, size_t extraCount)
+    {
+        n_ = n;
+        size_t baseCount = 0;
+        forEachNonZero(base, n, [&](size_t) { ++baseCount; });
+        size_t extraNew = 0;
+        for (size_t k = 0; k < extraCount; ++k) extraNew += (base[extra[k]] == 0);
+        count_ = baseCount + extraNew;
+
+        dense_ = (count_ * kBytesPerMasked > n);
+        if (dense_) {
+            if (extraCount == 0) {
+                plane_ = base;
+            } else {
+                own_.assign(base, base + n);
+                for (size_t k = 0; k < extraCount; ++k) own_[extra[k]] = 1;
+                plane_ = own_.data();
             }
-            for (; i < n; ++i) {
-                if (mask[i] != 0) fn(i);
-            }
-        };
-        size_t count = 0;
-        forEachMasked([&](size_t) { ++count; });
-        dense = (count * 5u > n);
-        if (dense) {
-            slots = n;
             return;
         }
-        masked.reserve(count);
-        forEachMasked([&](size_t i) { masked.push_back(static_cast<uint32_t>(i)); });
-        blockStart.assign(n / kBlock + 2, 0);
-        for (const uint32_t idx : masked) ++blockStart[idx / kBlock + 1];
-        for (size_t b = 1; b < blockStart.size(); ++b) blockStart[b] += blockStart[b - 1];
-        slots = count;
+
+        const size_t blocks = (n + 63) / 64;
+        l1_.assign((blocks + 63) / 64, 0);
+        l1Rank_.assign(l1_.size(), 0);
+        // No reserve: the non-empty blocks are far fewer than the masked pixels when they cluster (7,442 blocks for 51,543 pixels in the
+        // real maps), and memory reserved but not used still counts as committed.
+        size_t e = 0;
+        size_t seen = 0;
+        size_t currentBlock = static_cast<size_t>(-1);
+        uint64_t bits = 0;
+        const auto flush = [&]() {
+            if (currentBlock == static_cast<size_t>(-1)) return;
+            blockBits_.push_back(bits);
+            l1_[currentBlock >> 6] |= uint64_t{1} << (currentBlock & 63);
+        };
+        const auto emit = [&](size_t idx) {
+            const size_t block = idx >> 6;
+            if (block != currentBlock) {
+                flush();
+                currentBlock = block;
+                bits = 0;
+                blockBase_.push_back(static_cast<uint32_t>(seen));
+            }
+            bits |= uint64_t{1} << (idx & 63);
+            ++seen;
+        };
+        // The ascending union of the loaded map's masked pixels and `extra`.
+        forEachNonZero(base, n, [&](size_t i) {
+            while (e < extraCount && extra[e] < i) emit(extra[e++]);
+            if (e < extraCount && extra[e] == i) ++e;   // also in the map
+            emit(i);
+        });
+        while (e < extraCount) emit(extra[e++]);
+        flush();
+        uint32_t run = 0;
+        for (size_t w = 0; w < l1_.size(); ++w) {
+            l1Rank_[w] = run;
+            run += static_cast<uint32_t>(popcount64(l1_[w]));
+        }
     }
-    // Only for a masked pixel.
-    size_t slot(size_t idx) const {
-        if (dense) return idx;
-        const size_t b = idx / kBlock;
-        const uint32_t lo = blockStart[b], hi = blockStart[b + 1];
-        if (hi - lo == 1u) return lo;   // the one masked pixel of the block: most blocks of a sparse map
-        const auto first = masked.begin() + lo;
-        return static_cast<size_t>(std::lower_bound(first, masked.begin() + hi, static_cast<uint32_t>(idx)) - masked.begin());
+
+    size_t count() const noexcept { return count_; }
+    // How many entries a table indexed by slot() needs.
+    size_t slots() const noexcept { return dense_ ? n_ : count_; }
+
+    bool test(size_t idx) const noexcept
+    {
+        if (dense_) return plane_[idx] != 0;
+        const size_t block = idx >> 6;
+        const uint64_t word = l1_[block >> 6];
+        const uint64_t bit = uint64_t{1} << (block & 63);
+        if ((word & bit) == 0) return false;
+        const size_t r = l1Rank_[block >> 6] + static_cast<size_t>(popcount64(word & (bit - 1)));
+        return ((blockBits_[r] >> (idx & 63)) & 1u) != 0;
     }
+
+    // The position of a MASKED pixel in raster order among the masked pixels (the pixel index in the dense form).
+    size_t slot(size_t idx) const noexcept
+    {
+        if (dense_) return idx;
+        const size_t block = idx >> 6;
+        const uint64_t word = l1_[block >> 6];
+        const uint64_t bit = uint64_t{1} << (block & 63);
+        const size_t r = l1Rank_[block >> 6] + static_cast<size_t>(popcount64(word & (bit - 1)));
+        return blockBase_[r] + static_cast<size_t>(popcount64(blockBits_[r] & ((uint64_t{1} << (idx & 63)) - 1)));
+    }
+
+    // fn(pixel index) for every masked pixel, ascending (raster order).
+    template <class Fn>
+    void forEach(Fn&& fn) const
+    {
+        if (dense_) {
+            forEachNonZero(plane_, n_, fn);
+            return;
+        }
+        size_t r = 0;
+        for (size_t w = 0; w < l1_.size(); ++w) {
+            uint64_t blocksInWord = l1_[w];
+            while (blocksInWord != 0) {
+                const size_t block = (w << 6) + static_cast<size_t>(countTrailingZeros64(blocksInWord));
+                blocksInWord &= blocksInWord - 1;
+                uint64_t bits = blockBits_[r++];
+                while (bits != 0) {
+                    fn((block << 6) + static_cast<size_t>(countTrailingZeros64(bits)));
+                    bits &= bits - 1;
+                }
+            }
+        }
+    }
+
+private:
+    static constexpr size_t kBytesPerMasked = 12;   // a non-empty block of one masked pixel: 8 (bits) + 4 (rank)
+    bool dense_ = true;
+    size_t n_ = 0;
+    size_t count_ = 0;
+    const uint8_t* plane_ = nullptr;   // dense form
+    std::vector<uint8_t> own_;         // dense form with additions: the union plane
+    std::vector<uint64_t> l1_;         // sparse form: bit b of word w: block 64 * w + b holds a masked pixel
+    std::vector<uint32_t> l1Rank_;     // non-empty blocks before word w
+    std::vector<uint64_t> blockBits_;  // per non-empty block: the masked pixels, bit i = pixel 64 * block + i
+    std::vector<uint32_t> blockBase_;  // per non-empty block: masked pixels before it
 };
 
-// `visited` is indexed by MaskIndex::slot and all-false on entry; the pixels of the cluster found here are LEFT marked on return.
+// `visited` is indexed by MaskSet::slot and all-false on entry; the pixels of the cluster found here are LEFT marked on return.
 // QA-A-103 (#179): it used to be allocated (W*H) per defect pixel, which made
 // the correction O(defects x W*H) -- 2.97 s for 0.1 % defects at 3072x3072.
 // QA-A-237e (#245): the marks used to be cleared again on return, and the caller kept a second plane (`processed`)
 // of the pixels it had already corrected. A cluster is a whole 4-connected component of the mask, so no later search
 // can reach a pixel an earlier one marked: the marks of finished clusters are exactly that second plane, and one
 // plane (1.125 MiB at 3072x3072) serves both.
-ClusterInfo analyzeCluster(const uint8_t* defectMask, uint32_t width, uint32_t height,
-                           uint32_t startX, uint32_t startY,
-                           const MaskIndex& mi, std::vector<bool>& visited)
+ClusterInfo analyzeCluster(const MaskSet& ms, const Grid& grid, const PixelXY& start, std::vector<bool>& visited)
 {
+    const uint32_t width = grid.width;
+    const uint32_t height = grid.height;
     ClusterInfo info;
     std::queue<uint32_t> q;
 
-    uint32_t startIdx = startY * width + startX;
+    uint32_t startIdx = start.y * width + start.x;
     q.push(startIdx);
-    visited[mi.slot(startIdx)] = true;
+    visited[ms.slot(startIdx)] = true;
 
     const int dx[] = {-1, 1, 0, 0};
     const int dy[] = {0, 0, -1, 1};
@@ -124,8 +244,8 @@ ClusterInfo analyzeCluster(const uint8_t* defectMask, uint32_t width, uint32_t h
                 static_cast<uint32_t>(nx) < width &&
                 static_cast<uint32_t>(ny) < height) {
                 uint32_t nidx = static_cast<uint32_t>(ny) * width + static_cast<uint32_t>(nx);
-                if (defectMask[nidx] != 0) {
-                    const size_t slot = mi.slot(nidx);   // once: the lookup is the cost of this loop
+                if (ms.test(nidx)) {
+                    const size_t slot = ms.slot(nidx);
                     if (!visited[slot]) {
                         visited[slot] = true;
                         q.push(nidx);
@@ -159,11 +279,16 @@ struct FillDistance {
     std::vector<uint8_t> dist;
     bool ready = false;
 
-    // `dist` has one entry a MaskIndex slot (QA-A-237f); it is read and written only for masked pixels.
-    void build(const uint8_t* mask, uint32_t width, uint32_t height, const MaskIndex& mi) {
-        const size_t n = static_cast<size_t>(width) * height;
-        dist.assign(mi.slots, 0);
-        std::vector<uint32_t> frontier, next;
+    // `dist` has one entry a MaskSet slot (QA-A-237f); it is read and written only for masked pixels.
+    void build(const MaskSet& ms, const Grid& grid) {
+        const uint32_t width = grid.width;
+        const uint32_t height = grid.height;
+        dist.assign(ms.slots(), 0);
+        // One queue of the pixels in the order they get their distance: each masked pixel is pushed at most once, so `ms.count()`
+        // bounds it and it is reserved at once (two vectors that doubled as the layers grew held about half a MiB at the peak).
+        // A layer is the range of the queue between two marks.
+        std::vector<uint32_t> queue;
+        queue.reserve(ms.count());
         auto touchesValid = [&](uint32_t x, uint32_t y) {
             for (int dy = -1; dy <= 1; ++dy) {
                 const int ny = static_cast<int>(y) + dy;
@@ -172,26 +297,23 @@ struct FillDistance {
                     if (dx == 0 && dy == 0) continue;
                     const int nx = static_cast<int>(x) + dx;
                     if (nx < 0 || static_cast<uint32_t>(nx) >= width) continue;
-                    if (mask[static_cast<size_t>(ny) * width + static_cast<uint32_t>(nx)] == 0) return true;
+                    if (!ms.test(static_cast<size_t>(ny) * width + static_cast<uint32_t>(nx))) return true;
                 }
             }
             return false;
         };
-        // Layer 1. Most of a frame is valid, so the scan steps over eight valid bytes at a time.
-        for (size_t idx = 0; idx < n; ++idx) {
-            if (idx + 8 <= n) {
-                uint64_t word;
-                std::memcpy(&word, mask + idx, sizeof(word));
-                if (word == 0) { idx += 7; continue; }
+        // Layer 1: the masked pixels that touch a valid pixel (8 neighbours), found over the masked pixels only.
+        ms.forEach([&](size_t idx) {
+            if (touchesValid(static_cast<uint32_t>(idx % width), static_cast<uint32_t>(idx / width))) {
+                dist[ms.slot(idx)] = 1;
+                queue.push_back(static_cast<uint32_t>(idx));
             }
-            if (mask[idx] != 0 && touchesValid(static_cast<uint32_t>(idx % width), static_cast<uint32_t>(idx / width))) {
-                dist[mi.slot(idx)] = 1;
-                frontier.push_back(static_cast<uint32_t>(idx));
-            }
-        }
-        for (int layer = 1; layer < kFillMaxRadius && !frontier.empty(); ++layer) {
-            next.clear();
-            for (const uint32_t idx : frontier) {
+        });
+        size_t layerBegin = 0;
+        for (int layer = 1; layer < kFillMaxRadius && layerBegin < queue.size(); ++layer) {
+            const size_t layerEnd = queue.size();
+            for (size_t q = layerBegin; q < layerEnd; ++q) {
+                const uint32_t idx = queue[q];
                 const uint32_t x = idx % width, y = idx / width;
                 for (int dy = -1; dy <= 1; ++dy) {
                     const int ny = static_cast<int>(y) + dy;
@@ -201,13 +323,13 @@ struct FillDistance {
                         const int nx = static_cast<int>(x) + dx;
                         if (nx < 0 || static_cast<uint32_t>(nx) >= width) continue;
                         const size_t nidx = static_cast<size_t>(ny) * width + static_cast<uint32_t>(nx);
-                        if (mask[nidx] == 0) continue;
-                        const size_t slot = mi.slot(nidx);
-                        if (dist[slot] == 0) { dist[slot] = static_cast<uint8_t>(layer + 1); next.push_back(static_cast<uint32_t>(nidx)); }
+                        if (!ms.test(nidx)) continue;
+                        const size_t slot = ms.slot(nidx);
+                        if (dist[slot] == 0) { dist[slot] = static_cast<uint8_t>(layer + 1); queue.push_back(static_cast<uint32_t>(nidx)); }
                     }
                 }
             }
-            frontier.swap(next);
+            layerBegin = layerEnd;
         }
         ready = true;
     }
@@ -220,9 +342,9 @@ struct FillDistance {
 // trial of ring 2, 3, ... -- the set of values, and so the median, is the one the trial found. A pixel with no valid
 // pixel within kFillMaxRadius keeps its own input value (`found` false), never 0.
 // Only unmasked pixels are read, whatever the radius: the in-place guarantee of xpe_defect_correct_in holds.
-float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
+float median_filter_cluster(const float* pixels, const MaskSet& ms,
                              uint32_t x, uint32_t y,
-                             uint32_t width, uint32_t height, const MaskIndex& mi, FillDistance& fd, std::vector<float>& values, bool* found)
+                             uint32_t width, uint32_t height, FillDistance& fd, std::vector<float>& values, bool* found)
 {
     values.clear();   // a scratch buffer the caller reuses: no allocation per pixel (QA-A-213)
     *found = true;
@@ -238,7 +360,7 @@ float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
                 static_cast<uint32_t>(nx) < width &&
                 static_cast<uint32_t>(ny) < height) {
                 uint32_t idx = static_cast<uint32_t>(ny) * width + static_cast<uint32_t>(nx);
-                if (defectMask[idx] == 0) { // valid pixel
+                if (!ms.test(idx)) { // valid pixel
                     values.push_back(pixels[idx]);
                 }
             }
@@ -246,8 +368,8 @@ float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
     }
 
     if (values.empty()) {
-        if (!fd.ready) fd.build(defectMask, width, height, mi);
-        const int radius = fd.dist[mi.slot(static_cast<size_t>(y) * width + x)];   // 0: none within kFillMaxRadius
+        if (!fd.ready) fd.build(ms, Grid{width, height});
+        const int radius = fd.dist[ms.slot(static_cast<size_t>(y) * width + x)];   // 0: none within kFillMaxRadius
         if (radius >= 2) {
             for (int dy = -radius; dy <= radius; ++dy) {
                 const int ny = static_cast<int>(y) + dy;
@@ -257,7 +379,7 @@ float median_filter_cluster(const float* pixels, const uint8_t* defectMask,
                     const int nx = static_cast<int>(x) + dx;
                     if (nx < 0 || static_cast<uint32_t>(nx) >= width) continue;
                     const size_t idx = static_cast<size_t>(ny) * width + static_cast<uint32_t>(nx);
-                    if (defectMask[idx] == 0) values.push_back(pixels[idx]);
+                    if (!ms.test(idx)) values.push_back(pixels[idx]);
                 }
             }
         }
@@ -397,26 +519,51 @@ XpeErrorCode xpe_defect_correct_in(
     // frame's list (a polynomial gain classifies per frame). Nothing is copied unless one of the lists is non-empty, so
     // a calibration whose gain classified nothing takes the path it always took. The map itself is never modified: it
     // is shared with the store.
-    std::vector<uint8_t> union_mask;
+    // QA-A-211 (#233): the mask the kernels read is the UNION of the loaded map, the scalar map's classified list and this frame's
+    // list. QA-A-237g: it is a MaskSet, not a copy of the map with the extra pixels set. The map itself is never modified: it is
+    // shared with the store.
     const size_t frame_extra = frame_defects ? frame_defects->size() : 0;
-    if (calib.gain_defect_count > 0 || frame_extra > 0) {
-        union_mask.assign(dm, dm + n);
-        if (calib.gain_defect_idx) {
-            for (uint32_t k = 0; k < calib.gain_defect_count; ++k) {
-                const uint32_t idx = calib.gain_defect_idx[k];
-                if (idx < n) union_mask[idx] = 1;
+    const bool addsToMap = calib.gain_defect_count > 0 || frame_extra > 0;
+    // The pixels added to the map, ascending, unique, each below n. The scalar map's list (a snapshot member, kept ascending by the
+    // load) is read in place when it is the only list; a per-frame list, or a list that is not in that order, is merged into a
+    // sorted copy.
+    const uint32_t* extra = nullptr;
+    size_t extraCount = 0;
+    std::vector<uint32_t> extraOwn;
+    if (addsToMap) {
+        const uint32_t* listed = calib.gain_defect_idx.get();
+        const size_t listedCount = listed ? calib.gain_defect_count : 0;
+        bool ascending = true;
+        for (size_t k = 1; k < listedCount && ascending; ++k) ascending = listed[k - 1] < listed[k];
+        if (frame_extra == 0 && ascending) {
+            extra = listed;
+            extraCount = listedCount;
+            if (n <= std::numeric_limits<uint32_t>::max()) {
+                extraCount = static_cast<size_t>(std::lower_bound(listed, listed + listedCount, static_cast<uint32_t>(n)) - listed);
             }
-        }
-        if (frame_defects) {
-            for (const uint32_t idx : *frame_defects) {
-                if (idx < n) union_mask[idx] = 1;
+        } else {
+            extraOwn.reserve(listedCount + frame_extra);
+            for (size_t k = 0; k < listedCount; ++k) {
+                if (listed[k] < n) extraOwn.push_back(listed[k]);
             }
+            if (frame_defects) {
+                for (const uint32_t idx : *frame_defects) {
+                    if (idx < n) extraOwn.push_back(idx);
+                }
+            }
+            std::sort(extraOwn.begin(), extraOwn.end());
+            extraOwn.erase(std::unique(extraOwn.begin(), extraOwn.end()), extraOwn.end());
+            extra = extraOwn.data();
+            extraCount = extraOwn.size();
         }
-        dm = union_mask.data();
+    }
+    MaskSet maskSet;
+    maskSet.build(dm, n, extra, extraCount);
+    extraOwn = std::vector<uint32_t>();   // built into the set
 
+    if (addsToMap) {
         // D1: the union is above the density SRS-CALIB-FUNC-003 tolerates -> ONE warning for the frame, never a refusal.
-        size_t u = 0;
-        for (size_t i = 0; i < n; ++i) u += (union_mask[i] != 0);
+        const size_t u = maskSet.count();
         if (static_cast<double>(u) > XPE_GAIN_DEFECT_MAX_FRACTION * static_cast<double>(n)) {
             char msg[320];
             std::snprintf(msg, sizeof(msg),
@@ -438,10 +585,7 @@ XpeErrorCode xpe_defect_correct_in(
         std::memcpy(dst, src, n * sizeof(float));
     }
 
-    bool hasDefects = false;
-    for (size_t i = 0; i < n; ++i) {
-        if (dm[i] != 0) { hasDefects = true; break; }
-    }
+    const bool hasDefects = maskSet.count() > 0;
     if (!hasDefects) {
         output->format        = XPE_PIXEL_FLOAT32;
         output->bitsAllocated = 32u;
@@ -484,32 +628,29 @@ XpeErrorCode xpe_defect_correct_in(
     const float* const source = src;
 
     // REQ-P1A-012: cluster-aware defect correction
-    MaskIndex maskIndex;                   // QA-A-237f: the tables below are indexed by masked pixel, not by pixel
-    maskIndex.build(dm, n);
-    std::vector<bool> visited(maskIndex.slots, false);   // the pixels of every cluster found so far, corrected or being corrected
+    std::vector<bool> visited(maskSet.slots(), false);   // the pixels of every cluster found so far, corrected or being corrected
     size_t unfilled = 0;                   // masked pixels with no valid pixel within kFillMaxRadius (QA-A-211b)
     FillDistance fillDistance;             // built on the first cluster pixel whose 3x3 holds no valid pixel (QA-A-213)
     std::vector<float> fillValues;         // scratch for median_filter_cluster
     fillValues.reserve(8u * static_cast<size_t>(kFillMaxRadius));
-    for (uint32_t y = 0; y < H; ++y) {
-        for (uint32_t x = 0; x < W; ++x) {
-            uint32_t idx = y * W + x;
-            if (dm[idx] != 0 && !visited[maskIndex.slot(idx)]) {
-                ClusterInfo cluster = analyzeCluster(dm, W, H, x, y, maskIndex, visited);
-                if (cluster.isCluster) {
-                    for (uint32_t cidx : cluster.positions) {
-                        uint32_t cx = cidx % W;
-                        uint32_t cy = cidx / W;
-                        bool found = true;
-                        dst[cidx] = median_filter_cluster(source, dm, cx, cy, W, H, maskIndex, fillDistance, fillValues, &found);
-                        if (!found) ++unfilled;
-                    }
-                } else {
-                    dst[idx] = xpe_interpolate_pixel(source, dm, x, y, W, H);
-                }
+    // The masked pixels in raster order (QA-A-237g: the walk is over them, not over the whole frame).
+    maskSet.forEach([&](size_t idx) {
+        if (visited[maskSet.slot(idx)]) return;
+        const uint32_t x = static_cast<uint32_t>(idx % W);
+        const uint32_t y = static_cast<uint32_t>(idx / W);
+        ClusterInfo cluster = analyzeCluster(maskSet, Grid{W, H}, PixelXY{x, y}, visited);
+        if (cluster.isCluster) {
+            for (uint32_t cidx : cluster.positions) {
+                uint32_t cx = cidx % W;
+                uint32_t cy = cidx / W;
+                bool found = true;
+                dst[cidx] = median_filter_cluster(source, maskSet, cx, cy, W, H, fillDistance, fillValues, &found);
+                if (!found) ++unfilled;
             }
+        } else {
+            dst[idx] = xpe_interpolate_pixel_masked(source, [&](size_t i) { return maskSet.test(i); }, x, y, W, H);
         }
-    }
+    });
 
     // QA-A-211b: a masked pixel with no valid pixel within kFillMaxRadius was left as it came in. That is a statement of
     // fact the caller needs, not a correction -- one alert for the frame, with the count.

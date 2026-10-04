@@ -52,42 +52,15 @@ void xpe_alert_nonfinite(const char* prefix, size_t count, size_t first, uint32_
     }
 }
 
+// The signature is the one declared in xpe_preprocess_internal.h and called by the tests with these six arguments; the four
+// uint32_t are a position and a size, in that order, as everywhere in this module.
 float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
+                             // Public ABI signature (declared in the internal header, called by the tests): the order cannot change.
+                             // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                              uint32_t x, uint32_t y,
                              uint32_t width, uint32_t height) noexcept
 {
-    // Collect non-defective 4-connected neighbors (N/S/E/W)
-    float sum = 0.0f;
-    int   count = 0;
-
-    auto try_add = [&](int nx, int ny) {
-        if (nx < 0 || ny < 0 || static_cast<uint32_t>(nx) >= width ||
-                                  static_cast<uint32_t>(ny) >= height) return;
-        const size_t idx = static_cast<size_t>(ny) * width + nx;
-        if (defectMask[idx] == 0) { sum += pixels[idx]; ++count; }
-    };
-
-    try_add(static_cast<int>(x) - 1, static_cast<int>(y));
-    try_add(static_cast<int>(x) + 1, static_cast<int>(y));
-    try_add(static_cast<int>(x),     static_cast<int>(y) - 1);
-    try_add(static_cast<int>(x),     static_cast<int>(y) + 1);
-
-    if (count == 0) {
-        // Cluster fallback: search the nearest complete ring of valid pixels.
-        for (int radius = 1; radius <= 3 && count == 0; ++radius) {
-            for (int dy = -radius; dy <= radius; ++dy) {
-                for (int dx = -radius; dx <= radius; ++dx) {
-                    if (dx == 0 && dy == 0) continue;
-                    if (std::max(std::abs(dx), std::abs(dy)) != radius) continue;
-                    try_add(static_cast<int>(x) + dx, static_cast<int>(y) + dy);
-                }
-            }
-        }
-    }
-
-    return (count > 0)
-        ? sum / static_cast<float>(count)
-        : pixels[static_cast<size_t>(y) * width + x];
+    return xpe_interpolate_pixel_masked(pixels, [defectMask](size_t idx) { return defectMask[idx] != 0; }, x, y, width, height);
 }
 
 #ifdef XPE_CACHE_TEST_HOOKS

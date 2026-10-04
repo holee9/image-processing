@@ -1,0 +1,283 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = A237bMem.DISABLED_ShippedPath
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A237bMem
+[ RUN      ] A237bMem.DISABLED_ShippedPath
+[a237f] defect map D:/workspace-github/image-processing/tests/test_data/CalData_6/BPMap.map: 23505 masked pixels (0.249 %)
+[a237b] chk A harness (frame buffer, fixtures written) private    37.3 MiB  peakCommit    37.3 MiB  peakWs    42.7 MiB
+[a237b] chk B maps loaded                      private   118.9 MiB  peakCommit   119.0 MiB  peakWs   124.2 MiB
+[a237g] loaded maps: gain_map yes, gain_poly no, gain-classified pixels 42026, defect-map pixels 23505 -> union_mask path TAKEN
+[a237b] chk C ghost handle created             private   191.1 MiB  peakCommit   191.1 MiB  peakWs   196.2 MiB
+[a237b] config tier 1, frames 20, N 9437184 pixels
+[a237b] chk frame 0 before                     private   191.1 MiB  peakCommit   191.1 MiB  peakWs   196.2 MiB
+[a237b] chk frame 0 after readout              private   191.1 MiB  peakCommit   191.1 MiB  peakWs   196.2 MiB
+[a237b] chk frame 0 after temp                 private   227.2 MiB  peakCommit   227.2 MiB  peakWs   214.3 MiB
+[a237b] chk frame 0 after offset               private   227.2 MiB  peakCommit   227.2 MiB  peakWs   214.3 MiB
+[a237b] chk frame 0 after nonlinearity         private   227.2 MiB  peakCommit   227.2 MiB  peakWs   214.3 MiB
+[a237b] chk frame 0 after gain                 private   227.2 MiB  peakCommit   227.2 MiB  peakWs   232.3 MiB
+[a237b] chk frame 0 after binning              private   227.2 MiB  peakCommit   227.2 MiB  peakWs   232.3 MiB
+[a237b] chk frame 0 after defect               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 0 after ghost                private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 0 after final copy           private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 0 after                      private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] frame 0 total 113.2 ms, output digest a497d88747c8b3ee
+[a237b] chk frame 1 before                     private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 1 after readout              private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 1 after temp                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 1 after offset               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 1 after nonlinearity         private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 1 after gain                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 1 after binning              private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 1 after defect               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 1 after ghost                private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 1 after final copy           private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 1 after                      private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] frame 1 total 108.6 ms, output digest 5249598b9c885326
+[a237b] chk frame 2 before                     private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 2 after readout              private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 2 after temp                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 2 after offset               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 2 after nonlinearity         private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 2 after gain                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 2 after binning              private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 2 after defect               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 2 after ghost                private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 2 after final copy           private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 2 after                      private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] frame 2 total 117.7 ms, output digest d5123a3e6a4aeb93
+[a237b] chk frame 3 before                     private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 3 after readout              private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 3 after temp                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 3 after offset               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 3 after nonlinearity         private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 3 after gain                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 3 after binning              private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.0 MiB
+[a237b] chk frame 3 after defect               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 3 after ghost                private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 3 after final copy           private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 3 after                      private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] frame 3 total 106.1 ms, output digest 0e05c9d85a55a602
+[a237b] chk frame 4 before                     private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 4 after readout              private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 4 after temp                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 4 after offset               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 4 after nonlinearity         private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 4 after gain                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 4 after binning              private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 4 after defect               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 4 after ghost                private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 4 after final copy           private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 4 after                      private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] frame 4 total 121.6 ms, output digest f7e3446d5915ac3d
+[a237b] chk frame 5 before                     private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 5 after readout              private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 5 after temp                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 5 after offset               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 5 after nonlinearity         private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 5 after gain                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 5 after binning              private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 5 after defect               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 5 after ghost                private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 5 after final copy           private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 5 after                      private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] frame 5 total 108.5 ms, output digest f08e422e4f126f00
+[a237b] chk frame 6 before                     private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 6 after readout              private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 6 after temp                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 6 after offset               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 6 after nonlinearity         private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 6 after gain                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 6 after binning              private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 6 after defect               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 6 after ghost                private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 6 after final copy           private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 6 after                      private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] frame 6 total 112.7 ms, output digest 8116752ccbcc9236
+[a237b] chk frame 7 before                     private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 7 after readout              private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 7 after temp                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 7 after offset               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 7 after nonlinearity         private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 7 after gain                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 7 after binning              private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 7 after defect               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 7 after ghost                private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 7 after final copy           private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 7 after                      private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] frame 7 total 106.8 ms, output digest 42681c29097df56b
+[a237b] chk frame 8 before                     private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 8 after readout              private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 8 after temp                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 8 after offset               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 8 after nonlinearity         private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 8 after gain                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 8 after binning              private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 8 after defect               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 8 after ghost                private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 8 after final copy           private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 8 after                      private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] frame 8 total 108.5 ms, output digest f976bacb4cf93ea3
+[a237b] chk frame 9 before                     private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 9 after readout              private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 9 after temp                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 9 after offset               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 9 after nonlinearity         private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 9 after gain                 private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 9 after binning              private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 9 after defect               private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 9 after ghost                private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 9 after final copy           private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 9 after                      private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] frame 9 total 111.0 ms, output digest 10add0682b6707fd
+[a237b] chk frame 10 before                    private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 10 after readout             private   191.1 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 10 after temp                private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 10 after offset              private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 10 after nonlinearity        private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 10 after gain                private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 10 after binning             private   227.2 MiB  peakCommit   236.7 MiB  peakWs   242.1 MiB
+[a237b] chk frame 10 after defect              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 10 after ghost               private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 10 after final copy          private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 10 after                     private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] frame 10 total 117.6 ms, output digest 416b3f725867cd67
+[a237b] chk frame 11 before                    private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 11 after readout             private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 11 after temp                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 11 after offset              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 11 after nonlinearity        private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 11 after gain                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 11 after binning             private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 11 after defect              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 11 after ghost               private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 11 after final copy          private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 11 after                     private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] frame 11 total 106.6 ms, output digest 11ae869151efc0e0
+[a237b] chk frame 12 before                    private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 12 after readout             private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 12 after temp                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 12 after offset              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 12 after nonlinearity        private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 12 after gain                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 12 after binning             private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 12 after defect              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 12 after ghost               private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 12 after final copy          private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 12 after                     private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] frame 12 total 107.6 ms, output digest f8ac277fb85a8fa1
+[a237b] chk frame 13 before                    private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 13 after readout             private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 13 after temp                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 13 after offset              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 13 after nonlinearity        private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 13 after gain                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 13 after binning             private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 13 after defect              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 13 after ghost               private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 13 after final copy          private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 13 after                     private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] frame 13 total 108.6 ms, output digest 5ccaa6c45a42466f
+[a237b] chk frame 14 before                    private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 14 after readout             private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 14 after temp                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 14 after offset              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 14 after nonlinearity        private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 14 after gain                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 14 after binning             private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 14 after defect              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 14 after ghost               private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 14 after final copy          private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 14 after                     private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] frame 14 total 107.4 ms, output digest 3ab1fdcb0a5d0383
+[a237b] chk frame 15 before                    private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 15 after readout             private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 15 after temp                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 15 after offset              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 15 after nonlinearity        private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 15 after gain                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 15 after binning             private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 15 after defect              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 15 after ghost               private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 15 after final copy          private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 15 after                     private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] frame 15 total 106.9 ms, output digest 63693e3a24ab11b7
+[a237b] chk frame 16 before                    private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 16 after readout             private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 16 after temp                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 16 after offset              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 16 after nonlinearity        private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 16 after gain                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 16 after binning             private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 16 after defect              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 16 after ghost               private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 16 after final copy          private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 16 after                     private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] frame 16 total 106.8 ms, output digest 6b28ddc86882d843
+[a237b] chk frame 17 before                    private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 17 after readout             private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 17 after temp                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 17 after offset              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 17 after nonlinearity        private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 17 after gain                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 17 after binning             private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 17 after defect              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 17 after ghost               private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 17 after final copy          private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 17 after                     private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] frame 17 total 104.2 ms, output digest 4354c8e0ad4c818c
+[a237b] chk frame 18 before                    private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 18 after readout             private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 18 after temp                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 18 after offset              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 18 after nonlinearity        private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 18 after gain                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 18 after binning             private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 18 after defect              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 18 after ghost               private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 18 after final copy          private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 18 after                     private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] frame 18 total 111.2 ms, output digest a58b33ef0dfb45e8
+[a237b] chk frame 19 before                    private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 19 after readout             private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 19 after temp                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 19 after offset              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 19 after nonlinearity        private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 19 after gain                private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 19 after binning             private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 19 after defect              private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 19 after ghost               private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 19 after final copy          private   227.2 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] chk frame 19 after                     private   191.1 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[a237b] frame 19 total 111.4 ms, output digest 125c78dc6c4a56fd
+[a237b] ghost frames processed in place: 20 of 20
+[a237b] alerts pending after 20 frame(s): 22
+[a237b]   alert 0 (severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is che
+[a237b]   alert 1 (severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they a
+[a237b]   alert 2 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 3 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 4 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 5 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 6 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 7 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 8 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 9 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 10 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 11 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 12 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 13 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 14 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 15 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 16 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 17 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 18 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 19 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 20 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 21 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b] chk Z ghost destroyed                  private   118.7 MiB  peakCommit   236.8 MiB  peakWs   242.1 MiB
+[       OK ] A237bMem.DISABLED_ShippedPath (2766 ms)
+[----------] 1 test from A237bMem (2766 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2766 ms total)
+[  PASSED  ] 1 test.

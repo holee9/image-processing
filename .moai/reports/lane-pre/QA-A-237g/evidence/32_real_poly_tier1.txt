@@ -1,0 +1,67 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = A237bMem.DISABLED_ShippedPath
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A237bMem
+[ RUN      ] A237bMem.DISABLED_ShippedPath
+[a237f] defect map D:/workspace-github/image-processing/tests/test_data/CalData_6/BPMap.map: 23505 masked pixels (0.249 %)
+[a237b] chk A harness (frame buffer, fixtures written) private    37.3 MiB  peakCommit    37.3 MiB  peakWs    42.2 MiB
+[a237b] chk B maps loaded                      private   190.6 MiB  peakCommit   190.6 MiB  peakWs   195.4 MiB
+[a237g] loaded maps: gain_map no, gain_poly yes, gain-classified pixels 0, defect-map pixels 23505 -> union_mask path not taken
+[a237b] chk C ghost handle created             private   262.7 MiB  peakCommit   262.8 MiB  peakWs   267.5 MiB
+[a237b] config tier 1, frames 3, N 9437184 pixels
+[a237b] chk frame 0 before                     private   262.7 MiB  peakCommit   262.8 MiB  peakWs   267.5 MiB
+[a237b] chk frame 0 after readout              private   262.7 MiB  peakCommit   262.8 MiB  peakWs   267.5 MiB
+[a237b] chk frame 0 after temp                 private   280.8 MiB  peakCommit   280.8 MiB  peakWs   285.5 MiB
+[a237b] chk frame 0 after offset               private   280.8 MiB  peakCommit   298.9 MiB  peakWs   303.5 MiB
+[a237b] chk frame 0 after nonlinearity         private   280.8 MiB  peakCommit   298.9 MiB  peakWs   303.5 MiB
+[a237b] chk frame 0 after gain                 private   299.5 MiB  peakCommit   353.6 MiB  peakWs   357.9 MiB
+[a237b] chk frame 0 after binning              private   299.5 MiB  peakCommit   353.6 MiB  peakWs   357.9 MiB
+[a237b] chk frame 0 after defect               private   299.4 MiB  peakCommit   353.6 MiB  peakWs   357.9 MiB
+[a237b] chk frame 0 after ghost                private   299.4 MiB  peakCommit   353.6 MiB  peakWs   357.9 MiB
+[a237b] chk frame 0 after final copy           private   299.4 MiB  peakCommit   353.6 MiB  peakWs   357.9 MiB
+[a237b] chk frame 0 after                      private   263.5 MiB  peakCommit   353.6 MiB  peakWs   357.9 MiB
+[a237b] frame 0 total 187.4 ms, output digest b16c7a3f546b4829
+[a237b] chk frame 1 before                     private   263.5 MiB  peakCommit   353.6 MiB  peakWs   357.9 MiB
+[a237b] chk frame 1 after readout              private   263.5 MiB  peakCommit   353.6 MiB  peakWs   357.9 MiB
+[a237b] chk frame 1 after temp                 private   281.5 MiB  peakCommit   353.6 MiB  peakWs   357.9 MiB
+[a237b] chk frame 1 after offset               private   281.5 MiB  peakCommit   353.6 MiB  peakWs   357.9 MiB
+[a237b] chk frame 1 after nonlinearity         private   281.5 MiB  peakCommit   353.6 MiB  peakWs   357.9 MiB
+[a237b] chk frame 1 after gain                 private   299.4 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[a237b] chk frame 1 after binning              private   299.4 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[a237b] chk frame 1 after defect               private   299.8 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[a237b] chk frame 1 after ghost                private   299.8 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[a237b] chk frame 1 after final copy           private   299.8 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[a237b] chk frame 1 after                      private   264.0 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[a237b] frame 1 total 179.1 ms, output digest 97a77985a1607f1b
+[a237b] chk frame 2 before                     private   264.0 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[a237b] chk frame 2 after readout              private   264.0 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[a237b] chk frame 2 after temp                 private   282.0 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[a237b] chk frame 2 after offset               private   282.0 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[a237b] chk frame 2 after nonlinearity         private   282.0 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[a237b] chk frame 2 after gain                 private   299.4 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[a237b] chk frame 2 after binning              private   299.4 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[a237b] chk frame 2 after defect               private   299.8 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[a237b] chk frame 2 after ghost                private   299.8 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[a237b] chk frame 2 after final copy           private   299.8 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[a237b] chk frame 2 after                      private   264.0 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[a237b] frame 2 total 176.3 ms, output digest 3ab1fdcb0a5d0383
+[a237b] ghost frames processed in place: 3 of 3
+[a237b] alerts pending after 3 frame(s): 10
+[a237b]   alert 0 (severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is che
+[a237b]   alert 1 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 2 (severity 1): 74631 pixel(s) fell outside the gain polynomial's fitted dose range [1000.0, 6000.0] and were evaluated at the range edge; values beyond the calibrated levels a
+[a237b]   alert 3 (severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 45012 pixel(s) of this frame evaluate to a gain outside [0.1, 10.0] and are marked defective (gain 1.0) and listed for t
+[a237b]   alert 4 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 5 (severity 1): 56423 pixel(s) fell outside the gain polynomial's fitted dose range [1000.0, 6000.0] and were evaluated at the range edge; values beyond the calibrated levels a
+[a237b]   alert 6 (severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 45012 pixel(s) of this frame evaluate to a gain outside [0.1, 10.0] and are marked defective (gain 1.0) and listed for t
+[a237b]   alert 7 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 8 (severity 1): 9437133 pixel(s) fell outside the gain polynomial's fitted dose range [1000.0, 6000.0] and were evaluated at the range edge; values beyond the calibrated levels
+[a237b]   alert 9 (severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 45012 pixel(s) of this frame evaluate to a gain outside [0.1, 10.0] and are marked defective (gain 1.0) and listed for t
+[a237b] chk Z ghost destroyed                  private   191.9 MiB  peakCommit   354.2 MiB  peakWs   358.0 MiB
+[       OK ] A237bMem.DISABLED_ShippedPath (868 ms)
+[----------] 1 test from A237bMem (868 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (869 ms total)
+[  PASSED  ] 1 test.
