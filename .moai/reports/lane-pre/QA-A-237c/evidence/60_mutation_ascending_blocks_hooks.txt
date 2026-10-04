@@ -1,0 +1,215 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OutputUnchanged237b.*
+[==========] Running 13 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 13 tests from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 6428790992294187841
+  value
+    Which is: 17583101020847100831
+pipeline/default/203x157/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 2195118020900084872
+  value
+    Which is: 10187141615267314829
+pipeline/default/203x157/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 17448293165191567758
+  value
+    Which is: 6157890918232996063
+pipeline/default/203x157/tier3: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 12059687206307471431
+  value
+    Which is: 13048869638776132428
+pipeline/default/256x192/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 8632090940582685306
+  value
+    Which is: 7833441836232430658
+pipeline/default/256x192/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 11362483066415851924
+  value
+    Which is: 10793694194437769418
+pipeline/default/256x192/tier3: the output changed
+
+[  FAILED  ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize (120 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryBypassCombinations
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 3616629493748785938
+  value
+    Which is: 6316577945201974709
+pipeline/combo/temp_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 7069256091660319338
+  value
+    Which is: 840969225382072104
+pipeline/combo/offset_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 12946903954741450866
+  value
+    Which is: 15669697845860197589
+pipeline/combo/nonlin_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 468620020167163146
+  value
+    Which is: 13999307752921183624
+pipeline/combo/temp_offset_nonlin_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 16928988570323552244
+  value
+    Which is: 4104391167092683363
+pipeline/combo/defect_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 9833186168311483070
+  value
+    Which is: 3269277802349938635
+pipeline/combo/ghost_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 8425123607288485262
+  value
+    Which is: 11018062774323299870
+pipeline/combo/binning2: the output changed
+
+[  FAILED  ] OutputUnchanged237b.PipelineEntryBypassCombinations (123 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+[       OK ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer (36 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 16112504763032275252
+  value
+    Which is: 9599846559604819514
+pipeline/slow_route_ok/203x157/tier3_beta1e33: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 17205058636046826702
+  value
+    Which is: 16256493397706884037
+pipeline/slow_route_ok/256x192/tier3_beta1e33: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 17949270530603334680
+  value
+    Which is: 16506234184485879585
+pipeline/slow_route_failing/203x157/tier3_beta1e36: the output changed
+
+[  FAILED  ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute (135 ms)
+[ RUN      ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes
+[       OK ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes (92 ms)
+[ RUN      ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere
+[       OK ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere (24 ms)
+[ RUN      ] OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory
+[       OK ] OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory (0 ms)
+[ RUN      ] OutputUnchanged237b.GhostNonFiniteFramesAreRefusedAndChangeNothing
+[       OK ] OutputUnchanged237b.GhostNonFiniteFramesAreRefusedAndChangeNothing (7 ms)
+[ RUN      ] OutputUnchanged237b.GhostInPlaceVerdictAroundTheCoefficientOverflow
+[a237b] ghost coefficient-overflow boundary: 122760 frames, 102934 in place, 15356 failed on the scratch route
+[       OK ] OutputUnchanged237b.GhostInPlaceVerdictAroundTheCoefficientOverflow (800 ms)
+[ RUN      ] OutputUnchanged237b.GainWrittenOverItsOwnInputEqualsSeparateBuffers
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(740): error: Expected equality of these values:
+  0
+  std::memcmp(separate.data(), shared.get(), n * sizeof(float))
+    Which is: 1
+scalar map, 8193x1: the float frame written over its input differs
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(740): error: Expected equality of these values:
+  0
+  std::memcmp(separate.data(), shared.get(), n * sizeof(float))
+    Which is: -1
+scalar map, 4096x4: the float frame written over its input differs
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(740): error: Expected equality of these values:
+  0
+  std::memcmp(separate.data(), shared.get(), n * sizeof(float))
+    Which is: 1
+scalar map, 128x129: the float frame written over its input differs
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(740): error: Expected equality of these values:
+  0
+  std::memcmp(separate.data(), shared.get(), n * sizeof(float))
+    Which is: 1
+scalar map, 203x157: the float frame written over its input differs
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(740): error: Expected equality of these values:
+  0
+  std::memcmp(separate.data(), shared.get(), n * sizeof(float))
+    Which is: -1
+scalar map, 256x192: the float frame written over its input differs
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(740): error: Expected equality of these values:
+  0
+  std::memcmp(separate.data(), shared.get(), n * sizeof(float))
+    Which is: 1
+scalar map, 16387x1: the float frame written over its input differs
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(740): error: Expected equality of these values:
+  0
+  std::memcmp(separate.data(), shared.get(), n * sizeof(float))
+    Which is: -1
+polynomial map, 8193x1: the float frame written over its input differs
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(740): error: Expected equality of these values:
+  0
+  std::memcmp(separate.data(), shared.get(), n * sizeof(float))
+    Which is: -1
+polynomial map, 4096x4: the float frame written over its input differs
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(740): error: Expected equality of these values:
+  0
+  std::memcmp(separate.data(), shared.get(), n * sizeof(float))
+    Which is: 1
+polynomial map, 128x129: the float frame written over its input differs
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(740): error: Expected equality of these values:
+  0
+  std::memcmp(separate.data(), shared.get(), n * sizeof(float))
+    Which is: 1
+polynomial map, 203x157: the float frame written over its input differs
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(740): error: Expected equality of these values:
+  0
+  std::memcmp(separate.data(), shared.get(), n * sizeof(float))
+    Which is: -1
+polynomial map, 256x192: the float frame written over its input differs
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(740): error: Expected equality of these values:
+  0
+  std::memcmp(separate.data(), shared.get(), n * sizeof(float))
+    Which is: -1
+polynomial map, 16387x1: the float frame written over its input differs
+
+[  FAILED  ] OutputUnchanged237b.GainWrittenOverItsOwnInputEqualsSeparateBuffers (5 ms)
+[ RUN      ] OutputUnchanged237b.GainScalarMapOutputAndRefusedMaps
+[       OK ] OutputUnchanged237b.GainScalarMapOutputAndRefusedMaps (2 ms)
+[ RUN      ] OutputUnchanged237b.GainPolynomialMapOutputAndClassifiedPixels
+[       OK ] OutputUnchanged237b.GainPolynomialMapOutputAndClassifiedPixels (0 ms)
+[ RUN      ] OutputUnchanged237b.GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteFails

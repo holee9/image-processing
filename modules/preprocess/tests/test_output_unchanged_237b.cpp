@@ -670,12 +670,82 @@ std::shared_ptr<float[]> scalarGainMap(Size sz, int variant) {
     std::shared_ptr<float[]> m(new float[n]);
     Rng rng(4242u + static_cast<uint32_t>(variant));
     for (size_t i = 0; i < n; ++i) m[i] = 0.1f + 9.9f * rng.unit();   // the whole accepted range [0.1, 10]
-    m[1] = 0.1f;
-    m[2] = 10.0f;
+    if (n > 2) {   // the two ends of the accepted range, where the frame has room for them
+        m[1] = 0.1f;
+        m[2] = 10.0f;
+    }
     return m;
 }
 
 }  // namespace
+
+// QA-A-237c: the gain stage may write its float frame over the uint16 frame it reads (output and input the same storage, the
+// pipeline's working buffer). The result must be bit for bit what separate buffers give, at every size where the blocks (8192
+// pixels) and the vector groups (8) meet differently: below 8, a multiple of 8, one past it, one block, a block and a bit, several
+// blocks, and a count that is neither; scalar and polynomial maps.
+TEST(OutputUnchanged237b, GainWrittenOverItsOwnInputEqualsSeparateBuffers) {
+    const Size sizes[] = {{1, 1}, {7, 1}, {8, 1}, {9, 1}, {15, 1}, {16, 1}, {17, 3}, {8192, 1}, {8193, 1}, {4096, 4}, {128, 129}, {203, 157}, {256, 192}, {16387, 1}};
+    for (const bool poly : {false, true}) {
+        for (const Size sz : sizes) {
+            const size_t n = static_cast<size_t>(sz.w) * sz.h;
+            CalibSnapshot snap;
+            snap.initialized = true;
+            snap.gain_width = sz.w;
+            snap.gain_height = sz.h;
+            if (!poly) {
+                snap.gain_map = scalarGainMap(sz, 7);
+            } else {
+                const uint32_t coeffs = 2;
+                std::shared_ptr<float[]> pc(new float[n * coeffs]);
+                Rng rng(99u + sz.w);
+                for (size_t i = 0; i < n; ++i) {
+                    pc[i * coeffs + 0] = 0.8f + 0.4f * rng.unit();
+                    pc[i * coeffs + 1] = 2.0e-6f * rng.unit();
+                }
+                snap.gain_poly_coeffs = pc;
+                snap.gain_poly_num_coeffs = coeffs;
+                snap.gain_poly_has_range = true;
+                snap.gain_poly_dose_min = 1000.0;
+                snap.gain_poly_dose_max = 60000.0;
+            }
+            std::vector<uint16_t> in(n);
+            Rng rng(0xC0FFEEu + sz.w * 31u + sz.h);
+            for (size_t i = 0; i < n; ++i) in[i] = static_cast<uint16_t>(rng.next());   // the whole uint16 range
+            XpeImageMetadata meta{};
+
+            // separate buffers
+            std::vector<float> separate(n, 0.0f);
+            XpeImageBuffer ib{}, ob{};
+            ib.width = ob.width = sz.w;
+            ib.height = ob.height = sz.h;
+            ib.format = XPE_PIXEL_UINT16;
+            ib.bitsAllocated = ib.bitsStored = 16;
+            ib.data = in.data();
+            ib.dataSize = n * sizeof(uint16_t);
+            ob.format = XPE_PIXEL_FLOAT32;
+            ob.bitsAllocated = ob.bitsStored = 32;
+            ob.data = separate.data();
+            ob.dataSize = n * sizeof(float);
+            std::vector<uint32_t> listA;
+            ASSERT_EQ(XPE_OK, xpe_gain_correct_in(snap, &ib, &ob, &meta, poly ? &listA : nullptr)) << "separate, " << sz.w << "x" << sz.h;
+
+            // the same storage: the uint16 frame in the first half of a float-sized buffer
+            std::unique_ptr<unsigned char[]> shared(new unsigned char[n * sizeof(float)]);
+            std::memcpy(shared.get(), in.data(), n * sizeof(uint16_t));
+            XpeImageBuffer sin = ib, sout = ob;
+            sin.data = shared.get();
+            sin.dataSize = n * sizeof(uint16_t);
+            sout.data = shared.get();
+            sout.dataSize = n * sizeof(float);
+            std::vector<uint32_t> listB;
+            ASSERT_EQ(XPE_OK, xpe_gain_correct_in(snap, &sin, &sout, &meta, poly ? &listB : nullptr)) << "over its own input, " << sz.w << "x" << sz.h;
+            EXPECT_EQ(0, std::memcmp(separate.data(), shared.get(), n * sizeof(float)))
+                << (poly ? "polynomial" : "scalar") << " map, " << sz.w << "x" << sz.h << ": the float frame written over its input differs";
+            EXPECT_TRUE(listA == listB) << "the classified pixels differ";
+            xpe_clear_alerts();
+        }
+    }
+}
 
 TEST(OutputUnchanged237b, GainScalarMapOutputAndRefusedMaps) {
     const Size sz = kSizes[0];
