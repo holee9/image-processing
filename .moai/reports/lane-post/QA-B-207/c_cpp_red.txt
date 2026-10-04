@@ -1,0 +1,190 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *ContrastEnhance*
+[==========] Running 29 tests from 5 test suites.
+[----------] Global test environment set-up.
+[----------] 18 tests from ContrastEnhance
+[ RUN      ] ContrastEnhance.NullImage_ReturnsInvalidInput
+[       OK ] ContrastEnhance.NullImage_ReturnsInvalidInput (0 ms)
+[ RUN      ] ContrastEnhance.ValidParams_ReturnsOk
+[       OK ] ContrastEnhance.ValidParams_ReturnsOk (0 ms)
+[ RUN      ] ContrastEnhance.NullParams_UsesDefaults_ReturnsOk
+[       OK ] ContrastEnhance.NullParams_UsesDefaults_ReturnsOk (0 ms)
+[ RUN      ] ContrastEnhance.ClipLimitBelow1_ReturnsInvalidInput
+[       OK ] ContrastEnhance.ClipLimitBelow1_ReturnsInvalidInput (0 ms)
+[ RUN      ] ContrastEnhance.TileWidthBelow2_ReturnsInvalidInput
+[       OK ] ContrastEnhance.TileWidthBelow2_ReturnsInvalidInput (0 ms)
+[ RUN      ] ContrastEnhance.TileHeightBelow2_ReturnsInvalidInput
+[       OK ] ContrastEnhance.TileHeightBelow2_ReturnsInvalidInput (0 ms)
+[ RUN      ] ContrastEnhance.ImageSmallerThanTileGrid_ReturnsInvalidInput
+[       OK ] ContrastEnhance.ImageSmallerThanTileGrid_ReturnsInvalidInput (0 ms)
+[ RUN      ] ContrastEnhance.LowContrastRegion_ContrastImproves
+[       OK ] ContrastEnhance.LowContrastRegion_ContrastImproves (2 ms)
+[ RUN      ] ContrastEnhance.ClipLimit_BoundsTheContrastGain
+[       OK ] ContrastEnhance.ClipLimit_BoundsTheContrastGain (11 ms)
+[ RUN      ] ContrastEnhance.SmoothRamp_HasNoStepAtTileBoundaries
+[       OK ] ContrastEnhance.SmoothRamp_HasNoStepAtTileBoundaries (1 ms)
+[ RUN      ] ContrastEnhance.AlreadyEvenlySpreadImage_IsLeftNearlyAsItIs
+[       OK ] ContrastEnhance.AlreadyEvenlySpreadImage_IsLeftNearlyAsItIs (1 ms)
+[ RUN      ] ContrastEnhance.MatchesAnIndependentReference
+[       OK ] ContrastEnhance.MatchesAnIndependentReference (18 ms)
+[ RUN      ] ContrastEnhance.NarrowFiniteRange_MatchesTheReferenceAndIsNotTreatedAsBroken
+[       OK ] ContrastEnhance.NarrowFiniteRange_MatchesTheReferenceAndIsNotTreatedAsBroken (3 ms)
+[ RUN      ] ContrastEnhance.BinOnAnExactBoundary_CodexCase_41In0To123
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(496): error: The difference between ref[i] and got[i] is 7.6875, which exceeds 1e-5 * 123.0, where
+ref[i] evaluates to 107.625,
+got[i] evaluates to 99.9375, and
+1e-5 * 123.0 evaluates to 0.0012300000000000002.
+pixel 2 value 41
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(496): error: The difference between ref[i] and got[i] is 7.6875, which exceeds 1e-5 * 123.0, where
+ref[i] evaluates to 107.625,
+got[i] evaluates to 99.9375, and
+1e-5 * 123.0 evaluates to 0.0012300000000000002.
+pixel 3 value 41
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(496): error: The difference between ref[i] and got[i] is 7.6875, which exceeds 1e-5 * 123.0, where
+ref[i] evaluates to 107.625,
+got[i] evaluates to 99.9375, and
+1e-5 * 123.0 evaluates to 0.0012300000000000002.
+pixel 6 value 41
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(496): error: The difference between ref[i] and got[i] is 7.6875, which exceeds 1e-5 * 123.0, where
+ref[i] evaluates to 107.625,
+got[i] evaluates to 99.9375, and
+1e-5 * 123.0 evaluates to 0.0012300000000000002.
+pixel 7 value 41
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(496): error: The difference between ref[i] and got[i] is 7.6875, which exceeds 1e-5 * 123.0, where
+ref[i] evaluates to 107.625,
+got[i] evaluates to 99.9375, and
+1e-5 * 123.0 evaluates to 0.0012300000000000002.
+pixel 8 value 41
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(496): error: The difference between ref[i] and got[i] is 7.6875, which exceeds 1e-5 * 123.0, where
+ref[i] evaluates to 107.625,
+got[i] evaluates to 99.9375, and
+1e-5 * 123.0 evaluates to 0.0012300000000000002.
+pixel 9 value 41
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(496): error: The difference between ref[i] and got[i] is 7.6875, which exceeds 1e-5 * 123.0, where
+ref[i] evaluates to 107.625,
+got[i] evaluates to 99.9375, and
+1e-5 * 123.0 evaluates to 0.0012300000000000002.
+pixel 12 value 41
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(496): error: The difference between ref[i] and got[i] is 7.6875, which exceeds 1e-5 * 123.0, where
+ref[i] evaluates to 107.625,
+got[i] evaluates to 99.9375, and
+1e-5 * 123.0 evaluates to 0.0012300000000000002.
+pixel 13 value 41
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(496): error: The difference between ref[i] and got[i] is 7.6875, which exceeds 1e-5 * 123.0, where
+ref[i] evaluates to 107.625,
+got[i] evaluates to 99.9375, and
+1e-5 * 123.0 evaluates to 0.0012300000000000002.
+pixel 34 value 41
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(496): error: The difference between ref[i] and got[i] is 7.6875, which exceeds 1e-5 * 123.0, where
+ref[i] evaluates to 107.625,
+got[i] evaluates to 99.9375, and
+1e-5 * 123.0 evaluates to 0.0012300000000000002.
+pixel 35 value 41
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(496): error: The difference between ref[i] and got[i] is 7.6875, which exceeds 1e-5 * 123.0, where
+ref[i] evaluates to 107.625,
+got[i] evaluates to 99.9375, and
+1e-5 * 123.0 evaluates to 0.0012300000000000002.
+pixel 38 value 41
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(496): error: The difference between ref[i] and got[i] is 7.6875, which exceeds 1e-5 * 123.0, where
+ref[i] evaluates to 107.625,
+got[i] evaluates to 99.9375, and
+1e-5 * 123.0 evaluates to 0.0012300000000000002.
+pixel 39 value 41
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(496): error: The difference between ref[i] and got[i] is 7.6875, which exceeds 1e-5 * 123.0, where
+ref[i] evaluates to 107.625,
+got[i] evaluates to 99.9375, and
+1e-5 * 123.0 evaluates to 0.0012300000000000002.
+pixel 40 value 41
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(496): error: The difference between ref[i] and got[i] is 7.6875, which exceeds 1e-5 * 123.0, where
+ref[i] evaluates to 107.625,
+got[i] evaluates to 99.9375, and
+1e-5 * 123.0 evaluates to 0.0012300000000000002.
+pixel 41 value 41
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(496): error: The difference between ref[i] and got[i] is 7.6875, which exceeds 1e-5 * 123.0, where
+ref[i] evaluates to 107.625,
+got[i] evaluates to 99.9375, and
+1e-5 * 123.0 evaluates to 0.0012300000000000002.
+pixel 44 value 41
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(496): error: The difference between ref[i] and got[i] is 7.6875, which exceeds 1e-5 * 123.0, where
+ref[i] evaluates to 107.625,
+got[i] evaluates to 99.9375, and
+1e-5 * 123.0 evaluates to 0.0012300000000000002.
+pixel 45 value 41
+
+[  FAILED  ] ContrastEnhance.BinOnAnExactBoundary_CodexCase_41In0To123 (1 ms)
+[ RUN      ] ContrastEnhance.BinOnEveryBoundary_MatchesTheExactQuotient
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(537): error: Expected: (worst) <= (1e-5), actual: 0.00036013223291412602 vs 1e-05
+range 123: worst 0.00036013223291412602 of the range at pixel 13796 (value 82)
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_contrast_enhance.cpp(537): error: Expected: (worst) <= (1e-5), actual: 0.00019531250000000001 vs 1e-05
+range 1000: worst 0.00019531250000000001 of the range at pixel 19552 (value 955.06707763671875)
+
+[  FAILED  ] ContrastEnhance.BinOnEveryBoundary_MatchesTheExactQuotient (4 ms)
+[ RUN      ] ContrastEnhance.FlatImage_NoArtifacts
+[       OK ] ContrastEnhance.FlatImage_NoArtifacts (0 ms)
+[ RUN      ] ContrastEnhance.Performance_3072x3072_Within50ms
+[       OK ] ContrastEnhance.Performance_3072x3072_Within50ms (58 ms)
+[ RUN      ] ContrastEnhance.BenchmarkFreeze_Performance_REQ_ENH_017_Clahe3072
+PERFMEASURE REQ-ENH-017/xpe_contrast_enhance 3072x3072 min=41146 med=42450 max=45863 us (runs=7)
+[       OK ] ContrastEnhance.BenchmarkFreeze_Performance_REQ_ENH_017_Clahe3072 (392 ms)
+[----------] 18 tests from ContrastEnhance (495 ms total)
+
+[----------] 2 tests from DataSizeGuardTest
+[ RUN      ] DataSizeGuardTest.ContrastEnhance_ShortDataSize_ReturnsInvalidInput
+[       OK ] DataSizeGuardTest.ContrastEnhance_ShortDataSize_ReturnsInvalidInput (0 ms)
+[ RUN      ] DataSizeGuardTest.ContrastEnhance_ZeroDataSize_Accepted
+[       OK ] DataSizeGuardTest.ContrastEnhance_ZeroDataSize_Accepted (0 ms)
+[----------] 2 tests from DataSizeGuardTest (0 ms total)
+
+[----------] 1 test from EnhanceBasicParameterDependency
+[ RUN      ] EnhanceBasicParameterDependency.ContrastEnhance_EveryParameterReachesTheOutput
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_parameter_dependency.cpp(209):: clahe clip_limit 3->40 maxdiff=65.918 tiles 8x8->2x2=2.44141
+[       OK ] EnhanceBasicParameterDependency.ContrastEnhance_EveryParameterReachesTheOutput (2 ms)
+[----------] 1 test from EnhanceBasicParameterDependency (2 ms total)
+
+[----------] 5 tests from ExceptionGuard
+[ RUN      ] ExceptionGuard.ContrastEnhanceWithATileCountThatOverflowsIntIsInvalidInput
+[       OK ] ExceptionGuard.ContrastEnhanceWithATileCountThatOverflowsIntIsInvalidInput (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceKeepsItsWindowBoundary
+[       OK ] ExceptionGuard.ContrastEnhanceKeepsItsWindowBoundary (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceKeepsItsImagePropertiesOnEveryTileShape
+[       OK ] ExceptionGuard.ContrastEnhanceKeepsItsImagePropertiesOnEveryTileShape (227 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceNeverReadsPastThePixelsForAnEmptyEdgeTile
+[       OK ] ExceptionGuard.ContrastEnhanceNeverReadsPastThePixelsForAnEmptyEdgeTile (124 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes
+[       OK ] ExceptionGuard.ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes (0 ms)
+[----------] 5 tests from ExceptionGuard (352 ms total)
+
+[----------] 3 tests from NonFinitePixels
+[ RUN      ] NonFinitePixels.ContrastEnhanceRefusesANonFinitePixelAndLeavesTheImageAlone
+[       OK ] NonFinitePixels.ContrastEnhanceRefusesANonFinitePixelAndLeavesTheImageAlone (0 ms)
+[ RUN      ] NonFinitePixels.ContrastEnhanceStillProcessesLargeFinitePixels
+[       OK ] NonFinitePixels.ContrastEnhanceStillProcessesLargeFinitePixels (0 ms)
+[ RUN      ] NonFinitePixels.ContrastEnhanceRefusesFinitePixelsWhoseRangeLeavesFloat
+[       OK ] NonFinitePixels.ContrastEnhanceRefusesFinitePixelsWhoseRangeLeavesFloat (0 ms)
+[----------] 3 tests from NonFinitePixels (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 29 tests from 5 test suites ran. (851 ms total)
+[  PASSED  ] 27 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] ContrastEnhance.BinOnAnExactBoundary_CodexCase_41In0To123
+[  FAILED  ] ContrastEnhance.BinOnEveryBoundary_MatchesTheExactQuotient
+
+ 2 FAILED TESTS

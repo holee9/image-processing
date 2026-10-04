@@ -1,0 +1,391 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *ClaheBin*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from ClaheBin
+[ RUN      ] ClaheBin.EveryVectorMatchesTheExactRationalBin
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(64): error: Expected equality of these values:
+  r.bin
+    Which is: 2263
+  b.fast_bin(v)
+    Which is: 2264
+FAST path (allowed by fast_path_is_exact), vmin=7.8886090522101181e-31 vmax=4095 v=2264
+
+[  FAILED  ] ClaheBin.EveryVectorMatchesTheExactRationalBin (0 ms)
+[ RUN      ] ClaheBin.TheFastPathEndsExactlyWhereTheDerivationEndsIt
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(84): error: Value of: fast_path_is_exact(1.0f, 262144.0f, 0)
+  Actual: true
+Expected: false
+S = 18 + 1 + 23 = 42
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(85): error: Value of: fast_path_is_exact(0.0123f, 4095.0f, 0)
+  Actual: true
+Expected: false
+a small positive minimum next to a large maximum
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(86): error: Value of: fast_path_is_exact(std::ldexp(1.0f, -100), 4095.0f, 0)
+  Actual: true
+Expected: false
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(90): error: Value of: fast_path_is_exact(-1.0f, 131072.0f, -23)
+  Actual: true
+Expected: false
+H = 17, S = 42
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(91): error: Value of: fast_path_is_exact(-1.0f, 4095.0f, -149)
+  Actual: true
+Expected: false
+a subnormal pixel in the image
+
+[  FAILED  ] ClaheBin.TheFastPathEndsExactlyWhereTheDerivationEndsIt (0 ms)
+[ RUN      ] ClaheBin.MinLsbExpReadsTheLowestNonzeroPixel
+[       OK ] ClaheBin.MinLsbExpReadsTheLowestNonzeroPixel (0 ms)
+[ RUN      ] ClaheBin.CodexEightByEight_EveryPixelMatchesTheExactReference
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 2
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 3
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 6
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 7
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 8
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 9
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 10
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 11
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 12
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 13
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 14
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 15
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 16
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 17
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 767.8125,
+px[i] evaluates to 1023.75, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 18
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 1023.75,
+px[i] evaluates to 1279.6875, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 19
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 20
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 21
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 767.8125,
+px[i] evaluates to 1023.75, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 22
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 1023.75,
+px[i] evaluates to 1279.6875, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 23
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 1279.6875,
+px[i] evaluates to 1535.625, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 24
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 1535.625,
+px[i] evaluates to 1791.5625, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 25
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 1791.5625,
+px[i] evaluates to 2047.5, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 26
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 2047.5,
+px[i] evaluates to 2303.4375, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 27
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 1279.6875,
+px[i] evaluates to 1535.625, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 28
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 1535.625,
+px[i] evaluates to 1791.5625, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 29
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 1791.5625,
+px[i] evaluates to 2047.5, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 30
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 2047.5,
+px[i] evaluates to 2303.4375, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 31
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 34
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 35
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 38
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 39
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 40
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 41
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 42
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 43
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 44
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 45
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 46
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 47
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 48
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 49
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 767.8125,
+px[i] evaluates to 1023.75, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 50
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 1023.75,
+px[i] evaluates to 1279.6875, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 51
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 52
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 511.875,
+px[i] evaluates to 767.8125, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 53
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 767.8125,
+px[i] evaluates to 1023.75, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 54
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 1023.75,
+px[i] evaluates to 1279.6875, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 55
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 1279.6875,
+px[i] evaluates to 1535.625, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 56
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 1535.625,
+px[i] evaluates to 1791.5625, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 57
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 1791.5625,
+px[i] evaluates to 2047.5, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 58
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 2047.5,
+px[i] evaluates to 2303.4375, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 59
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 1279.6875,
+px[i] evaluates to 1535.625, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 60
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 1535.625,
+px[i] evaluates to 1791.5625, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 61
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 1791.5625,
+px[i] evaluates to 2047.5, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 62
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(139): error: The difference between kExpected[i] and px[i] is 255.9375, which exceeds 1e-5 * 4095.0, where
+kExpected[i] evaluates to 2047.5,
+px[i] evaluates to 2303.4375, and
+1e-5 * 4095.0 evaluates to 0.04095.
+pixel 63
+
+[  FAILED  ] ClaheBin.CodexEightByEight_EveryPixelMatchesTheExactReference (1 ms)
+[----------] 4 tests from ClaheBin (10 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (10 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] ClaheBin.EveryVectorMatchesTheExactRationalBin
+[  FAILED  ] ClaheBin.TheFastPathEndsExactlyWhereTheDerivationEndsIt
+[  FAILED  ] ClaheBin.CodexEightByEight_EveryPixelMatchesTheExactReference
+
+ 3 FAILED TESTS

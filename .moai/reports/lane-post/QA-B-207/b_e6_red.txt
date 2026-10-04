@@ -1,0 +1,9 @@
+0 and 1e-37 (range 1e-37, float scale = +Inf)                  rc=0 finite=True max|diff|/range=9.688e-01  DIFFER
+0 and FLT_MIN (range 1.18e-38)                                 rc=0 finite=True max|diff|/range=9.688e-01  DIFFER
+-5e-38 .. +5e-38 (range 1e-37, minimum not 0)                  rc=0 finite=True max|diff|/range=9.688e-01  DIFFER
+range just BELOW where the float scale is finite (1.1914e-35)  rc=0 finite=True max|diff|/range=9.688e-01  DIFFER
+range just ABOVE where the float scale is finite (1.2154e-35)  rc=0 finite=True max|diff|/range=4.630e-08  MATCH
+0 and 1e-30 (range 1e-30)                                      rc=0 finite=True max|diff|/range=9.482e-08  MATCH
+0 and 1 (control: an ordinary range)                           rc=0 finite=True max|diff|/range=0.000e+00  MATCH
+0 and 4095 (control: the QA-B-207 shape)                       rc=0 finite=True max|diff|/range=2.981e-08  MATCH
+=== 4 of 8 cases differ

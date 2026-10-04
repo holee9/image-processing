@@ -1,0 +1,11 @@
+fix(dicom,enhance_basic): QA-B-207b Codex #120 보류 2건 — 메타 없는 Part 10 거부(C3), 좁은 범위 CLAHE 배율을 double 로(E6)
+
+- C3: 서문 + DICM 뒤에 그룹 0002 요소가 하나도 없으면 XPE_ERR_DICOM_INVALID. 메타는 있고 TransferSyntaxUID 만 없는 경우는 #167 정책 유지. 수정 전 XPE_OK 로 열림을 먼저 재현.
+- E6: 4095.0f / range 가 범위 1.2e-35 미만에서 float 오버플로 -> 구간 전부 0, rc=0 으로 범위의 97% 틀린 출력. 배율·구간을 double 로. 수정 전 4/8 케이스가 어긋남을 정확 유리수 기준(Python)과 C++ 시험으로 재현.
+- C++ 기준 구현이 피시험 식을 복제하던 것을 곱 먼저 나눗셈 나중 식으로 교체.
+- 속도 3072^2: 중앙값 39.6 -> 43.7 ms (예산 50).
+
+Card: QA-B-207b
+Refs #251
+
+🗿 MoAI
