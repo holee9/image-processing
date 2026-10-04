@@ -427,6 +427,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_gain_poly_not_applied.cpp
         # QA-A-232 M2 (#245): metadata content does not change defect_correct / detect_runtime / validate_readout / verify_*
         tests/test_metadata_not_read.cpp
+        # QA-A-235b (#245): a refused calibration file leaves the store as it was (payload read straight into the staged map)
+        tests/test_load_failure_keeps_store.cpp
         # QA-A-123 (#194): the fitted dose range is recorded and enforced
         tests/test_gain_poly_dose_range.cpp
         tests/test_nonlin_no_mode_rejection.cpp

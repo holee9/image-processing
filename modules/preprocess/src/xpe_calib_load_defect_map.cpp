@@ -31,25 +31,37 @@ XpeErrorCode xpe_calib_stage_defect(const char* filepath, StagedDefect* out) noe
         std::vector<uint8_t> config_json;
         std::vector<uint8_t> payload;
 
+        // QA-A-235b: the payload is read straight into the staged map (see xpe_calib_load_offset.cpp). The staged map
+        // is local until the whole file has been accepted.
+        StagedDefect staged;
+        XCalPayloadSink sink;
+        sink.ctx = &staged;
+        sink.acquire = [](void* ctx, const XCalFileHeader& h, uint64_t len) -> uint8_t* {
+            const size_t pixels = static_cast<size_t>(h.width) * h.height;
+            if (len != static_cast<uint64_t>(pixels)) return nullptr;
+            auto* st = static_cast<StagedDefect*>(ctx);
+            st->map.reset(new uint8_t[pixels]);
+            return st->map.get();
+        };
+
         XpeErrorCode rc = read_xcal_file(
             filepath, hdr, config_json, payload,
             /*check_expiry=*/true,
-            /*expected_type=*/XCAL_TYPE_DEFECT);
+            /*expected_type=*/XCAL_TYPE_DEFECT,
+            /*out_config_doc=*/nullptr, &sink);
         if (rc != XPE_OK) {
             return rc;
         }
 
-        // Verify payload size matches declared dimensions (uint8 per pixel)
-        size_t expected = static_cast<size_t>(hdr.width) * hdr.height;
-        if (payload.size() != expected) {
-            return XPE_ERR_CONFIG_INVALID;
+        if (!sink.filled) {
+            // A compressed file: the decompressed bytes are in `payload`, copied into the map as before.
+            size_t expected = static_cast<size_t>(hdr.width) * hdr.height;
+            if (payload.size() != expected) {
+                return XPE_ERR_CONFIG_INVALID;
+            }
+            staged.map.reset(new uint8_t[expected]);
+            std::memcpy(staged.map.get(), payload.data(), payload.size());
         }
-
-        // Allocate and copy BPM data
-        // Overwritten by the memcpy below; no value-initialisation (QA-A-105).
-        StagedDefect staged;
-        staged.map.reset(new uint8_t[expected]);
-        std::memcpy(staged.map.get(), payload.data(), payload.size());
         staged.width    = hdr.width;
         staged.height   = hdr.height;
         staged.expiryMs = hdr.expiry_epoch_ms;

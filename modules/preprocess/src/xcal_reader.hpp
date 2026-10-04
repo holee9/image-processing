@@ -50,6 +50,31 @@ struct XpeConfigDoc;   // xpe_preprocess_internal.h
  *         XPE_ERR_CALIBRATION_EXPIRED if file has expired.
  *         XPE_ERR_OUT_OF_MEMORY on allocation failure.
  */
+/**
+ * Where an UNCOMPRESSED payload is read to, when the caller wants it in its own buffer (QA-A-235b, #245).
+ *
+ * The default path reads the payload into `out_payload` (a zero-filled vector) and the loader then copies it into
+ * the map it keeps: two full-size passes that the SHA-256 and the file read do not need. With a sink the reader
+ * asks `acquire` for the destination once, after the header has been validated and before any payload byte is
+ * read, reads each chunk straight into it and hashes the same chunk as before (the digest and the order of the
+ * checks are unchanged).
+ *
+ *  - `acquire(ctx, header, len)` returns `len` writable bytes, or nullptr to DECLINE (a size or type the caller
+ *    does not take directly): the reader then runs the default path, so which error a doubly bad file gets does not
+ *    change. It may throw std::bad_alloc (the reader reports XPE_ERR_OUT_OF_MEMORY).
+ *  - The destination must be a buffer the caller has NOT published: if the read, the hash check or anything after
+ *    it fails, the reader returns the error and the caller discards the buffer. Nothing it holds is reachable
+ *    from the module-global store, so a failed load leaves the previous map exactly as it was.
+ *  - `filled` is set to true only on XPE_OK with the payload in the sink's buffer (then `out_payload` is empty).
+ *    A compressed file, or a payload of length 0, does not use the sink: `filled` stays false and `out_payload`
+ *    holds the (decompressed) bytes as before.
+ */
+struct XCalPayloadSink {
+    uint8_t* (*acquire)(void* ctx, const XCalFileHeader& header, uint64_t len) = nullptr;
+    void*    ctx = nullptr;
+    bool     filled = false;
+};
+
 XPE_API XpeErrorCode read_xcal_file(
     const char*            path,
     XCalFileHeader&        out_header,
@@ -57,6 +82,7 @@ XPE_API XpeErrorCode read_xcal_file(
     std::vector<uint8_t>&  out_payload,
     bool                   check_expiry = true,
     int                    expected_type = -1,
-    XpeConfigDoc*          out_config_doc = nullptr);
+    XpeConfigDoc*          out_config_doc = nullptr,
+    XCalPayloadSink*       sink = nullptr);
 
 #endif /* XPE_XCAL_READER_HPP */

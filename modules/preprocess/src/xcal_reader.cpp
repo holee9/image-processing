@@ -164,9 +164,11 @@ XpeErrorCode read_xcal_file(
     std::vector<uint8_t>&  out_payload,
     bool                   check_expiry,
     int                    expected_type,
-    XpeConfigDoc*          out_config_doc)
+    XpeConfigDoc*          out_config_doc,
+    XCalPayloadSink*       sink)
 {
     try {
+        if (sink != nullptr) sink->filled = false;
         if (path == nullptr) {
             return XPE_ERR_INVALID_INPUT;
         }
@@ -272,17 +274,28 @@ XpeErrorCode read_xcal_file(
         std::vector<uint8_t> payload;
         Sha256Stream hasher;
         if (!config.empty()) hasher.update(config.data(), config.size());
+        // QA-A-235b: with a sink the payload is read into the caller's own (unpublished) buffer instead of a
+        // zero-filled vector that the caller then copies. Only for an uncompressed, non-empty payload.
+        uint8_t* direct = nullptr;
+        if (sink != nullptr && sink->acquire != nullptr && !is_compressed && hdr.payload_len > 0) {
+            direct = sink->acquire(sink->ctx, hdr, hdr.payload_len);   // nullptr = declined: the default path below
+        }
+        const size_t payload_bytes = static_cast<size_t>(hdr.payload_len);
         if (hdr.payload_len > 0) {
-            payload.resize(static_cast<size_t>(hdr.payload_len));
+            uint8_t* dest = direct;
+            if (dest == nullptr) {
+                payload.resize(payload_bytes);
+                dest = payload.data();
+            }
             size_t done = 0;
-            while (done < payload.size()) {
-                const size_t chunk = std::min(kReadChunkBytes, payload.size() - done);
-                f.read(reinterpret_cast<char*>(payload.data() + done),
+            while (done < payload_bytes) {
+                const size_t chunk = std::min(kReadChunkBytes, payload_bytes - done);
+                f.read(reinterpret_cast<char*>(dest + done),
                        static_cast<std::streamsize>(chunk));
                 if (!f.good() || f.gcount() != static_cast<std::streamsize>(chunk)) {
                     return XPE_ERR_IO_FAILED;
                 }
-                hasher.update(payload.data() + done, chunk);
+                hasher.update(dest + done, chunk);
                 done += chunk;
             }
         }
@@ -329,9 +342,10 @@ XpeErrorCode read_xcal_file(
         // Success: commit outputs (assignments and moves of trivially-copyable and vector members: none can throw)
         // For compressed files, update payload_len to reflect decompressed size
         out_header  = hdr;
-        out_header.payload_len = payload.size();
+        out_header.payload_len = (direct != nullptr) ? hdr.payload_len : payload.size();
         out_config  = std::move(config);
-        out_payload = std::move(payload);
+        out_payload = std::move(payload);   // empty when the payload went to the sink
+        if (sink != nullptr) sink->filled = (direct != nullptr);
         if (out_config_doc != nullptr) *out_config_doc = std::move(config_doc);
 
         if (legacy_repaired) xpe_alert_push(legacy_alert.c_str(), XPE_ALERT_WARNING);
