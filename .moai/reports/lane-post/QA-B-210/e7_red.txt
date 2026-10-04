@@ -1,0 +1,78 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *NoiseReduce.BilateralFilter_SigmaSpace*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from NoiseReduce
+[ RUN      ] NoiseReduce.BilateralFilter_SigmaSpaceAboveTheCap_ReturnsInvalidInputAndLeavesTheBufferUntouched
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_noise_reduce.cpp(179): error: Expected equality of these values:
+  -1
+  xpe_noise_reduce(&img, &params)
+    Which is: 0
+sigma_space=7.5000004768371582
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_noise_reduce.cpp(180): error: Expected equality of these values:
+  0
+  std::memcmp(before.data(), px, before.size() * sizeof(float))
+    Which is: -1
+sigma_space=7.5000004768371582: buffer changed
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_noise_reduce.cpp(179): error: Expected equality of these values:
+  -1
+  xpe_noise_reduce(&img, &params)
+    Which is: 0
+sigma_space=8
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_noise_reduce.cpp(180): error: Expected equality of these values:
+  0
+  std::memcmp(before.data(), px, before.size() * sizeof(float))
+    Which is: -1
+sigma_space=8: buffer changed
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_noise_reduce.cpp(179): error: Expected equality of these values:
+  -1
+  xpe_noise_reduce(&img, &params)
+    Which is: 0
+sigma_space=100
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_noise_reduce.cpp(180): error: Expected equality of these values:
+  0
+  std::memcmp(before.data(), px, before.size() * sizeof(float))
+    Which is: -1
+sigma_space=100: buffer changed
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_noise_reduce.cpp(179): error: Expected equality of these values:
+  -1
+  xpe_noise_reduce(&img, &params)
+    Which is: 0
+sigma_space=1000000
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_noise_reduce.cpp(180): error: Expected equality of these values:
+  0
+  std::memcmp(before.data(), px, before.size() * sizeof(float))
+    Which is: -1
+sigma_space=1000000: buffer changed
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_noise_reduce.cpp(179): error: Expected equality of these values:
+  -1
+  xpe_noise_reduce(&img, &params)
+    Which is: 0
+sigma_space=3.4028234663852886e+38
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_noise_reduce.cpp(180): error: Expected equality of these values:
+  0
+  std::memcmp(before.data(), px, before.size() * sizeof(float))
+    Which is: -1
+sigma_space=3.4028234663852886e+38: buffer changed
+
+[  FAILED  ] NoiseReduce.BilateralFilter_SigmaSpaceAboveTheCap_ReturnsInvalidInputAndLeavesTheBufferUntouched (11 ms)
+[ RUN      ] NoiseReduce.BilateralFilter_SigmaSpaceAtTheCap_IsAcceptedAndProcessesTheImage
+[       OK ] NoiseReduce.BilateralFilter_SigmaSpaceAtTheCap_IsAcceptedAndProcessesTheImage (1 ms)
+[----------] 2 tests from NoiseReduce (12 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (12 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] NoiseReduce.BilateralFilter_SigmaSpaceAboveTheCap_ReturnsInvalidInputAndLeavesTheBufferUntouched
+
+ 1 FAILED TEST
