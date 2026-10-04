@@ -553,3 +553,89 @@ std::map<std::string, uint64_t>& golden() {
     return g;
 }
 }  // namespace
+
+// ---------------------------------------------------------------- the in-place route of the ghost stage against the scratch route (hook build)
+#ifdef XPE_CACHE_TEST_HOOKS
+// A frame is processed in place only when its arithmetic is PROVEN to stay inside the float range (a frame that cannot fail has
+// nothing to undo). That proof is the one thing the in-place route rests on, so it is checked against the route that does not rely on
+// it: the same frames are fed to two handles, one normal and one forced onto the scratch route (which can fail and undo). They must
+// agree bit for bit, and the normal handle must NEVER have gone in place for a frame the scratch route failed.
+TEST(OutputUnchanged237b, GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteFails) {
+    struct Config { const char* name; const char* json; };
+    const Config configs[] = {
+        {"stable_lag", ""},
+        {"large_alpha", "{\"alpha1\":0.4,\"tau1\":1,\"alpha2\":0.01,\"tau2\":20}"},
+        {"huge_beta", "{\"nlcscBeta\":1e10}"},
+        {"slow_tau", "{\"alpha1\":0.1,\"tau1\":1,\"alpha2\":0.002,\"tau2\":400}"},
+    };
+    const float magnitudes[] = {1.0f, 1e3f, 6e4f, 1e8f, 1e15f, 1e25f, 1e30f, 1e33f, 1e35f, 3e35f, 1e36f, 3e36f, 1e37f, 3e37f, 1e38f, 2e38f, 3e38f};
+    const Size sizes[] = {{40, 30}, {37, 29}, {2, 5}};   // the last is below 3x3: no spatial blend
+    unsigned long inPlaceFrames = 0, failedFrames = 0, frames = 0;
+    for (const Config& c : configs) {
+        for (int tier = 1; tier <= 3; ++tier) {
+            for (const Size sz : sizes) {
+                std::string base = c.json[0] ? c.json : "{}";
+                const size_t close = base.rfind('}');
+                const bool empty = base.find_first_not_of(" {\t", 0) >= close;
+                base.insert(close, std::string(empty ? "" : ",") + "\"tier\":" + std::to_string(tier));
+                const std::string cfg = (c.json[0] && std::string(c.json).find("alpha1") != std::string::npos) ? base : withStableLag(base.c_str());
+                void* a = nullptr;
+                void* b = nullptr;
+                ASSERT_EQ(XPE_OK, xpe_ghost_create(sz.w, sz.h, cfg.c_str(), &a)) << c.name << " " << cfg;
+                ASSERT_EQ(XPE_OK, xpe_ghost_create(sz.w, sz.h, cfg.c_str(), &b));
+                GhostCorrectorHandle* ga = static_cast<GhostCorrectorHandle*>(a);
+                GhostCorrectorHandle* gb = static_cast<GhostCorrectorHandle*>(b);
+                const size_t n = static_cast<size_t>(sz.w) * sz.h;
+                Rng rng(0xBEEFu + static_cast<uint32_t>(tier) * 131u + sz.w);
+                std::vector<float> fa(n), fb(n);
+                XpeImageMetadata meta{};
+                for (int f = 0; f < 70; ++f) {
+                    const float scale = magnitudes[rng.next() % (sizeof(magnitudes) / sizeof(magnitudes[0]))];
+                    const bool oneHuge = (rng.next() % 5u) == 0u;   // an ordinary frame with a single huge pixel
+                    for (size_t i = 0; i < n; ++i) {
+                        float v = (oneHuge ? 1000.0f : scale) * (0.5f + rng.unit());
+                        if ((rng.next() % 7u) == 0u) v = -v;
+                        fa[i] = v;
+                    }
+                    if (oneHuge) fa[rng.next() % n] = scale * (0.5f + rng.unit());
+                    fb = fa;
+                    XpeImageBuffer ia{};
+                    ia.width = sz.w;
+                    ia.height = sz.h;
+                    ia.format = XPE_PIXEL_FLOAT32;
+                    ia.bitsAllocated = ia.bitsStored = 32;
+                    ia.dataSize = n * sizeof(float);
+                    XpeImageBuffer ib = ia;
+                    ia.data = fa.data();
+                    ib.data = fb.data();
+
+                    const unsigned long before = xpe_ghost_in_place_frames;
+                    const XpeErrorCode rcA = xpe_ghost_correct(a, &ia, &meta);
+                    const bool wentInPlace = (xpe_ghost_in_place_frames != before);
+                    xpe_ghost_force_slow_path = true;
+                    const XpeErrorCode rcB = xpe_ghost_correct(b, &ib, &meta);
+                    xpe_ghost_force_slow_path = false;
+
+                    ++frames;
+                    if (wentInPlace) ++inPlaceFrames;
+                    if (rcB != XPE_OK) ++failedFrames;
+                    const std::string where = std::string(c.name) + " tier " + std::to_string(tier) + " " + std::to_string(sz.w) + "x" + std::to_string(sz.h) + " frame " + std::to_string(f);
+                    ASSERT_EQ(rcB, rcA) << where;
+                    if (rcB != XPE_OK) ASSERT_FALSE(wentInPlace) << where << ": the in-place route was taken for a frame the scratch route fails";
+                    ASSERT_EQ(0, std::memcmp(fa.data(), fb.data(), n * sizeof(float))) << where << ": pixels differ";
+                    ASSERT_TRUE(ga->hist1 == gb->hist1 && ga->hist2 == gb->hist2) << where << ": history differs";
+                    ASSERT_EQ(gb->lastFrameMean, ga->lastFrameMean) << where;
+                    ASSERT_EQ(gb->exposureWeight, ga->exposureWeight) << where;
+                }
+                xpe_ghost_destroy(a);
+                xpe_ghost_destroy(b);
+            }
+        }
+    }
+    xpe_clear_alerts();
+    // Not vacuous: both routes were exercised, and the bound was tested on frames that really fail.
+    std::printf("[a237b] ghost differential: %lu frames, %lu in place, %lu failed on the scratch route\n", frames, inPlaceFrames, failedFrames);
+    EXPECT_GT(inPlaceFrames, frames / 10u);
+    EXPECT_GT(failedFrames, frames / 20u);
+}
+#endif  // XPE_CACHE_TEST_HOOKS

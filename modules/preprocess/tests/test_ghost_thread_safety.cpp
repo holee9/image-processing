@@ -230,8 +230,10 @@ TEST_F(GhostThreadSafety, ResetAndCorrectOnOneHandleEndInASerialisedState) {
 // ---------------------------------------------------------------------------
 // Failing frames on a shared handle (QA-A-219, #232 closing check after QA-A-217)
 //
-// QA-A-217 gave xpe_ghost_correct a copy of the incoming frame (handle plane `backup`) that a FAILED frame uses to put
-// its pixels back. That plane is shared by every call on the handle, so it is only safe inside the per-handle lock.
+// QA-A-217 gave xpe_ghost_correct a copy of the incoming frame that a FAILED frame uses to put its pixels back. It was a
+// handle plane shared by every call on the handle, so it was only safe inside the per-handle lock; since QA-A-237b it is a
+// scratch plane of the call (only a frame that cannot be proven safe takes that route), and the lock still serialises the
+// calls on the history, which this test pins.
 // Method: seed the handle with one frame of 3e38 (finite, ok). From then on every frame of 2.5e38 (thread A) or
 // 2.4e38 (thread B) overflows the new history and FAILS -- each call must come back PROCESSING_FAILED with ITS OWN
 // pixels unchanged and the handle's history as the seed left it. Without the lock, one thread's restore would copy the
