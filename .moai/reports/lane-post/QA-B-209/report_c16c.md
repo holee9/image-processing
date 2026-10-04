@@ -29,7 +29,7 @@
 | 수정 후 | `c16c_green.txt` | 7/7 passed |
 | 병렬 | `c16c_ctest_j8.txt` | `ctest -j 8 -R DicomLogging` x5, 매번 7/7 |
 | ci-dicom 직렬 전체 | `c16c_ctest_dicom_serial.txt` | 380/380 passed |
-| (참고) 전체를 `-j 4` 로 | `c16c_ctest_dicom_all_j4.txt` | 83건 실패 — 209b 보고서의 발견 그대로(DicomLogging 은 포함되지 않음), 이 변경과 무관 |
+| (참고) 전체를 `-j 4` 로 | `c16c_ctest_dicom_all_j4.txt` | 이번에는 100건 실패(209b 때는 83건) — 실행마다 달라지는 병렬 충돌이다. 실패는 기존 스위트(DicomReaderTest 등)이고 DicomLogging 은 포함되지 않는다. 이 변경과 무관 |
 
 ## Gaps
 - ERROR 결과 줄의 `(<에러 문자열>)` 은 `.+` 로만 단언한다(문자열 내용은 `xpe_error_string` 의 몫).
