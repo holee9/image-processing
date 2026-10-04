@@ -1,0 +1,6 @@
+'vswhere.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+배치 파일이 아닙니다.
+35 findings over 33 files; baseline 36
+  note (accepted limit): bugprone-easily-swappable-parameters modules/preprocess/src/calibration_cache.cpp | bool put_and_get(const std::string& path, XpeImageBuffer* bu | count 2 -- a swap among these can pass
+  below baseline (tighten it): bugprone-easily-swappable-parameters modules/preprocess/src/calibration_cache.cpp | bool put_and_get(const std::string& path, XpeImageBuffer* bu | 2 -> 1
+GATE_EXIT=0

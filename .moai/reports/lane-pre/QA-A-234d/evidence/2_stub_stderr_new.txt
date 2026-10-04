@@ -1,0 +1,7 @@
+'vswhere.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+배치 파일이 아닙니다.
+3 findings over 3 files; baseline 0
+  NEW: bugprone-stub-check modules/common/src/xpe_common.cpp | stub finding only on stderr | * | 1 (baseline 0)
+  NEW: bugprone-stub-check modules/common/src/xpe_logging.cpp | stub finding only on stderr | * Thread-safe logging using spdlog backend. | 1 (baseline 0)
+  NEW: bugprone-stub-check modules/common/src/xpe_memory.cpp | stub finding only on stderr | namespace { | 1 (baseline 0)
+GATE_EXIT=1

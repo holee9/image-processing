@@ -1,0 +1,7 @@
+'vswhere.exe'��(��) ���� �Ǵ� �ܺ� ����, ������ �� �ִ� ���α׷�, �Ǵ�
+��ġ ������ �ƴմϴ�.
+check_clang_tidy: clang-tidy exited 1 on modules/common/src\xpe_common.cpp: the findings would not be complete
+
+clang-tidy: LLVM ERROR: out of memory
+
+GATE_EXIT=1

@@ -1,0 +1,5 @@
+'vswhere.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+배치 파일이 아닙니다.
+check_clang_tidy: modules/common/src\xpe_common.cpp: a diagnostic-looking line could not be parsed, so the findings would not be complete:
+  weird.cpp: warning: something odd
+GATE_EXIT=1

@@ -1,0 +1,11 @@
+'vswhere.exe'��(��) ���� �Ǵ� �ܺ� ����, ������ �� �ִ� ���α׷�, �Ǵ�
+��ġ ������ �ƴմϴ�.
+check_clang_tidy: clang-tidy exited 1 on the positive control: the findings would not be complete
+C:\Users\drake\AppData\Local\Temp\tmp6gry7etn\control.cpp:4:7: warning: empty catch statements hide issues; to handle exceptions appropriately, consider re-throwing, handling, or avoiding catch altogether [bugprone-empty-catch]
+    4 |     } catch (...) {
+      |       ^
+
+1 warning generated.
+control.cpp:1:1: error: forced failure
+
+GATE_EXIT=1
