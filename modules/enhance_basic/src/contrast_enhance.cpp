@@ -3,6 +3,7 @@
 
 #include "xpe/enhance_basic/enhance_basic_api.h"
 #include "xpe/enhance_basic/enhance_basic_internal.h"
+#include "xpe/enhance_basic/clahe_bin_internal.h"
 
 #include <cmath>
 #include <cstring>
@@ -76,58 +77,25 @@ static void build_axis(int size, int tile_size, int tile_count, Axis& a)
     }
 }
 
-// The bin of a value on the global scale.
-//
-// QA-B-207b (Codex #120): scale and bin are computed in DOUBLE. `4095.0f / range` overflows float for every range below
-// 4095 / FLT_MAX = 1.2034e-35, and the conversion of the resulting Inf/NaN product to int is undefined (MSVC gives INT_MIN,
-// so every bin landed on 0 and the call returned XPE_OK with wrong pixels, measured at 97 % of the value range off for
-// 0 .. 1e-37f). In double the scale is finite for EVERY float range: the narrowest positive range is one denormal step,
-// 1.4e-45, and 4095 / 1.4e-45 = 2.9e48 is far below DBL_MAX (1.8e308). `v - vmin` is exact in double and lies in
-// [0, range], so the quotient is at most 4095. No float range is therefore treated as "flat" except an exactly zero one.
-//
-// QA-B-207c (Codex #141): the bin is EXACTLY floor((v - vmin) * 4095 / range). A product with a precomputed 4095 / range
-// is not that: the reciprocal is rounded, and a value on a bin boundary falls one bin low. For 0 .. 123, v = 41 is bin
-// 41 * 4095 / 123 = 1365 exactly, but 41 * (4095 / 123) = 1364.9999999999998 truncates to 1364 (the output of that pixel
-// moved from 107.625 to 99.9375).
-//
-// How it is made exact without a division per pixel (a division per pixel measured +10..15 ms on 3072x3072): the reciprocal gives
-// an estimate that is never high and at most one bin low, and one comparison of two EXACT products corrects it. For float
-// input, d = v - vmin and range are differences of two floats, so each has at most 24 significant bits (exact in double
-// whenever the two floats' exponents are less than ~29 apart); d * 4095 needs at most 36 bits and bin * range at most
-// 12 + 24 = 36, so both products are exact in double and `bin * range <= d * 4095 < (bin + 1) * range` is the definition
-// of floor((v - vmin) * 4095 / range) == bin, decided without any rounding. The one case without that guarantee is a pair
-// of floats whose exponents differ by more than ~29 (for example 1e-30 and 1e+30 in one image): there d is rounded to
-// double and a pixel on a boundary can still be a bin off.
-//
-// This target is built with /fp:fast (CMakeLists.txt). A plain `d * 4095 / range` compiled under it disagreed with the exact
-// rational bins on ~90 % of boundary-adjacent pixels (measured 2026-10-04, QA-B-207c), and the same expression under
-// `#pragma float_control(precise)` was exact but cost ~10 ms of the 50 ms budget at 3072x3072. The estimate-and-correct
-// form below is exact under /fp:fast as well (checked against the exact-rational reference, c_py_v9.txt): its only
-// floating-point steps are single products and one comparison, which the compiler has nothing to reassociate.
-static inline int bin_of(float v, float vmin, double range, double inv_low)
-{
-    const double d = static_cast<double>(v) - static_cast<double>(vmin);    // >= 0: vmin is the image minimum
-    const double n = d * static_cast<double>(NUM_BINS - 1);                  // exact (<= 36 bits)
-    int bin = static_cast<int>(d * inv_low);                                  // never above the exact bin, at most one below it
-    bin += (static_cast<double>(bin + 1) * range <= n);                       // the one exact comparison
-    // bin <= 4095: the estimate is <= 4094 (d <= range, inv_low < 4095 / range), and the comparison cannot pass at 4095 because
-    // n <= 4095 * range. The mask only keeps a broken invariant from indexing outside the 4096 tables.
-    return bin & (NUM_BINS - 1);
-}
+// The bin of a pixel on the global scale is xpe_clahe::Binner (clahe_bin_internal.h): exactly floor((v - vmin) * 4095 / (vmax - vmin)), by
+// double arithmetic where that is PROVEN exact (the derivation is in the header) and by 320-bit integer arithmetic elsewhere.
+// History: QA-B-207b computed the scale in float (overflows below a range of 1.2e-35), 207c multiplied by a reciprocal (a value on a
+// bin boundary fell one bin low), 207c' used a double estimate with an exact-product correction (wrong when a double subtraction
+// rounds: vmin = 2^-100, v = 1, vmax = 4095, Codex #143). The structure replaces the formulas: provable fast path, exact slow path.
 
 // Table of one tile: clipped histogram on the global scale -> cumulative fraction.
 static void build_tile_lut(const float* px, int img_w,
                              int x0, int y0, int x1, int y1,
-                             float vmin, double range, double inv_scale, float clip_limit,
+                             const xpe_clahe::Binner& binner, float clip_limit,
                              uint16_t* bins, float* lut)
 {
     std::vector<int64_t> hist(static_cast<size_t>(NUM_BINS), 0);
     for (int y = y0; y < y1; ++y) {
         const float* row = px + static_cast<int64_t>(y) * img_w;
         uint16_t* brow = bins + static_cast<int64_t>(y) * img_w;
-        // Two loops: the bins of the row (no dependence between pixels, so the compiler can vectorize it) are kept for the
-        // output pass -- the bin is computed once per pixel -- and then counted.
-        for (int x = x0; x < x1; ++x) brow[x] = static_cast<uint16_t>(bin_of(row[x], vmin, range, inv_scale));
+        // Two loops: the bins of the row (no dependence between pixels) are kept for the output pass -- the bin is computed once
+        // per pixel -- and then counted.
+        binner.fill_bins(row + x0, brow + x0, x1 - x0);
         for (int x = x0; x < x1; ++x) hist[brow[x]]++;
     }
 
@@ -245,7 +213,7 @@ extern "C++" static XpeErrorCode xpe_contrast_enhance_impl(XpeImageBuffer* img, 
     // this call could not be finite, and the image is untouched.
     if (!xpe_float_is_finite(val_range)) return XPE_ERR_INVALID_INPUT;
     // QA-B-207b: the flat test and the scale use the exact double difference (never 0 for two different floats: denormals
-    // are gradual), so an image whose values differ only at 1e-37 is not mistaken for a flat one -- see bin_of.
+    // are gradual), so an image whose values differ only at 1e-37 is not mistaken for a flat one -- see clahe_bin_internal.h.
     const double range_d = static_cast<double>(val_max) - static_cast<double>(val_min);
     if (!(range_d > 0.0)) return XPE_OK; // Flat image, no contrast to enhance.
 
@@ -256,10 +224,11 @@ extern "C++" static XpeErrorCode xpe_contrast_enhance_impl(XpeImageBuffer* img, 
     int tile_w = xpe_ceil_div(w, num_tiles_x);
     int tile_h = xpe_ceil_div(h, num_tiles_y);
 
-    // The one intensity scale of the whole image (step 1): (minimum, range_d); inv_scale (= inv_low) is only bin_of's estimate.
-    // inv_low: the reciprocal biased low by 1e-12 of its value (the reciprocal and the product carry ~2e-16), so d * inv_low is
-    // never above the exact quotient and less than 1 below it for every d <= range.
-    const double inv_scale = static_cast<double>(NUM_BINS - 1) / range_d * (1.0 - 1e-12);
+    // The one intensity scale of the whole image (step 1): the exact binner for (minimum, maximum). A negative minimum needs the
+    // lowest last-bit exponent of the pixels to know whether the fast path is exact (clahe_bin_internal.h, case C): one more pass, paid
+    // only by such images.
+    const int min_lsb = val_min < 0.0f ? xpe_clahe::min_lsb_exp(px, n) : 0;
+    const xpe_clahe::Binner binner(val_min, val_max, min_lsb);
 
     // The non-empty tiles of each axis, their centres, and for every pixel position its two neighbouring tiles and
     // the weight between them (step 3).
@@ -281,7 +250,7 @@ extern "C++" static XpeErrorCode xpe_contrast_enhance_impl(XpeImageBuffer* img, 
         for (size_t i = 0; i < nx; ++i) {
             int x0, x1;
             xpe_tile_bounds(ax.tile[i], tile_w, w, x0, x1);
-            build_tile_lut(px, w, x0, y0, x1, y1, val_min, range_d, inv_scale, p->clip_limit,
+            build_tile_lut(px, w, x0, y0, x1, y1, binner, p->clip_limit,
                            bins.get(), luts.data() + (j * nx + i) * static_cast<size_t>(NUM_BINS));
         }
     }
