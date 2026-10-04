@@ -1,0 +1,22 @@
+== grep: recent-file / drop / command-line open paths (existence control: WorkflowBrowseButton must be found)
+-- control:
+clients/ImageProcTest/MainWindow.xaml:2
+clients/ImageProcTest/MainWindow.xaml.cs:3
+-- candidates in clients/ImageProcTest and gui (excluding tests):
+gui/ImageProcTest.E2E/Program.cs:140:        var openRecentMenuItem = GetControl<MenuItem>(window, "OpenRecentMenuItem");
+gui/ImageProcTest.E2E/Program.cs:162:            openRecentMenuItem.IsEnabled == (openRecentMenuItem.Items.Count > 0),
+gui/ImageProcTest.E2E/Program.cs:163:            $"Open Recent is {(openRecentMenuItem.IsEnabled ? "enabled" : "disabled")} with " +
+gui/ImageProcTest.E2E/Program.cs:164:            $"{openRecentMenuItem.Items.Count} entries under it; #225 row 1 ties the two together.");
+gui/ImageProcTest.E2E/Program.cs:166:            openRecentMenuItem.ItemsSource is not null,
+gui/ImageProcTest/MainWindow.xaml:97:                <MenuItem x:Name="OpenRecentMenuItem"
+gui/ImageProcTest/MainWindow.xaml:98:                          AutomationProperties.AutomationId="OpenRecentMenuItem"
+gui/ImageProcTest/MainWindow.xaml.cs:400:                // OpenRecentMenuItem left this list in GUI-C-160: #225 row 1 is implemented. It is
+-- args handled by App.OnStartup:
+clients/ImageProcTest/App.xaml.cs:11:            if (e.Args.Contains("--probe-native-readiness", StringComparer.OrdinalIgnoreCase))
+clients/ImageProcTest/App.xaml.cs:17:            var oracleMode = Array.FindIndex(e.Args, a => a.Equals(XpePreprocessOracleProcess.ModeArgument, StringComparison.OrdinalI
+clients/ImageProcTest/App.xaml.cs:20:                RunPreprocessOracleWorker(e.Args, oracleMode);
+clients/ImageProcTest/App.xaml.cs:24:            if (e.Args.Contains("--run-preprocess-fixture-e2e", StringComparer.OrdinalIgnoreCase))
+clients/ImageProcTest/App.xaml.cs:26:                RunPreprocessFixtureE2e(e.Args);
+clients/ImageProcTest/App.xaml.cs:30:            if (e.Args.Contains("--run-phase1b-fixture-e2e", StringComparer.OrdinalIgnoreCase))
+clients/ImageProcTest/App.xaml.cs:32:                RunPhase1bFixtureE2e(e.Args);
+(end)

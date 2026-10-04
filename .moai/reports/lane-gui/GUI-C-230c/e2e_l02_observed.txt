@@ -1,0 +1,17 @@
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L02_WithARawLoaded_AValueOutsideTheLimitsIsRefused_NothingChanges_AndThenTheLimitItselfRuns [59 s]
+ before: preview='Native preview: stage selection changed. Run Selected to apply the checked pre/post stages.'
+ typed '8': preview='Native preview: Noise sigma_space must be between 0.1 and 7.5 (got 8). Nothing was run; change the value and run again.' status='Status: Input out of range'
+ typed '7.6': preview='Native preview: Noise sigma_space must be between 0.1 and 7.5 (got 7.6). Nothing was run; change the value and run again.' status='Status: Input out of range'
+ typed '100': preview='Native preview: Noise sigma_space must be between 0.1 and 7.5 (got 100). Nothing was run; change the value and run again.' status='Status: Input out of range'
+ typed '0.05': preview='Native preview: Noise sigma_space must be between 0.1 and 7.5 (got 0.05). Nothing was run; change the value and run again.' status='Status: Input out of range'
+ typed '0': preview='Native preview: Noise sigma_space must be between 0.1 and 7.5 (got 0). Nothing was run; change the value and run again.' status='Status: Input out of range'
+ typed '7.5': preview='Native preview: post stages=ei-whole=skipped(Skipped), log=skipped(Skipped), basic-noise=OK/22.799ms, contrast=skipped(Skipped), edge=skipped(Skipped); metrics=meanAbsDelta=31.853, rmse=37.377, maxAbsDelta=94.644, changed=1039583/1048576 (99.14%), outputWithinHalfUnitOfInput(within 0.5 of input)=False, nan
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L01_ASigmaSpaceAboveTheLimit_IsKeptInTheBox_AndTheAppSaysNothing_WhileTyping [42 s]
+ start: box='3.0' preview='Native preview: load a target raw image to run pre/post algorithms.' control: help='' status='' enabled=True offscreen=False windows=1
+ typed '7.4': box shows '7.4'; preview unchanged=True; windows=1
+ typed '7.5': box shows '7.5'; preview unchanged=True; windows=1
+ typed '7.6': box shows '7.6'; preview unchanged=True; windows=1
+ typed '50': box shows '50'; preview unchanged=True; windows=1
+ typed '100': box shows '100'; preview unchanged=True; windows=1
+ typed '1e6': box shows '1e6'; preview unchanged=True; windows=1
+ typed 'abc': box shows 'abc'; preview unchanged=True; windows=1

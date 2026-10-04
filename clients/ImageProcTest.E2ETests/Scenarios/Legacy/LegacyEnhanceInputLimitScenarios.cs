@@ -12,13 +12,11 @@ namespace ImageProcTest.E2ETests.Scenarios.Legacy;
 ///
 /// <para><b>Why L01 changed (GUI-C-230b).</b> Its assertions about the box (kept as typed, nothing said while typing) are still true and still wanted: they are what lets the refusal message name the value
 /// the user typed. What changed is the meaning: before, "nothing is said" was the whole behaviour, because the value was cut silently at run time; now the refusal at run time is the behaviour and the silence
-/// while typing is only the absence of a premature message. The refusal itself is NOT driven here.</para>
+/// while typing is only the absence of a premature message. The refusal itself is driven in L02 below.</para>
 ///
-/// <para><b>What this does not show, and why (measured, GUI-C-230b).</b> The refusal (value 8, press Run Selected) and the run (value 7.5) need a loaded raw image, and the app loads one only through the "Load Raw..." common
-/// file dialog. That dialog opens and its file-name edit accepts the path through UI Automation (read back equal), but its Open button does nothing when invoked by UI Automation (tried: InvokePattern, LegacyIAccessible
-/// DoDefaultAction, focusing the edit first, bringing the dialog to the foreground; the dialog stayed open each time, and the app then reported "failed to exit"). Pressing Enter would work but is a key press that goes to
-/// whichever window is in front, which this lane does not do on a shared desktop. So the refusal is covered where it can be: the decision function and its wiring are tested in the integration project, and the run
-/// button's disabled state without a raw image is asserted here.</para>
+/// <para><b>L02 (GUI-C-230c)</b> observes the refusal and the run in the real window. The raw image is opened through the "Load Raw..." common file dialog by UI Automation only: the button is invoked, the
+/// dialog's file-name edit gets the path through its ValuePattern, and the dialog's Open button receives <c>BM_CLICK</c> addressed to its own window handle. UIA's Invoke on that button did nothing (GUI-C-230b measured it
+/// five ways), but a message to one named window works and cannot reach whichever window is in front. No product code was changed to make this possible.</para>
 /// </summary>
 public sealed class LegacyEnhanceInputLimitScenarios(ITestOutputHelper output)
 {
@@ -57,5 +55,87 @@ public sealed class LegacyEnhanceInputLimitScenarios(ITestOutputHelper output)
             Assert.Equal(windows, app.TopLevelWindowCount());                                 // no dialog, no message box
             Assert.Contains("enabled=False", app.DescribeControl(Tab, "ApplyNativePreviewButton"));   // typing a value does not enable or trigger a run
         }
+    }
+
+    // Everything the user can read on the Evaluation tab EXCEPT the two lines a refusal is allowed to change (the preview text and the status line).
+    private static readonly string[] OtherReadouts =
+    [
+        "ActiveContextSummaryText", "ActiveContextDetailsText", "WorkflowBeforeAfterText", "StageModesInfoText", "RawPreviewInfoText", "RawPreviewTitleText",
+    ];
+
+    [SkippableFact]
+    public void L02_WithARawLoaded_AValueOutsideTheLimitsIsRefused_NothingChanges_AndThenTheLimitItselfRuns()
+    {
+        using var app = LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(breakTemp: false);
+        var dir = Path.Combine(Path.GetTempPath(), "xpe_c230c_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var rawPath = Path.Combine(dir, "sample.raw");
+        WriteSyntheticRaw(rawPath);
+        try
+        {
+            // The raw image is opened the way a user opens it ("Load Raw..."), by UI Automation plus one BM_CLICK addressed to the dialog's Open button: no key, no mouse.
+            app.LoadRawThroughDialog(rawPath);
+            Assert.Equal("Raw preview: sample.raw", app.WaitForTextOnTab(Tab, "RawPreviewTitleText", t => t.Contains("sample.raw", StringComparison.Ordinal), TimeSpan.FromSeconds(30)));
+            app.ToggleCheckBox(Tab, "NoiseEnabledCheckBox");
+            Assert.True(app.IsChecked(Tab, "NoiseEnabledCheckBox"));
+
+            var before = OtherReadouts.ToDictionary(id => id, id => app.ReadText(Tab, id));
+            var previewBefore = app.ReadText(Tab, "NativePreviewText");
+            output.WriteLine("before: preview='" + previewBefore + "'");
+
+            // (a) outside the limits: refused with a message and a red status; the image and every other readout stay as they were
+            foreach (var typed in new[] { "8", "7.6", "100", "0.05", "0" })
+            {
+                app.SetValue(Tab, Box, typed);
+                app.ClickButtonByIdWhenEnabled(Tab, "ApplyNativePreviewButton", TimeSpan.FromSeconds(10));
+                var preview = app.WaitForTextOnTab(Tab, "NativePreviewText", t => t.Contains("sigma_space must be", StringComparison.Ordinal), TimeSpan.FromSeconds(20));
+                var status = app.ReadText(Tab, "StatusText");
+                output.WriteLine($"typed '{typed}': preview='{preview}' status='{status}'");
+
+                Assert.Equal($"Native preview: Noise sigma_space must be between 0.1 and 7.5 (got {typed}). Nothing was run; change the value and run again.", preview);
+                Assert.Equal("Status: Input out of range", status);
+                Assert.DoesNotContain("basic-noise", preview);
+                Assert.DoesNotContain("metrics=", preview);
+                Assert.Equal(typed, app.ReadValue(Tab, Box));                                   // the box keeps what the user typed
+                foreach (var (id, text) in before)
+                {
+                    Assert.Equal(text, app.ReadText(Tab, id));                                   // no result, no viewer text, no state line changed
+                }
+
+                Assert.Contains("enabled=True", app.DescribeControl(Tab, "ApplyNativePreviewButton"));
+            }
+
+            // (b) the limit itself is a valid value: it runs, and the readouts change
+            app.SetValue(Tab, Box, "7.5");
+            app.ClickButtonByIdWhenEnabled(Tab, "ApplyNativePreviewButton", TimeSpan.FromSeconds(10));
+            var ran = app.WaitForTextOnTab(Tab, "NativePreviewText", t => t.Contains("basic-noise=", StringComparison.Ordinal), TimeSpan.FromSeconds(90));
+            var after = app.ReadText(Tab, "StatusText");
+            output.WriteLine($"typed '7.5': preview='{ran}' status='{after}'");
+
+            Assert.Contains("basic-noise=OK", ran);
+            Assert.Contains("metrics=", ran);
+            Assert.DoesNotContain("sigma_space must be", ran);
+            Assert.Equal("Status: native pre/post preview complete", after);
+            Assert.NotEqual(previewBefore, ran);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch (IOException) { /* the app may still hold the file for a moment; it is a temp folder */ }
+        }
+    }
+
+    private static void WriteSyntheticRaw(string path)
+    {
+        // 1024 x 1024 uint16 (one of the sizes the app infers from the file length): a ramp plus noise, so the bilateral filter has something to change.
+        var bytes = new byte[1024 * 1024 * 2];
+        var rng = new Random(7);
+        for (var i = 0; i < bytes.Length; i += 2)
+        {
+            var v = (ushort)(2000 + (i / 2 % 1024) * 2 + rng.Next(0, 200));
+            bytes[i] = (byte)(v & 0xFF);
+            bytes[i + 1] = (byte)(v >> 8);
+        }
+
+        File.WriteAllBytes(path, bytes);
     }
 }

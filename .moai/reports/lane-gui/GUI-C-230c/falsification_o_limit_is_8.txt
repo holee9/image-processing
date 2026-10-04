@@ -1,0 +1,4 @@
+== arm (o): the shared limit is 8 instead of 7.5
+app rebuilt: True
+  오류 메시지:
+[xUnit.net 00:00:34.41]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L02_WithARawLoaded_AValueOutsideTheLimitsIsRefused_NothingChanges_AndThenTheLimitItselfRuns [FAIL]
