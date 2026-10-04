@@ -39,17 +39,19 @@ struct XpeDicomHandle {
 
 
 namespace {
-// QA-B-209 C16 / 209b (REQ-DICOM-043): every public function logs its EXIT, after the entry line it already wrote -- at DEBUG when
-// it succeeded and at ERROR when it returns any other code (the early INVALID_INPUT returns have no inner log site, so this line is
-// the only ERROR they get; a failure that also has a detailed inner line produces two ERROR lines, the cause and the outcome of
-// the public call). The bodies are the `dicom_*_impl` functions below (unchanged), the exported function is a one-line wrapper over
-// them, so every return path is covered without touching each `return`. Logging must never change what a public function returns
-// or let an exception cross the ABI: every call is guarded.
+// QA-B-209 C16 / 209b / 209c (REQ-DICOM-043: "log entry/exit at DEBUG level and error conditions at ERROR level"): every public
+// function logs its EXIT at DEBUG, always, with the code it returns (`<fn> exit rc=<N>`), after the `<fn> entry` line it already
+// wrote -- and when that code is not XPE_OK it ALSO logs one separate ERROR line `<fn> exit rc=<N> (<message>)`. The requirement
+// has both halves; 209b replaced the DEBUG exit by the ERROR line for a failure (a misreading), which dropped half of it. The early
+// INVALID_INPUT returns have no inner log site, so the ERROR line is the only ERROR they get; a failure that also has a detailed inner
+// line produces that line too (the cause) next to this one (the outcome of the public call). The bodies are the `dicom_*_impl`
+// functions below (unchanged), the exported function is a one-line wrapper over them, so every return path is covered without
+// touching each `return`. Logging must never change what a public function returns or let an exception cross the ABI: every call is
+// guarded.
 XpeErrorCode log_exit(const char* fn, XpeErrorCode rc) {
     try {
-        if (rc == XPE_OK) {
-            spdlog::debug("[xpe_dicom] {} exit rc={}", fn, static_cast<int>(rc));
-        } else {
+        spdlog::debug("[xpe_dicom] {} exit rc={}", fn, static_cast<int>(rc));
+        if (rc != XPE_OK) {
             spdlog::error("[xpe_dicom] {} exit rc={} ({})", fn, static_cast<int>(rc), xpe_error_string(rc));
         }
     } catch (...) {
@@ -59,7 +61,7 @@ XpeErrorCode log_exit(const char* fn, XpeErrorCode rc) {
 }
 void log_entry_noexcept(const char* fn) {
     try {
-        spdlog::debug("[xpe_dicom] {}", fn);
+        spdlog::debug("[xpe_dicom] {} entry", fn);
     } catch (...) {
     }
 }
@@ -83,7 +85,7 @@ XPE_API const char* xpe_dicom_version(void) {
  * -------------------------------------------------------------------------*/
 
 static XpeErrorCode dicom_open_impl(const char* filePath, XpeDicomHandle** outHandle) {
-    spdlog::debug("[xpe_dicom] xpe_dicom_open({})", filePath ? filePath : "(null)");
+    spdlog::debug("[xpe_dicom] xpe_dicom_open entry path={}", filePath ? filePath : "(null)");
     if (!filePath || !outHandle) return XPE_ERR_INVALID_INPUT;
     *outHandle = nullptr;
     try {
@@ -103,7 +105,7 @@ static XpeErrorCode dicom_open_impl(const char* filePath, XpeDicomHandle** outHa
 }
 
 static XpeErrorCode dicom_read_image_impl(XpeDicomHandle* handle, XpeImageBuffer* outImg) {
-    spdlog::debug("[xpe_dicom] xpe_dicom_read_image");
+    spdlog::debug("[xpe_dicom] xpe_dicom_read_image entry");
     if (!handle || !outImg) return XPE_ERR_INVALID_INPUT;
     try {
         return handle->reader.readImage(outImg);
@@ -114,7 +116,7 @@ static XpeErrorCode dicom_read_image_impl(XpeDicomHandle* handle, XpeImageBuffer
 }
 
 static XpeErrorCode dicom_get_metadata_impl(XpeDicomHandle* handle, XpeImageMetadata* outMeta) {
-    spdlog::debug("[xpe_dicom] xpe_dicom_get_metadata");
+    spdlog::debug("[xpe_dicom] xpe_dicom_get_metadata entry");
     if (!handle || !outMeta) return XPE_ERR_INVALID_INPUT;
     try {
         return handle->reader.getMetadata(outMeta);
@@ -125,7 +127,7 @@ static XpeErrorCode dicom_get_metadata_impl(XpeDicomHandle* handle, XpeImageMeta
 }
 
 static void dicom_close_impl(XpeDicomHandle* handle) {
-    spdlog::debug("[xpe_dicom] xpe_dicom_close");
+    spdlog::debug("[xpe_dicom] xpe_dicom_close entry");
     try {
         delete handle;
     } catch (...) {
@@ -193,7 +195,7 @@ bool data_size_is_consistent(const XpeImageBuffer* img) {
 static XpeErrorCode dicom_write_impl(const char* filePath,
                                       const XpeImageBuffer* img,
                                       const XpeImageMetadata* meta) {
-    spdlog::debug("[xpe_dicom] xpe_dicom_write({})", filePath ? filePath : "(null)");
+    spdlog::debug("[xpe_dicom] xpe_dicom_write entry path={}", filePath ? filePath : "(null)");
     if (!filePath || !img || !meta) return XPE_ERR_INVALID_INPUT;
     if (!image_is_non_empty(img)) return XPE_ERR_INVALID_INPUT;
     if (!pixel_format_is_writable(img)) return XPE_ERR_INVALID_INPUT;
@@ -211,7 +213,7 @@ static XpeErrorCode dicom_write_impl(const char* filePath,
 static XpeErrorCode dicom_write_j2k_impl(const char* filePath,
                                            const XpeImageBuffer* img,
                                            const XpeImageMetadata* meta) {
-    spdlog::debug("[xpe_dicom] xpe_dicom_write_j2k({})", filePath ? filePath : "(null)");
+    spdlog::debug("[xpe_dicom] xpe_dicom_write_j2k entry path={}", filePath ? filePath : "(null)");
     if (!filePath || !img || !meta) return XPE_ERR_INVALID_INPUT;
     if (!image_is_non_empty(img)) return XPE_ERR_INVALID_INPUT;
     if (!pixel_format_is_writable(img)) return XPE_ERR_INVALID_INPUT;
@@ -233,7 +235,7 @@ static XpeErrorCode dicom_write_j2k_impl(const char* filePath,
 static XpeErrorCode dicom_validate_impl(const char* filePath,
                                          char* outReportJson,
                                          uint32_t reportBufLen) {
-    spdlog::debug("[xpe_dicom] xpe_dicom_validate({})", filePath ? filePath : "(null)");
+    spdlog::debug("[xpe_dicom] xpe_dicom_validate entry path={}", filePath ? filePath : "(null)");
     if (!filePath || !outReportJson) return XPE_ERR_INVALID_INPUT;
     try {
         return xpe::dicom::DicomValidator::validate(filePath, outReportJson, reportBufLen);
@@ -252,7 +254,7 @@ static XpeErrorCode dicom_cstore_impl(const char* host,
                                        const char* aet,
                                        const char* filePath,
                                        uint32_t timeoutMs) {
-    spdlog::debug("[xpe_dicom] xpe_dicom_cstore({}:{} file={})", host ? host : "(null)", port, filePath ? filePath : "(null)");
+    spdlog::debug("[xpe_dicom] xpe_dicom_cstore entry host={}:{} file={}", host ? host : "(null)", port, filePath ? filePath : "(null)");
     if (!host || !aet || !filePath) return XPE_ERR_INVALID_INPUT;
     try {
         return xpe::dicom::DicomNetworkSCU::cstore(host, port, aet, filePath, timeoutMs);
@@ -269,7 +271,7 @@ static XpeErrorCode dicom_cfind_mwl_impl(const char* host,
                                            char* outJson,
                                            uint32_t outBufLen,
                                            uint32_t timeoutMs) {
-    spdlog::debug("[xpe_dicom] xpe_dicom_cfind_mwl({}:{})", host ? host : "(null)", port);
+    spdlog::debug("[xpe_dicom] xpe_dicom_cfind_mwl entry host={}:{}", host ? host : "(null)", port);
     if (!host || !aet || !queryJson || !outJson) return XPE_ERR_INVALID_INPUT;
     try {
         return xpe::dicom::DicomNetworkSCU::cfindMwl(host, port, aet, queryJson,
@@ -281,7 +283,7 @@ static XpeErrorCode dicom_cfind_mwl_impl(const char* host,
 }
 
 static void dicom_cancel_impl(void) {
-    spdlog::debug("[xpe_dicom] xpe_dicom_cancel");
+    spdlog::debug("[xpe_dicom] xpe_dicom_cancel entry");
     try {
         xpe::dicom::DicomNetworkSCU::cancel();
     } catch (...) {
