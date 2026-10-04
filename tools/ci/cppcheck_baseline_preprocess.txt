@@ -1,0 +1,4 @@
+invalidPointerCast	modules/preprocess/src/xpe_calib_generate_gain.cpp	Casting between unsigned char * and const float * which have an incompatible binary data representation.	const float* data = reinterpret_cast<const float*>(payload.data());	1
+passedByValue	modules/preprocess/src/xcal_writer.cpp	Function parameter 'hdr_template' should be passed by const reference.	XCalFileHeader hdr_template,	1
+shiftTooManyBitsSigned	modules/preprocess/src/gain_correct.cpp	Shifting signed 32-bit value by 31 bits is implementation-defined behaviour	if ((ia ^ ib) >> 31) {	1
+uselessCallsSubstr	modules/preprocess/src/xcal_writer.cpp	Ineffective call of function 'substr' because a prefix of the string is assigned to itself. Use resize() or pop_back() instead.	caller_str = caller_str.substr(0, last_brace);	1

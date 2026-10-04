@@ -1426,14 +1426,13 @@ jobs:
         run: python tools/ci/check_clang_tidy.py preprocess build/ci-preprocess tools/ci/clang_tidy_baseline_preprocess.txt
 
   cppcheck:
-    name: cppcheck (measurement only)
-    # QA-A-234 / QA-A-234c (#253): MEASUREMENT ONLY. It never fails the pipeline (--error-exitcode=0 and no gate step);
-    # it prints the finding count per module and uploads the XML. cppcheck is not installed on the lane machines, so
-    # no count existed when this job was written.
-    # Becoming a gate: the leader reads the FIRST CI result (the artifact `cppcheck-results`) and approves it as the
-    # baseline; only then a gate step in the shape of tools/ci/check_clang_tidy.py (identity baseline, non-zero exit
-    # fails, positive control) replaces the --error-exitcode=0 run and this name loses "(measurement only)". The leader
-    # opens the follow-up issue for that switch (QA-A-234c); until it is done this job gates nothing.
+    name: cppcheck
+    # A GATE since #255. The analysis step below still runs with --error-exitcode=0 (it only writes the XML and refuses
+    # a tool that did not run); the gate step compares each module's findings with tools/ci/cppcheck_baseline_<m>.txt
+    # by identity (id, path, message, flagged line text) and fails on any finding above the baseline. A positive
+    # control (a certain null dereference, analyzed with the same flags) runs first so blind flags cannot pass.
+    # The baselines were written from main d58e992d (run 37187451238): common 0, preprocess 4. cppcheck is not
+    # installed on the lane machines -- regenerate from the `cppcheck-results` artifact with --write-baseline.
     needs: detect-lane
     if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
     runs-on: windows-2025
@@ -1458,7 +1457,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "cppcheck --version failed ($LASTEXITCODE)" }
           Add-Content -Path $env:GITHUB_ENV -Value "CPPCHECK_EXE=$cpp"
 
-      - name: Run cppcheck (measurement only)
+      - name: Run cppcheck (writes the XML; the next step gates)
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force build/cppcheck | Out-Null
@@ -1477,6 +1476,16 @@ jobs:
             $n = (Select-String -Path "build/cppcheck/$m.xml" -Pattern '<error ' -AllMatches).Matches.Count
             Write-Host ("cppcheck modules/{0}: {1} finding(s)" -f $m, $n)
           }
+
+      - name: cppcheck against the baselines (gate)
+        shell: pwsh
+        run: |
+          $flags = @('--enable=warning,performance,portability', '--std=c++17', '--inline-suppr',
+                     '--suppress=missingIncludeSystem', '--error-exitcode=0', '--xml')
+          python tools/ci/check_cppcheck.py build/cppcheck/common.xml tools/ci/cppcheck_baseline_common.txt --control $env:CPPCHECK_EXE -- @flags
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/ci/check_cppcheck.py build/cppcheck/preprocess.xml tools/ci/cppcheck_baseline_preprocess.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload cppcheck results
         if: always()
