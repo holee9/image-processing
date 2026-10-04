@@ -130,7 +130,7 @@ internal static class KeyLossDiagnosis
 
         if (tail is not null && widthSays && stillShort && last.Width == before.Width)
         {
-            matches.Add(last.FocusAutomationId == at600.FocusAutomationId && last.FocusAutomationId == before.FocusAutomationId && last.FocusProcessId == appProcessId
+            matches.Add(last.FocusAutomationId == at600.FocusAutomationId && last.FocusAutomationId == before.FocusAutomationId && ProcessIdentity.SameKnownProcess(last.FocusProcessId, appProcessId)
                 ? Cause.KeysNotInBoxFocusStayed
                 : Cause.FocusLeftTheBoxStayedInApp);
         }
@@ -139,7 +139,7 @@ internal static class KeyLossDiagnosis
     }
 
     private static bool ForegroundWasAnotherProcess(Observation at600, Observation? later, int appProcessId) =>
-        at600.ForegroundProcessId != appProcessId || (later is { } l && l.ForegroundProcessId != appProcessId);
+        !ProcessIdentity.SameKnownProcess(at600.ForegroundProcessId, appProcessId) || (later is { } l && !ProcessIdentity.SameKnownProcess(l.ForegroundProcessId, appProcessId));
 
     internal static string Explain(Cause cause) => cause switch
     {
@@ -156,12 +156,12 @@ internal static class KeyLossDiagnosis
     internal static string ForegroundFacts(Observation? at600, Observation? later, int appProcessId)
     {
         var sb = new StringBuilder();
-        if (at600 is { } a && a.ForegroundProcessId != appProcessId)
+        if (at600 is { } a && !ProcessIdentity.SameKnownProcess(a.ForegroundProcessId, appProcessId))
         {
             sb.Append($"At the 600 ms reading the foreground was process {a.ForegroundProcessId}, not the application (pid {appProcessId}). ");
         }
 
-        if (later is { } l && l.ForegroundProcessId != appProcessId)
+        if (later is { } l && !ProcessIdentity.SameKnownProcess(l.ForegroundProcessId, appProcessId))
         {
             sb.Append($"At the 1.5 s re-read the foreground was process {l.ForegroundProcessId}, not the application (pid {appProcessId}). ");
         }

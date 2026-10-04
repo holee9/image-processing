@@ -194,7 +194,7 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
                 var beforeTab = FocusedInfo(window);
                 Assert.True(
                     input.Properties.HasKeyboardFocus.ValueOrDefault
-                    && beforeTab is { AutomationId: CenterBox } && beforeTab.Value.ProcessId == appProcess,
+                    && beforeTab is { AutomationId: CenterBox } && ProcessIdentity.SameKnownProcess(beforeTab.Value.ProcessId, appProcess),
                     $"Just before the Tab the keyboard focus was not in the center box of this app (focused: {Describe(beforeTab)}), " +
                     "so the Tab would not have been addressed to it. " + PanelToggleScenarios.DescribeWhatIsInFront(window));
 
@@ -205,7 +205,7 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
                 // went to a different window (the GUI-C-171 failure shape) — a box that merely lost the focus
                 // would have passed an assertion on the box alone.
                 Assert.True(
-                    afterTab is not null && afterTab.Value.ProcessId == appProcess,
+                    afterTab is not null && ProcessIdentity.SameKnownProcess(afterTab.Value.ProcessId, appProcess),
                     $"After the Tab the keyboard focus is not inside the app (focused: {Describe(afterTab)}; app pid {appProcess}): " +
                     "the Tab went to a different window. " + PanelToggleScenarios.DescribeWhatIsInFront(window));
                 Assert.True(
@@ -317,6 +317,26 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
     }
 
     /// <summary>
+    /// R02f (GUI-C-229f): the foreground check that guards the keys agrees, on the real window, with an independent read of the foreground process id: it says "in front" exactly when the process
+    /// that holds the foreground is this application's, and never when either id is unknown. No key is sent.
+    /// </summary>
+    [SkippableFact]
+    public void R02f_TheForegroundCheck_AgreesWithAnIndependentReadOfTheForegroundProcess()
+    {
+        Measure("R02f", window =>
+        {
+            var appPid = window.Properties.ProcessId.ValueOrDefault;
+            Assert.True(appPid > 0, "the application's process id could not be read, so no foreground check can be trusted");
+
+            var inFront = AppIsForeground(window);
+            var foregroundPid = ForegroundProcessId();
+            output.WriteLine($"R02f: app pid {appPid}, foreground pid {foregroundPid}, AppIsForeground={inFront}");
+
+            Assert.Equal(foregroundPid > 0 && foregroundPid == appPid, inFront);
+        });
+    }
+
+    /// <summary>
     /// Waits until 600 ms have passed since the last key and reads Center, and nothing else: this read is the judgment. The two injection parameters exist for R02e only. Returns the value, when the read
     /// began and when it completed, in ms after the last key. The times are a record: nothing is decided from them.
     /// </summary>
@@ -418,14 +438,16 @@ public sealed class RealInputScenarios(WorkflowApplicationFixture app, ITestOutp
     /// <summary>True when the window that holds the system foreground belongs to the app under test.</summary>
     private static bool AppIsForeground(Window window)
     {
+        // The decision is ProcessIdentity's: a handle, a thread id and a process id that are all known, and the application's id known too (a pair of unknowns must not read as a match, GUI-C-229f).
         var foreground = GetForegroundWindow();
-        if (foreground == IntPtr.Zero)
+        uint threadId = 0;
+        uint processId = 0;
+        if (foreground != IntPtr.Zero)
         {
-            return false;
+            threadId = GetWindowThreadProcessId(foreground, out processId);
         }
 
-        GetWindowThreadProcessId(foreground, out var processId);
-        return processId == (uint)window.Properties.ProcessId.ValueOrDefault;
+        return ProcessIdentity.ForegroundIsTheApplication((long)foreground, threadId, processId, window.Properties.ProcessId.ValueOrDefault);
     }
 
     /// <summary>
