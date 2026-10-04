@@ -146,7 +146,10 @@ void fillRaw(uint16_t* raw, Size sz, int frame) {
 // ---------------------------------------------------------------- the shipped entry
 struct PipelineRun { uint64_t digest = kSeed; XpeErrorCode rc = XPE_OK; };
 
-PipelineRun runPipeline(Size sz, int tier, const char* cfg, int frames, bool ghostGiven) {
+// ghostExtra: members added to the ghost configuration (for example `"nlcscBeta":1e36`); polyGain: the gain map is a polynomial
+// (generated from four flat levels) instead of a scalar map.
+PipelineRun runPipeline(Size sz, int tier, const char* cfg, int frames, bool ghostGiven, const char* ghostExtra = nullptr,
+                        bool polyGain = false) {
     const std::filesystem::path dir = std::filesystem::temp_directory_path() / "qa_a_237b_digest";
     std::filesystem::remove_all(dir);
     std::filesystem::create_directories(dir);
@@ -154,9 +157,26 @@ PipelineRun runPipeline(Size sz, int tier, const char* cfg, int frames, bool gho
     PipelineRun out;
     if (xpe_preprocess_init(nullptr) != XPE_OK) { out.rc = XPE_ERR_PROCESSING_FAILED; return out; }
     loadMaps(dir, sz);
+    if (polyGain) {
+        const size_t np = static_cast<size_t>(sz.w) * sz.h;
+        const double doses[] = {1000.0, 2000.0, 3000.0, 4000.0};
+        const float values[] = {1.00f, 1.10f, 1.18f, 1.25f};
+        std::vector<std::string> paths;
+        for (int i = 0; i < 4; ++i) {
+            std::vector<float> level(np);
+            for (size_t j = 0; j < np; ++j) level[j] = values[i] * (1.0f + 0.0005f * static_cast<float>(j % 11));
+            paths.push_back((dir / ("level" + std::to_string(i) + ".xcal")).string());
+            writeMap(paths.back(), XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, sz.w, sz.h, level.data(), np * sizeof(float));
+        }
+        std::vector<const char*> pointers;
+        for (const std::string& pth : paths) pointers.push_back(pth.c_str());
+        const std::string polyFile = (dir / "gain_poly.xcal").string();
+        EXPECT_EQ(XPE_OK, xpe_calib_generate_gain_polynomial(pointers.data(), doses, 4, 2, polyFile.c_str()));
+        EXPECT_EQ(XPE_OK, xpe_calib_load_gain(polyFile.c_str()));
+    }
     void* ghost = nullptr;
     if (ghostGiven) {
-        const std::string gcfg = withStableLag(("{\"tier\":" + std::to_string(tier) + "}").c_str());
+        const std::string gcfg = withStableLag(("{\"tier\":" + std::to_string(tier) + (ghostExtra ? std::string(",") + ghostExtra : std::string()) + "}").c_str());
         EXPECT_EQ(XPE_OK, xpe_ghost_create(sz.w, sz.h, gcfg.c_str(), &ghost));
     }
     const size_t n = static_cast<size_t>(sz.w) * sz.h;
@@ -291,6 +311,32 @@ TEST(OutputUnchanged237b, PipelineEntryFloatInputOnTheCallersOwnBuffer) {
     expectDigest("pipeline/float_input/tier1", runFloatInput(1, false));
     expectDigest("pipeline/float_input/tier3", runFloatInput(3, false));
     expectDigest("pipeline/float_input/failed_frame/tier2", runFloatInput(2, true));
+}
+
+// QA-A-237c: the polynomial gain keeps its own route through the pipeline, and a ghost whose frames cannot be proven safe (QA-A-237b/d)
+// takes the scratch route there. Both are recorded before the point-wise stages were merged into one working buffer. The scratch route
+// is reached through the signal-dependence beta (tier 3): 1e33 leaves the frames succeeding, 1e36 makes them fail (the call returns
+// XPE_ERR_PROCESSING_FAILED and the caller's frame is left as it was).
+TEST(OutputUnchanged237b, PipelineEntryPolynomialGainAndTheGhostScratchRoute) {
+    const PipelineRun poly = runPipeline(kSizes[0], 2, nullptr, 3, true, nullptr, true);
+    EXPECT_EQ(XPE_OK, poly.rc);
+    expectDigest("pipeline/poly_gain/tier2", poly.digest);
+
+#ifdef XPE_CACHE_TEST_HOOKS
+    xpe_ghost_in_place_frames = 0;
+#endif
+    for (const Size sz : kSizes) {
+        const PipelineRun ok = runPipeline(sz, 3, nullptr, 4, true, "\"nlcscBeta\":1e33", false);
+        EXPECT_EQ(XPE_OK, ok.rc) << "the scratch route takes these frames";
+        expectDigest("pipeline/slow_route_ok/" + std::to_string(sz.w) + "x" + std::to_string(sz.h) + "/tier3_beta1e33", ok.digest);
+    }
+    const PipelineRun failing = runPipeline(kSizes[0], 3, nullptr, 4, true, "\"nlcscBeta\":1e36", false);
+    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, failing.rc) << "these frames fail on the scratch route";
+    expectDigest("pipeline/slow_route_failing/203x157/tier3_beta1e36", failing.digest);
+#ifdef XPE_CACHE_TEST_HOOKS
+    EXPECT_LT(xpe_ghost_in_place_frames, 12ul) << "frames must have taken the scratch route (12 frames were run)";
+    EXPECT_GT(xpe_ghost_in_place_frames, 0ul) << "the first frame of each run (history 0) goes in place";
+#endif
 }
 
 // ---------------------------------------------------------------- the ghost stage on its own
@@ -719,6 +765,11 @@ std::map<std::string, uint64_t>& golden() {
         {"pipeline/default/256x192/tier1", 0xa75c9d9e8247a047ull},
         {"pipeline/default/256x192/tier2", 0x77cb58f9c64c6a7aull},
         {"pipeline/default/256x192/tier3", 0x9dafa625dc1ba994ull},
+        // recorded on 416c3e3d (before the point-wise stages were merged, QA-A-237c): the polynomial gain and the ghost scratch route through the pipeline
+        {"pipeline/poly_gain/tier2", 0x794cad8c2ee0dc20ull},
+        {"pipeline/slow_route_failing/203x157/tier3_beta1e36", 0xf9189e72c1ffbc18ull},
+        {"pipeline/slow_route_ok/203x157/tier3_beta1e33", 0xdf9b1db6da540934ull},
+        {"pipeline/slow_route_ok/256x192/tier3_beta1e33", 0xeec4a5ac55567cceull},
     };
     return g;
 }
