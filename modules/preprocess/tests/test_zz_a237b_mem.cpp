@@ -12,7 +12,8 @@
  * Run (one fresh process per measurement, the peak counter cannot be reset):
  *   xpe_preprocess_tests --gtest_also_run_disabled_tests --gtest_filter=A237bMem.DISABLED_ShippedPath
  * Environment: XPE_A237B_TIER (ghost tier 1..3, default 1), XPE_A237B_FRAMES (default 3),
- * XPE_A237B_RAW_DIR (a directory with bright01..06.raw: real frames instead of the synthetic ones).
+ * XPE_A237B_RAW_DIR (a directory with bright01..06.raw: real frames instead of the synthetic ones),
+ * XPE_A237C_BETA (ghost nlcscBeta, tier 3: a value large enough to send the frames down the ghost stage's scratch route).
  * Output lines start with "[a237b]". Every number carries its unit; MiB = 2^20 bytes.
  */
 
@@ -26,6 +27,7 @@
 #include <windows.h>
 #include <psapi.h>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -180,13 +182,17 @@ TEST(A237bMem, DISABLED_ShippedPath) {
     checkpoint("B maps loaded");
 
     void* ghost = nullptr;
-    const std::string cfg = withStableLag(("{\"tier\":" + std::to_string(tier) + "}").c_str());
+    // XPE_A237C_BETA (QA-A-237c): a signal-dependence beta so large that the ghost stage cannot prove its frames stay inside the float
+    // range (QA-A-237b/d): the frames then take the scratch route (three more planes for the call). Only tier 3 reads beta.
+    const std::string beta = envStr("XPE_A237C_BETA");
+    const std::string cfg = withStableLag(("{\"tier\":" + std::to_string(tier) + (beta.empty() ? "" : ",\"nlcscBeta\":" + beta) + "}").c_str());
     ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, cfg.c_str(), &ghost));
     checkpoint("C ghost handle created");
     std::printf("[a237b] config tier %d, frames %d, N %zu pixels\n", tier, frames, N);
 
 #ifdef XPE_CACHE_TEST_HOOKS
     xpe_pipeline_after_stage_hook = &onStage;
+    xpe_ghost_in_place_frames = 0;
 #endif
     for (int f = 0; f < frames; ++f) {
 #ifdef XPE_CACHE_TEST_HOOKS
@@ -222,6 +228,7 @@ TEST(A237bMem, DISABLED_ShippedPath) {
     }
 #ifdef XPE_CACHE_TEST_HOOKS
     xpe_pipeline_after_stage_hook = nullptr;
+    std::printf("[a237b] ghost frames processed in place: %lu of %d\n", xpe_ghost_in_place_frames, frames);
 #endif
     {
         // What the frames pushed: printed, then drained (the suite's environment reports alerts left behind as a failure).
@@ -240,3 +247,51 @@ TEST(A237bMem, DISABLED_ShippedPath) {
     std::error_code ec;
     std::filesystem::remove_all(dir, ec);
 }
+
+#ifdef XPE_CACHE_TEST_HOOKS
+// QA-A-237c M1: which frames take the ghost stage's scratch route. For each configuration and each decade of the frame's magnitude, a
+// handle is fed 150 identical frames (long enough for the history bound to settle: 0.951^150 is below 1e-3) and the LAST frame is
+// classified with the real decision (the in-place counter): "in place", "scratch" (the route with three extra planes), or "fails".
+// Constant frames of one value are the least favourable ordinary case for the bound (it is a maximum); the table says where each
+// configuration leaves the in-place route, not what a particular exposure does.
+TEST(A237cRoute, DISABLED_WhichMagnitudesTakeTheScratchRoute) {
+    struct Cfg { const char* name; const char* beta; };
+    const Cfg cfgs[] = {{"default beta (0.1)", ""}, {"beta 1e3", "1e3"}, {"beta 1e10", "1e10"}, {"beta 1e20", "1e20"}, {"beta 1e30", "1e30"}, {"beta 1e35", "1e35"}, {"beta 1e36", "1e36"}};
+    std::printf("[a237c] route of the last of 150 constant frames, 8x8, lag alpha1 0.1 tau1 1 alpha2 0.01 tau2 20 (S = 0.363)\n");
+    for (int tier = 1; tier <= 3; ++tier) {
+        for (const Cfg& c : cfgs) {
+            if (tier != 3 && c.beta[0] != '\0') continue;   // beta is read by tier 3 only
+            std::string line;
+            for (int decade = 3; decade <= 38; ++decade) {
+                const float value = std::pow(10.0f, static_cast<float>(decade));
+                if (!std::isfinite(value)) break;
+                void* ghost = nullptr;
+                const std::string cfg = withStableLag(("{\"tier\":" + std::to_string(tier) + (c.beta[0] ? ",\"nlcscBeta\":" + std::string(c.beta) : std::string()) + "}").c_str());
+                if (xpe_ghost_create(8, 8, cfg.c_str(), &ghost) != XPE_OK) { line += "?"; continue; }
+                std::vector<float> px(64);
+                XpeImageBuffer img{};
+                img.width = 8;
+                img.height = 8;
+                img.format = XPE_PIXEL_FLOAT32;
+                img.bitsAllocated = img.bitsStored = 32;
+                img.data = px.data();
+                img.dataSize = px.size() * sizeof(float);
+                XpeImageMetadata meta{};
+                char mark = '.';
+                for (int f = 0; f < 150; ++f) {
+                    std::fill(px.begin(), px.end(), value);
+                    const unsigned long before = xpe_ghost_in_place_frames;
+                    const XpeErrorCode rc = xpe_ghost_correct(ghost, &img, &meta);
+                    mark = (rc != XPE_OK) ? 'F' : (xpe_ghost_in_place_frames != before ? '.' : 'S');
+                    if (rc != XPE_OK) break;   // a failed frame leaves the history as it was; the next would fail again
+                }
+                line += mark;
+                xpe_ghost_destroy(ghost);
+                xpe_clear_alerts();
+            }
+            std::printf("[a237c] tier %d %-20s decades 1e3..1e38: %s\n", tier, c.name, line.c_str());
+        }
+    }
+    std::printf("[a237c] legend: . in place, S scratch route (succeeds), F the frame fails (the call returns PROCESSING_FAILED)\n");
+}
+#endif  // XPE_CACHE_TEST_HOOKS
