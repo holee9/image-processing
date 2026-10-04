@@ -282,7 +282,12 @@ XpeErrorCode DicomValidator::validate(const char* filePath,
         // in the file at all (PS3.5 A.6). A different rule from the exclusion above, so a file that breaks both gets both
         // entries: removing the URL must not make a new error appear on the next validation.
         if (req.key == DCM_PixelData && jpipReferenced) {
-            addError("7FE0,0010", "Pixel Data shall not be present under a JPIP Referenced transfer syntax (PS3.5 A.6)");
+            // QA-B-210 (Codex #119, low): the clause is the one of the syntax the file is in -- A.6 for .94 and .95, A.11 for .204 (JPIP
+            // HTJ2K Referenced), A.12 for .205 (JPIP HTJ2K Referenced Deflate) -- not A.6 for all four.
+            const char* clause = "A.6";
+            if (transferSyntax == "1.2.840.10008.1.2.4.204") clause = "A.11";
+            else if (transferSyntax == "1.2.840.10008.1.2.4.205") clause = "A.12";
+            addError("7FE0,0010", std::string("Pixel Data shall not be present under a JPIP Referenced transfer syntax (PS3.5 ") + clause + ")");
         }
         // QA-B-206 M2b (Codex #111): a Type 2 attribute only has to be there. C5 below judged every required attribute
         // by its value, which made an anonymized file with an empty Patient Name / Patient ID DICOM_INVALID.
