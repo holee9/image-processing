@@ -1468,7 +1468,7 @@ jobs:
           choco install cppcheck -y --no-progress
           $cpp = 'C:\Program Files\Cppcheck\cppcheck.exe'
           if (-not (Test-Path $cpp)) { throw "cppcheck not found after install: $cpp" }
-          if (-not (Test-Path 'C:\Program Files\Cppcheck\cfg\std.cfg')) { throw "cppcheck std.cfg is missing next to $cpp: the installation cannot analyze" }
+          if (-not (Test-Path 'C:\Program Files\Cppcheck\cfg\std.cfg')) { throw "cppcheck std.cfg is missing next to ${cpp}: the installation cannot analyze" }
           & $cpp --version
           if ($LASTEXITCODE -ne 0) { throw "cppcheck --version failed ($LASTEXITCODE)" }
           Add-Content -Path $env:GITHUB_ENV -Value "CPPCHECK_EXE=$cpp"
