@@ -66,8 +66,11 @@
 // v == vmax are bins 0 and 4095 by definition and skip it. Measured: 0 of 9.4 million pixels of a continuous 3072x3072 image.
 // /fp:fast: this module is compiled with it, and it licenses reassociation / distribution (v*inv - vmin*inv would cancel
 // catastrophically). The error bound above counts four correctly rounded operations, so the filter is compiled in `precise` mode:
-// `#pragma float_control(precise, on)` around fill_bins_filtered / filtered_bin (MSVC; precise forbids reassociation and the
-// operations here are single products / differences with nothing to contract into an FMA). The EXACT path is integer-only.
+// `#pragma float_control(precise, on)` around EVERY operation the bound counts: precise_range, precise_inv (R^, inv) and
+// filter_certifies / filtered_bin / fill_bins_filtered (v - vmin, the product, floor, the fraction). All are noinline (MSVC; precise
+// forbids reassociation and the operations are single products / differences with nothing to contract into an FMA), so the mode
+// of the /fp:fast code that calls them cannot reach their bodies. The EXACT path is integer-only. Checked in the compiled object,
+// not only in the source: QA-B-207 report_f.md (disassembly: no FMA, the functions are separate, not inlined).
 //
 // ---- Why the EXACT path is exact --------------------------------------------------------------------------------------
 // Every finite float is an integer multiple of 2^-149 below 2^128, i.e. an integer below 2^277 in that unit. OFF = 2^277 is added
@@ -236,15 +239,40 @@ inline U320 u320_from_float(float x) {
     return (u >> 31) != 0u ? u320_sub(off, mag) : u320_add(off, mag);
 }
 
+// ---- the floating-point operations the tier-2 proof relies on, compiled in `precise` mode -----------------------------------
+// The 5u error bound counts R^ = fl(vmax - vmin) and inv = fl(4095 / R^) as single correctly rounded operations, exactly like the
+// per-pixel ones in the filter. This module is built with /fp:fast; `#pragma float_control` is per FUNCTION, so these three are
+// separate functions inside a precise region, and they are marked noinline so that no /fp:fast caller can pull their body (and
+// its mode) into itself. (Codex #147: the constructor used to compute them in fast mode.) inv_low is the biased estimate of tier 1
+// and tier 1b; there only "within 1e-12" matters, but it is computed here too so that no division is left in fast code.
+#if defined(_MSC_VER)
+#define XPE_CLAHE_NOINLINE __declspec(noinline)
+#pragma float_control(precise, on, push)
+#else
+#define XPE_CLAHE_NOINLINE __attribute__((noinline))
+#endif
+XPE_CLAHE_NOINLINE inline double precise_range(float vmin, float vmax) {
+    return static_cast<double>(vmax) - static_cast<double>(vmin);                      // R^ = fl(vmax - vmin)
+}
+XPE_CLAHE_NOINLINE inline double precise_inv(double range) {
+    return static_cast<double>(kBins - 1) / range;                                       // inv = fl(4095 / R^)
+}
+XPE_CLAHE_NOINLINE inline double precise_inv_low(double range) {
+    return static_cast<double>(kBins - 1) / range * (1.0 - 1e-12);
+}
+#if defined(_MSC_VER)
+#pragma float_control(pop)
+#endif
+
 // ---- the binner -----------------------------------------------------------------------------------------------------
 class Binner {
 public:
     // min_lsb: min_lsb_exp() of the pixels; read only when vmin < 0 (pass 0 otherwise). Requires vmin < vmax, both finite.
     Binner(float vmin, float vmax, int min_lsb)
         : vmin_(static_cast<double>(vmin)),
-          range_(static_cast<double>(vmax) - static_cast<double>(vmin)),
-          inv_low_(static_cast<double>(kBins - 1) / (static_cast<double>(vmax) - static_cast<double>(vmin)) * (1.0 - 1e-12)),
-          inv_(static_cast<double>(kBins - 1) / (static_cast<double>(vmax) - static_cast<double>(vmin))),
+          range_(precise_range(vmin, vmax)),
+          inv_low_(precise_inv_low(range_)),
+          inv_(precise_inv(range_)),
           vmin_f_(vmin),
           vmax_f_(vmax),
           fast_(fast_path_is_exact(vmin, vmax, min_lsb)),
@@ -252,7 +280,7 @@ public:
           unit_(unit_exp(vmin, min_lsb)),
           x_min64_(int64_ok_ ? scaled_int(vmin, unit_) : 0),
           range64_(int64_ok_ ? scaled_int(vmax, unit_) - x_min64_ : 1),
-          inv_low64_(static_cast<double>(kBins - 1) / static_cast<double>(range64_) * (1.0 - 1e-12)),
+          inv_low64_(precise_inv_low(static_cast<double>(range64_))),
           x_min_(u320_from_float(vmin)),
           range_x_(u320_sub(u320_from_float(vmax), x_min_)),
           range_x_dbl_(u320_to_double(range_x_)) {}
@@ -335,7 +363,7 @@ inline bool filter_certifies(double t, int* k) {
 }
 
 // The bin of one pixel, valid for ANY image (no assumption about the exponents). *exact_used is set when the 320-bit path ran.
-inline int filtered_bin(const Binner& b, float v, bool* exact_used) {
+XPE_CLAHE_NOINLINE inline int filtered_bin(const Binner& b, float v, bool* exact_used) {
     const double t = (static_cast<double>(v) - b.vmin()) * b.inv();
     int k;
     if (filter_certifies(t, &k)) return k;
@@ -345,7 +373,7 @@ inline int filtered_bin(const Binner& b, float v, bool* exact_used) {
     return b.resolve(v);
 }
 
-inline size_t fill_bins_filtered(const Binner& b, const float* row, uint16_t* out, int n) {
+XPE_CLAHE_NOINLINE inline size_t fill_bins_filtered(const Binner& b, const float* row, uint16_t* out, int n) {
     const double vmin = b.vmin(), inv = b.inv();
     const float vmin_f = b.vmin_f(), vmax_f = b.vmax_f();
     size_t exact = 0;
