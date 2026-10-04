@@ -747,6 +747,93 @@ TEST(OutputUnchanged237b, GainWrittenOverItsOwnInputEqualsSeparateBuffers) {
     }
 }
 
+// QA-A-237e: the defect stage keeps no frame-sized "already corrected" plane of its own any more (it reuses the cluster search's
+// visited plane). Its output is recorded before that change for every mask shape the two planes told apart: isolated pixels,
+// 2x2 blocks, lines along the frame border, a blob wider than the fill radius, a dense random mask, an all-masked frame, and the
+// union with a per-frame list of classified pixels; each in place and out of place (the two must agree).
+TEST(OutputUnchanged237b, DefectStageOutputForEveryMaskShape) {
+    const Size sizes[] = {{1, 1}, {3, 3}, {17, 5}, {64, 64}, {203, 157}, {256, 192}};
+    for (const Size sz : sizes) {
+        const size_t n = static_cast<size_t>(sz.w) * sz.h;
+        for (int shape = 0; shape < 7; ++shape) {
+            std::shared_ptr<uint8_t[]> mask(new uint8_t[n]());
+            Rng rng(7000u + shape * 131u + sz.w);
+            auto at = [&](uint32_t x, uint32_t y) -> uint8_t& { return mask[static_cast<size_t>(y) * sz.w + x]; };
+            switch (shape) {
+                case 0:   // isolated pixels
+                    for (size_t i = 0; i < n; ++i) mask[i] = (rng.next() % 97u == 0u) ? 1 : 0;
+                    break;
+                case 1:   // isolated pixels and 2x2 blocks
+                    for (size_t i = 0; i < n; ++i) mask[i] = (rng.next() % 131u == 0u) ? 1 : 0;
+                    for (uint32_t k = 0; k < 12; ++k) {
+                        const uint32_t x = rng.next() % sz.w, y = rng.next() % sz.h;
+                        for (uint32_t dy = 0; dy < 2 && y + dy < sz.h; ++dy)
+                            for (uint32_t dx = 0; dx < 2 && x + dx < sz.w; ++dx) at(x + dx, y + dy) = 1;
+                    }
+                    break;
+                case 2:   // a line along the top edge, one along the left edge, a column through the middle
+                    for (uint32_t x = 0; x < sz.w; ++x) at(x, 0) = 1;
+                    for (uint32_t y = 0; y < sz.h; ++y) { at(0, y) = 1; at(sz.w / 2, y) = 1; }
+                    break;
+                case 3:   // a blob wider than the fill radius, plus isolated pixels
+                    for (uint32_t y = sz.h / 4; y < sz.h / 4 + 40 && y < sz.h; ++y)
+                        for (uint32_t x = sz.w / 4; x < sz.w / 4 + 40 && x < sz.w; ++x) at(x, y) = 1;
+                    for (size_t i = 0; i < n; ++i) if (rng.next() % 211u == 0u) mask[i] = 1;
+                    break;
+                case 4:   // dense random
+                    for (size_t i = 0; i < n; ++i) mask[i] = (rng.next() % 10u < 3u) ? 1 : 0;
+                    break;
+                case 5:   // every pixel
+                    for (size_t i = 0; i < n; ++i) mask[i] = 1;
+                    break;
+                default:  // isolated pixels, completed by a per-frame list of classified pixels (below)
+                    for (size_t i = 0; i < n; ++i) mask[i] = (rng.next() % 151u == 0u) ? 1 : 0;
+                    break;
+            }
+            CalibSnapshot snap;
+            snap.initialized = true;
+            snap.defect_map = mask;
+            snap.defect_width = sz.w;
+            snap.defect_height = sz.h;
+            std::vector<uint32_t> classified;
+            if (shape == 6) {
+                for (uint32_t k = 0; k < 40; ++k) classified.push_back(rng.next() % static_cast<uint32_t>(n));
+                classified.push_back(0);
+            }
+            std::vector<float> in(n);
+            Rng vals(0xD0D0u + shape + sz.h);
+            for (size_t i = 0; i < n; ++i) in[i] = 4000.0f * vals.unit();
+            XpeImageMetadata meta{};
+
+            auto run = [&](bool inPlace, std::vector<float>& result, XpeErrorCode& rc) {
+                std::vector<float> src = in;
+                result.assign(n, -1.0f);
+                XpeImageBuffer ib{}, ob{};
+                ib.width = ob.width = sz.w;
+                ib.height = ob.height = sz.h;
+                ib.format = ob.format = XPE_PIXEL_FLOAT32;
+                ib.bitsAllocated = ib.bitsStored = ob.bitsAllocated = ob.bitsStored = 32;
+                ib.data = src.data();
+                ib.dataSize = n * sizeof(float);
+                ob.data = inPlace ? src.data() : result.data();
+                ob.dataSize = n * sizeof(float);
+                rc = xpe_defect_correct_in(snap, &ib, &ob, &meta, classified.empty() ? nullptr : &classified);
+                if (inPlace) result = src;
+                xpe_clear_alerts();
+            };
+            std::vector<float> outOfPlace, inPlace;
+            XpeErrorCode rcA{}, rcB{};
+            run(false, outOfPlace, rcA);
+            run(true, inPlace, rcB);
+            EXPECT_EQ(rcA, rcB);
+            EXPECT_EQ(0, std::memcmp(outOfPlace.data(), inPlace.data(), n * sizeof(float))) << "shape " << shape << ", " << sz.w << "x" << sz.h;
+            uint64_t h = fnvValue(1469598103934665603ull, static_cast<int>(rcA));
+            h = fnv(h, outOfPlace.data(), n * sizeof(float));
+            expectDigest("defect/shape" + std::to_string(shape) + "/" + std::to_string(sz.w) + "x" + std::to_string(sz.h), h);
+        }
+    }
+}
+
 TEST(OutputUnchanged237b, GainScalarMapOutputAndRefusedMaps) {
     const Size sz = kSizes[0];
     const size_t n = static_cast<size_t>(sz.w) * sz.h;
@@ -840,6 +927,49 @@ std::map<std::string, uint64_t>& golden() {
         {"pipeline/slow_route_failing/203x157/tier3_beta1e36", 0xf9189e72c1ffbc18ull},
         {"pipeline/slow_route_ok/203x157/tier3_beta1e33", 0xdf9b1db6da540934ull},
         {"pipeline/slow_route_ok/256x192/tier3_beta1e33", 0xeec4a5ac55567cceull},
+        // recorded on c9d32e59 (before the defect stage dropped its own processed plane, QA-A-237e)
+        {"defect/shape0/17x5", 0xdde3d6d2c831fc8aull},
+        {"defect/shape0/1x1", 0x79a8a8f0b1d6d159ull},
+        {"defect/shape0/203x157", 0xc3a4db5dbcc368f7ull},
+        {"defect/shape0/256x192", 0x695d83560cddb205ull},
+        {"defect/shape0/3x3", 0xfe3acccff4a9321dull},
+        {"defect/shape0/64x64", 0x09d451ea41f21448ull},
+        {"defect/shape1/17x5", 0x8c0677a0ee518a97ull},
+        {"defect/shape1/1x1", 0x85abe58de3d25f75ull},
+        {"defect/shape1/203x157", 0x4f93e620597752d1ull},
+        {"defect/shape1/256x192", 0x00de0736174601ecull},
+        {"defect/shape1/3x3", 0xf0ab77594867f8c9ull},
+        {"defect/shape1/64x64", 0x26db5fb0f0626d53ull},
+        {"defect/shape2/17x5", 0xa0a20f57adf3bffcull},
+        {"defect/shape2/1x1", 0xffbfbc0359894313ull},
+        {"defect/shape2/203x157", 0xd496369a363e2dd3ull},
+        {"defect/shape2/256x192", 0x98622fe47d9d4a8aull},
+        {"defect/shape2/3x3", 0x13422bb0275b2192ull},
+        {"defect/shape2/64x64", 0x9a3d59066ffdccdfull},
+        {"defect/shape3/17x5", 0xf68dffe5bee81062ull},
+        {"defect/shape3/1x1", 0x502183460450a219ull},
+        {"defect/shape3/203x157", 0xeb95795a2b4a7fceull},
+        {"defect/shape3/256x192", 0x05b9956bc5b67d02ull},
+        {"defect/shape3/3x3", 0x0b06e13c822a3e04ull},
+        {"defect/shape3/64x64", 0xf645e17179d30f7full},
+        {"defect/shape4/17x5", 0x825964beb2f64d60ull},
+        {"defect/shape4/1x1", 0x19062eb11b965b2full},
+        {"defect/shape4/203x157", 0x46c4d485bc07ec77ull},
+        {"defect/shape4/256x192", 0x7b381e0d03d3960bull},
+        {"defect/shape4/3x3", 0x883951dce67554a9ull},
+        {"defect/shape4/64x64", 0x0eaba48ff378b7a9ull},
+        {"defect/shape5/17x5", 0x694d300c0c9fc47dull},
+        {"defect/shape5/1x1", 0xa7b6783e789bf504ull},
+        {"defect/shape5/203x157", 0xbf19e5f152f285daull},
+        {"defect/shape5/256x192", 0xd35d6fe5662004b7ull},
+        {"defect/shape5/3x3", 0xc885589775c12656ull},
+        {"defect/shape5/64x64", 0xec26bf643aa1257full},
+        {"defect/shape6/17x5", 0x5d95d56b38b8613bull},
+        {"defect/shape6/1x1", 0x5cc3c2ce65d29129ull},
+        {"defect/shape6/203x157", 0x90f7a8a4a6e8f984ull},
+        {"defect/shape6/256x192", 0x4081d7b130ad384aull},
+        {"defect/shape6/3x3", 0xdce840b004d75517ull},
+        {"defect/shape6/64x64", 0x5296484dad498ed3ull},
     };
     return g;
 }

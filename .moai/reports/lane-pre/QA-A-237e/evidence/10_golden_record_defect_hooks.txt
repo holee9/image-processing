@@ -1,0 +1,184 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OutputUnchanged237b.DefectStage*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.DefectStageOutputForEveryMaskShape
+[a237b-golden] {"defect/shape0/1x1", 0x79a8a8f0b1d6d159ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape0/1x1 (computed 79a8a8f0b1d6d159)
+
+[a237b-golden] {"defect/shape1/1x1", 0x85abe58de3d25f75ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape1/1x1 (computed 85abe58de3d25f75)
+
+[a237b-golden] {"defect/shape2/1x1", 0xffbfbc0359894313ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape2/1x1 (computed ffbfbc0359894313)
+
+[a237b-golden] {"defect/shape3/1x1", 0x502183460450a219ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape3/1x1 (computed 502183460450a219)
+
+[a237b-golden] {"defect/shape4/1x1", 0x19062eb11b965b2full},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape4/1x1 (computed 19062eb11b965b2f)
+
+[a237b-golden] {"defect/shape5/1x1", 0xa7b6783e789bf504ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape5/1x1 (computed a7b6783e789bf504)
+
+[a237b-golden] {"defect/shape6/1x1", 0x5cc3c2ce65d29129ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape6/1x1 (computed 5cc3c2ce65d29129)
+
+[a237b-golden] {"defect/shape0/3x3", 0xfe3acccff4a9321dull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape0/3x3 (computed fe3acccff4a9321d)
+
+[a237b-golden] {"defect/shape1/3x3", 0xf0ab77594867f8c9ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape1/3x3 (computed f0ab77594867f8c9)
+
+[a237b-golden] {"defect/shape2/3x3", 0x13422bb0275b2192ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape2/3x3 (computed 13422bb0275b2192)
+
+[a237b-golden] {"defect/shape3/3x3", 0x0b06e13c822a3e04ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape3/3x3 (computed b06e13c822a3e04)
+
+[a237b-golden] {"defect/shape4/3x3", 0x883951dce67554a9ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape4/3x3 (computed 883951dce67554a9)
+
+[a237b-golden] {"defect/shape5/3x3", 0xc885589775c12656ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape5/3x3 (computed c885589775c12656)
+
+[a237b-golden] {"defect/shape6/3x3", 0xdce840b004d75517ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape6/3x3 (computed dce840b004d75517)
+
+[a237b-golden] {"defect/shape0/17x5", 0xdde3d6d2c831fc8aull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape0/17x5 (computed dde3d6d2c831fc8a)
+
+[a237b-golden] {"defect/shape1/17x5", 0x8c0677a0ee518a97ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape1/17x5 (computed 8c0677a0ee518a97)
+
+[a237b-golden] {"defect/shape2/17x5", 0xa0a20f57adf3bffcull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape2/17x5 (computed a0a20f57adf3bffc)
+
+[a237b-golden] {"defect/shape3/17x5", 0xf68dffe5bee81062ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape3/17x5 (computed f68dffe5bee81062)
+
+[a237b-golden] {"defect/shape4/17x5", 0x825964beb2f64d60ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape4/17x5 (computed 825964beb2f64d60)
+
+[a237b-golden] {"defect/shape5/17x5", 0x694d300c0c9fc47dull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape5/17x5 (computed 694d300c0c9fc47d)
+
+[a237b-golden] {"defect/shape6/17x5", 0x5d95d56b38b8613bull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape6/17x5 (computed 5d95d56b38b8613b)
+
+[a237b-golden] {"defect/shape0/64x64", 0x09d451ea41f21448ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape0/64x64 (computed 9d451ea41f21448)
+
+[a237b-golden] {"defect/shape1/64x64", 0x26db5fb0f0626d53ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape1/64x64 (computed 26db5fb0f0626d53)
+
+[a237b-golden] {"defect/shape2/64x64", 0x9a3d59066ffdccdfull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape2/64x64 (computed 9a3d59066ffdccdf)
+
+[a237b-golden] {"defect/shape3/64x64", 0xf645e17179d30f7full},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape3/64x64 (computed f645e17179d30f7f)
+
+[a237b-golden] {"defect/shape4/64x64", 0x0eaba48ff378b7a9ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape4/64x64 (computed eaba48ff378b7a9)
+
+[a237b-golden] {"defect/shape5/64x64", 0xec26bf643aa1257full},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape5/64x64 (computed ec26bf643aa1257f)
+
+[a237b-golden] {"defect/shape6/64x64", 0x5296484dad498ed3ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape6/64x64 (computed 5296484dad498ed3)
+
+[a237b-golden] {"defect/shape0/203x157", 0xc3a4db5dbcc368f7ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape0/203x157 (computed c3a4db5dbcc368f7)
+
+[a237b-golden] {"defect/shape1/203x157", 0x4f93e620597752d1ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape1/203x157 (computed 4f93e620597752d1)
+
+[a237b-golden] {"defect/shape2/203x157", 0xd496369a363e2dd3ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape2/203x157 (computed d496369a363e2dd3)
+
+[a237b-golden] {"defect/shape3/203x157", 0xeb95795a2b4a7fceull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape3/203x157 (computed eb95795a2b4a7fce)
+
+[a237b-golden] {"defect/shape4/203x157", 0x46c4d485bc07ec77ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape4/203x157 (computed 46c4d485bc07ec77)
+
+[a237b-golden] {"defect/shape5/203x157", 0xbf19e5f152f285daull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape5/203x157 (computed bf19e5f152f285da)
+
+[a237b-golden] {"defect/shape6/203x157", 0x90f7a8a4a6e8f984ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape6/203x157 (computed 90f7a8a4a6e8f984)
+
+[a237b-golden] {"defect/shape0/256x192", 0x695d83560cddb205ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape0/256x192 (computed 695d83560cddb205)
+
+[a237b-golden] {"defect/shape1/256x192", 0x00de0736174601ecull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape1/256x192 (computed de0736174601ec)
+
+[a237b-golden] {"defect/shape2/256x192", 0x98622fe47d9d4a8aull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape2/256x192 (computed 98622fe47d9d4a8a)
+
+[a237b-golden] {"defect/shape3/256x192", 0x05b9956bc5b67d02ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape3/256x192 (computed 5b9956bc5b67d02)
+
+[a237b-golden] {"defect/shape4/256x192", 0x7b381e0d03d3960bull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape4/256x192 (computed 7b381e0d03d3960b)
+
+[a237b-golden] {"defect/shape5/256x192", 0xd35d6fe5662004b7ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape5/256x192 (computed d35d6fe5662004b7)
+
+[a237b-golden] {"defect/shape6/256x192", 0x4081d7b130ad384aull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for defect/shape6/256x192 (computed 4081d7b130ad384a)
+
+[  FAILED  ] OutputUnchanged237b.DefectStageOutputForEveryMaskShape (30 ms)
+[----------] 1 test from OutputUnchanged237b (30 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (31 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OutputUnchanged237b.DefectStageOutputForEveryMaskShape
+
+ 1 FAILED TEST

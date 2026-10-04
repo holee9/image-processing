@@ -27,11 +27,13 @@ struct ClusterInfo {
     bool isCluster; // true if 2+ adjacent defects
 };
 
-// `visited` is W*H and all-false on entry; it is left all-false on return.
+// `visited` is W*H and all-false on entry; the pixels of the cluster found here are LEFT marked on return.
 // QA-A-103 (#179): it used to be allocated (W*H) per defect pixel, which made
 // the correction O(defects x W*H) -- 2.97 s for 0.1 % defects at 3072x3072.
-// Every pixel marked here is pushed to `positions`, so clearing exactly those
-// entries restores the invariant.
+// QA-A-237e (#245): the marks used to be cleared again on return, and the caller kept a second plane (`processed`)
+// of the pixels it had already corrected. A cluster is a whole 4-connected component of the mask, so no later search
+// can reach a pixel an earlier one marked: the marks of finished clusters are exactly that second plane, and one
+// plane (1.125 MiB at 3072x3072) serves both.
 ClusterInfo analyzeCluster(const uint8_t* defectMask, uint32_t width, uint32_t height,
                            uint32_t startX, uint32_t startY,
                            std::vector<bool>& visited)
@@ -69,8 +71,6 @@ ClusterInfo analyzeCluster(const uint8_t* defectMask, uint32_t width, uint32_t h
             }
         }
     }
-
-    for (uint32_t idx : info.positions) visited[idx] = false;
 
     info.isCluster = info.positions.size() >= 2u;
     return info;
@@ -418,8 +418,7 @@ XpeErrorCode xpe_defect_correct_in(
     const float* const source = src;
 
     // REQ-P1A-012: cluster-aware defect correction
-    std::vector<bool> processed(n, false);
-    std::vector<bool> visited(n, false);   // reused by every analyzeCluster call
+    std::vector<bool> visited(n, false);   // the pixels of every cluster found so far, corrected or being corrected
     size_t unfilled = 0;                   // masked pixels with no valid pixel within kFillMaxRadius (QA-A-211b)
     FillDistance fillDistance;             // built on the first cluster pixel whose 3x3 holds no valid pixel (QA-A-213)
     std::vector<float> fillValues;         // scratch for median_filter_cluster
@@ -427,7 +426,7 @@ XpeErrorCode xpe_defect_correct_in(
     for (uint32_t y = 0; y < H; ++y) {
         for (uint32_t x = 0; x < W; ++x) {
             uint32_t idx = y * W + x;
-            if (dm[idx] != 0 && !processed[idx]) {
+            if (dm[idx] != 0 && !visited[idx]) {
                 ClusterInfo cluster = analyzeCluster(dm, W, H, x, y, visited);
                 if (cluster.isCluster) {
                     for (uint32_t cidx : cluster.positions) {
@@ -436,11 +435,9 @@ XpeErrorCode xpe_defect_correct_in(
                         bool found = true;
                         dst[cidx] = median_filter_cluster(source, dm, cx, cy, W, H, fillDistance, fillValues, &found);
                         if (!found) ++unfilled;
-                        processed[cidx] = true;
                     }
                 } else {
                     dst[idx] = xpe_interpolate_pixel(source, dm, x, y, W, H);
-                    processed[idx] = true;
                 }
             }
         }
