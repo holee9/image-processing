@@ -1,0 +1,5 @@
+docs(report): QA-B-209b 보고서와 증거 (DICOM 로그: version, ERROR 종료, 병렬 안전)
+
+Refs #251
+
+🗿 MoAI
