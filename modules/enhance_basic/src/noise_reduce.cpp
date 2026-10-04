@@ -195,11 +195,13 @@ static bool sums_may_leave_float(double peak, double sumOfWeightsBound)
     return peak * sumOfWeightsBound * 1.01 > static_cast<double>((std::numeric_limits<float>::max)());
 }
 
-// QA-B-210 E7 (#251, user decision): the spatial kernel is truncated at 2 sigma and its radius capped at kMaxBilateralRadius, so
-// the specified sigma_space is honoured only while ceil(2 * sigma_space) <= kMaxBilateralRadius, i.e. sigma_space <= 15 / 2 = 7.5
-// (exact in float). The cap is the largest value the radius cap reflects; a larger one used to be accepted and silently behave
-// like 7.5, and is now XPE_ERR_INVALID_INPUT. (A very small image limits the radius further, to min(w, h) / 2 - 1; that is the
-// kernel not fitting the image, not the parameter, and stays.)
+// QA-B-210 E7 / E7b (#251, user decision): the spatial kernel covers 2 sigma, and its radius is capped at kMaxBilateralRadius.
+// sigma_space <= 15 / 2 = 7.5 (exact in float) is the largest value whose whole 2-sigma extent fits inside the radius cap:
+// ceil(2 * 7.5) = 15. Above it the radius is clamped to 15, which is LESS than 2 sigma: the spatial weights exp(-0.5 d^2 / sigma^2)
+// still follow the requested sigma (at d = 10, sigma 7.5 gives 0.411 and sigma 8 gives 0.458), but the kernel is cut off before
+// 2 sigma, so the filter is not the Gaussian shape the parameter asks for. Such a value used to be accepted; it is now
+// XPE_ERR_INVALID_INPUT. (A very small image limits the radius further, to min(w, h) / 2 - 1; that is the kernel not fitting the image,
+// not the parameter, and stays.)
 static constexpr int   kMaxBilateralRadius = 15;
 static constexpr float kMaxSigmaSpace      = 0.5f * static_cast<float>(kMaxBilateralRadius);   // 7.5
 
@@ -375,7 +377,7 @@ extern "C++" static XpeErrorCode xpe_noise_reduce_impl(XpeImageBuffer* img, cons
         // the build's floating-point mode (measured: /fp:precise lets NaN through, the /fp:fast this module is built
         // with rejects it), so NaN and +infinity were accepted or refused by accident and +infinity reached an int
         // conversion. Finiteness is its own explicit test.
-        // QA-B-210 E7: and not above the largest sigma_space the radius cap reflects (7.5). Judged here, before the image is touched.
+        // QA-B-210 E7: and not above the largest sigma_space whose 2-sigma extent fits the radius cap (7.5). Judged here, before the image is touched.
         if (!std::isfinite(params->sigma_space) || !std::isfinite(params->sigma_range) ||
             params->sigma_space <= 0.0f || params->sigma_range <= 0.0f ||
             params->sigma_space > kMaxSigmaSpace) {
