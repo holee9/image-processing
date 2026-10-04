@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
+#include <limits>
 #include <vector>
 #include "perf_measure.h"
 
@@ -267,18 +268,26 @@ TEST(ContrastEnhance, AlreadyEvenlySpreadImage_IsLeftNearlyAsItIs) {
 // fixed stride over the whole scale), cumulative distribution, bilinear blend of the four tiles whose CENTRES surround the pixel
 // (a border pixel sees two tiles, a corner one), mapped back onto [min, max]. Tiles with no pixel (ceil-division can leave one
 // past the edge) do not take part.
+//
+// QA-B-207b (Codex #120): the bin was `(v - vmin) * (4095 / range)` here too, i.e. the formula under test copied, so this
+// function could not see a failure of that formula (the float scale overflows below a range of 1.2e-35). It is now
+// `floor((v - vmin) * 4095 / range)`: multiply first, divide last. That is NOT the same arithmetic as the implementation
+// (which multiplies by a precomputed scale), and for float inputs it is exact: v - vmin and range are exact in double, the
+// product with 4095 needs at most 36 bits, and a quotient of two such numbers is either an integer or at least 2^-24 from
+// one, so the correctly rounded division cannot cross an integer. Independence beyond that rests on
+// .moai/reports/lane-post/QA-B-207/clahe_ref_exact.py.txt, which takes the bin from exact rational arithmetic (Fraction) and
+// agrees with the DLL on the same narrow-range cases (b_e6_green.txt).
 static std::vector<double> ReferenceClahe(const std::vector<float>& in, int w, int h, float clip, int tw, int th) {
     const int kBins = 4096;
     const float vmin = *std::min_element(in.begin(), in.end());
     const float vmax = *std::max_element(in.begin(), in.end());
-    const float range = vmax - vmin;
+    const double range = static_cast<double>(vmax) - static_cast<double>(vmin);
     std::vector<double> out(in.begin(), in.end());
-    if (!(range > 0.0f)) return out;
-    const float scale = static_cast<float>(kBins - 1) / range;
+    if (!(range > 0.0)) return out;
     std::vector<int> bin(in.size());
     for (size_t i = 0; i < in.size(); ++i) {
-        const int b = static_cast<int>((in[i] - vmin) * scale);
-        bin[i] = std::min(std::max(b, 0), kBins - 1);
+        const double b = std::floor((static_cast<double>(in[i]) - static_cast<double>(vmin)) * (kBins - 1) / range);
+        bin[i] = static_cast<int>(std::min(std::max(b, 0.0), static_cast<double>(kBins - 1)));
     }
     struct Span { int begin, end; double centre; };
     auto spans = [](int size, int tile, int count) {
@@ -391,6 +400,64 @@ TEST(ContrastEnhance, MatchesAnIndependentReference) {
         }
         EXPECT_LE(worst, 2.0e-4 * range) << c.w << "x" << c.h << " tiles " << c.tw << "x" << c.th << " clip " << c.clip
                                          << ": worst difference " << worst << " at pixel " << worstAt;
+        free_img(img);
+    }
+}
+
+// QA-B-207b E6 (Codex #120): a NARROW but finite value range. The scale `4095.0f / range` overflowed float for every range
+// below 4095 / FLT_MAX = 1.2034e-35; the int conversion of the resulting Inf/NaN product is undefined and the call returned
+// XPE_OK with pixels off by 97 % of the value range (measured before the fix: .moai/reports/lane-post/QA-B-207/b_e6_red.txt).
+// The pixels sit at the CENTRES of bins, so no value is on a bin edge in any arithmetic; the minimum and the maximum are pinned.
+// Compared with ReferenceClahe, whose bin is floor(d * 4095 / range) (not the implementation's multiply-by-scale), and the same
+// cases against the Fraction-based Python reference in b_e6_green.txt.
+TEST(ContrastEnhance, NarrowFiniteRange_MatchesTheReferenceAndIsNotTreatedAsBroken) {
+    const double kFltMax = static_cast<double>(std::numeric_limits<float>::max());
+    const double edge = 4095.0 / kFltMax;   // 1.2034e-35: the range below which a float scale overflows
+    struct Case { const char* what; double vmin, vmax; int w, h, tw, th; float clip; };
+    const Case cases[] = {
+        {"0 and 1e-37",                              0.0,   1e-37,                                 32, 32, 4, 4, 3.0f},
+        {"0 and FLT_MIN",                            0.0,   static_cast<double>(std::numeric_limits<float>::min()), 32, 32, 4, 4, 3.0f},
+        {"-5e-38 and +5e-38 (minimum not 0)",        -5e-38, 5e-38,                                32, 32, 4, 4, 3.0f},
+        {"range just below where a float scale is finite", 0.0, edge * 0.99,                       32, 32, 4, 4, 3.0f},
+        {"range just above where a float scale is finite", 0.0, edge * 1.01,                       32, 32, 4, 4, 3.0f},
+        {"0 and 1e-30",                              0.0,   1e-30,                                 33, 29, 3, 5, 2.0f},
+        {"control: 0 and 1",                         0.0,   1.0,                                   32, 32, 4, 4, 3.0f},
+    };
+    for (const Case& c : cases) {
+        const float lo = static_cast<float>(c.vmin), hi = static_cast<float>(c.vmax);
+        const double span = static_cast<double>(hi) - static_cast<double>(lo);
+        std::vector<float> in(static_cast<size_t>(c.w) * c.h);
+        uint32_t s = 12345u;
+        for (int y = 0; y < c.h; ++y) {
+            for (int x = 0; x < c.w; ++x) {
+                s = s * 1664525u + 1013904223u;
+                uint32_t m = (s >> 8) % 4096u;
+                if (y < c.h / 2 && x < c.w / 3) m %= 40u;                       // a dark, low-contrast corner
+                in[static_cast<size_t>(y) * c.w + x] = static_cast<float>(static_cast<double>(lo) + span * (m + 0.5) / 4096.0);
+            }
+        }
+        in[0] = lo;
+        in[1] = hi;
+        const std::vector<double> ref = ReferenceClahe(in, c.w, c.h, c.clip, c.tw, c.th);
+
+        XpeImageBuffer img = make_f32(static_cast<uint32_t>(c.w), static_cast<uint32_t>(c.h), 0.0f);
+        std::copy(in.begin(), in.end(), static_cast<float*>(img.data));
+        XpeClaheParams params{};
+        params.clip_limit = c.clip;
+        params.tile_width = c.tw;
+        params.tile_height = c.th;
+        ASSERT_EQ(XPE_OK, xpe_contrast_enhance(&img, &params)) << c.what;
+        const float* o = static_cast<const float*>(img.data);
+        double worst = 0.0;
+        size_t worstAt = 0;
+        bool finite = true;
+        for (size_t i = 0; i < in.size(); ++i) {
+            if (!std::isfinite(o[i])) finite = false;
+            const double d = std::fabs(static_cast<double>(o[i]) - ref[i]) / span;
+            if (d > worst) { worst = d; worstAt = i; }
+        }
+        EXPECT_TRUE(finite) << c.what;
+        EXPECT_LE(worst, 2.0e-4) << c.what << ": worst difference " << worst << " of the value range at pixel " << worstAt;
         free_img(img);
     }
 }

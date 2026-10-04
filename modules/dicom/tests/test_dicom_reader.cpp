@@ -4817,6 +4817,40 @@ TEST_F(DicomReaderTest, AFileThatIsNotPartTenIsDicomInvalidWhateverItContains) {
     }
 }
 
+// QA-B-207b C3 (Codex #120): the magic is only the first half of "Part 10". PS3.10 7.1 puts a File Meta Information group
+// (0002) between "DICM" and the dataset, and the user decision on #251 is that a file without one is refused. DCMTK parses
+// preamble + "DICM" + a bare dataset without complaint (it hands back an EMPTY meta object and detects the syntax from the
+// dataset), so the door has to look at the meta group itself. Two different files are told apart here on purpose:
+//   - no group-0002 element at all                      -> XPE_ERR_DICOM_INVALID (this test)
+//   - group 0002 present, TransferSyntaxUID (0002,0010) missing -> the #167 TS-less policy, unchanged (the sibling test and
+//     MetaLess*/TsLess* cases above)
+TEST_F(DicomReaderTest, PreambleAndMagicWithoutAnyGroup0002ElementIsDicomInvalid) {
+    const fs::path bare = s_tempDir / "c3b_bare_dataset.dcm";
+    ASSERT_TRUE(WriteDatasetOnly(s_validDcm, bare, EXS_LittleEndianExplicit));
+    const std::string dataset = ReadAllBytes(bare);
+    ASSERT_GT(dataset.size(), 100u);
+
+    // Control first: the same dataset with the file's own meta group in front opens, so the fixture is not what is refused.
+    const std::string good = ReadAllBytes(s_validDcm);
+    ASSERT_EQ("DICM", good.substr(128, 4));
+    {
+        XpeDicomHandle* h = nullptr;
+        ASSERT_EQ(XPE_OK, OpenBytes(s_tempDir / "c3b_control_part10.dcm", good, &h)) << "control: the unmodified Part 10 file";
+        ASSERT_NE(nullptr, h);
+        xpe_dicom_close(h);
+    }
+
+    // The case: 128-byte preamble + "DICM" + the dataset, with no group-0002 element anywhere.
+    const std::string noMeta = std::string(128, '\0') + "DICM" + dataset;
+    ASSERT_FALSE(static_cast<unsigned char>(dataset[0]) == 0x02 && static_cast<unsigned char>(dataset[1]) == 0x00)
+        << "precondition: the dataset does not begin with a group-0002 element";
+    XpeDicomHandle* h = reinterpret_cast<XpeDicomHandle*>(0x1);
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, OpenBytes(s_tempDir / "c3b_no_group2.dcm", noMeta, &h))
+        << "preamble + DICM + a bare dataset is not Part 10 (PS3.10 7.1: the File Meta Information is required)";
+    EXPECT_EQ(nullptr, h);
+    if (h != nullptr && h != reinterpret_cast<XpeDicomHandle*>(0x1)) xpe_dicom_close(h);
+}
+
 TEST_F(DicomReaderTest, ThePreambleBytesThemselvesAreNotJudgedAndAMissingFileIsStillAnIoError) {
     const std::string good = ReadAllBytes(s_validDcm);
     ASSERT_EQ("DICM", good.substr(128, 4));

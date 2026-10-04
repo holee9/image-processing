@@ -210,6 +210,14 @@ XPE_API XpeErrorCode xpe_noise_estimate_sigma(const XpeImageBuffer* img, float* 
  * 4096 / clip_limit pixels every clip_limit up to that bound clips alike (the
  * per-bin cap bottoms out at 1).
  *
+ * Numeric boundary (QA-B-207b): the scale and the bin of a pixel are computed in
+ * double, so any positive range is processed, down to a single denormal step
+ * (1.4e-45) -- 4095 / 1.4e-45 = 2.9e48 is far below DBL_MAX. Only an image whose
+ * minimum equals its maximum is "flat". (A float scale 4095.0f / range overflows
+ * below a range of 4095 / FLT_MAX = 1.2034e-35, which is the bound this replaces.)
+ * The other end is unchanged: a range that overflows float (max - min > FLT_MAX,
+ * e.g. -3e38 and +3e38) is XPE_ERR_INVALID_INPUT (QA-B-181f).
+ *
  * @param img    Float32 image buffer (modified in-place). A zero-sized image is
  *               rejected (#142); a flat image (no value range) is accepted and
  *               returns XPE_OK unchanged.

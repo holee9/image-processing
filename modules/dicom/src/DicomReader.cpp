@@ -206,6 +206,18 @@ XpeErrorCode DicomReader::open() {
         return XPE_ERR_UNSUPPORTED_FORMAT;
     }
 
+    // QA-B-207b C3 (Codex #120, user decision on #251: a file without a meta header is refused). The magic check at the top
+    // of open() only proves the first 132 bytes. PS3.10 7.1 then requires the File Meta Information group (0002); DCMTK reads
+    // preamble + "DICM" + a bare dataset without complaint, hands back an EMPTY meta object and detects the syntax from the
+    // dataset, so such a file would reach the TS-less branch below as if it were a Part 10 file that merely lacks
+    // (0002,0010). The two are different files: no group-0002 element at all is XPE_ERR_DICOM_INVALID here; a meta group
+    // that exists but lacks TransferSyntaxUID keeps the #167 policy below.
+    if (meta->card() == 0) {
+        spdlog::warn("[DicomReader] preamble and \"DICM\" are followed by no File Meta Information element (group 0002) -- "
+                     "not a Part 10 file (PS3.10 7.1)");
+        return XPE_ERR_DICOM_INVALID;
+    }
+
     // Check Transfer Syntax UID from meta-header
     OFString tsUID;
     if (meta->findAndGetOFString(DCM_TransferSyntaxUID, tsUID).good()) {

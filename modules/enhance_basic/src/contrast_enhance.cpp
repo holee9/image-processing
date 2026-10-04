@@ -76,9 +76,17 @@ static void build_axis(int size, int tile_size, int tile_count, Axis& a)
 }
 
 // The bin of a value on the global scale.
-static inline int bin_of(float v, float vmin, float scale)
+//
+// QA-B-207b (Codex #120): scale and bin are computed in DOUBLE. `4095.0f / range` overflows float for every range below
+// 4095 / FLT_MAX = 1.2034e-35, and the conversion of the resulting Inf/NaN product to int is undefined (MSVC gives INT_MIN,
+// so every bin landed on 0 and the call returned XPE_OK with wrong pixels, measured at 97 % of the value range off for
+// 0 .. 1e-37f). In double the scale is finite for EVERY float range: the narrowest positive range is one denormal step,
+// 1.4e-45, and 4095 / 1.4e-45 = 2.9e48 is far below DBL_MAX (1.8e308). `v - vmin` is exact in double and lies in
+// [0, range], so the product is at most 4095 (+ rounding), so `bin` never leaves [0, 4095] before the clamp, which only
+// absorbs that last rounding. No float range is therefore treated as "flat" except an exactly zero one.
+static inline int bin_of(float v, float vmin, double scale)
 {
-    int bin = static_cast<int>((v - vmin) * scale);
+    int bin = static_cast<int>((static_cast<double>(v) - static_cast<double>(vmin)) * scale);
     if (bin < 0) bin = 0;
     if (bin >= NUM_BINS) bin = NUM_BINS - 1;
     return bin;
@@ -87,7 +95,7 @@ static inline int bin_of(float v, float vmin, float scale)
 // Table of one tile: clipped histogram on the global scale -> cumulative fraction.
 static void build_tile_lut(const float* px, int img_w,
                              int x0, int y0, int x1, int y1,
-                             float vmin, float scale, float clip_limit,
+                             float vmin, double scale, float clip_limit,
                              float* lut)
 {
     std::vector<int64_t> hist(static_cast<size_t>(NUM_BINS), 0);
@@ -211,7 +219,10 @@ extern "C++" static XpeErrorCode xpe_contrast_enhance_impl(XpeImageBuffer* img, 
     // `val_min + frac * inf`, non-finite, with rc=0 (QA-B-181e). Refused like the non-finite input: the result of
     // this call could not be finite, and the image is untouched.
     if (!xpe_float_is_finite(val_range)) return XPE_ERR_INVALID_INPUT;
-    if (val_range <= 0.0f) return XPE_OK; // Flat image, no contrast to enhance.
+    // QA-B-207b: the flat test and the scale use the exact double difference (never 0 for two different floats: denormals
+    // are gradual), so an image whose values differ only at 1e-37 is not mistaken for a flat one -- see bin_of.
+    const double range_d = static_cast<double>(val_max) - static_cast<double>(val_min);
+    if (!(range_d > 0.0)) return XPE_OK; // Flat image, no contrast to enhance.
 
     int num_tiles_x = p->tile_width;
     int num_tiles_y = p->tile_height;
@@ -221,7 +232,7 @@ extern "C++" static XpeErrorCode xpe_contrast_enhance_impl(XpeImageBuffer* img, 
     int tile_h = xpe_ceil_div(h, num_tiles_y);
 
     // The one intensity scale of the whole image (step 1).
-    const float scale = static_cast<float>(NUM_BINS - 1) / val_range;
+    const double scale = static_cast<double>(NUM_BINS - 1) / range_d;
 
     // The non-empty tiles of each axis, their centres, and for every pixel position its two neighbouring tiles and
     // the weight between them (step 3).
