@@ -1,0 +1,42 @@
+Note: Google Test filter = OutputUnchanged237b.PipelineEntryFloat*:OutputUnchanged237b.GhostFailed*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+[a237b-golden] {"pipeline/float_input/tier1", 0xfeaa3ef3923603bfull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/float_input/tier1 (computed feaa3ef3923603bf)
+
+[a237b-golden] {"pipeline/float_input/tier3", 0x0e3ffaacec8b5233ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/float_input/tier3 (computed e3ffaacec8b5233)
+
+[a237b-golden] {"pipeline/float_input/failed_frame/tier2", 0x67c12f7153423f6cull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for pipeline/float_input/failed_frame/tier2 (computed 67c12f7153423f6c)
+
+[  FAILED  ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer (43 ms)
+[ RUN      ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere
+[a237b-golden] {"ghost/overflow/tier1", 0xde044ba757ec081cull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for ghost/overflow/tier1 (computed de044ba757ec081c)
+
+[a237b-golden] {"ghost/overflow/tier2", 0xa43465e22bd4b861ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for ghost/overflow/tier2 (computed a43465e22bd4b861)
+
+[a237b-golden] {"ghost/overflow/tier3", 0xd2cb41ffe6f22464ull},
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(84): error: Failed
+no recorded digest for ghost/overflow/tier3 (computed d2cb41ffe6f22464)
+
+[  FAILED  ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere (23 ms)
+[----------] 2 tests from OutputUnchanged237b (66 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (67 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+[  FAILED  ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere
+
+ 2 FAILED TESTS

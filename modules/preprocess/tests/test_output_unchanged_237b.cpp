@@ -226,6 +226,73 @@ TEST(OutputUnchanged237b, PipelineEntryBypassCombinations) {
     }
 }
 
+// ---------------------------------------------------------------- float32 input: the caller's own buffer goes through the float stages
+namespace {
+
+// The uint16 stages are bypassed and the caller hands a float32 frame, so the defect and ghost stages see the CALLER's buffer. A stage
+// that fails must leave it as it was; the digests include the buffer after every call, a failed one included.
+uint64_t runFloatInput(int tier, bool failing) {
+    const Size sz = kSizes[0];
+    const std::filesystem::path dir = std::filesystem::temp_directory_path() / "qa_a_237b_digest_f32";
+    std::filesystem::remove_all(dir);
+    std::filesystem::create_directories(dir);
+    xpe_preprocess_shutdown();
+    EXPECT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    loadMaps(dir, sz);
+    void* ghost = nullptr;
+    const std::string gcfg = withStableLag(("{\"tier\":" + std::to_string(tier) + "}").c_str());
+    EXPECT_EQ(XPE_OK, xpe_ghost_create(sz.w, sz.h, gcfg.c_str(), &ghost));
+    // The failing run also bypasses the defect stage (it refuses frames of this size before the ghost stage is reached), so the
+    // ghost stage is handed the caller's buffer itself.
+    const char* cfg = failing ? "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,\"bypassGain\":true,\"bypassDefect\":true}"
+                              : "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,\"bypassGain\":true}";
+    const size_t n = static_cast<size_t>(sz.w) * sz.h;
+    std::vector<float> buf(n);
+    XpeImageMetadata meta{};
+    uint64_t h = kSeed;
+    const float scales[] = {900.0f, 5000.0f, 2.0e38f, 2.0e38f, 700.0f};   // finite (at most 3e38); the second huge frame overflows the history
+    const int count = failing ? 5 : 3;
+    Rng rng(31337u + static_cast<uint32_t>(tier));
+    for (int f = 0; f < count; ++f) {
+        for (size_t i = 0; i < n; ++i) buf[i] = scales[f] * (0.5f + rng.unit());
+        XpeImageBuffer img{};
+        img.width = sz.w;
+        img.height = sz.h;
+        img.format = XPE_PIXEL_FLOAT32;
+        img.bitsAllocated = img.bitsStored = 32;
+        img.data = buf.data();
+        img.dataSize = n * sizeof(float);
+        const std::vector<float> before = buf;
+        const XpeErrorCode rc = xpe_preprocess_pipeline_ex(&img, &meta, nullptr, ghost, cfg);
+        if (failing) {
+            // Frame 3 is the failed one: the ghost stage cannot take it. The call says so and the caller's buffer is as given.
+            EXPECT_EQ(f == 3 ? XPE_ERR_PROCESSING_FAILED : XPE_OK, rc) << "frame " << f;
+            if (f == 3) EXPECT_EQ(0, std::memcmp(before.data(), buf.data(), n * sizeof(float))) << "the caller's buffer changed on a failed frame";
+        }
+        h = fnvValue(h, static_cast<int>(rc));
+        h = fnvValue(h, static_cast<uint32_t>(img.format));
+        h = fnv(h, buf.data(), n * sizeof(float));
+        h = fnvValue(h, meta.flags);
+    }
+    const GhostCorrectorHandle* gh = static_cast<const GhostCorrectorHandle*>(ghost);
+    h = fnv(h, gh->hist1.data(), gh->hist1.size() * sizeof(float));
+    h = fnv(h, gh->hist2.data(), gh->hist2.size() * sizeof(float));
+    xpe_ghost_destroy(ghost);
+    xpe_clear_alerts();
+    xpe_preprocess_shutdown();
+    std::error_code ec;
+    std::filesystem::remove_all(dir, ec);
+    return h;
+}
+
+}  // namespace
+
+TEST(OutputUnchanged237b, PipelineEntryFloatInputOnTheCallersOwnBuffer) {
+    expectDigest("pipeline/float_input/tier1", runFloatInput(1, false));
+    expectDigest("pipeline/float_input/tier3", runFloatInput(3, false));
+    expectDigest("pipeline/float_input/failed_frame/tier2", runFloatInput(2, true));
+}
+
 // ---------------------------------------------------------------- the ghost stage on its own
 namespace {
 
@@ -283,6 +350,60 @@ TEST(OutputUnchanged237b, GhostFramesOfRisingMagnitudeIncludingFailedOnes) {
                          ghostSequence(tier, sz));
         }
     }
+}
+
+namespace {
+
+// Finite frames whose history overflows: the first huge frame is taken, the second cannot be (its new history exceeds the float range).
+// The failed frame must return PROCESSING_FAILED, leave the pixels as given and leave the history and the state as they were.
+uint64_t ghostOverflow(int tier) {
+    const Size sz = kSizes[1];
+    void* ghost = nullptr;
+    const std::string cfg = withStableLag(("{\"tier\":" + std::to_string(tier) + "}").c_str());
+    EXPECT_EQ(XPE_OK, xpe_ghost_create(sz.w, sz.h, cfg.c_str(), &ghost));
+    GhostCorrectorHandle* gh = static_cast<GhostCorrectorHandle*>(ghost);
+    const size_t n = static_cast<size_t>(sz.w) * sz.h;
+    std::vector<float> buf(n);
+    XpeImageMetadata meta{};
+    uint64_t h = kSeed;
+    const float scales[] = {1000.0f, 2.0e38f, 2.0e38f, 800.0f, 2.0e38f, 2.0e38f, 1200.0f};
+    Rng rng(555u + static_cast<uint32_t>(tier));
+    for (size_t f = 0; f < sizeof(scales) / sizeof(scales[0]); ++f) {
+        for (size_t i = 0; i < n; ++i) buf[i] = scales[f] * (0.5f + rng.unit());
+        const std::vector<float> given = buf;
+        const std::vector<float> hist1 = gh->hist1, hist2 = gh->hist2;
+        const double mean = gh->lastFrameMean, weight = gh->exposureWeight;
+        XpeImageBuffer img{};
+        img.width = sz.w;
+        img.height = sz.h;
+        img.format = XPE_PIXEL_FLOAT32;
+        img.bitsAllocated = img.bitsStored = 32;
+        img.data = buf.data();
+        img.dataSize = n * sizeof(float);
+        const XpeErrorCode rc = xpe_ghost_correct(ghost, &img, &meta);
+        if (rc != XPE_OK) {
+            EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, rc) << "tier " << tier << " frame " << f;
+            EXPECT_EQ(0, std::memcmp(given.data(), buf.data(), n * sizeof(float))) << "tier " << tier << " frame " << f << ": pixels changed";
+            EXPECT_TRUE(hist1 == gh->hist1 && hist2 == gh->hist2) << "tier " << tier << " frame " << f << ": history changed";
+            EXPECT_EQ(mean, gh->lastFrameMean);
+            EXPECT_EQ(weight, gh->exposureWeight);
+        }
+        h = fnvValue(h, static_cast<int>(rc));
+        h = fnv(h, buf.data(), n * sizeof(float));
+        h = fnv(h, gh->hist1.data(), gh->hist1.size() * sizeof(float));
+        h = fnv(h, gh->hist2.data(), gh->hist2.size() * sizeof(float));
+        h = fnvValue(h, gh->lastFrameMean);
+        h = fnvValue(h, gh->exposureWeight);
+    }
+    xpe_ghost_destroy(ghost);
+    xpe_clear_alerts();
+    return h;
+}
+
+}  // namespace
+
+TEST(OutputUnchanged237b, GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere) {
+    for (int tier = 1; tier <= 3; ++tier) expectDigest("ghost/overflow/tier" + std::to_string(tier), ghostOverflow(tier));
 }
 
 // ---------------------------------------------------------------- the gain stage on a hand-built snapshot (hook build)
@@ -394,6 +515,14 @@ namespace {
 std::map<std::string, uint64_t>& golden() {
     static std::map<std::string, uint64_t> g = {
         // recorded on 55d781da (before any reduction); the three gain/ rows exist in the hook build only
+        {"ghost/overflow/tier1", 0xde044ba757ec081cull},
+        {"ghost/overflow/tier2", 0xa43465e22bd4b861ull},
+        {"ghost/overflow/tier3", 0xd2cb41ffe6f22464ull},
+        {"pipeline/float_input/failed_frame/tier2", 0x67c12f7153423f6cull},
+        {"pipeline/float_input/tier1", 0xfeaa3ef3923603bfull},
+        {"pipeline/float_input/tier3", 0x0e3ffaacec8b5233ull},
+        // (the pipeline/float_input and ghost/overflow rows above were recorded on 966e0a8f with the old pipeline.cpp and ghost_correct.cpp: gain_correct.cpp is
+        //  not involved in them)
         {"gain/poly/classified_list", 0x342f59b67d3b1150ull},
         {"gain/poly/output", 0xa2b80e46cc6b5e7bull},
         {"gain/scalar/valid", 0xcf90b52dd434a576ull},
