@@ -86,7 +86,7 @@ XpeErrorCode DicomNetworkSCU::cstore(const char* host,
     DcmFileFormat dcmff;
     OFCondition loadStatus = dcmff.loadFile(filePath, EXS_Unknown, EGL_noChange, DCM_MaxReadLength);
     if (loadStatus.bad()) {
-        spdlog::warn("[DicomNetworkSCU] cstore: file load failed: {}", loadStatus.text());
+        spdlog::error("[DicomNetworkSCU] cstore: file load failed: {}", loadStatus.text());
         return XPE_ERR_IO_FAILED;
     }
 
@@ -142,14 +142,14 @@ XpeErrorCode DicomNetworkSCU::cstore(const char* host,
     // Initialize network and negotiate association
     OFCondition cond = scu.initNetwork();
     if (cond.bad()) {
-        spdlog::warn("[DicomNetworkSCU] initNetwork failed: {}", cond.text());
+        spdlog::error("[DicomNetworkSCU] initNetwork failed: {}", cond.text());
         alertWarning(std::string("DICOM C-STORE failed: the network could not be started (") + cond.text() + ")");
         return XPE_ERR_NETWORK_FAILED;
     }
 
     cond = scu.negotiateAssociation();
     if (cond.bad()) {
-        spdlog::warn("[DicomNetworkSCU] negotiateAssociation failed: {}", cond.text());
+        spdlog::error("[DicomNetworkSCU] negotiateAssociation failed: {}", cond.text());
         alertWarning(std::string("DICOM C-STORE failed: no association with the peer (") + cond.text() + ")");
         return XPE_ERR_NETWORK_FAILED;
     }
@@ -184,14 +184,14 @@ XpeErrorCode DicomNetworkSCU::cstore(const char* host,
     }
 
     if (cond.bad()) {
-        spdlog::warn("[DicomNetworkSCU] sendSTORERequest failed: {}", cond.text());
+        spdlog::error("[DicomNetworkSCU] sendSTORERequest failed: {}", cond.text());
         alertWarning(std::string("DICOM C-STORE failed: the transfer did not complete (") + cond.text() + ")");
         return XPE_ERR_NETWORK_FAILED;
     }
 
     // Check C-STORE response status (0x0000 = Success)
     if (rspStatus != STATUS_Success) {
-        spdlog::warn("[DicomNetworkSCU] C-STORE response status: 0x{:04X}", rspStatus);
+        spdlog::error("[DicomNetworkSCU] C-STORE response status: 0x{:04X}", rspStatus);
         alertWarning("DICOM C-STORE failed: the peer rejected the data set with status " + statusText(rspStatus));
         return XPE_ERR_NETWORK_FAILED;
     }
@@ -254,13 +254,13 @@ XpeErrorCode DicomNetworkSCU::cfindMwl(const char* host,
     // Initialize network and negotiate association
     OFCondition cond = scu.initNetwork();
     if (cond.bad()) {
-        spdlog::warn("[DicomNetworkSCU] cfindMwl initNetwork failed: {}", cond.text());
+        spdlog::error("[DicomNetworkSCU] cfindMwl initNetwork failed: {}", cond.text());
         return XPE_ERR_NETWORK_FAILED;
     }
 
     cond = scu.negotiateAssociation();
     if (cond.bad()) {
-        spdlog::warn("[DicomNetworkSCU] cfindMwl negotiateAssociation failed: {}", cond.text());
+        spdlog::error("[DicomNetworkSCU] cfindMwl negotiateAssociation failed: {}", cond.text());
         return XPE_ERR_NETWORK_FAILED;
     }
 
@@ -291,7 +291,7 @@ XpeErrorCode DicomNetworkSCU::cfindMwl(const char* host,
         scu.findPresentationContextID(OFString(UID_FINDModalityWorklistInformationModel),
                                       OFString(""));
     if (findPresID == 0) {
-        spdlog::warn("[DicomNetworkSCU] cfind: no accepted presentation context for MWL");
+        spdlog::error("[DicomNetworkSCU] cfind: no accepted presentation context for MWL");
         scu.releaseAssociation();
         return XPE_ERR_NETWORK_FAILED;
     }
@@ -310,7 +310,7 @@ XpeErrorCode DicomNetworkSCU::cfindMwl(const char* host,
     }
 
     if (cond.bad()) {
-        spdlog::warn("[DicomNetworkSCU] sendFINDRequest failed: {}", cond.text());
+        spdlog::error("[DicomNetworkSCU] sendFINDRequest failed: {}", cond.text());
         // Clean up responses
         for (auto* r : responses) delete r;
         return XPE_ERR_NETWORK_FAILED;
@@ -326,7 +326,7 @@ XpeErrorCode DicomNetworkSCU::cfindMwl(const char* host,
         if (finalStatus != 0x0000) {
             const std::string why = responses.empty() ? std::string("the peer sent no final response")
                                                        : "the peer ended the query with status " + statusText(finalStatus);
-            spdlog::warn("[DicomNetworkSCU] cfindMwl: query did not complete: {}", why);
+            spdlog::error("[DicomNetworkSCU] cfindMwl: query did not complete: {}", why);
             for (auto* r : responses) delete r;
             alertWarning("DICOM C-FIND failed: " + why);
             return XPE_ERR_NETWORK_FAILED;
@@ -431,7 +431,7 @@ bool DicomNetworkSCU::buildFindRequest(const std::string& queryJson, void* outDa
             startDate = j["ScheduledProcedureStepStartDate"].get<std::string>();
         }
     } catch (const std::exception& e) {
-        spdlog::warn("[DicomNetworkSCU] buildFindRequest: JSON parse error: {}", e.what());
+        spdlog::error("[DicomNetworkSCU] buildFindRequest: JSON parse error: {}", e.what());
         return false;
     }
 
@@ -441,7 +441,7 @@ bool DicomNetworkSCU::buildFindRequest(const std::string& queryJson, void* outDa
     item->putAndInsertString(DCM_ScheduledProcedureStepStartDate, startDate.c_str());
     if (ds->insertSequenceItem(DCM_ScheduledProcedureStepSequence, item).bad()) {
         delete item;
-        spdlog::warn("[DicomNetworkSCU] buildFindRequest: could not build the Scheduled Procedure Step Sequence");
+        spdlog::error("[DicomNetworkSCU] buildFindRequest: could not build the Scheduled Procedure Step Sequence");
         return false;
     }
 

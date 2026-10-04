@@ -45,7 +45,7 @@ XPE_API const char* xpe_dicom_version(void) {
  * SWU-4.1: DicomReader
  * -------------------------------------------------------------------------*/
 
-XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHandle) {
+static XpeErrorCode dicom_open_impl(const char* filePath, XpeDicomHandle** outHandle) {
     spdlog::debug("[xpe_dicom] xpe_dicom_open({})", filePath ? filePath : "(null)");
     if (!filePath || !outHandle) return XPE_ERR_INVALID_INPUT;
     *outHandle = nullptr;
@@ -65,7 +65,7 @@ XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHa
     }
 }
 
-XPE_API XpeErrorCode xpe_dicom_read_image(XpeDicomHandle* handle, XpeImageBuffer* outImg) {
+static XpeErrorCode dicom_read_image_impl(XpeDicomHandle* handle, XpeImageBuffer* outImg) {
     spdlog::debug("[xpe_dicom] xpe_dicom_read_image");
     if (!handle || !outImg) return XPE_ERR_INVALID_INPUT;
     try {
@@ -76,7 +76,7 @@ XPE_API XpeErrorCode xpe_dicom_read_image(XpeDicomHandle* handle, XpeImageBuffer
     }
 }
 
-XPE_API XpeErrorCode xpe_dicom_get_metadata(XpeDicomHandle* handle, XpeImageMetadata* outMeta) {
+static XpeErrorCode dicom_get_metadata_impl(XpeDicomHandle* handle, XpeImageMetadata* outMeta) {
     spdlog::debug("[xpe_dicom] xpe_dicom_get_metadata");
     if (!handle || !outMeta) return XPE_ERR_INVALID_INPUT;
     try {
@@ -87,7 +87,7 @@ XPE_API XpeErrorCode xpe_dicom_get_metadata(XpeDicomHandle* handle, XpeImageMeta
     }
 }
 
-XPE_API void xpe_dicom_close(XpeDicomHandle* handle) {
+static void dicom_close_impl(XpeDicomHandle* handle) {
     spdlog::debug("[xpe_dicom] xpe_dicom_close");
     try {
         delete handle;
@@ -153,7 +153,7 @@ bool data_size_is_consistent(const XpeImageBuffer* img) {
 }
 } // namespace
 
-XPE_API XpeErrorCode xpe_dicom_write(const char* filePath,
+static XpeErrorCode dicom_write_impl(const char* filePath,
                                       const XpeImageBuffer* img,
                                       const XpeImageMetadata* meta) {
     spdlog::debug("[xpe_dicom] xpe_dicom_write({})", filePath ? filePath : "(null)");
@@ -171,7 +171,7 @@ XPE_API XpeErrorCode xpe_dicom_write(const char* filePath,
     }
 }
 
-XPE_API XpeErrorCode xpe_dicom_write_j2k(const char* filePath,
+static XpeErrorCode dicom_write_j2k_impl(const char* filePath,
                                            const XpeImageBuffer* img,
                                            const XpeImageMetadata* meta) {
     spdlog::debug("[xpe_dicom] xpe_dicom_write_j2k({})", filePath ? filePath : "(null)");
@@ -193,7 +193,7 @@ XPE_API XpeErrorCode xpe_dicom_write_j2k(const char* filePath,
  * SWU-4.3: DicomValidator
  * -------------------------------------------------------------------------*/
 
-XPE_API XpeErrorCode xpe_dicom_validate(const char* filePath,
+static XpeErrorCode dicom_validate_impl(const char* filePath,
                                          char* outReportJson,
                                          uint32_t reportBufLen) {
     spdlog::debug("[xpe_dicom] xpe_dicom_validate({})", filePath ? filePath : "(null)");
@@ -210,7 +210,7 @@ XPE_API XpeErrorCode xpe_dicom_validate(const char* filePath,
  * SWU-4.4: DicomNetworkSCU
  * -------------------------------------------------------------------------*/
 
-XPE_API XpeErrorCode xpe_dicom_cstore(const char* host,
+static XpeErrorCode dicom_cstore_impl(const char* host,
                                        uint16_t port,
                                        const char* aet,
                                        const char* filePath,
@@ -225,7 +225,7 @@ XPE_API XpeErrorCode xpe_dicom_cstore(const char* host,
     }
 }
 
-XPE_API XpeErrorCode xpe_dicom_cfind_mwl(const char* host,
+static XpeErrorCode dicom_cfind_mwl_impl(const char* host,
                                            uint16_t port,
                                            const char* aet,
                                            const char* queryJson,
@@ -243,11 +243,65 @@ XPE_API XpeErrorCode xpe_dicom_cfind_mwl(const char* host,
     }
 }
 
-XPE_API void xpe_dicom_cancel(void) {
+static void dicom_cancel_impl(void) {
     spdlog::debug("[xpe_dicom] xpe_dicom_cancel");
     try {
         xpe::dicom::DicomNetworkSCU::cancel();
     } catch (...) {
         // cancel must never throw
     }
+}
+
+namespace {
+// QA-B-209 C16 (REQ-DICOM-043): every public function logs its EXIT at DEBUG, with the code it returns, after the entry line it
+// already wrote. The bodies are the `dicom_*_impl` functions above (unchanged), the exported function is a one-line wrapper over
+// them, so every return path -- the early INVALID_INPUT ones included -- is covered without touching each `return`.
+XpeErrorCode log_exit(const char* fn, XpeErrorCode rc) {
+    try {
+        spdlog::debug("[xpe_dicom] {} exit rc={}", fn, static_cast<int>(rc));
+    } catch (...) {
+        // logging must never change what a public function returns
+    }
+    return rc;
+}
+void log_exit_void(const char* fn) {
+    try {
+        spdlog::debug("[xpe_dicom] {} exit", fn);
+    } catch (...) {
+    }
+}
+}  // namespace
+
+XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHandle) {
+    return log_exit("xpe_dicom_open", dicom_open_impl(filePath, outHandle));
+}
+XPE_API XpeErrorCode xpe_dicom_read_image(XpeDicomHandle* handle, XpeImageBuffer* outImg) {
+    return log_exit("xpe_dicom_read_image", dicom_read_image_impl(handle, outImg));
+}
+XPE_API XpeErrorCode xpe_dicom_get_metadata(XpeDicomHandle* handle, XpeImageMetadata* outMeta) {
+    return log_exit("xpe_dicom_get_metadata", dicom_get_metadata_impl(handle, outMeta));
+}
+XPE_API void xpe_dicom_close(XpeDicomHandle* handle) {
+    dicom_close_impl(handle);
+    log_exit_void("xpe_dicom_close");
+}
+XPE_API XpeErrorCode xpe_dicom_write(const char* filePath, const XpeImageBuffer* img, const XpeImageMetadata* meta) {
+    return log_exit("xpe_dicom_write", dicom_write_impl(filePath, img, meta));
+}
+XPE_API XpeErrorCode xpe_dicom_write_j2k(const char* filePath, const XpeImageBuffer* img, const XpeImageMetadata* meta) {
+    return log_exit("xpe_dicom_write_j2k", dicom_write_j2k_impl(filePath, img, meta));
+}
+XPE_API XpeErrorCode xpe_dicom_validate(const char* filePath, char* outReportJson, uint32_t reportBufLen) {
+    return log_exit("xpe_dicom_validate", dicom_validate_impl(filePath, outReportJson, reportBufLen));
+}
+XPE_API XpeErrorCode xpe_dicom_cstore(const char* host, uint16_t port, const char* aet, const char* filePath, uint32_t timeoutMs) {
+    return log_exit("xpe_dicom_cstore", dicom_cstore_impl(host, port, aet, filePath, timeoutMs));
+}
+XPE_API XpeErrorCode xpe_dicom_cfind_mwl(const char* host, uint16_t port, const char* aet, const char* queryJson, char* outJson,
+                                          uint32_t outBufLen, uint32_t timeoutMs) {
+    return log_exit("xpe_dicom_cfind_mwl", dicom_cfind_mwl_impl(host, port, aet, queryJson, outJson, outBufLen, timeoutMs));
+}
+XPE_API void xpe_dicom_cancel(void) {
+    dicom_cancel_impl();
+    log_exit_void("xpe_dicom_cancel");
 }
