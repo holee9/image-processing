@@ -18,7 +18,7 @@
 | 구분 | 건수 | 처리 |
 |---|---|---|
 | `bugprone-easily-swappable-parameters` | 25 | **끔**(`modules/*/.clang-tidy`). 공개 C ABI 가 `(width, height)` 같은 순서를 고정해 인자를 바꿀 수 없다. 설계상 허용으로 판단했고 하나씩 열어 보지는 않았다 |
-| `bugprone-empty-catch` | 20(common 11 + preprocess 9) | **전부 하나씩 열어 이유를 확인**했다. 20곳 모두 C ABI 경계의 "삼키는 catch": 경보(advisory) 푸시 실패, `void` 함수(shutdown), 로그 한 줄 — 던지면 호출자의 결과를 바꾸거나 던질 곳이 없다. 고칠 것은 없었고, 각 catch 에 `// [no-throw-boundary] <이유>` 를 달고 설정의 `IgnoreCatchWithKeywords` 에 그 표지를 등록했다(이유 없는 새 빈 catch 만 걸린다) |
+| `bugprone-empty-catch` | 20(common 11 + preprocess 9) | **전부 하나씩 열어 이유를 확인**했다. (정정 QA-A-234c: 처음에 "20곳 모두 C ABI 경계"라고 적은 것은 과장이었다. 함수 이름으로 가르면 공개 C ABI 함수 안이 3곳, 내부 최선 노력 로그·경보·정리 함수 안이 17곳이다 — `QA-A-234c/evidence/21_catches_classified.txt`.) 이유는 모두 같다: 경보(advisory) 푸시 실패, `void` 함수(shutdown), 로그 한 줄 — 던지면 호출자의 결과를 바꾸거나 던질 곳이 없다. 고칠 것은 없었고, 각 catch 에 `// [no-throw-boundary] <이유>` 를 달고 설정의 `IgnoreCatchWithKeywords` 에 그 표지를 등록했다(이유 없는 새 빈 catch 만 걸린다) |
 | 고침 | 2 | `gain_correct.cpp`: `width * height`(uint32 두 개)를 `static_cast<size_t>(width) * height` 로 — 32비트에서 곱이 넘칠 수 있었던 곳(치수가 3072 급이라 지금은 넘치지 않지만 검증에 기대지 않게). `calibration_cache.cpp`: 쓰지 않는 `release()` 반환값을 이름 붙은 변수로 받음(`(void)` 캐스트는 이 점검이 인정하지 않았다 — 실측) |
 | 기준선(남김) | 10 | `implicit-widening-of-multiplication-result` 2(`xcal_reader`·`xcal_validator`의 상한 상수 비교), `incorrect-roundings` 1(`nonlinearity_correct.cpp`, 이미 0 이상으로 제한된 값에 `+ 0.5`), `misplaced-widening-cast` 1(`xpe_calib_generate_gain.cpp`, `degree + 1`), `narrowing-conversions` 4(`xpe_verify_metrics.cpp`의 `size_t`→`double` 비율), `performance-enum-size` 2(`calibration_cache.cpp`). 열어서 값 범위를 보고 결함이 아니라고 판단한 것은 narrowing·rounding 이고, `degree + 1` 은 `degree` 가 앞에서 검증되는지 확인하지 않아 **건드리지 않고** 기준선에 남겼다 |
 

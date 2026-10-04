@@ -1,0 +1,21 @@
+=== fresh process 1
+[mem] A harness baseline + 3 files written PeakWorkingSet     44.4 MiB | WorkingSet      8.4 MiB | PrivateUsage(now)      1.9 MiB | PeakPagefile(commit)     38.1 MiB
+[mem] B after loading offset+gain+defect PeakWorkingSet     89.6 MiB | WorkingSet     89.6 MiB | PrivateUsage(now)     83.1 MiB | PeakPagefile(commit)     83.1 MiB
+[mem] C after xpe_ghost_create           PeakWorkingSet    269.8 MiB | WorkingSet    269.8 MiB | PrivateUsage(now)    263.5 MiB | PeakPagefile(commit)    263.5 MiB
+[mem] C2 harness vectors allocated       PeakWorkingSet    341.8 MiB | WorkingSet    341.8 MiB | PrivateUsage(now)    335.6 MiB | PeakPagefile(commit)    335.6 MiB
+[mem] D after frame 0 (cold)             PeakWorkingSet    377.9 MiB | WorkingSet    377.9 MiB | PrivateUsage(now)    371.7 MiB | PeakPagefile(commit)    371.7 MiB
+[mem] E after frame 1 (warm)             PeakWorkingSet    413.9 MiB | WorkingSet    377.9 MiB | PrivateUsage(now)    371.7 MiB | PeakPagefile(commit)    407.8 MiB
+=== fresh process 2
+[mem] A harness baseline + 3 files written PeakWorkingSet     44.4 MiB | WorkingSet      8.4 MiB | PrivateUsage(now)      1.9 MiB | PeakPagefile(commit)     38.0 MiB
+[mem] B after loading offset+gain+defect PeakWorkingSet     89.6 MiB | WorkingSet     89.6 MiB | PrivateUsage(now)     83.1 MiB | PeakPagefile(commit)     83.1 MiB
+[mem] C after xpe_ghost_create           PeakWorkingSet    269.8 MiB | WorkingSet    269.8 MiB | PrivateUsage(now)    263.5 MiB | PeakPagefile(commit)    263.5 MiB
+[mem] C2 harness vectors allocated       PeakWorkingSet    341.8 MiB | WorkingSet    341.8 MiB | PrivateUsage(now)    335.6 MiB | PeakPagefile(commit)    335.7 MiB
+[mem] D after frame 0 (cold)             PeakWorkingSet    377.8 MiB | WorkingSet    377.8 MiB | PrivateUsage(now)    371.7 MiB | PeakPagefile(commit)    371.8 MiB
+[mem] E after frame 1 (warm)             PeakWorkingSet    413.9 MiB | WorkingSet    377.9 MiB | PrivateUsage(now)    371.7 MiB | PeakPagefile(commit)    407.8 MiB
+=== fresh process 3
+[mem] A harness baseline + 3 files written PeakWorkingSet     44.4 MiB | WorkingSet      8.4 MiB | PrivateUsage(now)      1.9 MiB | PeakPagefile(commit)     38.0 MiB
+[mem] B after loading offset+gain+defect PeakWorkingSet     89.6 MiB | WorkingSet     89.6 MiB | PrivateUsage(now)     83.1 MiB | PeakPagefile(commit)     83.1 MiB
+[mem] C after xpe_ghost_create           PeakWorkingSet    269.8 MiB | WorkingSet    269.8 MiB | PrivateUsage(now)    263.4 MiB | PeakPagefile(commit)    263.5 MiB
+[mem] C2 harness vectors allocated       PeakWorkingSet    341.8 MiB | WorkingSet    341.8 MiB | PrivateUsage(now)    335.6 MiB | PeakPagefile(commit)    335.6 MiB
+[mem] D after frame 0 (cold)             PeakWorkingSet    377.8 MiB | WorkingSet    377.8 MiB | PrivateUsage(now)    371.7 MiB | PeakPagefile(commit)    371.7 MiB
+[mem] E after frame 1 (warm)             PeakWorkingSet    413.8 MiB | WorkingSet    377.8 MiB | PrivateUsage(now)    371.7 MiB | PeakPagefile(commit)    407.8 MiB

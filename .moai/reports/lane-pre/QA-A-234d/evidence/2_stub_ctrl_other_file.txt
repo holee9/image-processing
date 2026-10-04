@@ -1,0 +1,7 @@
+'vswhere.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+배치 파일이 아닙니다.
+check_clang_tidy: the positive control failed: clang-tidy did not report the empty catch planted in control.cpp, so its silence on the modules would mean nothing
+C:\other\other.cpp:4:7: warning: empty catch statement [bugprone-empty-catch]
+
+
+GATE_EXIT=1

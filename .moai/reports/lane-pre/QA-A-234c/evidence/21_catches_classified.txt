@@ -1,0 +1,23 @@
+module | file | enclosing function | kind
+common | xpe_common.cpp | sync_loss_alert_best_effort_locked | internal
+common | xpe_common.cpp | enqueue_alert | internal
+common | xpe_common.cpp | enqueue_alert | internal
+common | xpe_common.cpp | xpe_init | public C ABI
+common | xpe_common.cpp | xpe_shutdown | public C ABI
+common | xpe_logging.cpp | ? | internal
+common | xpe_logging.cpp | xpe_log_internal_init | internal
+common | xpe_logging.cpp | xpe_log_internal_write | internal
+common | xpe_logging.cpp | xpe_log_internal_reset | internal
+common | xpe_logging.cpp | xpe_log_internal_reset | internal
+common | xpe_logging.cpp | xpe_log_internal_reset | internal
+preprocess | helpers.cpp | xpe_alert_nonfinite | internal
+preprocess | preprocess.cpp | xpe_preprocess_shutdown | public C ABI
+preprocess | xcal_writer.cpp | report_replace_failure | internal
+preprocess | xcal_writer.cpp | report_temp_open_failure | internal
+preprocess | xcal_writer.cpp | report_temp_write_failure | internal
+preprocess | xpe_calib_load_gain.cpp | xpe_gain_alert_classified | internal
+preprocess | xpe_calib_load_gain.cpp | xpe_gain_alert_over_limit | internal
+preprocess | xpe_calib_load_gain.cpp | ? | internal
+preprocess | xpe_calibration.cpp | xpe_calib_session_warn | internal
+
+catch markers 20: public C ABI 3, internal 17
