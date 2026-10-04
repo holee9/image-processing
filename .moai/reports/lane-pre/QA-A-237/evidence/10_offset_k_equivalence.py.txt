@@ -1,0 +1,27 @@
+import numpy as np, sys
+f32=np.float32
+r=np.arange(65536,dtype=np.float32)            # every possible raw value
+def cur(o):                                     # offset_correct_float_avx2, one pixel lane, float32 ops
+    c=(r-f32(o)).astype(np.float32)
+    c=np.minimum(np.maximum(c,f32(0)),f32(65535))
+    c=(c+f32(0.5)).astype(np.float32)
+    return np.trunc(c).astype(np.int64)
+def intk(o):                                    # integer offset K = ceil(o-0.5) in exact arithmetic
+    k=int(np.ceil(np.float64(f32(o))-0.5))
+    return np.clip(r.astype(np.int64)-k,0,65535)
+def q4(o):                                      # uint16 Q12.4 offset, nearest
+    oq=np.float32(np.round(np.float64(f32(o))*16)/16)
+    return cur(oq)
+rng=np.random.default_rng(1)
+for name,offs in [("uniform0-4000",rng.uniform(0,4000,3000).astype(np.float32)),
+                  ("normal1500s30",rng.normal(1500,30,3000).astype(np.float32)),
+                  ("exact .5 ties",(np.arange(3000)+0.5).astype(np.float32)),
+                  ("integers",np.arange(3000).astype(np.float32))]:
+    mk=mq=0; tot=0; byb=np.zeros(4,dtype=np.int64)
+    for o in offs:
+        c=cur(o); a=intk(o); b=q4(o)
+        d=(c!=a); mk+=d.sum(); mq+=(c!=b).sum(); tot+=len(r)
+        # by raw range bucket
+        for j,(lo,hi) in enumerate([(0,256),(256,4096),(4096,32768),(32768,65536)]):
+            byb[j]+=d[lo:hi].sum()
+    print(f"{name:14s} K-int mismatch {mk/tot:.3e} ({mk}/{tot}); Q4 mismatch {mq/tot:.3e}; K by r[0-255,256-4095,4096-32767,32768+] = {byb.tolist()}")

@@ -1,0 +1,1 @@
+exact-integer K(o) != K(oq) fraction: 0.027  analytic E|o-oq| = 0.015625  mean|o-oq|= 0.01601628981033961

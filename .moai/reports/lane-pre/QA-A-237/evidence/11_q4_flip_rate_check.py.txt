@@ -1,0 +1,6 @@
+import numpy as np
+rng=np.random.default_rng(1)
+o=rng.uniform(0,4000,3000).astype(np.float32)
+oq=np.round(o.astype(np.float64)*16)/16
+kx=np.ceil(o.astype(np.float64)-0.5); kq=np.ceil(oq-0.5)
+print("exact-integer K(o) != K(oq) fraction:", np.mean(kx!=kq), " analytic E|o-oq| =",1/64, " mean|o-oq|=",np.mean(np.abs(o-oq)))
