@@ -1,0 +1,2 @@
+== arm (f): a tooltip is added to the box (the app starts to say something about the range)
+실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 4 s - ImageProcTest.E2ETests.dll (net8.0)

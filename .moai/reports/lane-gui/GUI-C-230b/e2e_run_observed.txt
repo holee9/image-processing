@@ -1,0 +1,9 @@
+ start: box='3.0' preview='Native preview: load a target raw image to run pre/post algorithms.' control: help='' status='' enabled=True offscreen=False windows=1
+ typed '7.4': box shows '7.4'; preview unchanged=True; windows=1
+ typed '7.5': box shows '7.5'; preview unchanged=True; windows=1
+ typed '7.6': box shows '7.6'; preview unchanged=True; windows=1
+ typed '50': box shows '50'; preview unchanged=True; windows=1
+ typed '100': box shows '100'; preview unchanged=True; windows=1
+ typed '1e6': box shows '1e6'; preview unchanged=True; windows=1
+ typed 'abc': box shows 'abc'; preview unchanged=True; windows=1
+== E2E L01 + readiness scenarios (R02 excluded: global keys): 통과 9 / 실패 0

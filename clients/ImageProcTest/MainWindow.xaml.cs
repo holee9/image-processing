@@ -1211,6 +1211,15 @@ namespace ImageProcTest
 
             var preprocessSelection = GetPreprocessSelection();
             var enhanceSelection = GetEnhanceBasicSelection();
+            var inputError = GetEnhanceBasicInputError(enhanceSelection);
+            if (inputError is not null)
+            {
+                // GUI-C-230b: refuse before anything runs, so the image and the results stay exactly as they were.
+                SetNativePreviewText("Native preview: " + inputError);
+                SetStatus("Input out of range", Brushes.OrangeRed);
+                return;
+            }
+
             if (!preprocessSelection.HasAnyStage && !enhanceSelection.HasAnyStage)
             {
                 ApplyBypassPreview("All pre/post stages are unchecked.");
@@ -1534,6 +1543,11 @@ namespace ImageProcTest
             if (currentPreview is null)
             {
                 throw new InvalidOperationException("Load a raw preview before running native post-processing.");
+            }
+
+            if (GetEnhanceBasicInputError(selection) is { } inputError)
+            {
+                throw new InvalidOperationException(inputError);   // backstop for the callers that do not check first (algorithm validation, chain)
             }
 
             SetStatus($"Running {statusLabel} post stages...", Brushes.Goldenrod);
@@ -2319,11 +2333,14 @@ namespace ImageProcTest
                 EdgeEnabledCheckBox?.IsChecked == true);
         }
 
+        private string? GetEnhanceBasicInputError(EnhanceBasicStageSelection selection) =>
+            selection.Noise ? EnhanceBasicInputLimits.SigmaSpaceError(NoiseSigmaSpaceTextBox?.Text) : null;
+
         private EnhanceBasicStageParameters GetEnhanceBasicParameters()
         {
             var defaults = EnhanceBasicStageParameters.Default;
             var noise = defaults.Noise;
-            noise.SigmaSpace = ReadFloat(NoiseSigmaSpaceTextBox, defaults.Noise.SigmaSpace, min: 0.1f, max: 100f);
+            noise.SigmaSpace = ReadFloat(NoiseSigmaSpaceTextBox, defaults.Noise.SigmaSpace, min: EnhanceBasicInputLimits.SigmaSpaceMin, max: EnhanceBasicInputLimits.SigmaSpaceMax);
             noise.SigmaRange = ReadFloat(NoiseSigmaRangeTextBox, defaults.Noise.SigmaRange, min: 0.1f, max: 100_000f);
 
             var contrast = defaults.Contrast;
@@ -2452,13 +2469,7 @@ namespace ImageProcTest
 
         private static float ReadFloat(TextBox? textBox, float fallback, float min, float max)
         {
-            if (textBox is null ||
-                !float.TryParse(textBox.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var value))
-            {
-                return fallback;
-            }
-
-            return Math.Clamp(value, min, max);
+            return textBox is null ? fallback : EnhanceBasicInputLimits.ParseClamped(textBox.Text, fallback, min, max);
         }
 
         private void SetStatus(string message, Brush brush)

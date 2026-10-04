@@ -1,0 +1,3 @@
+== arm (k): the wrong claim comes back into the comment
+[xUnit.net 00:00:00.33]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.TheComment_SaysWhatAValueAboveTheLimitReallyDid_WithTheWeightsItNames [FAIL]
+실패!  - 실패:     1, 통과:    51, 건너뜀:     0, 전체:    52, 기간: 106 ms - ImageProcTest.IntegrationTests.dll (net8.0)
