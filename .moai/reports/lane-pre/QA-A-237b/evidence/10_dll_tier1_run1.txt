@@ -1,0 +1,29 @@
+Note: Google Test filter = A237bMem.DISABLED_ShippedPath
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A237bMem
+[ RUN      ] A237bMem.DISABLED_ShippedPath
+[a237b] chk A harness (frame buffer, fixtures written) private    38.0 MiB  peakCommit    38.0 MiB  peakWs    44.4 MiB
+[a237b] chk B maps loaded                      private   119.1 MiB  peakCommit   119.2 MiB  peakWs   125.6 MiB
+[a237b] chk C ghost handle created             private   299.5 MiB  peakCommit   299.6 MiB  peakWs   305.8 MiB
+[a237b] config tier 1, frames 3, N 9437184 pixels
+[a237b] chk frame 0 before                     private   299.5 MiB  peakCommit   299.6 MiB  peakWs   305.8 MiB
+[a237b] chk frame 0 after                      private   299.5 MiB  peakCommit   461.9 MiB  peakWs   467.9 MiB
+[a237b] frame 0 total 131.4 ms, output digest 58e366d48c94ca9f
+[a237b] chk frame 1 before                     private   299.5 MiB  peakCommit   461.9 MiB  peakWs   467.9 MiB
+[a237b] chk frame 1 after                      private   299.5 MiB  peakCommit   461.9 MiB  peakWs   467.9 MiB
+[a237b] frame 1 total 118.3 ms, output digest a64f9ea00982b8f5
+[a237b] chk frame 2 before                     private   299.5 MiB  peakCommit   461.9 MiB  peakWs   467.9 MiB
+[a237b] chk frame 2 after                      private   299.5 MiB  peakCommit   461.9 MiB  peakWs   467.9 MiB
+[a237b] frame 2 total 133.8 ms, output digest 9baa5588c409f60d
+[a237b] alerts pending after 3 frame(s): 3
+[a237b]   alert 0 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 1 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 2 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b] chk Z ghost destroyed                  private   119.1 MiB  peakCommit   461.9 MiB  peakWs   467.9 MiB
+[       OK ] A237bMem.DISABLED_ShippedPath (691 ms)
+[----------] 1 test from A237bMem (691 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (691 ms total)
+[  PASSED  ] 1 test.

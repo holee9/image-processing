@@ -31,6 +31,14 @@ void (*xpe_calib_after_set_commit_hook)() = nullptr;
 void (*xpe_calib_in_set_commit_hook)() = nullptr;
 void (*xpe_pipeline_after_stage_hook)(int) = nullptr;
 #endif
+// QA-A-237b (#245): the observation point after every stage, so a test can read the process's memory at each stage
+// boundary (0 readout, 1 temp, 2 offset, 3 nonlinearity, 4 gain, 5 binning, 6 defect, 7 ghost, 9 the final copy).
+// Test builds only: in the shipped library the macro expands to nothing.
+#ifdef XPE_CACHE_TEST_HOOKS
+#define XPE_STAGE_HOOK(n) do { if (xpe_pipeline_after_stage_hook) xpe_pipeline_after_stage_hook(n); } while (0)
+#else
+#define XPE_STAGE_HOOK(n) ((void)0)
+#endif
 
 namespace {
     // Pipeline configuration from JSON
@@ -181,6 +189,7 @@ namespace {
 
             if (meta) meta->flags |= XPE_FLAG_READOUT_VALIDATED;
         }
+        XPE_STAGE_HOOK(0);
 
         // Stage 1: Temperature Compensation (PRE-07)
         XpeImageBuffer stage1 = *img; // Start with input
@@ -201,6 +210,7 @@ namespace {
 
             if (meta) meta->flags |= XPE_FLAG_TEMP_COMPENSATED;
         }
+        XPE_STAGE_HOOK(1);
 
         // Stage 2: Offset Correction (PRE-02) - uint16 in/out
         XpeImageBuffer stage2 = stage1;
@@ -246,6 +256,7 @@ namespace {
             // Set only when pixels were corrected (#184).
             if (meta && applied) meta->flags |= XPE_FLAG_NONLINEARITY_CORRECTED;
         }
+        XPE_STAGE_HOOK(3);
 
         // Stage 4: Gain Correction (PRE-03) - uint16 in, float32 out (DOMAIN TRANSITION)
         XpeImageBuffer stage4;
@@ -317,6 +328,7 @@ namespace {
             // No gain correction and no float stage after it: stage4 = stage3 (uint16)
             stage4 = stage3;
         }
+        XPE_STAGE_HOOK(4);
 
         // QA-A-211b (#233, Codex #71): the same refusal when the GAIN stage is bypassed. The defect stage reads the stored
         // classification (the scalar map's list, kept in the snapshot) whether or not the gain stage ran, so binning
@@ -356,6 +368,7 @@ namespace {
 
             if (meta) meta->flags |= XPE_FLAG_BINNING_CORRECTED;
         }
+        XPE_STAGE_HOOK(5);
 
         // Stage 6: Defect Correction (PRE-06) - float32 in/out
         XpeImageBuffer stage6 = stage5;
@@ -395,6 +408,7 @@ namespace {
 
             if (meta) meta->flags |= XPE_FLAG_DEFECT_CORRECTED;
         }
+        XPE_STAGE_HOOK(6);
 
         // Stage 7: Ghost Correction (PRE-04) - float32 in/out
         XpeImageBuffer stage7 = stage6;
@@ -424,6 +438,7 @@ namespace {
             // with the configuration.
             if (meta && xpe_ghost_is_calibrated(ghostHandle)) meta->flags |= XPE_FLAG_GHOST_CORRECTED;
         }
+        XPE_STAGE_HOOK(7);
 
         // Copy the final frame back to the original img buffer: all of it -- outputBytes, which the room check
         // above guaranteed fits (this was min(dataSize, final size), a truncated frame reported as OK, #234).
@@ -437,6 +452,7 @@ namespace {
             return XPE_ERR_PROCESSING_FAILED;
         if (finalStage->data != img->data)
             std::memcpy(const_cast<void*>(img->data), finalStage->data, outputBytes);
+        XPE_STAGE_HOOK(9);
 
         // Update img metadata to reflect actual output format
         const_cast<XpeImageBuffer*>(img)->format = finalStage->format;

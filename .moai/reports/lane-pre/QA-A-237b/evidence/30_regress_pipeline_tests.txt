@@ -1,0 +1,10 @@
+[  PASSED  ] 67 tests.
+
+  YOU HAVE 2 DISABLED TESTS
+
+[       OK ] OomPipeline.WithNoEarlierR2TheHistoryIsFlaggedAsNoneEvenWhenTheFirstRecordIsMinusOne (41 ms)
+[----------] 30 tests from OomPipeline (1938 ms total)
+
+[----------] Global test environment tear-down
+[==========] 30 tests from 1 test suite ran. (1938 ms total)
+[  PASSED  ] 30 tests.
