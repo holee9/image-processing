@@ -72,13 +72,13 @@ XpeErrorCode DicomWriter::write(const char* filePath,
         pixelBytes
     );
     if (status.bad()) {
-        spdlog::warn("[DicomWriter] putAndInsertUint8Array failed: {}", status.text());
+        spdlog::error("[DicomWriter] putAndInsertUint8Array failed: {}", status.text());
         return XPE_ERR_PROCESSING_FAILED;
     }
 
     status = dcmff.saveFile(filePath, EXS_LittleEndianExplicit);
     if (status.bad()) {
-        spdlog::warn("[DicomWriter] saveFile failed: {}", status.text());
+        spdlog::error("[DicomWriter] saveFile failed: {}", status.text());
         return XPE_ERR_IO_FAILED;
     }
 
@@ -101,14 +101,14 @@ XpeErrorCode DicomWriter::writeJ2K(const char* filePath,
     // Compress pixel data with OpenJPEG J2K Lossless
     std::vector<uint8_t> j2kData = compressJ2K(img);
     if (j2kData.empty()) {
-        spdlog::warn("[DicomWriter] J2K compression failed");
+        spdlog::error("[DicomWriter] J2K compression failed");
         return XPE_ERR_PROCESSING_FAILED;
     }
     // QA-B-206 M1c (Codex #110): the compressed length is only known now, and nothing bounds it by the raw size. It is
     // checked against the fragment limit before the dataset is built and before any file exists. The fault is in what the
     // compressor produced, not in the caller's input, so the code is PROCESSING_FAILED, as for a compression failure.
     if (!narrow_fragment_length(j2kData.size(), nullptr)) {
-        spdlog::warn("[DicomWriter] J2K bitstream of {} bytes does not fit one fragment", j2kData.size());
+        spdlog::error("[DicomWriter] J2K bitstream of {} bytes does not fit one fragment", j2kData.size());
         return XPE_ERR_PROCESSING_FAILED;
     }
 
@@ -124,7 +124,7 @@ XpeErrorCode DicomWriter::writeJ2K(const char* filePath,
 
     OFCondition status = dcmff.saveFile(filePath, EXS_JPEG2000LosslessOnly);
     if (status.bad()) {
-        spdlog::warn("[DicomWriter] saveFile(J2K) failed: {}", status.text());
+        spdlog::error("[DicomWriter] saveFile(J2K) failed: {}", status.text());
         return XPE_ERR_IO_FAILED;
     }
 
@@ -303,7 +303,7 @@ std::vector<uint8_t> DicomWriter::compressJ2K(const XpeImageBuffer* img) {
         const size_t count = static_cast<size_t>(img->width) * img->height;
         for (size_t i = 0; i < count; ++i) {
             if (check[i] >> prec) {
-                spdlog::warn("[DicomWriter] pixel {} = {} does not fit the declared {} bits stored", i, check[i], prec);
+                spdlog::error("[DicomWriter] pixel {} = {} does not fit the declared {} bits stored", i, check[i], prec);
                 return {};
             }
         }
@@ -319,7 +319,7 @@ std::vector<uint8_t> DicomWriter::compressJ2K(const XpeImageBuffer* img) {
 
     opj_image_t* opjImg = opj_image_create(1, &cmptparm, OPJ_CLRSPC_GRAY);
     if (!opjImg) {
-        spdlog::warn("[DicomWriter] opj_image_create failed");
+        spdlog::error("[DicomWriter] opj_image_create failed");
         return {};
     }
 
@@ -340,7 +340,7 @@ std::vector<uint8_t> DicomWriter::compressJ2K(const XpeImageBuffer* img) {
     opj_codec_t* codec = opj_create_compress(OPJ_CODEC_J2K);
     if (!codec) {
         opj_image_destroy(opjImg);
-        spdlog::warn("[DicomWriter] opj_create_compress failed");
+        spdlog::error("[DicomWriter] opj_create_compress failed");
         return {};
     }
 
@@ -352,7 +352,7 @@ std::vector<uint8_t> DicomWriter::compressJ2K(const XpeImageBuffer* img) {
     if (!opj_setup_encoder(codec, &params, opjImg)) {
         opj_destroy_codec(codec);
         opj_image_destroy(opjImg);
-        spdlog::warn("[DicomWriter] opj_setup_encoder failed");
+        spdlog::error("[DicomWriter] opj_setup_encoder failed");
         return {};
     }
 
@@ -404,7 +404,7 @@ std::vector<uint8_t> DicomWriter::compressJ2K(const XpeImageBuffer* img) {
     opj_image_destroy(opjImg);
 
     if (!ok || writtenBytes == 0) {
-        spdlog::warn("[DicomWriter] J2K encode failed");
+        spdlog::error("[DicomWriter] J2K encode failed");
         return {};
     }
 

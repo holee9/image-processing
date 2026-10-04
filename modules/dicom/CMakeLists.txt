@@ -312,6 +312,26 @@ if(_XPE_BUILD_TESTS)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
+    # --- QA-B-209 C16 (#251): REQ-DICOM-043 -- DEBUG entry/exit lines and ERROR level for failures, read from the xpe_common log file ---
+    add_executable(test_dicom_logging
+        tests/test_dicom_logging.cpp
+    )
+    target_include_directories(test_dicom_logging PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(test_dicom_logging PRIVATE
+        xpe_dicom
+        GTest::gtest_main
+    )
+    target_compile_features(test_dicom_logging PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_dicom_logging PRIVATE /W4)
+    endif()
+    xpe_target_warnings_as_errors(test_dicom_logging)
+    gtest_discover_tests(test_dicom_logging
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
     # --- QA-B-206 M1c (Codex #110): the INNER writer (DicomWriter::write / writeJ2K) called directly, without the public door.
     # DicomWriter is not exported from the DLL, so its source is compiled into this executable.
     add_executable(test_dicom_writer_inner

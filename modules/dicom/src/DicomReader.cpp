@@ -144,7 +144,7 @@ XpeErrorCode DicomReader::open() {
             char head[132] = {};
             probe.read(head, sizeof(head));
             if (probe.gcount() < static_cast<std::streamsize>(sizeof(head)) || std::memcmp(head + 128, "DICM", 4) != 0) {
-                spdlog::warn("[DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by \"DICM\" ({} bytes read)",
+                spdlog::error("[DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by \"DICM\" ({} bytes read)",
                              static_cast<long long>(probe.gcount()));
                 return XPE_ERR_DICOM_INVALID;
             }
@@ -161,7 +161,7 @@ XpeErrorCode DicomReader::open() {
 
     if (status.bad()) {
         OFString errText = status.text();
-        spdlog::warn("[DicomReader] loadFile failed: {}", errText.c_str());
+        spdlog::error("[DicomReader] loadFile failed: {}", errText.c_str());
 
         // If load fails with "no element found" or similar DICOM parse error
         // it might be a non-DICOM file. Check by trying minimal read.
@@ -201,7 +201,7 @@ XpeErrorCode DicomReader::open() {
         // a detected syntax would be available or correct here, so the branch
         // fails closed rather than guessing. It has NO execution test; the
         // decision rests on the reachability measurement alone.
-        spdlog::warn("[DicomReader] no meta-information object; transfer syntax "
+        spdlog::error("[DicomReader] no meta-information object; transfer syntax "
                      "cannot be established -- refusing");
         return XPE_ERR_UNSUPPORTED_FORMAT;
     }
@@ -213,7 +213,7 @@ XpeErrorCode DicomReader::open() {
     // (0002,0010). The two are different files: no group-0002 element at all is XPE_ERR_DICOM_INVALID here; a meta group
     // that exists but lacks TransferSyntaxUID keeps the #167 policy below.
     if (meta->card() == 0) {
-        spdlog::warn("[DicomReader] preamble and \"DICM\" are followed by no File Meta Information element (group 0002) -- "
+        spdlog::error("[DicomReader] preamble and \"DICM\" are followed by no File Meta Information element (group 0002) -- "
                      "not a Part 10 file (PS3.10 7.1)");
         return XPE_ERR_DICOM_INVALID;
     }
@@ -229,7 +229,7 @@ XpeErrorCode DicomReader::open() {
             }
         }
         if (!accepted) {
-            spdlog::warn("[DicomReader] Unsupported Transfer Syntax: {}", tsUID.c_str());
+            spdlog::error("[DicomReader] Unsupported Transfer Syntax: {}", tsUID.c_str());
             return XPE_ERR_UNSUPPORTED_FORMAT;
         }
         m_tsUID = std::string(tsUID.c_str());
@@ -263,7 +263,7 @@ XpeErrorCode DicomReader::open() {
             }
         }
         if (!accepted) {
-            spdlog::warn("[DicomReader] no TransferSyntaxUID in meta; detected "
+            spdlog::error("[DicomReader] no TransferSyntaxUID in meta; detected "
                          "syntax '{}' is not supported -- refusing",
                          detectedUid.empty() ? "(unknown)" : detectedUid);
             return XPE_ERR_UNSUPPORTED_FORMAT;
@@ -285,7 +285,7 @@ XpeErrorCode DicomReader::open() {
             ds->findAndGetElement(DCM_PixelData, pix).good() && pix != nullptr &&
             pix->getLengthField() == DCM_UndefinedLength;
         if (pixelDataEncapsulated && !detectedXfer.usesEncapsulatedFormat()) {
-            spdlog::warn("[DicomReader] no TransferSyntaxUID in meta; PixelData is "
+            spdlog::error("[DicomReader] no TransferSyntaxUID in meta; PixelData is "
                          "encapsulated but the detected syntax '{}' is native -- the "
                          "detection cannot be trusted, refusing", detectedUid);
             return XPE_ERR_UNSUPPORTED_FORMAT;
@@ -343,7 +343,7 @@ static XpeErrorCode refuse(XpeErrorCode code, const char* fmt, ...) {
     va_end(args);
     char msg[400];
     std::snprintf(msg, sizeof(msg), "dicom read refused: %s", why);
-    spdlog::warn("[DicomReader] {}", msg);
+    spdlog::error("[DicomReader] {}", msg);
     xpe_alert_push(msg, XPE_ALERT_ERROR);
     return code;
 }
@@ -833,7 +833,7 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
         // JPEG Lossless: use DCMTK's built-in JPEG decoder
         OFCondition repStatus = ds->chooseRepresentation(EXS_LittleEndianExplicit, nullptr);
         if (repStatus.bad()) {
-            spdlog::warn("[DicomReader] JPEG-LL chooseRepresentation failed: {}", repStatus.text());
+            spdlog::error("[DicomReader] JPEG-LL chooseRepresentation failed: {}", repStatus.text());
             return XPE_ERR_PROCESSING_FAILED;
         }
         ds->loadAllDataIntoMemory();
@@ -1088,7 +1088,7 @@ XpeErrorCode DicomReader::decodeJ2KBitstream(const uint8_t* j2kData, size_t j2kL
     // Setup OpenJPEG decoder
     opj_codec_t* codec = opj_create_decompress(OPJ_CODEC_J2K);
     if (!codec) {
-        spdlog::warn("[DicomReader] opj_create_decompress failed");
+        spdlog::error("[DicomReader] opj_create_decompress failed");
         return XPE_ERR_PROCESSING_FAILED;
     }
 
@@ -1113,7 +1113,7 @@ XpeErrorCode DicomReader::decodeJ2KBitstream(const uint8_t* j2kData, size_t j2kL
     opj_stream_t* stream = opj_stream_create(j2kLen, OPJ_TRUE);
     if (!stream) {
         opj_destroy_codec(codec);
-        spdlog::warn("[DicomReader] opj_stream_create failed");
+        spdlog::error("[DicomReader] opj_stream_create failed");
         return XPE_ERR_PROCESSING_FAILED;
     }
 
@@ -1153,7 +1153,7 @@ XpeErrorCode DicomReader::decodeJ2KBitstream(const uint8_t* j2kData, size_t j2kL
     if (!ok || !image) {
         opj_stream_destroy(stream);
         opj_destroy_codec(codec);
-        spdlog::warn("[DicomReader] opj_read_header failed");
+        spdlog::error("[DicomReader] opj_read_header failed");
         return XPE_ERR_PROCESSING_FAILED;
     }
 
@@ -1179,7 +1179,7 @@ XpeErrorCode DicomReader::decodeJ2KBitstream(const uint8_t* j2kData, size_t j2kL
         opj_image_destroy(image);
         opj_stream_destroy(stream);
         opj_destroy_codec(codec);
-        spdlog::warn("[DicomReader] opj_decode failed");
+        spdlog::error("[DicomReader] opj_decode failed");
         return XPE_ERR_PROCESSING_FAILED;
     }
 
