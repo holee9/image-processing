@@ -1,0 +1,22 @@
+== grep: sigma_space / SigmaSpace / sigmaSpace in gui clients modules tests tools docs (existence control: the control token must be found)
+-- control (must be >0): 'kMaxBilateralRadius' on main (E7 absent) and 'SigmaSpace' in clients/
+clients/ImageProcTest.IntegrationTests/Functional/EnhanceBasicStageTests.cs:2
+clients/ImageProcTest/MainWindow.xaml:1
+clients/ImageProcTest/MainWindow.xaml.cs:1
+clients/ImageProcTest/PInvokeWrappers/XpeEnhanceBasicWrapper.cs:2
+clients/ImageProcTest/Services/NativeEnhanceBasicPreviewService.cs:1
+-- all senders (non-test) of sigma_space to the module:
+clients/ImageProcTest/MainWindow.xaml:332:                                            <TextBox x:Name="NoiseSigmaSpaceTextBox" Text="3.0" Width="42" Margin="0,0,4,0"/>
+clients/ImageProcTest/MainWindow.xaml.cs:2326:            noise.SigmaSpace = ReadFloat(NoiseSigmaSpaceTextBox, defaults.Noise.SigmaSpace, min: EnhanceBasicInputLimits.SigmaSpaceMin, max: EnhanceBasicI
+clients/ImageProcTest/PInvokeWrappers/XpeEnhanceBasicWrapper.cs:15:        public float SigmaSpace;
+clients/ImageProcTest/PInvokeWrappers/XpeEnhanceBasicWrapper.cs:24:            SigmaSpace = 3.0f,
+clients/ImageProcTest/Services/NativeEnhanceBasicPreviewService.cs:216:                                        return $"mode={noiseParams.Mode}; sigmaSpace={noiseParams.SigmaSpace:0.###}; sigmaRange={
+gui/ImageProcTest/Services/BaselineParameters.cs:11:/// bilateral noise reduction sigma_space 3.0 and sigma_range 50.0; CLAHE clip limit 3.0 with an 8 x 8 tile grid; unsharp masking amount 0.5, radius
+gui/ImageProcTest/Services/BaselineParameters.cs:25:    public const float NoiseSigmaSpace = 3.0f;
+gui/ImageProcTest/Services/EnhanceBasicStage.cs:17:    int NoiseReduceBilateral(float sigmaSpace, float sigmaRange);
+gui/ImageProcTest/Services/EnhanceBasicStage.cs:80:                ($"noise(bilateral {F(BaselineParameters.NoiseSigmaSpace)}/{F(BaselineParameters.NoiseSigmaRange)})", () => image.NoiseReduceBilatera
+gui/ImageProcTest/Services/Native/GuiEnhanceNative.cs:38:        public int NoiseReduceBilateral(float sigmaSpace, float sigmaRange)
+gui/ImageProcTest/Services/Native/GuiEnhanceNative.cs:43:                SigmaSpace = sigmaSpace,
+gui/ImageProcTest/Services/Native/XpeEnhanceBasicInterop.cs:12:    public float SigmaSpace;
+-- config/preset/json/yaml/ini holding sigma_space:
+(end; empty list above = none)

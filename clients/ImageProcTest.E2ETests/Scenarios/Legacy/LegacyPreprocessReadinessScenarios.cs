@@ -414,7 +414,7 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
         stream.WriteByte(0);   // the PE image is unchanged; the file is not the one that was judged
     }
 
-    private sealed record CheckingView(string Smoke, string Row, int BlockingFindings, string StageModes, bool OffsetSwitchEnabled, int CheckingFindings = 0)
+    internal sealed record CheckingView(string Smoke, string Row, int BlockingFindings, string StageModes, bool OffsetSwitchEnabled, int CheckingFindings = 0)
     {
         public bool SmokeSaysChecking => Smoke.Contains("checking", StringComparison.OrdinalIgnoreCase) && !Smoke.Contains("pass=", StringComparison.Ordinal);
         public bool MatrixSaysChecking => Row.Contains("Synthetic oracle checking", StringComparison.Ordinal);
@@ -422,12 +422,12 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
         public override string ToString() => $"smoke='{Smoke}' | row has checking={MatrixSaysChecking} | NATIVE-NOT-READY={BlockingFindings} | NATIVE-CHECKING={CheckingFindings} | stage modes='{StageModes.Split('.')[0]}' | Offset enabled={OffsetSwitchEnabled}";
     }
 
-    private sealed record TabView(bool Diagnostics, string DiagnosticsEvidence, bool Calibration, string CalibrationEvidence, bool Evaluation, string EvaluationEvidence)
+    internal sealed record TabView(bool Diagnostics, string DiagnosticsEvidence, bool Calibration, string CalibrationEvidence, bool Evaluation, string EvaluationEvidence)
     {
         public string Describe() => $"diagnostics={Diagnostics} [{DiagnosticsEvidence}] | calibration={Calibration} [{CalibrationEvidence}] | evaluation={Evaluation} [{EvaluationEvidence}]";
     }
 
-    private sealed class LegacyApp : IDisposable
+    internal sealed class LegacyApp : IDisposable
     {
         private readonly UIA3Automation _automation;
         private readonly Application _application;
@@ -597,6 +597,41 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             Assert.True(button is not null, $"button '{name}' was not found");
             button!.Invoke();   // UIA InvokePattern: no mouse
         }
+
+        /// <summary>The text of a text box as UI Automation's ValuePattern reports it (a text box's Name is empty).</summary>
+        public string ReadValue(string tab, string automationId)
+        {
+            SelectTab(tab);
+            var element = _window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
+            Assert.True(element is not null, $"'{automationId}' was not found");
+            var pattern = element!.Patterns.Value.PatternOrDefault;
+            Assert.True(pattern is not null, $"'{automationId}' has no ValuePattern");
+            return pattern!.Value.ValueOrDefault ?? string.Empty;
+        }
+
+        /// <summary>Puts text in a text box through the ValuePattern (UI Automation only: never a key press, which would go to whichever window is in front).</summary>
+        public void SetValue(string tab, string automationId, string text)
+        {
+            SelectTab(tab);
+            var element = _window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
+            Assert.True(element is not null, $"'{automationId}' was not found");
+            var pattern = element!.Patterns.Value.PatternOrDefault;
+            Assert.True(pattern is not null && !pattern.IsReadOnly.ValueOrDefault, $"'{automationId}' has no writable ValuePattern");
+            pattern!.SetValue(text);
+            Thread.Sleep(300);
+        }
+
+        /// <summary>HelpText, ItemStatus and the tool-tip-like properties UI Automation exposes for an element: what the app tells the user about the control, other than its value.</summary>
+        public string DescribeControl(string tab, string automationId)
+        {
+            SelectTab(tab);
+            var element = _window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
+            Assert.True(element is not null, $"'{automationId}' was not found");
+            return $"help='{element!.Properties.HelpText.ValueOrDefault}' status='{element.Properties.ItemStatus.ValueOrDefault}' enabled={element.IsEnabled} offscreen={element.IsOffscreen}";
+        }
+
+        /// <summary>How many top-level windows the app has: a dialog or a message box the app raised would show here.</summary>
+        public int TopLevelWindowCount() => _application.GetAllTopLevelWindows(_automation).Length;
 
         private void SelectTab(string header)
         {

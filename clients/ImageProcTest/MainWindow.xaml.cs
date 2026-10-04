@@ -2323,7 +2323,7 @@ namespace ImageProcTest
         {
             var defaults = EnhanceBasicStageParameters.Default;
             var noise = defaults.Noise;
-            noise.SigmaSpace = ReadFloat(NoiseSigmaSpaceTextBox, defaults.Noise.SigmaSpace, min: 0.1f, max: 100f);
+            noise.SigmaSpace = ReadFloat(NoiseSigmaSpaceTextBox, defaults.Noise.SigmaSpace, min: EnhanceBasicInputLimits.SigmaSpaceMin, max: EnhanceBasicInputLimits.SigmaSpaceMax);
             noise.SigmaRange = ReadFloat(NoiseSigmaRangeTextBox, defaults.Noise.SigmaRange, min: 0.1f, max: 100_000f);
 
             var contrast = defaults.Contrast;
@@ -2452,13 +2452,7 @@ namespace ImageProcTest
 
         private static float ReadFloat(TextBox? textBox, float fallback, float min, float max)
         {
-            if (textBox is null ||
-                !float.TryParse(textBox.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var value))
-            {
-                return fallback;
-            }
-
-            return Math.Clamp(value, min, max);
+            return textBox is null ? fallback : EnhanceBasicInputLimits.ParseClamped(textBox.Text, fallback, min, max);
         }
 
         private void SetStatus(string message, Brush brush)

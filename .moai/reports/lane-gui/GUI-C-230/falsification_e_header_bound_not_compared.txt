@@ -1,0 +1,3 @@
+== arm (e): the header's bound is not compared with the app's limit
+[xUnit.net 00:00:00.29]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.AnAppLimitThatDiffersFromTheModulesBound_IsRed [FAIL]
+실패!  - 실패:     1, 통과:    30, 건너뜀:     0, 전체:    31, 기간: 89 ms - ImageProcTest.IntegrationTests.dll (net8.0)
