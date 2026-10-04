@@ -165,6 +165,54 @@ float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
                              uint32_t x, uint32_t y,
                              uint32_t width, uint32_t height) noexcept;
 
+/**
+ * @brief The interpolation of xpe_interpolate_pixel over any mask that can say whether a pixel is masked (QA-A-237g)
+ *
+ * `isMasked(index)` answers for the pixel at `index` (row-major). The defect stage's mask is no longer always a byte plane (it can
+ * be the loaded map together with the pixels the gain classified, kept as a set), so the arithmetic lives here once and
+ * xpe_interpolate_pixel is this function over a byte plane: the same neighbours in the same order, the same float sum, the same
+ * division -- the same value.
+ */
+template <class IsMasked>
+inline float xpe_interpolate_pixel_masked(const float* pixels, IsMasked&& isMasked,
+                                          uint32_t x, uint32_t y, uint32_t width, uint32_t height) noexcept
+{
+    // Collect non-defective 4-connected neighbors (N/S/E/W)
+    float sum = 0.0f;
+    int   count = 0;
+
+    auto try_add = [&](int nx, int ny) {
+        if (nx < 0 || ny < 0 || static_cast<uint32_t>(nx) >= width ||
+                                  static_cast<uint32_t>(ny) >= height) return;
+        const size_t idx = static_cast<size_t>(ny) * width + nx;
+        if (!isMasked(idx)) { sum += pixels[idx]; ++count; }
+    };
+
+    try_add(static_cast<int>(x) - 1, static_cast<int>(y));
+    try_add(static_cast<int>(x) + 1, static_cast<int>(y));
+    try_add(static_cast<int>(x),     static_cast<int>(y) - 1);
+    try_add(static_cast<int>(x),     static_cast<int>(y) + 1);
+
+    if (count == 0) {
+        // Cluster fallback: search the nearest complete ring of valid pixels.
+        for (int radius = 1; radius <= 3 && count == 0; ++radius) {
+            for (int dy = -radius; dy <= radius; ++dy) {
+                for (int dx = -radius; dx <= radius; ++dx) {
+                    if (dx == 0 && dy == 0) continue;
+                    const int ax = dx < 0 ? -dx : dx;
+                    const int ay = dy < 0 ? -dy : dy;
+                    if ((ax > ay ? ax : ay) != radius) continue;
+                    try_add(static_cast<int>(x) + dx, static_cast<int>(y) + dy);
+                }
+            }
+        }
+    }
+
+    return (count > 0)
+        ? sum / static_cast<float>(count)
+        : pixels[static_cast<size_t>(y) * width + x];
+}
+
 /* =========================================================================
  * The gain applier's arithmetic, shared with the gain polynomial generator (QA-A-210e, Codex #61)
  *

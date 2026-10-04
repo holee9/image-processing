@@ -1,0 +1,8 @@
+28 findings over 33 files; baseline 35
+  below baseline (tighten it): bugprone-easily-swappable-parameters modules/preprocess/src/defect_correct.cpp | ClusterInfo analyzeCluster(const uint8_t* defectMask, uint32 | 1 -> 0
+  below baseline (tighten it): bugprone-easily-swappable-parameters modules/preprocess/src/ghost_correct.cpp | XpeErrorCode ghost_tier1(GhostCorrectorHandle* gh, float* px | 1 -> 0
+  below baseline (tighten it): bugprone-easily-swappable-parameters modules/preprocess/src/ghost_correct.cpp | float decay1, float decay2, float a1, float a2, FrameStats*) | 1 -> 0
+  below baseline (tighten it): bugprone-easily-swappable-parameters modules/preprocess/src/ghost_correct.cpp | XpeErrorCode ghost_tier2(GhostCorrectorHandle* gh, float* px | 1 -> 0
+  below baseline (tighten it): bugprone-easily-swappable-parameters modules/preprocess/src/ghost_correct.cpp | XpeErrorCode ghost_tier3(GhostCorrectorHandle* gh, float* px | 1 -> 0
+  below baseline (tighten it): bugprone-easily-swappable-parameters modules/preprocess/src/ghost_correct.cpp | float decay1, float decay2, float a1_base, float a2_base, Fr | 1 -> 0
+  below baseline (tighten it): bugprone-easily-swappable-parameters modules/preprocess/src/ghost_correct.cpp | float decay1, float decay2, float a1_base, float a2_base, Fr | 1 -> 0

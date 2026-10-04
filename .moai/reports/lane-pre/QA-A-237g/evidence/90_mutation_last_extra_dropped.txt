@@ -1,0 +1,114 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OutputUnchanged237b.*
+[==========] Running 14 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 14 tests from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+[       OK ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize (80 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryBypassCombinations
+[       OK ] OutputUnchanged237b.PipelineEntryBypassCombinations (120 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+[       OK ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer (34 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+[       OK ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute (240 ms)
+[ RUN      ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes
+[       OK ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes (91 ms)
+[ RUN      ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere
+[       OK ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere (25 ms)
+[ RUN      ] OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory
+[       OK ] OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory (0 ms)
+[ RUN      ] OutputUnchanged237b.GhostNonFiniteFramesAreRefusedAndChangeNothing
+[       OK ] OutputUnchanged237b.GhostNonFiniteFramesAreRefusedAndChangeNothing (8 ms)
+[ RUN      ] OutputUnchanged237b.GhostInPlaceVerdictAroundTheCoefficientOverflow
+[a237b] ghost coefficient-overflow boundary: 122760 frames, 102934 in place, 15356 failed on the scratch route
+[       OK ] OutputUnchanged237b.GhostInPlaceVerdictAroundTheCoefficientOverflow (787 ms)
+[ RUN      ] OutputUnchanged237b.GainWrittenOverItsOwnInputEqualsSeparateBuffers
+[       OK ] OutputUnchanged237b.GainWrittenOverItsOwnInputEqualsSeparateBuffers (5 ms)
+[ RUN      ] OutputUnchanged237b.DefectStageOutputForEveryMaskShape
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 5951023456073649875
+  value
+    Which is: 17671365899785887358
+defect/shape6/64x64: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 5103014309294344865
+  value
+    Which is: 2196545304695377493
+defect/shape8/64x64: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 3006055052983050323
+  value
+    Which is: 7164944238870859026
+defect/shape9/64x64: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 14728540854292477317
+  value
+    Which is: 5238688784731964598
+defect/shape11/64x64: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 17441380476317699961
+  value
+    Which is: 9629956573894824987
+defect/shape8/203x157: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 3740421033103598243
+  value
+    Which is: 3555619805623650412
+defect/shape9/203x157: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 4309981825323598027
+  value
+    Which is: 5240732530150463992
+defect/shape11/203x157: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 5485301264532161103
+  value
+    Which is: 15031911882616872089
+defect/shape8/256x192: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 16903393580496201584
+  value
+    Which is: 18272436827521682808
+defect/shape9/256x192: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(87): error: Expected equality of these values:
+  it->second
+    Which is: 3397140616036319365
+  value
+    Which is: 17646317011942120528
+defect/shape11/256x192: the output changed
+
+[  FAILED  ] OutputUnchanged237b.DefectStageOutputForEveryMaskShape (62 ms)
+[ RUN      ] OutputUnchanged237b.GainScalarMapOutputAndRefusedMaps
+[       OK ] OutputUnchanged237b.GainScalarMapOutputAndRefusedMaps (2 ms)
+[ RUN      ] OutputUnchanged237b.GainPolynomialMapOutputAndClassifiedPixels
+[       OK ] OutputUnchanged237b.GainPolynomialMapOutputAndClassifiedPixels (0 ms)
+[ RUN      ] OutputUnchanged237b.GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteFails
+[a237b] ghost differential: 3780 frames, 686 in place, 1824 failed on the scratch route
+[       OK ] OutputUnchanged237b.GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteFails (50 ms)
+[----------] 14 tests from OutputUnchanged237b (1519 ms total)
+
+[----------] Global test environment tear-down
+[==========] 14 tests from 1 test suite ran. (1520 ms total)
+[  PASSED  ] 13 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OutputUnchanged237b.DefectStageOutputForEveryMaskShape
+
+ 1 FAILED TEST
