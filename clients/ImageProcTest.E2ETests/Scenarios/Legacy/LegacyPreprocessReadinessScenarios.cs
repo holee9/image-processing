@@ -633,6 +633,73 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
         /// <summary>How many top-level windows the app has: a dialog or a message box the app raised would show here.</summary>
         public int TopLevelWindowCount() => _application.GetAllTopLevelWindows(_automation).Length;
 
+        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "SendMessageW")]
+        private static extern IntPtr SendMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
+
+        private const uint BmClick = 0x00F5;
+
+        /// <summary>
+        /// GUI-C-230c: loads a raw image through the "Load Raw..." common file dialog without any key or mouse input. The button is invoked on a worker thread (UIA Invoke does not wait for the modal
+        /// handler), the dialog's file-name edit gets the path through its ValuePattern (read back), and the dialog's Open button receives <c>BM_CLICK</c> addressed to ITS window handle
+        /// (a message to one named window: it cannot reach whichever window is in front). UIA's own Invoke on that button did nothing (GUI-C-230b).
+        /// </summary>
+        public void LoadRawThroughDialog(string path)
+        {
+            SelectTab("Calibration");
+            var button = _window.FindFirstDescendant(cf => cf.ByAutomationId("WorkflowBrowseButton"))?.AsButton();
+            Assert.True(button is not null && button.IsEnabled, "'Load Raw...' was not found or is not enabled");
+            _ = Task.Run(() => button!.Invoke());
+
+            Window? dialog = null;
+            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(20);
+            while (DateTime.UtcNow < deadline && dialog is null)
+            {
+                dialog = _window.ModalWindows.FirstOrDefault();
+                if (dialog is null) Thread.Sleep(200);
+            }
+
+            Assert.True(dialog is not null, "the file dialog did not appear within 20 s");
+            var nameEdit = dialog!.FindFirstDescendant(cf => cf.ByAutomationId("1148").And(cf.ByControlType(ControlType.Edit)));
+            var nameBox = nameEdit?.Patterns.Value.PatternOrDefault;
+            Assert.True(nameBox is not null, "the dialog's file-name edit (id 1148) has no ValuePattern");
+            nameBox!.SetValue(path);
+            Assert.Equal(path, nameBox.Value.ValueOrDefault);   // the dialog took the text, so Open has something to open
+
+            var open = dialog.FindFirstDescendant(cf => cf.ByAutomationId("1").And(cf.ByControlType(ControlType.Button)));
+            Assert.True(open is not null, "the dialog's Open button (id 1) was not found");
+            var handle = open!.Properties.NativeWindowHandle.ValueOrDefault;
+            Assert.True(handle != IntPtr.Zero, "the dialog's Open button has no window handle");
+            SendMessage(handle, BmClick, IntPtr.Zero, IntPtr.Zero);
+
+            var closeDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(15);
+            while (DateTime.UtcNow < closeDeadline && _window.ModalWindows.Length > 0) Thread.Sleep(200);
+            Assert.True(_window.ModalWindows.Length == 0, "the file dialog is still open after BM_CLICK on Open");
+        }
+
+        public bool IsChecked(string tab, string automationId)
+        {
+            SelectTab(tab);
+            var box = _window.FindFirstDescendant(cf => cf.ByAutomationId(automationId))?.AsCheckBox();
+            Assert.True(box is not null, $"check box '{automationId}' was not found");
+            return box!.IsChecked == true;
+        }
+
+        public void ClickButtonByIdWhenEnabled(string tab, string automationId, TimeSpan timeout)
+        {
+            SelectTab(tab);
+            var deadline = DateTime.UtcNow + timeout;
+            AutomationElement? element = null;
+            while (DateTime.UtcNow < deadline)
+            {
+                element = _window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
+                if (element is { IsEnabled: true }) break;
+                Thread.Sleep(300);
+            }
+
+            Assert.True(element is { IsEnabled: true }, $"'{automationId}' did not become enabled within {timeout.TotalSeconds:0} s");
+            element!.AsButton().Invoke();
+        }
+
         private void SelectTab(string header)
         {
             var tab = _window.FindAllDescendants(cf => cf.ByControlType(ControlType.TabItem)).FirstOrDefault(t => t.Name == header)?.AsTabItem();
