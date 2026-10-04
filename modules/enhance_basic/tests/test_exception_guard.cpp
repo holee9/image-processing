@@ -543,13 +543,19 @@ TEST(ExceptionGuard, BilateralRefusesANaNRangeSigma) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunBilateral(3.0f, 0.0f).rc);
 }
 
-// Large FINITE values stay legal: the radius is limited to the image-dependent maximum, as it always was.
-// FLT_MAX is the sharp one: 2 * sigma overflows float to infinity before any conversion.
-TEST(ExceptionGuard, BilateralStillAcceptsLargeFiniteSpatialSigmasAndLimitsTheRadius) {
-    for (float s : {0.5f, 3.0f, 7.5f, 100.0f, 1e6f, 1e30f, (std::numeric_limits<float>::max)()}) {
+// QA-B-210 E7: large FINITE values were legal ("the radius is limited to the image-dependent maximum"); the user decided they are
+// refused above 7.5, the largest sigma_space the radius cap of 15 reflects. FLT_MAX stays the sharp one: 2 * sigma overflows float
+// to infinity before any conversion, so the comparison with the cap must come first -- and it does (INVALID_INPUT, image untouched).
+TEST(ExceptionGuard, BilateralAcceptsSpatialSigmasUpToTheCapAndRefusesLargerFiniteOnes) {
+    for (float s : {0.5f, 3.0f, 7.5f}) {
         const Outcome r = RunBilateral(s, 50.0f);
         EXPECT_EQ(XPE_OK, r.rc) << "sigma_space=" << s;
         EXPECT_TRUE(r.finite) << "sigma_space=" << s << ": the output must stay finite";
+    }
+    for (float s : {std::nextafter(7.5f, 100.0f), 100.0f, 1e6f, 1e30f, (std::numeric_limits<float>::max)()}) {
+        const Outcome r = RunBilateral(s, 50.0f);
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, r.rc) << "sigma_space=" << s;
+        EXPECT_TRUE(r.finite) << "sigma_space=" << s << ": the image must stay as it was";
     }
 }
 

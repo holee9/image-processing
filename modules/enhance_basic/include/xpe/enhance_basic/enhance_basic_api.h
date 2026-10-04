@@ -56,7 +56,7 @@ typedef enum XpeNoiseReduceMode {
  */
 typedef struct XpeNoiseReduceParams {
     XpeNoiseReduceMode mode;           /**< Bilateral or NLM */
-    float              sigma_space;    /**< Bilateral: spatial sigma (default 3.0) */
+    float              sigma_space;    /**< Bilateral: spatial sigma, 0 < s <= 7.5 (default 3.0) */
     float              sigma_range;    /**< Bilateral: range sigma (default 50.0) */
     int32_t            search_window;  /**< NLM: search window size, must be odd positive (default 21) */
     int32_t            patch_size;     /**< NLM: patch size, must be odd positive (default 7) */
@@ -168,7 +168,9 @@ XPE_API XpeErrorCode xpe_log_inverse(XpeImageBuffer* img, float normFactor);
  * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if params is NULL, the image
  *         is invalid, mode is neither BILATERAL nor NLM, or the mode's own
  *         parameters are out of range (bilateral: sigma_space/sigma_range <= 0, NaN or
- *         infinite -- QA-B-181d;
+ *         infinite -- QA-B-181d; sigma_space above 7.5 -- QA-B-210: the kernel is
+ *         truncated at 2 sigma with a radius cap of 15, so 7.5 is the largest value
+ *         that cap reflects;
  *         NLM: search_window/patch_size not odd-positive, h_param <= 0);
  *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32. (REQ-ENH-010)
  */

@@ -195,6 +195,14 @@ static bool sums_may_leave_float(double peak, double sumOfWeightsBound)
     return peak * sumOfWeightsBound * 1.01 > static_cast<double>((std::numeric_limits<float>::max)());
 }
 
+// QA-B-210 E7 (#251, user decision): the spatial kernel is truncated at 2 sigma and its radius capped at kMaxBilateralRadius, so
+// the specified sigma_space is honoured only while ceil(2 * sigma_space) <= kMaxBilateralRadius, i.e. sigma_space <= 15 / 2 = 7.5
+// (exact in float). The cap is the largest value the radius cap reflects; a larger one used to be accepted and silently behave
+// like 7.5, and is now XPE_ERR_INVALID_INPUT. (A very small image limits the radius further, to min(w, h) / 2 - 1; that is the
+// kernel not fitting the image, not the parameter, and stays.)
+static constexpr int   kMaxBilateralRadius = 15;
+static constexpr float kMaxSigmaSpace      = 0.5f * static_cast<float>(kMaxBilateralRadius);   // 7.5
+
 static XpeErrorCode apply_bilateral(XpeImageBuffer* img, float sigma_space, float sigma_range)
 {
     int w = static_cast<int>(img->width);
@@ -208,7 +216,7 @@ static XpeErrorCode apply_bilateral(XpeImageBuffer* img, float sigma_space, floa
     // limiting afterwards made an out-of-range float -> int conversion (undefined behaviour) of any large sigma;
     // 2 * sigma also overflows float for sigma above FLT_MAX / 2. sigma_space is finite here (checked by the
     // caller), and a sigma of at least maxRad / 2 reaches the limit anyway: ceil(2 * sigma) >= maxRad.
-    int maxRad = std::min(15, std::min(w, h) / 2 - 1);
+    int maxRad = std::min(kMaxBilateralRadius, std::min(w, h) / 2 - 1);
     if (maxRad < 1) maxRad = 1;
     const float radiusF = sigma_space >= 0.5f * static_cast<float>(maxRad)
                               ? static_cast<float>(maxRad)
@@ -367,8 +375,10 @@ extern "C++" static XpeErrorCode xpe_noise_reduce_impl(XpeImageBuffer* img, cons
         // the build's floating-point mode (measured: /fp:precise lets NaN through, the /fp:fast this module is built
         // with rejects it), so NaN and +infinity were accepted or refused by accident and +infinity reached an int
         // conversion. Finiteness is its own explicit test.
+        // QA-B-210 E7: and not above the largest sigma_space the radius cap reflects (7.5). Judged here, before the image is touched.
         if (!std::isfinite(params->sigma_space) || !std::isfinite(params->sigma_range) ||
-            params->sigma_space <= 0.0f || params->sigma_range <= 0.0f) {
+            params->sigma_space <= 0.0f || params->sigma_range <= 0.0f ||
+            params->sigma_space > kMaxSigmaSpace) {
             return XPE_ERR_INVALID_INPUT;
         }
         return apply_bilateral(img, params->sigma_space, params->sigma_range);
