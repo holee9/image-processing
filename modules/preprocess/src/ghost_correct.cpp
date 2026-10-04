@@ -252,14 +252,29 @@ namespace {
         float* n2;
     };
 
+    // The per-frame constants of the three tiers, bundled so that no function takes four floats in a row (clang-tidy
+    // bugprone-easily-swappable-parameters): the decay of each history plane and the base coefficient of each.
+    struct TierCoeffs {
+        float decay1;
+        float decay2;
+        float a1;
+        float a2;
+    };
+
+    // The weights of the tier-3 blend (the shipped constants, or the test seam's variables).
+    struct Tier3Mix {
+        float keep;
+        float local;
+    };
+
     // Tier 1: Standard LTI deconvolution
-    XpeErrorCode ghost_tier1(GhostCorrectorHandle*, float* px, size_t n,
-                             float decay1, float decay2, float a1, float a2, FrameStats*,
+    XpeErrorCode ghost_tier1(GhostCorrectorHandle*, float* px, size_t n, const TierCoeffs& k, FrameStats*,
                              const Planes& pl, const float*) {
         const float* h1 = pl.h1;
         const float* h2 = pl.h2;
         float* n1 = pl.n1;
         float* n2 = pl.n2;
+        const float a1 = k.a1, a2 = k.a2, decay1 = k.decay1, decay2 = k.decay2;
         for (size_t i = 0; i < n; ++i) {
             const float raw = px[i];
             if (!std::isfinite(raw)) return XPE_ERR_PROCESSING_FAILED;
@@ -273,9 +288,9 @@ namespace {
     }
 
     // Tier 2: Exposure-weighted LTI deconvolution
-    XpeErrorCode ghost_tier2(GhostCorrectorHandle*, float* px, size_t n,
-                             float decay1, float decay2, float a1_base, float a2_base, FrameStats* stats,
+    XpeErrorCode ghost_tier2(GhostCorrectorHandle*, float* px, size_t n, const TierCoeffs& k, FrameStats* stats,
                              const Planes& pl, const float*) {
+        const float decay1 = k.decay1, decay2 = k.decay2, a1_base = k.a1, a2_base = k.a2;
         // Exposure-weighted coefficients based on frame mean
         const float meanSignal = compute_frame_mean(px, n);
 
@@ -304,9 +319,9 @@ namespace {
     }
 
     // Tier 3: NLCSC (Nonlinear Causal Spatial Context) with signal-dependent coefficients
-    XpeErrorCode ghost_tier3(GhostCorrectorHandle* gh, float* px, size_t n,
-                             float decay1, float decay2, float a1_base, float a2_base, FrameStats* stats,
+    XpeErrorCode ghost_tier3(GhostCorrectorHandle* gh, float* px, size_t n, const TierCoeffs& k, FrameStats* stats,
                              const Planes& pl, const float* frameCopy) {
+        const float decay1 = k.decay1, decay2 = k.decay2, a1_base = k.a1, a2_base = k.a2;
         const float meanSignal = compute_frame_mean(px, n);
         const float exposureWeight = 1.0f + (meanSignal / 32768.0f) * 0.5f;
         *stats = FrameStats{true, meanSignal, exposureWeight};
@@ -420,8 +435,10 @@ namespace {
     // from: M = the frame's largest |value|; the bounds of |hist1| and |hist2| (the recurrence kept on the handle); the
     // coefficients; and, for tier 3, the 3x3 blend. The bound must be at most kLimit (1e37, a thirty-fourth of FLT_MAX): the
     // slack covers the float rounding of every operation. NaN or an overflowing bound answers false.
-    bool frame_cannot_leave_float_range(const GhostCorrectorHandle& gh, double M, float decay1, float decay2,
-                                        float a1_base, float a2_base, float mixKeep, float mixLocal) noexcept {
+    bool frame_cannot_leave_float_range(const GhostCorrectorHandle& gh, double M, const TierCoeffs& k,
+                                        const Tier3Mix& mix) noexcept {
+        const float decay1 = k.decay1, decay2 = k.decay2, a1_base = k.a1, a2_base = k.a2;
+        const float mixKeep = mix.keep, mixLocal = mix.local;
         constexpr double kLimit = 1.0e37;
         double weight = 1.0;       // tier 2 and 3: exposure weight 1 + (mean / 32768) * 0.5, |mean| <= M
         double dependence = 1.0;   // tier 3: signal dependence 1 + beta * (raw / 32768)
@@ -498,8 +515,8 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
 #else
     constexpr float mixKeep = 0.7f, mixLocal = 0.3f;
 #endif
-    bool inPlace = frame_cannot_leave_float_range(*gh, static_cast<double>(maxAbs), decay1, decay2, a1_base, a2_base,
-                                                  mixKeep, mixLocal);
+    const TierCoeffs coeffs{decay1, decay2, a1_base, a2_base};
+    bool inPlace = frame_cannot_leave_float_range(*gh, static_cast<double>(maxAbs), coeffs, Tier3Mix{mixKeep, mixLocal});
 #ifdef XPE_CACHE_TEST_HOOKS
     if (xpe_ghost_force_slow_path) inPlace = false;
 #endif
@@ -508,10 +525,10 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
     FrameStats stats;
     const auto run_tier = [&](const Planes& pl, const float* frameCopy) {
         switch (gh->tier) {
-            case 1: return ghost_tier1(gh, px, n, decay1, decay2, a1_base, a2_base, &stats, pl, frameCopy);
-            case 2: return ghost_tier2(gh, px, n, decay1, decay2, a1_base, a2_base, &stats, pl, frameCopy);
-            case 3: return ghost_tier3(gh, px, n, decay1, decay2, a1_base, a2_base, &stats, pl, frameCopy);
-            default: return ghost_tier1(gh, px, n, decay1, decay2, a1_base, a2_base, &stats, pl, frameCopy);
+            case 1: return ghost_tier1(gh, px, n, coeffs, &stats, pl, frameCopy);
+            case 2: return ghost_tier2(gh, px, n, coeffs, &stats, pl, frameCopy);
+            case 3: return ghost_tier3(gh, px, n, coeffs, &stats, pl, frameCopy);
+            default: return ghost_tier1(gh, px, n, coeffs, &stats, pl, frameCopy);
         }
     };
     if (inPlace) {
