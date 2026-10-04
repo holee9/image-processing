@@ -804,6 +804,40 @@ TEST_F(DicomValidatorTest, PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExc
     }
 }
 
+// QA-B-210 #119 (Codex #119, low): the error for Pixel Data under a JPIP Referenced syntax cites the clause of THAT syntax --
+// PS3.5 A.6 for .94 (and .95), A.11 for .204 (and A.12 for .205). It used to say "PS3.5 A.6" for all of them. .95 and .205 cannot be
+// parsed by this DCMTK build (see the KnownDivergence test below), so the table checks .94 and .204; the mapping for the other
+// two is in DicomValidator.cpp and shares the same lookup.
+TEST_F(DicomValidatorTest, JpipPixelDataErrorCitesThePs35ClauseOfTheTransferSyntax) {
+    struct Case {
+        const char* what;
+        E_TransferSyntax xfer;
+        const char* clause;
+    };
+    const Case cases[] = {
+        {"JPIP Referenced (.94)", EXS_JPIPReferenced, "PS3.5 A.6)"},
+        {"JPIP HTJ2K Referenced (.204)", EXS_JPIPHTJ2KReferenced, "PS3.5 A.11)"},
+    };
+    int n = 0;
+    for (const Case& c : cases) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        bool saved = false;
+        const json j = ValidateChangedUnder(c.xfer, s_conformantDcm, s_tempDir / ("p119_clause_" + std::to_string(n++) + ".dcm"),
+                                            [](DcmDataset*) {}, &rc, &saved);
+        if (!saved) continue;
+        std::string message;
+        for (const auto& e : j["errors"]) {
+            const std::string m = e["message"].get<std::string>();
+            if (e["tag"].get<std::string>() == "7FE0,0010" && m.find("shall not be present under a JPIP") != std::string::npos) message = m;
+        }
+        ASSERT_FALSE(message.empty()) << c.what << ": " << j.dump();
+        EXPECT_NE(std::string::npos, message.find(c.clause)) << c.what << ": the message cites the wrong clause: " << message;
+        if (std::string(c.clause) == "PS3.5 A.11)") {
+            EXPECT_EQ(std::string::npos, message.find("A.6")) << c.what << ": A.6 is the clause of .94/.95, not of .204: " << message;
+        }
+    }
+}
+
 // .95 (JPIP Referenced Deflate) and .205 (JPIP HTJ2K Referenced Deflate) belong in the table above exactly like .94 and .204, but
 // this DCMTK build cannot read a file under either: the validator gets "Unsupported compression or encryption" from loadFile and
 // reports the file as unparseable, so nothing about Pixel Data or the URL is ever judged. Recorded as what is observed, not as
