@@ -91,6 +91,15 @@ static XpeErrorCode gsdf_calibrate_impl(const float*              luminanceValue
         if (!std::isfinite(luminanceValues[i])) return XPE_ERR_INVALID_INPUT;
     }
 
+    // QA-B-207 D1 (user decision on #251): the black level (the first sample, the lowest luminance of the curve) must be at
+    // least 0.05 cd/m2, the lower end of the range PS3.14 defines the grayscale standard display function on (Equation 7-2 is
+    // specified for L = 0.05 .. 4000 cd/m2, JND index 1 .. 1023). Below it j(L) is an extrapolation of the polynomial
+    // (j(0.01) = -20.8) and the inverse used for the LUT is a fit to j = 1 .. 1023, so a 0.01 black level gave a LUT that
+    // differed from the standard's by up to 1046 counts with rc = OK (QA-B-204). Zero and negative are the same case and were
+    // coerced to 0.01 silently. The first sample is judged AFTER the finite and ordering checks below, and before anything is
+    // written: outParams is untouched on refusal. 0.05 itself is accepted. (The upper end, 4000, is not enforced here.)
+    constexpr float kMinBlackLevel = 0.05f;
+
     // REQ-DISP-026 + REQ-DISP-029 (#155, QA-B-146): the array is the display's
     // characteristic curve, so it must be non-decreasing. Until QA-B-145 the
     // order carried no meaning -- only the minimum and maximum were read -- and
@@ -142,6 +151,8 @@ static XpeErrorCode gsdf_calibrate_impl(const float*              luminanceValue
     // A real measurement is not required to know the right answer -- an
     // independently derived control is (QA-B-142 used Table B-1 the same way).
 
+    if (luminanceValues[0] < kMinBlackLevel) return XPE_ERR_INVALID_INPUT;
+
     // Step 1: the ends of the measured curve. The contract says ascending, so
     // these are element 0 and element count-1; a caller that violates it is
     // caught here rather than silently producing an inverted ramp.
@@ -149,7 +160,7 @@ static XpeErrorCode gsdf_calibrate_impl(const float*              luminanceValue
     float lum_max = luminanceValues[count - 1];
 
     // Protect against invalid luminance values
-    if (lum_min <= 0.0f) lum_min = 0.01f;
+    // QA-B-207 D1: the black level is no longer replaced by 0.01 (see the check at the top of this function).
     if (lum_max <= lum_min) lum_max = lum_min + 1.0f;
 
     // Step 2: compute the JND range -- DICOM PS3.14 Equation 7-2, j(L).

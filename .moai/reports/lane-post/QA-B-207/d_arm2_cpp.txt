@@ -1,0 +1,37 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *ClaheBin*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from ClaheBin
+[ RUN      ] ClaheBin.EveryVectorMatchesTheExactRationalBin
+[       OK ] ClaheBin.EveryVectorMatchesTheExactRationalBin (1 ms)
+[ RUN      ] ClaheBin.TheFastPathEndsExactlyWhereTheDerivationEndsIt
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(84): error: Value of: fast_path_is_exact(1.0f, 262144.0f, 0)
+  Actual: true
+Expected: false
+S = 18 + 1 + 23 = 42
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(85): error: Value of: fast_path_is_exact(0.0123f, 4095.0f, 0)
+  Actual: true
+Expected: false
+a small positive minimum next to a large maximum
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(90): error: Value of: fast_path_is_exact(-1.0f, 131072.0f, -23)
+  Actual: true
+Expected: false
+H = 17, S = 42
+
+[  FAILED  ] ClaheBin.TheFastPathEndsExactlyWhereTheDerivationEndsIt (0 ms)
+[ RUN      ] ClaheBin.MinLsbExpReadsTheLowestNonzeroPixel
+[       OK ] ClaheBin.MinLsbExpReadsTheLowestNonzeroPixel (0 ms)
+[ RUN      ] ClaheBin.CodexEightByEight_EveryPixelMatchesTheExactReference
+[       OK ] ClaheBin.CodexEightByEight_EveryPixelMatchesTheExactReference (0 ms)
+[----------] 4 tests from ClaheBin (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (2 ms total)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ClaheBin.TheFastPathEndsExactlyWhereTheDerivationEndsIt
+
+ 1 FAILED TEST

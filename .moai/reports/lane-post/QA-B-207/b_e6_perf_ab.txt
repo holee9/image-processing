@@ -1,0 +1,6 @@
+round 1: old=40.8 ms  new=44.5 ms
+round 2: old=38.9 ms  new=44.7 ms
+round 3: old=39.2 ms  new=43.7 ms
+round 4: old=40.9 ms  new=42.0 ms
+round 5: old=38.6 ms  new=43.7 ms
+round 6: old=39.6 ms  new=41.7 ms

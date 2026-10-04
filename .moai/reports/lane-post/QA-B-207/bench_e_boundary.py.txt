@@ -1,0 +1,105 @@
+"""QA-B-207d (leader request): which path does a realistic 3072x3072 float image take, and what does each path cost?
+
+The path is chosen per IMAGE from (vmin, vmax[, lowest pixel last-bit exponent]) -- clahe_bin_internal.h -- so the share of pixels on
+the exact (slow) path is 100 % or 0 % per image. Here the decision is re-derived in Python from the same three rules and printed
+next to the measured time. Fast and slow timings of the SAME data distribution are alternated: the fast twin of an image is the
+image with one pixel set to 0.0 (minimum 0 -> rule A, every other pixel unchanged).
+
+Run: python bench_d_paths.py <dll dir> [rounds]
+"""
+import ctypes
+import math
+import os
+import sys
+import time
+
+import numpy as np
+
+dll_dir = sys.argv[1]
+rounds = int(sys.argv[2]) if len(sys.argv) > 2 else 3
+os.add_dll_directory(dll_dir)
+dll = ctypes.CDLL(os.path.join(dll_dir, 'xpe_enhance_basic.dll'))
+
+
+class Img(ctypes.Structure):
+    _fields_ = [('width', ctypes.c_uint32), ('height', ctypes.c_uint32), ('bitsAllocated', ctypes.c_uint32),
+                ('bitsStored', ctypes.c_uint32), ('format', ctypes.c_int), ('data', ctypes.c_void_p),
+                ('dataSize', ctypes.c_size_t)]
+
+
+class Params(ctypes.Structure):
+    _fields_ = [('clip_limit', ctypes.c_float), ('tile_width', ctypes.c_int32), ('tile_height', ctypes.c_int32)]
+
+
+dll.xpe_contrast_enhance.argtypes = [ctypes.POINTER(Img), ctypes.POINTER(Params)]
+
+
+def lsb_exp(x):
+    ef = (np.float32(x).view(np.uint32) >> 23) & 0xFF
+    return max(int(ef), 1) - 150
+
+
+def path_of(a):
+    vmin, vmax = float(a.min()), float(a.max())
+    if vmin == 0.0:
+        return 'FAST (A: vmin == 0)'
+    if vmin > 0.0:
+        s = math.frexp(vmax)[1] - 1 + 1 - lsb_exp(vmin)
+        return 'FAST (B: S=%d)' % s if s <= 41 else 'EXACT (B: S=%d > 41)' % s
+    nz = a[a != 0].view(np.uint32)
+    ef = ((nz >> 23) & 0xFF).astype(np.int64)
+    lpix = int(np.maximum(ef, 1).min()) - 150
+    h = max(math.frexp(abs(vmin))[1] - 1, math.frexp(abs(vmax))[1] - 1 if vmax != 0 else -999)
+    s = h + 2 - lpix
+    return 'FAST (C: S=%d)' % s if s <= 41 else 'EXACT (C: S=%d > 41)' % s
+
+
+def time_call(a):
+    best = []
+    for _ in range(rounds):
+        b = a.copy()
+        img = Img(3072, 3072, 32, 32, 1, b.ctypes.data, b.nbytes)
+        t = time.perf_counter()
+        rc = dll.xpe_contrast_enhance(ctypes.byref(img), ctypes.byref(Params(3.0, 8, 8)))
+        best.append((time.perf_counter() - t) * 1000)
+        assert rc == 0
+    best.sort()
+    return best[len(best) // 2]
+
+
+rs = np.random.default_rng(7)
+n = 3072 * 3072
+yy, xx = np.mgrid[0:3072, 0:3072].astype(np.float32)
+structure = (1500 + 1200 * np.sin(xx / 311.0) * np.cos(yy / 257.0) + 400 * np.exp(-((xx - 1500) ** 2 + (yy - 1700) ** 2) / 4.0e5)).astype(np.float32)
+
+cases = {}
+# boundary-heavy images: integer-valued pixels on a range of 4095, so t = (v - vmin) is an integer for EVERY pixel
+hu = rs.integers(-1024, 3072, size=(3072, 3072)).astype(np.float32)
+hu[0, 0], hu[0, 1] = -1024.0, 3071.0
+cases['3a integer HU -1024..3071 (range 4095)'] = hu
+hu2 = hu.copy()
+hu2[100, 100] = np.float32(0.001)
+cases['3b = 3a + ONE pixel of 0.001'] = hu2
+hu3 = hu.copy()
+hu3[100, 100] = np.float32(0.5)
+cases['3c = 3a + ONE pixel of 0.5'] = hu3
+pos = rs.integers(1, 4097, size=(3072, 3072)).astype(np.float32)
+pos[0, 0], pos[0, 1] = 1.0, 4096.0
+cases['3d integer 1..4096 (range 4095, min 1)'] = pos
+pos2 = pos.copy()
+pos2[100, 100] = np.float32(1.0000001)
+cases['3e = 3d + ONE pixel of 1.0000001'] = pos2
+
+print('%-48s %-24s %10s %10s %8s' % ('image', 'path', 'time ms', 'fast twin', 'x'))
+for name, a in cases.items():
+    a = np.ascontiguousarray(a, dtype=np.float32)
+    path = path_of(a)
+    twin = a.copy()
+    twin[0, 0] = 0.0
+    t_this = time_call(a)
+    t_twin = time_call(twin)
+    t_this2 = time_call(a)
+    t_twin2 = time_call(twin)
+    print('%-48s %-24s %10.1f %10.1f %8.1f   (2nd pass: %.1f / %.1f)   exact-path pixels: %s' % (
+        name, path, min(t_this, t_this2), min(t_twin, t_twin2), min(t_this, t_this2) / min(t_twin, t_twin2), t_this2, t_twin2,
+        '100 %' if path.startswith('EXACT') else '0 %'))

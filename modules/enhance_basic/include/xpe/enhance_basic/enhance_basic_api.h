@@ -198,6 +198,26 @@ XPE_API XpeErrorCode xpe_noise_estimate_sigma(const XpeImageBuffer* img, float* 
  * If params is NULL, defaults are used (clip_limit=3.0, tile_width=8,
  * tile_height=8). (REQ-ENH-014)
  *
+ * This is the standard CLAHE (QA-B-207 M2): one intensity scale for the whole
+ * image (4096 bins between its minimum and maximum); per tile, a histogram
+ * clipped at clip_limit * tile_area / 4096 pixels per bin (at least 1) with the
+ * excess spread evenly over the scale, turned into a cumulative table; and per
+ * pixel, a bilinear blend of the tables of the up to four tiles whose centres
+ * surround it, so there is no step at a tile border. The result is mapped back
+ * onto the image's own [minimum, maximum]: equalization redistributes values
+ * inside that range, it does not widen it, so an image that is already evenly
+ * spread over its range comes out about as it went in. With a tile area below
+ * 4096 / clip_limit pixels every clip_limit up to that bound clips alike (the
+ * per-bin cap bottoms out at 1).
+ *
+ * Numeric boundary (QA-B-207b): the scale and the bin of a pixel are computed in
+ * double, so any positive range is processed, down to a single denormal step
+ * (1.4e-45) -- 4095 / 1.4e-45 = 2.9e48 is far below DBL_MAX. Only an image whose
+ * minimum equals its maximum is "flat". (A float scale 4095.0f / range overflows
+ * below a range of 4095 / FLT_MAX = 1.2034e-35, which is the bound this replaces.)
+ * The other end is unchanged: a range that overflows float (max - min > FLT_MAX,
+ * e.g. -3e38 and +3e38) is XPE_ERR_INVALID_INPUT (QA-B-181f).
+ *
  * @param img    Float32 image buffer (modified in-place). A zero-sized image is
  *               rejected (#142); a flat image (no value range) is accepted and
  *               returns XPE_OK unchanged.

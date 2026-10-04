@@ -1,0 +1,12 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *ContrastEnhance.Performance_3072x3072_Within50ms
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ContrastEnhance
+[ RUN      ] ContrastEnhance.Performance_3072x3072_Within50ms
+[       OK ] ContrastEnhance.Performance_3072x3072_Within50ms (59 ms)
+[----------] 1 test from ContrastEnhance (59 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (59 ms total)
+[  PASSED  ] 1 test.

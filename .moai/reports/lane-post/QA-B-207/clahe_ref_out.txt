@@ -1,0 +1,14 @@
+structured 101x67 tiles 8x8 clip 3                   rc=0  max|diff|/range=9.87e-08  p99.99=9.29e-08  pixels>1e-3: 0  MATCH
+structured 64x64 tiles 4x4 clip 3                    rc=0  max|diff|/range=4.60e-08  p99.99=4.59e-08  pixels>1e-3: 0  MATCH
+structured 17x9 tiles 2x2 clip 3                     rc=0  max|diff|/range=7.24e-08  p99.99=7.24e-08  pixels>1e-3: 0  MATCH
+structured 5x8 tiles 2x4 clip 3                      rc=0  max|diff|/range=7.26e-08  p99.99=7.25e-08  pixels>1e-3: 0  MATCH
+structured 11x11 tiles 5x5 clip 3 (empty edge tile)  rc=0  max|diff|/range=7.69e-08  p99.99=7.67e-08  pixels>1e-3: 0  MATCH
+structured 256x256 tiles 8x8 clip 1                  rc=0  max|diff|/range=4.18e-08  p99.99=4.18e-08  pixels>1e-3: 0  MATCH
+structured 256x256 tiles 8x8 clip 40                 rc=0  max|diff|/range=4.21e-08  p99.99=4.21e-08  pixels>1e-3: 0  MATCH
+structured 512x384 tiles 3x7 clip 2                  rc=0  max|diff|/range=1.11e-07  p99.99=9.82e-08  pixels>1e-3: 0  MATCH
+structured 3070x2051 tiles 7x9 clip 3                rc=0  max|diff|/range=1.18e-07  p99.99=1.02e-07  pixels>1e-3: 0  MATCH
+ramp 256x256 tiles 8x8 clip 3                        rc=0  max|diff|/range=1.50e-06  p99.99=1.50e-06  pixels>1e-3: 0  MATCH
+=== 0 of 10 cases differ
+ramp step across a tile boundary: mean=1.8747  median step elsewhere=2.0313  ratio(mean boundary / median inside)=0.92
+largest single step on the row: 3.1393 (median 2.0313, x1.55)
+AC-04 ramp 495..505: stddev before=1.02059  after(DLL)=1.02144 ratio=1.001   after(reference)=1.02144 ratio=1.001

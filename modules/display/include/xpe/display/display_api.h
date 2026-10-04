@@ -208,11 +208,15 @@ XPE_API XpeErrorCode xpe_apply_modality_lut(XpeImageBuffer*            img,
  *
  * @param img    [in/out] Float32 image to window. Must not be NULL.
  * @param params [in]     VOI LUT parameters. Must not be NULL.
- *               width must be > 0.0f.
+ *               width must be > 0.0f for LINEAR_EXACT and SIGMOID and >= 1.0f
+ *               for LINEAR (PS3.3 C.11.2.1.2: "Window Width shall always be
+ *               greater than or equal to 1"; C.11.2.1.3: "greater than 0" for the
+ *               others). minOut must be below maxOut. All parameters must be finite.
  * @return XPE_OK on success.
  * @return XPE_ERR_INVALID_INPUT if img or params is NULL, if img->dataSize is
- *         inconsistent with its dimensions, if width <= 0.0f, or if params->mode
- *         is not one of LINEAR / LINEAR_EXACT / SIGMOID.
+ *         inconsistent with its dimensions, if width <= 0.0f, if mode is LINEAR
+ *         and width < 1.0f, if minOut >= maxOut (QA-B-207 D3, D8), or if params->mode
+ *         is not one of LINEAR / LINEAR_EXACT / SIGMOID. The image is untouched.
  * @return XPE_ERR_UNSUPPORTED_FORMAT if img->format != XPE_PIXEL_FLOAT32.
  *
  * @note An unknown mode is detected inside the per-pixel dispatch, so pixels are
@@ -323,17 +327,21 @@ XPE_API XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*                 
  * @return XPE_ERR_INVALID_INPUT if luminanceValues or outParams is NULL,
  *         count < 2, any entry is NaN or infinite (QA-B-181d), or the array is not
  *         non-decreasing (REQ-DISP-029; equal neighbours are allowed, a fall is
- *         not). outParams is untouched.
+ *         not), or the first entry -- the black level -- is below 0.05 cd/m^2
+ *         (QA-B-207 D1: the lower end of the range PS3.14 specifies the grayscale
+ *         standard display function on; zero and negative included; 0.05 itself is
+ *         accepted). outParams is untouched.
  *
  * @note Only half of the REQ-DISP-029 contract is checked. The ordering is; the
  *       "measured at equally spaced driving levels" half is NOT, because no
  *       driving level reaches this function. An ascending but log-spaced ladder
  *       is accepted and yields an incorrect LUT.
  *
- * @note Degenerate luminance input is silently coerced, not rejected: a
- *       non-positive minimum becomes 0.01 cd/m^2, and a maximum not above the
- *       minimum becomes minimum + 1.0. A caller passing measurement garbage
- *       therefore receives XPE_OK and a plausible-looking LUT.
+ * @note A maximum not above the minimum is still silently coerced to minimum + 1.0
+ *       (the black level, by contrast, is no longer coerced: below 0.05 it is
+ *       refused, QA-B-207 D1). The upper end of the standard's range, 4000 cd/m^2,
+ *       is not enforced: a curve above it is accepted and its LUT follows the
+ *       standard's polynomial outside the range it is specified on.
  *
  * @note count >= 2 is required to define a luminance range (REQ-DISP-027).
  */

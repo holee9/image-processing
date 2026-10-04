@@ -1,0 +1,4 @@
+codex 8x8: value 1  exact=511.8750  DLL=511.8750
+codex 8x8: 0 of 64 pixels differ by > 1e-5 of the range (max 0.000e+00)  MATCH
+random images: 120 trials, 0 differ
+=== 0 differ in total

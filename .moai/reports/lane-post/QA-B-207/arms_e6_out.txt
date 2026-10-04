@@ -1,0 +1,41 @@
+=== ARM nearest_tile_no_interpolation
+red tests: ContrastEnhance.MatchesAnIndependentReference, ContrastEnhance.SmoothRamp_HasNoStepAtTileBoundaries, EdgeEnhance.Performance_3072x3072_Within20ms
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM weight_between_two_centres_inverted
+red tests: ContrastEnhance.MatchesAnIndependentReference, ContrastEnhance.SmoothRamp_HasNoStepAtTileBoundaries
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM tile_centre_on_the_pixel_edge_convention
+red tests: ContrastEnhance.MatchesAnIndependentReference
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM remainder_given_to_the_first_bins_the_old_bias
+red tests: ContrastEnhance.AlreadyEvenlySpreadImage_IsLeftNearlyAsItIs, ContrastEnhance.MatchesAnIndependentReference, ContrastEnhance.Performance_3072x3072_Within50ms, ContrastEnhance.SmoothRamp_HasNoStepAtTileBoundaries
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM clip_never_applied
+red tests: ContrastEnhance.AlreadyEvenlySpreadImage_IsLeftNearlyAsItIs, ContrastEnhance.ClipLimit_BoundsTheContrastGain, ContrastEnhance.MatchesAnIndependentReference, ContrastEnhance.SmoothRamp_HasNoStepAtTileBoundaries, EdgeEnhance.Performance_3072x3072_Within20ms, EnhanceBasicParameterDependency.ContrastEnhance_EveryParameterReachesTheOutput
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM clip_count_not_floored_at_one
+red tests: ContrastEnhance.MatchesAnIndependentReference
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM output_not_mapped_back_to_the_global_range
+red tests: (none)
+RESULT: DID NOT FIRE  (expected red: 2, red: 0, not red: ['ContrastEnhance.MatchesAnIndependentReference', 'ExceptionGuard.ContrastEnhanceKeepsItsImagePropertiesOnEveryTileShape'])
+restored byte-identical: True
+=== ARM border_pixels_extrapolate_instead_of_clamping_to_the_first_centre
+red tests: ContrastEnhance.MatchesAnIndependentReference, ExceptionGuard.ContrastEnhanceKeepsItsImagePropertiesOnEveryTileShape
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM empty_tile_given_a_centre_and_a_table
+red tests: ContrastEnhance.MatchesAnIndependentReference
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM vertical_blend_uses_the_same_row_of_tables_twice
+red tests: ContrastEnhance.MatchesAnIndependentReference
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== DONE

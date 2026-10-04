@@ -82,10 +82,14 @@ typedef struct XpeDicomHandle XpeDicomHandle;
  * @return XPE_ERR_DICOM_INVALID if the file is not a valid DICOM Part 10 file.
  * @return XPE_ERR_UNSUPPORTED_FORMAT if the Transfer Syntax is not supported.
  *
- * @note A file with no Part 10 meta header still opens: DCMTK accepts a bare
- *       dataset and the reader treats a missing Transfer Syntax UID as
- *       Explicit VR Little Endian. Use xpe_dicom_validate() to judge Part 10
- *       conformance -- xpe_dicom_open() judges only readability.
+ * @note A file must be DICOM Part 10: a 128-byte preamble followed by "DICM"
+ *       (REQ-DICOM-003). A bare dataset with no preamble and magic, a file
+ *       shorter than 132 bytes and a file with another magic are
+ *       XPE_ERR_DICOM_INVALID (QA-B-207 C3; they used to open, read as Explicit
+ *       VR Little Endian). The preamble's own bytes are not judged (any 128
+ *       bytes are allowed). A Part 10 file whose meta header lacks a Transfer
+ *       Syntax UID still opens, its syntax detected from the dataset (#167).
+ *       xpe_dicom_validate() reports the rest of the Part 10 conformance.
  * @note REQ-DICOM-001..005
  */
 XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHandle);
@@ -430,12 +434,17 @@ XPE_API XpeErrorCode xpe_dicom_cstore(const char* host,
 /**
  * @brief Query a Modality Worklist SCP via C-FIND.
  *
- * queryJson keys honoured by the current implementation: "PatientID",
- * "PatientName", "Modality", "AccessionNumber". Any other key -- including
- * "ScheduledStationAETitle" and "ScheduledProcedureStepStartDate", which an
- * earlier version of this comment listed -- is accepted without error and has
- * no effect on the query. All four supported keys are also sent as universal
- * (empty) match keys when absent.
+ * queryJson keys honoured (QA-B-209 C8): "PatientID", "PatientName", "AccessionNumber",
+ * "Modality", "ScheduledStationAETitle", "ScheduledProcedureStepStartDate". Any other
+ * key is accepted without error and has no effect on the query. The query has the
+ * shape of the Modality Worklist Information Model (PS3.4 K.6.1): Modality,
+ * Scheduled Station AE Title and Scheduled Procedure Step Start Date are sent inside
+ * ONE item of the Scheduled Procedure Step Sequence (0040,0100); the patient keys
+ * and AccessionNumber are top-level keys. AccessionNumber is kept although the
+ * requirement does not list it (it is a standard matching key; removing it would
+ * change the behaviour of existing callers). The start date is a single date
+ * (YYYYMMDD) or a DICOM range (YYYYMMDD-YYYYMMDD) and is passed on as given. A key
+ * the caller does not give is sent as a universal-match (empty) key.
  *
  * @param host       Remote host address. Must not be NULL.
  * @param port       Remote DICOM port.

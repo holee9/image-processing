@@ -1,0 +1,66 @@
+"""QA-B-207c (Codex #141): pixel-by-pixel check of the DLL against the EXACT-RATIONAL reference on the bin-boundary inputs.
+
+Reuses reference()/native() of clahe_ref_exact.py (bin = floor of a Fraction, no float intermediate). Cases:
+  - Codex's 8x8 case: the 4x4 block [0,123,41,41,41,41,1,2,3,4,5,6,7,8,9,10] four times, tiles 2x2, clip 3
+    (expected value of 41: 107.625 exact, 99.9375 with the rounded bin 1364)
+  - every bin boundary for ranges 123, 4095, 65535, 1000, 7.3 and the narrow float ranges 1e-37, 1.21e-35:
+    pixels at ceil(k*range/4095), the float just below it, and k*range/4095 rounded to float.
+Run: python clahe_ref_exact_c.py <dll dir> <path to clahe_ref_exact.py> [out.txt]
+"""
+import importlib.util
+import sys
+
+import numpy as np
+
+spec = importlib.util.spec_from_file_location('exact', sys.argv[2])
+sys.argv = [sys.argv[0], sys.argv[1]] + sys.argv[3:]          # the module reads argv[1] (dll dir) and argv[2] (out)
+src = open(spec.origin, encoding='utf-8').read().split('FLT_MIN =')[0]    # everything before its CASES run
+ns = {}
+exec(compile(src, spec.origin, 'exec'), ns)
+reference, native = ns['reference'], ns['native']
+OUT = open(sys.argv[2], 'w', encoding='utf-8', newline='\n') if len(sys.argv) > 2 else sys.stdout
+
+
+def log(s):
+    OUT.write(s + '\n')
+    OUT.flush()
+
+
+bad = 0
+block = np.array([0, 123, 41, 41, 41, 41, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], np.float32).reshape(4, 4)
+codex = np.tile(block, (2, 2))
+ref, rng = reference(codex, 3.0, 2, 2)
+rc, got = native(codex, 3.0, 2, 2)
+i = (0, 2)                                                         # a pixel of value 41
+log('codex 41 in 0..123: value=%g  exact=%.4f  DLL=%.4f' % (codex[i], ref[i], got[i]))
+d = np.abs(got.astype(np.float64) - ref) / rng
+ok = rc == 0 and d.max() < 1e-5
+bad += 0 if ok else 1
+log('codex case: max|diff|/range=%.3e  %s' % (d.max(), 'MATCH' if ok else 'DIFFER'))
+
+for name, r in [('123', 123.0), ('4095', 4095.0), ('65535', 65535.0), ('1000', 1000.0), ('7.3', 7.3),
+                ('1e-37', 1e-37), ('1.21e-35', 1.21e-35)]:
+    hi = np.float32(r)
+    px = [np.float32(0), hi]
+    integral = (r == np.floor(r))
+    for k in range(1, 4095):
+        b = np.float32(np.float64(k) * np.float64(hi) / 4095.0)
+        px.append(np.nextafter(b, np.float32(0)))
+        px.append(b)
+        px.append(np.nextafter(b, np.float32(hi * 2)))
+        if integral:
+            first = np.float32(np.ceil(b))
+            px.append(first)
+            px.append(np.float32(first - 1))
+    while len(px) % 128:
+        px.append(np.float32(hi * np.float32(0.5)))
+    a = np.array(px, np.float32).reshape(-1, 128)
+    ref, rng = reference(a, 1.0, 2, 2)
+    rc, got = native(a, 1.0, 2, 2)
+    d = np.abs(got.astype(np.float64) - ref) / rng
+    ok = rc == 0 and d.max() < 1e-5
+    bad += 0 if ok else 1
+    log('boundaries range %-9s rc=%d max|diff|/range=%.3e  pixels>1e-5: %d  %s' % (
+        name, rc, d.max(), int((d > 1e-5).sum()), 'MATCH' if ok else 'DIFFER'))
+log('=== %d cases differ' % bad)
+sys.exit(1 if bad else 0)

@@ -329,28 +329,11 @@ TEST(ExceptionGuard, ContrastEnhanceKeepsItsImagePropertiesOnEveryTileShape) {
         EXPECT_TRUE(finite) << c.w << "x" << c.h;
         EXPECT_TRUE(inRange) << c.w << "x" << c.h << ": the output must stay inside the input's value range";
 
-        // Within one tile the mapping is a monotone LUT: a brighter input never gets a darker output.
-        const int tileW = xpe_ceil_div(c.w, c.tw), tileH = xpe_ceil_div(c.h, c.th);
-        bool monotone = true;
-        for (int ty = 0; ty < c.th && monotone; ++ty) {
-            for (int tx = 0; tx < c.tw && monotone; ++tx) {
-                int x0, x1, y0, y1;
-                xpe_tile_bounds(tx, tileW, c.w, x0, x1);
-                xpe_tile_bounds(ty, tileH, c.h, y0, y1);
-                if (x0 >= x1 || y0 >= y1) continue;
-                std::vector<std::pair<float, float>> pairs;
-                for (int y = y0; y < y1; ++y)
-                    for (int x = x0; x < x1; ++x)
-                        pairs.emplace_back(in[static_cast<size_t>(y) * c.w + x], a[static_cast<size_t>(y) * c.w + x]);
-                std::sort(pairs.begin(), pairs.end());
-                for (size_t i = 1; i < pairs.size(); ++i)
-                    if (pairs[i].first > pairs[i - 1].first && pairs[i].second < pairs[i - 1].second) {
-                        monotone = false;
-                        break;
-                    }
-            }
-        }
-        EXPECT_TRUE(monotone) << c.w << "x" << c.h << " tiles " << c.tw << "x" << c.th;
+        // QA-B-207 M2 (E6): this used to assert that, within one tile, a brighter input never gets a darker output. That
+        // held because every pixel was mapped by its OWN tile's table alone. The standard CLAHE blends the tables of the four
+        // surrounding tiles with weights that depend on the pixel's position, so two pixels of one tile are mapped by different
+        // blends and the property no longer follows. What replaces it is stronger: ContrastEnhance.MatchesAnIndependentReference
+        // compares every output pixel with a separate implementation of the definition.
     }
 }
 

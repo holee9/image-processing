@@ -1,0 +1,8 @@
+J(4000)=1023.16 J(6000)=1084.84 J(10000)=1160.20  (standard range ends at j=1023 = 4000 cd/m2)
+white cd/m2 | rc | max |module - reference| | entries differing > 300
+        500 | 0 |                        5 | 0
+       1000 | 0 |                        7 | 0
+       4000 | 0 |                       18 | 0
+       4500 | 0 |                       41 | 0
+       6000 | 0 |                      155 | 0
+      10000 | 0 |                      744 | 36

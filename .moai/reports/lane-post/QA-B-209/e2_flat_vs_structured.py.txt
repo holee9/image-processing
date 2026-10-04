@@ -1,0 +1,33 @@
+"""QA-B-209 E2: do USM / log transform / bilateral skip work on a flat input? Same size, flat vs structured, ALTERNATED, 3072x3072.
+Run: python e2_flat_vs_structured.py <bin dir> <out>"""
+import ctypes, os, sys, time
+import numpy as np
+D, OUT = sys.argv[1], open(sys.argv[2], 'w', encoding='utf-8', newline='\n')
+os.add_dll_directory(D)
+L = ctypes.CDLL(os.path.join(D, 'xpe_enhance_basic.dll'))
+class Img(ctypes.Structure):
+    _fields_ = [('w', ctypes.c_uint32), ('h', ctypes.c_uint32), ('ba', ctypes.c_uint32), ('bs', ctypes.c_uint32), ('fmt', ctypes.c_int), ('data', ctypes.c_void_p), ('ds', ctypes.c_size_t)]
+class Usm(ctypes.Structure):
+    _fields_ = [('amount', ctypes.c_float), ('radius', ctypes.c_float), ('threshold', ctypes.c_float)]
+class Nr(ctypes.Structure):
+    _fields_ = [('mode', ctypes.c_int), ('ss', ctypes.c_float), ('sr', ctypes.c_float), ('sw', ctypes.c_int32), ('ps', ctypes.c_int32), ('h', ctypes.c_float)]
+n = 3072
+flat = np.full((n, n), 500.0, np.float32)
+rnd = (1.0 + ((np.arange(n * n, dtype=np.uint64) * np.uint64(2654435761)) % np.uint64(4096)).astype(np.float32)).reshape(n, n)
+calls = {
+    'xpe_edge_enhance (USM 0.5/2.0/10)': lambda i: L.xpe_edge_enhance(ctypes.byref(i), ctypes.byref(Usm(0.5, 2.0, 10.0))),
+    'xpe_log_transform (norm 1000)': lambda i: (setattr(L.xpe_log_transform, 'argtypes', [ctypes.POINTER(Img), ctypes.c_float]), L.xpe_log_transform(ctypes.byref(i), ctypes.c_float(1000.0)))[1],
+    'xpe_log_inverse (norm 1000)': lambda i: (setattr(L.xpe_log_inverse, 'argtypes', [ctypes.POINTER(Img), ctypes.c_float]), L.xpe_log_inverse(ctypes.byref(i), ctypes.c_float(1000.0)))[1],
+    'xpe_noise_reduce (bilateral 3.0/50)': lambda i: L.xpe_noise_reduce(ctypes.byref(i), ctypes.byref(Nr(0, 3.0, 50.0, 21, 7, 10.0))),
+}
+for name, fn in calls.items():
+    tf, tr, changed = [], [], None
+    for _ in range(5):
+        for lab, data, acc in (('flat', flat, tf), ('random', rnd, tr)):
+            a = data.copy(); before = a.copy()
+            img = Img(n, n, 32, 32, 1, a.ctypes.data, a.nbytes)
+            t0 = time.perf_counter(); rc = fn(img); acc.append((time.perf_counter() - t0) * 1000)
+            assert rc == 0, (name, rc)
+            if lab == 'flat': changed = int((a != before).sum())
+    OUT.write('%-38s flat: median %.1f ms (pixels changed: %d) | random: median %.1f ms   ratio flat/random=%.2f\n' % (name, float(np.median(tf)), changed, float(np.median(tr)), float(np.median(tf)) / float(np.median(tr))))
+OUT.close()

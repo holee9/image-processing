@@ -33,6 +33,20 @@ static XpeErrorCode apply_voi_lut_impl(XpeImageBuffer*        img,
     }
     if (params->width <= 0.0f) return XPE_ERR_INVALID_INPUT;
 
+    // QA-B-207 D3 (user decision on #251): PS3.3 C.11.2.1.2 says of the default LINEAR function "Window Width (0028,1051)
+    // shall always be greater than or equal to 1", where LINEAR_EXACT (C.11.2.1.3.2) and SIGMOID (C.11.2.1.3.1) say "shall
+    // always be greater than 0". A LINEAR width in (0, 1) makes `width - 1` negative, the lower threshold exceeds the upper
+    // one and the function collapses to a step (QA-B-204: the SPEC formula runs the ramp backwards there). It is refused;
+    // exactly 1 is legal and gives the standard's threshold at `center - 0.5` (no division happens: the continuous
+    // segment is never reached, C.11.2.1.2 note 2).
+    if (params->mode == XPE_VOI_LINEAR && params->width < 1.0f) return XPE_ERR_INVALID_INPUT;
+
+    // QA-B-207 D8 (user decision on #251): the output window must be non-empty and ascending, minOut < maxOut. With
+    // minOut > maxOut `clamp(x, minOut, maxOut)` has its bounds crossed and returned garbage with rc = 0 for all three modes
+    // (QA-B-204: LINEAR_EXACT (1, 0) gave 0,0,1,1,1 instead of an inverted ramp; SIGMOID (1, 0) gave 1.0 everywhere), and
+    // minOut == maxOut was a special case that wrote minOut everywhere. Both are refused. Nothing has been written yet.
+    if (!(params->minOut < params->maxOut)) return XPE_ERR_INVALID_INPUT;
+
     const size_t count  = xpe_pixel_count(img);
     float* px           = static_cast<float*>(img->data);
     const float center  = params->center;
@@ -44,15 +58,8 @@ static XpeErrorCode apply_voi_lut_impl(XpeImageBuffer*        img,
     // QA-B-181f (#233): a non-finite pixel is refused, as in the other two LUT functions; nothing is written.
     if (!xpe_all_finite(px, count)) return XPE_ERR_INVALID_INPUT;
 
-    // QA-B-181f (#233): with minOut == maxOut every result is clamp(x, minOut, minOut) = minOut, but the arithmetic
-    // before the clamp is `(x - center) / width * range`, and a tiny width makes the quotient +-inf; inf * 0 is NaN
-    // and clamp() passes NaN through (measured: LINEAR_EXACT, width 1e-30, pixel 1e10 -> NaN with rc=0). The defined
-    // result is written directly. The mode is still judged first, so an invalid mode is still refused.
-    if (range == 0.0f && (params->mode == XPE_VOI_LINEAR || params->mode == XPE_VOI_LINEAR_EXACT ||
-                          params->mode == XPE_VOI_SIGMOID)) {
-        std::fill(px, px + count, minOut);
-        return XPE_OK;
-    }
+    // (QA-B-207 D8: minOut == maxOut, which QA-B-181f handled here as a special case so that `inf * 0` could not make a NaN,
+    // is refused above, so `range` is positive from here on.)
 
     switch (params->mode) {
         case XPE_VOI_LINEAR: {

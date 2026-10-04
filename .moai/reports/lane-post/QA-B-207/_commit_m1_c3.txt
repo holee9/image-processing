@@ -1,0 +1,22 @@
+fix(dicom): 서문과 DICM 이 없는 파일은 xpe_dicom_open 이 DICOM_INVALID (QA-B-207 M1 C3)
+
+사용자 결정(#251): REQ-DICOM-003 그대로. DICOM Part 10 은 128바이트 서문 뒤에 "DICM" 이다. DCMTK 의
+EXS_Unknown 로드는 서문도 매직도 없는 맨 데이터셋을 받아 주었고 이 reader 는 그것을 Explicit VR Little
+Endian 으로 열었다. open() 이 DCMTK 를 부르기 전에 앞 132바이트를 읽어 128..131 이 정확히 "DICM" 이
+아니면(132바이트 미만 포함) DICOM_INVALID, 핸들 NULL. 서문 내용은 판정하지 않는다(PS3.10 7.5.1).
+열 수 없는 파일은 여기서 판정하지 않고 기존 loadFile 로 넘겨 IO_FAILED 매핑을 유지한다.
+
+영향(저장소 전체 검색): 깨진 것은 dicom 시험 4개뿐(OpenDatasetWithoutMetaHeader_TreatedAsExplicitLE 와
+#167 의 메타 없는 경로 3개). 추적되는 .dcm 0개, gui·clients 에서 메타 없는 파일을 만들거나 읽는 코드는
+찾지 못함, C-STORE 쪽 EWM_dataset 픽스처는 SCU 가 자기 loadFile 로 읽어 영향 없음.
+시험: 4개를 새 계약으로 바꿈(지우지 않음 — 리더 지시). 맨 데이터셋은 구문과 무관하게 DICOM_INVALID,
+#167 의 두 검사는 "meta 에 TransferSyntaxUID 가 없는 Part 10" 픽스처로 계속 닿는다(Explicit LE 열림,
+캡슐화 .70·.57 은 UNSUPPORTED_FORMAT, Implicit·BE 는 DCMTK 가 파싱 못해 DICOM_INVALID). 새 시험 2개:
+거부 12경우(DCMTK 가 혼자 읽는 맨 데이터셋에 128..131 만 DICX·dicm·DICN 인 것 포함 — 0 채운 서문 +
+틀린 매직은 DCMTK 가 따로 거부해 느슨한 문을 가린다는 것을 반증이 드러냈다)와 통제.
+반증 9팔 바이트 복원, ci-dicom ctest 345 통과·0 실패, doxygen 0, 헤더 0건.
+
+Card: QA-B-207 M1 (C3)
+Refs #251
+
+🗿 MoAI

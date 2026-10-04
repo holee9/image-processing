@@ -399,10 +399,10 @@ TEST_F(DicomReaderTest, ReadJ2K_CorruptBody_ReturnsProcessingFailed) {
 // #120 (QA-B-34): reader branches outside the J2K decode path.
 // ---------------------------------------------------------------------------
 
-// A dataset written without a Part 10 meta header carries no TransferSyntaxUID,
-// which is the "no TS in meta -- treat as Explicit LE" branch
-// (DicomReader.cpp:105-107).
-TEST_F(DicomReaderTest, OpenDatasetWithoutMetaHeader_TreatedAsExplicitLE) {
+// A dataset written without a Part 10 meta header has no preamble and no "DICM", which REQ-DICOM-003 makes
+// XPE_ERR_DICOM_INVALID (QA-B-207 C3, user decision on #251). It used to open and be read as Explicit VR Little Endian,
+// and this test pinned that. The Part 10 file with the same dataset is the control: it opens.
+TEST_F(DicomReaderTest, OpenDatasetWithoutMetaHeader_IsDicomInvalid) {
     auto path = s_tempDir / "reader_no_meta.dcm";
     {
         DcmFileFormat ff;
@@ -411,10 +411,13 @@ TEST_F(DicomReaderTest, OpenDatasetWithoutMetaHeader_TreatedAsExplicitLE) {
                                 EET_ExplicitLength, EGL_recalcGL, EPD_withoutPadding,
                                 0, 0, EWM_dataset).good());
     }
-    XpeDicomHandle* handle = nullptr;
-    ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &handle));
-    EXPECT_NE(nullptr, handle);
-    xpe_dicom_close(handle);
+    XpeDicomHandle* handle = reinterpret_cast<XpeDicomHandle*>(0x1);   // must be overwritten with NULL
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, xpe_dicom_open(path.string().c_str(), &handle));
+    EXPECT_EQ(nullptr, handle);
+
+    XpeDicomHandle* control = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_dicom_open(s_validDcm.string().c_str(), &control)) << "control: the Part 10 original opens";
+    xpe_dicom_close(control);
 }
 
 // PixelData absent from an uncompressed file: findAndGetUint16Array fails and
@@ -2283,8 +2286,9 @@ bool IsOnAcceptedList(const char* uid) {
     return false;
 }
 
-// Dataset only -- no preamble, no group-2 elements. This is what reaches the
-// TS-less branch of open() (measured by QA-B-71).
+// Dataset only -- no preamble, no group-2 elements. Before QA-B-207 C3 this is what reached the TS-less branch of open()
+// (measured by QA-B-71); a bare dataset is now refused at the door (XPE_ERR_DICOM_INVALID, REQ-DICOM-003), whatever its
+// syntax. The probes that load it with DCMTK directly are unaffected.
 bool WriteDatasetOnly(const fs::path& src, const fs::path& dst, E_TransferSyntax xfer) {
     DcmFileFormat ff;
     if (!ff.loadFile(src.string().c_str()).good()) return false;
@@ -2297,6 +2301,30 @@ bool WriteDatasetOnly(const fs::path& src, const fs::path& dst, E_TransferSyntax
     }
     if (!ds->canWriteXfer(xfer)) return false;
     return ds->saveFile(dst.string().c_str(), xfer).good();
+}
+
+
+// A Part 10 file (preamble, "DICM", meta header) whose meta header carries NO TransferSyntaxUID (0002,0010): the TS-less
+// branch of open() is reached only by a file like this one since QA-B-207 C3. DCMTK can parse it only when the dataset is
+// Explicit VR Little Endian (the meta header is read as that and the dataset follows in the same encoding), which covers
+// the native Explicit LE file and the encapsulated JPEG ones; Implicit LE and Big Endian datasets behind such a meta
+// header do not parse.
+bool WriteTsLessPart10(const fs::path& src, const fs::path& dst, E_TransferSyntax xfer) {
+    DcmFileFormat ff;
+    if (!ff.loadFile(src.string().c_str()).good()) return false;
+    DcmDataset* ds = ff.getDataset();
+    if (ds == nullptr) return false;
+    if (xfer == EXS_JPEGProcess14) {
+        if (!ChooseDistinctP14Representation(ds)) return false;
+    } else if (!ds->chooseRepresentation(xfer, nullptr).good()) {
+        return false;
+    }
+    if (!ds->canWriteXfer(xfer)) return false;
+    DcmMetaInfo* meta = ff.getMetaInfo();
+    if (meta == nullptr) return false;
+    meta->findAndDeleteElement(DCM_TransferSyntaxUID);
+    return ff.saveFile(dst.string().c_str(), xfer, EET_ExplicitLength, EGL_recalcGL, EPD_withoutPadding, 0, 0,
+                       EWM_dontUpdateMeta).good();
 }
 
 // Full Part-10 file, meta-header included.
@@ -2332,13 +2360,20 @@ TEST_F(DicomReaderTest, MetaLessNativeUnsupportedSyntaxesProduceNoPixels) {
     ASSERT_TRUE(WriteDatasetOnly(s_validDcm, sane, EXS_LittleEndianExplicit))
         << "could not write a meta-less Explicit LE file";
     const OpenResult sanity = OpenAndRead(sane);
-    GTEST_LOG_(INFO) << "control: meta-less Explicit VR LE (SUPPORTED) open="
+    GTEST_LOG_(INFO) << "control: bare dataset, Explicit VR LE (SUPPORTED) open="
                      << sanity.open << " read=" << sanity.read
                      << " pixels=" << sanity.gotPixels
                      << " " << sanity.w << "x" << sanity.h;
-    ASSERT_TRUE(sanity.open == XPE_OK && sanity.read == XPE_OK && sanity.gotPixels)
-        << "a meta-less file in a SUPPORTED syntax produced no pixels -- the "
-           "fixture writer is broken and nothing below is measured";
+    // QA-B-207 C3: this control used to be "a meta-less file in a SUPPORTED syntax yields pixels". A bare dataset is now
+    // refused at the door whatever its syntax (REQ-DICOM-003), so the control is the REFUSAL: the supported syntax is not
+    // an exception. The same fixture with a Part 10 header is the proof that the writer is not what is being refused.
+    ASSERT_EQ(XPE_ERR_DICOM_INVALID, sanity.open)
+        << "a bare dataset must be refused at the door even in a SUPPORTED syntax";
+    const auto labelledControl = s_tempDir / "b69_labelled_explicitLE.dcm";
+    ASSERT_TRUE(WriteWithMeta(s_validDcm, labelledControl, EXS_LittleEndianExplicit));
+    const OpenResult labelledSanity = OpenAndRead(labelledControl);
+    ASSERT_TRUE(labelledSanity.open == XPE_OK && labelledSanity.read == XPE_OK && labelledSanity.gotPixels)
+        << "the Part 10 version of the same fixture does not produce pixels -- the fixture writer is broken";
 
     // --- subjects -----------------------------------------------------------
     int leaked = 0;
@@ -2367,6 +2402,8 @@ TEST_F(DicomReaderTest, MetaLessNativeUnsupportedSyntaxesProduceNoPixels) {
                          << guarded.open << " | meta-less open=" << bare.open
                          << " read=" << bare.read << " pixels=" << bare.gotPixels
                          << " " << bare.w << "x" << bare.h;
+        // QA-B-207 C3: the bare dataset is refused by the door (DICOM_INVALID), not by the accepted-list check
+        EXPECT_EQ(XPE_ERR_DICOM_INVALID, bare.open) << c.name << ": a bare dataset must be refused at the door";
 
         if (bare.open == XPE_OK && bare.read == XPE_OK && bare.gotPixels) ++leaked;
     }
@@ -2385,8 +2422,9 @@ TEST_F(DicomReaderTest, KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntax
     const auto sane = s_tempDir / "b69_rec_metaless_explicitLE.dcm";
     ASSERT_TRUE(WriteDatasetOnly(s_validDcm, sane, EXS_LittleEndianExplicit));
     const OpenResult sanity = OpenAndRead(sane);
-    ASSERT_TRUE(sanity.open == XPE_OK && sanity.read == XPE_OK && sanity.gotPixels)
-        << "the fixture writer is broken; nothing below is measured";
+    // QA-B-207 C3: the control is the refusal of a bare dataset in a SUPPORTED syntax (see the sibling case)
+    ASSERT_EQ(XPE_ERR_DICOM_INVALID, sanity.open)
+        << "a bare dataset must be refused at the door even in a SUPPORTED syntax";
 
     int leaked = 0;
     for (const auto& c : kNativeSyntaxes) {
@@ -2402,6 +2440,8 @@ TEST_F(DicomReaderTest, KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntax
         const OpenResult bare    = OpenAndRead(metaLess);
         const bool gotPixels = (bare.open == XPE_OK && bare.read == XPE_OK && bare.gotPixels);
         if (gotPixels) ++leaked;
+        // QA-B-207 C3: what this record logged as a count is now asserted: every bare dataset is refused at the door
+        EXPECT_EQ(XPE_ERR_DICOM_INVALID, bare.open) << c.name << ": a bare dataset must be refused at the door";
         GTEST_LOG_(INFO) << c.name << " (" << c.uid << "): with-meta="
                          << guarded.open << " meta-less open=" << bare.open
                          << " read=" << bare.read << " pixels=" << gotPixels
@@ -2414,6 +2454,7 @@ TEST_F(DicomReaderTest, KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntax
 
     GTEST_LOG_(INFO) << "native unsupported syntaxes yielding pixels without a "
                         "meta-header: " << leaked << " (#167)";
+    EXPECT_EQ(0, leaked) << "QA-B-207 C3: no bare dataset yields pixels any more";
     // QA-B-69 recorded leaked=2 here without asserting it. QA-B-72 closed the
     // path, and the sibling case (no longer DISABLED_) carries the requirement;
     // this one keeps logging the count so a regression shows up as a number in
@@ -2686,29 +2727,40 @@ TEST_F(DicomReaderTest, KnownDivergence_EncapsulationSignalsAndMetaNullReachabil
 // SYNTHETIC (#148).
 // ---------------------------------------------------------------------------
 TEST_F(DicomReaderTest, TsLessPathIsDecidedByChecksNotByStructure) {
+    // QA-B-207 C3: a bare dataset (no preamble, no "DICM") is refused at the door before any syntax is considered, so the
+    // checks of this table are reached by a Part 10 file whose meta header lacks the TransferSyntaxUID (kTsLess). DCMTK
+    // parses such a file only for an Explicit-VR-LE-encoded dataset (native Explicit LE, and the encapsulated JPEG ones);
+    // Implicit LE and Big Endian datasets behind that meta header do not parse and are DICOM_INVALID.
+    enum Kind { kBare, kTsLess, kLabelled };
     struct Row {
         const char*      label;
         E_TransferSyntax xfer;
-        bool             withMeta;
+        Kind             kind;
         XpeErrorCode     expectOpen;
         bool             expectPixels;
     };
     const Row rows[] = {
-        { "TS-less Explicit VR LE (control)", EXS_LittleEndianExplicit, false, XPE_OK,                     true  },
-        { "TS-less Implicit VR LE",           EXS_LittleEndianImplicit, false, XPE_ERR_UNSUPPORTED_FORMAT, false },
-        { "TS-less Explicit VR BE",           EXS_BigEndianExplicit,    false, XPE_ERR_UNSUPPORTED_FORMAT, false },
-        { "TS-less .70",                      EXS_JPEGProcess14SV1,     false, XPE_ERR_UNSUPPORTED_FORMAT, false },
-        { "TS-less .57",                      EXS_JPEGProcess14,        false, XPE_ERR_UNSUPPORTED_FORMAT, false },
-        { "labelled .70 (normal path)",       EXS_JPEGProcess14SV1,     true,  XPE_OK,                     true  },
-        { "labelled .57 (normal path)",       EXS_JPEGProcess14,        true,  XPE_OK,                     true  },
+        { "bare dataset, Explicit VR LE",     EXS_LittleEndianExplicit, kBare,     XPE_ERR_DICOM_INVALID,     false },
+        { "bare dataset, Implicit VR LE",     EXS_LittleEndianImplicit, kBare,     XPE_ERR_DICOM_INVALID,     false },
+        { "bare dataset, Explicit VR BE",     EXS_BigEndianExplicit,    kBare,     XPE_ERR_DICOM_INVALID,     false },
+        { "bare dataset, .70",                EXS_JPEGProcess14SV1,     kBare,     XPE_ERR_DICOM_INVALID,     false },
+        { "bare dataset, .57",                EXS_JPEGProcess14,        kBare,     XPE_ERR_DICOM_INVALID,     false },
+        { "TS-less Part 10, Explicit VR LE (control)", EXS_LittleEndianExplicit, kTsLess, XPE_OK,              true  },
+        { "TS-less Part 10, Implicit VR LE",  EXS_LittleEndianImplicit, kTsLess,   XPE_ERR_DICOM_INVALID,     false },
+        { "TS-less Part 10, Explicit VR BE",  EXS_BigEndianExplicit,    kTsLess,   XPE_ERR_DICOM_INVALID,     false },
+        { "TS-less Part 10, .70",             EXS_JPEGProcess14SV1,     kTsLess,   XPE_ERR_UNSUPPORTED_FORMAT, false },
+        { "TS-less Part 10, .57",             EXS_JPEGProcess14,        kTsLess,   XPE_ERR_UNSUPPORTED_FORMAT, false },
+        { "labelled .70 (normal path)",       EXS_JPEGProcess14SV1,     kLabelled, XPE_OK,                     true  },
+        { "labelled .57 (normal path)",       EXS_JPEGProcess14,        kLabelled, XPE_OK,                     true  },
     };
 
     DJEncoderRegistration::registerCodecs();
     int idx = 0;
     for (const auto& r : rows) {
         const auto path = s_tempDir / (std::string("b72_row_") + std::to_string(idx++) + ".dcm");
-        const bool wrote = r.withMeta ? WriteWithMeta(s_validDcm, path, r.xfer)
-                                      : WriteDatasetOnly(s_validDcm, path, r.xfer);
+        const bool wrote = r.kind == kLabelled ? WriteWithMeta(s_validDcm, path, r.xfer)
+                         : r.kind == kTsLess   ? WriteTsLessPart10(s_validDcm, path, r.xfer)
+                                               : WriteDatasetOnly(s_validDcm, path, r.xfer);
         ASSERT_TRUE(wrote) << r.label << ": fixture could not be written";
 
         const OpenResult got = OpenAndRead(path);
@@ -4693,4 +4745,126 @@ TEST_F(DicomReaderTest, Tc235_BitsAboveBitsStored_JpegLl_MaskedWithInfoAlert) {
     ASSERT_EQ(1u, o.alerts.size());
     EXPECT_EQ(XPE_ALERT_INFO, o.alerts[0].severity);
     EXPECT_EQ(BitsAboveAlert235(changed, 12), o.alerts[0].text);
+}
+
+// ---------------------------------------------------------------------------
+// QA-B-207 C3: what makes a file DICOM Part 10 at the door of xpe_dicom_open -- a 128-byte preamble then "DICM".
+// ---------------------------------------------------------------------------
+
+namespace {
+
+std::string ReadAllBytes(const fs::path& p) {
+    std::ifstream f(p, std::ios::binary);
+    return std::string((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+}
+
+/**
+ * A bare Explicit-VR-LE dataset that DCMTK parses by itself (one PatientName element with a long value), whose bytes 128..131
+ * are @p four. With "DICM" there it would be taken for a Part 10 magic; with anything else it is the case that only the door
+ * of xpe_dicom_open can refuse, because DCMTK reads the file happily from byte 0 (a file made of zeros plus a wrong magic is
+ * refused by DCMTK's own parse, which hides a door that is too lenient about the magic).
+ */
+std::string BareDatasetWithBytesAt128(const char* four) {
+    std::string value(300, 'A');
+    value.replace(120, 4, four, 4);                      // the value starts at offset 8
+    std::string bytes;
+    bytes.push_back(static_cast<char>(0x10)); bytes.push_back(0x00);          // tag (0010,0010)
+    bytes.push_back(static_cast<char>(0x10)); bytes.push_back(0x00);
+    bytes += "PN";
+    bytes.push_back(static_cast<char>(300 & 0xFF)); bytes.push_back(static_cast<char>(300 >> 8));   // length 300
+    bytes += value;
+    return bytes;
+}
+
+XpeErrorCode OpenBytes(const fs::path& path, const std::string& bytes, XpeDicomHandle** h) {
+    {
+        std::ofstream f(path, std::ios::binary);
+        f.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+    }
+    return xpe_dicom_open(path.string().c_str(), h);
+}
+
+}  // namespace
+
+TEST_F(DicomReaderTest, AFileThatIsNotPartTenIsDicomInvalidWhateverItContains) {
+    const std::string good = ReadAllBytes(s_validDcm);
+    ASSERT_GT(good.size(), 200u);
+    ASSERT_EQ("DICM", good.substr(128, 4)) << "precondition: the fixture is Part 10";
+    const std::string dataset = good.substr(132);   // meta group and all, but no preamble and no magic
+
+    struct Case {
+        const char* what;
+        std::string bytes;
+    } cases[] = {
+        {"the dataset bytes alone, no preamble and no magic", dataset},
+        {"128 zero bytes and a wrong magic (XXXX) in front of the same data", std::string(128, '\0') + "XXXX" + good.substr(132)},
+        {"the magic differs in its last byte (DICX)", std::string(128, '\0') + "DICX" + good.substr(132)},
+        {"the magic in lower case (dicm)", std::string(128, '\0') + "dicm" + good.substr(132)},
+        {"a bare dataset DCMTK reads by itself, bytes 128..131 = DICX", BareDatasetWithBytesAt128("DICX")},
+        {"a bare dataset DCMTK reads by itself, bytes 128..131 = dicm", BareDatasetWithBytesAt128("dicm")},
+        {"a bare dataset DCMTK reads by itself, bytes 128..131 = DICN", BareDatasetWithBytesAt128("DICN")},
+        {"the magic at offset 0 instead of 128", "DICM" + good.substr(132)},
+        {"the magic one byte late (offset 129)", std::string(129, '\0') + "DICM" + good.substr(133)},
+        {"131 bytes: one short of the magic's end", good.substr(0, 131)},
+        {"empty file", std::string()},
+        {"plain text", std::string("this is not a dicom file ") + std::string(300, 'x')},
+    };
+    int n = 0;
+    for (const Case& c : cases) {
+        XpeDicomHandle* h = reinterpret_cast<XpeDicomHandle*>(0x1);
+        EXPECT_EQ(XPE_ERR_DICOM_INVALID, OpenBytes(s_tempDir / ("c3_" + std::to_string(n++) + ".dcm"), c.bytes, &h)) << c.what;
+        EXPECT_EQ(nullptr, h) << c.what;
+    }
+}
+
+// QA-B-207b C3 (Codex #120): the magic is only the first half of "Part 10". PS3.10 7.1 puts a File Meta Information group
+// (0002) between "DICM" and the dataset, and the user decision on #251 is that a file without one is refused. DCMTK parses
+// preamble + "DICM" + a bare dataset without complaint (it hands back an EMPTY meta object and detects the syntax from the
+// dataset), so the door has to look at the meta group itself. Two different files are told apart here on purpose:
+//   - no group-0002 element at all                      -> XPE_ERR_DICOM_INVALID (this test)
+//   - group 0002 present, TransferSyntaxUID (0002,0010) missing -> the #167 TS-less policy, unchanged (the sibling test and
+//     MetaLess*/TsLess* cases above)
+TEST_F(DicomReaderTest, PreambleAndMagicWithoutAnyGroup0002ElementIsDicomInvalid) {
+    const fs::path bare = s_tempDir / "c3b_bare_dataset.dcm";
+    ASSERT_TRUE(WriteDatasetOnly(s_validDcm, bare, EXS_LittleEndianExplicit));
+    const std::string dataset = ReadAllBytes(bare);
+    ASSERT_GT(dataset.size(), 100u);
+
+    // Control first: the same dataset with the file's own meta group in front opens, so the fixture is not what is refused.
+    const std::string good = ReadAllBytes(s_validDcm);
+    ASSERT_EQ("DICM", good.substr(128, 4));
+    {
+        XpeDicomHandle* h = nullptr;
+        ASSERT_EQ(XPE_OK, OpenBytes(s_tempDir / "c3b_control_part10.dcm", good, &h)) << "control: the unmodified Part 10 file";
+        ASSERT_NE(nullptr, h);
+        xpe_dicom_close(h);
+    }
+
+    // The case: 128-byte preamble + "DICM" + the dataset, with no group-0002 element anywhere.
+    const std::string noMeta = std::string(128, '\0') + "DICM" + dataset;
+    ASSERT_FALSE(static_cast<unsigned char>(dataset[0]) == 0x02 && static_cast<unsigned char>(dataset[1]) == 0x00)
+        << "precondition: the dataset does not begin with a group-0002 element";
+    XpeDicomHandle* h = reinterpret_cast<XpeDicomHandle*>(0x1);
+    EXPECT_EQ(XPE_ERR_DICOM_INVALID, OpenBytes(s_tempDir / "c3b_no_group2.dcm", noMeta, &h))
+        << "preamble + DICM + a bare dataset is not Part 10 (PS3.10 7.1: the File Meta Information is required)";
+    EXPECT_EQ(nullptr, h);
+    if (h != nullptr && h != reinterpret_cast<XpeDicomHandle*>(0x1)) xpe_dicom_close(h);
+}
+
+TEST_F(DicomReaderTest, ThePreambleBytesThemselvesAreNotJudgedAndAMissingFileIsStillAnIoError) {
+    const std::string good = ReadAllBytes(s_validDcm);
+    ASSERT_EQ("DICM", good.substr(128, 4));
+
+    // any 128 bytes are a valid preamble (PS3.10 7.5.1): text, a TIFF header, noise
+    std::string withNoise = good;
+    for (size_t i = 0; i < 128; ++i) withNoise[i] = static_cast<char>(0x41 + (i % 26));
+    XpeDicomHandle* h = nullptr;
+    ASSERT_EQ(XPE_OK, OpenBytes(s_tempDir / "c3_preamble_text.dcm", withNoise, &h)) << "a non-zero preamble is still Part 10";
+    ASSERT_NE(nullptr, h);
+    xpe_dicom_close(h);
+
+    // the mapping of a file that cannot be opened is not the door's business
+    XpeDicomHandle* none = nullptr;
+    EXPECT_EQ(XPE_ERR_IO_FAILED, xpe_dicom_open((s_tempDir / "c3_does_not_exist.dcm").string().c_str(), &none));
+    EXPECT_EQ(nullptr, none);
 }
