@@ -37,8 +37,45 @@ struct XpeDicomHandle {
  * Module version (REQ-P0-033: every module exports a version function)
  * -------------------------------------------------------------------------*/
 
+
+namespace {
+// QA-B-209 C16 / 209b (REQ-DICOM-043): every public function logs its EXIT, after the entry line it already wrote -- at DEBUG when
+// it succeeded and at ERROR when it returns any other code (the early INVALID_INPUT returns have no inner log site, so this line is
+// the only ERROR they get; a failure that also has a detailed inner line produces two ERROR lines, the cause and the outcome of
+// the public call). The bodies are the `dicom_*_impl` functions below (unchanged), the exported function is a one-line wrapper over
+// them, so every return path is covered without touching each `return`. Logging must never change what a public function returns
+// or let an exception cross the ABI: every call is guarded.
+XpeErrorCode log_exit(const char* fn, XpeErrorCode rc) {
+    try {
+        if (rc == XPE_OK) {
+            spdlog::debug("[xpe_dicom] {} exit rc={}", fn, static_cast<int>(rc));
+        } else {
+            spdlog::error("[xpe_dicom] {} exit rc={} ({})", fn, static_cast<int>(rc), xpe_error_string(rc));
+        }
+    } catch (...) {
+        // logging must never change what a public function returns
+    }
+    return rc;
+}
+void log_entry_noexcept(const char* fn) {
+    try {
+        spdlog::debug("[xpe_dicom] {}", fn);
+    } catch (...) {
+    }
+}
+void log_exit_void(const char* fn) {
+    try {
+        spdlog::debug("[xpe_dicom] {} exit", fn);
+    } catch (...) {
+    }
+}
+}  // namespace
+
 XPE_API const char* xpe_dicom_version(void) {
-    return "1.0.0";
+    log_entry_noexcept("xpe_dicom_version");
+    const char* const version = "1.0.0";
+    log_exit_void("xpe_dicom_version");
+    return version;
 }
 
 /* -------------------------------------------------------------------------
@@ -251,26 +288,6 @@ static void dicom_cancel_impl(void) {
         // cancel must never throw
     }
 }
-
-namespace {
-// QA-B-209 C16 (REQ-DICOM-043): every public function logs its EXIT at DEBUG, with the code it returns, after the entry line it
-// already wrote. The bodies are the `dicom_*_impl` functions above (unchanged), the exported function is a one-line wrapper over
-// them, so every return path -- the early INVALID_INPUT ones included -- is covered without touching each `return`.
-XpeErrorCode log_exit(const char* fn, XpeErrorCode rc) {
-    try {
-        spdlog::debug("[xpe_dicom] {} exit rc={}", fn, static_cast<int>(rc));
-    } catch (...) {
-        // logging must never change what a public function returns
-    }
-    return rc;
-}
-void log_exit_void(const char* fn) {
-    try {
-        spdlog::debug("[xpe_dicom] {} exit", fn);
-    } catch (...) {
-    }
-}
-}  // namespace
 
 XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHandle) {
     return log_exit("xpe_dicom_open", dicom_open_impl(filePath, outHandle));
