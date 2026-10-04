@@ -1,0 +1,14 @@
+fix(enhance_basic): QA-B-210 E7 양방향 필터 sigma_space 상한 7.5 — 초과는 INVALID_INPUT
+
+반경 상한 15(2σ 절단)라 sigma_space 가 7.5 를 넘으면 지정값이 반영되지 않았다(ceil(2σ) > 15 -> 반경 15). 사용자 결정에 따라 상한 = 반경 상한이 그대로 반영하는 최댓값 15/2 = 7.5, 초과는 영상을 건드리기 전에 XPE_ERR_INVALID_INPUT(버퍼 불변). 헤더에 상한과 근거.
+
+- 수정 전 빨강: 7.5 초과(7.5+eps, 8, 100, 1e6, FLT_MAX)가 OK 로 처리됨.
+- 상한 이하 출력 불변: 옛 DLL 과 36회 실행 407,304 float 바이트 동일.
+- 상한과 모순된 기존 시험 2건 수정(큰 유한 sigma 합법 -> 거부, sigma 3->8 -> 3->7).
+- 소비처: clients MainWindow 가 sigma_space 를 최대 100 까지 받는다 -> 7.5 초과 입력은 이제 거부됨(보고서에 기록).
+ci-post 1451/1451.
+
+Card: QA-B-210 (E7)
+Refs #251
+
+🗿 MoAI
