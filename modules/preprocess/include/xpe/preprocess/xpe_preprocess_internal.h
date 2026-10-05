@@ -248,6 +248,19 @@ constexpr double XPE_GAIN_DEFECT_MAX_FRACTION = 0.05;
  */
 constexpr double XPE_DEFECT_MAP_MAX_FRACTION = 0.05;
 
+/**
+ * Identity of a defect mask: FNV-1a (64 bit) over "is this pixel marked" (0 or 1), so two files that mark the same pixels are the same
+ * map whatever values or encoding they carry. Used to tell one over-limit map from another (QA-A-241f); not a security hash.
+ */
+inline uint64_t xpe_defect_mask_hash(const uint8_t* cells, size_t count) noexcept {
+    uint64_t h = 14695981039346656037ull;
+    for (size_t i = 0; i < count; ++i) {
+        h ^= static_cast<uint64_t>(cells[i] != 0 ? 1u : 0u);
+        h *= 1099511628211ull;
+    }
+    return h;
+}
+
 /** What a scan of a scalar gain map found (QA-A-211): the pixels whose gain is outside the range, which are classified defective. */
 struct XpeGainScan {
     uint64_t count{0};     ///< pixels outside [XPE_GAIN_APPLIED_MIN, XPE_GAIN_APPLIED_MAX], non-finite included
@@ -576,6 +589,7 @@ struct CalibrationData {
     bool     defect_over_limit{false};
     uint64_t defect_marked{0};
     uint64_t defect_total{0};
+    uint64_t defect_hash{0};   // QA-A-241f (Codex #161): identity of the installed mask (xpe_defect_mask_hash), set only while over the limit
     bool     session_warned{false};     // QA-A-229 M4: the "unspecified session" warning was raised for the current mixed state
 
     // QA-A-111 (#186): SRS-CALIB-FUNC-006-EXT 6a nonlinearity LUT, a flat table
@@ -720,6 +734,7 @@ struct StagedDefect {
     uint64_t marked{0};         ///< pixels marked defective
     uint64_t total{0};          ///< pixels in the map
     bool     overLimit{false};  ///< marked / total above XPE_DEFECT_MAP_MAX_FRACTION
+    uint64_t mapHash{0};        ///< xpe_defect_mask_hash of the map, computed only when overLimit (0 otherwise)
 };
 
 /** Read, validate and allocate; changes no global. Never throws. */

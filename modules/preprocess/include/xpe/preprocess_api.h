@@ -232,8 +232,9 @@ XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath);
  * loaded and reported once with the alert "XPE_WARN_DEFECT_MAP_OVER_LIMIT: ..." (XPE_ALERT_WARNING) -- the SRS gives the tolerance, not
  * the behaviour above it, and the defect stage is documented to fill dense masks (the union of the map with the gain-classified pixels
  * is reported at frame time the same way). Exactly 5 % raises nothing. The alert is raised only after the map is installed: a load that is
- * refused (session conflict) raises nothing. The cached loader reports it on the load that fills the cache; a cache hit raises it again only
- * when it turns the installed map from one within tolerance into an over-limit one (a repeat hit of the same map stays quiet).
+ * refused (session conflict) raises nothing. The cached loader reports it on the load that fills the cache; a cache hit raises it again when it makes
+ * an over-limit map the installed one in place of a map within tolerance or of a DIFFERENT over-limit map (a repeat hit of the same map
+ * stays quiet; the identity is a hash of the marked-pixel mask).
  */
 XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath);
 
@@ -433,7 +434,12 @@ XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
  *        With "sigma_clip", XPE-ALG-001 9.8.2.1 also applies: a pixel whose
  *        surviving frame count falls below N_min = max(3, floor(N/4)) is marked
  *        a static defect and OR-merged into the global defect map (#138
- *        decision (a)). Its offset value is unaffected.
+ *        decision (a)). Its offset value is unaffected. The merge keeps the density state of the installed
+ *        defect map (marked count, the 5 % tolerance flag, and the mask identity a cache hit compares) in step
+ *        with the map it installs, in the same critical section. It raises no XPE_WARN_DEFECT_MAP_OVER_LIMIT of
+ *        its own: that alert is the warning of a defect-map FILE load (SRS-CALIB-FUNC-003), and this is a
+ *        generation step that marks pixels from the caller's own dark frames. A map the merge pushes over the
+ *        limit is reported when a file is loaded next or a cached map re-activates a different over-limit one.
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
  *         XPE_ERR_INVALID_INPUT if NULL pointers or invalid parameters

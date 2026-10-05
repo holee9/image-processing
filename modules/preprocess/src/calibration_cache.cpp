@@ -166,6 +166,7 @@ struct EntryMeta {
     bool        defectOverLimit{false};   ///< defect only: the map was above the density tolerance when it was loaded (QA-A-241e)
     uint64_t    defectMarked{0};          ///< defect only: pixels marked defective
     uint64_t    defectTotal{0};           ///< defect only: pixels in the map
+    uint64_t    defectHash{0};            ///< defect only: identity of the mask when over the limit (QA-A-241f)
 };
 
 /// NeedOpenCheck / Unreadable are the two steps of the open check (QA-A-203): see get_copy().
@@ -605,7 +606,8 @@ XpeErrorCode install_defect(std::unique_ptr<uint8_t[]> map, const XpeImageBuffer
         // QA-A-241e (Codex #160): a hit installs a map without loading it. The load raised the over-limit warning once; a hit raises it
         // again only when it turns the installed state from within tolerance to over it, so A (hit) -> A (hit) stays quiet while
         // A -> normal map B -> A (hit) reports that the over-limit map is the one in use again.
-        warnDensity = meta.defectOverLimit && !g_calib.defect_over_limit;
+        // (QA-A-241f, Codex #161) "a different over-limit map" counts as a change too: the identity is compared, not only the flag.
+        warnDensity = meta.defectOverLimit && (!g_calib.defect_over_limit || g_calib.defect_hash != meta.defectHash);
         g_calib.defect_map    = std::move(map);
         g_calib.defect_width  = d.width;
         g_calib.defect_height = d.height;
@@ -615,6 +617,7 @@ XpeErrorCode install_defect(std::unique_ptr<uint8_t[]> map, const XpeImageBuffer
         g_calib.defect_over_limit = meta.defectOverLimit;
         g_calib.defect_marked     = meta.defectMarked;
         g_calib.defect_total      = meta.defectTotal;
+        g_calib.defect_hash       = meta.defectHash;
     }
     xpe_calib_session_warn(warnSession);
     if (warnDensity) xpe_calib_push_defect_over_limit(meta.defectMarked, meta.defectTotal);
@@ -867,6 +870,7 @@ try
         meta.defectOverLimit = g_calib.defect_over_limit;
         meta.defectMarked    = g_calib.defect_marked;
         meta.defectTotal     = g_calib.defect_total;
+        meta.defectHash      = g_calib.defect_hash;
     }
 
     return publish_and_view(std::string(filePath), desc, staging.data(), defectMapOut, meta);

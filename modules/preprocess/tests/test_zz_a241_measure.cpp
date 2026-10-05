@@ -599,6 +599,15 @@ TEST(A241Measure, DISABLED_B6_Protocol53) {
 // The first part of the test checks the formulas against hand-computed synthetic cases; if one is wrong nothing is measured.
 namespace {
 
+// QA-A-241f: when both the gain and the defect stage are bypassed the pipeline's result is still the uint16 frame (final_result_is_float is
+// false), written into the first width*height*2 bytes of the caller's buffer with out->format = UINT16. Reading that buffer as float32 (what
+// the first QA-A-241e run of this harness did for its "offset only" image) gives garbage. This widens a uint16 result to float32 in place.
+void widenIfUint16(std::vector<float>& v, const XpeImageBuffer& ob) {
+    if (ob.format != XPE_PIXEL_UINT16) return;
+    const uint16_t* u = reinterpret_cast<const uint16_t*>(v.data());
+    for (size_t i = v.size(); i-- > 0;) v[i] = static_cast<float>(u[i]);   // descending: a float at i never overwrites a uint16 still to be read
+}
+
 struct RoiStat {
     double mean{0}, sd{0};
 };
@@ -760,6 +769,7 @@ TEST(A241Measure, DISABLED_B6_Acceptance) {
         ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &o1, &m1, nullptr, nullptr, cfgFinal));
         ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &o2, &m2, nullptr, nullptr, cfgNoGain));
         ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &o3, &m3, nullptr, nullptr, cfgOffsetOnly));
+        widenIfUint16(outOffset, o3);   // QA-A-241f: see widenIfUint16
         xpe_clear_alerts();
 
         // ROI per protocol 5.3: the gain value (the file's value) is finite and > 0
@@ -1018,6 +1028,7 @@ TEST(A241Measure, DISABLED_B6_StripeInvestigation) {
             XpeImageBuffer ob = buf(im[k].data(), N * 4, XPE_PIXEL_FLOAT32);
             XpeImageMetadata md{};
             ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &ob, &md, nullptr, nullptr, cfgs[k]));
+            widenIfUint16(im[k], ob);   // QA-A-241f: the offset-only result is uint16
         }
         xpe_clear_alerts();
         // images: 0 final, 1 gain bypassed, 2 offset only; the fourth "offset only, defect px out" is image 2 under ROI B

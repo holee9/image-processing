@@ -1,0 +1,55 @@
+Note: Google Test filter = A241Safety.*
+[==========] Running 22 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 22 tests from A241Safety
+[ RUN      ] A241Safety.AMapThatExpiresWhileLoadedStopsTheFrame
+[       OK ] A241Safety.AMapThatExpiresWhileLoadedStopsTheFrame (1866 ms)
+[ RUN      ] A241Safety.ABypassedMapThatExpiredStillStopsTheFrame
+[       OK ] A241Safety.ABypassedMapThatExpiredStillStopsTheFrame (514 ms)
+[ RUN      ] A241Safety.ANeverExpiringFileDoesNotStopTheFrameLater
+[       OK ] A241Safety.ANeverExpiringFileDoesNotStopTheFrameLater (15 ms)
+[ RUN      ] A241Safety.ExpiryZeroIsReportedOncePerState
+[       OK ] A241Safety.ExpiryZeroIsReportedOncePerState (25 ms)
+[ RUN      ] A241Safety.AFileWithAnExpiryRaisesNoExpiryWarning
+[       OK ] A241Safety.AFileWithAnExpiryRaisesNoExpiryWarning (23 ms)
+[ RUN      ] A241Safety.ABypassedOffsetOrGainIsFlaggedAndLogged
+[       OK ] A241Safety.ABypassedOffsetOrGainIsFlaggedAndLogged (11 ms)
+[ RUN      ] A241Safety.PipelineOutLeavesTheInputAndGivesTheInPlaceResult
+[       OK ] A241Safety.PipelineOutLeavesTheInputAndGivesTheInPlaceResult (11 ms)
+[ RUN      ] A241Safety.PipelineOutWithEveryStageBypassedGivesTheInputFrameAndLeavesTheInput
+[       OK ] A241Safety.PipelineOutWithEveryStageBypassedGivesTheInputFrameAndLeavesTheInput (10 ms)
+[ RUN      ] A241Safety.PipelineOutRefusesWhatCannotHoldTheResultAndWritesNothing
+[       OK ] A241Safety.PipelineOutRefusesWhatCannotHoldTheResultAndWritesNothing (9 ms)
+[ RUN      ] A241Safety.PipelineOutRefusesAnyOverlapOfInputAndOutputAndLeavesBothAsTheyWere
+[       OK ] A241Safety.PipelineOutRefusesAnyOverlapOfInputAndOutputAndLeavesBothAsTheyWere (11 ms)
+[ RUN      ] A241Safety.PipelineOutOverlapCheckIsOverflowSafe
+[       OK ] A241Safety.PipelineOutOverlapCheckIsOverflowSafe (11 ms)
+[ RUN      ] A241Safety.TheThreeSingleStageFunctionsRefuseAnExpiredMapAndWriteNothing
+[       OK ] A241Safety.TheThreeSingleStageFunctionsRefuseAnExpiredMapAndWriteNothing (1880 ms)
+[ RUN      ] A241Safety.AnExpiredMapStopsAllFourPipelineEntryPoints
+[       OK ] A241Safety.AnExpiredMapStopsAllFourPipelineEntryPoints (623 ms)
+[ RUN      ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls
+[       OK ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls (9463 ms)
+[ RUN      ] A241Safety.ACacheHitReportsAndResetsTheNeverExpiresState
+[       OK ] A241Safety.ACacheHitReportsAndResetsTheNeverExpiresState (6 ms)
+[ RUN      ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot
+[       OK ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot (37 ms)
+[ RUN      ] A241Safety.ARefusedDefectLoadLeavesTheAlertQueueAndTheStoreAsItFoundThem
+[       OK ] A241Safety.ARefusedDefectLoadLeavesTheAlertQueueAndTheStoreAsItFoundThem (29 ms)
+[ RUN      ] A241Safety.AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce
+[       OK ] A241Safety.AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce (8 ms)
+[ RUN      ] A241Safety.ACacheHitThatTurnsAWithinToleranceMapIntoAnOverLimitOneReportsItAndARepeatDoesNot
+[       OK ] A241Safety.ACacheHitThatTurnsAWithinToleranceMapIntoAnOverLimitOneReportsItAndARepeatDoesNot (2 ms)
+[ RUN      ] A241Safety.ARefusedCacheHitOfAnOverLimitMapLeavesTheAlertQueueAndTheStoreAsItFoundThem
+[       OK ] A241Safety.ARefusedCacheHitOfAnOverLimitMapLeavesTheAlertQueueAndTheStoreAsItFoundThem (7 ms)
+[ RUN      ] A241Safety.ACacheHitThatReplacesOneOverLimitMapWithADifferentOneReportsIt
+[       OK ] A241Safety.ACacheHitThatReplacesOneOverLimitMapWithADifferentOneReportsIt (116 ms)
+[ RUN      ] A241Safety.TheGeneratorsMergeKeepsTheDensityStateOfTheInstalledMapCurrent
+[xpe] sigma-clip N_min: 250 pixel(s) below the floor, 250 newly marked in the defect map (XPE-ALG-001 9.8.2.1)
+[xpe] sigma-clip N_min: 1 pixel(s) below the floor, 1 newly marked in the defect map (XPE-ALG-001 9.8.2.1)
+[       OK ] A241Safety.TheGeneratorsMergeKeepsTheDensityStateOfTheInstalledMapCurrent (8 ms)
+[----------] 22 tests from A241Safety (14705 ms total)
+
+[----------] Global test environment tear-down
+[==========] 22 tests from 1 test suite ran. (14705 ms total)
+[  PASSED  ] 22 tests.

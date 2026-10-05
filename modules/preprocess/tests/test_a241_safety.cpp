@@ -798,4 +798,74 @@ TEST_F(A241Safety, ARefusedCacheHitOfAnOverLimitMapLeavesTheAlertQueueAndTheStor
     EXPECT_EQ(before, frameDigest(nullptr)) << "and the store still holds the 'other' set";
 }
 
+// ---------------------------------------------------------------- Codex #161: which over-limit map is installed, and the generator's merge
+TEST_F(A241Safety, ACacheHitThatReplacesOneOverLimitMapWithADifferentOneReportsIt) {
+    std::vector<uint8_t> a(kN, 0), b(kN, 0);
+    for (size_t i = 0; i < 400; ++i) { a[(i * 7) % kN] = 1; b[(i * 11 + 5) % kN] = 1; }   // two different masks, both ~13 %
+    const std::string pa = write("over_a.xcal", XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, a.data(), kN, 0);
+    const std::string pb = write("over_b.xcal", XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, b.data(), kN, 0);
+    const char* kWarn = "XPE_WARN_DEFECT_MAP_OVER_LIMIT:";
+    XpeImageBuffer view{};
+
+    xpe_calib_cache_clear();
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(pa.c_str(), &view));
+    EXPECT_EQ(1, countAlerts(kWarn)) << "A, miss";
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(pb.c_str(), &view));
+    EXPECT_EQ(2, countAlerts(kWarn)) << "B, miss (a load of another over-limit map)";
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(pa.c_str(), &view));
+    EXPECT_EQ(1, countAlerts(kWarn)) << "B -> A, hit: another over-limit map is now in use (before: no warning)";
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(pb.c_str(), &view));
+    EXPECT_EQ(1, countAlerts(kWarn)) << "A -> B, hit";
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(pb.c_str(), &view));
+    EXPECT_EQ(0, countAlerts(kWarn)) << "B -> B, hit: the same map, no repeat";
+}
+
+TEST_F(A241Safety, TheGeneratorsMergeKeepsTheDensityStateOfTheInstalledMapCurrent) {
+    // S = 400 marked pixels (over the limit); W = the first 150 of them (4.88 %, within it)
+    std::vector<size_t> s;
+    for (size_t i = 0; i < 400; ++i) s.push_back((i * 7) % kN);
+    std::vector<uint8_t> full(kN, 0), part(kN, 0);
+    for (size_t i = 0; i < s.size(); ++i) { full[s[i]] = 1; if (i < 150) part[s[i]] = 1; }
+    const std::string pFull = write("gen_full.xcal", XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, full.data(), kN, 0);
+    const std::string pPart = write("gen_part.xcal", XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, part.data(), kN, 0);
+    const char* kWarn = "XPE_WARN_DEFECT_MAP_OVER_LIMIT:";
+    XpeImageBuffer view{};
+
+    xpe_calib_cache_clear();
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_cached(pFull.c_str(), &view));   // the full map is in the cache
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(pPart.c_str()));             // the installed map is within tolerance
+    EXPECT_EQ(0, countAlerts(kWarn));
+
+    // sigma-clip generation marks the other 250 pixels of S: five dark frames, a marked pixel reads {100,110,105,108,500}, the rest 104
+    const uint16_t bad[5] = {100, 110, 105, 108, 500};
+    std::vector<std::vector<uint16_t>> frames(5, std::vector<uint16_t>(kN, 104));
+    for (size_t i = 150; i < s.size(); ++i)
+        for (int f = 0; f < 5; ++f) frames[static_cast<size_t>(f)][s[i]] = bad[f];
+    XpeImageBuffer bufs[5];
+    for (int f = 0; f < 5; ++f) bufs[f] = bufferOf(frames[static_cast<size_t>(f)].data(), kN * sizeof(uint16_t));
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(bufs, 5, 100.0f, 25.0f, (dir_ / "gen_offset.xcal").string().c_str(),
+                                                "{\"method\":\"sigma_clip\",\"sigma\":1.0}"));
+    EXPECT_EQ(0, countAlerts(kWarn)) << "the generator raises no load warning of its own (documented)";
+
+    // the installed map is now W union (250 new marks) = S, the same mask as the cached full map: re-activating it changes nothing
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(pFull.c_str(), &view));
+    EXPECT_EQ(0, countAlerts(kWarn)) << "same mask, state in step with the merge (a stale 'within tolerance' state reported it again)";
+
+    // and a merge that leaves the store holding a mask the cache does not know: the cached map is a different over-limit map
+    std::vector<std::vector<uint16_t>> more(5, std::vector<uint16_t>(kN, 104));
+    for (int f = 0; f < 5; ++f) more[static_cast<size_t>(f)][(kN - 1)] = bad[f];   // one more marked pixel, outside S
+    XpeImageBuffer bufs2[5];
+    for (int f = 0; f < 5; ++f) bufs2[f] = bufferOf(more[static_cast<size_t>(f)].data(), kN * sizeof(uint16_t));
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(bufs2, 5, 100.0f, 25.0f, (dir_ / "gen_offset2.xcal").string().c_str(),
+                                                "{\"method\":\"sigma_clip\",\"sigma\":1.0}"));
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(pFull.c_str(), &view));
+    EXPECT_EQ(1, countAlerts(kWarn)) << "the merged store differs from the cached full map: another over-limit map is re-activated";
+}
+
 }  // namespace

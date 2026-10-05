@@ -79,6 +79,7 @@ XpeErrorCode xpe_calib_stage_defect(const char* filepath, StagedDefect* out) noe
             staged.total = total;
             staged.marked = marked;
             staged.overLimit = static_cast<double>(marked) > XPE_DEFECT_MAP_MAX_FRACTION * static_cast<double>(total);
+            staged.mapHash = staged.overLimit ? xpe_defect_mask_hash(cells, total) : 0u;   // only an over-limit map needs an identity
         }
         std::memcpy(staged.sessionId, hdr.session_id,
                     sizeof(hdr.session_id) < sizeof(staged.sessionId) ? sizeof(hdr.session_id)
@@ -123,6 +124,7 @@ void xpe_calib_commit_defect_locked(StagedDefect& staged) noexcept {
     g_calib.defect_over_limit = staged.overLimit;
     g_calib.defect_marked     = staged.marked;
     g_calib.defect_total      = staged.total;
+    g_calib.defect_hash       = staged.mapHash;
 }
 
 extern "C" XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath) {
