@@ -19,6 +19,9 @@
  *   B6_Acceptance         (QA-A-241e) the other section 5.3 acceptance indicators, FPN_Reduction_dB and LineArtifactScore, on the same held-out
  *                         flats; the method is fixed in .moai/reports/lane-pre/QA-A-241e/evidence/00_b6_acceptance_method.md (committed before
  *                         any result). Starts with a hand-computed formula check. Needs XPE_A240_CAL and XPE_A241_OUT.
+ *   B6_StripeInvestigation (QA-A-241f) why LineArtifactScore exceeds its limit at large tiles: numerator and denominator apart, profiles, noise
+ *                         controls. Measurement only; method fixed in .moai/reports/lane-pre/QA-A-241f/evidence/00_stripe_investigation_method.md
+ *                         (committed before any result). Needs XPE_A240_CAL and XPE_A241_OUT.
  *   B10v2_Baseline        (QA-A-243) the stage-2 input reference image: the real frame wrist_lat_3072x3072.raw through the shipping
  *                         path (xpe_preprocess_pipeline_out) with the gain made from ALL THREE flats of the one acquisition
  *                         condition (flats 4,5,6). Writes the float32 output. Needs XPE_A240_CAL, XPE_A240_WRIST, XPE_A243_OUT.
@@ -35,6 +38,7 @@
 #include <fstream>
 #include <cmath>
 #include <limits>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -788,5 +792,295 @@ TEST(A241Measure, DISABLED_B6_Acceptance) {
                     okFpn ? ">=" : "<", fpnAlt, las[1][0], las[1][1], las[1][2], lasRatio, okLas ? "<=" : ">", las[0][0], las[0][1], las[0][2],
                     las[2][0], las[2][1], las[2][2], las[1][0] / las[1][2], (okRes && okFpn && okLas) ? "YES" : "NO");
     }
+    xpe_preprocess_shutdown();
+}
+
+// Stripe-metric investigation (QA-A-241f). Measurement only, no verdict. The method and the conclusion criteria are fixed in
+// .moai/reports/lane-pre/QA-A-241f/evidence/00_stripe_investigation_method.md (committed before any result). It splits
+// LineArtifactScore into its numerator (std of row means, std of column means) and its denominator (std of tile means) at tile sizes
+// 16..256, on four images and two ROIs, shows the row/column mean profiles, compares the row/column structure with what the pixel noise
+// alone would give, and runs two synthetic controls first.
+namespace {
+
+struct StripeParts {
+    double rowStd{0}, colStd{0}, tileStd{0};
+    size_t tiles{0};
+    double num() const { return std::max(rowStd, colStd); }
+    double score() const { return num() / std::max(tileStd, 1e-12); }
+};
+
+// row means and column means over the ROI pixels (rows/columns with no ROI pixel are left out)
+void rowColMeans(const float* img, const std::vector<uint8_t>& roi, uint32_t W, uint32_t H, std::vector<double>* rows, std::vector<double>* cols,
+                 double* meanRowCount, double* meanColCount) {
+    std::vector<double> rs(H, 0.0), cs(W, 0.0);
+    std::vector<size_t> rn(H, 0), cn(W, 0);
+    for (uint32_t y = 0; y < H; ++y)
+        for (uint32_t x = 0; x < W; ++x) {
+            const size_t i = static_cast<size_t>(y) * W + x;
+            if (!roi[i]) continue;
+            rs[y] += img[i]; ++rn[y];
+            cs[x] += img[i]; ++cn[x];
+        }
+    rows->clear();
+    cols->clear();
+    double sr = 0, sc = 0;
+    for (uint32_t y = 0; y < H; ++y) if (rn[y]) { rows->push_back(rs[y] / static_cast<double>(rn[y])); sr += static_cast<double>(rn[y]); }
+    for (uint32_t x = 0; x < W; ++x) if (cn[x]) { cols->push_back(cs[x] / static_cast<double>(cn[x])); sc += static_cast<double>(cn[x]); }
+    *meanRowCount = rows->empty() ? 0.0 : sr / static_cast<double>(rows->size());
+    *meanColCount = cols->empty() ? 0.0 : sc / static_cast<double>(cols->size());
+}
+
+StripeParts stripeParts(const float* img, const std::vector<uint8_t>& roi, uint32_t W, uint32_t H, uint32_t tile) {
+    std::vector<double> rows, cols;
+    double nr = 0, nc = 0;
+    rowColMeans(img, roi, W, H, &rows, &cols, &nr, &nc);
+    StripeParts p;
+    p.rowStd = popStd(rows);
+    p.colStd = popStd(cols);
+    const uint32_t TX = (W + tile - 1) / tile, TY = (H + tile - 1) / tile;
+    std::vector<double> tS(static_cast<size_t>(TX) * TY, 0.0);
+    std::vector<size_t> tN(static_cast<size_t>(TX) * TY, 0);
+    for (uint32_t y = 0; y < H; ++y)
+        for (uint32_t x = 0; x < W; ++x) {
+            const size_t i = static_cast<size_t>(y) * W + x;
+            if (!roi[i]) continue;
+            const size_t t = static_cast<size_t>(y / tile) * TX + x / tile;
+            tS[t] += img[i]; ++tN[t];
+        }
+    std::vector<double> tm;
+    for (size_t k = 0; k < tS.size(); ++k) if (tN[k]) tm.push_back(tS[k] / static_cast<double>(tN[k]));
+    p.tileStd = popStd(tm);
+    p.tiles = tm.size();
+    return p;
+}
+
+// pixel noise from horizontal neighbour differences over pairs that are both in the ROI: sigma = std(x[i] - x[i+1]) / sqrt(2)
+double pairSigma(const float* img, const std::vector<uint8_t>& roi, uint32_t W, uint32_t H) {
+    double s1 = 0, s2 = 0;
+    size_t n = 0;
+    for (uint32_t y = 0; y < H; ++y)
+        for (uint32_t x = 0; x + 1 < W; ++x) {
+            const size_t i = static_cast<size_t>(y) * W + x;
+            if (!roi[i] || !roi[i + 1]) continue;
+            const double d = static_cast<double>(img[i]) - img[i + 1];
+            s1 += d; s2 += d * d; ++n;
+        }
+    if (!n) return 0.0;
+    const double m = s1 / static_cast<double>(n);
+    return std::sqrt(std::max(0.0, s2 / static_cast<double>(n) - m * m)) / std::sqrt(2.0);
+}
+
+// std of a profile after subtracting its centred 33-sample moving average (the high-frequency part)
+double highPassStd(const std::vector<double>& v) {
+    const int n = static_cast<int>(v.size()), half = 16;
+    std::vector<double> hp(v.size(), 0.0);
+    for (int i = 0; i < n; ++i) {
+        const int a = std::max(0, i - half), b = std::min(n - 1, i + half);
+        double s = 0;
+        for (int k = a; k <= b; ++k) s += v[static_cast<size_t>(k)];
+        hp[static_cast<size_t>(i)] = v[static_cast<size_t>(i)] - s / static_cast<double>(b - a + 1);
+    }
+    return popStd(hp);
+}
+
+// std of a profile after removing its least-squares straight line
+double detrendedStd(const std::vector<double>& v) {
+    const double n = static_cast<double>(v.size());
+    if (v.size() < 3) return 0.0;
+    double sx = 0, sy = 0, sxx = 0, sxy = 0;
+    for (size_t i = 0; i < v.size(); ++i) { const double x = static_cast<double>(i); sx += x; sy += v[i]; sxx += x * x; sxy += x * v[i]; }
+    const double b = (n * sxy - sx * sy) / (n * sxx - sx * sx), a = (sy - b * sx) / n;
+    std::vector<double> r(v.size());
+    for (size_t i = 0; i < v.size(); ++i) r[i] = v[i] - (a + b * static_cast<double>(i));
+    return popStd(r);
+}
+
+const uint32_t kStripeTiles[5] = {16, 32, 64, 128, 256};
+
+}  // namespace
+
+TEST(A241Measure, DISABLED_B6_StripeInvestigation) {
+    const uint32_t W = 3072, H = 3072;
+    const size_t N = static_cast<size_t>(W) * H;
+    const std::string cal = envOr("XPE_A240_CAL", "");
+    const std::string work = envOr("XPE_A241_OUT", "build/a241");
+    const fs::path dir = fs::path(work) / "stripe";
+    fs::create_directories(dir);
+    std::FILE* tab = nullptr;
+    fopen_s(&tab, (dir / "tables.txt").string().c_str(), "wb");
+    ASSERT_NE(nullptr, tab);
+    auto out = [&](const char* fmt, auto... a) {
+        std::printf(fmt, a...);
+        std::fprintf(tab, fmt, a...);
+    };
+
+    // ---- controls first: nothing else is used if they are not what they should be
+    {
+        const std::vector<uint8_t> all(N, 1);
+        std::vector<float> noise(N), striped(N);
+        std::mt19937_64 rng(20261005ull);
+        std::normal_distribution<double> nd(0.0, 1.0);
+        const double sigma = 18.5;   // about the pixel noise of the held-out flat 6 output; the value only sets the scale
+        for (size_t i = 0; i < N; ++i) noise[i] = static_cast<float>(2000.0 + sigma * nd(rng));
+        std::vector<double> rowOff(H);
+        for (auto& r : rowOff) r = 3.0 * sigma / std::sqrt(static_cast<double>(W)) * nd(rng);
+        for (uint32_t y = 0; y < H; ++y)
+            for (uint32_t x = 0; x < W; ++x) striped[static_cast<size_t>(y) * W + x] = noise[static_cast<size_t>(y) * W + x] + static_cast<float>(rowOff[y]);
+        bool controlOk = true;
+        for (uint32_t t : kStripeTiles) {
+            const StripeParts c1 = stripeParts(noise.data(), all, W, H, t), c2 = stripeParts(striped.data(), all, W, H, t);
+            const double expected = static_cast<double>(t) / std::sqrt(static_cast<double>(W));   // tile / 55.4
+            const double numRatio = c2.num() / c1.num();
+            out("[a241f] control tile %3u | white noise: num %.4f den %.4f score %.4f (expected tile/sqrt(W) = %.4f) | + row stripes of 3x the noise expectation: num %.4f score %.4f, numerator ratio %.2f\n",
+                t, c1.num(), c1.tileStd, c1.score(), expected, c2.num(), c2.score(), numRatio);
+            // sampling error of a standard deviation over n samples is about 1/sqrt(2(n-1)); the score divides two of them
+            const double tol = 3.0 * std::sqrt(1.0 / (2.0 * (static_cast<double>(H) - 1.0)) + 1.0 / (2.0 * (static_cast<double>(c1.tiles) - 1.0)));
+            if (std::fabs(c1.score() / expected - 1.0) > tol) controlOk = false;
+            if (!(numRatio >= 2.5 && numRatio <= 3.5)) controlOk = false;
+        }
+        out("[a241f] controls %s\n", controlOk ? "as expected: the instrument is valid" : "NOT as expected: no measurement below is valid");
+        if (!controlOk) { std::fclose(tab); GTEST_SKIP() << "control failed"; }
+    }
+
+    ASSERT_FALSE(cal.empty());
+    const std::vector<uint16_t> dark = readRaw16(cal + "/dark.raw", N);
+    ASSERT_FALSE(dark.empty());
+    std::vector<std::vector<uint16_t>> flat(7);
+    for (int k = 4; k <= 6; ++k) {
+        char nm[32];
+        std::snprintf(nm, sizeof nm, "/bright%02d.raw", k);
+        flat[static_cast<size_t>(k)] = readRaw16(cal + nm, N);
+        ASSERT_FALSE(flat[static_cast<size_t>(k)].empty()) << nm;
+    }
+    const auto bpBytes = readFile(cal + "/BPMap.map");
+    ASSERT_EQ(N, bpBytes.size());
+    auto buf = [&](const void* d, size_t bytes, XpePixelFormat f) {
+        XpeImageBuffer b{};
+        b.data = const_cast<void*>(d);
+        b.dataSize = bytes;
+        b.width = W;
+        b.height = H;
+        b.format = f;
+        b.bitsAllocated = f == XPE_PIXEL_FLOAT32 ? 32u : 16u;
+        b.bitsStored = b.bitsAllocated;
+        return b;
+    };
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    const std::string offPath = (dir / "offset.xcal").string(), defPath = (dir / "defect.xcal").string();
+    const XpeImageBuffer darkBuf = buf(dark.data(), N * 2, XPE_PIXEL_UINT16);
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(&darkBuf, 1, 100.0f, 25.0f, offPath.c_str(), nullptr));
+    XCal o;
+    ASSERT_TRUE(readXCal(offPath, &o));
+    {
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        std::memcpy(hdr.session_id, o.hdr.session_id, sizeof hdr.session_id);
+        hdr.version = XCAL_VERSION;
+        hdr.type = XCAL_TYPE_DEFECT;
+        hdr.pixel_format = XCAL_FMT_UINT8_MASK;
+        hdr.width = W;
+        hdr.height = H;
+        hdr.payload_len = N;
+        ASSERT_EQ(XPE_OK, write_xcal_file(defPath.c_str(), hdr, nullptr, 0, bpBytes.data(), N));
+    }
+    const char* cfgs[4] = {
+        "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}",
+        "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassGain\":true}",
+        "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassGain\":true,\"bypassDefect\":true}"};
+    const char* imgName[4] = {"final", "gain bypassed", "offset only", "offset only, defect px out"};
+
+    struct Held { int j, a, b; };
+    const Held cases[] = {{6, 4, 5}, {4, 5, 6}, {5, 4, 6}};   // the primary flat first
+    for (const Held& c : cases) {
+        const std::string gainPath = (dir / ("gain_from_" + std::to_string(c.a) + "_" + std::to_string(c.b) + ".xcal")).string();
+        const XpeImageBuffer two[2] = {buf(flat[static_cast<size_t>(c.a)].data(), N * 2, XPE_PIXEL_UINT16),
+                                       buf(flat[static_cast<size_t>(c.b)].data(), N * 2, XPE_PIXEL_UINT16)};
+        ASSERT_EQ(XPE_OK, xpe_calib_generate_gain(two, 2, nullptr, gainPath.c_str(), nullptr));
+        XCal g;
+        ASSERT_TRUE(readXCal(gainPath, &g));
+        std::memcpy(g.hdr.session_id, o.hdr.session_id, sizeof g.hdr.session_id);
+        ASSERT_EQ(XPE_OK, writeXCal(gainPath, g));
+        const float* gv = reinterpret_cast<const float*>(g.payload.data());
+        xpe_preprocess_shutdown();
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_offset(offPath.c_str()));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_gain(gainPath.c_str()));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(defPath.c_str()));
+        xpe_clear_alerts();
+
+        std::vector<uint16_t> raw(N);
+        for (size_t i = 0; i < N; ++i) raw[i] = static_cast<uint16_t>(dark[i] + flat[static_cast<size_t>(c.j)][i]);
+        std::vector<float> im[3];
+        for (int k = 0; k < 3; ++k) {
+            im[k].assign(N, 0.0f);
+            const XpeImageBuffer in = buf(raw.data(), N * 2, XPE_PIXEL_UINT16);
+            XpeImageBuffer ob = buf(im[k].data(), N * 4, XPE_PIXEL_FLOAT32);
+            XpeImageMetadata md{};
+            ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &ob, &md, nullptr, nullptr, cfgs[k]));
+        }
+        xpe_clear_alerts();
+        // images: 0 final, 1 gain bypassed, 2 offset only; the fourth "offset only, defect px out" is image 2 under ROI B
+        std::vector<uint8_t> roiA(N, 0), roiB(N, 0);
+        size_t nA = 0, nB = 0;
+        for (size_t i = 0; i < N; ++i)
+            if (std::isfinite(gv[i]) && gv[i] > 0.0f) {
+                roiA[i] = 1; ++nA;
+                if (bpBytes[i] == 0) { roiB[i] = 1; ++nB; }
+            }
+        out("[a241f] ==== held out flat%d (gain from flat%d+flat%d) | ROI A %zu px, ROI B (defect-map pixels removed) %zu px\n", c.j, c.a, c.b, nA, nB);
+
+        // 1. numerator and denominator at every tile size
+        for (int roiK = 0; roiK < 2; ++roiK) {
+            const std::vector<uint8_t>& roi = roiK == 0 ? roiA : roiB;
+            for (int k = 0; k < 3; ++k) {
+                for (uint32_t t : kStripeTiles) {
+                    const StripeParts p = stripeParts(im[k].data(), roi, W, H, t);
+                    out("[a241f] flat%d ROI %c image=%-14s tile %3u | std(row_mean) %.4f std(col_mean) %.4f numerator %.4f | std(tile_mean) %.4f (%zu tiles) | score %.4f\n",
+                        c.j, roiK == 0 ? 'A' : 'B', imgName[k], t, p.rowStd, p.colStd, p.num(), p.tileStd, p.tiles, p.score());
+                }
+            }
+        }
+        // ratio decomposition against both reference images, ROI A and ROI B
+        for (int roiK = 0; roiK < 2; ++roiK) {
+            const std::vector<uint8_t>& roi = roiK == 0 ? roiA : roiB;
+            for (int ref = 1; ref <= 2; ++ref) {
+                for (uint32_t t : kStripeTiles) {
+                    const StripeParts f = stripeParts(im[0].data(), roi, W, H, t), r = stripeParts(im[ref].data(), roi, W, H, t);
+                    out("[a241f] flat%d ROI %c final vs %-14s tile %3u | score ratio %.4f = numerator ratio %.4f / denominator ratio %.4f\n", c.j,
+                        roiK == 0 ? 'A' : 'B', imgName[ref], t, f.score() / r.score(), f.num() / r.num(), f.tileStd / r.tileStd);
+                }
+            }
+        }
+        // 3. row/column structure against what the pixel noise alone gives
+        for (int roiK = 0; roiK < 2; ++roiK) {
+            const std::vector<uint8_t>& roi = roiK == 0 ? roiA : roiB;
+            for (int k = 0; k < 3; ++k) {
+                std::vector<double> rows, cols;
+                double nr = 0, nc = 0;
+                rowColMeans(im[k].data(), roi, W, H, &rows, &cols, &nr, &nc);
+                const double sig = pairSigma(im[k].data(), roi, W, H);
+                const double expRow = sig / std::sqrt(nr), expCol = sig / std::sqrt(nc);
+                out("[a241f] flat%d ROI %c image=%-14s | pixel noise (neighbour differences) %.3f ADU | rows: std %.4f, detrended %.4f, high-pass %.4f, noise expectation %.4f -> high-pass/expected %.2f | "
+                    "cols: std %.4f, detrended %.4f, high-pass %.4f, noise expectation %.4f -> high-pass/expected %.2f\n",
+                    c.j, roiK == 0 ? 'A' : 'B', imgName[k], sig, popStd(rows), detrendedStd(rows), highPassStd(rows), expRow, highPassStd(rows) / expRow,
+                    popStd(cols), detrendedStd(cols), highPassStd(cols), expCol, highPassStd(cols) / expCol);
+            }
+        }
+        // 2. the profiles themselves (ROI A, final and gain bypassed), as text
+        {
+            std::vector<double> rF, cF, rG, cG;
+            double a1 = 0, a2 = 0;
+            rowColMeans(im[0].data(), roiA, W, H, &rF, &cF, &a1, &a2);
+            rowColMeans(im[1].data(), roiA, W, H, &rG, &cG, &a1, &a2);
+            std::FILE* pf = nullptr;
+            fopen_s(&pf, (dir / ("profiles_flat" + std::to_string(c.j) + ".txt")).string().c_str(), "wb");
+            ASSERT_NE(nullptr, pf);
+            std::fprintf(pf, "# index row_mean_final row_mean_gain_bypassed col_mean_final col_mean_gain_bypassed (ROI A, held-out flat %d)\n", c.j);
+            for (size_t i = 0; i < rF.size() && i < cF.size(); ++i) std::fprintf(pf, "%zu %.5f %.5f %.5f %.5f\n", i, rF[i], rG[i], cF[i], cG[i]);
+            std::fclose(pf);
+        }
+    }
+    std::fclose(tab);
     xpe_preprocess_shutdown();
 }
