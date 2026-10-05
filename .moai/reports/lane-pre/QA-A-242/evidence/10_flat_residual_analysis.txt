@@ -1,0 +1,108 @@
+== inputs
+flat means (ADU): flat1 2883.2, flat2 5014.6, flat3 350.6, flat4 867.4, flat5 1395.7, flat6 2196.2
+weights of the generator (raw-ADU mean of the 6 flats => each flat weighs mean_j / sum): flat1 0.227, flat2 0.395, flat3 0.028, flat4 0.068, flat5 0.110, flat6 0.173
+product gain map vs numpy mean-of-flats/mean: max |diff| 0, pixels differing > 1e-6: 0
+masked: BP 23505, gain-classified 42026, union 51543 (0.546 %)
+
+== H0: the definition (protocol 5.3: 100*std/mean over valid pixels) reproduced outside the harness
+QA-A-240 harness, masked pixels left out:  1.987 1.171 3.312 2.411 2.34 2.30  (flats 1..6)
+this script, masked pixels left out:      1.987 1.171 3.312 2.411 2.343 2.298
+this script, protocol ROI (every pixel with finite gain > 0, no mask, no defect fill): 6.694 6.473 11.173 7.258 6.977 6.793
+
+== the structure the generator imposes: residual_j = N_j / G - 1, N_j = flat_j / mean_j, G = sum_k w_k N_k with w_k = mean_k / sum
+flats by weight (largest first): flat2 (w 0.395, residual 1.171 %) > flat1 (w 0.227, residual 1.987 %) > flat6 (w 0.173, residual 2.298 %) > flat5 (w 0.110, residual 2.343 %) > flat4 (w 0.068, residual 2.411 %) > flat3 (w 0.028, residual 3.312 %)
+Spearman-style check: residual rises as weight falls: True
+
+== noise floor and scale of the residual (what part of the 100*std/mean is pixel noise, what is large-scale structure)
+flat1 total 1.987 % | share of variance: <4 px 1 %, 4-16 8 %, 16-64 5 %, 64-256 2 %, >=256 px 84 %   (sqrt(total var) of scales >= 16 px: 1.897 %)
+flat2 total 1.171 % | share of variance: <4 px 4 %, 4-16 2 %, 16-64 1 %, 64-256 1 %, >=256 px 91 %   (sqrt(total var) of scales >= 16 px: 1.134 %)
+flat3 total 3.312 % | share of variance: <4 px 16 %, 4-16 5 %, 16-64 2 %, 64-256 1 %, >=256 px 76 %   (sqrt(total var) of scales >= 16 px: 2.950 %)
+flat4 total 2.411 % | share of variance: <4 px 10 %, 4-16 6 %, 16-64 3 %, 64-256 1 %, >=256 px 79 %   (sqrt(total var) of scales >= 16 px: 2.206 %)
+flat5 total 2.343 % | share of variance: <4 px 6 %, 4-16 6 %, 16-64 3 %, 64-256 1 %, >=256 px 84 %   (sqrt(total var) of scales >= 16 px: 2.209 %)
+flat6 total 2.298 % | share of variance: <4 px 3 %, 4-16 5 %, 16-64 3 %, 64-256 1 %, >=256 px 88 %   (sqrt(total var) of scales >= 16 px: 2.209 %)
+
+== H4 (d): outliers / mask handling
+flat1 unmasked pixels beyond 5 robust sigma (sigma 54.5 ADU): 19923 (0.2123 %); 100*std/mean as is 1.987 %, with those clipped 1.957 %, robust (1.4826*MAD)/median 1.888 %
+flat2 unmasked pixels beyond 5 robust sigma (sigma 63.6 ADU): 267 (0.0028 %); 100*std/mean as is 1.171 %, with those clipped 1.171 %, robust (1.4826*MAD)/median 1.270 %
+flat3 unmasked pixels beyond 5 robust sigma (sigma 12.5 ADU): 460 (0.0049 %); 100*std/mean as is 3.312 %, with those clipped 3.311 %, robust (1.4826*MAD)/median 3.572 %
+flat4 unmasked pixels beyond 5 robust sigma (sigma 20.9 ADU): 7324 (0.0780 %); 100*std/mean as is 2.411 %, with those clipped 2.403 %, robust (1.4826*MAD)/median 2.406 %
+flat5 unmasked pixels beyond 5 robust sigma (sigma 32.4 ADU): 8877 (0.0946 %); 100*std/mean as is 2.343 %, with those clipped 2.334 %, robust (1.4826*MAD)/median 2.323 %
+flat6 unmasked pixels beyond 5 robust sigma (sigma 50.1 ADU): 8441 (0.0899 %); 100*std/mean as is 2.298 %, with those clipped 2.289 %, robust (1.4826*MAD)/median 2.282 %
+
+== cross-gain matrix: residual of flat j (rows) when the gain is made from flat k ALONE (columns); the diagonal is the noise floor of a self-made gain
+columns: gain from    flat1     flat2     flat3     flat4     flat5     flat6
+flat 1 (mean  2883.2):    0.000     1.267     5.073     4.478     4.452     4.417
+flat 2 (mean  5014.6):    1.260     0.051     4.514     3.724     3.689     3.649
+flat 3 (mean   350.6):    4.899     4.338     1.170     2.595     2.541     2.483
+flat 4 (mean   867.4):    4.256     3.475     2.548     1.275     1.780     1.697
+flat 5 (mean  1395.7):    4.220     3.429     2.481     1.762     1.299     1.591
+flat 6 (mean  2196.2):    4.195     3.398     2.437     1.702     1.615     1.267
+equal-weight gain (mean of the normalised flats): 3.023 2.269 2.318 1.471 1.395 1.343   (generator weights flats by dose: 1.987 1.171 3.312 2.411 2.343 2.298)
+correlation of off-diagonal residual with |ln(dose_j/dose_k)|: 0.460 (n=30)
+
+== tile model comparison (64x64 tiles, 2304 tiles with >50 % unmasked pixels): can ANY per-tile response model explain the flat-to-flat differences?
+a flat j is held out; the model is fitted on the other five; error = prediction vs measured tile mean, % of the tile mean, rms over tiles
+M0 proportional  T = a*m            (what a one-gain correction assumes)
+M1 affine        T = a*m + b        (b = an additive offset error that differs between the dark used and the true one)
+M2 quadratic     T = a*m + c*m^2    (response not proportional to dose)
+M3 affine+quad   T = a*m + b + c*m^2
+hold out flat1 (mean  2883.2): M0 1.621 %  M1 1.786 %  M2 2.896 %  M3 3.084 %
+hold out flat2 (mean  5014.6): M0 1.301 %  M1 0.621 %  M2 5.794 %  M3 8.341 %
+hold out flat3 (mean   350.6): M0 3.510 %  M1 10.534 %  M2 1.346 %  M3 10.834 %
+hold out flat4 (mean   867.4): M0 2.818 %  M1 0.847 %  M2 1.002 %  M3 0.449 %
+hold out flat5 (mean  1395.7): M0 2.907 %  M1 1.556 %  M2 1.502 %  M3 1.333 %
+hold out flat6 (mean  2196.2): M0 3.140 %  M1 2.663 %  M2 2.437 %  M3 2.896 %
+(the scale of what is being explained: the tile-mean spread of each flat after the product gain: flat1 1.842 % flat2 1.127 % flat3 2.919 % flat4 2.165 % flat5 2.168 % flat6 2.171 %)
+M1 fitted on all six: additive term b over tiles: mean 0.10 ADU, std 36.86, min -99.34, max 68.37; slope a mean 1.0040
+  predicted additive residual if (a) were the cause: std(b)/mean_j in %%:  flat1 1.279 flat2 0.735 flat3 10.516 flat4 4.250 flat5 2.641 flat6 1.678   vs the measured tile spread above
+
+== spatial shape of the residual (tile means of flat_j / gain, relative to the flat mean, %)
+flat1 tile-residual std 1.842 % | variance explained by a smooth surface: plane 96 %, quadratic 97 %, cubic 98 % | by row means only 53 %, by column means only 46 %
+flat2 tile-residual std 1.127 % | variance explained by a smooth surface: plane 93 %, quadratic 99 %, cubic 99 % | by row means only 84 %, by column means only 16 %
+flat3 tile-residual std 2.919 % | variance explained by a smooth surface: plane 80 %, quadratic 97 %, cubic 98 % | by row means only 73 %, by column means only 26 %
+flat4 tile-residual std 2.165 % | variance explained by a smooth surface: plane 96 %, quadratic 98 %, cubic 98 % | by row means only 70 %, by column means only 30 %
+flat5 tile-residual std 2.168 % | variance explained by a smooth surface: plane 96 %, quadratic 98 %, cubic 98 % | by row means only 69 %, by column means only 30 %
+flat6 tile-residual std 2.171 % | variance explained by a smooth surface: plane 97 %, quadratic 98 %, cubic 98 % | by row means only 70 %, by column means only 30 %
+SVD of the six residual maps: singular value shares 94.3 % 5.3 % 0.4 % 0.0 % 0.0 % 0.0 %  (one shape = the first share near 100 %)
+correlation between the six residual maps (tile level):
+    1.00   0.87  -0.80  -0.97  -0.97  -0.97
+    0.87   1.00  -0.96  -0.96  -0.96  -0.96
+   -0.80  -0.96   1.00   0.90   0.89   0.89
+   -0.97  -0.96   0.90   1.00   1.00   1.00
+   -0.97  -0.96   0.89   1.00   1.00   1.00
+   -0.97  -0.96   0.89   1.00   1.00   1.00
+
+== is the residual shape a smooth function of dose?  (signed coordinate of each flat on the first singular vector, flats in dose order)
+flat3 dose   350.6 ADU  coordinate on the first shape +132.51   residual std 2.919 %
+flat4 dose   867.4 ADU  coordinate on the first shape +103.01   residual std 2.165 %
+flat5 dose  1395.7 ADU  coordinate on the first shape +103.15   residual std 2.168 %
+flat6 dose  2196.2 ADU  coordinate on the first shape +103.28   residual std 2.171 %
+flat1 dose  2883.2 ADU  coordinate on the first shape  -83.64   residual std 1.842 %
+flat2 dose  5014.6 ADU  coordinate on the first shape  -52.98   residual std 1.127 %
+(a continuous response model predicts a coordinate that changes steadily with dose; identical coordinates over a 2.5x dose range followed by a sign change over a 1.3x step is a grouping, not a curve)
+the first shape, plane fit (unit-std shape): slope along x (left to right, over the full width) -0.03, along y (top to bottom, over the full height) -0.06; in units of the flat-4 residual (coordinate +103.01): top-to-bottom change 6.33 %, left-to-right change 3.47 %
+
+== pairs of flats with the SAME large-scale shape (4, 5, 6): where does the residual of flat j under the gain of flat k come from, by scale?
+flat5 under the gain of flat4: total 1.762 % | <4 px 69 %, 4-16 26 %, 16-64 3 %, 64-256 1 %, >=256 px 0 %
+flat6 under the gain of flat4: total 1.702 % | <4 px 69 %, 4-16 27 %, 16-64 4 %, 64-256 1 %, >=256 px 0 %
+flat6 under the gain of flat5: total 1.615 % | <4 px 67 %, 4-16 28 %, 16-64 4 %, 64-256 1 %, >=256 px 0 %
+flat4 under the gain of flat5: total 1.780 % | <4 px 69 %, 4-16 27 %, 16-64 3 %, 64-256 1 %, >=256 px 0 %
+flat1 under the gain of flat2: total 1.267 % | <4 px 14 %, 4-16 14 %, 16-64 7 %, 64-256 1 %, >=256 px 64 %
+
+== gain made from a GROUP of flats that share a shape (dose-weighted mean inside the group, as the generator does), applied to every flat
+gain from all six (the product gain) -> residual %: flat1 2.00 (>=16 px part 1.90)*; flat2 1.19 (>=16 px part 1.13)*; flat3 3.32 (>=16 px part 2.95)*; flat4 2.42 (>=16 px part 2.21)*; flat5 2.35 (>=16 px part 2.21)*; flat6 2.31 (>=16 px part 2.21)*
+gain from flats 4,5,6                -> residual %: flat1 4.40 (>=16 px part 4.06); flat2 3.63 (>=16 px part 3.30); flat3 2.45 (>=16 px part 1.43); flat4 1.54 (>=16 px part 0.35)*; flat5 1.43 (>=16 px part 0.34)*; flat6 1.35 (>=16 px part 0.33)*
+gain from flats 3,4,5,6              -> residual %: flat1 4.42 (>=16 px part 4.09); flat2 3.66 (>=16 px part 3.34); flat3 2.32 (>=16 px part 1.33)*; flat4 1.54 (>=16 px part 0.36)*; flat5 1.43 (>=16 px part 0.35)*; flat6 1.35 (>=16 px part 0.34)*
+gain from flats 1,2                  -> residual %: flat1 0.80 (>=16 px part 0.68)*; flat2 0.46 (>=16 px part 0.39)*; flat3 4.51 (>=16 px part 4.22); flat4 3.73 (>=16 px part 3.56); flat5 3.69 (>=16 px part 3.56); flat6 3.66 (>=16 px part 3.56)
+(* = a flat the gain was made from. Pixel-scale noise is part of the first number and not of the second.)
+
+== H5: is the pixel-scale part shot-noise-like?  (relative pixel-scale part = sqrt(variance share below 16 px) * total; sigma_ADU = that * mean; shot noise would give sigma_ADU ~ k * sqrt(mean), k constant)
+flat3 mean   350.6 ADU: pixel-scale part 1.505 %  = 5.3 ADU   k = sigma/sqrt(mean) = 0.28
+flat4 mean   867.4 ADU: pixel-scale part 0.974 %  = 8.5 ADU   k = sigma/sqrt(mean) = 0.29
+flat5 mean  1395.7 ADU: pixel-scale part 0.782 %  = 10.9 ADU   k = sigma/sqrt(mean) = 0.29
+flat6 mean  2196.2 ADU: pixel-scale part 0.633 %  = 13.9 ADU   k = sigma/sqrt(mean) = 0.30
+flat1 mean  2883.2 ADU: pixel-scale part 0.590 %  = 17.0 ADU   k = sigma/sqrt(mean) = 0.32
+flat2 mean  5014.6 ADU: pixel-scale part 0.293 %  = 14.7 ADU   k = sigma/sqrt(mean) = 0.21
+weighted sum of the residual maps (weights = generator weights; zero by construction if the gain is the weighted mean): rms 0.0003 % (a single map has rms ~2.07 %)
+
+pictures written: .moai/reports/lane-pre/QA-A-242/evidence/10_flat_residual_analysis_residual_maps.png , .moai/reports/lane-pre/QA-A-242/evidence/10_flat_residual_analysis_gain_and_offset_term.png

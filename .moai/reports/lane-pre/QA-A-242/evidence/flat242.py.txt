@@ -1,0 +1,294 @@
+"""QA-A-242: why is FlatResidualPct 1.2..3.3 % on the CalData_6 flats?  Read-only analysis, no product code involved
+except the gain map the product's own generator wrote (build/a240/maps/gain.xcal)."""
+import sys, struct
+import numpy as np
+
+R = 'D:/workspace-github/image-processing/tests/test_data/CalData_6/'
+N = 3072
+OUT = sys.argv[1]
+out = []
+P = out.append
+
+
+def load16(p):
+    return np.fromfile(p, dtype='<u2').reshape(N, N)
+
+
+B = [load16(R + 'bright0%d.raw' % i).astype(np.float32) for i in range(1, 7)]
+names = ['flat1', 'flat2', 'flat3', 'flat4', 'flat5', 'flat6']
+m = np.array([float(b.mean()) for b in B])
+bp = np.fromfile(R + 'BPMap.map', dtype=np.uint8).reshape(N, N) != 0
+
+# ---- the product's gain map (XCal v1: 152-byte header, config block, float32 payload)
+raw = open('D:/workspace-github/xpe-pre/build/a240/maps/gain.xcal', 'rb').read()
+# header: payload_len and config_json_len are located by the product's struct; find them by scanning known sizes
+cfg_len = struct.unpack_from('<I', raw, 0)[0] if False else None
+# the payload is the last N*N*4 bytes of the file (the writer appends it last)
+G = np.frombuffer(raw[-N * N * 4:], dtype='<f4').reshape(N, N).copy()
+Gown = np.mean(np.stack(B), axis=0)
+Gown /= Gown.mean()
+P('== inputs')
+P('flat means (ADU): ' + ', '.join('%s %.1f' % (n, v) for n, v in zip(names, m)))
+P('weights of the generator (raw-ADU mean of the 6 flats => each flat weighs mean_j / sum): ' + ', '.join('%s %.3f' % (n, v / m.sum()) for n, v in zip(names, m)))
+P('product gain map vs numpy mean-of-flats/mean: max |diff| %.3g, pixels differing > 1e-6: %d' % (float(np.abs(G - Gown).max()), int((np.abs(G - Gown) > 1e-6).sum())))
+cls = ~((G >= 0.1) & (G <= 10.0))
+mask = bp | cls
+Gapp = np.where(cls, 1.0, G).astype(np.float32)
+ok = ~mask
+P('masked: BP %d, gain-classified %d, union %d (%.3f %%)' % (bp.sum(), cls.sum(), mask.sum(), 100.0 * mask.mean()))
+
+
+def pct(y, sel=None):
+    v = y[ok] if sel is None else y[sel]
+    return 100.0 * float(v.std()) / float(v.mean())
+
+
+Y = [b / Gapp for b in B]
+P('')
+P('== H0: the definition (protocol 5.3: 100*std/mean over valid pixels) reproduced outside the harness')
+P('QA-A-240 harness, masked pixels left out:  1.987 1.171 3.312 2.411 2.34 2.30  (flats 1..6)')
+P('this script, masked pixels left out:      ' + ' '.join('%.3f' % pct(y) for y in Y))
+valid = np.isfinite(G) & (G > 0)
+P('this script, protocol ROI (every pixel with finite gain > 0, no mask, no defect fill): ' + ' '.join('%.3f' % (100 * float(y[valid].std()) / float(y[valid].mean())) for y in Y))
+
+P('')
+P('== the structure the generator imposes: residual_j = N_j / G - 1, N_j = flat_j / mean_j, G = sum_k w_k N_k with w_k = mean_k / sum')
+order = np.argsort(-m)
+P('flats by weight (largest first): ' + ' > '.join('%s (w %.3f, residual %.3f %%)' % (names[i], m[i] / m.sum(), pct(Y[i])) for i in order))
+P('Spearman-style check: residual rises as weight falls: ' + str(all(pct(Y[order[k]]) <= pct(Y[order[k + 1]]) for k in range(5))))
+
+P('')
+P('== noise floor and scale of the residual (what part of the 100*std/mean is pixel noise, what is large-scale structure)')
+
+
+def blockmeans(y, b):
+    h = (N // b) * b
+    v = np.where(ok, y, np.nan)[:h, :h]
+    s = np.nansum(v.reshape(h // b, b, h // b, b), axis=(1, 3))
+    c = np.sum(ok[:h, :h].reshape(h // b, b, h // b, b), axis=(1, 3))
+    return s / np.maximum(c, 1), c
+
+
+for j in range(6):
+    y = Y[j]
+    mu = float(y[ok].mean())
+    tot = float(y[ok].var())
+    row = []
+    prev = tot
+    for b in (4, 16, 64, 256):
+        bm, c = blockmeans(y, b)
+        w = c > (0.5 * b * b)
+        v = float(bm[w].var())   # variance of block means = variance at scales >= b
+        row.append((b, v))
+    shares = [(tot - row[0][1]) / tot] + [(row[k][1] - row[k + 1][1]) / tot for k in range(3)] + [row[3][1] / tot]
+    P('%s total %.3f %% | share of variance: <4 px %.0f %%, 4-16 %.0f %%, 16-64 %.0f %%, 64-256 %.0f %%, >=256 px %.0f %%   (sqrt(total var) of scales >= 16 px: %.3f %%)' % (
+        names[j], 100 * np.sqrt(tot) / mu, 100 * shares[0], 100 * shares[1], 100 * shares[2], 100 * shares[3], 100 * shares[4], 100 * np.sqrt(row[1][1]) / mu))
+
+P('')
+P('== H4 (d): outliers / mask handling')
+for j in range(6):
+    y = Y[j][ok]
+    med = np.median(y)
+    sig = 1.4826 * np.median(np.abs(y - med))
+    k5 = np.abs(y - med) > 5 * sig
+    yc = np.clip(y, med - 5 * sig, med + 5 * sig)
+    P('%s unmasked pixels beyond 5 robust sigma (sigma %.1f ADU): %d (%.4f %%); 100*std/mean as is %.3f %%, with those clipped %.3f %%, robust (1.4826*MAD)/median %.3f %%' % (
+        names[j], sig, int(k5.sum()), 100.0 * k5.mean(), 100 * y.std() / y.mean(), 100 * yc.std() / yc.mean(), 100 * sig / med))
+
+P('')
+P('== cross-gain matrix: residual of flat j (rows) when the gain is made from flat k ALONE (columns); the diagonal is the noise floor of a self-made gain')
+Gk = []
+for k in range(6):
+    g = B[k].copy()
+    g /= float(g[ok].mean())
+    g = np.where((g >= 0.1) & (g <= 10), g, 1.0).astype(np.float32)
+    Gk.append(g)
+P('columns: gain from ' + '  '.join('%8s' % n for n in names))
+mat = np.zeros((6, 6))
+for j in range(6):
+    for k in range(6):
+        mat[j, k] = pct(B[j] / Gk[k])
+    P('flat %d (mean %7.1f): ' % (j + 1, m[j]) + '  '.join('%8.3f' % v for v in mat[j]))
+P('equal-weight gain (mean of the normalised flats): ' + ' '.join('%.3f' % pct(B[j] / np.where(ok, np.mean([b / b[ok].mean() for b in B], axis=0), 1.0)) for j in range(6)) + '   (generator weights flats by dose: ' + ' '.join('%.3f' % pct(y) for y in Y) + ')')
+lr = []
+for j in range(6):
+    for k in range(6):
+        if j != k:
+            lr.append((abs(np.log(m[j] / m[k])), mat[j, k]))
+lr = np.array(lr)
+P('correlation of off-diagonal residual with |ln(dose_j/dose_k)|: %.3f (n=30)' % float(np.corrcoef(lr[:, 0], lr[:, 1])[0, 1]))
+
+# ---- tile-level regression across the six flats
+tile = 64
+nt = N // tile
+T = np.zeros((6, nt, nt))
+C = np.zeros((nt, nt))
+for j in range(6):
+    t, c = blockmeans(B[j], tile)
+    T[j] = t
+    C = c
+good = C > 0.5 * tile * tile
+P('')
+P('== tile model comparison (64x64 tiles, %d tiles with >50 %% unmasked pixels): can ANY per-tile response model explain the flat-to-flat differences?' % int(good.sum()))
+P('a flat j is held out; the model is fitted on the other five; error = prediction vs measured tile mean, % of the tile mean, rms over tiles')
+P('M0 proportional  T = a*m            (what a one-gain correction assumes)')
+P('M1 affine        T = a*m + b        (b = an additive offset error that differs between the dark used and the true one)')
+P('M2 quadratic     T = a*m + c*m^2    (response not proportional to dose)')
+P('M3 affine+quad   T = a*m + b + c*m^2')
+Tg = T[:, good]
+rows = []
+for j in range(6):
+    tr = [k for k in range(6) if k != j]
+    x = m[tr]
+    res = {}
+    for name, cols in (('M0', [lambda v: v]), ('M1', [lambda v: v, lambda v: np.ones_like(v)]), ('M2', [lambda v: v, lambda v: v * v]), ('M3', [lambda v: v, lambda v: np.ones_like(v), lambda v: v * v])):
+        A = np.stack([f(x) for f in cols], axis=1)
+        coef = np.linalg.lstsq(A, Tg[tr], rcond=None)[0]
+        pred = np.stack([f(np.array([m[j]])) for f in cols], axis=1) @ coef
+        res[name] = 100 * float(np.sqrt(np.mean(((pred[0] - Tg[j]) / Tg[j]) ** 2)))
+    rows.append(res)
+    P('hold out %s (mean %7.1f): M0 %.3f %%  M1 %.3f %%  M2 %.3f %%  M3 %.3f %%' % (names[j], m[j], res['M0'], res['M1'], res['M2'], res['M3']))
+P('(the scale of what is being explained: the tile-mean spread of each flat after the product gain: ' + ' '.join('%s %.3f %%' % (names[j], 100 * float((blockmeans(Y[j], tile)[0][good]).std() / blockmeans(Y[j], tile)[0][good].mean())) for j in range(6)) + ')')
+# all-six fit: the additive term map
+A = np.stack([m, np.ones(6)], axis=1)
+coef = np.linalg.lstsq(A, Tg, rcond=None)[0]
+b = coef[1]
+a = coef[0]
+P('M1 fitted on all six: additive term b over tiles: mean %.2f ADU, std %.2f, min %.2f, max %.2f; slope a mean %.4f' % (b.mean(), b.std(), b.min(), b.max(), a.mean()))
+P('  predicted additive residual if (a) were the cause: std(b)/mean_j in %%:  ' + ' '.join('%s %.3f' % (names[j], 100 * b.std() / m[j]) for j in range(6)) + '   vs the measured tile spread above')
+
+# ---- spatial shape of the residual maps
+P('')
+P('== spatial shape of the residual (tile means of flat_j / gain, relative to the flat mean, %)')
+Rm = np.zeros((6, nt, nt))
+for j in range(6):
+    t, c = blockmeans(Y[j], tile)
+    mu = float(Y[j][ok].mean())
+    Rm[j] = 100 * (t / mu - 1.0)
+yy, xx = np.mgrid[0:nt, 0:nt]
+xs = (xx - (nt - 1) / 2) / (nt / 2)
+ys = (yy - (nt - 1) / 2) / (nt / 2)
+basis = {'plane': [np.ones_like(xs), xs, ys], 'quadratic': [np.ones_like(xs), xs, ys, xs * xs, xs * ys, ys * ys], 'cubic': [np.ones_like(xs), xs, ys, xs * xs, xs * ys, ys * ys, xs ** 3, xs * xs * ys, xs * ys * ys, ys ** 3]}
+for j in range(6):
+    z = Rm[j][good]
+    row = []
+    for nm, bs in basis.items():
+        Aq = np.stack([f[good] for f in bs], axis=1)
+        cf = np.linalg.lstsq(Aq, z, rcond=None)[0]
+        row.append('%s %.0f %%' % (nm, 100 * (1 - float(np.var(z - Aq @ cf) / np.var(z)))))
+    rmean = Rm[j].mean(axis=1)
+    cmean = Rm[j].mean(axis=0)
+    P('%s tile-residual std %.3f %% | variance explained by a smooth surface: %s | by row means only %.0f %%, by column means only %.0f %%' % (
+        names[j], z.std(), ', '.join(row), 100 * float(np.var(rmean) / np.var(Rm[j])), 100 * float(np.var(cmean) / np.var(Rm[j]))))
+Z = np.stack([Rm[j][good] - Rm[j][good].mean() for j in range(6)])
+u, s, vt = np.linalg.svd(Z, full_matrices=False)
+P('SVD of the six residual maps: singular value shares %s  (one shape = the first share near 100 %%)' % ' '.join('%.1f %%' % (100 * v * v / (s * s).sum()) for v in s))
+cm = np.corrcoef(Z)
+P('correlation between the six residual maps (tile level):')
+for j in range(6):
+    P('  ' + ' '.join('%6.2f' % v for v in cm[j]))
+
+P('')
+P('== is the residual shape a smooth function of dose?  (signed coordinate of each flat on the first singular vector, flats in dose order)')
+coord = u[:, 0] * s[0]
+for j in np.argsort(m):
+    P('%s dose %7.1f ADU  coordinate on the first shape %+7.2f   residual std %.3f %%' % (names[j], m[j], coord[j], Rm[j][good].std()))
+P('(a continuous response model predicts a coordinate that changes steadily with dose; identical coordinates over a 2.5x dose range followed by a sign change over a 1.3x step is a grouping, not a curve)')
+v0 = vt[0]
+first = np.zeros((nt, nt)); first[good] = v0
+Aq = np.stack([np.ones(good.sum()), xs[good], ys[good]], axis=1)
+cf = np.linalg.lstsq(Aq, v0, rcond=None)[0]
+sd = float(np.std(v0))
+P('the first shape, plane fit (unit-std shape): slope along x (left to right, over the full width) %+.2f, along y (top to bottom, over the full height) %+.2f; in units of the flat-4 residual (coordinate %+.2f): top-to-bottom change %.2f %%, left-to-right change %.2f %%' % (cf[1] * 2, cf[2] * 2, coord[3], abs(cf[2] * 2 * coord[3]), abs(cf[1] * 2 * coord[3])))
+
+P('')
+P('== pairs of flats with the SAME large-scale shape (4, 5, 6): where does the residual of flat j under the gain of flat k come from, by scale?')
+def band_shares(y):
+    mu = float(y[ok].mean()); tot = float(y[ok].var())
+    vs = []
+    for b in (4, 16, 64, 256):
+        bm, c = blockmeans(y, b); w = c > (0.5 * b * b); vs.append(float(bm[w].var()))
+    sh = [(tot - vs[0]) / tot] + [(vs[i] - vs[i + 1]) / tot for i in range(3)] + [vs[3] / tot]
+    return 100 * np.sqrt(tot) / mu, sh
+for (j, k) in ((4, 3), (5, 3), (5, 4), (3, 4), (0, 1)):
+    tt, sh = band_shares(B[j] / Gk[k])
+    P('flat%d under the gain of flat%d: total %.3f %% | <4 px %.0f %%, 4-16 %.0f %%, 16-64 %.0f %%, 64-256 %.0f %%, >=256 px %.0f %%' % (j + 1, k + 1, tt, *(100 * x for x in sh)))
+
+
+P('')
+P('== gain made from a GROUP of flats that share a shape (dose-weighted mean inside the group, as the generator does), applied to every flat')
+def group_gain(idx):
+    g = np.mean([B[i] for i in idx], axis=0)
+    g = g / float(g[ok].mean())
+    return np.where((g >= 0.1) & (g <= 10), g, 1.0).astype(np.float32)
+for label, idx in (('all six (the product gain)', [0, 1, 2, 3, 4, 5]), ('flats 4,5,6', [3, 4, 5]), ('flats 3,4,5,6', [2, 3, 4, 5]), ('flats 1,2', [0, 1])):
+    g = group_gain(idx)
+    row = []
+    for j in range(6):
+        y = B[j] / g
+        tt, sh = band_shares(y)
+        large = tt * np.sqrt(1 - sh[0] - sh[1])
+        row.append('%s %.2f (>=16 px part %.2f)%s' % (names[j], pct(y), large, '*' if j in idx else ''))
+    P('gain from %-26s -> residual %%: ' % label + '; '.join(row))
+P('(* = a flat the gain was made from. Pixel-scale noise is part of the first number and not of the second.)')
+
+
+P('')
+P('== H5: is the pixel-scale part shot-noise-like?  (relative pixel-scale part = sqrt(variance share below 16 px) * total; sigma_ADU = that * mean; shot noise would give sigma_ADU ~ k * sqrt(mean), k constant)')
+for j in np.argsort(m):
+    tt, sh = band_shares(Y[j])
+    rel = tt * np.sqrt(sh[0] + sh[1])
+    P('%s mean %7.1f ADU: pixel-scale part %.3f %%  = %.1f ADU   k = sigma/sqrt(mean) = %.2f' % (names[j], m[j], rel, rel / 100 * m[j], rel / 100 * m[j] / np.sqrt(m[j])))
+
+P('weighted sum of the residual maps (weights = generator weights; zero by construction if the gain is the weighted mean): rms %.4f %% (a single map has rms ~%.2f %%)' % (
+    float(np.sqrt(np.mean(sum(m[j] / m.sum() * Rm[j][good] for j in range(6)) ** 2))), float(np.mean([Rm[j][good].std() for j in range(6)]))))
+
+# ---- picture
+try:
+    from PIL import Image, ImageDraw
+    sc = 7
+    pad = 18
+    W = 3 * (nt * sc + 8)
+    H = 2 * (nt * sc + pad + 8) + 30
+    img = Image.new('RGB', (W, H), (255, 255, 255))
+    d = ImageDraw.Draw(img)
+    lim = 6.0
+
+    def colour(v):
+        t = max(-1.0, min(1.0, v / lim))
+        if t >= 0:
+            return (255, int(255 * (1 - t)), int(255 * (1 - t)))
+        return (int(255 * (1 + t)), int(255 * (1 + t)), 255)
+
+    for j in range(6):
+        ox = (j % 3) * (nt * sc + 8) + 4
+        oy = (j // 3) * (nt * sc + pad + 8) + pad + 4
+        for yv in range(nt):
+            for xv in range(nt):
+                d.rectangle([ox + xv * sc, oy + yv * sc, ox + xv * sc + sc - 1, oy + yv * sc + sc - 1], fill=colour(Rm[j][yv, xv]) if good[yv, xv] else (200, 200, 200))
+        d.text((ox, oy - 14), '%s mean %.0f ADU, residual %.2f %%, weight %.3f' % (names[j], m[j], pct(Y[j]), m[j] / m.sum()), fill=(0, 0, 0))
+    d.text((6, H - 22), 'tile (64x64 px) mean of flat/gain, percent from the flat mean. red +, blue -, saturates at +-%.0f percent. grey: tile mostly masked. top-left of image = top-left of frame' % lim, fill=(0, 0, 0))
+    img.save(OUT.replace('.txt', '_residual_maps.png'))
+    # gain map and the additive term
+    img2 = Image.new('RGB', (2 * (nt * sc + 8), nt * sc + pad + 8), (255, 255, 255))
+    d2 = ImageDraw.Draw(img2)
+    bt = np.zeros((nt, nt))
+    bt[good] = b
+    gt, _ = blockmeans(Gapp, tile)
+    for k, (arr, ttl, lm) in enumerate(((100 * (gt - 1), 'gain map tile mean, % from 1', 12.0), (bt, 'M1 additive term b (ADU)', max(5.0, float(np.abs(b).max()))))):
+        ox = k * (nt * sc + 8) + 4
+        oy = pad + 4
+        d2.text((ox, oy - 14), ttl, fill=(0, 0, 0))
+        for yv in range(nt):
+            for xv in range(nt):
+                t = max(-1.0, min(1.0, arr[yv, xv] / lm))
+                col = (255, int(255 * (1 - t)), int(255 * (1 - t))) if t >= 0 else (int(255 * (1 + t)), int(255 * (1 + t)), 255)
+                d2.rectangle([ox + xv * sc, oy + yv * sc, ox + xv * sc + sc - 1, oy + yv * sc + sc - 1], fill=col)
+    img2.save(OUT.replace('.txt', '_gain_and_offset_term.png'))
+    P('')
+    P('pictures written: ' + OUT.replace('.txt', '_residual_maps.png') + ' , ' + OUT.replace('.txt', '_gain_and_offset_term.png'))
+except Exception as e:
+    P('picture failed: %r' % (e,))
+
+open(OUT, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+print('\n'.join(out))
