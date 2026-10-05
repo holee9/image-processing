@@ -848,7 +848,20 @@ TEST_F(OomInjection, TheSessionWarningStateIsSettledInTheCommitsOwnCriticalSecti
     EXPECT_EQ(2, afterMix) << "the later real mix must warn again; 1 = the flag was left up by A's stale write";
 }
 
+// QA-A-244: the time of this test is injected (the oom build has XPE_CACHE_TEST_HOOKS), so "the open check takes longer than the entry has
+// left" is a statement about the injected clock, not a 600 ms real window that a slow runner could outlast before the control call.
+namespace {
+int64_t g_hitClockMs = 0;
+struct InjectedClock {
+    InjectedClock() { xpe_clock_now_ms_hook = [] { return g_hitClockMs; }; }
+    ~InjectedClock() { xpe_clock_now_ms_hook = nullptr; xpe_cache_after_open_check_hook = nullptr; }
+    InjectedClock(const InjectedClock&) = delete;
+    InjectedClock& operator=(const InjectedClock&) = delete;
+};
+}  // namespace
+
 TEST_F(OomInjection, AHitJudgesTheExpiryAfterTheOpenCheckNotBefore) {
+    const InjectedClock injected;
     struct Case { const char* name; std::function<void(int64_t)> write; std::function<XpeErrorCode()> cached; };
     const Case cases[] = {
         {"offset", [](int64_t e) { writeOffset("oom_q.xcal", 100.0f, e); },
@@ -865,15 +878,15 @@ TEST_F(OomInjection, AHitJudgesTheExpiryAfterTheOpenCheckNotBefore) {
         xpe_calib_cache_clear();
         resetStore();
         xpe_cache_after_open_check_hook = nullptr;
-        const int64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        g_hitClockMs = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()).count();
-        k.write(nowMs + 600);
+        k.write(g_hitClockMs + 600);
         ASSERT_EQ(XPE_OK, k.cached()) << "the first call loads and caches the file";
         // Control: with a fast open check, an immediate second call is a hit and the entry is still valid.
         ASSERT_EQ(XPE_OK, k.cached()) << "control: the entry is still valid right after the load";
 
-        // The open check now takes longer than the entry has left (600 ms of expiry, 900 ms of delay).
-        xpe_cache_after_open_check_hook = [] { std::this_thread::sleep_for(std::chrono::milliseconds(900)); };
+        // The open check now takes longer than the entry has left (600 ms of expiry, 900 ms of delay on the injected clock).
+        xpe_cache_after_open_check_hook = [] { g_hitClockMs += 900; };
         const XpeErrorCode rc = k.cached();
         xpe_cache_after_open_check_hook = nullptr;
         EXPECT_EQ(XPE_ERR_CALIBRATION_EXPIRED, rc) << "the clock must be read after the open check, not before it";

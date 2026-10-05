@@ -37,9 +37,11 @@ XpeErrorCode xpe_calib_snapshot_expiry_check_at(const CalibSnapshot& calib, unsi
     return XPE_OK;
 }
 
+#ifdef XPE_CACHE_TEST_HOOKS
+int64_t (*xpe_clock_now_ms_hook)() = nullptr;
+#endif
+
 XpeErrorCode xpe_calib_snapshot_expiry_check(const CalibSnapshot& calib, unsigned maps) noexcept
 {
-    const int64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
-    return xpe_calib_snapshot_expiry_check_at(calib, maps, now);
+    return xpe_calib_snapshot_expiry_check_at(calib, maps, xpe_calib_now_ms());
 }

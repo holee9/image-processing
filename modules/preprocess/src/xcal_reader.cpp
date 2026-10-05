@@ -319,9 +319,7 @@ XpeErrorCode read_xcal_file(
 
         // Check expiry (if requested and expiry is set)
         if (check_expiry && hdr.expiry_epoch_ms != 0) {
-            using namespace std::chrono;
-            int64_t now_ms = duration_cast<milliseconds>(
-                system_clock::now().time_since_epoch()).count();
+            const int64_t now_ms = xpe_calib_now_ms();   // the system clock; a test clock in the clock-test build (QA-A-244)
             if (now_ms > hdr.expiry_epoch_ms) {
                 return XPE_ERR_CALIBRATION_EXPIRED;
             }
