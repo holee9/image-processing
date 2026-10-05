@@ -693,7 +693,13 @@ extern "C" XPE_API XpeErrorCode xpe_defect_correct(
     // information, so if xpe_defect_correct_in threw, the snapshot temporary (shared_ptr members) would not be
     // destroyed and the maps it holds would leak. xpe_defect_correct_in has C++ linkage, so this handler is kept.
     try {
-        return xpe_defect_correct_in(xpe_calib_snapshot(), input, output, metadata);
+        const CalibSnapshot calib = xpe_calib_snapshot();
+        // SRS-CALIB-SAFE-002 (Codex #157): a map that expired after it was loaded must not correct anything, here either. The stage
+        // also fills the pixels the gain map classified defective, so a gain map that carries such a list is judged too.
+        const XpeErrorCode expiry = xpe_calib_snapshot_expiry_check(
+            calib, XPE_EXPIRY_DEFECT | (calib.gain_defect_count > 0 ? XPE_EXPIRY_GAIN : 0u));
+        if (expiry != XPE_OK) return expiry;
+        return xpe_defect_correct_in(calib, input, output, metadata);
     } catch (const std::bad_alloc&) {
         return XPE_ERR_OUT_OF_MEMORY;
     } catch (...) {

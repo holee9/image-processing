@@ -768,6 +768,22 @@ void xpe_calib_session_warn(bool shouldWarn) noexcept;
  */
 void xpe_calib_note_expiry_locked(CalibMapKind kind, int64_t expiryMs) noexcept;
 
+/**
+ * SRS-CALIB-SAFE-002 / FUNC-009 (QA-A-241, Codex #157): the expiry of the maps a snapshot holds, judged when a frame or a stage is
+ * about to run -- not only when the file was loaded. ONE checker for the pipeline entry points and for the single-stage functions
+ * (xpe_offset_correct / xpe_gain_correct / xpe_defect_correct), so no entry point lets an expired map correct a frame.
+ * `maps` is a bit set of XPE_EXPIRY_*: only the loaded maps in it are judged (a map that is not loaded, or whose expiry is 0, never
+ * fails). `nowMs` is epoch milliseconds; a map expires when nowMs is GREATER than its expiry (the loader's rule). On expiry an
+ * XPE_ERR_CALIBRATION_EXPIRED alert names the map and the result is XPE_ERR_CALIBRATION_EXPIRED; nothing is written. Never throws.
+ */
+constexpr unsigned XPE_EXPIRY_OFFSET = 1u;
+constexpr unsigned XPE_EXPIRY_GAIN = 2u;
+constexpr unsigned XPE_EXPIRY_DEFECT = 4u;
+constexpr unsigned XPE_EXPIRY_ALL = XPE_EXPIRY_OFFSET | XPE_EXPIRY_GAIN | XPE_EXPIRY_DEFECT;
+XpeErrorCode xpe_calib_snapshot_expiry_check_at(const CalibSnapshot& calib, unsigned maps, int64_t nowMs) noexcept;
+/** The same, at the system clock. */
+XpeErrorCode xpe_calib_snapshot_expiry_check(const CalibSnapshot& calib, unsigned maps) noexcept;
+
 /** Move a staged object into g_calib. The caller holds g_calib_mutex. Cannot fail. */
 void xpe_calib_commit_offset_locked(StagedOffset& staged) noexcept;
 void xpe_calib_commit_gain_locked(StagedGain& staged) noexcept;

@@ -6,6 +6,11 @@
  *   B2_LimitBoundary      the rule at the limit: below it a map loads (classified + warning), above it it is refused
  *   B2_FractionCost       frame time and the defect stage's behaviour as the classified fraction grows, on the real 3072x3072
  *                         maps (XPE_A240_OUT/maps, made by test_zz_a240_checklist) with random extra defects
+ *   B6_HeldOut            (QA-A-241b) the stage-1 checklist item B6 with the method fixed in
+ *                         .moai/reports/lane-pre/QA-A-241b/evidence/00_b6_method_and_predictions_before_measuring.md:
+ *                         gain from two flats of ONE acquisition condition, measured on the third, shipping path
+ *                         (xpe_preprocess_pipeline_out), after the defect stage, defect pixels left out.
+ *                         Needs XPE_A240_CAL (the CalData_6 folder) and XPE_A241_OUT (a scratch folder).
  */
 #include <gtest/gtest.h>
 
@@ -17,6 +22,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <cmath>
 #include <limits>
 #include <string>
 #include <vector>
@@ -196,5 +202,151 @@ TEST(A241Measure, DISABLED_B2_FractionCost) {
         if (unionWarn) std::printf("[a241]    alert: %.200s\n", first.c_str());
     }
     xpe_clear_alerts();
+    xpe_preprocess_shutdown();
+}
+
+namespace {
+std::vector<uint16_t> readRaw16(const std::string& path, size_t n) {
+    const auto b = readFile(path);
+    std::vector<uint16_t> v;
+    if (b.size() != n * sizeof(uint16_t)) return v;
+    v.resize(n);
+    std::memcpy(v.data(), b.data(), b.size());
+    return v;
+}
+}  // namespace
+
+// B6, held-out. Group = flats 4,5,6 (QA-A-242: the same large-scale shape). For each flat j of the group: gain from the other two
+// (product generator, no dark reference), frame = dark + flat_j through the shipping path, residual after the defect stage over
+// every pixel that is neither in the defect map nor classified defective by the gain map.
+TEST(A241Measure, DISABLED_B6_HeldOut) {
+    const std::string cal = envOr("XPE_A240_CAL", "");
+    const std::string work = envOr("XPE_A241_OUT", "build/a241");
+    ASSERT_FALSE(cal.empty());
+    const uint32_t W = 3072, H = 3072;
+    const size_t N = static_cast<size_t>(W) * H;
+    const fs::path dir = fs::path(work) / "b6";
+    fs::create_directories(dir);
+
+    const std::vector<uint16_t> dark = readRaw16(cal + "/dark.raw", N);
+    ASSERT_FALSE(dark.empty());
+    std::vector<std::vector<uint16_t>> flat(7);
+    for (int k = 1; k <= 6; ++k) {
+        char nm[32];
+        std::snprintf(nm, sizeof nm, "/bright%02d.raw", k);
+        flat[static_cast<size_t>(k)] = readRaw16(cal + nm, N);
+        ASSERT_FALSE(flat[static_cast<size_t>(k)].empty()) << nm;
+    }
+    const auto bpBytes = readFile(cal + "/BPMap.map");
+    ASSERT_EQ(N, bpBytes.size());
+
+    auto buf = [&](const void* d, size_t bytes, XpePixelFormat f) {
+        XpeImageBuffer b{};
+        b.data = const_cast<void*>(d);
+        b.dataSize = bytes;
+        b.width = W;
+        b.height = H;
+        b.format = f;
+        b.bitsAllocated = f == XPE_PIXEL_FLOAT32 ? 32u : 16u;
+        b.bitsStored = b.bitsAllocated;
+        return b;
+    };
+
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    const std::string offPath = (dir / "offset.xcal").string(), defPath = (dir / "defect.xcal").string();
+    const XpeImageBuffer darkBuf = buf(dark.data(), N * 2, XPE_PIXEL_UINT16);
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(&darkBuf, 1, 100.0f, 25.0f, offPath.c_str(), nullptr));
+    {
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        // the generated offset file's session id, so the three maps agree
+        XCal o;
+        ASSERT_TRUE(readXCal(offPath, &o));
+        std::memcpy(hdr.session_id, o.hdr.session_id, sizeof hdr.session_id);
+        hdr.version = XCAL_VERSION;
+        hdr.type = XCAL_TYPE_DEFECT;
+        hdr.pixel_format = XCAL_FMT_UINT8_MASK;
+        hdr.width = W;
+        hdr.height = H;
+        hdr.payload_len = N;
+        ASSERT_EQ(XPE_OK, write_xcal_file(defPath.c_str(), hdr, nullptr, 0, bpBytes.data(), N));
+    }
+    const char* cfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+
+    struct Held { int j, a, b; };
+    const Held cases[] = {{6, 4, 5}, {5, 4, 6}, {4, 5, 6}};
+    for (const Held& c : cases) {
+        const std::string gainPath = (dir / ("gain_from_" + std::to_string(c.a) + "_" + std::to_string(c.b) + ".xcal")).string();
+        const XpeImageBuffer two[2] = {buf(flat[static_cast<size_t>(c.a)].data(), N * 2, XPE_PIXEL_UINT16),
+                                       buf(flat[static_cast<size_t>(c.b)].data(), N * 2, XPE_PIXEL_UINT16)};
+        ASSERT_EQ(XPE_OK, xpe_calib_generate_gain(two, 2, nullptr, gainPath.c_str(), nullptr));
+        XCal g;
+        ASSERT_TRUE(readXCal(gainPath, &g));
+        const float* gv = reinterpret_cast<const float*>(g.payload.data());
+        // the session id the generator gave the gain must agree with the other two: rewrite the file with the offset's id
+        {
+            XCal o;
+            ASSERT_TRUE(readXCal(offPath, &o));
+            std::memcpy(g.hdr.session_id, o.hdr.session_id, sizeof g.hdr.session_id);
+            ASSERT_EQ(XPE_OK, writeXCal(gainPath, g));
+        }
+        xpe_preprocess_shutdown();
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_offset(offPath.c_str()));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_gain(gainPath.c_str()));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(defPath.c_str()));
+        xpe_clear_alerts();
+
+        // the held-out flat as a raw frame: dark + flat (the flat files are already offset-corrected)
+        std::vector<uint16_t> raw(N);
+        for (size_t i = 0; i < N; ++i) raw[i] = static_cast<uint16_t>(dark[i] + flat[static_cast<size_t>(c.j)][i]);
+        std::vector<float> out(N, 0.0f);
+        const XpeImageBuffer in = buf(raw.data(), N * 2, XPE_PIXEL_UINT16);
+        XpeImageBuffer ob = buf(out.data(), N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata meta{};
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &ob, &meta, nullptr, nullptr, cfg));
+
+        // ROI: not in the defect map, not classified defective by this gain map
+        std::vector<uint8_t> roi(N, 1);
+        size_t masked = 0;
+        for (size_t i = 0; i < N; ++i) {
+            const bool cls = !(gv[i] >= 0.1f && gv[i] <= 10.0f);
+            if (bpBytes[i] != 0 || cls) { roi[i] = 0; ++masked; }
+        }
+        double s1 = 0, s2 = 0;
+        size_t n = 0;
+        double inMean = 0;
+        for (size_t i = 0; i < N; ++i) {
+            if (!roi[i]) continue;
+            s1 += out[i];
+            s2 += static_cast<double>(out[i]) * out[i];
+            inMean += flat[static_cast<size_t>(c.j)][i];
+            ++n;
+        }
+        const double mean = s1 / static_cast<double>(n);
+        const double sd = std::sqrt(std::max(0.0, s2 / static_cast<double>(n) - mean * mean));
+        // the large-scale part: the spread of 16x16 block means (blocks with more than half their pixels in the ROI)
+        double b1 = 0, b2 = 0;
+        size_t nb = 0;
+        for (uint32_t by = 0; by + 16 <= H; by += 16)
+            for (uint32_t bx = 0; bx + 16 <= W; bx += 16) {
+                double sum = 0;
+                int cnt = 0;
+                for (uint32_t y = 0; y < 16; ++y)
+                    for (uint32_t x = 0; x < 16; ++x) {
+                        const size_t i = static_cast<size_t>(by + y) * W + bx + x;
+                        if (roi[i]) { sum += out[i]; ++cnt; }
+                    }
+                if (cnt > 128) { const double m = sum / cnt; b1 += m; b2 += m * m; ++nb; }
+            }
+        const double bm = b1 / static_cast<double>(nb);
+        const double bsd = std::sqrt(std::max(0.0, b2 / static_cast<double>(nb) - bm * bm));
+        const double flatMean = inMean / static_cast<double>(n);
+        std::printf("[a241] B6 held out flat%d, gain from flat%d+flat%d: flat mean %.1f ADU%s | masked %zu px (%.3f %%) | FlatResidualPct %.3f %% (output mean %.1f) | spread of 16x16 block means %.3f %%\n",
+                    c.j, c.a, c.b, flatMean, flatMean >= 2000.0 ? " (judged)" : " (below 2000 ADU: reference only)", masked,
+                    100.0 * static_cast<double>(masked) / static_cast<double>(N), 100.0 * sd / mean, mean, 100.0 * bsd / bm);
+        xpe_clear_alerts();
+    }
     xpe_preprocess_shutdown();
 }

@@ -1,0 +1,105 @@
+Note: Google Test filter = A240.DISABLED_B4_SafeBehaviour
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A240
+[ RUN      ] A240.DISABLED_B4_SafeBehaviour
+[a240] pipeline with the module not initialized                   rc=-6 XPE_ERR_NOT_INITIALIZED
+[a240] pipeline, module initialized, NO map loaded                rc=-16 XPE_ERR_CALIB_NOT_LOADED [the caller's buffer unchanged]
+[a240] pipeline, only the offset map loaded                       rc=-16 XPE_ERR_CALIB_NOT_LOADED [the caller's buffer unchanged]
+[a240]     alert (pipeline, only the offset map loaded, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (pipeline, only the offset map loaded, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240] pipeline, only the gain map loaded                         rc=-16 XPE_ERR_CALIB_NOT_LOADED [the caller's buffer unchanged]
+[a240]     alert (pipeline, only the gain map loaded, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (pipeline, only the gain map loaded, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240] pipeline, offset and gain loaded, NO defect map (defect stage on) rc=-16 XPE_ERR_CALIB_NOT_LOADED [the caller's buffer unchanged]
+[a240]     alert (pipeline, offset and gain loaded, NO defect map (defect stage on), severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (pipeline, offset and gain loaded, NO defect map (defect stage on), severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (pipeline, offset and gain loaded, NO defect map (defect stage on), severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (pipeline, offset and gain loaded, NO defect map (defect stage on), severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (pipeline, offset and gain loaded, NO defect map (defect stage on), severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240] pipeline, offset and gain loaded, defect stage bypassed    rc=0 XPE_OK [the caller's buffer CHANGED]
+[a240]     alert (pipeline, offset and gain loaded, defect stage bypassed, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (pipeline, offset and gain loaded, defect stage bypassed, severity 1): XPE_WARN_GAIN_PIXELS_UNCORRECTED: 42026 pixel(s) were classified defective by the gain calibration but no defect correction follows (defect stage bypassed); they carry the uncorrected value
+[a240] pipeline, offset and gain loaded, offset stage bypassed    rc=-16 XPE_ERR_CALIB_NOT_LOADED [the caller's buffer unchanged]
+[a240]     alert (pipeline, offset and gain loaded, offset stage bypassed, severity 1): XPE_WARN_CORRECTION_BYPASSED: offset correction is bypassed; the output is not offset-corrected
+[a240]     alert (pipeline, offset and gain loaded, offset stage bypassed, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240] pipeline, offset and gain loaded, gain stage bypassed      rc=-16 XPE_ERR_CALIB_NOT_LOADED [the caller's buffer unchanged]
+[a240]     alert (pipeline, offset and gain loaded, gain stage bypassed, severity 1): XPE_WARN_CORRECTION_BYPASSED: gain correction is bypassed; the output is not gain-corrected
+[a240]     alert (pipeline, offset and gain loaded, gain stage bypassed, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240] pipeline with the good set (reference)                     rc=0 XPE_OK [the caller's buffer CHANGED]
+[a240]     alert (pipeline with the good set (reference), severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (pipeline with the good set (reference), severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (pipeline with the good set (reference), severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (pipeline with the good set (reference), severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (pipeline with the good set (reference), severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] load a DAMAGED offset map while the good set is loaded     rc=-4 XPE_ERR_CONFIG_INVALID
+[a240] pipeline right after that failed load                      rc=0 XPE_OK [the caller's buffer CHANGED]
+[a240] B4 after the failed load the pipeline still runs on the good set (rc 0, before 0)
+[a240] load the damaged offset map first                          rc=-4 XPE_ERR_CONFIG_INVALID
+[a240] pipeline with a damaged offset, good gain and defect       rc=-16 XPE_ERR_CALIB_NOT_LOADED [the caller's buffer unchanged]
+[a240]     alert (pipeline with a damaged offset, good gain and defect, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (pipeline with a damaged offset, good gain and defect, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (pipeline with a damaged offset, good gain and defect, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (pipeline with a damaged offset, good gain and defect, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240] load an offset map whose expiry is YESTERDAY               rc=-5 XPE_ERR_CALIBRATION_EXPIRED
+[a240] B4   an alert containing XPE_WARN_NO_EXPIRY was raised by that load: no
+[a240] pipeline with that offset map (expiry yesterday)           rc=-16 XPE_ERR_CALIB_NOT_LOADED [the caller's buffer unchanged]
+[a240]     alert (pipeline with that offset map (expiry yesterday), severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (pipeline with that offset map (expiry yesterday), severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (pipeline with that offset map (expiry yesterday), severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (pipeline with that offset map (expiry yesterday), severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240] xpe_calib_check_expiry on that file                        rc=0 XPE_OK [is_expired 1, remaining_days -1]
+[a240] load an offset map whose expiry is in 30 days              rc=0 XPE_OK
+[a240] B4   an alert containing XPE_WARN_NO_EXPIRY was raised by that load: no
+[a240] pipeline with that offset map (expiry in 30 days)          rc=0 XPE_OK [the caller's buffer CHANGED]
+[a240]     alert (pipeline with that offset map (expiry in 30 days), severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (pipeline with that offset map (expiry in 30 days), severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (pipeline with that offset map (expiry in 30 days), severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (pipeline with that offset map (expiry in 30 days), severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] xpe_calib_check_expiry on that file                        rc=0 XPE_OK [is_expired 0, remaining_days 29]
+[a240] load an offset map whose expiry is 0 (no expiry)           rc=0 XPE_OK
+[a240]     alert (expiry load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] B4   an alert containing XPE_WARN_NO_EXPIRY was raised by that load: yes
+[a240] pipeline with that offset map (expiry 0)                   rc=0 XPE_OK [the caller's buffer CHANGED]
+[a240]     alert (pipeline with that offset map (expiry 0), severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (pipeline with that offset map (expiry 0), severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (pipeline with that offset map (expiry 0), severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (pipeline with that offset map (expiry 0), severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] xpe_calib_check_expiry on that file                        rc=0 XPE_OK [is_expired 0, remaining_days 2147483647]
+[a240]     alert (full set, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (full set, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (full set, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (full set, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (full set, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] full set loaded, bypassOffset=true                         rc=0 XPE_OK [the caller's buffer CHANGED]
+[a240]     alert (full set loaded, bypassOffset=true, severity 1): XPE_WARN_CORRECTION_BYPASSED: offset correction is bypassed; the output is not offset-corrected
+[a240] full set loaded, bypassGain=true                           rc=0 XPE_OK [the caller's buffer CHANGED]
+[a240]     alert (full set loaded, bypassGain=true, severity 1): XPE_WARN_CORRECTION_BYPASSED: gain correction is bypassed; the output is not gain-corrected
+[a240] full set loaded, bypassOffset and bypassGain               rc=0 XPE_OK [the caller's buffer CHANGED]
+[a240]     alert (full set loaded, bypassOffset and bypassGain, severity 1): XPE_WARN_CORRECTION_BYPASSED: offset and gain correction are bypassed; the output is not offset- or gain-corrected
+[a240] load an offset map that expires in 6 s                     rc=0 XPE_OK
+[a240] pipeline right after loading it                            rc=0 XPE_OK [the caller's buffer CHANGED]
+[a240]     alert (pipeline right after loading it, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (pipeline right after loading it, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (pipeline right after loading it, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (pipeline right after loading it, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] pipeline 8 s later (the map has expired while loaded)      rc=-5 XPE_ERR_CALIBRATION_EXPIRED [the caller's buffer unchanged]
+[a240]     alert (pipeline 8 s later (the map has expired while loaded), severity 2): XPE_ERR_CALIBRATION_EXPIRED: the loaded offset calibration expired 2237 ms ago; the frame was not processed
+[a240] xpe_offset_correct (separate output buffer)                rc=0 XPE_OK
+[a240] B4 xpe_offset_correct left the input buffer unchanged
+[a240] xpe_gain_correct (separate output buffer)                  rc=0 XPE_OK
+[a240] B4 xpe_gain_correct left the input buffer unchanged
+[a240]     alert (stage apis, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (stage apis, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (stage apis, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (stage apis, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (stage apis, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] xpe_preprocess_pipeline_ex (in place) on the real frame    rc=0 XPE_OK
+[a240] xpe_preprocess_pipeline_out (separate output buffer) on the real frame rc=0 XPE_OK
+[a240] B4 xpe_preprocess_pipeline_out left the input buffer UNCHANGED; its result is byte-identical to the in-place result; flags equal
+[       OK ] A240.DISABLED_B4_SafeBehaviour (10485 ms)
+[----------] 1 test from A240 (10485 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (10486 ms total)
+[  PASSED  ] 1 test.

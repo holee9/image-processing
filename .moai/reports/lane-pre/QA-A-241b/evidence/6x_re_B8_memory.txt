@@ -1,0 +1,382 @@
+Note: Google Test filter = A237bMem.DISABLED_ShippedPath
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A237bMem
+[ RUN      ] A237bMem.DISABLED_ShippedPath
+[a237f] defect map D:/workspace-github/image-processing/tests/test_data/CalData_6/BPMap.map: 23505 masked pixels (0.249 %)
+[a237b] chk A harness (frame buffer, fixtures written) private    38.1 MiB  peakCommit    38.2 MiB  peakWs    44.6 MiB
+[a237b] chk B maps loaded                      private   119.6 MiB  peakCommit   119.6 MiB  peakWs   126.1 MiB
+[a237b] chk C no ghost handle (XPE_A240_NOGHOST) private   119.6 MiB  peakCommit   119.6 MiB  peakWs   126.1 MiB
+[a237b] config tier 1, frames 100, N 9437184 pixels
+[a237b] chk frame 0 before                     private   119.6 MiB  peakCommit   119.6 MiB  peakWs   126.1 MiB
+[a237b] chk frame 0 after                      private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 0 total 62.0 ms, output digest a13a2228ae72f237
+[a237b] chk frame 1 before                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 1 after                      private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 1 total 58.3 ms, output digest a13a2228ae72f237
+[a237b] chk frame 2 before                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 2 after                      private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 2 total 59.9 ms, output digest a13a2228ae72f237
+[a237b] chk frame 3 before                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 3 after                      private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 3 total 55.2 ms, output digest a13a2228ae72f237
+[a237b] chk frame 4 before                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 4 after                      private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 4 total 57.7 ms, output digest a13a2228ae72f237
+[a237b] chk frame 5 before                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 5 after                      private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 5 total 56.3 ms, output digest a13a2228ae72f237
+[a237b] chk frame 6 before                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 6 after                      private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 6 total 55.4 ms, output digest a13a2228ae72f237
+[a237b] chk frame 7 before                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 7 after                      private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 7 total 55.5 ms, output digest a13a2228ae72f237
+[a237b] chk frame 8 before                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 8 after                      private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 8 total 57.2 ms, output digest a13a2228ae72f237
+[a237b] chk frame 9 before                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 9 after                      private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 9 total 55.6 ms, output digest a13a2228ae72f237
+[a237b] chk frame 10 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 10 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 10 total 55.8 ms, output digest a13a2228ae72f237
+[a237b] chk frame 11 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 11 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 11 total 53.5 ms, output digest a13a2228ae72f237
+[a237b] chk frame 12 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 12 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 12 total 55.1 ms, output digest a13a2228ae72f237
+[a237b] chk frame 13 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 13 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 13 total 59.1 ms, output digest a13a2228ae72f237
+[a237b] chk frame 14 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 14 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 14 total 57.5 ms, output digest a13a2228ae72f237
+[a237b] chk frame 15 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 15 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 15 total 57.0 ms, output digest a13a2228ae72f237
+[a237b] chk frame 16 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 16 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 16 total 54.7 ms, output digest a13a2228ae72f237
+[a237b] chk frame 17 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 17 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 17 total 56.2 ms, output digest a13a2228ae72f237
+[a237b] chk frame 18 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 18 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 18 total 54.5 ms, output digest a13a2228ae72f237
+[a237b] chk frame 19 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 19 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 19 total 56.7 ms, output digest a13a2228ae72f237
+[a237b] chk frame 20 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 20 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 20 total 59.9 ms, output digest a13a2228ae72f237
+[a237b] chk frame 21 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 21 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 21 total 58.8 ms, output digest a13a2228ae72f237
+[a237b] chk frame 22 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 22 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 22 total 58.9 ms, output digest a13a2228ae72f237
+[a237b] chk frame 23 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 23 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 23 total 58.1 ms, output digest a13a2228ae72f237
+[a237b] chk frame 24 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 24 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 24 total 64.3 ms, output digest a13a2228ae72f237
+[a237b] chk frame 25 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 25 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 25 total 56.3 ms, output digest a13a2228ae72f237
+[a237b] chk frame 26 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 26 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 26 total 59.4 ms, output digest a13a2228ae72f237
+[a237b] chk frame 27 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 27 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 27 total 55.6 ms, output digest a13a2228ae72f237
+[a237b] chk frame 28 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 28 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 28 total 55.9 ms, output digest a13a2228ae72f237
+[a237b] chk frame 29 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 29 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 29 total 56.2 ms, output digest a13a2228ae72f237
+[a237b] chk frame 30 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 30 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 30 total 56.5 ms, output digest a13a2228ae72f237
+[a237b] chk frame 31 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 31 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 31 total 58.7 ms, output digest a13a2228ae72f237
+[a237b] chk frame 32 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 32 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 32 total 59.1 ms, output digest a13a2228ae72f237
+[a237b] chk frame 33 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 33 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 33 total 57.6 ms, output digest a13a2228ae72f237
+[a237b] chk frame 34 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 34 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 34 total 56.1 ms, output digest a13a2228ae72f237
+[a237b] chk frame 35 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 35 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 35 total 56.8 ms, output digest a13a2228ae72f237
+[a237b] chk frame 36 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 36 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 36 total 55.7 ms, output digest a13a2228ae72f237
+[a237b] chk frame 37 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 37 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 37 total 57.1 ms, output digest a13a2228ae72f237
+[a237b] chk frame 38 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 38 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 38 total 54.4 ms, output digest a13a2228ae72f237
+[a237b] chk frame 39 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 39 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 39 total 55.3 ms, output digest a13a2228ae72f237
+[a237b] chk frame 40 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 40 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 40 total 56.2 ms, output digest a13a2228ae72f237
+[a237b] chk frame 41 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 41 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 41 total 63.8 ms, output digest a13a2228ae72f237
+[a237b] chk frame 42 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 42 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 42 total 56.2 ms, output digest a13a2228ae72f237
+[a237b] chk frame 43 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 43 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 43 total 82.1 ms, output digest a13a2228ae72f237
+[a237b] chk frame 44 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 44 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 44 total 95.8 ms, output digest a13a2228ae72f237
+[a237b] chk frame 45 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 45 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 45 total 107.7 ms, output digest a13a2228ae72f237
+[a237b] chk frame 46 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 46 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 46 total 59.9 ms, output digest a13a2228ae72f237
+[a237b] chk frame 47 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 47 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 47 total 66.9 ms, output digest a13a2228ae72f237
+[a237b] chk frame 48 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 48 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 48 total 64.2 ms, output digest a13a2228ae72f237
+[a237b] chk frame 49 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 49 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 49 total 76.7 ms, output digest a13a2228ae72f237
+[a237b] chk frame 50 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 50 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 50 total 107.9 ms, output digest a13a2228ae72f237
+[a237b] chk frame 51 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 51 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 51 total 93.0 ms, output digest a13a2228ae72f237
+[a237b] chk frame 52 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 52 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 52 total 65.6 ms, output digest a13a2228ae72f237
+[a237b] chk frame 53 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 53 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 53 total 99.9 ms, output digest a13a2228ae72f237
+[a237b] chk frame 54 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 54 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 54 total 60.7 ms, output digest a13a2228ae72f237
+[a237b] chk frame 55 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 55 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 55 total 84.2 ms, output digest a13a2228ae72f237
+[a237b] chk frame 56 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 56 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 56 total 62.9 ms, output digest a13a2228ae72f237
+[a237b] chk frame 57 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 57 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 57 total 68.4 ms, output digest a13a2228ae72f237
+[a237b] chk frame 58 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 58 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 58 total 76.0 ms, output digest a13a2228ae72f237
+[a237b] chk frame 59 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 59 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 59 total 56.6 ms, output digest a13a2228ae72f237
+[a237b] chk frame 60 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 60 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 60 total 70.6 ms, output digest a13a2228ae72f237
+[a237b] chk frame 61 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 61 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 61 total 56.3 ms, output digest a13a2228ae72f237
+[a237b] chk frame 62 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 62 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 62 total 62.7 ms, output digest a13a2228ae72f237
+[a237b] chk frame 63 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 63 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 63 total 73.7 ms, output digest a13a2228ae72f237
+[a237b] chk frame 64 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 64 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 64 total 86.9 ms, output digest a13a2228ae72f237
+[a237b] chk frame 65 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 65 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 65 total 65.9 ms, output digest a13a2228ae72f237
+[a237b] chk frame 66 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 66 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 66 total 56.5 ms, output digest a13a2228ae72f237
+[a237b] chk frame 67 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 67 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 67 total 55.8 ms, output digest a13a2228ae72f237
+[a237b] chk frame 68 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 68 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 68 total 53.8 ms, output digest a13a2228ae72f237
+[a237b] chk frame 69 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 69 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 69 total 55.8 ms, output digest a13a2228ae72f237
+[a237b] chk frame 70 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 70 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 70 total 54.1 ms, output digest a13a2228ae72f237
+[a237b] chk frame 71 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 71 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 71 total 53.7 ms, output digest a13a2228ae72f237
+[a237b] chk frame 72 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 72 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 72 total 53.7 ms, output digest a13a2228ae72f237
+[a237b] chk frame 73 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 73 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 73 total 62.1 ms, output digest a13a2228ae72f237
+[a237b] chk frame 74 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 74 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 74 total 57.8 ms, output digest a13a2228ae72f237
+[a237b] chk frame 75 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 75 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 75 total 81.5 ms, output digest a13a2228ae72f237
+[a237b] chk frame 76 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 76 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 76 total 59.9 ms, output digest a13a2228ae72f237
+[a237b] chk frame 77 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 77 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 77 total 62.8 ms, output digest a13a2228ae72f237
+[a237b] chk frame 78 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 78 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 78 total 65.7 ms, output digest a13a2228ae72f237
+[a237b] chk frame 79 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 79 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 79 total 55.6 ms, output digest a13a2228ae72f237
+[a237b] chk frame 80 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 80 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 80 total 54.3 ms, output digest a13a2228ae72f237
+[a237b] chk frame 81 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 81 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 81 total 57.1 ms, output digest a13a2228ae72f237
+[a237b] chk frame 82 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 82 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 82 total 83.9 ms, output digest a13a2228ae72f237
+[a237b] chk frame 83 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 83 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 83 total 67.9 ms, output digest a13a2228ae72f237
+[a237b] chk frame 84 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 84 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 84 total 82.8 ms, output digest a13a2228ae72f237
+[a237b] chk frame 85 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 85 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 85 total 59.3 ms, output digest a13a2228ae72f237
+[a237b] chk frame 86 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 86 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 86 total 53.8 ms, output digest a13a2228ae72f237
+[a237b] chk frame 87 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 87 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 87 total 61.2 ms, output digest a13a2228ae72f237
+[a237b] chk frame 88 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 88 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 88 total 62.0 ms, output digest a13a2228ae72f237
+[a237b] chk frame 89 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 89 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 89 total 64.1 ms, output digest a13a2228ae72f237
+[a237b] chk frame 90 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 90 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 90 total 64.1 ms, output digest a13a2228ae72f237
+[a237b] chk frame 91 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 91 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 91 total 58.9 ms, output digest a13a2228ae72f237
+[a237b] chk frame 92 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 92 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 92 total 56.2 ms, output digest a13a2228ae72f237
+[a237b] chk frame 93 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 93 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 93 total 56.5 ms, output digest a13a2228ae72f237
+[a237b] chk frame 94 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 94 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 94 total 58.3 ms, output digest a13a2228ae72f237
+[a237b] chk frame 95 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 95 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 95 total 63.7 ms, output digest a13a2228ae72f237
+[a237b] chk frame 96 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 96 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 96 total 54.9 ms, output digest a13a2228ae72f237
+[a237b] chk frame 97 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 97 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 97 total 56.1 ms, output digest a13a2228ae72f237
+[a237b] chk frame 98 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 98 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 98 total 58.0 ms, output digest a13a2228ae72f237
+[a237b] chk frame 99 before                    private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] chk frame 99 after                     private   119.5 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[a237b] frame 99 total 70.9 ms, output digest a13a2228ae72f237
+[a237b] alerts pending after 100 frame(s): 64
+[a237b]   alert 0 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 1 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 2 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 3 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 4 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 5 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 6 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 7 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 8 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 9 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 10 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 11 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 12 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 13 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 14 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 15 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 16 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 17 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 18 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 19 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 20 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 21 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 22 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 23 (severity 2): alert queue overflow: 42 alert(s) dropped
+[a237b]   alert 24 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 25 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 26 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 27 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 28 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 29 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 30 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 31 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 32 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 33 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 34 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 35 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 36 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 37 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 38 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 39 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 40 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 41 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 42 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 43 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 44 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 45 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 46 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 47 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 48 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 49 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 50 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 51 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 52 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 53 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 54 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 55 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 56 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 57 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 58 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 59 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 60 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 61 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 62 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b]   alert 63 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_non
+[a237b] chk Z ghost destroyed                  private   119.6 MiB  peakCommit   156.5 MiB  peakWs   163.1 MiB
+[       OK ] A237bMem.DISABLED_ShippedPath (7837 ms)
+[----------] 1 test from A237bMem (7837 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (7837 ms total)
+[  PASSED  ] 1 test.

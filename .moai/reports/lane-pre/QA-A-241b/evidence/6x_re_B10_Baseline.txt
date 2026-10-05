@@ -1,0 +1,19 @@
+Note: Google Test filter = A240.DISABLED_B10_*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A240
+[ RUN      ] A240.DISABLED_B10_Baseline
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] B10 two runs in one process are byte-identical: yes
+[a240] B10 output FNV-64 3e0aa952d2fc9252, format 1, 3072x3072, flags 0x201c
+[a240] B10 wrote D:/workspace-github/xpe-pre/build/a241b/b10\baseline\wrist_lat_3072x3072_corrected_f32le.raw (37748736 bytes)
+[       OK ] A240.DISABLED_B10_Baseline (600 ms)
+[----------] 1 test from A240 (600 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (600 ms total)
+[  PASSED  ] 1 test.

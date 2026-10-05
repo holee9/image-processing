@@ -15,7 +15,7 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <chrono>
+#include <cstdint>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -141,34 +141,16 @@ namespace {
     }
 
     /**
-     * SRS-CALIB-SAFE-002 / FUNC-009 (QA-A-241, #245): a file is checked for expiry when it is loaded, and again here, every frame:
-     * a map that expired while it was loaded must stop the frame, not keep correcting it. Every loaded map is judged, the bypassed
-     * ones too ("any loaded calibration file"). A file whose expiry is 0 never expires. Nothing is read or written before this
-     * refusal. Same clock and unit as the loader (system_clock, epoch ms).
+     * Whether [a, a + aBytes) and [b, b + bBytes) share a byte -- computed on addresses as integers, and safe when a range would
+     * run past the end of the address space (such a range is treated as extending to the end, so an absurd size can only make the
+     * answer "overlap", never wrap to "no overlap"). A zero-length range overlaps nothing.
      */
-    XpeErrorCode check_loaded_expiry(const CalibSnapshot& calib) {
-        const int64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::system_clock::now().time_since_epoch()).count();
-        const struct { const char* name; bool loaded; int64_t expiry; } maps[] = {
-            {"offset", calib.offset_map != nullptr, calib.offset_expiry_ms},
-            {"gain", calib.gain_map != nullptr || calib.gain_poly_coeffs != nullptr, calib.gain_expiry_ms},
-            {"defect", calib.defect_map != nullptr, calib.defect_expiry_ms},
-        };
-        for (const auto& m : maps) {
-            if (!m.loaded || m.expiry == 0 || now <= m.expiry) continue;
-            try {
-                char msg[240];
-                std::snprintf(msg, sizeof(msg),
-                    "XPE_ERR_CALIBRATION_EXPIRED: the loaded %s calibration expired %lld ms ago; the frame was not processed",
-                    m.name, static_cast<long long>(now - m.expiry));
-                msg[sizeof(msg) - 1] = '\0';
-                xpe_alert_push(msg, XPE_ALERT_ERROR);
-            } catch (...) {
-                // [no-throw-boundary] advisory: the refusal does not depend on the alert
-            }
-            return XPE_ERR_CALIBRATION_EXPIRED;
-        }
-        return XPE_OK;
+    bool ranges_overlap(const void* a, size_t aBytes, const void* b, size_t bBytes) {
+        if (aBytes == 0 || bBytes == 0) return false;
+        const uintptr_t ua = reinterpret_cast<uintptr_t>(a), ub = reinterpret_cast<uintptr_t>(b);
+        const uintptr_t aEnd = aBytes > UINTPTR_MAX - ua ? UINTPTR_MAX : ua + aBytes;
+        const uintptr_t bEnd = bBytes > UINTPTR_MAX - ub ? UINTPTR_MAX : ub + bBytes;
+        return ua < bEnd && ub < aEnd;
     }
 
     /**
@@ -240,13 +222,17 @@ namespace {
         if (out) {
             // Separate output (SAFE-004): the input only has to hold the input; the room for the result is the output buffer's.
             if (img->dataSize == 0) return XPE_ERR_INVALID_INPUT;
-            if (!out->data || out->data == img->data) return XPE_ERR_INVALID_INPUT;
+            if (!out->data) return XPE_ERR_INVALID_INPUT;
+            // Codex #157: not only the same pointer -- any shared byte between the input buffer (as the caller declares it) and the
+            // bytes the result will occupy. The result written over part of the input would destroy it (and memcpy of overlapping
+            // ranges is undefined). Nothing has been read or written yet.
+            if (ranges_overlap(img->data, img->dataSize, out->data, outputBytes)) return XPE_ERR_INVALID_INPUT;
             if (out->dataSize < outputBytes) return XPE_ERR_BUFFER_TOO_SMALL;
         } else if (img->dataSize < outputBytes) {
             return XPE_ERR_BUFFER_TOO_SMALL;
         }
         // SRS-CALIB-SAFE-002: a map that expired after it was loaded stops the frame, before anything is read or written.
-        const XpeErrorCode expiryRc = check_loaded_expiry(calib);
+        const XpeErrorCode expiryRc = xpe_calib_snapshot_expiry_check(calib, XPE_EXPIRY_ALL);
         if (expiryRc != XPE_OK) return expiryRc;
         note_bypass(cfg, meta);
 

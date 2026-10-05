@@ -35,6 +35,7 @@ set(XPE_PREPROCESS_SOURCES
     src/xpe_calib_mode.cpp       # SWU-1.12 Calibration Mode Selection (FUNC-031~033)
     # XCal v1 calibration API (T-006..T-009)
     src/xpe_calibration.cpp         # global g_calib + g_calib_mutex definitions
+    src/calib_expiry_check.cpp      # snapshot expiry check (QA-A-241); also compiled into the tests
     src/xpe_calib_load_offset.cpp   # T-006: 1-arg load offset (XCal v1)
     src/xpe_calib_load_gain.cpp     # T-006: 1-arg load gain (XCal v1)
     src/xpe_calib_load_defect_map.cpp # T-006: 1-arg load defect map (XCal v1)
@@ -510,6 +511,7 @@ if(_XPE_BUILD_TESTS)
         src/xpe_sha256_backend.cpp    # Sha256Stream is not exported from the DLL
         src/xcal_validator.cpp
         src/helpers.cpp               # xpe_interpolate_pixel is not exported from the DLL (QA-A-172)
+        src/calib_expiry_check.cpp    # not exported from the DLL: the tests call it with the clock at the boundary (QA-A-241)
     )
 
     target_include_directories(xpe_preprocess_tests

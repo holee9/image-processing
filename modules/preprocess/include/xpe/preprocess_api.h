@@ -467,6 +467,12 @@ XPE_API XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* dark_frames
  *         XPE_ERR_OUT_OF_MEMORY on allocation failure
  * @note One dose level, degree 0: accepted by every calibration mode; under
  *       XPE_CALIB_AUTO the mode recorded is XPE_CALIB_SINGLE_POINT.
+ * @note The frames are averaged in ADU, NOT normalised one by one first (step 2 is a plain mean of the dark-corrected frames). The
+ *       map is therefore a dose-weighted mean: a frame with twice the signal counts twice as much, and when frames of different
+ *       dose or of different acquisition conditions are mixed, the largest-dose frames set the large-scale shape of the map and no
+ *       single frame is matched by it (QA-A-242: six CalData_6 flats mixed this way leave 1.2 to 3.3 % residual; one condition's
+ *       frames leave 0.3 % at scales of 16 pixels and up). Give the generator frames of ONE acquisition condition; for several
+ *       doses use xpe_calib_generate_gain_polynomial. This is documented behaviour, not a defect to be changed silently.
  */
 XPE_API XpeErrorCode xpe_calib_generate_gain(const XpeImageBuffer* flat_frames,
                                              int32_t num_frames,
