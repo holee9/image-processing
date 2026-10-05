@@ -529,39 +529,42 @@ void copy_session(char* dst64, const char* src64) noexcept
 // QA-A-229 M4 (#245): a hit must give the verdict a miss would, and a miss runs the plain loader's session
 // check against the maps loaded NOW -- so a hit runs the same check (under the same lock, before anything is
 // installed). A refused hit leaves the store as it was and returns XPE_ERR_CONFIG_INVALID.
-XpeErrorCode install_offset(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
-                            int64_t timestamp, const char* sessionId64)
+// QA-A-241c (Codex #158): a hit installs the entry's EXPIRY and the never-expires state with the map, under the same lock. Before, a hit
+// replaced the map and left the previous file's expiry in the store, so a map that was about to expire could be corrected with by
+// an expiry of 0 ("never") until the next plain load -- and the other way round.
+XpeErrorCode install_offset(std::unique_ptr<float[]> map, const XpeImageBuffer& d, const EntryMeta& meta)
 {
     bool warnSession = false;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
-        const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Offset, sessionId64, &warnSession);
+        const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Offset, meta.sessionId, &warnSession);
         if (src != XPE_OK) return src;
         g_calib.offset_map       = std::move(map);
         g_calib.offset_width     = d.width;
         g_calib.offset_height    = d.height;
-        g_calib.offset_timestamp = timestamp;
-        copy_session(g_calib.offset_session_id, sessionId64);
+        g_calib.offset_timestamp = meta.timestamp;
+        g_calib.offset_expiry_ms = meta.expiryMs;
+        xpe_calib_note_expiry_locked(CalibMapKind::Offset, meta.expiryMs);
+        copy_session(g_calib.offset_session_id, meta.sessionId);
     }
     xpe_calib_session_warn(warnSession);
     return XPE_OK;
 }
 
-XpeErrorCode install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
-                          int64_t timestamp, const char* sessionId64, const XpeCalibQualityMeta* quality,
-                          std::shared_ptr<uint32_t[]> defects, uint32_t defectCount)
+XpeErrorCode install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d, const EntryMeta& meta)
 {
     // The store holds the map as a shared_ptr; the control block is allocated here, before the lock, so a
     // failure to allocate it leaves the store untouched.
     std::shared_ptr<float[]> shared(std::move(map));
     bool warnSession = false;
     {
+    const XpeCalibQualityMeta* const quality = meta.hasQuality ? &meta.quality : nullptr;
     std::lock_guard<std::mutex> lock(g_calib_mutex);
-    const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Gain, sessionId64, &warnSession);
+    const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Gain, meta.sessionId, &warnSession);
     if (src != XPE_OK) return src;
     g_calib.gain_map = std::move(shared);
-    g_calib.gain_defect_idx   = std::move(defects);   // a hit installs the classification the load made (QA-A-211)
-    g_calib.gain_defect_count = defectCount;
+    g_calib.gain_defect_idx   = meta.gainDefects;   // a hit installs the classification the load made (QA-A-211)
+    g_calib.gain_defect_count = meta.gainDefectCount;
     g_calib.gain_poly_coeffs.reset();
     g_calib.gain_poly_num_coeffs = 0;
     g_calib.gain_poly_has_range  = false;
@@ -569,8 +572,10 @@ XpeErrorCode install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
     g_calib.gain_poly_dose_max   = 0.0;
     g_calib.gain_width     = d.width;
     g_calib.gain_height    = d.height;
-    g_calib.gain_timestamp = timestamp;
-    copy_session(g_calib.gain_session_id, sessionId64);
+    g_calib.gain_timestamp = meta.timestamp;
+    g_calib.gain_expiry_ms = meta.expiryMs;
+    xpe_calib_note_expiry_locked(CalibMapKind::Gain, meta.expiryMs);
+    copy_session(g_calib.gain_session_id, meta.sessionId);
     // The quality of THIS file, beside its map, in the same critical section (nothrow): the file-quality copy the
     // cache publishes with the map, and the record the module serves. A hit on a file with no quality metadata
     // overwrites both with "none" -- it must not leave the previous file's values behind (QA-A-202e, Codex #38 A1/A2).
@@ -586,17 +591,19 @@ XpeErrorCode install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
     return XPE_OK;
 }
 
-XpeErrorCode install_defect(std::unique_ptr<uint8_t[]> map, const XpeImageBuffer& d, const char* sessionId64)
+XpeErrorCode install_defect(std::unique_ptr<uint8_t[]> map, const XpeImageBuffer& d, const EntryMeta& meta)
 {
     bool warnSession = false;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
-        const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Defect, sessionId64, &warnSession);
+        const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Defect, meta.sessionId, &warnSession);
         if (src != XPE_OK) return src;
         g_calib.defect_map    = std::move(map);
         g_calib.defect_width  = d.width;
         g_calib.defect_height = d.height;
-        copy_session(g_calib.defect_session_id, sessionId64);
+        g_calib.defect_expiry_ms = meta.expiryMs;
+        xpe_calib_note_expiry_locked(CalibMapKind::Defect, meta.expiryMs);
+        copy_session(g_calib.defect_session_id, meta.sessionId);
     }
     xpe_calib_session_warn(warnSession);
     return XPE_OK;
@@ -639,7 +646,7 @@ try
         if (state == HitState::Unreadable) return XPE_ERR_IO_FAILED;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
         if (state == HitState::Hit) {
-            const XpeErrorCode irc = install_offset(std::move(pixels), view, meta.timestamp, meta.sessionId);
+            const XpeErrorCode irc = install_offset(std::move(pixels), view, meta);
             if (irc != XPE_OK) return irc;
             std::memcpy(offsetMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;
@@ -714,8 +721,7 @@ try
         if (state == HitState::Unreadable) return XPE_ERR_IO_FAILED;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
         if (state == HitState::Hit) {
-            const XpeErrorCode irc = install_gain(std::move(pixels), view, meta.timestamp, meta.sessionId,
-                         meta.hasQuality ? &meta.quality : nullptr, meta.gainDefects, meta.gainDefectCount);
+            const XpeErrorCode irc = install_gain(std::move(pixels), view, meta);
             if (irc != XPE_OK) return irc;
             std::memcpy(gainMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;
@@ -808,7 +814,7 @@ try
         if (state == HitState::Unreadable) return XPE_ERR_IO_FAILED;
         if (state == HitState::Expired) return XPE_ERR_CALIBRATION_EXPIRED;
         if (state == HitState::Hit) {
-            const XpeErrorCode irc = install_defect(std::move(pixels), view, meta.sessionId);
+            const XpeErrorCode irc = install_defect(std::move(pixels), view, meta);
             if (irc != XPE_OK) return irc;
             std::memcpy(defectMapOut, &view, sizeof(XpeImageBuffer));
             return XPE_OK;

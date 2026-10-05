@@ -227,6 +227,11 @@ XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath);
  *          functions are what refuse an uninitialized module -- pinned by CalibLoadTest.LoadBeforeInit_AllThreeLoadersAcceptValidFiles)
  *         XPE_ERR_IO_FAILED on file read error
  *         XPE_ERR_CONFIG_INVALID if the file's session id conflicts with a loaded offset or gain map
+ *
+ * Defect density (SRS-CALIB-FUNC-003, "Maximum 5% defect density tolerance"): a map with MORE than 5 % of its pixels marked defective is
+ * loaded and reported once with the alert "XPE_WARN_DEFECT_MAP_OVER_LIMIT: ..." (XPE_ALERT_WARNING) -- the SRS gives the tolerance, not
+ * the behaviour above it, and the defect stage is documented to fill dense masks (the union of the map with the gain-classified pixels
+ * is reported at frame time the same way). Exactly 5 % raises nothing. The cached loader reports it on the load that fills the cache.
  */
 XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath);
 

@@ -104,9 +104,10 @@ std::vector<std::string> g_offenders;
 
 /**
  * QA-A-241 (SRS-CALIB-FUNC-009): loading a calibration file whose expiry is 0 raises XPE_WARN_NO_EXPIRY, once per state, by design --
- * and the maps most fixtures write carry expiry 0. That advisory is the load's own report, not state a test chose to leave, so a
- * queue that holds NOTHING BUT it is drained here, before the comparison. Any other alert, or any alert beside it, is still
- * reported exactly as before.
+ * and the maps most fixtures write carry expiry 0. QA-A-241c (SRS-CALIB-FUNC-003): loading a defect map with more than 5 % of its pixels
+ * marked raises XPE_WARN_DEFECT_MAP_OVER_LIMIT, once per load, by design -- and the fixtures of the defect-fill tests write dense masks on
+ * purpose. Those advisories are the load's own report, not state a test chose to leave, so a queue that holds NOTHING BUT them is
+ * drained here, before the comparison. Any other alert, or any alert beside them, is still reported exactly as before.
  */
 void DrainNoExpiryAdvisoryOnly() {
     const int32_t n = xpe_get_pending_alert_count();
@@ -115,7 +116,7 @@ void DrainNoExpiryAdvisoryOnly() {
     for (int32_t i = 0; i < n; ++i) {
         int32_t sev = -1;
         if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) != XPE_OK) return;
-        if (std::strncmp(msg, "XPE_WARN_NO_EXPIRY:", 19) != 0) return;
+        if (std::strncmp(msg, "XPE_WARN_NO_EXPIRY:", 19) != 0 && std::strncmp(msg, "XPE_WARN_DEFECT_MAP_OVER_LIMIT:", 31) != 0) return;
     }
     xpe_clear_alerts();
 }

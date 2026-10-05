@@ -238,6 +238,16 @@ constexpr float XPE_GAIN_APPLIED_MAX = 10.0f;
  *  Candidates and measurements: .moai/reports/lane-pre/QA-A-241/report.md. The lead confirms the value. */
 constexpr double XPE_GAIN_DEFECT_MAX_FRACTION = 0.05;
 
+/**
+ * The largest fraction of a defect map (BPM) that may be marked defective: SRS-CALIB-FUNC-003, "Maximum 5% defect density tolerance"
+ * (QA-A-241c, Codex #158). The SRS gives the tolerance and not the behaviour above it. A map over it is LOADED and reported once at load
+ * with the warning XPE_WARN_DEFECT_MAP_OVER_LIMIT -- never refused -- as the union of the map with the gain-classified pixels already is at frame
+ * time (XPE_WARN_DEFECT_UNION_OVER_LIMIT, QA-A-211 decision D1: "the frame is corrected, but the correction fills a large part from
+ * neighbours"). A refusal (XPE_ERR_INVALID_CALIB_DATA, like a gain map over its bound) is one line away and is the lead's decision; it would
+ * also make the dense masks the fill-stage tests use unloadable. The comparison is strictly greater than: exactly 5 % is within tolerance.
+ */
+constexpr double XPE_DEFECT_MAP_MAX_FRACTION = 0.05;
+
 /** What a scan of a scalar gain map found (QA-A-211): the pixels whose gain is outside the range, which are classified defective. */
 struct XpeGainScan {
     uint64_t count{0};     ///< pixels outside [XPE_GAIN_APPLIED_MIN, XPE_GAIN_APPLIED_MAX], non-finite included

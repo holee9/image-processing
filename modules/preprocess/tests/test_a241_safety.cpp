@@ -88,14 +88,14 @@ protected:
         const std::vector<float> v(kN, 100.0f);
         return write(name, XCAL_TYPE_OFFSET, XCAL_FMT_FLOAT32, v.data(), kN * sizeof(float), expiryMs);
     }
-    std::string gainFile(int64_t expiryMs) {
+    std::string gainFile(int64_t expiryMs, const char* name = "gain.xcal") {
         const std::vector<float> v(kN, 1.0f);
-        return write("gain.xcal", XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, v.data(), kN * sizeof(float), expiryMs);
+        return write(name, XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, v.data(), kN * sizeof(float), expiryMs);
     }
-    std::string defectFile(int64_t expiryMs) {
+    std::string defectFile(int64_t expiryMs, const char* name = "defect.xcal") {
         std::vector<uint8_t> v(kN, 0);
         v[100] = 1;
-        return write("defect.xcal", XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, v.data(), kN, expiryMs);
+        return write(name, XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, v.data(), kN, expiryMs);
     }
     void loadAll(int64_t offsetExp, int64_t gainExp, int64_t defectExp) {
         ASSERT_EQ(XPE_OK, xpe_calib_load_offset(offsetFile(offsetExp).c_str()));
@@ -469,6 +469,152 @@ TEST_F(A241Safety, AnExpiredMapStopsAllFourPipelineEntryPoints) {
     // the entry that reads the three files itself refuses the expired FILE while loading it
     XpeImageBuffer viaPath = bufferOf(frame.data(), kN * sizeof(float));
     EXPECT_EQ(XPE_ERR_CALIBRATION_EXPIRED, xpe_preprocess_pipeline(&viaPath, &meta, dir_.string().c_str(), nullptr, kCfg)) << "pipeline (calibPath)";
+}
+
+// ---------------------------------------------------------------- Codex #158 (1): a cache HIT installs the entry's expiry with the map
+// Two files of one kind with different expiries (the same session, the same size), moved between the store and the cache.
+TEST_F(A241Safety, ACacheHitInstallsTheExpiryOfTheMapItInstalls) {
+    const char* kinds[] = {"offset", "gain", "defect"};
+    for (int k = 0; k < 3; ++k) {
+        SCOPED_TRACE(kinds[k]);
+        xpe_preprocess_shutdown();
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+        // the other two maps never expire, so only this kind's expiry can stop a frame
+        loadAll(0, 0, 0);
+        const int64_t soon = nowMs() + 1500;
+        std::string soonPath, foreverPath;
+        auto cached = [&](const std::string& path) -> int {
+            XpeImageBuffer view{};
+            if (k == 0) return xpe_calib_load_offset_cached(path.c_str(), &view);
+            if (k == 1) return xpe_calib_load_gain_cached(path.c_str(), &view);
+            return xpe_calib_load_defect_cached(path.c_str(), &view);
+        };
+        auto plain = [&](const std::string& path) -> int {
+            return k == 0 ? xpe_calib_load_offset(path.c_str()) : k == 1 ? xpe_calib_load_gain(path.c_str()) : xpe_calib_load_defect_map(path.c_str());
+        };
+        auto make = [&](int64_t expiry, const char* name) -> std::string {
+            return k == 0 ? offsetFile(expiry, name) : k == 1 ? gainFile(expiry, name) : defectFile(expiry, name);
+        };
+        soonPath = make(soon, "soon.xcal");
+        foreverPath = make(0, "forever.xcal");
+        // the call that must judge expiry, for this kind and for the pipeline
+        auto frameRc = [&]() -> int {
+            std::vector<float> frame(kN, 1000.0f);
+            std::vector<uint16_t> raw(kN, 1500);
+            std::memcpy(frame.data(), raw.data(), kN * sizeof(uint16_t));
+            XpeImageBuffer img = bufferOf(frame.data(), kN * sizeof(float));
+            XpeImageMetadata meta{};
+            return xpe_preprocess_pipeline_ex(&img, &meta, nullptr, nullptr, kCfg);
+        };
+        auto stageRc = [&]() -> int {
+            std::vector<uint16_t> raw(kN, 1500), o16(kN);
+            std::vector<float> fin(kN, 1000.0f), outF(kN);
+            XpeImageMetadata meta{};
+            if (k == 0) {
+                const XpeImageBuffer in = bufferOf(raw.data(), kN * 2);
+                XpeImageBuffer out = bufferOf(o16.data(), kN * 2);
+                return xpe_offset_correct(&in, &out, &meta);
+            }
+            if (k == 1) {
+                const XpeImageBuffer in = bufferOf(raw.data(), kN * 2);
+                XpeImageBuffer out = bufferOf(outF.data(), kN * 4, XPE_PIXEL_FLOAT32);
+                return xpe_gain_correct(&in, &out, &meta);
+            }
+            const XpeImageBuffer in = bufferOf(fin.data(), kN * 4, XPE_PIXEL_FLOAT32);
+            XpeImageBuffer out = bufferOf(outF.data(), kN * 4, XPE_PIXEL_FLOAT32);
+            return xpe_defect_correct(&in, &out, &meta);
+        };
+
+        // (a) the entry that is about to expire goes into the cache, then the NEVER-expiring file replaces it in the store through the
+        //     plain loader, then the cached entry is installed again by a HIT: the store must now hold ITS expiry
+        ASSERT_EQ(XPE_OK, cached(soonPath));
+        ASSERT_EQ(XPE_OK, plain(foreverPath));
+        ASSERT_EQ(XPE_OK, cached(soonPath)) << "a hit";
+        EXPECT_EQ(XPE_OK, frameRc()) << "before the entry expires";
+        EXPECT_EQ(XPE_OK, stageRc());
+        std::this_thread::sleep_for(std::chrono::milliseconds(1700));
+        xpe_clear_alerts();
+        EXPECT_EQ(XPE_ERR_CALIBRATION_EXPIRED, frameRc()) << "after it: the pipeline refuses (before the fix the store still said 'never expires')";
+        EXPECT_EQ(XPE_ERR_CALIBRATION_EXPIRED, stageRc()) << "and so does the single-stage function";
+        EXPECT_EQ(2, countAlerts("XPE_ERR_CALIBRATION_EXPIRED:")) << "one alert per refused call";
+        EXPECT_EQ(2, countAlerts(kinds[k])) << "each names the map";
+
+        // (b) the other direction: the store holds the soon-to-expire file (plain load), a hit installs the NEVER-expiring cached entry:
+        //     the store must now say 'never expires', not keep the other file's expiry
+        xpe_preprocess_shutdown();
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+        loadAll(0, 0, 0);
+        const int64_t soon2 = nowMs() + 1200;
+        const std::string soon2Path = make(soon2, "soon2.xcal");
+        ASSERT_EQ(XPE_OK, cached(foreverPath));
+        ASSERT_EQ(XPE_OK, plain(soon2Path));
+        ASSERT_EQ(XPE_OK, cached(foreverPath)) << "a hit";
+        std::this_thread::sleep_for(std::chrono::milliseconds(1400));
+        EXPECT_EQ(XPE_OK, frameRc()) << "the map the hit installed never expires: the other file's expiry must not stop the frame";
+        EXPECT_EQ(XPE_OK, stageRc());
+    }
+}
+
+TEST_F(A241Safety, ACacheHitReportsAndResetsTheNeverExpiresState) {
+    // the never-expires warning state is part of what a hit installs, under the same lock
+    xpe_clear_alerts();
+    const std::string forever = offsetFile(0, "f.xcal");
+    const std::string soon = offsetFile(nowMs() + 600000, "s.xcal");
+    XpeImageBuffer view{};
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached(forever.c_str(), &view));
+    EXPECT_EQ(1, countAlerts("XPE_WARN_NO_EXPIRY:")) << "the load that fills the cache reports it once";
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset(soon.c_str()));       // ends the never-expires state
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached(forever.c_str(), &view));   // a hit: the store is a never-expiring map again
+    EXPECT_EQ(1, countAlerts("XPE_WARN_NO_EXPIRY:")) << "the hit installed a never-expiring map: reported again, as a plain load would";
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached(forever.c_str(), &view));   // a hit on the same state
+    EXPECT_EQ(0, countAlerts("XPE_WARN_NO_EXPIRY:")) << "the same state is not reported again";
+}
+
+// ---------------------------------------------------------------- Codex #158 (3): the defect density tolerance of SRS-CALIB-FUNC-003
+TEST_F(A241Safety, ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot) {
+    // SRS-CALIB-FUNC-003: "Maximum 5% defect density tolerance" (the SRS gives the tolerance, not the behaviour above it: the map is
+    // loaded and reported, as the union with the gain-classified pixels already is). 100 x 100 = 10000 pixels: 500 is exactly 5 %.
+    const uint32_t S = 100;
+    const size_t n = static_cast<size_t>(S) * S;
+    struct Case { size_t marked; bool rle; bool warns; };
+    const Case cases[] = {{0, false, false}, {499, false, false}, {500, false, false}, {501, false, true}, {3000, false, true},
+                          {500, true, false}, {501, true, true}, {3000, true, true}};
+    for (const auto& c : cases) {
+        SCOPED_TRACE(std::to_string(c.marked) + (c.rle ? " (RLE)" : ""));
+        std::vector<uint8_t> v(n, 0);
+        for (size_t i = 0; i < c.marked; ++i) v[(i * 7919) % n] = static_cast<uint8_t>(1 + i % 4);
+        size_t marked = 0;
+        for (const uint8_t b : v) marked += (b != 0);
+        ASSERT_EQ(c.marked, marked) << "the fixture marks exactly the intended number of pixels";
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        std::memcpy(hdr.session_id, "a241", 5);
+        hdr.version = XCAL_VERSION;
+        hdr.type = XCAL_TYPE_DEFECT;
+        hdr.pixel_format = XCAL_FMT_UINT8_MASK;
+        hdr.width = S;
+        hdr.height = S;
+        hdr.payload_len = n;
+        const std::string path = (dir_ / "dense.xcal").string();
+        ASSERT_EQ(XPE_OK, c.rle ? write_xcal_file_ex(path.c_str(), hdr, nullptr, 0, v.data(), n, true)
+                                : write_xcal_file(path.c_str(), hdr, nullptr, 0, v.data(), n));
+        xpe_preprocess_shutdown();
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+        xpe_clear_alerts();
+        EXPECT_EQ(XPE_OK, xpe_calib_load_defect_map(path.c_str())) << "loaded either way";
+        EXPECT_EQ(c.warns ? 1 : 0, countAlerts("XPE_WARN_DEFECT_MAP_OVER_LIMIT:"));
+        // the cached loader: the load that fills the cache reports it, a hit on the cached map does not repeat it
+        xpe_clear_alerts();
+        xpe_calib_cache_clear();
+        XpeImageBuffer view{};
+        EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(path.c_str(), &view));
+        EXPECT_EQ(c.warns ? 1 : 0, countAlerts("XPE_WARN_DEFECT_MAP_OVER_LIMIT:")) << "cache miss";
+        xpe_clear_alerts();
+        EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(path.c_str(), &view));
+        EXPECT_EQ(0, countAlerts("XPE_WARN_DEFECT_MAP_OVER_LIMIT:")) << "cache hit: no second report";
+    }
 }
 
 }  // namespace

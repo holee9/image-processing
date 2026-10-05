@@ -1,0 +1,29 @@
+== 0. the fixed tree
+git HEAD: ca1acb4b; working tree files: 9c3e85a1b4c17f9e 74599435bd517a08
+build command: build237.bat xpe_preprocess_tests  (= cmake --build --preset ci-preprocess --target xpe_preprocess_tests)
+BUILD_EXIT=0
+xpe_preprocess.dll sha256 (fixed):  e39ec021d4e2f5aa946fe0c3d047b187057f51cb65d315658f2fad68d184b2e4
+xpe_preprocess_tests.exe sha256 (fixed): 4edc0353df90dfa2700eb840a51b824901304cdc67831cb0fdf3322a395c0d66
+[       OK ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls (9470 ms)
+[       OK ] A241Safety.ACacheHitReportsAndResetsTheNeverExpiresState (9 ms)
+[       OK ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot (36 ms)
+
+== 1. the mutant: a cache hit no longer installs the expiry; the density check never fires
+BUILD_EXIT=0
+xpe_preprocess.dll sha256 (mutant): 6763785a845945e7e235056ced9a7674b06fe234fb538a2292357df2681d5916
+[  FAILED  ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls (9484 ms)
+[  FAILED  ] A241Safety.ACacheHitReportsAndResetsTheNeverExpiresState (8 ms)
+[  FAILED  ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot (38 ms)
+[  FAILED  ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls
+[  FAILED  ] A241Safety.ACacheHitReportsAndResetsTheNeverExpiresState
+[  FAILED  ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot
+
+== 2. restore, touch (the restored copies carry an older mtime than the mutant objects), rebuild
+restored files sha256: 9c3e85a1b4c17f9e 74599435bd517a08
+BUILD_EXIT=0
+xpe_preprocess.dll sha256 (restored): 6749911888ee832d5c2d020a5d136462031b703c16a7eafe70b06502425b65dc
+xpe_preprocess_tests.exe sha256 (restored): 4edc0353df90dfa2700eb840a51b824901304cdc67831cb0fdf3322a395c0d66
+[       OK ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls (9463 ms)
+[       OK ] A241Safety.ACacheHitReportsAndResetsTheNeverExpiresState (10 ms)
+[       OK ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot (38 ms)
+git diff of the two sources against the pre-mutation working tree is empty by construction (copied back byte for byte).

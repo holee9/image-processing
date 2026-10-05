@@ -14,6 +14,8 @@
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 #include "xcal_reader.hpp"
 
+#include <algorithm>
+#include <cstdio>
 #include <mutex>
 #include <cstring>
 #include <vector>
@@ -65,6 +67,25 @@ XpeErrorCode xpe_calib_stage_defect(const char* filepath, StagedDefect* out) noe
         staged.width    = hdr.width;
         staged.height   = hdr.height;
         staged.expiryMs = hdr.expiry_epoch_ms;
+
+        // SRS-CALIB-FUNC-003: the density tolerance. Counted on the map as it will be used, whatever the file's encoding (raw or RLE),
+        // before anything is committed; the cached loader's miss runs this same loader, and a hit can only hold a map that was loaded by it
+        // (so a hit on an over-limit map repeats nothing: the warning belongs to the load).
+        {
+            const size_t total = static_cast<size_t>(hdr.width) * hdr.height;
+            const uint8_t* const cells = staged.map.get();
+            const size_t marked = static_cast<size_t>(std::count_if(cells, cells + total, [](uint8_t b) { return b != 0; }));
+            if (static_cast<double>(marked) > XPE_DEFECT_MAP_MAX_FRACTION * static_cast<double>(total)) {
+                char msg[320];
+                std::snprintf(msg, sizeof(msg),
+                    "XPE_WARN_DEFECT_MAP_OVER_LIMIT: %llu of %llu pixel(s) (%.3f%%) are marked defective, above the %.1f%% defect density "
+                    "SRS-CALIB-FUNC-003 tolerates; the map is loaded and the defect stage fills those pixels from their neighbours",
+                    static_cast<unsigned long long>(marked), static_cast<unsigned long long>(total),
+                    100.0 * static_cast<double>(marked) / static_cast<double>(total), 100.0 * XPE_DEFECT_MAP_MAX_FRACTION);
+                msg[sizeof(msg) - 1] = 0;
+                xpe_alert_push(msg, XPE_ALERT_WARNING);
+            }
+        }
         std::memcpy(staged.sessionId, hdr.session_id,
                     sizeof(hdr.session_id) < sizeof(staged.sessionId) ? sizeof(hdr.session_id)
                                                                       : sizeof(staged.sessionId) - 1);
