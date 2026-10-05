@@ -245,15 +245,11 @@ P('weighted sum of the residual maps (weights = generator weights; zero by const
 
 # ---- the same maps as numbers (the PNG files are ignored by .gitignore; this text is what gets tracked)
 with open(OUT.replace('.txt', '_tile_maps.txt'), 'w', encoding='utf-8') as f:
-    f.write('tile (64x64 px) mean of flat_j / gain, percent from the flat mean; 48 rows (top to bottom) x 48 columns (left to right); "  ." = tile mostly masked
-')
+    f.write('tile (64x64 px) mean of flat_j / gain, percent from the flat mean; 48 rows (top to bottom) x 48 columns (left to right); a dot = tile mostly masked'+chr(10))
     for j in range(6):
-        f.write('
-%s mean %.1f ADU, residual %.3f %%
-' % (names[j], m[j], pct(Y[j])))
+        f.write(chr(10) + '%s mean %.1f ADU, residual %.3f percent' % (names[j], m[j], pct(Y[j])) + chr(10))
         for yv in range(nt):
-            f.write(' '.join(('%5.1f' % Rm[j][yv, xv]) if good[yv, xv] else '    .' for xv in range(nt)) + '
-')
+            f.write(' '.join(('%5.1f' % Rm[j][yv, xv]) if good[yv, xv] else '    .' for xv in range(nt)) + chr(10))
 # ---- picture
 try:
     from PIL import Image, ImageDraw
