@@ -1,0 +1,52 @@
+Note: Google Test filter = A240.DISABLED_B9_*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A240
+[ RUN      ] A240.DISABLED_B9_LoadTime
+[a240] B9 files: offset 37748950 B, gain 37749092 B, defect 9437336 B
+[a240] B9 load  1: offset 43.6 gain 46.4 defect 10.4 total 100.3 ms
+[a240] B9 load  2: offset 42.1 gain 47.4 defect 10.2 total 99.7 ms
+[a240] B9 load  3: offset 41.5 gain 46.7 defect 10.1 total 98.3 ms
+[a240] B9 load  4: offset 40.3 gain 47.9 defect 11.4 total 99.5 ms
+[a240] B9 load  5: offset 40.0 gain 45.2 defect 10.1 total 95.2 ms
+[a240] B9 load  6: offset 39.6 gain 45.5 defect 9.9 total 95.0 ms
+[a240] B9 load  7: offset 40.7 gain 48.5 defect 10.5 total 99.7 ms
+[a240] B9 load  8: offset 39.7 gain 45.4 defect 10.1 total 95.3 ms
+[a240] B9 load  9: offset 39.9 gain 45.0 defect 9.8 total 94.7 ms
+[a240] B9 load 10: offset 40.0 gain 45.5 defect 10.1 total 95.6 ms
+[a240] B9 load 11: offset 39.4 gain 46.4 defect 10.1 total 95.9 ms
+[a240] B9 load 12: offset 41.4 gain 46.4 defect 10.1 total 97.9 ms
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240] B9 offset  first 43.6 ms; over 12 loads min 39.4 median 40.3 max 43.6 ms
+[a240] B9 gain    first 46.4 ms; over 12 loads min 45.0 median 46.4 max 48.5 ms
+[a240] B9 defect  first 10.4 ms; over 12 loads min 9.8 median 10.1 max 11.4 ms
+[a240] B9 total   first 100.3 ms; over 12 loads min 94.7 median 97.9 max 100.3 ms
+[       OK ] A240.DISABLED_B9_LoadTime (1205 ms)
+[----------] 1 test from A240 (1205 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1205 ms total)
+[  PASSED  ] 1 test.

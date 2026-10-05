@@ -1,0 +1,31 @@
+Note: Google Test filter = A240.DISABLED_B2_GainLoadAndRange
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A240
+[ RUN      ] A240.DISABLED_B2_GainLoadAndRange
+[a240] B2 real gain map: 37749092 bytes on disk, 3072x3072, payload 4.00 bytes per pixel; mean 1.0000 min 0.0000 max 15.4126; below 0.1: 42024 above 10: 2 non-finite: 0
+[a240] load the real gain map                                     rc=0 XPE_OK (47.0 ms)
+[a240]     alert (after load of the real gain map, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240] load a 64x64 gain map with one pixel 0.05 (below 0.1)      rc=0 XPE_OK
+[a240]     alert (range, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 1 of 4096 pixel(s) (0.024%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect correction s
+[a240] xpe_gain_correct with that map (pixel 100 -> 1000.000, pixel 101 -> 1000.000) rc=0 XPE_OK
+[a240] load a 64x64 gain map with one pixel 20.0 (above 10.0)     rc=0 XPE_OK
+[a240]     alert (range, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 1 of 4096 pixel(s) (0.024%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect correction s
+[a240] xpe_gain_correct with that map (pixel 100 -> 1000.000, pixel 101 -> 1000.000) rc=0 XPE_OK
+[a240] load a 64x64 gain map with one pixel 0.0 (zero)            rc=0 XPE_OK
+[a240]     alert (range, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 1 of 4096 pixel(s) (0.024%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect correction s
+[a240] xpe_gain_correct with that map (pixel 100 -> 1000.000, pixel 101 -> 1000.000) rc=0 XPE_OK
+[a240] load a 64x64 gain map with one pixel NaN                   rc=0 XPE_OK
+[a240]     alert (range, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 1 of 4096 pixel(s) (0.024%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect correction s
+[a240] xpe_gain_correct with that map (pixel 100 -> 1000.000, pixel 101 -> 1000.000) rc=0 XPE_OK
+[a240] load a 64x64 gain map with one pixel -1.0 (negative)       rc=0 XPE_OK
+[a240]     alert (range, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 1 of 4096 pixel(s) (0.024%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect correction s
+[a240] xpe_gain_correct with that map (pixel 100 -> 1000.000, pixel 101 -> 1000.000) rc=0 XPE_OK
+[a240] load a 1024x1024 gain map                                  rc=0 XPE_OK
+[a240] xpe_gain_correct 3072x3072 frame with the 1024x1024 map loaded rc=-1 XPE_ERR_INVALID_INPUT
+[       OK ] A240.DISABLED_B2_GainLoadAndRange (154 ms)
+[----------] 1 test from A240 (154 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (154 ms total)
+[  PASSED  ] 1 test.

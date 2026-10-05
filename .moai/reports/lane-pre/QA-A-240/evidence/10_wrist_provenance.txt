@@ -1,0 +1,13 @@
+wrist file bytes 18874368 sha256 C823233F2196A217F4512BFEC47E62A17F003CC894EF7947E1F40DD0B59A3D70
+wrist    min 2481 max 15451 mean 4705.5 std 826.6 p0.1/1/50/99/99.9 [2517. 2627. 5032. 5459. 5499.]
+dark     min 2432 max 16383 mean 2503.1 std 13.5 p0.1/1/50/99/99.9 [2483. 2484. 2505. 2516. 2520.]
+bright01 min 0 max 65533 mean 2883.2 std 331.6 p0.1/1/50/99/99.9 [  86. 1342. 2955. 3215. 3238.]
+bright02 min 0 max 13563 mean 5014.6 std 557.6 p0.1/1/50/99/99.9 [ 144. 2264. 5129. 5539. 5579.]
+bright03 min 0 max 65485 mean 350.6 std 58.6 p0.1/1/50/99/99.9 [ 10. 147. 357. 390. 397.]
+bright04 min 0 max 65161 mean 867.4 std 96.5 p0.1/1/50/99/99.9 [ 23. 365. 885. 949. 961.]
+bright05 min 0 max 65254 mean 1395.7 std 151.9 p0.1/1/50/99/99.9 [  37.  586. 1424. 1524. 1540.]
+bright06 min 0 max 13563 mean 2196.2 std 235.7 p0.1/1/50/99/99.9 [  60.  923. 2241. 2393. 2416.]
+wrist saturated (>=65535) 0  zeros 0
+column-profile highpass corr wrist~dark 0.45940734397759553  row 0.8950374450212666
+control column hp corr bright02~bright03 0.48600910519855334  dark~bright03 0.1352344088556079
+BPMap pixels 23505  wrist |dx| at BP pixels mean 28.061476281642204  elsewhere 13.423472055930525
