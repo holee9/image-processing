@@ -1,0 +1,12 @@
+Note: Google Test filter = A241Measure.DISABLED_B10v2_Baseline
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A241Measure
+[ RUN      ] A241Measure.DISABLED_B10v2_Baseline
+[a241] B10v2 wrote D:/workspace-github/xpe-pre/build/a243/run2\wrist_lat_3072x3072_corrected_v2_f32le.raw (37748736 bytes), FNV-64 748e960ae1cb7874, format 1, 3072x3072, flags 0x201c
+[       OK ] A241Measure.DISABLED_B10v2_Baseline (1791 ms)
+[----------] 1 test from A241Measure (1792 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1792 ms total)
+[  PASSED  ] 1 test.

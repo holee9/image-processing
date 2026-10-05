@@ -1,0 +1,43 @@
+== the new reference image (float32, little endian, 3072x3072)
+finite 9437184 of 9437184; NaN 0; Inf 0
+min 78.11  p0.1 114.01  p1 139.76  median 2514.67  p99 2833.78  p99.9 3284.69  max 3711.78  mean 2198.175
+
+== new (gain from flats 4,5,6) minus old (gain from all six flats), per pixel, in ADU of the float output
+mean difference +7.1792  std 55.3324  mean |diff| 40.1839  max |diff| 650.449
+|diff| quantiles: p50 32.238  p90 83.528  p99 153.318  p99.9 386.135  p99.99 538.309
+relative |diff| (to the old value, floor 1 ADU): mean 1.8112 %  p99 5.833 %  max 21.50 %
+pixels with |diff| > 1 ADU: 9137793 (96.83 %); > 10 ADU: 7150994 (75.775 %); > 100 ADU: 446599 (4.7323 %); identical bytes: 9
+std of the difference averaged over   1x1   blocks: 55.3324 ADU
+std of the difference averaged over  16x16  blocks: 52.9339 ADU
+std of the difference averaged over  64x64  blocks: 50.8810 ADU
+std of the difference averaged over 256x256 blocks: 49.8794 ADU
+the difference averaged over 256x256 blocks (12x12 map, ADU; rows top to bottom):
+   -68.73  -80.93  -79.26  -75.81  -70.23  -32.35   -5.66  -18.03  -24.47   -9.49   -3.72   -0.51
+   -67.20  -83.16  -80.93  -73.73  -65.19  -22.78   -5.38  -28.64  -39.46  -30.80  -18.05   -0.88
+   -62.41  -76.42  -72.00  -62.08  -50.61  -11.82   -4.67  -23.51  -21.69  -16.41   -8.76   10.51
+   -53.60  -66.00  -61.44  -48.08  -37.67   -7.94   -5.23  -11.14   -5.93    0.28    5.88   23.64
+   -44.28  -55.92  -49.97  -37.49  -26.75   -6.44   -3.75   -0.80    4.97   11.87   19.54   36.84
+   -33.23  -45.65  -40.12  -28.73  -19.19   -4.35   -0.03    6.01   13.56   21.94   32.14   50.08
+   -21.58  -33.38  -28.23  -19.36   -9.13   -0.75    7.02   16.49   24.78   33.12   45.37   64.28
+    -8.09  -20.05  -16.45   -7.83    2.87    1.55   13.27   28.52   38.21   46.93   60.88   80.97
+     5.62   -6.70   -3.72    4.27   12.93    2.50   25.45   40.34   49.96   60.40   74.66   97.70
+    22.21    8.02    9.21   15.18   23.15    8.12   39.58   52.61   60.79   73.91   88.92  116.06
+    44.30   27.31   25.35   28.86   36.67   20.79   56.23   65.97   75.32   89.00  107.84  138.79
+    69.61   52.46   48.10   49.50   56.95   42.89   73.19   86.71   96.63  111.85  133.47  167.68
+
+== PNG (display only): 16 bit grey, linear window  139.760 .. 2833.780 ADU  (p1 .. p99)  ->  0 .. 65535; read back identical to the array: True
+values clipped below the window: 1.00 %, above: 1.00 %
+
+sha256 v2 raw   d152e8ebba2cba142a95ba7ba981354a393fa18551b46572d8b1c3f36e8fdfd4
+sha256 v2 png   b97741bbb933a0caeb2644a9999fd45ccd8526ea6fd2f6a038c54c66a29a3fa9
+sha256 v2 raw from a second from-scratch run: d152e8ebba2cba142a95ba7ba981354a393fa18551b46572d8b1c3f36e8fdfd4  (identical: True)
+sha256 old baseline (m1-baseline, gain from all six flats): 42e78facd6cd75edbb59d26b9be1cca313d431d07900e3064cd472c068d1ef02
+
+== background of the wrist frame (256x256 block medians in air, away from the limb): the field gradient the flats do not remove
+block                  raw-offset(ADU)   v2(ADU)   old(ADU)
+left-top                         1767.0     1915.4     1995.3
+left-middle                      2401.0     2391.9     2430.8
+left-bottom                      2421.0     2560.0     2516.5
+right-middle (below the arm)     2727.0     2642.0     2600.4
+right-bottom                     2687.0     2808.9     2681.8
+v2 background rises 47 % from the top-left to the bottom-right block (old: 34 %; raw minus offset: 52 %). The flats (4,5,6) themselves vary 27 % across the frame (256-block means 0.818 .. 1.087 of the mean) and the gain divides that out; what remains is a ~47 % gradient the flats do not contain.
