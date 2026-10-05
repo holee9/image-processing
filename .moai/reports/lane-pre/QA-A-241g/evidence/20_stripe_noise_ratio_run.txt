@@ -1,0 +1,52 @@
+git HEAD: 9c167a87; definition commit 9c167a87 ancestor: yes
+xpe_preprocess.dll sha256: 22372948887d092ec5c0285dcd6e1bf9665f2d275a4e00fc0c14aa7456605f41
+xpe_preprocess_tests.exe sha256: 42c4f7eea7283ecd7e66451f2adc508644030e96913791d334e80e0ba7d3f45a
+[a241g] control C1 white noise: row ratio 1.0191 col ratio 1.0089 (sigma_h 18.498 sigma_v 18.501, S_row 0.3349 E_row 0.3286, S_col 0.3316 E_col 0.3287)
+[a241g] control C1 row: 1.0191 expected in [0.9500, 1.0500] ok
+[a241g] control C1 col: 1.0089 expected in [0.9500, 1.0500] ok
+[a241g] control C2 a=2.5 row: 2.7069 expected in [2.5310, 2.8541] ok
+[a241g] control    (other axis, col): 1.0078 expected in [0.9500, 1.0500] ok
+[a241g] control C2 a=2.5 row: verdict StripeNoiseRatio 2.707 <= 3 -> pass (expected pass)
+[a241g] control C2 a=3.2 row: 3.3086 expected in [3.1515, 3.5538] ok
+[a241g] control    (other axis, col): 1.0072 expected in [0.9500, 1.0500] ok
+[a241g] control C2 a=3.2 row: verdict StripeNoiseRatio 3.309 <= 3 -> fail (expected fail)
+[a241g] control C2 a=5.0 row: 5.1237 expected in [4.7931, 5.4050] ok
+[a241g] control    (other axis, col): 1.0047 expected in [0.9500, 1.0500] ok
+[a241g] control C2 a=5.0 row: verdict StripeNoiseRatio 5.124 <= 3 -> fail (expected fail)
+[a241g] control C3 a=2.5 col: 2.7453 expected in [2.5310, 2.8541] ok
+[a241g] control    (other axis, row): 1.0180 expected in [0.9500, 1.0500] ok
+[a241g] control C3 a=2.5 col: verdict StripeNoiseRatio 2.745 <= 3 -> pass (expected pass)
+[a241g] control C3 a=3.2 col: 3.3261 expected in [3.1515, 3.5538] ok
+[a241g] control    (other axis, row): 1.0175 expected in [0.9500, 1.0500] ok
+[a241g] control C3 a=3.2 col: verdict StripeNoiseRatio 3.326 <= 3 -> fail (expected fail)
+[a241g] control C3 a=5.0 col: 5.1373 expected in [4.7931, 5.4050] ok
+[a241g] control    (other axis, row): 1.0149 expected in [0.9500, 1.0500] ok
+[a241g] control C3 a=5.0 col: verdict StripeNoiseRatio 5.137 <= 3 -> fail (expected fail)
+[a241g] control C4 shading row: 1.0241 expected in [0.9500, 1.1000] ok
+[a241g] control C4 shading col: 1.0128 expected in [0.9500, 1.1000] ok
+[a241g] control C5 ROI with holes row: 1.0196 expected in [0.9500, 1.0500] ok
+[a241g] control C5 ROI with holes col: 1.0068 expected in [0.9500, 1.0500] ok
+[a241g] control C6 (not gated) AR(1) rho 0.3 along rows: row ratio 1.6251 (predicted 1.6288), col ratio 1.0019 (predicted 1) as predicted: the method over-reads along-row correlated noise by this factor
+[a241g] controls C1..C5 within tolerance: the instrument is valid
+[a241g] held out flat4 (gain from flat5+flat6) final output, ROI A (judged): row S 0.3263 / E 0.1226 = 2.663 (sigma_h 6.898) | col S 0.2430 / E 0.1218 = 1.995 (sigma_v 6.854) | StripeNoiseRatio 2.663 <= 3 -> PASS
+[a241g] held out flat4 ROI B (defect-map pixels out; reported, not judged): row 3.472 col 1.991 -> 3.472 | gain bypassed, ROI A (reported, criterion not applied): row 153.8 col 177.7
+[a241g] held out flat5 (gain from flat4+flat6) final output, ROI A (judged): row S 0.4523 / E 0.1679 = 2.694 (sigma_h 9.449) | col S 0.3906 / E 0.1667 = 2.343 (sigma_v 9.386) | StripeNoiseRatio 2.694 <= 3 -> PASS
+[a241g] held out flat5 ROI B (defect-map pixels out; reported, not judged): row 4.216 col 2.333 -> 4.216 | gain bypassed, ROI A (reported, criterion not applied): row 177.0 col 206.9
+[a241g] held out flat6 (gain from flat4+flat5) final output, ROI A (judged): row S 0.6114 / E 0.2450 = 2.495 (sigma_h 13.792) | col S 0.5607 / E 0.2434 = 2.304 (sigma_v 13.700) | StripeNoiseRatio 2.495 <= 3 -> PASS
+[a241g] held out flat6 ROI B (defect-map pixels out; reported, not judged): row 3.196 col 2.301 -> 3.196 | gain bypassed, ROI A (reported, criterion not applied): row 197.1 col 232.8
+[a241g] all three flats pass: YES
+[       OK ] A241Measure.DISABLED_B6_StripeNoiseRatio (4039 ms)
+---- FlatResidualPct (protocol 5.3, 241d method)
+[a241c] B6 protocol 5.3, held out flat4, gain from flat5+flat6
+    FlatResidualPct final output 1.067 % (mean 867.4 ADU)
+[a241c] B6 protocol 5.3, held out flat5, gain from flat4+flat6
+    FlatResidualPct final output 0.910 % (mean 1395.8 ADU)
+[a241c] B6 protocol 5.3, held out flat6, gain from flat4+flat5
+    FlatResidualPct final output 0.844 % (mean 2196.4 ADU)
+---- FPN (241e harness)
+[a241e] held out flat4, gain from flat5+flat6 | ROI 9437183 px | flat mean 867.4 ADU (< 2000) | FlatResidualPct 1.067 % [> 1.0] | std(R) 96.08 ADU std(Y) 9.26 ADU | FPN_Reduction_dB 20.32 [>= 10] (R=offset-corrected: 20.15) | LineArtifactScore tile64: final 0.9722, gain bypassed 0.9503, offset only 1.0206, ratio final/gain-bypassed 1.0230 [<= 1.10] | tile32: final 0.5072 / gain bypassed 0.8630 / offset only 0.9163 | tile128: final 1.7670 / gain bypassed 1.0240 / offset only 1.1089 | ratio vs offset only (tile64) 0.9525 | all three accepted: NO
+[a241e] held out flat5, gain from flat4+flat6 | ROI 9437183 px | flat mean 1395.7 ADU (< 2000) | FlatResidualPct 0.910 % [<= 1.0] | std(R) 151.75 ADU std(Y) 12.70 ADU | FPN_Reduction_dB 21.55 [>= 10] (R=offset-corrected: 21.47) | LineArtifactScore tile64: final 0.9231, gain bypassed 0.9505, offset only 1.0207, ratio final/gain-bypassed 0.9712 [<= 1.10] | tile32: final 0.4951 / gain bypassed 0.8631 / offset only 0.9163 | tile128: final 1.6355 / gain bypassed 1.0243 / offset only 1.1091 | ratio vs offset only (tile64) 0.9043 | all three accepted: YES
+[a241e] held out flat6, gain from flat4+flat5 | ROI 9437183 px | flat mean 2196.2 ADU (>= 2000) | FlatResidualPct 0.844 % [<= 1.0] | std(R) 236.66 ADU std(Y) 18.53 ADU | FPN_Reduction_dB 22.12 [>= 10] (R=offset-corrected: 22.09) | LineArtifactScore tile64: final 0.9491, gain bypassed 0.9505, offset only 1.0208, ratio final/gain-bypassed 0.9985 [<= 1.10] | tile32: final 0.5287 / gain bypassed 0.8632 / offset only 0.9164 | tile128: final 1.6176 / gain bypassed 1.0243 / offset only 1.1092 | ratio vs offset only (tile64) 0.9298 | all three accepted: YES
+---- B10
+42e78facd6cd75edbb59d26b9be1cca313d431d07900e3064cd472c068d1ef02
+d152e8ebba2cba142a95ba7ba981354a393fa18551b46572d8b1c3f36e8fdfd4

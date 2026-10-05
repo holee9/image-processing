@@ -1,0 +1,42 @@
+DRAFT TEXT FOR THE EVALUATION PROTOCOL, section 5.3 (QA-A-241g, proposed by lane pre, to be moved into
+docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md by the leader)
+
+Replace the LineArtifactScore formula and its acceptance line with the following.
+
+----------------------------------------------------------------------------------------------------
+
+```text
+r[y]   = mean of Y over the ROI pixels of row y        (rows with no ROI pixel are left out)
+c[x]   = mean of Y over the ROI pixels of column x     (columns with no ROI pixel are left out)
+h[k]   = p[k] - mean(p[a..b]),  a = max(0, k-16),  b = min(L-1, k+16)     for a profile p of length L
+S_row  = population std of h computed from r        S_col = population std of h computed from c
+
+sigma_h = population std of ( Y[y][x] - Y[y][x+1] ) over horizontal neighbour pairs that are both in the ROI, divided by sqrt(2)
+sigma_v = population std of ( Y[y][x] - Y[y+1][x] ) over vertical   neighbour pairs that are both in the ROI, divided by sqrt(2)
+
+g(L)   = mean over k = 0..L-1 of ( 1 - 1/m_k ),  m_k = b - a + 1            (about 1 - 1/33 in the interior)
+E_row  = sigma_h * sqrt(g(L_row)) / sqrt(n_row)      n_row = mean number of ROI pixels per profiled row
+E_col  = sigma_v * sqrt(g(L_col)) / sqrt(n_col)      n_col = mean number of ROI pixels per profiled column
+
+StripeNoiseRatio = max( S_row / E_row , S_col / E_col )
+```
+
+`Y` is the corrected image (final output of the pipeline). The ROI is the one defined above for `FlatResidualPct`
+(every pixel whose gain value is finite and greater than zero; no crop, no edge exclusion, no defect-pixel exclusion).
+`E_row` and `E_col` are the row-profile and column-profile standard deviations that pixel noise alone would give, so a
+`StripeNoiseRatio` of 1 means the row and column means are explained by pixel noise and a ratio of K means the
+row/column component is K times larger than that.
+
+The `sigma_h` of a row estimate is unaffected by row stripes (they cancel in horizontal differences), and `sigma_v` of
+a column estimate is unaffected by column stripes. A noise that is correlated along the direction of the differences is
+estimated too small (for AR(1) noise with correlation 0.3 along a row the row ratio of a pure-noise image is about 1.63).
+
+Acceptance default (replaces "line artifact score shall not increase by more than 10% from the pre-gain corrected image"):
+
+- `StripeNoiseRatio <= 3` for every flat frame of the fixture evidence. The minimum-signal condition of
+  `FlatResidualPct` (mean over the ROI of at least 2000 ADU) does not apply to this criterion.
+
+Record of origin: the value 3 was decided by the project owner on 2026-10-05 after measurements showed the row/column
+component of the final output at 2.2 to 2.7 times the pixel-noise expectation (QA-A-241e, QA-A-241f). The previous
+criterion (a ratio of two tile-based scores) could not be evaluated without choosing a tile size and a reference
+image the protocol did not define, and its outcome depended on both (QA-A-241e, QA-A-241f).
