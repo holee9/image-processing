@@ -1,0 +1,13 @@
+Note: Google Test filter = A241Safety.ARefused*:A241Safety.AnOverLimit*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from A241Safety
+[ RUN      ] A241Safety.ARefusedDefectLoadLeavesTheAlertQueueAndTheStoreAsItFoundThem
+[       OK ] A241Safety.ARefusedDefectLoadLeavesTheAlertQueueAndTheStoreAsItFoundThem (41 ms)
+[ RUN      ] A241Safety.AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce
+[       OK ] A241Safety.AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce (22 ms)
+[----------] 2 tests from A241Safety (64 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (64 ms total)
+[  PASSED  ] 2 tests.

@@ -68,23 +68,17 @@ XpeErrorCode xpe_calib_stage_defect(const char* filepath, StagedDefect* out) noe
         staged.height   = hdr.height;
         staged.expiryMs = hdr.expiry_epoch_ms;
 
-        // SRS-CALIB-FUNC-003: the density tolerance. Counted on the map as it will be used, whatever the file's encoding (raw or RLE),
-        // before anything is committed; the cached loader's miss runs this same loader, and a hit can only hold a map that was loaded by it
-        // (so a hit on an over-limit map repeats nothing: the warning belongs to the load).
+        // SRS-CALIB-FUNC-003: the density tolerance. Counted on the map as it will be used, whatever the file's encoding (raw or RLE), and only
+        // RECORDED here: the warning is raised after the commit (xpe_calib_after_defect_commit), because a load can still be refused after this
+        // point (a session conflict) and a refused load must leave the alert queue as it found it (Codex #159). The cached loader's miss runs the
+        // plain loader; a hit installs a map that was loaded by it, so a hit repeats nothing: the warning belongs to the load.
         {
             const size_t total = static_cast<size_t>(hdr.width) * hdr.height;
             const uint8_t* const cells = staged.map.get();
             const size_t marked = static_cast<size_t>(std::count_if(cells, cells + total, [](uint8_t b) { return b != 0; }));
-            if (static_cast<double>(marked) > XPE_DEFECT_MAP_MAX_FRACTION * static_cast<double>(total)) {
-                char msg[320];
-                std::snprintf(msg, sizeof(msg),
-                    "XPE_WARN_DEFECT_MAP_OVER_LIMIT: %llu of %llu pixel(s) (%.3f%%) are marked defective, above the %.1f%% defect density "
-                    "SRS-CALIB-FUNC-003 tolerates; the map is loaded and the defect stage fills those pixels from their neighbours",
-                    static_cast<unsigned long long>(marked), static_cast<unsigned long long>(total),
-                    100.0 * static_cast<double>(marked) / static_cast<double>(total), 100.0 * XPE_DEFECT_MAP_MAX_FRACTION);
-                msg[sizeof(msg) - 1] = 0;
-                xpe_alert_push(msg, XPE_ALERT_WARNING);
-            }
+            staged.total = total;
+            staged.marked = marked;
+            staged.overLimit = static_cast<double>(marked) > XPE_DEFECT_MAP_MAX_FRACTION * static_cast<double>(total);
         }
         std::memcpy(staged.sessionId, hdr.session_id,
                     sizeof(hdr.session_id) < sizeof(staged.sessionId) ? sizeof(hdr.session_id)
@@ -97,6 +91,23 @@ XpeErrorCode xpe_calib_stage_defect(const char* filepath, StagedDefect* out) noe
         return XPE_ERR_OUT_OF_MEMORY;
     } catch (...) {
         return XPE_ERR_PROCESSING_FAILED;
+    }
+}
+
+void xpe_calib_after_defect_commit(const StagedDefect& staged) noexcept {
+    if (!staged.overLimit) return;
+    try {
+        char msg[320];
+        std::snprintf(msg, sizeof(msg),
+            "XPE_WARN_DEFECT_MAP_OVER_LIMIT: %llu of %llu pixel(s) (%.3f%%) are marked defective, above the %.1f%% defect density "
+            "SRS-CALIB-FUNC-003 tolerates; the map is loaded and the defect stage fills those pixels from their neighbours",
+            static_cast<unsigned long long>(staged.marked), static_cast<unsigned long long>(staged.total),
+            staged.total ? 100.0 * static_cast<double>(staged.marked) / static_cast<double>(staged.total) : 0.0,
+            100.0 * XPE_DEFECT_MAP_MAX_FRACTION);
+        msg[sizeof(msg) - 1] = 0;
+        xpe_alert_push(msg, XPE_ALERT_WARNING);
+    } catch (...) {
+        // [no-throw-boundary] advisory: lost under memory pressure
     }
 }
 
@@ -127,6 +138,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath) 
             xpe_calib_commit_defect_locked(staged);
         }
         xpe_calib_session_warn(warnSession);
+        xpe_calib_after_defect_commit(staged);   // only now: the map is installed
         return XPE_OK;
 
     } catch (const std::bad_alloc&) {

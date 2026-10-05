@@ -650,6 +650,7 @@ static XpeErrorCode load_calibration_set(const char* calibPath, CalibSnapshot* s
 #endif
     xpe_calib_session_warn(warnSession);
     xpe_calib_after_gain_commit(gain);
+    xpe_calib_after_defect_commit(defect);   // only now: the set is installed (a refused set raises nothing)
     return XPE_OK;
 }
 

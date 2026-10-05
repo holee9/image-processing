@@ -708,6 +708,12 @@ struct StagedDefect {
     uint32_t height{0};
     int64_t  expiryMs{0};
     char     sessionId[64]{};   ///< the file's session_id (QA-A-229 M4); was read by nobody before
+    // QA-A-241d (Codex #159): what the density count found. The stage only RECORDS it; the warning is raised by
+    // xpe_calib_after_defect_commit once the map is really installed, so a load that is refused later (a session conflict) leaves
+    // the alert queue as it found it.
+    uint64_t marked{0};         ///< pixels marked defective
+    uint64_t total{0};          ///< pixels in the map
+    bool     overLimit{false};  ///< marked / total above XPE_DEFECT_MAP_MAX_FRACTION
 };
 
 /** Read, validate and allocate; changes no global. Never throws. */
@@ -805,6 +811,14 @@ void xpe_calib_commit_defect_locked(StagedDefect& staged) noexcept;
  * committed with the maps, in xpe_calib_commit_gain_locked -- QA-A-202d.)
  */
 void xpe_calib_after_gain_commit(const StagedGain& staged) noexcept;
+
+/**
+ * What follows a committed defect-map load, after g_calib_mutex was released: the over-limit warning (SRS-CALIB-FUNC-003, XPE_WARN_DEFECT_MAP_OVER_LIMIT)
+ * when the staged map was above the density tolerance. Called ONLY after the commit succeeded, by every path that commits a defect map (the plain
+ * loader and the set load; the cached loader's miss runs the plain loader, a hit installs a map that was loaded before), so a refused load never
+ * says "the map is loaded". Advisory: never throws.
+ */
+void xpe_calib_after_defect_commit(const StagedDefect& staged) noexcept;
 
 /**
  * Whether the calibration cache's list and index describe the same entries (every list node has its

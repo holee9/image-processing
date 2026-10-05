@@ -53,6 +53,7 @@ uint64_t digestOf(const void* p, size_t bytes) {
 class A241Safety : public ::testing::Test {
 protected:
     fs::path dir_;
+    const char* session_ = "a241";   // the session id the next written file carries
 
     void SetUp() override {
         dir_ = fs::temp_directory_path() / "xpe_a241_safety";
@@ -72,7 +73,7 @@ protected:
     std::string write(const char* name, XCalType type, XCalPixelFormat fmt, const void* data, size_t bytes, int64_t expiryMs) {
         XCalFileHeader hdr{};
         std::memcpy(hdr.magic, XCAL_MAGIC, 4);
-        std::memcpy(hdr.session_id, "a241", 5);
+        std::memcpy(hdr.session_id, session_, std::strlen(session_) + 1);
         hdr.version = XCAL_VERSION;
         hdr.type = static_cast<uint32_t>(type);
         hdr.pixel_format = static_cast<uint32_t>(fmt);
@@ -615,6 +616,101 @@ TEST_F(A241Safety, ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIs
         EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(path.c_str(), &view));
         EXPECT_EQ(0, countAlerts("XPE_WARN_DEFECT_MAP_OVER_LIMIT:")) << "cache hit: no second report";
     }
+}
+
+// ---------------------------------------------------------------- Codex #159: a REFUSED load raises nothing and changes nothing
+TEST_F(A241Safety, ARefusedDefectLoadLeavesTheAlertQueueAndTheStoreAsItFoundThem) {
+    loadAll(0, 0, 0);   // the good set, session "a241"
+    auto frameDigest = [&]() -> uint64_t {
+        std::vector<float> frame(kN);
+        std::vector<uint16_t> raw(kN);
+        fillRaw(raw);
+        std::memcpy(frame.data(), raw.data(), kN * sizeof(uint16_t));
+        XpeImageBuffer img = bufferOf(frame.data(), kN * sizeof(float));
+        XpeImageMetadata meta{};
+        EXPECT_EQ(XPE_OK, xpe_preprocess_pipeline_ex(&img, &meta, nullptr, nullptr, kCfg));
+        return digestOf(frame.data(), kN * sizeof(float));
+    };
+    const uint64_t before = frameDigest();
+    xpe_clear_alerts();
+
+    // a dense (over-limit) defect map of ANOTHER session
+    session_ = "other";
+    std::vector<uint8_t> dense(kN, 0);
+    for (size_t i = 0; i < 400; ++i) dense[(i * 7) % kN] = 1;
+    const std::string denseOther = write("dense_other.xcal", XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, dense.data(), kN, 0);
+    session_ = "a241";
+
+    // (1) the plain loader
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_calib_load_defect_map(denseOther.c_str()));
+    EXPECT_EQ(0, xpe_get_pending_alert_count()) << "a refused plain load raises nothing (before: it said 'the map is loaded')";
+    EXPECT_EQ(before, frameDigest()) << "and the stored defect map is the one from before";
+    xpe_clear_alerts();
+
+    // (2) the cached loader, a miss (it runs the plain loader), twice: a refused file is not cached
+    XpeImageBuffer view{};
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_calib_load_defect_cached(denseOther.c_str(), &view));
+    EXPECT_EQ(0, xpe_get_pending_alert_count());
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_calib_load_defect_cached(denseOther.c_str(), &view)) << "still refused: nothing was cached";
+    EXPECT_EQ(0, xpe_get_pending_alert_count());
+    EXPECT_EQ(before, frameDigest());
+    xpe_clear_alerts();
+
+    // (3) the set path: offset and gain of session "a241", the defect map of session "other" and over the limit
+    const fs::path setDir = dir_ / "set";
+    fs::create_directories(setDir);
+    {
+        const std::vector<float> off(kN, 100.0f), gn(kN, 1.0f);
+        const fs::path keep = dir_;
+        dir_ = setDir;
+        write("offset.xcal", XCAL_TYPE_OFFSET, XCAL_FMT_FLOAT32, off.data(), kN * sizeof(float), 0);
+        write("gain.xcal", XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, gn.data(), kN * sizeof(float), 0);
+        session_ = "other";
+        write("defect.xcal", XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, dense.data(), kN, 0);
+        session_ = "a241";
+        dir_ = keep;
+    }
+    std::vector<float> frame(kN);
+    std::vector<uint16_t> raw(kN);
+    fillRaw(raw);
+    std::memcpy(frame.data(), raw.data(), kN * sizeof(uint16_t));
+    XpeImageBuffer img = bufferOf(frame.data(), kN * sizeof(float));
+    XpeImageMetadata meta{};
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_preprocess_pipeline(&img, &meta, setDir.string().c_str(), nullptr, kCfg)) << "the set is refused";
+    EXPECT_EQ(0, xpe_get_pending_alert_count()) << "the set load contract: the alerts are as the call found them";
+    EXPECT_EQ(before, frameDigest()) << "and the store still holds the set from before";
+    xpe_clear_alerts();
+}
+
+TEST_F(A241Safety, AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce) {
+    // the success paths: the plain loader and the set load (same session)
+    std::vector<uint8_t> dense(kN, 0);
+    for (size_t i = 0; i < 400; ++i) dense[(i * 7) % kN] = 1;
+    const std::string path = write("dense.xcal", XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, dense.data(), kN, 0);
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_map(path.c_str()));
+    EXPECT_EQ(1, countAlerts("XPE_WARN_DEFECT_MAP_OVER_LIMIT:"));
+    xpe_clear_alerts();
+
+    const fs::path setDir = dir_ / "set_ok";
+    fs::create_directories(setDir);
+    {
+        const std::vector<float> off(kN, 100.0f), gn(kN, 1.0f);
+        const fs::path keep = dir_;
+        dir_ = setDir;
+        write("offset.xcal", XCAL_TYPE_OFFSET, XCAL_FMT_FLOAT32, off.data(), kN * sizeof(float), 0);
+        write("gain.xcal", XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, gn.data(), kN * sizeof(float), 0);
+        write("defect.xcal", XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, dense.data(), kN, 0);
+        dir_ = keep;
+    }
+    std::vector<float> frame(kN);
+    std::vector<uint16_t> raw(kN);
+    fillRaw(raw);
+    std::memcpy(frame.data(), raw.data(), kN * sizeof(uint16_t));
+    XpeImageBuffer img = bufferOf(frame.data(), kN * sizeof(float));
+    XpeImageMetadata meta{};
+    EXPECT_EQ(XPE_OK, xpe_preprocess_pipeline(&img, &meta, setDir.string().c_str(), nullptr, kCfg));
+    EXPECT_EQ(1, countAlerts("XPE_WARN_DEFECT_MAP_OVER_LIMIT:")) << "the set load reports the installed map once";
 }
 
 }  // namespace
