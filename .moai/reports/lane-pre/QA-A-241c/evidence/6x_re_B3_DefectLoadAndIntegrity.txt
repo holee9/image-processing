@@ -1,0 +1,34 @@
+Note: Google Test filter = A240.DISABLED_B3_DefectLoadAndIntegrity
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A240
+[ RUN      ] A240.DISABLED_B3_DefectLoadAndIntegrity
+[a240] B3 real defect map (BPMap.map in an XCal file): 9437336 bytes on disk, 3072x3072, masked pixels 23505 = 0.249 %; values: 255:23505
+[a240] load the real defect map                                   rc=0 XPE_OK (12.5 ms)
+[a240]     alert (after load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] one payload bit flipped                                    rc=-4 XPE_ERR_CONFIG_INVALID
+[a240] one header byte flipped (width)                            rc=-4 XPE_ERR_CONFIG_INVALID
+[a240] the stored SHA-256 changed                                 rc=-4 XPE_ERR_CONFIG_INVALID
+[a240] file cut in half                                           rc=-9 XPE_ERR_IO_FAILED
+[a240] magic changed                                              rc=-4 XPE_ERR_CONFIG_INVALID
+[a240] empty file                                                 rc=-9 XPE_ERR_IO_FAILED
+[a240] write the real defect map with RLE                         rc=0 XPE_OK size 14330 bytes
+[a240] load the RLE defect map                                    rc=0 XPE_OK
+[a240]     alert (rle, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] load a 64x64 defect map with 4.0 % masked                  rc=0 XPE_OK
+[a240]     alert (density, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] load a 64x64 defect map with 6.0 % masked                  rc=0 XPE_OK
+[a240]     alert (density, severity 1): XPE_WARN_DEFECT_MAP_OVER_LIMIT: 245 of 4096 pixel(s) (5.981%) are marked defective, above the 5.0% defect density SRS-CALIB-FUNC-003 tolerates; the map is loaded and the defect stage fills t
+[a240]     alert (density, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] load a 64x64 defect map with 30.0 % masked                 rc=0 XPE_OK
+[a240]     alert (density, severity 1): XPE_WARN_DEFECT_MAP_OVER_LIMIT: 1228 of 4096 pixel(s) (29.980%) are marked defective, above the 5.0% defect density SRS-CALIB-FUNC-003 tolerates; the map is loaded and the defect stage fills
+[a240]     alert (density, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] load a 1024x1024 defect map                                rc=0 XPE_OK
+[a240] xpe_defect_correct 3072x3072 frame with the 1024x1024 map loaded rc=-1 XPE_ERR_INVALID_INPUT
+[a240]     alert (defect dimension, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[       OK ] A240.DISABLED_B3_DefectLoadAndIntegrity (186 ms)
+[----------] 1 test from A240 (186 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (186 ms total)
+[  PASSED  ] 1 test.
