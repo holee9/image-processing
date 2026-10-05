@@ -227,6 +227,8 @@ are excluded and counted separately. No centre crop and no edge exclusion is app
 user-approved, issue #220; this is what `xpe_verify_gain` in `modules/preprocess/src/xpe_verify_metrics.cpp`
 already does. Before this note the ROI was named but not defined anywhere in `docs/` or `.moai/specs/`.)
 
+Minimum signal level for judging: a flat frame is used to judge `FlatResidualPct` only when its mean over the ROI is at least **2000 ADU**. Below that level the per-pixel noise alone approaches the 1% target and the metric stops measuring the gain correction. Frames below the level are still reported, marked "below the judging signal level". (Added 2026-10-05, user decision. Recorded honestly: this condition was set AFTER a failure was seen — on CalData_6 the held-out flat 4 (mean about 867 ADU) gave 1.067% while flats 5 and 6 gave 0.910% and 0.844%, QA-A-241c. The noise level used to motivate it is an empirical estimate from spatial residuals, not a temporal noise measurement from repeated frames — Codex #159. Averaging repeated same-dose frames remains the preferred method when such frames exist.)
+
 Acceptance defaults:
 
 - Phase 1 target: `FlatResidualPct <= 1.0%`;
