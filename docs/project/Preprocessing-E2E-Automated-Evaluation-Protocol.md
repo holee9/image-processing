@@ -218,8 +218,35 @@ Acceptance defaults:
 PRNU_CV = std(Y_flat_roi) / max(mean(Y_flat_roi), epsilon)
 FlatResidualPct = 100 * PRNU_CV
 FPN_Reduction_dB = 20 * log10(std(R_flat_roi) / max(std(Y_flat_roi), epsilon))
-LineArtifactScore = max(std(row_mean(Y)), std(col_mean(Y))) / max(std(tile_mean(Y)), epsilon)
 ```
+
+Line/stripe artifact (`StripeNoiseRatio`, replaces the former tile-based `LineArtifactScore`, 2026-10-05):
+
+```text
+r[y]   = mean of Y over the ROI pixels of row y        (rows with no ROI pixel are left out)
+c[x]   = mean of Y over the ROI pixels of column x     (columns with no ROI pixel are left out)
+h[k]   = p[k] - mean(p[a..b]),  a = max(0, k-16),  b = min(L-1, k+16)     for a profile p of length L
+S_row  = population std of h computed from r        S_col = population std of h computed from c
+
+sigma_h = population std of ( Y[y][x] - Y[y][x+1] ) over horizontal neighbour pairs that are both in the ROI, divided by sqrt(2)
+sigma_v = population std of ( Y[y][x] - Y[y+1][x] ) over vertical   neighbour pairs that are both in the ROI, divided by sqrt(2)
+
+g(L)   = mean over k = 0..L-1 of ( 1 - 1/m_k ),  m_k = b - a + 1            (about 1 - 1/33 in the interior)
+E_row  = sigma_h * sqrt(g(L_row)) / sqrt(n_row)      n_row = mean number of ROI pixels per profiled row
+E_col  = sigma_v * sqrt(g(L_col)) / sqrt(n_col)      n_col = mean number of ROI pixels per profiled column
+
+StripeNoiseRatio = max( S_row / E_row , S_col / E_col )
+```
+
+`Y` is the corrected image (final output of the pipeline); the ROI is the `FlatResidualPct` ROI (gain finite and
+greater than zero; no crop, no edge exclusion, no defect-pixel exclusion). `E_row` / `E_col` are the profile standard
+deviations that independent, white pixel noise alone would give; a ratio of 1 means the row/column means are explained
+by such noise, a ratio of K means the row/column component is K times larger. Row stripes cancel in horizontal
+differences and column stripes in vertical differences, so `sigma_h` / `sigma_v` are not inflated by them. Noise that is
+correlated between neighbours biases the estimate: a positive correlation along the difference direction makes sigma
+too small and inflates the ratio (AR(1), rho = 0.3: about 1.63 for a pure-noise image), a negative correlation does the
+opposite (rho = -0.3: about 0.64). A ratio near 1 therefore means "explained by pixel noise" only under the
+independent-white-noise assumption.
 
 `Y_flat_roi` / `R_flat_roi` — the flat-field ROI is **every valid pixel** of the frame, where a pixel is
 valid when its gain-map value is finite and greater than zero; pixels with a non-finite or non-positive gain
@@ -234,7 +261,14 @@ Acceptance defaults:
 - Phase 1 target: `FlatResidualPct <= 1.0%`;
 - release-hardening target: `FlatResidualPct <= 0.5%`;
 - `FPN_Reduction_dB >= 10 dB` for real fixture evidence when raw non-uniformity exists;
-- line artifact score shall not increase by more than 10% from the pre-gain corrected image.
+- `StripeNoiseRatio <= 3` for every flat frame of the fixture evidence; the minimum-signal condition of
+  `FlatResidualPct` does not apply to this criterion. (Replaces "line artifact score shall not increase by more than
+  10% from the pre-gain corrected image". Record of origin: K = 3 was decided by the project owner on 2026-10-05 AFTER
+  measurements showed the row/column component of the final output at 2.2 to 2.7 times the pixel-noise expectation,
+  QA-A-241e/241f. The former criterion could not be evaluated without a tile size and a reference image the protocol
+  did not define, and its outcome depended on both. Known sensitivity, cause not established: on CalData_6 the ratio
+  is 2.50 to 2.69 with this ROI but 3.20 to 4.22 when the about 0.25% defect-map pixels are excluded, QA-A-241g /
+  Codex #163 — a pass under this criterion does not by itself show that no stripe is present.)
 
 ### 5.4 Nonlinearity metrics
 
