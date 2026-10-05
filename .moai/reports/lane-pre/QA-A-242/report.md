@@ -84,7 +84,7 @@
 
 ## 5. 잔여의 공간 모양 (카드 3번)
 
-`evidence/10_flat_residual_analysis_residual_maps.png` (6장의 64×64 타일 평균 잔여, ±6 % 포화)와 `..._gain_and_offset_term.png` (gain 맵 타일 평균과 아핀 모델의 b 항).
+`evidence/10_flat_residual_analysis_residual_maps.png` (6장의 64×64 타일 평균 잔여, ±6 % 포화)와 `..._gain_and_offset_term.png` (gain 맵 타일 평균과 아핀 모델의 b 항). 두 PNG 는 `.gitignore` 때문에 커밋되지 않아서 같은 값을 `..._tile_maps.txt` 에 숫자로 남겼다.
 
 - 평탄 4,5,6 은 위쪽이 붉고(+), 왼쪽 아래에서 오른쪽 위로 가는 대각선 경계를 지나 오른쪽 아래가 푸른(−) **같은 그림**이다. 세 장의 잔여 지도 상관이 1.00 이다.
 - 평탄 3 은 같은 방향이지만 더 뚜렷하다 (V 모양에 가까움).
@@ -118,7 +118,8 @@
 |---|---|
 | `evidence/00_hypotheses_written_before_measuring.md` | 가설·예측·판정 규칙 (측정 전 작성) |
 | `evidence/10_flat_residual_analysis.txt` | 모든 수치 (정의 재현, 규모별 분산, 이상치, 교차 행렬, 타일 모델, 곡면 적합, SVD, 모양 좌표, 묶음 gain, 샷 잡음 k) |
-| `evidence/10_flat_residual_analysis_residual_maps.png` | 평탄 6장의 잔여 지도 |
+| `evidence/10_flat_residual_analysis_tile_maps.txt` | 평탄 6장의 잔여 지도를 숫자로 (48×48 타일, % 단위). 추적되는 증거는 이 파일이다 |
+| `evidence/10_flat_residual_analysis_residual_maps.png` | 같은 지도의 그림. `.gitignore` 가 `*.png` 를 막아서 **커밋되지 않았다**: `flat242.py.txt` 로 다시 만들 수 있다 |
 | `evidence/10_flat_residual_analysis_gain_and_offset_term.png` | gain 맵과 아핀 b 항 |
 | `evidence/flat242.py.txt` | 분석 스크립트 (numpy, PIL) |
 
