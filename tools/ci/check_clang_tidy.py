@@ -144,15 +144,26 @@ def main():
     files = sorted(glob.glob(f'modules/{module}/src/*.cpp'))
     if not files:
         fail(f'no sources under modules/{module}/src: a run over nothing is not a pass')
+    # A finding in a header is reported once by every translation unit that includes it, so summing it across sources
+    # makes its count track the number of .cpp files, and adding a .cpp that includes the header turns every header
+    # finding into a NEW one (main 14226450: one new source raised 28 header identities by exactly 1). Header findings
+    # are therefore counted per translation unit and the largest per-unit count is kept; source-file findings are summed.
+    sources = {relpath(s) for s in files}
     seen = collections.Counter()
     for src in files:
         if os.path.normpath(os.path.abspath(src)).lower() not in known:
             fail(f'{src} has no command in the compile database: it would not be analyzed')
         out = run_tidy(tidy, ['-p', db, '--quiet', *EXTRA, src], src)
+        unit = collections.Counter()
         for m in parse_diagnostics(out, src):
             if not relpath(m['path']).startswith('modules/'):
                 continue  # a finding inside a toolchain or third-party header is not this module's
-            seen[diag_key(m['check'], m['path'], m['msg'], source_line(m['path'], int(m['line'])))] += 1
+            unit[diag_key(m['check'], m['path'], m['msg'], source_line(m['path'], int(m['line'])))] += 1
+        for k, n in unit.items():
+            if k[1] in sources:
+                seen[k] += n
+            else:
+                seen[k] = max(seen[k], n)
     lines = sorted('\t'.join((*k, str(n))) for k, n in seen.items())
     repeated = sorted(k for k, n in seen.items() if n >= 2)
     if write:
