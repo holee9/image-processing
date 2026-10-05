@@ -713,4 +713,89 @@ TEST_F(A241Safety, AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce) {
     EXPECT_EQ(1, countAlerts("XPE_WARN_DEFECT_MAP_OVER_LIMIT:")) << "the set load reports the installed map once";
 }
 
+// ---------------------------------------------------------------- Codex #160: a cache HIT that re-activates an over-limit map reports it
+TEST_F(A241Safety, ACacheHitThatTurnsAWithinToleranceMapIntoAnOverLimitOneReportsItAndARepeatDoesNot) {
+    std::vector<uint8_t> dense(kN, 0), normal(kN, 0);
+    for (size_t i = 0; i < 400; ++i) dense[(i * 7) % kN] = 1;          // ~13 %: over the limit
+    for (size_t i = 0; i < 10; ++i) normal[(i * 7) % kN] = 1;          // well within tolerance
+    const std::string denseA = write("dense_a.xcal", XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, dense.data(), kN, 0);
+    const std::string normalB = write("normal_b.xcal", XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, normal.data(), kN, 0);
+    const char* kWarn = "XPE_WARN_DEFECT_MAP_OVER_LIMIT:";
+    XpeImageBuffer view{};
+
+    xpe_calib_cache_clear();
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(denseA.c_str(), &view));
+    EXPECT_EQ(1, countAlerts(kWarn)) << "A, cache miss: the load reports it";
+    xpe_clear_alerts();
+
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(denseA.c_str(), &view));
+    EXPECT_EQ(0, countAlerts(kWarn)) << "A -> A, cache hit: the installed state does not change, no repeat";
+
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_map(normalB.c_str()));
+    EXPECT_EQ(0, countAlerts(kWarn)) << "B is within tolerance";
+    xpe_clear_alerts();
+
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(denseA.c_str(), &view));
+    EXPECT_EQ(1, countAlerts(kWarn)) << "A -> B -> A, cache hit: the over-limit map is the one in use again (before: no warning)";
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(denseA.c_str(), &view));
+    EXPECT_EQ(0, countAlerts(kWarn)) << "the repeat after that stays quiet";
+
+    // a cached within-tolerance map never reports, hit or miss
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(normalB.c_str(), &view));
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(denseA.c_str(), &view));   // a hit that turns B (within) into A (over): reported, cleared below
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(normalB.c_str(), &view));
+    EXPECT_EQ(0, countAlerts(kWarn)) << "installing a within-tolerance map reports nothing";
+
+    // invalidation: after the cache is cleared the next call is a miss and reports again
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_map(normalB.c_str()));
+    xpe_calib_cache_clear();
+    xpe_clear_alerts();
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(denseA.c_str(), &view));
+    EXPECT_EQ(1, countAlerts(kWarn)) << "after a cache clear: a miss, the load reports it";
+}
+
+TEST_F(A241Safety, ARefusedCacheHitOfAnOverLimitMapLeavesTheAlertQueueAndTheStoreAsItFoundThem) {
+    std::vector<uint8_t> dense(kN, 0);
+    for (size_t i = 0; i < 400; ++i) dense[(i * 7) % kN] = 1;
+    const std::string denseA = write("dense_a2.xcal", XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, dense.data(), kN, 0);   // session "a241"
+    XpeImageBuffer view{};
+    xpe_calib_cache_clear();
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_cached(denseA.c_str(), &view));   // A is in the cache now
+
+    // a whole set of ANOTHER session replaces the store through the set path (offset, gain, a within-tolerance defect map)
+    const fs::path setDir = dir_ / "set_other";
+    fs::create_directories(setDir);
+    {
+        const std::vector<float> off(kN, 100.0f), gn(kN, 1.0f);
+        const std::vector<uint8_t> none(kN, 0);
+        const fs::path keep = dir_;
+        dir_ = setDir;
+        session_ = "other";
+        write("offset.xcal", XCAL_TYPE_OFFSET, XCAL_FMT_FLOAT32, off.data(), kN * sizeof(float), 0);
+        write("gain.xcal", XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, gn.data(), kN * sizeof(float), 0);
+        write("defect.xcal", XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, none.data(), kN, 0);
+        session_ = "a241";
+        dir_ = keep;
+    }
+    auto frameDigest = [&](const char* calibDir) -> uint64_t {
+        std::vector<float> frame(kN);
+        std::vector<uint16_t> raw(kN);
+        fillRaw(raw);
+        std::memcpy(frame.data(), raw.data(), kN * sizeof(uint16_t));
+        XpeImageBuffer img = bufferOf(frame.data(), kN * sizeof(float));
+        XpeImageMetadata meta{};
+        EXPECT_EQ(XPE_OK, xpe_preprocess_pipeline(&img, &meta, calibDir, nullptr, kCfg));
+        return digestOf(frame.data(), kN * sizeof(float));
+    };
+    const uint64_t before = frameDigest(setDir.string().c_str());   // loads the "other" set and processes a frame with it
+    xpe_clear_alerts();
+
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_calib_load_defect_cached(denseA.c_str(), &view)) << "the hit is refused: A is session a241, the store holds 'other'";
+    EXPECT_EQ(0, xpe_get_pending_alert_count()) << "a refused hit raises nothing";
+    EXPECT_EQ(before, frameDigest(nullptr)) << "and the store still holds the 'other' set";
+}
+
 }  // namespace

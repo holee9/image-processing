@@ -1,0 +1,27 @@
+== 0. the fixed tree
+git HEAD: 7b4133fd; source sha256 (first 16): 8e030282ca109062
+build command: build237.bat xpe_preprocess_tests  (= cmake --build --preset ci-preprocess --target xpe_preprocess_tests)
+BUILD_EXIT=0
+xpe_preprocess.dll sha256 (fixed):  ccb777a47a5a0c84455c70edad3c910aa2368face0cc057381cec89c10560df9
+xpe_preprocess_tests.exe sha256 (fixed): 5b13f20ebe803819ab4683f9342bb6f006b55201c2e50ce1b2ee23fff578e5f0
+[       OK ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot (46 ms)
+[       OK ] A241Safety.ACacheHitThatTurnsAWithinToleranceMapIntoAnOverLimitOneReportsItAndARepeatDoesNot (2 ms)
+[       OK ] A241Safety.ARefusedCacheHitOfAnOverLimitMapLeavesTheAlertQueueAndTheStoreAsItFoundThem (11 ms)
+
+== 1. the mutant: a cache hit never reports the over-limit map it re-activates (the behaviour Codex #160 found)
+BUILD_EXIT=0
+xpe_preprocess.dll sha256 (mutant): 3f3196f4607411358a7d5154291e7777a65d9d946f98661e7baec61414f26c5b
+[       OK ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot (35 ms)
+[  FAILED  ] A241Safety.ACacheHitThatTurnsAWithinToleranceMapIntoAnOverLimitOneReportsItAndARepeatDoesNot (2 ms)
+[       OK ] A241Safety.ARefusedCacheHitOfAnOverLimitMapLeavesTheAlertQueueAndTheStoreAsItFoundThem (9 ms)
+[  FAILED  ] A241Safety.ACacheHitThatTurnsAWithinToleranceMapIntoAnOverLimitOneReportsItAndARepeatDoesNot
+
+== 2. restore, touch, rebuild
+restored source sha256 (first 16): 8e030282ca109062
+BUILD_EXIT=0
+xpe_preprocess.dll sha256 (restored): 0f7d93cc61eb9e03a1fdfe912ddf232103402b0fbac3189d11619d237d99eb1b
+xpe_preprocess_tests.exe sha256 (restored): 5b13f20ebe803819ab4683f9342bb6f006b55201c2e50ce1b2ee23fff578e5f0
+[       OK ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot (38 ms)
+[       OK ] A241Safety.ACacheHitThatTurnsAWithinToleranceMapIntoAnOverLimitOneReportsItAndARepeatDoesNot (3 ms)
+[       OK ] A241Safety.ARefusedCacheHitOfAnOverLimitMapLeavesTheAlertQueueAndTheStoreAsItFoundThem (10 ms)
+(the DLL bytes differ between builds of the same source: the linker embeds a timestamp and a debug id; identity is shown by the source hash and the test results.)

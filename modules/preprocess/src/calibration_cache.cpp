@@ -163,6 +163,9 @@ struct EntryMeta {
     bool        hasQuality{false};
     std::shared_ptr<uint32_t[]> gainDefects;   ///< gain only: the pixels classified defective at load (QA-A-211), shared and immutable
     uint32_t    gainDefectCount{0};
+    bool        defectOverLimit{false};   ///< defect only: the map was above the density tolerance when it was loaded (QA-A-241e)
+    uint64_t    defectMarked{0};          ///< defect only: pixels marked defective
+    uint64_t    defectTotal{0};           ///< defect only: pixels in the map
 };
 
 /// NeedOpenCheck / Unreadable are the two steps of the open check (QA-A-203): see get_copy().
@@ -594,18 +597,27 @@ XpeErrorCode install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
 XpeErrorCode install_defect(std::unique_ptr<uint8_t[]> map, const XpeImageBuffer& d, const EntryMeta& meta)
 {
     bool warnSession = false;
+    bool warnDensity = false;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
         const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Defect, meta.sessionId, &warnSession);
         if (src != XPE_OK) return src;
+        // QA-A-241e (Codex #160): a hit installs a map without loading it. The load raised the over-limit warning once; a hit raises it
+        // again only when it turns the installed state from within tolerance to over it, so A (hit) -> A (hit) stays quiet while
+        // A -> normal map B -> A (hit) reports that the over-limit map is the one in use again.
+        warnDensity = meta.defectOverLimit && !g_calib.defect_over_limit;
         g_calib.defect_map    = std::move(map);
         g_calib.defect_width  = d.width;
         g_calib.defect_height = d.height;
         g_calib.defect_expiry_ms = meta.expiryMs;
         xpe_calib_note_expiry_locked(CalibMapKind::Defect, meta.expiryMs);
         copy_session(g_calib.defect_session_id, meta.sessionId);
+        g_calib.defect_over_limit = meta.defectOverLimit;
+        g_calib.defect_marked     = meta.defectMarked;
+        g_calib.defect_total      = meta.defectTotal;
     }
     xpe_calib_session_warn(warnSession);
+    if (warnDensity) xpe_calib_push_defect_over_limit(meta.defectMarked, meta.defectTotal);
     return XPE_OK;
 }
 
@@ -852,6 +864,9 @@ try
         std::memcpy(staging.data(), g_calib.defect_map.get(), staging.size());
         meta.expiryMs = g_calib.defect_expiry_ms;
         std::memcpy(meta.sessionId, g_calib.defect_session_id, sizeof(meta.sessionId));
+        meta.defectOverLimit = g_calib.defect_over_limit;
+        meta.defectMarked    = g_calib.defect_marked;
+        meta.defectTotal     = g_calib.defect_total;
     }
 
     return publish_and_view(std::string(filePath), desc, staging.data(), defectMapOut, meta);

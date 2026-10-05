@@ -94,21 +94,23 @@ XpeErrorCode xpe_calib_stage_defect(const char* filepath, StagedDefect* out) noe
     }
 }
 
-void xpe_calib_after_defect_commit(const StagedDefect& staged) noexcept {
-    if (!staged.overLimit) return;
+void xpe_calib_push_defect_over_limit(uint64_t marked, uint64_t total) noexcept {
     try {
         char msg[320];
         std::snprintf(msg, sizeof(msg),
             "XPE_WARN_DEFECT_MAP_OVER_LIMIT: %llu of %llu pixel(s) (%.3f%%) are marked defective, above the %.1f%% defect density "
             "SRS-CALIB-FUNC-003 tolerates; the map is loaded and the defect stage fills those pixels from their neighbours",
-            static_cast<unsigned long long>(staged.marked), static_cast<unsigned long long>(staged.total),
-            staged.total ? 100.0 * static_cast<double>(staged.marked) / static_cast<double>(staged.total) : 0.0,
-            100.0 * XPE_DEFECT_MAP_MAX_FRACTION);
+            static_cast<unsigned long long>(marked), static_cast<unsigned long long>(total),
+            total ? 100.0 * static_cast<double>(marked) / static_cast<double>(total) : 0.0, 100.0 * XPE_DEFECT_MAP_MAX_FRACTION);
         msg[sizeof(msg) - 1] = 0;
         xpe_alert_push(msg, XPE_ALERT_WARNING);
     } catch (...) {
         // [no-throw-boundary] advisory: lost under memory pressure
     }
+}
+
+void xpe_calib_after_defect_commit(const StagedDefect& staged) noexcept {
+    if (staged.overLimit) xpe_calib_push_defect_over_limit(staged.marked, staged.total);
 }
 
 void xpe_calib_commit_defect_locked(StagedDefect& staged) noexcept {
@@ -118,6 +120,9 @@ void xpe_calib_commit_defect_locked(StagedDefect& staged) noexcept {
     g_calib.defect_expiry_ms = staged.expiryMs;
     xpe_calib_note_expiry_locked(CalibMapKind::Defect, staged.expiryMs);
     std::memcpy(g_calib.defect_session_id, staged.sessionId, sizeof(g_calib.defect_session_id));
+    g_calib.defect_over_limit = staged.overLimit;
+    g_calib.defect_marked     = staged.marked;
+    g_calib.defect_total      = staged.total;
 }
 
 extern "C" XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath) {

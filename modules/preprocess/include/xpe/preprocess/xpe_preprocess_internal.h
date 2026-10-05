@@ -570,6 +570,12 @@ struct CalibrationData {
     uint32_t defect_height{0};
     int64_t  defect_expiry_ms{0};
     char     defect_session_id[64]{};   // QA-A-229 M4: the defect file's session_id, for the consistency check
+    // QA-A-241e (Codex #160): the density of the INSTALLED map. A cache hit re-installs a map without loading it, so it must know whether
+    // the map it replaces was already over the limit (no new warning) and whether the one it installs is (a warning when it turns the
+    // current state from within tolerance to over it).
+    bool     defect_over_limit{false};
+    uint64_t defect_marked{0};
+    uint64_t defect_total{0};
     bool     session_warned{false};     // QA-A-229 M4: the "unspecified session" warning was raised for the current mixed state
 
     // QA-A-111 (#186): SRS-CALIB-FUNC-006-EXT 6a nonlinearity LUT, a flat table
@@ -819,6 +825,9 @@ void xpe_calib_after_gain_commit(const StagedGain& staged) noexcept;
  * says "the map is loaded". Advisory: never throws.
  */
 void xpe_calib_after_defect_commit(const StagedDefect& staged) noexcept;
+
+/** The XPE_WARN_DEFECT_MAP_OVER_LIMIT alert for `marked` of `total` pixels. Advisory: never throws. */
+void xpe_calib_push_defect_over_limit(uint64_t marked, uint64_t total) noexcept;
 
 /**
  * Whether the calibration cache's list and index describe the same entries (every list node has its

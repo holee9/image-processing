@@ -231,7 +231,9 @@ XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath);
  * Defect density (SRS-CALIB-FUNC-003, "Maximum 5% defect density tolerance"): a map with MORE than 5 % of its pixels marked defective is
  * loaded and reported once with the alert "XPE_WARN_DEFECT_MAP_OVER_LIMIT: ..." (XPE_ALERT_WARNING) -- the SRS gives the tolerance, not
  * the behaviour above it, and the defect stage is documented to fill dense masks (the union of the map with the gain-classified pixels
- * is reported at frame time the same way). Exactly 5 % raises nothing. The cached loader reports it on the load that fills the cache.
+ * is reported at frame time the same way). Exactly 5 % raises nothing. The alert is raised only after the map is installed: a load that is
+ * refused (session conflict) raises nothing. The cached loader reports it on the load that fills the cache; a cache hit raises it again only
+ * when it turns the installed map from one within tolerance into an over-limit one (a repeat hit of the same map stays quiet).
  */
 XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath);
 
