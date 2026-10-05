@@ -265,8 +265,17 @@ TEST_F(PipelineExTest, PipelineExNullStateSkipsCalibration) {
                           "\"bypassNonlinearity\":true,\"bypassBinning\":true,"
                           "\"bypassGhost\":true,\"bypassOffset\":true,"
                           "\"bypassGain\":true,\"bypassDefect\":true}";
+    xpe_clear_alerts();
     XpeErrorCode rc = xpe_preprocess_pipeline_ex(&img, &meta, nullptr, nullptr, config);
     EXPECT_EQ(XPE_OK, rc);
+    // QA-A-241 (SRS-CALIB-SAFE-001): an explicit offset/gain bypass is allowed, and the frame says it is uncorrected.
+    EXPECT_NE(0u, meta.flags & XPE_FLAG_CORRECTION_BYPASSED);
+    char msg[300] = {0};
+    int32_t sev = -1;
+    ASSERT_EQ(1, xpe_get_pending_alert_count());
+    ASSERT_EQ(XPE_OK, xpe_get_pending_alert(0, msg, sizeof(msg), &sev));
+    EXPECT_EQ(0, std::strncmp(msg, "XPE_WARN_CORRECTION_BYPASSED:", 29)) << msg;
+    xpe_clear_alerts();
 }
 
 // --- Batch Processing ---

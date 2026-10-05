@@ -484,6 +484,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_zz_a186_probe.cpp         # QA-A-186 (#220) probe: FlatResidualPct mean vs median (DISABLED_)
         tests/test_zz_a187_probe.cpp         # QA-A-187 (#218) probe: xpe_verify_pipeline SNR median vs mean (DISABLED_)
         tests/test_zz_a237b_mem.cpp          # QA-A-237b (#245) probe: memory/time/digest of the shipped pipeline_ex path (DISABLED_)
+        tests/test_a241_safety.cpp
+        tests/test_zz_a241_measure.cpp     # QA-A-241: the gain out-of-range limit measured (DISABLED_, prints facts)
         tests/test_zz_a240_checklist.cpp     # QA-A-240: the stage-1 checklist B1..B10 measured on real data (DISABLED_, prints facts)
         tests/test_output_unchanged_237b.cpp  # QA-A-237b (#245): the memory reductions change no output byte (digests recorded before them)
         tests/test_runtime_detection_rates.cpp

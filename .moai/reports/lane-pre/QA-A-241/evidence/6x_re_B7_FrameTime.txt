@@ -1,0 +1,58 @@
+Note: Google Test filter = A240.DISABLED_B7_FrameTime
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A240
+[ RUN      ] A240.DISABLED_B7_FrameTime
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] B7 default config, real frame, ghost off: first frame 55.0 ms; 39 warm frames min 53.6 median 56.5 p95 61.7 max 62.8 ms (limit 500 ms)
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (timing, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240] B7 basic config, real frame, ghost off: first frame 49.9 ms; 39 warm frames min 47.8 median 54.9 p95 79.9 max 99.5 ms (limit 500 ms)
+[       OK ] A240.DISABLED_B7_FrameTime (5452 ms)
+[----------] 1 test from A240 (5452 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (5452 ms total)
+[  PASSED  ] 1 test.

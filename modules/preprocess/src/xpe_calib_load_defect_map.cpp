@@ -84,6 +84,7 @@ void xpe_calib_commit_defect_locked(StagedDefect& staged) noexcept {
     g_calib.defect_width     = staged.width;
     g_calib.defect_height    = staged.height;
     g_calib.defect_expiry_ms = staged.expiryMs;
+    xpe_calib_note_expiry_locked(CalibMapKind::Defect, staged.expiryMs);
     std::memcpy(g_calib.defect_session_id, staged.sessionId, sizeof(g_calib.defect_session_id));
 }
 

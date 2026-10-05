@@ -166,6 +166,7 @@ static_assert(offsetof(XpeImageMetadata, acquisitionTime) == 80u, "XpeImageMetad
 #define XPE_FLAG_STITCHED                0x00000400u  /**< Image assembled from multiple detector panels (stitching) */
 #define XPE_FLAG_BONE_SUPPRESSED         0x00000800u  /**< Bone suppression (AI premium stage) applied */
 #define XPE_FLAG_GSVG_SKIPPED            0x00001000u  /**< GSVG stage was skipped (e.g. modality does not require it) */
+#define XPE_FLAG_CORRECTION_BYPASSED     0x00004000u  /**< Offset and/or gain correction was explicitly bypassed (bypassOffset / bypassGain): the output is not corrected (SRS-CALIB-SAFE-001) */
 /** @} */
 
 /** @} */ /* end group xpe_common */

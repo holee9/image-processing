@@ -648,6 +648,22 @@ TEST(A240, DISABLED_B4_SafeBehaviour) {
         say("xpe_gain_correct (separate output buffer)", xpe_gain_correct(&ib2, &ob2, &meta));
         std::printf("[a240] B4 xpe_gain_correct left the input buffer %s\n", std::memcmp(raw.data(), wrist.data(), N * 2) == 0 ? "unchanged" : "CHANGED");
         drainAlerts("stage apis");
+        // QA-A-241: the pipeline with a separate output buffer (SAFE-004) on the real frame, against the in-place call
+        std::vector<uint16_t> src = wrist;
+        std::vector<float> res(N, -1.0f), inPlace(N);
+        std::memcpy(inPlace.data(), wrist.data(), N * sizeof(uint16_t));
+        XpeImageBuffer ipb = bufferOf(inPlace.data(), W, H, XPE_PIXEL_UINT16);
+        ipb.dataSize = N * sizeof(float);
+        XpeImageMetadata mi{}, mo{};
+        say("xpe_preprocess_pipeline_ex (in place) on the real frame", xpe_preprocess_pipeline_ex(&ipb, &mi, nullptr, nullptr, kBasicCfg));
+        const XpeImageBuffer inb = bufferOf(src.data(), W, H, XPE_PIXEL_UINT16);
+        XpeImageBuffer outb = bufferOf(res.data(), W, H, XPE_PIXEL_FLOAT32);
+        say("xpe_preprocess_pipeline_out (separate output buffer) on the real frame", xpe_preprocess_pipeline_out(&inb, &outb, &mo, nullptr, nullptr, kBasicCfg));
+        std::printf("[a240] B4 xpe_preprocess_pipeline_out left the input buffer %s; its result is %s the in-place result; flags %s\n",
+                    std::memcmp(src.data(), wrist.data(), N * 2) == 0 ? "UNCHANGED" : "CHANGED",
+                    std::memcmp(res.data(), inPlace.data(), N * sizeof(float)) == 0 ? "byte-identical to" : "DIFFERENT from",
+                    mi.flags == mo.flags ? "equal" : "different");
+        drainAlerts("pipeline_out");
     }
     xpe_preprocess_shutdown();
 }

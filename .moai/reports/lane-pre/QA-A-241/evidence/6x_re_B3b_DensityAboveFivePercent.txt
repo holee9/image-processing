@@ -1,0 +1,29 @@
+Note: Google Test filter = A240.DISABLED_B3b_DensityAboveFivePercent
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A240
+[ RUN      ] A240.DISABLED_B3b_DensityAboveFivePercent
+[a240] 128x128 frame, defect map 4.0 % masked: load               rc=0 XPE_OK
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] 128x128 frame, defect map 4.0 % masked: pipeline           rc=0 XPE_OK [the load raised alerts]
+[a240] B3b   pipeline raised 0 alert(s); one naming a density/limit: see the alert lines above
+[a240] 128x128 frame, defect map 6.0 % masked: load               rc=0 XPE_OK
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] 128x128 frame, defect map 6.0 % masked: pipeline           rc=0 XPE_OK [the load raised alerts]
+[a240] B3b   pipeline raised 0 alert(s); one naming a density/limit: see the alert lines above
+[a240] 128x128 frame, defect map 30.0 % masked: load              rc=0 XPE_OK
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] 128x128 frame, defect map 30.0 % masked: pipeline          rc=0 XPE_OK [the load raised alerts]
+[a240] B3b   pipeline raised 0 alert(s); one naming a density/limit: see the alert lines above
+[       OK ] A240.DISABLED_B3b_DensityAboveFivePercent (43 ms)
+[----------] 1 test from A240 (43 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (43 ms total)
+[  PASSED  ] 1 test.

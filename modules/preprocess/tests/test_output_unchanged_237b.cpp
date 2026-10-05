@@ -214,7 +214,7 @@ PipelineRun runPipeline(Size sz, int tier, const char* cfg, int frames, bool gho
         out.digest = fnvValue(out.digest, static_cast<int>(out.rc));
         out.digest = fnvValue(out.digest, static_cast<uint32_t>(img.format));
         out.digest = fnv(out.digest, buf.data(), n * (img.format == XPE_PIXEL_FLOAT32 ? sizeof(float) : sizeof(uint16_t)));
-        out.digest = fnvValue(out.digest, meta.flags);
+        out.digest = fnvValue(out.digest, meta.flags & ~XPE_FLAG_CORRECTION_BYPASSED);   // QA-A-241: the new bypass flag is asserted in test_a241_safety.cpp; the rest of the flags and every pixel keep their recorded digest
     }
     if (ghost) {
         const GhostCorrectorHandle* gh = static_cast<const GhostCorrectorHandle*>(ghost);
@@ -310,7 +310,7 @@ uint64_t runFloatInput(int tier, bool failing) {
         h = fnvValue(h, static_cast<int>(rc));
         h = fnvValue(h, static_cast<uint32_t>(img.format));
         h = fnv(h, buf.data(), n * sizeof(float));
-        h = fnvValue(h, meta.flags);
+        h = fnvValue(h, meta.flags & ~XPE_FLAG_CORRECTION_BYPASSED);   // QA-A-241: see above
     }
     const GhostCorrectorHandle* gh = static_cast<const GhostCorrectorHandle*>(ghost);
     h = fnv(h, gh->hist1.data(), gh->hist1.size() * sizeof(float));

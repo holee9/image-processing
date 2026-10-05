@@ -16,6 +16,7 @@
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 #include <mutex>
+#include <cstdio>
 #include <cstring>
 
 // =============================================================================
@@ -104,6 +105,29 @@ void xpe_calib_session_warn(bool shouldWarn) noexcept
     }
 }
 
+namespace {
+bool g_noExpiryWarned[3] = {false, false, false};   // guarded by g_calib_mutex
+}
+
+void xpe_calib_note_expiry_locked(CalibMapKind kind, int64_t expiryMs) noexcept
+{
+    const int k = static_cast<int>(kind);
+    if (expiryMs != 0) { g_noExpiryWarned[k] = false; return; }
+    if (g_noExpiryWarned[k]) return;
+    g_noExpiryWarned[k] = true;
+    static const char* const names[3] = {"offset", "gain", "defect"};
+    try {
+        char msg[300];
+        std::snprintf(msg, sizeof(msg),
+            "XPE_WARN_NO_EXPIRY: the %s calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, "
+            "so the calibration may be stale without notice (SRS-CALIB-FUNC-009)", names[k]);
+        msg[sizeof(msg) - 1] = '\0';
+        xpe_alert_push(msg, XPE_ALERT_WARNING);
+    } catch (...) {
+        // [no-throw-boundary] advisory: lost under memory pressure
+    }
+}
+
 CalibSnapshot xpe_calib_snapshot_locked() noexcept
 {
     CalibSnapshot s;
@@ -124,6 +148,9 @@ CalibSnapshot xpe_calib_snapshot_locked() noexcept
     s.defect_map           = g_calib.defect_map;
     s.defect_width         = g_calib.defect_width;
     s.defect_height        = g_calib.defect_height;
+    s.offset_expiry_ms     = g_calib.offset_expiry_ms;
+    s.gain_expiry_ms       = g_calib.gain_expiry_ms;
+    s.defect_expiry_ms     = g_calib.defect_expiry_ms;
     return s;
 }
 

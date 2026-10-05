@@ -82,6 +82,7 @@ extern "C" XPE_API void xpe_preprocess_shutdown(void)
         xpe_calib_cache_clear();
         std::lock_guard<std::mutex> calib_lock(g_calib_mutex);
         g_calib = CalibrationData{};
+        for (const CalibMapKind k : {CalibMapKind::Offset, CalibMapKind::Gain, CalibMapKind::Defect}) xpe_calib_note_expiry_locked(k, 1);   // QA-A-241: ends the "never expires" warning state (a non-zero expiry resets it)
         // QA-A-120 (#176): every module global, not only the maps. Clearing one
         // of three made the function's name describe less than it did.
         xpe_calib_mode_reset_globals();

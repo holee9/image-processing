@@ -261,6 +261,7 @@ void xpe_calib_commit_gain_locked(StagedGain& staged) noexcept {
     g_calib.gain_height      = staged.height;
     g_calib.gain_timestamp   = staged.timestamp;
     g_calib.gain_expiry_ms   = staged.expiryMs;
+    xpe_calib_note_expiry_locked(CalibMapKind::Gain, staged.expiryMs);
     g_calib.gain_quality     = staged.quality;
     g_calib.gain_has_quality = staged.qualityFound;
     std::memcpy(g_calib.gain_session_id, staged.sessionId, sizeof(g_calib.gain_session_id));

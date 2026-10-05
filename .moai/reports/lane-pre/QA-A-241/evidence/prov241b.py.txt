@@ -1,0 +1,73 @@
+import sys
+import numpy as np
+
+R = 'D:/workspace-github/image-processing/'
+N = 3072
+W = R + 'gui/ImageProcTest/fixtures/gui-s0/raw/wrist_lat_3072x3072.raw'
+
+
+def load(p):
+    return np.fromfile(p, dtype='<u2').reshape(N, N)
+
+
+imgs = {
+    'wrist': load(W),
+    'dark_C6': load(R + 'tests/test_data/CalData_6/dark.raw'),
+    'dark_aed': load(R + 'tests/test_data/calibration_cases/aed_shock_had1717mc/calibration/cDark.raw'),
+    'bright02_C6(offset-corrected)': load(R + 'tests/test_data/CalData_6/bright02.raw'),
+    'bright03_C6(offset-corrected)': load(R + 'tests/test_data/CalData_6/bright03.raw'),
+    'aed_img': load(R + 'tests/test_data/calibration_cases/aed_shock_had1717mc/images/230811_img.raw'),
+    'aed_img_dark': load(R + 'tests/test_data/calibration_cases/aed_shock_had1717mc/images/230811_img-img_dark.raw'),
+}
+out = []
+P = out.append
+
+
+def hp1(v, w):
+    if w <= 1:
+        return v - v.mean()
+    k = np.ones(w) / w
+    pad = w // 2
+    return v - np.convolve(np.pad(v, pad, mode='reflect'), k, mode='valid')
+
+
+def pc(a, b, axis, w):
+    pa = hp1(a.astype(np.float64).mean(axis=axis), w)
+    pb = hp1(b.astype(np.float64).mean(axis=axis), w)
+    return float(np.corrcoef(pa, pb)[0, 1])
+
+
+def box_hp(img, w=9):
+    f = img.astype(np.float64)
+    c = np.cumsum(np.cumsum(np.pad(f, ((w // 2 + 1, w // 2), (w // 2 + 1, w // 2)), mode='reflect'), 0), 1)
+    s = c[w:, w:] - c[:-w, w:] - c[w:, :-w] + c[:-w, :-w]
+    return f - s / (w * w)
+
+
+P('== row/column profile correlation vs high-pass window (wrist vs each reference)')
+refs = ['dark_C6', 'dark_aed', 'bright02_C6(offset-corrected)', 'aed_img_dark']
+for w in (1, 5, 17, 65, 257):
+    for axis, name in ((1, 'row'), (0, 'col')):
+        P('window %3d %s: ' % (w, name) + '  '.join('%s %.3f' % (r.split('(')[0], pc(imgs['wrist'], imgs[r], axis, w)) for r in refs))
+P('')
+P('== sanity: same-detector pairs (CalData_6 dark vs CalData_6 bright02, bright03; aed image vs aed dark)')
+for w in (5, 65):
+    for axis, name in ((1, 'row'), (0, 'col')):
+        P('window %3d %s: dark_C6~bright02 %.3f  dark_C6~bright03 %.3f  aed_img~dark_aed %.3f  aed_img_dark~dark_aed %.3f  aed_img~dark_C6 %.3f' % (
+            w, name, pc(imgs['dark_C6'], imgs['bright02_C6(offset-corrected)'], axis, w), pc(imgs['dark_C6'], imgs['bright03_C6(offset-corrected)'], axis, w),
+            pc(imgs['aed_img'], imgs['dark_aed'], axis, w), pc(imgs['aed_img_dark'], imgs['dark_aed'], axis, w), pc(imgs['aed_img'], imgs['dark_C6'], axis, w)))
+
+P('')
+P('== pixel-level (9x9 box high-passed) correlation, all pixels, and on pixels inside 5 robust sigma only')
+hps = {k: box_hp(v) for k, v in imgs.items() if k in ('wrist', 'dark_C6', 'dark_aed', 'bright02_C6(offset-corrected)', 'aed_img')}
+for r in ('dark_C6', 'dark_aed', 'bright02_C6(offset-corrected)'):
+    a, b = hps['wrist'].ravel(), hps[r].ravel()
+    sa, sb = 1.4826 * np.median(np.abs(a - np.median(a))), 1.4826 * np.median(np.abs(b - np.median(b)))
+    m = (np.abs(a) < 5 * sa) & (np.abs(b) < 5 * sb)
+    P('wrist ~ %-30s all %.4f  inliers %.4f' % (r, float(np.corrcoef(a, b)[0, 1]), float(np.corrcoef(a[m], b[m])[0, 1])))
+a, b = hps['aed_img'].ravel(), hps['dark_aed'].ravel()
+P('control aed_img ~ dark_aed (same detector)  all %.4f' % float(np.corrcoef(a, b)[0, 1]))
+a, b = hps['aed_img'].ravel(), hps['dark_C6'].ravel()
+P('control aed_img ~ dark_C6 (other detector) all %.4f' % float(np.corrcoef(a, b)[0, 1]))
+open(sys.argv[1], 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+print('\n'.join(out))

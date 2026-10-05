@@ -1,0 +1,88 @@
+Note: Google Test filter = A240.DISABLED_B9_LoadTime
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A240
+[ RUN      ] A240.DISABLED_B9_LoadTime
+[a240] B9 files: offset 37748950 B, gain 37749092 B, defect 9437336 B
+[a240] B9 load  1: offset 40.3 gain 45.8 defect 10.1 total 96.2 ms
+[a240] B9 load  2: offset 40.4 gain 45.1 defect 10.4 total 95.8 ms
+[a240] B9 load  3: offset 40.7 gain 47.6 defect 10.0 total 98.3 ms
+[a240] B9 load  4: offset 41.1 gain 51.0 defect 10.6 total 102.6 ms
+[a240] B9 load  5: offset 40.9 gain 45.3 defect 10.3 total 96.4 ms
+[a240] B9 load  6: offset 43.2 gain 47.7 defect 10.1 total 101.0 ms
+[a240] B9 load  7: offset 39.9 gain 44.9 defect 10.6 total 95.3 ms
+[a240] B9 load  8: offset 40.0 gain 47.8 defect 12.1 total 100.0 ms
+[a240] B9 load  9: offset 39.7 gain 45.8 defect 10.0 total 95.6 ms
+[a240] B9 load 10: offset 39.5 gain 45.2 defect 10.2 total 94.9 ms
+[a240] B9 load 11: offset 39.8 gain 45.9 defect 10.0 total 95.7 ms
+[a240] B9 load 12: offset 40.4 gain 46.7 defect 10.1 total 97.1 ms
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] B9 offset  first 40.3 ms; over 12 loads min 39.5 median 40.4 max 43.2 ms
+[a240] B9 gain    first 45.8 ms; over 12 loads min 44.9 median 45.9 max 51.0 ms
+[a240] B9 defect  first 10.1 ms; over 12 loads min 10.0 median 10.2 max 12.1 ms
+[a240] B9 total   first 96.2 ms; over 12 loads min 94.9 median 96.4 max 102.6 ms
+[       OK ] A240.DISABLED_B9_LoadTime (1208 ms)
+[----------] 1 test from A240 (1208 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1208 ms total)
+[  PASSED  ] 1 test.

@@ -1,0 +1,19 @@
+Note: Google Test filter = A241Measure.DISABLED_B2_FractionCost
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A241Measure
+[ RUN      ] A241Measure.DISABLED_B2_FractionCost
+[a241] B2 cost: defect map 23505 px (0.249 %) + gain-classified 42026 px: frame rc=0, median 47.6 ms (min 46.2, max 49.2), union-over-limit alerts 0
+[a241] B2 cost: defect map 70468 px (0.747 %) + gain-classified 42026 px: frame rc=0, median 65.6 ms (min 64.9, max 71.7), union-over-limit alerts 0
+[a241] B2 cost: defect map 117218 px (1.242 %) + gain-classified 42026 px: frame rc=0, median 76.5 ms (min 75.4, max 78.9), union-over-limit alerts 0
+[a241] B2 cost: defect map 209950 px (2.225 %) + gain-classified 42026 px: frame rc=0, median 105.8 ms (min 94.4, max 110.0), union-over-limit alerts 0
+[a241] B2 cost: defect map 482631 px (5.114 %) + gain-classified 42026 px: frame rc=0, median 182.9 ms (min 160.9, max 212.9), union-over-limit alerts 5
+[a241]    alert: XPE_WARN_DEFECT_UNION_OVER_LIMIT: the defect map together with the pixels classified defective by the gain calibration covers 509291 of 9437184 pixel(s) (5.397%), above the 5.0% defect density SRS-CAL
+[a241] B2 cost: defect map 919358 px (9.742 %) + gain-classified 42026 px: frame rc=0, median 293.7 ms (min 258.4, max 320.8), union-over-limit alerts 5
+[a241]    alert: XPE_WARN_DEFECT_UNION_OVER_LIMIT: the defect map together with the pixels classified defective by the gain calibration covers 944802 of 9437184 pixel(s) (10.011%), above the 5.0% defect density SRS-CA
+[       OK ] A241Measure.DISABLED_B2_FractionCost (5543 ms)
+[----------] 1 test from A241Measure (5543 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (5544 ms total)
+[  PASSED  ] 1 test.

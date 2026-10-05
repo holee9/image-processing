@@ -232,7 +232,10 @@ inline float xpe_interpolate_pixel_masked(const float* pixels, IsMasked&& isMask
 constexpr float XPE_GAIN_APPLIED_MIN = 0.1f;
 constexpr float XPE_GAIN_APPLIED_MAX = 10.0f;
 
-/** The largest fraction of a frame that may be classified defective by the gain calibration (SRS-CALIB-FUNC-003: 5% defect density tolerance). */
+/** The largest fraction of a frame that may be classified defective by the gain calibration (SRS-CALIB-FUNC-003: 5% defect density tolerance).
+ *  PROVISIONAL (QA-A-241): the value is the FUNC-003 density tolerance reused, not a bound measured on detector data; SRS-CALIB-FUNC-002
+ *  says the bound is "to be set from measured detector data". The one real gain map measured (CalData_6 flats) classifies 0.445 %.
+ *  Candidates and measurements: .moai/reports/lane-pre/QA-A-241/report.md. The lead confirms the value. */
 constexpr double XPE_GAIN_DEFECT_MAX_FRACTION = 0.05;
 
 /** What a scan of a scalar gain map found (QA-A-211): the pixels whose gain is outside the range, which are classified defective. */
@@ -619,6 +622,12 @@ struct CalibSnapshot {
     std::shared_ptr<uint8_t[]> defect_map;
     uint32_t defect_width{0};
     uint32_t defect_height{0};
+
+    // QA-A-241 (#245, SRS-CALIB-SAFE-002): the expiry of each loaded file (epoch ms, 0 = never expires), so a frame can be refused
+    // when a map expired AFTER it was loaded.
+    int64_t offset_expiry_ms{0};
+    int64_t gain_expiry_ms{0};
+    int64_t defect_expiry_ms{0};
 };
 
 /** The snapshot of the store as it is now; the caller holds g_calib_mutex. Copies pointers and numbers only. */
@@ -749,6 +758,15 @@ bool xpe_calib_session_transition_locked(bool mixed) noexcept;
  * Takes no lock and decides nothing: the decision was made under g_calib_mutex. Never throws.
  */
 void xpe_calib_session_warn(bool shouldWarn) noexcept;
+
+/**
+ * SRS-CALIB-FUNC-009 (QA-A-241): a calibration file with expiryEpochMs == 0 never expires, and loading one is reported
+ * once as XPE_WARN_NO_EXPIRY (XPE_ALERT_WARNING) -- once per kind while the loaded file stays
+ * a never-expiring one, because the pipeline re-reads its three files on every call and a warning per load would fill the
+ * 64-entry alert queue with one sentence. A load that carries an expiry, and shutdown, end the state. The caller holds
+ * g_calib_mutex (the commit functions). Never throws.
+ */
+void xpe_calib_note_expiry_locked(CalibMapKind kind, int64_t expiryMs) noexcept;
 
 /** Move a staged object into g_calib. The caller holds g_calib_mutex. Cannot fail. */
 void xpe_calib_commit_offset_locked(StagedOffset& staged) noexcept;

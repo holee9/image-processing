@@ -1121,6 +1121,33 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
                                                   const char* configJsonOrNull);
 
 /**
+ * @brief The same pipeline as xpe_preprocess_pipeline_ex(), with a separate output buffer (SRS-CALIB-SAFE-004)
+ *
+ * xpe_preprocess_pipeline() and xpe_preprocess_pipeline_ex() write the result back into the buffer they were given. This entry
+ * point never writes @p in: the corrected frame goes to @p out, and the original frame stays available for audit and QA.
+ * Stages, calibration set, configuration and metadata flags are exactly those of xpe_preprocess_pipeline_ex().
+ *
+ * @param in [in] The frame to process; read only. dataSize is the room for the input (width*height*2 for UINT16)
+ * @param out [out] Receives the result. out->data must be a different buffer from in->data; out->dataSize is the room for
+ *        the result: width*height*4 bytes when any stage from the gain stage on runs (float32), width*height*2 otherwise.
+ *        width, height, format and bit depths are set on success; on failure @p out is not written
+ * @param meta [in/out] Image metadata
+ * @param calibState Pre-loaded calibration state (as for xpe_preprocess_pipeline_ex)
+ * @param ghostHandle Ghost corrector handle (NULL = skip ghost)
+ * @param configJsonOrNull Pipeline configuration JSON (as for xpe_preprocess_pipeline)
+ * @return XPE_OK on success
+ *         XPE_ERR_INVALID_INPUT on a NULL in / out / meta / data, in->dataSize 0 or below the input frame, or out->data == in->data
+ *         XPE_ERR_BUFFER_TOO_SMALL if out->dataSize is smaller than the result
+ *         the errors of xpe_preprocess_pipeline_ex() otherwise
+ */
+XPE_API XpeErrorCode xpe_preprocess_pipeline_out(const XpeImageBuffer* in,
+                                                   XpeImageBuffer* out,
+                                                   XpeImageMetadata* meta,
+                                                   const void* calibState,
+                                                   void* ghostHandle,
+                                                   const char* configJsonOrNull);
+
+/**
  * @brief Process multiple frames with identical calibration in batch
  *
  * All frames share the same calibration maps (offset/gain/defect).
