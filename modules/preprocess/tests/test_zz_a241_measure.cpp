@@ -11,6 +11,11 @@
  *                         gain from two flats of ONE acquisition condition, measured on the third, shipping path
  *                         (xpe_preprocess_pipeline_out), after the defect stage, defect pixels left out.
  *                         Needs XPE_A240_CAL (the CalData_6 folder) and XPE_A241_OUT (a scratch folder).
+ *   B6_Protocol53         (QA-A-241c) B6 exactly as the approved evaluation protocol section 5.3 defines it; the method is fixed in
+ *                         .moai/reports/lane-pre/QA-A-241c/evidence/00_b6_method_protocol_5_3.md (committed before any result):
+ *                         ROI = every pixel whose gain value is finite and > 0 (defect pixels included, no crop, no ADU floor), three
+ *                         held-out combinations of flats 4,5,6, all three reported, shipping path final output (after the defect stage)
+ *                         and, for reference, the output before the defect stage. Needs XPE_A240_CAL and XPE_A241_OUT.
  *   B10v2_Baseline        (QA-A-243) the stage-2 input reference image: the real frame wrist_lat_3072x3072.raw through the shipping
  *                         path (xpe_preprocess_pipeline_out) with the gain made from ALL THREE flats of the one acquisition
  *                         condition (flats 4,5,6). Writes the float32 output. Needs XPE_A240_CAL, XPE_A240_WRIST, XPE_A243_OUT.
@@ -445,5 +450,137 @@ TEST(A241Measure, DISABLED_B10v2_Baseline) {
     std::printf("[a241] B10v2 wrote %s (%zu bytes), FNV-64 %016llx, format %d, %ux%u, flags 0x%x\n", outFile.c_str(), N * sizeof(float),
                 static_cast<unsigned long long>(h), static_cast<int>(ob.format), ob.width, ob.height, meta.flags);
     xpe_clear_alerts();
+    xpe_preprocess_shutdown();
+}
+
+// B6 per protocol section 5.3 (QA-A-241c). See the method file named in the header of this file; nothing is excluded from the ROI
+// except pixels whose gain value is not finite or not > 0, and no flat is left out of the report.
+TEST(A241Measure, DISABLED_B6_Protocol53) {
+    const std::string cal = envOr("XPE_A240_CAL", "");
+    const std::string work = envOr("XPE_A241_OUT", "build/a241");
+    ASSERT_FALSE(cal.empty());
+    const uint32_t W = 3072, H = 3072;
+    const size_t N = static_cast<size_t>(W) * H;
+    const fs::path dir = fs::path(work) / "b6p53";
+    fs::create_directories(dir);
+
+    const std::vector<uint16_t> dark = readRaw16(cal + "/dark.raw", N);
+    ASSERT_FALSE(dark.empty());
+    std::vector<std::vector<uint16_t>> flat(7);
+    for (int k = 4; k <= 6; ++k) {
+        char nm[32];
+        std::snprintf(nm, sizeof nm, "/bright%02d.raw", k);
+        flat[static_cast<size_t>(k)] = readRaw16(cal + nm, N);
+        ASSERT_FALSE(flat[static_cast<size_t>(k)].empty()) << nm;
+    }
+    const auto bpBytes = readFile(cal + "/BPMap.map");
+    ASSERT_EQ(N, bpBytes.size());
+
+    auto buf = [&](const void* d, size_t bytes, XpePixelFormat f) {
+        XpeImageBuffer b{};
+        b.data = const_cast<void*>(d);
+        b.dataSize = bytes;
+        b.width = W;
+        b.height = H;
+        b.format = f;
+        b.bitsAllocated = f == XPE_PIXEL_FLOAT32 ? 32u : 16u;
+        b.bitsStored = b.bitsAllocated;
+        return b;
+    };
+
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    const std::string offPath = (dir / "offset.xcal").string(), defPath = (dir / "defect.xcal").string();
+    const XpeImageBuffer darkBuf = buf(dark.data(), N * 2, XPE_PIXEL_UINT16);
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(&darkBuf, 1, 100.0f, 25.0f, offPath.c_str(), nullptr));
+    XCal o;
+    ASSERT_TRUE(readXCal(offPath, &o));
+    {
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        std::memcpy(hdr.session_id, o.hdr.session_id, sizeof hdr.session_id);
+        hdr.version = XCAL_VERSION;
+        hdr.type = XCAL_TYPE_DEFECT;
+        hdr.pixel_format = XCAL_FMT_UINT8_MASK;
+        hdr.width = W;
+        hdr.height = H;
+        hdr.payload_len = N;
+        ASSERT_EQ(XPE_OK, write_xcal_file(defPath.c_str(), hdr, nullptr, 0, bpBytes.data(), N));
+    }
+    const char* cfgFinal = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    const char* cfgBeforeDefect = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassDefect\":true}";
+
+    struct Held { int j, a, b; };
+    const Held cases[] = {{4, 5, 6}, {5, 4, 6}, {6, 4, 5}};
+    for (const Held& c : cases) {
+        const std::string gainPath = (dir / ("gain_from_" + std::to_string(c.a) + "_" + std::to_string(c.b) + ".xcal")).string();
+        const XpeImageBuffer two[2] = {buf(flat[static_cast<size_t>(c.a)].data(), N * 2, XPE_PIXEL_UINT16),
+                                       buf(flat[static_cast<size_t>(c.b)].data(), N * 2, XPE_PIXEL_UINT16)};
+        ASSERT_EQ(XPE_OK, xpe_calib_generate_gain(two, 2, nullptr, gainPath.c_str(), nullptr));
+        XCal g;
+        ASSERT_TRUE(readXCal(gainPath, &g));
+        std::memcpy(g.hdr.session_id, o.hdr.session_id, sizeof g.hdr.session_id);
+        ASSERT_EQ(XPE_OK, writeXCal(gainPath, g));
+        const float* gv = reinterpret_cast<const float*>(g.payload.data());
+
+        xpe_preprocess_shutdown();
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_offset(offPath.c_str()));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_gain(gainPath.c_str()));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(defPath.c_str()));
+        xpe_clear_alerts();
+
+        std::vector<uint16_t> raw(N);
+        for (size_t i = 0; i < N; ++i) raw[i] = static_cast<uint16_t>(dark[i] + flat[static_cast<size_t>(c.j)][i]);
+        std::vector<float> outFinal(N, 0.0f), outPre(N, 0.0f);
+        const XpeImageBuffer in = buf(raw.data(), N * 2, XPE_PIXEL_UINT16);
+        XpeImageBuffer obF = buf(outFinal.data(), N * 4, XPE_PIXEL_FLOAT32), obP = buf(outPre.data(), N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata metaF{}, metaP{};
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &obF, &metaF, nullptr, nullptr, cfgFinal));
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &obP, &metaP, nullptr, nullptr, cfgBeforeDefect));
+        xpe_clear_alerts();
+
+        // ROI per protocol 5.3: the gain value (the file's value) is finite and > 0
+        size_t roiN = 0, excluded = 0, inDefectMap = 0, gainOutOfRange = 0;
+        double sF = 0, sF2 = 0, sP = 0, sP2 = 0, inMean = 0;
+        for (size_t i = 0; i < N; ++i) {
+            if (!(std::isfinite(gv[i]) && gv[i] > 0.0f)) { ++excluded; continue; }
+            ++roiN;
+            if (bpBytes[i] != 0) ++inDefectMap;
+            if (!(gv[i] >= 0.1f && gv[i] <= 10.0f)) ++gainOutOfRange;
+            sF += outFinal[i];
+            sF2 += static_cast<double>(outFinal[i]) * outFinal[i];
+            sP += outPre[i];
+            sP2 += static_cast<double>(outPre[i]) * outPre[i];
+            inMean += flat[static_cast<size_t>(c.j)][i];
+        }
+        auto cv = [&](double s1, double s2, double* mean) {
+            const double m = s1 / static_cast<double>(roiN);
+            *mean = m;
+            return 100.0 * std::sqrt(std::max(0.0, s2 / static_cast<double>(roiN) - m * m)) / m;
+        };
+        double meanF = 0, meanP = 0;
+        const double pctF = cv(sF, sF2, &meanF), pctP = cv(sP, sP2, &meanP);
+        // the large-scale part of the final output: spread of 16x16 block means over the ROI pixels
+        double b1 = 0, b2 = 0;
+        size_t nb = 0;
+        for (uint32_t by = 0; by + 16 <= H; by += 16)
+            for (uint32_t bx = 0; bx + 16 <= W; bx += 16) {
+                double sum = 0;
+                int cnt = 0;
+                for (uint32_t y = 0; y < 16; ++y)
+                    for (uint32_t x = 0; x < 16; ++x) {
+                        const size_t i = static_cast<size_t>(by + y) * W + bx + x;
+                        if (std::isfinite(gv[i]) && gv[i] > 0.0f) { sum += outFinal[i]; ++cnt; }
+                    }
+                if (cnt > 128) { const double m = sum / cnt; b1 += m; b2 += m * m; ++nb; }
+            }
+        const double bm = b1 / static_cast<double>(nb);
+        const double bsd = std::sqrt(std::max(0.0, b2 / static_cast<double>(nb) - bm * bm));
+        std::printf("[a241c] B6 protocol 5.3, held out flat%d, gain from flat%d+flat%d | ROI %zu px (excluded: gain not finite or <= 0: %zu; in the ROI: %zu defect-map px, %zu gain-out-of-range px) | "
+                    "FlatResidualPct final output %.3f %% (mean %.1f ADU) | before the defect stage %.3f %% (mean %.1f ADU) | 16x16 block-mean spread of the final output %.3f %% | flat mean %.1f ADU | verdict for this flat: %s\n",
+                    c.j, c.a, c.b, roiN, excluded, inDefectMap, gainOutOfRange, pctF, meanF, pctP, meanP, 100.0 * bsd / bm,
+                    inMean / static_cast<double>(roiN), pctF <= 1.0 ? "<= 1.0 %" : "ABOVE 1.0 %");
+    }
     xpe_preprocess_shutdown();
 }
