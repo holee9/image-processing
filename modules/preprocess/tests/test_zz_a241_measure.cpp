@@ -16,6 +16,9 @@
  *                         ROI = every pixel whose gain value is finite and > 0 (defect pixels included, no crop, no ADU floor), three
  *                         held-out combinations of flats 4,5,6, all three reported, shipping path final output (after the defect stage)
  *                         and, for reference, the output before the defect stage. Needs XPE_A240_CAL and XPE_A241_OUT.
+ *   B6_Acceptance         (QA-A-241e) the other section 5.3 acceptance indicators, FPN_Reduction_dB and LineArtifactScore, on the same held-out
+ *                         flats; the method is fixed in .moai/reports/lane-pre/QA-A-241e/evidence/00_b6_acceptance_method.md (committed before
+ *                         any result). Starts with a hand-computed formula check. Needs XPE_A240_CAL and XPE_A241_OUT.
  *   B10v2_Baseline        (QA-A-243) the stage-2 input reference image: the real frame wrist_lat_3072x3072.raw through the shipping
  *                         path (xpe_preprocess_pipeline_out) with the gain made from ALL THREE flats of the one acquisition
  *                         condition (flats 4,5,6). Writes the float32 output. Needs XPE_A240_CAL, XPE_A240_WRIST, XPE_A243_OUT.
@@ -581,6 +584,209 @@ TEST(A241Measure, DISABLED_B6_Protocol53) {
                     "FlatResidualPct final output %.3f %% (mean %.1f ADU) | before the defect stage %.3f %% (mean %.1f ADU) | 16x16 block-mean spread of the final output %.3f %% | flat mean %.1f ADU | verdict for this flat: %s\n",
                     c.j, c.a, c.b, roiN, excluded, inDefectMap, gainOutOfRange, pctF, meanF, pctP, meanP, 100.0 * bsd / bm,
                     inMean / static_cast<double>(roiN), pctF <= 1.0 ? "<= 1.0 %" : "ABOVE 1.0 %");
+    }
+    xpe_preprocess_shutdown();
+}
+
+// B6 acceptance indicators of protocol section 5.3 (QA-A-241e). The method is fixed in
+// .moai/reports/lane-pre/QA-A-241e/evidence/00_b6_acceptance_method.md (committed before any result): FPN_Reduction_dB with R = the raw
+// input frame and Y = the shipping-path final output, LineArtifactScore of the final output against the same path with only the gain
+// stage bypassed, both over the section 5.3 ROI (gain finite and > 0), three held-out combinations of flats 4,5,6, all reported.
+// The first part of the test checks the formulas against hand-computed synthetic cases; if one is wrong nothing is measured.
+namespace {
+
+struct RoiStat {
+    double mean{0}, sd{0};
+};
+
+// population mean and standard deviation of img over the pixels where roi[i] != 0
+RoiStat roiStat(const float* img, const std::vector<uint8_t>& roi) {
+    double s1 = 0, s2 = 0;
+    size_t n = 0;
+    for (size_t i = 0; i < roi.size(); ++i)
+        if (roi[i]) { s1 += img[i]; s2 += static_cast<double>(img[i]) * img[i]; ++n; }
+    RoiStat r;
+    if (n == 0) return r;
+    r.mean = s1 / static_cast<double>(n);
+    r.sd = std::sqrt(std::max(0.0, s2 / static_cast<double>(n) - r.mean * r.mean));
+    return r;
+}
+
+double popStd(const std::vector<double>& v) {
+    if (v.empty()) return 0.0;
+    double s1 = 0, s2 = 0;
+    for (double x : v) { s1 += x; s2 += x * x; }
+    const double m = s1 / static_cast<double>(v.size());
+    return std::sqrt(std::max(0.0, s2 / static_cast<double>(v.size()) - m * m));
+}
+
+// LineArtifactScore = max(std(row_mean(Y)), std(col_mean(Y))) / max(std(tile_mean(Y)), epsilon); means over the ROI pixels only; a row,
+// column or tile with no ROI pixel is left out; tiles do not overlap and are tile x tile pixels (the partial ones at the border count).
+double lineArtifactScore(const float* img, const std::vector<uint8_t>& roi, uint32_t W, uint32_t H, uint32_t tile) {
+    std::vector<double> rowS(H, 0.0), colS(W, 0.0);
+    std::vector<size_t> rowN(H, 0), colN(W, 0);
+    const uint32_t TX = (W + tile - 1) / tile, TY = (H + tile - 1) / tile;
+    std::vector<double> tS(static_cast<size_t>(TX) * TY, 0.0);
+    std::vector<size_t> tN(static_cast<size_t>(TX) * TY, 0);
+    for (uint32_t y = 0; y < H; ++y)
+        for (uint32_t x = 0; x < W; ++x) {
+            const size_t i = static_cast<size_t>(y) * W + x;
+            if (!roi[i]) continue;
+            rowS[y] += img[i]; ++rowN[y];
+            colS[x] += img[i]; ++colN[x];
+            const size_t t = static_cast<size_t>(y / tile) * TX + x / tile;
+            tS[t] += img[i]; ++tN[t];
+        }
+    auto means = [](const std::vector<double>& s, const std::vector<size_t>& n) {
+        std::vector<double> m;
+        for (size_t k = 0; k < s.size(); ++k)
+            if (n[k]) m.push_back(s[k] / static_cast<double>(n[k]));
+        return m;
+    };
+    const double sr = popStd(means(rowS, rowN)), sc = popStd(means(colS, colN)), st = popStd(means(tS, tN));
+    return std::max(sr, sc) / std::max(st, 1e-12);
+}
+
+double fpnReductionDb(const RoiStat& r, const RoiStat& y) { return 20.0 * std::log10(r.sd / std::max(y.sd, 1e-12)); }
+
+}  // namespace
+
+TEST(A241Measure, DISABLED_B6_Acceptance) {
+    // ---- formula check on synthetic frames (hand-computed): nothing is measured if one of these is wrong
+    {
+        const uint32_t S = 8;
+        const std::vector<uint8_t> all(static_cast<size_t>(S) * S, 1);
+        std::vector<float> rowImg(static_cast<size_t>(S) * S, 0.0f), colImg(static_cast<size_t>(S) * S, 0.0f), flatImg(static_cast<size_t>(S) * S, 5.0f);
+        for (uint32_t x = 0; x < S; ++x) rowImg[x] = 1.0f;               // row 0 is +1
+        for (uint32_t y = 0; y < S; ++y) colImg[static_cast<size_t>(y) * S] = 1.0f;   // column 0 is +1
+        // row means: one 1 and seven 0 -> std sqrt(7)/8; col means all 1/8 -> 0; 4x4 tile means: two 0.25 and two 0 -> std 0.125; score sqrt(7) = 2.6458
+        EXPECT_NEAR(std::sqrt(7.0), lineArtifactScore(rowImg.data(), all, S, S, 4), 1e-9) << "row artifact score";
+        EXPECT_NEAR(std::sqrt(7.0), lineArtifactScore(colImg.data(), all, S, S, 4), 1e-9) << "column artifact score";
+        EXPECT_NEAR(0.0, lineArtifactScore(flatImg.data(), all, S, S, 4), 1e-6) << "a flat frame has no line artifact";
+        std::vector<float> a(static_cast<size_t>(S) * S), b(static_cast<size_t>(S) * S);
+        for (size_t i = 0; i < a.size(); ++i) { a[i] = (i % 2 ? 10.0f : -10.0f); b[i] = a[i] / 2.0f; }   // b has half the spread of a
+        EXPECT_NEAR(20.0 * std::log10(2.0), fpnReductionDb(roiStat(a.data(), all), roiStat(b.data(), all)), 1e-9);
+        if (::testing::Test::HasFailure()) { GTEST_SKIP() << "formula check failed: no measurement is valid"; }
+        std::printf("[a241e] formula check on synthetic frames passed (row/column score sqrt(7)=2.6458, flat 0, 2x spread = 6.0206 dB)\n");
+    }
+
+    const std::string cal = envOr("XPE_A240_CAL", "");
+    const std::string work = envOr("XPE_A241_OUT", "build/a241");
+    ASSERT_FALSE(cal.empty());
+    const uint32_t W = 3072, H = 3072;
+    const size_t N = static_cast<size_t>(W) * H;
+    const fs::path dir = fs::path(work) / "b6acc";
+    fs::create_directories(dir);
+
+    const std::vector<uint16_t> dark = readRaw16(cal + "/dark.raw", N);
+    ASSERT_FALSE(dark.empty());
+    std::vector<std::vector<uint16_t>> flat(7);
+    for (int k = 4; k <= 6; ++k) {
+        char nm[32];
+        std::snprintf(nm, sizeof nm, "/bright%02d.raw", k);
+        flat[static_cast<size_t>(k)] = readRaw16(cal + nm, N);
+        ASSERT_FALSE(flat[static_cast<size_t>(k)].empty()) << nm;
+    }
+    const auto bpBytes = readFile(cal + "/BPMap.map");
+    ASSERT_EQ(N, bpBytes.size());
+
+    auto buf = [&](const void* d, size_t bytes, XpePixelFormat f) {
+        XpeImageBuffer b{};
+        b.data = const_cast<void*>(d);
+        b.dataSize = bytes;
+        b.width = W;
+        b.height = H;
+        b.format = f;
+        b.bitsAllocated = f == XPE_PIXEL_FLOAT32 ? 32u : 16u;
+        b.bitsStored = b.bitsAllocated;
+        return b;
+    };
+
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    const std::string offPath = (dir / "offset.xcal").string(), defPath = (dir / "defect.xcal").string();
+    const XpeImageBuffer darkBuf = buf(dark.data(), N * 2, XPE_PIXEL_UINT16);
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(&darkBuf, 1, 100.0f, 25.0f, offPath.c_str(), nullptr));
+    XCal o;
+    ASSERT_TRUE(readXCal(offPath, &o));
+    {
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        std::memcpy(hdr.session_id, o.hdr.session_id, sizeof hdr.session_id);
+        hdr.version = XCAL_VERSION;
+        hdr.type = XCAL_TYPE_DEFECT;
+        hdr.pixel_format = XCAL_FMT_UINT8_MASK;
+        hdr.width = W;
+        hdr.height = H;
+        hdr.payload_len = N;
+        ASSERT_EQ(XPE_OK, write_xcal_file(defPath.c_str(), hdr, nullptr, 0, bpBytes.data(), N));
+    }
+    const char* cfgFinal = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    const char* cfgNoGain = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassGain\":true}";
+    const char* cfgOffsetOnly = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassGain\":true,\"bypassDefect\":true}";
+
+    struct Held { int j, a, b; };
+    const Held cases[] = {{4, 5, 6}, {5, 4, 6}, {6, 4, 5}};
+    for (const Held& c : cases) {
+        const std::string gainPath = (dir / ("gain_from_" + std::to_string(c.a) + "_" + std::to_string(c.b) + ".xcal")).string();
+        const XpeImageBuffer two[2] = {buf(flat[static_cast<size_t>(c.a)].data(), N * 2, XPE_PIXEL_UINT16),
+                                       buf(flat[static_cast<size_t>(c.b)].data(), N * 2, XPE_PIXEL_UINT16)};
+        ASSERT_EQ(XPE_OK, xpe_calib_generate_gain(two, 2, nullptr, gainPath.c_str(), nullptr));
+        XCal g;
+        ASSERT_TRUE(readXCal(gainPath, &g));
+        std::memcpy(g.hdr.session_id, o.hdr.session_id, sizeof g.hdr.session_id);
+        ASSERT_EQ(XPE_OK, writeXCal(gainPath, g));
+        const float* gv = reinterpret_cast<const float*>(g.payload.data());
+
+        xpe_preprocess_shutdown();
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_offset(offPath.c_str()));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_gain(gainPath.c_str()));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(defPath.c_str()));
+        xpe_clear_alerts();
+
+        std::vector<uint16_t> raw(N);
+        for (size_t i = 0; i < N; ++i) raw[i] = static_cast<uint16_t>(dark[i] + flat[static_cast<size_t>(c.j)][i]);
+        std::vector<float> rawF(N), outFinal(N, 0.0f), outNoGain(N, 0.0f), outOffset(N, 0.0f);
+        for (size_t i = 0; i < N; ++i) rawF[i] = static_cast<float>(raw[i]);
+        const XpeImageBuffer in = buf(raw.data(), N * 2, XPE_PIXEL_UINT16);
+        XpeImageBuffer o1 = buf(outFinal.data(), N * 4, XPE_PIXEL_FLOAT32), o2 = buf(outNoGain.data(), N * 4, XPE_PIXEL_FLOAT32),
+                       o3 = buf(outOffset.data(), N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata m1{}, m2{}, m3{};
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &o1, &m1, nullptr, nullptr, cfgFinal));
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &o2, &m2, nullptr, nullptr, cfgNoGain));
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &o3, &m3, nullptr, nullptr, cfgOffsetOnly));
+        xpe_clear_alerts();
+
+        // ROI per protocol 5.3: the gain value (the file's value) is finite and > 0
+        std::vector<uint8_t> roi(N, 0);
+        size_t roiN = 0;
+        double flatMean = 0;
+        for (size_t i = 0; i < N; ++i)
+            if (std::isfinite(gv[i]) && gv[i] > 0.0f) { roi[i] = 1; ++roiN; flatMean += flat[static_cast<size_t>(c.j)][i]; }
+        flatMean /= static_cast<double>(roiN);
+
+        const RoiStat sR = roiStat(rawF.data(), roi), sY = roiStat(outFinal.data(), roi), sOff = roiStat(outOffset.data(), roi);
+        const double flatResidual = 100.0 * sY.sd / sY.mean;
+        const double fpn = fpnReductionDb(sR, sY);                 // judged: R = the raw input frame
+        const double fpnAlt = fpnReductionDb(sOff, sY);            // reported only: R = offset-corrected, before gain and defect
+        double las[3][3];                                          // [tile 32/64/128][final / gain bypassed / offset only]
+        const uint32_t tiles[3] = {32, 64, 128};
+        for (int t = 0; t < 3; ++t) {
+            las[t][0] = lineArtifactScore(outFinal.data(), roi, W, H, tiles[t]);
+            las[t][1] = lineArtifactScore(outNoGain.data(), roi, W, H, tiles[t]);
+            las[t][2] = lineArtifactScore(outOffset.data(), roi, W, H, tiles[t]);
+        }
+        const double lasRatio = las[1][0] / las[1][1];             // judged: tile 64, final / gain bypassed
+        const bool okRes = flatResidual <= 1.0, okFpn = fpn >= 10.0, okLas = lasRatio <= 1.10;
+        std::printf("[a241e] held out flat%d, gain from flat%d+flat%d | ROI %zu px | flat mean %.1f ADU (%s 2000) | "
+                    "FlatResidualPct %.3f %% [%s 1.0] | std(R) %.2f ADU std(Y) %.2f ADU | FPN_Reduction_dB %.2f [%s 10] (R=offset-corrected: %.2f) | "
+                    "LineArtifactScore tile64: final %.4f, gain bypassed %.4f, offset only %.4f, ratio final/gain-bypassed %.4f [%s 1.10] | "
+                    "tile32: final %.4f / gain bypassed %.4f / offset only %.4f | tile128: final %.4f / gain bypassed %.4f / offset only %.4f | "
+                    "ratio vs offset only (tile64) %.4f | all three accepted: %s\n",
+                    c.j, c.a, c.b, roiN, flatMean, flatMean >= 2000.0 ? ">=" : "<", flatResidual, okRes ? "<=" : ">", sR.sd, sY.sd, fpn,
+                    okFpn ? ">=" : "<", fpnAlt, las[1][0], las[1][1], las[1][2], lasRatio, okLas ? "<=" : ">", las[0][0], las[0][1], las[0][2],
+                    las[2][0], las[2][1], las[2][2], las[1][0] / las[1][2], (okRes && okFpn && okLas) ? "YES" : "NO");
     }
     xpe_preprocess_shutdown();
 }
