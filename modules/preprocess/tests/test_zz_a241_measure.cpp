@@ -11,6 +11,9 @@
  *                         gain from two flats of ONE acquisition condition, measured on the third, shipping path
  *                         (xpe_preprocess_pipeline_out), after the defect stage, defect pixels left out.
  *                         Needs XPE_A240_CAL (the CalData_6 folder) and XPE_A241_OUT (a scratch folder).
+ *   B10v2_Baseline        (QA-A-243) the stage-2 input reference image: the real frame wrist_lat_3072x3072.raw through the shipping
+ *                         path (xpe_preprocess_pipeline_out) with the gain made from ALL THREE flats of the one acquisition
+ *                         condition (flats 4,5,6). Writes the float32 output. Needs XPE_A240_CAL, XPE_A240_WRIST, XPE_A243_OUT.
  */
 #include <gtest/gtest.h>
 
@@ -348,5 +351,99 @@ TEST(A241Measure, DISABLED_B6_HeldOut) {
                     100.0 * static_cast<double>(masked) / static_cast<double>(N), 100.0 * sd / mean, mean, 100.0 * bsd / bm);
         xpe_clear_alerts();
     }
+    xpe_preprocess_shutdown();
+}
+
+// B10 v2: the reference image the stage-2 lane receives. Everything from scratch: maps regenerated, one process, one frame.
+TEST(A241Measure, DISABLED_B10v2_Baseline) {
+    const std::string cal = envOr("XPE_A240_CAL", "");
+    const std::string wristPath = envOr("XPE_A240_WRIST", "");
+    const std::string outDir = envOr("XPE_A243_OUT", "");
+    ASSERT_FALSE(cal.empty());
+    ASSERT_FALSE(wristPath.empty());
+    ASSERT_FALSE(outDir.empty());
+    const uint32_t W = 3072, H = 3072;
+    const size_t N = static_cast<size_t>(W) * H;
+    const fs::path dir = fs::path(outDir);
+    fs::create_directories(dir / "maps");
+
+    const std::vector<uint16_t> dark = readRaw16(cal + "/dark.raw", N);
+    const std::vector<uint16_t> wrist = readRaw16(wristPath, N);
+    ASSERT_FALSE(dark.empty());
+    ASSERT_FALSE(wrist.empty());
+    std::vector<std::vector<uint16_t>> flat(7);
+    for (int k = 4; k <= 6; ++k) {
+        char nm[32];
+        std::snprintf(nm, sizeof nm, "/bright%02d.raw", k);
+        flat[static_cast<size_t>(k)] = readRaw16(cal + nm, N);
+        ASSERT_FALSE(flat[static_cast<size_t>(k)].empty()) << nm;
+    }
+    const auto bpBytes = readFile(cal + "/BPMap.map");
+    ASSERT_EQ(N, bpBytes.size());
+
+    auto buf = [&](const void* d, size_t bytes, XpePixelFormat f) {
+        XpeImageBuffer b{};
+        b.data = const_cast<void*>(d);
+        b.dataSize = bytes;
+        b.width = W;
+        b.height = H;
+        b.format = f;
+        b.bitsAllocated = f == XPE_PIXEL_FLOAT32 ? 32u : 16u;
+        b.bitsStored = b.bitsAllocated;
+        return b;
+    };
+
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    const std::string offPath = (dir / "maps" / "offset.xcal").string(), gainPath = (dir / "maps" / "gain_from_4_5_6.xcal").string(),
+                      defPath = (dir / "maps" / "defect.xcal").string();
+    const XpeImageBuffer darkBuf = buf(dark.data(), N * 2, XPE_PIXEL_UINT16);
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(&darkBuf, 1, 100.0f, 25.0f, offPath.c_str(), nullptr));
+    const XpeImageBuffer three[3] = {buf(flat[4].data(), N * 2, XPE_PIXEL_UINT16), buf(flat[5].data(), N * 2, XPE_PIXEL_UINT16),
+                                     buf(flat[6].data(), N * 2, XPE_PIXEL_UINT16)};
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_gain(three, 3, nullptr, gainPath.c_str(), nullptr));
+    XCal o;
+    ASSERT_TRUE(readXCal(offPath, &o));
+    {   // the three maps must carry one session id: the gain takes the offset's, the defect map is written with it
+        XCal g;
+        ASSERT_TRUE(readXCal(gainPath, &g));
+        std::memcpy(g.hdr.session_id, o.hdr.session_id, sizeof g.hdr.session_id);
+        ASSERT_EQ(XPE_OK, writeXCal(gainPath, g));
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        std::memcpy(hdr.session_id, o.hdr.session_id, sizeof hdr.session_id);
+        hdr.version = XCAL_VERSION;
+        hdr.type = XCAL_TYPE_DEFECT;
+        hdr.pixel_format = XCAL_FMT_UINT8_MASK;
+        hdr.width = W;
+        hdr.height = H;
+        hdr.payload_len = N;
+        ASSERT_EQ(XPE_OK, write_xcal_file(defPath.c_str(), hdr, nullptr, 0, bpBytes.data(), N));
+    }
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset(offPath.c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(gainPath.c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(defPath.c_str()));
+    xpe_clear_alerts();
+
+    std::vector<float> out(N, 0.0f);
+    const XpeImageBuffer in = buf(wrist.data(), N * 2, XPE_PIXEL_UINT16);
+    XpeImageBuffer ob = buf(out.data(), N * 4, XPE_PIXEL_FLOAT32);
+    XpeImageMetadata meta{};
+    const char* cfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &ob, &meta, nullptr, nullptr, cfg));
+    const std::string outFile = (dir / "wrist_lat_3072x3072_corrected_v2_f32le.raw").string();
+    {
+        std::ofstream f(outFile, std::ios::binary);
+        f.write(reinterpret_cast<const char*>(out.data()), static_cast<std::streamsize>(N * sizeof(float)));
+    }
+    uint64_t h = 1469598103934665603ull;
+    for (const float v : out) {
+        uint32_t b;
+        std::memcpy(&b, &v, 4);
+        for (int k = 0; k < 4; ++k) h = (h ^ ((b >> (8 * k)) & 0xFF)) * 1099511628211ull;
+    }
+    std::printf("[a241] B10v2 wrote %s (%zu bytes), FNV-64 %016llx, format %d, %ux%u, flags 0x%x\n", outFile.c_str(), N * sizeof(float),
+                static_cast<unsigned long long>(h), static_cast<int>(ob.format), ob.width, ob.height, meta.flags);
+    xpe_clear_alerts();
     xpe_preprocess_shutdown();
 }
