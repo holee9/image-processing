@@ -594,4 +594,41 @@ if(_XPE_BUILD_TESTS)
     gtest_discover_tests(xpe_preprocess_oom_tests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
+
+    # QA-A-244 (#245): the expiry tests that need time to pass. They used to wait on the wall clock (a 400 ms expiry window, then a 600 ms
+    # sleep) and failed on a slow CI runner when loading the maps and the first frame took longer than the window. This target compiles
+    # the product sources with XPE_CACHE_TEST_HOOKS, which adds one test-only clock pointer (xpe_clock_now_ms_hook) that every expiry
+    # decision reads, so the test decides the time. The shipped library does not define the macro and has no such pointer.
+    add_executable(xpe_preprocess_clock_tests
+        tests/test_a241_safety.cpp
+        tests/test_calib_cache_same_verdict.cpp   # its two expiry tests run only here (injected clock)
+        ${XPE_PREPROCESS_SOURCES}
+    )
+    target_include_directories(xpe_preprocess_clock_tests
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+                ${CMAKE_CURRENT_SOURCE_DIR}/src
+                ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
+    )
+    target_compile_definitions(xpe_preprocess_clock_tests PRIVATE XPE_DLL_EXPORT XPE_CACHE_TEST_HOOKS)
+    target_link_libraries(xpe_preprocess_clock_tests
+        PRIVATE xpe_common
+                nlohmann_json::nlohmann_json
+                GTest::gtest_main
+    )
+    if(WIN32)
+        target_link_libraries(xpe_preprocess_clock_tests PRIVATE bcrypt psapi)
+    endif()
+    target_compile_features(xpe_preprocess_clock_tests PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(xpe_preprocess_clock_tests PRIVATE /W4 /arch:AVX2)
+    else()
+        target_compile_options(xpe_preprocess_clock_tests PRIVATE -Wall -Wextra -mavx2)
+    endif()
+    xpe_target_warnings_as_errors(xpe_preprocess_clock_tests)
+
+    # the same suite also runs in xpe_preprocess_tests (against the DLL); the prefix keeps the two sets of ctest names apart
+    gtest_discover_tests(xpe_preprocess_clock_tests
+        TEST_PREFIX "clock."
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
 endif()

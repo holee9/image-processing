@@ -14,6 +14,7 @@
 #include "xpe/common/xpe_error.h"
 #include "xpe/preprocess_api.h"   // XpeCalibQualityMeta (FUNC-033, QA-A-35)
 
+#include <chrono>
 #include <cstdint>
 #include <cstddef>
 #include <cstring>
@@ -820,6 +821,25 @@ constexpr unsigned XPE_EXPIRY_ALL = XPE_EXPIRY_OFFSET | XPE_EXPIRY_GAIN | XPE_EX
 XpeErrorCode xpe_calib_snapshot_expiry_check_at(const CalibSnapshot& calib, unsigned maps, int64_t nowMs) noexcept;
 /** The same, at the system clock. */
 XpeErrorCode xpe_calib_snapshot_expiry_check(const CalibSnapshot& calib, unsigned maps) noexcept;
+
+#ifdef XPE_CACHE_TEST_HOOKS
+/**
+ * Test-only clock (QA-A-244): when set, every expiry decision (the loaders' check at load, the cache's check on a hit, the frame-time
+ * and stage-time check, xpe_calib_check_expiry) reads this instead of the system clock, so a test decides the time instead of racing it.
+ * Declared and defined only in builds that define XPE_CACHE_TEST_HOOKS (the clock-test target); the shipped library has no such
+ * pointer, no way to move its expiry clock, and xpe_calib_now_ms() below compiles to the system-clock read.
+ */
+extern int64_t (*xpe_clock_now_ms_hook)();
+#endif
+
+/** Epoch milliseconds, the time every calibration-expiry decision is made at. The system clock unless the test hook is set. */
+inline int64_t xpe_calib_now_ms() noexcept
+{
+#ifdef XPE_CACHE_TEST_HOOKS
+    if (xpe_clock_now_ms_hook != nullptr) return xpe_clock_now_ms_hook();
+#endif
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+}
 
 /** Move a staged object into g_calib. The caller holds g_calib_mutex. Cannot fail. */
 void xpe_calib_commit_offset_locked(StagedOffset& staged) noexcept;

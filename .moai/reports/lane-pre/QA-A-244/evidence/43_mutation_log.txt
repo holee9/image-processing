@@ -1,0 +1,57 @@
+== 0. the tree as committed to be: injected clock
+git HEAD: ccfd11b6; sources sha256 (first 16): expiry check 217e5425ca7191c9 cache c9937b42676d6a4d
+build command: build237.bat xpe_preprocess_clock_tests (= cmake --build --preset ci-preprocess --target xpe_preprocess_clock_tests)
+BUILD_EXIT=0
+xpe_preprocess_clock_tests.exe sha256 (fixed): 4fc65bd859e95a3f37079203fc14e3023957052344288a93ca404e3dbd05b403
+[       OK ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls (92 ms)
+[       OK ] A241Safety.AMapThatExpiresWhileLoadedStopsTheFrame (52 ms)
+[       OK ] A241Safety.ASlowRealClockDoesNotChangeTheOutcome (1013 ms)
+[       OK ] A241Safety.AnExpiredMapStopsAllFourPipelineEntryPoints (13 ms)
+[       OK ] A241Safety.TheExpiryBoundaryIsJudgedAtTheInjectedTime (12 ms)
+[       OK ] A241Safety.TheLoadersJudgeExpiryAtTheInjectedTimeToo (7 ms)
+[       OK ] A241Safety.TheThreeSingleStageFunctionsRefuseAnExpiredMapAndWriteNothing (41 ms)
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (35 ms)
+
+== 1. mutant A: the frame-time/stage-time expiry check reads the real clock, not the injected one
+BUILD_EXIT=0
+xpe_preprocess_clock_tests.exe sha256 (mutant A): f9eb56d1dc431cfcce9109e0a07fb2fefcb108c9f657784d64e50194c1b9981a
+[       OK ] A241Safety.TheLoadersJudgeExpiryAtTheInjectedTimeToo (6 ms)
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (31 ms)
+[  FAILED  ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls
+[  FAILED  ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls (105 ms)
+[  FAILED  ] A241Safety.AMapThatExpiresWhileLoadedStopsTheFrame
+[  FAILED  ] A241Safety.AMapThatExpiresWhileLoadedStopsTheFrame (41 ms)
+[  FAILED  ] A241Safety.ASlowRealClockDoesNotChangeTheOutcome
+[  FAILED  ] A241Safety.ASlowRealClockDoesNotChangeTheOutcome (1019 ms)
+[  FAILED  ] A241Safety.AnExpiredMapStopsAllFourPipelineEntryPoints
+[  FAILED  ] A241Safety.AnExpiredMapStopsAllFourPipelineEntryPoints (14 ms)
+[  FAILED  ] A241Safety.TheExpiryBoundaryIsJudgedAtTheInjectedTime
+[  FAILED  ] A241Safety.TheExpiryBoundaryIsJudgedAtTheInjectedTime (10 ms)
+[  FAILED  ] A241Safety.TheThreeSingleStageFunctionsRefuseAnExpiredMapAndWriteNothing
+[  FAILED  ] A241Safety.TheThreeSingleStageFunctionsRefuseAnExpiredMapAndWriteNothing (40 ms)
+
+== 2. mutant B: the cache hit's expiry check reads the real clock
+BUILD_EXIT=0
+xpe_preprocess_clock_tests.exe sha256 (mutant B): e5d61afeb165851b4950b0e1eb98bced1789af861e6d97926ac40157f3728e62
+[       OK ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls (87 ms)
+[       OK ] A241Safety.AMapThatExpiresWhileLoadedStopsTheFrame (40 ms)
+[       OK ] A241Safety.ASlowRealClockDoesNotChangeTheOutcome (1011 ms)
+[       OK ] A241Safety.AnExpiredMapStopsAllFourPipelineEntryPoints (10 ms)
+[       OK ] A241Safety.TheExpiryBoundaryIsJudgedAtTheInjectedTime (10 ms)
+[       OK ] A241Safety.TheLoadersJudgeExpiryAtTheInjectedTimeToo (5 ms)
+[       OK ] A241Safety.TheThreeSingleStageFunctionsRefuseAnExpiredMapAndWriteNothing (34 ms)
+[  FAILED  ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+[  FAILED  ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (22 ms)
+
+== 3. restore both, touch, rebuild
+restored sources sha256 (first 16): expiry check 217e5425ca7191c9 cache c9937b42676d6a4d
+BUILD_EXIT=0
+xpe_preprocess_clock_tests.exe sha256 (restored): a0d0561d8e80763ac2ebaa8163b8db54e2c7be73f4c215cb8ef30dfde7198e4f
+[       OK ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls (92 ms)
+[       OK ] A241Safety.AMapThatExpiresWhileLoadedStopsTheFrame (45 ms)
+[       OK ] A241Safety.ASlowRealClockDoesNotChangeTheOutcome (1013 ms)
+[       OK ] A241Safety.AnExpiredMapStopsAllFourPipelineEntryPoints (13 ms)
+[       OK ] A241Safety.TheExpiryBoundaryIsJudgedAtTheInjectedTime (15 ms)
+[       OK ] A241Safety.TheLoadersJudgeExpiryAtTheInjectedTimeToo (6 ms)
+[       OK ] A241Safety.TheThreeSingleStageFunctionsRefuseAnExpiredMapAndWriteNothing (40 ms)
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (36 ms)

@@ -138,8 +138,7 @@ OpenCheck open_check(const char* path) noexcept
 
 int64_t now_epoch_ms() noexcept
 {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
+    return xpe_calib_now_ms();   // the system clock; a test clock in the clock-test build (QA-A-244)
 }
 
 /**

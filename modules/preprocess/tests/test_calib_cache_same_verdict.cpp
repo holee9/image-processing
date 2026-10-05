@@ -18,6 +18,9 @@
 #include <gtest/gtest.h>
 
 #include "xpe/preprocess_api.h"
+#ifdef XPE_CACHE_TEST_HOOKS
+#include "xpe/preprocess/xpe_preprocess_internal.h"   // xpe_clock_now_ms_hook (QA-A-244)
+#endif
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
 #include "xpe/preprocess/xcal_format.h"
@@ -53,10 +56,22 @@ namespace {
 constexpr uint32_t W = 4, H = 4;
 constexpr size_t N = static_cast<size_t>(W) * H;
 
-int64_t nowMs() {
+int64_t realNowMs() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
 }
+
+#ifdef XPE_CACHE_TEST_HOOKS
+// QA-A-244: in the clock-test build (xpe_preprocess_clock_tests) every expiry decision reads this clock, which only the test moves. The two
+// expiry tests below used to give the files an expiry 800 ms ahead of the wall clock and sleep 1100 ms; on a slow runner the writes and the
+// cached loads could outlast the window. They now run only in that build, where the test advances the clock instead of waiting.
+int64_t g_testNowMs = 0;
+int64_t testClock() { return g_testNowMs; }
+int64_t nowMs() { return g_testNowMs; }
+void advanceMs(int64_t ms) { g_testNowMs += ms; }
+#else
+int64_t nowMs() { return realNowMs(); }
+#endif
 
 void writeFile(const char* path, uint32_t type, uint32_t fmt, const void* data, size_t bytes,
                int64_t expiryMs = 0, const std::string& json = std::string()) {
@@ -131,10 +146,17 @@ const char* kFiles[] = {"csv_oe.xcal", "csv_ge.xcal", "csv_de.xcal", "csv_oq.xca
 class CacheSameVerdict : public ::testing::Test {
 protected:
     void SetUp() override {
+#ifdef XPE_CACHE_TEST_HOOKS
+        g_testNowMs = realNowMs();   // starts at the real time; it moves only when a test advances it
+        xpe_clock_now_ms_hook = &testClock;
+#endif
         ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
         xpe_calib_cache_clear();
     }
     void TearDown() override {
+#ifdef XPE_CACHE_TEST_HOOKS
+        xpe_clock_now_ms_hook = nullptr;
+#endif
         xpe_calib_cache_clear();
         for (const char* p : kFiles) {
             std::remove(p);
@@ -148,6 +170,7 @@ protected:
 } // namespace
 
 // (1) expiry --------------------------------------------------------------------------------------
+#ifdef XPE_CACHE_TEST_HOOKS   // needs the injected clock (xpe_preprocess_clock_tests), see nowMs() above
 TEST_F(CacheSameVerdict, AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled) {
     const int64_t expiry = nowMs() + 800;
     writeOffset("csv_oe.xcal", 100.0f, expiry);
@@ -166,7 +189,7 @@ TEST_F(CacheSameVerdict, AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotI
     ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csv_gq.xcal"));
     ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map("csv_dq.xcal"));
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(1100));
+    advanceMs(1100);
 
     // Control: the plain loaders (the miss path) refuse these files as expired.
     ASSERT_EQ(XPE_ERR_CALIBRATION_EXPIRED, xpe_calib_load_offset("csv_oe.xcal")) << "control: file is expired";
@@ -190,6 +213,7 @@ TEST_F(CacheSameVerdict, AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotI
     EXPECT_NEAR(250.0f, g, 0.01f) << "the refused hit must leave the gain Q map (1000 / 4) in the store";
     EXPECT_NEAR(5000.0f, d, 0.01f) << "the refused hit must leave the defect Q map (no defects) in the store";
 }
+#endif
 
 // (2) integrity ----------------------------------------------------------------------------------
 TEST_F(CacheSameVerdict, AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss) {
@@ -598,6 +622,7 @@ TEST_F(CacheSameVerdict, AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefuse
 // cannot be opened is IO_FAILED. A hit judged the expiry first, answered CALIBRATION_EXPIRED, and dropped
 // the entry without ever trying the open (Codex #21). The refusal must also leave the entry alone, so once
 // the file can be read again the expired verdict arrives as it would from the miss path.
+#ifdef XPE_CACHE_TEST_HOOKS   // needs the injected clock (xpe_preprocess_clock_tests), see nowMs() above
 TEST_F(CacheSameVerdict, AnExpiredFileThatCannotBeOpenedIsIoFailedNotExpired) {
     for (Kind k : {OFFSET, GAIN, DEFECT}) {
         SCOPED_TRACE(kindName[k]);
@@ -609,7 +634,7 @@ TEST_F(CacheSameVerdict, AnExpiredFileThatCannotBeOpenedIsIoFailedNotExpired) {
 
         XpeImageBuffer first{};
         ASSERT_EQ(XPE_OK, kCached[k]("csv_x.xcal", &first));
-        std::this_thread::sleep_for(std::chrono::milliseconds(1100));
+        advanceMs(1100);
 
         // Control: with the file readable, the plain loader (the miss path) says expired.
         ASSERT_EQ(XPE_ERR_CALIBRATION_EXPIRED, kPlain[k]("csv_x.xcal")) << "control: the file is expired";
@@ -635,3 +660,4 @@ TEST_F(CacheSameVerdict, AnExpiredFileThatCannotBeOpenedIsIoFailedNotExpired) {
         EXPECT_EQ(XPE_ERR_CALIBRATION_EXPIRED, kCached[k]("csv_x.xcal", &later));
     }
 }
+#endif

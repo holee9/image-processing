@@ -29,9 +29,22 @@ constexpr uint32_t kW = 64, kH = 48;
 constexpr size_t kN = static_cast<size_t>(kW) * kH;
 constexpr const char* kCfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
 
-int64_t nowMs() {
+int64_t realNowMs() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
+
+#ifdef XPE_CACHE_TEST_HOOKS
+// QA-A-244: in the clock-test build (xpe_preprocess_clock_tests) every expiry decision reads this clock, which only the test moves. The
+// tests that need time to pass used to set an expiry 400 ms ahead of the wall clock, load, run a frame and sleep 600 ms; on a slow CI
+// runner the load and the first frame took longer than the window and the map had expired before its first frame. Now the test sets the
+// time, loads, runs the frame, advances the clock past the expiry and runs the frame again: no wall-clock window, no race, no sleep.
+int64_t g_testNowMs = 0;
+int64_t testClock() { return g_testNowMs; }
+int64_t nowMs() { return g_testNowMs; }
+void advanceMs(int64_t ms) { g_testNowMs += ms; }
+#else
+int64_t nowMs() { return realNowMs(); }
+#endif
 
 int countAlerts(const char* needle) {
     int hits = 0;
@@ -59,11 +72,18 @@ protected:
         dir_ = fs::temp_directory_path() / "xpe_a241_safety";
         fs::remove_all(dir_);
         fs::create_directories(dir_);
+#ifdef XPE_CACHE_TEST_HOOKS
+        g_testNowMs = realNowMs();   // starts at the real time so file timestamps stay plausible; it moves only when a test advances it
+        xpe_clock_now_ms_hook = &testClock;
+#endif
         xpe_preprocess_shutdown();
         ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
         xpe_clear_alerts();
     }
     void TearDown() override {
+#ifdef XPE_CACHE_TEST_HOOKS
+        xpe_clock_now_ms_hook = nullptr;
+#endif
         xpe_clear_alerts();
         xpe_preprocess_shutdown();
         std::error_code ec;
@@ -120,6 +140,7 @@ protected:
 };
 
 // ---------------------------------------------------------------- SAFE-002 / FUNC-009: expiry while loaded
+#ifdef XPE_CACHE_TEST_HOOKS   // needs the injected clock (xpe_preprocess_clock_tests), see nowMs() above
 TEST_F(A241Safety, AMapThatExpiresWhileLoadedStopsTheFrame) {
     const char* kinds[] = {"offset", "gain", "defect"};
     for (int k = 0; k < 3; ++k) {
@@ -137,7 +158,7 @@ TEST_F(A241Safety, AMapThatExpiresWhileLoadedStopsTheFrame) {
         XpeImageMetadata meta{};
         ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_ex(&img, &meta, nullptr, nullptr, kCfg)) << "before it expires, the frame is corrected";
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(600));
+        advanceMs(600);
         xpe_clear_alerts();
         std::memcpy(frame.data(), raw.data(), kN * sizeof(uint16_t));
         img = bufferOf(frame.data(), kN * sizeof(float));
@@ -150,11 +171,13 @@ TEST_F(A241Safety, AMapThatExpiresWhileLoadedStopsTheFrame) {
         EXPECT_EQ(1, countAlerts(kinds[k])) << "the alert names the map that expired";
     }
 }
+#endif
 
+#ifdef XPE_CACHE_TEST_HOOKS   // needs the injected clock (xpe_preprocess_clock_tests), see nowMs() above
 TEST_F(A241Safety, ABypassedMapThatExpiredStillStopsTheFrame) {
     // SAFE-002 judges "any loaded calibration file", the bypassed one included.
     loadAll(nowMs() + 300, 0, 0);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    advanceMs(500);
     std::vector<float> frame(kN, 0.0f);
     XpeImageBuffer img = bufferOf(frame.data(), kN * sizeof(float));
     XpeImageMetadata meta{};
@@ -162,6 +185,7 @@ TEST_F(A241Safety, ABypassedMapThatExpiredStillStopsTheFrame) {
               xpe_preprocess_pipeline_ex(&img, &meta, nullptr, nullptr,
                                          "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassOffset\":true}"));
 }
+#endif
 
 TEST_F(A241Safety, ANeverExpiringFileDoesNotStopTheFrameLater) {
     loadAll(0, 0, 0);
@@ -400,6 +424,7 @@ TEST(A241Checker, JudgesExactlyAtAndAfterTheExpiry) {
     xpe_clear_alerts();
 }
 
+#ifdef XPE_CACHE_TEST_HOOKS   // needs the injected clock (xpe_preprocess_clock_tests), see nowMs() above
 TEST_F(A241Safety, TheThreeSingleStageFunctionsRefuseAnExpiredMapAndWriteNothing) {
     struct Case { const char* name; int which; };
     const Case cases[] = {{"xpe_offset_correct", 0}, {"xpe_gain_correct", 1}, {"xpe_defect_correct", 2}};
@@ -431,7 +456,7 @@ TEST_F(A241Safety, TheThreeSingleStageFunctionsRefuseAnExpiredMapAndWriteNothing
             return xpe_defect_correct(&in, &out, &meta);
         };
         ASSERT_EQ(XPE_OK, call()) << "before it expires the stage works";
-        std::this_thread::sleep_for(std::chrono::milliseconds(600));
+        advanceMs(600);
         xpe_clear_alerts();
         std::fill(out16.begin(), out16.end(), static_cast<uint16_t>(0xBEEF));
         std::fill(outF.begin(), outF.end(), -7.0f);
@@ -442,11 +467,13 @@ TEST_F(A241Safety, TheThreeSingleStageFunctionsRefuseAnExpiredMapAndWriteNothing
         EXPECT_EQ(1, countAlerts("XPE_ERR_CALIBRATION_EXPIRED:"));
     }
 }
+#endif
 
+#ifdef XPE_CACHE_TEST_HOOKS   // needs the injected clock (xpe_preprocess_clock_tests), see nowMs() above
 TEST_F(A241Safety, AnExpiredMapStopsAllFourPipelineEntryPoints) {
     const int64_t soon = nowMs() + 400;
     loadAll(soon, 0, 0);   // loaded through the three loaders: the store holds them
-    std::this_thread::sleep_for(std::chrono::milliseconds(600));
+    advanceMs(600);
     std::vector<float> frame(kN, 0.0f);
     std::vector<uint16_t> raw(kN);
     fillRaw(raw);
@@ -471,9 +498,11 @@ TEST_F(A241Safety, AnExpiredMapStopsAllFourPipelineEntryPoints) {
     XpeImageBuffer viaPath = bufferOf(frame.data(), kN * sizeof(float));
     EXPECT_EQ(XPE_ERR_CALIBRATION_EXPIRED, xpe_preprocess_pipeline(&viaPath, &meta, dir_.string().c_str(), nullptr, kCfg)) << "pipeline (calibPath)";
 }
+#endif
 
 // ---------------------------------------------------------------- Codex #158 (1): a cache HIT installs the entry's expiry with the map
 // Two files of one kind with different expiries (the same session, the same size), moved between the store and the cache.
+#ifdef XPE_CACHE_TEST_HOOKS   // needs the injected clock (xpe_preprocess_clock_tests), see nowMs() above
 TEST_F(A241Safety, ACacheHitInstallsTheExpiryOfTheMapItInstalls) {
     const char* kinds[] = {"offset", "gain", "defect"};
     for (int k = 0; k < 3; ++k) {
@@ -533,7 +562,7 @@ TEST_F(A241Safety, ACacheHitInstallsTheExpiryOfTheMapItInstalls) {
         ASSERT_EQ(XPE_OK, cached(soonPath)) << "a hit";
         EXPECT_EQ(XPE_OK, frameRc()) << "before the entry expires";
         EXPECT_EQ(XPE_OK, stageRc());
-        std::this_thread::sleep_for(std::chrono::milliseconds(1700));
+        advanceMs(1700);
         xpe_clear_alerts();
         EXPECT_EQ(XPE_ERR_CALIBRATION_EXPIRED, frameRc()) << "after it: the pipeline refuses (before the fix the store still said 'never expires')";
         EXPECT_EQ(XPE_ERR_CALIBRATION_EXPIRED, stageRc()) << "and so does the single-stage function";
@@ -550,11 +579,12 @@ TEST_F(A241Safety, ACacheHitInstallsTheExpiryOfTheMapItInstalls) {
         ASSERT_EQ(XPE_OK, cached(foreverPath));
         ASSERT_EQ(XPE_OK, plain(soon2Path));
         ASSERT_EQ(XPE_OK, cached(foreverPath)) << "a hit";
-        std::this_thread::sleep_for(std::chrono::milliseconds(1400));
+        advanceMs(1400);
         EXPECT_EQ(XPE_OK, frameRc()) << "the map the hit installed never expires: the other file's expiry must not stop the frame";
         EXPECT_EQ(XPE_OK, stageRc());
     }
 }
+#endif
 
 TEST_F(A241Safety, ACacheHitReportsAndResetsTheNeverExpiresState) {
     // the never-expires warning state is part of what a hit installs, under the same lock
@@ -867,5 +897,61 @@ TEST_F(A241Safety, TheGeneratorsMergeKeepsTheDensityStateOfTheInstalledMapCurren
     EXPECT_EQ(XPE_OK, xpe_calib_load_defect_cached(pFull.c_str(), &view));
     EXPECT_EQ(1, countAlerts(kWarn)) << "the merged store differs from the cached full map: another over-limit map is re-activated";
 }
+
+#ifdef XPE_CACHE_TEST_HOOKS
+// ---------------------------------------------------------------- QA-A-244: the injected clock decides, not the time that passed
+TEST_F(A241Safety, TheExpiryBoundaryIsJudgedAtTheInjectedTime) {
+    const int64_t expiry = nowMs() + 1000;
+    loadAll(expiry, 0, 0);
+    auto frameRc = [&]() -> int {
+        std::vector<float> frame(kN);
+        std::vector<uint16_t> raw(kN);
+        fillRaw(raw);
+        std::memcpy(frame.data(), raw.data(), kN * sizeof(uint16_t));
+        XpeImageBuffer img = bufferOf(frame.data(), kN * sizeof(float));
+        XpeImageMetadata meta{};
+        return xpe_preprocess_pipeline_ex(&img, &meta, nullptr, nullptr, kCfg);
+    };
+    EXPECT_EQ(XPE_OK, frameRc()) << "well before the expiry";
+    g_testNowMs = expiry - 1;
+    EXPECT_EQ(XPE_OK, frameRc()) << "1 ms before";
+    g_testNowMs = expiry;
+    EXPECT_EQ(XPE_OK, frameRc()) << "at the expiry the map is still valid (it expires when the time is GREATER than the expiry)";
+    g_testNowMs = expiry + 1;
+    EXPECT_EQ(XPE_ERR_CALIBRATION_EXPIRED, frameRc()) << "1 ms after";
+    g_testNowMs = expiry - 500;
+    EXPECT_EQ(XPE_OK, frameRc()) << "the clock is the only input: moved back, the same map is valid again";
+}
+
+TEST_F(A241Safety, ASlowRealClockDoesNotChangeTheOutcome) {
+    // the failure this replaces: load + first frame took longer than a real-time window on a slow runner. Make this one slow on purpose.
+    const int64_t expiry = nowMs() + 400;
+    loadAll(expiry, 0, 0);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));   // a slow environment: a real second between the load and the frame
+    std::vector<float> frame(kN);
+    std::vector<uint16_t> raw(kN);
+    fillRaw(raw);
+    std::memcpy(frame.data(), raw.data(), kN * sizeof(uint16_t));
+    XpeImageBuffer img = bufferOf(frame.data(), kN * sizeof(float));
+    XpeImageMetadata meta{};
+    EXPECT_EQ(XPE_OK, xpe_preprocess_pipeline_ex(&img, &meta, nullptr, nullptr, kCfg)) << "the injected time did not move, so the map has not expired";
+    advanceMs(401);
+    std::memcpy(frame.data(), raw.data(), kN * sizeof(uint16_t));
+    img = bufferOf(frame.data(), kN * sizeof(float));
+    EXPECT_EQ(XPE_ERR_CALIBRATION_EXPIRED, xpe_preprocess_pipeline_ex(&img, &meta, nullptr, nullptr, kCfg)) << "and moving it past the expiry stops the frame";
+}
+
+TEST_F(A241Safety, TheLoadersJudgeExpiryAtTheInjectedTimeToo) {
+    const int64_t expiry = nowMs() + 1000;
+    const std::string path = offsetFile(expiry);
+    g_testNowMs = expiry;
+    EXPECT_EQ(XPE_OK, xpe_calib_load_offset(path.c_str())) << "at the expiry: loads";
+    g_testNowMs = expiry + 1;
+    EXPECT_EQ(XPE_ERR_CALIBRATION_EXPIRED, xpe_calib_load_offset(path.c_str())) << "1 ms after: the loader refuses an expired file";
+    XpeImageBuffer view{};
+    xpe_calib_cache_clear();
+    EXPECT_EQ(XPE_ERR_CALIBRATION_EXPIRED, xpe_calib_load_offset_cached(path.c_str(), &view)) << "the cached loader's miss path too";
+}
+#endif
 
 }  // namespace

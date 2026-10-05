@@ -71,9 +71,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_check_expiry(const char* filepath,
             return XPE_OK;
         }
 
-        using namespace std::chrono;
-        int64_t now_ms = duration_cast<milliseconds>(
-            system_clock::now().time_since_epoch()).count();
+        const int64_t now_ms = xpe_calib_now_ms();   // the system clock; a test clock in the clock-test build (QA-A-244)
 
         int64_t remaining_ms = hdr.expiry_epoch_ms - now_ms;
         *is_expired     = (remaining_ms <= 0);
