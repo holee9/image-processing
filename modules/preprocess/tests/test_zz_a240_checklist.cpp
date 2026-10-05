@@ -623,16 +623,22 @@ TEST(A240, DISABLED_B4_SafeBehaviour) {
         XCal x;
         ASSERT_TRUE(readXCal(m.offset, &x));
         const int64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-        x.hdr.expiry_epoch_ms = now + 6000;
+        x.hdr.expiry_epoch_ms = now + 6000;   // QA-A-244b: a measurement harness (DISABLED_, not a gate); the wait below is until the real expiry, not a fixed time
         const std::string p = (fs::path(m.dir) / "offset_expiry_soon.xcal").string();
         ASSERT_EQ(XPE_OK, writeXCal(p, x));
         xpe_preprocess_shutdown(); ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
         say("load an offset map that expires in 6 s", xpe_calib_load_offset(p.c_str()));
         ASSERT_EQ(XPE_OK, xpe_calib_load_gain(m.gain.c_str()));
         ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(m.defect.c_str()));
+        const int64_t t0 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
         run("pipeline right after loading it", kBasicCfg);
-        std::this_thread::sleep_for(std::chrono::seconds(8));
-        run("pipeline 8 s later (the map has expired while loaded)", kBasicCfg);
+        const int64_t t1 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        // QA-A-244b: whether that frame really ran before the expiry is stated, not assumed (a slow machine can load past a 6 s window), and the
+        // wait is until the expiry has passed (+0.5 s) instead of a fixed 8 s, so the second frame is always after it.
+        std::printf("[a240] B4 the first frame ran %s the expiry (started %lld ms before it, finished %lld ms before it)\n", t1 <= x.hdr.expiry_epoch_ms ? "BEFORE" : "AFTER",
+                    static_cast<long long>(x.hdr.expiry_epoch_ms - t0), static_cast<long long>(x.hdr.expiry_epoch_ms - t1));
+        std::this_thread::sleep_until(std::chrono::system_clock::time_point(std::chrono::milliseconds(x.hdr.expiry_epoch_ms + 500)));
+        run("pipeline after the expiry (the map has expired while loaded)", kBasicCfg);
     }
     // (f) the input buffer and the stage APIs
     {

@@ -1,0 +1,5 @@
+[a240] load an offset map that expires in 6 s                     rc=0 XPE_OK
+[a240] pipeline right after loading it                            rc=0 XPE_OK [the caller's buffer CHANGED]
+[a240] B4 the first frame ran BEFORE the expiry (started 5859 ms before it, finished 5792 ms before it)
+[a240] pipeline after the expiry (the map has expired while loaded) rc=-5 XPE_ERR_CALIBRATION_EXPIRED [the caller's buffer unchanged]
+[       OK ] A240.DISABLED_B4_SafeBehaviour (8808 ms)

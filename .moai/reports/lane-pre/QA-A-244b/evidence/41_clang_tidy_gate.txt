@@ -1,0 +1,67 @@
+28 findings over 34 files; baseline 923
+  note (accepted limit): bugprone-easily-swappable-parameters modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h | inline float xpe_gain_poly_eval_f32(const float* c, uint32_t | count 28 -- a swap among these can pass
+  note (accepted limit): bugprone-easily-swappable-parameters modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h | inline void xpe_ghost_neighbour_span(size_t coord, size_t ex | count 28 -- a swap among these can pass
+  note (accepted limit): bugprone-easily-swappable-parameters modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h | uint32_t x, uint32_t y, uint32_t width, uint32_t height) noe | count 26 -- a swap among these can pass
+  note (accepted limit): bugprone-incorrect-roundings modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h | dst[i] = static_cast<uint16_t>(v + 0.5f); | count 28 -- a swap among these can pass
+  note (accepted limit): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_BUFFER_TOO_SMALL -8 /**< Caller-supplied out | count 32 -- a swap among these can pass
+  note (accepted limit): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_CALIBRATION_EXPIRED -5 /**< Calibration data | count 32 -- a swap among these can pass
+  note (accepted limit): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_CALIB_NOT_LOADED -16 /**< Module is initiali | count 32 -- a swap among these can pass
+  note (accepted limit): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_CONFIG_INVALID -4 /**< Configuration file mi | count 32 -- a swap among these can pass
+  note (accepted limit): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_DICOM_CONFORMANCE -14 /**< DICOM conformance | count 32 -- a swap among these can pass
+  note (accepted limit): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_DICOM_INVALID -13 /**< DICOM file is malform | count 32 -- a swap among these can pass
+  note (accepted limit): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_INTERNAL -12 /**< Internal processing error  | count 32 -- a swap among these can pass
+  note (accepted limit): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_INVALID_CALIB_DATA -17 /**< Calibration file | count 32 -- a swap among these can pass
+  note (accepted limit): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_INVALID_INPUT -1 /**< NULL pointer, wrong pi | count 32 -- a swap among these can pass
+  note (accepted limit): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_IO_FAILED -9 /**< File read or write failure | count 32 -- a swap among these can pass
+  note (accepted limit): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_NETWORK_FAILED -10 /**< Network communicatio | count 32 -- a swap among these can pass
+  note (accepted limit): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_NOT_IMPLEMENTED -15 /**< Function is recogni | count 32 -- a swap among these can pass
+  note (accepted limit): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_NOT_INITIALIZED -6 /**< Module-level init fu | count 32 -- a swap among these can pass
+  note (accepted limit): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_OUT_OF_MEMORY -2 /**< Heap allocation failur | count 32 -- a swap among these can pass
+  note (accepted limit): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_PROCESSING_FAILED -3 /**< Internal algorithm | count 32 -- a swap among these can pass
+  note (accepted limit): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_SAFETY_VIOLATION -11 /**< Safety violation d | count 32 -- a swap among these can pass
+  note (accepted limit): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_UNSUPPORTED_FORMAT -7 /**< Pixel format or i | count 32 -- a swap among these can pass
+  note (accepted limit): bugprone-not-null-terminated-result modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h | return id64 != nullptr && id64[0] != 0 && std::strncmp(id64, | count 28 -- a swap among these can pass
+  note (accepted limit): performance-enum-size modules/common/include/xpe/common/xpe_error.h | typedef enum XpeAlertSeverity { | count 32 -- a swap among these can pass
+  note (accepted limit): performance-enum-size modules/common/include/xpe/common/xpe_types.h | typedef enum XpePixelFormat { | count 32 -- a swap among these can pass
+  note (accepted limit): performance-enum-size modules/preprocess/include/xpe/preprocess/xcal_format.h | typedef enum XCalPixelFormat { | count 14 -- a swap among these can pass
+  note (accepted limit): performance-enum-size modules/preprocess/include/xpe/preprocess/xcal_format.h | typedef enum XCalType { | count 14 -- a swap among these can pass
+  note (accepted limit): performance-enum-size modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h | enum class CalibMapKind { Offset, Gain, Defect }; | count 28 -- a swap among these can pass
+  note (accepted limit): performance-enum-size modules/preprocess/include/xpe/preprocess_api.h | typedef enum XpeCalibrationMode { | count 29 -- a swap among these can pass
+  note (accepted limit): performance-enum-size modules/preprocess/include/xpe/preprocess_api.h | typedef enum { | count 29 -- a swap among these can pass
+  note (accepted limit): performance-enum-size modules/preprocess/include/xpe/preprocess_api.h | typedef enum { | count 29 -- a swap among these can pass
+  note (accepted limit): performance-enum-size modules/preprocess/src/xpe_calib_generate_offset_methods.hpp | enum class OffsetGenerationMethod { | count 2 -- a swap among these can pass
+  below baseline (tighten it): bugprone-easily-swappable-parameters modules/preprocess/include/runtime_detection.h | uint32_t x, uint32_t y) noexcept { | 1 -> 0
+  below baseline (tighten it): bugprone-easily-swappable-parameters modules/preprocess/include/runtime_detection.h | uint32_t centerY, | 1 -> 0
+  below baseline (tighten it): bugprone-easily-swappable-parameters modules/preprocess/include/runtime_detection.h | uint32_t centerY, | 1 -> 0
+  below baseline (tighten it): bugprone-easily-swappable-parameters modules/preprocess/include/runtime_detection.h | auto scalarSpan = [&](uint32_t y, uint32_t xa, uint32_t xb)  | 1 -> 0
+  below baseline (tighten it): bugprone-easily-swappable-parameters modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h | inline float xpe_gain_poly_eval_f32(const float* c, uint32_t | 28 -> 0
+  below baseline (tighten it): bugprone-easily-swappable-parameters modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h | inline void xpe_ghost_neighbour_span(size_t coord, size_t ex | 28 -> 0
+  below baseline (tighten it): bugprone-easily-swappable-parameters modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h | uint32_t x, uint32_t y, uint32_t width, uint32_t height) noe | 26 -> 0
+  below baseline (tighten it): bugprone-incorrect-roundings modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h | dst[i] = static_cast<uint16_t>(v + 0.5f); | 28 -> 0
+  below baseline (tighten it): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_BUFFER_TOO_SMALL -8 /**< Caller-supplied out | 32 -> 0
+  below baseline (tighten it): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_CALIBRATION_EXPIRED -5 /**< Calibration data | 32 -> 0
+  below baseline (tighten it): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_CALIB_NOT_LOADED -16 /**< Module is initiali | 32 -> 0
+  below baseline (tighten it): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_CONFIG_INVALID -4 /**< Configuration file mi | 32 -> 0
+  below baseline (tighten it): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_DICOM_CONFORMANCE -14 /**< DICOM conformance | 32 -> 0
+  below baseline (tighten it): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_DICOM_INVALID -13 /**< DICOM file is malform | 32 -> 0
+  below baseline (tighten it): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_INTERNAL -12 /**< Internal processing error  | 32 -> 0
+  below baseline (tighten it): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_INVALID_CALIB_DATA -17 /**< Calibration file | 32 -> 0
+  below baseline (tighten it): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_INVALID_INPUT -1 /**< NULL pointer, wrong pi | 32 -> 0
+  below baseline (tighten it): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_IO_FAILED -9 /**< File read or write failure | 32 -> 0
+  below baseline (tighten it): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_NETWORK_FAILED -10 /**< Network communicatio | 32 -> 0
+  below baseline (tighten it): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_NOT_IMPLEMENTED -15 /**< Function is recogni | 32 -> 0
+  below baseline (tighten it): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_NOT_INITIALIZED -6 /**< Module-level init fu | 32 -> 0
+  below baseline (tighten it): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_OUT_OF_MEMORY -2 /**< Heap allocation failur | 32 -> 0
+  below baseline (tighten it): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_PROCESSING_FAILED -3 /**< Internal algorithm | 32 -> 0
+  below baseline (tighten it): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_SAFETY_VIOLATION -11 /**< Safety violation d | 32 -> 0
+  below baseline (tighten it): bugprone-macro-parentheses modules/common/include/xpe/common/xpe_error.h | #define XPE_ERR_UNSUPPORTED_FORMAT -7 /**< Pixel format or i | 32 -> 0
+  below baseline (tighten it): bugprone-not-null-terminated-result modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h | return id64 != nullptr && id64[0] != 0 && std::strncmp(id64, | 28 -> 0
+  below baseline (tighten it): performance-enum-size modules/common/include/xpe/common/xpe_error.h | typedef enum XpeAlertSeverity { | 32 -> 0
+  below baseline (tighten it): performance-enum-size modules/common/include/xpe/common/xpe_types.h | typedef enum XpePixelFormat { | 32 -> 0
+  below baseline (tighten it): performance-enum-size modules/preprocess/include/xpe/preprocess/xcal_format.h | typedef enum XCalPixelFormat { | 14 -> 0
+  below baseline (tighten it): performance-enum-size modules/preprocess/include/xpe/preprocess/xcal_format.h | typedef enum XCalType { | 14 -> 0
+  below baseline (tighten it): performance-enum-size modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h | enum class CalibMapKind { Offset, Gain, Defect }; | 28 -> 0
+  below baseline (tighten it): performance-enum-size modules/preprocess/include/xpe/preprocess_api.h | typedef enum XpeCalibrationMode { | 29 -> 0
+  below baseline (tighten it): performance-enum-size modules/preprocess/include/xpe/preprocess_api.h | typedef enum { | 29 -> 0
+  below baseline (tighten it): performance-enum-size modules/preprocess/include/xpe/preprocess_api.h | typedef enum { | 29 -> 0
+  below baseline (tighten it): performance-enum-size modules/preprocess/src/xpe_calib_generate_offset_methods.hpp | enum class OffsetGenerationMethod { | 2 -> 0

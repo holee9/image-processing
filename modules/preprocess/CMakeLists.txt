@@ -573,7 +573,8 @@ if(_XPE_BUILD_TESTS)
                 ${CMAKE_CURRENT_SOURCE_DIR}/src
                 ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
     )
-    # XPE_CACHE_TEST_HOOKS: the cache's test-only delay point (xpe_preprocess_internal.h); never defined for the library.
+    # XPE_CACHE_TEST_HOOKS: the cache's test-only delay point and the test-only expiry clock (xpe_preprocess_internal.h); defined only for
+    # this target and xpe_preprocess_clock_tests below, never for the library.
     target_compile_definitions(xpe_preprocess_oom_tests PRIVATE XPE_DLL_EXPORT XPE_CACHE_TEST_HOOKS)
     target_link_libraries(xpe_preprocess_oom_tests
         PRIVATE xpe_common
@@ -598,7 +599,8 @@ if(_XPE_BUILD_TESTS)
     # QA-A-244 (#245): the expiry tests that need time to pass. They used to wait on the wall clock (a 400 ms expiry window, then a 600 ms
     # sleep) and failed on a slow CI runner when loading the maps and the first frame took longer than the window. This target compiles
     # the product sources with XPE_CACHE_TEST_HOOKS, which adds one test-only clock pointer (xpe_clock_now_ms_hook) that every expiry
-    # decision reads, so the test decides the time. The shipped library does not define the macro and has no such pointer.
+    # decision reads, so the test decides the time. Only this target and xpe_preprocess_oom_tests (which uses the pointer in one test) define
+    # the macro; the shipped library does not, and has no such pointer.
     add_executable(xpe_preprocess_clock_tests
         tests/test_a241_safety.cpp
         tests/test_calib_cache_same_verdict.cpp   # its two expiry tests run only here (injected clock)

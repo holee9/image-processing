@@ -826,8 +826,11 @@ XpeErrorCode xpe_calib_snapshot_expiry_check(const CalibSnapshot& calib, unsigne
 /**
  * Test-only clock (QA-A-244): when set, every expiry decision (the loaders' check at load, the cache's check on a hit, the frame-time
  * and stage-time check, xpe_calib_check_expiry) reads this instead of the system clock, so a test decides the time instead of racing it.
- * Declared and defined only in builds that define XPE_CACHE_TEST_HOOKS (the clock-test target); the shipped library has no such
- * pointer, no way to move its expiry clock, and xpe_calib_now_ms() below compiles to the system-clock read.
+ * Declared and defined only in builds that define XPE_CACHE_TEST_HOOKS. Two test executables define it, both compiling the product
+ * sources into themselves: xpe_preprocess_clock_tests (the expiry tests) and xpe_preprocess_oom_tests (which also uses it, in
+ * AHitJudgesTheExpiryAfterTheOpenCheckNotBefore). The pointer is null unless a test sets it, and then the system clock is read. The
+ * shipped library defines neither the macro nor the pointer, has no way to move its expiry clock, and xpe_calib_now_ms() below compiles
+ * to the system-clock read.
  */
 extern int64_t (*xpe_clock_now_ms_hook)();
 #endif
