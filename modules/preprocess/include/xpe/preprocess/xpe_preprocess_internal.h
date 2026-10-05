@@ -232,8 +232,34 @@ inline float xpe_interpolate_pixel_masked(const float* pixels, IsMasked&& isMask
 constexpr float XPE_GAIN_APPLIED_MIN = 0.1f;
 constexpr float XPE_GAIN_APPLIED_MAX = 10.0f;
 
-/** The largest fraction of a frame that may be classified defective by the gain calibration (SRS-CALIB-FUNC-003: 5% defect density tolerance). */
+/** The largest fraction of a frame that may be classified defective by the gain calibration (SRS-CALIB-FUNC-003: 5% defect density tolerance).
+ *  PROVISIONAL (QA-A-241): the value is the FUNC-003 density tolerance reused, not a bound measured on detector data; SRS-CALIB-FUNC-002
+ *  says the bound is "to be set from measured detector data". The one real gain map measured (CalData_6 flats) classifies 0.445 %.
+ *  Candidates and measurements: .moai/reports/lane-pre/QA-A-241/report.md. The lead confirms the value. */
 constexpr double XPE_GAIN_DEFECT_MAX_FRACTION = 0.05;
+
+/**
+ * The largest fraction of a defect map (BPM) that may be marked defective: SRS-CALIB-FUNC-003, "Maximum 5% defect density tolerance"
+ * (QA-A-241c, Codex #158). The SRS gives the tolerance and not the behaviour above it. A map over it is LOADED and reported once at load
+ * with the warning XPE_WARN_DEFECT_MAP_OVER_LIMIT -- never refused -- as the union of the map with the gain-classified pixels already is at frame
+ * time (XPE_WARN_DEFECT_UNION_OVER_LIMIT, QA-A-211 decision D1: "the frame is corrected, but the correction fills a large part from
+ * neighbours"). A refusal (XPE_ERR_INVALID_CALIB_DATA, like a gain map over its bound) is one line away and is the lead's decision; it would
+ * also make the dense masks the fill-stage tests use unloadable. The comparison is strictly greater than: exactly 5 % is within tolerance.
+ */
+constexpr double XPE_DEFECT_MAP_MAX_FRACTION = 0.05;
+
+/**
+ * Identity of a defect mask: FNV-1a (64 bit) over "is this pixel marked" (0 or 1), so two files that mark the same pixels are the same
+ * map whatever values or encoding they carry. Used to tell one over-limit map from another (QA-A-241f); not a security hash.
+ */
+inline uint64_t xpe_defect_mask_hash(const uint8_t* cells, size_t count) noexcept {
+    uint64_t h = 14695981039346656037ull;
+    for (size_t i = 0; i < count; ++i) {
+        h ^= static_cast<uint64_t>(cells[i] != 0 ? 1u : 0u);
+        h *= 1099511628211ull;
+    }
+    return h;
+}
 
 /** What a scan of a scalar gain map found (QA-A-211): the pixels whose gain is outside the range, which are classified defective. */
 struct XpeGainScan {
@@ -557,6 +583,13 @@ struct CalibrationData {
     uint32_t defect_height{0};
     int64_t  defect_expiry_ms{0};
     char     defect_session_id[64]{};   // QA-A-229 M4: the defect file's session_id, for the consistency check
+    // QA-A-241e (Codex #160): the density of the INSTALLED map. A cache hit re-installs a map without loading it, so it must know whether
+    // the map it replaces was already over the limit (no new warning) and whether the one it installs is (a warning when it turns the
+    // current state from within tolerance to over it).
+    bool     defect_over_limit{false};
+    uint64_t defect_marked{0};
+    uint64_t defect_total{0};
+    uint64_t defect_hash{0};   // QA-A-241f (Codex #161): identity of the installed mask (xpe_defect_mask_hash), set only while over the limit
     bool     session_warned{false};     // QA-A-229 M4: the "unspecified session" warning was raised for the current mixed state
 
     // QA-A-111 (#186): SRS-CALIB-FUNC-006-EXT 6a nonlinearity LUT, a flat table
@@ -619,6 +652,12 @@ struct CalibSnapshot {
     std::shared_ptr<uint8_t[]> defect_map;
     uint32_t defect_width{0};
     uint32_t defect_height{0};
+
+    // QA-A-241 (#245, SRS-CALIB-SAFE-002): the expiry of each loaded file (epoch ms, 0 = never expires), so a frame can be refused
+    // when a map expired AFTER it was loaded.
+    int64_t offset_expiry_ms{0};
+    int64_t gain_expiry_ms{0};
+    int64_t defect_expiry_ms{0};
 };
 
 /** The snapshot of the store as it is now; the caller holds g_calib_mutex. Copies pointers and numbers only. */
@@ -689,6 +728,13 @@ struct StagedDefect {
     uint32_t height{0};
     int64_t  expiryMs{0};
     char     sessionId[64]{};   ///< the file's session_id (QA-A-229 M4); was read by nobody before
+    // QA-A-241d (Codex #159): what the density count found. The stage only RECORDS it; the warning is raised by
+    // xpe_calib_after_defect_commit once the map is really installed, so a load that is refused later (a session conflict) leaves
+    // the alert queue as it found it.
+    uint64_t marked{0};         ///< pixels marked defective
+    uint64_t total{0};          ///< pixels in the map
+    bool     overLimit{false};  ///< marked / total above XPE_DEFECT_MAP_MAX_FRACTION
+    uint64_t mapHash{0};        ///< xpe_defect_mask_hash of the map, computed only when overLimit (0 otherwise)
 };
 
 /** Read, validate and allocate; changes no global. Never throws. */
@@ -750,6 +796,31 @@ bool xpe_calib_session_transition_locked(bool mixed) noexcept;
  */
 void xpe_calib_session_warn(bool shouldWarn) noexcept;
 
+/**
+ * SRS-CALIB-FUNC-009 (QA-A-241): a calibration file with expiryEpochMs == 0 never expires, and loading one is reported
+ * once as XPE_WARN_NO_EXPIRY (XPE_ALERT_WARNING) -- once per kind while the loaded file stays
+ * a never-expiring one, because the pipeline re-reads its three files on every call and a warning per load would fill the
+ * 64-entry alert queue with one sentence. A load that carries an expiry, and shutdown, end the state. The caller holds
+ * g_calib_mutex (the commit functions). Never throws.
+ */
+void xpe_calib_note_expiry_locked(CalibMapKind kind, int64_t expiryMs) noexcept;
+
+/**
+ * SRS-CALIB-SAFE-002 / FUNC-009 (QA-A-241, Codex #157): the expiry of the maps a snapshot holds, judged when a frame or a stage is
+ * about to run -- not only when the file was loaded. ONE checker for the pipeline entry points and for the single-stage functions
+ * (xpe_offset_correct / xpe_gain_correct / xpe_defect_correct), so no entry point lets an expired map correct a frame.
+ * `maps` is a bit set of XPE_EXPIRY_*: only the loaded maps in it are judged (a map that is not loaded, or whose expiry is 0, never
+ * fails). `nowMs` is epoch milliseconds; a map expires when nowMs is GREATER than its expiry (the loader's rule). On expiry an
+ * XPE_ERR_CALIBRATION_EXPIRED alert names the map and the result is XPE_ERR_CALIBRATION_EXPIRED; nothing is written. Never throws.
+ */
+constexpr unsigned XPE_EXPIRY_OFFSET = 1u;
+constexpr unsigned XPE_EXPIRY_GAIN = 2u;
+constexpr unsigned XPE_EXPIRY_DEFECT = 4u;
+constexpr unsigned XPE_EXPIRY_ALL = XPE_EXPIRY_OFFSET | XPE_EXPIRY_GAIN | XPE_EXPIRY_DEFECT;
+XpeErrorCode xpe_calib_snapshot_expiry_check_at(const CalibSnapshot& calib, unsigned maps, int64_t nowMs) noexcept;
+/** The same, at the system clock. */
+XpeErrorCode xpe_calib_snapshot_expiry_check(const CalibSnapshot& calib, unsigned maps) noexcept;
+
 /** Move a staged object into g_calib. The caller holds g_calib_mutex. Cannot fail. */
 void xpe_calib_commit_offset_locked(StagedOffset& staged) noexcept;
 void xpe_calib_commit_gain_locked(StagedGain& staged) noexcept;
@@ -761,6 +832,17 @@ void xpe_calib_commit_defect_locked(StagedDefect& staged) noexcept;
  * committed with the maps, in xpe_calib_commit_gain_locked -- QA-A-202d.)
  */
 void xpe_calib_after_gain_commit(const StagedGain& staged) noexcept;
+
+/**
+ * What follows a committed defect-map load, after g_calib_mutex was released: the over-limit warning (SRS-CALIB-FUNC-003, XPE_WARN_DEFECT_MAP_OVER_LIMIT)
+ * when the staged map was above the density tolerance. Called ONLY after the commit succeeded, by every path that commits a defect map (the plain
+ * loader and the set load; the cached loader's miss runs the plain loader, a hit installs a map that was loaded before), so a refused load never
+ * says "the map is loaded". Advisory: never throws.
+ */
+void xpe_calib_after_defect_commit(const StagedDefect& staged) noexcept;
+
+/** The XPE_WARN_DEFECT_MAP_OVER_LIMIT alert for `marked` of `total` pixels. Advisory: never throws. */
+void xpe_calib_push_defect_over_limit(uint64_t marked, uint64_t total) noexcept;
 
 /**
  * Whether the calibration cache's list and index describe the same entries (every list node has its

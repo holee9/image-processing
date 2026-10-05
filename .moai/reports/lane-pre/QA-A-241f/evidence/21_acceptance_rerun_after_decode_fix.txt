@@ -1,0 +1,39 @@
+git HEAD: 7c844920 (the harness decode fix is uncommitted at this point; method commit 7c844920 ancestor: yes)
+xpe_preprocess.dll sha256: 68d1f772794a669760576c2bf5211e0128688030f16a733ee6a77f317c56724c
+xpe_preprocess_tests.exe sha256: 71e3c0cebb37223210df6b1ac3b91789b41ce0df2c2997a36650f690044971cf
+---- 241e acceptance harness re-run after the decode fix
+[a241e] formula check on synthetic frames passed (row/column score sqrt(7)=2.6458, flat 0, 2x spread = 6.0206 dB)
+[a241e] held out flat4, gain from flat5+flat6
+    ROI 9437183 px
+    flat mean 867.4 ADU (< 2000)
+    FlatResidualPct 1.067 % [> 1.0]
+    std(R) 96.08 ADU std(Y) 9.26 ADU
+    FPN_Reduction_dB 20.32 [>= 10] (R=offset-corrected: 20.15)
+    LineArtifactScore tile64: final 0.9722, gain bypassed 0.9503, offset only 1.0206, ratio final/gain-bypassed 1.0230 [<= 1.10]
+    tile32: final 0.5072 / gain bypassed 0.8630 / offset only 0.9163
+    tile128: final 1.7670 / gain bypassed 1.0240 / offset only 1.1089
+    ratio vs offset only (tile64) 0.9525
+    all three accepted: NO
+[a241e] held out flat5, gain from flat4+flat6
+    ROI 9437183 px
+    flat mean 1395.7 ADU (< 2000)
+    FlatResidualPct 0.910 % [<= 1.0]
+    std(R) 151.75 ADU std(Y) 12.70 ADU
+    FPN_Reduction_dB 21.55 [>= 10] (R=offset-corrected: 21.47)
+    LineArtifactScore tile64: final 0.9231, gain bypassed 0.9505, offset only 1.0207, ratio final/gain-bypassed 0.9712 [<= 1.10]
+    tile32: final 0.4951 / gain bypassed 0.8631 / offset only 0.9163
+    tile128: final 1.6355 / gain bypassed 1.0243 / offset only 1.1091
+    ratio vs offset only (tile64) 0.9043
+    all three accepted: YES
+[a241e] held out flat6, gain from flat4+flat5
+    ROI 9437183 px
+    flat mean 2196.2 ADU (>= 2000)
+    FlatResidualPct 0.844 % [<= 1.0]
+    std(R) 236.66 ADU std(Y) 18.53 ADU
+    FPN_Reduction_dB 22.12 [>= 10] (R=offset-corrected: 22.09)
+    LineArtifactScore tile64: final 0.9491, gain bypassed 0.9505, offset only 1.0208, ratio final/gain-bypassed 0.9985 [<= 1.10]
+    tile32: final 0.5287 / gain bypassed 0.8632 / offset only 0.9164
+    tile128: final 1.6176 / gain bypassed 1.0243 / offset only 1.1092
+    ratio vs offset only (tile64) 0.9298
+    all three accepted: YES
+[       OK ] A241Measure.DISABLED_B6_Acceptance (3864 ms)

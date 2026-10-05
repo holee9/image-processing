@@ -1,0 +1,12 @@
+Mutation check of the two new Codex #157 tests (QA-A-241b)
+
+Mutant: ranges_overlap() returned `ua == ub && (aEnd | bEnd) != 0` (the old "same pointer only" rule), and the expiry mask of
+xpe_offset_correct and xpe_gain_correct was changed to `XPE_EXPIRY_OFFSET & XPE_EXPIRY_GAIN` (= 0, nothing judged).
+Result on the mutant build (A241* filter):
+  FAILED A241Safety.PipelineOutRefusesAnyOverlapOfInputAndOutputAndLeavesBothAsTheyWere
+  FAILED A241Safety.PipelineOutOverlapCheckIsOverflowSafe
+  FAILED A241Safety.TheThreeSingleStageFunctionsRefuseAnExpiredMapAndWriteNothing
+The sources were restored afterwards and the touch-after-restore step was needed: moving the .orig copies back gave the sources an
+OLDER modification time than the mutant objects, so ninja did not rebuild them and the next full run still used the mutant DLL
+(3 failures in the suite until the files were touched and rebuilt). Every number in this report was measured AFTER that rebuild:
+the held-out B6 run, the B1..B10 re-run and the baseline hash were all repeated on the restored binary (identical values).

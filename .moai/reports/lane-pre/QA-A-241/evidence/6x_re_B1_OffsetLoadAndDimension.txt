@@ -1,0 +1,24 @@
+Note: Google Test filter = A240.DISABLED_B1_OffsetLoadAndDimension
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A240
+[ RUN      ] A240.DISABLED_B1_OffsetLoadAndDimension
+[a240] B1 real offset map D:/workspace-github/xpe-pre/build/a240\maps\offset.xcal: 37748950 bytes on disk
+[a240] B1 header: version 1 type 0 pixel_format 1 3072x3072 payload 37748736 bytes (4.00 bytes per pixel) config 62 bytes
+[a240] load the real offset map                                   rc=0 XPE_OK (40.4 ms)
+[a240]     alert (after load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] xpe_offset_correct on dark.raw (the frame the map was made from) rc=0 XPE_OK
+[a240] B1 mean of the corrected dark: 0.0000 ADU (circular: the map IS this frame)
+[a240] load a 1024x1024 offset map                                rc=0 XPE_OK
+[a240] xpe_offset_correct 3072x3072 frame with the 1024x1024 map loaded rc=-1 XPE_ERR_INVALID_INPUT
+[a240]     alert (dimension, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] load the GAIN file with the offset loader                  rc=-4 XPE_ERR_CONFIG_INVALID
+[a240] load the DEFECT file with the offset loader                rc=-4 XPE_ERR_CONFIG_INVALID
+[a240] load a path that does not exist                            rc=-9 XPE_ERR_IO_FAILED
+[a240] load a null path                                           rc=-1 XPE_ERR_INVALID_INPUT
+[       OK ] A240.DISABLED_B1_OffsetLoadAndDimension (123 ms)
+[----------] 1 test from A240 (123 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (123 ms total)
+[  PASSED  ] 1 test.

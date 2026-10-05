@@ -1,0 +1,31 @@
+== wrist_lat vs references: correlation of 9x9 box high-passed images over all 9,437,184 pixels (clipped at 5 robust sigma)
+(a reference from the same detector shares its fixed pattern; a reference from another detector does not)
+C6 dark                                              0.3544
+C6 bright01                                          0.4728
+C6 bright02                                          0.4982
+C6 bright03                                          0.2583
+C6 bright04                                          0.3371
+C6 bright05                                          0.3775
+C6 bright06                                          0.4147
+aed(HAD1717MC) dark                                  0.2552
+aed(HAD1717MC) image 230811_img                      0.2412
+aed(HAD1717MC) shock image                           0.2468
+corner_blemish_16j20b3 CalSet02_02874.raw            0.0239
+corner_blemish_17a06b1 CalSet01_02559.raw            0.0262
+auradr_release_line_trg CalSet00_00001.raw           nan
+auradr_release_line_trg cBr_00001A.raw               nan
+
+== the same measure between references of the SAME detector and of DIFFERENT detectors (what a match looks like)
+C6 bright02 ~ C6 bright03 (same detector)        0.3237
+C6 bright01 ~ C6 bright05 (same detector)        0.4599
+C6 bright02 ~ aed dark (different detector)      0.0337
+C6 bright02 ~ aed image (different detector)     0.0331
+aed image ~ aed dark (same detector)             0.9593
+
+== position null: the wrist image shifted against the C6 bright02 by a few pixels (a real shared pixel pattern must vanish)
+shift (dy   0, dx   0): 0.4982
+shift (dy   0, dx   1): 0.3210
+shift (dy   1, dx   0): 0.3457
+shift (dy   0, dx   3): 0.0695
+shift (dy   3, dx   3): -0.0772
+shift (dy 100, dx   0): 0.1615

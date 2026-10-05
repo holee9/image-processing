@@ -1,0 +1,49 @@
+BUILD_EXIT=0
+git HEAD: 7b4133fd; method commit 7b4133fd ancestor: yes
+xpe_preprocess.dll sha256: 293f7874fa6f89952d5b0f4bb845018b7ccdebb15950f163f066902961196304
+xpe_preprocess_tests.exe sha256: d8a4ff625f7cbf513c17ddb8d8b7af9f7f5834b0282743f82064bc8227faf46a
+[a241e] formula check on synthetic frames passed (row/column score sqrt(7)=2.6458, flat 0, 2x spread = 6.0206 dB)
+[a241e] held out flat4, gain from flat5+flat6
+    ROI 9437183 px
+    flat mean 867.4 ADU (< 2000)
+    FlatResidualPct 1.067 % [> 1.0]
+    std(R) 96.08 ADU std(Y) 9.26 ADU
+    FPN_Reduction_dB 20.32 [>= 10] (R=offset-corrected: -235.79)
+    LineArtifactScore tile64: final 0.9722, gain bypassed 0.9503, offset only 0.2713, ratio final/gain-bypassed 1.0230 [<= 1.10]
+    tile32: final 0.5072 / gain bypassed 0.8630 / offset only 0.2713
+    tile128: final 1.7670 / gain bypassed 1.0240 / offset only 0.2713
+    ratio vs offset only (tile64) 3.5837
+    all three accepted: NO
+[a241e] held out flat5, gain from flat4+flat6
+    ROI 9437183 px
+    flat mean 1395.7 ADU (< 2000)
+    FlatResidualPct 0.910 % [<= 1.0]
+    std(R) 151.75 ADU std(Y) 12.70 ADU
+    FPN_Reduction_dB 21.55 [>= 10] (R=offset-corrected: -224.72)
+    LineArtifactScore tile64: final 0.9231, gain bypassed 0.9505, offset only 1.1548, ratio final/gain-bypassed 0.9712 [<= 1.10]
+    tile32: final 0.4951 / gain bypassed 0.8631 / offset only 0.5773
+    tile128: final 1.6355 / gain bypassed 1.0243 / offset only 1.3303
+    ratio vs offset only (tile64) 0.7994
+    all three accepted: YES
+[a241e] held out flat6, gain from flat4+flat5
+    ROI 9437183 px
+    flat mean 2196.2 ADU (>= 2000)
+    FlatResidualPct 0.844 % [<= 1.0]
+    std(R) 236.66 ADU std(Y) 18.53 ADU
+    FPN_Reduction_dB 22.12 [>= 10] (R=offset-corrected: -221.70)
+    LineArtifactScore tile64: final 0.9491, gain bypassed 0.9505, offset only 1.1548, ratio final/gain-bypassed 0.9985 [<= 1.10]
+    tile32: final 0.5287 / gain bypassed 0.8632 / offset only 0.5773
+    tile128: final 1.6176 / gain bypassed 1.0243 / offset only 2.3112
+    ratio vs offset only (tile64) 0.8219
+    all three accepted: YES
+[       OK ] A241Measure.DISABLED_B6_Acceptance (3859 ms)
+---- B6 FlatResidualPct per 5.3 (241d method)
+[a241c] B6 protocol 5.3, held out flat4, gain from flat5+flat6
+    FlatResidualPct final output 1.067 % (mean 867.4 ADU)
+[a241c] B6 protocol 5.3, held out flat5, gain from flat4+flat6
+    FlatResidualPct final output 0.910 % (mean 1395.8 ADU)
+[a241c] B6 protocol 5.3, held out flat6, gain from flat4+flat5
+    FlatResidualPct final output 0.844 % (mean 2196.4 ADU)
+---- B10
+42e78facd6cd75edbb59d26b9be1cca313d431d07900e3064cd472c068d1ef02
+d152e8ebba2cba142a95ba7ba981354a393fa18551b46572d8b1c3f36e8fdfd4

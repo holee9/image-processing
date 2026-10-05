@@ -291,7 +291,10 @@ TEST_F(GainDefectClassifyTest, ACleanMapTakesThePathItAlwaysTookAndRaisesNothing
     std::vector<float> out;
     ASSERT_EQ(XPE_OK, run(kConfig, {kBad[1]}, &out));
     EXPECT_FLOAT_EQ(500.0f, out[kBad[1]]);
-    EXPECT_EQ(0, countAlerts("XPE_WARN_"));
+    // QA-A-241: the fixture files carry expiry 0, which is reported once (XPE_WARN_NO_EXPIRY, SRS-CALIB-FUNC-009); what this test pins is that
+    // a clean map raises nothing about the gain or the defect stage.
+    EXPECT_EQ(0, countAlerts("XPE_WARN_GAIN_"));
+    EXPECT_EQ(0, countAlerts("XPE_WARN_DEFECT_"));
 }
 
 // ---------------------------------------------------------------------------

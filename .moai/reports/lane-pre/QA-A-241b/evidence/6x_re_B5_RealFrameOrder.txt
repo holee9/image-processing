@@ -1,0 +1,28 @@
+Note: Google Test filter = A240.DISABLED_B5_RealFrameOrder
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A240
+[ RUN      ] A240.DISABLED_B5_RealFrameOrder
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the gain calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (load, severity 1): XPE_WARN_NO_EXPIRY: the defect calibration file has expiryEpochMs = 0 (no expiry); it will never be reported as expired, so the calibration may be stale without notice (SRS-CALIB-FUNC-009)
+[a240] B5 pipeline (basic config): format 1 flags 0x201c
+[a240] B5 pipeline (default config) equals the basic config byte for byte: yes; flags 0x203c
+[a240]     alert (pipeline default, severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs
+[a240]     alert (pipeline no defect, severity 1): XPE_WARN_GAIN_PIXELS_UNCORRECTED: 42026 pixel(s) were classified defective by the gain calibration but no defect correction follows (defect stage bypassed); they carry the uncorrected value
+[a240] B5 masked pixels: map 23505, gain outside [0.1,10] 42026, union 51543
+[a240] B5 unmasked pixels 9385641: equal to offset->gain expectation 9385641, max |diff| 0
+[a240] B5 pipeline without the defect stage equals the expectation on 9437184 of 9437184 pixels
+[a240] B5 if the order were gain->offset instead: 9365928 unmasked pixels would differ by > 0.5 ADU, max 22603.34, mean 175.525 ADU
+[a240] B5 masked pixels 51543: changed by the defect stage 51541, left as they were 2
+[a240] B5 isolated masked pixels 803: equal to the mean of their valid 4-neighbours (|diff| < 1e-3) 803, max |diff| 0
+[a240] B5 clustered masked pixels 50740: inside the value range of the nearest ring of valid pixels 50740
+[a240] B5 output: NaN/Inf 0, mean 2190.996 (raw mean 4705.535)
+[       OK ] A240.DISABLED_B5_RealFrameOrder (470 ms)
+[----------] 1 test from A240 (470 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (470 ms total)
+[  PASSED  ] 1 test.

@@ -1,0 +1,15 @@
+Note: Google Test filter = A241Safety.*Cache*:A241Safety.*Defect*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from A241Safety
+[ RUN      ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls
+[       OK ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls (9486 ms)
+[ RUN      ] A241Safety.ACacheHitReportsAndResetsTheNeverExpiresState
+[       OK ] A241Safety.ACacheHitReportsAndResetsTheNeverExpiresState (6 ms)
+[ RUN      ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot
+[       OK ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot (44 ms)
+[----------] 3 tests from A241Safety (9537 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (9546 ms total)
+[  PASSED  ] 3 tests.

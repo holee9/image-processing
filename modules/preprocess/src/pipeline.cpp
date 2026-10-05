@@ -15,6 +15,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstdint>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -140,6 +141,39 @@ namespace {
     }
 
     /**
+     * Whether [a, a + aBytes) and [b, b + bBytes) share a byte -- computed on addresses as integers, and safe when a range would
+     * run past the end of the address space (such a range is treated as extending to the end, so an absurd size can only make the
+     * answer "overlap", never wrap to "no overlap"). A zero-length range overlaps nothing.
+     */
+    bool ranges_overlap(const void* a, size_t aBytes, const void* b, size_t bBytes) {
+        if (aBytes == 0 || bBytes == 0) return false;
+        const uintptr_t ua = reinterpret_cast<uintptr_t>(a), ub = reinterpret_cast<uintptr_t>(b);
+        const uintptr_t aEnd = aBytes > UINTPTR_MAX - ua ? UINTPTR_MAX : ua + aBytes;
+        const uintptr_t bEnd = bBytes > UINTPTR_MAX - ub ? UINTPTR_MAX : ub + bBytes;
+        return ua < bEnd && ub < aEnd;
+    }
+
+    /**
+     * SRS-CALIB-SAFE-001 (QA-A-241): offset and gain correction are mandatory by default; an explicit bypass is allowed for
+     * research and diagnostics, and then the frame says so: XPE_FLAG_CORRECTION_BYPASSED on the metadata and one
+     * XPE_WARN_CORRECTION_BYPASSED alert per frame, so an output that is not offset- or gain-corrected is identifiable.
+     */
+    void note_bypass(const PipelineConfig& cfg, XpeImageMetadata* meta) {
+        if (!cfg.bypassOffset && !cfg.bypassGain) return;
+        if (meta) meta->flags |= XPE_FLAG_CORRECTION_BYPASSED;
+        try {
+            xpe_alert_push(cfg.bypassOffset && cfg.bypassGain
+                ? "XPE_WARN_CORRECTION_BYPASSED: offset and gain correction are bypassed; the output is not offset- or gain-corrected"
+                : (cfg.bypassOffset
+                    ? "XPE_WARN_CORRECTION_BYPASSED: offset correction is bypassed; the output is not offset-corrected"
+                    : "XPE_WARN_CORRECTION_BYPASSED: gain correction is bypassed; the output is not gain-corrected"),
+                XPE_ALERT_WARNING);
+        } catch (...) {
+            // [no-throw-boundary] advisory
+        }
+    }
+
+    /**
      * @brief Internal pipeline core using new 3-arg API.
      *
      * Uses g_calib for calibration maps (loaded via xpe_calib_load_* functions).
@@ -152,6 +186,9 @@ namespace {
      * @param calib       [in]     The calibration set this frame is processed with: every stage that reads a
      *                             map reads it from here, never from g_calib, so a set loaded while the frame
      *                             runs does not reach it (QA-A-202d, Codex #32 A2)
+     * @param out         [out]    NULL: the result is written back into `img` (the long-standing in-place entry points).
+     *                             Not NULL: the result is written into `out` and `img` is never written (SRS-CALIB-SAFE-004);
+     *                             `img` then needs room for the input only
      * @return XPE_OK or error code
      */
     XpeErrorCode pipeline_core(
@@ -159,7 +196,8 @@ namespace {
         XpeImageMetadata* meta,
         void* ghostHandle,
         const PipelineConfig& cfg,
-        const CalibSnapshot& calib)
+        const CalibSnapshot& calib,
+        XpeImageBuffer* out = nullptr)
     {
         if (!img || !img->data) return XPE_ERR_INVALID_INPUT;
 
@@ -181,7 +219,22 @@ namespace {
             return XPE_ERR_INVALID_INPUT;
         const size_t outputBytes = final_result_is_float(cfg, ghostHandle) ? floatBytes : inputBytes;
         if (img->dataSize != 0 && img->dataSize < inputBytes) return XPE_ERR_INVALID_INPUT;
-        if (img->dataSize < outputBytes) return XPE_ERR_BUFFER_TOO_SMALL;
+        if (out) {
+            // Separate output (SAFE-004): the input only has to hold the input; the room for the result is the output buffer's.
+            if (img->dataSize == 0) return XPE_ERR_INVALID_INPUT;
+            if (!out->data) return XPE_ERR_INVALID_INPUT;
+            // Codex #157: not only the same pointer -- any shared byte between the input buffer (as the caller declares it) and the
+            // bytes the result will occupy. The result written over part of the input would destroy it (and memcpy of overlapping
+            // ranges is undefined). Nothing has been read or written yet.
+            if (ranges_overlap(img->data, img->dataSize, out->data, outputBytes)) return XPE_ERR_INVALID_INPUT;
+            if (out->dataSize < outputBytes) return XPE_ERR_BUFFER_TOO_SMALL;
+        } else if (img->dataSize < outputBytes) {
+            return XPE_ERR_BUFFER_TOO_SMALL;
+        }
+        // SRS-CALIB-SAFE-002: a map that expired after it was loaded stops the frame, before anything is read or written.
+        const XpeErrorCode expiryRc = xpe_calib_snapshot_expiry_check(calib, XPE_EXPIRY_ALL);
+        if (expiryRc != XPE_OK) return expiryRc;
+        note_bypass(cfg, meta);
 
         XpeErrorCode result = XPE_OK;
         const size_t pixelCount = static_cast<size_t>(img->width) * img->height;
@@ -519,6 +572,17 @@ namespace {
         if (finalStage->dataSize < outputBytes ||
             finalStage->format != (final_result_is_float(cfg, ghostHandle) ? XPE_PIXEL_FLOAT32 : XPE_PIXEL_UINT16))
             return XPE_ERR_PROCESSING_FAILED;
+        if (out) {
+            // SAFE-004: the result goes to the caller's output buffer; the input buffer is never written.
+            std::memcpy(out->data, finalStage->data, outputBytes);
+            out->width = img->width;
+            out->height = img->height;
+            out->format = finalStage->format;
+            out->bitsAllocated = finalStage->bitsAllocated;
+            out->bitsStored = finalStage->bitsStored;
+            XPE_STAGE_HOOK(9);
+            return XPE_OK;
+        }
         if (finalStage->data != img->data)
             std::memcpy(const_cast<void*>(img->data), finalStage->data, outputBytes);
         XPE_STAGE_HOOK(9);
@@ -586,6 +650,7 @@ static XpeErrorCode load_calibration_set(const char* calibPath, CalibSnapshot* s
 #endif
     xpe_calib_session_warn(warnSession);
     xpe_calib_after_gain_commit(gain);
+    xpe_calib_after_defect_commit(defect);   // only now: the set is installed (a refused set raises nothing)
     return XPE_OK;
 }
 
@@ -711,6 +776,23 @@ static XpeErrorCode pipeline_ex_impl(XpeImageBuffer* img,
     return pipeline_core(img, meta, ghostHandle, cfg, xpe_calib_snapshot());
 }
 
+// SRS-CALIB-SAFE-004 (QA-A-241): the pipeline with a separate output buffer. Same stages, same calibration snapshot rule as
+// xpe_preprocess_pipeline_ex; the input frame is never written.
+static XpeErrorCode pipeline_out_impl(const XpeImageBuffer* in,
+                                      XpeImageBuffer* out,
+                                      XpeImageMetadata* meta,
+                                      const void* calibState,   // NOLINT(bugprone-easily-swappable-parameters): same shape as xpe_preprocess_pipeline_ex, which this entry mirrors
+                                      void* ghostHandle,
+                                      const char* configJsonOrNull)
+{
+    if (!in || !out || !meta) return XPE_ERR_INVALID_INPUT;
+    PipelineConfig cfg;
+    const XpeErrorCode cfgRc = PipelineConfig::fromJson(configJsonOrNull, &cfg);
+    if (cfgRc != XPE_OK) return cfgRc;
+    (void)calibState;   // as for pipeline_ex: every stage reads the store
+    return pipeline_core(in, meta, ghostHandle, cfg, xpe_calib_snapshot(), out);
+}
+
 /* =========================================================================
  * Batch Processing
  * ========================================================================= */
@@ -816,6 +898,16 @@ XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
                                         const char* configJsonOrNull)
 {
     XPE_PIPELINE_GUARD(meta, pipeline_ex_impl(img, meta, calibState, ghostHandle, configJsonOrNull))
+}
+
+XpeErrorCode xpe_preprocess_pipeline_out(const XpeImageBuffer* in,
+                                         XpeImageBuffer* out,
+                                         XpeImageMetadata* meta,
+                                         const void* calibState,
+                                         void* ghostHandle,
+                                         const char* configJsonOrNull)
+{
+    XPE_PIPELINE_GUARD(meta, pipeline_out_impl(in, out, meta, calibState, ghostHandle, configJsonOrNull))
 }
 
 XpeErrorCode xpe_preprocess_pipeline_batch(XpeImageBuffer* images,

@@ -1,0 +1,23 @@
+Note: Google Test filter = A241Safety.ACache*:A241Safety.ARefused*:A241Safety.ADefect*:A241Safety.AnOver*
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from A241Safety
+[ RUN      ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls
+[       OK ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls (9461 ms)
+[ RUN      ] A241Safety.ACacheHitReportsAndResetsTheNeverExpiresState
+[       OK ] A241Safety.ACacheHitReportsAndResetsTheNeverExpiresState (11 ms)
+[ RUN      ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot
+[       OK ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot (53 ms)
+[ RUN      ] A241Safety.ARefusedDefectLoadLeavesTheAlertQueueAndTheStoreAsItFoundThem
+[       OK ] A241Safety.ARefusedDefectLoadLeavesTheAlertQueueAndTheStoreAsItFoundThem (22 ms)
+[ RUN      ] A241Safety.AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce
+[       OK ] A241Safety.AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce (8 ms)
+[ RUN      ] A241Safety.ACacheHitThatTurnsAWithinToleranceMapIntoAnOverLimitOneReportsItAndARepeatDoesNot
+[       OK ] A241Safety.ACacheHitThatTurnsAWithinToleranceMapIntoAnOverLimitOneReportsItAndARepeatDoesNot (5 ms)
+[ RUN      ] A241Safety.ARefusedCacheHitOfAnOverLimitMapLeavesTheAlertQueueAndTheStoreAsItFoundThem
+[       OK ] A241Safety.ARefusedCacheHitOfAnOverLimitMapLeavesTheAlertQueueAndTheStoreAsItFoundThem (8 ms)
+[----------] 7 tests from A241Safety (9572 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (9572 ms total)
+[  PASSED  ] 7 tests.

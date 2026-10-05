@@ -1,0 +1,29 @@
+== 0. the fixed tree
+git HEAD: 7aafbc08; source sha256 (first 16): ea8fc94e0defc690
+build command: build237.bat xpe_preprocess_tests  (= cmake --build --preset ci-preprocess --target xpe_preprocess_tests)
+BUILD_EXIT=0
+xpe_preprocess.dll sha256 (fixed):  e67e752bbaf7e6995532480538cb3906c46326fd29a94721b829d4d87962c101
+xpe_preprocess_tests.exe sha256 (fixed): 2379759203e5bcb2d40390ff1f15fa6db1c5ad99fa9015e09476fdb469a48aa6
+[       OK ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot (38 ms)
+[       OK ] A241Safety.ARefusedDefectLoadLeavesTheAlertQueueAndTheStoreAsItFoundThem (23 ms)
+[       OK ] A241Safety.AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce (10 ms)
+
+== 1. the mutant: the warning is raised in xpe_calib_stage_defect, before the commit (the behaviour Codex #159 found)
+BUILD_EXIT=0
+xpe_preprocess.dll sha256 (mutant): 9bbd774fdf45ccb69212c8caf5f870b537bc28272882e32ecdf9fa68820bc29b
+[  FAILED  ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot (36 ms)
+[  FAILED  ] A241Safety.ARefusedDefectLoadLeavesTheAlertQueueAndTheStoreAsItFoundThem (22 ms)
+[  FAILED  ] A241Safety.AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce (9 ms)
+[  FAILED  ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot
+[  FAILED  ] A241Safety.ARefusedDefectLoadLeavesTheAlertQueueAndTheStoreAsItFoundThem
+[  FAILED  ] A241Safety.AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce
+
+== 2. restore, touch, rebuild
+restored source sha256 (first 16): ea8fc94e0defc690
+BUILD_EXIT=0
+xpe_preprocess.dll sha256 (restored): 39126a69965c6bd835d247b3f3a120afd8a3aa0120186eead22b08ad44f30742
+xpe_preprocess_tests.exe sha256 (restored): 2379759203e5bcb2d40390ff1f15fa6db1c5ad99fa9015e09476fdb469a48aa6
+[       OK ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot (46 ms)
+[       OK ] A241Safety.ARefusedDefectLoadLeavesTheAlertQueueAndTheStoreAsItFoundThem (29 ms)
+[       OK ] A241Safety.AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce (9 ms)
+(the DLL bytes differ between builds of the same source: the linker embeds a timestamp and a debug id; identity is shown by the source hash and the test results.)

@@ -1,0 +1,24 @@
+== row/column profile correlation vs high-pass window (wrist vs each reference)
+window   1 row: dark_C6 0.137  dark_aed 0.711  bright02_C6 0.816  aed_img_dark 0.679
+window   1 col: dark_C6 -0.025  dark_aed -0.097  bright02_C6 0.144  aed_img_dark -0.097
+window   5 row: dark_C6 0.331  dark_aed 0.072  bright02_C6 0.889  aed_img_dark 0.034
+window   5 col: dark_C6 0.283  dark_aed 0.144  bright02_C6 0.960  aed_img_dark -0.030
+window  17 row: dark_C6 0.094  dark_aed 0.524  bright02_C6 0.945  aed_img_dark 0.249
+window  17 col: dark_C6 0.141  dark_aed 0.043  bright02_C6 0.983  aed_img_dark -0.008
+window  65 row: dark_C6 0.054  dark_aed 0.665  bright02_C6 0.908  aed_img_dark 0.344
+window  65 col: dark_C6 0.063  dark_aed -0.071  bright02_C6 0.981  aed_img_dark 0.040
+window 257 row: dark_C6 0.064  dark_aed 0.649  bright02_C6 0.895  aed_img_dark 0.292
+window 257 col: dark_C6 0.030  dark_aed -0.004  bright02_C6 0.692  aed_img_dark -0.044
+
+== sanity: same-detector pairs (CalData_6 dark vs CalData_6 bright02, bright03; aed image vs aed dark)
+window   5 row: dark_C6~bright02 0.037  dark_C6~bright03 0.054  aed_img~dark_aed 1.000  aed_img_dark~dark_aed 0.320  aed_img~dark_C6 0.018
+window   5 col: dark_C6~bright02 0.029  dark_C6~bright03 0.030  aed_img~dark_aed 0.999  aed_img_dark~dark_aed 0.037  aed_img~dark_C6 0.440
+window  65 row: dark_C6~bright02 0.037  dark_C6~bright03 0.039  aed_img~dark_aed 1.000  aed_img_dark~dark_aed 0.498  aed_img~dark_C6 0.019
+window  65 col: dark_C6~bright02 0.010  dark_C6~bright03 0.009  aed_img~dark_aed 0.999  aed_img_dark~dark_aed 0.031  aed_img~dark_C6 0.760
+
+== pixel-level (9x9 box high-passed) correlation, all pixels, and on pixels inside 5 robust sigma only
+wrist ~ dark_C6                        all 0.4184  inliers 0.4068
+wrist ~ dark_aed                       all 0.1453  inliers 0.3379
+wrist ~ bright02_C6(offset-corrected)  all 0.6872  inliers 0.3848
+control aed_img ~ dark_aed (same detector)  all 0.9979
+control aed_img ~ dark_C6 (other detector) all 0.0502

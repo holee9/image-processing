@@ -89,6 +89,7 @@ void xpe_calib_commit_offset_locked(StagedOffset& staged) noexcept {
     g_calib.offset_height    = staged.height;
     g_calib.offset_timestamp = staged.timestamp;
     g_calib.offset_expiry_ms = staged.expiryMs;
+    xpe_calib_note_expiry_locked(CalibMapKind::Offset, staged.expiryMs);
     std::memcpy(g_calib.offset_session_id, staged.sessionId, sizeof(g_calib.offset_session_id));
 }
 

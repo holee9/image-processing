@@ -35,6 +35,7 @@ set(XPE_PREPROCESS_SOURCES
     src/xpe_calib_mode.cpp       # SWU-1.12 Calibration Mode Selection (FUNC-031~033)
     # XCal v1 calibration API (T-006..T-009)
     src/xpe_calibration.cpp         # global g_calib + g_calib_mutex definitions
+    src/calib_expiry_check.cpp      # snapshot expiry check (QA-A-241); also compiled into the tests
     src/xpe_calib_load_offset.cpp   # T-006: 1-arg load offset (XCal v1)
     src/xpe_calib_load_gain.cpp     # T-006: 1-arg load gain (XCal v1)
     src/xpe_calib_load_defect_map.cpp # T-006: 1-arg load defect map (XCal v1)
@@ -484,6 +485,9 @@ if(_XPE_BUILD_TESTS)
         tests/test_zz_a186_probe.cpp         # QA-A-186 (#220) probe: FlatResidualPct mean vs median (DISABLED_)
         tests/test_zz_a187_probe.cpp         # QA-A-187 (#218) probe: xpe_verify_pipeline SNR median vs mean (DISABLED_)
         tests/test_zz_a237b_mem.cpp          # QA-A-237b (#245) probe: memory/time/digest of the shipped pipeline_ex path (DISABLED_)
+        tests/test_a241_safety.cpp
+        tests/test_zz_a241_measure.cpp     # QA-A-241: the gain out-of-range limit measured (DISABLED_, prints facts)
+        tests/test_zz_a240_checklist.cpp     # QA-A-240: the stage-1 checklist B1..B10 measured on real data (DISABLED_, prints facts)
         tests/test_output_unchanged_237b.cpp  # QA-A-237b (#245): the memory reductions change no output byte (digests recorded before them)
         tests/test_runtime_detection_rates.cpp
         # QA-A-42 (#144): buffer-reuse parity for the detection loop
@@ -507,6 +511,7 @@ if(_XPE_BUILD_TESTS)
         src/xpe_sha256_backend.cpp    # Sha256Stream is not exported from the DLL
         src/xcal_validator.cpp
         src/helpers.cpp               # xpe_interpolate_pixel is not exported from the DLL (QA-A-172)
+        src/calib_expiry_check.cpp    # not exported from the DLL: the tests call it with the clock at the boundary (QA-A-241)
     )
 
     target_include_directories(xpe_preprocess_tests

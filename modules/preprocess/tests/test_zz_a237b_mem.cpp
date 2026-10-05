@@ -220,8 +220,10 @@ TEST(A237bMem, DISABLED_ShippedPath) {
     // range (QA-A-237b/d): the frames then take the scratch route (three more planes for the call). Only tier 3 reads beta.
     const std::string beta = envStr("XPE_A237C_BETA");
     const std::string cfg = withStableLag(("{\"tier\":" + std::to_string(tier) + (beta.empty() ? "" : ",\"nlcscBeta\":" + beta) + "}").c_str());
-    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, cfg.c_str(), &ghost));
-    checkpoint("C ghost handle created");
+    // XPE_A240_NOGHOST (QA-A-240): no ghost handle at all (the stage-1 basic path of the checklist: offset, gain, defect).
+    const bool noGhost = !envStr("XPE_A240_NOGHOST").empty();
+    if (!noGhost) ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, cfg.c_str(), &ghost));
+    checkpoint(noGhost ? "C no ghost handle (XPE_A240_NOGHOST)" : "C ghost handle created");
     std::printf("[a237b] config tier %d, frames %d, N %zu pixels\n", tier, frames, N);
 
 #ifdef XPE_CACHE_TEST_HOOKS
@@ -233,7 +235,19 @@ TEST(A237bMem, DISABLED_ShippedPath) {
         g_frame = f;
 #endif
         uint16_t* raw = reinterpret_cast<uint16_t*>(frame.data());
-        if (!realMaps.empty()) {
+        // XPE_A240_WRIST (QA-A-240): the real frame itself (a raw uint16 file), streamed in 64 KiB pieces like the real flats below.
+        const std::string wristPath = envStr("XPE_A240_WRIST");
+        if (!wristPath.empty()) {
+            std::FILE* fw = nullptr;
+            ASSERT_EQ(0, fopen_s(&fw, wristPath.c_str(), "rb"));
+            uint16_t pw[32768];
+            for (size_t at = 0; at < N; at += 32768) {
+                const size_t len = std::min<size_t>(32768, N - at);
+                ASSERT_EQ(len, std::fread(pw, sizeof(uint16_t), len, fw));
+                std::memcpy(raw + at, pw, len * sizeof(uint16_t));
+            }
+            std::fclose(fw);
+        } else if (!realMaps.empty()) {
             // dark + bright, streamed in 64 KiB pieces: two whole frames read at once would raise the process's peak commit above the
             // pipeline's own and hide it (the peak is a watermark for the whole process).
             char name[24];
@@ -295,7 +309,7 @@ TEST(A237bMem, DISABLED_ShippedPath) {
                 std::printf("[a237b]   alert %d (severity %d): %.160s\n", static_cast<int>(i), static_cast<int>(sev), msg);
         xpe_clear_alerts();
     }
-    xpe_ghost_destroy(ghost);
+    if (ghost) xpe_ghost_destroy(ghost);
     checkpoint("Z ghost destroyed");
     xpe_preprocess_shutdown();
     std::error_code ec;

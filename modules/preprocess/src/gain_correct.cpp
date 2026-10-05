@@ -551,7 +551,11 @@ extern "C" XPE_API XpeErrorCode xpe_gain_correct(
     // information, so if xpe_gain_correct_in threw, the snapshot temporary (shared_ptr members) would not be
     // destroyed and the maps it holds would leak. xpe_gain_correct_in has C++ linkage, so this handler is kept.
     try {
-        return xpe_gain_correct_in(xpe_calib_snapshot(), input, output, metadata);
+        const CalibSnapshot calib = xpe_calib_snapshot();
+        // SRS-CALIB-SAFE-002 (Codex #157): a map that expired after it was loaded must not correct anything, here either.
+        const XpeErrorCode expiry = xpe_calib_snapshot_expiry_check(calib, XPE_EXPIRY_GAIN);
+        if (expiry != XPE_OK) return expiry;
+        return xpe_gain_correct_in(calib, input, output, metadata);
     } catch (const std::bad_alloc&) {
         return XPE_ERR_OUT_OF_MEMORY;
     } catch (...) {

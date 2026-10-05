@@ -1,0 +1,125 @@
+import hashlib, os, shutil, sys
+import numpy as np
+from PIL import Image
+
+N = 3072
+NEW = 'D:/workspace-github/xpe-pre/build/a243/run1/wrist_lat_3072x3072_corrected_v2_f32le.raw'
+OLD = 'D:/workspace-github/xpe-data/m1-baseline/wrist_lat_3072x3072_corrected_f32le.raw'
+DST = 'D:/workspace-github/xpe-data/m1-baseline-v2/'
+EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-243/evidence/'
+HEAD = sys.argv[1]
+os.makedirs(DST, exist_ok=True)
+
+
+def sha(p):
+    return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+
+
+new = np.fromfile(NEW, dtype='<f4').reshape(N, N)
+old = np.fromfile(OLD, dtype='<f4').reshape(N, N)
+out = []
+P = out.append
+P('== the new reference image (float32, little endian, 3072x3072)')
+P('finite %d of %d; NaN %d; Inf %d' % (np.isfinite(new).sum(), new.size, np.isnan(new).sum(), np.isinf(new).sum()))
+q = np.percentile(new, [0, 0.1, 1, 50, 99, 99.9, 100])
+P('min %.2f  p0.1 %.2f  p1 %.2f  median %.2f  p99 %.2f  p99.9 %.2f  max %.2f  mean %.3f' % (*q, new.mean()))
+lo, hi = float(np.percentile(new, 1)), float(np.percentile(new, 99))
+
+d = (new.astype(np.float64) - old.astype(np.float64))
+ad = np.abs(d)
+P('')
+P('== new (gain from flats 4,5,6) minus old (gain from all six flats), per pixel, in ADU of the float output')
+P('mean difference %+.4f  std %.4f  mean |diff| %.4f  max |diff| %.3f' % (d.mean(), d.std(), ad.mean(), ad.max()))
+qs = [50, 90, 99, 99.9, 99.99]
+P('|diff| quantiles: ' + '  '.join('p%s %.3f' % (k, v) for k, v in zip(qs, np.percentile(ad, qs))))
+rel = ad / np.maximum(np.abs(old.astype(np.float64)), 1.0)
+P('relative |diff| (to the old value, floor 1 ADU): mean %.4f %%  p99 %.3f %%  max %.2f %%' % (100 * rel.mean(), 100 * np.percentile(rel, 99), 100 * rel.max()))
+P('pixels with |diff| > 1 ADU: %d (%.2f %%); > 10 ADU: %d (%.3f %%); > 100 ADU: %d (%.4f %%); identical bytes: %d' % (
+    (ad > 1).sum(), 100 * (ad > 1).mean(), (ad > 10).sum(), 100 * (ad > 10).mean(), (ad > 100).sum(), 100 * (ad > 100).mean(), (new == old).sum()))
+# where the difference lives: a smooth gradient (the gain shape) or pixel noise
+def blockmean(a, b):
+    h = N // b * b
+    return a[:h, :h].reshape(h // b, b, h // b, b).mean(axis=(1, 3))
+for b in (1, 16, 64, 256):
+    bm = blockmean(d, b)
+    P('std of the difference averaged over %3dx%-3d blocks: %.4f ADU' % (b, b, bm.std()))
+top = blockmean(d, 256)
+P('the difference averaged over 256x256 blocks (12x12 map, ADU; rows top to bottom):')
+for r in top:
+    P('  ' + ' '.join('%7.2f' % v for v in r))
+
+# ---- PNG: 16 bit, linear window p1..p99, display only
+png_name = 'wrist_lat_3072x3072_corrected_v2_DISPLAY_ONLY_p1-p99_linear_16bit.png'
+v = np.clip((new.astype(np.float64) - lo) / (hi - lo), 0.0, 1.0)
+u16 = np.rint(v * 65535.0).astype('<u2')
+im = Image.fromarray(u16)
+im.save(DST + png_name, optimize=False)
+back = np.array(Image.open(DST + png_name))
+assert back.dtype == np.uint16 and back.shape == (N, N) and (back == u16).all()
+P('')
+P('== PNG (display only): 16 bit grey, linear window  %.3f .. %.3f ADU  (p1 .. p99)  ->  0 .. 65535; read back identical to the array: True' % (lo, hi))
+P('values clipped below the window: %.2f %%, above: %.2f %%' % (100 * (new < lo).mean(), 100 * (new > hi).mean()))
+
+shutil.copy(NEW, DST + 'wrist_lat_3072x3072_corrected_v2_f32le.raw')
+rawsha, pngsha, oldsha = sha(DST + 'wrist_lat_3072x3072_corrected_v2_f32le.raw'), sha(DST + png_name), sha(OLD)
+r2 = sha('D:/workspace-github/xpe-pre/build/a243/run2/wrist_lat_3072x3072_corrected_v2_f32le.raw')
+P('')
+P('sha256 v2 raw   %s' % rawsha)
+P('sha256 v2 png   %s' % pngsha)
+P('sha256 v2 raw from a second from-scratch run: %s  (identical: %s)' % (r2, r2 == rawsha))
+P('sha256 old baseline (m1-baseline, gain from all six flats): %s' % oldsha)
+
+readme = '''m1-baseline-v2  --  stage-1 reference image, the INPUT of stage 2 (QA-A-243, Refs #245)
+
+WHAT THIS IS
+  The real frame gui/ImageProcTest/fixtures/gui-s0/raw/wrist_lat_3072x3072.raw processed by the stage-1 basic path of the
+  preprocess module: offset -> gain -> defect correction, ghost off, temperature / nonlinearity / binning bypassed. Stage 1 fixed
+  the procedure for the gain: it is made from the flats of ONE acquisition condition. Here that is flats 4, 5 and 6 of CalData_6
+  (all three: this image is an input, not a pass/fail judgement). The older reference m1-baseline/ used a gain made from all six
+  flats, which mix conditions (QA-A-242); it stays where it is as a regression pin.
+
+FILES
+  wrist_lat_3072x3072_corrected_v2_f32le.raw
+      float32, little endian, 3072 x 3072, 37,748,736 bytes, row-major, top row first. The unmodified output of the shipping entry
+      point xpe_preprocess_pipeline_out. Corrected values in ADU units (offset subtracted, gain applied). Use THIS file for any
+      computation.
+      sha256 %(rawsha)s
+  wrist_lat_3072x3072_corrected_v2_DISPLAY_ONLY_p1-p99_linear_16bit.png
+      16 bit grey PNG for LOOKING at the image. DISPLAY ONLY: a linear window from the image's 1st percentile (%(lo).3f ADU) to its
+      99th percentile (%(hi).3f ADU) mapped to 0..65535, values outside clipped (%(clo).2f %% below, %(chi).2f %% above). It is not
+      a diagnostic rendering and loses the values outside the window. Never feed it back into processing.
+      sha256 %(pngsha)s
+
+HOW IT WAS MADE (reproducible, from scratch, byte-identical)
+  product + harness commit : %(head)s  (dev/preprocess; product code of QA-A-241b c8d31bb2, harness test A241Measure.DISABLED_B10v2_Baseline)
+  build                    : cmake --preset ci-preprocess ; cmake --build --preset ci-preprocess --parallel 2 --target xpe_preprocess_tests
+  inputs                   : tests/test_data/CalData_6/{dark.raw, bright04.raw, bright05.raw, bright06.raw, BPMap.map}
+                             gui/ImageProcTest/fixtures/gui-s0/raw/wrist_lat_3072x3072.raw  (sha256 C823233F...9A3D70, from fixture-manifest.json)
+  command (bash, one line) : XPE_A240_CAL=<repo>/tests/test_data/CalData_6 XPE_A240_WRIST=<repo>/gui/ImageProcTest/fixtures/gui-s0/raw/wrist_lat_3072x3072.raw XPE_A243_OUT=<scratch dir> build/ci-preprocess/bin/xpe_preprocess_tests.exe --gtest_also_run_disabled_tests --gtest_filter="A241Measure.DISABLED_B10v2_Baseline"
+  what the harness does   : 1. xpe_calib_generate_offset(dark.raw, 1 frame, 100 ms, 25 C)
+                            2. xpe_calib_generate_gain(bright04, bright05, bright06; no dark reference)   [dose-weighted ADU mean, see preprocess_api.h]
+                            3. defect map = BPMap.map wrapped as an XCal defect file (23,505 pixels)
+                            4. the three maps are given one session id, loaded, and the wrist frame goes through
+                               xpe_preprocess_pipeline_out with {"bypassTemp":true,"bypassNonlinearity":true,"bypassBinning":true}, no ghost handle
+  display file             : evidence/baseline_v2.py (numpy + Pillow) from the .raw above; the window is the 1st/99th percentile
+  reproducibility          : the whole chain was run twice from scratch (maps regenerated each time, separate processes):
+                             both outputs are byte-identical, sha256 %(r2)s
+
+LIMITS (read before using it)
+  - "flats 4, 5, 6 are one acquisition condition" is an ESTIMATE from their identical large-scale shape (QA-A-242); there is no dose / kVp /
+    distance record. Flats 1 and 2 are estimated to be other conditions.
+  - The acquisition condition of wrist_lat itself is unknown, so which gain suits it is unknown. This image is the stage-1 PROCEDURE
+    applied to the wrist frame, not a claim that the wrist is perfectly flat-fielded.
+  - The maps are generated from the repository's own dark and flat images with the product's generators; they are not production maps.
+  - 42,026 gain pixels (the gain map classifies pixels outside 0.1..10 as defective) and the 23,505 BPMap pixels are filled from their neighbours
+    by the defect stage.
+
+OLD REFERENCE (kept as a regression pin)
+  ../m1-baseline/wrist_lat_3072x3072_corrected_f32le.raw  sha256 %(oldsha)s   (gain from all six flats)
+  Pixel statistics of v2 minus old: see evidence/20_baseline_v2_stats.txt (mean difference %(dmean)+.3f ADU, std %(dstd).3f, max |diff| %(dmax).1f).
+''' % dict(rawsha=rawsha, pngsha=pngsha, lo=lo, hi=hi, clo=100 * (new < lo).mean(), chi=100 * (new > hi).mean(), head=HEAD, r2=r2, oldsha=oldsha,
+           dmean=d.mean(), dstd=d.std(), dmax=ad.max())
+open(DST + 'README.txt', 'w', encoding='utf-8', newline='\n').write(readme)
+open(EV + 'README.txt', 'w', encoding='utf-8', newline='\n').write(readme)
+open(EV + '20_baseline_v2_stats.txt', 'w', encoding='utf-8', newline='\n').write('\n'.join(out) + '\n')
+print('\n'.join(out))

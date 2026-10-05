@@ -70,6 +70,19 @@ XpeErrorCode merge_static_defect_mask(const std::vector<uint8_t>& mask,
         if (g_calib.defect_map) std::memcpy(merged.get(), g_calib.defect_map.get(), n_pixels);
         else                    std::memset(merged.get(), 0, n_pixels);
         newly_set = or_merge_defect_bits(merged.get(), mask, n_pixels);
+        // QA-A-241f (Codex #161): the density state describes the INSTALLED map, so every path that replaces the map updates it in the same
+        // critical section. The merge raises no over-limit alert itself: XPE_WARN_DEFECT_MAP_OVER_LIMIT is the warning of a file LOAD
+        // (SRS-CALIB-FUNC-003), and this is a generation step that marks pixels from the caller's own dark frames. A map that the merge pushes
+        // over the limit is reported when it is next loaded from a file or re-activated from the cache, which compares this state.
+        {
+            size_t total_marked = 0u;
+            const uint8_t* const cells = merged.get();
+            for (size_t i = 0; i < n_pixels; ++i) if (cells[i]) ++total_marked;
+            g_calib.defect_marked     = total_marked;
+            g_calib.defect_total      = n_pixels;
+            g_calib.defect_over_limit = static_cast<double>(total_marked) > XPE_DEFECT_MAP_MAX_FRACTION * static_cast<double>(n_pixels);
+            g_calib.defect_hash       = g_calib.defect_over_limit ? xpe_defect_mask_hash(merged.get(), n_pixels) : 0u;
+        }
         g_calib.defect_map    = std::move(merged);
         g_calib.defect_width  = width;
         g_calib.defect_height = height;

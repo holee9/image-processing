@@ -1,0 +1,114 @@
+import hashlib, sys
+import numpy as np
+
+R = 'D:/workspace-github/image-processing/'
+W = R + 'gui/ImageProcTest/fixtures/gui-s0/raw/wrist_lat_3072x3072.raw'
+N = 3072
+
+
+def load(p, dt='<u2'):
+    return np.fromfile(p, dtype=dt).reshape(N, N)
+
+
+def sha(p):
+    return hashlib.sha256(open(p, 'rb').read()).hexdigest().upper()
+
+
+wrist = load(W)
+sets = {
+    'CalData_6 (wrist suspect)': R + 'tests/test_data/CalData_6/dark.raw',
+    'aed_shock_had1717mc': R + 'tests/test_data/calibration_cases/aed_shock_had1717mc/calibration/cDark.raw',
+    'auradr_release_line_trg': R + 'tests/test_data/calibration_cases/auradr_release_line_trg/calibration/cDark.raw',
+}
+darks = {k: load(v) for k, v in sets.items()}
+rng = np.random.default_rng(241)
+out = []
+P = out.append
+
+P('== (a) size, bit depth, byte order')
+b = open(W, 'rb').read()
+P('file bytes %d = 3072*3072*2 -> %s' % (len(b), len(b) == N * N * 2))
+P('sha256 %s' % sha(W))
+le = wrist.astype(np.int64)
+be = wrist.byteswap().astype(np.int64)
+dle = np.abs(np.diff(le[:, :], axis=1)).mean()
+dbe = np.abs(np.diff(be[:, :], axis=1)).mean()
+P('mean |horizontal neighbour difference|: as little-endian %.2f, as big-endian %.2f -> %s' % (dle, dbe, 'little-endian' if dle < dbe else 'big-endian'))
+P('value range %d..%d, max needs %d bits; values >= 65535: %d; zeros: %d' % (wrist.min(), wrist.max(), int(wrist.max()).bit_length(), int((wrist >= 65535).sum()), int((wrist == 0).sum())))
+for k, d in darks.items():
+    dd = np.abs(np.diff(d.astype(np.int64), axis=1)).mean()
+    ddb = np.abs(np.diff(d.byteswap().astype(np.int64), axis=1)).mean()
+    P('control %-28s: LE diff %.2f, BE diff %.2f, range %d..%d' % (k, dd, ddb, d.min(), d.max()))
+
+
+def hp(v, w=33):
+    k = np.ones(w) / w
+    pad = w // 2
+    vp = np.pad(v, pad, mode='reflect')
+    return v - np.convolve(vp, k, mode='valid')
+
+
+def prof_corr(a, b, axis):
+    pa = hp(a.astype(np.float64).mean(axis=axis))
+    pb = hp(b.astype(np.float64).mean(axis=axis))
+    return float(np.corrcoef(pa, pb)[0, 1])
+
+
+P('')
+P('== (b) fixed-pattern correlation of high-passed row / column mean profiles (33-sample moving average removed)')
+P('image: wrist_lat. rows = mean over columns per row (one value per row), columns likewise')
+for k, d in darks.items():
+    P('wrist ~ dark of %-28s row corr %.3f   column corr %.3f' % (k, prof_corr(wrist, d, 1), prof_corr(wrist, d, 0)))
+# null: random circular shift of the dark profile (breaks position, keeps spectrum)
+d6 = darks['CalData_6 (wrist suspect)']
+pw = hp(wrist.astype(np.float64).mean(axis=1))
+pd6 = hp(d6.astype(np.float64).mean(axis=1))
+null = [float(np.corrcoef(pw, np.roll(pd6, int(s)))[0, 1]) for s in rng.integers(50, N - 50, 400)]
+P('null (dark row profile circularly shifted 400x): mean %.3f, max |corr| %.3f, 99.9th pct of |corr| %.3f' % (np.mean(null), np.max(np.abs(null)), np.percentile(np.abs(null), 99.9)))
+# positive control: a raw image of another detector against its own dark, and against the others
+P('positive control (the metric does respond to a same-detector pair):')
+aed_img = load(R + 'tests/test_data/calibration_cases/aed_shock_had1717mc/images/230811_img.raw')
+for k, d in darks.items():
+    P('  aed_shock raw image 230811_img ~ dark of %-28s row corr %.3f   column corr %.3f' % (k, prof_corr(aed_img, d, 1), prof_corr(aed_img, d, 0)))
+aura = sorted((R + 'tests/test_data/calibration_cases/auradr_release_line_trg/calibration/').replace('\\', '/') + f for f in ['CalSet00_00001.raw', 'cBr_00001A.raw'])
+for f in aura:
+    im = load(f)
+    P('  auradr %-18s ~ dark of auradr row corr %.3f / of CalData_6 %.3f' % (f.split('/')[-1], prof_corr(im, darks['auradr_release_line_trg'], 1), prof_corr(im, d6, 1)))
+
+P('')
+P('== (c) outliers at the CalData_6 defect-map positions')
+
+
+def outlier_mask(img):
+    f = img.astype(np.float32)
+    # median of the 4 neighbours (cheap, robust enough for isolated pixels)
+    nb = np.stack([np.roll(f, 1, 0), np.roll(f, -1, 0), np.roll(f, 1, 1), np.roll(f, -1, 1)])
+    med = np.median(nb, axis=0)
+    d = f - med
+    sig = 1.4826 * np.median(np.abs(d - np.median(d)))
+    return np.abs(d) > 5 * sig, float(sig)
+
+
+bp = np.fromfile(R + 'tests/test_data/CalData_6/BPMap.map', dtype=np.uint8).reshape(N, N) != 0
+P('BPMap pixels %d (%.3f%%)' % (bp.sum(), 100.0 * bp.mean()))
+idx = np.flatnonzero(bp.ravel())
+for name, img in [('wrist_lat', wrist), ('CalData_6 dark', d6), ('aed_shock dark (other detector)', darks['aed_shock_had1717mc']), ('auradr dark (other detector)', darks['auradr_release_line_trg']), ('aed_shock raw image (other detector)', aed_img)]:
+    om, sig = outlier_mask(img)
+    hit = om.ravel()[idx].mean()
+    rnd = []
+    for _ in range(200):
+        r = rng.choice(N * N, size=idx.size, replace=False)
+        rnd.append(om.ravel()[r].mean())
+    P('%-38s outliers (>5 robust sigma, sigma %.1f) at BP positions %.1f%%, at random positions: mean %.1f%%, max of 200 draws %.1f%%' % (name, sig, 100 * hit, 100 * np.mean(rnd), 100 * np.max(rnd)))
+
+P('')
+P('== (d) pedestal level')
+for k, d in darks.items():
+    P('dark of %-28s mean %.1f  p50 %d  p0.1 %d  p99.9 %d' % (k, d.mean(), np.percentile(d, 50), np.percentile(d, 0.1), np.percentile(d, 99.9)))
+lo = np.sort(wrist.ravel())[: int(0.005 * wrist.size)]
+P('wrist_lat: lowest 0.5%% of pixels mean %.1f, min %d, p0.1 %d' % (lo.mean(), wrist.min(), np.percentile(wrist, 0.1)))
+h = np.bincount(wrist.ravel(), minlength=65536)
+P('wrist_lat histogram: lowest value with >= 1000 pixels: %d; first 3 values holding >= 5000 pixels each: %s' % (int(np.argmax(h >= 1000)), [int(i) for i in np.flatnonzero(h >= 5000)[:3]]))
+P('CalData_6 dark mean 2503.1 sits %s the wrist low end (%d)' % ('below' if d6.mean() < wrist.min() else 'above', wrist.min()))
+open(sys.argv[1], 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+print('\n'.join(out))

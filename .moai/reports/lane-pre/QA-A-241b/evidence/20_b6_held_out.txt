@@ -1,0 +1,14 @@
+Note: Google Test filter = A241Measure.DISABLED_B6_HeldOut
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A241Measure
+[ RUN      ] A241Measure.DISABLED_B6_HeldOut
+[a241] B6 held out flat6, gain from flat4+flat5: flat mean 2207.6 ADU (judged) | masked 53364 px (0.565 %) | FlatResidualPct 0.842 % (output mean 2196.4) | spread of 16x16 block means 0.118 %
+[a241] B6 held out flat5, gain from flat4+flat6: flat mean 1403.0 ADU (below 2000 ADU: reference only) | masked 53324 px (0.565 %) | FlatResidualPct 0.908 % (output mean 1395.8) | spread of 16x16 block means 0.128 %
+[a241] B6 held out flat4, gain from flat5+flat6: flat mean 871.8 ADU (below 2000 ADU: reference only) | masked 53365 px (0.565 %) | FlatResidualPct 1.065 % (output mean 867.4) | spread of 16x16 block means 0.148 %
+[       OK ] A241Measure.DISABLED_B6_HeldOut (3987 ms)
+[----------] 1 test from A241Measure (3987 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3987 ms total)
+[  PASSED  ] 1 test.

@@ -227,6 +227,14 @@ XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath);
  *          functions are what refuse an uninitialized module -- pinned by CalibLoadTest.LoadBeforeInit_AllThreeLoadersAcceptValidFiles)
  *         XPE_ERR_IO_FAILED on file read error
  *         XPE_ERR_CONFIG_INVALID if the file's session id conflicts with a loaded offset or gain map
+ *
+ * Defect density (SRS-CALIB-FUNC-003, "Maximum 5% defect density tolerance"): a map with MORE than 5 % of its pixels marked defective is
+ * loaded and reported once with the alert "XPE_WARN_DEFECT_MAP_OVER_LIMIT: ..." (XPE_ALERT_WARNING) -- the SRS gives the tolerance, not
+ * the behaviour above it, and the defect stage is documented to fill dense masks (the union of the map with the gain-classified pixels
+ * is reported at frame time the same way). Exactly 5 % raises nothing. The alert is raised only after the map is installed: a load that is
+ * refused (session conflict) raises nothing. The cached loader reports it on the load that fills the cache; a cache hit raises it again when it makes
+ * an over-limit map the installed one in place of a map within tolerance or of a DIFFERENT over-limit map (a repeat hit of the same map
+ * stays quiet; the identity is a hash of the marked-pixel mask).
  */
 XPE_API XpeErrorCode xpe_calib_load_defect_map(const char* filepath);
 
@@ -426,7 +434,12 @@ XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
  *        With "sigma_clip", XPE-ALG-001 9.8.2.1 also applies: a pixel whose
  *        surviving frame count falls below N_min = max(3, floor(N/4)) is marked
  *        a static defect and OR-merged into the global defect map (#138
- *        decision (a)). Its offset value is unaffected.
+ *        decision (a)). Its offset value is unaffected. The merge keeps the density state of the installed
+ *        defect map (marked count, the 5 % tolerance flag, and the mask identity a cache hit compares) in step
+ *        with the map it installs, in the same critical section. It raises no XPE_WARN_DEFECT_MAP_OVER_LIMIT of
+ *        its own: that alert is the warning of a defect-map FILE load (SRS-CALIB-FUNC-003), and this is a
+ *        generation step that marks pixels from the caller's own dark frames. A map the merge pushes over the
+ *        limit is reported when a file is loaded next or a cached map re-activates a different over-limit one.
  * @return XPE_OK on success
  *         XPE_ERR_NOT_INITIALIZED if module not initialized
  *         XPE_ERR_INVALID_INPUT if NULL pointers or invalid parameters
@@ -467,6 +480,12 @@ XPE_API XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* dark_frames
  *         XPE_ERR_OUT_OF_MEMORY on allocation failure
  * @note One dose level, degree 0: accepted by every calibration mode; under
  *       XPE_CALIB_AUTO the mode recorded is XPE_CALIB_SINGLE_POINT.
+ * @note The frames are averaged in ADU, NOT normalised one by one first (step 2 is a plain mean of the dark-corrected frames). The
+ *       map is therefore a dose-weighted mean: a frame with twice the signal counts twice as much, and when frames of different
+ *       dose or of different acquisition conditions are mixed, the largest-dose frames set the large-scale shape of the map and no
+ *       single frame is matched by it (QA-A-242: six CalData_6 flats mixed this way leave 1.2 to 3.3 % residual; one condition's
+ *       frames leave 0.3 % at scales of 16 pixels and up). Give the generator frames of ONE acquisition condition; for several
+ *       doses use xpe_calib_generate_gain_polynomial. This is documented behaviour, not a defect to be changed silently.
  */
 XPE_API XpeErrorCode xpe_calib_generate_gain(const XpeImageBuffer* flat_frames,
                                              int32_t num_frames,
@@ -1119,6 +1138,33 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_ex(XpeImageBuffer* img,
                                                   const void* calibState,
                                                   void* ghostHandle,
                                                   const char* configJsonOrNull);
+
+/**
+ * @brief The same pipeline as xpe_preprocess_pipeline_ex(), with a separate output buffer (SRS-CALIB-SAFE-004)
+ *
+ * xpe_preprocess_pipeline() and xpe_preprocess_pipeline_ex() write the result back into the buffer they were given. This entry
+ * point never writes @p in: the corrected frame goes to @p out, and the original frame stays available for audit and QA.
+ * Stages, calibration set, configuration and metadata flags are exactly those of xpe_preprocess_pipeline_ex().
+ *
+ * @param in [in] The frame to process; read only. dataSize is the room for the input (width*height*2 for UINT16)
+ * @param out [out] Receives the result. out->data must be a different buffer from in->data; out->dataSize is the room for
+ *        the result: width*height*4 bytes when any stage from the gain stage on runs (float32), width*height*2 otherwise.
+ *        width, height, format and bit depths are set on success; on failure @p out is not written
+ * @param meta [in/out] Image metadata
+ * @param calibState Pre-loaded calibration state (as for xpe_preprocess_pipeline_ex)
+ * @param ghostHandle Ghost corrector handle (NULL = skip ghost)
+ * @param configJsonOrNull Pipeline configuration JSON (as for xpe_preprocess_pipeline)
+ * @return XPE_OK on success
+ *         XPE_ERR_INVALID_INPUT on a NULL in / out / meta / data, in->dataSize 0 or below the input frame, or out->data == in->data
+ *         XPE_ERR_BUFFER_TOO_SMALL if out->dataSize is smaller than the result
+ *         the errors of xpe_preprocess_pipeline_ex() otherwise
+ */
+XPE_API XpeErrorCode xpe_preprocess_pipeline_out(const XpeImageBuffer* in,
+                                                   XpeImageBuffer* out,
+                                                   XpeImageMetadata* meta,
+                                                   const void* calibState,
+                                                   void* ghostHandle,
+                                                   const char* configJsonOrNull);
 
 /**
  * @brief Process multiple frames with identical calibration in batch

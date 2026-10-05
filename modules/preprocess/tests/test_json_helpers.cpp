@@ -45,7 +45,8 @@ protected:
         img.dataSize      = pixels.size() * sizeof(uint16_t);
     }
 
-    void TearDown() override { xpe_preprocess_shutdown(); }
+    // QA-A-241: a bypassed offset or gain raises XPE_WARN_CORRECTION_BYPASSED (SRS-CALIB-SAFE-001); these tests bypass on purpose.
+    void TearDown() override { xpe_clear_alerts(); xpe_preprocess_shutdown(); }
 };
 
 // Every stage bypassed. With no calibration loaded, the run can only succeed if

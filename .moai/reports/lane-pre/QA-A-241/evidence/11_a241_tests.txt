@@ -1,0 +1,46 @@
+Note: Google Test filter = A241Safety.*
+[==========] Running 9 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 9 tests from A241Safety
+[ RUN      ] A241Safety.AMapThatExpiresWhileLoadedStopsTheFrame
+[       OK ] A241Safety.AMapThatExpiresWhileLoadedStopsTheFrame (1860 ms)
+[ RUN      ] A241Safety.ABypassedMapThatExpiredStillStopsTheFrame
+[       OK ] A241Safety.ABypassedMapThatExpiredStillStopsTheFrame (526 ms)
+[ RUN      ] A241Safety.ANeverExpiringFileDoesNotStopTheFrameLater
+[       OK ] A241Safety.ANeverExpiringFileDoesNotStopTheFrameLater (16 ms)
+[ RUN      ] A241Safety.ExpiryZeroIsReportedOncePerState
+[       OK ] A241Safety.ExpiryZeroIsReportedOncePerState (24 ms)
+[ RUN      ] A241Safety.AFileWithAnExpiryRaisesNoExpiryWarning
+[       OK ] A241Safety.AFileWithAnExpiryRaisesNoExpiryWarning (18 ms)
+[ RUN      ] A241Safety.ABypassedOffsetOrGainIsFlaggedAndLogged
+[       OK ] A241Safety.ABypassedOffsetOrGainIsFlaggedAndLogged (11 ms)
+[ RUN      ] A241Safety.PipelineOutLeavesTheInputAndGivesTheInPlaceResult
+[       OK ] A241Safety.PipelineOutLeavesTheInputAndGivesTheInPlaceResult (11 ms)
+[ RUN      ] A241Safety.PipelineOutWithEveryStageBypassedGivesTheInputFrameAndLeavesTheInput
+[       OK ] A241Safety.PipelineOutWithEveryStageBypassedGivesTheInputFrameAndLeavesTheInput (12 ms)
+[ RUN      ] A241Safety.PipelineOutRefusesWhatCannotHoldTheResultAndWritesNothing
+[       OK ] A241Safety.PipelineOutRefusesWhatCannotHoldTheResultAndWritesNothing (12 ms)
+[----------] 9 tests from A241Safety (2494 ms total)
+
+[----------] Global test environment tear-down
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_global_state_hygiene.cpp(227): error: Failed
+Tests left global module state changed. Each of these has to undo
+what it did -- restore only what the fixture itself raised, in
+TearDown. Leaving state behind passes under ctest (one process per
+test) and fails whenever the binary is run directly or shuffled.
+  A241Safety.AMapThatExpiresWhileLoadedStopsTheFrame -- pending alerts 0 -> 1 (drain with xpe_clear_alerts());
+  A241Safety.ABypassedMapThatExpiredStillStopsTheFrame -- pending alerts 1 -> 3 (drain with xpe_clear_alerts());
+  A241Safety.ANeverExpiringFileDoesNotStopTheFrameLater -- pending alert queue replaced (3 alerts, different contents; drain with xpe_clear_alerts());
+  A241Safety.ExpiryZeroIsReportedOncePerState -- pending alerts 3 -> 2 (drain with xpe_clear_alerts());
+  A241Safety.AFileWithAnExpiryRaisesNoExpiryWarning -- pending alerts 2 -> 0 (drain with xpe_clear_alerts());
+  A241Safety.ABypassedOffsetOrGainIsFlaggedAndLogged -- pending alerts 0 -> 1 (drain with xpe_clear_alerts());
+  A241Safety.PipelineOutLeavesTheInputAndGivesTheInPlaceResult -- pending alerts 1 -> 3 (drain with xpe_clear_alerts());
+  A241Safety.PipelineOutWithEveryStageBypassedGivesTheInputFrameAndLeavesTheInput -- pending alerts 3 -> 4 (drain with xpe_clear_alerts());
+  A241Safety.PipelineOutRefusesWhatCannotHoldTheResultAndWritesNothing -- pending alerts 4 -> 3 (drain with xpe_clear_alerts());
+
+
+[==========] 9 tests from 1 test suite ran. (2494 ms total)
+[  PASSED  ] 9 tests.
+[  FAILED  ] 0 tests, listed below:
+
+ 0 FAILED TESTS

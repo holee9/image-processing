@@ -1,0 +1,59 @@
+Note: Google Test filter = A240.DISABLED_B6_*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A240
+[ RUN      ] A240.DISABLED_B6_Quality
+[a240]     alert (load, severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that ca
+[a240]     alert (load, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240] B6 dark (all pixels as the ROI; circular): DarkBias 0.0000 ADU, DSNU_ADU 0.0000, DarkReduction_dB 262.58 (std raw 13.459 -> 0.000), ClampRate (R - D < 0) 0.0000 %, pixels that came out 0: 100.0000 %
+[a240] B6 xpe_verify_offset rc=0: dark_bias 0.0000 dsnu_adu 0.0000 dark_reduction_db 181.71 overall_pass 1
+[a240] B6 flat: FlatResidualPct = 100 * std/mean over EVERY pixel whose gain is valid (protocol 5.3), with the map's own gain from all 6 flats
+[a240]     alert (flat pipeline, severity 1): XPE_WARN_GAIN_PIXELS_UNCORRECTED: 42026 pixel(s) were classified defective by the gain calibration but no defect correction follows (defect stage bypassed); they carry the uncorrected value
+[a240] B6 flat 1 (mean 2883.2 ADU): FlatResidualPct before gain 11.500 | after gain, all pixels 6.680 | after gain, masked pixels left out 1.987 (before, same pixels 9.239) | after the defect stage, all pixels 2.062 | FPN_Reduction_dB (masked out) 13.39
+[a240] B6 flat 1 split (after the defect stage): pixel-noise CV 0.299 % (before gain 0.899 %) | 64x64-tile-mean CV 1.817 % | residual beyond pixel noise sqrt(total^2 - noise^2) 2.040 %
+[a240]     alert (flat pipeline, severity 1): XPE_WARN_GAIN_PIXELS_UNCORRECTED: 42026 pixel(s) were classified defective by the gain calibration but no defect correction follows (defect stage bypassed); they carry the uncorrected value
+[a240] B6 flat 2 (mean 5014.6 ADU): FlatResidualPct before gain 11.120 | after gain, all pixels 6.473 | after gain, masked pixels left out 1.171 (before, same pixels 8.772) | after the defect stage, all pixels 1.180 | FPN_Reduction_dB (masked out) 17.53
+[a240] B6 flat 2 split (after the defect stage): pixel-noise CV 0.211 % (before gain 0.451 %) | 64x64-tile-mean CV 1.123 % | residual beyond pixel noise sqrt(total^2 - noise^2) 1.161 %
+[a240] B6 xpe_verify_gain on flat 2 rc=0: prnu_before 11.1195 % prnu_after 6.4731 % gain_coverage 1.000000 invalid_gain_count 1 snr_improvement_db 4.70 overall_pass 0 measured_mask 0x2c
+[a240]     alert (flat pipeline, severity 1): XPE_WARN_GAIN_PIXELS_UNCORRECTED: 42026 pixel(s) were classified defective by the gain calibration but no defect correction follows (defect stage bypassed); they carry the uncorrected value
+[a240] B6 flat 3 (mean 350.6 ADU): FlatResidualPct before gain 16.721 | after gain, all pixels 10.197 | after gain, masked pixels left out 3.312 (before, same pixels 8.762) | after the defect stage, all pixels 3.340 | FPN_Reduction_dB (masked out) 8.49
+[a240] B6 flat 3 split (after the defect stage): pixel-noise CV 1.115 % (before gain 12.525 %) | 64x64-tile-mean CV 2.913 % | residual beyond pixel noise sqrt(total^2 - noise^2) 3.149 %
+[a240]     alert (flat pipeline, severity 1): XPE_WARN_GAIN_PIXELS_UNCORRECTED: 42026 pixel(s) were classified defective by the gain calibration but no defect correction follows (defect stage bypassed); they carry the uncorrected value
+[a240] B6 flat 4 (mean 867.4 ADU): FlatResidualPct before gain 11.128 | after gain, all pixels 7.136 | after gain, masked pixels left out 2.411 (before, same pixels 8.269) | after the defect stage, all pixels 2.457 | FPN_Reduction_dB (masked out) 10.74
+[a240] B6 flat 4 split (after the defect stage): pixel-noise CV 0.676 % (before gain 2.975 %) | 64x64-tile-mean CV 2.148 % | residual beyond pixel noise sqrt(total^2 - noise^2) 2.362 %
+[a240]     alert (flat pipeline, severity 1): XPE_WARN_GAIN_PIXELS_UNCORRECTED: 42026 pixel(s) were classified defective by the gain calibration but no defect correction follows (defect stage bypassed); they carry the uncorrected value
+[a240] B6 flat 5 (mean 1395.7 ADU): FlatResidualPct before gain 10.880 | after gain, all pixels 6.928 | after gain, masked pixels left out 2.343 (before, same pixels 8.251) | after the defect stage, all pixels 2.394 | FPN_Reduction_dB (masked out) 10.97
+[a240] B6 flat 5 split (after the defect stage): pixel-noise CV 0.518 % (before gain 1.870 %) | 64x64-tile-mean CV 2.152 % | residual beyond pixel noise sqrt(total^2 - noise^2) 2.337 %
+[a240]     alert (flat pipeline, severity 1): XPE_WARN_GAIN_PIXELS_UNCORRECTED: 42026 pixel(s) were classified defective by the gain calibration but no defect correction follows (defect stage bypassed); they carry the uncorrected value
+[a240] B6 flat 6 (mean 2196.2 ADU): FlatResidualPct before gain 10.731 | after gain, all pixels 6.793 | after gain, masked pixels left out 2.298 (before, same pixels 8.230) | after the defect stage, all pixels 2.344 | FPN_Reduction_dB (masked out) 11.12
+[a240] B6 flat 6 split (after the defect stage): pixel-noise CV 0.395 % (before gain 0.773 %) | 64x64-tile-mean CV 2.154 % | residual beyond pixel noise sqrt(total^2 - noise^2) 2.310 %
+[a240] B6 flat held out: the gain map made from the other five flats, applied to the sixth
+[a240] B6 flat 1 held out: FlatResidualPct after gain (masked pixels left out) 2.575
+[a240]     alert (loo, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42480 of 9437184 pixel(s) (0.450%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (loo, severity 1): XPE_WARN_GAIN_PIXELS_UNCORRECTED: 42480 pixel(s) were classified defective by the gain calibration but no defect correction follows (defect stage bypassed); they carry the uncorrected value
+[a240] B6 flat 2 held out: FlatResidualPct after gain (masked pixels left out) 1.940
+[a240]     alert (loo, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42310 of 9437184 pixel(s) (0.448%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (loo, severity 1): XPE_WARN_GAIN_PIXELS_UNCORRECTED: 42310 pixel(s) were classified defective by the gain calibration but no defect correction follows (defect stage bypassed); they carry the uncorrected value
+[a240] B6 flat 3 held out: FlatResidualPct after gain (masked pixels left out) 3.405
+[a240]     alert (loo, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 41992 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (loo, severity 1): XPE_WARN_GAIN_PIXELS_UNCORRECTED: 41992 pixel(s) were classified defective by the gain calibration but no defect correction follows (defect stage bypassed); they carry the uncorrected value
+[a240] B6 flat 4 held out: FlatResidualPct after gain (masked pixels left out) 2.587
+[a240]     alert (loo, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 41910 of 9437184 pixel(s) (0.444%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (loo, severity 1): XPE_WARN_GAIN_PIXELS_UNCORRECTED: 41910 pixel(s) were classified defective by the gain calibration but no defect correction follows (defect stage bypassed); they carry the uncorrected value
+[a240] B6 flat 5 held out: FlatResidualPct after gain (masked pixels left out) 2.631
+[a240]     alert (loo, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 41734 of 9437184 pixel(s) (0.442%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (loo, severity 1): XPE_WARN_GAIN_PIXELS_UNCORRECTED: 41734 pixel(s) were classified defective by the gain calibration but no defect correction follows (defect stage bypassed); they carry the uncorrected value
+[a240] B6 flat 6 held out: FlatResidualPct after gain (masked pixels left out) 2.776
+[a240]     alert (loo, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 41517 of 9437184 pixel(s) (0.440%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (loo, severity 1): XPE_WARN_GAIN_PIXELS_UNCORRECTED: 41517 pixel(s) were classified defective by the gain calibration but no defect correction follows (defect stage bypassed); they carry the uncorrected value
+[a240] B6 GoodPixelDeltaP99 (unmasked pixels, defect stage on vs off, flat 2): 0.000000 ADU; unmasked pixels changed: 0 of 9385641
+[a240] B6 DefectResidualADU (masked pixels with a valid 4-neighbour, flat 2): after the defect stage 11.2310 ADU, before it 2202.2789 ADU (7207 pixels)
+[a240] B6 xpe_verify_defect rc=0: defect_count 23505 defect_density 0.2491 % correction_error 4.4934 overall_pass 1
+[a240]     alert (defect metrics, severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 42026 of 9437184 pixel(s) (0.445%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect corre
+[a240]     alert (defect metrics, severity 1): XPE_WARN_GAIN_PIXELS_UNCORRECTED: 42026 pixel(s) were classified defective by the gain calibration but no defect correction follows (defect stage bypassed); they carry the uncorrected value
+[       OK ] A240.DISABLED_B6_Quality (3760 ms)
+[----------] 1 test from A240 (3760 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3760 ms total)
+[  PASSED  ] 1 test.

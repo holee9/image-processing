@@ -103,6 +103,25 @@ std::vector<std::string> g_offenders;
 
 
 /**
+ * QA-A-241 (SRS-CALIB-FUNC-009): loading a calibration file whose expiry is 0 raises XPE_WARN_NO_EXPIRY, once per state, by design --
+ * and the maps most fixtures write carry expiry 0. QA-A-241c (SRS-CALIB-FUNC-003): loading a defect map with more than 5 % of its pixels
+ * marked raises XPE_WARN_DEFECT_MAP_OVER_LIMIT, once per load, by design -- and the fixtures of the defect-fill tests write dense masks on
+ * purpose. Those advisories are the load's own report, not state a test chose to leave, so a queue that holds NOTHING BUT them is
+ * drained here, before the comparison. Any other alert, or any alert beside them, is still reported exactly as before.
+ */
+void DrainNoExpiryAdvisoryOnly() {
+    const int32_t n = xpe_get_pending_alert_count();
+    if (n <= 0) return;
+    char msg[512];
+    for (int32_t i = 0; i < n; ++i) {
+        int32_t sev = -1;
+        if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) != XPE_OK) return;
+        if (std::strncmp(msg, "XPE_WARN_NO_EXPIRY:", 19) != 0 && std::strncmp(msg, "XPE_WARN_DEFECT_MAP_OVER_LIMIT:", 31) != 0) return;
+    }
+    xpe_clear_alerts();
+}
+
+/**
  * QA-A-139: the queue's IDENTITY, not just its size.
  *
  * The count alone admits a false negative: a test that drains one alert and
@@ -162,6 +181,7 @@ public:
         g_baseline.mode = xpe_calib_get_mode();
         (void)xpe_calib_get_quality_meta(&g_baseline.meta);
         g_baseline.initialized = xpe_preprocess_is_initialized();
+        DrainNoExpiryAdvisoryOnly();
         g_baseline.alerts = xpe_get_pending_alert_count();
         g_baseline.alert_fp = AlertFingerprint();
         g_baseline.captured = true;
@@ -173,6 +193,7 @@ public:
         // teardown may not have run, and the first failure is the useful one.
         if (info.result() != nullptr && info.result()->Failed()) return;
 
+        DrainNoExpiryAdvisoryOnly();
         std::string why;
         if (xpe_preprocess_is_initialized() != g_baseline.initialized) {
             why += xpe_preprocess_is_initialized()

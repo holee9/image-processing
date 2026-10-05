@@ -1,0 +1,22 @@
+Note: Google Test filter = A241Measure.DISABLED_B2_LimitBoundary
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A241Measure
+[ RUN      ] A241Measure.DISABLED_B2_LimitBoundary
+[a241] B2 no out-of-range pixel                                          load rc=0 XPE_OK                       classified-warning 0, over-limit-error 0
+[a241] B2 0.445 % (the real CalData_6 gain map's fraction), value 0.0    load rc=0 XPE_OK                       classified-warning 1, over-limit-error 0
+[a241] B2 3276 px = 4.9988 %, value 0.05                                 load rc=0 XPE_OK                       classified-warning 1, over-limit-error 0
+[a241] B2 3277 px = 5.0003 %, value 0.05                                 load rc=-17 XPE_ERR_INVALID_CALIB_DATA   classified-warning 0, over-limit-error 1
+[a241]    alert: XPE_WARN_GAIN_PIXELS_OVER_LIMIT: 3277 of 65536 pixel(s) (5.000%) have a gain outside [0.1, 10.0], above the 5.0% limit; the calibration was not loaded
+[a241] B2 3277 px, value 20.0 (above 10)                                 load rc=-17 XPE_ERR_INVALID_CALIB_DATA   classified-warning 0, over-limit-error 1
+[a241]    alert: XPE_WARN_GAIN_PIXELS_OVER_LIMIT: 3277 of 65536 pixel(s) (5.000%) have a gain outside [0.1, 10.0], above the 5.0% limit; the calibration was not loaded
+[a241] B2 3277 px, NaN                                                   load rc=-17 XPE_ERR_INVALID_CALIB_DATA   classified-warning 0, over-limit-error 1
+[a241]    alert: XPE_WARN_GAIN_PIXELS_OVER_LIMIT: 3277 of 65536 pixel(s) (5.000%) have a gain outside [0.1, 10.0], above the 5.0% limit; the calibration was not loaded
+[a241] B2 30 %, value 0.0                                                load rc=-17 XPE_ERR_INVALID_CALIB_DATA   classified-warning 0, over-limit-error 1
+[a241]    alert: XPE_WARN_GAIN_PIXELS_OVER_LIMIT: 19661 of 65536 pixel(s) (30.000%) have a gain outside [0.1, 10.0], above the 5.0% limit; the calibration was not loaded
+[       OK ] A241Measure.DISABLED_B2_LimitBoundary (54 ms)
+[----------] 1 test from A241Measure (54 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (54 ms total)
+[  PASSED  ] 1 test.

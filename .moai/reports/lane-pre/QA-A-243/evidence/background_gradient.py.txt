@@ -1,0 +1,15 @@
+import numpy as np
+N=3072
+new=np.fromfile('D:/workspace-github/xpe-data/m1-baseline-v2/wrist_lat_3072x3072_corrected_v2_f32le.raw',dtype='<f4').reshape(N,N)
+old=np.fromfile('D:/workspace-github/xpe-data/m1-baseline/wrist_lat_3072x3072_corrected_f32le.raw',dtype='<f4').reshape(N,N)
+raw=np.fromfile('D:/workspace-github/image-processing/gui/ImageProcTest/fixtures/gui-s0/raw/wrist_lat_3072x3072.raw',dtype='<u2').reshape(N,N).astype(np.float32)
+dark=np.fromfile('D:/workspace-github/image-processing/tests/test_data/CalData_6/dark.raw',dtype='<u2').reshape(N,N).astype(np.float32)
+def c(a,y,x): return float(np.median(a[y:y+256,x:x+256]))
+L=['', '== background of the wrist frame (256x256 block medians in air, away from the limb): the field gradient the flats do not remove',
+   'block                  raw-offset(ADU)   v2(ADU)   old(ADU)']
+pts={'left-top':(100,100),'left-middle':(1400,100),'left-bottom':(2700,100),'right-middle (below the arm)':(1400,2650),'right-bottom':(2700,2650)}
+for nm,(y,x) in pts.items():
+    L.append('%-28s %10.1f %10.1f %10.1f'%(nm,c(raw-dark,y,x),c(new,y,x),c(old,y,x)))
+a=c(new,100,100); b=c(new,2700,2650)
+L.append('v2 background rises %.0f %% from the top-left to the bottom-right block (old: %.0f %%; raw minus offset: %.0f %%). The flats (4,5,6) themselves vary 27 %% across the frame (256-block means 0.818 .. 1.087 of the mean) and the gain divides that out; what remains is a ~%.0f %% gradient the flats do not contain.'%(100*(b/a-1),100*(c(old,2700,2650)/c(old,100,100)-1),100*(c(raw-dark,2700,2650)/c(raw-dark,100,100)-1),100*(b/a-1)))
+open('C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/bg.txt','w').write('\n'.join(L)+'\n'); print('\n'.join(L))

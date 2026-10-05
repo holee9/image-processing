@@ -1,0 +1,42 @@
+Note: Google Test filter = A241*
+[==========] Running 14 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 13 tests from A241Safety
+[ RUN      ] A241Safety.AMapThatExpiresWhileLoadedStopsTheFrame
+[       OK ] A241Safety.AMapThatExpiresWhileLoadedStopsTheFrame (1872 ms)
+[ RUN      ] A241Safety.ABypassedMapThatExpiredStillStopsTheFrame
+[       OK ] A241Safety.ABypassedMapThatExpiredStillStopsTheFrame (523 ms)
+[ RUN      ] A241Safety.ANeverExpiringFileDoesNotStopTheFrameLater
+[       OK ] A241Safety.ANeverExpiringFileDoesNotStopTheFrameLater (10 ms)
+[ RUN      ] A241Safety.ExpiryZeroIsReportedOncePerState
+[       OK ] A241Safety.ExpiryZeroIsReportedOncePerState (28 ms)
+[ RUN      ] A241Safety.AFileWithAnExpiryRaisesNoExpiryWarning
+[       OK ] A241Safety.AFileWithAnExpiryRaisesNoExpiryWarning (14 ms)
+[ RUN      ] A241Safety.ABypassedOffsetOrGainIsFlaggedAndLogged
+[       OK ] A241Safety.ABypassedOffsetOrGainIsFlaggedAndLogged (12 ms)
+[ RUN      ] A241Safety.PipelineOutLeavesTheInputAndGivesTheInPlaceResult
+[       OK ] A241Safety.PipelineOutLeavesTheInputAndGivesTheInPlaceResult (9 ms)
+[ RUN      ] A241Safety.PipelineOutWithEveryStageBypassedGivesTheInputFrameAndLeavesTheInput
+[       OK ] A241Safety.PipelineOutWithEveryStageBypassedGivesTheInputFrameAndLeavesTheInput (13 ms)
+[ RUN      ] A241Safety.PipelineOutRefusesWhatCannotHoldTheResultAndWritesNothing
+[       OK ] A241Safety.PipelineOutRefusesWhatCannotHoldTheResultAndWritesNothing (10 ms)
+[ RUN      ] A241Safety.PipelineOutRefusesAnyOverlapOfInputAndOutputAndLeavesBothAsTheyWere
+[       OK ] A241Safety.PipelineOutRefusesAnyOverlapOfInputAndOutputAndLeavesBothAsTheyWere (10 ms)
+[ RUN      ] A241Safety.PipelineOutOverlapCheckIsOverflowSafe
+[       OK ] A241Safety.PipelineOutOverlapCheckIsOverflowSafe (10 ms)
+[ RUN      ] A241Safety.TheThreeSingleStageFunctionsRefuseAnExpiredMapAndWriteNothing
+[       OK ] A241Safety.TheThreeSingleStageFunctionsRefuseAnExpiredMapAndWriteNothing (1882 ms)
+[ RUN      ] A241Safety.AnExpiredMapStopsAllFourPipelineEntryPoints
+[       OK ] A241Safety.AnExpiredMapStopsAllFourPipelineEntryPoints (629 ms)
+[----------] 13 tests from A241Safety (5036 ms total)
+
+[----------] 1 test from A241Checker
+[ RUN      ] A241Checker.JudgesExactlyAtAndAfterTheExpiry
+[       OK ] A241Checker.JudgesExactlyAtAndAfterTheExpiry (0 ms)
+[----------] 1 test from A241Checker (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 14 tests from 2 test suites ran. (5036 ms total)
+[  PASSED  ] 14 tests.
+
+  YOU HAVE 2 DISABLED TESTS

@@ -1,0 +1,58 @@
+== 0. the fixed tree
+git HEAD: 7c844920; sources sha256 (first 16): cache cad298238820a608 generator a8a6bc17efd2d2d8
+build command: build237.bat xpe_preprocess_tests (= cmake --build --preset ci-preprocess --target xpe_preprocess_tests)
+BUILD_EXIT=0
+xpe_preprocess.dll sha256 (fixed): c73cd9a6365df9c12e0eb3fccdb28a883e40eb099b692e6e6ffc62d38f9fe4fb
+[       OK ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls (9454 ms)
+[       OK ] A241Safety.ACacheHitReportsAndResetsTheNeverExpiresState (10 ms)
+[       OK ] A241Safety.ACacheHitThatReplacesOneOverLimitMapWithADifferentOneReportsIt (2 ms)
+[       OK ] A241Safety.ACacheHitThatTurnsAWithinToleranceMapIntoAnOverLimitOneReportsItAndARepeatDoesNot (2 ms)
+[       OK ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot (43 ms)
+[       OK ] A241Safety.ARefusedCacheHitOfAnOverLimitMapLeavesTheAlertQueueAndTheStoreAsItFoundThem (8 ms)
+[       OK ] A241Safety.ARefusedDefectLoadLeavesTheAlertQueueAndTheStoreAsItFoundThem (17 ms)
+[       OK ] A241Safety.AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce (8 ms)
+[       OK ] A241Safety.TheGeneratorsMergeKeepsTheDensityStateOfTheInstalledMapCurrent (4 ms)
+
+== 1. mutant A: the cache hit compares only the flag, not the identity of the map (the behaviour Codex #161 found)
+BUILD_EXIT=0
+xpe_preprocess.dll sha256 (mutant A): d3cfda39dbd2fbc81cc6e0e46160b55f4bba9ca0bc7f848ce37f0798dfc29b2c
+[       OK ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls (9460 ms)
+[       OK ] A241Safety.ACacheHitReportsAndResetsTheNeverExpiresState (8 ms)
+[       OK ] A241Safety.ACacheHitThatTurnsAWithinToleranceMapIntoAnOverLimitOneReportsItAndARepeatDoesNot (2 ms)
+[       OK ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot (33 ms)
+[       OK ] A241Safety.ARefusedCacheHitOfAnOverLimitMapLeavesTheAlertQueueAndTheStoreAsItFoundThem (10 ms)
+[       OK ] A241Safety.ARefusedDefectLoadLeavesTheAlertQueueAndTheStoreAsItFoundThem (18 ms)
+[       OK ] A241Safety.AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce (8 ms)
+[  FAILED  ] A241Safety.ACacheHitThatReplacesOneOverLimitMapWithADifferentOneReportsIt
+[  FAILED  ] A241Safety.ACacheHitThatReplacesOneOverLimitMapWithADifferentOneReportsIt (3 ms)
+[  FAILED  ] A241Safety.TheGeneratorsMergeKeepsTheDensityStateOfTheInstalledMapCurrent
+[  FAILED  ] A241Safety.TheGeneratorsMergeKeepsTheDensityStateOfTheInstalledMapCurrent (5 ms)
+
+== 2. mutant B: the generator's merge does not update the density state of the installed map (the behaviour Codex #161 found)
+BUILD_EXIT=0
+xpe_preprocess.dll sha256 (mutant B): 14e6f045de54a5d466b8c982c75ccd607854703b322e2786b449e216ed2e189a
+[       OK ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls (9496 ms)
+[       OK ] A241Safety.ACacheHitReportsAndResetsTheNeverExpiresState (7 ms)
+[       OK ] A241Safety.ACacheHitThatReplacesOneOverLimitMapWithADifferentOneReportsIt (90 ms)
+[       OK ] A241Safety.ACacheHitThatTurnsAWithinToleranceMapIntoAnOverLimitOneReportsItAndARepeatDoesNot (2 ms)
+[       OK ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot (34 ms)
+[       OK ] A241Safety.ARefusedCacheHitOfAnOverLimitMapLeavesTheAlertQueueAndTheStoreAsItFoundThem (8 ms)
+[       OK ] A241Safety.ARefusedDefectLoadLeavesTheAlertQueueAndTheStoreAsItFoundThem (17 ms)
+[       OK ] A241Safety.AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce (9 ms)
+[  FAILED  ] A241Safety.TheGeneratorsMergeKeepsTheDensityStateOfTheInstalledMapCurrent
+[  FAILED  ] A241Safety.TheGeneratorsMergeKeepsTheDensityStateOfTheInstalledMapCurrent (9 ms)
+
+== 3. restore both, touch, rebuild
+restored sources sha256 (first 16): cache cad298238820a608 generator a8a6bc17efd2d2d8
+BUILD_EXIT=0
+xpe_preprocess.dll sha256 (restored): 22372948887d092ec5c0285dcd6e1bf9665f2d275a4e00fc0c14aa7456605f41
+[       OK ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls (9482 ms)
+[       OK ] A241Safety.ACacheHitReportsAndResetsTheNeverExpiresState (12 ms)
+[       OK ] A241Safety.ACacheHitThatReplacesOneOverLimitMapWithADifferentOneReportsIt (2 ms)
+[       OK ] A241Safety.ACacheHitThatTurnsAWithinToleranceMapIntoAnOverLimitOneReportsItAndARepeatDoesNot (3 ms)
+[       OK ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot (32 ms)
+[       OK ] A241Safety.ARefusedCacheHitOfAnOverLimitMapLeavesTheAlertQueueAndTheStoreAsItFoundThem (7 ms)
+[       OK ] A241Safety.ARefusedDefectLoadLeavesTheAlertQueueAndTheStoreAsItFoundThem (18 ms)
+[       OK ] A241Safety.AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce (8 ms)
+[       OK ] A241Safety.TheGeneratorsMergeKeepsTheDensityStateOfTheInstalledMapCurrent (4 ms)
+(DLL bytes differ between builds of the same source: the linker embeds a timestamp and a debug id; identity is the source hash plus the test results.)
