@@ -22,6 +22,9 @@
  *   B6_StripeInvestigation (QA-A-241f) why LineArtifactScore exceeds its limit at large tiles: numerator and denominator apart, profiles, noise
  *                         controls. Measurement only; method fixed in .moai/reports/lane-pre/QA-A-241f/evidence/00_stripe_investigation_method.md
  *                         (committed before any result). Needs XPE_A240_CAL and XPE_A241_OUT.
+ *   B6_StripeNoiseRatio   (QA-A-241g) the stripe criterion "row/column component <= 3 x the pixel-noise expectation" on the three held-out flats;
+ *                         definition, controls and prediction fixed in .moai/reports/lane-pre/QA-A-241g/evidence/00_stripe_noise_ratio_definition.md
+ *                         (committed before any result). Runs synthetic controls first. Needs XPE_A240_CAL and XPE_A241_OUT.
  *   B10v2_Baseline        (QA-A-243) the stage-2 input reference image: the real frame wrist_lat_3072x3072.raw through the shipping
  *                         path (xpe_preprocess_pipeline_out) with the gain made from ALL THREE flats of the one acquisition
  *                         condition (flats 4,5,6). Writes the float32 output. Needs XPE_A240_CAL, XPE_A240_WRIST, XPE_A243_OUT.
@@ -1093,5 +1096,238 @@ TEST(A241Measure, DISABLED_B6_StripeInvestigation) {
         }
     }
     std::fclose(tab);
+    xpe_preprocess_shutdown();
+}
+
+// StripeNoiseRatio (QA-A-241g): the stripe criterion "row/column component <= 3 x what pixel noise alone gives". The definition (formulas,
+// parameters, ROI, synthetic controls, prediction) is fixed in .moai/reports/lane-pre/QA-A-241g/evidence/00_stripe_noise_ratio_definition.md
+// and the protocol wording in 01_protocol_text_draft.txt, both committed before any result. The test runs the synthetic controls first; if
+// one of C1..C5 is outside its tolerance nothing is measured.
+namespace {
+
+// sigma from vertical neighbour pairs both in the ROI: std(Y[y][x] - Y[y+1][x]) / sqrt(2)
+double pairSigmaV(const float* img, const std::vector<uint8_t>& roi, uint32_t W, uint32_t H) {
+    double s1 = 0, s2 = 0;
+    size_t n = 0;
+    for (uint32_t y = 0; y + 1 < H; ++y)
+        for (uint32_t x = 0; x < W; ++x) {
+            const size_t i = static_cast<size_t>(y) * W + x, j = i + W;
+            if (!roi[i] || !roi[j]) continue;
+            const double d = static_cast<double>(img[i]) - img[j];
+            s1 += d; s2 += d * d; ++n;
+        }
+    if (!n) return 0.0;
+    const double m = s1 / static_cast<double>(n);
+    return std::sqrt(std::max(0.0, s2 / static_cast<double>(n) - m * m)) / std::sqrt(2.0);
+}
+
+// g(L) = mean over k of (1 - 1/m_k), m_k = size of the centred 33-sample window at k, truncated at the ends
+double highPassGain(size_t L) {
+    const int n = static_cast<int>(L), half = 16;
+    double s = 0;
+    for (int k = 0; k < n; ++k) {
+        const int m = std::min(n - 1, k + half) - std::max(0, k - half) + 1;
+        s += 1.0 - 1.0 / static_cast<double>(m);
+    }
+    return n ? s / n : 0.0;
+}
+
+struct StripeRatio {
+    double sRow{0}, sCol{0}, eRow{0}, eCol{0}, sigmaH{0}, sigmaV{0}, rowRatio{0}, colRatio{0};
+    double ratio() const { return std::max(rowRatio, colRatio); }
+};
+
+StripeRatio stripeNoiseRatio(const float* img, const std::vector<uint8_t>& roi, uint32_t W, uint32_t H) {
+    std::vector<double> rows, cols;
+    double nr = 0, nc = 0;
+    rowColMeans(img, roi, W, H, &rows, &cols, &nr, &nc);
+    StripeRatio r;
+    r.sigmaH = pairSigma(img, roi, W, H);
+    r.sigmaV = pairSigmaV(img, roi, W, H);
+    r.sRow = highPassStd(rows);
+    r.sCol = highPassStd(cols);
+    r.eRow = r.sigmaH * std::sqrt(highPassGain(rows.size())) / std::sqrt(nr);
+    r.eCol = r.sigmaV * std::sqrt(highPassGain(cols.size())) / std::sqrt(nc);
+    r.rowRatio = r.sRow / std::max(r.eRow, 1e-12);
+    r.colRatio = r.sCol / std::max(r.eCol, 1e-12);
+    return r;
+}
+
+}  // namespace
+
+TEST(A241Measure, DISABLED_B6_StripeNoiseRatio) {
+    const uint32_t W = 3072, H = 3072;
+    const size_t N = static_cast<size_t>(W) * H;
+    const std::string cal = envOr("XPE_A240_CAL", "");
+    const std::string work = envOr("XPE_A241_OUT", "build/a241");
+    const fs::path dir = fs::path(work) / "snr";
+    fs::create_directories(dir);
+
+    // ---- synthetic controls, run first
+    bool controlsOk = true;
+    {
+        const double sigma = 18.5;
+        const std::vector<uint8_t> all(N, 1);
+        std::mt19937_64 rng(20261005ull);
+        std::normal_distribution<double> nd(0.0, 1.0);
+        std::vector<float> noise(N), img(N);
+        for (size_t i = 0; i < N; ++i) noise[i] = static_cast<float>(2000.0 + sigma * nd(rng));
+        auto within = [&](const char* id, double v, double lo, double hi) {
+            const bool ok = v >= lo && v <= hi;
+            if (!ok) controlsOk = false;
+            std::printf("[a241g] control %s: %.4f expected in [%.4f, %.4f] %s\n", id, v, lo, hi, ok ? "ok" : "OUT OF TOLERANCE");
+        };
+        {
+            const StripeRatio r = stripeNoiseRatio(noise.data(), all, W, H);
+            std::printf("[a241g] control C1 white noise: row ratio %.4f col ratio %.4f (sigma_h %.3f sigma_v %.3f, S_row %.4f E_row %.4f, S_col %.4f E_col %.4f)\n",
+                        r.rowRatio, r.colRatio, r.sigmaH, r.sigmaV, r.sRow, r.eRow, r.sCol, r.eCol);
+            within("C1 row", r.rowRatio, 0.95, 1.05);
+            within("C1 col", r.colRatio, 0.95, 1.05);
+        }
+        const double amps[3] = {2.5, 3.2, 5.0};
+        for (int axis = 0; axis < 2; ++axis) {   // 0 = row stripes (C2), 1 = column stripes (C3)
+            for (double a : amps) {
+                std::vector<double> off(axis == 0 ? H : W);
+                for (auto& v : off) v = a * sigma / std::sqrt(static_cast<double>(axis == 0 ? W : H)) * nd(rng);
+                for (uint32_t y = 0; y < H; ++y)
+                    for (uint32_t x = 0; x < W; ++x)
+                        img[static_cast<size_t>(y) * W + x] = noise[static_cast<size_t>(y) * W + x] + static_cast<float>(off[axis == 0 ? y : x]);
+                const StripeRatio r = stripeNoiseRatio(img.data(), all, W, H);
+                const double exp = std::sqrt(1.0 + a * a);
+                char id[32];
+                std::snprintf(id, sizeof id, "C%d a=%.1f %s", axis == 0 ? 2 : 3, a, axis == 0 ? "row" : "col");
+                within(id, axis == 0 ? r.rowRatio : r.colRatio, 0.94 * exp, 1.06 * exp);
+                within(axis == 0 ? "   (other axis, col)" : "   (other axis, row)", axis == 0 ? r.colRatio : r.rowRatio, 0.95, 1.05);
+                const bool pass = r.ratio() <= 3.0;
+                const bool shouldPass = a < 2.83;
+                if (pass != shouldPass) controlsOk = false;
+                std::printf("[a241g] control %s: verdict StripeNoiseRatio %.3f <= 3 -> %s (expected %s)\n", id, r.ratio(), pass ? "pass" : "fail", shouldPass ? "pass" : "fail");
+            }
+        }
+        {   // C4: smooth shading, 100 ADU higher in the middle (quadratic bowl)
+            for (uint32_t y = 0; y < H; ++y)
+                for (uint32_t x = 0; x < W; ++x) {
+                    const double u = (static_cast<double>(x) / (W - 1)) * 2.0 - 1.0, v = (static_cast<double>(y) / (H - 1)) * 2.0 - 1.0;
+                    img[static_cast<size_t>(y) * W + x] = noise[static_cast<size_t>(y) * W + x] + static_cast<float>(100.0 * (1.0 - 0.5 * (u * u + v * v)));
+                }
+            const StripeRatio r = stripeNoiseRatio(img.data(), all, W, H);
+            within("C4 shading row", r.rowRatio, 0.95, 1.10);
+            within("C4 shading col", r.colRatio, 0.95, 1.10);
+        }
+        {   // C5: 0.25 % of the pixels left out of the ROI at random
+            std::vector<uint8_t> roi(N, 1);
+            for (size_t i = 0; i < N; ++i) if (std::fabs(nd(rng)) > 3.02) roi[i] = 0;   // about 0.25 %
+            const StripeRatio r = stripeNoiseRatio(noise.data(), roi, W, H);
+            within("C5 ROI with holes row", r.rowRatio, 0.95, 1.05);
+            within("C5 ROI with holes col", r.colRatio, 0.95, 1.05);
+        }
+        {   // C6 (reported, not gated): noise correlated along the row, AR(1) rho = 0.3
+            const double rho = 0.3, drive = std::sqrt(1.0 - rho * rho);
+            for (uint32_t y = 0; y < H; ++y) {
+                double prev = nd(rng);
+                for (uint32_t x = 0; x < W; ++x) {
+                    prev = rho * prev + drive * nd(rng);
+                    img[static_cast<size_t>(y) * W + x] = static_cast<float>(2000.0 + sigma * prev);
+                }
+            }
+            const StripeRatio r = stripeNoiseRatio(img.data(), all, W, H);
+            const double pred = std::sqrt((1.0 + rho) / ((1.0 - rho) * (1.0 - rho)));
+            const bool ok = std::fabs(r.rowRatio / pred - 1.0) <= 0.10 && std::fabs(r.colRatio - 1.0) <= 0.05;
+            std::printf("[a241g] control C6 (not gated) AR(1) rho 0.3 along rows: row ratio %.4f (predicted %.4f), col ratio %.4f (predicted 1) %s\n", r.rowRatio, pred, r.colRatio,
+                        ok ? "as predicted: the method over-reads along-row correlated noise by this factor" : "NOT as predicted");
+        }
+        std::printf("[a241g] controls C1..C5 %s\n", controlsOk ? "within tolerance: the instrument is valid" : "NOT within tolerance: no measurement below is valid");
+    }
+    if (!controlsOk) GTEST_SKIP() << "controls failed";
+
+    ASSERT_FALSE(cal.empty());
+    const std::vector<uint16_t> dark = readRaw16(cal + "/dark.raw", N);
+    ASSERT_FALSE(dark.empty());
+    std::vector<std::vector<uint16_t>> flat(7);
+    for (int k = 4; k <= 6; ++k) {
+        char nm[32];
+        std::snprintf(nm, sizeof nm, "/bright%02d.raw", k);
+        flat[static_cast<size_t>(k)] = readRaw16(cal + nm, N);
+        ASSERT_FALSE(flat[static_cast<size_t>(k)].empty()) << nm;
+    }
+    const auto bpBytes = readFile(cal + "/BPMap.map");
+    ASSERT_EQ(N, bpBytes.size());
+    auto buf = [&](const void* d, size_t bytes, XpePixelFormat f) {
+        XpeImageBuffer b{};
+        b.data = const_cast<void*>(d);
+        b.dataSize = bytes;
+        b.width = W;
+        b.height = H;
+        b.format = f;
+        b.bitsAllocated = f == XPE_PIXEL_FLOAT32 ? 32u : 16u;
+        b.bitsStored = b.bitsAllocated;
+        return b;
+    };
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    const std::string offPath = (dir / "offset.xcal").string(), defPath = (dir / "defect.xcal").string();
+    const XpeImageBuffer darkBuf = buf(dark.data(), N * 2, XPE_PIXEL_UINT16);
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(&darkBuf, 1, 100.0f, 25.0f, offPath.c_str(), nullptr));
+    XCal o;
+    ASSERT_TRUE(readXCal(offPath, &o));
+    {
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        std::memcpy(hdr.session_id, o.hdr.session_id, sizeof hdr.session_id);
+        hdr.version = XCAL_VERSION;
+        hdr.type = XCAL_TYPE_DEFECT;
+        hdr.pixel_format = XCAL_FMT_UINT8_MASK;
+        hdr.width = W;
+        hdr.height = H;
+        hdr.payload_len = N;
+        ASSERT_EQ(XPE_OK, write_xcal_file(defPath.c_str(), hdr, nullptr, 0, bpBytes.data(), N));
+    }
+    const char* cfgFinal = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    const char* cfgNoGain = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassGain\":true}";
+
+    struct Held { int j, a, b; };
+    const Held cases[] = {{4, 5, 6}, {5, 4, 6}, {6, 4, 5}};
+    bool allPass = true;
+    for (const Held& c : cases) {
+        const std::string gainPath = (dir / ("gain_from_" + std::to_string(c.a) + "_" + std::to_string(c.b) + ".xcal")).string();
+        const XpeImageBuffer two[2] = {buf(flat[static_cast<size_t>(c.a)].data(), N * 2, XPE_PIXEL_UINT16),
+                                       buf(flat[static_cast<size_t>(c.b)].data(), N * 2, XPE_PIXEL_UINT16)};
+        ASSERT_EQ(XPE_OK, xpe_calib_generate_gain(two, 2, nullptr, gainPath.c_str(), nullptr));
+        XCal g;
+        ASSERT_TRUE(readXCal(gainPath, &g));
+        std::memcpy(g.hdr.session_id, o.hdr.session_id, sizeof g.hdr.session_id);
+        ASSERT_EQ(XPE_OK, writeXCal(gainPath, g));
+        const float* gv = reinterpret_cast<const float*>(g.payload.data());
+        xpe_preprocess_shutdown();
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_offset(offPath.c_str()));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_gain(gainPath.c_str()));
+        ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(defPath.c_str()));
+        xpe_clear_alerts();
+        std::vector<uint16_t> raw(N);
+        for (size_t i = 0; i < N; ++i) raw[i] = static_cast<uint16_t>(dark[i] + flat[static_cast<size_t>(c.j)][i]);
+        std::vector<float> fin(N, 0.0f), ng(N, 0.0f);
+        const XpeImageBuffer in = buf(raw.data(), N * 2, XPE_PIXEL_UINT16);
+        XpeImageBuffer o1 = buf(fin.data(), N * 4, XPE_PIXEL_FLOAT32), o2 = buf(ng.data(), N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata m1{}, m2{};
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &o1, &m1, nullptr, nullptr, cfgFinal));
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &o2, &m2, nullptr, nullptr, cfgNoGain));
+        widenIfUint16(fin, o1);
+        widenIfUint16(ng, o2);
+        xpe_clear_alerts();
+        ASSERT_EQ(static_cast<uint32_t>(XPE_PIXEL_FLOAT32), static_cast<uint32_t>(o1.format)) << "the final output is float32";
+        std::vector<uint8_t> roiA(N, 0), roiB(N, 0);
+        for (size_t i = 0; i < N; ++i)
+            if (std::isfinite(gv[i]) && gv[i] > 0.0f) { roiA[i] = 1; if (bpBytes[i] == 0) roiB[i] = 1; }
+        const StripeRatio fa = stripeNoiseRatio(fin.data(), roiA, W, H), fb = stripeNoiseRatio(fin.data(), roiB, W, H), ga = stripeNoiseRatio(ng.data(), roiA, W, H);
+        const bool pass = fa.ratio() <= 3.0;
+        if (!pass) allPass = false;
+        std::printf("[a241g] held out flat%d (gain from flat%d+flat%d) final output, ROI A (judged): row S %.4f / E %.4f = %.3f (sigma_h %.3f) | col S %.4f / E %.4f = %.3f (sigma_v %.3f) | "
+                    "StripeNoiseRatio %.3f <= 3 -> %s\n",
+                    c.j, c.a, c.b, fa.sRow, fa.eRow, fa.rowRatio, fa.sigmaH, fa.sCol, fa.eCol, fa.colRatio, fa.sigmaV, fa.ratio(), pass ? "PASS" : "FAIL");
+        std::printf("[a241g] held out flat%d ROI B (defect-map pixels out; reported, not judged): row %.3f col %.3f -> %.3f | gain bypassed, ROI A (reported, criterion not applied): row %.1f col %.1f\n",
+                    c.j, fb.rowRatio, fb.colRatio, fb.ratio(), ga.rowRatio, ga.colRatio);
+    }
+    std::printf("[a241g] all three flats pass: %s\n", allPass ? "YES" : "NO");
     xpe_preprocess_shutdown();
 }
