@@ -1,0 +1,6 @@
+41:    return static_cast<double>(scan.count) > XPE_GAIN_DEFECT_MAX_FRACTION * static_cast<double>(scan.total);
+48:            "XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: %llu of %llu pixel(s) (%.3f%%) have a gain outside [%.1f, %.1f] and are "
+55:            100.0 * XPE_GAIN_DEFECT_MAX_FRACTION);
+72:            100.0 * XPE_GAIN_DEFECT_MAX_FRACTION, verb);
+133:        // CLASSIFIED DEFECTIVE, its gain is replaced by 1.0 and its index is kept for the defect stage. The count is
+134:        // reported, and a map with more than XPE_GAIN_DEFECT_MAX_FRACTION of its pixels classified is refused as before

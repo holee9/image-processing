@@ -1,0 +1,7 @@
+stale DLL: /c/Users/drake/AppData/Local/Temp/c215_native/xpe_preprocess.dll  mtime 2026-10-03 14:04:14  sha256 a9be9c8c480bcd2c49df13b538357589a1800ea3aa4190328bfdfbc9c9cf63b2
+current DLL: build/ci-preprocess/bin/xpe_preprocess.dll  mtime 2026-10-05 19:26:56  sha256 57b64b7cc9a02fce7f7eb4240266fde724a554689d9f60af09ae3b4540f23a7f
+XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT           stale: 0   current: 2
+XPE_ERR_CALIBRATION_EXPIRED:                     stale: 0   current: 1
+XPE_WARN_NO_EXPIRY                               stale: 0   current: 1
+XPE_WARN_CORRECTION_BYPASSED                     stale: 0   current: 1
+have a gain outside                              stale: 0   current: 1
