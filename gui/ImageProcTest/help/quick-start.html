@@ -10,32 +10,104 @@
   <main class="page">
     <header class="hero">
       <p class="eyebrow">Quick Start</p>
-      <h1>Validate the GUI-S0 Shell</h1>
-      <p class="lede">Use this procedure to verify the current GUI shell exactly the way the packaged fixture and E2E path expect.</p>
+      <h1>Check Phase 1a Preprocessing on a Real Raw Image</h1>
+      <p class="lede">Run the first processing stage (offset, nonlinearity, gain, defect) on your own raw image with your own calibration maps, using the native modules, and see what the app tells you when it works and when it does not.</p>
     </header>
 
     <section class="section">
+      <h2>What You Need</h2>
+      <ul>
+        <li><strong>A folder with the native DLLs</strong>: <code>xpe_common.dll</code>, <code>xpe_display.dll</code> and <code>xpe_preprocess.dll</code>, plus the runtime DLLs they load (<code>fmt.dll</code>, <code>spdlog.dll</code>). Use DLLs built from the current <code>main</code>; the launch script below reports whether yours are.</li>
+        <li><strong>A calibration folder</strong> that directly contains <code>offset.xcal</code>, <code>gain.xcal</code> and <code>defect.xcal</code> (subfolders are not searched), made for the same detector size as your raw image.</li>
+        <li><strong>A raw image</strong>: a <code>.raw</code> file of 16-bit little-endian pixels. <strong>You must know its width and height.</strong> The app has no input field for them and does not work them out from the file (see step 3).</li>
+        <li>The launch script <code>tools\Start-ImageProcTestNative.ps1</code>, which runs the command in step 1 for you. Everything it does can also be typed by hand.</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>Procedure</h2>
       <ol class="steps">
-        <li>Launch <strong>ImageProcTest.exe</strong>.</li>
-        <li>Confirm the status bar and runtime panel show the mock backend version <code>v0.0.0-mock</code>.</li>
-        <li>Select <strong>Load Raw Image</strong> and open the packaged fixture under <code>fixtures/gui-s0/raw/</code>.</li>
-        <li>Review the <strong>Source vs Processed Comparison</strong> viewport, image summary, logs, and alerts.</li>
-        <li>Select a comparison mode such as <strong>SwipeVertical</strong>, <strong>OverlayOpacity</strong>, or <strong>DifferenceHeatmap</strong>.</li>
-        <li>Use mouse wheel zoom, right-drag pan, and left-drag swipe movement to inspect large images in one synchronized viewport.</li>
-        <li>Open calibration directories or adjust raw and display settings if needed.</li>
-        <li>Select <strong>Save Settings</strong> to persist the current GUI-S0 paths and comparison viewport state to <code>appsettings.json</code>.</li>
+        <li>
+          <strong>Start the app on the Native backend.</strong> With the script:
+          <br><code>.\tools\Start-ImageProcTestNative.ps1 -NativeDir D:\xpe\dlls -CalibDir D:\xpe-data\calib-real-v2 -RawWidth 3072 -RawHeight 3072</code>
+          <br>By hand (PowerShell), the same thing:
+          <br><code>$env:XPE_NATIVE_DIR = "D:\xpe\dlls"; $env:XPE_NATIVE_DIR_EXCLUSIVE = "1"</code>
+          <br><code>.\ImageProcTest.exe --automation-backend Native --automation-calib "D:\xpe-data\calib-real-v2" --automation-width 3072 --automation-height 3072</code>
+          <br>(The switch names say "automation" for historical reasons; the app applies them in a normal launch too. <code>XPE_NATIVE_DIR_EXCLUSIVE=1</code> makes the app look for DLLs in that folder only.)
+          <br><strong>You should see:</strong> a window title without <code>[MOCK]</code>, no red <em>MOCK BACKEND</em> banner, and a line at the bottom of the window like <code>mode=Native | common=xpe_display 1.0.0 | display=1.0.0 | src=&lt;DLL folder name&gt;</code> (<code>src</code> is the name of the folder the DLLs were loaded from).
+          <br><strong>If instead</strong> the title starts with <code>[MOCK]</code>, the bottom line says <code>mode=Mock (requested Native)</code> and the banner reads <em>MOCK BACKEND — Native was requested but could not be used. Images and results are synthetic; not for clinical judgement.</em>, the DLLs were not found or could not be loaded. Nothing you do from here is real.
+          <br><em>Starting on Mock and switching:</em> <strong>Backend &gt; Backend Mode &gt; Native</strong> switches the running app, but <strong>Pipeline &gt; Run Preprocessing (Phase 1a)</strong> then stays dimmed until the app is restarted. After switching, choose <strong>File &gt; Save Settings</strong>, close the app and start it again; the saved settings start it on Native.
+        </li>
+        <li>
+          <strong>Open the calibration panel:</strong> <strong>View &gt; Calibration Paths Panel</strong> (it is a check mark; the panel is hidden by default). A panel titled <em>Calibration paths</em> appears on the right with three rows: <em>Offset</em>, <em>Gain</em>, <em>Defect</em>.
+          <br>If you started with <code>--automation-calib</code> or the script, all three rows already show the folder. Otherwise the rows show the defaults <code>data/calibration/offset</code>, <code>data/calibration/gain</code> and <code>data/calibration/defect</code> (relative to the app's folder; they normally do not exist, and a row shows <code>(not set)</code> only when its path is empty): press <strong>Browse...</strong> on each row, pick the folder in the <em>Select calibration directory</em> dialog, and choose the folder that <em>directly contains</em> the three <code>.xcal</code> files. The same folder can be used for all three rows. The path appears in green when it is set.
+        </li>
+        <li>
+          <strong>Open the raw image:</strong> <strong>File &gt; Open Raw...</strong> (the toolbar button <strong>Load Raw Image</strong> does the same) and choose the <code>.raw</code> file in the <em>Load Raw Image</em> dialog.
+          <br><strong>You should see</strong> an image summary that starts <code>RAW 3072x3072, min=…, max=…, bytes=18874368</code>: the width and height you gave, and <code>bytes</code> equal to width × height × 2.
+          <br><strong>Check the size every time.</strong> The app reads exactly width × height × 2 bytes from the start of the file. If the file is longer than that, <strong>nothing complains</strong>: you get a wrongly shaped picture and a <code>bytes=</code> value larger than the summary's size. If the file is shorter, the load fails with <code>Load failed: Raw file is too small. Expected at least 33554432 bytes, got 18874368.</code> Either way, restart with the right <code>--automation-width</code> and <code>--automation-height</code> (the script's <code>-RawWidth</code> and <code>-RawHeight</code>).
+          <br>The image on screen is now the uncorrected raw. The bottom line still shows <code>chain: not run</code> until you run a stage.
+        </li>
+        <li>
+          <strong>Run the preprocessing stages:</strong> <strong>Pipeline &gt; Run Preprocessing (Phase 1a)</strong>. The item is enabled only on the Native backend.
+          <br><strong>You should see</strong> in the line at the bottom of the window: <code>chain: preprocess=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=&lt;n&gt; ms, …; display input=chain</code>. <code>preprocess=Applied</code> and <code>display input=chain</code> together mean the picture on screen is the corrected one. (<code>times</code> is how long the stage took; about 0.3 s is what 3072 × 3072 took on the machine this guide was checked on.)
+          <br>The log says the same in words. Switch it on with <strong>View &gt; Logs Panel</strong> and the <em>Log</em> tab of the analysis panel (newest line first): <code>Chain preprocess: Applied — Preprocess: offset -&gt; nonlinearity -&gt; gain -&gt; defect on 3072x3072 (Abdomen).</code> The word in brackets is the body part chosen in the toolbar.
+          <br><strong>Warnings that are normal:</strong> <code>ALERT WARN NATIVE_ALERT: nonlinearity correction did nothing: no LUT is loaded…</code> (the app loads no linearity table, so that stage passes the frame through unchanged), and, for calibration files that carry no expiry date, <code>XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry)…</code> once per file. Maps made with an expiry date do not produce the second one.
+        </li>
+        <li>
+          <strong>Compare the raw and the corrected image:</strong> <strong>View &gt; Compare Mode</strong> offers <em>Swipe</em> (F5), <em>Split</em> (F6), <em>Overlay</em> (F7), <em>Difference</em> (F8), <em>Source Only</em> and <em>Processed Only</em>; the same six are buttons above the image. <em>Source</em> is the uncorrected raw, <em>Processed</em> is the corrected image, <em>Difference</em> shows where the correction changed the picture. <strong>View &gt; Reset Comparison View</strong> returns zoom and position to the start.
+          <br><strong>What to expect:</strong> shading from the detector and the beam should be flatter in the corrected image, and defect pixels should no longer stand out. The corrected image is rescaled for display (its brightest value is mapped to full scale), so compare shapes, not gray levels. <em>This guide's own check did not judge the picture itself, only the lines above; use your reference image from the first stage to judge the result.</em>
+        </li>
       </ol>
     </section>
 
     <section class="section">
-      <h2>Expected Visible Results</h2>
+      <h2>When Something Is Wrong</h2>
+      <p>After any failure of the stage, the bottom line ends with <code>display input=raw</code> and the picture is the uncorrected raw: the correction did <strong>not</strong> run. The message after <code>preprocess:</code> says why.</p>
+      <table>
+        <thead>
+          <tr><th>What you see</th><th>What it means and what to do</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Title starts with <code>[MOCK]</code>; <code>mode=Mock (requested Native)</code>; <em>Pipeline &gt; Run Preprocessing</em> dimmed</td>
+            <td>The native DLLs were not found or could not be loaded. Check the folder in <code>XPE_NATIVE_DIR</code> (it needs <code>xpe_common.dll</code> and <code>xpe_display.dll</code>, and <code>xpe_preprocess.dll</code> for this stage). <strong>Backend &gt; Native DLL Diagnostics</strong> reports in the status line whether the display DLL was detected and where, and writes the paths it tried to the log.</td>
+          </tr>
+          <tr>
+            <td><em>Run Preprocessing</em> dimmed although the bottom line says <code>mode=Native</code></td>
+            <td>You switched to Native through the menu. Save Settings, close the app and start it again (step 1).</td>
+          </tr>
+          <tr>
+            <td><code>preprocess: Preprocessing skipped: calibration file(s) not found — …\offset.xcal, …\gain.xcal, …\defect.xcal</code></td>
+            <td>The calibration folder does not directly contain the three files (it may be the parent folder, or empty). The message lists the exact paths the app looked for.</td>
+          </tr>
+          <tr>
+            <td><code>preprocess: Loading offset calibration failed (-5)</code></td>
+            <td>The map is expired (<code>-5</code> is <code>XPE_ERR_CALIBRATION_EXPIRED</code>). The message names the first file that failed; the others may be expired too. Make a new calibration.</td>
+          </tr>
+          <tr>
+            <td><code>preprocess: Loading gain calibration failed (-17)</code></td>
+            <td><code>-17</code> is <code>XPE_ERR_INVALID_CALIB_DATA</code>: the file is well formed but its values are outside what the requirement allows (gain must lie in 0.1 to 10.0). Seen with DLLs built on 2026-10-03 and a gain map made on 2026-10-05; the same map was accepted by DLLs built on 2026-10-07, so also check that your DLLs are current.</td>
+          </tr>
+          <tr>
+            <td><code>preprocess: xpe_offset_correct failed (-1)</code> (older DLLs: <code>(-8)</code>)</td>
+            <td>The maps and the raw image have different sizes. Neither code says so: <code>-1</code> is <code>XPE_ERR_INVALID_INPUT</code>, <code>-8</code> is <code>XPE_ERR_BUFFER_TOO_SMALL</code>. Compare the size in the image summary with the size the maps were made for.</td>
+          </tr>
+          <tr>
+            <td><code>Load failed: Raw file is too small…</code> or a wrongly shaped picture with <code>bytes=</code> larger than width × height × 2</td>
+            <td>The width and height given at start do not match the file (step 3).</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Error codes come from <code>xpe_error.h</code>: <code>-1</code> invalid input, <code>-5</code> calibration expired, <code>-8</code> buffer too small, <code>-16</code> calibration not loaded, <code>-17</code> invalid calibration data.</p>
+    </section>
+
+    <section class="section">
+      <h2>What This Check Does Not Cover</h2>
       <ul>
-        <li>The image summary begins with <code>RAW 1024x1024</code> for the packaged fixture, or the selected raw dimensions for automation inputs.</li>
-        <li>The comparison viewport defaults to <code>SwipeVertical</code> with the source layer on the left and processed layer on the right.</li>
-        <li>The detached comparison viewer opens from the display settings panel when a larger review surface is needed.</li>
-        <li>Logs increase after a successful raw load.</li>
-        <li>Alerts are present and severity-colored.</li>
-        <li>The last raw directory persists after saving settings.</li>
+        <li>The app runs the stages one by one: offset, nonlinearity, gain, defect. The module's own pipeline function also does readout-artifact validation, temperature compensation, binning correction and ghost correction; the app does not run those, so its picture can differ from the module pipeline's output.</li>
+        <li>Exposure values passed to the stages are partly fixed (1000 mm distance, 2.0 mAs); the tube voltage and pixel pitch come from the app's settings.</li>
+        <li>There is no command that saves the corrected image.</li>
       </ul>
     </section>
 

@@ -1,0 +1,71 @@
+doc_vs_evidence: every <code> and <em> fragment of gui/ImageProcTest/help/quick-start.html that quotes app text, searched in the walkthrough evidence files of this folder.
+A fragment with '...' is checked part by part (the page leaves the middle out).
+checked=31 missing=0
+
+FOUND   [code] mode=Native | common=xpe_display 1.0.0 | display=1.0.0 | src=<DLL folder name>
+          ok  'mode=Native | common=xpe_display 1.0.0 | display=1.0.0 | src=' in w_w1_menu_route_3072, w_w2_script_route_1024_generated_set, w_w2_script_route_3072
+FOUND   [code] mode=Mock (requested Native)
+          ok  'mode=Mock (requested Native)' in w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+FOUND   [code] data/calibration/offset
+          ok  'data/calibration/offset' in w_w1_menu_route_3072, w_w6_calibration_panel
+FOUND   [code] data/calibration/gain
+          ok  'data/calibration/gain' in w_w1_menu_route_3072, w_w6_calibration_panel
+FOUND   [code] data/calibration/defect
+          ok  'data/calibration/defect' in w_w1_menu_route_3072, w_w6_calibration_panel
+FOUND   [code] (not set)
+          ok  '(not set)' in w_w6_calibration_panel
+FOUND   [code] RAW 3072x3072, min=…, max=…, bytes=18874368
+          ok  'RAW 3072x3072, min=' in w_w1_menu_route_3072, w_w2_script_route_3072
+          ok  ', bytes=18874368' in w_w1_menu_route_3072, w_w2_script_route_3072, w_w5_wrong_raw_size
+FOUND   [code] Load failed: Raw file is too small. Expected at least 33554432 bytes, got 18874368.
+          ok  'Load failed: Raw file is too small. Expected at least 33554432 bytes, got 18874368.' in w_w5_wrong_raw_size
+FOUND   [code] chain: not run
+          ok  'chain: not run' in w_w1_menu_route_3072, w_w2_script_route_1024_generated_set, w_w2_script_route_3072
+FOUND   [code] chain: preprocess=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=<n> ms, …; display input=chain
+          ok  'chain: preprocess=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=' in w_w2_script_route_1024_generated_set, w_w2_script_route_3072, w_w3_failures_fresh_dlls
+          ok  '; display input=chain' in w_w2_script_route_1024_generated_set, w_w2_script_route_3072, w_w3_failures_fresh_dlls
+FOUND   [code] preprocess=Applied
+          ok  'preprocess=Applied' in w_w2_script_route_1024_generated_set, w_w2_script_route_3072, w_w3_failures_fresh_dlls
+FOUND   [code] display input=chain
+          ok  'display input=chain' in w_w2_script_route_1024_generated_set, w_w2_script_route_3072, w_w3_failures_fresh_dlls
+FOUND   [code] Chain preprocess: Applied — Preprocess: offset -> nonlinearity -> gain -> defect on 3072x3072 (Abdomen).
+          ok  'Chain preprocess: Applied — Preprocess: offset -> nonlinearity -> gain -> defect on 3072x3072 (Abdomen).' in w_w2_script_route_3072
+FOUND   [code] ALERT WARN NATIVE_ALERT: nonlinearity correction did nothing: no LUT is loaded…
+          ok  'ALERT WARN NATIVE_ALERT: nonlinearity correction did nothing: no LUT is loaded' in w_w2_script_route_1024_generated_set, w_w2_script_route_3072
+FOUND   [code] display input=raw
+          ok  'display input=raw' in w_w1_menu_route_3072, w_w2_script_route_1024_generated_set, w_w2_script_route_3072
+FOUND   [code] preprocess:
+          ok  'preprocess:' in w_w2_script_route_1024_generated_set, w_w2_script_route_3072, w_w3_failures_fresh_dlls
+FOUND   [code] mode=Mock (requested Native)
+          ok  'mode=Mock (requested Native)' in w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+FOUND   [code] mode=Native
+          ok  'mode=Native' in w_w1_menu_route_3072, w_w2_script_route_1024_generated_set, w_w2_script_route_3072
+FOUND   [code] preprocess: Preprocessing skipped: calibration file(s) not found — …\offset.xcal, …\gain.xcal, …\defect.xcal
+          ok  'preprocess: Preprocessing skipped: calibration file(s) not found —' in w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+          ok  '\offset.xcal,' in w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+          ok  '\gain.xcal,' in w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+          ok  '\defect.xcal' in w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+FOUND   [code] preprocess: Loading offset calibration failed (-5)
+          ok  'preprocess: Loading offset calibration failed (-5)' in w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+FOUND   [code] preprocess: Loading gain calibration failed (-17)
+          ok  'preprocess: Loading gain calibration failed (-17)' in w_w3_failures_stale_dlls_2026-10-03
+FOUND   [code] preprocess: xpe_offset_correct failed (-1)
+          ok  'preprocess: xpe_offset_correct failed (-1)' in w_w3_failures_fresh_dlls
+FOUND   [code] Load failed: Raw file is too small…
+          ok  'Load failed: Raw file is too small' in w_w5_wrong_raw_size
+FOUND   [em] MOCK BACKEND
+          ok  'MOCK BACKEND' in w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+FOUND   [em] MOCK BACKEND — Native was requested but could not be used. Images and results are synthetic; not for clinical judgement.
+          ok  'MOCK BACKEND — Native was requested but could not be used. Images and results are synthetic; not for clinical ' in w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+FOUND   [em] Calibration paths
+          ok  'Calibration paths' in w_w1_menu_route_3072, w_w2_script_route_1024_generated_set, w_w2_script_route_3072
+FOUND   [em] Select calibration directory
+          ok  'Select calibration directory' in w_w1_menu_route_3072
+FOUND   [em] Load Raw Image
+          ok  'Load Raw Image' in w_w1_menu_route_3072, w_w2_script_route_1024_generated_set, w_w2_script_route_3072
+FOUND   [em] Processed Only
+          ok  'Processed Only' in w_w1_menu_route_3072, w_w2_script_route_1024_generated_set, w_w2_script_route_3072
+FOUND   [em] Pipeline > Run Preprocessing
+          ok  'Pipeline > Run Preprocessing' in doc_menu_paths_check, w_w1_menu_route_3072, w_w2_script_route_1024_generated_set
+FOUND   [em] Run Preprocessing
+          ok  'Run Preprocessing' in doc_menu_paths_check, w_w1_menu_route_3072, w_w2_script_route_1024_generated_set

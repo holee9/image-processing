@@ -1,0 +1,32 @@
+Start-ImageProcTestNative.ps1 (draft, run with Windows PowerShell 5.1 from a copy outside tools/, -Repo D:\workspace-github\xpe-gui), observed 2026-10-07.
+The script prints one "DLL check:" line before it starts anything. Outputs below are copied from the runs, not retyped from memory.
+
+-- DLL folder with no provenance.json, DLLs written 2026-10-03 (what the first walkthrough used), -RequireFresh:
+DLL check: STALE - no provenance.json; xpe_common.dll was written 2026-10-03 05:04:12Z, before the last commit that touched modules/ (2026-10-05 10:35:27Z)
+Stopping: -RequireFresh and the DLLs are not the latest main.
+
+-- DLL folder with no provenance.json, DLLs written 2026-10-07 (copied from xpe-data/app-run):
+DLL check: UNPROVEN - no provenance.json; the DLLs are newer than the last commit that touched modules/ (2026-10-05 10:35:27Z) but nothing ties them to a commit
+Starting: ...\ImageProcTest.exe --automation-backend Native --automation-calib D:\workspace-github\xpe-pre\build\a240b\maps --automation-width 3072 --automation-height 3072 --automation-settings C:\Users\drake\AppData\Local\Temp\c231_script_settings\appsettings.json
+Started, process id 45400. In the app: the title has no [MOCK], the bottom line says mode=Native, then File > Open Raw...
+(the process command line was read back with Get-CimInstance Win32_Process: the arguments arrive as separate, correctly quoted arguments)
+
+-- build/c134-stage-new (has provenance.json, headSha 83ffa7ae):
+DLL check: MODIFIED - fmt.dll differs from provenance.json (md5)
+
+-- build/ci-common/bin (has provenance.json, headSha 83ffa7ae):
+DLL check: MODIFIED - fmt.dll differs from provenance.json (md5)
+Independent check with Python hashlib: all 24 files listed in that provenance.json have a different md5 today (the folder was overwritten by later lane builds), so MODIFIED is right.
+
+-- The two provenance branches that need a folder whose files match its record, tried with SYNTHETIC provenance.json files (the three DLLs copied from the 2026-10-07 folder, md5 computed here; headSha chosen on purpose). This tests the script's logic, not any real build:
+headSha = 83ffa7ae (old main commit):  DLL check: STALE - provenance 83ffa7ae (run test-old): 469 file(s) under modules/ changed since, e.g. modules/ai/CMakeLists.txt
+headSha = origin/main tip (7c5b22c8):  DLL check: MATCH - provenance 7c5b22c8 (run test-tip): nothing under modules/ changed up to origin/main
+
+-- Missing inputs, all listed at once:
+Missing:
+  ...\c231_sets\empty\offset.xcal
+  ...\c231_sets\empty\gain.xcal
+  ...\c231_sets\empty\defect.xcal
+
+Not tested: -Git when git is not on PATH, PowerShell 7, a default -NativeDir of <repo>\build\e2e-native-dlls, the -SettingsFile-less launch (writes the exe-folder appsettings.json on Save Settings).
+Test hazard worth knowing: the launched app inherits the caller's output handles, so a caller that waits for the pipe to close (a CI step, `| head`) waits until the app is closed. In a normal terminal there is no such effect.
