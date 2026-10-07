@@ -28,6 +28,7 @@
         <h2>Always Available</h2>
         <ul>
           <li>Raw image loading (<code>.raw</code>, 16-bit little-endian) at the width and height set in the settings, and the recent-file list</li>
+          <li><strong>File &gt; Save Corrected Image (float32 .raw)...</strong> and <strong>(16-bit PNG)...</strong> after Run Preprocessing applied</li>
           <li>Source-vs-processed comparison viewport: swipe, split, overlay, difference, source only, processed only, zoom, pan and an optional detached viewer</li>
           <li>Calibration paths panel (Offset, Gain, Defect folders)</li>
           <li>Logs, alerts, evidence export and the offline help pages</li>
@@ -36,8 +37,7 @@
       <article class="card">
         <h2>Not Available</h2>
         <ul>
-          <li>An input field for the raw image's width and height: set them with <code>--automation-width</code> and <code>--automation-height</code> or in <code>appsettings.json</code> (the app does not infer them from the file)</li>
-          <li>A command that saves the corrected image</li>
+          <li>An input field for the raw image's width and height: set them with <code>--automation-width</code> and <code>--automation-height</code> or in <code>appsettings.json</code>. A square image whose length does not match is opened at the size its length gives, with a note; any other mismatch is refused</li>
           <li><strong>File &gt; Open DICOM... (Phase 1b)</strong>, <strong>Tools &gt; QA Constancy</strong> and <strong>Tools &gt; GSDF Calibrate...</strong> are disabled</li>
           <li>The Focus toggle in the top bar is dimmed and marked as not applied</li>
           <li>Phase 2 and Phase 3 premium or assistive features beyond the single AI bone suppression item</li>
@@ -46,8 +46,8 @@
     </section>
 
     <section class="section">
-      <h2>How Phase 1a Differs From the Module's Own Pipeline</h2>
-      <p>The app calls the stage functions one at a time: offset, then nonlinearity, then gain, then defect. The module's pipeline function (<code>xpe_preprocess_pipeline</code>) also validates the readout, compensates temperature, corrects binning and corrects ghosting; the app does not run those stages. Distance (1000 mm) and exposure (2.0 mAs) given to the stages are fixed, the tube voltage and the pixel pitch come from the app's settings, and the nonlinearity stage runs without a lookup table, so it leaves the frame unchanged. The corrected image is rescaled to the 16-bit range by its brightest value for display. The result can therefore differ from the module pipeline's output.</p>
+      <h2>What Phase 1a Runs</h2>
+      <p>The app calls the module's own pipeline function, <code>xpe_preprocess_pipeline_out</code>, which never writes the raw image you opened. Temperature compensation, nonlinearity and binning are bypassed (the app has no temperature, no linearity table and no binning setting) and no ghost corrector is given, so the stages that run are offset, gain and defect. Distance (1000 mm) and exposure (2.0 mAs) given to the stage are fixed; the tube voltage and the pixel pitch come from the app's settings. A DLL built before that function existed is called stage by stage instead (offset, nonlinearity, gain, defect), and the log says so. The picture on screen is the corrected float image rescaled to the 16-bit range by its brightest value; the saved float file is not rescaled.</p>
     </section>
 
     <section class="section">

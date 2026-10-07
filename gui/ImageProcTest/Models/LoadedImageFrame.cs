@@ -27,6 +27,12 @@ public sealed class LoadedImageFrame
 
     public int BitsStored { get; init; } = 16;
 
+    /// <summary>
+    /// GUI-C-232 (B): set when the file's length did not match the size in the settings and the loader opened it at a size it worked out from the length. The window shows it where the user reads
+    /// the load result, so a size the user did not ask for is never a silent one.
+    /// </summary>
+    public string? SizeNotice { get; init; }
+
     public bool DisplayPipelineApplied { get; init; }
 
     public string DisplayPipelineSummary { get; init; } = string.Empty;

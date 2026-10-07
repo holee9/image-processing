@@ -12,6 +12,7 @@
       <p class="eyebrow">Quick Start</p>
       <h1>Check Phase 1a Preprocessing on a Real Raw Image</h1>
       <p class="lede">Run the first processing stage (offset, nonlinearity, gain, defect) on your own raw image with your own calibration maps, using the native modules, and see what the app tells you when it works and when it does not.</p>
+      <p class="lede"><a href="quick-start.ko.html">한국어 안내</a></p>
     </header>
 
     <section class="section">
@@ -36,7 +37,7 @@
           <br>(The switch names say "automation" for historical reasons; the app applies them in a normal launch too. <code>XPE_NATIVE_DIR_EXCLUSIVE=1</code> makes the app look for DLLs in that folder only.)
           <br><strong>You should see:</strong> a window title without <code>[MOCK]</code>, no red <em>MOCK BACKEND</em> banner, and a line at the bottom of the window like <code>mode=Native | common=xpe_display 1.0.0 | display=1.0.0 | src=&lt;DLL folder name&gt;</code> (<code>src</code> is the name of the folder the DLLs were loaded from).
           <br><strong>If instead</strong> the title starts with <code>[MOCK]</code>, the bottom line says <code>mode=Mock (requested Native)</code> and the banner reads <em>MOCK BACKEND — Native was requested but could not be used. Images and results are synthetic; not for clinical judgement.</em>, the DLLs were not found or could not be loaded. Nothing you do from here is real.
-          <br><em>Starting on Mock and switching:</em> <strong>Backend &gt; Backend Mode &gt; Native</strong> switches the running app, but <strong>Pipeline &gt; Run Preprocessing (Phase 1a)</strong> then stays dimmed until the app is restarted. After switching, choose <strong>File &gt; Save Settings</strong>, close the app and start it again; the saved settings start it on Native.
+          <br><em>Starting on Mock and switching:</em> <strong>Backend &gt; Backend Mode &gt; Native</strong> switches the running app, and <strong>Pipeline &gt; Run Preprocessing (Phase 1a)</strong> is enabled as soon as the switch has happened. The calibration folders and the raw image size still have to be set (steps 2 and 3). <strong>File &gt; Save Settings</strong> stores the choices, so the next start comes up on Native.
         </li>
         <li>
           <strong>Open the calibration panel:</strong> <strong>View &gt; Calibration Paths Panel</strong> (it is a check mark; the panel is hidden by default). A panel titled <em>Calibration paths</em> appears on the right with three rows: <em>Offset</em>, <em>Gain</em>, <em>Defect</em>.
@@ -45,18 +46,23 @@
         <li>
           <strong>Open the raw image:</strong> <strong>File &gt; Open Raw...</strong> (the toolbar button <strong>Load Raw Image</strong> does the same) and choose the <code>.raw</code> file in the <em>Load Raw Image</em> dialog.
           <br><strong>You should see</strong> an image summary that starts <code>RAW 3072x3072, min=…, max=…, bytes=18874368</code>: the width and height you gave, and <code>bytes</code> equal to width × height × 2.
-          <br><strong>Check the size every time.</strong> The app reads exactly width × height × 2 bytes from the start of the file. If the file is longer than that, <strong>nothing complains</strong>: you get a wrongly shaped picture and a <code>bytes=</code> value larger than the summary's size. If the file is shorter, the load fails with <code>Load failed: Raw file is too small. Expected at least 33554432 bytes, got 18874368.</code> Either way, restart with the right <code>--automation-width</code> and <code>--automation-height</code> (the script's <code>-RawWidth</code> and <code>-RawHeight</code>).
+          <br><strong>The file length decides the size.</strong> If the file is exactly width × height × 2 bytes, it opens at the size you gave. If it is not, the app does not open a wrongly shaped picture: a <em>square</em> image is opened at the size its length gives, and the summary says so, for example <code>RAW 3072x3072, min=…, max=…, bytes=18874368 [size from the file length: 18874368 bytes = 3072x3072x2, the settings said 1024x1024 (2097152 bytes)]</code>, with a warning alert; any other length is refused with <code>Load failed: Raw file is too small. Expected at least … bytes, got … bytes.</code> (or <code>Raw file has … bytes, more than …</code>) and the picture on screen stays as it was. Set the right <code>--automation-width</code> and <code>--automation-height</code> (the script's <code>-RawWidth</code> and <code>-RawHeight</code>) for a rectangular image.
           <br>The image on screen is now the uncorrected raw. The bottom line still shows <code>chain: not run</code> until you run a stage.
         </li>
         <li>
           <strong>Run the preprocessing stages:</strong> <strong>Pipeline &gt; Run Preprocessing (Phase 1a)</strong>. The item is enabled only on the Native backend.
           <br><strong>You should see</strong> in the line at the bottom of the window: <code>chain: preprocess=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=&lt;n&gt; ms, …; display input=chain</code>. <code>preprocess=Applied</code> and <code>display input=chain</code> together mean the picture on screen is the corrected one. (<code>times</code> is how long the stage took; about 0.3 s is what 3072 × 3072 took on the machine this guide was checked on.)
-          <br>The log says the same in words. Switch it on with <strong>View &gt; Logs Panel</strong> and the <em>Log</em> tab of the analysis panel (newest line first): <code>Chain preprocess: Applied — Preprocess: offset -&gt; nonlinearity -&gt; gain -&gt; defect on 3072x3072 (Abdomen).</code> The word in brackets is the body part chosen in the toolbar.
-          <br><strong>Warnings that are normal:</strong> <code>ALERT WARN NATIVE_ALERT: nonlinearity correction did nothing: no LUT is loaded…</code> (the app loads no linearity table, so that stage passes the frame through unchanged), and, for calibration files that carry no expiry date, <code>XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry)…</code> once per file. Maps made with an expiry date do not produce the second one.
+          <br>The log says the same in words. Switch it on with <strong>View &gt; Logs Panel</strong> and the <em>Log</em> tab of the analysis panel (newest line first): <code>Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -&gt; gain -&gt; defect, input kept) on 3072x3072 (Abdomen).</code> The word in brackets is the body part chosen in the toolbar. The stage runs the module's own pipeline function, which never writes the raw image you opened.
+          <br><strong>Warnings you may see</strong> (log lines starting <code>ALERT WARN NATIVE_ALERT</code>): with the real first-stage calibration set, <code>XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 44053 of 9437184 pixel(s) (0.467%) have a gain outside [0.1, 10.0] and are marked defective…</code> (those pixels get gain 1.0 and go to the defect stage) and <code>XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id…</code>. For calibration files that carry no expiry date there is also <code>XPE_WARN_NO_EXPIRY: the offset calibration file has expiryEpochMs = 0 (no expiry)…</code>, once per file.
+          <br>The line in the status bar that begins <code>CalibrationEval(…)</code> only repeats the correction modes of the settings; the result of the stage is the <code>chain:</code> line.
+        </li>
+        <li>
+          <strong>Save the corrected image:</strong> <strong>File &gt; Save Corrected Image (float32 .raw)...</strong> writes the corrected values exactly as the module produced them: raw float32, little-endian, no header, width × height × 4 bytes (37748736 bytes for 3072 × 3072). This is the file to keep and to compare. <strong>File &gt; Save Corrected Image (16-bit PNG)...</strong> writes a picture to look at: the 1st to the 99th percentile of the values stretched to 0..65535, so it is a display file, not data. Both items are dimmed until Run Preprocessing has applied on the image that is open (a newly opened image dims them again).
+          <br>The dialog suggests the raw file's name with <code>_corrected_f32le.raw</code> (or <code>_corrected_16bit.png</code>) in the raw file's folder. When the file is written, the status line says so and gives its size and SHA-256: <code>Saved corrected image (float32 raw): …\wrist_lat_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256 …</code>. To compare with a reference image of the same format, compare the hashes, for example with PowerShell <code>Get-FileHash &lt;file&gt; -Algorithm SHA256</code>; identical hashes mean identical bytes.
         </li>
         <li>
           <strong>Compare the raw and the corrected image:</strong> <strong>View &gt; Compare Mode</strong> offers <em>Swipe</em> (F5), <em>Split</em> (F6), <em>Overlay</em> (F7), <em>Difference</em> (F8), <em>Source Only</em> and <em>Processed Only</em>; the same six are buttons above the image. <em>Source</em> is the uncorrected raw, <em>Processed</em> is the corrected image, <em>Difference</em> shows where the correction changed the picture. <strong>View &gt; Reset Comparison View</strong> returns zoom and position to the start.
-          <br><strong>What to expect:</strong> shading from the detector and the beam should be flatter in the corrected image, and defect pixels should no longer stand out. The corrected image is rescaled for display (its brightest value is mapped to full scale), so compare shapes, not gray levels. <em>This guide's own check did not judge the picture itself, only the lines above; use your reference image from the first stage to judge the result.</em>
+          <br><strong>What to expect:</strong> shading from the detector and the beam should be flatter in the corrected image, and defect pixels should no longer stand out. The corrected image is rescaled for display (its brightest value is mapped to full scale), so compare shapes, not gray levels. <em>This guide's own check judged the saved float file against the first-stage reference image by SHA-256 (step 5), not the picture on screen; look at the picture yourself.</em>
         </li>
       </ol>
     </section>
@@ -90,12 +96,12 @@
             <td><code>-17</code> is <code>XPE_ERR_INVALID_CALIB_DATA</code>: the file is well formed but its values are outside what the requirement allows (gain must lie in 0.1 to 10.0). Seen with DLLs built on 2026-10-03 and a gain map made on 2026-10-05; the same map was accepted by DLLs built on 2026-10-07, so also check that your DLLs are current.</td>
           </tr>
           <tr>
-            <td><code>preprocess: xpe_offset_correct failed (-1)</code> (older DLLs: <code>(-8)</code>)</td>
-            <td>The maps and the raw image have different sizes. Neither code says so: <code>-1</code> is <code>XPE_ERR_INVALID_INPUT</code>, <code>-8</code> is <code>XPE_ERR_BUFFER_TOO_SMALL</code>. Compare the size in the image summary with the size the maps were made for.</td>
+            <td><code>preprocess: xpe_preprocess_pipeline_out failed (-1)</code></td>
+            <td>The maps and the raw image may have different sizes. The message gives only the code, not the reason (<code>-1</code> is <code>XPE_ERR_INVALID_INPUT</code>). Compare the size in the image summary with the size the maps were made for.</td>
           </tr>
           <tr>
-            <td><code>Load failed: Raw file is too small…</code> or a wrongly shaped picture with <code>bytes=</code> larger than width × height × 2</td>
-            <td>The width and height given at start do not match the file (step 3).</td>
+            <td><code>Load failed: Raw file is too small…</code></td>
+            <td>The file length fits neither the size you gave nor a square image (step 3).</td>
           </tr>
         </tbody>
       </table>
@@ -105,9 +111,9 @@
     <section class="section">
       <h2>What This Check Does Not Cover</h2>
       <ul>
-        <li>The app runs the stages one by one: offset, nonlinearity, gain, defect. The module's own pipeline function also does readout-artifact validation, temperature compensation, binning correction and ghost correction; the app does not run those, so its picture can differ from the module pipeline's output.</li>
-        <li>Exposure values passed to the stages are partly fixed (1000 mm distance, 2.0 mAs); the tube voltage and pixel pitch come from the app's settings.</li>
-        <li>There is no command that saves the corrected image.</li>
+        <li>The stage is the module's own pipeline function, <code>xpe_preprocess_pipeline_out</code>, called with temperature compensation, nonlinearity and binning bypassed (the app has no temperature, no linearity table and no binning setting to give them) and without a ghost corrector. So the stages that run are offset, gain and defect (and whatever checks the pipeline function makes on its own; the app does not look inside). With a DLL built before that function existed, the app falls back to calling offset, nonlinearity, gain and defect one by one and says so in the log (<em>this xpe_preprocess.dll has no xpe_preprocess_pipeline_out</em>); update the DLLs when you see it.</li>
+        <li>Exposure values passed to the stage are partly fixed (1000 mm distance, 2.0 mAs); the tube voltage and pixel pitch come from the app's settings.</li>
+        <li>The picture on screen is the corrected float image rescaled for display (its brightest value is mapped to full scale). The saved float file is not rescaled.</li>
       </ul>
     </section>
 

@@ -12,9 +12,11 @@ namespace ImageProcTest.Models;
 /// <param name="Pixels">Corrected pixels, scaled to UInt16 for the preview.</param>
 /// <param name="ProcessedPreview">Preview built from those pixels, or null when the run refused.</param>
 /// <param name="NonFiniteCount">NaN/Inf values in the corrected float image, counted before it was scaled to 16 bits (#225 row 9, GUI-C-196 M6).</param>
+/// <param name="Floats">The corrected float32 image itself, before the 16-bit display scaling (GUI-C-232: what the Save Corrected Image commands write). Null when the run refused.</param>
 public sealed record PreprocessRunResult(
     bool Ran,
     string Summary,
     ushort[]? Pixels,
     System.Windows.Media.Imaging.BitmapSource? ProcessedPreview = null,
-    long NonFiniteCount = 0);
+    long NonFiniteCount = 0,
+    float[]? Floats = null);

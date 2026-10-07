@@ -115,6 +115,18 @@
                           IsEnabled="False"
                           ToolTip="Real DICOM read/write is owned by xpe_dicom.dll in Phase 1b." />
                 <Separator />
+                <!-- GUI-C-232: what the first stage produced, as files. The float file is the data (compare it byte for byte with a reference image of the same format); the PNG is only for looking. -->
+                <MenuItem x:Name="SaveCorrectedFloatMenuItem"
+                          AutomationProperties.AutomationId="SaveCorrectedFloatMenuItem"
+                          Header="Save Corrected Image (float32 .raw)..."
+                          Command="{Binding SaveCorrectedFloatCommand}"
+                          ToolTip="Write the corrected image of the last Run Preprocessing as raw float32 (width x height x 4 bytes, little-endian). Enabled after Run Preprocessing applied on the open image." />
+                <MenuItem x:Name="SaveCorrectedPngMenuItem"
+                          AutomationProperties.AutomationId="SaveCorrectedPngMenuItem"
+                          Header="Save Corrected Image (16-bit PNG)..."
+                          Command="{Binding SaveCorrectedPngCommand}"
+                          ToolTip="Write a 16-bit PNG to look at: the 1st to 99th percentile of the corrected values stretched to 0..65535. A display file, not data." />
+                <Separator />
                 <MenuItem x:Name="SaveSettingsMenuItem"
                           AutomationProperties.AutomationId="SaveSettingsMenuItem"
                           Header="_Save Settings"

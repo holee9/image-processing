@@ -7,7 +7,7 @@ using ImageProcTest.Services.Native;
 
 namespace ImageProcTest.Services;
 
-public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBackend
+public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBackend, ICorrectedImageSource
 {
     private static readonly string[] RequiredCommonExports =
     {
@@ -29,6 +29,11 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
     private readonly string _commonDllPath;
     private readonly string _displayDllPath;
     private readonly BackendTelemetry _telemetry = new();
+
+    private CorrectedImage? _corrected;
+
+    /// <summary>GUI-C-232: the float image of the last Run Preprocessing that Applied, for the Save Corrected Image commands. Replaced by every preprocess run and emptied by a refused one.</summary>
+    public CorrectedImage? Corrected => Volatile.Read(ref _corrected);
     private BackendRuntimeInfo _runtimeInfo = new();
 
     public RealXpeBackend(RawImageLoader rawImageLoader, string commonDllPath, string displayDllPath)
@@ -189,7 +194,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
 
             var processedPreview = CreatePreview(processedPixels, rawFrame.Width, rawFrame.Height);
             previewMs = phase.Elapsed.TotalMilliseconds;
-            var summary = $"CalibrationEval({BuildCalibrationEvaluationSummary(settings)}; preprocess native bridge pending) -> Display: Modality({modality.RescaleSlope:0.###}/{modality.RescaleIntercept:0.###}) -> VOI({NormalizeVoiMode(settings.VoiLutMode)}, C={voi.Center:0.###}, W={voi.Width:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
+            var summary = $"CalibrationEval({BuildCalibrationEvaluationSummary(settings)}; the preprocess result is the chain line) -> Display: Modality({modality.RescaleSlope:0.###}/{modality.RescaleIntercept:0.###}) -> VOI({NormalizeVoiMode(settings.VoiLutMode)}, C={voi.Center:0.###}, W={voi.Width:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
             AddLog(summary);
 
             return new LoadedImageFrame
@@ -293,7 +298,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
 
         var result = ProcessingChainRunner.Run(rawFrame.RawPixels, stages, (request, input) => request.StageId switch
         {
-            StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings, measureExposureIndex),
+            StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings, measureExposureIndex, rawFrame.RawPixels),
             StageIds.Gsvg => RunGsvgStage(input, rawFrame.Width, rawFrame.Height, settings),
             StageIds.AiBoneSuppression => RunAiStage(input, rawFrame.Width, rawFrame.Height, settings),
             StageIds.EnhanceBasic => RunEnhanceBasicStage(input, rawFrame.Width, rawFrame.Height),
@@ -308,7 +313,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
         return result;
     }
 
-    private StageExecution RunPreprocessStage(ushort[] input, int width, int height, AppSettings settings, bool measureExposureIndex = false)
+    private StageExecution RunPreprocessStage(ushort[] input, int width, int height, AppSettings settings, bool measureExposureIndex = false, ushort[]? frameKey = null)
     {
         // InvokeNative so the alert drain runs afterwards on every path (GUI-C-24), including the
         // failure paths — a stage that refuses is exactly when the queue holds something to show.
@@ -323,6 +328,12 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             settings.ExposureKvp,
             settings.PixelPitchMm,
             measureExposureIndex));
+
+        // GUI-C-232: the Deterministic Baseline runs this stage with its own fixed parameters; only an ordinary run feeds the Save Corrected Image commands.
+        if (!measureExposureIndex)
+        {
+            Volatile.Write(ref _corrected, result is { Ran: true, Floats: { } floats } && frameKey is not null ? new CorrectedImage(floats, width, height, frameKey) : null);
+        }
 
         return BaselineStageAdapters.FromPreprocess(result.Ran, result.Pixels, result.Summary, result.NonFiniteCount);
     }
