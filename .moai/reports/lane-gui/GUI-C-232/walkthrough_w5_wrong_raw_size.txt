@@ -1,0 +1,25 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W5_WrongRawSize_WhatTheOperatorSees [26 s]
+  표준 출력 메시지:
+ CASE raw file opened with rawWidth x rawHeight = 1024 x 1024
+    dialog: 'Load Raw Image'
+    status bar: chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested | MOCK CalibrationEval(Offset=Auto/applied, Gain=Auto/applied, Defect=Auto/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)
+    summary: RAW 3072x3072, min=2481, max=15451, bytes=18874368 [size from the file length: 18874368 bytes = 3072x3072x2, the settings said 1024x1024 (2097152 bytes)] | MOCK CalibrationEval(Offset=Auto/applied, Gain=Auto/applied, Defect=Auto/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)
+ CASE raw file opened with rawWidth x rawHeight = 4096 x 4096
+    dialog: 'Load Raw Image'
+    status bar: chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested | MOCK CalibrationEval(Offset=Auto/applied, Gain=Auto/applied, Defect=Auto/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)
+    summary: RAW 3072x3072, min=2481, max=15451, bytes=18874368 [size from the file length: 18874368 bytes = 3072x3072x2, the settings said 4096x4096 (33554432 bytes)] | MOCK CalibrationEval(Offset=Auto/applied, Gain=Auto/applied, Defect=Auto/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 1
+     통과: 1
+ 총 시간: 27.2587 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

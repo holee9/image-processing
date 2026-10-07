@@ -1,0 +1,85 @@
+doc_vs_evidence: every <code> and <em> fragment of gui/ImageProcTest/help/quick-start.html that quotes app text, searched in the walkthrough evidence files of this folder.
+A fragment with '...' is checked part by part (the page leaves the middle out).
+checked=36 missing=0
+
+FOUND   [code] mode=Native | common=xpe_display 1.0.0 | display=1.0.0 | src=<DLL folder name>
+          ok  'mode=Native | common=xpe_display 1.0.0 | display=1.0.0 | src=' in w_fallback_old_dll_no_pipeline_out, w_w1_menu_route_3072, w_w2_script_route_1024_generated_set
+FOUND   [code] mode=Mock (requested Native)
+          ok  'mode=Mock (requested Native)' in w_w3_failures, w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+FOUND   [code] data/calibration/offset
+          ok  'data/calibration/offset' in w_w1_menu_route_3072, w_w6_calibration_panel
+FOUND   [code] data/calibration/gain
+          ok  'data/calibration/gain' in w_w1_menu_route_3072, w_w6_calibration_panel
+FOUND   [code] data/calibration/defect
+          ok  'data/calibration/defect' in w_w1_menu_route_3072, w_w6_calibration_panel
+FOUND   [code] (not set)
+          ok  '(not set)' in w_w6_calibration_panel
+FOUND   [code] RAW 3072x3072, min=…, max=…, bytes=18874368
+          ok  'RAW 3072x3072, min=' in w_w1_menu_route_3072, w_w2_script_route_3072, w_w2_script_route_real_set
+          ok  ', bytes=18874368' in w_w1_menu_route_3072, w_w2_script_route_3072, w_w2_script_route_real_set
+FOUND   [code] RAW 3072x3072, min=…, max=…, bytes=18874368 [size from the file length: 18874368 bytes = 3072x3072x2, the settings said 1024x1024 (2097152 bytes)]
+          ok  'RAW 3072x3072, min=' in w_w1_menu_route_3072, w_w2_script_route_3072, w_w2_script_route_real_set
+          ok  ', bytes=18874368 [size from the file length: 18874368 bytes = 3072x3072x2, the settings said 1024x1024 (209715' in w_w8_switch_enable_and_raw_size
+FOUND   [code] Load failed: Raw file is too small. Expected at least … bytes, got … bytes.
+          ok  'Load failed: Raw file is too small. Expected at least' in w_w5_wrong_raw_size, w_w8_switch_enable_and_raw_size
+          ok  'bytes, got' in w_w5_wrong_raw_size, w_w8_switch_enable_and_raw_size
+FOUND   [code] Raw file has … bytes, more than …
+          ok  'Raw file has' in w_w8_switch_enable_and_raw_size
+          ok  'bytes, more than' in w_w8_switch_enable_and_raw_size
+FOUND   [code] chain: not run
+          ok  'chain: not run' in w_fallback_old_dll_no_pipeline_out, w_w1_menu_route_3072, w_w2_script_route_1024_generated_set
+FOUND   [code] chain: preprocess=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=<n> ms, …; display input=chain
+          ok  'chain: preprocess=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=' in w_fallback_old_dll_no_pipeline_out, w_w2_script_route_1024_generated_set, w_w2_script_route_3072
+          ok  '; display input=chain' in w_fallback_old_dll_no_pipeline_out, w_w2_script_route_1024_generated_set, w_w2_script_route_3072
+FOUND   [code] preprocess=Applied
+          ok  'preprocess=Applied' in w_fallback_old_dll_no_pipeline_out, w_w2_script_route_1024_generated_set, w_w2_script_route_3072
+FOUND   [code] display input=chain
+          ok  'display input=chain' in w_fallback_old_dll_no_pipeline_out, w_w2_script_route_1024_generated_set, w_w2_script_route_3072
+FOUND   [code] Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen).
+          ok  'Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on ' in w_w2_script_route_real_set
+FOUND   [code] ALERT WARN NATIVE_ALERT
+          ok  'ALERT WARN NATIVE_ALERT' in w_fallback_old_dll_no_pipeline_out, w_w2_script_route_1024_generated_set, w_w2_script_route_3072
+FOUND   [code] CalibrationEval(…)
+          ok  'CalibrationEval(' in w_fallback_old_dll_no_pipeline_out, w_w1_menu_route_3072, w_w2_script_route_1024_generated_set
+FOUND   [code] _corrected_f32le.raw
+          ok  '_corrected_f32le.raw' in w_w7_save_identical_pipeline_out
+FOUND   [code] _corrected_16bit.png
+          ok  '_corrected_16bit.png' in w_w7_save_identical_pipeline_out
+FOUND   [code] Saved corrected image (float32 raw): …\wrist_lat_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256 …
+          ok  'Saved corrected image (float32 raw):' in w_w7_save_identical_pipeline_out
+          ok  '\wrist_lat_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256' in w_w7_save_identical_pipeline_out
+FOUND   [code] display input=raw
+          ok  'display input=raw' in w_fallback_old_dll_no_pipeline_out, w_w1_menu_route_3072, w_w2_script_route_1024_generated_set
+FOUND   [code] preprocess:
+          ok  'preprocess:' in w_fallback_old_dll_no_pipeline_out, w_w2_script_route_1024_generated_set, w_w2_script_route_3072
+FOUND   [code] mode=Mock (requested Native)
+          ok  'mode=Mock (requested Native)' in w_w3_failures, w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+FOUND   [code] preprocess: Preprocessing skipped: calibration file(s) not found — …\offset.xcal, …\gain.xcal, …\defect.xcal
+          ok  'preprocess: Preprocessing skipped: calibration file(s) not found —' in w_w3_failures, w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+          ok  '\offset.xcal,' in w_w3_failures, w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+          ok  '\gain.xcal,' in w_w3_failures, w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+          ok  '\defect.xcal' in w_w3_failures, w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+FOUND   [code] preprocess: Loading offset calibration failed (-5)
+          ok  'preprocess: Loading offset calibration failed (-5)' in w_w3_failures, w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+FOUND   [code] preprocess: Loading gain calibration failed (-17)
+          ok  'preprocess: Loading gain calibration failed (-17)' in w_w3_failures_stale_dlls_2026-10-03, w_w7_old_dll_real_set_rejected_minus17
+FOUND   [code] preprocess: xpe_preprocess_pipeline_out failed (-1)
+          ok  'preprocess: xpe_preprocess_pipeline_out failed (-1)' in w_w3_failures
+FOUND   [code] Load failed: Raw file is too small…
+          ok  'Load failed: Raw file is too small' in w_w5_wrong_raw_size, w_w8_switch_enable_and_raw_size
+FOUND   [em] MOCK BACKEND
+          ok  'MOCK BACKEND' in w_w3_failures, w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+FOUND   [em] MOCK BACKEND — Native was requested but could not be used. Images and results are synthetic; not for clinical judgement.
+          ok  'MOCK BACKEND — Native was requested but could not be used. Images and results are synthetic; not for clinical ' in w_w3_failures, w_w3_failures_fresh_dlls, w_w3_failures_stale_dlls_2026-10-03
+FOUND   [em] Calibration paths
+          ok  'Calibration paths' in w_fallback_old_dll_no_pipeline_out, w_w1_menu_route_3072, w_w2_script_route_1024_generated_set
+FOUND   [em] Select calibration directory
+          ok  'Select calibration directory' in w_w1_menu_route_3072
+FOUND   [em] Load Raw Image
+          ok  'Load Raw Image' in w_fallback_old_dll_no_pipeline_out, w_w1_menu_route_3072, w_w2_script_route_1024_generated_set
+FOUND   [em] Processed Only
+          ok  'Processed Only' in w_fallback_old_dll_no_pipeline_out, w_w1_menu_route_3072, w_w2_script_route_1024_generated_set
+FOUND   [em] Pipeline > Run Preprocessing
+          ok  'Pipeline > Run Preprocessing' in w_fallback_old_dll_no_pipeline_out, w_w1_menu_route_3072, w_w2_script_route_1024_generated_set
+FOUND   [em] this xpe_preprocess.dll has no xpe_preprocess_pipeline_out
+          ok  'this xpe_preprocess.dll has no xpe_preprocess_pipeline_out' in w_fallback_old_dll_no_pipeline_out
