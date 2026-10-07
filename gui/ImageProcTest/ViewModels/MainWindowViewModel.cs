@@ -2463,8 +2463,8 @@ public sealed class MainWindowViewModel : ObservableObject
         }
 
         Settings.LastRawDirectory = Path.GetDirectoryName(path) ?? string.Empty;
-        ActiveImageSourcePath = path;
         var loadedFrame = _backend.LoadRawImage(path, Settings);
+        ActiveImageSourcePath = path;   // GUI-C-232b: only after the load SUCCEEDED, so a failed open never renames the image that is still open
         DrainBackendTelemetry();
 
         SourceImage = loadedFrame.Preview;
