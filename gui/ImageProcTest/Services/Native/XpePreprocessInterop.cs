@@ -94,6 +94,19 @@ internal static class XpePreprocessNative
         ref XpeImageBufferNative output,
         ref XpeImageMetadataNative metadata);
 
+    /// <summary>
+    /// The product path (SRS-CALIB-SAFE-004): the module's own pipeline with a SEPARATE output buffer, so the input frame is never written. calibState NULL = use the maps loaded with
+    /// xpe_calib_load_*; ghostHandle NULL = no ghost stage. Exported by DLLs built from the commit that added it; an older DLL throws <see cref="EntryPointNotFoundException"/> on the first call.
+    /// </summary>
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    internal static extern int xpe_preprocess_pipeline_out(
+        ref XpeImageBufferNative input,
+        ref XpeImageBufferNative output,
+        ref XpeImageMetadataNative metadata,
+        IntPtr calibState,
+        IntPtr ghostHandle,
+        string? configJson);
+
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int xpe_defect_correct(
         ref XpeImageBufferNative input,

@@ -21,6 +21,35 @@ public sealed class RawImageLoader
     }
 
     // @MX:NOTE: [AUTO] Two-pass pixel scan: pass 1 collects min/max for normalization range, pass 2 maps to 8-bit preview; merging passes would require a full pixel buffer copy
+    /// <summary>
+    /// GUI-C-232 (B): the file's length decides the size, never the other way round. A length that is exactly width x height x 2 opens as the settings say. Any other length used to open
+    /// silently (a longer file lost its end, a shorter one failed with a size nobody asked for); now it either opens at the one size that fits (a square image, the usual detector) and the
+    /// notice says so, or it is refused with the numbers, because guessing between several rectangles would show a plausible wrong picture.
+    /// </summary>
+    internal static (int Width, int Height, string? Notice) DecideSize(long fileBytes, int settingsWidth, int settingsHeight)
+    {
+        var expected = checked((long)settingsWidth * settingsHeight * 2);
+        if (fileBytes == expected)
+        {
+            return (settingsWidth, settingsHeight, null);
+        }
+
+        if (fileBytes > 0 && fileBytes % 2 == 0)
+        {
+            var pixels = fileBytes / 2;
+            var side = (long)Math.Round(Math.Sqrt(pixels));
+            if (side * side == pixels && side <= int.MaxValue)
+            {
+                return ((int)side, (int)side, $"size from the file length: {fileBytes} bytes = {side}x{side}x2, the settings said {settingsWidth}x{settingsHeight} ({expected} bytes)");
+            }
+        }
+
+        var advice = "Set the right width and height (rawWidth/rawHeight in the settings, or --automation-width/--automation-height) and open it again.";
+        throw new InvalidDataException(fileBytes < expected
+            ? $"Raw file is too small. Expected at least {expected} bytes, got {fileBytes}. The length is not a square 16-bit image either. {advice}"
+            : $"Raw file has {fileBytes} bytes, more than the {expected} bytes of {settingsWidth}x{settingsHeight} 16-bit, and the length is not a square image either. {advice}");
+    }
+
     private static LoadedImageFrame LoadRaw(string path, AppSettings settings)
     {
         if (settings.RawWidth <= 0 || settings.RawHeight <= 0)
@@ -28,17 +57,13 @@ public sealed class RawImageLoader
             throw new InvalidOperationException("Raw width and height must be positive.");
         }
 
-        var expectedBytes = checked(settings.RawWidth * settings.RawHeight * 2);
         var data = File.ReadAllBytes(path);
-        if (data.Length < expectedBytes)
-        {
-            throw new InvalidDataException($"Raw file is too small. Expected at least {expectedBytes} bytes, got {data.Length}.");
-        }
+        var (width, height, sizeNotice) = DecideSize(data.Length, settings.RawWidth, settings.RawHeight);
 
         ushort minValue = ushort.MaxValue;
         ushort maxValue = ushort.MinValue;
-        var rawPixels = new ushort[settings.RawWidth * settings.RawHeight];
-        var grayscale = new byte[settings.RawWidth * settings.RawHeight];
+        var rawPixels = new ushort[width * height];
+        var grayscale = new byte[width * height];
 
         for (var i = 0; i < grayscale.Length; i++)
         {
@@ -63,34 +88,35 @@ public sealed class RawImageLoader
         }
 
         var preview = BitmapSource.Create(
-            settings.RawWidth,
-            settings.RawHeight,
+            width,
+            height,
             96,
             96,
             PixelFormats.Gray8,
             null,
             grayscale,
-            settings.RawWidth);
+            width);
         preview.Freeze();
 
         return new LoadedImageFrame
         {
             Preview = preview,
             ProcessedPreview = preview,
-            Summary = $"RAW {settings.RawWidth}x{settings.RawHeight}, min={minValue}, max={maxValue}, bytes={data.Length}",
+            Summary = $"RAW {width}x{height}, min={minValue}, max={maxValue}, bytes={data.Length}" + (sizeNotice is null ? string.Empty : $" [{sizeNotice}]"),
             MetadataText =
                 $"Source: {path}{Environment.NewLine}" +
                 $"Kind: Raw frame{Environment.NewLine}" +
                 $"Pixel format: {settings.RawPixelFormat}{Environment.NewLine}" +
-                $"Dimensions: {settings.RawWidth}x{settings.RawHeight}{Environment.NewLine}" +
+                $"Dimensions: {width}x{height}{Environment.NewLine}" +
                 $"Min/Max: {minValue}/{maxValue}{Environment.NewLine}" +
                 $"Offset calibration dir: {settings.OffsetCalibrationDirectory}{Environment.NewLine}" +
                 $"Gain calibration dir: {settings.GainCalibrationDirectory}{Environment.NewLine}" +
                 $"Defect calibration dir: {settings.DefectCalibrationDirectory}",
             RawPixels = rawPixels,
-            Width = settings.RawWidth,
-            Height = settings.RawHeight,
-            BitsStored = 16
+            Width = width,
+            Height = height,
+            BitsStored = 16,
+            SizeNotice = sizeNotice
         };
     }
 

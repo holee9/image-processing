@@ -10,6 +10,7 @@ using ImageProcTest.Services;
 using ImageProcTest.Services.Native;
 using DataBinding = System.Windows.Data.Binding;
 using Win32OpenFileDialog = Microsoft.Win32.OpenFileDialog;
+using Win32SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 using FormsDialogResult = System.Windows.Forms.DialogResult;
 using FormsFolderBrowserDialog = System.Windows.Forms.FolderBrowserDialog;
 
@@ -187,6 +188,8 @@ public sealed class MainWindowViewModel : ObservableObject
         ToggleFocusModeCommand = new RelayCommand(() => FocusMode = !FocusMode);
         ToggleRoiCommand = new RelayCommand(() => RoiActive = !RoiActive);
         ExportEvidenceBundleCommand = new RelayCommand(ExportEvidenceBundle);
+        SaveCorrectedFloatCommand = new RelayCommand(SaveCorrectedFloat, () => CanSaveCorrected);
+        SaveCorrectedPngCommand = new RelayCommand(SaveCorrectedPng, () => CanSaveCorrected);
         SwitchAnalysisTabCommand = new RelayCommand<string>(tab => { if (!string.IsNullOrWhiteSpace(tab)) AnalysisTab = tab; });
         ResetLaneBOverridesCommand = new RelayCommand(ResetLaneBOverrides);
 
@@ -853,6 +856,81 @@ public sealed class MainWindowViewModel : ObservableObject
     public RelayCommand ToggleFocusModeCommand { get; }
     public RelayCommand ToggleRoiCommand { get; }
     public RelayCommand ExportEvidenceBundleCommand { get; }
+
+    /// <summary>GUI-C-232: File > Save Corrected Image (float32 .raw...).</summary>
+    private string? ActiveImageSourcePath { get; set; }
+
+    public RelayCommand SaveCorrectedFloatCommand { get; }
+
+    /// <summary>GUI-C-232: File > Save Corrected Image (16-bit PNG...).</summary>
+    public RelayCommand SaveCorrectedPngCommand { get; }
+
+    /// <summary>
+    /// The corrected image of the frame that is open, or null: only a Run Preprocessing that Applied on THIS frame counts (a later load is a different frame, so an old result is never saved under it).
+    /// </summary>
+    private CorrectedImage? CurrentCorrected =>
+        _backend is ICorrectedImageSource { Corrected: { } corrected } && ActiveImageFrame?.RawPixels is { } raw && ReferenceEquals(corrected.RawKey, raw) ? corrected : null;
+
+    /// <summary>True when Save Corrected Image has something to save.</summary>
+    public bool CanSaveCorrected => CurrentCorrected is not null;
+
+    private void RefreshCorrectedAvailability()
+    {
+        OnPropertyChanged(nameof(CanSaveCorrected));
+        SaveCorrectedFloatCommand.RaiseCanExecuteChanged();
+        SaveCorrectedPngCommand.RaiseCanExecuteChanged();
+    }
+
+    /// <summary>The dialog's suggested name: the raw file's name, its size unless the name already says it, and what the file is (<c>wrist_lat_3072x3072_corrected_f32le.raw</c>).</summary>
+    internal static string DefaultCorrectedFileName(string? sourcePath, int width, int height, string suffix, string extension)
+    {
+        var stem = string.IsNullOrEmpty(sourcePath) ? "image" : Path.GetFileNameWithoutExtension(sourcePath);
+        var size = $"{width}x{height}";
+        return (stem.Contains(size, StringComparison.Ordinal) ? stem : $"{stem}_{size}") + $"_{suffix}.{extension}";
+    }
+
+    private void SaveCorrectedFloat() => SaveCorrected("float32 raw", "raw", "Raw float32 (*.raw)|*.raw", (path, c) => CorrectedImageWriter.WriteFloat32(path, c.Floats), "corrected_f32le");
+
+    private void SaveCorrectedPng() => SaveCorrected("16-bit PNG", "png", "PNG image (*.png)|*.png", (path, c) => CorrectedImageWriter.WritePng16(path, c.Floats, c.Width, c.Height), "corrected_16bit");
+
+    private void SaveCorrected(string what, string extension, string filter, Func<string, CorrectedImage, SavedFile> write, string suffix)
+    {
+        var corrected = CurrentCorrected;
+        if (corrected is null)
+        {
+            StatusText = "Nothing to save: run Pipeline > Run Preprocessing (Phase 1a) on the open image first.";
+            Log(StatusText);
+            return;
+        }
+
+        try
+        {
+            var source = ActiveImageSourcePath;
+            var dialog = new Win32SaveFileDialog
+            {
+                Title = $"Save Corrected Image ({what})",
+                Filter = filter,
+                DefaultExt = extension,
+                AddExtension = true,
+                OverwritePrompt = true,
+                FileName = DefaultCorrectedFileName(source, corrected.Width, corrected.Height, suffix, extension),
+            };
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            var saved = write(dialog.FileName, corrected);
+            StatusText = $"Saved corrected image ({what}): {saved.Path} — {saved.Bytes} bytes, sha256 {saved.Sha256}";
+            Log(StatusText);
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Save failed: {ex.Message}";
+            Log(StatusText);
+            RaiseAlert(new AlertEntry { Severity = "ERROR", Code = "SAVE_CORRECTED_FAILED", Message = ex.Message, Timestamp = DateTimeOffset.Now });
+        }
+    }
     public RelayCommand<string> SwitchAnalysisTabCommand { get; }
     public RelayCommand ResetLaneBOverridesCommand { get; }
 
@@ -1981,6 +2059,8 @@ public sealed class MainWindowViewModel : ObservableObject
             }
             RuntimeInfo = _backend.Initialize(Settings);
             OnPropertyChanged(nameof(CanRunDeterministicBaseline));
+            OnPropertyChanged(nameof(CanRunPreprocessing));   // GUI-C-232 (A): it follows the backend, so it is raised when the backend is replaced
+            RefreshCorrectedAvailability();
             DrainBackendTelemetry();
 
             // #178 (GUI-C-89): every successful initialisation starts a new run set. The actual backend can
@@ -2383,6 +2463,7 @@ public sealed class MainWindowViewModel : ObservableObject
         }
 
         Settings.LastRawDirectory = Path.GetDirectoryName(path) ?? string.Empty;
+        ActiveImageSourcePath = path;
         var loadedFrame = _backend.LoadRawImage(path, Settings);
         DrainBackendTelemetry();
 
@@ -2391,11 +2472,18 @@ public sealed class MainWindowViewModel : ObservableObject
         PreviewStaleReason = null;   // a new image replaces whatever was stale
         SetRenderedVoi(null);        // not a display-pipeline render yet
         ActiveImageFrame = loadedFrame;
+        RefreshCorrectedAvailability();
         ResetComparisonView();
         ActiveImageSummary = loadedFrame.Summary;
         MetadataText = loadedFrame.MetadataText;
         StatusText = $"Loaded {sourceLabel} '{path}'.";
         Log($"Loaded {sourceLabel} '{path}'.");
+        if (loadedFrame.SizeNotice is { } sizeNotice)
+        {
+            StatusText += $" NOTE: {sizeNotice}.";
+            Log($"Raw size: {sizeNotice}.");
+            RaiseAlert(new AlertEntry { Severity = "WARN", Code = "RAW_SIZE_FROM_FILE_LENGTH", Message = sizeNotice, Timestamp = DateTimeOffset.Now });
+        }
         RememberRecentRawFile(path);
         await ApplyDisplayPipelineAsync();
     }
@@ -2484,6 +2572,7 @@ public sealed class MainWindowViewModel : ObservableObject
             ReportChain(chain);
 
             ActiveImageFrame = processedFrame;
+            RefreshCorrectedAvailability();
             ProcessedImage = processedFrame.ProcessedPreview ?? processedFrame.Preview;
             PreviewStaleReason = null;   // #171 ③: this render is current; ① is re-evaluated just below
             SetRenderedVoi(inputs);

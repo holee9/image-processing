@@ -81,11 +81,79 @@ internal static class GuiPreprocessRunner
                 }
             }
 
-            return RunStages(rawPixels, width, height, bodyPart, kVp, pixelPitchMm, measureExposureIndex);
+            // GUI-C-232 (SRS-CALIB-SAFE-004, user decision 2026-10-05): the product and diagnostic path is xpe_preprocess_pipeline_out, which never writes the input frame. The stage-by-stage
+            // calls stay for ONE reason: a DLL built before that export existed (EntryPointNotFoundException), where the user is told in the summary that the older path ran.
+            try
+            {
+                return RunPipelineOut(rawPixels, width, height, bodyPart, kVp, pixelPitchMm, measureExposureIndex);
+            }
+            catch (EntryPointNotFoundException)
+            {
+                var fallback = RunStages(rawPixels, width, height, bodyPart, kVp, pixelPitchMm, measureExposureIndex);
+                return fallback with { Summary = fallback.Summary + " (this xpe_preprocess.dll has no xpe_preprocess_pipeline_out: the older stage-by-stage path ran; update the DLLs)" };
+            }
         }
         finally
         {
             XpePreprocessNative.xpe_preprocess_shutdown();
+        }
+    }
+
+    /// <summary>
+    /// The configuration the app passes to the pipeline: the product path of the first stage, as the module's own measurements use it (modules/preprocess/tests/test_zz_a241_measure.cpp, cfgFinal).
+    /// Temperature compensation, nonlinearity and binning are bypassed because the app has no temperature, no linearity table and no binning setting to give them; ghost is off because no ghost handle is given.
+    /// </summary>
+    internal const string PipelineConfigJson = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+
+    /// <summary>
+    /// The calibration maps are already loaded by <see cref="Run"/>. The input frame goes in read-only and the corrected float32 frame comes out in a separate buffer
+    /// (<c>xpe_preprocess_pipeline_out</c>): the raw image the user opened is never written (SRS-CALIB-SAFE-004).
+    /// </summary>
+    private static PreprocessRunResult RunPipelineOut(ushort[] rawPixels, int width, int height, string bodyPart,
+        float kVp, float pixelPitchMm, bool measureExposureIndex)
+    {
+        var metadata = XpeImageMetadataNative.Create(bodyPart, kVp: kVp, mAs: 2.0f, sidMm: 1000.0f, pixelPitchMm: pixelPitchMm);
+
+        var input = default(XpeImageBufferNative);
+        var output = default(XpeImageBufferNative);
+        var allocated = new List<Action>();
+
+        try
+        {
+            if (!TryAlloc(width, height, XpePixelFormatNative.UInt16, out input, allocated, out var reason) ||
+                !TryAlloc(width, height, XpePixelFormatNative.Float32, out output, allocated, out reason))
+            {
+                return new PreprocessRunResult(false, reason, null);
+            }
+
+            var count = width * height;
+            var signed = new short[count];
+            Buffer.BlockCopy(rawPixels, 0, signed, 0, count * sizeof(ushort));
+            Marshal.Copy(signed, 0, input.Data, count);
+
+            var code = XpePreprocessNative.xpe_preprocess_pipeline_out(ref input, ref output, ref metadata, IntPtr.Zero, IntPtr.Zero, PipelineConfigJson);
+            if (code != XpeOk)
+            {
+                return new PreprocessRunResult(false, $"xpe_preprocess_pipeline_out failed ({code}).", null);
+            }
+
+            var exposure = measureExposureIndex ? MeasureUncalibratedExposureIndex(ref output, ref metadata) : string.Empty;
+            var floats = ReadFloats(output.Data, count);
+            var nonFinite = BaselineStageAdapters.CountPreprocessNonFinite(ReadOnlySpan<float>.Empty, floats);   // the gain stage's intermediate is internal to the pipeline: only the final image is counted
+            return new PreprocessRunResult(
+                true,
+                $"Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on {width}x{height} ({bodyPart}).{exposure}",
+                ScaleToUInt16(floats),
+                null,
+                nonFinite,
+                floats);
+        }
+        finally
+        {
+            for (var i = allocated.Count - 1; i >= 0; i--)
+            {
+                allocated[i]();
+            }
         }
     }
 
@@ -176,7 +244,8 @@ internal static class GuiPreprocessRunner
                 $"Preprocess: offset -> nonlinearity -> gain -> defect on {width}x{height} ({bodyPart}).{exposure}",
                 pixels,
                 null,
-                nonFinite);
+                nonFinite,
+                defectFloats);
         }
         finally
         {
