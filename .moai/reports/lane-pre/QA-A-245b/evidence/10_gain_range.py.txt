@@ -1,0 +1,26 @@
+import os
+import numpy as np
+
+W = H = 3072
+N = W * H
+
+
+def stats(path):
+    b = open(path, 'rb').read()
+    a = np.frombuffer(b[len(b) - N * 4:], dtype='<f4')   # the payload is the last W*H float32 values of the file
+    fin = np.isfinite(a)
+    out = (~fin) | (a < 0.1) | (a > 10.0)
+    f = a[fin]
+    idx = np.flatnonzero(out)
+    y, x = idx // W, idx % W
+    band = int(((y < 64) | (y >= H - 64) | (x < 64) | (x >= W - 64)).sum())
+    print(path)
+    print('  file bytes %d, payload values %d' % (len(b), N))
+    print('  min %.6g  max %.6g  mean %.6g  median %.6g  p0.1 %.6g  p99.9 %.6g' % (f.min(), f.max(), f.mean(), np.median(f), np.percentile(f, 0.1), np.percentile(f, 99.9)))
+    print('  outside [0.1, 10]: %d pixels = %.4f %% (below 0.1: %d, of which exactly 0: %d; above 10: %d; non-finite: %d)' % (
+        out.sum(), 100.0 * out.sum() / N, int(((a < 0.1) & fin).sum()), int((a == 0).sum()), int(((a > 10.0) & fin).sum()), int((~fin).sum())))
+    print('  of the outside pixels, in the outermost 64-pixel band: %d' % band)
+
+
+for p in ['D:/workspace-github/xpe-data/calib-real-v2/gain.xcal', 'D:/workspace-github/xpe-pre/build/a240b/maps/gain.xcal']:
+    stats(p)

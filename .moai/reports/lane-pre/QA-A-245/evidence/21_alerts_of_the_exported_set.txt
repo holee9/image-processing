@@ -1,0 +1,5 @@
+[a245] 3 alert(s) after loading the exported set and running the app's stage order
+[a245]   alert 0 (severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that carry one
+[a245]   alert 1 (severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 44053 of 9437184 pixel(s) (0.467%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect correction stage (44051 in the outermost 64-pixel band; first: 0). Limit: 5.0%
+[a245]   alert 2 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs correcting (issue #196)
+[       OK ] A241Measure.DISABLED_A245_AlertsOfTheExportedSet (333 ms)

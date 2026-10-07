@@ -1,0 +1,10 @@
+D:/workspace-github/xpe-data/calib-real-v2/gain.xcal
+  file bytes 37749092, payload values 9437184
+  min 0  max 29.3285  mean 1  median 1.02055  p0.1 0.0269097  p99.9 1.09747
+  outside [0.1, 10]: 44053 pixels = 0.4668 % (below 0.1: 44052, of which exactly 0: 1; above 10: 1; non-finite: 0)
+  of the outside pixels, in the outermost 64-pixel band: 44051
+D:/workspace-github/xpe-pre/build/a240b/maps/gain.xcal
+  file bytes 37749092, payload values 9437184
+  min 0  max 15.4126  mean 1  median 1.02002  p0.1 0.0284081  p99.9 1.10579
+  outside [0.1, 10]: 42026 pixels = 0.4453 % (below 0.1: 42024, of which exactly 0: 1; above 10: 2; non-finite: 0)
+  of the outside pixels, in the outermost 64-pixel band: 42023
