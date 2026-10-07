@@ -9,29 +9,29 @@
 <body>
   <main class="page">
     <header class="hero">
-      <p class="eyebrow">ImageProcTest GUI-S0</p>
+      <p class="eyebrow">ImageProcTest</p>
       <h1>Offline Help Bundle</h1>
-      <p class="lede">This build ships a local quick-start and scope guide so the operator can validate the current GUI shell without relying on a network connection.</p>
+      <p class="lede">This build ships a local quick-start and scope guide so the operator can run and check the first processing stage on a real raw image without relying on a network connection.</p>
     </header>
 
     <section class="card-grid">
       <article class="card">
         <h2><a href="quick-start.html">Quick Start</a></h2>
-        <p>Launch the GUI shell, load the packaged raw fixture, review logs and alerts, and save runtime settings.</p>
+        <p>Start the app on the Native backend, set the calibration folders, load a raw image, run Phase 1a preprocessing, compare the result, and read the messages when it does not work.</p>
       </article>
       <article class="card">
         <h2><a href="scope.html">Scope and Limitations</a></h2>
-        <p>Understand exactly what GUI-S0 implements today and what remains owned by later phases and native DLLs.</p>
+        <p>Understand what the Mock and Native backends do today, what is not available, and how the app's preprocessing differs from the module's own pipeline.</p>
       </article>
     </section>
 
     <section class="section">
       <h2>Current Build Intent</h2>
       <ul>
-        <li>Mock backend only</li>
-        <li>Raw binary image loading only</li>
-        <li>No real DICOM parsing or native DLL execution path yet</li>
-        <li>Logs, alerts, calibration directories, and fixture-first E2E are active</li>
+        <li>Native backend: real display pipeline and Phase 1a preprocessing on a loaded raw image</li>
+        <li>Mock backend: synthetic results for shell and automation checks, always marked <code>[MOCK]</code></li>
+        <li>Raw binary image loading only; no DICOM open yet</li>
+        <li>Logs, alerts, calibration directories and fixture-first E2E are active</li>
       </ul>
     </section>
   </main>

@@ -1,0 +1,104 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W3_FailureMessages_EachProducedForReal [1 m 9 s]
+  표준 출력 메시지:
+ CASE gain map with values outside 0.1..10 (a pre build artifact)
+    title='ImageProcTest GUI-S0' runtime='mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=c231_native_fresh' banner=''
+    dialog: 'Load Raw Image'
+    ok: an image summary appears
+    Run Preprocessing enabled: True
+    ok: the chain status changes
+    chain: chain: preprocess=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=300 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+    status bar: chain: preprocess=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; preprocess native bridge pending) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)
+    LOG [16:50:15.438] Display pipeline requested: mode=Linear, bodyPart=Abdomen, center=32768, width=65535, GSDF=False, calibrationEval=[Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto].
+    LOG [16:50:15.412] Loaded raw image 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\fixtures\gui-s0\raw\wrist_lat_3072x3072.raw'.
+    LOG [16:50:15.087] LoadRawImage('D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\fixtures\gui-s0\raw\wrist_lat_3072x3072.raw') invoked.
+    LOG [16:50:08.683] Initialized backend 'RealXpeBackend' (xpe_display 1.0.0).
+    LOG [16:50:08.683] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Real display backend is active. Modality, VOI, and Presentation LUT are called through P/Invoke.
+    LOG [16:50:08.682] Display version = 1.0.0
+    LOG [16:50:08.682] xpe_display.dll = C:\Users\drake\AppData\Local\Temp\c231_native_fresh\xpe_display.dll
+    LOG [16:50:08.682] xpe_common.dll = C:\Users\drake\AppData\Local\Temp\c231_native_fresh\xpe_common.dll
+    LOG [16:50:08.682] Requested backend mode = Native
+    LOG [16:50:08.682] RealXpeBackend bootstrap started.
+    LOG [16:50:08.676] --- backend re-initialised ---
+    LOG [16:50:08.673] GUI-S0 initialized.
+ CASE no maps in the folder
+    title='ImageProcTest GUI-S0' runtime='mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=c231_native_fresh' banner=''
+    dialog: 'Load Raw Image'
+    ok: an image summary appears
+    Run Preprocessing enabled: True
+    ok: the chain status changes
+    chain: chain: preprocess=RequestedNotApplied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=1 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw — preprocess: Preprocessing skipped: calibration file(s) not found — C:\Users\drake\AppData\Local\Temp\c231_sets\empty\offset.xcal, C:\Users\drake\AppData\Local\Temp\c231_sets\empty\gain.xcal, C:\Users\drake\AppData\Local\Temp\c231_sets\empty\defect.xcal. Generate a set with xpe_calib_fixture_gen --out <dir> and point the calibration directories at it.
+    status bar: chain: preprocess=RequestedNotApplied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; preprocess native bridge pending) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)
+    LOG [16:50:30.116] Display pipeline requested: mode=Linear, bodyPart=Abdomen, center=32768, width=65535, GSDF=False, calibrationEval=[Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto].
+    LOG [16:50:30.092] Loaded raw image 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\fixtures\gui-s0\raw\synthetic_1024x1024.raw'.
+    LOG [16:50:30.051] LoadRawImage('D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\fixtures\gui-s0\raw\synthetic_1024x1024.raw') invoked.
+    LOG [16:50:23.704] Initialized backend 'RealXpeBackend' (xpe_display 1.0.0).
+    LOG [16:50:23.703] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Real display backend is active. Modality, VOI, and Presentation LUT are called through P/Invoke.
+    LOG [16:50:23.703] Display version = 1.0.0
+    LOG [16:50:23.703] xpe_display.dll = C:\Users\drake\AppData\Local\Temp\c231_native_fresh\xpe_display.dll
+    LOG [16:50:23.703] xpe_common.dll = C:\Users\drake\AppData\Local\Temp\c231_native_fresh\xpe_common.dll
+    LOG [16:50:23.703] Requested backend mode = Native
+    LOG [16:50:23.703] RealXpeBackend bootstrap started.
+    LOG [16:50:23.696] --- backend re-initialised ---
+    LOG [16:50:23.693] GUI-S0 initialized.
+ CASE expired map set
+    title='ImageProcTest GUI-S0' runtime='mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=c231_native_fresh' banner=''
+    dialog: 'Load Raw Image'
+    ok: an image summary appears
+    Run Preprocessing enabled: True
+    ok: the chain status changes
+    chain: chain: preprocess=RequestedNotApplied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=9 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw — preprocess: Loading offset calibration failed (-5).
+    status bar: chain: preprocess=RequestedNotApplied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; preprocess native bridge pending) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)
+    LOG [16:50:44.353] Display pipeline requested: mode=Linear, bodyPart=Abdomen, center=32768, width=65535, GSDF=False, calibrationEval=[Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto].
+    LOG [16:50:44.327] Loaded raw image 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\fixtures\gui-s0\raw\synthetic_1024x1024.raw'.
+    LOG [16:50:44.285] LoadRawImage('D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\fixtures\gui-s0\raw\synthetic_1024x1024.raw') invoked.
+    LOG [16:50:37.898] Initialized backend 'RealXpeBackend' (xpe_display 1.0.0).
+    LOG [16:50:37.898] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Real display backend is active. Modality, VOI, and Presentation LUT are called through P/Invoke.
+    LOG [16:50:37.897] Display version = 1.0.0
+    LOG [16:50:37.897] xpe_display.dll = C:\Users\drake\AppData\Local\Temp\c231_native_fresh\xpe_display.dll
+    LOG [16:50:37.897] xpe_common.dll = C:\Users\drake\AppData\Local\Temp\c231_native_fresh\xpe_common.dll
+    LOG [16:50:37.897] Requested backend mode = Native
+    LOG [16:50:37.897] RealXpeBackend bootstrap started.
+    LOG [16:50:37.889] --- backend re-initialised ---
+    LOG [16:50:37.887] GUI-S0 initialized.
+ CASE maps are 1024x1024 but the raw image is 3072x3072
+    title='ImageProcTest GUI-S0' runtime='mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=c231_native_fresh' banner=''
+    dialog: 'Load Raw Image'
+    ok: an image summary appears
+    Run Preprocessing enabled: True
+    ok: the chain status changes
+    chain: chain: preprocess=RequestedNotApplied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=55 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw — preprocess: xpe_offset_correct failed (-1).
+    status bar: chain: preprocess=RequestedNotApplied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; preprocess native bridge pending) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)
+    LOG [16:50:58.988] Display pipeline requested: mode=Linear, bodyPart=Abdomen, center=32768, width=65535, GSDF=False, calibrationEval=[Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto].
+    LOG [16:50:58.963] Loaded raw image 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\fixtures\gui-s0\raw\wrist_lat_3072x3072.raw'.
+    LOG [16:50:58.634] LoadRawImage('D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\fixtures\gui-s0\raw\wrist_lat_3072x3072.raw') invoked.
+    LOG [16:50:52.143] Initialized backend 'RealXpeBackend' (xpe_display 1.0.0).
+    LOG [16:50:52.143] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Real display backend is active. Modality, VOI, and Presentation LUT are called through P/Invoke.
+    LOG [16:50:52.142] Display version = 1.0.0
+    LOG [16:50:52.142] xpe_display.dll = C:\Users\drake\AppData\Local\Temp\c231_native_fresh\xpe_display.dll
+    LOG [16:50:52.142] xpe_common.dll = C:\Users\drake\AppData\Local\Temp\c231_native_fresh\xpe_common.dll
+    LOG [16:50:52.142] Requested backend mode = Native
+    LOG [16:50:52.142] RealXpeBackend bootstrap started.
+    LOG [16:50:52.135] --- backend re-initialised ---
+    LOG [16:50:52.132] GUI-S0 initialized.
+ CASE native DLL folder has no DLLs
+    title='[MOCK] ImageProcTest GUI-S0' runtime='mode=Mock (requested Native)  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display' banner='MOCK BACKEND — Native was requested but could not be used. Images and results are synthetic; not for clinical judgement.'
+    dialog: 'Load Raw Image'
+    ok: an image summary appears
+    Run Preprocessing enabled: False
+    Native DLL Diagnostics, status line: Display DLL not detected; mock display pipeline remains active.
+    LOG (list 'LogListBox' not found)
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 1
+     통과: 1
+ 총 시간: 1.1680 분
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.
