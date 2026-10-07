@@ -1,0 +1,151 @@
+<#
+.SYNOPSIS
+  Starts the operator app (gui/ImageProcTest) on the NATIVE backend in one step, with the native DLL
+  folder, the calibration folder and the raw image size already set. (GUI-C-231; moved to tools/ by the leader).
+
+.DESCRIPTION
+  What it does, in order:
+    1. checks the DLL folder (xpe_common.dll, xpe_display.dll, xpe_preprocess.dll) and the calibration
+       folder (offset.xcal, gain.xcal, defect.xcal) and stops with a list of what is missing;
+    2. says whether the DLLs match the latest main (see "DLL check" below);
+    3. starts ImageProcTest.exe with
+         --automation-backend Native --automation-calib <CalibDir>
+         --automation-width <RawWidth> --automation-height <RawHeight>
+       and XPE_NATIVE_DIR=<NativeDir>, XPE_NATIVE_DIR_EXCLUSIVE=1 set for THAT process only.
+
+  Why these switches: the app has no input field for the raw image size (it reads rawWidth/rawHeight from
+  its settings, default 1024 x 1024), and it does not infer the size from the file. The switches are named
+  "automation" but the app applies them in every launch mode (MainWindow.ApplyRunSelection).
+
+  DLL check (-NativeDir): there is no way to ask a DLL which commit built it, so the check uses what exists:
+    - provenance.json in the DLL folder (written when the folder was staged from a CI run): its headSha is
+      compared with origin/main (git merge-base --is-ancestor, git diff --name-only <sha> origin/main --
+      modules) and the md5 of every listed file is recomputed. MATCH = no file under modules/ changed since
+      that commit. STALE = something did. MODIFIED = a file differs from the provenance record.
+    - no provenance.json: a DLL OLDER than the newest commit that touched modules/ cannot contain it, so
+      that is reported as STALE. A newer DLL is reported as UNPROVEN (nothing ties it to a commit).
+  Run `git fetch origin main` first so origin/main is current. -RequireFresh stops on STALE and MODIFIED.
+
+.PARAMETER NativeDir     Folder holding the native DLLs. Default: <repo>\build\e2e-native-dlls if it exists.
+.PARAMETER CalibDir      Folder that directly contains offset.xcal, gain.xcal and defect.xcal.
+.PARAMETER RawWidth      Width of the raw images you will open (pixels). Default 1024.
+.PARAMETER RawHeight     Height of the raw images you will open (pixels). Default 1024.
+.PARAMETER Exe           Default: the newest of gui\ImageProcTest\bin\{Debug,Release}\net8.0-windows\ImageProcTest.exe.
+.PARAMETER SettingsFile  Optional: a settings file the app reads and writes INSTEAD of the one next to the exe
+                         (keeps the exe-folder appsettings.json, with its recent-file history, untouched).
+.PARAMETER RequireFresh  Stop instead of continuing when the DLL check says STALE or MODIFIED.
+.PARAMETER Git           Path to git.exe when it is not on PATH.
+.PARAMETER Repo          The repository root. Default: the parent of the folder this script is in (tools\..).
+
+.EXAMPLE
+  .\Start-ImageProcTestNative.ps1 -NativeDir D:\xpe\dlls -CalibDir D:\xpe-data\calib-real-v2 -RawWidth 3072 -RawHeight 3072
+#>
+[CmdletBinding()]
+param(
+    [string]$NativeDir,
+    [Parameter(Mandatory = $true)][string]$CalibDir,
+    [int]$RawWidth = 1024,
+    [int]$RawHeight = 1024,
+    [string]$Exe,
+    [string]$SettingsFile,
+    [switch]$RequireFresh,
+    [string]$Git,
+    [string]$Repo
+)
+
+$ErrorActionPreference = 'Stop'
+if ($Repo) { $repo = $Repo } else { $repo = Split-Path -Parent $PSScriptRoot }
+
+function Resolve-Git {
+    if ($Git) { return $Git }
+    $cmd = Get-Command git -ErrorAction SilentlyContinue
+    if ($cmd) { return $cmd.Source }
+    foreach ($candidate in @('C:\Program Files\Git\cmd\git.exe', 'C:\Program Files\Git\bin\git.exe')) {
+        if (Test-Path -LiteralPath $candidate) { return $candidate }
+    }
+    return $null
+}
+
+function Invoke-Git([string]$gitExe, [string[]]$arguments) {
+    $output = & $gitExe -C $repo @arguments 2>$null
+    return @{ Code = $LASTEXITCODE; Lines = @($output) }
+}
+
+# --- DLL check: returns MATCH | STALE | MODIFIED | UNPROVEN | UNKNOWN and a one-line reason -----------------------
+function Test-DllFreshness([string]$dir) {
+    $gitExe = Resolve-Git
+    if (-not $gitExe) { return @{ Verdict = 'UNKNOWN'; Reason = 'git was not found (use -Git <path>)' } }
+    $main = Invoke-Git $gitExe @('rev-parse', '--verify', '--quiet', 'origin/main')
+    if ($main.Code -ne 0) { return @{ Verdict = 'UNKNOWN'; Reason = 'origin/main does not exist here (git fetch origin main)' } }
+
+    $provenancePath = Join-Path $dir 'provenance.json'
+    if (Test-Path -LiteralPath $provenancePath) {
+        $p = Get-Content -LiteralPath $provenancePath -Raw -Encoding UTF8 | ConvertFrom-Json
+        foreach ($f in $p.files) {
+            $path = Join-Path $dir $f.name
+            if (-not (Test-Path -LiteralPath $path)) { return @{ Verdict = 'MODIFIED'; Reason = ("{0} is listed in provenance.json but missing" -f $f.name) } }
+            $md5 = (Get-FileHash -LiteralPath $path -Algorithm MD5).Hash.ToLower()
+            if ($md5 -ne ([string]$f.md5).ToLower()) { return @{ Verdict = 'MODIFIED'; Reason = ("{0} differs from provenance.json (md5)" -f $f.name) } }
+        }
+        $sha = [string]$p.headSha
+        $known = Invoke-Git $gitExe @('cat-file', '-e', ($sha + '^{commit}'))
+        if ($known.Code -ne 0) { return @{ Verdict = 'UNKNOWN'; Reason = ("provenance headSha {0} is not in this repository (git fetch)" -f $sha.Substring(0, 8)) } }
+        $changed = Invoke-Git $gitExe @('diff', '--name-only', $sha, 'origin/main', '--', 'modules')
+        if ($changed.Lines.Count -eq 0 -or ($changed.Lines.Count -eq 1 -and -not $changed.Lines[0])) {
+            return @{ Verdict = 'MATCH'; Reason = ("provenance {0} (run {1}): nothing under modules/ changed up to origin/main" -f $sha.Substring(0, 8), $p.runId) }
+        }
+        return @{ Verdict = 'STALE'; Reason = ("provenance {0} (run {1}): {2} file(s) under modules/ changed since, e.g. {3}" -f $sha.Substring(0, 8), $p.runId, $changed.Lines.Count, $changed.Lines[0]) }
+    }
+
+    $last = Invoke-Git $gitExe @('log', '-1', '--format=%cI', 'origin/main', '--', 'modules')
+    if ($last.Code -ne 0 -or -not $last.Lines[0]) { return @{ Verdict = 'UNKNOWN'; Reason = 'could not read the last commit that touched modules/' } }
+    $lastCommit = [DateTimeOffset]::Parse([string]$last.Lines[0])
+    $oldest = Get-ChildItem -LiteralPath $dir -Filter 'xpe_*.dll' | Sort-Object LastWriteTimeUtc | Select-Object -First 1
+    if (-not $oldest) { return @{ Verdict = 'UNKNOWN'; Reason = 'no xpe_*.dll in the folder' } }
+    if ([DateTimeOffset]$oldest.LastWriteTimeUtc -lt $lastCommit) {
+        return @{ Verdict = 'STALE'; Reason = ("no provenance.json; {0} was written {1:u}, before the last commit that touched modules/ ({2:u})" -f $oldest.Name, $oldest.LastWriteTimeUtc, $lastCommit.UtcDateTime) }
+    }
+    return @{ Verdict = 'UNPROVEN'; Reason = ("no provenance.json; the DLLs are newer than the last commit that touched modules/ ({0:u}) but nothing ties them to a commit" -f $lastCommit.UtcDateTime) }
+}
+
+# --- inputs ------------------------------------------------------------------------------------------------------
+if (-not $NativeDir) {
+    $default = Join-Path $repo 'build\e2e-native-dlls'
+    if (Test-Path -LiteralPath $default) { $NativeDir = $default } else { throw 'Give -NativeDir (the folder with xpe_common.dll, xpe_display.dll, xpe_preprocess.dll).' }
+}
+
+if (-not $Exe) {
+    $candidates = @('Debug', 'Release') | ForEach-Object { Join-Path $repo ("gui\ImageProcTest\bin\{0}\net8.0-windows\ImageProcTest.exe" -f $_) } | Where-Object { Test-Path -LiteralPath $_ }
+    if (-not $candidates) { throw 'ImageProcTest.exe was not found: build gui\ImageProcTest first, or give -Exe.' }
+    $Exe = $candidates | Sort-Object { (Get-Item -LiteralPath $_).LastWriteTimeUtc } -Descending | Select-Object -First 1
+}
+
+$missing = @()
+foreach ($name in @('xpe_common.dll', 'xpe_display.dll', 'xpe_preprocess.dll')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $NativeDir $name))) { $missing += (Join-Path $NativeDir $name) }
+}
+foreach ($name in @('offset.xcal', 'gain.xcal', 'defect.xcal')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $CalibDir $name))) { $missing += (Join-Path $CalibDir $name) }
+}
+if ($missing.Count -gt 0) { throw ("Missing: `n  " + ($missing -join "`n  ")) }
+
+$check = Test-DllFreshness $NativeDir
+Write-Host ("DLL check: {0} - {1}" -f $check.Verdict, $check.Reason)
+if ($RequireFresh -and ($check.Verdict -eq 'STALE' -or $check.Verdict -eq 'MODIFIED')) { throw 'Stopping: -RequireFresh and the DLLs are not the latest main.' }
+
+# --- start the app (environment set for this one process only) ---------------------------------------------------
+$info = New-Object System.Diagnostics.ProcessStartInfo
+$info.FileName = $Exe
+$info.WorkingDirectory = Split-Path -Parent $Exe
+$info.UseShellExecute = $false
+$info.EnvironmentVariables['XPE_NATIVE_DIR'] = $NativeDir
+$info.EnvironmentVariables['XPE_NATIVE_DIR_EXCLUSIVE'] = '1'
+$arguments = @('--automation-backend', 'Native', '--automation-calib', $CalibDir,
+               '--automation-width', [string]$RawWidth, '--automation-height', [string]$RawHeight)
+if ($SettingsFile) { $arguments += @('--automation-settings', $SettingsFile) }
+# One quoted command line: ProcessStartInfo.ArgumentList does not exist in Windows PowerShell 5.1.
+$info.Arguments = (($arguments | ForEach-Object { '"' + ([string]$_).Replace('"', '\"') + '"' }) -join ' ')
+
+Write-Host ("Starting: {0} {1}" -f $Exe, ($arguments -join ' '))
+$process = [System.Diagnostics.Process]::Start($info)
+Write-Host ("Started, process id {0}. In the app: the title has no [MOCK], the bottom line says mode=Native, then File > Open Raw..." -f $process.Id)
