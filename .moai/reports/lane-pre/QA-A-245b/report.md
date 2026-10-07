@@ -33,7 +33,7 @@
 
 ## 4. `calib-real-v2` gain 값 범위
 
-`xpe-data/calib-real-v2/gain.xcal` (페이로드 = 파일 끝의 3072×3072 float32; 스크립트 `evidence/10_gain_range.py.txt`, 출력 `evidence/11_gain_range_output.txt`). 같은 스크립트가 센 범위 밖 화소 수 44,053 이 앱의 알림 숫자(44,053 / 0.467 %)와 같아서 읽은 위치가 맞다는 대조가 된다:
+`xpe-data/calib-real-v2/gain.xcal` (페이로드 = 파일 끝의 3072×3072 float32; 스크립트 `evidence/10_gain_range.py.txt`, 출력 `evidence/11_gain_range_values.txt`). 같은 스크립트가 센 범위 밖 화소 수 44,053 이 앱의 알림 숫자(44,053 / 0.467 %)와 같아서 읽은 위치가 맞다는 대조가 된다:
 
 | | `calib-real-v2` (평탄 4·5·6) | a240b (평탄 6 장) |
 |---|---|---|
