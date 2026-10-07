@@ -25,6 +25,9 @@
  *   B6_StripeNoiseRatio   (QA-A-241g) the stripe criterion "row/column component <= 3 x the pixel-noise expectation" on the three held-out flats;
  *                         definition, controls and prediction fixed in .moai/reports/lane-pre/QA-A-241g/evidence/00_stripe_noise_ratio_definition.md
  *                         (committed before any result). Runs synthetic controls first. Needs XPE_A240_CAL and XPE_A241_OUT.
+ *   A245_ExportAndAppPath (QA-A-245) writes the stage-1 real-data calibration set as offset.xcal / gain.xcal / defect.xcal (the files the
+ *                         operator app reads) and runs the app's stage-by-stage call order on the real frame against reference image v2.
+ *                         Needs XPE_A240_CAL, XPE_A240_WRIST, XPE_A245_OUT, XPE_A245_REF.
  *   B10v2_Baseline        (QA-A-243) the stage-2 input reference image: the real frame wrist_lat_3072x3072.raw through the shipping
  *                         path (xpe_preprocess_pipeline_out) with the gain made from ALL THREE flats of the one acquisition
  *                         condition (flats 4,5,6). Writes the float32 output. Needs XPE_A240_CAL, XPE_A240_WRIST, XPE_A243_OUT.
@@ -1329,5 +1332,198 @@ TEST(A241Measure, DISABLED_B6_StripeNoiseRatio) {
                     c.j, fb.rowRatio, fb.colRatio, fb.ratio(), ga.rowRatio, ga.colRatio);
     }
     std::printf("[a241g] all three flats pass: %s\n", allPass ? "YES" : "NO");
+    xpe_preprocess_shutdown();
+}
+
+// QA-A-245: export the stage-1 real-data calibration set as the three fixed-name files the operator app reads (offset.xcal, gain.xcal,
+// defect.xcal), then run the app's own stage-by-stage call order on the real frame and compare it with the reference image v2.
+// Maps: the SAME as B10v2_Baseline (offset from dark.raw, gain from bright04/05/06 with no dark reference, defect map = BPMap.map), written by the
+// product generators and the product XCal writer; only the header's expiry (one year) and the shared session id are set afterwards, the way
+// B10v2_Baseline already sets the session id.
+// Needs XPE_A240_CAL, XPE_A240_WRIST, XPE_A245_OUT (the folder to write), XPE_A245_REF (the v2 reference f32le image).
+TEST(A241Measure, DISABLED_A245_ExportAndAppPath) {
+    const std::string cal = envOr("XPE_A240_CAL", ""), wristPath = envOr("XPE_A240_WRIST", ""), outDir = envOr("XPE_A245_OUT", ""), refPath = envOr("XPE_A245_REF", "");
+    ASSERT_FALSE(cal.empty());
+    ASSERT_FALSE(wristPath.empty());
+    ASSERT_FALSE(outDir.empty());
+    ASSERT_FALSE(refPath.empty());
+    const uint32_t W = 3072, H = 3072;
+    const size_t N = static_cast<size_t>(W) * H;
+    fs::create_directories(outDir);
+
+    const std::vector<uint16_t> dark = readRaw16(cal + "/dark.raw", N), wrist = readRaw16(wristPath, N);
+    ASSERT_FALSE(dark.empty());
+    ASSERT_FALSE(wrist.empty());
+    std::vector<std::vector<uint16_t>> flat(7);
+    for (int k = 4; k <= 6; ++k) {
+        char nm[32];
+        std::snprintf(nm, sizeof nm, "/bright%02d.raw", k);
+        flat[static_cast<size_t>(k)] = readRaw16(cal + nm, N);
+        ASSERT_FALSE(flat[static_cast<size_t>(k)].empty()) << nm;
+    }
+    const auto bpBytes = readFile(cal + "/BPMap.map");
+    ASSERT_EQ(N, bpBytes.size());
+    std::vector<float> ref(N);
+    {
+        std::ifstream f(refPath, std::ios::binary);
+        f.read(reinterpret_cast<char*>(ref.data()), static_cast<std::streamsize>(N * sizeof(float)));
+        ASSERT_EQ(static_cast<std::streamsize>(N * sizeof(float)), f.gcount()) << "reference image size";
+    }
+    auto buf = [&](const void* d, size_t bytes, XpePixelFormat f) {
+        XpeImageBuffer b{};
+        b.data = const_cast<void*>(d);
+        b.dataSize = bytes;
+        b.width = W;
+        b.height = H;
+        b.format = f;
+        b.bitsAllocated = f == XPE_PIXEL_FLOAT32 ? 32u : 16u;
+        b.bitsStored = b.bitsAllocated;
+        return b;
+    };
+
+    // ---- 1. the maps, exactly as B10v2_Baseline makes them
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    const std::string offPath = (fs::path(outDir) / "offset.xcal").string(), gainPath = (fs::path(outDir) / "gain.xcal").string(),
+                      defPath = (fs::path(outDir) / "defect.xcal").string();
+    const XpeImageBuffer darkBuf = buf(dark.data(), N * 2, XPE_PIXEL_UINT16);
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_offset(&darkBuf, 1, 100.0f, 25.0f, offPath.c_str(), nullptr));
+    const XpeImageBuffer three[3] = {buf(flat[4].data(), N * 2, XPE_PIXEL_UINT16), buf(flat[5].data(), N * 2, XPE_PIXEL_UINT16),
+                                     buf(flat[6].data(), N * 2, XPE_PIXEL_UINT16)};
+    ASSERT_EQ(XPE_OK, xpe_calib_generate_gain(three, 3, nullptr /* no dark reference: the flats are already offset-corrected */, gainPath.c_str(), nullptr));
+    const int64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    const int64_t expiry = nowMs + 365LL * 24 * 3600 * 1000;
+    XCal o, g;
+    ASSERT_TRUE(readXCal(offPath, &o));
+    ASSERT_TRUE(readXCal(gainPath, &g));
+    std::printf("[a245] header expiry as the generators wrote it: offset %lld gain %lld (0 = never); set below to %lld (now + 365 days)\n",
+                static_cast<long long>(o.hdr.expiry_epoch_ms), static_cast<long long>(g.hdr.expiry_epoch_ms), static_cast<long long>(expiry));
+    std::memcpy(g.hdr.session_id, o.hdr.session_id, sizeof g.hdr.session_id);
+    o.hdr.expiry_epoch_ms = expiry;
+    g.hdr.expiry_epoch_ms = expiry;
+    ASSERT_EQ(XPE_OK, writeXCal(offPath, o));
+    ASSERT_EQ(XPE_OK, writeXCal(gainPath, g));
+    {
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        std::memcpy(hdr.session_id, o.hdr.session_id, sizeof hdr.session_id);
+        hdr.version = XCAL_VERSION;
+        hdr.type = XCAL_TYPE_DEFECT;
+        hdr.pixel_format = XCAL_FMT_UINT8_MASK;
+        hdr.width = W;
+        hdr.height = H;
+        hdr.payload_len = N;
+        hdr.expiry_epoch_ms = expiry;
+        ASSERT_EQ(XPE_OK, write_xcal_file(defPath.c_str(), hdr, nullptr, 0, bpBytes.data(), N));
+    }
+    std::printf("[a245] wrote %s, %s, %s (session id %.16s, expiry %lld)\n", offPath.c_str(), gainPath.c_str(), defPath.c_str(), o.hdr.session_id,
+                static_cast<long long>(expiry));
+
+    // ---- 2. the app's call order, reading the three files back: load offset, gain, defect map; offset -> nonlinearity -> gain -> defect
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset(offPath.c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(gainPath.c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(defPath.c_str()));
+    xpe_clear_alerts();
+    std::vector<uint16_t> input(wrist), offsetOut(N, 0);
+    std::vector<float> gainOut(N, 0.0f), defectOut(N, 0.0f);
+    XpeImageMetadata meta{};
+    XpeImageBuffer in = buf(input.data(), N * 2, XPE_PIXEL_UINT16), oo = buf(offsetOut.data(), N * 2, XPE_PIXEL_UINT16),
+                   go = buf(gainOut.data(), N * 4, XPE_PIXEL_FLOAT32), dd = buf(defectOut.data(), N * 4, XPE_PIXEL_FLOAT32);
+    ASSERT_EQ(XPE_OK, xpe_offset_correct(&in, &oo, &meta));
+    ASSERT_EQ(XPE_OK, xpe_nonlinearity_correct(&oo, nullptr));
+    ASSERT_EQ(XPE_OK, xpe_gain_correct(&oo, &go, &meta));
+    ASSERT_EQ(XPE_OK, xpe_defect_correct(&go, &dd, &meta));
+    std::printf("[a245] app path: input buffer %s\n", std::memcmp(input.data(), wrist.data(), N * 2) == 0 ? "unchanged" : "CHANGED");
+
+    // ---- 3. the same files through the shipping pipeline entry point (what B10v2_Baseline used, but from the exported files)
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset(offPath.c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(gainPath.c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(defPath.c_str()));
+    xpe_clear_alerts();
+    std::vector<float> pipeOut(N, 0.0f);
+    const XpeImageBuffer pin = buf(wrist.data(), N * 2, XPE_PIXEL_UINT16);
+    XpeImageBuffer pob = buf(pipeOut.data(), N * 4, XPE_PIXEL_FLOAT32);
+    XpeImageMetadata pm{};
+    ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&pin, &pob, &pm, nullptr, nullptr, "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}"));
+    xpe_preprocess_shutdown();
+
+    // ---- 4. compare with the reference image v2, and the two paths with each other
+    auto compare = [&](const char* label, const std::vector<float>& a, const std::vector<float>& b) {
+        size_t differing = 0, nonFinite = 0;
+        double sumAbs = 0, maxAbs = 0;
+        std::vector<float> d;
+        d.reserve(N);
+        for (size_t i = 0; i < N; ++i) {
+            if (!std::isfinite(a[i]) || !std::isfinite(b[i])) { ++nonFinite; continue; }
+            const double diff = std::fabs(static_cast<double>(a[i]) - b[i]);
+            if (a[i] != b[i]) ++differing;
+            sumAbs += diff;
+            maxAbs = std::max(maxAbs, diff);
+            d.push_back(static_cast<float>(diff));
+        }
+        const bool identical = std::memcmp(a.data(), b.data(), N * sizeof(float)) == 0;
+        std::sort(d.begin(), d.end());
+        auto q = [&](double p) { return d.empty() ? 0.0 : static_cast<double>(d[static_cast<size_t>(p * static_cast<double>(d.size() - 1))]); };
+        std::printf("[a245] %s: byte-identical %s | differing pixels %zu of %zu | non-finite pairs %zu | mean |diff| %.6g | max |diff| %.6g | |diff| quantiles p50 %.6g p99 %.6g p99.9 %.6g\n",
+                    label, identical ? "YES" : "no", differing, N, nonFinite, d.empty() ? 0.0 : sumAbs / static_cast<double>(d.size()), maxAbs, q(0.5), q(0.99), q(0.999));
+    };
+    compare("app stage chain (from the exported files) vs reference v2", defectOut, ref);
+    compare("shipping pipeline_out (from the exported files) vs reference v2", pipeOut, ref);
+    compare("app stage chain vs shipping pipeline_out (same files)", defectOut, pipeOut);
+    {
+        double s1 = 0, s2 = 0;
+        for (size_t i = 0; i < N; ++i) { s1 += ref[i]; s2 += static_cast<double>(ref[i]) * ref[i]; }
+        std::printf("[a245] reference v2: mean %.4f ADU\n", s1 / static_cast<double>(N));
+        (void)s2;
+    }
+}
+
+// QA-A-245: the alerts an operator would see when the exported set is loaded and one real frame is run through the app's stage order.
+// Reads the files of XPE_A245_OUT (does not rewrite them). Needs XPE_A240_WRIST and XPE_A245_OUT.
+TEST(A241Measure, DISABLED_A245_AlertsOfTheExportedSet) {
+    const std::string wristPath = envOr("XPE_A240_WRIST", ""), outDir = envOr("XPE_A245_OUT", "");
+    ASSERT_FALSE(wristPath.empty());
+    ASSERT_FALSE(outDir.empty());
+    const uint32_t W = 3072, H = 3072;
+    const size_t N = static_cast<size_t>(W) * H;
+    const std::vector<uint16_t> wrist = readRaw16(wristPath, N);
+    ASSERT_FALSE(wrist.empty());
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset((fs::path(outDir) / "offset.xcal").string().c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain((fs::path(outDir) / "gain.xcal").string().c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map((fs::path(outDir) / "defect.xcal").string().c_str()));
+    auto buf = [&](void* d, size_t bytes, XpePixelFormat f) {
+        XpeImageBuffer b{};
+        b.data = d;
+        b.dataSize = bytes;
+        b.width = W;
+        b.height = H;
+        b.format = f;
+        b.bitsAllocated = f == XPE_PIXEL_FLOAT32 ? 32u : 16u;
+        b.bitsStored = b.bitsAllocated;
+        return b;
+    };
+    std::vector<uint16_t> input(wrist), offOut(N);
+    std::vector<float> gainOut(N), defectOut(N);
+    XpeImageMetadata meta{};
+    XpeImageBuffer bIn = buf(input.data(), N * 2, XPE_PIXEL_UINT16), bOff = buf(offOut.data(), N * 2, XPE_PIXEL_UINT16),
+                   bGain = buf(gainOut.data(), N * 4, XPE_PIXEL_FLOAT32), bDef = buf(defectOut.data(), N * 4, XPE_PIXEL_FLOAT32);
+    ASSERT_EQ(XPE_OK, xpe_offset_correct(&bIn, &bOff, &meta));
+    ASSERT_EQ(XPE_OK, xpe_nonlinearity_correct(&bOff, nullptr));
+    ASSERT_EQ(XPE_OK, xpe_gain_correct(&bOff, &bGain, &meta));
+    ASSERT_EQ(XPE_OK, xpe_defect_correct(&bGain, &bDef, &meta));
+    char msg[700];
+    int32_t sev = 0;
+    const int32_t n = xpe_get_pending_alert_count();
+    std::printf("[a245] %d alert(s) after loading the exported set and running the app's stage order\n", n);
+    for (int32_t i = 0; i < n; ++i)
+        if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) == XPE_OK) std::printf("[a245]   alert %d (severity %d): %.300s\n", i, sev, msg);
+    xpe_clear_alerts();
     xpe_preprocess_shutdown();
 }
