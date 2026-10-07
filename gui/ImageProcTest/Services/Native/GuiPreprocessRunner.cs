@@ -81,16 +81,15 @@ internal static class GuiPreprocessRunner
                 }
             }
 
-            // GUI-C-232 (SRS-CALIB-SAFE-004, user decision 2026-10-05): the product and diagnostic path is xpe_preprocess_pipeline_out, which never writes the input frame. The stage-by-stage
-            // calls stay for ONE reason: a DLL built before that export existed (EntryPointNotFoundException), where the user is told in the summary that the older path ran.
+            // GUI-C-232b (SRS-CALIB-SAFE-004, leader decision): the operator app has ONE preprocess path, xpe_preprocess_pipeline_out, which never writes the input frame. A DLL without that
+            // export is a FAILURE with an instruction, not a reason to run the older in-place stage calls (the stage-by-stage method below is no longer reachable from Run).
             try
             {
                 return RunPipelineOut(rawPixels, width, height, bodyPart, kVp, pixelPitchMm, measureExposureIndex);
             }
             catch (EntryPointNotFoundException)
             {
-                var fallback = RunStages(rawPixels, width, height, bodyPart, kVp, pixelPitchMm, measureExposureIndex);
-                return fallback with { Summary = fallback.Summary + " (this xpe_preprocess.dll has no xpe_preprocess_pipeline_out: the older stage-by-stage path ran; update the DLLs)" };
+                return new PreprocessRunResult(false, "Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out (the DLL is too old). Update the native DLLs and start the app again.", null);
             }
         }
         finally
