@@ -45,7 +45,7 @@
         <li>
           <strong>원본 영상을 엽니다:</strong> <strong>File &gt; Open Raw...</strong> (도구 모음의 <strong>Load Raw Image</strong> 버튼도 같습니다) 로 <em>Load Raw Image</em> 대화상자에서 <code>.raw</code> 파일을 고릅니다.
           <br><strong>정상 화면:</strong> 영상 요약이 <code>RAW 3072x3072, min=…, max=…, bytes=18874368</code> 로 시작합니다. 지정한 가로·세로, 그리고 <code>bytes</code> 가 가로 × 세로 × 2 입니다.
-          <br><strong>파일 길이가 크기를 정합니다.</strong> 파일이 정확히 가로 × 세로 × 2 바이트이면 지정한 크기로 열립니다. 그렇지 않으면 앱은 모양이 틀린 영상을 열지 않습니다. <em>정사각형</em> 영상이면 파일 길이로 알아낸 크기로 열고 요약에 이를 적습니다. 예: <code>RAW 3072x3072, min=…, max=…, bytes=18874368 [size from the file length: 18874368 bytes = 3072x3072x2, the settings said 1024x1024 (2097152 bytes)]</code>, 그리고 경고 알림이 하나 뜹니다. 그 밖의 길이는 <code>Load failed: Raw file is too small. Expected at least … bytes, got … bytes.</code> (또는 <code>Raw file has … bytes, more than …</code>) 로 거절되고, 화면의 영상은 그대로입니다. 직사각형 영상이면 <code>--automation-width</code>, <code>--automation-height</code> (스크립트의 <code>-RawWidth</code>, <code>-RawHeight</code>) 를 정확히 주십시오.
+          <br><strong>크기를 추측하지 않습니다.</strong> 파일은 정확히 가로 × 세로 × 2 바이트여야 하며, 아니면 열지 않고 화면의 그림은 그대로 남습니다. 메시지에 필요한 크기와 파일의 실제 바이트 수가 나옵니다: <code>Load failed: Raw file is too small. Expected at least … bytes, got … bytes.</code> 또는 <code>Load failed: Raw file has … bytes, more than the … bytes of …</code>. 올바른 <code>--automation-width</code>, <code>--automation-height</code>(스크립트의 <code>-RawWidth</code>, <code>-RawHeight</code>)를 지정하십시오. 보정 폴더에 보정 맵이 있으면 영상 크기가 맵의 크기와 다를 때도 열지 않습니다(<code>The offset calibration map … is 1024x1024, but the raw image is 3072x3072.</code>). 길이가 맞는다고 해서 모양이나 헤더가 없다는 것이 증명되지는 않습니다. 3072 × 3072 영상과 2048 × 4608 영상은 길이가 같으므로, 지정하는 크기는 영상을 기록한 크기여야 합니다.
           <br>이 시점의 화면은 보정 전 원본이고, 아래 줄은 단계를 실행하기 전까지 <code>chain: not run</code> 입니다.
         </li>
         <li>
@@ -96,7 +96,7 @@
           </tr>
           <tr>
             <td><code>Load failed: Raw file is too small…</code></td>
-            <td>파일 길이가 지정한 크기에도, 정사각형 크기에도 맞지 않습니다(3번).</td>
+            <td>파일 길이가 가로 × 세로 × 2 가 아니거나(3번), 영상 크기가 보정 맵의 크기와 다릅니다.</td>
           </tr>
         </tbody>
       </table>
