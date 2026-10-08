@@ -31,6 +31,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private float? _renderedVoiWidth;
     private string? _renderedVoiMode;
     private bool? _renderedVoiAutomatic;
+    private string _exposureIndexText = "Exposure index: not measured yet.";
     private AppSettings? _renderedInputs;
     private string? _previewStaleReason;
     private BackendRuntimeInfo _runtimeInfo = new();
@@ -1032,6 +1033,29 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         get => _renderedVoiMode;
         private set => SetProperty(ref _renderedVoiMode, value);
+    }
+
+    /// <summary>
+    /// GUI-C-234 (pipeline-spec 6.1, (EI-0)): the exposure index of the last chain run, in words. The value is the preprocess stage's own sentence (the module's EI/DI of the corrected image, labelled
+    /// "uncalibrated" because K_cal and S0 are not calibrated: a measurement, not a pass criterion); when no value could be made, the reason (a stage that did not run, a module refusal).
+    /// </summary>
+    public string ExposureIndexText
+    {
+        get => _exposureIndexText;
+        private set => SetProperty(ref _exposureIndexText, value);
+    }
+
+    private static string ExposureIndexOf(ChainResult chain)
+    {
+        var preprocess = chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess);
+        if (preprocess is null || preprocess.Status is not (StageStatus.Applied or StageStatus.AppliedNoChange))
+        {
+            return "Exposure index: not measured (preprocessing did not run for this image).";
+        }
+
+        const string Marker = "uncalibrated EI";
+        var at = preprocess.Reason?.IndexOf(Marker, StringComparison.Ordinal) ?? -1;
+        return at < 0 ? "Exposure index: not measured (the module gave no value for this image)." : "Exposure index: " + preprocess.Reason![at..].Trim();
     }
 
     /// <summary>GUI-C-233c: whether the window of the render on screen was the automatic one (true), one chosen by hand (false), or unknown / no render yet (null).</summary>
@@ -2371,6 +2395,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 display = Settings.ShowDisplayPanel,
                 logs = ShowLogsPanel
             },
+            exposureIndex = ExposureIndexText,   // GUI-C-234
             displayPipeline = new
             {
                 applied = ActiveImageFrame?.DisplayPipelineApplied ?? false,
@@ -2518,6 +2543,7 @@ public sealed class MainWindowViewModel : ObservableObject
         ProcessedImage = loadedFrame.ProcessedPreview ?? loadedFrame.Preview;
         PreviewStaleReason = null;   // a new image replaces whatever was stale
         SetRenderedVoi(null);        // not a display-pipeline render yet
+        ExposureIndexText = "Exposure index: not measured yet.";
         // GUI-C-233c (Codex #173): and nothing the PREVIOUS frame's render wrote may describe this one: if this frame's render fails, the report must not carry the last frame's success.
         DisplayPipelineSummary = "Display pipeline has not run.";
         PipelineTimings = string.Empty;
@@ -2627,7 +2653,8 @@ public sealed class MainWindowViewModel : ObservableObject
             ActiveImageSummary = processedFrame.DisplayPipelineApplied
                 ? $"{processedFrame.Summary} | {processedFrame.DisplayPipelineSummary}"
                 : processedFrame.Summary;
-            StatusText = $"{chain.Summary} | {processedFrame.DisplayPipelineSummary}";
+            ExposureIndexText = ExposureIndexOf(chain);
+            StatusText = $"{chain.Summary} | {processedFrame.DisplayPipelineSummary} | {ExposureIndexText}";
             await RenderLanesAsync(sourceFrame, inputs, ProcessedImage, ticket);
             if (!IsCurrent(ticket))
             {

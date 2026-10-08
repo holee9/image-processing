@@ -232,6 +232,12 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             nativeMs = phase.Elapsed.TotalMilliseconds; phase.Restart();
 
             var processedPixels = CopyNativeUInt16Pixels(image.Data, count);
+            // GUI-C-234 (milestone 3, U4): a test hook, like XPE_GUI_AUTOMATION_RAW_PATH: when this variable names a file, the display stage's final 16-bit pixels are written there (raw little-endian, row-major,
+            // width x height x 2 bytes) so a test can compare them byte for byte with the module chain's output. Nothing else reads it; an unwritable path never disturbs the render.
+            if (Environment.GetEnvironmentVariable("XPE_GUI_AUTOMATION_EXPORT_PROCESSED16") is { Length: > 0 } processed16Path)
+            {
+                try { File.WriteAllBytes(processed16Path, MemoryMarshal.AsBytes(processedPixels.AsSpan()).ToArray()); } catch (IOException) { /* diagnostics only */ } catch (UnauthorizedAccessException) { /* diagnostics only */ }
+            }
             marshalOutMs = phase.Elapsed.TotalMilliseconds; phase.Restart();
 
             var processedPreview = CreatePreview(processedPixels, rawFrame.Width, rawFrame.Height);
@@ -376,7 +382,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             settings.SelectedBodyPart,
             settings.ExposureKvp,
             settings.PixelPitchMm,
-            measureExposureIndex));
+            true));   // GUI-C-234 (pipeline-spec 6.1, (EI-0)): the exposure index is measured on every run, not only the Baseline's (measureExposureIndex here means 'Baseline run' and is not passed on)
 
         // GUI-C-232b: the Deterministic Baseline runs this stage with its own fixed parameters; only an ordinary run offers a save candidate, and only to its own chain result.
         if (!measureExposureIndex && result is { Ran: true, Floats: { } floats } && frameKey is not null)
