@@ -52,6 +52,9 @@ VOI window derived from the anatomy in the image:
   (h) The window SHALL be derived from the values that reach the VOI stage, in whatever domain they are in.
   (i) [revised] The window SHALL depend only on the SET of pixel values of the image, not on where the pixels are: the same
       pixels in any order (reversed, transposed, shifted) give a bit-identical window.
+      [QA-B-214d] Deterministic for the same DLL on the same input. Identity between different builds (compiler, optimisation)
+      is NOT guaranteed -- a value on a bin edge may fall into the neighbouring bin and the class split is then chosen again;
+      the product ships one verified DLL, so this is outside the present requirement.
       [v2 (i), the "0.2 % of unseen pixels" sentence, is deleted: there are no unseen pixels.]
 
 Proposed performance requirement (the lead decides; no budget existed): <= 16 ms for 3072 x 3072, the interactive budget of

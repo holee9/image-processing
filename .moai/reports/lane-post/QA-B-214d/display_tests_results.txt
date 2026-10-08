@@ -1,0 +1,12 @@
+test_display_datasize_overread: [  PASSED  ] 2 tests. | failed lines: 0
+test_display_gsdf_characterization: [  PASSED  ] 12 tests. | failed lines: 0
+test_display_integration: [  PASSED  ] 22 tests. | failed lines: 0
+test_display_logging: [  PASSED  ] 4 tests. | failed lines: 0
+test_display_modality_lut: [  PASSED  ] 18 tests. | failed lines: 0
+test_display_nonfinite_pixels: [  PASSED  ] 12 tests. | failed lines: 0
+test_display_parameter_dependency: [  PASSED  ] 8 tests. | failed lines: 0
+test_display_presentation_lut: [  PASSED  ] 32 tests. | failed lines: 0
+test_display_repro_qa_b_200: [  PASSED  ] 1 test. | failed lines: 0
+test_display_voi_auto_window: [  PASSED  ] 21 tests. | failed lines: 0
+test_display_voi_lut: [  PASSED  ] 26 tests. | failed lines: 0
+total passed: 158
