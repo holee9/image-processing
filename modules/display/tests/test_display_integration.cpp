@@ -83,14 +83,21 @@ TEST(DisplayIntegration, FullPipeline_LinearModality_LinearVoi_PresLut) {
     // used to compute.
     EXPECT_NEAR(float_pixels(img)[0], 0.5025126f, 1e-5f);
 
-    // Stage 3: Presentation LUT — identity maps 0.5025126 -> index 514 -> 514
-    //   round(0.5025126 * 1023) = round(514.07) = 514   (#156, QA-B-149)
+    // Stage 3: Presentation LUT — identity maps 0.5025126 -> index 514 (#156, QA-B-149):
+    //   round(0.5025126 * 1023) = round(514.07) = 514
+    // UPDATED by QA-B-214 (polarity decision on #251): xpe_apply_presentation_lut now reads the table backwards by default, so
+    // the identity table gives lutData[1023 - 514] = 509 here. The ascending 514 is what XPE_PRESENTATION_AS_IS gives (asserted
+    // on a copy of the same stage-2 output, so the index arithmetic of #156 stays covered).
     XpePresentationLutParams plut{};
     make_identity_plut(plut);
+    XpeImageBuffer asIs = make_float32_image(4, 4, float_pixels(img)[0]);
+    ASSERT_EQ(xpe_apply_presentation_lut_ex(&asIs, &plut, XPE_PRESENTATION_AS_IS), XPE_OK);
+    EXPECT_EQ(uint16_pixels(asIs)[0], 514u);
+    free_image(asIs);
     ASSERT_EQ(xpe_apply_presentation_lut(&img, &plut), XPE_OK);
 
     EXPECT_EQ(img.format, XPE_PIXEL_UINT16);
-    EXPECT_EQ(uint16_pixels(img)[0], 514u);
+    EXPECT_EQ(uint16_pixels(img)[0], 509u);
     free_image(img);
 }
 

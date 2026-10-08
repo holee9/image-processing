@@ -18,9 +18,12 @@
 // @MX:REASON: All callers (xpe_display.dll consumers) depend on this ABI contract; domain transition float32->uint16
 // @MX:SPEC: SPEC-XPE-P1B-DISP
 static XpeErrorCode apply_presentation_lut_impl(XpeImageBuffer*                 img,
-                                                const XpePresentationLutParams* params) {
+                                                const XpePresentationLutParams* params,
+                                                XpePresentationPolarity         polarity) {
     if (!img)    return XPE_ERR_INVALID_INPUT;
     if (!params) return XPE_ERR_INVALID_INPUT;
+    // QA-B-214: an unknown polarity is refused before anything is touched.
+    if (polarity != XPE_PRESENTATION_INVERTED && polarity != XPE_PRESENTATION_AS_IS) return XPE_ERR_INVALID_INPUT;
 
     XpeErrorCode fmt_rc = xpe_validate_float32(img);
     if (fmt_rc != XPE_OK) return fmt_rc;
@@ -39,7 +42,16 @@ static XpeErrorCode apply_presentation_lut_impl(XpeImageBuffer*                 
     }
 
     const float* src = static_cast<const float*>(img->data);
-    const uint16_t* lut = params->lutData;
+
+    // QA-B-214 (user decision on #251): the polarity is applied here, as the last display step. INVERTED reads the table
+    // backwards, table[i] = lutData[1023 - i] (the DICOM INVERSE shape of the P-Values). The backwards copy is made once, so
+    // the per-pixel loop below is the same for both polarities and costs the same. For a ramp it equals 65535 - ramp
+    // exactly; for a GSDF table it keeps the table's perceptual spacing, which "65535 - lutData[i]" would break.
+    uint16_t table[1024];
+    for (int32_t i = 0; i < 1024; ++i) {
+        table[i] = (polarity == XPE_PRESENTATION_INVERTED) ? params->lutData[1023 - i] : params->lutData[i];
+    }
+    const uint16_t* lut = table;
 
     // REQ-DISP-020: index = clamp(round(input * 1023), 0, 1023)
     // REQ-DISP-021: input clamped to [0.0, 1.0] first
@@ -300,7 +312,16 @@ static XpeErrorCode gsdf_calibrate_impl(const float*              luminanceValue
 extern "C" XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*                 img,
                                                      const XpePresentationLutParams* params) {
     xpe_display_log_enter("xpe_apply_presentation_lut");
-    return xpe_display_log_exit("xpe_apply_presentation_lut", apply_presentation_lut_impl(img, params));
+    return xpe_display_log_exit("xpe_apply_presentation_lut",
+                                apply_presentation_lut_impl(img, params, XPE_PRESENTATION_INVERTED));
+}
+
+// QA-B-214: the same stage with the polarity chosen by the caller.
+extern "C" XpeErrorCode xpe_apply_presentation_lut_ex(XpeImageBuffer*                 img,
+                                                        const XpePresentationLutParams* params,
+                                                        XpePresentationPolarity         polarity) {
+    xpe_display_log_enter("xpe_apply_presentation_lut_ex");
+    return xpe_display_log_exit("xpe_apply_presentation_lut_ex", apply_presentation_lut_impl(img, params, polarity));
 }
 
 extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceValues,
