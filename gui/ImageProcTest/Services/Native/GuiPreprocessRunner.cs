@@ -82,7 +82,7 @@ internal static class GuiPreprocessRunner
             }
 
             // GUI-C-232b (SRS-CALIB-SAFE-004, leader decision): the operator app has ONE preprocess path, xpe_preprocess_pipeline_out, which never writes the input frame. A DLL without that
-            // export is a FAILURE with an instruction, not a reason to run the older in-place stage calls (the stage-by-stage method below is no longer reachable from Run).
+            // export is a FAILURE with an instruction, not a reason to run the older in-place stage calls.
             try
             {
                 return RunPipelineOut(rawPixels, width, height, bodyPart, kVp, pixelPitchMm, measureExposureIndex);
@@ -146,105 +146,6 @@ internal static class GuiPreprocessRunner
                 null,
                 nonFinite,
                 floats);
-        }
-        finally
-        {
-            for (var i = allocated.Count - 1; i >= 0; i--)
-            {
-                allocated[i]();
-            }
-        }
-    }
-
-    /// <summary>
-    /// offset (UInt16→UInt16) → gain (UInt16→Float32) → defect (Float32→Float32).
-    ///
-    /// The formats are the header's, not a guess: each stage declares its input and output format
-    /// (preprocess_api.h), and allocating the wrong one is a silent wrong answer rather than an error.
-    /// </summary>
-    private static PreprocessRunResult RunStages(ushort[] rawPixels, int width, int height, string bodyPart,
-        float kVp, float pixelPitchMm, bool measureExposureIndex)
-    {
-        // kVp and the pixel pitch are the user's settings (AppSettings.ExposureKvp / PixelPitchMm, GUI-C-99
-        // and GUI-C-100); both were literals here. mAs and SID are still fixed.
-        var metadata = XpeImageMetadataNative.Create(bodyPart, kVp: kVp, mAs: 2.0f, sidMm: 1000.0f, pixelPitchMm: pixelPitchMm);
-
-        var input = default(XpeImageBufferNative);
-        var offsetOut = default(XpeImageBufferNative);
-        var gainOut = default(XpeImageBufferNative);
-        var defectOut = default(XpeImageBufferNative);
-        var allocated = new List<Action>();
-
-        try
-        {
-            if (!TryAlloc(width, height, XpePixelFormatNative.UInt16, out input, allocated, out var reason) ||
-                !TryAlloc(width, height, XpePixelFormatNative.UInt16, out offsetOut, allocated, out reason) ||
-                !TryAlloc(width, height, XpePixelFormatNative.Float32, out gainOut, allocated, out reason) ||
-                !TryAlloc(width, height, XpePixelFormatNative.Float32, out defectOut, allocated, out reason))
-            {
-                return new PreprocessRunResult(false, reason, null);
-            }
-
-            var count = width * height;
-            var signed = new short[count];
-            Buffer.BlockCopy(rawPixels, 0, signed, 0, count * sizeof(ushort));
-            Marshal.Copy(signed, 0, input.Data, count);
-
-            var offsetCode = XpePreprocessNative.xpe_offset_correct(ref input, ref offsetOut, ref metadata);
-            if (offsetCode != XpeOk)
-            {
-                return new PreprocessRunResult(false, $"xpe_offset_correct failed ({offsetCode}).", null);
-            }
-
-            // Stage 3 (PRE-08), between offset and gain — the order the module's own pipeline uses
-            // (pipeline.cpp: Stage 2 offset at :142, Stage 3 nonlinearity at :158, Stage 4 gain at :184),
-            // read from the source rather than taken on report (#198, GUI-C-128).
-            //
-            // Until now the gui ran offset -> gain -> defect and skipped this stage entirely, so what it
-            // drew was not what the module's pipeline produces. That is the reason it is wired, not the
-            // alert the stage pushes — the alert is a side effect of the stage finally running.
-            //
-            // Null config: the gui has no detector profile to pass, and the module treats that as "no
-            // panel.linear declared". With no LUT loaded the stage returns XPE_OK and leaves the frame
-            // byte-identical (nonlinearity_correct.cpp:95), which is why adding it changes no pixels
-            // today. No new gui switch: the module decides what the stage does.
-            var nonlinearityCode = XpePreprocessNative.xpe_nonlinearity_correct(ref offsetOut, null);
-            if (nonlinearityCode != XpeOk)
-            {
-                return new PreprocessRunResult(false, $"xpe_nonlinearity_correct failed ({nonlinearityCode}).", null);
-            }
-
-            var gainCode = XpePreprocessNative.xpe_gain_correct(ref offsetOut, ref gainOut, ref metadata);
-            if (gainCode != XpeOk)
-            {
-                return new PreprocessRunResult(false, $"xpe_gain_correct failed ({gainCode}).", null);
-            }
-
-            // #225 row 9 (GUI-C-196 M8, Codex #76 finding 2): the gain stage's float output is counted too. It goes straight into the defect stage, which can replace a
-            // bad pixel with a finite one, so the final image alone would hide a gain stage that produced NaN or an infinity. Only counted; nothing here changes the pixels.
-            var gainFloats = ReadFloats(gainOut.Data, count);
-
-            var defectCode = XpePreprocessNative.xpe_defect_correct(ref gainOut, ref defectOut, ref metadata);
-            if (defectCode != XpeOk)
-            {
-                return new PreprocessRunResult(false, $"xpe_defect_correct failed ({defectCode}).", null);
-            }
-
-            // #225 row 9 (GUI-C-196 M4, design D1): EI-0 is measured HERE, on the float image, before it is scaled to 16 bits (after that the values are
-            // normalised by the frame maximum and an EI taken from them would be meaningless). Only the Deterministic Baseline asks for it: an ordinary
-            // Apply measures nothing, so its output and its alerts are unchanged.
-            var exposure = measureExposureIndex ? MeasureUncalibratedExposureIndex(ref defectOut, ref metadata) : string.Empty;
-
-            var defectFloats = ReadFloats(defectOut.Data, count);
-            var nonFinite = BaselineStageAdapters.CountPreprocessNonFinite(gainFloats, defectFloats);
-            var pixels = ScaleToUInt16(defectFloats);
-            return new PreprocessRunResult(
-                true,
-                $"Preprocess: offset -> nonlinearity -> gain -> defect on {width}x{height} ({bodyPart}).{exposure}",
-                pixels,
-                null,
-                nonFinite,
-                defectFloats);
         }
         finally
         {
