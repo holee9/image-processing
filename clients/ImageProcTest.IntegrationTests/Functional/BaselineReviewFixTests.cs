@@ -595,13 +595,23 @@ public sealed class BaselineReviewFixTests : IDisposable
             ImageProcTest.IntegrationTests.P1AReady.PreprocessCorrectionChainSmokeTests.WriteDefectMapFile(Path.Combine(maps, "defect.xcal"));
             ImageProcTest.Services.Native.XpePreprocessNative.xpe_preprocess_shutdown();
 
+            // GUI-C-233d (Codex #174 item 3): the SAME maps, settings and call first with a frame of the maps' own size (16 x 16): that must SUCCEED. Only then does the 64 x 64 frame's -1 mean "the size
+            // does not match the maps" and not "this fixture or this call form never worked".
+            var small = new ushort[16 * 16];
+            for (var i = 0; i < small.Length; i++) small[i] = (ushort)(1000 + i % 500);
+            var good = ImageProcTest.Services.Native.GuiPreprocessRunner.Run(small, 16, 16, maps, maps, maps, "Abdomen", 70f, 0.14f, measureExposureIndex: true);
+            Skip.If(good.Summary.Contains("has no xpe_preprocess_pipeline_out", StringComparison.Ordinal), "the staged xpe_preprocess.dll predates xpe_preprocess_pipeline_out: " + good.Summary);
+            Assert.True(good.Ran, "the 16 x 16 frame with 16 x 16 maps must succeed before the 64 x 64 failure can be attributed to its size: " + good.Summary);
+            Assert.Equal(small.Length, good.Pixels.Length);
+            Assert.DoesNotContain("failed (", good.Summary, StringComparison.Ordinal);
+
             var frame = new ushort[64 * 64];
             for (var i = 0; i < frame.Length; i++) frame[i] = (ushort)(1000 + i % 500);
             var run = ImageProcTest.Services.Native.GuiPreprocessRunner.Run(frame, 64, 64, maps, maps, maps, "Abdomen", 70f, 0.14f, measureExposureIndex: true);
             // a module built before xpe_preprocess_pipeline_out existed (an old local build/ci-common) cannot answer -1: that is a stale environment, not a result. The CI gate requires a PASS there.
             Skip.If(run.Summary.Contains("has no xpe_preprocess_pipeline_out", StringComparison.Ordinal), "the staged xpe_preprocess.dll predates xpe_preprocess_pipeline_out: " + run.Summary);
             Assert.False(run.Ran);
-            Assert.Contains("xpe_preprocess_pipeline_out failed (-1)", run.Summary, StringComparison.Ordinal);
+            Assert.Contains("xpe_preprocess_pipeline_out failed (-1)", run.Summary, StringComparison.Ordinal);   // same maps, same settings: only the frame size (64 x 64 against 16 x 16 maps) differs from the call that just succeeded
 
             var dicom = new FileDicom();
             var folder = Path.Combine(_root, "real-runner-fails");

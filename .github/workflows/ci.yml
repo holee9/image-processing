@@ -862,7 +862,8 @@ jobs:
           [xml]$doc = Get-Content -LiteralPath build/dotnet-test-results/integration-tests.trx -Raw
           $all = @($doc.TestRun.Results.UnitTestResult)
           Write-Host ("trx holds {0} result(s)" -f $all.Count)
-          $min = @{ 'BaselineDicomNativeTests' = 2; 'EnhanceBasicNativeTests' = 4; 'BaselineDisplayNativeTests' = 2 }
+          # GUI-C-233/233c: BaselineDisplayNativeTests gained the polarity regression test (3 now); the real-runner test lives in BaselineReviewFixTests and must have PASSED.
+          $min = @{ 'BaselineDicomNativeTests' = 2; 'EnhanceBasicNativeTests' = 4; 'BaselineDisplayNativeTests' = 3 }
           $bad = @()
           foreach ($class in $min.Keys) {
             $rows = @($all | Where-Object { $_.testName -like "*.$class.*" })
@@ -871,6 +872,10 @@ jobs:
             if ($rows.Count -lt $min[$class] -or $passed.Count -ne $rows.Count) { $bad += $class }
           }
           if ($bad.Count -gt 0) { Write-Error ("real-module tests skipped or missing: " + ($bad -join ', ')); exit 1 }
+
+          $runner = @($all | Where-Object { $_.testName -like '*TheRealRunner_ReceivingInvalidInputFromTheRealModule_FailsTheBaseline_WithTheCallAndTheCode*' })
+          Write-Host ("real-runner test: {0} result(s), outcome(s): {1}" -f $runner.Count, (($runner | ForEach-Object { $_.outcome }) -join ','))
+          if ($runner.Count -ne 1 -or $runner[0].outcome -ne 'Passed') { Write-Error 'the real GuiPreprocessRunner test did not pass (skipped, failed or missing)'; exit 1 }
 
       - name: Upload C# test results
         if: always()
