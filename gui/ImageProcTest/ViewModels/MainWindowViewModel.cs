@@ -1033,12 +1033,30 @@ public sealed class MainWindowViewModel : ObservableObject
         private set => SetProperty(ref _renderedVoiMode, value);
     }
 
-    private void SetRenderedVoi(AppSettings? inputs)
+    private void SetRenderedVoi(AppSettings? inputs, AppliedVoiWindow? applied = null)
     {
         _renderedInputs = inputs;
-        RenderedVoiCenter = inputs?.VoiWindowCenter;
-        RenderedVoiWidth = inputs?.VoiWindowWidth;
-        RenderedVoiMode = inputs?.VoiLutMode;
+        if (applied is not null)
+        {
+            // GUI-C-233b: what the display stage really used (for the automatic window, the module's numbers), not the settings.
+            RenderedVoiCenter = applied.Center;
+            RenderedVoiWidth = applied.Width;
+            RenderedVoiMode = applied.Mode;
+        }
+        else if (inputs is not null && inputs.VoiWindowAuto)
+        {
+            // An automatic window whose numbers the backend did not report: the settings' center/width were never used, so they are not shown as if they were.
+            RenderedVoiCenter = null;
+            RenderedVoiWidth = null;
+            RenderedVoiMode = null;
+        }
+        else
+        {
+            RenderedVoiCenter = inputs?.VoiWindowCenter;
+            RenderedVoiWidth = inputs?.VoiWindowWidth;
+            RenderedVoiMode = inputs?.VoiLutMode;
+        }
+
         RefreshParametersStale();
     }
 
@@ -1123,9 +1141,11 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>The settings either backend's ApplyDisplayPipeline reads (Mock and Real, GUI-C-79).</summary>
     private static bool DisplayInputsDiffer(AppSettings a, AppSettings b) =>
         ChainInputsDiffer(a, b)
-        || a.VoiWindowCenter != b.VoiWindowCenter
+        || a.VoiWindowAuto != b.VoiWindowAuto   // GUI-C-233b: automatic <-> chosen by hand changes the image
+        // the hand-chosen numbers only matter while the window is NOT automatic (the automatic window ignores them)
+        || (!b.VoiWindowAuto && (a.VoiWindowCenter != b.VoiWindowCenter
         || a.VoiWindowWidth != b.VoiWindowWidth
-        || !string.Equals(a.VoiLutMode, b.VoiLutMode, StringComparison.Ordinal)
+        || !string.Equals(a.VoiLutMode, b.VoiLutMode, StringComparison.Ordinal)))
         || a.ModalityRescaleSlope != b.ModalityRescaleSlope
         || a.ModalityRescaleIntercept != b.ModalityRescaleIntercept
         || a.GsdfEnabled != b.GsdfEnabled
@@ -2587,7 +2607,7 @@ public sealed class MainWindowViewModel : ObservableObject
             RefreshCorrectedAvailability();
             ProcessedImage = processedFrame.ProcessedPreview ?? processedFrame.Preview;
             PreviewStaleReason = null;   // #171 ③: this render is current; ① is re-evaluated just below
-            SetRenderedVoi(inputs);
+            SetRenderedVoi(inputs, processedFrame.AppliedVoi);
             MetadataText = processedFrame.MetadataText;
             DisplayPipelineSummary = processedFrame.DisplayPipelineSummary;
             ActiveImageSummary = processedFrame.DisplayPipelineApplied
