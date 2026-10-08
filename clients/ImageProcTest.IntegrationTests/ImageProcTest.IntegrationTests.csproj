@@ -193,7 +193,8 @@
     <ItemGroup Condition="'$(XPE_NATIVE_DIR)' != ''">
       <_XpeStaleStaged Include="$(OutputPath)xpe_common.dll;$(OutputPath)xpe_preprocess.dll;$(OutputPath)spdlog.dll;$(OutputPath)fmt.dll" />
     </ItemGroup>
-    <Delete Files="@(_XpeStaleStaged)" Condition="'$(XPE_NATIVE_DIR)' != ''" ContinueOnError="true" />
+    <!-- GUI-C-233c: no ContinueOnError - a stale copy that cannot be removed (locked by a running test host, say) is an ERROR: leaving it would bring the two-path load back silently. -->
+    <Delete Files="@(_XpeStaleStaged)" Condition="'$(XPE_NATIVE_DIR)' != ''" />
     <Copy
       SourceFiles="@(_XpeDllCandidates)"
       DestinationFolder="$(OutputPath)"

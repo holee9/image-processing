@@ -565,44 +565,66 @@ public sealed class BaselineReviewFixTests : IDisposable
     }
 
     /// <summary>
-    /// GUI-C-233b (Codex #171 finding 2): the same fact through the REAL <c>GuiPreprocessRunner</c> and the REAL module. A 3072 x 3072 frame against calibration maps made for 1024 x 1024 makes
-    /// xpe_preprocess_pipeline_out answer INVALID_INPUT (-1); the runner's own text for that, fed to the Baseline exactly as RealXpeBackend feeds it, fails the Baseline. Needs the staged DLLs
-    /// (XPE_NATIVE_DIR) and a folder of 1024 x 1024 maps (XPE_C231_SETS\ok1024, made by xpe_calib_fixture_gen); skipped without them.
+    /// GUI-C-233b/c (Codex #171 finding 2, #173 finding 2): the same fact through the REAL <c>GuiPreprocessRunner</c> and the REAL module, with NO outside data: the test makes its own 16 x 16
+    /// calibration maps with the module's own generators (and a defect map file) and hands the runner a 64 x 64 frame, which makes xpe_preprocess_pipeline_out answer INVALID_INPUT (-1). The runner's
+    /// own text for that, fed to the Baseline exactly as RealXpeBackend feeds it, fails the Baseline. The modules come from <c>XPE_NATIVE_DIR</c> when set, else from the test output folder
+    /// (staged by the project from build/ci-common/bin); with neither, it is skipped, and the CI gate (ci_gate_patch.txt) requires that it PASSED there.
     /// </summary>
     [SkippableFact]
     public void TheRealRunner_ReceivingInvalidInputFromTheRealModule_FailsTheBaseline_WithTheCallAndTheCode()
     {
         var native = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
-        var sets = Environment.GetEnvironmentVariable("XPE_C231_SETS");
-        var calib = string.IsNullOrWhiteSpace(sets) ? null : Path.Combine(sets, "ok1024");
-        Skip.If(string.IsNullOrWhiteSpace(native) || calib is null || !Directory.Exists(calib), "XPE_NATIVE_DIR and XPE_C231_SETS (a folder with ok1024 maps) are needed.");
-
-        // one copy of every module, all from XPE_NATIVE_DIR (the same loader the other native tests use; GUI-C-199)
-        ImageProcTest.IntegrationTests.Fixtures.SharedCommonModule.Load(native!);
-        System.Runtime.InteropServices.NativeLibrary.Load(Path.Combine(native!, "xpe_preprocess.dll"));
-        var frame = new ushort[3072 * 3072];
-        for (var i = 0; i < frame.Length; i++) frame[i] = (ushort)(1000 + i % 500);
-        var run = ImageProcTest.Services.Native.GuiPreprocessRunner.Run(frame, 3072, 3072, calib!, calib!, calib!, "Abdomen", 70f, 0.14f, measureExposureIndex: true);
-        Assert.False(run.Ran);
-        Assert.Contains("xpe_preprocess_pipeline_out failed (-1)", run.Summary, StringComparison.Ordinal);
-
-        var dicom = new FileDicom();
-        var folder = Path.Combine(_root, "real-runner-fails");
-        var result = Execute(() =>
+        if (string.IsNullOrWhiteSpace(native))
         {
-            var chain = ProcessingChainRunner.Run(Raw, ProcessingChainPlan.BuildBaselineStages(), (request, input) => request.StageId switch
-            {
-                StageIds.Preprocess => BaselineStageAdapters.FromPreprocess(run.Ran, run.Pixels, run.Summary, run.NonFiniteCount),
-                _ => new StageExecution(false, null, "not run: the preprocess stage failed"),
-            });
-            return new BaselineSingleRun(chain, []);
-        }, dicom, folder);
+            native = AppContext.BaseDirectory;
+        }
 
-        Assert.False(result.Passed);
-        Assert.Equal(0, dicom.Writes);
-        Assert.Contains("preprocess", result.Status, StringComparison.Ordinal);
-        Assert.Contains("xpe_preprocess_pipeline_out failed (-1)", result.Status, StringComparison.Ordinal);
-        Assert.Contains("xpe_preprocess_pipeline_out failed (-1)", ReadJson(result).GetProperty("failureReason").GetString()!, StringComparison.Ordinal);
+        Skip.IfNot(File.Exists(Path.Combine(native, "xpe_common.dll")) && File.Exists(Path.Combine(native, "xpe_preprocess.dll")), "xpe_common.dll and xpe_preprocess.dll are not staged (XPE_NATIVE_DIR or the test output folder).");
+
+        // one copy of every module, all from the same folder (the loader the other native tests use; GUI-C-199)
+        ImageProcTest.IntegrationTests.Fixtures.SharedCommonModule.Load(native);
+        var handle = System.Runtime.InteropServices.NativeLibrary.Load(Path.Combine(native, "xpe_preprocess.dll"));
+
+        var maps = Path.Combine(Path.GetTempPath(), "xpe_c233c_maps_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(maps);
+        try
+        {
+            ImageProcTest.Services.Native.XpePreprocessNative.xpe_preprocess_shutdown();
+            Assert.Equal(0, ImageProcTest.Services.Native.XpePreprocessNative.xpe_preprocess_init(null));
+            ImageProcTest.IntegrationTests.P1AReady.PreprocessCorrectionChainSmokeTests.GenerateAndLoadCalibration(handle, maps);   // the module's own generators: offset.xcal, gain.xcal (16 x 16)
+            ImageProcTest.IntegrationTests.P1AReady.PreprocessCorrectionChainSmokeTests.WriteDefectMapFile(Path.Combine(maps, "defect.xcal"));
+            ImageProcTest.Services.Native.XpePreprocessNative.xpe_preprocess_shutdown();
+
+            var frame = new ushort[64 * 64];
+            for (var i = 0; i < frame.Length; i++) frame[i] = (ushort)(1000 + i % 500);
+            var run = ImageProcTest.Services.Native.GuiPreprocessRunner.Run(frame, 64, 64, maps, maps, maps, "Abdomen", 70f, 0.14f, measureExposureIndex: true);
+            // a module built before xpe_preprocess_pipeline_out existed (an old local build/ci-common) cannot answer -1: that is a stale environment, not a result. The CI gate requires a PASS there.
+            Skip.If(run.Summary.Contains("has no xpe_preprocess_pipeline_out", StringComparison.Ordinal), "the staged xpe_preprocess.dll predates xpe_preprocess_pipeline_out: " + run.Summary);
+            Assert.False(run.Ran);
+            Assert.Contains("xpe_preprocess_pipeline_out failed (-1)", run.Summary, StringComparison.Ordinal);
+
+            var dicom = new FileDicom();
+            var folder = Path.Combine(_root, "real-runner-fails");
+            var result = Execute(() =>
+            {
+                var chain = ProcessingChainRunner.Run(Raw, ProcessingChainPlan.BuildBaselineStages(), (request, input) => request.StageId switch
+                {
+                    StageIds.Preprocess => BaselineStageAdapters.FromPreprocess(run.Ran, run.Pixels, run.Summary, run.NonFiniteCount),
+                    _ => new StageExecution(false, null, "not run: the preprocess stage failed"),
+                });
+                return new BaselineSingleRun(chain, []);
+            }, dicom, folder);
+
+            Assert.False(result.Passed);
+            Assert.Equal(0, dicom.Writes);
+            Assert.Contains("preprocess", result.Status, StringComparison.Ordinal);
+            Assert.Contains("xpe_preprocess_pipeline_out failed (-1)", result.Status, StringComparison.Ordinal);
+            Assert.Contains("xpe_preprocess_pipeline_out failed (-1)", ReadJson(result).GetProperty("failureReason").GetString()!, StringComparison.Ordinal);
+        }
+        finally
+        {
+            try { Directory.Delete(maps, true); } catch (Exception) { /* temp folder */ }
+        }
     }
 
     [Fact]

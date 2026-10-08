@@ -1,0 +1,21 @@
+DRAFT patch for .github/workflows/ci.yml (leader applies; gui lane does not edit ci.yml).
+Step: "Assert the real-module tests ran (a skip fails)" in the dotnet-tests job (about line 856-873 at the time of writing).
+
+What the workflow does that matters here (read, not run):
+- The job downloads the common/preprocess/post binaries into build/ci-common/bin/ and merges the dicom DLLs there; "Verify native binaries present" checks xpe_common, xpe_preprocess, xpe_enhance_basic, xpe_display, xpe_dicom, dcmdata, openjp2.
+- clients/ImageProcTest.IntegrationTests/*.csproj target CopyXpeDllsForTests copies xpe_common, xpe_preprocess, spdlog and fmt from build/ci-common/bin into the test output folder (only when XPE_NATIVE_DIR is NOT set, which is the case in this job). xpe_display, xpe_enhance_basic and xpe_dicom are loaded by their test classes from build/ci-common/bin.
+- So in CI TheRealRunner_ReceivingInvalidInputFromTheRealModule_FailsTheBaseline_WithTheCallAndTheCode finds xpe_common.dll and xpe_preprocess.dll in AppContext.BaseDirectory and makes its own maps; it needs no XPE_NATIVE_DIR and no outside data. It skips ONLY if the staged xpe_preprocess.dll predates xpe_preprocess_pipeline_out - in CI that means a regression, so the gate below makes it red.
+
+Patch:
+
+-          $min = @{ 'BaselineDicomNativeTests' = 2; 'EnhanceBasicNativeTests' = 4; 'BaselineDisplayNativeTests' = 2 }
++          # GUI-C-233/233c: BaselineDisplayNativeTests gained the polarity regression test (3 now); the real-runner test lives in BaselineReviewFixTests and must have PASSED.
++          $min = @{ 'BaselineDicomNativeTests' = 2; 'EnhanceBasicNativeTests' = 4; 'BaselineDisplayNativeTests' = 3 }
+...
+           if ($bad.Count -gt 0) { Write-Error ("real-module tests skipped or missing: " + ($bad -join ', ')); exit 1 }
++
++          $runner = @($all | Where-Object { $_.testName -like '*TheRealRunner_ReceivingInvalidInputFromTheRealModule_FailsTheBaseline_WithTheCallAndTheCode*' })
++          Write-Host ("real-runner test: {0} result(s), outcome(s): {1}" -f $runner.Count, (($runner | ForEach-Object { $_.outcome }) -join ','))
++          if ($runner.Count -ne 1 -or $runner[0].outcome -ne 'Passed') { Write-Error 'the real GuiPreprocessRunner test did not pass (skipped, failed or missing)'; exit 1 }
+
+Not verified: the patch was not run against a real TRX from CI. The test counts (3) assume BaselineDisplayNativeTests has exactly the three [SkippableFact]s in dev/gui at 233 (the two older ones plus TheShippedDisplay_IsTheComplementOfTheAscendingMapping_BoneBrightAirDark).
