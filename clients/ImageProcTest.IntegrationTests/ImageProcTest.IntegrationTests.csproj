@@ -103,6 +103,7 @@
     <Compile Include="..\..\gui\ImageProcTest\Services\RunnerProcess.cs" Link="BenchmarkRunner\Linked\RunnerProcess.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Models\ProcessingChain.cs" Link="Chain\Linked\ProcessingChain.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\ProcessingChainRunner.cs" Link="Chain\Linked\ProcessingChainRunner.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\AtomicFile.cs" Link="Chain\Linked\AtomicFile.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\ProcessingChainPlan.cs" Link="Chain\Linked\ProcessingChainPlan.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\BaselineDeterminism.cs" Link="Chain\Linked\BaselineDeterminism.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\BaselineParameters.cs" Link="Chain\Linked\BaselineParameters.cs" />
