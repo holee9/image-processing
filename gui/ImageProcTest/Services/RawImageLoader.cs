@@ -22,32 +22,54 @@ public sealed class RawImageLoader
 
     // @MX:NOTE: [AUTO] Two-pass pixel scan: pass 1 collects min/max for normalization range, pass 2 maps to 8-bit preview; merging passes would require a full pixel buffer copy
     /// <summary>
-    /// GUI-C-232 (B): the file's length decides the size, never the other way round. A length that is exactly width x height x 2 opens as the settings say. Any other length used to open
-    /// silently (a longer file lost its end, a shorter one failed with a size nobody asked for); now it either opens at the one size that fits (a square image, the usual detector) and the
-    /// notice says so, or it is refused with the numbers, because guessing between several rectangles would show a plausible wrong picture.
+    /// GUI-C-232b (leader decision, Codex #165): the size is never guessed. The file must be exactly width x height x 2 bytes; any other length is refused, with the size that was needed, the bytes the file has,
+    /// and how to set the size. A matching length does not prove the shape or the absence of a header (a 3072x3072 file and a 2048x4608 file are the same length): that is the operator's to know.
     /// </summary>
-    internal static (int Width, int Height, string? Notice) DecideSize(long fileBytes, int settingsWidth, int settingsHeight)
+    internal static void CheckLength(long fileBytes, int width, int height)
     {
-        var expected = checked((long)settingsWidth * settingsHeight * 2);
+        var expected = checked((long)width * height * 2);
         if (fileBytes == expected)
         {
-            return (settingsWidth, settingsHeight, null);
+            return;
         }
 
-        if (fileBytes > 0 && fileBytes % 2 == 0)
+        throw new InvalidDataException(
+            (fileBytes < expected
+                ? $"Raw file is too small. Expected at least {expected} bytes, got {fileBytes}."
+                : $"Raw file has {fileBytes} bytes, more than the {expected} bytes of {width}x{height} 16-bit.") +
+            $" The size is set in the settings as rawWidth/rawHeight ({width}x{height} now), or with --automation-width/--automation-height; the file is not opened until its length is exactly width x height x 2.");
+    }
+
+    /// <summary>
+    /// Maps loaded from the calibration folders carry their own size in the header (xcal_format.h, width and height at byte 16 and 20). When a map is there and its size differs from the image's, the image is not
+    /// opened: the stage would refuse the pair later with only an error code. A folder without a readable map is not an error here (the stage reports that itself).
+    /// </summary>
+    internal static void CheckMapSizes(int width, int height, params (string Kind, string Directory)[] maps)
+    {
+        foreach (var (kind, directory) in maps)
         {
-            var pixels = fileBytes / 2;
-            var side = (long)Math.Round(Math.Sqrt(pixels));
-            if (side * side == pixels && side <= int.MaxValue)
+            var path = System.IO.Path.Combine(directory ?? string.Empty, kind.ToLowerInvariant() + ".xcal");
+            if (!File.Exists(path))
             {
-                return ((int)side, (int)side, $"size from the file length: {fileBytes} bytes = {side}x{side}x2, the settings said {settingsWidth}x{settingsHeight} ({expected} bytes)");
+                continue;
+            }
+
+            Span<byte> header = stackalloc byte[24];
+            using (var stream = File.OpenRead(path))
+            {
+                if (stream.Read(header) < 24 || header[0] != (byte)'X' || header[1] != (byte)'C' || header[2] != (byte)'A' || header[3] != (byte)'L')
+                {
+                    continue;
+                }
+            }
+
+            var mapWidth = BinaryPrimitives.ReadUInt32LittleEndian(header[16..]);
+            var mapHeight = BinaryPrimitives.ReadUInt32LittleEndian(header[20..]);
+            if (mapWidth != (uint)width || mapHeight != (uint)height)
+            {
+                throw new InvalidDataException($"The {kind.ToLowerInvariant()} calibration map {path} is {mapWidth}x{mapHeight}, but the raw image is {width}x{height}. Open an image of the map's size, or point the calibration folder at maps made for {width}x{height}.");
             }
         }
-
-        var advice = "Set the right width and height (rawWidth/rawHeight in the settings, or --automation-width/--automation-height) and open it again.";
-        throw new InvalidDataException(fileBytes < expected
-            ? $"Raw file is too small. Expected at least {expected} bytes, got {fileBytes}. The length is not a square 16-bit image either. {advice}"
-            : $"Raw file has {fileBytes} bytes, more than the {expected} bytes of {settingsWidth}x{settingsHeight} 16-bit, and the length is not a square image either. {advice}");
     }
 
     private static LoadedImageFrame LoadRaw(string path, AppSettings settings)
@@ -58,7 +80,10 @@ public sealed class RawImageLoader
         }
 
         var data = File.ReadAllBytes(path);
-        var (width, height, sizeNotice) = DecideSize(data.Length, settings.RawWidth, settings.RawHeight);
+        var width = settings.RawWidth;
+        var height = settings.RawHeight;
+        CheckLength(data.Length, width, height);
+        CheckMapSizes(width, height, ("Offset", settings.OffsetCalibrationDirectory), ("Gain", settings.GainCalibrationDirectory), ("Defect", settings.DefectCalibrationDirectory));
 
         ushort minValue = ushort.MaxValue;
         ushort maxValue = ushort.MinValue;
@@ -102,7 +127,7 @@ public sealed class RawImageLoader
         {
             Preview = preview,
             ProcessedPreview = preview,
-            Summary = $"RAW {width}x{height}, min={minValue}, max={maxValue}, bytes={data.Length}" + (sizeNotice is null ? string.Empty : $" [{sizeNotice}]"),
+            Summary = $"RAW {width}x{height}, min={minValue}, max={maxValue}, bytes={data.Length}",
             MetadataText =
                 $"Source: {path}{Environment.NewLine}" +
                 $"Kind: Raw frame{Environment.NewLine}" +
@@ -115,8 +140,7 @@ public sealed class RawImageLoader
             RawPixels = rawPixels,
             Width = width,
             Height = height,
-            BitsStored = 16,
-            SizeNotice = sizeNotice
+            BitsStored = 16
         };
     }
 

@@ -177,7 +177,6 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         {
             ("no maps in the folder", native!, Path.Combine(sets!, "empty"), raw1024, 1024),
             ("expired map set", native!, Path.Combine(sets!, "expired1024"), raw1024, 1024),
-            ("maps are 1024x1024 but the raw image is 3072x3072", native!, Path.Combine(sets!, "ok1024"), raw3072, 3072),
             ("native DLL folder has no DLLs", Path.Combine(sets!, "nodll"), Path.Combine(sets!, "ok1024"), raw1024, 1024),
         };
         if (invalidGain is not null) cases.Insert(0, ("gain map with values outside 0.1..10 (a pre build artifact)", native!, invalidGain, raw3072, 3072));
@@ -215,6 +214,18 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             app.ClickButtonByName("Log");
             Thread.Sleep(1200);
             foreach (var line in app.ListItems("LogListBox").TakeLast(12)) output.WriteLine("   LOG " + line);
+        }
+
+        // GUI-C-232b: maps made for 1024x1024 and a 3072x3072 raw image: the image is NOT opened (it used to open and fail later with only a code)
+        output.WriteLine("CASE maps are 1024x1024 but the raw image is 3072x3072");
+        using (var app = GuiApp.Launch(output, native!, extraArguments:
+            ["--automation-backend", "Native", "--automation-calib", Path.Combine(sets!, "ok1024"), "--automation-width", "3072", "--automation-height", "3072"]))
+        {
+            app.Menu("FileMenu");
+            app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw3072, confirmId: "1");
+            app.WaitFor(() => app.AnyTextContains("calibration map") && app.AnyTextContains("is 1024x1024, but the raw image is 3072x3072"), "the open is refused with both sizes", 90);
+            foreach (var text in app.TextsContaining("Load failed")) output.WriteLine("   error: " + text);
+            Assert.False(app.AnyTextContains("RAW 3072x3072"), "the image was opened although the maps are another size");
         }
     }
 
@@ -433,10 +444,10 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
 
     /// <summary>
     /// GUI-C-232 (A): after Backend > Backend Mode > Native on a running app, Run Preprocessing is enabled at once (no restart). (B): a file whose length is not width x height x 2 is not opened silently:
-    /// a square image is opened at the size its length gives, with a visible note; any other length is refused with the numbers.
+    /// the size is never guessed: a file of any other length (square or not) is refused with the numbers.
     /// </summary>
     [EnvGatedFact]
-    public void W8_SwitchEnablesRunPreprocessing_AndTheFileLengthDecidesTheRawSize()
+    public void W8_SwitchEnablesRunPreprocessing_AndAWrongRawSizeIsRefused()
     {
         var (native, _, raw, width, height) = Inputs();
         using (var app = GuiApp.Launch(output, native, extraArguments: []))
@@ -454,16 +465,16 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             Assert.True(enabled);
         }
 
-        foreach (var wrongSetting in new[] { 1024 })
+        // a SQUARE file with the wrong setting is refused too (232b: no inference from the length)
+        using (var app = GuiApp.Launch(output, native, ["--automation-width", "1024", "--automation-height", "1024"]))
         {
-            using var app = GuiApp.Launch(output, native, ["--automation-width", wrongSetting.ToString(), "--automation-height", wrongSetting.ToString()]);
-            app.Step($"B: the settings say {wrongSetting}x{wrongSetting}, the file is {width}x{height}");
+            app.Step($"B: the settings say 1024x1024, the file is {width}x{height} (square)");
             app.Menu("FileMenu");
             app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1");
-            app.WaitFor(() => app.AnyTextContains($"RAW {width}x{height}"), "the image opens at the size the file length gives", 90);
-            foreach (var text in app.TextsContaining("RAW ")) output.WriteLine("   summary: " + text);
-            foreach (var text in app.TextsContaining("NOTE:")) output.WriteLine("   status: " + text);
-            Assert.True(app.AnyTextContains("size from the file length"), "the size note is not shown");
+            var bytes = (long)width * height * 2;
+            app.WaitFor(() => app.AnyTextContains($"Load failed: Raw file has {bytes} bytes, more than the 2097152 bytes of 1024x1024"), "the square file is refused with the numbers", 90);
+            foreach (var text in app.TextsContaining("Load failed")) output.WriteLine("   error: " + text);
+            Assert.False(app.AnyTextContains($"RAW {width}x{height}"), "the file was opened at a guessed size");
         }
 
         foreach (var (w, h, expectedText) in new[] { (1000, 500, "Load failed: Raw file is too small. Expected at least 2097152 bytes, got 1000000"), (2000, 1100, "Load failed: Raw file has 4400000 bytes, more than the 2097152 bytes") })
