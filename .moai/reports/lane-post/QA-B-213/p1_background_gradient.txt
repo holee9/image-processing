@@ -1,0 +1,8 @@
+Air blocks (300x300 px, chosen by eye from the display PNG: TL rows/cols 150..450, BR rows/cols 2600..2900)
+  input ADU                          TL mean=  1965.166 BR mean=  2799.952 BR/TL=1.4248 BR-TL=834.787
+  log domain (1000*log10(ADU+1))     TL mean=  3293.435 BR mean=  3447.296 BR/TL=1.0467 BR-TL=153.861
+  after CLAHE (log domain, from PNG) TL mean=  3219.896 BR mean=  3378.854 BR/TL=1.0494 BR-TL=158.958
+  final uint16 (Presentation out)    TL mean=   53270.9 BR mean=   60898.6  BR pixels at 65535: 0.00%  TL pixels at 65535: 0.00%
+Log-domain spread of the air gradient relative to the VOI window width (1366.70): input TL->BR = 0.113 window widths
+Left air strip cols 0..1100: final uint16 mean=58214.3  fraction at 65535=0.1693%
+Whole image: fraction at 65535 = 1.1212%, fraction at 0 = 1.0069%
