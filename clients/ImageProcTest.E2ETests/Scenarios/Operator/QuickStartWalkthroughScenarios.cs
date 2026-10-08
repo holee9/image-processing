@@ -375,10 +375,16 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         Assert.False(baseline is null, "XPE_C231_BASELINE_F32 (the first-stage reference float file) is not set.");
         var outDir = Path.Combine(Path.GetTempPath(), "xpe_c232_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(outDir);
+        // GUI-C-232b: the test works on its OWN copy of the raw file in its own temp folder; the app saves beside the image it opened, so every file the test writes or deletes is in outDir
+        var original = raw;
+        raw = Path.Combine(outDir, Path.GetFileName(original));
+        File.Copy(original, raw);
         try
         {
             using var app = GuiApp.Launch(output, native, extraArguments:
                 ["--automation-backend", "Native", "--automation-calib", calib, "--automation-width", width.ToString(), "--automation-height", height.ToString()]);
+            var dll = Path.Combine(native, "xpe_preprocess.dll");
+            output.WriteLine($"   DLL: {dll} sha256 {Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(dll))).ToLowerInvariant()} written {File.GetLastWriteTime(dll):yyyy-MM-dd HH:mm:ss}; provenance.json {(File.Exists(Path.Combine(native, "provenance.json")) ? "present" : "absent")}");
             app.Step("1 started on Native; Save Corrected Image is dimmed before anything ran");
             app.Menu("FileMenu");
             output.WriteLine("   Save float enabled: " + app.IsEnabled("SaveCorrectedFloatMenuItem") + "; Save PNG enabled: " + app.IsEnabled("SaveCorrectedPngMenuItem"));
@@ -398,6 +404,11 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             app.WaitFor(() => app.Read("ChainStatusText").Contains("preprocess=Applied", StringComparison.Ordinal), "preprocess=Applied", 180);
             Thread.Sleep(3000);
             output.WriteLine("   chain: " + app.Read("ChainStatusText"));
+            app.Menu("ViewMenu");
+            if (!app.IsToggled("ShowLogsPanelMenuItem")) app.InvokeMenuItem("ShowLogsPanelMenuItem");
+            app.ClickButtonByName("Log");
+            Thread.Sleep(800);
+            foreach (var line in app.ListItems("LogListBox").Where(l => l.Contains("pipeline_out", StringComparison.Ordinal)).Take(2)) output.WriteLine("   LOG " + line);
 
             app.Step("4 File > Save Corrected Image (float32 .raw)...");
             var suggestedStem = Path.Combine(Path.GetDirectoryName(raw)!, Path.GetFileNameWithoutExtension(raw));
@@ -435,10 +446,6 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         finally
         {
             try { Directory.Delete(outDir, true); } catch (Exception) { /* temp folder */ }
-            foreach (var leftover in new[] { "_corrected_f32le.raw", "_corrected_16bit.png" })
-            {
-                try { File.Delete(Path.Combine(Path.GetDirectoryName(raw)!, Path.GetFileNameWithoutExtension(raw) + leftover)); } catch (Exception) { /* not there */ }
-            }
         }
     }
 
