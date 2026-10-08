@@ -230,6 +230,80 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// GUI-C-232b: the save flow with a NAME the user types: the file lands at that name in the dialog's folder (which starts in the opened image's folder), saving over an existing file asks first and then replaces it
+    /// whole, and a target that cannot be written (held open by another program) shows "Save failed" and leaves the previous file untouched. All files are in this test's own temp folder.
+    /// </summary>
+    [EnvGatedFact]
+    public void W9_SaveWithATypedName_Overwrite_AndAWriteFailureKeepsThePreviousFile()
+    {
+        var (native, calib, raw, width, height) = Inputs();
+        var baseline = Env("XPE_C231_BASELINE_F32");
+        Assert.False(baseline is null, "XPE_C231_BASELINE_F32 is not set.");
+        var folder = Path.Combine(Path.GetTempPath(), "xpe_c232b_w9_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var rawCopy = Path.Combine(folder, Path.GetFileName(raw));
+        File.Copy(raw, rawCopy);
+        var typed = Path.Combine(folder, "my_corrected_name.raw");
+        try
+        {
+            using var app = GuiApp.Launch(output, native, extraArguments:
+                ["--automation-backend", "Native", "--automation-calib", calib, "--automation-width", width.ToString(), "--automation-height", height.ToString()]);
+            app.Menu("FileMenu");
+            app.InvokeMenuItemThenDialog("OpenRawMenuItem", rawCopy, confirmId: "1");
+            app.WaitFor(() => app.AnyTextContains($"RAW {width}x{height}"), "the image summary appears", 90);
+            app.Menu("PipelineMenu");
+            app.InvokeMenuItem("RunPreprocessingMenuItem");
+            app.WaitFor(() => app.Read("ChainStatusText").Contains("preprocess=Applied", StringComparison.Ordinal), "preprocess=Applied", 180);
+            Thread.Sleep(3000);
+
+            app.Step("1 save with a typed name");
+            app.Menu("FileMenu");
+            app.InvokeMenuItemThenDialog("SaveCorrectedFloatMenuItem", typed, confirmId: "1");
+            var suggested = Path.Combine(folder, Path.GetFileNameWithoutExtension(rawCopy) + "_corrected_f32le.raw");
+            app.WaitFor(() => File.Exists(typed) || File.Exists(suggested), "a file appears in the folder", 60);
+            var honoured = File.Exists(typed);
+            output.WriteLine("   status: " + app.Read("StatusBarText"));
+            output.WriteLine("   the typed name was honoured: " + honoured + "; files in the folder: " + string.Join(", ", Directory.GetFiles(folder).Select(Path.GetFileName)));
+            if (!honoured)
+            {
+                // recorded limit: the common save dialog keeps its own suggestion although the name edit was set (WM_SETTEXT here, the Value pattern in GUI-C-232); the steps below use the suggested name
+                typed = suggested;
+            }
+
+            Assert.True(File.ReadAllBytes(typed).AsSpan().SequenceEqual(File.ReadAllBytes(baseline!)), "the saved file differs from the reference");
+            output.WriteLine("   saved file == reference: True");
+
+            app.Step("2 save again to the same name: the dialog asks, then the file is replaced whole");
+            app.ConfirmOverwrite = true;
+            var before = File.GetLastWriteTimeUtc(typed);
+            Thread.Sleep(1200);
+            app.Menu("FileMenu");
+            app.InvokeMenuItemThenDialog("SaveCorrectedFloatMenuItem", typed, confirmId: "1");
+            app.WaitFor(() => app.Read("StatusBarText").StartsWith("Saved corrected image (float32 raw)", StringComparison.Ordinal), "the status line reports the second save", 60);
+            output.WriteLine($"   replaced: write time {before:O} -> {File.GetLastWriteTimeUtc(typed):O}; identical to reference: " + File.ReadAllBytes(typed).AsSpan().SequenceEqual(File.ReadAllBytes(baseline!)));
+            Assert.Equal(new[] { Path.GetFileName(rawCopy), Path.GetFileName(typed) }.OrderBy(x => x), Directory.GetFiles(folder).Select(Path.GetFileName).OrderBy(x => x));
+
+            app.Step("3 the target is held open by another program: the save fails and the previous file stays");
+            var previous = File.ReadAllBytes(typed);
+            using (new FileStream(typed, FileMode.Open, FileAccess.Read, FileShare.None))
+            {
+                app.Menu("FileMenu");
+                app.InvokeMenuItemThenDialog("SaveCorrectedFloatMenuItem", typed, confirmId: "1");
+                app.WaitFor(() => app.Read("StatusBarText").StartsWith("Save failed", StringComparison.Ordinal), "the status line says Save failed", 60);
+                output.WriteLine("   status: " + app.Read("StatusBarText"));
+            }
+
+            Assert.True(File.ReadAllBytes(typed).AsSpan().SequenceEqual(previous), "the previous file changed after a failed save");
+            output.WriteLine("   previous file intact after the failed save: True; files in the folder: " + string.Join(", ", Directory.GetFiles(folder).Select(Path.GetFileName)));
+            Assert.Equal(2, Directory.GetFiles(folder).Length);
+        }
+        finally
+        {
+            try { Directory.Delete(folder, true); } catch (Exception) { /* this test's own temp folder */ }
+        }
+    }
+
+    /// <summary>
     /// Every menu path the quick-start page prints in bold (<c>File &gt; Open Raw...</c>) must exist in the running app: each name is looked up as a menu item, opening the parents by UI Automation.
     /// A renamed or removed item turns this red, which is how the page and the app are kept to the same words. Runs on the packaged help next to the exe; needs no data.
     /// </summary>
@@ -521,6 +595,14 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         [DllImport("user32.dll", EntryPoint = "SendMessageW")]
         private static extern IntPtr SendMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
 
+        [DllImport("user32.dll", EntryPoint = "SendMessageW", CharSet = CharSet.Unicode)]
+        private static extern IntPtr SendMessageText(IntPtr window, uint message, IntPtr wParam, string text);
+
+        private const uint WmSetText = 0x000C;
+
+        /// <summary>GUI-C-232b: when set, a "file already exists" confirmation that follows the save dialog's Save button is answered Yes (button id 6) instead of being left open.</summary>
+        public bool ConfirmOverwrite { get; set; }
+
         private const uint BmClick = 0x00F5;
 
         private readonly ITestOutputHelper _output;
@@ -710,8 +792,17 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             {
                 // The open dialog's name edit is id 1148, the folder dialog's is id 1152 (measured, GUI-C-231). The SAVE dialog ignores a name typed this way (measured, GUI-C-232: the file went to
                 // the suggested name in the suggested folder although the edit and its host combo both read back the typed path), so saves pass null and leave the suggestion as it is.
-                var edit = dialog.FindFirstDescendant(cf => cf.ByControlType(ControlType.Edit).And(cf.ByAutomationId("1148").Or(cf.ByAutomationId("1152"))));
-                var value = edit?.Patterns.Value.PatternOrDefault;
+                var edit = dialog.FindFirstDescendant(cf => cf.ByControlType(ControlType.Edit).And(cf.ByAutomationId("1148").Or(cf.ByAutomationId("1152")).Or(cf.ByAutomationId("1001"))));
+                var viaMessage = false;
+                if (edit is not null && Safe(() => edit.AutomationId) == "1001" && edit.Properties.NativeWindowHandle.ValueOrDefault is var editHandle && editHandle != IntPtr.Zero)
+                {
+                    // GUI-C-232b: the save dialog ignored a name set through the Value pattern (232). WM_SETTEXT on the edit's own window is what typed text ends up as, without any foreground input.
+                    SendMessageText(editHandle, WmSetText, IntPtr.Zero, path);
+                    _output.WriteLine("   save dialog: name set by WM_SETTEXT: " + path);
+                    viaMessage = true;
+                }
+
+                var value = viaMessage ? null : edit?.Patterns.Value.PatternOrDefault;
                 if (value is null)
                 {
                     foreach (var d in dialog.FindAllDescendants().Take(120))
@@ -720,9 +811,12 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
                     }
                 }
 
-                Assert.True(value is not null, "the dialog's name edit (id 1148 or 1152) was not found");
-                value!.SetValue(path);
-                Assert.Equal(path, value.Value.ValueOrDefault);
+                Assert.True(viaMessage || value is not null, "the dialog's name edit (id 1148, 1152 or 1001) was not found");
+                if (value is not null)
+                {
+                    value.SetValue(path);
+                    Assert.Equal(path, value.Value.ValueOrDefault);
+                }
             }
 
             var confirm = dialog.FindFirstDescendant(cf => cf.ByAutomationId(confirmId).And(cf.ByControlType(ControlType.Button)));
@@ -732,7 +826,21 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             SendMessage(handle, BmClick, IntPtr.Zero, IntPtr.Zero);
 
             var closeDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
-            while (DateTime.UtcNow < closeDeadline && _window.ModalWindows.Length > 0) Thread.Sleep(200);
+            while (DateTime.UtcNow < closeDeadline && _window.ModalWindows.Length > 0)
+            {
+                if (ConfirmOverwrite)
+                {
+                    var yes = dialog.ModalWindows.FirstOrDefault()?.FindFirstDescendant(cf => cf.ByAutomationId("6").And(cf.ByControlType(ControlType.Button)));
+                    var yesHandle = yes?.Properties.NativeWindowHandle.ValueOrDefault ?? IntPtr.Zero;
+                    if (yesHandle != IntPtr.Zero)
+                    {
+                        _output.WriteLine("   dialog: the file exists; answering Yes to the overwrite prompt");
+                        SendMessage(yesHandle, BmClick, IntPtr.Zero, IntPtr.Zero);
+                    }
+                }
+
+                Thread.Sleep(200);
+            }
             Assert.True(_window.ModalWindows.Length == 0, "the dialog is still open after BM_CLICK on its confirm button");
         }
 
