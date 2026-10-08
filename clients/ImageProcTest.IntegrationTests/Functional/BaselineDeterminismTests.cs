@@ -87,7 +87,8 @@ public sealed class BaselineDeterminismTests
         var ordinary = ProcessingChainPlan.BuildStages(everything);
         Assert.Contains(ordinary, s => s.StageId == StageIds.Gsvg && s.Enabled);
         Assert.Contains(ordinary, s => s.StageId == StageIds.AiBoneSuppression && s.Enabled);
-        Assert.DoesNotContain(ordinary, s => s.StageId == StageIds.EnhanceBasic);   // the ordinary Apply does not run the enhance stage (D3)
+        // GUI-C-234: the ordinary Apply now runs the enhance stage too (pipeline-spec 6.1, release mode), always on; what stays Baseline-only is that the Baseline's list is FIXED and has no assistive stage.
+        Assert.Contains(ordinary, s => s.StageId == StageIds.EnhanceBasic && s.Enabled);
     }
 
     [Fact]

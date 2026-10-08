@@ -229,9 +229,12 @@ public sealed class EnhanceBasicStageTests
         var mock = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/Services/MockXpeBackend.cs"));
         Assert.Contains("StageIds.EnhanceBasic => new StageExecution(false, null, \"Basic enhancement requires the native backend", mock, StringComparison.Ordinal);
 
-        // the ordinary plan never runs it (D3): not one mention in BuildStages
+        // GUI-C-234: this used to say "the ordinary plan never runs it (D3)". Requirement pipeline-spec 6.1 makes (5)-(8) mandatory in release mode, so the ordinary plan carries it: always enabled, right after
+        // preprocess, with no setting that turns it off (the plan reads no setting for it).
         var plan = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/Services/ProcessingChainPlan.cs"));
-        var ordinary = plan[plan.IndexOf("public static IReadOnlyList<StageRequest> BuildStages(", StringComparison.Ordinal)..plan.IndexOf("public static IReadOnlyList<StageRequest> BuildBaselineStages()", StringComparison.Ordinal)];
-        Assert.DoesNotContain("EnhanceBasic", ordinary, StringComparison.Ordinal);
+        var ordinary = plan[plan.IndexOf("public static IReadOnlyList<StageRequest> BuildStages(", StringComparison.Ordinal)..plan.IndexOf("public static IReadOnlyList<StageRequest> BuildBaselineStages", StringComparison.Ordinal)];
+        Assert.Contains("new StageRequest(StageIds.EnhanceBasic, true)", ordinary, StringComparison.Ordinal);
+        Assert.True(ordinary.IndexOf("StageIds.Preprocess", StringComparison.Ordinal) < ordinary.IndexOf("StageIds.EnhanceBasic", StringComparison.Ordinal));
+        Assert.True(ordinary.IndexOf("StageIds.EnhanceBasic", StringComparison.Ordinal) < ordinary.IndexOf("StageIds.Gsvg", StringComparison.Ordinal));
     }
 }

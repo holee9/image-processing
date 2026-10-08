@@ -483,11 +483,12 @@ public sealed class AiBoneSuppressionStageTests
     public void ThePlan_PutsTheAiStageThirdAndOffByDefault()
     {
         var stages = ProcessingChainPlan.BuildStages(new AppSettings());
-        Assert.Equal([StageIds.Preprocess, StageIds.Gsvg, StageIds.AiBoneSuppression], stages.Select(s => s.StageId));
-        Assert.False(stages[2].Enabled);
+        // GUI-C-234: EnhanceBasic (pipeline-spec 6.1, mandatory in release mode) is second, so the AI stage is now FOURTH; it is still off by default.
+        Assert.Equal([StageIds.Preprocess, StageIds.EnhanceBasic, StageIds.Gsvg, StageIds.AiBoneSuppression], stages.Select(s => s.StageId));
+        Assert.False(stages[3].Enabled);
 
         var on = ProcessingChainPlan.BuildStages(new AppSettings { AiBoneSuppressionInChain = true });
-        Assert.True(on[2].Enabled);
+        Assert.True(on[3].Enabled);
     }
 
     [Fact]
