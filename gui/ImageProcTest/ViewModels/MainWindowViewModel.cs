@@ -30,6 +30,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private float? _renderedVoiCenter;
     private float? _renderedVoiWidth;
     private string? _renderedVoiMode;
+    private bool? _renderedVoiAutomatic;
     private AppSettings? _renderedInputs;
     private string? _previewStaleReason;
     private BackendRuntimeInfo _runtimeInfo = new();
@@ -1033,9 +1034,17 @@ public sealed class MainWindowViewModel : ObservableObject
         private set => SetProperty(ref _renderedVoiMode, value);
     }
 
+    /// <summary>GUI-C-233c: whether the window of the render on screen was the automatic one (true), one chosen by hand (false), or unknown / no render yet (null).</summary>
+    public bool? RenderedVoiAutomatic
+    {
+        get => _renderedVoiAutomatic;
+        private set => SetProperty(ref _renderedVoiAutomatic, value);
+    }
+
     private void SetRenderedVoi(AppSettings? inputs, AppliedVoiWindow? applied = null)
     {
         _renderedInputs = inputs;
+        RenderedVoiAutomatic = applied?.Automatic;
         if (applied is not null)
         {
             // GUI-C-233b: what the display stage really used (for the automatic window, the module's numbers), not the settings.
@@ -2367,9 +2376,11 @@ public sealed class MainWindowViewModel : ObservableObject
                 applied = ActiveImageFrame?.DisplayPipelineApplied ?? false,
                 summary = DisplayPipelineSummary,
                 version = RuntimeInfo.DisplayVersion,
-                mode = Settings.VoiLutMode,
-                center = Settings.VoiWindowCenter,
-                width = Settings.VoiWindowWidth,
+                // GUI-C-233c: the window the displayed render USED (automatic windows included), never the settings' numbers; null while nothing was rendered for this frame.
+                windowSource = PreviewStaleReason == StalePipelineFailed ? "failed" : RenderedVoiMode is null ? "not applied" : RenderedVoiAutomatic == true ? "automatic" : "manual",
+                mode = RenderedVoiMode,
+                center = RenderedVoiCenter,
+                width = RenderedVoiWidth,
                 bodyPart = Settings.SelectedBodyPart,
                 gsdf = Settings.GsdfEnabled
             },
@@ -2507,6 +2518,9 @@ public sealed class MainWindowViewModel : ObservableObject
         ProcessedImage = loadedFrame.ProcessedPreview ?? loadedFrame.Preview;
         PreviewStaleReason = null;   // a new image replaces whatever was stale
         SetRenderedVoi(null);        // not a display-pipeline render yet
+        // GUI-C-233c (Codex #173): and nothing the PREVIOUS frame's render wrote may describe this one: if this frame's render fails, the report must not carry the last frame's success.
+        DisplayPipelineSummary = "Display pipeline has not run.";
+        PipelineTimings = string.Empty;
         ActiveImageFrame = loadedFrame;
         RefreshCorrectedAvailability();
         ResetComparisonView();
