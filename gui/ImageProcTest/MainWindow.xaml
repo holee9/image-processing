@@ -363,6 +363,11 @@
                           Header="Apply _Display Pipeline"
                           Command="{Binding ApplyDisplayPipelineCommand}" />
                 <Separator />
+                <MenuItem x:Name="UseAutomaticWindowMenuItem"
+                          AutomationProperties.AutomationId="UseAutomaticWindowMenuItem"
+                          Header="Use Automatic _Window"
+                          Command="{Binding UseAutomaticWindowCommand}"
+                          ToolTip="Show the image with the window the module picks from the anatomy (background excluded). Choosing a window by hand turns this off." />
                 <MenuItem x:Name="RunPreprocessingMenuItem"
                           AutomationProperties.AutomationId="RunPreprocessingMenuItem"
                           Header="Run _Preprocessing (Phase 1a)"

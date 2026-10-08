@@ -39,6 +39,7 @@ public sealed class AppSettings : ObservableObject
     private float _voiWindowCenter = 32768.0f;
     private float _voiWindowWidth = 65535.0f;
     private string _voiLutMode = "Linear";
+    private bool _voiWindowAuto = true;
     private string _selectedBodyPart = "Abdomen";
     private bool _gsdfEnabled;
     private float _modalityRescaleSlope = 1.0f;
@@ -270,6 +271,18 @@ public sealed class AppSettings : ObservableObject
     {
         get => _voiLutMode;
         set => SetProperty(ref _voiLutMode, string.IsNullOrWhiteSpace(value) ? "Linear" : value);
+    }
+
+    /// <summary>
+    /// GUI-C-233 (user decision, #251): when true (the default) the display window comes from the image itself, from the module's xpe_voi_auto_window (anatomy-based, background excluded), and
+    /// <see cref="VoiWindowCenter"/>, <see cref="VoiWindowWidth"/> and <see cref="VoiLutMode"/> are not used. A window the user chooses (a value edited, a body-part preset applied) turns it off
+    /// (the view model does that, so loading a settings file never does); Pipeline &gt; Use Automatic Window turns it back on. The Deterministic Baseline never uses it (its window is fixed).
+    /// </summary>
+    [JsonPropertyName("voiWindowAuto")]
+    public bool VoiWindowAuto
+    {
+        get => _voiWindowAuto;
+        set => SetProperty(ref _voiWindowAuto, value);
     }
 
     /// <summary>

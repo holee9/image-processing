@@ -58,7 +58,9 @@ internal sealed class NativeBaselineDisplayBackend : IBaselineDisplayBackend
         public int ApplyPresentation(bool gsdfEnabled)
         {
             var presentation = XpePresentationLutParamsNative.CreateLinear(gsdfEnabled);
-            return XpeDisplayNative.xpe_apply_presentation_lut(ref _image, ref presentation);
+            // GUI-C-233: the polarity is stated. The Baseline fingerprints the shipped chain, and the shipped display shows bone bright and air dark (QA-B-214, user decision on #251), so it asks for INVERTED
+            // instead of inheriting whatever the module defaults to.
+            return XpeDisplayNative.xpe_apply_presentation_lut_ex(ref _image, ref presentation, XpeDisplayNative.PresentationInverted);
         }
 
         public float[] ReadFloats()

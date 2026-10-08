@@ -217,9 +217,11 @@ namespace ImageProcTest
             var applyVoi = XpeDisplayWrapper.GetRequiredDelegate<XpeDisplayWrapper.ApplyVoiLutDelegate>(
                 displayHandle,
                 "xpe_apply_voi_lut");
-            var applyPresentation = XpeDisplayWrapper.GetRequiredDelegate<XpeDisplayWrapper.ApplyPresentationLutDelegate>(
+            // GUI-C-233: the polarity is stated (0 = INVERTED: bone bright, air dark; user decision on #251, QA-B-214) instead of inherited from the module's default. The DICOM written after this
+            // stage is MONOCHROME2 and already carries the inversion.
+            var applyPresentation = XpeDisplayWrapper.GetRequiredDelegate<XpeDisplayWrapper.ApplyPresentationLutExDelegate>(
                 displayHandle,
-                "xpe_apply_presentation_lut");
+                "xpe_apply_presentation_lut_ex");
 
             foreach (var stage in displayStages)
             {
@@ -260,7 +262,7 @@ namespace ImageProcTest
                     {
                         var parameters = XpePresentationLutParams.LinearUInt16();
                         var stageStopwatch = Stopwatch.StartNew();
-                        var code = applyPresentation(ref buffer, ref parameters);
+                        var code = applyPresentation(ref buffer, ref parameters, 0);
                         stageStopwatch.Stop();
                         var result = CreateStageResult(
                             "presentation-lut",

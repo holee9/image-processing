@@ -22,6 +22,8 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
         "xpe_apply_voi_lut",
         "xpe_voi_preset_create",
         "xpe_apply_presentation_lut",
+        "xpe_apply_presentation_lut_ex",
+        "xpe_voi_auto_window",
         "xpe_gsdf_calibrate"
     };
 
@@ -160,6 +162,13 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
                 MinOut = 0.0f,
                 MaxOut = 1.0f
             };
+            if (settings.VoiWindowAuto)
+            {
+                // GUI-C-233 (user decision, #251): the default window is the module's anatomy-based one, taken from the float image that reaches the VOI stage (after the modality LUT, the same
+                // values xpe_apply_voi_lut is about to window). A window the user chose (VoiWindowAuto false) is used as given: manual wins.
+                CheckNativeResult(XpeDisplayNative.xpe_voi_auto_window(ref image, ref voi), "xpe_voi_auto_window");
+            }
+
             CheckNativeResult(XpeDisplayNative.xpe_apply_voi_lut(ref image, ref voi), "xpe_apply_voi_lut");
 
             var presentation = XpePresentationLutParamsNative.CreateLinear(settings.GsdfEnabled);
@@ -185,7 +194,8 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
                     "xpe_gsdf_calibrate");
             }
 
-            CheckNativeResult(XpeDisplayNative.xpe_apply_presentation_lut(ref image, ref presentation), "xpe_apply_presentation_lut");
+            // GUI-C-233: the polarity is stated, not left to the module's default: the shipped display shows bone bright and air dark (user decision, #251; QA-B-214).
+            CheckNativeResult(XpeDisplayNative.xpe_apply_presentation_lut_ex(ref image, ref presentation, XpeDisplayNative.PresentationInverted), "xpe_apply_presentation_lut_ex");
 
             nativeMs = phase.Elapsed.TotalMilliseconds; phase.Restart();
 
