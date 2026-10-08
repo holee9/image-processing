@@ -1,0 +1,28 @@
+QA-B-214 (dev/postprocess b796ba00, not on main yet) -- what the app would see. SURVEY ONLY, no code changed.
+Source read: git show b796ba00 (display_api.h, test list, commit message). Method: grep of gui/ and clients/ for presentation/invert/golden. Nothing was built or run against the 214 DLLs.
+
+1. What changes for the app (read from the header)
+- xpe_apply_presentation_lut: default polarity is now INVERTED (output = lutData[1023 - index]). xpe_apply_presentation_lut_ex(img, params, polarity) selects AS_IS (old behaviour).
+- XpePresentationLutParams is UNCHANGED (only the enum XpePresentationPolarity and two functions are added), so the P/Invoke struct layout and the signature-parity tests are not affected by the diff as read.
+- xpe_voi_auto_window is new (anatomy-based window); the app does not call it today.
+- Callers of xpe_apply_presentation_lut in the app: gui/ImageProcTest/Services/RealXpeBackend.cs:188 (display), gui/ImageProcTest/Services/Native/GuiBaselineDisplayNative.cs:61 (Deterministic Baseline display step),
+  clients/ImageProcTest/Services/NativePresentationExportService.cs (legacy client export), tests clients/ImageProcTest.IntegrationTests/Functional/BaselineDisplayNativeTests.cs:98. The app builds its own ascending 1024-entry table (XpePresentationLutParamsNative.CreateLinear), so with the new default every one of these paths yields the reversed picture without any app change.
+
+2. "Invert" in the app
+- gui/ImageProcTest (the operator app): NO Invert option exists (grep: no match). Nothing there can double-invert.
+- clients/ImageProcTest (legacy client): EvaluationViewerPanel has a ViewerInvertCheckBox (default unchecked) feeding ViewportRenderParams.Invert (ViewportRenderService). That is a viewer-side inversion of the values it is given. With 214 merged, data coming from the display DLL is already inverted, so ticking Invert shows it the original way round (a double inversion). The legacy client is gui-lane territory (clients/**).
+
+3. Absolute-value tests
+- No SHA/CRC golden over display output was found in gui/ or clients/ tests. The hex strings found are identifiers, not display goldens. BaselineDeterminism hashes are compared run-to-run (and via an independent derivation for the hash function itself), not against a stored absolute.
+- BaselineDisplayNativeTests compare the stage with a direct call sequence (both go through the same DLL, both invert) -> equal either way, so they should stay green; they cannot tell whether the picture is inverted.
+- The Deterministic Baseline evidence (baseline.json / DICOM) will contain different output hashes after 214. Any stored earlier baseline evidence file is a different run, not a golden the code compares to -- not verified for stored copies outside the repo.
+
+4. What I could NOT determine (would need 214 DLLs built)
+- Whether any E2E scenario asserts a pixel sense (bone dark/bright) through the real display DLL: grep for polarity/bone wording in clients/ImageProcTest.E2ETests/Rendering found nothing, but absence of a word is not a run.
+- Whether the Mock backend's display emulation should invert too (MockXpeBackend mimics the display; it was not read for polarity).
+
+5. Adaptation candidates for AFTER 214 merges (decisions for the lead, none started)
+a) Legacy viewer: Invert default and its label (the box now means "show the original way round"); decide whether the default should stay unchecked.
+b) Operator app: decide whether to expose polarity (xpe_apply_presentation_lut_ex) -- not needed to keep behaviour consistent with the module default.
+c) Mock backend: decide whether Mock display should invert so Mock and Native agree.
+d) Run the integration + native E2E suites against the 214 DLLs once available; that is the only way to find absolute-value breaks.
