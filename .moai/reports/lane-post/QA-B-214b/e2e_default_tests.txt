@@ -1,0 +1,79 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 12 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 4 tests from FullPipelineE2E
+[ RUN      ] FullPipelineE2E.BothExposureIndexExportsAreCallableAndDisagree
+[2026-10-08 10:29:01.035] [xpe_stderr] [info] xpe_init: library initialised
+[       OK ] FullPipelineE2E.BothExposureIndexExportsAreCallableAndDisagree (0 ms)
+[ RUN      ] FullPipelineE2E.PostProcess_3072x3072_Within3000ms
+[ E2E ] Full post-processing pipeline (E2E) took 166ms for 3072x3072 image (budget: 3000ms)
+[       OK ] FullPipelineE2E.PostProcess_3072x3072_Within3000ms (173 ms)
+[ RUN      ] FullPipelineE2E.PostProcess_512x512_Within200ms
+[ E2E ] Full pipeline (512x512) took 4ms (budget: 200ms)
+[       OK ] FullPipelineE2E.PostProcess_512x512_Within200ms (5 ms)
+[ RUN      ] FullPipelineE2E.PostProcess_3072x3072_PeakMemory190MB
+[ E2E ] Peak working set: 132 MB (budget: 190 MB)
+[       OK ] FullPipelineE2E.PostProcess_3072x3072_PeakMemory190MB (154 ms)
+[----------] 4 tests from FullPipelineE2E (334 ms total)
+
+[----------] 8 tests from CollimationMaskE2E
+[ RUN      ] CollimationMaskE2E.HelperIsInclusive
+[       OK ] CollimationMaskE2E.HelperIsInclusive (0 ms)
+[ RUN      ] CollimationMaskE2E.HelperMaskEqualsHandMadeMask
+[       OK ] CollimationMaskE2E.HelperMaskEqualsHandMadeMask (72 ms)
+[ RUN      ] CollimationMaskE2E.DetectedMaskMatchesTruth
+[2026-10-08 10:29:01.443] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-08 10:29:01.454] [xpe_stderr] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":0,"hough_time_ms":10,"total_time_ms":11,"confidence":1.00,"roi":[40,30,215,225]}
+COLLMASK scene=uniform truth x0=40 y0=30 x1=215 y1=225 detected x0=40 y0=30 x1=215 y1=225 mask pixels differing=0 output pixels differing=0 (no mask: 65531) |diff| max=0 mean=0.00 DN
+[       OK ] CollimationMaskE2E.DetectedMaskMatchesTruth (78 ms)
+[ RUN      ] CollimationMaskE2E.DetectionExactForShiftedFields
+[2026-10-08 10:29:01.521] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-08 10:29:01.533] [xpe_stderr] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":0,"hough_time_ms":10,"total_time_ms":11,"confidence":1.00,"roi":[40,30,215,225]}
+[2026-10-08 10:29:01.533] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-08 10:29:01.545] [xpe_stderr] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":0,"hough_time_ms":10,"total_time_ms":11,"confidence":1.00,"roi":[41,31,214,224]}
+[2026-10-08 10:29:01.546] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-08 10:29:01.558] [xpe_stderr] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":0,"hough_time_ms":10,"total_time_ms":11,"confidence":1.00,"roi":[42,32,213,223]}
+[2026-10-08 10:29:01.558] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-08 10:29:01.571] [xpe_stderr] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":0,"hough_time_ms":11,"total_time_ms":12,"confidence":1.00,"roi":[43,33,212,222]}
+COLLMASK shift=0 truth 40 30 215 225 detected 40 30 215 225
+COLLMASK shift=1 truth 41 31 214 224 detected 41 31 214 224
+COLLMASK shift=2 truth 42 32 213 223 detected 42 32 213 223
+COLLMASK shift=3 truth 43 33 212 222 detected 43 33 212 222
+[       OK ] CollimationMaskE2E.DetectionExactForShiftedFields (50 ms)
+[ RUN      ] CollimationMaskE2E.InteriorStepDoesNotReplaceFieldSide
+[2026-10-08 10:29:01.571] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-08 10:29:01.583] [xpe_stderr] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":0,"hough_time_ms":10,"total_time_ms":11,"confidence":1.00,"roi":[40,30,215,225]}
+COLLMASK scene=step-inside truth x0=40 y0=30 x1=215 y1=225 detected x0=40 y0=30 x1=215 y1=225 mask pixels differing=0 output pixels differing=0 (no mask: 62818) |diff| max=0 mean=0.00 DN
+[       OK ] CollimationMaskE2E.InteriorStepDoesNotReplaceFieldSide (77 ms)
+[ RUN      ] CollimationMaskE2E.WeakSideSurvivesManyInteriorEdges
+[2026-10-08 10:29:01.648] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-08 10:29:01.705] [xpe_stderr] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":0,"hough_time_ms":11,"total_time_ms":56,"confidence":1.00,"roi":[40,30,215,225]}
+COLLMASK bars detected 40 30 215 225
+[       OK ] CollimationMaskE2E.WeakSideSurvivesManyInteriorEdges (56 ms)
+[ RUN      ] CollimationMaskE2E.UnmaskedWarningFlood
+COLLMASK flood calls=1000 queued=4 gsvgWarnings=1 info=1 otherWarning=1 otherError=1 lossAlerts=0 '' pending_count=4
+[       OK ] CollimationMaskE2E.UnmaskedWarningFlood (9532 ms)
+[ RUN      ] CollimationMaskE2E.EdgeStepOnMcPhantom
+[2026-10-08 10:29:11.238] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-08 10:29:11.240] [xpe_stderr] [warning] ROI area ratio (0.040) below minimum (0.050). Using full-image extent.
+[2026-10-08 10:29:11.240] [xpe_stderr] [info] {"stage":"COLLIMATION_DETECTION","edge_time_ms":0,"hough_time_ms":2,"total_time_ms":2,"confidence":1.00,"roi":[0,0,79,79]}
+COLLMASK mc detected x0=0 y0=0 x1=79 y1=79 (air-based field pixels=5476, mask pixels=6400)
+COLLMASK mc detected-mask edge left: no pixel outside the mask
+COLLMASK mc detected-mask edge right: no pixel outside the mask
+COLLMASK mc detected-mask edge top: no pixel outside the mask
+COLLMASK mc detected-mask edge bottom: no pixel outside the mask
+COLLMASK mc air-mask x0=3 y0=3 x1=76 y1=76
+COLLMASK mc air-mask edge left inside=13917.5 outside=10385.8 (input inside=17446.7 outside=10385.8)
+COLLMASK mc air-mask edge right inside=57.0 outside=413.7 (input inside=471.4 outside=413.7)
+COLLMASK mc air-mask edge top inside=903.1 outside=1774.2 (input inside=2458.1 outside=1774.2)
+COLLMASK mc air-mask edge bottom inside=879.9 outside=1773.0 (input inside=2457.9 outside=1773.0)
+[       OK ] CollimationMaskE2E.EdgeStepOnMcPhantom (131 ms)
+[----------] 8 tests from CollimationMaskE2E (9998 ms total)
+
+[----------] Global test environment tear-down
+[==========] 12 tests from 2 test suites ran. (10333 ms total)
+[  PASSED  ] 12 tests.
+
+  YOU HAVE 6 DISABLED TESTS
+
+===EXIT=0===
