@@ -1,0 +1,6 @@
+     60 [==========] Running 22 tests from 2 test suites.
+      5 [  FAILED  ] A241Safety.PipelineOutRefusesWhatCannotHoldTheResultAndWritesNothing
+      5 D:\workspace-github\xpe-pre\modules\preprocess\tests\test_a241_safety.cpp(315): error: Expected equality of these values:
+      3 [==========] 22 tests from 2 test suites ran. (296 ms total)
+      3 [==========] 22 tests from 2 test suites ran. (259 ms total)
+      3 [==========] 22 tests from 2 test suites ran. (247 ms total)

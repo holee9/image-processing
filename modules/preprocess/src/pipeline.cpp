@@ -31,6 +31,7 @@
 void (*xpe_calib_after_set_commit_hook)() = nullptr;
 void (*xpe_calib_in_set_commit_hook)() = nullptr;
 void (*xpe_pipeline_after_stage_hook)(int) = nullptr;
+void (*xpe_pipeline_gain_frame_hook)(void*, size_t, bool) = nullptr;
 #endif
 // QA-A-237b (#245): the observation point after every stage, so a test can read the process's memory at each stage
 // boundary (0 readout, 1 temp, 2 offset, 3 nonlinearity, 4 gain, 5 binning, 6 defect, 7 ghost, 9 the final copy).
@@ -102,6 +103,22 @@ namespace {
      * sides need 64 bits, and the byte count needs one or two more, so the unchecked product wrapped to a
      * small number that then passed the size checks and sized the copies (QA-A-205b, Codex #29 A3).
      */
+    /**
+     * QA-A-246: the number of NaN / +-infinity values in a float32 frame (exponent field all ones); 0 for any other format (an
+     * integer frame has none). Branch-free bit test per pixel, one pass.
+     */
+    uint64_t count_non_finite(const XpeImageBuffer& b, size_t pixelCount) noexcept {
+        if (b.format != XPE_PIXEL_FLOAT32 || !b.data) return 0;
+        const float* f = static_cast<const float*>(b.data);
+        uint64_t n = 0;
+        for (size_t i = 0; i < pixelCount; ++i) {
+            uint32_t bits;
+            std::memcpy(&bits, &f[i], sizeof(bits));
+            n += ((bits & 0x7F800000u) == 0x7F800000u) ? 1u : 0u;
+        }
+        return n;
+    }
+
     bool frame_bytes(uint32_t width, uint32_t height, size_t elemSize, size_t* bytes) {
         if (width == 0 || height == 0) return false;
         if (width > SIZE_MAX / height) return false;
@@ -197,9 +214,13 @@ namespace {
         void* ghostHandle,
         const PipelineConfig& cfg,
         const CalibSnapshot& calib,
-        XpeImageBuffer* out = nullptr)
+        XpeImageBuffer* out = nullptr,
+        XpeStageDiagnostics* diag = nullptr)
     {
         if (!img || !img->data) return XPE_ERR_INVALID_INPUT;
+        // QA-A-246: the per-stage counts are collected here and copied to the caller's struct only when the call succeeds, so a failed
+        // call leaves validMask 0. With diag == nullptr nothing below counts anything.
+        XpeStageDiagnostics counts{};
 
         // QA-A-205b (#234, Codex #29 A1-A3): before any stage runs, the frame the caller describes is checked
         // against the room the caller gives -- for the frame that is read AND for the frame that will be written
@@ -425,6 +446,13 @@ namespace {
             stage4 = stage3;
         }
         XPE_STAGE_HOOK(4);
+#ifdef XPE_CACHE_TEST_HOOKS
+        if (xpe_pipeline_gain_frame_hook) xpe_pipeline_gain_frame_hook(stage4.data, pixelCount, stage4.format == XPE_PIXEL_FLOAT32);
+#endif
+        if (diag) {   // QA-A-246: the gain stage's own output, before binning / defect / ghost can overwrite the bad pixels
+            counts.validMask |= XPE_DIAG_GAIN_NONFINITE;
+            counts.gainStageNonFinite = count_non_finite(stage4, pixelCount);
+        }
 
         // QA-A-211b (#233, Codex #71): the same refusal when the GAIN stage is bypassed. The defect stage reads the stored
         // classification (the scalar map's list, kept in the snapshot) whether or not the gain stage ran, so binning
@@ -572,6 +600,12 @@ namespace {
         if (finalStage->dataSize < outputBytes ||
             finalStage->format != (final_result_is_float(cfg, ghostHandle) ? XPE_PIXEL_FLOAT32 : XPE_PIXEL_UINT16))
             return XPE_ERR_PROCESSING_FAILED;
+        if (diag) {   // QA-A-246: the final frame, as it is about to be handed back
+            counts.validMask |= XPE_DIAG_FINAL_NONFINITE;
+            counts.finalNonFinite = count_non_finite(*finalStage, pixelCount);
+            counts.pixelCount = pixelCount;
+            counts.structSize = diag->structSize;
+        }
         if (out) {
             // SAFE-004: the result goes to the caller's output buffer; the input buffer is never written.
             std::memcpy(out->data, finalStage->data, outputBytes);
@@ -581,6 +615,7 @@ namespace {
             out->bitsAllocated = finalStage->bitsAllocated;
             out->bitsStored = finalStage->bitsStored;
             XPE_STAGE_HOOK(9);
+            if (diag) *diag = counts;
             return XPE_OK;
         }
         if (finalStage->data != img->data)
@@ -783,14 +818,22 @@ static XpeErrorCode pipeline_out_impl(const XpeImageBuffer* in,
                                       XpeImageMetadata* meta,
                                       const void* calibState,   // NOLINT(bugprone-easily-swappable-parameters): same shape as xpe_preprocess_pipeline_ex, which this entry mirrors
                                       void* ghostHandle,
-                                      const char* configJsonOrNull)
+                                      const char* configJsonOrNull,
+                                      XpeStageDiagnostics* diag)
 {
     if (!in || !out || !meta) return XPE_ERR_INVALID_INPUT;
+    if (diag) {   // QA-A-246: a too-small struct is refused before anything runs; a failed call leaves the counts zero
+        if (diag->structSize < sizeof(XpeStageDiagnostics)) return XPE_ERR_INVALID_INPUT;
+        diag->validMask = 0;
+        diag->pixelCount = 0;
+        diag->gainStageNonFinite = 0;
+        diag->finalNonFinite = 0;
+    }
     PipelineConfig cfg;
     const XpeErrorCode cfgRc = PipelineConfig::fromJson(configJsonOrNull, &cfg);
     if (cfgRc != XPE_OK) return cfgRc;
     (void)calibState;   // as for pipeline_ex: every stage reads the store
-    return pipeline_core(in, meta, ghostHandle, cfg, xpe_calib_snapshot(), out);
+    return pipeline_core(in, meta, ghostHandle, cfg, xpe_calib_snapshot(), out, diag);
 }
 
 /* =========================================================================
@@ -907,7 +950,18 @@ XpeErrorCode xpe_preprocess_pipeline_out(const XpeImageBuffer* in,
                                          void* ghostHandle,
                                          const char* configJsonOrNull)
 {
-    XPE_PIPELINE_GUARD(meta, pipeline_out_impl(in, out, meta, calibState, ghostHandle, configJsonOrNull))
+    XPE_PIPELINE_GUARD(meta, pipeline_out_impl(in, out, meta, calibState, ghostHandle, configJsonOrNull, nullptr))
+}
+
+XpeErrorCode xpe_preprocess_pipeline_out_ex(const XpeImageBuffer* in,
+                                            XpeImageBuffer* out,
+                                            XpeImageMetadata* meta,
+                                            const void* calibState,
+                                            void* ghostHandle,
+                                            const char* configJsonOrNull,
+                                            XpeStageDiagnostics* diag)
+{
+    XPE_PIPELINE_GUARD(meta, pipeline_out_impl(in, out, meta, calibState, ghostHandle, configJsonOrNull, diag))
 }
 
 XpeErrorCode xpe_preprocess_pipeline_batch(XpeImageBuffer* images,

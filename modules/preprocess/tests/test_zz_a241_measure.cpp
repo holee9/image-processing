@@ -1527,3 +1527,80 @@ TEST(A241Measure, DISABLED_A245_AlertsOfTheExportedSet) {
     xpe_clear_alerts();
     xpe_preprocess_shutdown();
 }
+
+// QA-A-246: pipeline_out_ex on the real 3072x3072 frame with the exported calibration set (calib-real-v2): the output with a diagnostics
+// struct and with a NULL pointer is byte-identical to the reference image v2, the counts are zero, and what the counting pass costs.
+// Plain and extended calls alternate within each round (the machine state hits both alike). Needs XPE_A240_WRIST, XPE_A245_OUT (the set), XPE_A245_REF.
+TEST(A241Measure, DISABLED_A246_RealFrameDiagnostics) {
+    const std::string wristPath = envOr("XPE_A240_WRIST", ""), setDir = envOr("XPE_A245_OUT", ""), refPath = envOr("XPE_A245_REF", "");
+    ASSERT_FALSE(wristPath.empty());
+    ASSERT_FALSE(setDir.empty());
+    ASSERT_FALSE(refPath.empty());
+    const uint32_t W = 3072, H = 3072;
+    const size_t N = static_cast<size_t>(W) * H;
+    const std::vector<uint16_t> wrist = readRaw16(wristPath, N);
+    ASSERT_FALSE(wrist.empty());
+    std::vector<float> ref(N);
+    {
+        std::ifstream f(refPath, std::ios::binary);
+        f.read(reinterpret_cast<char*>(ref.data()), static_cast<std::streamsize>(N * sizeof(float)));
+        ASSERT_EQ(static_cast<std::streamsize>(N * sizeof(float)), f.gcount());
+    }
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset((fs::path(setDir) / "offset.xcal").string().c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain((fs::path(setDir) / "gain.xcal").string().c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map((fs::path(setDir) / "defect.xcal").string().c_str()));
+    xpe_clear_alerts();
+    auto mk = [&](void* d, size_t bytes, XpePixelFormat f) {
+        XpeImageBuffer b{};
+        b.data = d;
+        b.dataSize = bytes;
+        b.width = W;
+        b.height = H;
+        b.format = f;
+        b.bitsAllocated = f == XPE_PIXEL_FLOAT32 ? 32u : 16u;
+        b.bitsStored = b.bitsAllocated;
+        return b;
+    };
+    const char* cfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    std::vector<uint16_t> input(wrist);
+    std::vector<float> outPlain(N), outEx(N);
+    const XpeImageBuffer in = mk(input.data(), N * 2, XPE_PIXEL_UINT16);
+    auto ms = [](auto fn) {
+        const auto t0 = std::chrono::steady_clock::now();
+        fn();
+        return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+    };
+    std::vector<double> tPlain, tEx;
+    XpeStageDiagnostics d{};
+    d.structSize = sizeof(d);
+    for (int round = 0; round < 12; ++round) {
+        XpeImageBuffer ob1 = mk(outPlain.data(), N * 4, XPE_PIXEL_FLOAT32), ob2 = mk(outEx.data(), N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata m1{}, m2{};
+        XpeErrorCode r1 = XPE_OK, r2 = XPE_OK;
+        if (round % 2 == 0) {
+            tPlain.push_back(ms([&] { r1 = xpe_preprocess_pipeline_out(&in, &ob1, &m1, nullptr, nullptr, cfg); }));
+            tEx.push_back(ms([&] { r2 = xpe_preprocess_pipeline_out_ex(&in, &ob2, &m2, nullptr, nullptr, cfg, &d); }));
+        } else {
+            tEx.push_back(ms([&] { r2 = xpe_preprocess_pipeline_out_ex(&in, &ob2, &m2, nullptr, nullptr, cfg, &d); }));
+            tPlain.push_back(ms([&] { r1 = xpe_preprocess_pipeline_out(&in, &ob1, &m1, nullptr, nullptr, cfg); }));
+        }
+        ASSERT_EQ(XPE_OK, r1);
+        ASSERT_EQ(XPE_OK, r2);
+        xpe_clear_alerts();
+    }
+    auto median = [](std::vector<double> v) {
+        std::sort(v.begin(), v.end());
+        return v[v.size() / 2];
+    };
+    std::printf("[a246] real frame: pipeline_out median %.2f ms (min %.2f max %.2f) | pipeline_out_ex with diag median %.2f ms (min %.2f max %.2f) | difference of medians %.2f ms\n",
+                median(tPlain), *std::min_element(tPlain.begin(), tPlain.end()), *std::max_element(tPlain.begin(), tPlain.end()), median(tEx),
+                *std::min_element(tEx.begin(), tEx.end()), *std::max_element(tEx.begin(), tEx.end()), median(tEx) - median(tPlain));
+    std::printf("[a246] output of pipeline_out vs reference v2: %s | output of pipeline_out_ex (diag) vs reference v2: %s\n",
+                std::memcmp(outPlain.data(), ref.data(), N * 4) == 0 ? "byte-identical" : "DIFFERENT",
+                std::memcmp(outEx.data(), ref.data(), N * 4) == 0 ? "byte-identical" : "DIFFERENT");
+    std::printf("[a246] diagnostics: validMask 0x%x pixelCount %llu gainStageNonFinite %llu finalNonFinite %llu\n", d.validMask, static_cast<unsigned long long>(d.pixelCount),
+                static_cast<unsigned long long>(d.gainStageNonFinite), static_cast<unsigned long long>(d.finalNonFinite));
+    xpe_preprocess_shutdown();
+}

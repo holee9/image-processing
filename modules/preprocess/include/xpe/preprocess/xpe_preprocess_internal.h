@@ -894,6 +894,11 @@ extern void (*xpe_cache_after_open_check_hook)();
  */
 extern void (*xpe_calib_after_set_commit_hook)();
 extern void (*xpe_pipeline_after_stage_hook)(int stage);
+/** Test-only (QA-A-246): runs inside pipeline_core straight after the GAIN stage with that stage's output frame (`pixels` values;
+ *  `isFloat` is false when the frame is still the uint16 frame), before the per-stage diagnostics count it. A test overwrites pixels
+ *  with NaN / infinity here: the current gain stage cannot produce a non-finite value from finite input (every bad gain is
+ *  classified defective and replaced by 1.0), so the counting path has no real producer to be tested with. */
+extern void (*xpe_pipeline_gain_frame_hook)(void* data, size_t pixels, bool isFloat);
 /** Runs INSIDE the critical section that commits the set, with g_calib_mutex held: a test starts a reader here
  *  and checks that it cannot finish until the section ends. */
 extern void (*xpe_calib_in_set_commit_hook)();
