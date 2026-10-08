@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cfloat>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -256,6 +257,223 @@ TEST(VoiAutoWindow, NonFinitePixelAnywhereIsRefused) {
         XpeVoiLutParams out = sentinel();
         EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_voi_auto_window(&img, &out));
         EXPECT_TRUE(untouched(out));
+        free_image(img);
+    }
+}
+
+
+// =====================================================================================================================
+// QA-B-214b (Codex #167): API boundaries of the automatic window.
+// =====================================================================================================================
+
+namespace {
+
+// Grid pixels of the 1-in-4 sampling of a large image: x % 4 == 0 and y % 4 == 0.
+bool on_sample_grid(size_t x, size_t y) { return x % 4 == 0 && y % 4 == 0; }
+
+}  // namespace
+
+// Finding 3, the exact Codex reproduction: 8 x 8, only the four pixels a 1-in-4 sample would take hold the background (3000),
+// the other 60 are anatomy in [1000, 2000]. The first design histogrammed the four background points and returned a
+// one-bin window around 3000 with every anatomy pixel clipped.
+TEST(VoiAutoWindow, CodexReproductionEightByEightKeepsTheAnatomyInsideTheWindow) {
+    std::vector<float> px(64);
+    Lcg g(21);
+    for (uint32_t y = 0; y < 8; ++y) {
+        for (uint32_t x = 0; x < 8; ++x) {
+            px[y * 8 + x] = ((x % 4 == 0) && (y % 4 == 0)) ? 3000.0f : static_cast<float>(1000.0 + 1000.0 * g.next());
+        }
+    }
+    float anatMin = 1e30f, anatMax = -1e30f;
+    for (uint32_t i = 0; i < 64; ++i) {
+        if (px[i] != 3000.0f) {
+            anatMin = std::min(anatMin, px[i]);
+            anatMax = std::max(anatMax, px[i]);
+        }
+    }
+    XpeImageBuffer img = make_image(8, 8, px);
+    XpeVoiLutParams out = sentinel();
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, xpe_voi_auto_window(&img, &out));
+    const double lo = out.center - out.width / 2.0, hi = out.center + out.width / 2.0;
+    EXPECT_LE(lo, anatMin + 3.0) << "the window starts at the anatomy";
+    EXPECT_GE(hi, anatMax) << "the window ends above the anatomy (it was a one-bin window around 3000 before)";
+    EXPECT_GT(out.width, 1000.0f);
+    // Whether this 6 % background and broad anatomy pass the two-class test (Otsu separability about 0.63 here, under 0.75, so it
+    // takes the whole-image 1..99 % fallback and posts the Info alert) is not what the finding is about: either way the window
+    // is made of all 64 pixels and holds the anatomy, which is what is asserted above.
+    xpe_clear_alerts();
+    free_image(img);
+}
+
+// Finding 3, two classes OUTSIDE the sampling grid in a LARGE image (1280 x 1280 = 1.6 M pixels, sampled 1 in 16): every grid
+// pixel is background 3000, every other pixel is anatomy [1000, 2000] (85 %) or background [2900, 3000] (15 %). The sample alone
+// is a flat image; the window must still be the one the whole image gives.
+TEST(VoiAutoWindow, TwoClassesOffTheSampleGridInALargeImageAreStillFound) {
+    constexpr uint32_t kN = 1280;
+    Lcg g(22);
+    std::vector<float> px(static_cast<size_t>(kN) * kN);
+    for (uint32_t y = 0; y < kN; ++y) {
+        for (uint32_t x = 0; x < kN; ++x) {
+            const double c = g.next(), u = g.next();
+            float v;
+            if (on_sample_grid(x, y)) v = 3000.0f;
+            else if (c < 0.85) v = static_cast<float>(1000.0 + 1000.0 * u);
+            else v = static_cast<float>(2900.0 + 100.0 * u);
+            px[static_cast<size_t>(y) * kN + x] = v;
+        }
+    }
+    XpeImageBuffer img = make_image(kN, kN, px);
+    XpeVoiLutParams out = sentinel();
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, xpe_voi_auto_window(&img, &out));
+    const double lo = out.center - out.width / 2.0, hi = out.center + out.width / 2.0;
+    EXPECT_NEAR(1005.0, lo, 12.0) << "anatomy class low end (0.5 % quantile)";
+    EXPECT_NEAR(2907.0, hi, 14.0) << "background class 5 % quantile (the grid pixels at 3000 are part of the class)";
+    EXPECT_EQ(0, alert_count_containing("VOI auto window"));
+    free_image(img);
+}
+
+// Finding 3, "fallback is the real whole-image quantiles": the sampled pixels alone form a bell (no two classes, so the sample
+// says fallback), the other 15/16 of the image is clearly two-class. A fallback decided on the sample would be wrong.
+TEST(VoiAutoWindow, FallbackOfTheSampleIsConfirmedOnTheWholeImage) {
+    constexpr uint32_t kN = 1280;
+    Lcg g(23);
+    std::vector<float> px(static_cast<size_t>(kN) * kN);
+    for (uint32_t y = 0; y < kN; ++y) {
+        for (uint32_t x = 0; x < kN; ++x) {
+            float v;
+            if (on_sample_grid(x, y)) {
+                // a bell over [800, 3200], wide enough that every off-grid value lies INSIDE the range the sample spans: the
+                // representativeness check stays quiet and only the confirmation of the fallback on the whole image can save it
+                v = static_cast<float>(800.0 + 600.0 * (g.next() + g.next() + g.next() + g.next()));
+            } else if (g.next() < 0.15) {
+                v = static_cast<float>(1000.0 + 1000.0 * g.next());
+            } else {
+                v = static_cast<float>(2900.0 + 100.0 * g.next());
+            }
+            px[static_cast<size_t>(y) * kN + x] = v;
+        }
+    }
+    XpeImageBuffer img = make_image(kN, kN, px);
+    XpeVoiLutParams out = sentinel();
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, xpe_voi_auto_window(&img, &out));
+    const double lo = out.center - out.width / 2.0, hi = out.center + out.width / 2.0;
+    EXPECT_NEAR(1005.0, lo, 25.0) << "the anatomy window of the whole image, not the 1..99 % range of the sample";
+    EXPECT_NEAR(2905.0, hi, 20.0);
+    EXPECT_EQ(0, alert_count_containing("VOI auto window")) << "no fallback: the whole image has two classes";
+    free_image(img);
+}
+
+// Finding 3, a sample that DOES show two classes but misses the lower part of the anatomy: the grid pixels hold anatomy only in
+// [1500, 2000], the other pixels hold it in [1000, 2000]. Both classes are present in the sample (no fallback), so only the
+// representativeness check (the pixels below the sample's own minimum are 7 % of the image) can send it to the full histogram.
+TEST(VoiAutoWindow, SampleThatMissesTheLowerPartOfTheAnatomyIsNotTrusted) {
+    constexpr uint32_t kN = 1280;
+    Lcg g(27);
+    std::vector<float> px(static_cast<size_t>(kN) * kN);
+    for (uint32_t y = 0; y < kN; ++y) {
+        for (uint32_t x = 0; x < kN; ++x) {
+            const bool anatomy = g.next() < 0.15;
+            const double u = g.next();
+            float v;
+            if (anatomy) v = on_sample_grid(x, y) ? static_cast<float>(1500.0 + 500.0 * u) : static_cast<float>(1000.0 + 1000.0 * u);
+            else v = static_cast<float>(2900.0 + 100.0 * u);
+            px[static_cast<size_t>(y) * kN + x] = v;
+        }
+    }
+    XpeImageBuffer img = make_image(kN, kN, px);
+    XpeVoiLutParams out = sentinel();
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, xpe_voi_auto_window(&img, &out));
+    const double lo = out.center - out.width / 2.0;
+    EXPECT_LT(lo, 1030.0) << "the window starts at the anatomy of the whole image (about 1005), not at the sample's 1500";
+    EXPECT_EQ(0, alert_count_containing("VOI auto window"));
+    free_image(img);
+}
+
+// Finding 3, the fallback window of a LARGE unimodal image is made of the real whole-image 1 % and 99 % quantiles.
+TEST(VoiAutoWindow, FallbackWindowOfALargeImageIsTheWholeImageQuantileRange) {
+    constexpr uint32_t kN = 1280;
+    Lcg g(24);
+    std::vector<float> px(static_cast<size_t>(kN) * kN);
+    for (auto& v : px) v = static_cast<float>(1000.0 + 500.0 * (g.next() + g.next() + g.next() + g.next()));
+    std::vector<float> sorted = px;
+    std::sort(sorted.begin(), sorted.end());
+    const double q01 = sorted[sorted.size() / 100], q99 = sorted[sorted.size() * 99 / 100];
+    const double bin = (sorted.back() - sorted.front()) / 1024.0;
+    XpeImageBuffer img = make_image(kN, kN, px);
+    XpeVoiLutParams out = sentinel();
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, xpe_voi_auto_window(&img, &out));
+    EXPECT_NEAR(q01, out.center - out.width / 2.0, 1.5 * bin) << "within a bin and a half of the exact 1 % quantile";
+    EXPECT_NEAR(q99, out.center + out.width / 2.0, 1.5 * bin);
+    EXPECT_EQ(1, alert_count_containing("VOI auto window"));
+    xpe_clear_alerts();
+    free_image(img);
+}
+
+// Finding 4: a window that float cannot hold is an error with the output untouched, never an OK with an infinite width.
+// Two finite classes at -FLT_MAX and +FLT_MAX span 2 * FLT_MAX.
+TEST(VoiAutoWindow, ClassesAtPlusAndMinusFltMaxAreRefusedNotReturnedWithInfiniteWidth) {
+    Lcg g(25);
+    std::vector<float> px(64 * 64);
+    for (auto& v : px) v = g.next() < 0.15 ? -FLT_MAX : FLT_MAX;
+    XpeImageBuffer img = make_image(64, 64, px);
+    XpeVoiLutParams out = sentinel();
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_voi_auto_window(&img, &out));
+    EXPECT_TRUE(untouched(out));
+    free_image(img);
+}
+
+// The invariant for every extreme finite input: OK means a finite center and a finite positive width; anything else is an error
+// with the output untouched. (Which of the two a given image gets is not the point here, the invariant is.)
+TEST(VoiAutoWindow, ExtremeFiniteRangesNeverGiveANonFiniteOrNonPositiveWindow) {
+    struct Case { const char* name; float low; float high; };
+    const Case cases[] = {
+        {"-FLT_MAX .. +FLT_MAX", -FLT_MAX, FLT_MAX},
+        {"0 .. FLT_MAX", 0.0f, FLT_MAX},
+        {"-FLT_MAX .. 0", -FLT_MAX, 0.0f},
+        {"FLT_MAX/2 .. FLT_MAX", FLT_MAX / 2.0f, FLT_MAX},
+        {"one denormal step 0 .. 1.4e-45", 0.0f, std::numeric_limits<float>::denorm_min()},
+        {"adjacent floats at 1.0", 1.0f, std::nextafter(1.0f, 2.0f)},
+        {"adjacent floats at FLT_MAX", std::nextafter(FLT_MAX, 0.0f), FLT_MAX},
+        {"tiny normal range 1e-30 .. 2e-30", 1e-30f, 2e-30f},
+    };
+    for (const Case& c : cases) {
+        for (const double anatFraction : {0.15, 0.5}) {
+            Lcg g(26);
+            std::vector<float> px(64 * 64);
+            for (auto& v : px) v = g.next() < anatFraction ? c.low : c.high;
+            XpeImageBuffer img = make_image(64, 64, px);
+            XpeVoiLutParams out = sentinel();
+            const XpeErrorCode rc = xpe_voi_auto_window(&img, &out);
+            SCOPED_TRACE(std::string(c.name) + " anatomy fraction " + std::to_string(anatFraction));
+            if (rc == XPE_OK) {
+                EXPECT_TRUE(std::isfinite(out.center)) << "center";
+                EXPECT_TRUE(std::isfinite(out.width)) << "width";
+                EXPECT_GT(out.width, 0.0f);
+                EXPECT_EQ(XPE_VOI_LINEAR_EXACT, out.mode);
+            } else {
+                EXPECT_EQ(XPE_ERR_INVALID_INPUT, rc);
+                EXPECT_TRUE(untouched(out)) << "an error leaves the output untouched";
+            }
+            free_image(img);
+        }
+    }
+}
+
+// A flat image of an extreme finite value is still a window (center = the value, width 1).
+TEST(VoiAutoWindow, FlatImageOfAnExtremeValueIsStillAWindow) {
+    for (const float v : {FLT_MAX, -FLT_MAX}) {
+        XpeImageBuffer img = make_image(16, 16, std::vector<float>(256, v));
+        XpeVoiLutParams out = sentinel();
+        xpe_clear_alerts();
+        ASSERT_EQ(XPE_OK, xpe_voi_auto_window(&img, &out));
+        EXPECT_FLOAT_EQ(v, out.center);
+        EXPECT_FLOAT_EQ(1.0f, out.width);
+        xpe_clear_alerts();
         free_image(img);
     }
 }
