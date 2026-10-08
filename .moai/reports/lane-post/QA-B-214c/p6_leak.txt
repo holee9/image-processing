@@ -1,0 +1,17 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = M2Measure.DISABLED_Leak100_P6
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from M2Measure
+[ RUN      ] M2Measure.DISABLED_Leak100_P6
+== P6 leak: 100 frames of the full chain ==
+  [real chain] private MiB: first=37.32 frames11-20 median=37.33 frames91-100 median=37.54  end-base=0.203 MiB  slope(frames21-100)=0.00046 MiB/frame
+  peak working set over the run: 133.4 MiB (observation; the SPEC states no post limit)
+  [control: 1 MiB/frame injected] private MiB: first=38.54 frames11-20 median=53.63 frames91-100 median=134.11  end-base=80.480 MiB  slope(frames21-100)=1.00603 MiB/frame
+[       OK ] M2Measure.DISABLED_Leak100_P6 (19639 ms)
+[----------] 1 test from M2Measure (19639 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (19639 ms total)
+[  PASSED  ] 1 test.
+===EXIT=0===
