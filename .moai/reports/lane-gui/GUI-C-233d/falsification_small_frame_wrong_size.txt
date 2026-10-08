@@ -1,0 +1,2 @@
+[xUnit.net 00:00:00.26]     ImageProcTest.IntegrationTests.Functional.BaselineReviewFixTests.TheRealRunner_ReceivingInvalidInputFromTheRealModule_FailsTheBaseline_WithTheCallAndTheCode [FAIL]
+실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 56 ms - ImageProcTest.IntegrationTests.dll (net8.0)
