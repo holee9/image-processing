@@ -274,10 +274,9 @@ XPE_API XpeErrorCode xpe_voi_preset_create(XpeVoiLutParams* params,
  *
  * The window is derived from the values that actually reach the VOI stage, whatever their domain (the log domain after
  * xpe_log_transform, detector DN, ...), so it needs no per-body-part table:
- *   1. an image of at least 2^20 pixels is histogrammed from every 4th pixel of every 4th row (a 1/16 sample), a smaller one
- *      from every pixel (QA-B-214b: a sample of a small image can miss a class); 1024 bins between the lowest and highest
- *      value of the pixels histogrammed. A sample is used only if the pixels outside the value range it spans are fewer
- *      than 0.2 % of the image; otherwise the whole image is histogrammed (QA-B-214b);
+ *   1. EVERY pixel is histogrammed (QA-B-214c: no sampling -- a fixed sampling grid cannot see a difference between the pixels
+ *      on it and the rest that stays inside the value range, and what is read is what the window is made of), 1024 bins
+ *      between the lowest and the highest value of the image;
  *   2. an Otsu split of that histogram separates two classes: the HIGH class is the background (unattenuated beam, air) and
  *      the low class is the anatomy;
  *   3. window low  = the 0.5 % quantile of the anatomy class (the densest bone is not clipped away),
@@ -287,12 +286,14 @@ XPE_API XpeErrorCode xpe_voi_preset_create(XpeVoiLutParams* params,
  * range xpe_apply_presentation_lut expects. The numeric constants, their values and the measurements behind them are the
  * named constants in voi_auto_window.cpp.
  *
- * Fallback: when the histogram does not show two classes -- either class holds under 2 % of the histogrammed pixels or the
- * Otsu separability (between-class variance / total variance) is under 0.75 -- there is no anatomy to isolate (a flat-field
+ * Fallback: when the histogram does not show two classes -- either class holds under 2 % of the pixels or the Otsu
+ * separability (between-class variance / total variance) is under 0.75 -- there is no anatomy to isolate (a flat-field
  * frame, an image of one tissue) and the window is the 1 % .. 99 % quantile range of the whole image, with one Info alert
- * posted. The quantiles are those of a histogram of EVERY pixel: a fallback reached from a sample is recomputed on the
- * whole image first (QA-B-214b), so a class the sample missed is not lost, and the resolution is one histogram bin (0.1 % of
- * the value range). A flat image (maximum == minimum) gets center = that value and width 1.0, also with the Info alert.
+ * posted. The quantiles are those of the histogram of every pixel, to the resolution of one histogram bin (0.1 % of the
+ * value range). A flat image (maximum == minimum) gets center = that value and width 1.0, also with the Info alert.
+ *
+ * The result depends only on the SET of pixel values, not on where the pixels are: the same pixels in any order give a
+ * bit-identical window (the histogram is made of integer counts added in a fixed order).
  *
  * Contract: the background is the HIGH end of the data. Data whose background is the low end (MONOCHROME1 normalised to
  * MONOCHROME2 sense) has it the wrong way round and the window would isolate the wrong class. Image content outside the
@@ -309,9 +310,8 @@ XPE_API XpeErrorCode xpe_voi_preset_create(XpeVoiLutParams* params,
  * zero as a float, the result is XPE_ERR_INVALID_INPUT and outParams is untouched; on XPE_OK the center and the width are
  * finite floats and the width is positive.
  *
- * @note Performance (3072x3072, QA-B-214b report, local): about 3.8 ms for a real frame (one sample pass plus one full
- *       pass for the finite check, the extremes and the unsampled count), about 11 ms when the whole image has to be
- *       histogrammed (sample not representative), about 1.2 ms for an image of 1000x1000.
+ * @note Performance (3072x3072, QA-B-214c report, local, shared machine): about 8 ms for a real frame (one pass for the
+ *       finite check and the extremes, one pass for the histogram), about 1 ms for an image of 1000x1000.
  * @note Thread-safe when called with independent buffers.
  */
 XPE_API XpeErrorCode xpe_voi_auto_window(const XpeImageBuffer* img,
