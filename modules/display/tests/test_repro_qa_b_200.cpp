@@ -68,8 +68,10 @@ TEST(ReproQaB200Display, D5_GsdfEnabledDoesNotChangeWhatThePresentationLutDoes) 
     std::vector<float> px;
     for (int i = 0; i < 64; ++i) px.push_back(static_cast<float>(i) / 63.0f);
     XpeImageBuffer a = MakeFloatImage(8, 8, px), b = MakeFloatImage(8, 8, px);
-    ASSERT_EQ(XPE_OK, xpe_apply_presentation_lut(&a, &on));
-    ASSERT_EQ(XPE_OK, xpe_apply_presentation_lut(&b, &off));
+    // QA-B-214: this test is about what the gsdfEnabled flag does to the entries and about the index mapping, so it uses the AS_IS
+    // polarity (the mapping lutData[index] its assertions below describe); the default now reads the table backwards.
+    ASSERT_EQ(XPE_OK, xpe_apply_presentation_lut_ex(&a, &on, XPE_PRESENTATION_AS_IS));
+    ASSERT_EQ(XPE_OK, xpe_apply_presentation_lut_ex(&b, &off, XPE_PRESENTATION_AS_IS));
     ASSERT_EQ(a.dataSize, b.dataSize);
     const bool same = std::memcmp(a.data, b.data, a.dataSize) == 0;
     const uint16_t* pa = static_cast<const uint16_t*>(a.data);
