@@ -434,7 +434,18 @@ public sealed class MenuBehaviorScenarios(Wrist1024SliceApplicationFixture app, 
 
         view.Patterns.ExpandCollapse.Pattern.Collapse();
         Thread.Sleep(200);
-        window.FindFirstDescendant(cf => cf.ByName("Log"))?.AsButton().Invoke();
+        // GUI-C-232c: D01 failed in CI (both jobs) with "Invoke pattern not supported" on whatever the bare ByName("Log") returned first. Take the element named "Log" that CAN be invoked, and when none can,
+        // fail with a listing of every element of that name (type, id, patterns) so the next red run names the culprit instead of a pattern exception.
+        var candidates = window.FindAllDescendants(cf => cf.ByName("Log"));
+        var logButton = candidates.FirstOrDefault(c => { try { return c.Patterns.Invoke.IsSupported; } catch (Exception) { return false; } });
+        if (logButton is null)
+        {
+            static string Safe(Func<string> read) { try { return read(); } catch (Exception ex) { return "<" + ex.GetType().Name + ">"; } }
+            Assert.Fail("No invokable element named 'Log'. Found: " + string.Join("; ", candidates.Select(c =>
+                $"{Safe(() => c.ControlType.ToString())} id='{Safe(() => c.AutomationId)}' class='{Safe(() => c.ClassName)}' invoke={Safe(() => c.Patterns.Invoke.IsSupported.ToString())}")));
+        }
+
+        logButton!.Patterns.Invoke.Pattern.Invoke();
         Thread.Sleep(600);
     }
 }
