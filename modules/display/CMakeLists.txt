@@ -19,6 +19,7 @@ set(XPE_DISPLAY_SOURCES
     src/display_helpers.cpp   # shared: format validation
     src/modality_lut.cpp      # SWU-3.1 REQ-DISP-001..008
     src/voi_lut.cpp           # SWU-3.2 REQ-DISP-009..018
+    src/voi_auto_window.cpp   # SWU-3.2 anatomy-based automatic window (QA-B-214)
     src/presentation_lut.cpp  # SWU-3.3 REQ-DISP-019..028
 )
 
@@ -166,6 +167,26 @@ if(_XPE_BUILD_TESTS)
     endif()
     xpe_target_warnings_as_errors(test_display_voi_lut)
     gtest_discover_tests(test_display_voi_lut
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    # --- test_voi_auto_window (SWU-3.2: anatomy-based automatic window, QA-B-214) ---
+    add_executable(test_display_voi_auto_window
+        tests/test_voi_auto_window.cpp
+    )
+    target_include_directories(test_display_voi_auto_window PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(test_display_voi_auto_window PRIVATE
+        xpe_display
+        GTest::gtest_main
+    )
+    target_compile_features(test_display_voi_auto_window PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_display_voi_auto_window PRIVATE /W4)
+    endif()
+    xpe_target_warnings_as_errors(test_display_voi_auto_window)
+    gtest_discover_tests(test_display_voi_auto_window
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 

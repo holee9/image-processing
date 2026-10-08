@@ -79,6 +79,10 @@ TEST(PresentationLut, DomainTransition_FormatBecomesUint16) {
 // =============================================================================
 // REQ-DISP-020: LUT lookup index = clamp(round(input * 1023), 0, 1023)
 // =============================================================================
+// QA-B-214: the tests of this block assert the INDEX mapping (REQ-DISP-020/021: index = clamp(round(input * 1023), 0, 1023), output =
+// lutData[index]). That is the XPE_PRESENTATION_AS_IS mapping; xpe_apply_presentation_lut now reads the table backwards by default
+// (the polarity decision on #251), so these call the _ex form with AS_IS to keep asserting the index mapping itself. The default
+// polarity is asserted in the QA-B-214 block at the end of this file.
 
 TEST(PresentationLut, LutLookup_HalfValue) {
     // REQ-DISP-020: input=0.5 -> index=round(0.5*1023)=512 -> lutData[512]
@@ -87,7 +91,7 @@ TEST(PresentationLut, LutLookup_HalfValue) {
     make_identity_lut(params);
     // identity: lutData[512] = 512
 
-    XpeErrorCode rc = xpe_apply_presentation_lut(&img, &params);
+    XpeErrorCode rc = xpe_apply_presentation_lut_ex(&img, &params, XPE_PRESENTATION_AS_IS);
     EXPECT_EQ(rc, XPE_OK);
     uint16_t* out = static_cast<uint16_t*>(img.data);
     EXPECT_EQ(out[0], 512u);
@@ -102,7 +106,7 @@ TEST(PresentationLut, LutLookup_ZeroInput) {
     for (int i = 1; i < 1024; ++i) params.lutData[i] = 0;
     params.gsdfEnabled = 0;
 
-    XpeErrorCode rc = xpe_apply_presentation_lut(&img, &params);
+    XpeErrorCode rc = xpe_apply_presentation_lut_ex(&img, &params, XPE_PRESENTATION_AS_IS);
     EXPECT_EQ(rc, XPE_OK);
     EXPECT_EQ(static_cast<uint16_t*>(img.data)[0], 999u);
     free_image(img);
@@ -115,7 +119,7 @@ TEST(PresentationLut, LutLookup_OneInput) {
     make_constant_lut(params, 0);
     params.lutData[1023] = 65535;
 
-    XpeErrorCode rc = xpe_apply_presentation_lut(&img, &params);
+    XpeErrorCode rc = xpe_apply_presentation_lut_ex(&img, &params, XPE_PRESENTATION_AS_IS);
     EXPECT_EQ(rc, XPE_OK);
     EXPECT_EQ(static_cast<uint16_t*>(img.data)[0], 65535u);
     free_image(img);
@@ -131,7 +135,7 @@ TEST(PresentationLut, InputClamp_Negative) {
     XpePresentationLutParams params{};
     make_identity_lut(params);
 
-    XpeErrorCode rc = xpe_apply_presentation_lut(&img, &params);
+    XpeErrorCode rc = xpe_apply_presentation_lut_ex(&img, &params, XPE_PRESENTATION_AS_IS);
     EXPECT_EQ(rc, XPE_OK);
     EXPECT_EQ(static_cast<uint16_t*>(img.data)[0], 0u);
     free_image(img);
@@ -143,7 +147,7 @@ TEST(PresentationLut, InputClamp_AboveOne) {
     XpePresentationLutParams params{};
     make_identity_lut(params);
 
-    XpeErrorCode rc = xpe_apply_presentation_lut(&img, &params);
+    XpeErrorCode rc = xpe_apply_presentation_lut_ex(&img, &params, XPE_PRESENTATION_AS_IS);
     EXPECT_EQ(rc, XPE_OK);
     EXPECT_EQ(static_cast<uint16_t*>(img.data)[0], 1023u);
     free_image(img);
@@ -600,4 +604,117 @@ TEST(GsdfBlackLevel, TheUpperEndIsNotEnforcedHere) {
     // the standard's range ends at 4000 cd/m2; the module does not refuse above it (a recorded fact, not a requirement)
     XpePresentationLutParams p{};
     EXPECT_EQ(XPE_OK, Calibrate(GammaCurve(0.1f, 6000.0f), &p));
+}
+
+
+// =============================================================================
+// QA-B-214 (user decision on #251): display polarity at the Presentation LUT stage.
+// The default reads the table backwards (output = lutData[1023 - index], the DICOM INVERSE shape of the P-Values), so the high
+// end of the data (the unexposed background of a detector frame) is shown dark. XPE_PRESENTATION_AS_IS is the old mapping.
+// =============================================================================
+
+namespace {
+void make_ascending_ramp(XpePresentationLutParams& p) {
+    for (int i = 0; i < 1024; ++i) p.lutData[i] = static_cast<uint16_t>(std::lround(i * 65535.0 / 1023.0));
+    p.gsdfEnabled = 0;
+}
+XpeImageBuffer make_gradient(uint32_t w, uint32_t h) {
+    XpeImageBuffer img = make_float32_image(w, h, 0.0f);
+    float* px = static_cast<float*>(img.data);
+    for (size_t i = 0; i < (size_t)w * h; ++i) px[i] = static_cast<float>(i) / static_cast<float>((size_t)w * h - 1);
+    return img;
+}
+}  // namespace
+
+TEST(PresentationPolarity, DefaultShowsTheHighEndDark) {
+    XpePresentationLutParams params{};
+    make_ascending_ramp(params);
+    XpeImageBuffer lo = make_float32_image(1, 1, 0.0f), hi = make_float32_image(1, 1, 1.0f);
+    ASSERT_EQ(XPE_OK, xpe_apply_presentation_lut(&lo, &params));
+    ASSERT_EQ(XPE_OK, xpe_apply_presentation_lut(&hi, &params));
+    EXPECT_EQ(static_cast<uint16_t*>(lo.data)[0], 65535u) << "the lowest input (bone) is shown bright";
+    EXPECT_EQ(static_cast<uint16_t*>(hi.data)[0], 0u) << "the highest input (air) is shown dark";
+    free_image(lo);
+    free_image(hi);
+}
+
+TEST(PresentationPolarity, DefaultIsExactlyTheInvertedForm) {
+    XpePresentationLutParams params{};
+    make_ascending_ramp(params);
+    XpeImageBuffer a = make_gradient(64, 64), b = make_gradient(64, 64);
+    ASSERT_EQ(XPE_OK, xpe_apply_presentation_lut(&a, &params));
+    ASSERT_EQ(XPE_OK, xpe_apply_presentation_lut_ex(&b, &params, XPE_PRESENTATION_INVERTED));
+    ASSERT_EQ(a.dataSize, b.dataSize);
+    EXPECT_EQ(0, std::memcmp(a.data, b.data, a.dataSize));
+    free_image(a);
+    free_image(b);
+}
+
+TEST(PresentationPolarity, InvertedRampIsSixtyFiveFiveThirtyFiveMinusTheAscendingRamp) {
+    // For a ramp, reading the table backwards is 65535 - value for every one of the 1024 indices (no rounding ties exist: the
+    // denominators are odd).
+    XpePresentationLutParams params{};
+    make_ascending_ramp(params);
+    XpeImageBuffer asIs = make_float32_image(1024, 1, 0.0f), inv = make_float32_image(1024, 1, 0.0f);
+    for (int i = 0; i < 1024; ++i) {
+        static_cast<float*>(asIs.data)[i] = static_cast<float>(i) / 1023.0f;
+        static_cast<float*>(inv.data)[i] = static_cast<float>(i) / 1023.0f;
+    }
+    ASSERT_EQ(XPE_OK, xpe_apply_presentation_lut_ex(&asIs, &params, XPE_PRESENTATION_AS_IS));
+    ASSERT_EQ(XPE_OK, xpe_apply_presentation_lut_ex(&inv, &params, XPE_PRESENTATION_INVERTED));
+    const uint16_t* a = static_cast<const uint16_t*>(asIs.data);
+    const uint16_t* b = static_cast<const uint16_t*>(inv.data);
+    int differing = 0;
+    for (int i = 0; i < 1024; ++i) differing += (b[i] != static_cast<uint16_t>(65535u - a[i]));
+    EXPECT_EQ(0, differing);
+    free_image(asIs);
+    free_image(inv);
+}
+
+TEST(PresentationPolarity, GsdfTableIsReadBackwardsNotSubtracted) {
+    // For a GSDF table "65535 - value" would break the spacing the table was calibrated for; reading it backwards keeps it.
+    float lum[10];
+    for (int i = 0; i < 10; ++i) lum[i] = 1.0f + static_cast<float>(i) * 10.0f;
+    XpePresentationLutParams gsdf{};
+    ASSERT_EQ(XPE_OK, xpe_gsdf_calibrate(lum, 10, &gsdf));
+    XpeImageBuffer img = make_float32_image(1024, 1, 0.0f);
+    for (int i = 0; i < 1024; ++i) static_cast<float*>(img.data)[i] = static_cast<float>(i) / 1023.0f;
+    ASSERT_EQ(XPE_OK, xpe_apply_presentation_lut(&img, &gsdf));
+    const uint16_t* o = static_cast<const uint16_t*>(img.data);
+    int notBackwards = 0, subtractedWouldDiffer = 0;
+    for (int i = 0; i < 1024; ++i) {
+        notBackwards += (o[i] != gsdf.lutData[1023 - i]);
+        subtractedWouldDiffer += (o[i] != static_cast<uint16_t>(65535u - gsdf.lutData[i]));
+    }
+    EXPECT_EQ(0, notBackwards) << "output[i] == lutData[1023 - i]";
+    EXPECT_GT(subtractedWouldDiffer, 0) << "control: for this table 65535 - lutData[i] is a different answer";
+    free_image(img);
+}
+
+TEST(PresentationPolarity, AsIsIsTheOldAscendingMapping) {
+    XpePresentationLutParams params{};
+    make_ascending_ramp(params);
+    XpeImageBuffer img = make_gradient(32, 32);
+    const std::vector<float> in(static_cast<float*>(img.data), static_cast<float*>(img.data) + 32 * 32);
+    ASSERT_EQ(XPE_OK, xpe_apply_presentation_lut_ex(&img, &params, XPE_PRESENTATION_AS_IS));
+    const uint16_t* o = static_cast<const uint16_t*>(img.data);
+    int differing = 0;
+    for (size_t i = 0; i < in.size(); ++i) {
+        const int idx = static_cast<int>(std::lround(in[i] * 1023.0f));
+        differing += (o[i] != params.lutData[idx]);
+    }
+    EXPECT_EQ(0, differing);
+    free_image(img);
+}
+
+TEST(PresentationPolarity, UnknownPolarityIsRefusedAndTheImageIsUntouched) {
+    XpePresentationLutParams params{};
+    make_ascending_ramp(params);
+    XpeImageBuffer img = make_gradient(8, 8);
+    const std::vector<uint8_t> before(static_cast<uint8_t*>(img.data), static_cast<uint8_t*>(img.data) + img.dataSize);
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_apply_presentation_lut_ex(&img, &params, static_cast<XpePresentationPolarity>(2)));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_apply_presentation_lut_ex(&img, &params, static_cast<XpePresentationPolarity>(-1)));
+    EXPECT_EQ(XPE_PIXEL_FLOAT32, img.format);
+    EXPECT_EQ(0, std::memcmp(before.data(), img.data, before.size()));
+    free_image(img);
 }
