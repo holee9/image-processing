@@ -143,6 +143,10 @@ struct ChainParams {
     XpeModalityLutParams modality{XPE_MODALITY_LUT_LINEAR, 1.0f, 0.0f, nullptr, 0u, 0, 0u};
     XpeVoiLutParams voi{XPE_VOI_LINEAR, 0.0f, 1.0f, 0.0f, 1.0f};
     XpePresentationLutParams pres{};
+    // QA-B-214: the chain ends with the product's DEFAULT presentation (xpe_apply_presentation_lut, inverted). The comparison
+    // renderings of QA-B-213b select a polarity explicitly through the _ex entry point instead.
+    bool useDefaultPresentation = true;
+    XpePresentationPolarity polarity = XPE_PRESENTATION_INVERTED;
 };
 
 ChainParams make_params() {
@@ -165,7 +169,9 @@ XpeErrorCode run_stage(int stage, XpeImageBuffer& img, const ChainParams& p) {
         case 3: return xpe_edge_enhance(&img, nullptr);
         case 4: return xpe_apply_modality_lut(&img, &p.modality);
         case 5: return xpe_apply_voi_lut(&img, &p.voi);
-        default: return xpe_apply_presentation_lut(&img, &p.pres);
+        default:
+            return p.useDefaultPresentation ? xpe_apply_presentation_lut(&img, &p.pres)
+                                            : xpe_apply_presentation_lut_ex(&img, &p.pres, p.polarity);
     }
 }
 
@@ -309,15 +315,20 @@ TEST(M2Measure, DISABLED_Chain_P1_P3_P4_P5_P7) {
         ASSERT_TRUE(write_file(outDir + "/00_input_adu.u16", w.data(), w.size() * sizeof(uint16_t)));
     }
     double firstRunMs[7] = {};
+    double autoWindowFirstMs = 0.0;
     for (int s = 0; s < 6; ++s) {
         if (s == 3) preUsm.assign(f32(img), f32(img) + kPixels);
         if (s == 5) {
-            // VOI window: linear, 1st..99th percentile of the image that reaches the VOI stage (after Modality).
-            const Stats sv = compute_stats(f32(img), kPixels);
-            p.voi.center = static_cast<float>((sv.p01 + sv.p99) * 0.5);
-            p.voi.width = static_cast<float>(sv.p99 - sv.p01);
-            std::printf("  VOI window (LINEAR, p01..p99 of the Modality output): p01=%.4f p99=%.4f -> center=%.4f width=%.4f out=[0,1]\n",
-                        sv.p01, sv.p99, static_cast<double>(p.voi.center), static_cast<double>(p.voi.width));
+            // QA-B-214: the VOI window is the product's anatomy-based automatic window of the image that reaches the VOI stage.
+            xpe_clear_alerts();
+            const auto tw = std::chrono::steady_clock::now();
+            ASSERT_EQ(XPE_OK, xpe_voi_auto_window(&img, &p.voi));
+            autoWindowFirstMs = ms_since(tw);
+            std::printf("  VOI window (xpe_voi_auto_window): mode=%d center=%.4f width=%.4f -> [%.4f, %.4f] out=[%.1f,%.1f]; first call %.2f ms\n",
+                        static_cast<int>(p.voi.mode), static_cast<double>(p.voi.center), static_cast<double>(p.voi.width),
+                        static_cast<double>(p.voi.center - p.voi.width / 2), static_cast<double>(p.voi.center + p.voi.width / 2),
+                        static_cast<double>(p.voi.minOut), static_cast<double>(p.voi.maxOut), autoWindowFirstMs);
+            drain_alerts("xpe_voi_auto_window (none expected on this two-class frame)");
         }
         const auto t0 = std::chrono::steady_clock::now();
         const XpeErrorCode rc = run_stage(s, img, p);
@@ -371,7 +382,7 @@ TEST(M2Measure, DISABLED_Chain_P1_P3_P4_P5_P7) {
     xpe_free_image(&img);
     std::printf("  first-run stage times (ms): ");
     for (int s = 0; s < 7; ++s) std::printf("%s=%.2f ", kStageName[s], firstRunMs[s]);
-    std::printf("\n");
+    std::printf("voi_auto_window=%.2f\n", autoWindowFirstMs);
 
     // P5 edge arms on the real post-VOI image with injected pixels (declared as injected).
     {
@@ -392,9 +403,10 @@ TEST(M2Measure, DISABLED_Chain_P1_P3_P4_P5_P7) {
         const XpeErrorCode rc2 = xpe_apply_presentation_lut(&e, &p.pres);
         if (rc2 == XPE_OK) {
             const uint16_t* u = static_cast<const uint16_t*>(e.data);
-            std::printf("  arm finite out-of-range injected (-5.0, 7.0): rc=%d out[0]=%u (lut[0]=%u) out[1]=%u (lut[1023]=%u)\n",
-                        static_cast<int>(rc2), static_cast<unsigned>(u[0]), static_cast<unsigned>(p.pres.lutData[0]),
-                        static_cast<unsigned>(u[1]), static_cast<unsigned>(p.pres.lutData[1023]));
+            // default polarity (QA-B-214): input -5 clamps to index 0 -> lutData[1023]; input 7 clamps to 1023 -> lutData[0]
+            std::printf("  arm finite out-of-range injected (-5.0, 7.0), default (inverted) polarity: rc=%d out[0]=%u (lut[1023]=%u) out[1]=%u (lut[0]=%u)\n",
+                        static_cast<int>(rc2), static_cast<unsigned>(u[0]), static_cast<unsigned>(p.pres.lutData[1023]),
+                        static_cast<unsigned>(u[1]), static_cast<unsigned>(p.pres.lutData[0]));
         } else {
             std::printf("  arm finite out-of-range injected: rc=%d (%s)\n", static_cast<int>(rc2), xpe_error_string(rc2));
         }
@@ -470,11 +482,7 @@ TEST(M2Measure, DISABLED_StageTimes_P2) {
     XpeImageBuffer img = alloc_f32();
     std::memcpy(img.data, input.data(), kPixels * sizeof(float));
     for (int s = 0; s < 6; ++s) {
-        if (s == 5) {
-            const Stats sv = compute_stats(f32(img), kPixels);
-            p.voi.center = static_cast<float>((sv.p01 + sv.p99) * 0.5);
-            p.voi.width = static_cast<float>(sv.p99 - sv.p01);
-        }
+        if (s == 5) ASSERT_EQ(XPE_OK, xpe_voi_auto_window(&img, &p.voi));
         stageIn[static_cast<size_t>(s)].assign(f32(img), f32(img) + kPixels);
         ASSERT_EQ(XPE_OK, run_stage(s, img, p));
     }
@@ -507,6 +515,27 @@ TEST(M2Measure, DISABLED_StageTimes_P2) {
         for (const double v : t) std::printf(" %.2f", v);
         std::printf("\n");
     }
+    // QA-B-214: the automatic window itself, on the image that reaches the VOI stage (stage 5's input). It is a separate call,
+    // so it is reported next to, not inside, the VOI stage's own 16 ms (REQ-DISP-016) -- the relation is for the leader to judge.
+    {
+        std::vector<double> t;
+        for (int r = 0; r < kReps; ++r) {
+            XpeImageBuffer w = alloc_f32();
+            std::memcpy(w.data, stageIn[5].data(), kPixels * sizeof(float));
+            XpeVoiLutParams win{};
+            const auto t0 = std::chrono::steady_clock::now();
+            const XpeErrorCode rc = xpe_voi_auto_window(&w, &win);
+            t.push_back(ms_since(t0));
+            EXPECT_EQ(XPE_OK, rc);
+            xpe_free_image(&w);
+        }
+        std::vector<double> rest(t.begin() + 1, t.end());
+        std::sort(rest.begin(), rest.end());
+        std::printf("  %-16s limit=  (none; VOI stage budget is 16) first=%8.2f min=%8.2f median=%8.2f max=%8.2f (reps 2..%d)\n      all (ms, run order):",
+                    "voi_auto_window", t[0], rest.front(), rest[rest.size() / 2], rest.back(), kReps);
+        for (const double v : t) std::printf(" %.2f", v);
+        std::printf("\n");
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -521,16 +550,7 @@ TEST(M2Measure, DISABLED_Leak100_P6) {
     constexpr int kFrames = 100;
 
     ChainParams p = make_params();
-    {
-        // The VOI window is fixed from the first frame so the memory series measures the chain, not the percentile sort.
-        XpeImageBuffer w = alloc_f32();
-        std::memcpy(w.data, input.data(), kPixels * sizeof(float));
-        for (int s = 0; s < 5; ++s) ASSERT_EQ(XPE_OK, run_stage(s, w, p));
-        const Stats sv = compute_stats(f32(w), kPixels);
-        p.voi.center = static_cast<float>((sv.p01 + sv.p99) * 0.5);
-        p.voi.width = static_cast<float>(sv.p99 - sv.p01);
-        xpe_free_image(&w);
-    }
+    p.voi = XpeVoiLutParams{XPE_VOI_LINEAR_EXACT, 0.0f, 1.0f, 0.0f, 1.0f};  // replaced by the automatic window in every frame
 
     std::printf("== P6 leak: %d frames of the full chain ==\n", kFrames);
     std::vector<double> priv, work, peak;
@@ -538,7 +558,10 @@ TEST(M2Measure, DISABLED_Leak100_P6) {
     for (int f = 0; f < kFrames; ++f) {
         XpeImageBuffer w = alloc_f32();
         std::memcpy(w.data, input.data(), kPixels * sizeof(float));
-        for (int s = 0; s < 7; ++s) ASSERT_EQ(XPE_OK, run_stage(s, w, p)) << "frame " << f << " stage " << s;
+        for (int s = 0; s < 7; ++s) {
+            if (s == 5) ASSERT_EQ(XPE_OK, xpe_voi_auto_window(&w, &p.voi)) << "frame " << f;  // QA-B-214
+            ASSERT_EQ(XPE_OK, run_stage(s, w, p)) << "frame " << f << " stage " << s;
+        }
         xpe_free_image(&w);
         const MemSample m = sample_memory();
         priv.push_back(m.privateMiB);
@@ -607,9 +630,8 @@ float otsu_threshold(const std::vector<float>& v) {
 std::vector<uint16_t> render_variant(const std::vector<float>& usm, float center, float width, float outMax,
                                      bool descending, XpeVoiLutMode mode = XPE_VOI_LINEAR) {
     ChainParams p = make_params();
-    if (descending) {
-        for (int i = 0; i < 1024; ++i) p.pres.lutData[i] = static_cast<uint16_t>(65535u - p.pres.lutData[i]);
-    }
+    p.useDefaultPresentation = false;  // QA-B-214: polarity is chosen explicitly here
+    p.polarity = descending ? XPE_PRESENTATION_INVERTED : XPE_PRESENTATION_AS_IS;
     p.voi = XpeVoiLutParams{mode, center, width, 0.0f, outMax};
     XpeImageBuffer w = alloc_f32();
     std::memcpy(w.data, usm.data(), kPixels * sizeof(float));
@@ -731,6 +753,23 @@ TEST(M2Measure, DISABLED_Variants_P8) {
     report_variant("v4_anatomy_p01p99_descending", render_variant(usmOut, ac, aw, 1.0f, true), anat, outDir, ac, aw);
     report_variant("v5_anatomy_p01p99_ascending", render_variant(usmOut, ac, aw, 1.0f, false), anat, outDir, ac, aw);
 
+    // v7 (QA-B-214): the product's new default -- xpe_voi_auto_window, then the inverted presentation
+    {
+        XpeImageBuffer ai = alloc_f32();
+        std::memcpy(ai.data, usmOut.data(), kPixels * sizeof(float));
+        XpeVoiLutParams autoWin{};
+        ASSERT_EQ(XPE_OK, xpe_voi_auto_window(&ai, &autoWin));
+        xpe_free_image(&ai);
+        report_variant("v7_auto_window_inverted_default", render_variant(usmOut, autoWin.center, autoWin.width, autoWin.maxOut, true, autoWin.mode), anat, outDir, autoWin.center, autoWin.width);
+    }
+
+    // v8: the same window with its top moved down to the 1 % quantile of the background class (2996.8 on this frame, from the
+    // numpy study of QA-B-214): more contrast, but the tissue-to-air transition at the skin line is clipped more.
+    {
+        const float lo8 = 1981.3396f, hi8 = 2996.8f;
+        report_variant("v8_alt_window_top_at_background_q01_inverted", render_variant(usmOut, 0.5f * (lo8 + hi8), hi8 - lo8, 1.0f, true, XPE_VOI_LINEAR_EXACT), anat, outDir, 0.5 * (lo8 + hi8), hi8 - lo8);
+    }
+
     // v6: undo the log first (xpe_log_inverse), so the preset window really is in the detector DN domain REQ-DISP-017 names
     {
         XpeImageBuffer li = alloc_f32();
@@ -742,4 +781,35 @@ TEST(M2Measure, DISABLED_Variants_P8) {
         std::printf("  after xpe_log_inverse(USM output): min=%.2f max=%.2f p01=%.2f p99=%.2f (DN domain)\n", sd.minv, sd.maxv, sd.p01, sd.p99);
         report_variant("v6_log_inverse_then_preset_window_out0_1_descending", render_variant(dn, preset.center, preset.width, 1.0f, true, preset.mode), anat, outDir, preset.center, preset.width);
     }
+}
+
+// QA-B-214: does the polarity cost anything? The two polarities alternate within one process and one input, so a loaded
+// machine hits both alike (a sequential A-then-B run reads the machine state as a code difference).
+TEST(M2Measure, DISABLED_PresentationPolarityAB) {
+    const std::string inPath = env_or_empty("XPE_M2_IN");
+    ASSERT_FALSE(inPath.empty());
+    std::vector<float> input = load_input(inPath);
+    ASSERT_EQ(kPixels, input.size());
+    std::vector<float> unit(kPixels);
+    for (size_t i = 0; i < kPixels; ++i) unit[i] = std::min(1.0f, std::max(0.0f, (input[i] - 100.0f) / 3600.0f));
+    const ChainParams p = make_params();
+    constexpr int kRounds = 30;
+    std::vector<double> inv, asis;
+    for (int r = 0; r < kRounds; ++r) {
+        for (const XpePresentationPolarity pol : {XPE_PRESENTATION_INVERTED, XPE_PRESENTATION_AS_IS}) {
+            XpeImageBuffer w = alloc_f32();
+            std::memcpy(w.data, unit.data(), kPixels * sizeof(float));
+            const auto t0 = std::chrono::steady_clock::now();
+            const XpeErrorCode rc = xpe_apply_presentation_lut_ex(&w, &p.pres, pol);
+            const double ms = ms_since(t0);
+            EXPECT_EQ(XPE_OK, rc);
+            (pol == XPE_PRESENTATION_INVERTED ? inv : asis).push_back(ms);
+            xpe_free_image(&w);
+        }
+    }
+    auto med = [](std::vector<double> v) { std::sort(v.begin(), v.end()); return v[v.size() / 2]; };
+    std::printf("== presentation polarity A/B, %d alternating rounds, 3072x3072 ==\n  inverted: min=%.2f median=%.2f max=%.2f ms\n  as-is   : min=%.2f median=%.2f max=%.2f ms\n  median difference inverted - as-is = %.2f ms\n",
+                kRounds, *std::min_element(inv.begin(), inv.end()), med(inv), *std::max_element(inv.begin(), inv.end()),
+                *std::min_element(asis.begin(), asis.end()), med(asis), *std::max_element(asis.begin(), asis.end()),
+                med(inv) - med(asis));
 }

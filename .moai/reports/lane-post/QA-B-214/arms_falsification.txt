@@ -1,0 +1,28 @@
+== arm1_polarity_not_applied
+   mutation in modules/display/src/presentation_lut.cpp:
+     - (polarity == XPE_PRESENTATION_INVERTED) ? params->lutData[1023 - i] : params->lutData[i];
+     + params->lutData[i];
+   build rc=0
+   tests red (4): DisplayIntegration.FullPipeline_LinearModality_LinearVoi_PresLut; PresentationPolarity.DefaultShowsTheHighEndDark; PresentationPolarity.GsdfTableIsReadBackwardsNotSubtracted; PresentationPolarity.InvertedRampIsSixtyFiveFiveThirtyFiveMinusTheAscendingRamp
+
+   file restored: sha256 before=22f4abcf42be511d48031d8595d0a6a5b6215da507aae073b86b3742327488aa after=22f4abcf42be511d48031d8595d0a6a5b6215da507aae073b86b3742327488aa identical=True
+
+== arm2_auto_window_always_fallback
+   mutation in modules/display/src/voi_auto_window.cpp:
+     - if (best < 0.0 || fracBelow < kAutoWindowMinClassFraction
+     + if (sampled > 0 || best < 0.0 || fracBelow < kAutoWindowMinClassFraction
+   build rc=0
+   tests red (1): VoiAutoWindow.BimodalImageGivesTheAnatomyWindow
+
+   file restored: sha256 before=b1bf2d769639fdb03dfa68c2d6ec609d018cd75fd75493e2847681de2f7e55ce after=b1bf2d769639fdb03dfa68c2d6ec609d018cd75fd75493e2847681de2f7e55ce identical=True
+
+== arm3_window_top_at_the_otsu_threshold
+   mutation in modules/display/src/voi_auto_window.cpp:
+     - winHi = histogram_quantile(hist, bestBin + 1, kBins - 1, kAutoWindowBackgroundLowQuantile, lod, binWidth);
+     + winHi = lod + binWidth * static_cast<double>(bestBin + 1);
+   build rc=0
+   tests red (2): VoiAutoWindow.BimodalImageGivesTheAnatomyWindow; VoiAutoWindow.TissueToAirTransitionStaysInsideTheWindow
+
+   file restored: sha256 before=b1bf2d769639fdb03dfa68c2d6ec609d018cd75fd75493e2847681de2f7e55ce after=b1bf2d769639fdb03dfa68c2d6ec609d018cd75fd75493e2847681de2f7e55ce identical=True
+
+== restored tree: build rc=0, tests red: 0 []
