@@ -1,0 +1,36 @@
+== 0. the tree as it is on main (246b order: size, then overlap); one run of the four tests
+git HEAD: 4ccea1a2; pipeline.cpp sha256 (first 16): 77519b963d13bdb1
+build command: build237.bat xpe_preprocess_tests (= cmake --build --preset ci-preprocess --target xpe_preprocess_tests)
+BUILD_EXIT=0
+xpe_preprocess.dll sha256 (fixed): 225aef1d1ed18bea91693d38e510aaab4c9e4138e9f953e2713aa9e46dac5616
+[       OK ] A241Safety.ATooSmallOutputJustBeforeTheInputWhoseRequiredRangeReachesTheInputIsBufferTooSmall (14 ms)
+[       OK ] A241Safety.AnOutputBigEnoughForTheResultThatOverlapsTheInputIsInvalidInput (15 ms)
+[       OK ] A241Safety.PipelineOutRefusesAnyOverlapOfInputAndOutputAndLeavesBothAsTheyWere (17 ms)
+[       OK ] A241Safety.PipelineOutRefusesWhatCannotHoldTheResultAndWritesNothing (13 ms)
+(test process exit code 0; output lines 17; last line: [  PASSED  ] 4 tests.)
+
+== 1. mutant A: the order of 246b reverted (overlap, then size); ONE run, no repeat
+BUILD_EXIT=0
+xpe_preprocess.dll sha256 (mutant A): 94cf99a45f7c1de3d8d8bd6b1fc8a92fb543f076bb3c7cd2a173657cfd40f9c8
+[       OK ] A241Safety.AnOutputBigEnoughForTheResultThatOverlapsTheInputIsInvalidInput (12 ms)
+[       OK ] A241Safety.PipelineOutRefusesAnyOverlapOfInputAndOutputAndLeavesBothAsTheyWere (13 ms)
+[       OK ] A241Safety.PipelineOutRefusesWhatCannotHoldTheResultAndWritesNothing (16 ms)
+[  FAILED  ] A241Safety.ATooSmallOutputJustBeforeTheInputWhoseRequiredRangeReachesTheInputIsBufferTooSmall
+[  FAILED  ] A241Safety.ATooSmallOutputJustBeforeTheInputWhoseRequiredRangeReachesTheInputIsBufferTooSmall (15 ms)
+(test process exit code 1; output lines 27; last line:  1 FAILED TEST)
+
+== 2. mutant B: the overlap check deleted
+BUILD_EXIT=0
+xpe_preprocess.dll sha256 (mutant B): 86ba1facdde78c1f477bec7db02c580a6f594e00aebf67024b1cd04795f5500d
+(test process exit code 127; output lines 16; last line: )
+
+== 3. restore, touch, rebuild
+restored pipeline.cpp sha256 (first 16): 77519b963d13bdb1
+BUILD_EXIT=0
+xpe_preprocess.dll sha256 (restored): d2b1c9498260c1261c69c967b9bf818a4a4fb1abaf9019adb32ae790b64f46a4
+[       OK ] A241Safety.ATooSmallOutputJustBeforeTheInputWhoseRequiredRangeReachesTheInputIsBufferTooSmall (15 ms)
+[       OK ] A241Safety.AnOutputBigEnoughForTheResultThatOverlapsTheInputIsInvalidInput (13 ms)
+[       OK ] A241Safety.PipelineOutRefusesAnyOverlapOfInputAndOutputAndLeavesBothAsTheyWere (21 ms)
+[       OK ] A241Safety.PipelineOutRefusesWhatCannotHoldTheResultAndWritesNothing (13 ms)
+(test process exit code 0; output lines 17; last line: [  PASSED  ] 4 tests.)
+(DLL bytes differ between builds of the same source: timestamp and debug id; identity is the source hash plus the test results.)
