@@ -2381,19 +2381,32 @@ public sealed class MainWindowViewModel : ObservableObject
                 mode = RenderedVoiMode,
                 center = RenderedVoiCenter,
                 width = RenderedVoiWidth,
-                bodyPart = Settings.SelectedBodyPart,
-                gsdf = Settings.GsdfEnabled
+                // GUI-C-233d: what the displayed render USED (null while nothing was rendered for this frame); what is asked for NOW is in `requested`
+                bodyPart = _renderedInputs?.SelectedBodyPart,
+                gsdf = _renderedInputs?.GsdfEnabled,
+                requested = new { mode = Settings.VoiLutMode, center = Settings.VoiWindowCenter, width = Settings.VoiWindowWidth, automatic = Settings.VoiWindowAuto, bodyPart = Settings.SelectedBodyPart, gsdf = Settings.GsdfEnabled }
             },
             calibrationEvaluation = new
             {
                 summary = CalibrationEvaluationSummary,
-                offset = Settings.OffsetCorrectionMode,
-                gain = Settings.GainCorrectionMode,
-                defect = Settings.DefectCorrectionMode,
-                ghost = Settings.GhostCorrectionMode,
-                temperature = Settings.TemperatureCompensationMode,
-                nonlinearity = Settings.NonlinearityCorrectionMode,
-                binning = Settings.BinningCorrectionMode
+                // GUI-C-233d: the modes the displayed render used (null before it); the modes asked for now are in `requested`
+                offset = _renderedInputs?.OffsetCorrectionMode,
+                gain = _renderedInputs?.GainCorrectionMode,
+                defect = _renderedInputs?.DefectCorrectionMode,
+                ghost = _renderedInputs?.GhostCorrectionMode,
+                temperature = _renderedInputs?.TemperatureCompensationMode,
+                nonlinearity = _renderedInputs?.NonlinearityCorrectionMode,
+                binning = _renderedInputs?.BinningCorrectionMode,
+                requested = new
+                {
+                    offset = Settings.OffsetCorrectionMode,
+                    gain = Settings.GainCorrectionMode,
+                    defect = Settings.DefectCorrectionMode,
+                    ghost = Settings.GhostCorrectionMode,
+                    temperature = Settings.TemperatureCompensationMode,
+                    nonlinearity = Settings.NonlinearityCorrectionMode,
+                    binning = Settings.BinningCorrectionMode
+                }
             },
             processingChain = DescribeChain(),
             comparison = new
@@ -2521,6 +2534,15 @@ public sealed class MainWindowViewModel : ObservableObject
         // GUI-C-233c (Codex #173): and nothing the PREVIOUS frame's render wrote may describe this one: if this frame's render fails, the report must not carry the last frame's success.
         DisplayPipelineSummary = "Display pipeline has not run.";
         PipelineTimings = string.Empty;
+        // GUI-C-233d (Codex #174): the chain of the PREVIOUS frame goes too, and everything derived from it. If this frame's render throws before ReportChain, the report must say "not run", not carry A's
+        // stages, status and display input.
+        SetRenderedVoi(null);   // nothing has been rendered for THIS frame yet: the report's display/calibration fields come from the render's inputs and are empty until it commits
+        LastChain = null;
+        ChainStatus = "chain: not run";
+        PreprocessRan = false;
+        PreprocessStages = string.Empty;
+        AiProcessedLabel = string.Empty;
+        OnPropertyChanged(nameof(AiProcessedLabel));
         ActiveImageFrame = loadedFrame;
         RefreshCorrectedAvailability();
         ResetComparisonView();
