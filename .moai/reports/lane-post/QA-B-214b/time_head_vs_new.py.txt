@@ -1,0 +1,44 @@
+"""Time the auto window of the committed QA-B-214 code (HEAD) against the working tree, same harness, same machine state.
+Restores the working-tree file and proves it by sha256."""
+import hashlib, os, re, subprocess, sys
+
+ROOT = r'D:/workspace-github/xpe-post'
+PATH = 'modules/display/src/voi_auto_window.cpp'
+OUT = ROOT + '/.moai/reports/lane-post/QA-B-214b/'
+os.chdir(ROOT)
+
+
+def sh(c):
+    return subprocess.run(c, shell=True, capture_output=True, text=True)
+
+
+def sha(p):
+    return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+
+
+def build_run(tag):
+    sh('cmd.exe /c ".moai\\reports\\lane-post\\QA-B-214b\\_build.bat build\\g214b-t-build.txt"')
+    sh('cmd.exe /c ".moai\\reports\\lane-post\\QA-B-213\\_build.bat"')
+    out = OUT + 'timing_%s.txt' % tag
+    sh('cmd.exe /c ".moai\\reports\\lane-post\\QA-B-213\\_run.bat DISABLED_AutoWindowPathsTiming_214b %s"' % out.replace('/', '\\'))
+    return [l for l in open(out, encoding='utf-8', errors='replace').read().splitlines() if 'real frame' in l or 'not representative' in l or '1000x1000' in l]
+
+
+cur = open(PATH, 'rb').read()
+h0 = sha(PATH)
+head = subprocess.run(['git', 'show', 'HEAD:' + PATH], capture_output=True).stdout
+results = {}
+try:
+    open(PATH, 'wb').write(head)
+    results['head_214'] = build_run('head_214')
+    open(PATH, 'wb').write(cur)
+    results['working_214b'] = build_run('working_214b')
+finally:
+    open(PATH, 'wb').write(cur)
+print('restored identical:', sha(PATH) == h0)
+for k, v in results.items():
+    print('==', k)
+    for l in v:
+        print(l[:200])
+sh('cmd.exe /c ".moai\\reports\\lane-post\\QA-B-214b\\_build.bat build\\g214b-t-build.txt"')
+sh('cmd.exe /c ".moai\\reports\\lane-post\\QA-B-213\\_build.bat"')
