@@ -98,6 +98,18 @@
             <td><code>Load failed: Raw file is too small…</code></td>
             <td>파일 길이가 가로 × 세로 × 2 가 아니거나(3번), 영상 크기가 보정 맵의 크기와 다릅니다.</td>
           </tr>
+          <tr>
+            <td><code>Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out…</code></td>
+            <td>네이티브 DLL 이 앱보다 오래되어 <code>xpe_preprocess_pipeline_out</code> 이 없습니다. 아무것도 처리하지 않았습니다. DLL 을 갱신하고 앱을 다시 시작하십시오.</td>
+          </tr>
+          <tr>
+            <td><code>Load failed: The offset calibration map … is 1024x1024, but the raw image is 3072x3072.</code></td>
+            <td>보정 폴더의 맵이 다른 영상 크기용입니다. 영상을 열지 않습니다. 맵과 같은 크기의 영상을 열거나, 이 크기용 맵이 있는 폴더를 지정하십시오.</td>
+          </tr>
+          <tr>
+            <td><code>Save failed: The process cannot access the file because it is being used by another process.</code></td>
+            <td>저장하려는 파일이 다른 프로그램에서 열려 있습니다. 저장되지 않았고 이전 파일은 그대로입니다. 그 프로그램을 닫거나 다른 이름으로 저장하십시오.</td>
+          </tr>
         </tbody>
       </table>
       <p>오류 코드는 <code>xpe_error.h</code> 의 것입니다: <code>-1</code> invalid input, <code>-5</code> calibration expired, <code>-8</code> buffer too small, <code>-16</code> calibration not loaded, <code>-17</code> invalid calibration data.</p>
@@ -106,7 +118,7 @@
     <section class="section">
       <h2>이 점검이 다루지 않는 것</h2>
       <ul>
-        <li>단계는 모듈의 파이프라인 함수 <code>xpe_preprocess_pipeline_out</code> 입니다. 온도 보상, 비선형, binning 은 건너뛰도록 지정하고(앱에는 온도·선형성 표·binning 설정이 없습니다) ghost 보정기는 주지 않습니다. 따라서 실행되는 단계는 offset, gain, defect 입니다(파이프라인 함수가 스스로 하는 검사는 앱이 들여다보지 않습니다). 이 함수가 생기기 전에 빌드한 DLL 에서는 offset, nonlinearity, gain, defect 를 하나씩 부르는 옛 방식으로 돌아가고 로그에 <em>this xpe_preprocess.dll has no xpe_preprocess_pipeline_out</em> 이 남습니다. 이 문장이 보이면 DLL 을 갱신하십시오.</li>
+        <li>단계는 모듈의 파이프라인 함수 <code>xpe_preprocess_pipeline_out</code> 입니다. 온도 보상, 비선형, binning 은 건너뛰도록 지정하고(앱에는 온도·선형성 표·binning 설정이 없습니다) ghost 보정기는 주지 않습니다. 따라서 실행되는 단계는 offset, gain, defect 입니다(파이프라인 함수가 스스로 하는 검사는 앱이 들여다보지 않습니다). 이 함수가 생기기 전에 빌드한 DLL 에서는 아무것도 처리하지 않습니다. 체인 줄에 <code>preprocess=RequestedNotApplied</code> 와 <code>Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out (the DLL is too old). Update the native DLLs and start the app again.</code> 가 나오고, Save Corrected Image 는 흐리게 남습니다. DLL 을 갱신하십시오.</li>
         <li>단계에 주는 노출 값 일부는 고정입니다(거리 1000 mm, 2.0 mAs). 관전압과 화소 간격은 앱 설정값입니다.</li>
         <li>화면의 그림은 보정된 float 영상을 표시용으로 다시 맞춘 것(가장 밝은 값을 최대 밝기로)입니다. 저장한 float 파일은 다시 맞추지 않습니다.</li>
       </ul>

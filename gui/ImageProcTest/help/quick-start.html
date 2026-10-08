@@ -103,6 +103,18 @@
             <td><code>Load failed: Raw file is too small…</code></td>
             <td>The file length is not width × height × 2 (step 3), or the image size differs from the calibration maps' size.</td>
           </tr>
+          <tr>
+            <td><code>Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out…</code></td>
+            <td>The native DLLs are older than the app: they have no <code>xpe_preprocess_pipeline_out</code>. Nothing was processed. Update the DLLs and start the app again.</td>
+          </tr>
+          <tr>
+            <td><code>Load failed: The offset calibration map … is 1024x1024, but the raw image is 3072x3072.</code></td>
+            <td>The calibration maps in the folder were made for another image size. The image is not opened. Open an image of the maps' size, or point the calibration folder at maps made for this size.</td>
+          </tr>
+          <tr>
+            <td><code>Save failed: The process cannot access the file because it is being used by another process.</code></td>
+            <td>The target file is open in another program. The save did not happen and the previous file is unchanged; close the other program, or save under another name.</td>
+          </tr>
         </tbody>
       </table>
       <p>Error codes come from <code>xpe_error.h</code>: <code>-1</code> invalid input, <code>-5</code> calibration expired, <code>-8</code> buffer too small, <code>-16</code> calibration not loaded, <code>-17</code> invalid calibration data.</p>
@@ -111,7 +123,7 @@
     <section class="section">
       <h2>What This Check Does Not Cover</h2>
       <ul>
-        <li>The stage is the module's own pipeline function, <code>xpe_preprocess_pipeline_out</code>, called with temperature compensation, nonlinearity and binning bypassed (the app has no temperature, no linearity table and no binning setting to give them) and without a ghost corrector. So the stages that run are offset, gain and defect (and whatever checks the pipeline function makes on its own; the app does not look inside). With a DLL built before that function existed, the app falls back to calling offset, nonlinearity, gain and defect one by one and says so in the log (<em>this xpe_preprocess.dll has no xpe_preprocess_pipeline_out</em>); update the DLLs when you see it.</li>
+        <li>The stage is the module's own pipeline function, <code>xpe_preprocess_pipeline_out</code>, called with temperature compensation, nonlinearity and binning bypassed (the app has no temperature, no linearity table and no binning setting to give them) and without a ghost corrector. So the stages that run are offset, gain and defect (and whatever checks the pipeline function makes on its own; the app does not look inside). With a DLL built before that function existed, the app does not process anything: the chain line reads <code>preprocess=RequestedNotApplied</code> with <code>Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out (the DLL is too old). Update the native DLLs and start the app again.</code>, and Save Corrected Image stays dimmed. Update the DLLs.</li>
         <li>Exposure values passed to the stage are partly fixed (1000 mm distance, 2.0 mAs); the tube voltage and pixel pitch come from the app's settings.</li>
         <li>The picture on screen is the corrected float image rescaled for display (its brightest value is mapped to full scale). The saved float file is not rescaled.</li>
       </ul>
