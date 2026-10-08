@@ -143,7 +143,6 @@ internal static class GuiPreprocessRunner
                 true,
                 $"Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on {width}x{height} ({bodyPart}).{exposure}",
                 ScaleToUInt16(floats),
-                null,
                 nonFinite,
                 floats);
         }
