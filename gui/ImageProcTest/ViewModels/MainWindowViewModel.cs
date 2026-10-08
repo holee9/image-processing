@@ -917,6 +917,11 @@ public sealed class MainWindowViewModel : ObservableObject
                 OverwritePrompt = true,
                 FileName = DefaultCorrectedFileName(source, corrected.Width, corrected.Height, suffix, extension),
             };
+            // GUI-C-232b: start in the folder the successfully opened image came from, never in whatever folder the last dialog happened to use
+            if (!string.IsNullOrEmpty(source) && Path.GetDirectoryName(source) is { Length: > 0 } sourceFolder && Directory.Exists(sourceFolder))
+            {
+                dialog.InitialDirectory = sourceFolder;
+            }
             if (dialog.ShowDialog() != true)
             {
                 return;
