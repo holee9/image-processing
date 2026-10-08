@@ -1,0 +1,24 @@
+  scenario '1 started Apply vs shutdown': 168 ms
+  scenario '1b started Apply fails after shutdown': 91 ms
+  scenario '2 entry points vs transition': 68 ms
+  scenario '3 stale failing Lane B': 120 ms
+  scenario '3b stale succeeding Lane B': 127 ms
+  scenario '4 older Apply finishes last (main chain, succeeds)': 91 ms
+  scenario '4 older Apply finishes last (main chain, fails)': 125 ms
+  scenario '4 older Apply finishes last (Lane B, succeeds)': 123 ms
+  scenario '4 older Apply finishes last (Lane B, fails)': 125 ms
+  scenario '5 Candidate lane = second AI call, status read after it': 33 ms
+  scenario '5b equal lanes = one AI call per Apply': 26 ms
+  scenario '10 HUD shows the applied window': 94 ms
+  scenario '8 save candidate: an older Apply finishing late': 93 ms
+  scenario '9 failed open keeps the save name and candidate': 32 ms
+  scenario '6 ai-worker-disabled fault': 0 ms
+  scenario '7 older status read never shown': 58 ms
+  scenario '8 Restart AI vs an older Disabled answer': 63 ms
+  scenario '8b session replaced without Reset (epoch)': 61 ms
+  scenario '9 Disabled on screen vs a replaced session': 2530 ms
+Lifetime scenarios passed (19 scenarios).
+GUI-S0 self-check passed.
+Fixture manifest: D:\workspace-github\xpe-gui\gui\ImageProcTest\fixtures\gui-s0\fixture-manifest.json
+Fixture raw: D:\workspace-github\xpe-gui\gui\ImageProcTest\fixtures\gui-s0\raw\wrist_lat_3072x3072.raw
+Settings file: D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\bin\Debug\net8.0-windows\appsettings.selfcheck.json
