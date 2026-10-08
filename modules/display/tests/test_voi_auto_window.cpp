@@ -268,7 +268,11 @@ TEST(VoiAutoWindow, NonFinitePixelAnywhereIsRefused) {
 
 namespace {
 
-// Grid pixels of the 1-in-4 sampling of a large image: x % 4 == 0 and y % 4 == 0.
+// QA-B-214c: the function no longer samples; every pixel is histogrammed. The tests of this part keep their grid-shaped inputs
+// (and their "sample" wording) as regressions: a function that reads only the pixels of a fixed grid gets a different window from
+// them (QA-B-214c/arms_falsification.txt, arm 8: with the grid put back seven of these go red).
+//
+// Grid pixels of the former 1-in-4 sampling of a large image: x % 4 == 0 and y % 4 == 0.
 bool on_sample_grid(size_t x, size_t y) { return x % 4 == 0 && y % 4 == 0; }
 
 }  // namespace
@@ -309,7 +313,7 @@ TEST(VoiAutoWindow, CodexReproductionEightByEightKeepsTheAnatomyInsideTheWindow)
 // Finding 3, two classes OUTSIDE the sampling grid in a LARGE image (1280 x 1280 = 1.6 M pixels, sampled 1 in 16): every grid
 // pixel is background 3000, every other pixel is anatomy [1000, 2000] (85 %) or background [2900, 3000] (15 %). The sample alone
 // is a flat image; the window must still be the one the whole image gives.
-TEST(VoiAutoWindow, TwoClassesOffTheSampleGridInALargeImageAreStillFound) {
+TEST(VoiAutoWindow, TwoClassesOffTheGridInALargeImageAreStillFound) {
     constexpr uint32_t kN = 1280;
     Lcg g(22);
     std::vector<float> px(static_cast<size_t>(kN) * kN);
@@ -336,7 +340,7 @@ TEST(VoiAutoWindow, TwoClassesOffTheSampleGridInALargeImageAreStillFound) {
 
 // Finding 3, "fallback is the real whole-image quantiles": the sampled pixels alone form a bell (no two classes, so the sample
 // says fallback), the other 15/16 of the image is clearly two-class. A fallback decided on the sample would be wrong.
-TEST(VoiAutoWindow, FallbackOfTheSampleIsConfirmedOnTheWholeImage) {
+TEST(VoiAutoWindow, GridPixelsLookUnimodalButTheWholeImageIsTwoClass) {
     constexpr uint32_t kN = 1280;
     Lcg g(23);
     std::vector<float> px(static_cast<size_t>(kN) * kN);
@@ -369,7 +373,7 @@ TEST(VoiAutoWindow, FallbackOfTheSampleIsConfirmedOnTheWholeImage) {
 // Finding 3, a sample that DOES show two classes but misses the lower part of the anatomy: the grid pixels hold anatomy only in
 // [1500, 2000], the other pixels hold it in [1000, 2000]. Both classes are present in the sample (no fallback), so only the
 // representativeness check (the pixels below the sample's own minimum are 7 % of the image) can send it to the full histogram.
-TEST(VoiAutoWindow, SampleThatMissesTheLowerPartOfTheAnatomyIsNotTrusted) {
+TEST(VoiAutoWindow, LowerPartOfTheAnatomyOffTheGridIsStillInTheWindow) {
     constexpr uint32_t kN = 1280;
     Lcg g(27);
     std::vector<float> px(static_cast<size_t>(kN) * kN);
@@ -394,7 +398,7 @@ TEST(VoiAutoWindow, SampleThatMissesTheLowerPartOfTheAnatomyIsNotTrusted) {
 }
 
 // Finding 3, the fallback window of a LARGE unimodal image is made of the real whole-image 1 % and 99 % quantiles.
-TEST(VoiAutoWindow, FallbackWindowOfALargeImageIsTheWholeImageQuantileRange) {
+TEST(VoiAutoWindow, FallbackWindowOfALargeImageIsTheExactWholeImageQuantileRange) {
     constexpr uint32_t kN = 1280;
     Lcg g(24);
     std::vector<float> px(static_cast<size_t>(kN) * kN);
@@ -476,4 +480,135 @@ TEST(VoiAutoWindow, FlatImageOfAnExtremeValueIsStillAWindow) {
         xpe_clear_alerts();
         free_image(img);
     }
+}
+
+
+// =====================================================================================================================
+// QA-B-214c (Codex #168, the third hold on this function): the window is made of EVERY pixel. A fixed sampling grid cannot see
+// a difference between the pixels on it and the rest that stays inside the sample value range; these tests are built so that
+// anything which reads only some of the pixels gets a different window from the one the whole image gives.
+// =====================================================================================================================
+
+// The Codex #168 reproduction, 1024 x 1024 (the smallest size the 214 design sampled): the pixels on the (x % 4 == 0, y % 4
+// == 0) grid hold 15 % anatomy and 85 % background, and 99.9 % of their anatomy sits at 2000 (0.1 % at 1000); the other pixels
+// hold 15 % anatomy and 85 % background too, but their anatomy sits almost entirely at 1000. The sample value range is already
+// 1000..3000 and both its classes are large, so no range test and no fallback notices anything. The 0.5 % quantile of the
+// anatomy is about 2000 in the sample and about 1000 in the whole image.
+TEST(VoiAutoWindow, CodexRepro168GridPixelsAndTheRestHaveDifferentAnatomyDistributions) {
+    constexpr uint32_t kN = 1024;
+    Lcg g(31);
+    std::vector<float> px(static_cast<size_t>(kN) * kN);
+    for (uint32_t y = 0; y < kN; ++y) {
+        for (uint32_t x = 0; x < kN; ++x) {
+            const bool grid = on_sample_grid(x, y);
+            const bool anatomy = g.next() < 0.15;
+            const double u = g.next();
+            float v;
+            if (!anatomy) v = 3000.0f;
+            else if (grid) v = (u < 0.001) ? 1000.0f : 2000.0f;
+            else v = (u < 0.999) ? 1000.0f : 2000.0f;
+            px[static_cast<size_t>(y) * kN + x] = v;
+        }
+    }
+    XpeImageBuffer img = make_image(kN, kN, px);
+    XpeVoiLutParams out = sentinel();
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, xpe_voi_auto_window(&img, &out));
+    const double lo = out.center - out.width / 2.0;
+    // the whole-image 0.5 % anatomy quantile is 1000 (the lowest bin holds the value 1000); a window made from the grid pixels
+    // starts near 2000
+    EXPECT_LT(lo, 1010.0) << "window start " << lo << ": the whole image has anatomy at 1000, the 4-pixel grid alone sees 2000";
+    EXPECT_EQ(0, alert_count_containing("VOI auto window"));
+    free_image(img);
+}
+
+// A 4-pixel periodic structure (a detector grid or a moire): in every 4 x 4 block the pixel at (0, 0) is background and the other
+// fifteen are anatomy [1000, 2000] with a few background pixels. A sample on the grid sees only background.
+TEST(VoiAutoWindow, FourPixelPeriodicPatternIsReadInFull) {
+    constexpr uint32_t kN = 1280;
+    Lcg g(32);
+    std::vector<float> px(static_cast<size_t>(kN) * kN);
+    for (uint32_t y = 0; y < kN; ++y) {
+        for (uint32_t x = 0; x < kN; ++x) {
+            const double c = g.next(), u = g.next();
+            float v;
+            if (on_sample_grid(x, y)) v = static_cast<float>(2950.0 + 50.0 * u);
+            else if (c < 0.80) v = static_cast<float>(1000.0 + 1000.0 * u);
+            else v = static_cast<float>(2900.0 + 100.0 * u);
+            px[static_cast<size_t>(y) * kN + x] = v;
+        }
+    }
+    XpeImageBuffer img = make_image(kN, kN, px);
+    XpeVoiLutParams out = sentinel();
+    ASSERT_EQ(XPE_OK, xpe_voi_auto_window(&img, &out));
+    const double lo = out.center - out.width / 2.0;
+    EXPECT_NEAR(1005.0, lo, 12.0) << "the anatomy lies off the grid";
+    free_image(img);
+}
+
+// A collimation-border image: a field (anatomy plus background) inside a dark frame (the collimator shadow, 40..60), the
+// shadow being 44 % of the pixels. Three populations do not fit a two-class split: the split that separates best is the shadow
+// from everything else, so the window is made of the shadow and the lower part of the field -- the documented limit (a
+// collimator shadow is counted into the low class). What is asserted is that every pixel is read: the window starts at the
+// shadow values, which is the lowest class of the whole image; the permutation test below asserts that the result does not
+// depend on where the pixels are.
+TEST(VoiAutoWindow, CollimationBorderImageIsReadInFull) {
+    constexpr uint32_t kN = 1280;
+    Lcg g(33);
+    std::vector<float> px(static_cast<size_t>(kN) * kN);
+    for (uint32_t y = 0; y < kN; ++y) {
+        for (uint32_t x = 0; x < kN; ++x) {
+            const bool inField = x >= 160 && x < kN - 160 && y >= 160 && y < kN - 160;
+            const double c = g.next(), u = g.next();
+            float v;
+            if (!inField) v = static_cast<float>(40.0 + 20.0 * u);                 // shadow
+            else if (c < 0.20) v = static_cast<float>(1000.0 + 1000.0 * u);        // anatomy
+            else v = static_cast<float>(2900.0 + 100.0 * u);                       // background
+            px[static_cast<size_t>(y) * kN + x] = v;
+        }
+    }
+    XpeImageBuffer img = make_image(kN, kN, px);
+    XpeVoiLutParams out = sentinel();
+    ASSERT_EQ(XPE_OK, xpe_voi_auto_window(&img, &out));
+    const double lo = out.center - out.width / 2.0, hi = out.center + out.width / 2.0;
+    EXPECT_LT(lo, 100.0) << "the shadow pixels (40..60) are the low class, so the window starts at them";
+    EXPECT_GT(hi, lo + 1000.0) << "a real window, not a degenerate one";
+    free_image(img);
+}
+
+// The window depends on the SET of pixel values, not on where the pixels are: the same pixels permuted (reversed, transposed,
+// shifted by one column) give a bit-identical window. A function that reads a subset by position cannot satisfy this on an image
+// whose subsets differ -- which is the property Codex #168 asked for.
+TEST(VoiAutoWindow, WindowDependsOnlyOnTheSetOfValuesNotOnTheirPositions) {
+    constexpr uint32_t kN = 1280;
+    Lcg g(34);
+    std::vector<float> px(static_cast<size_t>(kN) * kN);
+    for (uint32_t y = 0; y < kN; ++y) {
+        for (uint32_t x = 0; x < kN; ++x) {
+            const double c = g.next(), u = g.next();
+            // a gradient plus structure, so neighbouring pixels differ and a position-based subset sees something different
+            float v = (c < 0.15) ? static_cast<float>(1000.0 + 1000.0 * u * (1.0 + static_cast<double>(x) / kN) / 2.0)
+                                 : static_cast<float>(2900.0 + 100.0 * u);
+            px[static_cast<size_t>(y) * kN + x] = v;
+        }
+    }
+    auto window_of = [&](const std::vector<float>& v) {
+        XpeImageBuffer img = make_image(kN, kN, v);
+        XpeVoiLutParams o = sentinel();
+        EXPECT_EQ(XPE_OK, xpe_voi_auto_window(&img, &o));
+        free_image(img);
+        return o;
+    };
+    const XpeVoiLutParams base = window_of(px);
+    std::vector<float> reversed(px.rbegin(), px.rend());
+    std::vector<float> transposed(px.size());
+    for (uint32_t y = 0; y < kN; ++y)
+        for (uint32_t x = 0; x < kN; ++x) transposed[static_cast<size_t>(x) * kN + y] = px[static_cast<size_t>(y) * kN + x];
+    std::vector<float> shifted(px.size());  // every row rotated by one column: the 4-pixel grid now holds other pixels
+    for (uint32_t y = 0; y < kN; ++y)
+        for (uint32_t x = 0; x < kN; ++x) shifted[static_cast<size_t>(y) * kN + (x + 1) % kN] = px[static_cast<size_t>(y) * kN + x];
+    const XpeVoiLutParams a = window_of(reversed), b = window_of(transposed), c = window_of(shifted);
+    EXPECT_EQ(0, std::memcmp(&base, &a, sizeof base)) << "reversed";
+    EXPECT_EQ(0, std::memcmp(&base, &b, sizeof base)) << "transposed";
+    EXPECT_EQ(0, std::memcmp(&base, &c, sizeof base)) << "rotated by one column";
 }
