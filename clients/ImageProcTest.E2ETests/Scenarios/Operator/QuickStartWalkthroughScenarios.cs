@@ -230,11 +230,13 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// GUI-C-232b: the save flow with a NAME the user types: the file lands at that name in the dialog's folder (which starts in the opened image's folder), saving over an existing file asks first and then replaces it
-    /// whole, and a target that cannot be written (held open by another program) shows "Save failed" and leaves the previous file untouched. All files are in this test's own temp folder.
+    /// GUI-C-232b/c: the save flow with the name the dialog SUGGESTS (beside the opened image): the file is exactly the reference, saving again replaces it whole, and a target that cannot be written (held open
+    /// by another program) shows "Save failed" and leaves the previous file untouched. All files are in this test's own temp folder.
+    /// NOT covered, and not claimed: a name the user TYPES. The common save dialog ignored a name set through the Value pattern (232) and through WM_SETTEXT (232b), so that flow is UNVERIFIED here; likewise the
+    /// "file exists, replace?" confirmation was not observed (the file was replaced, but no prompt was seen). See the 232c report.
     /// </summary>
     [EnvGatedFact]
-    public void W9_SaveWithATypedName_Overwrite_AndAWriteFailureKeepsThePreviousFile()
+    public void W9_SuggestedName_Overwrite_AndAWriteFailureKeepsThePreviousFile()
     {
         var (native, calib, raw, width, height) = Inputs();
         var baseline = Env("XPE_C231_BASELINE_F32");
@@ -243,7 +245,7 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         Directory.CreateDirectory(folder);
         var rawCopy = Path.Combine(folder, Path.GetFileName(raw));
         File.Copy(raw, rawCopy);
-        var typed = Path.Combine(folder, "my_corrected_name.raw");
+        var typed = Path.Combine(folder, Path.GetFileNameWithoutExtension(rawCopy) + "_corrected_f32le.raw");   // the dialog's suggestion
         try
         {
             using var app = GuiApp.Launch(output, native, extraArguments:
@@ -256,29 +258,20 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             app.WaitFor(() => app.Read("ChainStatusText").Contains("preprocess=Applied", StringComparison.Ordinal), "preprocess=Applied", 180);
             Thread.Sleep(3000);
 
-            app.Step("1 save with a typed name");
+            app.Step("1 save under the suggested name (no name typed)");
             app.Menu("FileMenu");
-            app.InvokeMenuItemThenDialog("SaveCorrectedFloatMenuItem", typed, confirmId: "1");
-            var suggested = Path.Combine(folder, Path.GetFileNameWithoutExtension(rawCopy) + "_corrected_f32le.raw");
-            app.WaitFor(() => File.Exists(typed) || File.Exists(suggested), "a file appears in the folder", 60);
-            var honoured = File.Exists(typed);
+            app.InvokeMenuItemThenDialog("SaveCorrectedFloatMenuItem", null, confirmId: "1");
+            app.WaitFor(() => File.Exists(typed), "the file exists at the suggested name in the opened image's folder", 60);
             output.WriteLine("   status: " + app.Read("StatusBarText"));
-            output.WriteLine("   the typed name was honoured: " + honoured + "; files in the folder: " + string.Join(", ", Directory.GetFiles(folder).Select(Path.GetFileName)));
-            if (!honoured)
-            {
-                // recorded limit: the common save dialog keeps its own suggestion although the name edit was set (WM_SETTEXT here, the Value pattern in GUI-C-232); the steps below use the suggested name
-                typed = suggested;
-            }
-
             Assert.True(File.ReadAllBytes(typed).AsSpan().SequenceEqual(File.ReadAllBytes(baseline!)), "the saved file differs from the reference");
-            output.WriteLine("   saved file == reference: True");
+            output.WriteLine("   saved file == reference: True; files in the folder: " + string.Join(", ", Directory.GetFiles(folder).Select(Path.GetFileName)));
 
-            app.Step("2 save again to the same name: the dialog asks, then the file is replaced whole");
+            app.Step("2 save again under the same suggested name: the file is replaced whole");
             app.ConfirmOverwrite = true;
             var before = File.GetLastWriteTimeUtc(typed);
             Thread.Sleep(1200);
             app.Menu("FileMenu");
-            app.InvokeMenuItemThenDialog("SaveCorrectedFloatMenuItem", typed, confirmId: "1");
+            app.InvokeMenuItemThenDialog("SaveCorrectedFloatMenuItem", null, confirmId: "1");
             app.WaitFor(() => app.Read("StatusBarText").StartsWith("Saved corrected image (float32 raw)", StringComparison.Ordinal), "the status line reports the second save", 60);
             output.WriteLine($"   replaced: write time {before:O} -> {File.GetLastWriteTimeUtc(typed):O}; identical to reference: " + File.ReadAllBytes(typed).AsSpan().SequenceEqual(File.ReadAllBytes(baseline!)));
             Assert.Equal(new[] { Path.GetFileName(rawCopy), Path.GetFileName(typed) }.OrderBy(x => x), Directory.GetFiles(folder).Select(Path.GetFileName).OrderBy(x => x));
@@ -288,7 +281,7 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             using (new FileStream(typed, FileMode.Open, FileAccess.Read, FileShare.None))
             {
                 app.Menu("FileMenu");
-                app.InvokeMenuItemThenDialog("SaveCorrectedFloatMenuItem", typed, confirmId: "1");
+                app.InvokeMenuItemThenDialog("SaveCorrectedFloatMenuItem", null, confirmId: "1");
                 app.WaitFor(() => app.Read("StatusBarText").StartsWith("Save failed", StringComparison.Ordinal), "the status line says Save failed", 60);
                 output.WriteLine("   status: " + app.Read("StatusBarText"));
             }
