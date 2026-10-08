@@ -1,0 +1,23 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W11_TheDefaultDisplay_UsesTheAutomaticWindow_AndShowsAirDark [18 s]
+  표준 출력 메시지:
+    dialog: 'Load Raw Image'
+    ok: the image summary appears
+    ok: preprocess=Applied
+    display summary: [10:29:26.872] CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=18484.69, W=33050.08) -> GSDF(off)
+    automatic window: C=18484.69 W=33050.08
+    drawn frame 3072x3072: share of pixels below 32/255 = 84.7%; at 255 = 0.08%; p5/p50/p95/p99 = 0/0/238/251
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 1
+     통과: 1
+ 총 시간: 19.0202 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

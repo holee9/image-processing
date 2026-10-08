@@ -337,6 +337,60 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// GUI-C-233 (user decision on #251, QA-B-214): the default display of real data. Preprocessing is run on the real set, and what the app DRAWS (the render dump, UIA only, no foreground input) is
+    /// checked against the decision: the window comes from the image itself (the display summary says "VOI(auto, LinearExact, C=..., W=...)", and C and W are not the settings' fixed numbers) and the polarity
+    /// is bone bright / air dark (most of the frame, which is air in this wrist image, is dark). The measured numbers go to the output: they are the evidence the report compares with the post lane's chain.
+    /// Needs <c>XPE_C231_NATIVE_DIR</c> with a 214 display module, <c>XPE_C231_CALIB_DIR</c>, <c>XPE_C231_RAW</c>, <c>XPE_C231_RAW_SIZE</c>.
+    /// </summary>
+    [EnvGatedFact]
+    public void W11_TheDefaultDisplay_UsesTheAutomaticWindow_AndShowsAirDark()
+    {
+        var (native, calib, raw, width, height) = Inputs();
+        var dump = Path.Combine(Path.GetTempPath(), "xpe_c233_render_" + Guid.NewGuid().ToString("N") + ".bgra");
+        try
+        {
+            using var app = GuiApp.Launch(output, native, extraArguments:
+                ["--automation-backend", "Native", "--automation-calib", calib, "--automation-width", width.ToString(), "--automation-height", height.ToString(), "--automation-export-render", dump]);
+            app.Menu("FileMenu");
+            app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1");
+            app.WaitFor(() => app.AnyTextContains($"RAW {width}x{height}"), "the image summary appears", 90);
+            app.Menu("PipelineMenu");
+            app.InvokeMenuItem("RunPreprocessingMenuItem");
+            app.WaitFor(() => app.Read("ChainStatusText").Contains("preprocess=Applied", StringComparison.Ordinal), "preprocess=Applied", 180);
+            Thread.Sleep(4000);
+
+            app.Menu("ViewMenu");
+            if (!app.IsToggled("ShowLogsPanelMenuItem")) app.InvokeMenuItem("ShowLogsPanelMenuItem");
+            app.ClickButtonByName("Log");
+            Thread.Sleep(1200);
+            var displayLine = app.ListItems("LogListBox").FirstOrDefault(l => l.Contains("-> Display:", StringComparison.Ordinal) && l.Contains("VOI(", StringComparison.Ordinal));
+            output.WriteLine("   display summary: " + displayLine);
+            Assert.NotNull(displayLine);
+            var voi = System.Text.RegularExpressions.Regex.Match(displayLine!, @"VOI\(auto, LinearExact, C=(?<c>[-0-9.,]+), W=(?<w>[-0-9.,]+)\)");
+            Assert.True(voi.Success, "the display summary does not say that the window is automatic");
+            output.WriteLine($"   automatic window: C={voi.Groups["c"].Value} W={voi.Groups["w"].Value}");
+
+            var bytes = File.ReadAllBytes(dump);
+            var headerEnd = Array.IndexOf(bytes, (byte)'\n');
+            var header = System.Text.Encoding.ASCII.GetString(bytes, 0, headerEnd).Split(' ');
+            int w = int.Parse(header[1]), h = int.Parse(header[2]);
+            var gray = new byte[w * h];
+            for (var i = 0; i < gray.Length; i++) gray[i] = bytes[headerEnd + 1 + i * 4];   // BGRA: the blue byte of a grey pixel
+            var sorted = gray.OrderBy(v => v).ToArray();
+            double Q(double f) => sorted[(int)Math.Round((sorted.Length - 1) * f)];
+            var dark = gray.Count(v => v < 32) / (double)gray.Length;
+            var atMax = gray.Count(v => v == 255) / (double)gray.Length;
+            output.WriteLine($"   drawn frame {w}x{h}: share of pixels below 32/255 = {dark:P1}; at 255 = {atMax:P2}; p5/p50/p95/p99 = {Q(0.05)}/{Q(0.5)}/{Q(0.95)}/{Q(0.99)}");
+            Assert.True(dark > 0.5, $"most of this frame is air and should be dark; only {dark:P1} of it is");
+            Assert.True(Q(0.99) > 128, "the brightest 1% (bone) is not bright");
+        }
+        finally
+        {
+            try { File.Delete(dump); } catch (Exception) { /* temp file */ }
+        }
+    }
+
+    /// <summary>
     /// Every menu path the quick-start page prints in bold (<c>File &gt; Open Raw...</c>) must exist in the running app: each name is looked up as a menu item, opening the parents by UI Automation.
     /// A renamed or removed item turns this red, which is how the page and the app are kept to the same words. Runs on the packaged help next to the exe; needs no data.
     /// </summary>

@@ -1,0 +1,97 @@
+doc_vs_evidence: every <code> and <em> fragment of gui/ImageProcTest/help/quick-start.html that quotes app text, searched in the walkthrough evidence files of this folder.
+A fragment with '...' is checked part by part (the page leaves the middle out).
+checked=41 missing=1
+
+FOUND   [code] mode=Native | common=xpe_display 1.0.0 | display=1.0.0 | src=<DLL folder name>
+          ok  'mode=Native | common=xpe_display 1.0.0 | display=1.0.0 | src=' in GUI-C-231/w_w1_menu_route_3072, GUI-C-231/w_w2_script_route_1024_generated_set, GUI-C-231/w_w2_script_route_3072
+FOUND   [code] mode=Mock (requested Native)
+          ok  'mode=Mock (requested Native)' in GUI-C-231/w_w3_failures_fresh_dlls, GUI-C-231/w_w3_failures_stale_dlls_2026-10-03, GUI-C-232b/w_w3_failures
+FOUND   [code] data/calibration/offset
+          ok  'data/calibration/offset' in GUI-C-231/w_w1_menu_route_3072, GUI-C-231/w_w6_calibration_panel
+FOUND   [code] data/calibration/gain
+          ok  'data/calibration/gain' in GUI-C-231/w_w1_menu_route_3072, GUI-C-231/w_w6_calibration_panel
+FOUND   [code] data/calibration/defect
+          ok  'data/calibration/defect' in GUI-C-231/w_w1_menu_route_3072, GUI-C-231/w_w6_calibration_panel
+FOUND   [code] (not set)
+          ok  '(not set)' in GUI-C-231/w_w6_calibration_panel
+FOUND   [code] RAW 3072x3072, min=…, max=…, bytes=18874368
+          ok  'RAW 3072x3072, min=' in GUI-C-231/w_w1_menu_route_3072, GUI-C-231/w_w2_script_route_3072
+          ok  ', bytes=18874368' in GUI-C-231/w_w1_menu_route_3072, GUI-C-231/w_w2_script_route_3072, GUI-C-231/w_w5_wrong_raw_size
+FOUND   [code] Load failed: Raw file is too small. Expected at least … bytes, got … bytes.
+          ok  'Load failed: Raw file is too small. Expected at least' in GUI-C-231/w_w5_wrong_raw_size, GUI-C-232b/w_w8_wrong_size_refused
+          ok  'bytes, got' in GUI-C-231/w_w5_wrong_raw_size, GUI-C-232b/w_w8_wrong_size_refused
+FOUND   [code] Load failed: Raw file has … bytes, more than the … bytes of …
+          ok  'Load failed: Raw file has' in GUI-C-232b/w_w8_wrong_size_refused
+          ok  'bytes, more than the' in GUI-C-232b/w_w8_wrong_size_refused
+          ok  'bytes of' in GUI-C-232b/w_w8_wrong_size_refused
+FOUND   [code] The offset calibration map … is 1024x1024, but the raw image is 3072x3072.
+          ok  'The offset calibration map' in GUI-C-232b/w_w3_failures
+          ok  'is 1024x1024, but the raw image is 3072x3072.' in GUI-C-232b/w_w3_failures
+FOUND   [code] chain: not run
+          ok  'chain: not run' in GUI-C-231/w_w1_menu_route_3072, GUI-C-231/w_w2_script_route_1024_generated_set, GUI-C-231/w_w2_script_route_3072
+FOUND   [code] chain: preprocess=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=<n> ms, …; display input=chain
+          ok  'chain: preprocess=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=' in GUI-C-231/w_w2_script_route_1024_generated_set, GUI-C-231/w_w2_script_route_3072, GUI-C-231/w_w3_failures_fresh_dlls
+          ok  '; display input=chain' in GUI-C-231/w_w2_script_route_1024_generated_set, GUI-C-231/w_w2_script_route_3072, GUI-C-231/w_w3_failures_fresh_dlls
+FOUND   [code] preprocess=Applied
+          ok  'preprocess=Applied' in GUI-C-231/w_w2_script_route_1024_generated_set, GUI-C-231/w_w2_script_route_3072, GUI-C-231/w_w3_failures_fresh_dlls
+FOUND   [code] display input=chain
+          ok  'display input=chain' in GUI-C-231/w_w2_script_route_1024_generated_set, GUI-C-231/w_w2_script_route_3072, GUI-C-231/w_w3_failures_fresh_dlls
+FOUND   [code] Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen).
+          ok  'Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on ' in GUI-C-232b/w_w7_save_identical
+FOUND   [code] ALERT WARN NATIVE_ALERT
+          ok  'ALERT WARN NATIVE_ALERT' in GUI-C-231/w_w2_script_route_1024_generated_set, GUI-C-231/w_w2_script_route_3072
+FOUND   [code] CalibrationEval(…)
+          ok  'CalibrationEval(' in GUI-C-231/w_w1_menu_route_3072, GUI-C-231/w_w2_script_route_1024_generated_set, GUI-C-231/w_w2_script_route_3072
+FOUND   [code] _corrected_f32le.raw
+          ok  '_corrected_f32le.raw' in GUI-C-232b/w_w7_save_identical, GUI-C-232b/w_w9_typed_name_overwrite_failure
+FOUND   [code] _corrected_16bit.png
+          ok  '_corrected_16bit.png' in GUI-C-232b/w_w7_save_identical
+FOUND   [code] Saved corrected image (float32 raw): …\wrist_lat_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256 …
+          ok  'Saved corrected image (float32 raw):' in GUI-C-232b/w_w7_save_identical, GUI-C-232b/w_w9_typed_name_overwrite_failure
+          ok  '\wrist_lat_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256' in GUI-C-232b/w_w7_save_identical, GUI-C-232b/w_w9_typed_name_overwrite_failure
+FOUND   [code] display input=raw
+          ok  'display input=raw' in GUI-C-231/w_w1_menu_route_3072, GUI-C-231/w_w2_script_route_1024_generated_set, GUI-C-231/w_w2_script_route_3072
+FOUND   [code] preprocess:
+          ok  'preprocess:' in GUI-C-231/w_w2_script_route_1024_generated_set, GUI-C-231/w_w2_script_route_3072, GUI-C-231/w_w3_failures_fresh_dlls
+FOUND   [code] mode=Mock (requested Native)
+          ok  'mode=Mock (requested Native)' in GUI-C-231/w_w3_failures_fresh_dlls, GUI-C-231/w_w3_failures_stale_dlls_2026-10-03, GUI-C-232b/w_w3_failures
+FOUND   [code] preprocess: Preprocessing skipped: calibration file(s) not found — …\offset.xcal, …\gain.xcal, …\defect.xcal
+          ok  'preprocess: Preprocessing skipped: calibration file(s) not found —' in GUI-C-231/w_w3_failures_fresh_dlls, GUI-C-231/w_w3_failures_stale_dlls_2026-10-03, GUI-C-232b/w_w3_failures
+          ok  '\offset.xcal,' in GUI-C-231/w_w3_failures_fresh_dlls, GUI-C-231/w_w3_failures_stale_dlls_2026-10-03, GUI-C-232b/w_w3_failures
+          ok  '\gain.xcal,' in GUI-C-231/w_w3_failures_fresh_dlls, GUI-C-231/w_w3_failures_stale_dlls_2026-10-03, GUI-C-232b/w_w3_failures
+          ok  '\defect.xcal' in GUI-C-231/w_w3_failures_fresh_dlls, GUI-C-231/w_w3_failures_stale_dlls_2026-10-03, GUI-C-232b/w_w3_failures
+FOUND   [code] preprocess: Loading offset calibration failed (-5)
+          ok  'preprocess: Loading offset calibration failed (-5)' in GUI-C-231/w_w3_failures_fresh_dlls, GUI-C-231/w_w3_failures_stale_dlls_2026-10-03, GUI-C-232b/w_w3_failures
+FOUND   [code] preprocess: Loading gain calibration failed (-17)
+          ok  'preprocess: Loading gain calibration failed (-17)' in GUI-C-231/w_w3_failures_stale_dlls_2026-10-03
+MISSING [code] preprocess: xpe_preprocess_pipeline_out failed (-1)
+          --  'preprocess: xpe_preprocess_pipeline_out failed (-1)' in no evidence file
+FOUND   [code] Load failed: Raw file is too small…
+          ok  'Load failed: Raw file is too small' in GUI-C-231/w_w5_wrong_raw_size, GUI-C-232b/w_w8_wrong_size_refused
+FOUND   [code] Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out…
+          ok  'Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out' in GUI-C-232b/w_w10_old_dll_fails_with_update_instruction
+FOUND   [code] Load failed: The offset calibration map … is 1024x1024, but the raw image is 3072x3072.
+          ok  'Load failed: The offset calibration map' in GUI-C-232b/w_w3_failures
+          ok  'is 1024x1024, but the raw image is 3072x3072.' in GUI-C-232b/w_w3_failures
+FOUND   [code] Save failed: The process cannot access the file because it is being used by another process.
+          ok  'Save failed: The process cannot access the file because it is being used by another process.' in GUI-C-232b/w_w9_typed_name_overwrite_failure
+FOUND   [code] VOI(auto, LinearExact, C=…, W=…)
+          ok  'VOI(auto, LinearExact, C=' in GUI-C-233/w_w11_default_display_real_data
+FOUND   [code] preprocess=RequestedNotApplied
+          ok  'preprocess=RequestedNotApplied' in GUI-C-231/w_w3_failures_fresh_dlls, GUI-C-231/w_w3_failures_stale_dlls_2026-10-03, GUI-C-232b/w_w10_old_dll_fails_with_update_instruction
+FOUND   [code] Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out (the DLL is too old). Update the native DLLs and start the app again.
+          ok  'Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out (the DLL is too old). Update' in GUI-C-232b/w_w10_old_dll_fails_with_update_instruction
+FOUND   [em] MOCK BACKEND
+          ok  'MOCK BACKEND' in GUI-C-231/w_w3_failures_fresh_dlls, GUI-C-231/w_w3_failures_stale_dlls_2026-10-03, GUI-C-232b/w_w3_failures
+FOUND   [em] MOCK BACKEND — Native was requested but could not be used. Images and results are synthetic; not for clinical judgement.
+          ok  'MOCK BACKEND — Native was requested but could not be used. Images and results are synthetic; not for clinical ' in GUI-C-231/w_w3_failures_fresh_dlls, GUI-C-231/w_w3_failures_stale_dlls_2026-10-03, GUI-C-232b/w_w3_failures
+FOUND   [em] Calibration paths
+          ok  'Calibration paths' in GUI-C-231/w_w1_menu_route_3072, GUI-C-231/w_w2_script_route_1024_generated_set, GUI-C-231/w_w2_script_route_3072
+FOUND   [em] Select calibration directory
+          ok  'Select calibration directory' in GUI-C-231/w_w1_menu_route_3072
+FOUND   [em] Load Raw Image
+          ok  'Load Raw Image' in GUI-C-231/w_w1_menu_route_3072, GUI-C-231/w_w2_script_route_1024_generated_set, GUI-C-231/w_w2_script_route_3072
+FOUND   [em] Processed Only
+          ok  'Processed Only' in GUI-C-231/w_w1_menu_route_3072, GUI-C-231/w_w2_script_route_1024_generated_set, GUI-C-231/w_w2_script_route_3072
+FOUND   [em] Pipeline > Run Preprocessing
+          ok  'Pipeline > Run Preprocessing' in GUI-C-231/w_w1_menu_route_3072, GUI-C-231/w_w2_script_route_1024_generated_set, GUI-C-231/w_w2_script_route_3072
