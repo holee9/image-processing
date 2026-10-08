@@ -1,0 +1,34 @@
+Note: Google Test filter = A241Safety.AnOutputBigEnough*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A241Safety
+[ RUN      ] A241Safety.AnOutputBigEnoughForTheResultThatOverlapsTheInputIsInvalidInput
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_a241_safety.cpp(411): error: Expected equality of these values:
+  -1
+  xpe_preprocess_pipeline_out(&input, &out, &meta, nullptr, nullptr, kCfg)
+    Which is: 0
+room enough, but the result would destroy the input
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_a241_safety.cpp(413): error: Expected equality of these values:
+  before
+    Which is: { '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), '\xA7' (167), ... }
+  arena
+    Which is: { '\0', '\0', 'a' (97, 0x61), 'D' (68, 0x44), '\0', '@' (64, 0x40), 'a' (97, 0x61), 'D' (68, 0x44), '\0', '\x80' (128), 'a' (97, 0x61), 'D' (68, 0x44), '\0', '\xC0' (192), 'a' (97, 0x61), 'D' (68, 0x44), '\0', '\0', 'b' (98, 0x62), 'D' (68, 0x44), '\0', '@' (64, 0x40), 'b' (98, 0x62), 'D' (68, 0x44), '\0', '\x80' (128), 'b' (98, 0x62), 'D' (68, 0x44), '\0', '\xC0' (192), 'b' (98, 0x62), 'D' (68, 0x44), ... }
+a refused call leaves every byte of the arena, input and output, as it was
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_a241_safety.cpp(414): error: Expected equality of these values:
+  0u
+    Which is: 0
+  meta.flags
+    Which is: 8220
+
+[  FAILED  ] A241Safety.AnOutputBigEnoughForTheResultThatOverlapsTheInputIsInvalidInput (16 ms)
+[----------] 1 test from A241Safety (16 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (16 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] A241Safety.AnOutputBigEnoughForTheResultThatOverlapsTheInputIsInvalidInput
+
+ 1 FAILED TEST

@@ -1,0 +1,335 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 88 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 39 tests from OomInjection
+[ RUN      ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader
+[       OK ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader (2 ms)
+[ RUN      ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain                           34 allocation points covered
+[       OK ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched (11 ms)
+[ RUN      ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_offset                          9 allocation points covered
+[       OK ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched (7 ms)
+[ RUN      ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_defect_map                      9 allocation points covered
+[       OK ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched (8 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, range)       33 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched (12 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, no range)    33 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched (11 ms)
+[ RUN      ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_gain_cached (miss)             44 allocation points covered
+[       OK ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping (16 ms)
+[ RUN      ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_gain_cached (polynomial)       35 allocation points covered
+[       OK ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping (23 ms)
+[ RUN      ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_offset_cached (miss)           19 allocation points covered
+[       OK ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping (12 ms)
+[ RUN      ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_defect_cached (miss)           19 allocation points covered
+[       OK ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping (10 ms)
+[ RUN      ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain_cached (hit)               4 allocation points covered
+[       OK ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched (7 ms)
+[ RUN      ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_offset_cached (hit)             4 allocation points covered
+[       OK ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched (9 ms)
+[ RUN      ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_defect_cached (hit)             4 allocation points covered
+[       OK ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched (7 ms)
+[ RUN      ] OomInjection.AnOffsetCorrectionAllocatesNothing
+[       OK ] OomInjection.AnOffsetCorrectionAllocatesNothing (2 ms)
+[ RUN      ] OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree
+[sweep] xpe_defect_correct                            10 allocation points covered
+[       OK ] OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree (4 ms)
+[ RUN      ] OomInjection.AGhostCreationThatIsRefusedLeavesNoBlocksBehind
+[       OK ] OomInjection.AGhostCreationThatIsRefusedLeavesNoBlocksBehind (0 ms)
+[ RUN      ] OomInjection.AGhostCreationWhoseAllocationFailsHandsBackNothingAndLeaksNothing
+[sweep] xpe_ghost_create (default config)              4 allocation points covered
+[       OK ] OomInjection.AGhostCreationWhoseAllocationFailsHandsBackNothingAndLeaksNothing (0 ms)
+[ RUN      ] OomInjection.ACalibratedGhostCreationWhoseAllocationFailsHandsBackNothingAndLeaksNothing
+[sweep] xpe_ghost_create (calibrated config)          16 allocation points covered
+[       OK ] OomInjection.ACalibratedGhostCreationWhoseAllocationFailsHandsBackNothingAndLeaksNothing (0 ms)
+[ RUN      ] OomInjection.AGhostFrameOnTheScratchRouteWhoseAllocationFailsChangesNothing
+[       OK ] OomInjection.AGhostFrameOnTheScratchRouteWhoseAllocationFailsChangesNothing (1 ms)
+[ RUN      ] OomInjection.ADefectCorrectionDoesNotCopyTheMap
+[       OK ] OomInjection.ADefectCorrectionDoesNotCopyTheMap (0 ms)
+[ RUN      ] OomInjection.TheSessionWarningStateIsSettledInTheCommitsOwnCriticalSection
+[       OK ] OomInjection.TheSessionWarningStateIsSettledInTheCommitsOwnCriticalSection (10 ms)
+[ RUN      ] OomInjection.AHitJudgesTheExpiryAfterTheOpenCheckNotBefore
+[       OK ] OomInjection.AHitJudgesTheExpiryAfterTheOpenCheckNotBefore (15 ms)
+[ RUN      ] OomInjection.AWriteFailureIsReportedWithItsOwnCauseNotWhatAnEarlierStepLeftBehind
+[       OK ] OomInjection.AWriteFailureIsReportedWithItsOwnCauseNotWhatAnEarlierStepLeftBehind (6 ms)
+[ RUN      ] OomInjection.APreprocessInitThatRunsOutOfMemoryReportsItAsSuchAndLeavesTheModuleUninitialized
+[sweep] xpe_preprocess_init                           20 allocation points covered
+[       OK ] OomInjection.APreprocessInitThatRunsOutOfMemoryReportsItAsSuchAndLeavesTheModuleUninitialized (0 ms)
+[ RUN      ] OomInjection.ANonlinearityCorrectionThatFailsLeavesTheFrameUntouchedAndNoExceptionEscapes
+[sweep] xpe_nonlinearity_correct                      23 allocation points covered
+[       OK ] OomInjection.ANonlinearityCorrectionThatFailsLeavesTheFrameUntouchedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.ANonlinearityCorrectionWithTheLutPathThatFailsLeavesTheFrameUntouched
+[sweep] xpe_nonlinearity_correct (table)              16 allocation points covered
+[       OK ] OomInjection.ANonlinearityCorrectionWithTheLutPathThatFailsLeavesTheFrameUntouched (7 ms)
+[ RUN      ] OomInjection.AVerifyOffsetThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+[sweep] xpe_verify_offset                              3 allocation points covered
+[       OK ] OomInjection.AVerifyOffsetThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.AVerifyGainThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+[sweep] xpe_verify_gain                                3 allocation points covered
+[       OK ] OomInjection.AVerifyGainThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.AVerifyPipelineThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+[sweep] xpe_verify_pipeline                            4 allocation points covered
+[       OK ] OomInjection.AVerifyPipelineThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.AVerifyDefectAllocatesNothingSoThereIsNothingToGuard
+[       OK ] OomInjection.AVerifyDefectAllocatesNothingSoThereIsNothingToGuard (0 ms)
+[ RUN      ] OomInjection.ABpmGenerationThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes
+[sweep] xpe_bpm_generate                              24 allocation points covered
+[       OK ] OomInjection.ABpmGenerationThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes (5 ms)
+[ RUN      ] OomInjection.ARuntimeDetectionThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes
+[sweep] xpe_defect_detect_runtime                      8 allocation points covered
+[       OK ] OomInjection.ARuntimeDetectionThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.ANonlinearityLutGenerationThatFailsWritesNoFileAndNoExceptionEscapes
+[sweep] xpe_calib_generate_nonlin_lut                 11 allocation points covered
+[       OK ] OomInjection.ANonlinearityLutGenerationThatFailsWritesNoFileAndNoExceptionEscapes (7 ms)
+[ RUN      ] OomInjection.EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce
+[       OK ] OomInjection.EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce (7 ms)
+[ RUN      ] OomInjection.ALegacyFileThatFailsToBuildItsWarningLeavesEveryOutputArgumentUntouched
+[       OK ] OomInjection.ALegacyFileThatFailsToBuildItsWarningLeavesEveryOutputArgumentUntouched (8 ms)
+[ RUN      ] OomInjection.AScalarGainLoadThatClassifiesPixelsAndFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (classified pixels)       16 allocation points covered
+[       OK ] OomInjection.AScalarGainLoadThatClassifiesPixelsAndFailsLeavesTheStoreUntouched (7 ms)
+[ RUN      ] OomInjection.ACachedScalarGainHitThatClassifiesPixelsAndFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain_cached (hit, classified)   4 allocation points covered
+[       OK ] OomInjection.ACachedScalarGainHitThatClassifiesPixelsAndFailsLeavesTheStoreUntouched (8 ms)
+[ RUN      ] OomInjection.ADefectCorrectionThatUnitesTheGainClassificationAndFailsLeavesTheStoreUntouched
+[sweep] xpe_defect_correct (gain-classified pixels)   16 allocation points covered
+[       OK ] OomInjection.ADefectCorrectionThatUnitesTheGainClassificationAndFailsLeavesTheStoreUntouched (10 ms)
+[ RUN      ] OomInjection.APolynomialGainApplicationThatClassifiesPixelsAndFailsReportsOutOfMemory
+[sweep] xpe_gain_correct (polynomial, classified pixels)   2 allocation points covered
+[       OK ] OomInjection.APolynomialGainApplicationThatClassifiesPixelsAndFailsReportsOutOfMemory (5 ms)
+[----------] 39 tests from OomInjection (257 ms total)
+
+[----------] 30 tests from OomPipeline
+[ RUN      ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas
+[sweep] xpe_preprocess_pipeline_ex                    38 allocation points covered
+[       OK ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas (18 ms)
+[ RUN      ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas
+[sweep] xpe_preprocess_pipeline                       68 allocation points covered
+[       OK ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas (29 ms)
+[ RUN      ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched
+[sweep] xpe_preprocess_pipeline_batch                 82 allocation points covered
+[       OK ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched (35 ms)
+[ RUN      ] OomPipeline.TheStoreDigestTellsStoresApartByPresenceAndByEveryDimension
+[       OK ] OomPipeline.TheStoreDigestTellsStoresApartByPresenceAndByEveryDimension (4 ms)
+[ RUN      ] OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet
+[sweep] xpe_preprocess_pipeline (empty store)         68 allocation points covered
+[       OK ] OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet (31 ms)
+[ RUN      ] OomPipeline.AFailedCachedOffsetLoadThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeMap
+[sweep] xpe_calib_load_offset_cached (empty store)    19 allocation points covered
+[       OK ] OomPipeline.AFailedCachedOffsetLoadThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeMap (11 ms)
+[ RUN      ] OomPipeline.TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims
+[       OK ] OomPipeline.TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims (6 ms)
+[ RUN      ] OomPipeline.AClaimSmallerThanTheFrameIsRefusedBeforeAnythingIsDone
+[       OK ] OomPipeline.AClaimSmallerThanTheFrameIsRefusedBeforeAnythingIsDone (9 ms)
+[ RUN      ] OomPipeline.TheOutputCapacityMustHoldTheWholeFinalFrame
+[       OK ] OomPipeline.TheOutputCapacityMustHoldTheWholeFinalFrame (18 ms)
+[ RUN      ] OomPipeline.ABatchChecksTheRoomOfEachFrameAndCarriesOnPastARefusal
+[       OK ] OomPipeline.ABatchChecksTheRoomOfEachFrameAndCarriesOnPastARefusal (5 ms)
+[ RUN      ] OomPipeline.AFrameWhoseByteCountDoesNotFitInSizeTIsRefusedBeforeItIsRead
+[       OK ] OomPipeline.AFrameWhoseByteCountDoesNotFitInSizeTIsRefusedBeforeItIsRead (14 ms)
+[ RUN      ] OomPipeline.SetsAAndBDifferInEverythingTheDigestLooksAt
+[       OK ] OomPipeline.SetsAAndBDifferInEverythingTheDigestLooksAt (9 ms)
+[ RUN      ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+[       OK ] OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas (58 ms)
+[ RUN      ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+[sweep] xpe_preprocess_pipeline                       76 allocation points covered
+[sweep] xpe_preprocess_pipeline_batch                 76 allocation points covered
+[       OK ] OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas (63 ms)
+[ RUN      ] OomPipeline.TheQualityMetadataIsCurrentTheMomentTheMapsAre
+[       OK ] OomPipeline.TheQualityMetadataIsCurrentTheMomentTheMapsAre (8 ms)
+[ RUN      ] OomPipeline.AQualityReadWhileTheStoreIsBeingReplacedSeesOneFilesFields
+[       OK ] OomPipeline.AQualityReadWhileTheStoreIsBeingReplacedSeesOneFilesFields (22 ms)
+[ RUN      ] OomPipeline.AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedMidFrame
+[       OK ] OomPipeline.AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedMidFrame (11 ms)
+[ RUN      ] OomPipeline.AQualityReadStartedInsideTheCommitWaitsForItAndSeesTheNewSet
+[       OK ] OomPipeline.AQualityReadStartedInsideTheCommitWaitsForItAndSeesTheNewSet (1008 ms)
+[ RUN      ] OomPipeline.AGainBypassFollowedByBinningDoesNotReadPastTheStageBuffer
+[       OK ] OomPipeline.AGainBypassFollowedByBinningDoesNotReadPastTheStageBuffer (12 ms)
+[ RUN      ] OomPipeline.EveryConfigurationReadsOnlyWhatItOwnsAndEndsInTheFormatItIsPredictedToEndIn
+[combo] 96 configurations; 88 end in float32, 8 in uint16; 40 compared with a gain map of ones
+[       OK ] OomPipeline.EveryConfigurationReadsOnlyWhatItOwnsAndEndsInTheFormatItIsPredictedToEndIn (45 ms)
+[ RUN      ] OomPipeline.ALoadOfAGainWithoutQualityLeavesNoPreviousFilesQualityBehind
+[       OK ] OomPipeline.ALoadOfAGainWithoutQualityLeavesNoPreviousFilesQualityBehind (26 ms)
+[ RUN      ] OomPipeline.ALoadOfAGainWithDifferentQualityReplacesTheRecordOnEveryPath
+[       OK ] OomPipeline.ALoadOfAGainWithDifferentQualityReplacesTheRecordOnEveryPath (18 ms)
+[ RUN      ] OomPipeline.AFileWithoutQualityThenOneWithQualityKeepsTheHistoryAcrossTheGap
+[       OK ] OomPipeline.AFileWithoutQualityThenOneWithQualityKeepsTheHistoryAcrossTheGap (16 ms)
+[ RUN      ] OomPipeline.ACacheHitInstallsTheFilesQualityCopyBesideTheMap
+[       OK ] OomPipeline.ACacheHitInstallsTheFilesQualityCopyBesideTheMap (19 ms)
+[ RUN      ] OomPipeline.APartialQualityRecordDoesNotInterruptTheR2History_AThenPartialThenC
+[       OK ] OomPipeline.APartialQualityRecordDoesNotInterruptTheR2History_AThenPartialThenC (29 ms)
+[ RUN      ] OomPipeline.ARecordWithNoQualityAfterAPartialOneKeepsTheR2History_AThenPartialThenNoneThenC
+[       OK ] OomPipeline.ARecordWithNoQualityAfterAPartialOneKeepsTheR2History_AThenPartialThenNoneThenC (31 ms)
+[ RUN      ] OomPipeline.AGeneratedRecordFollowsTheSameRule_AThenPartialThenGeneratedThenPartialThenC
+[       OK ] OomPipeline.AGeneratedRecordFollowsTheSameRule_AThenPartialThenGeneratedThenPartialThenC (28 ms)
+[ RUN      ] OomPipeline.ANegativeGeneratedR2IsKnownAndBecomesTheHistory
+[       OK ] OomPipeline.ANegativeGeneratedR2IsKnownAndBecomesTheHistory (24 ms)
+[ RUN      ] OomPipeline.AnR2OfExactlyMinusOneIsARealValueAndChainsAsOne
+[       OK ] OomPipeline.AnR2OfExactlyMinusOneIsARealValueAndChainsAsOne (20 ms)
+[ RUN      ] OomPipeline.WithNoEarlierR2TheHistoryIsFlaggedAsNoneEvenWhenTheFirstRecordIsMinusOne
+[       OK ] OomPipeline.WithNoEarlierR2TheHistoryIsFlaggedAsNoneEvenWhenTheFirstRecordIsMinusOne (23 ms)
+[----------] 30 tests from OomPipeline (1665 ms total)
+
+[----------] 5 tests from GhostMixCompare
+[ RUN      ] GhostMixCompare.TheSeamDefaultsAreTheShippedConstantsAndTouchOnlyTierThree
+[ghost-oracle] tier3-digest 0x7b90345cb57971c3
+[       OK ] GhostMixCompare.TheSeamDefaultsAreTheShippedConstantsAndTouchOnlyTierThree (8 ms)
+[ RUN      ] GhostMixCompare.TheAnalyticValuesOfThePreregistrationHold
+[ghost-oracle-m4] analytic check blend=1: stripes 0.60000 (predicted 0.6000) checkerboard 0.73333 (predicted 0.7333) noise ratio 0.7394 (predicted 0.7394)
+[ghost-oracle-m4] analytic check blend=0: stripes 1.00000 (predicted 1.0000) checkerboard 1.00000 (predicted 1.0000) noise ratio 1.0000 (predicted 1.0000)
+[       OK ] GhostMixCompare.TheAnalyticValuesOfThePreregistrationHold (2 ms)
+[ RUN      ] GhostMixCompare.TheBlendLeavesNoRingAndIsTheMixOfTheUnblendedFrameAndTheRaw
+[ghost-oracle-m4] ring A 0.02/3/0.003/30        no blend: border 14275.21 interior 14275.21 | blend: border 15467.97 interior 15467.97 step +0.000 ADU (+0.0000% of the border) | predicted 15467.97
+[ghost-oracle-m4] ring B derived T1@27 +-0.1    no blend: border 17507.22 interior 17507.22 | blend: border 17730.39 interior 17730.39 step +0.000 ADU (+0.0000% of the border) | predicted 17730.39
+[ghost-oracle-m4] ring C derived T2@27 +-0.1    no blend: border 17893.17 interior 17893.17 | blend: border 18000.55 interior 18000.55 step +0.000 ADU (+0.0000% of the border) | predicted 18000.55
+[       OK ] GhostMixCompare.TheBlendLeavesNoRingAndIsTheMixOfTheUnblendedFrameAndTheRaw (66 ms)
+[ RUN      ] GhostMixCompare.ThePreregisteredRulesGiveTheirVerdictsOnSyntheticInputs
+[       OK ] GhostMixCompare.ThePreregisteredRulesGiveTheirVerdictsOnSyntheticInputs (0 ms)
+[ RUN      ] GhostMixCompare.ComparesTheBlendKeptAndRemovedAsPreregistered
+[ghost-oracle-m4] config A 0.02/3/0.003/30        alpha1 0.02 tau1 3 alpha2 0.003 tau2 30 S 0.1621
+[ghost-oracle-m4] config B derived T1@27 +-0.1    alpha1 0.00791192 tau1 2.34662 alpha2 0.000177389 tau2 42.4811 S 0.0304
+[ghost-oracle-m4] config C derived T2@27 +-0.1    alpha1 0.00716059 tau1 1.32126 alpha2 0.000110889 tau2 8.88601 S 0.0145
+[ghost-oracle-m4] K1 A 0.02/3/0.003/30        T1 k=1  residual blend  -50.449% | no blend  -79.437% | delta -28.988 pt -> blend better
+[ghost-oracle-m4] K1 A 0.02/3/0.003/30        T1 k=50 residual blend  -14.211% | no blend  -22.207% | delta  -7.996 pt -> blend better
+[ghost-oracle-m4] K1 A 0.02/3/0.003/30        T2 k=1  residual blend  -58.215% | no blend  -86.578% | delta -28.362 pt -> blend better
+[ghost-oracle-m4] K1 A 0.02/3/0.003/30        T2 k=50 residual blend  -16.315% | no blend  -24.111% | delta  -7.796 pt -> blend better
+[ghost-oracle-m4] K1 B derived T1@27 +-0.1    T1 k=1  residual blend   +4.510% | no blend   -0.925% | delta  +3.585 pt -> blend worse
+[ghost-oracle-m4] K1 B derived T1@27 +-0.1    T1 k=50 residual blend   +1.276% | no blend   -0.083% | delta  +1.192 pt -> blend worse
+[ghost-oracle-m4] K1 B derived T1@27 +-0.1    T2 k=1  residual blend   -4.443% | no blend   -9.759% | delta  -5.317 pt -> blend better
+[ghost-oracle-m4] K1 B derived T1@27 +-0.1    T2 k=50 residual blend   -1.216% | no blend   -2.542% | delta  -1.326 pt -> blend better
+[ghost-oracle-m4] K1 C derived T2@27 +-0.1    T1 k=1  residual blend  +11.120% | no blend   +8.519% | delta  +2.601 pt -> blend worse
+[ghost-oracle-m4] K1 C derived T2@27 +-0.1    T1 k=50 residual blend   +3.316% | no blend   +2.831% | delta  +0.485 pt -> no difference
+[ghost-oracle-m4] K1 C derived T2@27 +-0.1    T2 k=1  residual blend   +2.025% | no blend   -0.520% | delta  +1.506 pt -> blend worse
+[ghost-oracle-m4] K1 C derived T2@27 +-0.1    T2 k=50 residual blend   +0.775% | no blend   +0.303% | delta  +0.472 pt -> no difference
+[ghost-oracle-m4] K2 A 0.02/3/0.003/30        ring step blend   +0.000% | no blend   +0.000% -> no difference
+[ghost-oracle-m4] K2 B derived T1@27 +-0.1    ring step blend   +0.000% | no blend   +0.000% -> no difference
+[ghost-oracle-m4] K2 C derived T2@27 +-0.1    ring step blend   +0.000% | no blend   +0.000% -> no difference
+[ghost-oracle-m4] K3 Nyquist response: stripes blend 0.6000 | no blend 1.0000 ; checkerboard blend 0.7333 | no blend 1.0000 ; reference 0.98 (NFR-206, requirement status unverified): blend below, no blend meets
+[ghost-oracle-m4] K4 interior noise ratio output/input (seed-7 frame, as preregistered): blend 0.7438 | no blend 1.0000 -> blend better ; pooled over 100 frames: blend 0.7394 | no blend 1.0000
+[ghost-oracle] T1   2%      sigma=0   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.9138 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T1   2%      sigma=0   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.8636 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T1   2%      sigma=5   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.9138 (raw 1.0310) | k=1 raw 3.0712% res 0.0004% removal   99.99% | k=10 removal   99.95% | k=50 raw 0.3020% res 0.0004% removal   99.88% | removal with corrected DarkRef (M1) k1   96.51% k50   64.55% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T1   2%      sigma=5   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.8636 (raw 1.0310) | k=1 raw 3.0712% res 0.0004% removal   99.99% | k=10 removal   99.95% | k=50 raw 0.3020% res 0.0004% removal   99.88% | removal with corrected DarkRef (M1) k1   95.28% k50   52.01% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T1   27%     sigma=0   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.8767 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T1   27%     sigma=0   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.8106 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T1   27%     sigma=5   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.8767 (raw 1.0310) | k=1 raw 3.0841% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2750% res 0.0000% removal   99.99% | removal with corrected DarkRef (M1) k1   99.74% k50   97.12% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T1   27%     sigma=5   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.8106 (raw 1.0310) | k=1 raw 3.0841% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2750% res 0.0000% removal   99.99% | removal with corrected DarkRef (M1) k1   99.65% k50   96.10% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T1   92%     sigma=0   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.7660 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T1   92%     sigma=0   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.6524 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2729% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T1   92%     sigma=5   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.7660 (raw 1.0310) | k=1 raw 3.0848% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2735% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1   99.92% k50   99.15% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T1   92%     sigma=5   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.6524 (raw 1.0310) | k=1 raw 3.0848% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.2735% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1   99.90% k50   98.85% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   2%      sigma=0   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.9035 (raw 1.0193) | k=1 raw 1.8953% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0040% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   2%      sigma=0   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.8538 (raw 1.0193) | k=1 raw 1.8953% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0040% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   2%      sigma=5   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.9035 (raw 1.0193) | k=1 raw 1.8811% res 0.0004% removal   99.98% | k=10 removal   98.84% | k=50 raw 0.0334% res 0.0004% removal   98.90% | removal with corrected DarkRef (M1) k1   94.24% k50 -224.11% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   2%      sigma=5   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.8538 (raw 1.0193) | k=1 raw 1.8811% res 0.0004% removal   99.98% | k=10 removal   98.84% | k=50 raw 0.0334% res 0.0004% removal   98.90% | removal with corrected DarkRef (M1) k1   92.20% k50 -338.73% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   27%     sigma=0   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.8635 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   27%     sigma=0   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.7986 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   27%     sigma=5   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.8635 (raw 1.0147) | k=1 raw 1.4521% res 0.0000% removal  100.00% | k=10 removal   99.93% | k=50 raw 0.0056% res 0.0000% removal   99.51% | removal with corrected DarkRef (M1) k1   99.44% k50  -43.82% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   27%     sigma=5   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.7986 (raw 1.0147) | k=1 raw 1.4521% res 0.0000% removal  100.00% | k=10 removal   99.93% | k=50 raw 0.0056% res 0.0000% removal   99.51% | removal with corrected DarkRef (M1) k1   99.25% k50  -94.68% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   92%     sigma=0   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.7532 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   92%     sigma=0   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.6435 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   92%     sigma=5   m4 tier3 blend    A 0.02/3/0.003/30 retention=  0.7532 (raw 1.0091) | k=1 raw 0.9047% res 0.0000% removal  100.00% | k=10 removal   99.97% | k=50 raw 0.0031% res 0.0000% removal   99.74% | removal with corrected DarkRef (M1) k1   99.74% k50   22.76% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   92%     sigma=5   m4 tier3 no-blend A 0.02/3/0.003/30 retention=  0.6435 (raw 1.0091) | k=1 raw 0.9047% res 0.0000% removal  100.00% | k=10 removal   99.97% | k=50 raw 0.0031% res 0.0000% removal   99.74% | removal with corrected DarkRef (M1) k1   99.64% k50   -4.56% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T1   2%      sigma=0   m4 tier3 blend    B derived T1@27 +-0.1 retention=  1.0090 (raw 1.0310) | k=1 raw 3.0851% res 0.9586% removal   68.93% | k=10 removal   64.53% | k=50 raw 0.2729% res 0.0997% removal   63.47% | removal with corrected DarkRef (M1) k1   68.93% k50   63.47% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T1   2%      sigma=0   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9995 (raw 1.0310) | k=1 raw 3.0851% res 0.0473% removal   98.47% | k=10 removal   92.19% | k=50 raw 0.2729% res 0.0255% removal   90.67% | removal with corrected DarkRef (M1) k1   98.47% k50   90.67% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T1   2%      sigma=5   m4 tier3 blend    B derived T1@27 +-0.1 retention=  1.0090 (raw 1.0310) | k=1 raw 3.0712% res 0.9453% removal   69.22% | k=10 removal   61.66% | k=50 raw 0.3020% res 0.1897% removal   37.19% | removal with corrected DarkRef (M1) k1   72.72% k50   72.77% | blank pixels at 0: k1 0.000 k50 0.316
+[ghost-oracle] T1   2%      sigma=5   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9995 (raw 1.0310) | k=1 raw 3.0712% res 0.1682% removal   94.52% | k=10 removal   76.52% | k=50 raw 0.3020% res 0.1804% removal   40.27% | removal with corrected DarkRef (M1) k1   99.25% k50   88.40% | blank pixels at 0: k1 0.477 k50 0.430
+[ghost-oracle] T1   27%     sigma=0   m4 tier3 blend    B derived T1@27 +-0.1 retention=  1.0020 (raw 1.0310) | k=1 raw 3.0851% res 0.9383% removal   69.59% | k=10 removal   64.68% | k=50 raw 0.2729% res 0.0995% removal   63.52% | removal with corrected DarkRef (M1) k1   69.59% k50   63.52% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T1   27%     sigma=0   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9896 (raw 1.0310) | k=1 raw 3.0851% res 0.0182% removal   99.41% | k=10 removal   92.40% | k=50 raw 0.2729% res 0.0252% removal   90.75% | removal with corrected DarkRef (M1) k1   99.41% k50   90.75% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T1   27%     sigma=5   m4 tier3 blend    B derived T1@27 +-0.1 retention=  1.0020 (raw 1.0310) | k=1 raw 3.0841% res 0.9373% removal   69.61% | k=10 removal   64.79% | k=50 raw 0.2750% res 0.1016% removal   63.05% | removal with corrected DarkRef (M1) k1   69.87% k50   65.94% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T1   27%     sigma=5   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9896 (raw 1.0310) | k=1 raw 3.0841% res 0.0217% removal   99.30% | k=10 removal   92.53% | k=50 raw 0.2750% res 0.0300% removal   89.10% | removal with corrected DarkRef (M1) k1   99.64% k50   93.01% | blank pixels at 0: k1 0.293 k50 0.160
+[ghost-oracle] T1   92%     sigma=0   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9812 (raw 1.0310) | k=1 raw 3.0851% res 0.8852% removal   71.31% | k=10 removal   65.06% | k=50 raw 0.2729% res 0.0992% removal   63.66% | removal with corrected DarkRef (M1) k1   71.31% k50   63.66% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T1   92%     sigma=0   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9599 (raw 1.0310) | k=1 raw 3.0851% res 0.0000% removal  100.00% | k=10 removal   92.95% | k=50 raw 0.2729% res 0.0247% removal   90.95% | removal with corrected DarkRef (M1) k1  100.00% k50   90.95% | blank pixels at 0: k1 1.000 k50 0.000
+[ghost-oracle] T1   92%     sigma=5   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9812 (raw 1.0310) | k=1 raw 3.0848% res 0.8849% removal   71.31% | k=10 removal   65.10% | k=50 raw 0.2735% res 0.0998% removal   63.52% | removal with corrected DarkRef (M1) k1   71.39% k50   64.38% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T1   92%     sigma=5   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9599 (raw 1.0310) | k=1 raw 3.0848% res 0.0000% removal  100.00% | k=10 removal   93.00% | k=50 raw 0.2735% res 0.0253% removal   90.74% | removal with corrected DarkRef (M1) k1   99.90% k50   91.90% | blank pixels at 0: k1 1.000 k50 0.000
+[ghost-oracle] T2   2%      sigma=0   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9976 (raw 1.0193) | k=1 raw 1.8953% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0040% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   2%      sigma=0   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9882 (raw 1.0193) | k=1 raw 1.8953% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0040% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   2%      sigma=5   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9976 (raw 1.0193) | k=1 raw 1.8811% res 0.0301% removal   98.40% | k=10 removal   86.22% | k=50 raw 0.0334% res 0.0594% removal  -77.57% | removal with corrected DarkRef (M1) k1   95.82% k50  -47.77% | blank pixels at 0: k1 0.809 k50 0.664
+[ghost-oracle] T2   2%      sigma=5   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9882 (raw 1.0193) | k=1 raw 1.8811% res 0.0004% removal   99.98% | k=10 removal   86.23% | k=50 raw 0.0334% res 0.0715% removal -113.74% | removal with corrected DarkRef (M1) k1   92.20% k50 -126.27% | blank pixels at 0: k1 1.000 k50 0.703
+[ghost-oracle] T2   27%     sigma=0   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9863 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   27%     sigma=0   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9742 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   27%     sigma=5   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9863 (raw 1.0147) | k=1 raw 1.4521% res 0.0000% removal  100.00% | k=10 removal   99.93% | k=50 raw 0.0056% res 0.0000% removal   99.51% | removal with corrected DarkRef (M1) k1   99.44% k50  -43.88% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   27%     sigma=5   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9742 (raw 1.0147) | k=1 raw 1.4521% res 0.0000% removal  100.00% | k=10 removal   99.93% | k=50 raw 0.0056% res 0.0000% removal   99.51% | removal with corrected DarkRef (M1) k1   99.25% k50  -94.76% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   92%     sigma=0   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9611 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   92%     sigma=0   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9405 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0000% removal  100.00% | removal with corrected DarkRef (M1) k1  100.00% k50  100.00% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   92%     sigma=5   m4 tier3 blend    B derived T1@27 +-0.1 retention=  0.9611 (raw 1.0091) | k=1 raw 0.9047% res 0.0000% removal  100.00% | k=10 removal   99.97% | k=50 raw 0.0031% res 0.0000% removal   99.74% | removal with corrected DarkRef (M1) k1   99.74% k50   22.73% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T2   92%     sigma=5   m4 tier3 no-blend B derived T1@27 +-0.1 retention=  0.9405 (raw 1.0091) | k=1 raw 0.9047% res 0.0000% removal  100.00% | k=10 removal   99.97% | k=50 raw 0.0031% res 0.0000% removal   99.74% | removal with corrected DarkRef (M1) k1   99.64% k50   -4.60% | blank pixels at 0: k1 1.000 k50 1.000
+[ghost-oracle] T1   2%      sigma=0   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0202 (raw 1.0310) | k=1 raw 3.0851% res 2.0672% removal   32.99% | k=10 removal    4.88% | k=50 raw 0.2729% res 0.2697% removal    1.17% | removal with corrected DarkRef (M1) k1   32.99% k50    1.17% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T1   2%      sigma=0   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  1.0156 (raw 1.0310) | k=1 raw 3.0851% res 1.6309% removal   47.13% | k=10 removal    6.98% | k=50 raw 0.2729% res 0.2683% removal    1.67% | removal with corrected DarkRef (M1) k1   47.13% k50    1.67% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T1   2%      sigma=5   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0202 (raw 1.0310) | k=1 raw 3.0712% res 2.0539% removal   33.12% | k=10 removal    4.86% | k=50 raw 0.3020% res 0.3209% removal   -6.26% | removal with corrected DarkRef (M1) k1   36.62% k50   29.32% | blank pixels at 0: k1 0.000 k50 0.133
+[ghost-oracle] T1   2%      sigma=5   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  1.0156 (raw 1.0310) | k=1 raw 3.0712% res 1.6171% removal   47.35% | k=10 removal    6.34% | k=50 raw 0.3020% res 0.3461% removal  -14.63% | removal with corrected DarkRef (M1) k1   52.08% k50   33.50% | blank pixels at 0: k1 0.000 k50 0.211
+[ghost-oracle] T1   27%     sigma=0   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0168 (raw 1.0310) | k=1 raw 3.0851% res 2.0574% removal   33.31% | k=10 removal    4.89% | k=50 raw 0.2729% res 0.2697% removal    1.17% | removal with corrected DarkRef (M1) k1   33.31% k50    1.17% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T1   27%     sigma=0   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  1.0108 (raw 1.0310) | k=1 raw 3.0851% res 1.6170% removal   47.59% | k=10 removal    6.99% | k=50 raw 0.2729% res 0.2683% removal    1.67% | removal with corrected DarkRef (M1) k1   47.59% k50    1.67% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T1   27%     sigma=5   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0168 (raw 1.0310) | k=1 raw 3.0841% res 2.0565% removal   33.32% | k=10 removal    4.90% | k=50 raw 0.2750% res 0.2718% removal    1.17% | removal with corrected DarkRef (M1) k1   33.58% k50    4.07% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T1   27%     sigma=5   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  1.0108 (raw 1.0310) | k=1 raw 3.0841% res 1.6160% removal   47.60% | k=10 removal    7.00% | k=50 raw 0.2750% res 0.2705% removal    1.66% | removal with corrected DarkRef (M1) k1   47.95% k50    5.57% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T1   92%     sigma=0   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0067 (raw 1.0310) | k=1 raw 3.0851% res 2.0320% removal   34.13% | k=10 removal    4.92% | k=50 raw 0.2729% res 0.2697% removal    1.17% | removal with corrected DarkRef (M1) k1   34.13% k50    1.17% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T1   92%     sigma=0   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  0.9962 (raw 1.0310) | k=1 raw 3.0851% res 1.5807% removal   48.76% | k=10 removal    7.03% | k=50 raw 0.2729% res 0.2683% removal    1.67% | removal with corrected DarkRef (M1) k1   48.76% k50    1.67% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T1   92%     sigma=5   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0067 (raw 1.0310) | k=1 raw 3.0848% res 2.0317% removal   34.14% | k=10 removal    4.92% | k=50 raw 0.2735% res 0.2703% removal    1.17% | removal with corrected DarkRef (M1) k1   34.21% k50    2.03% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T1   92%     sigma=5   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  0.9962 (raw 1.0310) | k=1 raw 3.0848% res 1.5804% removal   48.77% | k=10 removal    7.04% | k=50 raw 0.2735% res 0.2690% removal    1.67% | removal with corrected DarkRef (M1) k1   48.87% k50    2.82% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T2   2%      sigma=0   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0087 (raw 1.0193) | k=1 raw 1.8953% res 0.8777% removal   53.69% | k=10 removal   57.54% | k=50 raw 0.0040% res 0.0037% removal    8.40% | removal with corrected DarkRef (M1) k1   53.69% k50    8.40% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T2   2%      sigma=0   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  1.0041 (raw 1.0193) | k=1 raw 1.8953% res 0.4416% removal   76.70% | k=10 removal   82.19% | k=50 raw 0.0040% res 0.0036% removal   11.99% | removal with corrected DarkRef (M1) k1   76.70% k50   11.99% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T2   2%      sigma=5   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0087 (raw 1.0193) | k=1 raw 1.8811% res 0.8641% removal   54.07% | k=10 removal -261.64% | k=50 raw 0.0334% res 0.1321% removal -295.24% | removal with corrected DarkRef (M1) k1   59.85% k50   30.12% | blank pixels at 0: k1 0.000 k50 0.457
+[ghost-oracle] T2   2%      sigma=5   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  1.0041 (raw 1.0193) | k=1 raw 1.8811% res 0.4514% removal   76.00% | k=10 removal -359.78% | k=50 raw 0.0334% res 0.1706% removal -410.19% | removal with corrected DarkRef (M1) k1   83.83% k50   29.85% | blank pixels at 0: k1 0.125 k50 0.480
+[ghost-oracle] T2   27%     sigma=0   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0009 (raw 1.0147) | k=1 raw 1.4532% res 0.4312% removal   70.33% | k=10 removal   71.16% | k=50 raw 0.0034% res 0.0031% removal    9.72% | removal with corrected DarkRef (M1) k1   70.33% k50    9.72% | blank pixels at 0: k1 0.000 k50 0.000
+[ghost-oracle] T2   27%     sigma=0   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  0.9949 (raw 1.0147) | k=1 raw 1.4532% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0034% res 0.0029% removal   13.89% | removal with corrected DarkRef (M1) k1  100.00% k50   13.89% | blank pixels at 0: k1 1.000 k50 0.000
+[ghost-oracle] T2   27%     sigma=5   m4 tier3 blend    C derived T2@27 +-0.1 retention=  1.0009 (raw 1.0147) | k=1 raw 1.4521% res 0.4302% removal   70.38% | k=10 removal   62.14% | k=50 raw 0.0056% res 0.0115% removal -104.30% | removal with corrected DarkRef (M1) k1   70.93% k50   40.07% | blank pixels at 0: k1 0.000 k50 0.391
+[ghost-oracle] T2   27%     sigma=5   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  0.9949 (raw 1.0147) | k=1 raw 1.4521% res 0.0079% removal   99.46% | k=10 removal   73.41% | k=50 raw 0.0056% res 0.0142% removal -152.90% | removal with corrected DarkRef (M1) k1   99.79% k50   42.36% | blank pixels at 0: k1 0.602 k50 0.418
+[ghost-oracle] T2   92%     sigma=0   m4 tier3 blend    C derived T2@27 +-0.1 retention=  0.9857 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0021% removal   13.19% | removal with corrected DarkRef (M1) k1  100.00% k50   13.19% | blank pixels at 0: k1 1.000 k50 0.000
+[ghost-oracle] T2   92%     sigma=0   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  0.9756 (raw 1.0091) | k=1 raw 0.9051% res 0.0000% removal  100.00% | k=10 removal  100.00% | k=50 raw 0.0024% res 0.0020% removal   18.84% | removal with corrected DarkRef (M1) k1  100.00% k50   18.84% | blank pixels at 0: k1 1.000 k50 0.000
+[ghost-oracle] T2   92%     sigma=5   m4 tier3 blend    C derived T2@27 +-0.1 retention=  0.9857 (raw 1.0091) | k=1 raw 0.9047% res 0.0000% removal  100.00% | k=10 removal   94.16% | k=50 raw 0.0031% res 0.0041% removal  -34.63% | removal with corrected DarkRef (M1) k1   99.74% k50   42.91% | blank pixels at 0: k1 1.000 k50 0.320
+[ghost-oracle] T2   92%     sigma=5   m4 tier3 no-blend C derived T2@27 +-0.1 retention=  0.9756 (raw 1.0091) | k=1 raw 0.9047% res 0.0000% removal  100.00% | k=10 removal   99.66% | k=50 raw 0.0031% res 0.0049% removal  -57.54% | removal with corrected DarkRef (M1) k1   99.64% k50   47.33% | blank pixels at 0: k1 1.000 k50 0.367
+[ghost-oracle-m4] K1 rows: blend better 6, blend worse 4, no difference 2 (of 12) => mixed or no difference
+[ghost-oracle-m4] K2 => mixed or no difference | K3 => blend worse | K4 => blend better
+[ghost-oracle-m4] LABEL C (preregistration section 4; measurement summary of these inputs, not a decision on #238)
+[       OK ] GhostMixCompare.ComparesTheBlendKeptAndRemovedAsPreregistered (238 ms)
+[----------] 5 tests from GhostMixCompare (317 ms total)
+
+[----------] 14 tests from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+[       OK ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize (94 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryBypassCombinations
+[       OK ] OutputUnchanged237b.PipelineEntryBypassCombinations (139 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+[       OK ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer (33 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+[       OK ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute (234 ms)
+[ RUN      ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes
+[       OK ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes (92 ms)
+[ RUN      ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere
+[       OK ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere (25 ms)
+[ RUN      ] OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory
+[       OK ] OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory (0 ms)
+[ RUN      ] OutputUnchanged237b.GhostNonFiniteFramesAreRefusedAndChangeNothing
+[       OK ] OutputUnchanged237b.GhostNonFiniteFramesAreRefusedAndChangeNothing (9 ms)
+[ RUN      ] OutputUnchanged237b.GhostInPlaceVerdictAroundTheCoefficientOverflow
+[a237b] ghost coefficient-overflow boundary: 122760 frames, 102934 in place, 15356 failed on the scratch route
+[       OK ] OutputUnchanged237b.GhostInPlaceVerdictAroundTheCoefficientOverflow (756 ms)
+[ RUN      ] OutputUnchanged237b.GainWrittenOverItsOwnInputEqualsSeparateBuffers
+[       OK ] OutputUnchanged237b.GainWrittenOverItsOwnInputEqualsSeparateBuffers (4 ms)
+[ RUN      ] OutputUnchanged237b.DefectStageOutputForEveryMaskShape
+[       OK ] OutputUnchanged237b.DefectStageOutputForEveryMaskShape (53 ms)
+[ RUN      ] OutputUnchanged237b.GainScalarMapOutputAndRefusedMaps
+[       OK ] OutputUnchanged237b.GainScalarMapOutputAndRefusedMaps (2 ms)
+[ RUN      ] OutputUnchanged237b.GainPolynomialMapOutputAndClassifiedPixels
+[       OK ] OutputUnchanged237b.GainPolynomialMapOutputAndClassifiedPixels (0 ms)
+[ RUN      ] OutputUnchanged237b.GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteFails
+[a237b] ghost differential: 3780 frames, 686 in place, 1824 failed on the scratch route
+[       OK ] OutputUnchanged237b.GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteFails (49 ms)
+[----------] 14 tests from OutputUnchanged237b (1498 ms total)
+
+[----------] Global test environment tear-down
+[==========] 88 tests from 4 test suites ran. (3739 ms total)
+[  PASSED  ] 88 tests.
+
+  YOU HAVE 3 DISABLED TESTS

@@ -1,0 +1,120 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 50 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 27 tests from A241Safety
+[ RUN      ] A241Safety.AMapThatExpiresWhileLoadedStopsTheFrame
+[       OK ] A241Safety.AMapThatExpiresWhileLoadedStopsTheFrame (40 ms)
+[ RUN      ] A241Safety.ABypassedMapThatExpiredStillStopsTheFrame
+[       OK ] A241Safety.ABypassedMapThatExpiredStillStopsTheFrame (10 ms)
+[ RUN      ] A241Safety.ANeverExpiringFileDoesNotStopTheFrameLater
+[       OK ] A241Safety.ANeverExpiringFileDoesNotStopTheFrameLater (11 ms)
+[ RUN      ] A241Safety.ExpiryZeroIsReportedOncePerState
+[       OK ] A241Safety.ExpiryZeroIsReportedOncePerState (24 ms)
+[ RUN      ] A241Safety.AFileWithAnExpiryRaisesNoExpiryWarning
+[       OK ] A241Safety.AFileWithAnExpiryRaisesNoExpiryWarning (15 ms)
+[ RUN      ] A241Safety.ABypassedOffsetOrGainIsFlaggedAndLogged
+[       OK ] A241Safety.ABypassedOffsetOrGainIsFlaggedAndLogged (11 ms)
+[ RUN      ] A241Safety.PipelineOutLeavesTheInputAndGivesTheInPlaceResult
+[       OK ] A241Safety.PipelineOutLeavesTheInputAndGivesTheInPlaceResult (11 ms)
+[ RUN      ] A241Safety.PipelineOutWithEveryStageBypassedGivesTheInputFrameAndLeavesTheInput
+[       OK ] A241Safety.PipelineOutWithEveryStageBypassedGivesTheInputFrameAndLeavesTheInput (11 ms)
+[ RUN      ] A241Safety.PipelineOutRefusesWhatCannotHoldTheResultAndWritesNothing
+[       OK ] A241Safety.PipelineOutRefusesWhatCannotHoldTheResultAndWritesNothing (11 ms)
+[ RUN      ] A241Safety.PipelineOutRefusesAnyOverlapOfInputAndOutputAndLeavesBothAsTheyWere
+[       OK ] A241Safety.PipelineOutRefusesAnyOverlapOfInputAndOutputAndLeavesBothAsTheyWere (11 ms)
+[ RUN      ] A241Safety.ATooSmallOutputJustBeforeTheInputWhoseRequiredRangeReachesTheInputIsBufferTooSmall
+[       OK ] A241Safety.ATooSmallOutputJustBeforeTheInputWhoseRequiredRangeReachesTheInputIsBufferTooSmall (9 ms)
+[ RUN      ] A241Safety.AnOutputBigEnoughForTheResultThatOverlapsTheInputIsInvalidInput
+[       OK ] A241Safety.AnOutputBigEnoughForTheResultThatOverlapsTheInputIsInvalidInput (11 ms)
+[ RUN      ] A241Safety.PipelineOutOverlapCheckIsOverflowSafe
+[       OK ] A241Safety.PipelineOutOverlapCheckIsOverflowSafe (11 ms)
+[ RUN      ] A241Safety.TheThreeSingleStageFunctionsRefuseAnExpiredMapAndWriteNothing
+[       OK ] A241Safety.TheThreeSingleStageFunctionsRefuseAnExpiredMapAndWriteNothing (34 ms)
+[ RUN      ] A241Safety.AnExpiredMapStopsAllFourPipelineEntryPoints
+[       OK ] A241Safety.AnExpiredMapStopsAllFourPipelineEntryPoints (11 ms)
+[ RUN      ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls
+[       OK ] A241Safety.ACacheHitInstallsTheExpiryOfTheMapItInstalls (92 ms)
+[ RUN      ] A241Safety.ACacheHitReportsAndResetsTheNeverExpiresState
+[       OK ] A241Safety.ACacheHitReportsAndResetsTheNeverExpiresState (5 ms)
+[ RUN      ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot
+[       OK ] A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot (31 ms)
+[ RUN      ] A241Safety.ARefusedDefectLoadLeavesTheAlertQueueAndTheStoreAsItFoundThem
+[       OK ] A241Safety.ARefusedDefectLoadLeavesTheAlertQueueAndTheStoreAsItFoundThem (19 ms)
+[ RUN      ] A241Safety.AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce
+[       OK ] A241Safety.AnOverLimitDefectMapThatIsInstalledIsReportedExactlyOnce (7 ms)
+[ RUN      ] A241Safety.ACacheHitThatTurnsAWithinToleranceMapIntoAnOverLimitOneReportsItAndARepeatDoesNot
+[       OK ] A241Safety.ACacheHitThatTurnsAWithinToleranceMapIntoAnOverLimitOneReportsItAndARepeatDoesNot (2 ms)
+[ RUN      ] A241Safety.ARefusedCacheHitOfAnOverLimitMapLeavesTheAlertQueueAndTheStoreAsItFoundThem
+[       OK ] A241Safety.ARefusedCacheHitOfAnOverLimitMapLeavesTheAlertQueueAndTheStoreAsItFoundThem (7 ms)
+[ RUN      ] A241Safety.ACacheHitThatReplacesOneOverLimitMapWithADifferentOneReportsIt
+[       OK ] A241Safety.ACacheHitThatReplacesOneOverLimitMapWithADifferentOneReportsIt (2 ms)
+[ RUN      ] A241Safety.TheGeneratorsMergeKeepsTheDensityStateOfTheInstalledMapCurrent
+[xpe] sigma-clip N_min: 250 pixel(s) below the floor, 250 newly marked in the defect map (XPE-ALG-001 9.8.2.1)
+[xpe] sigma-clip N_min: 1 pixel(s) below the floor, 1 newly marked in the defect map (XPE-ALG-001 9.8.2.1)
+[       OK ] A241Safety.TheGeneratorsMergeKeepsTheDensityStateOfTheInstalledMapCurrent (5 ms)
+[ RUN      ] A241Safety.TheExpiryBoundaryIsJudgedAtTheInjectedTime
+[       OK ] A241Safety.TheExpiryBoundaryIsJudgedAtTheInjectedTime (11 ms)
+[ RUN      ] A241Safety.ASlowRealClockDoesNotChangeTheOutcome
+[       OK ] A241Safety.ASlowRealClockDoesNotChangeTheOutcome (1022 ms)
+[ RUN      ] A241Safety.TheLoadersJudgeExpiryAtTheInjectedTimeToo
+[       OK ] A241Safety.TheLoadersJudgeExpiryAtTheInjectedTimeToo (6 ms)
+[----------] 27 tests from A241Safety (1454 ms total)
+
+[----------] 1 test from A241Checker
+[ RUN      ] A241Checker.JudgesExactlyAtAndAfterTheExpiry
+[       OK ] A241Checker.JudgesExactlyAtAndAfterTheExpiry (0 ms)
+[----------] 1 test from A241Checker (0 ms total)
+
+[----------] 14 tests from CacheSameVerdict
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileExpiredIsRefusedLikeAMissAndNotInstalled (16 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedBeforeItsFileWasTamperedWithIsRefusedLikeAMiss (108 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded
+[       OK ] CacheSameVerdict.AFileWhoseWriteTimeChangedIsReloaded (10 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime
+[       OK ] CacheSameVerdict.AFileWhoseSizeChangedIsReloadedEvenWithTheSameWriteTime (10 ms)
+[ RUN      ] CacheSameVerdict.ARewriteThatKeepsBothSizeAndWriteTimeIsNoticedThroughTheHeader
+[       OK ] CacheSameVerdict.ARewriteThatKeepsBothSizeAndWriteTimeIsNoticedThroughTheHeader (10 ms)
+[ RUN      ] CacheSameVerdict.APayloadEditThatLeavesTheHeaderAloneIsNotNoticedUntilCacheClear
+[       OK ] CacheSameVerdict.APayloadEditThatLeavesTheHeaderAloneIsNotNoticedUntilCacheClear (9 ms)
+[ RUN      ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss
+[       OK ] CacheSameVerdict.AGainHitReportsTheSameQualityMetadataAsAMiss (7 ms)
+[ RUN      ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess
+[       OK ] CacheSameVerdict.AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess (6 ms)
+[ RUN      ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss
+[       OK ] CacheSameVerdict.AMapCachedByOneLoaderIsRefusedByEveryOtherLoaderLikeAMiss (41 ms)
+[ RUN      ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileDeletedAfterCachingIsRefusedLikeAMiss (8 ms)
+[ RUN      ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AHeaderCorruptedAfterCachingIsRefusedLikeAMiss (97 ms)
+[ RUN      ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore
+[       OK ] CacheSameVerdict.AScalarGainHitTakesOverFromAPolynomialInTheStore (6 ms)
+[ RUN      ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss
+[       OK ] CacheSameVerdict.AFileWhoseAttributesAreVisibleButCannotBeOpenedIsRefusedLikeAMiss (26 ms)
+[ RUN      ] CacheSameVerdict.AnExpiredFileThatCannotBeOpenedIsIoFailedNotExpired
+[       OK ] CacheSameVerdict.AnExpiredFileThatCannotBeOpenedIsIoFailedNotExpired (15 ms)
+[----------] 14 tests from CacheSameVerdict (376 ms total)
+
+[----------] 8 tests from A246Diagnostics
+[ RUN      ] A246Diagnostics.WithANullDiagPointerTheOutputIsByteIdenticalToPipelineOut
+[       OK ] A246Diagnostics.WithANullDiagPointerTheOutputIsByteIdenticalToPipelineOut (7 ms)
+[ RUN      ] A246Diagnostics.CountingDoesNotChangeTheOutputAndACleanFrameCountsZero
+[       OK ] A246Diagnostics.CountingDoesNotChangeTheOutputAndACleanFrameCountsZero (8 ms)
+[ RUN      ] A246Diagnostics.ATooSmallStructIsRefusedAndNothingIsWritten
+[       OK ] A246Diagnostics.ATooSmallStructIsRefusedAndNothingIsWritten (6 ms)
+[ RUN      ] A246Diagnostics.AFailedCallLeavesValidMaskZeroAndTheCountsZero
+[       OK ] A246Diagnostics.AFailedCallLeavesValidMaskZeroAndTheCountsZero (7 ms)
+[ RUN      ] A246Diagnostics.AUint16FinalFrameCountsZeroForBothStages
+[       OK ] A246Diagnostics.AUint16FinalFrameCountsZeroForBothStages (6 ms)
+[ RUN      ] A246Diagnostics.ANonFinitePixelFromTheGainStageStopsTheFrameAtTheDefectStageWhetherOrNotTheMapMarksIt
+[       OK ] A246Diagnostics.ANonFinitePixelFromTheGainStageStopsTheFrameAtTheDefectStageWhetherOrNotTheMapMarksIt (6 ms)
+[ RUN      ] A246Diagnostics.WithTheDefectStageBypassedTheCountsSeeNaNAndBothInfinities
+[       OK ] A246Diagnostics.WithTheDefectStageBypassedTheCountsSeeNaNAndBothInfinities (6 ms)
+[ RUN      ] A246Diagnostics.CountingDoesNotChangeAPoisonedOutputEither
+[       OK ] A246Diagnostics.CountingDoesNotChangeAPoisonedOutputEither (7 ms)
+[----------] 8 tests from A246Diagnostics (56 ms total)
+
+[----------] Global test environment tear-down
+[==========] 50 tests from 4 test suites ran. (1887 ms total)
+[  PASSED  ] 50 tests.
