@@ -525,13 +525,13 @@ public sealed class BaselineReviewFixTests : IDisposable
     /// GUI-C-232d (Codex #169 finding 2, #245; leader decision): the M8 diagnostic changed. It used to COUNT the non-finite values the gain stage made and the defect stage hid. With the shipped path
     /// (xpe_preprocess_pipeline_out) that is not needed: gain makes no non-finite value from a finite input and the defect stage REFUSES a non-finite input (INVALID_INPUT, with the module's warning
     /// XPE_WARN_DEFECT_INPUT_NOT_FINITE), so the pipeline call fails. The count is replaced by this: the pipeline failing fails the Baseline, writes no DICOM, and the error code and the stage name stay in
-    /// the status (the text the BASELINE_FAILED alert carries) and in the result JSON. The preprocess stage is scripted here (no module); the text is the one RealXpeBackend's runner produces for a failed
-    /// call, plus the module warning code as the module reports it.
+    /// the status (the text the BASELINE_FAILED alert carries) and in the result JSON. The preprocess stage is scripted here (no module); the text is the one the real runner produces for a failed call
+    /// (the next test gets that text from the real runner and the real module). The module's warning code is not part of the agreed scope: the app does not read module warnings (GUI-C-233b).
     /// </summary>
     [Fact]
     public void WhenThePipelineFails_WithInvalidInput_TheBaselineFails_WritesNoDicom_AndKeepsTheErrorCodeAndTheStageName()
     {
-        const string pipelineFailure = "xpe_preprocess_pipeline_out failed (-1). XPE_WARN_DEFECT_INPUT_NOT_FINITE: the defect stage refused a non-finite input.";
+        const string pipelineFailure = "xpe_preprocess_pipeline_out failed (-1).";   // GUI-C-233b: exactly what the runner writes; the module's own XPE_WARN_* are NOT read by the app, so they are not asserted
         BaselineSingleRun FailingRun()
         {
             var chain = ProcessingChainRunner.Run(Raw, ProcessingChainPlan.BuildBaselineStages(), (request, input) => request.StageId switch
@@ -555,7 +555,6 @@ public sealed class BaselineReviewFixTests : IDisposable
         {
             Assert.Contains("preprocess", text, StringComparison.Ordinal);                               // the stage name
             Assert.Contains("xpe_preprocess_pipeline_out failed (-1)", text, StringComparison.Ordinal);  // the call and its error code
-            Assert.Contains("XPE_WARN_DEFECT_INPUT_NOT_FINITE", text, StringComparison.Ordinal);         // the module's warning code
         }
 
         Assert.Equal("Fail", ReadJson(result).GetProperty("status").GetString());
@@ -563,6 +562,47 @@ public sealed class BaselineReviewFixTests : IDisposable
         // The control: the same chain with the preprocess stage succeeding passes, so the Fail above comes from the failed pipeline call and from nothing else.
         var control = Execute(() => RunOnce(0, 0), new FileDicom(), Path.Combine(_root, "pipeline-ok"));
         Assert.True(control.Passed, control.Status);
+    }
+
+    /// <summary>
+    /// GUI-C-233b (Codex #171 finding 2): the same fact through the REAL <c>GuiPreprocessRunner</c> and the REAL module. A 3072 x 3072 frame against calibration maps made for 1024 x 1024 makes
+    /// xpe_preprocess_pipeline_out answer INVALID_INPUT (-1); the runner's own text for that, fed to the Baseline exactly as RealXpeBackend feeds it, fails the Baseline. Needs the staged DLLs
+    /// (XPE_NATIVE_DIR) and a folder of 1024 x 1024 maps (XPE_C231_SETS\ok1024, made by xpe_calib_fixture_gen); skipped without them.
+    /// </summary>
+    [SkippableFact]
+    public void TheRealRunner_ReceivingInvalidInputFromTheRealModule_FailsTheBaseline_WithTheCallAndTheCode()
+    {
+        var native = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
+        var sets = Environment.GetEnvironmentVariable("XPE_C231_SETS");
+        var calib = string.IsNullOrWhiteSpace(sets) ? null : Path.Combine(sets, "ok1024");
+        Skip.If(string.IsNullOrWhiteSpace(native) || calib is null || !Directory.Exists(calib), "XPE_NATIVE_DIR and XPE_C231_SETS (a folder with ok1024 maps) are needed.");
+
+        // one copy of every module, all from XPE_NATIVE_DIR (the same loader the other native tests use; GUI-C-199)
+        ImageProcTest.IntegrationTests.Fixtures.SharedCommonModule.Load(native!);
+        System.Runtime.InteropServices.NativeLibrary.Load(Path.Combine(native!, "xpe_preprocess.dll"));
+        var frame = new ushort[3072 * 3072];
+        for (var i = 0; i < frame.Length; i++) frame[i] = (ushort)(1000 + i % 500);
+        var run = ImageProcTest.Services.Native.GuiPreprocessRunner.Run(frame, 3072, 3072, calib!, calib!, calib!, "Abdomen", 70f, 0.14f, measureExposureIndex: true);
+        Assert.False(run.Ran);
+        Assert.Contains("xpe_preprocess_pipeline_out failed (-1)", run.Summary, StringComparison.Ordinal);
+
+        var dicom = new FileDicom();
+        var folder = Path.Combine(_root, "real-runner-fails");
+        var result = Execute(() =>
+        {
+            var chain = ProcessingChainRunner.Run(Raw, ProcessingChainPlan.BuildBaselineStages(), (request, input) => request.StageId switch
+            {
+                StageIds.Preprocess => BaselineStageAdapters.FromPreprocess(run.Ran, run.Pixels, run.Summary, run.NonFiniteCount),
+                _ => new StageExecution(false, null, "not run: the preprocess stage failed"),
+            });
+            return new BaselineSingleRun(chain, []);
+        }, dicom, folder);
+
+        Assert.False(result.Passed);
+        Assert.Equal(0, dicom.Writes);
+        Assert.Contains("preprocess", result.Status, StringComparison.Ordinal);
+        Assert.Contains("xpe_preprocess_pipeline_out failed (-1)", result.Status, StringComparison.Ordinal);
+        Assert.Contains("xpe_preprocess_pipeline_out failed (-1)", ReadJson(result).GetProperty("failureReason").GetString()!, StringComparison.Ordinal);
     }
 
     [Fact]
