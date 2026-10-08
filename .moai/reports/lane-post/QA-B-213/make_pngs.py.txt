@@ -1,0 +1,27 @@
+"""QA-B-213 P7: wrap the harness' raw uint16 stage images into 16-bit grey PNGs and write README.txt with SHA-256 of every file.
+
+Usage: python make_pngs.py <scratch dir with the .u16 files> <output dir>
+The .u16 files are written by M2Measure.DISABLED_Chain_P1_P3_P4_P5_P7 (3072 x 3072, little endian, row-major, top row first).
+Stage images 00..06 are DISPLAY-ONLY linear windows (1st..99th percentile of that stage's own float image -> 0..65535).
+07_presentation is the chain's real Presentation LUT output (uint16), not re-windowed.
+"""
+import hashlib, os, sys
+import numpy as np
+from PIL import Image
+
+src, dst = sys.argv[1], sys.argv[2]
+os.makedirs(dst, exist_ok=True)
+W = H = 3072
+rows = []
+for name in sorted(os.listdir(src)):
+    if not name.endswith('.u16'):
+        continue
+    a = np.fromfile(os.path.join(src, name), dtype='<u2')
+    assert a.size == W * H, (name, a.size)
+    out = os.path.join(dst, name[:-4] + '.png')
+    Image.fromarray(a.reshape(H, W), mode='I;16').save(out)
+    sha = hashlib.sha256(open(out, 'rb').read()).hexdigest()
+    rows.append((os.path.basename(out), sha, int(a.min()), int(a.max())))
+for r in rows:
+    print(*r)
+open(os.path.join(dst, 'sha256.txt'), 'w').write(''.join(f'{s}  {n}\n' for n, s, _, _ in rows))
