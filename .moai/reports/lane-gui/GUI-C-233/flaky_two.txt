@@ -1,0 +1,23 @@
+flaky_two: alternate --no-build (X) and --no-restore/build (Y) full runs, no source edits between. XPE_NATIVE_DIR=c233_native. 2026-10-08_11:07:33
+round 1 mode X (--no-build):
+    Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource [FAIL]
+round 1 mode Y (--no-restore):
+    Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource [FAIL]
+    Functional.NativeCommonSingleInstanceTests.AfterEveryNativeTestClassHasLoadedItsModules_TheProcessHoldsOneXpeCommon [FAIL]
+round 2 mode X (--no-build):
+    Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource [FAIL]
+round 2 mode Y (--no-restore):
+    Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource [FAIL]
+round 3 mode X (--no-build):
+    Functional.NativeCommonSingleInstanceTests.AfterEveryNativeTestClassHasLoadedItsModules_TheProcessHoldsOneXpeCommon [FAIL]
+    Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource [FAIL]
+round 3 mode Y (--no-restore):
+    Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource [FAIL]
+
+Reading (6 runs, no source edits between them):
+- NativeCommonSingleInstanceTests failed in 2 of 6 runs: round 1 mode Y (build) and round 3 mode X (no-build). It passed in the other 4 (X1, X2, Y2, Y3).
+- So it is NOT tied to --no-build vs build, and not to "right after the falsification revert" (no revert happened in these runs). It is intermittent at about 1 in 3 here.
+- GainPolyClampAlertTests did not fail in any of these 6 runs (it failed twice earlier, in two of the three runs that followed the revert). Its trigger is NOT established; two failures in 8 observed runs overall.
+- TroubleshootingDocQuoteTests fails in every run (the known docs row), as expected.
+- What the earlier failure message says: xpe_common.dll was loaded from two paths (bin/Debug/net8.0/xpe_common.dll, a 2026-09-26 copy, and the staged c233_native). That is consistent with test classes that resolve the DLL folder differently, with which class loads first deciding whether the guard sees one path or two. Order of test classes within the run is not fixed between runs, which would make it intermittent; this ordering explanation is a hypothesis, NOT tested.
+Not done: the original sequence (mutation, git checkout, --no-build) was not repeated; no code was changed.
