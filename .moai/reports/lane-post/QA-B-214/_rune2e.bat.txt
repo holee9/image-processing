@@ -1,0 +1,5 @@
+@echo off
+call "D:\workspace-github\xpe-post\.moai\reports\lane-post\QA-B-120\_env.bat"
+cd /d D:\workspace-github\xpe-post
+build\ci-post\bin\test_e2e_post_pipeline.exe > %1 2>&1
+echo ===EXIT=%errorlevel%=== >> %1

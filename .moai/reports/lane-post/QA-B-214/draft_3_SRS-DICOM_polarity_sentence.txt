@@ -1,0 +1,34 @@
+DRAFT 3 of 3 (QA-B-214, Refs #251) -- polarity sentences in XPE-SRS-001 (SRS-FUNC-023), XPE-SDD-002 (the polarity paragraph and the
+MONOCHROME1 Edge Case row), SRS-DICOM-001 (FR-DCM-109 note), api-spec / dicom_api.h cross-reference. The DICOM reader and writer
+are UNCHANGED.
+
+CURRENT (XPE-SRS-001 SRS-FUNC-023, the sentence to replace):
+  "이후 파이프라인은 항상 MONOCHROME2 의미의 화소를 받으며 표시 단계는 극성을 바꾸지 않는다."
+CURRENT (XPE-SDD-002 Edge Case row MONOCHROME1):
+  "이 단계 전에 리더가 반전해 MONOCHROME2 의미가 됨 | 이 단계는 반전하지 않음 (원본의 Window·Rescale 은 쓰기에서 보존되지 않는다)"
+
+PROPOSED (SRS-FUNC-023, replacing that sentence):
+  "이후 파이프라인은 항상 MONOCHROME2 의미(값이 클수록 밝다)의 화소를 받고, 표시 이전의 어느 단계도 값의 의미를 바꾸지 않는다.
+   표시 극성은 마지막 표시 단계인 Presentation LUT 가 정한다. 기본(`xpe_apply_presentation_lut`)은 LUT 를 거꾸로 읽어(출력 =
+   lutData[1023 - 인덱스]) 입력의 높은 쪽을 어둡게 보인다. 검출기 선형 신호는 선량에 비례해 배경(공기)이 높은 값이므로 이렇게 하면
+   뼈가 희고 공기가 검다. 배경이 이미 낮은 값인 데이터 — 즉 MONOCHROME1 파일을 읽을 때 정규화한 데이터 — 와 호출자가 따로 반전하는
+   경우에는 호출자가 `xpe_apply_presentation_lut_ex(..., XPE_PRESENTATION_AS_IS)` 를 써서 두 번 뒤집지 않는다.
+   `xpe_dicom_write` 는 이 반전이 이미 반영된 화소를 MONOCHROME2 + Presentation LUT Shape IDENTITY 로 쓴다. 읽기 정규화가
+   보존하는 것은 극성이며, 원본 파일의 Window Center/Width 와 Rescale 은 쓰기에서 보존되지 않는다(변경 없음)."
+
+PROPOSED (XPE-SDD-002 Edge Case row):
+  "MONOCHROME1 | 이 단계 전에 리더가 반전해 MONOCHROME2 의미가 됨(뼈가 높은 값) | Presentation LUT 는 XPE_PRESENTATION_AS_IS 로 호출한다 (기본 극성을
+   쓰면 두 번 뒤집힌다). 원본의 Window·Rescale 은 쓰기에서 보존되지 않는다 | SRS-FUNC-023"
+PROPOSED (XPE-SDD-002 polarity paragraph): add after its first two sentences: "표시 극성은 Presentation LUT 단계가 정한다(SRS-FUNC-023)."
+
+OPEN POINTS for the lead (a decision, not drafted):
+  1. Nothing in the pipeline knows which end of the data is the background. A caller must pick INVERTED (raw detector data) or AS_IS
+     (MONOCHROME1-normalised data). If the orchestrator is to decide this by itself, the source polarity has to travel with the image
+     (a field of XpeImageMetadata, or a result of xpe_dicom_read_image); today it does not.
+  2. xpe_voi_auto_window assumes the background is the HIGH end (REQ-DISP-0NN-B limit 1), so MONOCHROME1-normalised data needs the
+     same side information.
+  3. Other lanes call the base function and now get the inverted image without changing a line: gui/ImageProcTest/Services
+     (BaselineDisplayStage.cs, Native/GuiBaselineDisplayNative.cs, RealXpeBackend.cs) and clients/ImageProcTest
+     (Services/NativePresentationExportService.cs); clients/ImageProcTest.IntegrationTests/Functional/BaselineDisplayNativeTests.cs
+     may assert pixel values. Their own "Invert" switch (clients ViewportRenderParams.Invert, default false) must not be stacked on it.
+     Read only; not run.
