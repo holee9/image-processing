@@ -304,6 +304,46 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// GUI-C-232b (SRS-CALIB-SAFE-004, leader decision): native DLLs that predate <c>xpe_preprocess_pipeline_out</c> do NOT run the older stage-by-stage path. Run Preprocessing fails, says the DLL is too old and to update it,
+    /// and no image is processed. Needs <c>XPE_C232B_OLD_NATIVE_DIR</c> (such a DLL folder), <c>XPE_C231_SETS</c> (for the <c>ok1024</c> maps) and <c>XPE_C231_FIXTURE_RAW</c>.
+    /// </summary>
+    [EnvGatedFact]
+    public void W10_AnOldDllWithoutPipelineOut_FailsWithAnUpdateInstruction_AndProcessesNothing()
+    {
+        var oldNative = Env("XPE_C232B_OLD_NATIVE_DIR");
+        var sets = Env("XPE_C231_SETS");
+        var fixtures = Env("XPE_C231_FIXTURE_RAW");
+        Assert.False(oldNative is null || sets is null || fixtures is null, "XPE_C232B_OLD_NATIVE_DIR / XPE_C231_SETS / XPE_C231_FIXTURE_RAW are not all set.");
+        var dll = Path.Combine(oldNative!, "xpe_preprocess.dll");
+        output.WriteLine($"   DLL: {dll} sha256 {Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(dll))).ToLowerInvariant()} written {File.GetLastWriteTime(dll):yyyy-MM-dd HH:mm:ss}");
+        using var app = GuiApp.Launch(output, oldNative!, extraArguments:
+            ["--automation-backend", "Native", "--automation-calib", Path.Combine(sets!, "ok1024"), "--automation-width", "1024", "--automation-height", "1024"]);
+        app.Menu("FileMenu");
+        app.InvokeMenuItemThenDialog("OpenRawMenuItem", Path.Combine(fixtures!, "synthetic_1024x1024.raw"), confirmId: "1");
+        app.WaitFor(() => app.AnyTextContains("RAW 1024x1024"), "the image summary appears", 90);
+        app.Menu("PipelineMenu");
+        app.InvokeMenuItem("RunPreprocessingMenuItem");
+        app.WaitFor(() => app.Read("ChainStatusText") != "chain: not run", "the chain status changes", 120);
+        Thread.Sleep(2500);
+        var chain = app.Read("ChainStatusText");
+        output.WriteLine("   chain: " + chain);
+        output.WriteLine("   status bar: " + app.Read("StatusBarText"));
+        app.Menu("ViewMenu");
+        if (!app.IsToggled("ShowLogsPanelMenuItem")) app.InvokeMenuItem("ShowLogsPanelMenuItem");
+        app.ClickButtonByName("Log");
+        Thread.Sleep(1200);
+        var log = app.ListItems("LogListBox").TakeLast(12).ToList();
+        foreach (var line in log) output.WriteLine("   LOG " + line);
+        Assert.DoesNotContain("preprocess=Applied", chain);
+        Assert.Contains("preprocess=RequestedNotApplied", chain);
+        Assert.Contains("has no xpe_preprocess_pipeline_out", chain);
+        Assert.Contains("Update the native DLLs", chain);
+        app.Menu("FileMenu");
+        Assert.False(app.IsEnabled("SaveCorrectedFloatMenuItem"), "a corrected image can be saved although nothing was processed");
+        output.WriteLine("   Save Corrected Image enabled: False");
+    }
+
+    /// <summary>
     /// Every menu path the quick-start page prints in bold (<c>File &gt; Open Raw...</c>) must exist in the running app: each name is looked up as a menu item, opening the parents by UI Automation.
     /// A renamed or removed item turns this red, which is how the page and the app are kept to the same words. Runs on the packaged help next to the exe; needs no data.
     /// </summary>
