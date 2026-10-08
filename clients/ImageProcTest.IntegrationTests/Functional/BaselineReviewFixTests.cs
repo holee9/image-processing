@@ -502,6 +502,7 @@ public sealed class BaselineReviewFixTests : IDisposable
     [Fact]
     public void ANonFiniteGainOutput_ThatTheDefectStageHid_FailsTheBaseline_WithTheCountInTheStatusAndTheJson()
     {
+        // GUI-C-232d: this pins the count ARITHMETIC (still used when a stage supplies a count). The real runner no longer has a gain intermediate to count: the pipeline call fails instead (the test below).
         float[] gain = [1f, float.NaN, 3f, 4f, 5f, 6f];
         float[] defectFilled = [1f, 2f, 3f, 4f, 5f, 6f];
         var counted = BaselineStageAdapters.CountPreprocessNonFinite(gain, defectFilled);
@@ -517,6 +518,50 @@ public sealed class BaselineReviewFixTests : IDisposable
 
         // The control: the same chain with the pre-M8 count (the filled image alone) passes, so the Fail above comes from the gain count and from nothing else.
         var control = Execute(() => RunOnce(0, BaselineStageAdapters.CountNonFinite(defectFilled)), new FileDicom(), Path.Combine(_root, "gain-control"));
+        Assert.True(control.Passed, control.Status);
+    }
+
+    /// <summary>
+    /// GUI-C-232d (Codex #169 finding 2, #245; leader decision): the M8 diagnostic changed. It used to COUNT the non-finite values the gain stage made and the defect stage hid. With the shipped path
+    /// (xpe_preprocess_pipeline_out) that is not needed: gain makes no non-finite value from a finite input and the defect stage REFUSES a non-finite input (INVALID_INPUT, with the module's warning
+    /// XPE_WARN_DEFECT_INPUT_NOT_FINITE), so the pipeline call fails. The count is replaced by this: the pipeline failing fails the Baseline, writes no DICOM, and the error code and the stage name stay in
+    /// the status (the text the BASELINE_FAILED alert carries) and in the result JSON. The preprocess stage is scripted here (no module); the text is the one RealXpeBackend's runner produces for a failed
+    /// call, plus the module warning code as the module reports it.
+    /// </summary>
+    [Fact]
+    public void WhenThePipelineFails_WithInvalidInput_TheBaselineFails_WritesNoDicom_AndKeepsTheErrorCodeAndTheStageName()
+    {
+        const string pipelineFailure = "xpe_preprocess_pipeline_out failed (-1). XPE_WARN_DEFECT_INPUT_NOT_FINITE: the defect stage refused a non-finite input.";
+        BaselineSingleRun FailingRun()
+        {
+            var chain = ProcessingChainRunner.Run(Raw, ProcessingChainPlan.BuildBaselineStages(), (request, input) => request.StageId switch
+            {
+                StageIds.Preprocess => BaselineStageAdapters.FromPreprocess(false, null, pipelineFailure, 0),
+                StageIds.EnhanceBasic => BaselineStageAdapters.FromEnhance(EnhanceBasicStage.Run(input, 3, 2, new PoisoningBackend(0))),
+                _ => new StageExecution(false, null, "not available"),
+            });
+            var applied = chain.Stages.All(s => s.Status is StageStatus.Applied or StageStatus.AppliedNoChange);
+            return new BaselineSingleRun(chain, applied ? chain.DisplayInput : []);
+        }
+
+        var dicom = new FileDicom();
+        var folder = Path.Combine(_root, "pipeline-fails");
+        var result = Execute(FailingRun, dicom, folder);
+
+        Assert.False(result.Passed);
+        Assert.Equal(0, dicom.Writes);
+        Assert.Empty(Directory.Exists(folder) ? Directory.GetFiles(folder, "*.dcm") : []);
+        foreach (var text in new[] { result.Status, ReadJson(result).GetProperty("failureReason").GetString()! })
+        {
+            Assert.Contains("preprocess", text, StringComparison.Ordinal);                               // the stage name
+            Assert.Contains("xpe_preprocess_pipeline_out failed (-1)", text, StringComparison.Ordinal);  // the call and its error code
+            Assert.Contains("XPE_WARN_DEFECT_INPUT_NOT_FINITE", text, StringComparison.Ordinal);         // the module's warning code
+        }
+
+        Assert.Equal("Fail", ReadJson(result).GetProperty("status").GetString());
+
+        // The control: the same chain with the preprocess stage succeeding passes, so the Fail above comes from the failed pipeline call and from nothing else.
+        var control = Execute(() => RunOnce(0, 0), new FileDicom(), Path.Combine(_root, "pipeline-ok"));
         Assert.True(control.Passed, control.Status);
     }
 
