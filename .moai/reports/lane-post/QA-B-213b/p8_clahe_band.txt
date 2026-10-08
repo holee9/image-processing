@@ -1,0 +1,33 @@
+== 1. product CLAHE (clip 3.0, 8x8) vs the independent reference, on the real CLAHE input
+   reference as written in QA-B-207 (bins by float32 truncation):
+   max|diff|/range = 9.720e-04   p99.99 = 8.549e-04   pixels with diff > 1e-3 of range: 0 of 9437184
+   reference with float64 bins (exact in practice):
+   max|diff|/range = 1.565e-07   p99.99 = 1.388e-07   pixels with diff > 1e-4 of range: 0 of 9437184
+
+== 2. where the tile grid is (3072 / 8 = 384 px): boundaries at x = [384, 768, 1152, 1536, 1920, 2304, 2688] ; tile centres at x = [192, 576, 960, 1344, 1728, 2112, 2496, 2880]
+
+== 3. air strip (rows 300..2800, columns 0..1250): mean of the CLAHE change per tile column (log units)
+   tile column 0 (x    0.. 384): mean CLAHE change =  -68.452   (CLAHE input there =  3372.100; reference change =  -68.452)
+   tile column 1 (x  384.. 768): mean CLAHE change =  -37.085   (CLAHE input there =  3379.700; reference change =  -37.085)
+   tile column 2 (x  768..1152): mean CLAHE change =  -18.065   (CLAHE input there =  3393.151; reference change =  -18.065)
+   tile column 3 (x 1152..1250): mean CLAHE change =   36.536   (CLAHE input there =  3402.479; reference change =   36.536)
+   column profile of the CLAHE change, smoothed over 31 px, sampled every 64 px (x: change):
+   32:-85.5  96:-78.5  160:-74.8  224:-68.9  288:-62.8  352:-56.1  416:-49.7  480:-42.9  544:-35.2  608:-31.3  672:-31.2  736:-32.1  800:-32.7  864:-32.2  928:-32.0  992:-22.1  1056:-3.4  1120:14.6  1184:32.3  1248:25.7
+   local extrema of that profile at x = [600, 622, 654, 757, 759, 820, 870, 886, 928, 935]
+   -> distance of each extremum to the nearest tile centre: [24, 46, 78, 181, 183, 140, 90, 74, 32, 25] px
+   step of the CLAHE change across each tile boundary (mean of 20 px right minus 20 px left): ['2.016', '-0.202', '5.820']
+   (blended tiles are continuous, so a step near 0 at the boundary is expected; the band is the slow swing between centres)
+
+== 4. band amplitude (peak-to-peak of the CLAHE change after removing its straight-line trend, air strip columns 0..1250)
+   f_clahe_out.f32              peak-to-peak =  49.788 log units   (VOI window of the chain is 1366.7 wide -> 3.64% of it)
+   f_clahe_clip1_8x8.f32        peak-to-peak =  30.290 log units   (VOI window of the chain is 1366.7 wide -> 2.22% of it)
+   f_clahe_clip3_16x16.f32      peak-to-peak =  91.980 log units   (VOI window of the chain is 1366.7 wide -> 6.73% of it)
+   f_clahe_clip3_4x4.f32        peak-to-peak =  12.489 log units   (VOI window of the chain is 1366.7 wide -> 0.91% of it)
+
+== 5. halo beside the limb (Otsu threshold 2910.69; rows 1000..2900, forearm/hand part where the limb is a vertical column)
+   median limb edges: left x=1357 right x=1558 (width 201 px)
+   left (air side)   mean CLAHE change vs distance from the limb edge: 10-50px: 126.18   50-100px: 56.80   100-200px: 37.30   200-400px: -1.31   400-800px: -27.73
+   right (air side)  mean CLAHE change vs distance from the limb edge: 10-50px: 50.67   50-100px: 33.86   100-200px: 19.53   200-400px: -0.10   400-800px: -15.76
+   (positive = CLAHE made it brighter in the log domain; the same measure on the reference:)
+   left              10-50px: 126.18   50-100px: 56.80   100-200px: 37.30   200-400px: -1.31   400-800px: -27.73
+   right             10-50px: 50.67   50-100px: 33.86   100-200px: 19.53   200-400px: -0.10   400-800px: -15.76
