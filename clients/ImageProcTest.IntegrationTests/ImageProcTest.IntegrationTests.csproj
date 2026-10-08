@@ -120,6 +120,10 @@
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiDicomNative.cs" Link="Chain\Linked\GuiDicomNative.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeDisplayInterop.cs" Link="Chain\Linked\XpeDisplayInterop.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpePreprocessInterop.cs" Link="Chain\Linked\XpePreprocessInterop.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiPreprocessRunner.cs" Link="Chain\Linked\GuiPreprocessRunner.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Models\PreprocessRunResult.cs" Link="Chain\Linked\PreprocessRunResult.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Models\XpeBodyPartEnum.cs" Link="Chain\Linked\XpeBodyPartEnum.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeExposureIndexInterop.cs" Link="Chain\Linked\XpeExposureIndexInterop.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeEnhanceBasicInterop.cs" Link="Chain\Linked\XpeEnhanceBasicInterop.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiEnhanceNative.cs" Link="Chain\Linked\GuiEnhanceNative.cs" />
     <!--
@@ -181,10 +185,19 @@
       <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\default\bin\Debug\fmt.dll" />
       <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\default\bin\fmt.dll" />
     </ItemGroup>
+    <!--
+      GUI-C-233b (Codex #171 finding 3): with XPE_NATIVE_DIR set, that folder is the ONE place the modules come from (the locator treats it as exclusive). Copies left in the output folder by an earlier
+      build without it are the app directory the locator offers BEFORE the exclusive cut, so some tests loaded xpe_common/xpe_preprocess from here and others from XPE_NATIVE_DIR: two instances in one
+      process (NativeCommonSingleInstanceTests, intermittent by test order). So: when XPE_NATIVE_DIR is set, nothing is copied and the stale copies are removed; without it, the staging below is unchanged.
+    -->
+    <ItemGroup Condition="'$(XPE_NATIVE_DIR)' != ''">
+      <_XpeStaleStaged Include="$(OutputPath)xpe_common.dll;$(OutputPath)xpe_preprocess.dll;$(OutputPath)spdlog.dll;$(OutputPath)fmt.dll" />
+    </ItemGroup>
+    <Delete Files="@(_XpeStaleStaged)" Condition="'$(XPE_NATIVE_DIR)' != ''" ContinueOnError="true" />
     <Copy
       SourceFiles="@(_XpeDllCandidates)"
       DestinationFolder="$(OutputPath)"
-      Condition="Exists('%(Identity)')"
+      Condition="Exists('%(Identity)') And '$(XPE_NATIVE_DIR)' == ''"
       SkipUnchangedFiles="true"
       ContinueOnError="true" />
   </Target>

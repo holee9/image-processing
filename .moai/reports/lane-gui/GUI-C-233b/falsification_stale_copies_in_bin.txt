@@ -1,0 +1,5 @@
+stale copies, run 1:
+  실패 ImageProcTest.IntegrationTests.Functional.NativeCommonSingleInstanceTests.AfterEveryNativeTestClassHasLoadedItsModules_TheProcessHoldsOneXpeCommon [21 ms]
+  오류 메시지:
+   a module is loaded from two paths: xpe_common.dll at C:\Users\drake\AppData\Local\Temp\c233_native\xpe_common.dll and D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\xpe_common.dll. Usual cause (GUI-C-233b): copies of xpe_common/xpe_preprocess/spdlog/fmt left i
+stale copies, run 2:
