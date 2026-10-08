@@ -329,6 +329,7 @@ internal static class LifetimeScenarios
                         await Timed(() => TheCandidateLaneIsASecondAiCall_AndTheStatusIsReadAfterIt(rawPath, width, height));
                         await Timed(() => EqualLanesMakeOneAiCallPerApply(rawPath, width, height));
                         await Timed(() => TheHudShowsTheWindowThatWasApplied_NotTheSettings(rawPath, width, height));
+                        await Timed(() => TheAutomationReportDescribesTheCurrentFrame_NotThePreviousOne(rawPath, width, height));
                         await Timed(() => TheSaveCandidateOfAnOlderApplyFinishingLateIsNeverCommitted(rawPath, width, height));
                         await Timed(() => AFailedOpenKeepsTheSaveNameAndTheCandidateOfTheImageThatIsStillOpen(rawPath, width, height));
 #if XPE_TEST_FAULTS
@@ -1144,6 +1145,63 @@ internal static class LifetimeScenarios
             Check(vm.RenderedVoiCenter == centerBefore && vm.RenderedVoiWidth == widthBefore && vm.RenderedVoiMode == modeBefore, "a failed automatic render changed what the HUD says was rendered");
             Check(vm.StatusText.Contains("xpe_voi_auto_window failed (-1)", StringComparison.Ordinal), "the status line does not name the failed automatic window and its code");
             Check(vm.Alerts.Any(a => a.Code == "DISPLAY_PIPELINE_FAILED" && a.Message.Contains("xpe_voi_auto_window", StringComparison.Ordinal)), "no DISPLAY_PIPELINE_FAILED alert names the automatic window");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- GUI-C-233c (Codex #173 finding 1): the automation report describes THIS frame's render ------------------------------------------
+
+    private static System.Text.Json.JsonElement ReportDisplayPipeline(MainWindowViewModel vm)
+    {
+        typeof(MainWindowViewModel).GetMethod("ExportAutomationReport", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(vm, null);
+        var path = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
+        return System.Text.Json.JsonDocument.Parse(File.ReadAllText(path)).RootElement.GetProperty("displayPipeline");
+    }
+
+    private static async Task TheAutomationReportDescribesTheCurrentFrame_NotThePreviousOne(string rawPath, int width, int height)
+    {
+        _scenario = "11 report describes the current frame";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new VoiReportingBackend();
+            var vm = NewViewModel(width, height, _ => backend, directory, out _);
+            await LoadAndDrawLanes(vm, rawPath);
+
+            // (b) a successful automatic render: the report carries the window that was APPLIED (not the settings' numbers) and says it was automatic
+            var ok = ReportDisplayPipeline(vm);
+            Check(ok.GetProperty("windowSource").GetString() == "automatic", $"report windowSource for a successful automatic render is '{ok.GetProperty("windowSource").GetString()}'");
+            Check(Math.Abs(ok.GetProperty("center").GetSingle() - VoiReportingBackend.AutoCenter) < 0.01f && Math.Abs(ok.GetProperty("width").GetSingle() - VoiReportingBackend.AutoWidth) < 0.01f && ok.GetProperty("mode").GetString() == "LinearExact",
+                $"report window is not the applied one: {ok}");
+            var summaryA = vm.DisplayPipelineSummary;
+            Check(!string.IsNullOrEmpty(summaryA) && ok.GetProperty("summary").GetString() == summaryA, "report summary is not the render's summary");
+
+            // (a) frame B arrives and ITS automatic window fails: the report is B's, with none of A's values
+            var secondFrame = Path.Combine(directory, "second_frame.raw");
+            File.Copy(rawPath, secondFrame);
+            backend.FailAutomaticWindow = true;
+            Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", secondFrame);
+            try
+            {
+                vm.LoadImageCommand.Execute(null);
+                await Until(() => vm.StatusText.StartsWith("Display pipeline failed", StringComparison.Ordinal), "frame B's failed automatic render to be reported");
+                await FlushUi();
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", null);
+            }
+
+            var failed = ReportDisplayPipeline(vm);
+            Check(failed.GetProperty("windowSource").GetString() == "failed", $"report windowSource after B's failure is '{failed.GetProperty("windowSource").GetString()}'");
+            Check(failed.GetProperty("center").ValueKind == System.Text.Json.JsonValueKind.Null && failed.GetProperty("width").ValueKind == System.Text.Json.JsonValueKind.Null && failed.GetProperty("mode").ValueKind == System.Text.Json.JsonValueKind.Null,
+                $"report still carries a window after B's failure: {failed}");
+            var summaryB = failed.GetProperty("summary").GetString() ?? string.Empty;
+            Check(summaryB != summaryA && !summaryB.Contains("Display: Modality", StringComparison.Ordinal), $"report summary after B's failure is still A's success: '{summaryB}'");
+            Check(string.IsNullOrEmpty(vm.PipelineTimings), $"the previous frame's timings survived into frame B: '{vm.PipelineTimings}'");
         }
         finally
         {
