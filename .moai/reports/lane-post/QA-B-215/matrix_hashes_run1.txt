@@ -1,0 +1,45 @@
+-- ci_all4 threads=auto
+  noise_bilateral    fnv1a64=0f5c29d7eec9442c
+  clahe              fnv1a64=2c06a31046e7742a
+  usm                fnv1a64=4fa88ed81a800a64
+===EXIT=0===
+-- ci_common3 threads=auto
+  noise_bilateral    fnv1a64=b6f5783bb3e64e1c
+  clahe              fnv1a64=4f31e563d9bfa352
+  usm                fnv1a64=29347ead592cfc6a
+===EXIT=0===
+-- post_t1 threads=1
+  noise_bilateral    fnv1a64=b6f5783bb3e64e1c
+  clahe              fnv1a64=4f31e563d9bfa352
+  usm                fnv1a64=29347ead592cfc6a
+===EXIT=0===
+-- post_t4 threads=4
+  noise_bilateral    fnv1a64=b6f5783bb3e64e1c
+  clahe              fnv1a64=4f31e563d9bfa352
+  usm                fnv1a64=29347ead592cfc6a
+===EXIT=0===
+-- post_t20 threads=20
+  noise_bilateral    fnv1a64=b6f5783bb3e64e1c
+  clahe              fnv1a64=4f31e563d9bfa352
+  usm                fnv1a64=29347ead592cfc6a
+===EXIT=0===
+-- ci_enh_t1 threads=1
+  noise_bilateral    fnv1a64=0f5c29d7eec9442c
+  clahe              fnv1a64=2c06a31046e7742a
+  usm                fnv1a64=4fa88ed81a800a64
+===EXIT=0===
+-- ci_enh_t4 threads=4
+  noise_bilateral    fnv1a64=0f5c29d7eec9442c
+  clahe              fnv1a64=2c06a31046e7742a
+  usm                fnv1a64=4fa88ed81a800a64
+===EXIT=0===
+-- post threads=auto
+  noise_bilateral    fnv1a64=b6f5783bb3e64e1c
+  clahe              fnv1a64=4f31e563d9bfa352
+  usm                fnv1a64=29347ead592cfc6a
+===EXIT=0===
+-- ci_enh threads=auto
+  noise_bilateral    fnv1a64=0f5c29d7eec9442c
+  clahe              fnv1a64=2c06a31046e7742a
+  usm                fnv1a64=4fa88ed81a800a64
+===EXIT=0===

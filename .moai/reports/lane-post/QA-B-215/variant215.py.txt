@@ -1,0 +1,45 @@
+"""QA-B-215: rebuild xpe_enhance_basic.dll from the SAME sources with the SAME command lines as build/ci-post (taken from
+`ninja -t commands`), changing exactly one thing. usage: variant215.py <name> <fp|vcvars_ver|none> [value]
+ e.g.  variant215.py asis none          -> unmodified command lines (control: must equal build/ci-post DLL output)
+       variant215.py fpprecise fp precise
+       variant215.py msvc1429 vcvars_ver 14.29"""
+import os, re, subprocess, sys
+
+ROOT = r'D:\workspace-github\xpe-post'
+CMDS = ROOT + r'\build\s215\enh_commands.txt'
+name, kind = sys.argv[1], sys.argv[2]
+val = sys.argv[3] if len(sys.argv) > 3 else ''
+vd = ROOT + r'\build\s215\v_' + name
+os.makedirs(vd, exist_ok=True)
+
+lines = [l for l in open(CMDS, encoding='utf-8', errors='replace').read().splitlines() if 'xpe_enhance_basic_EXPORTS' in l and 'cl.exe' in l]
+assert len(lines) == 6, len(lines)
+bat = ['@echo off', 'setlocal']
+env = open(ROOT + r'\.moai\reports\lane-post\QA-B-120\_env.bat').read().splitlines()
+for l in env:
+    if kind == 'vcvars_ver' and 'vcvars64.bat' in l:
+        l = l.replace('vcvars64.bat"', 'vcvars64.bat" -vcvars_ver=%s' % val)
+    bat.append(l)
+bat.append('cd /d %s\\build\\ci-post' % ROOT)
+objs = []
+for l in lines:
+    src = re.search(r'-c (\S+)$', l).group(1)
+    base = os.path.basename(src)[:-4]
+    obj = '%s\\%s.obj' % (vd, base)
+    objs.append(obj)
+    l = re.sub(r'/Fo\S+', lambda m: '/Fo' + obj, l)
+    l = re.sub(r'/Fd\S+', lambda m: '/Fd%s\\vc.pdb' % vd, l)
+    l = l.replace('/showIncludes', '')
+    l = re.sub(r'^\S*cl\.exe', lambda m: 'cl.exe', l)  # PATH from vcvars decides the toolset (the ninja line pins 14.44)
+    if kind == 'fp':
+        assert '/fp:fast' in l
+        l = l.replace('/fp:fast', '/fp:' + val)
+    bat.append(l + ' || exit /b 1')
+bat.append('link.exe /nologo %s /out:%s\\xpe_enhance_basic.dll /implib:%s\\xpe_enhance_basic.lib /dll /machine:x64 /debug /INCREMENTAL:NO '
+           'lib\\xpe_common.lib lib\\spdlog.lib lib\\fmt.lib kernel32.lib user32.lib advapi32.lib || exit /b 1' % (' '.join(objs), vd, vd))
+bat.append('cl.exe 2>&1 | findstr /i "Version" > %s\\compiler.txt' % vd)
+open(vd + '\\_build.bat', 'w').write('\r\n'.join(bat) + '\r\n')
+r = subprocess.run('cmd.exe /c "%s\\_build.bat" > %s\\build.log 2>&1' % (vd, vd), shell=True)
+print('build exit', r.returncode)
+print(open(vd + '\\build.log', encoding='utf-8', errors='replace').read()[-600:].encode('ascii', 'replace').decode())
+print(open(vd + '\\compiler.txt', encoding='utf-8', errors='replace').read() if os.path.exists(vd + '\\compiler.txt') else '')

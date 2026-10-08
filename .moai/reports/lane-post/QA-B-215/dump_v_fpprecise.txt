@@ -1,0 +1,22 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = M2Measure.DISABLED_StageDump_215
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from M2Measure
+[ RUN      ] M2Measure.DISABLED_StageDump_215
+== QA-B-215 stage dump tag=v_fpprecise ==
+  enhance_basic=1.0.0 hardware threads=20 max_threads(request)=0
+  input              fnv1a64=748e960ae1cb7874
+  log                fnv1a64=e264890a390890d7
+  noise_bilateral    fnv1a64=a787b77a87d5530e
+  clahe              fnv1a64=9a8b70494d2a6897
+  usm                fnv1a64=d69332c99ffd3409
+  VOI auto window: center=2580.34595 width=1198.49475
+  final_uint16       fnv1a64=e4aea9fd0a68b32b
+[       OK ] M2Measure.DISABLED_StageDump_215 (657 ms)
+[----------] 1 test from M2Measure (657 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (658 ms total)
+[  PASSED  ] 1 test.
+===EXIT=0===
