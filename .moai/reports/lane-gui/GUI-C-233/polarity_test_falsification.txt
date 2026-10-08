@@ -1,0 +1,3 @@
+  실패 ImageProcTest.IntegrationTests.Functional.BaselineDisplayNativeTests.TheShippedDisplay_IsTheComplementOfTheAscendingMapping_BoneBrightAirDark [16 ms]
+   the shipped display equals the older ascending mapping everywhere: the polarity was not inverted
+ worst |shipped + ascending - 65535| = 63101; any pixel different from the ascending mapping: False
