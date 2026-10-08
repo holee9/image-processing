@@ -179,9 +179,10 @@ public sealed class BaselineReviewFixTests : IDisposable
         Assert.Contains("return BaselineStageAdapters.FromEnhance(result);", real, StringComparison.Ordinal);
 
         var preprocess = Read("gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs");
-        var counted = preprocess.IndexOf("BaselineStageAdapters.CountPreprocessNonFinite(gainFloats, defectFloats)", StringComparison.Ordinal);
-        var scaled = preprocess.IndexOf("var pixels = ScaleToUInt16(defectFloats);", StringComparison.Ordinal);
-        Assert.True(counted >= 0 && scaled > counted, "the non-finite count must be taken on the float images BEFORE the result is scaled to 16 bits");
+        // GUI-C-232b: the shipped path is xpe_preprocess_pipeline_out, whose gain output is internal; the count is taken on the pipeline's float output, still BEFORE it is scaled to 16 bits.
+        var counted = preprocess.IndexOf("BaselineStageAdapters.CountPreprocessNonFinite(ReadOnlySpan<float>.Empty, floats)", StringComparison.Ordinal);
+        var scaled = preprocess.IndexOf("ScaleToUInt16(floats),", StringComparison.Ordinal);
+        Assert.True(counted >= 0 && scaled > counted, "the non-finite count must be taken on the float image BEFORE the result is scaled to 16 bits");
     }
 
     // ---- finding 2: the evidence file is required --------------------------------------------------------------------------------------------
@@ -520,13 +521,13 @@ public sealed class BaselineReviewFixTests : IDisposable
     }
 
     [Fact]
-    public void TheRealPreprocessRunner_CountsTheGainOutputBeforeTheDefectStage_AndBothFloatArraysReachTheCount()
+    public void TheRealPreprocessRunner_CountsNonFiniteValuesOnThePipelineOutput_BeforeScaling()
     {
+        // GUI-C-232b (leader decision): this used to pin "the gain output is read before the defect stage is called, and both float arrays reach the count". With xpe_preprocess_pipeline_out the gain
+        // stage's intermediate image is internal to the module, so a non-finite value the gain stage makes and the defect stage repairs is no longer visible to the app; the count is of the final output only.
         var code = Read("gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs");
-        var gainRead = code.IndexOf("var gainFloats = ReadFloats(gainOut.Data, count);", StringComparison.Ordinal);
-        var defectCall = code.IndexOf("xpe_defect_correct(ref gainOut", StringComparison.Ordinal);
-        Assert.True(gainRead > 0 && defectCall > gainRead, "the gain output must be read BEFORE the defect stage is called");
-        Assert.Contains("BaselineStageAdapters.CountPreprocessNonFinite(gainFloats, defectFloats)", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("xpe_defect_correct(", code, StringComparison.Ordinal);
+        Assert.Contains("BaselineStageAdapters.CountPreprocessNonFinite(ReadOnlySpan<float>.Empty, floats)", code, StringComparison.Ordinal);
     }
 
     // ---- Codex #78 finding 1 (M9): one run at a time in a folder ---------------------------------------------------------------------------

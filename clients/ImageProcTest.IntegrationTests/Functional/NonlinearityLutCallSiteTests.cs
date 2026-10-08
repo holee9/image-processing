@@ -63,14 +63,18 @@ public sealed class NonlinearityLutCallSiteTests(Xunit.Abstractions.ITestOutputH
     /// different world with the same absence.
     /// </summary>
     [Fact]
-    public void TheGui_DoesInvokeTheNonlinearityStage_WithANullConfig()
+    public void TheGui_CallsPipelineOut_AndHandsTheNonlinearitySettingOverInTheConfig()
     {
+        // GUI-C-232b (leader decision): the shipped path is xpe_preprocess_pipeline_out alone (SRS-CALIB-SAFE-004); the app no longer calls xpe_nonlinearity_correct by hand. This used to pin that
+        // hand call; what the app owes the nonlinearity stage now is that it reaches it through the pipeline function and states its setting in the config it passes (bypassNonlinearity).
         var text = File.ReadAllText(RunnerSource());
-        var match = Regex.Match(text, @"xpe_nonlinearity_correct\(\s*ref\s+\w+\s*,\s*(\w+)\s*\)");
 
-        Assert.True(match.Success, "GuiPreprocessRunner no longer calls xpe_nonlinearity_correct.");
-        output.WriteLine($"call site passes config = {match.Groups[1].Value}");
-        Assert.Equal("null", match.Groups[1].Value);
+        Assert.DoesNotContain("xpe_nonlinearity_correct(", text);
+        Assert.Matches(@"xpe_preprocess_pipeline_out\(\s*ref\s+\w+\s*,\s*ref\s+\w+\s*,\s*ref\s+\w+\s*,\s*IntPtr\.Zero\s*,\s*IntPtr\.Zero\s*,\s*PipelineConfigJson\s*\)", text);
+        var config = Regex.Match(text, "PipelineConfigJson = \"(.*)\";");
+        Assert.True(config.Success, "PipelineConfigJson was not found.");
+        output.WriteLine("config handed to the pipeline: " + config.Groups[1].Value);
+        Assert.Contains("bypassNonlinearity", config.Groups[1].Value);
     }
 
     private static int Count(string text, string needle) =>
