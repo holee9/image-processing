@@ -868,8 +868,10 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>
     /// The corrected image of the frame that is open, or null: only a Run Preprocessing that Applied on THIS frame counts (a later load is a different frame, so an old result is never saved under it).
     /// </summary>
+    private CorrectedImage? _committedCorrected;
+
     private CorrectedImage? CurrentCorrected =>
-        _backend is ICorrectedImageSource { Corrected: { } corrected } && ActiveImageFrame?.RawPixels is { } raw && ReferenceEquals(corrected.RawKey, raw) ? corrected : null;
+        _committedCorrected is { } corrected && ActiveImageFrame?.RawPixels is { } raw && ReferenceEquals(corrected.RawKey, raw) ? corrected : null;
 
     /// <summary>True when Save Corrected Image has something to save.</summary>
     public bool CanSaveCorrected => CurrentCorrected is not null;
@@ -2571,6 +2573,8 @@ public sealed class MainWindowViewModel : ObservableObject
             DrainBackendTelemetry();
             ReportChain(chain);
 
+            // GUI-C-232b: the save candidate is committed together with the render and only from THIS (current, not cancelled) result; a run that applied no preprocess clears it.
+            _committedCorrected = (backend as ICorrectedImageSource)?.CorrectedFor(chain);
             ActiveImageFrame = processedFrame;
             RefreshCorrectedAvailability();
             ProcessedImage = processedFrame.ProcessedPreview ?? processedFrame.Preview;
