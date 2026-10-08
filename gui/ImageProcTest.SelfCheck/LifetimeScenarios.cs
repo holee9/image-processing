@@ -43,7 +43,7 @@ internal class ScenarioBackend : IXpeBackend
     /// <summary>When set, Shutdown waits for it: the transition stays running until the scenario lets it end.</summary>
     public ManualResetEventSlim? ShutdownMayEnd;
 
-    public ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
+    public virtual ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
     {
         var call = Interlocked.Increment(ref ChainCalls);
         var requestsAi = stages.Any(stage => stage.StageId == StageIds.AiBoneSuppression && stage.Enabled);
@@ -70,7 +70,7 @@ internal class ScenarioBackend : IXpeBackend
         return _inner.RunChain(rawFrame, stages, settings);
     }
 
-    public LoadedImageFrame LoadRawImage(string path, AppSettings settings)
+    public virtual LoadedImageFrame LoadRawImage(string path, AppSettings settings)
     {
         Interlocked.Increment(ref LoadCalls);
         return _inner.LoadRawImage(path, settings);
@@ -105,6 +105,29 @@ internal class ScenarioBackend : IXpeBackend
     public TelemetrySnapshot GetTelemetrySince(int logsSeen, int alertsSeen) => _inner.GetTelemetrySince(logsSeen, alertsSeen);
 
     public BackendRuntimeInfo GetRuntimeInfo() => _inner.GetRuntimeInfo();
+}
+
+/// <summary>
+/// GUI-C-232c: a scripted backend that also offers a Save Corrected Image candidate for every chain run (its Floats carry the run's number, taken when the run STARTS), and refuses to load a path
+/// ending in "bad.raw". The candidate hangs on the run's own <see cref="ChainResult"/>, as in <see cref="RealXpeBackend"/>.
+/// </summary>
+internal sealed class CandidateBackend : ScenarioBackend, ICorrectedImageSource
+{
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<ChainResult, CorrectedImage> _candidates = new();
+    private int _runs;
+
+    public CorrectedImage? CorrectedFor(ChainResult chain) => _candidates.TryGetValue(chain, out var corrected) ? corrected : null;
+
+    public override ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
+    {
+        var id = Interlocked.Increment(ref _runs);
+        var result = base.RunChain(rawFrame, stages, settings);
+        _candidates.Add(result, new CorrectedImage([id], 1, 1, rawFrame.RawPixels));
+        return result;
+    }
+
+    public override LoadedImageFrame LoadRawImage(string path, AppSettings settings) =>
+        path.EndsWith("bad.raw", StringComparison.Ordinal) ? throw new InvalidDataException("scripted: this file cannot be opened") : base.LoadRawImage(path, settings);
 }
 
 /// <summary>
@@ -267,6 +290,8 @@ internal static class LifetimeScenarios
                         await Timed(() => AnOlderApplyFinishingLateChangesNothing(rawPath, width, height, holdLane: true, fail: true));
                         await Timed(() => TheCandidateLaneIsASecondAiCall_AndTheStatusIsReadAfterIt(rawPath, width, height));
                         await Timed(() => EqualLanesMakeOneAiCallPerApply(rawPath, width, height));
+                        await Timed(() => TheSaveCandidateOfAnOlderApplyFinishingLateIsNeverCommitted(rawPath, width, height));
+                        await Timed(() => AFailedOpenKeepsTheSaveNameAndTheCandidateOfTheImageThatIsStillOpen(rawPath, width, height));
 #if XPE_TEST_FAULTS
                         await Timed(() => TheAiWorkerDisabledFault_IsInertWithoutTheArgument_AndAnswersOffWithIt(rawPath, width, height));
 #endif
@@ -946,6 +971,95 @@ internal static class LifetimeScenarios
             await Task.Delay(1500);                                // the failing reads go on; the old mark must not come back
             await FlushUi();
             Check(!vm.AiWorkerMarkVisible && !vm.AiWorkerDisabled, "the old switched-off state came back while the new session's reads were failing");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- GUI-C-232c (Codex #166 / #165 items 2 and 3): the Save Corrected Image candidate and the save name -----------------------------------
+
+    private static CorrectedImage? Committed(MainWindowViewModel vm) =>
+        (CorrectedImage?)typeof(MainWindowViewModel).GetField("_committedCorrected", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(vm);
+
+    private static string? SaveSourcePath(MainWindowViewModel vm) =>
+        (string?)typeof(MainWindowViewModel).GetProperty("ActiveImageSourcePath", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(vm);
+
+    /// <summary>Apply A starts first and finishes LAST; Apply B starts later and finishes first. The save candidate stays B's, byte for byte (its Floats carry the run number).</summary>
+    private static async Task TheSaveCandidateOfAnOlderApplyFinishingLateIsNeverCommitted(string rawPath, int width, int height)
+    {
+        _scenario = "8 save candidate: an older Apply finishing late";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new CandidateBackend();
+            var vm = NewViewModel(width, height, _ => backend, directory, out _);
+            await LoadAndDrawLanes(vm, rawPath);                 // chain runs 1 and 2
+            Check(Committed(vm) is not null, "no save candidate after the first render");
+
+            backend.BlockChainCall = 3;                          // Apply A's main chain
+            var settingsOfA = vm.Settings.LaneBVoiWindowWidth;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => backend.ChainBlocked.IsSet, "Apply A's held chain run");
+
+            var laneBBeforeB = vm.LaneBImage;
+            vm.Settings.LaneBVoiWindowWidth = settingsOfA + 300f;
+            vm.ApplyDisplayPipelineCommand.Execute(null);        // Apply B: runs 4 and 5
+            await Until(() => backend.ChainCalls >= 5, "Apply B's two chain runs");
+            await Until(() => !ReferenceEquals(vm.LaneBImage, laneBBeforeB) && !vm.LaneBIsStale, "Apply B's Lane B");
+            await FlushUi();
+
+            var committedByB = Committed(vm);
+            Check(committedByB is not null && committedByB.Floats[0] == 4f, $"after B the candidate is not B's run 4 (got {committedByB?.Floats[0]})");
+
+            backend.ChainRelease.Set();                          // A (run 3) ends long after B
+            await Until(() => vm.Logs.Any(line => line.Contains("a newer Apply", StringComparison.Ordinal)
+                || line.Contains("no longer current failed", StringComparison.Ordinal)), "A's late outcome to be recognised as stale");
+            await FlushUi();
+            await FlushUi();
+
+            var after = Committed(vm);
+            Check(ReferenceEquals(after, committedByB), $"the older Apply replaced the save candidate (run {after?.Floats[0]} instead of 4)");
+            Check(after!.Floats.SequenceEqual(new[] { 4f }), "the candidate bytes changed");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    /// <summary>Open A (and run it), then fail to open B: the save name still comes from A and the candidate is still A's.</summary>
+    private static async Task AFailedOpenKeepsTheSaveNameAndTheCandidateOfTheImageThatIsStillOpen(string rawPath, int width, int height)
+    {
+        _scenario = "9 failed open keeps the save name and candidate";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new CandidateBackend();
+            var vm = NewViewModel(width, height, _ => backend, directory, out _);
+            await LoadAndDrawLanes(vm, rawPath);
+            var candidate = Committed(vm);
+            Check(candidate is not null, "no save candidate after opening A");
+            Check(SaveSourcePath(vm) == rawPath, $"the save name does not come from A ({SaveSourcePath(vm)})");
+
+            var badPath = Path.Combine(directory, "bad.raw");
+            File.WriteAllBytes(badPath, new byte[2]);               // the automation path is only used when the file exists; the scripted backend refuses it
+            Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", badPath);
+            try
+            {
+                vm.LoadImageCommand.Execute(null);
+                await Until(() => vm.StatusText.Contains("fail", StringComparison.OrdinalIgnoreCase) || vm.Logs.Any(l => l.Contains("cannot be opened", StringComparison.Ordinal)), "the failed open to be reported");
+                await FlushUi();
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", null);
+            }
+
+            Check(SaveSourcePath(vm) == rawPath, $"the failed open of B renamed the save name ({SaveSourcePath(vm)})");
+            Check(ReferenceEquals(Committed(vm), candidate), "the failed open changed the save candidate");
+            Check(!SaveSourcePath(vm)!.EndsWith("bad.raw", StringComparison.Ordinal), "the save name is B's");
         }
         finally
         {
