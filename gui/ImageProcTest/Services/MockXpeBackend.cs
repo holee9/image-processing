@@ -96,7 +96,7 @@ public sealed class MockXpeBackend : IXpeBackend
         var calibrationSummary = BuildCalibrationEvaluationSummary(settings);
         var summary = $"MOCK CalibrationEval({calibrationSummary}) -> Display: Modality({settings.ModalityRescaleSlope:0.###}/{settings.ModalityRescaleIntercept:0.###}) -> VOI({settings.VoiLutMode}, C={settings.VoiWindowCenter:0.###}, W={settings.VoiWindowWidth:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
         AddLog(summary);
-        var processedPreview = CreateDisplayPreview(rawFrame, displayInput, settings);
+        var processedPreview = CreateDisplayPreview(rawFrame, displayInput, settings, out var appliedVoi);
 
         return new LoadedImageFrame
         {
@@ -109,7 +109,8 @@ public sealed class MockXpeBackend : IXpeBackend
             Height = rawFrame.Height,
             BitsStored = rawFrame.BitsStored,
             DisplayPipelineApplied = true,
-            DisplayPipelineSummary = summary
+            DisplayPipelineSummary = summary,
+            AppliedVoi = appliedVoi
         };
     }
 
@@ -122,8 +123,9 @@ public sealed class MockXpeBackend : IXpeBackend
         }
     }
 
-    private static BitmapSource CreateDisplayPreview(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
+    private static BitmapSource CreateDisplayPreview(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings, out AppliedVoiWindow? appliedVoi)
     {
+        appliedVoi = null;
         if (rawFrame.Width <= 0 || rawFrame.Height <= 0)
         {
             return rawFrame.ProcessedPreview ?? rawFrame.Preview;
@@ -139,6 +141,7 @@ public sealed class MockXpeBackend : IXpeBackend
         var range = Math.Max(1.0, upper - lower);
 
         var voiMode = settings.VoiLutMode;
+        appliedVoi = new AppliedVoiWindow(settings.VoiLutMode, settings.VoiWindowCenter, Math.Max(1.0f, settings.VoiWindowWidth), false);
         if (settings.VoiWindowAuto)
         {
             // GUI-C-233: the Mock stands in for the module's anatomy-based window with a plain 1 % .. 99 % window of the values that reach the VOI stage (a sample of every 16th pixel). It is an
@@ -155,6 +158,7 @@ public sealed class MockXpeBackend : IXpeBackend
             lower = low;
             range = Math.Max(1.0, high - low);
             voiMode = "LinearExact";
+            appliedVoi = new AppliedVoiWindow("LinearExact", (float)(lower + (range / 2.0)), (float)range, true);
         }
 
         for (var i = 0; i < count; i++)

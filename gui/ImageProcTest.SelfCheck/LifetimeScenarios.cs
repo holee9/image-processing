@@ -82,7 +82,7 @@ internal class ScenarioBackend : IXpeBackend
         return _inner.CreateVoiPreset(bodyPart);
     }
 
-    public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
+    public virtual LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
     {
         Interlocked.Increment(ref ApplyCalls);
         return _inner.ApplyDisplayPipeline(rawFrame, displayInput, settings);
@@ -105,6 +105,44 @@ internal class ScenarioBackend : IXpeBackend
     public TelemetrySnapshot GetTelemetrySince(int logsSeen, int alertsSeen) => _inner.GetTelemetrySince(logsSeen, alertsSeen);
 
     public BackendRuntimeInfo GetRuntimeInfo() => _inner.GetRuntimeInfo();
+}
+
+/// <summary>
+/// GUI-C-233b: a scripted display stage that REPORTS the window it applied (as RealXpeBackend does): an automatic window answers fixed numbers that differ from the settings' center/width, a hand-chosen one
+/// answers the settings', and <see cref="FailAutomaticWindow"/> makes the automatic window fail the way a refused xpe_voi_auto_window call does (the render throws).
+/// </summary>
+internal sealed class VoiReportingBackend : ScenarioBackend
+{
+    public const float AutoCenter = 1234.5f;
+    public const float AutoWidth = 987.0f;
+
+    public bool FailAutomaticWindow;
+
+    public override LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
+    {
+        if (settings.VoiWindowAuto && FailAutomaticWindow)
+        {
+            throw new InvalidOperationException("xpe_voi_auto_window failed (-1)");
+        }
+
+        var inner = base.ApplyDisplayPipeline(rawFrame, displayInput, settings);
+        return new LoadedImageFrame
+        {
+            Preview = inner.Preview,
+            ProcessedPreview = inner.ProcessedPreview,
+            Summary = inner.Summary,
+            MetadataText = inner.MetadataText,
+            RawPixels = inner.RawPixels,
+            Width = inner.Width,
+            Height = inner.Height,
+            BitsStored = inner.BitsStored,
+            DisplayPipelineApplied = inner.DisplayPipelineApplied,
+            DisplayPipelineSummary = inner.DisplayPipelineSummary,
+            AppliedVoi = settings.VoiWindowAuto
+                ? new AppliedVoiWindow("LinearExact", AutoCenter, AutoWidth, true)
+                : new AppliedVoiWindow(settings.VoiLutMode, settings.VoiWindowCenter, settings.VoiWindowWidth, false),
+        };
+    }
 }
 
 /// <summary>
@@ -290,6 +328,7 @@ internal static class LifetimeScenarios
                         await Timed(() => AnOlderApplyFinishingLateChangesNothing(rawPath, width, height, holdLane: true, fail: true));
                         await Timed(() => TheCandidateLaneIsASecondAiCall_AndTheStatusIsReadAfterIt(rawPath, width, height));
                         await Timed(() => EqualLanesMakeOneAiCallPerApply(rawPath, width, height));
+                        await Timed(() => TheHudShowsTheWindowThatWasApplied_NotTheSettings(rawPath, width, height));
                         await Timed(() => TheSaveCandidateOfAnOlderApplyFinishingLateIsNeverCommitted(rawPath, width, height));
                         await Timed(() => AFailedOpenKeepsTheSaveNameAndTheCandidateOfTheImageThatIsStillOpen(rawPath, width, height));
 #if XPE_TEST_FAULTS
@@ -1060,6 +1099,51 @@ internal static class LifetimeScenarios
             Check(SaveSourcePath(vm) == rawPath, $"the failed open of B renamed the save name ({SaveSourcePath(vm)})");
             Check(ReferenceEquals(Committed(vm), candidate), "the failed open changed the save candidate");
             Check(!SaveSourcePath(vm)!.EndsWith("bad.raw", StringComparison.Ordinal), "the save name is B's");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- GUI-C-233b (Codex #171 finding 1): the HUD and the settings panel show the window that was APPLIED --------------------------------
+
+    private static async Task TheHudShowsTheWindowThatWasApplied_NotTheSettings(string rawPath, int width, int height)
+    {
+        _scenario = "10 HUD shows the applied window";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new VoiReportingBackend();
+            var vm = NewViewModel(width, height, _ => backend, directory, out _);
+            Check(vm.Settings.VoiWindowAuto, "the automatic window is not the default");
+            await LoadAndDrawLanes(vm, rawPath);
+
+            // 1. automatic: the HUD carries the numbers the display stage chose, not the settings' fixed center/width/mode
+            Check(vm.RenderedVoiCenter == VoiReportingBackend.AutoCenter && vm.RenderedVoiWidth == VoiReportingBackend.AutoWidth && vm.RenderedVoiMode == "LinearExact",
+                $"the HUD does not show the applied automatic window (C={vm.RenderedVoiCenter} W={vm.RenderedVoiWidth} mode={vm.RenderedVoiMode}; settings say C={vm.Settings.VoiWindowCenter} W={vm.Settings.VoiWindowWidth} mode={vm.Settings.VoiLutMode})");
+            Check(vm.PreviewStaleReason is null, $"a fresh automatic render is already stale: {vm.PreviewStaleReason}");
+
+            // 2. automatic -> chosen by hand: the picture on screen no longer matches what is asked for (stale), then Apply makes the HUD show the chosen numbers
+            vm.Settings.VoiWindowAuto = false;
+            Check(vm.PreviewStaleReason is not null, "switching the automatic window off did not mark the picture stale (VoiWindowAuto is not in the comparison)");
+            var applies = backend.ApplyCalls;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => backend.ApplyCalls > applies, "the manual-window render");
+            await Until(() => vm.PreviewStaleReason is null && vm.RenderedVoiMode == vm.Settings.VoiLutMode, "the manual-window render to be shown");
+            Check(vm.RenderedVoiCenter == vm.Settings.VoiWindowCenter && vm.RenderedVoiWidth == vm.Settings.VoiWindowWidth, "after a manual render the HUD does not show the chosen window");
+
+            // 3. chosen by hand -> automatic, and the automatic window FAILS: nothing new is drawn, the HUD keeps describing the picture that is still on screen, and the failure is shown
+            backend.FailAutomaticWindow = true;
+            var shown = vm.ProcessedImage;
+            var (centerBefore, widthBefore, modeBefore) = (vm.RenderedVoiCenter, vm.RenderedVoiWidth, vm.RenderedVoiMode);
+            vm.UseAutomaticWindowCommand.Execute(null);
+            await Until(() => vm.StatusText.StartsWith("Display pipeline failed", StringComparison.Ordinal), "the failed automatic render to be reported");   // (the stale reason is already set by the settings change itself)
+            await FlushUi();
+            Check(ReferenceEquals(vm.ProcessedImage, shown), "a failed automatic render replaced the picture on screen");
+            Check(vm.RenderedVoiCenter == centerBefore && vm.RenderedVoiWidth == widthBefore && vm.RenderedVoiMode == modeBefore, "a failed automatic render changed what the HUD says was rendered");
+            Check(vm.StatusText.Contains("xpe_voi_auto_window failed (-1)", StringComparison.Ordinal), "the status line does not name the failed automatic window and its code");
+            Check(vm.Alerts.Any(a => a.Code == "DISPLAY_PIPELINE_FAILED" && a.Message.Contains("xpe_voi_auto_window", StringComparison.Ordinal)), "no DISPLAY_PIPELINE_FAILED alert names the automatic window");
         }
         finally
         {

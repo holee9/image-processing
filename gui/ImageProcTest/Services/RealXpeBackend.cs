@@ -219,6 +219,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
                 BitsStored = rawFrame.BitsStored,
                 DisplayPipelineApplied = true,
                 DisplayPipelineSummary = summary,
+                AppliedVoi = new AppliedVoiWindow(settings.VoiWindowAuto ? "LinearExact" : NormalizeVoiMode(settings.VoiLutMode), voi.Center, voi.Width, settings.VoiWindowAuto),
                 DisplayTimings = $"display: marshal-in={marshalInMs:0} ms, native={nativeMs:0} ms, " +
                                  $"marshal-out={marshalOutMs:0} ms, preview={previewMs:0} ms"
             };
