@@ -1,0 +1,9 @@
+@echo off
+REM QA-B-213: run one harness test by name. %1 = gtest filter suffix, %2 = output text file. Exit code written to the file's last line.
+call "D:\workspace-github\xpe-post\.moai\reports\lane-post\QA-B-120\_env.bat"
+cd /d D:\workspace-github\xpe-post
+set XPE_M2_IN=D:\workspace-github\xpe-data\m1-baseline-v2\wrist_lat_3072x3072_corrected_v2_f32le.raw
+set XPE_M2_OUT=D:\workspace-github\xpe-post\build\m2-scratch
+if not exist %XPE_M2_OUT% mkdir %XPE_M2_OUT%
+build\ci-post\bin\test_e2e_post_pipeline.exe --gtest_also_run_disabled_tests --gtest_filter=M2Measure.%1 > %2 2>&1
+echo ===EXIT=%errorlevel%=== >> %2

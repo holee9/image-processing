@@ -1,0 +1,41 @@
+"""QA-B-213b: 16-bit PNGs of the comparison variants for human review, plus sha256.txt.
+
+Usage: python make_pngs_b.py <scratch dir written by M2Measure.DISABLED_Variants_P8> <output dir>
+"""
+import hashlib, os, sys
+import numpy as np
+from PIL import Image
+
+src, dst = sys.argv[1], sys.argv[2]
+os.makedirs(dst, exist_ok=True)
+N = 3072
+files = [
+    ('01_current_whole_window_air_white.png',            'p8_v1_whole_p01p99_ascending.u16'),
+    ('02_polarity_inverted_whole_window.png',            'p8_v2_whole_p01p99_descending_LUT.u16'),
+    ('03_bone_preset_window_inverted_log_domain.png',    'p8_v3b_preset_window_out0_1_descending.u16'),
+    ('04_bone_preset_window_inverted_after_log_inverse.png', 'p8_v6_log_inverse_then_preset_window_out0_1_descending.u16'),
+    ('05_anatomy_window_polarity_inverted.png',          'p8_v4_anatomy_p01p99_descending.u16'),
+    ('06_anatomy_window_polarity_as_is.png',             'p8_v5_anatomy_p01p99_ascending.u16'),
+    ('07_anatomy_mask_otsu.png',                         'p8_anatomy_mask.u16'),
+]
+rows = []
+
+
+def save(name, arr):
+    out = os.path.join(dst, name)
+    Image.fromarray(arr.astype('<u2')).save(out)
+    rows.append((name, hashlib.sha256(open(out, 'rb').read()).hexdigest()))
+
+
+for name, raw in files:
+    a = np.fromfile(os.path.join(src, raw), dtype='<u2')
+    assert a.size == N * N, raw
+    save(name, a.reshape(N, N))
+# what CLAHE added to the log-domain image: B - A, display window -150..+150 log units -> 0..65535 (0 change = mid grey)
+A = np.fromfile(os.path.join(src, 'f_noise_out.f32'), dtype='<f4').reshape(N, N).astype(np.float64)
+B = np.fromfile(os.path.join(src, 'f_clahe_out.f32'), dtype='<f4').reshape(N, N).astype(np.float64)
+D = np.clip((B - A + 150.0) / 300.0, 0.0, 1.0) * 65535.0
+save('08_clahe_change_map_minus150_plus150.png', np.rint(D))
+open(os.path.join(dst, 'sha256.txt'), 'w').write(''.join(f'{h}  {n}\n' for n, h in rows))
+for n, h in rows:
+    print(h, n)

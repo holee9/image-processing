@@ -414,14 +414,28 @@ XPE_API XpeErrorCode xpe_dicom_validate(const char* filePath,
  * @return XPE_OK on C-STORE success (RSP status 0x0000).
  * @return XPE_ERR_INVALID_INPUT if host, aet, or filePath is NULL.
  * @return XPE_ERR_NETWORK_FAILED on connection failure, timeout, rejection, or
- *         a non-success C-STORE response status.
+ *         a non-success C-STORE response status. Also when the peer does not
+ *         support the file's transfer syntax (see the note below): no
+ *         presentation context is accepted, the association fails, and no
+ *         C-STORE is attempted.
  * @return XPE_ERR_IO_FAILED if filePath cannot be read, or carries no dataset.
+ * @return XPE_ERR_DICOM_INVALID if the file names no transfer syntax in its
+ *         meta group (0002,0010) and DCMTK could detect none from the dataset.
  * @return XPE_ERR_PROCESSING_FAILED if a cancel is latched -- see
  *         xpe_dicom_cancel() for why this is racy in practice.
  *
  * @note If the file's meta group names no SOP Class UID, the dataset's
  *       SOPClassUID is used; if that is absent too, the DX For Presentation
  *       class is assumed. The call does not fail for a missing SOP Class.
+ *
+ * @note Transfer syntax (QA-B-210 C11): exactly ONE transfer syntax is proposed
+ *       -- the file's own, (0002,0010) of its meta header (for a bare dataset
+ *       with no meta group, the syntax DCMTK detected when it loaded the file).
+ *       Nothing is converted: a peer that does not support that syntax refuses
+ *       the presentation context and the call fails with
+ *       XPE_ERR_NETWORK_FAILED. Earlier versions proposed Explicit VR Little
+ *       Endian, JPEG 2000 Lossless and Implicit VR Little Endian whatever the
+ *       file held.
  *
  * @note REQ-DICOM-029..033
  */

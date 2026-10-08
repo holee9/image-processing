@@ -224,6 +224,7 @@ void MockScp::notifyAssociationRequest(const T_ASC_Parameters& params,
     // inferred from the SCU's source.
     std::ostringstream os;
     os << "--- association request ---\n";
+    std::vector<Proposal> proposals;
     const int count = ASC_countPresentationContexts(OFconst_cast(T_ASC_Parameters*, &params));
     os << "proposed presentation contexts: " << count << "\n";
     for (int i = 0; i < count; ++i) {
@@ -237,9 +238,18 @@ void MockScp::notifyAssociationRequest(const T_ASC_Parameters& params,
                 os << pc.proposedTransferSyntaxes[k] << (k + 1 < pc.transferSyntaxCount ? "," : "");
             }
             os << "\n";
+            Proposal pr;
+            pr.abstractSyntax = pc.abstractSyntax;
+            for (unsigned long k = 0; k < pc.transferSyntaxCount; ++k) pr.transferSyntaxes.push_back(pc.proposedTransferSyntaxes[k]);
+            proposals.push_back(std::move(pr));
         }
     }
     negotiationLog += os.str();
+    {
+        const std::lock_guard<std::mutex> lock(m_queryMutex);
+        m_lastProposals = std::move(proposals);
+    }
+    ++associationRequests;
 
     DcmSCP::notifyAssociationRequest(params, desiredAction);
 }

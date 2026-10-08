@@ -149,6 +149,23 @@ typedef struct XpePresentationLutParams {
     int32_t  gsdfEnabled;   /**< Non-zero if LUT is GSDF-calibrated */
 } XpePresentationLutParams;
 
+/**
+ * @brief Display polarity of the Presentation LUT stage (QA-B-214, user decision on #251).
+ *
+ * The pipeline carries "a larger value is brighter" (MONOCHROME2 sense) from the reader to the writer and no earlier stage
+ * inverts. A detector's linear signal rises with dose, so the unexposed background (air) is the HIGH end of the data and,
+ * shown as is, is white while bone is dark -- the reverse of a reading display. The polarity is therefore decided here, at
+ * the last display stage: INVERTED reads the table backwards (output = lutData[1023 - index]), so the high end of the data
+ * is shown dark. Reading the table backwards is the DICOM "INVERSE" shape of PS3.3 C.11.6 applied to the P-Values; for a
+ * GSDF table it keeps the perceptual linearity, which "65535 - value" would not.
+ * Pixel data written to DICOM afterwards is MONOCHROME2 with Presentation LUT Shape IDENTITY and already carries this
+ * inversion; the meaning of the values of every earlier stage is unchanged.
+ */
+typedef enum XpePresentationPolarity {
+    XPE_PRESENTATION_INVERTED = 0, /**< output = lutData[1023 - index]: high input shown dark (the default) */
+    XPE_PRESENTATION_AS_IS    = 1  /**< output = lutData[index]: high input shown bright (behaviour before QA-B-214) */
+} XpePresentationPolarity;
+
 /* =========================================================================
  * Version
  * ========================================================================= */
@@ -252,6 +269,44 @@ XPE_API XpeErrorCode xpe_apply_voi_lut(XpeImageBuffer*          img,
 XPE_API XpeErrorCode xpe_voi_preset_create(XpeVoiLutParams* params,
                                              XpeBodyPart      bodyPart);
 
+/**
+ * @brief Choose a VOI window from the anatomy in the image itself (QA-B-214, user decision on #251).
+ *
+ * The window is derived from the values that actually reach the VOI stage, whatever their domain (the log domain after
+ * xpe_log_transform, detector DN, ...), so it needs no per-body-part table:
+ *   1. every kAutoWindowSampleStride-th pixel of every kAutoWindowSampleStride-th row is histogrammed (1024 bins between
+ *      the image's minimum and maximum);
+ *   2. an Otsu split of that histogram separates two classes: the HIGH class is the background (unattenuated beam, air) and
+ *      the low class is the anatomy;
+ *   3. window low  = the 0.5 % quantile of the anatomy class (the densest bone is not clipped away),
+ *      window high = the 5 % quantile of the background class (so the tissue-to-air transition at the skin line stays
+ *      inside the window instead of being cut at the Otsu threshold).
+ * The result is mode XPE_VOI_LINEAR_EXACT, center = (low + high) / 2, width = high - low, minOut 0, maxOut 1 -- the output
+ * range xpe_apply_presentation_lut expects. The numeric constants, their values and the measurements behind them are the
+ * named constants in voi_auto_window.cpp.
+ *
+ * Fallback: when the histogram does not show two classes -- either class holds under 2 % of the sampled pixels or the Otsu
+ * separability (between-class variance / total variance) is under 0.75 -- there is no anatomy to isolate (a flat-field
+ * frame, an image of one tissue) and the window is the 1 % .. 99 % quantile range of the whole image, with one Info alert
+ * posted. A flat image (maximum == minimum) gets center = that value and width 1.0, also with the Info alert.
+ *
+ * Contract: the background is the HIGH end of the data. Data whose background is the low end (MONOCHROME1 normalised to
+ * MONOCHROME2 sense) has it the wrong way round and the window would isolate the wrong class. Image content outside the
+ * anatomy and the beam (a collimator shadow, which is darker than the anatomy) is counted into the anatomy class.
+ *
+ * @param img       Float32 image (read-only). NULL, empty, wrong format or inconsistent dataSize are rejected as for the other
+ *                  display functions; a non-finite pixel is XPE_ERR_INVALID_INPUT.
+ * @param outParams [out] Receives the window. Untouched on any error. Must not be NULL.
+ * @return XPE_OK, XPE_ERR_INVALID_INPUT (NULL img/outParams/data, empty image, inconsistent dataSize, non-finite pixel) or
+ *         XPE_ERR_UNSUPPORTED_FORMAT (img is not float32).
+ *
+ * @note Performance: one pass over every pixel for the finite check and extremes plus a 1/16 sample for the histogram;
+ *       measured in the QA-B-214 report (3072x3072).
+ * @note Thread-safe when called with independent buffers.
+ */
+XPE_API XpeErrorCode xpe_voi_auto_window(const XpeImageBuffer* img,
+                                           XpeVoiLutParams*      outParams);
+
 /* =========================================================================
  * SWU-3.3: Presentation LUT + GSDF API
  * REQ-DISP-019 to REQ-DISP-028
@@ -286,11 +341,32 @@ XPE_API XpeErrorCode xpe_voi_preset_create(XpeVoiLutParams* params,
  * @return XPE_ERR_UNSUPPORTED_FORMAT if img->format != XPE_PIXEL_FLOAT32.
  * @return XPE_ERR_OUT_OF_MEMORY if uint16 buffer allocation fails.
  *
+ * @note POLARITY (QA-B-214): this function shows the high end of the data DARK -- it is
+ *       xpe_apply_presentation_lut_ex(img, params, XPE_PRESENTATION_INVERTED). Before QA-B-214 it was the ascending mapping
+ *       output = lutData[index]; that mapping is xpe_apply_presentation_lut_ex(.., XPE_PRESENTATION_AS_IS). A caller that
+ *       already inverts (a viewer's own "invert" switch) or whose data already has the background at the LOW end
+ *       (MONOCHROME1 data normalised by xpe_dicom_read_image) must not invert a second time.
  * @note Performance target: <= 25 ms for 3072x3072 image (REQ-DISP-025).
  * @note Thread-safe when called with independent buffers (REQ-DISP-033).
  */
 XPE_API XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*                  img,
                                                   const XpePresentationLutParams*  params);
+
+/**
+ * @brief xpe_apply_presentation_lut with the polarity chosen by the caller (QA-B-214).
+ *
+ * Identical to xpe_apply_presentation_lut in every other respect: float32 in, uint16 out, input clamped to [0, 1], index =
+ * round(input * 1023), non-finite pixels refused, the image untouched on any error.
+ *
+ * @param img      [in/out] Float32 image; converted to uint16 in place on success (as xpe_apply_presentation_lut).
+ * @param params   [in]     Presentation LUT parameters. Must not be NULL.
+ * @param polarity XPE_PRESENTATION_INVERTED or XPE_PRESENTATION_AS_IS. Any other value is XPE_ERR_INVALID_INPUT and the
+ *                 image is untouched.
+ * @return As xpe_apply_presentation_lut, plus XPE_ERR_INVALID_INPUT for an unknown polarity.
+ */
+XPE_API XpeErrorCode xpe_apply_presentation_lut_ex(XpeImageBuffer*                  img,
+                                                     const XpePresentationLutParams*  params,
+                                                     XpePresentationPolarity          polarity);
 
 /**
  * @brief Compute a DICOM GSDF-compliant Presentation LUT from luminance measurements.
