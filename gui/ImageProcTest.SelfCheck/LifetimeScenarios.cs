@@ -1154,6 +1154,13 @@ internal static class LifetimeScenarios
 
     // ---- GUI-C-233c (Codex #173 finding 1): the automation report describes THIS frame's render ------------------------------------------
 
+    private static System.Text.Json.JsonElement ReportRoot(MainWindowViewModel vm)
+    {
+        typeof(MainWindowViewModel).GetMethod("ExportAutomationReport", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(vm, null);
+        var path = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
+        return System.Text.Json.JsonDocument.Parse(File.ReadAllText(path)).RootElement.Clone();
+    }
+
     private static System.Text.Json.JsonElement ReportDisplayPipeline(MainWindowViewModel vm)
     {
         typeof(MainWindowViewModel).GetMethod("ExportAutomationReport", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(vm, null);
@@ -1177,6 +1184,11 @@ internal static class LifetimeScenarios
             Check(Math.Abs(ok.GetProperty("center").GetSingle() - VoiReportingBackend.AutoCenter) < 0.01f && Math.Abs(ok.GetProperty("width").GetSingle() - VoiReportingBackend.AutoWidth) < 0.01f && ok.GetProperty("mode").GetString() == "LinearExact",
                 $"report window is not the applied one: {ok}");
             var summaryA = vm.DisplayPipelineSummary;
+
+            // GUI-C-233d (Codex #174): after frame A the report's processingChain is A's; remember it so the next check can prove it is gone
+            var chainA = ReportRoot(vm).GetProperty("processingChain");
+            Check(chainA.GetProperty("stages").GetArrayLength() > 0 && chainA.GetProperty("displayInput").GetString() != "not run", $"frame A's report has no chain to compare with: {chainA}");
+            var statusA = chainA.GetProperty("status").GetString();
             Check(!string.IsNullOrEmpty(summaryA) && ok.GetProperty("summary").GetString() == summaryA, "report summary is not the render's summary");
 
             // (a) frame B arrives and ITS automatic window fails: the report is B's, with none of A's values
@@ -1202,6 +1214,17 @@ internal static class LifetimeScenarios
             var summaryB = failed.GetProperty("summary").GetString() ?? string.Empty;
             Check(summaryB != summaryA && !summaryB.Contains("Display: Modality", StringComparison.Ordinal), $"report summary after B's failure is still A's success: '{summaryB}'");
             Check(string.IsNullOrEmpty(vm.PipelineTimings), $"the previous frame's timings survived into frame B: '{vm.PipelineTimings}'");
+
+            // GUI-C-233d: the WHOLE report is B's. B's display threw before its chain was reported, so the chain says "not run" - nothing of A's stages, status or display input, and no leftover preprocess/AI diagnostics
+            var rootB = ReportRoot(vm);
+            var chainB = rootB.GetProperty("processingChain");
+            Check(chainB.GetProperty("stages").GetArrayLength() == 0, $"report stages after B's failure are still A's: {chainB.GetProperty("stages")}");
+            Check(chainB.GetProperty("displayInput").GetString() == "not run", $"report displayInput after B's failure is '{chainB.GetProperty("displayInput").GetString()}'");
+            Check(chainB.GetProperty("status").GetString() == "chain: not run" && chainB.GetProperty("status").GetString() != statusA, $"report chain status after B's failure is '{chainB.GetProperty("status").GetString()}'");
+            Check(!vm.PreprocessRan && string.IsNullOrEmpty(vm.PreprocessStages) && vm.LastChain is null, "B kept A's preprocess/chain diagnostics");
+            // the calibration and display fields describe what a render USED: none for B; what is asked for now is reported apart, as `requested`
+            Check(failed.GetProperty("requested").GetProperty("automatic").GetBoolean(), $"the report does not say what is asked for now: {failed}");
+            Check(rootB.GetProperty("calibrationEvaluation").GetProperty("offset").ValueKind == System.Text.Json.JsonValueKind.Null && failed.GetProperty("bodyPart").ValueKind == System.Text.Json.JsonValueKind.Null, $"B's report carries calibration/display values no render of B used: {rootB.GetProperty("calibrationEvaluation")}");
         }
         finally
         {
