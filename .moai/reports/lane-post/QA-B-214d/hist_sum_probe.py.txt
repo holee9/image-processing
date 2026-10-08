@@ -1,0 +1,57 @@
+"""QA-B-214d: temporary instrumentation. After the sub-histograms are added up, print the histogram total next to the pixel count
+for every call of xpe_voi_auto_window, run the auto-window tests and the real-frame chain, then restore the file (proved by sha256).
+Evidence for 'the counters sum to the pixel count' without a test on a 2^32-pixel buffer."""
+import hashlib, os, re, subprocess
+
+ROOT = r'D:/workspace-github/xpe-post'
+OUT = ROOT + '/.moai/reports/lane-post/QA-B-214d/'
+PATH = 'modules/display/src/voi_auto_window.cpp'
+os.chdir(ROOT)
+
+
+def sha(p):
+    return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+
+
+def sh(c):
+    return subprocess.run(c, shell=True, capture_output=True, text=True)
+
+
+orig = open(PATH, 'rb').read()
+h0 = sha(PATH)
+text = orig.decode('utf-8').replace('\r\n', '\n')
+anchor = 'for (int32_t b = 0; b < kBins; ++b) hist[b] = sub[0][b] + sub[1][b] + sub[2][b] + sub[3][b];'
+assert text.count(anchor) == 1
+probe = anchor + '''
+    {
+        uint64_t histSum = 0;
+        for (int32_t b = 0; b < kBins; ++b) histSum += hist[b];
+        std::fprintf(stderr, "AW_HIST_SUM sum=%llu count=%llu %s\\n", static_cast<unsigned long long>(histSum),
+                     static_cast<unsigned long long>(count), histSum == count ? "EQUAL" : "MISMATCH");
+    }'''
+open(PATH, 'wb').write(text.replace(anchor, probe).encode('utf-8'))
+lines = []
+try:
+    sh('cmd.exe /c ".moai\\reports\\lane-post\\QA-B-214d\\_build.bat build\\g214d-probe-build.txt"')
+    sh('cmd.exe /c ".moai\\reports\\lane-post\\QA-B-213\\_build.bat"')
+    sh('cmd.exe /c ".moai\\reports\\lane-post\\QA-B-214\\_rundisp.bat probe214d"')
+    t = open('build/g214-probe214d-test_display_voi_auto_window.txt', encoding='utf-8', errors='replace').read()
+    lines += [('display tests', l) for l in t.splitlines() if l.startswith('AW_HIST_SUM')]
+    sh('cmd.exe /c ".moai\\reports\\lane-post\\QA-B-213\\_run.bat DISABLED_Chain_P1_P3_P4_P5_P7 %s"' % (OUT + 'probe_chain.txt').replace('/', '\\'))
+    t2 = open(OUT + 'probe_chain.txt', encoding='utf-8', errors='replace').read()
+    lines += [('real-frame chain', l) for l in t2.splitlines() if l.startswith('AW_HIST_SUM')]
+finally:
+    open(PATH, 'wb').write(orig)
+res = ['probe lines: %d' % len(lines)]
+mism = [l for _, l in lines if 'MISMATCH' in l]
+res.append('MISMATCH lines: %d' % len(mism))
+for src in ('display tests', 'real-frame chain'):
+    sel = [l for s, l in lines if s == src]
+    res.append('%s: %d calls, all EQUAL: %s' % (src, len(sel), all('EQUAL' in l for l in sel)))
+res.append('sample lines:')
+res += [l for _, l in lines[:3]] + [l for s, l in lines if s == 'real-frame chain'][:2]
+res.append('restored identical: %s' % (sha(PATH) == h0))
+open(OUT + 'hist_sum_probe.txt', 'w', encoding='utf-8', newline='\n').write('\n'.join(res) + '\n')
+print('\n'.join(res))
+sh('cmd.exe /c ".moai\\reports\\lane-post\\QA-B-214d\\_build.bat build\\g214d-probe-build.txt"')
+sh('cmd.exe /c ".moai\\reports\\lane-post\\QA-B-213\\_build.bat"')
