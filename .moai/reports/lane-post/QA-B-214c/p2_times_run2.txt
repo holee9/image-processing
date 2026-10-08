@@ -1,0 +1,31 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = M2Measure.DISABLED_StageTimes_P2
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from M2Measure
+[ RUN      ] M2Measure.DISABLED_StageTimes_P2
+== P2 stage times (ms), 21 repetitions per stage, 3072x3072, same process ==
+  hardware threads=20 max_threads(request)=0
+  log              limit=   15 first=    5.61 min=    5.00 median=    5.70 max=    6.94 (reps 2..21)
+      repetitions over the limit: 0 of 21; all (ms, run order): 5.61 5.70 5.47 5.09 5.00 5.55 5.02 6.02 5.10 6.94 6.36 6.40 5.80 5.95 5.80 6.28 5.78 5.53 5.15 5.23 5.14
+  noise_bilateral  limit=  100 first=   38.80 min=   34.04 median=   38.05 max=   48.39 (reps 2..21)
+      repetitions over the limit: 0 of 21; all (ms, run order): 38.80 41.82 37.77 44.65 37.55 38.77 44.60 37.04 34.04 35.53 36.71 39.79 37.69 35.92 36.23 38.92 39.39 38.05 40.80 36.08 48.39
+  clahe            limit=   50 first=   46.65 min=   44.09 median=   45.36 max=   46.81 (reps 2..21)
+      repetitions over the limit: 0 of 21; all (ms, run order): 46.65 45.47 46.28 45.03 45.36 45.48 44.85 44.10 44.44 44.34 46.71 44.23 45.20 46.59 46.81 44.09 45.29 45.50 44.56 45.64 46.16
+  usm              limit=   20 first=   19.22 min=   18.84 median=   19.76 max=   43.43 (reps 2..21)
+      repetitions over the limit: 5 of 21; all (ms, run order): 19.22 19.32 19.09 18.85 19.16 19.91 19.58 18.84 19.86 19.38 18.97 19.73 19.28 19.99 21.17 19.84 23.97 24.70 43.43 19.76 23.55
+  modality         limit=   20 first=    6.56 min=    3.82 median=    4.19 max=    7.38 (reps 2..21)
+      repetitions over the limit: 0 of 21; all (ms, run order): 6.56 6.44 7.38 6.52 4.70 4.59 4.89 4.93 4.18 3.98 4.19 3.83 3.93 3.97 4.05 3.84 4.04 3.91 3.82 4.30 4.92
+  voi              limit=   16 first=    4.15 min=    4.01 median=    4.38 max=    8.61 (reps 2..21)
+      repetitions over the limit: 0 of 21; all (ms, run order): 4.15 4.36 8.61 4.86 4.57 4.26 4.76 4.76 4.58 4.16 4.06 4.11 4.38 4.08 4.06 4.01 4.14 4.10 4.53 4.52 4.93
+  presentation     limit=   25 first=   24.02 min=   22.92 median=   23.40 max=   38.97 (reps 2..21)
+      repetitions over the limit: 4 of 21; all (ms, run order): 24.02 22.92 24.03 23.37 22.96 22.92 23.49 23.29 23.23 24.30 23.40 23.30 23.80 25.02 38.97 26.86 23.77 25.91 23.14 22.99 23.21
+  voi_auto_window  limit=  (none; VOI stage budget is 16) first=    7.84 min=    7.84 median=    8.20 max=    9.73 (reps 2..21)
+      all (ms, run order): 7.84 7.84 7.88 8.01 8.21 7.95 7.99 7.84 9.52 7.98 8.21 8.09 9.31 8.20 7.91 8.94 9.25 7.87 9.36 9.73 9.28
+[       OK ] M2Measure.DISABLED_StageTimes_P2 (5137 ms)
+[----------] 1 test from M2Measure (5138 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (5138 ms total)
+[  PASSED  ] 1 test.
+===EXIT=0===
