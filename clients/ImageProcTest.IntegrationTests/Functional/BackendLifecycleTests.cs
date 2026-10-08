@@ -363,7 +363,6 @@ public sealed class BackendLifecycleTests
         ["IsCurrent"] = ("lifetime helper", null),
         ["CanRunPreprocessing"] = ("read-only property (changes nothing, starts nothing)", null),
         ["CanRunDeterministicBaseline"] = ("read-only property (changes nothing, starts nothing)", null),
-        ["CurrentCorrected"] = ("read-only property (GUI-C-232: reads the last corrected image the backend kept; changes nothing, starts nothing)", null),
         ["AiBoneSuppressionAvailability"] = ("read-only property (changes nothing, starts nothing)", null),
         ["BeginShutdown"] = ("lifecycle (starts the transition)", null),
         ["FinishShutdown"] = ("lifecycle (ends the transition)", null),

@@ -30,10 +30,10 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
     private readonly string _displayDllPath;
     private readonly BackendTelemetry _telemetry = new();
 
-    private CorrectedImage? _corrected;
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<ChainResult, CorrectedImage> _candidates = new();
 
-    /// <summary>GUI-C-232: the float image of the last Run Preprocessing that Applied, for the Save Corrected Image commands. Replaced by every preprocess run and emptied by a refused one.</summary>
-    public CorrectedImage? Corrected => Volatile.Read(ref _corrected);
+    /// <summary>GUI-C-232b: the corrected float image the given chain run produced (see <see cref="ICorrectedImageSource"/>).</summary>
+    public CorrectedImage? CorrectedFor(ChainResult chain) => _candidates.TryGetValue(chain, out var corrected) ? corrected : null;
     private BackendRuntimeInfo _runtimeInfo = new();
 
     public RealXpeBackend(RawImageLoader rawImageLoader, string commonDllPath, string displayDllPath)
@@ -296,14 +296,20 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             throw new InvalidOperationException("The pixel chain requires a loaded UInt16 raw frame.");
         }
 
+        CorrectedImage? candidate = null;
         var result = ProcessingChainRunner.Run(rawFrame.RawPixels, stages, (request, input) => request.StageId switch
         {
-            StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings, measureExposureIndex, rawFrame.RawPixels),
+            StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings, measureExposureIndex, rawFrame.RawPixels, found => candidate = found),
             StageIds.Gsvg => RunGsvgStage(input, rawFrame.Width, rawFrame.Height, settings),
             StageIds.AiBoneSuppression => RunAiStage(input, rawFrame.Width, rawFrame.Height, settings),
             StageIds.EnhanceBasic => RunEnhanceBasicStage(input, rawFrame.Width, rawFrame.Height),
             _ => new StageExecution(false, null, $"Stage '{request.StageId}' is not available in the native backend."),
         });
+
+        if (candidate is not null)
+        {
+            _candidates.Add(result, candidate);   // GUI-C-232b: attached to this run's result; nothing global is replaced
+        }
 
         foreach (var stage in result.Stages)
         {
@@ -313,7 +319,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
         return result;
     }
 
-    private StageExecution RunPreprocessStage(ushort[] input, int width, int height, AppSettings settings, bool measureExposureIndex = false, ushort[]? frameKey = null)
+    private StageExecution RunPreprocessStage(ushort[] input, int width, int height, AppSettings settings, bool measureExposureIndex = false, ushort[]? frameKey = null, Action<CorrectedImage?>? candidateSink = null)
     {
         // InvokeNative so the alert drain runs afterwards on every path (GUI-C-24), including the
         // failure paths — a stage that refuses is exactly when the queue holds something to show.
@@ -329,10 +335,10 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             settings.PixelPitchMm,
             measureExposureIndex));
 
-        // GUI-C-232: the Deterministic Baseline runs this stage with its own fixed parameters; only an ordinary run feeds the Save Corrected Image commands.
-        if (!measureExposureIndex)
+        // GUI-C-232b: the Deterministic Baseline runs this stage with its own fixed parameters; only an ordinary run offers a save candidate, and only to its own chain result.
+        if (!measureExposureIndex && result is { Ran: true, Floats: { } floats } && frameKey is not null)
         {
-            Volatile.Write(ref _corrected, result is { Ran: true, Floats: { } floats } && frameKey is not null ? new CorrectedImage(floats, width, height, frameKey) : null);
+            candidateSink?.Invoke(new CorrectedImage(floats, width, height, frameKey));
         }
 
         return BaselineStageAdapters.FromPreprocess(result.Ran, result.Pixels, result.Summary, result.NonFiniteCount);

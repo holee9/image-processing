@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using ImageProcTest.Models;
 
 namespace ImageProcTest.Services;
 
@@ -13,11 +14,14 @@ namespace ImageProcTest.Services;
 /// </summary>
 public sealed record CorrectedImage(float[] Floats, int Width, int Height, ushort[] RawKey);
 
-/// <summary>A backend that can hand out the float image its last Run Preprocessing produced.</summary>
+/// <summary>
+/// A backend that can hand out the float image a particular chain run produced. The candidate is tied to the <see cref="ProcessingChainRunner"/> result of THAT run, so a run that finishes late
+/// (an older request overtaken by a newer one) cannot replace what the newer run produced: the view model asks for the candidate of the result it commits, and only then.
+/// </summary>
 public interface ICorrectedImageSource
 {
-    /// <summary>The corrected image of the last preprocess run that Applied, or null.</summary>
-    CorrectedImage? Corrected { get; }
+    /// <summary>The corrected image the given chain run produced, or null when that run's preprocess stage did not apply (or the result is not from this backend).</summary>
+    CorrectedImage? CorrectedFor(ChainResult chain);
 }
 
 /// <summary>The result of a save: where, how big, and the SHA-256 of the bytes written (what the user compares with a reference file).</summary>
