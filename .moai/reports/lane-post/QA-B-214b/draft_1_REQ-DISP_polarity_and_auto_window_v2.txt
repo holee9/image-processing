@@ -1,0 +1,80 @@
+DRAFT 1 of 3, REVISION 2 (QA-B-214b, Refs #251) -- new requirements for SPEC-XPE-P1B-DISP. Replaces the QA-B-214 draft 1 (same name without _v2).
+What changed against revision 1: REQ-DISP-0NN-B (a), (e), (g), (i) and the limits/verification paragraphs, after Codex #167 findings 3 and 4.
+Numbers are placeholders. Source of truth for behaviour: modules/display (display_api.h, presentation_lut.cpp, voi_auto_window.cpp).
+
+------------------------------------------------------------------------------------------------------------------------
+REQ-DISP-0NN-A  (display polarity, user decision on #251)   -- unchanged from revision 1
+------------------------------------------------------------------------------------------------------------------------
+The system SHALL decide the display polarity at the Presentation LUT stage and nowhere earlier.
+
+  (a) WHEN `xpe_apply_presentation_lut` is called, the system SHALL read the 1024-entry table backwards:
+      `output[i] = lutData[1023 - index]`, with `index = clamp(round(input[i] * 1023), 0, 1023)` (REQ-DISP-020) and the input
+      clamped to [0, 1] first (REQ-DISP-021). The highest input value is therefore shown dark.
+  (b) WHEN `xpe_apply_presentation_lut_ex` is called with `XPE_PRESENTATION_INVERTED`, the system SHALL behave as in (a);
+      with `XPE_PRESENTATION_AS_IS` it SHALL apply `output[i] = lutData[index]` (the mapping of REQ-DISP-019 as it stood before
+      this requirement).
+  (c) IF `polarity` is neither value, THEN `xpe_apply_presentation_lut_ex` SHALL return `XPE_ERR_INVALID_INPUT` and leave the
+      image untouched.
+  (d) The values of every stage before the Presentation LUT SHALL keep their meaning ("a larger value is brighter" in the
+      MONOCHROME2 sense carried from the reader); `xpe_dicom_write` SHALL keep writing MONOCHROME2 with Presentation LUT Shape
+      IDENTITY, the pixel data already carrying the inversion.
+
+Rationale, amendment of REQ-DISP-019, tests, falsification, cost and CALLER RESPONSIBILITY: as in revision 1 (the MONOCHROME1
+polarity contract is deferred to the DICOM stage by the lead).
+
+------------------------------------------------------------------------------------------------------------------------
+REQ-DISP-0NN-B  (anatomy-based automatic VOI window, user decision on #251)   -- REVISED
+------------------------------------------------------------------------------------------------------------------------
+WHEN `xpe_voi_auto_window` is called with a valid float32 image and a non-NULL output, the system SHALL fill `outParams` with a
+VOI window derived from the anatomy in the image:
+
+  (a) [revised] Build a histogram of 1024 bins between the lowest and the highest value of the pixels it is built from.
+      An image of at least 2^20 pixels (kAutoWindowFullPassPixelLimit) is histogrammed from every Ns-th pixel of every Ns-th row
+      (Ns = kAutoWindowSampleStride = 4); a smaller image is histogrammed from every pixel. A sample SHALL be used only if it
+      spans a value range and the pixels OUTSIDE that value range are at most 0.2 % of the image (kAutoWindowMaxUnsampledMass =
+      0.002); otherwise the system SHALL histogram every pixel of the image.
+  (b) Split the histogram into two classes with Otsu's method. The HIGH class is the background (unattenuated beam), the low
+      class is the anatomy.
+  (c) Window low = the 0.5 % quantile of the anatomy class (kAutoWindowAnatomyLowQuantile = 0.005);
+      window high = the 5 % quantile of the background class (kAutoWindowBackgroundLowQuantile = 0.05).
+  (d) Output: mode `XPE_VOI_LINEAR_EXACT`, center = (low + high) / 2, width = high - low (at least one histogram bin),
+      minOut 0.0, maxOut 1.0.
+  (e) [revised] IF either class holds under 2 % of the histogrammed pixels (kAutoWindowMinClassFraction = 0.02), OR the Otsu
+      separability (between-class variance / total variance) is under 0.75 (kAutoWindowMinSeparability = 0.75), THEN the window
+      SHALL be the 1 % .. 99 % quantile range of the histogram of EVERY pixel of the image (to the resolution of one bin, 0.1 %
+      of the value range) -- a fallback reached from a sample SHALL be recomputed from every pixel before it is used -- and ONE
+      Info alert "VOI auto window: <reason> -- the whole-image 1%..99% window was used instead of an anatomy window" SHALL be
+      posted.
+  (f) IF the image is flat (maximum == minimum) THEN center = that value, width = 1.0, with the same Info alert.
+  (g) [revised] IF `img` or `outParams` is NULL, `img->data` is NULL, the image is empty or its dataSize is inconsistent, THEN
+      `XPE_ERR_INVALID_INPUT`; IF `img->format` is not float32, THEN `XPE_ERR_UNSUPPORTED_FORMAT`; IF any pixel is NaN or
+      infinite, THEN `XPE_ERR_INVALID_INPUT`; IF the window cannot be held as a float -- its center or width is beyond FLT_MAX
+      in magnitude (two finite classes at -FLT_MAX and +FLT_MAX span 2 * FLT_MAX) or its width is not above zero as a float --
+      THEN `XPE_ERR_INVALID_INPUT`. In every error case `outParams` SHALL be untouched. On `XPE_OK` the center and the width
+      SHALL be finite floats and the width SHALL be positive.
+  (h) The window SHALL be derived from the values that reach the VOI stage, in whatever domain they are in.
+  (i) [new] The user-visible behaviour of (a) is a statistical guarantee on a REPRESENTATIVE sample and an exact one on
+      everything else: the pixels the sample cannot see are bounded by 0.2 % of the image, and above that bound the whole image
+      is read. (The 0.2 % lies under the lowest quantile the method reads, 0.5 %.)
+
+Proposed performance requirement (the lead decides; no budget existed): <= 16 ms for 3072 x 3072, the interactive budget of
+REQ-DISP-016. Measured (local, shared machine, 21 repetitions, QA-B-214b): about 3.8 ms for a real frame (sample trusted),
+about 11 ms when the whole image has to be histogrammed, 1.2 ms for 1000 x 1000. [revision 1 said 2.8-3.0 ms: the unsampled
+count added about 1 ms; it was 4.7 ms before it was merged into the single full pass.]
+
+Limits to state in the requirement note: (1) the background is assumed to be the HIGH end of the data (for background-low data
+the window would isolate the wrong class; a future parameter could name the side); (2) a collimator shadow (darker than the
+anatomy) is counted into the anatomy class and widens the window; (3) an image that is almost entirely anatomy with two tissue
+populations (a hand filling the frame) is split into "anatomy" and "background" among its own tissues; (4) constants were chosen
+on one real wrist frame -- QA-B-214 report section 2 and QA-B-214b report section 1 give the measurements; (5) a sample that
+the mass test trusts can still carry less than 0.2 % of unseen pixels: the quantiles move by at most that mass.
+
+Verified by (modules/display/tests/test_voi_auto_window.cpp, suite VoiAutoWindow): the nine tests of revision 1 and, new,
+CodexReproductionEightByEightKeepsTheAnatomyInsideTheWindow, TwoClassesOffTheSampleGridInALargeImageAreStillFound,
+FallbackOfTheSampleIsConfirmedOnTheWholeImage, SampleThatMissesTheLowerPartOfTheAnatomyIsNotTrusted,
+FallbackWindowOfALargeImageIsTheWholeImageQuantileRange, ClassesAtPlusAndMinusFltMaxAreRefusedNotReturnedWithInfiniteWidth,
+ExtremeFiniteRangesNeverGiveANonFiniteOrNonPositiveWindow, FlatImageOfAnExtremeValueIsStillAWindow (17 in all).
+Falsified (QA-B-214b/arms_falsification.txt): arm 4 (mass test never fires) -> SampleThatMisses... red; arm 5 (fallback not
+confirmed) -> FallbackOfTheSampleIsConfirmed... red; arm 6 (the QA-B-214 code) -> the 8x8 reproduction and three more red;
+arm 7 (float check removed) -> the two FLT_MAX tests red. From revision 1: arm 2, arm 3.
+Real frame (tests/e2e_post_pipeline harness, input m1-baseline-v2): window [1981.37, 3180.07] in the log domain.

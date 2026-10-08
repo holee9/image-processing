@@ -813,3 +813,58 @@ TEST(M2Measure, DISABLED_PresentationPolarityAB) {
                 *std::min_element(asis.begin(), asis.end()), med(asis), *std::max_element(asis.begin(), asis.end()),
                 med(inv) - med(asis));
 }
+
+// QA-B-214b: what the auto window costs on its three paths, 21 repetitions each: (1) the real frame (sampled, representative);
+// (2) a 3072 x 3072 image that sends it to the full histogram (all grid pixels one class, the rest another: the sample is not
+// representative); (3) a small image histogrammed in full (1000 x 1000, under the 2^20 pixel limit).
+TEST(M2Measure, DISABLED_AutoWindowPathsTiming_214b) {
+    const std::string inPath = env_or_empty("XPE_M2_IN");
+    ASSERT_FALSE(inPath.empty());
+    std::vector<float> input = load_input(inPath);
+    ASSERT_EQ(kPixels, input.size());
+
+    auto time_path = [](const char* label, uint32_t w, uint32_t h, const std::vector<float>& px) {
+        std::vector<double> t;
+        XpeVoiLutParams win{};
+        xpe_clear_alerts();
+        for (int r = 0; r < 21; ++r) {
+            XpeImageBuffer img{};
+            if (xpe_alloc_image(w, h, XPE_PIXEL_FLOAT32, &img) != XPE_OK) return;
+            std::memcpy(img.data, px.data(), px.size() * sizeof(float));
+            const auto t0 = std::chrono::steady_clock::now();
+            const XpeErrorCode rc = xpe_voi_auto_window(&img, &win);
+            t.push_back(ms_since(t0));
+            EXPECT_EQ(XPE_OK, rc);
+            xpe_free_image(&img);
+        }
+        std::vector<double> rest(t.begin() + 1, t.end());
+        std::sort(rest.begin(), rest.end());
+        std::printf("  (alerts posted by the 21 calls: %d)\n", xpe_get_pending_alert_count());
+        xpe_clear_alerts();
+        std::printf("  %-52s window [%.2f, %.2f]  first=%.2f min=%.2f median=%.2f max=%.2f ms\n", label,
+                    static_cast<double>(win.center - win.width / 2), static_cast<double>(win.center + win.width / 2), t[0],
+                    rest.front(), rest[rest.size() / 2], rest.back());
+    };
+    std::printf("== auto window paths (3 s each at most), 21 repetitions ==\n");
+    time_path("real frame, linear ADU (sampled, representative)", kDim, kDim, input);
+    std::vector<float> logImg(kPixels);
+    for (size_t i = 0; i < kPixels; ++i) logImg[i] = static_cast<float>(1000.0 * std::log10(static_cast<double>(std::max(0.0f, input[i])) + 1.0));
+    time_path("real frame, log domain (the VOI input of the chain)", kDim, kDim, logImg);
+
+    // image that is not representative: grid pixels one value, everything else two clear classes
+    uint64_t s = 99;
+    auto next = [&s]() { s = s * 6364136223846793005ULL + 1442695040888963407ULL; return static_cast<double>(s >> 11) / 9007199254740992.0; };
+    std::vector<float> off(kPixels);
+    for (uint32_t y = 0; y < kDim; ++y) {
+        for (uint32_t x = 0; x < kDim; ++x) {
+            const bool grid = (x % 4 == 0 && y % 4 == 0);
+            const double c = next(), u = next();
+            off[static_cast<size_t>(y) * kDim + x] = grid ? 3000.0f : (c < 0.15 ? static_cast<float>(1000.0 + 1000.0 * u) : static_cast<float>(2900.0 + 100.0 * u));
+        }
+    }
+    time_path("3072x3072 not representative (sample + full pass)", kDim, kDim, off);
+
+    std::vector<float> smallImg(1000 * 1000);
+    for (size_t i = 0; i < smallImg.size(); ++i) smallImg[i] = off[i * 9 + 1];
+    time_path("1000x1000 (below the 2^20 limit: full histogram)", 1000, 1000, smallImg);
+}
