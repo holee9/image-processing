@@ -226,8 +226,12 @@ namespace {
             // Codex #157: not only the same pointer -- any shared byte between the input buffer (as the caller declares it) and the
             // bytes the result will occupy. The result written over part of the input would destroy it (and memcpy of overlapping
             // ranges is undefined). Nothing has been read or written yet.
-            if (ranges_overlap(img->data, img->dataSize, out->data, outputBytes)) return XPE_ERR_INVALID_INPUT;
+            // QA-A-246b: the size is judged BEFORE the overlap. The overlap below is taken over the bytes the result WOULD occupy, so for
+            // an output buffer that is too small it depends on where the allocator put it relative to the input: a small buffer placed
+            // just before the input made the required float range overlap the input and the call said INVALID_INPUT instead of
+            // BUFFER_TOO_SMALL (5 of 60 runs of the same test). A buffer that cannot hold the result is refused for that reason first.
             if (out->dataSize < outputBytes) return XPE_ERR_BUFFER_TOO_SMALL;
+            if (ranges_overlap(img->data, img->dataSize, out->data, outputBytes)) return XPE_ERR_INVALID_INPUT;
         } else if (img->dataSize < outputBytes) {
             return XPE_ERR_BUFFER_TOO_SMALL;
         }
