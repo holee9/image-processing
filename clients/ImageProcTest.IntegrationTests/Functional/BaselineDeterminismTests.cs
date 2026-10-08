@@ -92,12 +92,13 @@ public sealed class BaselineDeterminismTests
     }
 
     [Fact]
-    public void TheLogNormFactor_MapsTheSixteenBitFullScaleToTheFullScale()
+    public void TheLogNormFactor_IsTheVerifiedModuleChainsValue_1000()
     {
-        // normFactor * log10(x + 1) at x = 65535, the formula xpe_log_transform documents.
-        var top = BaselineParameters.LogNormFactor * Math.Log10(65535.0 + 1.0);
-        Assert.InRange(top, 65534.9, 65535.1);
-        Assert.InRange(BaselineParameters.LogNormFactor, 13606.0, 13607.0);
+        // GUI-C-234 (leader decision): this used to pin 65535 / log10(65536) (about 13606), "the 16-bit full scale maps to the full scale" - an assumption of GUI-C-196 with no basis in any specification.
+        // The chain the second stage judged (QA-B-213, m2-post-v2/05) and the module's end-to-end test use 1000, and the later stages' parameters were validated in that log domain; the app has to equal that
+        // chain. The value is pinned so a change is a decision, not an edit. xpe_log_transform documents normFactor * log10(x + 1): at the 16-bit full scale that is about 4800 now, not 65535.
+        Assert.Equal(1000.0f, BaselineParameters.LogNormFactor);
+        Assert.InRange(BaselineParameters.LogNormFactor * Math.Log10(65535.0 + 1.0), 4800.0, 4820.0);
     }
 
     [Fact]

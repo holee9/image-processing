@@ -220,8 +220,9 @@ public sealed class EnhanceBasicStageTests
     public void TheEnhanceStage_IsWiredIntoTheRealBackend_TheResolver_AndRefusedByTheMock()
     {
         var real = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/Services/RealXpeBackend.cs"));
-        Assert.Contains("StageIds.EnhanceBasic => RunEnhanceBasicStage(input, rawFrame.Width, rawFrame.Height),", real, StringComparison.Ordinal);
-        Assert.Contains("EnhanceBasicStage.Run(input, width, height, new Native.NativeEnhanceBasicBackend())", real, StringComparison.Ordinal);
+        // GUI-C-234: the ordinary chain hands the enhance stage the preprocess stage's corrected float image (the Baseline passes none, measureExposureIndex), so the call has a third argument now.
+        Assert.Contains("StageIds.EnhanceBasic => RunEnhanceBasicStage(input, rawFrame.Width, rawFrame.Height, !measureExposureIndex && candidate is not null ? candidate.Floats : null),", real, StringComparison.Ordinal);
+        Assert.Contains("EnhanceBasicStage.Run(input, width, height, new Native.NativeEnhanceBasicBackend(), floatInput)", real, StringComparison.Ordinal);
 
         var resolver = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/Services/Native/GuiNativeLibraryResolver.cs"));
         Assert.Contains("_ when Is(libraryName, EnhanceBasicDll) => NativeModuleLibraryLocator.GetDllCandidates(EnhanceBasicDll, \"image-processing\")", resolver, StringComparison.Ordinal);
