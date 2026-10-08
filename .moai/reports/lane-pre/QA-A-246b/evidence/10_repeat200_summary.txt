@@ -1,0 +1,5 @@
+command: xpe_preprocess_tests.exe --gtest_filter="A241Safety.*:A246*" --gtest_repeat=200 (full log not kept: 15k lines)
+repeats that ended with '[  PASSED  ]': 200
+lines with '[  FAILED  ] A': 0
+Repeating all tests (iteration 200) . . .
+      8 [==========] 22 tests from 2 test suites ran. (250 ms total)
