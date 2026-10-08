@@ -565,3 +565,181 @@ TEST(M2Measure, DISABLED_Leak100_P6) {
     }
     leak_verdict("control: 1 MiB/frame injected", ctl);
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// QA-B-213b (P8): why the result does not look like a diagnostic image. Dumps float stage outputs for the offline CLAHE
+// analysis and renders the USM output through the product's VOI + Presentation functions with different windows/polarity.
+// ---------------------------------------------------------------------------------------------------------------------
+namespace {
+
+bool write_f32(const std::string& path, const std::vector<float>& v) {
+    return write_file(path, v.data(), v.size() * sizeof(float));
+}
+
+// Otsu threshold of the values, 4096 bins between min and max; returns the threshold value.
+float otsu_threshold(const std::vector<float>& v) {
+    const Stats s = compute_stats(v.data(), v.size());
+    const double lo = s.minv, span = (s.maxv > s.minv) ? s.maxv - s.minv : 1.0;
+    std::vector<double> h(4096, 0.0);
+    for (const float x : v) {
+        const int b = std::min(4095, std::max(0, static_cast<int>((static_cast<double>(x) - lo) / span * 4095.0)));
+        h[static_cast<size_t>(b)] += 1.0;
+    }
+    const double total = static_cast<double>(v.size());
+    double sumAll = 0;
+    for (int i = 0; i < 4096; ++i) sumAll += static_cast<double>(i) * h[static_cast<size_t>(i)];
+    double wB = 0, sumB = 0, best = -1;
+    int bestI = 0;
+    for (int i = 0; i < 4096; ++i) {
+        wB += h[static_cast<size_t>(i)];
+        if (wB == 0) continue;
+        const double wF = total - wB;
+        if (wF == 0) break;
+        sumB += static_cast<double>(i) * h[static_cast<size_t>(i)];
+        const double mB = sumB / wB, mF = (sumAll - sumB) / wF;
+        const double between = wB * wF * (mB - mF) * (mB - mF);
+        if (between > best) { best = between; bestI = i; }
+    }
+    return static_cast<float>(lo + span * static_cast<double>(bestI) / 4095.0);
+}
+
+// Renders `usm` through Modality(identity) -> VOI(LINEAR, [0,1]) -> Presentation(ramp, ascending or descending).
+std::vector<uint16_t> render_variant(const std::vector<float>& usm, float center, float width, float outMax,
+                                     bool descending, XpeVoiLutMode mode = XPE_VOI_LINEAR) {
+    ChainParams p = make_params();
+    if (descending) {
+        for (int i = 0; i < 1024; ++i) p.pres.lutData[i] = static_cast<uint16_t>(65535u - p.pres.lutData[i]);
+    }
+    p.voi = XpeVoiLutParams{mode, center, width, 0.0f, outMax};
+    XpeImageBuffer w = alloc_f32();
+    std::memcpy(w.data, usm.data(), kPixels * sizeof(float));
+    EXPECT_EQ(XPE_OK, run_stage(4, w, p));
+    EXPECT_EQ(XPE_OK, run_stage(5, w, p));
+    EXPECT_EQ(XPE_OK, run_stage(6, w, p));
+    const uint16_t* u = static_cast<const uint16_t*>(w.data);
+    std::vector<uint16_t> out(u, u + kPixels);
+    xpe_free_image(&w);
+    return out;
+}
+
+void report_variant(const char* name, const std::vector<uint16_t>& out, const std::vector<uint8_t>& anat,
+                    const std::string& outDir, double center, double width) {
+    std::vector<uint32_t> h(65536, 0);
+    size_t n = 0, at0 = 0, atMax = 0, all0 = 0, allMax = 0;
+    for (size_t i = 0; i < kPixels; ++i) {
+        if (out[i] == 0) ++all0;
+        if (out[i] == 65535) ++allMax;
+        if (!anat[i]) continue;
+        ++h[out[i]];
+        ++n;
+        if (out[i] == 0) ++at0;
+        if (out[i] == 65535) ++atMax;
+    }
+    auto pct = [&](double q) {
+        const size_t target = static_cast<size_t>(q * static_cast<double>(n));
+        size_t c = 0;
+        for (size_t v = 0; v < 65536; ++v) { c += h[v]; if (c > target) return static_cast<int>(v); }
+        return 65535;
+    };
+    std::printf("  [%s] window center=%.4f width=%.4f | anatomy pixels (n=%zu): output p05=%d p50=%d p95=%d spread(p95-p05)=%d "
+                "at0=%.2f%% at65535=%.2f%% | whole image at0=%.2f%% at65535=%.2f%%\n",
+                name, center, width, n, pct(0.05), pct(0.50), pct(0.95), pct(0.95) - pct(0.05),
+                100.0 * static_cast<double>(at0) / static_cast<double>(n),
+                100.0 * static_cast<double>(atMax) / static_cast<double>(n),
+                100.0 * static_cast<double>(all0) / static_cast<double>(kPixels),
+                100.0 * static_cast<double>(allMax) / static_cast<double>(kPixels));
+    char f[96];
+    std::snprintf(f, sizeof(f), "/p8_%s.u16", name);
+    EXPECT_TRUE(write_file(outDir + f, out.data(), out.size() * sizeof(uint16_t)));
+}
+
+}  // namespace
+
+TEST(M2Measure, DISABLED_Variants_P8) {
+    const std::string inPath = env_or_empty("XPE_M2_IN");
+    const std::string outDir = env_or_empty("XPE_M2_OUT");
+    ASSERT_FALSE(inPath.empty());
+    ASSERT_FALSE(outDir.empty());
+    std::vector<float> input = load_input(inPath);
+    ASSERT_EQ(kPixels, input.size());
+    const ChainParams p = make_params();
+
+    // chain to USM, dumping the float stage outputs (log domain: 1000*log10(ADU+1))
+    std::vector<float> noiseOut, claheOut, usmOut;
+    XpeImageBuffer img = alloc_f32();
+    std::memcpy(img.data, input.data(), kPixels * sizeof(float));
+    for (int s = 0; s < 4; ++s) {
+        ASSERT_EQ(XPE_OK, run_stage(s, img, p));
+        std::vector<float>* dst = (s == 1) ? &noiseOut : (s == 2) ? &claheOut : (s == 3) ? &usmOut : nullptr;
+        if (dst) dst->assign(f32(img), f32(img) + kPixels);
+    }
+    xpe_free_image(&img);
+    ASSERT_TRUE(write_f32(outDir + "/f_noise_out.f32", noiseOut));
+    ASSERT_TRUE(write_f32(outDir + "/f_clahe_out.f32", claheOut));
+    ASSERT_TRUE(write_f32(outDir + "/f_usm_out.f32", usmOut));
+
+    // CLAHE variants on the same CLAHE input (the noise output), for the offline band analysis
+    const XpeClaheParams variants[3] = {{1.0f, 8, 8}, {3.0f, 16, 16}, {3.0f, 4, 4}};
+    const char* const vnames[3] = {"f_clahe_clip1_8x8.f32", "f_clahe_clip3_16x16.f32", "f_clahe_clip3_4x4.f32"};
+    for (int v = 0; v < 3; ++v) {
+        XpeImageBuffer c = alloc_f32();
+        std::memcpy(c.data, noiseOut.data(), kPixels * sizeof(float));
+        const XpeErrorCode rc = xpe_contrast_enhance(&c, &variants[v]);
+        std::printf("  CLAHE variant clip=%.1f tiles=%dx%d rc=%d\n", static_cast<double>(variants[v].clip_limit),
+                    variants[v].tile_width, variants[v].tile_height, static_cast<int>(rc));
+        ASSERT_EQ(XPE_OK, rc);
+        ASSERT_TRUE(write_f32(outDir + "/" + vnames[v], std::vector<float>(f32(c), f32(c) + kPixels)));
+        xpe_free_image(&c);
+    }
+
+    // anatomy mask: Otsu split of the USM output, anatomy = the darker (more attenuating) class
+    const float thr = otsu_threshold(usmOut);
+    std::vector<uint8_t> anat(kPixels);
+    std::vector<float> anatVals;
+    for (size_t i = 0; i < kPixels; ++i) {
+        anat[i] = usmOut[i] < thr ? 1 : 0;
+        if (anat[i]) anatVals.push_back(usmOut[i]);
+    }
+    const Stats sa = compute_stats(anatVals.data(), anatVals.size());
+    std::printf("== P8 variants ==\n  Otsu threshold (log domain)=%.4f anatomy fraction=%.2f%% anatomy values: min=%.2f p01=%.4f p99=%.4f max=%.2f\n",
+                static_cast<double>(thr), 100.0 * static_cast<double>(anatVals.size()) / static_cast<double>(kPixels),
+                sa.minv, sa.p01, sa.p99, sa.maxv);
+    {
+        std::vector<uint16_t> m(kPixels);
+        for (size_t i = 0; i < kPixels; ++i) m[i] = anat[i] ? 65535 : 0;
+        ASSERT_TRUE(write_file(outDir + "/p8_anatomy_mask.u16", m.data(), m.size() * sizeof(uint16_t)));
+    }
+    const Stats sw = compute_stats(usmOut.data(), kPixels);
+    const float wc = static_cast<float>((sw.p01 + sw.p99) * 0.5), ww = static_cast<float>(sw.p99 - sw.p01);
+    const float ac = static_cast<float>((sa.p01 + sa.p99) * 0.5), aw = static_cast<float>(sa.p99 - sa.p01);
+
+    const auto v1 = render_variant(usmOut, wc, ww, 1.0f, false);
+    const auto v2 = render_variant(usmOut, wc, ww, 1.0f, true);
+    report_variant("v1_whole_p01p99_ascending", v1, anat, outDir, wc, ww);
+    report_variant("v2_whole_p01p99_descending_LUT", v2, anat, outDir, wc, ww);
+    size_t mism = 0;
+    for (size_t i = 0; i < kPixels; ++i) mism += (v2[i] != static_cast<uint16_t>(65535u - v1[i])) ? 1u : 0u;
+    std::printf("  control: descending Presentation LUT vs 65535 - ascending output, differing pixels = %zu\n", mism);
+
+    XpeVoiLutParams preset{};
+    ASSERT_EQ(XPE_OK, xpe_voi_preset_create(&preset, XPE_BODY_BONE));
+    std::printf("  preset XPE_BODY_BONE: mode=%d center=%.1f width=%.1f minOut=%.1f maxOut=%.1f\n",
+                static_cast<int>(preset.mode), static_cast<double>(preset.center), static_cast<double>(preset.width),
+                static_cast<double>(preset.minOut), static_cast<double>(preset.maxOut));
+    report_variant("v3a_preset_verbatim_out0_255_descending", render_variant(usmOut, preset.center, preset.width, preset.maxOut, true, preset.mode), anat, outDir, preset.center, preset.width);
+    report_variant("v3b_preset_window_out0_1_descending", render_variant(usmOut, preset.center, preset.width, 1.0f, true, preset.mode), anat, outDir, preset.center, preset.width);
+    report_variant("v4_anatomy_p01p99_descending", render_variant(usmOut, ac, aw, 1.0f, true), anat, outDir, ac, aw);
+    report_variant("v5_anatomy_p01p99_ascending", render_variant(usmOut, ac, aw, 1.0f, false), anat, outDir, ac, aw);
+
+    // v6: undo the log first (xpe_log_inverse), so the preset window really is in the detector DN domain REQ-DISP-017 names
+    {
+        XpeImageBuffer li = alloc_f32();
+        std::memcpy(li.data, usmOut.data(), kPixels * sizeof(float));
+        ASSERT_EQ(XPE_OK, xpe_log_inverse(&li, kLogNorm));
+        const std::vector<float> dn(f32(li), f32(li) + kPixels);
+        xpe_free_image(&li);
+        const Stats sd = compute_stats(dn.data(), kPixels);
+        std::printf("  after xpe_log_inverse(USM output): min=%.2f max=%.2f p01=%.2f p99=%.2f (DN domain)\n", sd.minv, sd.maxv, sd.p01, sd.p99);
+        report_variant("v6_log_inverse_then_preset_window_out0_1_descending", render_variant(dn, preset.center, preset.width, 1.0f, true, preset.mode), anat, outDir, preset.center, preset.width);
+    }
+}
