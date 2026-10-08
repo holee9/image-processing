@@ -264,7 +264,7 @@ public sealed class PreprocessCorrectionChainSmokeTests
     /// A DEFECT XCal file for <see cref="DefectPixels"/>: the 152-byte header of xcal_format.h (magic, version 1, type DEFECT, UINT8_MASK, 16x16, no expiry, empty session,
     /// no config, payload 256 bytes, SHA-256 of config||payload) and the mask. Written here because the module has no generator for defect maps.
     /// </summary>
-    private static void WriteDefectMapFile(string path)
+    internal static void WriteDefectMapFile(string path)
     {
         var mask = new byte[PixelCount];
         foreach (var i in DefectPixels) mask[i] = 1;
