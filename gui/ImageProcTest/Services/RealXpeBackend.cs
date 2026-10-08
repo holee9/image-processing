@@ -34,6 +34,28 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
 
     private readonly System.Runtime.CompilerServices.ConditionalWeakTable<ChainResult, CorrectedImage> _candidates = new();
 
+    /// <summary>
+    /// GUI-C-234: the float image the enhance stage ended with (before its one rounding to 16 bits), kept for the display stage. The chain runner CLONES every array between stages, so the link cannot be the
+    /// array's identity: the display stage uses these floats only when its 16-bit input is exactly their rounding (<see cref="IsRoundedFrom"/>), which also protects against overlapping runs.
+    /// </summary>
+    private float[]? _lastEnhanceFloats;
+
+    /// <summary>True when <paramref name="pixels"/> is, element for element, what the enhance stage's final conversion (round half to even, clamped to 0..65535) makes of <paramref name="floats"/>.</summary>
+    private static bool IsRoundedFrom(ushort[] pixels, float[] floats, int count)
+    {
+        for (var i = 0; i < count; i++)
+        {
+            var rounded = MathF.Round(floats[i], MidpointRounding.ToEven);
+            var expected = rounded < 0f ? (ushort)0 : rounded > ushort.MaxValue ? ushort.MaxValue : (ushort)rounded;
+            if (pixels[i] != expected)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /// <summary>GUI-C-232b: the corrected float image the given chain run produced (see <see cref="ICorrectedImageSource"/>).</summary>
     public CorrectedImage? CorrectedFor(ChainResult chain) => _candidates.TryGetValue(chain, out var corrected) ? corrected : null;
     private BackendRuntimeInfo _runtimeInfo = new();
@@ -133,10 +155,20 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
                 "xpe_alloc_image");
             allocated = true;
 
-            var floatPixels = new float[count];
-            for (var i = 0; i < count; i++)
+            // GUI-C-234: when the chain's last stage was the enhancement, window ITS float image (the module chain's), not the copy rounded to 16 bits.
+            float[] floatPixels;
+            var chainFloats = Volatile.Read(ref _lastEnhanceFloats);
+            if (chainFloats is not null && chainFloats.Length == count && IsRoundedFrom(displayInput, chainFloats, count))
             {
-                floatPixels[i] = displayInput[i];
+                floatPixels = chainFloats;
+            }
+            else
+            {
+                floatPixels = new float[count];
+                for (var i = 0; i < count; i++)
+                {
+                    floatPixels[i] = displayInput[i];
+                }
             }
 
             Marshal.Copy(floatPixels, 0, image.Data, count);
@@ -313,7 +345,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings, measureExposureIndex, rawFrame.RawPixels, found => candidate = found),
             StageIds.Gsvg => RunGsvgStage(input, rawFrame.Width, rawFrame.Height, settings),
             StageIds.AiBoneSuppression => RunAiStage(input, rawFrame.Width, rawFrame.Height, settings),
-            StageIds.EnhanceBasic => RunEnhanceBasicStage(input, rawFrame.Width, rawFrame.Height),
+            StageIds.EnhanceBasic => RunEnhanceBasicStage(input, rawFrame.Width, rawFrame.Height, !measureExposureIndex && candidate is not null ? candidate.Floats : null),   // BuildStages puts enhance right after preprocess, so a preprocess that applied is its input
             _ => new StageExecution(false, null, $"Stage '{request.StageId}' is not available in the native backend."),
         });
 
@@ -391,10 +423,16 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
     /// #225 row 9 (GUI-C-196 M2): the basic enhancement stage of the Deterministic Baseline. InvokeNative so the alert drain runs afterwards on every path,
     /// as for the other stages. All of the stage's rules (one float image, one conversion back, all-or-nothing) are in <see cref="EnhanceBasicStage"/>.
     /// </summary>
-    private StageExecution RunEnhanceBasicStage(ushort[] input, int width, int height)
+    private StageExecution RunEnhanceBasicStage(ushort[] input, int width, int height, float[]? floatInput = null)
     {
-        var result = InvokeNative(() => EnhanceBasicStage.Run(input, width, height, new Native.NativeEnhanceBasicBackend()));
-        return BaselineStageAdapters.FromEnhance(result);
+        var result = InvokeNative(() => EnhanceBasicStage.Run(input, width, height, new Native.NativeEnhanceBasicBackend(), floatInput));
+        var execution = BaselineStageAdapters.FromEnhance(result);
+        if (result is { Ran: true, Floats: { } floats })
+        {
+            Volatile.Write(ref _lastEnhanceFloats, floats);   // GUI-C-234: for the display stage (checked against its input there)
+        }
+
+        return execution;
     }
 
     /// <summary>

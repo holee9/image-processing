@@ -370,6 +370,8 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             Assert.True(voi.Success, "the display summary does not say that the window is automatic");
             output.WriteLine($"   automatic window: C={voi.Groups["c"].Value} W={voi.Groups["w"].Value}");
 
+            var keep = Environment.GetEnvironmentVariable("XPE_C234_KEEP_DUMP");   // GUI-C-234: keep the drawn frame for the comparison with the module chain
+            if (!string.IsNullOrEmpty(keep)) File.Copy(dump, keep, overwrite: true);
             var bytes = File.ReadAllBytes(dump);
             var headerEnd = Array.IndexOf(bytes, (byte)'\n');
             var header = System.Text.Encoding.ASCII.GetString(bytes, 0, headerEnd).Split(' ');

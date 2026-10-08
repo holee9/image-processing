@@ -33,10 +33,13 @@ internal interface IEnhanceImage : IDisposable
 internal interface IEnhanceBasicBackend
 {
     IEnhanceImage Open(ushort[] input, int width, int height);
+
+    /// <summary>GUI-C-234: opens the working image from float values (the corrected image the preprocess stage made, before its 16-bit scaling). A backend that cannot says so; the stage then uses the 16-bit input.</summary>
+    IEnhanceImage OpenFloats(float[] input, int width, int height) => throw new NotSupportedException("this backend opens 16-bit input only");
 }
 
 /// <summary>What the stage did: the pixels when it ran, the one-line account either way, and the non-finite count the baseline's verdict needs.</summary>
-internal sealed record EnhanceBasicResult(bool Ran, ushort[]? Pixels, string Summary, long NaNInfCount);
+internal sealed record EnhanceBasicResult(bool Ran, ushort[]? Pixels, string Summary, long NaNInfCount, float[]? Floats = null);
 
 /// <summary>
 /// The <c>enhance_basic</c> stage (design D2/D5): log transform, noise reduction, contrast enhancement and edge enhancement, in that order, on ONE float32
@@ -50,7 +53,12 @@ internal sealed record EnhanceBasicResult(bool Ran, ushort[]? Pixels, string Sum
 /// </summary>
 internal static class EnhanceBasicStage
 {
-    public static EnhanceBasicResult Run(ushort[] input, int width, int height, IEnhanceBasicBackend backend)
+    /// <param name="floatInput">
+    /// GUI-C-234: when given (and as long as <paramref name="input"/>), the working image is opened from these values instead of from <paramref name="input"/>. The ordinary chain passes the preprocess
+    /// stage's corrected float image so that the enhancement runs on what the module produced, not on its 16-bit rescaling (the rescaling changes the log transform); <paramref name="input"/> still
+    /// carries the length check and the fallback. The Deterministic Baseline passes none: its rule (each stage keeps its own conversion) is unchanged.
+    /// </param>
+    public static EnhanceBasicResult Run(ushort[] input, int width, int height, IEnhanceBasicBackend backend, float[]? floatInput = null)
     {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(backend);
@@ -65,7 +73,7 @@ internal static class EnhanceBasicStage
         IEnhanceImage image;
         try
         {
-            image = backend.Open(input, width, height);
+            image = floatInput is not null && floatInput.Length == input.Length ? backend.OpenFloats(floatInput, width, height) : backend.Open(input, width, height);
         }
         catch (Exception ex)
         {
@@ -138,7 +146,7 @@ internal static class EnhanceBasicStage
             }
 
             parts.Add($"to 16 bit: round-half-even, clamped below {low} above {high}");
-            return new EnhanceBasicResult(true, output, "enhance_basic: " + string.Join("; ", parts), nanInf);
+            return new EnhanceBasicResult(true, output, "enhance_basic: " + string.Join("; ", parts) + (floatInput is not null ? "; input: the corrected float image" : string.Empty), nanInf, floats);
         }
     }
 
