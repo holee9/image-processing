@@ -1,0 +1,11 @@
+@echo off
+setlocal enabledelayedexpansion
+REM QA-B-214: run every display test executable (%1 = tag for the output files, %2 = optional gtest filter). Exit codes to file.
+call "D:\workspace-github\xpe-post\.moai\reports\lane-post\QA-B-120\_env.bat"
+cd /d D:\workspace-github\xpe-post
+set FILT=%2
+if "%FILT%"=="" set FILT=*
+for %%T in (test_display_modality_lut test_display_repro_qa_b_200 test_display_logging test_display_voi_lut test_display_presentation_lut test_display_integration test_display_nonfinite_pixels test_display_datasize_overread test_display_parameter_dependency test_display_gsdf_characterization test_display_voi_auto_window) do (
+  build\ci-post\bin\%%T.exe --gtest_filter=%FILT% > build\g214-%1-%%T.txt 2>&1
+  echo %%T exit=!errorlevel! >> build\g214-%1-summary.txt
+)

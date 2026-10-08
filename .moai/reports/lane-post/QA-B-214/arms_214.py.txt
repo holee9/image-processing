@@ -1,0 +1,72 @@
+"""QA-B-214 falsification arms: mutate the product, build, run the display tests, record which go red, restore, rebuild, prove restored.
+
+arm1: the polarity is not applied (the backwards table copy becomes a plain copy)  -> polarity tests + integration 509 must go red
+arm2: the auto window always takes the fallback (whole-image 1..99 % window)       -> anatomy-window tests must go red
+arm3: the window top is the Otsu threshold (the first design)                      -> the skin-line transition test must go red
+"""
+import hashlib, os, re, shutil, subprocess, sys
+
+ROOT = r'D:/workspace-github/xpe-post'
+OUT = ROOT + '/.moai/reports/lane-post/QA-B-214'
+os.chdir(ROOT)
+
+
+def sha(p):
+    return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+
+
+def sh(cmd):
+    return subprocess.run(cmd, shell=True, capture_output=True, text=True)
+
+
+def build():
+    sh('cmd.exe /c ".moai\\reports\\lane-post\\QA-B-214\\_build.bat build\\g214-arm-build.txt"')
+    tail = open('build/g214-arm-build.txt', encoding='utf-8', errors='replace').read()
+    m = re.findall(r'===BUILD=(\d+)===', tail)
+    return m[-1] if m else '?'
+
+
+def run_tests(tag):
+    summary = 'build/g214-%s-summary.txt' % tag
+    if os.path.exists(summary):
+        os.remove(summary)
+    sh('cmd.exe /c ".moai\\reports\\lane-post\\QA-B-214\\_rundisp.bat %s"' % tag)
+    failed = set()
+    for exe in ['test_display_presentation_lut', 'test_display_integration', 'test_display_voi_auto_window', 'test_display_repro_qa_b_200']:
+        t = open('build/g214-%s-%s.txt' % (tag, exe), encoding='utf-8', errors='replace').read()
+        for l in t.splitlines():
+            if l.startswith('[  FAILED  ]') and l.rstrip().endswith('ms)'):
+                failed.add(re.sub(r' \(\d+ ms\)$', '', l[len('[  FAILED  ] '):]))
+    return sorted(failed)
+
+
+arms = [
+    ('arm1_polarity_not_applied', 'modules/display/src/presentation_lut.cpp',
+     '(polarity == XPE_PRESENTATION_INVERTED) ? params->lutData[1023 - i] : params->lutData[i];',
+     'params->lutData[i];'),
+    ('arm2_auto_window_always_fallback', 'modules/display/src/voi_auto_window.cpp',
+     'if (best < 0.0 || fracBelow < kAutoWindowMinClassFraction',
+     'if (sampled > 0 || best < 0.0 || fracBelow < kAutoWindowMinClassFraction'),
+    ('arm3_window_top_at_the_otsu_threshold', 'modules/display/src/voi_auto_window.cpp',
+     'winHi = histogram_quantile(hist, bestBin + 1, kBins - 1, kAutoWindowBackgroundLowQuantile, lod, binWidth);',
+     'winHi = lod + binWidth * static_cast<double>(bestBin + 1);'),
+]
+report = []
+for name, path, old, new in arms:
+    orig = open(path, 'rb').read()
+    h0 = sha(path)
+    text = orig.decode('utf-8')
+    assert text.count(old) == 1, (name, text.count(old))
+    open(path, 'wb').write(text.replace(old, new).encode('utf-8'))
+    try:
+        rc = build()
+        failed = run_tests('arm') if rc == '0' else ['BUILD FAILED rc=' + rc]
+    finally:
+        open(path, 'wb').write(orig)
+    report.append('== %s\n   mutation in %s:\n     - %s\n     + %s\n   build rc=%s\n   tests red (%d): %s\n' % (name, path, old, new, rc, len(failed), '; '.join(failed)))
+    report.append('   file restored: sha256 before=%s after=%s identical=%s\n' % (h0, sha(path), h0 == sha(path)))
+rc = build()
+tests = run_tests('restored')
+report.append('== restored tree: build rc=%s, tests red: %d %s\n' % (rc, len(tests), tests))
+open(OUT + '/arms_falsification.txt', 'w', encoding='utf-8', newline='\n').write('\n'.join(report))
+print('\n'.join(report))

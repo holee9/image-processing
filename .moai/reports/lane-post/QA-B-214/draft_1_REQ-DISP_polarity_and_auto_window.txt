@@ -1,0 +1,78 @@
+DRAFT 1 of 3 (QA-B-214, Refs #251) -- new requirements for SPEC-XPE-P1B-DISP. For the lead to move into spec.md; numbers are placeholders.
+Source of truth for behaviour: modules/display (display_api.h, presentation_lut.cpp, voi_auto_window.cpp) and the tests named under "Verified by".
+
+------------------------------------------------------------------------------------------------------------------------
+REQ-DISP-0NN-A  (display polarity, user decision on #251)
+------------------------------------------------------------------------------------------------------------------------
+The system SHALL decide the display polarity at the Presentation LUT stage and nowhere earlier.
+
+  (a) WHEN `xpe_apply_presentation_lut` is called, the system SHALL read the 1024-entry table backwards:
+      `output[i] = lutData[1023 - index]`, with `index = clamp(round(input[i] * 1023), 0, 1023)` (REQ-DISP-020) and the input
+      clamped to [0, 1] first (REQ-DISP-021). The highest input value is therefore shown dark.
+  (b) WHEN `xpe_apply_presentation_lut_ex` is called with `XPE_PRESENTATION_INVERTED`, the system SHALL behave as in (a);
+      with `XPE_PRESENTATION_AS_IS` it SHALL apply `output[i] = lutData[index]` (the mapping of REQ-DISP-019 as it stood before
+      this requirement).
+  (c) IF `polarity` is neither value, THEN `xpe_apply_presentation_lut_ex` SHALL return `XPE_ERR_INVALID_INPUT` and leave the
+      image untouched.
+  (d) The values of every stage before the Presentation LUT SHALL keep their meaning ("a larger value is brighter" in the
+      MONOCHROME2 sense carried from the reader); `xpe_dicom_write` SHALL keep writing MONOCHROME2 with Presentation LUT Shape
+      IDENTITY, the pixel data already carrying the inversion.
+
+Rationale: a detector linear signal rises with dose, so the unexposed background is the high end of the data and, shown as
+is, is white (QA-B-213b: polarity is specified nowhere else). Reading the table backwards is the DICOM "INVERSE" shape of
+PS3.3 C.11.6 applied to the P-Values; for a GSDF table it keeps the perceptual spacing, which `65535 - value` would not (the
+GSDF test of QA-B-214 shows the two differ). [PS3.3 C.11.6 cited from memory; not re-fetched in this session.]
+
+Amend REQ-DISP-019: add "(for `XPE_PRESENTATION_AS_IS`; the default reads the table backwards, REQ-DISP-0NN-A)".
+
+Verified by (modules/display/tests/test_presentation_lut.cpp, suite PresentationPolarity): DefaultShowsTheHighEndDark,
+DefaultIsExactlyTheInvertedForm, InvertedRampIsSixtyFiveFiveThirtyFiveMinusTheAscendingRamp, GsdfTableIsReadBackwardsNotSubtracted,
+AsIsIsTheOldAscendingMapping, UnknownPolarityIsRefusedAndTheImageIsUntouched; test_display_integration FullPipeline (509).
+Falsified: with the inversion removed 4 of these go red (.moai/reports/lane-post/QA-B-214/arms_falsification.txt, arm1).
+Cost: median difference inverted - as-is = -0.06 / +0.34 ms in alternating runs (p2_presentation_ab_run*.txt).
+
+CALLER RESPONSIBILITY (must appear in the requirement or its note): the function cannot know which end of the data is the
+background. Data whose background is already the LOW end -- MONOCHROME1 files, which `xpe_dicom_read_image` normalises to
+MONOCHROME2 sense so that bone is high -- must be presented with `XPE_PRESENTATION_AS_IS`, or they are inverted a second time.
+Callers that have their own invert switch (the operator app viewer "Invert") must not stack it on this default.
+
+------------------------------------------------------------------------------------------------------------------------
+REQ-DISP-0NN-B  (anatomy-based automatic VOI window, user decision on #251)
+------------------------------------------------------------------------------------------------------------------------
+WHEN `xpe_voi_auto_window` is called with a valid float32 image and a non-NULL output, the system SHALL fill `outParams` with a
+VOI window derived from the anatomy in the image:
+
+  (a) Take every Ns-th pixel of every Ns-th row (Ns = kAutoWindowSampleStride = 4) into a histogram of 1024 bins between the
+      image minimum and maximum.
+  (b) Split the histogram into two classes with Otsu's method. The HIGH class is the background (unattenuated beam), the low
+      class is the anatomy.
+  (c) Window low = the 0.5 % quantile of the anatomy class (kAutoWindowAnatomyLowQuantile = 0.005);
+      window high = the 5 % quantile of the background class (kAutoWindowBackgroundLowQuantile = 0.05).
+  (d) Output: mode `XPE_VOI_LINEAR_EXACT`, center = (low + high) / 2, width = high - low (at least one histogram bin),
+      minOut 0.0, maxOut 1.0.
+  (e) IF either class holds under 2 % of the sampled pixels (kAutoWindowMinClassFraction = 0.02), OR the Otsu separability
+      (between-class variance / total variance) is under 0.75 (kAutoWindowMinSeparability = 0.75), THEN the window SHALL be the
+      1 % .. 99 % quantile range of the whole image and ONE Info alert "VOI auto window: <reason> -- the whole-image 1%..99%
+      window was used instead of an anatomy window" SHALL be posted.
+  (f) IF the image is flat (maximum == minimum) THEN center = that value, width = 1.0, with the same Info alert.
+  (g) IF `img` or `outParams` is NULL, `img->data` is NULL, the image is empty or its dataSize is inconsistent, THEN
+      `XPE_ERR_INVALID_INPUT`; IF `img->format` is not float32, THEN `XPE_ERR_UNSUPPORTED_FORMAT`; IF any pixel is NaN or
+      infinite, THEN `XPE_ERR_INVALID_INPUT`. In every error case `outParams` SHALL be untouched.
+  (h) The window SHALL be derived from the values that reach the VOI stage, in whatever domain they are in.
+
+Proposed performance requirement (the lead decides; no budget existed): <= 16 ms for 3072 x 3072, the interactive budget of
+REQ-DISP-016. Measured (local, shared machine, 20 repetitions per run, 3 runs): median 2.77 .. 3.00 ms, max 4.13 ms.
+
+Limits to state in the requirement note: (1) the background is assumed to be the HIGH end of the data (see CALLER
+RESPONSIBILITY above -- for background-low data the window would isolate the wrong class; a future parameter could name the
+side); (2) a collimator shadow (darker than the anatomy) is counted into the anatomy class and widens the window; (3) an image
+that is almost entirely anatomy with two tissue populations (a hand filling the frame) is split into "anatomy" and "background"
+among its own tissues; (4) constants were chosen on one real wrist frame -- report.md section 3 gives the measurements.
+
+Verified by (modules/display/tests/test_voi_auto_window.cpp, suite VoiAutoWindow): BimodalImageGivesTheAnatomyWindow,
+WindowEndsMapToTheEndsOfTheOutputRange, TissueToAirTransitionStaysInsideTheWindow,
+UnimodalImageFallsBackToTheWholeImageWindowWithAnInfoAlert, TinyClassFallsBackToTheWholeImageWindow,
+FlatImageGivesCenterAtTheValueAndWidthOne, SameImageGivesTheSameWindowTwice, RejectsBadArgumentsAndLeavesOutParamsUntouched,
+NonFinitePixelAnywhereIsRefused. Falsified: arm2 (always whole-image window) -> BimodalImageGivesTheAnatomyWindow red; arm3 (top at
+the Otsu threshold) -> BimodalImageGivesTheAnatomyWindow and TissueToAirTransitionStaysInsideTheWindow red.
+Real frame (tests/e2e_post_pipeline harness, input m1-baseline-v2): window [1981.34, 3179.77] in the log domain.

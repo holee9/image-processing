@@ -1,0 +1,17 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = M2Measure.DISABLED_PresentationPolarityAB
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from M2Measure
+[ RUN      ] M2Measure.DISABLED_PresentationPolarityAB
+== presentation polarity A/B, 30 alternating rounds, 3072x3072 ==
+  inverted: min=22.53 median=23.99 max=26.84 ms
+  as-is   : min=22.66 median=23.66 max=28.20 ms
+  median difference inverted - as-is = 0.34 ms
+[       OK ] M2Measure.DISABLED_PresentationPolarityAB (2079 ms)
+[----------] 1 test from M2Measure (2080 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2088 ms total)
+[  PASSED  ] 1 test.
+===EXIT=0===
