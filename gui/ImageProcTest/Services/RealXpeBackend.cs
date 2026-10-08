@@ -204,7 +204,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
 
             var processedPreview = CreatePreview(processedPixels, rawFrame.Width, rawFrame.Height);
             previewMs = phase.Elapsed.TotalMilliseconds;
-            var summary = $"CalibrationEval({BuildCalibrationEvaluationSummary(settings)}; the preprocess result is the chain line) -> Display: Modality({modality.RescaleSlope:0.###}/{modality.RescaleIntercept:0.###}) -> VOI({NormalizeVoiMode(settings.VoiLutMode)}, C={voi.Center:0.###}, W={voi.Width:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
+            var summary = $"CalibrationEval({BuildCalibrationEvaluationSummary(settings)}; the preprocess result is the chain line) -> Display: Modality({modality.RescaleSlope:0.###}/{modality.RescaleIntercept:0.###}) -> VOI({(settings.VoiWindowAuto ? "auto, LinearExact" : NormalizeVoiMode(settings.VoiLutMode))}, C={voi.Center:0.###}, W={voi.Width:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
             AddLog(summary);
 
             return new LoadedImageFrame

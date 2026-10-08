@@ -118,6 +118,7 @@
     <section class="section">
       <h2>이 점검이 다루지 않는 것</h2>
       <ul>
+        <li>화면에 보이는 것: 영상은 모듈이 영상 자체에서(빈 배경을 뺀 해부 영역에서) 고른 창으로, 읽기용 모니터의 극성(뼈는 밝게, 공기는 어둡게)으로 그려집니다. 로그의 표시 줄에 <code>VOI(auto, LinearExact, C=…, W=…)</code> 로 남습니다. 직접 고른 창(값을 고치거나 부위 프리셋을 적용한 경우)은 자동 창보다 우선하고, <strong>Pipeline &gt; Use Automatic Window</strong> 로 자동 창으로 돌아갑니다. 5번에서 저장하는 float 파일은 창도 극성도 적용되지 않습니다. 창과 극성은 그려지는 모습만 바꿉니다.</li>
         <li>단계는 모듈의 파이프라인 함수 <code>xpe_preprocess_pipeline_out</code> 입니다. 온도 보상, 비선형, binning 은 건너뛰도록 지정하고(앱에는 온도·선형성 표·binning 설정이 없습니다) ghost 보정기는 주지 않습니다. 따라서 실행되는 단계는 offset, gain, defect 입니다(파이프라인 함수가 스스로 하는 검사는 앱이 들여다보지 않습니다). 이 함수가 생기기 전에 빌드한 DLL 에서는 아무것도 처리하지 않습니다. 체인 줄에 <code>preprocess=RequestedNotApplied</code> 와 <code>Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out (the DLL is too old). Update the native DLLs and start the app again.</code> 가 나오고, Save Corrected Image 는 흐리게 남습니다. DLL 을 갱신하십시오.</li>
         <li>단계에 주는 노출 값 일부는 고정입니다(거리 1000 mm, 2.0 mAs). 관전압과 화소 간격은 앱 설정값입니다.</li>
         <li>화면의 그림은 보정된 float 영상을 표시용으로 다시 맞춘 것(가장 밝은 값을 최대 밝기로)입니다. 저장한 float 파일은 다시 맞추지 않습니다.</li>
