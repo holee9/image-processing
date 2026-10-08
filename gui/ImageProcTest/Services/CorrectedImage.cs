@@ -39,7 +39,7 @@ public static class CorrectedImageWriter
         ArgumentNullException.ThrowIfNull(floats);
         var bytes = new byte[floats.Length * sizeof(float)];
         Buffer.BlockCopy(floats, 0, bytes, 0, bytes.Length);
-        File.WriteAllBytes(path, bytes);
+        AtomicFile.WriteAllBytes(path, bytes);   // GUI-C-232b: temp file in the same folder, then put in place; a failed write keeps the previous file
         return new SavedFile(path, bytes.Length, Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant());
     }
 
@@ -68,12 +68,10 @@ public static class CorrectedImageWriter
         bitmap.Freeze();
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        using (var stream = File.Create(path))
-        {
-            encoder.Save(stream);
-        }
-
-        var written = File.ReadAllBytes(path);
+        using var memory = new MemoryStream();
+        encoder.Save(memory);
+        var written = memory.ToArray();
+        AtomicFile.WriteAllBytes(path, written);
         return new SavedFile(path, written.Length, Convert.ToHexString(SHA256.HashData(written)).ToLowerInvariant());
     }
 
