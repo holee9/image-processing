@@ -156,6 +156,12 @@ public sealed class MainWindowViewModel : ObservableObject
         ApplyDisplayPipelineCommand = new RelayCommand(() => _ = ApplyDisplayPipelineAsync());
         ApplyBodyPartPresetCommand = new RelayCommand(ApplyBodyPartPreset);
         RunPreprocessingCommand = new RelayCommand(RunPreprocessing);
+        UseAutomaticWindowCommand = new RelayCommand(() =>
+        {
+            Settings.VoiWindowAuto = true;
+            Log("Automatic window on.");
+            _ = ApplyDisplayPipelineAsync();
+        });
         RunAiBoneSuppressionCommand = new RelayCommand(RunAiBoneSuppression, () => AiBoneSuppressionAvailability.CanRun);
         RunDeterministicBaselineCommand = new RelayCommand(() => _ = RunDeterministicBaselineAsync());
         RestartAiSessionCommand = new RelayCommand(RestartAiSession);
@@ -507,6 +513,9 @@ public sealed class MainWindowViewModel : ObservableObject
     public RelayCommand LoadImageCommand { get; }
 
     public RelayCommand ApplyDisplayPipelineCommand { get; }
+
+    /// <summary>GUI-C-233: Pipeline &gt; Use Automatic Window: goes back to the module's anatomy-based window after a window was chosen by hand.</summary>
+    public RelayCommand UseAutomaticWindowCommand { get; }
 
     public RelayCommand ApplyBodyPartPresetCommand { get; }
 
@@ -3194,6 +3203,13 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         RefreshParametersStale();   // #171 ①
 
+        // GUI-C-233: a window the user chooses wins over the automatic one. Only this handler turns the automatic window off, so loading a settings file (which sets these values) never does.
+        if (e.PropertyName is nameof(AppSettings.VoiWindowCenter) or nameof(AppSettings.VoiWindowWidth) or nameof(AppSettings.VoiLutMode) && Settings.VoiWindowAuto)
+        {
+            Settings.VoiWindowAuto = false;
+            Log("Automatic window off: a window was chosen by hand (Pipeline > Use Automatic Window turns it back on).");
+        }
+
         // #173 (GUI-C-113): only the Candidate can go stale — the Reference never reads this value,
         // so an edit to it cannot make the Reference wrong.
         if (e.PropertyName is nameof(AppSettings.LaneBVoiWindowWidth)
@@ -3690,6 +3706,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 if (inputs.LaneBVoiWindowWidth > 0.0f)
                 {
                     candidate.VoiWindowWidth = inputs.LaneBVoiWindowWidth;
+                    candidate.VoiWindowAuto = false;   // GUI-C-233: an explicit Candidate width is a window chosen by hand
                 }
 
                 // The Candidate's own vg_denoise_k. Copied like the width above, so GuiGsvgRunner reads
