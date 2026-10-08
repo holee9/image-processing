@@ -23,6 +23,8 @@ add_executable(test_e2e_post_pipeline
     test_e2e_full_pipeline.cpp
     # #180 (QA-B-97): collimation detection -> gsvg field mask
     test_e2e_collimation_mask.cpp
+    # QA-B-213: stage-2 measurement harness (DISABLED_ tests, run by name on a real frame; changes no product code)
+    test_m2_measure.cpp
 )
 
 # Include directories for all required modules
