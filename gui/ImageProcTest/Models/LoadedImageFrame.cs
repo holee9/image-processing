@@ -30,4 +30,13 @@ public sealed class LoadedImageFrame
     public bool DisplayPipelineApplied { get; init; }
 
     public string DisplayPipelineSummary { get; init; } = string.Empty;
+
+    /// <summary>
+    /// GUI-C-233b (Codex #171): the VOI window the display stage ACTUALLY applied (for an automatic window, the numbers the module chose), or null when the backend did not report one. The HUD and the
+    /// display settings panel show this, not the settings: with the automatic window the settings' center/width were never used.
+    /// </summary>
+    public AppliedVoiWindow? AppliedVoi { get; init; }
 }
+
+/// <summary>The window one display render used: the mode name, center, width, and whether it came from the automatic window.</summary>
+public sealed record AppliedVoiWindow(string Mode, float Center, float Width, bool Automatic);

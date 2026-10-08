@@ -1,0 +1,29 @@
+== arm8_sampling_grid_back
+   mutations:
+     -         size_t i = 0; /         for (; i + 4 <= count; i += 4) { /             for (size_t k = 0; k < 4; ++k) { /                 int32_t b = static_cast<int32_t>((px[i + k] - lo) * scale); /
+     +         const size_t W = img->width, H = img->height; /         for (size_t y = 0; y < H; y += 4) { /             for (size_t x = 0; x < W; x += 4) { /                 int32_t b = static_cast<int32_t>((px[y
+     - const double total = static_cast<double>(count);
+     + const double total = static_cast<double>(((img->width + 3) / 4) * ((img->height + 3) / 4));
+   build rc=0
+   auto-window tests red (7): VoiAutoWindow.CodexRepro168GridPixelsAndTheRestHaveDifferentAnatomyDistributions; VoiAutoWindow.CodexReproductionEightByEightKeepsTheAnatomyInsideTheWindow; VoiAutoWindow.FallbackOfTheSampleIsConfirmedOnTheWholeImage; VoiAutoWindow.FourPixelPeriodicPatternIsReadInFull; VoiAutoWindow.SampleThatMissesTheLowerPartOfTheAnatomyIsNotTrusted; VoiAutoWindow.TwoClassesOffTheSampleGridInALargeImageAreStillFound; VoiAutoWindow.WindowDependsOnlyOnTheSetOfValuesNotOnTheirPositions
+   file restored: sha256 identical=True
+
+== arm9_float_check_removed
+   mutations:
+     - if (!(std::fabs(center) <= static_cast<double>(FLT_MAX)) || !(winSpan > 0.0) || !(winSpan <= static_cast<double>(FLT_MAX))) {
+     + if (!(winSpan > 0.0)) {
+     - if (!xpe_float_is_finite(res.center) || !xpe_float_is_finite(res.width) || !(res.width > 0.0f)) {
+     + if (res.width < 0.0f) {
+   build rc=0
+   auto-window tests red (2): VoiAutoWindow.ClassesAtPlusAndMinusFltMaxAreRefusedNotReturnedWithInfiniteWidth; VoiAutoWindow.ExtremeFiniteRangesNeverGiveANonFiniteOrNonPositiveWindow
+   file restored: sha256 identical=True
+
+== arm10_sub_histograms_not_added_up
+   mutations:
+     - for (int32_t b = 0; b < kBins; ++b) hist[b] = sub[0][b] + sub[1][b] + sub[2][b] + sub[3][b];
+     + for (int32_t b = 0; b < kBins; ++b) hist[b] = sub[0][b];
+   build rc=0
+   auto-window tests red (9): VoiAutoWindow.BimodalImageGivesTheAnatomyWindow; VoiAutoWindow.CodexReproductionEightByEightKeepsTheAnatomyInsideTheWindow; VoiAutoWindow.FallbackOfTheSampleIsConfirmedOnTheWholeImage; VoiAutoWindow.FallbackWindowOfALargeImageIsTheWholeImageQuantileRange; VoiAutoWindow.SampleThatMissesTheLowerPartOfTheAnatomyIsNotTrusted; VoiAutoWindow.TinyClassFallsBackToTheWholeImageWindow; VoiAutoWindow.TwoClassesOffTheSampleGridInALargeImageAreStillFound; VoiAutoWindow.UnimodalImageFallsBackToTheWholeImageWindowWithAnInfoAlert; VoiAutoWindow.WindowDependsOnlyOnTheSetOfValuesNotOnTheirPositions
+   file restored: sha256 identical=True
+
+== restored tree: build rc=0, auto-window tests red: 0 [], passed 21

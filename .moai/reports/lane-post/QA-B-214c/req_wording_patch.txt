@@ -1,0 +1,164 @@
+REQ WORDING PATCH TABLE (QA-B-214c, Refs #251) -- file / text to find / text to put, for the lead to apply as written.
+Basis: draft_1_..._v3.txt (QA-B-214c) and draft_2_REQ-DISP-017_revision_v2.txt (QA-B-214b); behaviour of commits b796ba00, 5ccb41fe, 3846b5ab.
+All paths are relative to the main repository (D:/workspace-github/image-processing). "FIND" texts were copied byte for byte from the
+files as they are today (2026-10-08); a script confirmed that each of rows 1, 2, 3, 4, 6, 7, 8, 9, 10, 11 FIND texts occurs exactly once
+in its file (row 5 and rows 12/13 anchor on text this table itself adds or on prose). Numbers: REQ-DISP-036 is the last used; this table uses 037 (auto window) and 038 (polarity).
+Status column: NOW = may be applied now; AFTER-233 = apply only when GUI-C-233 (operator-app integration) has been merged.
+
+Row  Status      File                                                                   Where
+---  ----------  ---------------------------------------------------------------------  ------------------------------------------------
+ 1   NOW         .moai/specs/SPEC-XPE-P1B-DISP/spec.md                                   REQ-DISP-017, the one paragraph starting "**REQ-DISP-017** (개정 2026-09-17"
+ 2   NOW         .moai/specs/SPEC-XPE-P1B-DISP/spec.md                                   new paragraph right AFTER the "> **임시 값의 한계.** ... 추적: #177." note block of REQ-DISP-017 (before REQ-DISP-018)
+ 3   NOW         .moai/specs/SPEC-XPE-P1B-DISP/spec.md                                   new paragraph right AFTER REQ-DISP-018 (end of section 3.2)
+ 4   NOW         .moai/specs/SPEC-XPE-P1B-DISP/spec.md                                   REQ-DISP-019, the one paragraph
+ 5   NOW         .moai/specs/SPEC-XPE-P1B-DISP/spec.md                                   new paragraph right AFTER REQ-DISP-019 (before REQ-DISP-020)
+ 6   NOW         .moai/specs/SPEC-XPE-P1B-DISP/spec.md                                   headings "### 3.2 VOI LUT ... REQ-DISP-009..018" and "### 3.3 ... REQ-DISP-019..029"
+ 7   NOW         .moai/specs/SPEC-XPE-P1B-DISP/spec.md                                   the two table rows of section 1 (lines ~43-44) and the two rows of section 6 (lines ~512-513)
+ 8   NOW         docs/post-processing/xpe/XPE-SRS-001_Software_Requirements_Specification.md   row SRS-FUNC-023 (line 63): one sentence
+ 9   NOW         docs/post-processing/xpe/XPE-SDD-002_Software_Detailed_Design.md        "**극성 처리**" paragraph (line ~1087) and the Edge Case row "| MONOCHROME1 |" (line ~1094)
+10   NOW         docs/dicom/SRS-DICOM-001_Software_Requirements_Specification.md         the writer sentence (line ~283)
+11   NOW         docs/post-processing/xpe/xray-postprocessing-prd.md                     the Photometric Interpretation table row (line ~250)
+12   AFTER-233   .moai/specs/SPEC-XPE-P1B-DISP/spec.md                                   one more sentence in the paragraph of row 2 (REQ-DISP-017a), see row 2 text
+13   NOW         docs/project/api-spec.md and .moai/project/api-spec.md                  the xpe_display section: three additions (enum, two functions); they differ today, edit both
+
+=====================================================================================================================
+ROW 1  REQ-DISP-017 (revised): the window domain is the domain of the values that reach VOI
+=====================================================================================================================
+FIND (inside the REQ-DISP-017 paragraph; nothing else of the paragraph changes):
+  window center/width values in the **detector DN domain** of the raw input as it reaches VOI (modality LUT identity: slope 1, intercept 0). Until per-body-part DN values are derived from real detector data (#151), every body part SHALL use the full 16-bit window: center=32768, width=65535.
+PUT:
+  a window for that body part, expressed in the **domain of the values that reach the VOI stage** -- the domain the pipeline of the caller has produced (the log domain of REQ-ENH-001 when `xpe_log_transform` has run, detector DN when it has not), NOT necessarily detector DN (modality LUT identity: slope 1, intercept 0). Until per-body-part windows are derived from real data (#151), every body part SHALL use `mode` LINEAR, center=32768, width=65535, minOut 0.0, maxOut 255.0.
+NOTE: the FIND begins at "window center/width values in" so the leading words "the system SHALL populate the `params` struct with " stay in front of PUT.
+Also change the sentence "(개정 2026-09-17, 사용자 결정)" to "(개정 2026-09-17, 사용자 결정; 개정 2026-10 QA-B-214, 창의 도메인)" if the lead keeps revision stamps.
+Check before applying: `#151` as cited -- `gh issue view 151` shows the title "[blocked] ... detector defaults (#148) and DICOM dimension guard (#150)", which is not the per-body-part-window work; correct the number or drop it.
+
+=====================================================================================================================
+ROW 2  REQ-DISP-017a (new): the preset is a fixed window; its output range is not the Presentation input range
+=====================================================================================================================
+FIND: (insertion point, nothing to replace) the line "> 오면 정합니다. 이 문언의 구현은 post 레인 카드 QA-B-82 입니다. 추적: #177." -- put the new paragraph after the blank line that follows it.
+PUT:
+  **REQ-DISP-017a**: A body-part preset is a fixed window for a caller that chooses one; it is meaningful only where its numbers are in the domain of the values that reach the VOI stage. Its output range (`minOut` 0, `maxOut` 255) is not the [0, 1] input range of `xpe_apply_presentation_lut` (REQ-DISP-019): a caller that feeds a preset window to the Presentation LUT SHALL set `minOut` to 0 and `maxOut` to 1 first. A window chosen from the anatomy in the image itself is provided by `xpe_voi_auto_window` (REQ-DISP-037) and needs no preset.
+
+=====================================================================================================================
+ROW 12 (AFTER-233)  one more sentence for REQ-DISP-017a -- DO NOT apply before GUI-C-233 is merged
+=====================================================================================================================
+Why held: it says the module result is the default of the PRODUCT. Until the operator app calls `xpe_voi_auto_window`, the windows
+a user sees are the viewer own presets and auto-fit, so the sentence would be untrue of the product (Codex #167/#168 agreed).
+FIND: the last sentence of the ROW 2 paragraph: "A window chosen from the anatomy in the image itself is provided by `xpe_voi_auto_window` (REQ-DISP-037) and needs no preset."
+PUT:  "A window chosen from the anatomy in the image itself is provided by `xpe_voi_auto_window` (REQ-DISP-037) and needs no preset. The body-part preset is NOT the default window: the default window of the pipeline is the one `xpe_voi_auto_window` returns."
+
+=====================================================================================================================
+ROW 3  REQ-DISP-037 (new): anatomy-based automatic VOI window
+=====================================================================================================================
+FIND: (insertion point) the end of the paragraph "**REQ-DISP-018**: IF `params` is NULL or `bodyPart` is not a recognized `XpeBodyPart` enum value, THEN `xpe_voi_preset_create` SHALL return `XPE_ERR_INVALID_INPUT`." -- add after it, one blank line between.
+PUT:
+  **REQ-DISP-037** (QA-B-214, user decision on #251): WHEN `xpe_voi_auto_window` is called with a valid float32 image and a non-NULL output, the system SHALL fill `outParams` with a VOI window derived from the anatomy in the image:
+  (a) build a histogram of 1024 bins between the lowest and the highest pixel value of the image, counting EVERY pixel (the system SHALL NOT sample);
+  (b) split the histogram into two classes with Otsu's method; the HIGH class is the background (unattenuated beam), the low class is the anatomy;
+  (c) window low = the 0.5 % quantile of the anatomy class, window high = the 5 % quantile of the background class;
+  (d) output mode `XPE_VOI_LINEAR_EXACT`, center = (low + high) / 2, width = high - low (at least one histogram bin), minOut 0.0, maxOut 1.0;
+  (e) IF either class holds under 2 % of the pixels, OR the Otsu separability (between-class variance / total variance) is under 0.75, THEN the window SHALL be the 1 % .. 99 % quantile range of the same histogram of every pixel (resolution one bin, 0.1 % of the value range) and ONE Info alert "VOI auto window: <reason> -- the whole-image 1%..99% window was used instead of an anatomy window" SHALL be posted;
+  (f) IF the image is flat (maximum == minimum) THEN center = that value and width = 1.0, with the same Info alert;
+  (g) IF `img` or `outParams` is NULL, `img->data` is NULL, the image is empty or its `dataSize` is inconsistent, THEN `XPE_ERR_INVALID_INPUT`; IF `img->format` is not float32, THEN `XPE_ERR_UNSUPPORTED_FORMAT`; IF any pixel is NaN or infinite, THEN `XPE_ERR_INVALID_INPUT`; IF the window cannot be held as a float (its center or width is beyond FLT_MAX in magnitude, or its width is not above zero as a float), THEN `XPE_ERR_INVALID_INPUT`. In every error case `outParams` SHALL be untouched; on `XPE_OK` the center and the width SHALL be finite floats and the width SHALL be positive;
+  (h) the window SHALL be derived from the values that reach the VOI stage, in whatever domain they are in;
+  (i) the window SHALL depend only on the SET of pixel values of the image, not on where the pixels are: the same pixels in any order give a bit-identical window (same DLL, same input; identity between different builds -- compiler, optimisation -- is not guaranteed, the product ships one verified DLL, QA-B-214d).
+  Limits: the background is assumed to be the HIGH end of the data; a collimator shadow (darker than the anatomy) is counted into the low class; an image that is almost entirely anatomy with two tissue populations is split among its own tissues.
+  Proposed performance (the lead decides): <= 16 ms for 3072 x 3072 (measured median 7.8 .. 8.1 ms, QA-B-214c).
+Numbers in (a)-(e) are the named constants of `modules/display/src/voi_auto_window.cpp` (kAutoWindowHistogramBins, kAutoWindowAnatomyLowQuantile, kAutoWindowBackgroundLowQuantile, kAutoWindowMinClassFraction, kAutoWindowMinSeparability, kAutoWindowFallbackLow/HighQuantile); their measurements are in .moai/reports/lane-post/QA-B-214/report.md section 2.
+
+=====================================================================================================================
+ROW 4  REQ-DISP-019: say that the mapping is the AS_IS one
+=====================================================================================================================
+FIND:
+  using the 1024-entry Presentation LUT: `index = clamp(round(input[i] * 1023), 0, 1023); output[i] = lutData[index]`.
+PUT:
+  using the 1024-entry Presentation LUT: `index = clamp(round(input[i] * 1023), 0, 1023); output[i] = lutData[index]` (the mapping of `XPE_PRESENTATION_AS_IS`; the default polarity reads the table backwards, REQ-DISP-038).
+
+=====================================================================================================================
+ROW 5  REQ-DISP-038 (new): display polarity
+=====================================================================================================================
+FIND: (insertion point) the end of the paragraph "**REQ-DISP-019**: ..." (after the ROW 4 change) -- add after it, one blank line between.
+PUT:
+  **REQ-DISP-038** (QA-B-214, user decision on #251): The system SHALL decide the display polarity at the Presentation LUT stage and nowhere earlier.
+  (a) WHEN `xpe_apply_presentation_lut` is called, the system SHALL read the 1024-entry table backwards: `output[i] = lutData[1023 - index]`, with `index` and the input clamping as in REQ-DISP-019 and REQ-DISP-021. The highest input value is therefore shown dark.
+  (b) WHEN `xpe_apply_presentation_lut_ex` is called with `XPE_PRESENTATION_INVERTED`, the system SHALL behave as in (a); with `XPE_PRESENTATION_AS_IS` it SHALL apply `output[i] = lutData[index]`.
+  (c) IF `polarity` is neither value, THEN `xpe_apply_presentation_lut_ex` SHALL return `XPE_ERR_INVALID_INPUT` and leave the image untouched.
+  (d) The values of every stage before the Presentation LUT SHALL keep their meaning ("a larger value is brighter", MONOCHROME2 sense); `xpe_dicom_write` SHALL keep writing MONOCHROME2 with Presentation LUT Shape IDENTITY, the pixel data already carrying the inversion.
+  Rationale: a detector linear signal rises with dose, so the unexposed background is the high end of the data and, shown as is, is white. Reading the table backwards is the DICOM INVERSE shape of PS3.3 C.11.6 applied to the P-Values (cited from memory, not re-fetched); for a GSDF table it keeps the perceptual spacing, which `65535 - value` would not.
+  Caller responsibility: the function cannot know which end of the data is the background. Data whose background is already the LOW end (a MONOCHROME1 file normalised by `xpe_dicom_read_image`) must be presented with `XPE_PRESENTATION_AS_IS`; a caller that has its own invert switch must not stack it on the default. (The MONOCHROME1 polarity contract is deferred to the DICOM stage.)
+
+=====================================================================================================================
+ROW 6  section headings of spec.md
+=====================================================================================================================
+FIND: "### 3.2 VOI LUT (SWU-3.2 / POST-12b) -- REQ-DISP-009..018"      PUT: "### 3.2 VOI LUT (SWU-3.2 / POST-12b) -- REQ-DISP-009..018, 037"
+FIND: "### 3.3 Presentation LUT + GSDF (SWU-3.3 / POST-12c) -- REQ-DISP-019..029"      PUT: "### 3.3 Presentation LUT + GSDF (SWU-3.3 / POST-12c) -- REQ-DISP-019..029, 038"
+
+=====================================================================================================================
+ROW 7  section 1 and section 6 tables of spec.md
+=====================================================================================================================
+FIND: "| SWU-3.2 | `xpe_apply_voi_lut`, `xpe_voi_preset_create` | DICOM VOI LUT (LINEAR/EXACT/SIGMOID) + body presets | Implemented (REQ-DISP-009..018) |"
+PUT:  "| SWU-3.2 | `xpe_apply_voi_lut`, `xpe_voi_preset_create`, `xpe_voi_auto_window` | DICOM VOI LUT (LINEAR/EXACT/SIGMOID) + body presets + anatomy-based automatic window | Implemented (REQ-DISP-009..018, 037) |"
+FIND: "| SWU-3.3 | `xpe_apply_presentation_lut`, `xpe_gsdf_calibrate` | Presentation LUT + GSDF perceptual calibration | Implemented (REQ-DISP-019..028) |"
+PUT:  "| SWU-3.3 | `xpe_apply_presentation_lut`, `xpe_apply_presentation_lut_ex`, `xpe_gsdf_calibrate` | Presentation LUT (display polarity) + GSDF perceptual calibration | Implemented (REQ-DISP-019..028, 038) |"
+FIND: "| SWU-3.2 VOILUT | SWI-3, P1b-06 | SRS-DISP-002 | POST-12b (stage 15) | REQ-DISP-009..018 |"
+PUT:  "| SWU-3.2 VOILUT | SWI-3, P1b-06 | SRS-DISP-002 | POST-12b (stage 15) | REQ-DISP-009..018, 037 |"
+FIND: "| SWU-3.3 PresentationLUT | SWI-3, P1b-07 | SRS-DISP-003 | POST-12c (stage 16) | REQ-DISP-019..029 |"
+PUT:  "| SWU-3.3 PresentationLUT | SWI-3, P1b-07 | SRS-DISP-003 | POST-12c (stage 16) | REQ-DISP-019..029, 038 |"
+(The "| Cross-cutting | -- | -- | -- | REQ-DISP-030..036 |" row is unchanged.) Also the module export count in the xpe_display row of the
+api-spec table (see row 13) goes from 6 to 8.
+
+=====================================================================================================================
+ROW 8  XPE-SRS-001, SRS-FUNC-023 (line 63)
+=====================================================================================================================
+FIND:
+  이후 파이프라인은 항상 MONOCHROME2 의미의 화소를 받으며 표시 단계는 극성을 바꾸지 않는다.
+PUT:
+  이후 파이프라인은 항상 MONOCHROME2 의미(값이 클수록 밝다)의 화소를 받고, 표시 이전의 어느 단계도 값의 의미를 바꾸지 않는다. 표시 극성은 마지막 표시 단계인 Presentation LUT 가 정한다(REQ-DISP-038): 기본(`xpe_apply_presentation_lut`)은 LUT 를 거꾸로 읽어 입력의 높은 쪽을 어둡게 보인다. 검출기 선형 신호는 선량에 비례해 배경(공기)이 높은 값이므로 이렇게 하면 뼈가 희고 공기가 검다. 배경이 이미 낮은 값인 데이터 — 즉 MONOCHROME1 파일을 읽을 때 정규화한 데이터 — 와 호출자가 따로 반전하는 경우에는 호출자가 `xpe_apply_presentation_lut_ex(..., XPE_PRESENTATION_AS_IS)` 를 써서 두 번 뒤집지 않는다. `xpe_dicom_write` 는 이 반전이 이미 반영된 화소를 MONOCHROME2 + Presentation LUT Shape IDENTITY 로 쓴다.
+(The sentences before and after the FIND in that table row -- "읽기 정규화가 보존하는 것은 극성이다. `xpe_dicom_write` 는 원본 파일의 Window Center/Width, ..." -- stay as they are.)
+NOTE: the MONOCHROME1 polarity CONTRACT (who picks AS_IS, whether the source polarity travels with the image) is deferred to the DICOM stage; this sentence only states the rule and the caller duty.
+
+=====================================================================================================================
+ROW 9  XPE-SDD-002, the polarity paragraph and the MONOCHROME1 Edge Case row
+=====================================================================================================================
+FIND (paragraph, line ~1087):
+  이 단계는 항상 MONOCHROME2 의미의 입력을 받고 반전하지 않는다.
+PUT:
+  이 단계는 항상 MONOCHROME2 의미의 입력을 받는다. 표시 극성은 Presentation LUT 단계가 정한다(SRS-FUNC-023, REQ-DISP-038).
+FIND (table row, line ~1094):
+  | MONOCHROME1 | 이 단계 전에 리더가 반전해 MONOCHROME2 의미가 됨 | 이 단계는 반전하지 않음 (원본의 Window·Rescale 은 쓰기에서 보존되지 않는다) | SRS-FUNC-023 |
+PUT:
+  | MONOCHROME1 | 이 단계 전에 리더가 반전해 MONOCHROME2 의미가 됨(뼈가 높은 값) | Presentation LUT 는 `XPE_PRESENTATION_AS_IS` 로 호출한다(기본 극성을 쓰면 두 번 뒤집힌다). 원본의 Window·Rescale 은 쓰기에서 보존되지 않는다 | SRS-FUNC-023 |
+
+=====================================================================================================================
+ROW 10  SRS-DICOM-001, the writer sentence (line ~283)
+=====================================================================================================================
+FIND:
+  쓰기기는 입력 화소의 극성을 해석하지 않고 항상 MONOCHROME2 로 쓴다. MONOCHROME1 정규화는 읽기 단계(FR-DCM-109)에서 이미 일어난다.
+PUT:
+  쓰기기는 입력 화소의 극성을 해석하지 않고 항상 MONOCHROME2 로 쓴다. MONOCHROME1 정규화는 읽기 단계(FR-DCM-109)에서 이미 일어난다. 표시 극성은 Presentation LUT 단계가 정하므로(XPE-SRS-001 SRS-FUNC-023, REQ-DISP-038) 쓰기기가 받는 화소에는 그 반전이 이미 반영되어 있고, 쓰기기는 그것을 다시 해석하지 않는다.
+(FR-DCM-109 itself, line ~121 "MONOCHROME1 (작은 값 = 밝음): 자동 반전 ...", is unchanged.)
+
+=====================================================================================================================
+ROW 11  xray-postprocessing-prd.md, the Photometric Interpretation row (line ~250)
+=====================================================================================================================
+FIND:
+  | Photometric Interpretation | 읽기 단계에서 MONOCHROME2 의미로 정규화(극성만; 원본 Window·Rescale 은 쓰기에서 보존되지 않음) |
+PUT:
+  | Photometric Interpretation | 읽기 단계에서 MONOCHROME2 의미로 정규화(극성만; 원본 Window·Rescale 은 쓰기에서 보존되지 않음). 표시 극성은 Presentation LUT 단계가 정한다(기본: 높은 값을 어둡게) |
+
+=====================================================================================================================
+ROW 13  api-spec.md (docs/project/api-spec.md and .moai/project/api-spec.md; the two files differ -- apply to both, check the anchors)
+=====================================================================================================================
+(a) the module table row (line 34 of docs/project/api-spec.md): "| `xpe_display` | 6 | `xpe_apply_modality_lut`, `xpe_apply_presentation_lut`, `xpe_apply_voi_lut`, `xpe_display_version`, `xpe_gsdf_calibrate`, `xp..."
+    -> count 6 becomes 8 and the list gains `xpe_apply_presentation_lut_ex`, `xpe_voi_auto_window` (the row is cut off here; its last entry is xpe_voi_preset_create).
+(b) the section of `xpe_apply_presentation_lut` gains: the default polarity (high end shown dark), a link to `xpe_apply_presentation_lut_ex`, the caller-responsibility note of REQ-DISP-038.
+(c) new sections for `XpePresentationPolarity` (enum: INVERTED = 0 default, AS_IS = 1), `xpe_apply_presentation_lut_ex(img, params, polarity)` and `xpe_voi_auto_window(img, outParams)`:
+    take the text from the Doxygen of modules/display/include/xpe/display/display_api.h (it is the source; it is current as of 3846b5ab).
+(d) `XpeVoiLutParams` default of the auto window: mode LINEAR_EXACT, minOut 0, maxOut 1.
+
+=====================================================================================================================
+After applying
+=====================================================================================================================
+ - Re-run the SPEC/RTM consistency checks the lead uses (REQ ranges 037 and 038 are new, REQ-DISP-019 and -017 changed wording).
+ - Tests that carry these requirements: PresentationPolarity.* and VoiAutoWindow.* (modules/display/tests), FullPipeline_LinearModality_LinearVoi_PresLut (509).
+ - REQ-DISP-017a second sentence (ROW 12) only after GUI-C-233.

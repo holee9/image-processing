@@ -1,0 +1,6 @@
+@echo off
+REM QA-B-214c: build display + its tests (%1 = output file). parallel 2. exit code goes to the file, never through a pipe.
+call "D:\workspace-github\xpe-post\.moai\reports\lane-post\QA-B-120\_env.bat"
+cd /d D:\workspace-github\xpe-post
+cmake --build --preset ci-post --target xpe_display test_display_modality_lut test_display_repro_qa_b_200 test_display_logging test_display_voi_lut test_display_presentation_lut test_display_integration test_display_nonfinite_pixels test_display_datasize_overread test_display_parameter_dependency test_display_gsdf_characterization test_display_voi_auto_window --parallel 2 > %1 2>&1
+echo ===BUILD=%errorlevel%=== >> %1

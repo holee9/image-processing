@@ -1,0 +1,43 @@
+== arm4_representativeness_never_fires
+   mutations:
+     - static_cast<double>(outside) <= kAutoWindowMaxUnsampledMass * static_cast<double>(count)
+     + static_cast<double>(outside) <= 2.0 * static_cast<double>(count)
+   build rc=0
+   auto-window tests red (1): VoiAutoWindow.SampleThatMissesTheLowerPartOfTheAnatomyIsNotTrusted
+   file restored: sha256 identical=True
+
+== arm5_sample_fallback_not_confirmed
+   mutations:
+     - if (stride > 1 && a.fallbackWhy) {
+     + if (stride > 100 && a.fallbackWhy) {
+   build rc=0
+   auto-window tests red (1): VoiAutoWindow.FallbackOfTheSampleIsConfirmedOnTheWholeImage
+   file restored: sha256 identical=True
+
+== arm6_the_214_code_small_images_sampled_nothing_confirmed
+   mutations:
+     - constexpr size_t kAutoWindowFullPassPixelLimit = static_cast<size_t>(1) << 20;
+     + constexpr size_t kAutoWindowFullPassPixelLimit = 0;
+     - if (!trusted) stride = 1;
+     + if (stride > 100 && !trusted) stride = 1;
+     - if (stride > 1 && a.fallbackWhy) {
+     + if (stride > 100 && a.fallbackWhy) {
+     - double lod   = (stride == 1) ? static_cast<double>(lo) : static_cast<double>(sampleLo);
+     + double lod   = static_cast<double>(lo);
+     - double range = ((stride == 1) ? static_cast<double>(hi) : static_cast<double>(sampleHi)) - lod;
+     + double range = static_cast<double>(hi) - lod;
+   build rc=0
+   auto-window tests red (4): VoiAutoWindow.CodexReproductionEightByEightKeepsTheAnatomyInsideTheWindow; VoiAutoWindow.FallbackOfTheSampleIsConfirmedOnTheWholeImage; VoiAutoWindow.SampleThatMissesTheLowerPartOfTheAnatomyIsNotTrusted; VoiAutoWindow.TwoClassesOffTheSampleGridInALargeImageAreStillFound
+   file restored: sha256 identical=True
+
+== arm7_float_check_removed
+   mutations:
+     - if (!(std::fabs(center) <= static_cast<double>(FLT_MAX)) || !(winSpan > 0.0) || !(winSpan <= static_cast<double>(FLT_MAX))) {
+     + if (!(winSpan > 0.0)) {
+     - if (!xpe_float_is_finite(res.center) || !xpe_float_is_finite(res.width) || !(res.width > 0.0f)) {
+     + if (res.width < 0.0f) {
+   build rc=0
+   auto-window tests red (2): VoiAutoWindow.ClassesAtPlusAndMinusFltMaxAreRefusedNotReturnedWithInfiniteWidth; VoiAutoWindow.ExtremeFiniteRangesNeverGiveANonFiniteOrNonPositiveWindow
+   file restored: sha256 identical=True
+
+== restored tree: build rc=0, auto-window tests red: 0 [], passed 17
