@@ -56,6 +56,7 @@ public static class BaselineParameters
         settings.VoiLutMode = VoiLutMode;
         settings.VoiWindowCenter = VoiWindowCenter;
         settings.VoiWindowWidth = VoiWindowWidth;
+        settings.VoiWindowAuto = false;   // GUI-C-233: the Baseline's window is fixed, never the automatic one
         settings.GsdfEnabled = GsdfEnabled;
         return settings;
     }

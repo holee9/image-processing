@@ -128,6 +128,22 @@ internal static class XpeDisplayNative
         ref XpeImageBufferNative img,
         ref XpePresentationLutParamsNative parameters);
 
+    /// <summary>GUI-C-233: the same stage with the display polarity stated (QA-B-214: <see cref="PresentationInverted"/> reads the table backwards, <see cref="PresentationAsIs"/> is the older behaviour).</summary>
+    [DllImport("xpe_display.dll", CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int xpe_apply_presentation_lut_ex(
+        ref XpeImageBufferNative img,
+        ref XpePresentationLutParamsNative parameters,
+        int polarity);
+
+    internal const int PresentationInverted = 0;
+    internal const int PresentationAsIs = 1;
+
+    /// <summary>GUI-C-233: the window from the anatomy in the (float) image itself. Writes center, width and the LINEAR_EXACT mode, output range [0, 1]; the image is read-only.</summary>
+    [DllImport("xpe_display.dll", CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int xpe_voi_auto_window(
+        ref XpeImageBufferNative img,
+        ref XpeVoiLutParamsNative outParams);
+
     [DllImport("xpe_display.dll", CallingConvention = CallingConvention.Cdecl)]
     internal static extern int xpe_gsdf_calibrate(
         [In] float[] luminanceValues,

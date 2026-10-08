@@ -138,11 +138,31 @@ public sealed class MockXpeBackend : IXpeBackend
         var upper = center + (width / 2.0);
         var range = Math.Max(1.0, upper - lower);
 
+        var voiMode = settings.VoiLutMode;
+        if (settings.VoiWindowAuto)
+        {
+            // GUI-C-233: the Mock stands in for the module's anatomy-based window with a plain 1 % .. 99 % window of the values that reach the VOI stage (a sample of every 16th pixel). It is an
+            // APPROXIMATION, not the module's algorithm (no background separation); what it keeps the same as the Native path is that the window comes from the image, not from the settings.
+            var sample = new List<double>(count / 16 + 1);
+            for (var i = 0; i < count; i += 16)
+            {
+                sample.Add((calibratedPixels[i] * settings.ModalityRescaleSlope) + settings.ModalityRescaleIntercept);
+            }
+
+            sample.Sort();
+            var low = sample[(int)Math.Round((sample.Count - 1) * 0.01)];
+            var high = sample[(int)Math.Round((sample.Count - 1) * 0.99)];
+            lower = low;
+            range = Math.Max(1.0, high - low);
+            voiMode = "LinearExact";
+        }
+
         for (var i = 0; i < count; i++)
         {
             var modality = (calibratedPixels[i] * settings.ModalityRescaleSlope) + settings.ModalityRescaleIntercept;
-            var normalized = NormalizeVoi(modality, lower, range, settings.VoiLutMode);
-            output[i] = (byte)Math.Clamp((int)Math.Round(normalized * 255.0), 0, 255);
+            var normalized = NormalizeVoi(modality, lower, range, voiMode);
+            // GUI-C-233: the Native display shows bone bright and air dark (Presentation LUT read backwards, QA-B-214); the Mock follows, so the two backends agree on polarity.
+            output[i] = (byte)(255 - Math.Clamp((int)Math.Round(normalized * 255.0), 0, 255));
         }
 
         var preview = BitmapSource.Create(
