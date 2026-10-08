@@ -1,0 +1,4 @@
+  실패 ImageProcTest.IntegrationTests.Functional.BaselineReviewFixTests.WhenThePipelineFails_WithInvalidInput_TheBaselineFails_WritesNoDicom_AndKeepsTheErrorCodeAndTheStageName [45 ms]
+  오류 메시지:
+   Assert.Contains() Failure: Sub-string not found
+String:    "Deterministic Baseline FAIL: DICOM export"···
