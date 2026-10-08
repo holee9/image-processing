@@ -293,7 +293,9 @@ XPE_API XpeErrorCode xpe_voi_preset_create(XpeVoiLutParams* params,
  * value range). A flat image (maximum == minimum) gets center = that value and width 1.0, also with the Info alert.
  *
  * The result depends only on the SET of pixel values, not on where the pixels are: the same pixels in any order give a
- * bit-identical window (the histogram is made of integer counts added in a fixed order).
+ * bit-identical window (the histogram is made of integer counts added in a fixed order). The same DLL on the same input is
+ * deterministic; identity between different builds (compiler, optimisation) is not guaranteed, because a value on a bin
+ * edge may fall into the neighbouring bin and the class split is then chosen again. The shipped product is one verified DLL.
  *
  * Contract: the background is the HIGH end of the data. Data whose background is the low end (MONOCHROME1 normalised to
  * MONOCHROME2 sense) has it the wrong way round and the window would isolate the wrong class. Image content outside the

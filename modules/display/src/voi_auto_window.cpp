@@ -66,7 +66,7 @@ constexpr float kAutoWindowFlatWidth = 1.0f;
 
 // Quantile q of bins [first, last] of the histogram, linear inside a bin. `lo` is the value of the lower edge of bin 0 and
 // `binWidth` the width of every bin.
-double histogram_quantile(const uint32_t* hist, int32_t first, int32_t last, double q, double lo, double binWidth) {
+double histogram_quantile(const uint64_t* hist, int32_t first, int32_t last, double q, double lo, double binWidth) {
     uint64_t total = 0;
     for (int32_t i = first; i <= last; ++i) total += hist[i];
     if (total == 0) return lo + binWidth * static_cast<double>(first);
@@ -117,14 +117,24 @@ XpeErrorCode voi_auto_window_impl(const XpeImageBuffer* img, XpeVoiLutParams* ou
 
     // Pass 2: the histogram of EVERY pixel. Four interleaved sub-histograms break the dependency a repeated bin would put on
     // one counter; they are integer counts and are added up in a fixed order, so the result does not depend on how the
-    // compiler schedules the loop. The bin index is computed in float when the value range is an ordinary one (one
+    // compiler schedules the loop. QA-B-214d (Codex #170): the counters are 64-bit. Every pixel adds exactly one to exactly one
+    // counter, so a counter never exceeds the pixel count and the counters sum to the pixel count; a 32-bit counter would wrap
+    // for a buffer of more than 2^32 pixels (an image of 65536 x 65536, never produced by xpe_alloc_image, which stops at
+    // 4096 x 4096, but a caller can pass any buffer).
+    //
+    // Reproducibility: the same DLL gives the same window for the same input, whatever the order of the pixels. Identity
+    // BETWEEN builds (another compiler, other optimisation flags) is not claimed: the bin index is float arithmetic, a value on a
+    // bin edge can land in the neighbouring bin, and the Otsu split is then chosen again on the changed histogram, which can
+    // move the window by many bins (Codex #170: three populations of 100 pixels, the middle one 511 bins against 512, moves
+    // the window top by about 511 bins). The product ships one verified DLL, so cross-build identity is outside the present
+    // requirements; the bin index was not changed to integer arithmetic (lead decision, QA-B-214d). The bin index is computed in float when the value range is an ordinary one (one
     // subtraction and one multiplication, no conversion of every pixel to double: about 4 ms of the 9 ms of the double
     // version on 3072 x 3072), and in double at the extremes of the float range, where a float scale would overflow.
     constexpr int32_t kBins = kAutoWindowHistogramBins;
     const double lod      = static_cast<double>(lo);
     const double range    = static_cast<double>(hi) - lod;  // two finite floats: finite in double, up to 2 * FLT_MAX
     const double binWidth = range / static_cast<double>(kBins);
-    uint32_t sub[4][kBins] = {};
+    uint64_t sub[4][kBins] = {};
     if (range >= 1e-30 && range <= 1e30) {
         const float scale = static_cast<float>(static_cast<double>(kBins) / range);
         size_t i = 0;
@@ -148,7 +158,7 @@ XpeErrorCode voi_auto_window_impl(const XpeImageBuffer* img, XpeVoiLutParams* ou
             ++sub[i & 3][b];
         }
     }
-    uint32_t hist[kBins];
+    uint64_t hist[kBins];
     for (int32_t b = 0; b < kBins; ++b) hist[b] = sub[0][b] + sub[1][b] + sub[2][b] + sub[3][b];
 
     // Otsu on the histogram; the bin index stands for the value (the criterion is unchanged by a scale and a shift).
