@@ -2480,12 +2480,6 @@ public sealed class MainWindowViewModel : ObservableObject
         MetadataText = loadedFrame.MetadataText;
         StatusText = $"Loaded {sourceLabel} '{path}'.";
         Log($"Loaded {sourceLabel} '{path}'.");
-        if (loadedFrame.SizeNotice is { } sizeNotice)
-        {
-            StatusText += $" NOTE: {sizeNotice}.";
-            Log($"Raw size: {sizeNotice}.");
-            RaiseAlert(new AlertEntry { Severity = "WARN", Code = "RAW_SIZE_FROM_FILE_LENGTH", Message = sizeNotice, Timestamp = DateTimeOffset.Now });
-        }
         RememberRecentRawFile(path);
         await ApplyDisplayPipelineAsync();
     }

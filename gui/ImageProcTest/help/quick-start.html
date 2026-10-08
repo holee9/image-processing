@@ -46,7 +46,7 @@
         <li>
           <strong>Open the raw image:</strong> <strong>File &gt; Open Raw...</strong> (the toolbar button <strong>Load Raw Image</strong> does the same) and choose the <code>.raw</code> file in the <em>Load Raw Image</em> dialog.
           <br><strong>You should see</strong> an image summary that starts <code>RAW 3072x3072, min=…, max=…, bytes=18874368</code>: the width and height you gave, and <code>bytes</code> equal to width × height × 2.
-          <br><strong>The file length decides the size.</strong> If the file is exactly width × height × 2 bytes, it opens at the size you gave. If it is not, the app does not open a wrongly shaped picture: a <em>square</em> image is opened at the size its length gives, and the summary says so, for example <code>RAW 3072x3072, min=…, max=…, bytes=18874368 [size from the file length: 18874368 bytes = 3072x3072x2, the settings said 1024x1024 (2097152 bytes)]</code>, with a warning alert; any other length is refused with <code>Load failed: Raw file is too small. Expected at least … bytes, got … bytes.</code> (or <code>Raw file has … bytes, more than …</code>) and the picture on screen stays as it was. Set the right <code>--automation-width</code> and <code>--automation-height</code> (the script's <code>-RawWidth</code> and <code>-RawHeight</code>) for a rectangular image.
+          <br><strong>The size is never guessed.</strong> The file must be exactly width × height × 2 bytes; otherwise it is not opened and the picture on screen stays as it was. The message gives the size that was needed and the bytes the file has: <code>Load failed: Raw file is too small. Expected at least … bytes, got … bytes.</code> or <code>Load failed: Raw file has … bytes, more than the … bytes of …</code>. Set the right <code>--automation-width</code> and <code>--automation-height</code> (the script's <code>-RawWidth</code> and <code>-RawHeight</code>). When calibration maps are in the calibration folders, the image is also refused if its size differs from the maps' (<code>The offset calibration map … is 1024x1024, but the raw image is 3072x3072.</code>). A length that fits does not prove the shape or that the file has no header: a 3072 × 3072 image and a 2048 × 4608 image are the same length, so the size you set must be the size the image was recorded at.
           <br>The image on screen is now the uncorrected raw. The bottom line still shows <code>chain: not run</code> until you run a stage.
         </li>
         <li>
@@ -101,7 +101,7 @@
           </tr>
           <tr>
             <td><code>Load failed: Raw file is too small…</code></td>
-            <td>The file length fits neither the size you gave nor a square image (step 3).</td>
+            <td>The file length is not width × height × 2 (step 3), or the image size differs from the calibration maps' size.</td>
           </tr>
         </tbody>
       </table>
