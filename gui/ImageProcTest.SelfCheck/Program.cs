@@ -91,12 +91,12 @@ var backend = new MockXpeBackend(
     false);
 var runtime = backend.Initialize(loadedSettings);
 
-Assert(runtime.Version == manifest.ExpectedTelemetry.BackendVersion, "Mock version should match.");
+Assert(runtime.Version == manifest.ExpectedTelemetry.BackendVersionMock, "Mock version should match.");
 Assert(!string.IsNullOrWhiteSpace(backend.GetVersion()), "GetVersion should be non-empty.");
 // GUI-C-186f: the counts and the alerts come from ONE snapshot call (the backend lists are written from several threads).
 var telemetry = backend.GetTelemetrySince(0, 0);
 Assert(telemetry.LogTotal == manifest.ExpectedTelemetry.InitialLogCount, "Mock backend log count should match fixture manifest.");
-Assert(telemetry.AlertTotal == manifest.ExpectedTelemetry.InitialAlertCount, "Mock backend alert count should match fixture manifest.");
+Assert(telemetry.AlertTotal == manifest.ExpectedTelemetry.InitialAlertCountMock, "Mock backend alert count should match fixture manifest.");
 Assert(backend.GetDisplayVersion() == "v0.0.0-mock-display", "Mock display version should match.");
 Assert(telemetry.Alerts[0].Severity == "INFO", "First alert should be INFO.");
 Assert(telemetry.Alerts[1].Severity == "WARN", "Second alert should be WARN.");

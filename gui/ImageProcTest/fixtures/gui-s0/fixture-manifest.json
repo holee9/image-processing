@@ -21,9 +21,12 @@
     "defect": "calibration/defect"
   },
   "expectedTelemetry": {
-    "backendVersion": "v0.0.0-mock",
+    "backendVersionMock": "v0.0.0-mock",
+    "backendVersionNative": "read-from-dll: the app reports \"xpe_display <xpe_display_version()>\"; the script asks the DLL itself",
     "initialLogCount": 5,
-    "initialAlertCount": 3
+    "initialAlertCountMock": 3,
+    "initialAlertCountNative": 1,
+    "initialAlertNative": "REAL_DISPLAY_BACKEND_ACTIVE"
   },
   "calibrationSource": {
     "kind": "generated-at-run-time",
