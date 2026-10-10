@@ -570,6 +570,37 @@ public sealed class BaselineReviewFixTests : IDisposable
     /// own text for that, fed to the Baseline exactly as RealXpeBackend feeds it, fails the Baseline. The modules come from <c>XPE_NATIVE_DIR</c> when set, else from the test output folder
     /// (staged by the project from build/ci-common/bin); with neither, it is skipped, and the CI gate (ci_gate_patch.txt) requires that it PASSED there.
     /// </summary>
+    /// <summary>
+    /// GUI-C-233f (leader decision on Codex #175): the self-check report (<c>GuiAutomationReport</c>) keeps reading the SETTINGS - the self-check sets Offset=Off and Defect=On itself and judges exactly those -
+    /// so its keys say "Requested". Pinned from the three places that must agree: the class, the producer and judge in MainWindow, and the README list. The old unprefixed keys must not come back (a consumer reading
+    /// one would get an empty string and a silent "did not record").
+    /// </summary>
+    [Fact]
+    public void TheSelfCheckReport_NamesItsCalibrationFieldsRequested_InTheClassTheProducerAndTheReadme()
+    {
+        var report = Read("gui/ImageProcTest/Models/GuiAutomationReport.cs");
+        var window = Read("gui/ImageProcTest/MainWindow.xaml.cs");
+        var readme = Read("gui/ImageProcTest/README.md");
+        foreach (var name in new[] { "RequestedCalibrationEvaluationSummary", "RequestedOffsetCorrectionMode", "RequestedDefectCorrectionMode" })
+        {
+            Assert.Contains($"public string {name} {{ get; set; }}", report, StringComparison.Ordinal);
+            Assert.Contains($"report.{name}", window, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("`RequestedCalibrationEvaluationSummary`", readme, StringComparison.Ordinal);
+        foreach (var old in new[] { "report.CalibrationEvaluationSummary", "report.OffsetCorrectionMode", "report.DefectCorrectionMode" })
+        {
+            Assert.DoesNotContain(old, window, StringComparison.Ordinal);
+        }
+
+        foreach (var old in new[] { " CalibrationEvaluationSummary {", " OffsetCorrectionMode {", " DefectCorrectionMode {" })
+        {
+            Assert.DoesNotContain(old, report, StringComparison.Ordinal);
+        }
+
+        Assert.DoesNotContain("- `CalibrationEvaluationSummary`", readme, StringComparison.Ordinal);
+    }
+
     [SkippableFact]
     public void TheRealRunner_ReceivingInvalidInputFromTheRealModule_FailsTheBaseline_WithTheCallAndTheCode()
     {

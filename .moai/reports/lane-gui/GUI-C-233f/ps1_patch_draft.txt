@@ -1,0 +1,10 @@
+DRAFT patch for tools/e2e/Invoke-ImageProcTestGuiRealE2E.ps1 (tools/ is lead-owned; apply together with the GUI-C-233f commit).
+Reason: the self-check report keys were renamed (GUI-C-233f). The old key reads as $null, '$null -like ...' is false, so these asserts would fail with 'did not record'.
+CI does not run this script (git grep: only gui/ImageProcTest/README.md mentions it); it is a manual E2E.
+
+-Assert-Condition ($report.CalibrationEvaluationSummary -like '*Offset=Off*') 'Calibration evaluation summary did not record Offset=Off.'
+-Assert-Condition ($report.CalibrationEvaluationSummary -like '*Defect=On*') 'Calibration evaluation summary did not record Defect=On.'
++Assert-Condition ($report.RequestedCalibrationEvaluationSummary -like '*Offset=Off*') 'Calibration evaluation summary did not record Offset=Off.'
++Assert-Condition ($report.RequestedCalibrationEvaluationSummary -like '*Defect=On*') 'Calibration evaluation summary did not record Defect=On.'
+
+Not verified: the script was not run (it needs the real-E2E fixture tree).
