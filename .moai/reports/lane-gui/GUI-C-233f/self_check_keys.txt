@@ -1,0 +1,7 @@
+Passed = True
+RequestedCalibrationEvaluationSummary = Offset=Off, Gain=Auto, Defect=On, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto
+RequestedOffsetCorrectionMode = Off
+RequestedDefectCorrectionMode = On
+CalibrationEvaluationSummary = <absent>
+OffsetCorrectionMode = <absent>
+Error = None
