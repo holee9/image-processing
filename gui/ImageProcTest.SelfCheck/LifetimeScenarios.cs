@@ -107,6 +107,24 @@ internal class ScenarioBackend : IXpeBackend
     public virtual BackendRuntimeInfo GetRuntimeInfo() => _inner.GetRuntimeInfo();
 }
 
+/// <summary>GUI-C-233k: a scripted backend whose preprocess stage reports the status the scenario chooses (the Mock never runs one); null leaves the Mock's own answer.</summary>
+internal sealed class PreprocessOutcomeBackend : ScenarioBackend
+{
+    public StageStatus? Force;
+
+    public override ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
+    {
+        var chain = base.RunChain(rawFrame, stages, settings);
+        if (Force is not { } status)
+        {
+            return chain;
+        }
+
+        var replaced = chain.Stages.Select(st => st.StageId == StageIds.Preprocess ? st with { Status = status, Reason = "scripted: " + status } : st).ToList();
+        return chain with { Stages = replaced };
+    }
+}
+
 /// <summary>GUI-C-233g: a scripted backend that identifies itself as the native one (RealXpeBackend, its own display version), so a Mock to Native switch can be driven without the DLLs.</summary>
 internal sealed class NativeNamedBackend : ScenarioBackend
 {
@@ -350,6 +368,7 @@ internal static class LifetimeScenarios
                         await Timed(() => TheAutomationReportDescribesTheCurrentFrame_NotThePreviousOne(rawPath, width, height));
                         await Timed(() => EveryEventLeavesTheHudAndTheReportEqualToTheRenderRecord(rawPath, width, height));
                         await Timed(() => TheScreensLaneTagsAndStageCountDescribeTheRender_AndAFailedCandidateLeavesNoPicture(rawPath, width, height));
+                        await Timed(() => TheHudCalibrationLineSaysWhatTheChainRan_NotHowManyModesAreConfigured(rawPath, width, height));
                         await Timed(() => TheSaveCandidateOfAnOlderApplyFinishingLateIsNeverCommitted(rawPath, width, height));
                         await Timed(() => AFailedOpenKeepsTheSaveNameAndTheCandidateOfTheImageThatIsStillOpen(rawPath, width, height));
 #if XPE_TEST_FAULTS
@@ -1292,6 +1311,7 @@ internal static class LifetimeScenarios
         var calibration = root.GetProperty("calibrationEvaluation");
         var chain = root.GetProperty("processingChain");
         Check(vm.CurrentRender is null && vm.LastChain is null && !vm.HasPipelineDiagnostics, $"after {after}: a render record still stands");
+        Check(vm.CalibStageCountDisplay == "—", $"after {after}: the HUD calibration line still describes a render: '{vm.CalibStageCountDisplay}'");
         Check(vm.LaneAImage is null && vm.LaneBImage is null && !vm.LaneBIsStale, $"after {after}: the comparison lanes still show a render's pictures (A={(vm.LaneAImage is null ? "none" : "set")}, B={(vm.LaneBImage is null ? "none" : "set")})");
         Check(vm.ChainStatus == "chain: not run" && string.IsNullOrEmpty(vm.PipelineTimings) && vm.DisplayPipelineSummary == "Display pipeline has not run.", $"after {after}: status/timings/summary are still a render's: '{vm.ChainStatus}' / '{vm.PipelineTimings}' / '{vm.DisplayPipelineSummary}'");
         Check(vm.RenderedVoiCenter is null && vm.RenderedVoiWidth is null && vm.RenderedVoiMode is null && vm.RenderedVoiAutomatic is null, $"after {after}: the HUD window is still a render's");
@@ -1439,7 +1459,7 @@ internal static class LifetimeScenarios
             var tagA = vm.RenderedLaneAAlgorithm;
             var tagB = vm.RenderedLaneBAlgorithm;
             var stages = vm.CalibStageCountDisplay;
-            Check(tagA == vm.CurrentRender!.Inputs.LaneAAlgorithm && tagB == vm.CurrentRender.Inputs.LaneBAlgorithm && stages.EndsWith("/7 stages", StringComparison.Ordinal), $"after the render the tags/count are not the record's: '{tagA}' '{tagB}' '{stages}'");
+            Check(tagA == vm.CurrentRender!.Inputs.LaneAAlgorithm && tagB == vm.CurrentRender.Inputs.LaneBAlgorithm && stages == "not run", $"after the render the tags/count are not the record's: '{tagA}' '{tagB}' '{stages}'");
 
             // settings change, nothing re-applied: the tags and the count still describe what was DRAWN; the Candidate is stale
             var otherA = MainWindowViewModel.AlgorithmOptions.First(o => o != vm.Settings.LaneAAlgorithm);
@@ -1461,13 +1481,78 @@ internal static class LifetimeScenarios
             await Task.Delay(300);
             await FlushUi();
             Check(vm.CurrentRender is not null && vm.LaneAImage is null && vm.LaneBImage is null, $"a failed Candidate left lane pictures behind (A={(vm.LaneAImage is null ? "none" : "set")}, B={(vm.LaneBImage is null ? "none" : "set")})");
-            Check(vm.RenderedLaneAAlgorithm == otherA && vm.RenderedLaneBAlgorithm == otherB, "the tags after the second render are not the second render's");
-            Console.WriteLine($"| lane tags after render {tagA}/{tagB} -> after unapplied change {vm.RenderedLaneAAlgorithm}/{vm.RenderedLaneBAlgorithm} (requested {otherA}/{otherB}); stages {stages}; Candidate failed -> lanes {(vm.LaneAImage is null ? "none" : "set")}/{(vm.LaneBImage is null ? "none" : "set")} |");
+            // GUI-C-233k: the lanes hold no picture (the Candidate failed), so neither tag names an algorithm - the screen shows "—" rather than the name of something that was not drawn
+            Check(vm.RenderedLaneAAlgorithm is null && vm.RenderedLaneBAlgorithm is null, $"a lane without a picture still names an algorithm: A='{vm.RenderedLaneAAlgorithm}' B='{vm.RenderedLaneBAlgorithm}'");
+            Check(vm.CurrentRender!.Inputs.LaneAAlgorithm == otherA && vm.CurrentRender.Inputs.LaneBAlgorithm == otherB, "the second render's record does not carry the algorithms it was rendered with");
+            Console.WriteLine($"| lane tags after render {tagA}/{tagB} -> after unapplied change {vm.RenderedLaneAAlgorithm}/{vm.RenderedLaneBAlgorithm} (requested {otherA}/{otherB}, record {vm.CurrentRender!.Inputs.LaneAAlgorithm}/{vm.CurrentRender.Inputs.LaneBAlgorithm}); stages {stages}; Candidate failed -> lanes {(vm.LaneAImage is null ? "none" : "set")}/{(vm.LaneBImage is null ? "none" : "set")} |");
 
             // the new frame / backend replacement cases are rows of scenario 13; here the tags go with them
             vm.InitializeBackendCommand.Execute(null);
             await FlushUi();
             Check(vm.RenderedLaneAAlgorithm is null && vm.RenderedLaneBAlgorithm is null && vm.CalibStageCountDisplay == "—" && string.IsNullOrEmpty(vm.MetadataText) == false, "after the backend was replaced the tags / stage count still describe the old render");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- GUI-C-233k: the HUD's calibration line comes from what the chain ran --------------------------------------------------------------------
+
+    private static async Task TheHudCalibrationLineSaysWhatTheChainRan_NotHowManyModesAreConfigured(string rawPath, int width, int height)
+    {
+        _scenario = "15 HUD calibration line vs chain outcome";
+        var directory = TempDirectory();
+        try
+        {
+            var built = new List<ScenarioBackend>();
+            var vm = NewViewModel(width, height, build => { var b = new PreprocessOutcomeBackend(); built.Add(b); return b; }, directory, out _);
+            var backend = (PreprocessOutcomeBackend)built[^1];
+            var configured = vm.CalibrationEvaluationSummary;   // the seven configured modes, whatever they are
+
+            string Cross(string label, string expectedHud, string expectedStatus, bool expectedRan)
+            {
+                var executed = ReportRoot(vm).GetProperty("calibrationEvaluation").GetProperty("executed");
+                var hud = executed.GetProperty("hud").GetString();
+                var preprocess = executed.GetProperty("preprocess").GetString();
+                Check(vm.CalibStageCountDisplay == expectedHud && hud == expectedHud, $"{label}: HUD says '{vm.CalibStageCountDisplay}' / report '{hud}', expected '{expectedHud}'");
+                Check(preprocess == expectedStatus, $"{label}: the report's preprocess status is '{preprocess}', expected '{expectedStatus}'");
+                Check(vm.PreprocessRan == expectedRan, $"{label}: PreprocessRan is {vm.PreprocessRan}, expected {expectedRan}");
+                Check(vm.CurrentRender!.Chain.Stages.Single(st => st.StageId == StageIds.Preprocess).Status.ToString() == expectedStatus, $"{label}: the record's chain disagrees with the report");
+                Check(vm.CalibrationEvaluationSummary == configured, $"{label}: the configured modes changed during the scenario");   // the HUD is NOT a function of them
+                return $"| {label,-34} | {vm.CalibStageCountDisplay,-32} | {preprocess,-20} | {vm.PreprocessRan,-5} | {vm.ChainStatus.Split(';')[0]} |";
+            }
+
+            var rows = new List<string>();
+
+            // (1) default settings: preprocessing is not requested, so it did not run - although all seven modes are configured
+            Check(!vm.Settings.PreprocessInChain, "the default PreprocessInChain is expected to be off in this scenario");
+            await LoadAndDrawLanes(vm, rawPath);
+            rows.Add(Cross("default (preprocess not requested)", "not run", "NotRequested", false));
+
+            // (2) requested and failed
+            vm.Settings.PreprocessInChain = true;
+            backend.Force = StageStatus.RequestedNotApplied;
+            var before = vm.CurrentRender;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => vm.CurrentRender is not null && !ReferenceEquals(vm.CurrentRender, before), "the render with a failing preprocess to commit");
+            await FlushUi();
+            rows.Add(Cross("preprocess requested, failed", "failed", "RequestedNotApplied", false));
+
+            // (3) requested and ran
+            backend.Force = StageStatus.Applied;
+            before = vm.CurrentRender;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => vm.CurrentRender is not null && !ReferenceEquals(vm.CurrentRender, before), "the render with a successful preprocess to commit");
+            await FlushUi();
+            rows.Add(Cross("preprocess requested, ran", "3 stages (offset · gain · defect)", "Applied", true));
+
+            // (4) a new frame: nothing is claimed until it is rendered
+            Console.WriteLine("| case                               | HUD \"Calib:\" line               | report preprocess    | ran   | chain |");
+            foreach (var row in rows)
+            {
+                Console.WriteLine(row);
+            }
         }
         finally
         {

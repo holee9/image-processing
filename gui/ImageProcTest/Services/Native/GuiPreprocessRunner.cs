@@ -23,6 +23,12 @@ internal static class GuiPreprocessRunner
 {
     private const int XpeOk = 0;
 
+    /// <summary>
+    /// GUI-C-233k: the calibration stages <c>xpe_preprocess_pipeline_out</c> runs, in order. The HUD's "Calib:" line and the result text both read this, so what the screen says ran and what the
+    /// call is are one list. (The settings also hold ghost / temperature / nonlinearity / binning modes; this call does not run them.)
+    /// </summary>
+    internal static readonly string[] ExecutedStages = ["offset", "gain", "defect"];
+
     /// <summary>Calibration file names the generator writes.</summary>
     private const string OffsetFile = "offset.xcal";
     private const string GainFile = "gain.xcal";
@@ -141,7 +147,7 @@ internal static class GuiPreprocessRunner
             var nonFinite = BaselineStageAdapters.CountPreprocessNonFinite(ReadOnlySpan<float>.Empty, floats);   // the gain stage's intermediate is internal to the pipeline: only the final image is counted
             return new PreprocessRunResult(
                 true,
-                $"Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on {width}x{height} ({bodyPart}).{exposure}",
+                $"Preprocess: xpe_preprocess_pipeline_out ({string.Join(" -> ", ExecutedStages)}, input kept) on {width}x{height} ({bodyPart}).{exposure}",
                 ScaleToUInt16(floats),
                 nonFinite,
                 floats);
