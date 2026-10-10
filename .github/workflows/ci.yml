@@ -47,6 +47,16 @@ jobs:
             $lane = "gui"
           }
 
+          # A pull request into main (ref_name is "<n>/merge") and an integration branch
+          # (integ/*, the lead's cherry-picked bundle before it lands on main) are about to
+          # become main, so they run everything main runs. Before this, both resolved to
+          # "unknown" and every test job was skipped while the run reported success
+          # (PR #258, run 38052296484: only detect-lane, doxygen and gui-automation ran).
+          if ("${{ github.event_name }}" -eq "pull_request" -or $branch -like "integ/*") {
+            $isMain = "true"
+            $lane = "main"
+          }
+
           Write-Output "lane=$lane" >> $env:GITHUB_OUTPUT
           Write-Output "is_main=$isMain" >> $env:GITHUB_OUTPUT
           Write-Output "Detected: lane=$lane, is_main=$isMain"
