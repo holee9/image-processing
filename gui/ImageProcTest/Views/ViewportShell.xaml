@@ -277,7 +277,7 @@
                     <Run Text="VOI: " Foreground="#8a909c" />
                     <Run Text="{Binding RenderedVoiMode, Mode=OneWay, TargetNullValue=not applied}" Foreground="#f0f2f5" />
                 </TextBlock>
-                <TextBlock FontSize="10" FontFamily="Consolas">
+                <TextBlock FontSize="10" FontFamily="Consolas" AutomationProperties.AutomationId="HudCalibStages">
                     <Run Text="Calib: " Foreground="#8a909c" />
                     <Run Text="{Binding CalibStageCountDisplay, Mode=OneWay}" Foreground="#f0f2f5" />
                 </TextBlock>
@@ -358,7 +358,7 @@
             </Border.Effect>
             <StackPanel Orientation="Horizontal">
                 <Rectangle Width="4" Height="14" RadiusX="2" RadiusY="2" Fill="#7dd3fc" Margin="0,0,6,0" />
-                <TextBlock FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center">
+                <TextBlock FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" AutomationProperties.AutomationId="LaneATag">
                     <Run Text="A" Foreground="#7dd3fc" /><Run Text=" " />
                     <Run Text="{Binding RenderedLaneAAlgorithm, Mode=OneWay, TargetNullValue=—, FallbackValue=—}" Foreground="#b0b6c0" />
                 </TextBlock>
@@ -385,7 +385,7 @@
             </Border.Effect>
             <StackPanel Orientation="Horizontal">
                 <Rectangle Width="4" Height="14" RadiusX="2" RadiusY="2" Fill="#c4b5fd" Margin="0,0,6,0" />
-                <TextBlock FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center">
+                <TextBlock FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" AutomationProperties.AutomationId="LaneBTag">
                     <Run Text="B" Foreground="#c4b5fd" /><Run Text=" " />
                     <Run Text="{Binding RenderedLaneBAlgorithm, Mode=OneWay, TargetNullValue=—, FallbackValue=—}" Foreground="#b0b6c0" />
                 </TextBlock>

@@ -73,12 +73,7 @@ public sealed class PreprocessModuleLeakTests
     /// </summary>
     private static readonly string[] IntentionallyNotSwept = ["PreprocessHandshakeTests.PreprocessInit_WhileAnotherCallerHoldsTheModuleInitialised_IsRefused_AndSucceedsAfterAShutdown"];
 
-    private static readonly string[] CallMarkers =
-    [
-        "xpe_preprocess_init(",
-        "XpePreprocessNative.InitDelegate>(",
-        "GuiPreprocessRunner.Run(",
-    ];
+    private static readonly string[] CallMarkers = ImageProcTest.IntegrationTests.Fixtures.PreprocessModuleCallMarkers.All;
 
     private static readonly Regex TestMethod = new(@"\[(?:SkippableFact|Fact)[^\]]*\]\s*(?:\[[^\]]*\]\s*)*public\s+(?:async\s+Task|Task|void)\s+(\w+)\s*\(\s*\)");
 
@@ -162,7 +157,7 @@ public sealed class PreprocessModuleLeakTests
         {
             var relative = Path.GetRelativePath(project, file).Replace(Path.DirectorySeparatorChar, '/');
             if (relative.StartsWith("obj/", StringComparison.Ordinal) || relative.StartsWith("bin/", StringComparison.Ordinal) || relative.StartsWith("PInvoke/", StringComparison.Ordinal)
-                || relative is "Functional/PreprocessModuleCollectionGuardTests.cs" or "Functional/PreprocessModuleLeakTests.cs")   // the two files that only NAME the markers
+                || ImageProcTest.IntegrationTests.Fixtures.PreprocessModuleCallMarkers.FilesThatOnlyNameThem.Contains(relative))   // the files that only NAME the markers
             {
                 continue;
             }
