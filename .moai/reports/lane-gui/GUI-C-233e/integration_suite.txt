@@ -1,0 +1,4 @@
+[xUnit.net 00:00:23.33]     ImageProcTest.IntegrationTests.P1AReady.PreprocessHandshakeTests.PreprocessInitShutdown_WhenDllStaged_LifecycleSucceeds [FAIL]
+실패!  - 실패:     1, 통과:   944, 건너뜀:     2, 전체:   947, 기간: 24 s - ImageProcTest.IntegrationTests.dll (net8.0)
+
+재실행 (원인 미규명): PreprocessHandshakeTests.PreprocessInitShutdown_WhenDllStaged_LifecycleSucceeds 가 첫 전체 실행에서 1회 실패(위), 단독 3/3 통과, 전체 2회 재실행 945 통과/0 실패/2 건너뜀. 이 카드가 건드린 코드와 무관한 모듈 수명 시험이며, 간헐 실패의 원인은 확인하지 못했다.

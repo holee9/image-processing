@@ -975,10 +975,14 @@ public sealed class MainWindowViewModel : ObservableObject
         private set => SetProperty(ref _displayPipelineSummary, value);
     }
 
-    public string CalibrationEvaluationSummary =>
-        $"Offset={Settings.OffsetCorrectionMode}, Gain={Settings.GainCorrectionMode}, Defect={Settings.DefectCorrectionMode}, " +
-        $"Ghost={Settings.GhostCorrectionMode}, Temp={Settings.TemperatureCompensationMode}, " +
-        $"Nonlinearity={Settings.NonlinearityCorrectionMode}, Binning={Settings.BinningCorrectionMode}";
+    /// <summary>The calibration modes the settings ASK for now (the panel and the window title read this).</summary>
+    public string CalibrationEvaluationSummary => FormatCalibrationModes(Settings);
+
+    // GUI-C-233e (Codex #175): one formatter for both readings, so the report's `summary` (what a render USED) and `requested.summary` (what is asked for now) cannot differ in wording.
+    private static string FormatCalibrationModes(AppSettings s) =>
+        $"Offset={s.OffsetCorrectionMode}, Gain={s.GainCorrectionMode}, Defect={s.DefectCorrectionMode}, " +
+        $"Ghost={s.GhostCorrectionMode}, Temp={s.TemperatureCompensationMode}, " +
+        $"Nonlinearity={s.NonlinearityCorrectionMode}, Binning={s.BinningCorrectionMode}";
 
     public string CalibStageCountDisplay
     {
@@ -2388,7 +2392,8 @@ public sealed class MainWindowViewModel : ObservableObject
             },
             calibrationEvaluation = new
             {
-                summary = CalibrationEvaluationSummary,
+                // GUI-C-233e: the summary of what the displayed render USED, like the seven modes beside it (null while nothing was rendered for this frame); the one for what is asked for now is requested.summary
+                summary = _renderedInputs is null ? null : FormatCalibrationModes(_renderedInputs),
                 // GUI-C-233d: the modes the displayed render used (null before it); the modes asked for now are in `requested`
                 offset = _renderedInputs?.OffsetCorrectionMode,
                 gain = _renderedInputs?.GainCorrectionMode,
@@ -2399,6 +2404,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 binning = _renderedInputs?.BinningCorrectionMode,
                 requested = new
                 {
+                    summary = CalibrationEvaluationSummary,
                     offset = Settings.OffsetCorrectionMode,
                     gain = Settings.GainCorrectionMode,
                     defect = Settings.DefectCorrectionMode,
