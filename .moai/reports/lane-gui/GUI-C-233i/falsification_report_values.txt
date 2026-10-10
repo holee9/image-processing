@@ -1,0 +1,10 @@
+falsification run (Native requested, DLL folder empty) - the report the script read:
+  Passed = False
+  BackendMode = Native
+  ActualBackendMode = Mock
+  MockBackend = True
+  BackendMatchesRequest = False
+  BackendVersion = v0.0.0-mock
+  new assertion 'ActualBackendMode -eq Native': False
+  new assertion 'MockBackend -eq false': False
+  new assertion 'BackendVersion -notlike *mock*': False

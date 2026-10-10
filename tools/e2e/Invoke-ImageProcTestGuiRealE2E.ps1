@@ -13,6 +13,14 @@
 # (GUI-C-84). REQ-DISP-017 was amended to the DN domain; the code change is QA-B-82. This script
 # does not exercise presets. It is not run by CI.
 
+# GUI-C-233i: the backend-version assertion compares with the facts of the backend that was REQUESTED. It used to compare the Mock string (manifest) with a Native run, so the script could not
+# pass as soon as it asked for Native (2026-09-17). Native: the report must say Native, must not carry a mock version, and must equal what the loaded DLL itself reports
+# (xpe_display_version(), read here through P/Invoke from the same folder the app was given); Mock: the manifest's Mock value.
+param(
+    [ValidateSet('Native', 'Mock')]
+    [string]$Backend = 'Native'
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -60,7 +68,7 @@ Remove-Item $reportFile -ErrorAction SilentlyContinue
 
 $process = Start-Process -FilePath $mainExe `
     -WorkingDirectory (Split-Path -Parent $mainExe) `
-    -ArgumentList @('--automation-raw', $rawFile, '--automation-report', $reportFile, '--automation-backend', 'Native') `
+    -ArgumentList @('--automation-raw', $rawFile, '--automation-report', $reportFile, '--automation-backend', $Backend) `
     -PassThru
 
 Assert-Condition ($process.WaitForExit(30000)) 'ImageProcTest automation mode did not exit within 30 seconds.'
@@ -69,9 +77,38 @@ Assert-Condition (Test-Path $reportFile) "Automation report was not created: $re
 $report = Get-Content $reportFile -Raw | ConvertFrom-Json
 
 Assert-Condition ($report.Passed -eq $true) ("Automation report marked failure.`n{0}" -f (Get-Content $reportFile -Raw))
-Assert-Condition ($report.BackendVersion -eq $manifest.expectedTelemetry.backendVersion) 'Unexpected backend version in automation report.'
+Assert-Condition ($report.ActualBackendMode -eq $Backend) ("The {0} backend was requested but the report says {1} ran (BackendMatchesRequest={2})." -f $Backend, $report.ActualBackendMode, $report.BackendMatchesRequest)
+if ($Backend -eq 'Mock') {
+    Assert-Condition ($report.BackendVersion -eq $manifest.expectedTelemetry.backendVersionMock) ("Unexpected Mock backend version in automation report: '{0}' (manifest: '{1}')." -f $report.BackendVersion, $manifest.expectedTelemetry.backendVersionMock)
+}
+else {
+    Assert-Condition ($report.MockBackend -eq $false) 'Native was requested but the report says the mock backend ran.'
+    Assert-Condition ($report.BackendVersion -notlike '*mock*') ("Native was requested but the reported backend version is a mock string: '{0}'." -f $report.BackendVersion)
+    # the DLL's own answer, from the folder the app was pointed at (XPE_NATIVE_DIR), else the app's folder
+    $nativeDir = if ($env:XPE_NATIVE_DIR) { $env:XPE_NATIVE_DIR } else { Split-Path -Parent $mainExe }
+    Assert-Condition (Test-Path (Join-Path $nativeDir 'xpe_display.dll')) "xpe_display.dll not found in the native folder '$nativeDir'; the DLL's version cannot be read."
+    Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class XpeDllVersionProbe {
+    [DllImport("kernel32", SetLastError = true)] static extern bool SetDllDirectory(string path);
+    [DllImport("xpe_display", EntryPoint = "xpe_display_version")] static extern IntPtr DisplayVersion();
+    public static string Read(string dir) { SetDllDirectory(dir); return Marshal.PtrToStringAnsi(DisplayVersion()); }
+}
+"@
+    $dllVersion = [XpeDllVersionProbe]::Read($nativeDir)
+    Assert-Condition (-not [string]::IsNullOrWhiteSpace($dllVersion)) 'xpe_display_version() returned nothing.'
+    Assert-Condition ($report.BackendVersion -eq ('xpe_display {0}' -f $dllVersion)) ("Backend version in the report ('{0}') is not the loaded DLL's ('xpe_display {1}', read from {2})." -f $report.BackendVersion, $dllVersion, $nativeDir)
+    Assert-Condition ($report.DisplayVersion -eq $dllVersion) ("Display version in the report ('{0}') is not the DLL's ('{1}')." -f $report.DisplayVersion, $dllVersion)
+}
 Assert-Condition ($report.InitialLogCount -ge [int]$manifest.expectedTelemetry.initialLogCount) 'Initial log count is too low.'
-Assert-Condition ($report.InitialAlertCount -eq [int]$manifest.expectedTelemetry.initialAlertCount) 'Initial alert count must match fixture manifest.'
+$expectedAlerts = if ($Backend -eq 'Mock') { [int]$manifest.expectedTelemetry.initialAlertCountMock } else { [int]$manifest.expectedTelemetry.initialAlertCountNative }
+Assert-Condition ($report.InitialAlertCount -eq $expectedAlerts) ("Initial alert count of the {0} backend must match the fixture manifest: report {1}, manifest {2}." -f $Backend, $report.InitialAlertCount, $expectedAlerts)
+if ($Backend -eq 'Native') {
+    # the one Native alert is named, so a different single alert cannot satisfy the count
+    $runtimeLog = Get-Content -LiteralPath $report.RuntimeLogExportPath -Raw
+    Assert-Condition ($runtimeLog -match ('ALERT INFO ' + [regex]::Escape($manifest.expectedTelemetry.initialAlertNative))) ("The Native start-up alert '{0}' is not in the exported runtime log." -f $manifest.expectedTelemetry.initialAlertNative)
+}
 Assert-Condition ($report.LogCountAfterLoad -gt $report.InitialLogCount) 'Load action did not increase log count.'
 Assert-Condition ($report.ActiveImageSummary -like ("RAW {0}x{1}*" -f $manifest.rawSample.width, $manifest.rawSample.height)) 'Raw image summary was not updated.'
 Assert-Condition ($report.LastRawDirPersisted -eq $true) 'lastRawDir was not persisted.'
