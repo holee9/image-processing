@@ -1,8 +1,9 @@
 namespace ImageProcTest.IntegrationTests.Functional;
 
 /// <summary>
-/// GUI-C-233g (Codex #176, finding 2): xpe_preprocess.dll has one process-wide state, so every test file that initialises or runs it must be in <c>PreprocessModuleCollection</c> (xUnit runs
-/// different collections in parallel). A new file that calls the module and forgets the attribute is the next intermittent failure; this finds it by what the file DOES (its calls), not by its name.
+/// GUI-C-233g (Codex #176, finding 2): xpe_preprocess.dll has one process-wide state, so every test file that initialises or runs it is declared in <c>PreprocessModuleCollection</c>. Today
+/// xunit.runner.json runs everything serially, so this is a protective device for a future parallel run, not a cure; a new file that calls the module and forgets the attribute would be
+/// exposed then. This finds it by what the file DOES (its calls), not by its name.
 /// </summary>
 public sealed class PreprocessModuleCollectionGuardTests
 {

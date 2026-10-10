@@ -1271,7 +1271,8 @@ internal static class LifetimeScenarios
         var by = display.GetProperty("renderedBy");
         return $"| {eventName,-44} | {(vm.CurrentRender is null ? "none" : vm.CurrentRender.Backend.Mode),-6} | {Text(display.GetProperty("applied")),-5} | {(by.ValueKind == System.Text.Json.JsonValueKind.Null ? "null" : by.GetProperty("backendMode").GetString()),-6} | "
             + $"{Text(display.GetProperty("version")),-18} | {Text(display.GetProperty("windowSource")),-13} | {(Text(calibration.GetProperty("summary")).Length > 0 && calibration.GetProperty("summary").ValueKind != System.Text.Json.JsonValueKind.Null ? "set" : "null"),-4} | "
-            + $"{(chain.GetProperty("stages").GetArrayLength() == 0 ? "empty" : "stages"),-6} | {chain.GetProperty("displayInput").GetString(),-7} | {(vm.PreviewStaleReason is null ? "-" : vm.PreviewStaleReason == MainWindowViewModel.StaleBackendReplaced ? "backend" : vm.PreviewStaleReason == MainWindowViewModel.StalePipelineFailed ? "failed" : "settings"),-9} | {root.GetProperty("actualBackendMode").GetString()} |";
+            + $"{(chain.GetProperty("stages").GetArrayLength() == 0 ? "empty" : "stages"),-6} | {chain.GetProperty("displayInput").GetString(),-7} | {(vm.PreviewStaleReason is null ? "-" : vm.PreviewStaleReason == MainWindowViewModel.StaleBackendReplaced ? "backend" : vm.PreviewStaleReason == MainWindowViewModel.StalePipelineFailed ? "failed" : "settings"),-9} | "
+            + $"{(vm.LaneAImage is null ? "-" : "A")}/{(vm.LaneBImage is null ? "-" : "B")}{(vm.CurrentRender is { LaneA: not null } r && r.Backend.Mode is { } m ? " by " + m : string.Empty),-9} | {root.GetProperty("actualBackendMode").GetString()} |";
     }
 
     /// <summary>With no render standing, EVERY field the record feeds says so: the properties, the HUD values and the whole report agree on "none".</summary>
@@ -1282,6 +1283,7 @@ internal static class LifetimeScenarios
         var calibration = root.GetProperty("calibrationEvaluation");
         var chain = root.GetProperty("processingChain");
         Check(vm.CurrentRender is null && vm.LastChain is null && !vm.HasPipelineDiagnostics, $"after {after}: a render record still stands");
+        Check(vm.LaneAImage is null && vm.LaneBImage is null && !vm.LaneBIsStale, $"after {after}: the comparison lanes still show a render's pictures (A={(vm.LaneAImage is null ? "none" : "set")}, B={(vm.LaneBImage is null ? "none" : "set")})");
         Check(vm.ChainStatus == "chain: not run" && string.IsNullOrEmpty(vm.PipelineTimings) && vm.DisplayPipelineSummary == "Display pipeline has not run.", $"after {after}: status/timings/summary are still a render's: '{vm.ChainStatus}' / '{vm.PipelineTimings}' / '{vm.DisplayPipelineSummary}'");
         Check(vm.RenderedVoiCenter is null && vm.RenderedVoiWidth is null && vm.RenderedVoiMode is null && vm.RenderedVoiAutomatic is null, $"after {after}: the HUD window is still a render's");
         Check(!vm.PreprocessRan && string.IsNullOrEmpty(vm.PreprocessStages) && string.IsNullOrEmpty(vm.AiProcessedLabel), $"after {after}: preprocess/AI diagnostics are still a render's");
@@ -1308,7 +1310,7 @@ internal static class LifetimeScenarios
 
             var vm = NewViewModel(width, height, For, directory, out _);
             var rows = new List<string>();
-            Console.WriteLine("| event                                        | record | appl. | by     | display version    | windowSource  | cal. | chain  | input   | stale     | actual |");
+            Console.WriteLine("| event                                        | record | appl. | by     | display version    | windowSource  | cal. | chain  | input   | stale     | lanes A/B     | actual |");
 
             // 0. before any load
             CheckNoRender(vm, "start-up");
@@ -1321,6 +1323,7 @@ internal static class LifetimeScenarios
             var rootA = ReportRoot(vm).GetProperty("displayPipeline");
             Check(rootA.GetProperty("applied").GetBoolean() && rootA.GetProperty("renderedBy").GetProperty("backendMode").GetString() == "Mock", $"A's report does not name the Mock backend: {rootA}");
             Check(vm.RenderedVoiMode == recordA!.Voi.Mode && vm.ChainStatus == recordA.ChainStatus && vm.DisplayPipelineSummary == recordA.DisplaySummary, "A's HUD/status properties are not the record's");
+            Check(vm.LaneAImage is not null && vm.LaneBImage is not null && ReferenceEquals(recordA.LaneA, vm.LaneAImage) && ReferenceEquals(vm.LaneAImage, vm.ProcessedImage), "A's lanes are not the record's / the Reference is not the main picture");
             rows.Add(TableRow("A rendered (Mock)", vm));
 
             // 2. a setting changes and nothing is re-applied: the SAME record stands, only `requested` moves
@@ -1334,6 +1337,7 @@ internal static class LifetimeScenarios
             vm.ApplyDisplayPipelineCommand.Execute(null);
             await Until(() => vm.PreviewStaleReason == MainWindowViewModel.StalePipelineFailed, "the same-frame re-render's failure to be reported");
             Check(ReferenceEquals(vm.CurrentRender, recordA), "a failed re-render of the same frame replaced or dropped the record of the picture that is still shown");
+            Check(vm.LaneAImage is not null && vm.LaneBImage is not null && ReferenceEquals(vm.LaneAImage, recordA.LaneA), "a failed same-frame re-render took the lanes away although the picture and its record stand");
             Check(ReportRoot(vm).GetProperty("displayPipeline").GetProperty("windowSource").GetString() == "failed", "the report does not say the last attempt failed");
             rows.Add(TableRow("same frame re-render, display fails", vm));
 
@@ -1373,8 +1377,9 @@ internal static class LifetimeScenarios
 
             // 4. a successful re-render under the new backend: the record names it
             vm.ApplyDisplayPipelineCommand.Execute(null);
-            await Until(() => vm.CurrentRender is not null, "the re-render under the Native backend to commit");
+            await Until(() => vm.CurrentRender is not null && vm.LaneBImage is not null, "the re-render under the Native backend to commit with its lanes");
             await FlushUi();
+            Check(vm.CurrentRender!.Backend.Mode == "Native" && vm.LaneAImage is not null, "the lanes after the Native re-render are not drawn by the Native backend's render");
             var recordN = vm.CurrentRender!;
             Check(recordN.Backend.Mode == "Native" && recordN.Backend.DisplayVersion == "native-display-9.9" && vm.PreviewStaleReason is null, $"the re-render's record is not the Native backend's: {recordN.Backend}");
             Check(ReportRoot(vm).GetProperty("displayPipeline").GetProperty("version").GetString() == "native-display-9.9", "the report's display version is not the producing backend's");

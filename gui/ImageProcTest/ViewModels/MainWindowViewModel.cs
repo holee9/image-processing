@@ -59,8 +59,6 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _showAlertsPanel = true;
 
     // Slice 2 — workbench VM-only backing fields
-    private System.Windows.Media.ImageSource? _laneAImage;
-    private System.Windows.Media.ImageSource? _laneBImage;
     private string _activeStudyId = string.Empty;
     private RunSetState _runSet = new();
     private Verdict? _activeVerdict;
@@ -746,9 +744,6 @@ public sealed class MainWindowViewModel : ObservableObject
         RefreshAiWorkerStatus();
     }
 
-    private float _renderedLaneBWidth;
-    private string _renderedLaneBAlgorithm = string.Empty;
-    private double _renderedLaneBDenoiseK = 2.0;
 
     /// <summary>The pixel chain of the processed image on screen (#180, GUI-C-99), or null before the first render.</summary>
     public ChainResult? LastChain => _render?.Chain;
@@ -1023,8 +1018,23 @@ public sealed class MainWindowViewModel : ObservableObject
         RefreshParametersStale();
     }
 
+    private long _renderSequence;
+
+    /// <summary>
+    /// GUI-C-233h: adds what becomes known AFTER the commit (the lane pictures, the timings) to the record it belongs to - and only if that render is still the one on screen. Matching is by
+    /// <see cref="RenderRecord.Id"/>, not by object: every update makes a new record, so an object comparison would drop the second update.
+    /// </summary>
+    private void UpdateRender(long id, Func<RenderRecord, RenderRecord> change)
+    {
+        if (_render is { } current && current.Id == id)
+        {
+            SetRender(change(current));
+        }
+    }
+
     private static readonly string[] RenderDerivedProperties =
     [
+        nameof(LaneAImage), nameof(LaneBImage), nameof(LaneBIsStale),
         nameof(CurrentRender), nameof(LastChain), nameof(HasPipelineDiagnostics), nameof(ChainStatus), nameof(PipelineTimings), nameof(DisplayPipelineSummary),
         nameof(RenderedVoiCenter), nameof(RenderedVoiWidth), nameof(RenderedVoiMode), nameof(RenderedVoiAutomatic),
         nameof(PreprocessRan), nameof(PreprocessStages), nameof(AiProcessedLabel),
@@ -1414,17 +1424,10 @@ public sealed class MainWindowViewModel : ObservableObject
     public bool LaneBDenoiseKUnapplied => !LaneBDenoiseKApplies;
 
     // Slice 2 — VM-only properties
-    public System.Windows.Media.ImageSource? LaneAImage
-    {
-        get => _laneAImage;
-        private set => SetProperty(ref _laneAImage, value);
-    }
+    // GUI-C-233h: the comparison lanes are part of the render record (they were the one piece of the drawn image outside it): they go with it, and they come from the backend that made the render.
+    public System.Windows.Media.ImageSource? LaneAImage => _render?.LaneA;
 
-    public System.Windows.Media.ImageSource? LaneBImage
-    {
-        get => _laneBImage;
-        private set => SetProperty(ref _laneBImage, value);
-    }
+    public System.Windows.Media.ImageSource? LaneBImage => _render?.LaneB;
 
     public string ActiveStudyId
     {
@@ -2638,14 +2641,15 @@ public sealed class MainWindowViewModel : ObservableObject
                 chainReport.PreprocessRan,
                 chainReport.PreprocessStages,
                 processedFrame.DisplayPipelineSummary,
-                Timings: string.Empty);
+                Timings: string.Empty,
+                Id: ++_renderSequence);
             SetRender(committed);
             MetadataText = processedFrame.MetadataText;
             ActiveImageSummary = processedFrame.DisplayPipelineApplied
                 ? $"{processedFrame.Summary} | {processedFrame.DisplayPipelineSummary}"
                 : processedFrame.Summary;
             StatusText = $"{chain.Summary} | {processedFrame.DisplayPipelineSummary}";
-            await RenderLanesAsync(sourceFrame, inputs, ProcessedImage, ticket);
+            await RenderLanesAsync(sourceFrame, inputs, ProcessedImage, ticket, committed.Id);
             if (!IsCurrent(ticket))
             {
                 return; // the lanes' wait outlived the backend: the timing line below would describe a render that was dropped
@@ -2658,18 +2662,13 @@ public sealed class MainWindowViewModel : ObservableObject
             RefreshAiWorkerStatus();
 
             // The timings exist only after the lanes finished; they are added to THIS render's record, and only if it is still the one on screen (a newer render or an invalidation wins).
-            if (ReferenceEquals(_render, committed))
+            var timings = string.Join("; ", new[]
             {
-                SetRender(committed with
-                {
-                    Timings = string.Join("; ", new[]
-                    {
-                        $"work={workMs:0} ms",
-                        $"vm={total.Elapsed.TotalMilliseconds - workMs:0} ms",
-                        processedFrame.DisplayTimings,
-                    }.Where(part => !string.IsNullOrWhiteSpace(part))),
-                });
-            }
+                $"work={workMs:0} ms",
+                $"vm={total.Elapsed.TotalMilliseconds - workMs:0} ms",
+                processedFrame.DisplayTimings,
+            }.Where(part => !string.IsNullOrWhiteSpace(part)));
+            UpdateRender(committed.Id, r => r with { Timings = timings });
 
             OnPropertyChanged(nameof(FaultInjectionStatus));
         }
@@ -3733,7 +3732,7 @@ public sealed class MainWindowViewModel : ObservableObject
     /// and must draw identical pixels. That is the control case: if they differ there, the lanes are
     /// not drawing the same original.</para>
     /// </summary>
-    private async Task RenderLanesAsync(LoadedImageFrame sourceFrame, AppSettings inputs, System.Windows.Media.ImageSource? reference, BackendTicket ticket)
+    private async Task RenderLanesAsync(LoadedImageFrame sourceFrame, AppSettings inputs, System.Windows.Media.ImageSource? reference, BackendTicket ticket, long renderId)
     {
         // GUI-C-186e: the Candidate's chain (which can include the AI stage, and so the AI session gate) runs in the background like the
         // main render's does. It used to run here, on the UI thread, after the await above: measured 3028 ms of UI-dispatcher
@@ -3753,7 +3752,7 @@ public sealed class MainWindowViewModel : ObservableObject
             // The Reference IS what the main viewport just drew — same original, same settings. Running
             // the pipeline again for it would be a second computation of a result already in hand, and
             // it would not be the same claim either: two runs of one setting can only agree.
-            LaneAImage = reference;
+            UpdateRender(renderId, r => r with { LaneA = reference });
 
             // With no override the Candidate is the Reference, so nothing is run for it either. That
             // keeps an ordinary apply at exactly one pipeline call — measured: adding a second and third
@@ -3784,17 +3783,12 @@ public sealed class MainWindowViewModel : ObservableObject
                     return;
                 }
 
-                LaneBImage = candidateImage;
+                UpdateRender(renderId, r => r with { LaneB = candidateImage });
             }
             else
             {
-                LaneBImage = reference;
+                UpdateRender(renderId, r => r with { LaneB = reference });
             }
-
-            _renderedLaneBWidth = inputs.LaneBVoiWindowWidth;
-            _renderedLaneBAlgorithm = inputs.LaneBAlgorithm;
-            _renderedLaneBDenoiseK = inputs.LaneBGsvgDenoiseK;
-            OnPropertyChanged(nameof(LaneBIsStale));
         }
         catch (Exception ex)
         {
@@ -3806,8 +3800,7 @@ public sealed class MainWindowViewModel : ObservableObject
             }
 
             Log($"Lane rendering failed: {ex.Message}");
-            LaneAImage = null;
-            LaneBImage = null;
+            UpdateRender(renderId, r => r with { LaneA = null, LaneB = null });
         }
     }
 
@@ -3824,9 +3817,10 @@ public sealed class MainWindowViewModel : ObservableObject
     /// edit to it cannot make the Reference wrong.
     /// </summary>
     public bool LaneBIsStale =>
-        Math.Abs(Settings.LaneBVoiWindowWidth - _renderedLaneBWidth) > 0.0001f
-        || !string.Equals(Settings.LaneBAlgorithm, _renderedLaneBAlgorithm, StringComparison.Ordinal)
-        || Math.Abs(Settings.LaneBGsvgDenoiseK - _renderedLaneBDenoiseK) > 0.0001;
+        _render is { } rendered
+        && (Math.Abs(Settings.LaneBVoiWindowWidth - rendered.Inputs.LaneBVoiWindowWidth) > 0.0001f
+            || !string.Equals(Settings.LaneBAlgorithm, rendered.Inputs.LaneBAlgorithm, StringComparison.Ordinal)
+            || Math.Abs(Settings.LaneBGsvgDenoiseK - rendered.Inputs.LaneBGsvgDenoiseK) > 0.0001);
 
     /// <summary>The chain of the image on screen, for the reports (#180, GUI-C-99).</summary>
     public object DescribeChain() => new

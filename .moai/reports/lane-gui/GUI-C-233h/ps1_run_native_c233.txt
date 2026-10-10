@@ -1,0 +1,7 @@
+Unexpected backend version in automation report.
+위치 D:\workspace-github\xpe-gui\tools\e2e\Invoke-ImageProcTestGuiRealE2E.ps1:26 문자:9
++         throw $Message
++         ~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Unexpected back...omation report.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Unexpected backend version in automation report.
+
