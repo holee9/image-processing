@@ -11,6 +11,7 @@ namespace ImageProcTest.IntegrationTests.P1AReady;
 /// Covers REQ-GUI-IT-060, AC-14, AC-15.
 /// </summary>
 [Trait("Category", "P1AReady")]
+[Collection(ImageProcTest.IntegrationTests.Fixtures.PreprocessModuleCollection.Name)]
 public sealed class PreprocessHandshakeTests
 {
     private static readonly string? DllPath = XpePreprocessNative.TryFindDll();
@@ -60,9 +61,55 @@ public sealed class PreprocessHandshakeTests
             var init = Marshal.GetDelegateForFunctionPointer<XpePreprocessNative.InitDelegate>(initSym);
             var shutdown = Marshal.GetDelegateForFunctionPointer<XpePreprocessNative.ShutdownDelegate>(shutdownSym);
 
-            var result = init(IntPtr.Zero);
-            Assert.Equal(XpeCommonNative.XpeErrorCode.OK, result);
+            // GUI-C-233g: start from a KNOWN state (this test used to assume the module was uninitialised) and end in one on every path, including a failed assertion.
             shutdown();
+            try
+            {
+                var result = init(IntPtr.Zero);
+                Assert.Equal(XpeCommonNative.XpeErrorCode.OK, result);
+            }
+            finally
+            {
+                shutdown();
+            }
+        }
+        finally
+        {
+            NativeLibrary.Free(handle);
+        }
+    }
+
+    /// <summary>
+    /// GUI-C-233g (Codex #176): the mechanism behind the intermittent failure of the test above, made deterministic. The module has one process-wide state; while a test has it initialised, a second
+    /// <c>xpe_preprocess_init</c> is refused (INVALID_INPUT), which is exactly the assertion that failed. Hence every class that touches the module is in <see cref="PreprocessModuleCollection"/>, and this
+    /// test pins both halves: init without a prior shutdown is refused, init after one succeeds.
+    /// </summary>
+    [SkippableFact]
+    public void PreprocessInit_WhileAnotherCallerHoldsTheModuleInitialised_IsRefused_AndSucceedsAfterAShutdown()
+    {
+        SkipHelper.SkipIf(DllPath is null, SkipReason);
+
+        SkipHelper.SkipIf(!NativeLibrary.TryLoad(DllPath!, out var handle), $"Skipped: xpe_preprocess.dll load failed: {DllPath}");
+
+        try
+        {
+            Assert.True(NativeLibrary.TryGetExport(handle, "xpe_preprocess_init", out var initSym));
+            Assert.True(NativeLibrary.TryGetExport(handle, "xpe_preprocess_shutdown", out var shutdownSym));
+            var init = Marshal.GetDelegateForFunctionPointer<XpePreprocessNative.InitDelegate>(initSym);
+            var shutdown = Marshal.GetDelegateForFunctionPointer<XpePreprocessNative.ShutdownDelegate>(shutdownSym);
+
+            shutdown();
+            try
+            {
+                Assert.Equal(XpeCommonNative.XpeErrorCode.OK, init(IntPtr.Zero));                    // the "other caller" now holds the module
+                Assert.NotEqual(XpeCommonNative.XpeErrorCode.OK, init(IntPtr.Zero));                 // a second caller without a shutdown: refused - the failure observed in the full runs
+                shutdown();
+                Assert.Equal(XpeCommonNative.XpeErrorCode.OK, init(IntPtr.Zero));                    // with the start-of-test shutdown the same call succeeds
+            }
+            finally
+            {
+                shutdown();
+            }
         }
         finally
         {

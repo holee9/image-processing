@@ -94,7 +94,7 @@ internal class ScenarioBackend : IXpeBackend
         _inner.Shutdown();
     }
 
-    public BackendRuntimeInfo Initialize(AppSettings settings) => _inner.Initialize(settings);
+    public virtual BackendRuntimeInfo Initialize(AppSettings settings) => _inner.Initialize(settings);
 
     public string GetVersion() => _inner.GetVersion();
 
@@ -104,7 +104,17 @@ internal class ScenarioBackend : IXpeBackend
 
     public TelemetrySnapshot GetTelemetrySince(int logsSeen, int alertsSeen) => _inner.GetTelemetrySince(logsSeen, alertsSeen);
 
-    public BackendRuntimeInfo GetRuntimeInfo() => _inner.GetRuntimeInfo();
+    public virtual BackendRuntimeInfo GetRuntimeInfo() => _inner.GetRuntimeInfo();
+}
+
+/// <summary>GUI-C-233g: a scripted backend that identifies itself as the native one (RealXpeBackend, its own display version), so a Mock to Native switch can be driven without the DLLs.</summary>
+internal sealed class NativeNamedBackend : ScenarioBackend
+{
+    private static BackendRuntimeInfo Info() => new() { BackendName = "RealXpeBackend", Version = "native-9.9", DisplayVersion = "native-display-9.9", NativeSource = "scripted" };
+
+    public override BackendRuntimeInfo Initialize(AppSettings settings) => Info();
+
+    public override BackendRuntimeInfo GetRuntimeInfo() => Info();
 }
 
 /// <summary>
@@ -330,6 +340,7 @@ internal static class LifetimeScenarios
                         await Timed(() => EqualLanesMakeOneAiCallPerApply(rawPath, width, height));
                         await Timed(() => TheHudShowsTheWindowThatWasApplied_NotTheSettings(rawPath, width, height));
                         await Timed(() => TheAutomationReportDescribesTheCurrentFrame_NotThePreviousOne(rawPath, width, height));
+                        await Timed(() => EveryEventLeavesTheHudAndTheReportEqualToTheRenderRecord(rawPath, width, height));
                         await Timed(() => TheSaveCandidateOfAnOlderApplyFinishingLateIsNeverCommitted(rawPath, width, height));
                         await Timed(() => AFailedOpenKeepsTheSaveNameAndTheCandidateOfTheImageThatIsStillOpen(rawPath, width, height));
 #if XPE_TEST_FAULTS
@@ -1240,6 +1251,155 @@ internal static class LifetimeScenarios
             Check(failed.GetProperty("requested").GetProperty("automatic").GetBoolean(), $"the report does not say what is asked for now: {failed}");
             Check(rootB.GetProperty("calibrationEvaluation").GetProperty("summary").ValueKind == System.Text.Json.JsonValueKind.Null, $"B's report carries a calibration summary no render of B produced: {rootB.GetProperty("calibrationEvaluation").GetProperty("summary")}");
             Check(rootB.GetProperty("calibrationEvaluation").GetProperty("offset").ValueKind == System.Text.Json.JsonValueKind.Null && failed.GetProperty("bodyPart").ValueKind == System.Text.Json.JsonValueKind.Null, $"B's report carries calibration/display values no render of B used: {rootB.GetProperty("calibrationEvaluation")}");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- GUI-C-233g: every event x every field -------------------------------------------------------------------------------------------------
+
+    /// <summary>One row of the event x field table: what the record, the HUD properties and the whole report say right after an event.</summary>
+    private static string TableRow(string eventName, MainWindowViewModel vm)
+    {
+        var root = ReportRoot(vm);
+        var display = root.GetProperty("displayPipeline");
+        var calibration = root.GetProperty("calibrationEvaluation");
+        var chain = root.GetProperty("processingChain");
+        string Text(System.Text.Json.JsonElement e) => e.ValueKind == System.Text.Json.JsonValueKind.Null ? "null" : e.ToString();
+        var by = display.GetProperty("renderedBy");
+        return $"| {eventName,-44} | {(vm.CurrentRender is null ? "none" : vm.CurrentRender.Backend.Mode),-6} | {Text(display.GetProperty("applied")),-5} | {(by.ValueKind == System.Text.Json.JsonValueKind.Null ? "null" : by.GetProperty("backendMode").GetString()),-6} | "
+            + $"{Text(display.GetProperty("version")),-18} | {Text(display.GetProperty("windowSource")),-13} | {(Text(calibration.GetProperty("summary")).Length > 0 && calibration.GetProperty("summary").ValueKind != System.Text.Json.JsonValueKind.Null ? "set" : "null"),-4} | "
+            + $"{(chain.GetProperty("stages").GetArrayLength() == 0 ? "empty" : "stages"),-6} | {chain.GetProperty("displayInput").GetString(),-7} | {(vm.PreviewStaleReason is null ? "-" : vm.PreviewStaleReason == MainWindowViewModel.StaleBackendReplaced ? "backend" : vm.PreviewStaleReason == MainWindowViewModel.StalePipelineFailed ? "failed" : "settings"),-9} | {root.GetProperty("actualBackendMode").GetString()} |";
+    }
+
+    /// <summary>With no render standing, EVERY field the record feeds says so: the properties, the HUD values and the whole report agree on "none".</summary>
+    private static void CheckNoRender(MainWindowViewModel vm, string after)
+    {
+        var root = ReportRoot(vm);
+        var display = root.GetProperty("displayPipeline");
+        var calibration = root.GetProperty("calibrationEvaluation");
+        var chain = root.GetProperty("processingChain");
+        Check(vm.CurrentRender is null && vm.LastChain is null && !vm.HasPipelineDiagnostics, $"after {after}: a render record still stands");
+        Check(vm.ChainStatus == "chain: not run" && string.IsNullOrEmpty(vm.PipelineTimings) && vm.DisplayPipelineSummary == "Display pipeline has not run.", $"after {after}: status/timings/summary are still a render's: '{vm.ChainStatus}' / '{vm.PipelineTimings}' / '{vm.DisplayPipelineSummary}'");
+        Check(vm.RenderedVoiCenter is null && vm.RenderedVoiWidth is null && vm.RenderedVoiMode is null && vm.RenderedVoiAutomatic is null, $"after {after}: the HUD window is still a render's");
+        Check(!vm.PreprocessRan && string.IsNullOrEmpty(vm.PreprocessStages) && string.IsNullOrEmpty(vm.AiProcessedLabel), $"after {after}: preprocess/AI diagnostics are still a render's");
+        Check(!display.GetProperty("applied").GetBoolean() && display.GetProperty("version").ValueKind == System.Text.Json.JsonValueKind.Null && display.GetProperty("renderedBy").ValueKind == System.Text.Json.JsonValueKind.Null, $"after {after}: the report names a producer or says applied: {display}");
+        Check(display.GetProperty("windowSource").GetString() is "not applied" or "failed" && display.GetProperty("mode").ValueKind == System.Text.Json.JsonValueKind.Null && display.GetProperty("center").ValueKind == System.Text.Json.JsonValueKind.Null && display.GetProperty("bodyPart").ValueKind == System.Text.Json.JsonValueKind.Null, $"after {after}: the report's window/bodyPart are still a render's: {display}");
+        Check(calibration.GetProperty("summary").ValueKind == System.Text.Json.JsonValueKind.Null && calibration.GetProperty("offset").ValueKind == System.Text.Json.JsonValueKind.Null, $"after {after}: the report's calibration is still a render's: {calibration}");
+        Check(chain.GetProperty("stages").GetArrayLength() == 0 && chain.GetProperty("displayInput").GetString() == "not run" && chain.GetProperty("status").GetString() == "chain: not run" && chain.GetProperty("exposureKvp").ValueKind == System.Text.Json.JsonValueKind.Null, $"after {after}: the report's chain is still a render's: {chain}");
+    }
+
+    private static async Task EveryEventLeavesTheHudAndTheReportEqualToTheRenderRecord(string rawPath, int width, int height)
+    {
+        _scenario = "13 event x field table";
+        var directory = TempDirectory();
+        try
+        {
+            // builds 1 and 2 are the constructor's; 3 is the switch to Native, 4 the switch back to Mock, 5 a re-initialisation, 6 the second Native
+            var built = new List<ScenarioBackend>();
+            ScenarioBackend For(int build)
+            {
+                ScenarioBackend backend = build is 3 or 6 ? new NativeNamedBackend() : new VoiReportingBackend();
+                built.Add(backend);
+                return backend;
+            }
+
+            var vm = NewViewModel(width, height, For, directory, out _);
+            var rows = new List<string>();
+            Console.WriteLine("| event                                        | record | appl. | by     | display version    | windowSource  | cal. | chain  | input   | stale     | actual |");
+
+            // 0. before any load
+            CheckNoRender(vm, "start-up");
+            rows.Add(TableRow("start-up (nothing loaded)", vm));
+
+            // 1. frame A rendered by the first (Mock-named) backend
+            await LoadAndDrawLanes(vm, rawPath);
+            var recordA = vm.CurrentRender;
+            Check(recordA is not null && recordA.Backend.Mode == "Mock" && recordA.Chain.Stages.Count > 0, "frame A has no Mock record");
+            var rootA = ReportRoot(vm).GetProperty("displayPipeline");
+            Check(rootA.GetProperty("applied").GetBoolean() && rootA.GetProperty("renderedBy").GetProperty("backendMode").GetString() == "Mock", $"A's report does not name the Mock backend: {rootA}");
+            Check(vm.RenderedVoiMode == recordA!.Voi.Mode && vm.ChainStatus == recordA.ChainStatus && vm.DisplayPipelineSummary == recordA.DisplaySummary, "A's HUD/status properties are not the record's");
+            rows.Add(TableRow("A rendered (Mock)", vm));
+
+            // 2. a setting changes and nothing is re-applied: the SAME record stands, only `requested` moves
+            vm.Settings.OffsetCorrectionMode = string.Equals(vm.Settings.OffsetCorrectionMode, "Off", StringComparison.OrdinalIgnoreCase) ? "On" : "Off";
+            Check(ReferenceEquals(vm.CurrentRender, recordA), "a settings change replaced or dropped the record");
+            rows.Add(TableRow("setting changed, not re-applied", vm));
+
+            // 2b. the SAME frame is rendered again and the display fails: the picture on screen is unchanged, so its record stands (same object), marked failed - the report says "failed", not "applied just now"
+            var current = (VoiReportingBackend)built[^1];
+            current.FailAutomaticWindow = true;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => vm.PreviewStaleReason == MainWindowViewModel.StalePipelineFailed, "the same-frame re-render's failure to be reported");
+            Check(ReferenceEquals(vm.CurrentRender, recordA), "a failed re-render of the same frame replaced or dropped the record of the picture that is still shown");
+            Check(ReportRoot(vm).GetProperty("displayPipeline").GetProperty("windowSource").GetString() == "failed", "the report does not say the last attempt failed");
+            rows.Add(TableRow("same frame re-render, display fails", vm));
+
+            // 2c. a NEW frame whose display fails: nothing of A survives
+            var secondFrame = Path.Combine(directory, "second_frame.raw");
+            File.Copy(rawPath, secondFrame);
+            Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", secondFrame);
+            try
+            {
+                vm.LoadImageCommand.Execute(null);
+                await Until(() => vm.StatusText.StartsWith("Display pipeline failed", StringComparison.Ordinal) && vm.CurrentRender is null, "frame B's failed render to be reported");
+                await FlushUi();
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", null);
+            }
+
+            CheckNoRender(vm, "new frame whose display fails");
+            rows.Add(TableRow("new frame, display fails", vm));
+
+            // back to a standing render for the backend switches
+            current.FailAutomaticWindow = false;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => vm.CurrentRender is not null && vm.PreviewStaleReason is null, "frame B to render once the display works");
+            await FlushUi();
+            rows.Add(TableRow("B rendered (Mock)", vm));
+
+            // 3. Mock -> Native: the Mock-made picture is not described as the Native backend's
+            vm.SetBackendModeCommand.Execute("Native");
+            await FlushUi();
+            CheckNoRender(vm, "Mock -> Native");
+            Check(vm.ActualBackendMode == "Native" && ReportRoot(vm).GetProperty("actualBackendMode").GetString() == "Native", "the current runtime is not Native after the switch");
+            Check(vm.PreviewStaleReason == MainWindowViewModel.StaleBackendReplaced, $"the stale reason after the switch is '{vm.PreviewStaleReason}'");
+            Check(ReferenceEquals(vm.ProcessedImage, vm.SourceImage), "the viewport still shows the old backend's processed picture after the switch");
+            rows.Add(TableRow("Mock -> Native", vm));
+
+            // 4. a successful re-render under the new backend: the record names it
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => vm.CurrentRender is not null, "the re-render under the Native backend to commit");
+            await FlushUi();
+            var recordN = vm.CurrentRender!;
+            Check(recordN.Backend.Mode == "Native" && recordN.Backend.DisplayVersion == "native-display-9.9" && vm.PreviewStaleReason is null, $"the re-render's record is not the Native backend's: {recordN.Backend}");
+            Check(ReportRoot(vm).GetProperty("displayPipeline").GetProperty("version").GetString() == "native-display-9.9", "the report's display version is not the producing backend's");
+            rows.Add(TableRow("re-render succeeded (Native)", vm));
+
+            // 5. Native -> Mock
+            vm.SetBackendModeCommand.Execute("Mock");
+            await FlushUi();
+            CheckNoRender(vm, "Native -> Mock");
+            Check(vm.ActualBackendMode == "Mock", "the current runtime is not Mock after the switch back");
+            rows.Add(TableRow("Native -> Mock", vm));
+
+            // 6. a render, then a re-initialisation of the same mode
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => vm.CurrentRender is not null, "the re-render under the Mock backend to commit");
+            await FlushUi();
+            vm.InitializeBackendCommand.Execute(null);
+            await FlushUi();
+            CheckNoRender(vm, "re-initialisation");
+            rows.Add(TableRow("re-initialise (same mode)", vm));
+
+            foreach (var row in rows)
+            {
+                Console.WriteLine(row);
+            }
         }
         finally
         {
